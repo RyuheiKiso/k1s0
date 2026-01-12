@@ -31,9 +31,3 @@ tools:
 - `docs/`
 - `README.md`
 - `CONTRIBUTING.md`
-
-## ブランチ戦略
-
-- 新しいタスクごとにブランチを作成し、GitHub Issue 番号を含める (例: `feature/issue-123-description`)
-- 定期的に `main` ブランチからリベースまたはマージして最新状態を保つ
-- `main` ブランチに直接コミットすることは許可されない

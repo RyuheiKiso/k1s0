@@ -10,19 +10,16 @@ tools:
 
 ## 手順 (#tool:todo)
 
-1. #tool:agent/runSubagent で issue エージェントを呼び出し、イシューを作成する
-2. #tool:agent/runSubagent で plan エージェントを呼び出し、実装計画を立てる
-3. #tool:agent/runSubagent で impl エージェントを呼び出し、実装を行う
-4. #tool:agent/runSubagent で review エージェントを呼び出し、コードレビューと修正を行う
-5. 必要に応じてステップ 3 と 4 を繰り返す
-6. #tool:agent/runSubagent で pr エージェントを呼び出し、プルリクエストを作成する
-7. 実装内容とプルリクエストのリンクをユーザーに通知する
+1. #tool:agent/runSubagent で plan エージェントを呼び出し、実装計画を立てる
+2. #tool:agent/runSubagent で impl エージェントを呼び出し、実装を行う
+3. #tool:agent/runSubagent で review エージェントを呼び出し、コードレビューと修正を行う
+4. 必要に応じてステップ 2 と 3 を繰り返す
 
 ## サブエージェント呼び出し方法
 
 各カスタムエージェントを呼び出す際は、以下のパラメータを指定してください。
 
-- **agentName**: 呼び出すエージェント名（例: `issue`, `plan`, `impl`, `review`, `pr`）
+- **agentName**: 呼び出すエージェント名（例: `plan`, `impl`, `review`）
 - **prompt**: サブエージェントへの入力（前のステップの出力を次のステップの入力とする）
 - **description**: チャットに表示されるサブエージェントの説明
 
