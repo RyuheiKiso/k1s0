@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://k1s0.dev/schemas/manifest.schema.json",
+  "title": "k1s0 Manifest",
+  "description": "k1s0 によって生成されたサービスのメタ情報。CLI が管理し、手動編集は非推奨。",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "k1s0_version",
+    "template",
+    "service",
+    "generated_at",
+    "managed_paths",
+    "protected_paths"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "manifest スキーマのバージョン",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0"]
+    },
+    "k1s0_version": {
+      "type": "string",
+      "description": "生成時の k1s0 バージョン（SemVer）",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["0.1.0"]
+    },
+    "template": {
+      "type": "object",
+      "description": "生成元テンプレートの情報",
+      "required": ["name", "version", "path", "fingerprint"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "テンプレート名",
+          "examples": ["backend-rust", "frontend-react"]
+        },
+        "version": {
+          "type": "string",
+          "description": "テンプレートバージョン（= k1s0_version）",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "source": {
+          "type": "string",
+          "description": "テンプレートのソース（local / registry）",
+          "enum": ["local", "registry"],
+          "default": "local"
+        },
+        "path": {
+          "type": "string",
+          "description": "テンプレートのパス（k1s0 リポジトリ内の相対パス）",
+          "examples": ["CLI/templates/backend-rust/feature"]
+        },
+        "revision": {
+          "type": "string",
+          "description": "テンプレートの Git リビジョン（コミットハッシュ）",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "fingerprint": {
+          "type": "string",
+          "description": "テンプレートの fingerprint（SHA-256 ハッシュ）",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "service": {
+      "type": "object",
+      "description": "生成されたサービスの情報",
+      "required": ["service_name", "language", "type"],
+      "properties": {
+        "service_name": {
+          "type": "string",
+          "description": "サービス名（kebab-case）",
+          "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+          "examples": ["user-management", "order-processing"]
+        },
+        "language": {
+          "type": "string",
+          "description": "プログラミング言語",
+          "enum": ["rust", "go", "typescript", "dart"]
+        },
+        "type": {
+          "type": "string",
+          "description": "サービスタイプ",
+          "enum": ["backend", "frontend", "bff"]
+        },
+        "framework": {
+          "type": "string",
+          "description": "使用フレームワーク",
+          "examples": ["axum", "react", "flutter"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "generated_at": {
+      "type": "string",
+      "description": "生成日時（ISO 8601 形式）",
+      "format": "date-time",
+      "examples": ["2026-01-25T10:30:00Z"]
+    },
+    "managed_paths": {
+      "type": "array",
+      "description": "CLI が管理するパス（upgrade 時に自動更新される）",
+      "items": {
+        "type": "string"
+      },
+      "examples": [
+        ["deploy/", "config/", ".github/"]
+      ]
+    },
+    "protected_paths": {
+      "type": "array",
+      "description": "CLI が変更しないパス（ビジネスロジック領域）",
+      "items": {
+        "type": "string"
+      },
+      "examples": [
+        ["src/domain/", "src/application/"]
+      ]
+    },
+    "update_policy": {
+      "type": "object",
+      "description": "パス別の更新ポリシー",
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["auto", "suggest_only", "protected"],
+        "description": "auto: 自動更新, suggest_only: 差分提示のみ, protected: 変更しない"
+      },
+      "examples": [
+        {
+          "src/main.rs": "suggest_only",
+          "src/presentation/": "suggest_only",
+          "src/infrastructure/": "suggest_only"
+        }
+      ]
+    },
+    "checksums": {
+      "type": "object",
+      "description": "managed_paths 内のファイルのチェックサム（変更検知用）",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      },
+      "examples": [
+        {
+          "deploy/base/deployment.yaml": "abc123...",
+          "config/default.yaml": "def456..."
+        }
+      ]
+    },
+    "template_snapshot": {
+      "type": "object",
+      "description": "生成時のテンプレートファイル一覧とハッシュ（差分計算用）",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "framework crate への依存情報",
+      "properties": {
+        "framework_crates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "version"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "examples": ["k1s0-config", "k1s0-error"]
+              },
+              "version": {
+                "type": "string",
+                "pattern": "^\\d+\\.\\d+\\.\\d+$"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

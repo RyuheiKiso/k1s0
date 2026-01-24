@@ -11,6 +11,7 @@
 | [API 契約管理規約](api-contracts.md) | gRPC/REST の契約管理、互換性ルール |
 | [観測性規約](observability.md) | ログ/トレース/メトリクスの出力規約 |
 | [エラーハンドリング規約](error-handling.md) | エラー表現、エラーコード、レスポンス形式 |
+| [バージョニング規約](versioning.md) | SemVer、互換性ポリシー、manifest スキーマ |
 
 ## 規約の位置づけ
 

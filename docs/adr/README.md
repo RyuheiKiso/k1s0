@@ -46,6 +46,7 @@ ADR-{4桁連番}-{kebab-case-title}.md
 | ADR | タイトル | ステータス |
 |-----|---------|-----------|
 | [ADR-0001](ADR-0001-scope-and-prerequisites.md) | k1s0 実装スコープと前提の固定 | 承認済み |
+| [ADR-0002](ADR-0002-versioning-and-manifest.md) | バージョニングと manifest の型の固定 | 承認済み |
 
 ## テンプレート
 
