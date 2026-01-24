@@ -2,9 +2,10 @@
 //!
 //! シェル補完スクリプトを生成する。
 
-use anyhow::Result;
 use clap::{Args, CommandFactory, ValueEnum};
-use clap_complete::{generate, Shell};
+use clap_complete::{Shell, generate};
+
+use crate::error::Result;
 
 /// シェルの種類
 #[derive(ValueEnum, Clone, Debug)]

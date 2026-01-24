@@ -2,8 +2,10 @@
 //!
 //! 規約違反を検査する。
 
-use anyhow::Result;
 use clap::Args;
+
+use crate::error::Result;
+use crate::output::output;
 
 /// `k1s0 lint` の引数
 #[derive(Args, Debug)]
@@ -24,10 +26,6 @@ pub struct LintArgs {
     #[arg(long)]
     pub strict: bool,
 
-    /// JSON 形式で出力する
-    #[arg(long)]
-    pub json: bool,
-
     /// 自動修正を試みる
     #[arg(long)]
     pub fix: bool,
@@ -35,26 +33,31 @@ pub struct LintArgs {
 
 /// `k1s0 lint` を実行する
 pub fn execute(args: LintArgs) -> Result<()> {
-    println!("k1s0 lint");
-    println!("  path: {}", args.path);
+    let out = output();
+
+    out.header("k1s0 lint");
+    out.newline();
+
+    out.list_item("path", &args.path);
     if let Some(rules) = &args.rules {
-        println!("  rules: {}", rules);
+        out.list_item("rules", rules);
     }
     if let Some(exclude) = &args.exclude_rules {
-        println!("  exclude_rules: {}", exclude);
+        out.list_item("exclude_rules", exclude);
     }
-    println!("  strict: {}", args.strict);
-    println!("  json: {}", args.json);
-    println!("  fix: {}", args.fix);
-    println!();
-    println!("TODO: 実装予定（フェーズ14）");
-    println!();
-    println!("検査項目:");
-    println!("  - manifest: .k1s0/manifest.json の存在・整合性");
-    println!("  - structure: 必須ディレクトリ/ファイルの存在");
-    println!("  - env-var: 環境変数参照の禁止");
-    println!("  - secrets: config/*.yaml への機密値直書き禁止");
-    println!("  - dependency: Clean Architecture の依存方向");
+    out.list_item("strict", &args.strict.to_string());
+    out.list_item("fix", &args.fix.to_string());
+    out.newline();
+
+    out.info("TODO: 実装予定（フェーズ14）");
+    out.newline();
+
+    out.header("検査項目:");
+    out.hint("manifest: .k1s0/manifest.json の存在・整合性");
+    out.hint("structure: 必須ディレクトリ/ファイルの存在");
+    out.hint("env-var: 環境変数参照の禁止");
+    out.hint("secrets: config/*.yaml への機密値直書き禁止");
+    out.hint("dependency: Clean Architecture の依存方向");
 
     Ok(())
 }

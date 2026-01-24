@@ -13,6 +13,11 @@ use clap::{Parser, Subcommand};
 use once_cell::sync::Lazy;
 
 pub mod commands;
+pub mod error;
+pub mod output;
+
+pub use error::{CliError, ExitCode, Result};
+pub use output::{init_output, output, Output, OutputConfig, OutputMode};
 
 /// k1s0 バージョン（k1s0-version.txt から取得）
 static VERSION_STRING: Lazy<String> = Lazy::new(|| {
@@ -46,6 +51,25 @@ pub struct Cli {
     /// カラー出力を無効にする
     #[arg(long, global = true)]
     pub no_color: bool,
+
+    /// JSON 形式で出力する
+    #[arg(long, global = true)]
+    pub json: bool,
+}
+
+impl Cli {
+    /// 出力設定を作成
+    pub fn output_config(&self) -> OutputConfig {
+        OutputConfig {
+            mode: if self.json {
+                OutputMode::Json
+            } else {
+                OutputMode::Human
+            },
+            color: !self.no_color,
+            verbose: self.verbose,
+        }
+    }
 }
 
 /// 利用可能なサブコマンド

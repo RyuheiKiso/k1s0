@@ -2,8 +2,10 @@
 //!
 //! 新規サービスの雛形を生成する。
 
-use anyhow::Result;
 use clap::{Args, ValueEnum};
+
+use crate::error::{CliError, Result};
+use crate::output::output;
 
 /// サービスタイプ
 #[derive(ValueEnum, Clone, Debug)]
@@ -67,12 +69,11 @@ pub struct NewFeatureArgs {
 
 /// `k1s0 new-feature` を実行する
 pub fn execute(args: NewFeatureArgs) -> Result<()> {
+    let out = output();
+
     // サービス名のバリデーション（kebab-case）
     if !is_valid_kebab_case(&args.name) {
-        anyhow::bail!(
-            "サービス名は kebab-case で指定してください: {}",
-            args.name
-        );
+        return Err(CliError::invalid_service_name(&args.name));
     }
 
     let output_path = args.output.clone().unwrap_or_else(|| {
@@ -85,21 +86,25 @@ pub fn execute(args: NewFeatureArgs) -> Result<()> {
         format!("{}/{}", type_path, args.name)
     });
 
-    println!("k1s0 new-feature");
-    println!("  type: {}", args.service_type);
-    println!("  name: {}", args.name);
-    println!("  output: {}", output_path);
-    println!("  force: {}", args.force);
-    println!("  with_grpc: {}", args.with_grpc);
-    println!("  with_rest: {}", args.with_rest);
-    println!("  with_db: {}", args.with_db);
-    println!();
-    println!("TODO: 実装予定（フェーズ12）");
-    println!();
-    println!("実行内容:");
-    println!("  1. テンプレートから雛形を生成");
-    println!("  2. .k1s0/manifest.json を作成");
-    println!("  3. 生成後の k1s0 lint を実行");
+    out.header("k1s0 new-feature");
+    out.newline();
+
+    out.list_item("type", &args.service_type.to_string());
+    out.list_item("name", &args.name);
+    out.list_item("output", &output_path);
+    out.list_item("force", &args.force.to_string());
+    out.list_item("with_grpc", &args.with_grpc.to_string());
+    out.list_item("with_rest", &args.with_rest.to_string());
+    out.list_item("with_db", &args.with_db.to_string());
+    out.newline();
+
+    out.info("TODO: 実装予定（フェーズ12）");
+    out.newline();
+
+    out.header("実行内容:");
+    out.hint("1. テンプレートから雛形を生成");
+    out.hint("2. .k1s0/manifest.json を作成");
+    out.hint("3. 生成後の k1s0 lint を実行");
 
     Ok(())
 }

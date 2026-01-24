@@ -2,8 +2,10 @@
 //!
 //! リポジトリを初期化し、.k1s0/ ディレクトリを作成する。
 
-use anyhow::Result;
 use clap::Args;
+
+use crate::error::Result;
+use crate::output::output;
 
 /// `k1s0 init` の引数
 #[derive(Args, Debug)]
@@ -23,17 +25,23 @@ pub struct InitArgs {
 
 /// `k1s0 init` を実行する
 pub fn execute(args: InitArgs) -> Result<()> {
-    println!("k1s0 init");
-    println!("  path: {}", args.path);
-    println!("  force: {}", args.force);
-    println!("  template_source: {}", args.template_source);
-    println!();
-    println!("TODO: 実装予定（フェーズ11）");
-    println!();
-    println!("実行内容:");
-    println!("  1. .k1s0/ ディレクトリを作成");
-    println!("  2. 初期設定ファイルを生成");
-    println!("  3. プロジェクト共通テンプレートを展開");
+    let out = output();
+
+    out.header("k1s0 init");
+    out.newline();
+
+    out.list_item("path", &args.path);
+    out.list_item("force", &args.force.to_string());
+    out.list_item("template_source", &args.template_source);
+    out.newline();
+
+    out.info("TODO: 実装予定（フェーズ11）");
+    out.newline();
+
+    out.header("実行内容:");
+    out.hint("1. .k1s0/ ディレクトリを作成");
+    out.hint("2. 初期設定ファイルを生成");
+    out.hint("3. プロジェクト共通テンプレートを展開");
 
     Ok(())
 }

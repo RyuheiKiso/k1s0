@@ -2,8 +2,10 @@
 //!
 //! テンプレートの更新を確認・適用する。
 
-use anyhow::Result;
 use clap::Args;
+
+use crate::error::Result;
+use crate::output::output;
 
 /// `k1s0 upgrade` の引数
 #[derive(Args, Debug)]
@@ -39,40 +41,45 @@ pub struct UpgradeArgs {
 
 /// `k1s0 upgrade` を実行する
 pub fn execute(args: UpgradeArgs) -> Result<()> {
-    if args.check {
-        println!("k1s0 upgrade --check");
-    } else {
-        println!("k1s0 upgrade");
-    }
+    let out = output();
 
-    println!("  path: {}", args.path);
-    println!("  check: {}", args.check);
-    println!("  yes: {}", args.yes);
-    println!("  managed_only: {}", args.managed_only);
+    if args.check {
+        out.header("k1s0 upgrade --check");
+    } else {
+        out.header("k1s0 upgrade");
+    }
+    out.newline();
+
+    out.list_item("path", &args.path);
+    out.list_item("check", &args.check.to_string());
+    out.list_item("yes", &args.yes.to_string());
+    out.list_item("managed_only", &args.managed_only.to_string());
     if let Some(version) = &args.to_version {
-        println!("  to_version: {}", version);
+        out.list_item("to_version", version);
     }
-    println!("  backup: {}", args.backup);
-    println!("  apply_migrations: {}", args.apply_migrations);
-    println!();
+    out.list_item("backup", &args.backup.to_string());
+    out.list_item("apply_migrations", &args.apply_migrations.to_string());
+    out.newline();
 
     if args.check {
-        println!("TODO: 実装予定（フェーズ32）");
-        println!();
-        println!("実行内容:");
-        println!("  1. manifest.json と新テンプレートの差分を計算");
-        println!("  2. managed_paths の変更対象を一覧表示");
-        println!("  3. 衝突（手動変更されたファイル）を検知");
-        println!("  4. MAJOR 変更の場合、ADR/UPGRADE.md の存在を確認");
+        out.info("TODO: 実装予定（フェーズ32）");
+        out.newline();
+
+        out.header("実行内容:");
+        out.hint("1. manifest.json と新テンプレートの差分を計算");
+        out.hint("2. managed_paths の変更対象を一覧表示");
+        out.hint("3. 衝突（手動変更されたファイル）を検知");
+        out.hint("4. MAJOR 変更の場合、ADR/UPGRADE.md の存在を確認");
     } else {
-        println!("TODO: 実装予定（フェーズ33）");
-        println!();
-        println!("実行内容:");
-        println!("  1. upgrade --check を実行");
-        println!("  2. managed_paths のみパッチを適用");
-        println!("  3. protected_paths は差分提示のみ");
-        println!("  4. 衝突時は手動解決を促して停止");
-        println!("  5. manifest.json を更新");
+        out.info("TODO: 実装予定（フェーズ33）");
+        out.newline();
+
+        out.header("実行内容:");
+        out.hint("1. upgrade --check を実行");
+        out.hint("2. managed_paths のみパッチを適用");
+        out.hint("3. protected_paths は差分提示のみ");
+        out.hint("4. 衝突時は手動解決を促して停止");
+        out.hint("5. manifest.json を更新");
     }
 
     Ok(())
