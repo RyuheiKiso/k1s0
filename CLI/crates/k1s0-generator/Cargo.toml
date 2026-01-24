@@ -1,0 +1,22 @@
+[package]
+name = "k1s0-generator"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "k1s0 テンプレート展開・差分適用ライブラリ"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+walkdir.workspace = true
+glob.workspace = true
+sha2.workspace = true
+tera.workspace = true
+
+[dev-dependencies]
+tempfile = "3.10"
