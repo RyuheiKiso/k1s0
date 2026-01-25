@@ -156,3 +156,145 @@ impl Manifest {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::NamedTempFile;
+
+    fn create_test_manifest() -> Manifest {
+        Manifest {
+            schema_version: SCHEMA_VERSION.to_string(),
+            k1s0_version: "0.1.0".to_string(),
+            template: TemplateInfo {
+                name: "backend-rust".to_string(),
+                version: "0.1.0".to_string(),
+                source: "local".to_string(),
+                path: "CLI/templates/backend-rust/feature".to_string(),
+                revision: None,
+                fingerprint: "abcd1234".to_string(),
+            },
+            service: ServiceInfo {
+                service_name: "test-service".to_string(),
+                language: "rust".to_string(),
+                service_type: "backend".to_string(),
+                framework: None,
+            },
+            generated_at: "2026-01-25T10:00:00Z".to_string(),
+            managed_paths: vec!["deploy/".to_string(), "buf.yaml".to_string()],
+            protected_paths: vec!["src/domain/".to_string(), "src/application/".to_string()],
+            update_policy: std::collections::HashMap::from([
+                ("deploy/".to_string(), UpdatePolicy::Auto),
+                ("src/domain/".to_string(), UpdatePolicy::Protected),
+            ]),
+            checksums: std::collections::HashMap::new(),
+            dependencies: None,
+        }
+    }
+
+    #[test]
+    fn test_manifest_save_and_load() {
+        let manifest = create_test_manifest();
+        let temp_file = NamedTempFile::new().unwrap();
+        let path = temp_file.path();
+
+        // 保存
+        manifest.save(path).unwrap();
+
+        // 読み込み
+        let loaded = Manifest::load(path).unwrap();
+
+        // 検証
+        assert_eq!(loaded.schema_version, manifest.schema_version);
+        assert_eq!(loaded.k1s0_version, manifest.k1s0_version);
+        assert_eq!(loaded.template.name, manifest.template.name);
+        assert_eq!(loaded.template.fingerprint, manifest.template.fingerprint);
+        assert_eq!(loaded.service.service_name, manifest.service.service_name);
+        assert_eq!(loaded.managed_paths, manifest.managed_paths);
+        assert_eq!(loaded.protected_paths, manifest.protected_paths);
+    }
+
+    #[test]
+    fn test_manifest_load_not_found() {
+        let result = Manifest::load("/nonexistent/path/manifest.json");
+        assert!(result.is_err());
+        match result {
+            Err(Error::ManifestNotFound(_)) => {}
+            _ => panic!("Expected ManifestNotFound error"),
+        }
+    }
+
+    #[test]
+    fn test_manifest_validate_empty_service_name() {
+        let mut manifest = create_test_manifest();
+        manifest.service.service_name = "".to_string();
+
+        let result = manifest.validate();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_manifest_validate_success() {
+        let manifest = create_test_manifest();
+        assert!(manifest.validate().is_ok());
+    }
+
+    #[test]
+    fn test_update_policy_serialization() {
+        let policy = UpdatePolicy::Auto;
+        let serialized = serde_json::to_string(&policy).unwrap();
+        assert_eq!(serialized, "\"auto\"");
+
+        let policy = UpdatePolicy::SuggestOnly;
+        let serialized = serde_json::to_string(&policy).unwrap();
+        assert_eq!(serialized, "\"suggest_only\"");
+
+        let policy = UpdatePolicy::Protected;
+        let serialized = serde_json::to_string(&policy).unwrap();
+        assert_eq!(serialized, "\"protected\"");
+    }
+
+    #[test]
+    fn test_manifest_json_roundtrip() {
+        let manifest = create_test_manifest();
+
+        // JSON に変換
+        let json = serde_json::to_string_pretty(&manifest).unwrap();
+
+        // JSON から復元
+        let restored: Manifest = serde_json::from_str(&json).unwrap();
+
+        // 検証
+        assert_eq!(restored.schema_version, manifest.schema_version);
+        assert_eq!(restored.k1s0_version, manifest.k1s0_version);
+        assert_eq!(restored.template.name, manifest.template.name);
+        assert_eq!(restored.template.version, manifest.template.version);
+        assert_eq!(restored.template.path, manifest.template.path);
+        assert_eq!(restored.template.fingerprint, manifest.template.fingerprint);
+        assert_eq!(restored.service.service_name, manifest.service.service_name);
+        assert_eq!(restored.service.language, manifest.service.language);
+        assert_eq!(restored.service.service_type, manifest.service.service_type);
+    }
+
+    #[test]
+    fn test_load_generated_manifest() {
+        // 実際に生成された manifest.json を読み込むテスト
+        // このテストは feature/backend/rust/test-service/.k1s0/manifest.json が存在する場合のみ有効
+        let manifest_path = std::path::Path::new("../../feature/backend/rust/test-service/.k1s0/manifest.json");
+        if manifest_path.exists() {
+            let manifest = Manifest::load(manifest_path).unwrap();
+
+            // フェーズ13の要件を検証
+            assert!(!manifest.k1s0_version.is_empty(), "k1s0_version は必須");
+            assert!(!manifest.template.name.is_empty(), "template.name は必須");
+            assert!(!manifest.template.version.is_empty(), "template.version は必須");
+            assert!(!manifest.template.path.is_empty(), "template.path は必須");
+            assert!(!manifest.template.fingerprint.is_empty(), "template.fingerprint は必須");
+            assert!(!manifest.managed_paths.is_empty(), "managed_paths は必須");
+            assert!(!manifest.protected_paths.is_empty(), "protected_paths は必須");
+
+            // バリデーション
+            assert!(manifest.validate().is_ok());
+        }
+    }
+}
