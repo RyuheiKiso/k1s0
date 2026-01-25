@@ -1,0 +1,6 @@
+//! リポジトリ実装
+//!
+//! domain::ports で定義された trait の具体的な実装を提供する。
+
+// TODO: リポジトリ実装を定義
+// pub mod example_repository_impl;

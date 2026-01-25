@@ -18,6 +18,9 @@ pub mod manifest;
 pub mod template;
 pub mod walker;
 
+// Tera の Context を再エクスポート
+pub use tera::Context;
+
 /// k1s0-generator のエラー型
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

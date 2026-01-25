@@ -1,5 +1,0 @@
-//! gRPC API
-//!
-//! tonic を使用した gRPC API エンドポイントを提供する。
-
-// TODO: gRPC サービス実装を追加

@@ -1,38 +1,39 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: k1s0-prod
-
 resources:
   - ../../base
+
+namespace: {{ feature_name }}-prod
 
 commonLabels:
   env: prod
 
 replicas:
-  - name: {{ service_name }}
+  - name: {{ feature_name }}
     count: 3
 
 configMapGenerator:
-  - name: {{ service_name }}-config
-    behavior: replace
+  - name: {{ feature_name }}-config
+    behavior: merge
     files:
-      - prod.yaml=../../../../config/prod.yaml
+      - prod.yaml=config/prod.yaml
 
+# 本番環境のリソース制限
 patches:
-  - patch: |-
+  - target:
+      kind: Deployment
+      name: {{ feature_name }}
+    patch: |-
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/cpu
-        value: "200m"
+        value: 200m
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/memory
-        value: "256Mi"
+        value: 256Mi
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/cpu
-        value: "1000m"
+        value: 1000m
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/memory
-        value: "1Gi"
-    target:
-      kind: Deployment
-      name: {{ service_name }}
+        value: 1Gi

@@ -1,21 +1,9 @@
-//! インフラストラクチャ層
+//! {{ feature_name }} インフラストラクチャ層
 //!
-//! 外部システムとの接続を担う層。
-//! domain 層で定義された trait（リポジトリ等）の具象実装を提供する。
-//!
-//! # 構成
-//!
-//! - `db/`: データベース関連（リポジトリ実装）
-//! - `cache/`: キャッシュ関連
-//! - `config/`: 設定読み込み
-//! - `logging/`: ログ出力
-//!
-//! # 依存ルール
-//!
-//! - domain 層の trait を実装する
-//! - 外部クレート（sqlx, redis 等）に依存してよい
+//! 外部システム（DB、キャッシュ、外部API等）との接続を実装する。
+//! domain 層で定義されたポート（trait）を実装する。
 
-pub mod cache;
-pub mod config;
-pub mod db;
-pub mod logging;
+{% if with_db -%}
+pub mod database;
+{% endif -%}
+pub mod repositories;

@@ -1,27 +1,42 @@
 syntax = "proto3";
 
-package {{ service_name | replace(from="-", to="_") }}.v1;
+package {{ feature_name_snake }}.v1;
 
-option go_package = "github.com/k1s0/{{ service_name }}/gen/go/{{ service_name | replace(from="-", to="_") }}/v1";
+option go_package = "github.com/your-org/{{ feature_name }}/gen/go/{{ feature_name_snake }}/v1";
 
-// {{ service_name }} サービス
-service {{ service_name | replace(from="-", to="_") | pascal_case }}Service {
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+// {{ feature_name_pascal }} サービス
+service {{ feature_name_pascal }}Service {
   // ヘルスチェック
-  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+  rpc HealthCheck(google.protobuf.Empty) returns (HealthCheckResponse);
 
   // TODO: サービス固有の RPC を定義
+  // rpc GetExample(GetExampleRequest) returns (GetExampleResponse);
 }
-
-// ヘルスチェックリクエスト
-message HealthCheckRequest {}
 
 // ヘルスチェックレスポンス
 message HealthCheckResponse {
-  // サービスの状態
-  enum ServingStatus {
-    UNKNOWN = 0;
-    SERVING = 1;
-    NOT_SERVING = 2;
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_SERVING = 1;
+    STATUS_NOT_SERVING = 2;
   }
-  ServingStatus status = 1;
+  Status status = 1;
 }
+
+// TODO: リクエスト/レスポンスメッセージを定義
+// message GetExampleRequest {
+//   string id = 1;
+// }
+//
+// message GetExampleResponse {
+//   Example example = 1;
+// }
+//
+// message Example {
+//   string id = 1;
+//   string name = 2;
+//   google.protobuf.Timestamp created_at = 3;
+// }

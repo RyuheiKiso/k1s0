@@ -1,18 +1,12 @@
-//! プレゼンテーション層
+//! {{ feature_name }} プレゼンテーション層
 //!
-//! API エンドポイントを提供する層。
-//! HTTP/gRPC のルーティング、DTO、バリデーション、エラー変換を担当する。
-//!
-//! # 構成
-//!
-//! - `http/`: REST API（axum）
-//! - `grpc/`: gRPC API（tonic）
-//!
-//! # 依存ルール
-//!
-//! - application 層に依存する
-//! - domain 型と DTO の変換を行う
-//! - エラーを HTTP/gRPC 表現に変換する
+//! HTTP/gRPC エンドポイント、DTO、バリデーション、エラー変換を定義する。
 
+pub mod dto;
+pub mod errors;
+{% if with_grpc -%}
 pub mod grpc;
+{% endif -%}
+{% if with_rest -%}
 pub mod http;
+{% endif -%}

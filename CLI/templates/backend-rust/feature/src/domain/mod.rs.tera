@@ -1,23 +1,9 @@
-//! ドメイン層
+//! {{ feature_name }} ドメイン層
 //!
-//! ビジネスロジックの中核を担う層。
-//! 他の層に依存せず、純粋なビジネスルールのみを記述する。
-//!
-//! # 構成
-//!
-//! - `entities/`: エンティティ（識別子を持つビジネスオブジェクト）
-//! - `value_objects/`: 値オブジェクト（不変で識別子を持たないオブジェクト）
-//! - `repositories/`: リポジトリ trait（永続化の抽象）
-//!
-//! # 依存ルール
-//!
-//! - この層は他の層に依存してはならない
-//! - 外部クレート（serde 等）への依存は最小限に留める
-//! - リポジトリは trait として定義し、実装は infrastructure 層に委譲する
+//! ビジネスロジックとドメインモデルを定義する。
+//! この層は infrastructure や presentation に依存しない。
 
 pub mod entities;
-pub mod error;
-pub mod repositories;
+pub mod errors;
+pub mod ports;
 pub mod value_objects;
-
-pub use error::DomainError;

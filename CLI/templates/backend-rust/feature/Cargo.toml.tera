@@ -1,25 +1,53 @@
 [package]
-name = "{{ service_name }}"
+name = "{{ feature_name }}"
 version = "0.1.0"
-edition = "2024"
-rust-version = "1.85"
-description = "{{ service_name }} サービス"
+edition = "2021"
+description = "{{ feature_name }} service"
 
 [dependencies]
+# Framework crates
+# k1s0-config = { path = "../../../../framework/backend/rust/crates/config" }
+# k1s0-error = { path = "../../../../framework/backend/rust/crates/error" }
+# k1s0-observability = { path = "../../../../framework/backend/rust/crates/observability" }
+
 # Async runtime
 tokio = { version = "1", features = ["full"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+serde_yaml = "0.9"
 
-# Error handling
-thiserror = "2"
-anyhow = "1"
+# gRPC
+{% if with_grpc -%}
+tonic = "0.11"
+prost = "0.12"
+{% endif -%}
 
-# Logging
+# HTTP (REST)
+{% if with_rest -%}
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+{% endif -%}
+
+# Database
+{% if with_db -%}
+sqlx = { version = "0.7", features = ["runtime-tokio", "postgres"] }
+{% endif -%}
+
+# Observability
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+{% if with_grpc -%}
+[build-dependencies]
+tonic-build = "0.11"
+{% endif -%}
 
 [dev-dependencies]
 tokio-test = "0.4"

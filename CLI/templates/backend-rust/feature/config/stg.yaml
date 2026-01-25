@@ -1,0 +1,13 @@
+# ステージング環境設定
+
+logging:
+  level: info
+
+# database:
+#   host: db-stg.internal
+#   port: 5432
+
+observability:
+  tracing:
+    enabled: true
+    endpoint: "http://otel-collector.observability.svc:4317"

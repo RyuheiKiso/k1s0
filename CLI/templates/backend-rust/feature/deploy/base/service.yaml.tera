@@ -1,17 +1,23 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ service_name }}
+  name: {{ feature_name }}
 spec:
-  type: ClusterIP
   selector:
-    app: {{ service_name }}
+    app: {{ feature_name }}
   ports:
-    - name: http
-      port: 8080
-      targetPort: http
-      protocol: TCP
+{% if with_grpc %}
     - name: grpc
       port: 50051
       targetPort: grpc
-      protocol: TCP
+{% endif %}
+{% if with_rest %}
+    - name: http
+      port: 80
+      targetPort: http
+{% endif %}
+{% if not with_grpc and not with_rest %}
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+{% endif %}

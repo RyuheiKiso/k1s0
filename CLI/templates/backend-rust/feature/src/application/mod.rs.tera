@@ -1,19 +1,7 @@
-//! アプリケーション層
+//! {{ feature_name }} アプリケーション層
 //!
-//! ユースケースを実装する層。
-//! domain 層のエンティティと infrastructure 層のリポジトリを組み合わせて、
-//! ビジネスロジックを実行する。
-//!
-//! # 構成
-//!
-//! - `usecases/`: ユースケース（アプリケーションサービス）
-//! - `services/`: 複数ユースケースで共有するサービス
-//!
-//! # 依存ルール
-//!
-//! - domain 層に依存する
-//! - infrastructure 層の具象には依存しない（trait 経由で利用）
-//! - presentation 層には依存しない
+//! ユースケースとアプリケーションサービスを定義する。
+//! domain 層に依存し、presentation 層から呼び出される。
 
 pub mod services;
 pub mod usecases;

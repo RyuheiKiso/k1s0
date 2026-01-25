@@ -1,0 +1,18 @@
+# 本番環境設定
+
+logging:
+  level: info
+
+# database:
+#   host: db-prod.internal
+#   port: 5432
+#   pool:
+#     min_connections: 5
+#     max_connections: 20
+
+observability:
+  tracing:
+    enabled: true
+    endpoint: "http://otel-collector.observability.svc:4317"
+  metrics:
+    enabled: true

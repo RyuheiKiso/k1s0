@@ -7,6 +7,5 @@ resources:
   - configmap.yaml
 
 commonLabels:
-  app: {{ service_name }}
-  app.kubernetes.io/name: {{ service_name }}
-  app.kubernetes.io/component: backend
+  app: {{ feature_name }}
+  managed-by: k1s0

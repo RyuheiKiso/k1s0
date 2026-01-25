@@ -1,75 +1,113 @@
 openapi: 3.1.0
 info:
-  title: {{ service_name }} API
+  title: {{ feature_name_pascal }} API
+  description: {{ feature_name }} サービスの REST API
   version: 0.1.0
-  description: |
-    {{ service_name }} サービスの REST API 仕様。
-
+  contact:
+    name: API Support
 servers:
   - url: http://localhost:8080
-    description: ローカル開発環境
+    description: Local development
+  - url: https://api-dev.example.com
+    description: Development
+  - url: https://api-stg.example.com
+    description: Staging
+  - url: https://api.example.com
+    description: Production
 
 paths:
   /healthz:
     get:
-      summary: ヘルスチェック
+      summary: Health check
       operationId: healthCheck
       tags:
         - health
       responses:
-        "200":
-          description: サービスが正常に稼働している
+        '200':
+          description: Service is healthy
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HealthResponse"
-        "503":
-          description: サービスが利用不可
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ProblemDetail"
+                $ref: '#/components/schemas/HealthCheckResponse'
 
   # TODO: サービス固有のエンドポイントを定義
+  # /examples:
+  #   get:
+  #     summary: List examples
+  #     operationId: listExamples
+  #     tags:
+  #       - examples
+  #     responses:
+  #       '200':
+  #         description: Success
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: array
+  #               items:
+  #                 $ref: '#/components/schemas/Example'
 
 components:
   schemas:
-    HealthResponse:
+    HealthCheckResponse:
       type: object
-      required:
-        - status
       properties:
         status:
           type: string
           enum:
-            - healthy
-            - unhealthy
-          description: サービスの状態
-
-    ProblemDetail:
-      type: object
-      description: RFC 7807 準拠のエラーレスポンス
+            - serving
+            - not_serving
       required:
         - status
-        - title
-        - error_code
-        - trace_id
+
+    # 共通エラーレスポンス（RFC7807 互換）
+    ProblemDetails:
+      type: object
       properties:
-        status:
-          type: integer
-          description: HTTP ステータスコード
+        type:
+          type: string
+          format: uri
+          description: A URI reference that identifies the problem type
         title:
           type: string
-          description: エラーの要約
+          description: A short, human-readable summary of the problem type
+        status:
+          type: integer
+          description: The HTTP status code
         detail:
           type: string
-          description: エラーの詳細
+          description: A human-readable explanation specific to this occurrence
+        instance:
+          type: string
+          format: uri
+          description: A URI reference that identifies the specific occurrence
         error_code:
           type: string
-          description: エラーコード
+          description: Application-specific error code
         trace_id:
           type: string
-          description: トレース ID
+          description: Trace ID for debugging
+      required:
+        - type
+        - title
+        - status
+
+    # TODO: サービス固有のスキーマを定義
+    # Example:
+    #   type: object
+    #   properties:
+    #     id:
+    #       type: string
+    #       format: uuid
+    #     name:
+    #       type: string
+    #     created_at:
+    #       type: string
+    #       format: date-time
+    #   required:
+    #     - id
+    #     - name
+    #     - created_at
 
   securitySchemes:
     bearerAuth:
@@ -82,4 +120,6 @@ security:
 
 tags:
   - name: health
-    description: ヘルスチェック
+    description: Health check endpoints
+  # - name: examples
+  #   description: Example endpoints
