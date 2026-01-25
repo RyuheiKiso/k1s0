@@ -14,6 +14,7 @@
 pub mod diff;
 pub mod fingerprint;
 pub mod fs;
+pub mod lint;
 pub mod manifest;
 pub mod template;
 pub mod walker;
