@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ service_name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ service_name }}
+  template:
+    metadata:
+      labels:
+        app: {{ service_name }}
+    spec:
+      containers:
+        - name: {{ service_name }}
+          image: {{ service_name }}:latest
+          args:
+            - "--env"
+            - "$(ENV)"
+            - "--config"
+            - "/etc/k1s0/config/$(ENV).yaml"
+          env:
+            - name: ENV
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['env']
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: grpc
+              containerPort: 50051
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /etc/k1s0/config
+              readOnly: true
+            - name: secrets
+              mountPath: /var/run/secrets/k1s0
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: config
+          configMap:
+            name: {{ service_name }}-config
+        - name: secrets
+          secret:
+            secretName: {{ service_name }}-secrets

@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package {{ service_name | replace(from="-", to="_") }}.v1;
+
+option go_package = "github.com/k1s0/{{ service_name }}/gen/go/{{ service_name | replace(from="-", to="_") }}/v1";
+
+// {{ service_name }} サービス
+service {{ service_name | replace(from="-", to="_") | pascal_case }}Service {
+  // ヘルスチェック
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+
+  // TODO: サービス固有の RPC を定義
+}
+
+// ヘルスチェックリクエスト
+message HealthCheckRequest {}
+
+// ヘルスチェックレスポンス
+message HealthCheckResponse {
+  // サービスの状態
+  enum ServingStatus {
+    UNKNOWN = 0;
+    SERVING = 1;
+    NOT_SERVING = 2;
+  }
+  ServingStatus status = 1;
+}

@@ -1,0 +1,66 @@
+# {{ service_name }} 設定ファイル（デフォルト）
+#
+# このファイルは全環境で共通の既定値を定義する。
+# 環境固有の値は {env}.yaml で上書きする。
+#
+# 規約:
+# - 機密値（パスワード、APIキー等）は直接書かない
+# - 機密値は *_file キーでファイルパスを参照する
+
+# サービス基本設定
+service:
+  name: {{ service_name }}
+  version: "0.1.0"
+
+# HTTP サーバー設定
+http:
+  host: "0.0.0.0"
+  port: 8080
+  # タイムアウト（ミリ秒）
+  timeout_ms: 30000
+
+# gRPC サーバー設定
+grpc:
+  host: "0.0.0.0"
+  port: 50051
+  # タイムアウト（ミリ秒）
+  timeout_ms: 30000
+
+# データベース設定
+db:
+  host: "localhost"
+  port: 5432
+  name: "{{ service_name | replace(from="-", to="_") }}"
+  user: "{{ service_name | replace(from="-", to="_") }}"
+  # 機密値はファイル参照
+  password_file: "/var/run/secrets/k1s0/db_password"
+  # コネクションプール
+  pool:
+    min_connections: 2
+    max_connections: 10
+    idle_timeout_sec: 300
+
+# キャッシュ設定
+cache:
+  host: "localhost"
+  port: 6379
+  # 機密値はファイル参照（認証が必要な場合）
+  # password_file: "/var/run/secrets/k1s0/redis_password"
+  # TTL（秒）
+  default_ttl_sec: 300
+
+# 観測性設定
+observability:
+  # ログ
+  logging:
+    level: "info"
+    format: "json"
+  # トレース
+  tracing:
+    enabled: true
+    endpoint: "http://localhost:4317"
+    sample_rate: 1.0
+  # メトリクス
+  metrics:
+    enabled: true
+    endpoint: "http://localhost:4317"

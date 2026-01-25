@@ -1,0 +1,5 @@
+# buf.lock - 依存関係のロックファイル
+# buf dep update で自動生成される
+
+version: v2
+deps: []

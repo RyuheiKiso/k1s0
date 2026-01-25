@@ -1,0 +1,22 @@
+# buf.yaml - Protocol Buffers の lint/breaking 設定
+# https://buf.build/docs/configuration/v2/buf-yaml
+
+version: v2
+
+modules:
+  - path: proto
+
+lint:
+  use:
+    - DEFAULT
+  except:
+    # 必要に応じて除外ルールを追加
+    []
+  disallow_comment_ignores: true
+
+breaking:
+  use:
+    - FILE
+  except:
+    # 必要に応じて除外ルールを追加
+    []

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ service_name }}-config
+data:
+  # 設定ファイルは overlays で環境別に上書きする
+  # ここでは空のプレースホルダを定義
+  {}

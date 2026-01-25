@@ -1,0 +1,85 @@
+openapi: 3.1.0
+info:
+  title: {{ service_name }} API
+  version: 0.1.0
+  description: |
+    {{ service_name }} サービスの REST API 仕様。
+
+servers:
+  - url: http://localhost:8080
+    description: ローカル開発環境
+
+paths:
+  /healthz:
+    get:
+      summary: ヘルスチェック
+      operationId: healthCheck
+      tags:
+        - health
+      responses:
+        "200":
+          description: サービスが正常に稼働している
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: サービスが利用不可
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+
+  # TODO: サービス固有のエンドポイントを定義
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - healthy
+            - unhealthy
+          description: サービスの状態
+
+    ProblemDetail:
+      type: object
+      description: RFC 7807 準拠のエラーレスポンス
+      required:
+        - status
+        - title
+        - error_code
+        - trace_id
+      properties:
+        status:
+          type: integer
+          description: HTTP ステータスコード
+        title:
+          type: string
+          description: エラーの要約
+        detail:
+          type: string
+          description: エラーの詳細
+        error_code:
+          type: string
+          description: エラーコード
+        trace_id:
+          type: string
+          description: トレース ID
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: health
+    description: ヘルスチェック
