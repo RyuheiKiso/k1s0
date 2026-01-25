@@ -9,6 +9,7 @@
 //! - `K003`: manifest.json の値が不正
 //! - `K010`: 必須ディレクトリが存在しない
 //! - `K011`: 必須ファイルが存在しない
+//! - `K020`: 環境変数参照の禁止
 
 use std::path::PathBuf;
 
@@ -44,6 +45,10 @@ pub struct LintArgs {
     /// JSON 形式で出力
     #[arg(long)]
     pub json: bool,
+
+    /// 環境変数参照を許可するファイルパス（カンマ区切り、glob パターン対応）
+    #[arg(long)]
+    pub env_var_allowlist: Option<String>,
 }
 
 /// `k1s0 lint` を実行する
@@ -66,6 +71,10 @@ pub fn execute(args: LintArgs) -> Result<()> {
             .map(|r| r.split(',').map(|s| s.trim().to_string()).collect())
             .unwrap_or_default(),
         strict: args.strict,
+        env_var_allowlist: args
+            .env_var_allowlist
+            .map(|r| r.split(',').map(|s| s.trim().to_string()).collect())
+            .unwrap_or_default(),
     };
 
     // lint 実行
