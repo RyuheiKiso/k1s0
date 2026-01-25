@@ -1,1 +1,4 @@
 CLI/target/*
+framework/frontend/react/node_modules/*
+framework/frontend/react/packages/k1s0-api-client/node_modules/*
+framework/frontend/react/packages/k1s0-navigation/node_modules/*
