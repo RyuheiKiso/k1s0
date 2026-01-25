@@ -1,0 +1,25 @@
+/**
+ * {{ component_name }} - {{ title }}
+ */
+
+import { Box, Typography, Toolbar } from '@mui/material';
+
+/**
+ * {{ component_name }} コンポーネント
+ */
+export function {{ component_name }}() {
+  return (
+    <Box>
+      {/* AppBar の高さ分のスペーサー */}
+      <Toolbar />
+
+      <Typography variant="h4" component="h1" gutterBottom>
+        {{ title }}
+      </Typography>
+
+      <Typography variant="body1">
+        TODO: 画面を実装
+      </Typography>
+    </Box>
+  );
+}

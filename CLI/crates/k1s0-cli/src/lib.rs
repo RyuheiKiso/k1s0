@@ -6,6 +6,7 @@
 //!
 //! - `init`: リポジトリ初期化
 //! - `new-feature`: 新規サービスの雛形生成
+//! - `new-screen`: 画面の雛形生成
 //! - `lint`: 規約違反の検査
 //! - `upgrade`: テンプレート更新
 
@@ -81,6 +82,10 @@ pub enum Commands {
     /// 新規サービスの雛形を生成する
     #[command(name = "new-feature")]
     NewFeature(commands::new_feature::NewFeatureArgs),
+
+    /// 画面（Screen）の雛形を生成する
+    #[command(name = "new-screen")]
+    NewScreen(commands::new_screen::NewScreenArgs),
 
     /// 規約違反を検査する
     Lint(commands::lint::LintArgs),

@@ -13,6 +13,7 @@ fn main() -> std::process::ExitCode {
     let result = match cli.command {
         Commands::Init(args) => k1s0_cli::commands::init::execute(args),
         Commands::NewFeature(args) => k1s0_cli::commands::new_feature::execute(args),
+        Commands::NewScreen(args) => k1s0_cli::commands::new_screen::execute(args),
         Commands::Lint(args) => k1s0_cli::commands::lint::execute(args),
         Commands::Upgrade(args) => k1s0_cli::commands::upgrade::execute(args),
         Commands::Completions(args) => k1s0_cli::commands::completions::execute(args),
