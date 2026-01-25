@@ -9,12 +9,14 @@
 //! - `fingerprint`: テンプレートの fingerprint 算出
 //! - `diff`: 差分計算・表示
 //! - `fs`: ファイル操作ユーティリティ
+//! - `walker`: ディレクトリ走査ユーティリティ
 
 pub mod diff;
 pub mod fingerprint;
 pub mod fs;
 pub mod manifest;
 pub mod template;
+pub mod walker;
 
 /// k1s0-generator のエラー型
 #[derive(Debug, thiserror::Error)]
