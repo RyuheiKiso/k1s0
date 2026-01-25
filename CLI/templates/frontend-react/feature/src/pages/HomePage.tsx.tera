@@ -1,0 +1,25 @@
+/**
+ * HomePage - ホームページ
+ */
+
+import { Box, Typography, Toolbar } from '@mui/material';
+
+/**
+ * HomePage コンポーネント
+ */
+export function HomePage() {
+  return (
+    <Box>
+      {/* AppBar の高さ分のスペーサー */}
+      <Toolbar />
+
+      <Typography variant="h4" component="h1" gutterBottom>
+        ホーム
+      </Typography>
+
+      <Typography variant="body1">
+        {{ service_name }} へようこそ。
+      </Typography>
+    </Box>
+  );
+}

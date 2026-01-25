@@ -1,0 +1,94 @@
+/**
+ * Sidebar - サイドバーメニュー
+ */
+
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Toolbar,
+  Divider,
+} from '@mui/material';
+import HomeIcon from '@mui/icons-material/Home';
+import SettingsIcon from '@mui/icons-material/Settings';
+import InfoIcon from '@mui/icons-material/Info';
+
+/** Sidebar のプロパティ */
+interface SidebarProps {
+  /** 開閉状態 */
+  open: boolean;
+  /** サイドバーの幅 */
+  width: number;
+}
+
+/** メニュー項目の定義 */
+interface MenuItem {
+  /** ラベル */
+  label: string;
+  /** パス */
+  path: string;
+  /** アイコン */
+  icon: React.ReactNode;
+}
+
+/**
+ * メニュー項目リスト
+ *
+ * TODO: 将来的には config/{env}.yaml から読み込む（フェーズ8.2）
+ */
+const menuItems: MenuItem[] = [
+  { label: 'ホーム', path: '/', icon: <HomeIcon /> },
+  { label: '設定', path: '/settings', icon: <SettingsIcon /> },
+  { label: 'About', path: '/about', icon: <InfoIcon /> },
+];
+
+/**
+ * Sidebar コンポーネント
+ */
+export function Sidebar({ open, width }: SidebarProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleNavigate = (path: string) => {
+    navigate(path);
+  };
+
+  return (
+    <Drawer
+      variant="persistent"
+      anchor="left"
+      open={open}
+      sx={{
+        width: width,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width: width,
+          boxSizing: 'border-box',
+        },
+      }}
+    >
+      {/* AppBar の高さ分のスペーサー */}
+      <Toolbar />
+
+      <Divider />
+
+      <List>
+        {menuItems.map((item) => (
+          <ListItem key={item.path} disablePadding>
+            <ListItemButton
+              selected={location.pathname === item.path}
+              onClick={() => handleNavigate(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+    </Drawer>
+  );
+}

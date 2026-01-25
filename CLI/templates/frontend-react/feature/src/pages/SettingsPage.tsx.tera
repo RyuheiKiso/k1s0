@@ -1,0 +1,27 @@
+/**
+ * SettingsPage - 設定ページ
+ */
+
+import { Box, Typography, Toolbar, Paper } from '@mui/material';
+
+/**
+ * SettingsPage コンポーネント
+ */
+export function SettingsPage() {
+  return (
+    <Box>
+      {/* AppBar の高さ分のスペーサー */}
+      <Toolbar />
+
+      <Typography variant="h4" component="h1" gutterBottom>
+        設定
+      </Typography>
+
+      <Paper sx={{ p: 3, mt: 2 }}>
+        <Typography variant="body1">
+          TODO: 設定項目を実装
+        </Typography>
+      </Paper>
+    </Box>
+  );
+}

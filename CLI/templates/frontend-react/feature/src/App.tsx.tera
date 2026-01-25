@@ -1,12 +1,31 @@
-import { BrowserRouter } from 'react-router-dom';
+/**
+ * App - アプリケーションルートコンポーネント
+ */
 
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { theme } from './theme';
+import { AppShell } from './components/layout';
+import { HomePage } from './pages/HomePage';
+import { SettingsPage } from './pages/SettingsPage';
+import { AboutPage } from './pages/AboutPage';
+
+/**
+ * App コンポーネント
+ */
 export function App() {
   return (
-    <BrowserRouter>
-      <div>
-        <h1>{{ service_name }}</h1>
-        <p>TODO: 画面を実装</p>
-      </div>
-    </BrowserRouter>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <BrowserRouter>
+        <AppShell>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/about" element={<AboutPage />} />
+          </Routes>
+        </AppShell>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }

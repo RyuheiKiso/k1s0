@@ -1,0 +1,52 @@
+/**
+ * Footer - アプリケーションフッター
+ */
+
+import { Box, Typography, Link } from '@mui/material';
+
+/** Footer のプロパティ */
+interface FooterProps {
+  /** サイドバーの開閉状態 */
+  sidebarOpen: boolean;
+  /** サイドバーの幅 */
+  sidebarWidth: number;
+}
+
+/**
+ * Footer コンポーネント
+ */
+export function Footer({ sidebarOpen, sidebarWidth }: FooterProps) {
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <Box
+      component="footer"
+      sx={{
+        py: 2,
+        px: 3,
+        mt: 'auto',
+        ml: sidebarOpen ? `${sidebarWidth}px` : 0,
+        transition: (theme) =>
+          theme.transitions.create('margin', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
+        backgroundColor: (theme) =>
+          theme.palette.mode === 'light'
+            ? theme.palette.grey[100]
+            : theme.palette.grey[900],
+        borderTop: 1,
+        borderColor: 'divider',
+      }}
+    >
+      <Typography variant="body2" color="text.secondary" align="center">
+        {'© '}
+        {currentYear}{' '}
+        <Link color="inherit" href="/">
+          {{ service_name }}
+        </Link>
+        {'. All rights reserved.'}
+      </Typography>
+    </Box>
+  );
+}
