@@ -1,8 +1,9 @@
 /**
  * Sidebar - サイドバーメニュー
+ *
+ * config/{env}.yaml の ui.navigation.menu から自動生成される。
  */
 
-import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Drawer,
   List,
@@ -16,6 +17,7 @@ import {
 import HomeIcon from '@mui/icons-material/Home';
 import SettingsIcon from '@mui/icons-material/Settings';
 import InfoIcon from '@mui/icons-material/Info';
+import { useMenuItems } from '@k1s0/navigation';
 
 /** Sidebar のプロパティ */
 interface SidebarProps {
@@ -25,37 +27,29 @@ interface SidebarProps {
   width: number;
 }
 
-/** メニュー項目の定義 */
-interface MenuItem {
-  /** ラベル */
-  label: string;
-  /** パス */
-  path: string;
-  /** アイコン */
-  icon: React.ReactNode;
+/** アイコン名からアイコンコンポーネントを取得 */
+function getIcon(iconName?: string) {
+  switch (iconName) {
+    case 'home':
+      return <HomeIcon />;
+    case 'settings':
+      return <SettingsIcon />;
+    case 'info':
+      return <InfoIcon />;
+    default:
+      return <HomeIcon />;
+  }
 }
 
 /**
- * メニュー項目リスト
- *
- * TODO: 将来的には config/{env}.yaml から読み込む（フェーズ8.2）
- */
-const menuItems: MenuItem[] = [
-  { label: 'ホーム', path: '/', icon: <HomeIcon /> },
-  { label: '設定', path: '/settings', icon: <SettingsIcon /> },
-  { label: 'About', path: '/about', icon: <InfoIcon /> },
-];
-
-/**
  * Sidebar コンポーネント
+ *
+ * 設定ファイルの menu 定義から自動的にメニューを生成する。
+ * 権限・feature flag による表示制御が自動適用される。
  */
 export function Sidebar({ open, width }: SidebarProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const handleNavigate = (path: string) => {
-    navigate(path);
-  };
+  // 設定から primary グループのメニュー項目を取得
+  const menuItems = useMenuItems('primary');
 
   return (
     <Drawer
@@ -78,12 +72,12 @@ export function Sidebar({ open, width }: SidebarProps) {
 
       <List>
         {menuItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
+          <ListItem key={item.to} disablePadding>
             <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => handleNavigate(item.path)}
+              selected={item.isActive}
+              onClick={item.onClick}
             >
-              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemIcon>{getIcon(item.icon)}</ListItemIcon>
               <ListItemText primary={item.label} />
             </ListItemButton>
           </ListItem>

@@ -20,3 +20,53 @@ observability:
   tracing:
     enabled: true
     endpoint: "http://localhost:4317"
+
+# UI ナビゲーション設定
+# routes/menu/flows を設定で制御する
+ui:
+  navigation:
+    # 設定スキーマバージョン
+    version: 1
+
+    # URL と画面ID の対応
+    routes:
+      - path: /
+        redirect_to: /home
+
+      - path: /home
+        screen_id: home
+        title: ホーム
+        requires:
+          permissions: []
+          flags: []
+
+      - path: /settings
+        screen_id: settings
+        title: 設定
+        requires:
+          permissions: []
+          flags: []
+
+      - path: /about
+        screen_id: about
+        title: About
+        requires:
+          permissions: []
+          flags: []
+
+    # メニュー定義
+    menu:
+      - id: primary
+        label: メイン
+        items:
+          - label: ホーム
+            to: /home
+            icon: home
+
+          - label: 設定
+            to: /settings
+            icon: settings
+
+          - label: About
+            to: /about
+            icon: info

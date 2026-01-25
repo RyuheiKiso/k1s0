@@ -1,0 +1,34 @@
+/**
+ * 画面レジストリ
+ *
+ * screen_id とコンポーネントの対応を定義する。
+ * 新しい画面を追加する場合は、ここに登録する。
+ */
+
+import type { ScreenDefinition } from '@k1s0/navigation';
+import { HomePage } from '../pages/HomePage';
+import { SettingsPage } from '../pages/SettingsPage';
+import { AboutPage } from '../pages/AboutPage';
+
+/**
+ * 画面定義リスト
+ *
+ * config/{env}.yaml の routes.screen_id と対応する。
+ */
+export const screens: ScreenDefinition[] = [
+  {
+    id: 'home',
+    component: HomePage,
+    meta: { title: 'ホーム' },
+  },
+  {
+    id: 'settings',
+    component: SettingsPage,
+    meta: { title: '設定' },
+  },
+  {
+    id: 'about',
+    component: AboutPage,
+    meta: { title: 'About' },
+  },
+];

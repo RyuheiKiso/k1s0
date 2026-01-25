@@ -1,0 +1,15 @@
+{
+  "name": "@k1s0/frontend-react",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
