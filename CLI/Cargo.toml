@@ -46,5 +46,8 @@ indicatif = "0.17"
 # Lazy initialization
 once_cell = "1.21"
 
+# Date/Time
+chrono = { version = "0.4", features = ["serde"] }
+
 # Internal crates
 k1s0-generator = { path = "crates/k1s0-generator" }
