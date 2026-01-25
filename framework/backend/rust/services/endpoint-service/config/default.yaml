@@ -1,0 +1,33 @@
+# endpoint-service default configuration
+# Environment-specific settings should be in {env}.yaml
+
+service:
+  name: endpoint-service
+  version: 0.1.0
+
+server:
+  grpc:
+    host: 0.0.0.0
+    port: 50053
+
+database:
+  host: localhost
+  port: 5432
+  name: k1s0
+  user: k1s0
+  password_file: /var/run/secrets/k1s0/db_password
+  pool:
+    min_connections: 2
+    max_connections: 10
+    acquire_timeout_ms: 5000
+
+observability:
+  log:
+    level: info
+    format: json
+  tracing:
+    enabled: true
+    endpoint: http://localhost:4317
+  metrics:
+    enabled: true
+    port: 9092

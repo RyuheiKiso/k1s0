@@ -1,0 +1,12 @@
+# Database migrations for auth-service
+#
+# Owned tables:
+# - fw_m_user
+# - fw_m_role
+# - fw_m_permission
+# - fw_m_user_role
+# - fw_m_role_permission
+#
+# Naming convention: 0001_*.sql (4-digit sequence number)
+#
+# Migration files will be added here when implementing Phase 28.

@@ -1,0 +1,24 @@
+# config-service development environment configuration
+
+server:
+  grpc:
+    host: 0.0.0.0
+    port: 50052
+
+database:
+  host: localhost
+  port: 5432
+  name: k1s0_dev
+  user: k1s0_dev
+  password_file: /var/run/secrets/k1s0/db_password
+
+cache:
+  ttl_sec: 60
+  max_entries: 1000
+
+observability:
+  log:
+    level: debug
+  tracing:
+    enabled: true
+    endpoint: http://localhost:4317

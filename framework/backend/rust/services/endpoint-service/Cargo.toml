@@ -1,0 +1,40 @@
+[package]
+name = "endpoint-service"
+version = "0.1.0"
+edition = "2021"
+description = "k1s0 framework endpoint discovery service"
+license = "MIT"
+
+[dependencies]
+# async runtime
+tokio = { version = "1", features = ["full"] }
+
+# gRPC
+tonic = "0.12"
+prost = "0.13"
+
+# database
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono"] }
+
+# configuration
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+
+# observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+opentelemetry = "0.24"
+
+# error handling
+thiserror = "1"
+anyhow = "1"
+
+# utilities
+chrono = { version = "0.4", features = ["serde"] }
+
+[build-dependencies]
+tonic-build = "0.12"
+
+[[bin]]
+name = "endpoint-service"
+path = "src/main.rs"

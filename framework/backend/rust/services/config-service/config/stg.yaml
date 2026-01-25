@@ -1,0 +1,27 @@
+# config-service staging environment configuration
+
+server:
+  grpc:
+    host: 0.0.0.0
+    port: 50052
+
+database:
+  host: db-stg.k1s0.internal
+  port: 5432
+  name: k1s0_stg
+  user: config_service
+  password_file: /var/run/secrets/k1s0/db_password
+  pool:
+    min_connections: 5
+    max_connections: 20
+
+cache:
+  ttl_sec: 300
+  max_entries: 10000
+
+observability:
+  log:
+    level: info
+  tracing:
+    enabled: true
+    endpoint: http://otel-collector.observability.svc:4317

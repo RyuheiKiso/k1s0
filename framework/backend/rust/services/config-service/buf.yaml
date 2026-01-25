@@ -1,0 +1,10 @@
+version: v2
+modules:
+  - path: proto
+    name: buf.build/k1s0/config-service
+lint:
+  use:
+    - DEFAULT
+breaking:
+  use:
+    - FILE

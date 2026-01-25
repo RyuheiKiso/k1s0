@@ -1,0 +1,27 @@
+# endpoint-service production environment configuration
+
+server:
+  grpc:
+    host: 0.0.0.0
+    port: 50053
+
+database:
+  host: db-prod.k1s0.internal
+  port: 5432
+  name: k1s0_prod
+  user: endpoint_service
+  password_file: /var/run/secrets/k1s0/db_password
+  pool:
+    min_connections: 10
+    max_connections: 50
+    acquire_timeout_ms: 3000
+
+observability:
+  log:
+    level: warn
+  tracing:
+    enabled: true
+    endpoint: http://otel-collector.observability.svc:4317
+  metrics:
+    enabled: true
+    port: 9092

@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package k1s0.endpoint.v1;
+
+option go_package = "github.com/k1s0/framework/gen/go/endpoint/v1;endpointv1";
+
+// EndpointService provides endpoint discovery functionality.
+service EndpointService {
+  // GetEndpoint retrieves a single endpoint by service name.
+  rpc GetEndpoint(GetEndpointRequest) returns (GetEndpointResponse);
+
+  // ListEndpoints retrieves multiple endpoints.
+  rpc ListEndpoints(ListEndpointsRequest) returns (ListEndpointsResponse);
+
+  // ResolveEndpoint resolves a logical service name to its actual address.
+  rpc ResolveEndpoint(ResolveEndpointRequest) returns (ResolveEndpointResponse);
+}
+
+// GetEndpointRequest is the request message for GetEndpoint.
+message GetEndpointRequest {
+  // Service name.
+  string service_name = 1;
+
+  // Optional: HTTP method (e.g., "GET", "POST").
+  string method = 2;
+
+  // Optional: Path pattern.
+  string path = 3;
+}
+
+// GetEndpointResponse is the response message for GetEndpoint.
+message GetEndpointResponse {
+  // The retrieved endpoint.
+  Endpoint endpoint = 1;
+}
+
+// ListEndpointsRequest is the request message for ListEndpoints.
+message ListEndpointsRequest {
+  // Optional: Filter by service name.
+  string service_name = 1;
+
+  // Pagination: page size (default 100, max 1000).
+  int32 page_size = 2;
+
+  // Pagination: page token for next page.
+  string page_token = 3;
+}
+
+// ListEndpointsResponse is the response message for ListEndpoints.
+message ListEndpointsResponse {
+  // List of endpoints.
+  repeated Endpoint endpoints = 1;
+
+  // Pagination: token for next page (empty if no more pages).
+  string next_page_token = 2;
+}
+
+// ResolveEndpointRequest is the request message for ResolveEndpoint.
+message ResolveEndpointRequest {
+  // Logical service name (e.g., "auth-service", "order-service").
+  string service_name = 1;
+
+  // Protocol (e.g., "grpc", "http").
+  string protocol = 2;
+}
+
+// ResolveEndpointResponse is the response message for ResolveEndpoint.
+message ResolveEndpointResponse {
+  // Resolved address (e.g., "auth-service.k1s0-prod.svc:50051").
+  string address = 1;
+
+  // Whether TLS should be used.
+  bool use_tls = 2;
+}
+
+// Endpoint represents an endpoint entity.
+message Endpoint {
+  // Endpoint ID.
+  int32 endpoint_id = 1;
+
+  // Service name.
+  string service_name = 2;
+
+  // Endpoint path.
+  string path = 3;
+
+  // HTTP method.
+  string method = 4;
+
+  // Creation timestamp (RFC3339).
+  string created_at = 5;
+
+  // Update timestamp (RFC3339).
+  string updated_at = 6;
+}

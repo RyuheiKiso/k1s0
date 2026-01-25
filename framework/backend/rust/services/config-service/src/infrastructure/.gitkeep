@@ -1,0 +1,6 @@
+# Infrastructure layer (Repository implementations, External I/O)
+# This directory will contain:
+# - PostgreSQL repository implementations
+# - Cache implementation (moka)
+# - Configuration loading
+# - Observability setup (tracing, metrics)

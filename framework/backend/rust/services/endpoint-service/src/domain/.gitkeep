@@ -1,0 +1,5 @@
+# Domain layer (Entities, Value Objects, Domain Services, Repository traits)
+# This directory will contain:
+# - Endpoint entity
+# - Domain errors
+# - Repository traits (ports)

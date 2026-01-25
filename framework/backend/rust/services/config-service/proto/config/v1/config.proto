@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package k1s0.config.v1;
+
+option go_package = "github.com/k1s0/framework/gen/go/config/v1;configv1";
+
+// ConfigService provides dynamic configuration management.
+service ConfigService {
+  // GetSetting retrieves a single setting by key.
+  rpc GetSetting(GetSettingRequest) returns (GetSettingResponse);
+
+  // ListSettings retrieves multiple settings.
+  rpc ListSettings(ListSettingsRequest) returns (ListSettingsResponse);
+
+  // WatchSettings streams setting changes (future implementation).
+  rpc WatchSettings(WatchSettingsRequest) returns (stream WatchSettingsResponse);
+}
+
+// GetSettingRequest is the request message for GetSetting.
+message GetSettingRequest {
+  // Service name scope.
+  string service_name = 1;
+
+  // Setting key (e.g., "feature.flag_x", "http.timeout_ms").
+  string setting_key = 2;
+
+  // Optional: Environment (defaults to current environment if not specified).
+  string env = 3;
+}
+
+// GetSettingResponse is the response message for GetSetting.
+message GetSettingResponse {
+  // The retrieved setting.
+  Setting setting = 1;
+}
+
+// ListSettingsRequest is the request message for ListSettings.
+message ListSettingsRequest {
+  // Service name scope.
+  string service_name = 1;
+
+  // Optional: Filter by key prefix.
+  string key_prefix = 2;
+
+  // Optional: Environment (defaults to current environment if not specified).
+  string env = 3;
+
+  // Pagination: page size (default 100, max 1000).
+  int32 page_size = 4;
+
+  // Pagination: page token for next page.
+  string page_token = 5;
+}
+
+// ListSettingsResponse is the response message for ListSettings.
+message ListSettingsResponse {
+  // List of settings.
+  repeated Setting settings = 1;
+
+  // Pagination: token for next page (empty if no more pages).
+  string next_page_token = 2;
+}
+
+// WatchSettingsRequest is the request message for WatchSettings.
+message WatchSettingsRequest {
+  // Service name scope.
+  string service_name = 1;
+
+  // Optional: Filter by key prefix.
+  string key_prefix = 2;
+}
+
+// WatchSettingsResponse is the response message for WatchSettings.
+message WatchSettingsResponse {
+  // The changed setting.
+  Setting setting = 1;
+
+  // Change type.
+  ChangeType change_type = 2;
+}
+
+// ChangeType represents the type of change.
+enum ChangeType {
+  CHANGE_TYPE_UNSPECIFIED = 0;
+  CHANGE_TYPE_CREATED = 1;
+  CHANGE_TYPE_UPDATED = 2;
+  CHANGE_TYPE_DELETED = 3;
+}
+
+// Setting represents a configuration setting.
+message Setting {
+  // Setting ID.
+  int64 setting_id = 1;
+
+  // Service name scope.
+  string service_name = 2;
+
+  // Environment (e.g., "dev", "stg", "prod", "default").
+  string env = 3;
+
+  // Setting key.
+  string setting_key = 4;
+
+  // Value type (e.g., "string", "int", "bool", "json").
+  string value_type = 5;
+
+  // Setting value (interpreted according to value_type).
+  string setting_value = 6;
+
+  // Description.
+  string description = 7;
+
+  // Status (1: active, 0: inactive).
+  int32 status = 8;
+
+  // Creation timestamp (RFC3339).
+  string created_at = 9;
+
+  // Update timestamp (RFC3339).
+  string updated_at = 10;
+}

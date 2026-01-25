@@ -1,0 +1,5 @@
+# Infrastructure layer (Repository implementations, External I/O)
+# This directory will contain:
+# - PostgreSQL repository implementations
+# - Configuration loading
+# - Observability setup (tracing, metrics)
