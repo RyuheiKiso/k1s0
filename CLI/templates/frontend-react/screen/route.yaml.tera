@@ -1,0 +1,17 @@
+# config/default.yaml の ui.navigation.routes に追加
+- path: {{ path }}
+  screen_id: {{ screen_id }}
+  title: {{ title }}
+{% if permissions or flags %}
+  requires:
+{% if permissions %}
+    permissions: [{{ permissions | join(separator=", ") }}]
+{% else %}
+    permissions: []
+{% endif %}
+{% if flags %}
+    flags: [{{ flags | join(separator=", ") }}]
+{% else %}
+    flags: []
+{% endif %}
+{% endif %}

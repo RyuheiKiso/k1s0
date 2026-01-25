@@ -1,0 +1,125 @@
+openapi: 3.1.0
+info:
+  title: {{ feature_name_pascal }} API
+  description: {{ feature_name }} サービスの REST API
+  version: 0.1.0
+  contact:
+    name: API Support
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: https://api-dev.example.com
+    description: Development
+  - url: https://api-stg.example.com
+    description: Staging
+  - url: https://api.example.com
+    description: Production
+
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      tags:
+        - health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+
+  # TODO: サービス固有のエンドポイントを定義
+  # /examples:
+  #   get:
+  #     summary: List examples
+  #     operationId: listExamples
+  #     tags:
+  #       - examples
+  #     responses:
+  #       '200':
+  #         description: Success
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: array
+  #               items:
+  #                 $ref: '#/components/schemas/Example'
+
+components:
+  schemas:
+    HealthCheckResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - serving
+            - not_serving
+      required:
+        - status
+
+    # 共通エラーレスポンス（RFC7807 互換）
+    ProblemDetails:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+          description: A URI reference that identifies the problem type
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type
+        status:
+          type: integer
+          description: The HTTP status code
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence
+        instance:
+          type: string
+          format: uri
+          description: A URI reference that identifies the specific occurrence
+        error_code:
+          type: string
+          description: Application-specific error code
+        trace_id:
+          type: string
+          description: Trace ID for debugging
+      required:
+        - type
+        - title
+        - status
+
+    # TODO: サービス固有のスキーマを定義
+    # Example:
+    #   type: object
+    #   properties:
+    #     id:
+    #       type: string
+    #       format: uuid
+    #     name:
+    #       type: string
+    #     created_at:
+    #       type: string
+    #       format: date-time
+    #   required:
+    #     - id
+    #     - name
+    #     - created_at
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: health
+    description: Health check endpoints
+  # - name: examples
+  #   description: Example endpoints

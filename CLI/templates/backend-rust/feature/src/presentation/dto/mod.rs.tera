@@ -1,0 +1,7 @@
+//! Data Transfer Objects
+//!
+//! API のリクエスト/レスポンス用の型を定義する。
+//! domain 型との変換もここで行う。
+
+// TODO: DTO を定義
+// pub mod example_dto;

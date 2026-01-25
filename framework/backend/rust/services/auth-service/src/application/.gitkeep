@@ -1,0 +1,5 @@
+# Application layer (Use cases, Application Services)
+# This directory will contain:
+# - Use case implementations
+# - Application services
+# - DTOs for use case I/O

@@ -1,0 +1,88 @@
+/**
+ * Sidebar - サイドバーメニュー
+ *
+ * config/{env}.yaml の ui.navigation.menu から自動生成される。
+ */
+
+import {
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Toolbar,
+  Divider,
+} from '@mui/material';
+import HomeIcon from '@mui/icons-material/Home';
+import SettingsIcon from '@mui/icons-material/Settings';
+import InfoIcon from '@mui/icons-material/Info';
+import { useMenuItems } from '@k1s0/navigation';
+
+/** Sidebar のプロパティ */
+interface SidebarProps {
+  /** 開閉状態 */
+  open: boolean;
+  /** サイドバーの幅 */
+  width: number;
+}
+
+/** アイコン名からアイコンコンポーネントを取得 */
+function getIcon(iconName?: string) {
+  switch (iconName) {
+    case 'home':
+      return <HomeIcon />;
+    case 'settings':
+      return <SettingsIcon />;
+    case 'info':
+      return <InfoIcon />;
+    default:
+      return <HomeIcon />;
+  }
+}
+
+/**
+ * Sidebar コンポーネント
+ *
+ * 設定ファイルの menu 定義から自動的にメニューを生成する。
+ * 権限・feature flag による表示制御が自動適用される。
+ */
+export function Sidebar({ open, width }: SidebarProps) {
+  // 設定から primary グループのメニュー項目を取得
+  const menuItems = useMenuItems('primary');
+
+  return (
+    <Drawer
+      variant="persistent"
+      anchor="left"
+      open={open}
+      sx={{
+        width: width,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width: width,
+          boxSizing: 'border-box',
+        },
+      }}
+    >
+      {/* AppBar の高さ分のスペーサー */}
+      <Toolbar />
+
+      <Divider />
+
+      <List>
+        {menuItems.map((item) => (
+          <ListItem key={item.to} disablePadding>
+            <ListItemButton
+              selected={item.isActive}
+              onClick={item.onClick}
+            >
+              <ListItemIcon>{getIcon(item.icon)}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+    </Drawer>
+  );
+}

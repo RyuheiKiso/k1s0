@@ -1,0 +1,5 @@
+# Presentation layer (gRPC handlers, DTOs, Error conversion)
+# This directory will contain:
+# - gRPC service implementations
+# - Request/Response DTOs
+# - Error conversion to gRPC status

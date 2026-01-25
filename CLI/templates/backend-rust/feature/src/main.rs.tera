@@ -1,0 +1,82 @@
+//! {{ feature_name }} サービス
+//!
+//! k1s0 framework を使用した {{ feature_name }} のエントリポイント。
+
+mod application;
+mod domain;
+mod infrastructure;
+mod presentation;
+
+use clap::Parser;
+use tracing::info;
+
+/// CLI 引数
+#[derive(Parser, Debug)]
+#[command(name = "{{ feature_name }}")]
+#[command(about = "{{ feature_name }} service")]
+struct Args {
+    /// 環境名（dev/stg/prod）
+    #[arg(long, default_value = "dev")]
+    env: String,
+
+    /// 設定ディレクトリ
+    #[arg(long, default_value = "./config")]
+    config: String,
+
+    /// シークレットディレクトリ
+    #[arg(long, default_value = "/var/run/secrets/k1s0")]
+    secrets_dir: String,
+{% if with_grpc %}
+    /// gRPC ポート
+    #[arg(long, default_value = "50051")]
+    grpc_port: u16,
+{% endif %}
+{% if with_rest %}
+    /// HTTP ポート
+    #[arg(long, default_value = "8080")]
+    http_port: u16,
+{% endif %}
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // CLI 引数をパース
+    let args = Args::parse();
+
+    // ロギング初期化
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .json()
+        .init();
+
+    info!(
+        service = "{{ feature_name }}",
+        env = %args.env,
+        "Starting service"
+    );
+
+    // 設定読み込み
+    let config_path = format!("{}/{}.yaml", args.config, args.env);
+    info!(config_path = %config_path, "Loading configuration");
+
+    // TODO: 設定を読み込む（k1s0-config crate）
+    // let config = k1s0_config::load(&config_path, &args.secrets_dir)?;
+{% if with_grpc %}
+    // gRPC サーバー起動
+    let grpc_addr = format!("0.0.0.0:{}", args.grpc_port).parse()?;
+    info!(addr = %grpc_addr, "Starting gRPC server");
+    // TODO: gRPC サーバーの実装
+{% endif %}
+{% if with_rest %}
+    // HTTP サーバー起動
+    let http_addr = format!("0.0.0.0:{}", args.http_port).parse()?;
+    info!(addr = %http_addr, "Starting HTTP server");
+    // TODO: HTTP サーバーの実装
+{% endif %}
+
+    // TODO: サーバーを起動
+    // tokio::signal::ctrl_c().await?;
+
+    info!("Shutting down");
+    Ok(())
+}

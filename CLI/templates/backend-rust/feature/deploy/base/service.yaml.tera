@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ feature_name }}
+spec:
+  selector:
+    app: {{ feature_name }}
+  ports:
+{% if with_grpc %}
+    - name: grpc
+      port: 50051
+      targetPort: grpc
+{% endif %}
+{% if with_rest %}
+    - name: http
+      port: 80
+      targetPort: http
+{% endif %}
+{% if not with_grpc and not with_rest %}
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+{% endif %}

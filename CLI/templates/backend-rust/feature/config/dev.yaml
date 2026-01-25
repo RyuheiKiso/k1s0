@@ -1,0 +1,13 @@
+# 開発環境設定
+
+logging:
+  level: debug
+
+# database:
+#   host: localhost
+#   port: 5432
+
+observability:
+  tracing:
+    enabled: true
+    endpoint: "http://localhost:4317"

@@ -1,0 +1,12 @@
+//! {{ feature_name }} プレゼンテーション層
+//!
+//! HTTP/gRPC エンドポイント、DTO、バリデーション、エラー変換を定義する。
+
+pub mod dto;
+pub mod errors;
+{% if with_grpc -%}
+pub mod grpc;
+{% endif -%}
+{% if with_rest -%}
+pub mod http;
+{% endif -%}

@@ -1,0 +1,8 @@
+# Database migrations for endpoint-service
+#
+# Owned tables:
+# - fw_m_endpoint
+#
+# Naming convention: 0001_*.sql (4-digit sequence number)
+#
+# Migration files will be added here when implementing Phase 28.

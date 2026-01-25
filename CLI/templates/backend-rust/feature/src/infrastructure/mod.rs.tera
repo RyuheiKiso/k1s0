@@ -1,0 +1,9 @@
+//! {{ feature_name }} インフラストラクチャ層
+//!
+//! 外部システム（DB、キャッシュ、外部API等）との接続を実装する。
+//! domain 層で定義されたポート（trait）を実装する。
+
+{% if with_db -%}
+pub mod database;
+{% endif -%}
+pub mod repositories;

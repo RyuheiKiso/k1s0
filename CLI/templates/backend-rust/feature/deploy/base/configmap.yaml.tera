@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ feature_name }}-config
+data:
+  # 設定は overlays で環境ごとに上書きする
+  default.yaml: |
+    service:
+      name: {{ feature_name }}

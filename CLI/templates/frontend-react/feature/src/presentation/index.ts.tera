@@ -1,0 +1,11 @@
+/**
+ * プレゼンテーション層
+ *
+ * 画面/UI（pages, components）と UI からの入出力を担当する。
+ *
+ * 構成:
+ * - pages/: ページコンポーネント
+ * - components/: 共通コンポーネント
+ */
+
+// TODO: pages と components をエクスポート

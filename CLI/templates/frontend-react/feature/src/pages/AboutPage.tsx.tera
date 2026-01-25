@@ -1,0 +1,35 @@
+/**
+ * AboutPage - About ページ
+ */
+
+import { Box, Typography, Toolbar, Paper } from '@mui/material';
+
+/**
+ * AboutPage コンポーネント
+ */
+export function AboutPage() {
+  return (
+    <Box>
+      {/* AppBar の高さ分のスペーサー */}
+      <Toolbar />
+
+      <Typography variant="h4" component="h1" gutterBottom>
+        About
+      </Typography>
+
+      <Paper sx={{ p: 3, mt: 2 }}>
+        <Typography variant="h6" gutterBottom>
+          {{ service_name }}
+        </Typography>
+
+        <Typography variant="body1" paragraph>
+          このアプリケーションは k1s0 フレームワークを使用して生成されました。
+        </Typography>
+
+        <Typography variant="body2" color="text.secondary">
+          Version: 0.1.0
+        </Typography>
+      </Paper>
+    </Box>
+  );
+}

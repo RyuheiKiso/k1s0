@@ -1,0 +1,146 @@
+syntax = "proto3";
+
+package k1s0.auth.v1;
+
+option go_package = "github.com/k1s0/framework/gen/go/auth/v1;authv1";
+
+// AuthService provides authentication and authorization functionality.
+service AuthService {
+  // Authenticate validates credentials and issues tokens.
+  rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
+
+  // RefreshToken issues a new access token using a refresh token.
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+
+  // CheckPermission checks if a user has a specific permission.
+  rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
+
+  // GetUser retrieves user information.
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+
+  // ListUserRoles retrieves all roles assigned to a user.
+  rpc ListUserRoles(ListUserRolesRequest) returns (ListUserRolesResponse);
+}
+
+// AuthenticateRequest is the request message for Authenticate.
+message AuthenticateRequest {
+  // Login ID (username or email).
+  string login_id = 1;
+
+  // Password.
+  string password = 2;
+}
+
+// AuthenticateResponse is the response message for Authenticate.
+message AuthenticateResponse {
+  // Access token (JWT).
+  string access_token = 1;
+
+  // Refresh token.
+  string refresh_token = 2;
+
+  // Access token expiration time in seconds.
+  int64 expires_in = 3;
+
+  // Token type (always "Bearer").
+  string token_type = 4;
+}
+
+// RefreshTokenRequest is the request message for RefreshToken.
+message RefreshTokenRequest {
+  // Refresh token.
+  string refresh_token = 1;
+}
+
+// RefreshTokenResponse is the response message for RefreshToken.
+message RefreshTokenResponse {
+  // New access token (JWT).
+  string access_token = 1;
+
+  // New refresh token.
+  string refresh_token = 2;
+
+  // Access token expiration time in seconds.
+  int64 expires_in = 3;
+}
+
+// CheckPermissionRequest is the request message for CheckPermission.
+message CheckPermissionRequest {
+  // User ID to check permission for.
+  int64 user_id = 1;
+
+  // Permission key to check (e.g., "user:read", "order:write").
+  string permission_key = 2;
+
+  // Optional: Service name scope.
+  string service_name = 3;
+}
+
+// CheckPermissionResponse is the response message for CheckPermission.
+message CheckPermissionResponse {
+  // Whether the user has the permission.
+  bool allowed = 1;
+}
+
+// GetUserRequest is the request message for GetUser.
+message GetUserRequest {
+  // User ID.
+  int64 user_id = 1;
+}
+
+// GetUserResponse is the response message for GetUser.
+message GetUserResponse {
+  // User information.
+  User user = 1;
+}
+
+// ListUserRolesRequest is the request message for ListUserRoles.
+message ListUserRolesRequest {
+  // User ID.
+  int64 user_id = 1;
+}
+
+// ListUserRolesResponse is the response message for ListUserRoles.
+message ListUserRolesResponse {
+  // List of roles assigned to the user.
+  repeated Role roles = 1;
+}
+
+// User represents a user entity.
+message User {
+  // User ID.
+  int64 user_id = 1;
+
+  // Login ID.
+  string login_id = 2;
+
+  // Email address.
+  string email = 3;
+
+  // Display name.
+  string display_name = 4;
+
+  // Status (1: active, 0: inactive).
+  int32 status = 5;
+
+  // Last login timestamp (RFC3339).
+  string last_login_at = 6;
+
+  // Creation timestamp (RFC3339).
+  string created_at = 7;
+
+  // Update timestamp (RFC3339).
+  string updated_at = 8;
+}
+
+// Role represents a role entity.
+message Role {
+  // Role ID.
+  int64 role_id = 1;
+
+  // Role name.
+  string role_name = 2;
+
+  // Description.
+  string description = 3;
+}

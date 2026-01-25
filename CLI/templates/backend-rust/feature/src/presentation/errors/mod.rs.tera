@@ -1,0 +1,71 @@
+//! プレゼンテーション層エラー
+//!
+//! domain/application のエラーを HTTP/gRPC のエラーに変換する。
+
+use crate::domain::errors::DomainError;
+{% if with_rest -%}
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use axum::Json;
+{% endif -%}
+use serde::Serialize;
+
+/// API エラーレスポンス
+#[derive(Debug, Serialize)]
+pub struct ErrorResponse {
+    /// エラーコード
+    pub error_code: String,
+    /// エラーメッセージ
+    pub message: String,
+    /// 対象（任意）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target: Option<String>,
+    /// トレースID（任意）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace_id: Option<String>,
+}
+
+impl From<DomainError> for ErrorResponse {
+    fn from(err: DomainError) -> Self {
+        match &err {
+            DomainError::Validation { message } => ErrorResponse {
+                error_code: "VALIDATION_ERROR".to_string(),
+                message: message.clone(),
+                target: None,
+                trace_id: None,
+            },
+            DomainError::NotFound { entity, key, value } => ErrorResponse {
+                error_code: "NOT_FOUND".to_string(),
+                message: err.to_string(),
+                target: Some(format!("{}.{}", entity, key)),
+                trace_id: None,
+            },
+            DomainError::AlreadyExists { entity, key, value } => ErrorResponse {
+                error_code: "ALREADY_EXISTS".to_string(),
+                message: err.to_string(),
+                target: Some(format!("{}.{}", entity, key)),
+                trace_id: None,
+            },
+            DomainError::BusinessRule { message } => ErrorResponse {
+                error_code: "BUSINESS_RULE_VIOLATION".to_string(),
+                message: message.clone(),
+                target: None,
+                trace_id: None,
+            },
+        }
+    }
+}
+{% if with_rest %}
+impl IntoResponse for ErrorResponse {
+    fn into_response(self) -> Response {
+        let status = match self.error_code.as_str() {
+            "VALIDATION_ERROR" => StatusCode::BAD_REQUEST,
+            "NOT_FOUND" => StatusCode::NOT_FOUND,
+            "ALREADY_EXISTS" => StatusCode::CONFLICT,
+            "BUSINESS_RULE_VIOLATION" => StatusCode::UNPROCESSABLE_ENTITY,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+        (status, Json(self)).into_response()
+    }
+}
+{% endif -%}

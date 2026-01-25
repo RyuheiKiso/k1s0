@@ -1,0 +1,9 @@
+// src/config/screens.ts に追加
+import { {{ component_name }} } from '../pages/{{ file_name }}';
+
+// screens 配列に追加:
+{
+  id: '{{ screen_id }}',
+  component: {{ component_name }},
+  meta: { title: '{{ title }}' },
+},

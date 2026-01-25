@@ -1,0 +1,7 @@
+//! {{ feature_name }} アプリケーション層
+//!
+//! ユースケースとアプリケーションサービスを定義する。
+//! domain 層に依存し、presentation 層から呼び出される。
+
+pub mod services;
+pub mod usecases;

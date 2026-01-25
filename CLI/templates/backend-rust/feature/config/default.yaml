@@ -1,0 +1,37 @@
+# デフォルト設定
+# 環境固有の設定は {env}.yaml で上書きされる
+
+service:
+  name: "{{ '{{' }} feature_name {{ '}}' }}"
+  version: "0.1.0"
+
+server:
+  grpc:
+    port: 50051
+  http:
+    port: 8080
+
+# ログ設定
+logging:
+  level: info
+  format: json
+
+# データベース設定（機密値は *_file で参照）
+# database:
+#   host: localhost
+#   port: 5432
+#   name: "{{ '{{' }} feature_name_snake {{ '}}' }}"
+#   user: postgres
+#   password_file: /var/run/secrets/k1s0/db_password
+#   pool:
+#     min_connections: 2
+#     max_connections: 10
+
+# Observability
+observability:
+  tracing:
+    enabled: true
+    endpoint: "http://localhost:4317"
+  metrics:
+    enabled: true
+    port: 9090

@@ -1,0 +1,45 @@
+# auth-service default configuration
+# Environment-specific settings should be in {env}.yaml
+
+service:
+  name: auth-service
+  version: 0.1.0
+
+server:
+  grpc:
+    host: 0.0.0.0
+    port: 50051
+
+database:
+  host: localhost
+  port: 5432
+  name: k1s0
+  user: k1s0
+  # Password is loaded from file (never store secrets here)
+  password_file: /var/run/secrets/k1s0/db_password
+  pool:
+    min_connections: 2
+    max_connections: 10
+    acquire_timeout_ms: 5000
+
+auth:
+  # JWT settings
+  jwt:
+    issuer: k1s0-auth-service
+    audience: k1s0
+    access_token_ttl_sec: 3600
+    refresh_token_ttl_sec: 604800
+    # Private key is loaded from file
+    private_key_file: /var/run/secrets/k1s0/jwt_private_key.pem
+    public_key_file: /var/run/secrets/k1s0/jwt_public_key.pem
+
+observability:
+  log:
+    level: info
+    format: json
+  tracing:
+    enabled: true
+    endpoint: http://localhost:4317
+  metrics:
+    enabled: true
+    port: 9090

@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ feature_name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ feature_name }}
+  template:
+    metadata:
+      labels:
+        app: {{ feature_name }}
+    spec:
+      containers:
+        - name: {{ feature_name }}
+          image: {{ feature_name }}:latest
+          args:
+            - --env
+            - $(ENV)
+            - --config
+            - /etc/k1s0/config
+            - --secrets-dir
+            - /var/run/secrets/k1s0
+{% if with_grpc %}
+            - --grpc-port
+            - "50051"
+{% endif %}
+{% if with_rest %}
+            - --http-port
+            - "8080"
+{% endif %}
+          env:
+            - name: ENV
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['env']
+{% if with_grpc %}
+          ports:
+            - name: grpc
+              containerPort: 50051
+{% endif %}
+{% if with_rest %}
+            - name: http
+              containerPort: 8080
+{% endif %}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/k1s0/config
+              readOnly: true
+            # - name: secrets
+            #   mountPath: /var/run/secrets/k1s0
+            #   readOnly: true
+          livenessProbe:
+{% if with_rest %}
+            httpGet:
+              path: /healthz
+              port: http
+{% else %}
+            grpc:
+              port: 50051
+{% endif %}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+{% if with_rest %}
+            httpGet:
+              path: /healthz
+              port: http
+{% else %}
+            grpc:
+              port: 50051
+{% endif %}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: {{ feature_name }}-config
+        # - name: secrets
+        #   secret:
+        #     secretName: {{ feature_name }}-secrets

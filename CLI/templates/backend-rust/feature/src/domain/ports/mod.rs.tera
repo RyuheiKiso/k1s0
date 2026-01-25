@@ -1,0 +1,7 @@
+//! ポート（リポジトリインターフェース）
+//!
+//! infrastructure 層で実装される trait を定義する。
+//! domain 層は具体的な実装に依存せず、この trait を通じてデータアクセスを行う。
+
+// TODO: リポジトリ trait を定義
+// pub mod example_repository;

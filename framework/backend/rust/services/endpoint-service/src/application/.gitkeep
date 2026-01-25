@@ -1,0 +1,5 @@
+# Application layer (Use cases, Application Services)
+# This directory will contain:
+# - GetEndpoint use case
+# - ListEndpoints use case
+# - ResolveServiceEndpoint use case

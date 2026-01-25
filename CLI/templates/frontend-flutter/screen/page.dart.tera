@@ -1,0 +1,18 @@
+import 'package:flutter/material.dart';
+
+/// {{ component_name }} - {{ title }}
+class {{ component_name }}Page extends StatelessWidget {
+  const {{ component_name }}Page({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('{{ title }}'),
+      ),
+      body: const Center(
+        child: Text('TODO: 画面を実装'),
+      ),
+    );
+  }
+}

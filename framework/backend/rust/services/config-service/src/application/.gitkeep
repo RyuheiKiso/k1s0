@@ -1,0 +1,5 @@
+# Application layer (Use cases, Application Services)
+# This directory will contain:
+# - GetSetting use case
+# - ListSettings use case
+# - Cache management

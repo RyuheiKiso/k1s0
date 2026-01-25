@@ -1,0 +1,32 @@
+[package]
+name = "k1s0-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "k1s0 CLI - 雛形生成・導入・アップグレード支援ツール"
+
+[[bin]]
+name = "k1s0"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+clap_complete.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+console.workspace = true
+indicatif.workspace = true
+once_cell.workspace = true
+chrono.workspace = true
+k1s0-generator.workspace = true
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.1"
+tempfile = "3.10"

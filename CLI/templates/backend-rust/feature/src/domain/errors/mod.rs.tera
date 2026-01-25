@@ -1,0 +1,33 @@
+//! ドメインエラー
+//!
+//! ビジネスルール違反などのドメイン固有エラーを定義する。
+
+use thiserror::Error;
+
+/// ドメインエラー
+#[derive(Debug, Error)]
+pub enum DomainError {
+    /// バリデーションエラー
+    #[error("Validation error: {message}")]
+    Validation { message: String },
+
+    /// 見つからない
+    #[error("Not found: {entity} with {key}={value}")]
+    NotFound {
+        entity: &'static str,
+        key: &'static str,
+        value: String,
+    },
+
+    /// 重複
+    #[error("Already exists: {entity} with {key}={value}")]
+    AlreadyExists {
+        entity: &'static str,
+        key: &'static str,
+        value: String,
+    },
+
+    /// ビジネスルール違反
+    #[error("Business rule violation: {message}")]
+    BusinessRule { message: String },
+}

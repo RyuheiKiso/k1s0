@@ -1,0 +1,8 @@
+# Database migrations for config-service
+#
+# Owned tables:
+# - fw_m_setting
+#
+# Naming convention: 0001_*.sql (4-digit sequence number)
+#
+# Migration files will be added here when implementing Phase 28.

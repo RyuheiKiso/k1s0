@@ -1,0 +1,23 @@
+# auth-service staging environment configuration
+
+server:
+  grpc:
+    host: 0.0.0.0
+    port: 50051
+
+database:
+  host: db-stg.k1s0.internal
+  port: 5432
+  name: k1s0_stg
+  user: auth_service
+  password_file: /var/run/secrets/k1s0/db_password
+  pool:
+    min_connections: 5
+    max_connections: 20
+
+observability:
+  log:
+    level: info
+  tracing:
+    enabled: true
+    endpoint: http://otel-collector.observability.svc:4317

@@ -1,0 +1,50 @@
+/**
+ * Header - アプリケーションヘッダー
+ */
+
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
+  Box,
+} from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+
+/** Header のプロパティ */
+interface HeaderProps {
+  /** メニューボタンクリック時のコールバック */
+  onMenuClick: () => void;
+}
+
+/**
+ * Header コンポーネント
+ */
+export function Header({ onMenuClick }: HeaderProps) {
+  return (
+    <AppBar
+      position="fixed"
+      sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+    >
+      <Toolbar>
+        <IconButton
+          color="inherit"
+          aria-label="toggle menu"
+          edge="start"
+          onClick={onMenuClick}
+          sx={{ mr: 2 }}
+        >
+          <MenuIcon />
+        </IconButton>
+
+        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          {{ service_name }}
+        </Typography>
+
+        <Box>
+          {/* TODO: ユーザーメニュー、通知アイコン等を追加 */}
+        </Box>
+      </Toolbar>
+    </AppBar>
+  );
+}

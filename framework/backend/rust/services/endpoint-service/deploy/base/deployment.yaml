@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: endpoint-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: endpoint-service
+  template:
+    metadata:
+      labels:
+        app: endpoint-service
+    spec:
+      containers:
+        - name: endpoint-service
+          image: endpoint-service:latest
+          ports:
+            - name: grpc
+              containerPort: 50053
+            - name: metrics
+              containerPort: 9092
+          args:
+            - --env
+            - $(K1S0_ENV)
+            - --config
+            - /etc/k1s0/config/$(K1S0_ENV).yaml
+            - --secrets-dir
+            - /var/run/secrets/k1s0
+          env:
+            - name: K1S0_ENV
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['env']
+          volumeMounts:
+            - name: config
+              mountPath: /etc/k1s0/config
+              readOnly: true
+            - name: secrets
+              mountPath: /var/run/secrets/k1s0
+              readOnly: true
+          livenessProbe:
+            grpc:
+              port: 50053
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            grpc:
+              port: 50053
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: endpoint-service-config
+        - name: secrets
+          secret:
+            secretName: endpoint-service-secrets

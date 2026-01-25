@@ -1,0 +1,7 @@
+# Domain layer (Entities, Value Objects, Domain Services, Repository traits)
+# This directory will contain:
+# - User entity
+# - Role entity
+# - Permission entity
+# - Domain errors
+# - Repository traits (ports)

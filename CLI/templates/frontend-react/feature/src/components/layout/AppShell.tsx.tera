@@ -1,0 +1,64 @@
+/**
+ * AppShell - アプリケーションの共通レイアウト
+ *
+ * Header、Sidebar（Menu）、Footer を含むレイアウトコンポーネント。
+ * 個別機能チームは children に画面コンテンツを渡すだけでよい。
+ */
+
+import { useState, type ReactNode } from 'react';
+import { Box } from '@mui/material';
+import { Header } from './Header';
+import { Sidebar } from './Sidebar';
+import { Footer } from './Footer';
+
+/** サイドバーの幅 */
+const SIDEBAR_WIDTH = 240;
+
+/** AppShell のプロパティ */
+interface AppShellProps {
+  /** 画面コンテンツ */
+  children: ReactNode;
+}
+
+/**
+ * AppShell コンポーネント
+ */
+export function AppShell({ children }: AppShellProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const handleToggleSidebar = () => {
+    setSidebarOpen((prev) => !prev);
+  };
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      {/* Header */}
+      <Header onMenuClick={handleToggleSidebar} />
+
+      <Box sx={{ display: 'flex', flex: 1 }}>
+        {/* Sidebar */}
+        <Sidebar open={sidebarOpen} width={SIDEBAR_WIDTH} />
+
+        {/* Main Content */}
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            p: 3,
+            ml: sidebarOpen ? `${SIDEBAR_WIDTH}px` : 0,
+            transition: (theme) =>
+              theme.transitions.create('margin', {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.leavingScreen,
+              }),
+          }}
+        >
+          {children}
+        </Box>
+      </Box>
+
+      {/* Footer */}
+      <Footer sidebarOpen={sidebarOpen} sidebarWidth={SIDEBAR_WIDTH} />
+    </Box>
+  );
+}

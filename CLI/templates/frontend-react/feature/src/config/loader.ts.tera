@@ -1,0 +1,79 @@
+/**
+ * 設定ローダー
+ *
+ * config/{env}.yaml から設定を読み込む
+ */
+
+import yaml from 'js-yaml';
+import type { NavigationConfig } from '@k1s0/navigation';
+
+/** アプリケーション設定 */
+export interface AppConfig {
+  app: {
+    name: string;
+    version: string;
+  };
+  api: {
+    base_url: string;
+    timeout_ms: number;
+  };
+  observability: {
+    logging: {
+      level: string;
+    };
+    tracing: {
+      enabled: boolean;
+      endpoint: string;
+    };
+  };
+  ui: {
+    navigation: NavigationConfig;
+  };
+}
+
+/** 環境名 */
+export type Environment = 'default' | 'dev' | 'stg' | 'prod';
+
+/**
+ * 設定をロードする
+ *
+ * Vite の import.meta.glob を使用して動的にロード
+ */
+export async function loadConfig(env: Environment = 'default'): Promise<AppConfig> {
+  // 開発時は public ディレクトリから、本番時はビルド済みアセットから取得
+  const configUrl = `/config/${env}.yaml`;
+
+  try {
+    const response = await fetch(configUrl);
+    if (!response.ok) {
+      throw new Error(`設定ファイルの取得に失敗しました: ${configUrl}`);
+    }
+
+    const text = await response.text();
+    const config = yaml.load(text) as AppConfig;
+
+    return config;
+  } catch (error) {
+    console.error('設定ロードエラー:', error);
+    throw new Error(`設定ファイル "${configUrl}" のロードに失敗しました`);
+  }
+}
+
+/**
+ * 現在の環境を取得
+ */
+export function getCurrentEnvironment(): Environment {
+  // Vite の環境変数から取得（ビルド時に埋め込まれる）
+  const mode = import.meta.env.MODE;
+
+  switch (mode) {
+    case 'development':
+      return 'dev';
+    case 'staging':
+      return 'stg';
+    case 'production':
+      return 'prod';
+    default:
+      return 'default';
+  }
+}

@@ -1,0 +1,26 @@
+name: {{ service_name | replace(from="-", to="_") }}
+description: {{ service_name }} Flutter アプリケーション
+version: 0.1.0
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  go_router: ^14.2.0
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+  dio: ^5.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.11
+  riverpod_generator: ^2.4.0
+
+flutter:
+  uses-material-design: true

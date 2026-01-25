@@ -1,0 +1,50 @@
+{
+  "$comment": "このファイルは manifest.json のサンプルです。実際のファイルは k1s0 CLI が生成します。",
+  "schema_version": "1.0.0",
+  "k1s0_version": "0.1.0",
+  "template": {
+    "name": "backend-rust",
+    "version": "0.1.0",
+    "source": "local",
+    "path": "CLI/templates/backend-rust/feature",
+    "revision": "abc123def456789012345678901234567890abcd",
+    "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "service": {
+    "service_name": "user-management",
+    "language": "rust",
+    "type": "backend",
+    "framework": "axum"
+  },
+  "generated_at": "2026-01-25T10:30:00Z",
+  "managed_paths": [
+    "deploy/",
+    "config/",
+    "openapi/openapi.yaml",
+    "buf.yaml",
+    "buf.lock",
+    "Cargo.toml",
+    ".github/"
+  ],
+  "protected_paths": [
+    "src/domain/",
+    "src/application/"
+  ],
+  "update_policy": {
+    "src/main.rs": "suggest_only",
+    "src/presentation/": "suggest_only",
+    "src/infrastructure/": "suggest_only",
+    "migrations/": "suggest_only"
+  },
+  "checksums": {
+    "deploy/base/deployment.yaml": "a1b2c3d4e5f6789012345678901234567890123456789012345678901234abcd",
+    "config/default.yaml": "b2c3d4e5f67890123456789012345678901234567890123456789012345abcde"
+  },
+  "dependencies": {
+    "framework_crates": [
+      { "name": "k1s0-config", "version": "0.1.0" },
+      { "name": "k1s0-error", "version": "0.1.0" },
+      { "name": "k1s0-observability", "version": "0.1.0" }
+    ]
+  }
+}

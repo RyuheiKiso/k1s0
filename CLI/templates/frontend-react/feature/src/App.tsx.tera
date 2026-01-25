@@ -1,0 +1,108 @@
+/**
+ * App - アプリケーションルートコンポーネント
+ *
+ * 設定駆動ナビゲーションを使用し、config/{env}.yaml から
+ * routes/menu を読み込んで React Router に反映する。
+ */
+
+import { useState, useEffect } from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { ThemeProvider, CssBaseline, CircularProgress, Box, Alert } from '@mui/material';
+import { NavigationProvider, ConfigRouter } from '@k1s0/navigation';
+import { theme } from './theme';
+import { AppShell } from './components/layout';
+import { loadConfig, getCurrentEnvironment, screens } from './config';
+import type { AppConfig } from './config';
+
+/** ローディング表示 */
+function Loading() {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+      }}
+    >
+      <CircularProgress />
+    </Box>
+  );
+}
+
+/** エラー表示 */
+function ErrorDisplay({ message }: { message: string }) {
+  return (
+    <Box sx={{ p: 3 }}>
+      <Alert severity="error">
+        設定の読み込みに失敗しました: {message}
+      </Alert>
+    </Box>
+  );
+}
+
+/**
+ * App コンポーネント
+ */
+export function App() {
+  const [config, setConfig] = useState<AppConfig | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // 設定をロード
+  useEffect(() => {
+    const env = getCurrentEnvironment();
+
+    loadConfig(env)
+      .then(setConfig)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // ローディング中
+  if (loading) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Loading />
+      </ThemeProvider>
+    );
+  }
+
+  // エラー発生時
+  if (error || !config) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <ErrorDisplay message={error ?? '設定が見つかりません'} />
+      </ThemeProvider>
+    );
+  }
+
+  // 認証コンテキスト（実際のアプリでは認証サービスから取得）
+  const auth = {
+    permissions: [],
+    flags: [],
+  };
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <BrowserRouter>
+        <NavigationProvider
+          config={config.ui.navigation}
+          screens={screens}
+          auth={auth}
+          throwOnValidationError={false}
+          onValidationError={(errors) => {
+            console.error('ナビゲーション設定エラー:', errors);
+          }}
+        >
+          <AppShell>
+            <ConfigRouter />
+          </AppShell>
+        </NavigationProvider>
+      </BrowserRouter>
+    </ThemeProvider>
+  );
+}

@@ -1,0 +1,8 @@
+# {{ service_name }} 設定ファイル（dev 環境）
+
+api:
+  base_url: "http://localhost:8080"
+
+observability:
+  logging:
+    level: "debug"

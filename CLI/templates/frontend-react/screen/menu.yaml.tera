@@ -1,0 +1,13 @@
+# config/default.yaml の ui.navigation.menu.items に追加
+- label: {{ title }}
+  to: {{ path }}
+  icon: {{ icon | default(value="default") }}
+{% if permissions or flags %}
+  requires:
+{% if permissions %}
+    permissions: [{{ permissions | join(separator=", ") }}]
+{% endif %}
+{% if flags %}
+    flags: [{{ flags | join(separator=", ") }}]
+{% endif %}
+{% endif %}
