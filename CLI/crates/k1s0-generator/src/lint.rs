@@ -10,6 +10,7 @@
 //! - `K010`: 必須ディレクトリが存在しない
 //! - `K011`: 必須ファイルが存在しない
 //! - `K020`: 環境変数参照の禁止
+//! - `K021`: config YAML への機密直書き禁止
 
 use std::path::{Path, PathBuf};
 
@@ -30,6 +31,8 @@ pub enum RuleId {
     RequiredFileMissing,
     /// 環境変数参照の禁止
     EnvVarUsage,
+    /// config YAML への機密直書き禁止
+    SecretInConfig,
 }
 
 impl RuleId {
@@ -42,6 +45,7 @@ impl RuleId {
             RuleId::RequiredDirMissing => "K010",
             RuleId::RequiredFileMissing => "K011",
             RuleId::EnvVarUsage => "K020",
+            RuleId::SecretInConfig => "K021",
         }
     }
 
@@ -54,6 +58,7 @@ impl RuleId {
             RuleId::RequiredDirMissing => "必須ディレクトリが存在しません",
             RuleId::RequiredFileMissing => "必須ファイルが存在しません",
             RuleId::EnvVarUsage => "環境変数の参照は禁止されています",
+            RuleId::SecretInConfig => "config YAML に機密情報が直接書かれています",
         }
     }
 }
@@ -372,6 +377,11 @@ impl Linter {
         // K020: 環境変数参照の検査
         if !self.is_rule_skipped(RuleId::EnvVarUsage) {
             self.check_env_var_usage(&path, &mut result);
+        }
+
+        // K021: config YAML への機密直書き検査
+        if !self.is_rule_skipped(RuleId::SecretInConfig) {
+            self.check_secret_in_config(&path, &mut result);
         }
 
         // strict モードの場合、警告をエラーに昇格
@@ -758,6 +768,178 @@ impl Linter {
             }
         }
         false
+    }
+
+    /// config YAML への機密直書きを検査（K021）
+    fn check_secret_in_config(&self, path: &Path, result: &mut LintResult) {
+        let config_dir = path.join("config");
+        if !config_dir.exists() || !config_dir.is_dir() {
+            return;
+        }
+
+        // config ディレクトリ内の YAML ファイルを検査
+        let entries = match std::fs::read_dir(&config_dir) {
+            Ok(e) => e,
+            Err(_) => return,
+        };
+
+        for entry in entries.flatten() {
+            let entry_path = entry.path();
+            if entry_path.is_file() {
+                let ext = entry_path.extension().and_then(|e| e.to_str()).unwrap_or("");
+                if ext == "yaml" || ext == "yml" {
+                    self.check_yaml_for_secrets(&entry_path, path, result);
+                }
+            }
+        }
+    }
+
+    /// YAML ファイル内の機密直書きを検査
+    fn check_yaml_for_secrets(&self, yaml_path: &Path, base_path: &Path, result: &mut LintResult) {
+        let content = match std::fs::read_to_string(yaml_path) {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+
+        let relative_path = yaml_path
+            .strip_prefix(base_path)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| yaml_path.to_string_lossy().to_string());
+
+        // 機密キーのパターン
+        let secret_key_patterns = SecretKeyPatterns::default();
+
+        for (line_num, line) in content.lines().enumerate() {
+            // コメント行はスキップ
+            let trimmed = line.trim();
+            if trimmed.starts_with('#') || trimmed.is_empty() {
+                continue;
+            }
+
+            // キー: 値 の形式をパース
+            if let Some((key, value)) = parse_yaml_line(line) {
+                // キーが機密パターンにマッチするかチェック
+                if let Some(pattern) = secret_key_patterns.matches_secret_key(&key) {
+                    // *_file サフィックスを持つキーは許可
+                    if key.ends_with("_file") || key.ends_with("_path") || key.ends_with("_ref") {
+                        continue;
+                    }
+
+                    // 値が空、null、参照形式でない場合はエラー
+                    let value_trimmed = value.trim();
+                    if !value_trimmed.is_empty()
+                        && value_trimmed != "null"
+                        && value_trimmed != "~"
+                        && !value_trimmed.starts_with("${")
+                        && !value_trimmed.starts_with("{{")
+                    {
+                        result.add_violation(
+                            Violation::new(
+                                RuleId::SecretInConfig,
+                                Severity::Error,
+                                format!(
+                                    "機密キー '{}' に値が直接設定されています",
+                                    key
+                                ),
+                            )
+                            .with_path(&relative_path)
+                            .with_line(line_num + 1)
+                            .with_hint(format!(
+                                "機密情報は直接書かず、'{}_file' キーでファイルパスを参照してください。例: {}_file: /var/run/secrets/k1s0/{}",
+                                pattern, pattern, pattern
+                            )),
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// YAML の行をパースしてキーと値を取得
+fn parse_yaml_line(line: &str) -> Option<(String, String)> {
+    // インデントを除去
+    let trimmed = line.trim_start();
+
+    // コメントや空行はスキップ
+    if trimmed.starts_with('#') || trimmed.is_empty() || trimmed.starts_with('-') {
+        return None;
+    }
+
+    // キー: 値 の形式を探す
+    if let Some(colon_pos) = trimmed.find(':') {
+        let key = trimmed[..colon_pos].trim();
+        let value = if colon_pos + 1 < trimmed.len() {
+            trimmed[colon_pos + 1..].trim()
+        } else {
+            ""
+        };
+
+        // キーが空でなければ返す
+        if !key.is_empty() {
+            return Some((key.to_string(), value.to_string()));
+        }
+    }
+
+    None
+}
+
+/// 機密キーのパターン定義
+#[derive(Debug, Clone)]
+pub struct SecretKeyPatterns {
+    /// 機密キーのパターン（部分一致）
+    pub patterns: Vec<&'static str>,
+}
+
+impl Default for SecretKeyPatterns {
+    fn default() -> Self {
+        Self {
+            patterns: vec![
+                "password",
+                "passwd",
+                "secret",
+                "token",
+                "api_key",
+                "apikey",
+                "api-key",
+                "private_key",
+                "privatekey",
+                "private-key",
+                "credential",
+                "auth_key",
+                "authkey",
+                "auth-key",
+                "access_key",
+                "accesskey",
+                "access-key",
+                "secret_key",
+                "secretkey",
+                "secret-key",
+                "encryption_key",
+                "encryptionkey",
+                "encryption-key",
+                "signing_key",
+                "signingkey",
+                "signing-key",
+                "client_secret",
+                "clientsecret",
+                "client-secret",
+            ],
+        }
+    }
+}
+
+impl SecretKeyPatterns {
+    /// キーが機密パターンにマッチするかチェック
+    /// マッチした場合はパターン名を返す
+    pub fn matches_secret_key(&self, key: &str) -> Option<&'static str> {
+        let key_lower = key.to_lowercase();
+        for pattern in &self.patterns {
+            if key_lower.contains(pattern) {
+                return Some(pattern);
+            }
+        }
+        None
     }
 }
 
@@ -1398,5 +1580,253 @@ fn main() {
         let patterns = EnvVarPatterns::dart();
         assert!(patterns.file_extensions.contains(&"dart"));
         assert!(patterns.patterns.iter().any(|p| p.pattern == "Platform.environment"));
+    }
+
+    // K021: config YAML への機密直書き禁止のテスト
+
+    #[test]
+    fn test_rule_id_k021() {
+        assert_eq!(RuleId::SecretInConfig.as_str(), "K021");
+        assert_eq!(
+            RuleId::SecretInConfig.description(),
+            "config YAML に機密情報が直接書かれています"
+        );
+    }
+
+    #[test]
+    fn test_lint_secret_in_config_detected() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // 機密情報を直接書いた config を作成
+        let bad_config = r#"
+db:
+  host: localhost
+  port: 5432
+  user: myuser
+  password: mysecretpassword123
+"#;
+        fs::write(path.join("config/default.yaml"), bad_config).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K021 の違反が検出される
+        assert!(
+            result.violations.iter().any(|v| v.rule == RuleId::SecretInConfig),
+            "Expected K021 violation, got {:?}",
+            result.violations
+        );
+
+        // ヒントが含まれている
+        let secret_violation = result
+            .violations
+            .iter()
+            .find(|v| v.rule == RuleId::SecretInConfig)
+            .unwrap();
+        assert!(secret_violation.hint.is_some());
+        assert!(secret_violation.hint.as_ref().unwrap().contains("_file"));
+    }
+
+    #[test]
+    fn test_lint_secret_in_config_file_suffix_allowed() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // *_file サフィックスを使った正しい config を作成
+        let good_config = r#"
+db:
+  host: localhost
+  port: 5432
+  user: myuser
+  password_file: /var/run/secrets/k1s0/db_password
+auth:
+  jwt_private_key_file: /var/run/secrets/k1s0/jwt_private_key.pem
+  jwt_public_key_file: /var/run/secrets/k1s0/jwt_public_key.pem
+"#;
+        fs::write(path.join("config/default.yaml"), good_config).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K021 の違反が検出されない
+        assert!(
+            !result.violations.iter().any(|v| v.rule == RuleId::SecretInConfig),
+            "Unexpected K021 violation: {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_lint_secret_in_config_token_detected() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // token を直接書いた config を作成
+        let bad_config = r#"
+integrations:
+  github:
+    api_token: ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+"#;
+        fs::write(path.join("config/dev.yaml"), bad_config).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K021 の違反が検出される
+        assert!(
+            result.violations.iter().any(|v| v.rule == RuleId::SecretInConfig),
+            "Expected K021 violation for token, got {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_lint_secret_in_config_empty_value_allowed() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // 空値やnullは許可
+        let config = r#"
+db:
+  password: null
+  secret: ~
+  token:
+"#;
+        fs::write(path.join("config/default.yaml"), config).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K021 の違反が検出されない
+        assert!(
+            !result.violations.iter().any(|v| v.rule == RuleId::SecretInConfig),
+            "Unexpected K021 violation for empty/null values: {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_lint_secret_in_config_exclude_rule() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // 機密情報を直接書いた config を作成
+        let bad_config = r#"
+db:
+  password: mysecretpassword123
+"#;
+        fs::write(path.join("config/default.yaml"), bad_config).unwrap();
+
+        // K021 を除外
+        let config = LintConfig {
+            rules: None,
+            exclude_rules: vec!["K021".to_string()],
+            strict: false,
+            env_var_allowlist: vec![],
+        };
+        let linter = Linter::new(config);
+        let result = linter.lint(path);
+
+        // K021 の違反が検出されない
+        assert!(
+            !result.violations.iter().any(|v| v.rule == RuleId::SecretInConfig),
+            "Unexpected K021 violation (rule should be excluded): {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_secret_key_patterns_matches() {
+        let patterns = SecretKeyPatterns::default();
+
+        // マッチするケース
+        assert!(patterns.matches_secret_key("password").is_some());
+        assert!(patterns.matches_secret_key("db_password").is_some());
+        assert!(patterns.matches_secret_key("api_token").is_some());
+        assert!(patterns.matches_secret_key("secret_key").is_some());
+        assert!(patterns.matches_secret_key("jwt_private_key").is_some());
+        assert!(patterns.matches_secret_key("client_secret").is_some());
+
+        // マッチしないケース
+        assert!(patterns.matches_secret_key("host").is_none());
+        assert!(patterns.matches_secret_key("port").is_none());
+        assert!(patterns.matches_secret_key("database_name").is_none());
+        assert!(patterns.matches_secret_key("timeout").is_none());
+    }
+
+    #[test]
+    fn test_parse_yaml_line() {
+        // 正常なキー: 値
+        assert_eq!(
+            parse_yaml_line("key: value"),
+            Some(("key".to_string(), "value".to_string()))
+        );
+        assert_eq!(
+            parse_yaml_line("  password: secret123"),
+            Some(("password".to_string(), "secret123".to_string()))
+        );
+
+        // 値が空
+        assert_eq!(
+            parse_yaml_line("token:"),
+            Some(("token".to_string(), "".to_string()))
+        );
+
+        // コメント行
+        assert_eq!(parse_yaml_line("# comment"), None);
+        assert_eq!(parse_yaml_line("  # indented comment"), None);
+
+        // 空行
+        assert_eq!(parse_yaml_line(""), None);
+        assert_eq!(parse_yaml_line("   "), None);
+
+        // リスト項目
+        assert_eq!(parse_yaml_line("- item"), None);
+    }
+
+    #[test]
+    fn test_lint_secret_in_config_line_number() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // 機密情報を直接書いた config を作成（5行目）
+        let bad_config = "# config\ndb:\n  host: localhost\n  port: 5432\n  password: secret123\n";
+        fs::write(path.join("config/default.yaml"), bad_config).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K021 の違反が検出され、行番号が正しい
+        let secret_violation = result
+            .violations
+            .iter()
+            .find(|v| v.rule == RuleId::SecretInConfig)
+            .unwrap();
+        assert_eq!(secret_violation.line, Some(5));
     }
 }
