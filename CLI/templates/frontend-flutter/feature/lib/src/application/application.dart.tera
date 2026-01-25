@@ -1,0 +1,10 @@
+/// アプリケーション層
+///
+/// 状態管理・ユースケース・画面ロジックを担当する。
+///
+/// 構成:
+/// - usecases/: ユースケース
+/// - providers/: 状態管理（Riverpod）
+library;
+
+// TODO: usecases と providers をエクスポート

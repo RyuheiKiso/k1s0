@@ -1,0 +1,22 @@
+# {{ service_name }} 設定ファイル（デフォルト）
+#
+# このファイルは全環境で共通の既定値を定義する。
+# 環境固有の値は {env}.yaml で上書きする。
+
+# アプリケーション基本設定
+app:
+  name: {{ service_name }}
+  version: "0.1.0"
+
+# API エンドポイント
+api:
+  base_url: "http://localhost:8080"
+  timeout_ms: 30000
+
+# 観測性設定
+observability:
+  logging:
+    level: "info"
+  tracing:
+    enabled: true
+    endpoint: "http://localhost:4317"

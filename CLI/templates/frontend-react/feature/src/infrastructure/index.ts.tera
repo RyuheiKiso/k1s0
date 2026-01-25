@@ -1,0 +1,12 @@
+/**
+ * インフラストラクチャ層
+ *
+ * 外部 I/O（API client, storage）の実装を担当する。
+ *
+ * 構成:
+ * - api/: API クライアント
+ * - repositories/: リポジトリ実装
+ * - storage/: ローカルストレージ
+ */
+
+// TODO: api, repositories, storage をエクスポート

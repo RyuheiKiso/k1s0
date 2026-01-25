@@ -1,0 +1,11 @@
+# {{ service_name }} 設定ファイル（prod 環境）
+
+api:
+  base_url: "https://api.example.com"
+
+observability:
+  logging:
+    level: "info"
+  tracing:
+    endpoint: "http://otel-collector.k1s0-prod.svc.cluster.local:4317"
+    sample_rate: 0.01

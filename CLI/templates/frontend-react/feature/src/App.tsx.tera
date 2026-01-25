@@ -1,0 +1,12 @@
+import { BrowserRouter } from 'react-router-dom';
+
+export function App() {
+  return (
+    <BrowserRouter>
+      <div>
+        <h1>{{ service_name }}</h1>
+        <p>TODO: 画面を実装</p>
+      </div>
+    </BrowserRouter>
+  );
+}

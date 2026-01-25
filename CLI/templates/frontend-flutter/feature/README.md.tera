@@ -1,0 +1,88 @@
+# {{ service_name }}
+
+## 概要
+
+{{ service_name }} Flutter アプリケーションの概要を記述する。
+
+## 責務
+
+このアプリケーションが担う責務を記述する。
+
+- TODO: 主要な責務を列挙
+
+## 公開API
+
+なし（Flutter アプリケーション）
+
+## 依存
+
+### バックエンドサービス
+
+- TODO: 依存するバックエンドサービスを列挙
+
+### framework パッケージ
+
+- TODO: 使用する framework パッケージを列挙
+
+## 設定
+
+設定ファイル: `config/{env}.yaml`
+
+| キー | 型 | 説明 | デフォルト値 |
+|------|------|------|-------------|
+| TODO | TODO | TODO | TODO |
+
+## DB
+
+このアプリケーションは DB を使用しない。
+
+## 監視
+
+### ログ
+
+- 形式: JSON（構造化ログ）
+- 必須フィールド: `timestamp`, `level`, `service_name`, `env`, `trace_id`, `message`
+
+### トレース
+
+- W3C Trace Context に準拠
+
+## 起動方法
+
+### ローカル開発
+
+```bash
+# 依存取得
+flutter pub get
+
+# 開発実行
+flutter run
+```
+
+### ビルド
+
+```bash
+# Android
+flutter build apk
+
+# iOS
+flutter build ios
+
+# Web
+flutter build web
+```
+
+## リリース
+
+### デプロイ
+
+```bash
+# dev 環境
+kubectl apply -k deploy/overlays/dev/
+
+# stg 環境
+kubectl apply -k deploy/overlays/stg/
+
+# prod 環境
+kubectl apply -k deploy/overlays/prod/
+```

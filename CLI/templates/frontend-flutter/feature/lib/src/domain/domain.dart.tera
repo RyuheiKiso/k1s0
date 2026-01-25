@@ -1,0 +1,12 @@
+/// ドメイン層
+///
+/// 業務ドメインのモデルを担当する。
+///
+/// 構成:
+/// - entities/: エンティティ
+/// - value_objects/: 値オブジェクト
+/// - errors/: ドメインエラー
+/// - repositories/: リポジトリインターフェース（ports）
+library;
+
+// TODO: entities, value_objects, errors, repositories をエクスポート

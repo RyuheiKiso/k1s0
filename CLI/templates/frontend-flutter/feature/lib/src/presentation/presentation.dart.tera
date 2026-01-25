@@ -1,0 +1,10 @@
+/// プレゼンテーション層
+///
+/// 画面/UI（pages, widgets）と UI からの入出力を担当する。
+///
+/// 構成:
+/// - pages/: ページウィジェット
+/// - widgets/: 共通ウィジェット
+library;
+
+// TODO: pages と widgets をエクスポート
