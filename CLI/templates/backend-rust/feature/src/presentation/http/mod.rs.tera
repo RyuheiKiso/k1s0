@@ -1,0 +1,5 @@
+//! REST API
+//!
+//! axum を使用した REST API エンドポイントを提供する。
+
+// TODO: REST API ハンドラを追加

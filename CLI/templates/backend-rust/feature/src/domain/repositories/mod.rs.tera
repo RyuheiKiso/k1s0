@@ -1,0 +1,5 @@
+//! リポジトリ trait
+//!
+//! 永続化の抽象を定義する。実装は infrastructure 層に委譲する。
+
+// TODO: リポジトリ trait を定義

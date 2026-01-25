@@ -1,0 +1,120 @@
+# {{ service_name }}
+
+## 概要
+
+{{ service_name }} サービスの概要を記述する。
+
+## 責務
+
+このサービスが担う責務を記述する。
+
+- TODO: 主要な責務を列挙
+
+## 公開API
+
+{% if with_grpc -%}
+### gRPC
+
+- `proto/{{ service_name }}.proto` を参照
+{% endif -%}
+{% if with_rest -%}
+### REST
+
+- `openapi/openapi.yaml` を参照
+{% endif -%}
+{% if not with_grpc and not with_rest -%}
+TODO: 公開APIを定義する（gRPC / REST）
+{% endif %}
+
+## 依存
+
+### 外部サービス
+
+- TODO: 依存する外部サービスを列挙
+
+### framework crate
+
+- TODO: 使用する framework crate を列挙
+
+## 設定
+
+設定ファイル: `config/{env}.yaml`
+
+| キー | 型 | 説明 | デフォルト値 |
+|------|------|------|-------------|
+| TODO | TODO | TODO | TODO |
+
+## DB
+
+{% if with_db -%}
+### 所有テーブル
+
+- TODO: このサービスが所有するテーブルを列挙
+
+### マイグレーション
+
+マイグレーションファイルは `migrations/` 配下に配置する。
+
+命名規則: `0001_*.sql`（4桁連番）
+{% else -%}
+このサービスは DB を使用しない。
+{% endif %}
+
+## 監視
+
+### ログ
+
+- 形式: JSON（1行1イベント）
+- 必須フィールド: `timestamp`, `level`, `service_name`, `env`, `trace_id`, `span_id`, `message`
+
+### メトリクス
+
+- `k1s0.{{ service_name | replace(from="-", to="_") }}.request.total` - リクエスト数
+- `k1s0.{{ service_name | replace(from="-", to="_") }}.request.failures` - 失敗数
+- `k1s0.{{ service_name | replace(from="-", to="_") }}.request.latency` - レイテンシ
+
+### トレース
+
+- W3C Trace Context に準拠
+
+## 起動方法
+
+### ローカル開発
+
+```bash
+# 依存起動
+scripts/dev-up.ps1
+
+# サービス起動
+cargo run -- --env dev --config config/dev.yaml
+
+# 依存停止
+scripts/dev-down.ps1
+```
+
+### 疎通チェック
+
+```bash
+scripts/dev-check.ps1
+```
+
+## リリース
+
+### ビルド
+
+```bash
+cargo build --release
+```
+
+### デプロイ
+
+```bash
+# dev 環境
+kubectl apply -k deploy/overlays/dev/
+
+# stg 環境
+kubectl apply -k deploy/overlays/stg/
+
+# prod 環境
+kubectl apply -k deploy/overlays/prod/
+```

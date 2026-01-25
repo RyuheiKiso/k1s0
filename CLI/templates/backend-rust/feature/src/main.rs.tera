@@ -1,0 +1,22 @@
+//! {{ service_name }} サービスのエントリポイント
+
+use {{ service_name | replace(from="-", to="_") }}::run;
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // 観測基盤の初期化
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
+        )
+        .json()
+        .init();
+
+    tracing::info!(
+        service_name = "{{ service_name }}",
+        "Starting service"
+    );
+
+    run().await
+}
