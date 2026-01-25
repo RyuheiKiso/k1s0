@@ -74,11 +74,11 @@ pub fn execute(args: NewScreenArgs) -> Result<()> {
 
     // screen_id のバリデーション
     if !is_valid_screen_id(&args.screen_id) {
-        return Err(CliError::validation(format!(
+        let msg = format!(
             "画面ID '{}' は無効です。小文字英数字とドット（.）のみ使用できます。例: users.list",
             args.screen_id
-        ))
-        .with_target("screen_id"));
+        );
+        return Err(CliError::validation(msg).with_target("screen_id"));
     }
 
     // パスの生成
