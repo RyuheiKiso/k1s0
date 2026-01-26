@@ -18,3 +18,4 @@ framework/backend/rust/crates/k1s0-health/target/*
 framework/backend/rust/services/config-service/target/*
 framework/backend/rust/services/endpoint-service/target/*
 framework/backend/rust/services/auth-service/target/*
+framework/backend/rust/crates/k1s0-auth/target/*

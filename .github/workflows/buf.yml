@@ -1,0 +1,88 @@
+name: buf
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/proto/**'
+      - '**/buf.yaml'
+      - '.github/workflows/buf.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/proto/**'
+      - '**/buf.yaml'
+      - '.github/workflows/buf.yml'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: '1.28.1'
+
+      - name: Lint auth-service
+        working-directory: framework/backend/rust/services/auth-service
+        run: buf lint
+
+      - name: Lint config-service
+        working-directory: framework/backend/rust/services/config-service
+        run: buf lint
+
+      - name: Lint endpoint-service
+        working-directory: framework/backend/rust/services/endpoint-service
+        run: buf lint
+
+  breaking:
+    name: Breaking Changes
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: '1.28.1'
+
+      - name: Check breaking changes - auth-service
+        working-directory: framework/backend/rust/services/auth-service
+        run: buf breaking --against '.git#branch=origin/main,subdir=framework/backend/rust/services/auth-service'
+        continue-on-error: true
+
+      - name: Check breaking changes - config-service
+        working-directory: framework/backend/rust/services/config-service
+        run: buf breaking --against '.git#branch=origin/main,subdir=framework/backend/rust/services/config-service'
+        continue-on-error: true
+
+      - name: Check breaking changes - endpoint-service
+        working-directory: framework/backend/rust/services/endpoint-service
+        run: buf breaking --against '.git#branch=origin/main,subdir=framework/backend/rust/services/endpoint-service'
+        continue-on-error: true
+
+  format:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: '1.28.1'
+
+      - name: Format check - auth-service
+        working-directory: framework/backend/rust/services/auth-service
+        run: buf format --diff --exit-code
+
+      - name: Format check - config-service
+        working-directory: framework/backend/rust/services/config-service
+        run: buf format --diff --exit-code
+
+      - name: Format check - endpoint-service
+        working-directory: framework/backend/rust/services/endpoint-service
+        run: buf format --diff --exit-code
