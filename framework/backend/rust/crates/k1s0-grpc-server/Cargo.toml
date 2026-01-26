@@ -1,8 +1,8 @@
 [package]
-name = "k1s0-grpc-client"
+name = "k1s0-grpc-server"
 version = "0.1.0"
 edition = "2021"
-description = "k1s0 gRPC client common infrastructure"
+description = "k1s0 gRPC server common infrastructure"
 license = "MIT"
 
 [dependencies]
@@ -18,4 +18,3 @@ tokio = { version = "1.0", features = ["time"] }
 
 [dev-dependencies]
 tokio = { version = "1.0", features = ["full", "test-util"] }
-serde_yaml = "0.9"

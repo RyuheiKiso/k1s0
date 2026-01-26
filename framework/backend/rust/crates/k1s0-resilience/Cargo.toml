@@ -1,8 +1,8 @@
 [package]
-name = "k1s0-grpc-client"
+name = "k1s0-resilience"
 version = "0.1.0"
 edition = "2021"
-description = "k1s0 gRPC client common infrastructure"
+description = "k1s0 resilience patterns for dependency calls"
 license = "MIT"
 
 [dependencies]
@@ -13,9 +13,8 @@ serde_json = "1.0"
 # Error handling
 thiserror = "1.0"
 
-# Time
-tokio = { version = "1.0", features = ["time"] }
+# Async runtime
+tokio = { version = "1.0", features = ["time", "sync"] }
 
 [dev-dependencies]
 tokio = { version = "1.0", features = ["full", "test-util"] }
-serde_yaml = "0.9"

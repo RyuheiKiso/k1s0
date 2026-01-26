@@ -12,6 +12,9 @@
 //! - `K020`: 環境変数参照の禁止
 //! - `K021`: config YAML への機密直書き禁止
 //! - `K022`: Clean Architecture 依存方向違反
+//! - `K030`: gRPC リトライ設定の検出（可視化）
+//! - `K031`: gRPC リトライ設定に ADR 参照がない
+//! - `K032`: gRPC リトライ設定が不完全
 
 use std::path::{Path, PathBuf};
 
@@ -36,6 +39,12 @@ pub enum RuleId {
     SecretInConfig,
     /// Clean Architecture 依存方向違反
     DependencyDirection,
+    /// gRPC リトライ設定の検出（可視化目的）
+    RetryUsageDetected,
+    /// gRPC リトライ設定に ADR 参照がない
+    RetryWithoutAdr,
+    /// gRPC リトライ設定が不完全
+    RetryConfigIncomplete,
 }
 
 impl RuleId {
@@ -50,6 +59,9 @@ impl RuleId {
             RuleId::EnvVarUsage => "K020",
             RuleId::SecretInConfig => "K021",
             RuleId::DependencyDirection => "K022",
+            RuleId::RetryUsageDetected => "K030",
+            RuleId::RetryWithoutAdr => "K031",
+            RuleId::RetryConfigIncomplete => "K032",
         }
     }
 
@@ -64,6 +76,9 @@ impl RuleId {
             RuleId::EnvVarUsage => "環境変数の参照は禁止されています",
             RuleId::SecretInConfig => "config YAML に機密情報が直接書かれています",
             RuleId::DependencyDirection => "Clean Architecture の依存方向に違反しています",
+            RuleId::RetryUsageDetected => "gRPC リトライ設定が検出されました",
+            RuleId::RetryWithoutAdr => "gRPC リトライ設定に ADR 参照がありません",
+            RuleId::RetryConfigIncomplete => "gRPC リトライ設定が不完全です",
         }
     }
 }
@@ -392,6 +407,14 @@ impl Linter {
         // K022: Clean Architecture 依存方向検査
         if !self.is_rule_skipped(RuleId::DependencyDirection) {
             self.check_dependency_direction(&path, &mut result);
+        }
+
+        // K030/K031/K032: gRPC リトライ設定検査
+        let check_k030 = !self.is_rule_skipped(RuleId::RetryUsageDetected);
+        let check_k031 = !self.is_rule_skipped(RuleId::RetryWithoutAdr);
+        let check_k032 = !self.is_rule_skipped(RuleId::RetryConfigIncomplete);
+        if check_k030 || check_k031 || check_k032 {
+            self.check_retry_usage(&path, &mut result, check_k030, check_k031, check_k032);
         }
 
         // strict モードの場合、警告をエラーに昇格
@@ -985,6 +1008,199 @@ impl Linter {
             }
         }
     }
+
+    /// gRPC リトライ設定を検査（K030/K031/K032）
+    fn check_retry_usage(
+        &self,
+        path: &Path,
+        result: &mut LintResult,
+        check_k030: bool,
+        check_k031: bool,
+        check_k032: bool,
+    ) {
+        // manifest から言語を取得
+        let manifest_path = path.join(".k1s0/manifest.json");
+        let manifest = match Manifest::load(&manifest_path) {
+            Ok(m) => m,
+            Err(_) => return, // manifest がない場合はスキップ
+        };
+
+        // Rust のみ対象（gRPC client は Rust 実装）
+        if manifest.service.language != "rust" {
+            return;
+        }
+
+        let src_path = path.join("src");
+        if !src_path.exists() {
+            return;
+        }
+
+        // ソースファイルを走査
+        self.scan_directory_for_retry(&src_path, path, result, check_k030, check_k031, check_k032);
+    }
+
+    /// ディレクトリを再帰的に走査してリトライ設定を検出
+    fn scan_directory_for_retry(
+        &self,
+        dir: &Path,
+        base_path: &Path,
+        result: &mut LintResult,
+        check_k030: bool,
+        check_k031: bool,
+        check_k032: bool,
+    ) {
+        let entries = match std::fs::read_dir(dir) {
+            Ok(e) => e,
+            Err(_) => return,
+        };
+
+        for entry in entries.flatten() {
+            let entry_path = entry.path();
+            if entry_path.is_dir() {
+                self.scan_directory_for_retry(&entry_path, base_path, result, check_k030, check_k031, check_k032);
+            } else if entry_path.is_file() {
+                let ext = entry_path.extension().and_then(|e| e.to_str()).unwrap_or("");
+                if ext == "rs" {
+                    self.check_file_for_retry(&entry_path, base_path, result, check_k030, check_k031, check_k032);
+                }
+            }
+        }
+    }
+
+    /// ファイル内のリトライ設定を検査
+    fn check_file_for_retry(
+        &self,
+        file_path: &Path,
+        base_path: &Path,
+        result: &mut LintResult,
+        check_k030: bool,
+        check_k031: bool,
+        check_k032: bool,
+    ) {
+        let content = match std::fs::read_to_string(file_path) {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+
+        let relative_path = file_path
+            .strip_prefix(base_path)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| file_path.to_string_lossy().to_string());
+
+        let lines: Vec<&str> = content.lines().collect();
+
+        for (line_num, line) in lines.iter().enumerate() {
+            // RetryConfig::enabled( の検出
+            if let Some(pos) = line.find("RetryConfig::enabled(") {
+                // K030: リトライ設定の存在を検知（Warning）
+                if check_k030 {
+                    result.add_violation(
+                        Violation::new(
+                            RuleId::RetryUsageDetected,
+                            Severity::Warning,
+                            "gRPC リトライ設定が検出されました",
+                        )
+                        .with_path(&relative_path)
+                        .with_line(line_num + 1)
+                        .with_hint("リトライは原則禁止です。冪等性が保証されている操作のみ、ADR での承認を得た上で使用してください。"),
+                    );
+                }
+
+                // K031: ADR 参照のチェック
+                if check_k031 {
+                    let has_adr_reference = self.check_adr_reference_in_context(&lines, line_num, pos, line);
+                    if !has_adr_reference {
+                        result.add_violation(
+                            Violation::new(
+                                RuleId::RetryWithoutAdr,
+                                Severity::Error,
+                                "gRPC リトライ設定に ADR 参照がありません",
+                            )
+                            .with_path(&relative_path)
+                            .with_line(line_num + 1)
+                            .with_hint("リトライを有効にするには ADR 参照が必須です。例: RetryConfig::enabled(\"ADR-001\")"),
+                        );
+                    }
+                }
+
+                // K032: 必須設定のチェック
+                if check_k032 {
+                    let has_required_config = self.check_retry_required_config(&lines, line_num);
+                    if !has_required_config {
+                        result.add_violation(
+                            Violation::new(
+                                RuleId::RetryConfigIncomplete,
+                                Severity::Error,
+                                "gRPC リトライ設定に必須パラメータが不足しています",
+                            )
+                            .with_path(&relative_path)
+                            .with_line(line_num + 1)
+                            .with_hint("max_attempts() の指定が必要です。"),
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    /// ADR 参照が存在するかチェック
+    fn check_adr_reference_in_context(
+        &self,
+        lines: &[&str],
+        line_num: usize,
+        pos: usize,
+        current_line: &str,
+    ) -> bool {
+        // 引数内を抽出（RetryConfig::enabled("ADR-001")）
+        let after_paren = &current_line[pos + "RetryConfig::enabled(".len()..];
+        if contains_adr_reference(after_paren) {
+            return true;
+        }
+
+        // 前の2行のコメントも確認
+        let start_line = line_num.saturating_sub(2);
+        for i in start_line..line_num {
+            if let Some(line) = lines.get(i) {
+                if contains_adr_reference(line) {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
+    /// リトライ設定に必須パラメータがあるかチェック
+    fn check_retry_required_config(&self, lines: &[&str], start_line: usize) -> bool {
+        // RetryConfig::enabled() から .build() までを探索
+        let mut has_max_attempts = false;
+        let mut has_build = false;
+
+        // 最大10行先まで確認（チェーンメソッド呼び出しを想定）
+        let end_line = std::cmp::min(start_line + 10, lines.len());
+
+        for i in start_line..end_line {
+            if let Some(line) = lines.get(i) {
+                if line.contains(".max_attempts(") {
+                    has_max_attempts = true;
+                }
+                if line.contains(".build()") {
+                    has_build = true;
+                    break;
+                }
+                // 文の終わり（セミコロン）を検出したら終了
+                // ただし、同じ行に .build() がある場合は上で検出済み
+                if line.contains(';') {
+                    break;
+                }
+            }
+        }
+
+        // build() が呼ばれているか、max_attempts が指定されているか
+        // RetryConfigBuilder::new() はデフォルトで max_attempts = 3 を持つので、
+        // build() が呼ばれていれば基本的に OK
+        has_build || has_max_attempts
+    }
 }
 
 /// 依存方向ルールの定義
@@ -1046,6 +1262,19 @@ impl DependencyRules {
             ],
         }
     }
+}
+
+/// ADR 参照パターン（ADR-XXX）が含まれているかチェック
+fn contains_adr_reference(text: &str) -> bool {
+    // ADR- または adr- を検索
+    let text_upper = text.to_uppercase();
+    if let Some(pos) = text_upper.find("ADR-") {
+        // ADR- の後に少なくとも3桁の数字が続くかチェック
+        let after_adr = &text[pos + 4..];
+        let digit_count = after_adr.chars().take_while(|c| c.is_ascii_digit()).count();
+        return digit_count >= 3;
+    }
+    false
 }
 
 /// YAML の行をパースしてキーと値を取得
@@ -2264,5 +2493,349 @@ pub struct User {}
             .find(|v| v.rule == RuleId::DependencyDirection)
             .unwrap();
         assert_eq!(dep_violation.line, Some(3));
+    }
+
+    // K030/K031/K032: gRPC リトライ設定検査のテスト
+
+    #[test]
+    fn test_rule_id_k030() {
+        assert_eq!(RuleId::RetryUsageDetected.as_str(), "K030");
+        assert_eq!(
+            RuleId::RetryUsageDetected.description(),
+            "gRPC リトライ設定が検出されました"
+        );
+    }
+
+    #[test]
+    fn test_rule_id_k031() {
+        assert_eq!(RuleId::RetryWithoutAdr.as_str(), "K031");
+        assert_eq!(
+            RuleId::RetryWithoutAdr.description(),
+            "gRPC リトライ設定に ADR 参照がありません"
+        );
+    }
+
+    #[test]
+    fn test_rule_id_k032() {
+        assert_eq!(RuleId::RetryConfigIncomplete.as_str(), "K032");
+        assert_eq!(
+            RuleId::RetryConfigIncomplete.description(),
+            "gRPC リトライ設定が不完全です"
+        );
+    }
+
+    #[test]
+    fn test_contains_adr_reference() {
+        // 有効な ADR 参照
+        assert!(contains_adr_reference("ADR-001"));
+        assert!(contains_adr_reference("ADR-123"));
+        assert!(contains_adr_reference("adr-001"));
+        assert!(contains_adr_reference("\"ADR-001\""));
+        assert!(contains_adr_reference("// ADR-001: リトライポリシー"));
+        assert!(contains_adr_reference("RetryConfig::enabled(\"ADR-001\")"));
+
+        // 無効な ADR 参照
+        assert!(!contains_adr_reference("ADR-01"));  // 2桁は不可
+        assert!(!contains_adr_reference("ADR-"));    // 数字なし
+        assert!(!contains_adr_reference("ADR"));     // ハイフンなし
+        assert!(!contains_adr_reference("ADDR-001")); // 異なるプレフィックス
+    }
+
+    #[test]
+    fn test_lint_retry_usage_detected() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // リトライ設定を使用するコードを追加
+        let code = r#"
+use k1s0_grpc_client::config::RetryConfig;
+
+fn create_client() {
+    // ADR-001: このサービスは冪等なため、リトライを有効にする
+    let retry = RetryConfig::enabled("ADR-001")
+        .max_attempts(3)
+        .build()
+        .unwrap();
+}
+"#;
+        fs::write(path.join("src/infrastructure/mod.rs"), code).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K030 の警告が検出される
+        assert!(
+            result.violations.iter().any(|v| v.rule == RuleId::RetryUsageDetected),
+            "Expected K030 warning, got {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_lint_retry_without_adr() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // ADR 参照なしでリトライ設定を使用するコードを追加
+        let code = r#"
+use k1s0_grpc_client::config::RetryConfig;
+
+fn create_client() {
+    let retry = RetryConfig::enabled("no-adr")
+        .max_attempts(3)
+        .build()
+        .unwrap();
+}
+"#;
+        fs::write(path.join("src/infrastructure/mod.rs"), code).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K031 のエラーが検出される
+        assert!(
+            result.violations.iter().any(|v| v.rule == RuleId::RetryWithoutAdr),
+            "Expected K031 error, got {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_lint_retry_with_adr_no_k031() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // 正しい ADR 参照付きのリトライ設定
+        let code = r#"
+use k1s0_grpc_client::config::RetryConfig;
+
+fn create_client() {
+    let retry = RetryConfig::enabled("ADR-001")
+        .max_attempts(3)
+        .build()
+        .unwrap();
+}
+"#;
+        fs::write(path.join("src/infrastructure/mod.rs"), code).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K031 のエラーが検出されない
+        assert!(
+            !result.violations.iter().any(|v| v.rule == RuleId::RetryWithoutAdr),
+            "Unexpected K031 error: {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_lint_retry_with_adr_in_comment() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // コメントに ADR 参照があるリトライ設定
+        let code = r#"
+use k1s0_grpc_client::config::RetryConfig;
+
+fn create_client() {
+    // ADR-002: Get操作は冪等のためリトライ可
+    let retry = RetryConfig::enabled("see-comment")
+        .max_attempts(3)
+        .build()
+        .unwrap();
+}
+"#;
+        fs::write(path.join("src/infrastructure/mod.rs"), code).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K031 のエラーが検出されない（コメントに ADR 参照あり）
+        assert!(
+            !result.violations.iter().any(|v| v.rule == RuleId::RetryWithoutAdr),
+            "Unexpected K031 error (ADR in comment): {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_lint_retry_config_incomplete() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // build() を呼ばないリトライ設定
+        let code = r#"
+use k1s0_grpc_client::config::RetryConfig;
+
+fn create_client() {
+    let retry = RetryConfig::enabled("ADR-001");
+    // .build() を呼んでいない
+}
+"#;
+        fs::write(path.join("src/infrastructure/mod.rs"), code).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K032 のエラーが検出される
+        assert!(
+            result.violations.iter().any(|v| v.rule == RuleId::RetryConfigIncomplete),
+            "Expected K032 error, got {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_lint_retry_config_complete() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // 完全なリトライ設定
+        let code = r#"
+use k1s0_grpc_client::config::RetryConfig;
+
+fn create_client() {
+    let retry = RetryConfig::enabled("ADR-001")
+        .max_attempts(3)
+        .initial_backoff_ms(100)
+        .max_backoff_ms(5000)
+        .build()
+        .unwrap();
+}
+"#;
+        fs::write(path.join("src/infrastructure/mod.rs"), code).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K032 のエラーが検出されない
+        assert!(
+            !result.violations.iter().any(|v| v.rule == RuleId::RetryConfigIncomplete),
+            "Unexpected K032 error: {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_lint_retry_no_violation_when_disabled() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // RetryConfig::disabled() を使用（違反なし）
+        let code = r#"
+use k1s0_grpc_client::config::RetryConfig;
+
+fn create_client() {
+    let retry = RetryConfig::disabled();
+}
+"#;
+        fs::write(path.join("src/infrastructure/mod.rs"), code).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // リトライ関連の違反が検出されない
+        assert!(
+            !result.violations.iter().any(|v| matches!(
+                v.rule,
+                RuleId::RetryUsageDetected | RuleId::RetryWithoutAdr | RuleId::RetryConfigIncomplete
+            )),
+            "Unexpected retry violation for disabled retry: {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_lint_retry_exclude_k030() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // リトライ設定を使用するコードを追加
+        let code = r#"
+use k1s0_grpc_client::config::RetryConfig;
+
+fn create_client() {
+    let retry = RetryConfig::enabled("ADR-001")
+        .max_attempts(3)
+        .build()
+        .unwrap();
+}
+"#;
+        fs::write(path.join("src/infrastructure/mod.rs"), code).unwrap();
+
+        // K030 を除外
+        let config = LintConfig {
+            rules: None,
+            exclude_rules: vec!["K030".to_string()],
+            strict: false,
+            env_var_allowlist: vec![],
+        };
+        let linter = Linter::new(config);
+        let result = linter.lint(path);
+
+        // K030 の違反が検出されない
+        assert!(
+            !result.violations.iter().any(|v| v.rule == RuleId::RetryUsageDetected),
+            "Unexpected K030 warning (rule should be excluded): {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_lint_retry_line_number() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // リトライ設定（6行目）
+        let code = "// comment\n// comment\n// comment\n// comment\n// comment\nlet retry = RetryConfig::enabled(\"ADR-001\").build();\n";
+        fs::write(path.join("src/infrastructure/mod.rs"), code).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K030 の違反が検出され、行番号が正しい
+        let retry_violation = result
+            .violations
+            .iter()
+            .find(|v| v.rule == RuleId::RetryUsageDetected)
+            .unwrap();
+        assert_eq!(retry_violation.line, Some(6));
     }
 }

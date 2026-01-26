@@ -11,3 +11,5 @@ framework/backend/rust/crates/k1s0-validation/target/*
 framework/backend/rust/crates/k1s0-error/target/*
 framework/backend/rust/crates/k1s0-observability/target/*
 framework/backend/rust/crates/k1s0-grpc-client/target/*
+framework/backend/rust/crates/k1s0-grpc-server/target/*
+framework/backend/rust/crates/k1s0-resilience/target/*

@@ -2,6 +2,30 @@
 //!
 //! 論理名からアドレスを解決する仕組みを提供する。
 //! K8s DNS ベースの解決を前提とし、環境差は設定で吸収する。
+//!
+//! # 設定例
+//!
+//! ```yaml
+//! # config/{env}.yaml
+//! dependencies:
+//!   discovery:
+//!     default_namespace: default
+//!     cluster_domain: svc.cluster.local
+//!     default_port: 50051
+//!   services:
+//!     auth-service:
+//!       # 論理名のみの場合は K8s DNS で解決
+//!       timeout_ms: 5000
+//!     config-service:
+//!       # 明示的なエンドポイント指定
+//!       endpoint: config-service.production:50051
+//!       timeout_ms: 10000
+//!     external-api:
+//!       # 外部サービス
+//!       endpoint: https://api.external.example.com:443
+//!       tls: true
+//!       timeout_ms: 30000
+//! ```
 
 use crate::error::GrpcClientError;
 use serde::{Deserialize, Serialize};
@@ -305,6 +329,324 @@ impl Default for ServiceResolver {
     }
 }
 
+/// 依存先サービス設定
+///
+/// config/{env}.yaml の `dependencies` セクションに対応。
+/// サービス実装が「生のホスト名/URL」を持たずに依存先を解決できるようにする。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DependenciesConfig {
+    /// サービスディスカバリ設定
+    #[serde(default)]
+    discovery: ServiceDiscoveryConfig,
+    /// 依存先サービスの定義
+    #[serde(default)]
+    services: HashMap<String, ServiceDependency>,
+}
+
+impl DependenciesConfig {
+    /// 新しい設定を作成
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// ビルダーを作成
+    pub fn builder() -> DependenciesConfigBuilder {
+        DependenciesConfigBuilder::new()
+    }
+
+    /// ディスカバリ設定を取得
+    pub fn discovery(&self) -> &ServiceDiscoveryConfig {
+        &self.discovery
+    }
+
+    /// 依存先サービスを取得
+    pub fn get_service(&self, name: &str) -> Option<&ServiceDependency> {
+        self.services.get(name)
+    }
+
+    /// 登録されているサービス名を取得
+    pub fn service_names(&self) -> impl Iterator<Item = &str> {
+        self.services.keys().map(|s| s.as_str())
+    }
+
+    /// サービス数を取得
+    pub fn service_count(&self) -> usize {
+        self.services.len()
+    }
+
+    /// 依存先のエンドポイントを解決
+    ///
+    /// 1. ServiceDependency に endpoint が明示されていればそれを使用
+    /// 2. なければ ServiceDiscoveryConfig で論理名から解決
+    pub fn resolve_endpoint(&self, service_name: &str) -> Result<ResolvedEndpoint, GrpcClientError> {
+        let dependency = self.services.get(service_name);
+
+        // エンドポイントの解決
+        let endpoint = if let Some(dep) = dependency {
+            if let Some(explicit_endpoint) = &dep.endpoint {
+                ServiceEndpoint::from_address(explicit_endpoint)?
+            } else {
+                // 論理名で解決
+                let address = self.discovery.resolve(service_name)?;
+                let mut ep = ServiceEndpoint::from_address(&address)?;
+                if dep.tls {
+                    ep = ServiceEndpoint::with_tls(ep.host(), ep.port());
+                }
+                ep
+            }
+        } else {
+            // 未登録のサービスは論理名で解決を試みる
+            let address = self.discovery.resolve(service_name)?;
+            ServiceEndpoint::from_address(&address)?
+        };
+
+        // タイムアウト設定
+        let timeout_ms = dependency.map(|d| d.timeout_ms).unwrap_or(DEFAULT_TIMEOUT_MS);
+
+        Ok(ResolvedEndpoint {
+            service_name: service_name.to_string(),
+            endpoint,
+            timeout_ms,
+        })
+    }
+
+    /// すべての依存先を解決
+    pub fn resolve_all(&self) -> Vec<Result<ResolvedEndpoint, GrpcClientError>> {
+        self.services
+            .keys()
+            .map(|name| self.resolve_endpoint(name))
+            .collect()
+    }
+
+    /// 設定をバリデーション
+    pub fn validate(&self) -> Result<(), GrpcClientError> {
+        for (name, dep) in &self.services {
+            // タイムアウトの検証
+            if dep.timeout_ms < MIN_TIMEOUT_MS {
+                return Err(GrpcClientError::config(format!(
+                    "service '{}': timeout_ms {} is below minimum {}",
+                    name, dep.timeout_ms, MIN_TIMEOUT_MS
+                )));
+            }
+            if dep.timeout_ms > MAX_TIMEOUT_MS {
+                return Err(GrpcClientError::config(format!(
+                    "service '{}': timeout_ms {} exceeds maximum {}",
+                    name, dep.timeout_ms, MAX_TIMEOUT_MS
+                )));
+            }
+
+            // エンドポイントの検証
+            if let Some(endpoint) = &dep.endpoint {
+                ServiceEndpoint::from_address(endpoint)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+/// 依存先設定のデフォルトタイムアウト（ミリ秒）
+pub const DEFAULT_TIMEOUT_MS: u64 = 30_000;
+
+/// 最小タイムアウト（ミリ秒）
+pub const MIN_TIMEOUT_MS: u64 = 100;
+
+/// 最大タイムアウト（ミリ秒）
+pub const MAX_TIMEOUT_MS: u64 = 300_000;
+
+/// 依存先サービスの定義
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceDependency {
+    /// 明示的なエンドポイント（指定しない場合は論理名で解決）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    endpoint: Option<String>,
+    /// TLS を使用するかどうか
+    #[serde(default)]
+    tls: bool,
+    /// タイムアウト（ミリ秒）
+    #[serde(default = "default_timeout_ms")]
+    timeout_ms: u64,
+    /// 説明（ドキュメント用）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
+}
+
+fn default_timeout_ms() -> u64 {
+    DEFAULT_TIMEOUT_MS
+}
+
+impl ServiceDependency {
+    /// 新しい依存先を作成（論理名解決）
+    pub fn logical() -> Self {
+        Self {
+            endpoint: None,
+            tls: false,
+            timeout_ms: DEFAULT_TIMEOUT_MS,
+            description: None,
+        }
+    }
+
+    /// 明示的なエンドポイントで作成
+    pub fn with_endpoint(endpoint: impl Into<String>) -> Self {
+        Self {
+            endpoint: Some(endpoint.into()),
+            tls: false,
+            timeout_ms: DEFAULT_TIMEOUT_MS,
+            description: None,
+        }
+    }
+
+    /// TLS を設定
+    pub fn tls(mut self, enabled: bool) -> Self {
+        self.tls = enabled;
+        self
+    }
+
+    /// タイムアウトを設定
+    pub fn timeout_ms(mut self, ms: u64) -> Self {
+        self.timeout_ms = ms;
+        self
+    }
+
+    /// 説明を設定
+    pub fn description(mut self, desc: impl Into<String>) -> Self {
+        self.description = Some(desc.into());
+        self
+    }
+
+    /// エンドポイントを取得
+    pub fn get_endpoint(&self) -> Option<&str> {
+        self.endpoint.as_deref()
+    }
+
+    /// TLS が有効かどうか
+    pub fn is_tls(&self) -> bool {
+        self.tls
+    }
+
+    /// タイムアウトを取得
+    pub fn get_timeout_ms(&self) -> u64 {
+        self.timeout_ms
+    }
+
+    /// 説明を取得
+    pub fn get_description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+}
+
+impl Default for ServiceDependency {
+    fn default() -> Self {
+        Self::logical()
+    }
+}
+
+/// 解決済みエンドポイント
+#[derive(Debug, Clone)]
+pub struct ResolvedEndpoint {
+    /// サービス名
+    pub service_name: String,
+    /// エンドポイント
+    pub endpoint: ServiceEndpoint,
+    /// タイムアウト（ミリ秒）
+    pub timeout_ms: u64,
+}
+
+impl ResolvedEndpoint {
+    /// アドレスを取得
+    pub fn address(&self) -> String {
+        self.endpoint.to_address()
+    }
+
+    /// URI を取得
+    pub fn uri(&self) -> String {
+        self.endpoint.to_uri()
+    }
+}
+
+/// 依存先設定ビルダー
+#[derive(Debug, Default)]
+pub struct DependenciesConfigBuilder {
+    discovery: Option<ServiceDiscoveryConfig>,
+    services: HashMap<String, ServiceDependency>,
+}
+
+impl DependenciesConfigBuilder {
+    /// 新しいビルダーを作成
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// ディスカバリ設定を設定
+    pub fn discovery(mut self, config: ServiceDiscoveryConfig) -> Self {
+        self.discovery = Some(config);
+        self
+    }
+
+    /// 依存先サービスを追加
+    pub fn service(mut self, name: impl Into<String>, dep: ServiceDependency) -> Self {
+        self.services.insert(name.into(), dep);
+        self
+    }
+
+    /// 論理名で解決するサービスを追加
+    pub fn logical_service(self, name: impl Into<String>) -> Self {
+        self.service(name, ServiceDependency::logical())
+    }
+
+    /// 明示的なエンドポイントを持つサービスを追加
+    pub fn explicit_service(
+        self,
+        name: impl Into<String>,
+        endpoint: impl Into<String>,
+    ) -> Self {
+        self.service(name, ServiceDependency::with_endpoint(endpoint))
+    }
+
+    /// 設定をビルド
+    pub fn build(self) -> DependenciesConfig {
+        DependenciesConfig {
+            discovery: self.discovery.unwrap_or_default(),
+            services: self.services,
+        }
+    }
+}
+
+/// k1s0 規約に準拠したサービス名かどうかを検証
+///
+/// - kebab-case のみ許可
+/// - 英小文字、数字、ハイフンのみ使用可能
+/// - 先頭と末尾はハイフン不可
+pub fn validate_service_name(name: &str) -> Result<(), GrpcClientError> {
+    if name.is_empty() {
+        return Err(GrpcClientError::config("service name cannot be empty"));
+    }
+
+    if name.starts_with('-') || name.ends_with('-') {
+        return Err(GrpcClientError::config(format!(
+            "service name '{}' cannot start or end with hyphen",
+            name
+        )));
+    }
+
+    if name.contains("--") {
+        return Err(GrpcClientError::config(format!(
+            "service name '{}' cannot contain consecutive hyphens",
+            name
+        )));
+    }
+
+    for c in name.chars() {
+        if !c.is_ascii_lowercase() && !c.is_ascii_digit() && c != '-' {
+            return Err(GrpcClientError::config(format!(
+                "service name '{}' contains invalid character '{}' (only lowercase letters, digits, and hyphens allowed)",
+                name, c
+            )));
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -430,5 +772,214 @@ mod tests {
 
         assert_eq!(config.service_count(), 1);
         assert!(config.get("my-service").is_some());
+    }
+
+    // DependenciesConfig テスト
+
+    #[test]
+    fn test_dependencies_config_default() {
+        let config = DependenciesConfig::new();
+        assert_eq!(config.service_count(), 0);
+    }
+
+    #[test]
+    fn test_dependencies_config_builder() {
+        let config = DependenciesConfig::builder()
+            .discovery(
+                ServiceDiscoveryConfig::builder()
+                    .default_namespace("production")
+                    .build(),
+            )
+            .service(
+                "auth-service",
+                ServiceDependency::logical().timeout_ms(5000),
+            )
+            .explicit_service("external-api", "https://api.example.com:443")
+            .build();
+
+        assert_eq!(config.service_count(), 2);
+        assert!(config.get_service("auth-service").is_some());
+        assert!(config.get_service("external-api").is_some());
+    }
+
+    #[test]
+    fn test_dependencies_config_resolve_logical() {
+        let config = DependenciesConfig::builder()
+            .discovery(
+                ServiceDiscoveryConfig::builder()
+                    .default_namespace("default")
+                    .default_port(50051)
+                    .build(),
+            )
+            .logical_service("auth-service")
+            .build();
+
+        let resolved = config.resolve_endpoint("auth-service").unwrap();
+        assert_eq!(resolved.service_name, "auth-service");
+        assert!(resolved.address().contains("auth-service.default"));
+    }
+
+    #[test]
+    fn test_dependencies_config_resolve_explicit() {
+        let config = DependenciesConfig::builder()
+            .service(
+                "external-api",
+                ServiceDependency::with_endpoint("api.example.com:8080").timeout_ms(10000),
+            )
+            .build();
+
+        let resolved = config.resolve_endpoint("external-api").unwrap();
+        assert_eq!(resolved.endpoint.host(), "api.example.com");
+        assert_eq!(resolved.endpoint.port(), 8080);
+        assert_eq!(resolved.timeout_ms, 10000);
+    }
+
+    #[test]
+    fn test_dependencies_config_resolve_with_tls() {
+        let config = DependenciesConfig::builder()
+            .discovery(
+                ServiceDiscoveryConfig::builder()
+                    .default_namespace("default")
+                    .build(),
+            )
+            .service(
+                "secure-service",
+                ServiceDependency::logical().tls(true),
+            )
+            .build();
+
+        let resolved = config.resolve_endpoint("secure-service").unwrap();
+        // TLS フラグは endpoint に反映される（論理名解決の場合）
+        assert!(resolved.endpoint.is_tls());
+    }
+
+    #[test]
+    fn test_dependencies_config_validate_timeout() {
+        let config = DependenciesConfig::builder()
+            .service(
+                "fast-service",
+                ServiceDependency::with_endpoint("localhost:8080").timeout_ms(50), // 下限未満
+            )
+            .build();
+
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_dependencies_config_service_names() {
+        let config = DependenciesConfig::builder()
+            .logical_service("service-a")
+            .logical_service("service-b")
+            .logical_service("service-c")
+            .build();
+
+        let names: Vec<_> = config.service_names().collect();
+        assert_eq!(names.len(), 3);
+        assert!(names.contains(&"service-a"));
+        assert!(names.contains(&"service-b"));
+        assert!(names.contains(&"service-c"));
+    }
+
+    #[test]
+    fn test_service_dependency_builder() {
+        let dep = ServiceDependency::with_endpoint("localhost:8080")
+            .tls(true)
+            .timeout_ms(5000)
+            .description("Test service");
+
+        assert_eq!(dep.get_endpoint(), Some("localhost:8080"));
+        assert!(dep.is_tls());
+        assert_eq!(dep.get_timeout_ms(), 5000);
+        assert_eq!(dep.get_description(), Some("Test service"));
+    }
+
+    #[test]
+    fn test_resolved_endpoint() {
+        let endpoint = ServiceEndpoint::new("localhost", 50051);
+        let resolved = ResolvedEndpoint {
+            service_name: "my-service".to_string(),
+            endpoint,
+            timeout_ms: 5000,
+        };
+
+        assert_eq!(resolved.address(), "localhost:50051");
+        assert_eq!(resolved.uri(), "http://localhost:50051");
+    }
+
+    // validate_service_name テスト
+
+    #[test]
+    fn test_validate_service_name_valid() {
+        assert!(validate_service_name("auth-service").is_ok());
+        assert!(validate_service_name("config-service").is_ok());
+        assert!(validate_service_name("api").is_ok());
+        assert!(validate_service_name("service-v2").is_ok());
+        assert!(validate_service_name("my-long-service-name").is_ok());
+    }
+
+    #[test]
+    fn test_validate_service_name_empty() {
+        assert!(validate_service_name("").is_err());
+    }
+
+    #[test]
+    fn test_validate_service_name_uppercase() {
+        assert!(validate_service_name("Auth-Service").is_err());
+        assert!(validate_service_name("AUTH").is_err());
+    }
+
+    #[test]
+    fn test_validate_service_name_underscore() {
+        assert!(validate_service_name("auth_service").is_err());
+    }
+
+    #[test]
+    fn test_validate_service_name_leading_hyphen() {
+        assert!(validate_service_name("-service").is_err());
+    }
+
+    #[test]
+    fn test_validate_service_name_trailing_hyphen() {
+        assert!(validate_service_name("service-").is_err());
+    }
+
+    #[test]
+    fn test_validate_service_name_consecutive_hyphens() {
+        assert!(validate_service_name("auth--service").is_err());
+    }
+
+    #[test]
+    fn test_validate_service_name_special_chars() {
+        assert!(validate_service_name("auth.service").is_err());
+        assert!(validate_service_name("auth@service").is_err());
+        assert!(validate_service_name("auth service").is_err());
+    }
+
+    #[test]
+    fn test_dependencies_config_yaml_serialization() {
+        let config = DependenciesConfig::builder()
+            .discovery(
+                ServiceDiscoveryConfig::builder()
+                    .default_namespace("default")
+                    .default_port(50051)
+                    .build(),
+            )
+            .service(
+                "auth-service",
+                ServiceDependency::logical()
+                    .timeout_ms(5000)
+                    .description("認証サービス"),
+            )
+            .explicit_service("external-api", "https://api.example.com:443")
+            .build();
+
+        // YAML にシリアライズできることを確認
+        let yaml = serde_yaml::to_string(&config).unwrap();
+        assert!(yaml.contains("auth-service"));
+        assert!(yaml.contains("external-api"));
+
+        // デシリアライズして元に戻せることを確認
+        let deserialized: DependenciesConfig = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(deserialized.service_count(), 2);
     }
 }

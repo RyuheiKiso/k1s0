@@ -83,6 +83,32 @@
 //!     .build()
 //!     .unwrap();
 //! ```
+//!
+//! # 依存先設定（config/{env}.yaml から読み込み）
+//!
+//! サービス実装が「生のホスト名/URL」を持たずに依存先を解決:
+//!
+//! ```rust
+//! use k1s0_grpc_client::{DependenciesConfig, ServiceDependency, ServiceDiscoveryConfig};
+//!
+//! // 依存先設定の構築
+//! let deps = DependenciesConfig::builder()
+//!     .discovery(
+//!         ServiceDiscoveryConfig::builder()
+//!             .default_namespace("production")
+//!             .default_port(50051)
+//!             .build()
+//!     )
+//!     // 論理名で解決（K8s DNS）
+//!     .service("auth-service", ServiceDependency::logical().timeout_ms(5000))
+//!     // 明示的なエンドポイント
+//!     .explicit_service("external-api", "https://api.example.com:443")
+//!     .build();
+//!
+//! // エンドポイントの解決
+//! let resolved = deps.resolve_endpoint("auth-service").unwrap();
+//! assert!(resolved.address().contains("auth-service.production"));
+//! ```
 
 pub mod builder;
 pub mod config;
@@ -98,7 +124,9 @@ pub use config::{
     MIN_TIMEOUT_MS,
 };
 pub use discovery::{
+    DependenciesConfig, DependenciesConfigBuilder, ResolvedEndpoint, ServiceDependency,
     ServiceDiscoveryConfig, ServiceDiscoveryConfigBuilder, ServiceEndpoint, ServiceResolver,
+    validate_service_name,
 };
 pub use error::{GrpcClientError, GrpcStatus};
 pub use interceptors::{
@@ -245,5 +273,43 @@ mod tests {
         assert_eq!(MetadataKeys::TRACEPARENT, "traceparent");
         assert_eq!(MetadataKeys::X_REQUEST_ID, "x-request-id");
         assert_eq!(MetadataKeys::X_ERROR_CODE, "x-error-code");
+    }
+
+    #[test]
+    fn test_dependencies_config_basic() {
+        let deps = DependenciesConfig::builder()
+            .discovery(
+                ServiceDiscoveryConfig::builder()
+                    .default_namespace("default")
+                    .default_port(50051)
+                    .build(),
+            )
+            .service(
+                "auth-service",
+                ServiceDependency::logical().timeout_ms(5000),
+            )
+            .explicit_service("external-api", "api.example.com:8080")
+            .build();
+
+        assert_eq!(deps.service_count(), 2);
+
+        // 論理名で解決
+        let auth = deps.resolve_endpoint("auth-service").unwrap();
+        assert!(auth.address().contains("auth-service.default"));
+        assert_eq!(auth.timeout_ms, 5000);
+
+        // 明示的なエンドポイント
+        let external = deps.resolve_endpoint("external-api").unwrap();
+        assert_eq!(external.endpoint.host(), "api.example.com");
+        assert_eq!(external.endpoint.port(), 8080);
+    }
+
+    #[test]
+    fn test_validate_service_name_basic() {
+        assert!(validate_service_name("auth-service").is_ok());
+        assert!(validate_service_name("config-service").is_ok());
+        assert!(validate_service_name("Auth-Service").is_err());
+        assert!(validate_service_name("-service").is_err());
+        assert!(validate_service_name("service-").is_err());
     }
 }
