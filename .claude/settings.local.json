@@ -21,7 +21,10 @@
       "Bash(cargo --version:*)",
       "Bash(rustc:*)",
       "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -10 \"\"{}\"\"')",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(xargs -I {} bash -c 'echo \"\"===== {} =====\"\" && head -15 {}')",
+      "Bash(xargs -I {} bash -c 'echo \"\"==== {} ====\"\" && cat {}')",
+      "Bash(for:*)"
     ]
   }
 }
