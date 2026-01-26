@@ -1,0 +1,54 @@
+// Package entities contains domain entities
+package entities
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+// {{ feature_name | pascal_case }} represents the {{ feature_name }} domain entity.
+type {{ feature_name | pascal_case }} struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Status    int       `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// New{{ feature_name | pascal_case }} creates a new {{ feature_name | pascal_case }} entity.
+func New{{ feature_name | pascal_case }}(name string) *{{ feature_name | pascal_case }} {
+	now := time.Now()
+	return &{{ feature_name | pascal_case }}{
+		ID:        uuid.New(),
+		Name:      name,
+		Status:    1, // Active
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+}
+
+// IsActive returns true if the {{ feature_name }} is active.
+func (e *{{ feature_name | pascal_case }}) IsActive() bool {
+	return e.Status == 1
+}
+
+// Activate activates the {{ feature_name }}.
+func (e *{{ feature_name | pascal_case }}) Activate() {
+	e.Status = 1
+	e.UpdatedAt = time.Now()
+}
+
+// Deactivate deactivates the {{ feature_name }}.
+func (e *{{ feature_name | pascal_case }}) Deactivate() {
+	e.Status = 0
+	e.UpdatedAt = time.Now()
+}
+
+// Update updates the {{ feature_name }}'s mutable fields.
+func (e *{{ feature_name | pascal_case }}) Update(name string) {
+	if name != "" {
+		e.Name = name
+	}
+	e.UpdatedAt = time.Now()
+}

@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package k1s0.{{ feature_name | snake_case }}.v1;
+
+option go_package = "{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/presentation/grpc/pb";
+
+// {{ feature_name | pascal_case }}Service provides {{ feature_name }} operations.
+service {{ feature_name | pascal_case }}Service {
+  // Get retrieves a {{ feature_name }} by ID.
+  rpc Get(Get{{ feature_name | pascal_case }}Request) returns (Get{{ feature_name | pascal_case }}Response);
+
+  // List retrieves multiple {{ feature_name }}s.
+  rpc List(List{{ feature_name | pascal_case }}Request) returns (List{{ feature_name | pascal_case }}Response);
+
+  // Create creates a new {{ feature_name }}.
+  rpc Create(Create{{ feature_name | pascal_case }}Request) returns (Create{{ feature_name | pascal_case }}Response);
+
+  // Update updates an existing {{ feature_name }}.
+  rpc Update(Update{{ feature_name | pascal_case }}Request) returns (Update{{ feature_name | pascal_case }}Response);
+
+  // Delete deletes a {{ feature_name }}.
+  rpc Delete(Delete{{ feature_name | pascal_case }}Request) returns (Delete{{ feature_name | pascal_case }}Response);
+}
+
+// {{ feature_name | pascal_case }} represents a {{ feature_name }} entity.
+message {{ feature_name | pascal_case }} {
+  string id = 1;
+  string name = 2;
+  int32 status = 3;
+  string created_at = 4;
+  string updated_at = 5;
+}
+
+// Get{{ feature_name | pascal_case }}Request
+message Get{{ feature_name | pascal_case }}Request {
+  string id = 1;
+}
+
+// Get{{ feature_name | pascal_case }}Response
+message Get{{ feature_name | pascal_case }}Response {
+  {{ feature_name | pascal_case }} {{ feature_name | snake_case }} = 1;
+}
+
+// List{{ feature_name | pascal_case }}Request
+message List{{ feature_name | pascal_case }}Request {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+// List{{ feature_name | pascal_case }}Response
+message List{{ feature_name | pascal_case }}Response {
+  repeated {{ feature_name | pascal_case }} {{ feature_name | snake_case }}s = 1;
+  string next_page_token = 2;
+}
+
+// Create{{ feature_name | pascal_case }}Request
+message Create{{ feature_name | pascal_case }}Request {
+  string name = 1;
+}
+
+// Create{{ feature_name | pascal_case }}Response
+message Create{{ feature_name | pascal_case }}Response {
+  {{ feature_name | pascal_case }} {{ feature_name | snake_case }} = 1;
+}
+
+// Update{{ feature_name | pascal_case }}Request
+message Update{{ feature_name | pascal_case }}Request {
+  string id = 1;
+  string name = 2;
+  int32 status = 3;
+}
+
+// Update{{ feature_name | pascal_case }}Response
+message Update{{ feature_name | pascal_case }}Response {
+  {{ feature_name | pascal_case }} {{ feature_name | snake_case }} = 1;
+}
+
+// Delete{{ feature_name | pascal_case }}Request
+message Delete{{ feature_name | pascal_case }}Request {
+  string id = 1;
+}
+
+// Delete{{ feature_name | pascal_case }}Response
+message Delete{{ feature_name | pascal_case }}Response {}

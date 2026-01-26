@@ -1,0 +1,33 @@
+-- {{ feature_name }} Initial Migration
+-- Generated at {{ now | date(format="%Y-%m-%d") }}
+
+-- Create extension for UUID support
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Create {{ feature_name | snake_case }} table
+CREATE TABLE IF NOT EXISTS {{ feature_name | snake_case }} (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    status SMALLINT NOT NULL DEFAULT 1,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_{{ feature_name | snake_case }}_name ON {{ feature_name | snake_case }}(name);
+CREATE INDEX idx_{{ feature_name | snake_case }}_status ON {{ feature_name | snake_case }}(status);
+CREATE INDEX idx_{{ feature_name | snake_case }}_created_at ON {{ feature_name | snake_case }}(created_at);
+
+-- Trigger for updated_at
+CREATE OR REPLACE FUNCTION update_{{ feature_name | snake_case }}_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_{{ feature_name | snake_case }}_updated_at
+    BEFORE UPDATE ON {{ feature_name | snake_case }}
+    FOR EACH ROW
+    EXECUTE FUNCTION update_{{ feature_name | snake_case }}_updated_at();

@@ -1,0 +1,71 @@
+// Package repositories contains repository implementations
+package repositories
+
+import (
+	"context"
+	"sync"
+
+	"github.com/google/uuid"
+
+	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/domain/entities"
+)
+
+// InMemory{{ feature_name | pascal_case }}Repository is an in-memory implementation for testing.
+type InMemory{{ feature_name | pascal_case }}Repository struct {
+	mu       sync.RWMutex
+	entities map[uuid.UUID]*entities.{{ feature_name | pascal_case }}
+}
+
+// NewInMemory{{ feature_name | pascal_case }}Repository creates a new in-memory repository.
+func NewInMemory{{ feature_name | pascal_case }}Repository() *InMemory{{ feature_name | pascal_case }}Repository {
+	return &InMemory{{ feature_name | pascal_case }}Repository{
+		entities: make(map[uuid.UUID]*entities.{{ feature_name | pascal_case }}),
+	}
+}
+
+// FindByID finds a {{ feature_name }} by ID.
+func (r *InMemory{{ feature_name | pascal_case }}Repository) FindByID(ctx context.Context, id uuid.UUID) (*entities.{{ feature_name | pascal_case }}, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	entity, exists := r.entities[id]
+	if !exists {
+		return nil, nil
+	}
+	return entity, nil
+}
+
+// FindAll finds all {{ feature_name }}s with pagination.
+func (r *InMemory{{ feature_name | pascal_case }}Repository) FindAll(ctx context.Context, pageSize int, pageToken string) ([]*entities.{{ feature_name | pascal_case }}, string, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	result := make([]*entities.{{ feature_name | pascal_case }}, 0, len(r.entities))
+	for _, entity := range r.entities {
+		result = append(result, entity)
+	}
+
+	// Simple pagination (in production, use proper cursor-based pagination)
+	if len(result) > pageSize {
+		return result[:pageSize], "next", nil
+	}
+	return result, "", nil
+}
+
+// Save saves a {{ feature_name }}.
+func (r *InMemory{{ feature_name | pascal_case }}Repository) Save(ctx context.Context, entity *entities.{{ feature_name | pascal_case }}) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.entities[entity.ID] = entity
+	return nil
+}
+
+// Delete deletes a {{ feature_name }} by ID.
+func (r *InMemory{{ feature_name | pascal_case }}Repository) Delete(ctx context.Context, id uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	delete(r.entities, id)
+	return nil
+}

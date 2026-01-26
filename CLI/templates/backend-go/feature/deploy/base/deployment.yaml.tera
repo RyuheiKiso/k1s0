@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ feature_name | kebab_case }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ feature_name | kebab_case }}
+  template:
+    metadata:
+      labels:
+        app: {{ feature_name | kebab_case }}
+    spec:
+      containers:
+        - name: {{ feature_name | kebab_case }}
+          image: {{ feature_name | kebab_case }}
+          ports:
+            - name: grpc
+              containerPort: {{ grpc_port | default(value=50051) }}
+              protocol: TCP
+{% if has_rest | default(value=false) %}
+            - name: http
+              containerPort: {{ rest_port | default(value=8080) }}
+              protocol: TCP
+{% endif %}
+          envFrom:
+            - configMapRef:
+                name: {{ feature_name | kebab_case }}-config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            grpc:
+              port: {{ grpc_port | default(value=50051) }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            grpc:
+              port: {{ grpc_port | default(value=50051) }}
+            initialDelaySeconds: 5
+            periodSeconds: 5

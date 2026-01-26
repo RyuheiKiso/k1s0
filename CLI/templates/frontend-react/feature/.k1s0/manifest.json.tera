@@ -1,0 +1,38 @@
+{
+  "name": "{{ feature_name }}",
+  "version": "{{ version | default(value="0.1.0") }}",
+  "description": "{{ feature_description | default(value="k1s0 generated React frontend") }}",
+  "template": {
+    "name": "frontend-react",
+    "version": "{{ template_version | default(value="1.0.0") }}",
+    "path": "CLI/templates/frontend-react/feature",
+    "fingerprint": "{{ fingerprint | default(value="") }}"
+  },
+  "created_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
+  "generated_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.21.0",
+    "@tanstack/react-query": "^5.17.0",
+    "zod": "^3.22.4"
+  },
+  "settings": {
+    "env": "{{ env | default(value="dev") }}",
+    "port": {{ port | default(value=3000) }},
+    "api_base_url": "{{ api_base_url | default(value="http://localhost:8080") }}"
+  },
+  "managed_paths": [
+    "deploy/",
+    "config/"
+  ],
+  "protected_paths": [
+    "src/domain/",
+    "src/application/",
+    "src/infrastructure/",
+    "src/presentation/",
+    "src/pages/",
+    "src/components/"
+  ],
+  "checksums": {}
+}
