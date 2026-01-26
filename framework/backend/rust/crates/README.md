@@ -6,7 +6,7 @@ feature サービスが依存する共通 crate 群。
 
 | Crate | 説明 | ステータス |
 |-------|------|-----------|
-| `k1s0-config` | 設定読み込み（`--env`/`--config`/`--secrets-dir`） | 未実装 |
+| `k1s0-config` | 設定読み込み（`--env`/`--config`/`--secrets-dir`） | ✅ 実装済み |
 | `k1s0-error` | エラー表現の統一（層別責務、error_code） | 未実装 |
 | `k1s0-observability` | ログ/トレース/メトリクス初期化（OTel） | 未実装 |
 | `k1s0-grpc-client` | gRPC クライアント共通（deadline 必須、retry 原則禁止） | 未実装 |
