@@ -16,7 +16,12 @@
       "Bash(tree:*)",
       "Bash(done)",
       "Bash(wc:*)",
-      "Bash(cargo tree:*)"
+      "Bash(cargo tree:*)",
+      "Bash(ls -la \"C:\\\\work\\\\github\\\\k1s0\\\\framework\\\\frontend\\\\react\\\\packages\\\\k1s0-api-client\"\" 2>/dev/null && echo \"---\" && ls -la \"C:workgithubk1s0frameworkfrontendreactpackagesk1s0-navigation\"\")",
+      "Bash(cargo --version:*)",
+      "Bash(rustc:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -10 \"\"{}\"\"')",
+      "Bash(find:*)"
     ]
   }
 }
