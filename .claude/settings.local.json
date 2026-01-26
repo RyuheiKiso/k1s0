@@ -10,7 +10,9 @@
       "Bash(pnpm build:*)",
       "Bash(cargo test:*)",
       "Bash(./target/debug/k1s0 init:*)",
-      "Bash(CLI/target/debug/k1s0.exe:*)"
+      "Bash(CLI/target/debug/k1s0.exe:*)",
+      "Bash(echo:*)",
+      "Bash(buf lint:*)"
     ]
   }
 }

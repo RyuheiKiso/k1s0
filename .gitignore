@@ -13,3 +13,8 @@ framework/backend/rust/crates/k1s0-observability/target/*
 framework/backend/rust/crates/k1s0-grpc-client/target/*
 framework/backend/rust/crates/k1s0-grpc-server/target/*
 framework/backend/rust/crates/k1s0-resilience/target/*
+framework/backend/rust/crates/k1s0-db/target/*
+framework/backend/rust/crates/k1s0-health/target/*
+framework/backend/rust/services/config-service/target/*
+framework/backend/rust/services/endpoint-service/target/*
+framework/backend/rust/services/auth-service/target/*

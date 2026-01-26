@@ -47,7 +47,7 @@ pub mod middleware;
 mod presentation;
 
 pub use application::AppError;
-pub use code::ErrorCode;
+pub use code::{ErrorCode, GrpcCode, HttpStatus};
 pub use context::ErrorContext;
 pub use domain::{DomainError, ErrorKind};
 pub use logging::{ErrorLog, GrpcErrorLog, HttpErrorLog, LogLevel, Loggable};
