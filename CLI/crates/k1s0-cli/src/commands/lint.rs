@@ -11,6 +11,7 @@
 //! - `K011`: 必須ファイルが存在しない
 //! - `K020`: 環境変数参照の禁止
 //! - `K021`: config YAML への機密直書き禁止
+//! - `K022`: Clean Architecture 依存方向違反
 
 use std::path::PathBuf;
 

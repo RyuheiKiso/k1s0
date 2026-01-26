@@ -11,6 +11,7 @@
 //! - `K011`: 必須ファイルが存在しない
 //! - `K020`: 環境変数参照の禁止
 //! - `K021`: config YAML への機密直書き禁止
+//! - `K022`: Clean Architecture 依存方向違反
 
 use std::path::{Path, PathBuf};
 
@@ -33,6 +34,8 @@ pub enum RuleId {
     EnvVarUsage,
     /// config YAML への機密直書き禁止
     SecretInConfig,
+    /// Clean Architecture 依存方向違反
+    DependencyDirection,
 }
 
 impl RuleId {
@@ -46,6 +49,7 @@ impl RuleId {
             RuleId::RequiredFileMissing => "K011",
             RuleId::EnvVarUsage => "K020",
             RuleId::SecretInConfig => "K021",
+            RuleId::DependencyDirection => "K022",
         }
     }
 
@@ -59,6 +63,7 @@ impl RuleId {
             RuleId::RequiredFileMissing => "必須ファイルが存在しません",
             RuleId::EnvVarUsage => "環境変数の参照は禁止されています",
             RuleId::SecretInConfig => "config YAML に機密情報が直接書かれています",
+            RuleId::DependencyDirection => "Clean Architecture の依存方向に違反しています",
         }
     }
 }
@@ -382,6 +387,11 @@ impl Linter {
         // K021: config YAML への機密直書き検査
         if !self.is_rule_skipped(RuleId::SecretInConfig) {
             self.check_secret_in_config(&path, &mut result);
+        }
+
+        // K022: Clean Architecture 依存方向検査
+        if !self.is_rule_skipped(RuleId::DependencyDirection) {
+            self.check_dependency_direction(&path, &mut result);
         }
 
         // strict モードの場合、警告をエラーに昇格
@@ -852,6 +862,188 @@ impl Linter {
                     }
                 }
             }
+        }
+    }
+
+    /// Clean Architecture 依存方向を検査（K022）
+    fn check_dependency_direction(&self, path: &Path, result: &mut LintResult) {
+        // manifest から言語を取得
+        let manifest_path = path.join(".k1s0/manifest.json");
+        let manifest = match Manifest::load(&manifest_path) {
+            Ok(m) => m,
+            Err(_) => return, // manifest がない場合はスキップ
+        };
+
+        // 言語に応じたソースディレクトリとパターンを決定
+        let (src_dir, rules) = match manifest.service.language.as_str() {
+            "rust" => ("src", DependencyRules::rust()),
+            "go" => ("internal", DependencyRules::go()),
+            "typescript" => ("src", DependencyRules::typescript()),
+            "dart" => ("lib/src", DependencyRules::dart()),
+            _ => return, // 不明な言語の場合はスキップ
+        };
+
+        let src_path = path.join(src_dir);
+        if !src_path.exists() {
+            return;
+        }
+
+        // 各層のディレクトリを検査
+        for layer in &["domain", "application"] {
+            let layer_path = src_path.join(layer);
+            if layer_path.exists() && layer_path.is_dir() {
+                self.scan_layer_for_violations(&layer_path, path, layer, &rules, result);
+            }
+        }
+    }
+
+    /// 特定の層のディレクトリを走査して依存方向違反を検出
+    fn scan_layer_for_violations(
+        &self,
+        dir: &Path,
+        base_path: &Path,
+        layer: &str,
+        rules: &DependencyRules,
+        result: &mut LintResult,
+    ) {
+        let entries = match std::fs::read_dir(dir) {
+            Ok(e) => e,
+            Err(_) => return,
+        };
+
+        for entry in entries.flatten() {
+            let entry_path = entry.path();
+            if entry_path.is_dir() {
+                // 再帰的に走査
+                self.scan_layer_for_violations(&entry_path, base_path, layer, rules, result);
+            } else if entry_path.is_file() {
+                // ファイルの拡張子をチェック
+                let ext = entry_path.extension().and_then(|e| e.to_str()).unwrap_or("");
+                if rules.file_extensions.contains(&ext) {
+                    self.check_file_for_violations(&entry_path, base_path, layer, rules, result);
+                }
+            }
+        }
+    }
+
+    /// ファイル内の依存方向違反を検査
+    fn check_file_for_violations(
+        &self,
+        file_path: &Path,
+        base_path: &Path,
+        layer: &str,
+        rules: &DependencyRules,
+        result: &mut LintResult,
+    ) {
+        let content = match std::fs::read_to_string(file_path) {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+
+        let relative_path = file_path
+            .strip_prefix(base_path)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| file_path.to_string_lossy().to_string());
+
+        // 層に応じた禁止パターンを取得
+        let forbidden_layers = match layer {
+            "domain" => vec!["application", "infrastructure", "presentation"],
+            "application" => vec!["infrastructure", "presentation"],
+            _ => return,
+        };
+
+        for (line_num, line) in content.lines().enumerate() {
+            // コメント行はスキップ
+            let trimmed = line.trim();
+            if trimmed.starts_with("//") || trimmed.starts_with("#") || trimmed.starts_with("/*") {
+                continue;
+            }
+
+            // 各禁止層へのインポートをチェック
+            for forbidden in &forbidden_layers {
+                for pattern in &rules.import_patterns {
+                    let forbidden_pattern = pattern.replace("{layer}", forbidden);
+                    if line.contains(&forbidden_pattern) {
+                        result.add_violation(
+                            Violation::new(
+                                RuleId::DependencyDirection,
+                                Severity::Error,
+                                format!(
+                                    "{} 層から {} 層への依存が検出されました",
+                                    layer, forbidden
+                                ),
+                            )
+                            .with_path(&relative_path)
+                            .with_line(line_num + 1)
+                            .with_hint(format!(
+                                "Clean Architecture では {} 層は {} 層に依存できません。依存関係を逆転させてください。",
+                                layer, forbidden
+                            )),
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// 依存方向ルールの定義
+#[derive(Debug, Clone)]
+pub struct DependencyRules {
+    /// 対象ファイルの拡張子
+    pub file_extensions: Vec<&'static str>,
+    /// import パターン（{layer} はプレースホルダ）
+    pub import_patterns: Vec<String>,
+}
+
+impl DependencyRules {
+    /// Rust の依存方向ルール
+    pub fn rust() -> Self {
+        Self {
+            file_extensions: vec!["rs"],
+            import_patterns: vec![
+                "use crate::{layer}".to_string(),
+                "crate::{layer}::".to_string(),
+                "super::super::{layer}".to_string(),
+            ],
+        }
+    }
+
+    /// Go の依存方向ルール
+    pub fn go() -> Self {
+        Self {
+            file_extensions: vec!["go"],
+            import_patterns: vec![
+                "\"internal/{layer}".to_string(),
+                "/internal/{layer}".to_string(),
+            ],
+        }
+    }
+
+    /// TypeScript の依存方向ルール
+    pub fn typescript() -> Self {
+        Self {
+            file_extensions: vec!["ts", "tsx", "js", "jsx"],
+            import_patterns: vec![
+                "from '../{layer}".to_string(),
+                "from \"../{layer}".to_string(),
+                "from '../../{layer}".to_string(),
+                "from \"../../{layer}".to_string(),
+                "from '@/{layer}".to_string(),
+                "from \"@/{layer}".to_string(),
+            ],
+        }
+    }
+
+    /// Dart の依存方向ルール
+    pub fn dart() -> Self {
+        Self {
+            file_extensions: vec!["dart"],
+            import_patterns: vec![
+                "import 'package:".to_string() + "{layer}",
+                "import '../{layer}".to_string(),
+                "import '../../{layer}".to_string(),
+            ],
         }
     }
 }
@@ -1828,5 +2020,249 @@ db:
             .find(|v| v.rule == RuleId::SecretInConfig)
             .unwrap();
         assert_eq!(secret_violation.line, Some(5));
+    }
+
+    // K022: Clean Architecture 依存方向違反のテスト
+
+    #[test]
+    fn test_rule_id_k022() {
+        assert_eq!(RuleId::DependencyDirection.as_str(), "K022");
+        assert_eq!(
+            RuleId::DependencyDirection.description(),
+            "Clean Architecture の依存方向に違反しています"
+        );
+    }
+
+    #[test]
+    fn test_lint_dependency_direction_domain_to_infrastructure() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // domain から infrastructure への違反コードを追加
+        let bad_code = r#"
+// domain layer should not depend on infrastructure
+use crate::infrastructure::db::UserRepository;
+
+pub struct User {
+    pub id: String,
+    pub name: String,
+}
+"#;
+        fs::write(path.join("src/domain/mod.rs"), bad_code).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K022 の違反が検出される
+        assert!(
+            result.violations.iter().any(|v| v.rule == RuleId::DependencyDirection),
+            "Expected K022 violation, got {:?}",
+            result.violations
+        );
+
+        // ヒントが含まれている
+        let dep_violation = result
+            .violations
+            .iter()
+            .find(|v| v.rule == RuleId::DependencyDirection)
+            .unwrap();
+        assert!(dep_violation.hint.is_some());
+        assert!(dep_violation.hint.as_ref().unwrap().contains("依存"));
+    }
+
+    #[test]
+    fn test_lint_dependency_direction_domain_to_application() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // domain から application への違反コードを追加
+        let bad_code = r#"
+// domain layer should not depend on application
+use crate::application::services::UserService;
+
+pub struct User {
+    pub id: String,
+}
+"#;
+        fs::write(path.join("src/domain/mod.rs"), bad_code).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K022 の違反が検出される
+        assert!(
+            result.violations.iter().any(|v| v.rule == RuleId::DependencyDirection),
+            "Expected K022 violation for domain->application, got {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_lint_dependency_direction_application_to_infrastructure() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // application から infrastructure への違反コードを追加
+        let bad_code = r#"
+// application layer should not depend on infrastructure directly
+use crate::infrastructure::db::UserRepositoryImpl;
+
+pub struct UserService {}
+"#;
+        fs::write(path.join("src/application/mod.rs"), bad_code).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K022 の違反が検出される
+        assert!(
+            result.violations.iter().any(|v| v.rule == RuleId::DependencyDirection),
+            "Expected K022 violation for application->infrastructure, got {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_lint_dependency_direction_no_violation() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // 正しい依存関係のコード
+        let domain_code = r#"
+// domain layer - no external dependencies
+pub struct User {
+    pub id: String,
+    pub name: String,
+}
+
+pub trait UserRepository {
+    fn find_by_id(&self, id: &str) -> Option<User>;
+}
+"#;
+        fs::write(path.join("src/domain/mod.rs"), domain_code).unwrap();
+
+        let application_code = r#"
+// application layer - depends only on domain
+use crate::domain::User;
+use crate::domain::UserRepository;
+
+pub struct UserService<R: UserRepository> {
+    repository: R,
+}
+"#;
+        fs::write(path.join("src/application/mod.rs"), application_code).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K022 の違反が検出されない
+        assert!(
+            !result.violations.iter().any(|v| v.rule == RuleId::DependencyDirection),
+            "Unexpected K022 violation: {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_lint_dependency_direction_exclude_rule() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // domain から infrastructure への違反コードを追加
+        let bad_code = r#"
+use crate::infrastructure::db::UserRepository;
+pub struct User {}
+"#;
+        fs::write(path.join("src/domain/mod.rs"), bad_code).unwrap();
+
+        // K022 を除外
+        let config = LintConfig {
+            rules: None,
+            exclude_rules: vec!["K022".to_string()],
+            strict: false,
+            env_var_allowlist: vec![],
+        };
+        let linter = Linter::new(config);
+        let result = linter.lint(path);
+
+        // K022 の違反が検出されない
+        assert!(
+            !result.violations.iter().any(|v| v.rule == RuleId::DependencyDirection),
+            "Unexpected K022 violation (rule should be excluded): {:?}",
+            result.violations
+        );
+    }
+
+    #[test]
+    fn test_dependency_rules_rust() {
+        let rules = DependencyRules::rust();
+        assert!(rules.file_extensions.contains(&"rs"));
+        assert!(rules.import_patterns.iter().any(|p| p.contains("use crate::")));
+    }
+
+    #[test]
+    fn test_dependency_rules_go() {
+        let rules = DependencyRules::go();
+        assert!(rules.file_extensions.contains(&"go"));
+        assert!(rules.import_patterns.iter().any(|p| p.contains("internal/")));
+    }
+
+    #[test]
+    fn test_dependency_rules_typescript() {
+        let rules = DependencyRules::typescript();
+        assert!(rules.file_extensions.contains(&"ts"));
+        assert!(rules.file_extensions.contains(&"tsx"));
+        assert!(rules.import_patterns.iter().any(|p| p.contains("from '../")));
+    }
+
+    #[test]
+    fn test_dependency_rules_dart() {
+        let rules = DependencyRules::dart();
+        assert!(rules.file_extensions.contains(&"dart"));
+    }
+
+    #[test]
+    fn test_lint_dependency_direction_line_number() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path();
+
+        // 完全な構造を作成
+        create_test_manifest(path, "backend-rust");
+        create_backend_rust_structure(path);
+
+        // domain から infrastructure への違反コード（3行目）
+        let bad_code = "pub mod user;\n\nuse crate::infrastructure::db::Repo;\n\npub struct X {}\n";
+        fs::write(path.join("src/domain/mod.rs"), bad_code).unwrap();
+
+        let linter = Linter::default_linter();
+        let result = linter.lint(path);
+
+        // K022 の違反が検出され、行番号が正しい
+        let dep_violation = result
+            .violations
+            .iter()
+            .find(|v| v.rule == RuleId::DependencyDirection)
+            .unwrap();
+        assert_eq!(dep_violation.line, Some(3));
     }
 }
