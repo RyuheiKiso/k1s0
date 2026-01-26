@@ -262,7 +262,7 @@ impl Linter {
         // パス区切り文字を統一（Windows 対応）
         let normalized_path = path.replace('\\', "/");
 
-        for pattern in &self.config.env_var_allowlist {
+        for pattern in self.env_var_allowlist() {
             let normalized_pattern = pattern.replace('\\', "/");
 
             // 単純なワイルドカードマッチング

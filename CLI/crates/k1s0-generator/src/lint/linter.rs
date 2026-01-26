@@ -40,6 +40,11 @@ impl Linter {
         false
     }
 
+    /// 環境変数 allowlist を取得（内部用）
+    pub(super) fn env_var_allowlist(&self) -> &[String] {
+        &self.config.env_var_allowlist
+    }
+
     /// ディレクトリを検査する
     pub fn lint<P: AsRef<Path>>(&self, path: P) -> LintResult {
         let path = path.as_ref().to_path_buf();
