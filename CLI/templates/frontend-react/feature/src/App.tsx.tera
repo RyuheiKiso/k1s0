@@ -1,4 +1,4 @@
-/**
+{% raw %}/**
  * App - アプリケーションルートコンポーネント
  *
  * 設定駆動ナビゲーションを使用し、config/{env}.yaml から
@@ -106,3 +106,4 @@ export function App() {
     </ThemeProvider>
   );
 }
+{% endraw %}

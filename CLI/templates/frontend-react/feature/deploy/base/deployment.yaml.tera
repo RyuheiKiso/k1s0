@@ -1,27 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ feature_name | kebab_case }}
+  name: {{ feature_name }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ feature_name | kebab_case }}
+      app: {{ feature_name }}
   template:
     metadata:
       labels:
-        app: {{ feature_name | kebab_case }}
+        app: {{ feature_name }}
     spec:
       containers:
-        - name: {{ feature_name | kebab_case }}
-          image: {{ feature_name | kebab_case }}
+        - name: {{ feature_name }}
+          image: {{ feature_name }}
           ports:
             - name: http
               containerPort: {{ port | default(value=3000) }}
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: {{ feature_name | kebab_case }}-config
+                name: {{ feature_name }}-config
           resources:
             requests:
               cpu: 50m

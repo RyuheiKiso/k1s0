@@ -1,4 +1,4 @@
-/**
+{% raw %}/**
  * Footer - アプリケーションフッター
  */
 
@@ -43,10 +43,11 @@ export function Footer({ sidebarOpen, sidebarWidth }: FooterProps) {
         {'© '}
         {currentYear}{' '}
         <Link color="inherit" href="/">
-          {{ service_name }}
+          {% endraw %}{{ service_name }}{% raw %}
         </Link>
         {'. All rights reserved.'}
       </Typography>
     </Box>
   );
 }
+{% endraw %}

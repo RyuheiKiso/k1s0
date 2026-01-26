@@ -1,4 +1,4 @@
-/**
+{% raw %}/**
  * Header - アプリケーションヘッダー
  */
 
@@ -38,7 +38,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         </IconButton>
 
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          {{ service_name }}
+          {% endraw %}{{ service_name }}{% raw %}
         </Typography>
 
         <Box>
@@ -48,3 +48,4 @@ export function Header({ onMenuClick }: HeaderProps) {
     </AppBar>
   );
 }
+{% endraw %}

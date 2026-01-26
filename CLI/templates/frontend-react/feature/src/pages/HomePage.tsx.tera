@@ -1,4 +1,4 @@
-/**
+{% raw %}/**
  * HomePage - ホームページ
  */
 
@@ -18,8 +18,9 @@ export function HomePage() {
       </Typography>
 
       <Typography variant="body1">
-        {{ service_name }} へようこそ。
+        {% endraw %}{{ service_name }}{% raw %} へようこそ。
       </Typography>
     </Box>
   );
 }
+{% endraw %}
