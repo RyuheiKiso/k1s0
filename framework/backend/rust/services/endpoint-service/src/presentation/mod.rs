@@ -1,3 +1,5 @@
 //! プレゼンテーション層
 
-// TODO: gRPC service implementation
+pub mod grpc;
+
+pub use grpc::*;
