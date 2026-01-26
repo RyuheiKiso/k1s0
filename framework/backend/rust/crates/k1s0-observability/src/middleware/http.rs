@@ -1,6 +1,30 @@
 //! HTTP ミドルウェア
 //!
 //! HTTP リクエストの観測性を提供する。
+//!
+//! # 機能
+//!
+//! - リクエスト/レスポンスのログ出力
+//! - メトリクス収集
+//! - トレースコンテキストの伝播
+//! - axum Tower Layer としての統合
+//!
+//! # 使用例（axum）
+//!
+//! ```ignore
+//! use axum::Router;
+//! use k1s0_observability::middleware::http::ObservabilityLayer;
+//!
+//! let config = ObservabilityConfig::builder()
+//!     .service_name("my-service")
+//!     .env("dev")
+//!     .build()
+//!     .unwrap();
+//!
+//! let app = Router::new()
+//!     .route("/", get(handler))
+//!     .layer(ObservabilityLayer::from_config(&config));
+//! ```
 
 use crate::config::ObservabilityConfig;
 use crate::context::RequestContext;
@@ -324,5 +348,302 @@ mod tests {
         assert!(json.contains("GET"));
         assert!(json.contains("/api/users"));
         assert!(json.contains("200"));
+    }
+}
+
+// ============================================================================
+// axum Tower Layer 実装
+// ============================================================================
+
+#[cfg(feature = "axum-layer")]
+pub use axum_layer::*;
+
+#[cfg(feature = "axum-layer")]
+mod axum_layer {
+    use super::*;
+    use axum::{
+        body::Body,
+        extract::Request,
+        response::Response,
+    };
+    use futures::future::BoxFuture;
+    use http::header::HeaderValue;
+    use pin_project_lite::pin_project;
+    use std::{
+        future::Future,
+        pin::Pin,
+        sync::Arc,
+        task::{Context, Poll},
+        time::Instant,
+    };
+    use tower::{Layer, Service};
+
+    /// 観測性レイヤー
+    ///
+    /// axum の Router に追加して、全リクエストの観測性を自動化する。
+    ///
+    /// # 例
+    ///
+    /// ```ignore
+    /// use axum::Router;
+    /// use k1s0_observability::middleware::http::ObservabilityLayer;
+    ///
+    /// let config = ObservabilityConfig::builder()
+    ///     .service_name("my-service")
+    ///     .env("dev")
+    ///     .build()
+    ///     .unwrap();
+    ///
+    /// let app = Router::new()
+    ///     .route("/", get(handler))
+    ///     .layer(ObservabilityLayer::from_config(&config));
+    /// ```
+    #[derive(Clone)]
+    pub struct ObservabilityLayer {
+        inner: Arc<ObservabilityLayerInner>,
+    }
+
+    struct ObservabilityLayerInner {
+        observability: HttpObservability,
+        skip_paths: Vec<String>,
+    }
+
+    impl ObservabilityLayer {
+        /// 新しいレイヤーを作成
+        pub fn new(service_name: impl Into<String>, service_env: impl Into<String>) -> Self {
+            Self {
+                inner: Arc::new(ObservabilityLayerInner {
+                    observability: HttpObservability {
+                        service_name: service_name.into(),
+                        service_env: service_env.into(),
+                    },
+                    skip_paths: Vec::new(),
+                }),
+            }
+        }
+
+        /// ObservabilityConfig から作成
+        pub fn from_config(config: &ObservabilityConfig) -> Self {
+            Self::new(config.service_name(), config.env())
+        }
+
+        /// スキップするパスを設定
+        ///
+        /// ヘルスチェックやメトリクスエンドポイントなど、
+        /// ログに記録したくないパスを指定する。
+        pub fn skip_paths(mut self, paths: Vec<String>) -> Self {
+            if let Some(inner) = Arc::get_mut(&mut self.inner) {
+                inner.skip_paths = paths;
+            }
+            self
+        }
+    }
+
+    impl<S> Layer<S> for ObservabilityLayer {
+        type Service = ObservabilityMiddleware<S>;
+
+        fn layer(&self, inner: S) -> Self::Service {
+            ObservabilityMiddleware {
+                inner,
+                layer: self.clone(),
+            }
+        }
+    }
+
+    /// 観測性ミドルウェア
+    #[derive(Clone)]
+    pub struct ObservabilityMiddleware<S> {
+        inner: S,
+        layer: ObservabilityLayer,
+    }
+
+    impl<S> Service<Request> for ObservabilityMiddleware<S>
+    where
+        S: Service<Request, Response = Response> + Clone + Send + 'static,
+        S::Future: Send + 'static,
+    {
+        type Response = S::Response;
+        type Error = S::Error;
+        type Future = ObservabilityFuture<S::Future>;
+
+        fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+            self.inner.poll_ready(cx)
+        }
+
+        fn call(&mut self, request: Request) -> Self::Future {
+            let start = Instant::now();
+            let method = request.method().to_string();
+            let path = request.uri().path().to_string();
+
+            // スキップパスのチェック
+            let skip = self.layer.inner.skip_paths.iter().any(|p| path.starts_with(p));
+
+            // traceparent ヘッダの取得
+            let traceparent = request
+                .headers()
+                .get("traceparent")
+                .and_then(|v| v.to_str().ok())
+                .map(|s| s.to_string());
+
+            // リクエストコンテキストの作成
+            let ctx = self
+                .layer
+                .inner
+                .observability
+                .extract_or_create_context(traceparent.as_deref());
+
+            let layer = self.layer.clone();
+            let future = self.inner.call(request);
+
+            ObservabilityFuture {
+                inner: future,
+                state: Some(FutureState {
+                    layer,
+                    ctx,
+                    start,
+                    method,
+                    path,
+                    skip,
+                }),
+            }
+        }
+    }
+
+    struct FutureState {
+        layer: ObservabilityLayer,
+        ctx: RequestContext,
+        start: Instant,
+        method: String,
+        path: String,
+        skip: bool,
+    }
+
+    pin_project! {
+        /// 観測性フューチャー
+        pub struct ObservabilityFuture<F> {
+            #[pin]
+            inner: F,
+            state: Option<FutureState>,
+        }
+    }
+
+    impl<F, E> Future for ObservabilityFuture<F>
+    where
+        F: Future<Output = Result<Response, E>>,
+    {
+        type Output = F::Output;
+
+        fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+            let this = self.project();
+
+            match this.inner.poll(cx) {
+                Poll::Ready(result) => {
+                    if let Some(state) = this.state.take() {
+                        if !state.skip {
+                            let elapsed = state.start.elapsed();
+                            let latency_ms = elapsed.as_secs_f64() * 1000.0;
+
+                            let status_code = result
+                                .as_ref()
+                                .map(|r| r.status().as_u16())
+                                .unwrap_or(500);
+
+                            let request = HttpRequestInfo::new(&state.method, &state.path);
+                            let response = HttpResponseInfo::new(status_code);
+
+                            let output = state.layer.inner.observability.on_request_complete(
+                                &state.ctx,
+                                &request,
+                                &response,
+                                latency_ms,
+                            );
+
+                            // JSON ログを出力
+                            if let Ok(json) = output.log_json() {
+                                tracing::info!(target: "http_access", "{}", json);
+                            }
+                        }
+                    }
+
+                    Poll::Ready(result)
+                }
+                Poll::Pending => Poll::Pending,
+            }
+        }
+    }
+
+    /// リクエストコンテキスト抽出エクステンション
+    ///
+    /// axum のリクエストエクステンションから RequestContext を取得する。
+    pub fn extract_request_context(request: &Request) -> Option<RequestContext> {
+        request.extensions().get::<RequestContext>().cloned()
+    }
+
+    /// コンテキスト挿入レイヤー
+    ///
+    /// リクエストエクステンションに RequestContext を挿入するレイヤー。
+    #[derive(Clone)]
+    pub struct ContextLayer;
+
+    impl<S> Layer<S> for ContextLayer {
+        type Service = ContextMiddleware<S>;
+
+        fn layer(&self, inner: S) -> Self::Service {
+            ContextMiddleware { inner }
+        }
+    }
+
+    /// コンテキスト挿入ミドルウェア
+    #[derive(Clone)]
+    pub struct ContextMiddleware<S> {
+        inner: S,
+    }
+
+    impl<S> Service<Request> for ContextMiddleware<S>
+    where
+        S: Service<Request, Response = Response> + Clone + Send + 'static,
+        S::Future: Send + 'static,
+    {
+        type Response = S::Response;
+        type Error = S::Error;
+        type Future = S::Future;
+
+        fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+            self.inner.poll_ready(cx)
+        }
+
+        fn call(&mut self, mut request: Request) -> Self::Future {
+            // traceparent ヘッダからコンテキストを取得または作成
+            let ctx = request
+                .headers()
+                .get("traceparent")
+                .and_then(|v| v.to_str().ok())
+                .and_then(RequestContext::from_traceparent)
+                .unwrap_or_else(RequestContext::new);
+
+            request.extensions_mut().insert(ctx);
+
+            self.inner.call(request)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_observability_layer_creation() {
+            let layer = ObservabilityLayer::new("test-service", "dev");
+            assert!(Arc::strong_count(&layer.inner) >= 1);
+        }
+
+        #[test]
+        fn test_skip_paths() {
+            let layer = ObservabilityLayer::new("test", "dev")
+                .skip_paths(vec!["/health".to_string(), "/metrics".to_string()]);
+
+            assert!(layer.inner.skip_paths.contains(&"/health".to_string()));
+            assert!(layer.inner.skip_paths.contains(&"/metrics".to_string()));
+        }
     }
 }

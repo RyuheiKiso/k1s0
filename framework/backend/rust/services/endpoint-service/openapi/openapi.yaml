@@ -1,0 +1,216 @@
+openapi: 3.0.3
+info:
+  title: Endpoint Service API
+  description: k1s0 framework endpoint discovery service
+  version: 1.0.0
+  contact:
+    name: k1s0 Team
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /v1/endpoints:
+    get:
+      summary: List endpoints
+      description: Get list of endpoints with optional filters
+      operationId: listEndpoints
+      tags:
+        - Endpoints
+      parameters:
+        - name: service_name
+          in: query
+          schema:
+            type: string
+          description: Filter by service name
+        - name: method
+          in: query
+          schema:
+            type: string
+          description: Filter by HTTP method
+        - name: path_prefix
+          in: query
+          schema:
+            type: string
+          description: Filter by path prefix
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            format: int32
+            default: 100
+            maximum: 1000
+          description: Number of items per page
+        - name: page_token
+          in: query
+          schema:
+            type: string
+          description: Token for pagination
+      responses:
+        '200':
+          description: List of endpoints
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EndpointListResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/endpoints/{serviceName}:
+    get:
+      summary: Get endpoint
+      description: Get endpoint information by service name
+      operationId: getEndpoint
+      tags:
+        - Endpoints
+      parameters:
+        - name: serviceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: method
+          in: query
+          schema:
+            type: string
+          description: Optional HTTP method filter
+        - name: path
+          in: query
+          schema:
+            type: string
+          description: Optional path filter
+      responses:
+        '200':
+          description: Endpoint found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EndpointResponse'
+        '404':
+          description: Endpoint not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/resolve/{serviceName}:
+    get:
+      summary: Resolve endpoint address
+      description: Resolve service name to network address
+      operationId: resolveEndpoint
+      tags:
+        - Resolution
+      parameters:
+        - name: serviceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: protocol
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - grpc
+              - grpcs
+              - http
+              - https
+          description: Protocol for address resolution
+      responses:
+        '200':
+          description: Address resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolvedAddressResponse'
+        '404':
+          description: Unable to resolve address
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check service health
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+components:
+  schemas:
+    EndpointResponse:
+      type: object
+      properties:
+        endpoint_id:
+          type: integer
+          format: int64
+        service_name:
+          type: string
+        path:
+          type: string
+        method:
+          type: string
+        description:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+
+    EndpointListResponse:
+      type: object
+      properties:
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/EndpointResponse'
+        next_page_token:
+          type: string
+          nullable: true
+
+    ResolvedAddressResponse:
+      type: object
+      properties:
+        address:
+          type: string
+          description: Resolved network address
+          example: auth-service.default.svc.cluster.local:50051
+        use_tls:
+          type: boolean
+          description: Whether TLS should be used
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Error message
+
+tags:
+  - name: Endpoints
+    description: Endpoint information operations
+  - name: Resolution
+    description: Service address resolution operations
+  - name: Health
+    description: Health check operations

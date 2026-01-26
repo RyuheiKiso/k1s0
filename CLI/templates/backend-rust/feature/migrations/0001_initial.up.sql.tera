@@ -1,0 +1,56 @@
+-- {{ feature_name }} 初期マイグレーション
+-- Generated at {{ now | date(format="%Y-%m-%d") }}
+
+-- Create extension for UUID support (if not exists)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- {{ feature_name | pascal_case }} テーブル
+CREATE TABLE IF NOT EXISTS {{ feature_name | snake_case }} (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    {% if has_name_field | default(value=true) -%}
+    name VARCHAR(255) NOT NULL,
+    {% endif -%}
+    {% if has_status_field | default(value=true) -%}
+    status SMALLINT NOT NULL DEFAULT 1,
+    {% endif -%}
+    {% if has_metadata_field | default(value=false) -%}
+    metadata JSONB DEFAULT '{}',
+    {% endif -%}
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- インデックス
+{% if has_name_field | default(value=true) -%}
+CREATE INDEX idx_{{ feature_name | snake_case }}_name ON {{ feature_name | snake_case }}(name);
+{% endif -%}
+{% if has_status_field | default(value=true) -%}
+CREATE INDEX idx_{{ feature_name | snake_case }}_status ON {{ feature_name | snake_case }}(status);
+{% endif -%}
+CREATE INDEX idx_{{ feature_name | snake_case }}_created_at ON {{ feature_name | snake_case }}(created_at);
+
+-- updated_at を自動更新するトリガー
+CREATE OR REPLACE FUNCTION update_{{ feature_name | snake_case }}_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_{{ feature_name | snake_case }}_updated_at
+    BEFORE UPDATE ON {{ feature_name | snake_case }}
+    FOR EACH ROW
+    EXECUTE FUNCTION update_{{ feature_name | snake_case }}_updated_at();
+
+-- コメント
+COMMENT ON TABLE {{ feature_name | snake_case }} IS '{{ feature_description | default(value="Feature table") }}';
+COMMENT ON COLUMN {{ feature_name | snake_case }}.id IS 'Primary key (UUID v4)';
+{% if has_name_field | default(value=true) -%}
+COMMENT ON COLUMN {{ feature_name | snake_case }}.name IS 'Name';
+{% endif -%}
+{% if has_status_field | default(value=true) -%}
+COMMENT ON COLUMN {{ feature_name | snake_case }}.status IS 'Status (1: active, 0: inactive)';
+{% endif -%}
+COMMENT ON COLUMN {{ feature_name | snake_case }}.created_at IS 'Creation timestamp';
+COMMENT ON COLUMN {{ feature_name | snake_case }}.updated_at IS 'Last update timestamp';

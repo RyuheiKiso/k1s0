@@ -1,6 +1,34 @@
 //! gRPC インターセプタ
 //!
 //! gRPC リクエストの観測性を提供する。
+//!
+//! # 機能
+//!
+//! - リクエスト/レスポンスのログ出力
+//! - メトリクス収集
+//! - トレースコンテキストの伝播
+//! - tonic Interceptor としての統合
+//!
+//! # 使用例（tonic）
+//!
+//! ```ignore
+//! use tonic::transport::Server;
+//! use k1s0_observability::middleware::grpc::auth_interceptor;
+//!
+//! let config = ObservabilityConfig::builder()
+//!     .service_name("my-service")
+//!     .env("dev")
+//!     .build()
+//!     .unwrap();
+//!
+//! Server::builder()
+//!     .add_service(MyServiceServer::with_interceptor(
+//!         my_service,
+//!         auth_interceptor(config.clone()),
+//!     ))
+//!     .serve(addr)
+//!     .await?;
+//! ```
 
 use crate::config::ObservabilityConfig;
 use crate::context::RequestContext;
@@ -354,5 +382,263 @@ mod tests {
     fn test_grpc_metadata_keys() {
         assert_eq!(GrpcMetadataKeys::TRACEPARENT, "traceparent");
         assert_eq!(GrpcMetadataKeys::X_REQUEST_ID, "x-request-id");
+    }
+}
+
+// ============================================================================
+// tonic Interceptor 実装
+// ============================================================================
+
+#[cfg(feature = "tonic-interceptor")]
+pub use tonic_interceptor::*;
+
+#[cfg(feature = "tonic-interceptor")]
+mod tonic_interceptor {
+    use super::*;
+    use std::sync::Arc;
+    use std::time::Instant;
+    use tonic::{Request, Status};
+
+    /// 観測性インターセプター
+    ///
+    /// tonic サービスに追加して、全 RPC の観測性を自動化する。
+    #[derive(Clone)]
+    pub struct ObservabilityInterceptor {
+        inner: Arc<ObservabilityInterceptorInner>,
+    }
+
+    struct ObservabilityInterceptorInner {
+        observability: GrpcObservability,
+    }
+
+    impl ObservabilityInterceptor {
+        /// 新しいインターセプターを作成
+        pub fn new(service_name: impl Into<String>, service_env: impl Into<String>) -> Self {
+            Self {
+                inner: Arc::new(ObservabilityInterceptorInner {
+                    observability: GrpcObservability {
+                        service_name: service_name.into(),
+                        service_env: service_env.into(),
+                    },
+                }),
+            }
+        }
+
+        /// ObservabilityConfig から作成
+        pub fn from_config(config: &ObservabilityConfig) -> Self {
+            Self::new(config.service_name(), config.env())
+        }
+
+        /// リクエストをインターセプト
+        ///
+        /// メタデータからコンテキストを抽出し、リクエストエクステンションに設定する。
+        pub fn intercept<T>(&self, mut request: Request<T>) -> Result<Request<T>, Status> {
+            // traceparent メタデータの取得
+            let traceparent = request
+                .metadata()
+                .get(GrpcMetadataKeys::TRACEPARENT)
+                .and_then(|v| v.to_str().ok());
+
+            // リクエストコンテキストの作成
+            let ctx = traceparent
+                .and_then(RequestContext::from_traceparent)
+                .unwrap_or_else(RequestContext::new);
+
+            // エクステンションに設定
+            request.extensions_mut().insert(ctx);
+
+            Ok(request)
+        }
+    }
+
+    /// 観測性インターセプター関数
+    ///
+    /// `tonic::service::interceptor` に渡すための関数を返す。
+    ///
+    /// # 例
+    ///
+    /// ```ignore
+    /// use tonic::transport::Server;
+    /// use k1s0_observability::middleware::grpc::observability_interceptor;
+    ///
+    /// let interceptor = observability_interceptor(&config);
+    ///
+    /// Server::builder()
+    ///     .add_service(MyServiceServer::with_interceptor(
+    ///         my_service,
+    ///         interceptor,
+    ///     ))
+    ///     .serve(addr)
+    ///     .await?;
+    /// ```
+    pub fn observability_interceptor(
+        config: &ObservabilityConfig,
+    ) -> impl Fn(Request<()>) -> Result<Request<()>, Status> + Clone {
+        let interceptor = ObservabilityInterceptor::from_config(config);
+        move |request| interceptor.intercept(request)
+    }
+
+    /// リクエストからコンテキストを抽出
+    ///
+    /// ハンドラ内でリクエストコンテキストを取得する。
+    pub fn extract_context<T>(request: &Request<T>) -> RequestContext {
+        request
+            .extensions()
+            .get::<RequestContext>()
+            .cloned()
+            .unwrap_or_else(RequestContext::new)
+    }
+
+    /// RPC 完了時のログ出力
+    ///
+    /// サービス実装内で RPC 完了時にログを出力する。
+    pub fn log_rpc_complete(
+        config: &ObservabilityConfig,
+        ctx: &RequestContext,
+        service: &str,
+        method: &str,
+        status_code: i32,
+        latency_ms: f64,
+    ) {
+        let obs = GrpcObservability::from_config(config);
+        let request = GrpcRequestInfo::new(service, method);
+        let response = GrpcResponseInfo::from_status_code(status_code);
+
+        let output = obs.on_request_complete(ctx, &request, &response, latency_ms);
+
+        if let Ok(json) = output.log_json() {
+            tracing::info!(target: "grpc_access", "{}", json);
+        }
+    }
+
+    /// RPC タイマー
+    ///
+    /// RPC の実行時間を計測するヘルパー。
+    pub struct RpcTimer {
+        start: Instant,
+        config: ObservabilityConfig,
+        ctx: RequestContext,
+        service: String,
+        method: String,
+    }
+
+    impl RpcTimer {
+        /// 新しいタイマーを開始
+        pub fn start(
+            config: &ObservabilityConfig,
+            ctx: &RequestContext,
+            service: impl Into<String>,
+            method: impl Into<String>,
+        ) -> Self {
+            Self {
+                start: Instant::now(),
+                config: config.clone(),
+                ctx: ctx.clone(),
+                service: service.into(),
+                method: method.into(),
+            }
+        }
+
+        /// タイマーを停止してログを出力（成功）
+        pub fn complete_ok(self) {
+            self.complete(0);
+        }
+
+        /// タイマーを停止してログを出力（エラー）
+        pub fn complete_error(self, status_code: i32) {
+            self.complete(status_code);
+        }
+
+        /// タイマーを停止してログを出力
+        pub fn complete(self, status_code: i32) {
+            let elapsed = self.start.elapsed();
+            let latency_ms = elapsed.as_secs_f64() * 1000.0;
+
+            log_rpc_complete(
+                &self.config,
+                &self.ctx,
+                &self.service,
+                &self.method,
+                status_code,
+                latency_ms,
+            );
+        }
+
+        /// 経過時間（ミリ秒）を取得
+        pub fn elapsed_ms(&self) -> f64 {
+            self.start.elapsed().as_secs_f64() * 1000.0
+        }
+    }
+
+    /// gRPC ステータスコード定数
+    pub mod status_codes {
+        /// OK
+        pub const OK: i32 = 0;
+        /// CANCELLED
+        pub const CANCELLED: i32 = 1;
+        /// UNKNOWN
+        pub const UNKNOWN: i32 = 2;
+        /// INVALID_ARGUMENT
+        pub const INVALID_ARGUMENT: i32 = 3;
+        /// DEADLINE_EXCEEDED
+        pub const DEADLINE_EXCEEDED: i32 = 4;
+        /// NOT_FOUND
+        pub const NOT_FOUND: i32 = 5;
+        /// ALREADY_EXISTS
+        pub const ALREADY_EXISTS: i32 = 6;
+        /// PERMISSION_DENIED
+        pub const PERMISSION_DENIED: i32 = 7;
+        /// RESOURCE_EXHAUSTED
+        pub const RESOURCE_EXHAUSTED: i32 = 8;
+        /// FAILED_PRECONDITION
+        pub const FAILED_PRECONDITION: i32 = 9;
+        /// ABORTED
+        pub const ABORTED: i32 = 10;
+        /// OUT_OF_RANGE
+        pub const OUT_OF_RANGE: i32 = 11;
+        /// UNIMPLEMENTED
+        pub const UNIMPLEMENTED: i32 = 12;
+        /// INTERNAL
+        pub const INTERNAL: i32 = 13;
+        /// UNAVAILABLE
+        pub const UNAVAILABLE: i32 = 14;
+        /// DATA_LOSS
+        pub const DATA_LOSS: i32 = 15;
+        /// UNAUTHENTICATED
+        pub const UNAUTHENTICATED: i32 = 16;
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_observability_interceptor_creation() {
+            let interceptor = ObservabilityInterceptor::new("test-service", "dev");
+            assert!(Arc::strong_count(&interceptor.inner) >= 1);
+        }
+
+        #[test]
+        fn test_rpc_timer() {
+            let config = ObservabilityConfig::builder()
+                .service_name("test-service")
+                .env("dev")
+                .build()
+                .unwrap();
+
+            let ctx = RequestContext::new();
+            let timer = RpcTimer::start(&config, &ctx, "UserService", "GetUser");
+
+            std::thread::sleep(std::time::Duration::from_millis(10));
+
+            assert!(timer.elapsed_ms() >= 10.0);
+        }
+
+        #[test]
+        fn test_status_codes() {
+            assert_eq!(status_codes::OK, 0);
+            assert_eq!(status_codes::NOT_FOUND, 5);
+            assert_eq!(status_codes::INTERNAL, 13);
+        }
     }
 }

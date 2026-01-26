@@ -5,6 +5,12 @@ edition = "2021"
 description = "k1s0 framework authentication and authorization library"
 license = "MIT"
 
+[features]
+default = []
+full = ["axum-layer", "tonic-interceptor"]
+axum-layer = ["axum", "tower", "http", "http-body", "pin-project-lite", "futures"]
+tonic-interceptor = ["tonic"]
+
 [dependencies]
 # JWT
 jsonwebtoken = "9"
@@ -15,6 +21,7 @@ serde_json = "1"
 
 # Async
 tokio = { version = "1", features = ["sync", "time"] }
+async-trait = "0.1"
 
 # HTTP client for JWKS fetching
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
@@ -30,6 +37,17 @@ tracing = "0.1"
 
 # UUID for audit
 uuid = { version = "1", features = ["v4", "serde"] }
+
+# Axum middleware (optional)
+axum = { version = "0.8", optional = true }
+tower = { version = "0.5", optional = true }
+http = { version = "1.0", optional = true }
+http-body = { version = "1.0", optional = true }
+pin-project-lite = { version = "0.2", optional = true }
+futures = { version = "0.3", optional = true }
+
+# Tonic interceptor (optional)
+tonic = { version = "0.12", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full", "test-util"] }

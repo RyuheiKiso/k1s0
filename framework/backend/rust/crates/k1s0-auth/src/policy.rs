@@ -1,10 +1,29 @@
 //! ポリシー評価モジュール
 //!
-//! 権限制御のための汎用ポリシー評価エンジン
+//! 権限制御のための汎用ポリシー評価エンジン。
+//!
+//! # 機能
+//!
+//! - ロールベースアクセス制御（RBAC）
+//! - 属性ベースアクセス制御（ABAC）
+//! - ポリシーリポジトリによる永続化
+//!
+//! # 使用例
+//!
+//! ```ignore
+//! use k1s0_auth::policy::{PolicyRepository, PolicyEvaluator, InMemoryPolicyRepository};
+//!
+//! // インメモリリポジトリを使用
+//! let repository = InMemoryPolicyRepository::new();
+//!
+//! // 外部ストレージを使用する場合は PolicyRepository trait を実装
+//! let evaluator = PolicyEvaluator::with_repository(repository);
+//! ```
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use tracing::{debug, warn};
@@ -561,6 +580,325 @@ impl PolicyBuilder {
 impl Default for PolicyBuilder {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// ============================================================================
+// ポリシーリポジトリ
+// ============================================================================
+
+/// ポリシーリポジトリ
+///
+/// ポリシールールの永続化と取得を抽象化する。
+#[async_trait]
+pub trait PolicyRepository: Send + Sync {
+    /// すべてのルールを取得
+    async fn get_all_rules(&self) -> Result<Vec<PolicyRule>, AuthError>;
+
+    /// ルールを追加
+    async fn add_rule(&self, rule: PolicyRule) -> Result<(), AuthError>;
+
+    /// 複数のルールを追加
+    async fn add_rules(&self, rules: Vec<PolicyRule>) -> Result<(), AuthError>;
+
+    /// ルールを削除
+    async fn remove_rule(&self, name: &str) -> Result<bool, AuthError>;
+
+    /// すべてのルールをクリア
+    async fn clear_rules(&self) -> Result<(), AuthError>;
+
+    /// ルール数を取得
+    async fn count_rules(&self) -> Result<usize, AuthError>;
+
+    /// 名前でルールを取得
+    async fn get_rule(&self, name: &str) -> Result<Option<PolicyRule>, AuthError>;
+
+    /// ルールを更新
+    async fn update_rule(&self, rule: PolicyRule) -> Result<bool, AuthError>;
+}
+
+/// インメモリポリシーリポジトリ
+///
+/// ポリシールールをメモリ上で管理する。
+/// 開発・テスト用、または設定ファイルからの読み込み用。
+#[derive(Default)]
+pub struct InMemoryPolicyRepository {
+    rules: RwLock<Vec<PolicyRule>>,
+}
+
+impl InMemoryPolicyRepository {
+    /// 新しいリポジトリを作成
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// 初期ルール付きで作成
+    pub fn with_rules(rules: Vec<PolicyRule>) -> Self {
+        Self {
+            rules: RwLock::new(rules),
+        }
+    }
+}
+
+#[async_trait]
+impl PolicyRepository for InMemoryPolicyRepository {
+    async fn get_all_rules(&self) -> Result<Vec<PolicyRule>, AuthError> {
+        let rules = self.rules.read().await;
+        Ok(rules.clone())
+    }
+
+    async fn add_rule(&self, rule: PolicyRule) -> Result<(), AuthError> {
+        let mut rules = self.rules.write().await;
+        rules.push(rule);
+        rules.sort_by_key(|r| r.priority);
+        Ok(())
+    }
+
+    async fn add_rules(&self, new_rules: Vec<PolicyRule>) -> Result<(), AuthError> {
+        let mut rules = self.rules.write().await;
+        rules.extend(new_rules);
+        rules.sort_by_key(|r| r.priority);
+        Ok(())
+    }
+
+    async fn remove_rule(&self, name: &str) -> Result<bool, AuthError> {
+        let mut rules = self.rules.write().await;
+        let len_before = rules.len();
+        rules.retain(|r| r.name != name);
+        Ok(rules.len() < len_before)
+    }
+
+    async fn clear_rules(&self) -> Result<(), AuthError> {
+        let mut rules = self.rules.write().await;
+        rules.clear();
+        Ok(())
+    }
+
+    async fn count_rules(&self) -> Result<usize, AuthError> {
+        let rules = self.rules.read().await;
+        Ok(rules.len())
+    }
+
+    async fn get_rule(&self, name: &str) -> Result<Option<PolicyRule>, AuthError> {
+        let rules = self.rules.read().await;
+        Ok(rules.iter().find(|r| r.name == name).cloned())
+    }
+
+    async fn update_rule(&self, rule: PolicyRule) -> Result<bool, AuthError> {
+        let mut rules = self.rules.write().await;
+        if let Some(existing) = rules.iter_mut().find(|r| r.name == rule.name) {
+            *existing = rule;
+            rules.sort_by_key(|r| r.priority);
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+}
+
+/// キャッシュ付きポリシーリポジトリ
+///
+/// 外部ストレージからのルール取得をキャッシュする。
+pub struct CachedPolicyRepository<R: PolicyRepository> {
+    inner: R,
+    cache: RwLock<Option<CacheEntry>>,
+    ttl_secs: u64,
+}
+
+struct CacheEntry {
+    rules: Vec<PolicyRule>,
+    created_at: std::time::Instant,
+}
+
+impl<R: PolicyRepository> CachedPolicyRepository<R> {
+    /// 新しいキャッシュ付きリポジトリを作成
+    pub fn new(inner: R, ttl_secs: u64) -> Self {
+        Self {
+            inner,
+            cache: RwLock::new(None),
+            ttl_secs,
+        }
+    }
+
+    /// キャッシュを無効化
+    pub async fn invalidate_cache(&self) {
+        let mut cache = self.cache.write().await;
+        *cache = None;
+    }
+
+    /// キャッシュが有効かどうか
+    async fn is_cache_valid(&self) -> bool {
+        let cache = self.cache.read().await;
+        if let Some(ref entry) = *cache {
+            entry.created_at.elapsed().as_secs() < self.ttl_secs
+        } else {
+            false
+        }
+    }
+}
+
+#[async_trait]
+impl<R: PolicyRepository> PolicyRepository for CachedPolicyRepository<R> {
+    async fn get_all_rules(&self) -> Result<Vec<PolicyRule>, AuthError> {
+        // キャッシュが有効ならそれを返す
+        if self.is_cache_valid().await {
+            let cache = self.cache.read().await;
+            if let Some(ref entry) = *cache {
+                return Ok(entry.rules.clone());
+            }
+        }
+
+        // キャッシュが無効なら更新
+        let rules = self.inner.get_all_rules().await?;
+        let mut cache = self.cache.write().await;
+        *cache = Some(CacheEntry {
+            rules: rules.clone(),
+            created_at: std::time::Instant::now(),
+        });
+        Ok(rules)
+    }
+
+    async fn add_rule(&self, rule: PolicyRule) -> Result<(), AuthError> {
+        self.inner.add_rule(rule).await?;
+        self.invalidate_cache().await;
+        Ok(())
+    }
+
+    async fn add_rules(&self, rules: Vec<PolicyRule>) -> Result<(), AuthError> {
+        self.inner.add_rules(rules).await?;
+        self.invalidate_cache().await;
+        Ok(())
+    }
+
+    async fn remove_rule(&self, name: &str) -> Result<bool, AuthError> {
+        let result = self.inner.remove_rule(name).await?;
+        self.invalidate_cache().await;
+        Ok(result)
+    }
+
+    async fn clear_rules(&self) -> Result<(), AuthError> {
+        self.inner.clear_rules().await?;
+        self.invalidate_cache().await;
+        Ok(())
+    }
+
+    async fn count_rules(&self) -> Result<usize, AuthError> {
+        // キャッシュが有効ならそれを使う
+        if self.is_cache_valid().await {
+            let cache = self.cache.read().await;
+            if let Some(ref entry) = *cache {
+                return Ok(entry.rules.len());
+            }
+        }
+        self.inner.count_rules().await
+    }
+
+    async fn get_rule(&self, name: &str) -> Result<Option<PolicyRule>, AuthError> {
+        // キャッシュが有効ならそれを使う
+        if self.is_cache_valid().await {
+            let cache = self.cache.read().await;
+            if let Some(ref entry) = *cache {
+                return Ok(entry.rules.iter().find(|r| r.name == name).cloned());
+            }
+        }
+        self.inner.get_rule(name).await
+    }
+
+    async fn update_rule(&self, rule: PolicyRule) -> Result<bool, AuthError> {
+        let result = self.inner.update_rule(rule).await?;
+        self.invalidate_cache().await;
+        Ok(result)
+    }
+}
+
+/// リポジトリ付きポリシーエバリュエーター
+///
+/// PolicyRepository を使用してルールを管理する。
+pub struct RepositoryPolicyEvaluator<R: PolicyRepository> {
+    repository: Arc<R>,
+    default_decision: PolicyDecision,
+}
+
+impl<R: PolicyRepository> RepositoryPolicyEvaluator<R> {
+    /// リポジトリからエバリュエーターを作成
+    pub fn with_repository(repository: R) -> Self {
+        Self {
+            repository: Arc::new(repository),
+            default_decision: PolicyDecision::Deny,
+        }
+    }
+
+    /// デフォルト決定を設定
+    pub fn with_default_decision(mut self, decision: PolicyDecision) -> Self {
+        self.default_decision = decision;
+        self
+    }
+
+    /// リポジトリへの参照を取得
+    pub fn repository(&self) -> &R {
+        &self.repository
+    }
+
+    /// ポリシーを評価
+    pub async fn evaluate(&self, request: &PolicyRequest) -> PolicyResult {
+        let rules = match self.repository.get_all_rules().await {
+            Ok(rules) => rules,
+            Err(e) => {
+                warn!(error = %e, "Failed to fetch policy rules");
+                return PolicyResult {
+                    decision: self.default_decision,
+                    matched_policy: None,
+                    reason: Some(format!("Failed to fetch rules: {}", e)),
+                };
+            }
+        };
+
+        for rule in rules.iter() {
+            if !rule.matches_action(&request.action) {
+                continue;
+            }
+
+            if !rule.matches_subject(&request.subject) {
+                continue;
+            }
+
+            if !rule.evaluate_conditions(&request.subject, &request.resource) {
+                continue;
+            }
+
+            debug!(
+                rule = %rule.name,
+                action = %request.action.to_permission(),
+                user = %request.subject.user_id,
+                "Policy rule matched"
+            );
+
+            return match rule.effect {
+                PolicyEffect::Allow => PolicyResult::allow(&rule.name),
+                PolicyEffect::Deny => PolicyResult::deny(&rule.name, "Explicitly denied by policy"),
+            };
+        }
+
+        debug!(
+            action = %request.action.to_permission(),
+            user = %request.subject.user_id,
+            default = ?self.default_decision,
+            "No policy matched, using default"
+        );
+
+        match self.default_decision {
+            PolicyDecision::Allow => PolicyResult {
+                decision: PolicyDecision::Allow,
+                matched_policy: None,
+                reason: Some("Default allow".to_string()),
+            },
+            PolicyDecision::Deny => PolicyResult {
+                decision: PolicyDecision::Deny,
+                matched_policy: None,
+                reason: Some("No matching policy, default deny".to_string()),
+            },
+            PolicyDecision::NotApplicable => PolicyResult::not_applicable(),
+        }
     }
 }
 

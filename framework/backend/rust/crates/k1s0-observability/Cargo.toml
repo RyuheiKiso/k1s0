@@ -8,10 +8,48 @@ repository = "https://github.com/k1s0/k1s0"
 keywords = ["observability", "logging", "tracing", "metrics", "opentelemetry", "k1s0"]
 categories = ["development-tools::debugging"]
 
+[features]
+default = []
+full = ["axum-layer", "tonic-interceptor", "otel", "prometheus"]
+axum-layer = ["axum", "tower", "http", "http-body", "pin-project-lite"]
+tonic-interceptor = ["tonic"]
+otel = ["opentelemetry", "opentelemetry_sdk", "opentelemetry-otlp", "tracing-opentelemetry"]
+prometheus = ["prometheus-client", "hyper"]
+
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"
 uuid = { version = "1.0", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+
+# OpenTelemetry (optional)
+opentelemetry = { version = "0.27", optional = true }
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"], optional = true }
+opentelemetry-otlp = { version = "0.27", features = ["tonic"], optional = true }
+tracing-opentelemetry = { version = "0.28", optional = true }
+
+# Prometheus (optional)
+prometheus-client = { version = "0.23", optional = true }
+hyper = { version = "1.0", features = ["server"], optional = true }
+
+# Axum middleware (optional)
+axum = { version = "0.8", optional = true }
+tower = { version = "0.5", optional = true }
+http = { version = "1.0", optional = true }
+http-body = { version = "1.0", optional = true }
+pin-project-lite = { version = "0.2", optional = true }
+
+# Tonic interceptor (optional)
+tonic = { version = "0.12", optional = true }
+
+# Async
+tokio = { version = "1", features = ["sync", "time"] }
+futures = "0.3"
 
 [dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

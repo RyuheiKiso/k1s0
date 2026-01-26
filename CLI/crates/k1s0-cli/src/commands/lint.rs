@@ -19,7 +19,7 @@
 use std::path::PathBuf;
 
 use clap::Args;
-use k1s0_generator::lint::{LintConfig, LintResult, Linter, Severity};
+use k1s0_generator::lint::{Fixer, LintConfig, LintResult, Linter, Severity};
 
 use crate::error::{CliError, Result};
 use crate::output::{output, LintOutput, LintViolation};
@@ -43,7 +43,7 @@ pub struct LintArgs {
     #[arg(long)]
     pub strict: bool,
 
-    /// 自動修正を試みる（未実装）
+    /// 自動修正を試みる（K001, K002, K010, K011 に対応）
     #[arg(long)]
     pub fix: bool,
 
@@ -80,11 +80,78 @@ pub fn execute(args: LintArgs) -> Result<()> {
             .env_var_allowlist
             .map(|r| r.split(',').map(|s| s.trim().to_string()).collect())
             .unwrap_or_default(),
+        fix: args.fix,
     };
 
     // lint 実行
-    let linter = Linter::new(config);
+    let linter = Linter::new(config.clone());
     let result = linter.lint(&path);
+
+    // --fix が指定されている場合、自動修正を試みる
+    if args.fix && !result.violations.is_empty() {
+        let fixer = Fixer::new(&path);
+        let mut fixed_count = 0;
+        let mut fix_results = Vec::new();
+
+        for violation in &result.violations {
+            if Fixer::is_fixable(violation.rule) {
+                if let Some(fix_result) = fixer.fix(violation) {
+                    if fix_result.success {
+                        fixed_count += 1;
+                    }
+                    fix_results.push(fix_result);
+                }
+            }
+        }
+
+        // 修正結果を出力
+        if !fix_results.is_empty() {
+            out.newline();
+            out.header("自動修正:");
+            out.newline();
+
+            for fix_result in &fix_results {
+                if fix_result.success {
+                    out.success(&format!("  ✓ {}", fix_result.description));
+                } else {
+                    out.warning(&format!(
+                        "  ✗ {} - {}",
+                        fix_result.description,
+                        fix_result.error.as_deref().unwrap_or("不明なエラー")
+                    ));
+                }
+            }
+
+            out.newline();
+            out.info(&format!("{} 件の修正を適用しました", fixed_count));
+        }
+
+        // 修正後に再度 lint を実行
+        if fixed_count > 0 {
+            out.newline();
+            out.info("修正後の再検査を実行中...");
+            out.newline();
+
+            let result = linter.lint(&path);
+
+            if args.json {
+                let output_json = to_lint_output(&result);
+                out.print_json(&output_json);
+            } else {
+                print_result(&result);
+            }
+
+            if result.is_success() {
+                return Ok(());
+            } else {
+                return Err(CliError::validation(format!(
+                    "lint に失敗しました（エラー: {}, 警告: {}）",
+                    result.error_count(),
+                    result.warning_count()
+                )));
+            }
+        }
+    }
 
     // JSON 出力
     if args.json {

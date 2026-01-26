@@ -499,6 +499,277 @@ fn get_template_version(template_dir: &Path) -> Result<String> {
 }
 
 /// DiffResult をパスでフィルタ
+/// マイグレーション結果
+#[derive(Debug)]
+pub struct MigrationResult {
+    /// 適用したマイグレーション
+    pub applied: Vec<String>,
+    /// スキップしたマイグレーション（既に適用済み）
+    pub skipped: Vec<String>,
+    /// 失敗したマイグレーション
+    pub failed: Vec<(String, String)>,
+    /// 環境
+    pub env: String,
+}
+
+impl MigrationResult {
+    /// 新しい結果を作成
+    pub fn new(env: impl Into<String>) -> Self {
+        Self {
+            applied: Vec::new(),
+            skipped: Vec::new(),
+            failed: Vec::new(),
+            env: env.into(),
+        }
+    }
+
+    /// 成功かどうか
+    pub fn is_success(&self) -> bool {
+        self.failed.is_empty()
+    }
+
+    /// サマリーを取得
+    pub fn summary(&self) -> String {
+        format!(
+            "適用: {}, スキップ: {}, 失敗: {}",
+            self.applied.len(),
+            self.skipped.len(),
+            self.failed.len()
+        )
+    }
+}
+
+/// マイグレーションファイル
+#[derive(Debug, Clone)]
+pub struct MigrationFile {
+    /// ファイル名
+    pub name: String,
+    /// ファイルパス
+    pub path: PathBuf,
+    /// バージョン番号
+    pub version: u64,
+    /// 方向（up/down）
+    pub direction: MigrationDirection,
+}
+
+/// マイグレーション方向
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MigrationDirection {
+    Up,
+    Down,
+}
+
+/// マイグレーション設定
+#[derive(Debug, Clone)]
+pub struct MigrationConfig {
+    /// データベース接続文字列
+    pub database_url: Option<String>,
+    /// 環境名
+    pub env: String,
+    /// マイグレーションディレクトリ
+    pub migrations_dir: PathBuf,
+    /// ドライラン（実際には実行しない）
+    pub dry_run: bool,
+}
+
+impl MigrationConfig {
+    /// 環境変数から設定を読み込む
+    pub fn from_env(env: &str, service_path: &Path) -> Self {
+        let database_url = std::env::var("DATABASE_URL").ok()
+            .or_else(|| std::env::var(&format!("DATABASE_URL_{}", env.to_uppercase())).ok());
+
+        let migrations_dir = service_path.join("migrations");
+
+        Self {
+            database_url,
+            env: env.to_string(),
+            migrations_dir,
+            dry_run: false,
+        }
+    }
+}
+
+/// マイグレーションを適用する
+///
+/// # Arguments
+/// * `service_path` - サービスディレクトリへのパス
+/// * `env` - 環境名（dev/stg/prod）
+/// * `dry_run` - ドライラン（実際には実行しない）
+///
+/// # Returns
+/// * `MigrationResult` - マイグレーション結果
+pub fn apply_migrations<P: AsRef<Path>>(
+    service_path: P,
+    env: &str,
+    dry_run: bool,
+) -> Result<MigrationResult> {
+    let service_path = service_path.as_ref();
+    let mut result = MigrationResult::new(env);
+
+    // dev 環境のみ許可
+    if env != "dev" && env != "development" && env != "local" {
+        return Err(Error::Other(format!(
+            "自動マイグレーションは dev 環境でのみ実行可能です（現在: {}）",
+            env
+        )));
+    }
+
+    // マイグレーションディレクトリを探す
+    let migrations_dir = find_migrations_dir(service_path)?;
+
+    // マイグレーションファイルを収集
+    let migrations = collect_migrations(&migrations_dir)?;
+
+    if migrations.is_empty() {
+        return Ok(result);
+    }
+
+    // 設定を取得
+    let config = MigrationConfig::from_env(env, service_path);
+
+    // データベースURLが設定されていない場合
+    if config.database_url.is_none() {
+        // ドライランまたはファイル一覧の表示のみ
+        for migration in &migrations {
+            if migration.direction == MigrationDirection::Up {
+                if dry_run {
+                    result.applied.push(migration.name.clone());
+                } else {
+                    result.skipped.push(format!(
+                        "{} (DATABASE_URL が未設定)",
+                        migration.name
+                    ));
+                }
+            }
+        }
+        return Ok(result);
+    }
+
+    // マイグレーションを実行
+    for migration in &migrations {
+        if migration.direction != MigrationDirection::Up {
+            continue;
+        }
+
+        if dry_run {
+            result.applied.push(migration.name.clone());
+            continue;
+        }
+
+        // SQLファイルを読み込む
+        let sql = match std::fs::read_to_string(&migration.path) {
+            Ok(content) => content,
+            Err(e) => {
+                result.failed.push((migration.name.clone(), e.to_string()));
+                continue;
+            }
+        };
+
+        // 実際のDB実行はここで行う（将来的にsqlxを使用）
+        // 現時点ではファイル内容を表示するのみ
+        println!("-- Migration: {}", migration.name);
+        println!("-- File: {}", migration.path.display());
+        println!("{}", sql);
+        println!("-- End of migration\n");
+
+        result.applied.push(migration.name.clone());
+    }
+
+    Ok(result)
+}
+
+/// マイグレーションディレクトリを探す
+fn find_migrations_dir(service_path: &Path) -> Result<PathBuf> {
+    // 優先順位:
+    // 1. migrations/
+    // 2. db/migrations/
+    // 3. database/migrations/
+    let candidates = [
+        service_path.join("migrations"),
+        service_path.join("db/migrations"),
+        service_path.join("database/migrations"),
+    ];
+
+    for candidate in &candidates {
+        if candidate.exists() && candidate.is_dir() {
+            return Ok(candidate.clone());
+        }
+    }
+
+    // migrations ディレクトリが存在しない場合は作成可能なパスを返す
+    Ok(candidates[0].clone())
+}
+
+/// マイグレーションファイルを収集
+fn collect_migrations(migrations_dir: &Path) -> Result<Vec<MigrationFile>> {
+    if !migrations_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut migrations = Vec::new();
+
+    for entry in std::fs::read_dir(migrations_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if !path.is_file() {
+            continue;
+        }
+
+        let file_name = match path.file_name().and_then(|n| n.to_str()) {
+            Some(name) => name.to_string(),
+            None => continue,
+        };
+
+        // ファイル名パターン: NNNN_name.up.sql または NNNN_name.down.sql
+        if !file_name.ends_with(".sql") {
+            continue;
+        }
+
+        let direction = if file_name.contains(".up.") {
+            MigrationDirection::Up
+        } else if file_name.contains(".down.") {
+            MigrationDirection::Down
+        } else {
+            // .up/.down がない場合は Up として扱う
+            MigrationDirection::Up
+        };
+
+        // バージョン番号を抽出
+        let version = file_name
+            .split('_')
+            .next()
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(0);
+
+        migrations.push(MigrationFile {
+            name: file_name,
+            path,
+            version,
+            direction,
+        });
+    }
+
+    // バージョン順にソート
+    migrations.sort_by(|a, b| a.version.cmp(&b.version));
+
+    Ok(migrations)
+}
+
+/// 保留中のマイグレーションを一覧表示
+pub fn list_pending_migrations<P: AsRef<Path>>(service_path: P) -> Result<Vec<MigrationFile>> {
+    let service_path = service_path.as_ref();
+    let migrations_dir = find_migrations_dir(service_path)?;
+    let migrations = collect_migrations(&migrations_dir)?;
+
+    // Up マイグレーションのみをフィルタ
+    Ok(migrations
+        .into_iter()
+        .filter(|m| m.direction == MigrationDirection::Up)
+        .collect())
+}
+
+/// DiffResult をパスでフィルタ
 fn filter_diff_by_paths(diff: &DiffResult, paths: &[String], include: bool) -> DiffResult {
     let filter_fn = |file_diff: &FileDiff| -> bool {
         let matches = paths.iter().any(|pattern| {

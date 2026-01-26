@@ -1,6 +1,31 @@
 //! メトリクス
 //!
-//! OpenTelemetry メトリクスの初期化と基本操作を提供する。
+//! Prometheus 形式のメトリクス収集と公開を提供する。
+//!
+//! # 機能
+//!
+//! - prometheus-client によるメトリクスレジストリ
+//! - 標準メトリクス名とラベルの定義
+//! - /metrics エンドポイント用のハンドラ
+//!
+//! # 使用例
+//!
+//! ```ignore
+//! use k1s0_observability::metrics::{MetricsRegistry, MetricNames};
+//!
+//! // レジストリの作成
+//! let registry = MetricsRegistry::new("my-service", "dev");
+//!
+//! // カウンタの作成とインクリメント
+//! let counter = registry.register_counter(
+//!     MetricNames::HTTP_REQUESTS_TOTAL,
+//!     "Total HTTP requests",
+//! );
+//! counter.inc();
+//!
+//! // メトリクスのエンコード
+//! let output = registry.encode();
+//! ```
 
 use crate::config::ObservabilityConfig;
 
@@ -257,5 +282,405 @@ mod tests {
         assert!(!Buckets::HTTP_LATENCY.is_empty());
         assert!(!Buckets::GRPC_LATENCY.is_empty());
         assert!(!Buckets::DB_LATENCY.is_empty());
+    }
+}
+
+// ============================================================================
+// Prometheus メトリクスレジストリ
+// ============================================================================
+
+#[cfg(feature = "prometheus")]
+pub use prometheus_impl::*;
+
+#[cfg(feature = "prometheus")]
+mod prometheus_impl {
+    use super::*;
+    use prometheus_client::{
+        encoding::{text::encode, EncodeLabelSet, EncodeLabelValue},
+        metrics::{
+            counter::Counter,
+            family::Family,
+            gauge::Gauge,
+            histogram::{exponential_buckets, Histogram},
+        },
+        registry::Registry,
+    };
+    use std::sync::Arc;
+
+    /// メトリクスレジストリ
+    ///
+    /// prometheus-client を使用したメトリクス管理。
+    #[derive(Clone)]
+    pub struct MetricsRegistry {
+        inner: Arc<MetricsRegistryInner>,
+    }
+
+    struct MetricsRegistryInner {
+        registry: std::sync::RwLock<Registry>,
+        service_name: String,
+        service_env: String,
+    }
+
+    impl MetricsRegistry {
+        /// 新しいレジストリを作成
+        pub fn new(service_name: impl Into<String>, service_env: impl Into<String>) -> Self {
+            Self {
+                inner: Arc::new(MetricsRegistryInner {
+                    registry: std::sync::RwLock::new(Registry::default()),
+                    service_name: service_name.into(),
+                    service_env: service_env.into(),
+                }),
+            }
+        }
+
+        /// ObservabilityConfig から作成
+        pub fn from_config(config: &ObservabilityConfig) -> Self {
+            Self::new(config.service_name(), config.env())
+        }
+
+        /// サービス名を取得
+        pub fn service_name(&self) -> &str {
+            &self.inner.service_name
+        }
+
+        /// 環境名を取得
+        pub fn service_env(&self) -> &str {
+            &self.inner.service_env
+        }
+
+        /// カウンタを登録
+        pub fn register_counter(&self, name: &str, help: &str) -> Counter {
+            let counter = Counter::default();
+            if let Ok(mut registry) = self.inner.registry.write() {
+                registry.register(name, help, counter.clone());
+            }
+            counter
+        }
+
+        /// ラベル付きカウンタファミリーを登録
+        pub fn register_counter_family<L: EncodeLabelSet + Clone + std::hash::Hash + Eq + Send + Sync + 'static>(
+            &self,
+            name: &str,
+            help: &str,
+        ) -> Family<L, Counter> {
+            let family = Family::<L, Counter>::default();
+            if let Ok(mut registry) = self.inner.registry.write() {
+                registry.register(name, help, family.clone());
+            }
+            family
+        }
+
+        /// ゲージを登録
+        pub fn register_gauge(&self, name: &str, help: &str) -> Gauge {
+            let gauge = Gauge::default();
+            if let Ok(mut registry) = self.inner.registry.write() {
+                registry.register(name, help, gauge.clone());
+            }
+            gauge
+        }
+
+        /// ラベル付きゲージファミリーを登録
+        pub fn register_gauge_family<L: EncodeLabelSet + Clone + std::hash::Hash + Eq + Send + Sync + 'static>(
+            &self,
+            name: &str,
+            help: &str,
+        ) -> Family<L, Gauge> {
+            let family = Family::<L, Gauge>::default();
+            if let Ok(mut registry) = self.inner.registry.write() {
+                registry.register(name, help, family.clone());
+            }
+            family
+        }
+
+        /// ヒストグラムを登録
+        pub fn register_histogram(&self, name: &str, help: &str, buckets: &[f64]) -> Histogram {
+            let histogram = Histogram::new(buckets.iter().copied());
+            if let Ok(mut registry) = self.inner.registry.write() {
+                registry.register(name, help, histogram.clone());
+            }
+            histogram
+        }
+
+        /// ラベル付きヒストグラムファミリーを登録
+        pub fn register_histogram_family<L: EncodeLabelSet + Clone + std::hash::Hash + Eq + Send + Sync + 'static>(
+            &self,
+            name: &str,
+            help: &str,
+            buckets: &[f64],
+        ) -> HistogramFamily<L> {
+            let buckets_vec: Vec<f64> = buckets.to_vec();
+            let family = HistogramFamily::new(buckets_vec);
+            // Note: prometheus-client doesn't support histogram families directly,
+            // so we use a custom wrapper
+            family
+        }
+
+        /// Prometheus 形式でエンコード
+        pub fn encode(&self) -> String {
+            let mut output = String::new();
+            if let Ok(registry) = self.inner.registry.read() {
+                let _ = encode(&mut output, &registry);
+            }
+            output
+        }
+    }
+
+    /// ヒストグラムファミリー
+    ///
+    /// prometheus-client はヒストグラムファミリーを直接サポートしないため、
+    /// カスタム実装を提供する。
+    #[derive(Clone)]
+    pub struct HistogramFamily<L>
+    where
+        L: EncodeLabelSet + Clone + std::hash::Hash + Eq,
+    {
+        histograms: Arc<std::sync::RwLock<std::collections::HashMap<L, Histogram>>>,
+        buckets: Vec<f64>,
+    }
+
+    impl<L> HistogramFamily<L>
+    where
+        L: EncodeLabelSet + Clone + std::hash::Hash + Eq,
+    {
+        /// 新しいヒストグラムファミリーを作成
+        pub fn new(buckets: Vec<f64>) -> Self {
+            Self {
+                histograms: Arc::new(std::sync::RwLock::new(std::collections::HashMap::new())),
+                buckets,
+            }
+        }
+
+        /// ラベルに対応するヒストグラムを取得または作成
+        pub fn get_or_create(&self, labels: &L) -> Histogram {
+            if let Ok(mut map) = self.histograms.write() {
+                map.entry(labels.clone())
+                    .or_insert_with(|| Histogram::new(self.buckets.iter().copied()))
+                    .clone()
+            } else {
+                Histogram::new(self.buckets.iter().copied())
+            }
+        }
+    }
+
+    /// HTTP メトリクスラベル
+    #[derive(Clone, Debug, Hash, PartialEq, Eq, EncodeLabelSet)]
+    pub struct HttpLabels {
+        pub method: String,
+        pub path: String,
+        pub status_code: u16,
+    }
+
+    /// gRPC メトリクスラベル
+    #[derive(Clone, Debug, Hash, PartialEq, Eq, EncodeLabelSet)]
+    pub struct GrpcLabels {
+        pub service: String,
+        pub method: String,
+        pub status: String,
+    }
+
+    /// 標準メトリクスセット
+    ///
+    /// HTTP/gRPC/DB の標準メトリクスをまとめて登録する。
+    pub struct StandardMetrics {
+        pub registry: MetricsRegistry,
+        pub http_requests_total: Family<HttpLabels, Counter>,
+        pub http_request_duration: HistogramFamily<HttpLabels>,
+        pub http_active_requests: Gauge,
+        pub grpc_requests_total: Family<GrpcLabels, Counter>,
+        pub grpc_request_duration: HistogramFamily<GrpcLabels>,
+        pub errors_total: Family<ErrorLabels, Counter>,
+    }
+
+    /// エラーラベル
+    #[derive(Clone, Debug, Hash, PartialEq, Eq, EncodeLabelSet)]
+    pub struct ErrorLabels {
+        pub kind: String,
+        pub code: String,
+    }
+
+    impl StandardMetrics {
+        /// 標準メトリクスを作成
+        pub fn new(config: &ObservabilityConfig) -> Self {
+            let registry = MetricsRegistry::from_config(config);
+
+            let http_requests_total = registry.register_counter_family(
+                MetricNames::HTTP_REQUESTS_TOTAL,
+                "Total number of HTTP requests",
+            );
+
+            let http_request_duration = registry.register_histogram_family(
+                MetricNames::HTTP_REQUEST_DURATION_SECONDS,
+                "HTTP request duration in seconds",
+                Buckets::HTTP_LATENCY,
+            );
+
+            let http_active_requests = registry.register_gauge(
+                MetricNames::HTTP_ACTIVE_REQUESTS,
+                "Number of active HTTP requests",
+            );
+
+            let grpc_requests_total = registry.register_counter_family(
+                MetricNames::GRPC_REQUESTS_TOTAL,
+                "Total number of gRPC requests",
+            );
+
+            let grpc_request_duration = registry.register_histogram_family(
+                MetricNames::GRPC_REQUEST_DURATION_SECONDS,
+                "gRPC request duration in seconds",
+                Buckets::GRPC_LATENCY,
+            );
+
+            let errors_total = registry.register_counter_family(
+                MetricNames::ERRORS_TOTAL,
+                "Total number of errors",
+            );
+
+            Self {
+                registry,
+                http_requests_total,
+                http_request_duration,
+                http_active_requests,
+                grpc_requests_total,
+                grpc_request_duration,
+                errors_total,
+            }
+        }
+
+        /// HTTP リクエスト完了を記録
+        pub fn record_http_request(
+            &self,
+            method: &str,
+            path: &str,
+            status_code: u16,
+            duration_seconds: f64,
+        ) {
+            let labels = HttpLabels {
+                method: method.to_string(),
+                path: path.to_string(),
+                status_code,
+            };
+            self.http_requests_total.get_or_create(&labels).inc();
+            self.http_request_duration
+                .get_or_create(&labels)
+                .observe(duration_seconds);
+        }
+
+        /// gRPC リクエスト完了を記録
+        pub fn record_grpc_request(
+            &self,
+            service: &str,
+            method: &str,
+            status: &str,
+            duration_seconds: f64,
+        ) {
+            let labels = GrpcLabels {
+                service: service.to_string(),
+                method: method.to_string(),
+                status: status.to_string(),
+            };
+            self.grpc_requests_total.get_or_create(&labels).inc();
+            self.grpc_request_duration
+                .get_or_create(&labels)
+                .observe(duration_seconds);
+        }
+
+        /// エラーを記録
+        pub fn record_error(&self, kind: &str, code: &str) {
+            let labels = ErrorLabels {
+                kind: kind.to_string(),
+                code: code.to_string(),
+            };
+            self.errors_total.get_or_create(&labels).inc();
+        }
+
+        /// Prometheus 形式でエンコード
+        pub fn encode(&self) -> String {
+            self.registry.encode()
+        }
+    }
+
+    /// /metrics エンドポイント用のハンドラ（axum 向け）
+    #[cfg(feature = "axum-layer")]
+    pub async fn metrics_handler(
+        axum::extract::State(metrics): axum::extract::State<Arc<StandardMetrics>>,
+    ) -> impl axum::response::IntoResponse {
+        use axum::http::{header, StatusCode};
+
+        let body = metrics.encode();
+        (
+            StatusCode::OK,
+            [(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
+            body,
+        )
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_metrics_registry() {
+            let registry = MetricsRegistry::new("test-service", "dev");
+            assert_eq!(registry.service_name(), "test-service");
+            assert_eq!(registry.service_env(), "dev");
+        }
+
+        #[test]
+        fn test_counter() {
+            let registry = MetricsRegistry::new("test", "dev");
+            let counter = registry.register_counter("test_counter", "A test counter");
+            counter.inc();
+
+            let output = registry.encode();
+            assert!(output.contains("test_counter"));
+        }
+
+        #[test]
+        fn test_gauge() {
+            let registry = MetricsRegistry::new("test", "dev");
+            let gauge = registry.register_gauge("test_gauge", "A test gauge");
+            gauge.set(42);
+
+            let output = registry.encode();
+            assert!(output.contains("test_gauge"));
+        }
+
+        #[test]
+        fn test_histogram() {
+            let registry = MetricsRegistry::new("test", "dev");
+            let histogram = registry.register_histogram(
+                "test_histogram",
+                "A test histogram",
+                Buckets::HTTP_LATENCY,
+            );
+            histogram.observe(0.1);
+            histogram.observe(0.5);
+
+            let output = registry.encode();
+            assert!(output.contains("test_histogram"));
+        }
+
+        #[test]
+        fn test_standard_metrics() {
+            let config = ObservabilityConfig::builder()
+                .service_name("test-service")
+                .env("dev")
+                .build()
+                .unwrap();
+
+            let metrics = StandardMetrics::new(&config);
+
+            // HTTP リクエストを記録
+            metrics.record_http_request("GET", "/api/users", 200, 0.1);
+
+            // gRPC リクエストを記録
+            metrics.record_grpc_request("UserService", "GetUser", "OK", 0.05);
+
+            // エラーを記録
+            metrics.record_error("INTERNAL", "ERR001");
+
+            let output = metrics.encode();
+            assert!(output.contains("http_requests_total"));
+        }
     }
 }

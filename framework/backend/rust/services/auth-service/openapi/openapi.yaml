@@ -1,0 +1,286 @@
+openapi: 3.0.3
+info:
+  title: Auth Service API
+  description: k1s0 framework authentication and authorization service
+  version: 1.0.0
+  contact:
+    name: k1s0 Team
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /v1/login:
+    post:
+      summary: User login
+      description: Authenticate user with login ID and password
+      operationId: login
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/refresh:
+    post:
+      summary: Refresh token
+      description: Get new access token using refresh token
+      operationId: refreshToken
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/check-permission:
+    post:
+      summary: Check permission
+      description: Check if user has the specified permission
+      operationId: checkPermission
+      tags:
+        - Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckPermissionRequest'
+      responses:
+        '200':
+          description: Permission check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckPermissionResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/users/{userId}:
+    get:
+      summary: Get user
+      description: Get user information by ID
+      operationId: getUser
+      tags:
+        - Users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: User information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/users/{userId}/roles:
+    get:
+      summary: List user roles
+      description: Get list of roles assigned to user
+      operationId: listUserRoles
+      tags:
+        - Users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: List of roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check service health
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - login_id
+        - password
+      properties:
+        login_id:
+          type: string
+          description: User login ID
+        password:
+          type: string
+          format: password
+          description: User password
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT access token
+        refresh_token:
+          type: string
+          description: Refresh token for getting new access token
+        token_type:
+          type: string
+          example: Bearer
+        expires_in:
+          type: integer
+          format: int64
+          description: Token expiration time in seconds
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          description: Refresh token
+
+    CheckPermissionRequest:
+      type: object
+      required:
+        - user_id
+        - permission_key
+      properties:
+        user_id:
+          type: integer
+          format: int64
+        permission_key:
+          type: string
+          description: Permission key to check
+        service_name:
+          type: string
+          description: Optional service name scope
+
+    CheckPermissionResponse:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+          description: Whether the permission is granted
+
+    UserResponse:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          format: int64
+        login_id:
+          type: string
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        status:
+          type: string
+          enum:
+            - Active
+            - Inactive
+            - Locked
+
+    RoleResponse:
+      type: object
+      properties:
+        role_id:
+          type: integer
+          format: int64
+        role_name:
+          type: string
+        description:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Error message
+
+tags:
+  - name: Authentication
+    description: Authentication operations
+  - name: Authorization
+    description: Authorization operations
+  - name: Users
+    description: User management operations
+  - name: Health
+    description: Health check operations

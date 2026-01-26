@@ -1,0 +1,54 @@
+{
+  "name": "{{ feature_name }}",
+  "version": "{{ version | default(value="0.1.0") }}",
+  "description": "{{ feature_description | default(value="k1s0 generated feature") }}",
+  "template": {
+    "name": "backend-rust",
+    "version": "{{ template_version | default(value="1.0.0") }}",
+    "path": "CLI/templates/backend-rust/feature",
+    "fingerprint": "{{ fingerprint | default(value="") }}"
+  },
+  "created_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
+  "generated_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
+  "dependencies": {
+    {% if has_db | default(value=true) -%}
+    "sqlx": "0.8",
+    {% endif -%}
+    {% if has_grpc | default(value=true) -%}
+    "tonic": "0.12",
+    "prost": "0.13",
+    {% endif -%}
+    {% if has_rest | default(value=true) -%}
+    "axum": "0.7",
+    {% endif -%}
+    "tokio": "1",
+    "serde": "1",
+    "tracing": "0.1"
+  },
+  "settings": {
+    "env": "{{ env | default(value="dev") }}",
+    "grpc_port": {{ grpc_port | default(value=50051) }},
+    {% if has_rest | default(value=true) -%}
+    "rest_port": {{ rest_port | default(value=8080) }},
+    {% endif -%}
+    "db": {
+      "enabled": {{ has_db | default(value=true) }},
+      "type": "postgres",
+      "pool_size": {{ db_pool_size | default(value=10) }}
+    }
+  },
+  "managed_paths": [
+    "deploy/",
+    "proto/",
+    "openapi/",
+    "config/"
+  ],
+  "protected_paths": [
+    "src/domain/",
+    "src/application/",
+    "src/infrastructure/",
+    "src/presentation/",
+    "migrations/"
+  ],
+  "checksums": {}
+}
