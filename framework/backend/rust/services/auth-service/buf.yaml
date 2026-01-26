@@ -5,6 +5,18 @@ modules:
 lint:
   use:
     - DEFAULT
+    - COMMENTS
+  except:
+    - PACKAGE_VERSION_SUFFIX
+  disallow_comment_ignores: true
+  enum_zero_value_suffix: _UNSPECIFIED
+  rpc_allow_same_request_response: false
+  rpc_allow_google_protobuf_empty_requests: true
+  rpc_allow_google_protobuf_empty_responses: true
+  service_suffix: Service
 breaking:
   use:
     - FILE
+  except:
+    - EXTENSION_MESSAGE_NO_DELETE
+  ignore_unstable_packages: true

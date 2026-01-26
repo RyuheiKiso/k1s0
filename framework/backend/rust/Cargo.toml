@@ -1,0 +1,64 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/k1s0-auth",
+    "crates/k1s0-config",
+    "crates/k1s0-db",
+    "crates/k1s0-error",
+    "crates/k1s0-grpc-client",
+    "crates/k1s0-grpc-server",
+    "crates/k1s0-health",
+    "crates/k1s0-observability",
+    "crates/k1s0-resilience",
+    "crates/k1s0-validation",
+    "services/auth-service",
+    "services/config-service",
+    "services/endpoint-service",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+repository = "https://github.com/k1s0/k1s0"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# gRPC
+tonic = "0.12"
+prost = "0.13"
+tonic-build = "0.12"
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+opentelemetry = "0.24"
+
+# Utilities
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Caching
+moka = { version = "0.12", features = ["sync"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"

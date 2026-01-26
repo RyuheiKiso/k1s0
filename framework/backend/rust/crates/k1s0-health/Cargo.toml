@@ -1,0 +1,20 @@
+[package]
+name = "k1s0-health"
+version = "0.1.0"
+edition = "2021"
+description = "k1s0 framework - Health check endpoints for services"
+license = "MIT"
+repository = "https://github.com/k1s0/k1s0"
+keywords = ["health", "kubernetes", "probe", "k1s0"]
+categories = ["web-programming"]
+
+[dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async runtime
+tokio = { version = "1.0", features = ["time", "sync"] }
+
+[dev-dependencies]
+tokio = { version = "1.0", features = ["full", "test-util", "macros"] }

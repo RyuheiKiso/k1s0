@@ -1,0 +1,20 @@
+[package]
+name = "k1s0-error"
+version = "0.1.0"
+edition = "2021"
+description = "k1s0 framework - Unified error handling with gRPC/HTTP status code conversion"
+license = "MIT"
+repository = "https://github.com/k1s0/k1s0"
+keywords = ["error", "grpc", "http", "k1s0"]
+categories = ["rust-patterns"]
+
+[dependencies]
+# Error handling
+thiserror = "1.0"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[dev-dependencies]
+

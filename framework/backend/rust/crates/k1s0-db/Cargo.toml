@@ -1,0 +1,23 @@
+[package]
+name = "k1s0-db"
+version = "0.1.0"
+edition = "2021"
+description = "k1s0 framework - Database access with connection pooling, transactions, and error handling"
+license = "MIT"
+repository = "https://github.com/k1s0/k1s0"
+keywords = ["database", "pool", "transaction", "k1s0"]
+categories = ["database"]
+
+[dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+
+# Error handling
+thiserror = "1.0"
+
+# Async runtime
+tokio = { version = "1.0", features = ["time", "sync"] }
+
+[dev-dependencies]
+tokio = { version = "1.0", features = ["full", "test-util"] }
+tempfile = "3.10"

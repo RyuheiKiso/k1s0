@@ -1,0 +1,70 @@
+# Spectral OpenAPI Linter Configuration
+# https://stoplight.io/open-source/spectral
+
+extends:
+  - spectral:oas
+
+# カスタムルール
+rules:
+  # === 必須ルール（Error） ===
+
+  # サーバー定義が必須
+  oas3-api-servers: error
+
+  # operationId が必須
+  operation-operationId: error
+
+  # operationId が URL に使える形式
+  operation-operationId-valid-in-url: error
+
+  # タグが必須
+  operation-tags: error
+
+  # セキュリティ定義が必要
+  oas3-operation-security-defined: error
+
+  # スキーマにプロパティが必要
+  oas3-schema: error
+
+  # === 推奨ルール（Warning） ===
+
+  # info.contact が推奨
+  info-contact: warn
+
+  # info.description が推奨
+  info-description: warn
+
+  # operation.description が推奨
+  operation-description: warn
+
+  # operation.summary が推奨
+  operation-summary: warn
+
+  # タグの description が推奨
+  tag-description: warn
+
+  # パラメータの description が推奨
+  oas3-parameter-description: warn
+
+  # 未使用コンポーネントの検出
+  oas3-unused-component: warn
+
+  # === k1s0 カスタムルール ===
+
+  # エラーレスポンスに ProblemDetails を使用することを推奨
+  # （カスタムルールとして定義）
+
+  # === 無効化するルール ===
+  # 必要に応じてコメント解除
+
+  # 例: 長い説明を許可
+  # description-length: off
+
+# カスタム関数（将来の拡張用）
+# functions:
+#   - check-problem-details
+
+# 除外パス
+except:
+  # 生成ファイルは除外
+  "**/gen/**": []

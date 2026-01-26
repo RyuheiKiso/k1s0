@@ -6,3 +6,26 @@ framework/frontend/react/packages/k1s0-api-client/dist/*
 framework/frontend/react/packages/k1s0-navigation/dist/*
 framework/frontend/react/packages/k1s0-ui/node_modules/*
 framework/frontend/react/packages/k1s0-ui/dist/*
+framework/backend/rust/crates/k1s0-config/target/*
+framework/backend/rust/crates/k1s0-validation/target/*
+framework/backend/rust/crates/k1s0-error/target/*
+framework/backend/rust/crates/k1s0-observability/target/*
+framework/backend/rust/crates/k1s0-grpc-client/target/*
+framework/backend/rust/crates/k1s0-grpc-server/target/*
+framework/backend/rust/crates/k1s0-resilience/target/*
+framework/backend/rust/crates/k1s0-db/target/*
+framework/backend/rust/crates/k1s0-health/target/*
+framework/backend/rust/services/config-service/target/*
+framework/backend/rust/services/endpoint-service/target/*
+framework/backend/rust/services/auth-service/target/*
+framework/backend/rust/crates/k1s0-auth/target/*
+
+# Generated code (contract -> code generation)
+**/openapi/gen/*
+**/proto/gen/*
+**/gen/*
+
+# Do NOT ignore fingerprint/hash files (these are tracked)
+!**/.k1s0-gen.sha256
+!**/openapi.fingerprint
+framework/backend/rust/target/*

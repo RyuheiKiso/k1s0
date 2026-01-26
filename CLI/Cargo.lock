@@ -566,6 +566,7 @@ name = "k1s0-generator"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "glob",
  "serde",
  "serde_json",

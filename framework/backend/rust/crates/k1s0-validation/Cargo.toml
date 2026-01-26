@@ -1,0 +1,16 @@
+[package]
+name = "k1s0-validation"
+version = "0.1.0"
+edition = "2021"
+description = "k1s0 framework - Input validation with unified error representation"
+license = "MIT"
+repository = "https://github.com/k1s0/k1s0"
+keywords = ["validation", "error", "problem-details", "grpc", "k1s0"]
+categories = ["web-programming"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+
+[dev-dependencies]
