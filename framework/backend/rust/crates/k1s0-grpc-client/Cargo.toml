@@ -1,0 +1,20 @@
+[package]
+name = "k1s0-grpc-client"
+version = "0.1.0"
+edition = "2021"
+description = "k1s0 gRPC client common infrastructure"
+license = "MIT"
+
+[dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+thiserror = "1.0"
+
+# Time
+tokio = { version = "1.0", features = ["time"] }
+
+[dev-dependencies]
+tokio = { version = "1.0", features = ["full", "test-util"] }
