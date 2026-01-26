@@ -1,4 +1,4 @@
-/**
+{% raw %}/**
  * Sidebar - サイドバーメニュー
  *
  * config/{env}.yaml の ui.navigation.menu から自動生成される。
@@ -86,3 +86,4 @@ export function Sidebar({ open, width }: SidebarProps) {
     </Drawer>
   );
 }
+{% endraw %}

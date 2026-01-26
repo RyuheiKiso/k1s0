@@ -29,3 +29,6 @@ framework/backend/rust/crates/k1s0-auth/target/*
 !**/.k1s0-gen.sha256
 !**/openapi.fingerprint
 framework/backend/rust/target/*
+framework/frontend/react/packages/k1s0-config/node_modules/*
+framework/frontend/react/packages/k1s0-shell/node_modules/*
+framework/frontend/react/packages/sample-app/*

@@ -1,4 +1,4 @@
-/**
+{% raw %}/**
  * AppShell - アプリケーションの共通レイアウト
  *
  * Header、Sidebar（Menu）、Footer を含むレイアウトコンポーネント。
@@ -62,3 +62,4 @@ export function AppShell({ children }: AppShellProps) {
     </Box>
   );
 }
+{% endraw %}
