@@ -17,6 +17,7 @@ pub mod fs;
 pub mod lint;
 pub mod manifest;
 pub mod template;
+pub mod upgrade;
 pub mod walker;
 
 // Tera の Context を再エクスポート

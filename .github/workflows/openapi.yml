@@ -1,0 +1,117 @@
+name: openapi
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/openapi/**'
+      - '.spectral.yaml'
+      - '.github/workflows/openapi.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/openapi/**'
+      - '.spectral.yaml'
+      - '.github/workflows/openapi.yml'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Spectral
+        run: npm install -g @stoplight/spectral-cli
+
+      - name: Find OpenAPI files
+        id: find-files
+        run: |
+          files=$(find . -path './feature/*/openapi/openapi.yaml' -o -path './framework/*/services/*/openapi/openapi.yaml' 2>/dev/null || true)
+          if [ -z "$files" ]; then
+            echo "No OpenAPI files found"
+            echo "found=false" >> $GITHUB_OUTPUT
+          else
+            echo "Found OpenAPI files:"
+            echo "$files"
+            echo "found=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Lint OpenAPI files
+        if: steps.find-files.outputs.found == 'true'
+        run: |
+          exit_code=0
+          for file in $(find . -path './feature/*/openapi/openapi.yaml' -o -path './framework/*/services/*/openapi/openapi.yaml' 2>/dev/null); do
+            echo "Linting: $file"
+            spectral lint "$file" --ruleset .spectral.yaml || exit_code=1
+          done
+          exit $exit_code
+
+  breaking:
+    name: Breaking Changes
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Install oasdiff
+        run: go install github.com/tufin/oasdiff@latest
+
+      - name: Check breaking changes
+        run: |
+          exit_code=0
+          for file in $(find . -path './feature/*/openapi/openapi.yaml' -o -path './framework/*/services/*/openapi/openapi.yaml' 2>/dev/null); do
+            echo "Checking breaking changes: $file"
+            # 比較対象ファイルを取得
+            base_file=$(mktemp)
+            relative_path="${file#./}"
+            if git show "origin/main:$relative_path" > "$base_file" 2>/dev/null; then
+              if ! oasdiff breaking "$base_file" "$file"; then
+                echo "::warning::Breaking changes detected in $file"
+              fi
+            else
+              echo "No base file found for $file, skipping breaking check"
+            fi
+            rm -f "$base_file"
+          done
+          # 警告のみ、失敗させない
+          exit 0
+
+  fingerprint:
+    name: Verify Fingerprint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify fingerprints
+        run: |
+          exit_code=0
+          for file in $(find . -path './feature/*/openapi/openapi.yaml' -o -path './framework/*/services/*/openapi/openapi.yaml' 2>/dev/null); do
+            dir=$(dirname "$file")
+            fingerprint_file="$dir/openapi.fingerprint"
+            if [ -f "$fingerprint_file" ]; then
+              expected=$(cat "$fingerprint_file")
+              actual=$(sha256sum "$file" | cut -d' ' -f1)
+              if [ "$expected" != "$actual" ]; then
+                echo "::error::Fingerprint mismatch for $file"
+                echo "  Expected: $expected"
+                echo "  Actual:   $actual"
+                exit_code=1
+              else
+                echo "Fingerprint verified: $file"
+              fi
+            fi
+          done
+          exit $exit_code

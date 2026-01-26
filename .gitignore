@@ -19,3 +19,12 @@ framework/backend/rust/services/config-service/target/*
 framework/backend/rust/services/endpoint-service/target/*
 framework/backend/rust/services/auth-service/target/*
 framework/backend/rust/crates/k1s0-auth/target/*
+
+# Generated code (contract -> code generation)
+**/openapi/gen/*
+**/proto/gen/*
+**/gen/*
+
+# Do NOT ignore fingerprint/hash files (these are tracked)
+!**/.k1s0-gen.sha256
+!**/openapi.fingerprint

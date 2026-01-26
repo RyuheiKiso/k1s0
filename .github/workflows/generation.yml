@@ -1,0 +1,138 @@
+name: generation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/proto/**'
+      - '**/openapi/**'
+      - '**/buf.yaml'
+      - '**/gen/.k1s0-gen.sha256'
+      - '**/*.fingerprint'
+      - '.github/workflows/generation.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/proto/**'
+      - '**/openapi/**'
+      - '**/buf.yaml'
+      - '**/gen/.k1s0-gen.sha256'
+      - '**/*.fingerprint'
+      - '.github/workflows/generation.yml'
+
+jobs:
+  verify-fingerprints:
+    name: Verify Fingerprints
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify proto fingerprints
+        run: |
+          exit_code=0
+
+          # Find all services with proto directories
+          for proto_dir in $(find . -type d -name "proto" -path "*/services/*" -o -type d -name "proto" -path "*/feature/*" 2>/dev/null); do
+            service_dir=$(dirname "$proto_dir")
+            fingerprint_file="$service_dir/gen/.k1s0-gen.sha256"
+
+            if [ ! -f "$fingerprint_file" ]; then
+              echo "::warning::No fingerprint file for $service_dir"
+              continue
+            fi
+
+            echo "Checking $service_dir..."
+
+            # Calculate current proto hash
+            current_hash=$(find "$proto_dir" -type f -name "*.proto" -exec sha256sum {} \; | sort | sha256sum | cut -d' ' -f1)
+
+            # Get expected hash from fingerprint file
+            expected_hash=$(grep "^proto_hash=" "$fingerprint_file" | cut -d'=' -f2)
+
+            if [ "$current_hash" != "$expected_hash" ]; then
+              echo "::error::Proto fingerprint mismatch for $service_dir"
+              echo "  Expected: $expected_hash"
+              echo "  Actual:   $current_hash"
+              exit_code=1
+            else
+              echo "Proto fingerprint verified for $service_dir"
+            fi
+          done
+
+          exit $exit_code
+
+      - name: Verify OpenAPI fingerprints
+        run: |
+          exit_code=0
+
+          # Find all OpenAPI files
+          for openapi_file in $(find . -name "openapi.yaml" -path "*/openapi/*" 2>/dev/null); do
+            dir=$(dirname "$openapi_file")
+            fingerprint_file="$dir/openapi.fingerprint"
+
+            if [ ! -f "$fingerprint_file" ]; then
+              echo "::warning::No fingerprint file for $openapi_file"
+              continue
+            fi
+
+            echo "Checking $openapi_file..."
+
+            expected=$(cat "$fingerprint_file")
+            actual=$(sha256sum "$openapi_file" | cut -d' ' -f1)
+
+            if [ "$expected" != "$actual" ]; then
+              echo "::error::OpenAPI fingerprint mismatch for $openapi_file"
+              echo "  Expected: $expected"
+              echo "  Actual:   $actual"
+              exit_code=1
+            else
+              echo "OpenAPI fingerprint verified for $openapi_file"
+            fi
+          done
+
+          exit $exit_code
+
+  check-generation-needed:
+    name: Check Generation Needed
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for contract changes without fingerprint updates
+        run: |
+          # Get changed files
+          changed_files=$(git diff --name-only origin/main...HEAD)
+
+          proto_changed=false
+          openapi_changed=false
+          fingerprint_updated=false
+
+          for file in $changed_files; do
+            case "$file" in
+              *.proto)
+                proto_changed=true
+                ;;
+              */openapi/openapi.yaml)
+                openapi_changed=true
+                ;;
+              */.k1s0-gen.sha256|*.fingerprint)
+                fingerprint_updated=true
+                ;;
+            esac
+          done
+
+          if [ "$proto_changed" = true ] || [ "$openapi_changed" = true ]; then
+            if [ "$fingerprint_updated" = false ]; then
+              echo "::warning::Contract files changed but fingerprint files not updated"
+              echo ""
+              echo "Changed contract files may require regeneration."
+              echo "Please run './scripts/gen-check.sh fingerprint' and commit the updated fingerprint files."
+            else
+              echo "Contract files and fingerprints both updated - OK"
+            fi
+          else
+            echo "No contract changes detected"
+          fi
