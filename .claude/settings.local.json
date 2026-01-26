@@ -12,7 +12,11 @@
       "Bash(./target/debug/k1s0 init:*)",
       "Bash(CLI/target/debug/k1s0.exe:*)",
       "Bash(echo:*)",
-      "Bash(buf lint:*)"
+      "Bash(buf lint:*)",
+      "Bash(tree:*)",
+      "Bash(done)",
+      "Bash(wc:*)",
+      "Bash(cargo tree:*)"
     ]
   }
 }
