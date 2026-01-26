@@ -41,12 +41,20 @@ mod application;
 mod code;
 mod context;
 mod domain;
+pub mod logging;
+pub mod metrics;
+pub mod middleware;
 mod presentation;
 
 pub use application::AppError;
 pub use code::ErrorCode;
 pub use context::ErrorContext;
 pub use domain::{DomainError, ErrorKind};
+pub use logging::{ErrorLog, GrpcErrorLog, HttpErrorLog, LogLevel, Loggable};
+pub use metrics::{ErrorCounter, ErrorMetricLabels, ErrorMetricNames, Measurable};
+pub use middleware::{
+    ContentType, ErrorMappingConfig, GrpcErrorResponse, GrpcMetadataKeys, HttpErrorResponse,
+};
 pub use presentation::{GrpcError, GrpcStatusCode, HttpError, ProblemDetails};
 
 /// エラー結果の型エイリアス（domain 層用）
