@@ -7,3 +7,4 @@ framework/frontend/react/packages/k1s0-navigation/dist/*
 framework/frontend/react/packages/k1s0-ui/node_modules/*
 framework/frontend/react/packages/k1s0-ui/dist/*
 framework/backend/rust/crates/k1s0-config/target/*
+framework/backend/rust/crates/k1s0-validation/target/*
