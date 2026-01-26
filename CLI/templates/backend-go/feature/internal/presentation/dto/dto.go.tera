@@ -1,0 +1,57 @@
+// Package dto contains data transfer objects
+package dto
+
+import (
+	"time"
+
+	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/domain/entities"
+)
+
+// {{ feature_name | pascal_case }}Response is the response DTO for {{ feature_name }}.
+type {{ feature_name | pascal_case }}Response struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Status    int       `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// Create{{ feature_name | pascal_case }}Request is the request DTO for creating {{ feature_name }}.
+type Create{{ feature_name | pascal_case }}Request struct {
+	Name string `json:"name" validate:"required"`
+}
+
+// Update{{ feature_name | pascal_case }}Request is the request DTO for updating {{ feature_name }}.
+type Update{{ feature_name | pascal_case }}Request struct {
+	Name   string `json:"name,omitempty"`
+	Status *int   `json:"status,omitempty"`
+}
+
+// List{{ feature_name | pascal_case }}Response is the response DTO for listing {{ feature_name }}s.
+type List{{ feature_name | pascal_case }}Response struct {
+	{{ feature_name | pascal_case }}s []*{{ feature_name | pascal_case }}Response `json:"{{ feature_name | snake_case }}s"`
+	NextPageToken string                    `json:"next_page_token,omitempty"`
+}
+
+// From{{ feature_name | pascal_case }} converts an entity to a response DTO.
+func From{{ feature_name | pascal_case }}(e *entities.{{ feature_name | pascal_case }}) *{{ feature_name | pascal_case }}Response {
+	return &{{ feature_name | pascal_case }}Response{
+		ID:        e.ID.String(),
+		Name:      e.Name,
+		Status:    e.Status,
+		CreatedAt: e.CreatedAt,
+		UpdatedAt: e.UpdatedAt,
+	}
+}
+
+// From{{ feature_name | pascal_case }}List converts a list of entities to response DTOs.
+func From{{ feature_name | pascal_case }}List(entities []*entities.{{ feature_name | pascal_case }}, nextToken string) *List{{ feature_name | pascal_case }}Response {
+	responses := make([]*{{ feature_name | pascal_case }}Response, len(entities))
+	for i, e := range entities {
+		responses[i] = From{{ feature_name | pascal_case }}(e)
+	}
+	return &List{{ feature_name | pascal_case }}Response{
+		{{ feature_name | pascal_case }}s: responses,
+		NextPageToken: nextToken,
+	}
+}

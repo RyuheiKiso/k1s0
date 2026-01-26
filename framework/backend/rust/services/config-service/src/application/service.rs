@@ -4,8 +4,23 @@
 
 use std::sync::Arc;
 
+use tokio::sync::broadcast;
+
 use crate::domain::{ConfigError, Setting, SettingList, SettingQuery, SettingRepository};
 use crate::infrastructure::cache::SettingCache;
+
+/// 設定変更イベント
+#[derive(Debug, Clone)]
+pub enum SettingChangeEvent {
+    /// 設定が更新された
+    Updated(Setting),
+    /// 設定が削除された
+    Deleted {
+        service_name: String,
+        env: String,
+        key: String,
+    },
+}
 
 /// 設定サービス
 pub struct ConfigService<R, C>
@@ -16,6 +31,8 @@ where
     repository: Arc<R>,
     cache: Arc<C>,
     default_env: String,
+    /// 設定変更通知チャネル
+    change_sender: broadcast::Sender<SettingChangeEvent>,
 }
 
 impl<R, C> ConfigService<R, C>
@@ -25,11 +42,59 @@ where
 {
     /// 新しいサービスを作成
     pub fn new(repository: Arc<R>, cache: Arc<C>, default_env: impl Into<String>) -> Self {
+        let (change_sender, _) = broadcast::channel(256);
         Self {
             repository,
             cache,
             default_env: default_env.into(),
+            change_sender,
         }
+    }
+
+    /// 設定変更を購読
+    pub fn subscribe(&self) -> broadcast::Receiver<SettingChangeEvent> {
+        self.change_sender.subscribe()
+    }
+
+    /// 設定を更新（変更通知付き）
+    pub async fn update_setting(&self, setting: &Setting) -> Result<(), ConfigError> {
+        // リポジトリに保存
+        self.repository.save(setting).await?;
+
+        // キャッシュを更新
+        let cache_key = format!("{}:{}:{}", setting.service_name, setting.env, setting.key);
+        let _ = self.cache.set(&cache_key, setting).await;
+
+        // 変更を通知
+        let _ = self.change_sender.send(SettingChangeEvent::Updated(setting.clone()));
+
+        Ok(())
+    }
+
+    /// 設定を削除（変更通知付き）
+    pub async fn delete_setting(
+        &self,
+        service_name: &str,
+        key: &str,
+        env: Option<&str>,
+    ) -> Result<(), ConfigError> {
+        let env = env.unwrap_or(&self.default_env);
+
+        // リポジトリから削除
+        self.repository.delete(service_name, key, env).await?;
+
+        // キャッシュから削除
+        let cache_key = format!("{}:{}:{}", service_name, env, key);
+        let _ = self.cache.delete(&cache_key).await;
+
+        // 変更を通知
+        let _ = self.change_sender.send(SettingChangeEvent::Deleted {
+            service_name: service_name.to_string(),
+            env: env.to_string(),
+            key: key.to_string(),
+        });
+
+        Ok(())
     }
 
     /// 設定を取得

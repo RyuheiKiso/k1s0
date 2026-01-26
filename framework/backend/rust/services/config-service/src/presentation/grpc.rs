@@ -4,10 +4,11 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use tokio_stream::Stream;
+use tokio_stream::wrappers::BroadcastStream;
+use tokio_stream::{Stream, StreamExt};
 use tonic::{Request, Response, Status};
 
-use crate::application::ConfigService;
+use crate::application::{ConfigService, SettingChangeEvent};
 use crate::domain::SettingRepository;
 use crate::infrastructure::cache::SettingCache;
 
@@ -18,7 +19,7 @@ pub mod config_v1 {
 
 use config_v1::config_service_server::ConfigService as ConfigServiceTrait;
 use config_v1::{
-    GetSettingRequest, GetSettingResponse, ListSettingsRequest, ListSettingsResponse,
+    ChangeType, GetSettingRequest, GetSettingResponse, ListSettingsRequest, ListSettingsResponse,
     Setting as ProtoSetting, WatchSettingsRequest, WatchSettingsResponse,
 };
 
@@ -134,13 +135,97 @@ where
 
     async fn watch_settings(
         &self,
-        _request: Request<WatchSettingsRequest>,
+        request: Request<WatchSettingsRequest>,
     ) -> Result<Response<Self::WatchSettingsStream>, Status> {
-        // WatchSettings is not implemented yet
-        // Return an error indicating this feature is not available
-        Err(Status::unimplemented(
-            "WatchSettings is not implemented yet",
-        ))
+        let req = request.into_inner();
+        let service_name_filter = if req.service_name.is_empty() {
+            None
+        } else {
+            Some(req.service_name)
+        };
+        let key_prefix_filter = if req.key_prefix.is_empty() {
+            None
+        } else {
+            Some(req.key_prefix)
+        };
+
+        // 変更通知チャネルを購読
+        let receiver = self.service.subscribe();
+
+        // BroadcastStreamに変換し、フィルタリングとマッピングを適用
+        let stream = BroadcastStream::new(receiver)
+            .filter_map(move |result| {
+                let service_filter = service_name_filter.clone();
+                let key_filter = key_prefix_filter.clone();
+
+                async move {
+                    match result {
+                        Ok(event) => {
+                            // イベントに応じてフィルタリング
+                            let (setting, change_type) = match &event {
+                                SettingChangeEvent::Updated(setting) => {
+                                    // サービス名フィルタ
+                                    if let Some(ref filter) = service_filter {
+                                        if &setting.service_name != filter {
+                                            return None;
+                                        }
+                                    }
+                                    // キープレフィックスフィルタ
+                                    if let Some(ref prefix) = key_filter {
+                                        if !setting.key.starts_with(prefix) {
+                                            return None;
+                                        }
+                                    }
+                                    (Some(setting_to_proto(setting.clone())), ChangeType::Updated)
+                                }
+                                SettingChangeEvent::Deleted {
+                                    service_name,
+                                    env,
+                                    key,
+                                } => {
+                                    // サービス名フィルタ
+                                    if let Some(ref filter) = service_filter {
+                                        if service_name != filter {
+                                            return None;
+                                        }
+                                    }
+                                    // キープレフィックスフィルタ
+                                    if let Some(ref prefix) = key_filter {
+                                        if !key.starts_with(prefix) {
+                                            return None;
+                                        }
+                                    }
+                                    // 削除イベント用の最小限のSetting
+                                    let deleted_setting = ProtoSetting {
+                                        setting_id: 0,
+                                        service_name: service_name.clone(),
+                                        env: env.clone(),
+                                        setting_key: key.clone(),
+                                        value_type: String::new(),
+                                        setting_value: String::new(),
+                                        description: String::new(),
+                                        status: 0,
+                                        created_at: String::new(),
+                                        updated_at: String::new(),
+                                    };
+                                    (Some(deleted_setting), ChangeType::Deleted)
+                                }
+                            };
+
+                            Some(Ok(WatchSettingsResponse {
+                                setting,
+                                change_type: change_type as i32,
+                            }))
+                        }
+                        Err(_) => {
+                            // ラグによるメッセージロストはスキップ
+                            None
+                        }
+                    }
+                }
+            });
+
+        Ok(Response::new(Box::pin(stream) as Self::WatchSettingsStream))
     }
 }
 

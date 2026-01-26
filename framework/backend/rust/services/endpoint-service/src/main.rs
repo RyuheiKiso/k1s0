@@ -3,10 +3,21 @@
 //! This service provides:
 //! - Endpoint information retrieval (Get/List)
 //! - Service name to endpoint resolution
+//!
+//! # 起動方法
+//!
+//! ```bash
+//! endpoint-service --env dev --port 50052
+//! ```
 
 use std::env;
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
+
+use tokio::signal;
+use tonic::transport::Server;
+use tracing::{info, warn};
 
 mod application;
 mod domain;
@@ -16,6 +27,8 @@ mod presentation;
 use application::EndpointService;
 use domain::{Endpoint, EndpointRepository};
 use infrastructure::InMemoryRepository;
+use presentation::grpc::endpoint_v1::endpoint_service_server::EndpointServiceServer;
+use presentation::grpc::GrpcEndpointService;
 
 /// サービス設定
 struct ServiceConfig {
@@ -24,6 +37,7 @@ struct ServiceConfig {
     secrets_dir: Option<PathBuf>,
     namespace: String,
     cluster_domain: String,
+    grpc_port: u16,
 }
 
 impl Default for ServiceConfig {
@@ -34,6 +48,7 @@ impl Default for ServiceConfig {
             secrets_dir: None,
             namespace: "default".to_string(),
             cluster_domain: "cluster.local".to_string(),
+            grpc_port: 50052,
         }
     }
 }
@@ -81,6 +96,15 @@ fn parse_args() -> ServiceConfig {
                     std::process::exit(1);
                 }
             }
+            "--port" | "-p" => {
+                if i + 1 < args.len() {
+                    config.grpc_port = args[i + 1].parse().unwrap_or(50052);
+                    i += 2;
+                } else {
+                    eprintln!("Error: --port requires a value");
+                    std::process::exit(1);
+                }
+            }
             "--help" | "-h" => {
                 println!("endpoint-service - k1s0 framework endpoint discovery service");
                 println!();
@@ -92,6 +116,7 @@ fn parse_args() -> ServiceConfig {
                 println!("    --config <PATH>       Path to config file");
                 println!("    --secrets-dir <PATH>  Path to secrets directory");
                 println!("    --namespace <NS>      Kubernetes namespace (default: default)");
+                println!("    -p, --port <PORT>     gRPC port (default: 50052)");
                 println!("    -h, --help            Print help information");
                 std::process::exit(0);
             }
@@ -112,6 +137,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("endpoint-service starting...");
     println!("  Environment: {}", config.env_name);
     println!("  Namespace: {}", config.namespace);
+    println!("  Port: {}", config.grpc_port);
     if let Some(ref path) = config.config_path {
         println!("  Config: {}", path.display());
     }
@@ -148,9 +174,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let resolved = service.resolve_endpoint("api-gateway", "http").await?;
     println!("  api-gateway (http) -> {}", resolved.address);
 
-    // TODO: gRPC サーバーの起動
-    println!("\nendpoint-service initialized successfully.");
-    println!("gRPC server implementation pending...");
+    // gRPC サービスの作成
+    let grpc_service = GrpcEndpointService::new(Arc::new(service));
 
+    // gRPC サーバーの起動
+    let addr: SocketAddr = format!("0.0.0.0:{}", config.grpc_port).parse()?;
+    println!("\nStarting gRPC server on {}", addr);
+
+    Server::builder()
+        .add_service(EndpointServiceServer::new(grpc_service))
+        .serve_with_shutdown(addr, shutdown_signal())
+        .await?;
+
+    println!("endpoint-service shutdown complete.");
     Ok(())
+}
+
+/// グレースフルシャットダウンシグナルを待機
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            println!("\nReceived Ctrl+C, shutting down...");
+        }
+        _ = terminate => {
+            println!("\nReceived SIGTERM, shutting down...");
+        }
+    }
 }

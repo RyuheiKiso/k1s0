@@ -1,6 +1,30 @@
 //! トレーシング
 //!
 //! OpenTelemetry トレーシングの初期化と基本操作を提供する。
+//!
+//! # 機能
+//!
+//! - OpenTelemetry SDK の初期化
+//! - OTLP エクスポーターによるトレース送信
+//! - サンプリング設定
+//! - リソース属性の設定
+//!
+//! # 使用例
+//!
+//! ```ignore
+//! use k1s0_observability::{ObservabilityConfig, tracing::init_tracing};
+//!
+//! let config = ObservabilityConfig::builder()
+//!     .service_name("my-service")
+//!     .env("dev")
+//!     .otel_endpoint("http://localhost:4317")
+//!     .sampling_rate(1.0)
+//!     .build()
+//!     .unwrap();
+//!
+//! // トレーシング初期化
+//! let _guard = init_tracing(&config).expect("failed to init tracing");
+//! ```
 
 use crate::config::ObservabilityConfig;
 use crate::context::RequestContext;
@@ -307,4 +331,284 @@ mod tests {
         assert_eq!(span.kind, SpanKind::Server);
         assert_eq!(span.context.trace_id(), ctx.trace_id());
     }
+}
+
+// ============================================================================
+// OpenTelemetry OTLP 初期化
+// ============================================================================
+
+/// トレーシング初期化ガード
+///
+/// ドロップ時に OpenTelemetry のシャットダウンを行う。
+#[cfg(feature = "otel")]
+pub struct TracingGuard {
+    _private: (),
+}
+
+#[cfg(feature = "otel")]
+impl TracingGuard {
+    fn new() -> Self {
+        Self { _private: () }
+    }
+}
+
+#[cfg(feature = "otel")]
+impl Drop for TracingGuard {
+    fn drop(&mut self) {
+        opentelemetry::global::shutdown_tracer_provider();
+    }
+}
+
+/// トレーシングエラー
+#[derive(Debug, thiserror::Error)]
+pub enum TracingError {
+    /// OTLP エクスポーターの設定に失敗
+    #[error("failed to configure OTLP exporter: {0}")]
+    OtlpConfigFailed(String),
+
+    /// トレーサープロバイダーの設定に失敗
+    #[error("failed to configure tracer provider: {0}")]
+    ProviderConfigFailed(String),
+
+    /// subscriber の設定に失敗
+    #[error("failed to set subscriber: {0}")]
+    SubscriberFailed(String),
+}
+
+/// OpenTelemetry トレーシングを初期化
+///
+/// OTLP エクスポーターを使用してトレースを送信する。
+///
+/// # 引数
+///
+/// * `config` - ObservabilityConfig
+///
+/// # 戻り値
+///
+/// * `Ok(TracingGuard)` - 初期化成功
+/// * `Err(TracingError)` - 初期化失敗
+///
+/// # 機能フラグ
+///
+/// この関数は `otel` feature が有効な場合のみ利用可能。
+///
+/// ```toml
+/// [dependencies]
+/// k1s0-observability = { version = "0.1", features = ["otel"] }
+/// ```
+#[cfg(feature = "otel")]
+pub fn init_tracing(config: &ObservabilityConfig) -> Result<TracingGuard, TracingError> {
+    use opentelemetry::trace::TracerProvider;
+    use opentelemetry_sdk::{
+        trace::{RandomIdGenerator, Sampler, TracerProvider as SdkTracerProvider},
+        Resource,
+    };
+    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+    let tracer_config = TracerConfig::from_config(config);
+
+    // リソース属性の設定
+    let resource = create_resource(&tracer_config);
+
+    // サンプラーの設定
+    let sampler = create_sampler(tracer_config.sampling_rate);
+
+    // OTLP エクスポーターの設定
+    let exporter = create_otlp_exporter(&tracer_config)?;
+
+    // TracerProvider の構築
+    let provider = SdkTracerProvider::builder()
+        .with_batch_exporter(exporter)
+        .with_sampler(sampler)
+        .with_id_generator(RandomIdGenerator::default())
+        .with_resource(resource)
+        .build();
+
+    let tracer = provider.tracer(tracer_config.service_name.clone());
+
+    // グローバルプロバイダーとして設定
+    opentelemetry::global::set_tracer_provider(provider);
+
+    // tracing-opentelemetry レイヤーの設定
+    let telemetry_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+
+    tracing_subscriber::registry()
+        .with(telemetry_layer)
+        .try_init()
+        .map_err(|e| TracingError::SubscriberFailed(e.to_string()))?;
+
+    Ok(TracingGuard::new())
+}
+
+/// リソースを作成
+#[cfg(feature = "otel")]
+fn create_resource(config: &TracerConfig) -> opentelemetry_sdk::Resource {
+    use opentelemetry::KeyValue;
+
+    let mut attrs = vec![
+        KeyValue::new("service.name", config.service_name.clone()),
+        KeyValue::new("deployment.environment", config.env.clone()),
+    ];
+
+    if let Some(ref version) = config.version {
+        attrs.push(KeyValue::new("service.version", version.clone()));
+    }
+
+    opentelemetry_sdk::Resource::builder()
+        .with_attributes(attrs)
+        .build()
+}
+
+/// サンプラーを作成
+#[cfg(feature = "otel")]
+fn create_sampler(sampling_rate: f64) -> opentelemetry_sdk::trace::Sampler {
+    use opentelemetry_sdk::trace::Sampler;
+
+    if sampling_rate >= 1.0 {
+        Sampler::AlwaysOn
+    } else if sampling_rate <= 0.0 {
+        Sampler::AlwaysOff
+    } else {
+        Sampler::TraceIdRatioBased(sampling_rate)
+    }
+}
+
+/// OTLP エクスポーターを作成
+#[cfg(feature = "otel")]
+fn create_otlp_exporter(
+    config: &TracerConfig,
+) -> Result<opentelemetry_otlp::SpanExporter, TracingError> {
+    use opentelemetry_otlp::WithExportConfig;
+
+    let endpoint = config
+        .endpoint
+        .clone()
+        .unwrap_or_else(|| "http://localhost:4317".to_string());
+
+    opentelemetry_otlp::SpanExporter::builder()
+        .with_tonic()
+        .with_endpoint(endpoint)
+        .build()
+        .map_err(|e| TracingError::OtlpConfigFailed(e.to_string()))
+}
+
+/// ロギングと統合したトレーシングを初期化
+///
+/// tracing-subscriber の JSON レイヤーと OpenTelemetry レイヤーを
+/// 両方設定する。
+#[cfg(feature = "otel")]
+pub fn init_tracing_with_logging(
+    config: &ObservabilityConfig,
+) -> Result<TracingGuard, TracingError> {
+    use opentelemetry::trace::TracerProvider;
+    use opentelemetry_sdk::{
+        trace::{RandomIdGenerator, TracerProvider as SdkTracerProvider},
+        Resource,
+    };
+    use tracing_subscriber::{
+        fmt::{self, format::JsonFields, time::UtcTime},
+        layer::SubscriberExt,
+        util::SubscriberInitExt,
+        EnvFilter,
+    };
+
+    let tracer_config = TracerConfig::from_config(config);
+
+    // リソース属性の設定
+    let resource = create_resource(&tracer_config);
+
+    // サンプラーの設定
+    let sampler = create_sampler(tracer_config.sampling_rate);
+
+    // OTLP エクスポーターの設定
+    let exporter = create_otlp_exporter(&tracer_config)?;
+
+    // TracerProvider の構築
+    let provider = SdkTracerProvider::builder()
+        .with_batch_exporter(exporter)
+        .with_sampler(sampler)
+        .with_id_generator(RandomIdGenerator::default())
+        .with_resource(resource)
+        .build();
+
+    let tracer = provider.tracer(tracer_config.service_name.clone());
+
+    // グローバルプロバイダーとして設定
+    opentelemetry::global::set_tracer_provider(provider);
+
+    // tracing-opentelemetry レイヤー
+    let telemetry_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+
+    // JSON ロギングレイヤー
+    let json_layer = fmt::layer()
+        .json()
+        .with_timer(UtcTime::new(
+            "[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond digits:3]Z",
+        ))
+        .with_current_span(true)
+        .with_span_list(false)
+        .with_target(true)
+        .flatten_event(true);
+
+    // 環境フィルター
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new(config.log_level()));
+
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(json_layer)
+        .with(telemetry_layer)
+        .try_init()
+        .map_err(|e| TracingError::SubscriberFailed(e.to_string()))?;
+
+    Ok(TracingGuard::new())
+}
+
+/// トレーサー（OTel 統合なし）
+///
+/// otel feature が無効な場合でも使用可能なスタブ実装。
+#[cfg(not(feature = "otel"))]
+pub struct TracingGuard {
+    _private: (),
+}
+
+#[cfg(not(feature = "otel"))]
+impl TracingGuard {
+    fn new() -> Self {
+        Self { _private: () }
+    }
+}
+
+/// トレーシングを初期化（OTel 統合なし）
+///
+/// otel feature が無効な場合は、tracing のみ設定する。
+#[cfg(not(feature = "otel"))]
+pub fn init_tracing(config: &ObservabilityConfig) -> Result<TracingGuard, TracingError> {
+    use tracing_subscriber::{
+        fmt::{self, time::UtcTime},
+        layer::SubscriberExt,
+        util::SubscriberInitExt,
+        EnvFilter,
+    };
+
+    let json_layer = fmt::layer()
+        .json()
+        .with_timer(UtcTime::new(
+            "[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond digits:3]Z",
+        ))
+        .with_current_span(true)
+        .with_span_list(false)
+        .with_target(true)
+        .flatten_event(true);
+
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new(config.log_level()));
+
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(json_layer)
+        .try_init()
+        .map_err(|e| TracingError::SubscriberFailed(e.to_string()))?;
+
+    Ok(TracingGuard::new())
 }

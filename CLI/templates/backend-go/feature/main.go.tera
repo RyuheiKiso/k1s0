@@ -1,0 +1,88 @@
+// {{ feature_name }} - k1s0 generated Go service
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/application"
+	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/infrastructure"
+	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/presentation/grpc"
+
+	"google.golang.org/grpc"
+)
+
+func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Load configuration
+	config, err := loadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	// Initialize infrastructure
+	repo := infrastructure.NewInMemoryRepository()
+
+	// Initialize application service
+	service := application.NewService(repo)
+
+	// Initialize gRPC server
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(loggingInterceptor))
+	grpc.RegisterService(grpcServer, service)
+
+	// Start server
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", config.GRPCPort))
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+
+	log.Printf("{{ feature_name }} starting on port %d", config.GRPCPort)
+
+	// Graceful shutdown
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+		<-sigCh
+		log.Println("Shutting down...")
+		grpcServer.GracefulStop()
+		cancel()
+	}()
+
+	if err := grpcServer.Serve(listener); err != nil {
+		log.Fatalf("Failed to serve: %v", err)
+	}
+}
+
+func loggingInterceptor(
+	ctx context.Context,
+	req interface{},
+	info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler,
+) (interface{}, error) {
+	log.Printf("gRPC call: %s", info.FullMethod)
+	return handler(ctx, req)
+}
+
+type Config struct {
+	Env      string
+	GRPCPort int
+}
+
+func loadConfig() (*Config, error) {
+	port := 50051
+	if p := os.Getenv("GRPC_PORT"); p != "" {
+		fmt.Sscanf(p, "%d", &port)
+	}
+
+	return &Config{
+		Env:      os.Getenv("ENV"),
+		GRPCPort: port,
+	}, nil
+}

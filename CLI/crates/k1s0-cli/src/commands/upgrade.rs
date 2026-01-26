@@ -14,10 +14,10 @@
 //! - 衝突時は手動解決を促して停止
 //! - manifest.json を更新
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap::Args;
-use k1s0_generator::upgrade::{apply_upgrade, check_upgrade, VersionChange};
+use k1s0_generator::upgrade::{apply_migrations, apply_upgrade, check_upgrade, list_pending_migrations, VersionChange};
 
 use crate::error::{CliError, Result};
 use crate::output::output;
@@ -198,11 +198,94 @@ pub fn execute(args: UpgradeArgs) -> Result<()> {
         out.newline();
     }
 
-    // マイグレーション適用（将来実装）
+    // マイグレーション適用
     if args.apply_migrations {
-        out.warning("--apply-migrations は現在実装されていません。");
-        out.hint("手動で DB マイグレーションを実行してください。");
+        out.newline();
+        out.header("DB マイグレーション");
+        out.newline();
+
+        // 環境を検出（dev のみ許可）
+        let env = detect_environment(&service_path);
+
+        if env != "dev" && env != "development" && env != "local" {
+            out.warning(&format!(
+                "自動マイグレーションは dev 環境でのみ実行可能です（現在: {}）",
+                env
+            ));
+            out.hint("開発環境で実行するか、手動でマイグレーションを適用してください。");
+        } else {
+            // 保留中のマイグレーションを一覧表示
+            match list_pending_migrations(&service_path) {
+                Ok(pending) => {
+                    if pending.is_empty() {
+                        out.success("保留中のマイグレーションはありません。");
+                    } else {
+                        out.info(&format!("保留中のマイグレーション: {} 件", pending.len()));
+                        for migration in &pending {
+                            out.list_item("  -", &migration.name);
+                        }
+                        out.newline();
+
+                        // マイグレーションを適用
+                        match apply_migrations(&service_path, &env, false) {
+                            Ok(result) => {
+                                if result.is_success() {
+                                    out.success(&format!("マイグレーション完了: {}", result.summary()));
+                                    if !result.applied.is_empty() {
+                                        out.header("適用したマイグレーション:");
+                                        for name in &result.applied {
+                                            out.list_item("  ✓", name);
+                                        }
+                                    }
+                                } else {
+                                    out.warning(&format!("一部のマイグレーションが失敗しました: {}", result.summary()));
+                                    for (name, error) in &result.failed {
+                                        out.warning(&format!("  ✗ {}: {}", name, error));
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                out.warning(&format!("マイグレーション実行エラー: {}", e));
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    out.warning(&format!("マイグレーションファイルの取得に失敗: {}", e));
+                }
+            }
+        }
     }
 
     Ok(())
+}
+
+/// 環境を検出する
+fn detect_environment(service_path: &Path) -> String {
+    // 環境変数から取得
+    if let Ok(env) = std::env::var("K1S0_ENV") {
+        return env;
+    }
+    if let Ok(env) = std::env::var("ENV") {
+        return env;
+    }
+    if let Ok(env) = std::env::var("APP_ENV") {
+        return env;
+    }
+
+    // manifest.json から取得を試みる
+    let manifest_path = service_path.join(".k1s0/manifest.json");
+    if let Ok(content) = std::fs::read_to_string(&manifest_path) {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(env) = json.get("settings")
+                .and_then(|s| s.get("env"))
+                .and_then(|e| e.as_str())
+            {
+                return env.to_string();
+            }
+        }
+    }
+
+    // デフォルトは dev
+    "dev".to_string()
 }

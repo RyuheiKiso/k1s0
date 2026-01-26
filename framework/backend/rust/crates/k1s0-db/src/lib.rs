@@ -45,7 +45,14 @@ pub mod config;
 pub mod error;
 pub mod metrics;
 pub mod migration;
+pub mod pool;
 pub mod tx;
+
+#[cfg(feature = "postgres")]
+pub mod postgres;
+
+#[cfg(feature = "postgres")]
+pub mod uow;
 
 // 主要な型の再エクスポート
 pub use config::{
@@ -60,7 +67,15 @@ pub use migration::{
     AppliedMigration, Migration, MigrationConfig, MigrationDirection, MigrationResult,
     MigrationRunner, load_migrations,
 };
+pub use pool::{DbPoolBuilder, from_env, from_env_with_prefix};
 pub use tx::{
     IsolationLevel, TransactionExecutor, TransactionMode, TransactionOptions, TransactionState,
     UnitOfWork,
 };
+
+// PostgreSQL 固有の型
+#[cfg(feature = "postgres")]
+pub use postgres::{PgPool, PostgresPool, PoolStatus, create_pool, create_pool_from_url};
+
+#[cfg(feature = "postgres")]
+pub use uow::{PostgresUnitOfWork, UnitOfWorkFactory, execute_in_transaction, execute_with_retry};

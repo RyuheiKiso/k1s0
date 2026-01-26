@@ -1,0 +1,15 @@
+# {{ feature_name }} Staging Configuration
+
+database:
+  host: ${DB_HOST}
+  port: ${DB_PORT}
+  name: {{ feature_name | snake_case }}_stg
+  sslmode: require
+
+logging:
+  level: info
+  format: json
+
+tracing:
+  enabled: true
+  endpoint: ${OTEL_ENDPOINT}

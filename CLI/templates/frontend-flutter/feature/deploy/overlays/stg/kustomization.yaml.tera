@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: {{ namespace | default(value="k1s0-stg") }}
+
+resources:
+  - ../../base
+
+replicas:
+  - name: {{ feature_name | kebab_case }}
+    count: 2
+
+configMapGenerator:
+  - name: {{ feature_name | kebab_case }}-config
+    behavior: merge
+    literals:
+      - FLUTTER_ENV=stg
+      - API_BASE_URL={{ api_base_url_stg | default(value="https://api-stg.example.com") }}

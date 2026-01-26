@@ -4,10 +4,21 @@
 //! - User authentication (login, token issuance)
 //! - Permission checking (CheckPermission)
 //! - Role management
+//!
+//! # 起動方法
+//!
+//! ```bash
+//! auth-service --env dev --port 50051
+//! ```
 
 use std::env;
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
+
+use tokio::signal;
+use tonic::transport::Server;
+use tracing::{info, warn};
 
 mod application;
 mod domain;
@@ -20,6 +31,8 @@ use infrastructure::{
     InMemoryPermissionRepository, InMemoryRoleRepository, InMemoryTokenRepository,
     InMemoryUserRepository,
 };
+use presentation::grpc::auth_v1::auth_service_server::AuthServiceServer;
+use presentation::grpc::GrpcAuthService;
 
 /// サービス設定
 struct ServiceConfig {
@@ -28,6 +41,8 @@ struct ServiceConfig {
     secrets_dir: Option<PathBuf>,
     jwt_secret: String,
     issuer: String,
+    grpc_port: u16,
+    rest_port: Option<u16>,
 }
 
 impl Default for ServiceConfig {
@@ -38,6 +53,8 @@ impl Default for ServiceConfig {
             secrets_dir: None,
             jwt_secret: "dev-secret-change-in-production".to_string(),
             issuer: "k1s0-auth".to_string(),
+            grpc_port: 50051,
+            rest_port: None,
         }
     }
 }
@@ -76,6 +93,24 @@ fn parse_args() -> ServiceConfig {
                     std::process::exit(1);
                 }
             }
+            "--port" | "-p" => {
+                if i + 1 < args.len() {
+                    config.grpc_port = args[i + 1].parse().unwrap_or(50051);
+                    i += 2;
+                } else {
+                    eprintln!("Error: --port requires a value");
+                    std::process::exit(1);
+                }
+            }
+            "--rest-port" => {
+                if i + 1 < args.len() {
+                    config.rest_port = Some(args[i + 1].parse().unwrap_or(8080));
+                    i += 2;
+                } else {
+                    eprintln!("Error: --rest-port requires a value");
+                    std::process::exit(1);
+                }
+            }
             "--help" | "-h" => {
                 println!("auth-service - k1s0 framework authentication service");
                 println!();
@@ -86,6 +121,8 @@ fn parse_args() -> ServiceConfig {
                 println!("    --env <ENV>           Environment name (default: dev)");
                 println!("    --config <PATH>       Path to config file");
                 println!("    --secrets-dir <PATH>  Path to secrets directory");
+                println!("    -p, --port <PORT>     gRPC port (default: 50051)");
+                println!("    --rest-port <PORT>    REST API port (optional)");
                 println!("    -h, --help            Print help information");
                 std::process::exit(0);
             }
@@ -184,9 +221,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let has_admin = service.check_permission(2, "admin:all", None).await?;
     println!("  testuser has 'admin:all': {}", has_admin);
 
-    // TODO: gRPC サーバーの起動
-    println!("\nauth-service initialized successfully.");
-    println!("gRPC server implementation pending...");
+    // gRPC サービスの作成
+    let grpc_service = GrpcAuthService::new(Arc::new(service));
 
+    // gRPC サーバーの起動
+    let addr: SocketAddr = format!("0.0.0.0:{}", config.grpc_port).parse()?;
+    println!("\nStarting gRPC server on {}", addr);
+
+    Server::builder()
+        .add_service(AuthServiceServer::new(grpc_service))
+        .serve_with_shutdown(addr, shutdown_signal())
+        .await?;
+
+    println!("auth-service shutdown complete.");
     Ok(())
+}
+
+/// グレースフルシャットダウンシグナルを待機
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            println!("\nReceived Ctrl+C, shutting down...");
+        }
+        _ = terminate => {
+            println!("\nReceived SIGTERM, shutting down...");
+        }
+    }
 }

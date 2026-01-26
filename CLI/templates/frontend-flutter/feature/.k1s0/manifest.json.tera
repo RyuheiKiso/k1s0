@@ -1,0 +1,35 @@
+{
+  "name": "{{ feature_name }}",
+  "version": "{{ version | default(value="0.1.0") }}",
+  "description": "{{ feature_description | default(value="k1s0 generated Flutter frontend") }}",
+  "template": {
+    "name": "frontend-flutter",
+    "version": "{{ template_version | default(value="1.0.0") }}",
+    "path": "CLI/templates/frontend-flutter/feature",
+    "fingerprint": "{{ fingerprint | default(value="") }}"
+  },
+  "created_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
+  "generated_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
+  "dependencies": {
+    "flutter": ">=3.0.0",
+    "provider": "^6.1.1",
+    "go_router": "^13.0.0",
+    "dio": "^5.4.0"
+  },
+  "settings": {
+    "env": "{{ env | default(value="dev") }}",
+    "api_base_url": "{{ api_base_url | default(value="http://localhost:8080") }}",
+    "platforms": ["android", "ios", "web"]
+  },
+  "managed_paths": [
+    "deploy/",
+    "config/"
+  ],
+  "protected_paths": [
+    "lib/src/domain/",
+    "lib/src/application/",
+    "lib/src/infrastructure/",
+    "lib/src/presentation/"
+  ],
+  "checksums": {}
+}

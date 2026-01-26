@@ -1,0 +1,59 @@
+# {{ feature_name | title_case }}
+
+{{ feature_description | default(value="k1s0 generated Go service") }}
+
+## 概要
+
+このサービスは k1s0 フレームワークによって生成されました。
+
+## ディレクトリ構造
+
+```
+{{ feature_name }}/
+├── cmd/
+│   └── main.go          # エントリーポイント
+├── internal/
+│   ├── domain/          # ドメイン層
+│   │   ├── entities/    # エンティティ
+│   │   ├── value_objects/ # 値オブジェクト
+│   │   ├── errors/      # ドメインエラー
+│   │   └── ports/       # ポート（インターフェース）
+│   ├── application/     # アプリケーション層
+│   │   ├── usecases/    # ユースケース
+│   │   └── services/    # アプリケーションサービス
+│   ├── infrastructure/  # インフラストラクチャ層
+│   │   └── repositories/ # リポジトリ実装
+│   └── presentation/    # プレゼンテーション層
+│       ├── grpc/        # gRPCハンドラ
+│       └── dto/         # データ転送オブジェクト
+├── config/              # 設定ファイル
+├── deploy/              # Kubernetesマニフェスト
+├── proto/               # Protocol Buffers定義
+├── openapi/             # OpenAPI定義
+└── migrations/          # DBマイグレーション
+```
+
+## 起動方法
+
+```bash
+# 開発環境
+go run main.go
+
+# ビルド
+go build -o {{ feature_name | snake_case }}
+./{{ feature_name | snake_case }}
+```
+
+## 設定
+
+環境変数で設定を上書きできます:
+
+| 変数名 | 説明 | デフォルト |
+|--------|------|-----------|
+| `ENV` | 環境名 | `dev` |
+| `GRPC_PORT` | gRPCポート | `50051` |
+| `DATABASE_URL` | DB接続文字列 | - |
+
+## ライセンス
+
+MIT

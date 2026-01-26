@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: {{ namespace | default(value="k1s0-prod") }}
+
+resources:
+  - ../../base
+
+replicas:
+  - name: {{ feature_name | kebab_case }}
+    count: 3
+
+configMapGenerator:
+  - name: {{ feature_name | kebab_case }}-config
+    behavior: merge
+    literals:
+      - VITE_ENV=prod
+      - VITE_API_BASE_URL={{ api_base_url_prod | default(value="https://api.example.com") }}

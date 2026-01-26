@@ -1,0 +1,306 @@
+openapi: 3.0.3
+info:
+  title: Config Service API
+  description: k1s0 framework dynamic configuration service
+  version: 1.0.0
+  contact:
+    name: k1s0 Team
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /v1/settings:
+    get:
+      summary: List settings
+      description: Get list of settings with optional filters
+      operationId: listSettings
+      tags:
+        - Settings
+      parameters:
+        - name: service_name
+          in: query
+          schema:
+            type: string
+          description: Filter by service name
+        - name: key_prefix
+          in: query
+          schema:
+            type: string
+          description: Filter by key prefix
+        - name: env
+          in: query
+          schema:
+            type: string
+          description: Filter by environment
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            format: int32
+            default: 100
+            maximum: 1000
+          description: Number of items per page
+        - name: page_token
+          in: query
+          schema:
+            type: string
+          description: Token for pagination
+      responses:
+        '200':
+          description: List of settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingListResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/settings/{serviceName}/{key}:
+    get:
+      summary: Get setting
+      description: Get a single setting by service name and key
+      operationId: getSetting
+      tags:
+        - Settings
+      parameters:
+        - name: serviceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: env
+          in: query
+          schema:
+            type: string
+          description: Environment (defaults to current environment)
+      responses:
+        '200':
+          description: Setting found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingResponse'
+        '404':
+          description: Setting not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update setting
+      description: Update an existing setting
+      operationId: updateSetting
+      tags:
+        - Settings
+      parameters:
+        - name: serviceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: env
+          in: query
+          schema:
+            type: string
+          description: Environment (defaults to current environment)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSettingRequest'
+      responses:
+        '200':
+          description: Setting updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingResponse'
+        '404':
+          description: Setting not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete setting
+      description: Delete a setting
+      operationId: deleteSetting
+      tags:
+        - Settings
+      parameters:
+        - name: serviceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: env
+          in: query
+          schema:
+            type: string
+          description: Environment (defaults to current environment)
+      responses:
+        '204':
+          description: Setting deleted
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/settings/{serviceName}/{key}/refresh:
+    post:
+      summary: Refresh setting
+      description: Invalidate cache and reload setting from repository
+      operationId: refreshSetting
+      tags:
+        - Settings
+      parameters:
+        - name: serviceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: env
+          in: query
+          schema:
+            type: string
+          description: Environment (defaults to current environment)
+      responses:
+        '200':
+          description: Setting refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingResponse'
+        '404':
+          description: Setting not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check service health
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+components:
+  schemas:
+    SettingResponse:
+      type: object
+      properties:
+        setting_id:
+          type: integer
+          format: int64
+        service_name:
+          type: string
+        env:
+          type: string
+        key:
+          type: string
+        value:
+          type: string
+        value_type:
+          type: string
+          enum:
+            - string
+            - int
+            - bool
+            - json
+        description:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+
+    SettingListResponse:
+      type: object
+      properties:
+        settings:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettingResponse'
+        next_page_token:
+          type: string
+          nullable: true
+
+    UpdateSettingRequest:
+      type: object
+      required:
+        - value
+      properties:
+        value:
+          type: string
+          description: New setting value
+        value_type:
+          type: string
+          description: Optional value type
+        description:
+          type: string
+          description: Optional description
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Error message
+
+tags:
+  - name: Settings
+    description: Configuration settings operations
+  - name: Health
+    description: Health check operations

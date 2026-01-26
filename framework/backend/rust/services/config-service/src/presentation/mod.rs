@@ -1,7 +1,9 @@
 //! プレゼンテーション層
 //!
-//! gRPC サービスの実装を定義する。
+//! gRPC/REST サービスの実装を定義する。
 
 pub mod grpc;
+pub mod rest;
 
 pub use grpc::*;
+pub use rest::create_router;

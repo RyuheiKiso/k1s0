@@ -1,10 +1,42 @@
 //! ロギング
 //!
-//! 構造化ログの初期化と出力を提供する。
+//! tracing-subscriber を使用した構造化ログの初期化と出力を提供する。
+//!
+//! # 機能
+//!
+//! - tracing-subscriber による統一的なログ初期化
+//! - JSON フォーマットでの構造化ログ出力
+//! - 環境変数によるフィルタリング（RUST_LOG）
+//! - サービス情報の自動付与
+//!
+//! # 使用例
+//!
+//! ```ignore
+//! use k1s0_observability::{ObservabilityConfig, logging::init_logging};
+//!
+//! let config = ObservabilityConfig::builder()
+//!     .service_name("my-service")
+//!     .env("dev")
+//!     .build()
+//!     .unwrap();
+//!
+//! // ロギング初期化
+//! let _guard = init_logging(&config).expect("failed to init logging");
+//!
+//! // tracing マクロでログ出力
+//! tracing::info!(user_id = 123, "user logged in");
+//! ```
 
 use crate::config::ObservabilityConfig;
 use crate::context::RequestContext;
 use crate::log_fields::{LogEntry, LogLevel};
+use std::io;
+use tracing_subscriber::{
+    fmt::{self, format::JsonFields, time::UtcTime},
+    layer::SubscriberExt,
+    util::SubscriberInitExt,
+    EnvFilter,
+};
 
 /// ロガー
 ///
@@ -282,5 +314,340 @@ mod tests {
         assert!(json.contains("\"grpc.service\":\"UserService\""));
         assert!(json.contains("\"grpc.method\":\"GetUser\""));
         assert!(json.contains("\"grpc.status_code\":0"));
+    }
+}
+
+// ============================================================================
+// tracing-subscriber 統合
+// ============================================================================
+
+/// ロギング初期化の結果を保持するガード
+///
+/// このガードがドロップされると、ロギングシステムがシャットダウンされる。
+/// アプリケーションのライフタイム中は保持し続ける必要がある。
+pub struct LoggingGuard {
+    _private: (),
+}
+
+impl LoggingGuard {
+    fn new() -> Self {
+        Self { _private: () }
+    }
+}
+
+/// ロギングを初期化
+///
+/// tracing-subscriber を使用して、JSON 形式の構造化ログを設定する。
+///
+/// # 引数
+///
+/// * `config` - ObservabilityConfig
+///
+/// # 戻り値
+///
+/// * `Ok(LoggingGuard)` - 初期化成功
+/// * `Err` - 初期化失敗
+///
+/// # 例
+///
+/// ```ignore
+/// let config = ObservabilityConfig::builder()
+///     .service_name("my-service")
+///     .env("dev")
+///     .build()
+///     .unwrap();
+///
+/// let _guard = init_logging(&config)?;
+/// tracing::info!("application started");
+/// ```
+pub fn init_logging(config: &ObservabilityConfig) -> Result<LoggingGuard, LoggingError> {
+    let filter = create_env_filter(config)?;
+    let json_layer = create_json_layer(config);
+
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(json_layer)
+        .try_init()
+        .map_err(|e| LoggingError::InitFailed(e.to_string()))?;
+
+    Ok(LoggingGuard::new())
+}
+
+/// カスタムライターでロギングを初期化
+///
+/// テストやカスタム出力先が必要な場合に使用する。
+///
+/// # 引数
+///
+/// * `config` - ObservabilityConfig
+/// * `writer` - 出力先ライター
+pub fn init_logging_with_writer<W>(
+    config: &ObservabilityConfig,
+    writer: W,
+) -> Result<LoggingGuard, LoggingError>
+where
+    W: for<'writer> fmt::MakeWriter<'writer> + Send + Sync + 'static,
+{
+    let filter = create_env_filter(config)?;
+    let json_layer = create_json_layer_with_writer(config, writer);
+
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(json_layer)
+        .try_init()
+        .map_err(|e| LoggingError::InitFailed(e.to_string()))?;
+
+    Ok(LoggingGuard::new())
+}
+
+/// 環境フィルタを作成
+fn create_env_filter(config: &ObservabilityConfig) -> Result<EnvFilter, LoggingError> {
+    // RUST_LOG 環境変数があればそれを使用、なければ config から
+    let default_filter = match config.log_level().to_uppercase().as_str() {
+        "TRACE" => "trace",
+        "DEBUG" => "debug",
+        "WARN" => "warn",
+        "ERROR" => "error",
+        _ => "info",
+    };
+
+    EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new(default_filter))
+        .map_err(|e| LoggingError::FilterParseFailed(e.to_string()))
+}
+
+/// JSON レイヤーを作成（標準出力）
+fn create_json_layer<S>(
+    config: &ObservabilityConfig,
+) -> fmt::Layer<S, JsonFields, fmt::format::Format<fmt::format::Json, UtcTime<&'static str>>>
+where
+    S: tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
+{
+    fmt::layer()
+        .json()
+        .with_timer(UtcTime::new(time_format_description()))
+        .with_current_span(true)
+        .with_span_list(false)
+        .with_target(true)
+        .with_thread_ids(false)
+        .with_thread_names(false)
+        .with_file(false)
+        .with_line_number(false)
+        .flatten_event(true)
+}
+
+/// JSON レイヤーを作成（カスタムライター）
+fn create_json_layer_with_writer<S, W>(
+    config: &ObservabilityConfig,
+    writer: W,
+) -> fmt::Layer<S, JsonFields, fmt::format::Format<fmt::format::Json, UtcTime<&'static str>>, W>
+where
+    S: tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
+    W: for<'writer> fmt::MakeWriter<'writer> + 'static,
+{
+    fmt::layer()
+        .json()
+        .with_writer(writer)
+        .with_timer(UtcTime::new(time_format_description()))
+        .with_current_span(true)
+        .with_span_list(false)
+        .with_target(true)
+        .with_thread_ids(false)
+        .with_thread_names(false)
+        .with_file(false)
+        .with_line_number(false)
+        .flatten_event(true)
+}
+
+/// 時刻フォーマット記述子を取得
+const fn time_format_description() -> &'static str {
+    // ISO 8601 形式
+    "[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond digits:3]Z"
+}
+
+/// ロギングエラー
+#[derive(Debug, thiserror::Error)]
+pub enum LoggingError {
+    /// フィルタのパースに失敗
+    #[error("failed to parse filter: {0}")]
+    FilterParseFailed(String),
+
+    /// 初期化に失敗
+    #[error("failed to initialize logging: {0}")]
+    InitFailed(String),
+}
+
+/// JSON フォーマッター
+///
+/// カスタム JSON 出力が必要な場合に使用する。
+#[derive(Debug, Clone)]
+pub struct JsonFormatter {
+    service_name: String,
+    service_env: String,
+    service_version: Option<String>,
+}
+
+impl JsonFormatter {
+    /// ObservabilityConfig から作成
+    pub fn from_config(config: &ObservabilityConfig) -> Self {
+        Self {
+            service_name: config.service_name().to_string(),
+            service_env: config.env().to_string(),
+            service_version: config.version().map(|s| s.to_string()),
+        }
+    }
+
+    /// ログエントリを JSON 文字列に変換
+    pub fn format(&self, entry: &LogEntry) -> Result<String, serde_json::Error> {
+        let mut map = serde_json::Map::new();
+
+        // タイムスタンプ
+        map.insert(
+            "timestamp".to_string(),
+            serde_json::Value::String(entry.timestamp.clone()),
+        );
+
+        // レベル
+        map.insert(
+            "level".to_string(),
+            serde_json::Value::String(entry.level.as_str().to_string()),
+        );
+
+        // メッセージ
+        map.insert(
+            "message".to_string(),
+            serde_json::Value::String(entry.message.clone()),
+        );
+
+        // サービス情報（エントリから、なければ formatter から）
+        let service_name = entry
+            .service_name
+            .clone()
+            .unwrap_or_else(|| self.service_name.clone());
+        let service_env = entry
+            .service_env
+            .clone()
+            .unwrap_or_else(|| self.service_env.clone());
+
+        map.insert(
+            "service.name".to_string(),
+            serde_json::Value::String(service_name),
+        );
+        map.insert(
+            "service.env".to_string(),
+            serde_json::Value::String(service_env),
+        );
+
+        if let Some(ref version) = entry.service_version.clone().or(self.service_version.clone()) {
+            map.insert(
+                "service.version".to_string(),
+                serde_json::Value::String(version.clone()),
+            );
+        }
+
+        // トレース情報
+        if let Some(ref trace_id) = entry.trace_id {
+            map.insert(
+                "trace.id".to_string(),
+                serde_json::Value::String(trace_id.clone()),
+            );
+        }
+        if let Some(ref span_id) = entry.span_id {
+            map.insert(
+                "span.id".to_string(),
+                serde_json::Value::String(span_id.clone()),
+            );
+        }
+        if let Some(ref request_id) = entry.request_id {
+            map.insert(
+                "request.id".to_string(),
+                serde_json::Value::String(request_id.clone()),
+            );
+        }
+
+        // エラー情報
+        if let Some(ref error_kind) = entry.error_kind {
+            map.insert(
+                "error.kind".to_string(),
+                serde_json::Value::String(error_kind.clone()),
+            );
+        }
+        if let Some(ref error_code) = entry.error_code {
+            map.insert(
+                "error.code".to_string(),
+                serde_json::Value::String(error_code.clone()),
+            );
+        }
+        if let Some(ref error_message) = entry.error_message {
+            map.insert(
+                "error.message".to_string(),
+                serde_json::Value::String(error_message.clone()),
+            );
+        }
+
+        // 追加フィールド
+        if let Some(ref extra) = entry.extra {
+            if let serde_json::Value::Object(extra_map) = extra {
+                for (k, v) in extra_map {
+                    map.insert(k.clone(), v.clone());
+                }
+            }
+        }
+
+        serde_json::to_string(&serde_json::Value::Object(map))
+    }
+
+    /// コンテキスト付きでフォーマット
+    pub fn format_with_context(
+        &self,
+        entry: &LogEntry,
+        ctx: &RequestContext,
+    ) -> Result<String, serde_json::Error> {
+        let mut entry = entry.clone();
+        entry.trace_id = Some(ctx.trace_id().to_string());
+        entry.span_id = Some(ctx.span_id().to_string());
+        entry.request_id = Some(ctx.request_id().to_string());
+        self.format(&entry)
+    }
+}
+
+#[cfg(test)]
+mod tracing_tests {
+    use super::*;
+
+    #[test]
+    fn test_json_formatter() {
+        let config = ObservabilityConfig::builder()
+            .service_name("test-service")
+            .env("dev")
+            .build()
+            .unwrap();
+
+        let formatter = JsonFormatter::from_config(&config);
+        let entry = LogEntry::info("test message");
+        let json = formatter.format(&entry).unwrap();
+
+        assert!(json.contains("\"service.name\":\"test-service\""));
+        assert!(json.contains("\"service.env\":\"dev\""));
+        assert!(json.contains("\"level\":\"INFO\""));
+        assert!(json.contains("\"message\":\"test message\""));
+    }
+
+    #[test]
+    fn test_json_formatter_with_context() {
+        let config = ObservabilityConfig::builder()
+            .service_name("test-service")
+            .env("dev")
+            .build()
+            .unwrap();
+
+        let formatter = JsonFormatter::from_config(&config);
+        let entry = LogEntry::info("test message");
+        let ctx = RequestContext::new();
+        let json = formatter.format_with_context(&entry, &ctx).unwrap();
+
+        assert!(json.contains("trace.id"));
+        assert!(json.contains("span.id"));
+        assert!(json.contains("request.id"));
     }
 }

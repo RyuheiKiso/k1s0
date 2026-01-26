@@ -1,0 +1,83 @@
+// Package errors contains domain errors
+package errors
+
+import (
+	"errors"
+	"fmt"
+)
+
+var (
+	// ErrNotFound is returned when an entity is not found.
+	ErrNotFound = errors.New("not found")
+	// ErrInvalidInput is returned when input validation fails.
+	ErrInvalidInput = errors.New("invalid input")
+	// ErrAlreadyExists is returned when trying to create a duplicate entity.
+	ErrAlreadyExists = errors.New("already exists")
+	// ErrUnauthorized is returned when the user is not authorized.
+	ErrUnauthorized = errors.New("unauthorized")
+	// ErrForbidden is returned when the user is forbidden from performing an action.
+	ErrForbidden = errors.New("forbidden")
+	// ErrInternal is returned when an internal error occurs.
+	ErrInternal = errors.New("internal error")
+)
+
+// DomainError represents a domain-specific error.
+type DomainError struct {
+	Code    string
+	Message string
+	Err     error
+}
+
+// Error returns the error message.
+func (e *DomainError) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("%s: %s: %v", e.Code, e.Message, e.Err)
+	}
+	return fmt.Sprintf("%s: %s", e.Code, e.Message)
+}
+
+// Unwrap returns the underlying error.
+func (e *DomainError) Unwrap() error {
+	return e.Err
+}
+
+// NewNotFoundError creates a new not found error.
+func NewNotFoundError(entity, id string) *DomainError {
+	return &DomainError{
+		Code:    "NOT_FOUND",
+		Message: fmt.Sprintf("%s with ID '%s' not found", entity, id),
+		Err:     ErrNotFound,
+	}
+}
+
+// NewValidationError creates a new validation error.
+func NewValidationError(message string) *DomainError {
+	return &DomainError{
+		Code:    "VALIDATION_ERROR",
+		Message: message,
+		Err:     ErrInvalidInput,
+	}
+}
+
+// NewAlreadyExistsError creates a new already exists error.
+func NewAlreadyExistsError(entity, identifier string) *DomainError {
+	return &DomainError{
+		Code:    "ALREADY_EXISTS",
+		Message: fmt.Sprintf("%s '%s' already exists", entity, identifier),
+		Err:     ErrAlreadyExists,
+	}
+}
+
+// NewInternalError creates a new internal error.
+func NewInternalError(err error) *DomainError {
+	return &DomainError{
+		Code:    "INTERNAL_ERROR",
+		Message: "An internal error occurred",
+		Err:     err,
+	}
+}
+
+// Is checks if the error is of the given type.
+func Is(err, target error) bool {
+	return errors.Is(err, target)
+}

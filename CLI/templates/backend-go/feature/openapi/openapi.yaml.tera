@@ -1,0 +1,181 @@
+openapi: 3.0.3
+info:
+  title: {{ feature_name | title_case }} API
+  description: {{ feature_description | default(value="k1s0 generated Go service API") }}
+  version: {{ version | default(value="0.1.0") }}
+  contact:
+    name: k1s0 Team
+
+servers:
+  - url: http://localhost:{{ rest_port | default(value=8080) }}
+    description: Local development server
+
+paths:
+  /v1/{{ feature_name | kebab_case }}:
+    get:
+      summary: List {{ feature_name }}
+      operationId: list{{ feature_name | pascal_case }}
+      tags:
+        - {{ feature_name | pascal_case }}
+      parameters:
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: page_token
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of {{ feature_name }}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List{{ feature_name | pascal_case }}Response'
+
+    post:
+      summary: Create {{ feature_name }}
+      operationId: create{{ feature_name | pascal_case }}
+      tags:
+        - {{ feature_name | pascal_case }}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Create{{ feature_name | pascal_case }}Request'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/{{ feature_name | pascal_case }}'
+
+  /v1/{{ feature_name | kebab_case }}/{id}:
+    get:
+      summary: Get {{ feature_name }}
+      operationId: get{{ feature_name | pascal_case }}
+      tags:
+        - {{ feature_name | pascal_case }}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: {{ feature_name | pascal_case }} found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/{{ feature_name | pascal_case }}'
+        '404':
+          description: Not found
+
+    put:
+      summary: Update {{ feature_name }}
+      operationId: update{{ feature_name | pascal_case }}
+      tags:
+        - {{ feature_name | pascal_case }}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Update{{ feature_name | pascal_case }}Request'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/{{ feature_name | pascal_case }}'
+
+    delete:
+      summary: Delete {{ feature_name }}
+      operationId: delete{{ feature_name | pascal_case }}
+      tags:
+        - {{ feature_name | pascal_case }}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Deleted
+
+  /health:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+
+components:
+  schemas:
+    {{ feature_name | pascal_case }}:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Create{{ feature_name | pascal_case }}Request:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+
+    Update{{ feature_name | pascal_case }}Request:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: integer
+
+    List{{ feature_name | pascal_case }}Response:
+      type: object
+      properties:
+        {{ feature_name | snake_case }}s:
+          type: array
+          items:
+            $ref: '#/components/schemas/{{ feature_name | pascal_case }}'
+        next_page_token:
+          type: string
+
+tags:
+  - name: {{ feature_name | pascal_case }}
+    description: {{ feature_name | pascal_case }} operations
+  - name: Health
+    description: Health check operations

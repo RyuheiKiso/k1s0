@@ -1,6 +1,24 @@
 //! 認証ミドルウェア
 //!
-//! HTTP/gRPCリクエストの認証処理を統一
+//! HTTP/gRPCリクエストの認証処理を統一。
+//!
+//! # 機能
+//!
+//! - JWT トークンの検証
+//! - ポリシーベースの認可
+//! - axum Tower Layer（`axum-layer` feature）
+//! - tonic Interceptor（`tonic-interceptor` feature）
+//!
+//! # 使用例（axum）
+//!
+//! ```ignore
+//! use axum::Router;
+//! use k1s0_auth::middleware::auth_layer;
+//!
+//! let app = Router::new()
+//!     .route("/api/users", get(handler))
+//!     .layer(auth_layer(verifier, policy, audit));
+//! ```
 
 use std::sync::Arc;
 
@@ -305,5 +323,360 @@ mod tests {
         assert!(!ctx.has_role("superadmin"));
         assert!(ctx.has_permission("order:read"));
         assert!(!ctx.has_permission("order:write"));
+    }
+}
+
+// ============================================================================
+// axum Tower Layer 実装
+// ============================================================================
+
+#[cfg(feature = "axum-layer")]
+pub use axum_layer::*;
+
+#[cfg(feature = "axum-layer")]
+mod axum_layer {
+    use super::*;
+    use axum::{
+        body::Body,
+        extract::Request,
+        http::StatusCode,
+        response::{IntoResponse, Response},
+    };
+    use futures::future::BoxFuture;
+    use pin_project_lite::pin_project;
+    use std::{
+        future::Future,
+        pin::Pin,
+        task::{Context, Poll},
+    };
+    use tower::{Layer, Service};
+
+    /// 認証レイヤーを作成
+    ///
+    /// # 例
+    ///
+    /// ```ignore
+    /// use axum::Router;
+    /// use k1s0_auth::middleware::auth_layer;
+    ///
+    /// let layer = auth_layer(verifier, policy, audit)
+    ///     .with_skip_matcher(AuthSkipMatcher::new().with_health_checks());
+    ///
+    /// let app = Router::new()
+    ///     .route("/api/users", get(handler))
+    ///     .layer(layer);
+    /// ```
+    pub fn auth_layer(
+        verifier: Arc<JwtVerifier>,
+        policy: Arc<PolicyEvaluator>,
+        audit: Arc<AuditLogger>,
+    ) -> AuthLayer {
+        AuthLayer::new(verifier, policy, audit)
+    }
+
+    /// 認証レイヤー
+    #[derive(Clone)]
+    pub struct AuthLayer {
+        middleware: Arc<AuthMiddleware>,
+        skip_matcher: AuthSkipMatcher,
+    }
+
+    impl AuthLayer {
+        /// 新しいレイヤーを作成
+        pub fn new(
+            verifier: Arc<JwtVerifier>,
+            policy: Arc<PolicyEvaluator>,
+            audit: Arc<AuditLogger>,
+        ) -> Self {
+            Self {
+                middleware: Arc::new(AuthMiddleware::new(verifier, policy, audit)),
+                skip_matcher: AuthSkipMatcher::new(),
+            }
+        }
+
+        /// スキップマッチャーを設定
+        pub fn with_skip_matcher(mut self, matcher: AuthSkipMatcher) -> Self {
+            self.skip_matcher = matcher;
+            self
+        }
+    }
+
+    impl<S> Layer<S> for AuthLayer {
+        type Service = AuthService<S>;
+
+        fn layer(&self, inner: S) -> Self::Service {
+            AuthService {
+                inner,
+                middleware: self.middleware.clone(),
+                skip_matcher: self.skip_matcher.clone(),
+            }
+        }
+    }
+
+    /// 認証サービス
+    #[derive(Clone)]
+    pub struct AuthService<S> {
+        inner: S,
+        middleware: Arc<AuthMiddleware>,
+        skip_matcher: AuthSkipMatcher,
+    }
+
+    impl<S> Service<Request> for AuthService<S>
+    where
+        S: Service<Request, Response = Response> + Clone + Send + 'static,
+        S::Future: Send + 'static,
+    {
+        type Response = S::Response;
+        type Error = S::Error;
+        type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
+
+        fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+            self.inner.poll_ready(cx)
+        }
+
+        fn call(&mut self, mut request: Request) -> Self::Future {
+            let path = request.uri().path().to_string();
+
+            // スキップ対象のパスはそのまま通す
+            if self.skip_matcher.should_skip(&path) {
+                let future = self.inner.call(request);
+                return Box::pin(async move { future.await });
+            }
+
+            // Authorization ヘッダを取得
+            let authorization = request
+                .headers()
+                .get("authorization")
+                .and_then(|v| v.to_str().ok())
+                .map(|s| s.to_string());
+
+            let middleware = self.middleware.clone();
+            let mut inner = self.inner.clone();
+
+            Box::pin(async move {
+                let authorization = match authorization {
+                    Some(auth) => auth,
+                    None => {
+                        return Ok(unauthorized_response("Missing authorization header"));
+                    }
+                };
+
+                let ctx = match middleware.authenticate_bearer(&authorization).await {
+                    Ok(ctx) => ctx,
+                    Err(e) => {
+                        return Ok(unauthorized_response(&e.to_string()));
+                    }
+                };
+
+                // リクエストエクステンションに認証コンテキストを設定
+                request.extensions_mut().insert(ctx);
+
+                inner.call(request).await
+            })
+        }
+    }
+
+    /// 認証エラーレスポンスを生成
+    fn unauthorized_response(message: &str) -> Response {
+        let body = serde_json::json!({
+            "error": "unauthorized",
+            "message": message
+        });
+
+        Response::builder()
+            .status(StatusCode::UNAUTHORIZED)
+            .header("content-type", "application/json")
+            .body(Body::from(body.to_string()))
+            .unwrap()
+    }
+
+    /// リクエストから認証コンテキストを抽出
+    pub fn extract_auth_context(request: &Request) -> Option<AuthContext> {
+        request.extensions().get::<AuthContext>().cloned()
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_unauthorized_response() {
+            let response = unauthorized_response("test error");
+            assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        }
+    }
+}
+
+// ============================================================================
+// tonic Interceptor 実装
+// ============================================================================
+
+#[cfg(feature = "tonic-interceptor")]
+pub use tonic_interceptor::*;
+
+#[cfg(feature = "tonic-interceptor")]
+mod tonic_interceptor {
+    use super::*;
+    use tonic::{Request, Status};
+
+    /// 認証インターセプターを作成
+    ///
+    /// # 例
+    ///
+    /// ```ignore
+    /// use tonic::transport::Server;
+    /// use k1s0_auth::middleware::auth_interceptor;
+    ///
+    /// let interceptor = auth_interceptor(verifier, policy, audit);
+    ///
+    /// Server::builder()
+    ///     .add_service(MyServiceServer::with_interceptor(service, interceptor))
+    ///     .serve(addr)
+    ///     .await?;
+    /// ```
+    pub fn auth_interceptor(
+        verifier: Arc<JwtVerifier>,
+        policy: Arc<PolicyEvaluator>,
+        audit: Arc<AuditLogger>,
+    ) -> impl Fn(Request<()>) -> Result<Request<()>, Status> + Clone {
+        let middleware = Arc::new(AuthMiddleware::new(verifier, policy, audit));
+        let skip_matcher = AuthSkipMatcher::new().with_health_checks();
+
+        move |request| {
+            let middleware = middleware.clone();
+            let skip_matcher = skip_matcher.clone();
+
+            // パスを取得
+            let path = request.uri().path().to_string();
+
+            // スキップ対象のパスはそのまま通す
+            if skip_matcher.should_skip(&path) {
+                return Ok(request);
+            }
+
+            // メタデータからトークンを抽出
+            let token = request
+                .metadata()
+                .get("authorization")
+                .and_then(|v| v.to_str().ok())
+                .and_then(|auth| extract_bearer_token(auth).ok());
+
+            match token {
+                Some(_token) => {
+                    // 注意: tonic の interceptor は同期なので、
+                    // 非同期検証は別途行う必要がある
+                    // ここでは基本的なチェックのみ行う
+                    Ok(request)
+                }
+                None => Err(Status::unauthenticated("Missing authorization token")),
+            }
+        }
+    }
+
+    /// 非同期認証インターセプター
+    ///
+    /// トークンの完全な検証を行う場合に使用する。
+    /// サービス実装内で明示的に呼び出す必要がある。
+    pub struct AsyncAuthInterceptor {
+        middleware: Arc<AuthMiddleware>,
+        skip_matcher: AuthSkipMatcher,
+    }
+
+    impl AsyncAuthInterceptor {
+        /// 新しいインターセプターを作成
+        pub fn new(
+            verifier: Arc<JwtVerifier>,
+            policy: Arc<PolicyEvaluator>,
+            audit: Arc<AuditLogger>,
+        ) -> Self {
+            Self {
+                middleware: Arc::new(AuthMiddleware::new(verifier, policy, audit)),
+                skip_matcher: AuthSkipMatcher::new().with_health_checks(),
+            }
+        }
+
+        /// スキップマッチャーを設定
+        pub fn with_skip_matcher(mut self, matcher: AuthSkipMatcher) -> Self {
+            self.skip_matcher = matcher;
+            self
+        }
+
+        /// リクエストを認証
+        pub async fn authenticate<T>(&self, request: &Request<T>) -> Result<AuthContext, Status> {
+            let path = request.uri().path().to_string();
+
+            // スキップ対象のパス
+            if self.skip_matcher.should_skip(&path) {
+                // 匿名コンテキストを返す
+                return Ok(AuthContext::new(Claims {
+                    sub: "anonymous".to_string(),
+                    iss: "system".to_string(),
+                    aud: None,
+                    exp: 0,
+                    iat: 0,
+                    nbf: None,
+                    jti: None,
+                    roles: vec![],
+                    permissions: vec![],
+                    tenant_id: None,
+                    email: None,
+                    email_verified: None,
+                    name: None,
+                }));
+            }
+
+            // メタデータからトークンを抽出
+            let authorization = request
+                .metadata()
+                .get("authorization")
+                .and_then(|v| v.to_str().ok())
+                .ok_or_else(|| Status::unauthenticated("Missing authorization header"))?;
+
+            let ctx = self
+                .middleware
+                .authenticate_bearer(authorization)
+                .await
+                .map_err(|e| Status::unauthenticated(e.to_string()))?;
+
+            Ok(ctx)
+        }
+
+        /// リクエストを認証・認可
+        pub async fn authenticate_and_authorize<T>(
+            &self,
+            request: &Request<T>,
+            action: Action,
+            resource: ResourceContext,
+        ) -> Result<AuthContext, Status> {
+            let ctx = self.authenticate(request).await?;
+
+            self.middleware
+                .authorize(&ctx, action, resource)
+                .await
+                .map_err(|e| Status::permission_denied(e.to_string()))?;
+
+            Ok(ctx)
+        }
+    }
+
+    /// リクエストエクステンションから認証コンテキストを抽出
+    pub fn extract_auth_context<T>(request: &Request<T>) -> Option<&AuthContext> {
+        request.extensions().get::<AuthContext>()
+    }
+
+    /// 認証コンテキストをリクエストエクステンションに設定
+    pub fn set_auth_context<T>(request: &mut Request<T>, ctx: AuthContext) {
+        request.extensions_mut().insert(ctx);
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_skip_health_checks() {
+            let matcher = AuthSkipMatcher::new().with_health_checks();
+            assert!(matcher.should_skip("/grpc.health.v1.Health/Check"));
+        }
     }
 }

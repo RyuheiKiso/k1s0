@@ -3,9 +3,20 @@
 //! This service provides:
 //! - Setting retrieval (Get/List)
 //! - Setting caching (in-memory)
-//! - Setting change notification (future)
+//! - Setting change notification (WatchSettings)
+//!
+//! # 起動方法
+//!
+//! ```bash
+//! config-service --env dev --port 50051
+//! ```
 
+use std::net::SocketAddr;
 use std::sync::Arc;
+
+use tokio::signal;
+use tonic::transport::Server;
+use tracing::{info, warn};
 
 mod application;
 mod domain;
@@ -15,6 +26,8 @@ mod presentation;
 use application::ConfigService;
 use domain::{Setting, SettingQuery, SettingRepository};
 use infrastructure::{InMemoryCache, InMemoryRepository};
+use presentation::grpc::config_v1::config_service_server::ConfigServiceServer;
+use presentation::grpc::GrpcConfigService;
 
 /// サービス設定
 #[derive(Debug, Clone)]
@@ -156,15 +169,48 @@ async fn main() {
         Err(e) => println!("  List settings error: {}", e),
     }
 
-    println!();
-    println!("config-service is ready.");
-    println!("Note: gRPC server is not yet implemented. This is a functional prototype.");
+    // gRPC サービスの作成
+    let grpc_service = GrpcConfigService::new(Arc::new(service));
 
-    // TODO: Start gRPC server
-    // let addr = format!("0.0.0.0:{}", config.port).parse().unwrap();
-    // tonic::transport::Server::builder()
-    //     .add_service(ConfigServiceServer::new(grpc_service))
-    //     .serve(addr)
-    //     .await
-    //     .unwrap();
+    // gRPC サーバーの起動
+    let addr: SocketAddr = format!("0.0.0.0:{}", config.port).parse().unwrap();
+    println!();
+    println!("Starting gRPC server on {}", addr);
+
+    Server::builder()
+        .add_service(ConfigServiceServer::new(grpc_service))
+        .serve_with_shutdown(addr, shutdown_signal())
+        .await
+        .unwrap();
+
+    println!("config-service shutdown complete.");
+}
+
+/// グレースフルシャットダウンシグナルを待機
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            println!("\nReceived Ctrl+C, shutting down...");
+        }
+        _ = terminate => {
+            println!("\nReceived SIGTERM, shutting down...");
+        }
+    }
 }

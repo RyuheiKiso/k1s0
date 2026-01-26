@@ -1,0 +1,14 @@
+# {{ feature_name }} Development Configuration
+
+database:
+  host: localhost
+  port: 5432
+  name: {{ feature_name | snake_case }}_dev
+  sslmode: disable
+
+logging:
+  level: debug
+  format: text
+
+tracing:
+  enabled: false

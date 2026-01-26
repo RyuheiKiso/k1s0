@@ -1,0 +1,83 @@
+// Package value_objects contains domain value objects
+package value_objects
+
+import (
+	"errors"
+	"regexp"
+)
+
+// Name represents a validated name value object.
+type Name struct {
+	value string
+}
+
+// NewName creates a new Name value object.
+func NewName(value string) (Name, error) {
+	if value == "" {
+		return Name{}, errors.New("name cannot be empty")
+	}
+	if len(value) > 255 {
+		return Name{}, errors.New("name cannot exceed 255 characters")
+	}
+	return Name{value: value}, nil
+}
+
+// String returns the string representation of the Name.
+func (n Name) String() string {
+	return n.value
+}
+
+// Status represents a status value object.
+type Status int
+
+const (
+	// StatusInactive represents inactive status
+	StatusInactive Status = 0
+	// StatusActive represents active status
+	StatusActive Status = 1
+)
+
+// IsValid returns true if the status is valid.
+func (s Status) IsValid() bool {
+	return s == StatusInactive || s == StatusActive
+}
+
+// PageToken represents a pagination token.
+type PageToken struct {
+	value string
+}
+
+// NewPageToken creates a new PageToken.
+func NewPageToken(value string) PageToken {
+	return PageToken{value: value}
+}
+
+// String returns the string representation.
+func (t PageToken) String() string {
+	return t.value
+}
+
+// IsEmpty returns true if the token is empty.
+func (t PageToken) IsEmpty() bool {
+	return t.value == ""
+}
+
+// Email represents a validated email value object.
+type Email struct {
+	value string
+}
+
+var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+
+// NewEmail creates a new Email value object.
+func NewEmail(value string) (Email, error) {
+	if !emailRegex.MatchString(value) {
+		return Email{}, errors.New("invalid email format")
+	}
+	return Email{value: value}, nil
+}
+
+// String returns the string representation of the Email.
+func (e Email) String() string {
+	return e.value
+}

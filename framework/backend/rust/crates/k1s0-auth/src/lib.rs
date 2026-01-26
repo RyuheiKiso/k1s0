@@ -86,4 +86,18 @@ pub use middleware::{AuthContext, AuthMiddleware, AuthSkipMatcher};
 pub use policy::{
     Action, PolicyBuilder, PolicyDecision, PolicyEvaluator, PolicyRequest, PolicyResult,
     PolicySubject, ResourceContext,
+    // ポリシーリポジトリ
+    PolicyRepository, InMemoryPolicyRepository, CachedPolicyRepository, RepositoryPolicyEvaluator,
+};
+
+// axum レイヤー
+#[cfg(feature = "axum-layer")]
+pub use middleware::{auth_layer, AuthLayer, AuthService, extract_auth_context};
+
+// tonic インターセプター
+#[cfg(feature = "tonic-interceptor")]
+pub use middleware::{
+    auth_interceptor, AsyncAuthInterceptor,
+    extract_auth_context as extract_grpc_auth_context,
+    set_auth_context as set_grpc_auth_context,
 };

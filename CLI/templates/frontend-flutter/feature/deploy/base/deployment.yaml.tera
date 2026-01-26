@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ feature_name | kebab_case }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ feature_name | kebab_case }}
+  template:
+    metadata:
+      labels:
+        app: {{ feature_name | kebab_case }}
+    spec:
+      containers:
+        - name: {{ feature_name | kebab_case }}
+          image: {{ feature_name | kebab_case }}
+          ports:
+            - name: http
+              containerPort: {{ port | default(value=80) }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ feature_name | kebab_case }}-config
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
