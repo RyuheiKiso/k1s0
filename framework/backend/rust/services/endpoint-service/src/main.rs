@@ -6,18 +6,25 @@
 //!
 //! # 起動方法
 //!
+//! ## InMemory モード（デフォルト）
 //! ```bash
 //! endpoint-service --env dev --port 50052
+//! ```
+//!
+//! ## PostgreSQL モード
+//! ```bash
+//! endpoint-service --env dev --port 50052 --database-url "postgres://user:pass@localhost/endpoint_db"
 //! ```
 
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 use clap::Parser;
+use sqlx::postgres::PgPoolOptions;
 use tokio::signal;
 use tonic::transport::Server;
 use tonic_health::server::health_reporter;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 mod application;
 mod domain;
@@ -26,7 +33,7 @@ mod presentation;
 
 use application::EndpointService;
 use domain::{Endpoint, EndpointQuery, EndpointRepository};
-use infrastructure::InMemoryRepository;
+use infrastructure::{InMemoryRepository, PostgresRepository};
 use presentation::grpc::endpoint_v1::endpoint_service_server::EndpointServiceServer;
 use presentation::grpc::GrpcEndpointService;
 
@@ -72,6 +79,9 @@ struct Args {
 /// InMemoryリポジトリを使用するEndpointService型
 type InMemoryEndpointService = EndpointService<InMemoryRepository>;
 
+/// PostgreSQLリポジトリを使用するEndpointService型
+type PostgresEndpointService = EndpointService<PostgresRepository>;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
@@ -93,11 +103,71 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Starting endpoint-service"
     );
 
-    // データベースURL指定時はPostgreSQLを使用
+    // データベースURL指定時はPostgreSQLを使用、それ以外はInMemory
     if let Some(ref db_url) = args.database_url {
-        info!(database_url = %db_url, "PostgreSQL mode (not yet implemented in main)");
-        warn!("PostgreSQL mode not fully implemented, falling back to in-memory");
+        run_with_postgres(&args, db_url).await
+    } else {
+        run_with_inmemory(&args).await
     }
+}
+
+/// PostgreSQL モードでサービスを起動
+async fn run_with_postgres(args: &Args, db_url: &str) -> Result<(), Box<dyn std::error::Error>> {
+    info!(database_url = %db_url, "Starting in PostgreSQL mode");
+
+    // PostgreSQL コネクションプールを作成
+    let pool = PgPoolOptions::new()
+        .max_connections(10)
+        .min_connections(2)
+        .acquire_timeout(std::time::Duration::from_secs(5))
+        .connect(db_url)
+        .await
+        .map_err(|e| {
+            error!(error = %e, "Failed to connect to PostgreSQL");
+            e
+        })?;
+
+    info!("PostgreSQL connection pool established");
+
+    // PostgreSQLリポジトリの初期化
+    let repository = Arc::new(PostgresRepository::with_environment(pool.clone(), &args.env));
+
+    // サービスの初期化
+    let service: PostgresEndpointService = EndpointService::new(
+        Arc::clone(&repository),
+        &args.namespace,
+        &args.cluster_domain,
+    );
+
+    // gRPC サービスの作成
+    let grpc_service = GrpcEndpointService::new(Arc::new(service));
+
+    // Health reporter
+    let (mut health_reporter, health_service) = health_reporter();
+    health_reporter
+        .set_serving::<EndpointServiceServer<GrpcEndpointService<PostgresRepository>>>()
+        .await;
+
+    // gRPC サーバーの起動
+    let addr: SocketAddr = format!("0.0.0.0:{}", args.port).parse()?;
+    info!(address = %addr, mode = "PostgreSQL", "Starting gRPC server");
+
+    Server::builder()
+        .add_service(health_service)
+        .add_service(EndpointServiceServer::new(grpc_service))
+        .serve_with_shutdown(addr, shutdown_signal())
+        .await?;
+
+    // プール接続を終了
+    pool.close().await;
+
+    info!("endpoint-service shutdown complete");
+    Ok(())
+}
+
+/// InMemory モードでサービスを起動
+async fn run_with_inmemory(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting in InMemory mode");
 
     // InMemoryリポジトリの初期化
     let repository = Arc::new(InMemoryRepository::new());
@@ -108,7 +178,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // サービスの初期化
-    let service = EndpointService::new(
+    let service: InMemoryEndpointService = EndpointService::new(
         Arc::clone(&repository),
         &args.namespace,
         &args.cluster_domain,
@@ -130,7 +200,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // gRPC サーバーの起動
     let addr: SocketAddr = format!("0.0.0.0:{}", args.port).parse()?;
-    info!(address = %addr, "Starting gRPC server");
+    info!(address = %addr, mode = "InMemory", "Starting gRPC server");
 
     Server::builder()
         .add_service(health_service)

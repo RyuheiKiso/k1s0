@@ -7,18 +7,25 @@
 //!
 //! # 起動方法
 //!
+//! ## InMemory モード（デフォルト）
 //! ```bash
 //! config-service --env dev --port 50051
+//! ```
+//!
+//! ## PostgreSQL モード
+//! ```bash
+//! config-service --env dev --port 50051 --database-url "postgres://user:pass@localhost/config_db"
 //! ```
 
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 use clap::Parser;
+use sqlx::postgres::PgPoolOptions;
 use tokio::signal;
 use tonic::transport::Server;
 use tonic_health::server::health_reporter;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 mod application;
 mod domain;
@@ -27,7 +34,7 @@ mod presentation;
 
 use application::ConfigService;
 use domain::{Setting, SettingQuery, SettingRepository};
-use infrastructure::{InMemoryCache, InMemoryRepository};
+use infrastructure::{InMemoryCache, InMemoryRepository, PostgresRepository};
 use presentation::grpc::config_v1::config_service_server::ConfigServiceServer;
 use presentation::grpc::GrpcConfigService;
 
@@ -69,6 +76,9 @@ struct Args {
 /// InMemoryリポジトリを使用するConfigService型
 type InMemoryConfigService = ConfigService<InMemoryRepository, InMemoryCache>;
 
+/// PostgreSQLリポジトリを使用するConfigService型
+type PostgresConfigService = ConfigService<PostgresRepository, InMemoryCache>;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
@@ -89,17 +99,78 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Starting config-service"
     );
 
-    // データベースURL指定時はPostgreSQLを使用
-    if let Some(ref db_url) = args.database_url {
-        info!(database_url = %db_url, "PostgreSQL mode (not yet implemented in main)");
-        warn!("PostgreSQL mode not fully implemented, falling back to in-memory");
-    }
-
-    // Redis URL指定時はRedisキャッシュを使用
+    // Redis URL指定時はRedisキャッシュを使用（将来対応）
     if let Some(ref redis_url) = args.redis_url {
-        info!(redis_url = %redis_url, "Redis cache mode (not yet implemented in main)");
+        info!(redis_url = %redis_url, "Redis cache mode (not yet implemented)");
         warn!("Redis cache mode not fully implemented, falling back to in-memory cache");
     }
+
+    // データベースURL指定時はPostgreSQLを使用、それ以外はInMemory
+    if let Some(ref db_url) = args.database_url {
+        run_with_postgres(&args, db_url).await
+    } else {
+        run_with_inmemory(&args).await
+    }
+}
+
+/// PostgreSQL モードでサービスを起動
+async fn run_with_postgres(args: &Args, db_url: &str) -> Result<(), Box<dyn std::error::Error>> {
+    info!(database_url = %db_url, "Starting in PostgreSQL mode");
+
+    // PostgreSQL コネクションプールを作成
+    let pool = PgPoolOptions::new()
+        .max_connections(10)
+        .min_connections(2)
+        .acquire_timeout(std::time::Duration::from_secs(5))
+        .connect(db_url)
+        .await
+        .map_err(|e| {
+            error!(error = %e, "Failed to connect to PostgreSQL");
+            e
+        })?;
+
+    info!("PostgreSQL connection pool established");
+
+    // PostgreSQLリポジトリとキャッシュの初期化
+    let repository = Arc::new(PostgresRepository::new(pool.clone()));
+    let cache = Arc::new(InMemoryCache::new());
+
+    // サービスの初期化
+    let service: PostgresConfigService = ConfigService::new(
+        Arc::clone(&repository),
+        Arc::clone(&cache),
+        &args.env,
+    );
+
+    // gRPC サービスの作成
+    let grpc_service = GrpcConfigService::new(Arc::new(service));
+
+    // Health reporter
+    let (mut health_reporter, health_service) = health_reporter();
+    health_reporter
+        .set_serving::<ConfigServiceServer<GrpcConfigService<PostgresRepository, InMemoryCache>>>()
+        .await;
+
+    // gRPC サーバーの起動
+    let addr: SocketAddr = format!("0.0.0.0:{}", args.port).parse()?;
+    info!(address = %addr, mode = "PostgreSQL", "Starting gRPC server");
+
+    Server::builder()
+        .add_service(health_service)
+        .add_service(ConfigServiceServer::new(grpc_service))
+        .serve_with_shutdown(addr, shutdown_signal())
+        .await?;
+
+    // プール接続を終了
+    pool.close().await;
+
+    info!("config-service shutdown complete");
+    Ok(())
+}
+
+/// InMemory モードでサービスを起動
+async fn run_with_inmemory(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting in InMemory mode");
 
     // InMemoryリポジトリとキャッシュの初期化
     let repository = Arc::new(InMemoryRepository::new());
@@ -111,7 +182,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // サービスの初期化
-    let service = ConfigService::new(
+    let service: InMemoryConfigService = ConfigService::new(
         Arc::clone(&repository),
         Arc::clone(&cache),
         &args.env,
@@ -133,7 +204,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // gRPC サーバーの起動
     let addr: SocketAddr = format!("0.0.0.0:{}", args.port).parse()?;
-    info!(address = %addr, "Starting gRPC server");
+    info!(address = %addr, mode = "InMemory", "Starting gRPC server");
 
     Server::builder()
         .add_service(health_service)

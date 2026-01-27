@@ -7,18 +7,25 @@
 //!
 //! # 起動方法
 //!
+//! ## InMemory モード（デフォルト）
 //! ```bash
 //! auth-service --env dev --port 50051
+//! ```
+//!
+//! ## PostgreSQL モード
+//! ```bash
+//! auth-service --env dev --port 50051 --database-url "postgres://user:pass@localhost/auth_db"
 //! ```
 
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 use clap::Parser;
+use sqlx::postgres::PgPoolOptions;
 use tokio::signal;
 use tonic::transport::Server;
 use tonic_health::server::health_reporter;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 mod application;
 mod domain;
@@ -29,7 +36,8 @@ use application::AuthService;
 use domain::{Role, RoleRepository, User, UserRepository};
 use infrastructure::{
     InMemoryPermissionRepository, InMemoryRoleRepository, InMemoryTokenRepository,
-    InMemoryUserRepository,
+    InMemoryUserRepository, PostgresPermissionRepository, PostgresRoleRepository,
+    PostgresTokenRepository, PostgresUserRepository,
 };
 use presentation::grpc::auth_v1::auth_service_server::AuthServiceServer;
 use presentation::grpc::GrpcAuthService;
@@ -81,6 +89,14 @@ type InMemoryAuthService = AuthService<
     InMemoryTokenRepository,
 >;
 
+/// PostgreSQLリポジトリを使用するAuthService型
+type PostgresAuthService = AuthService<
+    PostgresUserRepository,
+    PostgresRoleRepository,
+    PostgresPermissionRepository,
+    PostgresTokenRepository,
+>;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
@@ -101,13 +117,82 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Starting auth-service"
     );
 
-    // データベースURL指定時はPostgreSQLを使用
+    // データベースURL指定時はPostgreSQLを使用、それ以外はInMemory
     if let Some(ref db_url) = args.database_url {
-        info!(database_url = %db_url, "PostgreSQL mode (not yet implemented in main)");
-        // TODO: PostgreSQL リポジトリを使用する実装
-        // 現時点ではInMemoryにフォールバック
-        warn!("PostgreSQL mode not fully implemented, falling back to in-memory");
+        run_with_postgres(&args, db_url).await
+    } else {
+        run_with_inmemory(&args).await
     }
+}
+
+/// PostgreSQL モードでサービスを起動
+async fn run_with_postgres(args: &Args, db_url: &str) -> Result<(), Box<dyn std::error::Error>> {
+    info!(database_url = %db_url, "Starting in PostgreSQL mode");
+
+    // PostgreSQL コネクションプールを作成
+    let pool = PgPoolOptions::new()
+        .max_connections(10)
+        .min_connections(2)
+        .acquire_timeout(std::time::Duration::from_secs(5))
+        .connect(db_url)
+        .await
+        .map_err(|e| {
+            error!(error = %e, "Failed to connect to PostgreSQL");
+            e
+        })?;
+
+    info!("PostgreSQL connection pool established");
+
+    // PostgreSQLリポジトリの初期化
+    let user_repo = Arc::new(PostgresUserRepository::new(pool.clone()));
+    let role_repo = Arc::new(PostgresRoleRepository::new(pool.clone()));
+    let permission_repo = Arc::new(PostgresPermissionRepository::new(pool.clone()));
+    let token_repo = Arc::new(PostgresTokenRepository::new(pool.clone()));
+
+    // サービスの初期化
+    let service: PostgresAuthService = AuthService::new(
+        user_repo,
+        role_repo,
+        permission_repo,
+        token_repo,
+        &args.issuer,
+        &args.jwt_secret,
+    );
+
+    // gRPC サービスの作成
+    let grpc_service = GrpcAuthService::new(Arc::new(service));
+
+    // Health reporter
+    let (mut health_reporter, health_service) = health_reporter();
+    health_reporter
+        .set_serving::<AuthServiceServer<GrpcAuthService<
+            PostgresUserRepository,
+            PostgresRoleRepository,
+            PostgresPermissionRepository,
+            PostgresTokenRepository,
+        >>>()
+        .await;
+
+    // gRPC サーバーの起動
+    let addr: SocketAddr = format!("0.0.0.0:{}", args.port).parse()?;
+    info!(address = %addr, mode = "PostgreSQL", "Starting gRPC server");
+
+    Server::builder()
+        .add_service(health_service)
+        .add_service(AuthServiceServer::new(grpc_service))
+        .serve_with_shutdown(addr, shutdown_signal())
+        .await?;
+
+    // プール接続を終了
+    pool.close().await;
+
+    info!("auth-service shutdown complete");
+    Ok(())
+}
+
+/// InMemory モードでサービスを起動
+async fn run_with_inmemory(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting in InMemory mode");
 
     // InMemoryリポジトリの初期化
     let user_repo = Arc::new(InMemoryUserRepository::new());
@@ -121,11 +206,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // サービスの初期化
-    let service = AuthService::new(
-        user_repo,
-        role_repo,
-        permission_repo,
-        token_repo,
+    let service: InMemoryAuthService = AuthService::new(
+        Arc::clone(&user_repo),
+        Arc::clone(&role_repo),
+        Arc::clone(&permission_repo),
+        Arc::clone(&token_repo),
         &args.issuer,
         &args.jwt_secret,
     );
@@ -151,7 +236,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // gRPC サーバーの起動
     let addr: SocketAddr = format!("0.0.0.0:{}", args.port).parse()?;
-    info!(address = %addr, "Starting gRPC server");
+    info!(address = %addr, mode = "InMemory", "Starting gRPC server");
 
     Server::builder()
         .add_service(health_service)
