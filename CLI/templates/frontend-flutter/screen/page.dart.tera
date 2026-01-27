@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 /// {{ component_name }} - {{ title }}
-class {{ component_name }}Page extends StatelessWidget {
-  const {{ component_name }}Page({super.key});
+class {{ component_name }} extends StatelessWidget {
+  const {{ component_name }}({super.key});
 
   @override
   Widget build(BuildContext context) {

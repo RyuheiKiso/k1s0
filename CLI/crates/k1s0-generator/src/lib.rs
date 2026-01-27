@@ -23,8 +23,8 @@ pub mod template;
 pub mod upgrade;
 pub mod walker;
 
-// Tera の Context を再エクスポート
-pub use tera::Context;
+// Tera の Context と Tera を再エクスポート
+pub use tera::{Context, Tera};
 
 /// k1s0-generator のエラー型
 #[derive(Debug, thiserror::Error)]

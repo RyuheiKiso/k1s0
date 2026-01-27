@@ -274,6 +274,9 @@ fn create_template_context(args: &NewFeatureArgs) -> Context {
     context.insert("with_rest", &args.with_rest);
     context.insert("with_db", &args.with_db);
 
+    // 日時
+    context.insert("now", &Utc::now());
+
     context
 }
 

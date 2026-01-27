@@ -31,7 +31,7 @@ CLI/crates/
 |---------|------|---------------|
 | `init` | リポジトリ初期化 | `--force`, `--template-source` |
 | `new-feature` | サービス雛形生成 | `-t/--type`, `-n/--name`, `--with-grpc`, `--with-rest`, `--with-db` |
-| `new-screen` | 画面雛形生成 | `-t/--type`, `-n/--name` |
+| `new-screen` | 画面雛形生成 | `-t/--type`, `-s/--screen-id`, `-T/--title`, `-f/--feature-dir` |
 | `lint` | 規約違反検査 | `--rules`, `--exclude-rules`, `--strict`, `--fix` |
 | `upgrade` | テンプレート更新 | `--check`, `-y/--yes`, `--managed-only` |
 | `completions` | シェル補完生成 | `--shell` |
@@ -220,6 +220,141 @@ fn is_valid_kebab_case(s: &str) -> bool {
 
 有効な例: `user-management`, `order`, `auth-service`, `api2`
 無効な例: `UserManagement`, `user_management`, `-user`, `user-`, `user--management`
+
+---
+
+## new-screen コマンド
+
+### 目的
+
+既存の feature ディレクトリに React/Flutter 画面の雛形を生成する。
+画面追加の手順を「雛形生成 → 画面実装 → config 追記」に統一する。
+
+### 引数
+
+```rust
+pub struct NewScreenArgs {
+    /// フロントエンドタイプ
+    #[arg(short = 't', long = "type", value_enum, default_value = "react")]
+    pub frontend_type: FrontendType,
+
+    /// 画面ID（ドット区切り、例: users.list, users.detail）
+    #[arg(short, long)]
+    pub screen_id: String,
+
+    /// 画面タイトル
+    #[arg(short = 'T', long)]
+    pub title: String,
+
+    /// 対象の feature ディレクトリ
+    #[arg(short, long)]
+    pub feature_dir: String,
+
+    /// メニューに追加する（メニュー設定スニペットを出力）
+    #[arg(long)]
+    pub with_menu: bool,
+
+    /// URL パス（指定しない場合は screen_id から自動生成）
+    #[arg(short, long)]
+    pub path: Option<String>,
+
+    /// 必要な権限（カンマ区切り）
+    #[arg(long)]
+    pub permissions: Option<String>,
+
+    /// 必要な feature flag（カンマ区切り）
+    #[arg(long)]
+    pub flags: Option<String>,
+
+    /// 既存のファイルを上書きする
+    #[arg(short = 'F', long)]
+    pub force: bool,
+}
+```
+
+### フロントエンドタイプ
+
+| タイプ | テンプレートパス | 出力ファイル |
+|--------|----------------|-------------|
+| `react` | `CLI/templates/frontend-react/screen` | `src/pages/{ComponentName}.tsx` |
+| `flutter` | `CLI/templates/frontend-flutter/screen` | `lib/src/presentation/pages/{snake_case}_page.dart` |
+
+### 処理フロー
+
+```
+1. screen_id のバリデーション
+2. feature_dir の存在確認
+3. URL パスの生成（指定がない場合）
+4. コンポーネント名・ファイル名の生成
+5. テンプレートディレクトリの検索
+6. 既存ファイルの確認
+   └─ 存在する場合
+      ├─ --force: 上書き
+      └─ なし: エラー
+7. Tera コンテキストの作成
+8. テンプレートのレンダリング
+9. ファイルの書き込み
+10. 設定スニペットの出力
+    ├─ React: screens.ts, route.yaml
+    └─ Flutter: route.yaml
+11. --with-menu: menu.yaml スニペット出力
+12. 完了メッセージ表示
+```
+
+### テンプレート変数
+
+| 変数名 | 説明 | 例 |
+|--------|------|-----|
+| `screen_id` | 画面ID | `users.list` |
+| `title` | 画面タイトル | `ユーザー一覧` |
+| `path` | URL パス | `/users/list` |
+| `component_name` | コンポーネント名（PascalCase + Page） | `UsersListPage` |
+| `file_name` | ファイル名 | `UsersListPage` (React), `users_list` (Flutter) |
+| `permissions` | 必要な権限リスト | `["user.read"]` |
+| `flags` | 必要なフラグリスト | `["feature_users"]` |
+| `with_menu` | メニュー追加フラグ | `true` |
+
+### 画面ID のバリデーション
+
+```rust
+fn is_valid_screen_id(s: &str) -> bool {
+    // 1. 空でない
+    // 2. 先頭・末尾がドットでない
+    // 3. 連続するドットがない
+    // 4. 許可される文字: 小文字、数字、ドット、アンダースコア
+}
+```
+
+有効な例: `home`, `users.list`, `settings.profile.edit`
+無効な例: `Users`, `.users`, `users.`, `users..list`
+
+### 生成例
+
+#### React
+
+```bash
+k1s0 new-screen -t react -s users.list -T "ユーザー一覧" -f ./my-feature --with-menu
+```
+
+生成されるファイル:
+- `my-feature/src/pages/UsersListPage.tsx`
+
+出力される設定スニペット:
+- `src/config/screens.ts` への追加コード
+- `config/default.yaml` の `ui.navigation.routes` への追加
+- `config/default.yaml` の `ui.navigation.menu.items` への追加（--with-menu 時）
+
+#### Flutter
+
+```bash
+k1s0 new-screen -t flutter -s settings.profile -T "プロフィール設定" -f ./my-feature
+```
+
+生成されるファイル:
+- `my-feature/lib/src/presentation/pages/settings_profile_page.dart`
+
+出力される設定スニペット:
+- `config/default.yaml` の `ui.navigation.routes` への追加
 
 ---
 
