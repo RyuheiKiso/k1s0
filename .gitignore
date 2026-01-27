@@ -32,3 +32,16 @@ framework/backend/rust/target/*
 framework/frontend/react/packages/k1s0-config/node_modules/*
 framework/frontend/react/packages/k1s0-shell/node_modules/*
 framework/frontend/react/packages/sample-app/*
+framework/frontend/react/packages/k1s0-auth-client/dist/*
+framework/frontend/react/packages/k1s0-auth-client/node_modules/*
+framework/frontend/react/packages/k1s0-observability/dist/*
+framework/frontend/react/packages/k1s0-observability/node_modules/*
+framework/frontend/react/packages/k1s0-shell/dist/*
+framework/frontend/react/packages/k1s0-config/dist/*
+framework/frontend/flutter/packages/k1s0_config/.dart_tool/*
+framework/frontend/flutter/packages/k1s0_auth/.dart_tool/*
+framework/frontend/flutter/packages/k1s0_http/.dart_tool/*
+framework/frontend/flutter/packages/k1s0_ui/.dart_tool/*
+framework/frontend/flutter/packages/k1s0_state/.dart_tool/*
+framework/frontend/flutter/packages/k1s0_observability/.dart_tool/*
+

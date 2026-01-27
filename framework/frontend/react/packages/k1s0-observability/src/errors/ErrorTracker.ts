@@ -67,9 +67,9 @@ export class ErrorTracker {
     // window.onerror
     const errorHandler = (event: ErrorEvent) => {
       const error =
-        event instanceof Error
-          ? event
-          : new Error(event.message || 'Unknown error');
+        event.error instanceof Error
+          ? event.error
+          : new Error(event.error ? String(event.error) : 'Unknown error');
       this.captureError(error);
     };
 

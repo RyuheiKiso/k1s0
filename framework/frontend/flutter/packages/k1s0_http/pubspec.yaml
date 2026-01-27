@@ -1,0 +1,27 @@
+name: k1s0_http
+description: HTTP client for k1s0 Flutter applications with interceptors, error handling, and tracing
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.4.0
+  freezed_annotation: ^2.4.0
+  json_annotation: ^4.8.1
+  uuid: ^4.3.0
+  meta: ^1.10.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.0
+  freezed: ^2.4.0
+  json_serializable: ^6.7.0
+  mockito: ^5.4.0
+  build_verify: ^3.1.0

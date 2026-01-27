@@ -21,9 +21,14 @@ export interface LoadOptions {
  */
 function expandEnvironmentVariables(value: string): string {
   return value.replace(/\$\{([^}:]+)(?::([^}]*))?\}/g, (_, envVar, defaultValue) => {
-    const envValue = typeof window !== "undefined"
-      ? (window as unknown as Record<string, Record<string, string>>).__ENV__?.[envVar]
-      : process.env[envVar];
+    let envValue: string | undefined;
+    if (typeof window !== "undefined") {
+      // ブラウザ環境: __ENV__ オブジェクトから取得
+      envValue = (window as unknown as Record<string, Record<string, string>>).__ENV__?.[envVar];
+    } else if (typeof globalThis !== "undefined" && "process" in globalThis) {
+      // Node.js 環境: process.env から取得
+      envValue = (globalThis as unknown as { process: { env: Record<string, string | undefined> } }).process.env[envVar];
+    }
     return envValue ?? defaultValue ?? "";
   });
 }
