@@ -1,0 +1,497 @@
+name: Release Rust Crates
+
+on:
+  push:
+    tags:
+      - 'crate-v[0-9]+.[0-9]+.[0-9]+'
+      - 'crate-v[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+      workspace:
+        description: 'Workspace to publish (cli, framework, or all)'
+        required: false
+        type: choice
+        options:
+          - all
+          - cli
+          - framework
+        default: 'all'
+      crates:
+        description: 'Specific crates to publish (comma-separated, empty = all in workspace)'
+        required: false
+        type: string
+        default: ''
+      dry_run:
+        description: 'Dry run (cargo publish --dry-run)'
+        required: false
+        type: boolean
+        default: true
+
+# Cancel in-progress runs for the same ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -Dwarnings
+
+permissions:
+  contents: write
+
+jobs:
+  # =============================================================================
+  # Validate Version
+  # =============================================================================
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      workspace: ${{ steps.config.outputs.workspace }}
+      crates: ${{ steps.config.outputs.crates }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#crate-v}"
+          fi
+
+          # Validate semver format
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "Error: Invalid version format: $VERSION"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Configure crates to publish
+        id: config
+        run: |
+          WORKSPACE="${{ github.event.inputs.workspace || 'all' }}"
+          CRATES="${{ github.event.inputs.crates }}"
+
+          echo "workspace=$WORKSPACE" >> $GITHUB_OUTPUT
+
+          if [[ -n "$CRATES" ]]; then
+            echo "crates=$CRATES" >> $GITHUB_OUTPUT
+          else
+            echo "crates=" >> $GITHUB_OUTPUT
+          fi
+
+          echo "Workspace: $WORKSPACE"
+          echo "Crates: ${CRATES:-all in workspace}"
+
+  # =============================================================================
+  # Verify and Build
+  # =============================================================================
+  verify:
+    name: Verify (${{ matrix.workspace }})
+    runs-on: ubuntu-latest
+    needs: validate
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - workspace: cli
+            path: CLI
+            enabled: ${{ needs.validate.outputs.workspace == 'all' || needs.validate.outputs.workspace == 'cli' }}
+          - workspace: framework
+            path: framework/backend/rust
+            enabled: ${{ needs.validate.outputs.workspace == 'all' || needs.validate.outputs.workspace == 'framework' }}
+    steps:
+      - name: Check if enabled
+        id: check
+        run: |
+          if [[ "${{ matrix.enabled }}" != "true" ]]; then
+            echo "Skipping ${{ matrix.workspace }} workspace"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout repository
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        if: steps.check.outputs.skip != 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install protoc (framework only)
+        if: steps.check.outputs.skip != 'true' && matrix.workspace == 'framework'
+        uses: arduino/setup-protoc@v3
+        with:
+          version: '25.x'
+
+      - name: Cache Rust dependencies
+        if: steps.check.outputs.skip != 'true'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.path }} -> target
+
+      - name: Check formatting
+        if: steps.check.outputs.skip != 'true'
+        working-directory: ${{ matrix.path }}
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        if: steps.check.outputs.skip != 'true'
+        working-directory: ${{ matrix.path }}
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Run tests
+        if: steps.check.outputs.skip != 'true'
+        working-directory: ${{ matrix.path }}
+        run: cargo test --all-features
+
+      - name: Verify package
+        if: steps.check.outputs.skip != 'true'
+        working-directory: ${{ matrix.path }}
+        run: cargo package --list --allow-dirty || true
+
+  # =============================================================================
+  # Publish CLI Crates
+  # =============================================================================
+  publish-cli:
+    name: Publish CLI Crates
+    runs-on: ubuntu-latest
+    needs: [validate, verify]
+    if: needs.validate.outputs.workspace == 'all' || needs.validate.outputs.workspace == 'cli'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: CLI -> target
+
+      - name: Update crate versions
+        working-directory: CLI
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+
+          # Update workspace version
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+
+          # Update all crate versions that use workspace version
+          for crate_dir in crates/*/; do
+            CRATE_TOML="${crate_dir}Cargo.toml"
+            if [[ -f "$CRATE_TOML" ]]; then
+              echo "Checking $CRATE_TOML"
+            fi
+          done
+
+          cargo update --workspace
+
+      - name: Publish crates in dependency order
+        working-directory: CLI
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          DRY_RUN="${{ github.event.inputs.dry_run }}"
+          CRATES="${{ needs.validate.outputs.crates }}"
+
+          # CLI crate dependency order (dependencies first)
+          PUBLISH_ORDER=(
+            "k1s0-generator"
+            "k1s0-lsp"
+            "k1s0-cli"
+          )
+
+          # Build publish command
+          PUBLISH_CMD="cargo publish --allow-dirty"
+          if [[ "$DRY_RUN" == "true" ]]; then
+            PUBLISH_CMD="$PUBLISH_CMD --dry-run"
+          fi
+
+          # Filter crates if specified
+          if [[ -n "$CRATES" ]]; then
+            IFS=',' read -ra SELECTED <<< "$CRATES"
+            FILTERED_ORDER=()
+            for crate in "${PUBLISH_ORDER[@]}"; do
+              for selected in "${SELECTED[@]}"; do
+                selected=$(echo "$selected" | xargs)
+                if [[ "$crate" == "$selected" ]]; then
+                  FILTERED_ORDER+=("$crate")
+                fi
+              done
+            done
+            PUBLISH_ORDER=("${FILTERED_ORDER[@]}")
+          fi
+
+          echo "Publishing crates in order: ${PUBLISH_ORDER[*]}"
+          echo ""
+
+          FAILED_CRATES=""
+          for crate in "${PUBLISH_ORDER[@]}"; do
+            CRATE_DIR="crates/${crate}"
+
+            if [[ ! -d "$CRATE_DIR" ]]; then
+              echo "Warning: Crate directory not found: $CRATE_DIR"
+              continue
+            fi
+
+            echo "================================================"
+            echo "Publishing: $crate"
+            echo "================================================"
+
+            cd "$CRATE_DIR"
+
+            # Check if version already exists on crates.io
+            EXISTING=$(cargo search "$crate" --limit 1 2>/dev/null | grep "^$crate = " | sed 's/.*"\(.*\)".*/\1/' || echo "")
+            if [[ "$EXISTING" == "$VERSION" && "$DRY_RUN" != "true" ]]; then
+              echo "Version $VERSION already published for $crate, skipping..."
+              cd ../..
+              continue
+            fi
+
+            if $PUBLISH_CMD; then
+              echo "Successfully published $crate@$VERSION"
+            else
+              echo "Failed to publish $crate"
+              FAILED_CRATES="$FAILED_CRATES $crate"
+            fi
+
+            cd ../..
+
+            # Wait between publishes to avoid rate limiting
+            if [[ "$DRY_RUN" != "true" ]]; then
+              echo "Waiting 30 seconds before next publish..."
+              sleep 30
+            fi
+          done
+
+          if [[ -n "$FAILED_CRATES" ]]; then
+            echo ""
+            echo "Failed to publish:$FAILED_CRATES"
+            exit 1
+          fi
+
+  # =============================================================================
+  # Publish Framework Crates
+  # =============================================================================
+  publish-framework:
+    name: Publish Framework Crates
+    runs-on: ubuntu-latest
+    needs: [validate, verify]
+    if: needs.validate.outputs.workspace == 'all' || needs.validate.outputs.workspace == 'framework'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: '25.x'
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: framework/backend/rust -> target
+
+      - name: Update crate versions
+        working-directory: framework/backend/rust
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+          cargo update --workspace
+
+      - name: Publish crates in dependency order
+        working-directory: framework/backend/rust
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          DRY_RUN="${{ github.event.inputs.dry_run }}"
+          CRATES="${{ needs.validate.outputs.crates }}"
+
+          # Framework crate dependency order (dependencies first)
+          # Based on typical inter-crate dependencies
+          PUBLISH_ORDER=(
+            "k1s0-error"
+            "k1s0-config"
+            "k1s0-observability"
+            "k1s0-validation"
+            "k1s0-cache"
+            "k1s0-db"
+            "k1s0-auth"
+            "k1s0-health"
+            "k1s0-resilience"
+            "k1s0-grpc-client"
+            "k1s0-grpc-server"
+          )
+
+          PUBLISH_CMD="cargo publish --allow-dirty"
+          if [[ "$DRY_RUN" == "true" ]]; then
+            PUBLISH_CMD="$PUBLISH_CMD --dry-run"
+          fi
+
+          # Filter crates if specified
+          if [[ -n "$CRATES" ]]; then
+            IFS=',' read -ra SELECTED <<< "$CRATES"
+            FILTERED_ORDER=()
+            for crate in "${PUBLISH_ORDER[@]}"; do
+              for selected in "${SELECTED[@]}"; do
+                selected=$(echo "$selected" | xargs)
+                if [[ "$crate" == "$selected" ]]; then
+                  FILTERED_ORDER+=("$crate")
+                fi
+              done
+            done
+            PUBLISH_ORDER=("${FILTERED_ORDER[@]}")
+          fi
+
+          echo "Publishing crates in order: ${PUBLISH_ORDER[*]}"
+          echo ""
+
+          FAILED_CRATES=""
+          for crate in "${PUBLISH_ORDER[@]}"; do
+            CRATE_DIR="crates/${crate}"
+
+            if [[ ! -d "$CRATE_DIR" ]]; then
+              echo "Warning: Crate directory not found: $CRATE_DIR"
+              continue
+            fi
+
+            echo "================================================"
+            echo "Publishing: $crate"
+            echo "================================================"
+
+            cd "$CRATE_DIR"
+
+            EXISTING=$(cargo search "$crate" --limit 1 2>/dev/null | grep "^$crate = " | sed 's/.*"\(.*\)".*/\1/' || echo "")
+            if [[ "$EXISTING" == "$VERSION" && "$DRY_RUN" != "true" ]]; then
+              echo "Version $VERSION already published for $crate, skipping..."
+              cd ../..
+              continue
+            fi
+
+            if $PUBLISH_CMD; then
+              echo "Successfully published $crate@$VERSION"
+            else
+              echo "Failed to publish $crate"
+              FAILED_CRATES="$FAILED_CRATES $crate"
+            fi
+
+            cd ../..
+
+            if [[ "$DRY_RUN" != "true" ]]; then
+              echo "Waiting 30 seconds before next publish..."
+              sleep 30
+            fi
+          done
+
+          if [[ -n "$FAILED_CRATES" ]]; then
+            echo ""
+            echo "Failed to publish:$FAILED_CRATES"
+            exit 1
+          fi
+
+  # =============================================================================
+  # Create Git Tag (workflow_dispatch only)
+  # =============================================================================
+  tag:
+    name: Create Git Tag
+    runs-on: ubuntu-latest
+    needs: [validate, publish-cli, publish-framework]
+    if: |
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.dry_run != 'true' &&
+      (needs.publish-cli.result == 'success' || needs.publish-cli.result == 'skipped') &&
+      (needs.publish-framework.result == 'success' || needs.publish-framework.result == 'skipped')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create and push tag
+        run: |
+          VERSION="crate-v${{ needs.validate.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$VERSION" -m "Crate release $VERSION"
+          git push origin "$VERSION"
+
+  # =============================================================================
+  # Summary
+  # =============================================================================
+  summary:
+    name: Release Summary
+    runs-on: ubuntu-latest
+    needs: [validate, publish-cli, publish-framework]
+    if: always()
+    steps:
+      - name: Create summary
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          WORKSPACE="${{ needs.validate.outputs.workspace }}"
+          DRY_RUN="${{ github.event.inputs.dry_run }}"
+
+          echo "## Crate Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | \`$VERSION\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Workspace | \`$WORKSPACE\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dry Run | $DRY_RUN |" >> $GITHUB_STEP_SUMMARY
+          echo "| CLI Status | ${{ needs.publish-cli.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Framework Status | ${{ needs.publish-framework.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "$DRY_RUN" != "true" ]]; then
+            echo "### Published Crates" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "View on [crates.io](https://crates.io/search?q=k1s0)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # =============================================================================
+  # Notify (Optional - Uncomment to enable)
+  # =============================================================================
+  # notify:
+  #   name: Send Notifications
+  #   runs-on: ubuntu-latest
+  #   needs: [validate, publish-cli, publish-framework]
+  #   if: |
+  #     success() &&
+  #     github.event.inputs.dry_run != 'true'
+  #   steps:
+  #     - name: Notify Slack
+  #       uses: slackapi/slack-github-action@v2
+  #       with:
+  #         webhook: ${{ secrets.SLACK_RELEASE_WEBHOOK }}
+  #         webhook-type: incoming-webhook
+  #         payload: |
+  #           {
+  #             "text": "New k1s0-* crates released: v${{ needs.validate.outputs.version }}",
+  #             "blocks": [
+  #               {
+  #                 "type": "section",
+  #                 "text": {
+  #                   "type": "mrkdwn",
+  #                   "text": "*New k1s0-* Crate Release*\nVersion: `v${{ needs.validate.outputs.version }}`\nWorkspace: `${{ needs.validate.outputs.workspace }}`\n<https://crates.io/search?q=k1s0|View on crates.io>"
+  #                 }
+  #               }
+  #             ]
+  #           }

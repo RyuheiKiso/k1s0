@@ -1,0 +1,385 @@
+name: Release npm Packages
+
+on:
+  push:
+    tags:
+      - 'npm-v[0-9]+.[0-9]+.[0-9]+'
+      - 'npm-v[0-9]+.[0-9]+.[0-9]+-*'  # Pre-release tags
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+      packages:
+        description: 'Packages to publish (comma-separated, or "all")'
+        required: false
+        type: string
+        default: 'all'
+      dry_run:
+        description: 'Dry run (npm publish --dry-run)'
+        required: false
+        type: boolean
+        default: false
+      prerelease_tag:
+        description: 'npm dist-tag for pre-release (e.g., beta, next)'
+        required: false
+        type: string
+        default: ''
+
+# Cancel in-progress runs for the same ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PNPM_VERSION: '9'
+  NODE_VERSION: '20'
+
+permissions:
+  contents: write
+  id-token: write  # Required for npm provenance
+
+jobs:
+  # =============================================================================
+  # Validate Version and Packages
+  # =============================================================================
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      packages: ${{ steps.packages.outputs.packages }}
+      npm_tag: ${{ steps.version.outputs.npm_tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+            NPM_TAG="${{ github.event.inputs.prerelease_tag }}"
+          else
+            # Extract version from tag (remove 'npm-v' prefix)
+            VERSION="${GITHUB_REF_NAME#npm-v}"
+            # Check if it's a pre-release
+            if [[ "$VERSION" == *-beta* ]]; then
+              NPM_TAG="beta"
+            elif [[ "$VERSION" == *-alpha* ]]; then
+              NPM_TAG="alpha"
+            elif [[ "$VERSION" == *-next* ]]; then
+              NPM_TAG="next"
+            elif [[ "$VERSION" == *-* ]]; then
+              NPM_TAG="next"
+            else
+              NPM_TAG="latest"
+            fi
+          fi
+
+          # Default to latest if no tag specified
+          [[ -z "$NPM_TAG" ]] && NPM_TAG="latest"
+
+          # Validate semver format
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "Error: Invalid version format: $VERSION"
+            echo "Expected format: X.Y.Z or X.Y.Z-prerelease"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "npm_tag=$NPM_TAG" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION (npm tag: $NPM_TAG)"
+
+      - name: Determine packages to publish
+        id: packages
+        run: |
+          PACKAGES_INPUT="${{ github.event.inputs.packages || 'all' }}"
+
+          if [[ "$PACKAGES_INPUT" == "all" ]]; then
+            # List all publishable packages
+            PACKAGES=$(ls -d framework/frontend/react/packages/*/ | xargs -I{} basename {} | tr '\n' ',' | sed 's/,$//')
+          else
+            PACKAGES="$PACKAGES_INPUT"
+          fi
+
+          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
+          echo "Packages to publish: $PACKAGES"
+
+  # =============================================================================
+  # Build and Test
+  # =============================================================================
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: framework/frontend/react/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: framework/frontend/react
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        working-directory: framework/frontend/react
+        run: pnpm typecheck
+
+      - name: Lint
+        working-directory: framework/frontend/react
+        run: pnpm lint
+
+      - name: Run tests
+        working-directory: framework/frontend/react
+        run: pnpm test
+
+      - name: Build packages
+        working-directory: framework/frontend/react
+        run: pnpm build
+
+      - name: Verify package contents
+        working-directory: framework/frontend/react
+        run: |
+          echo "Checking built packages..."
+          for pkg_dir in packages/*/; do
+            pkg_name=$(basename "$pkg_dir")
+            if [[ -d "${pkg_dir}dist" ]]; then
+              echo "Package $pkg_name: dist/ exists"
+              ls -la "${pkg_dir}dist/"
+            else
+              echo "Warning: Package $pkg_name has no dist/ directory"
+            fi
+          done
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-packages
+          path: framework/frontend/react/packages/*/dist/
+          retention-days: 7
+
+  # =============================================================================
+  # Publish to npm
+  # =============================================================================
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    needs: [validate, build]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
+          cache-dependency-path: framework/frontend/react/pnpm-lock.yaml
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-packages
+          path: framework/frontend/react/packages/
+
+      - name: Install dependencies
+        working-directory: framework/frontend/react
+        run: pnpm install --frozen-lockfile
+
+      - name: Update package versions
+        working-directory: framework/frontend/react
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          PACKAGES="${{ needs.validate.outputs.packages }}"
+
+          IFS=',' read -ra PKG_ARRAY <<< "$PACKAGES"
+          for pkg in "${PKG_ARRAY[@]}"; do
+            pkg=$(echo "$pkg" | xargs)  # Trim whitespace
+            PKG_JSON="packages/${pkg}/package.json"
+
+            if [[ -f "$PKG_JSON" ]]; then
+              echo "Updating version in $PKG_JSON to $VERSION"
+              # Use jq to update version
+              jq --arg v "$VERSION" '.version = $v' "$PKG_JSON" > tmp.json && mv tmp.json "$PKG_JSON"
+            else
+              echo "Warning: Package.json not found for $pkg"
+            fi
+          done
+
+      - name: Publish packages
+        working-directory: framework/frontend/react
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          NPM_TAG="${{ needs.validate.outputs.npm_tag }}"
+          PACKAGES="${{ needs.validate.outputs.packages }}"
+          DRY_RUN="${{ github.event.inputs.dry_run }}"
+
+          # Build publish command
+          PUBLISH_CMD="pnpm publish --access public --tag $NPM_TAG --no-git-checks"
+          if [[ "$DRY_RUN" == "true" ]]; then
+            PUBLISH_CMD="$PUBLISH_CMD --dry-run"
+          fi
+
+          echo "Publishing with command: $PUBLISH_CMD"
+
+          IFS=',' read -ra PKG_ARRAY <<< "$PACKAGES"
+          FAILED_PACKAGES=""
+
+          for pkg in "${PKG_ARRAY[@]}"; do
+            pkg=$(echo "$pkg" | xargs)  # Trim whitespace
+            PKG_DIR="packages/${pkg}"
+
+            if [[ -d "$PKG_DIR" ]]; then
+              echo ""
+              echo "================================================"
+              echo "Publishing: $pkg"
+              echo "================================================"
+
+              cd "$PKG_DIR"
+
+              # Check if package is private
+              PRIVATE=$(jq -r '.private // false' package.json)
+              if [[ "$PRIVATE" == "true" ]]; then
+                echo "Skipping private package: $pkg"
+                cd ../..
+                continue
+              fi
+
+              # Check if this version already exists
+              PKG_NAME=$(jq -r '.name' package.json)
+              EXISTING=$(npm view "$PKG_NAME@$VERSION" version 2>/dev/null || echo "")
+
+              if [[ -n "$EXISTING" && "$DRY_RUN" != "true" ]]; then
+                echo "Version $VERSION already published for $PKG_NAME, skipping..."
+                cd ../..
+                continue
+              fi
+
+              # Publish
+              if $PUBLISH_CMD; then
+                echo "Successfully published $pkg@$VERSION"
+              else
+                echo "Failed to publish $pkg"
+                FAILED_PACKAGES="$FAILED_PACKAGES $pkg"
+              fi
+
+              cd ../..
+            else
+              echo "Warning: Package directory not found: $PKG_DIR"
+            fi
+          done
+
+          if [[ -n "$FAILED_PACKAGES" ]]; then
+            echo ""
+            echo "Failed to publish:$FAILED_PACKAGES"
+            exit 1
+          fi
+
+          echo ""
+          echo "All packages published successfully!"
+
+  # =============================================================================
+  # Create Git Tag (workflow_dispatch only)
+  # =============================================================================
+  tag:
+    name: Create Git Tag
+    runs-on: ubuntu-latest
+    needs: [validate, publish]
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create and push tag
+        run: |
+          VERSION="npm-v${{ needs.validate.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$VERSION" -m "npm release $VERSION"
+          git push origin "$VERSION"
+
+  # =============================================================================
+  # Summary
+  # =============================================================================
+  summary:
+    name: Release Summary
+    runs-on: ubuntu-latest
+    needs: [validate, publish]
+    if: always()
+    steps:
+      - name: Create summary
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          NPM_TAG="${{ needs.validate.outputs.npm_tag }}"
+          PACKAGES="${{ needs.validate.outputs.packages }}"
+          DRY_RUN="${{ github.event.inputs.dry_run }}"
+
+          echo "## npm Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | \`$VERSION\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| npm Tag | \`$NPM_TAG\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Packages | $PACKAGES |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dry Run | $DRY_RUN |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | ${{ needs.publish.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.publish.result }}" == "success" && "$DRY_RUN" != "true" ]]; then
+            echo "### Published Packages" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            IFS=',' read -ra PKG_ARRAY <<< "$PACKAGES"
+            for pkg in "${PKG_ARRAY[@]}"; do
+              pkg=$(echo "$pkg" | xargs)
+              echo "- [@k1s0/${pkg}](https://www.npmjs.com/package/@k1s0/${pkg})" >> $GITHUB_STEP_SUMMARY
+            done
+          fi
+
+  # =============================================================================
+  # Notify (Optional - Uncomment to enable)
+  # =============================================================================
+  # notify:
+  #   name: Send Notifications
+  #   runs-on: ubuntu-latest
+  #   needs: [validate, publish]
+  #   if: success() && github.event.inputs.dry_run != 'true'
+  #   steps:
+  #     - name: Notify Slack
+  #       uses: slackapi/slack-github-action@v2
+  #       with:
+  #         webhook: ${{ secrets.SLACK_RELEASE_WEBHOOK }}
+  #         webhook-type: incoming-webhook
+  #         payload: |
+  #           {
+  #             "text": "New @k1s0/* npm packages released: v${{ needs.validate.outputs.version }}",
+  #             "blocks": [
+  #               {
+  #                 "type": "section",
+  #                 "text": {
+  #                   "type": "mrkdwn",
+  #                   "text": "*New @k1s0/* npm Release*\nVersion: `v${{ needs.validate.outputs.version }}`\nTag: `${{ needs.validate.outputs.npm_tag }}`"
+  #                 }
+  #               }
+  #             ]
+  #           }
