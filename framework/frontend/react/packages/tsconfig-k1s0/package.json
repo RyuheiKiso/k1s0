@@ -1,0 +1,35 @@
+{
+  "name": "@k1s0/tsconfig",
+  "version": "0.1.0",
+  "description": "Shared TypeScript configuration for k1s0 projects",
+  "type": "module",
+  "main": "./base.json",
+  "exports": {
+    ".": "./base.json",
+    "./base.json": "./base.json",
+    "./react.json": "./react.json",
+    "./library.json": "./library.json",
+    "./node.json": "./node.json"
+  },
+  "files": [
+    "*.json",
+    "!package.json",
+    "!tsconfig.json"
+  ],
+  "keywords": [
+    "typescript",
+    "tsconfig",
+    "k1s0",
+    "react",
+    "configuration"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/k1s0.git",
+    "directory": "framework/frontend/react/packages/tsconfig-k1s0"
+  },
+  "license": "MIT"
+}

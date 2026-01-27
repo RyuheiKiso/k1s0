@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "_description": "@k1s0/tsconfig - TypeScript configuration for React applications",
+  "extends": "./base.json",
+  "compilerOptions": {
+    /* Language and Environment */
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+
+    /* Emit - React apps typically use bundlers */
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false
+  }
+}

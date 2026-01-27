@@ -1,0 +1,187 @@
+name: frontend-react
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'framework/frontend/react/**'
+      - 'feature/frontend/react/**'
+      - '.github/workflows/frontend-react.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'framework/frontend/react/**'
+      - 'feature/frontend/react/**'
+      - '.github/workflows/frontend-react.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: framework/frontend/react/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: framework/frontend/react
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        working-directory: framework/frontend/react
+        run: pnpm lint
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: framework/frontend/react/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: framework/frontend/react
+        run: pnpm install --frozen-lockfile
+
+      - name: Run TypeScript type check
+        working-directory: framework/frontend/react
+        run: pnpm typecheck
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: framework/frontend/react/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: framework/frontend/react
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        working-directory: framework/frontend/react
+        run: pnpm test
+
+      # Optional: Upload coverage to Codecov
+      # - name: Upload coverage to Codecov
+      #   uses: codecov/codecov-action@v4
+      #   with:
+      #     directory: framework/frontend/react
+      #     flags: react
+      #     fail_ci_if_error: false
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: framework/frontend/react/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: framework/frontend/react
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        working-directory: framework/frontend/react
+        run: pnpm build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-packages-dist
+          path: framework/frontend/react/packages/*/dist
+          retention-days: 7
+
+  # Optional: E2E tests with Playwright
+  # e2e:
+  #   name: E2E Tests
+  #   runs-on: ubuntu-latest
+  #   needs: [build]
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Setup pnpm
+  #       uses: pnpm/action-setup@v4
+  #       with:
+  #         version: ${{ env.PNPM_VERSION }}
+  #
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #         cache: 'pnpm'
+  #         cache-dependency-path: framework/frontend/react/pnpm-lock.yaml
+  #
+  #     - name: Install dependencies
+  #       working-directory: framework/frontend/react
+  #       run: pnpm install --frozen-lockfile
+  #
+  #     - name: Install Playwright browsers
+  #       run: pnpm exec playwright install --with-deps
+  #       working-directory: framework/frontend/react
+  #
+  #     - name: Run E2E tests
+  #       working-directory: framework/frontend/react
+  #       run: pnpm e2e
+  #
+  #     - name: Upload Playwright report
+  #       uses: actions/upload-artifact@v4
+  #       if: failure()
+  #       with:
+  #         name: playwright-report
+  #         path: framework/frontend/react/playwright-report
+  #         retention-days: 7
