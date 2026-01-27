@@ -1,0 +1,55 @@
+{
+  "name": "@k1s0/eslint-config",
+  "version": "0.1.0",
+  "description": "Shared ESLint configuration for k1s0 React projects",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./base": "./base.js",
+    "./react": "./react.js",
+    "./typescript": "./typescript.js"
+  },
+  "files": [
+    "*.js"
+  ],
+  "keywords": [
+    "eslint",
+    "eslintconfig",
+    "k1s0",
+    "react",
+    "typescript"
+  ],
+  "peerDependencies": {
+    "eslint": "^8.57.0 || ^9.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-import-resolver-typescript": "^3.6.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint-plugin-react": "^7.34.0",
+    "eslint-plugin-react-hooks": "^5.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/k1s0.git",
+    "directory": "framework/frontend/react/packages/eslint-config-k1s0"
+  },
+  "license": "MIT"
+}

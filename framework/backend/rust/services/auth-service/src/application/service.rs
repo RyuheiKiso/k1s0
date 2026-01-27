@@ -16,10 +16,14 @@ where
     P: PermissionRepository,
     T: TokenRepository,
 {
-    user_repo: Arc<U>,
-    role_repo: Arc<R>,
-    permission_repo: Arc<P>,
-    token_repo: Arc<T>,
+    /// ユーザーリポジトリ (テスト用にpub(crate))
+    pub(crate) user_repo: Arc<U>,
+    /// ロールリポジトリ (テスト用にpub(crate))
+    pub(crate) role_repo: Arc<R>,
+    /// パーミッションリポジトリ (テスト用にpub(crate))
+    pub(crate) permission_repo: Arc<P>,
+    /// トークンリポジトリ (テスト用にpub(crate))
+    pub(crate) token_repo: Arc<T>,
     /// トークン発行者
     issuer: String,
     /// アクセストークン有効期間（秒）
@@ -249,6 +253,10 @@ mod tests {
         InMemoryUserRepository,
     };
 
+    // ========================================
+    // Test Helper Functions
+    // ========================================
+
     fn create_test_service() -> AuthService<
         InMemoryUserRepository,
         InMemoryRoleRepository,
@@ -265,22 +273,110 @@ mod tests {
         )
     }
 
+    fn create_test_service_with_custom_ttl(
+        access_ttl: i64,
+        refresh_ttl: i64,
+    ) -> AuthService<
+        InMemoryUserRepository,
+        InMemoryRoleRepository,
+        InMemoryPermissionRepository,
+        InMemoryTokenRepository,
+    > {
+        AuthService::new(
+            Arc::new(InMemoryUserRepository::new()),
+            Arc::new(InMemoryRoleRepository::new()),
+            Arc::new(InMemoryPermissionRepository::new()),
+            Arc::new(InMemoryTokenRepository::new()),
+            "k1s0-test",
+            "secret123",
+        )
+        .with_access_token_ttl(access_ttl)
+        .with_refresh_token_ttl(refresh_ttl)
+    }
+
+    // ========================================
+    // Service Creation Tests
+    // ========================================
+
+    #[tokio::test]
+    async fn test_service_new() {
+        let service = create_test_service();
+        // Service should be created successfully
+        assert!(service.get_user(1).await.is_err()); // No users yet
+    }
+
+    #[tokio::test]
+    async fn test_service_with_custom_ttl() {
+        let service = create_test_service_with_custom_ttl(1800, 86400);
+        // Service should be created with custom TTL
+        let user = User::new(1, "testuser", "test@example.com", "Test User", "hash:password123");
+        service.user_repo.save(&user).await.unwrap();
+
+        let token = service.authenticate("testuser", "password123").await.unwrap();
+        assert_eq!(token.expires_in, 1800);
+    }
+
+    // ========================================
+    // Authentication Tests - Success Cases
+    // ========================================
+
     #[tokio::test]
     async fn test_authenticate_success() {
         let service = create_test_service();
 
-        // テストユーザーを作成
         let user = User::new(1, "testuser", "test@example.com", "Test User", "hash:password123");
         service.user_repo.save(&user).await.unwrap();
 
-        // 認証
         let result = service.authenticate("testuser", "password123").await;
         assert!(result.is_ok());
 
         let token = result.unwrap();
         assert_eq!(token.token_type, "Bearer");
         assert!(token.access_token.starts_with("eyJ"));
+        assert!(!token.refresh_token.is_empty());
+        assert!(token.expires_in > 0);
     }
+
+    #[tokio::test]
+    async fn test_authenticate_updates_last_login() {
+        let service = create_test_service();
+
+        let user = User::new(1, "testuser", "test@example.com", "Test User", "hash:password123");
+        service.user_repo.save(&user).await.unwrap();
+
+        // Before authentication
+        let user_before = service.user_repo.get_by_id(1).await.unwrap().unwrap();
+        assert!(user_before.last_login_at.is_none());
+
+        // Authenticate
+        service.authenticate("testuser", "password123").await.unwrap();
+
+        // After authentication
+        let user_after = service.user_repo.get_by_id(1).await.unwrap().unwrap();
+        assert!(user_after.last_login_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_authenticate_with_roles() {
+        let service = create_test_service();
+
+        let user = User::new(1, "adminuser", "admin@example.com", "Admin User", "hash:password123");
+        service.user_repo.save(&user).await.unwrap();
+
+        // Add roles
+        let admin_role = Role::new(1, "admin", "Administrator");
+        service.role_repo.add_role(admin_role);
+        service.role_repo.assign_role(1, 1).await.unwrap();
+
+        let token = service.authenticate("adminuser", "password123").await.unwrap();
+
+        // Token should be generated (roles are encoded in token)
+        assert!(token.access_token.starts_with("eyJ"));
+    }
+
+    // ========================================
+    // Authentication Tests - Error Cases
+    // ========================================
 
     #[tokio::test]
     async fn test_authenticate_invalid_password() {
@@ -314,7 +410,119 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_user() {
+    async fn test_authenticate_account_inactive() {
+        let service = create_test_service();
+
+        let user = User::new(1, "inactiveuser", "inactive@example.com", "Inactive User", "hash:password123")
+            .with_status(UserStatus::Inactive);
+        service.user_repo.save(&user).await.unwrap();
+
+        let result = service.authenticate("inactiveuser", "password123").await;
+        assert!(matches!(result, Err(AuthError::AccountInactive { .. })));
+    }
+
+    #[tokio::test]
+    async fn test_authenticate_empty_login_id() {
+        let service = create_test_service();
+
+        let result = service.authenticate("", "password").await;
+        assert!(matches!(result, Err(AuthError::AuthenticationFailed { .. })));
+    }
+
+    #[tokio::test]
+    async fn test_authenticate_empty_password() {
+        let service = create_test_service();
+
+        let user = User::new(1, "testuser", "test@example.com", "Test User", "hash:password123");
+        service.user_repo.save(&user).await.unwrap();
+
+        let result = service.authenticate("testuser", "").await;
+        assert!(matches!(result, Err(AuthError::AuthenticationFailed { .. })));
+    }
+
+    // ========================================
+    // Token Refresh Tests
+    // ========================================
+
+    #[tokio::test]
+    async fn test_refresh_token_success() {
+        let service = create_test_service();
+
+        let user = User::new(1, "testuser", "test@example.com", "Test User", "hash:password123");
+        service.user_repo.save(&user).await.unwrap();
+
+        let token = service.authenticate("testuser", "password123").await.unwrap();
+
+        let result = service.refresh_token(&token.refresh_token).await;
+        assert!(result.is_ok());
+
+        let new_token = result.unwrap();
+        assert_ne!(new_token.refresh_token, token.refresh_token);
+        assert_eq!(new_token.token_type, "Bearer");
+    }
+
+    #[tokio::test]
+    async fn test_refresh_token_revokes_old_token() {
+        let service = create_test_service();
+
+        let user = User::new(1, "testuser", "test@example.com", "Test User", "hash:password123");
+        service.user_repo.save(&user).await.unwrap();
+
+        let token = service.authenticate("testuser", "password123").await.unwrap();
+        let old_refresh = token.refresh_token.clone();
+
+        // Refresh
+        service.refresh_token(&old_refresh).await.unwrap();
+
+        // Old token should be revoked
+        let result = service.refresh_token(&old_refresh).await;
+        assert!(matches!(result, Err(AuthError::InvalidToken { .. })));
+    }
+
+    #[tokio::test]
+    async fn test_refresh_token_invalid() {
+        let service = create_test_service();
+
+        let result = service.refresh_token("invalid_token").await;
+        assert!(matches!(result, Err(AuthError::InvalidToken { .. })));
+    }
+
+    #[tokio::test]
+    async fn test_refresh_token_user_deleted() {
+        let service = create_test_service();
+
+        let user = User::new(1, "testuser", "test@example.com", "Test User", "hash:password123");
+        service.user_repo.save(&user).await.unwrap();
+
+        let token = service.authenticate("testuser", "password123").await.unwrap();
+
+        // Simulate user deletion by not having user in repo when refresh is called
+        // Note: In real scenario, user deletion would also revoke tokens
+        // For this test, we'll manually create a scenario where token exists but user doesn't
+
+        // Actually, let's test with a different user_id scenario
+        // Save a token for user that doesn't exist
+        let future = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64
+            + 3600;
+        service
+            .token_repo
+            .save_refresh_token(999, "orphan_token", future)
+            .await
+            .unwrap();
+
+        let result = service.refresh_token("orphan_token").await;
+        assert!(matches!(result, Err(AuthError::UserNotFound { .. })));
+    }
+
+    // ========================================
+    // Get User Tests
+    // ========================================
+
+    #[tokio::test]
+    async fn test_get_user_success() {
         let service = create_test_service();
 
         let user = User::new(1, "testuser", "test@example.com", "Test User", "hash:password");
@@ -322,7 +530,10 @@ mod tests {
 
         let result = service.get_user(1).await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().login_id, "testuser");
+
+        let found_user = result.unwrap();
+        assert_eq!(found_user.login_id, "testuser");
+        assert_eq!(found_user.email, "test@example.com");
     }
 
     #[tokio::test]
@@ -334,16 +545,34 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_check_permission() {
+    async fn test_get_user_returns_complete_data() {
+        let service = create_test_service();
+
+        let user = User::new(1, "testuser", "test@example.com", "Test User Display", "hash:password")
+            .with_status(UserStatus::Active);
+        service.user_repo.save(&user).await.unwrap();
+
+        let result = service.get_user(1).await.unwrap();
+
+        assert_eq!(result.user_id, 1);
+        assert_eq!(result.login_id, "testuser");
+        assert_eq!(result.email, "test@example.com");
+        assert_eq!(result.display_name, "Test User Display");
+        assert_eq!(result.status, UserStatus::Active);
+    }
+
+    // ========================================
+    // Permission Check Tests
+    // ========================================
+
+    #[tokio::test]
+    async fn test_check_permission_granted() {
         let service = create_test_service();
 
         let user = User::new(1, "admin", "admin@example.com", "Admin", "hash:password");
         service.user_repo.save(&user).await.unwrap();
 
-        // パーミッションを付与
-        service
-            .permission_repo
-            .add_permission(1, "user:read", None);
+        service.permission_repo.add_permission(1, "user:read", None);
 
         let result = service.check_permission(1, "user:read", None).await;
         assert!(result.is_ok());
@@ -351,20 +580,190 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_refresh_token() {
+    async fn test_check_permission_denied() {
+        let service = create_test_service();
+
+        let user = User::new(1, "user", "user@example.com", "User", "hash:password");
+        service.user_repo.save(&user).await.unwrap();
+
+        // No permission granted
+        let result = service.check_permission(1, "admin:all", None).await;
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_check_permission_user_not_found() {
+        let service = create_test_service();
+
+        let result = service.check_permission(999, "user:read", None).await;
+        assert!(matches!(result, Err(AuthError::UserNotFound { .. })));
+    }
+
+    #[tokio::test]
+    async fn test_check_permission_inactive_user_denied() {
+        let service = create_test_service();
+
+        let user = User::new(1, "inactive", "inactive@example.com", "Inactive", "hash:password")
+            .with_status(UserStatus::Inactive);
+        service.user_repo.save(&user).await.unwrap();
+
+        service.permission_repo.add_permission(1, "user:read", None);
+
+        // Even with permission, inactive users should be denied
+        let result = service.check_permission(1, "user:read", None).await;
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_check_permission_with_service_name() {
+        let service = create_test_service();
+
+        let user = User::new(1, "user", "user@example.com", "User", "hash:password");
+        service.user_repo.save(&user).await.unwrap();
+
+        service
+            .permission_repo
+            .add_permission(1, "resource:read", Some("resource-service"));
+
+        let result = service
+            .check_permission(1, "resource:read", Some("resource-service"))
+            .await;
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    // ========================================
+    // List User Roles Tests
+    // ========================================
+
+    #[tokio::test]
+    async fn test_list_user_roles_success() {
+        let service = create_test_service();
+
+        let user = User::new(1, "user", "user@example.com", "User", "hash:password");
+        service.user_repo.save(&user).await.unwrap();
+
+        let admin_role = Role::new(1, "admin", "Administrator");
+        let user_role = Role::new(2, "user", "Normal User");
+        service.role_repo.add_role(admin_role);
+        service.role_repo.add_role(user_role);
+
+        service.role_repo.assign_role(1, 1).await.unwrap();
+        service.role_repo.assign_role(1, 2).await.unwrap();
+
+        let roles = service.list_user_roles(1).await.unwrap();
+        assert_eq!(roles.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_list_user_roles_empty() {
+        let service = create_test_service();
+
+        let user = User::new(1, "user", "user@example.com", "User", "hash:password");
+        service.user_repo.save(&user).await.unwrap();
+
+        let roles = service.list_user_roles(1).await.unwrap();
+        assert!(roles.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_list_user_roles_user_not_found() {
+        let service = create_test_service();
+
+        let result = service.list_user_roles(999).await;
+        assert!(matches!(result, Err(AuthError::UserNotFound { .. })));
+    }
+
+    // ========================================
+    // Password Verification Tests
+    // ========================================
+
+    #[tokio::test]
+    async fn test_password_verification_correct() {
+        let service = create_test_service();
+
+        // Using the simple hash:password format
+        let user = User::new(1, "testuser", "test@example.com", "Test User", "hash:correctpassword");
+        service.user_repo.save(&user).await.unwrap();
+
+        let result = service.authenticate("testuser", "correctpassword").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_password_verification_incorrect() {
+        let service = create_test_service();
+
+        let user = User::new(1, "testuser", "test@example.com", "Test User", "hash:correctpassword");
+        service.user_repo.save(&user).await.unwrap();
+
+        let result = service.authenticate("testuser", "incorrectpassword").await;
+        assert!(matches!(result, Err(AuthError::AuthenticationFailed { .. })));
+    }
+
+    // ========================================
+    // Multiple Authentication Attempts Tests
+    // ========================================
+
+    #[tokio::test]
+    async fn test_multiple_successful_logins() {
         let service = create_test_service();
 
         let user = User::new(1, "testuser", "test@example.com", "Test User", "hash:password123");
         service.user_repo.save(&user).await.unwrap();
 
-        // 認証してトークンを取得
+        // Multiple successful logins should generate different tokens
+        let token1 = service.authenticate("testuser", "password123").await.unwrap();
+        let token2 = service.authenticate("testuser", "password123").await.unwrap();
+        let token3 = service.authenticate("testuser", "password123").await.unwrap();
+
+        // Refresh tokens should be unique
+        assert_ne!(token1.refresh_token, token2.refresh_token);
+        assert_ne!(token2.refresh_token, token3.refresh_token);
+    }
+
+    #[tokio::test]
+    async fn test_multiple_users_authentication() {
+        let service = create_test_service();
+
+        let user1 = User::new(1, "user1", "user1@example.com", "User 1", "hash:pass1");
+        let user2 = User::new(2, "user2", "user2@example.com", "User 2", "hash:pass2");
+        service.user_repo.save(&user1).await.unwrap();
+        service.user_repo.save(&user2).await.unwrap();
+
+        let token1 = service.authenticate("user1", "pass1").await.unwrap();
+        let token2 = service.authenticate("user2", "pass2").await.unwrap();
+
+        // Both should succeed
+        assert!(!token1.access_token.is_empty());
+        assert!(!token2.access_token.is_empty());
+    }
+
+    // ========================================
+    // TTL Configuration Tests
+    // ========================================
+
+    #[tokio::test]
+    async fn test_with_access_token_ttl() {
+        let service = create_test_service_with_custom_ttl(7200, 604800);
+
+        let user = User::new(1, "testuser", "test@example.com", "Test User", "hash:password123");
+        service.user_repo.save(&user).await.unwrap();
+
         let token = service.authenticate("testuser", "password123").await.unwrap();
+        assert_eq!(token.expires_in, 7200);
+    }
 
-        // トークンをリフレッシュ
-        let result = service.refresh_token(&token.refresh_token).await;
-        assert!(result.is_ok());
+    #[tokio::test]
+    async fn test_with_zero_ttl() {
+        let service = create_test_service_with_custom_ttl(0, 0);
 
-        let new_token = result.unwrap();
-        assert_ne!(new_token.refresh_token, token.refresh_token);
+        let user = User::new(1, "testuser", "test@example.com", "Test User", "hash:password123");
+        service.user_repo.save(&user).await.unwrap();
+
+        let token = service.authenticate("testuser", "password123").await.unwrap();
+        assert_eq!(token.expires_in, 0);
     }
 }

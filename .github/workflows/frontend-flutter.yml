@@ -1,0 +1,214 @@
+name: frontend-flutter
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'framework/frontend/flutter/**'
+      - 'feature/frontend/flutter/**'
+      - '.github/workflows/frontend-flutter.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'framework/frontend/flutter/**'
+      - 'feature/frontend/flutter/**'
+      - '.github/workflows/frontend-flutter.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.24.0'
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+
+      - name: Install melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap packages
+        working-directory: framework/frontend/flutter
+        run: melos bootstrap
+
+      - name: Run analyzer
+        working-directory: framework/frontend/flutter
+        run: melos run analyze
+
+  format:
+    name: Format Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+
+      - name: Install melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap packages
+        working-directory: framework/frontend/flutter
+        run: melos bootstrap
+
+      - name: Check formatting
+        working-directory: framework/frontend/flutter
+        run: melos run format:check
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+
+      - name: Install melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap packages
+        working-directory: framework/frontend/flutter
+        run: melos bootstrap
+
+      - name: Run tests
+        working-directory: framework/frontend/flutter
+        run: melos run test
+
+      # Optional: Run tests with coverage and upload to Codecov
+      # - name: Run tests with coverage
+      #   working-directory: framework/frontend/flutter
+      #   run: melos run test:coverage
+      #
+      # - name: Upload coverage to Codecov
+      #   uses: codecov/codecov-action@v4
+      #   with:
+      #     directory: framework/frontend/flutter
+      #     flags: flutter
+      #     fail_ci_if_error: false
+
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    needs: [analyze, format, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+
+      - name: Install melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap packages
+        working-directory: framework/frontend/flutter
+        run: melos bootstrap
+
+      - name: Build web (example app if exists)
+        working-directory: framework/frontend/flutter
+        run: |
+          if [ -d "example" ]; then
+            cd example && flutter build web --release
+          else
+            echo "No example app found, skipping web build"
+          fi
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: [analyze, format, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+
+      - name: Install melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap packages
+        working-directory: framework/frontend/flutter
+        run: melos bootstrap
+
+      - name: Build Android APK (example app if exists)
+        working-directory: framework/frontend/flutter
+        run: |
+          if [ -d "example" ]; then
+            cd example && flutter build apk --release
+          else
+            echo "No example app found, skipping Android build"
+          fi
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        if: ${{ hashFiles('framework/frontend/flutter/example/build/app/outputs/flutter-apk/*.apk') != '' }}
+        with:
+          name: android-apk
+          path: framework/frontend/flutter/example/build/app/outputs/flutter-apk/*.apk
+          retention-days: 7
+
+  build-ios:
+    name: Build iOS (Simulator)
+    runs-on: macos-latest
+    needs: [analyze, format, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+
+      - name: Install melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap packages
+        working-directory: framework/frontend/flutter
+        run: melos bootstrap
+
+      - name: Build iOS (Simulator, example app if exists)
+        working-directory: framework/frontend/flutter
+        run: |
+          if [ -d "example" ]; then
+            cd example && flutter build ios --release --no-codesign --simulator
+          else
+            echo "No example app found, skipping iOS build"
+          fi

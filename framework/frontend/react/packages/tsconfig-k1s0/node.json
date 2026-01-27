@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "_description": "@k1s0/tsconfig - TypeScript configuration for Node.js applications",
+  "extends": "./base.json",
+  "compilerOptions": {
+    /* Language and Environment */
+    "lib": ["ES2022"],
+
+    /* Modules - Node.js specific */
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "verbatimModuleSyntax": true,
+
+    /* Emit */
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+
+    /* Node.js specific */
+    "types": ["node"]
+  }
+}
