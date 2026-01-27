@@ -13,11 +13,12 @@ framework/backend/rust/crates/
 ├── k1s0-validation/    # 入力バリデーション
 ├── k1s0-observability/ # ログ/トレース/メトリクス
 ├── k1s0-grpc-server/   # gRPC サーバ共通基盤
-├── k1s0-grpc-client/   # gRPC クライアント共通（未実装）
+├── k1s0-grpc-client/   # gRPC クライアント共通
 ├── k1s0-resilience/    # レジリエンスパターン
-├── k1s0-health/        # ヘルスチェック（未実装）
-├── k1s0-db/            # DB 接続・トランザクション（未実装）
-└── k1s0-auth/          # 認証・認可（未実装）
+├── k1s0-health/        # ヘルスチェック
+├── k1s0-cache/         # Redis キャッシュ
+├── k1s0-db/            # DB 接続・トランザクション
+└── k1s0-auth/          # 認証・認可
 ```
 
 ---
@@ -823,10 +824,707 @@ k1s0-resilience
 
 ---
 
-## 今後の実装予定
+## k1s0-grpc-client
 
-1. **k1s0-grpc-client**: gRPC クライアント共通基盤
-2. **k1s0-health**: ヘルスチェックエンドポイント
-3. **k1s0-db**: DB 接続プール、トランザクション管理
-4. **k1s0-auth**: 認証・認可ミドルウェア
-5. **k1s0-cache**: Redis キャッシュ統合
+### 目的
+
+gRPC クライアント呼び出しの共通基盤を提供する。deadline 必須、retry 原則 0、サービスディスカバリをサポート。
+
+### 設計原則
+
+1. **deadline 必須**: 無制限呼び出しを防ぐ（100ms〜5分）
+2. **retry 原則 0**: リトライは明示的な opt-in（ADR 参照必須）
+3. **トレース伝播**: W3C Trace Context の自動付与
+4. **サービスディスカバリ**: K8s DNS 形式での論理名解決
+
+### 主要な型
+
+#### GrpcClientConfig
+
+```rust
+pub struct GrpcClientConfig {
+    timeout_ms: u64,              // デフォルト: 30秒
+    connect_timeout_ms: u64,      // デフォルト: 5秒
+    retry: RetryConfig,           // デフォルト: 無効
+    tls: TlsConfig,
+}
+
+pub const MIN_TIMEOUT_MS: u64 = 100;
+pub const MAX_TIMEOUT_MS: u64 = 300_000;  // 5分
+```
+
+#### GrpcClientBuilder
+
+```rust
+pub struct GrpcClientBuilder {
+    service_name: String,
+    target_address: Option<String>,
+    target_service: Option<String>,
+    config: GrpcClientConfig,
+    discovery: Option<ServiceDiscoveryConfig>,
+}
+
+impl GrpcClientBuilder {
+    pub fn new(service_name: impl Into<String>) -> Self;
+    pub fn target_address(self, address: impl Into<String>) -> Self;
+    pub fn target_service(self, service: impl Into<String>) -> Self;
+    pub fn config(self, config: GrpcClientConfig) -> Self;
+    pub fn discovery(self, config: ServiceDiscoveryConfig) -> Self;
+    pub fn build(self) -> Result<GrpcClientConnection, GrpcClientError>;
+}
+```
+
+#### ServiceDiscoveryConfig
+
+```rust
+pub struct ServiceDiscoveryConfig {
+    default_namespace: String,
+    cluster_domain: String,        // デフォルト: "svc.cluster.local"
+    default_port: u16,             // デフォルト: 50051
+    services: HashMap<String, ServiceEndpoint>,
+}
+
+impl ServiceDiscoveryConfig {
+    pub fn builder() -> ServiceDiscoveryConfigBuilder;
+}
+```
+
+#### RetryConfig
+
+```rust
+pub struct RetryConfig {
+    enabled: bool,
+    adr_reference: Option<String>,  // ADR 参照（有効化時必須）
+    max_attempts: u32,
+}
+
+impl RetryConfig {
+    pub fn disabled() -> Self;
+    pub fn enabled(adr_reference: impl Into<String>) -> RetryConfigBuilder;
+}
+```
+
+#### CallOptions
+
+```rust
+pub struct CallOptions {
+    timeout_ms: Option<u64>,
+    metadata: RequestMetadata,
+}
+
+impl CallOptions {
+    pub fn new() -> Self;
+    pub fn with_timeout_ms(self, timeout_ms: u64) -> Self;
+    pub fn with_trace_id(self, trace_id: impl Into<String>) -> Self;
+    pub fn with_request_id(self, request_id: impl Into<String>) -> Self;
+    pub fn with_tenant_id(self, tenant_id: impl Into<String>) -> Self;
+}
+```
+
+### 使用例
+
+```rust
+use k1s0_grpc_client::{
+    GrpcClientBuilder, GrpcClientConfig, ServiceDiscoveryConfig,
+    ServiceEndpoint, CallOptions, RetryConfig,
+};
+
+// 直接アドレス指定
+let conn = GrpcClientBuilder::new("my-service")
+    .target_address("localhost:50051")
+    .build()?;
+
+// サービスディスカバリ経由
+let discovery = ServiceDiscoveryConfig::builder()
+    .default_namespace("production")
+    .service("auth-service", ServiceEndpoint::new("auth.example.com", 50051))
+    .build();
+
+let conn = GrpcClientBuilder::new("my-service")
+    .target_service("auth-service")
+    .discovery(discovery)
+    .build()?;
+
+// 呼び出しオプション
+let options = CallOptions::new()
+    .with_timeout_ms(5000)
+    .with_trace_id("abc123")
+    .with_request_id("req-001");
+```
+
+---
+
+## k1s0-health
+
+### 目的
+
+Kubernetes 対応のヘルスチェック機能を提供する。readiness/liveness/startup プローブをサポート。
+
+### 設計原則
+
+1. **3段階ステータス**: Healthy / Degraded / Unhealthy
+2. **コンポーネント単位**: 各コンポーネント（DB、キャッシュ等）の個別ステータス
+3. **K8s プローブ対応**: readiness/liveness/startup
+4. **Graceful shutdown**: readiness 状態の動的切り替え
+
+### 主要な型
+
+#### HealthStatus
+
+```rust
+pub enum HealthStatus {
+    Healthy,      // すべて正常
+    Degraded,     // 一部機能低下
+    Unhealthy,    // サービス不可
+}
+
+impl HealthStatus {
+    pub fn to_http_status_code(&self) -> u16;
+    pub fn is_healthy(&self) -> bool;
+    pub fn is_serving(&self) -> bool;  // Healthy | Degraded
+    pub fn merge(self, other: Self) -> Self;
+}
+```
+
+#### ComponentHealth
+
+```rust
+pub struct ComponentHealth {
+    pub name: String,
+    pub status: HealthStatus,
+    pub latency_ms: Option<u64>,
+    pub error: Option<String>,
+    pub metadata: HashMap<String, String>,
+}
+
+impl ComponentHealth {
+    pub fn healthy(name: impl Into<String>) -> Self;
+    pub fn degraded(name: impl Into<String>, error: impl Into<String>) -> Self;
+    pub fn unhealthy(name: impl Into<String>, error: impl Into<String>) -> Self;
+    pub fn with_latency_ms(self, latency: u64) -> Self;
+}
+```
+
+#### HealthResponse
+
+```rust
+pub struct HealthResponse {
+    pub status: HealthStatus,
+    pub service: String,
+    pub version: Option<String>,
+    pub components: Vec<ComponentHealth>,
+}
+
+impl HealthResponse {
+    pub fn new(service: impl Into<String>) -> Self;
+    pub fn with_version(self, version: impl Into<String>) -> Self;
+    pub fn with_component(self, component: ComponentHealth) -> Self;
+}
+```
+
+#### ProbeHandler
+
+```rust
+pub struct ProbeHandler {
+    service_name: String,
+    version: Option<String>,
+    readiness: Option<Arc<ReadinessState>>,
+}
+
+impl ProbeHandler {
+    pub fn new(service_name: impl Into<String>) -> Self;
+    pub fn with_version(self, version: impl Into<String>) -> Self;
+    pub fn with_readiness(self, state: Arc<ReadinessState>) -> Self;
+    pub fn liveness(&self) -> HealthResponse;
+    pub fn readiness(&self) -> HealthResponse;
+    pub fn startup(&self) -> HealthResponse;
+}
+```
+
+#### ReadinessState
+
+```rust
+pub struct ReadinessState {
+    ready: AtomicBool,
+}
+
+impl ReadinessState {
+    pub fn ready() -> Self;
+    pub fn not_ready() -> Self;
+    pub fn is_ready(&self) -> bool;
+    pub fn set_ready(&self);
+    pub fn set_not_ready(&self);
+}
+```
+
+### 使用例
+
+```rust
+use k1s0_health::{HealthResponse, HealthStatus, ComponentHealth};
+use k1s0_health::probe::{ProbeHandler, ReadinessState};
+use std::sync::Arc;
+
+// ヘルスレスポンス
+let response = HealthResponse::new("my-service")
+    .with_version("1.0.0")
+    .with_component(ComponentHealth::healthy("database"))
+    .with_component(ComponentHealth::healthy("cache"));
+
+assert_eq!(response.status, HealthStatus::Healthy);
+
+// プローブハンドラー
+let readiness = Arc::new(ReadinessState::ready());
+let handler = ProbeHandler::new("my-service")
+    .with_version("1.0.0")
+    .with_readiness(readiness.clone());
+
+// Graceful shutdown
+readiness.set_not_ready();
+```
+
+---
+
+## k1s0-db
+
+### 目的
+
+データベース接続、プール管理、トランザクション、リポジトリパターンの標準化を提供する。
+
+### 設計原則
+
+1. **Clean Architecture 対応**: domain/application 層用インターフェース
+2. **トランザクション境界**: Unit of Work パターン
+3. **リポジトリパターン**: CRUD 抽象化、ページング対応
+4. **PostgreSQL 重視**: SQLx による実装
+
+### 主要な型
+
+#### DbConfig
+
+```rust
+pub struct DbConfig {
+    pub host: String,
+    pub port: u16,
+    pub database: String,
+    pub username: String,
+    pub password_file: Option<String>,
+    pub ssl_mode: SslMode,
+    pub pool: PoolConfig,
+    pub timeout: TimeoutConfig,
+}
+
+impl DbConfig {
+    pub fn builder() -> DbConfigBuilder;
+}
+```
+
+#### PoolConfig
+
+```rust
+pub struct PoolConfig {
+    pub max_connections: u32,      // デフォルト: 10
+    pub min_connections: u32,      // デフォルト: 1
+    pub idle_timeout_secs: u64,    // デフォルト: 600
+    pub max_lifetime_secs: u64,    // デフォルト: 1800
+}
+```
+
+#### TransactionOptions
+
+```rust
+pub enum IsolationLevel {
+    ReadUncommitted,
+    ReadCommitted,      // デフォルト
+    RepeatableRead,
+    Serializable,
+}
+
+pub enum TransactionMode {
+    ReadWrite,          // デフォルト
+    ReadOnly,
+}
+
+pub struct TransactionOptions {
+    pub isolation_level: IsolationLevel,
+    pub mode: TransactionMode,
+}
+
+impl TransactionOptions {
+    pub fn new() -> Self;
+    pub fn read_only() -> Self;
+    pub fn serializable() -> Self;
+    pub fn with_isolation_level(self, level: IsolationLevel) -> Self;
+}
+```
+
+#### Repository トレイト
+
+```rust
+#[async_trait]
+pub trait Repository<T, ID: ?Sized>: Send + Sync {
+    async fn find_by_id(&self, id: &ID) -> DbResult<Option<T>>;
+    async fn find_all(&self) -> DbResult<Vec<T>>;
+    async fn save(&self, entity: &T) -> DbResult<T>;
+    async fn delete(&self, id: &ID) -> DbResult<bool>;
+}
+
+#[async_trait]
+pub trait PagedRepository<T, ID>: Repository<T, ID> {
+    async fn find_paginated(&self, pagination: &Pagination) -> DbResult<PagedResult<T>>;
+}
+```
+
+#### Pagination
+
+```rust
+pub struct Pagination {
+    pub page: u64,          // 1から開始
+    pub page_size: u64,     // 1-1000
+}
+
+pub struct PagedResult<T> {
+    pub data: Vec<T>,
+    pub total: u64,
+    pub page: u64,
+    pub page_size: u64,
+    pub total_pages: u64,
+}
+
+impl<T> PagedResult<T> {
+    pub fn has_next_page(&self) -> bool;
+    pub fn has_prev_page(&self) -> bool;
+}
+```
+
+#### Unit of Work
+
+```rust
+#[async_trait]
+pub trait UnitOfWork: Send + Sync {
+    async fn begin(&self) -> DbResult<()>;
+    async fn commit(&self) -> DbResult<()>;
+    async fn rollback(&self) -> DbResult<()>;
+}
+
+pub async fn execute_in_transaction<F, T, E>(
+    uow: &impl UnitOfWork,
+    f: F,
+) -> DbResult<T>
+where
+    F: FnOnce() -> Future<Output = Result<T, E>>,
+    E: Into<DbError>;
+```
+
+### Features
+
+```toml
+[features]
+default = []
+postgres = ["sqlx"]
+full = ["postgres"]
+```
+
+### 使用例
+
+```rust
+use k1s0_db::{DbConfig, DbPoolBuilder, Repository, Pagination};
+
+// 接続設定
+let config = DbConfig::builder()
+    .host("localhost")
+    .database("myapp")
+    .username("app_user")
+    .password_file("/run/secrets/db_password")
+    .build()?;
+
+// プール作成
+let pool = DbPoolBuilder::new()
+    .host(&config.host)
+    .database(&config.database)
+    .build()
+    .await?;
+
+// ページネーション
+let pagination = Pagination { page: 1, page_size: 20 };
+let result = repository.find_paginated(&pagination).await?;
+```
+
+---
+
+## k1s0-auth
+
+### 目的
+
+JWT/OIDC 検証、ポリシー評価、監査ログの統一化を提供する。
+
+### 設計原則
+
+1. **JWT/OIDC 統一**: JWKS 自動更新、複数キーのローテーション対応
+2. **ポリシー柔軟性**: RBAC/ABAC 両対応
+3. **監査ログ**: 全認証・認可操作の記録
+4. **ミドルウェア統合**: Axum/Tonic 両対応
+
+### 主要な型
+
+#### Claims
+
+```rust
+pub struct Claims {
+    pub sub: String,                // ユーザーID
+    pub iss: String,                // 発行者
+    pub aud: Option<AudienceClaim>, // 対象者
+    pub exp: i64,                   // 有効期限
+    pub iat: i64,                   // 発行日時
+    pub roles: Vec<String>,         // ロール
+    pub permissions: Vec<String>,   // パーミッション
+    pub tenant_id: Option<String>,  // テナントID
+}
+```
+
+#### JwtVerifier
+
+```rust
+pub struct JwtVerifierConfig {
+    issuer: String,
+    jwks_uri: String,
+    audience: Option<String>,
+    jwks_cache_ttl_secs: u64,
+}
+
+impl JwtVerifierConfig {
+    pub fn new(issuer: impl Into<String>) -> Self;
+    pub fn with_jwks_uri(self, uri: impl Into<String>) -> Self;
+    pub fn with_audience(self, audience: impl Into<String>) -> Self;
+}
+
+pub struct JwtVerifier {
+    config: JwtVerifierConfig,
+}
+
+impl JwtVerifier {
+    pub fn new(config: JwtVerifierConfig) -> Self;
+    pub async fn verify(&self, token: &str) -> Result<Claims, AuthError>;
+}
+```
+
+#### PolicyEvaluator
+
+```rust
+pub enum PolicyDecision {
+    Allow,
+    Deny,
+    NotApplicable,
+}
+
+pub struct PolicyRequest {
+    pub subject: PolicySubject,
+    pub action: Action,
+    pub resource: ResourceContext,
+}
+
+pub struct PolicyResult {
+    pub decision: PolicyDecision,
+    pub reason: Option<String>,
+    pub matched_rules: Vec<String>,
+}
+
+pub struct PolicyEvaluator {
+    rules: Arc<RwLock<Vec<PolicyRule>>>,
+}
+
+impl PolicyEvaluator {
+    pub fn new() -> Self;
+    pub async fn add_rules(&self, rules: Vec<PolicyRule>);
+    pub async fn evaluate(&self, request: &PolicyRequest) -> PolicyResult;
+}
+```
+
+#### AuditLogger
+
+```rust
+pub enum AuditEventType {
+    AuthenticationSuccess,
+    AuthenticationFailure,
+    AuthorizationSuccess,
+    AuthorizationFailure,
+    DataAccess,
+    DataModification,
+}
+
+pub struct AuditEvent {
+    pub event_id: String,
+    pub timestamp: DateTime<Utc>,
+    pub event_type: AuditEventType,
+    pub actor: AuditActor,
+    pub resource: Option<AuditResource>,
+    pub action: String,
+    pub result: AuditResult,
+}
+
+pub struct AuditLogger {
+    service_name: String,
+}
+
+impl AuditLogger {
+    pub fn with_default_sink(service_name: &str) -> Self;
+    pub fn log_authentication_success(&self, actor: AuditActor);
+    pub fn log_authentication_failure(&self, actor: AuditActor, reason: &str);
+    pub fn log_authorization(&self, request: &PolicyRequest, decision: PolicyDecision);
+}
+```
+
+### Features
+
+```toml
+[features]
+default = []
+axum-layer = ["axum", "tower"]
+tonic-interceptor = ["tonic"]
+redis-cache = ["k1s0-cache/redis"]
+postgres-policy = ["k1s0-db/postgres"]
+full = ["axum-layer", "tonic-interceptor", "redis-cache", "postgres-policy"]
+```
+
+### 使用例
+
+```rust
+use k1s0_auth::{JwtVerifier, JwtVerifierConfig, PolicyEvaluator, AuditLogger};
+use k1s0_auth::policy::{PolicyBuilder, PolicySubject, Action, PolicyRequest};
+
+// JWT検証
+let config = JwtVerifierConfig::new("https://auth.example.com")
+    .with_jwks_uri("https://auth.example.com/.well-known/jwks.json")
+    .with_audience("my-api");
+
+let verifier = JwtVerifier::new(config);
+let claims = verifier.verify("eyJ...").await?;
+
+// ポリシー評価
+let evaluator = PolicyEvaluator::new();
+let rules = PolicyBuilder::new()
+    .admin_rule("admin")
+    .read_rule("user_read", "user", vec!["user"], 10)
+    .build();
+evaluator.add_rules(rules).await;
+
+let subject = PolicySubject::new("user123").with_role("admin");
+let action = Action::new("user", "delete");
+let request = PolicyRequest {
+    subject,
+    action,
+    resource: ResourceContext::default(),
+};
+let result = evaluator.evaluate(&request).await;
+
+// 監査ログ
+let logger = AuditLogger::with_default_sink("my-service");
+logger.log_authentication_success(AuditActor::new("user123"));
+```
+
+---
+
+## k1s0-cache
+
+### 目的
+
+Redis キャッシュクライアントの標準化を提供する。Cache-Aside パターン、TTL 管理をサポート。
+
+### 主要な型
+
+#### CacheConfig
+
+```rust
+pub struct CacheConfig {
+    pub host: String,
+    pub port: u16,
+    pub key_prefix: String,
+    pub default_ttl_secs: Option<u64>,
+}
+
+impl CacheConfig {
+    pub fn builder() -> CacheConfigBuilder;
+}
+```
+
+#### CacheOperations トレイト
+
+```rust
+#[async_trait]
+pub trait CacheOperations: Send + Sync {
+    async fn get<T: DeserializeOwned>(&self, key: &str) -> CacheResult<Option<T>>;
+    async fn set<T: Serialize>(&self, key: &str, value: &T, ttl: Option<Duration>) -> CacheResult<()>;
+    async fn delete(&self, key: &str) -> CacheResult<bool>;
+    async fn exists(&self, key: &str) -> CacheResult<bool>;
+    async fn get_or_set<T, F, Fut>(&self, key: &str, f: F, ttl: Option<Duration>) -> CacheResult<T>;
+}
+```
+
+### Features
+
+```toml
+[features]
+default = []
+redis = ["dep:redis", "dep:bb8", "dep:bb8-redis"]
+health = ["dep:k1s0-health"]
+full = ["redis", "health"]
+```
+
+### 使用例
+
+```rust
+use k1s0_cache::{CacheConfig, CacheClient, CacheOperations};
+use std::time::Duration;
+
+let config = CacheConfig::builder()
+    .host("localhost")
+    .port(6379)
+    .key_prefix("myapp")
+    .build()?;
+
+let client = CacheClient::new(config).await?;
+
+// 値の設定
+client.set("user:123", &user, Some(Duration::from_secs(3600))).await?;
+
+// 値の取得
+let user: Option<User> = client.get("user:123").await?;
+
+// Cache-Aside パターン
+let user = client.get_or_set(
+    "user:123",
+    || async { db.find_user("123").await },
+    Some(Duration::from_secs(3600)),
+).await?;
+```
+
+---
+
+## 依存関係
+
+```
+k1s0-error          # 基盤（依存なし）
+k1s0-config         # 基盤（依存なし）
+k1s0-validation     # 基盤（依存なし）
+k1s0-observability  # 基盤（依存なし）
+k1s0-resilience     # 基盤（依存なし）
+
+k1s0-grpc-server    # インフラ
+  ├── k1s0-error
+  └── k1s0-observability
+
+k1s0-grpc-client    # インフラ（依存なし）
+
+k1s0-health         # インフラ（依存なし）
+
+k1s0-cache          # 業務
+  └── k1s0-health (feature="health")
+
+k1s0-db             # 業務
+  └── sqlx (feature="postgres")
+
+k1s0-auth           # 業務
+  ├── k1s0-cache (feature="redis-cache")
+  ├── k1s0-db (feature="postgres-policy")
+  ├── axum, tower (feature="axum-layer")
+  └── tonic (feature="tonic-interceptor")
+```
