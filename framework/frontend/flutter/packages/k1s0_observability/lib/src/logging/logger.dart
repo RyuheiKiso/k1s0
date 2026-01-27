@@ -1,5 +1,4 @@
 import '../tracing/trace_context.dart';
-import '../utils/id_generator.dart';
 import 'log_entry.dart';
 import 'log_level.dart';
 import 'log_sink.dart';
@@ -13,7 +12,7 @@ class Logger {
     required this.sink,
     this.minLevel = LogLevel.debug,
     TraceContext? traceContext,
-  }) : _traceContext = traceContext ?? TraceContext.create();
+  }) : traceContext = traceContext ?? TraceContext.create();
 
   /// Service name
   final String serviceName;
@@ -27,24 +26,17 @@ class Logger {
   /// Minimum log level
   final LogLevel minLevel;
 
-  TraceContext _traceContext;
-
-  /// Get the current trace context
-  TraceContext get traceContext => _traceContext;
-
-  /// Set the trace context
-  set traceContext(TraceContext context) => _traceContext = context;
+  /// Current trace context
+  TraceContext traceContext;
 
   /// Create a child logger with a new span
-  Logger child({String? spanName}) {
-    return Logger(
-      serviceName: serviceName,
-      env: env,
-      sink: sink,
-      minLevel: minLevel,
-      traceContext: _traceContext.createChild(name: spanName),
-    );
-  }
+  Logger child({String? spanName}) => Logger(
+        serviceName: serviceName,
+        env: env,
+        sink: sink,
+        minLevel: minLevel,
+        traceContext: traceContext.createChild(name: spanName),
+      );
 
   /// Log a debug message
   void debug(String message, [Map<String, dynamic>? extra]) {
@@ -101,9 +93,9 @@ class Logger {
       message: message,
       serviceName: serviceName,
       env: env,
-      traceId: _traceContext.traceId,
-      spanId: _traceContext.spanId,
-      requestId: _traceContext.requestId,
+      traceId: traceContext.traceId,
+      spanId: traceContext.spanId,
+      requestId: traceContext.requestId,
       errorInfo: errorInfo,
       extra: extra ?? {},
     );
@@ -118,33 +110,30 @@ class Logger {
   void dispose() => sink.dispose();
 }
 
-/// Logger factory
-class LoggerFactory {
-  /// Create a console logger
-  static Logger createConsole({
-    required String serviceName,
-    required String env,
-    LogLevel minLevel = LogLevel.debug,
-    bool prettyPrint = false,
-  }) {
-    return Logger(
+/// Create a console logger
+Logger createConsoleLogger({
+  required String serviceName,
+  required String env,
+  LogLevel minLevel = LogLevel.debug,
+  bool prettyPrint = false,
+}) =>
+    Logger(
       serviceName: serviceName,
       env: env,
       sink: ConsoleLogSink(prettyPrint: prettyPrint),
       minLevel: minLevel,
     );
-  }
 
-  /// Create a buffered logger
-  static Logger createBuffered({
-    required String serviceName,
-    required String env,
-    required LogSink delegate,
-    LogLevel minLevel = LogLevel.info,
-    int bufferSize = 100,
-    Duration flushInterval = const Duration(seconds: 5),
-  }) {
-    return Logger(
+/// Create a buffered logger
+Logger createBufferedLogger({
+  required String serviceName,
+  required String env,
+  required LogSink delegate,
+  LogLevel minLevel = LogLevel.info,
+  int bufferSize = 100,
+  Duration flushInterval = const Duration(seconds: 5),
+}) =>
+    Logger(
       serviceName: serviceName,
       env: env,
       sink: BufferedLogSink(
@@ -154,20 +143,17 @@ class LoggerFactory {
       ),
       minLevel: minLevel,
     );
-  }
 
-  /// Create a logger with multiple sinks
-  static Logger createComposite({
-    required String serviceName,
-    required String env,
-    required List<LogSink> sinks,
-    LogLevel minLevel = LogLevel.info,
-  }) {
-    return Logger(
+/// Create a logger with multiple sinks
+Logger createCompositeLogger({
+  required String serviceName,
+  required String env,
+  required List<LogSink> sinks,
+  LogLevel minLevel = LogLevel.info,
+}) =>
+    Logger(
       serviceName: serviceName,
       env: env,
       sink: CompositeLogSink(sinks),
       minLevel: minLevel,
     );
-  }
-}

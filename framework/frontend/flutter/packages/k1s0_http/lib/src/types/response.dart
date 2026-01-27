@@ -14,15 +14,14 @@ class K1s0Response<T> {
   });
 
   /// Creates a response from a Dio response
-  factory K1s0Response.fromDioResponse(Response<T> response) {
-    return K1s0Response<T>(
-      data: response.data as T,
-      statusCode: response.statusCode ?? 0,
-      headers: response.headers.map,
-      traceId: response.headers.value('x-trace-id'),
-      requestId: response.headers.value('x-request-id'),
-    );
-  }
+  factory K1s0Response.fromDioResponse(Response<T> response) =>
+      K1s0Response<T>(
+        data: response.data as T,
+        statusCode: response.statusCode ?? 0,
+        headers: response.headers.map,
+        traceId: response.headers.value('x-trace-id'),
+        requestId: response.headers.value('x-request-id'),
+      );
 
   /// Response data
   final T data;
@@ -45,19 +44,18 @@ class K1s0Response<T> {
   /// Get a single header value
   String? header(String name) {
     final values = headers[name.toLowerCase()];
-    return values?.isNotEmpty == true ? values!.first : null;
+    return (values?.isNotEmpty ?? false) ? values!.first : null;
   }
 
   /// Transform the response data
-  K1s0Response<R> map<R>(R Function(T data) transform) {
-    return K1s0Response<R>(
-      data: transform(data),
-      statusCode: statusCode,
-      headers: headers,
-      traceId: traceId,
-      requestId: requestId,
-    );
-  }
+  K1s0Response<R> map<R>(R Function(T data) transform) =>
+      K1s0Response<R>(
+        data: transform(data),
+        statusCode: statusCode,
+        headers: headers,
+        traceId: traceId,
+        requestId: requestId,
+      );
 }
 
 /// Empty response for requests that don't return data

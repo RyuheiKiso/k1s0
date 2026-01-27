@@ -47,30 +47,28 @@ class FeedbackService {
     String? confirmLabel,
     String? cancelLabel,
     bool isDanger = false,
-  }) {
-    return K1s0Dialog.confirm(
-      _context,
-      title: title,
-      message: message,
-      confirmLabel: confirmLabel,
-      cancelLabel: cancelLabel,
-      isDanger: isDanger,
-    );
-  }
+  }) =>
+      K1s0Dialog.confirm(
+        _context,
+        title: title,
+        message: message,
+        confirmLabel: confirmLabel,
+        cancelLabel: cancelLabel,
+        isDanger: isDanger,
+      );
 
   /// Show an alert dialog
   Future<void> alert({
     required String title,
     required String message,
     String? okLabel,
-  }) {
-    return K1s0Dialog.alert(
-      _context,
-      title: title,
-      message: message,
-      okLabel: okLabel,
-    );
-  }
+  }) =>
+      K1s0Dialog.alert(
+        _context,
+        title: title,
+        message: message,
+        okLabel: okLabel,
+      );
 
   /// Show a loading dialog
   void showLoading({String? message}) {
@@ -92,9 +90,8 @@ final feedbackServiceProvider = Provider.family<FeedbackService, BuildContext>(
 /// Extension methods for using feedback with WidgetRef
 extension FeedbackRef on WidgetRef {
   /// Get the feedback service for a context
-  FeedbackService feedback(BuildContext context) {
-    return read(feedbackServiceProvider(context));
-  }
+  FeedbackService feedback(BuildContext context) =>
+      read(feedbackServiceProvider(context));
 }
 
 /// Mixin for stateful widgets that need feedback capabilities
@@ -126,30 +123,28 @@ mixin FeedbackMixin<T extends StatefulWidget> on State<T> {
     String? confirmLabel,
     String? cancelLabel,
     bool isDanger = false,
-  }) {
-    return K1s0Dialog.confirm(
-      context,
-      title: title,
-      message: message,
-      confirmLabel: confirmLabel,
-      cancelLabel: cancelLabel,
-      isDanger: isDanger,
-    );
-  }
+  }) =>
+      K1s0Dialog.confirm(
+        context,
+        title: title,
+        message: message,
+        confirmLabel: confirmLabel,
+        cancelLabel: cancelLabel,
+        isDanger: isDanger,
+      );
 
   /// Show an alert dialog
   Future<void> alert({
     required String title,
     required String message,
     String? okLabel,
-  }) {
-    return K1s0Dialog.alert(
-      context,
-      title: title,
-      message: message,
-      okLabel: okLabel,
-    );
-  }
+  }) =>
+      K1s0Dialog.alert(
+        context,
+        title: title,
+        message: message,
+        okLabel: okLabel,
+      );
 
   /// Show a loading dialog
   void showLoading({String? message}) {

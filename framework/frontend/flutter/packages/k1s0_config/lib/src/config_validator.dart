@@ -86,10 +86,12 @@ class _DefaultAppConfigSchema extends ConfigSchema<AppConfig> {
     // Validate auth config if present
     if (config.auth != null) {
       if (config.auth!.enabled && config.auth!.provider.isEmpty) {
-        errors.add(ConfigValidationError(
-          'auth.provider',
-          'Provider is required when auth is enabled',
-        ));
+        errors.add(
+          ConfigValidationError(
+            'auth.provider',
+            'Provider is required when auth is enabled',
+          ),
+        );
       }
     }
 
@@ -109,7 +111,6 @@ class _StrictAppConfigSchema extends ConfigSchema<AppConfig> {
   const _StrictAppConfigSchema();
 
   @override
-  List<ConfigValidationError> validate(AppConfig config) {
-    return defaultAppConfigSchema.validate(config);
-  }
+  List<ConfigValidationError> validate(AppConfig config) =>
+      defaultAppConfigSchema.validate(config);
 }

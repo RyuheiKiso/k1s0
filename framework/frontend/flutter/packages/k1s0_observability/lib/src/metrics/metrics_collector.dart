@@ -90,7 +90,7 @@ class MetricsCollector {
       name: name,
       milliseconds: milliseconds,
       tags: tags,
-    ));
+    ),);
   }
 
   /// Record a counter increment
@@ -103,7 +103,7 @@ class MetricsCollector {
       name: name,
       count: count,
       tags: tags,
-    ));
+    ),);
   }
 
   /// Record a gauge value
@@ -118,7 +118,7 @@ class MetricsCollector {
       value: value,
       unit: unit,
       tags: tags,
-    ));
+    ),);
   }
 
   /// Measure the duration of an async operation
@@ -275,10 +275,9 @@ class MetricStatistics {
   final double p99;
 
   @override
-  String toString() {
-    return 'MetricStatistics($name): '
-        'count=$count, mean=${mean.toStringAsFixed(2)}, '
-        'min=${min.toStringAsFixed(2)}, max=${max.toStringAsFixed(2)}, '
-        'p95=${p95.toStringAsFixed(2)}, p99=${p99.toStringAsFixed(2)}';
-  }
+  String toString() =>
+      'MetricStatistics($name): '
+      'count=$count, mean=${mean.toStringAsFixed(2)}, '
+      'min=${min.toStringAsFixed(2)}, max=${max.toStringAsFixed(2)}, '
+      'p95=${p95.toStringAsFixed(2)}, p99=${p99.toStringAsFixed(2)}';
 }

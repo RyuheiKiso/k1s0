@@ -6,8 +6,12 @@ part 'app_state.g.dart';
 /// Global application state.
 ///
 /// Contains the shared state across the entire application.
+/// Global application state.
+///
+/// Contains the shared state across the entire application.
 @freezed
 class AppState with _$AppState {
+  /// Creates an AppState instance.
   const factory AppState({
     /// Whether the app has been initialized.
     @Default(false) bool initialized,
@@ -31,6 +35,7 @@ class AppState with _$AppState {
     @Default({}) Map<String, dynamic> metadata,
   }) = _AppState;
 
+  /// Creates an AppState from JSON.
   factory AppState.fromJson(Map<String, dynamic> json) =>
       _$AppStateFromJson(json);
 }
@@ -38,33 +43,26 @@ class AppState with _$AppState {
 /// Extension methods for AppState.
 extension AppStateExtensions on AppState {
   /// Returns true if a feature flag is enabled.
-  bool isFeatureEnabled(String flag) {
-    return featureFlags[flag] ?? false;
-  }
+  bool isFeatureEnabled(String flag) => featureFlags[flag] ?? false;
 
   /// Creates a copy with the feature flag set.
-  AppState withFeatureFlag(String flag, bool enabled) {
-    return copyWith(
-      featureFlags: {...featureFlags, flag: enabled},
-    );
-  }
+  AppState withFeatureFlag(String flag, {required bool enabled}) => copyWith(
+        featureFlags: {...featureFlags, flag: enabled},
+      );
 
   /// Creates a copy with metadata set.
-  AppState withMetadata(String key, dynamic value) {
-    return copyWith(
-      metadata: {...metadata, key: value},
-    );
-  }
+  AppState withMetadata(String key, Object? value) => copyWith(
+        metadata: {...metadata, key: value},
+      );
 
   /// Gets metadata value.
-  T? getMetadata<T>(String key) {
-    return metadata[key] as T?;
-  }
+  T? getMetadata<T>(String key) => metadata[key] as T?;
 }
 
 /// User preferences state.
 @freezed
 class UserPreferences with _$UserPreferences {
+  /// Creates a UserPreferences instance.
   const factory UserPreferences({
     /// Preferred theme mode ('light', 'dark', 'system').
     @Default('system') String themeMode,
@@ -82,6 +80,7 @@ class UserPreferences with _$UserPreferences {
     @Default({}) Map<String, dynamic> custom,
   }) = _UserPreferences;
 
+  /// Creates UserPreferences from JSON.
   factory UserPreferences.fromJson(Map<String, dynamic> json) =>
       _$UserPreferencesFromJson(json);
 }
@@ -89,6 +88,7 @@ class UserPreferences with _$UserPreferences {
 /// Navigation state for tracking navigation history.
 @freezed
 class NavigationState with _$NavigationState {
+  /// Creates a NavigationState instance.
   const factory NavigationState({
     /// Current route path.
     @Default('/') String currentPath,
@@ -106,6 +106,7 @@ class NavigationState with _$NavigationState {
     @Default([]) List<String> history,
   }) = _NavigationState;
 
+  /// Creates NavigationState from JSON.
   factory NavigationState.fromJson(Map<String, dynamic> json) =>
       _$NavigationStateFromJson(json);
 }
@@ -116,18 +117,18 @@ extension NavigationStateExtensions on NavigationState {
   bool get canGoBack => history.length > 1;
 
   /// Pushes a new route to the history.
-  NavigationState push(String path, {
+  NavigationState push(
+    String path, {
     Map<String, String>? params,
     Map<String, String>? queryParams,
-  }) {
-    return copyWith(
-      previousPath: currentPath,
-      currentPath: path,
-      params: params ?? {},
-      queryParams: queryParams ?? {},
-      history: [...history, path],
-    );
-  }
+  }) =>
+      copyWith(
+        previousPath: currentPath,
+        currentPath: path,
+        params: params ?? {},
+        queryParams: queryParams ?? {},
+        history: [...history, path],
+      );
 
   /// Pops the current route from the history.
   NavigationState pop() {
@@ -144,6 +145,7 @@ extension NavigationStateExtensions on NavigationState {
 /// Connectivity state.
 @freezed
 class ConnectivityState with _$ConnectivityState {
+  /// Creates a ConnectivityState instance.
   const factory ConnectivityState({
     /// Whether the device is connected to the internet.
     @Default(true) bool isConnected,
@@ -155,6 +157,7 @@ class ConnectivityState with _$ConnectivityState {
     DateTime? lastChecked,
   }) = _ConnectivityState;
 
+  /// Creates ConnectivityState from JSON.
   factory ConnectivityState.fromJson(Map<String, dynamic> json) =>
       _$ConnectivityStateFromJson(json);
 }

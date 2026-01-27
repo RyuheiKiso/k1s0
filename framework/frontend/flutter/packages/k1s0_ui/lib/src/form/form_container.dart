@@ -34,23 +34,18 @@ class K1s0FormContainer extends StatelessWidget {
   final double? spacing;
 
   @override
-  Widget build(BuildContext context) {
-    return Form(
-      key: formKey,
-      autovalidateMode: autovalidateMode,
-      onWillPop: () async {
-        // Allow normal back navigation
-        return true;
-      },
-      child: Padding(
-        padding: padding ?? K1s0Spacing.allMd,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: _buildSpacedChildren(),
+  Widget build(BuildContext context) => Form(
+        key: formKey,
+        autovalidateMode: autovalidateMode,
+        canPop: true,
+        child: Padding(
+          padding: padding ?? K1s0Spacing.allMd,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: _buildSpacedChildren(),
+          ),
         ),
-      ),
-    );
-  }
+      );
 
   List<Widget> _buildSpacedChildren() {
     final spacer = SizedBox(height: spacing ?? K1s0Spacing.md);
@@ -177,31 +172,29 @@ class K1s0FormActions extends StatelessWidget {
   final MainAxisAlignment alignment;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: alignment,
-      children: [
-        if (onCancel != null) ...[
-          TextButton(
-            onPressed: loading ? null : onCancel,
-            child: Text(cancelLabel ?? 'Cancel'),
+  Widget build(BuildContext context) => Row(
+        mainAxisAlignment: alignment,
+        children: [
+          if (onCancel != null) ...[
+            TextButton(
+              onPressed: loading ? null : onCancel,
+              child: Text(cancelLabel ?? 'Cancel'),
+            ),
+            K1s0Spacing.gapHMd,
+          ],
+          FilledButton(
+            onPressed: (loading || submitDisabled) ? null : onSubmit,
+            child: loading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(submitLabel ?? 'Submit'),
           ),
-          K1s0Spacing.gapHMd,
         ],
-        FilledButton(
-          onPressed: (loading || submitDisabled) ? null : onSubmit,
-          child: loading
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Text(submitLabel ?? 'Submit'),
-        ),
-      ],
-    );
-  }
+      );
 }

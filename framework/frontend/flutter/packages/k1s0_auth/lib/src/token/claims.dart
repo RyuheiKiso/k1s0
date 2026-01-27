@@ -16,14 +16,14 @@ class Claims with _$Claims {
     /// Issuer
     required String iss,
 
-    /// Audience (may be string or list)
-    @_AudienceConverter() List<String>? aud,
-
     /// Expiration time (Unix timestamp in seconds)
     required int exp,
 
     /// Issued at (Unix timestamp in seconds)
     required int iat,
+
+    /// Audience (may be string or list)
+    @_AudienceConverter() List<String>? aud,
 
     /// Not before (Unix timestamp in seconds)
     int? nbf,

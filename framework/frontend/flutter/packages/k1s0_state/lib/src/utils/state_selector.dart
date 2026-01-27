@@ -4,22 +4,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///
 /// Use this to select specific parts of a state to avoid unnecessary rebuilds.
 class StateSelector<State, Selected> {
+  /// Creates a state selector with the given selector function.
   StateSelector(this._selector, {this.equals});
 
   final Selected Function(State state) _selector;
+
+  /// Optional equality function for comparing selected values.
   final bool Function(Selected previous, Selected current)? equals;
 
   /// Selects from a provider.
-  ProviderListenable<Selected> select(ProviderListenable<State> provider) {
-    return provider.select(_selector);
-  }
+  ProviderListenable<Selected> select(ProviderListenable<State> provider) =>
+      provider.select(_selector);
 
   /// Creates a derived provider that selects from another provider.
-  Provider<Selected> createProvider(ProviderListenable<State> source) {
-    return Provider((ref) {
-      return ref.watch(source.select(_selector));
-    });
-  }
+  Provider<Selected> createProvider(ProviderListenable<State> source) =>
+      Provider((ref) => ref.watch(source.select(_selector)));
 
   /// Compares two selected values.
   bool areEqual(Selected previous, Selected current) {
@@ -32,48 +31,46 @@ class StateSelector<State, Selected> {
 
 /// Builder for creating state selectors.
 class StateSelectorBuilder<State> {
+  /// Creates a state selector builder.
   const StateSelectorBuilder();
 
   /// Creates a selector for a specific part of the state.
   StateSelector<State, Selected> select<Selected>(
     Selected Function(State state) selector, {
     bool Function(Selected previous, Selected current)? equals,
-  }) {
-    return StateSelector(selector, equals: equals);
-  }
+  }) =>
+      StateSelector(selector, equals: equals);
 
   /// Creates a selector that combines multiple values.
   StateSelector<State, (S1, S2)> combine2<S1, S2>(
     S1 Function(State state) selector1,
     S2 Function(State state) selector2,
-  ) {
-    return StateSelector(
-      (state) => (selector1(state), selector2(state)),
-    );
-  }
+  ) =>
+      StateSelector(
+        (state) => (selector1(state), selector2(state)),
+      );
 
   /// Creates a selector that combines three values.
   StateSelector<State, (S1, S2, S3)> combine3<S1, S2, S3>(
     S1 Function(State state) selector1,
     S2 Function(State state) selector2,
     S3 Function(State state) selector3,
-  ) {
-    return StateSelector(
-      (state) => (selector1(state), selector2(state), selector3(state)),
-    );
-  }
+  ) =>
+      StateSelector(
+        (state) => (selector1(state), selector2(state), selector3(state)),
+      );
 }
 
 /// Extension for easier selector creation.
 extension ProviderSelectorExtension<T> on ProviderListenable<T> {
   /// Creates a selector for this provider.
-  ProviderListenable<R> selectWith<R>(StateSelector<T, R> selector) {
-    return selector.select(this);
-  }
+  ProviderListenable<R> selectWith<R>(StateSelector<T, R> selector) =>
+      selector.select(this);
 }
 
 /// A memoized selector that caches the result.
 class MemoizedSelector<State, Selected> {
+  /// Creates a memoized selector.
   MemoizedSelector(this._selector);
 
   final Selected Function(State state) _selector;
@@ -100,28 +97,22 @@ class MemoizedSelector<State, Selected> {
 /// Creates a memoized selector.
 MemoizedSelector<State, Selected> createMemoizedSelector<State, Selected>(
   Selected Function(State state) selector,
-) {
-  return MemoizedSelector(selector);
-}
+) =>
+    MemoizedSelector(selector);
 
 /// A computed value that depends on multiple providers.
 class ComputedValue<T> {
+  /// Creates a computed value.
   ComputedValue(this._compute);
 
   final T Function(Ref ref) _compute;
 
   /// Creates a provider for this computed value.
-  Provider<T> toProvider() {
-    return Provider(_compute);
-  }
+  Provider<T> toProvider() => Provider(_compute);
 
   /// Creates an auto-dispose provider for this computed value.
-  AutoDisposeProvider<T> toAutoDisposeProvider() {
-    return Provider.autoDispose(_compute);
-  }
+  AutoDisposeProvider<T> toAutoDisposeProvider() => Provider.autoDispose(_compute);
 }
 
 /// Creates a computed value.
-ComputedValue<T> computed<T>(T Function(Ref ref) compute) {
-  return ComputedValue(compute);
-}
+ComputedValue<T> computed<T>(T Function(Ref ref) compute) => ComputedValue(compute);

@@ -40,15 +40,6 @@ class AuthState with _$AuthState {
 
   const AuthState._();
 
-  /// Initial state
-  static const initial = AuthState();
-
-  /// Loading state
-  static const loading = AuthState(status: AuthStatus.loading);
-
-  /// Unauthenticated state
-  static const unauthenticated = AuthState(status: AuthStatus.unauthenticated);
-
   /// Create authenticated state
   factory AuthState.authenticated(AuthUser user) => AuthState(
         status: AuthStatus.authenticated,
@@ -60,6 +51,15 @@ class AuthState with _$AuthState {
         status: AuthStatus.error,
         error: error,
       );
+
+  /// Initial state
+  static const initial = AuthState();
+
+  /// Loading state
+  static const loading = AuthState(status: AuthStatus.loading);
+
+  /// Unauthenticated state
+  static const unauthenticated = AuthState(status: AuthStatus.unauthenticated);
 
   /// Whether currently loading
   bool get isLoading => status == AuthStatus.loading;

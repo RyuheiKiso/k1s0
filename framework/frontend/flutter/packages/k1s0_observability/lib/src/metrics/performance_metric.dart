@@ -50,30 +50,28 @@ class PerformanceMetric with _$PerformanceMetric {
     required String name,
     required double milliseconds,
     Map<String, String>? tags,
-  }) {
-    return PerformanceMetric(
-      name: name,
-      value: milliseconds,
-      unit: MetricUnit.milliseconds,
-      timestamp: DateTime.now().millisecondsSinceEpoch,
-      tags: tags ?? {},
-    );
-  }
+  }) =>
+      PerformanceMetric(
+        name: name,
+        value: milliseconds,
+        unit: MetricUnit.milliseconds,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+        tags: tags ?? {},
+      );
 
   /// Create a counter metric
   factory PerformanceMetric.counter({
     required String name,
     required int count,
     Map<String, String>? tags,
-  }) {
-    return PerformanceMetric(
-      name: name,
-      value: count.toDouble(),
-      unit: MetricUnit.count,
-      timestamp: DateTime.now().millisecondsSinceEpoch,
-      tags: tags ?? {},
-    );
-  }
+  }) =>
+      PerformanceMetric(
+        name: name,
+        value: count.toDouble(),
+        unit: MetricUnit.count,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+        tags: tags ?? {},
+      );
 
   /// Create a gauge metric
   factory PerformanceMetric.gauge({
@@ -81,15 +79,14 @@ class PerformanceMetric with _$PerformanceMetric {
     required double value,
     MetricUnit unit = MetricUnit.count,
     Map<String, String>? tags,
-  }) {
-    return PerformanceMetric(
-      name: name,
-      value: value,
-      unit: unit,
-      timestamp: DateTime.now().millisecondsSinceEpoch,
-      tags: tags ?? {},
-    );
-  }
+  }) =>
+      PerformanceMetric(
+        name: name,
+        value: value,
+        unit: unit,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+        tags: tags ?? {},
+      );
 
   /// Get timestamp as DateTime
   DateTime get dateTime => DateTime.fromMillisecondsSinceEpoch(timestamp);

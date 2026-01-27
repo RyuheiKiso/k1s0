@@ -60,7 +60,7 @@ class ConsoleLogSink implements LogSink {
     // Nothing to dispose
   }
 
-  String _colorize(String text, dynamic level) {
+  String _colorize(String text, Object level) {
     // ANSI color codes
     const reset = '\x1B[0m';
     const red = '\x1B[31m';
@@ -68,21 +68,12 @@ class ConsoleLogSink implements LogSink {
     const blue = '\x1B[34m';
     const gray = '\x1B[90m';
 
-    String color;
-    switch (level.toString()) {
-      case 'LogLevel.error':
-        color = red;
-        break;
-      case 'LogLevel.warn':
-        color = yellow;
-        break;
-      case 'LogLevel.info':
-        color = blue;
-        break;
-      case 'LogLevel.debug':
-      default:
-        color = gray;
-    }
+    final color = switch (level.toString()) {
+      'LogLevel.error' => red,
+      'LogLevel.warn' => yellow,
+      'LogLevel.info' => blue,
+      _ => gray,
+    };
 
     return '$color$text$reset';
   }
@@ -134,9 +125,7 @@ class BufferedLogSink implements LogSink {
     final entries = List<LogEntry>.from(_buffer);
     _buffer.clear();
 
-    for (final entry in entries) {
-      delegate.write(entry);
-    }
+    entries.forEach(delegate.write);
 
     await delegate.flush();
   }
@@ -212,11 +201,9 @@ class RemoteLogSink implements LogSink {
       debugPrint(
         '[RemoteLogSink] Would send ${entries.length} entries to $endpoint',
       );
-    } catch (e, st) {
+    } on Exception catch (e, st) {
       // Put entries back in buffer on failure
-      for (final entry in entries.reversed) {
-        _buffer.addFirst(entry);
-      }
+      entries.reversed.forEach(_buffer.addFirst);
       onError?.call(e, st);
     }
   }

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///
 /// Logs provider updates, errors, and disposals for debugging.
 class StateLogger extends ProviderObserver {
+  /// Creates a state logger.
   StateLogger({
     this.enabled = kDebugMode,
     this.logUpdates = true,
@@ -106,6 +107,7 @@ class StateLogger extends ProviderObserver {
 
 /// A verbose logger that includes timing information.
 class VerboseStateLogger extends StateLogger {
+  /// Creates a verbose state logger.
   VerboseStateLogger({
     super.enabled,
     super.filter,
@@ -158,11 +160,9 @@ class VerboseStateLogger extends StateLogger {
 }
 
 /// Creates a StateLogger that only logs specific providers.
-StateLogger filteredStateLogger(List<String> providerNames) {
-  return StateLogger(
-    filter: (provider) {
-      final name = provider.name ?? provider.runtimeType.toString();
-      return providerNames.any((n) => name.contains(n));
-    },
-  );
-}
+StateLogger filteredStateLogger(List<String> providerNames) => StateLogger(
+      filter: (provider) {
+        final name = provider.name ?? provider.runtimeType.toString();
+        return providerNames.any(name.contains);
+      },
+    );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 /// k1s0 color palette
 class K1s0Colors {
+  /// Private constructor to prevent instantiation.
   K1s0Colors._();
 
   // Primary colors
@@ -109,7 +110,6 @@ class K1s0Colors {
   /// Create a light color scheme
   static ColorScheme get lightScheme => const ColorScheme.light(
         primary: primary,
-        onPrimary: onPrimary,
         primaryContainer: Color(0xFFBBDEFB),
         onPrimaryContainer: Color(0xFF0D47A1),
         secondary: secondary,
@@ -121,15 +121,12 @@ class K1s0Colors {
         tertiaryContainer: Color(0xFFFFE0B2),
         onTertiaryContainer: Color(0xFFE65100),
         error: error,
-        onError: onError,
         errorContainer: Color(0xFFFFCDD2),
         onErrorContainer: Color(0xFFB71C1C),
-        surface: surfaceLight,
         onSurface: onSurfaceLight,
         surfaceContainerHighest: surfaceVariantLight,
         onSurfaceVariant: onSurfaceVariantLight,
         outline: outlineLight,
-        outlineVariant: outlineVariantLight,
       );
 
   /// Create a dark color scheme

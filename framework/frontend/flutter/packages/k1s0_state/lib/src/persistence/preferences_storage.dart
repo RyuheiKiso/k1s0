@@ -8,16 +8,15 @@ import 'state_storage.dart';
 class PreferencesStorage implements StateStorage {
   PreferencesStorage._(this._prefs);
 
+  /// Creates a PreferencesStorage from an existing SharedPreferences instance.
+  factory PreferencesStorage.fromPrefs(SharedPreferences prefs) =>
+      PreferencesStorage._(prefs);
+
   final SharedPreferences _prefs;
 
   /// Creates a new PreferencesStorage instance.
   static Future<PreferencesStorage> create() async {
     final prefs = await SharedPreferences.getInstance();
-    return PreferencesStorage._(prefs);
-  }
-
-  /// Creates a PreferencesStorage from an existing SharedPreferences instance.
-  factory PreferencesStorage.fromPrefs(SharedPreferences prefs) {
     return PreferencesStorage._(prefs);
   }
 
@@ -41,7 +40,9 @@ class PreferencesStorage implements StateStorage {
       if (value is String) {
         try {
           return jsonDecode(value) as T;
-        } catch (_) {
+        } on FormatException {
+          return null;
+        } on Exception {
           return null;
         }
       }
@@ -78,18 +79,15 @@ class PreferencesStorage implements StateStorage {
   }
 
   @override
-  Future<bool> containsKey(String key) async {
-    return _prefs.containsKey(key);
-  }
+  Future<bool> containsKey(String key) async => _prefs.containsKey(key);
 
   @override
-  Future<List<String>> getKeys() async {
-    return _prefs.getKeys().toList();
-  }
+  Future<List<String>> getKeys() async => _prefs.getKeys().toList();
 }
 
 /// Typed storage wrapper for PreferencesStorage.
 class TypedPreferencesStorage<T> {
+  /// Creates a typed preferences storage.
   TypedPreferencesStorage({
     required this.storage,
     required this.key,
@@ -97,9 +95,16 @@ class TypedPreferencesStorage<T> {
     this.defaultValue,
   });
 
+  /// The underlying storage.
   final PreferencesStorage storage;
+
+  /// The storage key.
   final String key;
+
+  /// The serializer for converting state to/from JSON.
   final StateSerializer<T> serializer;
+
+  /// The default value.
   final T? defaultValue;
 
   /// Reads the value from storage.

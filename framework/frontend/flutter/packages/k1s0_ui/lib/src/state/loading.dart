@@ -87,21 +87,19 @@ class K1s0LoadingOverlay extends StatelessWidget {
   final Color? barrierColor;
 
   @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        child,
-        if (isLoading)
-          Container(
-            color: barrierColor ??
-                Theme.of(context).colorScheme.surface.withOpacity(0.7),
-            child: K1s0Loading(
-              message: message,
+  Widget build(BuildContext context) => Stack(
+        children: [
+          child,
+          if (isLoading)
+            ColoredBox(
+              color: barrierColor ??
+                  Theme.of(context).colorScheme.surface.withValues(alpha: 0.7),
+              child: K1s0Loading(
+                message: message,
+              ),
             ),
-          ),
-      ],
-    );
-  }
+        ],
+      );
 }
 
 /// Shimmer loading placeholder
@@ -159,24 +157,22 @@ class _K1s0ShimmerLoadingState extends State<K1s0ShimmerLoading>
 
     return AnimatedBuilder(
       animation: _animation,
-      builder: (context, child) {
-        return Container(
-          width: widget.width ?? double.infinity,
-          height: widget.height ?? 20,
-          decoration: BoxDecoration(
-            borderRadius: widget.borderRadius ?? BorderRadius.circular(4),
-            gradient: LinearGradient(
-              begin: Alignment(_animation.value - 1, 0),
-              end: Alignment(_animation.value + 1, 0),
-              colors: [
-                baseColor,
-                highlightColor,
-                baseColor,
-              ],
-            ),
+      builder: (context, child) => Container(
+        width: widget.width ?? double.infinity,
+        height: widget.height ?? 20,
+        decoration: BoxDecoration(
+          borderRadius: widget.borderRadius ?? BorderRadius.circular(4),
+          gradient: LinearGradient(
+            begin: Alignment(_animation.value - 1, 0),
+            end: Alignment(_animation.value + 1, 0),
+            colors: [
+              baseColor,
+              highlightColor,
+              baseColor,
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -201,21 +197,19 @@ class K1s0ListSkeleton extends StatelessWidget {
   final EdgeInsets? padding;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: padding ?? K1s0Spacing.allMd,
-      child: Column(
-        children: List.generate(
-          itemCount,
-          (index) => Padding(
-            padding: const EdgeInsets.only(bottom: K1s0Spacing.sm),
-            child: K1s0ShimmerLoading(
-              height: itemHeight,
-              borderRadius: BorderRadius.circular(8),
+  Widget build(BuildContext context) => Padding(
+        padding: padding ?? K1s0Spacing.allMd,
+        child: Column(
+          children: List.generate(
+            itemCount,
+            (index) => Padding(
+              padding: const EdgeInsets.only(bottom: K1s0Spacing.sm),
+              child: K1s0ShimmerLoading(
+                height: itemHeight,
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }

@@ -48,15 +48,14 @@ class HttpClientConfig {
     Map<String, String>? defaultHeaders,
     HttpLogLevel? logLevel,
     bool Function(int? statusCode)? validateStatus,
-  }) {
-    return HttpClientConfig(
-      baseUrl: baseUrl ?? this.baseUrl,
-      timeout: timeout ?? this.timeout,
-      connectTimeout: connectTimeout ?? this.connectTimeout,
-      retryPolicy: retryPolicy ?? this.retryPolicy,
-      defaultHeaders: defaultHeaders ?? this.defaultHeaders,
-      logLevel: logLevel ?? this.logLevel,
-      validateStatus: validateStatus ?? this.validateStatus,
-    );
-  }
+  }) =>
+      HttpClientConfig(
+        baseUrl: baseUrl ?? this.baseUrl,
+        timeout: timeout ?? this.timeout,
+        connectTimeout: connectTimeout ?? this.connectTimeout,
+        retryPolicy: retryPolicy ?? this.retryPolicy,
+        defaultHeaders: defaultHeaders ?? this.defaultHeaders,
+        logLevel: logLevel ?? this.logLevel,
+        validateStatus: validateStatus ?? this.validateStatus,
+      );
 }

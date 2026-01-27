@@ -4,6 +4,7 @@ import 'dart:async';
 ///
 /// Useful for debouncing user input or other rapid events.
 class Debouncer {
+  /// Creates a debouncer with the given delay duration.
   Debouncer({
     this.duration = const Duration(milliseconds: 300),
   });
@@ -49,6 +50,7 @@ class Debouncer {
 ///
 /// Useful for rate-limiting API calls or other expensive operations.
 class Throttler {
+  /// Creates a throttler with the given minimum time between executions.
   Throttler({
     this.duration = const Duration(milliseconds: 300),
   });
@@ -79,7 +81,7 @@ class Throttler {
   }
 
   void _scheduleNext() {
-    if (_timer?.isActive == true) return;
+    if (_timer?.isActive ?? false) return;
 
     final lastRun = _lastRun;
     if (lastRun == null) return;
@@ -121,6 +123,7 @@ class Throttler {
 
 /// A debouncer for async functions.
 class AsyncDebouncer<T> {
+  /// Creates an async debouncer with the given delay duration.
   AsyncDebouncer({
     this.duration = const Duration(milliseconds: 300),
   });

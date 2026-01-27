@@ -7,6 +7,7 @@ import 'state_storage.dart';
 /// Extend this class to create a notifier that automatically
 /// saves and restores its state.
 abstract class PersistedStateNotifier<T> extends StateNotifier<T> {
+  /// Creates a PersistedStateNotifier with the given state and storage.
   PersistedStateNotifier(
     super.state, {
     required this.storage,
@@ -56,6 +57,7 @@ abstract class PersistedStateNotifier<T> extends StateNotifier<T> {
 ///
 /// Use this to create providers that automatically persist state.
 class PersistedStateProvider<T> {
+  /// Creates a PersistedStateProvider.
   PersistedStateProvider({
     required this.storage,
     required this.key,
@@ -63,26 +65,34 @@ class PersistedStateProvider<T> {
     required this.defaultValue,
   });
 
+  /// The storage to use for persistence.
   final StateStorage storage;
+
+  /// The key to use for storing the state.
   final String key;
+
+  /// The serializer for converting state to/from JSON.
   final StateSerializer<T> serializer;
+
+  /// The default value when no persisted state exists.
   final T defaultValue;
 
   /// Creates a StateNotifierProvider for the persisted state.
-  StateNotifierProvider<_PersistedNotifier<T>, T> createProvider() {
-    return StateNotifierProvider<_PersistedNotifier<T>, T>((ref) {
-      return _PersistedNotifier<T>(
-        defaultValue,
-        storage: storage,
-        key: key,
-        serializer: serializer,
+  StateNotifierProvider<PersistedNotifier<T>, T> createProvider() =>
+      StateNotifierProvider<PersistedNotifier<T>, T>(
+        (ref) => PersistedNotifier<T>(
+          defaultValue,
+          storage: storage,
+          key: key,
+          serializer: serializer,
+        ),
       );
-    });
-  }
 }
 
-class _PersistedNotifier<T> extends StateNotifier<T> {
-  _PersistedNotifier(
+/// Internal notifier for persisted state.
+class PersistedNotifier<T> extends StateNotifier<T> {
+  /// Creates a PersistedNotifier.
+  PersistedNotifier(
     super.state, {
     required this.storage,
     required this.key,
@@ -91,8 +101,13 @@ class _PersistedNotifier<T> extends StateNotifier<T> {
     _loadState();
   }
 
+  /// The storage to use for persistence.
   final StateStorage storage;
+
+  /// The key to use for storing the state.
   final String key;
+
+  /// The serializer for converting state to/from JSON.
   final StateSerializer<T> serializer;
 
   Future<void> _loadState() async {
@@ -112,10 +127,13 @@ class _PersistedNotifier<T> extends StateNotifier<T> {
     _saveState();
   }
 
-  void update(T value) {
-    state = value;
+  /// Updates the state value.
+  // ignore: use_setters_to_change_properties
+  void update(T newValue) {
+    state = newValue;
   }
 
+  /// Clears the persisted state.
   Future<void> clear() async {
     await storage.delete(key);
   }
@@ -140,7 +158,10 @@ extension PersistedProviderExtension on Ref {
 
 /// A mixin for adding persistence to existing notifiers.
 mixin StatePersistenceMixin<T> {
+  /// The storage to use for persistence.
   StateStorage get storage;
+
+  /// The key to use for storing the state.
   String get persistenceKey;
 
   /// Converts the state to JSON for storage.

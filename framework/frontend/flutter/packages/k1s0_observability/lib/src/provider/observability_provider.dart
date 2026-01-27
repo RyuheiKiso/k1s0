@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/observability_config.dart';
 import '../error/error_tracker.dart';
-import '../logging/log_level.dart';
 import '../logging/log_sink.dart';
 import '../logging/logger.dart';
 import '../metrics/metrics_collector.dart';
@@ -44,13 +43,12 @@ class ObservabilityService {
 }
 
 /// Provider for observability configuration
-final observabilityConfigProvider = Provider<ObservabilityConfig>((ref) {
-  // Override this in your app with actual configuration
-  return const ObservabilityConfig(
+final observabilityConfigProvider = Provider<ObservabilityConfig>(
+  (ref) => const ObservabilityConfig(
     serviceName: 'k1s0-flutter',
     env: 'dev',
-  );
-});
+  ),
+);
 
 /// Provider for observability service
 final observabilityServiceProvider = Provider<ObservabilityService>((ref) {
@@ -74,7 +72,7 @@ final observabilityServiceProvider = Provider<ObservabilityService>((ref) {
 
   // Create tracer
   final tracer = config.enableTracing
-      ? TracerFactory.createConsole(
+      ? createConsoleTracer(
           serviceName: config.serviceName,
           samplingRate: config.tracingSampleRate,
         )
@@ -106,30 +104,30 @@ final observabilityServiceProvider = Provider<ObservabilityService>((ref) {
     errorTracker: errorTracker,
   );
 
-  ref.onDispose(() => service.dispose());
+  ref.onDispose(service.dispose);
 
   return service;
 });
 
 /// Provider for logger
-final loggerProvider = Provider<Logger>((ref) {
-  return ref.watch(observabilityServiceProvider).logger;
-});
+final loggerProvider = Provider<Logger>(
+  (ref) => ref.watch(observabilityServiceProvider).logger,
+);
 
 /// Provider for tracer
-final tracerProvider = Provider<Tracer>((ref) {
-  return ref.watch(observabilityServiceProvider).tracer;
-});
+final tracerProvider = Provider<Tracer>(
+  (ref) => ref.watch(observabilityServiceProvider).tracer,
+);
 
 /// Provider for metrics collector
-final metricsProvider = Provider<MetricsCollector>((ref) {
-  return ref.watch(observabilityServiceProvider).metrics;
-});
+final metricsProvider = Provider<MetricsCollector>(
+  (ref) => ref.watch(observabilityServiceProvider).metrics,
+);
 
 /// Provider for error tracker
-final errorTrackerProvider = Provider<ErrorTracker>((ref) {
-  return ref.watch(observabilityServiceProvider).errorTracker;
-});
+final errorTrackerProvider = Provider<ErrorTracker>(
+  (ref) => ref.watch(observabilityServiceProvider).errorTracker,
+);
 
 /// Widget that sets up observability for child widgets
 class ObservabilityScope extends ConsumerWidget {

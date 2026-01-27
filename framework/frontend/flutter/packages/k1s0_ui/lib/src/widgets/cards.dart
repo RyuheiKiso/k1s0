@@ -153,27 +153,24 @@ class K1s0InfoCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    Color backgroundColor;
-    Color foregroundColor;
-
-    switch (type) {
-      case K1s0InfoCardType.info:
-        backgroundColor = scheme.primaryContainer;
-        foregroundColor = scheme.onPrimaryContainer;
-        break;
-      case K1s0InfoCardType.success:
-        backgroundColor = Colors.green.shade100;
-        foregroundColor = Colors.green.shade900;
-        break;
-      case K1s0InfoCardType.warning:
-        backgroundColor = Colors.orange.shade100;
-        foregroundColor = Colors.orange.shade900;
-        break;
-      case K1s0InfoCardType.error:
-        backgroundColor = scheme.errorContainer;
-        foregroundColor = scheme.onErrorContainer;
-        break;
-    }
+    final (backgroundColor, foregroundColor) = switch (type) {
+      K1s0InfoCardType.info => (
+          scheme.primaryContainer,
+          scheme.onPrimaryContainer,
+        ),
+      K1s0InfoCardType.success => (
+          Colors.green.shade100,
+          Colors.green.shade900,
+        ),
+      K1s0InfoCardType.warning => (
+          Colors.orange.shade100,
+          Colors.orange.shade900,
+        ),
+      K1s0InfoCardType.error => (
+          scheme.errorContainer,
+          scheme.onErrorContainer,
+        ),
+    };
 
     return Container(
       padding: K1s0Spacing.allMd,
@@ -202,7 +199,7 @@ class K1s0InfoCard extends StatelessWidget {
                   Text(
                     subtitle!,
                     style: textTheme.bodySmall?.copyWith(
-                      color: foregroundColor.withOpacity(0.8),
+                      color: foregroundColor.withValues(alpha: 0.8),
                     ),
                   ),
                 ],

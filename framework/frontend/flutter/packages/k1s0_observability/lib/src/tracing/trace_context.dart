@@ -20,14 +20,13 @@ class TraceContext {
     String? spanId,
     String? requestId,
     Map<String, String> baggage = const {},
-  }) {
-    return TraceContext(
-      traceId: traceId ?? IdGenerator.generateTraceId(),
-      spanId: spanId ?? IdGenerator.generateSpanId(),
-      requestId: requestId,
-      baggage: baggage,
-    );
-  }
+  }) =>
+      TraceContext(
+        traceId: traceId ?? generateTraceId(),
+        spanId: spanId ?? generateSpanId(),
+        requestId: requestId,
+        baggage: baggage,
+      );
 
   /// Parse from W3C traceparent header
   /// Format: 00-<trace-id>-<span-id>-<trace-flags>
@@ -48,7 +47,9 @@ class TraceContext {
     if (traceparent == null) return null;
     try {
       return TraceContext.fromTraceparent(traceparent);
-    } catch (_) {
+    } on FormatException {
+      return null;
+    } on Exception {
       return null;
     }
   }
@@ -69,15 +70,13 @@ class TraceContext {
   final Map<String, String> baggage;
 
   /// Create a child context with a new span
-  TraceContext createChild({String? name}) {
-    return TraceContext(
-      traceId: traceId,
-      spanId: IdGenerator.generateSpanId(),
-      parentSpanId: spanId,
-      requestId: requestId,
-      baggage: baggage,
-    );
-  }
+  TraceContext createChild({String? name}) => TraceContext(
+        traceId: traceId,
+        spanId: generateSpanId(),
+        parentSpanId: spanId,
+        requestId: requestId,
+        baggage: baggage,
+      );
 
   /// Create a copy with updated values
   TraceContext copyWith({
@@ -86,43 +85,35 @@ class TraceContext {
     String? parentSpanId,
     String? requestId,
     Map<String, String>? baggage,
-  }) {
-    return TraceContext(
-      traceId: traceId ?? this.traceId,
-      spanId: spanId ?? this.spanId,
-      parentSpanId: parentSpanId ?? this.parentSpanId,
-      requestId: requestId ?? this.requestId,
-      baggage: baggage ?? this.baggage,
-    );
-  }
+  }) =>
+      TraceContext(
+        traceId: traceId ?? this.traceId,
+        spanId: spanId ?? this.spanId,
+        parentSpanId: parentSpanId ?? this.parentSpanId,
+        requestId: requestId ?? this.requestId,
+        baggage: baggage ?? this.baggage,
+      );
 
   /// Add baggage item
-  TraceContext withBaggage(String key, String value) {
-    return copyWith(
-      baggage: {...baggage, key: value},
-    );
-  }
+  TraceContext withBaggage(String key, String value) => copyWith(
+        baggage: {...baggage, key: value},
+      );
 
   /// Get W3C traceparent header value
   /// Format: 00-<trace-id>-<span-id>-01
-  String toTraceparent() {
-    return '00-$traceId-$spanId-01';
-  }
+  String toTraceparent() => '00-$traceId-$spanId-01';
 
   /// Convert to map for headers
-  Map<String, String> toHeaders() {
-    return {
-      'traceparent': toTraceparent(),
-      'x-trace-id': traceId,
-      'x-span-id': spanId,
-      if (requestId != null) 'x-request-id': requestId!,
-    };
-  }
+  Map<String, String> toHeaders() => {
+        'traceparent': toTraceparent(),
+        'x-trace-id': traceId,
+        'x-span-id': spanId,
+        if (requestId != null) 'x-request-id': requestId!,
+      };
 
   @override
-  String toString() {
-    return 'TraceContext(traceId: $traceId, spanId: $spanId, parentSpanId: $parentSpanId)';
-  }
+  String toString() =>
+      'TraceContext(traceId: $traceId, spanId: $spanId, parentSpanId: $parentSpanId)';
 
   @override
   bool operator ==(Object other) {

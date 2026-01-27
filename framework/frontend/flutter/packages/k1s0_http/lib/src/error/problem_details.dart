@@ -11,23 +11,23 @@ part 'problem_details.g.dart';
 class ProblemDetails with _$ProblemDetails {
   /// Creates a ProblemDetails instance
   const factory ProblemDetails({
-    /// A URI reference that identifies the problem type
-    @Default('about:blank') String type,
-
     /// A short, human-readable summary of the problem type
     required String title,
 
     /// The HTTP status code
     required int status,
 
+    /// k1s0 standard: Error code for operational identification
+    @JsonKey(name: 'error_code') required String errorCode,
+
+    /// A URI reference that identifies the problem type
+    @Default('about:blank') String type,
+
     /// A human-readable explanation specific to this occurrence
     String? detail,
 
     /// A URI reference that identifies the specific occurrence
     String? instance,
-
-    /// k1s0 standard: Error code for operational identification
-    @JsonKey(name: 'error_code') required String errorCode,
 
     /// k1s0 standard: Trace ID for log/trace investigation
     @JsonKey(name: 'trace_id') String? traceId,

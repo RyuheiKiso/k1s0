@@ -6,9 +6,7 @@ import 'app_state.dart';
 /// Notifier for global app state.
 class AppStateNotifier extends Notifier<AppState> {
   @override
-  AppState build() {
-    return const AppState();
-  }
+  AppState build() => const AppState();
 
   /// Marks the app as initialized.
   void setInitialized() {
@@ -16,7 +14,7 @@ class AppStateNotifier extends Notifier<AppState> {
   }
 
   /// Sets the loading state.
-  void setLoading(bool loading) {
+  void setLoading({required bool loading}) {
     state = state.copyWith(loading: loading);
   }
 
@@ -31,13 +29,13 @@ class AppStateNotifier extends Notifier<AppState> {
   }
 
   /// Sets the dark mode.
-  void setDarkMode(bool isDarkMode) {
+  void setDarkMode({required bool isDarkMode}) {
     state = state.copyWith(isDarkMode: isDarkMode);
   }
 
   /// Sets a feature flag.
-  void setFeatureFlag(String flag, bool enabled) {
-    state = state.withFeatureFlag(flag, enabled);
+  void setFeatureFlag(String flag, {required bool enabled}) {
+    state = state.withFeatureFlag(flag, enabled: enabled);
   }
 
   /// Sets multiple feature flags.
@@ -48,7 +46,7 @@ class AppStateNotifier extends Notifier<AppState> {
   }
 
   /// Sets metadata.
-  void setMetadata(String key, dynamic value) {
+  void setMetadata(String key, Object? value) {
     state = state.withMetadata(key, value);
   }
 
@@ -64,39 +62,39 @@ final appStateProvider = NotifierProvider<AppStateNotifier, AppState>(
 );
 
 /// Provider for app initialized state.
-final appInitializedProvider = Provider<bool>((ref) {
-  return ref.watch(appStateProvider.select((s) => s.initialized));
-});
+final appInitializedProvider = Provider<bool>(
+  (ref) => ref.watch(appStateProvider.select((s) => s.initialized)),
+);
 
 /// Provider for app loading state.
-final appLoadingProvider = Provider<bool>((ref) {
-  return ref.watch(appStateProvider.select((s) => s.loading));
-});
+final appLoadingProvider = Provider<bool>(
+  (ref) => ref.watch(appStateProvider.select((s) => s.loading)),
+);
 
 /// Provider for current environment.
-final environmentProvider = Provider<String>((ref) {
-  return ref.watch(appStateProvider.select((s) => s.environment));
-});
+final environmentProvider = Provider<String>(
+  (ref) => ref.watch(appStateProvider.select((s) => s.environment)),
+);
 
 /// Provider for current locale.
-final localeProvider = Provider<String>((ref) {
-  return ref.watch(appStateProvider.select((s) => s.locale));
-});
+final localeProvider = Provider<String>(
+  (ref) => ref.watch(appStateProvider.select((s) => s.locale)),
+);
 
 /// Provider for dark mode state.
-final isDarkModeProvider = Provider<bool>((ref) {
-  return ref.watch(appStateProvider.select((s) => s.isDarkMode));
-});
+final isDarkModeProvider = Provider<bool>(
+  (ref) => ref.watch(appStateProvider.select((s) => s.isDarkMode)),
+);
 
 /// Provider for feature flags.
-final featureFlagsProvider = Provider<Map<String, bool>>((ref) {
-  return ref.watch(appStateProvider.select((s) => s.featureFlags));
-});
+final featureFlagsProvider = Provider<Map<String, bool>>(
+  (ref) => ref.watch(appStateProvider.select((s) => s.featureFlags)),
+);
 
 /// Provider to check if a specific feature is enabled.
-final isFeatureEnabledProvider = Provider.family<bool, String>((ref, flag) {
-  return ref.watch(featureFlagsProvider)[flag] ?? false;
-});
+final isFeatureEnabledProvider = Provider.family<bool, String>(
+  (ref, flag) => ref.watch(featureFlagsProvider)[flag] ?? false,
+);
 
 /// Notifier for user preferences with persistence.
 class UserPreferencesNotifier extends Notifier<UserPreferences> {
@@ -123,9 +121,7 @@ class UserPreferencesNotifier extends Notifier<UserPreferences> {
   }
 
   @override
-  UserPreferences build() {
-    return const UserPreferences();
-  }
+  UserPreferences build() => const UserPreferences();
 
   /// Sets the theme mode.
   void setThemeMode(String mode) {
@@ -140,19 +136,19 @@ class UserPreferencesNotifier extends Notifier<UserPreferences> {
   }
 
   /// Sets notifications enabled.
-  void setNotificationsEnabled(bool enabled) {
+  void setNotificationsEnabled({required bool enabled}) {
     state = state.copyWith(notificationsEnabled: enabled);
     _savePreferences();
   }
 
   /// Sets analytics consent.
-  void setAnalyticsConsent(bool consent) {
+  void setAnalyticsConsent({required bool consent}) {
     state = state.copyWith(analyticsConsent: consent);
     _savePreferences();
   }
 
   /// Sets a custom preference.
-  void setCustomPreference(String key, dynamic value) {
+  void setCustomPreference(String key, Object? value) {
     state = state.copyWith(
       custom: {...state.custom, key: value},
     );
@@ -160,9 +156,7 @@ class UserPreferencesNotifier extends Notifier<UserPreferences> {
   }
 
   /// Gets a custom preference.
-  T? getCustomPreference<T>(String key) {
-    return state.custom[key] as T?;
-  }
+  T? getCustomPreference<T>(String key) => state.custom[key] as T?;
 
   /// Clears all preferences.
   Future<void> clear() async {
@@ -178,16 +172,14 @@ final userPreferencesProvider =
 );
 
 /// Provider for theme mode preference.
-final themeModePreferenceProvider = Provider<String>((ref) {
-  return ref.watch(userPreferencesProvider.select((s) => s.themeMode));
-});
+final themeModePreferenceProvider = Provider<String>(
+  (ref) => ref.watch(userPreferencesProvider.select((s) => s.themeMode)),
+);
 
 /// Notifier for navigation state.
 class NavigationStateNotifier extends Notifier<NavigationState> {
   @override
-  NavigationState build() {
-    return const NavigationState();
-  }
+  NavigationState build() => const NavigationState();
 
   /// Updates the current navigation state.
   void navigate(
@@ -216,16 +208,14 @@ final navigationStateProvider =
 );
 
 /// Provider for current route path.
-final currentPathProvider = Provider<String>((ref) {
-  return ref.watch(navigationStateProvider.select((s) => s.currentPath));
-});
+final currentPathProvider = Provider<String>(
+  (ref) => ref.watch(navigationStateProvider.select((s) => s.currentPath)),
+);
 
 /// Notifier for connectivity state.
 class ConnectivityStateNotifier extends Notifier<ConnectivityState> {
   @override
-  ConnectivityState build() {
-    return const ConnectivityState();
-  }
+  ConnectivityState build() => const ConnectivityState();
 
   /// Updates the connectivity state.
   void updateConnectivity({
@@ -257,6 +247,6 @@ final connectivityStateProvider =
 );
 
 /// Provider for checking if connected.
-final isConnectedProvider = Provider<bool>((ref) {
-  return ref.watch(connectivityStateProvider.select((s) => s.isConnected));
-});
+final isConnectedProvider = Provider<bool>(
+  (ref) => ref.watch(connectivityStateProvider.select((s) => s.isConnected)),
+);

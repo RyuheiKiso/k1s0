@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///
 /// Provides convenient builders for loading, error, and data states.
 class AsyncValueWidget<T> extends StatelessWidget {
+  /// Creates an AsyncValueWidget.
   const AsyncValueWidget({
     required this.value,
     required this.data,
@@ -34,23 +35,18 @@ class AsyncValueWidget<T> extends StatelessWidget {
   final VoidCallback? onRetry;
 
   @override
-  Widget build(BuildContext context) {
-    return value.when(
-      skipLoadingOnRefresh: skipLoadingOnRefresh,
-      data: data,
-      loading: loading ?? _defaultLoading,
-      error: error ?? _defaultError,
-    );
-  }
+  Widget build(BuildContext context) => value.when(
+        skipLoadingOnRefresh: skipLoadingOnRefresh,
+        data: data,
+        loading: loading ?? _defaultLoading,
+        error: error ?? _defaultError,
+      );
 
-  Widget _defaultLoading() {
-    return const Center(
-      child: CircularProgressIndicator(),
-    );
-  }
+  Widget _defaultLoading() => const Center(
+        child: CircularProgressIndicator(),
+      );
 
-  Widget _defaultError(Object error, StackTrace stackTrace) {
-    return Center(
+  Widget _defaultError(Object error, StackTrace stackTrace) => Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -70,11 +66,11 @@ class AsyncValueWidget<T> extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 /// A Sliver version of AsyncValueWidget.
 class AsyncValueSliverWidget<T> extends StatelessWidget {
+  /// Creates an AsyncValueSliverWidget.
   const AsyncValueSliverWidget({
     required this.value,
     required this.data,
@@ -100,23 +96,18 @@ class AsyncValueSliverWidget<T> extends StatelessWidget {
   final bool skipLoadingOnRefresh;
 
   @override
-  Widget build(BuildContext context) {
-    return value.when(
-      skipLoadingOnRefresh: skipLoadingOnRefresh,
-      data: data,
-      loading: loading ?? _defaultLoading,
-      error: error ?? _defaultError,
-    );
-  }
+  Widget build(BuildContext context) => value.when(
+        skipLoadingOnRefresh: skipLoadingOnRefresh,
+        data: data,
+        loading: loading ?? _defaultLoading,
+        error: error ?? _defaultError,
+      );
 
-  Widget _defaultLoading() {
-    return const SliverFillRemaining(
-      child: Center(child: CircularProgressIndicator()),
-    );
-  }
+  Widget _defaultLoading() => const SliverFillRemaining(
+        child: Center(child: CircularProgressIndicator()),
+      );
 
-  Widget _defaultError(Object error, StackTrace stackTrace) {
-    return SliverFillRemaining(
+  Widget _defaultError(Object error, StackTrace stackTrace) => SliverFillRemaining(
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -128,11 +119,11 @@ class AsyncValueSliverWidget<T> extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 /// A widget that watches a provider and builds based on AsyncValue.
 class AsyncProviderWidget<T> extends ConsumerWidget {
+  /// Creates an AsyncProviderWidget.
   const AsyncProviderWidget({
     required this.provider,
     required this.data,
@@ -178,6 +169,7 @@ class AsyncProviderWidget<T> extends ConsumerWidget {
 
 /// A widget for handling multiple AsyncValues.
 class MultiAsyncValueWidget<T1, T2> extends StatelessWidget {
+  /// Creates a MultiAsyncValueWidget.
   const MultiAsyncValueWidget({
     required this.value1,
     required this.value2,
@@ -187,10 +179,19 @@ class MultiAsyncValueWidget<T1, T2> extends StatelessWidget {
     super.key,
   });
 
+  /// The first AsyncValue.
   final AsyncValue<T1> value1;
+
+  /// The second AsyncValue.
   final AsyncValue<T2> value2;
+
+  /// Builder for when both values have data.
   final Widget Function(T1 data1, T2 data2) data;
+
+  /// Builder for loading state.
   final Widget Function()? loading;
+
+  /// Builder for error state.
   final Widget Function(Object error, StackTrace stackTrace)? error;
 
   @override
@@ -222,6 +223,7 @@ class MultiAsyncValueWidget<T1, T2> extends StatelessWidget {
 
 /// A widget for handling three AsyncValues.
 class TripleAsyncValueWidget<T1, T2, T3> extends StatelessWidget {
+  /// Creates a TripleAsyncValueWidget.
   const TripleAsyncValueWidget({
     required this.value1,
     required this.value2,
@@ -232,11 +234,22 @@ class TripleAsyncValueWidget<T1, T2, T3> extends StatelessWidget {
     super.key,
   });
 
+  /// The first AsyncValue.
   final AsyncValue<T1> value1;
+
+  /// The second AsyncValue.
   final AsyncValue<T2> value2;
+
+  /// The third AsyncValue.
   final AsyncValue<T3> value3;
+
+  /// Builder for when all values have data.
   final Widget Function(T1 data1, T2 data2, T3 data3) data;
+
+  /// Builder for loading state.
   final Widget Function()? loading;
+
+  /// Builder for error state.
   final Widget Function(Object error, StackTrace stackTrace)? error;
 
   @override

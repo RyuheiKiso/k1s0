@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:yaml/yaml.dart';
 
@@ -70,7 +69,7 @@ class ConfigLoader {
       final appConfig = AppConfig.fromJson(merged);
 
       return ConfigLoadResult.success(config: appConfig);
-    } catch (e, stackTrace) {
+    } on Exception catch (e, stackTrace) {
       return ConfigLoadResult.failure(
         message: 'Failed to load configuration: $e',
         error: e,
@@ -82,7 +81,7 @@ class ConfigLoader {
   /// Load configuration from a specific path
   Future<ConfigLoadResult> loadFromPath(String path) async {
     try {
-      final config = await _loadYamlFile(path, allowMissing: false);
+      final config = await _loadYamlFile(path);
       if (config == null) {
         return const ConfigLoadResult.failure(
           message: 'Configuration file not found',
@@ -91,7 +90,7 @@ class ConfigLoader {
 
       final appConfig = AppConfig.fromJson(config);
       return ConfigLoadResult.success(config: appConfig);
-    } catch (e, stackTrace) {
+    } on Exception catch (e, stackTrace) {
       return ConfigLoadResult.failure(
         message: 'Failed to load configuration: $e',
         error: e,
@@ -114,7 +113,7 @@ class ConfigLoader {
       }
 
       return _yamlToMap(yaml);
-    } on FlutterError catch (_) {
+    } on Exception catch (_) {
       if (allowMissing) {
         return null;
       }
@@ -123,7 +122,7 @@ class ConfigLoader {
   }
 
   /// Convert YamlMap to Map<String, dynamic>
-  Map<String, dynamic> _yamlToMap(dynamic yaml) {
+  Map<String, dynamic> _yamlToMap(Object? yaml) {
     if (yaml is YamlMap) {
       return yaml.map(
         (key, value) => MapEntry(key.toString(), _yamlToMap(value)),
@@ -141,19 +140,32 @@ class ConfigLoader {
   }
 }
 
+/// Creates a default configuration loader
+ConfigLoader createConfigLoader({
+  ConfigLoadOptions options = const ConfigLoadOptions(),
+}) =>
+    ConfigLoader(options: options);
+
+/// Creates a configuration loader for testing
+TestConfigLoader createTestConfigLoader(Map<String, dynamic> config) =>
+    TestConfigLoader(config);
+
 /// Configuration loader factory
+///
+/// This class provides backward compatibility.
+/// Consider using the top-level functions instead.
 class ConfigLoaderFactory {
+  ConfigLoaderFactory._();
+
   /// Creates a default configuration loader
   static ConfigLoader create({
     ConfigLoadOptions options = const ConfigLoadOptions(),
-  }) {
-    return ConfigLoader(options: options);
-  }
+  }) =>
+      createConfigLoader(options: options);
 
   /// Creates a configuration loader for testing
-  static TestConfigLoader createForTest(Map<String, dynamic> config) {
-    return TestConfigLoader(config);
-  }
+  static TestConfigLoader createForTest(Map<String, dynamic> config) =>
+      createTestConfigLoader(config);
 }
 
 /// Test configuration loader for unit testing
@@ -171,7 +183,7 @@ class TestConfigLoader extends ConfigLoader {
       config['env'] = env.value;
       final appConfig = AppConfig.fromJson(config);
       return ConfigLoadResult.success(config: appConfig);
-    } catch (e, stackTrace) {
+    } on Exception catch (e, stackTrace) {
       return ConfigLoadResult.failure(
         message: 'Failed to parse test configuration: $e',
         error: e,

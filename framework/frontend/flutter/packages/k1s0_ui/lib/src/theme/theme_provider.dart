@@ -33,12 +33,11 @@ class ThemeState {
   ThemeState copyWith({
     K1s0ThemeMode? mode,
     String? fontFamily,
-  }) {
-    return ThemeState(
-      mode: mode ?? this.mode,
-      fontFamily: fontFamily ?? this.fontFamily,
-    );
-  }
+  }) =>
+      ThemeState(
+        mode: mode ?? this.mode,
+        fontFamily: fontFamily ?? this.fontFamily,
+      );
 
   /// Get the light theme
   ThemeData get lightTheme => K1s0Theme.light(fontFamily: fontFamily);
@@ -84,24 +83,24 @@ class ThemeNotifier extends StateNotifier<ThemeState> {
 }
 
 /// Theme provider
-final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeState>((ref) {
-  return ThemeNotifier();
-});
+final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeState>(
+  (ref) => ThemeNotifier(),
+);
 
 /// Provider for light theme
-final lightThemeProvider = Provider<ThemeData>((ref) {
-  return ref.watch(themeProvider).lightTheme;
-});
+final lightThemeProvider = Provider<ThemeData>(
+  (ref) => ref.watch(themeProvider).lightTheme,
+);
 
 /// Provider for dark theme
-final darkThemeProvider = Provider<ThemeData>((ref) {
-  return ref.watch(themeProvider).darkTheme;
-});
+final darkThemeProvider = Provider<ThemeData>(
+  (ref) => ref.watch(themeProvider).darkTheme,
+);
 
 /// Provider for theme mode
-final themeModeProvider = Provider<ThemeMode>((ref) {
-  return ref.watch(themeProvider).themeMode;
-});
+final themeModeProvider = Provider<ThemeMode>(
+  (ref) => ref.watch(themeProvider).themeMode,
+);
 
 /// k1s0 theme provider widget
 class K1s0ThemeProvider extends ConsumerWidget {

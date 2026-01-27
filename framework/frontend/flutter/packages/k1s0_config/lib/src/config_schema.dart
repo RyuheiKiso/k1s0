@@ -12,10 +12,11 @@ class ConfigValidationError implements Exception {
   final String message;
 
   /// The invalid value
-  final dynamic value;
+  final Object? value;
 
   @override
-  String toString() => 'ConfigValidationError: $field - $message (value: $value)';
+  String toString() =>
+      'ConfigValidationError: $field - $message (value: $value)';
 }
 
 /// Configuration validation errors collection
@@ -64,36 +65,44 @@ class ApiConfigSchema extends ConfigSchema<ApiConfig> {
 
     if (config.baseUrl.isEmpty) {
       errors.add(ConfigValidationError('baseUrl', 'Base URL is required'));
-    } else if (!Uri.tryParse(config.baseUrl)!.hasScheme ?? true) {
-      errors.add(ConfigValidationError(
-        'baseUrl',
-        'Base URL must be a valid URL with scheme',
-        config.baseUrl,
-      ));
+    } else if (!(Uri.tryParse(config.baseUrl)?.hasScheme ?? false)) {
+      errors.add(
+        ConfigValidationError(
+          'baseUrl',
+          'Base URL must be a valid URL with scheme',
+          config.baseUrl,
+        ),
+      );
     }
 
     if (config.timeout <= 0) {
-      errors.add(ConfigValidationError(
-        'timeout',
-        'Timeout must be positive',
-        config.timeout,
-      ));
+      errors.add(
+        ConfigValidationError(
+          'timeout',
+          'Timeout must be positive',
+          config.timeout,
+        ),
+      );
     }
 
     if (config.retryCount < 0) {
-      errors.add(ConfigValidationError(
-        'retryCount',
-        'Retry count must be non-negative',
-        config.retryCount,
-      ));
+      errors.add(
+        ConfigValidationError(
+          'retryCount',
+          'Retry count must be non-negative',
+          config.retryCount,
+        ),
+      );
     }
 
     if (config.retryDelay < 0) {
-      errors.add(ConfigValidationError(
-        'retryDelay',
-        'Retry delay must be non-negative',
-        config.retryDelay,
-      ));
+      errors.add(
+        ConfigValidationError(
+          'retryDelay',
+          'Retry delay must be non-negative',
+          config.retryDelay,
+        ),
+      );
     }
 
     return errors;
@@ -108,28 +117,34 @@ class AuthConfigSchema extends ConfigSchema<AuthConfig> {
 
     final validProviders = ['jwt', 'oauth2', 'oidc', 'session'];
     if (!validProviders.contains(config.provider)) {
-      errors.add(ConfigValidationError(
-        'provider',
-        'Provider must be one of: ${validProviders.join(', ')}',
-        config.provider,
-      ));
+      errors.add(
+        ConfigValidationError(
+          'provider',
+          'Provider must be one of: ${validProviders.join(', ')}',
+          config.provider,
+        ),
+      );
     }
 
     if (config.tokenRefreshThreshold <= 0) {
-      errors.add(ConfigValidationError(
-        'tokenRefreshThreshold',
-        'Token refresh threshold must be positive',
-        config.tokenRefreshThreshold,
-      ));
+      errors.add(
+        ConfigValidationError(
+          'tokenRefreshThreshold',
+          'Token refresh threshold must be positive',
+          config.tokenRefreshThreshold,
+        ),
+      );
     }
 
     final validStorages = ['secure', 'memory', 'shared_preferences'];
     if (!validStorages.contains(config.storage)) {
-      errors.add(ConfigValidationError(
-        'storage',
-        'Storage must be one of: ${validStorages.join(', ')}',
-        config.storage,
-      ));
+      errors.add(
+        ConfigValidationError(
+          'storage',
+          'Storage must be one of: ${validStorages.join(', ')}',
+          config.storage,
+        ),
+      );
     }
 
     // Validate OIDC config if present
@@ -145,23 +160,28 @@ class AuthConfigSchema extends ConfigSchema<AuthConfig> {
 
     if (config.issuer.isEmpty) {
       errors.add(ConfigValidationError('oidc.issuer', 'Issuer is required'));
-    } else if (!Uri.tryParse(config.issuer)!.hasScheme ?? true) {
-      errors.add(ConfigValidationError(
-        'oidc.issuer',
-        'Issuer must be a valid URL',
-        config.issuer,
-      ));
+    } else if (!(Uri.tryParse(config.issuer)?.hasScheme ?? false)) {
+      errors.add(
+        ConfigValidationError(
+          'oidc.issuer',
+          'Issuer must be a valid URL',
+          config.issuer,
+        ),
+      );
     }
 
     if (config.clientId.isEmpty) {
-      errors.add(ConfigValidationError('oidc.clientId', 'Client ID is required'));
+      errors
+          .add(ConfigValidationError('oidc.clientId', 'Client ID is required'));
     }
 
     if (config.redirectUri.isEmpty) {
-      errors.add(ConfigValidationError(
-        'oidc.redirectUri',
-        'Redirect URI is required',
-      ));
+      errors.add(
+        ConfigValidationError(
+          'oidc.redirectUri',
+          'Redirect URI is required',
+        ),
+      );
     }
 
     return errors;
@@ -176,18 +196,22 @@ class LoggingConfigSchema extends ConfigSchema<LoggingConfig> {
 
     final validLevels = ['debug', 'info', 'warn', 'error'];
     if (!validLevels.contains(config.level.toLowerCase())) {
-      errors.add(ConfigValidationError(
-        'level',
-        'Log level must be one of: ${validLevels.join(', ')}',
-        config.level,
-      ));
+      errors.add(
+        ConfigValidationError(
+          'level',
+          'Log level must be one of: ${validLevels.join(', ')}',
+          config.level,
+        ),
+      );
     }
 
     if (config.enableRemote && (config.remoteEndpoint?.isEmpty ?? true)) {
-      errors.add(ConfigValidationError(
-        'remoteEndpoint',
-        'Remote endpoint is required when remote logging is enabled',
-      ));
+      errors.add(
+        ConfigValidationError(
+          'remoteEndpoint',
+          'Remote endpoint is required when remote logging is enabled',
+        ),
+      );
     }
 
     return errors;
@@ -201,25 +225,31 @@ class TelemetryConfigSchema extends ConfigSchema<TelemetryConfig> {
     final errors = <ConfigValidationError>[];
 
     if (config.sampleRate < 0 || config.sampleRate > 1) {
-      errors.add(ConfigValidationError(
-        'sampleRate',
-        'Sample rate must be between 0 and 1',
-        config.sampleRate,
-      ));
+      errors.add(
+        ConfigValidationError(
+          'sampleRate',
+          'Sample rate must be between 0 and 1',
+          config.sampleRate,
+        ),
+      );
     }
 
     if (config.serviceName.isEmpty) {
-      errors.add(ConfigValidationError(
-        'serviceName',
-        'Service name is required',
-      ));
+      errors.add(
+        ConfigValidationError(
+          'serviceName',
+          'Service name is required',
+        ),
+      );
     }
 
     if (config.enabled && (config.endpoint?.isEmpty ?? true)) {
-      errors.add(ConfigValidationError(
-        'endpoint',
-        'Endpoint is required when telemetry is enabled',
-      ));
+      errors.add(
+        ConfigValidationError(
+          'endpoint',
+          'Endpoint is required when telemetry is enabled',
+        ),
+      );
     }
 
     return errors;

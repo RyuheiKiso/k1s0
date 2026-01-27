@@ -59,8 +59,8 @@ class LoggingInterceptor extends Interceptor {
       return;
     }
 
-    final buffer = StringBuffer();
-    buffer.writeln('--> ${options.method} ${options.uri}');
+    final buffer = StringBuffer()
+      ..writeln('--> ${options.method} ${options.uri}');
 
     if (logLevel.index >= HttpLogLevel.headers.index) {
       // Log trace context
@@ -90,7 +90,7 @@ class LoggingInterceptor extends Interceptor {
   }
 
   @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
+  void onResponse(Response<dynamic> response, ResponseInterceptorHandler handler) {
     if (logLevel == HttpLogLevel.none) {
       handler.next(response);
       return;
@@ -127,15 +127,15 @@ class LoggingInterceptor extends Interceptor {
       return;
     }
 
-    final buffer = StringBuffer();
     final duration = err.requestOptions.requestDuration;
     final durationStr = duration != null ? ' (${duration.inMilliseconds}ms)' : '';
 
-    buffer.writeln(
-      '<-- ERROR ${err.response?.statusCode ?? 'NETWORK'} '
-      '${err.requestOptions.uri}$durationStr',
-    );
-    buffer.writeln('${err.type}: ${err.message}');
+    final buffer = StringBuffer()
+      ..writeln(
+        '<-- ERROR ${err.response?.statusCode ?? 'NETWORK'} '
+        '${err.requestOptions.uri}$durationStr',
+      )
+      ..writeln('${err.type}: ${err.message}');
 
     // Log trace ID
     final traceId = err.requestOptions.traceId;

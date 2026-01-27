@@ -44,7 +44,7 @@ class TraceInterceptor extends Interceptor {
   }
 
   @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
+  void onResponse(Response<dynamic> response, ResponseInterceptorHandler handler) {
     // Extract trace info from response for logging
     final requestTraceId = response.requestOptions.extra['traceId'] as String?;
     final responseTraceId = response.headers.value('x-trace-id');

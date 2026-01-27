@@ -49,18 +49,17 @@ class K1s0RequestOptions {
     int? retryCount,
     String? traceId,
     Map<String, dynamic>? extra,
-  }) {
-    return K1s0RequestOptions(
-      headers: headers ?? this.headers,
-      queryParameters: queryParameters ?? this.queryParameters,
-      timeout: timeout ?? this.timeout,
-      skipAuth: skipAuth ?? this.skipAuth,
-      retry: retry ?? this.retry,
-      retryCount: retryCount ?? this.retryCount,
-      traceId: traceId ?? this.traceId,
-      extra: extra ?? this.extra,
-    );
-  }
+  }) =>
+      K1s0RequestOptions(
+        headers: headers ?? this.headers,
+        queryParameters: queryParameters ?? this.queryParameters,
+        timeout: timeout ?? this.timeout,
+        skipAuth: skipAuth ?? this.skipAuth,
+        retry: retry ?? this.retry,
+        retryCount: retryCount ?? this.retryCount,
+        traceId: traceId ?? this.traceId,
+        extra: extra ?? this.extra,
+      );
 }
 
 /// Retry policy configuration

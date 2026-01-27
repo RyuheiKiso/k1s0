@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../provider/auth_provider.dart';
 import '../provider/auth_state.dart';
-import '../types/auth_user.dart';
 
 /// Authentication guard for GoRouter
 ///
@@ -76,12 +75,11 @@ class AuthGuard {
 /// Extension to create a redirect function that uses AuthGuard
 extension AuthGuardExtension on AuthGuard {
   /// Create a redirect function for GoRouter
-  GoRouterRedirect createRedirect(WidgetRef ref) {
-    return (context, state) {
-      final auth = ref.read(authProvider);
-      return redirect(context, state, auth);
-    };
-  }
+  GoRouterRedirect createRedirect(WidgetRef ref) =>
+      (context, state) {
+        final auth = ref.read(authProvider);
+        return redirect(context, state, auth);
+      };
 }
 
 /// Widget that shows content only when authenticated
@@ -224,15 +222,14 @@ GoRouterRedirect createAuthRedirect(
   String homePath = '/',
   List<String>? roles,
   List<String>? permissions,
-}) {
-  return (context, state) {
-    final auth = ref.read(authProvider);
-    final guard = AuthGuard(
-      loginPath: loginPath,
-      homePath: homePath,
-      roles: roles,
-      permissions: permissions,
-    );
-    return guard.redirect(context, state, auth);
-  };
-}
+}) =>
+    (context, state) {
+      final auth = ref.read(authProvider);
+      final guard = AuthGuard(
+        loginPath: loginPath,
+        homePath: homePath,
+        roles: roles,
+        permissions: permissions,
+      );
+      return guard.redirect(context, state, auth);
+    };

@@ -1,5 +1,6 @@
 /// Form validation utilities
 class K1s0Validators {
+  /// Private constructor to prevent instantiation.
   K1s0Validators._();
 
   /// Required field validator
@@ -47,34 +48,30 @@ class K1s0Validators {
   }
 
   /// Minimum length validator
-  static String? Function(String?) minLength(int length) {
-    return (String? value) {
-      if (value == null || value.isEmpty) {
+  static String? Function(String?) minLength(int length) => (value) {
+        if (value == null || value.isEmpty) {
+          return null;
+        }
+
+        if (value.length < length) {
+          return '$length文字以上で入力してください';
+        }
+
         return null;
-      }
-
-      if (value.length < length) {
-        return '$length文字以上で入力してください';
-      }
-
-      return null;
-    };
-  }
+      };
 
   /// Maximum length validator
-  static String? Function(String?) maxLength(int length) {
-    return (String? value) {
-      if (value == null || value.isEmpty) {
+  static String? Function(String?) maxLength(int length) => (value) {
+        if (value == null || value.isEmpty) {
+          return null;
+        }
+
+        if (value.length > length) {
+          return '$length文字以下で入力してください';
+        }
+
         return null;
-      }
-
-      if (value.length > length) {
-        return '$length文字以下で入力してください';
-      }
-
-      return null;
-    };
-  }
+      };
 
   /// Numeric validator
   static String? numeric(String? value) {
@@ -117,19 +114,18 @@ class K1s0Validators {
   }
 
   /// Pattern validator
-  static String? Function(String?) pattern(RegExp regex, String message) {
-    return (String? value) {
-      if (value == null || value.isEmpty) {
+  static String? Function(String?) pattern(RegExp regex, String message) =>
+      (value) {
+        if (value == null || value.isEmpty) {
+          return null;
+        }
+
+        if (!regex.hasMatch(value)) {
+          return message;
+        }
+
         return null;
-      }
-
-      if (!regex.hasMatch(value)) {
-        return message;
-      }
-
-      return null;
-    };
-  }
+      };
 
   /// Password strength validator
   static String? passwordStrength(String? value) {
@@ -141,15 +137,15 @@ class K1s0Validators {
       return 'パスワードは8文字以上にしてください';
     }
 
-    if (!value.contains(RegExp(r'[A-Z]'))) {
+    if (!value.contains(RegExp('[A-Z]'))) {
       return 'パスワードには大文字を含めてください';
     }
 
-    if (!value.contains(RegExp(r'[a-z]'))) {
+    if (!value.contains(RegExp('[a-z]'))) {
       return 'パスワードには小文字を含めてください';
     }
 
-    if (!value.contains(RegExp(r'[0-9]'))) {
+    if (!value.contains(RegExp('[0-9]'))) {
       return 'パスワードには数字を含めてください';
     }
 
@@ -157,28 +153,26 @@ class K1s0Validators {
   }
 
   /// Match validator (e.g., for password confirmation)
-  static String? Function(String?) match(String? other, String fieldName) {
-    return (String? value) {
-      if (value != other) {
-        return '$fieldNameが一致しません';
-      }
+  static String? Function(String?) match(String? other, String fieldName) =>
+      (value) {
+        if (value != other) {
+          return '$fieldNameが一致しません';
+        }
 
-      return null;
-    };
-  }
+        return null;
+      };
 
   /// Combine multiple validators
   static String? Function(String?) combine(
     List<String? Function(String?)> validators,
-  ) {
-    return (String? value) {
-      for (final validator in validators) {
-        final error = validator(value);
-        if (error != null) {
-          return error;
+  ) =>
+      (value) {
+        for (final validator in validators) {
+          final error = validator(value);
+          if (error != null) {
+            return error;
+          }
         }
-      }
-      return null;
-    };
-  }
+        return null;
+      };
 }

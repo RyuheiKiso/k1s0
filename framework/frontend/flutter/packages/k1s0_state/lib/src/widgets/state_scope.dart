@@ -7,6 +7,7 @@ import '../utils/state_logger.dart';
 ///
 /// Use this to create isolated state scopes within your app.
 class StateScope extends StatefulWidget {
+  /// Creates a StateScope.
   const StateScope({
     required this.child,
     this.overrides = const [],
@@ -51,18 +52,17 @@ class _StateScopeState extends State<StateScope> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return UncontrolledProviderScope(
-      container: _container,
-      child: widget.child,
-    );
-  }
+  Widget build(BuildContext context) => UncontrolledProviderScope(
+        container: _container,
+        child: widget.child,
+      );
 }
 
 /// A widget that provides app-level state initialization.
 ///
 /// Use this at the root of your app to set up state management.
 class K1s0StateProvider extends StatelessWidget {
+  /// Creates a K1s0StateProvider.
   const K1s0StateProvider({
     required this.child,
     this.overrides = const [],
@@ -102,6 +102,7 @@ class K1s0StateProvider extends StatelessWidget {
 ///
 /// Use this to initialize state when the widget is first built.
 class StateInitializer extends ConsumerStatefulWidget {
+  /// Creates a StateInitializer.
   const StateInitializer({
     required this.child,
     required this.initialize,
@@ -177,35 +178,31 @@ extension WidgetRefExtensions on WidgetRef {
   (T1, T2) watch2<T1, T2>(
     ProviderListenable<T1> p1,
     ProviderListenable<T2> p2,
-  ) {
-    return (watch(p1), watch(p2));
-  }
+  ) =>
+      (watch(p1), watch(p2));
 
   /// Watches three providers and returns a tuple.
   (T1, T2, T3) watch3<T1, T2, T3>(
     ProviderListenable<T1> p1,
     ProviderListenable<T2> p2,
     ProviderListenable<T3> p3,
-  ) {
-    return (watch(p1), watch(p2), watch(p3));
-  }
+  ) =>
+      (watch(p1), watch(p2), watch(p3));
 
   /// Reads multiple providers and returns a tuple.
   (T1, T2) read2<T1, T2>(
     ProviderListenable<T1> p1,
     ProviderListenable<T2> p2,
-  ) {
-    return (read(p1), read(p2));
-  }
+  ) =>
+      (read(p1), read(p2));
 
   /// Reads three providers and returns a tuple.
   (T1, T2, T3) read3<T1, T2, T3>(
     ProviderListenable<T1> p1,
     ProviderListenable<T2> p2,
     ProviderListenable<T3> p3,
-  ) {
-    return (read(p1), read(p2), read(p3));
-  }
+  ) =>
+      (read(p1), read(p2), read(p3));
 }
 
 /// Extension methods for Ref.
@@ -214,33 +211,29 @@ extension RefExtensions on Ref {
   (T1, T2) watch2<T1, T2>(
     ProviderListenable<T1> p1,
     ProviderListenable<T2> p2,
-  ) {
-    return (watch(p1), watch(p2));
-  }
+  ) =>
+      (watch(p1), watch(p2));
 
   /// Watches three providers and returns a tuple.
   (T1, T2, T3) watch3<T1, T2, T3>(
     ProviderListenable<T1> p1,
     ProviderListenable<T2> p2,
     ProviderListenable<T3> p3,
-  ) {
-    return (watch(p1), watch(p2), watch(p3));
-  }
+  ) =>
+      (watch(p1), watch(p2), watch(p3));
 
   /// Reads multiple providers and returns a tuple.
   (T1, T2) read2<T1, T2>(
     ProviderListenable<T1> p1,
     ProviderListenable<T2> p2,
-  ) {
-    return (read(p1), read(p2));
-  }
+  ) =>
+      (read(p1), read(p2));
 
   /// Reads three providers and returns a tuple.
   (T1, T2, T3) read3<T1, T2, T3>(
     ProviderListenable<T1> p1,
     ProviderListenable<T2> p2,
     ProviderListenable<T3> p3,
-  ) {
-    return (read(p1), read(p2), read(p3));
-  }
+  ) =>
+      (read(p1), read(p2), read(p3));
 }

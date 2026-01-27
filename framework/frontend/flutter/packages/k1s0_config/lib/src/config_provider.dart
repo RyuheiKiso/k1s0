@@ -12,22 +12,31 @@ sealed class ConfigState {
 
 /// Configuration is loading
 class ConfigLoading extends ConfigState {
+  /// Creates a ConfigLoading instance
   const ConfigLoading();
 }
 
 /// Configuration loaded successfully
 class ConfigLoaded extends ConfigState {
+  /// Creates a ConfigLoaded instance
   const ConfigLoaded(this.config);
 
+  /// The loaded configuration
   final AppConfig config;
 }
 
 /// Configuration failed to load
 class ConfigError extends ConfigState {
+  /// Creates a ConfigError instance
   const ConfigError(this.message, [this.error, this.stackTrace]);
 
+  /// Error message
   final String message;
+
+  /// The error object
   final Object? error;
+
+  /// Stack trace
   final StackTrace? stackTrace;
 }
 
@@ -91,34 +100,34 @@ final appConfigProvider = Provider<AppConfig?>((ref) {
 });
 
 /// Provider for API configuration
-final apiConfigProvider = Provider<ApiConfig?>((ref) {
-  return ref.watch(appConfigProvider)?.api;
-});
+final apiConfigProvider = Provider<ApiConfig?>(
+  (ref) => ref.watch(appConfigProvider)?.api,
+);
 
 /// Provider for authentication configuration
-final authConfigProvider = Provider<AuthConfig?>((ref) {
-  return ref.watch(appConfigProvider)?.auth;
-});
+final authConfigProvider = Provider<AuthConfig?>(
+  (ref) => ref.watch(appConfigProvider)?.auth,
+);
 
 /// Provider for logging configuration
-final loggingConfigProvider = Provider<LoggingConfig?>((ref) {
-  return ref.watch(appConfigProvider)?.logging;
-});
+final loggingConfigProvider = Provider<LoggingConfig?>(
+  (ref) => ref.watch(appConfigProvider)?.logging,
+);
 
 /// Provider for telemetry configuration
-final telemetryConfigProvider = Provider<TelemetryConfig?>((ref) {
-  return ref.watch(appConfigProvider)?.telemetry;
-});
+final telemetryConfigProvider = Provider<TelemetryConfig?>(
+  (ref) => ref.watch(appConfigProvider)?.telemetry,
+);
 
 /// Provider for feature flags
-final featureFlagsProvider = Provider<FeatureFlags?>((ref) {
-  return ref.watch(appConfigProvider)?.features;
-});
+final featureFlagsProvider = Provider<FeatureFlags?>(
+  (ref) => ref.watch(appConfigProvider)?.features,
+);
 
 /// Provider to check if a feature flag is enabled
-final isFeatureEnabledProvider = Provider.family<bool, String>((ref, flag) {
-  return ref.watch(featureFlagsProvider)?.isEnabled(flag) ?? false;
-});
+final isFeatureEnabledProvider = Provider.family<bool, String>(
+  (ref, flag) => ref.watch(featureFlagsProvider)?.isEnabled(flag) ?? false,
+);
 
 /// Configuration widget that initializes configuration on startup
 class ConfigScope extends ConsumerStatefulWidget {
@@ -165,7 +174,7 @@ class _ConfigScopeState extends ConsumerState<ConfigScope> {
   Future<void> _initConfig() async {
     // Create notifier with custom loader/validator if provided
     if (widget.loader != null || widget.validator != null) {
-      final notifier = ConfigNotifier(
+      ConfigNotifier(
         loader: widget.loader,
         validator: widget.validator,
       );

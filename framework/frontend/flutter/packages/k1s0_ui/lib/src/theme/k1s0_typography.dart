@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 /// k1s0 typography settings
 class K1s0Typography {
+  /// Private constructor to prevent instantiation.
   K1s0Typography._();
 
   /// Default font family
@@ -114,9 +115,8 @@ class K1s0Typography {
       );
 
   /// Apply font family to text theme
-  static TextTheme applyFontFamily(TextTheme textTheme, String fontFamily) {
-    return textTheme.apply(
-      fontFamily: fontFamily,
-    );
-  }
+  static TextTheme applyFontFamily(TextTheme textTheme, String fontFamily) =>
+      textTheme.apply(
+        fontFamily: fontFamily,
+      );
 }
