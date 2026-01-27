@@ -7,24 +7,24 @@ import (
 
 	"github.com/google/uuid"
 
-	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/domain/entities"
+	"{{ module_path | default(value="example.com") }}/{{ feature_name_snake }}/internal/domain/entities"
 )
 
-// InMemory{{ feature_name | pascal_case }}Repository is an in-memory implementation for testing.
-type InMemory{{ feature_name | pascal_case }}Repository struct {
+// InMemory{{ feature_name_pascal }}Repository is an in-memory implementation for testing.
+type InMemory{{ feature_name_pascal }}Repository struct {
 	mu       sync.RWMutex
-	entities map[uuid.UUID]*entities.{{ feature_name | pascal_case }}
+	entities map[uuid.UUID]*entities.{{ feature_name_pascal }}
 }
 
-// NewInMemory{{ feature_name | pascal_case }}Repository creates a new in-memory repository.
-func NewInMemory{{ feature_name | pascal_case }}Repository() *InMemory{{ feature_name | pascal_case }}Repository {
-	return &InMemory{{ feature_name | pascal_case }}Repository{
-		entities: make(map[uuid.UUID]*entities.{{ feature_name | pascal_case }}),
+// NewInMemory{{ feature_name_pascal }}Repository creates a new in-memory repository.
+func NewInMemory{{ feature_name_pascal }}Repository() *InMemory{{ feature_name_pascal }}Repository {
+	return &InMemory{{ feature_name_pascal }}Repository{
+		entities: make(map[uuid.UUID]*entities.{{ feature_name_pascal }}),
 	}
 }
 
 // FindByID finds a {{ feature_name }} by ID.
-func (r *InMemory{{ feature_name | pascal_case }}Repository) FindByID(ctx context.Context, id uuid.UUID) (*entities.{{ feature_name | pascal_case }}, error) {
+func (r *InMemory{{ feature_name_pascal }}Repository) FindByID(ctx context.Context, id uuid.UUID) (*entities.{{ feature_name_pascal }}, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -36,11 +36,11 @@ func (r *InMemory{{ feature_name | pascal_case }}Repository) FindByID(ctx contex
 }
 
 // FindAll finds all {{ feature_name }}s with pagination.
-func (r *InMemory{{ feature_name | pascal_case }}Repository) FindAll(ctx context.Context, pageSize int, pageToken string) ([]*entities.{{ feature_name | pascal_case }}, string, error) {
+func (r *InMemory{{ feature_name_pascal }}Repository) FindAll(ctx context.Context, pageSize int, pageToken string) ([]*entities.{{ feature_name_pascal }}, string, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	result := make([]*entities.{{ feature_name | pascal_case }}, 0, len(r.entities))
+	result := make([]*entities.{{ feature_name_pascal }}, 0, len(r.entities))
 	for _, entity := range r.entities {
 		result = append(result, entity)
 	}
@@ -53,7 +53,7 @@ func (r *InMemory{{ feature_name | pascal_case }}Repository) FindAll(ctx context
 }
 
 // Save saves a {{ feature_name }}.
-func (r *InMemory{{ feature_name | pascal_case }}Repository) Save(ctx context.Context, entity *entities.{{ feature_name | pascal_case }}) error {
+func (r *InMemory{{ feature_name_pascal }}Repository) Save(ctx context.Context, entity *entities.{{ feature_name_pascal }}) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -62,7 +62,7 @@ func (r *InMemory{{ feature_name | pascal_case }}Repository) Save(ctx context.Co
 }
 
 // Delete deletes a {{ feature_name }} by ID.
-func (r *InMemory{{ feature_name | pascal_case }}Repository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *InMemory{{ feature_name_pascal }}Repository) Delete(ctx context.Context, id uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

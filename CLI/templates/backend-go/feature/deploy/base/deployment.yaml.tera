@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ feature_name | kebab_case }}
+  name: {{ feature_name_kebab }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ feature_name | kebab_case }}
+      app: {{ feature_name_kebab }}
   template:
     metadata:
       labels:
-        app: {{ feature_name | kebab_case }}
+        app: {{ feature_name_kebab }}
     spec:
       containers:
-        - name: {{ feature_name | kebab_case }}
-          image: {{ feature_name | kebab_case }}
+        - name: {{ feature_name_kebab }}
+          image: {{ feature_name_kebab }}
           ports:
             - name: grpc
               containerPort: {{ grpc_port | default(value=50051) }}
@@ -26,7 +26,7 @@ spec:
 {% endif %}
           envFrom:
             - configMapRef:
-                name: {{ feature_name | kebab_case }}-config
+                name: {{ feature_name_kebab }}-config
           resources:
             requests:
               cpu: 100m

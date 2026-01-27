@@ -175,6 +175,13 @@ impl DbError {
         }
     }
 
+    /// クエリエラーを作成（内部エラーとして扱う）
+    pub fn query(message: impl Into<String>) -> Self {
+        Self::Internal {
+            message: message.into(),
+        }
+    }
+
     /// error_code を取得
     pub fn error_code(&self) -> &'static str {
         match self {

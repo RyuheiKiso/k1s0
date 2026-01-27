@@ -7,7 +7,7 @@ resources:
   - ../../base
 
 replicas:
-  - name: {{ feature_name | kebab_case }}
+  - name: {{ feature_name_kebab }}
     count: 1
 
 patches:
@@ -20,10 +20,10 @@ patches:
         value: 64Mi
     target:
       kind: Deployment
-      name: {{ feature_name | kebab_case }}
+      name: {{ feature_name_kebab }}
 
 configMapGenerator:
-  - name: {{ feature_name | kebab_case }}-config
+  - name: {{ feature_name_kebab }}-config
     behavior: merge
     literals:
       - ENV=dev

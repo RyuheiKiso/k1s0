@@ -334,7 +334,7 @@ mod tests {
 pub use axum_layer::*;
 
 #[cfg(feature = "axum-layer")]
-mod axum_layer {
+pub mod axum_layer {
     use super::*;
     use axum::{
         body::Body,
@@ -515,9 +515,34 @@ mod axum_layer {
 pub use tonic_interceptor::*;
 
 #[cfg(feature = "tonic-interceptor")]
-mod tonic_interceptor {
+pub mod tonic_interceptor {
     use super::*;
     use tonic::{Request, Status};
+
+    /// gRPC リクエストからパスを抽出
+    ///
+    /// tonic の Request から gRPC メソッドパスを取得する。
+    /// extensions に http::Uri がある場合はそれを使用し、
+    /// なければ ":path" pseudo-header から取得を試みる。
+    fn extract_grpc_path<T>(request: &Request<T>) -> String {
+        // extensions から http::Uri を取得を試みる
+        if let Some(uri) = request.extensions().get::<http::Uri>() {
+            return uri.path().to_string();
+        }
+
+        // metadata から :path を取得を試みる（binary metadata）
+        if let Some(path) = request.metadata().get_bin(":path") {
+            if let Ok(bytes) = path.to_bytes() {
+                if let Ok(path_str) = std::str::from_utf8(&bytes) {
+                    return path_str.to_string();
+                }
+            }
+        }
+
+        // gRPC のメソッドパスはメタデータには通常含まれないため、
+        // デフォルトで空文字列を返す（スキップ対象にならない）
+        String::new()
+    }
 
     /// 認証インターセプターを作成
     ///
@@ -547,7 +572,7 @@ mod tonic_interceptor {
             let skip_matcher = skip_matcher.clone();
 
             // パスを取得
-            let path = request.uri().path().to_string();
+            let path = extract_grpc_path(&request);
 
             // スキップ対象のパスはそのまま通す
             if skip_matcher.should_skip(&path) {
@@ -603,7 +628,7 @@ mod tonic_interceptor {
 
         /// リクエストを認証
         pub async fn authenticate<T>(&self, request: &Request<T>) -> Result<AuthContext, Status> {
-            let path = request.uri().path().to_string();
+            let path = extract_grpc_path(request);
 
             // スキップ対象のパス
             if self.skip_matcher.should_skip(&path) {

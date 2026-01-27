@@ -4,68 +4,68 @@ package grpc
 import (
 	"context"
 
-	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/application/services"
-	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/presentation/grpc/pb"
+	"{{ module_path | default(value="example.com") }}/{{ feature_name_snake }}/internal/application/services"
+	"{{ module_path | default(value="example.com") }}/{{ feature_name_snake }}/internal/presentation/grpc/pb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-// {{ feature_name | pascal_case }}Handler implements the gRPC service.
-type {{ feature_name | pascal_case }}Handler struct {
-	pb.Unimplemented{{ feature_name | pascal_case }}ServiceServer
-	service *services.{{ feature_name | pascal_case }}Service
+// {{ feature_name_pascal }}Handler implements the gRPC service.
+type {{ feature_name_pascal }}Handler struct {
+	pb.Unimplemented{{ feature_name_pascal }}ServiceServer
+	service *services.{{ feature_name_pascal }}Service
 }
 
-// New{{ feature_name | pascal_case }}Handler creates a new handler.
-func New{{ feature_name | pascal_case }}Handler(svc *services.{{ feature_name | pascal_case }}Service) *{{ feature_name | pascal_case }}Handler {
-	return &{{ feature_name | pascal_case }}Handler{service: svc}
+// New{{ feature_name_pascal }}Handler creates a new handler.
+func New{{ feature_name_pascal }}Handler(svc *services.{{ feature_name_pascal }}Service) *{{ feature_name_pascal }}Handler {
+	return &{{ feature_name_pascal }}Handler{service: svc}
 }
 
 // Get retrieves a {{ feature_name }} by ID.
-func (h *{{ feature_name | pascal_case }}Handler) Get(ctx context.Context, req *pb.Get{{ feature_name | pascal_case }}Request) (*pb.Get{{ feature_name | pascal_case }}Response, error) {
+func (h *{{ feature_name_pascal }}Handler) Get(ctx context.Context, req *pb.Get{{ feature_name_pascal }}Request) (*pb.Get{{ feature_name_pascal }}Response, error) {
 	entity, err := h.service.Get(ctx, req.Id)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "{{ feature_name }} not found: %v", err)
 	}
 
-	return &pb.Get{{ feature_name | pascal_case }}Response{
-		{{ feature_name | pascal_case }}: entityToProto(entity),
+	return &pb.Get{{ feature_name_pascal }}Response{
+		{{ feature_name_pascal }}: entityToProto(entity),
 	}, nil
 }
 
 // List retrieves all {{ feature_name }}s.
-func (h *{{ feature_name | pascal_case }}Handler) List(ctx context.Context, req *pb.List{{ feature_name | pascal_case }}Request) (*pb.List{{ feature_name | pascal_case }}Response, error) {
+func (h *{{ feature_name_pascal }}Handler) List(ctx context.Context, req *pb.List{{ feature_name_pascal }}Request) (*pb.List{{ feature_name_pascal }}Response, error) {
 	entities, nextToken, err := h.service.List(ctx, int(req.PageSize), req.PageToken)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list: %v", err)
 	}
 
-	protoEntities := make([]*pb.{{ feature_name | pascal_case }}, len(entities))
+	protoEntities := make([]*pb.{{ feature_name_pascal }}, len(entities))
 	for i, e := range entities {
 		protoEntities[i] = entityToProto(e)
 	}
 
-	return &pb.List{{ feature_name | pascal_case }}Response{
-		{{ feature_name | pascal_case }}S: protoEntities,
+	return &pb.List{{ feature_name_pascal }}Response{
+		{{ feature_name_pascal }}S: protoEntities,
 		NextPageToken: nextToken,
 	}, nil
 }
 
 // Create creates a new {{ feature_name }}.
-func (h *{{ feature_name | pascal_case }}Handler) Create(ctx context.Context, req *pb.Create{{ feature_name | pascal_case }}Request) (*pb.Create{{ feature_name | pascal_case }}Response, error) {
+func (h *{{ feature_name_pascal }}Handler) Create(ctx context.Context, req *pb.Create{{ feature_name_pascal }}Request) (*pb.Create{{ feature_name_pascal }}Response, error) {
 	entity, err := h.service.Create(ctx, req.Name)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to create: %v", err)
 	}
 
-	return &pb.Create{{ feature_name | pascal_case }}Response{
-		{{ feature_name | pascal_case }}: entityToProto(entity),
+	return &pb.Create{{ feature_name_pascal }}Response{
+		{{ feature_name_pascal }}: entityToProto(entity),
 	}, nil
 }
 
 // Update updates an existing {{ feature_name }}.
-func (h *{{ feature_name | pascal_case }}Handler) Update(ctx context.Context, req *pb.Update{{ feature_name | pascal_case }}Request) (*pb.Update{{ feature_name | pascal_case }}Response, error) {
+func (h *{{ feature_name_pascal }}Handler) Update(ctx context.Context, req *pb.Update{{ feature_name_pascal }}Request) (*pb.Update{{ feature_name_pascal }}Response, error) {
 	var statusPtr *int
 	if req.Status != 0 {
 		s := int(req.Status)
@@ -77,21 +77,21 @@ func (h *{{ feature_name | pascal_case }}Handler) Update(ctx context.Context, re
 		return nil, status.Errorf(codes.Internal, "failed to update: %v", err)
 	}
 
-	return &pb.Update{{ feature_name | pascal_case }}Response{
-		{{ feature_name | pascal_case }}: entityToProto(entity),
+	return &pb.Update{{ feature_name_pascal }}Response{
+		{{ feature_name_pascal }}: entityToProto(entity),
 	}, nil
 }
 
 // Delete deletes a {{ feature_name }}.
-func (h *{{ feature_name | pascal_case }}Handler) Delete(ctx context.Context, req *pb.Delete{{ feature_name | pascal_case }}Request) (*pb.Delete{{ feature_name | pascal_case }}Response, error) {
+func (h *{{ feature_name_pascal }}Handler) Delete(ctx context.Context, req *pb.Delete{{ feature_name_pascal }}Request) (*pb.Delete{{ feature_name_pascal }}Response, error) {
 	if err := h.service.Delete(ctx, req.Id); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete: %v", err)
 	}
-	return &pb.Delete{{ feature_name | pascal_case }}Response{}, nil
+	return &pb.Delete{{ feature_name_pascal }}Response{}, nil
 }
 
-func entityToProto(e *entities.{{ feature_name | pascal_case }}) *pb.{{ feature_name | pascal_case }} {
-	return &pb.{{ feature_name | pascal_case }}{
+func entityToProto(e *entities.{{ feature_name_pascal }}) *pb.{{ feature_name_pascal }} {
+	return &pb.{{ feature_name_pascal }}{
 		Id:        e.ID.String(),
 		Name:      e.Name,
 		Status:    int32(e.Status),

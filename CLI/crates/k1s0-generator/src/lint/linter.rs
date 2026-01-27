@@ -96,19 +96,17 @@ impl Linter {
         let manifest_path = path.join(".k1s0/manifest.json");
 
         // K001: manifest.json が存在しない
-        if !self.is_rule_skipped(RuleId::ManifestNotFound) {
-            if !manifest_path.exists() {
-                result.add_violation(
-                    Violation::new(
-                        RuleId::ManifestNotFound,
-                        Severity::Error,
-                        "manifest.json が見つかりません",
-                    )
-                    .with_path(".k1s0/manifest.json")
-                    .with_hint("k1s0 new-feature で生成したプロジェクトか確認してください"),
-                );
-                return; // manifest がない場合は以降の検査をスキップ
-            }
+        if !self.is_rule_skipped(RuleId::ManifestNotFound) && !manifest_path.exists() {
+            result.add_violation(
+                Violation::new(
+                    RuleId::ManifestNotFound,
+                    Severity::Error,
+                    "manifest.json が見つかりません",
+                )
+                .with_path(".k1s0/manifest.json")
+                .with_hint("k1s0 new-feature で生成したプロジェクトか確認してください"),
+            );
+            return; // manifest がない場合は以降の検査をスキップ
         }
 
         // manifest を読み込む

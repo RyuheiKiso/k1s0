@@ -4,8 +4,8 @@
 -- Create extension for UUID support
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Create {{ feature_name | snake_case }} table
-CREATE TABLE IF NOT EXISTS {{ feature_name | snake_case }} (
+-- Create {{ feature_name_snake }} table
+CREATE TABLE IF NOT EXISTS {{ feature_name_snake }} (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     status SMALLINT NOT NULL DEFAULT 1,
@@ -14,12 +14,12 @@ CREATE TABLE IF NOT EXISTS {{ feature_name | snake_case }} (
 );
 
 -- Indexes
-CREATE INDEX idx_{{ feature_name | snake_case }}_name ON {{ feature_name | snake_case }}(name);
-CREATE INDEX idx_{{ feature_name | snake_case }}_status ON {{ feature_name | snake_case }}(status);
-CREATE INDEX idx_{{ feature_name | snake_case }}_created_at ON {{ feature_name | snake_case }}(created_at);
+CREATE INDEX idx_{{ feature_name_snake }}_name ON {{ feature_name_snake }}(name);
+CREATE INDEX idx_{{ feature_name_snake }}_status ON {{ feature_name_snake }}(status);
+CREATE INDEX idx_{{ feature_name_snake }}_created_at ON {{ feature_name_snake }}(created_at);
 
 -- Trigger for updated_at
-CREATE OR REPLACE FUNCTION update_{{ feature_name | snake_case }}_updated_at()
+CREATE OR REPLACE FUNCTION update_{{ feature_name_snake }}_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
@@ -27,7 +27,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger_{{ feature_name | snake_case }}_updated_at
-    BEFORE UPDATE ON {{ feature_name | snake_case }}
+CREATE TRIGGER trigger_{{ feature_name_snake }}_updated_at
+    BEFORE UPDATE ON {{ feature_name_snake }}
     FOR EACH ROW
-    EXECUTE FUNCTION update_{{ feature_name | snake_case }}_updated_at();
+    EXECUTE FUNCTION update_{{ feature_name_snake }}_updated_at();

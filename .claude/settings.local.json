@@ -24,7 +24,13 @@
       "Bash(find:*)",
       "Bash(xargs -I {} bash -c 'echo \"\"===== {} =====\"\" && head -15 {}')",
       "Bash(xargs -I {} bash -c 'echo \"\"==== {} ====\"\" && cat {}')",
-      "Bash(for:*)"
+      "Bash(for:*)",
+      "Bash(git -C \"C:\\\\work\\\\github\\\\k1s0\" log --oneline -20)",
+      "Bash(cargo clippy:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(dir:*)",
+      "Bash(git status:*)"
     ]
   }
 }

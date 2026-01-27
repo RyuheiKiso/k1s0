@@ -312,7 +312,7 @@ impl Walker {
 
 impl From<walkdir::Error> for crate::Error {
     fn from(e: walkdir::Error) -> Self {
-        crate::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+        crate::Error::Io(std::io::Error::other(e.to_string()))
     }
 }
 

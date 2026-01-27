@@ -15,14 +15,26 @@
 //! - `K030`: gRPC リトライ設定の検出（可視化）
 //! - `K031`: gRPC リトライ設定に ADR 参照がない
 //! - `K032`: gRPC リトライ設定が不完全
+//!
+//! # 追加機能
+//!
+//! - `--watch`: ファイル変更を監視して継続的に lint 実行
+//! - `--diff <base>`: Git 差分で変更されたファイルのみを対象に lint 実行
 
 use std::path::PathBuf;
+#[cfg(feature = "watch")]
+use std::sync::atomic::{AtomicBool, Ordering};
+#[cfg(feature = "watch")]
+use std::sync::Arc;
 
 use clap::Args;
-use k1s0_generator::lint::{Fixer, LintConfig, LintResult, Linter, Severity};
+use k1s0_generator::lint::{DiffFilter, Fixer, LintConfig, LintResult, Linter, Severity};
+#[cfg(feature = "watch")]
+use k1s0_generator::lint::{LintWatcher, WatchConfig};
 
 use crate::error::{CliError, Result};
 use crate::output::{output, LintOutput, LintViolation};
+use crate::settings::Settings;
 
 /// `k1s0 lint` の引数
 #[derive(Args, Debug)]
@@ -54,6 +66,23 @@ pub struct LintArgs {
     /// 環境変数参照を許可するファイルパス（カンマ区切り、glob パターン対応）
     #[arg(long)]
     pub env_var_allowlist: Option<String>,
+
+    /// ファイル変更を監視して継続的に lint 実行（Ctrl+C で終了）
+    #[arg(long)]
+    pub watch: bool,
+
+    /// Git 差分で変更されたファイルのみを対象に lint 実行
+    /// 例: --diff HEAD, --diff main, --diff origin/main
+    #[arg(long)]
+    pub diff: Option<String>,
+
+    /// デバウンス間隔（ミリ秒、--watch と併用）
+    #[arg(long, default_value = "500")]
+    pub debounce_ms: u64,
+
+    /// 設定ファイルを使用しない
+    #[arg(long)]
+    pub no_config: bool,
 }
 
 /// `k1s0 lint` を実行する
@@ -68,24 +97,71 @@ pub fn execute(args: LintArgs) -> Result<()> {
             .with_hint("正しいパスを指定してください"));
     }
 
-    // 設定の構築
+    // 設定ファイルを読み込み（--no-config でない場合）
+    let settings = if args.no_config {
+        Settings::default()
+    } else {
+        Settings::load(Some(&path)).unwrap_or_default()
+    };
+
+    // 設定の構築（CLI 引数 > 設定ファイル）
     let config = LintConfig {
-        rules: args.rules.map(|r| r.split(',').map(|s| s.trim().to_string()).collect()),
+        rules: args
+            .rules
+            .as_ref()
+            .map(|r| r.split(',').map(|s| s.trim().to_string()).collect())
+            .or(settings.lint.rules),
         exclude_rules: args
             .exclude_rules
+            .as_ref()
             .map(|r| r.split(',').map(|s| s.trim().to_string()).collect())
-            .unwrap_or_default(),
-        strict: args.strict,
+            .unwrap_or_else(|| settings.lint.exclude_rules.clone()),
+        strict: args.strict || settings.lint.strict,
         env_var_allowlist: args
             .env_var_allowlist
+            .as_ref()
             .map(|r| r.split(',').map(|s| s.trim().to_string()).collect())
-            .unwrap_or_default(),
-        fix: args.fix,
+            .unwrap_or_else(|| settings.lint.env_var_allowlist.clone()),
+        fix: args.fix || settings.lint.fix,
     };
+
+    // デバウンス間隔（CLI 引数 > 設定ファイル）
+    let debounce_ms = if args.debounce_ms != 500 {
+        args.debounce_ms
+    } else {
+        settings.lint.watch_debounce_ms
+    };
+
+    // Watch モード
+    if args.watch {
+        return execute_watch(&path, config, debounce_ms, args.json);
+    }
 
     // lint 実行
     let linter = Linter::new(config.clone());
-    let result = linter.lint(&path);
+    let mut result = linter.lint(&path);
+
+    // 差分フィルタ
+    if let Some(base) = &args.diff {
+        let filter = DiffFilter::new(&path);
+
+        match filter.get_diff(base) {
+            Ok(diff) => {
+                out.info(&format!(
+                    "差分フィルタ: {} との比較（変更ファイル: {} 件）",
+                    base,
+                    diff.changed_files.len() + diff.added_files.len()
+                ));
+                out.newline();
+                result = filter.filter_violations(&result, &diff);
+            }
+            Err(e) => {
+                out.warning(&format!("差分取得に失敗: {}", e));
+                out.hint("Git リポジトリで正しいベースブランチ/コミットを指定してください");
+                out.newline();
+            }
+        }
+    }
 
     // --fix が指定されている場合、自動修正を試みる
     if args.fix && !result.violations.is_empty() {
@@ -264,4 +340,98 @@ fn to_lint_output(result: &LintResult) -> LintOutput {
             })
             .collect(),
     }
+}
+
+/// Watch モードで lint を実行
+#[cfg(feature = "watch")]
+fn execute_watch(
+    path: &PathBuf,
+    config: LintConfig,
+    debounce_ms: u64,
+    json: bool,
+) -> Result<()> {
+    let out = output();
+
+    out.header("k1s0 lint (watch mode)");
+    out.newline();
+    out.info(&format!("監視中: {}", path.display()));
+    out.hint("Ctrl+C で終了");
+    out.newline();
+
+    // Ctrl+C ハンドラ
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+
+    if ctrlc::set_handler(move || {
+        r.store(false, Ordering::SeqCst);
+    })
+    .is_err()
+    {
+        out.warning("Ctrl+C ハンドラの設定に失敗しました");
+    }
+
+    // Watch 設定
+    let watch_config = WatchConfig {
+        debounce_ms,
+        ..WatchConfig::default()
+    };
+
+    let watcher = LintWatcher::new(path, config).with_watch_config(watch_config);
+
+    let running_ref = running.clone();
+
+    watcher
+        .watch(move |result, event| {
+            // Ctrl+C が押されたら終了
+            if !running_ref.load(Ordering::SeqCst) {
+                return false;
+            }
+
+            // 変更イベントの表示
+            if let Some(ev) = event {
+                let out = output();
+                out.newline();
+                out.info(&format!(
+                    "ファイル変更検出: {} 件",
+                    ev.paths.len()
+                ));
+                for p in ev.paths.iter().take(5) {
+                    out.hint(&format!("  - {}", p.display()));
+                }
+                if ev.paths.len() > 5 {
+                    out.hint(&format!("  ... 他 {} 件", ev.paths.len() - 5));
+                }
+                out.newline();
+            }
+
+            // 結果の表示
+            if json {
+                let output_json = to_lint_output(&result);
+                let out = output();
+                out.print_json(&output_json);
+            } else {
+                print_result(&result);
+            }
+
+            true // 継続
+        })
+        .map_err(|e| CliError::internal(format!("Watch エラー: {}", e)))?;
+
+    out.newline();
+    out.info("監視を終了しました");
+
+    Ok(())
+}
+
+/// Watch モードで lint を実行（watch feature が無効な場合）
+#[cfg(not(feature = "watch"))]
+fn execute_watch(
+    _path: &PathBuf,
+    _config: LintConfig,
+    _debounce_ms: u64,
+    _json: bool,
+) -> Result<()> {
+    Err(CliError::internal(
+        "Watch モードは利用できません。`--features watch` でビルドしてください",
+    ))
 }

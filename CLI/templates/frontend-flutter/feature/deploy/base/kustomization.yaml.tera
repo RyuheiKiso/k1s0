@@ -7,12 +7,12 @@ resources:
   - configmap.yaml
 
 commonLabels:
-  app: {{ feature_name | kebab_case }}
-  app.kubernetes.io/name: {{ feature_name | kebab_case }}
+  app: {{ feature_name_kebab }}
+  app.kubernetes.io/name: {{ feature_name_kebab }}
   app.kubernetes.io/component: frontend
   app.kubernetes.io/part-of: k1s0
 
 images:
-  - name: {{ feature_name | kebab_case }}
-    newName: {{ container_registry | default(value="ghcr.io/k1s0") }}/{{ feature_name | kebab_case }}
+  - name: {{ feature_name_kebab }}
+    newName: {{ container_registry | default(value="ghcr.io/k1s0") }}/{{ feature_name_kebab }}
     newTag: latest

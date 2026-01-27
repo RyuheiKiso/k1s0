@@ -7,3 +7,45 @@ data:
   default.yaml: |
     service:
       name: {{ feature_name }}
+      version: "0.1.0"
+{% if with_rest %}
+    http:
+      port: 8080
+      host: "0.0.0.0"
+      request_timeout_ms: 30000
+{% endif %}
+{% if with_grpc %}
+    grpc:
+      port: 50051
+      host: "0.0.0.0"
+{% endif %}
+    health:
+      port: 9090
+{% if with_db %}
+    database:
+      host: {{ feature_name }}-postgres
+      port: 5432
+      name: {{ feature_name }}
+      username: postgres
+      pool:
+        max_connections: 10
+        min_connections: 2
+{% endif %}
+{% if with_cache %}
+    cache:
+      redis:
+        url: "redis://{{ feature_name }}-redis:6379"
+{% endif %}
+{% if with_auth %}
+    auth:
+      issuer: "https://auth.example.com"
+      jwks_uri: "https://auth.example.com/.well-known/jwks.json"
+      audience: "{{ feature_name }}"
+{% endif %}
+    observability:
+      tracing:
+        enabled: true
+        otlp_endpoint: "http://otel-collector:4317"
+      logging:
+        level: info
+        format: json

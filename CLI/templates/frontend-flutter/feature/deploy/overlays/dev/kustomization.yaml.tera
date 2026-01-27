@@ -7,11 +7,11 @@ resources:
   - ../../base
 
 replicas:
-  - name: {{ feature_name | kebab_case }}
+  - name: {{ feature_name_kebab }}
     count: 1
 
 configMapGenerator:
-  - name: {{ feature_name | kebab_case }}-config
+  - name: {{ feature_name_kebab }}-config
     behavior: merge
     literals:
       - FLUTTER_ENV=dev

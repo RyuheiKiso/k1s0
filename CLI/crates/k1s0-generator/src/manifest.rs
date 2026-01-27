@@ -3,9 +3,155 @@
 //! `.k1s0/manifest.json` の読み込み・書き込み・バリデーションを提供する。
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::path::Path;
 
 use crate::{Error, Result};
+
+/// manifest.json の JSON Schema 定義
+const MANIFEST_SCHEMA: &str = r#"{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "k1s0 Manifest",
+    "description": "k1s0 manifest.json schema",
+    "type": "object",
+    "required": [
+        "schema_version",
+        "k1s0_version",
+        "template",
+        "service",
+        "generated_at",
+        "managed_paths",
+        "protected_paths"
+    ],
+    "properties": {
+        "schema_version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "description": "スキーマバージョン（セマンティックバージョニング）"
+        },
+        "k1s0_version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+.*$",
+            "description": "k1s0 CLI のバージョン"
+        },
+        "template": {
+            "type": "object",
+            "required": ["name", "version", "path", "fingerprint"],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "テンプレート名"
+                },
+                "version": {
+                    "type": "string",
+                    "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+.*$",
+                    "description": "テンプレートバージョン"
+                },
+                "source": {
+                    "type": "string",
+                    "enum": ["local", "registry"],
+                    "description": "テンプレートソース"
+                },
+                "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "テンプレートパス"
+                },
+                "revision": {
+                    "type": ["string", "null"],
+                    "description": "Git リビジョン"
+                },
+                "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[a-fA-F0-9]+$",
+                    "minLength": 8,
+                    "description": "テンプレートのフィンガープリント（16進数）"
+                }
+            }
+        },
+        "service": {
+            "type": "object",
+            "required": ["service_name", "language", "type"],
+            "properties": {
+                "service_name": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]$",
+                    "minLength": 1,
+                    "maxLength": 63,
+                    "description": "サービス名（小文字英数字とハイフン）"
+                },
+                "language": {
+                    "type": "string",
+                    "enum": ["rust", "go", "typescript", "python"],
+                    "description": "プログラミング言語"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": ["backend", "frontend", "bff"],
+                    "description": "サービスタイプ"
+                },
+                "framework": {
+                    "type": ["string", "null"],
+                    "description": "フレームワーク名"
+                }
+            }
+        },
+        "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "生成日時（ISO 8601形式）"
+        },
+        "managed_paths": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "minLength": 1
+            },
+            "description": "CLI が管理するパス"
+        },
+        "protected_paths": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "minLength": 1
+            },
+            "description": "CLI が変更しないパス"
+        },
+        "update_policy": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string",
+                "enum": ["auto", "suggest_only", "protected"]
+            },
+            "description": "パス別の更新ポリシー"
+        },
+        "checksums": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            },
+            "description": "ファイルのチェックサム"
+        },
+        "dependencies": {
+            "type": ["object", "null"],
+            "properties": {
+                "framework_crates": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["name", "version"],
+                        "properties": {
+                            "name": {"type": "string"},
+                            "version": {"type": "string"}
+                        }
+                    }
+                }
+            },
+            "description": "依存情報"
+        }
+    }
+}"#;
 
 /// manifest.json のスキーマバージョン
 pub const SCHEMA_VERSION: &str = "1.0.0";
@@ -145,12 +291,69 @@ impl Manifest {
 
     /// バリデーションを実行する
     pub fn validate(&self) -> Result<()> {
-        // TODO: JSON Schema を使用したバリデーション
-        // 最低限のバリデーション
-        if self.service.service_name.is_empty() {
-            return Err(Error::ManifestValidation(
-                "service_name is required".to_string(),
-            ));
+        // JSON Schema によるバリデーション
+        self.validate_schema()?;
+
+        // ビジネスルールのバリデーション
+        self.validate_business_rules()?;
+
+        Ok(())
+    }
+
+    /// JSON Schema によるバリデーション
+    fn validate_schema(&self) -> Result<()> {
+        let schema: serde_json::Value = serde_json::from_str(MANIFEST_SCHEMA)
+            .map_err(|e| Error::ManifestValidation(format!("Invalid schema: {}", e)))?;
+
+        let validator = jsonschema::validator_for(&schema)
+            .map_err(|e| Error::ManifestValidation(format!("Failed to compile schema: {}", e)))?;
+
+        let manifest_value = serde_json::to_value(self)
+            .map_err(|e| Error::ManifestValidation(format!("Failed to serialize manifest: {}", e)))?;
+
+        let errors: Vec<String> = validator
+            .iter_errors(&manifest_value)
+            .map(|e| format!("{} at {}", e, e.instance_path))
+            .collect();
+
+        if !errors.is_empty() {
+            return Err(Error::ManifestValidation(format!(
+                "Schema validation failed:\n  - {}",
+                errors.join("\n  - ")
+            )));
+        }
+
+        Ok(())
+    }
+
+    /// ビジネスルールのバリデーション
+    fn validate_business_rules(&self) -> Result<()> {
+        // managed_paths と protected_paths の重複チェック
+        let managed_set: HashSet<&str> = self.managed_paths.iter().map(|s| s.as_str()).collect();
+        let protected_set: HashSet<&str> = self.protected_paths.iter().map(|s| s.as_str()).collect();
+
+        let overlap: Vec<&str> = managed_set.intersection(&protected_set).copied().collect();
+        if !overlap.is_empty() {
+            return Err(Error::ManifestValidation(format!(
+                "managed_paths and protected_paths must not overlap: {:?}",
+                overlap
+            )));
+        }
+
+        // fingerprint の形式チェック（16進数であること）
+        if !self.template.fingerprint.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Err(Error::ManifestValidation(format!(
+                "template.fingerprint must be hexadecimal: {}",
+                self.template.fingerprint
+            )));
+        }
+
+        // fingerprint の長さチェック（最低8文字）
+        if self.template.fingerprint.len() < 8 {
+            return Err(Error::ManifestValidation(format!(
+                "template.fingerprint must be at least 8 characters: {}",
+                self.template.fingerprint
+            )));
         }
 
         Ok(())
@@ -296,5 +499,87 @@ mod tests {
             // バリデーション
             assert!(manifest.validate().is_ok());
         }
+    }
+
+    #[test]
+    fn test_validate_schema_valid_manifest() {
+        let manifest = create_test_manifest();
+        let result = manifest.validate_schema();
+        if let Err(e) = &result {
+            eprintln!("Validation error: {:?}", e);
+        }
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_schema_invalid_service_name_pattern() {
+        let mut manifest = create_test_manifest();
+        // 大文字を含む無効なサービス名
+        manifest.service.service_name = "TestService".to_string();
+
+        let result = manifest.validate_schema();
+        assert!(result.is_err());
+        let error = result.unwrap_err().to_string();
+        assert!(error.contains("service_name") || error.contains("pattern"));
+    }
+
+    #[test]
+    fn test_validate_schema_invalid_language() {
+        let mut manifest = create_test_manifest();
+        manifest.service.language = "invalid_language".to_string();
+
+        let result = manifest.validate_schema();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_schema_invalid_service_type() {
+        let mut manifest = create_test_manifest();
+        manifest.service.service_type = "invalid_type".to_string();
+
+        let result = manifest.validate_schema();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_business_rules_overlapping_paths() {
+        let mut manifest = create_test_manifest();
+        // managed_paths と protected_paths に重複を追加
+        manifest.managed_paths.push("src/domain/".to_string());
+
+        let result = manifest.validate_business_rules();
+        assert!(result.is_err());
+        let error = result.unwrap_err().to_string();
+        assert!(error.contains("overlap"));
+    }
+
+    #[test]
+    fn test_validate_business_rules_invalid_fingerprint() {
+        let mut manifest = create_test_manifest();
+        // 非16進数のフィンガープリント
+        manifest.template.fingerprint = "xyz12345".to_string();
+
+        let result = manifest.validate_business_rules();
+        assert!(result.is_err());
+        let error = result.unwrap_err().to_string();
+        assert!(error.contains("hexadecimal"));
+    }
+
+    #[test]
+    fn test_validate_business_rules_short_fingerprint() {
+        let mut manifest = create_test_manifest();
+        // 8文字未満のフィンガープリント
+        manifest.template.fingerprint = "abc123".to_string();
+
+        let result = manifest.validate_business_rules();
+        assert!(result.is_err());
+        let error = result.unwrap_err().to_string();
+        assert!(error.contains("8 characters"));
+    }
+
+    #[test]
+    fn test_validate_full_valid_manifest() {
+        let manifest = create_test_manifest();
+        assert!(manifest.validate().is_ok());
     }
 }

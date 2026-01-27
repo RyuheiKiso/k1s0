@@ -73,30 +73,55 @@
 //! ```
 
 pub mod audit;
+pub mod blacklist;
 pub mod error;
 pub mod jwt;
 pub mod middleware;
+pub mod oidc;
 pub mod policy;
+pub mod refresh;
 
 // 主要な型を再エクスポート
 pub use audit::{AuditActor, AuditEvent, AuditEventType, AuditLogger, AuditResource, AuditResult};
+pub use blacklist::{TokenBlacklist, InMemoryBlacklist, BlacklistAwareVerifier};
 pub use error::AuthError;
 pub use jwt::{Claims, JwtVerifier, JwtVerifierConfig};
 pub use middleware::{AuthContext, AuthMiddleware, AuthSkipMatcher};
+pub use oidc::{OidcConfig, OidcDiscovery, OidcProviderConfig, OidcJwtVerifier};
 pub use policy::{
     Action, PolicyBuilder, PolicyDecision, PolicyEvaluator, PolicyRequest, PolicyResult,
-    PolicySubject, ResourceContext,
+    PolicySubject, ResourceContext, PolicyRule, PolicyEffect, PolicyCondition,
     // ポリシーリポジトリ
     PolicyRepository, InMemoryPolicyRepository, CachedPolicyRepository, RepositoryPolicyEvaluator,
 };
 
+// Redis キャッシュ付きポリシーリポジトリ
+#[cfg(feature = "redis-cache")]
+pub use policy::RedisCachedPolicyRepository;
+
+// PostgreSQL ポリシーリポジトリ
+#[cfg(feature = "postgres-policy")]
+pub use policy::PostgresPolicyRepository;
+pub use refresh::{
+    RefreshTokenConfig, RefreshTokenData, RefreshTokenManager, RefreshTokenStore,
+    InMemoryRefreshTokenStore, IssuedRefreshToken,
+};
+
+// Redis ブラックリスト
+#[cfg(feature = "redis-cache")]
+pub use blacklist::RedisBlacklist;
+
+// Redis リフレッシュトークンストア
+#[cfg(feature = "redis-cache")]
+pub use refresh::RedisRefreshTokenStore;
+
 // axum レイヤー
 #[cfg(feature = "axum-layer")]
-pub use middleware::{auth_layer, AuthLayer, AuthService, extract_auth_context};
+pub use middleware::axum_layer::{auth_layer, AuthLayer, AuthService, extract_auth_context as extract_http_auth_context};
 
 // tonic インターセプター
 #[cfg(feature = "tonic-interceptor")]
-pub use middleware::{
+pub use middleware::tonic_interceptor::{
     auth_interceptor, AsyncAuthInterceptor,
     extract_auth_context as extract_grpc_auth_context,
     set_auth_context as set_grpc_auth_context,

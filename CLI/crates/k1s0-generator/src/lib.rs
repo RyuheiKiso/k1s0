@@ -10,18 +10,21 @@
 //! - `diff`: 差分計算・表示
 //! - `fs`: ファイル操作ユーティリティ
 //! - `walker`: ディレクトリ走査ユーティリティ
+//! - `registry`: テンプレートレジストリ
 
 pub mod diff;
 pub mod fingerprint;
 pub mod fs;
 pub mod lint;
 pub mod manifest;
+pub mod plugin;
+pub mod registry;
 pub mod template;
 pub mod upgrade;
 pub mod walker;
 
-// Tera の Context を再エクスポート
-pub use tera::Context;
+// Tera の Context と Tera を再エクスポート
+pub use tera::{Context, Tera};
 
 /// k1s0-generator のエラー型
 #[derive(Debug, thiserror::Error)]

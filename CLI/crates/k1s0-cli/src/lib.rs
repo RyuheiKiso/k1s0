@@ -9,6 +9,10 @@
 //! - `new-screen`: 画面の雛形生成
 //! - `lint`: 規約違反の検査
 //! - `upgrade`: テンプレート更新
+//!
+//! # 設定ファイル
+//!
+//! `.k1s0/settings.yaml` でプロジェクト設定を管理できます。
 
 use clap::{Parser, Subcommand};
 use once_cell::sync::Lazy;
@@ -16,9 +20,11 @@ use once_cell::sync::Lazy;
 pub mod commands;
 pub mod error;
 pub mod output;
+pub mod settings;
 
 pub use error::{CliError, ExitCode, Result};
 pub use output::{init_output, output, Output, OutputConfig, OutputMode};
+pub use settings::Settings;
 
 /// k1s0 バージョン（k1s0-version.txt から取得）
 static VERSION_STRING: Lazy<String> = Lazy::new(|| {
@@ -92,6 +98,9 @@ pub enum Commands {
 
     /// テンプレートの更新を確認・適用する
     Upgrade(commands::upgrade::UpgradeArgs),
+
+    /// テンプレートレジストリを操作する
+    Registry(commands::registry::RegistryArgs),
 
     /// シェル補完スクリプトを生成する
     Completions(commands::completions::CompletionsArgs),

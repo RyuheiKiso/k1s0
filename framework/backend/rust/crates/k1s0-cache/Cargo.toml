@@ -1,0 +1,47 @@
+[package]
+name = "k1s0-cache"
+version = "0.1.0"
+edition = "2021"
+description = "k1s0 framework - Redis cache client with connection pooling and common patterns"
+license = "MIT"
+repository = "https://github.com/k1s0/k1s0"
+keywords = ["cache", "redis", "pool", "k1s0"]
+categories = ["caching"]
+
+[features]
+default = []
+redis = ["dep:redis", "dep:bb8", "dep:bb8-redis"]
+health = ["dep:k1s0-health"]
+full = ["redis", "health"]
+
+[dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+thiserror = "1.0"
+
+# Async runtime
+tokio = { version = "1.0", features = ["time", "sync", "rt"] }
+
+# Async trait
+async-trait = "0.1"
+
+# Tracing
+tracing = "0.1"
+
+# Redis (optional)
+redis = { version = "0.25", features = ["tokio-comp", "connection-manager"], optional = true }
+
+# Connection pool (optional)
+bb8 = { version = "0.8", optional = true }
+bb8-redis = { version = "0.15", optional = true }
+
+# Health check integration (optional)
+k1s0-health = { path = "../k1s0-health", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1.0", features = ["full", "test-util"] }
+testcontainers = "0.18"
+testcontainers-modules = { version = "0.6", features = ["redis"] }

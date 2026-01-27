@@ -4,8 +4,8 @@
 -- Create extension for UUID support (if not exists)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- {{ feature_name | pascal_case }} テーブル
-CREATE TABLE IF NOT EXISTS {{ feature_name | snake_case }} (
+-- {{ feature_name_pascal }} テーブル
+CREATE TABLE IF NOT EXISTS {{ feature_name_snake }} (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     {% if has_name_field | default(value=true) -%}
     name VARCHAR(255) NOT NULL,
@@ -22,15 +22,15 @@ CREATE TABLE IF NOT EXISTS {{ feature_name | snake_case }} (
 
 -- インデックス
 {% if has_name_field | default(value=true) -%}
-CREATE INDEX idx_{{ feature_name | snake_case }}_name ON {{ feature_name | snake_case }}(name);
+CREATE INDEX idx_{{ feature_name_snake }}_name ON {{ feature_name_snake }}(name);
 {% endif -%}
 {% if has_status_field | default(value=true) -%}
-CREATE INDEX idx_{{ feature_name | snake_case }}_status ON {{ feature_name | snake_case }}(status);
+CREATE INDEX idx_{{ feature_name_snake }}_status ON {{ feature_name_snake }}(status);
 {% endif -%}
-CREATE INDEX idx_{{ feature_name | snake_case }}_created_at ON {{ feature_name | snake_case }}(created_at);
+CREATE INDEX idx_{{ feature_name_snake }}_created_at ON {{ feature_name_snake }}(created_at);
 
 -- updated_at を自動更新するトリガー
-CREATE OR REPLACE FUNCTION update_{{ feature_name | snake_case }}_updated_at()
+CREATE OR REPLACE FUNCTION update_{{ feature_name_snake }}_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
@@ -38,19 +38,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger_{{ feature_name | snake_case }}_updated_at
-    BEFORE UPDATE ON {{ feature_name | snake_case }}
+CREATE TRIGGER trigger_{{ feature_name_snake }}_updated_at
+    BEFORE UPDATE ON {{ feature_name_snake }}
     FOR EACH ROW
-    EXECUTE FUNCTION update_{{ feature_name | snake_case }}_updated_at();
+    EXECUTE FUNCTION update_{{ feature_name_snake }}_updated_at();
 
 -- コメント
-COMMENT ON TABLE {{ feature_name | snake_case }} IS '{{ feature_description | default(value="Feature table") }}';
-COMMENT ON COLUMN {{ feature_name | snake_case }}.id IS 'Primary key (UUID v4)';
+COMMENT ON TABLE {{ feature_name_snake }} IS '{{ feature_description | default(value="Feature table") }}';
+COMMENT ON COLUMN {{ feature_name_snake }}.id IS 'Primary key (UUID v4)';
 {% if has_name_field | default(value=true) -%}
-COMMENT ON COLUMN {{ feature_name | snake_case }}.name IS 'Name';
+COMMENT ON COLUMN {{ feature_name_snake }}.name IS 'Name';
 {% endif -%}
 {% if has_status_field | default(value=true) -%}
-COMMENT ON COLUMN {{ feature_name | snake_case }}.status IS 'Status (1: active, 0: inactive)';
+COMMENT ON COLUMN {{ feature_name_snake }}.status IS 'Status (1: active, 0: inactive)';
 {% endif -%}
-COMMENT ON COLUMN {{ feature_name | snake_case }}.created_at IS 'Creation timestamp';
-COMMENT ON COLUMN {{ feature_name | snake_case }}.updated_at IS 'Last update timestamp';
+COMMENT ON COLUMN {{ feature_name_snake }}.created_at IS 'Creation timestamp';
+COMMENT ON COLUMN {{ feature_name_snake }}.updated_at IS 'Last update timestamp';
