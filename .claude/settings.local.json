@@ -31,7 +31,10 @@
       "Bash(git commit:*)",
       "Bash(dir:*)",
       "Bash(git status:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(ls:*)",
+      "Bash(git checkout:*)",
+      "Bash(cargo clean:*)"
     ]
   }
 }
