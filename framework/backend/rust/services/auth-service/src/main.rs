@@ -11,13 +11,13 @@
 //! auth-service --env dev --port 50051
 //! ```
 
-use std::env;
 use std::net::SocketAddr;
-use std::path::PathBuf;
 use std::sync::Arc;
 
+use clap::Parser;
 use tokio::signal;
 use tonic::transport::Server;
+use tonic_health::server::health_reporter;
 use tracing::{info, warn};
 
 mod application;
@@ -34,129 +34,143 @@ use infrastructure::{
 use presentation::grpc::auth_v1::auth_service_server::AuthServiceServer;
 use presentation::grpc::GrpcAuthService;
 
-/// サービス設定
-struct ServiceConfig {
-    env_name: String,
-    config_path: Option<PathBuf>,
-    secrets_dir: Option<PathBuf>,
-    jwt_secret: String,
-    issuer: String,
-    grpc_port: u16,
+/// auth-service CLI arguments
+#[derive(Parser, Debug)]
+#[command(name = "auth-service")]
+#[command(about = "k1s0 framework authentication and authorization service")]
+#[command(version)]
+struct Args {
+    /// Environment name (dev, stg, prod)
+    #[arg(long, default_value = "dev")]
+    env: String,
+
+    /// Path to config file
+    #[arg(long)]
+    config: Option<String>,
+
+    /// Path to secrets directory
+    #[arg(long)]
+    secrets_dir: Option<String>,
+
+    /// gRPC server port
+    #[arg(short, long, default_value = "50051")]
+    port: u16,
+
+    /// REST API port (optional)
+    #[arg(long)]
     rest_port: Option<u16>,
+
+    /// Database URL (if not set, uses in-memory storage)
+    #[arg(long, env = "DATABASE_URL")]
+    database_url: Option<String>,
+
+    /// JWT issuer
+    #[arg(long, default_value = "k1s0-auth")]
+    issuer: String,
+
+    /// JWT secret (for development only, use secrets file in production)
+    #[arg(long, default_value = "dev-secret-change-in-production")]
+    jwt_secret: String,
 }
 
-impl Default for ServiceConfig {
-    fn default() -> Self {
-        Self {
-            env_name: "dev".to_string(),
-            config_path: None,
-            secrets_dir: None,
-            jwt_secret: "dev-secret-change-in-production".to_string(),
-            issuer: "k1s0-auth".to_string(),
-            grpc_port: 50051,
-            rest_port: None,
-        }
-    }
-}
-
-fn parse_args() -> ServiceConfig {
-    let args: Vec<String> = env::args().collect();
-    let mut config = ServiceConfig::default();
-
-    let mut i = 1;
-    while i < args.len() {
-        match args[i].as_str() {
-            "--env" => {
-                if i + 1 < args.len() {
-                    config.env_name = args[i + 1].clone();
-                    i += 2;
-                } else {
-                    eprintln!("Error: --env requires a value");
-                    std::process::exit(1);
-                }
-            }
-            "--config" => {
-                if i + 1 < args.len() {
-                    config.config_path = Some(PathBuf::from(&args[i + 1]));
-                    i += 2;
-                } else {
-                    eprintln!("Error: --config requires a value");
-                    std::process::exit(1);
-                }
-            }
-            "--secrets-dir" => {
-                if i + 1 < args.len() {
-                    config.secrets_dir = Some(PathBuf::from(&args[i + 1]));
-                    i += 2;
-                } else {
-                    eprintln!("Error: --secrets-dir requires a value");
-                    std::process::exit(1);
-                }
-            }
-            "--port" | "-p" => {
-                if i + 1 < args.len() {
-                    config.grpc_port = args[i + 1].parse().unwrap_or(50051);
-                    i += 2;
-                } else {
-                    eprintln!("Error: --port requires a value");
-                    std::process::exit(1);
-                }
-            }
-            "--rest-port" => {
-                if i + 1 < args.len() {
-                    config.rest_port = Some(args[i + 1].parse().unwrap_or(8080));
-                    i += 2;
-                } else {
-                    eprintln!("Error: --rest-port requires a value");
-                    std::process::exit(1);
-                }
-            }
-            "--help" | "-h" => {
-                println!("auth-service - k1s0 framework authentication service");
-                println!();
-                println!("USAGE:");
-                println!("    auth-service [OPTIONS]");
-                println!();
-                println!("OPTIONS:");
-                println!("    --env <ENV>           Environment name (default: dev)");
-                println!("    --config <PATH>       Path to config file");
-                println!("    --secrets-dir <PATH>  Path to secrets directory");
-                println!("    -p, --port <PORT>     gRPC port (default: 50051)");
-                println!("    --rest-port <PORT>    REST API port (optional)");
-                println!("    -h, --help            Print help information");
-                std::process::exit(0);
-            }
-            _ => {
-                eprintln!("Error: Unknown argument: {}", args[i]);
-                std::process::exit(1);
-            }
-        }
-    }
-
-    config
-}
+/// InMemoryリポジトリを使用するAuthService型
+type InMemoryAuthService = AuthService<
+    InMemoryUserRepository,
+    InMemoryRoleRepository,
+    InMemoryPermissionRepository,
+    InMemoryTokenRepository,
+>;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = parse_args();
+    let args = Args::parse();
 
-    println!("auth-service starting...");
-    println!("  Environment: {}", config.env_name);
-    println!("  Issuer: {}", config.issuer);
-    if let Some(ref path) = config.config_path {
-        println!("  Config: {}", path.display());
-    }
-    if let Some(ref path) = config.secrets_dir {
-        println!("  Secrets: {}", path.display());
+    // トレーシング初期化
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .json()
+        .init();
+
+    info!(
+        service = "auth-service",
+        env = %args.env,
+        port = %args.port,
+        "Starting auth-service"
+    );
+
+    // データベースURL指定時はPostgreSQLを使用
+    if let Some(ref db_url) = args.database_url {
+        info!(database_url = %db_url, "PostgreSQL mode (not yet implemented in main)");
+        // TODO: PostgreSQL リポジトリを使用する実装
+        // 現時点ではInMemoryにフォールバック
+        warn!("PostgreSQL mode not fully implemented, falling back to in-memory");
     }
 
-    // リポジトリの初期化
+    // InMemoryリポジトリの初期化
     let user_repo = Arc::new(InMemoryUserRepository::new());
     let role_repo = Arc::new(InMemoryRoleRepository::new());
     let permission_repo = Arc::new(InMemoryPermissionRepository::new());
     let token_repo = Arc::new(InMemoryTokenRepository::new());
 
-    // サンプルデータの登録
+    // 開発環境の場合、サンプルデータを登録
+    if args.env == "dev" {
+        setup_sample_data(&user_repo, &role_repo, &permission_repo).await?;
+    }
+
+    // サービスの初期化
+    let service = AuthService::new(
+        user_repo,
+        role_repo,
+        permission_repo,
+        token_repo,
+        &args.issuer,
+        &args.jwt_secret,
+    );
+
+    // 開発環境での動作確認
+    if args.env == "dev" {
+        run_dev_tests(&service).await;
+    }
+
+    // gRPC サービスの作成
+    let grpc_service = GrpcAuthService::new(Arc::new(service));
+
+    // Health reporter
+    let (mut health_reporter, health_service) = health_reporter();
+    health_reporter
+        .set_serving::<AuthServiceServer<GrpcAuthService<
+            InMemoryUserRepository,
+            InMemoryRoleRepository,
+            InMemoryPermissionRepository,
+            InMemoryTokenRepository,
+        >>>()
+        .await;
+
+    // gRPC サーバーの起動
+    let addr: SocketAddr = format!("0.0.0.0:{}", args.port).parse()?;
+    info!(address = %addr, "Starting gRPC server");
+
+    Server::builder()
+        .add_service(health_service)
+        .add_service(AuthServiceServer::new(grpc_service))
+        .serve_with_shutdown(addr, shutdown_signal())
+        .await?;
+
+    info!("auth-service shutdown complete");
+    Ok(())
+}
+
+/// サンプルデータの登録（開発環境用）
+async fn setup_sample_data(
+    user_repo: &Arc<InMemoryUserRepository>,
+    role_repo: &Arc<InMemoryRoleRepository>,
+    permission_repo: &Arc<InMemoryPermissionRepository>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    info!("Setting up sample data for development");
+
     // ロール
     role_repo.add_role(Role::new(1, "admin", "Administrator"));
     role_repo.add_role(Role::new(2, "user", "Normal user"));
@@ -191,50 +205,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     permission_repo.add_permission(1, "admin:all", None);
     permission_repo.add_permission(2, "user:read", None);
 
-    // サービスの初期化
-    let service = AuthService::new(
-        user_repo,
-        role_repo,
-        permission_repo,
-        token_repo,
-        &config.issuer,
-        &config.jwt_secret,
-    );
+    info!("Sample data setup complete");
+    Ok(())
+}
 
-    // 動作確認
-    println!("\nAuthentication test:");
+/// 開発環境での動作確認テスト
+async fn run_dev_tests(service: &InMemoryAuthService) {
+    info!("Running development tests");
+
+    // 認証テスト
     match service.authenticate("admin", "password123").await {
         Ok(token) => {
-            println!("  Login successful!");
-            println!("  Token type: {}", token.token_type);
-            println!("  Expires in: {} seconds", token.expires_in);
+            info!(
+                token_type = %token.token_type,
+                expires_in = %token.expires_in,
+                "Authentication test: SUCCESS"
+            );
         }
         Err(e) => {
-            println!("  Login failed: {}", e);
+            warn!(error = %e, "Authentication test: FAILED");
         }
     }
 
-    println!("\nPermission check test:");
-    let has_admin = service.check_permission(1, "admin:all", None).await?;
-    println!("  admin has 'admin:all': {}", has_admin);
-
-    let has_admin = service.check_permission(2, "admin:all", None).await?;
-    println!("  testuser has 'admin:all': {}", has_admin);
-
-    // gRPC サービスの作成
-    let grpc_service = GrpcAuthService::new(Arc::new(service));
-
-    // gRPC サーバーの起動
-    let addr: SocketAddr = format!("0.0.0.0:{}", config.grpc_port).parse()?;
-    println!("\nStarting gRPC server on {}", addr);
-
-    Server::builder()
-        .add_service(AuthServiceServer::new(grpc_service))
-        .serve_with_shutdown(addr, shutdown_signal())
-        .await?;
-
-    println!("auth-service shutdown complete.");
-    Ok(())
+    // パーミッションチェックテスト
+    match service.check_permission(1, "admin:all", None).await {
+        Ok(has_perm) => {
+            info!(
+                user_id = 1,
+                permission = "admin:all",
+                allowed = %has_perm,
+                "Permission check test: SUCCESS"
+            );
+        }
+        Err(e) => {
+            warn!(error = %e, "Permission check test: FAILED");
+        }
+    }
 }
 
 /// グレースフルシャットダウンシグナルを待機
@@ -258,10 +264,10 @@ async fn shutdown_signal() {
 
     tokio::select! {
         _ = ctrl_c => {
-            println!("\nReceived Ctrl+C, shutting down...");
+            info!("Received Ctrl+C, initiating graceful shutdown");
         }
         _ = terminate => {
-            println!("\nReceived SIGTERM, shutting down...");
+            info!("Received SIGTERM, initiating graceful shutdown");
         }
     }
 }

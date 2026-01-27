@@ -14,8 +14,10 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use clap::Parser;
 use tokio::signal;
 use tonic::transport::Server;
+use tonic_health::server::health_reporter;
 use tracing::{info, warn};
 
 mod application;
@@ -29,161 +31,175 @@ use infrastructure::{InMemoryCache, InMemoryRepository};
 use presentation::grpc::config_v1::config_service_server::ConfigServiceServer;
 use presentation::grpc::GrpcConfigService;
 
-/// サービス設定
-#[derive(Debug, Clone)]
-struct ServiceConfig {
+/// config-service CLI arguments
+#[derive(Parser, Debug)]
+#[command(name = "config-service")]
+#[command(about = "k1s0 framework dynamic configuration service")]
+#[command(version)]
+struct Args {
+    /// Environment name (dev, stg, prod)
+    #[arg(long, default_value = "dev")]
     env: String,
-    config_path: Option<String>,
+
+    /// Path to config file
+    #[arg(long)]
+    config: Option<String>,
+
+    /// Path to secrets directory
+    #[arg(long)]
     secrets_dir: Option<String>,
+
+    /// gRPC server port
+    #[arg(short, long, default_value = "50051")]
     port: u16,
+
+    /// REST API port (optional)
+    #[arg(long)]
+    rest_port: Option<u16>,
+
+    /// Database URL (if not set, uses in-memory storage)
+    #[arg(long, env = "DATABASE_URL")]
+    database_url: Option<String>,
+
+    /// Redis URL for caching (optional)
+    #[arg(long, env = "REDIS_URL")]
+    redis_url: Option<String>,
 }
 
-impl Default for ServiceConfig {
-    fn default() -> Self {
-        Self {
-            env: "dev".to_string(),
-            config_path: None,
-            secrets_dir: None,
-            port: 50051,
-        }
-    }
-}
-
-fn parse_args() -> ServiceConfig {
-    let args: Vec<String> = std::env::args().collect();
-    let mut config = ServiceConfig::default();
-
-    let mut i = 1;
-    while i < args.len() {
-        match args[i].as_str() {
-            "--env" | "-e" => {
-                if i + 1 < args.len() {
-                    config.env = args[i + 1].clone();
-                    i += 2;
-                } else {
-                    eprintln!("Error: --env requires a value");
-                    std::process::exit(1);
-                }
-            }
-            "--config" | "-c" => {
-                if i + 1 < args.len() {
-                    config.config_path = Some(args[i + 1].clone());
-                    i += 2;
-                } else {
-                    eprintln!("Error: --config requires a value");
-                    std::process::exit(1);
-                }
-            }
-            "--secrets-dir" | "-s" => {
-                if i + 1 < args.len() {
-                    config.secrets_dir = Some(args[i + 1].clone());
-                    i += 2;
-                } else {
-                    eprintln!("Error: --secrets-dir requires a value");
-                    std::process::exit(1);
-                }
-            }
-            "--port" | "-p" => {
-                if i + 1 < args.len() {
-                    config.port = args[i + 1].parse().unwrap_or(50051);
-                    i += 2;
-                } else {
-                    eprintln!("Error: --port requires a value");
-                    std::process::exit(1);
-                }
-            }
-            "--help" | "-h" => {
-                println!("config-service - k1s0 framework configuration service");
-                println!();
-                println!("USAGE:");
-                println!("    config-service [OPTIONS]");
-                println!();
-                println!("OPTIONS:");
-                println!("    -e, --env <ENV>           Environment name (default: dev)");
-                println!("    -c, --config <PATH>       Path to config file");
-                println!("    -s, --secrets-dir <PATH>  Path to secrets directory");
-                println!("    -p, --port <PORT>         gRPC port (default: 50051)");
-                println!("    -h, --help                Print help information");
-                std::process::exit(0);
-            }
-            _ => {
-                eprintln!("Error: Unknown argument: {}", args[i]);
-                std::process::exit(1);
-            }
-        }
-    }
-
-    config
-}
+/// InMemoryリポジトリを使用するConfigService型
+type InMemoryConfigService = ConfigService<InMemoryRepository, InMemoryCache>;
 
 #[tokio::main]
-async fn main() {
-    let config = parse_args();
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse();
 
-    println!("config-service starting...");
-    println!("  Environment: {}", config.env);
-    if let Some(ref path) = config.config_path {
-        println!("  Config: {}", path);
-    }
-    if let Some(ref path) = config.secrets_dir {
-        println!("  Secrets: {}", path);
-    }
-    println!("  Port: {}", config.port);
+    // トレーシング初期化
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .json()
+        .init();
 
-    // サービスの初期化
+    info!(
+        service = "config-service",
+        env = %args.env,
+        port = %args.port,
+        "Starting config-service"
+    );
+
+    // データベースURL指定時はPostgreSQLを使用
+    if let Some(ref db_url) = args.database_url {
+        info!(database_url = %db_url, "PostgreSQL mode (not yet implemented in main)");
+        warn!("PostgreSQL mode not fully implemented, falling back to in-memory");
+    }
+
+    // Redis URL指定時はRedisキャッシュを使用
+    if let Some(ref redis_url) = args.redis_url {
+        info!(redis_url = %redis_url, "Redis cache mode (not yet implemented in main)");
+        warn!("Redis cache mode not fully implemented, falling back to in-memory cache");
+    }
+
+    // InMemoryリポジトリとキャッシュの初期化
     let repository = Arc::new(InMemoryRepository::new());
     let cache = Arc::new(InMemoryCache::new());
+
+    // 開発環境の場合、サンプルデータを登録
+    if args.env == "dev" {
+        setup_sample_data(&repository).await?;
+    }
+
+    // サービスの初期化
     let service = ConfigService::new(
         Arc::clone(&repository),
         Arc::clone(&cache),
-        &config.env,
+        &args.env,
     );
 
-    // サンプルデータの追加（開発用）
-    if config.env == "dev" {
-        println!("  Loading sample data for development...");
-        let samples = vec![
-            Setting::new(1, "sample-service", "dev", "feature.enabled", "true"),
-            Setting::new(2, "sample-service", "dev", "http.timeout_ms", "5000"),
-            Setting::new(3, "sample-service", "dev", "db.pool_size", "10"),
-        ];
-        for setting in samples {
-            repository.save(&setting).await.unwrap();
-        }
-    }
-
-    // サービスの動作確認
-    println!();
-    println!("Testing service functionality...");
-
-    // 設定取得のテスト
-    match service.get_setting("sample-service", "feature.enabled", None).await {
-        Ok(setting) => println!("  Get setting: {}={}", setting.key, setting.value),
-        Err(e) => println!("  Get setting error: {}", e),
-    }
-
-    // 設定一覧のテスト
-    let query = SettingQuery::new().with_service_name("sample-service");
-    match service.list_settings(&query).await {
-        Ok(list) => println!("  List settings: {} items", list.settings.len()),
-        Err(e) => println!("  List settings error: {}", e),
+    // 開発環境での動作確認
+    if args.env == "dev" {
+        run_dev_tests(&service).await;
     }
 
     // gRPC サービスの作成
     let grpc_service = GrpcConfigService::new(Arc::new(service));
 
+    // Health reporter
+    let (mut health_reporter, health_service) = health_reporter();
+    health_reporter
+        .set_serving::<ConfigServiceServer<GrpcConfigService<InMemoryRepository, InMemoryCache>>>()
+        .await;
+
     // gRPC サーバーの起動
-    let addr: SocketAddr = format!("0.0.0.0:{}", config.port).parse().unwrap();
-    println!();
-    println!("Starting gRPC server on {}", addr);
+    let addr: SocketAddr = format!("0.0.0.0:{}", args.port).parse()?;
+    info!(address = %addr, "Starting gRPC server");
 
     Server::builder()
+        .add_service(health_service)
         .add_service(ConfigServiceServer::new(grpc_service))
         .serve_with_shutdown(addr, shutdown_signal())
-        .await
-        .unwrap();
+        .await?;
 
-    println!("config-service shutdown complete.");
+    info!("config-service shutdown complete");
+    Ok(())
+}
+
+/// サンプルデータの登録（開発環境用）
+async fn setup_sample_data(
+    repository: &Arc<InMemoryRepository>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    info!("Setting up sample data for development");
+
+    let samples = vec![
+        Setting::new(1, "sample-service", "dev", "feature.enabled", "true"),
+        Setting::new(2, "sample-service", "dev", "http.timeout_ms", "5000"),
+        Setting::new(3, "sample-service", "dev", "db.pool_size", "10"),
+        Setting::new(4, "auth-service", "dev", "jwt.ttl_seconds", "3600"),
+        Setting::new(5, "auth-service", "dev", "jwt.refresh_ttl_seconds", "604800"),
+    ];
+
+    for setting in samples {
+        repository.save(&setting).await?;
+    }
+
+    info!(count = 5, "Sample data setup complete");
+    Ok(())
+}
+
+/// 開発環境での動作確認テスト
+async fn run_dev_tests(service: &InMemoryConfigService) {
+    info!("Running development tests");
+
+    // 設定取得のテスト
+    match service.get_setting("sample-service", "feature.enabled", None).await {
+        Ok(setting) => {
+            info!(
+                service_name = "sample-service",
+                key = %setting.key,
+                value = %setting.value,
+                "Get setting test: SUCCESS"
+            );
+        }
+        Err(e) => {
+            warn!(error = %e, "Get setting test: FAILED");
+        }
+    }
+
+    // 設定一覧のテスト
+    let query = SettingQuery::new().with_service_name("sample-service");
+    match service.list_settings(&query).await {
+        Ok(list) => {
+            info!(
+                service_name = "sample-service",
+                count = %list.settings.len(),
+                "List settings test: SUCCESS"
+            );
+        }
+        Err(e) => {
+            warn!(error = %e, "List settings test: FAILED");
+        }
+    }
 }
 
 /// グレースフルシャットダウンシグナルを待機
@@ -207,10 +223,10 @@ async fn shutdown_signal() {
 
     tokio::select! {
         _ = ctrl_c => {
-            println!("\nReceived Ctrl+C, shutting down...");
+            info!("Received Ctrl+C, initiating graceful shutdown");
         }
         _ = terminate => {
-            println!("\nReceived SIGTERM, shutting down...");
+            info!("Received SIGTERM, initiating graceful shutdown");
         }
     }
 }

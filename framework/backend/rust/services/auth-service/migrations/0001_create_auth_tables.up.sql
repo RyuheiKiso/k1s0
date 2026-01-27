@@ -191,3 +191,24 @@ SELECT r.role_id, p.permission_id
 FROM fw_m_role r, fw_m_permission p
 WHERE r.role_name = 'viewer' AND p.operation = 'read'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- リフレッシュトークンテーブル
+CREATE TABLE IF NOT EXISTS fw_t_refresh_token (
+    token_id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES fw_m_user(user_id) ON DELETE CASCADE,
+    token_hash VARCHAR(255) NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    revoked_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_fw_t_refresh_token_user ON fw_t_refresh_token(user_id);
+CREATE INDEX idx_fw_t_refresh_token_hash ON fw_t_refresh_token(token_hash);
+CREATE INDEX idx_fw_t_refresh_token_expires ON fw_t_refresh_token(expires_at);
+
+COMMENT ON TABLE fw_t_refresh_token IS 'リフレッシュトークン';
+COMMENT ON COLUMN fw_t_refresh_token.token_id IS 'トークンID';
+COMMENT ON COLUMN fw_t_refresh_token.user_id IS 'ユーザーID';
+COMMENT ON COLUMN fw_t_refresh_token.token_hash IS 'トークンハッシュ';
+COMMENT ON COLUMN fw_t_refresh_token.expires_at IS '有効期限';
+COMMENT ON COLUMN fw_t_refresh_token.revoked_at IS '無効化日時';

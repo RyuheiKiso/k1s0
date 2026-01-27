@@ -158,69 +158,68 @@ where
                 let service_filter = service_name_filter.clone();
                 let key_filter = key_prefix_filter.clone();
 
-                async move {
-                    match result {
-                        Ok(event) => {
-                            // イベントに応じてフィルタリング
-                            let (setting, change_type) = match &event {
-                                SettingChangeEvent::Updated(setting) => {
-                                    // サービス名フィルタ
-                                    if let Some(ref filter) = service_filter {
-                                        if &setting.service_name != filter {
-                                            return None;
-                                        }
+                // filter_map expects Option<T> (sync), not a Future
+                match result {
+                    Ok(event) => {
+                        // イベントに応じてフィルタリング
+                        let (setting, change_type) = match &event {
+                            SettingChangeEvent::Updated(setting) => {
+                                // サービス名フィルタ
+                                if let Some(ref filter) = service_filter {
+                                    if &setting.service_name != filter {
+                                        return None;
                                     }
-                                    // キープレフィックスフィルタ
-                                    if let Some(ref prefix) = key_filter {
-                                        if !setting.key.starts_with(prefix) {
-                                            return None;
-                                        }
-                                    }
-                                    (Some(setting_to_proto(setting.clone())), ChangeType::Updated)
                                 }
-                                SettingChangeEvent::Deleted {
-                                    service_name,
-                                    env,
-                                    key,
-                                } => {
-                                    // サービス名フィルタ
-                                    if let Some(ref filter) = service_filter {
-                                        if service_name != filter {
-                                            return None;
-                                        }
+                                // キープレフィックスフィルタ
+                                if let Some(ref prefix) = key_filter {
+                                    if !setting.key.starts_with(prefix) {
+                                        return None;
                                     }
-                                    // キープレフィックスフィルタ
-                                    if let Some(ref prefix) = key_filter {
-                                        if !key.starts_with(prefix) {
-                                            return None;
-                                        }
-                                    }
-                                    // 削除イベント用の最小限のSetting
-                                    let deleted_setting = ProtoSetting {
-                                        setting_id: 0,
-                                        service_name: service_name.clone(),
-                                        env: env.clone(),
-                                        setting_key: key.clone(),
-                                        value_type: String::new(),
-                                        setting_value: String::new(),
-                                        description: String::new(),
-                                        status: 0,
-                                        created_at: String::new(),
-                                        updated_at: String::new(),
-                                    };
-                                    (Some(deleted_setting), ChangeType::Deleted)
                                 }
-                            };
+                                (Some(setting_to_proto(setting.clone())), ChangeType::Updated)
+                            }
+                            SettingChangeEvent::Deleted {
+                                service_name,
+                                env,
+                                key,
+                            } => {
+                                // サービス名フィルタ
+                                if let Some(ref filter) = service_filter {
+                                    if service_name != filter {
+                                        return None;
+                                    }
+                                }
+                                // キープレフィックスフィルタ
+                                if let Some(ref prefix) = key_filter {
+                                    if !key.starts_with(prefix) {
+                                        return None;
+                                    }
+                                }
+                                // 削除イベント用の最小限のSetting
+                                let deleted_setting = ProtoSetting {
+                                    setting_id: 0,
+                                    service_name: service_name.clone(),
+                                    env: env.clone(),
+                                    setting_key: key.clone(),
+                                    value_type: String::new(),
+                                    setting_value: String::new(),
+                                    description: String::new(),
+                                    status: 0,
+                                    created_at: String::new(),
+                                    updated_at: String::new(),
+                                };
+                                (Some(deleted_setting), ChangeType::Deleted)
+                            }
+                        };
 
-                            Some(Ok(WatchSettingsResponse {
-                                setting,
-                                change_type: change_type as i32,
-                            }))
-                        }
-                        Err(_) => {
-                            // ラグによるメッセージロストはスキップ
-                            None
-                        }
+                        Some(Ok(WatchSettingsResponse {
+                            setting,
+                            change_type: change_type as i32,
+                        }))
+                    }
+                    Err(_) => {
+                        // ラグによるメッセージロストはスキップ
+                        None
                     }
                 }
             });

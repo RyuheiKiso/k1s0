@@ -38,12 +38,10 @@ where
 /// エンドポイントレスポンス
 #[derive(Debug, Serialize)]
 pub struct EndpointResponse {
-    pub endpoint_id: i64,
+    pub endpoint_id: i32,
     pub service_name: String,
     pub path: String,
     pub method: String,
-    pub description: Option<String>,
-    pub is_active: bool,
 }
 
 /// エンドポイントリストレスポンス
@@ -74,10 +72,6 @@ pub struct GetEndpointQuery {
 pub struct ListEndpointsQuery {
     #[serde(default)]
     pub service_name: Option<String>,
-    #[serde(default)]
-    pub method: Option<String>,
-    #[serde(default)]
-    pub path_prefix: Option<String>,
     #[serde(default)]
     pub page_size: Option<u32>,
     #[serde(default)]
@@ -138,8 +132,6 @@ where
                 service_name: endpoint.service_name,
                 path: endpoint.path,
                 method: endpoint.method,
-                description: endpoint.description,
-                is_active: endpoint.is_active,
             })
             .unwrap()),
         ),
@@ -166,12 +158,6 @@ where
     if let Some(ref service_name) = query.service_name {
         domain_query = domain_query.with_service_name(service_name);
     }
-    if let Some(ref method) = query.method {
-        domain_query = domain_query.with_method(method);
-    }
-    if let Some(ref path_prefix) = query.path_prefix {
-        domain_query = domain_query.with_path_prefix(path_prefix);
-    }
     if let Some(page_size) = query.page_size {
         domain_query = domain_query.with_page_size(page_size);
     }
@@ -189,8 +175,6 @@ where
                     service_name: e.service_name,
                     path: e.path,
                     method: e.method,
-                    description: e.description,
-                    is_active: e.is_active,
                 })
                 .collect();
             (
