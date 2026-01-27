@@ -19,7 +19,7 @@ linter:
   rules:
     # Error rules
     - avoid_dynamic_calls
-    - avoid_returning_null_for_future
+    # avoid_returning_null_for_future は Dart 3.3.0 で削除されたためコメントアウト
     - avoid_slow_async_io
     - cancel_subscriptions
     - close_sinks
@@ -73,7 +73,7 @@ linter:
     - omit_local_variable_types
     - one_member_abstracts
     - only_throw_errors
-    - package_api_docs
+    # package_api_docs は Dart 3.7.0 で削除されたためコメントアウト
     - parameter_assignments
     - prefer_asserts_in_initializer_lists
     - prefer_asserts_with_message
