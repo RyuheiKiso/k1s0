@@ -2,19 +2,19 @@
 -- Generated at {{ now | date(format="%Y-%m-%d") }}
 
 -- トリガーを削除
-DROP TRIGGER IF EXISTS trigger_{{ feature_name | snake_case }}_updated_at ON {{ feature_name | snake_case }};
+DROP TRIGGER IF EXISTS trigger_{{ feature_name_snake }}_updated_at ON {{ feature_name_snake }};
 
 -- 関数を削除
-DROP FUNCTION IF EXISTS update_{{ feature_name | snake_case }}_updated_at();
+DROP FUNCTION IF EXISTS update_{{ feature_name_snake }}_updated_at();
 
 -- インデックスを削除
 {% if has_name_field | default(value=true) -%}
-DROP INDEX IF EXISTS idx_{{ feature_name | snake_case }}_name;
+DROP INDEX IF EXISTS idx_{{ feature_name_snake }}_name;
 {% endif -%}
 {% if has_status_field | default(value=true) -%}
-DROP INDEX IF EXISTS idx_{{ feature_name | snake_case }}_status;
+DROP INDEX IF EXISTS idx_{{ feature_name_snake }}_status;
 {% endif -%}
-DROP INDEX IF EXISTS idx_{{ feature_name | snake_case }}_created_at;
+DROP INDEX IF EXISTS idx_{{ feature_name_snake }}_created_at;
 
 -- テーブルを削除
-DROP TABLE IF EXISTS {{ feature_name | snake_case }};
+DROP TABLE IF EXISTS {{ feature_name_snake }};

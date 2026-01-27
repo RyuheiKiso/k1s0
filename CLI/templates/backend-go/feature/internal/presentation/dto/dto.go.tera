@@ -4,11 +4,11 @@ package dto
 import (
 	"time"
 
-	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/domain/entities"
+	"{{ module_path | default(value="example.com") }}/{{ feature_name_snake }}/internal/domain/entities"
 )
 
-// {{ feature_name | pascal_case }}Response is the response DTO for {{ feature_name }}.
-type {{ feature_name | pascal_case }}Response struct {
+// {{ feature_name_pascal }}Response is the response DTO for {{ feature_name }}.
+type {{ feature_name_pascal }}Response struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	Status    int       `json:"status"`
@@ -16,26 +16,26 @@ type {{ feature_name | pascal_case }}Response struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// Create{{ feature_name | pascal_case }}Request is the request DTO for creating {{ feature_name }}.
-type Create{{ feature_name | pascal_case }}Request struct {
+// Create{{ feature_name_pascal }}Request is the request DTO for creating {{ feature_name }}.
+type Create{{ feature_name_pascal }}Request struct {
 	Name string `json:"name" validate:"required"`
 }
 
-// Update{{ feature_name | pascal_case }}Request is the request DTO for updating {{ feature_name }}.
-type Update{{ feature_name | pascal_case }}Request struct {
+// Update{{ feature_name_pascal }}Request is the request DTO for updating {{ feature_name }}.
+type Update{{ feature_name_pascal }}Request struct {
 	Name   string `json:"name,omitempty"`
 	Status *int   `json:"status,omitempty"`
 }
 
-// List{{ feature_name | pascal_case }}Response is the response DTO for listing {{ feature_name }}s.
-type List{{ feature_name | pascal_case }}Response struct {
-	{{ feature_name | pascal_case }}s []*{{ feature_name | pascal_case }}Response `json:"{{ feature_name | snake_case }}s"`
+// List{{ feature_name_pascal }}Response is the response DTO for listing {{ feature_name }}s.
+type List{{ feature_name_pascal }}Response struct {
+	{{ feature_name_pascal }}s []*{{ feature_name_pascal }}Response `json:"{{ feature_name_snake }}s"`
 	NextPageToken string                    `json:"next_page_token,omitempty"`
 }
 
-// From{{ feature_name | pascal_case }} converts an entity to a response DTO.
-func From{{ feature_name | pascal_case }}(e *entities.{{ feature_name | pascal_case }}) *{{ feature_name | pascal_case }}Response {
-	return &{{ feature_name | pascal_case }}Response{
+// From{{ feature_name_pascal }} converts an entity to a response DTO.
+func From{{ feature_name_pascal }}(e *entities.{{ feature_name_pascal }}) *{{ feature_name_pascal }}Response {
+	return &{{ feature_name_pascal }}Response{
 		ID:        e.ID.String(),
 		Name:      e.Name,
 		Status:    e.Status,
@@ -44,14 +44,14 @@ func From{{ feature_name | pascal_case }}(e *entities.{{ feature_name | pascal_c
 	}
 }
 
-// From{{ feature_name | pascal_case }}List converts a list of entities to response DTOs.
-func From{{ feature_name | pascal_case }}List(entities []*entities.{{ feature_name | pascal_case }}, nextToken string) *List{{ feature_name | pascal_case }}Response {
-	responses := make([]*{{ feature_name | pascal_case }}Response, len(entities))
+// From{{ feature_name_pascal }}List converts a list of entities to response DTOs.
+func From{{ feature_name_pascal }}List(entities []*entities.{{ feature_name_pascal }}, nextToken string) *List{{ feature_name_pascal }}Response {
+	responses := make([]*{{ feature_name_pascal }}Response, len(entities))
 	for i, e := range entities {
-		responses[i] = From{{ feature_name | pascal_case }}(e)
+		responses[i] = From{{ feature_name_pascal }}(e)
 	}
-	return &List{{ feature_name | pascal_case }}Response{
-		{{ feature_name | pascal_case }}s: responses,
+	return &List{{ feature_name_pascal }}Response{
+		{{ feature_name_pascal }}s: responses,
 		NextPageToken: nextToken,
 	}
 }

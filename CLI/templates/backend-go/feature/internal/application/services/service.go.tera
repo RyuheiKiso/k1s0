@@ -6,22 +6,22 @@ import (
 
 	"github.com/google/uuid"
 
-	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/application/usecases"
-	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/domain/entities"
+	"{{ module_path | default(value="example.com") }}/{{ feature_name_snake }}/internal/application/usecases"
+	"{{ module_path | default(value="example.com") }}/{{ feature_name_snake }}/internal/domain/entities"
 )
 
-// {{ feature_name | pascal_case }}Service provides {{ feature_name }} operations.
-type {{ feature_name | pascal_case }}Service struct {
-	useCase usecases.{{ feature_name | pascal_case }}UseCase
+// {{ feature_name_pascal }}Service provides {{ feature_name }} operations.
+type {{ feature_name_pascal }}Service struct {
+	useCase usecases.{{ feature_name_pascal }}UseCase
 }
 
-// New{{ feature_name | pascal_case }}Service creates a new service.
-func New{{ feature_name | pascal_case }}Service(uc usecases.{{ feature_name | pascal_case }}UseCase) *{{ feature_name | pascal_case }}Service {
-	return &{{ feature_name | pascal_case }}Service{useCase: uc}
+// New{{ feature_name_pascal }}Service creates a new service.
+func New{{ feature_name_pascal }}Service(uc usecases.{{ feature_name_pascal }}UseCase) *{{ feature_name_pascal }}Service {
+	return &{{ feature_name_pascal }}Service{useCase: uc}
 }
 
 // Get retrieves a {{ feature_name }} by ID.
-func (s *{{ feature_name | pascal_case }}Service) Get(ctx context.Context, id string) (*entities.{{ feature_name | pascal_case }}, error) {
+func (s *{{ feature_name_pascal }}Service) Get(ctx context.Context, id string) (*entities.{{ feature_name_pascal }}, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, err
@@ -30,17 +30,17 @@ func (s *{{ feature_name | pascal_case }}Service) Get(ctx context.Context, id st
 }
 
 // List retrieves all {{ feature_name }}s with pagination.
-func (s *{{ feature_name | pascal_case }}Service) List(ctx context.Context, pageSize int, pageToken string) ([]*entities.{{ feature_name | pascal_case }}, string, error) {
+func (s *{{ feature_name_pascal }}Service) List(ctx context.Context, pageSize int, pageToken string) ([]*entities.{{ feature_name_pascal }}, string, error) {
 	return s.useCase.List(ctx, pageSize, pageToken)
 }
 
 // Create creates a new {{ feature_name }}.
-func (s *{{ feature_name | pascal_case }}Service) Create(ctx context.Context, name string) (*entities.{{ feature_name | pascal_case }}, error) {
+func (s *{{ feature_name_pascal }}Service) Create(ctx context.Context, name string) (*entities.{{ feature_name_pascal }}, error) {
 	return s.useCase.Create(ctx, name)
 }
 
 // Update updates an existing {{ feature_name }}.
-func (s *{{ feature_name | pascal_case }}Service) Update(ctx context.Context, id, name string, status *int) (*entities.{{ feature_name | pascal_case }}, error) {
+func (s *{{ feature_name_pascal }}Service) Update(ctx context.Context, id, name string, status *int) (*entities.{{ feature_name_pascal }}, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (s *{{ feature_name | pascal_case }}Service) Update(ctx context.Context, id
 }
 
 // Delete deletes a {{ feature_name }} by ID.
-func (s *{{ feature_name | pascal_case }}Service) Delete(ctx context.Context, id string) error {
+func (s *{{ feature_name_pascal }}Service) Delete(ctx context.Context, id string) error {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return err

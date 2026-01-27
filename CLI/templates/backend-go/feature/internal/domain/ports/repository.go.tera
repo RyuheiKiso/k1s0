@@ -6,26 +6,26 @@ import (
 
 	"github.com/google/uuid"
 
-	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/domain/entities"
+	"{{ module_path | default(value="example.com") }}/{{ feature_name_snake }}/internal/domain/entities"
 )
 
-// {{ feature_name | pascal_case }}Repository defines the interface for {{ feature_name }} persistence.
-type {{ feature_name | pascal_case }}Repository interface {
+// {{ feature_name_pascal }}Repository defines the interface for {{ feature_name }} persistence.
+type {{ feature_name_pascal }}Repository interface {
 	// FindByID finds a {{ feature_name }} by ID.
-	FindByID(ctx context.Context, id uuid.UUID) (*entities.{{ feature_name | pascal_case }}, error)
+	FindByID(ctx context.Context, id uuid.UUID) (*entities.{{ feature_name_pascal }}, error)
 
 	// FindAll finds all {{ feature_name }}s with pagination.
-	FindAll(ctx context.Context, pageSize int, pageToken string) ([]*entities.{{ feature_name | pascal_case }}, string, error)
+	FindAll(ctx context.Context, pageSize int, pageToken string) ([]*entities.{{ feature_name_pascal }}, string, error)
 
 	// Save saves a {{ feature_name }}.
-	Save(ctx context.Context, entity *entities.{{ feature_name | pascal_case }}) error
+	Save(ctx context.Context, entity *entities.{{ feature_name_pascal }}) error
 
 	// Delete deletes a {{ feature_name }} by ID.
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
-// {{ feature_name | pascal_case }}Query defines the query parameters for {{ feature_name }}.
-type {{ feature_name | pascal_case }}Query struct {
+// {{ feature_name_pascal }}Query defines the query parameters for {{ feature_name }}.
+type {{ feature_name_pascal }}Query struct {
 	Name     *string
 	Status   *int
 	PageSize int
@@ -33,26 +33,26 @@ type {{ feature_name | pascal_case }}Query struct {
 }
 
 // NewQuery creates a new query with default values.
-func NewQuery() *{{ feature_name | pascal_case }}Query {
-	return &{{ feature_name | pascal_case }}Query{
+func NewQuery() *{{ feature_name_pascal }}Query {
+	return &{{ feature_name_pascal }}Query{
 		PageSize: 100,
 	}
 }
 
 // WithName sets the name filter.
-func (q *{{ feature_name | pascal_case }}Query) WithName(name string) *{{ feature_name | pascal_case }}Query {
+func (q *{{ feature_name_pascal }}Query) WithName(name string) *{{ feature_name_pascal }}Query {
 	q.Name = &name
 	return q
 }
 
 // WithStatus sets the status filter.
-func (q *{{ feature_name | pascal_case }}Query) WithStatus(status int) *{{ feature_name | pascal_case }}Query {
+func (q *{{ feature_name_pascal }}Query) WithStatus(status int) *{{ feature_name_pascal }}Query {
 	q.Status = &status
 	return q
 }
 
 // WithPageSize sets the page size.
-func (q *{{ feature_name | pascal_case }}Query) WithPageSize(size int) *{{ feature_name | pascal_case }}Query {
+func (q *{{ feature_name_pascal }}Query) WithPageSize(size int) *{{ feature_name_pascal }}Query {
 	if size > 0 && size <= 1000 {
 		q.PageSize = size
 	}
@@ -60,7 +60,7 @@ func (q *{{ feature_name | pascal_case }}Query) WithPageSize(size int) *{{ featu
 }
 
 // WithPageToken sets the page token.
-func (q *{{ feature_name | pascal_case }}Query) WithPageToken(token string) *{{ feature_name | pascal_case }}Query {
+func (q *{{ feature_name_pascal }}Query) WithPageToken(token string) *{{ feature_name_pascal }}Query {
 	q.PageToken = token
 	return q
 }

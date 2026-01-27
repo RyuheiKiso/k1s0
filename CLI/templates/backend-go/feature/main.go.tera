@@ -10,9 +10,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/application"
-	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/infrastructure"
-	"{{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}/internal/presentation/grpc"
+	"{{ module_path | default(value="example.com") }}/{{ feature_name_snake }}/internal/application"
+	"{{ module_path | default(value="example.com") }}/{{ feature_name_snake }}/internal/infrastructure"
+	"{{ module_path | default(value="example.com") }}/{{ feature_name_snake }}/internal/presentation/grpc"
 
 	"google.golang.org/grpc"
 )

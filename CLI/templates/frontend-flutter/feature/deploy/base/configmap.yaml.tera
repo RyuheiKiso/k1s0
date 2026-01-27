@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ feature_name | kebab_case }}-config
+  name: {{ feature_name_kebab }}-config
 data:
   FLUTTER_ENV: "dev"
   API_BASE_URL: "{{ api_base_url | default(value="http://localhost:8080") }}"

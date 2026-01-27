@@ -1,7 +1,7 @@
 .PHONY: all build run test clean proto lint
 
 # Variables
-BINARY_NAME={{ feature_name | snake_case }}
+BINARY_NAME={{ feature_name_snake }}
 GO=go
 PROTOC=protoc
 

@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: {{ feature_name | title_case }} API
+  title: {{ feature_name_title }} API
   description: {{ feature_description | default(value="k1s0 generated Go service API") }}
   version: {{ version | default(value="0.1.0") }}
   contact:
@@ -11,12 +11,12 @@ servers:
     description: Local development server
 
 paths:
-  /v1/{{ feature_name | kebab_case }}:
+  /v1/{{ feature_name_kebab }}:
     get:
       summary: List {{ feature_name }}
-      operationId: list{{ feature_name | pascal_case }}
+      operationId: list{{ feature_name_pascal }}
       tags:
-        - {{ feature_name | pascal_case }}
+        - {{ feature_name_pascal }}
       parameters:
         - name: page_size
           in: query
@@ -33,33 +33,33 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/List{{ feature_name | pascal_case }}Response'
+                $ref: '#/components/schemas/List{{ feature_name_pascal }}Response'
 
     post:
       summary: Create {{ feature_name }}
-      operationId: create{{ feature_name | pascal_case }}
+      operationId: create{{ feature_name_pascal }}
       tags:
-        - {{ feature_name | pascal_case }}
+        - {{ feature_name_pascal }}
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Create{{ feature_name | pascal_case }}Request'
+              $ref: '#/components/schemas/Create{{ feature_name_pascal }}Request'
       responses:
         '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/{{ feature_name | pascal_case }}'
+                $ref: '#/components/schemas/{{ feature_name_pascal }}'
 
-  /v1/{{ feature_name | kebab_case }}/{id}:
+  /v1/{{ feature_name_kebab }}/{id}:
     get:
       summary: Get {{ feature_name }}
-      operationId: get{{ feature_name | pascal_case }}
+      operationId: get{{ feature_name_pascal }}
       tags:
-        - {{ feature_name | pascal_case }}
+        - {{ feature_name_pascal }}
       parameters:
         - name: id
           in: path
@@ -69,19 +69,19 @@ paths:
             format: uuid
       responses:
         '200':
-          description: {{ feature_name | pascal_case }} found
+          description: {{ feature_name_pascal }} found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/{{ feature_name | pascal_case }}'
+                $ref: '#/components/schemas/{{ feature_name_pascal }}'
         '404':
           description: Not found
 
     put:
       summary: Update {{ feature_name }}
-      operationId: update{{ feature_name | pascal_case }}
+      operationId: update{{ feature_name_pascal }}
       tags:
-        - {{ feature_name | pascal_case }}
+        - {{ feature_name_pascal }}
       parameters:
         - name: id
           in: path
@@ -94,20 +94,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Update{{ feature_name | pascal_case }}Request'
+              $ref: '#/components/schemas/Update{{ feature_name_pascal }}Request'
       responses:
         '200':
           description: Updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/{{ feature_name | pascal_case }}'
+                $ref: '#/components/schemas/{{ feature_name_pascal }}'
 
     delete:
       summary: Delete {{ feature_name }}
-      operationId: delete{{ feature_name | pascal_case }}
+      operationId: delete{{ feature_name_pascal }}
       tags:
-        - {{ feature_name | pascal_case }}
+        - {{ feature_name_pascal }}
       parameters:
         - name: id
           in: path
@@ -131,7 +131,7 @@ paths:
 
 components:
   schemas:
-    {{ feature_name | pascal_case }}:
+    {{ feature_name_pascal }}:
       type: object
       properties:
         id:
@@ -148,7 +148,7 @@ components:
           type: string
           format: date-time
 
-    Create{{ feature_name | pascal_case }}Request:
+    Create{{ feature_name_pascal }}Request:
       type: object
       required:
         - name
@@ -156,7 +156,7 @@ components:
         name:
           type: string
 
-    Update{{ feature_name | pascal_case }}Request:
+    Update{{ feature_name_pascal }}Request:
       type: object
       properties:
         name:
@@ -164,18 +164,18 @@ components:
         status:
           type: integer
 
-    List{{ feature_name | pascal_case }}Response:
+    List{{ feature_name_pascal }}Response:
       type: object
       properties:
-        {{ feature_name | snake_case }}s:
+        {{ feature_name_snake }}s:
           type: array
           items:
-            $ref: '#/components/schemas/{{ feature_name | pascal_case }}'
+            $ref: '#/components/schemas/{{ feature_name_pascal }}'
         next_page_token:
           type: string
 
 tags:
-  - name: {{ feature_name | pascal_case }}
-    description: {{ feature_name | pascal_case }} operations
+  - name: {{ feature_name_pascal }}
+    description: {{ feature_name_pascal }} operations
   - name: Health
     description: Health check operations

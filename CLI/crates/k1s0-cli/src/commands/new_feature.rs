@@ -268,6 +268,8 @@ fn create_template_context(args: &NewFeatureArgs) -> Context {
     // 命名規則の変換
     context.insert("feature_name_snake", &args.name.replace('-', "_"));
     context.insert("feature_name_pascal", &to_pascal_case(&args.name));
+    context.insert("feature_name_kebab", &args.name); // kebab-case はそのまま
+    context.insert("feature_name_title", &to_title_case(&args.name));
 
     // オプション
     context.insert("with_grpc", &args.with_grpc);
@@ -394,6 +396,19 @@ fn to_pascal_case(s: &str) -> String {
             chars.into_iter().collect::<String>()
         })
         .collect()
+}
+
+fn to_title_case(s: &str) -> String {
+    s.split('-')
+        .map(|word| {
+            let mut chars: Vec<char> = word.chars().collect();
+            if let Some(first) = chars.first_mut() {
+                *first = first.to_ascii_uppercase();
+            }
+            chars.into_iter().collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// kebab-case かどうかを検証する

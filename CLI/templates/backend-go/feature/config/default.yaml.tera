@@ -2,7 +2,7 @@
 # This file contains default values that can be overridden by environment-specific configs
 
 app:
-  name: {{ feature_name | snake_case }}
+  name: {{ feature_name_snake }}
   version: {{ version | default(value="0.1.0") }}
 
 server:

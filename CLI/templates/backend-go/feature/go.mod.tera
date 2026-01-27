@@ -1,4 +1,4 @@
-module {{ module_path | default(value="example.com") }}/{{ feature_name | snake_case }}
+module {{ module_path | default(value="example.com") }}/{{ feature_name_snake }}
 
 go 1.22
 

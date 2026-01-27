@@ -1,4 +1,4 @@
-# {{ feature_name | title_case }}
+# {{ feature_name_title }}
 
 {{ feature_description | default(value="k1s0 generated Go service") }}
 
@@ -40,8 +40,8 @@
 go run main.go
 
 # ビルド
-go build -o {{ feature_name | snake_case }}
-./{{ feature_name | snake_case }}
+go build -o {{ feature_name_snake }}
+./{{ feature_name_snake }}
 ```
 
 ## 設定

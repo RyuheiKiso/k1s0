@@ -528,11 +528,7 @@ fn test_new_feature_invalid_name_underscore() {
         .stderr(predicate::str::contains("不正"));
 }
 
-// TODO: new-feature テンプレートの修正後に有効化
-// 現在、backend-rust テンプレートにある migrations/0001_initial.down.sql.tera で
-// テンプレートエラーが発生するため、一旦スキップ
 #[test]
-#[ignore = "backend-rust テンプレートの修正が必要"]
 fn test_new_feature_generates_files() {
     let temp_dir = tempfile::tempdir().unwrap();
 
@@ -563,4 +559,129 @@ fn test_new_feature_generates_files() {
     // manifest.json が作成されたことを確認
     let manifest_file = output_path.join(".k1s0").join("manifest.json");
     assert!(manifest_file.exists(), "manifest.json が存在すること");
+}
+
+#[test]
+fn test_new_feature_backend_go_generates_files() {
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    let repo_root = std::path::Path::new(&manifest_dir)
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+
+    let output_path = temp_dir.path().join("test-go-service");
+
+    k1s0()
+        .current_dir(repo_root)
+        .args([
+            "new-feature",
+            "-t",
+            "backend-go",
+            "-n",
+            "test-go-service",
+            "-o",
+            output_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("生成しました"));
+
+    // manifest.json が作成されたことを確認
+    let manifest_file = output_path.join(".k1s0").join("manifest.json");
+    assert!(manifest_file.exists(), "manifest.json が存在すること");
+
+    // go.mod が作成されたことを確認
+    let go_mod = output_path.join("go.mod");
+    assert!(go_mod.exists(), "go.mod が存在すること");
+
+    // go.mod の内容を確認
+    let content = std::fs::read_to_string(&go_mod).unwrap();
+    assert!(
+        content.contains("test_go_service"),
+        "モジュール名にsnake_caseのサービス名が含まれること"
+    );
+
+    // main.go が作成されたことを確認
+    let main_go = output_path.join("main.go");
+    assert!(main_go.exists(), "main.go が存在すること");
+
+    // ディレクトリ構造の確認
+    assert!(
+        output_path.join("internal").join("domain").exists(),
+        "internal/domain ディレクトリが存在すること"
+    );
+    assert!(
+        output_path.join("internal").join("application").exists(),
+        "internal/application ディレクトリが存在すること"
+    );
+    assert!(
+        output_path.join("internal").join("presentation").exists(),
+        "internal/presentation ディレクトリが存在すること"
+    );
+}
+
+#[test]
+fn test_new_feature_frontend_flutter_generates_files() {
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    let repo_root = std::path::Path::new(&manifest_dir)
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+
+    let output_path = temp_dir.path().join("test-flutter-app");
+
+    k1s0()
+        .current_dir(repo_root)
+        .args([
+            "new-feature",
+            "-t",
+            "frontend-flutter",
+            "-n",
+            "test-flutter-app",
+            "-o",
+            output_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("生成しました"));
+
+    // manifest.json が作成されたことを確認
+    let manifest_file = output_path.join(".k1s0").join("manifest.json");
+    assert!(manifest_file.exists(), "manifest.json が存在すること");
+
+    // pubspec.yaml が作成されたことを確認
+    let pubspec = output_path.join("pubspec.yaml");
+    assert!(pubspec.exists(), "pubspec.yaml が存在すること");
+
+    // lib/main.dart が作成されたことを確認
+    let main_dart = output_path.join("lib").join("main.dart");
+    assert!(main_dart.exists(), "lib/main.dart が存在すること");
+
+    // ディレクトリ構造の確認
+    assert!(
+        output_path.join("lib").join("src").join("domain").exists(),
+        "lib/src/domain ディレクトリが存在すること"
+    );
+    assert!(
+        output_path
+            .join("lib")
+            .join("src")
+            .join("presentation")
+            .exists(),
+        "lib/src/presentation ディレクトリが存在すること"
+    );
+    assert!(
+        output_path
+            .join("lib")
+            .join("src")
+            .join("application")
+            .exists(),
+        "lib/src/application ディレクトリが存在すること"
+    );
 }
