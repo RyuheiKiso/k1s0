@@ -1528,3 +1528,904 @@ k1s0-auth           # 業務
   ├── axum, tower (feature="axum-layer")
   └── tonic (feature="tonic-interceptor")
 ```
+
+---
+
+# Frontend Framework
+
+## 概要
+
+k1s0 Frontend Framework は、フロントエンド開発のための共通パッケージ群を提供します。個別機能チームが「画面の中身」以外（ナビゲーション/レイアウト/デザイン/権限制御/設定読込/観測）を再実装せずに済む状態を実現します。
+
+## React パッケージ一覧
+
+```
+framework/frontend/react/packages/
+├── @k1s0/navigation/     # 設定駆動ナビゲーション（実装済み）
+├── @k1s0/config/         # YAML設定管理（実装済み）
+├── @k1s0/api-client/     # API通信クライアント（実装済み）
+├── @k1s0/ui/             # Design System（実装済み）
+├── @k1s0/shell/          # AppShell（実装済み）
+├── @k1s0/auth-client/    # 認証クライアント（実装済み）
+├── @k1s0/observability/  # OTel/ログ（実装済み）
+├── eslint-config-k1s0/   # ESLint設定（未実装）
+└── tsconfig-k1s0/        # TypeScript設定（未実装）
+```
+
+### 実装状況
+
+| パッケージ | 状態 | 説明 |
+|-----------|:----:|------|
+| @k1s0/navigation | ✅ | 設定駆動ナビゲーション、React Router統合、権限/feature flag制御 |
+| @k1s0/config | ✅ | YAML設定読み込み、Zodスキーマバリデーション、環境マージ |
+| @k1s0/api-client | ✅ | fetchベースAPI通信、OTel計測、ProblemDetailsエラー |
+| @k1s0/ui | ✅ | Material-UI v5/v6 Design System、テーマ、フォーム、フィードバック |
+| @k1s0/shell | ✅ | AppShell（Header/Sidebar/Footer）、レスポンシブ対応 |
+| @k1s0/auth-client | ✅ | JWT/OIDCトークン管理、認証ガード、セッション管理 |
+| @k1s0/observability | ✅ | OpenTelemetry統合、構造化ログ、Web Vitals計測 |
+
+---
+
+## @k1s0/navigation
+
+### 目的
+
+`config/{env}.yaml` の設定からルート/メニュー/フローを自動構築し、権限・feature flag による表示制御を行う。
+
+### 主要コンポーネント
+
+| コンポーネント | 説明 |
+|---------------|------|
+| `ConfigRouter` | YAML設定からReact Routerルートを自動生成 |
+| `NavigationProvider` | ナビゲーション状態のContext提供 |
+| `MenuBuilder` | 設定からメニュー構造を構築 |
+| `FlowController` | マルチステップフロー制御 |
+| `PermissionGuard` | 権限ベースのルートガード |
+| `FlagGuard` | feature flagベースのガード |
+
+### 使用例
+
+```tsx
+import { ConfigRouter, NavigationProvider } from '@k1s0/navigation';
+import { useConfig } from '@k1s0/config';
+
+function App() {
+  const config = useConfig();
+
+  return (
+    <NavigationProvider>
+      <ConfigRouter config={config.ui.navigation} />
+    </NavigationProvider>
+  );
+}
+```
+
+---
+
+## @k1s0/config
+
+### 目的
+
+YAML設定ファイルの読み込み、型付け、バリデーションを提供する。
+
+### 主要機能
+
+| モジュール | 説明 |
+|-----------|------|
+| `schema` | Zodスキーマ定義（apiConfigSchema, authConfigSchema, appConfigSchema） |
+| `loader` | ConfigLoader, loadConfigFromUrl, parseConfig |
+| `merge` | deepMerge, mergeConfigs, mergeEnvironmentConfig |
+
+### 使用例
+
+```tsx
+import { ConfigLoader, validateConfig } from '@k1s0/config';
+
+const loader = new ConfigLoader({
+  baseUrl: '/config',
+  env: 'dev',
+});
+
+const config = await loader.load();
+const validated = validateConfig(config);
+```
+
+---
+
+## @k1s0/api-client
+
+### 目的
+
+API通信の標準化、OpenTelemetry計測、エラーハンドリングを提供する。
+
+### 主要コンポーネント
+
+| コンポーネント | 説明 |
+|---------------|------|
+| `ApiClient` | fetchベースのHTTPクライアント |
+| `ApiClientProvider` | Context提供 |
+| `TokenManager` | 認証トークン管理 |
+| `OTelTracer` | OpenTelemetry計測 |
+| `ErrorBoundary` | エラー境界コンポーネント |
+| `useApiRequest` | API呼び出しフック |
+
+### 使用例
+
+```tsx
+import { useApiRequest } from '@k1s0/api-client';
+
+function UserList() {
+  const { data, loading, error } = useApiRequest('/api/users');
+
+  if (loading) return <Loading />;
+  if (error) return <ErrorDisplay error={error} />;
+
+  return <ul>{data.map(user => <li key={user.id}>{user.name}</li>)}</ul>;
+}
+```
+
+---
+
+## @k1s0/ui
+
+### 目的
+
+k1s0 Design/UX 標準コンポーネントライブラリを提供する。Material-UI v5/v6 をベースに統一されたデザインシステムを実現。
+
+### モジュール構成
+
+| モジュール | 内容 |
+|-----------|------|
+| `theme/` | K1s0ThemeProvider, createK1s0Theme, palette, typography, spacing |
+| `form/` | FormContainer, FormField, validation, types |
+| `feedback/` | Toast, ConfirmDialog, FeedbackProvider |
+| `state/` | Loading, EmptyState |
+
+### 使用例
+
+```tsx
+import { K1s0ThemeProvider, FormContainer, FormField, Toast } from '@k1s0/ui';
+
+function App() {
+  return (
+    <K1s0ThemeProvider>
+      <FormContainer onSubmit={handleSubmit}>
+        <FormField name="email" label="メールアドレス" required />
+        <FormField name="password" label="パスワード" type="password" />
+      </FormContainer>
+      <Toast />
+    </K1s0ThemeProvider>
+  );
+}
+```
+
+---
+
+## @k1s0/shell
+
+### 目的
+
+AppShell（Header/Sidebar/Footer）の標準レイアウトを提供する。
+
+### 主要コンポーネント
+
+| コンポーネント | 説明 |
+|---------------|------|
+| `AppShell` | メインレイアウトコンテナ |
+| `Header` | ヘッダーコンポーネント |
+| `Sidebar` | サイドバー（メニュー）コンポーネント |
+| `Footer` | フッターコンポーネント |
+| `useResponsiveLayout` | レスポンシブ対応フック |
+
+### 使用例
+
+```tsx
+import { AppShell, Header, Sidebar, Footer } from '@k1s0/shell';
+import { useConfig } from '@k1s0/config';
+
+function Layout({ children }) {
+  const config = useConfig();
+
+  return (
+    <AppShell>
+      <Header title={config.app.name} />
+      <Sidebar menuItems={config.ui.navigation.menus} />
+      <main>{children}</main>
+      <Footer />
+    </AppShell>
+  );
+}
+```
+
+---
+
+## @k1s0/auth-client
+
+### 目的
+
+JWT/OIDC 認証クライアントを提供する。トークン管理、認証状態管理、認証ガード、セッション管理を実現。
+
+### モジュール構成
+
+| モジュール | 内容 |
+|-----------|------|
+| `token/` | TokenManager, SessionTokenStorage, LocalTokenStorage, MemoryTokenStorage, decoder |
+| `provider/` | AuthProvider, useAuth, useAuthState, useIsAuthenticated, useUser, usePermissions |
+| `guard/` | AuthGuard, RequireAuth, RequireRole, RequirePermission |
+| `session/` | SessionManager, useSession |
+
+### 主要な型
+
+```typescript
+interface Claims {
+  sub: string;           // ユーザーID
+  iss: string;           // 発行者
+  aud?: string | string[]; // 対象者
+  exp: number;           // 有効期限
+  iat: number;           // 発行日時
+  roles?: string[];      // ロール
+  permissions?: string[]; // パーミッション
+  tenant_id?: string;    // テナントID
+}
+
+interface AuthState {
+  status: 'idle' | 'loading' | 'authenticated' | 'unauthenticated' | 'error';
+  user: AuthUser | null;
+  error: AuthError | null;
+}
+
+interface AuthClientConfig {
+  tokenStorage?: TokenStorage;
+  refreshToken?: TokenRefresher;
+  refreshThreshold?: number;  // デフォルト: 300秒（5分）
+  autoRefresh?: boolean;
+}
+```
+
+### 使用例
+
+```tsx
+import { AuthProvider, useAuth, RequireAuth } from '@k1s0/auth-client';
+
+// アプリのルートで AuthProvider をラップ
+function App() {
+  const refreshToken = async (token: string) => {
+    const response = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.json();
+  };
+
+  return (
+    <AuthProvider config={{ refreshToken, autoRefresh: true }}>
+      <Router />
+    </AuthProvider>
+  );
+}
+
+// 認証が必要なページで RequireAuth を使用
+function ProtectedPage() {
+  return (
+    <RequireAuth redirectTo="/login" navigate={navigate}>
+      <Dashboard />
+    </RequireAuth>
+  );
+}
+
+// useAuth フックで認証状態を取得
+function UserProfile() {
+  const { user, logout, isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) return null;
+
+  return (
+    <div>
+      <p>ようこそ、{user.name} さん</p>
+      <button onClick={logout}>ログアウト</button>
+    </div>
+  );
+}
+
+// ロールベースの認可
+function AdminPanel() {
+  return (
+    <RequireRole roles={['admin']} fallback={<AccessDenied />}>
+      <AdminDashboard />
+    </RequireRole>
+  );
+}
+```
+
+---
+
+## @k1s0/observability
+
+### 目的
+
+フロントエンド向け観測性ライブラリを提供する。OpenTelemetry 統合、構造化ログ、エラートラッキング、パフォーマンス計測を実現。
+
+### モジュール構成
+
+| モジュール | 内容 |
+|-----------|------|
+| `tracing/` | TracingService, SpanBuilder |
+| `logging/` | Logger, ConsoleLogSink, BufferedLogSink |
+| `metrics/` | MetricsCollector, Web Vitals |
+| `errors/` | ErrorTracker, グローバルエラーハンドリング |
+| `provider/` | ObservabilityProvider, useTracing, useLogger, useMetrics, useErrorTracker |
+| `utils/` | generateTraceId, generateSpanId, parseTraceparent |
+
+### 必須フィールド（ログ）
+
+バックエンド（k1s0-observability）と同じ必須フィールドをフロントエンドでも強制。
+
+| フィールド | 説明 |
+|-----------|------|
+| `timestamp` | ISO 8601 形式のタイムスタンプ |
+| `level` | ログレベル（debug/info/warn/error） |
+| `message` | ログメッセージ |
+| `service_name` | サービス名 |
+| `env` | 環境名（dev/stg/prod） |
+| `trace_id` | トレース ID（リクエスト相関用） |
+| `span_id` | スパン ID |
+
+### 主要な型
+
+```typescript
+interface ObservabilityConfig {
+  serviceName: string;
+  env: string;
+  version?: string;
+  logLevel?: LogLevel;
+  enableTracing?: boolean;
+  enableMetrics?: boolean;
+  enableErrorTracking?: boolean;
+  traceExporter?: TraceExporter;
+  logSink?: LogSink;
+}
+
+interface LogEntry {
+  timestamp: string;
+  level: LogLevel;
+  message: string;
+  service_name: string;
+  env: string;
+  trace_id?: string;
+  span_id?: string;
+  request_id?: string;
+  [key: string]: unknown;
+}
+
+interface SpanInfo {
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string;
+  name: string;
+  startTime: number;
+  endTime?: number;
+  status: SpanStatus;
+  attributes: Record<string, unknown>;
+}
+```
+
+### 使用例
+
+```tsx
+import {
+  ObservabilityProvider,
+  useLogger,
+  useTracing,
+  useSpan,
+} from '@k1s0/observability';
+
+// アプリのルートで ObservabilityProvider をラップ
+function App() {
+  return (
+    <ObservabilityProvider
+      config={{
+        serviceName: 'my-frontend',
+        env: 'dev',
+        enableTracing: true,
+        enableErrorTracking: true,
+      }}
+    >
+      <Router />
+    </ObservabilityProvider>
+  );
+}
+
+// useLogger フックでログ出力
+function UserActions() {
+  const logger = useLogger();
+
+  const handleClick = () => {
+    logger.info('ボタンがクリックされました', { buttonId: 'submit' });
+  };
+
+  return <button onClick={handleClick}>送信</button>;
+}
+
+// useSpan フックでスパン計測
+function DataFetcher() {
+  const { startSpan, endSpan } = useTracing();
+
+  const fetchData = async () => {
+    const span = startSpan('fetch-user-data');
+    try {
+      const data = await fetch('/api/users');
+      endSpan(span.spanId, 'ok');
+      return data;
+    } catch (error) {
+      endSpan(span.spanId, 'error', { error: error.message });
+      throw error;
+    }
+  };
+
+  return <button onClick={fetchData}>データ取得</button>;
+}
+
+// Web Vitals の自動収集
+function PerformanceMonitor() {
+  const metrics = useMetrics();
+
+  useEffect(() => {
+    const listener = (metric) => {
+      console.log('Web Vital:', metric);
+    };
+    metrics.addListener(listener);
+    return () => metrics.removeListener(listener);
+  }, [metrics]);
+
+  return null;
+}
+```
+
+---
+
+## Flutter パッケージ一覧
+
+```
+framework/frontend/flutter/packages/
+├── k1s0_config/         # YAML設定管理
+├── k1s0_http/           # API通信クライアント
+├── k1s0_auth/           # 認証クライアント
+├── k1s0_observability/  # OTel/ログ
+├── k1s0_ui/             # Design System
+└── k1s0_state/          # 状態管理
+```
+
+### 実装状況
+
+| パッケージ | 状態 | 説明 |
+|-----------|:----:|------|
+| k1s0_config | ✅ | YAML設定管理、Zodスキーマバリデーション、環境マージ |
+| k1s0_http | ✅ | Dioベース通信クライアント、OTel計測、ProblemDetails対応 |
+| k1s0_auth | ✅ | JWT/OIDC認証、SecureStorage、トークン自動更新 |
+| k1s0_observability | ✅ | 構造化ログ、分散トレース、メトリクス収集 |
+| k1s0_ui | ✅ | Material 3 Design System、共通ウィジェット、テーマ |
+| k1s0_state | ✅ | Riverpod状態管理、AsyncValueヘルパー、永続化 |
+
+---
+
+## k1s0_config (Flutter)
+
+### 目的
+
+YAML 設定ファイルの読み込み、型付け、バリデーション、環境マージを提供する。
+
+### 主要な型
+
+```dart
+@freezed
+class AppConfig with _$AppConfig {
+  const factory AppConfig({
+    required ApiConfig api,
+    required AuthConfig auth,
+    required LoggingConfig logging,
+    @Default({}) Map<String, bool> featureFlags,
+  }) = _AppConfig;
+}
+
+class ConfigLoader {
+  ConfigLoader({required String defaultPath, String? environment});
+  Future<AppConfig> load();
+}
+```
+
+### 使用例
+
+```dart
+final loader = ConfigLoader(
+  defaultPath: 'assets/config/default.yaml',
+  environment: 'production',
+);
+final config = await loader.load();
+
+// Riverpod Provider経由でアクセス
+ConfigScope(
+  config: config,
+  child: MyApp(),
+)
+
+// 子ウィジェットで使用
+final config = ref.watch(configProvider);
+```
+
+---
+
+## k1s0_http (Flutter)
+
+### 目的
+
+Dio ベースの HTTP クライアント。トレース伝播、エラーハンドリング、ProblemDetails 対応を提供。
+
+### 主要な型
+
+```dart
+class K1s0HttpClient {
+  K1s0HttpClient({required HttpClientConfig config});
+
+  Future<K1s0Response<T>> get<T>(String path, {RequestOptions? options});
+  Future<K1s0Response<T>> post<T>(String path, {dynamic data, RequestOptions? options});
+  Future<K1s0Response<T>> put<T>(String path, {dynamic data, RequestOptions? options});
+  Future<K1s0Response<T>> delete<T>(String path, {RequestOptions? options});
+}
+
+@freezed
+class ProblemDetails with _$ProblemDetails {
+  const factory ProblemDetails({
+    required String type,
+    required String title,
+    required int status,
+    String? detail,
+    String? instance,
+    String? errorCode,
+    String? traceId,
+  }) = _ProblemDetails;
+}
+
+class ApiError {
+  final ApiErrorKind kind;
+  final String message;
+  final ProblemDetails? problemDetails;
+}
+```
+
+### 使用例
+
+```dart
+final client = K1s0HttpClient(
+  config: HttpClientConfig(
+    baseUrl: 'https://api.example.com',
+    timeout: Duration(seconds: 30),
+  ),
+);
+
+try {
+  final response = await client.get<User>('/users/123');
+  print(response.data);
+} on ApiError catch (e) {
+  print('Error: ${e.message}');
+  if (e.problemDetails != null) {
+    print('Error Code: ${e.problemDetails!.errorCode}');
+  }
+}
+```
+
+---
+
+## k1s0_auth (Flutter)
+
+### 目的
+
+JWT/OIDC 認証クライアント。トークン管理、認証状態管理、認証ガード、GoRouter 統合を提供。
+
+### 主要な型
+
+```dart
+@freezed
+class Claims with _$Claims {
+  const factory Claims({
+    required String sub,
+    required String iss,
+    String? aud,
+    required int exp,
+    required int iat,
+    @Default([]) List<String> roles,
+    @Default([]) List<String> permissions,
+    String? tenantId,
+  }) = _Claims;
+}
+
+@freezed
+class AuthState with _$AuthState {
+  const factory AuthState.initial() = AuthInitial;
+  const factory AuthState.loading() = AuthLoading;
+  const factory AuthState.authenticated(AuthUser user) = AuthAuthenticated;
+  const factory AuthState.unauthenticated() = AuthUnauthenticated;
+  const factory AuthState.error(AuthError error) = AuthError;
+}
+
+class AuthNotifier extends StateNotifier<AuthState> {
+  Future<void> login(String accessToken, {String? refreshToken});
+  Future<void> logout();
+  Future<void> refreshTokens();
+}
+```
+
+### 使用例
+
+```dart
+// AuthProvider で認証状態を管理
+final authState = ref.watch(authProvider);
+
+authState.when(
+  initial: () => SplashScreen(),
+  loading: () => LoadingScreen(),
+  authenticated: (user) => HomePage(),
+  unauthenticated: () => LoginPage(),
+  error: (error) => ErrorPage(error),
+);
+
+// 認証ガード
+AuthGuard(
+  child: DashboardPage(),
+  unauthenticatedBuilder: (context) => LoginPage(),
+)
+
+// ロールベースの認可
+RequireRole(
+  roles: ['admin'],
+  child: AdminPanel(),
+  fallback: AccessDenied(),
+)
+
+// GoRouter 統合
+final router = GoRouter(
+  redirect: authGuard(
+    ref,
+    redirectTo: '/login',
+    allowedPaths: ['/login', '/register'],
+  ),
+  routes: [...],
+);
+```
+
+---
+
+## k1s0_observability (Flutter)
+
+### 目的
+
+フロントエンド向け観測性ライブラリ。構造化ログ、分散トレース、エラートラッキング、パフォーマンスメトリクスを提供。
+
+### 必須フィールド（ログ）
+
+バックエンド（k1s0-observability）と同じ必須フィールドをフロントエンドでも強制。
+
+| フィールド | 説明 |
+|-----------|------|
+| `timestamp` | ISO 8601 形式のタイムスタンプ |
+| `level` | ログレベル（debug/info/warn/error） |
+| `message` | ログメッセージ |
+| `service_name` | サービス名 |
+| `env` | 環境名（dev/stg/prod） |
+| `trace_id` | トレース ID（リクエスト相関用） |
+| `span_id` | スパン ID |
+
+### 主要な型
+
+```dart
+@freezed
+class LogEntry with _$LogEntry {
+  const factory LogEntry({
+    required DateTime timestamp,
+    required LogLevel level,
+    required String message,
+    required String serviceName,
+    required String env,
+    String? traceId,
+    String? spanId,
+    @Default({}) Map<String, dynamic> fields,
+  }) = _LogEntry;
+}
+
+class Logger {
+  void debug(String message, [Map<String, dynamic>? fields]);
+  void info(String message, [Map<String, dynamic>? fields]);
+  void warn(String message, [Map<String, dynamic>? fields]);
+  void error(String message, [Object? error, StackTrace? stackTrace]);
+}
+
+class Tracer {
+  Future<T> trace<T>(String name, Future<T> Function() fn);
+  T traceSync<T>(String name, T Function() fn);
+}
+```
+
+### 使用例
+
+```dart
+// Logger の使用
+final logger = ref.read(loggerProvider);
+logger.info('ユーザーがログインしました', {
+  'userId': user.id,
+  'loginMethod': 'oauth',
+});
+
+// Tracer の使用
+final tracer = ref.read(tracerProvider);
+final user = await tracer.trace('fetch-user-data', () async {
+  return await api.getUser(userId);
+});
+
+// エラートラッキング
+final errorTracker = ref.read(errorTrackerProvider);
+try {
+  await riskyOperation();
+} catch (e, stackTrace) {
+  errorTracker.capture(e, stackTrace);
+}
+```
+
+---
+
+## k1s0_ui (Flutter)
+
+### 目的
+
+k1s0 Design System を提供する。Material 3 ベースの統一されたテーマ、共通ウィジェット、フォームバリデーション、フィードバックコンポーネントを実現。
+
+### モジュール構成
+
+| モジュール | 内容 |
+|-----------|------|
+| `theme/` | K1s0Theme, K1s0Colors, K1s0Typography, K1s0Spacing, ThemeProvider |
+| `widgets/` | K1s0PrimaryButton, K1s0SecondaryButton, K1s0Card, K1s0TextField |
+| `form/` | K1s0Validators, K1s0FormContainer, K1s0FormSection |
+| `feedback/` | K1s0Snackbar, K1s0Dialog |
+| `state/` | K1s0Loading, K1s0ErrorState, K1s0EmptyState |
+
+### 使用例
+
+```dart
+// テーマ設定
+MaterialApp(
+  theme: ref.watch(themeProvider).lightTheme,
+  darkTheme: ref.watch(themeProvider).darkTheme,
+  themeMode: ref.watch(themeProvider).themeMode,
+)
+
+// ボタン
+K1s0PrimaryButton(
+  onPressed: () {},
+  loading: isSubmitting,
+  child: Text('Submit'),
+)
+
+// テキストフィールド
+K1s0TextField(
+  controller: controller,
+  label: 'Email',
+  validator: K1s0Validators.combine([
+    K1s0Validators.required,
+    K1s0Validators.email,
+  ]),
+)
+
+// フィードバック
+K1s0Snackbar.success(context, 'Operation completed!');
+
+final confirmed = await K1s0Dialog.confirm(
+  context,
+  title: 'Delete Item',
+  message: 'Are you sure?',
+  isDanger: true,
+);
+
+// 状態ウィジェット
+K1s0Loading(message: 'Loading...')
+K1s0ErrorState(message: 'Error occurred', onRetry: _retry)
+K1s0EmptyState(title: 'No items', message: 'Add your first item')
+```
+
+---
+
+## k1s0_state (Flutter)
+
+### 目的
+
+Riverpod 状態管理ユーティリティを提供する。AsyncValue ヘルパー、状態永続化、グローバル状態管理を実現。
+
+### モジュール構成
+
+| モジュール | 内容 |
+|-----------|------|
+| `async/` | AsyncValue拡張、AsyncState、K1s0AsyncNotifier |
+| `persistence/` | StateStorage、PreferencesStorage、HiveStorage、PersistedState |
+| `global/` | AppState、UserPreferences、NavigationState、ConnectivityState |
+| `utils/` | StateLogger、Debouncer、Throttler、StateSelector |
+| `widgets/` | AsyncValueWidget、StateConsumer、StateScope |
+
+### 使用例
+
+```dart
+// AsyncValue 拡張
+final items = ref.watch(itemsProvider);
+items.when2(
+  data: (data) => ListView(...),
+  loading: () => LoadingWidget(),
+  error: (e, s) => ErrorWidget(e),
+  refreshing: (data) => RefreshingWidget(data),
+);
+
+// グローバル状態
+ref.read(appStateProvider.notifier).setDarkMode(true);
+final isDark = ref.watch(isDarkModeProvider);
+
+// 状態永続化
+final storage = await PreferencesStorage.create();
+ref.read(userPreferencesProvider.notifier).initialize(storage);
+
+// デバウンス
+final debouncer = Debouncer(duration: Duration(milliseconds: 300));
+debouncer.run(() => search(query));
+
+// 状態ログ
+K1s0StateProvider(
+  enableLogging: true,
+  child: MyApp(),
+)
+```
+
+---
+
+## Frontend 依存関係
+
+```
+React:
+@k1s0/shell
+  └── @k1s0/ui
+
+@k1s0/navigation
+  └── @k1s0/config
+
+@k1s0/api-client
+  └── (standalone)
+
+@k1s0/config
+  └── (standalone)
+
+@k1s0/ui
+  └── (standalone, Material-UI依存)
+
+@k1s0/auth-client
+  └── (standalone, jose依存)
+
+@k1s0/observability
+  └── @opentelemetry/api (optional)
+
+Flutter:
+k1s0_config
+  └── (standalone, yaml依存)
+
+k1s0_http
+  └── dio, k1s0_observability(optional)
+
+k1s0_auth
+  ├── flutter_secure_storage
+  ├── jwt_decoder
+  └── go_router(optional)
+
+k1s0_observability
+  └── (standalone)
+
+k1s0_ui
+  └── flutter_riverpod
+
+k1s0_state
+  ├── flutter_riverpod
+  ├── shared_preferences
+  └── hive_flutter
+```

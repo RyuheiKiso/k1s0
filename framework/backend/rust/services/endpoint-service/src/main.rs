@@ -10,13 +10,13 @@
 //! endpoint-service --env dev --port 50052
 //! ```
 
-use std::env;
 use std::net::SocketAddr;
-use std::path::PathBuf;
 use std::sync::Arc;
 
+use clap::Parser;
 use tokio::signal;
 use tonic::transport::Server;
+use tonic_health::server::health_reporter;
 use tracing::{info, warn};
 
 mod application;
@@ -25,169 +25,179 @@ mod infrastructure;
 mod presentation;
 
 use application::EndpointService;
-use domain::{Endpoint, EndpointRepository};
+use domain::{Endpoint, EndpointQuery, EndpointRepository};
 use infrastructure::InMemoryRepository;
 use presentation::grpc::endpoint_v1::endpoint_service_server::EndpointServiceServer;
 use presentation::grpc::GrpcEndpointService;
 
-/// サービス設定
-struct ServiceConfig {
-    env_name: String,
-    config_path: Option<PathBuf>,
-    secrets_dir: Option<PathBuf>,
+/// endpoint-service CLI arguments
+#[derive(Parser, Debug)]
+#[command(name = "endpoint-service")]
+#[command(about = "k1s0 framework endpoint discovery service")]
+#[command(version)]
+struct Args {
+    /// Environment name (dev, stg, prod)
+    #[arg(long, default_value = "dev")]
+    env: String,
+
+    /// Path to config file
+    #[arg(long)]
+    config: Option<String>,
+
+    /// Path to secrets directory
+    #[arg(long)]
+    secrets_dir: Option<String>,
+
+    /// gRPC server port
+    #[arg(short, long, default_value = "50052")]
+    port: u16,
+
+    /// REST API port (optional)
+    #[arg(long)]
+    rest_port: Option<u16>,
+
+    /// Database URL (if not set, uses in-memory storage)
+    #[arg(long, env = "DATABASE_URL")]
+    database_url: Option<String>,
+
+    /// Kubernetes namespace
+    #[arg(long, default_value = "default")]
     namespace: String,
+
+    /// Kubernetes cluster domain
+    #[arg(long, default_value = "cluster.local")]
     cluster_domain: String,
-    grpc_port: u16,
 }
 
-impl Default for ServiceConfig {
-    fn default() -> Self {
-        Self {
-            env_name: "dev".to_string(),
-            config_path: None,
-            secrets_dir: None,
-            namespace: "default".to_string(),
-            cluster_domain: "cluster.local".to_string(),
-            grpc_port: 50052,
-        }
-    }
-}
-
-fn parse_args() -> ServiceConfig {
-    let args: Vec<String> = env::args().collect();
-    let mut config = ServiceConfig::default();
-
-    let mut i = 1;
-    while i < args.len() {
-        match args[i].as_str() {
-            "--env" => {
-                if i + 1 < args.len() {
-                    config.env_name = args[i + 1].clone();
-                    i += 2;
-                } else {
-                    eprintln!("Error: --env requires a value");
-                    std::process::exit(1);
-                }
-            }
-            "--config" => {
-                if i + 1 < args.len() {
-                    config.config_path = Some(PathBuf::from(&args[i + 1]));
-                    i += 2;
-                } else {
-                    eprintln!("Error: --config requires a value");
-                    std::process::exit(1);
-                }
-            }
-            "--secrets-dir" => {
-                if i + 1 < args.len() {
-                    config.secrets_dir = Some(PathBuf::from(&args[i + 1]));
-                    i += 2;
-                } else {
-                    eprintln!("Error: --secrets-dir requires a value");
-                    std::process::exit(1);
-                }
-            }
-            "--namespace" => {
-                if i + 1 < args.len() {
-                    config.namespace = args[i + 1].clone();
-                    i += 2;
-                } else {
-                    eprintln!("Error: --namespace requires a value");
-                    std::process::exit(1);
-                }
-            }
-            "--port" | "-p" => {
-                if i + 1 < args.len() {
-                    config.grpc_port = args[i + 1].parse().unwrap_or(50052);
-                    i += 2;
-                } else {
-                    eprintln!("Error: --port requires a value");
-                    std::process::exit(1);
-                }
-            }
-            "--help" | "-h" => {
-                println!("endpoint-service - k1s0 framework endpoint discovery service");
-                println!();
-                println!("USAGE:");
-                println!("    endpoint-service [OPTIONS]");
-                println!();
-                println!("OPTIONS:");
-                println!("    --env <ENV>           Environment name (default: dev)");
-                println!("    --config <PATH>       Path to config file");
-                println!("    --secrets-dir <PATH>  Path to secrets directory");
-                println!("    --namespace <NS>      Kubernetes namespace (default: default)");
-                println!("    -p, --port <PORT>     gRPC port (default: 50052)");
-                println!("    -h, --help            Print help information");
-                std::process::exit(0);
-            }
-            _ => {
-                eprintln!("Error: Unknown argument: {}", args[i]);
-                std::process::exit(1);
-            }
-        }
-    }
-
-    config
-}
+/// InMemoryリポジトリを使用するEndpointService型
+type InMemoryEndpointService = EndpointService<InMemoryRepository>;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = parse_args();
+    let args = Args::parse();
 
-    println!("endpoint-service starting...");
-    println!("  Environment: {}", config.env_name);
-    println!("  Namespace: {}", config.namespace);
-    println!("  Port: {}", config.grpc_port);
-    if let Some(ref path) = config.config_path {
-        println!("  Config: {}", path.display());
-    }
-    if let Some(ref path) = config.secrets_dir {
-        println!("  Secrets: {}", path.display());
+    // トレーシング初期化
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .json()
+        .init();
+
+    info!(
+        service = "endpoint-service",
+        env = %args.env,
+        port = %args.port,
+        namespace = %args.namespace,
+        "Starting endpoint-service"
+    );
+
+    // データベースURL指定時はPostgreSQLを使用
+    if let Some(ref db_url) = args.database_url {
+        info!(database_url = %db_url, "PostgreSQL mode (not yet implemented in main)");
+        warn!("PostgreSQL mode not fully implemented, falling back to in-memory");
     }
 
-    // リポジトリの初期化
+    // InMemoryリポジトリの初期化
     let repository = Arc::new(InMemoryRepository::new());
 
-    // サンプルエンドポイントの登録
-    repository
-        .save(&Endpoint::new(1, "auth-service", "/v1/login", "POST"))
-        .await?;
-    repository
-        .save(&Endpoint::new(2, "auth-service", "/v1/logout", "POST"))
-        .await?;
-    repository
-        .save(&Endpoint::new(3, "config-service", "/v1/settings", "GET"))
-        .await?;
+    // 開発環境の場合、サンプルデータを登録
+    if args.env == "dev" {
+        setup_sample_data(&repository).await?;
+    }
 
     // サービスの初期化
     let service = EndpointService::new(
-        repository.clone(),
-        &config.namespace,
-        &config.cluster_domain,
+        Arc::clone(&repository),
+        &args.namespace,
+        &args.cluster_domain,
     );
 
-    // 動作確認
-    println!("\nEndpoint resolution test:");
-    let resolved = service.resolve_endpoint("auth-service", "grpc").await?;
-    println!("  auth-service (grpc) -> {}", resolved.address);
-
-    let resolved = service.resolve_endpoint("api-gateway", "http").await?;
-    println!("  api-gateway (http) -> {}", resolved.address);
+    // 開発環境での動作確認
+    if args.env == "dev" {
+        run_dev_tests(&service).await;
+    }
 
     // gRPC サービスの作成
     let grpc_service = GrpcEndpointService::new(Arc::new(service));
 
+    // Health reporter
+    let (mut health_reporter, health_service) = health_reporter();
+    health_reporter
+        .set_serving::<EndpointServiceServer<GrpcEndpointService<InMemoryRepository>>>()
+        .await;
+
     // gRPC サーバーの起動
-    let addr: SocketAddr = format!("0.0.0.0:{}", config.grpc_port).parse()?;
-    println!("\nStarting gRPC server on {}", addr);
+    let addr: SocketAddr = format!("0.0.0.0:{}", args.port).parse()?;
+    info!(address = %addr, "Starting gRPC server");
 
     Server::builder()
+        .add_service(health_service)
         .add_service(EndpointServiceServer::new(grpc_service))
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
 
-    println!("endpoint-service shutdown complete.");
+    info!("endpoint-service shutdown complete");
     Ok(())
+}
+
+/// サンプルデータの登録（開発環境用）
+async fn setup_sample_data(
+    repository: &Arc<InMemoryRepository>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    info!("Setting up sample data for development");
+
+    let samples = vec![
+        Endpoint::new(1, "auth-service", "/v1/login", "POST"),
+        Endpoint::new(2, "auth-service", "/v1/logout", "POST"),
+        Endpoint::new(3, "auth-service", "/v1/refresh", "POST"),
+        Endpoint::new(4, "config-service", "/v1/settings", "GET"),
+        Endpoint::new(5, "config-service", "/v1/settings/{key}", "GET"),
+        Endpoint::new(6, "endpoint-service", "/v1/endpoints", "GET"),
+    ];
+
+    for endpoint in samples {
+        repository.save(&endpoint).await?;
+    }
+
+    info!(count = 6, "Sample data setup complete");
+    Ok(())
+}
+
+/// 開発環境での動作確認テスト
+async fn run_dev_tests(service: &InMemoryEndpointService) {
+    info!("Running development tests");
+
+    // エンドポイント解決のテスト
+    match service.resolve_endpoint("auth-service", "grpc").await {
+        Ok(resolved) => {
+            info!(
+                service_name = "auth-service",
+                protocol = "grpc",
+                address = %resolved.address,
+                "Resolve endpoint test: SUCCESS"
+            );
+        }
+        Err(e) => {
+            warn!(error = %e, "Resolve endpoint test: FAILED");
+        }
+    }
+
+    // エンドポイント一覧のテスト
+    let query = EndpointQuery::new().with_service_name("auth-service");
+    match service.list_endpoints(&query).await {
+        Ok(list) => {
+            info!(
+                service_name = "auth-service",
+                count = %list.endpoints.len(),
+                "List endpoints test: SUCCESS"
+            );
+        }
+        Err(e) => {
+            warn!(error = %e, "List endpoints test: FAILED");
+        }
+    }
 }
 
 /// グレースフルシャットダウンシグナルを待機
@@ -211,10 +221,10 @@ async fn shutdown_signal() {
 
     tokio::select! {
         _ = ctrl_c => {
-            println!("\nReceived Ctrl+C, shutting down...");
+            info!("Received Ctrl+C, initiating graceful shutdown");
         }
         _ = terminate => {
-            println!("\nReceived SIGTERM, shutting down...");
+            info!("Received SIGTERM, initiating graceful shutdown");
         }
     }
 }

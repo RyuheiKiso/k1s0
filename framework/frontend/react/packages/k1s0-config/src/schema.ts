@@ -87,15 +87,16 @@ export function validateConfig<T>(
 
 /**
  * 部分的な設定をバリデーションする（マージ用）
+ * ZodObject スキーマに対して partial() を適用してバリデーションを行う
  */
-export function validatePartialConfig<T>(
-  schema: z.ZodSchema<T>,
+export function validatePartialConfig<T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>,
   config: unknown
-): { success: true; data: Partial<T> } | { success: false; errors: z.ZodError } {
+): { success: true; data: Partial<z.infer<z.ZodObject<T>>> } | { success: false; errors: z.ZodError } {
   const partialSchema = schema.partial();
   const result = partialSchema.safeParse(config);
   if (result.success) {
-    return { success: true, data: result.data as Partial<T> };
+    return { success: true, data: result.data };
   }
   return { success: false, errors: result.error };
 }

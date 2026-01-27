@@ -81,11 +81,14 @@ function NavItemRenderer({
     return <Divider key={item.id} sx={{ my: 1 }} />;
   }
 
+  const buttonProps = item.href
+    ? { component: "a" as const, href: item.href }
+    : {};
+
   const content = (
     <ListItem key={item.id} disablePadding sx={{ display: "block" }}>
       <ListItemButton
         onClick={item.onClick}
-        href={item.href}
         selected={item.selected}
         disabled={item.disabled}
         sx={{
@@ -93,6 +96,7 @@ function NavItemRenderer({
           justifyContent: collapsed ? "center" : "initial",
           px: 2.5,
         }}
+        {...buttonProps}
       >
         {item.icon && (
           <ListItemIcon

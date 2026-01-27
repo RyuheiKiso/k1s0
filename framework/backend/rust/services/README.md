@@ -6,7 +6,7 @@ framework が提供する共通マイクロサービス。
 
 | サービス | 説明 | 所有テーブル |
 |---------|------|-------------|
-| auth-service | 認証・認可 | `fw_m_user`, `fw_m_role`, `fw_m_permission`, `fw_m_user_role`, `fw_m_role_permission` |
+| auth-service | 認証・認可 | `fw_m_user`, `fw_m_role`, `fw_m_permission`, `fw_m_user_role`, `fw_m_role_permission`, `fw_t_refresh_token` |
 | config-service | 動的設定（`fw_m_setting`） | `fw_m_setting` |
 | endpoint-service | エンドポイント情報管理 | `fw_m_endpoint` |
 

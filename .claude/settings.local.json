@@ -31,7 +31,15 @@
       "Bash(git commit:*)",
       "Bash(dir:*)",
       "Bash(git status:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(ls:*)",
+      "Bash(git checkout:*)",
+      "Bash(cargo clean:*)",
+      "Bash(dart pub get:*)",
+      "Bash(melos bootstrap:*)",
+      "Bash(pnpm run build:*)",
+      "Bash(dart analyze:*)",
+      "Bash(dart run build_runner:*)"
     ]
   }
 }
