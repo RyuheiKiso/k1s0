@@ -15,6 +15,9 @@ class ErrorInfo with _$ErrorInfo {
     /// Error message
     required String message,
 
+    /// Timestamp
+    required String timestamp,
+
     /// Stack trace
     String? stackTrace,
 
@@ -23,9 +26,6 @@ class ErrorInfo with _$ErrorInfo {
 
     /// Original error info (for chained errors)
     ErrorInfo? cause,
-
-    /// Timestamp
-    required String timestamp,
 
     /// Trace ID
     String? traceId,
@@ -67,26 +67,20 @@ class ErrorInfo with _$ErrorInfo {
   }
 
   /// Create with a cause
-  ErrorInfo withCause(ErrorInfo cause) {
-    return copyWith(cause: cause);
-  }
+  ErrorInfo withCause(ErrorInfo cause) => copyWith(cause: cause);
 
   /// Add context
-  ErrorInfo withContext(Map<String, dynamic> additionalContext) {
-    return copyWith(
-      context: {...context, ...additionalContext},
-    );
-  }
+  ErrorInfo withContext(Map<String, dynamic> additionalContext) => copyWith(
+        context: {...context, ...additionalContext},
+      );
 
   /// Convert to log-friendly map
-  Map<String, dynamic> toLogMap() {
-    return {
-      'error_type': type,
-      'error_message': message,
-      if (code != null) 'error_code': code,
-      if (stackTrace != null) 'error_stack_trace': stackTrace,
-      if (cause != null) 'error_cause': cause!.toLogMap(),
-      ...context,
-    };
-  }
+  Map<String, dynamic> toLogMap() => {
+        'error_type': type,
+        'error_message': message,
+        if (code != null) 'error_code': code,
+        if (stackTrace != null) 'error_stack_trace': stackTrace,
+        if (cause != null) 'error_cause': cause!.toLogMap(),
+        ...context,
+      };
 }

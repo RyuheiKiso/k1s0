@@ -18,25 +18,23 @@ class AuthUser with _$AuthUser {
     /// User permissions
     required List<String> permissions,
 
-    /// Tenant ID
-    String? tenantId,
-
     /// JWT claims
     required Claims claims,
+
+    /// Tenant ID
+    String? tenantId,
   }) = _AuthUser;
 
   const AuthUser._();
 
   /// Create an AuthUser from Claims
-  factory AuthUser.fromClaims(Claims claims) {
-    return AuthUser(
-      id: claims.sub,
-      roles: claims.roles,
-      permissions: claims.permissions,
-      tenantId: claims.tenantId,
-      claims: claims,
-    );
-  }
+  factory AuthUser.fromClaims(Claims claims) => AuthUser(
+        id: claims.sub,
+        roles: claims.roles,
+        permissions: claims.permissions,
+        claims: claims,
+        tenantId: claims.tenantId,
+      );
 
   /// Check if the user has a specific role
   bool hasRole(String role) => roles.contains(role);

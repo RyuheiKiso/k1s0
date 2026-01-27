@@ -121,14 +121,13 @@ class K1s0NetworkError extends StatelessWidget {
   final String? message;
 
   @override
-  Widget build(BuildContext context) {
-    return K1s0ErrorState(
-      title: 'Connection Error',
-      message: message ?? 'Unable to connect to the server. Please check your internet connection.',
-      icon: Icons.wifi_off,
-      onRetry: onRetry,
-    );
-  }
+  Widget build(BuildContext context) => K1s0ErrorState(
+        title: 'Connection Error',
+        message: message ??
+            'Unable to connect to the server. Please check your internet connection.',
+        icon: Icons.wifi_off,
+        onRetry: onRetry,
+      );
 }
 
 /// Server error state
@@ -151,15 +150,14 @@ class K1s0ServerError extends StatelessWidget {
   final String? errorCode;
 
   @override
-  Widget build(BuildContext context) {
-    return K1s0ErrorState(
-      title: 'Server Error',
-      message: message ?? 'Something went wrong on our end. Please try again later.',
-      icon: Icons.cloud_off,
-      onRetry: onRetry,
-      details: errorCode,
-    );
-  }
+  Widget build(BuildContext context) => K1s0ErrorState(
+        title: 'Server Error',
+        message: message ??
+            'Something went wrong on our end. Please try again later.',
+        icon: Icons.cloud_off,
+        onRetry: onRetry,
+        details: errorCode,
+      );
 }
 
 /// Permission denied error state

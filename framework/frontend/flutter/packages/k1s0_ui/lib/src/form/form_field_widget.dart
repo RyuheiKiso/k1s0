@@ -124,21 +124,19 @@ class K1s0EmailField extends StatelessWidget {
   final String? Function(String?)? validator;
 
   @override
-  Widget build(BuildContext context) {
-    return K1s0TextField(
-      controller: controller,
-      label: label ?? 'Email',
-      hint: 'example@email.com',
-      helperText: helperText,
-      errorText: errorText,
-      prefixIcon: Icons.email_outlined,
-      enabled: enabled,
-      onChanged: onChanged,
-      validator: validator,
-      keyboardType: TextInputType.emailAddress,
-      textInputAction: TextInputAction.next,
-    );
-  }
+  Widget build(BuildContext context) => K1s0TextField(
+        controller: controller,
+        label: label ?? 'Email',
+        hint: 'example@email.com',
+        helperText: helperText,
+        errorText: errorText,
+        prefixIcon: Icons.email_outlined,
+        enabled: enabled,
+        onChanged: onChanged,
+        validator: validator,
+        keyboardType: TextInputType.emailAddress,
+        textInputAction: TextInputAction.next,
+      );
 }
 
 /// Pre-configured phone field
@@ -181,19 +179,17 @@ class K1s0PhoneField extends StatelessWidget {
   final String? Function(String?)? validator;
 
   @override
-  Widget build(BuildContext context) {
-    return K1s0TextField(
-      controller: controller,
-      label: label ?? 'Phone',
-      hint: '090-1234-5678',
-      helperText: helperText,
-      errorText: errorText,
-      prefixIcon: Icons.phone_outlined,
-      enabled: enabled,
-      onChanged: onChanged,
-      validator: validator,
-      keyboardType: TextInputType.phone,
-      textInputAction: TextInputAction.next,
-    );
-  }
+  Widget build(BuildContext context) => K1s0TextField(
+        controller: controller,
+        label: label ?? 'Phone',
+        hint: '090-1234-5678',
+        helperText: helperText,
+        errorText: errorText,
+        prefixIcon: Icons.phone_outlined,
+        enabled: enabled,
+        onChanged: onChanged,
+        validator: validator,
+        keyboardType: TextInputType.phone,
+        textInputAction: TextInputAction.next,
+      );
 }

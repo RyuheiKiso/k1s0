@@ -8,6 +8,9 @@ import 'state_storage.dart';
 class HiveStorage implements StateStorage {
   HiveStorage._(this._box);
 
+  /// Creates a HiveStorage from an existing box.
+  factory HiveStorage.fromBox(Box<dynamic> box) => HiveStorage._(box);
+
   final Box<dynamic> _box;
 
   static bool _initialized = false;
@@ -38,18 +41,11 @@ class HiveStorage implements StateStorage {
     return HiveStorage._(box);
   }
 
-  /// Creates a HiveStorage from an existing box.
-  factory HiveStorage.fromBox(Box<dynamic> box) {
-    return HiveStorage._(box);
-  }
-
   /// The underlying Hive box.
   Box<dynamic> get box => _box;
 
   @override
-  Future<T?> read<T>(String key) async {
-    return _box.get(key) as T?;
-  }
+  Future<T?> read<T>(String key) async => _box.get(key) as T?;
 
   @override
   Future<void> write<T>(String key, T value) async {
@@ -67,14 +63,10 @@ class HiveStorage implements StateStorage {
   }
 
   @override
-  Future<bool> containsKey(String key) async {
-    return _box.containsKey(key);
-  }
+  Future<bool> containsKey(String key) async => _box.containsKey(key);
 
   @override
-  Future<List<String>> getKeys() async {
-    return _box.keys.cast<String>().toList();
-  }
+  Future<List<String>> getKeys() async => _box.keys.cast<String>().toList();
 
   /// Closes the Hive box.
   Future<void> close() async {
@@ -82,21 +74,25 @@ class HiveStorage implements StateStorage {
   }
 
   /// Watches for changes to a key.
-  Stream<BoxEvent> watch({String? key}) {
-    return _box.watch(key: key);
-  }
+  Stream<BoxEvent> watch({String? key}) => _box.watch(key: key);
 }
 
 /// Typed storage wrapper for HiveStorage.
 class TypedHiveStorage<T> {
+  /// Creates a typed Hive storage.
   TypedHiveStorage({
     required this.storage,
     required this.key,
     this.defaultValue,
   });
 
+  /// The underlying storage.
   final HiveStorage storage;
+
+  /// The storage key.
   final String key;
+
+  /// The default value.
   final T? defaultValue;
 
   /// Reads the value from storage.
@@ -116,12 +112,10 @@ class TypedHiveStorage<T> {
   }
 
   /// Watches for changes to the value.
-  Stream<T?> watch() {
-    return storage.watch(key: key).map((event) {
-      if (event.deleted) return null;
-      return event.value as T?;
-    });
-  }
+  Stream<T?> watch() => storage.watch(key: key).map((event) {
+        if (event.deleted) return null;
+        return event.value as T?;
+      });
 }
 
 /// Lazy box wrapper for large data.
@@ -147,9 +141,7 @@ class LazyHiveStorage implements StateStorage {
   }
 
   @override
-  Future<T?> read<T>(String key) async {
-    return await _box.get(key) as T?;
-  }
+  Future<T?> read<T>(String key) async => await _box.get(key) as T?;
 
   @override
   Future<void> write<T>(String key, T value) async {
@@ -167,14 +159,10 @@ class LazyHiveStorage implements StateStorage {
   }
 
   @override
-  Future<bool> containsKey(String key) async {
-    return _box.containsKey(key);
-  }
+  Future<bool> containsKey(String key) async => _box.containsKey(key);
 
   @override
-  Future<List<String>> getKeys() async {
-    return _box.keys.cast<String>().toList();
-  }
+  Future<List<String>> getKeys() async => _box.keys.cast<String>().toList();
 
   /// Closes the lazy box.
   Future<void> close() async {

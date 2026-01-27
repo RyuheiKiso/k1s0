@@ -95,28 +95,26 @@ class K1s0ConfirmDialog extends StatelessWidget {
   final bool isDanger;
 
   @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(title),
-      content: Text(message),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: Text(cancelLabel ?? 'Cancel'),
-        ),
-        if (isDanger)
-          K1s0DangerButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(confirmLabel ?? 'Confirm'),
-          )
-        else
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(confirmLabel ?? 'Confirm'),
+  Widget build(BuildContext context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(cancelLabel ?? 'Cancel'),
           ),
-      ],
-    );
-  }
+          if (isDanger)
+            K1s0DangerButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(confirmLabel ?? 'Confirm'),
+            )
+          else
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(confirmLabel ?? 'Confirm'),
+            ),
+        ],
+      );
 }
 
 /// Alert dialog widget
@@ -139,18 +137,16 @@ class K1s0AlertDialog extends StatelessWidget {
   final String? okLabel;
 
   @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(title),
-      content: Text(message),
-      actions: [
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(okLabel ?? 'OK'),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(okLabel ?? 'OK'),
+          ),
+        ],
+      );
 }
 
 /// Loading dialog widget
@@ -165,20 +161,18 @@ class K1s0LoadingDialog extends StatelessWidget {
   final String? message;
 
   @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      content: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(),
-          K1s0Spacing.gapHMd,
-          Flexible(
-            child: Text(message ?? 'Loading...'),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => AlertDialog(
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            K1s0Spacing.gapHMd,
+            Flexible(
+              child: Text(message ?? 'Loading...'),
+            ),
+          ],
+        ),
+      );
 }
 
 /// Custom dialog widget
@@ -205,14 +199,12 @@ class K1s0CustomDialog extends StatelessWidget {
   final EdgeInsets? padding;
 
   @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: title != null ? Text(title!) : null,
-      content: Padding(
-        padding: padding ?? EdgeInsets.zero,
-        child: child,
-      ),
-      actions: actions,
-    );
-  }
+  Widget build(BuildContext context) => AlertDialog(
+        title: title != null ? Text(title!) : null,
+        content: Padding(
+          padding: padding ?? EdgeInsets.zero,
+          child: child,
+        ),
+        actions: actions,
+      );
 }

@@ -89,6 +89,7 @@ abstract class K1s0FamilyAsyncNotifier<T, Arg> extends FamilyAsyncNotifier<T, Ar
 
 /// Base class for StateNotifiers with async operations.
 abstract class K1s0StateNotifier<T> extends StateNotifier<T> {
+  /// Creates a K1s0StateNotifier with initial state.
   K1s0StateNotifier(super.state);
 
   /// Whether the notifier is disposed.
@@ -120,7 +121,8 @@ abstract class K1s0StateNotifier<T> extends StateNotifier<T> {
 
 /// Base class for Notifiers with common functionality.
 abstract class K1s0Notifier<T> extends Notifier<T> {
-  /// Updates the state.
+  /// Updates the state to a new value.
+  // ignore: use_setters_to_change_properties
   void update(T newState) {
     state = newState;
   }
@@ -133,7 +135,8 @@ abstract class K1s0Notifier<T> extends Notifier<T> {
 
 /// Base class for family Notifiers.
 abstract class K1s0FamilyNotifier<T, Arg> extends FamilyNotifier<T, Arg> {
-  /// Updates the state.
+  /// Updates the state to a new value.
+  // ignore: use_setters_to_change_properties
   void update(T newState) {
     state = newState;
   }

@@ -45,25 +45,21 @@ extension AsyncStateExtensions<T> on AsyncState<T> {
   bool get isFailure => this is AsyncFailure<T>;
 
   /// Returns the data if available.
-  T? get dataOrNull {
-    return switch (this) {
-      AsyncSuccess(:final data) => data,
-      AsyncLoading(:final previousData) => previousData,
-      AsyncFailure(:final previousData) => previousData,
-      _ => null,
-    };
-  }
+  T? get dataOrNull => switch (this) {
+        AsyncSuccess(:final data) => data,
+        AsyncLoading(:final previousData) => previousData,
+        AsyncFailure(:final previousData) => previousData,
+        _ => null,
+      };
 
   /// Returns true if the state has data.
   bool get hasData => dataOrNull != null;
 
   /// Returns the error if available.
-  Object? get errorOrNull {
-    return switch (this) {
-      AsyncFailure(:final error) => error,
-      _ => null,
-    };
-  }
+  Object? get errorOrNull => switch (this) {
+        AsyncFailure(:final error) => error,
+        _ => null,
+      };
 
   /// Maps the state to a value.
   R when<R>({
@@ -72,62 +68,55 @@ extension AsyncStateExtensions<T> on AsyncState<T> {
     required R Function(T data) success,
     required R Function(Object error, StackTrace? stackTrace, T? previousData)
         failure,
-  }) {
-    return switch (this) {
-      AsyncInitial() => initial(),
-      AsyncLoading(:final previousData) => loading(previousData),
-      AsyncSuccess(:final data) => success(data),
-      AsyncFailure(:final error, :final stackTrace, :final previousData) =>
-        failure(error, stackTrace, previousData),
-    };
-  }
+  }) =>
+      switch (this) {
+        AsyncInitial() => initial(),
+        AsyncLoading(:final previousData) => loading(previousData),
+        AsyncSuccess(:final data) => success(data),
+        AsyncFailure(:final error, :final stackTrace, :final previousData) =>
+          failure(error, stackTrace, previousData),
+      };
 
   /// Maps the state to a value with optional handlers.
   R maybeWhen<R>({
+    required R Function() orElse,
     R Function()? initial,
     R Function(T? previousData)? loading,
     R Function(T data)? success,
     R Function(Object error, StackTrace? stackTrace, T? previousData)? failure,
-    required R Function() orElse,
-  }) {
-    return switch (this) {
-      AsyncInitial() => initial?.call() ?? orElse(),
-      AsyncLoading(:final previousData) =>
-        loading?.call(previousData) ?? orElse(),
-      AsyncSuccess(:final data) => success?.call(data) ?? orElse(),
-      AsyncFailure(:final error, :final stackTrace, :final previousData) =>
-        failure?.call(error, stackTrace, previousData) ?? orElse(),
-    };
-  }
+  }) =>
+      switch (this) {
+        AsyncInitial() => initial?.call() ?? orElse(),
+        AsyncLoading(:final previousData) =>
+          loading?.call(previousData) ?? orElse(),
+        AsyncSuccess(:final data) => success?.call(data) ?? orElse(),
+        AsyncFailure(:final error, :final stackTrace, :final previousData) =>
+          failure?.call(error, stackTrace, previousData) ?? orElse(),
+      };
 
   /// Transforms the data if success.
-  AsyncState<R> map<R>(R Function(T data) mapper) {
-    return switch (this) {
-      AsyncInitial() => const AsyncState.initial(),
-      AsyncLoading(:final previousData) => AsyncState.loading(
-          previousData: previousData != null ? mapper(previousData) : null,
-        ),
-      AsyncSuccess(:final data) => AsyncState.success(mapper(data)),
-      AsyncFailure(:final error, :final stackTrace, :final previousData) =>
-        AsyncState.failure(
-          error,
-          stackTrace: stackTrace,
-          previousData: previousData != null ? mapper(previousData) : null,
-        ),
-    };
-  }
+  AsyncState<R> map<R>(R Function(T data) mapper) => switch (this) {
+        AsyncInitial() => const AsyncState.initial(),
+        AsyncLoading(:final previousData) => AsyncState.loading(
+            previousData: previousData != null ? mapper(previousData) : null,
+          ),
+        AsyncSuccess(:final data) => AsyncState.success(mapper(data)),
+        AsyncFailure(:final error, :final stackTrace, :final previousData) =>
+          AsyncState.failure(
+            error,
+            stackTrace: stackTrace,
+            previousData: previousData != null ? mapper(previousData) : null,
+          ),
+      };
 
   /// Converts to loading state, preserving data.
-  AsyncState<T> toLoading() {
-    return AsyncState.loading(previousData: dataOrNull);
-  }
+  AsyncState<T> toLoading() => AsyncState.loading(previousData: dataOrNull);
 
   /// Converts to failure state, preserving data.
-  AsyncState<T> toFailure(Object error, [StackTrace? stackTrace]) {
-    return AsyncState.failure(
-      error,
-      stackTrace: stackTrace,
-      previousData: dataOrNull,
-    );
-  }
+  AsyncState<T> toFailure(Object error, [StackTrace? stackTrace]) =>
+      AsyncState.failure(
+        error,
+        stackTrace: stackTrace,
+        previousData: dataOrNull,
+      );
 }

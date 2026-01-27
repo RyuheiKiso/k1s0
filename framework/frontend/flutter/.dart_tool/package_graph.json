@@ -45,13 +45,6 @@
       ]
     },
     {
-      "name": "flutter_lints",
-      "version": "4.0.0",
-      "dependencies": [
-        "lints"
-      ]
-    },
-    {
       "name": "flutter_test",
       "version": "0.0.0",
       "dependencies": [
@@ -67,6 +60,13 @@
         "stream_channel",
         "test_api",
         "vector_math"
+      ]
+    },
+    {
+      "name": "flutter_lints",
+      "version": "4.0.0",
+      "dependencies": [
+        "lints"
       ]
     },
     {
@@ -252,11 +252,6 @@
       "dependencies": []
     },
     {
-      "name": "lints",
-      "version": "4.0.0",
-      "dependencies": []
-    },
-    {
       "name": "stream_channel",
       "version": "2.1.4",
       "dependencies": [
@@ -324,6 +319,11 @@
         "string_scanner",
         "term_glyph"
       ]
+    },
+    {
+      "name": "lints",
+      "version": "4.0.0",
+      "dependencies": []
     },
     {
       "name": "sky_engine",

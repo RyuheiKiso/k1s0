@@ -23,18 +23,17 @@ extension AsyncValueExtensions<T> on AsyncValue<T> {
     required Widget Function() loading,
     required Widget Function(Object error, StackTrace stackTrace) error,
     Widget Function(T data)? refreshing,
-  }) {
-    return when(
-      data: (value) {
-        if (isRefreshing && refreshing != null) {
-          return refreshing(value);
-        }
-        return data(value);
-      },
-      loading: loading,
-      error: error,
-    );
-  }
+  }) =>
+      when(
+        data: (value) {
+          if (isRefreshing && refreshing != null) {
+            return refreshing(value);
+          }
+          return data(value);
+        },
+        loading: loading,
+        error: error,
+      );
 
   /// Maps the value with a skip loading on refresh option.
   Widget whenOrRefresh({
@@ -42,65 +41,54 @@ extension AsyncValueExtensions<T> on AsyncValue<T> {
     required Widget Function() loading,
     required Widget Function(Object error, StackTrace stackTrace) error,
     bool skipLoadingOnRefresh = true,
-  }) {
-    return when(
-      skipLoadingOnRefresh: skipLoadingOnRefresh,
-      data: data,
-      loading: loading,
-      error: error,
-    );
-  }
+  }) =>
+      when(
+        skipLoadingOnRefresh: skipLoadingOnRefresh,
+        data: data,
+        loading: loading,
+        error: error,
+      );
 
   /// Returns the value or null if not available.
   T? get valueOrNull => hasValue ? value : null;
 
   /// Returns the error or null if not available.
-  Object? get errorOrNull => hasError ? this.error : null;
+  Object? get errorOrNull => hasError ? error : null;
 
   /// Transforms the value if present.
-  AsyncValue<R> mapData<R>(R Function(T data) mapper) {
-    return when(
-      data: (data) => AsyncValue.data(mapper(data)),
-      loading: () => const AsyncValue.loading(),
-      error: (error, stackTrace) => AsyncValue.error(error, stackTrace),
-    );
-  }
+  AsyncValue<R> mapData<R>(R Function(T data) mapper) => when(
+        data: (data) => AsyncValue.data(mapper(data)),
+        loading: AsyncValue<R>.loading,
+        error: AsyncValue<R>.error,
+      );
 
   /// Chains another async operation.
-  AsyncValue<R> flatMap<R>(AsyncValue<R> Function(T data) mapper) {
-    return when(
-      data: mapper,
-      loading: () => const AsyncValue.loading(),
-      error: (error, stackTrace) => AsyncValue.error(error, stackTrace),
-    );
-  }
+  AsyncValue<R> flatMap<R>(AsyncValue<R> Function(T data) mapper) => when(
+        data: mapper,
+        loading: AsyncValue<R>.loading,
+        error: AsyncValue<R>.error,
+      );
 
   /// Returns the value or a default value.
-  T getOrElse(T defaultValue) {
-    return valueOrNull ?? defaultValue;
-  }
+  T getOrElse(T defaultValue) => valueOrNull ?? defaultValue;
 
   /// Returns the value or throws the error.
-  T getOrThrow() {
-    return when(
-      data: (data) => data,
-      loading: () => throw StateError('Value is still loading'),
-      error: (error, stackTrace) => throw error,
-    );
-  }
+  T getOrThrow() => when(
+        data: (data) => data,
+        loading: () => throw StateError('Value is still loading'),
+        error: (error, stackTrace) => throw Exception(error),
+      );
 
   /// Combines two AsyncValues.
-  AsyncValue<(T, R)> combine<R>(AsyncValue<R> other) {
-    return when(
-      data: (data1) => other.when(
-        data: (data2) => AsyncValue.data((data1, data2)),
-        loading: () => const AsyncValue.loading(),
-        error: (error, stackTrace) => AsyncValue.error(error, stackTrace),
-      ),
-      loading: () => const AsyncValue.loading(),
-      error: (error, stackTrace) => AsyncValue.error(error, stackTrace),
-    );
-  }
+  AsyncValue<(T, R)> combine<R>(AsyncValue<R> other) => when(
+        data: (data1) => other.when(
+          data: (data2) => AsyncValue.data((data1, data2)),
+          loading: AsyncValue<(T, R)>.loading,
+          error: AsyncValue<(T, R)>.error,
+        ),
+        loading: AsyncValue<(T, R)>.loading,
+        error: AsyncValue<(T, R)>.error,
+      );
 }
 
 /// Extension methods for combining multiple AsyncValues.
@@ -131,12 +119,10 @@ extension AsyncValueCombineExtension<T> on List<AsyncValue<T>> {
 /// Extension for nullable AsyncValue.
 extension AsyncValueNullableExtension<T> on AsyncValue<T?> {
   /// Returns a non-nullable AsyncValue, treating null as loading.
-  AsyncValue<T> requireValue() {
-    return when(
-      data: (data) =>
-          data != null ? AsyncValue.data(data) : const AsyncValue.loading(),
-      loading: () => const AsyncValue.loading(),
-      error: (error, stackTrace) => AsyncValue.error(error, stackTrace),
-    );
-  }
+  AsyncValue<T> requireValue() => when(
+        data: (data) =>
+            data != null ? AsyncValue.data(data) : const AsyncValue.loading(),
+        loading: AsyncValue<T>.loading,
+        error: AsyncValue<T>.error,
+      );
 }

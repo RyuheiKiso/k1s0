@@ -39,7 +39,8 @@
       "Bash(melos bootstrap:*)",
       "Bash(pnpm run build:*)",
       "Bash(dart analyze:*)",
-      "Bash(dart run build_runner:*)"
+      "Bash(dart run build_runner:*)",
+      "Bash(tee:*)"
     ]
   }
 }

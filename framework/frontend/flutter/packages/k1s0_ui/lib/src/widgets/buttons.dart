@@ -168,31 +168,29 @@ class K1s0TextButton extends StatelessWidget {
   final IconData? icon;
 
   @override
-  Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: (loading || disabled) ? null : onPressed,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (loading) ...[
-            SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Theme.of(context).colorScheme.primary,
+  Widget build(BuildContext context) => TextButton(
+        onPressed: (loading || disabled) ? null : onPressed,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (loading) ...[
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
-            ),
-            K1s0Spacing.gapHSm,
-          ] else if (icon != null) ...[
-            Icon(icon, size: 18),
-            K1s0Spacing.gapHSm,
+              K1s0Spacing.gapHSm,
+            ] else if (icon != null) ...[
+              Icon(icon, size: 18),
+              K1s0Spacing.gapHSm,
+            ],
+            child,
           ],
-          child,
-        ],
-      ),
-    );
-  }
+        ),
+      );
 }
 
 /// k1s0 icon button
@@ -248,7 +246,7 @@ class K1s0IconButton extends StatelessWidget {
 
     if (tooltip != null) {
       return Tooltip(
-        message: tooltip!,
+        message: tooltip,
         child: button,
       );
     }

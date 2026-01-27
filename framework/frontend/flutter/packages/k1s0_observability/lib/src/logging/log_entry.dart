@@ -58,9 +58,6 @@ class LogEntry with _$LogEntry {
   factory LogEntry.fromJson(Map<String, dynamic> json) =>
       _$LogEntryFromJson(json);
 
-  /// Convert to JSON string
-  String toJsonString() => jsonEncode(toJson());
-
   /// Create a debug log entry
   factory LogEntry.debug({
     required String message,
@@ -70,19 +67,18 @@ class LogEntry with _$LogEntry {
     required String spanId,
     String? requestId,
     Map<String, dynamic>? extra,
-  }) {
-    return LogEntry(
-      timestamp: DateTime.now().toUtc().toIso8601String(),
-      level: LogLevel.debug,
-      message: message,
-      serviceName: serviceName,
-      env: env,
-      traceId: traceId,
-      spanId: spanId,
-      requestId: requestId,
-      extra: extra ?? {},
-    );
-  }
+  }) =>
+      LogEntry(
+        timestamp: DateTime.now().toUtc().toIso8601String(),
+        level: LogLevel.debug,
+        message: message,
+        serviceName: serviceName,
+        env: env,
+        traceId: traceId,
+        spanId: spanId,
+        requestId: requestId,
+        extra: extra ?? {},
+      );
 
   /// Create an info log entry
   factory LogEntry.info({
@@ -93,19 +89,18 @@ class LogEntry with _$LogEntry {
     required String spanId,
     String? requestId,
     Map<String, dynamic>? extra,
-  }) {
-    return LogEntry(
-      timestamp: DateTime.now().toUtc().toIso8601String(),
-      level: LogLevel.info,
-      message: message,
-      serviceName: serviceName,
-      env: env,
-      traceId: traceId,
-      spanId: spanId,
-      requestId: requestId,
-      extra: extra ?? {},
-    );
-  }
+  }) =>
+      LogEntry(
+        timestamp: DateTime.now().toUtc().toIso8601String(),
+        level: LogLevel.info,
+        message: message,
+        serviceName: serviceName,
+        env: env,
+        traceId: traceId,
+        spanId: spanId,
+        requestId: requestId,
+        extra: extra ?? {},
+      );
 
   /// Create a warning log entry
   factory LogEntry.warn({
@@ -116,19 +111,18 @@ class LogEntry with _$LogEntry {
     required String spanId,
     String? requestId,
     Map<String, dynamic>? extra,
-  }) {
-    return LogEntry(
-      timestamp: DateTime.now().toUtc().toIso8601String(),
-      level: LogLevel.warn,
-      message: message,
-      serviceName: serviceName,
-      env: env,
-      traceId: traceId,
-      spanId: spanId,
-      requestId: requestId,
-      extra: extra ?? {},
-    );
-  }
+  }) =>
+      LogEntry(
+        timestamp: DateTime.now().toUtc().toIso8601String(),
+        level: LogLevel.warn,
+        message: message,
+        serviceName: serviceName,
+        env: env,
+        traceId: traceId,
+        spanId: spanId,
+        requestId: requestId,
+        extra: extra ?? {},
+      );
 
   /// Create an error log entry
   factory LogEntry.error({
@@ -140,18 +134,20 @@ class LogEntry with _$LogEntry {
     String? requestId,
     Map<String, dynamic>? errorInfo,
     Map<String, dynamic>? extra,
-  }) {
-    return LogEntry(
-      timestamp: DateTime.now().toUtc().toIso8601String(),
-      level: LogLevel.error,
-      message: message,
-      serviceName: serviceName,
-      env: env,
-      traceId: traceId,
-      spanId: spanId,
-      requestId: requestId,
-      errorInfo: errorInfo,
-      extra: extra ?? {},
-    );
-  }
+  }) =>
+      LogEntry(
+        timestamp: DateTime.now().toUtc().toIso8601String(),
+        level: LogLevel.error,
+        message: message,
+        serviceName: serviceName,
+        env: env,
+        traceId: traceId,
+        spanId: spanId,
+        requestId: requestId,
+        errorInfo: errorInfo,
+        extra: extra ?? {},
+      );
+
+  /// Convert to JSON string
+  String toJsonString() => jsonEncode(toJson());
 }

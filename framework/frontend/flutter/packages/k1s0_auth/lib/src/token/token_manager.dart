@@ -18,25 +18,37 @@ sealed class TokenResult {
 
 /// Token is valid
 class TokenValid extends TokenResult {
+  /// Creates a valid token result
   const TokenValid(this.token, this.claims);
+
+  /// The access token
   final String token;
+
+  /// The decoded claims
   final Claims claims;
 }
 
 /// Token was refreshed
 class TokenRefreshed extends TokenResult {
+  /// Creates a refreshed token result
   const TokenRefreshed(this.token, this.claims);
+
+  /// The new access token
   final String token;
+
+  /// The decoded claims from the new token
   final Claims claims;
 }
 
 /// Token is expired and cannot be refreshed
 class TokenExpired extends TokenResult {
+  /// Creates an expired token result
   const TokenExpired();
 }
 
 /// No token available
 class TokenNone extends TokenResult {
+  /// Creates a no token result
   const TokenNone();
 }
 
@@ -100,7 +112,7 @@ class TokenManager {
             return TokenRefreshed(newTokens.accessToken, newClaims);
           }
         }
-      } catch (e) {
+      } on Exception catch (e) {
         debugPrint('Token refresh failed: $e');
       }
     }

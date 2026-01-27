@@ -20,6 +20,7 @@ enum K1s0SnackbarType {
 
 /// k1s0 snackbar helper
 class K1s0Snackbar {
+  /// Private constructor to prevent instantiation.
   K1s0Snackbar._();
 
   /// Show a snackbar
@@ -34,32 +35,28 @@ class K1s0Snackbar {
   }) {
     final scheme = Theme.of(context).colorScheme;
 
-    Color backgroundColor;
-    Color foregroundColor;
-    IconData icon;
-
-    switch (type) {
-      case K1s0SnackbarType.info:
-        backgroundColor = scheme.inverseSurface;
-        foregroundColor = scheme.onInverseSurface;
-        icon = Icons.info_outline;
-        break;
-      case K1s0SnackbarType.success:
-        backgroundColor = K1s0Colors.success;
-        foregroundColor = K1s0Colors.onSuccess;
-        icon = Icons.check_circle_outline;
-        break;
-      case K1s0SnackbarType.warning:
-        backgroundColor = K1s0Colors.warning;
-        foregroundColor = K1s0Colors.onWarning;
-        icon = Icons.warning_amber_outlined;
-        break;
-      case K1s0SnackbarType.error:
-        backgroundColor = scheme.error;
-        foregroundColor = scheme.onError;
-        icon = Icons.error_outline;
-        break;
-    }
+    final (backgroundColor, foregroundColor, icon) = switch (type) {
+      K1s0SnackbarType.info => (
+          scheme.inverseSurface,
+          scheme.onInverseSurface,
+          Icons.info_outline,
+        ),
+      K1s0SnackbarType.success => (
+          K1s0Colors.success,
+          K1s0Colors.onSuccess,
+          Icons.check_circle_outline,
+        ),
+      K1s0SnackbarType.warning => (
+          K1s0Colors.warning,
+          K1s0Colors.onWarning,
+          Icons.warning_amber_outlined,
+        ),
+      K1s0SnackbarType.error => (
+          scheme.error,
+          scheme.onError,
+          Icons.error_outline,
+        ),
+    };
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -85,14 +82,13 @@ class K1s0Snackbar {
                 onPressed: onAction ?? () {},
               )
             : null,
-        onVisible: () {},
       ),
     );
   }
 
   /// Show an info snackbar
   static void info(BuildContext context, String message) {
-    show(context, message: message, type: K1s0SnackbarType.info);
+    show(context, message: message);
   }
 
   /// Show a success snackbar

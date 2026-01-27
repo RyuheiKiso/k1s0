@@ -28,14 +28,14 @@ class SpanInfo with _$SpanInfo {
     /// Span ID
     required String spanId,
 
-    /// Parent span ID
-    String? parentSpanId,
-
     /// Span name
     required String name,
 
     /// Start time (Unix timestamp in milliseconds)
     required int startTime,
+
+    /// Parent span ID
+    String? parentSpanId,
 
     /// End time (Unix timestamp in milliseconds)
     int? endTime,
@@ -159,17 +159,15 @@ class ActiveSpan {
     return info;
   }
 
-  SpanInfo _toSpanInfo() {
-    return SpanInfo(
-      traceId: traceId,
-      spanId: spanId,
-      parentSpanId: parentSpanId,
-      name: name,
-      startTime: _startTime,
-      endTime: _endTime,
-      status: _status,
-      statusMessage: _statusMessage,
-      attributes: Map.unmodifiable(_attributes),
-    );
-  }
+  SpanInfo _toSpanInfo() => SpanInfo(
+        traceId: traceId,
+        spanId: spanId,
+        name: name,
+        startTime: _startTime,
+        parentSpanId: parentSpanId,
+        endTime: _endTime,
+        status: _status,
+        statusMessage: _statusMessage,
+        attributes: Map.unmodifiable(_attributes),
+      );
 }

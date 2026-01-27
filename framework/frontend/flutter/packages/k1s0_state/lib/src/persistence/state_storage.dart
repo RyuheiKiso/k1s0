@@ -32,6 +32,7 @@ abstract class StateSerializer<T> {
 
 /// A simple string serializer.
 class StringSerializer implements StateSerializer<String> {
+  /// Creates a string serializer.
   const StringSerializer();
 
   @override
@@ -43,6 +44,7 @@ class StringSerializer implements StateSerializer<String> {
 
 /// A simple int serializer.
 class IntSerializer implements StateSerializer<int> {
+  /// Creates an int serializer.
   const IntSerializer();
 
   @override
@@ -54,6 +56,7 @@ class IntSerializer implements StateSerializer<int> {
 
 /// A simple double serializer.
 class DoubleSerializer implements StateSerializer<double> {
+  /// Creates a double serializer.
   const DoubleSerializer();
 
   @override
@@ -66,6 +69,7 @@ class DoubleSerializer implements StateSerializer<double> {
 
 /// A simple bool serializer.
 class BoolSerializer implements StateSerializer<bool> {
+  /// Creates a bool serializer.
   const BoolSerializer();
 
   @override
@@ -77,13 +81,15 @@ class BoolSerializer implements StateSerializer<bool> {
 
 /// A list serializer.
 class ListSerializer<T> implements StateSerializer<List<T>> {
+  /// Creates a list serializer with the given item serializer.
   const ListSerializer(this.itemSerializer);
 
+  /// The serializer for list items.
   final StateSerializer<T> itemSerializer;
 
   @override
   Map<String, dynamic> toJson(List<T> value) => {
-        'items': value.map((e) => itemSerializer.toJson(e)).toList(),
+        'items': value.map(itemSerializer.toJson).toList(),
       };
 
   @override
@@ -97,8 +103,10 @@ class ListSerializer<T> implements StateSerializer<List<T>> {
 
 /// A map serializer.
 class MapSerializer<V> implements StateSerializer<Map<String, V>> {
+  /// Creates a map serializer with the given value serializer.
   const MapSerializer(this.valueSerializer);
 
+  /// The serializer for map values.
   final StateSerializer<V> valueSerializer;
 
   @override
@@ -112,7 +120,8 @@ class MapSerializer<V> implements StateSerializer<Map<String, V>> {
   Map<String, V> fromJson(Map<String, dynamic> json) {
     final entries = json['entries'] as Map<String, dynamic>;
     return entries.map(
-      (k, v) => MapEntry(k, valueSerializer.fromJson(v as Map<String, dynamic>)),
+      (k, v) =>
+          MapEntry(k, valueSerializer.fromJson(v as Map<String, dynamic>)),
     );
   }
 }

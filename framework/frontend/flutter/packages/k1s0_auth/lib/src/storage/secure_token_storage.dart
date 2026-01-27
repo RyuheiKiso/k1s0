@@ -126,7 +126,9 @@ class JsonSecureTokenStorage implements TokenStorage {
     try {
       final map = jsonDecode(json) as Map<String, dynamic>;
       return TokenPair.fromJson(map);
-    } catch (_) {
+    } on FormatException {
+      return null;
+    } on Exception {
       return null;
     }
   }

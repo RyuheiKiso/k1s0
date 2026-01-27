@@ -170,35 +170,30 @@ class ErrorTracker {
   }
 
   /// Run a zone with error capturing
-  Future<T> runZonedGuarded<T>(Future<T> Function() body) async {
-    return await runZoned(
-      body,
-      onError: (Object error, StackTrace stackTrace) {
-        captureException(
-          error,
-          stackTrace,
-          severity: ErrorSeverity.high,
-        );
-      },
-    );
+  Future<T> runWithErrorCapturing<T>(Future<T> Function() body) async {
+    T? result;
+    await runZonedGuarded(() async {
+      result = await body();
+    }, (error, stackTrace) {
+      captureException(
+        error,
+        stackTrace,
+        severity: ErrorSeverity.high,
+      );
+    });
+    return result as T;
   }
 }
 
-/// Error tracker factory
-class ErrorTrackerFactory {
-  /// Create an error tracker with a logger
-  static ErrorTracker createWithLogger(Logger logger) {
-    return ErrorTracker(
+/// Create an error tracker with a logger
+ErrorTracker createErrorTrackerWithLogger(Logger logger) => ErrorTracker(
       logger: logger,
     );
-  }
 
-  /// Create an error tracker with a callback
-  static ErrorTracker createWithCallback(
-    void Function(ErrorInfo error, ErrorSeverity severity) onError,
-  ) {
-    return ErrorTracker(
+/// Create an error tracker with a callback
+ErrorTracker createErrorTrackerWithCallback(
+  void Function(ErrorInfo error, ErrorSeverity severity) onError,
+) =>
+    ErrorTracker(
       onError: onError,
     );
-  }
-}

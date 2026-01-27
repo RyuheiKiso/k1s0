@@ -97,34 +97,32 @@ class K1s0TextField extends StatelessWidget {
   final FocusNode? focusNode;
 
   @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        helperText: helperText,
-        errorText: errorText,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
-        suffixIcon: suffixIcon,
-      ),
-      obscureText: obscureText,
-      enabled: enabled,
-      readOnly: readOnly,
-      maxLines: obscureText ? 1 : maxLines,
-      minLines: minLines,
-      maxLength: maxLength,
-      keyboardType: keyboardType,
-      textInputAction: textInputAction,
-      inputFormatters: inputFormatters,
-      onChanged: onChanged,
-      onFieldSubmitted: onSubmitted,
-      onTap: onTap,
-      validator: validator,
-      autofocus: autofocus,
-      focusNode: focusNode,
-    );
-  }
+  Widget build(BuildContext context) => TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          helperText: helperText,
+          errorText: errorText,
+          prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+          suffixIcon: suffixIcon,
+        ),
+        obscureText: obscureText,
+        enabled: enabled,
+        readOnly: readOnly,
+        maxLines: obscureText ? 1 : maxLines,
+        minLines: minLines,
+        maxLength: maxLength,
+        keyboardType: keyboardType,
+        textInputAction: textInputAction,
+        inputFormatters: inputFormatters,
+        onChanged: onChanged,
+        onFieldSubmitted: onSubmitted,
+        onTap: onTap,
+        validator: validator,
+        autofocus: autofocus,
+        focusNode: focusNode,
+      );
 }
 
 /// k1s0 password field with visibility toggle
@@ -190,35 +188,35 @@ class _K1s0PasswordFieldState extends State<K1s0PasswordField> {
   bool _obscureText = true;
 
   @override
-  Widget build(BuildContext context) {
-    return K1s0TextField(
-      controller: widget.controller,
-      label: widget.label ?? 'Password',
-      hint: widget.hint,
-      helperText: widget.helperText,
-      errorText: widget.errorText,
-      prefixIcon: Icons.lock_outline,
-      suffixIcon: IconButton(
-        icon: Icon(
-          _obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+  Widget build(BuildContext context) => K1s0TextField(
+        controller: widget.controller,
+        label: widget.label ?? 'Password',
+        hint: widget.hint,
+        helperText: widget.helperText,
+        errorText: widget.errorText,
+        prefixIcon: Icons.lock_outline,
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscureText
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+          ),
+          onPressed: () {
+            setState(() {
+              _obscureText = !_obscureText;
+            });
+          },
         ),
-        onPressed: () {
-          setState(() {
-            _obscureText = !_obscureText;
-          });
-        },
-      ),
-      obscureText: _obscureText,
-      enabled: widget.enabled,
-      onChanged: widget.onChanged,
-      onSubmitted: widget.onSubmitted,
-      validator: widget.validator,
-      autofocus: widget.autofocus,
-      focusNode: widget.focusNode,
-      textInputAction: widget.textInputAction,
-      keyboardType: TextInputType.visiblePassword,
-    );
-  }
+        obscureText: _obscureText,
+        enabled: widget.enabled,
+        onChanged: widget.onChanged,
+        onSubmitted: widget.onSubmitted,
+        validator: widget.validator,
+        autofocus: widget.autofocus,
+        focusNode: widget.focusNode,
+        textInputAction: widget.textInputAction,
+        keyboardType: TextInputType.visiblePassword,
+      );
 }
 
 /// k1s0 search field
@@ -257,28 +255,26 @@ class K1s0SearchField extends StatelessWidget {
   final bool enabled;
 
   @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        hintText: hint ?? 'Search...',
-        prefixIcon: const Icon(Icons.search),
-        suffixIcon: controller?.text.isNotEmpty == true
-            ? IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: () {
-                  controller?.clear();
-                  onClear?.call();
-                  onChanged?.call('');
-                },
-              )
-            : null,
-      ),
-      onChanged: onChanged,
-      onSubmitted: onSubmitted,
-      autofocus: autofocus,
-      enabled: enabled,
-      textInputAction: TextInputAction.search,
-    );
-  }
+  Widget build(BuildContext context) => TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          hintText: hint ?? 'Search...',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: (controller?.text.isNotEmpty ?? false)
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    controller?.clear();
+                    onClear?.call();
+                    onChanged?.call('');
+                  },
+                )
+              : null,
+        ),
+        onChanged: onChanged,
+        onSubmitted: onSubmitted,
+        autofocus: autofocus,
+        enabled: enabled,
+        textInputAction: TextInputAction.search,
+      );
 }

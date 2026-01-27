@@ -75,69 +75,64 @@ class K1s0HttpClient {
   Future<K1s0Response<T>> get<T>(
     String path, {
     K1s0RequestOptions? options,
-  }) async {
-    return _request<T>(
-      path,
-      method: 'GET',
-      options: options,
-    );
-  }
+  }) async =>
+      _request<T>(
+        path,
+        method: 'GET',
+        options: options,
+      );
 
   /// POST request
   Future<K1s0Response<T>> post<T>(
     String path, {
     Object? data,
     K1s0RequestOptions? options,
-  }) async {
-    return _request<T>(
-      path,
-      method: 'POST',
-      data: data,
-      options: options,
-    );
-  }
+  }) async =>
+      _request<T>(
+        path,
+        method: 'POST',
+        data: data,
+        options: options,
+      );
 
   /// PUT request
   Future<K1s0Response<T>> put<T>(
     String path, {
     Object? data,
     K1s0RequestOptions? options,
-  }) async {
-    return _request<T>(
-      path,
-      method: 'PUT',
-      data: data,
-      options: options,
-    );
-  }
+  }) async =>
+      _request<T>(
+        path,
+        method: 'PUT',
+        data: data,
+        options: options,
+      );
 
   /// PATCH request
   Future<K1s0Response<T>> patch<T>(
     String path, {
     Object? data,
     K1s0RequestOptions? options,
-  }) async {
-    return _request<T>(
-      path,
-      method: 'PATCH',
-      data: data,
-      options: options,
-    );
-  }
+  }) async =>
+      _request<T>(
+        path,
+        method: 'PATCH',
+        data: data,
+        options: options,
+      );
 
   /// DELETE request
   Future<K1s0Response<T>> delete<T>(
     String path, {
     Object? data,
     K1s0RequestOptions? options,
-  }) async {
-    return _request<T>(
-      path,
-      method: 'DELETE',
-      data: data,
-      options: options,
-    );
-  }
+  }) async =>
+      _request<T>(
+        path,
+        method: 'DELETE',
+        data: data,
+        options: options,
+      );
 
   /// Generic request method
   Future<K1s0Response<T>> _request<T>(
@@ -146,7 +141,7 @@ class K1s0HttpClient {
     Object? data,
     K1s0RequestOptions? options,
   }) async {
-    final retryPolicy = options?.retry == true
+    final retryPolicy = (options?.retry ?? false)
         ? _config.retryPolicy
         : RetryPolicy.none;
 
@@ -239,22 +234,20 @@ class K1s0HttpClient {
   }
 }
 
-/// Factory for creating HTTP clients
-class K1s0HttpClientFactory {
-  /// Create an HTTP client with the given configuration
-  static K1s0HttpClient create({
-    required String baseUrl,
-    Duration timeout = const Duration(seconds: 30),
-    Duration connectTimeout = const Duration(seconds: 10),
-    Map<String, String> defaultHeaders = const {},
-    HttpLogLevel logLevel = HttpLogLevel.basic,
-    TokenProvider? tokenProvider,
-    ErrorCallback? onError,
-    AuthErrorCallback? onAuthError,
-    void Function(String)? logger,
-    RetryPolicy retryPolicy = RetryPolicy.none,
-  }) {
-    return K1s0HttpClient(
+/// Create an HTTP client with the given configuration
+K1s0HttpClient createK1s0HttpClient({
+  required String baseUrl,
+  Duration timeout = const Duration(seconds: 30),
+  Duration connectTimeout = const Duration(seconds: 10),
+  Map<String, String> defaultHeaders = const {},
+  HttpLogLevel logLevel = HttpLogLevel.basic,
+  TokenProvider? tokenProvider,
+  ErrorCallback? onError,
+  AuthErrorCallback? onAuthError,
+  void Function(String)? logger,
+  RetryPolicy retryPolicy = RetryPolicy.none,
+}) =>
+    K1s0HttpClient(
       config: HttpClientConfig(
         baseUrl: baseUrl,
         timeout: timeout,
@@ -268,5 +261,37 @@ class K1s0HttpClientFactory {
       onAuthError: onAuthError,
       logger: logger,
     );
-  }
+
+/// Factory for creating HTTP clients
+///
+/// This class provides backward compatibility.
+/// Consider using the top-level function [createK1s0HttpClient] instead.
+class K1s0HttpClientFactory {
+  K1s0HttpClientFactory._();
+
+  /// Create an HTTP client with the given configuration
+  static K1s0HttpClient create({
+    required String baseUrl,
+    Duration timeout = const Duration(seconds: 30),
+    Duration connectTimeout = const Duration(seconds: 10),
+    Map<String, String> defaultHeaders = const {},
+    HttpLogLevel logLevel = HttpLogLevel.basic,
+    TokenProvider? tokenProvider,
+    ErrorCallback? onError,
+    AuthErrorCallback? onAuthError,
+    void Function(String)? logger,
+    RetryPolicy retryPolicy = RetryPolicy.none,
+  }) =>
+      createK1s0HttpClient(
+        baseUrl: baseUrl,
+        timeout: timeout,
+        connectTimeout: connectTimeout,
+        defaultHeaders: defaultHeaders,
+        logLevel: logLevel,
+        tokenProvider: tokenProvider,
+        onError: onError,
+        onAuthError: onAuthError,
+        logger: logger,
+        retryPolicy: retryPolicy,
+      );
 }

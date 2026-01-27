@@ -49,12 +49,11 @@ class AuthInterceptor extends Interceptor {
       }
 
       handler.next(options);
-    } catch (e) {
+    } on Exception catch (e) {
       handler.reject(
         DioException(
           requestOptions: options,
           error: e,
-          type: DioExceptionType.unknown,
           message: 'Failed to get authentication token',
         ),
       );

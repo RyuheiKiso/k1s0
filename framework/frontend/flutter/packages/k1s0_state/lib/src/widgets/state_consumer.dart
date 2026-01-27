@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// A consumer widget that provides convenient callbacks for state changes.
 class StateConsumer<T> extends ConsumerStatefulWidget {
+  /// Creates a StateConsumer.
   const StateConsumer({
     required this.provider,
     required this.builder,
@@ -53,6 +54,7 @@ class _StateConsumerState<T> extends ConsumerState<StateConsumer<T>> {
 
 /// A consumer that only listens to state changes without rebuilding.
 class StateListener<T> extends ConsumerStatefulWidget {
+  /// Creates a StateListener.
   const StateListener({
     required this.provider,
     required this.onStateChanged,
@@ -98,13 +100,12 @@ class _StateListenerState<T> extends ConsumerState<StateListener<T>> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return widget.child;
-  }
+  Widget build(BuildContext context) => widget.child;
 }
 
 /// A widget that combines listener and builder.
 class StateListenerBuilder<T> extends ConsumerStatefulWidget {
+  /// Creates a StateListenerBuilder.
   const StateListenerBuilder({
     required this.provider,
     required this.builder,
@@ -171,7 +172,8 @@ class _StateListenerBuilderState<T>
 }
 
 /// A consumer that selects a specific part of the state.
-class SelectiveConsumer<State, Selected> extends ConsumerWidget {
+class SelectiveConsumer<S, Selected> extends ConsumerWidget {
+  /// Creates a SelectiveConsumer.
   const SelectiveConsumer({
     required this.provider,
     required this.selector,
@@ -180,10 +182,10 @@ class SelectiveConsumer<State, Selected> extends ConsumerWidget {
   });
 
   /// The provider to watch.
-  final ProviderListenable<State> provider;
+  final ProviderListenable<S> provider;
 
   /// Selector for the part of state to watch.
-  final Selected Function(State state) selector;
+  final Selected Function(S state) selector;
 
   /// Builder for the widget.
   final Widget Function(BuildContext context, Selected selected, WidgetRef ref)

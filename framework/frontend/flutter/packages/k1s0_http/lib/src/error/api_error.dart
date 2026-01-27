@@ -99,7 +99,6 @@ class ApiError implements Exception {
         );
 
       case DioExceptionType.unknown:
-      default:
         return ApiError(
           kind: ApiErrorKind.network,
           message: error.message ?? 'Network error',
@@ -118,7 +117,7 @@ class ApiError implements Exception {
     ProblemDetails? problemDetails;
     String? errorCode;
     String message;
-    String? responseTraceId = traceId;
+    var responseTraceId = traceId;
 
     if (response.data is Map<String, dynamic>) {
       final data = response.data as Map<String, dynamic>;
@@ -130,7 +129,7 @@ class ApiError implements Exception {
           errorCode = problemDetails.errorCode;
           message = problemDetails.detail ?? problemDetails.title;
           responseTraceId = problemDetails.traceId ?? traceId;
-        } catch (_) {
+        } on Exception {
           message = data['message']?.toString() ??
               data['error']?.toString() ??
               _getDefaultMessage(kind);

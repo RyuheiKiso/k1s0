@@ -6,6 +6,7 @@ import 'k1s0_typography.dart';
 
 /// k1s0 theme data factory
 class K1s0Theme {
+  /// Private constructor to prevent instantiation.
   K1s0Theme._();
 
   /// Create the light theme
@@ -53,7 +54,7 @@ class K1s0Theme {
             horizontal: K1s0Spacing.md,
             vertical: K1s0Spacing.sm,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: K1s0Radius.borderMd,
           ),
           textStyle: textTheme.labelLarge,
@@ -67,7 +68,7 @@ class K1s0Theme {
             horizontal: K1s0Spacing.md,
             vertical: K1s0Spacing.sm,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: K1s0Radius.borderMd,
           ),
           textStyle: textTheme.labelLarge,
@@ -81,7 +82,7 @@ class K1s0Theme {
             horizontal: K1s0Spacing.md,
             vertical: K1s0Spacing.sm,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: K1s0Radius.borderMd,
           ),
           textStyle: textTheme.labelLarge,
@@ -95,7 +96,7 @@ class K1s0Theme {
             horizontal: K1s0Spacing.md,
             vertical: K1s0Spacing.sm,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: K1s0Radius.borderMd,
           ),
           textStyle: textTheme.labelLarge,
@@ -105,7 +106,7 @@ class K1s0Theme {
       // Input Decoration
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: scheme.surfaceContainerHighest.withOpacity(0.5),
+        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
         border: OutlineInputBorder(
           borderRadius: K1s0Radius.borderMd,
           borderSide: BorderSide(color: scheme.outline),
@@ -140,11 +141,11 @@ class K1s0Theme {
       ),
 
       // Chip
-      chipTheme: ChipThemeData(
+      chipTheme: const ChipThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: K1s0Radius.borderSm,
         ),
-        padding: const EdgeInsets.symmetric(
+        padding: EdgeInsets.symmetric(
           horizontal: K1s0Spacing.sm,
           vertical: K1s0Spacing.xs,
         ),
@@ -159,7 +160,7 @@ class K1s0Theme {
       ),
 
       // SnackBar
-      snackBarTheme: SnackBarThemeData(
+      snackBarTheme: const SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: K1s0Radius.borderMd,
@@ -190,7 +191,7 @@ class K1s0Theme {
       ),
 
       // Floating Action Button
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
         elevation: K1s0Elevation.level3,
         shape: RoundedRectangleBorder(
           borderRadius: K1s0Radius.borderLg,
@@ -244,7 +245,7 @@ class K1s0Theme {
             horizontal: K1s0Spacing.md,
             vertical: K1s0Spacing.sm,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: K1s0Radius.borderMd,
           ),
           textStyle: textTheme.labelLarge,
@@ -258,7 +259,7 @@ class K1s0Theme {
             horizontal: K1s0Spacing.md,
             vertical: K1s0Spacing.sm,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: K1s0Radius.borderMd,
           ),
           textStyle: textTheme.labelLarge,
@@ -272,7 +273,7 @@ class K1s0Theme {
             horizontal: K1s0Spacing.md,
             vertical: K1s0Spacing.sm,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: K1s0Radius.borderMd,
           ),
           textStyle: textTheme.labelLarge,
@@ -286,7 +287,7 @@ class K1s0Theme {
             horizontal: K1s0Spacing.md,
             vertical: K1s0Spacing.sm,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: K1s0Radius.borderMd,
           ),
           textStyle: textTheme.labelLarge,
@@ -296,7 +297,7 @@ class K1s0Theme {
       // Input Decoration
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: scheme.surfaceContainerHighest.withOpacity(0.5),
+        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
         border: OutlineInputBorder(
           borderRadius: K1s0Radius.borderMd,
           borderSide: BorderSide(color: scheme.outline),
@@ -331,11 +332,11 @@ class K1s0Theme {
       ),
 
       // Chip
-      chipTheme: ChipThemeData(
+      chipTheme: const ChipThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: K1s0Radius.borderSm,
         ),
-        padding: const EdgeInsets.symmetric(
+        padding: EdgeInsets.symmetric(
           horizontal: K1s0Spacing.sm,
           vertical: K1s0Spacing.xs,
         ),
@@ -350,7 +351,7 @@ class K1s0Theme {
       ),
 
       // SnackBar
-      snackBarTheme: SnackBarThemeData(
+      snackBarTheme: const SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: K1s0Radius.borderMd,
@@ -381,7 +382,7 @@ class K1s0Theme {
       ),
 
       // Floating Action Button
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
         elevation: K1s0Elevation.level3,
         shape: RoundedRectangleBorder(
           borderRadius: K1s0Radius.borderLg,

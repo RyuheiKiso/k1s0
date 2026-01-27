@@ -199,29 +199,26 @@ class Tracer {
   }
 }
 
-/// Tracer factory
-class TracerFactory {
-  /// Create a tracer with console exporter
-  static Tracer createConsole({
-    required String serviceName,
-    double samplingRate = 1.0,
-  }) {
-    return Tracer(
+/// Create a tracer with console exporter
+Tracer createConsoleTracer({
+  required String serviceName,
+  double samplingRate = 1.0,
+}) =>
+    Tracer(
       serviceName: serviceName,
       exporter: ConsoleSpanExporter(),
       samplingRate: samplingRate,
     );
-  }
 
-  /// Create a tracer with buffered exporter
-  static Tracer createBuffered({
-    required String serviceName,
-    required SpanExporter delegate,
-    double samplingRate = 1.0,
-    int batchSize = 50,
-    Duration flushInterval = const Duration(seconds: 10),
-  }) {
-    return Tracer(
+/// Create a tracer with buffered exporter
+Tracer createBufferedTracer({
+  required String serviceName,
+  required SpanExporter delegate,
+  double samplingRate = 1.0,
+  int batchSize = 50,
+  Duration flushInterval = const Duration(seconds: 10),
+}) =>
+    Tracer(
       serviceName: serviceName,
       exporter: BufferedSpanExporter(
         delegate: delegate,
@@ -230,5 +227,36 @@ class TracerFactory {
       ),
       samplingRate: samplingRate,
     );
-  }
+
+// Keep TracerFactory for backward compatibility
+/// Tracer factory
+///
+/// Deprecated: Use top-level functions [createConsoleTracer] and
+/// [createBufferedTracer] instead.
+@Deprecated('Use createConsoleTracer and createBufferedTracer functions instead')
+final class TracerFactory {
+  @Deprecated('Use createConsoleTracer and createBufferedTracer functions instead')
+  TracerFactory._();
+  /// Create a tracer with console exporter
+  static Tracer createConsole({
+    required String serviceName,
+    double samplingRate = 1.0,
+  }) =>
+      createConsoleTracer(serviceName: serviceName, samplingRate: samplingRate);
+
+  /// Create a tracer with buffered exporter
+  static Tracer createBuffered({
+    required String serviceName,
+    required SpanExporter delegate,
+    double samplingRate = 1.0,
+    int batchSize = 50,
+    Duration flushInterval = const Duration(seconds: 10),
+  }) =>
+      createBufferedTracer(
+        serviceName: serviceName,
+        delegate: delegate,
+        samplingRate: samplingRate,
+        batchSize: batchSize,
+        flushInterval: flushInterval,
+      );
 }
