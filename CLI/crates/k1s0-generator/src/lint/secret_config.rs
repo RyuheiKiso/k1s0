@@ -52,12 +52,10 @@ impl SecretKeyPatterns {
     /// マッチした場合はパターン名を返す
     pub fn matches_secret_key(&self, key: &str) -> Option<&'static str> {
         let key_lower = key.to_lowercase();
-        for pattern in &self.patterns {
-            if key_lower.contains(pattern) {
-                return Some(pattern);
-            }
-        }
-        None
+        self.patterns
+            .iter()
+            .find(|&pattern| key_lower.contains(pattern))
+            .copied()
     }
 }
 

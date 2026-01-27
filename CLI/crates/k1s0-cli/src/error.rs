@@ -3,7 +3,7 @@
 //! 失敗時に「原因/対象/次のアクション」を必ず出力するためのエラー型を定義する。
 
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// CLI の終了コード
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -125,7 +125,7 @@ impl CliError {
     }
 
     /// 対象（パス）を設定
-    pub fn with_path(self, path: &PathBuf) -> Self {
+    pub fn with_path(self, path: &Path) -> Self {
         self.with_target(path.display().to_string())
     }
 
@@ -184,7 +184,7 @@ impl CliError {
     }
 
     /// manifest が見つからない
-    pub fn manifest_not_found(path: &PathBuf) -> Self {
+    pub fn manifest_not_found(path: &Path) -> Self {
         Self::config("manifest.json が見つかりません")
             .with_path(path)
             .with_hint("k1s0 init を実行してプロジェクトを初期化してください")
@@ -197,14 +197,14 @@ impl CliError {
     }
 
     /// ディレクトリが既に存在
-    pub fn directory_exists(path: &PathBuf) -> Self {
+    pub fn directory_exists(path: &Path) -> Self {
         Self::conflict("ディレクトリが既に存在します")
             .with_path(path)
             .with_hint("--force オプションで上書きするか、別の名前を指定してください")
     }
 
     /// ファイルが見つからない
-    pub fn file_not_found(path: &PathBuf) -> Self {
+    pub fn file_not_found(path: &Path) -> Self {
         Self::io("ファイルが見つかりません").with_path(path)
     }
 

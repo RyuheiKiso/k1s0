@@ -137,15 +137,15 @@ impl UpgradeCheckResult {
     pub fn format_check_output(&self) -> String {
         let mut output = String::new();
 
-        output.push_str(&format!(
+        output.push_str(
             "┌─────────────────────────────────────────────────────────────────────────┐\n"
-        ));
-        output.push_str(&format!(
+        );
+        output.push_str(
             "│ k1s0 upgrade --check                                                    │\n"
-        ));
-        output.push_str(&format!(
+        );
+        output.push_str(
             "├─────────────────────────────────────────────────────────────────────────┤\n"
-        ));
+        );
         output.push_str(&format!(
             "│ テンプレート: {} -> {}                                 \n",
             self.current_version, self.new_version
@@ -154,9 +154,9 @@ impl UpgradeCheckResult {
             "│ 変更種別: {}                                          \n",
             self.version_change.label()
         ));
-        output.push_str(&format!(
+        output.push_str(
             "└─────────────────────────────────────────────────────────────────────────┘\n"
-        ));
+        );
         output.push('\n');
 
         if !self.needs_upgrade {
@@ -449,10 +449,8 @@ fn find_cli_root(start_path: &Path) -> Result<PathBuf> {
         }
 
         // k1s0 リポジトリのルートを確認
-        if current.join(".git").exists() {
-            if current.join("CLI/templates").exists() {
-                return Ok(current);
-            }
+        if current.join(".git").exists() && current.join("CLI/templates").exists() {
+            return Ok(current);
         }
 
         // 親ディレクトリへ
@@ -576,7 +574,7 @@ impl MigrationConfig {
     /// 環境変数から設定を読み込む
     pub fn from_env(env: &str, service_path: &Path) -> Self {
         let database_url = std::env::var("DATABASE_URL").ok()
-            .or_else(|| std::env::var(&format!("DATABASE_URL_{}", env.to_uppercase())).ok());
+            .or_else(|| std::env::var(format!("DATABASE_URL_{}", env.to_uppercase())).ok());
 
         let migrations_dir = service_path.join("migrations");
 

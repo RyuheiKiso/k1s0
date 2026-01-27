@@ -53,6 +53,9 @@ chrono = { version = "0.4", features = ["serde"] }
 # Directories
 dirs = "5.0"
 
+# JSON Schema validation
+jsonschema = "0.29"
+
 # File watching
 notify = "8.0"
 notify-debouncer-mini = "0.6"

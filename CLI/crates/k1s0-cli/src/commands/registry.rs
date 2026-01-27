@@ -197,7 +197,7 @@ fn execute_list(args: ListArgs, registry_url: Option<String>) -> Result<()> {
 
     // テーブル形式で表示
     out.hint(&format!("{:20} {:10} {:10} {:8} {}", "名前", "バージョン", "言語", "タイプ", "説明"));
-    out.hint(&format!("{}", "-".repeat(70)));
+    out.hint(&"-".repeat(70));
 
     for template in &response.templates {
         out.hint(&format!(

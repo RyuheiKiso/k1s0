@@ -299,10 +299,8 @@ pub fn glob_files<P: AsRef<Path>>(base_dir: P, pattern: &str) -> Result<Vec<Path
     let full_pattern = base_dir.join(pattern);
 
     let mut results = Vec::new();
-    for entry in glob::glob(&full_pattern.to_string_lossy())? {
-        if let Ok(path) = entry {
-            results.push(path);
-        }
+    for path in glob::glob(&full_pattern.to_string_lossy())?.flatten() {
+        results.push(path);
     }
 
     // ソートして決定論的な順序にする
@@ -316,17 +314,15 @@ pub fn glob_files_relative<P: AsRef<Path>>(base_dir: P, pattern: &str) -> Result
     let full_pattern = base_dir.join(pattern);
 
     let mut results = Vec::new();
-    for entry in glob::glob(&full_pattern.to_string_lossy())? {
-        if let Ok(path) = entry {
-            if let Ok(relative) = path.strip_prefix(base_dir) {
-                // パス区切りを統一（Windows対応）
-                let normalized = relative
-                    .components()
-                    .map(|c| c.as_os_str().to_string_lossy().to_string())
-                    .collect::<Vec<_>>()
-                    .join("/");
-                results.push(normalized);
-            }
+    for path in glob::glob(&full_pattern.to_string_lossy())?.flatten() {
+        if let Ok(relative) = path.strip_prefix(base_dir) {
+            // パス区切りを統一（Windows対応）
+            let normalized = relative
+                .components()
+                .map(|c| c.as_os_str().to_string_lossy().to_string())
+                .collect::<Vec<_>>()
+                .join("/");
+            results.push(normalized);
         }
     }
 

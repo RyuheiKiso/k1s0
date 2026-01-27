@@ -64,7 +64,7 @@ pub struct NewScreenArgs {
     pub flags: Option<String>,
 
     /// 既存のファイルを上書きする
-    #[arg(short, long)]
+    #[arg(short = 'F', long)]
     pub force: bool,
 }
 
@@ -85,11 +85,7 @@ pub fn execute(args: NewScreenArgs) -> Result<()> {
     let url_path = args.path.clone().unwrap_or_else(|| {
         // screen_id からパスを生成（例: users.list -> /users）
         let parts: Vec<&str> = args.screen_id.split('.').collect();
-        if parts.len() == 1 {
-            format!("/{}", parts[0])
-        } else {
-            format!("/{}", parts[0])
-        }
+        format!("/{}", parts[0])
     });
 
     // コンポーネント名の生成（例: users.list -> UsersListPage）
