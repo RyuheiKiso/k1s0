@@ -160,12 +160,46 @@ k1s0 lint --strict
 - [ADR](docs/adr/README.md): Architecture Decision Records
 - [規約](docs/conventions/README.md): 開発規約
 
+## Framework パッケージ
+
+### Backend（Rust）
+
+11 個の共通 crate を提供します。
+
+| Crate | 説明 |
+|-------|------|
+| k1s0-error | エラー表現の統一 |
+| k1s0-config | 設定読み込み |
+| k1s0-validation | 入力バリデーション |
+| k1s0-observability | ログ/トレース/メトリクス |
+| k1s0-grpc-server | gRPC サーバ共通基盤 |
+| k1s0-grpc-client | gRPC クライアント共通 |
+| k1s0-resilience | レジリエンスパターン |
+| k1s0-health | ヘルスチェック |
+| k1s0-db | DB 接続・トランザクション |
+| k1s0-cache | Redis キャッシュ |
+| k1s0-auth | 認証・認可 |
+
+### Frontend（React）
+
+5 個の共通パッケージを提供します（実装済み）。
+
+| Package | 説明 |
+|---------|------|
+| @k1s0/navigation | 設定駆動ナビゲーション |
+| @k1s0/config | YAML 設定管理 |
+| @k1s0/api-client | API 通信クライアント |
+| @k1s0/ui | Design System（Material-UI） |
+| @k1s0/shell | AppShell（Header/Sidebar/Footer） |
+
+詳細は [Framework 設計書](docs/design/framework.md) を参照してください。
+
 ## 技術スタック
 
 | レイヤー | 技術 |
 |---------|------|
 | **バックエンド** | Rust (axum + tokio), Go |
-| **フロントエンド** | React, Flutter |
+| **フロントエンド** | React (Material-UI, Zod), Flutter |
 | **CLI** | Rust 1.85+ (clap 4.5, Tera 1.19) |
 | **データベース** | PostgreSQL |
 | **キャッシュ** | Redis |
