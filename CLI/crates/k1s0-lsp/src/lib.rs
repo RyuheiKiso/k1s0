@@ -8,6 +8,8 @@
 //! - `textDocument/didOpen`: ファイルを開いたときに lint 実行
 //! - `textDocument/didSave`: ファイルを保存したときに lint 実行
 //! - `textDocument/didChange`: ファイルを変更したときに lint 実行（デバウンス付き）
+//! - `textDocument/completion`: manifest.json の入力補完
+//! - `textDocument/hover`: manifest.json キーのホバー情報
 //!
 //! # 使用方法
 //!
@@ -30,6 +32,12 @@ use tokio::sync::{mpsc, RwLock};
 use tower_lsp::jsonrpc::Result as LspResult;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
+
+pub mod completion;
+pub mod hover;
+pub mod schema;
+
+use schema::ManifestSchema;
 
 /// LSP サーバー設定
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -65,6 +73,8 @@ pub struct K1s0LanguageServer {
     pending_lints: Arc<RwLock<HashMap<Url, Instant>>>,
     /// デバウンス用: lint トリガー送信チャネル
     lint_trigger: mpsc::Sender<(Url, u64)>,
+    /// manifest.json スキーマ
+    schema: Arc<ManifestSchema>,
 }
 
 /// LSP Position をバイトオフセットに変換
@@ -123,6 +133,7 @@ impl K1s0LanguageServer {
             documents: Arc::new(RwLock::new(HashMap::new())),
             pending_lints: Arc::new(RwLock::new(HashMap::new())),
             lint_trigger: tx,
+            schema: Arc::new(ManifestSchema::new()),
         }
     }
 
@@ -137,6 +148,7 @@ impl K1s0LanguageServer {
             documents: Arc::new(RwLock::new(HashMap::new())),
             pending_lints: Arc::new(RwLock::new(HashMap::new())),
             lint_trigger: tx,
+            schema: Arc::new(ManifestSchema::new()),
         };
 
         // デバウンスワーカーを起動
@@ -289,6 +301,16 @@ impl K1s0LanguageServer {
             .collect()
     }
 
+    /// manifest.json ファイルかどうかを判定
+    fn is_manifest_file(&self, uri: &Url) -> bool {
+        if let Ok(path) = uri.to_file_path() {
+            if let Some(file_name) = path.file_name() {
+                return file_name == "manifest.json";
+            }
+        }
+        false
+    }
+
     /// Violation を Diagnostic に変換
     fn violation_to_diagnostic(&self, violation: &Violation) -> Diagnostic {
         let severity = match violation.severity {
@@ -354,6 +376,19 @@ impl LanguageServer for K1s0LanguageServer {
                         ..Default::default()
                     },
                 )),
+                // 補完機能
+                completion_provider: Some(CompletionOptions {
+                    trigger_characters: Some(vec![
+                        "\"".to_string(),
+                        ":".to_string(),
+                        "{".to_string(),
+                        ",".to_string(),
+                    ]),
+                    resolve_provider: Some(false),
+                    ..Default::default()
+                }),
+                // ホバー機能
+                hover_provider: Some(HoverProviderCapability::Simple(true)),
                 ..Default::default()
             },
             server_info: Some(ServerInfo {
@@ -425,6 +460,54 @@ impl LanguageServer for K1s0LanguageServer {
 
         // 診断情報をクリア
         self.client.publish_diagnostics(uri, vec![], None).await;
+    }
+
+    async fn completion(&self, params: CompletionParams) -> LspResult<Option<CompletionResponse>> {
+        let uri = &params.text_document_position.text_document.uri;
+        let position = params.text_document_position.position;
+
+        // manifest.json のみ補完を提供
+        if !self.is_manifest_file(uri) {
+            return Ok(None);
+        }
+
+        // ドキュメントの内容を取得
+        let documents = self.documents.read().await;
+        let document = match documents.get(uri) {
+            Some(doc) => doc.clone(),
+            None => return Ok(None),
+        };
+        drop(documents);
+
+        // 補完候補を取得
+        let items = completion::get_completions(&document, position, &self.schema);
+
+        if items.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(CompletionResponse::Array(items)))
+        }
+    }
+
+    async fn hover(&self, params: HoverParams) -> LspResult<Option<Hover>> {
+        let uri = &params.text_document_position_params.text_document.uri;
+        let position = params.text_document_position_params.position;
+
+        // manifest.json のみホバー情報を提供
+        if !self.is_manifest_file(uri) {
+            return Ok(None);
+        }
+
+        // ドキュメントの内容を取得
+        let documents = self.documents.read().await;
+        let document = match documents.get(uri) {
+            Some(doc) => doc.clone(),
+            None => return Ok(None),
+        };
+        drop(documents);
+
+        // ホバー情報を取得
+        Ok(hover::get_hover_info(&document, position, &self.schema))
     }
 }
 

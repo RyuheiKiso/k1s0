@@ -635,10 +635,96 @@ k1s0 lint --env-var-allowlist "tests/**/*,scripts/**/*"
 
 ---
 
+## LSP 統合
+
+### 概要
+
+k1s0-lsp は Language Server Protocol を実装し、エディタ/IDE と連携して lint 結果をリアルタイムで提供します。
+
+### モジュール構成
+
+```
+CLI/crates/k1s0-lsp/
+├── Cargo.toml
+├── src/
+│   ├── lib.rs           # LSP サーバ本体
+│   ├── main.rs          # エントリポイント
+│   ├── schema.rs        # manifest.json スキーマ定義
+│   ├── completion.rs    # 補完機能
+│   └── hover.rs         # ホバー情報機能
+```
+
+### サポート機能
+
+| 機能 | 説明 |
+|------|------|
+| `textDocument/publishDiagnostics` | lint 結果を診断情報として送信 |
+| `textDocument/didOpen` | ファイル開時に lint 実行 |
+| `textDocument/didSave` | ファイル保存時に lint 実行 |
+| `textDocument/didChange` | ファイル変更時に lint 実行（デバウンス付き） |
+| `textDocument/completion` | manifest.json の入力補完 |
+| `textDocument/hover` | manifest.json キーのホバー情報 |
+
+### 起動方法
+
+```bash
+# stdio モードで起動
+k1s0-lsp --stdio
+
+# TCP モードで起動（デバッグ用）
+k1s0-lsp --tcp --port 9257
+```
+
+### 補完機能
+
+manifest.json 編集時に以下の補完を提供：
+
+**キー補完:**
+- ルートレベルのキー（`schema_version`, `template`, `service` 等）
+- ネストされたキー（`template.name`, `service.language` 等）
+
+**値補完:**
+- enum 型の値（`rust`, `go`, `backend`, `frontend` 等）
+- 例に基づく値の提案
+
+### ホバー情報
+
+manifest.json のキーにカーソルを合わせると以下の情報を表示：
+
+- キーの説明
+- 必須/オプションの区別
+- 型情報（enum の場合は有効な値一覧）
+- 使用例
+
+### 設定
+
+```rust
+pub struct LspConfig {
+    /// lint 設定
+    pub lint: LintConfig,
+    /// ファイル変更時の lint を有効にするか
+    pub lint_on_change: bool,
+    /// デバウンス間隔（ミリ秒）
+    pub debounce_ms: u64,  // デフォルト: 500
+}
+```
+
+### VS Code 統合例
+
+```json
+// .vscode/settings.json
+{
+  "k1s0.lsp.path": "/path/to/k1s0-lsp",
+  "k1s0.lsp.args": ["--stdio"]
+}
+```
+
+---
+
 ## 今後の拡張予定
 
 1. **カスタムルール**: ユーザー定義ルールのサポート
 2. **プラグインシステム**: 言語固有の lint ルール
 3. **差分 lint**: 変更されたファイルのみ検査
 4. **watch モード**: ファイル変更時の自動 lint
-5. **IDE 統合**: LSP サポート
+5. **LSP codeAction**: 自動修正の提案
