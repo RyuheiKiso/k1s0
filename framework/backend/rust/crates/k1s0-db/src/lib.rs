@@ -43,9 +43,13 @@
 
 pub mod config;
 pub mod error;
+pub mod health;
 pub mod metrics;
 pub mod migration;
 pub mod pool;
+pub mod query;
+pub mod repository;
+pub mod testing;
 pub mod tx;
 
 #[cfg(feature = "postgres")]
@@ -73,9 +77,32 @@ pub use tx::{
     UnitOfWork,
 };
 
+// クエリビルダー
+pub use query::{
+    BuiltQuery, DeleteBuilder, InsertBuilder, Operator, SelectBuilder, UpdateBuilder, WhereClause,
+};
+
+// リポジトリパターン
+pub use repository::{
+    BulkRepository, FilterableRepository, PagedResult, Pagination, Repository, SoftDeleteRepository,
+    SortBy, SortDirection, SortableRepository,
+};
+
+// ヘルスチェック
+pub use health::{DbHealthConfig, DbHealthStatus, HealthCheckable};
+
+// テスト支援
+pub use testing::{Fixture, TestDbConfig, generate_test_db_name};
+
 // PostgreSQL 固有の型
 #[cfg(feature = "postgres")]
 pub use postgres::{PgPool, PostgresPool, PoolStatus, create_pool, create_pool_from_url};
 
 #[cfg(feature = "postgres")]
 pub use uow::{PostgresUnitOfWork, UnitOfWorkFactory, execute_in_transaction, execute_with_retry};
+
+#[cfg(feature = "postgres")]
+pub use health::DbHealthChecker;
+
+#[cfg(feature = "postgres")]
+pub use testing::{FixtureLoader, TestTransaction};

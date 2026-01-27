@@ -129,6 +129,9 @@ impl DbPoolBuilder {
 
     /// 設定をビルド
     pub fn build_config(self) -> DbResult<(DbConfig, String)> {
+        // パスワードを先に解決（self.password_file を参照するため）
+        let password = self.resolve_password()?;
+
         let pool_config = PoolConfig {
             max_connections: self.max_connections.unwrap_or(crate::config::DEFAULT_MAX_CONNECTIONS),
             min_connections: self.min_connections.unwrap_or(crate::config::DEFAULT_MIN_CONNECTIONS),
@@ -153,8 +156,6 @@ impl DbPoolBuilder {
         };
 
         config.validate()?;
-
-        let password = self.resolve_password()?;
 
         Ok((config, password))
     }

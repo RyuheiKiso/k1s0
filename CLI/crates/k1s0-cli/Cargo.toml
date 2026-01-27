@@ -24,7 +24,13 @@ console.workspace = true
 indicatif.workspace = true
 once_cell.workspace = true
 chrono.workspace = true
+dirs.workspace = true
 k1s0-generator.workspace = true
+ctrlc = "3.4"
+
+[features]
+default = []
+watch = ["k1s0-generator/watch"]
 
 [dev-dependencies]
 assert_cmd = "2.0"

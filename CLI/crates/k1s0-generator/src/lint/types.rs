@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use serde::{Deserialize, Serialize};
+
 /// ルール ID
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RuleId {
@@ -191,7 +193,8 @@ impl LintResult {
 }
 
 /// lint 設定
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct LintConfig {
     /// 実行するルール（None の場合は全て）
     pub rules: Option<Vec<String>>,
@@ -205,17 +208,6 @@ pub struct LintConfig {
     pub fix: bool,
 }
 
-impl Default for LintConfig {
-    fn default() -> Self {
-        Self {
-            rules: None,
-            exclude_rules: Vec::new(),
-            strict: false,
-            env_var_allowlist: Vec::new(),
-            fix: false,
-        }
-    }
-}
 
 /// 修正結果
 #[derive(Debug, Clone)]

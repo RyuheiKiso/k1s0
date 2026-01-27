@@ -1,0 +1,38 @@
+# {{ feature_name }} 開発環境設定
+#
+# 開発環境固有の設定を定義します。
+# default.yaml の値を上書きします。
+
+service:
+  name: {{ feature_name }}-dev
+
+{% if with_db %}
+database:
+  host: localhost
+  name: {{ feature_name }}_dev
+  pool:
+    max_connections: 5
+    min_connections: 1
+{% endif %}
+
+{% if with_cache %}
+cache:
+  redis:
+    url: "redis://localhost:6379/0"
+{% endif %}
+
+{% if with_auth %}
+auth:
+  # 開発環境では認証をスキップするパスを追加
+  skip_paths:
+    - /health
+    - /metrics
+    - /api/v1/debug
+{% endif %}
+
+observability:
+  tracing:
+    sample_rate: 1.0  # 開発環境では全てサンプリング
+  logging:
+    level: debug
+    format: pretty  # 開発環境では読みやすい形式

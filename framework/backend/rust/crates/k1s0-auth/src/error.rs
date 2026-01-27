@@ -33,12 +33,45 @@ pub enum AuthError {
     #[error("token expired")]
     TokenExpired,
 
+    /// トークンが無効化された
+    #[error("token revoked: {0}")]
+    TokenRevoked(String),
+
+    /// OIDC Discovery エラー
+    #[error("OIDC discovery error: {0}")]
+    Discovery(String),
+
     /// 内部エラー
     #[error("internal error: {0}")]
     Internal(String),
 }
 
 impl AuthError {
+    /// 無効なトークンエラーを作成
+    pub fn invalid_token(message: impl Into<String>) -> Self {
+        Self::InvalidToken(message.into())
+    }
+
+    /// トークン無効化エラーを作成
+    pub fn token_revoked(jti: impl Into<String>) -> Self {
+        Self::TokenRevoked(jti.into())
+    }
+
+    /// トークン期限切れエラーを作成
+    pub fn token_expired() -> Self {
+        Self::TokenExpired
+    }
+
+    /// OIDC Discovery エラーを作成
+    pub fn discovery(message: impl Into<String>) -> Self {
+        Self::Discovery(message.into())
+    }
+
+    /// 内部エラーを作成
+    pub fn internal(message: impl Into<String>) -> Self {
+        Self::Internal(message.into())
+    }
+
     /// gRPCステータスコードを取得
     pub fn to_grpc_code(&self) -> i32 {
         match self {
@@ -49,6 +82,8 @@ impl AuthError {
             Self::AuthenticationFailed(_) => 16, // UNAUTHENTICATED
             Self::AuthorizationFailed(_) => 7,   // PERMISSION_DENIED
             Self::TokenExpired => 16,            // UNAUTHENTICATED
+            Self::TokenRevoked(_) => 16,         // UNAUTHENTICATED
+            Self::Discovery(_) => 14,            // UNAVAILABLE
             Self::Internal(_) => 13,             // INTERNAL
         }
     }
@@ -63,6 +98,8 @@ impl AuthError {
             Self::AuthenticationFailed(_) => 401,
             Self::AuthorizationFailed(_) => 403,
             Self::TokenExpired => 401,
+            Self::TokenRevoked(_) => 401,
+            Self::Discovery(_) => 503,
             Self::Internal(_) => 500,
         }
     }
@@ -77,13 +114,15 @@ impl AuthError {
             Self::AuthenticationFailed(_) => "AUTHENTICATION_FAILED",
             Self::AuthorizationFailed(_) => "AUTHORIZATION_FAILED",
             Self::TokenExpired => "TOKEN_EXPIRED",
+            Self::TokenRevoked(_) => "TOKEN_REVOKED",
+            Self::Discovery(_) => "DISCOVERY_ERROR",
             Self::Internal(_) => "INTERNAL_ERROR",
         }
     }
 
     /// リトライ可能かどうか
     pub fn is_retryable(&self) -> bool {
-        matches!(self, Self::NetworkError(_))
+        matches!(self, Self::NetworkError(_) | Self::Discovery(_))
     }
 }
 

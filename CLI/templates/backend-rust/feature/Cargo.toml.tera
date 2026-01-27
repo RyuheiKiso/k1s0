@@ -5,49 +5,82 @@ edition = "2021"
 description = "{{ feature_name }} service"
 
 [dependencies]
-# Framework crates
-# k1s0-config = { path = "../../../../framework/backend/rust/crates/config" }
-# k1s0-error = { path = "../../../../framework/backend/rust/crates/error" }
-# k1s0-observability = { path = "../../../../framework/backend/rust/crates/observability" }
+# k1s0 Framework crates
+k1s0-config = { path = "../../../../framework/backend/rust/crates/k1s0-config" }
+k1s0-error = { path = "../../../../framework/backend/rust/crates/k1s0-error" }
+k1s0-observability = { path = "../../../../framework/backend/rust/crates/k1s0-observability", features = ["full"] }
+k1s0-health = { path = "../../../../framework/backend/rust/crates/k1s0-health", features = ["full"] }
+{% if with_db -%}
+k1s0-db = { path = "../../../../framework/backend/rust/crates/k1s0-db", features = ["postgres"] }
+{% endif -%}
+{% if with_cache -%}
+k1s0-cache = { path = "../../../../framework/backend/rust/crates/k1s0-cache", features = ["redis"] }
+{% endif -%}
+{% if with_auth -%}
+k1s0-auth = { path = "../../../../framework/backend/rust/crates/k1s0-auth", features = ["{% if with_rest %}axum-layer{% endif %}{% if with_rest and with_grpc %}, {% endif %}{% if with_grpc %}tonic-interceptor{% endif %}"] }
+{% endif -%}
+k1s0-resilience = { path = "../../../../framework/backend/rust/crates/k1s0-resilience" }
 
 # Async runtime
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["full", "signal"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
 
-# gRPC
+# CLI
+clap = { version = "4", features = ["derive"] }
+
 {% if with_grpc -%}
-tonic = "0.11"
-prost = "0.12"
+# gRPC
+tonic = "0.12"
+prost = "0.13"
 {% endif -%}
 
-# HTTP (REST)
 {% if with_rest -%}
-axum = "0.7"
-tower = "0.4"
-tower-http = { version = "0.5", features = ["trace", "cors"] }
+# HTTP (REST)
+axum = "0.8"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace", "cors", "request-id"] }
 {% endif -%}
 
-# Database
 {% if with_db -%}
-sqlx = { version = "0.7", features = ["runtime-tokio", "postgres"] }
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono", "json", "migrate"] }
+{% endif -%}
+
+{% if with_cache -%}
+# Cache
+redis = "0.25"
 {% endif -%}
 
 # Observability
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-opentelemetry = "0.27"
+opentelemetry = "0.26"
+opentelemetry-otlp = "0.26"
+opentelemetry_sdk = { version = "0.26", features = ["rt-tokio"] }
+opentelemetry-semantic-conventions = "0.26"
 
 # Error handling
 thiserror = "1"
 anyhow = "1"
 
+# Utilities
+async-trait = "0.1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+futures = "0.3"
+
 {% if with_grpc -%}
 [build-dependencies]
-tonic-build = "0.11"
+tonic-build = "0.12"
 {% endif -%}
 
 [dev-dependencies]
 tokio-test = "0.4"
+{% if with_db -%}
+testcontainers = "0.23"
+{% endif -%}

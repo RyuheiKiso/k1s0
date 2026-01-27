@@ -7,4 +7,5 @@ pub mod init;
 pub mod lint;
 pub mod new_feature;
 pub mod new_screen;
+pub mod registry;
 pub mod upgrade;

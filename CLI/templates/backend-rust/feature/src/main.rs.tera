@@ -7,8 +7,16 @@ mod domain;
 mod infrastructure;
 mod presentation;
 
+use std::sync::Arc;
 use clap::Parser;
-use tracing::info;
+use tracing::{info, error, warn};
+{% if with_rest %}
+use axum::{Router, routing::get};
+use tower_http::trace::TraceLayer;
+{% endif %}
+{% if with_grpc %}
+use tonic::transport::Server as TonicServer;
+{% endif %}
 
 /// CLI 引数
 #[derive(Parser, Debug)]
@@ -16,26 +24,44 @@ use tracing::info;
 #[command(about = "{{ feature_name }} service")]
 struct Args {
     /// 環境名（dev/stg/prod）
-    #[arg(long, default_value = "dev")]
+    #[arg(long, env = "K1S0_ENV", default_value = "dev")]
     env: String,
 
     /// 設定ディレクトリ
-    #[arg(long, default_value = "./config")]
+    #[arg(long, env = "K1S0_CONFIG_DIR", default_value = "./config")]
     config: String,
 
     /// シークレットディレクトリ
-    #[arg(long, default_value = "/var/run/secrets/k1s0")]
+    #[arg(long, env = "K1S0_SECRETS_DIR", default_value = "/var/run/secrets/k1s0")]
     secrets_dir: String,
 {% if with_grpc %}
     /// gRPC ポート
-    #[arg(long, default_value = "50051")]
+    #[arg(long, env = "GRPC_PORT", default_value = "50051")]
     grpc_port: u16,
 {% endif %}
 {% if with_rest %}
     /// HTTP ポート
-    #[arg(long, default_value = "8080")]
+    #[arg(long, env = "HTTP_PORT", default_value = "8080")]
     http_port: u16,
 {% endif %}
+    /// ヘルスチェックポート
+    #[arg(long, env = "HEALTH_PORT", default_value = "9090")]
+    health_port: u16,
+}
+
+/// アプリケーション状態
+#[derive(Clone)]
+pub struct AppState {
+    {% if with_db %}
+    pub db_pool: Arc<k1s0_db::PostgresPool>,
+    {% endif %}
+    {% if with_cache %}
+    pub cache: Arc<k1s0_cache::CacheClient>,
+    {% endif %}
+    {% if with_auth %}
+    pub jwt_verifier: Arc<k1s0_auth::JwtVerifier>,
+    {% endif %}
+    pub health_registry: Arc<k1s0_health::HealthRegistry>,
 }
 
 #[tokio::main]
@@ -43,14 +69,18 @@ async fn main() -> anyhow::Result<()> {
     // CLI 引数をパース
     let args = Args::parse();
 
-    // ロギング初期化
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .json()
-        .init();
+    // Observability 初期化（OpenTelemetry + tracing）
+    let _guard = k1s0_observability::init_with_config(
+        k1s0_observability::ObservabilityConfig::builder()
+            .service_name("{{ feature_name }}")
+            .service_version(env!("CARGO_PKG_VERSION"))
+            .environment(&args.env)
+            .build(),
+    )?;
 
     info!(
         service = "{{ feature_name }}",
+        version = env!("CARGO_PKG_VERSION"),
         env = %args.env,
         "Starting service"
     );
@@ -59,24 +89,204 @@ async fn main() -> anyhow::Result<()> {
     let config_path = format!("{}/{}.yaml", args.config, args.env);
     info!(config_path = %config_path, "Loading configuration");
 
-    // TODO: 設定を読み込む（k1s0-config crate）
-    // let config = k1s0_config::load(&config_path, &args.secrets_dir)?;
-{% if with_grpc %}
-    // gRPC サーバー起動
-    let grpc_addr = format!("0.0.0.0:{}", args.grpc_port).parse()?;
-    info!(addr = %grpc_addr, "Starting gRPC server");
-    // TODO: gRPC サーバーの実装
+    let config = k1s0_config::ConfigBuilder::new()
+        .add_source(k1s0_config::File::with_name(&config_path).required(false))
+        .add_source(k1s0_config::Environment::with_prefix("{{ feature_name | upper }}"))
+        .build()?;
+
+    // ヘルスチェックレジストリ初期化
+    let health_registry = Arc::new(k1s0_health::HealthRegistry::new());
+
+{% if with_db %}
+    // データベース接続
+    info!("Connecting to database...");
+    let db_config = k1s0_db::DbConfig::builder()
+        .host(config.get_string("database.host").unwrap_or_else(|_| "localhost".to_string()))
+        .port(config.get::<u16>("database.port").unwrap_or(5432))
+        .database(config.get_string("database.name").unwrap_or_else(|_| "{{ feature_name }}".to_string()))
+        .username(config.get_string("database.username").unwrap_or_else(|_| "postgres".to_string()))
+        .password_file(format!("{}/db-password", args.secrets_dir))
+        .build()?;
+
+    let db_pool = Arc::new(
+        k1s0_db::DbPoolBuilder::new()
+            .host(&db_config.host)
+            .port(db_config.port)
+            .database(&db_config.database)
+            .username(&db_config.username)
+            .password_file(format!("{}/db-password", args.secrets_dir))
+            .max_connections(config.get::<u32>("database.pool.max_connections").unwrap_or(10))
+            .min_connections(config.get::<u32>("database.pool.min_connections").unwrap_or(2))
+            .build()
+            .await?,
+    );
+
+    // マイグレーション実行
+    info!("Running database migrations...");
+    let migration_config = k1s0_db::MigrationConfig {
+        path: "./migrations".to_string(),
+        lock_timeout_secs: 30,
+    };
+    k1s0_db::MigrationRunner::run(&*db_pool, &migration_config).await?;
+    info!("Database migrations completed");
+
+    // DBヘルスチェック登録
+    health_registry.register(
+        "database",
+        k1s0_health::DatabaseHealthCheck::new(db_pool.clone()),
+    ).await;
 {% endif %}
+
+{% if with_cache %}
+    // Redis キャッシュ接続
+    info!("Connecting to Redis...");
+    let cache_config = k1s0_cache::CacheConfig::builder()
+        .url(config.get_string("cache.redis.url").unwrap_or_else(|_| "redis://localhost:6379".to_string()))
+        .build();
+
+    let cache = Arc::new(k1s0_cache::CacheClient::new(cache_config).await?);
+
+    // キャッシュヘルスチェック登録
+    health_registry.register(
+        "cache",
+        k1s0_cache::CacheHealthChecker::new(cache.clone()),
+    ).await;
+{% endif %}
+
+{% if with_auth %}
+    // JWT検証器初期化
+    let jwt_config = k1s0_auth::JwtVerifierConfig::new(
+        config.get_string("auth.issuer").unwrap_or_else(|_| "https://auth.example.com".to_string()),
+    )
+    .with_jwks_uri(config.get_string("auth.jwks_uri").unwrap_or_else(|_| "https://auth.example.com/.well-known/jwks.json".to_string()))
+    .with_audience(config.get_string("auth.audience").unwrap_or_else(|_| "{{ feature_name }}".to_string()));
+
+    let jwt_verifier = Arc::new(k1s0_auth::JwtVerifier::new(jwt_config));
+{% endif %}
+
+    // アプリケーション状態
+    let state = AppState {
+        {% if with_db %}
+        db_pool,
+        {% endif %}
+        {% if with_cache %}
+        cache,
+        {% endif %}
+        {% if with_auth %}
+        jwt_verifier,
+        {% endif %}
+        health_registry: health_registry.clone(),
+    };
+
+    // ヘルスチェックサーバー起動
+    let health_addr = format!("0.0.0.0:{}", args.health_port).parse()?;
+    let health_router = k1s0_health::health_router(health_registry.clone());
+    let health_server = tokio::spawn(async move {
+        info!(addr = %health_addr, "Starting health check server");
+        axum::serve(
+            tokio::net::TcpListener::bind(health_addr).await.unwrap(),
+            health_router,
+        )
+        .await
+        .unwrap();
+    });
+
 {% if with_rest %}
     // HTTP サーバー起動
     let http_addr = format!("0.0.0.0:{}", args.http_port).parse()?;
-    info!(addr = %http_addr, "Starting HTTP server");
-    // TODO: HTTP サーバーの実装
+    let http_router = create_http_router(state.clone());
+    let http_server = tokio::spawn(async move {
+        info!(addr = %http_addr, "Starting HTTP server");
+        axum::serve(
+            tokio::net::TcpListener::bind(http_addr).await.unwrap(),
+            http_router,
+        )
+        .await
+        .unwrap();
+    });
 {% endif %}
 
-    // TODO: サーバーを起動
-    // tokio::signal::ctrl_c().await?;
+{% if with_grpc %}
+    // gRPC サーバー起動
+    let grpc_addr = format!("0.0.0.0:{}", args.grpc_port).parse()?;
+    let grpc_server = tokio::spawn(async move {
+        info!(addr = %grpc_addr, "Starting gRPC server");
+        TonicServer::builder()
+            // TODO: サービス登録
+            // .add_service(service)
+            .serve(grpc_addr)
+            .await
+            .unwrap();
+    });
+{% endif %}
 
-    info!("Shutting down");
+    // Graceful shutdown
+    info!("Service started, waiting for shutdown signal...");
+
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {
+            info!("Received CTRL+C, initiating graceful shutdown...");
+        }
+        _ = async {
+            #[cfg(unix)]
+            {
+                use tokio::signal::unix::{signal, SignalKind};
+                let mut sigterm = signal(SignalKind::terminate()).unwrap();
+                sigterm.recv().await;
+            }
+            #[cfg(not(unix))]
+            {
+                std::future::pending::<()>().await;
+            }
+        } => {
+            info!("Received SIGTERM, initiating graceful shutdown...");
+        }
+    }
+
+    // シャットダウン処理
+    info!("Shutting down servers...");
+
+    // サーバーを停止
+    health_server.abort();
+{% if with_rest %}
+    http_server.abort();
+{% endif %}
+{% if with_grpc %}
+    grpc_server.abort();
+{% endif %}
+
+{% if with_db %}
+    // データベース接続を閉じる
+    info!("Closing database connections...");
+    state.db_pool.close().await;
+{% endif %}
+
+    // OpenTelemetry シャットダウン
+    k1s0_observability::shutdown();
+
+    info!("Service shutdown complete");
     Ok(())
 }
+
+{% if with_rest %}
+/// HTTP ルーターを作成
+fn create_http_router(state: AppState) -> Router {
+    Router::new()
+        .route("/", get(root_handler))
+        // TODO: アプリケーションルートを追加
+        // .nest("/api/v1", api_routes())
+        .layer(TraceLayer::new_for_http())
+        {% if with_auth %}
+        .layer(k1s0_auth::auth_layer(
+            state.jwt_verifier.clone(),
+            Arc::new(k1s0_auth::PolicyEvaluator::new()),
+            Arc::new(k1s0_auth::AuditLogger::with_default_sink("{{ feature_name }}")),
+        ))
+        {% endif %}
+        .with_state(state)
+}
+
+async fn root_handler() -> &'static str {
+    "{{ feature_name }} service is running"
+}
+{% endif %}

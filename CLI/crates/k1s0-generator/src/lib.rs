@@ -10,12 +10,15 @@
 //! - `diff`: 差分計算・表示
 //! - `fs`: ファイル操作ユーティリティ
 //! - `walker`: ディレクトリ走査ユーティリティ
+//! - `registry`: テンプレートレジストリ
 
 pub mod diff;
 pub mod fingerprint;
 pub mod fs;
 pub mod lint;
 pub mod manifest;
+pub mod plugin;
+pub mod registry;
 pub mod template;
 pub mod upgrade;
 pub mod walker;

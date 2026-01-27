@@ -16,6 +16,7 @@ fn main() -> std::process::ExitCode {
         Commands::NewScreen(args) => k1s0_cli::commands::new_screen::execute(args),
         Commands::Lint(args) => k1s0_cli::commands::lint::execute(args),
         Commands::Upgrade(args) => k1s0_cli::commands::upgrade::execute(args),
+        Commands::Registry(args) => k1s0_cli::commands::registry::execute(args),
         Commands::Completions(args) => k1s0_cli::commands::completions::execute(args),
     };
 

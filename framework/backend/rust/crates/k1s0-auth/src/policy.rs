@@ -902,6 +902,435 @@ impl<R: PolicyRepository> RepositoryPolicyEvaluator<R> {
     }
 }
 
+// ============================================================================
+// Redis キャッシュ付きポリシーリポジトリ
+// ============================================================================
+
+/// Redis キャッシュ付きポリシーリポジトリ
+///
+/// k1s0-cache を使用してポリシールールをRedisにキャッシュする。
+#[cfg(feature = "redis-cache")]
+pub struct RedisCachedPolicyRepository<R: PolicyRepository> {
+    inner: R,
+    cache: std::sync::Arc<k1s0_cache::CacheClient>,
+    cache_key: String,
+    ttl_secs: u64,
+}
+
+#[cfg(feature = "redis-cache")]
+impl<R: PolicyRepository> RedisCachedPolicyRepository<R> {
+    /// 新しいRedisキャッシュ付きリポジトリを作成
+    pub fn new(inner: R, cache: std::sync::Arc<k1s0_cache::CacheClient>) -> Self {
+        Self {
+            inner,
+            cache,
+            cache_key: "auth:policy:rules".to_string(),
+            ttl_secs: 300, // 5 minutes default
+        }
+    }
+
+    /// キャッシュキーを設定
+    pub fn with_cache_key(mut self, key: impl Into<String>) -> Self {
+        self.cache_key = key.into();
+        self
+    }
+
+    /// キャッシュTTLを設定（秒）
+    pub fn with_ttl_secs(mut self, ttl: u64) -> Self {
+        self.ttl_secs = ttl;
+        self
+    }
+
+    /// キャッシュを無効化
+    pub async fn invalidate_cache(&self) -> Result<(), AuthError> {
+        use k1s0_cache::CacheOperations;
+
+        self.cache
+            .delete(&self.cache_key)
+            .await
+            .map_err(|e| AuthError::internal(format!("Failed to invalidate cache: {}", e)))?;
+        Ok(())
+    }
+
+    /// キャッシュからルールを取得
+    async fn get_cached_rules(&self) -> Result<Option<Vec<PolicyRule>>, AuthError> {
+        use k1s0_cache::CacheOperations;
+
+        self.cache
+            .get::<Vec<PolicyRule>>(&self.cache_key)
+            .await
+            .map_err(|e| AuthError::internal(format!("Failed to get cached rules: {}", e)))
+    }
+
+    /// ルールをキャッシュに保存
+    async fn cache_rules(&self, rules: &[PolicyRule]) -> Result<(), AuthError> {
+        use k1s0_cache::CacheOperations;
+
+        self.cache
+            .set(
+                &self.cache_key,
+                &rules,
+                Some(std::time::Duration::from_secs(self.ttl_secs)),
+            )
+            .await
+            .map_err(|e| AuthError::internal(format!("Failed to cache rules: {}", e)))
+    }
+}
+
+#[cfg(feature = "redis-cache")]
+#[async_trait]
+impl<R: PolicyRepository> PolicyRepository for RedisCachedPolicyRepository<R> {
+    async fn get_all_rules(&self) -> Result<Vec<PolicyRule>, AuthError> {
+        // まずキャッシュを確認
+        if let Some(rules) = self.get_cached_rules().await? {
+            debug!("Policy rules loaded from Redis cache");
+            return Ok(rules);
+        }
+
+        // キャッシュミス - 内部リポジトリから取得
+        let rules = self.inner.get_all_rules().await?;
+
+        // キャッシュに保存
+        self.cache_rules(&rules).await?;
+        debug!("Policy rules cached to Redis");
+
+        Ok(rules)
+    }
+
+    async fn add_rule(&self, rule: PolicyRule) -> Result<(), AuthError> {
+        self.inner.add_rule(rule).await?;
+        self.invalidate_cache().await?;
+        Ok(())
+    }
+
+    async fn add_rules(&self, rules: Vec<PolicyRule>) -> Result<(), AuthError> {
+        self.inner.add_rules(rules).await?;
+        self.invalidate_cache().await?;
+        Ok(())
+    }
+
+    async fn remove_rule(&self, name: &str) -> Result<bool, AuthError> {
+        let result = self.inner.remove_rule(name).await?;
+        self.invalidate_cache().await?;
+        Ok(result)
+    }
+
+    async fn clear_rules(&self) -> Result<(), AuthError> {
+        self.inner.clear_rules().await?;
+        self.invalidate_cache().await?;
+        Ok(())
+    }
+
+    async fn count_rules(&self) -> Result<usize, AuthError> {
+        // キャッシュがあればそれを使う
+        if let Some(rules) = self.get_cached_rules().await? {
+            return Ok(rules.len());
+        }
+        self.inner.count_rules().await
+    }
+
+    async fn get_rule(&self, name: &str) -> Result<Option<PolicyRule>, AuthError> {
+        // キャッシュがあればそれを使う
+        if let Some(rules) = self.get_cached_rules().await? {
+            return Ok(rules.into_iter().find(|r| r.name == name));
+        }
+        self.inner.get_rule(name).await
+    }
+
+    async fn update_rule(&self, rule: PolicyRule) -> Result<bool, AuthError> {
+        let result = self.inner.update_rule(rule).await?;
+        self.invalidate_cache().await?;
+        Ok(result)
+    }
+}
+
+// ============================================================================
+// PostgreSQL ポリシーリポジトリ
+// ============================================================================
+
+/// PostgreSQL ポリシーリポジトリ
+///
+/// PostgreSQL データベースにポリシールールを永続化する。
+///
+/// ## テーブル構造
+///
+/// ```sql
+/// CREATE TABLE policy_rules (
+///     name VARCHAR(255) PRIMARY KEY,
+///     resources TEXT[] NOT NULL,
+///     operations TEXT[] NOT NULL,
+///     allowed_roles TEXT[] NOT NULL DEFAULT '{}',
+///     allowed_permissions TEXT[] NOT NULL DEFAULT '{}',
+///     conditions JSONB NOT NULL DEFAULT '[]',
+///     effect VARCHAR(50) NOT NULL DEFAULT 'allow',
+///     priority INTEGER NOT NULL DEFAULT 100,
+///     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+///     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+/// );
+///
+/// CREATE INDEX idx_policy_rules_priority ON policy_rules(priority);
+/// ```
+#[cfg(feature = "postgres-policy")]
+pub struct PostgresPolicyRepository {
+    pool: std::sync::Arc<k1s0_db::PgPool>,
+    table_name: String,
+}
+
+#[cfg(feature = "postgres-policy")]
+impl PostgresPolicyRepository {
+    /// 新しいリポジトリを作成
+    pub fn new(pool: std::sync::Arc<k1s0_db::PgPool>) -> Self {
+        Self {
+            pool,
+            table_name: "policy_rules".to_string(),
+        }
+    }
+
+    /// テーブル名を設定
+    pub fn with_table_name(mut self, name: impl Into<String>) -> Self {
+        self.table_name = name.into();
+        self
+    }
+
+    /// テーブルを作成（マイグレーション用）
+    pub async fn create_table(&self) -> Result<(), AuthError> {
+        let query = format!(
+            r#"
+            CREATE TABLE IF NOT EXISTS {} (
+                name VARCHAR(255) PRIMARY KEY,
+                resources TEXT[] NOT NULL,
+                operations TEXT[] NOT NULL,
+                allowed_roles TEXT[] NOT NULL DEFAULT '{{}}',
+                allowed_permissions TEXT[] NOT NULL DEFAULT '{{}}',
+                conditions JSONB NOT NULL DEFAULT '[]',
+                effect VARCHAR(50) NOT NULL DEFAULT 'allow',
+                priority INTEGER NOT NULL DEFAULT 100,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            "#,
+            self.table_name
+        );
+
+        sqlx::query(&query)
+            .execute(&*self.pool)
+            .await
+            .map_err(|e| AuthError::internal(format!("Failed to create table: {}", e)))?;
+
+        // インデックス作成
+        let index_query = format!(
+            "CREATE INDEX IF NOT EXISTS idx_{}_priority ON {}(priority)",
+            self.table_name, self.table_name
+        );
+
+        sqlx::query(&index_query)
+            .execute(&*self.pool)
+            .await
+            .map_err(|e| AuthError::internal(format!("Failed to create index: {}", e)))?;
+
+        Ok(())
+    }
+
+    /// PolicyRule をDBから取得した行に変換
+    fn row_to_rule(row: &PgPolicyRow) -> Result<PolicyRule, AuthError> {
+        let conditions: Vec<PolicyCondition> = serde_json::from_value(row.conditions.clone())
+            .map_err(|e| AuthError::internal(format!("Failed to parse conditions: {}", e)))?;
+
+        let effect = match row.effect.as_str() {
+            "allow" | "Allow" => PolicyEffect::Allow,
+            "deny" | "Deny" => PolicyEffect::Deny,
+            _ => PolicyEffect::Allow,
+        };
+
+        Ok(PolicyRule {
+            name: row.name.clone(),
+            resources: row.resources.clone(),
+            operations: row.operations.clone(),
+            allowed_roles: row.allowed_roles.clone(),
+            allowed_permissions: row.allowed_permissions.clone(),
+            conditions,
+            effect,
+            priority: row.priority,
+        })
+    }
+}
+
+/// PostgreSQL からの行データ
+#[cfg(feature = "postgres-policy")]
+#[derive(sqlx::FromRow)]
+struct PgPolicyRow {
+    name: String,
+    resources: Vec<String>,
+    operations: Vec<String>,
+    allowed_roles: Vec<String>,
+    allowed_permissions: Vec<String>,
+    conditions: serde_json::Value,
+    effect: String,
+    priority: i32,
+}
+
+#[cfg(feature = "postgres-policy")]
+#[async_trait]
+impl PolicyRepository for PostgresPolicyRepository {
+    async fn get_all_rules(&self) -> Result<Vec<PolicyRule>, AuthError> {
+        let query = format!(
+            "SELECT name, resources, operations, allowed_roles, allowed_permissions, conditions, effect, priority FROM {} ORDER BY priority",
+            self.table_name
+        );
+
+        let rows: Vec<PgPolicyRow> = sqlx::query_as(&query)
+            .fetch_all(&*self.pool)
+            .await
+            .map_err(|e| AuthError::internal(format!("Failed to fetch rules: {}", e)))?;
+
+        rows.iter()
+            .map(Self::row_to_rule)
+            .collect()
+    }
+
+    async fn add_rule(&self, rule: PolicyRule) -> Result<(), AuthError> {
+        let conditions = serde_json::to_value(&rule.conditions)
+            .map_err(|e| AuthError::internal(format!("Failed to serialize conditions: {}", e)))?;
+
+        let effect = match rule.effect {
+            PolicyEffect::Allow => "allow",
+            PolicyEffect::Deny => "deny",
+        };
+
+        let query = format!(
+            r#"
+            INSERT INTO {} (name, resources, operations, allowed_roles, allowed_permissions, conditions, effect, priority)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (name) DO UPDATE SET
+                resources = EXCLUDED.resources,
+                operations = EXCLUDED.operations,
+                allowed_roles = EXCLUDED.allowed_roles,
+                allowed_permissions = EXCLUDED.allowed_permissions,
+                conditions = EXCLUDED.conditions,
+                effect = EXCLUDED.effect,
+                priority = EXCLUDED.priority,
+                updated_at = NOW()
+            "#,
+            self.table_name
+        );
+
+        sqlx::query(&query)
+            .bind(&rule.name)
+            .bind(&rule.resources)
+            .bind(&rule.operations)
+            .bind(&rule.allowed_roles)
+            .bind(&rule.allowed_permissions)
+            .bind(&conditions)
+            .bind(effect)
+            .bind(rule.priority)
+            .execute(&*self.pool)
+            .await
+            .map_err(|e| AuthError::internal(format!("Failed to add rule: {}", e)))?;
+
+        Ok(())
+    }
+
+    async fn add_rules(&self, rules: Vec<PolicyRule>) -> Result<(), AuthError> {
+        for rule in rules {
+            self.add_rule(rule).await?;
+        }
+        Ok(())
+    }
+
+    async fn remove_rule(&self, name: &str) -> Result<bool, AuthError> {
+        let query = format!("DELETE FROM {} WHERE name = $1", self.table_name);
+
+        let result = sqlx::query(&query)
+            .bind(name)
+            .execute(&*self.pool)
+            .await
+            .map_err(|e| AuthError::internal(format!("Failed to remove rule: {}", e)))?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    async fn clear_rules(&self) -> Result<(), AuthError> {
+        let query = format!("DELETE FROM {}", self.table_name);
+
+        sqlx::query(&query)
+            .execute(&*self.pool)
+            .await
+            .map_err(|e| AuthError::internal(format!("Failed to clear rules: {}", e)))?;
+
+        Ok(())
+    }
+
+    async fn count_rules(&self) -> Result<usize, AuthError> {
+        let query = format!("SELECT COUNT(*) as count FROM {}", self.table_name);
+
+        let row: (i64,) = sqlx::query_as(&query)
+            .fetch_one(&*self.pool)
+            .await
+            .map_err(|e| AuthError::internal(format!("Failed to count rules: {}", e)))?;
+
+        Ok(row.0 as usize)
+    }
+
+    async fn get_rule(&self, name: &str) -> Result<Option<PolicyRule>, AuthError> {
+        let query = format!(
+            "SELECT name, resources, operations, allowed_roles, allowed_permissions, conditions, effect, priority FROM {} WHERE name = $1",
+            self.table_name
+        );
+
+        let row: Option<PgPolicyRow> = sqlx::query_as(&query)
+            .bind(name)
+            .fetch_optional(&*self.pool)
+            .await
+            .map_err(|e| AuthError::internal(format!("Failed to get rule: {}", e)))?;
+
+        match row {
+            Some(r) => Ok(Some(Self::row_to_rule(&r)?)),
+            None => Ok(None),
+        }
+    }
+
+    async fn update_rule(&self, rule: PolicyRule) -> Result<bool, AuthError> {
+        let conditions = serde_json::to_value(&rule.conditions)
+            .map_err(|e| AuthError::internal(format!("Failed to serialize conditions: {}", e)))?;
+
+        let effect = match rule.effect {
+            PolicyEffect::Allow => "allow",
+            PolicyEffect::Deny => "deny",
+        };
+
+        let query = format!(
+            r#"
+            UPDATE {} SET
+                resources = $2,
+                operations = $3,
+                allowed_roles = $4,
+                allowed_permissions = $5,
+                conditions = $6,
+                effect = $7,
+                priority = $8,
+                updated_at = NOW()
+            WHERE name = $1
+            "#,
+            self.table_name
+        );
+
+        let result = sqlx::query(&query)
+            .bind(&rule.name)
+            .bind(&rule.resources)
+            .bind(&rule.operations)
+            .bind(&rule.allowed_roles)
+            .bind(&rule.allowed_permissions)
+            .bind(&conditions)
+            .bind(effect)
+            .bind(rule.priority)
+            .execute(&*self.pool)
+            .await
+            .map_err(|e| AuthError::internal(format!("Failed to update rule: {}", e)))?;
+
+        Ok(result.rows_affected() > 0)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -15,8 +15,14 @@
 //! - `K030`: gRPC リトライ設定の検出（可視化）
 //! - `K031`: gRPC リトライ設定に ADR 参照がない
 //! - `K032`: gRPC リトライ設定が不完全
+//!
+//! # 機能
+//!
+//! - Watch モード: `--watch` フラグでファイル変更を監視し継続的に lint 実行
+//! - 差分 lint: `--diff <base>` で変更ファイルのみを対象に lint 実行
 
 mod dependency;
+pub mod diff;
 mod env_vars;
 mod fixer;
 mod linter;
@@ -25,16 +31,19 @@ mod retry;
 mod secret_config;
 mod types;
 mod utils;
+pub mod watch;
 
 #[cfg(test)]
 mod tests;
 
 pub use dependency::DependencyRules;
+pub use diff::{diff_from_head, diff_from_main, DiffError, DiffFilter, GitDiff};
 pub use env_vars::{EnvVarPattern, EnvVarPatterns};
 pub use fixer::Fixer;
 pub use linter::Linter;
 pub use required_files::RequiredFiles;
 pub use secret_config::SecretKeyPatterns;
 pub use types::{FixResult, LintConfig, LintResult, RuleId, Severity, Violation};
+pub use watch::{FileChangeEvent, FileChangeKind, LintWatcher, WatchConfig};
 
 pub(crate) use utils::{contains_adr_reference, parse_yaml_line};

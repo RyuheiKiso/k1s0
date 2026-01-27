@@ -1,0 +1,123 @@
+# {{ feature_name }} サービス設定
+#
+# この設定ファイルはデフォルト値を定義します。
+# 環境固有の設定は dev.yaml, stg.yaml, prod.yaml で上書きしてください。
+# 機密情報はシークレットディレクトリに配置してください。
+
+# サービス設定
+service:
+  name: {{ feature_name }}
+  version: "0.1.0"
+
+{% if with_rest %}
+# HTTP サーバー設定
+http:
+  port: 8080
+  host: "0.0.0.0"
+  request_timeout_ms: 30000
+  body_limit_bytes: 10485760  # 10MB
+  cors:
+    enabled: true
+    allow_origins:
+      - "http://localhost:3000"
+    allow_methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - PATCH
+    allow_headers:
+      - Content-Type
+      - Authorization
+{% endif %}
+
+{% if with_grpc %}
+# gRPC サーバー設定
+grpc:
+  port: 50051
+  host: "0.0.0.0"
+  max_message_size_bytes: 10485760  # 10MB
+  keepalive_interval_secs: 60
+  keepalive_timeout_secs: 20
+{% endif %}
+
+# ヘルスチェック設定
+health:
+  port: 9090
+  host: "0.0.0.0"
+  liveness_path: /health/live
+  readiness_path: /health/ready
+  startup_path: /health/startup
+
+{% if with_db %}
+# データベース設定
+database:
+  host: localhost
+  port: 5432
+  name: {{ feature_name }}
+  username: postgres
+  # パスワードは secrets_dir/db-password から読み取り
+  ssl_mode: prefer
+  pool:
+    max_connections: 10
+    min_connections: 2
+    idle_timeout_secs: 600
+    max_lifetime_secs: 1800
+  timeout:
+    connect_timeout_ms: 5000
+    query_timeout_ms: 30000
+{% endif %}
+
+{% if with_cache %}
+# キャッシュ設定
+cache:
+  redis:
+    url: "redis://localhost:6379"
+    pool:
+      max_connections: 10
+      min_connections: 2
+    timeout_ms: 5000
+  default_ttl_secs: 3600
+{% endif %}
+
+{% if with_auth %}
+# 認証設定
+auth:
+  issuer: "https://auth.example.com"
+  jwks_uri: "https://auth.example.com/.well-known/jwks.json"
+  audience: "{{ feature_name }}"
+  jwks_cache_ttl_secs: 3600
+  skip_paths:
+    - /health
+    - /metrics
+{% endif %}
+
+# 観測性設定
+observability:
+  tracing:
+    enabled: true
+    service_name: {{ feature_name }}
+    otlp_endpoint: "http://localhost:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    port: 9091
+    path: /metrics
+  logging:
+    level: info
+    format: json
+
+# レジリエンス設定
+resilience:
+  circuit_breaker:
+    failure_threshold: 5
+    success_threshold: 3
+    timeout_ms: 30000
+  retry:
+    max_attempts: 3
+    initial_delay_ms: 100
+    max_delay_ms: 5000
+    exponential_base: 2.0
+  rate_limit:
+    requests_per_second: 100
+    burst_size: 200
