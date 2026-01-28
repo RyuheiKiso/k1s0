@@ -640,8 +640,6 @@ mod tests {
         rules.manifest_cache.insert(
             "domain-a".to_string(),
             CachedManifest {
-                path: PathBuf::from("/tmp/domain-a"),
-                layer: LayerType::Domain,
                 version: Some("1.0.0".to_string()),
                 deprecated: false,
                 min_framework_version: None,
@@ -653,8 +651,6 @@ mod tests {
         rules.manifest_cache.insert(
             "domain-b".to_string(),
             CachedManifest {
-                path: PathBuf::from("/tmp/domain-b"),
-                layer: LayerType::Domain,
                 version: Some("1.0.0".to_string()),
                 deprecated: false,
                 min_framework_version: None,
@@ -666,8 +662,6 @@ mod tests {
         rules.manifest_cache.insert(
             "domain-c".to_string(),
             CachedManifest {
-                path: PathBuf::from("/tmp/domain-c"),
-                layer: LayerType::Domain,
                 version: Some("1.0.0".to_string()),
                 deprecated: false,
                 min_framework_version: None,
@@ -696,8 +690,6 @@ mod tests {
         rules.manifest_cache.insert(
             "domain-a".to_string(),
             CachedManifest {
-                path: PathBuf::from("/tmp/domain-a"),
-                layer: LayerType::Domain,
                 version: Some("1.0.0".to_string()),
                 deprecated: false,
                 min_framework_version: None,
@@ -709,8 +701,6 @@ mod tests {
         rules.manifest_cache.insert(
             "domain-b".to_string(),
             CachedManifest {
-                path: PathBuf::from("/tmp/domain-b"),
-                layer: LayerType::Domain,
                 version: Some("1.0.0".to_string()),
                 deprecated: false,
                 min_framework_version: None,
@@ -722,8 +712,6 @@ mod tests {
         rules.manifest_cache.insert(
             "domain-c".to_string(),
             CachedManifest {
-                path: PathBuf::from("/tmp/domain-c"),
-                layer: LayerType::Domain,
                 version: Some("1.0.0".to_string()),
                 deprecated: false,
                 min_framework_version: None,
@@ -752,8 +740,6 @@ mod tests {
         rules.manifest_cache.insert(
             "domain-a".to_string(),
             CachedManifest {
-                path: PathBuf::from("/tmp/domain-a"),
-                layer: LayerType::Domain,
                 version: Some("1.0.0".to_string()),
                 deprecated: false,
                 min_framework_version: None,
@@ -780,8 +766,6 @@ mod tests {
         rules.manifest_cache.insert(
             "domain-a".to_string(),
             CachedManifest {
-                path: PathBuf::from("/tmp/domain-a"),
-                layer: LayerType::Domain,
                 version: Some("1.0.0".to_string()),
                 deprecated: false,
                 min_framework_version: None,
@@ -793,8 +777,6 @@ mod tests {
         rules.manifest_cache.insert(
             "domain-b".to_string(),
             CachedManifest {
-                path: PathBuf::from("/tmp/domain-b"),
-                layer: LayerType::Domain,
                 version: Some("1.0.0".to_string()),
                 deprecated: false,
                 min_framework_version: None,
