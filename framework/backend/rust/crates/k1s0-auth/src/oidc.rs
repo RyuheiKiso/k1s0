@@ -1,9 +1,12 @@
-//! OIDC Discovery
+//! OIDC Discovery and UserInfo
 //!
 //! OpenID Connect Discovery 1.0 の実装。
 //! `/.well-known/openid-configuration` からプロバイダー情報を取得する。
+//! UserInfo エンドポイントからユーザー情報を取得する。
 //!
 //! # 使用例
+//!
+//! ## Discovery
 //!
 //! ```rust,ignore
 //! use k1s0_auth::oidc::{OidcDiscovery, OidcConfig};
@@ -14,6 +17,20 @@
 //! // プロバイダー設定を取得
 //! let provider = discovery.discover().await?;
 //! println!("JWKS URI: {}", provider.jwks_uri);
+//! ```
+//!
+//! ## UserInfo
+//!
+//! ```rust,ignore
+//! use k1s0_auth::oidc::{OidcDiscovery, OidcConfig, UserInfoClient};
+//!
+//! let config = OidcConfig::new("https://auth.example.com");
+//! let discovery = OidcDiscovery::new(config);
+//! let userinfo_client = UserInfoClient::new(discovery);
+//!
+//! // アクセストークンでユーザー情報を取得
+//! let userinfo = userinfo_client.get_userinfo("eyJ...").await?;
+//! println!("User ID: {}", userinfo.sub);
 //! ```
 
 use std::sync::Arc;
@@ -359,6 +376,271 @@ impl OidcJwtVerifier {
     }
 }
 
+/// OIDC UserInfo レスポンス
+///
+/// OpenID Connect Core 1.0 で定義されている UserInfo エンドポイントのレスポンス。
+/// 標準クレームと追加クレームをサポート。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserInfo {
+    /// Subject Identifier（必須）
+    pub sub: String,
+
+    /// ユーザーの表示名
+    #[serde(default)]
+    pub name: Option<String>,
+
+    /// 名（given name）
+    #[serde(default)]
+    pub given_name: Option<String>,
+
+    /// 姓（family name）
+    #[serde(default)]
+    pub family_name: Option<String>,
+
+    /// ミドルネーム
+    #[serde(default)]
+    pub middle_name: Option<String>,
+
+    /// ニックネーム
+    #[serde(default)]
+    pub nickname: Option<String>,
+
+    /// 推奨ユーザー名
+    #[serde(default)]
+    pub preferred_username: Option<String>,
+
+    /// プロフィール URL
+    #[serde(default)]
+    pub profile: Option<String>,
+
+    /// プロフィール画像 URL
+    #[serde(default)]
+    pub picture: Option<String>,
+
+    /// ウェブサイト URL
+    #[serde(default)]
+    pub website: Option<String>,
+
+    /// メールアドレス
+    #[serde(default)]
+    pub email: Option<String>,
+
+    /// メールアドレス検証済みフラグ
+    #[serde(default)]
+    pub email_verified: Option<bool>,
+
+    /// 性別
+    #[serde(default)]
+    pub gender: Option<String>,
+
+    /// 誕生日（YYYY-MM-DD 形式）
+    #[serde(default)]
+    pub birthdate: Option<String>,
+
+    /// タイムゾーン
+    #[serde(default)]
+    pub zoneinfo: Option<String>,
+
+    /// ロケール
+    #[serde(default)]
+    pub locale: Option<String>,
+
+    /// 電話番号
+    #[serde(default)]
+    pub phone_number: Option<String>,
+
+    /// 電話番号検証済みフラグ
+    #[serde(default)]
+    pub phone_number_verified: Option<bool>,
+
+    /// 住所
+    #[serde(default)]
+    pub address: Option<UserInfoAddress>,
+
+    /// 情報更新日時（Unix タイムスタンプ）
+    #[serde(default)]
+    pub updated_at: Option<i64>,
+
+    /// 追加クレーム（標準クレーム以外）
+    #[serde(flatten)]
+    pub additional_claims: std::collections::HashMap<String, serde_json::Value>,
+}
+
+/// UserInfo 住所クレーム
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserInfoAddress {
+    /// 整形済み住所
+    #[serde(default)]
+    pub formatted: Option<String>,
+
+    /// 番地
+    #[serde(default)]
+    pub street_address: Option<String>,
+
+    /// 市区町村
+    #[serde(default)]
+    pub locality: Option<String>,
+
+    /// 都道府県
+    #[serde(default)]
+    pub region: Option<String>,
+
+    /// 郵便番号
+    #[serde(default)]
+    pub postal_code: Option<String>,
+
+    /// 国
+    #[serde(default)]
+    pub country: Option<String>,
+}
+
+/// UserInfo クライアント
+///
+/// OIDC UserInfo エンドポイントからユーザー情報を取得するクライアント。
+pub struct UserInfoClient {
+    discovery: OidcDiscovery,
+    client: reqwest::Client,
+}
+
+impl UserInfoClient {
+    /// 新しい UserInfo クライアントを作成
+    pub fn new(discovery: OidcDiscovery) -> Self {
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_millis(discovery.config().http_timeout_ms))
+            .build()
+            .expect("Failed to create HTTP client");
+
+        Self { discovery, client }
+    }
+
+    /// カスタム HTTP クライアントで UserInfo クライアントを作成
+    pub fn with_client(discovery: OidcDiscovery, client: reqwest::Client) -> Self {
+        Self { discovery, client }
+    }
+
+    /// Discovery を取得
+    pub fn discovery(&self) -> &OidcDiscovery {
+        &self.discovery
+    }
+
+    /// アクセストークンを使用してユーザー情報を取得
+    ///
+    /// # Arguments
+    ///
+    /// * `access_token` - OAuth2 アクセストークン（Bearer トークン）
+    ///
+    /// # Returns
+    ///
+    /// UserInfo レスポンス
+    ///
+    /// # Errors
+    ///
+    /// - UserInfo エンドポイントが利用できない場合
+    /// - アクセストークンが無効な場合
+    /// - ネットワークエラーが発生した場合
+    pub async fn get_userinfo(&self, access_token: &str) -> Result<UserInfo, AuthError> {
+        let userinfo_endpoint = self.discovery.get_userinfo_endpoint().await?;
+
+        debug!(endpoint = %userinfo_endpoint, "Fetching user info");
+
+        let response = self
+            .client
+            .get(&userinfo_endpoint)
+            .header("Authorization", format!("Bearer {}", access_token))
+            .header("Accept", "application/json")
+            .send()
+            .await
+            .map_err(|e| {
+                AuthError::NetworkError(format!("Failed to fetch user info: {}", e))
+            })?;
+
+        let status = response.status();
+        if status.is_client_error() {
+            if status.as_u16() == 401 {
+                return Err(AuthError::invalid_token("Access token is invalid or expired"));
+            }
+            let error_body = response.text().await.unwrap_or_default();
+            return Err(AuthError::AuthenticationFailed(format!(
+                "UserInfo request failed with status {}: {}",
+                status, error_body
+            )));
+        }
+
+        if !status.is_success() {
+            return Err(AuthError::NetworkError(format!(
+                "UserInfo endpoint returned status {}",
+                status
+            )));
+        }
+
+        let userinfo: UserInfo = response
+            .json()
+            .await
+            .map_err(|e| AuthError::internal(format!("Failed to parse user info response: {}", e)))?;
+
+        debug!(sub = %userinfo.sub, "Successfully retrieved user info");
+        Ok(userinfo)
+    }
+
+    /// アクセストークンを使用してユーザー情報を取得（エンドポイント直接指定）
+    ///
+    /// Discovery を使用せずに直接 UserInfo エンドポイントを指定する場合に使用。
+    ///
+    /// # Arguments
+    ///
+    /// * `endpoint` - UserInfo エンドポイント URL
+    /// * `access_token` - OAuth2 アクセストークン（Bearer トークン）
+    ///
+    /// # Returns
+    ///
+    /// UserInfo レスポンス
+    pub async fn get_userinfo_from_endpoint(
+        &self,
+        endpoint: &str,
+        access_token: &str,
+    ) -> Result<UserInfo, AuthError> {
+        debug!(endpoint = %endpoint, "Fetching user info from direct endpoint");
+
+        let response = self
+            .client
+            .get(endpoint)
+            .header("Authorization", format!("Bearer {}", access_token))
+            .header("Accept", "application/json")
+            .send()
+            .await
+            .map_err(|e| {
+                AuthError::NetworkError(format!("Failed to fetch user info: {}", e))
+            })?;
+
+        let status = response.status();
+        if status.is_client_error() {
+            if status.as_u16() == 401 {
+                return Err(AuthError::invalid_token("Access token is invalid or expired"));
+            }
+            let error_body = response.text().await.unwrap_or_default();
+            return Err(AuthError::AuthenticationFailed(format!(
+                "UserInfo request failed with status {}: {}",
+                status, error_body
+            )));
+        }
+
+        if !status.is_success() {
+            return Err(AuthError::NetworkError(format!(
+                "UserInfo endpoint returned status {}",
+                status
+            )));
+        }
+
+        let userinfo: UserInfo = response
+            .json()
+            .await
+            .map_err(|e| AuthError::internal(format!("Failed to parse user info response: {}", e)))?;
+
+        debug!(sub = %userinfo.sub, "Successfully retrieved user info");
+        Ok(userinfo)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -414,5 +696,66 @@ mod tests {
         assert_eq!(config.authorization_endpoint, Some("https://auth.example.com/authorize".to_string()));
         assert_eq!(config.token_endpoint, Some("https://auth.example.com/token".to_string()));
         assert!(config.scopes_supported.contains(&"openid".to_string()));
+    }
+
+    #[test]
+    fn test_parse_userinfo() {
+        let json = r#"{
+            "sub": "user123",
+            "name": "John Doe",
+            "given_name": "John",
+            "family_name": "Doe",
+            "email": "john.doe@example.com",
+            "email_verified": true,
+            "picture": "https://example.com/photo.jpg",
+            "locale": "ja-JP",
+            "custom_claim": "custom_value"
+        }"#;
+
+        let userinfo: UserInfo = serde_json::from_str(json).unwrap();
+
+        assert_eq!(userinfo.sub, "user123");
+        assert_eq!(userinfo.name, Some("John Doe".to_string()));
+        assert_eq!(userinfo.given_name, Some("John".to_string()));
+        assert_eq!(userinfo.family_name, Some("Doe".to_string()));
+        assert_eq!(userinfo.email, Some("john.doe@example.com".to_string()));
+        assert_eq!(userinfo.email_verified, Some(true));
+        assert_eq!(userinfo.picture, Some("https://example.com/photo.jpg".to_string()));
+        assert_eq!(userinfo.locale, Some("ja-JP".to_string()));
+        assert!(userinfo.additional_claims.contains_key("custom_claim"));
+    }
+
+    #[test]
+    fn test_parse_userinfo_minimal() {
+        let json = r#"{"sub": "user123"}"#;
+
+        let userinfo: UserInfo = serde_json::from_str(json).unwrap();
+
+        assert_eq!(userinfo.sub, "user123");
+        assert!(userinfo.name.is_none());
+        assert!(userinfo.email.is_none());
+    }
+
+    #[test]
+    fn test_parse_userinfo_with_address() {
+        let json = r#"{
+            "sub": "user123",
+            "address": {
+                "formatted": "123 Main St, Tokyo, Japan 100-0001",
+                "street_address": "123 Main St",
+                "locality": "Tokyo",
+                "region": "Tokyo",
+                "postal_code": "100-0001",
+                "country": "Japan"
+            }
+        }"#;
+
+        let userinfo: UserInfo = serde_json::from_str(json).unwrap();
+
+        assert_eq!(userinfo.sub, "user123");
+        let address = userinfo.address.unwrap();
+        assert_eq!(address.formatted, Some("123 Main St, Tokyo, Japan 100-0001".to_string()));
+        assert_eq!(address.locality, Some("Tokyo".to_string()));
+        assert_eq!(address.country, Some("Japan".to_string()));
     }
 }

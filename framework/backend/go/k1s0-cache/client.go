@@ -48,6 +48,22 @@ type Cache interface {
 	Close() error
 }
 
+// PatternDeleter is an interface for caches that support pattern-based deletion.
+type PatternDeleter interface {
+	// DeletePattern deletes all keys matching the pattern.
+	// Returns the number of keys deleted.
+	//
+	// Pattern syntax (for Redis):
+	//   - * matches any sequence of characters
+	//   - ? matches any single character
+	//   - [abc] matches a, b, or c
+	//   - [a-z] matches any character from a to z
+	DeletePattern(ctx context.Context, pattern string) (int64, error)
+
+	// Scan iterates over keys matching a pattern.
+	Scan(ctx context.Context, pattern string, count int64) ([]string, error)
+}
+
 // CacheClient is the main cache client.
 type CacheClient struct {
 	cache      Cache
@@ -224,10 +240,53 @@ func Invalidate(ctx context.Context, client *CacheClient, keys ...string) error 
 }
 
 // InvalidatePattern deletes all keys matching the pattern.
+// Note: This operation may be slow for large datasets as it uses SCAN + DEL.
+//
+// Pattern syntax:
+//   - * matches any sequence of characters
+//   - ? matches any single character
+//   - [abc] matches a, b, or c
+//   - [a-z] matches any character from a to z
+//
+// Example:
+//
+//	// Delete all keys starting with "user:"
+//	deleted, err := InvalidatePattern(ctx, client, "user:*")
+//
+//	// Delete all session keys for a specific user
+//	deleted, err := InvalidatePattern(ctx, client, "session:user123:*")
+func InvalidatePattern(ctx context.Context, client *CacheClient, pattern string) (int64, error) {
+	// Check if the underlying cache supports pattern deletion
+	patternDeleter, ok := client.cache.(PatternDeleter)
+	if !ok {
+		return 0, errors.New("cache does not support pattern deletion")
+	}
+
+	prefixedPattern := client.prefixKey(pattern)
+	return patternDeleter.DeletePattern(ctx, prefixedPattern)
+}
+
+// ScanKeys returns all keys matching the pattern.
 // Note: This operation may be slow for large datasets.
-func InvalidatePattern(ctx context.Context, client *CacheClient, pattern string) error {
-	// This requires the underlying cache to support pattern deletion
-	// For Redis, we would use SCAN + DEL
-	// For now, this is a no-op placeholder
-	return errors.New("pattern invalidation not implemented")
+//
+// Example:
+//
+//	keys, err := ScanKeys(ctx, client, "user:*")
+//	for _, key := range keys {
+//	    fmt.Println(key)
+//	}
+func ScanKeys(ctx context.Context, client *CacheClient, pattern string) ([]string, error) {
+	patternDeleter, ok := client.cache.(PatternDeleter)
+	if !ok {
+		return nil, errors.New("cache does not support key scanning")
+	}
+
+	prefixedPattern := client.prefixKey(pattern)
+	return patternDeleter.Scan(ctx, prefixedPattern, 100)
+}
+
+// DeletePattern is a method on CacheClient that deletes all keys matching the pattern.
+// This is a convenience wrapper around InvalidatePattern.
+func (c *CacheClient) DeletePattern(ctx context.Context, pattern string) (int64, error) {
+	return InvalidatePattern(ctx, c, pattern)
 }

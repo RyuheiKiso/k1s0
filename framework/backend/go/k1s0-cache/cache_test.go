@@ -478,3 +478,122 @@ func TestGetOrSet_FetchError(t *testing.T) {
 		t.Errorf("expected fetch error, got %v", err)
 	}
 }
+
+// =============================================================================
+// Pattern Delete Tests
+// =============================================================================
+
+// mockCacheWithPatternDelete implements both Cache and PatternDeleter interfaces.
+type mockCacheWithPatternDelete struct {
+	*mockCache
+}
+
+func newMockCacheWithPatternDelete() *mockCacheWithPatternDelete {
+	return &mockCacheWithPatternDelete{
+		mockCache: newMockCache(),
+	}
+}
+
+func (c *mockCacheWithPatternDelete) DeletePattern(ctx context.Context, pattern string) (int64, error) {
+	var deleted int64
+	// Simple pattern matching: just check prefix for "*" suffix
+	prefix := pattern
+	if len(pattern) > 0 && pattern[len(pattern)-1] == '*' {
+		prefix = pattern[:len(pattern)-1]
+	}
+
+	keysToDelete := []string{}
+	for key := range c.data {
+		if pattern == key || (prefix != pattern && len(key) >= len(prefix) && key[:len(prefix)] == prefix) {
+			keysToDelete = append(keysToDelete, key)
+		}
+	}
+
+	for _, key := range keysToDelete {
+		delete(c.data, key)
+		deleted++
+	}
+
+	return deleted, nil
+}
+
+func (c *mockCacheWithPatternDelete) Scan(ctx context.Context, pattern string, count int64) ([]string, error) {
+	var keys []string
+	prefix := pattern
+	if len(pattern) > 0 && pattern[len(pattern)-1] == '*' {
+		prefix = pattern[:len(pattern)-1]
+	}
+
+	for key := range c.data {
+		if pattern == key || (prefix != pattern && len(key) >= len(prefix) && key[:len(prefix)] == prefix) {
+			keys = append(keys, key)
+		}
+	}
+
+	return keys, nil
+}
+
+func TestCacheClient_DeletePattern(t *testing.T) {
+	cache := newMockCacheWithPatternDelete()
+	client := NewCacheClient(cache, &JSONSerializer{}, "app:", 5*time.Minute)
+	ctx := context.Background()
+
+	// Set some values
+	_ = client.Set(ctx, "user:1", "value1", 0)
+	_ = client.Set(ctx, "user:2", "value2", 0)
+	_ = client.Set(ctx, "user:3", "value3", 0)
+	_ = client.Set(ctx, "session:abc", "sessiondata", 0)
+
+	// Delete all user keys
+	deleted, err := client.DeletePattern(ctx, "user:*")
+	if err != nil {
+		t.Fatalf("DeletePattern failed: %v", err)
+	}
+	if deleted != 3 {
+		t.Errorf("expected 3 deleted, got %d", deleted)
+	}
+
+	// Verify user keys are deleted
+	exists, _ := client.Exists(ctx, "user:1")
+	if exists {
+		t.Error("expected user:1 to be deleted")
+	}
+
+	// Verify session key is still there
+	exists, _ = client.Exists(ctx, "session:abc")
+	if !exists {
+		t.Error("expected session:abc to still exist")
+	}
+}
+
+func TestScanKeys(t *testing.T) {
+	cache := newMockCacheWithPatternDelete()
+	client := NewCacheClient(cache, &JSONSerializer{}, "", 5*time.Minute)
+	ctx := context.Background()
+
+	// Set some values
+	_ = client.Set(ctx, "user:1", "value1", 0)
+	_ = client.Set(ctx, "user:2", "value2", 0)
+	_ = client.Set(ctx, "other:key", "value", 0)
+
+	// Scan user keys
+	keys, err := ScanKeys(ctx, client, "user:*")
+	if err != nil {
+		t.Fatalf("ScanKeys failed: %v", err)
+	}
+	if len(keys) != 2 {
+		t.Errorf("expected 2 keys, got %d", len(keys))
+	}
+}
+
+func TestInvalidatePattern_NotSupported(t *testing.T) {
+	// Use mockCache which does NOT implement PatternDeleter
+	cache := newMockCache()
+	client := NewCacheClient(cache, &JSONSerializer{}, "", 5*time.Minute)
+	ctx := context.Background()
+
+	_, err := InvalidatePattern(ctx, client, "user:*")
+	if err == nil {
+		t.Error("expected error for unsupported pattern deletion")
+	}
+}

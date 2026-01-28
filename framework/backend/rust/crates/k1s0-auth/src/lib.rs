@@ -87,7 +87,7 @@ pub use blacklist::{TokenBlacklist, InMemoryBlacklist, BlacklistAwareVerifier};
 pub use error::AuthError;
 pub use jwt::{Claims, JwtVerifier, JwtVerifierConfig};
 pub use middleware::{AuthContext, AuthMiddleware, AuthSkipMatcher};
-pub use oidc::{OidcConfig, OidcDiscovery, OidcProviderConfig, OidcJwtVerifier};
+pub use oidc::{OidcConfig, OidcDiscovery, OidcProviderConfig, OidcJwtVerifier, UserInfo, UserInfoAddress, UserInfoClient};
 pub use policy::{
     Action, PolicyBuilder, PolicyDecision, PolicyEvaluator, PolicyRequest, PolicyResult,
     PolicySubject, ResourceContext, PolicyRule, PolicyEffect, PolicyCondition,

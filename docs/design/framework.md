@@ -1373,6 +1373,77 @@ impl AuditLogger {
 }
 ```
 
+#### UserInfoClient (OIDC UserInfo)
+
+```rust
+/// OIDC UserInfo レスポンス
+pub struct UserInfo {
+    pub sub: String,                    // Subject Identifier (必須)
+    pub name: Option<String>,           // 表示名
+    pub given_name: Option<String>,     // 名
+    pub family_name: Option<String>,    // 姓
+    pub email: Option<String>,          // メールアドレス
+    pub email_verified: Option<bool>,   // メール検証済みフラグ
+    pub picture: Option<String>,        // プロフィール画像URL
+    pub locale: Option<String>,         // ロケール
+    pub address: Option<UserInfoAddress>, // 住所
+    pub additional_claims: HashMap<String, Value>, // 追加クレーム
+}
+
+/// UserInfo クライアント
+pub struct UserInfoClient {
+    discovery: OidcDiscovery,
+    client: reqwest::Client,
+}
+
+impl UserInfoClient {
+    /// 新しい UserInfo クライアントを作成
+    pub fn new(discovery: OidcDiscovery) -> Self;
+
+    /// アクセストークンを使用してユーザー情報を取得
+    pub async fn get_userinfo(&self, access_token: &str) -> Result<UserInfo, AuthError>;
+
+    /// エンドポイント直接指定でユーザー情報を取得
+    pub async fn get_userinfo_from_endpoint(
+        &self,
+        endpoint: &str,
+        access_token: &str,
+    ) -> Result<UserInfo, AuthError>;
+}
+```
+
+**Go 版 (k1s0-auth):**
+
+```go
+// OIDCUserInfo holds user info from the OIDC provider.
+type OIDCUserInfo struct {
+    Subject       string `json:"sub"`
+    Name          string `json:"name,omitempty"`
+    GivenName     string `json:"given_name,omitempty"`
+    FamilyName    string `json:"family_name,omitempty"`
+    Email         string `json:"email,omitempty"`
+    EmailVerified bool   `json:"email_verified,omitempty"`
+    Picture       string `json:"picture,omitempty"`
+    Locale        string `json:"locale,omitempty"`
+    Address       *OIDCAddress `json:"address,omitempty"`
+}
+
+// UserInfo fetches user info from the OIDC provider.
+func (v *OIDCValidator) UserInfo(ctx context.Context, accessToken string) (*OIDCUserInfo, error)
+
+// UserInfoWithClient fetches user info using a custom HTTP client.
+func (v *OIDCValidator) UserInfoWithClient(ctx context.Context, httpClient *http.Client, accessToken string) (*OIDCUserInfo, error)
+
+// UserInfoClient is a standalone client for fetching OIDC UserInfo.
+type UserInfoClient struct {
+    httpClient       *http.Client
+    userInfoEndpoint string
+}
+
+func NewUserInfoClient(userInfoEndpoint string, httpClient *http.Client) *UserInfoClient
+func (c *UserInfoClient) GetUserInfo(ctx context.Context, accessToken string) (*OIDCUserInfo, error)
+```
+
 ### Features
 
 ```toml
@@ -1457,6 +1528,49 @@ pub trait CacheOperations: Send + Sync {
     async fn exists(&self, key: &str) -> CacheResult<bool>;
     async fn get_or_set<T, F, Fut>(&self, key: &str, f: F, ttl: Option<Duration>) -> CacheResult<T>;
 }
+
+/// パターンマッチング削除 (CacheOperationsExt)
+#[async_trait]
+pub trait CacheOperationsExt: CacheOperations {
+    /// パターンに一致するキーを削除
+    /// Redis の SCAN + DEL を使用
+    async fn delete_pattern(&self, pattern: &str) -> CacheResult<u64>;
+}
+
+impl CacheClient {
+    /// パターンに一致するキーを削除
+    ///
+    /// パターン構文:
+    /// - `*` - 任意の文字列にマッチ
+    /// - `?` - 任意の1文字にマッチ
+    /// - `[abc]` - a, b, c のいずれかにマッチ
+    pub async fn delete_by_pattern(&self, pattern: &str) -> CacheResult<u64>;
+
+    /// パターンに一致するキーをスキャン
+    pub async fn scan_keys(&self, pattern: &str) -> CacheResult<Vec<String>>;
+}
+```
+
+**Go 版 (k1s0-cache):**
+
+```go
+// PatternDeleter is an interface for caches that support pattern-based deletion.
+type PatternDeleter interface {
+    // DeletePattern deletes all keys matching the pattern.
+    DeletePattern(ctx context.Context, pattern string) (int64, error)
+
+    // Scan iterates over keys matching a pattern.
+    Scan(ctx context.Context, pattern string, count int64) ([]string, error)
+}
+
+// InvalidatePattern deletes all keys matching the pattern.
+func InvalidatePattern(ctx context.Context, client *CacheClient, pattern string) (int64, error)
+
+// ScanKeys returns all keys matching the pattern.
+func ScanKeys(ctx context.Context, client *CacheClient, pattern string) ([]string, error)
+
+// DeletePattern is a method on CacheClient.
+func (c *CacheClient) DeletePattern(ctx context.Context, pattern string) (int64, error)
 ```
 
 ### Features
@@ -1563,8 +1677,8 @@ framework/frontend/react/packages/
 | @k1s0/shell | ✅ | AppShell（Header/Sidebar/Footer）、レスポンシブ対応 |
 | @k1s0/auth-client | ✅ | JWT/OIDCトークン管理、認証ガード、セッション管理 |
 | @k1s0/observability | ✅ | OpenTelemetry統合、構造化ログ、Web Vitals計測 |
-| @k1s0/eslint-config | ✅ | ESLint共通設定、TypeScript/React/a11yルール、Prettier連携 |
-| @k1s0/tsconfig | ✅ | TypeScript共通設定、React/ライブラリ/Node.js用プリセット |
+| @k1s0/eslint-config | ✅ | ESLint共通設定、TypeScript/React/a11yルール、Prettier連携、k1s0固有ルール（環境変数使用禁止） |
+| @k1s0/tsconfig | ✅ | TypeScript共通設定、React/ライブラリ/Node.js/Strict用プリセット、厳格な型チェック |
 
 ---
 
@@ -2430,4 +2544,153 @@ k1s0_state
   ├── flutter_riverpod
   ├── shared_preferences
   └── hive_flutter
+```
+
+---
+
+## eslint-config-k1s0
+
+### 目的
+
+k1s0 プロジェクト向けの ESLint 共通設定を提供する。TypeScript、React、アクセシビリティ、Prettier 連携、k1s0 固有ルールを統合。
+
+### 設定ファイル
+
+| ファイル | 説明 |
+|---------|------|
+| `index.js` | 推奨設定（React + TypeScript + k1s0 ルール） |
+| `base.js` | JavaScript 基本ルール |
+| `typescript.js` | TypeScript 固有ルール |
+| `react.js` | React/JSX/a11y ルール |
+| `k1s0-rules.js` | k1s0 プロジェクト固有ルール |
+
+### k1s0 固有ルール
+
+#### 環境変数使用禁止
+
+```javascript
+// 禁止されるパターン:
+process.env.API_URL          // NG
+process.env['DATABASE_HOST'] // NG
+
+// 正しいアプローチ:
+import { useConfig } from '@k1s0/config';
+const config = useConfig();
+const apiUrl = config.api.baseUrl;
+```
+
+#### 除外対象ファイル
+
+以下のファイルでは環境変数使用が許可されます:
+- `vite.config.ts`, `webpack.config.ts` 等のビルド設定
+- `jest.config.ts`, `vitest.config.ts` 等のテスト設定
+- `scripts/**` ディレクトリ
+- テストファイル (`*.test.ts`, `*.spec.ts`)
+
+### 使用例
+
+```javascript
+// .eslintrc.js
+module.exports = {
+  extends: ['@k1s0/eslint-config'],
+};
+
+// または特定の設定のみ使用
+module.exports = {
+  extends: ['@k1s0/eslint-config/react'],
+};
+
+// k1s0 ルールを個別に追加
+import { k1s0Rules, k1s0Overrides } from '@k1s0/eslint-config/k1s0-rules';
+```
+
+---
+
+## tsconfig-k1s0
+
+### 目的
+
+k1s0 プロジェクト向けの TypeScript 共通設定を提供する。厳格な型チェック、モジュール解決、各種プリセットを統合。
+
+### 設定ファイル
+
+| ファイル | 説明 |
+|---------|------|
+| `base.json` | 基本設定（厳格な型チェック） |
+| `react.json` | React アプリケーション用 |
+| `library.json` | ライブラリパッケージ用 |
+| `node.json` | Node.js アプリケーション用 |
+| `strict.json` | 最も厳格な設定（新規プロジェクト推奨） |
+
+### 基本設定のコンパイラオプション
+
+```json
+{
+  "compilerOptions": {
+    // 厳格な型チェック
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+
+    // モジュール
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+
+    // 互換性
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
+```
+
+### Strict 設定の追加オプション
+
+```json
+{
+  "extends": "./base.json",
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedSideEffectImports": true,
+    "useUnknownInCatchVariables": true
+  }
+}
+```
+
+### 使用例
+
+```json
+// tsconfig.json (React アプリケーション)
+{
+  "extends": "@k1s0/tsconfig/react.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src"]
+}
+
+// tsconfig.json (ライブラリ)
+{
+  "extends": "@k1s0/tsconfig/library.json",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["src"]
+}
+
+// tsconfig.json (最も厳格な設定)
+{
+  "extends": "@k1s0/tsconfig/strict.json"
+}
 ```

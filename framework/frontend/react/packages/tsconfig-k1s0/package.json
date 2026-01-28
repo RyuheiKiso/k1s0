@@ -9,7 +9,8 @@
     "./base.json": "./base.json",
     "./react.json": "./react.json",
     "./library.json": "./library.json",
-    "./node.json": "./node.json"
+    "./node.json": "./node.json",
+    "./strict.json": "./strict.json"
   },
   "files": [
     "*.json",

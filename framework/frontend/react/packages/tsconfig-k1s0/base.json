@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "_description": "@k1s0/tsconfig - Base TypeScript configuration for all projects",
+  "_description": "@k1s0/tsconfig - Base TypeScript configuration for all k1s0 projects. Enforces strict type checking.",
   "compilerOptions": {
     /* Language and Environment */
     "target": "ES2022",
@@ -19,12 +19,18 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
 
-    /* Type Checking */
+    /* Type Checking - Strict Mode */
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "exactOptionalPropertyTypes": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
 
     /* Completeness */
     "skipLibCheck": true,
@@ -33,6 +39,10 @@
     "noEmit": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+
+    /* Path Mapping (optional - projects should override) */
+    "baseUrl": ".",
+    "paths": {}
   }
 }

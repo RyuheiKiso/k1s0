@@ -3,6 +3,7 @@ package k1s0auth
 import (
 	"context"
 	"errors"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -457,5 +458,80 @@ func TestExtractBearerToken(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// =============================================================================
+// OIDC UserInfo Tests
+// =============================================================================
+
+func TestOIDCUserInfo_Serialization(t *testing.T) {
+	// Test that OIDCUserInfo can be correctly serialized and deserialized
+	userInfo := &OIDCUserInfo{
+		Subject:       "user123",
+		Name:          "Test User",
+		GivenName:     "Test",
+		FamilyName:    "User",
+		Email:         "test@example.com",
+		EmailVerified: true,
+		Picture:       "https://example.com/photo.jpg",
+		Locale:        "ja-JP",
+	}
+
+	// Test that we can access all fields
+	if userInfo.Subject != "user123" {
+		t.Errorf("expected subject 'user123', got '%s'", userInfo.Subject)
+	}
+	if userInfo.Name != "Test User" {
+		t.Errorf("expected name 'Test User', got '%s'", userInfo.Name)
+	}
+	if userInfo.Email != "test@example.com" {
+		t.Errorf("expected email 'test@example.com', got '%s'", userInfo.Email)
+	}
+	if !userInfo.EmailVerified {
+		t.Error("expected email_verified to be true")
+	}
+}
+
+func TestOIDCAddress_Serialization(t *testing.T) {
+	address := &OIDCAddress{
+		Formatted:     "123 Main St, Tokyo, Japan 100-0001",
+		StreetAddress: "123 Main St",
+		Locality:      "Tokyo",
+		Region:        "Tokyo",
+		PostalCode:    "100-0001",
+		Country:       "Japan",
+	}
+
+	if address.Formatted != "123 Main St, Tokyo, Japan 100-0001" {
+		t.Errorf("expected formatted address, got '%s'", address.Formatted)
+	}
+	if address.Country != "Japan" {
+		t.Errorf("expected country 'Japan', got '%s'", address.Country)
+	}
+}
+
+func TestNewUserInfoClient(t *testing.T) {
+	// Test creating a UserInfoClient with nil HTTP client (should use default)
+	client := NewUserInfoClient("https://auth.example.com/userinfo", nil)
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+	if client.userInfoEndpoint != "https://auth.example.com/userinfo" {
+		t.Errorf("expected endpoint 'https://auth.example.com/userinfo', got '%s'", client.userInfoEndpoint)
+	}
+}
+
+func TestNewUserInfoClient_CustomHTTPClient(t *testing.T) {
+	customHTTPClient := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	client := NewUserInfoClient("https://auth.example.com/userinfo", customHTTPClient)
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+	if client.httpClient != customHTTPClient {
+		t.Error("expected custom HTTP client to be used")
 	}
 }

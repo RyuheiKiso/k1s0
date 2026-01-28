@@ -8,7 +8,8 @@
     ".": "./index.js",
     "./base": "./base.js",
     "./react": "./react.js",
-    "./typescript": "./typescript.js"
+    "./typescript": "./typescript.js",
+    "./k1s0-rules": "./k1s0-rules.js"
   },
   "files": [
     "*.js"
