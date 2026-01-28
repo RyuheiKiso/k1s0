@@ -9,6 +9,7 @@ framework/frontend/react/packages/
 ├── @k1s0/shell/          # AppShell（実装済み）
 ├── @k1s0/auth-client/    # 認証クライアント（実装済み）
 ├── @k1s0/observability/  # OTel/ログ（実装済み）
+├── @k1s0/realtime/      # WebSocket/SSEリアルタイム通信（実装済み）
 ├── eslint-config-k1s0/   # ESLint設定（実装済み）
 └── tsconfig-k1s0/        # TypeScript設定（実装済み）
 ```
@@ -24,6 +25,7 @@ framework/frontend/react/packages/
 | @k1s0/shell | ✅ | AppShell（Header/Sidebar/Footer）、レスポンシブ対応 |
 | @k1s0/auth-client | ✅ | JWT/OIDCトークン管理、認証ガード、セッション管理 |
 | @k1s0/observability | ✅ | OpenTelemetry統合、構造化ログ、Web Vitals計測 |
+| @k1s0/realtime | ✅ | WebSocket/SSEクライアント、自動再接続、ハートビート、オフラインキュー |
 | @k1s0/eslint-config | ✅ | ESLint共通設定、TypeScript/React/a11yルール、Prettier連携、k1s0固有ルール（環境変数使用禁止） |
 | @k1s0/tsconfig | ✅ | TypeScript共通設定、React/ライブラリ/Node.js/Strict用プリセット、厳格な型チェック |
 

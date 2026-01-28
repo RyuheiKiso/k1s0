@@ -446,6 +446,7 @@ lib/src/
 | @k1s0/shell | AppShell (Header/Sidebar/Footer) |
 | @k1s0/auth-client | Client-side auth |
 | @k1s0/observability | Frontend logging/analytics |
+| @k1s0/realtime | WebSocket/SSE client with reconnection, heartbeat, offline queue |
 | eslint-config-k1s0 | ESLint rules |
 | tsconfig-k1s0 | Shared TypeScript config |
 
@@ -460,6 +461,7 @@ lib/src/
 | k1s0_auth | Authentication client (JWT/OIDC) |
 | k1s0_observability | Structured logging, tracing |
 | k1s0_state | Riverpod state management utilities |
+| k1s0_realtime | WebSocket/SSE client with reconnection, heartbeat, offline queue |
 
 ## CI/CD Workflows
 

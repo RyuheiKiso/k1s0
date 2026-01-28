@@ -44,4 +44,7 @@ framework/frontend/flutter/packages/k1s0_http/.dart_tool/*
 framework/frontend/flutter/packages/k1s0_ui/.dart_tool/*
 framework/frontend/flutter/packages/k1s0_state/.dart_tool/*
 framework/frontend/flutter/packages/k1s0_observability/.dart_tool/*
+framework/frontend/flutter/packages/k1s0_realtime/.dart_tool/*
 framework/frontend/react/packages/eslint-config-k1s0/node_modules/*
+framework/frontend/react/packages/k1s0-realtime/node_modules/*
+framework/frontend/flutter/packages/k1s0_realtime/build/*
