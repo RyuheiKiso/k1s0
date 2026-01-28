@@ -1,5 +1,9 @@
 # k1s0
 
+<p align="center">
+  <img src="assets/k1s0-banner.svg" alt="k1s0 - Unified Microservices Platform" width="700">
+</p>
+
 高速な開発サイクルを実現する統合開発基盤。Framework / Templates / CLI を含むモノレポ。
 
 ## 概要
