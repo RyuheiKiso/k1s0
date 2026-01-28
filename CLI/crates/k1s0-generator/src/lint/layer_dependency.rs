@@ -21,10 +21,6 @@ pub struct LayerDependencyRules {
 /// キャッシュされた manifest 情報
 #[derive(Debug, Clone)]
 struct CachedManifest {
-    /// パス
-    path: PathBuf,
-    /// 層
-    layer: LayerType,
     /// バージョン（domain のみ）
     version: Option<String>,
     /// 非推奨情報
