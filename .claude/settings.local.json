@@ -43,7 +43,8 @@
       "Bash(tee:*)",
       "Bash(git push:*)",
       "Bash(go mod tidy:*)",
-      "Bash(go test:*)"
+      "Bash(go test:*)",
+      "Bash(go build:*)"
     ]
   }
 }
