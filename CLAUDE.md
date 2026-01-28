@@ -442,12 +442,24 @@ lib/src/
 | @k1s0/navigation | Config-driven routing |
 | @k1s0/config | YAML config management |
 | @k1s0/api-client | HTTP/gRPC API client |
-| @k1s0/ui | Design system (Material-UI based) |
+| @k1s0/ui | Design system (Material-UI based), DataTable (MUI DataGrid), Form Generator (Zod + react-hook-form) |
 | @k1s0/shell | AppShell (Header/Sidebar/Footer) |
 | @k1s0/auth-client | Client-side auth |
 | @k1s0/observability | Frontend logging/analytics |
 | eslint-config-k1s0 | ESLint rules |
 | tsconfig-k1s0 | Shared TypeScript config |
+
+## Framework Packages (Flutter Frontend)
+
+| Package | Description |
+|---------|-------------|
+| k1s0_navigation | Config-driven routing (go_router based) |
+| k1s0_config | YAML config management |
+| k1s0_http | HTTP client (Dio based) |
+| k1s0_ui | Design system (Material 3), DataTable, Form Generator (schema-driven) |
+| k1s0_auth | Authentication client (JWT/OIDC) |
+| k1s0_observability | Structured logging, tracing |
+| k1s0_state | Riverpod state management utilities |
 
 ## CI/CD Workflows
 

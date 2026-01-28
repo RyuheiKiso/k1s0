@@ -232,6 +232,154 @@ import { EmptyState, NoSearchResults, ErrorState } from '@k1s0/ui/state';
 />
 ```
 
+### DataTable（MUI DataGrid ベース）
+
+高機能なデータテーブルコンポーネント:
+
+```tsx
+import { K1s0DataTable, createColumns, dateColumn, actionsColumn } from '@k1s0/ui';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'user' | 'guest';
+  createdAt: Date;
+}
+
+const columns = createColumns<User>([
+  { field: 'name', headerName: '氏名', flex: 1, sortable: true },
+  { field: 'email', headerName: 'メール', flex: 1 },
+  {
+    field: 'role',
+    headerName: '権限',
+    width: 120,
+    type: 'singleSelect',
+    valueOptions: [
+      { value: 'admin', label: '管理者' },
+      { value: 'user', label: '一般' },
+      { value: 'guest', label: 'ゲスト' },
+    ],
+  },
+  dateColumn({ field: 'createdAt', headerName: '作成日' }),
+  actionsColumn({
+    onEdit: (row) => navigate(`/users/${row.id}/edit`),
+    onDelete: (row) => handleDelete(row.id),
+  }),
+]);
+
+function UserList() {
+  const { data: users, isLoading } = useUsers();
+
+  return (
+    <K1s0DataTable
+      rows={users ?? []}
+      columns={columns}
+      loading={isLoading}
+      checkboxSelection
+      pagination
+      pageSize={20}
+      toolbar
+      exportOptions={{ csv: true }}
+      onRowClick={(user) => navigate(`/users/${user.id}`)}
+    />
+  );
+}
+```
+
+サーバーサイドページネーション:
+
+```tsx
+import { K1s0DataTable, useServerSidePagination } from '@k1s0/ui';
+
+function ServerSideUserList() {
+  const {
+    rows,
+    rowCount,
+    loading,
+    paginationModel,
+    setPaginationModel,
+    sortModel,
+    setSortModel,
+  } = useServerSidePagination<User>({
+    fetchFn: (params) => api.getUsers(params),
+  });
+
+  return (
+    <K1s0DataTable
+      rows={rows}
+      columns={columns}
+      loading={loading}
+      paginationMode="server"
+      sortingMode="server"
+      rowCount={rowCount}
+      paginationModel={paginationModel}
+      onPaginationModelChange={setPaginationModel}
+      sortModel={sortModel}
+      onSortModelChange={setSortModel}
+    />
+  );
+}
+```
+
+### Form Generator（Zod + MUI）
+
+Zod スキーマから MUI フォームを自動生成:
+
+```tsx
+import { createFormFromSchema } from '@k1s0/ui';
+import { z } from 'zod';
+
+const userSchema = z.object({
+  name: z.string().min(1, '名前は必須です'),
+  email: z.string().email('有効なメールアドレスを入力してください'),
+  age: z.number().min(0).max(120).optional(),
+  role: z.enum(['admin', 'user', 'guest']),
+  notifications: z.boolean().default(true),
+  bio: z.string().max(500).optional(),
+});
+
+const UserForm = createFormFromSchema(userSchema, {
+  labels: {
+    name: '氏名',
+    email: 'メールアドレス',
+    age: '年齢',
+    role: '権限',
+    notifications: '通知を受け取る',
+    bio: '自己紹介',
+  },
+  fieldConfig: {
+    role: {
+      component: 'Select',
+      options: [
+        { label: '管理者', value: 'admin' },
+        { label: '一般ユーザー', value: 'user' },
+        { label: 'ゲスト', value: 'guest' },
+      ],
+    },
+    bio: { component: 'TextField', multiline: true, rows: 4 },
+    notifications: { component: 'Switch' },
+  },
+  variant: 'outlined',
+  columns: 2,
+  submitLabel: '保存',
+  showCancel: true,
+});
+
+function CreateUserPage() {
+  return (
+    <UserForm
+      defaultValues={{ role: 'user', notifications: true }}
+      onSubmit={async (values) => {
+        await createUser(values);
+        navigate('/users');
+      }}
+      onCancel={() => navigate('/users')}
+    />
+  );
+}
+```
+
 ## パッケージ構成
 
 ```
@@ -239,7 +387,9 @@ import { EmptyState, NoSearchResults, ErrorState } from '@k1s0/ui/state';
 ├── theme/          # 共通テーマ（色/タイポ/spacing）
 ├── form/           # フォームコンポーネント（バリデーション連携）
 ├── feedback/       # 通知・ダイアログ（toast/snackbar/confirm）
-└── state/          # 状態表示（loading/empty/error）
+├── state/          # 状態表示（loading/empty/error）
+├── data-table/     # DataTable（MUI DataGrid ベース）
+└── form-generator/ # Form Generator（Zod + react-hook-form + MUI）
 ```
 
 ## デザイン方針
