@@ -33,6 +33,29 @@ This document provides comprehensive guidance for AI assistants working with the
 | **Contract Management** | buf (proto linting/breaking changes), Spectral (OpenAPI linting) |
 | **Package Managers** | Cargo (Rust), pnpm 9.15.4+ (Node) |
 
+## Architecture: Three-Layer Structure
+
+k1s0 uses a three-layer architecture:
+
+```
+framework (technical foundation) -> domain (business domain) -> feature (individual functions)
+```
+
+| Layer | Location | Purpose |
+|-------|----------|---------|
+| **framework** | `framework/` | Technical infrastructure (logging, config, error handling, DB connection) |
+| **domain** | `domain/` | Business domain logic shared across features (entities, value objects, domain services) |
+| **feature** | `feature/` | Concrete use case implementations (REST/gRPC endpoints, UI) |
+
+### Dependency Rules
+
+- feature -> domain: Allowed (with version constraints)
+- feature -> framework: Allowed
+- domain -> framework: Allowed
+- domain -> domain: Allowed (but circular dependencies are prohibited)
+- framework -> domain: **Prohibited** (framework is the bottom layer)
+- framework -> feature: **Prohibited**
+
 ## Directory Structure
 
 ```
@@ -49,7 +72,7 @@ k1s0/
 │   │   └── frontend-flutter/    # Flutter app scaffold
 │   └── schemas/                 # JSON Schema definitions
 │
-├── framework/                    # Shared libraries & services
+├── framework/                    # Shared libraries & services (Layer 1)
 │   ├── backend/
 │   │   ├── rust/
 │   │   │   ├── crates/          # 11 shared Rust crates
@@ -59,7 +82,15 @@ k1s0/
 │       ├── react/packages/      # 8 React packages
 │       └── flutter/packages/    # Flutter packages
 │
-├── feature/                     # Individual feature services (generated)
+├── domain/                      # Business domain libraries (Layer 2)
+│   ├── backend/
+│   │   ├── rust/{domain_name}/  # Rust domain crates
+│   │   └── go/{domain_name}/    # Go domain modules
+│   └── frontend/
+│       ├── react/{domain_name}/ # React domain packages
+│       └── flutter/{domain_name}/ # Flutter domain packages
+│
+├── feature/                     # Individual feature services (Layer 3)
 │   ├── backend/
 │   │   ├── rust/{feature_name}/
 │   │   └── go/{feature_name}/
@@ -190,12 +221,17 @@ buf format --exit-code
 |---------|-------------|
 | `k1s0 init` | Initialize repository (`.k1s0/` directory) |
 | `k1s0 new-feature --type <type> --name <name>` | Generate service scaffold |
+| `k1s0 new-domain --type <type> --name <name>` | Generate domain scaffold |
 | `k1s0 new-screen --type <type> --screen <id>` | Generate frontend screen |
 | `k1s0 lint` | Check conventions |
 | `k1s0 lint --fix` | Auto-fix violations |
 | `k1s0 upgrade --check` | Show changes without applying |
 | `k1s0 upgrade` | Apply template updates |
 | `k1s0 completions` | Generate shell completion scripts |
+| `k1s0 domain list` | List all domains |
+| `k1s0 domain version --name <name>` | Show/update domain version |
+| `k1s0 domain dependents --name <name>` | Show features depending on domain |
+| `k1s0 domain impact --name <name>` | Analyze version upgrade impact |
 
 ### Common Options
 
@@ -205,7 +241,9 @@ buf format --exit-code
 --json           # JSON format output
 ```
 
-## Lint Rules (K001-K032)
+## Lint Rules (K001-K047)
+
+### Manifest & Structure Rules (K001-K011)
 
 | ID | Severity | Description | Auto-fix |
 |----|----------|-------------|:--------:|
@@ -214,12 +252,35 @@ buf format --exit-code
 | K003 | Error | manifest.json invalid values | - |
 | K010 | Error | Required directory missing | Yes |
 | K011 | Error | Required file missing | Yes |
+
+### Code Quality Rules (K020-K022)
+
+| ID | Severity | Description | Auto-fix |
+|----|----------|-------------|:--------:|
 | K020 | Error | Environment variable usage prohibited | - |
 | K021 | Error | Secrets hardcoded in config YAML | - |
 | K022 | Error | Clean Architecture dependency violation | - |
+
+### gRPC Retry Rules (K030-K032)
+
+| ID | Severity | Description | Auto-fix |
+|----|----------|-------------|:--------:|
 | K030 | Warning | gRPC retry configuration detected | - |
 | K031 | Warning | Retry config missing ADR reference | - |
 | K032 | Warning | Retry config incomplete | - |
+
+### Layer Dependency Rules (K040-K047)
+
+| ID | Severity | Description | Auto-fix |
+|----|----------|-------------|:--------:|
+| K040 | Error | Layer dependency violation (e.g., framework depends on domain) | - |
+| K041 | Error | Referenced domain not found | - |
+| K042 | Error | Domain version constraint mismatch | - |
+| K043 | Error | Circular dependency detected between domains | - |
+| K044 | Warning | Using deprecated domain | - |
+| K045 | Warning | min_framework_version not satisfied | - |
+| K046 | Warning | Breaking changes impact detected | - |
+| K047 | Error | Domain layer missing required version field | - |
 
 ## Critical Development Rules
 
@@ -461,15 +522,21 @@ Use canonical codes only: `INVALID_ARGUMENT`, `UNAUTHENTICATED`, `PERMISSION_DEN
 |----------|------|-------------|
 | Main README | `README.md` | Project overview |
 | CLI Design | `docs/design/cli.md` | CLI architecture |
-| Lint Design | `docs/design/lint.md` | Lint rules detail |
+| Lint Design | `docs/design/lint.md` | Lint rules detail (K001-K047) |
 | Template Design | `docs/design/template.md` | Template system |
 | Framework Design | `docs/design/framework.md` | Library design |
+| Domain Design | `docs/design/domain.md` | Domain layer design |
 | Service Structure | `docs/conventions/service-structure.md` | Directory layout |
 | Error Handling | `docs/conventions/error-handling.md` | Error conventions |
 | API Contracts | `docs/conventions/api-contracts.md` | API management |
 | Config & Secrets | `docs/conventions/config-and-secrets.md` | Configuration rules |
+| Domain Boundaries | `docs/conventions/domain-boundaries.md` | Domain layer boundaries |
+| Deprecation Policy | `docs/conventions/deprecation-policy.md` | Deprecation guidelines |
 | Clean Architecture | `docs/architecture/clean-architecture.md` | CA principles |
 | ADRs | `docs/adr/` | Architecture decisions |
+| Domain Development | `docs/guides/domain-development.md` | Domain development guide |
+| Domain Versioning | `docs/guides/domain-versioning.md` | Domain version management |
+| Migration Guide | `docs/guides/migration-to-three-tier.md` | 2-tier to 3-tier migration |
 
 ## Available Specialized Agents
 

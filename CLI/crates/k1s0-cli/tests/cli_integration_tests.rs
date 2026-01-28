@@ -685,3 +685,318 @@ fn test_new_feature_frontend_flutter_generates_files() {
         "lib/src/application ディレクトリが存在すること"
     );
 }
+
+// =============================================================================
+// new-domain コマンドのテスト
+// =============================================================================
+
+#[test]
+fn test_new_domain_help() {
+    k1s0()
+        .args(["new-domain", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("new-domain"))
+        .stdout(predicate::str::contains("--type"))
+        .stdout(predicate::str::contains("--name"));
+}
+
+#[test]
+fn test_new_domain_invalid_name_uppercase() {
+    k1s0()
+        .args(["new-domain", "-t", "backend-rust", "-n", "Production"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("kebab-case"));
+}
+
+#[test]
+fn test_new_domain_invalid_name_underscore() {
+    k1s0()
+        .args(["new-domain", "-t", "backend-rust", "-n", "user_management"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("kebab-case"));
+}
+
+#[test]
+fn test_new_domain_reserved_name() {
+    k1s0()
+        .args(["new-domain", "-t", "backend-rust", "-n", "framework"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("予約語"));
+}
+
+#[test]
+fn test_new_domain_generates_files() {
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    let repo_root = std::path::Path::new(&manifest_dir)
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+
+    let output_path = temp_dir.path().join("test-domain");
+
+    k1s0()
+        .current_dir(repo_root)
+        .args([
+            "new-domain",
+            "-t",
+            "backend-rust",
+            "-n",
+            "test-domain",
+            "-o",
+            output_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("作成しました"));
+
+    // manifest.json が作成されたことを確認
+    let manifest_file = output_path.join(".k1s0").join("manifest.json");
+    assert!(manifest_file.exists(), "manifest.json が存在すること");
+
+    // manifest.json の内容を確認
+    let content = std::fs::read_to_string(&manifest_file).unwrap();
+    assert!(content.contains("\"layer\""), "layer フィールドが存在すること");
+    assert!(content.contains("\"domain\""), "layer が domain であること");
+    assert!(content.contains("\"version\""), "version フィールドが存在すること");
+
+    // Cargo.toml が作成されたことを確認
+    let cargo_toml = output_path.join("Cargo.toml");
+    assert!(cargo_toml.exists(), "Cargo.toml が存在すること");
+
+    // ディレクトリ構造の確認
+    assert!(
+        output_path.join("src").join("domain").exists(),
+        "src/domain ディレクトリが存在すること"
+    );
+    assert!(
+        output_path.join("src").join("application").exists(),
+        "src/application ディレクトリが存在すること"
+    );
+    assert!(
+        output_path.join("src").join("infrastructure").exists(),
+        "src/infrastructure ディレクトリが存在すること"
+    );
+
+    // README.md が作成されたことを確認
+    let readme = output_path.join("README.md");
+    assert!(readme.exists(), "README.md が存在すること");
+
+    // CHANGELOG.md が作成されたことを確認
+    let changelog = output_path.join("CHANGELOG.md");
+    assert!(changelog.exists(), "CHANGELOG.md が存在すること");
+}
+
+#[test]
+fn test_new_domain_directory_already_exists_without_force() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let output_path = temp_dir.path().join("existing-domain");
+    std::fs::create_dir_all(&output_path).unwrap();
+
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    let repo_root = std::path::Path::new(&manifest_dir)
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+
+    k1s0()
+        .current_dir(repo_root)
+        .args([
+            "new-domain",
+            "-t",
+            "backend-rust",
+            "-n",
+            "existing-domain",
+            "-o",
+            output_path.to_str().unwrap(),
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("既に存在"));
+}
+
+#[test]
+fn test_new_domain_directory_already_exists_with_force() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let output_path = temp_dir.path().join("existing-domain");
+    std::fs::create_dir_all(&output_path).unwrap();
+
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    let repo_root = std::path::Path::new(&manifest_dir)
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+
+    k1s0()
+        .current_dir(repo_root)
+        .args([
+            "new-domain",
+            "-t",
+            "backend-rust",
+            "-n",
+            "existing-domain",
+            "-o",
+            output_path.to_str().unwrap(),
+            "-f",
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("作成しました"));
+}
+
+// =============================================================================
+// domain-list コマンドのテスト
+// =============================================================================
+
+#[test]
+fn test_domain_list_help() {
+    k1s0()
+        .args(["domain-list", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("domain"));
+}
+
+#[test]
+fn test_domain_list_no_domains() {
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    k1s0()
+        .current_dir(temp_dir.path())
+        .args(["domain-list"])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("見つかりませんでした"));
+}
+
+// =============================================================================
+// domain-version コマンドのテスト
+// =============================================================================
+
+#[test]
+fn test_domain_version_help() {
+    k1s0()
+        .args(["domain-version", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("version"))
+        .stdout(predicate::str::contains("--name"))
+        .stdout(predicate::str::contains("--bump"));
+}
+
+#[test]
+fn test_domain_version_domain_not_found() {
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    k1s0()
+        .current_dir(temp_dir.path())
+        .args(["domain-version", "-n", "nonexistent", "-b", "patch"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("見つかりません"));
+}
+
+#[test]
+fn test_domain_version_bump_patch() {
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    let repo_root = std::path::Path::new(&manifest_dir)
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+
+    // まず domain を作成（親ディレクトリは作成せず、-o で直接パスを指定）
+    let domain_path = temp_dir.path().join("domain/backend/rust/test-version");
+
+    k1s0()
+        .current_dir(repo_root)
+        .args([
+            "new-domain",
+            "-t",
+            "backend-rust",
+            "-n",
+            "test-version",
+            "-o",
+            domain_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    // バージョンをバンプ
+    k1s0()
+        .current_dir(temp_dir.path())
+        .args(["domain-version", "-n", "test-version", "-b", "patch"])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("更新しました"));
+
+    // CHANGELOG.md が更新されたことを確認
+    let changelog = domain_path.join("CHANGELOG.md");
+    let content = std::fs::read_to_string(&changelog).unwrap();
+    assert!(
+        content.contains("0.1.1"),
+        "CHANGELOG.md に新しいバージョンが含まれること"
+    );
+}
+
+// =============================================================================
+// domain-dependents コマンドのテスト
+// =============================================================================
+
+#[test]
+fn test_domain_dependents_help() {
+    k1s0()
+        .args(["domain-dependents", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("dependents"))
+        .stdout(predicate::str::contains("--name"));
+}
+
+#[test]
+fn test_domain_dependents_domain_not_found() {
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    k1s0()
+        .current_dir(temp_dir.path())
+        .args(["domain-dependents", "-n", "nonexistent"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("見つかりません"));
+}
+
+// =============================================================================
+// domain-impact コマンドのテスト
+// =============================================================================
+
+#[test]
+fn test_domain_impact_help() {
+    k1s0()
+        .args(["domain-impact", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("impact"))
+        .stdout(predicate::str::contains("--name"));
+}
+
+#[test]
+fn test_domain_impact_domain_not_found() {
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    k1s0()
+        .current_dir(temp_dir.path())
+        .args(["domain-impact", "-n", "nonexistent", "--to", "1.0.0"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("見つかりません"));
+}

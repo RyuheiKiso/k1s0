@@ -829,6 +829,187 @@ cargo test -p k1s0-lsp hover::
 
 ---
 
+---
+
+## new-domain コマンド
+
+### 目的
+
+domain 層の雛形を生成する。domain 層は、複数の feature で共有されるビジネスロジックを管理する中間層です。
+
+### 引数
+
+```rust
+pub struct NewDomainArgs {
+    /// ドメインタイプ
+    #[arg(short = 't', long = "type", value_enum)]
+    pub domain_type: DomainType,
+
+    /// ドメイン名（kebab-case）
+    #[arg(short, long)]
+    pub name: String,
+
+    /// 生成先ディレクトリ
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// 既存のディレクトリを上書きする
+    #[arg(short, long)]
+    pub force: bool,
+}
+```
+
+### ドメインタイプ
+
+| タイプ | テンプレートパス | 出力先 | 言語 |
+|--------|----------------|-------|------|
+| `backend-rust` | `CLI/templates/backend-rust/domain` | `domain/backend/rust/{name}` | rust |
+| `backend-go` | `CLI/templates/backend-go/domain` | `domain/backend/go/{name}` | go |
+| `frontend-react` | `CLI/templates/frontend-react/domain` | `domain/frontend/react/{name}` | typescript |
+| `frontend-flutter` | `CLI/templates/frontend-flutter/domain` | `domain/frontend/flutter/{name}` | dart |
+
+### 処理フロー
+
+```
+1. ドメイン名のバリデーション（kebab-case）
+2. 予約語チェック（framework, feature, domain, k1s0, common, shared）
+3. 出力パスの決定
+4. 既存衝突検査
+   └─ 存在する場合
+      ├─ --force: 削除して続行
+      └─ なし: エラー
+5. テンプレートディレクトリの検索
+6. fingerprint の算出
+7. Tera コンテキストの作成
+8. テンプレートの展開
+9. manifest.json の作成（layer: domain, version: 0.1.0）
+10. 完了メッセージ表示
+```
+
+### テンプレート変数
+
+| 変数名 | 説明 | 例 |
+|--------|------|-----|
+| `domain_name` | ドメイン名（kebab-case） | `production` |
+| `domain_name_snake` | snake_case 変換 | `production` |
+| `domain_name_pascal` | PascalCase 変換 | `Production` |
+| `language` | 言語 | `rust` |
+| `service_type` | タイプ | `backend` |
+| `k1s0_version` | k1s0 バージョン | `0.1.0` |
+
+### 生成される manifest.json
+
+```json
+{
+  "schema_version": "1.0.0",
+  "k1s0_version": "0.1.0",
+  "template": {
+    "name": "backend-rust",
+    "version": "0.1.0",
+    "source": "local",
+    "path": "CLI/templates/backend-rust/domain",
+    "fingerprint": "abc123..."
+  },
+  "service": {
+    "service_name": "production",
+    "language": "rust",
+    "type": "backend"
+  },
+  "layer": "domain",
+  "version": "0.1.0",
+  "min_framework_version": "0.1.0",
+  "dependencies": {
+    "framework": ["k1s0-error", "k1s0-config"]
+  }
+}
+```
+
+### 使用例
+
+```bash
+# 基本的な使用法
+k1s0 new-domain --type backend-rust --name production
+
+# カスタム出力先
+k1s0 new-domain --type backend-rust --name production --output ./my-domains
+
+# 上書き
+k1s0 new-domain --type backend-rust --name production --force
+```
+
+---
+
+## domain コマンド
+
+### 目的
+
+domain の管理（一覧表示、バージョン管理、依存関係分析）を行う。
+
+### サブコマンド
+
+#### domain list
+
+```bash
+k1s0 domain list
+
+# 出力例
+Domains:
+  production          0.1.0    domain/backend/rust/production
+  inventory           1.2.0    domain/backend/rust/inventory
+  user-management     2.0.0    domain/backend/go/user-management
+```
+
+#### domain version
+
+```bash
+# バージョン確認
+k1s0 domain version --name production
+
+# バージョン更新
+k1s0 domain version --name production --bump patch
+k1s0 domain version --name production --bump minor
+k1s0 domain version --name production --bump major
+
+# 直接指定
+k1s0 domain version --name production --set 2.0.0
+
+# 破壊的変更を記録
+k1s0 domain version --name production --bump major \
+  --message "WorkOrder.quantity の型を変更"
+```
+
+#### domain dependents
+
+```bash
+k1s0 domain dependents --name production
+
+# 出力例
+Features depending on 'production':
+  work-order-api          ^1.2.0    feature/backend/rust/work-order-api
+  work-order-dashboard    ^1.5.0    feature/frontend/react/work-order-dashboard
+  production-report       ^1.0.0    feature/backend/rust/production-report
+```
+
+#### domain impact
+
+```bash
+k1s0 domain impact --name production --from 1.5.0 --to 2.0.0
+
+# 出力例
+Domain: production
+Version change: 1.5.0 -> 2.0.0 (MAJOR)
+
+Breaking changes:
+  - 2.0.0: WorkOrder.quantity の型を u32 から Quantity 値オブジェクトに変更
+
+Affected features (3):
+  - work-order-api (constraint: ^1.2.0) - INCOMPATIBLE
+  - work-order-dashboard (constraint: ^1.5.0) - INCOMPATIBLE
+  - production-report (constraint: ^1.0.0) - INCOMPATIBLE
+```
+
+---
+
 ## 今後の拡張予定
 
 1. **registry サポート**: リモートテンプレートレジストリからのテンプレート取得

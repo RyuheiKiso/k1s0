@@ -68,8 +68,8 @@ impl LayerDependencyRules {
         // K042: domain バージョン制約チェック
         violations.extend(self.check_domain_version(&manifest, manifest_path));
 
-        // K043: 循環依存チェック（将来の拡張用）
-        // violations.extend(self.check_circular_dependency(&manifest, manifest_path));
+        // K043: 循環依存チェック
+        violations.extend(self.check_circular_dependency(&manifest, manifest_path));
 
         // K044: 非推奨 domain の使用チェック
         violations.extend(self.check_deprecated_domain(&manifest, manifest_path));
@@ -462,6 +462,95 @@ impl LayerDependencyRules {
 
         violations
     }
+
+    /// K043: 循環依存チェック
+    fn check_circular_dependency(&self, manifest: &Manifest, path: &Path) -> Vec<Violation> {
+        let mut violations = Vec::new();
+
+        // domain 層のみチェック対象
+        if manifest.layer != LayerType::Domain {
+            return violations;
+        }
+
+        // domain 名を取得
+        let domain_name = path
+            .parent()
+            .and_then(|p| p.parent())
+            .and_then(|p| p.file_name())
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_string();
+
+        if domain_name.is_empty() {
+            return violations;
+        }
+
+        // 依存グラフを構築して循環をチェック
+        if let Some(cycle) = self.detect_cycle(&domain_name) {
+            let cycle_path = cycle.join(" -> ");
+            violations.push(
+                Violation::new(
+                    RuleId::CircularDependency,
+                    Severity::Error,
+                    format!("循環依存が検出されました: {}", cycle_path),
+                )
+                .with_path(path.display().to_string())
+                .with_hint("循環依存を解消するか、共通部分を別の domain に切り出してください"),
+            );
+        }
+
+        violations
+    }
+
+    /// 深さ優先探索で循環依存を検出
+    fn detect_cycle(&self, start_domain: &str) -> Option<Vec<String>> {
+        let mut visited: HashSet<String> = HashSet::new();
+        let mut rec_stack: HashSet<String> = HashSet::new();
+        let mut path: Vec<String> = Vec::new();
+
+        if self.dfs_detect_cycle(start_domain, &mut visited, &mut rec_stack, &mut path) {
+            // 循環パスを返す
+            Some(path)
+        } else {
+            None
+        }
+    }
+
+    /// DFS で循環を検出
+    fn dfs_detect_cycle(
+        &self,
+        domain: &str,
+        visited: &mut HashSet<String>,
+        rec_stack: &mut HashSet<String>,
+        path: &mut Vec<String>,
+    ) -> bool {
+        // 現在のノードを訪問済みとマーク
+        visited.insert(domain.to_string());
+        rec_stack.insert(domain.to_string());
+        path.push(domain.to_string());
+
+        // このドメインの依存を取得
+        if let Some(cached) = self.manifest_cache.get(domain) {
+            for dep_domain in cached.domain_dependencies.keys() {
+                // まだ訪問していない場合は再帰
+                if !visited.contains(dep_domain) {
+                    if self.dfs_detect_cycle(dep_domain, visited, rec_stack, path) {
+                        return true;
+                    }
+                } else if rec_stack.contains(dep_domain) {
+                    // 再帰スタックにある = 循環検出
+                    path.push(dep_domain.clone());
+                    return true;
+                }
+            }
+        }
+
+        // 再帰スタックから削除
+        rec_stack.remove(domain);
+        path.pop();
+
+        false
+    }
 }
 
 /// バージョン制約をチェック（^x.y.z 形式に対応）
@@ -540,5 +629,190 @@ mod tests {
         assert!(version_greater("1.1.0", "1.0.0"));
         assert!(!version_greater("1.0.0", "1.0.0"));
         assert!(!version_greater("0.9.0", "1.0.0"));
+    }
+
+    #[test]
+    fn test_detect_cycle_no_cycle() {
+        // A -> B -> C (循環なし)
+        let mut rules = LayerDependencyRules::new("/tmp");
+
+        // 手動でキャッシュを設定
+        let mut a_deps = HashMap::new();
+        a_deps.insert("domain-b".to_string(), "^1.0.0".to_string());
+
+        let mut b_deps = HashMap::new();
+        b_deps.insert("domain-c".to_string(), "^1.0.0".to_string());
+
+        rules.manifest_cache.insert(
+            "domain-a".to_string(),
+            CachedManifest {
+                path: PathBuf::from("/tmp/domain-a"),
+                layer: LayerType::Domain,
+                version: Some("1.0.0".to_string()),
+                deprecated: false,
+                min_framework_version: None,
+                domain_dependencies: a_deps,
+                breaking_changes: HashMap::new(),
+            },
+        );
+
+        rules.manifest_cache.insert(
+            "domain-b".to_string(),
+            CachedManifest {
+                path: PathBuf::from("/tmp/domain-b"),
+                layer: LayerType::Domain,
+                version: Some("1.0.0".to_string()),
+                deprecated: false,
+                min_framework_version: None,
+                domain_dependencies: b_deps,
+                breaking_changes: HashMap::new(),
+            },
+        );
+
+        rules.manifest_cache.insert(
+            "domain-c".to_string(),
+            CachedManifest {
+                path: PathBuf::from("/tmp/domain-c"),
+                layer: LayerType::Domain,
+                version: Some("1.0.0".to_string()),
+                deprecated: false,
+                min_framework_version: None,
+                domain_dependencies: HashMap::new(),
+                breaking_changes: HashMap::new(),
+            },
+        );
+
+        assert!(rules.detect_cycle("domain-a").is_none());
+    }
+
+    #[test]
+    fn test_detect_cycle_with_cycle() {
+        // A -> B -> C -> A (循環あり)
+        let mut rules = LayerDependencyRules::new("/tmp");
+
+        let mut a_deps = HashMap::new();
+        a_deps.insert("domain-b".to_string(), "^1.0.0".to_string());
+
+        let mut b_deps = HashMap::new();
+        b_deps.insert("domain-c".to_string(), "^1.0.0".to_string());
+
+        let mut c_deps = HashMap::new();
+        c_deps.insert("domain-a".to_string(), "^1.0.0".to_string());
+
+        rules.manifest_cache.insert(
+            "domain-a".to_string(),
+            CachedManifest {
+                path: PathBuf::from("/tmp/domain-a"),
+                layer: LayerType::Domain,
+                version: Some("1.0.0".to_string()),
+                deprecated: false,
+                min_framework_version: None,
+                domain_dependencies: a_deps,
+                breaking_changes: HashMap::new(),
+            },
+        );
+
+        rules.manifest_cache.insert(
+            "domain-b".to_string(),
+            CachedManifest {
+                path: PathBuf::from("/tmp/domain-b"),
+                layer: LayerType::Domain,
+                version: Some("1.0.0".to_string()),
+                deprecated: false,
+                min_framework_version: None,
+                domain_dependencies: b_deps,
+                breaking_changes: HashMap::new(),
+            },
+        );
+
+        rules.manifest_cache.insert(
+            "domain-c".to_string(),
+            CachedManifest {
+                path: PathBuf::from("/tmp/domain-c"),
+                layer: LayerType::Domain,
+                version: Some("1.0.0".to_string()),
+                deprecated: false,
+                min_framework_version: None,
+                domain_dependencies: c_deps,
+                breaking_changes: HashMap::new(),
+            },
+        );
+
+        let cycle = rules.detect_cycle("domain-a");
+        assert!(cycle.is_some());
+        let cycle = cycle.unwrap();
+        // 循環パスが含まれている
+        assert!(cycle.contains(&"domain-a".to_string()));
+        assert!(cycle.contains(&"domain-b".to_string()));
+        assert!(cycle.contains(&"domain-c".to_string()));
+    }
+
+    #[test]
+    fn test_detect_cycle_self_reference() {
+        // A -> A (自己参照)
+        let mut rules = LayerDependencyRules::new("/tmp");
+
+        let mut a_deps = HashMap::new();
+        a_deps.insert("domain-a".to_string(), "^1.0.0".to_string());
+
+        rules.manifest_cache.insert(
+            "domain-a".to_string(),
+            CachedManifest {
+                path: PathBuf::from("/tmp/domain-a"),
+                layer: LayerType::Domain,
+                version: Some("1.0.0".to_string()),
+                deprecated: false,
+                min_framework_version: None,
+                domain_dependencies: a_deps,
+                breaking_changes: HashMap::new(),
+            },
+        );
+
+        let cycle = rules.detect_cycle("domain-a");
+        assert!(cycle.is_some());
+    }
+
+    #[test]
+    fn test_detect_cycle_two_node_cycle() {
+        // A -> B -> A (2ノードサイクル)
+        let mut rules = LayerDependencyRules::new("/tmp");
+
+        let mut a_deps = HashMap::new();
+        a_deps.insert("domain-b".to_string(), "^1.0.0".to_string());
+
+        let mut b_deps = HashMap::new();
+        b_deps.insert("domain-a".to_string(), "^1.0.0".to_string());
+
+        rules.manifest_cache.insert(
+            "domain-a".to_string(),
+            CachedManifest {
+                path: PathBuf::from("/tmp/domain-a"),
+                layer: LayerType::Domain,
+                version: Some("1.0.0".to_string()),
+                deprecated: false,
+                min_framework_version: None,
+                domain_dependencies: a_deps,
+                breaking_changes: HashMap::new(),
+            },
+        );
+
+        rules.manifest_cache.insert(
+            "domain-b".to_string(),
+            CachedManifest {
+                path: PathBuf::from("/tmp/domain-b"),
+                layer: LayerType::Domain,
+                version: Some("1.0.0".to_string()),
+                deprecated: false,
+                min_framework_version: None,
+                domain_dependencies: b_deps,
+                breaking_changes: HashMap::new(),
+            },
+        );
+
+        let cycle = rules.detect_cycle("domain-a");
+        assert!(cycle.is_some());
+        let cycle = cycle.unwrap();
+        assert!(cycle.contains(&"domain-a".to_string()));
+        assert!(cycle.contains(&"domain-b".to_string()));
     }
 }
