@@ -16,6 +16,7 @@ use k1s0_generator::Context;
 
 use crate::error::{CliError, Result};
 use crate::output::output;
+use crate::prompts;
 use crate::version;
 
 /// サービスタイプ
@@ -37,7 +38,7 @@ pub enum ServiceType {
 
 impl ServiceType {
     /// テンプレートディレクトリの相対パスを取得
-    fn template_path(&self) -> &'static str {
+    pub fn template_path(&self) -> &'static str {
         match self {
             ServiceType::BackendRust => "CLI/templates/backend-rust/feature",
             ServiceType::BackendGo => "CLI/templates/backend-go/feature",
@@ -47,7 +48,7 @@ impl ServiceType {
     }
 
     /// 出力ディレクトリのベースパスを取得
-    fn output_base(&self) -> &'static str {
+    pub fn output_base(&self) -> &'static str {
         match self {
             ServiceType::BackendRust => "feature/backend/rust",
             ServiceType::BackendGo => "feature/backend/go",
@@ -57,7 +58,7 @@ impl ServiceType {
     }
 
     /// domain ディレクトリのベースパスを取得
-    fn domain_base(&self) -> &'static str {
+    pub fn domain_base(&self) -> &'static str {
         match self {
             ServiceType::BackendRust => "domain/backend/rust",
             ServiceType::BackendGo => "domain/backend/go",
@@ -67,7 +68,7 @@ impl ServiceType {
     }
 
     /// 言語名を取得
-    fn language(&self) -> &'static str {
+    pub fn language(&self) -> &'static str {
         match self {
             ServiceType::BackendRust => "rust",
             ServiceType::BackendGo => "go",
@@ -77,7 +78,7 @@ impl ServiceType {
     }
 
     /// サービスタイプ名を取得
-    fn service_type_name(&self) -> &'static str {
+    pub fn service_type_name(&self) -> &'static str {
         match self {
             ServiceType::BackendRust | ServiceType::BackendGo => "backend",
             ServiceType::FrontendReact | ServiceType::FrontendFlutter => "frontend",
@@ -101,11 +102,11 @@ impl std::fmt::Display for ServiceType {
 pub struct NewFeatureArgs {
     /// サービスタイプ
     #[arg(short = 't', long = "type", value_enum)]
-    pub service_type: ServiceType,
+    pub service_type: Option<ServiceType>,
 
     /// サービス名（kebab-case）
     #[arg(short, long)]
-    pub name: String,
+    pub name: Option<String>,
 
     /// 所属する domain 名（省略時は domain に属さない独立した feature として作成）
     #[arg(long)]
@@ -130,6 +131,29 @@ pub struct NewFeatureArgs {
     /// DB マイグレーションを含める
     #[arg(long)]
     pub with_db: bool,
+
+    /// 対話モードを強制する
+    #[arg(short = 'i', long)]
+    pub interactive: bool,
+}
+
+impl NewFeatureArgs {
+    /// 必須引数がすべて提供されているかどうか
+    fn has_required_args(&self) -> bool {
+        self.service_type.is_some() && self.name.is_some()
+    }
+}
+
+/// 解決済みの引数（対話入力後）
+struct ResolvedArgs {
+    service_type: ServiceType,
+    name: String,
+    domain: Option<String>,
+    output: Option<String>,
+    force: bool,
+    with_grpc: bool,
+    with_rest: bool,
+    with_db: bool,
 }
 
 /// Domain 情報
@@ -145,6 +169,106 @@ struct DomainInfo {
 
 /// `k1s0 new-feature` を実行する
 pub fn execute(args: NewFeatureArgs) -> Result<()> {
+    // 対話モードを判定
+    let use_interactive = prompts::should_use_interactive_mode(
+        args.interactive,
+        args.has_required_args(),
+    )?;
+
+    // 引数を解決（対話入力または引数から）
+    let resolved = if use_interactive {
+        resolve_args_interactive(args)?
+    } else {
+        resolve_args_from_cli(args)?
+    };
+
+    // 生成を実行
+    execute_generation(resolved)
+}
+
+/// CLI 引数から解決済み引数を構築
+fn resolve_args_from_cli(args: NewFeatureArgs) -> Result<ResolvedArgs> {
+    let service_type = args.service_type.ok_or_else(|| {
+        CliError::missing_required_args("--type / -t オプションが必要です")
+    })?;
+
+    let name = args.name.ok_or_else(|| {
+        CliError::missing_required_args("--name / -n オプションが必要です")
+    })?;
+
+    Ok(ResolvedArgs {
+        service_type,
+        name,
+        domain: args.domain,
+        output: args.output,
+        force: args.force,
+        with_grpc: args.with_grpc,
+        with_rest: args.with_rest,
+        with_db: args.with_db,
+    })
+}
+
+/// 対話モードで引数を解決
+fn resolve_args_interactive(args: NewFeatureArgs) -> Result<ResolvedArgs> {
+    let out = output();
+
+    // バナー表示
+    out.header("k1s0 new-feature");
+    out.newline();
+    out.info("対話モードで feature を作成します");
+    out.newline();
+
+    // 1. service_type が未指定 → テンプレート選択プロンプト
+    let service_type = if let Some(st) = args.service_type {
+        st
+    } else {
+        prompts::template_type::select_service_type()?
+    };
+
+    // 2. name が未指定 → 名前入力プロンプト
+    let name = if let Some(n) = args.name {
+        // CLI から提供された名前をバリデーション
+        if !is_valid_kebab_case(&n) {
+            return Err(CliError::invalid_service_name(&n));
+        }
+        n
+    } else {
+        prompts::name_input::input_feature_name()?
+    };
+
+    // 3. domain が未指定 + 既存 domain 存在 → ドメイン選択プロンプト
+    let domain = if args.domain.is_some() {
+        args.domain
+    } else {
+        let domain_base = service_type.domain_base();
+        prompts::options::select_domain(domain_base)?
+    };
+
+    // 4. オプション未指定 → オプション選択プロンプト
+    let (with_grpc, with_rest, with_db) = if args.with_grpc || args.with_rest || args.with_db {
+        // 既にオプションが指定されている場合はそのまま使用
+        (args.with_grpc, args.with_rest, args.with_db)
+    } else {
+        let options = prompts::options::select_feature_options()?;
+        (options.with_grpc, options.with_rest, options.with_db)
+    };
+
+    out.newline();
+
+    Ok(ResolvedArgs {
+        service_type,
+        name,
+        domain,
+        output: args.output,
+        force: args.force,
+        with_grpc,
+        with_rest,
+        with_db,
+    })
+}
+
+/// 生成を実行する
+fn execute_generation(args: ResolvedArgs) -> Result<()> {
     let out = output();
 
     // サービス名のバリデーション（kebab-case）
@@ -371,7 +495,7 @@ fn find_template_dir(service_type: ServiceType) -> Result<PathBuf> {
 }
 
 /// テンプレート用のコンテキストを作成する
-fn create_template_context(args: &NewFeatureArgs, domain_info: Option<&DomainInfo>) -> Context {
+fn create_template_context(args: &ResolvedArgs, domain_info: Option<&DomainInfo>) -> Context {
     let mut context = Context::new();
 
     // 基本情報
@@ -413,7 +537,7 @@ fn create_template_context(args: &NewFeatureArgs, domain_info: Option<&DomainInf
 
 /// manifest.json を作成する
 fn create_manifest(
-    args: &NewFeatureArgs,
+    args: &ResolvedArgs,
     fingerprint: &str,
     domain_info: Option<&DomainInfo>,
 ) -> Result<Manifest> {
@@ -629,5 +753,47 @@ mod tests {
         assert_eq!(ServiceType::BackendGo.domain_base(), "domain/backend/go");
         assert_eq!(ServiceType::FrontendReact.domain_base(), "domain/frontend/react");
         assert_eq!(ServiceType::FrontendFlutter.domain_base(), "domain/frontend/flutter");
+    }
+
+    #[test]
+    fn test_has_required_args() {
+        let args_complete = NewFeatureArgs {
+            service_type: Some(ServiceType::BackendRust),
+            name: Some("test".to_string()),
+            domain: None,
+            output: None,
+            force: false,
+            with_grpc: false,
+            with_rest: false,
+            with_db: false,
+            interactive: false,
+        };
+        assert!(args_complete.has_required_args());
+
+        let args_missing_type = NewFeatureArgs {
+            service_type: None,
+            name: Some("test".to_string()),
+            domain: None,
+            output: None,
+            force: false,
+            with_grpc: false,
+            with_rest: false,
+            with_db: false,
+            interactive: false,
+        };
+        assert!(!args_missing_type.has_required_args());
+
+        let args_missing_name = NewFeatureArgs {
+            service_type: Some(ServiceType::BackendRust),
+            name: None,
+            domain: None,
+            output: None,
+            force: false,
+            with_grpc: false,
+            with_rest: false,
+            with_db: false,
+            interactive: false,
+        };
+        assert!(!args_missing_name.has_required_args());
     }
 }

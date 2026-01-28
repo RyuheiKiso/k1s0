@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{CliError, Result};
 use crate::output::output;
+use crate::prompts;
 use crate::version;
 
 /// .k1s0 ディレクトリ名
@@ -32,6 +33,10 @@ pub struct InitArgs {
     /// テンプレートソース（local または registry URL）
     #[arg(long, default_value = "local")]
     pub template_source: String,
+
+    /// 対話モードを強制する
+    #[arg(short = 'i', long)]
+    pub interactive: bool,
 }
 
 /// プロジェクト設定（.k1s0/config.json）
@@ -95,6 +100,25 @@ impl ProjectConfig {
         }
     }
 
+    /// カスタム設定で新しいプロジェクト設定を作成
+    pub fn with_settings(
+        k1s0_version: &str,
+        template_source: &str,
+        default_language: &str,
+        default_service_type: &str,
+    ) -> Self {
+        Self {
+            schema_version: "1.0.0".to_string(),
+            k1s0_version: k1s0_version.to_string(),
+            template_source: template_source.to_string(),
+            initialized_at: Utc::now().to_rfc3339(),
+            project: ProjectSettings {
+                default_language: default_language.to_string(),
+                default_service_type: default_service_type.to_string(),
+            },
+        }
+    }
+
     /// ファイルに保存
     pub fn save(&self, path: &PathBuf) -> Result<()> {
         let content = serde_json::to_string_pretty(self)?;
@@ -111,8 +135,91 @@ impl ProjectConfig {
     }
 }
 
+/// 解決済みの引数（対話入力後）
+struct ResolvedArgs {
+    path: String,
+    force: bool,
+    template_source: String,
+    default_language: String,
+    default_service_type: String,
+}
+
 /// `k1s0 init` を実行する
 pub fn execute(args: InitArgs) -> Result<()> {
+    // 対話モードを判定（init はデフォルト値があるので --interactive でのみ対話モード起動）
+    let use_interactive = args.interactive && prompts::is_interactive();
+
+    if args.interactive && !prompts::is_interactive() {
+        return Err(CliError::interactive_required(
+            "対話モードが要求されましたが、TTY が利用できません",
+        ));
+    }
+
+    // 引数を解決
+    let resolved = if use_interactive {
+        resolve_args_interactive(args)?
+    } else {
+        resolve_args_from_cli(args)
+    };
+
+    // 初期化を実行
+    execute_init(resolved)
+}
+
+/// CLI 引数から解決済み引数を構築
+fn resolve_args_from_cli(args: InitArgs) -> ResolvedArgs {
+    ResolvedArgs {
+        path: args.path,
+        force: args.force,
+        template_source: args.template_source,
+        default_language: default_language(),
+        default_service_type: default_service_type(),
+    }
+}
+
+/// 対話モードで引数を解決
+fn resolve_args_interactive(args: InitArgs) -> Result<ResolvedArgs> {
+    let out = output();
+
+    // バナー表示
+    out.header("k1s0 init");
+    out.newline();
+    out.info("対話モードでプロジェクトを初期化します");
+    out.newline();
+
+    // 1. path が "." の場合のみプロンプト（既にパスが指定されている場合はそのまま使用）
+    let path = if args.path == "." {
+        prompts::init_options::input_init_path()?
+    } else {
+        args.path
+    };
+
+    // 2. template_source が "local" の場合のみプロンプト
+    let template_source = if args.template_source == "local" {
+        prompts::init_options::input_template_source()?
+    } else {
+        args.template_source
+    };
+
+    // 3. デフォルト言語を選択
+    let default_language = prompts::init_options::select_language()?;
+
+    // 4. デフォルトサービスタイプを選択
+    let default_service_type = prompts::init_options::select_service_type()?;
+
+    out.newline();
+
+    Ok(ResolvedArgs {
+        path,
+        force: args.force,
+        template_source,
+        default_language,
+        default_service_type,
+    })
+}
+
+/// 初期化を実行する
+fn execute_init(args: ResolvedArgs) -> Result<()> {
     let out = output();
 
     out.header("k1s0 init");
@@ -132,6 +239,8 @@ pub fn execute(args: InitArgs) -> Result<()> {
     out.list_item("path", &base_path.display().to_string());
     out.list_item("k1s0 version", version());
     out.list_item("template_source", &args.template_source);
+    out.list_item("default_language", &args.default_language);
+    out.list_item("default_service_type", &args.default_service_type);
     out.newline();
 
     // 既存チェック
@@ -158,7 +267,12 @@ pub fn execute(args: InitArgs) -> Result<()> {
     out.file_added(&format!("{}/", K1S0_DIR));
 
     // config.json を作成
-    let config = ProjectConfig::new(version(), &args.template_source);
+    let config = ProjectConfig::with_settings(
+        version(),
+        &args.template_source,
+        &args.default_language,
+        &args.default_service_type,
+    );
     config.save(&config_path)?;
     out.file_added(&format!("{}/{}", K1S0_DIR, CONFIG_FILE));
 

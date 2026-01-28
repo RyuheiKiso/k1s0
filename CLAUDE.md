@@ -233,10 +233,26 @@ buf format --exit-code
 | `k1s0 domain dependents --name <name>` | Show features depending on domain |
 | `k1s0 domain impact --name <name>` | Analyze version upgrade impact |
 
+### Interactive Mode
+
+Commands `new-feature`, `new-domain`, `new-screen`, and `init` support interactive mode:
+
+```bash
+# Run without arguments to enter interactive mode (TTY required)
+k1s0 new-feature
+
+# Force interactive mode with -i flag
+k1s0 new-feature -i
+
+# Provide partial arguments, rest will be prompted interactively
+k1s0 new-feature --type backend-rust
+```
+
 ### Common Options
 
 ```
 -v, --verbose    # Detailed output
+-i, --interactive # Force interactive mode (requires TTY)
 --no-color       # Disable ANSI colors
 --json           # JSON format output
 ```

@@ -67,6 +67,75 @@ static VERSION_STRING: Lazy<String> = Lazy::new(|| {
 });
 ```
 
+## 対話モード
+
+k1s0 CLI は対話式インターフェースをサポートしています。Vite のような洗練されたユーザー体験を提供します。
+
+### 対話モードの動作
+
+1. **自動フォールバック**: 必須引数が不足している場合、TTY 環境であれば対話モードにフォールバックします
+2. **強制対話モード**: `--interactive` / `-i` フラグで強制的に対話モードを起動できます
+3. **非 TTY 環境**: CI/CD 環境など非 TTY 環境では、必須引数をすべて指定する必要があります
+
+### 対話モードの判定ロジック
+
+```
+if --interactive フラグあり:
+    if TTY環境: 対話モードで実行
+    else: エラー（TTYが必要）
+else if 必須引数がすべて揃っている:
+    引数モードで実行
+else:
+    if TTY環境: 対話モードにフォールバック
+    else: エラー（引数不足）
+```
+
+### 対話モード対応コマンド
+
+| コマンド | 対話モードフラグ | 対話で入力可能な項目 |
+|---------|----------------|---------------------|
+| `new-feature` | `-i, --interactive` | type, name, domain, オプション（grpc/rest/db） |
+| `new-domain` | `-i, --interactive` | type, name, version |
+| `new-screen` | `-i, --interactive` | type, screen_id, title, feature_dir |
+| `init` | `-i, --interactive` | path, template_source, language |
+
+### 使用例
+
+```bash
+# 対話モードで feature を作成（引数なしで実行）
+k1s0 new-feature
+
+# 強制的に対話モードを起動
+k1s0 new-feature -i
+
+# 一部引数を指定して残りを対話で入力
+k1s0 new-feature --type backend-rust
+# → name のみ対話で入力される
+
+# 従来の引数指定方式（引き続き動作）
+k1s0 new-feature --type backend-rust --name my-service
+```
+
+### prompts モジュール
+
+対話式プロンプトは `src/prompts/` モジュールで実装されています。
+
+```
+src/prompts/
+├── mod.rs              # モジュールルート、TTY 検出
+├── template_type.rs    # テンプレートタイプ選択
+├── name_input.rs       # 名前入力（バリデーション付き）
+├── options.rs          # オプション選択（マルチセレクト）
+├── confirm.rs          # 確認プロンプト
+├── version_input.rs    # バージョン入力
+├── feature_select.rs   # フィーチャー選択
+└── init_options.rs     # init オプション選択
+```
+
+### 依存クレート
+
+対話式プロンプトには [inquire](https://crates.io/crates/inquire) クレートを使用しています。
+
 ---
 
 ## init コマンド
@@ -135,13 +204,17 @@ pub struct InitArgs {
 
 ```rust
 pub struct NewFeatureArgs {
-    /// サービスタイプ
+    /// サービスタイプ（対話モード時は省略可能）
     #[arg(short = 't', long = "type", value_enum)]
-    pub service_type: ServiceType,
+    pub service_type: Option<ServiceType>,
 
-    /// サービス名（kebab-case）
+    /// サービス名（kebab-case）（対話モード時は省略可能）
     #[arg(short, long)]
-    pub name: String,
+    pub name: Option<String>,
+
+    /// 所属する domain 名（省略時は domain に属さない独立した feature として作成）
+    #[arg(long)]
+    pub domain: Option<String>,
 
     /// 生成先ディレクトリ
     #[arg(short, long)]
@@ -162,6 +235,10 @@ pub struct NewFeatureArgs {
     /// DB マイグレーションを含める
     #[arg(long)]
     pub with_db: bool,
+
+    /// 対話モードを強制する
+    #[arg(short = 'i', long)]
+    pub interactive: bool,
 }
 ```
 

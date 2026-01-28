@@ -115,6 +115,21 @@ k1s0 upgrade --check
 k1s0 upgrade
 ```
 
+### 対話モード
+
+引数を省略して実行すると、対話形式でサービスを作成できます：
+
+```bash
+# 対話形式で feature を作成
+k1s0 new-feature
+
+# 強制的に対話モードを起動
+k1s0 new-feature -i
+
+# 一部引数を指定して残りを対話で入力
+k1s0 new-feature --type backend-rust
+```
+
 詳細は [Getting Started](docs/GETTING_STARTED.md) を参照してください。
 
 ## CLI コマンド

@@ -20,6 +20,7 @@ use once_cell::sync::Lazy;
 pub mod commands;
 pub mod error;
 pub mod output;
+pub mod prompts;
 pub mod settings;
 
 pub use error::{CliError, ExitCode, Result};

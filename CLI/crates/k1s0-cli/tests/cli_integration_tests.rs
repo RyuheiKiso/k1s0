@@ -1000,3 +1000,75 @@ fn test_domain_impact_domain_not_found() {
         .failure()
         .stderr(predicate::str::contains("見つかりません"));
 }
+
+// =============================================================================
+// 対話モード関連テスト
+// =============================================================================
+
+#[test]
+fn test_new_feature_interactive_flag_exists() {
+    // --interactive / -i フラグがヘルプに存在することを確認
+    k1s0()
+        .args(["new-feature", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--interactive"))
+        .stdout(predicate::str::contains("-i"));
+}
+
+#[test]
+fn test_new_feature_missing_type_no_tty_fails() {
+    // 非対話環境で必須引数（type）不足時にエラー
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    k1s0()
+        .current_dir(temp_dir.path())
+        .args(["new-feature", "--name", "test-service"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("必須引数が不足"));
+}
+
+#[test]
+fn test_new_feature_missing_name_no_tty_fails() {
+    // 非対話環境で必須引数（name）不足時にエラー
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    k1s0()
+        .current_dir(temp_dir.path())
+        .args(["new-feature", "--type", "backend-rust"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("必須引数が不足"));
+}
+
+#[test]
+fn test_new_feature_all_args_provided_succeeds() {
+    // 全ての必須引数が提供されている場合は成功
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    // k1s0 リポジトリのルートを基準に実行
+    k1s0()
+        .args([
+            "new-feature",
+            "--type", "backend-rust",
+            "--name", "test-interactive",
+            "--output", temp_dir.path().join("test-output").to_str().unwrap(),
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("サービス 'test-interactive' を生成しました"));
+}
+
+#[test]
+fn test_new_feature_interactive_flag_no_tty_fails() {
+    // --interactive フラグが指定されているが TTY がない場合はエラー
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    k1s0()
+        .current_dir(temp_dir.path())
+        .args(["new-feature", "--interactive"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("TTY"));
+}

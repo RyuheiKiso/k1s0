@@ -62,6 +62,11 @@ impl Output {
         Self::new(OutputConfig::default())
     }
 
+    /// 設定を取得
+    pub fn config(&self) -> &OutputConfig {
+        &self.config
+    }
+
     /// JSON モードかどうかを返す
     pub fn is_json_mode(&self) -> bool {
         self.config.mode == OutputMode::Json

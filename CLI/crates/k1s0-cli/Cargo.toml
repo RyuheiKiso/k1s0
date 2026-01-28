@@ -22,6 +22,7 @@ thiserror.workspace = true
 tokio.workspace = true
 console.workspace = true
 indicatif.workspace = true
+inquire.workspace = true
 once_cell.workspace = true
 chrono.workspace = true
 dirs.workspace = true

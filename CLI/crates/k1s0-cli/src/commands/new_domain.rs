@@ -17,6 +17,7 @@ use k1s0_generator::Context;
 
 use crate::error::{CliError, Result};
 use crate::output::output;
+use crate::prompts;
 use crate::version;
 
 /// ドメインタイプ（テンプレートタイプ）
@@ -38,7 +39,7 @@ pub enum DomainType {
 
 impl DomainType {
     /// テンプレートディレクトリの相対パスを取得
-    fn template_path(&self) -> &'static str {
+    pub fn template_path(&self) -> &'static str {
         match self {
             DomainType::BackendRust => "CLI/templates/backend-rust/domain",
             DomainType::BackendGo => "CLI/templates/backend-go/domain",
@@ -48,7 +49,7 @@ impl DomainType {
     }
 
     /// 出力ディレクトリのベースパスを取得
-    fn output_base(&self) -> &'static str {
+    pub fn output_base(&self) -> &'static str {
         match self {
             DomainType::BackendRust => "domain/backend/rust",
             DomainType::BackendGo => "domain/backend/go",
@@ -58,7 +59,7 @@ impl DomainType {
     }
 
     /// 言語名を取得
-    fn language(&self) -> &'static str {
+    pub fn language(&self) -> &'static str {
         match self {
             DomainType::BackendRust => "rust",
             DomainType::BackendGo => "go",
@@ -68,7 +69,7 @@ impl DomainType {
     }
 
     /// サービスタイプ名を取得
-    fn service_type_name(&self) -> &'static str {
+    pub fn service_type_name(&self) -> &'static str {
         match self {
             DomainType::BackendRust | DomainType::BackendGo => "backend",
             DomainType::FrontendReact | DomainType::FrontendFlutter => "frontend",
@@ -95,11 +96,11 @@ const RESERVED_NAMES: &[&str] = &["framework", "feature", "domain", "k1s0", "com
 pub struct NewDomainArgs {
     /// テンプレートタイプ（例: backend-rust, backend-go, frontend-react, frontend-flutter）
     #[arg(short = 't', long = "type", value_enum)]
-    pub domain_type: DomainType,
+    pub domain_type: Option<DomainType>,
 
     /// ドメイン名（kebab-case）
     #[arg(short, long)]
-    pub name: String,
+    pub name: Option<String>,
 
     /// 出力先ディレクトリ（省略時は自動決定）
     #[arg(short, long)]
@@ -108,10 +109,102 @@ pub struct NewDomainArgs {
     /// 既存ディレクトリを上書きする
     #[arg(short, long)]
     pub force: bool,
+
+    /// 対話モードを強制する
+    #[arg(short = 'i', long)]
+    pub interactive: bool,
+}
+
+impl NewDomainArgs {
+    /// 必須引数がすべて提供されているかどうか
+    fn has_required_args(&self) -> bool {
+        self.domain_type.is_some() && self.name.is_some()
+    }
+}
+
+/// 解決済みの引数（対話入力後）
+struct ResolvedArgs {
+    domain_type: DomainType,
+    name: String,
+    output: Option<String>,
+    force: bool,
 }
 
 /// `k1s0 new-domain` を実行する
 pub fn execute(args: NewDomainArgs) -> Result<()> {
+    // 対話モードを判定
+    let use_interactive = prompts::should_use_interactive_mode(
+        args.interactive,
+        args.has_required_args(),
+    )?;
+
+    // 引数を解決（対話入力または引数から）
+    let resolved = if use_interactive {
+        resolve_args_interactive(args)?
+    } else {
+        resolve_args_from_cli(args)?
+    };
+
+    // 生成を実行
+    execute_generation(resolved)
+}
+
+/// CLI 引数から解決済み引数を構築
+fn resolve_args_from_cli(args: NewDomainArgs) -> Result<ResolvedArgs> {
+    let domain_type = args.domain_type.ok_or_else(|| {
+        CliError::missing_required_args("--type / -t オプションが必要です")
+    })?;
+
+    let name = args.name.ok_or_else(|| {
+        CliError::missing_required_args("--name / -n オプションが必要です")
+    })?;
+
+    Ok(ResolvedArgs {
+        domain_type,
+        name,
+        output: args.output,
+        force: args.force,
+    })
+}
+
+/// 対話モードで引数を解決
+fn resolve_args_interactive(args: NewDomainArgs) -> Result<ResolvedArgs> {
+    let out = output();
+
+    // バナー表示
+    out.header("k1s0 new-domain");
+    out.newline();
+    out.info("対話モードで domain を作成します");
+    out.newline();
+
+    // 1. domain_type が未指定 → テンプレート選択プロンプト
+    let domain_type = if let Some(dt) = args.domain_type {
+        dt
+    } else {
+        prompts::template_type::select_domain_type()?
+    };
+
+    // 2. name が未指定 → 名前入力プロンプト
+    let name = if let Some(n) = args.name {
+        // CLI から提供された名前をバリデーション
+        validate_domain_name(&n)?;
+        n
+    } else {
+        prompts::name_input::input_domain_name()?
+    };
+
+    out.newline();
+
+    Ok(ResolvedArgs {
+        domain_type,
+        name,
+        output: args.output,
+        force: args.force,
+    })
+}
+
+/// 生成を実行する
+fn execute_generation(args: ResolvedArgs) -> Result<()> {
     let out = output();
 
     // ドメイン名のバリデーション
@@ -281,7 +374,7 @@ fn find_template_dir(domain_type: DomainType) -> Result<PathBuf> {
 }
 
 /// テンプレート用のコンテキストを作成する
-fn create_template_context(args: &NewDomainArgs) -> Context {
+fn create_template_context(args: &ResolvedArgs) -> Context {
     let mut context = Context::new();
 
     // 基本情報
@@ -313,7 +406,7 @@ fn create_template_context(args: &NewDomainArgs) -> Context {
 
 /// manifest.json を作成する
 fn create_manifest(
-    args: &NewDomainArgs,
+    args: &ResolvedArgs,
     fingerprint: &str,
 ) -> Result<Manifest> {
     let managed_paths = get_managed_paths(args.domain_type);
@@ -522,5 +615,35 @@ mod tests {
         assert_eq!(DomainType::BackendGo.template_path(), "CLI/templates/backend-go/domain");
         assert_eq!(DomainType::FrontendReact.template_path(), "CLI/templates/frontend-react/domain");
         assert_eq!(DomainType::FrontendFlutter.template_path(), "CLI/templates/frontend-flutter/domain");
+    }
+
+    #[test]
+    fn test_has_required_args() {
+        let args_complete = NewDomainArgs {
+            domain_type: Some(DomainType::BackendRust),
+            name: Some("test".to_string()),
+            output: None,
+            force: false,
+            interactive: false,
+        };
+        assert!(args_complete.has_required_args());
+
+        let args_missing_type = NewDomainArgs {
+            domain_type: None,
+            name: Some("test".to_string()),
+            output: None,
+            force: false,
+            interactive: false,
+        };
+        assert!(!args_missing_type.has_required_args());
+
+        let args_missing_name = NewDomainArgs {
+            domain_type: Some(DomainType::BackendRust),
+            name: None,
+            output: None,
+            force: false,
+            interactive: false,
+        };
+        assert!(!args_missing_name.has_required_args());
     }
 }
