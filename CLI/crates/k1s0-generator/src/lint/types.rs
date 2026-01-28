@@ -27,6 +27,25 @@ pub enum RuleId {
     RetryWithoutAdr,
     /// gRPC リトライ設定が不完全
     RetryConfigIncomplete,
+
+    // === 層間依存関係ルール（K040-K047） ===
+
+    /// 層間依存の基本違反（feature -> domain -> framework の順守）
+    LayerDependencyViolation,
+    /// feature が存在しない domain に依存
+    DomainNotFound,
+    /// domain バージョン制約の不整合
+    DomainVersionMismatch,
+    /// 循環依存の検出
+    CircularDependency,
+    /// 非推奨 domain の使用
+    DeprecatedDomainUsage,
+    /// min_framework_version 違反
+    MinFrameworkVersionViolation,
+    /// breaking_changes による影響警告
+    BreakingChangeImpact,
+    /// domain 層に version が未設定
+    DomainVersionMissing,
 }
 
 impl RuleId {
@@ -44,6 +63,15 @@ impl RuleId {
             RuleId::RetryUsageDetected => "K030",
             RuleId::RetryWithoutAdr => "K031",
             RuleId::RetryConfigIncomplete => "K032",
+            // 層間依存関係ルール
+            RuleId::LayerDependencyViolation => "K040",
+            RuleId::DomainNotFound => "K041",
+            RuleId::DomainVersionMismatch => "K042",
+            RuleId::CircularDependency => "K043",
+            RuleId::DeprecatedDomainUsage => "K044",
+            RuleId::MinFrameworkVersionViolation => "K045",
+            RuleId::BreakingChangeImpact => "K046",
+            RuleId::DomainVersionMissing => "K047",
         }
     }
 
@@ -61,6 +89,15 @@ impl RuleId {
             RuleId::RetryUsageDetected => "gRPC リトライ設定が検出されました",
             RuleId::RetryWithoutAdr => "gRPC リトライ設定に ADR 参照がありません",
             RuleId::RetryConfigIncomplete => "gRPC リトライ設定が不完全です",
+            // 層間依存関係ルール
+            RuleId::LayerDependencyViolation => "層間依存の方向に違反しています",
+            RuleId::DomainNotFound => "指定された domain が見つかりません",
+            RuleId::DomainVersionMismatch => "domain バージョン制約を満たしていません",
+            RuleId::CircularDependency => "循環依存が検出されました",
+            RuleId::DeprecatedDomainUsage => "非推奨の domain を使用しています",
+            RuleId::MinFrameworkVersionViolation => "min_framework_version 要件を満たしていません",
+            RuleId::BreakingChangeImpact => "破壊的変更の影響を受ける可能性があります",
+            RuleId::DomainVersionMissing => "domain 層には version が必須です",
         }
     }
 }

@@ -20,6 +20,7 @@ tera.workspace = true
 chrono.workspace = true
 dirs.workspace = true
 jsonschema.workspace = true
+semver.workspace = true
 
 # Watch mode (optional)
 notify = { workspace = true, optional = true }

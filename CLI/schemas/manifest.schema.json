@@ -108,6 +108,71 @@
       "default": null,
       "examples": ["finance", "inventory", "customer", null]
     },
+    "version": {
+      "type": "string",
+      "description": "domain 層のバージョン（SemVer 形式）。domain 層では必須。",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+      "examples": ["1.0.0", "0.1.0", "2.0.0-beta.1"]
+    },
+    "domain_version": {
+      "type": "string",
+      "description": "feature 層が依存する domain のバージョン制約。domain フィールドが指定されている場合に使用。",
+      "examples": ["^1.2.0", ">=1.0.0 <2.0.0", "~1.2.0"]
+    },
+    "min_framework_version": {
+      "type": "string",
+      "description": "この domain が動作するために必要な最小の k1s0 framework バージョン。",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "examples": ["0.1.0", "1.0.0"]
+    },
+    "breaking_changes": {
+      "type": "object",
+      "description": "メジャーバージョンごとの破壊的変更の説明。キーはバージョン番号、値は変更内容。",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "examples": [
+        {
+          "2.0.0": "EntityA のフィールド名を変更",
+          "1.0.0": "初回リリース"
+        }
+      ]
+    },
+    "deprecated": {
+      "oneOf": [
+        {
+          "type": "boolean",
+          "description": "単純な非推奨フラグ"
+        },
+        {
+          "type": "object",
+          "description": "詳細な非推奨情報",
+          "properties": {
+            "since": {
+              "type": "string",
+              "description": "非推奨化されたバージョン",
+              "examples": ["1.5.0"]
+            },
+            "migrate_to": {
+              "type": "string",
+              "description": "移行先の domain 名",
+              "examples": ["finance-v2"]
+            },
+            "deadline": {
+              "type": "string",
+              "description": "削除予定日（ISO 8601 日付形式）",
+              "format": "date",
+              "examples": ["2026-06-01"]
+            },
+            "reason": {
+              "type": "string",
+              "description": "非推奨化の理由"
+            }
+          }
+        }
+      ],
+      "description": "非推奨フラグまたは非推奨情報"
+    },
     "generated_at": {
       "type": "string",
       "description": "生成日時（ISO 8601 形式）",
@@ -174,10 +239,11 @@
     },
     "dependencies": {
       "type": "object",
-      "description": "framework crate への依存情報",
+      "description": "framework crate および domain への依存情報",
       "properties": {
         "framework_crates": {
           "type": "array",
+          "description": "使用する framework クレート/パッケージ",
           "items": {
             "type": "object",
             "required": ["name", "version"],
@@ -192,6 +258,27 @@
               }
             }
           }
+        },
+        "framework": {
+          "type": "array",
+          "description": "使用する framework クレート/パッケージ名（簡易形式）",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["k1s0-error", "k1s0-config", "k1s0-grpc-server"]]
+        },
+        "domain": {
+          "type": "object",
+          "description": "使用する domain 名とバージョン制約",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "examples": [
+            {
+              "production": "^1.2.0",
+              "finance": ">=1.0.0 <2.0.0"
+            }
+          ]
         }
       }
     }
