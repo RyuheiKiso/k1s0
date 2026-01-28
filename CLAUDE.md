@@ -79,7 +79,7 @@ k1s0/
 │
 ├── scripts/                     # Build & verification scripts
 ├── work/                        # Draft documents
-└── .github/workflows/           # 10 CI/CD workflows
+└── .github/workflows/           # 11 CI/CD workflows
 ```
 
 ## Build & Development Commands
@@ -104,6 +104,39 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 # Check without building
 cargo check
+```
+
+### Go Backend
+
+```bash
+# Navigate to Go framework directory
+cd framework/backend/go
+
+# Build all modules
+for dir in */; do
+  if [ -f "${dir}go.mod" ]; then
+    cd "$dir" && go build ./... && cd ..
+  fi
+done
+
+# Test all modules with race detector
+for dir in */; do
+  if [ -f "${dir}go.mod" ]; then
+    cd "$dir" && go test -v -race ./... && cd ..
+  fi
+done
+
+# Format check
+gofmt -l .
+
+# Static analysis
+go vet ./...
+
+# Lint (requires golangci-lint)
+golangci-lint run --timeout=5m ./...
+
+# Verify dependencies
+go mod verify && go mod tidy
 ```
 
 ### Frontend (React)
@@ -343,6 +376,7 @@ lib/src/
 |----------|---------|---------|
 | cli.yml | Push to main/develop, CLI changes | Lint -> Test -> Integration Test -> Multi-platform Build |
 | rust.yml | Push to main, framework/rust changes | Format check -> Clippy -> Tests -> Build |
+| go.yml | Push to main/develop, Go changes | Format -> Lint -> Test -> Vet -> Mod verify -> Build |
 | frontend-react.yml | Push to main, React changes | Lint -> TypeCheck -> Test -> Build |
 | frontend-flutter.yml | Push to main, Flutter changes | Analyze -> Build |
 | buf.yml | Push to main, proto changes | Lint -> Breaking changes check -> Format check |

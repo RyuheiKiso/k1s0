@@ -1,0 +1,218 @@
+name: go
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'framework/backend/go/**'
+      - 'feature/backend/go/**'
+      - '.github/workflows/go.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'framework/backend/go/**'
+      - 'feature/backend/go/**'
+      - '.github/workflows/go.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: '1.22'
+  GOLANGCI_LINT_VERSION: 'v1.62.2'
+
+jobs:
+  fmt:
+    name: Format Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - name: Check formatting
+        working-directory: framework/backend/go
+        run: |
+          # Find all Go modules and check formatting
+          for dir in */; do
+            if [ -f "${dir}go.mod" ]; then
+              echo "Checking format in ${dir}..."
+              cd "$dir"
+              unformatted=$(gofmt -l .)
+              if [ -n "$unformatted" ]; then
+                echo "The following files are not formatted:"
+                echo "$unformatted"
+                exit 1
+              fi
+              cd ..
+            fi
+          done
+          echo "All files are properly formatted."
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: framework/backend/go/**/go.sum
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          install-mode: binary
+          skip-cache: true
+          args: --help
+
+      - name: Run golangci-lint on all modules
+        working-directory: framework/backend/go
+        run: |
+          # Run lint on each module
+          for dir in */; do
+            if [ -f "${dir}go.mod" ]; then
+              echo "Linting ${dir}..."
+              cd "$dir"
+              golangci-lint run --timeout=5m ./...
+              cd ..
+            fi
+          done
+          echo "All modules passed linting."
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: framework/backend/go/**/go.sum
+
+      - name: Run tests on all modules
+        working-directory: framework/backend/go
+        run: |
+          # Run tests on each module
+          for dir in */; do
+            if [ -f "${dir}go.mod" ]; then
+              echo "Testing ${dir}..."
+              cd "$dir"
+              go test -v -race -coverprofile=coverage.out ./...
+              cd ..
+            fi
+          done
+          echo "All modules passed tests."
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage-reports
+          path: framework/backend/go/**/coverage.out
+          retention-days: 7
+          if-no-files-found: ignore
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [fmt, lint, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: framework/backend/go/**/go.sum
+
+      - name: Build all modules
+        working-directory: framework/backend/go
+        run: |
+          # Build each module
+          for dir in */; do
+            if [ -f "${dir}go.mod" ]; then
+              echo "Building ${dir}..."
+              cd "$dir"
+              go build ./...
+              cd ..
+            fi
+          done
+          echo "All modules built successfully."
+
+  vet:
+    name: Vet
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: framework/backend/go/**/go.sum
+
+      - name: Run go vet on all modules
+        working-directory: framework/backend/go
+        run: |
+          # Run vet on each module
+          for dir in */; do
+            if [ -f "${dir}go.mod" ]; then
+              echo "Vetting ${dir}..."
+              cd "$dir"
+              go vet ./...
+              cd ..
+            fi
+          done
+          echo "All modules passed vet."
+
+  mod-verify:
+    name: Module Verification
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: framework/backend/go/**/go.sum
+
+      - name: Verify module dependencies
+        working-directory: framework/backend/go
+        run: |
+          # Verify dependencies for each module
+          for dir in */; do
+            if [ -f "${dir}go.mod" ]; then
+              echo "Verifying ${dir}..."
+              cd "$dir"
+              go mod verify
+              go mod tidy
+              # Check if go.mod or go.sum changed
+              if ! git diff --exit-code go.mod go.sum; then
+                echo "Error: go.mod or go.sum is not tidy in ${dir}"
+                exit 1
+              fi
+              cd ..
+            fi
+          done
+          echo "All module dependencies verified."
