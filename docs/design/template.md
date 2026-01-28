@@ -173,35 +173,122 @@ tokio-test = "0.4"
 ### main.rs.tera
 
 ```rust
-//! {{ feature_name_pascal }} サービス
+//! {{ feature_name }} サービス
 //!
-//! {{ feature_name }} のエントリーポイント。
-
-use k1s0_config::{ServiceArgs, ServiceInit};
-use k1s0_observability::{ObservabilityConfig, LogEntry};
+//! k1s0 framework を使用した {{ feature_name }} のエントリポイント。
 
 mod application;
 mod domain;
 mod infrastructure;
 mod presentation;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 設定の読み込み
-    let args = ServiceArgs::from_env();
-    let init = ServiceInit::from_args(&args)?;
+use std::sync::Arc;
+use clap::Parser;
+use tracing::info;
+{% if with_rest %}
+use axum::{Router, routing::get};
+use tower_http::trace::TraceLayer;
+{% endif %}
+{% if with_grpc %}
+use tonic::transport::Server as TonicServer;
+{% endif %}
 
-    // 観測性の初期化
-    let obs_config = ObservabilityConfig::builder()
-        .service_name("{{ feature_name }}")
-        .env(init.env())
+/// CLI 引数
+#[derive(Parser, Debug)]
+#[command(name = "{{ feature_name }}")]
+struct Args {
+    #[arg(long, default_value = "dev")]
+    env: String,
+
+    #[arg(long, default_value = "./config")]
+    config: String,
+{% if with_grpc %}
+    #[arg(long, default_value = "50051")]
+    grpc_port: u16,
+{% endif %}
+{% if with_rest %}
+    #[arg(long, default_value = "8080")]
+    http_port: u16,
+{% endif %}
+    #[arg(long, default_value = "9090")]
+    health_port: u16,
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let args = Args::parse();
+
+    // Observability 初期化
+    let _guard = k1s0_observability::init_with_config(
+        k1s0_observability::ObservabilityConfig::builder()
+            .service_name("{{ feature_name }}")
+            .service_version(env!("CARGO_PKG_VERSION"))
+            .environment(&args.env)
+            .build(),
+    )?;
+
+    info!(service = "{{ feature_name }}", "Starting service");
+
+    // 設定読み込み
+    let config = k1s0_config::ConfigBuilder::new()
+        .add_source(k1s0_config::File::with_name(&format!("{}/{}.yaml", args.config, args.env)))
         .build()?;
 
-    LogEntry::info("サービスを起動しています")
-        .with_service(&obs_config);
+    // ヘルスチェックサーバー起動
+    let health_registry = Arc::new(k1s0_health::HealthRegistry::new());
+    let health_addr = format!("0.0.0.0:{}", args.health_port).parse()?;
+    let health_router = k1s0_health::health_router(health_registry.clone());
+    let health_server = tokio::spawn(async move {
+        info!(addr = %health_addr, "Starting health check server");
+        axum::serve(
+            tokio::net::TcpListener::bind(health_addr).await.unwrap(),
+            health_router,
+        ).await.unwrap();
+    });
 
-    // TODO: サーバの起動
+{% if with_rest %}
+    // HTTP サーバー起動
+    let http_addr = format!("0.0.0.0:{}", args.http_port).parse()?;
+    let http_router = Router::new()
+        .route("/", get(|| async { "{{ feature_name }} service is running" }))
+        .layer(TraceLayer::new_for_http());
+    let http_server = tokio::spawn(async move {
+        info!(addr = %http_addr, "Starting HTTP server");
+        axum::serve(
+            tokio::net::TcpListener::bind(http_addr).await.unwrap(),
+            http_router,
+        ).await.unwrap();
+    });
+{% endif %}
 
+{% if with_grpc %}
+    // gRPC サーバー起動
+    let grpc_addr = format!("0.0.0.0:{}", args.grpc_port).parse()?;
+    let grpc_server = tokio::spawn(async move {
+        info!(addr = %grpc_addr, "Starting gRPC server");
+        TonicServer::builder()
+            // .add_service(your_service)
+            .serve(grpc_addr)
+            .await
+            .unwrap();
+    });
+{% endif %}
+
+    // Graceful shutdown
+    info!("Service started, waiting for shutdown signal...");
+    tokio::signal::ctrl_c().await?;
+    info!("Shutting down...");
+
+    health_server.abort();
+{% if with_rest %}
+    http_server.abort();
+{% endif %}
+{% if with_grpc %}
+    grpc_server.abort();
+{% endif %}
+
+    k1s0_observability::shutdown();
+    info!("Service shutdown complete");
     Ok(())
 }
 ```
