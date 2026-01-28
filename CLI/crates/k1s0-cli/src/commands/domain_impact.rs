@@ -243,26 +243,49 @@ fn analyze_impact(domain_name: &str, target_version: &str) -> Result<Vec<Impacte
                 Err(_) => continue,
             };
 
-            // domain 依存をチェック
+            // domain 依存をチェック（新形式: dependencies.domain は HashMap<String, String>）
             if let Some(deps) = &manifest.dependencies {
-                if let Some(domain_dep) = &deps.domain {
-                    if domain_dep.name == domain_name {
+                if let Some(domain_deps) = &deps.domain {
+                    if let Some(version_constraint) = domain_deps.get(domain_name) {
                         let name = path
                             .file_name()
                             .and_then(|n| n.to_str())
                             .unwrap_or("unknown")
                             .to_string();
 
-                        let impact = check_version_compatibility(&domain_dep.version, target_version);
+                        let impact = check_version_compatibility(version_constraint, target_version);
 
                         impacted.push(ImpactedFeature {
                             name,
                             feature_type: feature_type.to_string(),
-                            current_constraint: domain_dep.version.clone(),
+                            current_constraint: version_constraint.clone(),
                             impact,
                             path: path.display().to_string(),
                         });
                     }
+                }
+            }
+
+            // 旧形式: manifest.domain フィールドでもチェック
+            if manifest.domain.as_ref() == Some(&domain_name.to_string()) {
+                let name = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("unknown")
+                    .to_string();
+
+                // 既に追加されていない場合のみ追加
+                if !impacted.iter().any(|f| f.name == name && f.path == path.display().to_string()) {
+                    let version_constraint = manifest.domain_version.clone().unwrap_or_else(|| "^0.1.0".to_string());
+                    let impact = check_version_compatibility(&version_constraint, target_version);
+
+                    impacted.push(ImpactedFeature {
+                        name,
+                        feature_type: feature_type.to_string(),
+                        current_constraint: version_constraint,
+                        impact,
+                        path: path.display().to_string(),
+                    });
                 }
             }
         }

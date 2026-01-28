@@ -164,10 +164,10 @@ fn collect_dependents(domain_name: &str) -> Result<Vec<DependentFeature>> {
                 Err(_) => continue,
             };
 
-            // domain 依存をチェック
+            // domain 依存をチェック（新形式: dependencies.domain は HashMap<String, String>）
             if let Some(deps) = &manifest.dependencies {
-                if let Some(domain_dep) = &deps.domain {
-                    if domain_dep.name == domain_name {
+                if let Some(domain_deps) = &deps.domain {
+                    if let Some(version_constraint) = domain_deps.get(domain_name) {
                         let name = path
                             .file_name()
                             .and_then(|n| n.to_str())
@@ -177,10 +177,29 @@ fn collect_dependents(domain_name: &str) -> Result<Vec<DependentFeature>> {
                         dependents.push(DependentFeature {
                             name,
                             feature_type: feature_type.to_string(),
-                            domain_version: domain_dep.version.clone(),
+                            domain_version: version_constraint.clone(),
                             path: path.display().to_string(),
                         });
                     }
+                }
+            }
+
+            // 旧形式: manifest.domain フィールドでもチェック
+            if manifest.domain.as_ref() == Some(&domain_name.to_string()) {
+                let name = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("unknown")
+                    .to_string();
+
+                // 既に追加されていない場合のみ追加
+                if !dependents.iter().any(|d| d.name == name && d.path == path.display().to_string()) {
+                    dependents.push(DependentFeature {
+                        name,
+                        feature_type: feature_type.to_string(),
+                        domain_version: manifest.domain_version.clone().unwrap_or_else(|| "^0.1.0".to_string()),
+                        path: path.display().to_string(),
+                    });
                 }
             }
         }

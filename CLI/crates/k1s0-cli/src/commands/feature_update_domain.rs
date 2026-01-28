@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use clap::Args;
 
-use k1s0_generator::manifest::{DomainDependency, Manifest};
+use k1s0_generator::manifest::Manifest;
 
 use crate::error::{CliError, Result};
 use crate::output::output;
@@ -58,12 +58,21 @@ pub fn execute(args: FeatureUpdateDomainArgs) -> Result<()> {
         CliError::config(format!("manifest.json の読み込みに失敗: {}", e))
     })?;
 
-    // 現在の domain 依存を確認
+    // 現在の domain 依存を確認（新形式: dependencies.domain は HashMap<String, String>）
     let current_version = manifest
         .dependencies
         .as_ref()
         .and_then(|d| d.domain.as_ref())
-        .map(|d| d.version.clone());
+        .and_then(|domain_deps| domain_deps.get(&args.domain))
+        .cloned()
+        // 旧形式: manifest.domain_version でもチェック
+        .or_else(|| {
+            if manifest.domain.as_ref() == Some(&args.domain) {
+                manifest.domain_version.clone()
+            } else {
+                None
+            }
+        });
 
     if let Some(ref cv) = current_version {
         out.list_item("current_version", cv);
@@ -117,15 +126,22 @@ fn find_feature(feature_name: &str) -> Result<(PathBuf, String)> {
 
 /// manifest の domain 依存を更新
 fn update_manifest_domain(manifest: &mut Manifest, domain_name: &str, version: &str) {
+    // 新形式: manifest.domain と manifest.domain_version を更新
+    manifest.domain = Some(domain_name.to_string());
+    manifest.domain_version = Some(version.to_string());
+
+    // 新形式: dependencies.domain も更新（HashMap<String, String>）
     if manifest.dependencies.is_none() {
         manifest.dependencies = Some(k1s0_generator::manifest::Dependencies::default());
     }
 
     if let Some(ref mut deps) = manifest.dependencies {
-        deps.domain = Some(DomainDependency {
-            name: domain_name.to_string(),
-            version: version.to_string(),
-        });
+        if deps.domain.is_none() {
+            deps.domain = Some(std::collections::HashMap::new());
+        }
+        if let Some(ref mut domain_deps) = deps.domain {
+            domain_deps.insert(domain_name.to_string(), version.to_string());
+        }
     }
 }
 
@@ -361,6 +377,7 @@ fn update_pubspec_yaml(path: &PathBuf, domain_name: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use k1s0_generator::manifest::LayerType;
 
     #[test]
     fn test_update_manifest_domain_new() {
@@ -381,6 +398,13 @@ mod tests {
                 service_type: "backend".to_string(),
                 framework: None,
             },
+            layer: LayerType::Feature,
+            domain: None,
+            version: None,
+            domain_version: None,
+            min_framework_version: None,
+            breaking_changes: None,
+            deprecated: None,
             generated_at: "2026-01-28T00:00:00Z".to_string(),
             managed_paths: vec![],
             protected_paths: vec![],
@@ -391,16 +415,23 @@ mod tests {
 
         update_manifest_domain(&mut manifest, "test-domain", "^1.0.0");
 
+        // 新形式: manifest.domain と manifest.domain_version がセット
+        assert_eq!(manifest.domain, Some("test-domain".to_string()));
+        assert_eq!(manifest.domain_version, Some("^1.0.0".to_string()));
+
+        // dependencies.domain も HashMap 形式でセット
         assert!(manifest.dependencies.is_some());
         let deps = manifest.dependencies.unwrap();
         assert!(deps.domain.is_some());
-        let domain = deps.domain.unwrap();
-        assert_eq!(domain.name, "test-domain");
-        assert_eq!(domain.version, "^1.0.0");
+        let domain_deps = deps.domain.unwrap();
+        assert_eq!(domain_deps.get("test-domain"), Some(&"^1.0.0".to_string()));
     }
 
     #[test]
     fn test_update_manifest_domain_existing() {
+        let mut old_domain_deps = std::collections::HashMap::new();
+        old_domain_deps.insert("old-domain".to_string(), "^0.1.0".to_string());
+
         let mut manifest = k1s0_generator::manifest::Manifest {
             schema_version: "1.0.0".to_string(),
             k1s0_version: "0.1.0".to_string(),
@@ -418,6 +449,13 @@ mod tests {
                 service_type: "backend".to_string(),
                 framework: None,
             },
+            layer: LayerType::Feature,
+            domain: Some("old-domain".to_string()),
+            version: None,
+            domain_version: Some("^0.1.0".to_string()),
+            min_framework_version: None,
+            breaking_changes: None,
+            deprecated: None,
             generated_at: "2026-01-28T00:00:00Z".to_string(),
             managed_paths: vec![],
             protected_paths: vec![],
@@ -425,18 +463,20 @@ mod tests {
             checksums: std::collections::HashMap::new(),
             dependencies: Some(k1s0_generator::manifest::Dependencies {
                 framework_crates: vec![],
-                domain: Some(DomainDependency {
-                    name: "old-domain".to_string(),
-                    version: "^0.1.0".to_string(),
-                }),
+                framework: vec![],
+                domain: Some(old_domain_deps),
             }),
         };
 
         update_manifest_domain(&mut manifest, "new-domain", "^2.0.0");
 
+        // 新形式: manifest.domain と manifest.domain_version が更新
+        assert_eq!(manifest.domain, Some("new-domain".to_string()));
+        assert_eq!(manifest.domain_version, Some("^2.0.0".to_string()));
+
+        // dependencies.domain も更新
         let deps = manifest.dependencies.unwrap();
-        let domain = deps.domain.unwrap();
-        assert_eq!(domain.name, "new-domain");
-        assert_eq!(domain.version, "^2.0.0");
+        let domain_deps = deps.domain.unwrap();
+        assert_eq!(domain_deps.get("new-domain"), Some(&"^2.0.0".to_string()));
     }
 }

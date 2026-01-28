@@ -9,7 +9,7 @@ use clap::{Args, ValueEnum};
 
 use k1s0_generator::fingerprint::calculate_fingerprint;
 use k1s0_generator::manifest::{
-    Manifest, ServiceInfo, TemplateInfo, UpdatePolicy, SCHEMA_VERSION,
+    Dependencies, LayerType, Manifest, ServiceInfo, TemplateInfo, UpdatePolicy, SCHEMA_VERSION,
 };
 use k1s0_generator::template::TemplateRenderer;
 use k1s0_generator::Context;
@@ -421,6 +421,24 @@ fn create_manifest(
     let protected_paths = get_protected_paths(args.service_type);
     let update_policy = get_update_policy(args.service_type);
 
+    let (domain, domain_version, dependencies) = if let Some(info) = domain_info {
+        let version_constraint = generate_version_constraint(&info.version);
+        let mut domain_deps = std::collections::HashMap::new();
+        domain_deps.insert(info.name.clone(), version_constraint.clone());
+
+        (
+            Some(info.name.clone()),
+            Some(version_constraint),
+            Some(Dependencies {
+                framework_crates: vec![],
+                framework: vec![],
+                domain: Some(domain_deps),
+            }),
+        )
+    } else {
+        (None, None, None)
+    };
+
     Ok(Manifest {
         schema_version: SCHEMA_VERSION.to_string(),
         k1s0_version: version().to_string(),
@@ -438,20 +456,19 @@ fn create_manifest(
             service_type: args.service_type.service_type_name().to_string(),
             framework: None,
         },
+        layer: LayerType::Feature,
+        domain,
+        version: None, // feature 層はバージョンを持たない
+        domain_version,
+        min_framework_version: None,
+        breaking_changes: None,
+        deprecated: None,
         generated_at: Utc::now().to_rfc3339(),
         managed_paths,
         protected_paths,
         update_policy,
         checksums: std::collections::HashMap::new(),
-        dependencies: domain_info.map(|info| {
-            k1s0_generator::manifest::Dependencies {
-                framework_crates: vec![],
-                domain: Some(k1s0_generator::manifest::DomainDependency {
-                    name: info.name.clone(),
-                    version: generate_version_constraint(&info.version),
-                }),
-            }
-        }),
+        dependencies,
     })
 }
 

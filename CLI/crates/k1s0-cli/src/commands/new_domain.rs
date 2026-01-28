@@ -10,7 +10,7 @@ use regex::Regex;
 
 use k1s0_generator::fingerprint::calculate_fingerprint;
 use k1s0_generator::manifest::{
-    Manifest, ServiceInfo, TemplateInfo, UpdatePolicy, SCHEMA_VERSION,
+    LayerType, Manifest, ServiceInfo, TemplateInfo, UpdatePolicy, SCHEMA_VERSION,
 };
 use k1s0_generator::template::TemplateRenderer;
 use k1s0_generator::Context;
@@ -337,6 +337,13 @@ fn create_manifest(
             service_type: args.domain_type.service_type_name().to_string(),
             framework: None,
         },
+        layer: LayerType::Domain,
+        domain: None, // domain 層自身は他の domain に所属しない
+        version: Some("0.1.0".to_string()), // 初期バージョン
+        domain_version: None,
+        min_framework_version: Some(version().to_string()),
+        breaking_changes: None,
+        deprecated: None,
         generated_at: Utc::now().to_rfc3339(),
         managed_paths,
         protected_paths,
