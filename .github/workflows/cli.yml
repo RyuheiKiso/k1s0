@@ -143,6 +143,53 @@ jobs:
             -f /tmp/test-flutter-app
           test -f /tmp/test-flutter-app/lib/src/presentation/pages/test_screen_page.dart
 
+      - name: Test new-domain command (Rust)
+        run: |
+          cd CLI
+          ./target/release/k1s0 new-domain \
+            --type backend-rust \
+            --name test-domain
+          test -d domain/backend/rust/test-domain
+          test -f domain/backend/rust/test-domain/.k1s0/manifest.json
+          test -f domain/backend/rust/test-domain/Cargo.toml
+          test -f domain/backend/rust/test-domain/src/lib.rs
+          # Verify manifest.json contains layer: domain
+          grep -q '"layer": "domain"' domain/backend/rust/test-domain/.k1s0/manifest.json
+          # Verify manifest.json contains version field
+          grep -q '"version":' domain/backend/rust/test-domain/.k1s0/manifest.json
+
+      - name: Test new-feature with domain (Rust)
+        run: |
+          cd CLI
+          ./target/release/k1s0 new-feature \
+            --type backend-rust \
+            --name test-feature \
+            --domain test-domain
+          test -d feature/backend/rust/test-feature
+          test -f feature/backend/rust/test-feature/.k1s0/manifest.json
+          # Verify manifest.json contains domain reference
+          grep -q '"domain": "test-domain"' feature/backend/rust/test-feature/.k1s0/manifest.json
+          grep -q '"domain_version":' feature/backend/rust/test-feature/.k1s0/manifest.json
+
+      - name: Test domain list command
+        run: |
+          cd CLI
+          ./target/release/k1s0 domain list
+          # Verify test-domain appears in the list
+          ./target/release/k1s0 domain list | grep -q "test-domain"
+
+      - name: Test domain dependents command
+        run: |
+          cd CLI
+          ./target/release/k1s0 domain dependents --name test-domain
+          # Verify test-feature appears as dependent
+          ./target/release/k1s0 domain dependents --name test-domain | grep -q "test-feature"
+
+      - name: Cleanup test artifacts
+        run: |
+          rm -rf CLI/domain/backend/rust/test-domain
+          rm -rf CLI/feature/backend/rust/test-feature
+
   # =============================================================================
   # Build Job: Multi-platform builds
   # =============================================================================
