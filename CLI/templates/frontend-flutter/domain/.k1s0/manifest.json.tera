@@ -16,6 +16,8 @@
   },
   "layer": "domain",
   "domain": null,
+  "version": "0.1.0",
+  "min_framework_version": "{{ k1s0_version }}",
   "generated_at": "{{ created_at }}",
   "managed_paths": [
     "pubspec.yaml"

@@ -16,6 +16,8 @@
   },
   "layer": "domain",
   "domain": null,
+  "version": "0.1.0",
+  "min_framework_version": "{{ k1s0_version }}",
   "generated_at": "{{ created_at }}",
   "managed_paths": [
     "Cargo.toml"
@@ -36,6 +38,10 @@
   },
   "checksums": {},
   "dependencies": {
+    "framework": [
+      "k1s0-error",
+      "k1s0-config"
+    ],
     "framework_crates": [
       { "name": "k1s0-error", "version": "{{ k1s0_version }}" },
       { "name": "k1s0-config", "version": "{{ k1s0_version }}" }
