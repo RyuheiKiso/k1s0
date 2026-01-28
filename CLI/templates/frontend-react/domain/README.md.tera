@@ -1,0 +1,102 @@
+# {{ name_title }} Domain
+
+{{ name_title }} ドメインの共通ビジネスロジックを提供する TypeScript パッケージです。
+
+## 概要
+
+このパッケージは {{ name_title }} に関連するビジネスロジックを集約し、
+複数の feature アプリケーションから共有して使用できるようにします。
+
+## ディレクトリ構造
+
+```
+src/
+├── index.ts               # パッケージエントリポイント
+├── domain/                # ドメイン層
+│   ├── entities/          # エンティティ
+│   ├── value-objects/     # 値オブジェクト
+│   └── services/          # ドメインサービス
+└── application/           # アプリケーション層
+    ├── services/          # アプリケーションサービス
+    └── dtos/              # データ転送オブジェクト
+```
+
+## インストール
+
+```bash
+pnpm add @k1s0-domain/{{ name }}
+```
+
+## 使用方法
+
+### feature からの依存
+
+```typescript
+import { MyEntity } from '@k1s0-domain/{{ name }}/domain';
+import { MyService } from '@k1s0-domain/{{ name }}/application';
+
+// エンティティの使用
+const entity = new MyEntity({ id: '123', name: 'example' });
+
+// アプリケーションサービスの使用
+const service = new MyService(repository);
+const result = await service.execute(input);
+```
+
+## 開発ガイド
+
+### エンティティの追加
+
+1. `src/domain/entities/` に新しいファイルを作成
+2. `src/domain/entities/index.ts` にエクスポートを追加
+3. テストを追加
+
+### 値オブジェクトの追加
+
+1. `src/domain/value-objects/` に新しいファイルを作成
+2. Zod スキーマでバリデーションを定義
+3. 不変性を保証（readonly プロパティ）
+
+### ドメインサービスの追加
+
+1. `src/domain/services/` に新しいファイルを作成
+2. ビジネスロジックを実装
+3. 必要に応じてリポジトリインターフェースを定義
+
+## テスト
+
+```bash
+# 単体テスト
+pnpm test
+
+# カバレッジ付き
+pnpm test:coverage
+
+# ウォッチモード
+pnpm test --watch
+```
+
+## ビルド
+
+```bash
+# ビルド
+pnpm build
+
+# 型チェック
+pnpm typecheck
+```
+
+## バージョン管理
+
+このドメインは SemVer でバージョン管理されています。
+
+- **patch** (0.1.0 -> 0.1.1): バグ修正
+- **minor** (0.1.0 -> 0.2.0): 後方互換性のある機能追加
+- **major** (0.1.0 -> 1.0.0): 破壊的変更
+
+feature アプリケーションは `^0.1.0` のようなバージョン制約で依存します。
+
+## 関連ドキュメント
+
+- [k1s0 ドメイン開発ガイド](../../../../docs/guides/domain-development.md)
+- [Clean Architecture](../../../../docs/architecture/clean-architecture.md)

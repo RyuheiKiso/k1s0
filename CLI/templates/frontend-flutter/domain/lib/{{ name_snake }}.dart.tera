@@ -1,0 +1,24 @@
+/// {{ name_title }} Domain
+///
+/// このパッケージは {{ name_title }} ドメインの共通ビジネスロジックを提供します。
+/// feature 層のアプリケーションはこのパッケージに依存してビジネスロジックを共有します。
+///
+/// ## 使用例
+///
+/// ```dart
+/// import 'package:{{ name_snake }}/{{ name_snake }}.dart';
+///
+/// // エンティティの使用
+/// final entity = MyEntity(id: '123', name: 'example');
+///
+/// // アプリケーションサービスの使用
+/// final service = MyService(repository: repository);
+/// final result = await service.execute(input);
+/// ```
+library {{ name_snake }};
+
+// ドメイン層
+export 'src/domain/domain.dart';
+
+// アプリケーション層
+export 'src/application/application.dart';

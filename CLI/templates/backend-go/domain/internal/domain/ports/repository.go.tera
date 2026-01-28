@@ -1,0 +1,30 @@
+// Package ports は {{ name_title }} ドメインのリポジトリインターフェースを定義します。
+//
+// ポート（インターフェース）はドメイン層で定義され、infrastructure 層で実装されます。
+package ports
+
+import "context"
+
+// TODO: {{ name_title }} ドメインのリポジトリインターフェースを定義してください
+//
+// 例:
+//
+//	type ProductRepository interface {
+//	    FindByID(ctx context.Context, id entities.ProductID) (*entities.Product, error)
+//	    FindAll(ctx context.Context) ([]*entities.Product, error)
+//	    Save(ctx context.Context, product *entities.Product) error
+//	    Delete(ctx context.Context, id entities.ProductID) error
+//	}
+//
+//	type UnitOfWork interface {
+//	    Begin(ctx context.Context) (Transaction, error)
+//	}
+//
+//	type Transaction interface {
+//	    Commit() error
+//	    Rollback() error
+//	    ProductRepository() ProductRepository
+//	}
+
+// ContextKey はコンテキストで使用するキーの型です。
+type ContextKey string

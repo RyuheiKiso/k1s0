@@ -1,0 +1,54 @@
+// Package services は {{ name_title }} ドメインのアプリケーションサービスを定義します。
+//
+// アプリケーションサービスはユースケースを実装し、
+// ドメインオブジェクトを協調させて処理を行います。
+package services
+
+import "context"
+
+// TODO: {{ name_title }} ドメインのアプリケーションサービスを定義してください
+//
+// 例:
+//
+//	type ProductService struct {
+//	    repo    ports.ProductRepository
+//	    pricing *domain_services.PricingService
+//	}
+//
+//	func NewProductService(repo ports.ProductRepository, pricing *domain_services.PricingService) *ProductService {
+//	    return &ProductService{repo: repo, pricing: pricing}
+//	}
+//
+//	type CreateProductInput struct {
+//	    Name        string
+//	    Description string
+//	    Price       int64
+//	    Currency    string
+//	}
+//
+//	type CreateProductOutput struct {
+//	    ID   string
+//	    Name string
+//	}
+//
+//	func (s *ProductService) CreateProduct(ctx context.Context, input CreateProductInput) (*CreateProductOutput, error) {
+//	    price, err := value_objects.NewMoney(input.Price, input.Currency)
+//	    if err != nil {
+//	        return nil, err
+//	    }
+//
+//	    product := entities.NewProduct(entities.NewProductID(), input.Name, price)
+//	    product.Description = input.Description
+//
+//	    if err := s.repo.Save(ctx, product); err != nil {
+//	        return nil, err
+//	    }
+//
+//	    return &CreateProductOutput{
+//	        ID:   product.ID.String(),
+//	        Name: product.Name,
+//	    }, nil
+//	}
+
+// ContextKey はコンテキストで使用するキーの型です。
+type ContextKey string

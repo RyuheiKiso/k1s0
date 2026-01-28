@@ -1,0 +1,27 @@
+// Package entities は {{ name_title }} ドメインのエンティティを定義します。
+//
+// エンティティは一意の識別子を持ち、ライフサイクルを通じて同一性が保たれるオブジェクトです。
+package entities
+
+// TODO: {{ name_title }} ドメインのエンティティを定義してください
+//
+// 例:
+//
+//	type Product struct {
+//	    ID          ProductID
+//	    Name        string
+//	    Description string
+//	    Price       Money
+//	    CreatedAt   time.Time
+//	    UpdatedAt   time.Time
+//	}
+//
+//	func NewProduct(id ProductID, name string, price Money) *Product {
+//	    return &Product{
+//	        ID:        id,
+//	        Name:      name,
+//	        Price:     price,
+//	        CreatedAt: time.Now(),
+//	        UpdatedAt: time.Now(),
+//	    }
+//	}

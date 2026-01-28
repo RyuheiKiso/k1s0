@@ -1,0 +1,24 @@
+// Package {{ name_snake }} は {{ name_title }} ドメインの共通ビジネスロジックを提供します。
+//
+// このパッケージは feature 層のサービスから依存され、ドメイン固有のビジネスロジックを共有します。
+//
+// # 構成
+//
+//   - internal/domain: エンティティ、値オブジェクト、ドメインサービス
+//   - internal/application: アプリケーションサービス（ユースケース）
+//   - internal/infrastructure: リポジトリ実装、外部サービス連携
+//
+// # 使用例
+//
+//	import (
+//	    "github.com/k1s0/domain/backend/go/{{ name }}/internal/domain/entities"
+//	    "github.com/k1s0/domain/backend/go/{{ name }}/internal/application/services"
+//	)
+//
+//	// エンティティの使用
+//	entity := entities.NewMyEntity(...)
+//
+//	// アプリケーションサービスの使用
+//	service := services.NewMyService(repository)
+//	result, err := service.Execute(ctx, input)
+package {{ name_snake }}

@@ -1,0 +1,104 @@
+# {{ name_title }} Domain
+
+{{ name_title }} ドメインの共通ビジネスロジックを提供する Dart パッケージです。
+
+## 概要
+
+このパッケージは {{ name_title }} に関連するビジネスロジックを集約し、
+複数の feature アプリケーションから共有して使用できるようにします。
+
+## ディレクトリ構造
+
+```
+lib/
+├── {{ name_snake }}.dart          # パッケージエントリポイント
+└── src/
+    ├── domain/                    # ドメイン層
+    │   ├── entities/              # エンティティ
+    │   ├── value_objects/         # 値オブジェクト
+    │   └── services/              # ドメインサービス
+    └── application/               # アプリケーション層
+        ├── services/              # アプリケーションサービス
+        └── dtos/                  # データ転送オブジェクト
+```
+
+## インストール
+
+`pubspec.yaml` に以下を追加：
+
+```yaml
+dependencies:
+  {{ name_snake }}:
+    path: ../../../../domain/frontend/flutter/{{ name }}
+```
+
+## 使用方法
+
+### feature からの依存
+
+```dart
+import 'package:{{ name_snake }}/{{ name_snake }}.dart';
+
+// エンティティの使用
+final entity = MyEntity(id: '123', name: 'example');
+
+// アプリケーションサービスの使用
+final service = MyService(repository: repository);
+final result = await service.execute(input);
+```
+
+## 開発ガイド
+
+### エンティティの追加
+
+1. `lib/src/domain/entities/` に新しいファイルを作成
+2. `@freezed` アノテーションを使用して不変クラスを定義
+3. `lib/src/domain/entities/entities.dart` にエクスポートを追加
+4. `dart run build_runner build` でコード生成
+
+### 値オブジェクトの追加
+
+1. `lib/src/domain/value_objects/` に新しいファイルを作成
+2. バリデーションロジックを実装
+3. `Equatable` を継承して値の等価性を保証
+
+### ドメインサービスの追加
+
+1. `lib/src/domain/services/` に新しいファイルを作成
+2. ビジネスロジックを実装
+3. 必要に応じてリポジトリインターフェースを定義
+
+## テスト
+
+```bash
+# 単体テスト
+dart test
+
+# カバレッジ付き
+dart test --coverage
+```
+
+## コード生成
+
+```bash
+# freezed/json_serializable のコード生成
+dart run build_runner build
+
+# ウォッチモード
+dart run build_runner watch
+```
+
+## バージョン管理
+
+このドメインは SemVer でバージョン管理されています。
+
+- **patch** (0.1.0 -> 0.1.1): バグ修正
+- **minor** (0.1.0 -> 0.2.0): 後方互換性のある機能追加
+- **major** (0.1.0 -> 1.0.0): 破壊的変更
+
+feature アプリケーションは `^0.1.0` のようなバージョン制約で依存します。
+
+## 関連ドキュメント
+
+- [k1s0 ドメイン開発ガイド](../../../../docs/guides/domain-development.md)
+- [Clean Architecture](../../../../docs/architecture/clean-architecture.md)

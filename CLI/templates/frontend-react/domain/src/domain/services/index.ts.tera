@@ -1,0 +1,33 @@
+/**
+ * ドメインサービス - 単一のエンティティに属さないビジネスロジック
+ *
+ * ドメインサービスは複数のエンティティや値オブジェクトを協調させて
+ * ビジネスロジックを実装します。
+ */
+
+// TODO: {{ name_title }} ドメインのドメインサービスを定義してください
+//
+// 例:
+//
+// import type { Product } from '../entities';
+// import type { Money } from '../value-objects';
+//
+// export interface DiscountPolicy {
+//   calculate(product: Product, quantity: number): Money;
+// }
+//
+// export class PricingService {
+//   constructor(private readonly discountPolicy: DiscountPolicy) {}
+//
+//   calculateTotalPrice(product: Product, quantity: number): Money {
+//     const basePrice = {
+//       amount: product.price.amount * quantity,
+//       currency: product.price.currency,
+//     };
+//     const discount = this.discountPolicy.calculate(product, quantity);
+//     return {
+//       amount: basePrice.amount - discount.amount,
+//       currency: basePrice.currency,
+//     };
+//   }
+// }

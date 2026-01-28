@@ -1,0 +1,35 @@
+/**
+ * データ転送オブジェクト（DTO） - レイヤー間のデータ受け渡し
+ *
+ * DTOはアプリケーション層と外部とのデータのやり取りに使用されます。
+ */
+
+import { z } from 'zod';
+
+// TODO: {{ name_title }} ドメインのDTOを定義してください
+//
+// 例:
+//
+// export const CreateProductRequestSchema = z.object({
+//   name: z.string().min(1).max(100),
+//   description: z.string().max(1000).optional(),
+//   price: z.number().positive(),
+//   currency: z.string().length(3),
+// });
+//
+// export type CreateProductRequest = z.infer<typeof CreateProductRequestSchema>;
+//
+// export const ProductResponseSchema = z.object({
+//   id: z.string().uuid(),
+//   name: z.string(),
+//   description: z.string().optional(),
+//   price: z.number(),
+//   currency: z.string(),
+//   createdAt: z.string().datetime(),
+//   updatedAt: z.string().datetime(),
+// });
+//
+// export type ProductResponse = z.infer<typeof ProductResponseSchema>;
+
+// Zod を再エクスポート（利便性のため）
+export { z };

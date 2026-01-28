@@ -1,0 +1,9 @@
+/// ドメイン層 - エンティティ、値オブジェクト、ドメインサービス
+///
+/// このモジュールはドメイン駆動設計（DDD）のドメイン層を構成します。
+/// ビジネスルールとビジネスロジックの中核を担います。
+library {{ name_snake }}.domain;
+
+export 'entities/entities.dart';
+export 'value_objects/value_objects.dart';
+export 'services/services.dart';

@@ -1,0 +1,7 @@
+/// アプリケーション層 - ユースケースとアプリケーションサービス
+///
+/// このモジュールはユースケースを実装し、ドメインオブジェクトを協調させて処理を行います。
+library {{ name_snake }}.application;
+
+export 'services/services.dart';
+export 'dtos/dtos.dart';

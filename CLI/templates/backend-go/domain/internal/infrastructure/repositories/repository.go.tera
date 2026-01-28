@@ -1,0 +1,33 @@
+// Package repositories は {{ name_title }} ドメインのリポジトリ実装を提供します。
+//
+// このパッケージは ports パッケージで定義されたインターフェースを実装します。
+package repositories
+
+import "context"
+
+// TODO: {{ name_title }} ドメインのリポジトリ実装を追加してください
+//
+// 例:
+//
+//	type PostgresProductRepository struct {
+//	    db *sql.DB
+//	}
+//
+//	func NewPostgresProductRepository(db *sql.DB) *PostgresProductRepository {
+//	    return &PostgresProductRepository{db: db}
+//	}
+//
+//	func (r *PostgresProductRepository) FindByID(ctx context.Context, id entities.ProductID) (*entities.Product, error) {
+//	    row := r.db.QueryRowContext(ctx, "SELECT id, name, description, price, currency FROM products WHERE id = $1", id.String())
+//	    // ...
+//	}
+//
+//	func (r *PostgresProductRepository) Save(ctx context.Context, product *entities.Product) error {
+//	    _, err := r.db.ExecContext(ctx,
+//	        "INSERT INTO products (id, name, description, price, currency) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (id) DO UPDATE SET name = $2, description = $3, price = $4, currency = $5",
+//	        product.ID.String(), product.Name, product.Description, product.Price.Amount(), product.Price.Currency())
+//	    return err
+//	}
+
+// ContextKey はコンテキストで使用するキーの型です。
+type ContextKey string

@@ -1,0 +1,32 @@
+/**
+ * 値オブジェクト - 不変で値の等価性によって比較されるオブジェクト
+ *
+ * 値オブジェクトは属性の組み合わせによって定義され、不変です。
+ */
+
+import { z } from 'zod';
+
+// TODO: {{ name_title }} ドメインの値オブジェクトを定義してください
+//
+// 例:
+//
+// export const MoneySchema = z.object({
+//   amount: z.number().nonnegative(),
+//   currency: z.string().length(3),
+// });
+//
+// export type Money = z.infer<typeof MoneySchema>;
+//
+// export function createMoney(amount: number, currency: string): Money {
+//   return MoneySchema.parse({ amount, currency });
+// }
+//
+// export function addMoney(a: Money, b: Money): Money {
+//   if (a.currency !== b.currency) {
+//     throw new Error('Currency mismatch');
+//   }
+//   return createMoney(a.amount + b.amount, a.currency);
+// }
+
+// Zod を再エクスポート（利便性のため）
+export { z };
