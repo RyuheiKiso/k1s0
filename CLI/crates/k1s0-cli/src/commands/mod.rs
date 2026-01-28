@@ -5,6 +5,7 @@
 pub mod completions;
 pub mod init;
 pub mod lint;
+pub mod new_domain;
 pub mod new_feature;
 pub mod new_screen;
 pub mod registry;

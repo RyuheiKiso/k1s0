@@ -56,6 +56,16 @@ impl ServiceType {
         }
     }
 
+    /// domain ディレクトリのベースパスを取得
+    fn domain_base(&self) -> &'static str {
+        match self {
+            ServiceType::BackendRust => "domain/backend/rust",
+            ServiceType::BackendGo => "domain/backend/go",
+            ServiceType::FrontendReact => "domain/frontend/react",
+            ServiceType::FrontendFlutter => "domain/frontend/flutter",
+        }
+    }
+
     /// 言語名を取得
     fn language(&self) -> &'static str {
         match self {
@@ -97,6 +107,10 @@ pub struct NewFeatureArgs {
     #[arg(short, long)]
     pub name: String,
 
+    /// 所属する domain 名（省略時は domain に属さない独立した feature として作成）
+    #[arg(long)]
+    pub domain: Option<String>,
+
     /// 生成先ディレクトリ（デフォルト: feature/{type}/{name}/）
     #[arg(short, long)]
     pub output: Option<String>,
@@ -118,6 +132,17 @@ pub struct NewFeatureArgs {
     pub with_db: bool,
 }
 
+/// Domain 情報
+struct DomainInfo {
+    /// domain 名
+    name: String,
+    /// domain のバージョン
+    version: String,
+    /// domain へのパス（将来の拡張用）
+    #[allow(dead_code)]
+    path: PathBuf,
+}
+
 /// `k1s0 new-feature` を実行する
 pub fn execute(args: NewFeatureArgs) -> Result<()> {
     let out = output();
@@ -126,6 +151,13 @@ pub fn execute(args: NewFeatureArgs) -> Result<()> {
     if !is_valid_kebab_case(&args.name) {
         return Err(CliError::invalid_service_name(&args.name));
     }
+
+    // domain が指定されている場合、存在チェックとバージョン取得
+    let domain_info = if let Some(ref domain_name) = args.domain {
+        Some(validate_and_get_domain_info(args.service_type, domain_name)?)
+    } else {
+        None
+    };
 
     // 出力パスを決定
     let output_path = args.output.clone().unwrap_or_else(|| {
@@ -139,6 +171,11 @@ pub fn execute(args: NewFeatureArgs) -> Result<()> {
     out.list_item("type", &args.service_type.to_string());
     out.list_item("name", &args.name);
     out.list_item("output", &output_path);
+    out.list_item("layer", "feature");
+    if let Some(ref info) = domain_info {
+        out.list_item("domain", &info.name);
+        out.list_item("domain_version", &format!("^{}", &info.version));
+    }
     out.list_item("with_grpc", &args.with_grpc.to_string());
     out.list_item("with_rest", &args.with_rest.to_string());
     out.list_item("with_db", &args.with_db.to_string());
@@ -178,7 +215,7 @@ pub fn execute(args: NewFeatureArgs) -> Result<()> {
     out.info("テンプレートを展開中...");
 
     // Tera コンテキストを作成
-    let context = create_template_context(&args);
+    let context = create_template_context(&args, domain_info.as_ref());
 
     // テンプレートを展開
     let renderer = TemplateRenderer::new(&template_dir).map_err(|e| {
@@ -196,7 +233,7 @@ pub fn execute(args: NewFeatureArgs) -> Result<()> {
     }
 
     // manifest.json を作成
-    let manifest = create_manifest(&args, &template_dir, &fingerprint)?;
+    let manifest = create_manifest(&args, &fingerprint, domain_info.as_ref())?;
     let k1s0_dir = output_dir.join(".k1s0");
     std::fs::create_dir_all(&k1s0_dir).map_err(|e| {
         CliError::io(format!(".k1s0 ディレクトリの作成に失敗: {}: {}", k1s0_dir.display(), e))
@@ -220,6 +257,85 @@ pub fn execute(args: NewFeatureArgs) -> Result<()> {
     out.hint("k1s0 lint でサービスの規約準拠を確認");
 
     Ok(())
+}
+
+/// domain の存在チェックとバージョン取得
+fn validate_and_get_domain_info(
+    service_type: ServiceType,
+    domain_name: &str,
+) -> Result<DomainInfo> {
+    let domain_base = service_type.domain_base();
+    let domain_path = PathBuf::from(format!("{}/{}", domain_base, domain_name));
+
+    // domain ディレクトリの存在チェック
+    if !domain_path.exists() {
+        return Err(CliError::config(format!(
+            "domain '{}' が見つかりません",
+            domain_name
+        ))
+        .with_target(domain_path.display().to_string())
+        .with_hint(format!(
+            "まず 'k1s0 new-domain --type {} --name {}' で domain を作成してください",
+            service_type, domain_name
+        )));
+    }
+
+    // manifest.json の存在チェック
+    let manifest_path = domain_path.join(".k1s0/manifest.json");
+    if !manifest_path.exists() {
+        return Err(CliError::config(format!(
+            "domain '{}' の manifest.json が見つかりません",
+            domain_name
+        ))
+        .with_target(manifest_path.display().to_string())
+        .with_hint("domain が正しく作成されていることを確認してください"));
+    }
+
+    // manifest.json からバージョンを取得
+    let manifest_content = std::fs::read_to_string(&manifest_path).map_err(|e| {
+        CliError::io(format!("manifest.json の読み込みに失敗: {}", e))
+    })?;
+
+    let version = extract_domain_version(&manifest_content)?;
+
+    Ok(DomainInfo {
+        name: domain_name.to_string(),
+        version,
+        path: domain_path,
+    })
+}
+
+/// manifest.json からバージョンを抽出する
+fn extract_domain_version(manifest_content: &str) -> Result<String> {
+    // JSON からバージョンを抽出
+    let json: serde_json::Value = serde_json::from_str(manifest_content).map_err(|e| {
+        CliError::config(format!("manifest.json のパースに失敗: {}", e))
+    })?;
+
+    // まず service.version を探す（既存のスキーマ）
+    if let Some(version) = json.get("service").and_then(|s| s.get("version")).and_then(|v| v.as_str()) {
+        return Ok(version.to_string());
+    }
+
+    // 次に k1s0_version を使用（domain の初期バージョンとして）
+    if json.get("k1s0_version").and_then(|v| v.as_str()).is_some() {
+        // domain の場合は 0.1.0 から開始するのがデフォルト
+        return Ok("0.1.0".to_string());
+    }
+
+    // バージョンが見つからない場合はデフォルト
+    Ok("0.1.0".to_string())
+}
+
+/// バージョン制約を生成する（^major.minor.0 形式）
+fn generate_version_constraint(version: &str) -> String {
+    // SemVer をパースして ^major.minor.0 形式に変換
+    let parts: Vec<&str> = version.split('.').collect();
+    if parts.len() >= 2 {
+        format!("^{}.{}.0", parts[0], parts[1])
+    } else {
+        format!("^{}", version)
+    }
 }
 
 /// テンプレートディレクトリを検索する
@@ -255,7 +371,7 @@ fn find_template_dir(service_type: ServiceType) -> Result<PathBuf> {
 }
 
 /// テンプレート用のコンテキストを作成する
-fn create_template_context(args: &NewFeatureArgs) -> Context {
+fn create_template_context(args: &NewFeatureArgs, domain_info: Option<&DomainInfo>) -> Context {
     let mut context = Context::new();
 
     // 基本情報
@@ -263,6 +379,7 @@ fn create_template_context(args: &NewFeatureArgs) -> Context {
     context.insert("service_name", &args.name);
     context.insert("language", args.service_type.language());
     context.insert("service_type", args.service_type.service_type_name());
+    context.insert("layer", "feature");
     context.insert("k1s0_version", version());
 
     // 命名規則の変換
@@ -270,6 +387,18 @@ fn create_template_context(args: &NewFeatureArgs) -> Context {
     context.insert("feature_name_pascal", &to_pascal_case(&args.name));
     context.insert("feature_name_kebab", &args.name); // kebab-case はそのまま
     context.insert("feature_name_title", &to_title_case(&args.name));
+
+    // domain 情報
+    if let Some(info) = domain_info {
+        context.insert("domain", &info.name);
+        context.insert("domain_name", &info.name);
+        context.insert("domain_name_snake", &info.name.replace('-', "_"));
+        context.insert("domain_version", &info.version);
+        context.insert("domain_version_constraint", &generate_version_constraint(&info.version));
+        context.insert("has_domain", &true);
+    } else {
+        context.insert("has_domain", &false);
+    }
 
     // オプション
     context.insert("with_grpc", &args.with_grpc);
@@ -285,8 +414,8 @@ fn create_template_context(args: &NewFeatureArgs) -> Context {
 /// manifest.json を作成する
 fn create_manifest(
     args: &NewFeatureArgs,
-    _template_dir: &PathBuf,
     fingerprint: &str,
+    domain_info: Option<&DomainInfo>,
 ) -> Result<Manifest> {
     let managed_paths = get_managed_paths(args.service_type);
     let protected_paths = get_protected_paths(args.service_type);
@@ -314,7 +443,15 @@ fn create_manifest(
         protected_paths,
         update_policy,
         checksums: std::collections::HashMap::new(),
-        dependencies: None,
+        dependencies: domain_info.map(|info| {
+            k1s0_generator::manifest::Dependencies {
+                framework_crates: vec![],
+                domain: Some(k1s0_generator::manifest::DomainDependency {
+                    name: info.name.clone(),
+                    version: generate_version_constraint(&info.version),
+                }),
+            }
+        }),
     })
 }
 
@@ -459,5 +596,21 @@ mod tests {
         assert!(!is_valid_kebab_case("user-")); // 末尾ハイフン
         assert!(!is_valid_kebab_case("user--management")); // 連続ハイフン
         assert!(!is_valid_kebab_case("2user")); // 先頭数字
+    }
+
+    #[test]
+    fn test_generate_version_constraint() {
+        assert_eq!(generate_version_constraint("1.2.3"), "^1.2.0");
+        assert_eq!(generate_version_constraint("0.1.0"), "^0.1.0");
+        assert_eq!(generate_version_constraint("2.0.0"), "^2.0.0");
+        assert_eq!(generate_version_constraint("1.5.10"), "^1.5.0");
+    }
+
+    #[test]
+    fn test_domain_base() {
+        assert_eq!(ServiceType::BackendRust.domain_base(), "domain/backend/rust");
+        assert_eq!(ServiceType::BackendGo.domain_base(), "domain/backend/go");
+        assert_eq!(ServiceType::FrontendReact.domain_base(), "domain/frontend/react");
+        assert_eq!(ServiceType::FrontendFlutter.domain_base(), "domain/frontend/flutter");
     }
 }

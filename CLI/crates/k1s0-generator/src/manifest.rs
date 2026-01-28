@@ -257,6 +257,10 @@ pub struct Dependencies {
     /// framework crates
     #[serde(default)]
     pub framework_crates: Vec<CrateDependency>,
+
+    /// domain 依存（feature 層のみ）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub domain: Option<DomainDependency>,
 }
 
 /// crate 依存
@@ -265,6 +269,15 @@ pub struct CrateDependency {
     /// crate 名
     pub name: String,
     /// バージョン
+    pub version: String,
+}
+
+/// domain 依存
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DomainDependency {
+    /// domain 名
+    pub name: String,
+    /// バージョン制約（例: ^1.2.0）
     pub version: String,
 }
 

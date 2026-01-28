@@ -1,0 +1,27 @@
+//! {{ name_title }} domain 統合テスト
+
+use {{ name_snake }}::*;
+
+#[tokio::test]
+async fn test_domain_setup() {
+    // このテストは domain が正しくセットアップされていることを確認します
+    // TODO: 実際のテストを追加してください
+}
+
+#[tokio::test]
+async fn test_domain_entities() {
+    // エンティティのテスト
+    // TODO: エンティティを追加したらテストを実装してください
+}
+
+#[tokio::test]
+async fn test_domain_services() {
+    // ドメインサービスのテスト
+    // TODO: ドメインサービスを追加したらテストを実装してください
+}
+
+#[tokio::test]
+async fn test_application_services() {
+    // アプリケーションサービスのテスト
+    // TODO: アプリケーションサービスを追加したらテストを実装してください
+}

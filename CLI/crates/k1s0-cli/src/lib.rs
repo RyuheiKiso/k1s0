@@ -85,6 +85,10 @@ pub enum Commands {
     /// リポジトリを初期化し、.k1s0/ ディレクトリを作成する
     Init(commands::init::InitArgs),
 
+    /// 新しい domain（業務領域共通ライブラリ）を作成する
+    #[command(name = "new-domain")]
+    NewDomain(commands::new_domain::NewDomainArgs),
+
     /// 新規サービスの雛形を生成する
     #[command(name = "new-feature")]
     NewFeature(commands::new_feature::NewFeatureArgs),

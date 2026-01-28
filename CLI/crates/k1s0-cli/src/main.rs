@@ -12,6 +12,7 @@ fn main() -> std::process::ExitCode {
     // コマンドを実行
     let result = match cli.command {
         Commands::Init(args) => k1s0_cli::commands::init::execute(args),
+        Commands::NewDomain(args) => k1s0_cli::commands::new_domain::execute(args),
         Commands::NewFeature(args) => k1s0_cli::commands::new_feature::execute(args),
         Commands::NewScreen(args) => k1s0_cli::commands::new_screen::execute(args),
         Commands::Lint(args) => k1s0_cli::commands::lint::execute(args),

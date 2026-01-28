@@ -1,0 +1,44 @@
+{
+  "$schema": "https://k1s0.dev/schemas/manifest.json",
+  "schema_version": "1.0.0",
+  "k1s0_version": "{{ k1s0_version }}",
+  "template": {
+    "name": "{{ template_type }}",
+    "version": "{{ template_version }}",
+    "source": "local",
+    "path": "CLI/templates/{{ template_type }}/domain",
+    "fingerprint": "{{ fingerprint }}"
+  },
+  "service": {
+    "service_name": "{{ name }}",
+    "language": "{{ language }}",
+    "type": "{{ service_type }}"
+  },
+  "layer": "domain",
+  "domain": null,
+  "generated_at": "{{ created_at }}",
+  "managed_paths": [
+    "Cargo.toml"
+  ],
+  "protected_paths": [
+    "src/domain/",
+    "src/application/",
+    "src/infrastructure/",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "update_policy": {
+    "src/domain/": "protected",
+    "src/application/": "protected",
+    "src/infrastructure/": "protected",
+    "README.md": "suggest_only",
+    "CHANGELOG.md": "suggest_only"
+  },
+  "checksums": {},
+  "dependencies": {
+    "framework_crates": [
+      { "name": "k1s0-error", "version": "{{ k1s0_version }}" },
+      { "name": "k1s0-config", "version": "{{ k1s0_version }}" }
+    ]
+  }
+}

@@ -1108,6 +1108,7 @@ dependencies = [
  "k1s0-generator",
  "once_cell",
  "predicates",
+ "regex",
  "serde",
  "serde_json",
  "serde_yaml",
