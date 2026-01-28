@@ -21,8 +21,8 @@ react/
     ├── k1s0-shell/          # AppShell（Header/Footer/Menu）（実装済み）
     ├── k1s0-auth-client/    # 認証クライアント（実装済み）
     ├── k1s0-observability/  # OTel/ログ/trace_id 相関（実装済み）
-    ├── eslint-config-k1s0/  # ESLint ルール（未実装）
-    └── tsconfig-k1s0/       # TypeScript 設定（未実装）
+    ├── eslint-config-k1s0/  # ESLint ルール（実装済み）
+    └── tsconfig-k1s0/       # TypeScript 設定（実装済み）
 ```
 
 ## パッケージ一覧
@@ -118,12 +118,44 @@ API通信クライアント。
 
 詳細は [packages/k1s0-observability/README.md](./packages/k1s0-observability/README.md) を参照。
 
-### 未実装パッケージ
+### eslint-config-k1s0（実装済み）
 
-以下のパッケージは後続フェーズで実装予定。
+k1s0 React/TypeScript プロジェクト向け共有 ESLint 設定。
 
-- `eslint-config-k1s0` - ESLint ルール
-- `tsconfig-k1s0` - TypeScript 設定
+| 設定 | 説明 | 用途 |
+|-----|------|------|
+| `@k1s0/eslint-config` | 完全推奨設定 | React + TypeScript アプリ |
+| `@k1s0/eslint-config/base` | 基本 JavaScript ルール | プレーン JS プロジェクト |
+| `@k1s0/eslint-config/typescript` | TypeScript ルール | TypeScript（非 React） |
+| `@k1s0/eslint-config/react` | React + TypeScript ルール | React アプリケーション |
+
+含まれるルール:
+- ESLint 推奨ルール、Import 整理
+- `@typescript-eslint/recommended` + type-checked
+- `react/recommended`、`react-hooks/recommended`
+- `jsx-a11y/recommended`（アクセシビリティ）
+- `eslint-config-prettier`（Prettier 統合）
+
+詳細は [packages/eslint-config-k1s0/README.md](./packages/eslint-config-k1s0/README.md) を参照。
+
+### tsconfig-k1s0（実装済み）
+
+k1s0 プロジェクト向け共有 TypeScript 設定。
+
+| 設定 | 説明 | 用途 |
+|-----|------|------|
+| `@k1s0/tsconfig/base.json` | 厳格な基本設定 | 全プロジェクト（基盤） |
+| `@k1s0/tsconfig/react.json` | React アプリ設定 | React アプリ + バンドラー |
+| `@k1s0/tsconfig/library.json` | ライブラリ/パッケージ設定 | 共有パッケージ |
+| `@k1s0/tsconfig/node.json` | Node.js アプリ設定 | バックエンド/CLI ツール |
+
+主な特徴:
+- `strict: true` + `noUncheckedIndexedAccess`（厳格な型チェック）
+- `moduleResolution: "bundler"`（モダンバンドラー最適化）
+- `verbatimModuleSyntax`（明示的な型インポート強制）
+- React 17+ 自動 JSX 変換対応
+
+詳細は [packages/tsconfig-k1s0/README.md](./packages/tsconfig-k1s0/README.md) を参照。
 
 ## 開発
 
