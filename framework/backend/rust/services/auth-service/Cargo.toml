@@ -7,9 +7,10 @@ license = "MIT"
 
 [dependencies]
 # k1s0 framework crates
-# TODO: k1s0-observability has build errors, will be fixed later
-# k1s0-observability = { path = "../../crates/k1s0-observability" }
-# k1s0-config = { path = "../../crates/k1s0-config" }
+k1s0-observability = { path = "../../crates/k1s0-observability" }
+k1s0-config = { path = "../../crates/k1s0-config" }
+k1s0-error = { path = "../../crates/k1s0-error" }
+k1s0-validation = { path = "../../crates/k1s0-validation" }
 # k1s0-db = { path = "../../crates/k1s0-db", features = ["postgres"] }
 # k1s0-grpc-server = { path = "../../crates/k1s0-grpc-server" }
 # k1s0-health = { path = "../../crates/k1s0-health" }

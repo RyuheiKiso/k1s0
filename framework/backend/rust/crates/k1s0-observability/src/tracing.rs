@@ -542,9 +542,7 @@ pub fn init_tracing_with_logging(
     // JSON ロギングレイヤー
     let json_layer = fmt::layer()
         .json()
-        .with_timer(UtcTime::new(
-            "[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond digits:3]Z",
-        ))
+        .with_timer(UtcTime::rfc_3339())
         .with_current_span(true)
         .with_span_list(false)
         .with_target(true)
@@ -593,9 +591,7 @@ pub fn init_tracing(config: &ObservabilityConfig) -> Result<TracingGuard, Tracin
 
     let json_layer = fmt::layer()
         .json()
-        .with_timer(UtcTime::new(
-            "[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond digits:3]Z",
-        ))
+        .with_timer(UtcTime::rfc_3339())
         .with_current_span(true)
         .with_span_list(false)
         .with_target(true)
@@ -608,7 +604,9 @@ pub fn init_tracing(config: &ObservabilityConfig) -> Result<TracingGuard, Tracin
         .with(filter)
         .with(json_layer)
         .try_init()
-        .map_err(|e| TracingError::SubscriberFailed(e.to_string()))?;
+        .map_err(|e: tracing_subscriber::util::TryInitError| {
+            TracingError::SubscriberFailed(e.to_string())
+        })?;
 
     Ok(TracingGuard::new())
 }

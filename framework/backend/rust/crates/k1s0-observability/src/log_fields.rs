@@ -138,6 +138,14 @@ pub struct LogEntry {
     #[serde(rename = "request.id", skip_serializing_if = "Option::is_none")]
     pub request_id: Option<String>,
 
+    // === エラー情報 ===
+    #[serde(rename = "error.kind", skip_serializing_if = "Option::is_none")]
+    pub error_kind: Option<String>,
+    #[serde(rename = "error.code", skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
+    #[serde(rename = "error.message", skip_serializing_if = "Option::is_none")]
+    pub error_message: Option<String>,
+
     // === 追加フィールド ===
     #[serde(flatten, skip_serializing_if = "Option::is_none")]
     pub extra: Option<serde_json::Value>,
@@ -156,6 +164,9 @@ impl LogEntry {
             trace_id: None,
             span_id: None,
             request_id: None,
+            error_kind: None,
+            error_code: None,
+            error_message: None,
             extra: None,
         }
     }
