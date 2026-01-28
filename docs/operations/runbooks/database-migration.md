@@ -234,6 +234,21 @@ kubectl logs -l job-name={service_name}-migration
 k1s0 db rollback --env {env}
 ```
 
+### 8.1.1 部分的に適用されたマイグレーションの対処
+
+マイグレーションが途中で失敗した場合、DB 状態が不整合になる可能性があります。
+
+```bash
+# マイグレーション履歴テーブルを確認
+kubectl exec -it {db_pod} -- psql -c "SELECT * FROM _k1s0_migrations ORDER BY applied_at DESC LIMIT 10"
+
+# 不完全なマイグレーションをマーク
+kubectl exec -it {db_pod} -- psql -c "UPDATE _k1s0_migrations SET status = 'failed' WHERE version = '{version}'"
+
+# 手動で状態を修正後、再適用
+k1s0 db migrate --env {env} --from-version {version}
+```
+
 ### 8.2 ロックタイムアウト
 
 ```bash

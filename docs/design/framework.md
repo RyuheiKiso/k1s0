@@ -1129,6 +1129,56 @@ pub struct PoolConfig {
 }
 ```
 
+#### コネクションプール詳細
+
+##### プールサイズの設定指針
+
+| 環境 | max_connections | min_connections | 備考 |
+|------|-----------------|-----------------|------|
+| 開発 | 5 | 1 | リソース節約 |
+| ステージング | 10 | 2 | 本番に近い設定 |
+| 本番 | 20-50 | 5-10 | トラフィックに応じて調整 |
+
+**計算式の目安:**
+```
+max_connections = (CPU コア数 * 2) + effective_spindle_count
+```
+
+##### タイムアウト設定
+
+| パラメータ | 説明 | 推奨値 |
+|-----------|------|--------|
+| `idle_timeout_secs` | アイドル接続のタイムアウト | 300-600秒 |
+| `max_lifetime_secs` | 接続の最大生存時間 | 1800秒（30分） |
+| `connection_timeout_secs` | 接続確立のタイムアウト | 5-10秒 |
+| `acquire_timeout_secs` | プールからの取得タイムアウト | 5-30秒 |
+
+##### プール監視
+
+```rust
+// プールの状態を取得
+let pool_state = pool.state();
+println!("接続数: {} / {}", pool_state.connections, pool_state.max_connections);
+println!("アイドル接続: {}", pool_state.idle_connections);
+println!("待機中リクエスト: {}", pool_state.pending_requests);
+
+// メトリクス出力（OpenTelemetry 連携）
+pool.export_metrics(&meter);
+```
+
+##### 枯渇対策
+
+1. **接続リーク検知**: `acquire_timeout` を設定し、取得できない場合にエラーログを出力
+2. **ヘルスチェック**: 定期的に `pool.health_check()` を実行
+3. **アラート設定**: `pending_requests > 0` が続く場合に通知
+
+```rust
+// 接続ヘルスチェック
+if let Err(e) = pool.health_check().await {
+    tracing::error!(error = %e, "Pool health check failed");
+}
+```
+
 #### TransactionOptions
 
 ```rust
@@ -1154,6 +1204,80 @@ impl TransactionOptions {
     pub fn read_only() -> Self;
     pub fn serializable() -> Self;
     pub fn with_isolation_level(self, level: IsolationLevel) -> Self;
+}
+```
+
+#### 分離レベル選択ガイド
+
+| 分離レベル | ユースケース | 注意点 |
+|-----------|-------------|--------|
+| `ReadUncommitted` | ダーティリードを許容する集計処理 | 本番では非推奨 |
+| `ReadCommitted` | 一般的な CRUD 操作（デフォルト） | ファントムリードの可能性あり |
+| `RepeatableRead` | レポート生成、一貫性が必要な読み取り | 更新競合に注意 |
+| `Serializable` | 金融取引、在庫管理 | デッドロックリスク、性能低下 |
+
+##### ユースケース別の推奨設定
+
+**1. 通常の CRUD 操作:**
+```rust
+// デフォルト（ReadCommitted）を使用
+let options = TransactionOptions::new();
+```
+
+**2. 残高更新などの金融取引:**
+```rust
+// Serializable + リトライロジック
+let options = TransactionOptions::serializable();
+let result = retry_with_backoff(3, || async {
+    uow.execute_with_options(&options, |tx| async {
+        let balance = tx.get_balance(user_id).await?;
+        tx.update_balance(user_id, balance - amount).await
+    }).await
+}).await;
+```
+
+**3. 大量データの読み取り専用レポート:**
+```rust
+// ReadOnly + RepeatableRead
+let options = TransactionOptions::read_only()
+    .with_isolation_level(IsolationLevel::RepeatableRead);
+```
+
+**4. 楽観的ロックとの組み合わせ:**
+```rust
+// ReadCommitted + version チェック
+let entity = repository.find_by_id(id).await?;
+entity.version += 1;
+match repository.update_with_version(&entity).await {
+    Err(DbError::OptimisticLockError) => {
+        // リトライまたはエラー
+    }
+    Ok(_) => {}
+}
+```
+
+##### デッドロック対策
+
+1. **一貫したロック順序**: テーブル/行のロック順序を統一
+2. **タイムアウト設定**: `statement_timeout` を設定
+3. **リトライロジック**: デッドロック検出時に自動リトライ
+
+```rust
+// デッドロック検出とリトライ
+pub async fn with_deadlock_retry<F, T>(f: F) -> DbResult<T>
+where
+    F: Fn() -> Future<Output = DbResult<T>>,
+{
+    for attempt in 0..3 {
+        match f().await {
+            Err(DbError::Deadlock) => {
+                tracing::warn!(attempt, "Deadlock detected, retrying");
+                tokio::time::sleep(Duration::from_millis(100 * (attempt + 1))).await;
+            }
+            result => return result,
+        }
+    }
+    Err(DbError::MaxRetriesExceeded)
 }
 ```
 
@@ -1629,6 +1753,103 @@ pub struct CacheConfig {
 
 impl CacheConfig {
     pub fn builder() -> CacheConfigBuilder;
+}
+```
+
+#### TTL 管理戦略
+
+##### TTL 設定のベストプラクティス
+
+| データ種別 | 推奨 TTL | 理由 |
+|-----------|---------|------|
+| セッション | 30分-24時間 | セキュリティ要件に依存 |
+| ユーザープロファイル | 1-24時間 | 更新頻度が低い |
+| 商品カタログ | 5-60分 | 更新時に明示的に無効化 |
+| API レスポンス | 1-5分 | リアルタイム性とのバランス |
+| 計算結果キャッシュ | 処理時間に比例 | 再計算コストに応じて |
+
+##### TTL 設定パターン
+
+```rust
+/// TTL 設定の定数定義（推奨）
+pub mod cache_ttl {
+    use std::time::Duration;
+
+    pub const SESSION: Duration = Duration::from_secs(30 * 60);        // 30分
+    pub const USER_PROFILE: Duration = Duration::from_secs(60 * 60);   // 1時間
+    pub const CATALOG: Duration = Duration::from_secs(5 * 60);         // 5分
+    pub const API_RESPONSE: Duration = Duration::from_secs(60);        // 1分
+}
+
+// 使用例
+client.set("user:123", &user, Some(cache_ttl::USER_PROFILE)).await?;
+```
+
+##### スライディング TTL
+
+アクセスごとに TTL をリセットするパターン。セッション管理に有効。
+
+```rust
+/// アクセス時に TTL を延長
+pub async fn get_with_refresh<T>(&self, key: &str, ttl: Duration) -> CacheResult<Option<T>> {
+    if let Some(value) = self.get::<T>(key).await? {
+        // TTL をリセット
+        self.expire(key, ttl).await?;
+        Ok(Some(value))
+    } else {
+        Ok(None)
+    }
+}
+```
+
+#### エビクションポリシー
+
+##### Redis のエビクションポリシー設定
+
+| ポリシー | 説明 | ユースケース |
+|---------|------|-------------|
+| `noeviction` | メモリ上限でエラー | データ損失を許容しない |
+| `allkeys-lru` | LRU で削除 | 一般的なキャッシュ |
+| `volatile-lru` | TTL 付きキーを LRU で削除 | 永続データとキャッシュの混在 |
+| `allkeys-lfu` | LFU で削除 | アクセス頻度重視 |
+| `volatile-ttl` | TTL が近いキーを優先削除 | 時間ベースの優先度 |
+
+**推奨設定（redis.conf）:**
+```
+maxmemory 1gb
+maxmemory-policy allkeys-lru
+maxmemory-samples 10
+```
+
+##### メモリ使用量の監視
+
+```rust
+// Redis INFO コマンドでメモリ使用量を取得
+let info = client.info("memory").await?;
+let used_memory: u64 = info.get("used_memory")?;
+let maxmemory: u64 = info.get("maxmemory")?;
+
+let usage_ratio = used_memory as f64 / maxmemory as f64;
+if usage_ratio > 0.8 {
+    tracing::warn!(usage = %usage_ratio, "Cache memory usage high");
+}
+```
+
+##### キャッシュウォーミング
+
+コールドスタート時のキャッシュミス急増を防ぐ。
+
+```rust
+/// 起動時にキャッシュをプリロード
+pub async fn warm_cache(&self, keys: &[String]) -> CacheResult<()> {
+    let batch_size = 100;
+    for chunk in keys.chunks(batch_size) {
+        let futures: Vec<_> = chunk.iter()
+            .map(|key| self.load_to_cache(key))
+            .collect();
+        futures::future::join_all(futures).await;
+    }
+    Ok(())
 }
 ```
 
