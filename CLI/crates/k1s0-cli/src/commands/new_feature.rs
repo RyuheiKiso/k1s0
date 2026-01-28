@@ -9,13 +9,14 @@ use clap::{Args, ValueEnum};
 
 use k1s0_generator::fingerprint::calculate_fingerprint;
 use k1s0_generator::manifest::{
-    Manifest, ServiceInfo, TemplateInfo, UpdatePolicy, SCHEMA_VERSION,
+    Dependencies, LayerType, Manifest, ServiceInfo, TemplateInfo, UpdatePolicy, SCHEMA_VERSION,
 };
 use k1s0_generator::template::TemplateRenderer;
 use k1s0_generator::Context;
 
 use crate::error::{CliError, Result};
 use crate::output::output;
+use crate::prompts;
 use crate::version;
 
 /// サービスタイプ
@@ -37,7 +38,7 @@ pub enum ServiceType {
 
 impl ServiceType {
     /// テンプレートディレクトリの相対パスを取得
-    fn template_path(&self) -> &'static str {
+    pub fn template_path(&self) -> &'static str {
         match self {
             ServiceType::BackendRust => "CLI/templates/backend-rust/feature",
             ServiceType::BackendGo => "CLI/templates/backend-go/feature",
@@ -47,7 +48,7 @@ impl ServiceType {
     }
 
     /// 出力ディレクトリのベースパスを取得
-    fn output_base(&self) -> &'static str {
+    pub fn output_base(&self) -> &'static str {
         match self {
             ServiceType::BackendRust => "feature/backend/rust",
             ServiceType::BackendGo => "feature/backend/go",
@@ -56,8 +57,18 @@ impl ServiceType {
         }
     }
 
+    /// domain ディレクトリのベースパスを取得
+    pub fn domain_base(&self) -> &'static str {
+        match self {
+            ServiceType::BackendRust => "domain/backend/rust",
+            ServiceType::BackendGo => "domain/backend/go",
+            ServiceType::FrontendReact => "domain/frontend/react",
+            ServiceType::FrontendFlutter => "domain/frontend/flutter",
+        }
+    }
+
     /// 言語名を取得
-    fn language(&self) -> &'static str {
+    pub fn language(&self) -> &'static str {
         match self {
             ServiceType::BackendRust => "rust",
             ServiceType::BackendGo => "go",
@@ -67,7 +78,7 @@ impl ServiceType {
     }
 
     /// サービスタイプ名を取得
-    fn service_type_name(&self) -> &'static str {
+    pub fn service_type_name(&self) -> &'static str {
         match self {
             ServiceType::BackendRust | ServiceType::BackendGo => "backend",
             ServiceType::FrontendReact | ServiceType::FrontendFlutter => "frontend",
@@ -91,11 +102,15 @@ impl std::fmt::Display for ServiceType {
 pub struct NewFeatureArgs {
     /// サービスタイプ
     #[arg(short = 't', long = "type", value_enum)]
-    pub service_type: ServiceType,
+    pub service_type: Option<ServiceType>,
 
     /// サービス名（kebab-case）
     #[arg(short, long)]
-    pub name: String,
+    pub name: Option<String>,
+
+    /// 所属する domain 名（省略時は domain に属さない独立した feature として作成）
+    #[arg(long)]
+    pub domain: Option<String>,
 
     /// 生成先ディレクトリ（デフォルト: feature/{type}/{name}/）
     #[arg(short, long)]
@@ -116,16 +131,157 @@ pub struct NewFeatureArgs {
     /// DB マイグレーションを含める
     #[arg(long)]
     pub with_db: bool,
+
+    /// 対話モードを強制する
+    #[arg(short = 'i', long)]
+    pub interactive: bool,
+}
+
+impl NewFeatureArgs {
+    /// 必須引数がすべて提供されているかどうか
+    fn has_required_args(&self) -> bool {
+        self.service_type.is_some() && self.name.is_some()
+    }
+}
+
+/// 解決済みの引数（対話入力後）
+struct ResolvedArgs {
+    service_type: ServiceType,
+    name: String,
+    domain: Option<String>,
+    output: Option<String>,
+    force: bool,
+    with_grpc: bool,
+    with_rest: bool,
+    with_db: bool,
+}
+
+/// Domain 情報
+struct DomainInfo {
+    /// domain 名
+    name: String,
+    /// domain のバージョン
+    version: String,
+    /// domain へのパス（将来の拡張用）
+    #[allow(dead_code)]
+    path: PathBuf,
 }
 
 /// `k1s0 new-feature` を実行する
 pub fn execute(args: NewFeatureArgs) -> Result<()> {
+    // 対話モードを判定
+    let use_interactive = prompts::should_use_interactive_mode(
+        args.interactive,
+        args.has_required_args(),
+    )?;
+
+    // 引数を解決（対話入力または引数から）
+    let resolved = if use_interactive {
+        resolve_args_interactive(args)?
+    } else {
+        resolve_args_from_cli(args)?
+    };
+
+    // 生成を実行
+    execute_generation(resolved)
+}
+
+/// CLI 引数から解決済み引数を構築
+fn resolve_args_from_cli(args: NewFeatureArgs) -> Result<ResolvedArgs> {
+    let service_type = args.service_type.ok_or_else(|| {
+        CliError::missing_required_args("--type / -t オプションが必要です")
+    })?;
+
+    let name = args.name.ok_or_else(|| {
+        CliError::missing_required_args("--name / -n オプションが必要です")
+    })?;
+
+    Ok(ResolvedArgs {
+        service_type,
+        name,
+        domain: args.domain,
+        output: args.output,
+        force: args.force,
+        with_grpc: args.with_grpc,
+        with_rest: args.with_rest,
+        with_db: args.with_db,
+    })
+}
+
+/// 対話モードで引数を解決
+fn resolve_args_interactive(args: NewFeatureArgs) -> Result<ResolvedArgs> {
+    let out = output();
+
+    // バナー表示
+    out.header("k1s0 new-feature");
+    out.newline();
+    out.info("対話モードで feature を作成します");
+    out.newline();
+
+    // 1. service_type が未指定 → テンプレート選択プロンプト
+    let service_type = if let Some(st) = args.service_type {
+        st
+    } else {
+        prompts::template_type::select_service_type()?
+    };
+
+    // 2. name が未指定 → 名前入力プロンプト
+    let name = if let Some(n) = args.name {
+        // CLI から提供された名前をバリデーション
+        if !is_valid_kebab_case(&n) {
+            return Err(CliError::invalid_service_name(&n));
+        }
+        n
+    } else {
+        prompts::name_input::input_feature_name()?
+    };
+
+    // 3. domain が未指定 + 既存 domain 存在 → ドメイン選択プロンプト
+    let domain = if args.domain.is_some() {
+        args.domain
+    } else {
+        let domain_base = service_type.domain_base();
+        prompts::options::select_domain(domain_base)?
+    };
+
+    // 4. オプション未指定 → オプション選択プロンプト
+    let (with_grpc, with_rest, with_db) = if args.with_grpc || args.with_rest || args.with_db {
+        // 既にオプションが指定されている場合はそのまま使用
+        (args.with_grpc, args.with_rest, args.with_db)
+    } else {
+        let options = prompts::options::select_feature_options()?;
+        (options.with_grpc, options.with_rest, options.with_db)
+    };
+
+    out.newline();
+
+    Ok(ResolvedArgs {
+        service_type,
+        name,
+        domain,
+        output: args.output,
+        force: args.force,
+        with_grpc,
+        with_rest,
+        with_db,
+    })
+}
+
+/// 生成を実行する
+fn execute_generation(args: ResolvedArgs) -> Result<()> {
     let out = output();
 
     // サービス名のバリデーション（kebab-case）
     if !is_valid_kebab_case(&args.name) {
         return Err(CliError::invalid_service_name(&args.name));
     }
+
+    // domain が指定されている場合、存在チェックとバージョン取得
+    let domain_info = if let Some(ref domain_name) = args.domain {
+        Some(validate_and_get_domain_info(args.service_type, domain_name)?)
+    } else {
+        None
+    };
 
     // 出力パスを決定
     let output_path = args.output.clone().unwrap_or_else(|| {
@@ -139,6 +295,11 @@ pub fn execute(args: NewFeatureArgs) -> Result<()> {
     out.list_item("type", &args.service_type.to_string());
     out.list_item("name", &args.name);
     out.list_item("output", &output_path);
+    out.list_item("layer", "feature");
+    if let Some(ref info) = domain_info {
+        out.list_item("domain", &info.name);
+        out.list_item("domain_version", &format!("^{}", &info.version));
+    }
     out.list_item("with_grpc", &args.with_grpc.to_string());
     out.list_item("with_rest", &args.with_rest.to_string());
     out.list_item("with_db", &args.with_db.to_string());
@@ -178,7 +339,7 @@ pub fn execute(args: NewFeatureArgs) -> Result<()> {
     out.info("テンプレートを展開中...");
 
     // Tera コンテキストを作成
-    let context = create_template_context(&args);
+    let context = create_template_context(&args, domain_info.as_ref());
 
     // テンプレートを展開
     let renderer = TemplateRenderer::new(&template_dir).map_err(|e| {
@@ -196,7 +357,7 @@ pub fn execute(args: NewFeatureArgs) -> Result<()> {
     }
 
     // manifest.json を作成
-    let manifest = create_manifest(&args, &template_dir, &fingerprint)?;
+    let manifest = create_manifest(&args, &fingerprint, domain_info.as_ref())?;
     let k1s0_dir = output_dir.join(".k1s0");
     std::fs::create_dir_all(&k1s0_dir).map_err(|e| {
         CliError::io(format!(".k1s0 ディレクトリの作成に失敗: {}: {}", k1s0_dir.display(), e))
@@ -220,6 +381,85 @@ pub fn execute(args: NewFeatureArgs) -> Result<()> {
     out.hint("k1s0 lint でサービスの規約準拠を確認");
 
     Ok(())
+}
+
+/// domain の存在チェックとバージョン取得
+fn validate_and_get_domain_info(
+    service_type: ServiceType,
+    domain_name: &str,
+) -> Result<DomainInfo> {
+    let domain_base = service_type.domain_base();
+    let domain_path = PathBuf::from(format!("{}/{}", domain_base, domain_name));
+
+    // domain ディレクトリの存在チェック
+    if !domain_path.exists() {
+        return Err(CliError::config(format!(
+            "domain '{}' が見つかりません",
+            domain_name
+        ))
+        .with_target(domain_path.display().to_string())
+        .with_hint(format!(
+            "まず 'k1s0 new-domain --type {} --name {}' で domain を作成してください",
+            service_type, domain_name
+        )));
+    }
+
+    // manifest.json の存在チェック
+    let manifest_path = domain_path.join(".k1s0/manifest.json");
+    if !manifest_path.exists() {
+        return Err(CliError::config(format!(
+            "domain '{}' の manifest.json が見つかりません",
+            domain_name
+        ))
+        .with_target(manifest_path.display().to_string())
+        .with_hint("domain が正しく作成されていることを確認してください"));
+    }
+
+    // manifest.json からバージョンを取得
+    let manifest_content = std::fs::read_to_string(&manifest_path).map_err(|e| {
+        CliError::io(format!("manifest.json の読み込みに失敗: {}", e))
+    })?;
+
+    let version = extract_domain_version(&manifest_content)?;
+
+    Ok(DomainInfo {
+        name: domain_name.to_string(),
+        version,
+        path: domain_path,
+    })
+}
+
+/// manifest.json からバージョンを抽出する
+fn extract_domain_version(manifest_content: &str) -> Result<String> {
+    // JSON からバージョンを抽出
+    let json: serde_json::Value = serde_json::from_str(manifest_content).map_err(|e| {
+        CliError::config(format!("manifest.json のパースに失敗: {}", e))
+    })?;
+
+    // まず service.version を探す（既存のスキーマ）
+    if let Some(version) = json.get("service").and_then(|s| s.get("version")).and_then(|v| v.as_str()) {
+        return Ok(version.to_string());
+    }
+
+    // 次に k1s0_version を使用（domain の初期バージョンとして）
+    if json.get("k1s0_version").and_then(|v| v.as_str()).is_some() {
+        // domain の場合は 0.1.0 から開始するのがデフォルト
+        return Ok("0.1.0".to_string());
+    }
+
+    // バージョンが見つからない場合はデフォルト
+    Ok("0.1.0".to_string())
+}
+
+/// バージョン制約を生成する（^major.minor.0 形式）
+fn generate_version_constraint(version: &str) -> String {
+    // SemVer をパースして ^major.minor.0 形式に変換
+    let parts: Vec<&str> = version.split('.').collect();
+    if parts.len() >= 2 {
+        format!("^{}.{}.0", parts[0], parts[1])
+    } else {
+        format!("^{}", version)
+    }
 }
 
 /// テンプレートディレクトリを検索する
@@ -255,7 +495,7 @@ fn find_template_dir(service_type: ServiceType) -> Result<PathBuf> {
 }
 
 /// テンプレート用のコンテキストを作成する
-fn create_template_context(args: &NewFeatureArgs) -> Context {
+fn create_template_context(args: &ResolvedArgs, domain_info: Option<&DomainInfo>) -> Context {
     let mut context = Context::new();
 
     // 基本情報
@@ -263,6 +503,7 @@ fn create_template_context(args: &NewFeatureArgs) -> Context {
     context.insert("service_name", &args.name);
     context.insert("language", args.service_type.language());
     context.insert("service_type", args.service_type.service_type_name());
+    context.insert("layer", "feature");
     context.insert("k1s0_version", version());
 
     // 命名規則の変換
@@ -270,6 +511,18 @@ fn create_template_context(args: &NewFeatureArgs) -> Context {
     context.insert("feature_name_pascal", &to_pascal_case(&args.name));
     context.insert("feature_name_kebab", &args.name); // kebab-case はそのまま
     context.insert("feature_name_title", &to_title_case(&args.name));
+
+    // domain 情報
+    if let Some(info) = domain_info {
+        context.insert("domain", &info.name);
+        context.insert("domain_name", &info.name);
+        context.insert("domain_name_snake", &info.name.replace('-', "_"));
+        context.insert("domain_version", &info.version);
+        context.insert("domain_version_constraint", &generate_version_constraint(&info.version));
+        context.insert("has_domain", &true);
+    } else {
+        context.insert("has_domain", &false);
+    }
 
     // オプション
     context.insert("with_grpc", &args.with_grpc);
@@ -284,13 +537,31 @@ fn create_template_context(args: &NewFeatureArgs) -> Context {
 
 /// manifest.json を作成する
 fn create_manifest(
-    args: &NewFeatureArgs,
-    _template_dir: &PathBuf,
+    args: &ResolvedArgs,
     fingerprint: &str,
+    domain_info: Option<&DomainInfo>,
 ) -> Result<Manifest> {
     let managed_paths = get_managed_paths(args.service_type);
     let protected_paths = get_protected_paths(args.service_type);
     let update_policy = get_update_policy(args.service_type);
+
+    let (domain, domain_version, dependencies) = if let Some(info) = domain_info {
+        let version_constraint = generate_version_constraint(&info.version);
+        let mut domain_deps = std::collections::HashMap::new();
+        domain_deps.insert(info.name.clone(), version_constraint.clone());
+
+        (
+            Some(info.name.clone()),
+            Some(version_constraint),
+            Some(Dependencies {
+                framework_crates: vec![],
+                framework: vec![],
+                domain: Some(domain_deps),
+            }),
+        )
+    } else {
+        (None, None, None)
+    };
 
     Ok(Manifest {
         schema_version: SCHEMA_VERSION.to_string(),
@@ -309,12 +580,19 @@ fn create_manifest(
             service_type: args.service_type.service_type_name().to_string(),
             framework: None,
         },
+        layer: LayerType::Feature,
+        domain,
+        version: None, // feature 層はバージョンを持たない
+        domain_version,
+        min_framework_version: None,
+        breaking_changes: None,
+        deprecated: None,
         generated_at: Utc::now().to_rfc3339(),
         managed_paths,
         protected_paths,
         update_policy,
         checksums: std::collections::HashMap::new(),
-        dependencies: None,
+        dependencies,
     })
 }
 
@@ -459,5 +737,63 @@ mod tests {
         assert!(!is_valid_kebab_case("user-")); // 末尾ハイフン
         assert!(!is_valid_kebab_case("user--management")); // 連続ハイフン
         assert!(!is_valid_kebab_case("2user")); // 先頭数字
+    }
+
+    #[test]
+    fn test_generate_version_constraint() {
+        assert_eq!(generate_version_constraint("1.2.3"), "^1.2.0");
+        assert_eq!(generate_version_constraint("0.1.0"), "^0.1.0");
+        assert_eq!(generate_version_constraint("2.0.0"), "^2.0.0");
+        assert_eq!(generate_version_constraint("1.5.10"), "^1.5.0");
+    }
+
+    #[test]
+    fn test_domain_base() {
+        assert_eq!(ServiceType::BackendRust.domain_base(), "domain/backend/rust");
+        assert_eq!(ServiceType::BackendGo.domain_base(), "domain/backend/go");
+        assert_eq!(ServiceType::FrontendReact.domain_base(), "domain/frontend/react");
+        assert_eq!(ServiceType::FrontendFlutter.domain_base(), "domain/frontend/flutter");
+    }
+
+    #[test]
+    fn test_has_required_args() {
+        let args_complete = NewFeatureArgs {
+            service_type: Some(ServiceType::BackendRust),
+            name: Some("test".to_string()),
+            domain: None,
+            output: None,
+            force: false,
+            with_grpc: false,
+            with_rest: false,
+            with_db: false,
+            interactive: false,
+        };
+        assert!(args_complete.has_required_args());
+
+        let args_missing_type = NewFeatureArgs {
+            service_type: None,
+            name: Some("test".to_string()),
+            domain: None,
+            output: None,
+            force: false,
+            with_grpc: false,
+            with_rest: false,
+            with_db: false,
+            interactive: false,
+        };
+        assert!(!args_missing_type.has_required_args());
+
+        let args_missing_name = NewFeatureArgs {
+            service_type: Some(ServiceType::BackendRust),
+            name: None,
+            domain: None,
+            output: None,
+            force: false,
+            with_grpc: false,
+            with_rest: false,
+            with_db: false,
+            interactive: false,
+        };
+        assert!(!args_missing_name.has_required_args());
     }
 }

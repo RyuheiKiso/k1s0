@@ -1,0 +1,10 @@
+/**
+ * ドメイン層 - エンティティ、値オブジェクト、ドメインサービス
+ *
+ * このモジュールはドメイン駆動設計（DDD）のドメイン層を構成します。
+ * ビジネスルールとビジネスロジックの中核を担います。
+ */
+
+export * from './entities';
+export * from './value-objects';
+export * from './services';

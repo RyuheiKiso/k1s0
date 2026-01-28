@@ -1,15 +1,16 @@
 //! `k1s0 new-screen` コマンド
 //!
 //! React/Flutter 画面の雛形を生成する。
-//! 画面追加の手順を「雛形生成 → 画面実装 → config 追記」に統一する。
+//! 画面追加の手順を「雛形生成 -> 画面実装 -> config 追記」に統一する。
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap::{Args, ValueEnum};
 use k1s0_generator::{Context, Tera};
 
 use crate::error::{CliError, Result};
 use crate::output::output;
+use crate::prompts;
 
 /// フロントエンドタイプ
 #[derive(ValueEnum, Clone, Copy, Debug)]
@@ -74,15 +75,15 @@ pub struct NewScreenArgs {
 
     /// 画面ID（ドット区切り、例: users.list, users.detail）
     #[arg(short, long)]
-    pub screen_id: String,
+    pub screen_id: Option<String>,
 
     /// 画面タイトル
     #[arg(short = 'T', long)]
-    pub title: String,
+    pub title: Option<String>,
 
     /// 対象の feature ディレクトリ
     #[arg(short, long)]
-    pub feature_dir: String,
+    pub feature_dir: Option<String>,
 
     /// メニューに追加する（メニュー設定を出力）
     #[arg(long)]
@@ -103,10 +104,137 @@ pub struct NewScreenArgs {
     /// 既存のファイルを上書きする
     #[arg(short = 'F', long)]
     pub force: bool,
+
+    /// 対話モードを強制する
+    #[arg(short = 'i', long)]
+    pub interactive: bool,
+}
+
+impl NewScreenArgs {
+    /// 必須引数がすべて提供されているかどうか
+    fn has_required_args(&self) -> bool {
+        self.screen_id.is_some() && self.title.is_some() && self.feature_dir.is_some()
+    }
+}
+
+/// 解決済みの引数（対話入力後）
+struct ResolvedArgs {
+    frontend_type: FrontendType,
+    screen_id: String,
+    title: String,
+    feature_dir: String,
+    with_menu: bool,
+    path: Option<String>,
+    permissions: Option<String>,
+    flags: Option<String>,
+    force: bool,
 }
 
 /// `k1s0 new-screen` を実行する
 pub fn execute(args: NewScreenArgs) -> Result<()> {
+    // 対話モードを判定
+    let use_interactive = prompts::should_use_interactive_mode(
+        args.interactive,
+        args.has_required_args(),
+    )?;
+
+    // 引数を解決（対話入力または引数から）
+    let resolved = if use_interactive {
+        resolve_args_interactive(args)?
+    } else {
+        resolve_args_from_cli(args)?
+    };
+
+    // 生成を実行
+    execute_generation(resolved)
+}
+
+/// CLI 引数から解決済み引数を構築
+fn resolve_args_from_cli(args: NewScreenArgs) -> Result<ResolvedArgs> {
+    let screen_id = args.screen_id.ok_or_else(|| {
+        CliError::missing_required_args("--screen-id / -s オプションが必要です")
+    })?;
+
+    let title = args.title.ok_or_else(|| {
+        CliError::missing_required_args("--title / -T オプションが必要です")
+    })?;
+
+    let feature_dir = args.feature_dir.ok_or_else(|| {
+        CliError::missing_required_args("--feature-dir / -f オプションが必要です")
+    })?;
+
+    Ok(ResolvedArgs {
+        frontend_type: args.frontend_type,
+        screen_id,
+        title,
+        feature_dir,
+        with_menu: args.with_menu,
+        path: args.path,
+        permissions: args.permissions,
+        flags: args.flags,
+        force: args.force,
+    })
+}
+
+/// 対話モードで引数を解決
+fn resolve_args_interactive(args: NewScreenArgs) -> Result<ResolvedArgs> {
+    let out = output();
+
+    // バナー表示
+    out.header("k1s0 new-screen");
+    out.newline();
+    out.info("対話モードで画面を作成します");
+    out.newline();
+
+    // 1. frontend_type は引数から（デフォルトが設定されているので）
+    let frontend_type = args.frontend_type;
+
+    // 2. feature_dir が未指定 -> 既存フィーチャーから選択
+    let feature_dir = if let Some(fd) = args.feature_dir {
+        fd
+    } else {
+        prompts::feature_select::select_target_feature(frontend_type)?
+    };
+
+    // 3. screen_id が未指定 -> 入力プロンプト
+    let screen_id = if let Some(sid) = args.screen_id {
+        // CLI から提供された screen_id をバリデーション
+        if !is_valid_screen_id(&sid) {
+            return Err(CliError::validation(format!(
+                "画面ID '{}' は無効です。小文字英数字とドット（.）のみ使用できます。例: users.list",
+                sid
+            ))
+            .with_target("screen_id"));
+        }
+        sid
+    } else {
+        prompts::name_input::input_screen_id()?
+    };
+
+    // 4. title が未指定 -> 入力プロンプト
+    let title = if let Some(t) = args.title {
+        t
+    } else {
+        prompts::name_input::input_screen_title()?
+    };
+
+    out.newline();
+
+    Ok(ResolvedArgs {
+        frontend_type,
+        screen_id,
+        title,
+        feature_dir,
+        with_menu: args.with_menu,
+        path: args.path,
+        permissions: args.permissions,
+        flags: args.flags,
+        force: args.force,
+    })
+}
+
+/// 生成を実行する
+fn execute_generation(args: ResolvedArgs) -> Result<()> {
     let out = output();
 
     // screen_id のバリデーション
@@ -139,7 +267,7 @@ pub fn execute(args: NewScreenArgs) -> Result<()> {
     // コンポーネント名の生成（例: users.list -> UsersListPage）
     let component_name = generate_component_name(&args.screen_id);
 
-    // ファイルパスの生成
+    // ファイル名の生成
     let file_name = generate_file_name(&args.screen_id);
 
     out.header("k1s0 new-screen");
@@ -209,10 +337,10 @@ pub fn execute(args: NewScreenArgs) -> Result<()> {
     // 設定ファイル追記用のスニペットを出力
     match args.frontend_type {
         FrontendType::React => {
-            output_react_config_snippets(&tera, &context, &args)?;
+            output_react_config_snippets(&tera, &context, args.with_menu)?;
         }
         FrontendType::Flutter => {
-            output_flutter_config_snippets(&tera, &context, &args)?;
+            output_flutter_config_snippets(&tera, &context, args.with_menu)?;
         }
     }
 
@@ -267,7 +395,7 @@ fn find_screen_template_dir(frontend_type: FrontendType) -> Result<PathBuf> {
 }
 
 /// Tera テンプレートエンジンを作成する
-fn create_tera(template_dir: &PathBuf) -> Result<Tera> {
+fn create_tera(template_dir: &Path) -> Result<Tera> {
     let pattern = format!("{}/**/*.tera", template_dir.display());
     Tera::new(&pattern).map_err(|e| {
         CliError::internal(format!("テンプレートエンジンの初期化に失敗: {}", e))
@@ -276,7 +404,7 @@ fn create_tera(template_dir: &PathBuf) -> Result<Tera> {
 
 /// スクリーン用のテンプレートコンテキストを作成する
 fn create_screen_context(
-    args: &NewScreenArgs,
+    args: &ResolvedArgs,
     component_name: &str,
     file_name: &str,
     url_path: &str,
@@ -309,7 +437,7 @@ fn create_screen_context(
 }
 
 /// React 用の設定スニペットを出力
-fn output_react_config_snippets(tera: &Tera, context: &Context, args: &NewScreenArgs) -> Result<()> {
+fn output_react_config_snippets(tera: &Tera, context: &Context, with_menu: bool) -> Result<()> {
     let out = output();
 
     // screens.ts スニペット
@@ -330,7 +458,7 @@ fn output_react_config_snippets(tera: &Tera, context: &Context, args: &NewScreen
     out.info(&route_snippet);
 
     // menu.yaml スニペット（オプション）
-    if args.with_menu {
+    if with_menu {
         out.newline();
         out.header("config/default.yaml の ui.navigation.menu.items に追加:");
         out.newline();
@@ -344,7 +472,7 @@ fn output_react_config_snippets(tera: &Tera, context: &Context, args: &NewScreen
 }
 
 /// Flutter 用の設定スニペットを出力
-fn output_flutter_config_snippets(tera: &Tera, context: &Context, args: &NewScreenArgs) -> Result<()> {
+fn output_flutter_config_snippets(tera: &Tera, context: &Context, with_menu: bool) -> Result<()> {
     let out = output();
 
     // route.yaml スニペット
@@ -356,7 +484,7 @@ fn output_flutter_config_snippets(tera: &Tera, context: &Context, args: &NewScre
     out.info(&route_snippet);
 
     // menu.yaml スニペット（オプション）
-    if args.with_menu {
+    if with_menu {
         out.newline();
         out.header("config/default.yaml の ui.navigation.menu.items に追加:");
         out.newline();
@@ -453,5 +581,36 @@ mod tests {
     fn test_generate_file_name() {
         assert_eq!(generate_file_name("home"), "HomePage");
         assert_eq!(generate_file_name("users.list"), "UsersListPage");
+    }
+
+    #[test]
+    fn test_has_required_args() {
+        let args_complete = NewScreenArgs {
+            frontend_type: FrontendType::React,
+            screen_id: Some("home".to_string()),
+            title: Some("Home".to_string()),
+            feature_dir: Some("feature/frontend/react/my-app".to_string()),
+            with_menu: false,
+            path: None,
+            permissions: None,
+            flags: None,
+            force: false,
+            interactive: false,
+        };
+        assert!(args_complete.has_required_args());
+
+        let args_missing = NewScreenArgs {
+            frontend_type: FrontendType::React,
+            screen_id: None,
+            title: Some("Home".to_string()),
+            feature_dir: Some("feature/frontend/react/my-app".to_string()),
+            with_menu: false,
+            path: None,
+            permissions: None,
+            flags: None,
+            force: false,
+            interactive: false,
+        };
+        assert!(!args_missing.has_required_args());
     }
 }

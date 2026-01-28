@@ -1,0 +1,45 @@
+/// データ転送オブジェクト（DTO） - レイヤー間のデータ受け渡し
+///
+/// DTOはアプリケーション層と外部とのデータのやり取りに使用されます。
+library {{ name_snake }}.application.dtos;
+
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+// TODO: {{ name_title }} ドメインのDTOを定義してください
+//
+// 例:
+//
+// part 'product_dto.freezed.dart';
+// part 'product_dto.g.dart';
+//
+// @freezed
+// class CreateProductRequest with _$CreateProductRequest {
+//   const factory CreateProductRequest({
+//     required String name,
+//     String? description,
+//     required int price,
+//     required String currency,
+//   }) = _CreateProductRequest;
+//
+//   factory CreateProductRequest.fromJson(Map<String, dynamic> json) =>
+//       _$CreateProductRequestFromJson(json);
+// }
+//
+// @freezed
+// class ProductResponse with _$ProductResponse {
+//   const factory ProductResponse({
+//     required String id,
+//     required String name,
+//     String? description,
+//     required int price,
+//     required String currency,
+//     required DateTime createdAt,
+//     required DateTime updatedAt,
+//   }) = _ProductResponse;
+//
+//   factory ProductResponse.fromJson(Map<String, dynamic> json) =>
+//       _$ProductResponseFromJson(json);
+// }
+
+// freezed を再エクスポート（利便性のため）
+export 'package:freezed_annotation/freezed_annotation.dart';

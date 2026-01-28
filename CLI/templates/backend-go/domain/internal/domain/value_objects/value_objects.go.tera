@@ -1,0 +1,33 @@
+// Package value_objects は {{ name_title }} ドメインの値オブジェクトを定義します。
+//
+// 値オブジェクトは不変で、値の等価性によって比較されるオブジェクトです。
+package value_objects
+
+// TODO: {{ name_title }} ドメインの値オブジェクトを定義してください
+//
+// 例:
+//
+//	type Money struct {
+//	    amount   int64
+//	    currency string
+//	}
+//
+//	func NewMoney(amount int64, currency string) (Money, error) {
+//	    if amount < 0 {
+//	        return Money{}, errors.New("amount must be non-negative")
+//	    }
+//	    if currency == "" {
+//	        return Money{}, errors.New("currency is required")
+//	    }
+//	    return Money{amount: amount, currency: currency}, nil
+//	}
+//
+//	func (m Money) Amount() int64   { return m.amount }
+//	func (m Money) Currency() string { return m.currency }
+//
+//	func (m Money) Add(other Money) (Money, error) {
+//	    if m.currency != other.currency {
+//	        return Money{}, errors.New("currency mismatch")
+//	    }
+//	    return Money{amount: m.amount + other.amount, currency: m.currency}, nil
+//	}

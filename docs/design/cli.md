@@ -67,6 +67,110 @@ static VERSION_STRING: Lazy<String> = Lazy::new(|| {
 });
 ```
 
+## 対話モード
+
+k1s0 CLI は対話式インターフェースをサポートしています。Vite のような洗練されたユーザー体験を提供します。
+
+### 引数なし実行時の動作
+
+`k1s0` を引数なしで実行した場合:
+
+- **TTY 環境**: サブコマンド選択の対話モードが起動し、実行したいコマンドを選択できます
+- **非 TTY 環境**: ヘルプが表示されます（clap のデフォルト動作）
+
+```bash
+# TTY 環境で引数なしで実行
+$ k1s0
+
+k1s0 - 高速な開発サイクルを実現する統合開発基盤
+
+? 実行するコマンドを選択してください:
+> new-feature     新しいフィーチャーサービスを作成
+  new-domain      新しいドメインライブラリを作成
+  new-screen      新しい画面を作成
+  init            リポジトリを初期化
+  lint            規約チェックを実行
+  upgrade         テンプレートをアップグレード
+  domain          ドメイン管理（list, version, dependents, impact）
+  completions     シェル補完スクリプトを生成
+```
+
+選択後の動作:
+- `new-feature`, `new-domain`, `new-screen`, `init`: 対話モードで継続（必要な情報を順次入力）
+- `lint`, `upgrade`, `domain`, `completions`: ヘルプまたは使用方法を表示
+
+### 対話モードの動作
+
+1. **自動フォールバック**: 必須引数が不足している場合、TTY 環境であれば対話モードにフォールバックします
+2. **強制対話モード**: `--interactive` / `-i` フラグで強制的に対話モードを起動できます
+3. **非 TTY 環境**: CI/CD 環境など非 TTY 環境では、必須引数をすべて指定する必要があります
+
+### 対話モードの判定ロジック
+
+```
+# 引数なし実行時
+if 引数なし（プログラム名のみ）:
+    if TTY環境: サブコマンド選択対話モード
+    else: ヘルプ表示
+
+# サブコマンド実行時
+if --interactive フラグあり:
+    if TTY環境: 対話モードで実行
+    else: エラー（TTYが必要）
+else if 必須引数がすべて揃っている:
+    引数モードで実行
+else:
+    if TTY環境: 対話モードにフォールバック
+    else: エラー（引数不足）
+```
+
+### 対話モード対応コマンド
+
+| コマンド | 対話モードフラグ | 対話で入力可能な項目 |
+|---------|----------------|---------------------|
+| `new-feature` | `-i, --interactive` | type, name, domain, オプション（grpc/rest/db） |
+| `new-domain` | `-i, --interactive` | type, name, version |
+| `new-screen` | `-i, --interactive` | type, screen_id, title, feature_dir |
+| `init` | `-i, --interactive` | path, template_source, language |
+
+### 使用例
+
+```bash
+# 対話モードで feature を作成（引数なしで実行）
+k1s0 new-feature
+
+# 強制的に対話モードを起動
+k1s0 new-feature -i
+
+# 一部引数を指定して残りを対話で入力
+k1s0 new-feature --type backend-rust
+# → name のみ対話で入力される
+
+# 従来の引数指定方式（引き続き動作）
+k1s0 new-feature --type backend-rust --name my-service
+```
+
+### prompts モジュール
+
+対話式プロンプトは `src/prompts/` モジュールで実装されています。
+
+```
+src/prompts/
+├── mod.rs              # モジュールルート、TTY 検出
+├── command_select.rs   # サブコマンド選択（引数なし実行時）
+├── template_type.rs    # テンプレートタイプ選択
+├── name_input.rs       # 名前入力（バリデーション付き）
+├── options.rs          # オプション選択（マルチセレクト）
+├── confirm.rs          # 確認プロンプト
+├── version_input.rs    # バージョン入力
+├── feature_select.rs   # フィーチャー選択
+└── init_options.rs     # init オプション選択
+```
+
+### 依存クレート
+
+対話式プロンプトには [inquire](https://crates.io/crates/inquire) クレートを使用しています。
+
 ---
 
 ## init コマンド
@@ -135,13 +239,17 @@ pub struct InitArgs {
 
 ```rust
 pub struct NewFeatureArgs {
-    /// サービスタイプ
+    /// サービスタイプ（対話モード時は省略可能）
     #[arg(short = 't', long = "type", value_enum)]
-    pub service_type: ServiceType,
+    pub service_type: Option<ServiceType>,
 
-    /// サービス名（kebab-case）
+    /// サービス名（kebab-case）（対話モード時は省略可能）
     #[arg(short, long)]
-    pub name: String,
+    pub name: Option<String>,
+
+    /// 所属する domain 名（省略時は domain に属さない独立した feature として作成）
+    #[arg(long)]
+    pub domain: Option<String>,
 
     /// 生成先ディレクトリ
     #[arg(short, long)]
@@ -162,6 +270,10 @@ pub struct NewFeatureArgs {
     /// DB マイグレーションを含める
     #[arg(long)]
     pub with_db: bool,
+
+    /// 対話モードを強制する
+    #[arg(short = 'i', long)]
+    pub interactive: bool,
 }
 ```
 
@@ -826,6 +938,187 @@ cargo test -p k1s0-lsp hover::
 - **日本語・絵文字対応**: マルチバイト文字を含むテキストの処理を検証
 - **エッジケース**: 空ドキュメント、範囲外アクセス、不正な JSON などの境界条件を網羅
 - **ファイルシステム操作**: `tempfile` クレートを使用した一時ディレクトリでの実際のファイル操作テスト
+
+---
+
+---
+
+## new-domain コマンド
+
+### 目的
+
+domain 層の雛形を生成する。domain 層は、複数の feature で共有されるビジネスロジックを管理する中間層です。
+
+### 引数
+
+```rust
+pub struct NewDomainArgs {
+    /// ドメインタイプ
+    #[arg(short = 't', long = "type", value_enum)]
+    pub domain_type: DomainType,
+
+    /// ドメイン名（kebab-case）
+    #[arg(short, long)]
+    pub name: String,
+
+    /// 生成先ディレクトリ
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// 既存のディレクトリを上書きする
+    #[arg(short, long)]
+    pub force: bool,
+}
+```
+
+### ドメインタイプ
+
+| タイプ | テンプレートパス | 出力先 | 言語 |
+|--------|----------------|-------|------|
+| `backend-rust` | `CLI/templates/backend-rust/domain` | `domain/backend/rust/{name}` | rust |
+| `backend-go` | `CLI/templates/backend-go/domain` | `domain/backend/go/{name}` | go |
+| `frontend-react` | `CLI/templates/frontend-react/domain` | `domain/frontend/react/{name}` | typescript |
+| `frontend-flutter` | `CLI/templates/frontend-flutter/domain` | `domain/frontend/flutter/{name}` | dart |
+
+### 処理フロー
+
+```
+1. ドメイン名のバリデーション（kebab-case）
+2. 予約語チェック（framework, feature, domain, k1s0, common, shared）
+3. 出力パスの決定
+4. 既存衝突検査
+   └─ 存在する場合
+      ├─ --force: 削除して続行
+      └─ なし: エラー
+5. テンプレートディレクトリの検索
+6. fingerprint の算出
+7. Tera コンテキストの作成
+8. テンプレートの展開
+9. manifest.json の作成（layer: domain, version: 0.1.0）
+10. 完了メッセージ表示
+```
+
+### テンプレート変数
+
+| 変数名 | 説明 | 例 |
+|--------|------|-----|
+| `domain_name` | ドメイン名（kebab-case） | `manufacturing` |
+| `domain_name_snake` | snake_case 変換 | `manufacturing` |
+| `domain_name_pascal` | PascalCase 変換 | `Production` |
+| `language` | 言語 | `rust` |
+| `service_type` | タイプ | `backend` |
+| `k1s0_version` | k1s0 バージョン | `0.1.0` |
+
+### 生成される manifest.json
+
+```json
+{
+  "schema_version": "1.0.0",
+  "k1s0_version": "0.1.0",
+  "template": {
+    "name": "backend-rust",
+    "version": "0.1.0",
+    "source": "local",
+    "path": "CLI/templates/backend-rust/domain",
+    "fingerprint": "abc123..."
+  },
+  "service": {
+    "service_name": "manufacturing",
+    "language": "rust",
+    "type": "backend"
+  },
+  "layer": "domain",
+  "version": "0.1.0",
+  "min_framework_version": "0.1.0",
+  "dependencies": {
+    "framework": ["k1s0-error", "k1s0-config"]
+  }
+}
+```
+
+### 使用例
+
+```bash
+# 基本的な使用法
+k1s0 new-domain --type backend-rust --name manufacturing
+
+# カスタム出力先
+k1s0 new-domain --type backend-rust --name manufacturing --output ./my-domains
+
+# 上書き
+k1s0 new-domain --type backend-rust --name manufacturing --force
+```
+
+---
+
+## domain コマンド
+
+### 目的
+
+domain の管理（一覧表示、バージョン管理、依存関係分析）を行う。
+
+### サブコマンド
+
+#### domain list
+
+```bash
+k1s0 domain list
+
+# 出力例
+Domains:
+  manufacturing          0.1.0    domain/backend/rust/manufacturing
+  inventory           1.2.0    domain/backend/rust/inventory
+  user-management     2.0.0    domain/backend/go/user-management
+```
+
+#### domain version
+
+```bash
+# バージョン確認
+k1s0 domain version --name manufacturing
+
+# バージョン更新
+k1s0 domain version --name manufacturing --bump patch
+k1s0 domain version --name manufacturing --bump minor
+k1s0 domain version --name manufacturing --bump major
+
+# 直接指定
+k1s0 domain version --name manufacturing --set 2.0.0
+
+# 破壊的変更を記録
+k1s0 domain version --name manufacturing --bump major \
+  --message "WorkOrder.quantity の型を変更"
+```
+
+#### domain dependents
+
+```bash
+k1s0 domain dependents --name manufacturing
+
+# 出力例
+Features depending on 'manufacturing':
+  work-order-api          ^1.2.0    feature/backend/rust/work-order-api
+  work-order-dashboard    ^1.5.0    feature/frontend/react/work-order-dashboard
+  manufacturing-report       ^1.0.0    feature/backend/rust/manufacturing-report
+```
+
+#### domain impact
+
+```bash
+k1s0 domain impact --name manufacturing --from 1.5.0 --to 2.0.0
+
+# 出力例
+Domain: manufacturing
+Version change: 1.5.0 -> 2.0.0 (MAJOR)
+
+Breaking changes:
+  - 2.0.0: WorkOrder.quantity の型を u32 から Quantity 値オブジェクトに変更
+
+Affected features (3):
+  - work-order-api (constraint: ^1.2.0) - INCOMPATIBLE
+  - work-order-dashboard (constraint: ^1.5.0) - INCOMPATIBLE
+  - manufacturing-report (constraint: ^1.0.0) - INCOMPATIBLE
+```
 
 ---
 

@@ -395,15 +395,12 @@ impl ManifestSchema {
             doc.push_str("**必須**\n\n");
         }
 
-        match &key.value_type {
-            ValueType::Enum(values) => {
-                doc.push_str("**有効な値:**\n");
-                for v in values {
-                    doc.push_str(&format!("- `{}`\n", v));
-                }
-                doc.push('\n');
+        if let ValueType::Enum(values) = &key.value_type {
+            doc.push_str("**有効な値:**\n");
+            for v in values {
+                doc.push_str(&format!("- `{}`\n", v));
             }
-            _ => {}
+            doc.push('\n');
         }
 
         if !key.examples.is_empty() {

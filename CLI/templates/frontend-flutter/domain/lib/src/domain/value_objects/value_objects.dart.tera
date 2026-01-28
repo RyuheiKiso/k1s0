@@ -1,0 +1,51 @@
+/// 値オブジェクト - 不変で値の等価性によって比較されるオブジェクト
+///
+/// 値オブジェクトは属性の組み合わせによって定義され、不変です。
+library {{ name_snake }}.domain.value_objects;
+
+import 'package:equatable/equatable.dart';
+
+// TODO: {{ name_title }} ドメインの値オブジェクトを定義してください
+//
+// 例:
+//
+// class Money extends Equatable {
+//   final int amount;
+//   final String currency;
+//
+//   const Money({
+//     required this.amount,
+//     required this.currency,
+//   });
+//
+//   factory Money.create({
+//     required int amount,
+//     required String currency,
+//   }) {
+//     if (amount < 0) {
+//       throw ArgumentError('Amount must be non-negative');
+//     }
+//     if (currency.length != 3) {
+//       throw ArgumentError('Currency must be 3 characters');
+//     }
+//     return Money(amount: amount, currency: currency);
+//   }
+//
+//   Money add(Money other) {
+//     if (currency != other.currency) {
+//       throw ArgumentError('Currency mismatch');
+//     }
+//     return Money(amount: amount + other.amount, currency: currency);
+//   }
+//
+//   @override
+//   List<Object?> get props => [amount, currency];
+// }
+
+/// プレースホルダークラス（実際のコードでは削除してください）
+class PlaceholderValueObject extends Equatable {
+  const PlaceholderValueObject();
+
+  @override
+  List<Object?> get props => [];
+}

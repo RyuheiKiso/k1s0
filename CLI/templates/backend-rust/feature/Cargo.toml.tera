@@ -21,6 +21,11 @@ k1s0-auth = { path = "../../../../framework/backend/rust/crates/k1s0-auth", feat
 {% endif -%}
 k1s0-resilience = { path = "../../../../framework/backend/rust/crates/k1s0-resilience" }
 
+{% if has_domain -%}
+# Domain dependency
+{{ domain_name_snake }} = { path = "../../../../domain/backend/rust/{{ domain_name }}" }
+{% endif -%}
+
 # Async runtime
 tokio = { version = "1", features = ["full", "signal"] }
 

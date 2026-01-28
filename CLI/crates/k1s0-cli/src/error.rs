@@ -213,6 +213,23 @@ impl CliError {
         Self::config(format!("テンプレートが見つかりません: {}", name))
             .with_hint("利用可能なテンプレート: backend-rust, backend-go, frontend-react, frontend-flutter")
     }
+
+    /// 対話モードが必要だが TTY がない
+    pub fn interactive_required(message: impl Into<String>) -> Self {
+        Self::usage(message)
+            .with_hint("対話モードには TTY が必要です。CI 環境では必須引数をすべて指定してください")
+    }
+
+    /// 必須引数が不足
+    pub fn missing_required_args(message: impl Into<String>) -> Self {
+        Self::usage(message)
+            .with_hint("--help でヘルプを確認するか、対話環境で実行してください")
+    }
+
+    /// ユーザーが操作をキャンセル
+    pub fn cancelled(message: impl Into<String>) -> Self {
+        Self::usage(message)
+    }
 }
 
 impl fmt::Display for CliError {

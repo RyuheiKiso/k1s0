@@ -22,9 +22,11 @@ thiserror.workspace = true
 tokio.workspace = true
 console.workspace = true
 indicatif.workspace = true
+inquire.workspace = true
 once_cell.workspace = true
 chrono.workspace = true
 dirs.workspace = true
+regex = "1.10"
 k1s0-generator.workspace = true
 ctrlc = "3.4"
 

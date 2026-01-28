@@ -1,0 +1,106 @@
+# {{ name_title }} Domain
+
+{{ name_title }} ドメインの共通ビジネスロジックを提供する Go パッケージです。
+
+## 概要
+
+このパッケージは {{ name_title }} に関連するビジネスロジックを集約し、
+複数の feature サービスから共有して使用できるようにします。
+
+## ディレクトリ構造
+
+```
+internal/
+├── domain/                # ドメイン層
+│   ├── entities/          # エンティティ
+│   ├── value_objects/     # 値オブジェクト
+│   ├── services/          # ドメインサービス
+│   └── ports/             # リポジトリインターフェース
+├── application/           # アプリケーション層
+│   └── services/          # アプリケーションサービス
+└── infrastructure/        # インフラストラクチャ層
+    └── repositories/      # リポジトリ実装
+```
+
+## 依存関係
+
+### Framework 依存
+
+- `k1s0-error`: エラーハンドリング
+- `k1s0-config`: 設定管理
+
+## 使用方法
+
+### feature からの依存
+
+feature サービスの `go.mod` に以下を追加：
+
+```go
+require github.com/k1s0/domain/backend/go/{{ name }} v0.1.0
+
+replace github.com/k1s0/domain/backend/go/{{ name }} => ../../../../domain/backend/go/{{ name }}
+```
+
+### コード例
+
+```go
+import (
+    "github.com/k1s0/domain/backend/go/{{ name }}/internal/domain/entities"
+    "github.com/k1s0/domain/backend/go/{{ name }}/internal/application/services"
+)
+
+// エンティティの使用
+// entity := entities.NewMyEntity(...)
+
+// アプリケーションサービスの使用
+// service := services.NewMyService(repository)
+// result, err := service.Execute(ctx, input)
+```
+
+## 開発ガイド
+
+### エンティティの追加
+
+1. `internal/domain/entities/` に新しいファイルを作成
+2. エンティティ構造体を定義
+3. テストを追加
+
+### 値オブジェクトの追加
+
+1. `internal/domain/value_objects/` に新しいファイルを作成
+2. バリデーションロジックを実装
+3. 不変性を保証
+
+### ドメインサービスの追加
+
+1. `internal/domain/services/` に新しいファイルを作成
+2. ビジネスロジックを実装
+3. 必要に応じてポート（インターフェース）を定義
+
+## テスト
+
+```bash
+# 単体テスト
+go test ./...
+
+# 詳細出力
+go test -v ./...
+
+# カバレッジ
+go test -cover ./...
+```
+
+## バージョン管理
+
+このドメインは SemVer でバージョン管理されています。
+
+- **patch** (0.1.0 -> 0.1.1): バグ修正
+- **minor** (0.1.0 -> 0.2.0): 後方互換性のある機能追加
+- **major** (0.1.0 -> 1.0.0): 破壊的変更
+
+feature サービスは `^0.1.0` のようなバージョン制約で依存します。
+
+## 関連ドキュメント
+
+- [k1s0 ドメイン開発ガイド](../../../../docs/guides/domain-development.md)
+- [Clean Architecture](../../../../docs/architecture/clean-architecture.md)

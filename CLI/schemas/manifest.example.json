@@ -1,5 +1,190 @@
 {
-  "$comment": "このファイルは manifest.json のサンプルです。実際のファイルは k1s0 CLI が生成します。",
+  "$comment": "このファイルは manifest.json のサンプル集です。実際のファイルは k1s0 CLI が生成します。",
+  "examples": {
+    "framework_layer": {
+      "$comment": "framework 層（システム共通基盤）の manifest.json サンプル",
+      "schema_version": "1.0.0",
+      "k1s0_version": "0.1.1",
+      "template": {
+        "name": "backend-rust",
+        "version": "0.1.1",
+        "source": "local",
+        "path": "CLI/templates/backend-rust/framework",
+        "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "service": {
+        "service_name": "k1s0-config",
+        "language": "rust",
+        "type": "backend"
+      },
+      "layer": "framework",
+      "version": "0.1.0",
+      "generated_at": "2026-01-28T10:00:00Z",
+      "managed_paths": ["deploy/", "config/"],
+      "protected_paths": ["src/"]
+    },
+    "domain_layer": {
+      "$comment": "domain 層（業務領域共通）の manifest.json サンプル",
+      "schema_version": "1.0.0",
+      "k1s0_version": "0.1.1",
+      "template": {
+        "name": "backend-rust",
+        "version": "0.1.1",
+        "source": "local",
+        "path": "CLI/templates/backend-rust/domain",
+        "fingerprint": "a1b2c3d4e5f6789012345678901234567890123456789012345678901234abcd"
+      },
+      "service": {
+        "service_name": "manufacturing",
+        "language": "rust",
+        "type": "backend"
+      },
+      "layer": "domain",
+      "domain": null,
+      "version": "1.2.0",
+      "min_framework_version": "0.1.0",
+      "breaking_changes": {
+        "2.0.0": "BOM 構造体のフィールド名を変更",
+        "1.0.0": "初回リリース"
+      },
+      "generated_at": "2026-01-28T10:00:00Z",
+      "managed_paths": ["deploy/", "config/"],
+      "protected_paths": ["src/"],
+      "dependencies": {
+        "framework": ["k1s0-error", "k1s0-config"],
+        "framework_crates": [
+          { "name": "k1s0-error", "version": "0.1.0" },
+          { "name": "k1s0-config", "version": "0.1.0" }
+        ]
+      }
+    },
+    "domain_layer_deprecated": {
+      "$comment": "非推奨化された domain 層の manifest.json サンプル",
+      "schema_version": "1.0.0",
+      "k1s0_version": "0.1.1",
+      "template": {
+        "name": "backend-rust",
+        "version": "0.1.1",
+        "source": "local",
+        "path": "CLI/templates/backend-rust/domain",
+        "fingerprint": "b2c3d4e5f67890123456789012345678901234567890123456789012345abcde"
+      },
+      "service": {
+        "service_name": "legacy-finance",
+        "language": "rust",
+        "type": "backend"
+      },
+      "layer": "domain",
+      "domain": null,
+      "version": "1.5.0",
+      "deprecated": {
+        "since": "1.5.0",
+        "migrate_to": "finance-v2",
+        "deadline": "2026-12-31",
+        "reason": "新しい finance-v2 domain に機能を統合"
+      },
+      "generated_at": "2026-01-28T10:00:00Z",
+      "managed_paths": ["deploy/", "config/"],
+      "protected_paths": ["src/"],
+      "dependencies": {
+        "framework": ["k1s0-error", "k1s0-config"]
+      }
+    },
+    "feature_layer_with_domain": {
+      "$comment": "feature 層（domain に所属）の manifest.json サンプル",
+      "schema_version": "1.0.0",
+      "k1s0_version": "0.1.1",
+      "template": {
+        "name": "backend-rust",
+        "version": "0.1.1",
+        "source": "local",
+        "path": "CLI/templates/backend-rust/feature",
+        "revision": "abc123def456789012345678901234567890abcd",
+        "fingerprint": "c3d4e5f678901234567890123456789012345678901234567890123456abcdef"
+      },
+      "service": {
+        "service_name": "work-order",
+        "language": "rust",
+        "type": "backend",
+        "framework": "axum"
+      },
+      "layer": "feature",
+      "domain": "manufacturing",
+      "domain_version": "^1.2.0",
+      "generated_at": "2026-01-28T10:30:00Z",
+      "managed_paths": [
+        "deploy/",
+        "config/",
+        "openapi/openapi.yaml",
+        "buf.yaml",
+        "buf.lock",
+        "Cargo.toml",
+        ".github/"
+      ],
+      "protected_paths": [
+        "src/domain/",
+        "src/application/"
+      ],
+      "update_policy": {
+        "src/main.rs": "suggest_only",
+        "src/presentation/": "suggest_only",
+        "src/infrastructure/": "suggest_only"
+      },
+      "checksums": {
+        "deploy/base/deployment.yaml": "d4e5f6789012345678901234567890123456789012345678901234567abcdef0"
+      },
+      "dependencies": {
+        "framework": ["k1s0-error", "k1s0-config", "k1s0-grpc-server"],
+        "framework_crates": [
+          { "name": "k1s0-error", "version": "0.1.0" },
+          { "name": "k1s0-config", "version": "0.1.0" },
+          { "name": "k1s0-grpc-server", "version": "0.1.0" }
+        ],
+        "domain": {
+          "manufacturing": "^1.2.0"
+        }
+      }
+    },
+    "feature_layer_standalone": {
+      "$comment": "feature 層（domain に所属しない独立 feature）の manifest.json サンプル",
+      "schema_version": "1.0.0",
+      "k1s0_version": "0.1.1",
+      "template": {
+        "name": "backend-rust",
+        "version": "0.1.1",
+        "source": "local",
+        "path": "CLI/templates/backend-rust/feature",
+        "revision": "abc123def456789012345678901234567890abcd",
+        "fingerprint": "e5f67890123456789012345678901234567890123456789012345678abcdef01"
+      },
+      "service": {
+        "service_name": "user-management",
+        "language": "rust",
+        "type": "backend",
+        "framework": "axum"
+      },
+      "layer": "feature",
+      "domain": null,
+      "generated_at": "2026-01-28T10:30:00Z",
+      "managed_paths": [
+        "deploy/",
+        "config/",
+        "Cargo.toml"
+      ],
+      "protected_paths": [
+        "src/domain/",
+        "src/application/"
+      ],
+      "dependencies": {
+        "framework": ["k1s0-error", "k1s0-config"],
+        "framework_crates": [
+          { "name": "k1s0-error", "version": "0.1.0" },
+          { "name": "k1s0-config", "version": "0.1.0" }
+        ]
+      }
+    }
+  },
+  "$note": "以下は単一サンプル形式（後方互換性のため）",
   "schema_version": "1.0.0",
   "k1s0_version": "0.1.0",
   "template": {

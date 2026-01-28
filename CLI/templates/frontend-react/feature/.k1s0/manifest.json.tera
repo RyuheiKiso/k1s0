@@ -1,0 +1,53 @@
+{
+  "$schema": "https://k1s0.dev/schemas/manifest.json",
+  "schema_version": "1.0.0",
+  "k1s0_version": "{{ k1s0_version | default(value="0.1.0") }}",
+  "template": {
+    "name": "frontend-react",
+    "version": "{{ template_version | default(value="0.1.0") }}",
+    "source": "local",
+    "path": "CLI/templates/frontend-react/feature",
+    "fingerprint": "{{ fingerprint | default(value="") }}"
+  },
+  "service": {
+    "service_name": "{{ feature_name }}",
+    "language": "typescript",
+    "type": "frontend",
+    "framework": "react"
+  },
+  "layer": "feature",
+  {% if has_domain | default(value=false) -%}
+  "domain": "{{ domain_name }}",
+  "domain_version": "{{ domain_version_constraint | default(value="^0.1.0") }}",
+  {% else -%}
+  "domain": null,
+  "domain_version": null,
+  {% endif -%}
+  "generated_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
+  "managed_paths": [
+    "deploy/",
+    "config/"
+  ],
+  "protected_paths": [
+    "src/domain/",
+    "src/application/",
+    "src/presentation/"
+  ],
+  "update_policy": {
+    "deploy/": "auto",
+    "config/": "suggest_only",
+    "src/domain/": "protected",
+    "src/application/": "protected",
+    "src/presentation/": "suggest_only"
+  },
+  "checksums": {},
+  "dependencies": {
+    "framework": [
+      "@k1s0/config",
+      "@k1s0/api-client"
+    ]{% if has_domain | default(value=false) %},
+    "domain": {
+      "{{ domain_name }}": "{{ domain_version_constraint | default(value="^0.1.0") }}"
+    }{% endif %}
+  }
+}

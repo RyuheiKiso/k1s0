@@ -1,0 +1,53 @@
+/**
+ * アプリケーションサービス - ユースケースの実装
+ *
+ * アプリケーションサービスはユースケースを実装し、
+ * ドメインオブジェクトを協調させて処理を行います。
+ */
+
+// TODO: {{ name_title }} ドメインのアプリケーションサービスを定義してください
+//
+// 例:
+//
+// import type { Product } from '../../domain/entities';
+//
+// export interface ProductRepository {
+//   findById(id: string): Promise<Product | null>;
+//   findAll(): Promise<Product[]>;
+//   save(product: Product): Promise<void>;
+//   delete(id: string): Promise<void>;
+// }
+//
+// export interface CreateProductInput {
+//   name: string;
+//   description?: string;
+//   price: number;
+//   currency: string;
+// }
+//
+// export interface CreateProductOutput {
+//   id: string;
+//   name: string;
+// }
+//
+// export class ProductService {
+//   constructor(private readonly repository: ProductRepository) {}
+//
+//   async createProduct(input: CreateProductInput): Promise<CreateProductOutput> {
+//     const product = new Product({
+//       id: crypto.randomUUID(),
+//       name: input.name,
+//       description: input.description,
+//       price: { amount: input.price, currency: input.currency },
+//       createdAt: new Date(),
+//       updatedAt: new Date(),
+//     });
+//
+//     await this.repository.save(product);
+//
+//     return {
+//       id: product.id,
+//       name: product.name,
+//     };
+//   }
+// }

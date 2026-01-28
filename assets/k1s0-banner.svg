@@ -13,6 +13,12 @@
       <stop offset="100%" style="stop-color:#a855f7"/>
     </linearGradient>
 
+    <linearGradient id="titleGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#e0e0ff"/>
+      <stop offset="50%" style="stop-color:#ffffff"/>
+      <stop offset="100%" style="stop-color:#c0c0ff"/>
+    </linearGradient>
+
     <linearGradient id="rustGradient" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" style="stop-color:#dea584"/>
       <stop offset="100%" style="stop-color:#ce422b"/>
@@ -38,6 +44,17 @@
       <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
       <feMerge>
         <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Title glow -->
+    <filter id="titleGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feFlood flood-color="#8b5cf6" flood-opacity="0.4"/>
+      <feComposite in2="blur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
@@ -81,20 +98,37 @@
     </g>
   </g>
 
-  <!-- Title -->
-  <text x="400" y="185" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif"
-        font-size="56" font-weight="700" fill="#fff" filter="url(#shadow)">
-    k1s0
-  </text>
+  <!-- Title "K1S0" as embedded paths (futuristic geometric style) -->
+  <g transform="translate(400, 185)" filter="url(#titleGlow)">
+    <g fill="url(#titleGradient)">
+      <!-- K -->
+      <g transform="translate(-95, -25)">
+        <rect x="0" y="0" width="8" height="50"/>
+        <polygon points="8,25 8,18 32,0 42,0 18,22 18,28 42,50 32,50 8,32"/>
+      </g>
+      <!-- 1 -->
+      <g transform="translate(-40, -25)">
+        <polygon points="8,0 18,0 18,50 10,50 10,10 0,15 0,7"/>
+      </g>
+      <!-- S -->
+      <g transform="translate(0, -25)">
+        <path d="M32,0 L8,0 C3,0 0,4 0,10 L0,15 C0,21 3,25 8,25 L24,25 C27,25 28,27 28,30 L28,35 C28,38 27,40 24,40 L0,40 L0,50 L24,50 C31,50 36,46 36,40 L36,35 C36,29 31,25 24,25 L12,25 C9,25 8,23 8,20 L8,15 C8,12 9,10 12,10 L36,10 L36,0 Z"/>
+      </g>
+      <!-- 0 -->
+      <g transform="translate(55, -25)">
+        <path d="M8,0 L28,0 C34,0 38,5 38,12 L38,38 C38,45 34,50 28,50 L8,50 C2,50 0,45 0,38 L0,12 C0,5 2,0 8,0 Z M10,10 C9,10 8,11 8,13 L8,37 C8,39 9,40 10,40 L26,40 C27,40 30,39 30,37 L30,13 C30,11 27,10 26,10 Z"/>
+      </g>
+    </g>
+  </g>
 
   <!-- Tagline -->
-  <text x="400" y="220" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif"
+  <text x="400" y="225" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif"
         font-size="16" fill="#a5a5c0" letter-spacing="3">
     UNIFIED MICROSERVICES PLATFORM
   </text>
 
   <!-- Accent line -->
-  <rect x="300" y="235" width="200" height="2" rx="1" fill="url(#accentGradient)" opacity="0.6"/>
+  <rect x="300" y="240" width="200" height="2" rx="1" fill="url(#accentGradient)" opacity="0.6"/>
 
   <!-- Feature Cards -->
   <g transform="translate(95, 280)">
@@ -124,7 +158,7 @@
         Convention Enforce
       </text>
       <text x="90" y="70" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#8888a0">
-        11 Rules + Auto-fix
+        19 Rules + Auto-fix
       </text>
     </g>
   </g>

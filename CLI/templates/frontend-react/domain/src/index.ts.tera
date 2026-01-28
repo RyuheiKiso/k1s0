@@ -1,0 +1,14 @@
+/**
+ * {{ name_title }} Domain
+ *
+ * このパッケージは {{ name_title }} ドメインの共通ビジネスロジックを提供します。
+ * feature 層のアプリケーションはこのパッケージに依存してビジネスロジックを共有します。
+ *
+ * @packageDocumentation
+ */
+
+// ドメイン層
+export * from './domain';
+
+// アプリケーション層
+export * from './application';

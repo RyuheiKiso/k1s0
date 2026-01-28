@@ -1,0 +1,66 @@
+/// アプリケーションサービス - ユースケースの実装
+///
+/// アプリケーションサービスはユースケースを実装し、
+/// ドメインオブジェクトを協調させて処理を行います。
+library {{ name_snake }}.application.services;
+
+// TODO: {{ name_title }} ドメインのアプリケーションサービスを定義してください
+//
+// 例:
+//
+// import '../../domain/entities/entities.dart';
+//
+// abstract class ProductRepository {
+//   Future<Product?> findById(String id);
+//   Future<List<Product>> findAll();
+//   Future<void> save(Product product);
+//   Future<void> delete(String id);
+// }
+//
+// class CreateProductInput {
+//   final String name;
+//   final String? description;
+//   final int price;
+//   final String currency;
+//
+//   const CreateProductInput({
+//     required this.name,
+//     this.description,
+//     required this.price,
+//     required this.currency,
+//   });
+// }
+//
+// class CreateProductOutput {
+//   final String id;
+//   final String name;
+//
+//   const CreateProductOutput({
+//     required this.id,
+//     required this.name,
+//   });
+// }
+//
+// class ProductService {
+//   final ProductRepository repository;
+//
+//   const ProductService({required this.repository});
+//
+//   Future<CreateProductOutput> createProduct(CreateProductInput input) async {
+//     final product = Product(
+//       id: _generateId(),
+//       name: input.name,
+//       description: input.description,
+//       price: Money.create(amount: input.price, currency: input.currency),
+//       createdAt: DateTime.now(),
+//       updatedAt: DateTime.now(),
+//     );
+//
+//     await repository.save(product);
+//
+//     return CreateProductOutput(
+//       id: product.id,
+//       name: product.name,
+//     );
+//   }
+// }

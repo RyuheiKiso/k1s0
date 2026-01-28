@@ -20,7 +20,8 @@
     "@emotion/styled": "^11.13.0",
     "@k1s0/navigation": "workspace:*",
     "js-yaml": "^4.1.0",
-    "zod": "^3.23.0"
+    "zod": "^3.23.0"{% if has_domain %},
+    "@k1s0/domain-{{ domain_name }}": "workspace:*"{% endif %}
   },
   "devDependencies": {
     "@types/react": "^18.3.3",

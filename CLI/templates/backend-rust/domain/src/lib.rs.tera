@@ -1,0 +1,27 @@
+//! {{ name_title }} domain
+//!
+//! このクレートは {{ name_title }} ドメインの共通ビジネスロジックを提供します。
+//! feature 層のサービスはこのクレートに依存してビジネスロジックを共有します。
+//!
+//! # 構成
+//!
+//! - `domain`: エンティティ、値オブジェクト、ドメインサービス
+//! - `application`: アプリケーションサービス（ユースケース）
+//! - `infrastructure`: リポジトリ実装、外部サービス連携
+//!
+//! # 使用例
+//!
+//! ```rust,ignore
+//! use {{ name_snake }}::domain::entities::*;
+//! use {{ name_snake }}::application::services::*;
+//! ```
+
+pub mod domain;
+pub mod application;
+pub mod infrastructure;
+
+// 再エクスポート（利便性のため）
+pub use domain::entities;
+pub use domain::value_objects;
+pub use domain::services as domain_services;
+pub use application::services as app_services;

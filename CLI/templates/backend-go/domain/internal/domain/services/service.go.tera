@@ -1,0 +1,22 @@
+// Package services は {{ name_title }} ドメインのドメインサービスを定義します。
+//
+// ドメインサービスは、単一のエンティティに属さないビジネスロジックを実装します。
+package services
+
+// TODO: {{ name_title }} ドメインのドメインサービスを定義してください
+//
+// 例:
+//
+//	type PricingService struct {
+//	    discountPolicy DiscountPolicy
+//	}
+//
+//	func NewPricingService(policy DiscountPolicy) *PricingService {
+//	    return &PricingService{discountPolicy: policy}
+//	}
+//
+//	func (s *PricingService) CalculatePrice(product *entities.Product, quantity int) (value_objects.Money, error) {
+//	    basePrice := product.Price
+//	    discount := s.discountPolicy.Calculate(product, quantity)
+//	    return basePrice.Subtract(discount)
+//	}

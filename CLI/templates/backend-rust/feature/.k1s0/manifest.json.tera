@@ -1,54 +1,64 @@
 {
-  "name": "{{ feature_name }}",
-  "version": "{{ version | default(value="0.1.0") }}",
-  "description": "{{ feature_description | default(value="k1s0 generated feature") }}",
+  "$schema": "https://k1s0.dev/schemas/manifest.json",
+  "schema_version": "1.0.0",
+  "k1s0_version": "{{ k1s0_version | default(value="0.1.0") }}",
   "template": {
     "name": "backend-rust",
-    "version": "{{ template_version | default(value="1.0.0") }}",
+    "version": "{{ template_version | default(value="0.1.0") }}",
+    "source": "local",
     "path": "CLI/templates/backend-rust/feature",
     "fingerprint": "{{ fingerprint | default(value="") }}"
   },
-  "created_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
+  "service": {
+    "service_name": "{{ feature_name }}",
+    "language": "rust",
+    "type": "backend",
+    "framework": "axum"
+  },
+  "layer": "feature",
+  {% if has_domain | default(value=false) -%}
+  "domain": "{{ domain_name }}",
+  "domain_version": "{{ domain_version_constraint | default(value="^0.1.0") }}",
+  {% else -%}
+  "domain": null,
+  "domain_version": null,
+  {% endif -%}
   "generated_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
-  "dependencies": {
-    {% if has_db | default(value=true) -%}
-    "sqlx": "0.8",
-    {% endif -%}
-    {% if has_grpc | default(value=true) -%}
-    "tonic": "0.12",
-    "prost": "0.13",
-    {% endif -%}
-    {% if has_rest | default(value=true) -%}
-    "axum": "0.7",
-    {% endif -%}
-    "tokio": "1",
-    "serde": "1",
-    "tracing": "0.1"
-  },
-  "settings": {
-    "env": "{{ env | default(value="dev") }}",
-    "grpc_port": {{ grpc_port | default(value=50051) }},
-    {% if has_rest | default(value=true) -%}
-    "rest_port": {{ rest_port | default(value=8080) }},
-    {% endif -%}
-    "db": {
-      "enabled": {{ has_db | default(value=true) }},
-      "type": "postgres",
-      "pool_size": {{ db_pool_size | default(value=10) }}
-    }
-  },
   "managed_paths": [
     "deploy/",
     "proto/",
     "openapi/",
-    "config/"
+    "config/",
+    "buf.yaml",
+    "buf.gen.yaml"
   ],
   "protected_paths": [
     "src/domain/",
-    "src/application/",
-    "src/infrastructure/",
-    "src/presentation/",
-    "migrations/"
+    "src/application/"
   ],
-  "checksums": {}
+  "update_policy": {
+    "deploy/": "auto",
+    "config/": "suggest_only",
+    "src/domain/": "protected",
+    "src/application/": "protected",
+    "src/infrastructure/": "suggest_only",
+    "src/presentation/": "suggest_only",
+    "migrations/": "suggest_only"
+  },
+  "checksums": {},
+  "dependencies": {
+    "framework": [
+      "k1s0-error",
+      "k1s0-config",
+      "k1s0-observability"
+    ],
+    "framework_crates": [
+      { "name": "k1s0-error", "version": "{{ k1s0_version | default(value="0.1.0") }}" },
+      { "name": "k1s0-config", "version": "{{ k1s0_version | default(value="0.1.0") }}" },
+      { "name": "k1s0-observability", "version": "{{ k1s0_version | default(value="0.1.0") }}" }
+    ]{% if has_domain | default(value=false) %},
+    "domain": {
+      "{{ domain_name }}": "{{ domain_version_constraint | default(value="^0.1.0") }}"
+    }{% endif %}
+  }
 }

@@ -20,6 +20,7 @@ use once_cell::sync::Lazy;
 pub mod commands;
 pub mod error;
 pub mod output;
+pub mod prompts;
 pub mod settings;
 
 pub use error::{CliError, ExitCode, Result};
@@ -85,6 +86,10 @@ pub enum Commands {
     /// リポジトリを初期化し、.k1s0/ ディレクトリを作成する
     Init(commands::init::InitArgs),
 
+    /// 新しい domain（業務領域共通ライブラリ）を作成する
+    #[command(name = "new-domain")]
+    NewDomain(commands::new_domain::NewDomainArgs),
+
     /// 新規サービスの雛形を生成する
     #[command(name = "new-feature")]
     NewFeature(commands::new_feature::NewFeatureArgs),
@@ -104,4 +109,24 @@ pub enum Commands {
 
     /// シェル補完スクリプトを生成する
     Completions(commands::completions::CompletionsArgs),
+
+    /// domain のバージョンを更新する
+    #[command(name = "domain-version")]
+    DomainVersion(commands::domain_version::DomainVersionArgs),
+
+    /// 全ての domain を一覧表示する
+    #[command(name = "domain-list")]
+    DomainList(commands::domain_list::DomainListArgs),
+
+    /// 指定した domain に依存する feature を一覧表示する
+    #[command(name = "domain-dependents")]
+    DomainDependents(commands::domain_dependents::DomainDependentsArgs),
+
+    /// domain のバージョンアップによる影響を分析する
+    #[command(name = "domain-impact")]
+    DomainImpact(commands::domain_impact::DomainImpactArgs),
+
+    /// feature の domain 依存バージョンを更新する
+    #[command(name = "feature-update-domain")]
+    FeatureUpdateDomain(commands::feature_update_domain::FeatureUpdateDomainArgs),
 }

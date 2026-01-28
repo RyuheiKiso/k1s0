@@ -1,0 +1,23 @@
+[package]
+name = "{{ name }}"
+version = "0.1.0"
+edition = "2024"
+description = "{{ name_title }} domain - ビジネスロジック共通ライブラリ"
+license = "MIT"
+publish = false
+
+[lib]
+name = "{{ name_snake }}"
+path = "src/lib.rs"
+
+[dependencies]
+# Framework dependencies
+k1s0-error = { path = "../../../../framework/backend/rust/crates/k1s0-error" }
+k1s0-config = { path = "../../../../framework/backend/rust/crates/k1s0-config" }
+
+# External dependencies
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0"
+
+[dev-dependencies]
+tokio = { version = "1.0", features = ["rt-multi-thread", "macros"] }

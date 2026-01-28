@@ -1,0 +1,13 @@
+module github.com/k1s0/domain/backend/go/{{ name }}
+
+go 1.22
+
+require (
+	github.com/k1s0/framework/backend/go/k1s0-error v0.1.0
+	github.com/k1s0/framework/backend/go/k1s0-config v0.1.0
+)
+
+replace (
+	github.com/k1s0/framework/backend/go/k1s0-error => ../../../../framework/backend/go/k1s0-error
+	github.com/k1s0/framework/backend/go/k1s0-config => ../../../../framework/backend/go/k1s0-config
+)

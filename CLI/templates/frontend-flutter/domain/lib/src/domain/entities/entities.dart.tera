@@ -1,0 +1,28 @@
+/// エンティティ - 一意の識別子を持つドメインオブジェクト
+///
+/// エンティティはライフサイクルを通じて同一性が保たれるオブジェクトです。
+library {{ name_snake }}.domain.entities;
+
+// TODO: {{ name_title }} ドメインのエンティティを定義してください
+//
+// 例:
+//
+// import 'package:freezed_annotation/freezed_annotation.dart';
+// import '../value_objects/value_objects.dart';
+//
+// part 'product.freezed.dart';
+// part 'product.g.dart';
+//
+// @freezed
+// class Product with _$Product {
+//   const factory Product({
+//     required String id,
+//     required String name,
+//     String? description,
+//     required Money price,
+//     required DateTime createdAt,
+//     required DateTime updatedAt,
+//   }) = _Product;
+//
+//   factory Product.fromJson(Map<String, dynamic> json) => _$ProductFromJson(json);
+// }

@@ -1,0 +1,34 @@
+/// ドメインサービス - 単一のエンティティに属さないビジネスロジック
+///
+/// ドメインサービスは複数のエンティティや値オブジェクトを協調させて
+/// ビジネスロジックを実装します。
+library {{ name_snake }}.domain.services;
+
+// TODO: {{ name_title }} ドメインのドメインサービスを定義してください
+//
+// 例:
+//
+// import '../entities/entities.dart';
+// import '../value_objects/value_objects.dart';
+//
+// abstract class DiscountPolicy {
+//   Money calculate(Product product, int quantity);
+// }
+//
+// class PricingService {
+//   final DiscountPolicy discountPolicy;
+//
+//   const PricingService({required this.discountPolicy});
+//
+//   Money calculateTotalPrice(Product product, int quantity) {
+//     final basePrice = Money(
+//       amount: product.price.amount * quantity,
+//       currency: product.price.currency,
+//     );
+//     final discount = discountPolicy.calculate(product, quantity);
+//     return Money(
+//       amount: basePrice.amount - discount.amount,
+//       currency: basePrice.currency,
+//     );
+//   }
+// }

@@ -62,6 +62,16 @@ impl Output {
         Self::new(OutputConfig::default())
     }
 
+    /// 設定を取得
+    pub fn config(&self) -> &OutputConfig {
+        &self.config
+    }
+
+    /// JSON モードかどうかを返す
+    pub fn is_json_mode(&self) -> bool {
+        self.config.mode == OutputMode::Json
+    }
+
     /// カラー出力が有効かどうか
     fn use_color(&self) -> bool {
         self.config.color && self.config.mode == OutputMode::Human

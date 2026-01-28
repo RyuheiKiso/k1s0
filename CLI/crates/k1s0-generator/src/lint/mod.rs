@@ -15,6 +15,14 @@
 //! - `K030`: gRPC リトライ設定の検出（可視化）
 //! - `K031`: gRPC リトライ設定に ADR 参照がない
 //! - `K032`: gRPC リトライ設定が不完全
+//! - `K040`: 層間依存の基本違反
+//! - `K041`: domain が見つからない
+//! - `K042`: domain バージョン制約不整合
+//! - `K043`: 循環依存の検出
+//! - `K044`: 非推奨 domain の使用
+//! - `K045`: min_framework_version 違反
+//! - `K046`: breaking_changes の影響
+//! - `K047`: domain 層の version 未設定
 //!
 //! # 機能
 //!
@@ -25,6 +33,7 @@ mod dependency;
 pub mod diff;
 mod env_vars;
 mod fixer;
+mod layer_dependency;
 mod linter;
 mod required_files;
 mod retry;
@@ -40,6 +49,7 @@ pub use dependency::DependencyRules;
 pub use diff::{diff_from_head, diff_from_main, DiffError, DiffFilter, GitDiff};
 pub use env_vars::{EnvVarPattern, EnvVarPatterns};
 pub use fixer::Fixer;
+pub use layer_dependency::LayerDependencyRules;
 pub use linter::Linter;
 pub use required_files::RequiredFiles;
 pub use secret_config::SecretKeyPatterns;

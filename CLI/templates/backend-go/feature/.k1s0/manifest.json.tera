@@ -1,41 +1,54 @@
 {
-  "name": "{{ feature_name }}",
-  "version": "{{ version | default(value="0.1.0") }}",
-  "description": "{{ feature_description | default(value="k1s0 generated Go service") }}",
+  "$schema": "https://k1s0.dev/schemas/manifest.json",
+  "schema_version": "1.0.0",
+  "k1s0_version": "{{ k1s0_version | default(value="0.1.0") }}",
   "template": {
     "name": "backend-go",
-    "version": "{{ template_version | default(value="1.0.0") }}",
+    "version": "{{ template_version | default(value="0.1.0") }}",
+    "source": "local",
     "path": "CLI/templates/backend-go/feature",
     "fingerprint": "{{ fingerprint | default(value="") }}"
   },
-  "created_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
+  "service": {
+    "service_name": "{{ feature_name }}",
+    "language": "go",
+    "type": "backend"
+  },
+  "layer": "feature",
+  {% if has_domain | default(value=false) -%}
+  "domain": "{{ domain_name }}",
+  "domain_version": "{{ domain_version_constraint | default(value="^0.1.0") }}",
+  {% else -%}
+  "domain": null,
+  "domain_version": null,
+  {% endif -%}
   "generated_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
-  "dependencies": {
-    "grpc": "v1.61.0",
-    "protobuf": "v1.32.0",
-    "pgx": "v5.5.3"
-  },
-  "settings": {
-    "env": "{{ env | default(value="dev") }}",
-    "grpc_port": {{ grpc_port | default(value=50051) }},
-    "db": {
-      "enabled": {{ has_db | default(value=true) }},
-      "type": "postgres",
-      "pool_size": {{ db_pool_size | default(value=10) }}
-    }
-  },
   "managed_paths": [
     "deploy/",
     "proto/",
     "openapi/",
-    "config/"
+    "config/",
+    "buf.yaml",
+    "buf.gen.yaml"
   ],
   "protected_paths": [
     "internal/domain/",
-    "internal/application/",
-    "internal/infrastructure/",
-    "internal/presentation/",
-    "migrations/"
+    "internal/application/"
   ],
-  "checksums": {}
+  "update_policy": {
+    "deploy/": "auto",
+    "config/": "suggest_only",
+    "internal/domain/": "protected",
+    "internal/application/": "protected",
+    "internal/infrastructure/": "suggest_only",
+    "internal/presentation/": "suggest_only",
+    "migrations/": "suggest_only"
+  },
+  "checksums": {},
+  "dependencies": {
+    "framework": []{% if has_domain | default(value=false) %},
+    "domain": {
+      "{{ domain_name }}": "{{ domain_version_constraint | default(value="^0.1.0") }}"
+    }{% endif %}
+  }
 }
