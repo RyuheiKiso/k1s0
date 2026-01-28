@@ -49,7 +49,8 @@
       "Bash(cargo fmt:*)",
       "Bash(findstr:*)",
       "Bash(node:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }
