@@ -11,7 +11,13 @@ docs/
 │   ├── README.md          # ADR の運用方針
 │   ├── TEMPLATE.md        # ADR テンプレート
 │   └── ADR-XXXX-*.md      # 各 ADR
-├── architecture/          # アーキテクチャ設計ドキュメント（予定）
+├── architecture/          # アーキテクチャ設計ドキュメント
+│   ├── README.md          # 概要とナビゲーション
+│   ├── overview.md        # システム全体像
+│   ├── clean-architecture.md  # Clean Architecture の適用
+│   ├── tier-system.md     # Tier システム（Tier1/2/3）
+│   ├── service-mesh.md    # サービス間通信
+│   └── diagrams/          # 図（Mermaid等）
 ├── conventions/           # 規約ドキュメント
 │   ├── README.md          # 規約一覧
 │   ├── service-structure.md
@@ -19,7 +25,23 @@ docs/
 │   ├── api-contracts.md
 │   ├── observability.md
 │   └── error-handling.md
-└── operations/            # 運用ドキュメント（予定）
+├── design/                # 設計ドキュメント
+│   ├── README.md          # 設計ドキュメント一覧
+│   ├── cli.md             # CLI 設計
+│   ├── generator.md       # Generator 設計
+│   ├── lint.md            # Lint 設計
+│   ├── framework.md       # Framework 設計
+│   └── template.md        # Template 設計
+└── operations/            # 運用ドキュメント
+    ├── README.md          # 運用ドキュメント概要
+    ├── deployment.md      # デプロイメント手順
+    ├── monitoring.md      # モニタリング・アラート
+    ├── troubleshooting.md # トラブルシューティング
+    ├── sla.md             # SLA 定義
+    └── runbooks/          # 運用手順書
+        ├── service-restart.md
+        ├── database-migration.md
+        └── incident-response.md
 ```
 
 ## 各ディレクトリの役割
@@ -39,7 +61,10 @@ docs/
 
 ## クイックリンク
 
+- [アーキテクチャ設計](architecture/README.md)
 - [ADR 一覧](adr/README.md)
 - [規約一覧](conventions/README.md)
+- [設計ドキュメント](design/README.md)
+- [運用ドキュメント](operations/README.md)
 - [構想.md](../work/構想.md): 全体方針（草案）
 - [プラン.md](../work/プラン.md): 実装計画（草案）
