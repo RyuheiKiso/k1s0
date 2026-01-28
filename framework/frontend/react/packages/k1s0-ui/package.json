@@ -24,6 +24,14 @@
     "./state": {
       "types": "./dist/state/index.d.ts",
       "import": "./dist/state/index.js"
+    },
+    "./data-table": {
+      "types": "./dist/components/DataTable/index.d.ts",
+      "import": "./dist/components/DataTable/index.js"
+    },
+    "./form-generator": {
+      "types": "./dist/components/FormGenerator/index.d.ts",
+      "import": "./dist/components/FormGenerator/index.js"
     }
   },
   "files": [
@@ -33,31 +41,52 @@
     "build": "tsc",
     "lint": "eslint src --ext ts,tsx",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "test:a11y": "vitest run --grep accessibility",
+    "typecheck": "tsc --noEmit",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "peerDependencies": {
     "@emotion/react": "^11.0.0",
     "@emotion/styled": "^11.0.0",
     "@mui/material": "^5.0.0 || ^6.0.0",
+    "@mui/x-data-grid": "^7.0.0",
+    "@mui/x-date-pickers": "^7.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
   "dependencies": {
-    "notistack": "^3.0.0"
+    "@hookform/resolvers": "^3.3.0",
+    "dayjs": "^1.11.0",
+    "notistack": "^3.0.0",
+    "react-hook-form": "^7.50.0",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
     "@emotion/react": "^11.13.0",
     "@emotion/styled": "^11.13.0",
+    "@mui/icons-material": "^6.0.0",
     "@mui/material": "^6.0.0",
+    "@mui/x-data-grid": "^7.0.0",
+    "@mui/x-date-pickers": "^7.0.0",
+    "@storybook/addon-essentials": "^8.0.0",
+    "@storybook/addon-interactions": "^8.0.0",
+    "@storybook/addon-a11y": "^8.0.0",
+    "@storybook/react": "^8.0.0",
+    "@storybook/react-vite": "^8.0.0",
+    "@storybook/test": "^8.0.0",
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/react": "^16.0.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",
+    "axe-core": "^4.8.0",
     "jsdom": "^24.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "storybook": "^8.0.0",
     "typescript": "^5.5.4",
-    "vitest": "^2.0.0"
+    "vitest": "^2.0.0",
+    "vitest-axe": "^0.1.0"
   }
 }

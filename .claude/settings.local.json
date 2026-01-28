@@ -50,7 +50,9 @@
       "Bash(findstr:*)",
       "Bash(node:*)",
       "Bash(test:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(./target/release/k1s0 doctor:*)",
+      "Bash(git restore:*)"
     ]
   }
 }

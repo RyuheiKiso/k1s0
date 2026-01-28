@@ -18,6 +18,7 @@ use clap::{Parser, Subcommand};
 use once_cell::sync::Lazy;
 
 pub mod commands;
+pub mod doctor;
 pub mod error;
 pub mod output;
 pub mod prompts;
@@ -109,6 +110,9 @@ pub enum Commands {
 
     /// シェル補完スクリプトを生成する
     Completions(commands::completions::CompletionsArgs),
+
+    /// 開発環境の健全性をチェックする
+    Doctor(commands::doctor::DoctorArgs),
 
     /// domain のバージョンを更新する
     #[command(name = "domain-version")]

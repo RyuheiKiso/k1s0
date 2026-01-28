@@ -143,6 +143,8 @@ k1s0 Design/UX 標準コンポーネントライブラリを提供する。Mater
 | `form/` | FormContainer, FormField, validation, types |
 | `feedback/` | Toast, ConfirmDialog, FeedbackProvider |
 | `state/` | Loading, EmptyState |
+| `data-table/` | K1s0DataTable（MUI DataGrid ベース）、カラムヘルパー、サーバーサイドページネーション |
+| `form-generator/` | createFormFromSchema（Zod + react-hook-form + MUI）、フィールド自動生成 |
 
 ### 使用例
 
@@ -158,6 +160,149 @@ function App() {
       </FormContainer>
       <Toast />
     </K1s0ThemeProvider>
+  );
+}
+```
+
+### DataTable（MUI DataGrid ベース）
+
+高機能データテーブルコンポーネント。MUI DataGrid をラップし、日本語ローカライズ、カスタムツールバー、CSV エクスポート機能を提供。
+
+#### 主要コンポーネント
+
+| コンポーネント | 説明 |
+|---------------|------|
+| `K1s0DataTable` | メインデータテーブルコンポーネント |
+| `K1s0DataTableToolbar` | 検索・エクスポート機能付きツールバー |
+| `createColumns` | 型安全なカラム定義ヘルパー |
+| `dateColumn` | 日付カラムヘルパー |
+| `numberColumn` | 数値カラムヘルパー（通貨・パーセント対応） |
+| `booleanColumn` | ブール値カラムヘルパー |
+| `actionsColumn` | アクションボタンカラムヘルパー |
+| `statusColumn` | ステータスChipカラムヘルパー |
+| `useServerSidePagination` | サーバーサイドページネーションフック |
+
+#### 使用例
+
+```tsx
+import { K1s0DataTable, createColumns, dateColumn, actionsColumn } from '@k1s0/ui';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+  createdAt: Date;
+}
+
+const columns = createColumns<User>([
+  { field: 'name', headerName: '氏名', flex: 1, sortable: true },
+  { field: 'email', headerName: 'メール', flex: 1 },
+  {
+    field: 'role',
+    headerName: '権限',
+    width: 120,
+    type: 'singleSelect',
+    valueOptions: [
+      { value: 'admin', label: '管理者' },
+      { value: 'user', label: '一般' },
+    ],
+  },
+  dateColumn({ field: 'createdAt', headerName: '作成日' }),
+  actionsColumn({
+    onEdit: (row) => navigate(`/users/${row.id}/edit`),
+    onDelete: (row) => handleDelete(row.id),
+  }),
+]);
+
+function UserList() {
+  const { data: users, isLoading } = useUsers();
+
+  return (
+    <K1s0DataTable
+      rows={users ?? []}
+      columns={columns}
+      loading={isLoading}
+      checkboxSelection
+      pagination
+      pageSize={20}
+      toolbar
+      exportOptions={{ csv: true }}
+    />
+  );
+}
+```
+
+### Form Generator（Zod + react-hook-form + MUI）
+
+Zod スキーマから MUI フォームを自動生成。
+
+#### 主要機能
+
+| 機能 | 説明 |
+|-----|------|
+| `createFormFromSchema` | Zod スキーマからフォームコンポーネントを生成 |
+| `useFormGenerator` | フォーム状態管理フック |
+| `useConditionalField` | 条件付きフィールド表示フック |
+
+#### 対応フィールドタイプ
+
+| Zod 型 | 生成されるMUIコンポーネント |
+|--------|---------------------------|
+| `z.string()` | TextField |
+| `z.string().email()` | TextField (email) |
+| `z.number()` | TextField (number) |
+| `z.boolean()` | Checkbox / Switch |
+| `z.enum()` | Select |
+| `z.date()` | DatePicker |
+| `z.array()` | ArrayField（動的追加・削除） |
+
+#### 使用例
+
+```tsx
+import { createFormFromSchema } from '@k1s0/ui';
+import { z } from 'zod';
+
+const userSchema = z.object({
+  name: z.string().min(1, '名前は必須です'),
+  email: z.string().email('有効なメールアドレスを入力してください'),
+  age: z.number().min(0).max(120).optional(),
+  role: z.enum(['admin', 'user', 'guest']),
+  notifications: z.boolean().default(true),
+});
+
+const UserForm = createFormFromSchema(userSchema, {
+  labels: {
+    name: '氏名',
+    email: 'メールアドレス',
+    age: '年齢',
+    role: '権限',
+    notifications: '通知を受け取る',
+  },
+  fieldConfig: {
+    role: {
+      component: 'Select',
+      options: [
+        { label: '管理者', value: 'admin' },
+        { label: '一般ユーザー', value: 'user' },
+        { label: 'ゲスト', value: 'guest' },
+      ],
+    },
+    notifications: { component: 'Switch' },
+  },
+  columns: 2,
+  submitLabel: '保存',
+});
+
+function CreateUserPage() {
+  return (
+    <UserForm
+      defaultValues={{ role: 'user', notifications: true }}
+      onSubmit={async (values) => {
+        await createUser(values);
+        navigate('/users');
+      }}
+    />
   );
 }
 ```
