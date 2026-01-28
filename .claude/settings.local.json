@@ -52,7 +52,11 @@
       "Bash(test:*)",
       "mcp__ide__getDiagnostics",
       "Bash(./target/release/k1s0 doctor:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(pnpm test:*)",
+      "Bash(flutter test:*)",
+      "Bash(git reset:*)",
+      "Bash(git rm:*)"
     ]
   }
 }
