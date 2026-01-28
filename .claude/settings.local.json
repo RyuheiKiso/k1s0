@@ -40,7 +40,8 @@
       "Bash(pnpm run build:*)",
       "Bash(dart analyze:*)",
       "Bash(dart run build_runner:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(git push:*)"
     ]
   }
 }
