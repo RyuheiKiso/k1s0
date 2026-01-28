@@ -1,11 +1,10 @@
-module github.com/RyuheiKiso/k1s0/framework/backend/go/k1s0-grpc-server
+module github.com/RyuheiKiso/k1s0/framework/backend/go/k1s0-grpc-client
 
 go 1.22.7
 
 toolchain go1.24.1
 
 require (
-	github.com/RyuheiKiso/k1s0/framework/backend/go/k1s0-error v0.0.0
 	github.com/RyuheiKiso/k1s0/framework/backend/go/k1s0-observability v0.0.0
 	go.uber.org/zap v1.27.0
 	google.golang.org/grpc v1.68.0
@@ -25,4 +24,5 @@ require (
 replace (
 	github.com/RyuheiKiso/k1s0/framework/backend/go/k1s0-error => ../k1s0-error
 	github.com/RyuheiKiso/k1s0/framework/backend/go/k1s0-observability => ../k1s0-observability
+	github.com/RyuheiKiso/k1s0/framework/backend/go/k1s0-resilience => ../k1s0-resilience
 )
