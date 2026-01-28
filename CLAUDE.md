@@ -227,6 +227,8 @@ buf format --exit-code
 | `k1s0 lint --fix` | Auto-fix violations |
 | `k1s0 upgrade --check` | Show changes without applying |
 | `k1s0 upgrade` | Apply template updates |
+| `k1s0 doctor` | Check development environment health |
+| `k1s0 doctor --json` | Output environment check as JSON |
 | `k1s0 completions` | Generate shell completion scripts |
 | `k1s0 domain list` | List all domains |
 | `k1s0 domain version --name <name>` | Show/update domain version |

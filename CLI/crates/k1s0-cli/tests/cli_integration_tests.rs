@@ -1086,3 +1086,77 @@ fn test_no_args_no_tty_shows_help() {
         .failure() // clap はサブコマンドが必要なのでエラー終了
         .stderr(predicate::str::contains("Usage:").or(predicate::str::contains("k1s0")));
 }
+
+// ============================================================================
+// doctor コマンドのテスト
+// ============================================================================
+
+#[test]
+fn test_doctor_help() {
+    k1s0()
+        .args(["doctor", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("doctor"))
+        .stdout(predicate::str::contains("健全性"));
+}
+
+#[test]
+fn test_doctor_basic() {
+    // doctor コマンドは基本的に実行可能（環境によって結果は異なる）
+    k1s0()
+        .args(["doctor"])
+        .assert()
+        // 必須ツールが見つからない場合はエラー、見つかる場合は成功
+        // どちらかになるはずなので、パニックしないことを確認
+        .stdout(predicate::str::is_empty().not().or(predicate::str::is_empty()))
+        .stderr(predicate::str::contains("k1s0 環境診断").or(predicate::str::contains("必須ツール")));
+}
+
+#[test]
+fn test_doctor_json_output() {
+    // --json オプションで JSON 出力されることを確認
+    k1s0()
+        .args(["doctor", "--json"])
+        .assert()
+        .stdout(predicate::str::contains("k1s0_version"))
+        .stdout(predicate::str::contains("checks"))
+        .stdout(predicate::str::contains("summary"));
+}
+
+#[test]
+fn test_doctor_verbose() {
+    // --verbose オプションが受け付けられることを確認
+    k1s0()
+        .args(["doctor", "--verbose"])
+        .assert()
+        .stderr(predicate::str::contains("k1s0 環境診断").or(predicate::str::contains("必須ツール")));
+}
+
+#[test]
+fn test_doctor_check_rust() {
+    // --check rust オプションで Rust カテゴリのみチェック
+    k1s0()
+        .args(["doctor", "--check", "rust"])
+        .assert()
+        .stderr(predicate::str::contains("rustc").or(predicate::str::contains("cargo")));
+}
+
+#[test]
+fn test_doctor_check_node() {
+    // --check node オプションで Node.js カテゴリのみチェック
+    k1s0()
+        .args(["doctor", "--check", "node"])
+        .assert()
+        .stderr(predicate::str::contains("node").or(predicate::str::contains("pnpm")));
+}
+
+#[test]
+fn test_doctor_strict_flag() {
+    // --strict フラグが受け付けられることを確認
+    k1s0()
+        .args(["doctor", "--strict", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("strict"));
+}

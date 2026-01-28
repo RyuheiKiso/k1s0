@@ -28,6 +28,7 @@ fn main() -> std::process::ExitCode {
         Commands::Upgrade(args) => k1s0_cli::commands::upgrade::execute(args),
         Commands::Registry(args) => k1s0_cli::commands::registry::execute(args),
         Commands::Completions(args) => k1s0_cli::commands::completions::execute(args),
+        Commands::Doctor(args) => k1s0_cli::commands::doctor::execute(args),
         Commands::DomainVersion(args) => k1s0_cli::commands::domain_version::execute(args),
         Commands::DomainList(args) => k1s0_cli::commands::domain_list::execute(args),
         Commands::DomainDependents(args) => k1s0_cli::commands::domain_dependents::execute(args),
