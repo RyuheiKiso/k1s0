@@ -90,7 +90,12 @@ pub use metrics::{CacheMetrics, CacheOperation, MetricsSnapshot, OperationTimer}
 pub use operations::{
     CacheOperations, CacheOperationsExt, HashOperations, ListOperations, SetOperations,
 };
-pub use patterns::{CacheAside, CacheAsideConfig, TtlRefresh, TtlRefreshConfig};
+pub use patterns::{
+    CacheAside, CacheAsideConfig, CacheAsideLoader,
+    TtlRefresh, TtlRefreshConfig,
+    WriteBehind, WriteBehindConfig, WriteBehindStats, WriteBehindStatsSnapshot,
+    WriteThrough, WriteThroughConfig, WriteThroughStore,
+};
 pub use pool::PoolStatus;
 
 // Redis 固有の型（feature = "redis" 時のみ）

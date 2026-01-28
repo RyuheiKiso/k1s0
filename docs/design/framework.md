@@ -1215,6 +1215,121 @@ where
     E: Into<DbError>;
 ```
 
+#### UnitOfWork 拡張機能
+
+```rust
+/// 完全な UnitOfWork 実装
+pub struct UnitOfWorkImpl {
+    pool: DbPool,
+    tx: Option<Transaction<'static, Postgres>>,
+    savepoints: Vec<String>,
+    isolation_level: IsolationLevel,
+}
+
+impl UnitOfWorkImpl {
+    pub fn new(pool: DbPool) -> Self;
+
+    /// トランザクション分離レベルを設定
+    pub fn with_isolation_level(mut self, level: IsolationLevel) -> Self;
+
+    /// セーブポイントを作成
+    pub async fn savepoint(&mut self, name: &str) -> DbResult<()>;
+
+    /// セーブポイントまでロールバック
+    pub async fn rollback_to_savepoint(&mut self, name: &str) -> DbResult<()>;
+
+    /// セーブポイントを解放
+    pub async fn release_savepoint(&mut self, name: &str) -> DbResult<()>;
+
+    /// トランザクション内で処理を実行
+    pub async fn execute<F, T, E>(&mut self, f: F) -> DbResult<T>
+    where
+        F: FnOnce(&mut Self) -> Future<Output = Result<T, E>> + Send,
+        E: Into<DbError>;
+}
+```
+
+#### ScopedUnitOfWork
+
+スコープ終了時に自動でロールバックする UnitOfWork。
+
+```rust
+/// スコープベースの UnitOfWork
+pub struct ScopedUnitOfWork {
+    inner: UnitOfWorkImpl,
+    committed: bool,
+}
+
+impl ScopedUnitOfWork {
+    pub fn new(pool: DbPool) -> Self;
+
+    /// トランザクションをコミット（呼び出さない場合はドロップ時にロールバック）
+    pub async fn commit(mut self) -> DbResult<()>;
+}
+
+impl Drop for ScopedUnitOfWork {
+    fn drop(&mut self) {
+        // committed が false の場合、自動でロールバック
+    }
+}
+```
+
+#### MultiTableUnitOfWork
+
+複数テーブルの操作をまとめて管理する UnitOfWork。
+
+```rust
+/// 複数テーブル操作用 UnitOfWork
+pub struct MultiTableUnitOfWork {
+    inner: UnitOfWorkImpl,
+    operations: Vec<Operation>,
+}
+
+pub enum Operation {
+    Insert { table: String, data: Value },
+    Update { table: String, id: String, data: Value },
+    Delete { table: String, id: String },
+}
+
+impl MultiTableUnitOfWork {
+    pub fn new(pool: DbPool) -> Self;
+
+    /// 操作を追加
+    pub fn add_operation(&mut self, op: Operation);
+
+    /// すべての操作を実行してコミット
+    pub async fn execute_all(&mut self) -> DbResult<()>;
+
+    /// 特定のテーブルのみ実行
+    pub async fn execute_for_table(&mut self, table: &str) -> DbResult<()>;
+}
+```
+
+#### UnitOfWorkFactory
+
+```rust
+/// UnitOfWork ファクトリー
+pub struct UnitOfWorkFactory {
+    pool: DbPool,
+}
+
+impl UnitOfWorkFactory {
+    pub fn new(pool: DbPool) -> Self;
+
+    /// 基本の UnitOfWork を作成
+    pub fn create(&self) -> UnitOfWorkImpl;
+
+    /// スコープベースの UnitOfWork を作成
+    pub fn create_scoped(&self) -> ScopedUnitOfWork;
+
+    /// 複数テーブル用 UnitOfWork を作成
+    pub fn create_multi_table(&self) -> MultiTableUnitOfWork;
+
+    /// 特定の分離レベルで UnitOfWork を作成
+    pub fn create_with_isolation(&self, level: IsolationLevel) -> UnitOfWorkImpl;
+}
+```
+
 ### Features
 
 ```toml
@@ -1609,6 +1724,171 @@ let user = client.get_or_set(
     || async { db.find_user("123").await },
     Some(Duration::from_secs(3600)),
 ).await?;
+```
+
+### Write-Through パターン
+
+DB と Cache に同時に書き込むパターン。データの一貫性を重視する場合に使用。
+
+```rust
+pub struct WriteThrough<T, D, C>
+where
+    T: Serialize + DeserializeOwned + Clone + Send + Sync,
+    D: DbOperations<T> + Send + Sync,
+    C: CacheOperations + Send + Sync,
+{
+    db: Arc<D>,
+    cache: Arc<C>,
+    key_prefix: String,
+    default_ttl: Option<Duration>,
+}
+
+impl<T, D, C> WriteThrough<T, D, C> {
+    pub fn new(db: Arc<D>, cache: Arc<C>, key_prefix: impl Into<String>) -> Self;
+    pub fn with_ttl(self, ttl: Duration) -> Self;
+
+    /// DB に書き込み、成功後キャッシュにも書き込み
+    pub async fn write(&self, key: &str, value: &T) -> CacheResult<()>;
+
+    /// DB に書き込み、成功後キャッシュにも書き込み（TTL指定）
+    pub async fn write_with_ttl(&self, key: &str, value: &T, ttl: Duration) -> CacheResult<()>;
+
+    /// Cache-Aside フォールバック付きで読み取り
+    pub async fn read(&self, key: &str) -> CacheResult<Option<T>>;
+
+    /// 複数エントリを一括書き込み
+    pub async fn write_batch(&self, entries: &[(String, T)]) -> CacheResult<()>;
+}
+```
+
+**Go 版:**
+
+```go
+type WriteThrough[T any] struct {
+    db        DbOperations[T]
+    cache     CacheOperations
+    keyPrefix string
+    ttl       time.Duration
+}
+
+func NewWriteThrough[T any](db DbOperations[T], cache CacheOperations, keyPrefix string) *WriteThrough[T]
+func (w *WriteThrough[T]) WithTTL(ttl time.Duration) *WriteThrough[T]
+func (w *WriteThrough[T]) Write(ctx context.Context, key string, value *T) error
+func (w *WriteThrough[T]) Read(ctx context.Context, key string) (*T, error)
+func (w *WriteThrough[T]) WriteBatch(ctx context.Context, entries map[string]*T) error
+```
+
+### Write-Behind パターン
+
+キャッシュに即座に書き込み、DB への書き込みを非同期で行うパターン。書き込み性能を重視する場合に使用。
+
+```rust
+pub struct WriteBehind<T, D, C>
+where
+    T: Serialize + DeserializeOwned + Clone + Send + Sync + 'static,
+    D: DbOperations<T> + Send + Sync + 'static,
+    C: CacheOperations + Send + Sync + 'static,
+{
+    db: Arc<D>,
+    cache: Arc<C>,
+    key_prefix: String,
+    sender: mpsc::Sender<WriteOperation<T>>,
+    stats: Arc<WriteBehindStats>,
+}
+
+pub struct WriteOperation<T> {
+    pub key: String,
+    pub value: T,
+    pub operation_type: WriteOperationType,
+}
+
+pub enum WriteOperationType {
+    Insert,
+    Update,
+    Delete,
+}
+
+pub struct WriteBehindConfig {
+    pub batch_size: usize,          // デフォルト: 100
+    pub flush_interval: Duration,   // デフォルト: 1秒
+    pub max_retries: u32,           // デフォルト: 3
+    pub retry_delay: Duration,      // デフォルト: 100ms
+}
+
+pub struct WriteBehindStats {
+    pub total_writes: AtomicU64,
+    pub successful_writes: AtomicU64,
+    pub failed_writes: AtomicU64,
+    pub pending_writes: AtomicU64,
+}
+
+impl<T, D, C> WriteBehind<T, D, C> {
+    pub async fn new(
+        db: Arc<D>,
+        cache: Arc<C>,
+        key_prefix: impl Into<String>,
+        config: WriteBehindConfig,
+    ) -> CacheResult<Self>;
+
+    /// キャッシュに即座に書き込み、DB への書き込みをキューに追加
+    pub async fn write(&self, key: &str, value: T) -> CacheResult<()>;
+
+    /// 削除をキューに追加
+    pub async fn delete(&self, key: &str) -> CacheResult<()>;
+
+    /// キャッシュから読み取り（DB フォールバックあり）
+    pub async fn read(&self, key: &str) -> CacheResult<Option<T>>;
+
+    /// 統計情報を取得
+    pub fn stats(&self) -> &WriteBehindStats;
+
+    /// バックグラウンドワーカーを停止
+    pub async fn shutdown(&self) -> CacheResult<()>;
+}
+```
+
+**Go 版:**
+
+```go
+type WriteBehind[T any] struct {
+    db         DbOperations[T]
+    cache      CacheOperations
+    keyPrefix  string
+    writeChan  chan WriteOperation[T]
+    stats      *WriteBehindStats
+    stopCh     chan struct{}
+}
+
+type WriteBehindConfig struct {
+    BatchSize     int           // default: 100
+    FlushInterval time.Duration // default: 1s
+    MaxRetries    int           // default: 3
+    RetryDelay    time.Duration // default: 100ms
+}
+
+type WriteBehindStats struct {
+    TotalWrites      atomic.Uint64
+    SuccessfulWrites atomic.Uint64
+    FailedWrites     atomic.Uint64
+    PendingWrites    atomic.Uint64
+}
+
+func NewWriteBehind[T any](db DbOperations[T], cache CacheOperations, keyPrefix string, config WriteBehindConfig) *WriteBehind[T]
+func (w *WriteBehind[T]) Write(ctx context.Context, key string, value *T) error
+func (w *WriteBehind[T]) Delete(ctx context.Context, key string) error
+func (w *WriteBehind[T]) Read(ctx context.Context, key string) (*T, error)
+func (w *WriteBehind[T]) Stats() WriteBehindStats
+func (w *WriteBehind[T]) Shutdown(ctx context.Context) error
+```
+
+### キャッシュパターン使い分け
+
+| パターン | 一貫性 | 書き込み性能 | 読み取り性能 | 適用場面 |
+|---------|:-----:|:----------:|:----------:|---------|
+| Cache-Aside | 中 | 低 | 高 | 読み取り中心のワークロード |
+| Write-Through | 高 | 低 | 高 | データ一貫性が最重要 |
+| Write-Behind | 低 | 高 | 高 | 書き込み中心、一時的な不整合許容 |
+
 ```
 
 ---
@@ -2103,6 +2383,7 @@ function PerformanceMonitor() {
 
 ```
 framework/frontend/flutter/packages/
+├── k1s0_navigation/     # 設定駆動ナビゲーション（NEW）
 ├── k1s0_config/         # YAML設定管理
 ├── k1s0_http/           # API通信クライアント
 ├── k1s0_auth/           # 認証クライアント
@@ -2115,12 +2396,301 @@ framework/frontend/flutter/packages/
 
 | パッケージ | 状態 | 説明 |
 |-----------|:----:|------|
+| k1s0_navigation | ✅ | 設定駆動ナビゲーション、go_router統合、ルートガード |
 | k1s0_config | ✅ | YAML設定管理、Zodスキーマバリデーション、環境マージ |
 | k1s0_http | ✅ | Dioベース通信クライアント、OTel計測、ProblemDetails対応 |
 | k1s0_auth | ✅ | JWT/OIDC認証、SecureStorage、トークン自動更新 |
 | k1s0_observability | ✅ | 構造化ログ、分散トレース、メトリクス収集 |
 | k1s0_ui | ✅ | Material 3 Design System、共通ウィジェット、テーマ |
 | k1s0_state | ✅ | Riverpod状態管理、AsyncValueヘルパー、永続化 |
+
+---
+
+## k1s0_navigation (Flutter)
+
+### 目的
+
+go_router ベースの設定駆動型ナビゲーションを提供する。ルート設定、ルートガード、認証連携、Shell Routes を統合。
+
+### 主要な型
+
+#### RouteConfig / RouteEntry
+
+```dart
+/// ルート設定
+class RouteConfig {
+  final List<RouteEntry> routes;
+  final String initialLocation;
+  final bool debugLogDiagnostics;
+  final bool routerNeglect;
+
+  RouteConfig copyWith({...});
+}
+
+/// ルートエントリ
+class RouteEntry {
+  final String path;
+  final String name;
+  final Widget Function(BuildContext, GoRouterState) builder;
+  final List<RouteEntry> children;
+  final List<String> guards;
+
+  /// GoRoute に変換
+  GoRoute toGoRoute({required Map<String, RouteGuardCallback> guardCallbacks});
+}
+
+/// ルート設定ビルダー
+class RouteConfigBuilder {
+  RouteConfigBuilder addRoute(RouteEntry route);
+  RouteConfigBuilder addRoutes(List<RouteEntry> routes);
+  RouteConfigBuilder initialLocation(String location);
+  RouteConfigBuilder enableDebugLogging();
+  RouteConfig build();
+}
+```
+
+#### Route Guards
+
+```dart
+/// ルートガード基底クラス
+abstract class RouteGuard {
+  final String name;
+
+  /// ガードチェック（null を返すと通過、String を返すとリダイレクト）
+  String? check(BuildContext context, GoRouterState state);
+}
+
+/// 関数ベースのルートガード
+class FunctionalRouteGuard extends RouteGuard {
+  FunctionalRouteGuard({
+    required String name,
+    required String? Function(BuildContext, GoRouterState) checkFn,
+  });
+}
+
+/// 認証ガード
+class AuthGuard extends RouteGuard {
+  final bool Function(BuildContext) isAuthenticated;
+  final String loginPath;
+  final String? returnToParameter;
+  final List<String> excludedPaths;
+
+  AuthGuard({
+    String name = 'auth',
+    required this.isAuthenticated,
+    this.loginPath = '/login',
+    this.returnToParameter = 'returnTo',
+    this.excludedPaths = const [],
+  });
+}
+
+/// ロールベースガード
+class RoleGuard extends RouteGuard {
+  final List<String> Function(BuildContext) getRoles;
+  final List<String> requiredRoles;
+  final bool requireAll;
+  final String fallbackPath;
+
+  RoleGuard({
+    String name = 'role',
+    required this.getRoles,
+    required this.requiredRoles,
+    this.requireAll = false,
+    this.fallbackPath = '/forbidden',
+  });
+}
+
+/// 複合ガード（複数ガードを順番にチェック）
+class CompositeRouteGuard extends RouteGuard {
+  final List<RouteGuard> guards;
+
+  CompositeRouteGuard({
+    required String name,
+    required this.guards,
+  });
+}
+
+/// ガードレジストリ
+class RouteGuardRegistry {
+  void register(RouteGuard guard);
+  void unregister(String name);
+  RouteGuard? get(String name);
+  bool contains(String name);
+  void clear();
+}
+```
+
+#### K1s0Router
+
+```dart
+/// k1s0 Router ラッパー
+class K1s0Router {
+  final RouteConfig config;
+  final RouteGuardRegistry guardRegistry;
+  final List<NavigatorObserver> observers;
+  final Widget Function(BuildContext, GoRouterState)? errorBuilder;
+  final Listenable? refreshListenable;
+
+  K1s0Router({
+    required this.config,
+    RouteGuardRegistry? guardRegistry,
+    this.observers = const [],
+    this.errorBuilder,
+    this.refreshListenable,
+  });
+
+  /// GoRouter インスタンスを作成
+  GoRouter createRouter();
+}
+```
+
+#### Shell Routes
+
+```dart
+/// Shell Route 設定
+class K1s0ShellRoute {
+  final String? name;
+  final Widget Function(BuildContext, GoRouterState, Widget) builder;
+  final List<RouteEntry> routes;
+  final List<String> guards;
+  final GlobalKey<NavigatorState>? navigatorKey;
+
+  ShellRoute toShellRoute({required Map<String, RouteGuardCallback> guardCallbacks});
+}
+
+/// Stateful Shell Route（タブナビゲーション用）
+class K1s0StatefulShellRoute {
+  final List<K1s0ShellBranch> branches;
+  final Widget Function(BuildContext, GoRouterState, StatefulNavigationShell) builder;
+  final String? restorationScopeId;
+
+  StatefulShellRoute toStatefulShellRoute({...});
+}
+
+class K1s0ShellBranch {
+  final GlobalKey<NavigatorState>? navigatorKey;
+  final String? restorationScopeId;
+  final String? initialLocation;
+  final List<RouteEntry> routes;
+}
+```
+
+#### Riverpod Providers
+
+```dart
+/// ルート設定プロバイダー
+final routeConfigProvider = Provider<RouteConfig>((ref) => throw UnimplementedError());
+
+/// ガードレジストリプロバイダー
+final routeGuardRegistryProvider = Provider<RouteGuardRegistry>((ref) {
+  return RouteGuardRegistry();
+});
+
+/// GoRouter プロバイダー
+final routerProvider = Provider<GoRouter>((ref) {
+  final config = ref.watch(routeConfigProvider);
+  final registry = ref.watch(routeGuardRegistryProvider);
+
+  final k1s0Router = K1s0Router(
+    config: config,
+    guardRegistry: registry,
+  );
+
+  return k1s0Router.createRouter();
+});
+
+/// 認証状態通知
+class SimpleAuthStateNotifier extends ChangeNotifier {
+  bool _isAuthenticated;
+
+  bool get isAuthenticated => _isAuthenticated;
+
+  void login() { ... }
+  void logout() { ... }
+}
+
+final authStateProvider = ChangeNotifierProvider<SimpleAuthStateNotifier>((ref) {
+  return SimpleAuthStateNotifier();
+});
+```
+
+### 使用例
+
+```dart
+// ルート設定
+final config = RouteConfigBuilder()
+    .addRoute(RouteEntry(
+      path: '/',
+      name: 'home',
+      builder: (context, state) => const HomePage(),
+    ))
+    .addRoute(RouteEntry(
+      path: '/login',
+      name: 'login',
+      builder: (context, state) => const LoginPage(),
+    ))
+    .addRoute(RouteEntry(
+      path: '/dashboard',
+      name: 'dashboard',
+      builder: (context, state) => const DashboardPage(),
+      guards: ['auth'],  // 認証ガードを適用
+    ))
+    .initialLocation('/')
+    .enableDebugLogging()
+    .build();
+
+// ガード登録
+final registry = RouteGuardRegistry();
+registry.register(AuthGuard(
+  isAuthenticated: (context) => ref.read(authStateProvider).isAuthenticated,
+  loginPath: '/login',
+  excludedPaths: ['/login', '/register'],
+));
+
+// Router 作成
+final router = K1s0Router(
+  config: config,
+  guardRegistry: registry,
+  refreshListenable: ref.read(authStateProvider),
+).createRouter();
+
+// MaterialApp で使用
+MaterialApp.router(
+  routerConfig: router,
+)
+
+// Shell Route（共通レイアウト）
+final shellRoute = K1s0ShellRoute(
+  builder: (context, state, child) => Scaffold(
+    appBar: AppBar(title: Text('My App')),
+    body: child,
+  ),
+  routes: [
+    RouteEntry(path: '/home', name: 'home', builder: ...),
+    RouteEntry(path: '/settings', name: 'settings', builder: ...),
+  ],
+);
+
+// Stateful Shell Route（タブナビゲーション）
+final statefulShell = K1s0StatefulShellRoute(
+  branches: [
+    K1s0ShellBranch(
+      routes: [RouteEntry(path: '/home', name: 'home', builder: ...)],
+    ),
+    K1s0ShellBranch(
+      routes: [RouteEntry(path: '/profile', name: 'profile', builder: ...)],
+    ),
+  ],
+  builder: (context, state, shell) => Scaffold(
+    body: shell,
+    bottomNavigationBar: BottomNavigationBar(
+      currentIndex: shell.currentIndex,
+      onTap: shell.goBranch,
+      items: [...],
+    ),
+  ),
+);
+```
 
 ---
 
@@ -2523,6 +3093,10 @@ React:
   └── @opentelemetry/api (optional)
 
 Flutter:
+k1s0_navigation
+  ├── go_router
+  └── flutter_riverpod
+
 k1s0_config
   └── (standalone, yaml依存)
 

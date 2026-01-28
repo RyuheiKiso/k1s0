@@ -30,12 +30,25 @@ use k1s0_generator::lint::{LintConfig, LintResult, Linter, Severity, Violation};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, RwLock};
 use tower_lsp::jsonrpc::Result as LspResult;
-use tower_lsp::lsp_types::*;
+use tower_lsp::lsp_types::{
+    CompletionOptions, CompletionParams, CompletionResponse, Diagnostic, DiagnosticOptions,
+    DiagnosticRelatedInformation, DiagnosticServerCapabilities, DiagnosticSeverity,
+    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
+    DidSaveTextDocumentParams, DocumentSymbolParams, DocumentSymbolResponse,
+    GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams, HoverProviderCapability,
+    InitializeParams, InitializeResult, InitializedParams, Location, MessageType, NumberOrString,
+    Position, Range, ReferenceParams, SaveOptions, ServerCapabilities, ServerInfo,
+    SymbolInformation, TextDocumentSyncCapability, TextDocumentSyncKind,
+    TextDocumentSyncOptions, TextDocumentSyncSaveOptions, Url, WorkspaceSymbolParams,
+};
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 pub mod completion;
+pub mod definition;
 pub mod hover;
+pub mod references;
 pub mod schema;
+pub mod symbols;
 
 use schema::ManifestSchema;
 
@@ -389,6 +402,14 @@ impl LanguageServer for K1s0LanguageServer {
                 }),
                 // ホバー機能
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
+                // 定義へジャンプ
+                definition_provider: Some(tower_lsp::lsp_types::OneOf::Left(true)),
+                // 参照検索
+                references_provider: Some(tower_lsp::lsp_types::OneOf::Left(true)),
+                // ドキュメントシンボル
+                document_symbol_provider: Some(tower_lsp::lsp_types::OneOf::Left(true)),
+                // ワークスペースシンボル
+                workspace_symbol_provider: Some(tower_lsp::lsp_types::OneOf::Left(true)),
                 ..Default::default()
             },
             server_info: Some(ServerInfo {
@@ -508,6 +529,125 @@ impl LanguageServer for K1s0LanguageServer {
 
         // ホバー情報を取得
         Ok(hover::get_hover_info(&document, position, &self.schema))
+    }
+
+    async fn goto_definition(
+        &self,
+        params: GotoDefinitionParams,
+    ) -> LspResult<Option<GotoDefinitionResponse>> {
+        let uri = &params.text_document_position_params.text_document.uri;
+        let position = params.text_document_position_params.position;
+
+        // manifest.json のみ定義ジャンプを提供
+        if !self.is_manifest_file(uri) {
+            return Ok(None);
+        }
+
+        // ドキュメントの内容を取得
+        let documents = self.documents.read().await;
+        let document = match documents.get(uri) {
+            Some(doc) => doc.clone(),
+            None => return Ok(None),
+        };
+        drop(documents);
+
+        // ワークスペースルートを取得
+        let workspace_root = self.workspace_root.read().await;
+        let root_ref = workspace_root.as_ref();
+
+        // 定義を検索
+        Ok(definition::find_definition(&document, position, root_ref))
+    }
+
+    async fn references(&self, params: ReferenceParams) -> LspResult<Option<Vec<Location>>> {
+        let uri = &params.text_document_position.text_document.uri;
+        let position = params.text_document_position.position;
+
+        // manifest.json のみ参照検索を提供
+        if !self.is_manifest_file(uri) {
+            return Ok(None);
+        }
+
+        // ドキュメントの内容を取得
+        let documents = self.documents.read().await;
+        let document = match documents.get(uri) {
+            Some(doc) => doc.clone(),
+            None => return Ok(None),
+        };
+        drop(documents);
+
+        // ワークスペースルートを取得
+        let workspace_root = self.workspace_root.read().await;
+        let root_ref = workspace_root.as_ref();
+
+        // 参照を検索
+        let refs = references::find_references(
+            uri,
+            &document,
+            position,
+            root_ref,
+            params.context.include_declaration,
+        );
+
+        if refs.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(refs))
+        }
+    }
+
+    async fn document_symbol(
+        &self,
+        params: DocumentSymbolParams,
+    ) -> LspResult<Option<DocumentSymbolResponse>> {
+        let uri = &params.text_document.uri;
+
+        // manifest.json のみシンボルを提供
+        if !self.is_manifest_file(uri) {
+            return Ok(None);
+        }
+
+        // ドキュメントの内容を取得
+        let documents = self.documents.read().await;
+        let document = match documents.get(uri) {
+            Some(doc) => doc.clone(),
+            None => return Ok(None),
+        };
+        drop(documents);
+
+        // ドキュメントシンボルを抽出
+        let symbols = symbols::extract_document_symbols(&document);
+
+        if symbols.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(DocumentSymbolResponse::Nested(symbols)))
+        }
+    }
+
+    async fn symbol(
+        &self,
+        params: WorkspaceSymbolParams,
+    ) -> LspResult<Option<Vec<SymbolInformation>>> {
+        let query = &params.query;
+
+        // 開いているドキュメントからシンボルを検索
+        let documents = self.documents.read().await;
+        let manifest_files: Vec<(Url, String)> = documents
+            .iter()
+            .filter(|(uri, _)| self.is_manifest_file(uri))
+            .map(|(uri, content)| (uri.clone(), content.clone()))
+            .collect();
+        drop(documents);
+
+        // ワークスペースシンボルを検索
+        let symbols = symbols::search_workspace_symbols(query, &manifest_files);
+
+        if symbols.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(symbols))
+        }
     }
 }
 

@@ -99,7 +99,10 @@ pub use testing::{Fixture, TestDbConfig, generate_test_db_name};
 pub use postgres::{PgPool, PostgresPool, PoolStatus, create_pool, create_pool_from_url};
 
 #[cfg(feature = "postgres")]
-pub use uow::{PostgresUnitOfWork, UnitOfWorkFactory, execute_in_transaction, execute_with_retry};
+pub use uow::{
+    MultiTableUnitOfWork, PostgresUnitOfWork, RepositoryContext, ScopedUnitOfWork,
+    UnitOfWorkFactory, execute_in_transaction, execute_with_retry,
+};
 
 #[cfg(feature = "postgres")]
 pub use health::DbHealthChecker;
