@@ -126,8 +126,6 @@ impl LayerDependencyRules {
                         self.manifest_cache.insert(
                             domain_name,
                             CachedManifest {
-                                path: path.clone(),
-                                layer: manifest.layer,
                                 version: manifest.version.clone(),
                                 deprecated: manifest.is_deprecated(),
                                 min_framework_version: manifest.min_framework_version.clone(),
