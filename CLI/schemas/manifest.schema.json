@@ -94,6 +94,20 @@
       },
       "additionalProperties": false
     },
+    "layer": {
+      "type": "string",
+      "description": "サービスが属する層。framework: 技術基盤層、domain: 業務領域共通層、feature: 個別機能層。未指定の場合は feature として扱う（後方互換性）",
+      "enum": ["framework", "domain", "feature"],
+      "default": "feature",
+      "examples": ["feature", "domain", "framework"]
+    },
+    "domain": {
+      "type": ["string", "null"],
+      "description": "feature 層の場合に所属するドメイン名。domain 層および framework 層の場合は null。kebab-case で指定。",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "default": null,
+      "examples": ["finance", "inventory", "customer", null]
+    },
     "generated_at": {
       "type": "string",
       "description": "生成日時（ISO 8601 形式）",
