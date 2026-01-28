@@ -71,6 +71,34 @@ static VERSION_STRING: Lazy<String> = Lazy::new(|| {
 
 k1s0 CLI は対話式インターフェースをサポートしています。Vite のような洗練されたユーザー体験を提供します。
 
+### 引数なし実行時の動作
+
+`k1s0` を引数なしで実行した場合:
+
+- **TTY 環境**: サブコマンド選択の対話モードが起動し、実行したいコマンドを選択できます
+- **非 TTY 環境**: ヘルプが表示されます（clap のデフォルト動作）
+
+```bash
+# TTY 環境で引数なしで実行
+$ k1s0
+
+k1s0 - 高速な開発サイクルを実現する統合開発基盤
+
+? 実行するコマンドを選択してください:
+> new-feature     新しいフィーチャーサービスを作成
+  new-domain      新しいドメインライブラリを作成
+  new-screen      新しい画面を作成
+  init            リポジトリを初期化
+  lint            規約チェックを実行
+  upgrade         テンプレートをアップグレード
+  domain          ドメイン管理（list, version, dependents, impact）
+  completions     シェル補完スクリプトを生成
+```
+
+選択後の動作:
+- `new-feature`, `new-domain`, `new-screen`, `init`: 対話モードで継続（必要な情報を順次入力）
+- `lint`, `upgrade`, `domain`, `completions`: ヘルプまたは使用方法を表示
+
 ### 対話モードの動作
 
 1. **自動フォールバック**: 必須引数が不足している場合、TTY 環境であれば対話モードにフォールバックします
@@ -80,6 +108,12 @@ k1s0 CLI は対話式インターフェースをサポートしています。Vi
 ### 対話モードの判定ロジック
 
 ```
+# 引数なし実行時
+if 引数なし（プログラム名のみ）:
+    if TTY環境: サブコマンド選択対話モード
+    else: ヘルプ表示
+
+# サブコマンド実行時
 if --interactive フラグあり:
     if TTY環境: 対話モードで実行
     else: エラー（TTYが必要）
@@ -123,6 +157,7 @@ k1s0 new-feature --type backend-rust --name my-service
 ```
 src/prompts/
 ├── mod.rs              # モジュールルート、TTY 検出
+├── command_select.rs   # サブコマンド選択（引数なし実行時）
 ├── template_type.rs    # テンプレートタイプ選択
 ├── name_input.rs       # 名前入力（バリデーション付き）
 ├── options.rs          # オプション選択（マルチセレクト）

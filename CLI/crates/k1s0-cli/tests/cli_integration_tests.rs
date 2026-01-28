@@ -1072,3 +1072,17 @@ fn test_new_feature_interactive_flag_no_tty_fails() {
         .failure()
         .stderr(predicate::str::contains("TTY"));
 }
+
+// ============================================================================
+// Phase 0: 引数なし時の動作テスト
+// ============================================================================
+
+#[test]
+fn test_no_args_no_tty_shows_help() {
+    // 引数なしで非 TTY 環境で実行した場合、ヘルプが表示される
+    // （テスト環境は非 TTY なので、clap がヘルプを表示する）
+    k1s0()
+        .assert()
+        .failure() // clap はサブコマンドが必要なのでエラー終了
+        .stderr(predicate::str::contains("Usage:").or(predicate::str::contains("k1s0")));
+}

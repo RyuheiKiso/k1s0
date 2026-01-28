@@ -22,6 +22,7 @@
 //! }
 //! ```
 
+pub mod command_select;
 pub mod confirm;
 pub mod feature_select;
 pub mod init_options;
