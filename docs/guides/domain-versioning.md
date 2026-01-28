@@ -47,39 +47,39 @@ MAJOR.MINOR.PATCH
 
 ```bash
 # 特定の domain のバージョンを確認
-k1s0 domain version --name production
+k1s0 domain version --name manufacturing
 
 # 出力例
-production: 1.2.0
+manufacturing: 1.2.0
 ```
 
 ### 2.2 バージョンの更新（bump）
 
 ```bash
 # PATCH バージョンを上げる（1.2.0 -> 1.2.1）
-k1s0 domain version --name production --bump patch
+k1s0 domain version --name manufacturing --bump patch
 
 # MINOR バージョンを上げる（1.2.0 -> 1.3.0）
-k1s0 domain version --name production --bump minor
+k1s0 domain version --name manufacturing --bump minor
 
 # MAJOR バージョンを上げる（1.2.0 -> 2.0.0）
-k1s0 domain version --name production --bump major
+k1s0 domain version --name manufacturing --bump major
 ```
 
 ### 2.3 バージョンの直接指定
 
 ```bash
 # 特定のバージョンを設定
-k1s0 domain version --name production --set 2.0.0
+k1s0 domain version --name manufacturing --set 2.0.0
 
 # pre-release バージョンを設定
-k1s0 domain version --name production --set 2.0.0-beta.1
+k1s0 domain version --name manufacturing --set 2.0.0-beta.1
 ```
 
 ### 2.4 オプション
 
 ```bash
-k1s0 domain version --name production --bump major \
+k1s0 domain version --name manufacturing --bump major \
   --message "WorkOrder.quantity を Quantity 値オブジェクトに変更" \
   --no-changelog   # CHANGELOG.md を更新しない
 ```
@@ -106,7 +106,7 @@ k1s0 domain version --name production --bump major \
 
 ```bash
 # MAJOR バージョン更新時に破壊的変更を記録
-k1s0 domain version --name production --bump major \
+k1s0 domain version --name manufacturing --bump major \
   --message "WorkOrder.quantity の型を u32 から Quantity 値オブジェクトに変更"
 ```
 
@@ -186,7 +186,7 @@ All notable changes to this project will be documented in this file.
 
 ```bash
 # バージョン更新と CHANGELOG 更新
-k1s0 domain version --name production --bump minor \
+k1s0 domain version --name manufacturing --bump minor \
   --message "WorkOrderService に cancel_work_order メソッドを追加"
 
 # CHANGELOG が以下のように更新される
@@ -207,11 +207,11 @@ feature の manifest.json でバージョン制約を指定します。
 ```json
 {
   "layer": "feature",
-  "domain": "production",
+  "domain": "manufacturing",
   "domain_version": "^1.2.0",
   "dependencies": {
     "domain": {
-      "production": "^1.2.0",
+      "manufacturing": "^1.2.0",
       "inventory": "~2.0.0"
     }
   }
@@ -237,7 +237,7 @@ feature の manifest.json でバージョン制約を指定します。
     "domain": {
       // 推奨: ^（キャレット）を使用
       // MINOR/PATCH の更新を自動的に受け入れる
-      "production": "^1.2.0",
+      "manufacturing": "^1.2.0",
 
       // 厳格な制御が必要な場合: ~（チルダ）を使用
       "inventory": "~2.0.0",
@@ -253,7 +253,7 @@ feature の manifest.json でバージョン制約を指定します。
 
 ```bash
 # domain 依存のバージョンを更新
-k1s0 feature update-domain --name work-order-api --domain production --version "^2.0.0"
+k1s0 feature update-domain --name work-order-api --domain manufacturing --version "^2.0.0"
 
 # 全ての domain 依存を最新に更新
 k1s0 feature update-domain --name work-order-api --all --latest
@@ -278,11 +278,11 @@ k1s0 feature update-domain --name work-order-api --all --latest
 k1s0 lint
 
 # 出力例
-[K042] ERROR: domain 'production' のバージョン 1.5.0 が制約 ^2.0.0 を満たしません
+[K042] ERROR: domain 'manufacturing' のバージョン 1.5.0 が制約 ^2.0.0 を満たしません
        File: feature/backend/rust/work-order-api/.k1s0/manifest.json
        Hint: domain_version を更新するか、domain のバージョンを更新してください
 
-[K046] WARNING: domain 'production' v2.0.0 に破壊的変更があります: WorkOrder.quantity の型を変更
+[K046] WARNING: domain 'manufacturing' v2.0.0 に破壊的変更があります: WorkOrder.quantity の型を変更
        File: feature/backend/rust/work-order-api/.k1s0/manifest.json
        Hint: CHANGELOG を確認し、必要に応じてコードを更新してください
 ```
@@ -295,10 +295,10 @@ k1s0 lint
 
 ```bash
 # domain のバージョンアップによる影響を分析
-k1s0 domain impact --name production --from 1.5.0 --to 2.0.0
+k1s0 domain impact --name manufacturing --from 1.5.0 --to 2.0.0
 
 # 出力例
-Domain: production
+Domain: manufacturing
 Version change: 1.5.0 -> 2.0.0 (MAJOR)
 
 Breaking changes:
@@ -307,7 +307,7 @@ Breaking changes:
 Affected features (5):
   - work-order-api (constraint: ^1.2.0) - INCOMPATIBLE
   - work-order-dashboard (constraint: ^1.5.0) - INCOMPATIBLE
-  - production-report (constraint: ^1.0.0) - INCOMPATIBLE
+  - manufacturing-report (constraint: ^1.0.0) - INCOMPATIBLE
   - inventory-sync (constraint: ~1.5.0) - INCOMPATIBLE
   - legacy-adapter (constraint: 1.5.0) - INCOMPATIBLE
 
@@ -319,13 +319,13 @@ Recommendation:
 
 ```bash
 # domain に依存する feature を一覧表示
-k1s0 domain dependents --name production
+k1s0 domain dependents --name manufacturing
 
 # 出力例
-Features depending on 'production':
+Features depending on 'manufacturing':
   work-order-api          ^1.2.0    feature/backend/rust/work-order-api
   work-order-dashboard    ^1.5.0    feature/frontend/react/work-order-dashboard
-  production-report       ^1.0.0    feature/backend/rust/production-report
+  manufacturing-report       ^1.0.0    feature/backend/rust/manufacturing-report
   inventory-sync          ~1.5.0    feature/backend/go/inventory-sync
   legacy-adapter          1.5.0     feature/backend/rust/legacy-adapter
 ```
@@ -341,13 +341,13 @@ Features depending on 'production':
 3. **CHANGELOG.md を更新**
 4. **バージョンを更新**
    ```bash
-   k1s0 domain version --name production --bump minor --message "..."
+   k1s0 domain version --name manufacturing --bump minor --message "..."
    ```
 5. **依存する feature でテストを実行**
 6. **main ブランチにマージ**
 7. **タグを作成**
    ```bash
-   git tag domain/production/v1.3.0
+   git tag domain/manufacturing/v1.3.0
    ```
 
 ### 8.2 破壊的変更の導入
@@ -386,20 +386,20 @@ pub fn quantity(&self) -> &Quantity {
 
 ```bash
 # ベータ版をリリース
-k1s0 domain version --name production --set 2.0.0-beta.1
+k1s0 domain version --name manufacturing --set 2.0.0-beta.1
 
 # feature でテスト（オプトイン）
 # manifest.json
 {
   "dependencies": {
     "domain": {
-      "production": "2.0.0-beta.1"
+      "manufacturing": "2.0.0-beta.1"
     }
   }
 }
 
 # 正式リリース
-k1s0 domain version --name production --set 2.0.0
+k1s0 domain version --name manufacturing --set 2.0.0
 ```
 
 ---

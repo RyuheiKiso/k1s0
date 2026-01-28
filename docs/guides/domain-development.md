@@ -36,7 +36,7 @@ domain 層が担当しないもの:
 | 観点 | framework 層 | domain 層 |
 |------|------------|---------|
 | 目的 | 技術的な共通基盤 | 業務ロジックの共有 |
-| 例 | k1s0-error, k1s0-config | production, inventory |
+| 例 | k1s0-error, k1s0-config | manufacturing, inventory |
 | バージョン | k1s0 CLI と連動 | 独立した SemVer |
 | 業務知識 | 含まない | 含む |
 
@@ -48,12 +48,12 @@ domain 層が担当しないもの:
 
 ```bash
 # 基本的な使用法
-k1s0 new-domain --type backend-rust --name production
+k1s0 new-domain --type backend-rust --name manufacturing
 
 # オプション一覧
 k1s0 new-domain \
   --type backend-rust \      # テンプレートタイプ
-  --name production \        # domain 名（kebab-case）
+  --name manufacturing \        # domain 名（kebab-case）
   --output ./domain \        # 出力先（デフォルト: domain/{type}/{name}）
   --force                    # 既存ディレクトリを上書き
 ```
@@ -77,7 +77,7 @@ domain 名は以下のルールに従います:
 
 良い例:
 ```
-production          # 生産管理
+manufacturing          # 生産管理
 inventory           # 在庫管理
 user-management     # ユーザー管理
 order-processing    # 注文処理
@@ -88,7 +88,7 @@ order-processing    # 注文処理
 database-access     # 技術用語
 common              # 曖昧
 shared-utils        # 技術用語 + 曖昧
-production_domain   # snake_case は不可
+manufacturing_domain   # snake_case は不可
 ```
 
 予約語（使用不可）:
@@ -101,7 +101,7 @@ production_domain   # snake_case は不可
 ### 3.1 生成されるディレクトリ構造（Rust）
 
 ```
-domain/backend/rust/production/
+domain/backend/rust/manufacturing/
 ├── .k1s0/
 │   └── manifest.json         # domain メタ情報
 ├── Cargo.toml                # 依存関係定義
@@ -144,7 +144,7 @@ domain/backend/rust/production/
     "fingerprint": "abc123..."
   },
   "service": {
-    "service_name": "production",
+    "service_name": "manufacturing",
     "language": "rust",
     "type": "backend"
   },
@@ -507,7 +507,7 @@ impl<R: WorkOrderRepository> WorkOrderService<R> {
 
 **良い例**:
 ```
-production/           # 生産管理（WorkOrder, ProductionLine, Schedule）
+manufacturing/           # 生産管理（WorkOrder, ProductionLine, Schedule）
 inventory/            # 在庫管理（Stock, Location, Movement）
 ```
 
@@ -526,7 +526,7 @@ k1s0-error = { path = "../../../../framework/backend/rust/crates/k1s0-error" }
 k1s0-config = { path = "../../../../framework/backend/rust/crates/k1s0-config" }
 
 // 他の domain への依存（必要最小限に）
-production-core = { path = "../production-core" }  # 慎重に
+manufacturing-core = { path = "../manufacturing-core" }  # 慎重に
 ```
 
 ### 5.3 テストの書き方
@@ -607,7 +607,7 @@ impl From<DomainError> for K1s0Error {
 ### 6.1 domain に依存する feature の作成
 
 ```bash
-k1s0 new-feature --type backend-rust --name work-order-api --domain production
+k1s0 new-feature --type backend-rust --name work-order-api --domain manufacturing
 ```
 
 ### 6.2 feature での domain 利用例
@@ -616,10 +616,10 @@ k1s0 new-feature --type backend-rust --name work-order-api --domain production
 // feature/backend/rust/work-order-api/src/infrastructure/repositories/work_order_repository_impl.rs
 
 use async_trait::async_trait;
-use production::domain::entities::WorkOrder;
-use production::domain::repositories::WorkOrderRepository;
-use production::domain::value_objects::WorkOrderId;
-use production::domain::errors::DomainError;
+use manufacturing::domain::entities::WorkOrder;
+use manufacturing::domain::repositories::WorkOrderRepository;
+use manufacturing::domain::value_objects::WorkOrderId;
+use manufacturing::domain::errors::DomainError;
 use k1s0_db::DbPool;
 
 pub struct WorkOrderRepositoryImpl {

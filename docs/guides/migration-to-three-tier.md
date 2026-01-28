@@ -97,13 +97,13 @@ cd CLI && cargo test --all 2>&1 | tee ../migration-test-before.log
 #### Step 1.1: domain の雛形を作成
 
 ```bash
-k1s0 new-domain --type backend-rust --name production
+k1s0 new-domain --type backend-rust --name manufacturing
 ```
 
 #### Step 1.2: 初期バージョンを設定
 
 ```bash
-k1s0 domain version --name production --set 0.1.0
+k1s0 domain version --name manufacturing --set 0.1.0
 ```
 
 生成される manifest.json:
@@ -135,7 +135,7 @@ pub struct WorkOrder {
 
 **After（domain 層）**:
 ```rust
-// domain/backend/rust/production/src/domain/entities/work_order.rs
+// domain/backend/rust/manufacturing/src/domain/entities/work_order.rs
 use crate::domain::value_objects::{WorkOrderId, ProductReference, Quantity, WorkOrderStatus};
 
 pub struct WorkOrder {
@@ -163,7 +163,7 @@ pub type Quantity = u32;
 
 **After（domain 層）**:
 ```rust
-// domain/backend/rust/production/src/domain/value_objects/quantity.rs
+// domain/backend/rust/manufacturing/src/domain/value_objects/quantity.rs
 #[derive(Debug, Clone, PartialEq)]
 pub struct Quantity {
     value: u32,
@@ -194,7 +194,7 @@ pub fn calculate_completion_date(work_order: &WorkOrder, capacity: f64) -> DateT
 
 **After（domain 層）**:
 ```rust
-// domain/backend/rust/production/src/domain/services/scheduling_service.rs
+// domain/backend/rust/manufacturing/src/domain/services/scheduling_service.rs
 pub struct SchedulingService;
 
 impl SchedulingService {
@@ -222,7 +222,7 @@ pub trait WorkOrderRepo {
 
 **After（domain 層）**:
 ```rust
-// domain/backend/rust/production/src/domain/repositories/work_order_repository.rs
+// domain/backend/rust/manufacturing/src/domain/repositories/work_order_repository.rs
 #[async_trait]
 pub trait WorkOrderRepository: Send + Sync {
     async fn find_by_id(&self, id: &WorkOrderId) -> Result<Option<WorkOrder>, DomainError>;
@@ -239,12 +239,12 @@ feature の manifest.json を更新:
 ```json
 {
   "layer": "feature",
-  "domain": "production",
+  "domain": "manufacturing",
   "domain_version": "^0.1.0",
   "dependencies": {
     "framework": ["k1s0-error", "k1s0-config", "k1s0-db"],
     "domain": {
-      "production": "^0.1.0"
+      "manufacturing": "^0.1.0"
     }
   }
 }
@@ -254,7 +254,7 @@ feature の Cargo.toml を更新:
 
 ```toml
 [dependencies]
-production = { path = "../../../../domain/backend/rust/production" }
+manufacturing = { path = "../../../../domain/backend/rust/manufacturing" }
 ```
 
 #### Step 3.2: import 文の更新
@@ -267,8 +267,8 @@ use crate::domain::repositories::WorkOrderRepo;
 
 **After**:
 ```rust
-use production::domain::entities::WorkOrder;
-use production::domain::repositories::WorkOrderRepository;
+use manufacturing::domain::entities::WorkOrder;
+use manufacturing::domain::repositories::WorkOrderRepository;
 ```
 
 #### Step 3.3: リポジトリ実装の更新
@@ -282,7 +282,7 @@ impl WorkOrderRepo for WorkOrderRepoImpl {
 
 **After**:
 ```rust
-use production::domain::repositories::WorkOrderRepository;
+use manufacturing::domain::repositories::WorkOrderRepository;
 
 impl WorkOrderRepository for WorkOrderRepositoryImpl {
     async fn find_by_id(&self, id: &WorkOrderId) -> Result<Option<WorkOrder>, DomainError> {
@@ -296,7 +296,7 @@ impl WorkOrderRepository for WorkOrderRepositoryImpl {
 #### Step 4.1: domain のテスト
 
 ```bash
-cd domain/backend/rust/production
+cd domain/backend/rust/manufacturing
 cargo test
 ```
 
@@ -345,7 +345,7 @@ Phase 5: 次のエンティティを移行...
 domain をファサードとして作成し、内部で既存の feature コードを参照します。
 
 ```rust
-// domain/backend/rust/production/src/facade.rs
+// domain/backend/rust/manufacturing/src/facade.rs
 
 // Phase 1: 既存のコードを再エクスポート
 pub use work_order_api::domain::entities::WorkOrder;
@@ -465,10 +465,10 @@ pub trait ExternalService {
 **解決策**:
 ```bash
 # domain のバージョンを確認
-k1s0 domain version --name production
+k1s0 domain version --name manufacturing
 
 # feature のバージョン制約を更新
-k1s0 feature update-domain --name work-order-api --domain production --version "^1.0.0"
+k1s0 feature update-domain --name work-order-api --domain manufacturing --version "^1.0.0"
 ```
 
 ### 7.3 import パスの問題
@@ -481,10 +481,10 @@ k1s0 feature update-domain --name work-order-api --domain production --version "
 ```toml
 # 正しいパス設定
 [dependencies]
-production = { path = "../../../../domain/backend/rust/production" }
+manufacturing = { path = "../../../../domain/backend/rust/manufacturing" }
 
 # ワークスペースを使用している場合
-production = { workspace = true }
+manufacturing = { workspace = true }
 ```
 
 ---

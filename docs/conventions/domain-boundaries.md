@@ -23,7 +23,7 @@ framework (技術基盤) -> domain (業務領域共通) -> feature (個別機能
 
 **例**:
 ```rust
-// production domain
+// manufacturing domain
 pub struct WorkOrder { ... }
 pub struct ProductionLine { ... }
 pub struct Schedule { ... }
@@ -217,7 +217,7 @@ feature 層は **具体的なユースケース実装** を担当します。
 |---------|------|
 | work-order-api | 作業指示の REST/gRPC API |
 | work-order-dashboard | 作業指示のダッシュボード画面 |
-| production-report | 生産レポート生成 |
+| manufacturing-report | 生産レポート生成 |
 
 ### 5.2 境界の判断
 
@@ -419,7 +419,7 @@ domain/
 ```
 # 推奨
 domain/
-└── production/          # WorkOrder + Quantity + SchedulingService
+└── manufacturing/          # WorkOrder + Quantity + SchedulingService
 ```
 
 ### 8.2 巨大な domain
@@ -437,7 +437,7 @@ domain/
 ```
 # 推奨
 domain/
-├── production/          # 生産管理
+├── manufacturing/          # 生産管理
 ├── inventory/           # 在庫管理
 ├── quality/             # 品質管理
 └── logistics/           # 物流管理

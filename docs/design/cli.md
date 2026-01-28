@@ -890,8 +890,8 @@ pub struct NewDomainArgs {
 
 | 変数名 | 説明 | 例 |
 |--------|------|-----|
-| `domain_name` | ドメイン名（kebab-case） | `production` |
-| `domain_name_snake` | snake_case 変換 | `production` |
+| `domain_name` | ドメイン名（kebab-case） | `manufacturing` |
+| `domain_name_snake` | snake_case 変換 | `manufacturing` |
 | `domain_name_pascal` | PascalCase 変換 | `Production` |
 | `language` | 言語 | `rust` |
 | `service_type` | タイプ | `backend` |
@@ -911,7 +911,7 @@ pub struct NewDomainArgs {
     "fingerprint": "abc123..."
   },
   "service": {
-    "service_name": "production",
+    "service_name": "manufacturing",
     "language": "rust",
     "type": "backend"
   },
@@ -928,13 +928,13 @@ pub struct NewDomainArgs {
 
 ```bash
 # 基本的な使用法
-k1s0 new-domain --type backend-rust --name production
+k1s0 new-domain --type backend-rust --name manufacturing
 
 # カスタム出力先
-k1s0 new-domain --type backend-rust --name production --output ./my-domains
+k1s0 new-domain --type backend-rust --name manufacturing --output ./my-domains
 
 # 上書き
-k1s0 new-domain --type backend-rust --name production --force
+k1s0 new-domain --type backend-rust --name manufacturing --force
 ```
 
 ---
@@ -954,7 +954,7 @@ k1s0 domain list
 
 # 出力例
 Domains:
-  production          0.1.0    domain/backend/rust/production
+  manufacturing          0.1.0    domain/backend/rust/manufacturing
   inventory           1.2.0    domain/backend/rust/inventory
   user-management     2.0.0    domain/backend/go/user-management
 ```
@@ -963,40 +963,40 @@ Domains:
 
 ```bash
 # バージョン確認
-k1s0 domain version --name production
+k1s0 domain version --name manufacturing
 
 # バージョン更新
-k1s0 domain version --name production --bump patch
-k1s0 domain version --name production --bump minor
-k1s0 domain version --name production --bump major
+k1s0 domain version --name manufacturing --bump patch
+k1s0 domain version --name manufacturing --bump minor
+k1s0 domain version --name manufacturing --bump major
 
 # 直接指定
-k1s0 domain version --name production --set 2.0.0
+k1s0 domain version --name manufacturing --set 2.0.0
 
 # 破壊的変更を記録
-k1s0 domain version --name production --bump major \
+k1s0 domain version --name manufacturing --bump major \
   --message "WorkOrder.quantity の型を変更"
 ```
 
 #### domain dependents
 
 ```bash
-k1s0 domain dependents --name production
+k1s0 domain dependents --name manufacturing
 
 # 出力例
-Features depending on 'production':
+Features depending on 'manufacturing':
   work-order-api          ^1.2.0    feature/backend/rust/work-order-api
   work-order-dashboard    ^1.5.0    feature/frontend/react/work-order-dashboard
-  production-report       ^1.0.0    feature/backend/rust/production-report
+  manufacturing-report       ^1.0.0    feature/backend/rust/manufacturing-report
 ```
 
 #### domain impact
 
 ```bash
-k1s0 domain impact --name production --from 1.5.0 --to 2.0.0
+k1s0 domain impact --name manufacturing --from 1.5.0 --to 2.0.0
 
 # 出力例
-Domain: production
+Domain: manufacturing
 Version change: 1.5.0 -> 2.0.0 (MAJOR)
 
 Breaking changes:
@@ -1005,7 +1005,7 @@ Breaking changes:
 Affected features (3):
   - work-order-api (constraint: ^1.2.0) - INCOMPATIBLE
   - work-order-dashboard (constraint: ^1.5.0) - INCOMPATIBLE
-  - production-report (constraint: ^1.0.0) - INCOMPATIBLE
+  - manufacturing-report (constraint: ^1.0.0) - INCOMPATIBLE
 ```
 
 ---

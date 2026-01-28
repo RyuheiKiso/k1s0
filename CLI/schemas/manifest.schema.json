@@ -275,7 +275,7 @@
           },
           "examples": [
             {
-              "production": "^1.2.0",
+              "manufacturing": "^1.2.0",
               "finance": ">=1.0.0 <2.0.0"
             }
           ]
