@@ -48,7 +48,8 @@
       "Bash(go work sync:*)",
       "Bash(cargo fmt:*)",
       "Bash(findstr:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(test:*)"
     ]
   }
 }
