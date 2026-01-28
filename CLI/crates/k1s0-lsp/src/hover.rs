@@ -183,7 +183,7 @@ fn format_hover_contents(key: &crate::schema::ManifestKey, path: &[String]) -> S
         ValueType::Object => content.push_str("`object`\n\n"),
         ValueType::Array => content.push_str("`array`\n\n"),
         ValueType::Enum(values) => {
-            content.push_str(&format!("`enum`\n\n**有効な値:**\n"));
+            content.push_str("`enum`\n\n**有効な値:**\n");
             for v in values {
                 content.push_str(&format!("- `\"{}\"`\n", v));
             }

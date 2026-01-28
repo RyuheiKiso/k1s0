@@ -19,6 +19,11 @@ fn main() -> std::process::ExitCode {
         Commands::Upgrade(args) => k1s0_cli::commands::upgrade::execute(args),
         Commands::Registry(args) => k1s0_cli::commands::registry::execute(args),
         Commands::Completions(args) => k1s0_cli::commands::completions::execute(args),
+        Commands::DomainVersion(args) => k1s0_cli::commands::domain_version::execute(args),
+        Commands::DomainList(args) => k1s0_cli::commands::domain_list::execute(args),
+        Commands::DomainDependents(args) => k1s0_cli::commands::domain_dependents::execute(args),
+        Commands::DomainImpact(args) => k1s0_cli::commands::domain_impact::execute(args),
+        Commands::FeatureUpdateDomain(args) => k1s0_cli::commands::feature_update_domain::execute(args),
     };
 
     // 結果を処理

@@ -8,7 +8,11 @@ require (
 	google.golang.org/grpc v1.61.0
 	google.golang.org/protobuf v1.32.0
 	gopkg.in/yaml.v3 v3.0.1
-)
+{% if has_domain %}	{{ module_path | default(value="example.com") }}/domain/{{ domain_name_snake }} v0.0.0
+{% endif %})
+{% if has_domain %}
+replace {{ module_path | default(value="example.com") }}/domain/{{ domain_name_snake }} => ../../../../domain/backend/go/{{ domain_name }}
+{% endif %}
 
 require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect

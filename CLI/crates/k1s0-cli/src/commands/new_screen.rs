@@ -3,7 +3,7 @@
 //! React/Flutter 画面の雛形を生成する。
 //! 画面追加の手順を「雛形生成 → 画面実装 → config 追記」に統一する。
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap::{Args, ValueEnum};
 use k1s0_generator::{Context, Tera};
@@ -267,7 +267,7 @@ fn find_screen_template_dir(frontend_type: FrontendType) -> Result<PathBuf> {
 }
 
 /// Tera テンプレートエンジンを作成する
-fn create_tera(template_dir: &PathBuf) -> Result<Tera> {
+fn create_tera(template_dir: &Path) -> Result<Tera> {
     let pattern = format!("{}/**/*.tera", template_dir.display());
     Tera::new(&pattern).map_err(|e| {
         CliError::internal(format!("テンプレートエンジンの初期化に失敗: {}", e))

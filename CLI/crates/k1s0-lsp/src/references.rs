@@ -143,7 +143,7 @@ fn find_value_references(content: &str, key: &str, value: &str) -> Vec<Range> {
 }
 
 /// manifest.json ファイルを検索
-fn find_manifest_files(root: &PathBuf) -> Vec<PathBuf> {
+fn find_manifest_files(root: &std::path::Path) -> Vec<PathBuf> {
     let mut files = Vec::new();
 
     // feature ディレクトリを検索
@@ -431,7 +431,7 @@ mod tests {
         std::fs::create_dir_all(&manifest_dir).unwrap();
         std::fs::write(manifest_dir.join("manifest.json"), "{}").unwrap();
 
-        let files = find_manifest_files(&temp_dir.path().to_path_buf());
+        let files = find_manifest_files(temp_dir.path());
         assert!(!files.is_empty());
         assert!(files.iter().any(|p| p.to_string_lossy().contains("manifest.json")));
     }
@@ -441,7 +441,7 @@ mod tests {
         use tempfile::TempDir;
 
         let temp_dir = TempDir::new().unwrap();
-        let files = find_manifest_files(&temp_dir.path().to_path_buf());
+        let files = find_manifest_files(temp_dir.path());
         assert!(files.is_empty());
     }
 

@@ -108,4 +108,24 @@ pub enum Commands {
 
     /// シェル補完スクリプトを生成する
     Completions(commands::completions::CompletionsArgs),
+
+    /// domain のバージョンを更新する
+    #[command(name = "domain-version")]
+    DomainVersion(commands::domain_version::DomainVersionArgs),
+
+    /// 全ての domain を一覧表示する
+    #[command(name = "domain-list")]
+    DomainList(commands::domain_list::DomainListArgs),
+
+    /// 指定した domain に依存する feature を一覧表示する
+    #[command(name = "domain-dependents")]
+    DomainDependents(commands::domain_dependents::DomainDependentsArgs),
+
+    /// domain のバージョンアップによる影響を分析する
+    #[command(name = "domain-impact")]
+    DomainImpact(commands::domain_impact::DomainImpactArgs),
+
+    /// feature の domain 依存バージョンを更新する
+    #[command(name = "feature-update-domain")]
+    FeatureUpdateDomain(commands::feature_update_domain::FeatureUpdateDomainArgs),
 }
