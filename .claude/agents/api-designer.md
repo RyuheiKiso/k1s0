@@ -1,6 +1,6 @@
 ---
 name: api-designer
-description: "Use this agent when designing, reviewing, or modifying API specifications for the k1s0 project. This includes Protocol Buffers (gRPC) service definitions, OpenAPI specifications, and ensuring compliance with API contract management conventions. Examples:\\n\\n<example>\\nContext: The user wants to add a new gRPC service for user management.\\nuser: \"Create a new gRPC service definition for user management with CRUD operations\"\\nassistant: \"I'll use the api-designer agent to create the Protocol Buffers service definition following the k1s0 project conventions.\"\\n<Task tool call to launch api-designer agent>\\n</example>\\n\\n<example>\\nContext: The user has written a new proto file and needs it reviewed.\\nuser: \"Can you review this auth.proto file I just created?\"\\nassistant: \"I'll launch the api-designer agent to review your Protocol Buffers definition for compliance with k1s0 conventions.\"\\n<Task tool call to launch api-designer agent>\\n</example>\\n\\n<example>\\nContext: The user needs to add a REST endpoint to an existing OpenAPI spec.\\nuser: \"Add a DELETE endpoint for users to the user-service.yaml\"\\nassistant: \"I'll use the api-designer agent to add the endpoint following OpenAPI best practices and Spectral linting rules.\"\\n<Task tool call to launch api-designer agent>\\n</example>\\n\\n<example>\\nContext: The user asks about API versioning or breaking changes.\\nuser: \"Is it okay to make this field required in the next version?\"\\nassistant: \"I'll consult the api-designer agent to evaluate this change against the k1s0 API compatibility rules.\"\\n<Task tool call to launch api-designer agent>\\n</example>"
+description: "Use this agent when designing, reviewing, or modifying API specifications for the k1s0 project. This includes Protocol Buffers (gRPC) service definitions, OpenAPI specifications, and ensuring compliance with API contract management conventions. Examples:\n\n<example>\nContext: The user wants to add a new gRPC service for user management.\nuser: \"Create a new gRPC service definition for user management with CRUD operations\"\nassistant: \"I'll use the api-designer agent to create the Protocol Buffers service definition following the k1s0 project conventions.\"\n<Task tool call to launch api-designer agent>\n</example>\n\n<example>\nContext: The user has written a new proto file and needs it reviewed.\nuser: \"Can you review this auth.proto file I just created?\"\nassistant: \"I'll launch the api-designer agent to review your Protocol Buffers definition for compliance with k1s0 conventions.\"\n<Task tool call to launch api-designer agent>\n</example>\n\n<example>\nContext: The user needs to add a REST endpoint to an existing OpenAPI spec.\nuser: \"Add a DELETE endpoint for users to the user-service.yaml\"\nassistant: \"I'll use the api-designer agent to add the endpoint following OpenAPI best practices and Spectral linting rules.\"\n<Task tool call to launch api-designer agent>\n</example>\n\n<example>\nContext: The user asks about API versioning or breaking changes.\nuser: \"Is it okay to make this field required in the next version?\"\nassistant: \"I'll consult the api-designer agent to evaluate this change against the k1s0 API compatibility rules.\"\n<Task tool call to launch api-designer agent>\n</example>"
 model: opus
 color: blue
 ---
@@ -85,7 +85,7 @@ openapi/
 
 2. **Deadlines**: Every RPC call MUST have a deadline configured. Document expected timeout values in comments.
 
-3. **Error Handling**: Responses MUST include an `error_code` field for proper error propagation.
+3. **Error Handling**: Responses MUST include an `error_code` field for proper error propagation. Use canonical gRPC status codes: `INVALID_ARGUMENT`, `UNAUTHENTICATED`, `PERMISSION_DENIED`, `NOT_FOUND`, `ALREADY_EXISTS`, `UNAVAILABLE`, `DEADLINE_EXCEEDED`, `INTERNAL`
 
 ## Linting Configuration
 
@@ -118,6 +118,15 @@ plugins:
     out: gen/go
     opt: paths=source_relative
 ```
+
+## Three-Layer Architecture Awareness
+
+APIs may be defined at different layers:
+- **Framework**: Common APIs used across all services (auth, config, health)
+- **Domain**: Business domain APIs shared across features
+- **Feature**: Feature-specific APIs
+
+Ensure API designs respect layer boundaries and dependency rules.
 
 ## Your Workflow
 
