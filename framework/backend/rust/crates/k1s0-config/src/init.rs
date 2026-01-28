@@ -193,10 +193,7 @@ mod tests {
         let config_dir = dir.join("config");
         fs::create_dir_all(&config_dir)?;
         let config_path = config_dir.join(format!("{}.yaml", env));
-        fs::write(
-            config_path,
-            "name: test-service\nport: 8080\n",
-        )?;
+        fs::write(config_path, "name: test-service\nport: 8080\n")?;
         Ok(())
     }
 

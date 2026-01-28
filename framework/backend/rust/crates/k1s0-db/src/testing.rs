@@ -41,7 +41,13 @@ pub fn generate_test_db_name(prefix: &str) -> String {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_millis();
-    format!("{}_{}_{}_{}", prefix, std::process::id(), timestamp, counter)
+    format!(
+        "{}_{}_{}_{}",
+        prefix,
+        std::process::id(),
+        timestamp,
+        counter
+    )
 }
 
 /// テスト用データベース設定
@@ -157,7 +163,9 @@ impl<'a> TestTransaction<'a> {
 impl Drop for TestTransaction<'_> {
     fn drop(&mut self) {
         if self.tx.is_some() {
-            debug!("Test transaction dropped without explicit rollback/commit - will be rolled back");
+            debug!(
+                "Test transaction dropped without explicit rollback/commit - will be rolled back"
+            );
         }
     }
 }
@@ -191,7 +199,8 @@ impl Fixture {
 
     /// データ行を追加
     pub fn row(mut self, values: &[&str]) -> Self {
-        self.rows.push(values.iter().map(|s| s.to_string()).collect());
+        self.rows
+            .push(values.iter().map(|s| s.to_string()).collect());
         self
     }
 

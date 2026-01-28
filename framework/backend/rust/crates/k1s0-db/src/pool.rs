@@ -133,22 +133,38 @@ impl DbPoolBuilder {
         let password = self.resolve_password()?;
 
         let pool_config = PoolConfig {
-            max_connections: self.max_connections.unwrap_or(crate::config::DEFAULT_MAX_CONNECTIONS),
-            min_connections: self.min_connections.unwrap_or(crate::config::DEFAULT_MIN_CONNECTIONS),
-            idle_timeout_secs: self.idle_timeout_secs.unwrap_or(crate::config::DEFAULT_IDLE_TIMEOUT_SECS),
-            max_lifetime_secs: self.max_lifetime_secs.unwrap_or(crate::config::DEFAULT_MAX_LIFETIME_SECS),
+            max_connections: self
+                .max_connections
+                .unwrap_or(crate::config::DEFAULT_MAX_CONNECTIONS),
+            min_connections: self
+                .min_connections
+                .unwrap_or(crate::config::DEFAULT_MIN_CONNECTIONS),
+            idle_timeout_secs: self
+                .idle_timeout_secs
+                .unwrap_or(crate::config::DEFAULT_IDLE_TIMEOUT_SECS),
+            max_lifetime_secs: self
+                .max_lifetime_secs
+                .unwrap_or(crate::config::DEFAULT_MAX_LIFETIME_SECS),
         };
 
         let timeout_config = TimeoutConfig {
-            connect_timeout_ms: self.connect_timeout_ms.unwrap_or(crate::config::DEFAULT_CONNECT_TIMEOUT_MS),
-            query_timeout_ms: self.query_timeout_ms.unwrap_or(crate::config::DEFAULT_QUERY_TIMEOUT_MS),
+            connect_timeout_ms: self
+                .connect_timeout_ms
+                .unwrap_or(crate::config::DEFAULT_CONNECT_TIMEOUT_MS),
+            query_timeout_ms: self
+                .query_timeout_ms
+                .unwrap_or(crate::config::DEFAULT_QUERY_TIMEOUT_MS),
         };
 
         let config = DbConfig {
             host: self.host.unwrap_or_else(|| "localhost".to_string()),
             port: self.port.unwrap_or(5432),
-            database: self.database.ok_or_else(|| DbError::config("database is required"))?,
-            username: self.username.ok_or_else(|| DbError::config("username is required"))?,
+            database: self
+                .database
+                .ok_or_else(|| DbError::config("database is required"))?,
+            username: self
+                .username
+                .ok_or_else(|| DbError::config("username is required"))?,
             password_file: self.password_file,
             ssl_mode: self.ssl_mode.unwrap_or_default(),
             pool: pool_config,

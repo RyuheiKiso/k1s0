@@ -30,7 +30,6 @@
 use crate::config::ObservabilityConfig;
 use crate::context::RequestContext;
 use crate::log_fields::{LogEntry, LogLevel};
-use std::io;
 use tracing_subscriber::{
     fmt::{self, format::JsonFields, time::UtcTime},
     layer::SubscriberExt,
@@ -368,7 +367,9 @@ pub fn init_logging(config: &ObservabilityConfig) -> Result<LoggingGuard, Loggin
         .with(filter)
         .with(json_layer)
         .try_init()
-        .map_err(|e| LoggingError::InitFailed(e.to_string()))?;
+        .map_err(|e: tracing_subscriber::util::TryInitError| {
+            LoggingError::InitFailed(e.to_string())
+        })?;
 
     Ok(LoggingGuard::new())
 }
@@ -395,7 +396,9 @@ where
         .with(filter)
         .with(json_layer)
         .try_init()
-        .map_err(|e| LoggingError::InitFailed(e.to_string()))?;
+        .map_err(|e: tracing_subscriber::util::TryInitError| {
+            LoggingError::InitFailed(e.to_string())
+        })?;
 
     Ok(LoggingGuard::new())
 }
@@ -417,15 +420,16 @@ fn create_env_filter(config: &ObservabilityConfig) -> Result<EnvFilter, LoggingE
 }
 
 /// JSON レイヤーを作成（標準出力）
+#[allow(unused_variables)]
 fn create_json_layer<S>(
     config: &ObservabilityConfig,
-) -> fmt::Layer<S, JsonFields, fmt::format::Format<fmt::format::Json, UtcTime<&'static str>>>
+) -> fmt::Layer<S, JsonFields, fmt::format::Format<fmt::format::Json, UtcTime<time::format_description::well_known::Rfc3339>>>
 where
     S: tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
 {
     fmt::layer()
         .json()
-        .with_timer(UtcTime::new(time_format_description()))
+        .with_timer(UtcTime::rfc_3339())
         .with_current_span(true)
         .with_span_list(false)
         .with_target(true)
@@ -437,10 +441,11 @@ where
 }
 
 /// JSON レイヤーを作成（カスタムライター）
+#[allow(unused_variables)]
 fn create_json_layer_with_writer<S, W>(
     config: &ObservabilityConfig,
     writer: W,
-) -> fmt::Layer<S, JsonFields, fmt::format::Format<fmt::format::Json, UtcTime<&'static str>>, W>
+) -> fmt::Layer<S, JsonFields, fmt::format::Format<fmt::format::Json, UtcTime<time::format_description::well_known::Rfc3339>>, W>
 where
     S: tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
     W: for<'writer> fmt::MakeWriter<'writer> + 'static,
@@ -448,7 +453,7 @@ where
     fmt::layer()
         .json()
         .with_writer(writer)
-        .with_timer(UtcTime::new(time_format_description()))
+        .with_timer(UtcTime::rfc_3339())
         .with_current_span(true)
         .with_span_list(false)
         .with_target(true)
@@ -457,12 +462,6 @@ where
         .with_file(false)
         .with_line_number(false)
         .flatten_event(true)
-}
-
-/// 時刻フォーマット記述子を取得
-const fn time_format_description() -> &'static str {
-    // ISO 8601 形式
-    "[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond digits:3]Z"
 }
 
 /// ロギングエラー

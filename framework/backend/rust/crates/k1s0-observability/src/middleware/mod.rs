@@ -8,7 +8,6 @@ mod http;
 pub use grpc::{GrpcObservability, GrpcRequestInfo, GrpcResponseInfo};
 pub use http::{HttpObservability, HttpRequestInfo, HttpResponseInfo};
 
-use crate::config::ObservabilityConfig;
 use crate::context::RequestContext;
 use crate::log_fields::LogLevel;
 use crate::logging::RequestLog;

@@ -315,6 +315,125 @@ curl 'http://prometheus:9090/api/v1/query?query=sum(rate(k1s0_request_failures_t
 - タイムラインの記録
 - ステークホルダーとの調整
 
+## 11. k1s0 固有の対応パターン
+
+### 11.1 共通サービス障害時の対応
+
+#### config-service 障害
+
+config-service が停止すると、全サービスの設定取得に影響。
+
+```bash
+# 1. config-service の状態確認
+kubectl get pods -l app=config-service
+kubectl logs -l app=config-service --tail=100
+
+# 2. 他サービスへの影響確認（設定キャッシュの TTL 内か）
+kubectl logs -l app.kubernetes.io/part-of=k1s0 | grep -i "config.*error\|failed to load config"
+
+# 3. 緊急対応: ローカル設定へのフォールバック
+kubectl set env deployment/{service_name} K1S0_CONFIG_FALLBACK=local
+
+# 4. config-service の復旧
+kubectl rollout restart deployment/config-service
+```
+
+#### auth-service 障害
+
+認証サービスが停止すると、新規ログイン不可。
+
+```bash
+# 1. 影響範囲の確認（JWT の有効期限内のユーザーは継続利用可能）
+kubectl logs -l app=auth-service --tail=100
+
+# 2. 緊急対応: JWT 有効期限の確認
+# 通常 1 時間、リフレッシュトークンは 7 日間
+
+# 3. auth-service の復旧
+kubectl rollout restart deployment/auth-service
+
+# 4. JWKS キャッシュのクリア（必要な場合）
+kubectl exec -it {redis_pod} -- redis-cli DEL "k1s0:auth:jwks"
+```
+
+### 11.2 データベース関連障害
+
+#### 接続プール枯渇
+
+```bash
+# 1. 現在の接続数確認
+kubectl exec -it {db_pod} -- psql -c "SELECT count(*) FROM pg_stat_activity WHERE datname = '{database}'"
+
+# 2. 長時間実行クエリの確認
+kubectl exec -it {db_pod} -- psql -c "SELECT pid, now() - query_start AS duration, query FROM pg_stat_activity WHERE state = 'active' AND now() - query_start > interval '1 minute' ORDER BY duration DESC"
+
+# 3. 問題のあるクエリを終了
+kubectl exec -it {db_pod} -- psql -c "SELECT pg_terminate_backend({pid})"
+
+# 4. サービス再起動で接続プールをリセット
+kubectl rollout restart deployment/{service_name}
+```
+
+#### デッドロック発生
+
+```bash
+# 1. デッドロックの確認
+kubectl exec -it {db_pod} -- psql -c "SELECT * FROM pg_locks WHERE NOT granted"
+
+# 2. ブロッキングプロセスの特定
+kubectl exec -it {db_pod} -- psql -c "
+SELECT blocked_locks.pid AS blocked_pid,
+       blocked_activity.usename AS blocked_user,
+       blocking_locks.pid AS blocking_pid,
+       blocking_activity.usename AS blocking_user,
+       blocked_activity.query AS blocked_statement
+FROM pg_catalog.pg_locks blocked_locks
+JOIN pg_catalog.pg_stat_activity blocked_activity ON blocked_activity.pid = blocked_locks.pid
+JOIN pg_catalog.pg_locks blocking_locks ON blocking_locks.locktype = blocked_locks.locktype
+JOIN pg_catalog.pg_stat_activity blocking_activity ON blocking_activity.pid = blocking_locks.pid
+WHERE NOT blocked_locks.granted"
+
+# 3. 必要に応じてブロッキングプロセスを終了
+kubectl exec -it {db_pod} -- psql -c "SELECT pg_terminate_backend({blocking_pid})"
+```
+
+### 11.3 キャッシュ関連障害
+
+#### Redis 障害
+
+```bash
+# 1. Redis の状態確認
+kubectl get pods -l app=redis
+kubectl exec -it {redis_pod} -- redis-cli ping
+
+# 2. メモリ使用状況
+kubectl exec -it {redis_pod} -- redis-cli info memory
+
+# 3. 接続数確認
+kubectl exec -it {redis_pod} -- redis-cli info clients
+
+# 4. 緊急対応: キャッシュなしモードへの切り替え
+# （各サービスにフォールバックロジックが実装されている前提）
+```
+
+### 11.4 Circuit Breaker 発動時
+
+k1s0-resilience の Circuit Breaker が Open 状態になった場合:
+
+```bash
+# 1. メトリクスで Circuit Breaker の状態確認
+curl 'http://prometheus:9090/api/v1/query?query=k1s0_circuit_breaker_state{service="{service_name}"}'
+
+# 2. 依存サービスの状態確認
+kubectl get pods -l app={dependency_service}
+
+# 3. 依存サービスの復旧を確認
+# Circuit Breaker は自動的に Half-Open → Closed に遷移
+
+# 4. 手動でリセットが必要な場合（非推奨）
+kubectl exec -it {pod_name} -- curl -X POST http://localhost:8080/admin/circuit-breaker/reset
+```
+
 ## 関連ドキュメント
 
 - [トラブルシューティング](../troubleshooting.md)

@@ -193,16 +193,29 @@ impl Default for MigrationResult {
 /// 実際のマイグレーション実行は infrastructure 層で実装する。
 pub trait MigrationRunner: Send + Sync {
     /// マイグレーションを適用
-    fn migrate(&self, config: &MigrationConfig) -> impl std::future::Future<Output = DbResult<MigrationResult>> + Send;
+    fn migrate(
+        &self,
+        config: &MigrationConfig,
+    ) -> impl std::future::Future<Output = DbResult<MigrationResult>> + Send;
 
     /// マイグレーションをロールバック
-    fn rollback(&self, config: &MigrationConfig, steps: usize) -> impl std::future::Future<Output = DbResult<MigrationResult>> + Send;
+    fn rollback(
+        &self,
+        config: &MigrationConfig,
+        steps: usize,
+    ) -> impl std::future::Future<Output = DbResult<MigrationResult>> + Send;
 
     /// 適用済みマイグレーションを取得
-    fn get_applied(&self, config: &MigrationConfig) -> impl std::future::Future<Output = DbResult<Vec<AppliedMigration>>> + Send;
+    fn get_applied(
+        &self,
+        config: &MigrationConfig,
+    ) -> impl std::future::Future<Output = DbResult<Vec<AppliedMigration>>> + Send;
 
     /// 保留中のマイグレーションを取得
-    fn get_pending(&self, config: &MigrationConfig) -> impl std::future::Future<Output = DbResult<Vec<Migration>>> + Send;
+    fn get_pending(
+        &self,
+        config: &MigrationConfig,
+    ) -> impl std::future::Future<Output = DbResult<Vec<Migration>>> + Send;
 }
 
 /// マイグレーションファイルを読み込むユーティリティ
@@ -215,17 +228,12 @@ pub fn load_migrations(migrations_dir: &Path) -> DbResult<Vec<Migration>> {
     }
 
     let mut migrations = Vec::new();
-    let entries = std::fs::read_dir(migrations_dir).map_err(|e| {
-        DbError::migration(format!(
-            "failed to read migrations directory: {}",
-            e
-        ))
-    })?;
+    let entries = std::fs::read_dir(migrations_dir)
+        .map_err(|e| DbError::migration(format!("failed to read migrations directory: {}", e)))?;
 
     for entry in entries {
-        let entry = entry.map_err(|e| {
-            DbError::migration(format!("failed to read directory entry: {}", e))
-        })?;
+        let entry = entry
+            .map_err(|e| DbError::migration(format!("failed to read directory entry: {}", e)))?;
 
         let path = entry.path();
         if path.is_file() {
@@ -308,11 +316,13 @@ mod tests {
         fs::write(
             migrations_dir.join("0001_create_users.sql"),
             "CREATE TABLE users (id INT);",
-        ).unwrap();
+        )
+        .unwrap();
         fs::write(
             migrations_dir.join("0002_add_email.sql"),
             "ALTER TABLE users ADD email VARCHAR;",
-        ).unwrap();
+        )
+        .unwrap();
 
         let migrations = load_migrations(&migrations_dir).unwrap();
         assert_eq!(migrations.len(), 2);

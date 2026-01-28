@@ -54,7 +54,10 @@ pub enum DbError {
 
     /// マイグレーションエラー
     #[error("migration failed: {message}")]
-    Migration { message: String, version: Option<String> },
+    Migration {
+        message: String,
+        version: Option<String>,
+    },
 
     /// 設定エラー
     #[error("database configuration error: {message}")]
@@ -227,32 +230,32 @@ impl DbError {
     /// gRPC ステータスコードに変換
     pub fn to_grpc_status_code(&self) -> i32 {
         match self {
-            Self::NotFound { .. } => 5,                      // NOT_FOUND
-            Self::UniqueViolation { .. } => 6,               // ALREADY_EXISTS
-            Self::ForeignKeyViolation { .. } => 9,           // FAILED_PRECONDITION
-            Self::OptimisticLockConflict { .. } => 10,       // ABORTED
-            Self::ConnectionTimeout { .. } => 4,             // DEADLINE_EXCEEDED
-            Self::QueryTimeout { .. } => 4,                  // DEADLINE_EXCEEDED
-            Self::PoolExhausted { .. } => 8,                 // RESOURCE_EXHAUSTED
-            Self::Connection { .. } => 14,                   // UNAVAILABLE
-            Self::Config { .. } => 3,                        // INVALID_ARGUMENT
-            _ => 13,                                         // INTERNAL
+            Self::NotFound { .. } => 5,                // NOT_FOUND
+            Self::UniqueViolation { .. } => 6,         // ALREADY_EXISTS
+            Self::ForeignKeyViolation { .. } => 9,     // FAILED_PRECONDITION
+            Self::OptimisticLockConflict { .. } => 10, // ABORTED
+            Self::ConnectionTimeout { .. } => 4,       // DEADLINE_EXCEEDED
+            Self::QueryTimeout { .. } => 4,            // DEADLINE_EXCEEDED
+            Self::PoolExhausted { .. } => 8,           // RESOURCE_EXHAUSTED
+            Self::Connection { .. } => 14,             // UNAVAILABLE
+            Self::Config { .. } => 3,                  // INVALID_ARGUMENT
+            _ => 13,                                   // INTERNAL
         }
     }
 
     /// HTTP ステータスコードに変換
     pub fn to_http_status_code(&self) -> u16 {
         match self {
-            Self::NotFound { .. } => 404,                    // Not Found
-            Self::UniqueViolation { .. } => 409,             // Conflict
-            Self::ForeignKeyViolation { .. } => 400,         // Bad Request
-            Self::OptimisticLockConflict { .. } => 409,      // Conflict
-            Self::ConnectionTimeout { .. } => 504,           // Gateway Timeout
-            Self::QueryTimeout { .. } => 504,                // Gateway Timeout
-            Self::PoolExhausted { .. } => 503,               // Service Unavailable
-            Self::Connection { .. } => 503,                  // Service Unavailable
-            Self::Config { .. } => 500,                      // Internal Server Error
-            _ => 500,                                        // Internal Server Error
+            Self::NotFound { .. } => 404,               // Not Found
+            Self::UniqueViolation { .. } => 409,        // Conflict
+            Self::ForeignKeyViolation { .. } => 400,    // Bad Request
+            Self::OptimisticLockConflict { .. } => 409, // Conflict
+            Self::ConnectionTimeout { .. } => 504,      // Gateway Timeout
+            Self::QueryTimeout { .. } => 504,           // Gateway Timeout
+            Self::PoolExhausted { .. } => 503,          // Service Unavailable
+            Self::Connection { .. } => 503,             // Service Unavailable
+            Self::Config { .. } => 500,                 // Internal Server Error
+            _ => 500,                                   // Internal Server Error
         }
     }
 }

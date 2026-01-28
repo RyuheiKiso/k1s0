@@ -371,8 +371,32 @@ impl CacheClient {
     /// パターンに一致するキーを削除
     ///
     /// 注意: この操作は Redis の SCAN + DEL を使用するため、大量のキーがある場合は遅くなる可能性がある。
+    ///
+    /// # パターン構文
+    ///
+    /// Redis の SCAN コマンドのパターンマッチングを使用:
+    /// - `*` - 任意の文字列にマッチ
+    /// - `?` - 任意の1文字にマッチ
+    /// - `[abc]` - a, b, c のいずれかにマッチ
+    /// - `[^abc]` または `[!abc]` - a, b, c 以外にマッチ
+    /// - `[a-z]` - a から z の範囲にマッチ
+    ///
+    /// # 使用例
+    ///
+    /// ```rust,ignore
+    /// // "user:" で始まるすべてのキーを削除
+    /// let deleted = client.delete_by_pattern("user:*").await?;
+    ///
+    /// // "session:abc123:*" にマッチするキーを削除
+    /// let deleted = client.delete_by_pattern("session:abc123:*").await?;
+    /// ```
     #[instrument(skip(self), fields(cache.pattern = %pattern))]
     pub async fn delete_by_pattern(&self, pattern: &str) -> CacheResult<u64> {
+        self.delete_pattern_internal(pattern).await
+    }
+
+    /// パターンマッチング削除の内部実装
+    async fn delete_pattern_internal(&self, pattern: &str) -> CacheResult<u64> {
         let prefixed = self.prefixed_key(pattern);
         let mut conn = self.get_connection().await?;
 
@@ -406,6 +430,48 @@ impl CacheClient {
 
         self.metrics.record_operations(CacheOperation::Delete, deleted);
         Ok(deleted)
+    }
+
+    /// パターンに一致するキーをスキャン（削除せずにキー一覧を取得）
+    ///
+    /// 注意: この操作は Redis の SCAN を使用するため、大量のキーがある場合は遅くなる可能性がある。
+    #[instrument(skip(self), fields(cache.pattern = %pattern))]
+    pub async fn scan_keys(&self, pattern: &str) -> CacheResult<Vec<String>> {
+        let prefixed = self.prefixed_key(pattern);
+        let mut conn = self.get_connection().await?;
+
+        let mut all_keys = Vec::new();
+        let mut cursor = 0u64;
+
+        loop {
+            let (new_cursor, keys): (u64, Vec<String>) = redis::cmd("SCAN")
+                .arg(cursor)
+                .arg("MATCH")
+                .arg(&prefixed)
+                .arg("COUNT")
+                .arg(100)
+                .query_async(&mut *conn)
+                .await
+                .map_err(|e| CacheError::internal(e.to_string()))?;
+
+            all_keys.extend(keys);
+
+            cursor = new_cursor;
+            if cursor == 0 {
+                break;
+            }
+        }
+
+        Ok(all_keys)
+    }
+}
+
+/// CacheOperationsExt の CacheClient 実装
+#[cfg(feature = "redis")]
+#[async_trait]
+impl crate::operations::CacheOperationsExt for CacheClient {
+    async fn delete_pattern(&self, pattern: &str) -> CacheResult<u64> {
+        self.delete_pattern_internal(pattern).await
     }
 }
 

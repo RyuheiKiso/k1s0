@@ -40,7 +40,13 @@
       "Bash(pnpm run build:*)",
       "Bash(dart analyze:*)",
       "Bash(dart run build_runner:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(git push:*)",
+      "Bash(go mod tidy:*)",
+      "Bash(go test:*)",
+      "Bash(go build:*)",
+      "Bash(go work sync:*)",
+      "Bash(cargo fmt:*)"
     ]
   }
 }

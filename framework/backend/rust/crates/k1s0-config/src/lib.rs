@@ -20,7 +20,7 @@
 //!
 //! 1. CLI 引数（参照先指定に限定）
 //! 2. YAML（`config/{env}.yaml`。非機密の静的設定）
-//! 3. DB（`fw_m_setting`。feature 固有の動的設定）※ 本 crate では未対応
+//! 3. DB（`fw_m_setting`。feature 固有の動的設定）※ `db` feature で有効化
 //!
 //! # 使用例（基本）
 //!
@@ -105,12 +105,21 @@ mod loader;
 mod options;
 mod resolver;
 
+#[cfg(feature = "db")]
+pub mod db;
+
 pub use args::{ServiceArgs, ServiceCommand};
 pub use error::{ConfigError, ConfigResult};
 pub use init::{ServiceConfig, ServiceInit};
 pub use loader::{load_from_file, ConfigLoader};
 pub use options::ConfigOptions;
 pub use resolver::SecretResolver;
+
+#[cfg(feature = "db")]
+pub use db::{
+    DbConfigLoader, DbSettingError, DbSettingRepository, FailureMode, MockDbSettingRepository,
+    SettingEntry,
+};
 
 /// デフォルトの secrets ディレクトリ
 pub const DEFAULT_SECRETS_DIR: &str = "/var/run/secrets/k1s0";
@@ -139,21 +148,12 @@ mod tests {
 
     #[test]
     fn test_config_path_default() {
-        assert_eq!(
-            config_path("dev", None),
-            "/etc/k1s0/config/dev.yaml"
-        );
-        assert_eq!(
-            config_path("prod", None),
-            "/etc/k1s0/config/prod.yaml"
-        );
+        assert_eq!(config_path("dev", None), "/etc/k1s0/config/dev.yaml");
+        assert_eq!(config_path("prod", None), "/etc/k1s0/config/prod.yaml");
     }
 
     #[test]
     fn test_config_path_custom_dir() {
-        assert_eq!(
-            config_path("dev", Some("./config")),
-            "./config/dev.yaml"
-        );
+        assert_eq!(config_path("dev", Some("./config")), "./config/dev.yaml");
     }
 }

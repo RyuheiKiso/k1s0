@@ -175,6 +175,156 @@ cd feature/backend/rust/order-service
 k1s0 lint
 ```
 
+### Step 4: 生成されたファイルの理解
+
+生成直後のディレクトリ構造を確認します。
+
+```
+order-service/
+├── .k1s0/
+│   └── manifest.json          # k1s0 管理メタデータ（編集禁止）
+├── Cargo.toml                 # 依存関係定義
+├── config/
+│   ├── default.yaml           # 共通設定
+│   ├── dev.yaml               # 開発環境設定
+│   └── prod.yaml              # 本番環境設定
+├── deploy/
+│   ├── kubernetes/            # K8s マニフェスト
+│   └── docker/                # Dockerfile
+├── migrations/                # DB マイグレーション（--with-db 時）
+├── proto/                     # Protocol Buffers（--with-grpc 時）
+└── src/
+    ├── main.rs                # エントリーポイント
+    ├── domain/                # ビジネスロジック層
+    │   ├── mod.rs
+    │   ├── entities/          # エンティティ定義
+    │   ├── value_objects/     # 値オブジェクト
+    │   ├── repositories/      # リポジトリトレイト
+    │   └── services/          # ドメインサービス
+    ├── application/           # アプリケーション層
+    │   ├── mod.rs
+    │   ├── usecases/          # ユースケース実装
+    │   ├── services/          # アプリケーションサービス
+    │   └── dtos/              # データ転送オブジェクト
+    ├── infrastructure/        # インフラストラクチャ層
+    │   ├── mod.rs
+    │   ├── repositories/      # リポジトリ実装
+    │   └── external/          # 外部サービス連携
+    └── presentation/          # プレゼンテーション層
+        ├── mod.rs
+        ├── grpc/              # gRPC ハンドラ（--with-grpc 時）
+        └── rest/              # REST ハンドラ（--with-rest 時）
+```
+
+### Step 5: 最初の機能を実装する
+
+**1. ドメインエンティティを定義:**
+
+```rust
+// src/domain/entities/order.rs
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Order {
+    pub id: OrderId,
+    pub customer_id: CustomerId,
+    pub items: Vec<OrderItem>,
+    pub status: OrderStatus,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OrderId(pub Uuid);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OrderStatus {
+    Pending,
+    Confirmed,
+    Shipped,
+    Delivered,
+    Cancelled,
+}
+```
+
+**2. リポジトリトレイトを定義:**
+
+```rust
+// src/domain/repositories/order_repository.rs
+use async_trait::async_trait;
+use crate::domain::entities::Order;
+
+#[async_trait]
+pub trait OrderRepository: Send + Sync {
+    async fn find_by_id(&self, id: &OrderId) -> Result<Option<Order>, DomainError>;
+    async fn save(&self, order: &Order) -> Result<Order, DomainError>;
+    async fn delete(&self, id: &OrderId) -> Result<bool, DomainError>;
+}
+```
+
+**3. ユースケースを実装:**
+
+```rust
+// src/application/usecases/create_order.rs
+use crate::domain::{Order, OrderRepository};
+
+pub struct CreateOrderUseCase {
+    order_repository: Arc<dyn OrderRepository>,
+}
+
+impl CreateOrderUseCase {
+    pub async fn execute(&self, input: CreateOrderInput) -> Result<Order, AppError> {
+        let order = Order::new(input.customer_id, input.items)?;
+        self.order_repository.save(&order).await
+    }
+}
+```
+
+**4. ビルドして確認:**
+
+```bash
+# ビルド
+cargo build
+
+# テスト
+cargo test
+
+# 規約チェック
+k1s0 lint
+```
+
+### Step 6: 設定ファイルをカスタマイズ
+
+```yaml
+# config/dev.yaml
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+database:
+  host: "localhost"
+  port: 5432
+  database: "order_service_dev"
+  username: "dev_user"
+  password_file: "/run/secrets/db_password"  # 機密情報は _file サフィックス
+
+grpc:
+  port: 50051
+
+observability:
+  log_level: "debug"
+  tracing_enabled: true
+```
+
+### Step 7: ローカルで実行
+
+```bash
+# 環境を明示的に指定して実行
+cargo run -- --env dev
+
+# または設定ファイルを直接指定
+cargo run -- --config config/dev.yaml
+```
+
 ### サービス名のルール
 
 サービス名は **kebab-case** で指定します。

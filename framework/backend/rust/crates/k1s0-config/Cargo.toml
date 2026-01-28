@@ -11,6 +11,7 @@ categories = ["config"]
 [features]
 default = []
 clap = ["dep:clap"]
+db = ["tokio", "async-trait", "chrono"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -18,6 +19,10 @@ serde_yaml = "0.9"
 serde_json = "1.0"
 thiserror = "1.0"
 clap = { version = "4.0", features = ["derive"], optional = true }
+tokio = { version = "1.0", features = ["sync"], optional = true }
+async-trait = { version = "0.1", optional = true }
+chrono = { version = "0.4", features = ["serde"], optional = true }
 
 [dev-dependencies]
 tempfile = "3.0"
+tokio = { version = "1.0", features = ["rt-multi-thread", "macros"] }

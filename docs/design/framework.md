@@ -145,7 +145,7 @@ let grpc_err = app_err.to_grpc_error();  // -> NOT_FOUND + metadata
 
 1. CLI 引数（参照先指定に限定）
 2. YAML（`config/{env}.yaml`。非機密の静的設定）
-3. DB（`fw_m_setting`。feature 固有の動的設定）※ 未対応
+3. DB（`fw_m_setting`。feature 固有の動的設定）※ `db` feature で有効化
 
 ### 主要な型
 
@@ -225,6 +225,128 @@ let config: AppConfig = loader.load()?;
 // *_file キーの値をファイルから読み込む
 let password = loader.resolve_secret_file(&config.db.password_file)?;
 ```
+
+### DB 設定機能（`db` feature）
+
+`db` feature を有効化すると、`fw_m_setting` テーブルからの動的設定取得が可能になる。
+
+#### 有効化方法
+
+```toml
+[dependencies]
+k1s0-config = { path = "...", features = ["db"] }
+```
+
+#### 主要な型
+
+##### DbSettingRepository
+
+```rust
+/// DB設定リポジトリ（トレイト）
+#[async_trait]
+pub trait DbSettingRepository: Send + Sync {
+    /// 全ての設定を取得
+    async fn get_all(&self) -> Result<Vec<SettingEntry>, DbSettingError>;
+    /// キーで設定を取得
+    async fn get(&self, key: &str) -> Result<Option<SettingEntry>, DbSettingError>;
+    /// プレフィックスで設定を取得
+    async fn get_by_prefix(&self, prefix: &str) -> Result<Vec<SettingEntry>, DbSettingError>;
+    /// ヘルスチェック
+    async fn health_check(&self) -> Result<(), DbSettingError>;
+}
+```
+
+##### SettingEntry
+
+```rust
+/// fw_m_setting テーブルの1行
+pub struct SettingEntry {
+    pub key: String,           // 設定キー（例: `http.timeout_ms`）
+    pub value: String,         // 設定値（JSON または単純な値）
+    pub updated_at: DateTime<Utc>,
+}
+```
+
+##### DbConfigLoader
+
+```rust
+/// YAML と DB 設定をマージして読み込むローダー
+pub struct DbConfigLoader {
+    yaml_loader: ConfigLoader,
+    db_repo: Box<dyn DbSettingRepository>,
+    failure_mode: FailureMode,
+}
+
+impl DbConfigLoader {
+    pub fn new(yaml_loader: ConfigLoader, db_repo: Box<dyn DbSettingRepository>) -> Self;
+    pub fn with_failure_mode(self, mode: FailureMode) -> Self;
+    pub async fn load<T: DeserializeOwned>(&self) -> ConfigResult<T>;
+    pub async fn clear_cache(&self);
+    pub async fn refresh_cache(&self) -> ConfigResult<()>;
+}
+```
+
+##### FailureMode
+
+```rust
+/// DB 設定取得失敗時の挙動
+pub enum FailureMode {
+    /// キャッシュがあれば継続（キャッシュなしならエラー）【既定】
+    UseCacheOrFail,
+    /// フェイルオープン（DB 設定なしでも継続、YAML のみで動作）
+    FailOpen,
+    /// 起動不可（DB 設定取得が必須）
+    FailClosed,
+}
+```
+
+#### 使用例（DB 設定との統合）
+
+```rust
+use k1s0_config::{ConfigLoader, ConfigOptions, DbConfigLoader, FailureMode};
+use k1s0_db::PostgresSettingRepository;  // k1s0-db が提供する実装
+use serde::Deserialize;
+use std::sync::Arc;
+
+#[derive(Debug, Deserialize)]
+struct AppConfig {
+    http: HttpConfig,
+    db: DbConfig,
+}
+
+#[derive(Debug, Deserialize)]
+struct HttpConfig {
+    timeout_ms: u64,
+    max_connections: u32,
+}
+
+#[derive(Debug, Deserialize)]
+struct DbConfig {
+    pool_size: u32,
+}
+
+// YAML 設定ローダーを作成
+let yaml_loader = ConfigLoader::new(
+    ConfigOptions::new("dev").with_config_path("config/dev.yaml")
+)?;
+
+// PostgreSQL プールから設定リポジトリを作成（k1s0-db が提供）
+let setting_repo = PostgresSettingRepository::new(Arc::clone(&pool));
+
+// DB 設定ローダーを作成
+let loader = DbConfigLoader::new(yaml_loader, Box::new(setting_repo))
+    .with_failure_mode(FailureMode::UseCacheOrFail);
+
+// 設定を読み込み（YAML が優先、DB はフォールバック）
+let config: AppConfig = loader.load().await?;
+```
+
+#### Tier 依存関係
+
+- **k1s0-config（Tier 1）**: `DbSettingRepository` トレイトと `DbConfigLoader` を定義
+- **k1s0-db（Tier 2）**: `PostgresSettingRepository` 実装を提供（`config` feature で有効化）
+
+この設計により、Tier 1 の k1s0-config は具体的な DB 実装に依存せず、Tier 依存ルールを維持している。
 
 ---
 
@@ -1129,6 +1251,56 @@ pub struct PoolConfig {
 }
 ```
 
+#### コネクションプール詳細
+
+##### プールサイズの設定指針
+
+| 環境 | max_connections | min_connections | 備考 |
+|------|-----------------|-----------------|------|
+| 開発 | 5 | 1 | リソース節約 |
+| ステージング | 10 | 2 | 本番に近い設定 |
+| 本番 | 20-50 | 5-10 | トラフィックに応じて調整 |
+
+**計算式の目安:**
+```
+max_connections = (CPU コア数 * 2) + effective_spindle_count
+```
+
+##### タイムアウト設定
+
+| パラメータ | 説明 | 推奨値 |
+|-----------|------|--------|
+| `idle_timeout_secs` | アイドル接続のタイムアウト | 300-600秒 |
+| `max_lifetime_secs` | 接続の最大生存時間 | 1800秒（30分） |
+| `connection_timeout_secs` | 接続確立のタイムアウト | 5-10秒 |
+| `acquire_timeout_secs` | プールからの取得タイムアウト | 5-30秒 |
+
+##### プール監視
+
+```rust
+// プールの状態を取得
+let pool_state = pool.state();
+println!("接続数: {} / {}", pool_state.connections, pool_state.max_connections);
+println!("アイドル接続: {}", pool_state.idle_connections);
+println!("待機中リクエスト: {}", pool_state.pending_requests);
+
+// メトリクス出力（OpenTelemetry 連携）
+pool.export_metrics(&meter);
+```
+
+##### 枯渇対策
+
+1. **接続リーク検知**: `acquire_timeout` を設定し、取得できない場合にエラーログを出力
+2. **ヘルスチェック**: 定期的に `pool.health_check()` を実行
+3. **アラート設定**: `pending_requests > 0` が続く場合に通知
+
+```rust
+// 接続ヘルスチェック
+if let Err(e) = pool.health_check().await {
+    tracing::error!(error = %e, "Pool health check failed");
+}
+```
+
 #### TransactionOptions
 
 ```rust
@@ -1154,6 +1326,80 @@ impl TransactionOptions {
     pub fn read_only() -> Self;
     pub fn serializable() -> Self;
     pub fn with_isolation_level(self, level: IsolationLevel) -> Self;
+}
+```
+
+#### 分離レベル選択ガイド
+
+| 分離レベル | ユースケース | 注意点 |
+|-----------|-------------|--------|
+| `ReadUncommitted` | ダーティリードを許容する集計処理 | 本番では非推奨 |
+| `ReadCommitted` | 一般的な CRUD 操作（デフォルト） | ファントムリードの可能性あり |
+| `RepeatableRead` | レポート生成、一貫性が必要な読み取り | 更新競合に注意 |
+| `Serializable` | 金融取引、在庫管理 | デッドロックリスク、性能低下 |
+
+##### ユースケース別の推奨設定
+
+**1. 通常の CRUD 操作:**
+```rust
+// デフォルト（ReadCommitted）を使用
+let options = TransactionOptions::new();
+```
+
+**2. 残高更新などの金融取引:**
+```rust
+// Serializable + リトライロジック
+let options = TransactionOptions::serializable();
+let result = retry_with_backoff(3, || async {
+    uow.execute_with_options(&options, |tx| async {
+        let balance = tx.get_balance(user_id).await?;
+        tx.update_balance(user_id, balance - amount).await
+    }).await
+}).await;
+```
+
+**3. 大量データの読み取り専用レポート:**
+```rust
+// ReadOnly + RepeatableRead
+let options = TransactionOptions::read_only()
+    .with_isolation_level(IsolationLevel::RepeatableRead);
+```
+
+**4. 楽観的ロックとの組み合わせ:**
+```rust
+// ReadCommitted + version チェック
+let entity = repository.find_by_id(id).await?;
+entity.version += 1;
+match repository.update_with_version(&entity).await {
+    Err(DbError::OptimisticLockError) => {
+        // リトライまたはエラー
+    }
+    Ok(_) => {}
+}
+```
+
+##### デッドロック対策
+
+1. **一貫したロック順序**: テーブル/行のロック順序を統一
+2. **タイムアウト設定**: `statement_timeout` を設定
+3. **リトライロジック**: デッドロック検出時に自動リトライ
+
+```rust
+// デッドロック検出とリトライ
+pub async fn with_deadlock_retry<F, T>(f: F) -> DbResult<T>
+where
+    F: Fn() -> Future<Output = DbResult<T>>,
+{
+    for attempt in 0..3 {
+        match f().await {
+            Err(DbError::Deadlock) => {
+                tracing::warn!(attempt, "Deadlock detected, retrying");
+                tokio::time::sleep(Duration::from_millis(100 * (attempt + 1))).await;
+            }
+            result => return result,
+        }
+    }
+    Err(DbError::MaxRetriesExceeded)
 }
 ```
 
@@ -1213,6 +1459,121 @@ pub async fn execute_in_transaction<F, T, E>(
 where
     F: FnOnce() -> Future<Output = Result<T, E>>,
     E: Into<DbError>;
+```
+
+#### UnitOfWork 拡張機能
+
+```rust
+/// 完全な UnitOfWork 実装
+pub struct UnitOfWorkImpl {
+    pool: DbPool,
+    tx: Option<Transaction<'static, Postgres>>,
+    savepoints: Vec<String>,
+    isolation_level: IsolationLevel,
+}
+
+impl UnitOfWorkImpl {
+    pub fn new(pool: DbPool) -> Self;
+
+    /// トランザクション分離レベルを設定
+    pub fn with_isolation_level(mut self, level: IsolationLevel) -> Self;
+
+    /// セーブポイントを作成
+    pub async fn savepoint(&mut self, name: &str) -> DbResult<()>;
+
+    /// セーブポイントまでロールバック
+    pub async fn rollback_to_savepoint(&mut self, name: &str) -> DbResult<()>;
+
+    /// セーブポイントを解放
+    pub async fn release_savepoint(&mut self, name: &str) -> DbResult<()>;
+
+    /// トランザクション内で処理を実行
+    pub async fn execute<F, T, E>(&mut self, f: F) -> DbResult<T>
+    where
+        F: FnOnce(&mut Self) -> Future<Output = Result<T, E>> + Send,
+        E: Into<DbError>;
+}
+```
+
+#### ScopedUnitOfWork
+
+スコープ終了時に自動でロールバックする UnitOfWork。
+
+```rust
+/// スコープベースの UnitOfWork
+pub struct ScopedUnitOfWork {
+    inner: UnitOfWorkImpl,
+    committed: bool,
+}
+
+impl ScopedUnitOfWork {
+    pub fn new(pool: DbPool) -> Self;
+
+    /// トランザクションをコミット（呼び出さない場合はドロップ時にロールバック）
+    pub async fn commit(mut self) -> DbResult<()>;
+}
+
+impl Drop for ScopedUnitOfWork {
+    fn drop(&mut self) {
+        // committed が false の場合、自動でロールバック
+    }
+}
+```
+
+#### MultiTableUnitOfWork
+
+複数テーブルの操作をまとめて管理する UnitOfWork。
+
+```rust
+/// 複数テーブル操作用 UnitOfWork
+pub struct MultiTableUnitOfWork {
+    inner: UnitOfWorkImpl,
+    operations: Vec<Operation>,
+}
+
+pub enum Operation {
+    Insert { table: String, data: Value },
+    Update { table: String, id: String, data: Value },
+    Delete { table: String, id: String },
+}
+
+impl MultiTableUnitOfWork {
+    pub fn new(pool: DbPool) -> Self;
+
+    /// 操作を追加
+    pub fn add_operation(&mut self, op: Operation);
+
+    /// すべての操作を実行してコミット
+    pub async fn execute_all(&mut self) -> DbResult<()>;
+
+    /// 特定のテーブルのみ実行
+    pub async fn execute_for_table(&mut self, table: &str) -> DbResult<()>;
+}
+```
+
+#### UnitOfWorkFactory
+
+```rust
+/// UnitOfWork ファクトリー
+pub struct UnitOfWorkFactory {
+    pool: DbPool,
+}
+
+impl UnitOfWorkFactory {
+    pub fn new(pool: DbPool) -> Self;
+
+    /// 基本の UnitOfWork を作成
+    pub fn create(&self) -> UnitOfWorkImpl;
+
+    /// スコープベースの UnitOfWork を作成
+    pub fn create_scoped(&self) -> ScopedUnitOfWork;
+
+    /// 複数テーブル用 UnitOfWork を作成
+    pub fn create_multi_table(&self) -> MultiTableUnitOfWork;
+
+    /// 特定の分離レベルで UnitOfWork を作成
+    pub fn create_with_isolation(&self, level: IsolationLevel) -> UnitOfWorkImpl;
+}
 ```
 
 ### Features
@@ -1373,6 +1734,77 @@ impl AuditLogger {
 }
 ```
 
+#### UserInfoClient (OIDC UserInfo)
+
+```rust
+/// OIDC UserInfo レスポンス
+pub struct UserInfo {
+    pub sub: String,                    // Subject Identifier (必須)
+    pub name: Option<String>,           // 表示名
+    pub given_name: Option<String>,     // 名
+    pub family_name: Option<String>,    // 姓
+    pub email: Option<String>,          // メールアドレス
+    pub email_verified: Option<bool>,   // メール検証済みフラグ
+    pub picture: Option<String>,        // プロフィール画像URL
+    pub locale: Option<String>,         // ロケール
+    pub address: Option<UserInfoAddress>, // 住所
+    pub additional_claims: HashMap<String, Value>, // 追加クレーム
+}
+
+/// UserInfo クライアント
+pub struct UserInfoClient {
+    discovery: OidcDiscovery,
+    client: reqwest::Client,
+}
+
+impl UserInfoClient {
+    /// 新しい UserInfo クライアントを作成
+    pub fn new(discovery: OidcDiscovery) -> Self;
+
+    /// アクセストークンを使用してユーザー情報を取得
+    pub async fn get_userinfo(&self, access_token: &str) -> Result<UserInfo, AuthError>;
+
+    /// エンドポイント直接指定でユーザー情報を取得
+    pub async fn get_userinfo_from_endpoint(
+        &self,
+        endpoint: &str,
+        access_token: &str,
+    ) -> Result<UserInfo, AuthError>;
+}
+```
+
+**Go 版 (k1s0-auth):**
+
+```go
+// OIDCUserInfo holds user info from the OIDC provider.
+type OIDCUserInfo struct {
+    Subject       string `json:"sub"`
+    Name          string `json:"name,omitempty"`
+    GivenName     string `json:"given_name,omitempty"`
+    FamilyName    string `json:"family_name,omitempty"`
+    Email         string `json:"email,omitempty"`
+    EmailVerified bool   `json:"email_verified,omitempty"`
+    Picture       string `json:"picture,omitempty"`
+    Locale        string `json:"locale,omitempty"`
+    Address       *OIDCAddress `json:"address,omitempty"`
+}
+
+// UserInfo fetches user info from the OIDC provider.
+func (v *OIDCValidator) UserInfo(ctx context.Context, accessToken string) (*OIDCUserInfo, error)
+
+// UserInfoWithClient fetches user info using a custom HTTP client.
+func (v *OIDCValidator) UserInfoWithClient(ctx context.Context, httpClient *http.Client, accessToken string) (*OIDCUserInfo, error)
+
+// UserInfoClient is a standalone client for fetching OIDC UserInfo.
+type UserInfoClient struct {
+    httpClient       *http.Client
+    userInfoEndpoint string
+}
+
+func NewUserInfoClient(userInfoEndpoint string, httpClient *http.Client) *UserInfoClient
+func (c *UserInfoClient) GetUserInfo(ctx context.Context, accessToken string) (*OIDCUserInfo, error)
+```
+
 ### Features
 
 ```toml
@@ -1446,6 +1878,103 @@ impl CacheConfig {
 }
 ```
 
+#### TTL 管理戦略
+
+##### TTL 設定のベストプラクティス
+
+| データ種別 | 推奨 TTL | 理由 |
+|-----------|---------|------|
+| セッション | 30分-24時間 | セキュリティ要件に依存 |
+| ユーザープロファイル | 1-24時間 | 更新頻度が低い |
+| 商品カタログ | 5-60分 | 更新時に明示的に無効化 |
+| API レスポンス | 1-5分 | リアルタイム性とのバランス |
+| 計算結果キャッシュ | 処理時間に比例 | 再計算コストに応じて |
+
+##### TTL 設定パターン
+
+```rust
+/// TTL 設定の定数定義（推奨）
+pub mod cache_ttl {
+    use std::time::Duration;
+
+    pub const SESSION: Duration = Duration::from_secs(30 * 60);        // 30分
+    pub const USER_PROFILE: Duration = Duration::from_secs(60 * 60);   // 1時間
+    pub const CATALOG: Duration = Duration::from_secs(5 * 60);         // 5分
+    pub const API_RESPONSE: Duration = Duration::from_secs(60);        // 1分
+}
+
+// 使用例
+client.set("user:123", &user, Some(cache_ttl::USER_PROFILE)).await?;
+```
+
+##### スライディング TTL
+
+アクセスごとに TTL をリセットするパターン。セッション管理に有効。
+
+```rust
+/// アクセス時に TTL を延長
+pub async fn get_with_refresh<T>(&self, key: &str, ttl: Duration) -> CacheResult<Option<T>> {
+    if let Some(value) = self.get::<T>(key).await? {
+        // TTL をリセット
+        self.expire(key, ttl).await?;
+        Ok(Some(value))
+    } else {
+        Ok(None)
+    }
+}
+```
+
+#### エビクションポリシー
+
+##### Redis のエビクションポリシー設定
+
+| ポリシー | 説明 | ユースケース |
+|---------|------|-------------|
+| `noeviction` | メモリ上限でエラー | データ損失を許容しない |
+| `allkeys-lru` | LRU で削除 | 一般的なキャッシュ |
+| `volatile-lru` | TTL 付きキーを LRU で削除 | 永続データとキャッシュの混在 |
+| `allkeys-lfu` | LFU で削除 | アクセス頻度重視 |
+| `volatile-ttl` | TTL が近いキーを優先削除 | 時間ベースの優先度 |
+
+**推奨設定（redis.conf）:**
+```
+maxmemory 1gb
+maxmemory-policy allkeys-lru
+maxmemory-samples 10
+```
+
+##### メモリ使用量の監視
+
+```rust
+// Redis INFO コマンドでメモリ使用量を取得
+let info = client.info("memory").await?;
+let used_memory: u64 = info.get("used_memory")?;
+let maxmemory: u64 = info.get("maxmemory")?;
+
+let usage_ratio = used_memory as f64 / maxmemory as f64;
+if usage_ratio > 0.8 {
+    tracing::warn!(usage = %usage_ratio, "Cache memory usage high");
+}
+```
+
+##### キャッシュウォーミング
+
+コールドスタート時のキャッシュミス急増を防ぐ。
+
+```rust
+/// 起動時にキャッシュをプリロード
+pub async fn warm_cache(&self, keys: &[String]) -> CacheResult<()> {
+    let batch_size = 100;
+    for chunk in keys.chunks(batch_size) {
+        let futures: Vec<_> = chunk.iter()
+            .map(|key| self.load_to_cache(key))
+            .collect();
+        futures::future::join_all(futures).await;
+    }
+    Ok(())
+}
+```
+
 #### CacheOperations トレイト
 
 ```rust
@@ -1457,6 +1986,49 @@ pub trait CacheOperations: Send + Sync {
     async fn exists(&self, key: &str) -> CacheResult<bool>;
     async fn get_or_set<T, F, Fut>(&self, key: &str, f: F, ttl: Option<Duration>) -> CacheResult<T>;
 }
+
+/// パターンマッチング削除 (CacheOperationsExt)
+#[async_trait]
+pub trait CacheOperationsExt: CacheOperations {
+    /// パターンに一致するキーを削除
+    /// Redis の SCAN + DEL を使用
+    async fn delete_pattern(&self, pattern: &str) -> CacheResult<u64>;
+}
+
+impl CacheClient {
+    /// パターンに一致するキーを削除
+    ///
+    /// パターン構文:
+    /// - `*` - 任意の文字列にマッチ
+    /// - `?` - 任意の1文字にマッチ
+    /// - `[abc]` - a, b, c のいずれかにマッチ
+    pub async fn delete_by_pattern(&self, pattern: &str) -> CacheResult<u64>;
+
+    /// パターンに一致するキーをスキャン
+    pub async fn scan_keys(&self, pattern: &str) -> CacheResult<Vec<String>>;
+}
+```
+
+**Go 版 (k1s0-cache):**
+
+```go
+// PatternDeleter is an interface for caches that support pattern-based deletion.
+type PatternDeleter interface {
+    // DeletePattern deletes all keys matching the pattern.
+    DeletePattern(ctx context.Context, pattern string) (int64, error)
+
+    // Scan iterates over keys matching a pattern.
+    Scan(ctx context.Context, pattern string, count int64) ([]string, error)
+}
+
+// InvalidatePattern deletes all keys matching the pattern.
+func InvalidatePattern(ctx context.Context, client *CacheClient, pattern string) (int64, error)
+
+// ScanKeys returns all keys matching the pattern.
+func ScanKeys(ctx context.Context, client *CacheClient, pattern string) ([]string, error)
+
+// DeletePattern is a method on CacheClient.
+func (c *CacheClient) DeletePattern(ctx context.Context, pattern string) (int64, error)
 ```
 
 ### Features
@@ -1495,6 +2067,171 @@ let user = client.get_or_set(
     || async { db.find_user("123").await },
     Some(Duration::from_secs(3600)),
 ).await?;
+```
+
+### Write-Through パターン
+
+DB と Cache に同時に書き込むパターン。データの一貫性を重視する場合に使用。
+
+```rust
+pub struct WriteThrough<T, D, C>
+where
+    T: Serialize + DeserializeOwned + Clone + Send + Sync,
+    D: DbOperations<T> + Send + Sync,
+    C: CacheOperations + Send + Sync,
+{
+    db: Arc<D>,
+    cache: Arc<C>,
+    key_prefix: String,
+    default_ttl: Option<Duration>,
+}
+
+impl<T, D, C> WriteThrough<T, D, C> {
+    pub fn new(db: Arc<D>, cache: Arc<C>, key_prefix: impl Into<String>) -> Self;
+    pub fn with_ttl(self, ttl: Duration) -> Self;
+
+    /// DB に書き込み、成功後キャッシュにも書き込み
+    pub async fn write(&self, key: &str, value: &T) -> CacheResult<()>;
+
+    /// DB に書き込み、成功後キャッシュにも書き込み（TTL指定）
+    pub async fn write_with_ttl(&self, key: &str, value: &T, ttl: Duration) -> CacheResult<()>;
+
+    /// Cache-Aside フォールバック付きで読み取り
+    pub async fn read(&self, key: &str) -> CacheResult<Option<T>>;
+
+    /// 複数エントリを一括書き込み
+    pub async fn write_batch(&self, entries: &[(String, T)]) -> CacheResult<()>;
+}
+```
+
+**Go 版:**
+
+```go
+type WriteThrough[T any] struct {
+    db        DbOperations[T]
+    cache     CacheOperations
+    keyPrefix string
+    ttl       time.Duration
+}
+
+func NewWriteThrough[T any](db DbOperations[T], cache CacheOperations, keyPrefix string) *WriteThrough[T]
+func (w *WriteThrough[T]) WithTTL(ttl time.Duration) *WriteThrough[T]
+func (w *WriteThrough[T]) Write(ctx context.Context, key string, value *T) error
+func (w *WriteThrough[T]) Read(ctx context.Context, key string) (*T, error)
+func (w *WriteThrough[T]) WriteBatch(ctx context.Context, entries map[string]*T) error
+```
+
+### Write-Behind パターン
+
+キャッシュに即座に書き込み、DB への書き込みを非同期で行うパターン。書き込み性能を重視する場合に使用。
+
+```rust
+pub struct WriteBehind<T, D, C>
+where
+    T: Serialize + DeserializeOwned + Clone + Send + Sync + 'static,
+    D: DbOperations<T> + Send + Sync + 'static,
+    C: CacheOperations + Send + Sync + 'static,
+{
+    db: Arc<D>,
+    cache: Arc<C>,
+    key_prefix: String,
+    sender: mpsc::Sender<WriteOperation<T>>,
+    stats: Arc<WriteBehindStats>,
+}
+
+pub struct WriteOperation<T> {
+    pub key: String,
+    pub value: T,
+    pub operation_type: WriteOperationType,
+}
+
+pub enum WriteOperationType {
+    Insert,
+    Update,
+    Delete,
+}
+
+pub struct WriteBehindConfig {
+    pub batch_size: usize,          // デフォルト: 100
+    pub flush_interval: Duration,   // デフォルト: 1秒
+    pub max_retries: u32,           // デフォルト: 3
+    pub retry_delay: Duration,      // デフォルト: 100ms
+}
+
+pub struct WriteBehindStats {
+    pub total_writes: AtomicU64,
+    pub successful_writes: AtomicU64,
+    pub failed_writes: AtomicU64,
+    pub pending_writes: AtomicU64,
+}
+
+impl<T, D, C> WriteBehind<T, D, C> {
+    pub async fn new(
+        db: Arc<D>,
+        cache: Arc<C>,
+        key_prefix: impl Into<String>,
+        config: WriteBehindConfig,
+    ) -> CacheResult<Self>;
+
+    /// キャッシュに即座に書き込み、DB への書き込みをキューに追加
+    pub async fn write(&self, key: &str, value: T) -> CacheResult<()>;
+
+    /// 削除をキューに追加
+    pub async fn delete(&self, key: &str) -> CacheResult<()>;
+
+    /// キャッシュから読み取り（DB フォールバックあり）
+    pub async fn read(&self, key: &str) -> CacheResult<Option<T>>;
+
+    /// 統計情報を取得
+    pub fn stats(&self) -> &WriteBehindStats;
+
+    /// バックグラウンドワーカーを停止
+    pub async fn shutdown(&self) -> CacheResult<()>;
+}
+```
+
+**Go 版:**
+
+```go
+type WriteBehind[T any] struct {
+    db         DbOperations[T]
+    cache      CacheOperations
+    keyPrefix  string
+    writeChan  chan WriteOperation[T]
+    stats      *WriteBehindStats
+    stopCh     chan struct{}
+}
+
+type WriteBehindConfig struct {
+    BatchSize     int           // default: 100
+    FlushInterval time.Duration // default: 1s
+    MaxRetries    int           // default: 3
+    RetryDelay    time.Duration // default: 100ms
+}
+
+type WriteBehindStats struct {
+    TotalWrites      atomic.Uint64
+    SuccessfulWrites atomic.Uint64
+    FailedWrites     atomic.Uint64
+    PendingWrites    atomic.Uint64
+}
+
+func NewWriteBehind[T any](db DbOperations[T], cache CacheOperations, keyPrefix string, config WriteBehindConfig) *WriteBehind[T]
+func (w *WriteBehind[T]) Write(ctx context.Context, key string, value *T) error
+func (w *WriteBehind[T]) Delete(ctx context.Context, key string) error
+func (w *WriteBehind[T]) Read(ctx context.Context, key string) (*T, error)
+func (w *WriteBehind[T]) Stats() WriteBehindStats
+func (w *WriteBehind[T]) Shutdown(ctx context.Context) error
+```
+
+### キャッシュパターン使い分け
+
+| パターン | 一貫性 | 書き込み性能 | 読み取り性能 | 適用場面 |
+|---------|:-----:|:----------:|:----------:|---------|
+| Cache-Aside | 中 | 低 | 高 | 読み取り中心のワークロード |
+| Write-Through | 高 | 低 | 高 | データ一貫性が最重要 |
+| Write-Behind | 低 | 高 | 高 | 書き込み中心、一時的な不整合許容 |
+
 ```
 
 ---
@@ -1563,8 +2300,8 @@ framework/frontend/react/packages/
 | @k1s0/shell | ✅ | AppShell（Header/Sidebar/Footer）、レスポンシブ対応 |
 | @k1s0/auth-client | ✅ | JWT/OIDCトークン管理、認証ガード、セッション管理 |
 | @k1s0/observability | ✅ | OpenTelemetry統合、構造化ログ、Web Vitals計測 |
-| @k1s0/eslint-config | ✅ | ESLint共通設定、TypeScript/React/a11yルール、Prettier連携 |
-| @k1s0/tsconfig | ✅ | TypeScript共通設定、React/ライブラリ/Node.js用プリセット |
+| @k1s0/eslint-config | ✅ | ESLint共通設定、TypeScript/React/a11yルール、Prettier連携、k1s0固有ルール（環境変数使用禁止） |
+| @k1s0/tsconfig | ✅ | TypeScript共通設定、React/ライブラリ/Node.js/Strict用プリセット、厳格な型チェック |
 
 ---
 
@@ -1989,6 +2726,7 @@ function PerformanceMonitor() {
 
 ```
 framework/frontend/flutter/packages/
+├── k1s0_navigation/     # 設定駆動ナビゲーション（NEW）
 ├── k1s0_config/         # YAML設定管理
 ├── k1s0_http/           # API通信クライアント
 ├── k1s0_auth/           # 認証クライアント
@@ -2001,12 +2739,301 @@ framework/frontend/flutter/packages/
 
 | パッケージ | 状態 | 説明 |
 |-----------|:----:|------|
+| k1s0_navigation | ✅ | 設定駆動ナビゲーション、go_router統合、ルートガード |
 | k1s0_config | ✅ | YAML設定管理、Zodスキーマバリデーション、環境マージ |
 | k1s0_http | ✅ | Dioベース通信クライアント、OTel計測、ProblemDetails対応 |
 | k1s0_auth | ✅ | JWT/OIDC認証、SecureStorage、トークン自動更新 |
 | k1s0_observability | ✅ | 構造化ログ、分散トレース、メトリクス収集 |
 | k1s0_ui | ✅ | Material 3 Design System、共通ウィジェット、テーマ |
 | k1s0_state | ✅ | Riverpod状態管理、AsyncValueヘルパー、永続化 |
+
+---
+
+## k1s0_navigation (Flutter)
+
+### 目的
+
+go_router ベースの設定駆動型ナビゲーションを提供する。ルート設定、ルートガード、認証連携、Shell Routes を統合。
+
+### 主要な型
+
+#### RouteConfig / RouteEntry
+
+```dart
+/// ルート設定
+class RouteConfig {
+  final List<RouteEntry> routes;
+  final String initialLocation;
+  final bool debugLogDiagnostics;
+  final bool routerNeglect;
+
+  RouteConfig copyWith({...});
+}
+
+/// ルートエントリ
+class RouteEntry {
+  final String path;
+  final String name;
+  final Widget Function(BuildContext, GoRouterState) builder;
+  final List<RouteEntry> children;
+  final List<String> guards;
+
+  /// GoRoute に変換
+  GoRoute toGoRoute({required Map<String, RouteGuardCallback> guardCallbacks});
+}
+
+/// ルート設定ビルダー
+class RouteConfigBuilder {
+  RouteConfigBuilder addRoute(RouteEntry route);
+  RouteConfigBuilder addRoutes(List<RouteEntry> routes);
+  RouteConfigBuilder initialLocation(String location);
+  RouteConfigBuilder enableDebugLogging();
+  RouteConfig build();
+}
+```
+
+#### Route Guards
+
+```dart
+/// ルートガード基底クラス
+abstract class RouteGuard {
+  final String name;
+
+  /// ガードチェック（null を返すと通過、String を返すとリダイレクト）
+  String? check(BuildContext context, GoRouterState state);
+}
+
+/// 関数ベースのルートガード
+class FunctionalRouteGuard extends RouteGuard {
+  FunctionalRouteGuard({
+    required String name,
+    required String? Function(BuildContext, GoRouterState) checkFn,
+  });
+}
+
+/// 認証ガード
+class AuthGuard extends RouteGuard {
+  final bool Function(BuildContext) isAuthenticated;
+  final String loginPath;
+  final String? returnToParameter;
+  final List<String> excludedPaths;
+
+  AuthGuard({
+    String name = 'auth',
+    required this.isAuthenticated,
+    this.loginPath = '/login',
+    this.returnToParameter = 'returnTo',
+    this.excludedPaths = const [],
+  });
+}
+
+/// ロールベースガード
+class RoleGuard extends RouteGuard {
+  final List<String> Function(BuildContext) getRoles;
+  final List<String> requiredRoles;
+  final bool requireAll;
+  final String fallbackPath;
+
+  RoleGuard({
+    String name = 'role',
+    required this.getRoles,
+    required this.requiredRoles,
+    this.requireAll = false,
+    this.fallbackPath = '/forbidden',
+  });
+}
+
+/// 複合ガード（複数ガードを順番にチェック）
+class CompositeRouteGuard extends RouteGuard {
+  final List<RouteGuard> guards;
+
+  CompositeRouteGuard({
+    required String name,
+    required this.guards,
+  });
+}
+
+/// ガードレジストリ
+class RouteGuardRegistry {
+  void register(RouteGuard guard);
+  void unregister(String name);
+  RouteGuard? get(String name);
+  bool contains(String name);
+  void clear();
+}
+```
+
+#### K1s0Router
+
+```dart
+/// k1s0 Router ラッパー
+class K1s0Router {
+  final RouteConfig config;
+  final RouteGuardRegistry guardRegistry;
+  final List<NavigatorObserver> observers;
+  final Widget Function(BuildContext, GoRouterState)? errorBuilder;
+  final Listenable? refreshListenable;
+
+  K1s0Router({
+    required this.config,
+    RouteGuardRegistry? guardRegistry,
+    this.observers = const [],
+    this.errorBuilder,
+    this.refreshListenable,
+  });
+
+  /// GoRouter インスタンスを作成
+  GoRouter createRouter();
+}
+```
+
+#### Shell Routes
+
+```dart
+/// Shell Route 設定
+class K1s0ShellRoute {
+  final String? name;
+  final Widget Function(BuildContext, GoRouterState, Widget) builder;
+  final List<RouteEntry> routes;
+  final List<String> guards;
+  final GlobalKey<NavigatorState>? navigatorKey;
+
+  ShellRoute toShellRoute({required Map<String, RouteGuardCallback> guardCallbacks});
+}
+
+/// Stateful Shell Route（タブナビゲーション用）
+class K1s0StatefulShellRoute {
+  final List<K1s0ShellBranch> branches;
+  final Widget Function(BuildContext, GoRouterState, StatefulNavigationShell) builder;
+  final String? restorationScopeId;
+
+  StatefulShellRoute toStatefulShellRoute({...});
+}
+
+class K1s0ShellBranch {
+  final GlobalKey<NavigatorState>? navigatorKey;
+  final String? restorationScopeId;
+  final String? initialLocation;
+  final List<RouteEntry> routes;
+}
+```
+
+#### Riverpod Providers
+
+```dart
+/// ルート設定プロバイダー
+final routeConfigProvider = Provider<RouteConfig>((ref) => throw UnimplementedError());
+
+/// ガードレジストリプロバイダー
+final routeGuardRegistryProvider = Provider<RouteGuardRegistry>((ref) {
+  return RouteGuardRegistry();
+});
+
+/// GoRouter プロバイダー
+final routerProvider = Provider<GoRouter>((ref) {
+  final config = ref.watch(routeConfigProvider);
+  final registry = ref.watch(routeGuardRegistryProvider);
+
+  final k1s0Router = K1s0Router(
+    config: config,
+    guardRegistry: registry,
+  );
+
+  return k1s0Router.createRouter();
+});
+
+/// 認証状態通知
+class SimpleAuthStateNotifier extends ChangeNotifier {
+  bool _isAuthenticated;
+
+  bool get isAuthenticated => _isAuthenticated;
+
+  void login() { ... }
+  void logout() { ... }
+}
+
+final authStateProvider = ChangeNotifierProvider<SimpleAuthStateNotifier>((ref) {
+  return SimpleAuthStateNotifier();
+});
+```
+
+### 使用例
+
+```dart
+// ルート設定
+final config = RouteConfigBuilder()
+    .addRoute(RouteEntry(
+      path: '/',
+      name: 'home',
+      builder: (context, state) => const HomePage(),
+    ))
+    .addRoute(RouteEntry(
+      path: '/login',
+      name: 'login',
+      builder: (context, state) => const LoginPage(),
+    ))
+    .addRoute(RouteEntry(
+      path: '/dashboard',
+      name: 'dashboard',
+      builder: (context, state) => const DashboardPage(),
+      guards: ['auth'],  // 認証ガードを適用
+    ))
+    .initialLocation('/')
+    .enableDebugLogging()
+    .build();
+
+// ガード登録
+final registry = RouteGuardRegistry();
+registry.register(AuthGuard(
+  isAuthenticated: (context) => ref.read(authStateProvider).isAuthenticated,
+  loginPath: '/login',
+  excludedPaths: ['/login', '/register'],
+));
+
+// Router 作成
+final router = K1s0Router(
+  config: config,
+  guardRegistry: registry,
+  refreshListenable: ref.read(authStateProvider),
+).createRouter();
+
+// MaterialApp で使用
+MaterialApp.router(
+  routerConfig: router,
+)
+
+// Shell Route（共通レイアウト）
+final shellRoute = K1s0ShellRoute(
+  builder: (context, state, child) => Scaffold(
+    appBar: AppBar(title: Text('My App')),
+    body: child,
+  ),
+  routes: [
+    RouteEntry(path: '/home', name: 'home', builder: ...),
+    RouteEntry(path: '/settings', name: 'settings', builder: ...),
+  ],
+);
+
+// Stateful Shell Route（タブナビゲーション）
+final statefulShell = K1s0StatefulShellRoute(
+  branches: [
+    K1s0ShellBranch(
+      routes: [RouteEntry(path: '/home', name: 'home', builder: ...)],
+    ),
+    K1s0ShellBranch(
+      routes: [RouteEntry(path: '/profile', name: 'profile', builder: ...)],
+    ),
+  ],
+  builder: (context, state, shell) => Scaffold(
+    body: shell,
+    bottomNavigationBar: BottomNavigationBar(
+      currentIndex: shell.currentIndex,
+      onTap: shell.goBranch,
+      items: [...],
+    ),
+  ),
+);
+```
 
 ---
 
@@ -2409,6 +3436,10 @@ React:
   └── @opentelemetry/api (optional)
 
 Flutter:
+k1s0_navigation
+  ├── go_router
+  └── flutter_riverpod
+
 k1s0_config
   └── (standalone, yaml依存)
 
@@ -2430,4 +3461,153 @@ k1s0_state
   ├── flutter_riverpod
   ├── shared_preferences
   └── hive_flutter
+```
+
+---
+
+## eslint-config-k1s0
+
+### 目的
+
+k1s0 プロジェクト向けの ESLint 共通設定を提供する。TypeScript、React、アクセシビリティ、Prettier 連携、k1s0 固有ルールを統合。
+
+### 設定ファイル
+
+| ファイル | 説明 |
+|---------|------|
+| `index.js` | 推奨設定（React + TypeScript + k1s0 ルール） |
+| `base.js` | JavaScript 基本ルール |
+| `typescript.js` | TypeScript 固有ルール |
+| `react.js` | React/JSX/a11y ルール |
+| `k1s0-rules.js` | k1s0 プロジェクト固有ルール |
+
+### k1s0 固有ルール
+
+#### 環境変数使用禁止
+
+```javascript
+// 禁止されるパターン:
+process.env.API_URL          // NG
+process.env['DATABASE_HOST'] // NG
+
+// 正しいアプローチ:
+import { useConfig } from '@k1s0/config';
+const config = useConfig();
+const apiUrl = config.api.baseUrl;
+```
+
+#### 除外対象ファイル
+
+以下のファイルでは環境変数使用が許可されます:
+- `vite.config.ts`, `webpack.config.ts` 等のビルド設定
+- `jest.config.ts`, `vitest.config.ts` 等のテスト設定
+- `scripts/**` ディレクトリ
+- テストファイル (`*.test.ts`, `*.spec.ts`)
+
+### 使用例
+
+```javascript
+// .eslintrc.js
+module.exports = {
+  extends: ['@k1s0/eslint-config'],
+};
+
+// または特定の設定のみ使用
+module.exports = {
+  extends: ['@k1s0/eslint-config/react'],
+};
+
+// k1s0 ルールを個別に追加
+import { k1s0Rules, k1s0Overrides } from '@k1s0/eslint-config/k1s0-rules';
+```
+
+---
+
+## tsconfig-k1s0
+
+### 目的
+
+k1s0 プロジェクト向けの TypeScript 共通設定を提供する。厳格な型チェック、モジュール解決、各種プリセットを統合。
+
+### 設定ファイル
+
+| ファイル | 説明 |
+|---------|------|
+| `base.json` | 基本設定（厳格な型チェック） |
+| `react.json` | React アプリケーション用 |
+| `library.json` | ライブラリパッケージ用 |
+| `node.json` | Node.js アプリケーション用 |
+| `strict.json` | 最も厳格な設定（新規プロジェクト推奨） |
+
+### 基本設定のコンパイラオプション
+
+```json
+{
+  "compilerOptions": {
+    // 厳格な型チェック
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+
+    // モジュール
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+
+    // 互換性
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
+```
+
+### Strict 設定の追加オプション
+
+```json
+{
+  "extends": "./base.json",
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedSideEffectImports": true,
+    "useUnknownInCatchVariables": true
+  }
+}
+```
+
+### 使用例
+
+```json
+// tsconfig.json (React アプリケーション)
+{
+  "extends": "@k1s0/tsconfig/react.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src"]
+}
+
+// tsconfig.json (ライブラリ)
+{
+  "extends": "@k1s0/tsconfig/library.json",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["src"]
+}
+
+// tsconfig.json (最も厳格な設定)
+{
+  "extends": "@k1s0/tsconfig/strict.json"
+}
 ```

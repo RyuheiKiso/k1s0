@@ -25,7 +25,8 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # Tracing
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter", "time"] }
+time = "0.3"
 
 # OpenTelemetry (optional)
 opentelemetry = { version = "0.27", optional = true }

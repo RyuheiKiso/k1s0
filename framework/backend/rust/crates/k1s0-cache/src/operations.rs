@@ -121,13 +121,37 @@ pub trait CacheOperationsExt: CacheOperations {
     async fn delete_pattern(&self, pattern: &str) -> CacheResult<u64>;
 }
 
-/// シンプルなキャッシュ操作のデフォルト実装
+/// CacheOperationsExt のデフォルト実装
 ///
-/// `get_or_set` のデフォルト実装を提供する。
+/// デフォルト実装は機能を提供しないプレースホルダー。
+/// Redis 実装（`CacheClient`）では適切にオーバーライドされる。
+///
+/// # 注意
+///
+/// `delete_pattern` のデフォルト実装は常に 0 を返す。
+/// 実際のパターンマッチング削除を使用するには、`CacheClient` を使用すること。
 #[async_trait]
 impl<T: CacheOperations + ?Sized> CacheOperationsExt for T {
+    /// パターンに一致するキーを削除（デフォルト実装は何もしない）
+    ///
+    /// # パターン構文（Redis 実装時）
+    ///
+    /// - `*` - 任意の文字列にマッチ
+    /// - `?` - 任意の1文字にマッチ
+    /// - `[abc]` - a, b, c のいずれかにマッチ
+    ///
+    /// # 使用例
+    ///
+    /// ```rust,ignore
+    /// use k1s0_cache::CacheOperationsExt;
+    ///
+    /// // "user:" で始まるすべてのキーを削除
+    /// let deleted = cache.delete_pattern("user:*").await?;
+    /// println!("Deleted {} keys", deleted);
+    /// ```
     async fn delete_pattern(&self, _pattern: &str) -> CacheResult<u64> {
-        // パターン削除はRedis実装でオーバーライドする
+        // デフォルト実装は何もしない
+        // CacheClient では適切にオーバーライドされる
         Ok(0)
     }
 }

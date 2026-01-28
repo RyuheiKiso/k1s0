@@ -30,12 +30,25 @@ use k1s0_generator::lint::{LintConfig, LintResult, Linter, Severity, Violation};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, RwLock};
 use tower_lsp::jsonrpc::Result as LspResult;
-use tower_lsp::lsp_types::*;
+use tower_lsp::lsp_types::{
+    CompletionOptions, CompletionParams, CompletionResponse, Diagnostic, DiagnosticOptions,
+    DiagnosticRelatedInformation, DiagnosticServerCapabilities, DiagnosticSeverity,
+    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
+    DidSaveTextDocumentParams, DocumentSymbolParams, DocumentSymbolResponse,
+    GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams, HoverProviderCapability,
+    InitializeParams, InitializeResult, InitializedParams, Location, MessageType, NumberOrString,
+    Position, Range, ReferenceParams, SaveOptions, ServerCapabilities, ServerInfo,
+    SymbolInformation, TextDocumentSyncCapability, TextDocumentSyncKind,
+    TextDocumentSyncOptions, TextDocumentSyncSaveOptions, Url, WorkspaceSymbolParams,
+};
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 pub mod completion;
+pub mod definition;
 pub mod hover;
+pub mod references;
 pub mod schema;
+pub mod symbols;
 
 use schema::ManifestSchema;
 
@@ -389,6 +402,14 @@ impl LanguageServer for K1s0LanguageServer {
                 }),
                 // ホバー機能
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
+                // 定義へジャンプ
+                definition_provider: Some(tower_lsp::lsp_types::OneOf::Left(true)),
+                // 参照検索
+                references_provider: Some(tower_lsp::lsp_types::OneOf::Left(true)),
+                // ドキュメントシンボル
+                document_symbol_provider: Some(tower_lsp::lsp_types::OneOf::Left(true)),
+                // ワークスペースシンボル
+                workspace_symbol_provider: Some(tower_lsp::lsp_types::OneOf::Left(true)),
                 ..Default::default()
             },
             server_info: Some(ServerInfo {
@@ -508,6 +529,125 @@ impl LanguageServer for K1s0LanguageServer {
 
         // ホバー情報を取得
         Ok(hover::get_hover_info(&document, position, &self.schema))
+    }
+
+    async fn goto_definition(
+        &self,
+        params: GotoDefinitionParams,
+    ) -> LspResult<Option<GotoDefinitionResponse>> {
+        let uri = &params.text_document_position_params.text_document.uri;
+        let position = params.text_document_position_params.position;
+
+        // manifest.json のみ定義ジャンプを提供
+        if !self.is_manifest_file(uri) {
+            return Ok(None);
+        }
+
+        // ドキュメントの内容を取得
+        let documents = self.documents.read().await;
+        let document = match documents.get(uri) {
+            Some(doc) => doc.clone(),
+            None => return Ok(None),
+        };
+        drop(documents);
+
+        // ワークスペースルートを取得
+        let workspace_root = self.workspace_root.read().await;
+        let root_ref = workspace_root.as_ref();
+
+        // 定義を検索
+        Ok(definition::find_definition(&document, position, root_ref))
+    }
+
+    async fn references(&self, params: ReferenceParams) -> LspResult<Option<Vec<Location>>> {
+        let uri = &params.text_document_position.text_document.uri;
+        let position = params.text_document_position.position;
+
+        // manifest.json のみ参照検索を提供
+        if !self.is_manifest_file(uri) {
+            return Ok(None);
+        }
+
+        // ドキュメントの内容を取得
+        let documents = self.documents.read().await;
+        let document = match documents.get(uri) {
+            Some(doc) => doc.clone(),
+            None => return Ok(None),
+        };
+        drop(documents);
+
+        // ワークスペースルートを取得
+        let workspace_root = self.workspace_root.read().await;
+        let root_ref = workspace_root.as_ref();
+
+        // 参照を検索
+        let refs = references::find_references(
+            uri,
+            &document,
+            position,
+            root_ref,
+            params.context.include_declaration,
+        );
+
+        if refs.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(refs))
+        }
+    }
+
+    async fn document_symbol(
+        &self,
+        params: DocumentSymbolParams,
+    ) -> LspResult<Option<DocumentSymbolResponse>> {
+        let uri = &params.text_document.uri;
+
+        // manifest.json のみシンボルを提供
+        if !self.is_manifest_file(uri) {
+            return Ok(None);
+        }
+
+        // ドキュメントの内容を取得
+        let documents = self.documents.read().await;
+        let document = match documents.get(uri) {
+            Some(doc) => doc.clone(),
+            None => return Ok(None),
+        };
+        drop(documents);
+
+        // ドキュメントシンボルを抽出
+        let symbols = symbols::extract_document_symbols(&document);
+
+        if symbols.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(DocumentSymbolResponse::Nested(symbols)))
+        }
+    }
+
+    async fn symbol(
+        &self,
+        params: WorkspaceSymbolParams,
+    ) -> LspResult<Option<Vec<SymbolInformation>>> {
+        let query = &params.query;
+
+        // 開いているドキュメントからシンボルを検索
+        let documents = self.documents.read().await;
+        let manifest_files: Vec<(Url, String)> = documents
+            .iter()
+            .filter(|(uri, _)| self.is_manifest_file(uri))
+            .map(|(uri, content)| (uri.clone(), content.clone()))
+            .collect();
+        drop(documents);
+
+        // ワークスペースシンボルを検索
+        let symbols = symbols::search_workspace_symbols(query, &manifest_files);
+
+        if symbols.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(symbols))
+        }
     }
 }
 
@@ -671,5 +811,149 @@ mod tests {
 
         let result = apply_incremental_change(text, range, new_text);
         assert_eq!(result, "hello 🎉 world");
+    }
+
+    #[test]
+    fn test_position_to_byte_offset_empty_text() {
+        let text = "";
+        let result = position_to_byte_offset(text, Position { line: 0, character: 0 });
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn test_position_to_byte_offset_beyond_text() {
+        let text = "abc";
+        // 行がテキストの末尾を超えている場合
+        let result = position_to_byte_offset(text, Position { line: 10, character: 0 });
+        assert_eq!(result, 3); // テキストの長さに制限される
+    }
+
+    #[test]
+    fn test_position_to_byte_offset_beyond_line() {
+        let text = "abc\ndef";
+        // 文字位置が行の末尾を超えている場合
+        let result = position_to_byte_offset(text, Position { line: 0, character: 100 });
+        assert_eq!(result, 3); // 行末まで
+    }
+
+    #[test]
+    fn test_apply_incremental_change_at_start() {
+        let text = "hello";
+        let range = Range {
+            start: Position { line: 0, character: 0 },
+            end: Position { line: 0, character: 0 },
+        };
+        let new_text = "prefix ";
+
+        let result = apply_incremental_change(text, range, new_text);
+        assert_eq!(result, "prefix hello");
+    }
+
+    #[test]
+    fn test_apply_incremental_change_at_end() {
+        let text = "hello";
+        let range = Range {
+            start: Position { line: 0, character: 5 },
+            end: Position { line: 0, character: 5 },
+        };
+        let new_text = " suffix";
+
+        let result = apply_incremental_change(text, range, new_text);
+        assert_eq!(result, "hello suffix");
+    }
+
+    #[test]
+    fn test_apply_incremental_change_cross_line() {
+        let text = "line1\nline2\nline3";
+        let range = Range {
+            start: Position { line: 0, character: 3 },
+            end: Position { line: 2, character: 2 },
+        };
+        let new_text = "REPLACED";
+
+        let result = apply_incremental_change(text, range, new_text);
+        assert_eq!(result, "linREPLACEDne3");
+    }
+
+    #[test]
+    fn test_apply_incremental_change_empty_result() {
+        let text = "hello";
+        let range = Range {
+            start: Position { line: 0, character: 0 },
+            end: Position { line: 0, character: 5 },
+        };
+        let new_text = "";
+
+        let result = apply_incremental_change(text, range, new_text);
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_lsp_config_serialization() {
+        let config = LspConfig::default();
+        let json = serde_json::to_string(&config).unwrap();
+        assert!(json.contains("debounce_ms"));
+        assert!(json.contains("lint_on_change"));
+
+        let parsed: LspConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.debounce_ms, config.debounce_ms);
+        assert_eq!(parsed.lint_on_change, config.lint_on_change);
+    }
+
+    #[test]
+    fn test_lsp_config_deserialization_with_custom_values() {
+        let json = r#"{"debounce_ms": 1000, "lint_on_change": false}"#;
+        let config: LspConfig = serde_json::from_str(json).unwrap();
+
+        assert_eq!(config.debounce_ms, 1000);
+        assert!(!config.lint_on_change);
+    }
+
+    #[test]
+    fn test_position_to_byte_offset_japanese() {
+        // 日本語文字は UTF-16 で 1 code unit、UTF-8 で 3 bytes
+        let text = "あいう";
+
+        // 先頭
+        assert_eq!(
+            position_to_byte_offset(text, Position { line: 0, character: 0 }),
+            0
+        );
+
+        // 'い' の位置（UTF-16 character 1）
+        assert_eq!(
+            position_to_byte_offset(text, Position { line: 0, character: 1 }),
+            3
+        );
+
+        // 'う' の位置（UTF-16 character 2）
+        assert_eq!(
+            position_to_byte_offset(text, Position { line: 0, character: 2 }),
+            6
+        );
+    }
+
+    #[test]
+    fn test_position_to_byte_offset_mixed_chars() {
+        // ASCII と日本語の混合
+        let text = "aあb";
+
+        // 'a' の位置
+        assert_eq!(
+            position_to_byte_offset(text, Position { line: 0, character: 0 }),
+            0
+        );
+
+        // 'あ' の位置（UTF-16 character 1）
+        assert_eq!(
+            position_to_byte_offset(text, Position { line: 0, character: 1 }),
+            1
+        );
+
+        // 'b' の位置（UTF-16 character 2）
+        assert_eq!(
+            position_to_byte_offset(text, Position { line: 0, character: 2 }),
+            4
+        );
     }
 }

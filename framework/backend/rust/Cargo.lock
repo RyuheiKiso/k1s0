@@ -147,6 +147,10 @@ dependencies = [
  "axum 0.7.9",
  "chrono",
  "clap",
+ "k1s0-config",
+ "k1s0-error",
+ "k1s0-observability",
+ "k1s0-validation",
  "opentelemetry 0.24.0",
  "prost",
  "serde",
@@ -1668,12 +1672,15 @@ dependencies = [
 name = "k1s0-config"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "chrono",
  "clap",
  "serde",
  "serde_json",
  "serde_yaml",
  "tempfile",
  "thiserror 1.0.69",
+ "tokio",
 ]
 
 [[package]]
@@ -1681,6 +1688,8 @@ name = "k1s0-db"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
+ "k1s0-config",
  "serde",
  "sqlx",
  "tempfile",
@@ -1747,6 +1756,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 1.0.69",
+ "time",
  "tokio",
  "tonic",
  "tower 0.5.3",
@@ -3923,6 +3933,7 @@ dependencies = [
  "sharded-slab",
  "smallvec",
  "thread_local",
+ "time",
  "tracing",
  "tracing-core",
  "tracing-log",

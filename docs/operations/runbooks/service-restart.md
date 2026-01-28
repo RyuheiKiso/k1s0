@@ -123,6 +123,56 @@ curl 'http://prometheus:9090/api/v1/query?query=histogram_quantile(0.99,sum(rate
 | ヘルスチェック失敗 | 依存サービスの状態を確認 |
 | 同じエラーが再発 | 根本原因の調査が必要 |
 
+### 5.2 よくある問題と解決策
+
+#### Pod が CrashLoopBackOff になる
+
+```bash
+# 直近のログを確認
+kubectl logs {pod_name} --previous
+
+# イベントを確認
+kubectl describe pod {pod_name}
+
+# 一般的な原因:
+# - 設定ファイルの構文エラー
+# - 環境変数の不足（k1s0 では禁止、config/*.yaml を使用）
+# - 依存サービスへの接続失敗
+```
+
+#### OOMKilled（メモリ不足）
+
+```bash
+# メモリ制限を確認
+kubectl get pod {pod_name} -o jsonpath='{.spec.containers[*].resources.limits.memory}'
+
+# 一時的な対処: リソース制限を緩和
+kubectl patch deployment {service_name} -p '{"spec":{"template":{"spec":{"containers":[{"name":"{container_name}","resources":{"limits":{"memory":"2Gi"}}}]}}}}'
+```
+
+#### 依存サービス未起動
+
+```bash
+# 依存サービスの状態確認
+kubectl get pods -l app=config-service
+kubectl get pods -l app=auth-service
+
+# 依存サービスの起動順序:
+# 1. config-service
+# 2. auth-service
+# 3. その他のサービス
+```
+
+### 5.3 グレースフルシャットダウンの確認
+
+```bash
+# SIGTERM 受信後のログ確認
+kubectl logs {pod_name} | grep -i "shutting down\|graceful\|terminating"
+
+# terminationGracePeriodSeconds の確認
+kubectl get pod {pod_name} -o jsonpath='{.spec.terminationGracePeriodSeconds}'
+```
+
 ### 5.2 ロールバックが必要な場合
 
 再起動後に問題が発生した場合:
