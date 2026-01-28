@@ -41,7 +41,9 @@
       "Bash(dart analyze:*)",
       "Bash(dart run build_runner:*)",
       "Bash(tee:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(go mod tidy:*)",
+      "Bash(go test:*)"
     ]
   }
 }
