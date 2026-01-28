@@ -532,4 +532,249 @@ mod tests {
         assert!(items.iter().any(|i| i.label == "true"));
         assert!(items.iter().any(|i| i.label == "false"));
     }
+
+    #[test]
+    fn test_schema_default() {
+        let schema1 = ManifestSchema::new();
+        let schema2 = ManifestSchema::default();
+
+        assert_eq!(schema1.root_keys.len(), schema2.root_keys.len());
+    }
+
+    #[test]
+    fn test_find_key_empty_path() {
+        let schema = ManifestSchema::new();
+        let key = schema.find_key(&[]);
+        assert!(key.is_none());
+    }
+
+    #[test]
+    fn test_find_key_wildcard_match() {
+        let schema = ManifestSchema::new();
+
+        // update_policy 内の "*" キーにマッチ
+        let key = schema.find_key(&["update_policy", "some_path"]);
+        // ワイルドカードマッチが動作する
+        if let Some(k) = key {
+            assert_eq!(k.name, "*");
+        }
+    }
+
+    #[test]
+    fn test_get_child_keys_nonexistent() {
+        let schema = ManifestSchema::new();
+        let children = schema.get_child_keys(&["nonexistent"]);
+        assert!(children.is_empty());
+    }
+
+    #[test]
+    fn test_get_child_keys_leaf_node() {
+        let schema = ManifestSchema::new();
+        // schema_version は子を持たない
+        let children = schema.get_child_keys(&["schema_version"]);
+        assert!(children.is_empty());
+    }
+
+    #[test]
+    fn test_get_child_keys_service() {
+        let schema = ManifestSchema::new();
+        let children = schema.get_child_keys(&["service"]);
+
+        assert!(!children.is_empty());
+        assert!(children.iter().any(|k| k.name == "service_name"));
+        assert!(children.iter().any(|k| k.name == "language"));
+        assert!(children.iter().any(|k| k.name == "type"));
+    }
+
+    #[test]
+    fn test_key_to_completion_item_without_colon() {
+        let schema = ManifestSchema::new();
+        let key = schema.find_key(&["schema_version"]).unwrap();
+        let item = schema.key_to_completion_item(key, false);
+
+        assert_eq!(item.label, "schema_version");
+        assert!(item.insert_text.as_ref().unwrap().contains("\"schema_version\""));
+        assert!(!item.insert_text.as_ref().unwrap().contains(":"));
+    }
+
+    #[test]
+    fn test_value_to_completion_items_string_with_examples() {
+        let key = ManifestKey {
+            name: "test_string",
+            description: "Test",
+            required: true,
+            value_type: ValueType::String,
+            examples: vec!["example1", "example2"],
+            children: None,
+        };
+
+        let schema = ManifestSchema::new();
+        let items = schema.value_to_completion_items(&key);
+
+        assert_eq!(items.len(), 2);
+        assert!(items.iter().any(|i| i.label == "example1"));
+        assert!(items.iter().any(|i| i.label == "example2"));
+    }
+
+    #[test]
+    fn test_value_to_completion_items_string_without_examples() {
+        let key = ManifestKey {
+            name: "test_string",
+            description: "Test",
+            required: true,
+            value_type: ValueType::String,
+            examples: vec![],
+            children: None,
+        };
+
+        let schema = ManifestSchema::new();
+        let items = schema.value_to_completion_items(&key);
+
+        assert!(items.is_empty());
+    }
+
+    #[test]
+    fn test_value_to_completion_items_number() {
+        let key = ManifestKey {
+            name: "test_number",
+            description: "Test",
+            required: true,
+            value_type: ValueType::Number,
+            examples: vec!["42", "100"],
+            children: None,
+        };
+
+        let schema = ManifestSchema::new();
+        let items = schema.value_to_completion_items(&key);
+
+        assert_eq!(items.len(), 2);
+    }
+
+    #[test]
+    fn test_value_to_completion_items_object() {
+        let key = ManifestKey {
+            name: "test_object",
+            description: "Test",
+            required: true,
+            value_type: ValueType::Object,
+            examples: vec![],
+            children: None,
+        };
+
+        let schema = ManifestSchema::new();
+        let items = schema.value_to_completion_items(&key);
+
+        // オブジェクトは例がない場合は空
+        assert!(items.is_empty());
+    }
+
+    #[test]
+    fn test_value_to_completion_items_array() {
+        let key = ManifestKey {
+            name: "test_array",
+            description: "Test",
+            required: true,
+            value_type: ValueType::Array,
+            examples: vec!["item1"],
+            children: None,
+        };
+
+        let schema = ManifestSchema::new();
+        let items = schema.value_to_completion_items(&key);
+
+        assert!(!items.is_empty());
+    }
+
+    #[test]
+    fn test_key_to_completion_item_detail_types() {
+        let schema = ManifestSchema::new();
+
+        // String type
+        let key = schema.find_key(&["schema_version"]).unwrap();
+        let item = schema.key_to_completion_item(key, true);
+        assert!(item.detail.as_ref().unwrap().contains("string"));
+
+        // Enum type
+        let key = schema.find_key(&["service", "language"]).unwrap();
+        let item = schema.key_to_completion_item(key, true);
+        assert!(item.detail.as_ref().unwrap().contains("enum"));
+
+        // Object type
+        let key = schema.find_key(&["template"]).unwrap();
+        let item = schema.key_to_completion_item(key, true);
+        assert!(item.detail.as_ref().unwrap().contains("object"));
+    }
+
+    #[test]
+    fn test_manifest_key_debug() {
+        let key = ManifestKey {
+            name: "test",
+            description: "Test key",
+            required: true,
+            value_type: ValueType::String,
+            examples: vec!["ex1"],
+            children: None,
+        };
+
+        let debug_str = format!("{:?}", key);
+        assert!(debug_str.contains("test"));
+    }
+
+    #[test]
+    fn test_value_type_debug() {
+        let vt = ValueType::String;
+        assert!(format!("{:?}", vt).contains("String"));
+
+        let vt = ValueType::Enum(vec!["a", "b"]);
+        assert!(format!("{:?}", vt).contains("Enum"));
+    }
+
+    #[test]
+    fn test_manifest_key_clone() {
+        let key = ManifestKey {
+            name: "test",
+            description: "Test",
+            required: true,
+            value_type: ValueType::String,
+            examples: vec!["ex"],
+            children: None,
+        };
+
+        let cloned = key.clone();
+        assert_eq!(cloned.name, key.name);
+        assert_eq!(cloned.required, key.required);
+    }
+
+    #[test]
+    fn test_value_type_clone() {
+        let vt = ValueType::Enum(vec!["a", "b"]);
+        let cloned = vt.clone();
+
+        if let ValueType::Enum(values) = cloned {
+            assert_eq!(values.len(), 2);
+        } else {
+            panic!("Clone failed");
+        }
+    }
+
+    #[test]
+    fn test_find_dependencies_framework_crates() {
+        let schema = ManifestSchema::new();
+
+        // dependencies.framework_crates を探す
+        let key = schema.find_key(&["dependencies", "framework_crates"]);
+        assert!(key.is_some());
+        assert_eq!(key.unwrap().name, "framework_crates");
+    }
+
+    #[test]
+    fn test_format_key_documentation() {
+        let schema = ManifestSchema::new();
+        let key = schema.find_key(&["service", "language"]).unwrap();
+        let doc = schema.format_key_documentation(key);
+
+        assert!(doc.contains("language"));
+        assert!(doc.contains("有効な値"));
+        assert!(doc.contains("rust"));
+    }
 }

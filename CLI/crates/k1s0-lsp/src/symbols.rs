@@ -257,4 +257,212 @@ mod tests {
         // 空のクエリはすべてのシンボルを返す
         assert_eq!(symbols.len(), 2);
     }
+
+    #[test]
+    fn test_extract_document_symbols_invalid_json() {
+        let content = "not valid json";
+        let symbols = extract_document_symbols(content);
+        assert!(symbols.is_empty());
+    }
+
+    #[test]
+    fn test_extract_document_symbols_empty_object() {
+        let content = "{}";
+        let symbols = extract_document_symbols(content);
+        assert!(symbols.is_empty());
+    }
+
+    #[test]
+    fn test_extract_document_symbols_with_nested() {
+        let content = r#"{
+  "outer": {
+    "inner": "value"
+  }
+}"#;
+
+        let symbols = extract_document_symbols(content);
+        assert!(!symbols.is_empty());
+
+        let outer = symbols.iter().find(|s| s.name == "outer");
+        assert!(outer.is_some());
+
+        // ネストされた子シンボルを確認
+        if let Some(outer_sym) = outer {
+            assert!(outer_sym.children.is_some());
+            let children = outer_sym.children.as_ref().unwrap();
+            assert!(children.iter().any(|c| c.name == "inner"));
+        }
+    }
+
+    #[test]
+    fn test_offset_to_position_start() {
+        let content = "abc\ndef";
+        let (line, char) = offset_to_position(content, 0);
+        assert_eq!(line, 0);
+        assert_eq!(char, 0);
+    }
+
+    #[test]
+    fn test_offset_to_position_end_of_line() {
+        let content = "abc\ndef";
+        let (line, char) = offset_to_position(content, 3);
+        assert_eq!(line, 0);
+        assert_eq!(char, 3);
+    }
+
+    #[test]
+    fn test_offset_to_position_newline() {
+        let content = "abc\ndef";
+        let (line, char) = offset_to_position(content, 4);
+        assert_eq!(line, 1);
+        assert_eq!(char, 0);
+    }
+
+    #[test]
+    fn test_offset_to_position_beyond_content() {
+        let content = "abc";
+        let (line, _char) = offset_to_position(content, 10);
+        // オフセットがコンテンツを超える場合
+        assert_eq!(line, 0);
+    }
+
+    #[test]
+    fn test_find_key_range_not_found() {
+        let content = r#"{"name": "value"}"#;
+        let range = find_key_range(content, "nonexistent", 0);
+        assert!(range.is_none());
+    }
+
+    #[test]
+    fn test_find_key_range_with_offset() {
+        let content = r#"{"first": 1, "second": 2}"#;
+        // "second" を "first" の後から検索
+        let range = find_key_range(content, "second", 10);
+        assert!(range.is_some());
+    }
+
+    #[test]
+    fn test_search_workspace_symbols_case_insensitive() {
+        let content = r#"{"Template": "value"}"#;
+        let uri = Url::parse("file:///test/manifest.json").unwrap();
+
+        // 小文字で検索
+        let symbols = search_workspace_symbols("template", &[(uri, content.to_string())]);
+
+        assert!(!symbols.is_empty());
+    }
+
+    #[test]
+    fn test_search_workspace_symbols_partial_match() {
+        let content = r#"{"schema_version": "1.0.0"}"#;
+        let uri = Url::parse("file:///test/manifest.json").unwrap();
+
+        let symbols = search_workspace_symbols("schema", &[(uri, content.to_string())]);
+
+        assert!(!symbols.is_empty());
+        assert!(symbols.iter().any(|s| s.name.contains("schema")));
+    }
+
+    #[test]
+    fn test_search_workspace_symbols_multiple_files() {
+        let content1 = r#"{"name": "file1"}"#;
+        let content2 = r#"{"name": "file2"}"#;
+        let uri1 = Url::parse("file:///test/manifest1.json").unwrap();
+        let uri2 = Url::parse("file:///test/manifest2.json").unwrap();
+
+        let symbols = search_workspace_symbols(
+            "name",
+            &[(uri1, content1.to_string()), (uri2, content2.to_string())],
+        );
+
+        assert_eq!(symbols.len(), 2);
+    }
+
+    #[test]
+    fn test_search_workspace_symbols_no_match() {
+        let content = r#"{"key": "value"}"#;
+        let uri = Url::parse("file:///test/manifest.json").unwrap();
+
+        let symbols = search_workspace_symbols("nonexistent", &[(uri, content.to_string())]);
+
+        assert!(symbols.is_empty());
+    }
+
+    #[test]
+    fn test_create_document_symbol_types() {
+        // 各 JSON 値型に対してシンボルが正しく作成されるかテスト
+        let content = r#"{
+  "string_val": "text",
+  "number_val": 42,
+  "bool_val": true,
+  "null_val": null,
+  "array_val": [1, 2],
+  "object_val": {}
+}"#;
+
+        let symbols = extract_document_symbols(content);
+
+        // 各型のシンボルが存在することを確認
+        assert!(symbols.iter().any(|s| s.name == "string_val" && s.kind == SymbolKind::STRING));
+        assert!(symbols.iter().any(|s| s.name == "number_val" && s.kind == SymbolKind::NUMBER));
+        assert!(symbols.iter().any(|s| s.name == "bool_val" && s.kind == SymbolKind::BOOLEAN));
+        assert!(symbols.iter().any(|s| s.name == "null_val" && s.kind == SymbolKind::NULL));
+        assert!(symbols.iter().any(|s| s.name == "array_val" && s.kind == SymbolKind::ARRAY));
+        assert!(symbols.iter().any(|s| s.name == "object_val" && s.kind == SymbolKind::OBJECT));
+    }
+
+    #[test]
+    fn test_extract_document_symbols_detail() {
+        let content = r#"{
+  "str": "hello",
+  "num": 123,
+  "arr": [1, 2, 3],
+  "obj": {"a": 1, "b": 2}
+}"#;
+
+        let symbols = extract_document_symbols(content);
+
+        // detail が正しく設定されているか確認
+        let str_sym = symbols.iter().find(|s| s.name == "str");
+        assert!(str_sym.is_some());
+        assert_eq!(str_sym.unwrap().detail, Some("hello".to_string()));
+
+        let num_sym = symbols.iter().find(|s| s.name == "num");
+        assert!(num_sym.is_some());
+        assert_eq!(num_sym.unwrap().detail, Some("123".to_string()));
+
+        let arr_sym = symbols.iter().find(|s| s.name == "arr");
+        assert!(arr_sym.is_some());
+        assert!(arr_sym.unwrap().detail.as_ref().unwrap().contains("items"));
+
+        let obj_sym = symbols.iter().find(|s| s.name == "obj");
+        assert!(obj_sym.is_some());
+        assert!(obj_sym.unwrap().detail.as_ref().unwrap().contains("properties"));
+    }
+
+    #[test]
+    fn test_search_workspace_symbols_nested_match() {
+        let content = r#"{"outer": {"inner_name": "value"}}"#;
+        let uri = Url::parse("file:///test/manifest.json").unwrap();
+
+        let symbols = search_workspace_symbols("inner", &[(uri, content.to_string())]);
+
+        assert!(!symbols.is_empty());
+        // container_name が設定されているか確認
+        let inner = symbols.iter().find(|s| s.name == "inner_name");
+        assert!(inner.is_some());
+        assert_eq!(inner.unwrap().container_name, Some("outer".to_string()));
+    }
+
+    #[test]
+    fn test_extract_document_symbols_empty_nested() {
+        let content = r#"{"empty_obj": {}}"#;
+
+        let symbols = extract_document_symbols(content);
+
+        let obj = symbols.iter().find(|s| s.name == "empty_obj");
+        assert!(obj.is_some());
+        // 空のオブジェクトには子がない
+        assert!(obj.unwrap().children.is_none());
+    }
 }

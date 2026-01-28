@@ -302,4 +302,250 @@ mod tests {
             Position { line: 3, character: 10 }
         ));
     }
+
+    #[test]
+    fn test_extract_key_value_no_colon() {
+        let line = r#"    "name""#;
+        let result = extract_key_value_at_position(line, 8);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_extract_key_value_cursor_before_colon() {
+        let line = r#"    "name": "value""#;
+        // カーソルがコロンより前
+        let result = extract_key_value_at_position(line, 5);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_extract_key_value_with_trailing_comma() {
+        let line = r#"    "path": "CLI/templates/backend-rust","#;
+        let result = extract_key_value_at_position(line, 15);
+        assert!(result.is_some());
+
+        let (key, value) = result.unwrap();
+        assert_eq!(key, "path");
+        assert_eq!(value, "CLI/templates/backend-rust");
+    }
+
+    #[test]
+    fn test_is_in_template_section_true() {
+        let content = r#"{
+  "template": {
+    "name": "backend-rust"
+  }
+}"#;
+
+        assert!(is_in_template_section(
+            content,
+            Position { line: 2, character: 5 }
+        ));
+    }
+
+    #[test]
+    fn test_is_in_template_section_false_in_service() {
+        let content = r#"{
+  "service": {
+    "name": "test"
+  }
+}"#;
+
+        assert!(!is_in_template_section(
+            content,
+            Position { line: 2, character: 5 }
+        ));
+    }
+
+    #[test]
+    fn test_is_in_framework_crates_section_false_in_service() {
+        let content = r#"{
+  "service": {
+    "name": "k1s0-config"
+  }
+}"#;
+
+        assert!(!is_in_framework_crates_section(
+            content,
+            Position { line: 2, character: 10 }
+        ));
+    }
+
+    #[test]
+    fn test_find_definition_no_workspace() {
+        let content = r#"{
+  "template": {
+    "path": "some/path"
+  }
+}"#;
+
+        let result = find_definition(content, Position { line: 2, character: 15 }, None);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_find_definition_unknown_key() {
+        let content = r#"{
+  "unknown": "value"
+}"#;
+
+        let result = find_definition(
+            content,
+            Position { line: 1, character: 15 },
+            Some(&PathBuf::from("C:\\work")),
+        );
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_find_definition_beyond_document() {
+        let content = "{}";
+
+        let result = find_definition(
+            content,
+            Position { line: 100, character: 0 },
+            Some(&PathBuf::from("C:\\work")),
+        );
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_definition_kind_equality() {
+        assert_eq!(DefinitionKind::TemplateDirectory, DefinitionKind::TemplateDirectory);
+        assert_eq!(DefinitionKind::FrameworkCrate, DefinitionKind::FrameworkCrate);
+        assert_ne!(DefinitionKind::TemplateDirectory, DefinitionKind::FrameworkCrate);
+    }
+
+    #[test]
+    fn test_definition_kind_debug() {
+        let kind = DefinitionKind::ConfigFile;
+        let debug_str = format!("{:?}", kind);
+        assert!(debug_str.contains("ConfigFile"));
+    }
+
+    #[test]
+    fn test_find_template_definition_with_tempdir() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let template_path = temp_dir.path().join("templates").join("backend-rust");
+        std::fs::create_dir_all(&template_path).unwrap();
+
+        let result = find_template_definition(
+            "templates/backend-rust",
+            Some(&temp_dir.path().to_path_buf()),
+        );
+
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_find_template_definition_nonexistent() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+
+        let result = find_template_definition(
+            "nonexistent/path",
+            Some(&temp_dir.path().to_path_buf()),
+        );
+
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_find_template_definition_no_workspace() {
+        let result = find_template_definition("some/path", None);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_find_template_by_name_with_tempdir() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let template_path = temp_dir.path().join("CLI").join("templates").join("backend-rust");
+        std::fs::create_dir_all(&template_path).unwrap();
+
+        let result = find_template_by_name(
+            "backend-rust",
+            Some(&temp_dir.path().to_path_buf()),
+        );
+
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_find_template_by_name_nonexistent() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+
+        let result = find_template_by_name(
+            "nonexistent-template",
+            Some(&temp_dir.path().to_path_buf()),
+        );
+
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_find_framework_crate_definition_with_tempdir() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let crate_path = temp_dir.path()
+            .join("framework")
+            .join("backend")
+            .join("rust")
+            .join("crates")
+            .join("k1s0-config");
+        std::fs::create_dir_all(&crate_path).unwrap();
+
+        // Cargo.toml を作成
+        std::fs::write(crate_path.join("Cargo.toml"), "[package]\nname = \"k1s0-config\"").unwrap();
+
+        let result = find_framework_crate_definition(
+            "k1s0-config",
+            Some(&temp_dir.path().to_path_buf()),
+        );
+
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_find_framework_crate_definition_without_cargo_toml() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let crate_path = temp_dir.path()
+            .join("framework")
+            .join("backend")
+            .join("rust")
+            .join("crates")
+            .join("k1s0-test");
+        std::fs::create_dir_all(&crate_path).unwrap();
+
+        let result = find_framework_crate_definition(
+            "k1s0-test",
+            Some(&temp_dir.path().to_path_buf()),
+        );
+
+        // Cargo.toml がなくてもディレクトリがあれば成功
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_find_framework_crate_definition_nonexistent() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+
+        let result = find_framework_crate_definition(
+            "nonexistent-crate",
+            Some(&temp_dir.path().to_path_buf()),
+        );
+
+        assert!(result.is_none());
+    }
 }

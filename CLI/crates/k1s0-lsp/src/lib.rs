@@ -812,4 +812,148 @@ mod tests {
         let result = apply_incremental_change(text, range, new_text);
         assert_eq!(result, "hello 🎉 world");
     }
+
+    #[test]
+    fn test_position_to_byte_offset_empty_text() {
+        let text = "";
+        let result = position_to_byte_offset(text, Position { line: 0, character: 0 });
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn test_position_to_byte_offset_beyond_text() {
+        let text = "abc";
+        // 行がテキストの末尾を超えている場合
+        let result = position_to_byte_offset(text, Position { line: 10, character: 0 });
+        assert_eq!(result, 3); // テキストの長さに制限される
+    }
+
+    #[test]
+    fn test_position_to_byte_offset_beyond_line() {
+        let text = "abc\ndef";
+        // 文字位置が行の末尾を超えている場合
+        let result = position_to_byte_offset(text, Position { line: 0, character: 100 });
+        assert_eq!(result, 3); // 行末まで
+    }
+
+    #[test]
+    fn test_apply_incremental_change_at_start() {
+        let text = "hello";
+        let range = Range {
+            start: Position { line: 0, character: 0 },
+            end: Position { line: 0, character: 0 },
+        };
+        let new_text = "prefix ";
+
+        let result = apply_incremental_change(text, range, new_text);
+        assert_eq!(result, "prefix hello");
+    }
+
+    #[test]
+    fn test_apply_incremental_change_at_end() {
+        let text = "hello";
+        let range = Range {
+            start: Position { line: 0, character: 5 },
+            end: Position { line: 0, character: 5 },
+        };
+        let new_text = " suffix";
+
+        let result = apply_incremental_change(text, range, new_text);
+        assert_eq!(result, "hello suffix");
+    }
+
+    #[test]
+    fn test_apply_incremental_change_cross_line() {
+        let text = "line1\nline2\nline3";
+        let range = Range {
+            start: Position { line: 0, character: 3 },
+            end: Position { line: 2, character: 2 },
+        };
+        let new_text = "REPLACED";
+
+        let result = apply_incremental_change(text, range, new_text);
+        assert_eq!(result, "linREPLACEDne3");
+    }
+
+    #[test]
+    fn test_apply_incremental_change_empty_result() {
+        let text = "hello";
+        let range = Range {
+            start: Position { line: 0, character: 0 },
+            end: Position { line: 0, character: 5 },
+        };
+        let new_text = "";
+
+        let result = apply_incremental_change(text, range, new_text);
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_lsp_config_serialization() {
+        let config = LspConfig::default();
+        let json = serde_json::to_string(&config).unwrap();
+        assert!(json.contains("debounce_ms"));
+        assert!(json.contains("lint_on_change"));
+
+        let parsed: LspConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.debounce_ms, config.debounce_ms);
+        assert_eq!(parsed.lint_on_change, config.lint_on_change);
+    }
+
+    #[test]
+    fn test_lsp_config_deserialization_with_custom_values() {
+        let json = r#"{"debounce_ms": 1000, "lint_on_change": false}"#;
+        let config: LspConfig = serde_json::from_str(json).unwrap();
+
+        assert_eq!(config.debounce_ms, 1000);
+        assert!(!config.lint_on_change);
+    }
+
+    #[test]
+    fn test_position_to_byte_offset_japanese() {
+        // 日本語文字は UTF-16 で 1 code unit、UTF-8 で 3 bytes
+        let text = "あいう";
+
+        // 先頭
+        assert_eq!(
+            position_to_byte_offset(text, Position { line: 0, character: 0 }),
+            0
+        );
+
+        // 'い' の位置（UTF-16 character 1）
+        assert_eq!(
+            position_to_byte_offset(text, Position { line: 0, character: 1 }),
+            3
+        );
+
+        // 'う' の位置（UTF-16 character 2）
+        assert_eq!(
+            position_to_byte_offset(text, Position { line: 0, character: 2 }),
+            6
+        );
+    }
+
+    #[test]
+    fn test_position_to_byte_offset_mixed_chars() {
+        // ASCII と日本語の混合
+        let text = "aあb";
+
+        // 'a' の位置
+        assert_eq!(
+            position_to_byte_offset(text, Position { line: 0, character: 0 }),
+            0
+        );
+
+        // 'あ' の位置（UTF-16 character 1）
+        assert_eq!(
+            position_to_byte_offset(text, Position { line: 0, character: 1 }),
+            1
+        );
+
+        // 'b' の位置（UTF-16 character 2）
+        assert_eq!(
+            position_to_byte_offset(text, Position { line: 0, character: 2 }),
+            4
+        );
+    }
 }
