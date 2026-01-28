@@ -1672,12 +1672,15 @@ dependencies = [
 name = "k1s0-config"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "chrono",
  "clap",
  "serde",
  "serde_json",
  "serde_yaml",
  "tempfile",
  "thiserror 1.0.69",
+ "tokio",
 ]
 
 [[package]]
@@ -1685,6 +1688,8 @@ name = "k1s0-db"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
+ "k1s0-config",
  "serde",
  "sqlx",
  "tempfile",

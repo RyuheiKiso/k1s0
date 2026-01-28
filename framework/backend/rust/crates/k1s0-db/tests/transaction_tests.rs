@@ -38,7 +38,10 @@ mod config_tests {
             .unwrap();
 
         assert_eq!(config.port, 5432);
-        assert_eq!(config.pool.max_connections, k1s0_db::DEFAULT_MAX_CONNECTIONS);
+        assert_eq!(
+            config.pool.max_connections,
+            k1s0_db::DEFAULT_MAX_CONNECTIONS
+        );
     }
 
     #[test]
@@ -187,7 +190,7 @@ mod error_tests {
 
 /// クエリビルダーのテスト
 mod query_builder_tests {
-    use k1s0_db::{SelectBuilder, InsertBuilder, UpdateBuilder, DeleteBuilder, Operator};
+    use k1s0_db::{DeleteBuilder, InsertBuilder, Operator, SelectBuilder, UpdateBuilder};
 
     #[test]
     fn test_select_builder() {
@@ -262,7 +265,7 @@ mod query_builder_tests {
 
 /// リポジトリパターンのテスト
 mod repository_tests {
-    use k1s0_db::{Pagination, PagedResult, SortBy, SortDirection};
+    use k1s0_db::{PagedResult, Pagination, SortBy, SortDirection};
 
     #[test]
     fn test_pagination() {
@@ -323,7 +326,7 @@ mod repository_tests {
 
 /// メトリクスのテスト
 mod metrics_tests {
-    use k1s0_db::{QueryTimer, QueryType, QueryMetrics, QueryResult, DbMetrics};
+    use k1s0_db::{DbMetrics, QueryMetrics, QueryResult, QueryTimer, QueryType};
 
     #[test]
     fn test_query_type() {
@@ -448,7 +451,7 @@ mod migration_tests {
 
 /// テスト支援のテスト
 mod testing_support_tests {
-    use k1s0_db::{TestDbConfig, generate_test_db_name, Fixture};
+    use k1s0_db::{generate_test_db_name, Fixture, TestDbConfig};
 
     #[test]
     fn test_generate_test_db_name() {

@@ -109,11 +109,9 @@ impl ConfigLoader {
                 return Err(ConfigError::config_not_found(&config_path));
             }
             // 空の YAML としてデシリアライズを試みる
-            return serde_yaml::from_str("{}").map_err(|source| {
-                ConfigError::ConfigParseError {
-                    path: config_path,
-                    source,
-                }
+            return serde_yaml::from_str("{}").map_err(|source| ConfigError::ConfigParseError {
+                path: config_path,
+                source,
             });
         }
 
@@ -124,11 +122,9 @@ impl ConfigLoader {
             }
         })?;
 
-        serde_yaml::from_str(&content).map_err(|source| {
-            ConfigError::ConfigParseError {
-                path: config_path,
-                source,
-            }
+        serde_yaml::from_str(&content).map_err(|source| ConfigError::ConfigParseError {
+            path: config_path,
+            source,
         })
     }
 
@@ -229,18 +225,14 @@ pub fn load_from_file<T: DeserializeOwned>(path: impl AsRef<Path>) -> ConfigResu
         return Err(ConfigError::config_not_found(path));
     }
 
-    let content = fs::read_to_string(path).map_err(|source| {
-        ConfigError::ConfigFileReadError {
-            path: path.to_path_buf(),
-            source,
-        }
+    let content = fs::read_to_string(path).map_err(|source| ConfigError::ConfigFileReadError {
+        path: path.to_path_buf(),
+        source,
     })?;
 
-    serde_yaml::from_str(&content).map_err(|source| {
-        ConfigError::ConfigParseError {
-            path: path.to_path_buf(),
-            source,
-        }
+    serde_yaml::from_str(&content).map_err(|source| ConfigError::ConfigParseError {
+        path: path.to_path_buf(),
+        source,
     })
 }
 
@@ -275,8 +267,7 @@ mod tests {
 
     #[test]
     fn test_new_with_invalid_env() {
-        let options = ConfigOptions::new("invalid")
-            .require_config_file(false);
+        let options = ConfigOptions::new("invalid").require_config_file(false);
         let result = ConfigLoader::new(options);
 
         assert!(result.is_err());
@@ -320,8 +311,7 @@ server:
         )
         .unwrap();
 
-        let options = ConfigOptions::new("dev")
-            .with_config_path(&config_path);
+        let options = ConfigOptions::new("dev").with_config_path(&config_path);
         let loader = ConfigLoader::new(options).unwrap();
         let config: TestConfig = loader.load().unwrap();
 
@@ -335,8 +325,7 @@ server:
         let config_path = dir.path().join("dev.yaml");
         fs::write(&config_path, "invalid: yaml: content:").unwrap();
 
-        let options = ConfigOptions::new("dev")
-            .with_config_path(&config_path);
+        let options = ConfigOptions::new("dev").with_config_path(&config_path);
         let loader = ConfigLoader::new(options).unwrap();
         let result: ConfigResult<TestConfig> = loader.load();
 
@@ -441,8 +430,7 @@ server:
         let config_path = dir.path().join("prod.yaml");
         fs::write(&config_path, "dummy: value").unwrap();
 
-        let options = ConfigOptions::new("prod")
-            .with_config_path(&config_path);
+        let options = ConfigOptions::new("prod").with_config_path(&config_path);
         let loader = ConfigLoader::new(options).unwrap();
 
         assert_eq!(loader.env(), "prod");
@@ -456,8 +444,7 @@ server:
         let content = "server:\n  host: localhost\n";
         fs::write(&config_path, content).unwrap();
 
-        let options = ConfigOptions::new("dev")
-            .with_config_path(&config_path);
+        let options = ConfigOptions::new("dev").with_config_path(&config_path);
         let mut loader = ConfigLoader::new(options).unwrap();
 
         let raw = loader.load_raw().unwrap();

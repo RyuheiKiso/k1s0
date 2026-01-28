@@ -68,16 +68,18 @@ impl SecretResolver {
             return Err(ConfigError::secret_file_not_found(&path, key));
         }
 
-        let content = fs::read_to_string(&path).map_err(|source| {
-            ConfigError::SecretFileReadError {
+        let content =
+            fs::read_to_string(&path).map_err(|source| ConfigError::SecretFileReadError {
                 path: path.clone(),
                 key: key.to_string(),
                 source,
-            }
-        })?;
+            })?;
 
         // 末尾の改行を削除（Kubernetes Secret は改行を含むことがある）
-        Ok(content.trim_end_matches('\n').trim_end_matches('\r').to_string())
+        Ok(content
+            .trim_end_matches('\n')
+            .trim_end_matches('\r')
+            .to_string())
     }
 
     /// ファイルパスを解決（読み込みなし）
@@ -118,10 +120,7 @@ mod tests {
     #[test]
     fn test_new() {
         let resolver = SecretResolver::new("/var/run/secrets/k1s0");
-        assert_eq!(
-            resolver.secrets_dir(),
-            Path::new("/var/run/secrets/k1s0")
-        );
+        assert_eq!(resolver.secrets_dir(), Path::new("/var/run/secrets/k1s0"));
     }
 
     #[test]

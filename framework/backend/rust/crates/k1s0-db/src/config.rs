@@ -202,8 +202,12 @@ impl DbConfigBuilder {
         let config = DbConfig {
             host: self.host.unwrap_or_else(|| "localhost".to_string()),
             port: self.port.unwrap_or_else(default_port),
-            database: self.database.ok_or_else(|| DbError::config("database is required"))?,
-            username: self.username.ok_or_else(|| DbError::config("username is required"))?,
+            database: self
+                .database
+                .ok_or_else(|| DbError::config("database is required"))?,
+            username: self
+                .username
+                .ok_or_else(|| DbError::config("username is required"))?,
             password_file: self.password_file,
             ssl_mode: self.ssl_mode.unwrap_or_default(),
             pool: self.pool.unwrap_or_default(),
@@ -437,10 +441,7 @@ mod tests {
         assert!(result.is_err());
 
         // username 必須
-        let result = DbConfig::builder()
-            .host("localhost")
-            .database("db")
-            .build();
+        let result = DbConfig::builder().host("localhost").database("db").build();
         assert!(result.is_err());
     }
 

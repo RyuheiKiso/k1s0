@@ -229,7 +229,8 @@ impl DbMetrics {
         }
 
         let duration_us = metrics.duration.as_micros() as u64;
-        self.total_duration_us.fetch_add(duration_us, Ordering::SeqCst);
+        self.total_duration_us
+            .fetch_add(duration_us, Ordering::SeqCst);
 
         // 最大実行時間の更新（CASで競合を避ける）
         let mut current_max = self.max_duration_us.load(Ordering::SeqCst);

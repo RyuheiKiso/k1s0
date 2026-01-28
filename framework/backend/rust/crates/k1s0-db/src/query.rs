@@ -138,7 +138,12 @@ impl WhereClause {
         if !self.operator.needs_value() {
             format!("{} {}", self.column, self.operator.to_sql())
         } else {
-            format!("{} {} ${}", self.column, self.operator.to_sql(), param_index)
+            format!(
+                "{} {} ${}",
+                self.column,
+                self.operator.to_sql(),
+                param_index
+            )
         }
     }
 }
@@ -224,10 +229,8 @@ impl SelectBuilder {
     /// SortByからORDER BYを設定
     pub fn order_by_sort(mut self, sort_by: &[SortBy]) -> Self {
         for sort in sort_by {
-            self.order_by.push((
-                sort.column.clone(),
-                sort.direction == SortDirection::Asc,
-            ));
+            self.order_by
+                .push((sort.column.clone(), sort.direction == SortDirection::Asc));
         }
         self
     }
@@ -361,9 +364,7 @@ impl SelectBuilder {
             let orders: Vec<String> = self
                 .order_by
                 .iter()
-                .map(|(col, asc)| {
-                    format!("{} {}", col, if *asc { "ASC" } else { "DESC" })
-                })
+                .map(|(col, asc)| format!("{} {}", col, if *asc { "ASC" } else { "DESC" }))
                 .collect();
             sql.push_str(&orders.join(", "));
         }
@@ -458,9 +459,8 @@ impl InsertBuilder {
         sql.push_str(") VALUES (");
 
         // プレースホルダ
-        let placeholders: Vec<String> = (1..=self.values.len())
-            .map(|i| format!("${}", i))
-            .collect();
+        let placeholders: Vec<String> =
+            (1..=self.values.len()).map(|i| format!("${}", i)).collect();
         sql.push_str(&placeholders.join(", "));
         sql.push(')');
 
@@ -659,10 +659,7 @@ mod tests {
             .where_clause(WhereClause::eq("status", "active"))
             .build();
 
-        assert_eq!(
-            query.sql,
-            "SELECT id, name FROM users WHERE status = $1"
-        );
+        assert_eq!(query.sql, "SELECT id, name FROM users WHERE status = $1");
         assert_eq!(query.params, vec!["active"]);
     }
 
@@ -700,7 +697,9 @@ mod tests {
             .left_join("orders", "orders.user_id = users.id")
             .build();
 
-        assert!(query.sql.contains("LEFT JOIN orders ON orders.user_id = users.id"));
+        assert!(query
+            .sql
+            .contains("LEFT JOIN orders ON orders.user_id = users.id"));
     }
 
     #[test]

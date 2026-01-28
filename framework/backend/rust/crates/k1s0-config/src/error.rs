@@ -146,10 +146,7 @@ impl ConfigError {
     pub fn required_missing(key: impl Into<String>) -> Self {
         let key = key.into();
         Self::RequiredConfigMissing {
-            hint: format!(
-                "config/{{env}}.yaml に '{}' を追加してください",
-                key
-            ),
+            hint: format!("config/{{env}}.yaml に '{}' を追加してください", key),
             key,
         }
     }

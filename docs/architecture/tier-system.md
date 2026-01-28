@@ -36,6 +36,7 @@ graph TB
     T2_CACHE --> T2_HEALTH
 
     T2_DB -.-> T1_ERROR
+    T2_DB -.-> T1_CONFIG
     T2_CACHE -.-> T1_ERROR
 ```
 
@@ -84,7 +85,7 @@ serde = { version = "1", features = ["derive"] }
 | `k1s0-grpc-server` | gRPC サーバ共通基盤 | k1s0-error, k1s0-observability |
 | `k1s0-grpc-client` | gRPC クライアント共通 | - |
 | `k1s0-health` | ヘルスチェック | - |
-| `k1s0-db` | DB 接続・トランザクション | - |
+| `k1s0-db` | DB 接続・トランザクション | k1s0-config (feature: `config`) |
 | `k1s0-cache` | Redis キャッシュ | k1s0-health (feature) |
 
 ### 依存関係
@@ -202,6 +203,13 @@ k1s0-cache -> k1s0-health -> k1s0-cache
 - ConfigOptions: 設定オプション
 - ConfigLoader: 設定ローダー
 - ServiceInit: サービス初期化
+
+db feature で追加される型:
+- DbSettingRepository: DB設定リポジトリ trait
+- DbConfigLoader: YAML + DB 統合ローダー
+- SettingEntry: 設定エントリ
+- FailureMode: 障害時挙動
+- MockDbSettingRepository: テスト用モック
 ```
 
 #### k1s0-validation
@@ -286,13 +294,19 @@ k1s0-cache -> k1s0-health -> k1s0-cache
 
 ```
 責務: DB 接続・トランザクション
-依存: なし（feature で sqlx）
+依存: k1s0-config (feature: config)
 
 提供する型:
 - DbConfig: DB 設定
 - Repository: リポジトリ trait
 - UnitOfWork: Unit of Work trait
 - Pagination: ページネーション
+
+config feature で追加される型:
+- PostgresSettingRepository: fw_m_setting リポジトリ実装
+- PostgresSettingWriter: 設定書き込み操作
+- SETTING_MIGRATION_SQL: テーブル作成 SQL
+- SETTING_ROLLBACK_SQL: ロールバック SQL
 ```
 
 #### k1s0-cache

@@ -49,6 +49,7 @@ pub mod migration;
 pub mod pool;
 pub mod query;
 pub mod repository;
+pub mod setting;
 pub mod testing;
 pub mod tx;
 
@@ -60,18 +61,17 @@ pub mod uow;
 
 // 主要な型の再エクスポート
 pub use config::{
-    DbConfig, DbConfigBuilder, PoolConfig, SslMode, TimeoutConfig,
-    DEFAULT_MAX_CONNECTIONS, DEFAULT_MIN_CONNECTIONS,
-    DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_QUERY_TIMEOUT_MS,
-    DEFAULT_IDLE_TIMEOUT_SECS, DEFAULT_MAX_LIFETIME_SECS,
+    DbConfig, DbConfigBuilder, PoolConfig, SslMode, TimeoutConfig, DEFAULT_CONNECT_TIMEOUT_MS,
+    DEFAULT_IDLE_TIMEOUT_SECS, DEFAULT_MAX_CONNECTIONS, DEFAULT_MAX_LIFETIME_SECS,
+    DEFAULT_MIN_CONNECTIONS, DEFAULT_QUERY_TIMEOUT_MS,
 };
 pub use error::{DbError, DbResult};
 pub use metrics::{DbMetrics, DbSpanLabels, QueryMetrics, QueryResult, QueryTimer, QueryType};
 pub use migration::{
-    AppliedMigration, Migration, MigrationConfig, MigrationDirection, MigrationResult,
-    MigrationRunner, load_migrations,
+    load_migrations, AppliedMigration, Migration, MigrationConfig, MigrationDirection,
+    MigrationResult, MigrationRunner,
 };
-pub use pool::{DbPoolBuilder, from_env, from_env_with_prefix};
+pub use pool::{from_env, from_env_with_prefix, DbPoolBuilder};
 pub use tx::{
     IsolationLevel, TransactionExecutor, TransactionMode, TransactionOptions, TransactionState,
     UnitOfWork,
@@ -84,24 +84,24 @@ pub use query::{
 
 // リポジトリパターン
 pub use repository::{
-    BulkRepository, FilterableRepository, PagedResult, Pagination, Repository, SoftDeleteRepository,
-    SortBy, SortDirection, SortableRepository,
+    BulkRepository, FilterableRepository, PagedResult, Pagination, Repository,
+    SoftDeleteRepository, SortBy, SortDirection, SortableRepository,
 };
 
 // ヘルスチェック
 pub use health::{DbHealthConfig, DbHealthStatus, HealthCheckable};
 
 // テスト支援
-pub use testing::{Fixture, TestDbConfig, generate_test_db_name};
+pub use testing::{generate_test_db_name, Fixture, TestDbConfig};
 
 // PostgreSQL 固有の型
 #[cfg(feature = "postgres")]
-pub use postgres::{PgPool, PostgresPool, PoolStatus, create_pool, create_pool_from_url};
+pub use postgres::{create_pool, create_pool_from_url, PgPool, PoolStatus, PostgresPool};
 
 #[cfg(feature = "postgres")]
 pub use uow::{
-    MultiTableUnitOfWork, PostgresUnitOfWork, RepositoryContext, ScopedUnitOfWork,
-    UnitOfWorkFactory, execute_in_transaction, execute_with_retry,
+    execute_in_transaction, execute_with_retry, MultiTableUnitOfWork, PostgresUnitOfWork,
+    RepositoryContext, ScopedUnitOfWork, UnitOfWorkFactory,
 };
 
 #[cfg(feature = "postgres")]
@@ -109,3 +109,11 @@ pub use health::DbHealthChecker;
 
 #[cfg(feature = "postgres")]
 pub use testing::{FixtureLoader, TestTransaction};
+
+// fw_m_setting 設定リポジトリ
+pub use setting::{MIGRATION_SQL as SETTING_MIGRATION_SQL, ROLLBACK_SQL as SETTING_ROLLBACK_SQL};
+
+#[cfg(all(feature = "postgres", feature = "config"))]
+pub use setting::{
+    PostgresSettingRepository, PostgresSettingRepositoryBuilder, PostgresSettingWriter,
+};

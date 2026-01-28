@@ -171,7 +171,10 @@ impl DbHealthChecker {
     }
 
     /// 設定を指定して作成
-    pub fn with_config(pool: std::sync::Arc<crate::postgres::PgPool>, config: DbHealthConfig) -> Self {
+    pub fn with_config(
+        pool: std::sync::Arc<crate::postgres::PgPool>,
+        config: DbHealthConfig,
+    ) -> Self {
         Self { pool, config }
     }
 
@@ -198,11 +201,8 @@ impl DbHealthChecker {
                 let pool_idle = self.pool.num_idle();
                 // max_connectionsの取得はプールの設定に依存するため、仮の値を使用
                 let pool_max = pool_size; // 実際のmax_connectionsは設定から取得する必要がある
-                status = status.with_pool_status(
-                    pool_size as usize - pool_idle,
-                    pool_idle,
-                    pool_max,
-                );
+                status =
+                    status.with_pool_status(pool_size as usize - pool_idle, pool_idle, pool_max);
 
                 // レイテンシチェック
                 if latency > self.config.max_latency {
@@ -222,10 +222,7 @@ impl DbHealthChecker {
 
     /// 接続性のみをチェック（高速）
     pub async fn ping(&self) -> bool {
-        sqlx::query("SELECT 1")
-            .execute(&*self.pool)
-            .await
-            .is_ok()
+        sqlx::query("SELECT 1").execute(&*self.pool).await.is_ok()
     }
 }
 
@@ -263,10 +260,7 @@ impl HealthCheckable for crate::postgres::PostgresPool {
     }
 
     async fn ping(&self) -> bool {
-        sqlx::query("SELECT 1")
-            .execute(self.inner())
-            .await
-            .is_ok()
+        sqlx::query("SELECT 1").execute(self.inner()).await.is_ok()
     }
 }
 

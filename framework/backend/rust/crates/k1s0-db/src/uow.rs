@@ -150,9 +150,9 @@ impl<'a> PostgresUnitOfWork<'a> {
                 options.mode.as_sql()
             );
 
-            tx.execute(sql.as_str())
-                .await
-                .map_err(|e| DbError::transaction(format!("failed to set transaction options: {}", e)))?;
+            tx.execute(sql.as_str()).await.map_err(|e| {
+                DbError::transaction(format!("failed to set transaction options: {}", e))
+            })?;
         }
 
         Ok(())
@@ -228,7 +228,9 @@ impl<'a> PostgresUnitOfWork<'a> {
             )));
         }
 
-        let tx = self.tx.as_mut()
+        let tx = self
+            .tx
+            .as_mut()
             .ok_or_else(|| DbError::transaction("transaction already consumed"))?;
 
         let sql = format!("SAVEPOINT {}", Self::sanitize_identifier(name));
@@ -262,7 +264,9 @@ impl<'a> PostgresUnitOfWork<'a> {
             )));
         }
 
-        let tx = self.tx.as_mut()
+        let tx = self
+            .tx
+            .as_mut()
             .ok_or_else(|| DbError::transaction("transaction already consumed"))?;
 
         let sql = format!("ROLLBACK TO SAVEPOINT {}", Self::sanitize_identifier(name));
@@ -294,7 +298,9 @@ impl<'a> PostgresUnitOfWork<'a> {
             )));
         }
 
-        let tx = self.tx.as_mut()
+        let tx = self
+            .tx
+            .as_mut()
             .ok_or_else(|| DbError::transaction("transaction already consumed"))?;
 
         let sql = format!("RELEASE SAVEPOINT {}", Self::sanitize_identifier(name));
@@ -369,7 +375,9 @@ impl<'a> PostgresUnitOfWork<'a> {
         F: FnOnce(&mut sqlx::Transaction<'a, sqlx::Postgres>) -> Fut,
         Fut: std::future::Future<Output = DbResult<T>>,
     {
-        let tx = self.tx.as_mut()
+        let tx = self
+            .tx
+            .as_mut()
             .ok_or_else(|| DbError::transaction("transaction already consumed"))?;
 
         match f(tx).await {
@@ -708,10 +716,7 @@ impl<'a> MultiTableUnitOfWork<'a> {
 /// }).await?;
 /// ```
 #[cfg(feature = "postgres")]
-pub async fn execute_in_transaction<F, Fut, T>(
-    pool: &crate::postgres::PgPool,
-    f: F,
-) -> DbResult<T>
+pub async fn execute_in_transaction<F, Fut, T>(pool: &crate::postgres::PgPool, f: F) -> DbResult<T>
 where
     F: FnOnce(sqlx::Transaction<'_, sqlx::Postgres>) -> Fut,
     Fut: std::future::Future<Output = Result<T, DbError>>,
@@ -823,10 +828,7 @@ mod tests {
             PostgresUnitOfWork::sanitize_identifier("name; DROP TABLE users"),
             "nameDROPTABLEusers"
         );
-        assert_eq!(
-            PostgresUnitOfWork::sanitize_identifier("name'--"),
-            "name"
-        );
+        assert_eq!(PostgresUnitOfWork::sanitize_identifier("name'--"), "name");
     }
 
     #[test]

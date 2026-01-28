@@ -93,9 +93,9 @@ impl ConfigOptions {
 
     /// 実際の設定ファイルのパスを取得
     pub fn effective_config_path(&self) -> PathBuf {
-        self.config_path.clone().unwrap_or_else(|| {
-            self.config_dir.join(format!("{}.yaml", self.env))
-        })
+        self.config_path
+            .clone()
+            .unwrap_or_else(|| self.config_dir.join(format!("{}.yaml", self.env)))
     }
 
     /// 有効な環境名かどうかを検証
@@ -124,8 +124,7 @@ mod tests {
 
     #[test]
     fn test_with_config_path() {
-        let options = ConfigOptions::new("dev")
-            .with_config_path("./config/custom.yaml");
+        let options = ConfigOptions::new("dev").with_config_path("./config/custom.yaml");
         assert_eq!(
             options.config_path,
             Some(PathBuf::from("./config/custom.yaml"))
@@ -134,8 +133,7 @@ mod tests {
 
     #[test]
     fn test_with_secrets_dir() {
-        let options = ConfigOptions::new("dev")
-            .with_secrets_dir("./secrets/dev");
+        let options = ConfigOptions::new("dev").with_secrets_dir("./secrets/dev");
         assert_eq!(options.secrets_dir, PathBuf::from("./secrets/dev"));
     }
 
@@ -150,8 +148,7 @@ mod tests {
 
     #[test]
     fn test_effective_config_path_custom() {
-        let options = ConfigOptions::new("dev")
-            .with_config_path("./config/custom.yaml");
+        let options = ConfigOptions::new("dev").with_config_path("./config/custom.yaml");
         assert_eq!(
             options.effective_config_path(),
             PathBuf::from("./config/custom.yaml")
@@ -160,8 +157,7 @@ mod tests {
 
     #[test]
     fn test_effective_config_path_custom_dir() {
-        let options = ConfigOptions::new("prod")
-            .with_config_dir("./config");
+        let options = ConfigOptions::new("prod").with_config_dir("./config");
         assert_eq!(
             options.effective_config_path(),
             PathBuf::from("./config/prod.yaml")
