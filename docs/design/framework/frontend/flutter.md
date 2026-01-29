@@ -8,7 +8,8 @@ framework/frontend/flutter/packages/
 ├── k1s0_auth/           # 認証クライアント
 ├── k1s0_observability/  # OTel/ログ
 ├── k1s0_ui/             # Design System
-└── k1s0_state/          # 状態管理
+├── k1s0_state/          # 状態管理
+└── k1s0_realtime/       # WebSocket/SSEリアルタイム通信（NEW）
 ```
 
 ## 実装状況
@@ -22,6 +23,7 @@ framework/frontend/flutter/packages/
 | k1s0_observability | ✅ | 構造化ログ、分散トレース、メトリクス収集 |
 | k1s0_ui | ✅ | Material 3 Design System、共通ウィジェット、テーマ |
 | k1s0_state | ✅ | Riverpod状態管理、AsyncValueヘルパー、永続化 |
+| k1s0_realtime | ✅ | WebSocket/SSEクライアント、自動再接続、ハートビート、オフラインキュー |
 
 ---
 
