@@ -6,6 +6,8 @@
 
 - 分割版トップ: [docs/design/framework/README.md](framework/README.md)
 - Backend（Rust）: [docs/design/framework/backend/README.md](framework/backend/README.md)
+- Backend（C#）: [docs/design/framework/backend/csharp.md](framework/backend/csharp.md)
+- Backend（Python）: [docs/design/framework/backend/python.md](framework/backend/python.md)
 - Frontend（React/Flutter）: [docs/design/framework/frontend/README.md](framework/frontend/README.md)
 
 ## 補足

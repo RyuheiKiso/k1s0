@@ -1,0 +1,25 @@
+{
+    "schema_version": "1.0.0",
+    "k1s0_version": "0.1.0",
+    "template": {
+        "name": "backend-rust",
+        "version": "0.1.0",
+        "source": "local",
+        "path": "CLI/templates/backend-rust/domain",
+        "fingerprint": "abcd1234ef567890"
+    },
+    "service": {
+        "service_name": "user-management",
+        "language": "rust",
+        "type": "backend"
+    },
+    "layer": "domain",
+    "version": "1.2.0",
+    "min_framework_version": "0.1.0",
+    "generated_at": "2026-01-25T10:00:00Z",
+    "managed_paths": ["deploy/"],
+    "protected_paths": ["src/"],
+    "dependencies": {
+        "framework": ["k1s0-error", "k1s0-config"]
+    }
+}

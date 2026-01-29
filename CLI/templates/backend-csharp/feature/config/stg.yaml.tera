@@ -1,0 +1,17 @@
+# {{ feature_name }} Staging Configuration
+
+{% if with_db %}
+database:
+  host: ${DB_HOST}
+  port: ${DB_PORT}
+  name: {{ feature_name_snake }}_stg
+  ssl_mode: require
+{% endif %}
+
+observability:
+  tracing:
+    enabled: true
+    otlp_endpoint: ${OTEL_ENDPOINT}
+  logging:
+    level: info
+    format: json

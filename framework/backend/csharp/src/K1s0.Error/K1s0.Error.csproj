@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Error</RootNamespace>
+    <Description>Unified error handling for k1s0 microservices</Description>
+  </PropertyGroup>
+</Project>

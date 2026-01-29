@@ -1,27 +1,62 @@
 // Package entities は {{ name_title }} ドメインのエンティティを定義します。
-//
-// エンティティは一意の識別子を持ち、ライフサイクルを通じて同一性が保たれるオブジェクトです。
 package entities
 
-// TODO: {{ name_title }} ドメインのエンティティを定義してください
-//
-// 例:
-//
-//	type Product struct {
-//	    ID          ProductID
-//	    Name        string
-//	    Description string
-//	    Price       Money
-//	    CreatedAt   time.Time
-//	    UpdatedAt   time.Time
-//	}
-//
-//	func NewProduct(id ProductID, name string, price Money) *Product {
-//	    return &Product{
-//	        ID:        id,
-//	        Name:      name,
-//	        Price:     price,
-//	        CreatedAt: time.Now(),
-//	        UpdatedAt: time.Now(),
-//	    }
-//	}
+import "time"
+
+// {{ name_pascal }}ID は {{ name_pascal }} エンティティの一意な識別子です。
+type {{ name_pascal }}ID string
+
+// New{{ name_pascal }}ID は新しい ID を作成します。
+func New{{ name_pascal }}ID(value string) {{ name_pascal }}ID {
+	return {{ name_pascal }}ID(value)
+}
+
+// String は ID の文字列表現を返します。
+func (id {{ name_pascal }}ID) String() string {
+	return string(id)
+}
+
+// {{ name_pascal }} は {{ name_title }} ドメインの中核エンティティです。
+type {{ name_pascal }} struct {
+	id        {{ name_pascal }}ID
+	name      string
+	createdAt time.Time
+	updatedAt time.Time
+}
+
+// New{{ name_pascal }} は新しい {{ name_pascal }} を作成します。
+func New{{ name_pascal }}(id {{ name_pascal }}ID, name string) *{{ name_pascal }} {
+	now := time.Now()
+	return &{{ name_pascal }}{
+		id:        id,
+		name:      name,
+		createdAt: now,
+		updatedAt: now,
+	}
+}
+
+// ID は識別子を返します。
+func (e *{{ name_pascal }}) ID() {{ name_pascal }}ID {
+	return e.id
+}
+
+// Name は名前を返します。
+func (e *{{ name_pascal }}) Name() string {
+	return e.name
+}
+
+// UpdateName は名前を更新します。
+func (e *{{ name_pascal }}) UpdateName(name string) {
+	e.name = name
+	e.updatedAt = time.Now()
+}
+
+// CreatedAt は作成日時を返します。
+func (e *{{ name_pascal }}) CreatedAt() time.Time {
+	return e.createdAt
+}
+
+// UpdatedAt は更新日時を返します。
+func (e *{{ name_pascal }}) UpdatedAt() time.Time {
+	return e.updatedAt
+}

@@ -1,0 +1,50 @@
+# {{ feature_name }} - Multi-stage Docker build
+# Python 3.12 + FastAPI
+
+# ---------------------------------------------------------------------------
+# Stage 1: Build
+# ---------------------------------------------------------------------------
+FROM python:3.12-slim AS build
+WORKDIR /app
+
+# Install uv for fast dependency management
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Copy dependency files first for layer caching
+COPY pyproject.toml .
+COPY .python-version .
+
+# Install dependencies
+RUN uv pip install --system --no-cache -r pyproject.toml
+
+# Copy source code
+COPY src/ src/
+{% if with_grpc %}
+COPY proto/ proto/
+{% endif %}
+
+# ---------------------------------------------------------------------------
+# Stage 2: Runtime
+# ---------------------------------------------------------------------------
+FROM python:3.12-slim AS runtime
+WORKDIR /app
+
+# Security: run as non-root
+RUN groupadd -r appuser && useradd -r -g appuser -s /sbin/nologin appuser
+
+# Copy installed packages from build stage
+COPY --from=build /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=build /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY --from=build /app/src /app/src
+COPY config/ /app/config/
+
+EXPOSE 8080
+{% if with_grpc %}
+EXPOSE 50051
+{% endif %}
+
+USER appuser
+
+CMD ["uvicorn", "{{ feature_name_snake }}.presentation.main:app", "--host", "0.0.0.0", "--port", "8080"]

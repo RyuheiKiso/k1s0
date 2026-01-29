@@ -1,0 +1,73 @@
+name: csharp
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'framework/backend/csharp/**'
+      - '.github/workflows/csharp.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'framework/backend/csharp/**'
+      - '.github/workflows/csharp.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: Format Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Check formatting
+        working-directory: framework/backend/csharp
+        run: dotnet format --verify-no-changes
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: format
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build release
+        working-directory: framework/backend/csharp
+        run: dotnet build -c Release
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build release
+        working-directory: framework/backend/csharp
+        run: dotnet build -c Release
+
+      - name: Run tests
+        working-directory: framework/backend/csharp
+        run: dotnet test -c Release --no-build

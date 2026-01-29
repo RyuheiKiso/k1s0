@@ -29,6 +29,12 @@ pub enum DomainType {
     /// Go バックエンド
     #[value(name = "backend-go")]
     BackendGo,
+    /// C# バックエンド
+    #[value(name = "backend-csharp")]
+    BackendCsharp,
+    /// Python バックエンド
+    #[value(name = "backend-python")]
+    BackendPython,
     /// React フロントエンド
     #[value(name = "frontend-react")]
     FrontendReact,
@@ -43,6 +49,8 @@ impl DomainType {
         match self {
             DomainType::BackendRust => "CLI/templates/backend-rust/domain",
             DomainType::BackendGo => "CLI/templates/backend-go/domain",
+            DomainType::BackendCsharp => "CLI/templates/backend-csharp/domain",
+            DomainType::BackendPython => "CLI/templates/backend-python/domain",
             DomainType::FrontendReact => "CLI/templates/frontend-react/domain",
             DomainType::FrontendFlutter => "CLI/templates/frontend-flutter/domain",
         }
@@ -53,6 +61,8 @@ impl DomainType {
         match self {
             DomainType::BackendRust => "domain/backend/rust",
             DomainType::BackendGo => "domain/backend/go",
+            DomainType::BackendCsharp => "domain/backend/csharp",
+            DomainType::BackendPython => "domain/backend/python",
             DomainType::FrontendReact => "domain/frontend/react",
             DomainType::FrontendFlutter => "domain/frontend/flutter",
         }
@@ -63,6 +73,8 @@ impl DomainType {
         match self {
             DomainType::BackendRust => "rust",
             DomainType::BackendGo => "go",
+            DomainType::BackendCsharp => "csharp",
+            DomainType::BackendPython => "python",
             DomainType::FrontendReact => "typescript",
             DomainType::FrontendFlutter => "dart",
         }
@@ -71,7 +83,7 @@ impl DomainType {
     /// サービスタイプ名を取得
     pub fn service_type_name(&self) -> &'static str {
         match self {
-            DomainType::BackendRust | DomainType::BackendGo => "backend",
+            DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp | DomainType::BackendPython => "backend",
             DomainType::FrontendReact | DomainType::FrontendFlutter => "frontend",
         }
     }
@@ -82,6 +94,8 @@ impl std::fmt::Display for DomainType {
         match self {
             DomainType::BackendRust => write!(f, "backend-rust"),
             DomainType::BackendGo => write!(f, "backend-go"),
+            DomainType::BackendCsharp => write!(f, "backend-csharp"),
+            DomainType::BackendPython => write!(f, "backend-python"),
             DomainType::FrontendReact => write!(f, "frontend-react"),
             DomainType::FrontendFlutter => write!(f, "frontend-flutter"),
         }
@@ -113,6 +127,18 @@ pub struct NewDomainArgs {
     /// 対話モードを強制する
     #[arg(short = 'i', long)]
     pub interactive: bool,
+
+    /// ドメインイベント雛形を含める
+    #[arg(long)]
+    pub with_events: bool,
+
+    /// リポジトリ trait 雛形を含める（デフォルト: true）
+    #[arg(long, default_value = "true")]
+    pub with_repository: bool,
+
+    /// 初期バージョン（デフォルト: 0.1.0）
+    #[arg(long, default_value = "0.1.0")]
+    pub version: String,
 }
 
 impl NewDomainArgs {
@@ -128,6 +154,9 @@ struct ResolvedArgs {
     name: String,
     output: Option<String>,
     force: bool,
+    with_events: bool,
+    with_repository: bool,
+    version: String,
 }
 
 /// `k1s0 new-domain` を実行する
@@ -164,6 +193,9 @@ fn resolve_args_from_cli(args: NewDomainArgs) -> Result<ResolvedArgs> {
         name,
         output: args.output,
         force: args.force,
+        with_events: args.with_events,
+        with_repository: args.with_repository,
+        version: args.version,
     })
 }
 
@@ -200,6 +232,9 @@ fn resolve_args_interactive(args: NewDomainArgs) -> Result<ResolvedArgs> {
         name,
         output: args.output,
         force: args.force,
+        with_events: args.with_events,
+        with_repository: args.with_repository,
+        version: args.version,
     })
 }
 
@@ -398,6 +433,11 @@ fn create_template_context(args: &ResolvedArgs) -> Context {
     context.insert("created_at", &now.to_rfc3339());
     context.insert("now", &now);
 
+    // オプション
+    context.insert("with_events", &args.with_events);
+    context.insert("with_repository", &args.with_repository);
+    context.insert("domain_version", &args.version);
+
     // fingerprint（テンプレート展開時に上書きされる可能性あり）
     context.insert("fingerprint", "");
 
@@ -432,7 +472,7 @@ fn create_manifest(
         },
         layer: LayerType::Domain,
         domain: None, // domain 層自身は他の domain に所属しない
-        version: Some("0.1.0".to_string()), // 初期バージョン
+        version: Some(args.version.clone()),
         domain_version: None,
         min_framework_version: Some(version().to_string()),
         breaking_changes: None,
@@ -455,6 +495,12 @@ fn get_managed_paths(domain_type: DomainType) -> Vec<String> {
         DomainType::BackendGo => vec![
             "go.mod".to_string(),
         ],
+        DomainType::BackendCsharp => vec![
+            "*.csproj".to_string(),
+        ],
+        DomainType::BackendPython => vec![
+            "pyproject.toml".to_string(),
+        ],
         DomainType::FrontendReact => vec![
             "package.json".to_string(),
             "tsconfig.json".to_string(),
@@ -468,7 +514,7 @@ fn get_managed_paths(domain_type: DomainType) -> Vec<String> {
 /// CLI が変更しないパスを取得
 fn get_protected_paths(domain_type: DomainType) -> Vec<String> {
     match domain_type {
-        DomainType::BackendRust | DomainType::BackendGo => vec![
+        DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp | DomainType::BackendPython => vec![
             "src/domain/".to_string(),
             "src/application/".to_string(),
             "src/infrastructure/".to_string(),
@@ -497,7 +543,7 @@ fn get_update_policy(
     let mut policy = std::collections::HashMap::new();
 
     match domain_type {
-        DomainType::BackendRust | DomainType::BackendGo => {
+        DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp | DomainType::BackendPython => {
             policy.insert("src/domain/".to_string(), UpdatePolicy::Protected);
             policy.insert("src/application/".to_string(), UpdatePolicy::Protected);
             policy.insert("src/infrastructure/".to_string(), UpdatePolicy::Protected);
@@ -625,6 +671,9 @@ mod tests {
             output: None,
             force: false,
             interactive: false,
+            with_events: false,
+            with_repository: true,
+            version: "0.1.0".to_string(),
         };
         assert!(args_complete.has_required_args());
 
@@ -634,6 +683,9 @@ mod tests {
             output: None,
             force: false,
             interactive: false,
+            with_events: false,
+            with_repository: true,
+            version: "0.1.0".to_string(),
         };
         assert!(!args_missing_type.has_required_args());
 
@@ -643,6 +695,9 @@ mod tests {
             output: None,
             force: false,
             interactive: false,
+            with_events: false,
+            with_repository: true,
+            version: "0.1.0".to_string(),
         };
         assert!(!args_missing_name.has_required_args());
     }

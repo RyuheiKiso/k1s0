@@ -1,0 +1,4 @@
+-- {{ feature_name }} 初期マイグレーション（ロールバック）
+
+-- TODO: テーブル削除を追加
+-- DROP TABLE IF EXISTS examples;

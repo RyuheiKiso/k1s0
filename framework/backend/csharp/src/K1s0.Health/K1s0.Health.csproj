@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Health</RootNamespace>
+    <Description>Kubernetes health check probes for k1s0 microservices</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\K1s0.Error\K1s0.Error.csproj" />
+    <ProjectReference Include="..\K1s0.Config\K1s0.Config.csproj" />
+  </ItemGroup>
+</Project>

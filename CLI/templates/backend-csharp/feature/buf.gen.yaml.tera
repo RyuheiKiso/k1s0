@@ -1,0 +1,11 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: csharp_namespace
+      value: {{ feature_name_pascal }}.Grpc.V1
+plugins:
+  - remote: buf.build/grpc/csharp:v2.62.0
+    out: gen/csharp
+  - remote: buf.build/protocolbuffers/csharp:v27.0
+    out: gen/csharp

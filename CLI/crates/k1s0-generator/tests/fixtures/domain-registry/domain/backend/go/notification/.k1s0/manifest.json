@@ -1,0 +1,26 @@
+{
+    "schema_version": "1.0.0",
+    "k1s0_version": "0.1.0",
+    "template": {
+        "name": "backend-go",
+        "version": "0.1.0",
+        "source": "local",
+        "path": "CLI/templates/backend-go/domain",
+        "fingerprint": "aabbccdd11223344"
+    },
+    "service": {
+        "service_name": "notification",
+        "language": "go",
+        "type": "backend"
+    },
+    "layer": "domain",
+    "version": "2.0.0",
+    "deprecated": {
+        "since": "2.0.0",
+        "migrate_to": "notification-v2",
+        "reason": "Replaced by notification-v2 with improved event system"
+    },
+    "generated_at": "2026-01-25T10:00:00Z",
+    "managed_paths": ["deploy/"],
+    "protected_paths": ["internal/"]
+}

@@ -1,0 +1,122 @@
+// {{ name_pascal }} domain 単体テスト
+
+using FluentAssertions;
+using {{ name_pascal }}.Domain.Entities;
+using {{ name_pascal }}.Domain.ValueObjects;
+{% if with_events %}
+using {{ name_pascal }}.Domain.Events;
+{% endif %}
+
+namespace {{ name_pascal }}.Domain.Tests;
+
+public class EntityTests
+{
+    [Fact]
+    public void Entity_Creation_ShouldSetProperties()
+    {
+        // Arrange
+        var id = new {{ name_pascal }}Id("test-id-1");
+
+        // Act
+        var entity = new {{ name_pascal }}(id, "Test Name");
+
+        // Assert
+        entity.Id.Should().Be(id);
+        entity.Name.Should().Be("Test Name");
+        entity.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        entity.UpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public void Entity_Equality_ShouldBeBasedOnId()
+    {
+        // Arrange
+        var id = new {{ name_pascal }}Id("same-id");
+        var entity1 = new {{ name_pascal }}(id, "Name 1");
+        var entity2 = new {{ name_pascal }}(id, "Name 2");
+
+        // Assert
+        entity1.Should().Be(entity2);
+        entity1.GetHashCode().Should().Be(entity2.GetHashCode());
+    }
+
+    [Fact]
+    public void Entity_UpdateName_ShouldUpdateNameAndTimestamp()
+    {
+        // Arrange
+        var id = new {{ name_pascal }}Id("test-id");
+        var entity = new {{ name_pascal }}(id, "Old Name");
+        var originalUpdatedAt = entity.UpdatedAt;
+
+        // Act
+        entity.UpdateName("New Name");
+
+        // Assert
+        entity.Name.Should().Be("New Name");
+        entity.UpdatedAt.Should().BeOnOrAfter(originalUpdatedAt);
+    }
+
+    [Fact]
+    public void ValueObject_Name_ShouldAcceptValidValue()
+    {
+        // Act
+        var name = {{ name_pascal }}Name.Create("Valid Name");
+
+        // Assert
+        name.Value.Should().Be("Valid Name");
+        name.ToString().Should().Be("Valid Name");
+    }
+
+    [Fact]
+    public void ValueObject_Name_ShouldRejectEmptyValue()
+    {
+        // Act
+        var act = () => {{ name_pascal }}Name.Create("");
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void ValueObject_Name_ShouldRejectTooLongValue()
+    {
+        // Arrange
+        var longName = new string('a', {{ name_pascal }}Name.MaxLength + 1);
+
+        // Act
+        var act = () => {{ name_pascal }}Name.Create(longName);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void ValueObject_Name_ImplicitConversionToString()
+    {
+        // Arrange
+        var name = {{ name_pascal }}Name.Create("Test");
+
+        // Act
+        string value = name;
+
+        // Assert
+        value.Should().Be("Test");
+    }
+{% if with_events %}
+
+    [Fact]
+    public void DomainEvent_Created_ShouldSetProperties()
+    {
+        // Arrange
+        var id = new {{ name_pascal }}Id("event-test-id");
+
+        // Act
+        var domainEvent = {{ name_pascal }}Created.Create(id);
+
+        // Assert
+        domainEvent.Id.Should().Be(id);
+        domainEvent.OccurredAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        domainEvent.EventName.Should().Be("{{ name_snake }}.created");
+    }
+{% endif %}
+}

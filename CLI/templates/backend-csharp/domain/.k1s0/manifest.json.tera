@@ -1,0 +1,54 @@
+{
+  "$schema": "https://k1s0.dev/schemas/manifest.json",
+  "schema_version": "1.0.0",
+  "k1s0_version": "{{ k1s0_version }}",
+  "template": {
+    "name": "{{ template_type }}",
+    "version": "{{ template_version }}",
+    "source": "local",
+    "path": "CLI/templates/{{ template_type }}/domain",
+    "fingerprint": "{{ fingerprint }}"
+  },
+  "service": {
+    "service_name": "{{ name }}",
+    "language": "csharp",
+    "type": "{{ service_type }}"
+  },
+  "layer": "domain",
+  "domain": null,
+  "version": "{{ domain_version | default(value="0.1.0") }}",
+  "min_framework_version": "{{ k1s0_version }}",
+  "generated_at": "{{ created_at }}",
+  "managed_paths": [
+    "{{ name_pascal }}.Domain/{{ name_pascal }}.Domain.csproj"
+  ],
+  "protected_paths": [
+    "{{ name_pascal }}.Domain/Entities/",
+    "{{ name_pascal }}.Domain/ValueObjects/",
+    "{{ name_pascal }}.Domain/Services/",
+    "{{ name_pascal }}.Domain/Repositories/",
+    "{{ name_pascal }}.Domain/Events/",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "update_policy": {
+    "{{ name_pascal }}.Domain/Entities/": "protected",
+    "{{ name_pascal }}.Domain/ValueObjects/": "protected",
+    "{{ name_pascal }}.Domain/Services/": "protected",
+    "{{ name_pascal }}.Domain/Repositories/": "protected",
+    "{{ name_pascal }}.Domain/Events/": "protected",
+    "README.md": "suggest_only",
+    "CHANGELOG.md": "suggest_only"
+  },
+  "checksums": {},
+  "dependencies": {
+    "framework": [
+      "K1s0.Error",
+      "K1s0.Config"
+    ],
+    "framework_packages": [
+      { "name": "K1s0.Error", "version": "{{ k1s0_version }}" },
+      { "name": "K1s0.Config", "version": "{{ k1s0_version }}" }
+    ]
+  }
+}

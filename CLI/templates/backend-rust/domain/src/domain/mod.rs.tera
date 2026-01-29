@@ -1,0 +1,11 @@
+//! ドメイン層 - エンティティ、値オブジェクト、ドメインサービス
+//!
+//! このモジュールはドメイン駆動設計（DDD）のドメイン層を構成します。
+//! ビジネスルールとビジネスロジックの中核を担います。
+
+pub mod entities;
+pub mod value_objects;
+pub mod services;
+{% if with_events %}
+pub mod events;
+{% endif %}

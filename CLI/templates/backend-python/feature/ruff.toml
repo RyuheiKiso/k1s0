@@ -1,0 +1,27 @@
+target-version = "py312"
+line-length = 120
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "A",    # flake8-builtins
+    "S",    # flake8-bandit
+    "T20",  # flake8-print
+    "RUF",  # ruff-specific rules
+]
+ignore = [
+    "S101",  # assert allowed in tests
+]
+
+[lint.isort]
+known-first-party = ["{{ feature_name_snake }}"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

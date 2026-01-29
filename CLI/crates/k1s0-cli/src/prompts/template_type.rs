@@ -47,6 +47,16 @@ pub fn select_service_type() -> Result<ServiceType> {
             description: "Go バックエンドサービス",
         },
         ServiceTypeOption {
+            service_type: ServiceType::BackendCsharp,
+            label: "backend-csharp",
+            description: "C# バックエンドサービス (ASP.NET Core)",
+        },
+        ServiceTypeOption {
+            service_type: ServiceType::BackendPython,
+            label: "backend-python",
+            description: "Python バックエンドサービス (FastAPI)",
+        },
+        ServiceTypeOption {
             service_type: ServiceType::FrontendReact,
             label: "frontend-react",
             description: "React フロントエンドアプリ (TypeScript, Material-UI)",
@@ -100,6 +110,16 @@ pub fn select_domain_type() -> Result<DomainType> {
             domain_type: DomainType::BackendGo,
             label: "backend-go",
             description: "Go ドメインモジュール",
+        },
+        DomainTypeOption {
+            domain_type: DomainType::BackendCsharp,
+            label: "backend-csharp",
+            description: "C# ドメインプロジェクト",
+        },
+        DomainTypeOption {
+            domain_type: DomainType::BackendPython,
+            label: "backend-python",
+            description: "Python ドメインパッケージ (FastAPI)",
         },
         DomainTypeOption {
             domain_type: DomainType::FrontendReact,

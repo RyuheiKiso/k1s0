@@ -1,0 +1,52 @@
+"""{{ name_title }} entity."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+
+from {{ name_snake }}_domain.value_objects.{{ name_snake }}_name import {{ name_pascal }}Name
+
+
+@dataclass(frozen=True)
+class {{ name_pascal }}Id:
+    """{{ name_title }} identifier value object."""
+
+    value: str
+
+    def __post_init__(self) -> None:
+        if not self.value:
+            raise ValueError("{{ name_pascal }}Id must not be empty")
+
+
+@dataclass
+class {{ name_pascal }}:
+    """{{ name_title }} entity."""
+
+    id: {{ name_pascal }}Id
+    name: {{ name_pascal }}Name
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @classmethod
+    def create(
+        cls,
+        id: {{ name_pascal }}Id,
+        name: {{ name_pascal }}Name,
+    ) -> {{ name_pascal }}:
+        """Create a new {{ name_title }} entity."""
+        now = datetime.now(timezone.utc)
+        return cls(id=id, name=name, created_at=now, updated_at=now)
+
+    def update_name(self, name: {{ name_pascal }}Name) -> None:
+        """Update the entity name."""
+        self.name = name
+        self.updated_at = datetime.now(timezone.utc)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, {{ name_pascal }}):
+            return NotImplemented
+        return self.id == other.id
+
+    def __hash__(self) -> int:
+        return hash(self.id)

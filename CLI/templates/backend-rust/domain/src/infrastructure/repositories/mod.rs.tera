@@ -1,0 +1,43 @@
+//! リポジトリ実装
+//!
+//! このモジュールにはリポジトリの実装（データベースアクセス等）を定義します。
+//! ドメイン層で定義したリポジトリトレイトの実装をここに配置します。
+{% if with_repository %}
+use async_trait::async_trait;
+use crate::domain::entities::{{"{"}}{{ name_pascal }}, {{ name_pascal }}Id};
+
+/// {{ name_pascal }} リポジトリ trait
+///
+/// ドメイン層で定義するポート（インターフェース）です。
+/// infrastructure 層で具体的な実装を提供します。
+#[async_trait]
+pub trait {{ name_pascal }}Repository: Send + Sync {
+    /// ID で検索する
+    async fn find_by_id(&self, id: &{{ name_pascal }}Id) -> Result<Option<{{ name_pascal }}>, RepositoryError>;
+
+    /// 保存する（新規作成・更新の両方に対応）
+    async fn save(&self, entity: &{{ name_pascal }}) -> Result<(), RepositoryError>;
+
+    /// 削除する
+    async fn delete(&self, id: &{{ name_pascal }}Id) -> Result<(), RepositoryError>;
+}
+
+/// リポジトリエラー
+#[derive(Debug, thiserror::Error)]
+pub enum RepositoryError {
+    /// エンティティが見つからない
+    #[error("Entity not found: {0}")]
+    NotFound(String),
+
+    /// データベースエラー
+    #[error("Database error: {0}")]
+    Database(String),
+
+    /// その他のエラー
+    #[error("{0}")]
+    Other(String),
+}
+{% else %}
+// リポジトリ実装をここに追加してください。
+// `k1s0 new-domain --with-repository` でリポジトリ trait の雛形を生成できます。
+{% endif %}

@@ -1,0 +1,31 @@
+// {{ name_pascal }} ドメインイベント定義
+
+namespace {{ name_pascal }}.Domain.Events;
+{% if with_events %}
+
+using {{ name_pascal }}.Domain.Entities;
+
+/// <summary>
+/// {{ name_pascal }} が作成されたことを表すドメインイベント。
+/// </summary>
+/// <param name="Id">作成されたエンティティの ID。</param>
+/// <param name="OccurredAt">イベント発生日時。</param>
+public record {{ name_pascal }}Created(
+    {{ name_pascal }}Id Id,
+    DateTime OccurredAt)
+{
+    /// <summary>
+    /// 新しいイベントを作成します。
+    /// </summary>
+    public static {{ name_pascal }}Created Create({{ name_pascal }}Id id)
+        => new(id, DateTime.UtcNow);
+
+    /// <summary>
+    /// イベント名を取得します。
+    /// </summary>
+    public string EventName => "{{ name_snake }}.created";
+}
+{% else %}
+// ドメインイベントをここに定義してください。
+// `k1s0 new-domain --with-events` でイベントの雛形を生成できます。
+{% endif %}

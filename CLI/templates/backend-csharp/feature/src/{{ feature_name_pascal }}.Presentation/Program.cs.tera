@@ -1,0 +1,218 @@
+// {{ feature_name }} サービス
+//
+// k1s0 framework を使用した {{ feature_name }} の ASP.NET Core エントリポイント。
+
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Serilog;
+{% if with_grpc %}
+using {{ feature_name_pascal }}.Presentation.Grpc;
+{% endif %}
+
+var builder = WebApplication.CreateBuilder(args);
+
+// ---------------------------------------------------------------------------
+// Configuration
+// ---------------------------------------------------------------------------
+var env = builder.Configuration["K1S0_ENV"] ?? "dev";
+builder.Configuration
+    .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "config"))
+    .AddYamlFile("default.yaml", optional: false, reloadOnChange: true)
+    .AddYamlFile($"{env}.yaml", optional: true, reloadOnChange: true)
+    .AddCommandLine(args);
+
+// ---------------------------------------------------------------------------
+// Serilog
+// ---------------------------------------------------------------------------
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("ServiceName", "{{ feature_name }}")
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+// ---------------------------------------------------------------------------
+// OpenTelemetry
+// ---------------------------------------------------------------------------
+var otelEndpoint = builder.Configuration["observability:tracing:otlp_endpoint"] ?? "http://localhost:4317";
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource
+        .AddService(
+            serviceName: "{{ feature_name }}",
+            serviceVersion: "0.1.0"))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation()
+{% if with_db %}
+        .AddEntityFrameworkCoreInstrumentation()
+{% endif %}
+{% if with_grpc %}
+        .AddGrpcClientInstrumentation()
+{% endif %}
+        .AddOtlpExporter(opt => opt.Endpoint = new Uri(otelEndpoint)))
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddOtlpExporter(opt => opt.Endpoint = new Uri(otelEndpoint)));
+
+{% if with_db %}
+// ---------------------------------------------------------------------------
+// Database (Entity Framework Core + PostgreSQL)
+// ---------------------------------------------------------------------------
+builder.Services.AddDbContext<{{ feature_name_pascal }}.Infrastructure.Persistence.AppDbContext>(options =>
+{
+    var host = builder.Configuration["database:host"] ?? "localhost";
+    var port = builder.Configuration["database:port"] ?? "5432";
+    var database = builder.Configuration["database:name"] ?? "{{ feature_name_snake }}";
+    var username = builder.Configuration["database:username"] ?? "postgres";
+
+    // パスワードはシークレットディレクトリから読み取り
+    var secretsDir = builder.Configuration["K1S0_SECRETS_DIR"] ?? "/var/run/secrets/k1s0";
+    var passwordFile = Path.Combine(secretsDir, "db-password");
+    var password = File.Exists(passwordFile) ? File.ReadAllText(passwordFile).Trim() : "postgres";
+
+    var connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password}";
+    options.UseNpgsql(connectionString);
+});
+{% endif %}
+
+{% if with_cache %}
+// ---------------------------------------------------------------------------
+// Cache (Redis)
+// ---------------------------------------------------------------------------
+var redisUrl = builder.Configuration["cache:redis:url"] ?? "localhost:6379";
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisUrl;
+    options.InstanceName = "{{ feature_name_snake }}:";
+});
+{% endif %}
+
+{% if with_auth %}
+// ---------------------------------------------------------------------------
+// Authentication (JWT Bearer)
+// ---------------------------------------------------------------------------
+builder.Services
+    .AddAuthentication("Bearer")
+    .AddJwtBearer("Bearer", options =>
+    {
+        options.Authority = builder.Configuration["auth:issuer"] ?? "https://auth.example.com";
+        options.Audience = builder.Configuration["auth:audience"] ?? "{{ feature_name }}";
+        options.RequireHttpsMetadata = env != "dev";
+    });
+builder.Services.AddAuthorization();
+{% endif %}
+
+// ---------------------------------------------------------------------------
+// Health Checks
+// ---------------------------------------------------------------------------
+var healthChecks = builder.Services.AddHealthChecks();
+{% if with_db %}
+healthChecks.AddNpgSql(
+    builder.Configuration.GetConnectionString("DefaultConnection") ?? "Host=localhost",
+    name: "database",
+    tags: new[] { "ready" });
+{% endif %}
+{% if with_cache %}
+healthChecks.AddRedis(
+    builder.Configuration["cache:redis:url"] ?? "localhost:6379",
+    name: "redis",
+    tags: new[] { "ready" });
+{% endif %}
+
+{% if with_grpc %}
+// ---------------------------------------------------------------------------
+// gRPC
+// ---------------------------------------------------------------------------
+builder.Services.AddGrpc();
+{% endif %}
+
+{% if with_rest %}
+// ---------------------------------------------------------------------------
+// REST Controllers
+// ---------------------------------------------------------------------------
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+{% endif %}
+
+// ---------------------------------------------------------------------------
+// Application Services (DI)
+// ---------------------------------------------------------------------------
+// TODO: アプリケーション固有のサービスを登録
+// builder.Services.AddScoped<IExampleRepository, ExampleRepository>();
+// builder.Services.AddScoped<ExampleUseCase>();
+
+var app = builder.Build();
+
+// ---------------------------------------------------------------------------
+// Middleware Pipeline
+// ---------------------------------------------------------------------------
+app.UseSerilogRequestLogging();
+
+{% if with_rest %}
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+{% endif %}
+
+{% if with_auth %}
+app.UseAuthentication();
+app.UseAuthorization();
+{% endif %}
+
+// Health check endpoints
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false, // Liveness: always healthy if process is running
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+
+app.MapHealthChecks("/health/startup", new HealthCheckOptions
+{
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+
+{% if with_rest %}
+app.MapControllers();
+
+// Root endpoint
+app.MapGet("/", () => "{{ feature_name }} service is running");
+{% endif %}
+
+{% if with_grpc %}
+// gRPC services
+// TODO: gRPC サービスをマップ
+// app.MapGrpcService<{{ feature_name_pascal }}GrpcService>();
+{% endif %}
+
+// ---------------------------------------------------------------------------
+// Run
+// ---------------------------------------------------------------------------
+Log.Information("Starting {{ feature_name }} service (env: {Environment})", env);
+
+try
+{
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "{{ feature_name }} service terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

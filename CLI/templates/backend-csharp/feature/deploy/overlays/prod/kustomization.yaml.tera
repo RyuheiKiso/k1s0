@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: {{ feature_name }}-prod
+
+commonLabels:
+  env: prod
+
+replicas:
+  - name: {{ feature_name }}
+    count: 3
+
+configMapGenerator:
+  - name: {{ feature_name }}-config
+    behavior: merge
+    files:
+      - prod.yaml=config/prod.yaml

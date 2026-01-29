@@ -1,0 +1,24 @@
+{% if with_repository %}"""{{ name_title }} repository interface (port)."""
+
+from __future__ import annotations
+
+from typing import Protocol
+
+from {{ name_snake }}_domain.entities.{{ name_snake }} import {{ name_pascal }}, {{ name_pascal }}Id
+
+
+class {{ name_pascal }}Repository(Protocol):
+    """Repository interface for {{ name_title }} aggregate."""
+
+    def find_by_id(self, id: {{ name_pascal }}Id) -> {{ name_pascal }} | None:
+        """Find a {{ name_title }} by its ID."""
+        ...
+
+    def save(self, entity: {{ name_pascal }}) -> None:
+        """Persist a {{ name_title }} entity."""
+        ...
+
+    def delete(self, id: {{ name_pascal }}Id) -> None:
+        """Delete a {{ name_title }} by its ID."""
+        ...
+{% endif %}

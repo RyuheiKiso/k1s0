@@ -1,0 +1,41 @@
+//! 値オブジェクト定義
+//!
+//! このモジュールにはドメインの値オブジェクトを定義します。
+//! 値オブジェクトは不変で、値の等価性によって比較されます。
+
+use serde::{Deserialize, Serialize};
+
+/// {{ name_pascal }} の名前（値オブジェクト）
+///
+/// 名前のバリデーションルールをカプセル化します。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct {{ name_pascal }}Name(String);
+
+impl {{ name_pascal }}Name {
+    /// 新しい名前を作成する
+    ///
+    /// # Errors
+    ///
+    /// 空文字列の場合はエラーを返す。
+    pub fn new(value: impl Into<String>) -> Result<Self, String> {
+        let value = value.into();
+        if value.is_empty() {
+            return Err("名前は空にできません".to_string());
+        }
+        if value.len() > 255 {
+            return Err("名前は255文字以内にしてください".to_string());
+        }
+        Ok(Self(value))
+    }
+
+    /// 値を取得する
+    pub fn value(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for {{ name_pascal }}Name {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}

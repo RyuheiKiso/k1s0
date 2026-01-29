@@ -1,0 +1,24 @@
+//! {{ name_pascal }}Created ドメインイベント
+
+use serde::{Deserialize, Serialize};
+
+use crate::domain::entities::{{ name_pascal }}Id;
+
+/// {{ name_pascal }} が作成されたことを表すドメインイベント
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct {{ name_pascal }}Created {
+    /// 作成されたエンティティの ID
+    pub id: {{ name_pascal }}Id,
+    /// イベント発生日時
+    pub occurred_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl {{ name_pascal }}Created {
+    /// 新しいイベントを作成する
+    pub fn new(id: {{ name_pascal }}Id) -> Self {
+        Self {
+            id,
+            occurred_at: chrono::Utc::now(),
+        }
+    }
+}

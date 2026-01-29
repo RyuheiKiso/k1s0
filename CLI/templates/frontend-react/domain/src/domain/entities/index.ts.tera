@@ -1,36 +1,36 @@
 /**
  * エンティティ - 一意の識別子を持つドメインオブジェクト
- *
- * エンティティはライフサイクルを通じて同一性が保たれるオブジェクトです。
  */
 
-// TODO: {{ name_title }} ドメインのエンティティを定義してください
-//
-// 例:
-//
-// export interface ProductProps {
-//   id: string;
-//   name: string;
-//   description?: string;
-//   price: Money;
-//   createdAt: Date;
-//   updatedAt: Date;
-// }
-//
-// export class Product {
-//   readonly id: string;
-//   readonly name: string;
-//   readonly description?: string;
-//   readonly price: Money;
-//   readonly createdAt: Date;
-//   readonly updatedAt: Date;
-//
-//   constructor(props: ProductProps) {
-//     this.id = props.id;
-//     this.name = props.name;
-//     this.description = props.description;
-//     this.price = props.price;
-//     this.createdAt = props.createdAt;
-//     this.updatedAt = props.updatedAt;
-//   }
-// }
+import { z } from 'zod';
+
+/** {{ name_pascal }} ID のスキーマ */
+export const {{ name_pascal }}IdSchema = z.string().min(1);
+
+/** {{ name_pascal }} ID 型 */
+export type {{ name_pascal }}Id = z.infer<typeof {{ name_pascal }}IdSchema>;
+
+/** {{ name_pascal }} エンティティのスキーマ */
+export const {{ name_pascal }}Schema = z.object({
+  id: {{ name_pascal }}IdSchema,
+  name: z.string().min(1).max(255),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+
+/** {{ name_pascal }} エンティティ型 */
+export type {{ name_pascal }} = z.infer<typeof {{ name_pascal }}Schema>;
+
+/** {{ name_pascal }} を作成する */
+export function create{{ name_pascal }}(
+  id: {{ name_pascal }}Id,
+  name: string,
+): {{ name_pascal }} {
+  const now = new Date();
+  return {{ name_pascal }}Schema.parse({
+    id,
+    name,
+    createdAt: now,
+    updatedAt: now,
+  });
+}

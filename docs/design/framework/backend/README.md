@@ -16,6 +16,7 @@ framework/backend/rust/crates/
 ├── k1s0-health/        # ヘルスチェック
 ├── k1s0-cache/         # Redis キャッシュ
 ├── k1s0-db/            # DB 接続・トランザクション
+├── k1s0-domain-event/  # ドメインイベント発行・購読・Outbox
 └── k1s0-auth/          # 認証・認可
 ```
 
@@ -31,6 +32,7 @@ framework/backend/rust/crates/
 - [k1s0-health](k1s0-health.md)
 - [k1s0-cache](k1s0-cache.md)
 - [k1s0-db](k1s0-db.md)
+- [k1s0-domain-event](k1s0-domain-event.md)
 - [k1s0-auth](k1s0-auth.md)
 
 ---
@@ -57,6 +59,9 @@ k1s0-cache          # 業務
 
 k1s0-db             # 業務
   └── sqlx (feature="postgres")
+
+k1s0-domain-event   # 業務
+  └── k1s0-db (feature="outbox")
 
 k1s0-auth           # 業務
   ├── k1s0-cache (feature="redis-cache")

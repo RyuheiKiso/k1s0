@@ -1,0 +1,17 @@
+# {{ feature_name }} Production Configuration
+
+{% if with_db %}
+database:
+  host: ${DB_HOST}
+  port: ${DB_PORT}
+  name: {{ feature_name_snake }}_prod
+  ssl_mode: require
+{% endif %}
+
+observability:
+  tracing:
+    enabled: true
+    otlp_endpoint: ${OTEL_ENDPOINT}
+  logging:
+    level: warn
+    format: json

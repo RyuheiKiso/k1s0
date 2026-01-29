@@ -1700,6 +1700,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "k1s0-domain-event"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "k1s0-db",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "k1s0-error"
 version = "0.1.0"
 dependencies = [

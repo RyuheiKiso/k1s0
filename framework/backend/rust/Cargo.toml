@@ -5,6 +5,7 @@ members = [
     "crates/k1s0-cache",
     "crates/k1s0-config",
     "crates/k1s0-db",
+    "crates/k1s0-domain-event",
     "crates/k1s0-error",
     "crates/k1s0-grpc-client",
     "crates/k1s0-grpc-server",

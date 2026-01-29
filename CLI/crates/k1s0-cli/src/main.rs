@@ -36,6 +36,8 @@ fn main() -> std::process::ExitCode {
         Commands::FeatureUpdateDomain(args) => {
             k1s0_cli::commands::feature_update_domain::execute(args)
         }
+        Commands::DomainCatalog(args) => k1s0_cli::commands::domain_catalog::execute(args),
+        Commands::DomainGraph(args) => k1s0_cli::commands::domain_graph::execute(args),
     };
 
     // 結果を処理
@@ -107,6 +109,9 @@ fn execute_selected_command(selected: SelectedCommand) -> std::process::ExitCode
                 output: None,
                 force: false,
                 interactive: true,
+                with_events: false,
+                with_repository: true,
+                version: "0.1.0".to_string(),
             };
             k1s0_cli::commands::new_domain::execute(args)
         }
@@ -185,9 +190,11 @@ fn show_domain_help() -> k1s0_cli::Result<()> {
     out.info("'domain' コマンドにはサブコマンドが必要です:");
     out.newline();
     out.list_item("domain-list", "全 domain の一覧表示");
+    out.list_item("domain-catalog", "domain カタログ（依存状況付き一覧）");
     out.list_item("domain-version", "domain バージョンの表示・更新");
     out.list_item("domain-dependents", "domain に依存する feature の一覧表示");
     out.list_item("domain-impact", "domain バージョンアップの影響分析");
+    out.list_item("domain-graph", "domain 依存グラフの出力");
     out.newline();
     out.hint("例: k1s0 domain-list");
 

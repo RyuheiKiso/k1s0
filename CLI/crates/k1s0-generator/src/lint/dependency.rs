@@ -52,6 +52,19 @@ impl DependencyRules {
         }
     }
 
+    /// Python の依存方向ルール
+    pub fn python() -> Self {
+        Self {
+            file_extensions: vec!["py"],
+            import_patterns: vec![
+                "from {layer}".to_string(),
+                "import {layer}".to_string(),
+                "from .{layer}".to_string(),
+                "from ..{layer}".to_string(),
+            ],
+        }
+    }
+
     /// Dart の依存方向ルール
     pub fn dart() -> Self {
         Self {
@@ -80,6 +93,7 @@ impl Linter {
             "rust" => ("src", DependencyRules::rust()),
             "go" => ("internal", DependencyRules::go()),
             "typescript" => ("src", DependencyRules::typescript()),
+            "python" => ("src", DependencyRules::python()),
             "dart" => ("lib/src", DependencyRules::dart()),
             _ => return, // 不明な言語の場合はスキップ
         };
