@@ -61,7 +61,9 @@
       "Bash(CLI/target/debug/k1s0-cli.exe:*)",
       "Bash(./CLI/target/debug/k1s0.exe:*)",
       "Bash(dotnet build:*)",
-      "Bash(dotnet test:*)"
+      "Bash(dotnet test:*)",
+      "Bash(git -C C:/work/github/k1s0 log --all --oneline)",
+      "Bash(git -C C:/work/github/k1s0 show f222ae8 --stat)"
     ]
   }
 }
