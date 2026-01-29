@@ -59,7 +59,9 @@
       "Bash(git rm:*)",
       "Bash(go vet:*)",
       "Bash(CLI/target/debug/k1s0-cli.exe:*)",
-      "Bash(./CLI/target/debug/k1s0.exe:*)"
+      "Bash(./CLI/target/debug/k1s0.exe:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)"
     ]
   }
 }
