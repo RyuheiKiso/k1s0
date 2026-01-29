@@ -12,6 +12,8 @@
 | [観測性規約](observability.md) | ログ/トレース/メトリクスの出力規約 |
 | [エラーハンドリング規約](error-handling.md) | エラー表現、エラーコード、レスポンス形式 |
 | [バージョニング規約](versioning.md) | SemVer、互換性ポリシー、manifest スキーマ |
+| [Domain 境界ガイドライン](domain-boundaries.md) | domain 層の境界判断基準 |
+| [非推奨化ポリシー](deprecation-policy.md) | domain の非推奨化プロセス |
 
 ## 規約の位置づけ
 

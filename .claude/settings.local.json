@@ -63,7 +63,15 @@
       "Bash(dotnet build:*)",
       "Bash(dotnet test:*)",
       "Bash(git -C C:/work/github/k1s0 log --all --oneline)",
-      "Bash(git -C C:/work/github/k1s0 show f222ae8 --stat)"
+      "Bash(git -C C:/work/github/k1s0 show f222ae8 --stat)",
+      "Bash(cd:*)",
+      "Bash(git -C \"C:/work/github/k1s0\" status)",
+      "Bash(git -C \"C:/work/github/k1s0\" diff --stat)",
+      "Bash(git -C \"C:/work/github/k1s0\" log --oneline -5)",
+      "Bash(git -C \"C:/work/github/k1s0\" add README.md assets/k1s0-banner.svg docs/adr/README.md docs/conventions/README.md)",
+      "Bash(git -C \"C:/work/github/k1s0\" commit -m \"$\\(cat <<''EOF''\ndocs: C#/Python対応等を反映しドキュメントを最新化\n\nREADME.md、ADR一覧、規約一覧、バナーSVGを現在のコードベースに合わせて更新。\nテンプレート6種対応、Framework全言語パッケージ記載、CLIコマンド追加等。\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C \"C:/work/github/k1s0\" add assets/k1s0-banner.svg)",
+      "Bash(git -C \"C:/work/github/k1s0\" commit -m \"$\\(cat <<''EOF''\ndocs: バナーSVGのTech Stack行をBackend/Frontendに分離\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }
