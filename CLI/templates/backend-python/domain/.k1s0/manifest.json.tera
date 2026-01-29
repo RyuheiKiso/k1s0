@@ -1,0 +1,50 @@
+{
+  "$schema": "https://k1s0.dev/schemas/manifest.json",
+  "schema_version": "1.0.0",
+  "k1s0_version": "{{ k1s0_version }}",
+  "template": {
+    "name": "{{ template_type }}",
+    "version": "{{ template_version }}",
+    "source": "local",
+    "path": "CLI/templates/{{ template_type }}/domain",
+    "fingerprint": "{{ fingerprint }}"
+  },
+  "service": {
+    "service_name": "{{ name }}",
+    "language": "python",
+    "type": "{{ service_type }}"
+  },
+  "layer": "domain",
+  "domain": null,
+  "version": "{{ domain_version }}",
+  "min_framework_version": "{{ k1s0_version }}",
+  "generated_at": "{{ created_at }}",
+  "managed_paths": [
+    "pyproject.toml"
+  ],
+  "protected_paths": [
+    "src/{{ name_snake }}_domain/entities/",
+    "src/{{ name_snake }}_domain/value_objects/",
+    "src/{{ name_snake }}_domain/repositories/",
+    "src/{{ name_snake }}_domain/services/",
+    "src/{{ name_snake }}_domain/events/",
+    "tests/",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "update_policy": {
+    "src/{{ name_snake }}_domain/entities/": "protected",
+    "src/{{ name_snake }}_domain/value_objects/": "protected",
+    "src/{{ name_snake }}_domain/repositories/": "protected",
+    "src/{{ name_snake }}_domain/services/": "protected",
+    "src/{{ name_snake }}_domain/events/": "protected",
+    "tests/": "protected",
+    "README.md": "suggest_only",
+    "CHANGELOG.md": "suggest_only"
+  },
+  "checksums": {},
+  "dependencies": {
+    "framework": [],
+    "framework_packages": []
+  }
+}

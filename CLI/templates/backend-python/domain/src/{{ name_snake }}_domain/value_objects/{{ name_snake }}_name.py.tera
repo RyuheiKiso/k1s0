@@ -1,0 +1,27 @@
+"""{{ name_title }} name value object."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+MIN_LENGTH = 1
+MAX_LENGTH = 255
+
+
+@dataclass(frozen=True)
+class {{ name_pascal }}Name:
+    """{{ name_title }} name value object with validation."""
+
+    value: str
+
+    def __post_init__(self) -> None:
+        if not self.value or not self.value.strip():
+            raise ValueError("{{ name_pascal }}Name must not be empty")
+        if len(self.value) < MIN_LENGTH:
+            raise ValueError(
+                f"{{ name_pascal }}Name must be at least {MIN_LENGTH} characters"
+            )
+        if len(self.value) > MAX_LENGTH:
+            raise ValueError(
+                f"{{ name_pascal }}Name must be at most {MAX_LENGTH} characters"
+            )

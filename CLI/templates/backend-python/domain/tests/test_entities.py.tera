@@ -1,0 +1,103 @@
+"""Tests for {{ name_title }} domain entities and value objects."""
+
+import pytest
+
+from {{ name_snake }}_domain.entities.{{ name_snake }} import {{ name_pascal }}, {{ name_pascal }}Id
+from {{ name_snake }}_domain.value_objects.{{ name_snake }}_name import {{ name_pascal }}Name
+{% if with_events %}from {{ name_snake }}_domain.events.{{ name_snake }}_created import {{ name_pascal }}Created
+{% endif %}
+
+class Test{{ name_pascal }}Id:
+    """Tests for {{ name_pascal }}Id value object."""
+
+    def test_create_valid_id(self) -> None:
+        id = {{ name_pascal }}Id(value="abc-123")
+        assert id.value == "abc-123"
+
+    def test_empty_id_raises(self) -> None:
+        with pytest.raises(ValueError):
+            {{ name_pascal }}Id(value="")
+
+    def test_equality(self) -> None:
+        id1 = {{ name_pascal }}Id(value="same-id")
+        id2 = {{ name_pascal }}Id(value="same-id")
+        assert id1 == id2
+
+    def test_inequality(self) -> None:
+        id1 = {{ name_pascal }}Id(value="id-1")
+        id2 = {{ name_pascal }}Id(value="id-2")
+        assert id1 != id2
+
+
+class Test{{ name_pascal }}Name:
+    """Tests for {{ name_pascal }}Name value object."""
+
+    def test_create_valid_name(self) -> None:
+        name = {{ name_pascal }}Name(value="Valid Name")
+        assert name.value == "Valid Name"
+
+    def test_empty_name_raises(self) -> None:
+        with pytest.raises(ValueError):
+            {{ name_pascal }}Name(value="")
+
+    def test_whitespace_only_raises(self) -> None:
+        with pytest.raises(ValueError):
+            {{ name_pascal }}Name(value="   ")
+
+    def test_too_long_name_raises(self) -> None:
+        with pytest.raises(ValueError):
+            {{ name_pascal }}Name(value="a" * 256)
+
+
+class Test{{ name_pascal }}:
+    """Tests for {{ name_pascal }} entity."""
+
+    def test_create_entity(self, sample_entity: {{ name_pascal }}) -> None:
+        assert sample_entity.id.value == "test-id-001"
+        assert sample_entity.name.value == "Sample Name"
+        assert sample_entity.created_at is not None
+        assert sample_entity.updated_at is not None
+
+    def test_update_name(self, sample_entity: {{ name_pascal }}) -> None:
+        old_updated_at = sample_entity.updated_at
+        new_name = {{ name_pascal }}Name(value="Updated Name")
+        sample_entity.update_name(new_name)
+        assert sample_entity.name.value == "Updated Name"
+        assert sample_entity.updated_at >= old_updated_at
+
+    def test_equality_by_id(self) -> None:
+        id = {{ name_pascal }}Id(value="same-id")
+        name1 = {{ name_pascal }}Name(value="Name One")
+        name2 = {{ name_pascal }}Name(value="Name Two")
+        entity1 = {{ name_pascal }}.create(id=id, name=name1)
+        entity2 = {{ name_pascal }}.create(id=id, name=name2)
+        assert entity1 == entity2
+
+    def test_inequality_by_id(self) -> None:
+        name = {{ name_pascal }}Name(value="Same Name")
+        entity1 = {{ name_pascal }}.create(id={{ name_pascal }}Id(value="id-1"), name=name)
+        entity2 = {{ name_pascal }}.create(id={{ name_pascal }}Id(value="id-2"), name=name)
+        assert entity1 != entity2
+{% if with_events %}
+
+class Test{{ name_pascal }}Created:
+    """Tests for {{ name_pascal }}Created domain event."""
+
+    def test_create_event(self) -> None:
+        event = {{ name_pascal }}Created(
+            aggregate_id="test-id-001",
+            {{ name_snake }}_name="Sample Name",
+        )
+        assert event.aggregate_id == "test-id-001"
+        assert event.{{ name_snake }}_name == "Sample Name"
+        assert event.occurred_at is not None
+        assert event.event_id is not None
+
+    def test_event_is_immutable(self) -> None:
+        event = {{ name_pascal }}Created(
+            aggregate_id="test-id-001",
+            {{ name_snake }}_name="Sample Name",
+        )
+        with pytest.raises(AttributeError):
+            event.aggregate_id = "changed"  # type: ignore[misc]
+{% endif %}

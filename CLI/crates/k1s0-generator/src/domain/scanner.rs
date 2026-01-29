@@ -12,6 +12,7 @@ const DOMAIN_BASES: &[(&str, &str, &str)] = &[
     ("domain/backend/rust", "backend-rust", "rust"),
     ("domain/backend/go", "backend-go", "go"),
     ("domain/backend/csharp", "backend-csharp", "csharp"),
+    ("domain/backend/python", "backend-python", "python"),
     ("domain/frontend/react", "frontend-react", "typescript"),
     ("domain/frontend/flutter", "frontend-flutter", "dart"),
 ];
@@ -21,6 +22,7 @@ const FEATURE_BASES: &[(&str, &str)] = &[
     ("feature/backend/rust", "backend-rust"),
     ("feature/backend/go", "backend-go"),
     ("feature/backend/csharp", "backend-csharp"),
+    ("feature/backend/python", "backend-python"),
     ("feature/frontend/react", "frontend-react"),
     ("feature/frontend/flutter", "frontend-flutter"),
 ];

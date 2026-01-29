@@ -163,6 +163,43 @@ impl EnvVarPatterns {
         }
     }
 
+    /// Python の環境変数パターン
+    pub fn python() -> Self {
+        Self {
+            file_extensions: vec!["py"],
+            patterns: vec![
+                EnvVarPattern {
+                    pattern: "os.environ",
+                    hint: "config/{env}.yaml で設定を管理してください。framework の config モジュールを使用してください。".to_string(),
+                },
+                EnvVarPattern {
+                    pattern: "os.getenv",
+                    hint: "config/{env}.yaml で設定を管理してください。framework の config モジュールを使用してください。".to_string(),
+                },
+                EnvVarPattern {
+                    pattern: "os.putenv",
+                    hint: "環境変数の設定は禁止されています。config/{env}.yaml で設定を管理してください。".to_string(),
+                },
+                EnvVarPattern {
+                    pattern: "os.unsetenv",
+                    hint: "環境変数の削除は禁止されています。".to_string(),
+                },
+                EnvVarPattern {
+                    pattern: "load_dotenv",
+                    hint: "dotenv の使用は禁止されています。config/{env}.yaml で設定を管理してください。".to_string(),
+                },
+                EnvVarPattern {
+                    pattern: "from dotenv",
+                    hint: "dotenv の使用は禁止されています。config/{env}.yaml で設定を管理してください。".to_string(),
+                },
+                EnvVarPattern {
+                    pattern: "import dotenv",
+                    hint: "dotenv の使用は禁止されています。config/{env}.yaml で設定を管理してください。".to_string(),
+                },
+            ],
+        }
+    }
+
     /// Dart の環境変数パターン
     pub fn dart() -> Self {
         Self {
@@ -201,6 +238,7 @@ impl Linter {
             "go" => ("internal", EnvVarPatterns::go()),
             "typescript" => ("src", EnvVarPatterns::typescript()),
             "csharp" => ("src", EnvVarPatterns::csharp()),
+            "python" => ("src", EnvVarPatterns::python()),
             "dart" => ("lib", EnvVarPatterns::dart()),
             _ => return, // 不明な言語の場合はスキップ
         };

@@ -1,0 +1,14 @@
+version: v2
+modules:
+  - path: proto
+    name: buf.build/k1s0/{{ '{{' }} feature_name {{ '}}' }}
+lint:
+  use:
+    - DEFAULT
+  except:
+    - PACKAGE_VERSION_SUFFIX
+breaking:
+  use:
+    - FILE
+deps:
+  - buf.build/googleapis/googleapis

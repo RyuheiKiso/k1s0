@@ -34,6 +34,9 @@ pub enum ServiceType {
     /// C# バックエンド
     #[value(name = "backend-csharp")]
     BackendCsharp,
+    /// Python バックエンド
+    #[value(name = "backend-python")]
+    BackendPython,
     /// Flutter フロントエンド
     #[value(name = "frontend-flutter")]
     FrontendFlutter,
@@ -46,6 +49,7 @@ impl ServiceType {
             ServiceType::BackendRust => "CLI/templates/backend-rust/feature",
             ServiceType::BackendGo => "CLI/templates/backend-go/feature",
             ServiceType::BackendCsharp => "CLI/templates/backend-csharp/feature",
+            ServiceType::BackendPython => "CLI/templates/backend-python/feature",
             ServiceType::FrontendReact => "CLI/templates/frontend-react/feature",
             ServiceType::FrontendFlutter => "CLI/templates/frontend-flutter/feature",
         }
@@ -57,6 +61,7 @@ impl ServiceType {
             ServiceType::BackendRust => "feature/backend/rust",
             ServiceType::BackendGo => "feature/backend/go",
             ServiceType::BackendCsharp => "feature/backend/csharp",
+            ServiceType::BackendPython => "feature/backend/python",
             ServiceType::FrontendReact => "feature/frontend/react",
             ServiceType::FrontendFlutter => "feature/frontend/flutter",
         }
@@ -68,6 +73,7 @@ impl ServiceType {
             ServiceType::BackendRust => "domain/backend/rust",
             ServiceType::BackendGo => "domain/backend/go",
             ServiceType::BackendCsharp => "domain/backend/csharp",
+            ServiceType::BackendPython => "domain/backend/python",
             ServiceType::FrontendReact => "domain/frontend/react",
             ServiceType::FrontendFlutter => "domain/frontend/flutter",
         }
@@ -79,6 +85,7 @@ impl ServiceType {
             ServiceType::BackendRust => "rust",
             ServiceType::BackendGo => "go",
             ServiceType::BackendCsharp => "csharp",
+            ServiceType::BackendPython => "python",
             ServiceType::FrontendReact => "typescript",
             ServiceType::FrontendFlutter => "dart",
         }
@@ -87,7 +94,7 @@ impl ServiceType {
     /// サービスタイプ名を取得
     pub fn service_type_name(&self) -> &'static str {
         match self {
-            ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp => "backend",
+            ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp | ServiceType::BackendPython => "backend",
             ServiceType::FrontendReact | ServiceType::FrontendFlutter => "frontend",
         }
     }
@@ -99,6 +106,7 @@ impl std::fmt::Display for ServiceType {
             ServiceType::BackendRust => write!(f, "backend-rust"),
             ServiceType::BackendGo => write!(f, "backend-go"),
             ServiceType::BackendCsharp => write!(f, "backend-csharp"),
+            ServiceType::BackendPython => write!(f, "backend-python"),
             ServiceType::FrontendReact => write!(f, "frontend-react"),
             ServiceType::FrontendFlutter => write!(f, "frontend-flutter"),
         }
@@ -607,7 +615,7 @@ fn create_manifest(
 /// CLI が管理するパスを取得
 fn get_managed_paths(service_type: ServiceType) -> Vec<String> {
     match service_type {
-        ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp => vec![
+        ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp | ServiceType::BackendPython => vec![
             "deploy/".to_string(),
             "buf.yaml".to_string(),
             "buf.gen.yaml".to_string(),
@@ -621,7 +629,7 @@ fn get_managed_paths(service_type: ServiceType) -> Vec<String> {
 /// CLI が変更しないパスを取得
 fn get_protected_paths(service_type: ServiceType) -> Vec<String> {
     match service_type {
-        ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp => vec![
+        ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp | ServiceType::BackendPython => vec![
             "src/domain/".to_string(),
             "src/application/".to_string(),
             "README.md".to_string(),
@@ -648,7 +656,7 @@ fn get_update_policy(
     let mut policy = std::collections::HashMap::new();
 
     match service_type {
-        ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp => {
+        ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp | ServiceType::BackendPython => {
             policy.insert("deploy/".to_string(), UpdatePolicy::Auto);
             policy.insert("buf.yaml".to_string(), UpdatePolicy::Auto);
             policy.insert("src/domain/".to_string(), UpdatePolicy::Protected);

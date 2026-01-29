@@ -1,0 +1,39 @@
+[project]
+name = "k1s0-python-framework"
+version = "0.1.0"
+description = "k1s0 Python backend framework packages"
+requires-python = ">=3.12"
+
+[tool.uv.workspace]
+members = [
+    "packages/k1s0-error",
+    "packages/k1s0-config",
+    "packages/k1s0-validation",
+    "packages/k1s0-observability",
+    "packages/k1s0-grpc-server",
+    "packages/k1s0-grpc-client",
+    "packages/k1s0-health",
+    "packages/k1s0-db",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["packages/*/tests"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM", "TCH", "RUF"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

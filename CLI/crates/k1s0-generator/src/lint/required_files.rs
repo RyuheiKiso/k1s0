@@ -164,6 +164,36 @@ impl RequiredFiles {
         }
     }
 
+    /// backend-python（feature 層）の必須ファイル
+    pub fn backend_python() -> Self {
+        Self {
+            directories: vec![
+                "src",
+                "config",
+                "deploy/base",
+            ],
+            files: vec![
+                "pyproject.toml",
+                "README.md",
+                "config/default.yaml",
+                "config/dev.yaml",
+                "config/stg.yaml",
+                "config/prod.yaml",
+            ],
+        }
+    }
+
+    /// backend-python（domain 層）の必須ファイル
+    pub fn backend_python_domain() -> Self {
+        Self {
+            directories: vec![],
+            files: vec![
+                "pyproject.toml",
+                "README.md",
+            ],
+        }
+    }
+
     /// backend-csharp（feature 層）の必須ファイル
     pub fn backend_csharp() -> Self {
         Self {
@@ -202,6 +232,8 @@ impl RequiredFiles {
             ("backend-go", _) => Some(Self::backend_go()),
             ("backend-csharp", LayerType::Domain) => Some(Self::backend_csharp_domain()),
             ("backend-csharp", _) => Some(Self::backend_csharp()),
+            ("backend-python", LayerType::Domain) => Some(Self::backend_python_domain()),
+            ("backend-python", _) => Some(Self::backend_python()),
             ("frontend-react", LayerType::Domain) => Some(Self::frontend_react_domain()),
             ("frontend-react", _) => Some(Self::frontend_react()),
             ("frontend-flutter", LayerType::Domain) => Some(Self::frontend_flutter_domain()),

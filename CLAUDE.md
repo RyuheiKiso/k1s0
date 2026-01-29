@@ -24,14 +24,14 @@ This document provides comprehensive guidance for AI assistants working with the
 | Layer | Technologies |
 |-------|-------------|
 | **CLI** | Rust 1.85+ (clap 4.5, Tera 1.19, tokio) |
-| **Backend** | Rust (axum, tokio) + Go + C# (ASP.NET Core 8.0) |
+| **Backend** | Rust (axum, tokio) + Go + C# (ASP.NET Core 8.0) + Python (FastAPI) |
 | **Frontend** | React (Material-UI, Zod, TypeScript 5.5) + Flutter (Dart) |
 | **Database** | PostgreSQL |
 | **Cache** | Redis |
 | **Observability** | OpenTelemetry (OTEL Collector) |
 | **API Protocols** | gRPC (internal), REST/OpenAPI (external) |
 | **Contract Management** | buf (proto linting/breaking changes), Spectral (OpenAPI linting) |
-| **Package Managers** | Cargo (Rust), pnpm 9.15.4+ (Node), NuGet (.NET) |
+| **Package Managers** | Cargo (Rust), pnpm 9.15.4+ (Node), NuGet (.NET), uv (Python) |
 
 ## Architecture: Three-Layer Structure
 
@@ -69,6 +69,7 @@ k1s0/
 │   │   ├── backend-rust/        # Rust backend scaffold
 │   │   ├── backend-go/          # Go backend scaffold
 │   │   ├── backend-csharp/      # C# backend scaffold
+│   │   ├── backend-python/     # Python backend scaffold
 │   │   ├── frontend-react/      # React app scaffold
 │   │   └── frontend-flutter/    # Flutter app scaffold
 │   └── schemas/                 # JSON Schema definitions
@@ -79,7 +80,8 @@ k1s0/
 │   │   │   ├── crates/          # 11 shared Rust crates
 │   │   │   └── services/        # Common microservices (auth, config, endpoint)
 │   │   ├── go/
-│   │   └── csharp/              # C# NuGet packages
+│   │   ├── csharp/              # C# NuGet packages
+│   │   └── python/              # Python packages (uv)
 │   └── frontend/
 │       ├── react/packages/      # 8 React packages
 │       └── flutter/packages/    # Flutter packages
@@ -88,7 +90,8 @@ k1s0/
 │   ├── backend/
 │   │   ├── rust/{domain_name}/  # Rust domain crates
 │   │   ├── go/{domain_name}/    # Go domain modules
-│   │   └── csharp/{domain_name}/ # C# domain projects
+│   │   ├── csharp/{domain_name}/ # C# domain projects
+│   │   └── python/{domain_name}/ # Python domain packages
 │   └── frontend/
 │       ├── react/{domain_name}/ # React domain packages
 │       └── flutter/{domain_name}/ # Flutter domain packages
@@ -97,7 +100,8 @@ k1s0/
 │   ├── backend/
 │   │   ├── rust/{feature_name}/
 │   │   ├── go/{feature_name}/
-│   │   └── csharp/{feature_name}/
+│   │   ├── csharp/{feature_name}/
+│   │   └── python/{feature_name}/
 │   ├── frontend/
 │   │   ├── react/{feature_name}/
 │   │   └── flutter/{feature_name}/
@@ -224,8 +228,8 @@ buf format --exit-code
 | Command | Description |
 |---------|-------------|
 | `k1s0 init` | Initialize repository (`.k1s0/` directory) |
-| `k1s0 new-feature --type <type> --name <name>` | Generate service scaffold (type: backend-rust, backend-go, backend-csharp, frontend-react, frontend-flutter) |
-| `k1s0 new-domain --type <type> --name <name>` | Generate domain scaffold (type: backend-rust, backend-go, backend-csharp, frontend-react, frontend-flutter) |
+| `k1s0 new-feature --type <type> --name <name>` | Generate service scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, frontend-react, frontend-flutter) |
+| `k1s0 new-domain --type <type> --name <name>` | Generate domain scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, frontend-react, frontend-flutter) |
 | `k1s0 new-screen --type <type> --screen <id>` | Generate frontend screen |
 | `k1s0 lint` | Check conventions |
 | `k1s0 lint --fix` | Auto-fix violations |
@@ -315,6 +319,7 @@ k1s0 new-feature --type backend-rust
 - Go: `os.Getenv`, `os.LookupEnv`, `os.ExpandEnv`
 - TypeScript: `process.env`
 - C#: `Environment.GetEnvironmentVariable`, `Environment.GetEnvironmentVariables`, `.AddEnvironmentVariables(`
+- Python: `os.environ`, `os.getenv`, `os.putenv`, `load_dotenv`
 - Dart: `Platform.environment`
 
 **Correct approach:** Use `config/*.yaml` files with k1s0-config library.
@@ -383,6 +388,29 @@ src/
     └── middleware/
 ```
 
+### Backend (Python)
+
+```
+src/{feature_name_snake}/
+├── domain/              # Business rules, entities, value objects
+│   ├── entities/
+│   ├── value_objects/
+│   ├── repositories/    # Repository abstract classes (ports)
+│   └── services/        # Domain services
+├── application/         # Use cases, application services
+│   ├── usecases/
+│   ├── services/
+│   └── dtos/
+├── infrastructure/      # Repository implementations, external I/O
+│   ├── repositories/
+│   ├── external/
+│   └── persistence/
+└── presentation/        # FastAPI routers, gRPC services
+    ├── grpc/
+    ├── rest/
+    └── middleware/
+```
+
 ### Backend (C#)
 
 ```
@@ -440,6 +468,10 @@ lib/src/
 - `{Name}.sln`, `src/{Name}.Presentation/{Name}.Presentation.csproj`, `config/default.yaml`, `.k1s0/manifest.json`
 - Directories: `src/`, `src/{Name}.Domain/`, `src/{Name}.Application/`, `src/{Name}.Infrastructure/`, `src/{Name}.Presentation/`, `config/`, `deploy/`
 
+### backend-python
+- `pyproject.toml`, `config/default.yaml`, `.k1s0/manifest.json`
+- Directories: `src/`, `src/{feature_name_snake}/domain/`, `src/{feature_name_snake}/application/`, `src/{feature_name_snake}/infrastructure/`, `src/{feature_name_snake}/presentation/`, `config/`, `deploy/`
+
 ### frontend-react
 - `package.json`, `tsconfig.json`, `.k1s0/manifest.json`
 - Directories: `src/`, `src/domain/`, `src/application/`, `src/presentation/`, `public/`
@@ -485,6 +517,21 @@ lib/src/
 | eslint-config-k1s0 | ESLint rules |
 | tsconfig-k1s0 | Shared TypeScript config |
 
+## Framework Packages (Python Backend)
+
+| Package | Description | Tier |
+|---------|-------------|------|
+| k1s0-error | Unified error handling | 1 |
+| k1s0-config | Config file management (YAML) | 1 |
+| k1s0-validation | Input validation (Pydantic-based) | 1 |
+| k1s0-observability | Logging/tracing/metrics (OpenTelemetry) | 2 |
+| k1s0-grpc-server | gRPC server foundation (grpcio) | 2 |
+| k1s0-grpc-client | gRPC client utilities | 2 |
+| k1s0-health | Health check probes (FastAPI) | 2 |
+| k1s0-db | Database connection/transaction (SQLAlchemy + asyncpg) | 2 |
+
+**Tier dependency rules:** Same as Rust/Go/C# -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only.
+
 ## Framework Packages (Flutter Frontend)
 
 | Package | Description |
@@ -521,6 +568,7 @@ lib/src/
 | rust.yml | Push to main, framework/rust changes | Format check -> Clippy -> Tests -> Build |
 | go.yml | Push to main/develop, Go changes | Format -> Lint -> Test -> Vet -> Mod verify -> Build |
 | csharp.yml | Push to main, C# changes | Format -> Build -> Test |
+| python.yml | Push to main, Python changes | Lint (Ruff) -> Format check -> Type check (mypy) -> Test (pytest) |
 | frontend-react.yml | Push to main, React changes | Lint -> TypeCheck -> Test -> Build |
 | frontend-flutter.yml | Push to main, Flutter changes | Analyze -> Build |
 | buf.yml | Push to main, proto changes | Lint -> Breaking changes check -> Format check |

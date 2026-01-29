@@ -32,6 +32,9 @@ pub enum DomainType {
     /// C# バックエンド
     #[value(name = "backend-csharp")]
     BackendCsharp,
+    /// Python バックエンド
+    #[value(name = "backend-python")]
+    BackendPython,
     /// React フロントエンド
     #[value(name = "frontend-react")]
     FrontendReact,
@@ -47,6 +50,7 @@ impl DomainType {
             DomainType::BackendRust => "CLI/templates/backend-rust/domain",
             DomainType::BackendGo => "CLI/templates/backend-go/domain",
             DomainType::BackendCsharp => "CLI/templates/backend-csharp/domain",
+            DomainType::BackendPython => "CLI/templates/backend-python/domain",
             DomainType::FrontendReact => "CLI/templates/frontend-react/domain",
             DomainType::FrontendFlutter => "CLI/templates/frontend-flutter/domain",
         }
@@ -58,6 +62,7 @@ impl DomainType {
             DomainType::BackendRust => "domain/backend/rust",
             DomainType::BackendGo => "domain/backend/go",
             DomainType::BackendCsharp => "domain/backend/csharp",
+            DomainType::BackendPython => "domain/backend/python",
             DomainType::FrontendReact => "domain/frontend/react",
             DomainType::FrontendFlutter => "domain/frontend/flutter",
         }
@@ -69,6 +74,7 @@ impl DomainType {
             DomainType::BackendRust => "rust",
             DomainType::BackendGo => "go",
             DomainType::BackendCsharp => "csharp",
+            DomainType::BackendPython => "python",
             DomainType::FrontendReact => "typescript",
             DomainType::FrontendFlutter => "dart",
         }
@@ -77,7 +83,7 @@ impl DomainType {
     /// サービスタイプ名を取得
     pub fn service_type_name(&self) -> &'static str {
         match self {
-            DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp => "backend",
+            DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp | DomainType::BackendPython => "backend",
             DomainType::FrontendReact | DomainType::FrontendFlutter => "frontend",
         }
     }
@@ -89,6 +95,7 @@ impl std::fmt::Display for DomainType {
             DomainType::BackendRust => write!(f, "backend-rust"),
             DomainType::BackendGo => write!(f, "backend-go"),
             DomainType::BackendCsharp => write!(f, "backend-csharp"),
+            DomainType::BackendPython => write!(f, "backend-python"),
             DomainType::FrontendReact => write!(f, "frontend-react"),
             DomainType::FrontendFlutter => write!(f, "frontend-flutter"),
         }
@@ -491,6 +498,9 @@ fn get_managed_paths(domain_type: DomainType) -> Vec<String> {
         DomainType::BackendCsharp => vec![
             "*.csproj".to_string(),
         ],
+        DomainType::BackendPython => vec![
+            "pyproject.toml".to_string(),
+        ],
         DomainType::FrontendReact => vec![
             "package.json".to_string(),
             "tsconfig.json".to_string(),
@@ -504,7 +514,7 @@ fn get_managed_paths(domain_type: DomainType) -> Vec<String> {
 /// CLI が変更しないパスを取得
 fn get_protected_paths(domain_type: DomainType) -> Vec<String> {
     match domain_type {
-        DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp => vec![
+        DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp | DomainType::BackendPython => vec![
             "src/domain/".to_string(),
             "src/application/".to_string(),
             "src/infrastructure/".to_string(),
@@ -533,7 +543,7 @@ fn get_update_policy(
     let mut policy = std::collections::HashMap::new();
 
     match domain_type {
-        DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp => {
+        DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp | DomainType::BackendPython => {
             policy.insert("src/domain/".to_string(), UpdatePolicy::Protected);
             policy.insert("src/application/".to_string(), UpdatePolicy::Protected);
             policy.insert("src/infrastructure/".to_string(), UpdatePolicy::Protected);

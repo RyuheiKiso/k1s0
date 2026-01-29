@@ -1,0 +1,18 @@
+# {{ feature_name }} テスト設定
+#
+# pytest 共通フィクスチャを定義します。
+
+from collections.abc import AsyncGenerator
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+
+from {{ feature_name_snake }}.presentation.main import app
+
+
+@pytest.fixture
+async def client() -> AsyncGenerator[AsyncClient, None]:
+    """FastAPI テストクライアント。"""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac

@@ -1,0 +1,78 @@
+# {{ name_pascal }} Domain
+
+{{ name_pascal }} ドメインの共通ビジネスロジックを提供するライブラリです。
+
+## 概要
+
+このライブラリは {{ name_pascal }} に関連するビジネスロジックを集約し、
+複数の feature サービスから共有して使用できるようにします。
+
+## ディレクトリ構造
+
+```
+src/{{ name_snake }}_domain/
+├── entities/          # エンティティ
+├── value_objects/     # 値オブジェクト
+├── repositories/      # リポジトリインターフェース（ポート）
+├── services/          # ドメインサービス
+└── events/            # ドメインイベント
+
+tests/
+└── test_entities.py   # 単体テスト
+```
+
+## 依存関係
+
+### Framework 依存
+
+なし（Domain パッケージは外部パッケージに依存しません）
+
+## 使用方法
+
+### feature からの依存
+
+feature サービスの `pyproject.toml` に以下を追加：
+
+```toml
+[project]
+dependencies = [
+    "{{ name_snake }}-domain",
+]
+
+[tool.hatch.envs.default]
+extra-dependencies = [
+    "{{ name_snake }}-domain @ {root:uri}/../../../../domain/backend/python/{{ name }}",
+]
+```
+
+### コード例
+
+```python
+from {{ name_snake }}_domain.entities.{{ name_snake }} import {{ name_pascal }}, {{ name_pascal }}Id
+from {{ name_snake }}_domain.value_objects.{{ name_snake }}_name import {{ name_pascal }}Name
+
+# エンティティの作成
+entity_id = {{ name_pascal }}Id(value="unique-id")
+name = {{ name_pascal }}Name(value="Sample Name")
+entity = {{ name_pascal }}.create(id=entity_id, name=name)
+```
+
+## テスト
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
+## バージョン管理
+
+このドメインは SemVer でバージョン管理されています。
+
+- **patch** (0.1.0 -> 0.1.1): バグ修正
+- **minor** (0.1.0 -> 0.2.0): 後方互換性のある機能追加
+- **major** (0.1.0 -> 1.0.0): 破壊的変更
+
+## 関連ドキュメント
+
+- [k1s0 ドメイン開発ガイド](../../../../docs/guides/domain-development.md)
+- [Clean Architecture](../../../../docs/architecture/clean-architecture.md)

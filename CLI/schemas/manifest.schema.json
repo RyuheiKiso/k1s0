@@ -79,7 +79,7 @@
         "language": {
           "type": "string",
           "description": "プログラミング言語",
-          "enum": ["rust", "go", "csharp", "typescript", "dart"]
+          "enum": ["rust", "go", "csharp", "python", "typescript", "dart"]
         },
         "type": {
           "type": "string",

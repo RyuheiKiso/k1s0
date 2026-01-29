@@ -221,7 +221,7 @@ impl Linter {
 
 **service.language:**
 ```rust
-const VALID_LANGUAGES: &[&str] = &["rust", "go", "csharp", "typescript", "dart"];
+const VALID_LANGUAGES: &[&str] = &["rust", "go", "csharp", "python", "typescript", "dart"];
 ```
 
 **service.service_type:**
@@ -235,6 +235,7 @@ const VALID_TEMPLATES: &[&str] = &[
     "backend-rust",
     "backend-go",
     "backend-csharp",
+    "backend-python",
     "frontend-react",
     "frontend-flutter",
 ];
@@ -319,6 +320,38 @@ RequiredFiles {
         "config/stg.yaml",
         "config/prod.yaml",
         "buf.yaml",
+    ],
+}
+```
+
+### backend-python の必須ファイル
+
+```rust
+RequiredFiles {
+    directories: vec![
+        "src",
+        "config",
+        "deploy/base",
+    ],
+    files: vec![
+        "pyproject.toml",
+        "README.md",
+        "config/default.yaml",
+        "config/dev.yaml",
+        "config/stg.yaml",
+        "config/prod.yaml",
+    ],
+}
+```
+
+### backend-python（domain 層）の必須ファイル
+
+```rust
+RequiredFiles {
+    directories: vec![],
+    files: vec![
+        "pyproject.toml",
+        "README.md",
     ],
 }
 ```
@@ -417,6 +450,20 @@ const ENV_VAR_PATTERNS: &[&str] = &[
     ".AddEnvironmentVariables(",
 ];
 // 対象拡張子: .cs
+```
+
+**Python:**
+```rust
+const ENV_VAR_PATTERNS: &[&str] = &[
+    "os.environ",
+    "os.getenv",
+    "os.putenv",
+    "os.unsetenv",
+    "load_dotenv",
+    "from dotenv",
+    "import dotenv",
+];
+// 対象拡張子: .py
 ```
 
 **Dart:**
@@ -556,6 +603,22 @@ C# プロジェクトでは `.csproj` ファイルの `<ProjectReference>` を�
 ```
 
 Include パスからプロジェクト名（層名）を抽出し、禁止依存パターンを検証します。
+
+### Python の依存方向検査
+
+Python ファイル（`.py`）の import 文を解析して依存方向を検証します。
+
+```python
+# domain 層のファイルで application をインポート → K022 違反
+from application.services import UserService  # NG
+import application.usecases  # NG
+from .application import something  # NG
+from ..application import something  # NG
+```
+
+検出パターン:
+- `from {layer}` / `import {layer}`
+- `from .{layer}` / `from ..{layer}`
 
 ---
 

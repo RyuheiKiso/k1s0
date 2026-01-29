@@ -26,7 +26,8 @@ feature/
 ├── backend/
 │   ├── rust/{feature_name}/
 │   ├── go/{feature_name}/
-│   └── csharp/{feature_name}/
+│   ├── csharp/{feature_name}/
+│   └── python/{feature_name}/
 └── frontend/
     ├── react/{feature_name}/
     └── flutter/{feature_name}/
@@ -85,7 +86,22 @@ framework/backend/{lang}/services/{service_name}/
 | `tests/{FeatureName}.Application.Tests/` | アプリケーション層ユニットテスト |
 | `tests/{FeatureName}.Integration.Tests/` | 統合テスト |
 
-### 4.4 バックエンド（Go）
+### 4.4 バックエンド（Python）
+
+| ファイル/ディレクトリ | 説明 |
+|-----------------------|------|
+| `pyproject.toml` | Python パッケージ定義（uv 管理） |
+| `config/` | 設定ファイル置き場 |
+| `config/{default,dev,stg,prod}.yaml` | 環境別設定 |
+| `deploy/` | Kubernetes マニフェスト |
+| `src/{feature_name_snake}/` | ソースコード（Clean Architecture 構成） |
+| `src/{feature_name_snake}/domain/` | エンティティ・値オブジェクト・リポジトリ抽象クラス |
+| `src/{feature_name_snake}/application/` | ユースケース・アプリケーションサービス |
+| `src/{feature_name_snake}/infrastructure/` | リポジトリ実装・外部 I/O |
+| `src/{feature_name_snake}/presentation/` | FastAPI ルーター・gRPC サービス |
+| `tests/` | テストコード（pytest） |
+
+### 4.5 バックエンド（Go）
 
 | ファイル/ディレクトリ | 説明 |
 |-----------------------|------|
@@ -95,7 +111,7 @@ framework/backend/{lang}/services/{service_name}/
 | `deploy/` | Kubernetes マニフェスト |
 | `src/` | ソースコード（Clean Architecture 構成） |
 
-### 4.5 フロントエンド（React）
+### 4.6 フロントエンド（React）
 
 | ファイル/ディレクトリ | 説明 |
 |-----------------------|------|
@@ -108,7 +124,7 @@ framework/backend/{lang}/services/{service_name}/
 | `src/domain/` | entities/value_objects |
 | `src/infrastructure/` | api client/repository 実装 |
 
-### 4.6 フロントエンド（Flutter）
+### 4.7 フロントエンド（Flutter）
 
 | ファイル/ディレクトリ | 説明 |
 |-----------------------|------|

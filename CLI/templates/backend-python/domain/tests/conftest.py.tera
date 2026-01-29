@@ -1,0 +1,24 @@
+"""Test fixtures for {{ name_title }} domain tests."""
+
+import pytest
+
+from {{ name_snake }}_domain.entities.{{ name_snake }} import {{ name_pascal }}, {{ name_pascal }}Id
+from {{ name_snake }}_domain.value_objects.{{ name_snake }}_name import {{ name_pascal }}Name
+
+
+@pytest.fixture
+def sample_id() -> {{ name_pascal }}Id:
+    """Create a sample {{ name_title }} ID."""
+    return {{ name_pascal }}Id(value="test-id-001")
+
+
+@pytest.fixture
+def sample_name() -> {{ name_pascal }}Name:
+    """Create a sample {{ name_title }} name."""
+    return {{ name_pascal }}Name(value="Sample Name")
+
+
+@pytest.fixture
+def sample_entity(sample_id: {{ name_pascal }}Id, sample_name: {{ name_pascal }}Name) -> {{ name_pascal }}:
+    """Create a sample {{ name_title }} entity."""
+    return {{ name_pascal }}.create(id=sample_id, name=sample_name)

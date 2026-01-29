@@ -15,6 +15,9 @@ CLI/templates/
 ├── backend-csharp/
 │   ├── feature/          # C# バックエンドテンプレート
 │   └── domain/           # C# ドメインテンプレート
+├── backend-python/
+│   ├── feature/          # Python バックエンドテンプレート
+│   └── domain/           # Python ドメインテンプレート
 ├── frontend-react/
 │   └── feature/          # React フロントエンドテンプレート
 └── frontend-flutter/
@@ -31,7 +34,7 @@ CLI/templates/
 |--------|------|-----|
 | `feature_name` | 機能名（kebab-case） | `user-management` |
 | `service_name` | サービス名 | `user-management` |
-| `language` | 言語 | `rust`, `go`, `csharp`, `typescript`, `dart` |
+| `language` | 言語 | `rust`, `go`, `csharp`, `python`, `typescript`, `dart` |
 | `service_type` | タイプ | `backend`, `frontend` |
 | `k1s0_version` | k1s0 バージョン | `0.1.0` |
 
@@ -438,6 +441,73 @@ feature/backend/csharp/{service_name}/
 
 ---
 
+## backend-python テンプレート
+
+### ディレクトリ構造
+
+```
+feature/backend/python/{service_name}/
+├── .k1s0/
+│   └── manifest.json.tera
+├── pyproject.toml.tera
+├── README.md.tera
+├── Dockerfile.tera
+├── .dockerignore
+├── config/
+│   ├── default.yaml.tera
+│   ├── dev.yaml.tera
+│   ├── stg.yaml.tera
+│   └── prod.yaml.tera
+├── deploy/
+│   └── base/
+│       ├── configmap.yaml.tera
+│       ├── deployment.yaml.tera
+│       ├── service.yaml.tera
+│       └── kustomization.yaml.tera
+├── proto/
+│   └── service.proto.tera
+├── openapi/
+│   └── openapi.yaml.tera
+├── buf.yaml
+├── buf.gen.yaml.tera
+├── src/
+│   └── {{ feature_name_snake }}/
+│       ├── __init__.py
+│       ├── main.py.tera
+│       ├── domain/
+│       │   ├── __init__.py
+│       │   ├── entities/
+│       │   └── errors/
+│       ├── application/
+│       │   ├── __init__.py
+│       │   ├── services/
+│       │   └── usecases/
+│       ├── infrastructure/
+│       │   ├── __init__.py
+│       │   └── repositories/
+│       └── presentation/
+│           ├── __init__.py
+│           ├── grpc/
+│           └── rest/
+└── tests/
+    ├── conftest.py
+    └── test_health.py
+```
+
+### 特徴
+
+- **FastAPI 0.115+** ベース
+- **uv** によるパッケージ管理（`pyproject.toml`）
+- **Pydantic v2** でバリデーション・DTO
+- **SQLAlchemy 2.0 + asyncpg** で非同期 DB アクセス
+- **Ruff** でフォーマット・リント統合
+- **mypy** で型チェック
+- **pytest + pytest-asyncio + httpx** でテスト
+- **条件付きレンダリング**: `{% if with_grpc %}` で gRPC、`{% if with_db %}` で SQLAlchemy 依存を追加
+- **Multi-stage Docker build**: Python 3.12 ベースイメージ
+
+---
+
 ## frontend-react テンプレート
 
 ### ディレクトリ構造
@@ -572,6 +642,7 @@ flutter:
 | backend-rust | `deploy/`, `buf.yaml`, `buf.gen.yaml` |
 | backend-go | `deploy/`, `buf.yaml`, `buf.gen.yaml` |
 | backend-csharp | `deploy/`, `buf.yaml`, `buf.gen.yaml`, `*.csproj` |
+| backend-python | `deploy/`, `buf.yaml`, `buf.gen.yaml`, `pyproject.toml` |
 | frontend-react | `deploy/` |
 | frontend-flutter | `deploy/` |
 
@@ -582,6 +653,7 @@ flutter:
 | backend-rust | `src/domain/`, `src/application/`, `README.md` |
 | backend-go | `internal/domain/`, `internal/application/`, `README.md` |
 | backend-csharp | `src/*.Domain/`, `src/*.Application/`, `README.md` |
+| backend-python | `src/*/domain/`, `src/*/application/`, `README.md` |
 | frontend-react | `src/domain/`, `src/application/`, `src/presentation/`, `README.md` |
 | frontend-flutter | `lib/src/domain/`, `lib/src/application/`, `lib/src/presentation/`, `README.md` |
 
