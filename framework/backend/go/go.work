@@ -5,6 +5,7 @@ use (
 	./k1s0-cache
 	./k1s0-config
 	./k1s0-db
+	./k1s0-domain-event
 	./k1s0-error
 	./k1s0-grpc-client
 	./k1s0-grpc-server

@@ -428,6 +428,7 @@ lib/src/
 | k1s0-health | Health check probes | 2 |
 | k1s0-db | Database connection/transaction | 2 |
 | k1s0-cache | Redis caching | 2 |
+| k1s0-domain-event | Domain event publish/subscribe/outbox | 2 |
 | k1s0-auth | Authentication/authorization | 3 |
 
 **Tier dependency rules:**
