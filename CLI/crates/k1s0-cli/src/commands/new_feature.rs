@@ -115,6 +115,16 @@ impl std::fmt::Display for ServiceType {
 
 /// `k1s0 new-feature` の引数
 #[derive(Args, Debug)]
+#[command(after_long_help = r#"例:
+  k1s0 new-feature --type backend-rust --name order-processing
+  k1s0 new-feature -t backend-go -n user-management --with-grpc --with-db
+  k1s0 new-feature -t frontend-react -n admin-portal --domain user-management
+
+生成物:
+  Clean Architecture に基づくディレクトリ構造、manifest.json、
+  config/default.yaml、deploy/ テンプレートを生成します。
+  --with-grpc, --with-rest, --with-db で追加の雛形を含められます。
+"#)]
 pub struct NewFeatureArgs {
     /// サービスタイプ
     #[arg(short = 't', long = "type", value_enum)]
@@ -151,6 +161,14 @@ pub struct NewFeatureArgs {
     /// 対話モードを強制する
     #[arg(short = 'i', long)]
     pub interactive: bool,
+
+    /// 確認なしで実行する
+    #[arg(short = 'y', long)]
+    pub yes: bool,
+
+    /// doctor チェックをスキップする
+    #[arg(long)]
+    pub skip_doctor: bool,
 }
 
 impl NewFeatureArgs {
@@ -170,6 +188,8 @@ struct ResolvedArgs {
     with_grpc: bool,
     with_rest: bool,
     with_db: bool,
+    yes: bool,
+    skip_doctor: bool,
 }
 
 /// Domain 情報
@@ -221,6 +241,8 @@ fn resolve_args_from_cli(args: NewFeatureArgs) -> Result<ResolvedArgs> {
         with_grpc: args.with_grpc,
         with_rest: args.with_rest,
         with_db: args.with_db,
+        yes: args.yes,
+        skip_doctor: args.skip_doctor,
     })
 }
 
@@ -280,6 +302,8 @@ fn resolve_args_interactive(args: NewFeatureArgs) -> Result<ResolvedArgs> {
         with_grpc,
         with_rest,
         with_db,
+        yes: args.yes,
+        skip_doctor: args.skip_doctor,
     })
 }
 
@@ -341,6 +365,32 @@ fn execute_generation(args: ResolvedArgs) -> Result<()> {
         }
     }
 
+    // doctor クイックチェック
+    if !args.skip_doctor {
+        let categories = crate::doctor::requirements::categories_for_service_type(
+            &args.service_type.to_string(),
+        );
+        if !categories.is_empty() {
+            let checks = crate::doctor::checker::quick_check(&categories);
+            let failed: Vec<_> = checks.iter().filter(|c| c.has_problem()).collect();
+            if !failed.is_empty() {
+                out.warning("環境チェックで問題が検出されました:");
+                for check in &failed {
+                    out.warning(&format!("  - {}: {:?}", check.requirement.name, check.status));
+                }
+                out.hint("'k1s0 doctor' で詳細を確認してください");
+                out.hint("'--skip-doctor' でこのチェックをスキップできます");
+                out.newline();
+
+                if !args.yes && !out.is_json_mode() && prompts::is_interactive()
+                    && !out.confirm_proceed("問題がありますが続行しますか？")
+                {
+                    return Err(CliError::cancelled("ユーザーがキャンセルしました"));
+                }
+            }
+        }
+    }
+
     // テンプレートディレクトリを特定
     let template_dir = find_template_dir(args.service_type)?;
     out.info(&format!("テンプレート: {}", template_dir.display()));
@@ -351,20 +401,59 @@ fn execute_generation(args: ResolvedArgs) -> Result<()> {
     })?;
     out.list_item("fingerprint", &fingerprint[..16]);
 
+    // テンプレートレンダラーを作成
+    let renderer = TemplateRenderer::new(&template_dir).map_err(|e| {
+        CliError::internal(format!("テンプレートの読み込みに失敗: {}", e))
+    })?;
+
+    // プレビュー + 確認
+    if !args.yes && !out.is_json_mode() && prompts::is_interactive() {
+        if let Ok(preview) = renderer.preview_directory() {
+            out.newline();
+            out.preview_header(&format!("'{}' の生成内容", args.name));
+            out.preview_summary(preview.files.len(), preview.directory_count);
+            for file in preview.files.iter().take(10) {
+                out.hint(&format!("  + {}", file));
+            }
+            if preview.files.len() > 10 {
+                out.hint(&format!("  ... 他 {} ファイル", preview.files.len() - 10));
+            }
+            out.newline();
+
+            if !out.confirm_proceed("生成を実行しますか？") {
+                return Err(CliError::cancelled("ユーザーがキャンセルしました"));
+            }
+        }
+    }
+
     out.newline();
     out.info("テンプレートを展開中...");
 
     // Tera コンテキストを作成
     let context = create_template_context(&args, domain_info.as_ref());
 
-    // テンプレートを展開
-    let renderer = TemplateRenderer::new(&template_dir).map_err(|e| {
-        CliError::internal(format!("テンプレートの読み込みに失敗: {}", e))
-    })?;
+    // テンプレートを展開（進捗付き）
+    let progress_bar = out.progress_bar(0, "展開中...");
+    struct CliProgress<'a> {
+        bar: &'a indicatif::ProgressBar,
+    }
+    impl k1s0_generator::progress::ProgressCallback for CliProgress<'_> {
+        fn on_total(&self, total: usize) {
+            self.bar.set_length(total as u64);
+        }
+        fn on_file_done(&self, path: &str) {
+            self.bar.set_message(path.to_string());
+            self.bar.inc(1);
+        }
+    }
+    let progress = CliProgress { bar: &progress_bar };
 
-    let render_result = renderer.render_directory(&output_dir, &context).map_err(|e| {
-        CliError::internal(format!("テンプレートの展開に失敗: {}", e))
-    })?;
+    let render_result = renderer
+        .render_directory_with_progress(&output_dir, &context, &progress)
+        .map_err(|e| {
+            CliError::internal(format!("テンプレートの展開に失敗: {}", e))
+        })?;
+    progress_bar.finish_and_clear();
 
     // 結果を表示
     out.newline();
@@ -778,6 +867,8 @@ mod tests {
             with_rest: false,
             with_db: false,
             interactive: false,
+            yes: false,
+            skip_doctor: false,
         };
         assert!(args_complete.has_required_args());
 
@@ -791,6 +882,8 @@ mod tests {
             with_rest: false,
             with_db: false,
             interactive: false,
+            yes: false,
+            skip_doctor: false,
         };
         assert!(!args_missing_type.has_required_args());
 
@@ -804,6 +897,8 @@ mod tests {
             with_rest: false,
             with_db: false,
             interactive: false,
+            yes: false,
+            skip_doctor: false,
         };
         assert!(!args_missing_name.has_required_args());
     }

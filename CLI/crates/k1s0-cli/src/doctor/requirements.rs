@@ -256,10 +256,39 @@ pub fn all_tools() -> Vec<&'static ToolRequirement> {
     tools
 }
 
+/// サービスタイプに対応するツールカテゴリを取得
+pub fn categories_for_service_type(name: &str) -> Vec<ToolCategory> {
+    match name {
+        "backend-rust" => vec![ToolCategory::Rust],
+        "backend-go" => vec![ToolCategory::Go],
+        "backend-python" => vec![],
+        "backend-csharp" => vec![],
+        "frontend-react" => vec![ToolCategory::Node],
+        "frontend-flutter" => vec![ToolCategory::Flutter],
+        _ => vec![],
+    }
+}
+
 /// カテゴリでフィルタされたツールを取得
 pub fn tools_by_category(category: ToolCategory) -> Vec<&'static ToolRequirement> {
     all_tools()
         .into_iter()
         .filter(|t| t.category == category)
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_categories_for_service_type() {
+        assert_eq!(categories_for_service_type("backend-rust"), vec![ToolCategory::Rust]);
+        assert_eq!(categories_for_service_type("backend-go"), vec![ToolCategory::Go]);
+        assert_eq!(categories_for_service_type("frontend-react"), vec![ToolCategory::Node]);
+        assert_eq!(categories_for_service_type("frontend-flutter"), vec![ToolCategory::Flutter]);
+        assert!(categories_for_service_type("backend-python").is_empty());
+        assert!(categories_for_service_type("backend-csharp").is_empty());
+        assert!(categories_for_service_type("unknown").is_empty());
+    }
 }

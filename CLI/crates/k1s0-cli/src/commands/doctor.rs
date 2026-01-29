@@ -46,6 +46,12 @@ impl From<CheckCategory> for Option<ToolCategory> {
 
 /// `k1s0 doctor` の引数
 #[derive(Args, Debug)]
+#[command(after_long_help = r#"例:
+  k1s0 doctor
+  k1s0 doctor --check rust --verbose
+
+開発環境に必要なツールのインストール状況とバージョンを診断します。
+"#)]
 pub struct DoctorArgs {
     /// 詳細情報を表示
     #[arg(short, long)]

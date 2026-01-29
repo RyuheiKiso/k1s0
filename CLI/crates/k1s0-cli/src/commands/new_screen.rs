@@ -68,6 +68,13 @@ impl FrontendType {
 
 /// `k1s0 new-screen` の引数
 #[derive(Args, Debug)]
+#[command(after_long_help = r#"例:
+  k1s0 new-screen -s users.list -T "ユーザー一覧" -f feature/frontend/react/my-app
+  k1s0 new-screen -t flutter -s settings.profile -T "プロフィール" -f my-app --with-menu
+
+生成物:
+  ページコンポーネントファイルと、ルーティング・メニュー設定のスニペットを出力します。
+"#)]
 pub struct NewScreenArgs {
     /// フロントエンドタイプ
     #[arg(short = 't', long = "type", value_enum, default_value = "react")]
@@ -108,6 +115,10 @@ pub struct NewScreenArgs {
     /// 対話モードを強制する
     #[arg(short = 'i', long)]
     pub interactive: bool,
+
+    /// 確認なしで実行する
+    #[arg(short = 'y', long)]
+    pub yes: bool,
 }
 
 impl NewScreenArgs {
@@ -118,6 +129,7 @@ impl NewScreenArgs {
 }
 
 /// 解決済みの引数（対話入力後）
+#[allow(dead_code)]
 struct ResolvedArgs {
     frontend_type: FrontendType,
     screen_id: String,
@@ -128,6 +140,7 @@ struct ResolvedArgs {
     permissions: Option<String>,
     flags: Option<String>,
     force: bool,
+    yes: bool,
 }
 
 /// `k1s0 new-screen` を実行する
@@ -173,6 +186,7 @@ fn resolve_args_from_cli(args: NewScreenArgs) -> Result<ResolvedArgs> {
         permissions: args.permissions,
         flags: args.flags,
         force: args.force,
+        yes: args.yes,
     })
 }
 
@@ -230,6 +244,7 @@ fn resolve_args_interactive(args: NewScreenArgs) -> Result<ResolvedArgs> {
         permissions: args.permissions,
         flags: args.flags,
         force: args.force,
+        yes: args.yes,
     })
 }
 
@@ -596,6 +611,7 @@ mod tests {
             flags: None,
             force: false,
             interactive: false,
+            yes: false,
         };
         assert!(args_complete.has_required_args());
 
@@ -610,6 +626,7 @@ mod tests {
             flags: None,
             force: false,
             interactive: false,
+            yes: false,
         };
         assert!(!args_missing.has_required_args());
     }

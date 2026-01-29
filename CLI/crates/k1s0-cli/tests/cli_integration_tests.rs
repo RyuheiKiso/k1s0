@@ -1073,6 +1073,156 @@ fn test_new_feature_interactive_flag_no_tty_fails() {
         .stderr(predicate::str::contains("TTY"));
 }
 
+// =============================================================================
+// v0.2.2 UX 機能テスト
+// =============================================================================
+
+#[test]
+fn test_new_feature_yes_flag_skips_confirmation() {
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    let repo_root = std::path::Path::new(&manifest_dir)
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+
+    let output_path = temp_dir.path().join("test-yes");
+
+    k1s0()
+        .current_dir(repo_root)
+        .args([
+            "new-feature",
+            "-t",
+            "backend-rust",
+            "-n",
+            "test-yes",
+            "-o",
+            output_path.to_str().unwrap(),
+            "--yes",
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("生成しました"));
+}
+
+#[test]
+fn test_new_domain_yes_flag_skips_confirmation() {
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    let repo_root = std::path::Path::new(&manifest_dir)
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+
+    let output_path = temp_dir.path().join("test-yes-domain");
+
+    k1s0()
+        .current_dir(repo_root)
+        .args([
+            "new-domain",
+            "-t",
+            "backend-rust",
+            "-n",
+            "test-yes-domain",
+            "-o",
+            output_path.to_str().unwrap(),
+            "--yes",
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("作成しました"));
+}
+
+#[test]
+fn test_new_feature_skip_doctor() {
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    let repo_root = std::path::Path::new(&manifest_dir)
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+
+    let output_path = temp_dir.path().join("test-skip-doctor");
+
+    k1s0()
+        .current_dir(repo_root)
+        .args([
+            "new-feature",
+            "-t",
+            "backend-rust",
+            "-n",
+            "test-skip-doctor",
+            "-o",
+            output_path.to_str().unwrap(),
+            "--skip-doctor",
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("生成しました"));
+}
+
+#[test]
+fn test_help_contains_examples() {
+    // new-feature
+    k1s0()
+        .args(["new-feature", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("例:"));
+
+    // new-domain
+    k1s0()
+        .args(["new-domain", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("例:"));
+
+    // lint
+    k1s0()
+        .args(["lint", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("例:"));
+
+    // upgrade
+    k1s0()
+        .args(["upgrade", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("例:"));
+
+    // doctor
+    k1s0()
+        .args(["doctor", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("例:"));
+
+    // init
+    k1s0()
+        .args(["init", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("例:"));
+}
+
+#[test]
+fn test_init_skip_doctor() {
+    let temp_dir = tempfile::tempdir().unwrap();
+
+    k1s0()
+        .args(["init", "--skip-doctor", temp_dir.path().to_str().unwrap()])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("初期化"));
+}
+
 // ============================================================================
 // Phase 0: 引数なし時の動作テスト
 // ============================================================================

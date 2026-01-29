@@ -21,6 +21,12 @@ const CONFIG_FILE: &str = "config.json";
 
 /// `k1s0 init` の引数
 #[derive(Args, Debug)]
+#[command(after_long_help = r#"例:
+  k1s0 init
+  k1s0 init /path/to/project --force
+
+.k1s0/ ディレクトリと config.json を作成し、プロジェクトを初期化します。
+"#)]
 pub struct InitArgs {
     /// 初期化するディレクトリ（デフォルト: カレントディレクトリ）
     #[arg(default_value = ".")]
@@ -37,6 +43,10 @@ pub struct InitArgs {
     /// 対話モードを強制する
     #[arg(short = 'i', long)]
     pub interactive: bool,
+
+    /// doctor チェックをスキップする
+    #[arg(long)]
+    pub skip_doctor: bool,
 }
 
 /// プロジェクト設定（.k1s0/config.json）
@@ -142,6 +152,7 @@ struct ResolvedArgs {
     template_source: String,
     default_language: String,
     default_service_type: String,
+    skip_doctor: bool,
 }
 
 /// `k1s0 init` を実行する
@@ -174,6 +185,7 @@ fn resolve_args_from_cli(args: InitArgs) -> ResolvedArgs {
         template_source: args.template_source,
         default_language: default_language(),
         default_service_type: default_service_type(),
+        skip_doctor: args.skip_doctor,
     }
 }
 
@@ -215,6 +227,7 @@ fn resolve_args_interactive(args: InitArgs) -> Result<ResolvedArgs> {
         template_source,
         default_language,
         default_service_type,
+        skip_doctor: args.skip_doctor,
     })
 }
 
@@ -279,6 +292,20 @@ fn execute_init(args: ResolvedArgs) -> Result<()> {
     out.newline();
     out.success("初期化が完了しました");
     out.newline();
+
+    // doctor クイックチェック
+    if !args.skip_doctor {
+        let checks = crate::doctor::checker::check_required_tools();
+        let failed: Vec<_> = checks.iter().filter(|c| c.has_problem()).collect();
+        if !failed.is_empty() {
+            out.warning("環境チェックで問題が検出されました:");
+            for check in &failed {
+                out.warning(&format!("  - {}: {:?}", check.requirement.name, check.status));
+            }
+            out.hint("'k1s0 doctor' で詳細を確認してください");
+            out.newline();
+        }
+    }
 
     out.header("次のステップ:");
     out.hint("k1s0 new-feature <name> でサービスの雛形を生成できます");

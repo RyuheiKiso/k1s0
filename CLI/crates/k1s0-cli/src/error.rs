@@ -89,6 +89,17 @@ impl ErrorKind {
     }
 }
 
+/// リカバリコマンド
+///
+/// エラーから復旧するために実行可能なコマンドの提案。
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct RecoveryCommand {
+    /// 実行するコマンド
+    pub command: String,
+    /// コマンドの説明
+    pub description: String,
+}
+
 /// CLI エラー
 ///
 /// 失敗時に「原因/対象/次のアクション」を出力するための構造化エラー。
@@ -104,6 +115,8 @@ pub struct CliError {
     pub hint: Option<String>,
     /// 元のエラー
     pub source: Option<Box<dyn std::error::Error + Send + Sync>>,
+    /// リカバリコマンド（復旧のために実行可能なコマンド）
+    pub recovery_commands: Vec<RecoveryCommand>,
 }
 
 impl CliError {
@@ -115,6 +128,7 @@ impl CliError {
             target: None,
             hint: None,
             source: None,
+            recovery_commands: Vec::new(),
         }
     }
 
@@ -138,6 +152,15 @@ impl CliError {
     /// 元のエラーを設定
     pub fn with_source(mut self, source: impl std::error::Error + Send + Sync + 'static) -> Self {
         self.source = Some(Box::new(source));
+        self
+    }
+
+    /// リカバリコマンドを追加
+    pub fn with_recovery(mut self, command: impl Into<String>, description: impl Into<String>) -> Self {
+        self.recovery_commands.push(RecoveryCommand {
+            command: command.into(),
+            description: description.into(),
+        });
         self
     }
 
@@ -188,6 +211,7 @@ impl CliError {
         Self::config("manifest.json が見つかりません")
             .with_path(path)
             .with_hint("k1s0 init を実行してプロジェクトを初期化してください")
+            .with_recovery("k1s0 init", "プロジェクトを初期化")
     }
 
     /// サービス名が不正
@@ -201,6 +225,10 @@ impl CliError {
         Self::conflict("ディレクトリが既に存在します")
             .with_path(path)
             .with_hint("--force オプションで上書きするか、別の名前を指定してください")
+            .with_recovery(
+                format!("k1s0 new-feature --force -o {}", path.display()),
+                "既存ディレクトリを上書きして再生成",
+            )
     }
 
     /// ファイルが見つからない
@@ -211,7 +239,7 @@ impl CliError {
     /// テンプレートが見つからない
     pub fn template_not_found(name: &str) -> Self {
         Self::config(format!("テンプレートが見つかりません: {}", name))
-            .with_hint("利用可能なテンプレート: backend-rust, backend-go, frontend-react, frontend-flutter")
+            .with_hint("利用可能なテンプレート: backend-rust, backend-go, backend-csharp, backend-python, frontend-react, frontend-flutter")
     }
 
     /// 対話モードが必要だが TTY がない
@@ -276,6 +304,7 @@ impl From<k1s0_generator::Error> for CliError {
                 Self::conflict("ファイルの衝突が検出されました")
                     .with_target(path.clone())
                     .with_hint("--force オプションで上書きするか、手動で解決してください")
+                    .with_recovery("k1s0 upgrade --force", "衝突を上書きして適用")
             }
             _ => Self::internal(e.to_string()),
         }
@@ -284,3 +313,34 @@ impl From<k1s0_generator::Error> for CliError {
 
 /// CLI の Result 型
 pub type Result<T> = std::result::Result<T, CliError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_with_recovery() {
+        let err = CliError::config("test error")
+            .with_recovery("k1s0 init", "初期化する")
+            .with_recovery("k1s0 doctor", "環境を確認");
+
+        assert_eq!(err.recovery_commands.len(), 2);
+        assert_eq!(err.recovery_commands[0].command, "k1s0 init");
+        assert_eq!(err.recovery_commands[0].description, "初期化する");
+        assert_eq!(err.recovery_commands[1].command, "k1s0 doctor");
+    }
+
+    #[test]
+    fn test_manifest_not_found_has_recovery() {
+        let err = CliError::manifest_not_found(&PathBuf::from("/test"));
+        assert!(!err.recovery_commands.is_empty());
+        assert!(err.recovery_commands[0].command.contains("init"));
+    }
+
+    #[test]
+    fn test_directory_exists_has_recovery() {
+        let err = CliError::directory_exists(&PathBuf::from("/test"));
+        assert!(!err.recovery_commands.is_empty());
+        assert!(err.recovery_commands[0].command.contains("--force"));
+    }
+}

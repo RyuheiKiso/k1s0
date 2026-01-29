@@ -12,6 +12,9 @@ use crate::output::{output, SuccessOutput};
 
 /// `k1s0 domain-catalog` の引数
 #[derive(Args, Debug)]
+#[command(after_long_help = r#"例:
+  k1s0 domain-catalog --language rust --include-deprecated
+"#)]
 pub struct DomainCatalogArgs {
     /// 言語でフィルタ（rust, go, typescript, dart）
     #[arg(short, long)]

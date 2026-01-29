@@ -167,6 +167,21 @@ impl Output {
             eprintln!("  ヒント: {}", hint_styled);
         }
 
+        // リカバリコマンド
+        if !error.recovery_commands.is_empty() {
+            eprintln!();
+            let recovery_label = self.style_info().apply_to("試してみてください:");
+            eprintln!("  {}", recovery_label);
+            for rc in &error.recovery_commands {
+                let cmd_styled = if self.use_color() {
+                    style(&rc.command).green().bold().to_string()
+                } else {
+                    rc.command.clone()
+                };
+                eprintln!("    $ {}  # {}", cmd_styled, rc.description);
+            }
+        }
+
         // 詳細（verbose モード）
         if self.config.verbose {
             if let Some(source) = &error.source {
@@ -318,6 +333,42 @@ impl Output {
         pb
     }
 
+    /// プレビューヘッダーを出力
+    pub fn preview_header(&self, title: &str) {
+        if self.config.mode == OutputMode::Quiet {
+            return;
+        }
+
+        let prefix = self.style_info().apply_to("プレビュー:");
+        eprintln!("{} {}", prefix, title);
+    }
+
+    /// プレビューサマリーを出力
+    pub fn preview_summary(&self, file_count: usize, dir_count: usize) {
+        if self.config.mode == OutputMode::Quiet {
+            return;
+        }
+
+        eprintln!(
+            "  {} ファイル, {} ディレクトリが生成されます",
+            file_count, dir_count
+        );
+    }
+
+    /// 続行確認を表示（inquire を使用）
+    ///
+    /// true を返した場合は続行、false はキャンセル
+    pub fn confirm_proceed(&self, message: &str) -> bool {
+        if self.config.mode != OutputMode::Human {
+            return true;
+        }
+
+        inquire::Confirm::new(message)
+            .with_default(true)
+            .prompt()
+            .unwrap_or_default()
+    }
+
     /// スピナーを作成
     pub fn spinner(&self, message: &str) -> ProgressBar {
         if self.config.mode != OutputMode::Human {
@@ -355,6 +406,9 @@ pub struct ErrorOutput {
     /// ヒント
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hint: Option<String>,
+    /// リカバリコマンド
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub recovery_commands: Vec<crate::error::RecoveryCommand>,
 }
 
 impl From<&CliError> for ErrorOutput {
@@ -366,6 +420,7 @@ impl From<&CliError> for ErrorOutput {
             message: e.message.clone(),
             target: e.target.clone(),
             hint: e.hint.clone(),
+            recovery_commands: e.recovery_commands.clone(),
         }
     }
 }
