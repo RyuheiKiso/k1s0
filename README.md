@@ -31,10 +31,13 @@ k1s0/
 ├── CLI/                    # 雛形生成・導入・アップグレード CLI（Rust）
 │   ├── crates/             # CLI を構成する Rust crate 群
 │   │   ├── k1s0-cli/       # 実行 CLI（clap ベース）
-│   │   └── k1s0-generator/ # テンプレ展開・差分適用・Lint エンジン
+│   │   ├── k1s0-generator/ # テンプレ展開・差分適用・Lint エンジン
+│   │   └── k1s0-lsp/       # LSP サーバ（補完・ホバー）
 │   └── templates/          # 生成テンプレ群
 │       ├── backend-rust/
 │       ├── backend-go/
+│       ├── backend-csharp/
+│       ├── backend-python/
 │       ├── frontend-react/
 │       └── frontend-flutter/
 ├── framework/              # 技術基盤層（共通部品・共通サービス）
@@ -42,7 +45,9 @@ k1s0/
 │   │   ├── rust/
 │   │   │   ├── crates/     # 共通 crate 群
 │   │   │   └── services/   # 共通マイクロサービス
-│   │   └── go/
+│   │   ├── go/
+│   │   ├── csharp/          # C# NuGet パッケージ
+│   │   └── python/          # Python パッケージ（uv）
 │   ├── frontend/
 │   │   ├── react/
 │   │   └── flutter/
@@ -51,14 +56,18 @@ k1s0/
 ├── domain/                 # 業務領域共通層（複数 feature で共有）
 │   ├── backend/
 │   │   ├── rust/           # Rust domain ライブラリ
-│   │   └── go/             # Go domain モジュール
+│   │   ├── go/             # Go domain モジュール
+│   │   ├── csharp/         # C# domain プロジェクト
+│   │   └── python/         # Python domain パッケージ
 │   └── frontend/
 │       ├── react/          # React domain パッケージ
 │       └── flutter/        # Flutter domain パッケージ
 ├── feature/                # 個別機能層（各チームのサービス実装）
 │   ├── backend/
 │   │   ├── rust/
-│   │   └── go/
+│   │   ├── go/
+│   │   ├── csharp/
+│   │   └── python/
 │   ├── frontend/
 │   │   ├── react/
 │   │   └── flutter/
@@ -66,8 +75,10 @@ k1s0/
 ├── bff/                    # フロントエンド向け集約 API 層（任意）
 ├── docs/                   # ドキュメント
 │   ├── adr/                # Architecture Decision Records
+│   ├── architecture/       # アーキテクチャ設計
 │   ├── design/             # 設計書
 │   ├── conventions/        # 規約
+│   ├── guides/             # 開発ガイド
 │   └── operations/         # 運用
 └── work/                   # 検討中の草案
 ```
@@ -139,13 +150,17 @@ k1s0 new-feature --type backend-rust
 | `k1s0 domain version` | domain バージョンの表示・更新 |
 | `k1s0 domain dependents` | domain に依存する feature の一覧表示 |
 | `k1s0 domain impact` | domain バージョンアップの影響分析 |
+| `k1s0 domain-catalog` | domain カタログ（依存状況付き）の表示 |
+| `k1s0 domain-graph` | domain 依存グラフ出力（Mermaid/DOT） |
+| `k1s0 doctor` | 開発環境の健全性チェック |
 
 ### 共通オプション
 
 ```bash
--v, --verbose     # 詳細出力
---no-color        # カラー出力無効化
---json            # JSON 形式出力
+-v, --verbose      # 詳細出力
+-i, --interactive  # 対話モードを強制起動
+--no-color         # カラー出力無効化
+--json             # JSON 形式出力
 ```
 
 ## Lint 機能
@@ -206,12 +221,14 @@ k1s0 lint --strict
 
 ## テンプレート
 
-4 種類のサービステンプレートを提供します。各テンプレートは feature 層と domain 層の両方に対応しています。
+6 種類のサービステンプレートを提供します。各テンプレートは feature 層と domain 層の両方に対応しています。
 
 | テンプレート | サブテンプレート | 出力先 |
 |-------------|-----------------|--------|
 | backend-rust | feature, domain | `feature/backend/rust/{name}/`, `domain/backend/rust/{name}/` |
 | backend-go | feature, domain | `feature/backend/go/{name}/`, `domain/backend/go/{name}/` |
+| backend-csharp | feature, domain | `feature/backend/csharp/{name}/`, `domain/backend/csharp/{name}/` |
+| backend-python | feature, domain | `feature/backend/python/{name}/`, `domain/backend/python/{name}/` |
 | frontend-react | feature, domain, screen | `feature/frontend/react/{name}/`, `domain/frontend/react/{name}/` |
 | frontend-flutter | feature, domain, screen | `feature/frontend/flutter/{name}/`, `domain/frontend/flutter/{name}/` |
 
@@ -249,33 +266,103 @@ k1s0 lint --strict
 
 ### Backend（Rust）
 
-11 個の共通 crate を提供します。
+12 個の共通 crate を提供します。
 
-| Crate | 説明 |
-|-------|------|
-| k1s0-error | エラー表現の統一 |
-| k1s0-config | 設定読み込み |
-| k1s0-validation | 入力バリデーション |
-| k1s0-observability | ログ/トレース/メトリクス |
-| k1s0-grpc-server | gRPC サーバ共通基盤 |
-| k1s0-grpc-client | gRPC クライアント共通 |
-| k1s0-resilience | レジリエンスパターン |
-| k1s0-health | ヘルスチェック |
-| k1s0-db | DB 接続・トランザクション |
-| k1s0-cache | Redis キャッシュ |
-| k1s0-auth | 認証・認可 |
+| Crate | 説明 | Tier |
+|-------|------|------|
+| k1s0-error | エラー表現の統一 | 1 |
+| k1s0-config | 設定読み込み | 1 |
+| k1s0-validation | 入力バリデーション | 1 |
+| k1s0-observability | ログ/トレース/メトリクス | 2 |
+| k1s0-grpc-server | gRPC サーバ共通基盤 | 2 |
+| k1s0-grpc-client | gRPC クライアント共通 | 2 |
+| k1s0-resilience | レジリエンスパターン | 2 |
+| k1s0-health | ヘルスチェック | 2 |
+| k1s0-db | DB 接続・トランザクション | 2 |
+| k1s0-cache | Redis キャッシュ | 2 |
+| k1s0-domain-event | ドメインイベント発行/購読/Outbox | 2 |
+| k1s0-auth | 認証・認可 | 3 |
+
+### Backend（Go）
+
+12 個の共通モジュールを提供します。
+
+| Module | 説明 | Tier |
+|--------|------|------|
+| k1s0-error | エラー表現の統一 | 1 |
+| k1s0-config | 設定読み込み | 1 |
+| k1s0-validation | 入力バリデーション | 1 |
+| k1s0-observability | ログ/トレース/メトリクス | 2 |
+| k1s0-grpc-server | gRPC サーバ共通基盤 | 2 |
+| k1s0-grpc-client | gRPC クライアント共通 | 2 |
+| k1s0-resilience | レジリエンスパターン | 2 |
+| k1s0-health | ヘルスチェック | 2 |
+| k1s0-db | DB 接続・トランザクション | 2 |
+| k1s0-cache | Redis キャッシュ | 2 |
+| k1s0-domain-event | ドメインイベント発行/購読/Outbox | 2 |
+| k1s0-auth | 認証・認可 | 3 |
+
+### Backend（C#）
+
+8 個の NuGet パッケージを提供します。
+
+| Package | 説明 | Tier |
+|---------|------|------|
+| K1s0.Error | エラー表現の統一 | 1 |
+| K1s0.Config | 設定読み込み | 1 |
+| K1s0.Validation | 入力バリデーション | 1 |
+| K1s0.Observability | ログ/トレース/メトリクス | 2 |
+| K1s0.Grpc.Server | gRPC サーバ共通基盤 | 2 |
+| K1s0.Grpc.Client | gRPC クライアント共通 | 2 |
+| K1s0.Health | ヘルスチェック | 2 |
+| K1s0.Db | DB 接続・トランザクション（EF Core） | 2 |
+
+### Backend（Python）
+
+8 個の共通パッケージを提供します。
+
+| Package | 説明 | Tier |
+|---------|------|------|
+| k1s0-error | エラー表現の統一 | 1 |
+| k1s0-config | 設定読み込み（YAML） | 1 |
+| k1s0-validation | 入力バリデーション（Pydantic） | 1 |
+| k1s0-observability | ログ/トレース/メトリクス（OpenTelemetry） | 2 |
+| k1s0-grpc-server | gRPC サーバ共通基盤（grpcio） | 2 |
+| k1s0-grpc-client | gRPC クライアント共通 | 2 |
+| k1s0-health | ヘルスチェック（FastAPI） | 2 |
+| k1s0-db | DB 接続・トランザクション（SQLAlchemy + asyncpg） | 2 |
 
 ### Frontend（React）
 
-5 個の共通パッケージを提供します（実装済み）。
+10 個の共通パッケージを提供します。
 
 | Package | 説明 |
 |---------|------|
 | @k1s0/navigation | 設定駆動ナビゲーション |
 | @k1s0/config | YAML 設定管理 |
 | @k1s0/api-client | API 通信クライアント |
-| @k1s0/ui | Design System（Material-UI） |
+| @k1s0/ui | Design System（Material-UI）、DataTable、Form Generator |
 | @k1s0/shell | AppShell（Header/Sidebar/Footer） |
+| @k1s0/auth-client | クライアントサイド認証 |
+| @k1s0/observability | フロントエンドログ/分析 |
+| @k1s0/realtime | WebSocket/SSE クライアント（再接続・ハートビート・オフラインキュー） |
+| eslint-config-k1s0 | ESLint ルール |
+| tsconfig-k1s0 | 共有 TypeScript 設定 |
+
+### Frontend（Flutter）
+
+8 個の共通パッケージを提供します。
+
+| Package | 説明 |
+|---------|------|
+| k1s0_navigation | 設定駆動ルーティング（go_router） |
+| k1s0_config | YAML 設定管理 |
+| k1s0_http | HTTP クライアント（Dio） |
+| k1s0_ui | Design System（Material 3）、DataTable、Form Generator |
+| k1s0_auth | 認証クライアント（JWT/OIDC） |
+| k1s0_observability | 構造化ログ・トレーシング |
+| k1s0_state | Riverpod 状態管理ユーティリティ |
+| k1s0_realtime | WebSocket/SSE クライアント（再接続・ハートビート・オフラインキュー） |
 
 詳細は [Framework 設計書](docs/design/framework.md) を参照してください。
 
@@ -283,13 +370,14 @@ k1s0 lint --strict
 
 | レイヤー | 技術 |
 |---------|------|
-| **バックエンド** | Rust (axum + tokio), Go |
-| **フロントエンド** | React (Material-UI, Zod), Flutter |
-| **CLI** | Rust 1.85+ (clap 4.5, Tera 1.19) |
+| **バックエンド** | Rust (axum + tokio), Go, C# (ASP.NET Core 8.0), Python (FastAPI) |
+| **フロントエンド** | React (Material-UI, Zod, TypeScript 5.5), Flutter |
+| **CLI** | Rust 1.85+ (clap 4.5, Tera 1.19, tokio) |
 | **データベース** | PostgreSQL |
 | **キャッシュ** | Redis |
 | **観測性** | OpenTelemetry |
 | **API** | gRPC (内部), REST/OpenAPI (外部) |
+| **契約管理** | buf (proto), Spectral (OpenAPI) |
 
 ## 守るべき重要ルール
 
