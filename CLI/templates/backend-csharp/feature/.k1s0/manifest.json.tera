@@ -1,0 +1,66 @@
+{
+  "$schema": "https://k1s0.dev/schemas/manifest.json",
+  "schema_version": "1.0.0",
+  "k1s0_version": "{{ k1s0_version | default(value="0.1.0") }}",
+  "template": {
+    "name": "backend-csharp",
+    "version": "{{ template_version | default(value="0.1.0") }}",
+    "source": "local",
+    "path": "CLI/templates/backend-csharp/feature",
+    "fingerprint": "{{ fingerprint | default(value="") }}"
+  },
+  "service": {
+    "service_name": "{{ feature_name }}",
+    "language": "csharp",
+    "type": "backend",
+    "framework": "aspnetcore"
+  },
+  "layer": "feature",
+  {% if has_domain | default(value=false) -%}
+  "domain": "{{ domain_name }}",
+  "domain_version": "{{ domain_version_constraint | default(value="^0.1.0") }}",
+  {% else -%}
+  "domain": null,
+  "domain_version": null,
+  {% endif -%}
+  "generated_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
+  "managed_paths": [
+    "deploy/",
+    "proto/",
+    "openapi/",
+    "config/",
+    "buf.yaml",
+    "buf.gen.yaml",
+    "Directory.Build.props",
+    "Directory.Packages.props"
+  ],
+  "protected_paths": [
+    "src/{{ feature_name_pascal }}.Domain/",
+    "src/{{ feature_name_pascal }}.Application/"
+  ],
+  "update_policy": {
+    "deploy/": "auto",
+    "config/": "suggest_only",
+    "src/{{ feature_name_pascal }}.Domain/": "protected",
+    "src/{{ feature_name_pascal }}.Application/": "protected",
+    "src/{{ feature_name_pascal }}.Infrastructure/": "suggest_only",
+    "src/{{ feature_name_pascal }}.Presentation/": "suggest_only",
+    "migrations/": "suggest_only"
+  },
+  "checksums": {},
+  "dependencies": {
+    "framework": [
+      "K1s0.Error",
+      "K1s0.Config",
+      "K1s0.Observability"
+    ],
+    "framework_packages": [
+      { "name": "K1s0.Error", "version": "{{ k1s0_version | default(value="0.1.0") }}" },
+      { "name": "K1s0.Config", "version": "{{ k1s0_version | default(value="0.1.0") }}" },
+      { "name": "K1s0.Observability", "version": "{{ k1s0_version | default(value="0.1.0") }}" }
+    ]{% if has_domain | default(value=false) %},
+    "domain": {
+      "{{ domain_name }}": "{{ domain_version_constraint | default(value="^0.1.0") }}"
+    }{% endif %}
+  }
+}

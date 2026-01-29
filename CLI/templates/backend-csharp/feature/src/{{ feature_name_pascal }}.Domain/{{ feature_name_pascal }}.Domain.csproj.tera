@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>{{ feature_name_pascal }}.Domain</RootNamespace>
+    <AssemblyName>{{ feature_name_pascal }}.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <!-- Domain layer has no external dependencies (Clean Architecture) -->
+
+</Project>

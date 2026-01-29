@@ -1,0 +1,38 @@
+// {{ name_pascal }} リポジトリインターフェース定義
+
+namespace {{ name_pascal }}.Domain.Repositories;
+{% if with_repository %}
+
+using {{ name_pascal }}.Domain.Entities;
+
+/// <summary>
+/// {{ name_pascal }} エンティティの永続化インターフェース。
+/// </summary>
+public interface I{{ name_pascal }}Repository
+{
+    /// <summary>
+    /// ID でエンティティを検索します。
+    /// </summary>
+    /// <param name="id">検索する ID。</param>
+    /// <param name="cancellationToken">キャンセルトークン。</param>
+    /// <returns>見つかったエンティティ。見つからない場合は <c>null</c>。</returns>
+    Task<{{ name_pascal }}?> FindByIdAsync({{ name_pascal }}Id id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// エンティティを保存します（新規作成・更新の両方に対応）。
+    /// </summary>
+    /// <param name="entity">保存するエンティティ。</param>
+    /// <param name="cancellationToken">キャンセルトークン。</param>
+    Task SaveAsync({{ name_pascal }} entity, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// エンティティを削除します。
+    /// </summary>
+    /// <param name="id">削除する ID。</param>
+    /// <param name="cancellationToken">キャンセルトークン。</param>
+    Task DeleteAsync({{ name_pascal }}Id id, CancellationToken cancellationToken = default);
+}
+{% else %}
+// リポジトリインターフェースをここに定義してください。
+// `k1s0 new-domain --with-repository` でリポジトリの雛形を生成できます。
+{% endif %}

@@ -1,0 +1,16 @@
+**/.git
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/out
+**/node_modules
+**/.idea
+*.md
+.editorconfig
+.gitignore
+.dockerignore
+**/tests
+deploy/
+docs/
+migrations/

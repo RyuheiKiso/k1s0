@@ -11,6 +11,7 @@ use super::types::{DomainInfo, DomainScanError, DeprecatedInfo, FeatureInfo};
 const DOMAIN_BASES: &[(&str, &str, &str)] = &[
     ("domain/backend/rust", "backend-rust", "rust"),
     ("domain/backend/go", "backend-go", "go"),
+    ("domain/backend/csharp", "backend-csharp", "csharp"),
     ("domain/frontend/react", "frontend-react", "typescript"),
     ("domain/frontend/flutter", "frontend-flutter", "dart"),
 ];
@@ -19,6 +20,7 @@ const DOMAIN_BASES: &[(&str, &str, &str)] = &[
 const FEATURE_BASES: &[(&str, &str)] = &[
     ("feature/backend/rust", "backend-rust"),
     ("feature/backend/go", "backend-go"),
+    ("feature/backend/csharp", "backend-csharp"),
     ("feature/frontend/react", "frontend-react"),
     ("feature/frontend/flutter", "frontend-flutter"),
 ];

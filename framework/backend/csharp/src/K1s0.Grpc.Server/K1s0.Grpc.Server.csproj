@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Grpc.Server</RootNamespace>
+    <Description>gRPC server foundation for k1s0 microservices</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\K1s0.Error\K1s0.Error.csproj" />
+    <ProjectReference Include="..\K1s0.Observability\K1s0.Observability.csproj" />
+  </ItemGroup>
+</Project>

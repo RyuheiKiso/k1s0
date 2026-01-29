@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Grpc.Client</RootNamespace>
+    <Description>gRPC client utilities for k1s0 microservices</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Google.Protobuf" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\K1s0.Error\K1s0.Error.csproj" />
+  </ItemGroup>
+</Project>

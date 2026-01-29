@@ -221,7 +221,7 @@ impl Linter {
 
 **service.language:**
 ```rust
-const VALID_LANGUAGES: &[&str] = &["rust", "go", "typescript", "dart"];
+const VALID_LANGUAGES: &[&str] = &["rust", "go", "csharp", "typescript", "dart"];
 ```
 
 **service.service_type:**
@@ -234,6 +234,7 @@ const VALID_TYPES: &[&str] = &["backend", "frontend", "bff"];
 const VALID_TEMPLATES: &[&str] = &[
     "backend-rust",
     "backend-go",
+    "backend-csharp",
     "frontend-react",
     "frontend-flutter",
 ];
@@ -298,6 +299,37 @@ RequiredFiles {
         "go.mod",
         "config/default.yaml",
         ".k1s0/manifest.json",
+    ],
+}
+```
+
+### backend-csharp の必須ファイル
+
+```rust
+RequiredFiles {
+    directories: vec![
+        "src",
+        "config",
+        "deploy/base",
+    ],
+    files: vec![
+        "README.md",
+        "config/default.yaml",
+        "config/dev.yaml",
+        "config/stg.yaml",
+        "config/prod.yaml",
+        "buf.yaml",
+    ],
+}
+```
+
+### backend-csharp（domain 層）の必須ファイル
+
+```rust
+RequiredFiles {
+    directories: vec![],
+    files: vec![
+        "README.md",
     ],
 }
 ```
@@ -374,6 +406,17 @@ const ENV_VAR_PATTERNS: &[&str] = &[
 const ENV_VAR_PATTERNS: &[&str] = &[
     "process.env",
 ];
+```
+
+**C#:**
+```rust
+const ENV_VAR_PATTERNS: &[&str] = &[
+    "Environment.GetEnvironmentVariable",
+    "Environment.GetEnvironmentVariables",
+    "Environment.ExpandEnvironmentVariables",
+    ".AddEnvironmentVariables(",
+];
+// 対象拡張子: .cs
 ```
 
 **Dart:**
@@ -502,6 +545,17 @@ fn get_layer(path: &str) -> Option<Layer> {
     else { None }
 }
 ```
+
+### C# の依存方向検査
+
+C# プロジェクトでは `.csproj` ファイルの `<ProjectReference>` を解析して依存方向を検証します。
+
+```xml
+<!-- Domain プロジェクトが Application を参照 → K022 違反 -->
+<ProjectReference Include="..\MyService.Application\MyService.Application.csproj" />
+```
+
+Include パスからプロジェクト名（層名）を抽出し、禁止依存パターンを検証します。
 
 ---
 

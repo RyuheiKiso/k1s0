@@ -295,6 +295,7 @@ pub struct NewFeatureArgs {
 |--------|----------------|-------|------|
 | `backend-rust` | `CLI/templates/backend-rust/feature` | `feature/backend/rust/{name}` | rust |
 | `backend-go` | `CLI/templates/backend-go/feature` | `feature/backend/go/{name}` | go |
+| `backend-csharp` | `CLI/templates/backend-csharp/feature` | `feature/backend/csharp/{name}` | csharp |
 | `frontend-react` | `CLI/templates/frontend-react/feature` | `feature/frontend/react/{name}` | typescript |
 | `frontend-flutter` | `CLI/templates/frontend-flutter/feature` | `feature/frontend/flutter/{name}` | dart |
 
@@ -1001,6 +1002,7 @@ pub struct NewDomainArgs {
 |--------|----------------|-------|------|
 | `backend-rust` | `CLI/templates/backend-rust/domain` | `domain/backend/rust/{name}` | rust |
 | `backend-go` | `CLI/templates/backend-go/domain` | `domain/backend/go/{name}` | go |
+| `backend-csharp` | `CLI/templates/backend-csharp/domain` | `domain/backend/csharp/{name}` | csharp |
 | `frontend-react` | `CLI/templates/frontend-react/domain` | `domain/frontend/react/{name}` | typescript |
 | `frontend-flutter` | `CLI/templates/frontend-flutter/domain` | `domain/frontend/flutter/{name}` | dart |
 

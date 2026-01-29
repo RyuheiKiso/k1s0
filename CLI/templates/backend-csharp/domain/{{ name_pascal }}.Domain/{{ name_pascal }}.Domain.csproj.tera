@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>{{ name_pascal }}.Domain</RootNamespace>
+    <AssemblyName>{{ name_pascal }}.Domain</AssemblyName>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>{{ domain_version | default(value="0.1.0") }}</Version>
+    <Description>{{ name_pascal }} domain library - business logic shared across features</Description>
+  </PropertyGroup>
+
+</Project>

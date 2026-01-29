@@ -1,0 +1,63 @@
+// {{ name_pascal }}Name 値オブジェクト定義
+//
+// このファイルにはドメインの値オブジェクトを定義します。
+// 値オブジェクトは不変で、値の等価性によって比較されます。
+
+namespace {{ name_pascal }}.Domain.ValueObjects;
+
+/// <summary>
+/// {{ name_pascal }} の名前を表す値オブジェクト。
+/// 名前のバリデーションルールをカプセル化します。
+/// </summary>
+public sealed class {{ name_pascal }}Name : IEquatable<{{ name_pascal }}Name>
+{
+    /// <summary>最大文字数。</summary>
+    public const int MaxLength = 255;
+
+    /// <summary>値。</summary>
+    public string Value { get; }
+
+    private {{ name_pascal }}Name(string value)
+    {
+        Value = value;
+    }
+
+    /// <summary>
+    /// 新しい名前を作成します。
+    /// </summary>
+    /// <param name="value">名前の文字列。</param>
+    /// <returns>作成された <see cref="{{ name_pascal }}Name"/>。</returns>
+    /// <exception cref="ArgumentException">空文字列または最大長超過の場合。</exception>
+    public static {{ name_pascal }}Name Create(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new ArgumentException("名前は空にできません", nameof(value));
+        }
+
+        if (value.Length > MaxLength)
+        {
+            throw new ArgumentException($"名前は{MaxLength}文字以内にしてください", nameof(value));
+        }
+
+        return new {{ name_pascal }}Name(value);
+    }
+
+    /// <summary>string から <see cref="{{ name_pascal }}Name"/> への明示的変換。</summary>
+    public static explicit operator {{ name_pascal }}Name(string value) => Create(value);
+
+    /// <summary><see cref="{{ name_pascal }}Name"/> から string への暗黙的変換。</summary>
+    public static implicit operator string({{ name_pascal }}Name name) => name.Value;
+
+    /// <inheritdoc/>
+    public bool Equals({{ name_pascal }}Name? other) => other is not null && Value == other.Value;
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as {{ name_pascal }}Name);
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => Value.GetHashCode();
+
+    /// <inheritdoc/>
+    public override string ToString() => Value;
+}

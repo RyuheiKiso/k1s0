@@ -138,6 +138,31 @@ impl EnvVarPatterns {
         }
     }
 
+    /// C# の環境変数パターン
+    pub fn csharp() -> Self {
+        Self {
+            file_extensions: vec!["cs"],
+            patterns: vec![
+                EnvVarPattern {
+                    pattern: "Environment.GetEnvironmentVariable",
+                    hint: "config/{env}.yaml で設定を管理してください。framework の config モジュールを使用してください。".to_string(),
+                },
+                EnvVarPattern {
+                    pattern: "Environment.GetEnvironmentVariables",
+                    hint: "config/{env}.yaml で設定を管理してください。framework の config モジュールを使用してください。".to_string(),
+                },
+                EnvVarPattern {
+                    pattern: "Environment.ExpandEnvironmentVariables",
+                    hint: "config/{env}.yaml で設定を管理してください。framework の config モジュールを使用してください。".to_string(),
+                },
+                EnvVarPattern {
+                    pattern: ".AddEnvironmentVariables(",
+                    hint: "AddEnvironmentVariables の使用は禁止されています。config/{env}.yaml で設定を管理してください。".to_string(),
+                },
+            ],
+        }
+    }
+
     /// Dart の環境変数パターン
     pub fn dart() -> Self {
         Self {
@@ -175,6 +200,7 @@ impl Linter {
             "rust" => ("src", EnvVarPatterns::rust()),
             "go" => ("internal", EnvVarPatterns::go()),
             "typescript" => ("src", EnvVarPatterns::typescript()),
+            "csharp" => ("src", EnvVarPatterns::csharp()),
             "dart" => ("lib", EnvVarPatterns::dart()),
             _ => return, // 不明な言語の場合はスキップ
         };

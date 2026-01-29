@@ -1,0 +1,13 @@
+-- {{ feature_name }} 初期マイグレーション
+--
+-- このファイルは初期テーブル作成のプレースホルダーです。
+-- Entity Framework Core Migrations の使用を推奨しますが、
+-- SQL マイグレーションファイルとしても利用できます。
+
+-- TODO: テーブル定義を追加
+-- CREATE TABLE IF NOT EXISTS examples (
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     name VARCHAR(255) NOT NULL,
+--     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+--     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- );

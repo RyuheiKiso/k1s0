@@ -164,6 +164,35 @@ impl RequiredFiles {
         }
     }
 
+    /// backend-csharp（feature 層）の必須ファイル
+    pub fn backend_csharp() -> Self {
+        Self {
+            directories: vec![
+                "src",
+                "config",
+                "deploy/base",
+            ],
+            files: vec![
+                "README.md",
+                "config/default.yaml",
+                "config/dev.yaml",
+                "config/stg.yaml",
+                "config/prod.yaml",
+                "buf.yaml",
+            ],
+        }
+    }
+
+    /// backend-csharp（domain 層）の必須ファイル
+    pub fn backend_csharp_domain() -> Self {
+        Self {
+            directories: vec![],
+            files: vec![
+                "README.md",
+            ],
+        }
+    }
+
     /// テンプレート名とレイヤーから必須ファイルを取得
     pub fn from_template_and_layer(name: &str, layer: &LayerType) -> Option<Self> {
         match (name, layer) {
@@ -171,6 +200,8 @@ impl RequiredFiles {
             ("backend-rust", _) => Some(Self::backend_rust()),
             ("backend-go", LayerType::Domain) => Some(Self::backend_go_domain()),
             ("backend-go", _) => Some(Self::backend_go()),
+            ("backend-csharp", LayerType::Domain) => Some(Self::backend_csharp_domain()),
+            ("backend-csharp", _) => Some(Self::backend_csharp()),
             ("frontend-react", LayerType::Domain) => Some(Self::frontend_react_domain()),
             ("frontend-react", _) => Some(Self::frontend_react()),
             ("frontend-flutter", LayerType::Domain) => Some(Self::frontend_flutter_domain()),

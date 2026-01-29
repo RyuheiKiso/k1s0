@@ -1,0 +1,62 @@
+// {{ name_pascal }} エンティティ定義
+//
+// このファイルにはドメインのエンティティを定義します。
+// エンティティは一意の識別子を持ち、ライフサイクルを通じて同一性を保ちます。
+
+namespace {{ name_pascal }}.Domain.Entities;
+
+/// <summary>
+/// {{ name_pascal }} エンティティの一意な識別子（値オブジェクト）。
+/// </summary>
+public readonly record struct {{ name_pascal }}Id(string Value)
+{
+    public override string ToString() => Value;
+}
+
+/// <summary>
+/// {{ name_pascal }} ドメインの中核エンティティ。
+/// ビジネスルールに応じてフィールドやメソッドを追加してください。
+/// </summary>
+public class {{ name_pascal }} : IEquatable<{{ name_pascal }}>
+{
+    /// <summary>一意の識別子。</summary>
+    public {{ name_pascal }}Id Id { get; }
+
+    /// <summary>名前。</summary>
+    public string Name { get; private set; }
+
+    /// <summary>作成日時。</summary>
+    public DateTime CreatedAt { get; }
+
+    /// <summary>更新日時。</summary>
+    public DateTime UpdatedAt { get; private set; }
+
+    /// <summary>
+    /// 新しい <see cref="{{ name_pascal }}"/> を作成します。
+    /// </summary>
+    public {{ name_pascal }}({{ name_pascal }}Id id, string name)
+    {
+        Id = id;
+        Name = name ?? throw new ArgumentNullException(nameof(name));
+        CreatedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// 名前を更新します。
+    /// </summary>
+    public void UpdateName(string name)
+    {
+        Name = name ?? throw new ArgumentNullException(nameof(name));
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>ID に基づく等価性比較。</summary>
+    public bool Equals({{ name_pascal }}? other) => other is not null && Id == other.Id;
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as {{ name_pascal }});
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => Id.GetHashCode();
+}
