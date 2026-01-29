@@ -24,6 +24,13 @@ use crate::output::output;
 
 /// `k1s0 upgrade` の引数
 #[derive(Args, Debug)]
+#[command(after_long_help = r#"例:
+  k1s0 upgrade --check
+  k1s0 upgrade --yes
+  k1s0 upgrade --to-version 0.2.0 --backup
+
+--check で差分のみ表示、--yes で対話的な確認をスキップします。
+"#)]
 pub struct UpgradeArgs {
     /// 更新するサービスのディレクトリ（デフォルト: カレントディレクトリ）
     #[arg(default_value = ".")]
@@ -163,10 +170,12 @@ pub fn execute(args: UpgradeArgs) -> Result<()> {
 
     // 適用
     out.newline();
-    out.info("変更を適用しています...");
+    let spinner = out.spinner("変更を適用しています...");
 
     let apply_result = apply_upgrade(&service_path, &check_result, args.managed_only, args.backup)
         .map_err(|e| CliError::internal(e.to_string()))?;
+
+    spinner.finish_and_clear();
 
     // 結果を表示
     out.newline();

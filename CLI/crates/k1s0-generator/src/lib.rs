@@ -19,6 +19,7 @@ pub mod fs;
 pub mod lint;
 pub mod manifest;
 pub mod plugin;
+pub mod progress;
 pub mod registry;
 pub mod template;
 pub mod upgrade;

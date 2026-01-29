@@ -38,6 +38,13 @@ use crate::settings::Settings;
 
 /// `k1s0 lint` の引数
 #[derive(Args, Debug)]
+#[command(after_long_help = r#"例:
+  k1s0 lint
+  k1s0 lint --rules K020,K021,K022 --strict
+  k1s0 lint --fix --diff main
+
+K010/K011 違反が検出された場合は 'k1s0 lint --fix' で自動修正できます。
+"#)]
 pub struct LintArgs {
     /// 検査するディレクトリ（デフォルト: カレントディレクトリ）
     #[arg(default_value = ".")]
@@ -138,8 +145,10 @@ pub fn execute(args: LintArgs) -> Result<()> {
     }
 
     // lint 実行
+    let spinner = out.spinner("lint 実行中...");
     let linter = Linter::new(config.clone());
     let mut result = linter.lint(&path);
+    spinner.finish_and_clear();
 
     // 差分フィルタ
     if let Some(base) = &args.diff {
@@ -247,11 +256,22 @@ pub fn execute(args: LintArgs) -> Result<()> {
     if result.is_success() {
         Ok(())
     } else {
-        Err(CliError::validation(format!(
+        let mut err = CliError::validation(format!(
             "lint に失敗しました（エラー: {}, 警告: {}）",
             result.error_count(),
             result.warning_count()
-        )))
+        ));
+
+        // K010/K011 が含まれている場合は --fix を提案
+        let has_fixable = result.violations.iter().any(|v| {
+            let rule_str = v.rule.as_str();
+            rule_str == "K010" || rule_str == "K011"
+        });
+        if has_fixable && !args.fix {
+            err = err.with_recovery("k1s0 lint --fix", "自動修正可能な違反を修正");
+        }
+
+        Err(err)
     }
 }
 

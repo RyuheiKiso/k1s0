@@ -22,6 +22,10 @@ pub enum GraphFormat {
 
 /// `k1s0 domain-graph` の引数
 #[derive(Args, Debug)]
+#[command(after_long_help = r#"例:
+  k1s0 domain-graph --format mermaid
+  k1s0 domain-graph --detect-cycles --root user-management
+"#)]
 pub struct DomainGraphArgs {
     /// 出力フォーマット
     #[arg(short, long, value_enum, default_value = "mermaid")]

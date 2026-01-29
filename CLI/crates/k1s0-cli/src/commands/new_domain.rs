@@ -107,6 +107,15 @@ const RESERVED_NAMES: &[&str] = &["framework", "feature", "domain", "k1s0", "com
 
 /// `k1s0 new-domain` の引数
 #[derive(Args, Debug)]
+#[command(after_long_help = r#"例:
+  k1s0 new-domain --type backend-rust --name production
+  k1s0 new-domain -t backend-go -n user-management --with-events
+  k1s0 new-domain -t frontend-react -n inventory --version 1.0.0
+
+生成物:
+  domain 層の雛形（entities, value_objects, repositories, services）、
+  manifest.json（バージョン情報付き）、README.md、CHANGELOG.md を生成します。
+"#)]
 pub struct NewDomainArgs {
     /// テンプレートタイプ（例: backend-rust, backend-go, frontend-react, frontend-flutter）
     #[arg(short = 't', long = "type", value_enum)]
@@ -139,6 +148,10 @@ pub struct NewDomainArgs {
     /// 初期バージョン（デフォルト: 0.1.0）
     #[arg(long, default_value = "0.1.0")]
     pub version: String,
+
+    /// 確認なしで実行する
+    #[arg(short = 'y', long)]
+    pub yes: bool,
 }
 
 impl NewDomainArgs {
@@ -157,6 +170,7 @@ struct ResolvedArgs {
     with_events: bool,
     with_repository: bool,
     version: String,
+    yes: bool,
 }
 
 /// `k1s0 new-domain` を実行する
@@ -196,6 +210,7 @@ fn resolve_args_from_cli(args: NewDomainArgs) -> Result<ResolvedArgs> {
         with_events: args.with_events,
         with_repository: args.with_repository,
         version: args.version,
+        yes: args.yes,
     })
 }
 
@@ -235,6 +250,7 @@ fn resolve_args_interactive(args: NewDomainArgs) -> Result<ResolvedArgs> {
         with_events: args.with_events,
         with_repository: args.with_repository,
         version: args.version,
+        yes: args.yes,
     })
 }
 
@@ -290,20 +306,59 @@ fn execute_generation(args: ResolvedArgs) -> Result<()> {
     })?;
     out.list_item("fingerprint", &fingerprint[..16]);
 
+    // テンプレートレンダラーを作成
+    let renderer = TemplateRenderer::new(&template_dir).map_err(|e| {
+        CliError::internal(format!("テンプレートの読み込みに失敗: {}", e))
+    })?;
+
+    // プレビュー + 確認
+    if !args.yes && !out.is_json_mode() && crate::prompts::is_interactive() {
+        if let Ok(preview) = renderer.preview_directory() {
+            out.newline();
+            out.preview_header(&format!("'{}' の生成内容", args.name));
+            out.preview_summary(preview.files.len(), preview.directory_count);
+            for file in preview.files.iter().take(10) {
+                out.hint(&format!("  + {}", file));
+            }
+            if preview.files.len() > 10 {
+                out.hint(&format!("  ... 他 {} ファイル", preview.files.len() - 10));
+            }
+            out.newline();
+
+            if !out.confirm_proceed("生成を実行しますか？") {
+                return Err(CliError::cancelled("ユーザーがキャンセルしました"));
+            }
+        }
+    }
+
     out.newline();
     out.info("テンプレートを展開中...");
 
     // Tera コンテキストを作成
     let context = create_template_context(&args);
 
-    // テンプレートを展開
-    let renderer = TemplateRenderer::new(&template_dir).map_err(|e| {
-        CliError::internal(format!("テンプレートの読み込みに失敗: {}", e))
-    })?;
+    // テンプレートを展開（進捗付き）
+    let progress_bar = out.progress_bar(0, "展開中...");
+    struct CliProgress<'a> {
+        bar: &'a indicatif::ProgressBar,
+    }
+    impl k1s0_generator::progress::ProgressCallback for CliProgress<'_> {
+        fn on_total(&self, total: usize) {
+            self.bar.set_length(total as u64);
+        }
+        fn on_file_done(&self, path: &str) {
+            self.bar.set_message(path.to_string());
+            self.bar.inc(1);
+        }
+    }
+    let progress = CliProgress { bar: &progress_bar };
 
-    let render_result = renderer.render_directory(&output_dir, &context).map_err(|e| {
-        CliError::internal(format!("テンプレートの展開に失敗: {}", e))
-    })?;
+    let render_result = renderer
+        .render_directory_with_progress(&output_dir, &context, &progress)
+        .map_err(|e| {
+            CliError::internal(format!("テンプレートの展開に失敗: {}", e))
+        })?;
+    progress_bar.finish_and_clear();
 
     // 結果を表示
     out.newline();
@@ -674,6 +729,7 @@ mod tests {
             with_events: false,
             with_repository: true,
             version: "0.1.0".to_string(),
+            yes: false,
         };
         assert!(args_complete.has_required_args());
 
@@ -686,6 +742,7 @@ mod tests {
             with_events: false,
             with_repository: true,
             version: "0.1.0".to_string(),
+            yes: false,
         };
         assert!(!args_missing_type.has_required_args());
 
@@ -698,6 +755,7 @@ mod tests {
             with_events: false,
             with_repository: true,
             version: "0.1.0".to_string(),
+            yes: false,
         };
         assert!(!args_missing_name.has_required_args());
     }

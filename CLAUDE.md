@@ -263,10 +263,12 @@ k1s0 new-feature --type backend-rust
 ### Common Options
 
 ```
--v, --verbose    # Detailed output
--i, --interactive # Force interactive mode (requires TTY)
---no-color       # Disable ANSI colors
---json           # JSON format output
+-v, --verbose      # Detailed output
+-i, --interactive  # Force interactive mode (requires TTY)
+-y, --yes          # Skip confirmation prompts (new-feature, new-domain, new-screen, upgrade)
+--skip-doctor      # Skip environment health check (new-feature, init)
+--no-color         # Disable ANSI colors
+--json             # JSON format output
 ```
 
 ## Lint Rules (K001-K047)

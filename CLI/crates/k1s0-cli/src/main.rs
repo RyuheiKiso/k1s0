@@ -98,6 +98,8 @@ fn execute_selected_command(selected: SelectedCommand) -> std::process::ExitCode
                 with_rest: false,
                 with_db: false,
                 interactive: true, // 対話モードを強制
+                yes: false,
+                skip_doctor: false,
             };
             k1s0_cli::commands::new_feature::execute(args)
         }
@@ -112,6 +114,7 @@ fn execute_selected_command(selected: SelectedCommand) -> std::process::ExitCode
                 with_events: false,
                 with_repository: true,
                 version: "0.1.0".to_string(),
+                yes: false,
             };
             k1s0_cli::commands::new_domain::execute(args)
         }
@@ -128,6 +131,7 @@ fn execute_selected_command(selected: SelectedCommand) -> std::process::ExitCode
                 flags: None,
                 force: false,
                 interactive: true,
+                yes: false,
             };
             k1s0_cli::commands::new_screen::execute(args)
         }
@@ -138,6 +142,7 @@ fn execute_selected_command(selected: SelectedCommand) -> std::process::ExitCode
                 force: false,
                 template_source: "local".to_string(),
                 interactive: true,
+                skip_doctor: false,
             };
             k1s0_cli::commands::init::execute(args)
         }

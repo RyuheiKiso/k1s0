@@ -454,6 +454,25 @@ pub fn check_tools_by_category(category: ToolCategory) -> Vec<ToolCheck> {
         .collect()
 }
 
+/// 指定カテゴリ + 必須ツールのクイックチェック
+pub fn quick_check(categories: &[ToolCategory]) -> Vec<ToolCheck> {
+    let mut tools: Vec<&'static super::requirements::ToolRequirement> = Vec::new();
+
+    // 必須ツール
+    tools.extend(super::requirements::REQUIRED_TOOLS.iter().copied());
+
+    // 指定カテゴリのツール
+    for cat in categories {
+        for tool in super::requirements::tools_by_category(*cat) {
+            if !tools.iter().any(|t| t.name == tool.name) {
+                tools.push(tool);
+            }
+        }
+    }
+
+    tools.into_iter().map(check_tool).collect()
+}
+
 /// 必須ツールのみチェック
 pub fn check_required_tools() -> Vec<ToolCheck> {
     super::requirements::REQUIRED_TOOLS
