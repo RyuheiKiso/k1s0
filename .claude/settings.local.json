@@ -56,7 +56,10 @@
       "Bash(pnpm test:*)",
       "Bash(flutter test:*)",
       "Bash(git reset:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(go vet:*)",
+      "Bash(CLI/target/debug/k1s0-cli.exe:*)",
+      "Bash(./CLI/target/debug/k1s0.exe:*)"
     ]
   }
 }
