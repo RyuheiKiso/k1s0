@@ -1,0 +1,27 @@
+{
+    "schema_version": "1.0.0",
+    "k1s0_version": "0.1.0",
+    "template": {
+        "name": "backend-rust",
+        "version": "0.1.0",
+        "source": "local",
+        "path": "CLI/templates/backend-rust/domain",
+        "fingerprint": "1234567890abcdef"
+    },
+    "service": {
+        "service_name": "order-processing",
+        "language": "rust",
+        "type": "backend"
+    },
+    "layer": "domain",
+    "version": "0.3.0",
+    "generated_at": "2026-01-25T10:00:00Z",
+    "managed_paths": ["deploy/"],
+    "protected_paths": ["src/"],
+    "dependencies": {
+        "framework": ["k1s0-error"],
+        "domain": {
+            "user-management": "^1.0.0"
+        }
+    }
+}

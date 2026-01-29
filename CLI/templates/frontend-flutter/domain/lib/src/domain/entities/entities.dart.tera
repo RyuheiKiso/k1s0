@@ -1,28 +1,58 @@
 /// エンティティ - 一意の識別子を持つドメインオブジェクト
-///
-/// エンティティはライフサイクルを通じて同一性が保たれるオブジェクトです。
 library {{ name_snake }}.domain.entities;
 
-// TODO: {{ name_title }} ドメインのエンティティを定義してください
-//
-// 例:
-//
-// import 'package:freezed_annotation/freezed_annotation.dart';
-// import '../value_objects/value_objects.dart';
-//
-// part 'product.freezed.dart';
-// part 'product.g.dart';
-//
-// @freezed
-// class Product with _$Product {
-//   const factory Product({
-//     required String id,
-//     required String name,
-//     String? description,
-//     required Money price,
-//     required DateTime createdAt,
-//     required DateTime updatedAt,
-//   }) = _Product;
-//
-//   factory Product.fromJson(Map<String, dynamic> json) => _$ProductFromJson(json);
-// }
+import 'package:equatable/equatable.dart';
+
+/// {{ name_pascal }} エンティティの ID
+class {{ name_pascal }}Id extends Equatable {
+  /// ID の値
+  final String value;
+
+  /// 新しい ID を作成する
+  const {{ name_pascal }}Id(this.value);
+
+  @override
+  List<Object?> get props => [value];
+
+  @override
+  String toString() => value;
+}
+
+/// {{ name_pascal }} エンティティ
+///
+/// {{ name_title }} ドメインの中核エンティティです。
+class {{ name_pascal }} extends Equatable {
+  /// 一意の識別子
+  final {{ name_pascal }}Id id;
+
+  /// 名前
+  final String name;
+
+  /// 作成日時
+  final DateTime createdAt;
+
+  /// 更新日時
+  final DateTime updatedAt;
+
+  /// 新しい {{ name_pascal }} を作成する
+  {{ name_pascal }}({
+    required this.id,
+    required this.name,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  })  : createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now();
+
+  /// 名前を更新したコピーを返す
+  {{ name_pascal }} updateName(String newName) {
+    return {{ name_pascal }}(
+      id: id,
+      name: newName,
+      createdAt: createdAt,
+      updatedAt: DateTime.now(),
+    );
+  }
+
+  @override
+  List<Object?> get props => [id];
+}

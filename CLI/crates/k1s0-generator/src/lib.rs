@@ -13,6 +13,7 @@
 //! - `registry`: テンプレートレジストリ
 
 pub mod diff;
+pub mod domain;
 pub mod fingerprint;
 pub mod fs;
 pub mod lint;

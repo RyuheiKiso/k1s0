@@ -1,0 +1,91 @@
+//! エンティティ定義
+//!
+//! このモジュールにはドメインのエンティティを定義します。
+//! エンティティは一意の識別子を持ち、ライフサイクルを通じて同一性を保ちます。
+
+use serde::{Deserialize, Serialize};
+
+/// {{ name_pascal }} エンティティの ID
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct {{ name_pascal }}Id(String);
+
+impl {{ name_pascal }}Id {
+    /// 新しい ID を作成する
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// ID の値を取得する
+    pub fn value(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for {{ name_pascal }}Id {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+/// {{ name_pascal }} エンティティ
+///
+/// {{ name_title }} ドメインの中核エンティティです。
+/// ビジネスルールに応じてフィールドやメソッドを追加してください。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct {{ name_pascal }} {
+    /// 一意の識別子
+    id: {{ name_pascal }}Id,
+    /// 名前
+    name: String,
+    /// 作成日時
+    created_at: chrono::DateTime<chrono::Utc>,
+    /// 更新日時
+    updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl {{ name_pascal }} {
+    /// 新しい {{ name_pascal }} を作成する
+    pub fn new(id: {{ name_pascal }}Id, name: impl Into<String>) -> Self {
+        let now = chrono::Utc::now();
+        Self {
+            id,
+            name: name.into(),
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    /// ID を取得する
+    pub fn id(&self) -> &{{ name_pascal }}Id {
+        &self.id
+    }
+
+    /// 名前を取得する
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// 名前を更新する
+    pub fn update_name(&mut self, name: impl Into<String>) {
+        self.name = name.into();
+        self.updated_at = chrono::Utc::now();
+    }
+
+    /// 作成日時を取得する
+    pub fn created_at(&self) -> &chrono::DateTime<chrono::Utc> {
+        &self.created_at
+    }
+
+    /// 更新日時を取得する
+    pub fn updated_at(&self) -> &chrono::DateTime<chrono::Utc> {
+        &self.updated_at
+    }
+}
+
+impl PartialEq for {{ name_pascal }} {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for {{ name_pascal }} {}

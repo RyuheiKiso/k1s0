@@ -4,7 +4,9 @@
 
 pub mod completions;
 pub mod doctor;
+pub mod domain_catalog;
 pub mod domain_dependents;
+pub mod domain_graph;
 pub mod domain_impact;
 pub mod domain_list;
 pub mod domain_version;

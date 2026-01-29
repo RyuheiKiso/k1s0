@@ -1,0 +1,28 @@
+{
+    "schema_version": "1.0.0",
+    "k1s0_version": "0.1.0",
+    "template": {
+        "name": "backend-rust",
+        "version": "0.1.0",
+        "source": "local",
+        "path": "CLI/templates/backend-rust/feature",
+        "fingerprint": "deadbeef12345678"
+    },
+    "service": {
+        "service_name": "user-service",
+        "language": "rust",
+        "type": "backend"
+    },
+    "layer": "feature",
+    "domain": "user-management",
+    "domain_version": "^1.0.0",
+    "generated_at": "2026-01-25T10:00:00Z",
+    "managed_paths": ["deploy/", "buf.yaml"],
+    "protected_paths": ["src/domain/", "src/application/"],
+    "dependencies": {
+        "framework": ["k1s0-error", "k1s0-config"],
+        "domain": {
+            "user-management": "^1.0.0"
+        }
+    }
+}

@@ -26,7 +26,10 @@ CLI/crates/
 │           ├── lint.rs
 │           ├── upgrade.rs
 │           ├── doctor.rs
-│           └── completions.rs
+│           ├── completions.rs
+│           ├── new_domain.rs
+│           ├── domain_catalog.rs
+│           └── domain_graph.rs
 │
 └── k1s0-generator/     # テンプレートエンジン（別設計書参照）
 ```
@@ -42,6 +45,8 @@ CLI/crates/
 | `upgrade` | テンプレート更新 | `--check`, `-y/--yes`, `--managed-only` |
 | `doctor` | 環境診断 | `--verbose`, `--json`, `--check`, `--strict` |
 | `completions` | シェル補完生成 | `--shell` |
+| `domain-catalog` | ドメインカタログ表示 | `--language`, `--include-deprecated`, `--json` |
+| `domain-graph` | ドメイン依存グラフ出力 | `--format`, `--root`, `--detect-cycles` |
 
 ## グローバルオプション
 
@@ -136,7 +141,7 @@ else:
 | コマンド | 対話モードフラグ | 対話で入力可能な項目 |
 |---------|----------------|---------------------|
 | `new-feature` | `-i, --interactive` | type, name, domain, オプション（grpc/rest/db） |
-| `new-domain` | `-i, --interactive` | type, name, version |
+| `new-domain` | `-i, --interactive` | type, name, version, with_events, with_repository |
 | `new-screen` | `-i, --interactive` | type, screen_id, title, feature_dir |
 | `init` | `-i, --interactive` | path, template_source, language |
 
@@ -975,6 +980,18 @@ pub struct NewDomainArgs {
     /// 既存のディレクトリを上書きする
     #[arg(short, long)]
     pub force: bool,
+
+    /// ドメインイベント雛形を含める
+    #[arg(long)]
+    pub with_events: bool,
+
+    /// リポジトリ trait/interface を含める（デフォルト: true）
+    #[arg(long, default_value = "true")]
+    pub with_repository: bool,
+
+    /// 初期バージョン
+    #[arg(long, default_value = "0.1.0")]
+    pub version: String,
 }
 ```
 
@@ -1015,6 +1032,9 @@ pub struct NewDomainArgs {
 | `language` | 言語 | `rust` |
 | `service_type` | タイプ | `backend` |
 | `k1s0_version` | k1s0 バージョン | `0.1.0` |
+| `with_events` | イベント有効 | `true` |
+| `with_repository` | リポジトリ有効 | `true` |
+| `version` | 初期バージョン | `0.1.0` |
 
 ### 生成される manifest.json
 
@@ -1125,6 +1145,66 @@ Affected features (3):
   - work-order-api (constraint: ^1.2.0) - INCOMPATIBLE
   - work-order-dashboard (constraint: ^1.5.0) - INCOMPATIBLE
   - manufacturing-report (constraint: ^1.0.0) - INCOMPATIBLE
+```
+
+---
+
+## domain-catalog コマンド
+
+### 目的
+
+ドメインの一覧をカタログ形式で表示する。依存関係の状況も含む。
+
+### 引数
+
+```rust
+pub struct DomainCatalogArgs {
+    /// 言語でフィルタ（rust, go, typescript, dart）
+    #[arg(long)]
+    pub language: Option<String>,
+
+    /// 非推奨ドメインも含める
+    #[arg(long)]
+    pub include_deprecated: bool,
+
+    /// JSON 形式で出力
+    #[arg(long)]
+    pub json: bool,
+}
+```
+
+---
+
+## domain-graph コマンド
+
+### 目的
+
+ドメイン間の依存関係をグラフとして可視化する。
+
+### 引数
+
+```rust
+pub struct DomainGraphArgs {
+    /// 出力フォーマット
+    #[arg(long, value_enum, default_value = "mermaid")]
+    pub format: GraphFormat,
+
+    /// ルートドメイン（指定した場合そのドメインを起点にしたサブグラフを出力）
+    #[arg(long)]
+    pub root: Option<String>,
+
+    /// 循環依存を検出する
+    #[arg(long)]
+    pub detect_cycles: bool,
+}
+
+#[derive(Clone, ValueEnum)]
+pub enum GraphFormat {
+    /// Mermaid 形式
+    Mermaid,
+    /// Graphviz DOT 形式
+    Dot,
+}
 ```
 
 ---

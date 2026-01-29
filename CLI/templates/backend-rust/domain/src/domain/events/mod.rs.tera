@@ -1,0 +1,8 @@
+//! ドメインイベント定義
+//!
+//! このモジュールにはドメインイベントを定義します。
+//! ドメインイベントは、ドメイン内で発生した重要な出来事を表現します。
+
+mod {{ name_snake }}_created;
+
+pub use {{ name_snake }}_created::{{ name_pascal }}Created;

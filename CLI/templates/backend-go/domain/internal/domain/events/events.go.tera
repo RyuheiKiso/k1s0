@@ -1,0 +1,34 @@
+// Package events は {{ name_title }} ドメインのイベントを定義します。
+package events
+{% if with_events %}
+
+import (
+	"time"
+
+	"github.com/k1s0/domain/backend/go/{{ name }}/internal/domain/entities"
+)
+
+// {{ name_pascal }}Created は {{ name_pascal }} が作成されたことを表すドメインイベントです。
+type {{ name_pascal }}Created struct {
+	// ID は作成されたエンティティの ID です。
+	ID entities.{{ name_pascal }}ID
+	// OccurredAt はイベント発生日時です。
+	OccurredAt time.Time
+}
+
+// New{{ name_pascal }}Created は新しいイベントを作成します。
+func New{{ name_pascal }}Created(id entities.{{ name_pascal }}ID) {{ name_pascal }}Created {
+	return {{ name_pascal }}Created{
+		ID:         id,
+		OccurredAt: time.Now(),
+	}
+}
+
+// EventName はイベント名を返します。
+func (e {{ name_pascal }}Created) EventName() string {
+	return "{{ name_snake }}.created"
+}
+{% else %}
+// ドメインイベントをここに定義してください。
+// `k1s0 new-domain --with-events` でイベントの雛形を生成できます。
+{% endif %}

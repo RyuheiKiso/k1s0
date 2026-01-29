@@ -133,4 +133,12 @@ pub enum Commands {
     /// feature の domain 依存バージョンを更新する
     #[command(name = "feature-update-domain")]
     FeatureUpdateDomain(commands::feature_update_domain::FeatureUpdateDomainArgs),
+
+    /// ドメインカタログ（一覧 + 依存状況）を表示する
+    #[command(name = "domain-catalog")]
+    DomainCatalog(commands::domain_catalog::DomainCatalogArgs),
+
+    /// ドメイン依存グラフを出力する
+    #[command(name = "domain-graph")]
+    DomainGraph(commands::domain_graph::DomainGraphArgs),
 }

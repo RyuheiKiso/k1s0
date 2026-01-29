@@ -14,10 +14,23 @@ path = "src/lib.rs"
 # Framework dependencies
 k1s0-error = { path = "../../../../framework/backend/rust/crates/k1s0-error" }
 k1s0-config = { path = "../../../../framework/backend/rust/crates/k1s0-config" }
+{% if with_events %}
+k1s0-domain-event = { path = "../../../../framework/backend/rust/crates/k1s0-domain-event" }
+{% endif %}
+{% if with_repository %}
+async-trait = "0.1"
+{% endif %}
 
 # External dependencies
 serde = { version = "1.0", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
 thiserror = "1.0"
 
 [dev-dependencies]
 tokio = { version = "1.0", features = ["rt-multi-thread", "macros"] }
+{% if with_events %}
+
+[features]
+default = []
+events = ["k1s0-domain-event"]
+{% endif %}

@@ -183,9 +183,10 @@ fn print_tool_status(check: &ToolCheck, verbose: bool) {
 
     match &check.status {
         CheckStatus::Ok { version } => {
-            let status = format!("{}", version);
+            let status = version.to_string();
             // 成功スタイルで出力
-            eprintln!("  {} {}", out.config().color.then(|| "\x1b[32m✓\x1b[0m").unwrap_or("✓"), format!("{}: {}", name, status));
+            let check_mark = if out.config().color { "\x1b[32m✓\x1b[0m" } else { "✓" };
+            eprintln!("  {} {}: {}", check_mark, name, status);
             if verbose {
                 if let Some(path) = &check.path {
                     eprintln!("    パス: {}", path);
@@ -195,7 +196,7 @@ fn print_tool_status(check: &ToolCheck, verbose: bool) {
         CheckStatus::VersionMismatch { actual, required } => {
             eprintln!(
                 "  {} {}: {} (必要: {} 以上)",
-                out.config().color.then(|| "\x1b[33m⚠\x1b[0m").unwrap_or("⚠"),
+                if out.config().color { "\x1b[33m⚠\x1b[0m" } else { "⚠" },
                 name,
                 actual,
                 required
@@ -210,9 +211,11 @@ fn print_tool_status(check: &ToolCheck, verbose: bool) {
             eprintln!(
                 "  {} {}: not found{}",
                 if check.requirement.required {
-                    out.config().color.then(|| "\x1b[31m✗\x1b[0m").unwrap_or("✗")
+                    if out.config().color { "\x1b[31m✗\x1b[0m" } else { "✗" }
+                } else if out.config().color {
+                    "\x1b[90m-\x1b[0m"
                 } else {
-                    out.config().color.then(|| "\x1b[90m-\x1b[0m").unwrap_or("-")
+                    "-"
                 },
                 name,
                 suffix
@@ -221,7 +224,7 @@ fn print_tool_status(check: &ToolCheck, verbose: bool) {
         CheckStatus::Error(msg) => {
             eprintln!(
                 "  {} {}: エラー ({})",
-                out.config().color.then(|| "\x1b[31m✗\x1b[0m").unwrap_or("✗"),
+                if out.config().color { "\x1b[31m✗\x1b[0m" } else { "✗" },
                 name,
                 msg
             );

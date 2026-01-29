@@ -60,6 +60,9 @@ jsonschema = "0.29"
 # Semantic versioning
 semver = "1.0"
 
+# Graph data structures
+petgraph = "0.6"
+
 # File watching
 notify = "8.0"
 notify-debouncer-mini = "0.6"

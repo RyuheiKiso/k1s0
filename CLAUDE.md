@@ -234,6 +234,8 @@ buf format --exit-code
 | `k1s0 domain version --name <name>` | Show/update domain version |
 | `k1s0 domain dependents --name <name>` | Show features depending on domain |
 | `k1s0 domain impact --name <name>` | Analyze version upgrade impact |
+| `k1s0 domain-catalog` | Show domain catalog with dependency status |
+| `k1s0 domain-graph` | Output domain dependency graph (Mermaid/DOT) |
 
 ### Interactive Mode
 

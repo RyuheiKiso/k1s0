@@ -1,27 +1,62 @@
 //! {{ name_title }} domain 統合テスト
 
-use {{ name_snake }}::*;
+use {{ name_snake }}::domain::entities::{{"{"}}{{ name_pascal }}, {{ name_pascal }}Id};
+use {{ name_snake }}::domain::value_objects::{{ name_pascal }}Name;
 
-#[tokio::test]
-async fn test_domain_setup() {
-    // このテストは domain が正しくセットアップされていることを確認します
-    // TODO: 実際のテストを追加してください
+#[test]
+fn test_entity_creation() {
+    let id = {{ name_pascal }}Id::new("test-id-1");
+    let entity = {{ name_pascal }}::new(id.clone(), "Test Name");
+
+    assert_eq!(entity.id(), &id);
+    assert_eq!(entity.name(), "Test Name");
 }
 
-#[tokio::test]
-async fn test_domain_entities() {
-    // エンティティのテスト
-    // TODO: エンティティを追加したらテストを実装してください
+#[test]
+fn test_entity_equality_by_id() {
+    let id = {{ name_pascal }}Id::new("same-id");
+    let entity1 = {{ name_pascal }}::new(id.clone(), "Name 1");
+    let entity2 = {{ name_pascal }}::new(id, "Name 2");
+
+    assert_eq!(entity1, entity2);
 }
 
-#[tokio::test]
-async fn test_domain_services() {
-    // ドメインサービスのテスト
-    // TODO: ドメインサービスを追加したらテストを実装してください
+#[test]
+fn test_entity_update_name() {
+    let id = {{ name_pascal }}Id::new("test-id");
+    let mut entity = {{ name_pascal }}::new(id, "Old Name");
+
+    entity.update_name("New Name");
+    assert_eq!(entity.name(), "New Name");
 }
 
-#[tokio::test]
-async fn test_application_services() {
-    // アプリケーションサービスのテスト
-    // TODO: アプリケーションサービスを追加したらテストを実装してください
+#[test]
+fn test_value_object_name_valid() {
+    let name = {{ name_pascal }}Name::new("Valid Name");
+    assert!(name.is_ok());
+    assert_eq!(name.unwrap().value(), "Valid Name");
 }
+
+#[test]
+fn test_value_object_name_empty() {
+    let name = {{ name_pascal }}Name::new("");
+    assert!(name.is_err());
+}
+
+#[test]
+fn test_id_display() {
+    let id = {{ name_pascal }}Id::new("display-test");
+    assert_eq!(format!("{}", id), "display-test");
+}
+{% if with_events %}
+
+#[test]
+fn test_domain_event_created() {
+    use {{ name_snake }}::domain::events::{{ name_pascal }}Created;
+
+    let id = {{ name_pascal }}Id::new("event-test-id");
+    let event = {{ name_pascal }}Created::new(id.clone());
+
+    assert_eq!(event.id, id);
+}
+{% endif %}

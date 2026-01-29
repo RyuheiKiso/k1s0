@@ -1,30 +1,48 @@
 // Package ports は {{ name_title }} ドメインのリポジトリインターフェースを定義します。
-//
-// ポート（インターフェース）はドメイン層で定義され、infrastructure 層で実装されます。
 package ports
 
-import "context"
+import (
+	"context"
 
-// TODO: {{ name_title }} ドメインのリポジトリインターフェースを定義してください
-//
-// 例:
-//
-//	type ProductRepository interface {
-//	    FindByID(ctx context.Context, id entities.ProductID) (*entities.Product, error)
-//	    FindAll(ctx context.Context) ([]*entities.Product, error)
-//	    Save(ctx context.Context, product *entities.Product) error
-//	    Delete(ctx context.Context, id entities.ProductID) error
-//	}
-//
-//	type UnitOfWork interface {
-//	    Begin(ctx context.Context) (Transaction, error)
-//	}
-//
-//	type Transaction interface {
-//	    Commit() error
-//	    Rollback() error
-//	    ProductRepository() ProductRepository
-//	}
+	"github.com/k1s0/domain/backend/go/{{ name }}/internal/domain/entities"
+)
+{% if with_repository %}
+
+// {{ name_pascal }}Repository は {{ name_pascal }} エンティティの永続化インターフェースです。
+type {{ name_pascal }}Repository interface {
+	// FindByID は ID でエンティティを検索します。
+	FindByID(ctx context.Context, id entities.{{ name_pascal }}ID) (*entities.{{ name_pascal }}, error)
+
+	// Save はエンティティを保存します（新規作成・更新の両方に対応）。
+	Save(ctx context.Context, entity *entities.{{ name_pascal }}) error
+
+	// Delete はエンティティを削除します。
+	Delete(ctx context.Context, id entities.{{ name_pascal }}ID) error
+}
+
+// RepositoryError はリポジトリのエラー型です。
+type RepositoryError struct {
+	Code    string
+	Message string
+	Cause   error
+}
+
+// Error は error インターフェースを実装します。
+func (e *RepositoryError) Error() string {
+	if e.Cause != nil {
+		return e.Message + ": " + e.Cause.Error()
+	}
+	return e.Message
+}
+
+// Unwrap はラップされたエラーを返します。
+func (e *RepositoryError) Unwrap() error {
+	return e.Cause
+}
+{% else %}
+// リポジトリインターフェースをここに定義してください。
+// `k1s0 new-domain --with-repository` でリポジトリの雛形を生成できます。
 
 // ContextKey はコンテキストで使用するキーの型です。
 type ContextKey string
+{% endif %}

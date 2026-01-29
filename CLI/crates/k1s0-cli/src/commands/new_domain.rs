@@ -113,6 +113,18 @@ pub struct NewDomainArgs {
     /// 対話モードを強制する
     #[arg(short = 'i', long)]
     pub interactive: bool,
+
+    /// ドメインイベント雛形を含める
+    #[arg(long)]
+    pub with_events: bool,
+
+    /// リポジトリ trait 雛形を含める（デフォルト: true）
+    #[arg(long, default_value = "true")]
+    pub with_repository: bool,
+
+    /// 初期バージョン（デフォルト: 0.1.0）
+    #[arg(long, default_value = "0.1.0")]
+    pub version: String,
 }
 
 impl NewDomainArgs {
@@ -128,6 +140,9 @@ struct ResolvedArgs {
     name: String,
     output: Option<String>,
     force: bool,
+    with_events: bool,
+    with_repository: bool,
+    version: String,
 }
 
 /// `k1s0 new-domain` を実行する
@@ -164,6 +179,9 @@ fn resolve_args_from_cli(args: NewDomainArgs) -> Result<ResolvedArgs> {
         name,
         output: args.output,
         force: args.force,
+        with_events: args.with_events,
+        with_repository: args.with_repository,
+        version: args.version,
     })
 }
 
@@ -200,6 +218,9 @@ fn resolve_args_interactive(args: NewDomainArgs) -> Result<ResolvedArgs> {
         name,
         output: args.output,
         force: args.force,
+        with_events: args.with_events,
+        with_repository: args.with_repository,
+        version: args.version,
     })
 }
 
@@ -398,6 +419,11 @@ fn create_template_context(args: &ResolvedArgs) -> Context {
     context.insert("created_at", &now.to_rfc3339());
     context.insert("now", &now);
 
+    // オプション
+    context.insert("with_events", &args.with_events);
+    context.insert("with_repository", &args.with_repository);
+    context.insert("domain_version", &args.version);
+
     // fingerprint（テンプレート展開時に上書きされる可能性あり）
     context.insert("fingerprint", "");
 
@@ -432,7 +458,7 @@ fn create_manifest(
         },
         layer: LayerType::Domain,
         domain: None, // domain 層自身は他の domain に所属しない
-        version: Some("0.1.0".to_string()), // 初期バージョン
+        version: Some(args.version.clone()),
         domain_version: None,
         min_framework_version: Some(version().to_string()),
         breaking_changes: None,
@@ -625,6 +651,9 @@ mod tests {
             output: None,
             force: false,
             interactive: false,
+            with_events: false,
+            with_repository: true,
+            version: "0.1.0".to_string(),
         };
         assert!(args_complete.has_required_args());
 
@@ -634,6 +663,9 @@ mod tests {
             output: None,
             force: false,
             interactive: false,
+            with_events: false,
+            with_repository: true,
+            version: "0.1.0".to_string(),
         };
         assert!(!args_missing_type.has_required_args());
 
@@ -643,6 +675,9 @@ mod tests {
             output: None,
             force: false,
             interactive: false,
+            with_events: false,
+            with_repository: true,
+            version: "0.1.0".to_string(),
         };
         assert!(!args_missing_name.has_required_args());
     }

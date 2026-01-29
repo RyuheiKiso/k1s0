@@ -305,8 +305,8 @@ impl Linter {
             Err(_) => return, // manifest がない場合はスキップ（既にエラー報告済み）
         };
 
-        // template.name から必須ファイルを取得
-        let required = match RequiredFiles::from_template_name(&manifest.template.name) {
+        // template.name と layer から必須ファイルを取得
+        let required = match RequiredFiles::from_template_and_layer(&manifest.template.name, &manifest.layer) {
             Some(r) => r,
             None => return, // 不明なテンプレートの場合はスキップ
         };
