@@ -8,6 +8,7 @@ service:
 
 {% if with_db %}
 database:
+  # Docker Compose 環境では db、ホスト直接実行では localhost
   host: localhost
   name: {{ feature_name }}_dev
   pool:
@@ -18,6 +19,7 @@ database:
 {% if with_cache %}
 cache:
   redis:
+    # Docker Compose 環境では redis://redis:6379/0
     url: "redis://localhost:6379/0"
 {% endif %}
 

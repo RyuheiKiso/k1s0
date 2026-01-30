@@ -34,6 +34,8 @@ pub enum ToolCategory {
     Flutter,
     /// Protocol Buffers 関連
     Proto,
+    /// Docker 関連
+    Docker,
 }
 
 impl ToolCategory {
@@ -45,6 +47,7 @@ impl ToolCategory {
             ToolCategory::Node => "Node.js",
             ToolCategory::Flutter => "Flutter",
             ToolCategory::Proto => "Protocol Buffers",
+            ToolCategory::Docker => "Docker",
         }
     }
 }
@@ -245,8 +248,41 @@ pub const DART: ToolRequirement = ToolRequirement {
 /// 全ての必須ツール
 pub const REQUIRED_TOOLS: &[&ToolRequirement] = &[&RUST, &CARGO, &NODE, &PNPM];
 
+/// Docker 最小バージョン
+pub const DOCKER_MIN_VERSION: &str = "24.0.0";
+
+/// Docker ツール情報
+pub const DOCKER: ToolRequirement = ToolRequirement {
+    name: "docker",
+    min_version: Some(DOCKER_MIN_VERSION),
+    required: false,
+    category: ToolCategory::Docker,
+    install_url: "https://docs.docker.com/get-docker/",
+    install_commands: InstallCommands {
+        windows: Some("winget install Docker.DockerDesktop"),
+        macos: Some("brew install --cask docker"),
+        linux: Some("curl -fsSL https://get.docker.com | sh"),
+    },
+    description: "コンテナランタイム（Docker サポートに必要）",
+};
+
+/// Docker Compose ツール情報
+pub const DOCKER_COMPOSE: ToolRequirement = ToolRequirement {
+    name: "docker compose",
+    min_version: None,
+    required: false,
+    category: ToolCategory::Docker,
+    install_url: "https://docs.docker.com/compose/install/",
+    install_commands: InstallCommands {
+        windows: Some("Docker Desktop に含まれます"),
+        macos: Some("Docker Desktop に含まれます"),
+        linux: Some("sudo apt-get install docker-compose-plugin"),
+    },
+    description: "Docker Compose v2（docker-compose サポートに必要）",
+};
+
 /// 全てのオプションツール
-pub const OPTIONAL_TOOLS: &[&ToolRequirement] = &[&GO, &GOLANGCI_LINT, &BUF, &FLUTTER, &DART];
+pub const OPTIONAL_TOOLS: &[&ToolRequirement] = &[&GO, &GOLANGCI_LINT, &BUF, &FLUTTER, &DART, &DOCKER, &DOCKER_COMPOSE];
 
 /// 全てのツール
 pub fn all_tools() -> Vec<&'static ToolRequirement> {

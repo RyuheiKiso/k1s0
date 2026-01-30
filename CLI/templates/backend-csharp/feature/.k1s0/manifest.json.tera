@@ -32,11 +32,17 @@
     "buf.yaml",
     "buf.gen.yaml",
     "Directory.Build.props",
-    "Directory.Packages.props"
+    "Directory.Packages.props",
+    "Dockerfile",
+    ".dockerignore"
   ],
   "protected_paths": [
     "src/{{ feature_name_pascal }}.Domain/",
     "src/{{ feature_name_pascal }}.Application/"
+  ],
+  "unmanaged_paths": [
+    "docker-compose.yml",
+    "secrets/"
   ],
   "update_policy": {
     "deploy/": "auto",

@@ -1,16 +1,12 @@
 **/.git
-**/.vs
 **/.vscode
 **/.idea
-**/bin/
-**/obj/
-**/out/
+**/target/
 **/node_modules/
 **/.k1s0/
 **/tests/
 **/docs/
 **/deploy/
-**/migrations/
 **/*.md
 **/.gitignore
 **/.editorconfig

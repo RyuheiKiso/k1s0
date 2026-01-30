@@ -29,11 +29,17 @@
     "openapi/",
     "config/",
     "buf.yaml",
-    "buf.gen.yaml"
+    "buf.gen.yaml",
+    "Dockerfile",
+    ".dockerignore"
   ],
   "protected_paths": [
     "internal/domain/",
     "internal/application/"
+  ],
+  "unmanaged_paths": [
+    "docker-compose.yml",
+    "secrets/"
   ],
   "update_policy": {
     "deploy/": "auto",

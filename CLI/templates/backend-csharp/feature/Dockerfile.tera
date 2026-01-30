@@ -5,24 +5,29 @@
 # Stage 1: Build
 # ---------------------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
 WORKDIR /src
 
 # Copy solution and project files first for layer caching
-COPY {{ feature_name_pascal }}.sln .
-COPY Directory.Build.props .
-COPY Directory.Packages.props .
-COPY src/{{ feature_name_pascal }}.Domain/{{ feature_name_pascal }}.Domain.csproj src/{{ feature_name_pascal }}.Domain/
-COPY src/{{ feature_name_pascal }}.Application/{{ feature_name_pascal }}.Application.csproj src/{{ feature_name_pascal }}.Application/
-COPY src/{{ feature_name_pascal }}.Infrastructure/{{ feature_name_pascal }}.Infrastructure.csproj src/{{ feature_name_pascal }}.Infrastructure/
-COPY src/{{ feature_name_pascal }}.Presentation/{{ feature_name_pascal }}.Presentation.csproj src/{{ feature_name_pascal }}.Presentation/
+COPY {{ feature_relative_path }}/{{ feature_name_pascal }}.sln .
+COPY {{ feature_relative_path }}/Directory.Build.props .
+COPY {{ feature_relative_path }}/Directory.Packages.props .
+COPY {{ feature_relative_path }}/src/{{ feature_name_pascal }}.Domain/{{ feature_name_pascal }}.Domain.csproj src/{{ feature_name_pascal }}.Domain/
+COPY {{ feature_relative_path }}/src/{{ feature_name_pascal }}.Application/{{ feature_name_pascal }}.Application.csproj src/{{ feature_name_pascal }}.Application/
+COPY {{ feature_relative_path }}/src/{{ feature_name_pascal }}.Infrastructure/{{ feature_name_pascal }}.Infrastructure.csproj src/{{ feature_name_pascal }}.Infrastructure/
+COPY {{ feature_relative_path }}/src/{{ feature_name_pascal }}.Presentation/{{ feature_name_pascal }}.Presentation.csproj src/{{ feature_name_pascal }}.Presentation/
 
 # Restore dependencies
 RUN dotnet restore src/{{ feature_name_pascal }}.Presentation/{{ feature_name_pascal }}.Presentation.csproj
 
 # Copy all source code
-COPY src/ src/
+COPY {{ feature_relative_path }}/src/ src/
 {% if with_grpc %}
-COPY proto/ proto/
+COPY {{ feature_relative_path }}/proto/ proto/
 {% endif %}
 
 # Build
@@ -37,11 +42,15 @@ RUN dotnet publish src/{{ feature_name_pascal }}.Presentation/{{ feature_name_pa
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
+# Install curl for health check
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # Security: run as non-root
 RUN groupadd -r appuser && useradd -r -g appuser -s /sbin/nologin appuser
 
 COPY --from=build /app/publish .
-COPY config/ /app/config/
+COPY {{ feature_relative_path }}/config/ /app/config/
 
 # Set environment
 ENV ASPNETCORE_URLS=http://+:8080
@@ -52,6 +61,10 @@ EXPOSE 8080
 EXPOSE 50051
 {% endif %}
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/healthz || exit 1
+
 USER appuser
 
 ENTRYPOINT ["dotnet", "{{ feature_name_pascal }}.Presentation.dll"]
+CMD ["--env", "default", "--config", "/app/config"]

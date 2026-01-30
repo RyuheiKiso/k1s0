@@ -137,6 +137,16 @@ framework/backend/{lang}/services/{service_name}/
 | `lib/src/domain/` | entities/value_objects |
 | `lib/src/infrastructure/` | api client/repository 実装 |
 
+### 4.8 Docker 関連ファイル（全テンプレート共通）
+
+| ファイル/ディレクトリ | 説明 |
+|-----------------------|------|
+| `Dockerfile` | マルチステージ Docker ビルド定義 |
+| `.dockerignore` | Docker ビルド除外パターン |
+| `docker-compose.yml` | ローカル開発用 docker-compose 定義 |
+| `secrets/` | docker-compose 用シークレット（.gitignore 対象） |
+| `deploy/nginx.conf` | Nginx 設定（frontend-react のみ） |
+
 ## 5. 条件付き必須
 
 | 条件 | 必須ファイル/ディレクトリ |

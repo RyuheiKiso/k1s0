@@ -141,4 +141,7 @@ pub enum Commands {
     /// ドメイン依存グラフを出力する
     #[command(name = "domain-graph")]
     DomainGraph(commands::domain_graph::DomainGraphArgs),
+
+    /// Docker イメージのビルドや docker-compose の操作を支援する
+    Docker(commands::docker::DockerArgs),
 }

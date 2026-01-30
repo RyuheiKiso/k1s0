@@ -47,6 +47,11 @@ CLI/crates/
 | `completions` | シェル補完生成 | `--shell` |
 | `domain-catalog` | ドメインカタログ表示 | `--language`, `--include-deprecated`, `--json` |
 | `domain-graph` | ドメイン依存グラフ出力 | `--format`, `--root`, `--detect-cycles` |
+| `docker build` | Docker イメージをビルド | `--tag`, `--no-cache`, `--http-proxy`, `--https-proxy` |
+| `docker compose up` | docker compose サービスを起動 | `-d/--detach`, `--build` |
+| `docker compose down` | docker compose サービスを停止 | `-v/--volumes` |
+| `docker compose logs` | docker compose ログを表示 | `-f/--follow`, `<service>` |
+| `docker status` | コンテナ状態を表示 | `--json` |
 
 ## グローバルオプション
 
@@ -1235,6 +1240,7 @@ k1s0 doctor --check node
 k1s0 doctor --check go
 k1s0 doctor --check flutter
 k1s0 doctor --check proto
+k1s0 doctor --check docker
 
 # 警告をエラーとして扱う
 k1s0 doctor --strict
@@ -1293,6 +1299,8 @@ pub enum CheckCategory {
 | buf | 1.28.0 | Protocol Buffers |
 | flutter | 3.16.0 | frontend-flutter |
 | dart | 3.2.0 | Dart SDK |
+| docker | 24.0.0 | Docker ランタイム |
+| docker compose | - | Docker Compose v2 |
 
 ### 出力例
 
@@ -1416,6 +1424,67 @@ error: manifest.json が見つかりません
 - `new-feature --skip-doctor`: doctor チェックをスキップ
 - `init --skip-doctor`: 初期化後の doctor チェックをスキップ
 - サービスタイプに応じた関連ツールのみチェック（例: `backend-rust` → Rust カテゴリ）
+
+## docker コマンド (v0.2.3)
+
+### 目的
+
+Docker イメージのビルドと docker-compose によるローカル開発環境の操作を支援する。
+
+### サブコマンド
+
+#### docker build
+
+```bash
+# 基本（タグは manifest から自動生成: {feature_name}:{template_version}）
+k1s0 docker build
+
+# カスタムタグ
+k1s0 docker build --tag my-app:latest
+
+# キャッシュ無効化
+k1s0 docker build --no-cache
+
+# プロキシ指定
+k1s0 docker build --http-proxy http://proxy:8080 --https-proxy https://proxy:8080
+```
+
+#### docker compose
+
+```bash
+# サービス起動（バックグラウンド + ビルド）
+k1s0 docker compose up -d --build
+
+# サービス停止（ボリューム含む）
+k1s0 docker compose down -v
+
+# ログ表示（フォロー）
+k1s0 docker compose logs -f
+
+# 特定サービスのログ
+k1s0 docker compose logs app
+```
+
+#### docker status
+
+```bash
+# コンテナ状態を表示
+k1s0 docker status
+
+# JSON 出力
+k1s0 docker status --json
+```
+
+### エラーハンドリング
+
+| エラー | 復旧提案 |
+|--------|---------|
+| Docker 未インストール | `https://docs.docker.com/get-docker/` を案内 |
+| Docker Compose v2 なし | Docker Desktop またはプラグイン追加を案内 |
+| Dockerfile なし | `k1s0 new-feature` で生成を案内 |
+| docker-compose.yml なし | `k1s0 new-feature` で生成を案内 |
+
+---
 
 ## 今後の拡張予定
 

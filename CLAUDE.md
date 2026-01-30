@@ -210,6 +210,25 @@ dart analyze
 dart run build_runner build
 ```
 
+### Docker
+
+```bash
+# Docker イメージをビルド
+k1s0 docker build
+
+# カスタムタグでビルド
+k1s0 docker build --tag my-app:1.0
+
+# docker compose でローカル環境を起動
+k1s0 docker compose up -d --build
+
+# docker compose サービスを停止（ボリューム削除）
+k1s0 docker compose down -v
+
+# コンテナ状態の確認
+k1s0 docker status
+```
+
 ### API Contract Validation
 
 ```bash
@@ -244,6 +263,11 @@ buf format --exit-code
 | `k1s0 domain impact --name <name>` | Analyze version upgrade impact |
 | `k1s0 domain-catalog` | Show domain catalog with dependency status |
 | `k1s0 domain-graph` | Output domain dependency graph (Mermaid/DOT) |
+| `k1s0 docker build` | Build Docker image (`--tag`, `--no-cache`, `--http-proxy`) |
+| `k1s0 docker compose up` | Start docker compose services (`-d`, `--build`) |
+| `k1s0 docker compose down` | Stop docker compose services (`-v`) |
+| `k1s0 docker compose logs` | Show docker compose logs (`-f`, `<service>`) |
+| `k1s0 docker status` | Show container status (`--json`) |
 
 ### Interactive Mode
 
@@ -459,11 +483,11 @@ lib/src/
 ## Required Files by Template
 
 ### backend-rust
-- `Cargo.toml`, `src/main.rs`, `config/default.yaml`, `.k1s0/manifest.json`
+- `Cargo.toml`, `src/main.rs`, `config/default.yaml`, `.k1s0/manifest.json`, `Dockerfile`, `.dockerignore`, `docker-compose.yml`
 - Directories: `src/`, `src/domain/`, `src/application/`, `src/presentation/`, `src/infrastructure/`, `config/`, `deploy/`
 
 ### backend-go
-- `go.mod`, `config/default.yaml`, `.k1s0/manifest.json`
+- `go.mod`, `config/default.yaml`, `.k1s0/manifest.json`, `Dockerfile`, `.dockerignore`, `docker-compose.yml`
 - Directories: `cmd/`, `internal/domain/`, `internal/application/`, `internal/presentation/`, `internal/infrastructure/`, `config/`, `deploy/`
 
 ### backend-csharp
@@ -475,7 +499,7 @@ lib/src/
 - Directories: `src/`, `src/{feature_name_snake}/domain/`, `src/{feature_name_snake}/application/`, `src/{feature_name_snake}/infrastructure/`, `src/{feature_name_snake}/presentation/`, `config/`, `deploy/`
 
 ### frontend-react
-- `package.json`, `tsconfig.json`, `.k1s0/manifest.json`
+- `package.json`, `tsconfig.json`, `.k1s0/manifest.json`, `Dockerfile`, `.dockerignore`, `docker-compose.yml`, `deploy/nginx.conf`
 - Directories: `src/`, `src/domain/`, `src/application/`, `src/presentation/`, `public/`
 
 ### frontend-flutter
@@ -576,6 +600,7 @@ lib/src/
 | buf.yml | Push to main, proto changes | Lint -> Breaking changes check -> Format check |
 | openapi.yml | Push to main, OpenAPI changes | Spectral linting |
 | generation.yml | Push to main, contract changes | Fingerprint verification |
+| docker.yml | Push to main/develop, Docker file changes | Docker build test (5 templates) |
 | release-cli.yml | Semantic version tag | Validate -> Multi-platform build -> GH Release |
 | release-crates.yml | Semantic version tag | Publish Rust crates to crates.io |
 | release-npm.yml | Semantic version tag | Publish Node packages to npm |

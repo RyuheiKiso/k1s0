@@ -1,0 +1,44 @@
+# {{ feature_name }} - Multi-stage Docker build
+# React + Nginx
+
+# ---------------------------------------------------------------------------
+# Stage 1: Build
+# ---------------------------------------------------------------------------
+FROM node:20-slim AS build
+
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
+WORKDIR /app
+
+# Enable pnpm
+RUN corepack enable pnpm
+
+# Copy dependency files first for layer caching
+COPY {{ feature_relative_path }}/package.json {{ feature_relative_path }}/pnpm-lock.yaml ./
+
+# Copy framework packages for workspace resolution
+COPY framework/frontend/react/packages/ /app/framework/frontend/react/packages/
+
+RUN pnpm install --frozen-lockfile
+
+# Copy source code and build
+COPY {{ feature_relative_path }}/ .
+RUN pnpm build
+
+# ---------------------------------------------------------------------------
+# Stage 2: Runtime (Nginx)
+# ---------------------------------------------------------------------------
+FROM nginx:alpine AS runtime
+
+# Copy built assets
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Copy nginx config
+COPY {{ feature_relative_path }}/deploy/nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD wget -qO- http://localhost/healthz || exit 1

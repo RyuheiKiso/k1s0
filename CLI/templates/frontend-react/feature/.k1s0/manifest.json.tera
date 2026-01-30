@@ -26,12 +26,18 @@
   "generated_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
   "managed_paths": [
     "deploy/",
-    "config/"
+    "config/",
+    "Dockerfile",
+    ".dockerignore",
+    "deploy/nginx.conf"
   ],
   "protected_paths": [
     "src/domain/",
     "src/application/",
     "src/presentation/"
+  ],
+  "unmanaged_paths": [
+    "docker-compose.yml"
   ],
   "update_policy": {
     "deploy/": "auto",
