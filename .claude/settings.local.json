@@ -88,7 +88,8 @@
       "Bash(./CLI/target/release/k1s0.exe doctor:*)",
       "Bash(python:*)",
       "Bash(grep:*)",
-      "Bash(TESTDIR=\"C:/Users/RYUHEI~1/AppData/Local/Temp/k1s0-test-gen\":*)"
+      "Bash(TESTDIR=\"C:/Users/RYUHEI~1/AppData/Local/Temp/k1s0-test-gen\":*)",
+      "Bash(git ls-tree:*)"
     ]
   }
 }
