@@ -244,6 +244,11 @@ buf format --exit-code
 | `k1s0 domain impact --name <name>` | Analyze version upgrade impact |
 | `k1s0 domain-catalog` | Show domain catalog with dependency status |
 | `k1s0 domain-graph` | Output domain dependency graph (Mermaid/DOT) |
+| `k1s0 docker up` | Docker Compose でサービスを起動 |
+| `k1s0 docker down` | Docker Compose でサービスを停止 |
+| `k1s0 docker logs` | サービスのログを表示 |
+| `k1s0 docker build` | Docker イメージをビルド |
+| `k1s0 docker ps` | サービスのステータスを表示 |
 
 ### Interactive Mode
 
@@ -575,6 +580,7 @@ lib/src/
 | frontend-flutter.yml | Push to main, Flutter changes | Analyze -> Build |
 | buf.yml | Push to main, proto changes | Lint -> Breaking changes check -> Format check |
 | openapi.yml | Push to main, OpenAPI changes | Spectral linting |
+| docker.yml | Push to main, Dockerfile/docker-compose changes | hadolint -> Build -> Trivy |
 | generation.yml | Push to main, contract changes | Fingerprint verification |
 | release-cli.yml | Semantic version tag | Validate -> Multi-platform build -> GH Release |
 | release-crates.yml | Semantic version tag | Publish Rust crates to crates.io |
