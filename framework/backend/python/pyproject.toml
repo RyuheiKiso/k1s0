@@ -14,6 +14,10 @@ members = [
     "packages/k1s0-grpc-client",
     "packages/k1s0-health",
     "packages/k1s0-db",
+    "packages/k1s0-domain-event",
+    "packages/k1s0-resilience",
+    "packages/k1s0-cache",
+    "packages/k1s0-auth",
 ]
 
 [tool.pytest.ini_options]

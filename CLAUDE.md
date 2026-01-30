@@ -557,8 +557,12 @@ lib/src/
 | k1s0-grpc-client | gRPC client utilities | 2 |
 | k1s0-health | Health check probes (FastAPI) | 2 |
 | k1s0-db | Database connection/transaction (SQLAlchemy + asyncpg) | 2 |
+| k1s0-domain-event | Domain event publish/subscribe and outbox pattern | 2 |
+| k1s0-resilience | Circuit breaker, retry, timeout, bulkhead patterns | 2 |
+| k1s0-cache | Redis caching and cache patterns | 2 |
+| k1s0-auth | JWT/OIDC authentication and policy-based authorization | 3 |
 
-**Tier dependency rules:** Same as Rust/Go/C# -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only.
+**Tier dependency rules:** Same as Rust/Go/C# -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only, Tier 3 can depend on Tier 1 and 2.
 
 ## Framework Packages (Flutter Frontend)
 
@@ -585,8 +589,12 @@ lib/src/
 | K1s0.Grpc.Client | gRPC client utilities | 2 |
 | K1s0.Health | Health check probes | 2 |
 | K1s0.Db | Database connection/transaction (EF Core) | 2 |
+| K1s0.DomainEvent | Domain event publish/subscribe and outbox pattern | 2 |
+| K1s0.Resilience | Circuit breaker, retry, timeout, bulkhead patterns | 2 |
+| K1s0.Cache | Redis caching and cache patterns (StackExchange.Redis) | 2 |
+| K1s0.Auth | JWT/OIDC authentication and policy-based authorization | 3 |
 
-**Tier dependency rules:** Same as Rust/Go -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only.
+**Tier dependency rules:** Same as Rust/Go -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only, Tier 3 can depend on Tier 1 and 2.
 
 ## CI/CD Workflows
 
