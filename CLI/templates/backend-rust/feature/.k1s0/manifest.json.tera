@@ -13,14 +13,7 @@
     "service_name": "{{ feature_name }}",
     "language": "rust",
     "type": "backend",
-    "framework": "axum",
-    "features": {
-      "with_grpc": {{ with_grpc }},
-      "with_rest": {{ with_rest }},
-      "with_db": {{ with_db }},
-      "with_cache": {{ with_cache }},
-      "with_docker": {{ with_docker }}
-    }
+    "framework": "axum"
   },
   "layer": "feature",
   {% if has_domain | default(value=false) -%}
@@ -37,13 +30,7 @@
     "openapi/",
     "config/",
     "buf.yaml",
-    "buf.gen.yaml",
-    "Dockerfile",
-    "Dockerfile.monorepo",
-    ".dockerignore",
-    "compose.yaml",
-    "compose.monorepo.yaml",
-    "deploy/docker/"
+    "buf.gen.yaml"
   ],
   "protected_paths": [
     "src/domain/",
@@ -56,13 +43,7 @@
     "src/application/": "protected",
     "src/infrastructure/": "suggest_only",
     "src/presentation/": "suggest_only",
-    "migrations/": "suggest_only",
-    "Dockerfile": "auto",
-    "Dockerfile.monorepo": "auto",
-    ".dockerignore": "auto",
-    "compose.yaml": "suggest_only",
-    "compose.monorepo.yaml": "suggest_only",
-    "deploy/docker/": "auto"
+    "migrations/": "suggest_only"
   },
   "checksums": {},
   "dependencies": {

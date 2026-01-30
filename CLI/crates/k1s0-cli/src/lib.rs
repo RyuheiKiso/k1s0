@@ -18,7 +18,6 @@ use clap::{Parser, Subcommand};
 use once_cell::sync::Lazy;
 
 pub mod commands;
-pub mod docker;
 pub mod doctor;
 pub mod error;
 pub mod output;
@@ -142,7 +141,4 @@ pub enum Commands {
     /// ドメイン依存グラフを出力する
     #[command(name = "domain-graph")]
     DomainGraph(commands::domain_graph::DomainGraphArgs),
-
-    /// Docker Compose でサービスを管理する
-    Docker(commands::docker::DockerArgs),
 }

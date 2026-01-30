@@ -251,7 +251,4 @@ mod tests {
         assert_eq!(preview.files.len(), 3);
         assert!(preview.directory_count >= 1); // src/
     }
-
-    mod docker_tests;
-    mod manifest_tests;
 }

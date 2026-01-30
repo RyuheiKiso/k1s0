@@ -90,18 +90,6 @@
           "type": "string",
           "description": "使用フレームワーク",
           "examples": ["axum", "react", "flutter"]
-        },
-        "features": {
-          "type": "object",
-          "description": "サービス生成時に有効にした機能フラグ",
-          "properties": {
-            "with_grpc": { "type": "boolean", "default": false },
-            "with_rest": { "type": "boolean", "default": false },
-            "with_db": { "type": "boolean", "default": false },
-            "with_cache": { "type": "boolean", "default": false },
-            "with_docker": { "type": "boolean", "default": true }
-          },
-          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -198,7 +186,7 @@
         "type": "string"
       },
       "examples": [
-        ["deploy/", "config/", ".github/", "Dockerfile", "Dockerfile.monorepo", ".dockerignore", "compose.yaml", "compose.monorepo.yaml"]
+        ["deploy/", "config/", ".github/"]
       ]
     },
     "protected_paths": {

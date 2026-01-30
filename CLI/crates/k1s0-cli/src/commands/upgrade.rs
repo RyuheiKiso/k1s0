@@ -144,14 +144,6 @@ pub fn execute(args: UpgradeArgs) -> Result<()> {
         out.newline();
     }
 
-    // Docker サポートが新規追加された場合の通知
-    if check_result.docker_newly_added {
-        out.info("新機能: Docker サポートが追加されました");
-        out.hint("Dockerfile, compose.yaml, .dockerignore が生成されます");
-        out.hint("Docker を使用しない場合は --no-docker フラグで除外できます");
-        out.newline();
-    }
-
     // 差分を表示
     out.header("変更内容:");
     println!("{}", check_result.format_check_output());

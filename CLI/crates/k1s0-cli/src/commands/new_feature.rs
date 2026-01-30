@@ -158,18 +158,6 @@ pub struct NewFeatureArgs {
     #[arg(long)]
     pub with_db: bool,
 
-    /// Redis キャッシュを含める
-    #[arg(long)]
-    pub with_cache: bool,
-
-    /// Docker サポートを含める（デフォルト: 有効）
-    #[arg(long, default_value_t = true)]
-    pub with_docker: bool,
-
-    /// Docker サポートを無効にする
-    #[arg(long, conflicts_with = "with_docker")]
-    pub no_docker: bool,
-
     /// 対話モードを強制する
     #[arg(short = 'i', long)]
     pub interactive: bool,
@@ -200,8 +188,6 @@ struct ResolvedArgs {
     with_grpc: bool,
     with_rest: bool,
     with_db: bool,
-    with_cache: bool,
-    with_docker: bool,
     yes: bool,
     skip_doctor: bool,
 }
@@ -255,8 +241,6 @@ fn resolve_args_from_cli(args: NewFeatureArgs) -> Result<ResolvedArgs> {
         with_grpc: args.with_grpc,
         with_rest: args.with_rest,
         with_db: args.with_db,
-        with_cache: args.with_cache,
-        with_docker: args.with_docker && !args.no_docker,
         yes: args.yes,
         skip_doctor: args.skip_doctor,
     })
@@ -318,8 +302,6 @@ fn resolve_args_interactive(args: NewFeatureArgs) -> Result<ResolvedArgs> {
         with_grpc,
         with_rest,
         with_db,
-        with_cache: args.with_cache,
-        with_docker: args.with_docker && !args.no_docker,
         yes: args.yes,
         skip_doctor: args.skip_doctor,
     })
@@ -472,28 +454,6 @@ fn execute_generation(args: ResolvedArgs) -> Result<()> {
             CliError::internal(format!("テンプレートの展開に失敗: {}", e))
         })?;
     progress_bar.finish_and_clear();
-
-    // --no-docker の場合、Docker 関連ファイルを削除
-    if !args.with_docker {
-        let docker_files = [
-            "Dockerfile",
-            "Dockerfile.monorepo",
-            ".dockerignore",
-            "compose.yaml",
-            "compose.monorepo.yaml",
-        ];
-        for file in &docker_files {
-            let path = output_dir.join(file);
-            if path.exists() {
-                let _ = std::fs::remove_file(&path);
-            }
-        }
-        // deploy/docker ディレクトリも削除
-        let docker_deploy = output_dir.join("deploy/docker");
-        if docker_deploy.exists() {
-            let _ = std::fs::remove_dir_all(&docker_deploy);
-        }
-    }
 
     // 結果を表示
     out.newline();
@@ -673,8 +633,6 @@ fn create_template_context(args: &ResolvedArgs, domain_info: Option<&DomainInfo>
     context.insert("with_grpc", &args.with_grpc);
     context.insert("with_rest", &args.with_rest);
     context.insert("with_db", &args.with_db);
-    context.insert("with_cache", &args.with_cache);
-    context.insert("with_docker", &args.with_docker);
 
     // 日時
     context.insert("now", &Utc::now());
@@ -908,9 +866,6 @@ mod tests {
             with_grpc: false,
             with_rest: false,
             with_db: false,
-            with_cache: false,
-            with_docker: true,
-            no_docker: false,
             interactive: false,
             yes: false,
             skip_doctor: false,
@@ -926,9 +881,6 @@ mod tests {
             with_grpc: false,
             with_rest: false,
             with_db: false,
-            with_cache: false,
-            with_docker: true,
-            no_docker: false,
             interactive: false,
             yes: false,
             skip_doctor: false,
@@ -944,9 +896,6 @@ mod tests {
             with_grpc: false,
             with_rest: false,
             with_db: false,
-            with_cache: false,
-            with_docker: true,
-            no_docker: false,
             interactive: false,
             yes: false,
             skip_doctor: false,
