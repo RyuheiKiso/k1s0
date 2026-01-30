@@ -217,7 +217,7 @@ k1s0 lint --exclude-rules K030,K031
 k1s0 lint --strict
 ```
 
-詳細は [Lint 設計書](docs/design/lint.md) を参照してください。
+詳細は [Lint 設計書](docs/design/lint/) を参照してください。
 
 ## テンプレート
 
@@ -232,7 +232,7 @@ k1s0 lint --strict
 | frontend-react | feature, domain, screen | `feature/frontend/react/{name}/`, `domain/frontend/react/{name}/` |
 | frontend-flutter | feature, domain, screen | `feature/frontend/flutter/{name}/`, `domain/frontend/flutter/{name}/` |
 
-詳細は [テンプレート設計書](docs/design/template.md) を参照してください。
+詳細は [テンプレート設計書](docs/design/template/) を参照してください。
 
 ## ドキュメント
 
@@ -242,10 +242,10 @@ k1s0 lint --strict
 
 ### 設計書
 
-- [CLI 設計書](docs/design/cli.md): k1s0-cli の設計
+- [CLI 設計書](docs/design/cli/): k1s0-cli の設計
 - [Generator 設計書](docs/design/generator.md): k1s0-generator の設計
-- [Lint 設計書](docs/design/lint.md): Lint 機能の詳細設計
-- [テンプレート設計書](docs/design/template.md): テンプレートシステム設計
+- [Lint 設計書](docs/design/lint/): Lint 機能の詳細設計
+- [テンプレート設計書](docs/design/template/): テンプレートシステム設計
 - [Framework 設計書](docs/design/framework.md): 共通ライブラリ設計
 - [Domain 設計書](docs/design/domain.md): 業務領域共通層の設計
 

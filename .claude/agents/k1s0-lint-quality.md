@@ -1,6 +1,6 @@
 ---
 name: k1s0-lint-quality
-description: "Use this agent when working on lint rules, quality management, or code analysis features in the k1s0 project. This includes: implementing new lint rules (K0XX series), modifying existing lint rule behavior, working with the lint infrastructure in CLI/crates/k1s0-generator/src/lint/, updating lint-related documentation in docs/design/lint.md, integrating lint with LSP features, or discussing code quality standards and conventions.\n\nExamples:\n\n<example>\nContext: User wants to add a new lint rule to detect unused imports.\nuser: \"K040という新しいlintルールを追加して、未使用のimportを検出したい\"\nassistant: \"新しいlintルール K040 の実装について、k1s0-lint-quality エージェントを使って設計と実装を進めます\"\n<Task tool call to k1s0-lint-quality agent>\n</example>\n\n<example>\nContext: User is debugging a false positive in an existing lint rule.\nuser: \"K022のClean Architecture依存方向違反の検出で誤検知が発生している\"\nassistant: \"K022ルールの誤検知問題を調査するため、k1s0-lint-quality エージェントを起動します\"\n<Task tool call to k1s0-lint-quality agent>\n</example>\n\n<example>\nContext: User wants to improve lint performance for large repositories.\nuser: \"大規模リポジトリでlintが遅いので最適化したい\"\nassistant: \"lint実行のパフォーマンス最適化について、k1s0-lint-quality エージェントで分析と改善を行います\"\n<Task tool call to k1s0-lint-quality agent>\n</example>\n\n<example>\nContext: User is adding auto-fix capability to an existing rule.\nuser: \"K020の環境変数参照禁止ルールに自動修正機能を追加できる？\"\nassistant: \"K020ルールへの自動修正機能追加について、k1s0-lint-quality エージェントを使って実装方針を検討します\"\n<Task tool call to k1s0-lint-quality agent>\n</example>"
+description: "Use this agent when working on lint rules, quality management, or code analysis features in the k1s0 project. This includes: implementing new lint rules (K0XX series), modifying existing lint rule behavior, working with the lint infrastructure in CLI/crates/k1s0-generator/src/lint/, updating lint-related documentation in docs/design/lint/, integrating lint with LSP features, or discussing code quality standards and conventions.\n\nExamples:\n\n<example>\nContext: User wants to add a new lint rule to detect unused imports.\nuser: \"K040という新しいlintルールを追加して、未使用のimportを検出したい\"\nassistant: \"新しいlintルール K040 の実装について、k1s0-lint-quality エージェントを使って設計と実装を進めます\"\n<Task tool call to k1s0-lint-quality agent>\n</example>\n\n<example>\nContext: User is debugging a false positive in an existing lint rule.\nuser: \"K022のClean Architecture依存方向違反の検出で誤検知が発生している\"\nassistant: \"K022ルールの誤検知問題を調査するため、k1s0-lint-quality エージェントを起動します\"\n<Task tool call to k1s0-lint-quality agent>\n</example>\n\n<example>\nContext: User wants to improve lint performance for large repositories.\nuser: \"大規模リポジトリでlintが遅いので最適化したい\"\nassistant: \"lint実行のパフォーマンス最適化について、k1s0-lint-quality エージェントで分析と改善を行います\"\n<Task tool call to k1s0-lint-quality agent>\n</example>\n\n<example>\nContext: User is adding auto-fix capability to an existing rule.\nuser: \"K020の環境変数参照禁止ルールに自動修正機能を追加できる？\"\nassistant: \"K020ルールへの自動修正機能追加について、k1s0-lint-quality エージェントを使って実装方針を検討します\"\n<Task tool call to k1s0-lint-quality agent>\n</example>"
 model: opus
 color: green
 ---
@@ -42,7 +42,7 @@ You manage and develop lint rules in `CLI/crates/k1s0-generator/src/lint/`. You 
 - K047 (Error): Domain layer missing required version field
 
 ### 2. Quality Documentation
-You maintain `docs/design/lint.md` and `docs/conventions/` to ensure all quality standards are properly documented.
+You maintain `docs/design/lint/` and `docs/conventions/` to ensure all quality standards are properly documented.
 
 ## Three-Layer Architecture Awareness
 
@@ -123,7 +123,7 @@ When implementing a new lint rule, you always follow this systematic approach:
    - Verify performance with large inputs
 
 4. **Documentation Phase**
-   - Update `docs/design/lint.md`
+   - Update `docs/design/lint/`
    - Ensure error messages are specific and actionable
 
 ## LSP Integration Awareness

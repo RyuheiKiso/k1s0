@@ -8,9 +8,9 @@
 |---------|------|
 | [cli.md](./cli.md) | CLI（k1s0-cli）設計書 |
 | [generator.md](./generator.md) | テンプレートエンジン（k1s0-generator）設計書 |
-| [lint.md](./lint.md) | Lint 機能設計書 |
+| [lint/](./lint/) | Lint 機能設計書 |
 | [framework.md](./framework.md) | Framework 共通ライブラリ設計書 |
-| [template.md](./template.md) | テンプレートシステム設計書 |
+| [template/](./template/) | テンプレートシステム設計書 |
 
 ## アーキテクチャ概要
 

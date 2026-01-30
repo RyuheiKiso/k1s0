@@ -73,5 +73,5 @@ Docker Desktop → Settings → Resources → Proxies で設定。
 
 ## 関連ドキュメント
 
-- [CLI 設計](../design/cli.md): docker コマンドの詳細
-- [テンプレート設計](../design/template.md): Dockerfile テンプレート仕様
+- [CLI 設計](../design/cli/): docker コマンドの詳細
+- [テンプレート設計](../design/template/): Dockerfile テンプレート仕様

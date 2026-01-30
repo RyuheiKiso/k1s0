@@ -118,7 +118,7 @@ graph TB
 | `k1s0 lint` | 規約違反検査 |
 | `k1s0 upgrade` | テンプレート更新 |
 
-詳細: [CLI 設計書](../design/cli.md)
+詳細: [CLI 設計書](../design/cli/)
 
 ### Framework - Backend Crates
 

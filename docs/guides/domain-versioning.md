@@ -409,5 +409,5 @@ k1s0 domain version --name manufacturing --set 2.0.0
 - [domain 開発ガイド](domain-development.md)
 - [3層構造への移行ガイド](migration-to-three-tier.md)
 - [非推奨化ポリシー](../conventions/deprecation-policy.md)
-- [Lint ルール K042, K046, K047](../design/lint.md)
+- [Lint ルール K042, K046, K047](../design/lint/rules-layer-deps.md)
 - [Semantic Versioning 2.0.0](https://semver.org/lang/ja/)

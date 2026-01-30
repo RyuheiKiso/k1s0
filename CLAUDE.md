@@ -681,9 +681,9 @@ Use canonical codes only: `INVALID_ARGUMENT`, `UNAUTHENTICATED`, `PERMISSION_DEN
 | Document | Path | Description |
 |----------|------|-------------|
 | Main README | `README.md` | Project overview |
-| CLI Design | `docs/design/cli.md` | CLI architecture |
-| Lint Design | `docs/design/lint.md` | Lint rules detail (K001-K047) |
-| Template Design | `docs/design/template.md` | Template system |
+| CLI Design | `docs/design/cli/` | CLI architecture |
+| Lint Design | `docs/design/lint/` | Lint rules detail (K001-K047) |
+| Template Design | `docs/design/template/` | Template system |
 | Framework Design | `docs/design/framework.md` | Library design |
 | Domain Design | `docs/design/domain.md` | Domain layer design |
 | Service Structure | `docs/conventions/service-structure.md` | Directory layout |

@@ -492,4 +492,4 @@ domain に関連する Lint ルール。
 
 - [ADR-0006: 3層アーキテクチャ](../adr/ADR-0006-three-layer-architecture.md)
 - [Clean Architecture](../architecture/clean-architecture.md)
-- [Lint ルール](lint.md)
+- [Lint ルール](lint/)
