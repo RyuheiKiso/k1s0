@@ -10,7 +10,6 @@ mod presentation;
 use std::sync::Arc;
 use clap::Parser;
 use tracing::{info, error, warn};
-use serde_json::json;
 {% if with_rest %}
 use axum::{Router, routing::get};
 use tower_http::trace::TraceLayer;
@@ -181,26 +180,7 @@ async fn main() -> anyhow::Result<()> {
 
     // ヘルスチェックサーバー起動
     let health_addr = format!("0.0.0.0:{}", args.health_port).parse()?;
-    let health_router = {
-        use axum::{routing::get, Json, Router};
-        use serde_json::json;
-
-        async fn livez() -> &'static str {
-            "ok"
-        }
-
-        async fn readyz() -> Json<serde_json::Value> {
-            Json(json!({
-                "status": "ok",
-                "service": "{{ feature_name }}"
-            }))
-        }
-
-        Router::new()
-            .route("/livez", get(livez))
-            .route("/readyz", get(readyz))
-            .route("/health", get(livez))
-    };
+    let health_router = k1s0_health::health_router(health_registry.clone());
     let health_server = tokio::spawn(async move {
         info!(addr = %health_addr, "Starting health check server");
         axum::serve(

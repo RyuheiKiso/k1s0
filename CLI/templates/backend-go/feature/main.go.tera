@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -38,40 +37,13 @@ func main() {
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(loggingInterceptor))
 	grpc.RegisterService(grpcServer, service)
 
-	// Start gRPC server
+	// Start server
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", config.GRPCPort))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
 	log.Printf("{{ feature_name }} starting on port %d", config.GRPCPort)
-
-	// Start health check HTTP server
-	healthMux := http.NewServeMux()
-	healthMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
-	})
-	healthMux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
-	})
-	healthMux.HandleFunc("/livez", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
-	})
-	healthMux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
-	})
-
-	go func() {
-		healthAddr := fmt.Sprintf(":%d", config.HealthPort)
-		log.Printf("Health server listening on %s", healthAddr)
-		if err := http.ListenAndServe(healthAddr, healthMux); err != nil {
-			log.Printf("Health server error: %v", err)
-		}
-	}()
 
 	// Graceful shutdown
 	go func() {
@@ -99,9 +71,8 @@ func loggingInterceptor(
 }
 
 type Config struct {
-	Env        string
-	GRPCPort   int
-	HealthPort int
+	Env      string
+	GRPCPort int
 }
 
 func loadConfig() (*Config, error) {
@@ -110,14 +81,8 @@ func loadConfig() (*Config, error) {
 		fmt.Sscanf(p, "%d", &port)
 	}
 
-	healthPort := 8080
-	if p := os.Getenv("HEALTH_PORT"); p != "" {
-		fmt.Sscanf(p, "%d", &healthPort)
-	}
-
 	return &Config{
-		Env:        os.Getenv("ENV"),
-		GRPCPort:   port,
-		HealthPort: healthPort,
+		Env:      os.Getenv("ENV"),
+		GRPCPort: port,
 	}, nil
 }

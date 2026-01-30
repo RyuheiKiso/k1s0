@@ -13,14 +13,7 @@
     "service_name": "{{ feature_name }}",
     "language": "python",
     "type": "backend",
-    "framework": "fastapi",
-    "features": {
-      "with_grpc": {{ with_grpc }},
-      "with_rest": {{ with_rest }},
-      "with_db": {{ with_db }},
-      "with_cache": {{ with_cache }},
-      "with_docker": {{ with_docker }}
-    }
+    "framework": "fastapi"
   },
   "layer": "feature",
   {% if has_domain | default(value=false) -%}
@@ -39,13 +32,7 @@
     "buf.yaml",
     "buf.gen.yaml",
     "pyproject.toml",
-    "ruff.toml",
-    "Dockerfile",
-    "Dockerfile.monorepo",
-    ".dockerignore",
-    "compose.yaml",
-    "compose.monorepo.yaml",
-    "deploy/docker/"
+    "ruff.toml"
   ],
   "protected_paths": [
     "src/{{ feature_name_snake }}/domain/",
@@ -58,13 +45,7 @@
     "src/{{ feature_name_snake }}/application/": "protected",
     "src/{{ feature_name_snake }}/infrastructure/": "suggest_only",
     "src/{{ feature_name_snake }}/presentation/": "suggest_only",
-    "tests/": "suggest_only",
-    "Dockerfile": "auto",
-    "Dockerfile.monorepo": "auto",
-    ".dockerignore": "auto",
-    "compose.yaml": "suggest_only",
-    "compose.monorepo.yaml": "suggest_only",
-    "deploy/docker/": "auto"
+    "tests/": "suggest_only"
   },
   "checksums": {},
   "dependencies": {

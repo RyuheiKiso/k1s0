@@ -34,8 +34,6 @@ pub enum ToolCategory {
     Flutter,
     /// Protocol Buffers 関連
     Proto,
-    /// Docker 関連
-    Docker,
 }
 
 impl ToolCategory {
@@ -47,7 +45,6 @@ impl ToolCategory {
             ToolCategory::Node => "Node.js",
             ToolCategory::Flutter => "Flutter",
             ToolCategory::Proto => "Protocol Buffers",
-            ToolCategory::Docker => "Docker",
         }
     }
 }
@@ -245,59 +242,11 @@ pub const DART: ToolRequirement = ToolRequirement {
     description: "Dart SDK（Flutter に含まれる）",
 };
 
-/// Docker 最小バージョン
-pub const DOCKER_MIN_VERSION: &str = "20.10.0";
-
-/// Docker ツール情報
-pub const DOCKER: ToolRequirement = ToolRequirement {
-    name: "docker",
-    min_version: Some(DOCKER_MIN_VERSION),
-    required: false,
-    category: ToolCategory::Docker,
-    install_url: "https://docs.docker.com/get-docker/",
-    install_commands: InstallCommands {
-        windows: Some("winget install Docker.DockerDesktop"),
-        macos: Some("brew install --cask docker"),
-        linux: Some("curl -fsSL https://get.docker.com | sh"),
-    },
-    description: "Docker コンテナランタイム（Docker サポートに必要）",
-};
-
-/// Docker Compose ツール情報（docker compose V2 プラグイン）
-pub const DOCKER_COMPOSE: ToolRequirement = ToolRequirement {
-    name: "docker compose",
-    min_version: None, // docker に含まれる
-    required: false,
-    category: ToolCategory::Docker,
-    install_url: "https://docs.docker.com/compose/install/",
-    install_commands: InstallCommands {
-        windows: Some("Docker Desktop に含まれます"),
-        macos: Some("Docker Desktop に含まれます"),
-        linux: Some("sudo apt-get install docker-compose-plugin"),
-    },
-    description: "Docker Compose（サービスオーケストレーション）",
-};
-
-/// Docker デーモン ツール情報
-pub const DOCKER_DAEMON: ToolRequirement = ToolRequirement {
-    name: "docker-daemon",
-    min_version: None,
-    required: false,
-    category: ToolCategory::Docker,
-    install_url: "https://docs.docker.com/get-docker/",
-    install_commands: InstallCommands {
-        windows: Some("Docker Desktop を起動してください"),
-        macos: Some("Docker Desktop を起動してください"),
-        linux: Some("Docker Desktop を起動してください"),
-    },
-    description: "Docker デーモン（Docker サービスの実行に必要）",
-};
-
 /// 全ての必須ツール
 pub const REQUIRED_TOOLS: &[&ToolRequirement] = &[&RUST, &CARGO, &NODE, &PNPM];
 
 /// 全てのオプションツール
-pub const OPTIONAL_TOOLS: &[&ToolRequirement] = &[&GO, &GOLANGCI_LINT, &BUF, &FLUTTER, &DART, &DOCKER, &DOCKER_COMPOSE, &DOCKER_DAEMON];
+pub const OPTIONAL_TOOLS: &[&ToolRequirement] = &[&GO, &GOLANGCI_LINT, &BUF, &FLUTTER, &DART];
 
 /// 全てのツール
 pub fn all_tools() -> Vec<&'static ToolRequirement> {

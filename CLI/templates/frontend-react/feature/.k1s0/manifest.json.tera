@@ -13,14 +13,7 @@
     "service_name": "{{ feature_name }}",
     "language": "typescript",
     "type": "frontend",
-    "framework": "react",
-    "features": {
-      "with_grpc": {{ with_grpc }},
-      "with_rest": {{ with_rest }},
-      "with_db": {{ with_db }},
-      "with_cache": {{ with_cache }},
-      "with_docker": {{ with_docker }}
-    }
+    "framework": "react"
   },
   "layer": "feature",
   {% if has_domain | default(value=false) -%}
@@ -33,13 +26,7 @@
   "generated_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
   "managed_paths": [
     "deploy/",
-    "config/",
-    "Dockerfile",
-    "Dockerfile.monorepo",
-    ".dockerignore",
-    "compose.yaml",
-    "compose.monorepo.yaml",
-    "deploy/docker/"
+    "config/"
   ],
   "protected_paths": [
     "src/domain/",
@@ -51,13 +38,7 @@
     "config/": "suggest_only",
     "src/domain/": "protected",
     "src/application/": "protected",
-    "src/presentation/": "suggest_only",
-    "Dockerfile": "auto",
-    "Dockerfile.monorepo": "auto",
-    ".dockerignore": "auto",
-    "compose.yaml": "suggest_only",
-    "compose.monorepo.yaml": "suggest_only",
-    "deploy/docker/": "auto"
+    "src/presentation/": "suggest_only"
   },
   "checksums": {},
   "dependencies": {

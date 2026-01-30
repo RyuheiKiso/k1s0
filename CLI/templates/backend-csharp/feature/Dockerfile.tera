@@ -5,11 +5,6 @@
 # Stage 1: Build
 # ---------------------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-
-ARG HTTP_PROXY
-ARG HTTPS_PROXY
-ARG NO_PROXY
-
 WORKDIR /src
 
 # Copy solution and project files first for layer caching
@@ -48,10 +43,6 @@ RUN groupadd -r appuser && useradd -r -g appuser -s /sbin/nologin appuser
 COPY --from=build /app/publish .
 COPY config/ /app/config/
 
-# Install curl for healthcheck
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
-
 # Set environment
 ENV ASPNETCORE_URLS=http://+:8080
 ENV DOTNET_EnableDiagnostics=0
@@ -60,9 +51,6 @@ EXPOSE 8080
 {% if with_grpc %}
 EXPOSE 50051
 {% endif %}
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:8080/health/live || exit 1
 
 USER appuser
 

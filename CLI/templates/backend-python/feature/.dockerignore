@@ -17,7 +17,3 @@ deploy/
 docs/
 .venv/
 .env
-.env.*
-.k1s0/
-.coverage
-htmlcov/

@@ -1213,51 +1213,6 @@ pub enum GraphFormat {
 
 ---
 
-## docker サブコマンド
-
-Docker Compose のラッパーとして、サービスの起動・停止・ログ・ビルド・ステータス表示を提供する。
-
-```
-k1s0 docker <COMMAND>
-
-Commands:
-  up       サービスを起動する
-  down     サービスを停止する
-  logs     サービスのログを表示する
-  build    Docker イメージをビルドする
-  ps       サービスのステータスを表示する
-```
-
-### docker up
-- `--detach` / `-d`: デタッチモード（デフォルト: 有効）
-- `--monorepo`: compose.monorepo.yaml を使用
-- `--path` / `-p`: 対象ディレクトリ指定
-
-### docker down
-- `--volumes`: ボリュームも削除
-- `--monorepo`: monorepo モード
-
-### docker logs
-- `--follow` / `-f`: ログをフォロー
-- `--tail` / `-t`: 表示行数（デフォルト: 100）
-- `[SERVICE]`: 対象サービス名
-
-### docker build
-- `--no-cache`: キャッシュ不使用
-- `--tag`: イメージタグ指定
-- `--push`: レジストリへ Push
-- `--platform`: マルチアーキテクチャ指定
-
-### docker ps
-- `--json`: JSON 形式出力
-
-### 設計方針
-- Docker Compose V2 プラグインを前提（`docker compose` サブコマンド形式）
-- compose.yaml / compose.monorepo.yaml の自動検出
-- Docker 未インストール / デーモン未起動時のリカバリ提案
-
----
-
 ## doctor コマンド
 
 開発環境の健全性をチェックし、問題を診断するコマンドです。

@@ -13,14 +13,7 @@
     "service_name": "{{ feature_name }}",
     "language": "csharp",
     "type": "backend",
-    "framework": "aspnetcore",
-    "features": {
-      "with_grpc": {{ with_grpc }},
-      "with_rest": {{ with_rest }},
-      "with_db": {{ with_db }},
-      "with_cache": {{ with_cache }},
-      "with_docker": {{ with_docker }}
-    }
+    "framework": "aspnetcore"
   },
   "layer": "feature",
   {% if has_domain | default(value=false) -%}
@@ -39,13 +32,7 @@
     "buf.yaml",
     "buf.gen.yaml",
     "Directory.Build.props",
-    "Directory.Packages.props",
-    "Dockerfile",
-    "Dockerfile.monorepo",
-    ".dockerignore",
-    "compose.yaml",
-    "compose.monorepo.yaml",
-    "deploy/docker/"
+    "Directory.Packages.props"
   ],
   "protected_paths": [
     "src/{{ feature_name_pascal }}.Domain/",
@@ -58,13 +45,7 @@
     "src/{{ feature_name_pascal }}.Application/": "protected",
     "src/{{ feature_name_pascal }}.Infrastructure/": "suggest_only",
     "src/{{ feature_name_pascal }}.Presentation/": "suggest_only",
-    "migrations/": "suggest_only",
-    "Dockerfile": "auto",
-    "Dockerfile.monorepo": "auto",
-    ".dockerignore": "auto",
-    "compose.yaml": "suggest_only",
-    "compose.monorepo.yaml": "suggest_only",
-    "deploy/docker/": "auto"
+    "migrations/": "suggest_only"
   },
   "checksums": {},
   "dependencies": {
