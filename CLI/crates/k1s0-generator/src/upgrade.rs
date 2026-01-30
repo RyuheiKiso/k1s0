@@ -93,6 +93,8 @@ pub struct UpgradeCheckResult {
     pub needs_upgrade: bool,
     /// 衝突があるかどうか
     pub has_conflicts: bool,
+    /// Docker サポートが新規追加されたかどうか
+    pub docker_newly_added: bool,
 }
 
 impl UpgradeCheckResult {
@@ -297,6 +299,7 @@ pub fn check_upgrade<P: AsRef<Path>>(
             has_upgrade_md: false,
             needs_upgrade: false,
             has_conflicts: false,
+            docker_newly_added: false,
         });
     }
 
@@ -320,6 +323,12 @@ pub fn check_upgrade<P: AsRef<Path>>(
         || template_dir.join("docs/ADR/UPGRADE.md").exists();
     let has_upgrade_md = template_dir.join("UPGRADE.md").exists();
 
+    // Docker サポートの新規追加を検出
+    let old_has_docker = manifest.managed_paths.iter().any(|p| p.contains("Dockerfile"));
+    let new_has_docker = managed_diff.added.iter().any(|f| f.path.contains("Dockerfile"))
+        || managed_diff.modified.iter().any(|f| f.path.contains("Dockerfile"));
+    let docker_newly_added = !old_has_docker && new_has_docker;
+
     Ok(UpgradeCheckResult {
         current_version,
         new_version,
@@ -333,6 +342,7 @@ pub fn check_upgrade<P: AsRef<Path>>(
         has_upgrade_adr,
         has_upgrade_md,
         needs_upgrade: true,
+        docker_newly_added,
     })
 }
 

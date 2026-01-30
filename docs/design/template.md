@@ -633,6 +633,41 @@ flutter:
 
 ---
 
+## Docker テンプレート
+
+各テンプレートは以下の Docker 関連ファイルを生成する：
+
+| ファイル | 説明 | managed |
+|---------|------|:-------:|
+| `Dockerfile` | Multi-stage ビルド（Mode A: standalone） | ✅ |
+| `Dockerfile.monorepo` | Mode B: monorepo root context ビルド | ✅ |
+| `.dockerignore` | Docker ビルド除外パターン | ✅ |
+| `compose.yaml` | Docker Compose サービス定義 | ✅ |
+| `compose.monorepo.yaml` | monorepo mode の Compose 定義 | ✅ |
+| `deploy/docker/otel-collector-config.yaml` | OTEL Collector 設定 | ✅ |
+| `deploy/docker/nginx.conf` | nginx 設定（フロントエンドのみ） | ✅ |
+
+### Dockerfile 設計方針
+
+- **Multi-stage build**: ビルド環境と実行環境を分離
+- **Non-root ユーザー**: `appuser` でアプリケーションを実行
+- **HEALTHCHECK**: コンテナヘルスモニタリング
+- **プロキシ対応**: `ARG HTTP_PROXY/HTTPS_PROXY/NO_PROXY`
+- **`--no-docker`**: Docker ファイル生成のオプトアウト
+
+### ベースイメージ
+
+| テンプレート | Builder | Runtime |
+|-------------|---------|---------|
+| backend-rust | `rust:1.85-slim` | `debian:bookworm-slim` |
+| backend-go | `golang:1.22-bookworm` | `gcr.io/distroless/static-debian12` |
+| backend-csharp | `mcr.microsoft.com/dotnet/sdk:8.0` | `mcr.microsoft.com/dotnet/aspnet:8.0` |
+| backend-python | `python:3.12-slim` | `python:3.12-slim` |
+| frontend-react | `node:20-slim` | `nginx:1.27-alpine` |
+| frontend-flutter | `ghcr.io/cirruslabs/flutter:stable` | `nginx:1.27-alpine` |
+
+---
+
 ## managed/protected パス
 
 ### managed パス（CLI が自動更新）

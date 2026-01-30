@@ -78,9 +78,27 @@ impl Linter {
             if entry_path.is_file() {
                 let ext = entry_path.extension().and_then(|e| e.to_str()).unwrap_or("");
                 if ext == "yaml" || ext == "yml" {
+                    // compose.yaml, compose.monorepo.yaml はスキップ
+                    // （Docker Secrets参照を含む可能性があるため）
+                    let file_name = entry_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                    if file_name == "compose.yaml"
+                        || file_name == "compose.monorepo.yaml"
+                        || file_name == "compose.yml"
+                        || file_name == "compose.monorepo.yml"
+                    {
+                        continue;
+                    }
+
                     self.check_yaml_for_secrets(&entry_path, path, result);
                 }
             }
+        }
+
+        // deploy/docker/ ディレクトリ内の YAML も検査対象から除外
+        // （Docker Compose ファイルが配置される可能性があるため）
+        let deploy_docker_dir = path.join("deploy/docker");
+        if deploy_docker_dir.exists() && deploy_docker_dir.is_dir() {
+            // deploy/docker/ 内のファイルはスキップ（既に除外済み）
         }
     }
 

@@ -1,0 +1,58 @@
+# {{ feature_name }} - Monorepo Docker build
+# Python 3.12 + FastAPI - Built from repository root
+#
+# Usage: docker build -f feature/backend/python/{{ feature_name }}/Dockerfile.monorepo -t {{ feature_name }} .
+
+# ---------------------------------------------------------------------------
+# Stage 1: Build
+# ---------------------------------------------------------------------------
+FROM python:3.12-slim AS build
+
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
+WORKDIR /workspace
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Copy framework packages
+COPY framework/backend/python/ framework/backend/python/
+{% if has_domain | default(value=false) %}
+COPY domain/backend/python/{{ domain_name }}/ domain/backend/python/{{ domain_name }}/
+{% endif %}
+
+# Copy feature service
+COPY feature/backend/python/{{ feature_name }}/ feature/backend/python/{{ feature_name }}/
+
+WORKDIR /workspace/feature/backend/python/{{ feature_name }}
+
+RUN uv pip install --system --no-cache -r pyproject.toml
+
+# ---------------------------------------------------------------------------
+# Stage 2: Runtime
+# ---------------------------------------------------------------------------
+FROM python:3.12-slim AS runtime
+WORKDIR /app
+
+RUN groupadd -r appuser && useradd -r -g appuser -s /sbin/nologin appuser
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=build /usr/local/bin /usr/local/bin
+COPY --from=build /workspace/feature/backend/python/{{ feature_name }}/src /app/src
+COPY feature/backend/python/{{ feature_name }}/config/ /app/config/
+
+EXPOSE 8080
+{% if with_grpc %}
+EXPOSE 50051
+{% endif %}
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:8080/health/live || exit 1
+
+USER appuser
+
+CMD ["uvicorn", "{{ feature_name_snake }}.presentation.main:app", "--host", "0.0.0.0", "--port", "8080"]

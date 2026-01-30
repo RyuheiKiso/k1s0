@@ -28,6 +28,7 @@ This document provides comprehensive guidance for AI assistants working with the
 | **Frontend** | React (Material-UI, Zod, TypeScript 5.5) + Flutter (Dart) |
 | **Database** | PostgreSQL |
 | **Cache** | Redis |
+| **Containerization** | Docker, Docker Compose V2 |
 | **Observability** | OpenTelemetry (OTEL Collector) |
 | **API Protocols** | gRPC (internal), REST/OpenAPI (external) |
 | **Contract Management** | buf (proto linting/breaking changes), Spectral (OpenAPI linting) |
@@ -223,6 +224,34 @@ buf breaking --against '.git#branch=main'
 buf format --exit-code
 ```
 
+### Docker
+
+```bash
+# サービスを起動
+k1s0 docker up
+
+# monorepo モードで起動
+k1s0 docker up --monorepo
+
+# サービスを停止（ボリューム削除）
+k1s0 docker down --volumes
+
+# イメージをビルド
+k1s0 docker build
+
+# タグ付きビルド
+k1s0 docker build --tag v1.0.0
+
+# ログを表示
+k1s0 docker logs -f my-service
+
+# ステータス表示
+k1s0 docker ps
+
+# 共有インフラ（observability 付き）
+docker compose --profile observability up
+```
+
 ## CLI Commands
 
 | Command | Description |
@@ -244,6 +273,11 @@ buf format --exit-code
 | `k1s0 domain impact --name <name>` | Analyze version upgrade impact |
 | `k1s0 domain-catalog` | Show domain catalog with dependency status |
 | `k1s0 domain-graph` | Output domain dependency graph (Mermaid/DOT) |
+| `k1s0 docker up` | Docker Compose でサービスを起動 |
+| `k1s0 docker down` | Docker Compose でサービスを停止 |
+| `k1s0 docker logs` | サービスのログを表示 |
+| `k1s0 docker build` | Docker イメージをビルド |
+| `k1s0 docker ps` | サービスのステータスを表示 |
 
 ### Interactive Mode
 
@@ -575,6 +609,7 @@ lib/src/
 | frontend-flutter.yml | Push to main, Flutter changes | Analyze -> Build |
 | buf.yml | Push to main, proto changes | Lint -> Breaking changes check -> Format check |
 | openapi.yml | Push to main, OpenAPI changes | Spectral linting |
+| docker.yml | Push to main, Dockerfile/compose changes | hadolint -> Build -> Trivy security scan |
 | generation.yml | Push to main, contract changes | Fingerprint verification |
 | release-cli.yml | Semantic version tag | Validate -> Multi-platform build -> GH Release |
 | release-crates.yml | Semantic version tag | Publish Rust crates to crates.io |
@@ -701,6 +736,13 @@ This generates:
 - Manifest file (`.k1s0/manifest.json`)
 - Required config files
 - Kubernetes deployment templates
+- Dockerfile, Dockerfile.monorepo, .dockerignore (Docker support, enabled by default)
+- compose.yaml, compose.monorepo.yaml (Docker Compose)
+- deploy/docker/otel-collector-config.yaml (OpenTelemetry)
+
+Additional flags:
+- `--with-cache` — Include Redis cache service in compose
+- `--no-docker` — Disable Docker file generation
 
 ### Adding a New Screen (Frontend)
 

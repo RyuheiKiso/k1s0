@@ -179,7 +179,26 @@ presentation → application → domain
 - `domain` から `infrastructure` を直接 import しない
 - `infrastructure` は `domain` の traits（ports）を実装する
 
-## 8. 禁止事項
+## 8. Docker ファイル配置
+
+feature 層のサービスには以下の Docker 関連ファイルが配置される：
+
+```
+{feature_name}/
+├── Dockerfile              # standalone ビルド (Mode A)
+├── Dockerfile.monorepo     # monorepo ビルド (Mode B)
+├── .dockerignore           # Docker ビルド除外
+├── compose.yaml            # Docker Compose (standalone)
+├── compose.monorepo.yaml   # Docker Compose (monorepo)
+└── deploy/
+    └── docker/
+        ├── otel-collector-config.yaml  # OTEL Collector
+        └── nginx.conf                  # フロントエンドのみ
+```
+
+domain 層にはこれらのファイルは配置されない（ライブラリとして消費されるため）。
+
+## 9. 禁止事項
 
 - `feature/` 配下に `common/` を作るなど、共通化を各チーム裁量にすること
 - `domain` から `infrastructure` を直接 import すること

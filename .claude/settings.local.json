@@ -71,7 +71,25 @@
       "Bash(git -C \"C:/work/github/k1s0\" add README.md assets/k1s0-banner.svg docs/adr/README.md docs/conventions/README.md)",
       "Bash(git -C \"C:/work/github/k1s0\" commit -m \"$\\(cat <<''EOF''\ndocs: C#/Python対応等を反映しドキュメントを最新化\n\nREADME.md、ADR一覧、規約一覧、バナーSVGを現在のコードベースに合わせて更新。\nテンプレート6種対応、Framework全言語パッケージ記載、CLIコマンド追加等。\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git -C \"C:/work/github/k1s0\" add assets/k1s0-banner.svg)",
-      "Bash(git -C \"C:/work/github/k1s0\" commit -m \"$\\(cat <<''EOF''\ndocs: バナーSVGのTech Stack行をBackend/Frontendに分離\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git -C \"C:/work/github/k1s0\" commit -m \"$\\(cat <<''EOF''\ndocs: バナーSVGのTech Stack行をBackend/Frontendに分離\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(docker:*)",
+      "Bash(docker compose:*)",
+      "Bash(do echo \"=== $dir ===\")",
+      "Bash(TMPDIR=\"/tmp/docker-tests-v2\")",
+      "Bash(K1S0=\"C:/work/github/k1s0/CLI/target/debug/k1s0.exe\")",
+      "Bash(\"$K1S0\" new-feature --type backend-go --name docker-test-go --output \"$TMPDIR/go\" -y --skip-doctor)",
+      "Bash(C:/work/github/k1s0/CLI/target/debug/k1s0.exe new-feature:*)",
+      "Bash(git log:*)",
+      "Bash(/c/work/github/k1s0/CLI/target/release/k1s0.exe new-feature:*)",
+      "Bash(/c/work/github/k1s0/CLI/target/release/k1s0.exe doctor:*)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); tools=[t[''name''] for t in data.get\\(''tools'',[]\\)]; print\\(''docker'' in [t.lower\\(\\) for t in tools] or any\\(''docker'' in t.lower\\(\\) for t in tools\\)\\)\")",
+      "Bash(./CLI/target/release/k1s0.exe upgrade:*)",
+      "Bash(python3:*)",
+      "Bash(./CLI/target/release/k1s0.exe doctor:*)",
+      "Bash(python:*)",
+      "Bash(grep:*)",
+      "Bash(TESTDIR=\"C:/Users/RYUHEI~1/AppData/Local/Temp/k1s0-test-gen\":*)",
+      "Bash(git ls-tree:*)"
     ]
   }
 }

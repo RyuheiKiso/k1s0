@@ -1,0 +1,109 @@
+# {{ feature_name }} - Docker Compose (monorepo)
+# Usage: docker compose -f feature/backend/rust/{{ feature_name }}/compose.monorepo.yaml up
+services:
+  {{ feature_name }}:
+    build:
+      context: ../../../../
+      dockerfile: feature/backend/rust/{{ feature_name }}/Dockerfile.monorepo
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+    container_name: {{ feature_name }}
+    ports:
+      - "8080:8080"
+{% if with_grpc %}
+      - "50051:50051"
+{% endif %}
+    volumes:
+      - ./config:/app/config:ro
+    environment:
+      - K1S0_ENV=dev
+{% if with_db %}
+    depends_on:
+      postgres:
+        condition: service_healthy
+{% endif %}
+{% if with_cache %}
+    depends_on:
+      redis:
+        condition: service_healthy
+{% endif %}
+    networks:
+      - {{ feature_name }}-network
+
+{% if with_db %}
+  postgres:
+    image: postgres:16-alpine
+    container_name: {{ feature_name }}-postgres
+    environment:
+      POSTGRES_DB: {{ feature_name_snake }}
+      POSTGRES_USER: {{ feature_name_snake }}
+      # Docker Secrets を使用（K021 規約準拠）
+      # 開発環境: ./secrets/db_password ファイルに平文パスワードを記載
+      # 本番環境: Docker Swarm / Kubernetes Secrets を使用
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    secrets:
+      - db_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ feature_name_snake }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - {{ feature_name }}-network
+{% endif %}
+
+{% if with_cache %}
+  redis:
+    image: redis:7-alpine
+    container_name: {{ feature_name }}-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - {{ feature_name }}-network
+{% endif %}
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    container_name: {{ feature_name }}-otel
+    volumes:
+      - ./deploy/docker/otel-collector-config.yaml:/etc/otel/config.yaml:ro
+    command: ["--config", "/etc/otel/config.yaml"]
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    profiles:
+      - observability
+    networks:
+      - {{ feature_name }}-network
+
+volumes:
+{% if with_db %}
+  postgres-data:
+{% endif %}
+{% if with_cache %}
+  redis-data:
+{% endif %}
+
+{% if with_db %}
+secrets:
+  db_password:
+    file: ./secrets/db_password
+{% endif %}
+
+networks:
+  {{ feature_name }}-network:
+    name: k1s0-network
+    external: true

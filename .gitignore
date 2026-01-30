@@ -49,6 +49,34 @@ framework/frontend/react/packages/eslint-config-k1s0/node_modules/*
 framework/frontend/react/packages/k1s0-realtime/node_modules/*
 framework/frontend/flutter/packages/k1s0_realtime/build/*
 framework/frontend/flutter/packages/k1s0_realtime/.flutter-plugins-dependencies
+# Test generation artifacts (k1s0 new-feature / init output at repo root)
+/Cargo.toml
+/Dockerfile
+/Dockerfile.monorepo
+/compose.yaml
+/compose.monorepo.yaml
+/buf.yaml
+/buf.gen.yaml
+/config/
+/deploy/
+/migrations/
+/openapi/
+/proto/
+/secrets/
+/src/
+/.dockerignore
+/.k1s0/
+/CLI/.dockerignore
+/CLI/.k1s0/
+/CLI/Dockerfile
+/CLI/Dockerfile.monorepo
+/CLI/compose.yaml
+/CLI/compose.monorepo.yaml
+/CLI/config/
+/CLI/deploy/
+/CLI/package.json
+/CLI/src/
+
 # C# build artifacts
 framework/backend/csharp/**/bin/
 framework/backend/csharp/**/obj/

@@ -1,0 +1,48 @@
+# {{ feature_name }} - Multi-stage Docker build
+# Go (distroless)
+
+# ---------------------------------------------------------------------------
+# Stage 1: Build
+# ---------------------------------------------------------------------------
+FROM golang:1.22-bookworm AS build
+
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
+WORKDIR /app
+
+# Copy dependency files first for layer caching
+COPY go.mod ./
+COPY go.su[m] ./
+RUN go mod download
+
+# Copy source code
+COPY main.go ./
+COPY internal/ internal/
+{% if with_grpc %}
+COPY proto/ proto/
+COPY buf.yaml buf.gen.yaml ./
+{% endif %}
+COPY config/ config/
+
+# Build static binary
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/server .
+
+# ---------------------------------------------------------------------------
+# Stage 2: Runtime (distroless)
+# ---------------------------------------------------------------------------
+FROM gcr.io/distroless/static-debian12:nonroot AS runtime
+WORKDIR /app
+
+COPY --from=build /app/server /app/server
+COPY --from=build /app/config/ /app/config/
+
+EXPOSE 8080
+{% if with_grpc %}
+EXPOSE 50051
+{% endif %}
+
+USER nonroot:nonroot
+
+ENTRYPOINT ["/app/server"]

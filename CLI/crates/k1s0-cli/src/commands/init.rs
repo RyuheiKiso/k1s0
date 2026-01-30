@@ -289,6 +289,91 @@ fn execute_init(args: ResolvedArgs) -> Result<()> {
     config.save(&config_path)?;
     out.file_added(&format!("{}/{}", K1S0_DIR, CONFIG_FILE));
 
+    // .hadolint.yaml を作成（Dockerfile lint 設定）
+    let hadolint_path = base_path.join(".hadolint.yaml");
+    if !hadolint_path.exists() {
+        let hadolint_content = r#"---
+# hadolint configuration for k1s0 project
+ignored:
+  # Allow using apt-get
+  - DL3008
+  # Allow using pip
+  - DL3013
+trustedRegistries:
+  - docker.io
+  - gcr.io
+  - ghcr.io
+  - mcr.microsoft.com
+"#;
+        std::fs::write(&hadolint_path, hadolint_content)?;
+        out.file_added(".hadolint.yaml");
+    }
+
+    // ルートの .dockerignore を作成
+    let dockerignore_path = base_path.join(".dockerignore");
+    if !dockerignore_path.exists() {
+        let dockerignore_content = r#"# k1s0 monorepo Docker ignore
+**/.git
+**/.vscode
+**/.idea
+**/.k1s0
+**/node_modules
+**/target
+**/__pycache__
+**/.mypy_cache
+**/.pytest_cache
+**/bin
+**/obj
+*.md
+.editorconfig
+.gitignore
+docs/
+work/
+"#;
+        std::fs::write(&dockerignore_path, dockerignore_content)?;
+        out.file_added(".dockerignore");
+    }
+
+    // ルートレベル compose.yaml を作成
+    let compose_path = base_path.join("compose.yaml");
+    if !compose_path.exists() {
+        let compose_content = include_str!("../../../../templates/init/compose.yaml");
+        std::fs::write(&compose_path, compose_content)?;
+        out.file_added("compose.yaml");
+    }
+
+    // deploy/docker ディレクトリと補助ファイルを作成
+    let docker_deploy_dir = base_path.join("deploy/docker");
+    if !docker_deploy_dir.exists() {
+        std::fs::create_dir_all(&docker_deploy_dir)?;
+    }
+
+    let init_db_path = docker_deploy_dir.join("init-db.sql");
+    if !init_db_path.exists() {
+        let init_db_content = include_str!("../../../../templates/init/deploy/docker/init-db.sql");
+        std::fs::write(&init_db_path, init_db_content)?;
+        out.file_added("deploy/docker/init-db.sql");
+    }
+
+    let otel_config_path = docker_deploy_dir.join("otel-collector-config.yaml");
+    if !otel_config_path.exists() {
+        let otel_content = include_str!("../../../../templates/init/deploy/docker/otel-collector-config.yaml");
+        std::fs::write(&otel_config_path, otel_content)?;
+        out.file_added("deploy/docker/otel-collector-config.yaml");
+    }
+
+    // secrets ディレクトリを作成
+    let secrets_dir = base_path.join("secrets");
+    if !secrets_dir.exists() {
+        std::fs::create_dir_all(&secrets_dir)?;
+        // デフォルトの DB パスワードファイル
+        let db_password_path = secrets_dir.join("db_password");
+        if !db_password_path.exists() {
+            std::fs::write(&db_password_path, "k1s0_dev_password")?;
+            out.file_added("secrets/db_password");
+        }
+    }
+
     out.newline();
     out.success("初期化が完了しました");
     out.newline();
