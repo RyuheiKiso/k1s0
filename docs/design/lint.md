@@ -8,17 +8,20 @@ k1s0 の Lint 機能は、開発規約に対する違反を検査し、一部は
 
 ```
 CLI/crates/k1s0-generator/src/lint/
-├── mod.rs           # モジュール公開
-├── types.rs         # 型定義（RuleId, Severity, Violation, LintResult, LintConfig）
-├── linter.rs        # Linter 本体（manifest/必須ファイル検査）
-├── required_files.rs# 必須ディレクトリ/ファイル定義
-├── env_vars.rs      # K020: 環境変数参照検査
-├── secret_config.rs # K021: 機密直書き検査
-├── dependency.rs    # K022: 依存方向違反検査
-├── retry.rs         # K030-K032: gRPC リトライ設定検査
-├── fixer.rs         # 自動修正ロジック
-├── utils.rs         # ユーティリティ関数
-└── tests.rs         # テスト
+├── mod.rs              # モジュール公開
+├── types.rs            # 型定義（RuleId, Severity, Violation, LintResult, LintConfig）
+├── linter.rs           # Linter 本体（manifest/必須ファイル検査）
+├── required_files.rs   # 必須ディレクトリ/ファイル定義
+├── env_vars.rs         # K020: 環境変数参照検査
+├── secret_config.rs    # K021: 機密直書き検査
+├── dependency.rs       # K022: 依存方向違反検査
+├── layer_dependency.rs # K040-K047: 層間依存関係検査
+├── retry.rs            # K030-K032: gRPC リトライ設定検査
+├── fixer.rs            # 自動修正ロジック
+├── diff.rs             # Git diff フィルタリング
+├── watch.rs            # ファイル監視モード
+├── utils.rs            # ユーティリティ関数
+└── tests/              # テスト
 ```
 
 ---
@@ -261,50 +264,95 @@ impl RequiredFiles {
 }
 ```
 
-### backend-rust の必須ファイル
+### backend-rust（feature 層）の必須ファイル
 
 ```rust
 RequiredFiles {
     directories: vec![
-        "src",
         "src/domain",
         "src/application",
-        "src/presentation",
         "src/infrastructure",
+        "src/presentation",
         "config",
-        "deploy",
+        "deploy/base",
+        "deploy/overlays/dev",
+        "deploy/overlays/stg",
+        "deploy/overlays/prod",
     ],
     files: vec![
         "Cargo.toml",
+        "README.md",
         "src/main.rs",
+        "src/domain/mod.rs",
+        "src/application/mod.rs",
+        "src/infrastructure/mod.rs",
+        "src/presentation/mod.rs",
         "config/default.yaml",
-        ".k1s0/manifest.json",
+        "config/dev.yaml",
+        "config/stg.yaml",
+        "config/prod.yaml",
+        "buf.yaml",
     ],
 }
 ```
 
-### backend-go の必須ファイル
+### backend-rust（domain 層）の必須ファイル
 
 ```rust
 RequiredFiles {
     directories: vec![
-        "cmd",
-        "internal/domain",
-        "internal/application",
-        "internal/presentation",
-        "internal/infrastructure",
-        "config",
-        "deploy",
+        "src/domain",
+        "src/application",
+        "src/infrastructure",
     ],
     files: vec![
-        "go.mod",
-        "config/default.yaml",
-        ".k1s0/manifest.json",
+        "Cargo.toml",
+        "README.md",
+        "src/lib.rs",
+        "src/domain/mod.rs",
+        "src/application/mod.rs",
+        "src/infrastructure/mod.rs",
     ],
 }
 ```
 
-### backend-csharp の必須ファイル
+### backend-go（feature 層）の必須ファイル
+
+```rust
+RequiredFiles {
+    directories: vec![
+        "internal/domain",
+        "internal/application",
+        "internal/infrastructure",
+        "internal/presentation",
+        "config",
+    ],
+    files: vec![
+        "go.mod",
+        "README.md",
+        "cmd/main.go",
+        "config/default.yaml",
+    ],
+}
+```
+
+### backend-go（domain 層）の必須ファイル
+
+```rust
+RequiredFiles {
+    directories: vec![
+        "internal/domain",
+        "internal/application",
+        "internal/infrastructure",
+    ],
+    files: vec![
+        "go.mod",
+        "README.md",
+    ],
+}
+```
+
+### backend-csharp（feature 層）の必須ファイル
 
 ```rust
 RequiredFiles {
@@ -324,7 +372,18 @@ RequiredFiles {
 }
 ```
 
-### backend-python の必須ファイル
+### backend-csharp（domain 層）の必須ファイル
+
+```rust
+RequiredFiles {
+    directories: vec![],
+    files: vec![
+        "README.md",
+    ],
+}
+```
+
+### backend-python（feature 層）の必須ファイル
 
 ```rust
 RequiredFiles {
@@ -356,49 +415,76 @@ RequiredFiles {
 }
 ```
 
-### backend-csharp（domain 層）の必須ファイル
-
-```rust
-RequiredFiles {
-    directories: vec![],
-    files: vec![
-        "README.md",
-    ],
-}
-```
-
-### frontend-react の必須ファイル
+### frontend-react（feature 層）の必須ファイル
 
 ```rust
 RequiredFiles {
     directories: vec![
-        "src",
         "src/domain",
         "src/application",
+        "src/infrastructure",
         "src/presentation",
-        "public",
+        "src/pages",
+        "src/components/layout",
+        "config",
     ],
     files: vec![
         "package.json",
-        "tsconfig.json",
-        ".k1s0/manifest.json",
+        "README.md",
+        "src/main.tsx",
+        "src/App.tsx",
+        "config/default.yaml",
     ],
 }
 ```
 
-### frontend-flutter の必須ファイル
+### frontend-react（domain 層）の必須ファイル
 
 ```rust
 RequiredFiles {
     directories: vec![
-        "lib",
+        "src/domain",
+        "src/application",
+    ],
+    files: vec![
+        "package.json",
+        "README.md",
+        "tsconfig.json",
+    ],
+}
+```
+
+### frontend-flutter（feature 層）の必須ファイル
+
+```rust
+RequiredFiles {
+    directories: vec![
         "lib/src/domain",
         "lib/src/application",
+        "lib/src/infrastructure",
         "lib/src/presentation",
+        "config",
     ],
     files: vec![
         "pubspec.yaml",
-        ".k1s0/manifest.json",
+        "README.md",
+        "lib/main.dart",
+        "config/default.yaml",
+    ],
+}
+```
+
+### frontend-flutter（domain 層）の必須ファイル
+
+```rust
+RequiredFiles {
+    directories: vec![
+        "lib/src/domain",
+        "lib/src/application",
+    ],
+    files: vec![
+        "pubspec.yaml",
+        "README.md",
     ],
 }
 ```
@@ -413,35 +499,47 @@ RequiredFiles {
 
 ### 検査対象パターン
 
-**Rust:**
+**Rust** (対象拡張子: `.rs`):
 ```rust
 const ENV_VAR_PATTERNS: &[&str] = &[
     "std::env::var",
     "std::env::var_os",
-    "env::var",
-    "env::var_os",
-    "env!(",
-    "option_env!(",
+    "std::env::vars",
+    "std::env::vars_os",
+    "std::env::set_var",
+    "std::env::remove_var",
+    "env::var(",
+    "env::var_os(",
+    "env::vars(",
+    "env::set_var(",
+    "env::remove_var(",
+    "dotenv",
+    "dotenvy",
 ];
 ```
 
-**Go:**
+**Go** (対象拡張子: `.go`):
 ```rust
 const ENV_VAR_PATTERNS: &[&str] = &[
     "os.Getenv",
     "os.LookupEnv",
-    "os.ExpandEnv",
+    "os.Setenv",
+    "os.Unsetenv",
+    "os.Environ",
+    "godotenv",
 ];
 ```
 
-**TypeScript:**
+**TypeScript** (対象拡張子: `.ts`, `.tsx`, `.js`, `.jsx`):
 ```rust
 const ENV_VAR_PATTERNS: &[&str] = &[
     "process.env",
+    "import.meta.env",
+    "dotenv",
 ];
 ```
 
-**C#:**
+**C#** (対象拡張子: `.cs`):
 ```rust
 const ENV_VAR_PATTERNS: &[&str] = &[
     "Environment.GetEnvironmentVariable",
@@ -449,10 +547,9 @@ const ENV_VAR_PATTERNS: &[&str] = &[
     "Environment.ExpandEnvironmentVariables",
     ".AddEnvironmentVariables(",
 ];
-// 対象拡張子: .cs
 ```
 
-**Python:**
+**Python** (対象拡張子: `.py`):
 ```rust
 const ENV_VAR_PATTERNS: &[&str] = &[
     "os.environ",
@@ -463,13 +560,14 @@ const ENV_VAR_PATTERNS: &[&str] = &[
     "from dotenv",
     "import dotenv",
 ];
-// 対象拡張子: .py
 ```
 
-**Dart:**
+**Dart** (対象拡張子: `.dart`):
 ```rust
 const ENV_VAR_PATTERNS: &[&str] = &[
     "Platform.environment",
+    "fromEnvironment",
+    "flutter_dotenv",
 ];
 ```
 
@@ -785,7 +883,10 @@ CLI/crates/k1s0-lsp/
 │   ├── main.rs          # エントリポイント
 │   ├── schema.rs        # manifest.json スキーマ定義
 │   ├── completion.rs    # 補完機能
-│   └── hover.rs         # ホバー情報機能
+│   ├── hover.rs         # ホバー情報機能
+│   ├── definition.rs    # 定義ジャンプ
+│   ├── references.rs    # 参照検索
+│   └── symbols.rs       # シンボル機能
 ```
 
 ### サポート機能

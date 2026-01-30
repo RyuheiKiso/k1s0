@@ -299,10 +299,10 @@ domain は Semantic Versioning に従います。
 
 ```bash
 # 現在のバージョンを確認
-k1s0 domain version --name manufacturing
+k1s0 domain-version --name manufacturing
 
 # バージョンを更新
-k1s0 domain version --name manufacturing --bump minor
+k1s0 domain-version --name manufacturing --bump minor
 ```
 
 ### 破壊的変更の記録
@@ -345,7 +345,7 @@ feature の manifest.json:
 ### 依存の更新
 
 ```bash
-k1s0 feature update-domain --name work-order-api --domain manufacturing --version "^2.0.0"
+k1s0 feature-update-domain --name work-order-api --domain manufacturing --version "^2.0.0"
 ```
 
 ## 非推奨化

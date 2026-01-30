@@ -257,10 +257,12 @@ buf format --exit-code
 | `k1s0 doctor` | Check development environment health |
 | `k1s0 doctor --json` | Output environment check as JSON |
 | `k1s0 completions` | Generate shell completion scripts |
-| `k1s0 domain list` | List all domains |
-| `k1s0 domain version --name <name>` | Show/update domain version |
-| `k1s0 domain dependents --name <name>` | Show features depending on domain |
-| `k1s0 domain impact --name <name>` | Analyze version upgrade impact |
+| `k1s0 domain-list` | List all domains |
+| `k1s0 domain-version --name <name>` | Show/update domain version |
+| `k1s0 domain-dependents --name <name>` | Show features depending on domain |
+| `k1s0 domain-impact --name <name>` | Analyze version upgrade impact |
+| `k1s0 feature-update-domain --name <name>` | Update feature's domain dependency |
+| `k1s0 registry` | Template registry operations |
 | `k1s0 domain-catalog` | Show domain catalog with dependency status |
 | `k1s0 domain-graph` | Output domain dependency graph (Mermaid/DOT) |
 | `k1s0 docker build` | Build Docker image (`--tag`, `--no-cache`, `--http-proxy`) |
@@ -341,12 +343,12 @@ k1s0 new-feature --type backend-rust
 ### 1. No Environment Variables
 
 **Prohibited patterns:**
-- Rust: `std::env::var`, `env!()`, `option_env!()`
-- Go: `os.Getenv`, `os.LookupEnv`, `os.ExpandEnv`
-- TypeScript: `process.env`
-- C#: `Environment.GetEnvironmentVariable`, `Environment.GetEnvironmentVariables`, `.AddEnvironmentVariables(`
-- Python: `os.environ`, `os.getenv`, `os.putenv`, `load_dotenv`
-- Dart: `Platform.environment`
+- Rust: `std::env::var`, `std::env::var_os`, `std::env::vars`, `std::env::vars_os`, `std::env::set_var`, `std::env::remove_var`, `env::var(`, `env::var_os(`, `env::vars(`, `env::set_var(`, `env::remove_var(`, `dotenv`, `dotenvy`
+- Go: `os.Getenv`, `os.LookupEnv`, `os.Setenv`, `os.Unsetenv`, `os.Environ`, `godotenv`
+- TypeScript: `process.env`, `import.meta.env`, `dotenv`
+- C#: `Environment.GetEnvironmentVariable`, `Environment.GetEnvironmentVariables`, `Environment.ExpandEnvironmentVariables`, `.AddEnvironmentVariables(`
+- Python: `os.environ`, `os.getenv`, `os.putenv`, `os.unsetenv`, `load_dotenv`, `from dotenv`, `import dotenv`
+- Dart: `Platform.environment`, `fromEnvironment`, `flutter_dotenv`
 
 **Correct approach:** Use `config/*.yaml` files with k1s0-config library.
 
