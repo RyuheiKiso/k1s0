@@ -13,7 +13,14 @@
     "service_name": "{{ feature_name }}",
     "language": "dart",
     "type": "frontend",
-    "framework": "flutter"
+    "framework": "flutter",
+    "features": {
+      "with_grpc": {{ with_grpc }},
+      "with_rest": {{ with_rest }},
+      "with_db": {{ with_db }},
+      "with_cache": {{ with_cache }},
+      "with_docker": {{ with_docker }}
+    }
   },
   "layer": "feature",
   {% if has_domain | default(value=false) -%}
@@ -26,7 +33,13 @@
   "generated_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
   "managed_paths": [
     "deploy/",
-    "config/"
+    "config/",
+    "Dockerfile",
+    "Dockerfile.monorepo",
+    ".dockerignore",
+    "compose.yaml",
+    "compose.monorepo.yaml",
+    "deploy/docker/"
   ],
   "protected_paths": [
     "lib/src/domain/",
@@ -38,7 +51,13 @@
     "config/": "suggest_only",
     "lib/src/domain/": "protected",
     "lib/src/application/": "protected",
-    "lib/src/presentation/": "suggest_only"
+    "lib/src/presentation/": "suggest_only",
+    "Dockerfile": "auto",
+    "Dockerfile.monorepo": "auto",
+    ".dockerignore": "auto",
+    "compose.yaml": "suggest_only",
+    "compose.monorepo.yaml": "suggest_only",
+    "deploy/docker/": "auto"
   },
   "checksums": {},
   "dependencies": {

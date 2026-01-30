@@ -1,0 +1,35 @@
+# {{ feature_name }} - Docker Compose (monorepo)
+# Usage: docker compose -f feature/frontend/flutter/{{ feature_name }}/compose.monorepo.yaml up
+services:
+  {{ feature_name }}:
+    build:
+      context: ../../../../
+      dockerfile: feature/frontend/flutter/{{ feature_name }}/Dockerfile.monorepo
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+    container_name: {{ feature_name }}
+    ports:
+      - "3000:80"
+    networks:
+      - {{ feature_name }}-network
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    container_name: {{ feature_name }}-otel
+    volumes:
+      - ./deploy/docker/otel-collector-config.yaml:/etc/otel/config.yaml:ro
+    command: ["--config", "/etc/otel/config.yaml"]
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    profiles:
+      - observability
+    networks:
+      - {{ feature_name }}-network
+
+networks:
+  {{ feature_name }}-network:
+    name: k1s0-network
+    external: true

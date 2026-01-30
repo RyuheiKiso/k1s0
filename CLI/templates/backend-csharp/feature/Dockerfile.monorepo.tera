@@ -1,0 +1,61 @@
+# {{ feature_name }} - Monorepo Docker build
+# ASP.NET Core 8.0 - Built from repository root
+#
+# Usage: docker build -f feature/backend/csharp/{{ feature_name }}/Dockerfile.monorepo -t {{ feature_name }} .
+
+# ---------------------------------------------------------------------------
+# Stage 1: Build
+# ---------------------------------------------------------------------------
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
+WORKDIR /workspace
+
+# Copy framework packages
+COPY framework/backend/csharp/ framework/backend/csharp/
+{% if has_domain | default(value=false) %}
+COPY domain/backend/csharp/{{ domain_name }}/ domain/backend/csharp/{{ domain_name }}/
+{% endif %}
+
+# Copy feature service
+COPY feature/backend/csharp/{{ feature_name }}/ feature/backend/csharp/{{ feature_name }}/
+
+WORKDIR /workspace/feature/backend/csharp/{{ feature_name }}
+
+RUN dotnet restore src/{{ feature_name_pascal }}.Presentation/{{ feature_name_pascal }}.Presentation.csproj
+RUN dotnet publish src/{{ feature_name_pascal }}.Presentation/{{ feature_name_pascal }}.Presentation.csproj \
+    -c Release \
+    -o /app/publish \
+    --no-restore
+
+# ---------------------------------------------------------------------------
+# Stage 2: Runtime
+# ---------------------------------------------------------------------------
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+
+RUN groupadd -r appuser && useradd -r -g appuser -s /sbin/nologin appuser
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /app/publish .
+COPY feature/backend/csharp/{{ feature_name }}/config/ /app/config/
+
+ENV ASPNETCORE_URLS=http://+:8080
+ENV DOTNET_EnableDiagnostics=0
+
+EXPOSE 8080
+{% if with_grpc %}
+EXPOSE 50051
+{% endif %}
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:8080/health/live || exit 1
+
+USER appuser
+
+ENTRYPOINT ["dotnet", "{{ feature_name_pascal }}.Presentation.dll"]

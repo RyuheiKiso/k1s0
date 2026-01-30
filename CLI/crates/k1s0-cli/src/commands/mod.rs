@@ -3,6 +3,7 @@
 //! このモジュールは k1s0 CLI の各サブコマンドを提供します。
 
 pub mod completions;
+pub mod docker;
 pub mod doctor;
 pub mod domain_catalog;
 pub mod domain_dependents;

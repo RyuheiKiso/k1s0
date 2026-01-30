@@ -1,0 +1,66 @@
+# {{ feature_name }} - Multi-stage Docker build
+# Rust (axum)
+
+# ---------------------------------------------------------------------------
+# Stage 1: Build
+# ---------------------------------------------------------------------------
+FROM rust:1.85-slim AS build
+
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config libssl-dev protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy manifests first for layer caching
+COPY Cargo.toml ./
+COPY Cargo.loc[k] ./
+
+# Create dummy src for dependency caching
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release && rm -rf src target/release/deps/{{ feature_name_snake }}*
+
+# Copy actual source
+COPY src/ src/
+{% if with_grpc %}
+COPY proto/ proto/
+COPY buf.yaml buf.gen.yaml ./
+{% endif %}
+COPY config/ config/
+
+# Build release binary
+RUN cargo build --release
+
+# ---------------------------------------------------------------------------
+# Stage 2: Runtime
+# ---------------------------------------------------------------------------
+FROM debian:bookworm-slim AS runtime
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Security: run as non-root
+RUN groupadd -r appuser && useradd -r -g appuser -s /sbin/nologin appuser
+
+COPY --from=build /app/target/release/{{ feature_name_snake }} /app/{{ feature_name_snake }}
+COPY config/ /app/config/
+
+EXPOSE 8080
+{% if with_grpc %}
+EXPOSE 50051
+{% endif %}
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:9090/livez || exit 1
+
+USER appuser
+
+ENTRYPOINT ["/app/{{ feature_name_snake }}"]

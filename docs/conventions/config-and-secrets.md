@@ -372,7 +372,44 @@ mock_repo.set_should_fail(true);
 let loader = DbConfigLoader::new(yaml_loader, Box::new(mock_repo));
 ```
 
-## 7. 禁止事項
+## 7. Docker Compose と K021 規約
+
+### 7.1 基本方針
+
+compose.yaml で定義される環境変数は開発環境専用であり、K021 規約の検査対象外とする。
+
+k1s0 が生成する compose.yaml では以下のパターンを使用する：
+
+```yaml
+# 推奨: Docker Secrets を使用（K021 規約準拠）
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+
+secrets:
+  db_password:
+    file: ./secrets/db_password
+```
+
+### 7.2 シークレット管理
+
+- `_FILE` サフィックス + Docker Secrets でシークレットを外部ファイル参照する
+- 開発環境の `secrets/db_password` はデフォルトパスワードを含む（Git 管理外を推奨）
+- 本番環境では Docker Swarm Secrets または Kubernetes Secrets を使用する
+
+### 7.3 環境変数の使用
+
+Docker Compose においては、コンテナ起動やインフラストラクチャレイヤーの設定に限り環境変数を使用できる：
+
+- データベースやキャッシュの起動設定（ポート、初期化スクリプト等）
+- 開発環境のツール設定（データベースクライアント、GUI ツール等）
+
+アプリケーションコード（Rust/Go/C#/Python/TypeScript/Dart）では引き続き環境変数の使用を禁止する。
+
+## 8. 禁止事項
 
 | 禁止事項 | 理由 |
 |----------|------|
@@ -381,12 +418,13 @@ let loader = DbConfigLoader::new(yaml_loader, Box::new(mock_repo));
 | ConfigMap への機密値直書き | Git 等への漏洩リスク |
 | 暗黙の環境選択（`--env` 省略） | 意図しない環境での動作リスク |
 
-## 8. 検査（lint）
+## 9. 検査（lint）
 
 `k1s0 lint` は以下を検査する：
 
 - `config/{env}.yaml` に機密パターン（password/token/secret/key 等）の値が直書きされていないか
 - `*_file` 以外の機密キーがないか
+- Docker Compose ファイル（compose.yaml）は開発環境専用として検査対象外
 
 ## 関連ドキュメント
 

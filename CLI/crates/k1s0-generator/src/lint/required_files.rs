@@ -23,6 +23,7 @@ impl RequiredFiles {
                 "deploy/overlays/dev",
                 "deploy/overlays/stg",
                 "deploy/overlays/prod",
+                "deploy/docker",
             ],
             files: vec![
                 "Cargo.toml",
@@ -37,6 +38,7 @@ impl RequiredFiles {
                 "config/stg.yaml",
                 "config/prod.yaml",
                 "buf.yaml",
+                "Dockerfile",
             ],
         }
     }
@@ -69,12 +71,14 @@ impl RequiredFiles {
                 "internal/infrastructure",
                 "internal/presentation",
                 "config",
+                "deploy/docker",
             ],
             files: vec![
                 "go.mod",
                 "README.md",
                 "cmd/main.go",
                 "config/default.yaml",
+                "Dockerfile",
             ],
         }
     }
@@ -105,6 +109,7 @@ impl RequiredFiles {
                 "src/pages",
                 "src/components/layout",
                 "config",
+                "deploy/docker",
             ],
             files: vec![
                 "package.json",
@@ -112,6 +117,7 @@ impl RequiredFiles {
                 "src/main.tsx",
                 "src/App.tsx",
                 "config/default.yaml",
+                "Dockerfile",
             ],
         }
     }
@@ -140,12 +146,14 @@ impl RequiredFiles {
                 "lib/src/infrastructure",
                 "lib/src/presentation",
                 "config",
+                "deploy/docker",
             ],
             files: vec![
                 "pubspec.yaml",
                 "README.md",
                 "lib/main.dart",
                 "config/default.yaml",
+                "Dockerfile",
             ],
         }
     }
@@ -171,6 +179,7 @@ impl RequiredFiles {
                 "src",
                 "config",
                 "deploy/base",
+                "deploy/docker",
             ],
             files: vec![
                 "pyproject.toml",
@@ -179,6 +188,7 @@ impl RequiredFiles {
                 "config/dev.yaml",
                 "config/stg.yaml",
                 "config/prod.yaml",
+                "Dockerfile",
             ],
         }
     }
@@ -201,6 +211,7 @@ impl RequiredFiles {
                 "src",
                 "config",
                 "deploy/base",
+                "deploy/docker",
             ],
             files: vec![
                 "README.md",
@@ -209,6 +220,7 @@ impl RequiredFiles {
                 "config/stg.yaml",
                 "config/prod.yaml",
                 "buf.yaml",
+                "Dockerfile",
             ],
         }
     }

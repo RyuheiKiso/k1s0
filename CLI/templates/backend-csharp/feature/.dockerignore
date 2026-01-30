@@ -14,3 +14,7 @@
 deploy/
 docs/
 migrations/
+.k1s0/
+*.user
+*.suo
+.env

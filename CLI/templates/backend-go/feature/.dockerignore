@@ -1,0 +1,13 @@
+**/.git
+**/.vscode
+**/.idea
+*.md
+.editorconfig
+.gitignore
+.dockerignore
+*_test.go
+tests/
+deploy/
+docs/
+.k1s0/
+vendor/

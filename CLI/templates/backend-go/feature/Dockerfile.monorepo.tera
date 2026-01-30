@@ -1,0 +1,47 @@
+# {{ feature_name }} - Monorepo Docker build
+# Go (distroless) - Built from repository root
+#
+# Usage: docker build -f feature/backend/go/{{ feature_name }}/Dockerfile.monorepo -t {{ feature_name }} .
+
+# ---------------------------------------------------------------------------
+# Stage 1: Build
+# ---------------------------------------------------------------------------
+FROM golang:1.22-bookworm AS build
+
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
+WORKDIR /workspace
+
+# Copy framework modules
+COPY framework/backend/go/ framework/backend/go/
+{% if has_domain | default(value=false) %}
+COPY domain/backend/go/{{ domain_name }}/ domain/backend/go/{{ domain_name }}/
+{% endif %}
+
+# Copy feature service
+COPY feature/backend/go/{{ feature_name }}/ feature/backend/go/{{ feature_name }}/
+
+WORKDIR /workspace/feature/backend/go/{{ feature_name }}
+
+RUN go mod download
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/server .
+
+# ---------------------------------------------------------------------------
+# Stage 2: Runtime (distroless)
+# ---------------------------------------------------------------------------
+FROM gcr.io/distroless/static-debian12:nonroot AS runtime
+WORKDIR /app
+
+COPY --from=build /app/server /app/server
+COPY feature/backend/go/{{ feature_name }}/config/ /app/config/
+
+EXPOSE 8080
+{% if with_grpc %}
+EXPOSE 50051
+{% endif %}
+
+USER nonroot:nonroot
+
+ENTRYPOINT ["/app/server"]

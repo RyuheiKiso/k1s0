@@ -1,0 +1,15 @@
+**/.git
+**/.vscode
+**/.idea
+**/build
+**/.dart_tool
+**/.packages
+*.md
+.editorconfig
+.gitignore
+.dockerignore
+test/
+deploy/base/
+deploy/overlays/
+docs/
+.k1s0/

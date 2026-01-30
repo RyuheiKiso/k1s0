@@ -38,6 +38,7 @@ fn main() -> std::process::ExitCode {
         }
         Commands::DomainCatalog(args) => k1s0_cli::commands::domain_catalog::execute(args),
         Commands::DomainGraph(args) => k1s0_cli::commands::domain_graph::execute(args),
+        Commands::Docker(args) => k1s0_cli::commands::docker::execute(args),
     };
 
     // 結果を処理
@@ -97,6 +98,9 @@ fn execute_selected_command(selected: SelectedCommand) -> std::process::ExitCode
                 with_grpc: false,
                 with_rest: false,
                 with_db: false,
+                with_cache: false,
+                with_docker: true,
+                no_docker: false,
                 interactive: true, // 対話モードを強制
                 yes: false,
                 skip_doctor: false,

@@ -52,6 +52,7 @@ fn create_backend_rust_structure(dir: &Path) {
         "deploy/overlays/dev",
         "deploy/overlays/stg",
         "deploy/overlays/prod",
+        "deploy/docker",
     ] {
         fs::create_dir_all(dir.join(d)).unwrap();
     }
@@ -70,15 +71,18 @@ fn create_backend_rust_structure(dir: &Path) {
         "config/stg.yaml",
         "config/prod.yaml",
         "buf.yaml",
+        "Dockerfile",
     ] {
         fs::write(dir.join(f), "").unwrap();
     }
 }
 
 mod dependency;
+mod docker_lint;
 mod env_vars;
 mod manifest;
 mod required_files;
 mod retry;
+mod manifest_schema_tests;
 mod secret_config;
 mod utils;

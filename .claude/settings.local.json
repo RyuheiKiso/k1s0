@@ -79,7 +79,16 @@
       "Bash(K1S0=\"C:/work/github/k1s0/CLI/target/debug/k1s0.exe\")",
       "Bash(\"$K1S0\" new-feature --type backend-go --name docker-test-go --output \"$TMPDIR/go\" -y --skip-doctor)",
       "Bash(C:/work/github/k1s0/CLI/target/debug/k1s0.exe new-feature:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(/c/work/github/k1s0/CLI/target/release/k1s0.exe new-feature:*)",
+      "Bash(/c/work/github/k1s0/CLI/target/release/k1s0.exe doctor:*)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); tools=[t[''name''] for t in data.get\\(''tools'',[]\\)]; print\\(''docker'' in [t.lower\\(\\) for t in tools] or any\\(''docker'' in t.lower\\(\\) for t in tools\\)\\)\")",
+      "Bash(./CLI/target/release/k1s0.exe upgrade:*)",
+      "Bash(python3:*)",
+      "Bash(./CLI/target/release/k1s0.exe doctor:*)",
+      "Bash(python:*)",
+      "Bash(grep:*)",
+      "Bash(TESTDIR=\"C:/Users/RYUHEI~1/AppData/Local/Temp/k1s0-test-gen\":*)"
     ]
   }
 }
