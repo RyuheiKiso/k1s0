@@ -295,11 +295,11 @@ pub fn all_tools() -> Vec<&'static ToolRequirement> {
 /// サービスタイプに対応するツールカテゴリを取得
 pub fn categories_for_service_type(name: &str) -> Vec<ToolCategory> {
     match name {
-        "backend-rust" => vec![ToolCategory::Rust],
-        "backend-go" => vec![ToolCategory::Go],
-        "backend-python" => vec![],
-        "backend-csharp" => vec![],
-        "frontend-react" => vec![ToolCategory::Node],
+        "backend-rust" => vec![ToolCategory::Rust, ToolCategory::Docker],
+        "backend-go" => vec![ToolCategory::Go, ToolCategory::Docker],
+        "backend-python" => vec![ToolCategory::Docker],
+        "backend-csharp" => vec![ToolCategory::Docker],
+        "frontend-react" => vec![ToolCategory::Node, ToolCategory::Docker],
         "frontend-flutter" => vec![ToolCategory::Flutter],
         _ => vec![],
     }
@@ -319,12 +319,12 @@ mod tests {
 
     #[test]
     fn test_categories_for_service_type() {
-        assert_eq!(categories_for_service_type("backend-rust"), vec![ToolCategory::Rust]);
-        assert_eq!(categories_for_service_type("backend-go"), vec![ToolCategory::Go]);
-        assert_eq!(categories_for_service_type("frontend-react"), vec![ToolCategory::Node]);
+        assert_eq!(categories_for_service_type("backend-rust"), vec![ToolCategory::Rust, ToolCategory::Docker]);
+        assert_eq!(categories_for_service_type("backend-go"), vec![ToolCategory::Go, ToolCategory::Docker]);
+        assert_eq!(categories_for_service_type("frontend-react"), vec![ToolCategory::Node, ToolCategory::Docker]);
         assert_eq!(categories_for_service_type("frontend-flutter"), vec![ToolCategory::Flutter]);
-        assert!(categories_for_service_type("backend-python").is_empty());
-        assert!(categories_for_service_type("backend-csharp").is_empty());
+        assert_eq!(categories_for_service_type("backend-python"), vec![ToolCategory::Docker]);
+        assert_eq!(categories_for_service_type("backend-csharp"), vec![ToolCategory::Docker]);
         assert!(categories_for_service_type("unknown").is_empty());
     }
 }
