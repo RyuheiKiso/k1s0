@@ -38,6 +38,7 @@ fn main() -> std::process::ExitCode {
         }
         Commands::DomainCatalog(args) => k1s0_cli::commands::domain_catalog::execute(args),
         Commands::DomainGraph(args) => k1s0_cli::commands::domain_graph::execute(args),
+        Commands::Docker(args) => k1s0_cli::commands::docker::execute(args),
     };
 
     // 結果を処理

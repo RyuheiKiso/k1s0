@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Cache</RootNamespace>
+    <Description>Redis caching and cache patterns for k1s0 microservices</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="K1s0.Cache.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+</Project>

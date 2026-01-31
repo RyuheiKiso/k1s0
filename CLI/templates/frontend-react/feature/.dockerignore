@@ -1,0 +1,15 @@
+**/.git
+**/.vscode
+**/.idea
+**/node_modules/
+**/dist/
+**/.k1s0/
+**/*.md
+**/.gitignore
+**/.editorconfig
+**/.dockerignore
+.github/
+scripts/
+work/
+bff/
+CLI/

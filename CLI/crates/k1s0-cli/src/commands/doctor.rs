@@ -29,6 +29,8 @@ pub enum CheckCategory {
     Flutter,
     /// Protocol Buffers 関連
     Proto,
+    /// Docker 関連
+    Docker,
 }
 
 impl From<CheckCategory> for Option<ToolCategory> {
@@ -40,6 +42,7 @@ impl From<CheckCategory> for Option<ToolCategory> {
             CheckCategory::Node => Some(ToolCategory::Node),
             CheckCategory::Flutter => Some(ToolCategory::Flutter),
             CheckCategory::Proto => Some(ToolCategory::Proto),
+            CheckCategory::Docker => Some(ToolCategory::Docker),
         }
     }
 }

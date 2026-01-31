@@ -422,5 +422,5 @@ docs/
 
 - [domain バージョン管理ガイド](../guides/domain-versioning.md)
 - [3層構造への移行ガイド](../guides/migration-to-three-tier.md)
-- [Lint ルール K044](../design/lint.md)
+- [Lint ルール K044](../design/lint/rules-layer-deps.md)
 - [ADR-0006: 3層アーキテクチャ](../adr/ADR-0006-three-layer-architecture.md)

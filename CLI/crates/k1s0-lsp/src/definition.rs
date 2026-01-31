@@ -65,7 +65,18 @@ pub fn find_definition(
                 None
             }
         }
-        _ => None,
+        "domain" => {
+            // ドメイン名からドメインディレクトリへジャンプ
+            find_domain_definition(&value, workspace_root)
+        }
+        _ => {
+            // dependencies.domain セクション内のキー → ドメインへジャンプ
+            if is_in_domain_dependency_section(content, position) {
+                find_domain_definition(&key, workspace_root)
+            } else {
+                None
+            }
+        }
     }
 }
 
@@ -208,38 +219,97 @@ fn find_template_by_name(
     None
 }
 
-/// Framework crate 定義を検索
+/// Framework crate/package 定義を検索（多言語対応）
 fn find_framework_crate_definition(
     crate_name: &str,
     workspace_root: Option<&PathBuf>,
 ) -> Option<GotoDefinitionResponse> {
     let root = workspace_root?;
 
-    // framework/backend/rust/crates/{crate_name} を探す
-    let crate_path = root
-        .join("framework")
-        .join("backend")
-        .join("rust")
-        .join("crates")
-        .join(crate_name);
+    let csproj_name = format!("{}.csproj", crate_name);
+    let search_paths: Vec<(PathBuf, &str)> = vec![
+        (root.join("framework/backend/rust/crates").join(crate_name), "Cargo.toml"),
+        (root.join("framework/backend/go").join(crate_name), "go.mod"),
+        (root.join("framework/backend/csharp").join(crate_name), &csproj_name),
+        (root.join("framework/backend/python").join(crate_name), "pyproject.toml"),
+        (root.join("framework/frontend/react/packages").join(crate_name), "package.json"),
+        (root.join("framework/frontend/flutter/packages").join(crate_name), "pubspec.yaml"),
+    ];
 
-    if crate_path.exists() {
-        // Cargo.toml を優先
-        let cargo_toml = crate_path.join("Cargo.toml");
-        let target = if cargo_toml.exists() {
-            cargo_toml
-        } else {
-            crate_path
-        };
+    for (pkg_dir, entry_file) in &search_paths {
+        if pkg_dir.exists() {
+            let entry = pkg_dir.join(entry_file);
+            let target = if entry.exists() { entry } else { pkg_dir.clone() };
+            let uri = Url::from_file_path(&target).ok()?;
+            return Some(GotoDefinitionResponse::Scalar(Location {
+                uri,
+                range: Range {
+                    start: Position { line: 0, character: 0 },
+                    end: Position { line: 0, character: 0 },
+                },
+            }));
+        }
+    }
 
-        let uri = Url::from_file_path(&target).ok()?;
-        return Some(GotoDefinitionResponse::Scalar(Location {
-            uri,
-            range: Range {
-                start: Position { line: 0, character: 0 },
-                end: Position { line: 0, character: 0 },
-            },
-        }));
+    None
+}
+
+/// dependencies.domain セクション内かどうかを判定
+fn is_in_domain_dependency_section(content: &str, position: Position) -> bool {
+    let lines: Vec<&str> = content.lines().collect();
+    let line_idx = position.line as usize;
+    let mut found_domain = false;
+
+    for i in (0..=line_idx).rev() {
+        if i >= lines.len() {
+            continue;
+        }
+        let line = lines[i];
+        if found_domain {
+            if line.contains("\"dependencies\"") {
+                return true;
+            }
+            // 他のキーに到達
+            if line.contains('}') && !line.contains('{') {
+                return false;
+            }
+        }
+        if line.contains("\"domain\"") && line.contains('{') {
+            found_domain = true;
+        }
+        // トップレベルセクションに到達
+        if line.contains("\"template\"") || line.contains("\"service\"") {
+            return false;
+        }
+    }
+
+    false
+}
+
+/// ドメイン定義を検索
+fn find_domain_definition(
+    domain_name: &str,
+    workspace_root: Option<&PathBuf>,
+) -> Option<GotoDefinitionResponse> {
+    let root = workspace_root?;
+    let search_dirs: &[(&str, &[&str])] = &[
+        ("backend", &["rust", "go", "csharp", "python"]),
+        ("frontend", &["react", "flutter"]),
+    ];
+
+    for (layer, langs) in search_dirs {
+        for lang in *langs {
+            let path = root.join("domain").join(layer).join(lang).join(domain_name);
+            if path.exists() {
+                let manifest = path.join(".k1s0").join("manifest.json");
+                let target = if manifest.exists() { manifest } else { path };
+                let uri = Url::from_file_path(&target).ok()?;
+                return Some(GotoDefinitionResponse::Scalar(Location {
+                    uri,
+                    range: Range::default(),
+                }));
+            }
+        }
     }
 
     None
@@ -547,5 +617,118 @@ mod tests {
         );
 
         assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_find_framework_crate_definition_go() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let pkg_path = temp_dir.path()
+            .join("framework")
+            .join("backend")
+            .join("go")
+            .join("k1s0-config");
+        std::fs::create_dir_all(&pkg_path).unwrap();
+        std::fs::write(pkg_path.join("go.mod"), "module k1s0-config").unwrap();
+
+        let result = find_framework_crate_definition(
+            "k1s0-config",
+            Some(&temp_dir.path().to_path_buf()),
+        );
+
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_find_framework_crate_definition_python() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let pkg_path = temp_dir.path()
+            .join("framework")
+            .join("backend")
+            .join("python")
+            .join("k1s0-config");
+        std::fs::create_dir_all(&pkg_path).unwrap();
+        std::fs::write(pkg_path.join("pyproject.toml"), "[project]").unwrap();
+
+        let result = find_framework_crate_definition(
+            "k1s0-config",
+            Some(&temp_dir.path().to_path_buf()),
+        );
+
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_find_domain_definition_with_tempdir() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let domain_path = temp_dir.path()
+            .join("domain")
+            .join("backend")
+            .join("rust")
+            .join("user-management");
+        std::fs::create_dir_all(domain_path.join(".k1s0")).unwrap();
+        std::fs::write(domain_path.join(".k1s0/manifest.json"), "{}").unwrap();
+
+        let result = find_domain_definition(
+            "user-management",
+            Some(&temp_dir.path().to_path_buf()),
+        );
+
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_find_domain_definition_nonexistent() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+
+        let result = find_domain_definition(
+            "nonexistent-domain",
+            Some(&temp_dir.path().to_path_buf()),
+        );
+
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_find_domain_definition_no_workspace() {
+        let result = find_domain_definition("test", None);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_is_in_domain_dependency_section_true() {
+        let content = r#"{
+  "dependencies": {
+    "domain": {
+      "user-management": "^0.1.0"
+    }
+  }
+}"#;
+
+        assert!(is_in_domain_dependency_section(
+            content,
+            Position { line: 3, character: 10 }
+        ));
+    }
+
+    #[test]
+    fn test_is_in_domain_dependency_section_false() {
+        let content = r#"{
+  "service": {
+    "name": "test"
+  }
+}"#;
+
+        assert!(!is_in_domain_dependency_section(
+            content,
+            Position { line: 2, character: 5 }
+        ));
     }
 }

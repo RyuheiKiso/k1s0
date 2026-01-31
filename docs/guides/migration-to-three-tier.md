@@ -495,4 +495,4 @@ manufacturing = { workspace = true }
 - [domain バージョン管理ガイド](domain-versioning.md)
 - [domain 境界の判断基準](../conventions/domain-boundaries.md)
 - [ADR-0006: 3層アーキテクチャ](../adr/ADR-0006-three-layer-architecture.md)
-- [Lint ルール K040-K047](../design/lint.md)
+- [Lint ルール K040-K047](../design/lint/rules-layer-deps.md)

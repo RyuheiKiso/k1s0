@@ -43,11 +43,11 @@ grpc:
 
 # ヘルスチェック設定
 health:
-  port: 9090
+  port: 8080
   host: "0.0.0.0"
-  liveness_path: /health/live
-  readiness_path: /health/ready
-  startup_path: /health/startup
+  liveness_path: /healthz
+  readiness_path: /readyz
+  startup_path: /startupz
 
 {% if with_db %}
 # データベース設定

@@ -459,7 +459,7 @@ k1s0 lint --rules dependency-direction
 k1s0 lint --rules no-env-var
 ```
 
-詳細: [lint 設計書](../design/lint.md)
+詳細: [lint 設計書](../design/lint/)
 
 ## 関連ドキュメント
 

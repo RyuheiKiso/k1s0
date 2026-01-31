@@ -27,11 +27,11 @@ docs/
 │   └── error-handling.md
 ├── design/                # 設計ドキュメント
 │   ├── README.md          # 設計ドキュメント一覧
-│   ├── cli.md             # CLI 設計
+│   ├── cli/               # CLI 設計（ディレクトリ）
 │   ├── generator.md       # Generator 設計
-│   ├── lint.md            # Lint 設計
+│   ├── lint/              # Lint 設計（ディレクトリ）
 │   ├── framework.md       # Framework 設計
-│   └── template.md        # Template 設計
+│   └── template/          # Template 設計
 └── operations/            # 運用ドキュメント
     ├── README.md          # 運用ドキュメント概要
     ├── deployment.md      # デプロイメント手順

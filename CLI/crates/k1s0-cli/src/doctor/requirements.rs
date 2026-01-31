@@ -34,6 +34,8 @@ pub enum ToolCategory {
     Flutter,
     /// Protocol Buffers 関連
     Proto,
+    /// Docker 関連
+    Docker,
 }
 
 impl ToolCategory {
@@ -45,6 +47,7 @@ impl ToolCategory {
             ToolCategory::Node => "Node.js",
             ToolCategory::Flutter => "Flutter",
             ToolCategory::Proto => "Protocol Buffers",
+            ToolCategory::Docker => "Docker",
         }
     }
 }
@@ -245,8 +248,41 @@ pub const DART: ToolRequirement = ToolRequirement {
 /// 全ての必須ツール
 pub const REQUIRED_TOOLS: &[&ToolRequirement] = &[&RUST, &CARGO, &NODE, &PNPM];
 
+/// Docker 最小バージョン
+pub const DOCKER_MIN_VERSION: &str = "24.0.0";
+
+/// Docker ツール情報
+pub const DOCKER: ToolRequirement = ToolRequirement {
+    name: "docker",
+    min_version: Some(DOCKER_MIN_VERSION),
+    required: false,
+    category: ToolCategory::Docker,
+    install_url: "https://docs.docker.com/get-docker/",
+    install_commands: InstallCommands {
+        windows: Some("winget install Docker.DockerDesktop"),
+        macos: Some("brew install --cask docker"),
+        linux: Some("curl -fsSL https://get.docker.com | sh"),
+    },
+    description: "コンテナランタイム（Docker サポートに必要）",
+};
+
+/// Docker Compose ツール情報
+pub const DOCKER_COMPOSE: ToolRequirement = ToolRequirement {
+    name: "docker compose",
+    min_version: None,
+    required: false,
+    category: ToolCategory::Docker,
+    install_url: "https://docs.docker.com/compose/install/",
+    install_commands: InstallCommands {
+        windows: Some("Docker Desktop に含まれます"),
+        macos: Some("Docker Desktop に含まれます"),
+        linux: Some("sudo apt-get install docker-compose-plugin"),
+    },
+    description: "Docker Compose v2（docker-compose サポートに必要）",
+};
+
 /// 全てのオプションツール
-pub const OPTIONAL_TOOLS: &[&ToolRequirement] = &[&GO, &GOLANGCI_LINT, &BUF, &FLUTTER, &DART];
+pub const OPTIONAL_TOOLS: &[&ToolRequirement] = &[&GO, &GOLANGCI_LINT, &BUF, &FLUTTER, &DART, &DOCKER, &DOCKER_COMPOSE];
 
 /// 全てのツール
 pub fn all_tools() -> Vec<&'static ToolRequirement> {
@@ -259,11 +295,11 @@ pub fn all_tools() -> Vec<&'static ToolRequirement> {
 /// サービスタイプに対応するツールカテゴリを取得
 pub fn categories_for_service_type(name: &str) -> Vec<ToolCategory> {
     match name {
-        "backend-rust" => vec![ToolCategory::Rust],
-        "backend-go" => vec![ToolCategory::Go],
-        "backend-python" => vec![],
-        "backend-csharp" => vec![],
-        "frontend-react" => vec![ToolCategory::Node],
+        "backend-rust" => vec![ToolCategory::Rust, ToolCategory::Docker],
+        "backend-go" => vec![ToolCategory::Go, ToolCategory::Docker],
+        "backend-python" => vec![ToolCategory::Docker],
+        "backend-csharp" => vec![ToolCategory::Docker],
+        "frontend-react" => vec![ToolCategory::Node, ToolCategory::Docker],
         "frontend-flutter" => vec![ToolCategory::Flutter],
         _ => vec![],
     }
@@ -283,12 +319,12 @@ mod tests {
 
     #[test]
     fn test_categories_for_service_type() {
-        assert_eq!(categories_for_service_type("backend-rust"), vec![ToolCategory::Rust]);
-        assert_eq!(categories_for_service_type("backend-go"), vec![ToolCategory::Go]);
-        assert_eq!(categories_for_service_type("frontend-react"), vec![ToolCategory::Node]);
+        assert_eq!(categories_for_service_type("backend-rust"), vec![ToolCategory::Rust, ToolCategory::Docker]);
+        assert_eq!(categories_for_service_type("backend-go"), vec![ToolCategory::Go, ToolCategory::Docker]);
+        assert_eq!(categories_for_service_type("frontend-react"), vec![ToolCategory::Node, ToolCategory::Docker]);
         assert_eq!(categories_for_service_type("frontend-flutter"), vec![ToolCategory::Flutter]);
-        assert!(categories_for_service_type("backend-python").is_empty());
-        assert!(categories_for_service_type("backend-csharp").is_empty());
+        assert_eq!(categories_for_service_type("backend-python"), vec![ToolCategory::Docker]);
+        assert_eq!(categories_for_service_type("backend-csharp"), vec![ToolCategory::Docker]);
         assert!(categories_for_service_type("unknown").is_empty());
     }
 }

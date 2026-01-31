@@ -13,7 +13,11 @@ framework/backend/csharp/src/
 ├── K1s0.Grpc.Server/      # gRPC サーバー共通基盤
 ├── K1s0.Grpc.Client/      # gRPC クライアント共通
 ├── K1s0.Health/           # ヘルスチェック（liveness/readiness）
-└── K1s0.Db/               # DB 接続（EF Core + Npgsql）
+├── K1s0.Db/               # DB 接続（EF Core + Npgsql）
+├── K1s0.DomainEvent/      # ドメインイベント・Outbox パターン
+├── K1s0.Resilience/       # サーキットブレーカー・リトライ・タイムアウト
+├── K1s0.Cache/            # Redis キャッシュ・キャッシュパターン
+└── K1s0.Auth/             # JWT/OIDC 認証・ポリシーエンジン
 ```
 
 ## Tier 構成
@@ -35,6 +39,15 @@ framework/backend/csharp/src/
 | K1s0.Grpc.Client | gRPC クライアント。GrpcClientFactory でチャネル生成 | K1s0.Error |
 | K1s0.Health | ヘルスチェック。`/healthz/live`、`/healthz/ready` エンドポイント | K1s0.Error, K1s0.Config |
 | K1s0.Db | DB 接続。EF Core + Npgsql、UnitOfWork、RepositoryBase<TEntity, TId> | K1s0.Error, K1s0.Config |
+| K1s0.DomainEvent | ドメインイベント発行/購読。InMemoryEventBus、OutboxRelay パターン | System.Text.Json |
+| K1s0.Resilience | 耐障害性パターン。CircuitBreaker、RetryExecutor、TimeoutGuard、ConcurrencyLimiter、Bulkhead | - |
+| K1s0.Cache | Redis キャッシュ。CacheClient、CacheAside/WriteThrough/WriteBehind パターン | StackExchange.Redis |
+
+### Tier 3（Tier 1/2 依存可）
+
+| パッケージ | 説明 | 依存先 |
+|-----------|------|--------|
+| K1s0.Auth | JWT/OIDC 認証。JwtVerifier（JWKS 自動取得）、PolicyEvaluator、ASP.NET Core/gRPC ミドルウェア | Microsoft.IdentityModel.Tokens |
 
 ## ビルド設定
 
@@ -90,7 +103,7 @@ framework/backend/csharp/src/
 | k1s0-grpc-client | K1s0.Grpc.Client | Grpc.Net.Client 使用 |
 | k1s0-health | K1s0.Health | ASP.NET Core HealthChecks 使用 |
 | k1s0-db | K1s0.Db | EF Core + Npgsql 使用 |
-| k1s0-resilience | （未実装） | Polly v8 で今後対応予定 |
-| k1s0-cache | （未実装） | StackExchange.Redis で今後対応予定 |
-| k1s0-domain-event | （未実装） | 今後対応予定 |
-| k1s0-auth | （未実装） | 今後対応予定 |
+| k1s0-resilience | K1s0.Resilience | 独自実装（SemaphoreSlim, CancellationToken ベース） |
+| k1s0-cache | K1s0.Cache | StackExchange.Redis 使用 |
+| k1s0-domain-event | K1s0.DomainEvent | System.Text.Json 使用 |
+| k1s0-auth | K1s0.Auth | Microsoft.IdentityModel 使用 |

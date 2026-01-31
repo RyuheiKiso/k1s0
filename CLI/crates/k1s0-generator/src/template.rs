@@ -233,6 +233,220 @@ mod tests {
         assert_eq!(to_pascal_case("auth-service"), "AuthService");
     }
 
+    /// Dockerfile / docker-compose テスト用の共通コンテキストを作成
+    fn docker_context(feature_name: &str, service_type: &str) -> tera::Context {
+        let mut ctx = tera::Context::new();
+        ctx.insert("feature_name", feature_name);
+        ctx.insert("feature_name_snake", &feature_name.replace('-', "_"));
+        ctx.insert("feature_name_pascal", &to_pascal_case(feature_name));
+        let feature_relative_path = match service_type {
+            "backend-rust" => format!("feature/backend/rust/{}", feature_name),
+            "backend-go" => format!("feature/backend/go/{}", feature_name),
+            "backend-csharp" => format!("feature/backend/csharp/{}", feature_name),
+            "backend-python" => format!("feature/backend/python/{}", feature_name),
+            "frontend-react" => format!("feature/frontend/react/{}", feature_name),
+            _ => format!("feature/backend/rust/{}", feature_name),
+        };
+        ctx.insert("feature_relative_path", &feature_relative_path);
+        ctx.insert("docker_context_levels", "../../../..");
+        ctx.insert("has_domain", &false);
+        ctx
+    }
+
+    #[test]
+    fn test_render_dockerfile_rust_no_grpc() {
+        let template = include_str!("../../../templates/backend-rust/feature/Dockerfile.tera");
+        let mut ctx = docker_context("test-svc", "backend-rust");
+        ctx.insert("with_grpc", &false);
+        ctx.insert("with_db", &false);
+        ctx.insert("with_rest", &true);
+        let result = tera::Tera::one_off(template, &ctx, false).unwrap();
+        assert!(result.contains("HEALTHCHECK"), "HEALTHCHECK が含まれるべき");
+        assert!(result.contains("8080"), "ポート 8080 が含まれるべき");
+        assert!(!result.contains("50051"), "gRPC ポートは含まれないべき");
+        assert!(result.contains("appuser"), "非 root ユーザーで実行");
+        assert!(
+            result.contains("feature/backend/rust/test-svc/"),
+            "feature_relative_path を使った COPY パスが含まれるべき"
+        );
+    }
+
+    #[test]
+    fn test_render_dockerfile_rust_with_grpc() {
+        let template = include_str!("../../../templates/backend-rust/feature/Dockerfile.tera");
+        let mut ctx = docker_context("test-svc", "backend-rust");
+        ctx.insert("with_grpc", &true);
+        ctx.insert("with_db", &false);
+        ctx.insert("with_rest", &true);
+        let result = tera::Tera::one_off(template, &ctx, false).unwrap();
+        assert!(result.contains("50051"), "gRPC ポートが含まれるべき");
+        assert!(result.contains("proto"), "proto/ コピーが含まれるべき");
+    }
+
+    #[test]
+    fn test_render_dockerfile_go_no_grpc() {
+        let template = include_str!("../../../templates/backend-go/feature/Dockerfile.tera");
+        let mut ctx = docker_context("test-svc", "backend-go");
+        ctx.insert("with_grpc", &false);
+        ctx.insert("with_db", &false);
+        let result = tera::Tera::one_off(template, &ctx, false).unwrap();
+        assert!(result.contains("HEALTHCHECK"), "HEALTHCHECK が含まれるべき");
+        assert!(result.contains("CGO_ENABLED=0"), "CGO_ENABLED=0 が含まれるべき");
+        assert!(!result.contains("50051"), "gRPC ポートは含まれないべき");
+        assert!(
+            result.contains("feature/backend/go/test-svc/"),
+            "feature_relative_path を使った COPY パスが含まれるべき"
+        );
+    }
+
+    #[test]
+    fn test_render_dockerfile_go_with_grpc() {
+        let template = include_str!("../../../templates/backend-go/feature/Dockerfile.tera");
+        let mut ctx = docker_context("test-svc", "backend-go");
+        ctx.insert("with_grpc", &true);
+        ctx.insert("with_db", &false);
+        let result = tera::Tera::one_off(template, &ctx, false).unwrap();
+        assert!(result.contains("50051"), "gRPC ポートが含まれるべき");
+        assert!(result.contains("proto"), "proto/ コピーが含まれるべき");
+    }
+
+    #[test]
+    fn test_render_dockerfile_react() {
+        let template = include_str!("../../../templates/frontend-react/feature/Dockerfile.tera");
+        let ctx = docker_context("test-app", "frontend-react");
+        let result = tera::Tera::one_off(template, &ctx, false).unwrap();
+        assert!(result.contains("nginx"), "nginx ステージが含まれるべき");
+        assert!(result.contains("HEALTHCHECK"), "HEALTHCHECK が含まれるべき");
+        assert!(result.contains("80"), "ポート 80 が含まれるべき");
+        assert!(
+            result.contains("feature/frontend/react/test-app/"),
+            "feature_relative_path を使った COPY パスが含まれるべき"
+        );
+    }
+
+    #[test]
+    fn test_render_dockerfile_csharp() {
+        let template = include_str!("../../../templates/backend-csharp/feature/Dockerfile.tera");
+        let mut ctx = docker_context("test-svc", "backend-csharp");
+        ctx.insert("with_grpc", &false);
+        let result = tera::Tera::one_off(template, &ctx, false).unwrap();
+        assert!(result.contains("HEALTHCHECK"), "HEALTHCHECK が含まれるべき");
+        assert!(
+            result.contains("feature/backend/csharp/test-svc/"),
+            "feature_relative_path を使った COPY パスが含まれるべき"
+        );
+    }
+
+    #[test]
+    fn test_render_dockerfile_python() {
+        let template = include_str!("../../../templates/backend-python/feature/Dockerfile.tera");
+        let mut ctx = docker_context("test-svc", "backend-python");
+        ctx.insert("with_grpc", &false);
+        let result = tera::Tera::one_off(template, &ctx, false).unwrap();
+        assert!(result.contains("HEALTHCHECK"), "HEALTHCHECK が含まれるべき");
+        assert!(
+            result.contains("feature/backend/python/test-svc/"),
+            "feature_relative_path を使った COPY パスが含まれるべき"
+        );
+    }
+
+    #[test]
+    fn test_render_docker_compose_all_services() {
+        let template =
+            include_str!("../../../templates/backend-rust/feature/docker-compose.yml.tera");
+        let mut ctx = docker_context("test-svc", "backend-rust");
+        ctx.insert("with_grpc", &true);
+        ctx.insert("with_db", &true);
+        ctx.insert("with_cache", &true);
+        ctx.insert("with_rest", &true);
+        let result = tera::Tera::one_off(template, &ctx, false).unwrap();
+        assert!(result.contains("db:"), "PostgreSQL サービスが含まれるべき");
+        assert!(result.contains("redis:"), "Redis サービスが含まれるべき");
+        assert!(result.contains("50051"), "gRPC ポートが含まれるべき");
+        assert!(result.contains("depends_on"), "depends_on が含まれるべき");
+        assert!(
+            result.contains("context: ../../../.."),
+            "ビルドコンテキストがモノレポルートを指すべき"
+        );
+        assert!(
+            result.contains("dockerfile: feature/backend/rust/test-svc/Dockerfile"),
+            "Dockerfile パスが feature_relative_path を使うべき"
+        );
+    }
+
+    #[test]
+    fn test_render_docker_compose_app_only() {
+        let template =
+            include_str!("../../../templates/backend-rust/feature/docker-compose.yml.tera");
+        let mut ctx = docker_context("test-svc", "backend-rust");
+        ctx.insert("with_grpc", &false);
+        ctx.insert("with_db", &false);
+        ctx.insert("with_cache", &false);
+        ctx.insert("with_rest", &true);
+        let result = tera::Tera::one_off(template, &ctx, false).unwrap();
+        assert!(!result.contains("postgres"), "PostgreSQL は含まれないべき");
+        assert!(!result.contains("redis:"), "Redis は含まれないべき");
+    }
+
+    #[test]
+    fn test_render_docker_compose_frontend_react() {
+        let template =
+            include_str!("../../../templates/frontend-react/feature/docker-compose.yml.tera");
+        let ctx = docker_context("test-app", "frontend-react");
+        let result = tera::Tera::one_off(template, &ctx, false).unwrap();
+        assert!(result.contains("3000:80"), "ポート 3000:80 が含まれるべき");
+        assert!(!result.contains("postgres"), "PostgreSQL は含まれないべき");
+        assert!(
+            result.contains("context: ../../../.."),
+            "ビルドコンテキストがモノレポルートを指すべき"
+        );
+    }
+
+    #[test]
+    fn test_render_nginx_conf() {
+        let template =
+            include_str!("../../../templates/frontend-react/feature/deploy/nginx.conf.tera");
+        let mut ctx = tera::Context::new();
+        ctx.insert("feature_name", "test-app");
+        let result = tera::Tera::one_off(template, &ctx, false).unwrap();
+        assert!(
+            result.contains("try_files"),
+            "try_files ディレクティブが含まれるべき"
+        );
+        assert!(
+            result.contains("healthz") || result.contains("health"),
+            "ヘルスチェックエンドポイントが含まれるべき"
+        );
+        assert!(result.contains("gzip"), "gzip が有効であるべき");
+    }
+
+    #[test]
+    fn test_dockerignore_rust_contains_target() {
+        let content = include_str!("../../../templates/backend-rust/feature/.dockerignore");
+        assert!(content.contains("target"), "target/ が除外されるべき");
+        assert!(content.contains("CLI/"), "CLI/ がモノレポルートから除外されるべき");
+    }
+
+    #[test]
+    fn test_dockerignore_go_contains_test_go() {
+        let content = include_str!("../../../templates/backend-go/feature/.dockerignore");
+        assert!(
+            content.contains("_test.go"),
+            "*_test.go が除外されるべき"
+        );
+        assert!(content.contains("CLI/"), "CLI/ がモノレポルートから除外されるべき");
+    }
+
+    #[test]
+    fn test_dockerignore_react_contains_node_modules() {
+        let content = include_str!("../../../templates/frontend-react/feature/.dockerignore");
+        assert!(
+            content.contains("node_modules"),
+            "node_modules/ が除外されるべき"
+        );
+        assert!(content.contains("CLI/"), "CLI/ がモノレポルートから除外されるべき");
+    }
+
     #[test]
     fn test_preview_directory() {
         // tempdir にテンプレートファイルを作成してプレビュー

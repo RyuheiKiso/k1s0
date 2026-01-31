@@ -455,6 +455,19 @@ fn execute_generation(args: ResolvedArgs) -> Result<()> {
         })?;
     progress_bar.finish_and_clear();
 
+    // secrets ディレクトリ初期化（with_db 時）
+    if args.with_db {
+        let secrets_dir = output_dir.join("secrets");
+        std::fs::create_dir_all(&secrets_dir).map_err(|e| {
+            CliError::io(format!("secrets ディレクトリの作成に失敗: {}", e))
+        })?;
+        let password_file = secrets_dir.join("db_password.txt");
+        std::fs::write(&password_file, "changeme").map_err(|e| {
+            CliError::io(format!("db_password.txt の書き込みに失敗: {}", e))
+        })?;
+        out.file_added("secrets/db_password.txt");
+    }
+
     // 結果を表示
     out.newline();
     for file in &render_result.created_files {
@@ -628,6 +641,13 @@ fn create_template_context(args: &ResolvedArgs, domain_info: Option<&DomainInfo>
     } else {
         context.insert("has_domain", &false);
     }
+
+    // Docker ビルドコンテキスト用パス
+    context.insert(
+        "feature_relative_path",
+        &format!("{}/{}", args.service_type.output_base(), args.name),
+    );
+    context.insert("docker_context_levels", "../../../..");
 
     // オプション
     context.insert("with_grpc", &args.with_grpc);

@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: {{ docker_context_levels }}
+      dockerfile: {{ feature_relative_path }}/Dockerfile
+    ports:
+      - "3000:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      retries: 3

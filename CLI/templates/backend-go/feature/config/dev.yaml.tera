@@ -1,6 +1,7 @@
 # {{ feature_name }} Development Configuration
 
 database:
+  # Docker Compose 環境では db、ホスト直接実行では localhost
   host: localhost
   port: 5432
   name: {{ feature_name_snake }}_dev

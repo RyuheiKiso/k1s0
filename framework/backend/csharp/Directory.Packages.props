@@ -26,9 +26,23 @@
     <!-- Health -->
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.0" />
 
+    <!-- DomainEvent -->
+    <PackageVersion Include="System.Text.Json" Version="9.0.0" />
+
+    <!-- Cache -->
+    <PackageVersion Include="StackExchange.Redis" Version="2.8.16" />
+
     <!-- Database -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
+
+    <!-- Auth -->
+    <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.3.1" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.0" />
+
+    <!-- DI -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
 
     <!-- Testing -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />

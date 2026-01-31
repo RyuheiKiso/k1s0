@@ -15,7 +15,11 @@ framework/backend/python/
 │   ├── k1s0-grpc-server/      # gRPC サーバー共通基盤
 │   ├── k1s0-grpc-client/      # gRPC クライアント共通
 │   ├── k1s0-health/           # ヘルスチェック（liveness/readiness）
-│   └── k1s0-db/               # DB 接続（SQLAlchemy 2.0 + asyncpg）
+│   ├── k1s0-db/               # DB 接続（SQLAlchemy 2.0 + asyncpg）
+│   ├── k1s0-domain-event/     # ドメインイベント・Outbox パターン
+│   ├── k1s0-resilience/       # サーキットブレーカー・リトライ・タイムアウト
+│   ├── k1s0-cache/            # Redis キャッシュ・キャッシュパターン
+│   └── k1s0-auth/             # JWT/OIDC 認証・ポリシーエンジン
 └── tests/
 ```
 
@@ -38,6 +42,15 @@ framework/backend/python/
 | k1s0-grpc-client | gRPC クライアント共通。チャネル管理、リトライ、デッドライン | grpcio |
 | k1s0-health | ヘルスチェック。FastAPI ルーター提供、liveness/readiness プローブ | fastapi |
 | k1s0-db | DB 接続管理。SQLAlchemy 2.0 async セッション、マイグレーション（Alembic） | sqlalchemy, asyncpg, alembic |
+| k1s0-domain-event | ドメインイベント発行/購読。InMemoryEventBus、Outbox パターン（optional: asyncpg, sqlalchemy） | pydantic |
+| k1s0-resilience | 耐障害性パターン。CircuitBreaker、RetryExecutor、TimeoutGuard、ConcurrencyLimiter、Bulkhead | - |
+| k1s0-cache | Redis キャッシュ。CacheClient、CacheAside/WriteThrough/WriteBehind パターン | pydantic, redis（optional） |
+
+### Tier 3（Tier 1/2 依存可）
+
+| パッケージ | 説明 | 主要依存 |
+|-----------|------|---------|
+| k1s0-auth | JWT/OIDC 認証。JwtVerifier（JWKS 自動取得）、PolicyEvaluator、FastAPI/gRPC ミドルウェア | PyJWT, cryptography, httpx |
 
 ## 技術選定
 
@@ -60,3 +73,4 @@ framework/backend/python/
 Rust/Go/C# と同様:
 - **Tier 1**: フレームワーク内依存なし
 - **Tier 2**: Tier 1 のみ依存可能
+- **Tier 3**: Tier 1 / Tier 2 に依存可能

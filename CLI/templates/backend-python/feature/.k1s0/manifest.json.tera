@@ -32,11 +32,17 @@
     "buf.yaml",
     "buf.gen.yaml",
     "pyproject.toml",
-    "ruff.toml"
+    "ruff.toml",
+    "Dockerfile",
+    ".dockerignore"
   ],
   "protected_paths": [
     "src/{{ feature_name_snake }}/domain/",
     "src/{{ feature_name_snake }}/application/"
+  ],
+  "unmanaged_paths": [
+    "docker-compose.yml",
+    "secrets/"
   ],
   "update_policy": {
     "deploy/": "auto",

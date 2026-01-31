@@ -652,4 +652,4 @@ impl WorkOrderRepository for WorkOrderRepositoryImpl {
 - [3層構造への移行ガイド](migration-to-three-tier.md)
 - [domain 境界の判断基準](../conventions/domain-boundaries.md)
 - [Clean Architecture](../architecture/clean-architecture.md)
-- [Lint ルール K040-K047](../design/lint.md)
+- [Lint ルール K040-K047](../design/lint/rules-layer-deps.md)
