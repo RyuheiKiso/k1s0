@@ -26,6 +26,10 @@
 //! - `K046`: breaking_changes の影響
 //! - `K047`: domain 層の version 未設定
 //! - `K050`: SQL インジェクションリスク検出
+//! - `K053`: ログへの機密情報出力検出
+//! - `K028`: 未使用 domain 依存の検出
+//! - `K029`: 本番コードでのパニック検出
+//! - `K060`: Dockerfile ベースイメージ未固定
 //!
 //! # 機能
 //!
@@ -35,16 +39,20 @@
 mod config_naming;
 mod dependency;
 pub mod diff;
+mod dockerfile_lint;
 mod env_vars;
 mod fixer;
 mod layer_dependency;
 mod linter;
+mod panic_detection;
 mod protocol_dependency;
 mod required_files;
 mod retry;
 mod secret_config;
+mod sensitive_logging;
 mod sql_injection;
 mod types;
+mod unused_domain;
 mod utils;
 pub mod watch;
 

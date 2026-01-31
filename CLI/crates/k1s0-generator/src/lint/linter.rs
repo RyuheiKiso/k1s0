@@ -81,9 +81,29 @@ impl Linter {
             self.check_protocol_dependency_in_domain(&path, &mut result);
         }
 
+        // K028: 未使用 domain 依存
+        if !self.is_rule_skipped(RuleId::UnusedDomainDependency) {
+            self.check_unused_domain_dependency(&path, &mut result);
+        }
+
+        // K029: 本番コードでのパニック検出
+        if !self.is_rule_skipped(RuleId::PanicInProductionCode) {
+            self.check_panic_in_production_code(&path, &mut result);
+        }
+
         // K050: SQL インジェクションリスク
         if !self.is_rule_skipped(RuleId::SqlInjectionRisk) {
             self.check_sql_injection_risk(&path, &mut result);
+        }
+
+        // K053: ログへの機密情報出力
+        if !self.is_rule_skipped(RuleId::LoggingSensitiveData) {
+            self.check_sensitive_logging(&path, &mut result);
+        }
+
+        // K060: Dockerfile ベースイメージ未固定
+        if !self.is_rule_skipped(RuleId::DockerfileBaseImageUnpinned) {
+            self.check_dockerfile_base_image(&path, &mut result);
         }
 
         // K030/K031/K032: gRPC リトライ設定検査

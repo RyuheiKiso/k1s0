@@ -77,11 +77,15 @@ fn create_backend_rust_structure(dir: &Path) {
 
 mod config_naming;
 mod dependency;
+mod dockerfile_lint;
 mod env_vars;
 mod manifest;
+mod panic_detection;
 mod protocol_dependency;
 mod required_files;
 mod retry;
 mod secret_config;
+mod sensitive_logging;
 mod sql_injection;
+mod unused_domain;
 mod utils;

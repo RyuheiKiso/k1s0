@@ -51,10 +51,24 @@ pub enum RuleId {
     /// domain 層に version が未設定
     DomainVersionMissing,
 
+    // === コード品質ルール（K028-K029） ===
+
+    /// 未使用 domain 依存
+    UnusedDomainDependency,
+    /// 本番コードでのパニック検出
+    PanicInProductionCode,
+
     // === セキュリティルール（K050-K059） ===
 
     /// SQL インジェクションリスク
     SqlInjectionRisk,
+    /// ログへの機密情報出力
+    LoggingSensitiveData,
+
+    // === インフラルール（K060-K069） ===
+
+    /// Dockerfile ベースイメージ未固定
+    DockerfileBaseImageUnpinned,
 }
 
 impl RuleId {
@@ -83,8 +97,14 @@ impl RuleId {
             RuleId::MinFrameworkVersionViolation => "K045",
             RuleId::BreakingChangeImpact => "K046",
             RuleId::DomainVersionMissing => "K047",
+            // コード品質ルール
+            RuleId::UnusedDomainDependency => "K028",
+            RuleId::PanicInProductionCode => "K029",
             // セキュリティルール
             RuleId::SqlInjectionRisk => "K050",
+            RuleId::LoggingSensitiveData => "K053",
+            // インフラルール
+            RuleId::DockerfileBaseImageUnpinned => "K060",
         }
     }
 
@@ -113,8 +133,14 @@ impl RuleId {
             RuleId::MinFrameworkVersionViolation => "min_framework_version 要件を満たしていません",
             RuleId::BreakingChangeImpact => "破壊的変更の影響を受ける可能性があります",
             RuleId::DomainVersionMissing => "domain 層には version が必須です",
+            // コード品質ルール
+            RuleId::UnusedDomainDependency => "未使用の domain 依存が宣言されています",
+            RuleId::PanicInProductionCode => "本番コードでパニックを起こす可能性があります",
             // セキュリティルール
             RuleId::SqlInjectionRisk => "SQL インジェクションのリスクがあります",
+            RuleId::LoggingSensitiveData => "ログに機密情報が含まれる可能性があります",
+            // インフラルール
+            RuleId::DockerfileBaseImageUnpinned => "Dockerfile のベースイメージのバージョンが固定されていません",
         }
     }
 }
