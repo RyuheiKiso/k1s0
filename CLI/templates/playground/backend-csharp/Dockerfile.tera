@@ -1,0 +1,21 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS builder
+WORKDIR /app
+COPY src/{{ feature_name_pascal }}.Presentation/*.csproj ./src/{{ feature_name_pascal }}.Presentation/
+COPY src/{{ feature_name_pascal }}.Domain/*.csproj ./src/{{ feature_name_pascal }}.Domain/
+RUN dotnet restore src/{{ feature_name_pascal }}.Presentation/{{ feature_name_pascal }}.Presentation.csproj
+COPY src/ ./src/
+RUN dotnet publish src/{{ feature_name_pascal }}.Presentation/{{ feature_name_pascal }}.Presentation.csproj -c Release -o /out
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN useradd -r -s /bin/false appuser
+WORKDIR /app
+COPY --from=builder /out .
+COPY config/ ./config/
+USER appuser
+EXPOSE 8080
+{% if with_grpc %}
+EXPOSE 50051
+{% endif %}
+HEALTHCHECK --interval=5s --timeout=3s --retries=10 CMD curl -f http://localhost:8080/health || exit 1
+ENTRYPOINT ["dotnet", "{{ feature_name_pascal }}.Presentation.dll"]

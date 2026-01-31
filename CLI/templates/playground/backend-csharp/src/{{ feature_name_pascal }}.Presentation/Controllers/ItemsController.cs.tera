@@ -1,0 +1,63 @@
+using Microsoft.AspNetCore.Mvc;
+using {{ feature_name_pascal }}.Domain.Entities;
+
+namespace {{ feature_name_pascal }}.Presentation.Controllers;
+
+[ApiController]
+[Route("api/v1/[controller]")]
+public class ItemsController : ControllerBase
+{
+    private static readonly List<Item> _items = new()
+    {
+        new Item { Id = 1, Name = "Sample Item 1", Description = "This is a sample item created by k1s0 playground", CreatedAt = DateTime.UtcNow },
+        new Item { Id = 2, Name = "Sample Item 2", Description = "Another sample item for testing", CreatedAt = DateTime.UtcNow },
+        new Item { Id = 3, Name = "Sample Item 3", Description = "Try updating or deleting this item", CreatedAt = DateTime.UtcNow },
+    };
+    private static long _nextId = 4;
+
+    [HttpGet]
+    public ActionResult<List<Item>> GetAll() => Ok(_items);
+
+    [HttpGet("{id}")]
+    public ActionResult<Item> GetById(long id)
+    {
+        var item = _items.FirstOrDefault(i => i.Id == id);
+        if (item is null) return NotFound(new { error = "Item not found" });
+        return Ok(item);
+    }
+
+    [HttpPost]
+    public ActionResult<Item> Create([FromBody] CreateItem input)
+    {
+        var item = new Item
+        {
+            Id = _nextId++,
+            Name = input.Name,
+            Description = input.Description,
+            CreatedAt = DateTime.UtcNow,
+        };
+        _items.Add(item);
+        return CreatedAtAction(nameof(GetById), new { id = item.Id }, item);
+    }
+
+    [HttpPut("{id}")]
+    public ActionResult<Item> Update(long id, [FromBody] UpdateItem input)
+    {
+        var item = _items.FirstOrDefault(i => i.Id == id);
+        if (item is null) return NotFound(new { error = "Item not found" });
+
+        if (input.Name is not null) item.Name = input.Name;
+        if (input.Description is not null) item.Description = input.Description;
+
+        return Ok(item);
+    }
+
+    [HttpDelete("{id}")]
+    public ActionResult Delete(long id)
+    {
+        var item = _items.FirstOrDefault(i => i.Id == id);
+        if (item is null) return NotFound(new { error = "Item not found" });
+        _items.Remove(item);
+        return NoContent();
+    }
+}

@@ -1,0 +1,27 @@
+use std::sync::Arc;
+use crate::AppState;
+use crate::domain::entities::{Item, CreateItem, UpdateItem};
+
+pub struct ItemUseCase;
+
+impl ItemUseCase {
+    pub async fn list(state: &Arc<AppState>) -> Result<Vec<Item>, String> {
+        state.repository.find_all().await
+    }
+
+    pub async fn get(state: &Arc<AppState>, id: i64) -> Result<Option<Item>, String> {
+        state.repository.find_by_id(id).await
+    }
+
+    pub async fn create(state: &Arc<AppState>, input: CreateItem) -> Result<Item, String> {
+        state.repository.create(input).await
+    }
+
+    pub async fn update(state: &Arc<AppState>, id: i64, input: UpdateItem) -> Result<Option<Item>, String> {
+        state.repository.update(id, input).await
+    }
+
+    pub async fn delete(state: &Arc<AppState>, id: i64) -> Result<bool, String> {
+        state.repository.delete(id).await
+    }
+}

@@ -270,6 +270,10 @@ buf format --exit-code
 | `k1s0 docker compose down` | Stop docker compose services (`-v`) |
 | `k1s0 docker compose logs` | Show docker compose logs (`-f`, `<service>`) |
 | `k1s0 docker status` | Show container status (`--json`) |
+| `k1s0 playground start` | Start playground environment (`--type`, `--mode`, `--with-grpc`, `--with-db`, `--with-cache`, `--port-offset`) |
+| `k1s0 playground stop` | Stop and remove playground (`--name`, `-v`, `-y`) |
+| `k1s0 playground status` | Show running playgrounds (`--json`) |
+| `k1s0 playground list` | List available playground templates |
 
 ### Interactive Mode
 

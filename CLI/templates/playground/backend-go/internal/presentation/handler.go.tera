@@ -1,0 +1,4 @@
+package presentation
+
+// HTTP handlers are defined inline in cmd/main.go for playground simplicity.
+// In a production service, extract handlers here following Clean Architecture.

@@ -1,0 +1,78 @@
+use std::sync::Arc;
+use tokio::net::TcpListener;
+
+mod domain;
+mod application;
+mod infrastructure;
+mod presentation;
+
+#[derive(Debug, serde::Deserialize)]
+struct AppConfig {
+    server: ServerConfig,
+{% if with_db %}
+    database: DatabaseConfig,
+{% endif %}
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct ServerConfig {
+    host: String,
+    port: u16,
+}
+
+{% if with_db %}
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct DatabaseConfig {
+    pub driver: String,
+    #[serde(default)]
+    pub host: String,
+    #[serde(default)]
+    pub port: u16,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub user: String,
+    #[serde(default)]
+    pub password: String,
+    #[serde(default)]
+    pub path: String,
+}
+{% endif %}
+
+pub struct AppState {
+{% if with_db %}
+    pub repository: infrastructure::repositories::ItemRepository,
+{% else %}
+    pub repository: infrastructure::repositories::ItemRepository,
+{% endif %}
+}
+
+#[tokio::main]
+async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt::init();
+
+    // Load config from YAML (not environment variables)
+    let config_str = std::fs::read_to_string("config/default.yaml")
+        .expect("config/default.yaml not found");
+    let config: AppConfig = serde_yaml::from_str(&config_str)
+        .expect("Failed to parse config/default.yaml");
+
+{% if with_db %}
+    let repository = infrastructure::repositories::ItemRepository::new(&config.database).await?;
+{% else %}
+    let repository = infrastructure::repositories::ItemRepository::new();
+{% endif %}
+
+    let state = Arc::new(AppState {
+        repository,
+    });
+
+    let app = presentation::rest::routes(state);
+
+    let addr = format!("{}:{}", config.server.host, config.server.port);
+    tracing::info!("Playground server starting on {}", addr);
+    let listener = TcpListener::bind(&addr).await?;
+    axum::serve(listener, app).await?;
+
+    Ok(())
+}

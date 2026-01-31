@@ -33,6 +33,7 @@ ctrlc = "3.4"
 [features]
 default = []
 watch = ["k1s0-generator/watch"]
+docker-tests = []
 
 [dev-dependencies]
 assert_cmd = "2.0"

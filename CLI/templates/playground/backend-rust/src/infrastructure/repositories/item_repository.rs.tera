@@ -1,0 +1,198 @@
+use crate::domain::entities::{Item, CreateItem, UpdateItem};
+{% if with_db %}
+use crate::DatabaseConfig;
+use sqlx::Row;
+{% else %}
+use std::sync::Mutex;
+use chrono::Utc;
+{% endif %}
+
+pub struct ItemRepository {
+{% if with_db %}
+    pool: sqlx::Pool<sqlx::Postgres>,
+{% else %}
+    items: Mutex<Vec<Item>>,
+    next_id: Mutex<i64>,
+{% endif %}
+}
+
+impl ItemRepository {
+{% if with_db %}
+    pub async fn new(config: &DatabaseConfig) -> Result<Self, String> {
+        let url = format!(
+            "postgres://{}:{}@{}:{}/{}",
+            config.user, config.password, config.host, config.port, config.name
+        );
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&url)
+            .await
+            .map_err(|e| format!("Database connection failed: {}", e))?;
+
+        // Create table if not exists
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS items (
+                id BIGSERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )"
+        )
+        .execute(&pool)
+        .await
+        .map_err(|e| format!("Failed to create table: {}", e))?;
+
+        Ok(Self { pool })
+    }
+
+    pub async fn find_all(&self) -> Result<Vec<Item>, String> {
+        let rows = sqlx::query_as::<_, (i64, String, Option<String>, chrono::NaiveDateTime)>(
+            "SELECT id, name, description, created_at FROM items ORDER BY id"
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        Ok(rows.into_iter().map(|(id, name, description, created_at)| Item {
+            id, name, description, created_at,
+        }).collect())
+    }
+
+    pub async fn find_by_id(&self, id: i64) -> Result<Option<Item>, String> {
+        let row = sqlx::query_as::<_, (i64, String, Option<String>, chrono::NaiveDateTime)>(
+            "SELECT id, name, description, created_at FROM items WHERE id = $1"
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        Ok(row.map(|(id, name, description, created_at)| Item {
+            id, name, description, created_at,
+        }))
+    }
+
+    pub async fn create(&self, input: CreateItem) -> Result<Item, String> {
+        let row = sqlx::query_as::<_, (i64, String, Option<String>, chrono::NaiveDateTime)>(
+            "INSERT INTO items (name, description) VALUES ($1, $2) RETURNING id, name, description, created_at"
+        )
+        .bind(&input.name)
+        .bind(&input.description)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        Ok(Item {
+            id: row.0, name: row.1, description: row.2, created_at: row.3,
+        })
+    }
+
+    pub async fn update(&self, id: i64, input: UpdateItem) -> Result<Option<Item>, String> {
+        let existing = self.find_by_id(id).await?;
+        if existing.is_none() {
+            return Ok(None);
+        }
+        let existing = existing.unwrap();
+
+        let name = input.name.unwrap_or(existing.name);
+        let description = input.description.or(existing.description);
+
+        let row = sqlx::query_as::<_, (i64, String, Option<String>, chrono::NaiveDateTime)>(
+            "UPDATE items SET name = $1, description = $2 WHERE id = $3 RETURNING id, name, description, created_at"
+        )
+        .bind(&name)
+        .bind(&description)
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        Ok(Some(Item {
+            id: row.0, name: row.1, description: row.2, created_at: row.3,
+        }))
+    }
+
+    pub async fn delete(&self, id: i64) -> Result<bool, String> {
+        let result = sqlx::query("DELETE FROM items WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        Ok(result.rows_affected() > 0)
+    }
+{% else %}
+    pub fn new() -> Self {
+        let seed_items = vec![
+            Item {
+                id: 1,
+                name: "Sample Item 1".to_string(),
+                description: Some("This is a sample item created by k1s0 playground".to_string()),
+                created_at: Utc::now().naive_utc(),
+            },
+            Item {
+                id: 2,
+                name: "Sample Item 2".to_string(),
+                description: Some("Another sample item for testing".to_string()),
+                created_at: Utc::now().naive_utc(),
+            },
+            Item {
+                id: 3,
+                name: "Sample Item 3".to_string(),
+                description: Some("Try updating or deleting this item".to_string()),
+                created_at: Utc::now().naive_utc(),
+            },
+        ];
+        Self {
+            items: Mutex::new(seed_items),
+            next_id: Mutex::new(4),
+        }
+    }
+
+    pub async fn find_all(&self) -> Result<Vec<Item>, String> {
+        let items = self.items.lock().map_err(|e| e.to_string())?;
+        Ok(items.clone())
+    }
+
+    pub async fn find_by_id(&self, id: i64) -> Result<Option<Item>, String> {
+        let items = self.items.lock().map_err(|e| e.to_string())?;
+        Ok(items.iter().find(|i| i.id == id).cloned())
+    }
+
+    pub async fn create(&self, input: CreateItem) -> Result<Item, String> {
+        let mut items = self.items.lock().map_err(|e| e.to_string())?;
+        let mut next_id = self.next_id.lock().map_err(|e| e.to_string())?;
+        let item = Item {
+            id: *next_id,
+            name: input.name,
+            description: input.description,
+            created_at: Utc::now().naive_utc(),
+        };
+        *next_id += 1;
+        items.push(item.clone());
+        Ok(item)
+    }
+
+    pub async fn update(&self, id: i64, input: UpdateItem) -> Result<Option<Item>, String> {
+        let mut items = self.items.lock().map_err(|e| e.to_string())?;
+        if let Some(item) = items.iter_mut().find(|i| i.id == id) {
+            if let Some(name) = input.name {
+                item.name = name;
+            }
+            if let Some(desc) = input.description {
+                item.description = Some(desc);
+            }
+            Ok(Some(item.clone()))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub async fn delete(&self, id: i64) -> Result<bool, String> {
+        let mut items = self.items.lock().map_err(|e| e.to_string())?;
+        let len_before = items.len();
+        items.retain(|i| i.id != id);
+        Ok(items.len() < len_before)
+    }
+{% endif %}
+}
