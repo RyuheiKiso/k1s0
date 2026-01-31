@@ -139,7 +139,7 @@ pub struct ServiceInfo {
     /// サービス名（kebab-case）
     pub service_name: String,
 
-    /// 言語（rust, go, typescript, dart）
+    /// 言語（rust, go, csharp, python, kotlin, typescript, dart）
     pub language: String,
 
     /// タイプ（backend, frontend, bff）

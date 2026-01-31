@@ -13,27 +13,31 @@ graph TB
     end
 
     subgraph "Tier 2 - インフラ統合"
+        T2_OBS[k1s0-observability]
+        T2_RESIL[k1s0-resilience]
         T2_GRPC_S[k1s0-grpc-server]
         T2_GRPC_C[k1s0-grpc-client]
         T2_HEALTH[k1s0-health]
         T2_DB[k1s0-db]
         T2_CACHE[k1s0-cache]
+        T2_DEVENT[k1s0-domain-event]
     end
 
     subgraph "Tier 1 - 基盤"
         T1_ERROR[k1s0-error]
         T1_CONFIG[k1s0-config]
         T1_VALID[k1s0-validation]
-        T1_OBS[k1s0-observability]
-        T1_RESIL[k1s0-resilience]
     end
 
     T3_AUTH --> T2_CACHE
     T3_AUTH --> T2_DB
 
     T2_GRPC_S --> T1_ERROR
-    T2_GRPC_S --> T1_OBS
+    T2_GRPC_S --> T2_OBS
     T2_CACHE --> T2_HEALTH
+    T2_OBS --> T1_ERROR
+    T2_RESIL --> T1_ERROR
+    T2_DEVENT --> T1_ERROR
 
     T2_DB -.-> T1_ERROR
     T2_DB -.-> T1_CONFIG
@@ -46,7 +50,7 @@ graph TB
 
 - 外部依存が最小限
 - 他の k1s0 crate に依存しない（スタンドアロン）
-- 純粋な Rust で実装可能
+- 純粋な Rust で実装可能（他言語でも同等の実装）
 - 全サービスで使用される基本機能
 
 ### crate 一覧
@@ -56,8 +60,6 @@ graph TB
 | `k1s0-error` | エラー表現の統一 | thiserror |
 | `k1s0-config` | 設定読み込み | serde, serde_yaml |
 | `k1s0-validation` | 入力バリデーション | serde |
-| `k1s0-observability` | ログ/トレース/メトリクス | tracing, opentelemetry |
-| `k1s0-resilience` | レジリエンスパターン | tokio |
 
 ### 依存関係
 
@@ -80,13 +82,16 @@ serde = { version = "1", features = ["derive"] }
 
 ### crate 一覧
 
-| Crate | 説明 | 依存する Tier 1 |
-|-------|------|----------------|
+| Crate | 説明 | 依存する Tier 1/2 |
+|-------|------|------------------|
+| `k1s0-observability` | ログ/トレース/メトリクス | k1s0-error |
+| `k1s0-resilience` | レジリエンスパターン | k1s0-error |
 | `k1s0-grpc-server` | gRPC サーバ共通基盤 | k1s0-error, k1s0-observability |
 | `k1s0-grpc-client` | gRPC クライアント共通 | - |
 | `k1s0-health` | ヘルスチェック | - |
 | `k1s0-db` | DB 接続・トランザクション | k1s0-config (feature: `config`) |
 | `k1s0-cache` | Redis キャッシュ | k1s0-health (feature) |
+| `k1s0-domain-event` | ドメインイベント publish/subscribe/outbox | k1s0-error |
 
 ### 依存関係
 
@@ -224,11 +229,13 @@ db feature で追加される型:
 - Validate: バリデーション trait
 ```
 
+### Tier 2
+
 #### k1s0-observability
 
 ```
 責務: 観測性の初期化
-依存: なし
+依存: k1s0-error
 
 提供する型:
 - ObservabilityConfig: 観測性設定
@@ -240,7 +247,7 @@ db feature で追加される型:
 
 ```
 責務: レジリエンスパターン
-依存: なし
+依存: k1s0-error
 
 提供する型:
 - TimeoutGuard: タイムアウト
@@ -248,8 +255,6 @@ db feature で追加される型:
 - Bulkhead: バルクヘッド
 - CircuitBreaker: サーキットブレーカ
 ```
-
-### Tier 2
 
 #### k1s0-grpc-server
 
@@ -319,6 +324,19 @@ config feature で追加される型:
 - CacheConfig: キャッシュ設定
 - CacheOperations: キャッシュ操作 trait
 - CacheClient: キャッシュクライアント
+```
+
+#### k1s0-domain-event
+
+```
+責務: ドメインイベント publish/subscribe/outbox
+依存: k1s0-error
+
+提供する型:
+- DomainEvent: ドメインイベント
+- EventPublisher: イベント発行
+- EventSubscriber: イベント購読
+- OutboxRepository: Outbox パターン実装
 ```
 
 ### Tier 3
@@ -391,6 +409,44 @@ cargo tree -p k1s0-auth
 # 逆依存の確認
 cargo tree -p k1s0-error --invert
 ```
+
+## 他言語での Tier 構成
+
+Tier システムは Rust 以外の全バックエンド言語でも同一の構成を採用している。各言語のパッケージ名と Tier 分類は以下の通り。
+
+### Go
+
+| パッケージ | Tier |
+|-----------|------|
+| `k1s0-error`, `k1s0-config`, `k1s0-validation` | Tier 1 |
+| `k1s0-observability`, `k1s0-resilience`, `k1s0-grpc-server`, `k1s0-grpc-client`, `k1s0-health`, `k1s0-db`, `k1s0-cache`, `k1s0-domain-event` | Tier 2 |
+| `k1s0-auth` | Tier 3 |
+
+### C# (NuGet)
+
+| パッケージ | Tier |
+|-----------|------|
+| `K1s0.Error`, `K1s0.Config`, `K1s0.Validation` | Tier 1 |
+| `K1s0.Observability`, `K1s0.Resilience`, `K1s0.Grpc.Server`, `K1s0.Grpc.Client`, `K1s0.Health`, `K1s0.Db`, `K1s0.Cache`, `K1s0.DomainEvent` | Tier 2 |
+| `K1s0.Auth` | Tier 3 |
+
+### Python (uv)
+
+| パッケージ | Tier |
+|-----------|------|
+| `k1s0-error`, `k1s0-config`, `k1s0-validation` | Tier 1 |
+| `k1s0-observability`, `k1s0-resilience`, `k1s0-grpc-server`, `k1s0-grpc-client`, `k1s0-health`, `k1s0-db`, `k1s0-cache`, `k1s0-domain-event` | Tier 2 |
+| `k1s0-auth` | Tier 3 |
+
+### Kotlin (Gradle)
+
+| パッケージ | Tier |
+|-----------|------|
+| `k1s0-error`, `k1s0-config`, `k1s0-validation` | Tier 1 |
+| `k1s0-observability`, `k1s0-resilience`, `k1s0-grpc-server`, `k1s0-grpc-client`, `k1s0-health`, `k1s0-db`, `k1s0-cache`, `k1s0-domain-event` | Tier 2 |
+| `k1s0-auth` | Tier 3 |
+
+依存ルールは全言語で共通: Tier N は Tier N-1 以下にのみ依存可能。
 
 ## 関連ドキュメント
 

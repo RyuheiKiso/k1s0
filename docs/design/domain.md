@@ -397,7 +397,7 @@ billing           backend  rust      0.5.0    deprecated  1
 |--------|------|
 | NAME | ドメイン名 |
 | TYPE | バックエンド/フロントエンドの種別 |
-| LANGUAGE | 実装言語（rust, go, react, flutter） |
+| LANGUAGE | 実装言語（rust, go, csharp, python, kotlin, react, flutter, android） |
 | VERSION | 現在のバージョン |
 | STATUS | active または deprecated |
 | DEPENDENTS | このドメインに依存している feature の数 |

@@ -191,6 +191,223 @@ func NewUserInfoClient(userInfoEndpoint string, httpClient *http.Client) *UserIn
 func (c *UserInfoClient) GetUserInfo(ctx context.Context, accessToken string) (*OIDCUserInfo, error)
 ```
 
+## C# 版（K1s0.Auth）
+
+### 主要な型
+
+```csharp
+public record Claims(
+    string Sub, string Iss, string? Aud, long Exp, long Iat,
+    List<string> Roles, List<string> Permissions, string? TenantId);
+
+public class JwtVerifierConfig
+{
+    public string Issuer { get; }
+    public string? JwksUri { get; set; }
+    public string? Audience { get; set; }
+
+    public JwtVerifierConfig(string issuer);
+}
+
+public class JwtVerifier
+{
+    public JwtVerifier(JwtVerifierConfig config);
+    public Task<Claims> VerifyAsync(string token);
+}
+
+public enum PolicyDecision { Allow, Deny, NotApplicable }
+
+public record PolicyRequest(PolicySubject Subject, Action Action, ResourceContext Resource);
+public record PolicyResult(PolicyDecision Decision, string? Reason, List<string> MatchedRules);
+
+public class PolicyEvaluator
+{
+    public Task AddRulesAsync(IEnumerable<PolicyRule> rules);
+    public Task<PolicyResult> EvaluateAsync(PolicyRequest request);
+}
+
+public class AuditLogger
+{
+    public AuditLogger(string serviceName);
+    public void LogAuthenticationSuccess(AuditActor actor);
+    public void LogAuthenticationFailure(AuditActor actor, string reason);
+    public void LogAuthorization(PolicyRequest request, PolicyDecision decision);
+}
+
+// OIDC UserInfo
+public record UserInfo(
+    string Sub, string? Name, string? Email,
+    bool? EmailVerified, string? Picture, string? Locale);
+
+public class UserInfoClient
+{
+    public UserInfoClient(OidcDiscovery discovery);
+    public Task<UserInfo> GetUserInfoAsync(string accessToken);
+}
+```
+
+### 使用例
+
+```csharp
+using K1s0.Auth;
+
+var config = new JwtVerifierConfig("https://auth.example.com")
+{
+    JwksUri = "https://auth.example.com/.well-known/jwks.json",
+    Audience = "my-api"
+};
+var verifier = new JwtVerifier(config);
+var claims = await verifier.VerifyAsync("eyJ...");
+
+var evaluator = new PolicyEvaluator();
+var result = await evaluator.EvaluateAsync(new PolicyRequest(
+    new PolicySubject("user123", Roles: new[] { "admin" }),
+    new Action("user", "delete"),
+    ResourceContext.Default));
+```
+
+## Python 版（k1s0-auth）
+
+### 主要な型
+
+```python
+@dataclass
+class Claims:
+    sub: str
+    iss: str
+    aud: str | None
+    exp: int
+    iat: int
+    roles: list[str]
+    permissions: list[str]
+    tenant_id: str | None = None
+
+@dataclass
+class JwtVerifierConfig:
+    issuer: str
+    jwks_uri: str | None = None
+    audience: str | None = None
+
+class JwtVerifier:
+    def __init__(self, config: JwtVerifierConfig) -> None: ...
+    async def verify(self, token: str) -> Claims: ...
+
+class PolicyDecision(Enum):
+    ALLOW = "allow"
+    DENY = "deny"
+    NOT_APPLICABLE = "not_applicable"
+
+class PolicyEvaluator:
+    async def add_rules(self, rules: list[PolicyRule]) -> None: ...
+    async def evaluate(self, request: PolicyRequest) -> PolicyResult: ...
+
+class AuditLogger:
+    def __init__(self, service_name: str) -> None: ...
+    def log_authentication_success(self, actor: AuditActor) -> None: ...
+    def log_authentication_failure(self, actor: AuditActor, reason: str) -> None: ...
+
+@dataclass
+class UserInfo:
+    sub: str
+    name: str | None = None
+    email: str | None = None
+    email_verified: bool | None = None
+
+class UserInfoClient:
+    def __init__(self, discovery: OidcDiscovery) -> None: ...
+    async def get_userinfo(self, access_token: str) -> UserInfo: ...
+```
+
+### 使用例
+
+```python
+from k1s0_auth import JwtVerifier, JwtVerifierConfig, PolicyEvaluator
+
+config = JwtVerifierConfig(
+    issuer="https://auth.example.com",
+    jwks_uri="https://auth.example.com/.well-known/jwks.json",
+    audience="my-api"
+)
+verifier = JwtVerifier(config)
+claims = await verifier.verify("eyJ...")
+
+evaluator = PolicyEvaluator()
+result = await evaluator.evaluate(PolicyRequest(
+    subject=PolicySubject("user123", roles=["admin"]),
+    action=Action("user", "delete"),
+    resource=ResourceContext.default()
+))
+```
+
+## Kotlin 版（k1s0-auth）
+
+nimbus-jose-jwt ベースの認証・認可ライブラリ。
+
+### 主要な型
+
+```kotlin
+data class Claims(
+    val sub: String, val iss: String, val aud: String?, val exp: Long, val iat: Long,
+    val roles: List<String>, val permissions: List<String>, val tenantId: String? = null
+)
+
+data class JwtVerifierConfig(
+    val issuer: String,
+    val jwksUri: String? = null,
+    val audience: String? = null
+)
+
+class JwtVerifier(private val config: JwtVerifierConfig) {
+    suspend fun verify(token: String): Claims
+}
+
+enum class PolicyDecision { Allow, Deny, NotApplicable }
+
+data class PolicyRequest(val subject: PolicySubject, val action: Action, val resource: ResourceContext)
+data class PolicyResult(val decision: PolicyDecision, val reason: String?, val matchedRules: List<String>)
+
+class PolicyEvaluator {
+    suspend fun addRules(rules: List<PolicyRule>)
+    suspend fun evaluate(request: PolicyRequest): PolicyResult
+}
+
+class AuditLogger(private val serviceName: String) {
+    fun logAuthenticationSuccess(actor: AuditActor)
+    fun logAuthenticationFailure(actor: AuditActor, reason: String)
+    fun logAuthorization(request: PolicyRequest, decision: PolicyDecision)
+}
+
+data class UserInfo(
+    val sub: String, val name: String? = null,
+    val email: String? = null, val emailVerified: Boolean? = null
+)
+
+class UserInfoClient(private val discovery: OidcDiscovery) {
+    suspend fun getUserInfo(accessToken: String): UserInfo
+}
+```
+
+### 使用例
+
+```kotlin
+import com.k1s0.auth.*
+
+val config = JwtVerifierConfig(
+    issuer = "https://auth.example.com",
+    jwksUri = "https://auth.example.com/.well-known/jwks.json",
+    audience = "my-api"
+)
+val verifier = JwtVerifier(config)
+val claims = verifier.verify("eyJ...")
+
+val evaluator = PolicyEvaluator()
+val result = evaluator.evaluate(PolicyRequest(
+    subject = PolicySubject("user123", roles = listOf("admin")),
+    action = Action("user", "delete"),
+    resource = ResourceContext.default()
+))
+```
+
 ## Features
 
 ```toml

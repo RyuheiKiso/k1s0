@@ -58,6 +58,70 @@ let options = CallOptions::new()
     .with_request_id(&ctx.request_id);
 ```
 
+#### Go
+
+```go
+import "github.com/k1s0/framework/backend/go/k1s0-grpc-client"
+
+client, err := grpcclient.NewBuilder("my-service").
+    TargetService("auth-service").
+    Config(grpcclient.Config{
+        TimeoutMs:        5000,
+        ConnectTimeoutMs: 2000,
+        Retry:            grpcclient.RetryDisabled(),
+    }).
+    Build()
+```
+
+#### C#
+
+```csharp
+using K1s0.Grpc.Client;
+
+var client = new GrpcClientBuilder("my-service")
+    .TargetService("auth-service")
+    .Config(new GrpcClientConfig
+    {
+        TimeoutMs = 5000,
+        ConnectTimeoutMs = 2000,
+        Retry = RetryConfig.Disabled()
+    })
+    .Build();
+```
+
+#### Python
+
+```python
+from k1s0_grpc_client import GrpcClientBuilder, GrpcClientConfig, RetryConfig
+
+client = (
+    GrpcClientBuilder("my-service")
+    .target_service("auth-service")
+    .config(GrpcClientConfig(
+        timeout_ms=5000,
+        connect_timeout_ms=2000,
+        retry=RetryConfig.disabled(),
+    ))
+    .build()
+)
+```
+
+#### Kotlin
+
+```kotlin
+import com.k1s0.grpc.client.GrpcClientBuilder
+import com.k1s0.grpc.client.GrpcClientConfig
+
+val client = GrpcClientBuilder("my-service")
+    .targetService("auth-service")
+    .config(GrpcClientConfig(
+        timeoutMs = 5000,
+        connectTimeoutMs = 2000,
+        retry = RetryConfig.disabled()
+    ))
+    .build()
+```
+
 ### タイムアウトポリシー
 
 | 設定 | 最小値 | 最大値 | デフォルト |
@@ -115,6 +179,24 @@ sequenceDiagram
     Client->>Target: gRPC Call
     Target-->>Client: Response
 ```
+
+#### Go
+
+```go
+discovery := grpcclient.NewServiceDiscovery().
+    DefaultNamespace("production").
+    ClusterDomain("svc.cluster.local").
+    DefaultPort(50051)
+
+client, _ := grpcclient.NewBuilder("my-service").
+    TargetService("auth-service").
+    Discovery(discovery).
+    Build()
+```
+
+#### C# / Python / Kotlin
+
+各言語でも同様の `ServiceDiscoveryConfig` を使用する。API は Rust/Go と同一の設計思想に基づく。
 
 ### 明示的エンドポイント指定
 
@@ -383,6 +465,68 @@ let bulkhead = Bulkhead::new(
 let result = bulkhead.execute("auth-service", async {
     auth_client.verify_token(token).await
 }).await?;
+```
+
+### 他言語でのレジリエンスパターン
+
+#### Go
+
+```go
+import "github.com/k1s0/framework/backend/go/k1s0-resilience"
+
+cb := resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
+    FailureThreshold: 5,
+    SuccessThreshold: 3,
+    ResetTimeoutSecs: 30,
+})
+
+result, err := cb.Execute(ctx, func(ctx context.Context) (interface{}, error) {
+    return client.Call(ctx, request)
+})
+```
+
+#### C#
+
+```csharp
+using K1s0.Resilience;
+
+var cb = new CircuitBreaker(new CircuitBreakerConfig
+{
+    FailureThreshold = 5,
+    SuccessThreshold = 3,
+    ResetTimeoutSecs = 30
+});
+
+var result = await cb.ExecuteAsync(() => client.CallAsync(request));
+```
+
+#### Python
+
+```python
+from k1s0_resilience import CircuitBreaker, CircuitBreakerConfig
+
+cb = CircuitBreaker(CircuitBreakerConfig(
+    failure_threshold=5,
+    success_threshold=3,
+    reset_timeout_secs=30,
+))
+
+result = await cb.execute(lambda: client.call(request))
+```
+
+#### Kotlin
+
+```kotlin
+import com.k1s0.resilience.CircuitBreaker
+import com.k1s0.resilience.CircuitBreakerConfig
+
+val cb = CircuitBreaker(CircuitBreakerConfig(
+    failureThreshold = 5,
+    successThreshold = 3,
+    resetTimeoutSecs = 30
+))
+
+val result = cb.execute { client.call(request) }
 ```
 
 ## 契約管理

@@ -108,6 +108,188 @@ bus.publish(envelope).await.unwrap();
 | `EventSubscriber` | 購読インターフェース |
 | `EventHandler` | ハンドラインターフェース |
 
+## C# 版（K1s0.DomainEvent）
+
+### 主要な型
+
+```csharp
+// イベント基底インターフェース
+public interface IDomainEvent
+{
+    string EventType { get; }
+    string? AggregateId { get; }
+}
+
+// イベントエンベロープ
+public record EventEnvelope(
+    string EventId, string EventType, string Source,
+    DateTime Timestamp, string? AggregateId, string Payload);
+
+public static class EventEnvelopeFactory
+{
+    public static EventEnvelope FromEvent<T>(T @event, string source) where T : IDomainEvent;
+}
+
+// 発行・購読インターフェース
+public interface IEventPublisher
+{
+    Task PublishAsync(EventEnvelope envelope);
+}
+
+public interface IEventSubscriber
+{
+    Task SubscribeAsync(string eventType, IEventHandler handler);
+}
+
+public interface IEventHandler
+{
+    Task HandleAsync(EventEnvelope envelope);
+}
+
+// インメモリバス
+public class InMemoryEventBus : IEventPublisher, IEventSubscriber { }
+```
+
+### 使用例
+
+```csharp
+using K1s0.DomainEvent;
+
+public record OrderCreated(string OrderId) : IDomainEvent
+{
+    public string EventType => "order.created";
+    public string? AggregateId => OrderId;
+}
+
+var bus = new InMemoryEventBus();
+var envelope = EventEnvelopeFactory.FromEvent(new OrderCreated("ord-123"), "order-service");
+await bus.PublishAsync(envelope);
+```
+
+## Python 版（k1s0-domain-event）
+
+### 主要な型
+
+```python
+from abc import ABC, abstractmethod
+
+class DomainEvent(ABC):
+    @property
+    @abstractmethod
+    def event_type(self) -> str: ...
+    @property
+    def aggregate_id(self) -> str | None:
+        return None
+
+@dataclass
+class EventEnvelope:
+    event_id: str
+    event_type: str
+    source: str
+    timestamp: datetime
+    aggregate_id: str | None
+    payload: str
+
+    @classmethod
+    def from_event(cls, event: DomainEvent, source: str) -> "EventEnvelope": ...
+
+class EventPublisher(ABC):
+    @abstractmethod
+    async def publish(self, envelope: EventEnvelope) -> None: ...
+
+class EventSubscriber(ABC):
+    @abstractmethod
+    async def subscribe(self, event_type: str, handler: "EventHandler") -> None: ...
+
+class EventHandler(ABC):
+    @abstractmethod
+    async def handle(self, envelope: EventEnvelope) -> None: ...
+
+class InMemoryEventBus(EventPublisher, EventSubscriber): ...
+```
+
+### 使用例
+
+```python
+from k1s0_domain_event import DomainEvent, EventEnvelope, InMemoryEventBus
+
+class OrderCreated(DomainEvent):
+    def __init__(self, order_id: str):
+        self.order_id = order_id
+
+    @property
+    def event_type(self) -> str:
+        return "order.created"
+
+    @property
+    def aggregate_id(self) -> str | None:
+        return self.order_id
+
+bus = InMemoryEventBus()
+event = OrderCreated("ord-123")
+envelope = EventEnvelope.from_event(event, "order-service")
+await bus.publish(envelope)
+```
+
+## Kotlin 版（k1s0-domain-event）
+
+### 主要な型
+
+```kotlin
+// イベント基底インターフェース
+interface DomainEvent {
+    val eventType: String
+    val aggregateId: String?
+        get() = null
+}
+
+// イベントエンベロープ
+data class EventEnvelope(
+    val eventId: String,
+    val eventType: String,
+    val source: String,
+    val timestamp: Instant,
+    val aggregateId: String?,
+    val payload: String
+) {
+    companion object {
+        fun fromEvent(event: DomainEvent, source: String): EventEnvelope
+    }
+}
+
+// 発行・購読インターフェース
+interface EventPublisher {
+    suspend fun publish(envelope: EventEnvelope)
+}
+
+interface EventSubscriber {
+    suspend fun subscribe(eventType: String, handler: EventHandler)
+}
+
+interface EventHandler {
+    suspend fun handle(envelope: EventEnvelope)
+}
+
+// インメモリバス
+class InMemoryEventBus : EventPublisher, EventSubscriber
+```
+
+### 使用例
+
+```kotlin
+import com.k1s0.domainevent.*
+
+data class OrderCreated(val orderId: String) : DomainEvent {
+    override val eventType: String = "order.created"
+    override val aggregateId: String = orderId
+}
+
+val bus = InMemoryEventBus()
+val event = OrderCreated("ord-123")
+val envelope = EventEnvelope.fromEvent(event, "order-service")
+bus.publish(envelope)
+```
+
 ## Outbox パターン
 
 ### SQL スキーマ

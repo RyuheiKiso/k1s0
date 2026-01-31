@@ -63,7 +63,7 @@ pub struct PricingService { ... }       // 価格計算
 pub struct AllocationService { ... }    // 在庫引当
 ```
 
-### 2.4 リポジトリインターフェース（Repository Traits）
+### 2.4 リポジトリインターフェース（Repository Traits/Interfaces）
 
 **含める条件**:
 - エンティティの永続化抽象化として共有
@@ -71,10 +71,45 @@ pub struct AllocationService { ... }    // 在庫引当
 
 **例**:
 ```rust
+// Rust
 #[async_trait]
 pub trait WorkOrderRepository: Send + Sync {
     async fn find_by_id(&self, id: &WorkOrderId) -> Result<Option<WorkOrder>, DomainError>;
     async fn save(&self, work_order: &WorkOrder) -> Result<(), DomainError>;
+}
+```
+
+```go
+// Go
+type WorkOrderRepository interface {
+    FindByID(ctx context.Context, id WorkOrderID) (*WorkOrder, error)
+    Save(ctx context.Context, wo *WorkOrder) error
+}
+```
+
+```csharp
+// C#
+public interface IWorkOrderRepository
+{
+    Task<WorkOrder?> FindByIdAsync(WorkOrderId id, CancellationToken ct = default);
+    Task SaveAsync(WorkOrder workOrder, CancellationToken ct = default);
+}
+```
+
+```python
+# Python
+class WorkOrderRepository(ABC):
+    @abstractmethod
+    async def find_by_id(self, id: WorkOrderId) -> WorkOrder | None: ...
+    @abstractmethod
+    async def save(self, work_order: WorkOrder) -> None: ...
+```
+
+```kotlin
+// Kotlin
+interface WorkOrderRepository {
+    suspend fun findById(id: WorkOrderId): WorkOrder?
+    suspend fun save(workOrder: WorkOrder)
 }
 ```
 

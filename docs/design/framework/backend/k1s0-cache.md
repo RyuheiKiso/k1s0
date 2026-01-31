@@ -367,6 +367,146 @@ func (w *WriteBehind[T]) Stats() WriteBehindStats
 func (w *WriteBehind[T]) Shutdown(ctx context.Context) error
 ```
 
+## C# 版（K1s0.Cache）
+
+StackExchange.Redis ベースのキャッシュライブラリ。
+
+### 主要な型
+
+```csharp
+public class CacheConfig
+{
+    public string Host { get; set; } = "localhost";
+    public int Port { get; set; } = 6379;
+    public string KeyPrefix { get; set; } = "";
+    public TimeSpan? DefaultTtl { get; set; }
+    public static CacheConfigBuilder Builder();
+}
+
+public interface ICacheOperations
+{
+    Task<T?> GetAsync<T>(string key);
+    Task SetAsync<T>(string key, T value, TimeSpan? ttl = null);
+    Task<bool> DeleteAsync(string key);
+    Task<bool> ExistsAsync(string key);
+    Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, TimeSpan? ttl = null);
+    Task<long> DeletePatternAsync(string pattern);
+}
+
+public class CacheClient : ICacheOperations
+{
+    public CacheClient(CacheConfig config);
+}
+```
+
+### 使用例
+
+```csharp
+using K1s0.Cache;
+
+var config = CacheConfig.Builder()
+    .Host("localhost").Port(6379).KeyPrefix("myapp").Build();
+var client = new CacheClient(config);
+
+await client.SetAsync("user:123", user, TimeSpan.FromHours(1));
+var user = await client.GetAsync<User>("user:123");
+var user = await client.GetOrSetAsync("user:123",
+    () => db.FindUserAsync("123"), TimeSpan.FromHours(1));
+```
+
+## Python 版（k1s0-cache）
+
+### 主要な型
+
+```python
+@dataclass
+class CacheConfig:
+    host: str = "localhost"
+    port: int = 6379
+    key_prefix: str = ""
+    default_ttl: timedelta | None = None
+
+class CacheOperations(ABC):
+    @abstractmethod
+    async def get(self, key: str, model: type[T]) -> T | None: ...
+    @abstractmethod
+    async def set(self, key: str, value: Any, ttl: timedelta | None = None) -> None: ...
+    @abstractmethod
+    async def delete(self, key: str) -> bool: ...
+    @abstractmethod
+    async def exists(self, key: str) -> bool: ...
+    @abstractmethod
+    async def get_or_set(self, key: str, factory: Callable, ttl: timedelta | None = None) -> Any: ...
+    @abstractmethod
+    async def delete_pattern(self, pattern: str) -> int: ...
+
+class CacheClient(CacheOperations):
+    def __init__(self, config: CacheConfig) -> None: ...
+```
+
+### 使用例
+
+```python
+from k1s0_cache import CacheClient, CacheConfig
+from datetime import timedelta
+
+config = CacheConfig(host="localhost", port=6379, key_prefix="myapp")
+client = CacheClient(config)
+
+await client.set("user:123", user, ttl=timedelta(hours=1))
+user = await client.get("user:123", User)
+user = await client.get_or_set("user:123",
+    lambda: db.find_user("123"), ttl=timedelta(hours=1))
+```
+
+## Kotlin 版（k1s0-cache）
+
+Lettuce ベースのキャッシュライブラリ。
+
+### 主要な型
+
+```kotlin
+data class CacheConfig(
+    val host: String = "localhost",
+    val port: Int = 6379,
+    val keyPrefix: String = "",
+    val defaultTtl: Duration? = null
+) {
+    class Builder {
+        fun host(host: String): Builder
+        fun port(port: Int): Builder
+        fun keyPrefix(prefix: String): Builder
+        fun build(): CacheConfig
+    }
+}
+
+interface CacheOperations {
+    suspend fun <T> get(key: String, type: KClass<T>): T?
+    suspend fun <T : Any> set(key: String, value: T, ttl: Duration? = null)
+    suspend fun delete(key: String): Boolean
+    suspend fun exists(key: String): Boolean
+    suspend fun <T : Any> getOrSet(key: String, ttl: Duration? = null, factory: suspend () -> T): T
+    suspend fun deletePattern(pattern: String): Long
+}
+
+class CacheClient(config: CacheConfig) : CacheOperations
+```
+
+### 使用例
+
+```kotlin
+import com.k1s0.cache.*
+import kotlin.time.Duration.Companion.hours
+
+val config = CacheConfig.Builder()
+    .host("localhost").port(6379).keyPrefix("myapp").build()
+val client = CacheClient(config)
+
+client.set("user:123", user, ttl = 1.hours)
+val user = client.get("user:123", User::class)
+val user = client.getOrSet("user:123", ttl = 1.hours) { db.findUser("123") }
+```
+
 ## キャッシュパターン使い分け
 
 | パターン | 一貫性 | 書き込み性能 | 読み取り性能 | 適用場面 |

@@ -341,6 +341,74 @@ kubectl get endpoints {service_name}
 kubectl run -it --rm debug --image=busybox --restart=Never -- nslookup {service_name}
 ```
 
+## 6. k1s0 Docker / Playground のトラブルシューティング
+
+### 6.1 Docker コマンドの問題
+
+#### k1s0 docker build が失敗する
+
+```bash
+# コンテナ状態を確認
+k1s0 docker status
+k1s0 docker status --json
+
+# キャッシュを無効にして再ビルド
+k1s0 docker build --no-cache
+
+# プロキシ環境の場合
+k1s0 docker build --http-proxy http://proxy:8080
+```
+
+| 原因 | 対処 |
+|------|------|
+| Dockerfile の構文エラー | Dockerfile を確認（K060 ルールも参照） |
+| ベースイメージ取得失敗 | ネットワーク接続・プロキシ設定を確認 |
+| ディスク容量不足 | `docker system prune` で不要イメージを削除 |
+
+#### k1s0 docker compose up が失敗する
+
+```bash
+# ログを確認
+k1s0 docker compose logs -f
+k1s0 docker compose logs {service_name}
+
+# サービスを停止してボリュームごと削除し再起動
+k1s0 docker compose down -v
+k1s0 docker compose up -d --build
+```
+
+### 6.2 Playground コマンドの問題
+
+#### playground が起動しない
+
+```bash
+# 利用可能なテンプレートを確認
+k1s0 playground list
+
+# 実行中の playground を確認
+k1s0 playground status
+k1s0 playground status --json
+
+# 起動（オプション指定例）
+k1s0 playground start --type backend-rust --mode full --with-db --with-cache
+```
+
+| 原因 | 対処 |
+|------|------|
+| ポート競合 | `--port-offset` で別ポートを指定 |
+| 既存 playground が残っている | `k1s0 playground stop --name {name} -v` で削除後に再起動 |
+| Docker デーモン未起動 | Docker Desktop / dockerd を起動 |
+
+#### playground の停止・削除
+
+```bash
+# 特定の playground を停止
+k1s0 playground stop --name {name}
+
+# ボリュームも含めて削除（確認スキップ）
+k1s0 playground stop --name {name} -v -y
+```
+
 ## 関連ドキュメント
 
 - [モニタリング・アラート](monitoring.md)

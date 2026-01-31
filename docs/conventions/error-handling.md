@@ -24,6 +24,55 @@ pub enum DomainError {
 }
 ```
 
+```go
+// 例: Go
+type DomainError struct {
+    Code    string
+    Message string
+}
+
+var (
+    ErrUserNotFound          = &DomainError{Code: "user.not_found", Message: "User not found"}
+    ErrEmailAlreadyExists    = &DomainError{Code: "user.already_exists", Message: "Email already exists"}
+)
+```
+
+```csharp
+// 例: C#
+public abstract class DomainException : Exception
+{
+    public string ErrorCode { get; }
+    protected DomainException(string errorCode, string message) : base(message)
+        => ErrorCode = errorCode;
+}
+
+public class UserNotFoundException : DomainException
+{
+    public UserNotFoundException(string userId)
+        : base("user.not_found", $"User {userId} was not found") { }
+}
+```
+
+```python
+# 例: Python
+class DomainError(Exception):
+    def __init__(self, error_code: str, message: str):
+        self.error_code = error_code
+        super().__init__(message)
+
+class UserNotFoundError(DomainError):
+    def __init__(self, user_id: str):
+        super().__init__("user.not_found", f"User {user_id} was not found")
+```
+
+```kotlin
+// 例: Kotlin
+sealed class DomainError(val errorCode: String, override val message: String) : Exception(message) {
+    class UserNotFound(userId: String) : DomainError("user.not_found", "User $userId was not found")
+    class EmailAlreadyExists(email: String) : DomainError("user.already_exists", "Email $email already exists")
+}
+```
+
 ### 2.2 application 層
 
 - domain エラーと外部 I/O エラーを受け取る
@@ -38,6 +87,47 @@ pub struct ApplicationError {
     pub message: String,
     pub source: Option<Box<dyn std::error::Error>>,
 }
+```
+
+```go
+// 例: Go
+type ApplicationError struct {
+    ErrorCode string
+    Kind      ErrorKind
+    Message   string
+    Cause     error
+}
+```
+
+```csharp
+// 例: C#
+public class ApplicationException : Exception
+{
+    public string ErrorCode { get; }
+    public ErrorKind Kind { get; }
+    public ApplicationException(string errorCode, ErrorKind kind, string message, Exception? inner = null)
+        : base(message, inner) { ErrorCode = errorCode; Kind = kind; }
+}
+```
+
+```python
+# 例: Python
+@dataclass
+class ApplicationError(Exception):
+    error_code: str
+    kind: ErrorKind
+    message: str
+    cause: Exception | None = None
+```
+
+```kotlin
+// 例: Kotlin
+data class ApplicationError(
+    val errorCode: String,
+    val kind: ErrorKind,
+    override val message: String,
+    override val cause: Throwable? = null,
+) : Exception(message, cause)
 ```
 
 ### 2.3 presentation 層

@@ -93,6 +93,118 @@ src/
     └── hooks/           # カスタムフック
 ```
 
+### バックエンド（Go）
+
+```
+cmd/
+├── server/
+│   └── main.go           # エントリポイント
+│
+internal/
+├── domain/              # Domain Layer
+│   ├── entities/        # エンティティ
+│   ├── valueobjects/    # 値オブジェクト
+│   ├── repositories/    # リポジトリインターフェース（ポート）
+│   ├── services/        # ドメインサービス
+│   └── errors.go        # ドメインエラー
+│
+├── application/         # Application Layer
+│   ├── usecases/        # ユースケース
+│   ├── services/        # アプリケーションサービス
+│   └── dtos/            # Data Transfer Objects
+│
+├── infrastructure/      # Infrastructure Layer
+│   ├── repositories/    # リポジトリ実装
+│   ├── external/        # 外部サービスクライアント
+│   └── persistence/     # DB 関連
+│
+└── presentation/        # Presentation Layer
+    ├── grpc/            # gRPC ハンドラ
+    ├── rest/            # REST ハンドラ
+    └── middleware/      # ミドルウェア
+```
+
+### バックエンド（C#）
+
+```
+src/
+├── {Name}.Domain/              # Domain Layer
+│   ├── Entities/               # エンティティ
+│   ├── ValueObjects/           # 値オブジェクト
+│   ├── Repositories/           # リポジトリインターフェース（ポート）
+│   ├── Services/               # ドメインサービス
+│   └── Errors/                 # ドメインエラー
+│
+├── {Name}.Application/         # Application Layer
+│   ├── UseCases/               # ユースケース
+│   ├── Services/               # アプリケーションサービス
+│   └── Dtos/                   # Data Transfer Objects
+│
+├── {Name}.Infrastructure/      # Infrastructure Layer
+│   ├── Repositories/           # リポジトリ実装
+│   ├── External/               # 外部サービスクライアント
+│   └── Persistence/            # DB 関連 (EF Core)
+│
+└── {Name}.Presentation/        # Presentation Layer
+    ├── Grpc/                   # gRPC ハンドラ
+    ├── Controllers/            # REST コントローラ
+    └── Middleware/             # ミドルウェア
+```
+
+### バックエンド（Python）
+
+```
+src/{feature_name_snake}/
+├── domain/              # Domain Layer
+│   ├── entities/        # エンティティ
+│   ├── value_objects/   # 値オブジェクト
+│   ├── repositories/    # リポジトリ抽象クラス（ポート）
+│   ├── services/        # ドメインサービス
+│   └── errors.py        # ドメインエラー
+│
+├── application/         # Application Layer
+│   ├── usecases/        # ユースケース
+│   ├── services/        # アプリケーションサービス
+│   └── dtos/            # Data Transfer Objects
+│
+├── infrastructure/      # Infrastructure Layer
+│   ├── repositories/    # リポジトリ実装
+│   ├── external/        # 外部サービスクライアント
+│   └── persistence/     # DB 関連 (SQLAlchemy)
+│
+└── presentation/        # Presentation Layer
+    ├── grpc/            # gRPC サービス
+    ├── rest/            # FastAPI ルーター
+    └── middleware/      # ミドルウェア
+```
+
+### バックエンド（Kotlin）
+
+```
+src/main/kotlin/{package}/
+├── domain/              # Domain Layer
+│   ├── entities/        # エンティティ
+│   ├── valueobjects/    # 値オブジェクト
+│   ├── repositories/    # リポジトリインターフェース（ポート）
+│   ├── services/        # ドメインサービス
+│   └── errors/          # ドメインエラー
+│
+├── application/         # Application Layer
+│   ├── usecases/        # ユースケース
+│   ├── services/        # アプリケーションサービス
+│   └── dtos/            # Data Transfer Objects
+│
+├── infrastructure/      # Infrastructure Layer
+│   ├── repositories/    # リポジトリ実装 (Exposed)
+│   ├── external/        # 外部サービスクライアント
+│   └── persistence/     # DB 関連 (HikariCP)
+│
+└── presentation/        # Presentation Layer
+    ├── grpc/            # gRPC サービス (grpc-kotlin)
+    ├── rest/            # Ktor ルート
+    └── middleware/      # ミドルウェア
+```
+
 ### フロントエンド（Flutter）
 
 ```
@@ -113,6 +225,32 @@ lib/src/
     ├── pages/           # ページウィジェット
     ├── widgets/         # UI ウィジェット
     └── controllers/     # コントローラ
+```
+
+### フロントエンド（Android）
+
+```
+app/src/main/kotlin/{package}/
+├── domain/              # Domain Layer
+│   ├── entities/        # エンティティ
+│   ├── valueobjects/    # 値オブジェクト
+│   ├── repositories/    # リポジトリインターフェース（ポート）
+│   └── services/        # ドメインサービス
+│
+├── application/         # Application Layer
+│   ├── usecases/        # ユースケース
+│   ├── viewmodels/      # ViewModel (StateFlow)
+│   └── dtos/            # Data Transfer Objects
+│
+├── infrastructure/      # Infrastructure Layer
+│   ├── repositories/    # リポジトリ実装
+│   ├── api/             # API クライアント (Ktor Client)
+│   └── persistence/     # ローカル DB (Room)
+│
+└── presentation/        # Presentation Layer
+    ├── screens/         # Composable スクリーン
+    ├── components/      # UI コンポーネント (Material 3)
+    └── theme/           # テーマ定義
 ```
 
 ## Domain Layer

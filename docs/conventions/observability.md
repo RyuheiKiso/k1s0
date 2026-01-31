@@ -170,6 +170,20 @@ grpc.health.v1.Health/Check
 3. **観測**
    - 起動後に少なくとも 1 件のトレース/メトリクスが Collector に到達
 
+## 8. Kotlin/Android 固有の観測性
+
+### 8.1 Kotlin バックエンド
+
+- OpenTelemetry Java SDK（`opentelemetry-kotlin`）を使用
+- Ktor プラグインとしてトレース/メトリクスを自動収集
+- `k1s0-observability`（Kotlin）が Koin モジュールとして提供
+
+### 8.2 Android フロントエンド
+
+- `k1s0-observability`（Android）が ViewModel/Composable のライフサイクルに沿ったスパンを提供
+- ネットワーク通信（Ktor Client）のトレースは OkHttp インターセプタ経由で自動収集
+- クラッシュレポートは観測性パイプラインとは分離し、別途管理する
+
 ## 関連ドキュメント
 
 - [エラー規約](error-handling.md)

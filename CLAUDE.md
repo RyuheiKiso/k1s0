@@ -9,7 +9,7 @@ This document provides comprehensive guidance for AI assistants working with the
 ### Core Features
 
 - **Service scaffold generation**: Templates generate consistent directory structures
-- **Development convention enforcement**: 11 lint rules detect violations with some auto-fix
+- **Development convention enforcement**: 24 lint rules detect violations with some auto-fix
 - **Safe template upgrades**: Managed/protected area separation prevents breaking changes
 
 ### Philosophy
@@ -65,7 +65,7 @@ k1s0/
 │   │   ├── k1s0-cli/            # Main CLI executable (clap-based)
 │   │   ├── k1s0-generator/      # Template engine & Lint engine
 │   │   └── k1s0-lsp/            # LSP server (completions, hover)
-│   ├── templates/               # 5 service templates
+│   ├── templates/               # 8 service templates
 │   │   ├── backend-rust/        # Rust backend scaffold
 │   │   ├── backend-go/          # Go backend scaffold
 │   │   ├── backend-csharp/      # C# backend scaffold
@@ -79,14 +79,14 @@ k1s0/
 ├── framework/                    # Shared libraries & services (Layer 1)
 │   ├── backend/
 │   │   ├── rust/
-│   │   │   ├── crates/          # 11 shared Rust crates
+│   │   │   ├── crates/          # 12 shared Rust crates
 │   │   │   └── services/        # Common microservices (auth, config, endpoint)
 │   │   ├── go/
 │   │   ├── csharp/              # C# NuGet packages
 │   │   ├── python/              # Python packages (uv)
 │   │   └── kotlin/              # Kotlin packages (Gradle)
 │   └── frontend/
-│       ├── react/packages/      # 8 React packages
+│       ├── react/packages/      # 10 React packages
 │       ├── flutter/packages/    # Flutter packages
 │       └── android/packages/    # Android packages
 │
@@ -126,7 +126,7 @@ k1s0/
 │
 ├── scripts/                     # Build & verification scripts
 ├── work/                        # Draft documents
-└── .github/workflows/           # 12 CI/CD workflows
+└── .github/workflows/           # 16 CI/CD workflows
 ```
 
 ## Build & Development Commands
@@ -351,7 +351,7 @@ k1s0 new-feature --type backend-rust
 --json             # JSON format output
 ```
 
-## Lint Rules (K001-K047)
+## Lint Rules (K001-K060)
 
 ### Manifest & Structure Rules (K001-K011)
 
@@ -671,6 +671,25 @@ app/src/main/kotlin/{package}/
 | eslint-config-k1s0 | ESLint rules |
 | tsconfig-k1s0 | Shared TypeScript config |
 
+## Framework Packages (Go Backend)
+
+| Package | Description | Tier |
+|---------|-------------|------|
+| k1s0-error | Unified error handling | 1 |
+| k1s0-config | Config file management | 1 |
+| k1s0-validation | Input validation | 1 |
+| k1s0-observability | Logging/tracing/metrics (OpenTelemetry) | 2 |
+| k1s0-grpc-server | gRPC server foundation | 2 |
+| k1s0-grpc-client | gRPC client utilities | 2 |
+| k1s0-resilience | Retry/circuit breaker patterns | 2 |
+| k1s0-health | Health check probes | 2 |
+| k1s0-db | Database connection/transaction | 2 |
+| k1s0-cache | Redis caching | 2 |
+| k1s0-domain-event | Domain event publish/subscribe/outbox | 2 |
+| k1s0-auth | Authentication/authorization | 3 |
+
+**Tier dependency rules:** Same as Rust -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only, Tier 3 can depend on Tier 1 and 2.
+
 ## Framework Packages (Python Backend)
 
 | Package | Description | Tier |
@@ -770,7 +789,7 @@ app/src/main/kotlin/{package}/
 | buf.yml | Push to main, proto changes | Lint -> Breaking changes check -> Format check |
 | openapi.yml | Push to main, OpenAPI changes | Spectral linting |
 | generation.yml | Push to main, contract changes | Fingerprint verification |
-| docker.yml | Push to main/develop, Docker file changes | Docker build test (5 templates) |
+| docker.yml | Push to main/develop, Docker file changes | Docker build test (6 templates) |
 | release-cli.yml | Semantic version tag | Validate -> Multi-platform build -> GH Release |
 | release-crates.yml | Semantic version tag | Publish Rust crates to crates.io |
 | release-npm.yml | Semantic version tag | Publish Node packages to npm |
@@ -850,7 +869,7 @@ Use canonical codes only: `INVALID_ARGUMENT`, `UNAUTHENTICATED`, `PERMISSION_DEN
 |----------|------|-------------|
 | Main README | `README.md` | Project overview |
 | CLI Design | `docs/design/cli/` | CLI architecture |
-| Lint Design | `docs/design/lint/` | Lint rules detail (K001-K047) |
+| Lint Design | `docs/design/lint/` | Lint rules detail (K001-K060) |
 | Template Design | `docs/design/template/` | Template system |
 | Framework Design | `docs/design/framework.md` | Library design |
 | Domain Design | `docs/design/domain.md` | Domain layer design |

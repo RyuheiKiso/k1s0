@@ -4,7 +4,7 @@
 
 ## 1. 基本方針
 
-- **環境変数は使用しない**（アプリ実装での `std::env` / `os.Getenv` 等は禁止）
+- **環境変数は使用しない**（アプリ実装での `std::env` / `os.Getenv` / `Environment.GetEnvironmentVariable` / `os.environ` / `System.getenv` / `System.getProperty` / `ProcessBuilder` / `dotenv` / `BuildConfig.` / `Platform.environment` / `fromEnvironment` / `flutter_dotenv` 等は禁止）
 - framework 自身の設定は **YAML ファイル**で制御する
 - feature 固有の動的設定は **DB（`fw_m_setting`）** で管理する
 - 秘密情報は **ファイル参照**のみを保持し、値そのものを YAML/DB に置かない

@@ -401,3 +401,257 @@ let pool = DbPoolBuilder::new()
 let pagination = Pagination { page: 1, page_size: 20 };
 let result = repository.find_paginated(&pagination).await?;
 ```
+
+## Go 版（k1s0-db）
+
+### 主要な型
+
+```go
+// DbConfig はデータベース接続設定。
+type DbConfig struct {
+    Host         string
+    Port         int
+    Database     string
+    Username     string
+    PasswordFile string
+    SSLMode      string
+    Pool         PoolConfig
+}
+
+type PoolConfig struct {
+    MaxConnections  int // デフォルト: 10
+    MinConnections  int // デフォルト: 1
+    IdleTimeoutSecs int // デフォルト: 600
+}
+
+// Repository はリポジトリインターフェース。
+type Repository[T any, ID any] interface {
+    FindByID(ctx context.Context, id ID) (*T, error)
+    FindAll(ctx context.Context) ([]T, error)
+    Save(ctx context.Context, entity *T) (*T, error)
+    Delete(ctx context.Context, id ID) (bool, error)
+}
+
+// UnitOfWork はトランザクション管理。
+type UnitOfWork interface {
+    Begin(ctx context.Context) error
+    Commit(ctx context.Context) error
+    Rollback(ctx context.Context) error
+}
+
+// Pagination はページネーション。
+type Pagination struct {
+    Page     uint64
+    PageSize uint64
+}
+
+type PagedResult[T any] struct {
+    Data       []T
+    Total      uint64
+    Page       uint64
+    PageSize   uint64
+    TotalPages uint64
+}
+```
+
+### 使用例
+
+```go
+import k1s0db "github.com/k1s0/framework/backend/go/k1s0-db"
+
+config := k1s0db.DbConfig{
+    Host: "localhost", Database: "myapp", Username: "app_user",
+    PasswordFile: "/run/secrets/db_password",
+}
+pool, err := k1s0db.NewPool(config)
+
+pagination := k1s0db.Pagination{Page: 1, PageSize: 20}
+result, err := repo.FindPaginated(ctx, pagination)
+```
+
+## C# 版（K1s0.Db）
+
+EF Core ベースのデータベースライブラリ。
+
+### 主要な型
+
+```csharp
+public class DbConfig
+{
+    public string Host { get; set; }
+    public int Port { get; set; } = 5432;
+    public string Database { get; set; }
+    public string Username { get; set; }
+    public string? PasswordFile { get; set; }
+    public PoolConfig Pool { get; set; } = new();
+    public static DbConfigBuilder Builder();
+}
+
+public interface IRepository<T, TId> where T : class
+{
+    Task<T?> FindByIdAsync(TId id);
+    Task<List<T>> FindAllAsync();
+    Task<T> SaveAsync(T entity);
+    Task<bool> DeleteAsync(TId id);
+}
+
+public interface IPagedRepository<T, TId> : IRepository<T, TId> where T : class
+{
+    Task<PagedResult<T>> FindPaginatedAsync(Pagination pagination);
+}
+
+public interface IUnitOfWork
+{
+    Task BeginAsync();
+    Task CommitAsync();
+    Task RollbackAsync();
+}
+
+public record Pagination(ulong Page, ulong PageSize);
+public record PagedResult<T>(List<T> Data, ulong Total, ulong Page, ulong PageSize, ulong TotalPages);
+```
+
+### 使用例
+
+```csharp
+using K1s0.Db;
+
+var config = DbConfig.Builder()
+    .Host("localhost")
+    .Database("myapp")
+    .Username("app_user")
+    .PasswordFile("/run/secrets/db_password")
+    .Build();
+
+var pagination = new Pagination(1, 20);
+var result = await repository.FindPaginatedAsync(pagination);
+```
+
+## Python 版（k1s0-db）
+
+SQLAlchemy + asyncpg ベースのデータベースライブラリ。
+
+### 主要な型
+
+```python
+@dataclass
+class DbConfig:
+    host: str
+    port: int = 5432
+    database: str = ""
+    username: str = ""
+    password_file: str | None = None
+    pool: PoolConfig = field(default_factory=PoolConfig)
+
+class Repository(ABC, Generic[T, ID]):
+    @abstractmethod
+    async def find_by_id(self, id: ID) -> T | None: ...
+    @abstractmethod
+    async def find_all(self) -> list[T]: ...
+    @abstractmethod
+    async def save(self, entity: T) -> T: ...
+    @abstractmethod
+    async def delete(self, id: ID) -> bool: ...
+
+class PagedRepository(Repository[T, ID], ABC):
+    @abstractmethod
+    async def find_paginated(self, pagination: Pagination) -> PagedResult[T]: ...
+
+class UnitOfWork(ABC):
+    @abstractmethod
+    async def begin(self) -> None: ...
+    @abstractmethod
+    async def commit(self) -> None: ...
+    @abstractmethod
+    async def rollback(self) -> None: ...
+
+@dataclass
+class Pagination:
+    page: int
+    page_size: int
+
+@dataclass
+class PagedResult(Generic[T]):
+    data: list[T]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+```
+
+### 使用例
+
+```python
+from k1s0_db import DbConfig, Pagination
+
+config = DbConfig(host="localhost", database="myapp", username="app_user",
+                  password_file="/run/secrets/db_password")
+pool = await create_pool(config)
+
+pagination = Pagination(page=1, page_size=20)
+result = await repo.find_paginated(pagination)
+```
+
+## Kotlin 版（k1s0-db）
+
+Exposed + HikariCP ベースのデータベースライブラリ。
+
+### 主要な型
+
+```kotlin
+data class DbConfig(
+    val host: String,
+    val port: Int = 5432,
+    val database: String,
+    val username: String,
+    val passwordFile: String? = null,
+    val pool: PoolConfig = PoolConfig()
+) {
+    class Builder {
+        fun host(host: String): Builder
+        fun database(database: String): Builder
+        fun username(username: String): Builder
+        fun passwordFile(path: String): Builder
+        fun build(): DbConfig
+    }
+}
+
+interface Repository<T, ID> {
+    suspend fun findById(id: ID): T?
+    suspend fun findAll(): List<T>
+    suspend fun save(entity: T): T
+    suspend fun delete(id: ID): Boolean
+}
+
+interface PagedRepository<T, ID> : Repository<T, ID> {
+    suspend fun findPaginated(pagination: Pagination): PagedResult<T>
+}
+
+interface UnitOfWork {
+    suspend fun begin()
+    suspend fun commit()
+    suspend fun rollback()
+}
+
+data class Pagination(val page: Long, val pageSize: Long)
+data class PagedResult<T>(
+    val data: List<T>, val total: Long,
+    val page: Long, val pageSize: Long, val totalPages: Long
+)
+```
+
+### 使用例
+
+```kotlin
+import com.k1s0.db.*
+
+val config = DbConfig.Builder()
+    .host("localhost")
+    .database("myapp")
+    .username("app_user")
+    .passwordFile("/run/secrets/db_password")
+    .build()
+
+val pool = createPool(config)
+val result = repo.findPaginated(Pagination(page = 1, pageSize = 20))
+```

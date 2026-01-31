@@ -116,8 +116,10 @@ pub struct NewFeatureArgs {
 | `backend-go` | `CLI/templates/backend-go/feature` | `feature/backend/go/{name}` | go |
 | `backend-csharp` | `CLI/templates/backend-csharp/feature` | `feature/backend/csharp/{name}` | csharp |
 | `backend-python` | `CLI/templates/backend-python/feature` | `feature/backend/python/{name}` | python |
+| `backend-kotlin` | `CLI/templates/backend-kotlin/feature` | `feature/backend/kotlin/{name}` | kotlin |
 | `frontend-react` | `CLI/templates/frontend-react/feature` | `feature/frontend/react/{name}` | typescript |
 | `frontend-flutter` | `CLI/templates/frontend-flutter/feature` | `feature/frontend/flutter/{name}` | dart |
+| `frontend-android` | `CLI/templates/frontend-android/feature` | `feature/frontend/android/{name}` | kotlin |
 
 ### 処理フロー
 
@@ -223,6 +225,7 @@ pub struct NewScreenArgs {
 |--------|----------------|-------------|
 | `react` | `CLI/templates/frontend-react/screen` | `src/pages/{ComponentName}.tsx` |
 | `flutter` | `CLI/templates/frontend-flutter/screen` | `lib/src/presentation/pages/{snake_case}_page.dart` |
+| `android` | `CLI/templates/frontend-android/screen` | `app/src/main/kotlin/{package}/presentation/screens/{PascalCase}Screen.kt` |
 
 ### 処理フロー
 
