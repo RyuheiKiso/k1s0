@@ -98,7 +98,8 @@
       "Bash(git -C C:/work/github/k1s0 log --oneline -30)",
       "Bash(git -C C:/work/github/k1s0 log --oneline --since=\"2026-01-01\")",
       "Bash(git -C C:/work/github/k1s0 shortlog -sn --since=\"2026-01-01\")",
-      "Bash(git -C C:/work/github/k1s0 log --oneline --all --diff-filter=A --name-only --since=\"2026-01-25\")"
+      "Bash(git -C C:/work/github/k1s0 log --oneline --all --diff-filter=A --name-only --since=\"2026-01-25\")",
+      "Bash(cargo metadata:*)"
     ]
   }
 }
