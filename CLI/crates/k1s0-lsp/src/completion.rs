@@ -2,7 +2,9 @@
 //!
 //! カーソル位置に応じた補完候補を提供する。
 
-use tower_lsp::lsp_types::{CompletionItem, Position};
+use std::path::PathBuf;
+
+use tower_lsp::lsp_types::{CompletionItem, CompletionItemKind, Position};
 
 use crate::schema::ManifestSchema;
 
@@ -271,6 +273,7 @@ pub fn get_completions(
     document: &str,
     position: Position,
     schema: &ManifestSchema,
+    workspace_root: Option<&PathBuf>,
 ) -> Vec<CompletionItem> {
     let context = analyze_context(document, position);
 
@@ -282,18 +285,34 @@ pub fn get_completions(
                 .map(|key| schema.key_to_completion_item(key, true))
                 .collect()
         }
-        JsonContext::ObjectKey { path } => {
+        JsonContext::ObjectKey { ref path } => {
+            // dependencies.domain 配下のキー → ドメイン名を補完
+            let path_strs: Vec<&str> = path.iter().map(|s| s.as_str()).collect();
+            if path_strs == ["dependencies", "domain"] {
+                if let Some(items) = get_domain_completions(workspace_root) {
+                    if !items.is_empty() {
+                        return items;
+                    }
+                }
+            }
             // オブジェクト内のキー補完
-            let path_refs: Vec<&str> = path.iter().map(|s| s.as_str()).collect();
-            schema.get_child_keys(&path_refs)
+            schema.get_child_keys(&path_strs)
                 .iter()
                 .map(|key| schema.key_to_completion_item(key, true))
                 .collect()
         }
-        JsonContext::Value { path } => {
+        JsonContext::Value { ref path } => {
+            // "domain" キーの値 → ドメイン名を補完
+            let path_strs: Vec<&str> = path.iter().map(|s| s.as_str()).collect();
+            if path_strs == ["domain"] || path_strs.last() == Some(&"domain") {
+                if let Some(items) = get_domain_name_value_completions(workspace_root) {
+                    if !items.is_empty() {
+                        return items;
+                    }
+                }
+            }
             // 値の補完
-            let path_refs: Vec<&str> = path.iter().map(|s| s.as_str()).collect();
-            if let Some(key) = schema.find_key(&path_refs) {
+            if let Some(key) = schema.find_key(&path_strs) {
                 schema.value_to_completion_items(key)
             } else {
                 vec![]
@@ -330,6 +349,44 @@ pub fn get_completions(
         }
         JsonContext::Unknown => vec![],
     }
+}
+
+/// ドメイン名を ObjectKey 補完候補として取得
+fn get_domain_completions(workspace_root: Option<&PathBuf>) -> Option<Vec<CompletionItem>> {
+    let root = workspace_root?;
+    let domains = k1s0_generator::domain::scanner::scan_domains(root).ok()?;
+    Some(
+        domains
+            .iter()
+            .map(|d| CompletionItem {
+                label: d.name.clone(),
+                kind: Some(CompletionItemKind::MODULE),
+                detail: Some(format!("v{} ({})", d.version, d.language)),
+                insert_text: Some(format!("\"{}\": \"^{}\"", d.name, d.version)),
+                ..Default::default()
+            })
+            .collect(),
+    )
+}
+
+/// ドメイン名を Value 補完候補として取得
+fn get_domain_name_value_completions(
+    workspace_root: Option<&PathBuf>,
+) -> Option<Vec<CompletionItem>> {
+    let root = workspace_root?;
+    let domains = k1s0_generator::domain::scanner::scan_domains(root).ok()?;
+    Some(
+        domains
+            .iter()
+            .map(|d| CompletionItem {
+                label: d.name.clone(),
+                kind: Some(CompletionItemKind::VALUE),
+                detail: Some(format!("v{} ({})", d.version, d.language)),
+                insert_text: Some(format!("\"{}\"", d.name)),
+                ..Default::default()
+            })
+            .collect(),
+    )
 }
 
 #[cfg(test)]
@@ -418,7 +475,7 @@ mod tests {
         let doc = "{\n  ";
         let pos = Position { line: 1, character: 2 };
 
-        let completions = get_completions(doc, pos, &schema);
+        let completions = get_completions(doc, pos, &schema, None);
         assert!(!completions.is_empty());
         assert!(completions.iter().any(|c| c.label == "schema_version"));
         assert!(completions.iter().any(|c| c.label == "template"));
@@ -432,7 +489,7 @@ mod tests {
     "#;
         let pos = Position { line: 2, character: 4 };
 
-        let completions = get_completions(doc, pos, &schema);
+        let completions = get_completions(doc, pos, &schema, None);
         assert!(!completions.is_empty());
         assert!(completions.iter().any(|c| c.label == "name"));
         assert!(completions.iter().any(|c| c.label == "version"));
@@ -446,7 +503,7 @@ mod tests {
     "language": "#;
         let pos = Position { line: 2, character: 16 };
 
-        let completions = get_completions(doc, pos, &schema);
+        let completions = get_completions(doc, pos, &schema, None);
         assert!(!completions.is_empty());
         assert!(completions.iter().any(|c| c.label == "rust"));
         assert!(completions.iter().any(|c| c.label == "go"));
@@ -566,7 +623,7 @@ mod tests {
         let doc = "";
         let pos = Position { line: 0, character: 0 };
 
-        let completions = get_completions(doc, pos, &schema);
+        let completions = get_completions(doc, pos, &schema, None);
         assert!(completions.is_empty());
     }
 
@@ -578,7 +635,7 @@ mod tests {
     "#;
         let pos = Position { line: 2, character: 4 };
 
-        let completions = get_completions(doc, pos, &schema);
+        let completions = get_completions(doc, pos, &schema, None);
         assert!(!completions.is_empty());
         assert!(completions.iter().any(|c| c.label == "service_name"));
         assert!(completions.iter().any(|c| c.label == "language"));
@@ -593,7 +650,7 @@ mod tests {
     "name": "#;
         let pos = Position { line: 2, character: 12 };
 
-        let completions = get_completions(doc, pos, &schema);
+        let completions = get_completions(doc, pos, &schema, None);
         assert!(!completions.is_empty());
         assert!(completions.iter().any(|c| c.label == "backend-rust"));
         assert!(completions.iter().any(|c| c.label == "frontend-react"));

@@ -21,28 +21,31 @@
 //! k1s0-lsp --tcp --port 9257
 //! ```
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 
-use k1s0_generator::lint::{LintConfig, LintResult, Linter, Severity, Violation};
+use k1s0_generator::lint::{LayerDependencyRules, LintConfig, Linter, Severity, Violation};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, RwLock};
 use tower_lsp::jsonrpc::Result as LspResult;
 use tower_lsp::lsp_types::{
-    CompletionOptions, CompletionParams, CompletionResponse, Diagnostic, DiagnosticOptions,
-    DiagnosticRelatedInformation, DiagnosticServerCapabilities, DiagnosticSeverity,
-    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
-    DidSaveTextDocumentParams, DocumentSymbolParams, DocumentSymbolResponse,
-    GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams, HoverProviderCapability,
-    InitializeParams, InitializeResult, InitializedParams, Location, MessageType, NumberOrString,
-    Position, Range, ReferenceParams, SaveOptions, ServerCapabilities, ServerInfo,
-    SymbolInformation, TextDocumentSyncCapability, TextDocumentSyncKind,
-    TextDocumentSyncOptions, TextDocumentSyncSaveOptions, Url, WorkspaceSymbolParams,
+    CodeActionKind, CodeActionOptions, CodeActionOrCommand, CodeActionParams,
+    CodeActionProviderCapability, CompletionOptions, CompletionParams, CompletionResponse,
+    Diagnostic, DiagnosticOptions, DiagnosticRelatedInformation, DiagnosticServerCapabilities,
+    DiagnosticSeverity, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentSymbolParams,
+    DocumentSymbolResponse, GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams,
+    HoverProviderCapability, InitializeParams, InitializeResult, InitializedParams, Location,
+    MessageType, NumberOrString, Position, Range, ReferenceParams, SaveOptions,
+    ServerCapabilities, ServerInfo, SymbolInformation, TextDocumentSyncCapability,
+    TextDocumentSyncKind, TextDocumentSyncOptions, TextDocumentSyncSaveOptions, Url,
+    WorkspaceSymbolParams,
 };
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
+pub mod code_action;
 pub mod completion;
 pub mod definition;
 pub mod hover;
@@ -88,6 +91,8 @@ pub struct K1s0LanguageServer {
     lint_trigger: mpsc::Sender<(Url, u64)>,
     /// manifest.json スキーマ
     schema: Arc<ManifestSchema>,
+    /// 診断を publish 済みの URI セット（stale diagnostic クリア用）
+    published_diagnostics_uris: Arc<RwLock<HashSet<Url>>>,
 }
 
 /// LSP Position をバイトオフセットに変換
@@ -147,6 +152,7 @@ impl K1s0LanguageServer {
             pending_lints: Arc::new(RwLock::new(HashMap::new())),
             lint_trigger: tx,
             schema: Arc::new(ManifestSchema::new()),
+            published_diagnostics_uris: Arc::new(RwLock::new(HashSet::new())),
         }
     }
 
@@ -162,6 +168,7 @@ impl K1s0LanguageServer {
             pending_lints: Arc::new(RwLock::new(HashMap::new())),
             lint_trigger: tx,
             schema: Arc::new(ManifestSchema::new()),
+            published_diagnostics_uris: Arc::new(RwLock::new(HashSet::new())),
         };
 
         // デバウンスワーカーを起動
@@ -176,6 +183,7 @@ impl K1s0LanguageServer {
         let client = self.client.clone();
         let workspace_root = self.workspace_root.clone();
         let config = self.config.clone();
+        let published_uris = self.published_diagnostics_uris.clone();
 
         tokio::spawn(async move {
             // URI ごとのタスクハンドルを管理
@@ -192,6 +200,7 @@ impl K1s0LanguageServer {
                 let client = client.clone();
                 let workspace_root = workspace_root.clone();
                 let config = config.clone();
+                let published_uris = published_uris.clone();
 
                 // 新しいデバウンスタスクを起動
                 let handle = tokio::spawn(async move {
@@ -215,34 +224,81 @@ impl K1s0LanguageServer {
                     let linter = Linter::new(config.lint.clone());
                     let result = linter.lint(&path);
 
-                    // 簡易的な診断情報生成
-                    let diagnostics: Vec<Diagnostic> = result
-                        .violations
-                        .iter()
-                        .map(|v| {
-                            let severity = match v.severity {
-                                Severity::Error => DiagnosticSeverity::ERROR,
-                                Severity::Warning => DiagnosticSeverity::WARNING,
-                            };
-                            let line = v.line.unwrap_or(1).saturating_sub(1) as u32;
-                            Diagnostic {
-                                range: Range {
-                                    start: Position { line, character: 0 },
-                                    end: Position {
-                                        line,
-                                        character: 1000,
-                                    },
-                                },
-                                severity: Some(severity),
-                                code: Some(NumberOrString::String(v.rule.as_str().to_string())),
-                                source: Some("k1s0".to_string()),
-                                message: v.message.clone(),
-                                ..Default::default()
-                            }
-                        })
-                        .collect();
+                    // K040-K047: レイヤー依存チェック
+                    let mut all_violations = result.violations;
+                    let manifest_path = path.join(".k1s0").join("manifest.json");
+                    if manifest_path.exists() {
+                        let mut layer_rules =
+                            k1s0_generator::lint::LayerDependencyRules::new(&path);
+                        let layer_violations = layer_rules.check(&manifest_path);
+                        all_violations.extend(layer_violations);
+                    }
 
-                    client.publish_diagnostics(uri_clone.clone(), diagnostics, None).await;
+                    let service_root = &result.path;
+
+                    // violation を URI ごとにグループ化
+                    let mut diagnostics_by_uri: HashMap<Url, Vec<Diagnostic>> = HashMap::new();
+
+                    for v in &all_violations {
+                        let severity = match v.severity {
+                            Severity::Error => DiagnosticSeverity::ERROR,
+                            Severity::Warning => DiagnosticSeverity::WARNING,
+                        };
+                        let line = v.line.unwrap_or(1).saturating_sub(1) as u32;
+                        let diag = Diagnostic {
+                            range: Range {
+                                start: Position { line, character: 0 },
+                                end: Position {
+                                    line,
+                                    character: 1000,
+                                },
+                            },
+                            severity: Some(severity),
+                            code: Some(NumberOrString::String(v.rule.as_str().to_string())),
+                            source: Some("k1s0".to_string()),
+                            message: v.message.clone(),
+                            related_information: v.hint.as_ref().map(|hint| {
+                                vec![DiagnosticRelatedInformation {
+                                    location: Location {
+                                        uri: Url::parse("file:///").unwrap(),
+                                        range: Range::default(),
+                                    },
+                                    message: hint.clone(),
+                                }]
+                            }),
+                            ..Default::default()
+                        };
+
+                        let target_uri = if let Some(vpath) = &v.path {
+                            let abs_path = service_root.join(vpath);
+                            Url::from_file_path(&abs_path)
+                                .unwrap_or_else(|()| uri_clone.clone())
+                        } else {
+                            uri_clone.clone()
+                        };
+                        diagnostics_by_uri.entry(target_uri).or_default().push(diag);
+                    }
+
+                    // stale URI をクリア
+                    let prev_uris = published_uris.read().await.clone();
+                    for stale_uri in &prev_uris {
+                        if !diagnostics_by_uri.contains_key(stale_uri) {
+                            client
+                                .publish_diagnostics(stale_uri.clone(), vec![], None)
+                                .await;
+                        }
+                    }
+
+                    // publish
+                    let mut new_uris = HashSet::new();
+                    for (target_uri, diags) in &diagnostics_by_uri {
+                        client
+                            .publish_diagnostics(target_uri.clone(), diags.clone(), None)
+                            .await;
+                        new_uris.insert(target_uri.clone());
+                    }
+
+                    *published_uris.write().await = new_uris;
                     pending_lints.write().await.remove(&uri_clone);
                 });
 
@@ -268,6 +324,9 @@ impl K1s0LanguageServer {
     }
 
     /// lint を実行して診断情報を発行
+    ///
+    /// violation の `path` フィールドを使い、該当するソースファイルの URI に直接
+    /// diagnostic を publish する。`path` がない violation は呼び出し元 URI に publish する。
     async fn lint_and_publish(&self, uri: &Url) {
         let workspace_root = self.workspace_root.read().await;
         let config = self.config.read().await;
@@ -287,31 +346,54 @@ impl K1s0LanguageServer {
         let linter = Linter::new(config.lint.clone());
         let result = linter.lint(&path);
 
-        // 診断情報に変換
-        let diagnostics = self.violations_to_diagnostics(&result, uri);
+        // K040-K047: レイヤー依存チェック
+        let mut all_violations = result.violations;
+        let manifest_path = path.join(".k1s0").join("manifest.json");
+        if manifest_path.exists() {
+            let mut layer_rules = LayerDependencyRules::new(&path);
+            let layer_violations = layer_rules.check(&manifest_path);
+            all_violations.extend(layer_violations);
+        }
 
-        // 発行
-        self.client
-            .publish_diagnostics(uri.clone(), diagnostics, None)
-            .await;
-    }
+        let service_root = &result.path;
 
-    /// Violation を Diagnostic に変換
-    fn violations_to_diagnostics(&self, result: &LintResult, uri: &Url) -> Vec<Diagnostic> {
-        result
-            .violations
-            .iter()
-            .filter(|v| {
-                // URI に関連する違反のみをフィルタ
-                if let Some(vpath) = &v.path {
-                    if let Ok(file_path) = uri.to_file_path() {
-                        return file_path.to_string_lossy().contains(vpath);
-                    }
-                }
-                true // パスがない場合は全て含める
-            })
-            .map(|v| self.violation_to_diagnostic(v))
-            .collect()
+        // violation を URI ごとにグループ化
+        let mut diagnostics_by_uri: HashMap<Url, Vec<Diagnostic>> = HashMap::new();
+
+        for v in &all_violations {
+            let target_uri = if let Some(vpath) = &v.path {
+                let abs_path = service_root.join(vpath);
+                Url::from_file_path(&abs_path).unwrap_or_else(|()| uri.clone())
+            } else {
+                uri.clone()
+            };
+            diagnostics_by_uri
+                .entry(target_uri)
+                .or_default()
+                .push(self.violation_to_diagnostic(v));
+        }
+
+        // 前回 publish した URI のうち今回 violation がないものをクリア
+        let prev_uris = self.published_diagnostics_uris.read().await.clone();
+        for stale_uri in &prev_uris {
+            if !diagnostics_by_uri.contains_key(stale_uri) {
+                self.client
+                    .publish_diagnostics(stale_uri.clone(), vec![], None)
+                    .await;
+            }
+        }
+
+        // 今回の diagnostic を publish
+        let mut new_uris = HashSet::new();
+        for (target_uri, diags) in &diagnostics_by_uri {
+            self.client
+                .publish_diagnostics(target_uri.clone(), diags.clone(), None)
+                .await;
+            new_uris.insert(target_uri.clone());
+        }
+
+        // publish 済み URI セットを更新
+        *self.published_diagnostics_uris.write().await = new_uris;
     }
 
     /// manifest.json ファイルかどうかを判定
@@ -410,6 +492,13 @@ impl LanguageServer for K1s0LanguageServer {
                 document_symbol_provider: Some(tower_lsp::lsp_types::OneOf::Left(true)),
                 // ワークスペースシンボル
                 workspace_symbol_provider: Some(tower_lsp::lsp_types::OneOf::Left(true)),
+                // Code Actions
+                code_action_provider: Some(CodeActionProviderCapability::Options(
+                    CodeActionOptions {
+                        code_action_kinds: Some(vec![CodeActionKind::QUICKFIX]),
+                        ..Default::default()
+                    },
+                )),
                 ..Default::default()
             },
             server_info: Some(ServerInfo {
@@ -479,7 +568,13 @@ impl LanguageServer for K1s0LanguageServer {
         // ドキュメントを削除
         self.documents.write().await.remove(&uri);
 
-        // 診断情報をクリア
+        // 全 publish 済み URI の診断情報をクリア
+        let prev_uris = self.published_diagnostics_uris.write().await.drain().collect::<Vec<_>>();
+        for stale_uri in prev_uris {
+            self.client
+                .publish_diagnostics(stale_uri, vec![], None)
+                .await;
+        }
         self.client.publish_diagnostics(uri, vec![], None).await;
     }
 
@@ -500,8 +595,12 @@ impl LanguageServer for K1s0LanguageServer {
         };
         drop(documents);
 
+        // ワークスペースルートを取得
+        let workspace_root = self.workspace_root.read().await;
+
         // 補完候補を取得
-        let items = completion::get_completions(&document, position, &self.schema);
+        let items =
+            completion::get_completions(&document, position, &self.schema, workspace_root.as_ref());
 
         if items.is_empty() {
             Ok(None)
@@ -649,6 +748,24 @@ impl LanguageServer for K1s0LanguageServer {
             Ok(Some(symbols))
         }
     }
+
+    async fn code_action(
+        &self,
+        params: CodeActionParams,
+    ) -> LspResult<Option<Vec<CodeActionOrCommand>>> {
+        let uri = &params.text_document.uri;
+        let workspace_root = self.workspace_root.read().await;
+        let actions = code_action::get_code_actions(
+            uri,
+            &params.context.diagnostics,
+            workspace_root.as_ref(),
+        );
+        if actions.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(actions))
+        }
+    }
 }
 
 /// LSP サーバーを起動（stdio モード）
@@ -656,7 +773,7 @@ pub async fn run_stdio() -> anyhow::Result<()> {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 
-    let (service, socket) = LspService::new(K1s0LanguageServer::new);
+    let (service, socket) = LspService::new(K1s0LanguageServer::new_with_debounce);
     Server::new(stdin, stdout, socket).serve(service).await;
 
     Ok(())
@@ -669,7 +786,7 @@ pub async fn run_tcp(port: u16) -> anyhow::Result<()> {
     let (stream, _) = listener.accept().await?;
     let (read, write) = tokio::io::split(stream);
 
-    let (service, socket) = LspService::new(K1s0LanguageServer::new);
+    let (service, socket) = LspService::new(K1s0LanguageServer::new_with_debounce);
     Server::new(read, write, socket).serve(service).await;
 
     Ok(())
