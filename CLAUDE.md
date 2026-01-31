@@ -274,6 +274,10 @@ buf format --exit-code
 | `k1s0 playground stop` | Stop and remove playground (`--name`, `-v`, `-y`) |
 | `k1s0 playground status` | Show running playgrounds (`--json`) |
 | `k1s0 playground list` | List available playground templates |
+| `k1s0 migrate analyze` | Analyze existing project for k1s0 compliance (`--path`, `--type`, `--json`, `--verbose`) |
+| `k1s0 migrate plan` | Generate migration plan (`--path`, `--name`, `--type`, `--output`, `--dry-run`) |
+| `k1s0 migrate apply` | Apply migration plan (`--path`, `--plan`, `--phase`, `--dry-run`, `--yes`, `--skip-backup`) |
+| `k1s0 migrate status` | Show migration progress (`--path`, `--plan`, `--json`) |
 
 ### Interactive Mode
 

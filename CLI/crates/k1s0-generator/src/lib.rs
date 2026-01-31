@@ -12,6 +12,7 @@
 //! - `walker`: ディレクトリ走査ユーティリティ
 //! - `registry`: テンプレートレジストリ
 
+pub mod analyzer;
 pub mod diff;
 pub mod domain;
 pub mod fingerprint;
