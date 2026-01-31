@@ -80,17 +80,41 @@ k1s0 --version
 |---------|------|
 | `k1s0 init` | リポジトリを初期化 |
 | `k1s0 new-feature` | 新規サービスの雛形を生成 |
+| `k1s0 new-domain` | 新規 domain の雛形を生成 |
 | `k1s0 new-screen` | 画面（フロントエンド）の雛形を生成 |
 | `k1s0 lint` | 規約違反を検査 |
 | `k1s0 upgrade` | テンプレートの更新を確認・適用 |
+| `k1s0 doctor` | 開発環境の健全性チェック |
 | `k1s0 completions` | シェル補完スクリプトを生成 |
+| `k1s0 domain-list` | 全 domain の一覧表示 |
+| `k1s0 domain-version` | domain バージョンの表示・更新 |
+| `k1s0 domain-dependents` | domain に依存する feature の表示 |
+| `k1s0 domain-impact` | domain バージョンアップの影響分析 |
+| `k1s0 domain-catalog` | domain カタログの表示 |
+| `k1s0 domain-graph` | domain 依存グラフ出力 |
+| `k1s0 docker build` | Docker イメージをビルド |
+| `k1s0 docker compose up` | docker compose サービスを起動 |
+| `k1s0 docker compose down` | docker compose サービスを停止 |
+| `k1s0 docker status` | コンテナ状態を表示 |
+| `k1s0 playground start` | サンプル付き playground 環境を起動 |
+| `k1s0 playground stop` | playground 環境を停止 |
+| `k1s0 playground status` | playground 環境の状態を表示 |
+| `k1s0 migrate analyze` | 既存プロジェクトの準拠状況を分析 |
+| `k1s0 migrate plan` | 移行計画を生成 |
+| `k1s0 migrate apply` | 移行計画を適用 |
+| `k1s0 migrate status` | 移行の進捗状況を表示 |
+| `k1s0 log` | Git コミット履歴を表示 |
+| `k1s0 diff` | Git diff を表示 |
 
 ### 共通オプション
 
 ```bash
--v, --verbose    # 詳細出力
---no-color       # カラー出力を無効化
---json           # JSON 形式で出力
+-v, --verbose      # 詳細出力
+-i, --interactive  # 対話モードを強制起動
+-y, --yes          # 確認プロンプトをスキップ
+--skip-doctor      # 環境診断をスキップ
+--no-color         # カラー出力を無効化
+--json             # JSON 形式で出力
 ```
 
 ### ヘルプの見方
@@ -113,8 +137,12 @@ k1s0 new-feature --help
 |-------|------|--------|
 | `backend-rust` | Rust バックエンド | `feature/backend/rust/{name}/` |
 | `backend-go` | Go バックエンド | `feature/backend/go/{name}/` |
+| `backend-csharp` | C# バックエンド | `feature/backend/csharp/{name}/` |
+| `backend-python` | Python バックエンド | `feature/backend/python/{name}/` |
+| `backend-kotlin` | Kotlin バックエンド | `feature/backend/kotlin/{name}/` |
 | `frontend-react` | React フロントエンド | `feature/frontend/react/{name}/` |
 | `frontend-flutter` | Flutter フロントエンド | `feature/frontend/flutter/{name}/` |
+| `frontend-android` | Android フロントエンド | `feature/frontend/android/{name}/` |
 
 ### Step 2: コマンドを実行
 
@@ -368,9 +396,17 @@ k1s0 lint feature/backend/rust/order-service
 | K020 | 環境変数参照の禁止 | Error |
 | K021 | config YAML への機密直書き禁止 | Error |
 | K022 | Clean Architecture 依存方向違反 | Error |
+| K025 | 設定ファイル命名規約違反 | Error |
+| K026 | Domain 層でのプロトコル型使用 | Error |
+| K028 | 未使用 domain 依存宣言 | Warning |
+| K029 | 本番コードでの panic/unwrap/expect | Error |
 | K030 | gRPC リトライ設定の検出 | Warning |
 | K031 | gRPC リトライ設定に ADR 参照がない | Warning |
 | K032 | gRPC リトライ設定が不完全 | Warning |
+| K040-K047 | 層間依存ルール | Error/Warning |
+| K050 | SQL インジェクションリスク | Error |
+| K053 | 機密データのログ出力 | Warning |
+| K060 | Dockerfile ベースイメージ未固定 | Warning |
 
 ### オプション
 
@@ -390,7 +426,7 @@ k1s0 lint feature/backend/rust/order-service
 k1s0 lint --fix
 ```
 
-修正可能なルール: K001, K002, K010, K011
+修正可能なルール: K010, K011
 
 ### 出力例
 
@@ -483,12 +519,23 @@ k1s0/
 ├── framework/              # 共通部品（import して使う）
 │   ├── backend/rust/crates/    # Rust 共通ライブラリ
 │   ├── backend/rust/services/  # 共通マイクロサービス
-│   └── frontend/react/packages/ # React 共通パッケージ
+│   ├── backend/go/             # Go 共通パッケージ
+│   ├── backend/csharp/         # C# NuGet パッケージ
+│   ├── backend/python/         # Python 共通パッケージ
+│   ├── backend/kotlin/         # Kotlin 共通パッケージ
+│   ├── frontend/react/packages/ # React 共通パッケージ
+│   ├── frontend/flutter/packages/ # Flutter 共通パッケージ
+│   └── frontend/android/packages/ # Android 共通パッケージ
 │
 ├── feature/                # ★ あなたが開発する場所
 │   ├── backend/rust/       # Rust サービス群
 │   ├── backend/go/         # Go サービス群
+│   ├── backend/csharp/     # C# サービス群
+│   ├── backend/python/     # Python サービス群
+│   ├── backend/kotlin/     # Kotlin サービス群
 │   ├── frontend/react/     # React アプリ群
+│   ├── frontend/flutter/   # Flutter アプリ群
+│   ├── frontend/android/   # Android アプリ群
 │   └── database/           # テーブル定義
 │
 ├── bff/                    # Backend For Frontend（任意）
@@ -502,8 +549,8 @@ k1s0/
 
 | 目的 | パス |
 |-----|------|
-| 新規サービスを作る | `feature/backend/rust/` または `feature/frontend/react/` |
-| 共通ライブラリを使う | `framework/backend/rust/crates/` |
+| 新規サービスを作る | `feature/backend/{lang}/` または `feature/frontend/{fw}/` |
+| 共通ライブラリを使う | `framework/backend/{lang}/` または `framework/frontend/{fw}/` |
 | 規約を確認する | `docs/conventions/` |
 | アーキテクチャ決定を読む | `docs/adr/` |
 

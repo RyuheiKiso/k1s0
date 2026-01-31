@@ -8,15 +8,31 @@
 templates/
 ├── backend-rust/
 │   ├── project/      # リポジトリ初期化テンプレ（共通設定/CI 等）
-│   └── feature/      # 機能（= 1 マイクロサービス）雛形
+│   ├── feature/      # 機能（= 1 マイクロサービス）雛形
+│   └── domain/       # ドメインライブラリ雛形
 ├── backend-go/
-│   └── feature/
+│   ├── feature/
+│   └── domain/
+├── backend-csharp/
+│   ├── feature/
+│   └── domain/
+├── backend-python/
+│   ├── feature/
+│   └── domain/
+├── backend-kotlin/
+│   ├── feature/
+│   └── domain/
 ├── frontend-react/
 │   ├── feature/
+│   ├── domain/
 │   └── screen/       # React 画面テンプレート
-└── frontend-flutter/
+├── frontend-flutter/
+│   ├── feature/
+│   ├── domain/
+│   └── screen/       # Flutter 画面テンプレート
+└── frontend-android/
     ├── feature/
-    └── screen/       # Flutter 画面テンプレート
+    └── domain/
 ```
 
 ## テンプレートの種類
@@ -27,8 +43,12 @@ templates/
 |-------------|--------|------|
 | `backend-rust/feature` | `feature/backend/rust/{name}/` | Rust バックエンドサービス |
 | `backend-go/feature` | `feature/backend/go/{name}/` | Go バックエンドサービス |
+| `backend-csharp/feature` | `feature/backend/csharp/{name}/` | C# バックエンドサービス |
+| `backend-python/feature` | `feature/backend/python/{name}/` | Python バックエンドサービス |
+| `backend-kotlin/feature` | `feature/backend/kotlin/{name}/` | Kotlin バックエンドサービス |
 | `frontend-react/feature` | `feature/frontend/react/{name}/` | React フロントエンド |
 | `frontend-flutter/feature` | `feature/frontend/flutter/{name}/` | Flutter フロントエンド |
+| `frontend-android/feature` | `feature/frontend/android/{name}/` | Android フロントエンド |
 
 ### Screen テンプレート（`k1s0 new-screen`）
 
