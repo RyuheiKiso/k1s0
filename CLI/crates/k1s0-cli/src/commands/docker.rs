@@ -129,8 +129,15 @@ pub fn execute(args: DockerArgs) -> Result<()> {
 fn check_docker() -> Result<()> {
     match Command::new("docker").arg("--version").output() {
         Ok(out) if out.status.success() => Ok(()),
-        _ => Err(CliError::validation("Docker がインストールされていません")
-            .with_hint("Docker をインストールしてください: https://docs.docker.com/get-docker/")),
+        _ => Err(CliError::validation(
+            "Docker が検出されませんでした。\n\n\
+             可観測性スタック（OTEL Collector, Jaeger, Loki, Prometheus, Grafana）の\n\
+             起動には Docker Desktop が必要です。\n\n\
+             サービスの開発・ビルド・テストは Docker なしで実行可能です。\n\
+             可観測性が不要な場合、このエラーは無視できます。\n\n\
+             Docker Desktop のインストール:\n  \
+             https://docs.docker.com/desktop/install/windows-install/",
+        )),
     }
 }
 

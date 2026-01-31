@@ -1,0 +1,92 @@
+# Helm values for k1s0 observability stack - Staging environment
+
+global:
+  namespace: k1s0-observability-stg
+  environment: stg
+
+otelCollector:
+  replicas: 2
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: "0.96.0"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+jaeger:
+  replicas: 1
+  image:
+    repository: jaegertracing/all-in-one
+    tag: "1.54"
+  storage:
+    type: memory
+    memory:
+      maxTraces: 50000
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+prometheus:
+  replicas: 1
+  image:
+    repository: prom/prometheus
+    tag: "v2.50.1"
+  retention: 15d
+  storage:
+    enabled: true
+    size: 20Gi
+    storageClassName: standard
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+loki:
+  replicas: 1
+  image:
+    repository: grafana/loki
+    tag: "2.9.4"
+  storage:
+    enabled: true
+    size: 20Gi
+    storageClassName: standard
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+grafana:
+  replicas: 1
+  image:
+    repository: grafana/grafana
+    tag: "10.3.3"
+  auth:
+    adminUser: admin
+    adminPasswordFile: /var/run/secrets/grafana/admin-password
+  storage:
+    enabled: true
+    size: 5Gi
+    storageClassName: standard
+  ingress:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

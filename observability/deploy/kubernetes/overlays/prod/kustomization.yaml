@@ -1,0 +1,119 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: k1s0-observability-prod
+
+resources:
+  - ../../base
+  - pvc-prometheus.yaml
+  - pvc-loki.yaml
+  - pvc-grafana.yaml
+  - ingress-grafana.yaml
+
+commonLabels:
+  environment: prod
+
+patches:
+  # OTel Collector: 3 replicas, high resources
+  - target:
+      kind: Deployment
+      name: otel-collector
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 3
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+  # Jaeger: 2 replicas
+  - target:
+      kind: Deployment
+      name: jaeger
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 2
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+  # Prometheus: persistent volume
+  - target:
+      kind: Deployment
+      name: prometheus
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 2
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+      - op: replace
+        path: /spec/template/spec/volumes/1
+        value:
+          name: data
+          persistentVolumeClaim:
+            claimName: prometheus-data
+  # Loki: persistent volume
+  - target:
+      kind: Deployment
+      name: loki
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 2
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+      - op: replace
+        path: /spec/template/spec/volumes/1
+        value:
+          name: data
+          persistentVolumeClaim:
+            claimName: loki-data
+  # Grafana: persistent volume
+  - target:
+      kind: Deployment
+      name: grafana
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 2
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+      - op: replace
+        path: /spec/template/spec/volumes/2
+        value:
+          name: data
+          persistentVolumeClaim:
+            claimName: grafana-data

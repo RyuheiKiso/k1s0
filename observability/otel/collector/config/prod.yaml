@@ -1,0 +1,44 @@
+processors:
+  batch:
+    send_batch_size: 1024
+    timeout: 5s
+    send_batch_max_size: 2048
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 1024
+    spike_limit_mib: 256
+  probabilistic_sampler:
+    sampling_percentage: 10
+  filter/health:
+    error_mode: ignore
+    traces:
+      span:
+        - 'attributes["http.route"] == "/health"'
+        - 'attributes["http.route"] == "/ready"'
+        - 'attributes["http.route"] == "/live"'
+    logs:
+      log_record:
+        - 'severity_number < SEVERITY_NUMBER_WARN'
+
+service:
+  pipelines:
+    traces:
+      processors:
+        - memory_limiter
+        - resource
+        - filter/health
+        - probabilistic_sampler
+        - batch
+    logs:
+      processors:
+        - memory_limiter
+        - resource
+        - filter/health
+        - batch
+  telemetry:
+    logs:
+      level: warn
+      encoding: json
+    metrics:
+      address: 0.0.0.0:8888
+      level: normal

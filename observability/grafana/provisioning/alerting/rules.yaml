@@ -1,0 +1,148 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: k1s0-alerts
+    folder: k1s0
+    interval: 1m
+    rules:
+      - uid: k1s0-high-error-rate
+        title: HighErrorRate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: >
+                sum(rate(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[5m]))
+                /
+                sum(rate(http_server_request_duration_seconds_count[5m]))
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              settings:
+                mode: ""
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params:
+                      - 0.05
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: "Error rate exceeds 5% threshold"
+        labels:
+          severity: critical
+
+      - uid: k1s0-high-latency
+        title: HighLatency
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: >
+                histogram_quantile(0.99,
+                  sum(rate(http_server_request_duration_seconds_bucket[5m])) by (le)
+                )
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              settings:
+                mode: ""
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params:
+                      - 2.0
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: "P99 latency exceeds 2 seconds"
+        labels:
+          severity: warning
+
+      - uid: k1s0-service-down
+        title: ServiceDown
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: up == 0
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              settings:
+                mode: ""
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: lt
+                    params:
+                      - 1
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: "Service instance is down"
+        labels:
+          severity: critical

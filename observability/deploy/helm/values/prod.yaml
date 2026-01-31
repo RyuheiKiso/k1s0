@@ -1,0 +1,121 @@
+# Helm values for k1s0 observability stack - Production environment
+
+global:
+  namespace: k1s0-observability-prod
+  environment: prod
+
+otelCollector:
+  replicas: 3
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: "0.96.0"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+jaeger:
+  replicas: 2
+  image:
+    repository: jaegertracing/all-in-one
+    tag: "1.54"
+  storage:
+    type: elasticsearch
+    elasticsearch:
+      url: "http://elasticsearch:9200"
+      indexPrefix: k1s0-jaeger
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+prometheus:
+  replicas: 2
+  image:
+    repository: prom/prometheus
+    tag: "v2.50.1"
+  retention: 30d
+  storage:
+    enabled: true
+    size: 50Gi
+    storageClassName: standard
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+loki:
+  replicas: 2
+  image:
+    repository: grafana/loki
+    tag: "2.9.4"
+  storage:
+    enabled: true
+    size: 50Gi
+    storageClassName: standard
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+grafana:
+  replicas: 2
+  image:
+    repository: grafana/grafana
+    tag: "10.3.3"
+  auth:
+    adminUser: admin
+    adminPasswordFile: /var/run/secrets/grafana/admin-password
+    # Enable OAuth/OIDC in production
+    oauth:
+      enabled: true
+      provider: generic_oauth
+      clientIdFile: /var/run/secrets/grafana/oauth-client-id
+      clientSecretFile: /var/run/secrets/grafana/oauth-client-secret
+      authUrl: "https://auth.k1s0.internal/authorize"
+      tokenUrl: "https://auth.k1s0.internal/token"
+      apiUrl: "https://auth.k1s0.internal/userinfo"
+  storage:
+    enabled: true
+    size: 10Gi
+    storageClassName: standard
+  ingress:
+    enabled: true
+    className: nginx
+    host: grafana.k1s0.internal
+    tls:
+      enabled: true
+      secretName: grafana-tls
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1

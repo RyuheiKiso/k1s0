@@ -1,0 +1,80 @@
+# =============================================================================
+# k1s0 OpenTelemetry Configuration for C# Services
+# =============================================================================
+# This config is consumed by the K1s0.Observability NuGet package.
+# The package reads this file via K1s0.Config and registers OpenTelemetry
+# services via OpenTelemetry.Extensions.Hosting in the DI container.
+#
+# Usage in code:
+#   using K1s0.Observability;
+#
+#   var builder = WebApplication.CreateBuilder(args);
+#   builder.Services.AddK1s0Observability();
+#
+# The K1s0.Observability package configures:
+#   - OpenTelemetry.Extensions.Hosting for DI integration
+#   - OpenTelemetry.Instrumentation.AspNetCore for HTTP traces
+#   - OpenTelemetry.Instrumentation.GrpcNetClient for gRPC traces
+#   - OpenTelemetry.Exporter.OpenTelemetryProtocol for OTLP export
+# =============================================================================
+
+observability:
+  # Service identification
+  service:
+    name: "my-csharp-service"
+    version: "0.1.0"
+    environment: "dev"
+
+  # OTLP exporter configuration
+  exporter:
+    protocol: grpc
+    endpoint: "http://localhost:4317"
+    timeout_ms: 10000
+
+  # Tracing configuration
+  traces:
+    enabled: true
+    sampler: always_on
+    # ASP.NET Core auto-instrumentation
+    aspnetcore:
+      enabled: true
+      # Record exception details in spans
+      record_exception: true
+      # Filter health check endpoints from traces
+      filter_paths:
+        - "/health"
+        - "/ready"
+    # gRPC client auto-instrumentation
+    grpc_client:
+      enabled: true
+    # HTTP client auto-instrumentation
+    http_client:
+      enabled: true
+    # Batch processor settings
+    batch:
+      max_queue_size: 2048
+      scheduled_delay_ms: 5000
+      max_export_batch_size: 512
+
+  # Metrics configuration
+  metrics:
+    enabled: true
+    export_interval_ms: 60000
+    # ASP.NET Core metrics
+    aspnetcore_metrics: true
+    # Runtime metrics (.NET runtime GC, threadpool, etc.)
+    runtime_metrics: true
+
+  # Logging configuration (ILogger bridge)
+  logs:
+    enabled: true
+    level: Information
+    # Include scopes in exported logs
+    include_scopes: true
+    # Include formatted message
+    include_formatted_message: true
+
+  # Additional resource attributes
+  resource_attributes:
+    deployment.environment: "dev"
+    k1s0.layer: "feature"

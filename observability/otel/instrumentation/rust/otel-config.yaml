@@ -1,0 +1,73 @@
+# =============================================================================
+# k1s0 OpenTelemetry Configuration for Rust Services
+# =============================================================================
+# This config is consumed by the k1s0-observability crate.
+# The crate reads this file via k1s0-config and initializes tracing-opentelemetry
+# pipelines automatically. Place this file in your service's config/ directory
+# and it will be merged with default.yaml under the "observability" key.
+#
+# Usage in code:
+#   use k1s0_observability::init_telemetry;
+#   init_telemetry().await?;
+#
+# The k1s0-observability crate uses:
+#   - tracing + tracing-opentelemetry for traces
+#   - opentelemetry-otlp for OTLP export
+#   - opentelemetry-sdk for metrics
+# =============================================================================
+
+observability:
+  # Service identification (injected as OTEL resource attributes)
+  service:
+    name: "my-rust-service"
+    version: "0.1.0"
+    environment: "dev"
+
+  # OTLP exporter configuration
+  exporter:
+    # Protocol: grpc or http
+    protocol: grpc
+    # OTEL Collector endpoint (gRPC)
+    endpoint: "http://localhost:4317"
+    # Export timeout in milliseconds
+    timeout_ms: 10000
+    # Headers to attach to export requests (optional)
+    # headers:
+    #   Authorization: "Bearer <token>"
+
+  # Tracing configuration
+  traces:
+    # Enable trace export
+    enabled: true
+    # Sampler: always_on, always_off, trace_id_ratio
+    sampler: always_on
+    # Ratio when using trace_id_ratio sampler (0.0 - 1.0)
+    # sampler_ratio: 0.1
+    # Batch span processor settings
+    batch:
+      # Maximum queue size before dropping spans
+      max_queue_size: 2048
+      # Delay between batch exports in milliseconds
+      scheduled_delay_ms: 5000
+      # Maximum batch size per export
+      max_export_batch_size: 512
+      # Export timeout for a single batch in milliseconds
+      max_export_timeout_ms: 30000
+
+  # Metrics configuration
+  metrics:
+    enabled: true
+    # Export interval in milliseconds
+    export_interval_ms: 60000
+
+  # Logging configuration
+  logs:
+    enabled: true
+    # Minimum log level exported via OTLP: trace, debug, info, warn, error
+    level: info
+
+  # Additional resource attributes
+  resource_attributes:
+    deployment.environment: "dev"
+    k1s0.layer: "feature"
+    # k1s0.domain: "my-domain"

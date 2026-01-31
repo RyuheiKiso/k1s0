@@ -1,0 +1,88 @@
+# Helm values for k1s0 observability stack - Development environment
+
+global:
+  namespace: k1s0-observability-dev
+  environment: dev
+
+otelCollector:
+  replicas: 1
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: "0.96.0"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+jaeger:
+  replicas: 1
+  image:
+    repository: jaegertracing/all-in-one
+    tag: "1.54"
+  # In-memory storage for dev (no persistent volume)
+  storage:
+    type: memory
+    memory:
+      maxTraces: 10000
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+prometheus:
+  replicas: 1
+  image:
+    repository: prom/prometheus
+    tag: "v2.50.1"
+  retention: 3d
+  storage:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+loki:
+  replicas: 1
+  image:
+    repository: grafana/loki
+    tag: "2.9.4"
+  storage:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+grafana:
+  replicas: 1
+  image:
+    repository: grafana/grafana
+    tag: "10.3.3"
+  auth:
+    adminUser: admin
+    # Dev only - use secrets in higher environments
+    adminPasswordFile: ""
+  storage:
+    enabled: false
+  ingress:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi

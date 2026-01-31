@@ -1,0 +1,75 @@
+# =============================================================================
+# k1s0 OpenTelemetry Configuration for Python Services
+# =============================================================================
+# This config is consumed by the k1s0-observability Python package.
+# The package reads this file via k1s0-config and initializes the
+# opentelemetry-sdk with auto-instrumentation for FastAPI.
+#
+# Usage in code:
+#   from k1s0_observability import init_telemetry
+#
+#   app = FastAPI()
+#   init_telemetry(app)
+#
+# The k1s0-observability Python package uses:
+#   - opentelemetry-sdk for core SDK
+#   - opentelemetry-exporter-otlp-proto-grpc for OTLP export
+#   - opentelemetry-instrumentation-fastapi for FastAPI auto-instrumentation
+#   - opentelemetry-instrumentation-sqlalchemy for DB tracing
+#   - opentelemetry-instrumentation-grpc for gRPC tracing
+# =============================================================================
+
+observability:
+  # Service identification
+  service:
+    name: "my-python-service"
+    version: "0.1.0"
+    environment: "dev"
+
+  # OTLP exporter configuration
+  exporter:
+    protocol: grpc
+    endpoint: "http://localhost:4317"
+    insecure: true
+    timeout_s: 10
+
+  # Tracing configuration
+  traces:
+    enabled: true
+    sampler: always_on
+    # sampler_ratio: 0.1
+    # FastAPI auto-instrumentation
+    fastapi:
+      enabled: true
+      # Exclude paths from tracing
+      excluded_urls:
+        - "/health"
+        - "/ready"
+        - "/metrics"
+    # SQLAlchemy instrumentation
+    sqlalchemy:
+      enabled: true
+    # gRPC instrumentation
+    grpc:
+      enabled: true
+    # Batch span processor settings
+    batch:
+      max_queue_size: 2048
+      schedule_delay_millis: 5000
+      max_export_batch_size: 512
+      export_timeout_millis: 30000
+
+  # Metrics configuration
+  metrics:
+    enabled: true
+    export_interval_millis: 60000
+
+  # Logging configuration (logging module bridge)
+  logs:
+    enabled: true
+    level: INFO
+
+  # Additional resource attributes
+  resource_attributes:
+    deployment.environment: "dev"
+    k1s0.layer: "feature"

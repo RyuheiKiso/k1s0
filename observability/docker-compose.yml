@@ -1,0 +1,100 @@
+services:
+  otel-collector:
+    build:
+      context: ./otel/collector
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+    networks:
+      - k1s0-observability
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+    depends_on:
+      jaeger:
+        condition: service_started
+      loki:
+        condition: service_started
+      prometheus:
+        condition: service_started
+
+  prometheus:
+    build:
+      context: ./prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus-data:/prometheus
+    networks:
+      - k1s0-observability
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  loki:
+    build:
+      context: ./loki
+    ports:
+      - "3100:3100"
+    networks:
+      - k1s0-observability
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.25
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.54.0
+    ports:
+      - "16686:16686"
+    networks:
+      - k1s0-observability
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:16686/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  grafana:
+    build:
+      context: ./grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - k1s0-observability
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.25
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      jaeger:
+        condition: service_healthy
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  k1s0-observability:
+    driver: bridge
