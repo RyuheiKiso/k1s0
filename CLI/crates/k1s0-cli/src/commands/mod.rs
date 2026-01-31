@@ -14,6 +14,7 @@ pub mod domain_version;
 pub mod feature_update_domain;
 pub mod init;
 pub mod lint;
+pub mod migrate;
 pub mod new_domain;
 pub mod new_feature;
 pub mod new_screen;

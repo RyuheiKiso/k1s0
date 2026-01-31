@@ -40,6 +40,7 @@ fn main() -> std::process::ExitCode {
         Commands::DomainGraph(args) => k1s0_cli::commands::domain_graph::execute(args),
         Commands::Docker(args) => k1s0_cli::commands::docker::execute(args),
         Commands::Playground(args) => k1s0_cli::commands::playground::execute(args),
+        Commands::Migrate(args) => k1s0_cli::commands::migrate::execute(args),
     };
 
     // 結果を処理
@@ -167,6 +168,10 @@ fn execute_selected_command(selected: SelectedCommand) -> std::process::ExitCode
         SelectedCommand::Playground => {
             // ヘルプメッセージを表示（非対話コマンド）
             show_command_help("playground")
+        }
+        SelectedCommand::Migrate => {
+            // ヘルプメッセージを表示（非対話コマンド）
+            show_command_help("migrate")
         }
     };
 

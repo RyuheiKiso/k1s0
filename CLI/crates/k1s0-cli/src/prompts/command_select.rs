@@ -28,6 +28,8 @@ pub enum SelectedCommand {
     Completions,
     /// playground 環境の起動・停止
     Playground,
+    /// 既存プロジェクトの移行
+    Migrate,
 }
 
 impl SelectedCommand {
@@ -35,7 +37,7 @@ impl SelectedCommand {
     pub fn supports_interactive(&self) -> bool {
         matches!(
             self,
-            Self::NewFeature | Self::NewDomain | Self::NewScreen | Self::Init | Self::Playground
+            Self::NewFeature | Self::NewDomain | Self::NewScreen | Self::Init | Self::Playground | Self::Migrate
         )
     }
 
@@ -51,6 +53,7 @@ impl SelectedCommand {
             Self::Domain => "domain",
             Self::Completions => "completions",
             Self::Playground => "playground",
+            Self::Migrate => "migrate",
         }
     }
 }
@@ -125,6 +128,11 @@ pub fn select_command() -> Result<SelectedCommand> {
             command: SelectedCommand::Playground,
             label: "playground",
             description: "playground 環境の起動・停止",
+        },
+        CommandOption {
+            command: SelectedCommand::Migrate,
+            label: "migrate",
+            description: "既存プロジェクトを k1s0 構造に移行",
         },
     ];
 

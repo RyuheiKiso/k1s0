@@ -147,4 +147,7 @@ pub enum Commands {
 
     /// playground 環境の起動・停止
     Playground(commands::playground::PlaygroundArgs),
+
+    /// 既存プロジェクトを k1s0 構造に移行する
+    Migrate(commands::migrate::MigrateArgs),
 }

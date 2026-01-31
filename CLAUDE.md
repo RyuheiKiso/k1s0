@@ -274,6 +274,10 @@ buf format --exit-code
 | `k1s0 playground stop` | Stop and remove playground (`--name`, `-v`, `-y`) |
 | `k1s0 playground status` | Show running playgrounds (`--json`) |
 | `k1s0 playground list` | List available playground templates |
+| `k1s0 migrate analyze` | Analyze existing project for k1s0 compliance (`--path`, `--type`, `--json`, `--verbose`) |
+| `k1s0 migrate plan` | Generate migration plan (`--path`, `--name`, `--type`, `--output`, `--dry-run`) |
+| `k1s0 migrate apply` | Apply migration plan (`--path`, `--plan`, `--phase`, `--dry-run`, `--yes`, `--skip-backup`) |
+| `k1s0 migrate status` | Show migration progress (`--path`, `--plan`, `--json`) |
 
 ### Interactive Mode
 
@@ -313,13 +317,30 @@ k1s0 new-feature --type backend-rust
 | K010 | Error | Required directory missing | Yes |
 | K011 | Error | Required file missing | Yes |
 
-### Code Quality Rules (K020-K022)
+### Code Quality Rules (K020-K029)
 
 | ID | Severity | Description | Auto-fix |
 |----|----------|-------------|:--------:|
 | K020 | Error | Environment variable usage prohibited | - |
 | K021 | Error | Secrets hardcoded in config YAML | - |
 | K022 | Error | Clean Architecture dependency violation | - |
+| K025 | Error | Config file naming convention violation (only default/dev/stg/prod allowed) | - |
+| K026 | Error | Protocol type usage in Domain layer (HTTP/gRPC dependency) | - |
+| K028 | Warning | Unused domain dependency declared in manifest.json | - |
+| K029 | Error | Panic/unwrap/expect in production code (test files and entry points excluded) | - |
+
+### Security Rules (K050-K053)
+
+| ID | Severity | Description | Auto-fix |
+|----|----------|-------------|:--------:|
+| K050 | Error | SQL injection risk via string interpolation | - |
+| K053 | Warning | Logging sensitive data (password, token, secret, etc.) | - |
+
+### Infrastructure Rules (K060)
+
+| ID | Severity | Description | Auto-fix |
+|----|----------|-------------|:--------:|
+| K060 | Warning | Dockerfile FROM with unpinned base image (:latest or no tag) | - |
 
 ### gRPC Retry Rules (K030-K032)
 
