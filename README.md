@@ -41,7 +41,8 @@ k1s0/
 │       ├── backend-kotlin/
 │       ├── frontend-react/
 │       ├── frontend-flutter/
-│       └── frontend-android/
+│       ├── frontend-android/
+│       └── playground/        # playground テンプレ群
 ├── framework/              # 技術基盤層（共通部品・共通サービス）
 │   ├── backend/
 │   │   ├── rust/
@@ -107,7 +108,7 @@ k1s0 new-feature --type backend-rust --name work-order --domain manufacturing
 k1s0 new-screen --type frontend-react --name dashboard
 
 # domain 一覧の確認
-k1s0 domain list
+k1s0 domain-list
 
 # 規約チェック
 k1s0 lint
@@ -154,10 +155,10 @@ k1s0 new-feature --type backend-rust
 | `k1s0 lint` | 規約違反検査 |
 | `k1s0 upgrade` | テンプレート更新 |
 | `k1s0 completions` | シェル補完スクリプト生成 |
-| `k1s0 domain list` | 全 domain の一覧表示 |
-| `k1s0 domain version` | domain バージョンの表示・更新 |
-| `k1s0 domain dependents` | domain に依存する feature の一覧表示 |
-| `k1s0 domain impact` | domain バージョンアップの影響分析 |
+| `k1s0 domain-list` | 全 domain の一覧表示 |
+| `k1s0 domain-version` | domain バージョンの表示・更新 |
+| `k1s0 domain-dependents` | domain に依存する feature の一覧表示 |
+| `k1s0 domain-impact` | domain バージョンアップの影響分析 |
 | `k1s0 domain-catalog` | domain カタログ（依存状況付き）の表示 |
 | `k1s0 domain-graph` | domain 依存グラフ出力（Mermaid/DOT） |
 | `k1s0 doctor` | 開発環境の健全性チェック |
@@ -174,8 +175,6 @@ k1s0 new-feature --type backend-rust
 | `k1s0 migrate plan` | 移行計画を生成 |
 | `k1s0 migrate apply` | 移行計画を適用 |
 | `k1s0 migrate status` | 移行の進捗状況を表示 |
-| `k1s0 log` | Git コミット履歴を表示 |
-| `k1s0 diff` | Git diff を表示 |
 
 ### 共通オプション
 
@@ -263,7 +262,7 @@ k1s0 lint --strict
 
 ## テンプレート
 
-8 種類のサービステンプレートを提供します。各テンプレートは feature 層と domain 層の両方に対応しています。
+8 種類のサービステンプレートと playground テンプレートを提供します。サービステンプレートは feature 層と domain 層の両方に対応しています。
 
 | テンプレート | サブテンプレート | 出力先 |
 |-------------|-----------------|--------|
@@ -274,7 +273,7 @@ k1s0 lint --strict
 | backend-kotlin | feature, domain | `feature/backend/kotlin/{name}/`, `domain/backend/kotlin/{name}/` |
 | frontend-react | feature, domain, screen | `feature/frontend/react/{name}/`, `domain/frontend/react/{name}/` |
 | frontend-flutter | feature, domain, screen | `feature/frontend/flutter/{name}/`, `domain/frontend/flutter/{name}/` |
-| frontend-android | feature, domain | `feature/frontend/android/{name}/`, `domain/frontend/android/{name}/` |
+| frontend-android | feature, domain, screen | `feature/frontend/android/{name}/`, `domain/frontend/android/{name}/` |
 
 詳細は [テンプレート設計書](docs/design/template/) を参照してください。
 

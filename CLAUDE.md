@@ -9,7 +9,7 @@ This document provides comprehensive guidance for AI assistants working with the
 ### Core Features
 
 - **Service scaffold generation**: Templates generate consistent directory structures
-- **Development convention enforcement**: 24 lint rules detect violations with some auto-fix
+- **Development convention enforcement**: 26 lint rules detect violations with some auto-fix
 - **Safe template upgrades**: Managed/protected area separation prevents breaking changes
 
 ### Philosophy
@@ -65,7 +65,7 @@ k1s0/
 │   │   ├── k1s0-cli/            # Main CLI executable (clap-based)
 │   │   ├── k1s0-generator/      # Template engine & Lint engine
 │   │   └── k1s0-lsp/            # LSP server (completions, hover)
-│   ├── templates/               # 8 service templates
+│   ├── templates/               # 8 service templates + playground
 │   │   ├── backend-rust/        # Rust backend scaffold
 │   │   ├── backend-go/          # Go backend scaffold
 │   │   ├── backend-csharp/      # C# backend scaffold
@@ -73,7 +73,8 @@ k1s0/
 │   │   ├── backend-kotlin/      # Kotlin backend scaffold
 │   │   ├── frontend-react/      # React app scaffold
 │   │   ├── frontend-flutter/    # Flutter app scaffold
-│   │   └── frontend-android/    # Android app scaffold (Kotlin)
+│   │   ├── frontend-android/    # Android app scaffold (Kotlin)
+│   │   └── playground/          # Playground templates
 │   └── schemas/                 # JSON Schema definitions
 │
 ├── framework/                    # Shared libraries & services (Layer 1)
@@ -294,8 +295,8 @@ buf format --exit-code
 |---------|-------------|
 | `k1s0 init` | Initialize repository (`.k1s0/` directory) |
 | `k1s0 new-feature --type <type> --name <name>` | Generate service scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, backend-kotlin, frontend-react, frontend-flutter, frontend-android) |
-| `k1s0 new-domain --type <type> --name <name>` | Generate domain scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, backend-kotlin, frontend-react, frontend-flutter, frontend-android) |
-| `k1s0 new-screen --type <type> --screen <id>` | Generate frontend screen |
+| `k1s0 new-domain --type <type> --name <name>` | Generate domain scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, backend-kotlin, frontend-react, frontend-flutter, frontend-android). Options: `--with-events`, `--with-repository` (default true), `--version` (default "0.1.0"), `--force`, `-y/--yes` |
+| `k1s0 new-screen --type <type> --screen <id>` | Generate frontend screen (type: react, flutter, android) |
 | `k1s0 lint` | Check conventions |
 | `k1s0 lint --fix` | Auto-fix violations |
 | `k1s0 upgrade --check` | Show changes without applying |
@@ -316,7 +317,7 @@ buf format --exit-code
 | `k1s0 docker compose down` | Stop docker compose services (`-v`) |
 | `k1s0 docker compose logs` | Show docker compose logs (`-f`, `<service>`) |
 | `k1s0 docker status` | Show container status (`--json`) |
-| `k1s0 playground start` | Start playground environment (`--type`, `--mode`, `--with-grpc`, `--with-db`, `--with-cache`, `--port-offset`) |
+| `k1s0 playground start` | Start playground environment (`--type`, `--name`, `--mode`, `--with-grpc`, `--with-rest`, `--with-db`, `--with-cache`, `--port-offset`, `-y/--yes`) |
 | `k1s0 playground stop` | Stop and remove playground (`--name`, `-v`, `-y`) |
 | `k1s0 playground status` | Show running playgrounds (`--json`) |
 | `k1s0 playground list` | List available playground templates |
@@ -907,7 +908,7 @@ The `.claude/agents/` directory contains configurations for specialized Claude a
 ### Creating a New Feature Service
 
 ```bash
-k1s0 new-feature --type backend-rust --name order-processing --with-grpc --with-db
+k1s0 new-feature --type backend-rust --name order-processing --with-grpc --with-rest --with-db
 ```
 
 This generates:
