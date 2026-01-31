@@ -2,6 +2,8 @@
 //!
 //! LSP の補完・ホバー機能で使用するスキーマ情報を提供する。
 
+use std::path::Path;
+
 use tower_lsp::lsp_types::{CompletionItem, CompletionItemKind, Documentation, MarkupContent, MarkupKind};
 
 /// manifest.json のスキーマ定義
@@ -340,6 +342,125 @@ impl ManifestSchema {
                     children: None,
                 },
             ],
+        }
+    }
+
+    /// JSON Schema ファイルからスキーマを読み込み
+    ///
+    /// パスが指定されればファイルから、なければ組み込みスキーマを使用
+    pub fn load(schema_path: Option<&Path>) -> Self {
+        if let Some(path) = schema_path {
+            if let Ok(content) = std::fs::read_to_string(path) {
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                    if let Some(schema) = Self::from_json_schema(&json) {
+                        return schema;
+                    }
+                }
+            }
+        }
+        // フォールバック: ハードコード版
+        Self::new()
+    }
+
+    /// JSON Schema の Value から ManifestSchema を構築
+    pub fn from_json_schema(json: &serde_json::Value) -> Option<Self> {
+        let properties = json.get("properties")?.as_object()?;
+        let required_keys: Vec<&str> = json
+            .get("required")
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect())
+            .unwrap_or_default();
+
+        let root_keys: Vec<ManifestKey> = properties
+            .iter()
+            .filter_map(|(name, prop)| Self::parse_property(name, prop, &required_keys))
+            .collect();
+
+        if root_keys.is_empty() {
+            return None;
+        }
+
+        Some(Self { root_keys })
+    }
+
+    /// JSON Schema の property を ManifestKey に変換
+    fn parse_property(
+        name: &str,
+        prop: &serde_json::Value,
+        required_keys: &[&str],
+    ) -> Option<ManifestKey> {
+        let name: &'static str = Box::leak(name.to_string().into_boxed_str());
+        let description: &'static str = Box::leak(
+            prop.get("description")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string()
+                .into_boxed_str(),
+        );
+        let required = required_keys.contains(&name);
+
+        let value_type = Self::parse_value_type(prop);
+
+        let examples: Vec<&'static str> = prop
+            .get("examples")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str())
+                    .map(|s| -> &'static str { Box::leak(s.to_string().into_boxed_str()) })
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let children = if let Some(sub_props) = prop.get("properties").and_then(|v| v.as_object())
+        {
+            let sub_required: Vec<&str> = prop
+                .get("required")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect())
+                .unwrap_or_default();
+            let children: Vec<ManifestKey> = sub_props
+                .iter()
+                .filter_map(|(n, p)| Self::parse_property(n, p, &sub_required))
+                .collect();
+            if children.is_empty() {
+                None
+            } else {
+                Some(children)
+            }
+        } else {
+            None
+        };
+
+        Some(ManifestKey {
+            name,
+            description,
+            required,
+            value_type,
+            examples,
+            children,
+        })
+    }
+
+    /// JSON Schema の type/enum を ValueType に変換
+    fn parse_value_type(prop: &serde_json::Value) -> ValueType {
+        // enum が指定されている場合
+        if let Some(enum_values) = prop.get("enum").and_then(|v| v.as_array()) {
+            let values: Vec<&'static str> = enum_values
+                .iter()
+                .filter_map(|v| v.as_str())
+                .map(|s| -> &'static str { Box::leak(s.to_string().into_boxed_str()) })
+                .collect();
+            return ValueType::Enum(values);
+        }
+
+        match prop.get("type").and_then(|v| v.as_str()) {
+            Some("string") => ValueType::String,
+            Some("number") | Some("integer") => ValueType::Number,
+            Some("boolean") => ValueType::Boolean,
+            Some("object") => ValueType::Object,
+            Some("array") => ValueType::Array,
+            _ => ValueType::String,
         }
     }
 
