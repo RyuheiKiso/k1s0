@@ -80,7 +80,7 @@ k1s0/
 ├── framework/                    # Shared libraries & services (Layer 1)
 │   ├── backend/
 │   │   ├── rust/
-│   │   │   ├── crates/          # 12 shared Rust crates
+│   │   │   ├── crates/          # 13 shared Rust crates
 │   │   │   └── services/        # Common microservices (auth, config, endpoint)
 │   │   ├── go/
 │   │   ├── csharp/              # C# NuGet packages
@@ -297,7 +297,7 @@ buf format --exit-code
 | `k1s0 init` | Initialize repository (`.k1s0/` directory) |
 | `k1s0 new-feature --type <type> --name <name>` | Generate service scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, backend-kotlin, frontend-react, frontend-flutter, frontend-android) |
 | `k1s0 new-domain --type <type> --name <name>` | Generate domain scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, backend-kotlin, frontend-react, frontend-flutter, frontend-android). Options: `--with-events`, `--with-repository` (default true), `--version` (default "0.1.0"), `--force`, `-y/--yes` |
-| `k1s0 new-screen --type <type> --screen <id>` | Generate frontend screen (type: react, flutter, android) |
+| `k1s0 new-screen --type <type> --screen-id <id>` | Generate frontend screen (type: react, flutter, android) |
 | `k1s0 lint` | Check conventions (uses AST analysis by default for K020, K022, K026, K029, K050, K053) |
 | `k1s0 lint --fix` | Auto-fix violations |
 | `k1s0 lint --fast` | Check conventions using grep-based detection (skips AST parsing for faster execution) |
@@ -327,8 +327,6 @@ buf format --exit-code
 | `k1s0 migrate plan` | Generate migration plan (`--path`, `--name`, `--type`, `--output`, `--dry-run`) |
 | `k1s0 migrate apply` | Apply migration plan (`--path`, `--plan`, `--phase`, `--dry-run`, `--yes`, `--skip-backup`) |
 | `k1s0 migrate status` | Show migration progress (`--path`, `--plan`, `--json`) |
-| `k1s0 log` | Show Git commit history |
-| `k1s0 diff` | Show Git diff |
 
 ### Interactive Mode
 
@@ -945,7 +943,7 @@ This generates:
 ### Adding a New Screen (Frontend)
 
 ```bash
-k1s0 new-screen --type frontend-react --screen user-profile
+k1s0 new-screen --type frontend-react --screen-id user-profile
 ```
 
 ### Running Lint Check

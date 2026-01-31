@@ -30,6 +30,10 @@ pub struct LintArgs {
     #[arg(long)]
     pub fix: bool,
 
+    /// AST パースをスキップし grep ベースで高速実行
+    #[arg(long)]
+    pub fast: bool,
+
     /// JSON 形式で出力
     #[arg(long)]
     pub json: bool,
