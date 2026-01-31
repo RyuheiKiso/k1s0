@@ -9,9 +9,11 @@ k1s0 の Lint 機能は、開発規約に対する違反を検査し、一部は
 | ファイル | 内容 |
 |----------|------|
 | [rules-manifest.md](./rules-manifest.md) | K001-K003 manifest 検査、K010-K011 必須ファイル検査 |
-| [rules-code-quality.md](./rules-code-quality.md) | K020 環境変数、K021 機密、K022 依存方向 |
+| [rules-code-quality.md](./rules-code-quality.md) | K020-K029 コード品質検査 |
 | [rules-grpc-retry.md](./rules-grpc-retry.md) | K030-K032 gRPC リトライ設定検査 |
 | [rules-layer-deps.md](./rules-layer-deps.md) | K040-K047 層間依存関係検査 |
+| [rules-security.md](./rules-security.md) | K050-K053 セキュリティ検査 |
+| [rules-infrastructure.md](./rules-infrastructure.md) | K060 インフラ検査 |
 | [fixer.md](./fixer.md) | 自動修正 Fixer |
 | [integration.md](./integration.md) | CLI 統合・LSP 統合 |
 | [future.md](./future.md) | 今後の拡張予定 |
@@ -30,6 +32,13 @@ CLI/crates/k1s0-generator/src/lint/
 ├── layer_dependency.rs # K040-K047: 層間依存関係検査
 ├── retry.rs            # K030-K032: gRPC リトライ設定検査
 ├── fixer.rs            # 自動修正ロジック
+├── config_naming.rs    # K025: 設定ファイル命名規約検査
+├── protocol_dependency.rs # K026: Domain 層プロトコル依存検査
+├── unused_domain.rs    # K028: 未使用 domain 依存検査
+├── panic_detection.rs  # K029: 本番コードパニック検出
+├── sql_injection.rs    # K050: SQL インジェクションリスク検査
+├── sensitive_logging.rs # K053: 機密情報ログ出力検査
+├── dockerfile_lint.rs  # K060: Dockerfile ベースイメージ検査
 ├── diff.rs             # Git diff フィルタリング
 ├── watch.rs            # ファイル監視モード
 ├── utils.rs            # ユーティリティ関数
@@ -50,6 +59,10 @@ CLI/crates/k1s0-generator/src/lint/
 | K020 | Error | 環境変数参照の禁止 | - |
 | K021 | Error | config YAML への機密直書き禁止 | - |
 | K022 | Error | Clean Architecture 依存方向違反 | - |
+| K025 | Error | 設定ファイルの命名規約違反 | - |
+| K026 | Error | Domain 層でのプロトコル型使用禁止 | - |
+| K028 | Warning | 未使用 domain 依存の検出 | - |
+| K029 | Error | 本番コードでのパニック使用禁止 | - |
 | K030 | Warning | gRPC リトライ設定の検出（可視化） | - |
 | K031 | Warning | gRPC リトライ設定に ADR 参照がない | - |
 | K032 | Warning | gRPC リトライ設定が不完全 | - |
@@ -61,6 +74,9 @@ CLI/crates/k1s0-generator/src/lint/
 | K045 | Warning | min_framework_version 違反 | - |
 | K046 | Warning | breaking_changes の影響 | - |
 | K047 | Error | domain 層の version 未設定 | - |
+| K050 | Error | SQL インジェクションリスク検出 | - |
+| K053 | Warning | ログへの機密情報出力検出 | - |
+| K060 | Warning | Dockerfile ベースイメージ未固定 | - |
 
 ---
 
@@ -78,6 +94,10 @@ pub enum RuleId {
     EnvVarUsage,             // K020
     SecretInConfig,          // K021
     DependencyDirection,     // K022
+    ConfigFileNaming,        // K025
+    ProtocolDependencyInDomain, // K026
+    UnusedDomainDependency,  // K028
+    PanicInProductionCode,   // K029
     RetryUsageDetected,      // K030
     RetryWithoutAdr,         // K031
     RetryConfigIncomplete,   // K032
@@ -90,6 +110,11 @@ pub enum RuleId {
     MinFrameworkVersionViolation,// K045
     BreakingChangeImpact,        // K046
     DomainVersionMissing,        // K047
+    // セキュリティルール（K050-K053）
+    SqlInjectionRisk,            // K050
+    LoggingSensitiveData,        // K053
+    // インフラルール（K060）
+    DockerfileBaseImageUnpinned, // K060
 }
 
 impl RuleId {
@@ -202,6 +227,13 @@ impl Linter {
 3. K020: 環境変数参照の検査
 4. K021: config YAML への機密直書き検査
 5. K022: Clean Architecture 依存方向検査
-6. K030/K031/K032: gRPC リトライ設定検査
-7. strict モードの場合: 警告をエラーに昇格
+6. K025: 設定ファイル命名規約検査
+7. K026: Domain 層プロトコル依存検査
+8. K028: 未使用 domain 依存検査
+9. K029: 本番コードパニック検出
+10. K030/K031/K032: gRPC リトライ設定検査
+11. K050: SQL インジェクションリスク検査
+12. K053: 機密情報ログ出力検査
+13. K060: Dockerfile ベースイメージ検査
+14. strict モードの場合: 警告をエラーに昇格
 ```
