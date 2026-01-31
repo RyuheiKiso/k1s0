@@ -115,6 +115,7 @@ pub mod config;
 pub mod discovery;
 pub mod error;
 pub mod interceptors;
+pub mod stream;
 
 // Re-exports
 pub use builder::{CallOptions, ChannelPoolConfig, GrpcClientBuilder, GrpcClientConnection};

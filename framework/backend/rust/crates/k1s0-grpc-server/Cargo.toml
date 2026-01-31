@@ -14,7 +14,8 @@ serde_json = "1.0"
 thiserror = "1.0"
 
 # Time
-tokio = { version = "1.0", features = ["time"] }
+tokio = { version = "1.0", features = ["time", "sync"] }
 
 [dev-dependencies]
 tokio = { version = "1.0", features = ["full", "test-util"] }
+tokio-test = "0.4"

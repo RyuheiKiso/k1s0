@@ -449,3 +449,14 @@ val cb = CircuitBreaker(CircuitBreakerConfig(
 ))
 val result = cb.execute { callService() }
 ```
+
+## k1s0-rate-limit との棲み分け
+
+| パッケージ | 責務 | パターン |
+|-----------|------|---------|
+| k1s0-resilience | 障害への耐性 | サーキットブレーカー、リトライ、タイムアウト、セマフォ、バルクヘッド |
+| k1s0-rate-limit | 負荷の制御 | トークンバケット、スライディングウィンドウ、リクエストスロットリング |
+
+セマフォ（同時実行制限）は k1s0-resilience に維持する。レート制限（単位時間あたりのリクエスト数制限）は k1s0-rate-limit が担当する。
+
+詳細は [k1s0-rate-limit 設計書](k1s0-rate-limit.md) を参照。

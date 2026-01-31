@@ -36,6 +36,9 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
 
+    <!-- RateLimit -->
+    <PackageVersion Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
+
     <!-- Auth -->
     <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.3.1" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />

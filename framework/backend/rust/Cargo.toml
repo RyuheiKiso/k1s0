@@ -11,6 +11,7 @@ members = [
     "crates/k1s0-grpc-server",
     "crates/k1s0-health",
     "crates/k1s0-observability",
+    "crates/k1s0-rate-limit",
     "crates/k1s0-resilience",
     "crates/k1s0-validation",
     "services/auth-service",

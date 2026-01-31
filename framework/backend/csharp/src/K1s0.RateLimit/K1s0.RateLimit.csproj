@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.RateLimit</RootNamespace>
+    <Description>Rate limiting patterns (token bucket, sliding window) for k1s0 microservices</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\K1s0.Error\K1s0.Error.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+</Project>

@@ -12,5 +12,6 @@ use (
 	./k1s0-health
 	./k1s0-observability
 	./k1s0-resilience
+	./k1s0-rate-limit
 	./k1s0-validation
 )

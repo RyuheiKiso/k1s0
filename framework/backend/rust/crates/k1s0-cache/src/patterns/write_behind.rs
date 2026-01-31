@@ -143,6 +143,8 @@ pub struct WriteBehind<C: CacheOperations + 'static> {
     write_tx: mpsc::Sender<WriteEntry>,
     /// 統計情報
     stats: Arc<WriteBehindStats>,
+    /// メトリクス
+    wb_metrics: Arc<WriteBehindMetrics>,
 }
 
 /// Write-Behind 統計情報
@@ -156,6 +158,58 @@ pub struct WriteBehindStats {
     pub writes_retried: std::sync::atomic::AtomicU64,
     /// 現在のキュー長
     pub queue_length: std::sync::atomic::AtomicUsize,
+}
+
+/// Write-Behind メトリクス
+///
+/// キュー深度、容量、エンキュー/デキュー/拒否のカウンタを提供する。
+#[derive(Debug)]
+pub struct WriteBehindMetrics {
+    /// 現在のキュー深度
+    pub queue_depth: std::sync::atomic::AtomicU64,
+    /// キュー容量
+    pub queue_capacity: std::sync::atomic::AtomicU64,
+    /// エンキュー総数
+    pub enqueue_total: std::sync::atomic::AtomicU64,
+    /// デキュー総数
+    pub dequeue_total: std::sync::atomic::AtomicU64,
+    /// 拒否総数（キュー満杯による）
+    pub rejected_total: std::sync::atomic::AtomicU64,
+}
+
+impl WriteBehindMetrics {
+    /// 新しいメトリクスを作成
+    fn new(capacity: u64) -> Self {
+        Self {
+            queue_depth: std::sync::atomic::AtomicU64::new(0),
+            queue_capacity: std::sync::atomic::AtomicU64::new(capacity),
+            enqueue_total: std::sync::atomic::AtomicU64::new(0),
+            dequeue_total: std::sync::atomic::AtomicU64::new(0),
+            rejected_total: std::sync::atomic::AtomicU64::new(0),
+        }
+    }
+
+    /// メトリクスのスナップショットを取得
+    pub fn snapshot(&self) -> WriteBehindMetricsSnapshot {
+        use std::sync::atomic::Ordering;
+        WriteBehindMetricsSnapshot {
+            queue_depth: self.queue_depth.load(Ordering::Relaxed),
+            queue_capacity: self.queue_capacity.load(Ordering::Relaxed),
+            enqueue_total: self.enqueue_total.load(Ordering::Relaxed),
+            dequeue_total: self.dequeue_total.load(Ordering::Relaxed),
+            rejected_total: self.rejected_total.load(Ordering::Relaxed),
+        }
+    }
+}
+
+/// Write-Behind メトリクスのスナップショット
+#[derive(Debug, Clone)]
+pub struct WriteBehindMetricsSnapshot {
+    pub queue_depth: u64,
+    pub queue_capacity: u64,
+    pub enqueue_total: u64,
+    pub dequeue_total: u64,
+    pub rejected_total: u64,
 }
 
 impl WriteBehindStats {
@@ -187,15 +241,17 @@ impl<C: CacheOperations + 'static> WriteBehind<C> {
     pub fn new(cache: Arc<C>, config: WriteBehindConfig) -> Self {
         let (write_tx, write_rx) = mpsc::channel(config.max_queue_size);
         let stats = Arc::new(WriteBehindStats::default());
+        let wb_metrics = Arc::new(WriteBehindMetrics::new(config.max_queue_size as u64));
 
         // バックグラウンドワーカーを起動
-        Self::spawn_worker(write_rx, config.clone(), stats.clone());
+        Self::spawn_worker(write_rx, config.clone(), stats.clone(), wb_metrics.clone());
 
         Self {
             cache,
             config,
             write_tx,
             stats,
+            wb_metrics,
         }
     }
 
@@ -214,11 +270,17 @@ impl<C: CacheOperations + 'static> WriteBehind<C> {
         &self.stats
     }
 
+    /// メトリクスを取得
+    pub fn metrics(&self) -> &WriteBehindMetrics {
+        &self.wb_metrics
+    }
+
     /// バックグラウンドワーカーを起動
     fn spawn_worker(
         mut write_rx: mpsc::Receiver<WriteEntry>,
         config: WriteBehindConfig,
         stats: Arc<WriteBehindStats>,
+        wb_metrics: Arc<WriteBehindMetrics>,
     ) {
         tokio::spawn(async move {
             let mut pending: VecDeque<WriteEntry> = VecDeque::new();
@@ -233,14 +295,14 @@ impl<C: CacheOperations + 'static> WriteBehind<C> {
 
                         // バッチサイズに達したらフラッシュ
                         if pending.len() >= config.batch_size {
-                            Self::process_batch(&mut pending, &config, &stats).await;
+                            Self::process_batch(&mut pending, &config, &stats, &wb_metrics).await;
                         }
                     }
 
                     // フラッシュタイマー
                     _ = flush_timer.tick() => {
                         if !pending.is_empty() {
-                            Self::process_batch(&mut pending, &config, &stats).await;
+                            Self::process_batch(&mut pending, &config, &stats, &wb_metrics).await;
                         }
                     }
 
@@ -250,7 +312,7 @@ impl<C: CacheOperations + 'static> WriteBehind<C> {
 
             // シャットダウン時に残りを処理
             while !pending.is_empty() {
-                Self::process_batch(&mut pending, &config, &stats).await;
+                Self::process_batch(&mut pending, &config, &stats, &wb_metrics).await;
             }
         });
     }
@@ -260,6 +322,7 @@ impl<C: CacheOperations + 'static> WriteBehind<C> {
         pending: &mut VecDeque<WriteEntry>,
         config: &WriteBehindConfig,
         stats: &WriteBehindStats,
+        wb_metrics: &WriteBehindMetrics,
     ) {
         let batch_size = pending.len().min(config.batch_size);
         let mut retry_entries: Vec<WriteEntry> = Vec::new();
@@ -267,6 +330,8 @@ impl<C: CacheOperations + 'static> WriteBehind<C> {
         for _ in 0..batch_size {
             if let Some(entry) = pending.pop_front() {
                 stats.queue_length.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+                wb_metrics.dequeue_total.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                wb_metrics.queue_depth.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
 
                 // 書き込み実行
                 let future = (entry.operation)();
@@ -356,16 +421,27 @@ impl<C: CacheOperations + 'static> WriteBehind<C> {
             debug!(key = %key, "Cache write succeeded");
         }
 
-        // 2. DB 書き込みをキューに追加
+        // 2. DB 書き込みをキューに追加（非ブロッキング try_send でメトリクス追跡）
         let entry = WriteEntry {
             key: key.to_string(),
             retries: 0,
             operation: Box::new(move || Box::pin(db_writer())),
         };
 
-        if let Err(e) = self.write_tx.send(entry).await {
-            error!(key = %key, error = %e, "Failed to queue write-behind operation");
-            return Err(CacheError::internal("write-behind queue full"));
+        match self.write_tx.try_send(entry) {
+            Ok(()) => {
+                self.wb_metrics.enqueue_total.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                self.wb_metrics.queue_depth.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            }
+            Err(mpsc::error::TrySendError::Full(_)) => {
+                self.wb_metrics.rejected_total.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                error!(key = %key, "Failed to queue write-behind operation: queue full");
+                return Err(CacheError::internal("write-behind queue full"));
+            }
+            Err(mpsc::error::TrySendError::Closed(_)) => {
+                error!(key = %key, "Failed to queue write-behind operation: channel closed");
+                return Err(CacheError::internal("write-behind channel closed"));
+            }
         }
 
         Ok(())
@@ -581,6 +657,54 @@ mod tests {
         // 少し待ってから DB 書き込みを確認
         tokio::time::sleep(Duration::from_millis(200)).await;
         assert_eq!(db_write_count.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn test_write_behind_metrics() {
+        let cache = Arc::new(MockCache::new());
+        let config = WriteBehindConfig::default()
+            .with_flush_interval(Duration::from_millis(50))
+            .with_max_queue_size(100);
+        let write_behind = WriteBehind::new(cache.clone(), config);
+
+        // 複数の書き込み
+        for i in 0..3 {
+            let key = format!("metric_key:{}", i);
+            write_behind
+                .write(&key, &i, || async { Ok(()) })
+                .await
+                .unwrap();
+        }
+
+        let metrics = write_behind.metrics().snapshot();
+        assert_eq!(metrics.enqueue_total, 3);
+        assert_eq!(metrics.queue_capacity, 100);
+
+        // ワーカーが処理するまで待機
+        tokio::time::sleep(Duration::from_millis(200)).await;
+
+        let metrics = write_behind.metrics().snapshot();
+        assert_eq!(metrics.dequeue_total, 3);
+    }
+
+    #[tokio::test]
+    async fn test_write_behind_metrics_rejected() {
+        let cache = Arc::new(MockCache::new());
+        let config = WriteBehindConfig::default()
+            .with_flush_interval(Duration::from_secs(60))  // 長いフラッシュ間隔でキューを埋める
+            .with_max_queue_size(2);
+        let write_behind = WriteBehind::new(cache.clone(), config);
+
+        // 2つまでは成功
+        write_behind.write("k1", &1, || async { Ok(()) }).await.unwrap();
+        write_behind.write("k2", &2, || async { Ok(()) }).await.unwrap();
+
+        // 3つ目は拒否される可能性がある（try_send なので即座に失敗）
+        let result = write_behind.write("k3", &3, || async { Ok(()) }).await;
+        if result.is_err() {
+            let metrics = write_behind.metrics().snapshot();
+            assert_eq!(metrics.rejected_total, 1);
+        }
     }
 
     #[tokio::test]

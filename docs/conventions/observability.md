@@ -205,6 +205,53 @@ docker compose up -d
 
 詳細は [observability/README.md](../../observability/README.md) を参照してください。
 
+## 10. バックプレッシャーメトリクス
+
+以下のメトリクスは `k1s0_` プレフィックスを使用する。
+
+### レート制限
+
+| メトリクス名 | 型 | ラベル | 説明 |
+|-------------|-----|--------|------|
+| `k1s0_rate_limit_requests_total` | Counter | `endpoint`, `result` | リクエスト総数（result=allowed/rejected） |
+| `k1s0_rate_limit_tokens_remaining` | Gauge | `endpoint` | 残トークン数 |
+| `k1s0_rate_limit_wait_duration_seconds` | Histogram | `endpoint` | レート制限待機時間 |
+
+### gRPC ストリーム
+
+| メトリクス名 | 型 | ラベル | 説明 |
+|-------------|-----|--------|------|
+| `k1s0_grpc_stream_buffer_usage` | Gauge | `service`, `method` | バッファ使用率（0.0-1.0） |
+| `k1s0_grpc_stream_backpressure_total` | Counter | `service`, `method` | バックプレッシャー発生回数 |
+
+### Domain Event Bus
+
+| メトリクス名 | 型 | ラベル | 説明 |
+|-------------|-----|--------|------|
+| `k1s0_event_bus_queue_depth` | Gauge | `bus_name` | キュー深度 |
+| `k1s0_event_bus_dropped_total` | Counter | `bus_name`, `reason` | 破棄イベント数 |
+| `k1s0_event_bus_rejected_total` | Counter | `bus_name` | リジェクトイベント数 |
+| `k1s0_event_bus_lagged_total` | Counter | `bus_name` | ラグ発生回数 |
+
+### Write-Behind Cache
+
+| メトリクス名 | 型 | ラベル | 説明 |
+|-------------|-----|--------|------|
+| `k1s0_cache_write_behind_queue_depth` | Gauge | `cache_name` | キュー深度 |
+| `k1s0_cache_write_behind_queue_capacity` | Gauge | `cache_name` | キュー容量 |
+| `k1s0_cache_write_behind_enqueue_total` | Counter | `cache_name` | エンキュー総数 |
+| `k1s0_cache_write_behind_rejected_total` | Counter | `cache_name` | リジェクト数 |
+
+### DB コネクションプール
+
+| メトリクス名 | 型 | ラベル | 説明 |
+|-------------|-----|--------|------|
+| `k1s0_db_pool_active_connections` | Gauge | `pool_name` | アクティブ接続数 |
+| `k1s0_db_pool_idle_connections` | Gauge | `pool_name` | アイドル接続数 |
+| `k1s0_db_pool_waiting_count` | Gauge | `pool_name` | 待機中リクエスト数 |
+| `k1s0_db_pool_rejected_total` | Counter | `pool_name` | リジェクト数 |
+| `k1s0_db_pool_acquire_duration_seconds` | Histogram | `pool_name` | 接続取得時間 |
+
 ## 関連ドキュメント
 
 - [Observability Stack README](../../observability/README.md) - スタックの構成・起動手順

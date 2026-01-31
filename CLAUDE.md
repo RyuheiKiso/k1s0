@@ -662,6 +662,7 @@ app/src/main/kotlin/{package}/
 | k1s0-grpc-server | gRPC server foundation | 2 |
 | k1s0-grpc-client | gRPC client utilities | 2 |
 | k1s0-resilience | Retry/circuit breaker patterns | 2 |
+| k1s0-rate-limit | Rate limiting (token bucket, sliding window) | 2 |
 | k1s0-health | Health check probes | 2 |
 | k1s0-db | Database connection/transaction | 2 |
 | k1s0-cache | Redis caching | 2 |
@@ -679,7 +680,7 @@ app/src/main/kotlin/{package}/
 |---------|-------------|
 | @k1s0/navigation | Config-driven routing |
 | @k1s0/config | YAML config management |
-| @k1s0/api-client | HTTP/gRPC API client |
+| @k1s0/api-client | HTTP/gRPC API client (includes RequestThrottle for client-side rate limiting) |
 | @k1s0/ui | Design system (Material-UI based), DataTable (MUI DataGrid), Form Generator (Zod + react-hook-form) |
 | @k1s0/shell | AppShell (Header/Sidebar/Footer) |
 | @k1s0/auth-client | Client-side auth |
@@ -699,6 +700,7 @@ app/src/main/kotlin/{package}/
 | k1s0-grpc-server | gRPC server foundation | 2 |
 | k1s0-grpc-client | gRPC client utilities | 2 |
 | k1s0-resilience | Retry/circuit breaker patterns | 2 |
+| k1s0-rate-limit | Rate limiting (token bucket, sliding window) | 2 |
 | k1s0-health | Health check probes | 2 |
 | k1s0-db | Database connection/transaction | 2 |
 | k1s0-cache | Redis caching | 2 |
@@ -721,6 +723,7 @@ app/src/main/kotlin/{package}/
 | k1s0-db | Database connection/transaction (SQLAlchemy + asyncpg) | 2 |
 | k1s0-domain-event | Domain event publish/subscribe and outbox pattern | 2 |
 | k1s0-resilience | Circuit breaker, retry, timeout, bulkhead patterns | 2 |
+| k1s0-rate-limit | Rate limiting (token bucket, sliding window) | 2 |
 | k1s0-cache | Redis caching and cache patterns | 2 |
 | k1s0-auth | JWT/OIDC authentication and policy-based authorization | 3 |
 
@@ -732,7 +735,7 @@ app/src/main/kotlin/{package}/
 |---------|-------------|
 | k1s0_navigation | Config-driven routing (go_router based) |
 | k1s0_config | YAML config management |
-| k1s0_http | HTTP client (Dio based) |
+| k1s0_http | HTTP client (Dio based, includes RequestThrottle for client-side rate limiting) |
 | k1s0_ui | Design system (Material 3), DataTable, Form Generator (schema-driven) |
 | k1s0_auth | Authentication client (JWT/OIDC) |
 | k1s0_observability | Structured logging, tracing |
@@ -753,6 +756,7 @@ app/src/main/kotlin/{package}/
 | K1s0.Db | Database connection/transaction (EF Core) | 2 |
 | K1s0.DomainEvent | Domain event publish/subscribe and outbox pattern | 2 |
 | K1s0.Resilience | Circuit breaker, retry, timeout, bulkhead patterns | 2 |
+| K1s0.RateLimit | Rate limiting (token bucket, sliding window) | 2 |
 | K1s0.Cache | Redis caching and cache patterns (StackExchange.Redis) | 2 |
 | K1s0.Auth | JWT/OIDC authentication and policy-based authorization | 3 |
 
@@ -772,6 +776,7 @@ app/src/main/kotlin/{package}/
 | k1s0-db | Database (Exposed + HikariCP) | 2 |
 | k1s0-domain-event | Domain event publish/subscribe/outbox | 2 |
 | k1s0-resilience | Circuit breaker, retry, timeout | 2 |
+| k1s0-rate-limit | Rate limiting (token bucket, sliding window) | 2 |
 | k1s0-cache | Redis caching (Lettuce) | 2 |
 | k1s0-auth | JWT/OIDC auth (nimbus-jose-jwt) | 3 |
 
@@ -783,7 +788,7 @@ app/src/main/kotlin/{package}/
 |---------|-------------|
 | k1s0-navigation | Navigation Compose routing |
 | k1s0-config | YAML config management |
-| k1s0-http | Ktor Client HTTP |
+| k1s0-http | Ktor Client HTTP (includes RequestThrottle for client-side rate limiting) |
 | k1s0-ui | Material 3 design system |
 | k1s0-auth | JWT auth client |
 | k1s0-observability | Logging, tracing |

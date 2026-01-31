@@ -69,6 +69,9 @@ type Config struct {
 
 	// EnableDeadline enables deadline enforcement.
 	EnableDeadline bool
+
+	// Stream holds stream backpressure configuration.
+	Stream StreamBackpressureConfig
 }
 
 // NewConfig creates a new Config with default values.
@@ -87,6 +90,7 @@ func NewConfig() *Config {
 		EnableDeadline:       true,
 		EnableReflection:     false,
 		EnableHealthCheck:    true,
+		Stream:               *DefaultStreamBackpressureConfig(),
 	}
 }
 

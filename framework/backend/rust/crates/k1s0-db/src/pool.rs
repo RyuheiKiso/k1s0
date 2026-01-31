@@ -272,6 +272,223 @@ pub fn from_env_with_prefix(prefix: &str) -> DbPoolBuilder {
     builder
 }
 
+/// バックプレッシャー付きプール設定
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct BackpressuredPoolConfig {
+    /// 同時に接続取得を待機できる最大数
+    #[serde(default = "default_max_waiting")]
+    pub max_waiting: u32,
+    /// 接続取得タイムアウト（ミリ秒）
+    #[serde(default = "default_acquire_timeout_ms")]
+    pub acquire_timeout_ms: u64,
+}
+
+fn default_max_waiting() -> u32 {
+    100
+}
+
+fn default_acquire_timeout_ms() -> u64 {
+    5_000
+}
+
+impl Default for BackpressuredPoolConfig {
+    fn default() -> Self {
+        Self {
+            max_waiting: default_max_waiting(),
+            acquire_timeout_ms: default_acquire_timeout_ms(),
+        }
+    }
+}
+
+impl BackpressuredPoolConfig {
+    /// 同時待機数を設定
+    pub fn with_max_waiting(mut self, max: u32) -> Self {
+        self.max_waiting = max;
+        self
+    }
+
+    /// 取得タイムアウトを設定（ミリ秒）
+    pub fn with_acquire_timeout_ms(mut self, ms: u64) -> Self {
+        self.acquire_timeout_ms = ms;
+        self
+    }
+
+    /// 取得タイムアウトを Duration で取得
+    pub fn acquire_timeout(&self) -> std::time::Duration {
+        std::time::Duration::from_millis(self.acquire_timeout_ms)
+    }
+}
+
+/// プールメトリクス
+#[derive(Debug)]
+pub struct PoolMetrics {
+    /// アクティブな接続数
+    pub active_connections: std::sync::atomic::AtomicU64,
+    /// アイドルな接続数
+    pub idle_connections: std::sync::atomic::AtomicU64,
+    /// 現在の待機数
+    pub waiting_count: std::sync::atomic::AtomicU64,
+    /// 拒否された総数
+    pub rejected_total: std::sync::atomic::AtomicU64,
+    /// 接続取得にかかった時間（ナノ秒の累積）
+    pub acquire_duration_nanos: std::sync::atomic::AtomicU64,
+}
+
+impl PoolMetrics {
+    /// 新しいメトリクスを作成
+    fn new() -> Self {
+        Self {
+            active_connections: std::sync::atomic::AtomicU64::new(0),
+            idle_connections: std::sync::atomic::AtomicU64::new(0),
+            waiting_count: std::sync::atomic::AtomicU64::new(0),
+            rejected_total: std::sync::atomic::AtomicU64::new(0),
+            acquire_duration_nanos: std::sync::atomic::AtomicU64::new(0),
+        }
+    }
+
+    /// メトリクスのスナップショットを取得
+    pub fn snapshot(&self) -> PoolMetricsSnapshot {
+        use std::sync::atomic::Ordering;
+        PoolMetricsSnapshot {
+            active_connections: self.active_connections.load(Ordering::Relaxed),
+            idle_connections: self.idle_connections.load(Ordering::Relaxed),
+            waiting_count: self.waiting_count.load(Ordering::Relaxed),
+            rejected_total: self.rejected_total.load(Ordering::Relaxed),
+            acquire_duration_nanos: self.acquire_duration_nanos.load(Ordering::Relaxed),
+        }
+    }
+}
+
+impl Default for PoolMetrics {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// プールメトリクスのスナップショット
+#[derive(Debug, Clone)]
+pub struct PoolMetricsSnapshot {
+    pub active_connections: u64,
+    pub idle_connections: u64,
+    pub waiting_count: u64,
+    pub rejected_total: u64,
+    pub acquire_duration_nanos: u64,
+}
+
+/// バックプレッシャー付きコネクションプールラッパー
+///
+/// 待機キューの長さを制限し、過負荷時に早期に拒否することで
+/// カスケード障害を防止する。
+pub struct BackpressuredPool {
+    config: BackpressuredPoolConfig,
+    metrics: std::sync::Arc<PoolMetrics>,
+    /// 待機数を管理するセマフォ
+    waiting_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
+}
+
+/// バックプレッシャーガード
+///
+/// ドロップ時に待機カウントを減算する。
+pub struct BackpressureGuard {
+    metrics: std::sync::Arc<PoolMetrics>,
+    _permit: tokio::sync::OwnedSemaphorePermit,
+    acquired: bool,
+}
+
+impl BackpressureGuard {
+    /// 接続取得成功をマーク
+    pub fn mark_acquired(&mut self) {
+        if !self.acquired {
+            self.acquired = true;
+            self.metrics
+                .active_connections
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        }
+    }
+}
+
+impl Drop for BackpressureGuard {
+    fn drop(&mut self) {
+        self.metrics
+            .waiting_count
+            .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+        if self.acquired {
+            self.metrics
+                .active_connections
+                .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+        }
+    }
+}
+
+impl BackpressuredPool {
+    /// 新しいバックプレッシャー付きプールを作成
+    pub fn new(config: BackpressuredPoolConfig) -> Self {
+        let semaphore = std::sync::Arc::new(
+            tokio::sync::Semaphore::new(config.max_waiting as usize),
+        );
+        Self {
+            config,
+            metrics: std::sync::Arc::new(PoolMetrics::new()),
+            waiting_semaphore: semaphore,
+        }
+    }
+
+    /// 接続取得の許可を取得する
+    ///
+    /// 待機キューが満杯の場合はエラーを返す。
+    /// 取得成功後は返された `BackpressureGuard` を保持し、
+    /// 実際の接続取得後に `mark_acquired()` を呼ぶ。
+    pub async fn acquire(&self) -> DbResult<BackpressureGuard> {
+        let start = std::time::Instant::now();
+
+        // 待機キューに空きがあるか試行
+        let permit = match self.waiting_semaphore.clone().try_acquire_owned() {
+            Ok(permit) => permit,
+            Err(_) => {
+                self.metrics
+                    .rejected_total
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                return Err(DbError::pool_exhausted(self.config.max_waiting));
+            }
+        };
+
+        self.metrics
+            .waiting_count
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+        let elapsed = start.elapsed();
+        self.metrics.acquire_duration_nanos.fetch_add(
+            elapsed.as_nanos() as u64,
+            std::sync::atomic::Ordering::Relaxed,
+        );
+
+        Ok(BackpressureGuard {
+            metrics: self.metrics.clone(),
+            _permit: permit,
+            acquired: false,
+        })
+    }
+
+    /// タイムアウト付きで接続取得の許可を取得する
+    pub async fn acquire_timeout(&self) -> DbResult<BackpressureGuard> {
+        let timeout = self.config.acquire_timeout();
+        match tokio::time::timeout(timeout, self.acquire()).await {
+            Ok(result) => result,
+            Err(_) => Err(DbError::connection_timeout(self.config.acquire_timeout_ms)),
+        }
+    }
+
+    /// メトリクスへの参照を取得
+    pub fn metrics(&self) -> &PoolMetrics {
+        &self.metrics
+    }
+
+    /// 設定への参照を取得
+    pub fn config(&self) -> &BackpressuredPoolConfig {
+        &self.config
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -348,5 +565,96 @@ mod tests {
         assert_eq!(config.database, "db");
         assert_eq!(config.username, "user");
         assert_eq!(password, "secret");
+    }
+
+    #[test]
+    fn test_backpressured_pool_config_default() {
+        let config = BackpressuredPoolConfig::default();
+        assert_eq!(config.max_waiting, 100);
+        assert_eq!(config.acquire_timeout_ms, 5_000);
+    }
+
+    #[test]
+    fn test_backpressured_pool_config_builder() {
+        let config = BackpressuredPoolConfig::default()
+            .with_max_waiting(50)
+            .with_acquire_timeout_ms(10_000);
+        assert_eq!(config.max_waiting, 50);
+        assert_eq!(config.acquire_timeout_ms, 10_000);
+        assert_eq!(
+            config.acquire_timeout(),
+            std::time::Duration::from_millis(10_000)
+        );
+    }
+
+    #[test]
+    fn test_pool_metrics_initial() {
+        let metrics = PoolMetrics::new();
+        let snap = metrics.snapshot();
+        assert_eq!(snap.active_connections, 0);
+        assert_eq!(snap.idle_connections, 0);
+        assert_eq!(snap.waiting_count, 0);
+        assert_eq!(snap.rejected_total, 0);
+        assert_eq!(snap.acquire_duration_nanos, 0);
+    }
+
+    #[tokio::test]
+    async fn test_backpressured_pool_acquire() {
+        let config = BackpressuredPoolConfig::default().with_max_waiting(2);
+        let pool = BackpressuredPool::new(config);
+
+        let mut guard1 = pool.acquire().await.unwrap();
+        guard1.mark_acquired();
+        assert_eq!(pool.metrics().snapshot().waiting_count, 1);
+        assert_eq!(pool.metrics().snapshot().active_connections, 1);
+
+        let mut guard2 = pool.acquire().await.unwrap();
+        guard2.mark_acquired();
+        assert_eq!(pool.metrics().snapshot().waiting_count, 2);
+
+        // 3つ目は拒否される
+        let result = pool.acquire().await;
+        assert!(result.is_err());
+        assert_eq!(pool.metrics().snapshot().rejected_total, 1);
+
+        // guard を解放するとスロットが空く
+        drop(guard1);
+        assert_eq!(pool.metrics().snapshot().waiting_count, 1);
+
+        let _guard3 = pool.acquire().await.unwrap();
+        assert_eq!(pool.metrics().snapshot().waiting_count, 2);
+    }
+
+    #[tokio::test]
+    async fn test_backpressured_pool_rejected_when_full() {
+        let config = BackpressuredPoolConfig::default().with_max_waiting(1);
+        let pool = BackpressuredPool::new(config);
+
+        let _guard = pool.acquire().await.unwrap();
+
+        // キュー満杯で拒否
+        let result = pool.acquire().await;
+        assert!(result.is_err());
+        assert_eq!(pool.metrics().snapshot().rejected_total, 1);
+
+        // もう一度試行しても拒否
+        let result = pool.acquire().await;
+        assert!(result.is_err());
+        assert_eq!(pool.metrics().snapshot().rejected_total, 2);
+    }
+
+    #[tokio::test]
+    async fn test_backpressured_pool_guard_drop_cleans_up() {
+        let config = BackpressuredPoolConfig::default().with_max_waiting(2);
+        let pool = BackpressuredPool::new(config);
+
+        {
+            let mut guard = pool.acquire().await.unwrap();
+            guard.mark_acquired();
+            assert_eq!(pool.metrics().snapshot().active_connections, 1);
+        }
+        // guard ドロップ後
+        assert_eq!(pool.metrics().snapshot().active_connections, 0);
+        assert_eq!(pool.metrics().snapshot().waiting_count, 0);
     }
 }

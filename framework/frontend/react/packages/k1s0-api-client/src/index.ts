@@ -56,6 +56,13 @@ export {
   defaultTelemetry,
 } from './telemetry/index.js';
 
+// Throttle
+export {
+  type ThrottleConfig,
+  DEFAULT_THROTTLE_CONFIG,
+  RequestThrottle,
+} from './throttle.js';
+
 // UI
 export {
   ErrorDisplay,
