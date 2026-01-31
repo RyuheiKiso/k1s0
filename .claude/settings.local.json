@@ -101,7 +101,8 @@
       "Bash(git -C C:/work/github/k1s0 log --oneline --all --diff-filter=A --name-only --since=\"2026-01-25\")",
       "Bash(cargo metadata:*)",
       "Bash(git -C C:/work/github/k1s0 log --format=\"%h %s\" --diff-filter=A --name-only --since=\"2026-01-25\")",
-      "Bash(git -C C:/work/github/k1s0 log --oneline --all)"
+      "Bash(git -C C:/work/github/k1s0 log --oneline --all)",
+      "Bash(git diff:*)"
     ]
   }
 }
