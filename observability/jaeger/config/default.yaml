@@ -1,0 +1,27 @@
+collector:
+  otlp:
+    enabled: true
+    grpc:
+      host_port: 0.0.0.0:4317
+    http:
+      host_port: 0.0.0.0:4318
+  num_workers: 50
+  queue_size: 2000
+
+query:
+  base_path: /
+  ui:
+    config_file: ""
+  grpc:
+    host_port: 0.0.0.0:16685
+  http:
+    host_port: 0.0.0.0:16686
+
+sampling:
+  strategies_file: ""
+
+admin:
+  http:
+    host_port: 0.0.0.0:14269
+
+log_level: info

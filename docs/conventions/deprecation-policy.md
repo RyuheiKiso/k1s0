@@ -303,7 +303,55 @@ func (w *WorkOrder) Start() error {
 }
 ```
 
-### 7.3 TypeScript での非推奨化
+### 7.3 C# での非推奨化
+
+```csharp
+/// <summary>
+/// Work order entity.
+/// </summary>
+[Obsolete("Since 1.5.0. Use ManufacturingV2.WorkOrder instead.")]
+public class WorkOrder
+{
+    // ...
+}
+```
+
+### 7.4 Python での非推奨化
+
+```python
+import warnings
+
+class WorkOrder:
+    """Work order entity.
+
+    .. deprecated:: 1.5.0
+        Use ``manufacturing_v2.WorkOrder`` instead.
+    """
+    def __init__(self):
+        warnings.warn(
+            "WorkOrder is deprecated since 1.5.0. Use manufacturing_v2.WorkOrder instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+```
+
+### 7.5 Kotlin での非推奨化
+
+```kotlin
+/**
+ * Work order entity.
+ */
+@Deprecated(
+    message = "Since 1.5.0. Use manufacturing_v2.WorkOrder instead.",
+    replaceWith = ReplaceWith("manufacturing_v2.WorkOrder"),
+    level = DeprecationLevel.WARNING,
+)
+data class WorkOrder(
+    // ...
+)
+```
+
+### 7.6 TypeScript での非推奨化
 
 ```typescript
 /**
@@ -319,6 +367,16 @@ export interface WorkOrder {
  * @deprecated Since 1.5.0. Use createWorkOrder from manufacturing-v2 instead.
  */
 export function createWorkOrder(params: CreateWorkOrderParams): WorkOrder {
+  // ...
+}
+```
+
+### 7.7 Dart での非推奨化
+
+```dart
+/// Work order entity.
+@Deprecated('Since 1.5.0. Use manufacturing_v2.WorkOrder instead.')
+class WorkOrder {
   // ...
 }
 ```

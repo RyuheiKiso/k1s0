@@ -229,6 +229,19 @@ fn print_tool_status(check: &ToolCheck, verbose: bool) {
                 name,
                 suffix
             );
+            // Docker 固有の可観測性スタック案内
+            if check.requirement.category == ToolCategory::Docker {
+                eprintln!(
+                    "    └─ 可観測性スタック（Grafana, Jaeger 等）を利用するには Docker のインストールが必要です。"
+                );
+                eprintln!(
+                    "       サービスの開発自体は Docker なしで可能です。"
+                );
+                eprintln!(
+                    "       インストール: {}",
+                    check.requirement.install_url
+                );
+            }
         }
         CheckStatus::Error(msg) => {
             eprintln!(

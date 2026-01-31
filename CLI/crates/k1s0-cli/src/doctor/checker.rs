@@ -416,6 +416,82 @@ fn check_dart_version() -> (CheckStatus, Option<String>) {
     }
 }
 
+/// Docker のバージョンをチェック
+fn check_docker_version() -> (CheckStatus, Option<String>) {
+    let path = find_tool_path("docker");
+
+    match run_command("docker", &["--version"]) {
+        Ok(output) => {
+            // "Docker version X.Y.Z, build ..." 形式
+            if let Some(version) = parse_version(&output) {
+                let version_str = format!("{}.{}.{}", version.0, version.1, version.2);
+                if compare_versions(&version_str, super::requirements::DOCKER_MIN_VERSION) {
+                    (CheckStatus::Ok { version: version_str }, path)
+                } else {
+                    (
+                        CheckStatus::VersionMismatch {
+                            actual: version_str,
+                            required: super::requirements::DOCKER_MIN_VERSION.to_string(),
+                        },
+                        path,
+                    )
+                }
+            } else {
+                (
+                    CheckStatus::Error("バージョンを解析できません".to_string()),
+                    path,
+                )
+            }
+        }
+        Err(e) if e == "not found" => (CheckStatus::NotFound, None),
+        Err(e) => (CheckStatus::Error(e), path),
+    }
+}
+
+/// Docker Compose のバージョンをチェック
+fn check_docker_compose_version() -> (CheckStatus, Option<String>) {
+    // docker compose は docker のサブコマンドなのでパスは docker を使う
+    let path = find_tool_path("docker");
+
+    match run_command("docker", &["compose", "version"]) {
+        Ok(output) => {
+            // "Docker Compose version vX.Y.Z" 形式
+            if let Some(version) = parse_version(&output) {
+                let version_str = format!("{}.{}.{}", version.0, version.1, version.2);
+                (CheckStatus::Ok { version: version_str }, path)
+            } else {
+                (
+                    CheckStatus::Error("バージョンを解析できません".to_string()),
+                    path,
+                )
+            }
+        }
+        Err(e) if e == "not found" => (CheckStatus::NotFound, None),
+        Err(_) => (CheckStatus::NotFound, None),
+    }
+}
+
+/// 汎用バージョンチェック（kotlin, gradle 等）
+fn check_generic_version(tool: &str, args: &[&str]) -> (CheckStatus, Option<String>) {
+    let path = find_tool_path(tool);
+
+    match run_command(tool, args) {
+        Ok(output) => {
+            if let Some(version) = parse_version(&output) {
+                let version_str = format!("{}.{}.{}", version.0, version.1, version.2);
+                (CheckStatus::Ok { version: version_str }, path)
+            } else {
+                (
+                    CheckStatus::Error("バージョンを解析できません".to_string()),
+                    path,
+                )
+            }
+        }
+        Err(e) if e == "not found" => (CheckStatus::NotFound, None),
+        Err(e) => (CheckStatus::Error(e), path),
+    }
+}
+
 /// 指定されたツールをチェック
 pub fn check_tool(requirement: &'static ToolRequirement) -> ToolCheck {
     let (status, path) = match requirement.name {
@@ -428,6 +504,10 @@ pub fn check_tool(requirement: &'static ToolRequirement) -> ToolCheck {
         "buf" => check_buf_version(),
         "flutter" => check_flutter_version(),
         "dart" => check_dart_version(),
+        "docker" => check_docker_version(),
+        "docker compose" => check_docker_compose_version(),
+        "kotlin" => check_generic_version("kotlin", &["-version"]),
+        "gradle" => check_generic_version("gradle", &["--version"]),
         _ => (CheckStatus::Error("未知のツール".to_string()), None),
     };
 

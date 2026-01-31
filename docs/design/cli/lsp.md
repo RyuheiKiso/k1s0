@@ -55,7 +55,7 @@ manifest.json のコンテキストに応じた補完候補を提供します。
 ```json
 {
   "template": {
-    "name": "|"  // ← ここで補完: backend-rust, backend-go, frontend-react, frontend-flutter
+    "name": "|"  // ← ここで補完: backend-rust, backend-go, backend-csharp, backend-python, backend-kotlin, frontend-react, frontend-flutter, frontend-android
   }
 }
 ```

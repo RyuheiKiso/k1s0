@@ -1,0 +1,75 @@
+# =============================================================================
+# k1s0 OpenTelemetry Configuration for Kotlin Services
+# =============================================================================
+# This config is consumed by the k1s0-observability Kotlin package.
+# The package reads this file via k1s0-config and initializes the
+# opentelemetry-java SDK with Ktor plugin instrumentation.
+#
+# Usage in code:
+#   import com.k1s0.observability.installObservability
+#
+#   fun Application.module() {
+#       installObservability()
+#   }
+#
+# The k1s0-observability Kotlin package uses:
+#   - io.opentelemetry:opentelemetry-sdk
+#   - io.opentelemetry:opentelemetry-exporter-otlp
+#   - io.opentelemetry.instrumentation:opentelemetry-ktor-3.0
+#   - io.opentelemetry.instrumentation:opentelemetry-grpc-1.6
+# =============================================================================
+
+observability:
+  # Service identification
+  service:
+    name: "my-kotlin-service"
+    version: "0.1.0"
+    environment: "dev"
+
+  # OTLP exporter configuration
+  exporter:
+    protocol: grpc
+    endpoint: "http://localhost:4317"
+    timeout_ms: 10000
+
+  # Tracing configuration
+  traces:
+    enabled: true
+    sampler: always_on
+    # sampler_ratio: 0.1
+    # Ktor plugin auto-instrumentation
+    ktor:
+      enabled: true
+      # Filter health endpoints
+      excluded_paths:
+        - "/health"
+        - "/ready"
+    # gRPC instrumentation
+    grpc:
+      enabled: true
+    # Exposed (DB) instrumentation
+    exposed:
+      enabled: true
+    # Batch span processor
+    batch:
+      max_queue_size: 2048
+      schedule_delay_ms: 5000
+      max_export_batch_size: 512
+      exporter_timeout_ms: 30000
+
+  # Metrics configuration
+  metrics:
+    enabled: true
+    export_interval_ms: 60000
+    # JVM runtime metrics (GC, memory, threads)
+    jvm_metrics: true
+
+  # Logging configuration (SLF4J/Logback bridge)
+  logs:
+    enabled: true
+    level: INFO
+
+  # Additional resource attributes
+  resource_attributes:
+    deployment.environment: "dev"
+    k1s0.layer: "feature"

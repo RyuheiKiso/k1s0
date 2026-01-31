@@ -7,6 +7,7 @@
 ```
 docs/
 ├── README.md              # このファイル
+├── GETTING_STARTED.md     # 入門ガイド
 ├── adr/                   # Architecture Decision Records
 │   ├── README.md          # ADR の運用方針
 │   ├── TEMPLATE.md        # ADR テンプレート
@@ -24,14 +25,23 @@ docs/
 │   ├── config-and-secrets.md
 │   ├── api-contracts.md
 │   ├── observability.md
-│   └── error-handling.md
+│   ├── error-handling.md
+│   ├── domain-boundaries.md   # Domain 境界ガイドライン
+│   ├── deprecation-policy.md  # 非推奨化ポリシー
+│   └── versioning.md          # バージョニング規約
 ├── design/                # 設計ドキュメント
 │   ├── README.md          # 設計ドキュメント一覧
 │   ├── cli/               # CLI 設計（ディレクトリ）
 │   ├── generator.md       # Generator 設計
 │   ├── lint/              # Lint 設計（ディレクトリ）
 │   ├── framework.md       # Framework 設計
+│   ├── framework/         # Framework 設計（分割版）
+│   ├── domain.md          # Domain 層設計
 │   └── template/          # Template 設計
+├── guides/                # 開発ガイド
+│   ├── domain-development.md  # Domain 開発ガイド
+│   ├── domain-versioning.md   # Domain バージョン管理ガイド
+│   └── migration-to-three-tier.md  # 3層構造移行ガイド
 └── operations/            # 運用ドキュメント
     ├── README.md          # 運用ドキュメント概要
     ├── deployment.md      # デプロイメント手順
@@ -51,6 +61,8 @@ docs/
 | `adr/` | アーキテクチャ上の重要な決定を記録 | 開発者全員 |
 | `architecture/` | システムアーキテクチャの設計ドキュメント | 開発者・アーキテクト |
 | `conventions/` | 開発規約（コーディング、構成、API 等） | 開発者全員 |
+| `design/` | 各機能の設計ドキュメント | 開発者・アーキテクト |
+| `guides/` | 開発ガイド（Domain 開発・移行等） | 開発者全員 |
 | `operations/` | 運用手順、障害対応、デプロイ等 | 運用チーム・開発者 |
 
 ## ドキュメントの原則
@@ -65,6 +77,8 @@ docs/
 - [ADR 一覧](adr/README.md)
 - [規約一覧](conventions/README.md)
 - [設計ドキュメント](design/README.md)
+- [開発ガイド](guides/)
+- [Getting Started](GETTING_STARTED.md)
 - [運用ドキュメント](operations/README.md)
 - [構想.md](../work/構想.md): 全体方針（草案）
 - [プラン.md](../work/プラン.md): 実装計画（草案）

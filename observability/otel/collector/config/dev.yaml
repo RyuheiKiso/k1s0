@@ -1,0 +1,28 @@
+processors:
+  batch:
+    send_batch_size: 256
+    timeout: 1s
+    send_batch_max_size: 512
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+  probabilistic_sampler:
+    sampling_percentage: 100
+
+service:
+  pipelines:
+    traces:
+      processors:
+        - memory_limiter
+        - resource
+        - probabilistic_sampler
+        - batch
+  telemetry:
+    logs:
+      level: debug
+      development: true
+      encoding: console
+    metrics:
+      address: 0.0.0.0:8888
+      level: detailed

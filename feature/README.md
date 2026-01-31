@@ -9,12 +9,20 @@ feature/
 ├── backend/
 │   ├── rust/           # Rust バックエンドサービス
 │   │   └── {feature_name}/
-│   └── go/             # Go バックエンドサービス
+│   ├── go/             # Go バックエンドサービス
+│   │   └── {feature_name}/
+│   ├── csharp/         # C# バックエンドサービス
+│   │   └── {feature_name}/
+│   ├── python/         # Python バックエンドサービス
+│   │   └── {feature_name}/
+│   └── kotlin/         # Kotlin バックエンドサービス
 │       └── {feature_name}/
 ├── frontend/
 │   ├── react/          # React フロントエンド
 │   │   └── {feature_name}/
-│   └── flutter/        # Flutter フロントエンド
+│   ├── flutter/        # Flutter フロントエンド
+│   │   └── {feature_name}/
+│   └── android/        # Android フロントエンド
 │       └── {feature_name}/
 └── database/
     ├── schema/         # feature 固有スキーマ方針
@@ -26,8 +34,28 @@ feature/
 ```bash
 # Rust バックエンドサービスを生成
 k1s0 new-feature --type backend-rust --name user-management
-
 # 生成先: feature/backend/rust/user-management/
+
+# Go バックエンドサービスを生成
+k1s0 new-feature --type backend-go --name user-management
+
+# C# バックエンドサービスを生成
+k1s0 new-feature --type backend-csharp --name user-management
+
+# Python バックエンドサービスを生成
+k1s0 new-feature --type backend-python --name user-management
+
+# Kotlin バックエンドサービスを生成
+k1s0 new-feature --type backend-kotlin --name user-management
+
+# React フロントエンドを生成
+k1s0 new-feature --type frontend-react --name user-management
+
+# Flutter フロントエンドを生成
+k1s0 new-feature --type frontend-flutter --name user-management
+
+# Android フロントエンドを生成
+k1s0 new-feature --type frontend-android --name user-management
 ```
 
 ## 命名規則

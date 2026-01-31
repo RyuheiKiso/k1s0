@@ -1,0 +1,21 @@
+groups:
+  - name: k1s0_recording_rules
+    interval: 30s
+    rules:
+      - record: k1s0:request_duration:p99
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(http_server_request_duration_milliseconds_bucket[5m])) by (le, service_name)
+          )
+        labels:
+          quantile: "0.99"
+
+      - record: k1s0:error_rate:5m
+        expr: |
+          sum(rate(http_server_request_duration_milliseconds_count{http_response_status_code=~"5.."}[5m])) by (service_name)
+          /
+          sum(rate(http_server_request_duration_milliseconds_count[5m])) by (service_name)
+
+      - record: k1s0:request_rate:5m
+        expr: |
+          sum(rate(http_server_request_duration_milliseconds_count[5m])) by (service_name)

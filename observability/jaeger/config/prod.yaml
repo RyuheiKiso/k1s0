@@ -1,0 +1,33 @@
+span_storage:
+  type: elasticsearch
+
+elasticsearch:
+  server_urls_file: /var/run/secrets/k1s0/jaeger_es_urls
+  username_file: /var/run/secrets/k1s0/jaeger_es_username
+  password_file: /var/run/secrets/k1s0/jaeger_es_password
+  index_prefix: k1s0-jaeger
+  num_shards: 5
+  num_replicas: 1
+  bulk:
+    size: 5000000
+    workers: 1
+    flush_interval: 200ms
+  tls:
+    enabled: true
+    ca_file: /var/run/secrets/k1s0/jaeger_es_ca.pem
+    skip_host_verify: false
+  max_span_age: 720h
+  create_index_templates: true
+
+collector:
+  num_workers: 50
+  queue_size: 2000
+
+retention:
+  max_age: 720h
+
+dependencies:
+  enabled: true
+  menu_enabled: true
+
+log_level: info

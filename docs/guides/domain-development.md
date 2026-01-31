@@ -134,7 +134,96 @@ domain/backend/rust/manufacturing/
     └── integration_test.rs   # 統合テスト
 ```
 
-### 3.2 manifest.json
+### 3.2 生成されるディレクトリ構造（Go）
+
+```
+domain/backend/go/manufacturing/
+├── .k1s0/
+│   └── manifest.json
+├── go.mod
+├── README.md
+├── CHANGELOG.md
+├── domain/
+│   ├── entities/
+│   ├── value_objects/
+│   ├── repositories/
+│   └── services/
+├── application/
+│   ├── services/
+│   └── dtos/
+└── tests/
+```
+
+### 3.3 生成されるディレクトリ構造（C#）
+
+```
+domain/backend/csharp/manufacturing/
+├── .k1s0/
+│   └── manifest.json
+├── Manufacturing.sln
+├── README.md
+├── CHANGELOG.md
+└── src/
+    └── Manufacturing.Domain/
+        ├── Manufacturing.Domain.csproj
+        ├── Entities/
+        ├── ValueObjects/
+        ├── Repositories/
+        ├── Services/
+        └── Errors/
+```
+
+### 3.4 生成されるディレクトリ構造（Python）
+
+```
+domain/backend/python/manufacturing/
+├── .k1s0/
+│   └── manifest.json
+├── pyproject.toml
+├── README.md
+├── CHANGELOG.md
+├── src/
+│   └── manufacturing/
+│       ├── __init__.py
+│       ├── domain/
+│       │   ├── __init__.py
+│       │   ├── entities/
+│       │   ├── value_objects/
+│       │   ├── repositories/
+│       │   └── services/
+│       ├── application/
+│       │   ├── __init__.py
+│       │   ├── services/
+│       │   └── dtos/
+│       └── errors.py
+└── tests/
+```
+
+### 3.5 生成されるディレクトリ構造（Kotlin）
+
+```
+domain/backend/kotlin/manufacturing/
+├── .k1s0/
+│   └── manifest.json
+├── build.gradle.kts
+├── settings.gradle.kts
+├── README.md
+├── CHANGELOG.md
+└── src/
+    ├── main/kotlin/com/example/manufacturing/
+    │   ├── domain/
+    │   │   ├── entities/
+    │   │   ├── valueobjects/
+    │   │   ├── repositories/
+    │   │   └── services/
+    │   ├── application/
+    │   │   ├── services/
+    │   │   └── dtos/
+    │   └── Errors.kt
+    └── test/kotlin/
+```
+
+### 3.6 manifest.json
 
 ```json
 {

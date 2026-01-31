@@ -1,0 +1,16 @@
+span_storage:
+  type: memory
+
+memory:
+  max_traces: 100000
+
+collector:
+  num_workers: 10
+  queue_size: 1000
+
+max_traces: 100000
+
+retention:
+  max_age: 24h
+
+log_level: debug
