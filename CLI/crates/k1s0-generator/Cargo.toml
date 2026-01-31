@@ -27,9 +27,29 @@ petgraph.workspace = true
 notify = { workspace = true, optional = true }
 notify-debouncer-mini = { workspace = true, optional = true }
 
+# AST parsing (optional)
+tree-sitter = { workspace = true, optional = true }
+streaming-iterator = { version = "0.1", optional = true }
+tree-sitter-rust = { workspace = true, optional = true }
+tree-sitter-go = { workspace = true, optional = true }
+tree-sitter-typescript = { workspace = true, optional = true }
+tree-sitter-python = { workspace = true, optional = true }
+tree-sitter-c-sharp = { workspace = true, optional = true }
+tree-sitter-kotlin-ng = { workspace = true, optional = true }
+
 [features]
-default = []
+default = ["ast"]
 watch = ["notify", "notify-debouncer-mini"]
+ast = [
+    "tree-sitter",
+    "streaming-iterator",
+    "tree-sitter-rust",
+    "tree-sitter-go",
+    "tree-sitter-typescript",
+    "tree-sitter-python",
+    "tree-sitter-c-sharp",
+    "tree-sitter-kotlin-ng",
+]
 
 [dev-dependencies]
 tempfile = "3.10"

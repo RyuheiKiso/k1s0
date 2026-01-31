@@ -32,6 +32,7 @@ fn test_lint_with_exclude_rules() {
         strict: false,
         env_var_allowlist: vec![],
         fix: false,
+        fast: false,
     };
     let linter = Linter::new(config);
     let result = linter.lint(path);

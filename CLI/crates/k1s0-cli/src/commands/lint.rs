@@ -42,8 +42,10 @@ use crate::settings::Settings;
   k1s0 lint
   k1s0 lint --rules K020,K021,K022 --strict
   k1s0 lint --fix --diff main
+  k1s0 lint --fast
 
 K010/K011 違反が検出された場合は 'k1s0 lint --fix' で自動修正できます。
+--fast を指定すると AST パースをスキップし grep ベースで高速実行します。
 "#)]
 pub struct LintArgs {
     /// 検査するディレクトリ（デフォルト: カレントディレクトリ）
@@ -65,6 +67,10 @@ pub struct LintArgs {
     /// 自動修正を試みる（K001, K002, K010, K011 に対応）
     #[arg(long)]
     pub fix: bool,
+
+    /// AST パースをスキップし grep ベースで高速実行
+    #[arg(long)]
+    pub fast: bool,
 
     /// JSON 形式で出力
     #[arg(long)]
@@ -130,6 +136,7 @@ pub fn execute(args: LintArgs) -> Result<()> {
             .map(|r| r.split(',').map(|s| s.trim().to_string()).collect())
             .unwrap_or_else(|| settings.lint.env_var_allowlist.clone()),
         fix: args.fix || settings.lint.fix,
+        fast: args.fast || settings.lint.fast,
     };
 
     // デバウンス間隔（CLI 引数 > 設定ファイル）

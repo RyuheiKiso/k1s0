@@ -107,6 +107,7 @@ fn main() {
         strict: false,
         env_var_allowlist: vec!["src/main.rs".to_string()],
         fix: false,
+        fast: false,
     };
     let linter = Linter::new(config);
     let result = linter.lint(path);
@@ -143,6 +144,7 @@ fn get_config() {
         strict: false,
         env_var_allowlist: vec!["src/infrastructure/*".to_string()],
         fix: false,
+        fast: false,
     };
     let linter = Linter::new(config);
     let result = linter.lint(path);
@@ -238,6 +240,7 @@ fn main() {
         strict: false,
         env_var_allowlist: vec![],
         fix: false,
+        fast: false,
     };
     let linter = Linter::new(config);
     let result = linter.lint(path);

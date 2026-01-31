@@ -44,6 +44,7 @@ fn test_lint_with_specific_rules() {
         strict: false,
         env_var_allowlist: vec![],
         fix: false,
+        fast: false,
     };
     let linter = Linter::new(config);
     let result = linter.lint(path);
@@ -79,6 +80,7 @@ fn test_lint_strict_mode() {
         strict: true,
         env_var_allowlist: vec![],
         fix: false,
+        fast: false,
     };
     let linter = Linter::new(config);
     let result = linter.lint(path);

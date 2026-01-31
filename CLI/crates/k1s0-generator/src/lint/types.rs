@@ -286,6 +286,8 @@ pub struct LintConfig {
     pub env_var_allowlist: Vec<String>,
     /// 自動修正を試みる
     pub fix: bool,
+    /// AST パースをスキップし grep ベースで高速実行
+    pub fast: bool,
 }
 
 

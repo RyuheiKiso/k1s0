@@ -298,8 +298,9 @@ buf format --exit-code
 | `k1s0 new-feature --type <type> --name <name>` | Generate service scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, backend-kotlin, frontend-react, frontend-flutter, frontend-android) |
 | `k1s0 new-domain --type <type> --name <name>` | Generate domain scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, backend-kotlin, frontend-react, frontend-flutter, frontend-android). Options: `--with-events`, `--with-repository` (default true), `--version` (default "0.1.0"), `--force`, `-y/--yes` |
 | `k1s0 new-screen --type <type> --screen <id>` | Generate frontend screen (type: react, flutter, android) |
-| `k1s0 lint` | Check conventions |
+| `k1s0 lint` | Check conventions (uses AST analysis by default for K020, K022, K026, K029, K050, K053) |
 | `k1s0 lint --fix` | Auto-fix violations |
+| `k1s0 lint --fast` | Check conventions using grep-based detection (skips AST parsing for faster execution) |
 | `k1s0 upgrade --check` | Show changes without applying |
 | `k1s0 upgrade` | Apply template updates |
 | `k1s0 doctor` | Check development environment health |
@@ -353,9 +354,21 @@ k1s0 new-feature --type backend-rust
 --skip-doctor      # Skip environment health check (new-feature, init)
 --no-color         # Disable ANSI colors
 --json             # JSON format output
+--fast             # Skip AST parsing for faster lint execution (lint command only)
 ```
 
 ## Lint Rules (K001-K060)
+
+k1s0 uses tree-sitter AST (Abstract Syntax Tree) analysis for improved accuracy in detecting violations. Six rules (K020, K022, K026, K029, K050, K053) use AST-based detection by default, significantly reducing false positives compared to grep-based pattern matching.
+
+### AST-Based Analysis
+
+- **Supported languages**: Rust, Go, TypeScript, Python, C#, Kotlin
+- **Advantages**: Eliminates false positives from comments, strings, and test code; provides syntax-aware detection
+- **Performance**: `--fast` flag available to skip AST parsing and use grep-based fallback for faster execution
+- **Feature control**: AST analysis can be disabled at compile time with `--no-default-features`
+
+For detailed information about AST analysis architecture, see `docs/design/lint/ast-analysis.md`.
 
 ### Manifest & Structure Rules (K001-K011)
 

@@ -40,6 +40,11 @@ impl Linter {
         false
     }
 
+    /// fast モードかどうか
+    pub(super) fn is_fast_mode(&self) -> bool {
+        self.config.fast
+    }
+
     /// 環境変数 allowlist を取得（内部用）
     pub(super) fn env_var_allowlist(&self) -> &[String] {
         &self.config.env_var_allowlist
