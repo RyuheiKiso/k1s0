@@ -105,7 +105,9 @@
       "Bash(git diff:*)",
       "Bash(curl:*)",
       "Bash(powershell -Command:*)",
-      "Bash(cargo search:*)"
+      "Bash(cargo search:*)",
+      "Bash(do echo \"=== $commit ===\")",
+      "Bash(git diff-tree:*)"
     ]
   }
 }

@@ -106,7 +106,7 @@ k1s0 new-domain --type backend-rust --name manufacturing
 k1s0 new-feature --type backend-rust --name work-order --domain manufacturing
 
 # 新規フロントエンド画面の生成
-k1s0 new-screen --type frontend-react --name dashboard
+k1s0 new-screen --type frontend-react --screen-id dashboard
 
 # domain 一覧の確認
 k1s0 domain-list
@@ -178,8 +178,6 @@ k1s0 new-feature --type backend-rust
 | `k1s0 migrate status` | 移行の進捗状況を表示 |
 | `k1s0 feature-update-domain` | feature の domain 依存を更新 |
 | `k1s0 registry` | テンプレートレジストリ操作 |
-| `k1s0 log` | Git コミット履歴を表示 |
-| `k1s0 diff` | Git diff を表示 |
 
 ### 共通オプション
 
@@ -261,6 +259,9 @@ k1s0 lint --exclude-rules K030,K031
 
 # 警告もエラーとして扱う
 k1s0 lint --strict
+
+# AST 解析をスキップして高速実行
+k1s0 lint --fast
 ```
 
 詳細は [Lint 設計書](docs/design/lint/) を参照してください。
@@ -314,7 +315,7 @@ k1s0 lint --strict
 
 ### Backend（Rust）
 
-12 個の共通 crate を提供します。
+14 個の共通 crate を提供します。
 
 | Crate | 説明 | Tier |
 |-------|------|------|
@@ -325,15 +326,17 @@ k1s0 lint --strict
 | k1s0-grpc-server | gRPC サーバ共通基盤 | 2 |
 | k1s0-grpc-client | gRPC クライアント共通 | 2 |
 | k1s0-resilience | レジリエンスパターン | 2 |
+| k1s0-rate-limit | レート制限（トークンバケット、スライディングウィンドウ） | 2 |
 | k1s0-health | ヘルスチェック | 2 |
 | k1s0-db | DB 接続・トランザクション | 2 |
 | k1s0-cache | Redis キャッシュ | 2 |
 | k1s0-domain-event | ドメインイベント発行/購読/Outbox | 2 |
+| k1s0-consensus | リーダー選出、分散ロック、Saga オーケストレーション | 2 |
 | k1s0-auth | 認証・認可 | 3 |
 
 ### Backend（Go）
 
-12 個の共通モジュールを提供します。
+14 個の共通モジュールを提供します。
 
 | Module | 説明 | Tier |
 |--------|------|------|
@@ -344,15 +347,17 @@ k1s0 lint --strict
 | k1s0-grpc-server | gRPC サーバ共通基盤 | 2 |
 | k1s0-grpc-client | gRPC クライアント共通 | 2 |
 | k1s0-resilience | レジリエンスパターン | 2 |
+| k1s0-rate-limit | レート制限（トークンバケット、スライディングウィンドウ） | 2 |
 | k1s0-health | ヘルスチェック | 2 |
 | k1s0-db | DB 接続・トランザクション | 2 |
 | k1s0-cache | Redis キャッシュ | 2 |
 | k1s0-domain-event | ドメインイベント発行/購読/Outbox | 2 |
+| k1s0-consensus | リーダー選出、分散ロック、Saga オーケストレーション | 2 |
 | k1s0-auth | 認証・認可 | 3 |
 
 ### Backend（C#）
 
-12 個の NuGet パッケージを提供します。
+14 個の NuGet パッケージを提供します。
 
 | Package | 説明 | Tier |
 |---------|------|------|
@@ -366,12 +371,14 @@ k1s0 lint --strict
 | K1s0.Db | DB 接続・トランザクション（EF Core） | 2 |
 | K1s0.DomainEvent | ドメインイベント発行/購読/Outbox | 2 |
 | K1s0.Resilience | レジリエンスパターン | 2 |
+| K1s0.RateLimit | レート制限（トークンバケット、スライディングウィンドウ） | 2 |
 | K1s0.Cache | Redis キャッシュ（StackExchange.Redis） | 2 |
+| K1s0.Consensus | リーダー選出、分散ロック、Saga オーケストレーション | 2 |
 | K1s0.Auth | 認証・認可 | 3 |
 
 ### Backend（Python）
 
-12 個の共通パッケージを提供します。
+14 個の共通パッケージを提供します。
 
 | Package | 説明 | Tier |
 |---------|------|------|
@@ -385,12 +392,14 @@ k1s0 lint --strict
 | k1s0-db | DB 接続・トランザクション（SQLAlchemy + asyncpg） | 2 |
 | k1s0-domain-event | ドメインイベント発行/購読/Outbox | 2 |
 | k1s0-resilience | レジリエンスパターン | 2 |
+| k1s0-rate-limit | レート制限（トークンバケット、スライディングウィンドウ） | 2 |
 | k1s0-cache | Redis キャッシュ | 2 |
+| k1s0-consensus | リーダー選出、分散ロック、Saga オーケストレーション | 2 |
 | k1s0-auth | 認証・認可 | 3 |
 
 ### Backend（Kotlin）
 
-12 個の共通パッケージを提供します。
+14 個の共通パッケージを提供します。
 
 | Package | 説明 | Tier |
 |---------|------|------|
@@ -404,7 +413,9 @@ k1s0 lint --strict
 | k1s0-db | DB（Exposed + HikariCP） | 2 |
 | k1s0-domain-event | ドメインイベント発行/購読/Outbox | 2 |
 | k1s0-resilience | レジリエンスパターン | 2 |
+| k1s0-rate-limit | レート制限（トークンバケット、スライディングウィンドウ） | 2 |
 | k1s0-cache | Redis キャッシュ（Lettuce） | 2 |
+| k1s0-consensus | リーダー選出、分散ロック、Saga オーケストレーション（Exposed + Lettuce） | 2 |
 | k1s0-auth | 認証・認可（nimbus-jose-jwt） | 3 |
 
 ### Frontend（React）

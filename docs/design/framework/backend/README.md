@@ -5,7 +5,7 @@ k1s0 Backend Framework は、マイクロサービス開発のための共通ラ
 ## 言語別パッケージ
 
 - Rust - Rust crate 群（本 README 下部に記載）
-- Go - Go パッケージ群（設計書準備中）
+- [Go](./go.md) - Go パッケージ群
 - [C#](./csharp.md) - NuGet パッケージ群
 - [Python](./python.md) - Python パッケージ群
 - [Kotlin](./kotlin.md) - Kotlin パッケージ群
@@ -30,6 +30,7 @@ framework/backend/rust/crates/
 ├── k1s0-cache/         # Redis キャッシュ
 ├── k1s0-db/            # DB 接続・トランザクション
 ├── k1s0-domain-event/  # ドメインイベント発行・購読・Outbox
+├── k1s0-consensus/     # リーダー選出・分散ロック・Saga オーケストレーション
 └── k1s0-auth/          # 認証・認可
 ```
 
@@ -47,6 +48,7 @@ framework/backend/rust/crates/
 - [k1s0-cache](k1s0-cache.md)
 - [k1s0-db](k1s0-db.md)
 - [k1s0-domain-event](k1s0-domain-event.md)
+- [k1s0-consensus](k1s0-consensus.md)
 - [k1s0-auth](k1s0-auth.md)
 
 ---
@@ -79,6 +81,11 @@ k1s0-db             # 業務
 
 k1s0-domain-event   # 業務
   └── k1s0-db (feature="outbox")
+
+k1s0-consensus      # 業務
+  ├── k1s0-db
+  ├── k1s0-domain-event
+  └── k1s0-observability
 
 k1s0-auth           # 業務
   ├── k1s0-cache (feature="redis-cache")

@@ -58,6 +58,10 @@ ADR-{4桁連番}-{kebab-case-title}.md
 | [ADR-0011](ADR-0011-playground-command.md) | Playground コマンドの導入 | 承認済み |
 | [ADR-0012](ADR-0012-migrate-command.md) | Migrate コマンドの導入 | 承認済み |
 | [ADR-0013](ADR-0013-observability-infrastructure.md) | 可観測性基盤の技術選定（OTEL Collector + Jaeger + Loki + Prometheus + Grafana） | 承認済み |
+| [ADR-0014](ADR-0014-consensus-protocol.md) | コンセンサスプロトコル機構（k1s0-consensus） | 承認済み |
+| [ADR-0015](ADR-0015-rate-limiting.md) | レート制限フレームワーク（k1s0-rate-limit） | 承認済み |
+| [ADR-0016](ADR-0016-backpressure-control.md) | バックプレッシャー制御機構 | 承認済み |
+| [ADR-0017](ADR-0017-ast-based-lint-engine.md) | AST ベース Lint エンジンへの移行 | 承認済み |
 
 ## テンプレート
 

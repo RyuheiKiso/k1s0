@@ -80,7 +80,7 @@ k1s0/
 ├── framework/                    # Shared libraries & services (Layer 1)
 │   ├── backend/
 │   │   ├── rust/
-│   │   │   ├── crates/          # 13 shared Rust crates
+│   │   │   ├── crates/          # 14 shared Rust crates
 │   │   │   └── services/        # Common microservices (auth, config, endpoint)
 │   │   ├── go/
 │   │   ├── csharp/              # C# NuGet packages
