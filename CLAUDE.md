@@ -9,7 +9,7 @@ This document provides comprehensive guidance for AI assistants working with the
 ### Core Features
 
 - **Service scaffold generation**: Templates generate consistent directory structures
-- **Development convention enforcement**: 11 lint rules detect violations with some auto-fix
+- **Development convention enforcement**: 24 lint rules detect violations with some auto-fix
 - **Safe template upgrades**: Managed/protected area separation prevents breaking changes
 
 ### Philosophy
@@ -24,14 +24,14 @@ This document provides comprehensive guidance for AI assistants working with the
 | Layer | Technologies |
 |-------|-------------|
 | **CLI** | Rust 1.85+ (clap 4.5, Tera 1.19, tokio) |
-| **Backend** | Rust (axum, tokio) + Go + C# (ASP.NET Core 8.0) + Python (FastAPI) |
-| **Frontend** | React (Material-UI, Zod, TypeScript 5.5) + Flutter (Dart) |
+| **Backend** | Rust (axum, tokio) + Go + C# (ASP.NET Core 8.0) + Python (FastAPI) + Kotlin (Ktor 3.x, Exposed, Koin) |
+| **Frontend** | React (Material-UI, Zod, TypeScript 5.5) + Flutter (Dart) + Android (Jetpack Compose, Material 3) |
 | **Database** | PostgreSQL |
 | **Cache** | Redis |
 | **Observability** | OpenTelemetry (OTEL Collector) |
 | **API Protocols** | gRPC (internal), REST/OpenAPI (external) |
 | **Contract Management** | buf (proto linting/breaking changes), Spectral (OpenAPI linting) |
-| **Package Managers** | Cargo (Rust), pnpm 9.15.4+ (Node), NuGet (.NET), uv (Python) |
+| **Package Managers** | Cargo (Rust), pnpm 9.15.4+ (Node), NuGet (.NET), uv (Python), Gradle (Kotlin/Android) |
 
 ## Architecture: Three-Layer Structure
 
@@ -65,46 +65,54 @@ k1s0/
 │   │   ├── k1s0-cli/            # Main CLI executable (clap-based)
 │   │   ├── k1s0-generator/      # Template engine & Lint engine
 │   │   └── k1s0-lsp/            # LSP server (completions, hover)
-│   ├── templates/               # 5 service templates
+│   ├── templates/               # 8 service templates
 │   │   ├── backend-rust/        # Rust backend scaffold
 │   │   ├── backend-go/          # Go backend scaffold
 │   │   ├── backend-csharp/      # C# backend scaffold
 │   │   ├── backend-python/     # Python backend scaffold
+│   │   ├── backend-kotlin/      # Kotlin backend scaffold
 │   │   ├── frontend-react/      # React app scaffold
-│   │   └── frontend-flutter/    # Flutter app scaffold
+│   │   ├── frontend-flutter/    # Flutter app scaffold
+│   │   └── frontend-android/    # Android app scaffold (Kotlin)
 │   └── schemas/                 # JSON Schema definitions
 │
 ├── framework/                    # Shared libraries & services (Layer 1)
 │   ├── backend/
 │   │   ├── rust/
-│   │   │   ├── crates/          # 11 shared Rust crates
+│   │   │   ├── crates/          # 12 shared Rust crates
 │   │   │   └── services/        # Common microservices (auth, config, endpoint)
 │   │   ├── go/
 │   │   ├── csharp/              # C# NuGet packages
-│   │   └── python/              # Python packages (uv)
+│   │   ├── python/              # Python packages (uv)
+│   │   └── kotlin/              # Kotlin packages (Gradle)
 │   └── frontend/
-│       ├── react/packages/      # 8 React packages
-│       └── flutter/packages/    # Flutter packages
+│       ├── react/packages/      # 10 React packages
+│       ├── flutter/packages/    # Flutter packages
+│       └── android/packages/    # Android packages
 │
 ├── domain/                      # Business domain libraries (Layer 2)
 │   ├── backend/
 │   │   ├── rust/{domain_name}/  # Rust domain crates
 │   │   ├── go/{domain_name}/    # Go domain modules
 │   │   ├── csharp/{domain_name}/ # C# domain projects
-│   │   └── python/{domain_name}/ # Python domain packages
+│   │   ├── python/{domain_name}/ # Python domain packages
+│   │   └── kotlin/{domain_name}/ # Kotlin domain modules
 │   └── frontend/
 │       ├── react/{domain_name}/ # React domain packages
-│       └── flutter/{domain_name}/ # Flutter domain packages
+│       ├── flutter/{domain_name}/ # Flutter domain packages
+│       └── android/{domain_name}/ # Android domain modules
 │
 ├── feature/                     # Individual feature services (Layer 3)
 │   ├── backend/
 │   │   ├── rust/{feature_name}/
 │   │   ├── go/{feature_name}/
 │   │   ├── csharp/{feature_name}/
-│   │   └── python/{feature_name}/
+│   │   ├── python/{feature_name}/
+│   │   └── kotlin/{feature_name}/
 │   ├── frontend/
 │   │   ├── react/{feature_name}/
-│   │   └── flutter/{feature_name}/
+│   │   ├── flutter/{feature_name}/
+│   │   └── android/{feature_name}/
 │   └── database/
 │
 ├── bff/                         # Backend-for-Frontend layer (optional)
@@ -118,7 +126,7 @@ k1s0/
 │
 ├── scripts/                     # Build & verification scripts
 ├── work/                        # Draft documents
-└── .github/workflows/           # 12 CI/CD workflows
+└── .github/workflows/           # 16 CI/CD workflows
 ```
 
 ## Build & Development Commands
@@ -210,6 +218,44 @@ dart analyze
 dart run build_runner build
 ```
 
+### Kotlin Backend
+
+```bash
+# Navigate to Kotlin framework directory
+cd framework/backend/kotlin
+
+# Build
+./gradlew build
+
+# Test
+./gradlew test
+
+# Lint
+./gradlew ktlintCheck
+
+# Static analysis
+./gradlew detekt
+```
+
+### Frontend (Android)
+
+```bash
+# Navigate to Android framework directory
+cd framework/frontend/android
+
+# Build debug APK
+./gradlew assembleDebug
+
+# Run unit tests
+./gradlew testDebugUnitTest
+
+# Lint (ktlint)
+./gradlew ktlintCheck
+
+# Android Lint
+./gradlew lintDebug
+```
+
 ### Docker
 
 ```bash
@@ -247,8 +293,8 @@ buf format --exit-code
 | Command | Description |
 |---------|-------------|
 | `k1s0 init` | Initialize repository (`.k1s0/` directory) |
-| `k1s0 new-feature --type <type> --name <name>` | Generate service scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, frontend-react, frontend-flutter) |
-| `k1s0 new-domain --type <type> --name <name>` | Generate domain scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, frontend-react, frontend-flutter) |
+| `k1s0 new-feature --type <type> --name <name>` | Generate service scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, backend-kotlin, frontend-react, frontend-flutter, frontend-android) |
+| `k1s0 new-domain --type <type> --name <name>` | Generate domain scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, backend-kotlin, frontend-react, frontend-flutter, frontend-android) |
 | `k1s0 new-screen --type <type> --screen <id>` | Generate frontend screen |
 | `k1s0 lint` | Check conventions |
 | `k1s0 lint --fix` | Auto-fix violations |
@@ -305,7 +351,7 @@ k1s0 new-feature --type backend-rust
 --json             # JSON format output
 ```
 
-## Lint Rules (K001-K047)
+## Lint Rules (K001-K060)
 
 ### Manifest & Structure Rules (K001-K011)
 
@@ -373,6 +419,7 @@ k1s0 new-feature --type backend-rust
 - TypeScript: `process.env`, `import.meta.env`, `dotenv`
 - C#: `Environment.GetEnvironmentVariable`, `Environment.GetEnvironmentVariables`, `Environment.ExpandEnvironmentVariables`, `.AddEnvironmentVariables(`
 - Python: `os.environ`, `os.getenv`, `os.putenv`, `os.unsetenv`, `load_dotenv`, `from dotenv`, `import dotenv`
+- Kotlin: `System.getenv`, `System.getProperty`, `ProcessBuilder`, `dotenv`, `BuildConfig.`
 - Dart: `Platform.environment`, `fromEnvironment`, `flutter_dotenv`
 
 **Correct approach:** Use `config/*.yaml` files with k1s0-config library.
@@ -487,6 +534,29 @@ src/
     └── Middleware/
 ```
 
+### Backend (Kotlin)
+
+```
+src/main/kotlin/{package}/
+├── domain/              # Business rules, entities, value objects
+│   ├── entities/
+│   ├── valueobjects/
+│   ├── repositories/    # Repository interfaces (ports)
+│   └── services/        # Domain services
+├── application/         # Use cases, application services
+│   ├── usecases/
+│   ├── services/
+│   └── dtos/
+├── infrastructure/      # Repository implementations, external I/O
+│   ├── repositories/
+│   ├── external/
+│   └── persistence/
+└── presentation/        # Ktor routes, gRPC services
+    ├── grpc/
+    ├── rest/
+    └── middleware/
+```
+
 ### Frontend (React)
 
 ```
@@ -507,6 +577,29 @@ lib/src/
 └── presentation/        # Pages, widgets, controllers
 ```
 
+### Frontend (Android)
+
+```
+app/src/main/kotlin/{package}/
+├── domain/              # Business rules, entities, value objects
+│   ├── entities/
+│   ├── valueobjects/
+│   ├── repositories/    # Repository interfaces (ports)
+│   └── services/
+├── application/         # Use cases, ViewModels
+│   ├── usecases/
+│   ├── services/
+│   └── dtos/
+├── infrastructure/      # Repository implementations, API clients
+│   ├── repositories/
+│   ├── external/
+│   └── persistence/
+└── presentation/        # Composable screens, navigation
+    ├── screens/
+    ├── components/
+    └── theme/
+```
+
 ## Required Files by Template
 
 ### backend-rust
@@ -525,6 +618,10 @@ lib/src/
 - `pyproject.toml`, `config/default.yaml`, `.k1s0/manifest.json`
 - Directories: `src/`, `src/{feature_name_snake}/domain/`, `src/{feature_name_snake}/application/`, `src/{feature_name_snake}/infrastructure/`, `src/{feature_name_snake}/presentation/`, `config/`, `deploy/`
 
+### backend-kotlin
+- `build.gradle.kts`, `settings.gradle.kts`, `src/main/kotlin/`, `config/default.yaml`, `.k1s0/manifest.json`, `Dockerfile`, `.dockerignore`, `docker-compose.yml`
+- Directories: `src/`, `src/main/kotlin/*/domain/`, `src/main/kotlin/*/application/`, `src/main/kotlin/*/presentation/`, `src/main/kotlin/*/infrastructure/`, `config/`, `deploy/`
+
 ### frontend-react
 - `package.json`, `tsconfig.json`, `.k1s0/manifest.json`, `Dockerfile`, `.dockerignore`, `docker-compose.yml`, `deploy/nginx.conf`
 - Directories: `src/`, `src/domain/`, `src/application/`, `src/presentation/`, `public/`
@@ -532,6 +629,10 @@ lib/src/
 ### frontend-flutter
 - `pubspec.yaml`, `.k1s0/manifest.json`
 - Directories: `lib/`, `lib/src/domain/`, `lib/src/application/`, `lib/src/presentation/`
+
+### frontend-android
+- `build.gradle.kts`, `app/build.gradle.kts`, `app/src/main/AndroidManifest.xml`, `config/default.yaml`, `.k1s0/manifest.json`
+- Directories: `app/src/main/kotlin/*/domain/`, `app/src/main/kotlin/*/application/`, `app/src/main/kotlin/*/presentation/`, `app/src/main/kotlin/*/infrastructure/`, `config/`
 
 ## Framework Crates (Rust Backend)
 
@@ -569,6 +670,25 @@ lib/src/
 | @k1s0/realtime | WebSocket/SSE client with reconnection, heartbeat, offline queue |
 | eslint-config-k1s0 | ESLint rules |
 | tsconfig-k1s0 | Shared TypeScript config |
+
+## Framework Packages (Go Backend)
+
+| Package | Description | Tier |
+|---------|-------------|------|
+| k1s0-error | Unified error handling | 1 |
+| k1s0-config | Config file management | 1 |
+| k1s0-validation | Input validation | 1 |
+| k1s0-observability | Logging/tracing/metrics (OpenTelemetry) | 2 |
+| k1s0-grpc-server | gRPC server foundation | 2 |
+| k1s0-grpc-client | gRPC client utilities | 2 |
+| k1s0-resilience | Retry/circuit breaker patterns | 2 |
+| k1s0-health | Health check probes | 2 |
+| k1s0-db | Database connection/transaction | 2 |
+| k1s0-cache | Redis caching | 2 |
+| k1s0-domain-event | Domain event publish/subscribe/outbox | 2 |
+| k1s0-auth | Authentication/authorization | 3 |
+
+**Tier dependency rules:** Same as Rust -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only, Tier 3 can depend on Tier 1 and 2.
 
 ## Framework Packages (Python Backend)
 
@@ -621,6 +741,38 @@ lib/src/
 
 **Tier dependency rules:** Same as Rust/Go -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only, Tier 3 can depend on Tier 1 and 2.
 
+## Framework Packages (Kotlin Backend)
+
+| Package | Description | Tier |
+|---------|-------------|------|
+| k1s0-error | Unified error handling | 1 |
+| k1s0-config | Config file management (YAML) | 1 |
+| k1s0-validation | Input validation | 1 |
+| k1s0-observability | Logging/tracing/metrics (OpenTelemetry) | 2 |
+| k1s0-grpc-server | gRPC server foundation (grpc-kotlin) | 2 |
+| k1s0-grpc-client | gRPC client utilities | 2 |
+| k1s0-health | Health check probes (Ktor) | 2 |
+| k1s0-db | Database (Exposed + HikariCP) | 2 |
+| k1s0-domain-event | Domain event publish/subscribe/outbox | 2 |
+| k1s0-resilience | Circuit breaker, retry, timeout | 2 |
+| k1s0-cache | Redis caching (Lettuce) | 2 |
+| k1s0-auth | JWT/OIDC auth (nimbus-jose-jwt) | 3 |
+
+**Tier dependency rules:** Same as Rust/Go/C#/Python -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only, Tier 3 can depend on Tier 1 and 2.
+
+## Framework Packages (Android Frontend)
+
+| Package | Description |
+|---------|-------------|
+| k1s0-navigation | Navigation Compose routing |
+| k1s0-config | YAML config management |
+| k1s0-http | Ktor Client HTTP |
+| k1s0-ui | Material 3 design system |
+| k1s0-auth | JWT auth client |
+| k1s0-observability | Logging, tracing |
+| k1s0-state | ViewModel + StateFlow utilities |
+| k1s0-realtime | WebSocket/SSE client |
+
 ## CI/CD Workflows
 
 | Workflow | Trigger | Purpose |
@@ -631,11 +783,13 @@ lib/src/
 | csharp.yml | Push to main, C# changes | Format -> Build -> Test |
 | python.yml | Push to main, Python changes | Lint (Ruff) -> Format check -> Type check (mypy) -> Test (pytest) |
 | frontend-react.yml | Push to main, React changes | Lint -> TypeCheck -> Test -> Build |
+| kotlin.yml | Push to main/develop, Kotlin changes | ktlint -> detekt -> Build -> Test |
+| frontend-android.yml | Push to main/develop, Android changes | ktlint -> detekt -> Android Lint -> Build -> Test |
 | frontend-flutter.yml | Push to main, Flutter changes | Analyze -> Build |
 | buf.yml | Push to main, proto changes | Lint -> Breaking changes check -> Format check |
 | openapi.yml | Push to main, OpenAPI changes | Spectral linting |
 | generation.yml | Push to main, contract changes | Fingerprint verification |
-| docker.yml | Push to main/develop, Docker file changes | Docker build test (5 templates) |
+| docker.yml | Push to main/develop, Docker file changes | Docker build test (6 templates) |
 | release-cli.yml | Semantic version tag | Validate -> Multi-platform build -> GH Release |
 | release-crates.yml | Semantic version tag | Publish Rust crates to crates.io |
 | release-npm.yml | Semantic version tag | Publish Node packages to npm |
@@ -715,7 +869,7 @@ Use canonical codes only: `INVALID_ARGUMENT`, `UNAUTHENTICATED`, `PERMISSION_DEN
 |----------|------|-------------|
 | Main README | `README.md` | Project overview |
 | CLI Design | `docs/design/cli/` | CLI architecture |
-| Lint Design | `docs/design/lint/` | Lint rules detail (K001-K047) |
+| Lint Design | `docs/design/lint/` | Lint rules detail (K001-K060) |
 | Template Design | `docs/design/template/` | Template system |
 | Framework Design | `docs/design/framework.md` | Library design |
 | Domain Design | `docs/design/domain.md` | Domain layer design |

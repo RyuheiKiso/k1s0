@@ -80,6 +80,16 @@ impl PanicPatterns {
             entry_points: vec![],
         }
     }
+
+    fn kotlin() -> Self {
+        Self {
+            file_extensions: vec!["kt", "kts"],
+            patterns: vec!["!!", "error(", "TODO(", "throw RuntimeException"],
+            comment_prefixes: vec!["//"],
+            test_file_patterns: vec!["Test.kt", "Spec.kt"],
+            entry_points: vec!["Main.kt"],
+        }
+    }
 }
 
 fn is_test_file(file_path: &Path, patterns: &PanicPatterns) -> bool {
@@ -124,6 +134,14 @@ impl Linter {
             "csharp" => ("src", PanicPatterns::csharp()),
             "python" => ("src", PanicPatterns::python()),
             "dart" => ("lib", PanicPatterns::dart()),
+            "kotlin" => {
+                let src_dir = if manifest.service.service_type == "frontend" {
+                    "app/src"
+                } else {
+                    "src"
+                };
+                (src_dir, PanicPatterns::kotlin())
+            }
             _ => return,
         };
 

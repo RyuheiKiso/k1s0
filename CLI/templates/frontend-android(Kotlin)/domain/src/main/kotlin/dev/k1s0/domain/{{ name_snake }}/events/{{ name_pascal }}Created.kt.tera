@@ -1,0 +1,17 @@
+package dev.k1s0.domain.{{ name_snake }}.events
+
+{% raw %}
+import kotlinx.serialization.Serializable
+{% endraw %}
+
+/**
+ * {{ name_pascal }}Created ドメインイベント
+ */
+{% raw %}
+@Serializable
+data class {% endraw %}{{ name_pascal }}Created{% raw %}(
+    val id: String,
+    val name: String,
+    val occurredAt: String,
+)
+{% endraw %}

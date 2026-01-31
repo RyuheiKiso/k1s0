@@ -51,6 +51,8 @@ ADR-{4桁連番}-{kebab-case-title}.md
 | [ADR-0006](ADR-0006-three-layer-architecture.md) | 3層アーキテクチャ（framework -> domain -> feature） | 承認済み |
 | [ADR-0007](ADR-0007-csharp-backend-support.md) | C# バックエンドサポートの追加 | 承認済み |
 | [ADR-0008](ADR-0008-python-backend-support.md) | Python バックエンドサポートの追加 | 承認済み |
+| [ADR-0009](ADR-0009-kotlin-backend-support.md) | Kotlin バックエンドサポートの追加 | 承認済み |
+| [ADR-0010](ADR-0010-android-frontend-support.md) | Android フロントエンドサポートの追加 | 承認済み |
 
 ## テンプレート
 

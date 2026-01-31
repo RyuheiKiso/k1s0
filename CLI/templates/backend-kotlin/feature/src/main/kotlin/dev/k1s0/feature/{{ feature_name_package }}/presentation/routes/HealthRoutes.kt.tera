@@ -1,0 +1,37 @@
+// {{ feature_name }} ヘルスチェックルート
+
+package dev.k1s0.feature.{{ feature_name_package }}.presentation.routes
+
+import io.ktor.server.application.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import io.micrometer.prometheus.PrometheusMeterRegistry
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class HealthResponse(val status: String)
+
+fun Application.configureHealthRoutes(meterRegistry: PrometheusMeterRegistry) {
+    routing {
+        // Liveness probe: プロセスが動作中であれば常に正常
+        get("/health/live") {
+            call.respond(HealthResponse(status = "serving"))
+        }
+
+        // Readiness probe: 依存サービスの接続状態を確認
+        get("/health/ready") {
+            // TODO: データベース接続等の確認を追加
+            call.respond(HealthResponse(status = "serving"))
+        }
+
+        // Startup probe: 初期化完了の確認
+        get("/health/startup") {
+            call.respond(HealthResponse(status = "serving"))
+        }
+
+        // Prometheus メトリクス
+        get("/metrics") {
+            call.respond(meterRegistry.scrape())
+        }
+    }
+}

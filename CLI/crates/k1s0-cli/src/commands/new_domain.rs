@@ -41,6 +41,12 @@ pub enum DomainType {
     /// Flutter フロントエンド
     #[value(name = "frontend-flutter")]
     FrontendFlutter,
+    /// Kotlin バックエンド
+    #[value(name = "backend-kotlin")]
+    BackendKotlin,
+    /// Android フロントエンド
+    #[value(name = "frontend-android")]
+    FrontendAndroid,
 }
 
 impl DomainType {
@@ -53,6 +59,8 @@ impl DomainType {
             DomainType::BackendPython => "CLI/templates/backend-python/domain",
             DomainType::FrontendReact => "CLI/templates/frontend-react/domain",
             DomainType::FrontendFlutter => "CLI/templates/frontend-flutter/domain",
+            DomainType::BackendKotlin => "CLI/templates/backend-kotlin/domain",
+            DomainType::FrontendAndroid => "CLI/templates/frontend-android/domain",
         }
     }
 
@@ -65,6 +73,8 @@ impl DomainType {
             DomainType::BackendPython => "domain/backend/python",
             DomainType::FrontendReact => "domain/frontend/react",
             DomainType::FrontendFlutter => "domain/frontend/flutter",
+            DomainType::BackendKotlin => "domain/backend/kotlin",
+            DomainType::FrontendAndroid => "domain/frontend/android",
         }
     }
 
@@ -77,14 +87,15 @@ impl DomainType {
             DomainType::BackendPython => "python",
             DomainType::FrontendReact => "typescript",
             DomainType::FrontendFlutter => "dart",
+            DomainType::BackendKotlin | DomainType::FrontendAndroid => "kotlin",
         }
     }
 
     /// サービスタイプ名を取得
     pub fn service_type_name(&self) -> &'static str {
         match self {
-            DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp | DomainType::BackendPython => "backend",
-            DomainType::FrontendReact | DomainType::FrontendFlutter => "frontend",
+            DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp | DomainType::BackendPython | DomainType::BackendKotlin => "backend",
+            DomainType::FrontendReact | DomainType::FrontendFlutter | DomainType::FrontendAndroid => "frontend",
         }
     }
 }
@@ -98,6 +109,8 @@ impl std::fmt::Display for DomainType {
             DomainType::BackendPython => write!(f, "backend-python"),
             DomainType::FrontendReact => write!(f, "frontend-react"),
             DomainType::FrontendFlutter => write!(f, "frontend-flutter"),
+            DomainType::BackendKotlin => write!(f, "backend-kotlin"),
+            DomainType::FrontendAndroid => write!(f, "frontend-android"),
         }
     }
 }
@@ -563,13 +576,19 @@ fn get_managed_paths(domain_type: DomainType) -> Vec<String> {
         DomainType::FrontendFlutter => vec![
             "pubspec.yaml".to_string(),
         ],
+        DomainType::BackendKotlin => vec![
+            "build.gradle.kts".to_string(),
+        ],
+        DomainType::FrontendAndroid => vec![
+            "build.gradle.kts".to_string(),
+        ],
     }
 }
 
 /// CLI が変更しないパスを取得
 fn get_protected_paths(domain_type: DomainType) -> Vec<String> {
     match domain_type {
-        DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp | DomainType::BackendPython => vec![
+        DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp | DomainType::BackendPython | DomainType::BackendKotlin => vec![
             "src/domain/".to_string(),
             "src/application/".to_string(),
             "src/infrastructure/".to_string(),
@@ -588,6 +607,12 @@ fn get_protected_paths(domain_type: DomainType) -> Vec<String> {
             "README.md".to_string(),
             "CHANGELOG.md".to_string(),
         ],
+        DomainType::FrontendAndroid => vec![
+            "app/src/main/kotlin/*/domain/".to_string(),
+            "app/src/main/kotlin/*/application/".to_string(),
+            "README.md".to_string(),
+            "CHANGELOG.md".to_string(),
+        ],
     }
 }
 
@@ -598,14 +623,14 @@ fn get_update_policy(
     let mut policy = std::collections::HashMap::new();
 
     match domain_type {
-        DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp | DomainType::BackendPython => {
+        DomainType::BackendRust | DomainType::BackendGo | DomainType::BackendCsharp | DomainType::BackendPython | DomainType::BackendKotlin => {
             policy.insert("src/domain/".to_string(), UpdatePolicy::Protected);
             policy.insert("src/application/".to_string(), UpdatePolicy::Protected);
             policy.insert("src/infrastructure/".to_string(), UpdatePolicy::Protected);
             policy.insert("README.md".to_string(), UpdatePolicy::SuggestOnly);
             policy.insert("CHANGELOG.md".to_string(), UpdatePolicy::SuggestOnly);
         }
-        DomainType::FrontendReact | DomainType::FrontendFlutter => {
+        DomainType::FrontendReact | DomainType::FrontendFlutter | DomainType::FrontendAndroid => {
             policy.insert("README.md".to_string(), UpdatePolicy::SuggestOnly);
             policy.insert("CHANGELOG.md".to_string(), UpdatePolicy::SuggestOnly);
         }

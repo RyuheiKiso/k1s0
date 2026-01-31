@@ -83,7 +83,7 @@ const MANIFEST_SCHEMA: &str = r#"{
                 },
                 "language": {
                     "type": "string",
-                    "enum": ["rust", "go", "typescript", "python"],
+                    "enum": ["rust", "go", "typescript", "python", "csharp", "dart", "kotlin"],
                     "description": "プログラミング言語"
                 },
                 "type": {

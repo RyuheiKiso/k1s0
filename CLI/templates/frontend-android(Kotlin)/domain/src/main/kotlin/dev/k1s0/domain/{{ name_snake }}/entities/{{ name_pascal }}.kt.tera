@@ -1,0 +1,25 @@
+package dev.k1s0.domain.{{ name_snake }}.entities
+
+{% raw %}
+import kotlinx.serialization.Serializable
+{% endraw %}
+
+/**
+ * {{ name_pascal }} エンティティ
+ *
+ * TODO: ビジネスルールに応じてプロパティとバリデーションを実装する。
+ */
+{% raw %}
+@Serializable
+data class {% endraw %}{{ name_pascal }}{% raw %}(
+    val id: String,
+    val name: String,
+    val createdAt: String,
+    val updatedAt: String,
+) {
+    init {
+        require(id.isNotBlank()) { "ID must not be blank" }
+        require(name.isNotBlank()) { "Name must not be blank" }
+    }
+}
+{% endraw %}

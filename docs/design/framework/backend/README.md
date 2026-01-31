@@ -1,6 +1,18 @@
-# Backend Framework（Rust）
+# Backend Framework
 
-k1s0 Backend Framework は、マイクロサービス開発のための共通 crate 群を提供します。各 crate は独立して使用可能で、Clean Architecture の原則に従って設計されています。
+k1s0 Backend Framework は、マイクロサービス開発のための共通ライブラリ群を提供します。各パッケージは独立して使用可能で、Clean Architecture の原則に従って設計されています。
+
+## 言語別パッケージ
+
+- [Rust](./rust/) - Rust crate 群
+- [Go](./go/) - Go パッケージ群
+- [C#](./csharp/) - NuGet パッケージ群
+- [Python](./python/) - Python パッケージ群
+- [Kotlin](./kotlin/) - Kotlin パッケージ群
+
+---
+
+## Rust Crate 群
 
 ## Crate 一覧
 

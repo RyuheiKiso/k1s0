@@ -1,0 +1,39 @@
+{
+  "$schema": "https://k1s0.dev/schemas/manifest.json",
+  "schema_version": "1.0.0",
+  "k1s0_version": "{{ k1s0_version }}",
+  "template": {
+    "name": "frontend-android",
+    "version": "{{ template_version }}",
+    "source": "local",
+    "path": "CLI/templates/frontend-android(Kotlin)/domain",
+    "fingerprint": "{{ fingerprint }}"
+  },
+  "service": {
+    "service_name": "{{ name }}",
+    "language": "kotlin",
+    "type": "frontend"
+  },
+  "layer": "domain",
+  "domain": null,
+  "version": "0.1.0",
+  "min_framework_version": "{{ k1s0_version }}",
+  "generated_at": "{{ created_at }}",
+  "managed_paths": [
+    "build.gradle.kts"
+  ],
+  "protected_paths": [
+    "src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "update_policy": {
+    "src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/": "protected",
+    "README.md": "suggest_only",
+    "CHANGELOG.md": "suggest_only"
+  },
+  "checksums": {},
+  "dependencies": {
+    "framework_packages": []
+  }
+}

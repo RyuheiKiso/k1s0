@@ -1,0 +1,75 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: {{ docker_context_levels }}
+      dockerfile: {{ feature_relative_path }}/Dockerfile
+    ports:
+      - "8080:8080"
+{% if with_grpc %}
+      - "50051:50051"
+{% endif %}
+    volumes:
+      - ./config:/app/config:ro
+    command: ["--env", "dev", "--config", "/app/config"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+{% if with_db or with_cache %}
+    depends_on:
+{% endif %}
+{% if with_db %}
+      db:
+        condition: service_healthy
+{% endif %}
+{% if with_cache %}
+      redis:
+        condition: service_healthy
+{% endif %}
+{% if with_db %}
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: {{ feature_name }}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+{% endif %}
+{% if with_cache %}
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+{% endif %}
+{% if with_db %}
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+{% endif %}
+{% if with_db %}
+
+volumes:
+  db-data:
+{% endif %}

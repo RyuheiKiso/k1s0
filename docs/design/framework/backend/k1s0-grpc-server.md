@@ -141,3 +141,200 @@ let log = RequestLog::new(
 
 println!("{}", log.to_json().unwrap());
 ```
+
+## Go 版（k1s0-grpc-server）
+
+### 主要な型
+
+```go
+// GrpcServerConfig は gRPC サーバ設定。
+type GrpcServerConfig struct {
+    ServiceName string
+    Env         string
+    Port        int
+    TLS         *TLSConfig
+}
+
+func NewGrpcServerConfigBuilder() *GrpcServerConfigBuilder
+
+// RequestContext はリクエストスコープのコンテキスト。
+type RequestContext struct {
+    TraceID   string
+    RequestID string
+    TenantID  string
+    Deadline  *time.Time
+}
+
+// ResponseMetadata はレスポンスメタデータ。
+type ResponseMetadata struct {
+    TraceID   string
+    RequestID string
+    ErrorCode string
+}
+
+func NewResponseMetadata(ctx *RequestContext) *ResponseMetadata
+func (m *ResponseMetadata) WithErrorCode(code string) *ResponseMetadata
+
+// DeadlinePolicy はデッドラインポリシー。
+type DeadlinePolicy int
+
+const (
+    DeadlinePolicyAllow  DeadlinePolicy = iota
+    DeadlinePolicyWarn
+    DeadlinePolicyReject
+)
+```
+
+### 使用例
+
+```go
+import k1s0grpc "github.com/k1s0/framework/backend/go/k1s0-grpc-server"
+
+config := k1s0grpc.NewGrpcServerConfigBuilder().
+    ServiceName("my-service").
+    Env("dev").
+    Port(50051).
+    Build()
+
+ctx := &k1s0grpc.RequestContext{TraceID: "abc", RequestID: "req-001"}
+resp := k1s0grpc.NewResponseMetadata(ctx).WithErrorCode("USER_NOT_FOUND")
+```
+
+## C# 版（K1s0.Grpc.Server）
+
+### 主要な型
+
+```csharp
+public class GrpcServerConfig
+{
+    public string ServiceName { get; }
+    public string Env { get; }
+    public int Port { get; }
+    public static GrpcServerConfigBuilder Builder();
+}
+
+public record RequestContext(
+    string TraceId, string RequestId,
+    string? TenantId = null, DateTime? Deadline = null);
+
+public record ResponseMetadata(
+    string? TraceId = null, string? RequestId = null, string? ErrorCode = null)
+{
+    public static ResponseMetadata FromContext(RequestContext ctx);
+    public ResponseMetadata WithErrorCode(string code);
+}
+
+public enum DeadlinePolicy { Allow, Warn, Reject }
+```
+
+### 使用例
+
+```csharp
+using K1s0.Grpc.Server;
+
+var config = GrpcServerConfig.Builder()
+    .ServiceName("my-service")
+    .Env("dev")
+    .Port(50051)
+    .Build();
+
+var ctx = new RequestContext("trace-abc", "req-001");
+var resp = ResponseMetadata.FromContext(ctx).WithErrorCode("USER_NOT_FOUND");
+```
+
+## Python 版（k1s0-grpc-server）
+
+grpcio ベースの gRPC サーバ基盤。
+
+### 主要な型
+
+```python
+@dataclass
+class GrpcServerConfig:
+    service_name: str
+    env: str
+    port: int = 50051
+
+@dataclass
+class RequestContext:
+    trace_id: str
+    request_id: str
+    tenant_id: str | None = None
+    deadline: float | None = None
+
+@dataclass
+class ResponseMetadata:
+    trace_id: str | None = None
+    request_id: str | None = None
+    error_code: str | None = None
+
+    @classmethod
+    def from_context(cls, ctx: RequestContext) -> "ResponseMetadata": ...
+    def with_error_code(self, code: str) -> "ResponseMetadata": ...
+```
+
+### 使用例
+
+```python
+from k1s0_grpc_server import GrpcServerConfig, RequestContext, ResponseMetadata
+
+config = GrpcServerConfig(service_name="my-service", env="dev", port=50051)
+ctx = RequestContext(trace_id="abc", request_id="req-001")
+resp = ResponseMetadata.from_context(ctx).with_error_code("USER_NOT_FOUND")
+```
+
+## Kotlin 版（k1s0-grpc-server）
+
+grpc-kotlin ベースの gRPC サーバ基盤。
+
+### 主要な型
+
+```kotlin
+data class GrpcServerConfig(
+    val serviceName: String,
+    val env: String,
+    val port: Int = 50051
+) {
+    class Builder {
+        fun serviceName(name: String): Builder
+        fun env(env: String): Builder
+        fun port(port: Int): Builder
+        fun build(): GrpcServerConfig
+    }
+}
+
+data class RequestContext(
+    val traceId: String,
+    val requestId: String,
+    val tenantId: String? = null,
+    val deadline: Instant? = null
+)
+
+data class ResponseMetadata(
+    val traceId: String? = null,
+    val requestId: String? = null,
+    val errorCode: String? = null
+) {
+    companion object {
+        fun fromContext(ctx: RequestContext): ResponseMetadata
+    }
+    fun withErrorCode(code: String): ResponseMetadata
+}
+
+enum class DeadlinePolicy { Allow, Warn, Reject }
+```
+
+### 使用例
+
+```kotlin
+import com.k1s0.grpc.server.*
+
+val config = GrpcServerConfig.Builder()
+    .serviceName("my-service")
+    .env("dev")
+    .port(50051)
+    .build()
+
+val ctx = RequestContext(traceId = "abc", requestId = "req-001")
+val resp = ResponseMetadata.fromContext(ctx).withErrorCode("USER_NOT_FOUND")
+```

@@ -28,6 +28,7 @@ fn get_feature_base(frontend_type: FrontendType) -> &'static str {
     match frontend_type {
         FrontendType::React => "feature/frontend/react",
         FrontendType::Flutter => "feature/frontend/flutter",
+        FrontendType::Android => "feature/frontend/android",
     }
 }
 
@@ -91,6 +92,7 @@ pub fn select_target_feature(frontend_type: FrontendType) -> Result<String> {
             match frontend_type {
                 FrontendType::React => "react",
                 FrontendType::Flutter => "flutter",
+                FrontendType::Android => "android",
             }
         )));
     }

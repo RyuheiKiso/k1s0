@@ -1,0 +1,17 @@
+{% if with_events %}// {{ name_pascal }} created domain event
+
+package dev.k1s0.domain.{{ name_snake }}.events
+
+import java.time.Instant
+import java.util.UUID
+
+/**
+ * Domain event raised when a {{ name_pascal }} is created.
+ */
+data class {{ name_pascal }}Created(
+    val aggregateId: String,
+    val {{ name_snake }}Name: String,
+    val occurredAt: Instant = Instant.now(),
+    val eventId: String = UUID.randomUUID().toString(),
+)
+{% endif %}

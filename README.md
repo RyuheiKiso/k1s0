@@ -11,7 +11,7 @@
 k1s0 は以下の 3 つのコア機能を提供します：
 
 - **サービス雛形の自動生成**: テンプレートから一貫したディレクトリ構造を生成
-- **開発規約の自動チェック**: 19 個のルールで規約違反を検出・自動修正
+- **開発規約の自動チェック**: 26 個のルールで規約違反を検出・自動修正
 - **テンプレート更新の安全な管理**: managed/protected 領域の分離で破壊的変更を回避
 
 ### 3層アーキテクチャ
@@ -38,8 +38,10 @@ k1s0/
 │       ├── backend-go/
 │       ├── backend-csharp/
 │       ├── backend-python/
+│       ├── backend-kotlin/
 │       ├── frontend-react/
-│       └── frontend-flutter/
+│       ├── frontend-flutter/
+│       └── frontend-android/
 ├── framework/              # 技術基盤層（共通部品・共通サービス）
 │   ├── backend/
 │   │   ├── rust/
@@ -47,10 +49,12 @@ k1s0/
 │   │   │   └── services/   # 共通マイクロサービス
 │   │   ├── go/
 │   │   ├── csharp/          # C# NuGet パッケージ
-│   │   └── python/          # Python パッケージ（uv）
+│   │   ├── python/          # Python パッケージ（uv）
+│   │   └── kotlin/          # Kotlin パッケージ（Gradle）
 │   ├── frontend/
 │   │   ├── react/
-│   │   └── flutter/
+│   │   ├── flutter/
+│   │   └── android/         # Android パッケージ
 │   └── database/
 │       └── table/          # 共通テーブル定義（DDL 正本）
 ├── domain/                 # 業務領域共通層（複数 feature で共有）
@@ -58,19 +62,23 @@ k1s0/
 │   │   ├── rust/           # Rust domain ライブラリ
 │   │   ├── go/             # Go domain モジュール
 │   │   ├── csharp/         # C# domain プロジェクト
-│   │   └── python/         # Python domain パッケージ
+│   │   ├── python/         # Python domain パッケージ
+│   │   └── kotlin/         # Kotlin domain モジュール
 │   └── frontend/
 │       ├── react/          # React domain パッケージ
-│       └── flutter/        # Flutter domain パッケージ
+│       ├── flutter/        # Flutter domain パッケージ
+│       └── android/        # Android domain モジュール
 ├── feature/                # 個別機能層（各チームのサービス実装）
 │   ├── backend/
 │   │   ├── rust/
 │   │   ├── go/
 │   │   ├── csharp/
-│   │   └── python/
+│   │   ├── python/
+│   │   └── kotlin/
 │   ├── frontend/
 │   │   ├── react/
-│   │   └── flutter/
+│   │   ├── flutter/
+│   │   └── android/
 │   └── database/
 ├── bff/                    # フロントエンド向け集約 API 層（任意）
 ├── docs/                   # ドキュメント
@@ -153,19 +161,36 @@ k1s0 new-feature --type backend-rust
 | `k1s0 domain-catalog` | domain カタログ（依存状況付き）の表示 |
 | `k1s0 domain-graph` | domain 依存グラフ出力（Mermaid/DOT） |
 | `k1s0 doctor` | 開発環境の健全性チェック |
+| `k1s0 docker build` | Docker イメージをビルド |
+| `k1s0 docker compose up` | docker compose サービスを起動 |
+| `k1s0 docker compose down` | docker compose サービスを停止 |
+| `k1s0 docker compose logs` | docker compose ログを表示 |
+| `k1s0 docker status` | コンテナ状態を表示 |
+| `k1s0 playground start` | サンプル付き playground 環境を起動 |
+| `k1s0 playground stop` | playground 環境を停止 |
+| `k1s0 playground status` | playground 環境の状態を表示 |
+| `k1s0 playground list` | 利用可能なテンプレートを一覧表示 |
+| `k1s0 migrate analyze` | 既存プロジェクトの k1s0 準拠状況を分析 |
+| `k1s0 migrate plan` | 移行計画を生成 |
+| `k1s0 migrate apply` | 移行計画を適用 |
+| `k1s0 migrate status` | 移行の進捗状況を表示 |
+| `k1s0 log` | Git コミット履歴を表示 |
+| `k1s0 diff` | Git diff を表示 |
 
 ### 共通オプション
 
 ```bash
 -v, --verbose      # 詳細出力
 -i, --interactive  # 対話モードを強制起動
+-y, --yes          # 確認プロンプトをスキップ
+--skip-doctor      # 環境診断をスキップ
 --no-color         # カラー出力無効化
 --json             # JSON 形式出力
 ```
 
 ## Lint 機能
 
-19 個のルールで開発規約を自動検査します。
+26 個のルールで開発規約を自動検査します。
 
 ### マニフェスト・構造ルール（K001-K011）
 
@@ -177,13 +202,30 @@ k1s0 new-feature --type backend-rust
 | K010 | Error | 必須ディレクトリが存在しない | ✓ |
 | K011 | Error | 必須ファイルが存在しない | ✓ |
 
-### コード品質ルール（K020-K022）
+### コード品質ルール（K020-K029）
 
 | ID | 重要度 | 説明 | 自動修正 |
 |----|--------|------|:--------:|
 | K020 | Error | 環境変数参照の禁止 | - |
 | K021 | Error | config YAML への機密直書き禁止 | - |
 | K022 | Error | Clean Architecture 依存方向違反 | - |
+| K025 | Error | 設定ファイル命名規約違反（default/dev/stg/prod のみ） | - |
+| K026 | Error | Domain 層でのプロトコル型使用（HTTP/gRPC 依存） | - |
+| K028 | Warning | manifest.json の未使用 domain 依存宣言 | - |
+| K029 | Error | 本番コードでの panic/unwrap/expect（テスト・エントリーポイント除外） | - |
+
+### セキュリティルール（K050-K053）
+
+| ID | 重要度 | 説明 | 自動修正 |
+|----|--------|------|:--------:|
+| K050 | Error | 文字列補間による SQL インジェクションリスク | - |
+| K053 | Warning | 機密データのログ出力（password, token, secret 等） | - |
+
+### インフラルール（K060）
+
+| ID | 重要度 | 説明 | 自動修正 |
+|----|--------|------|:--------:|
+| K060 | Warning | Dockerfile のベースイメージ未固定（:latest またはタグなし） | - |
 
 ### gRPC リトライルール（K030-K032）
 
@@ -221,7 +263,7 @@ k1s0 lint --strict
 
 ## テンプレート
 
-6 種類のサービステンプレートを提供します。各テンプレートは feature 層と domain 層の両方に対応しています。
+8 種類のサービステンプレートを提供します。各テンプレートは feature 層と domain 層の両方に対応しています。
 
 | テンプレート | サブテンプレート | 出力先 |
 |-------------|-----------------|--------|
@@ -229,8 +271,10 @@ k1s0 lint --strict
 | backend-go | feature, domain | `feature/backend/go/{name}/`, `domain/backend/go/{name}/` |
 | backend-csharp | feature, domain | `feature/backend/csharp/{name}/`, `domain/backend/csharp/{name}/` |
 | backend-python | feature, domain | `feature/backend/python/{name}/`, `domain/backend/python/{name}/` |
+| backend-kotlin | feature, domain | `feature/backend/kotlin/{name}/`, `domain/backend/kotlin/{name}/` |
 | frontend-react | feature, domain, screen | `feature/frontend/react/{name}/`, `domain/frontend/react/{name}/` |
 | frontend-flutter | feature, domain, screen | `feature/frontend/flutter/{name}/`, `domain/frontend/flutter/{name}/` |
+| frontend-android | feature, domain | `feature/frontend/android/{name}/`, `domain/frontend/android/{name}/` |
 
 詳細は [テンプレート設計書](docs/design/template/) を参照してください。
 
@@ -304,7 +348,7 @@ k1s0 lint --strict
 
 ### Backend（C#）
 
-8 個の NuGet パッケージを提供します。
+12 個の NuGet パッケージを提供します。
 
 | Package | 説明 | Tier |
 |---------|------|------|
@@ -316,10 +360,14 @@ k1s0 lint --strict
 | K1s0.Grpc.Client | gRPC クライアント共通 | 2 |
 | K1s0.Health | ヘルスチェック | 2 |
 | K1s0.Db | DB 接続・トランザクション（EF Core） | 2 |
+| K1s0.DomainEvent | ドメインイベント発行/購読/Outbox | 2 |
+| K1s0.Resilience | レジリエンスパターン | 2 |
+| K1s0.Cache | Redis キャッシュ（StackExchange.Redis） | 2 |
+| K1s0.Auth | 認証・認可 | 3 |
 
 ### Backend（Python）
 
-8 個の共通パッケージを提供します。
+12 個の共通パッケージを提供します。
 
 | Package | 説明 | Tier |
 |---------|------|------|
@@ -331,6 +379,29 @@ k1s0 lint --strict
 | k1s0-grpc-client | gRPC クライアント共通 | 2 |
 | k1s0-health | ヘルスチェック（FastAPI） | 2 |
 | k1s0-db | DB 接続・トランザクション（SQLAlchemy + asyncpg） | 2 |
+| k1s0-domain-event | ドメインイベント発行/購読/Outbox | 2 |
+| k1s0-resilience | レジリエンスパターン | 2 |
+| k1s0-cache | Redis キャッシュ | 2 |
+| k1s0-auth | 認証・認可 | 3 |
+
+### Backend（Kotlin）
+
+12 個の共通パッケージを提供します。
+
+| Package | 説明 | Tier |
+|---------|------|------|
+| k1s0-error | エラー表現の統一 | 1 |
+| k1s0-config | 設定読み込み（YAML） | 1 |
+| k1s0-validation | 入力バリデーション | 1 |
+| k1s0-observability | ログ/トレース/メトリクス（OpenTelemetry） | 2 |
+| k1s0-grpc-server | gRPC サーバ共通基盤（grpc-kotlin） | 2 |
+| k1s0-grpc-client | gRPC クライアント共通 | 2 |
+| k1s0-health | ヘルスチェック（Ktor） | 2 |
+| k1s0-db | DB（Exposed + HikariCP） | 2 |
+| k1s0-domain-event | ドメインイベント発行/購読/Outbox | 2 |
+| k1s0-resilience | レジリエンスパターン | 2 |
+| k1s0-cache | Redis キャッシュ（Lettuce） | 2 |
+| k1s0-auth | 認証・認可（nimbus-jose-jwt） | 3 |
 
 ### Frontend（React）
 
@@ -364,14 +435,29 @@ k1s0 lint --strict
 | k1s0_state | Riverpod 状態管理ユーティリティ |
 | k1s0_realtime | WebSocket/SSE クライアント（再接続・ハートビート・オフラインキュー） |
 
+### Frontend（Android）
+
+8 個の共通パッケージを提供します。
+
+| Package | 説明 |
+|---------|------|
+| k1s0-navigation | Navigation Compose ルーティング |
+| k1s0-config | YAML 設定管理 |
+| k1s0-http | Ktor Client HTTP |
+| k1s0-ui | Material 3 デザインシステム |
+| k1s0-auth | JWT 認証クライアント |
+| k1s0-observability | ログ・トレーシング |
+| k1s0-state | ViewModel + StateFlow ユーティリティ |
+| k1s0-realtime | WebSocket/SSE クライアント |
+
 詳細は [Framework 設計書](docs/design/framework.md) を参照してください。
 
 ## 技術スタック
 
 | レイヤー | 技術 |
 |---------|------|
-| **バックエンド** | Rust (axum + tokio), Go, C# (ASP.NET Core 8.0), Python (FastAPI) |
-| **フロントエンド** | React (Material-UI, Zod, TypeScript 5.5), Flutter |
+| **バックエンド** | Rust (axum + tokio), Go, C# (ASP.NET Core 8.0), Python (FastAPI), Kotlin (Ktor 3.x) |
+| **フロントエンド** | React (Material-UI, Zod, TypeScript 5.5), Flutter, Android (Jetpack Compose, Material 3) |
 | **CLI** | Rust 1.85+ (clap 4.5, Tera 1.19, tokio) |
 | **データベース** | PostgreSQL |
 | **キャッシュ** | Redis |

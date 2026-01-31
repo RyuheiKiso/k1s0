@@ -85,6 +85,18 @@ impl ProtocolPatterns {
             comment_prefixes: vec!["//"],
         }
     }
+
+    fn kotlin() -> Self {
+        Self {
+            file_extensions: vec!["kt", "kts"],
+            patterns: vec![
+                "HttpStatusCode.",
+                "io.ktor.http.HttpStatusCode",
+                "io.grpc.Status",
+            ],
+            comment_prefixes: vec!["//"],
+        }
+    }
 }
 
 impl Linter {
@@ -135,6 +147,14 @@ impl Linter {
                 return;
             }
             "dart" => ("lib/src/domain", ProtocolPatterns::dart()),
+            "kotlin" => {
+                let domain_dir = if manifest.service.service_type == "frontend" {
+                    "app/src/main/kotlin/domain"
+                } else {
+                    "src/domain"
+                };
+                (domain_dir, ProtocolPatterns::kotlin())
+            }
             _ => return,
         };
 

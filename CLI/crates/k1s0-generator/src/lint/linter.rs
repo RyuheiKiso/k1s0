@@ -276,7 +276,7 @@ impl Linter {
     /// manifest の値を検査
     fn check_manifest_values(&self, manifest: &Manifest, result: &mut LintResult) {
         // service.language の妥当性
-        let valid_languages = ["rust", "go", "csharp", "python", "typescript", "dart"];
+        let valid_languages = ["rust", "go", "csharp", "python", "typescript", "dart", "kotlin"];
         if !valid_languages.contains(&manifest.service.language.as_str()) {
             result.add_violation(
                 Violation::new(
@@ -317,6 +317,8 @@ impl Linter {
             "backend-python",
             "frontend-react",
             "frontend-flutter",
+            "backend-kotlin",
+            "frontend-android",
         ];
         if !valid_templates.contains(&manifest.template.name.as_str()) {
             result.add_violation(

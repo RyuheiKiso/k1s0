@@ -27,17 +27,36 @@ kubectl config current-context
 
 ## 2. デプロイ手順
 
-### 2.1 標準デプロイ（k1s0 CLI）
+### 2.1 Docker イメージのビルドとローカル環境（k1s0 CLI）
+
+k1s0 CLI では `k1s0 docker` コマンドを使用して Docker イメージのビルドとローカル環境の管理を行う。
 
 ```bash
-# 開発環境へのデプロイ
-k1s0 deploy --env dev --service {service_name}
+# Docker イメージをビルド
+k1s0 docker build
 
-# ステージング環境へのデプロイ
-k1s0 deploy --env stg --service {service_name}
+# カスタムタグでビルド
+k1s0 docker build --tag {service_name}:1.0
 
-# 本番環境へのデプロイ
-k1s0 deploy --env prod --service {service_name}
+# キャッシュなしでビルド
+k1s0 docker build --no-cache
+
+# HTTP プロキシを指定してビルド
+k1s0 docker build --http-proxy http://proxy:8080
+
+# docker compose でローカル環境を起動
+k1s0 docker compose up -d --build
+
+# docker compose サービスを停止（ボリューム削除）
+k1s0 docker compose down -v
+
+# docker compose ログを確認
+k1s0 docker compose logs -f
+k1s0 docker compose logs {service_name}
+
+# コンテナ状態の確認
+k1s0 docker status
+k1s0 docker status --json
 ```
 
 ### 2.2 Kustomize を使用したデプロイ
@@ -164,14 +183,12 @@ kubectl rollout history deployment/{service_name}
 kubectl rollout undo deployment/{service_name} --to-revision={revision}
 ```
 
-### 5.2 k1s0 CLI でのロールバック
+### 5.2 Kubernetes でのロールバック
 
 ```bash
-# 直前バージョンへロールバック
-k1s0 rollback --env {env} --service {service_name}
-
-# 特定バージョンへロールバック
-k1s0 rollback --env {env} --service {service_name} --version {version}
+# Deployment のロールバック履歴を確認し、適切なリビジョンへ戻す
+kubectl rollout history deployment/{service_name}
+kubectl rollout undo deployment/{service_name} --to-revision={revision}
 ```
 
 ### 5.3 ロールバック判断基準
@@ -196,28 +213,29 @@ k1s0 rollback --env {env} --service {service_name} --version {version}
 
 ### 6.1 カナリアリリース手順
 
-```bash
-# カナリア Pod のデプロイ（10% トラフィック）
-k1s0 deploy --env prod --service {service_name} --canary --weight 10
+カナリアデプロイは Kubernetes のネイティブ機能や Argo Rollouts 等を活用して実施する。
 
-# メトリクス確認（15分以上観察）
+```bash
+# 1. カナリア用 Deployment を作成（レプリカ数でトラフィック比率を制御）
+kubectl apply -f deploy/overlays/prod/canary.yaml
+
+# 2. メトリクス確認（15分以上観察）
 # - エラーレート
 # - レイテンシ
 # - 成功率
 
-# 問題なければ段階的に増加
-k1s0 deploy --env prod --service {service_name} --canary --weight 50
-k1s0 deploy --env prod --service {service_name} --canary --weight 100
+# 3. 問題なければメイン Deployment を更新
+kubectl set image deployment/{service_name} {container_name}={new_image}
 
-# カナリア終了（全トラフィック切り替え）
-k1s0 deploy --env prod --service {service_name} --promote
+# 4. カナリア Deployment を削除
+kubectl delete deployment {service_name}-canary
 ```
 
 ### 6.2 カナリア中止
 
 ```bash
-# カナリアを中止し、旧バージョンに戻す
-k1s0 deploy --env prod --service {service_name} --abort-canary
+# カナリア Deployment を削除し、旧バージョンのみに戻す
+kubectl delete deployment {service_name}-canary
 ```
 
 ## 7. デプロイ時の注意事項

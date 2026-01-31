@@ -1,0 +1,19 @@
+package dev.k1s0.domain.{{ name_snake }}.repositories
+
+import dev.k1s0.domain.{{ name_snake }}.entities.{{ name_pascal }}
+
+/**
+ * {{ name_pascal }}Repository インターフェース（ポート）
+ *
+ * infrastructure 層で具体的な実装を提供する。
+ */
+interface {{ name_pascal }}Repository {
+
+    suspend fun findById(id: String): {{ name_pascal }}?
+
+    suspend fun findAll(): List<{{ name_pascal }}>
+
+    suspend fun save(entity: {{ name_pascal }})
+
+    suspend fun deleteById(id: String)
+}

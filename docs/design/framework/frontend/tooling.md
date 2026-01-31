@@ -51,6 +51,31 @@ k1s0_state
   ├── flutter_riverpod
   ├── shared_preferences
   └── hive_flutter
+
+Android:
+k1s0-navigation
+  └── Navigation Compose
+
+k1s0-config
+  └── (standalone, SnakeYAML依存)
+
+k1s0-http
+  └── Ktor Client, k1s0-observability(optional)
+
+k1s0-ui
+  └── Material 3 (Jetpack Compose)
+
+k1s0-auth
+  └── (standalone, nimbus-jose-jwt依存)
+
+k1s0-observability
+  └── (standalone)
+
+k1s0-state
+  └── ViewModel, StateFlow
+
+k1s0-realtime
+  └── OkHttp (WebSocket), k1s0-observability(optional)
 ```
 
 ---

@@ -36,6 +36,8 @@ pub enum ToolCategory {
     Proto,
     /// Docker 関連
     Docker,
+    /// Kotlin 関連
+    Kotlin,
 }
 
 impl ToolCategory {
@@ -48,6 +50,7 @@ impl ToolCategory {
             ToolCategory::Flutter => "Flutter",
             ToolCategory::Proto => "Protocol Buffers",
             ToolCategory::Docker => "Docker",
+            ToolCategory::Kotlin => "Kotlin",
         }
     }
 }
@@ -281,8 +284,41 @@ pub const DOCKER_COMPOSE: ToolRequirement = ToolRequirement {
     description: "Docker Compose v2（docker-compose サポートに必要）",
 };
 
+/// Kotlin 最小バージョン
+pub const KOTLIN_MIN_VERSION: &str = "1.9.0";
+
+/// Kotlin ツール情報
+pub const KOTLIN: ToolRequirement = ToolRequirement {
+    name: "kotlin",
+    min_version: Some(KOTLIN_MIN_VERSION),
+    required: false,
+    category: ToolCategory::Kotlin,
+    install_url: "https://kotlinlang.org/docs/command-line.html",
+    install_commands: InstallCommands {
+        windows: Some("winget install JetBrains.Kotlin.Compiler"),
+        macos: Some("brew install kotlin"),
+        linux: Some("sdk install kotlin"),
+    },
+    description: "Kotlin コンパイラ（backend-kotlin, frontend-android に必要）",
+};
+
+/// Gradle ツール情報
+pub const GRADLE: ToolRequirement = ToolRequirement {
+    name: "gradle",
+    min_version: None,
+    required: false,
+    category: ToolCategory::Kotlin,
+    install_url: "https://gradle.org/install/",
+    install_commands: InstallCommands {
+        windows: Some("winget install Gradle.Gradle"),
+        macos: Some("brew install gradle"),
+        linux: Some("sdk install gradle"),
+    },
+    description: "Gradle ビルドツール（Kotlin プロジェクトに必要）",
+};
+
 /// 全てのオプションツール
-pub const OPTIONAL_TOOLS: &[&ToolRequirement] = &[&GO, &GOLANGCI_LINT, &BUF, &FLUTTER, &DART, &DOCKER, &DOCKER_COMPOSE];
+pub const OPTIONAL_TOOLS: &[&ToolRequirement] = &[&GO, &GOLANGCI_LINT, &BUF, &FLUTTER, &DART, &DOCKER, &DOCKER_COMPOSE, &KOTLIN, &GRADLE];
 
 /// 全てのツール
 pub fn all_tools() -> Vec<&'static ToolRequirement> {
@@ -301,6 +337,8 @@ pub fn categories_for_service_type(name: &str) -> Vec<ToolCategory> {
         "backend-csharp" => vec![ToolCategory::Docker],
         "frontend-react" => vec![ToolCategory::Node, ToolCategory::Docker],
         "frontend-flutter" => vec![ToolCategory::Flutter],
+        "backend-kotlin" => vec![ToolCategory::Kotlin, ToolCategory::Docker],
+        "frontend-android" => vec![ToolCategory::Kotlin],
         _ => vec![],
     }
 }

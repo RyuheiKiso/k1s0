@@ -64,8 +64,12 @@ k1s0 new-domain \
 |--------|------|-------|
 | `backend-rust` | Rust | `domain/backend/rust/{name}/` |
 | `backend-go` | Go | `domain/backend/go/{name}/` |
+| `backend-csharp` | C# | `domain/backend/csharp/{name}/` |
+| `backend-python` | Python | `domain/backend/python/{name}/` |
+| `backend-kotlin` | Kotlin | `domain/backend/kotlin/{name}/` |
 | `frontend-react` | TypeScript | `domain/frontend/react/{name}/` |
 | `frontend-flutter` | Dart | `domain/frontend/flutter/{name}/` |
+| `frontend-android` | Kotlin | `domain/frontend/android/{name}/` |
 
 ### 2.3 命名規則
 

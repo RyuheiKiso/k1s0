@@ -197,7 +197,7 @@ fn execute_start(args: StartArgs) -> Result<()> {
     // テンプレートタイプの検証
     let template_type = args.template_type.as_deref().ok_or_else(|| {
         CliError::usage("--type オプションは必須です")
-            .with_hint("利用可能なタイプ: backend-rust, backend-go, backend-csharp, backend-python, frontend-react, frontend-flutter")
+            .with_hint("利用可能なタイプ: backend-rust, backend-go, backend-csharp, backend-python, backend-kotlin, frontend-react, frontend-flutter, frontend-android")
             .with_recovery("k1s0 playground list", "利用可能なテンプレートを一覧表示")
     })?;
 
@@ -545,6 +545,8 @@ fn execute_list(_args: ListArgs) -> Result<()> {
     out.list_item("backend-python", "Python バックエンドサービス (FastAPI)");
     out.list_item("frontend-react", "React フロントエンド (Material-UI)");
     out.list_item("frontend-flutter", "Flutter フロントエンド (Material 3)");
+    out.list_item("backend-kotlin", "Kotlin バックエンドサービス (Ktor)");
+    out.list_item("frontend-android", "Android フロントエンド (Jetpack Compose)");
     out.newline();
     out.hint("使い方: k1s0 playground start --type backend-rust --name my-app");
 
@@ -560,6 +562,8 @@ fn validate_template_type(template_type: &str) -> Result<()> {
         "backend-python",
         "frontend-react",
         "frontend-flutter",
+        "backend-kotlin",
+        "frontend-android",
     ];
 
     if !valid_types.contains(&template_type) {
@@ -640,6 +644,18 @@ fn check_toolchain(template_type: &str) -> Result<()> {
             vec!["--version"],
             "Flutter",
             "https://flutter.dev/docs/get-started/install",
+        ),
+        "backend-kotlin" => (
+            "kotlin",
+            vec!["-version"],
+            "Kotlin",
+            "https://kotlinlang.org/docs/command-line.html",
+        ),
+        "frontend-android" => (
+            "kotlin",
+            vec!["-version"],
+            "Kotlin (Android)",
+            "https://developer.android.com/studio",
         ),
         _ => {
             return Err(CliError::validation(format!(
@@ -1023,6 +1039,18 @@ fn start_local_process(dir: &Path, template_type: &str, ports: &PortConfig) -> R
             .stdout(log_file)
             .stderr(log_stderr)
             .spawn(),
+        "backend-kotlin" => Command::new("./gradlew")
+            .args(["run"])
+            .current_dir(dir)
+            .stdout(log_file)
+            .stderr(log_stderr)
+            .spawn(),
+        "frontend-android" => Command::new("./gradlew")
+            .args(["installDebug"])
+            .current_dir(dir)
+            .stdout(log_file)
+            .stderr(log_stderr)
+            .spawn(),
         _ => {
             return Err(CliError::validation(format!(
                 "ローカル起動に未対応のテンプレートタイプ: {template_type}"
@@ -1076,6 +1104,10 @@ fn run_build_command(dir: &Path, template_type: &str) -> Result<()> {
             }),
         "frontend-flutter" => Command::new("flutter")
             .args(["build", "web"])
+            .current_dir(dir)
+            .status(),
+        "backend-kotlin" | "frontend-android" => Command::new("./gradlew")
+            .args(["build"])
             .current_dir(dir)
             .status(),
         _ => {

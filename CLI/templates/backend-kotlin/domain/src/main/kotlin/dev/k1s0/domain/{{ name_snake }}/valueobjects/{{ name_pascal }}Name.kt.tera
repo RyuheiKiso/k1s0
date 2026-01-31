@@ -1,0 +1,21 @@
+// {{ name_pascal }} name value object
+
+package dev.k1s0.domain.{{ name_snake }}.valueobjects
+
+private const val MIN_LENGTH = 1
+private const val MAX_LENGTH = 255
+
+/**
+ * {{ name_pascal }} name value object with validation.
+ */
+data class {{ name_pascal }}Name(val value: String) {
+    init {
+        require(value.isNotBlank()) { "{{ name_pascal }}Name must not be empty" }
+        require(value.length >= MIN_LENGTH) {
+            "{{ name_pascal }}Name must be at least $MIN_LENGTH characters"
+        }
+        require(value.length <= MAX_LENGTH) {
+            "{{ name_pascal }}Name must be at most $MAX_LENGTH characters"
+        }
+    }
+}

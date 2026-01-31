@@ -225,3 +225,167 @@ let config: AppConfig = loader.load().await?;
 - **k1s0-db（Tier 2）**: `PostgresSettingRepository` 実装を提供（`config` feature で有効化）
 
 この設計により、Tier 1 の k1s0-config は具体的な DB 実装に依存せず、Tier 依存ルールを維持している。
+
+## Go 版（k1s0-config）
+
+### 主要な型
+
+```go
+// ConfigOptions は設定読み込みオプション。
+type ConfigOptions struct {
+    Env        string
+    ConfigPath string
+    ConfigDir  string
+    SecretsDir string
+}
+
+func NewConfigOptions(env string) *ConfigOptions
+func (o *ConfigOptions) WithConfigPath(path string) *ConfigOptions
+func (o *ConfigOptions) WithSecretsDir(dir string) *ConfigOptions
+
+// ConfigLoader は YAML 設定ローダー。
+type ConfigLoader struct {
+    options *ConfigOptions
+}
+
+func NewConfigLoader(options *ConfigOptions) (*ConfigLoader, error)
+func (l *ConfigLoader) Load(dest interface{}) error
+func (l *ConfigLoader) ResolveSecretFile(path string) (string, error)
+```
+
+### 使用例
+
+```go
+import k1s0config "github.com/k1s0/framework/backend/go/k1s0-config"
+
+type AppConfig struct {
+    DB struct {
+        Host         string `yaml:"host"`
+        Port         int    `yaml:"port"`
+        PasswordFile string `yaml:"password_file"`
+    } `yaml:"db"`
+}
+
+opts := k1s0config.NewConfigOptions("dev").
+    WithConfigPath("config/dev.yaml").
+    WithSecretsDir("/var/run/secrets/k1s0")
+
+loader, err := k1s0config.NewConfigLoader(opts)
+var config AppConfig
+err = loader.Load(&config)
+password, err := loader.ResolveSecretFile(config.DB.PasswordFile)
+```
+
+## C# 版（K1s0.Config）
+
+### 主要な型
+
+```csharp
+public class ConfigOptions
+{
+    public string Env { get; }
+    public string? ConfigPath { get; set; }
+    public string? ConfigDir { get; set; }
+    public string? SecretsDir { get; set; }
+
+    public ConfigOptions(string env);
+}
+
+public class ConfigLoader
+{
+    public ConfigLoader(ConfigOptions options);
+    public T Load<T>() where T : class, new();
+    public string ResolveSecretFile(string path);
+}
+```
+
+### 使用例
+
+```csharp
+using K1s0.Config;
+
+var options = new ConfigOptions("dev")
+{
+    ConfigPath = "config/dev.yaml",
+    SecretsDir = "/var/run/secrets/k1s0"
+};
+
+var loader = new ConfigLoader(options);
+var config = loader.Load<AppConfig>();
+var password = loader.ResolveSecretFile(config.Db.PasswordFile);
+```
+
+## Python 版（k1s0-config）
+
+### 主要な型
+
+```python
+@dataclass
+class ConfigOptions:
+    env: str
+    config_path: str | None = None
+    config_dir: str | None = None
+    secrets_dir: str | None = None
+
+class ConfigLoader:
+    def __init__(self, options: ConfigOptions) -> None: ...
+    def load(self, model: type[T]) -> T: ...
+    def resolve_secret_file(self, path: str) -> str: ...
+```
+
+### 使用例
+
+```python
+from k1s0_config import ConfigLoader, ConfigOptions
+from pydantic import BaseModel
+
+class DbConfig(BaseModel):
+    host: str
+    port: int
+    password_file: str
+
+class AppConfig(BaseModel):
+    db: DbConfig
+
+options = ConfigOptions(env="dev", config_path="config/dev.yaml",
+                        secrets_dir="/var/run/secrets/k1s0")
+loader = ConfigLoader(options)
+config = loader.load(AppConfig)
+password = loader.resolve_secret_file(config.db.password_file)
+```
+
+## Kotlin 版（k1s0-config）
+
+### 主要な型
+
+```kotlin
+data class ConfigOptions(
+    val env: String,
+    val configPath: String? = null,
+    val configDir: String? = null,
+    val secretsDir: String? = null
+)
+
+class ConfigLoader(private val options: ConfigOptions) {
+    inline fun <reified T> load(): T
+    fun resolveSecretFile(path: String): String
+}
+```
+
+### 使用例
+
+```kotlin
+import com.k1s0.config.*
+
+data class DbConfig(val host: String, val port: Int, val passwordFile: String)
+data class AppConfig(val db: DbConfig)
+
+val options = ConfigOptions(
+    env = "dev",
+    configPath = "config/dev.yaml",
+    secretsDir = "/var/run/secrets/k1s0"
+)
+val loader = ConfigLoader(options)
+val config = loader.load<AppConfig>()
+val password = loader.resolveSecretFile(config.db.passwordFile)
+```

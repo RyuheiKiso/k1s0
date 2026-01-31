@@ -1,0 +1,54 @@
+package dev.k1s0.app.{{ feature_name_package }}.presentation.screens
+
+{% raw %}
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+{% endraw %}
+
+/**
+ * {{ screen_name_pascal }}UiState - {{ screen_name_pascal }} 画面の UI 状態
+ */
+{% raw %}
+data class {% endraw %}{{ screen_name_pascal }}UiState{% raw %}(
+    val isLoading: Boolean = false,
+    val error: String? = null,
+)
+
+/**
+ * {% endraw %}{{ screen_name_pascal }}ViewModel{% raw %} - {% endraw %}{{ screen_name_pascal }}{% raw %} 画面の ViewModel
+ *
+ * TODO: UseCase を注入してビジネスロジックを実行する。
+ */
+class {% endraw %}{{ screen_name_pascal }}ViewModel{% raw %} : ViewModel() {
+
+    private val _uiState = MutableStateFlow({% endraw %}{{ screen_name_pascal }}UiState{% raw %}())
+    val uiState: StateFlow<{% endraw %}{{ screen_name_pascal }}UiState{% raw %}> = _uiState.asStateFlow()
+
+    init {
+        load()
+    }
+
+    private fun load() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                // TODO: UseCase を呼び出してデータを取得する
+                _uiState.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(isLoading = false, error = e.message)
+                }
+            }
+        }
+    }
+
+    fun refresh() {
+        load()
+    }
+}
+{% endraw %}

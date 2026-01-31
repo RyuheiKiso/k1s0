@@ -1,0 +1,19 @@
+package dev.k1s0.app.{{ feature_name_package }}.presentation
+
+{% raw %}
+import androidx.compose.runtime.Composable
+import androidx.navigation.compose.rememberNavController
+{% endraw %}
+
+import dev.k1s0.app.{{ feature_name_package }}.presentation.navigation.NavGraph
+
+{% raw %}
+/**
+ * アプリケーションルート Composable
+ */
+@Composable
+fun App() {
+    val navController = rememberNavController()
+    NavGraph(navController = navController)
+}
+{% endraw %}

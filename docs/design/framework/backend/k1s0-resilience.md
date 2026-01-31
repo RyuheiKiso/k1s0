@@ -212,3 +212,240 @@ let result = cb.execute(async {
     Ok::<_, ResilienceError>(42)
 }).await?;
 ```
+
+## Go 版（k1s0-resilience）
+
+### 主要な型
+
+```go
+// TimeoutGuard はタイムアウトガード。
+type TimeoutGuard struct {
+    TimeoutMs uint64
+}
+
+func NewTimeoutGuard(timeoutMs uint64) (*TimeoutGuard, error)
+func (g *TimeoutGuard) Execute(ctx context.Context, fn func(context.Context) error) error
+
+// ConcurrencyLimiter は同時実行制限。
+type ConcurrencyLimiter struct{}
+
+func NewConcurrencyLimiter(maxConcurrent int) *ConcurrencyLimiter
+func (l *ConcurrencyLimiter) Execute(ctx context.Context, fn func(context.Context) error) error
+
+// Bulkhead はバルクヘッド。
+type BulkheadConfig struct {
+    DefaultLimit  int
+    ServiceLimits map[string]int
+}
+
+type Bulkhead struct{}
+
+func NewBulkhead(config BulkheadConfig) *Bulkhead
+func (b *Bulkhead) Execute(ctx context.Context, service string, fn func(context.Context) error) error
+
+// CircuitBreaker はサーキットブレーカ。
+type CircuitState int
+
+const (
+    CircuitClosed   CircuitState = iota
+    CircuitOpen
+    CircuitHalfOpen
+)
+
+type CircuitBreakerConfig struct {
+    Enabled          bool
+    FailureThreshold uint32
+    SuccessThreshold uint32
+    ResetTimeoutSecs uint64
+}
+
+type CircuitBreaker struct{}
+
+func NewCircuitBreaker(config CircuitBreakerConfig) *CircuitBreaker
+func (cb *CircuitBreaker) Execute(ctx context.Context, fn func(context.Context) error) error
+func (cb *CircuitBreaker) State() CircuitState
+```
+
+### 使用例
+
+```go
+import k1s0res "github.com/k1s0/framework/backend/go/k1s0-resilience"
+
+guard, _ := k1s0res.NewTimeoutGuard(5000)
+err := guard.Execute(ctx, func(ctx context.Context) error {
+    return doWork(ctx)
+})
+
+cb := k1s0res.NewCircuitBreaker(k1s0res.CircuitBreakerConfig{
+    Enabled: true, FailureThreshold: 5, SuccessThreshold: 3, ResetTimeoutSecs: 30,
+})
+err = cb.Execute(ctx, func(ctx context.Context) error { return callService(ctx) })
+```
+
+## C# 版（K1s0.Resilience）
+
+### 主要な型
+
+```csharp
+public class TimeoutGuard
+{
+    public TimeoutGuard(ulong timeoutMs);
+    public async Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> func);
+}
+
+public class ConcurrencyLimiter
+{
+    public ConcurrencyLimiter(int maxConcurrent);
+    public async Task<T> ExecuteAsync<T>(Func<Task<T>> func);
+}
+
+public class BulkheadConfig
+{
+    public int DefaultLimit { get; set; }
+    public Dictionary<string, int> ServiceLimits { get; set; }
+}
+
+public class Bulkhead
+{
+    public Bulkhead(BulkheadConfig config);
+    public async Task<T> ExecuteAsync<T>(string service, Func<Task<T>> func);
+}
+
+public enum CircuitState { Closed, Open, HalfOpen }
+
+public class CircuitBreakerConfig
+{
+    public bool Enabled { get; set; }
+    public uint FailureThreshold { get; set; }
+    public uint SuccessThreshold { get; set; }
+    public ulong ResetTimeoutSecs { get; set; }
+}
+
+public class CircuitBreaker
+{
+    public CircuitBreaker(CircuitBreakerConfig config);
+    public async Task<T> ExecuteAsync<T>(Func<Task<T>> func);
+    public CircuitState State { get; }
+}
+```
+
+### 使用例
+
+```csharp
+using K1s0.Resilience;
+
+var guard = new TimeoutGuard(5000);
+var result = await guard.ExecuteAsync(async ct => await DoWork(ct));
+
+var cb = new CircuitBreaker(new CircuitBreakerConfig
+{
+    Enabled = true, FailureThreshold = 5, SuccessThreshold = 3, ResetTimeoutSecs = 30
+});
+var result = await cb.ExecuteAsync(async () => await CallService());
+```
+
+## Python 版（k1s0-resilience）
+
+### 主要な型
+
+```python
+class TimeoutGuard:
+    def __init__(self, timeout_ms: int) -> None: ...
+    async def execute(self, coro: Coroutine[Any, Any, T]) -> T: ...
+
+class ConcurrencyLimiter:
+    def __init__(self, max_concurrent: int) -> None: ...
+    async def execute(self, coro: Coroutine[Any, Any, T]) -> T: ...
+
+@dataclass
+class BulkheadConfig:
+    default_limit: int
+    service_limits: dict[str, int] = field(default_factory=dict)
+
+class Bulkhead:
+    def __init__(self, config: BulkheadConfig) -> None: ...
+    async def execute(self, service: str, coro: Coroutine[Any, Any, T]) -> T: ...
+
+class CircuitState(Enum):
+    CLOSED = "closed"
+    OPEN = "open"
+    HALF_OPEN = "half_open"
+
+@dataclass
+class CircuitBreakerConfig:
+    enabled: bool = False
+    failure_threshold: int = 5
+    success_threshold: int = 3
+    reset_timeout_secs: int = 30
+
+class CircuitBreaker:
+    def __init__(self, config: CircuitBreakerConfig) -> None: ...
+    async def execute(self, coro: Coroutine[Any, Any, T]) -> T: ...
+    @property
+    def state(self) -> CircuitState: ...
+```
+
+### 使用例
+
+```python
+from k1s0_resilience import TimeoutGuard, CircuitBreaker, CircuitBreakerConfig
+
+guard = TimeoutGuard(timeout_ms=5000)
+result = await guard.execute(do_work())
+
+cb = CircuitBreaker(CircuitBreakerConfig(
+    enabled=True, failure_threshold=5, success_threshold=3, reset_timeout_secs=30
+))
+result = await cb.execute(call_service())
+```
+
+## Kotlin 版（k1s0-resilience）
+
+### 主要な型
+
+```kotlin
+class TimeoutGuard(private val timeoutMs: Long) {
+    suspend fun <T> execute(block: suspend () -> T): T
+}
+
+class ConcurrencyLimiter(private val maxConcurrent: Int) {
+    suspend fun <T> execute(block: suspend () -> T): T
+}
+
+data class BulkheadConfig(
+    val defaultLimit: Int,
+    val serviceLimits: Map<String, Int> = emptyMap()
+)
+
+class Bulkhead(private val config: BulkheadConfig) {
+    suspend fun <T> execute(service: String, block: suspend () -> T): T
+}
+
+enum class CircuitState { Closed, Open, HalfOpen }
+
+data class CircuitBreakerConfig(
+    val enabled: Boolean = false,
+    val failureThreshold: Int = 5,
+    val successThreshold: Int = 3,
+    val resetTimeoutSecs: Long = 30
+)
+
+class CircuitBreaker(private val config: CircuitBreakerConfig) {
+    suspend fun <T> execute(block: suspend () -> T): T
+    val state: CircuitState
+}
+```
+
+### 使用例
+
+```kotlin
+import com.k1s0.resilience.*
+
+val guard = TimeoutGuard(timeoutMs = 5000)
+val result = guard.execute { doWork() }
+
+val cb = CircuitBreaker(CircuitBreakerConfig(
+    enabled = true, failureThreshold = 5, successThreshold = 3, resetTimeoutSecs = 30
+))
+val result = cb.execute { callService() }
+```

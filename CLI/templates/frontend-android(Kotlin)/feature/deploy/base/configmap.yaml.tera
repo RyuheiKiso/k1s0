@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ feature_name_kebab }}-config
+data:
+  APP_ENV: "dev"
+  API_BASE_URL: "{{ api_base_url | default(value="http://localhost:8080") }}"

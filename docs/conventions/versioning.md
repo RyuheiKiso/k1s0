@@ -14,7 +14,7 @@ k1s0-version.txt
 **対象:**
 - CLI（`k1s0` バイナリ）
 - k1s0-generator crate
-- templates（backend-rust, frontend-react 等）
+- templates（backend-rust, backend-go, backend-csharp, backend-python, backend-kotlin, frontend-react, frontend-flutter, frontend-android）
 - framework crates（k1s0-config, k1s0-error 等）
 - framework services（auth-service, config-service 等）
 

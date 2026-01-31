@@ -145,6 +145,29 @@ impl LogPatterns {
             comment_prefixes: vec!["//"],
         }
     }
+
+    fn kotlin() -> Self {
+        Self {
+            file_extensions: vec!["kt", "kts"],
+            log_functions: vec![
+                "logger.info(",
+                "logger.warn(",
+                "logger.error(",
+                "logger.debug(",
+                "logger.trace(",
+                "log.info {",
+                "log.warn {",
+                "log.error {",
+                "log.debug {",
+                "Log.d(",
+                "Log.e(",
+                "Log.i(",
+                "Log.w(",
+                "Log.v(",
+            ],
+            comment_prefixes: vec!["//"],
+        }
+    }
 }
 
 fn contains_sensitive_keyword(line: &str) -> Option<&'static str> {
@@ -182,6 +205,14 @@ impl Linter {
             "csharp" => ("src", LogPatterns::csharp()),
             "python" => ("src", LogPatterns::python()),
             "dart" => ("lib", LogPatterns::dart()),
+            "kotlin" => {
+                let src_dir = if manifest.service.service_type == "frontend" {
+                    "app/src"
+                } else {
+                    "src"
+                };
+                (src_dir, LogPatterns::kotlin())
+            }
             _ => return,
         };
 

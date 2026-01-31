@@ -1,0 +1,30 @@
+package dev.k1s0.app.{{ feature_name_package }}.presentation.navigation
+
+{% raw %}
+import androidx.compose.runtime.Composable
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+{% endraw %}
+
+import dev.k1s0.app.{{ feature_name_package }}.presentation.screens.HomeScreen
+
+{% raw %}
+/**
+ * アプリケーションのナビゲーショングラフ定義
+ */
+@Composable
+fun NavGraph(
+    navController: NavHostController,
+    startDestination: String = "home",
+) {
+    NavHost(
+        navController = navController,
+        startDestination = startDestination,
+    ) {
+        composable("home") {
+            HomeScreen()
+        }
+    }
+}
+{% endraw %}

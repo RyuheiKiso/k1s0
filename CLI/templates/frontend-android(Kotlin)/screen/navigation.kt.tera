@@ -1,0 +1,37 @@
+// NavGraph.kt の NavHost ブロックに以下を追加する。
+//
+// 使用方法:
+//   NavGraph.kt の NavHost { ... } 内にこのルートを追加する。
+//
+// ```kotlin
+// composable("{{ screen_name_kebab }}") {
+//     {{ screen_name_pascal }}Screen(
+//         onNavigateBack = { navController.popBackStack() },
+//     )
+// }
+// ```
+
+package dev.k1s0.app.{{ feature_name_package }}.presentation.navigation
+
+{% raw %}
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.composable
+{% endraw %}
+
+import dev.k1s0.app.{{ feature_name_package }}.presentation.screens.{{ screen_name_pascal }}Screen
+
+/**
+ * {{ screen_name_pascal }} 画面のナビゲーションルート登録
+ */
+fun NavGraphBuilder.{{ screen_name_camel }}Screen(navController: NavHostController) {
+{% raw %}
+    composable("{% endraw %}{{ screen_name_kebab }}{% raw %}") {
+{% endraw %}
+        {{ screen_name_pascal }}Screen(
+{% raw %}
+            onNavigateBack = { navController.popBackStack() },
+        )
+{% endraw %}
+    }
+}

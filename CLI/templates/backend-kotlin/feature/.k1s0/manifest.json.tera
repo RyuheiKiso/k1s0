@@ -1,0 +1,74 @@
+{
+  "$schema": "https://k1s0.dev/schemas/manifest.json",
+  "schema_version": "1.0.0",
+  "k1s0_version": "{{ k1s0_version | default(value="0.1.0") }}",
+  "template": {
+    "name": "backend-kotlin",
+    "version": "{{ template_version | default(value="0.1.0") }}",
+    "source": "local",
+    "path": "CLI/templates/backend-kotlin/feature",
+    "fingerprint": "{{ fingerprint | default(value="") }}"
+  },
+  "service": {
+    "service_name": "{{ feature_name }}",
+    "language": "kotlin",
+    "type": "backend",
+    "framework": "ktor"
+  },
+  "layer": "feature",
+  {% if has_domain | default(value=false) -%}
+  "domain": "{{ domain_name }}",
+  "domain_version": "{{ domain_version_constraint | default(value="^0.1.0") }}",
+  {% else -%}
+  "domain": null,
+  "domain_version": null,
+  {% endif -%}
+  "generated_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
+  "managed_paths": [
+    "deploy/",
+    "proto/",
+    "openapi/",
+    "config/",
+    "buf.yaml",
+    "buf.gen.yaml",
+    "build.gradle.kts",
+    "settings.gradle.kts",
+    "gradle.properties",
+    "gradle/",
+    "Dockerfile",
+    ".dockerignore"
+  ],
+  "protected_paths": [
+    "src/main/kotlin/dev/k1s0/feature/{{ feature_name_package }}/domain/",
+    "src/main/kotlin/dev/k1s0/feature/{{ feature_name_package }}/application/"
+  ],
+  "unmanaged_paths": [
+    "docker-compose.yml",
+    "secrets/"
+  ],
+  "update_policy": {
+    "deploy/": "auto",
+    "config/": "suggest_only",
+    "src/main/kotlin/dev/k1s0/feature/{{ feature_name_package }}/domain/": "protected",
+    "src/main/kotlin/dev/k1s0/feature/{{ feature_name_package }}/application/": "protected",
+    "src/main/kotlin/dev/k1s0/feature/{{ feature_name_package }}/infrastructure/": "suggest_only",
+    "src/main/kotlin/dev/k1s0/feature/{{ feature_name_package }}/presentation/": "suggest_only",
+    "src/test/": "suggest_only"
+  },
+  "checksums": {},
+  "dependencies": {
+    "framework": [
+      "k1s0-error",
+      "k1s0-config",
+      "k1s0-observability"
+    ],
+    "framework_packages": [
+      { "name": "k1s0-error", "version": "{{ k1s0_version | default(value="0.1.0") }}" },
+      { "name": "k1s0-config", "version": "{{ k1s0_version | default(value="0.1.0") }}" },
+      { "name": "k1s0-observability", "version": "{{ k1s0_version | default(value="0.1.0") }}" }
+    ]{% if has_domain | default(value=false) %},
+    "domain": {
+      "{{ domain_name }}": "{{ domain_version_constraint | default(value="^0.1.0") }}"
+    }{% endif %}
+  }
+}

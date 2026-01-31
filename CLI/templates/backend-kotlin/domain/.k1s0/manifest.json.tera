@@ -1,0 +1,53 @@
+{
+  "$schema": "https://k1s0.dev/schemas/manifest.json",
+  "schema_version": "1.0.0",
+  "k1s0_version": "{{ k1s0_version }}",
+  "template": {
+    "name": "{{ template_type }}",
+    "version": "{{ template_version }}",
+    "source": "local",
+    "path": "CLI/templates/{{ template_type }}/domain",
+    "fingerprint": "{{ fingerprint }}"
+  },
+  "service": {
+    "service_name": "{{ name }}",
+    "language": "kotlin",
+    "type": "{{ service_type }}"
+  },
+  "layer": "domain",
+  "domain": null,
+  "version": "{{ domain_version }}",
+  "min_framework_version": "{{ k1s0_version }}",
+  "generated_at": "{{ created_at }}",
+  "managed_paths": [
+    "build.gradle.kts",
+    "settings.gradle.kts",
+    "gradle.properties",
+    "gradle/"
+  ],
+  "protected_paths": [
+    "src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/entities/",
+    "src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/valueobjects/",
+    "src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/repositories/",
+    "src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/services/",
+    "src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/events/",
+    "src/test/",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "update_policy": {
+    "src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/entities/": "protected",
+    "src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/valueobjects/": "protected",
+    "src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/repositories/": "protected",
+    "src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/services/": "protected",
+    "src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/events/": "protected",
+    "src/test/": "protected",
+    "README.md": "suggest_only",
+    "CHANGELOG.md": "suggest_only"
+  },
+  "checksums": {},
+  "dependencies": {
+    "framework": [],
+    "framework_packages": []
+  }
+}

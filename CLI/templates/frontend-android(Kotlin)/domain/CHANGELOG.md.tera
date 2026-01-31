@@ -1,0 +1,17 @@
+# Changelog
+
+このファイルは {{ name_pascal }} domain の変更履歴を記録します。
+フォーマットは [Keep a Changelog](https://keepachangelog.com/ja/1.0.0/) に準拠しています。
+
+## [Unreleased]
+
+### Added
+- 初期セットアップ
+
+## [0.1.0] - {{ created_at | truncate(length=10, end="") }}
+
+### Added
+- {{ name_pascal }} domain の作成
+- 基本的なディレクトリ構造（entities/valueobjects/events/repositories）
+- エンティティ、値オブジェクト、ドメインイベントの雛形
+- リポジトリインターフェースの雛形

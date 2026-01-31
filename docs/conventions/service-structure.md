@@ -27,10 +27,12 @@ feature/
 │   ├── rust/{feature_name}/
 │   ├── go/{feature_name}/
 │   ├── csharp/{feature_name}/
-│   └── python/{feature_name}/
+│   ├── python/{feature_name}/
+│   └── kotlin/{feature_name}/
 └── frontend/
     ├── react/{feature_name}/
-    └── flutter/{feature_name}/
+    ├── flutter/{feature_name}/
+    └── android/{feature_name}/
 ```
 
 ### 3.2 framework 共通サービス
@@ -101,7 +103,23 @@ framework/backend/{lang}/services/{service_name}/
 | `src/{feature_name_snake}/presentation/` | FastAPI ルーター・gRPC サービス |
 | `tests/` | テストコード（pytest） |
 
-### 4.5 バックエンド（Go）
+### 4.5 バックエンド（Kotlin）
+
+| ファイル/ディレクトリ | 説明 |
+|-----------------------|------|
+| `build.gradle.kts` | Gradle ビルド定義 |
+| `settings.gradle.kts` | Gradle 設定 |
+| `config/` | 設定ファイル置き場 |
+| `config/{default,dev,stg,prod}.yaml` | 環境別設定 |
+| `deploy/` | Kubernetes マニフェスト |
+| `src/main/kotlin/{package}/` | ソースコード（Clean Architecture 構成） |
+| `src/main/kotlin/{package}/domain/` | エンティティ・値オブジェクト・リポジトリインターフェース |
+| `src/main/kotlin/{package}/application/` | ユースケース・アプリケーションサービス |
+| `src/main/kotlin/{package}/infrastructure/` | リポジトリ実装・外部 I/O |
+| `src/main/kotlin/{package}/presentation/` | Ktor ルーティング・gRPC サービス |
+| `src/test/kotlin/` | テストコード |
+
+### 4.6 バックエンド（Go）
 
 | ファイル/ディレクトリ | 説明 |
 |-----------------------|------|
@@ -111,7 +129,7 @@ framework/backend/{lang}/services/{service_name}/
 | `deploy/` | Kubernetes マニフェスト |
 | `src/` | ソースコード（Clean Architecture 構成） |
 
-### 4.6 フロントエンド（React）
+### 4.7 フロントエンド（React）
 
 | ファイル/ディレクトリ | 説明 |
 |-----------------------|------|
@@ -124,7 +142,7 @@ framework/backend/{lang}/services/{service_name}/
 | `src/domain/` | entities/value_objects |
 | `src/infrastructure/` | api client/repository 実装 |
 
-### 4.7 フロントエンド（Flutter）
+### 4.8 フロントエンド（Flutter）
 
 | ファイル/ディレクトリ | 説明 |
 |-----------------------|------|
@@ -137,7 +155,23 @@ framework/backend/{lang}/services/{service_name}/
 | `lib/src/domain/` | entities/value_objects |
 | `lib/src/infrastructure/` | api client/repository 実装 |
 
-### 4.8 Docker 関連ファイル（全テンプレート共通）
+### 4.9 フロントエンド（Android）
+
+| ファイル/ディレクトリ | 説明 |
+|-----------------------|------|
+| `build.gradle.kts` | ルート Gradle ビルド定義 |
+| `app/build.gradle.kts` | アプリモジュール Gradle ビルド定義 |
+| `app/src/main/AndroidManifest.xml` | Android マニフェスト |
+| `config/` | 設定ファイル置き場 |
+| `config/{default,dev,stg,prod}.yaml` | 環境別設定 |
+| `app/src/main/kotlin/{package}/domain/` | エンティティ・値オブジェクト・リポジトリインターフェース |
+| `app/src/main/kotlin/{package}/application/` | ユースケース・ViewModel |
+| `app/src/main/kotlin/{package}/infrastructure/` | リポジトリ実装・API クライアント |
+| `app/src/main/kotlin/{package}/presentation/` | Composable スクリーン・ナビゲーション |
+| `app/src/test/kotlin/` | ユニットテスト |
+| `app/src/androidTest/kotlin/` | UI テスト（Compose Testing） |
+
+### 4.10 Docker 関連ファイル（全テンプレート共通）
 
 | ファイル/ディレクトリ | 説明 |
 |-----------------------|------|
