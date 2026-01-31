@@ -94,7 +94,11 @@
       "Bash(powershell -Command \"try { [void]\\(ConvertFrom-Json \\(Get-Content ''.github/workflows/docker.yml'' -Raw\\)\\); Write-Host ''valid json'' } catch { Write-Host ''Not JSON - expected for YAML'' }\")",
       "Bash(CLI/target/release/k1s0.exe docker compose up)",
       "Bash(CLI/target/release/k1s0.exe new-feature:*)",
-      "Bash(# Check CLI implementation depth wc -l /c/work/github/k1s0/CLI/crates/k1s0-cli/src/*.rs ; echo \"\"===\"\"; find /c/work/github/k1s0/CLI/crates/k1s0-generator/src -name \"\"*.rs\"\")"
+      "Bash(# Check CLI implementation depth wc -l /c/work/github/k1s0/CLI/crates/k1s0-cli/src/*.rs ; echo \"\"===\"\"; find /c/work/github/k1s0/CLI/crates/k1s0-generator/src -name \"\"*.rs\"\")",
+      "Bash(git -C C:/work/github/k1s0 log --oneline -30)",
+      "Bash(git -C C:/work/github/k1s0 log --oneline --since=\"2026-01-01\")",
+      "Bash(git -C C:/work/github/k1s0 shortlog -sn --since=\"2026-01-01\")",
+      "Bash(git -C C:/work/github/k1s0 log --oneline --all --diff-filter=A --name-only --since=\"2026-01-25\")"
     ]
   }
 }
