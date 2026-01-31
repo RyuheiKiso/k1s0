@@ -167,6 +167,8 @@ graph TB
 | `k1s0 docker` | Docker ビルド・compose 操作 |
 | `k1s0 playground` | Playground 環境管理 |
 | `k1s0 migrate` | 既存プロジェクト取り込み |
+| `k1s0 log` | Git コミット履歴表示 |
+| `k1s0 diff` | Git diff 表示 |
 
 詳細: [CLI 設計書](../design/cli/)
 
