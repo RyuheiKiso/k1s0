@@ -172,8 +172,10 @@ sum by (error_code) (
 
 ### 4.1 OTel Collector 設定
 
+> **Note**: 実際の設定ファイルは `observability/otel/collector/config/` に環境別に格納されています。以下は設定の概要例です。
+
 ```yaml
-# otel-collector-config.yaml
+# observability/otel/collector/config/default.yaml
 receivers:
   otlp:
     protocols:
@@ -369,16 +371,15 @@ groups:
 
 ### 6.2 Grafana ダッシュボード設定
 
-ダッシュボード定義は `deploy/monitoring/dashboards/` に格納:
+ダッシュボード定義は `observability/grafana/dashboards/` に格納:
 
 ```
-deploy/monitoring/dashboards/
-├── service-overview.json
-├── service-detail.json
-├── slo-dashboard.json
-├── error-analysis.json
-└── dependencies.json
+observability/grafana/dashboards/
+├── overview.json
+└── ...
 ```
+
+> **Note**: Observability スタックの構成詳細については [observability/README.md](../../observability/README.md) を参照してください。
 
 ## 7. オンコール対応
 
@@ -399,6 +400,7 @@ deploy/monitoring/dashboards/
 
 ## 関連ドキュメント
 
+- [Observability Stack README](../../observability/README.md) - ローカル起動手順・構成詳細
 - [観測性規約](../conventions/observability.md)
 - [エラーハンドリング規約](../conventions/error-handling.md)
 - [トラブルシューティング](troubleshooting.md)

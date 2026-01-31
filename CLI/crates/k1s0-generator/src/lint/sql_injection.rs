@@ -4,6 +4,13 @@ use crate::manifest::Manifest;
 
 use super::{LintResult, Linter, RuleId, Severity, Violation};
 
+#[cfg(feature = "ast")]
+use super::ast::parser::Language;
+#[cfg(feature = "ast")]
+use super::ast::query::QueryId;
+#[cfg(feature = "ast")]
+use super::ast::{AstContext, ParserPool, QueryCache};
+
 /// 言語ごとの SQL インジェクションパターン
 struct SqlInjectionPatterns {
     file_extensions: Vec<&'static str>,
@@ -190,6 +197,18 @@ impl Linter {
             return;
         }
 
+        // AST モード（fast でない場合）
+        #[cfg(feature = "ast")]
+        if !self.is_fast_mode() {
+            let mut pool = ParserPool::new();
+            let mut cache = QueryCache::new();
+            self.scan_directory_for_sql_injection_ast(
+                &src_path, path, &patterns, &mut pool, &mut cache, result,
+            );
+            return;
+        }
+
+        // grep フォールバック
         self.scan_directory_for_sql_injection(&src_path, path, &patterns, result);
     }
 
@@ -271,5 +290,134 @@ impl Linter {
                 }
             }
         }
+    }
+
+    /// AST ベースのディレクトリ走査（K050）
+    #[cfg(feature = "ast")]
+    fn scan_directory_for_sql_injection_ast(
+        &self,
+        dir: &Path,
+        base_path: &Path,
+        patterns: &SqlInjectionPatterns,
+        pool: &mut ParserPool,
+        cache: &mut QueryCache,
+        result: &mut LintResult,
+    ) {
+        let entries = match std::fs::read_dir(dir) {
+            Ok(e) => e,
+            Err(_) => return,
+        };
+
+        for entry in entries.flatten() {
+            let entry_path = entry.path();
+            if entry_path.is_dir() {
+                self.scan_directory_for_sql_injection_ast(
+                    &entry_path, base_path, patterns, pool, cache, result,
+                );
+            } else if entry_path.is_file() {
+                let ext = entry_path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("");
+                if patterns.file_extensions.contains(&ext) {
+                    self.check_file_for_sql_injection_ast(
+                        &entry_path, base_path, pool, cache, result,
+                    );
+                }
+            }
+        }
+    }
+
+    /// AST ベースの SQL インジェクション検出（K050）
+    #[cfg(feature = "ast")]
+    fn check_file_for_sql_injection_ast(
+        &self,
+        file_path: &Path,
+        base_path: &Path,
+        pool: &mut ParserPool,
+        cache: &mut QueryCache,
+        result: &mut LintResult,
+    ) {
+        let lang = match Language::from_path(file_path) {
+            Some(l) => l,
+            None => return,
+        };
+
+        let content = match std::fs::read(file_path) {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+
+        let ctx = match AstContext::parse(pool, lang, &content) {
+            Some(c) => c,
+            None => return,
+        };
+
+        let relative_path = file_path
+            .strip_prefix(base_path)
+            .map(|p| p.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_else(|_| file_path.to_string_lossy().to_string());
+
+        let query_source = match lang {
+            Language::Rust => super::ast::languages::rust::SQL_INJECTION_QUERY,
+            Language::Go => super::ast::languages::go::SQL_INJECTION_QUERY,
+            Language::TypeScript => super::ast::languages::typescript::SQL_INJECTION_QUERY,
+            Language::Python => super::ast::languages::python::SQL_INJECTION_QUERY,
+            Language::CSharp => super::ast::languages::csharp::SQL_INJECTION_QUERY,
+            Language::Kotlin => super::ast::languages::kotlin::SQL_INJECTION_QUERY,
+        };
+
+        ctx.query_matches(
+            cache,
+            QueryId::SqlInjection,
+            query_source,
+            |node, capture_name| {
+                // @match キャプチャのみ処理（重複防止）
+                if capture_name != "match" {
+                    return;
+                }
+                if ctx.is_non_code(node) {
+                    return;
+                }
+
+                let text = ctx.node_text(node);
+                // SQL キーワードを含むかチェック（大文字小文字不問）
+                let upper = text.to_uppercase();
+                let has_sql = upper.contains("SELECT ")
+                    || upper.contains("INSERT ")
+                    || upper.contains("UPDATE ")
+                    || upper.contains("DELETE ")
+                    || upper.contains("DROP ")
+                    || upper.contains("ALTER ");
+
+                if !has_sql {
+                    return;
+                }
+
+                // 補間・変数展開を含むかチェック
+                let has_interpolation = text.contains('$')
+                    || text.contains('{')
+                    || text.contains('+')
+                    || text.contains("format!");
+
+                if !has_interpolation {
+                    return;
+                }
+
+                let line = ctx.node_line(node);
+                result.add_violation(
+                    Violation::new(
+                        RuleId::SqlInjectionRisk,
+                        Severity::Error,
+                        "SQL インジェクションのリスクがあります".to_string(),
+                    )
+                    .with_path(&relative_path)
+                    .with_line(line)
+                    .with_hint(
+                        "文字列補間による SQL 構築は禁止されています。パラメータバインド（$1, ?, @param 等）を使用してください。",
+                    ),
+                );
+            },
+        );
     }
 }

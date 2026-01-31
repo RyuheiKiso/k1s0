@@ -25,6 +25,14 @@ pub struct InitArgs {
     /// テンプレートソース（local または registry URL）
     #[arg(long, default_value = "local")]
     pub template_source: String,
+
+    /// 対話モードを強制する
+    #[arg(short = 'i', long)]
+    pub interactive: bool,
+
+    /// 環境ヘルスチェックをスキップする
+    #[arg(long)]
+    pub skip_doctor: bool,
 }
 ```
 
@@ -105,6 +113,14 @@ pub struct NewFeatureArgs {
     /// 対話モードを強制する
     #[arg(short = 'i', long)]
     pub interactive: bool,
+
+    /// 確認プロンプトをスキップする
+    #[arg(short = 'y', long)]
+    pub yes: bool,
+
+    /// 環境ヘルスチェックをスキップする
+    #[arg(long)]
+    pub skip_doctor: bool,
 }
 ```
 
@@ -181,21 +197,21 @@ fn is_valid_kebab_case(s: &str) -> bool {
 
 ```rust
 pub struct NewScreenArgs {
-    /// フロントエンドタイプ
-    #[arg(short = 't', long = "type", value_enum, default_value = "react")]
-    pub frontend_type: FrontendType,
+    /// フロントエンドタイプ（対話モード時は省略可能）
+    #[arg(short = 't', long = "type", value_enum)]
+    pub frontend_type: Option<FrontendType>,
 
-    /// 画面ID（ドット区切り、例: users.list, users.detail）
-    #[arg(short, long)]
-    pub screen_id: String,
+    /// 画面ID（ドット区切り、例: users.list, users.detail）（対話モード時は省略可能）
+    #[arg(short = 's', long = "screen-id")]
+    pub screen_id: Option<String>,
 
-    /// 画面タイトル
+    /// 画面タイトル（対話モード時は省略可能）
     #[arg(short = 'T', long)]
-    pub title: String,
+    pub title: Option<String>,
 
-    /// 対象の feature ディレクトリ
-    #[arg(short, long)]
-    pub feature_dir: String,
+    /// 対象の feature ディレクトリ（対話モード時は省略可能）
+    #[arg(short = 'f', long)]
+    pub feature_dir: Option<String>,
 
     /// メニューに追加する（メニュー設定スニペットを出力）
     #[arg(long)]
@@ -216,6 +232,14 @@ pub struct NewScreenArgs {
     /// 既存のファイルを上書きする
     #[arg(short = 'F', long)]
     pub force: bool,
+
+    /// 対話モードを強制する
+    #[arg(short = 'i', long)]
+    pub interactive: bool,
+
+    /// 確認プロンプトをスキップする
+    #[arg(short = 'y', long)]
+    pub yes: bool,
 }
 ```
 

@@ -24,6 +24,7 @@ Shared C# (ASP.NET Core) framework packages for k1s0 microservices.
 | K1s0.DomainEvent | Domain event publish/subscribe and outbox pattern |
 | K1s0.Resilience | Circuit breaker, retry, timeout, bulkhead |
 | K1s0.Cache | Redis caching (StackExchange.Redis) |
+| K1s0.RateLimit | Rate limiting (token bucket, sliding window) |
 
 ### Tier 3 - Business Logic Support (depends on Tier 1 and 2)
 

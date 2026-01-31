@@ -14,13 +14,13 @@ domain 層の雛形を生成する。domain 層は、複数の feature で共有
 
 ```rust
 pub struct NewDomainArgs {
-    /// ドメインタイプ
+    /// ドメインタイプ（対話モード時は省略可能）
     #[arg(short = 't', long = "type", value_enum)]
-    pub domain_type: DomainType,
+    pub domain_type: Option<DomainType>,
 
-    /// ドメイン名（kebab-case）
+    /// ドメイン名（kebab-case）（対話モード時は省略可能）
     #[arg(short, long)]
-    pub name: String,
+    pub name: Option<String>,
 
     /// 生成先ディレクトリ
     #[arg(short, long)]
@@ -41,6 +41,14 @@ pub struct NewDomainArgs {
     /// 初期バージョン
     #[arg(long, default_value = "0.1.0")]
     pub version: String,
+
+    /// 対話モードを強制する
+    #[arg(short = 'i', long)]
+    pub interactive: bool,
+
+    /// 確認プロンプトをスキップする
+    #[arg(short = 'y', long)]
+    pub yes: bool,
 }
 ```
 
@@ -53,7 +61,9 @@ pub struct NewDomainArgs {
 | `backend-csharp` | `CLI/templates/backend-csharp/domain` | `domain/backend/csharp/{name}` | csharp |
 | `backend-python` | `CLI/templates/backend-python/domain` | `domain/backend/python/{name}` | python |
 | `frontend-react` | `CLI/templates/frontend-react/domain` | `domain/frontend/react/{name}` | typescript |
+| `backend-kotlin` | `CLI/templates/backend-kotlin/domain` | `domain/backend/kotlin/{name}` | kotlin |
 | `frontend-flutter` | `CLI/templates/frontend-flutter/domain` | `domain/frontend/flutter/{name}` | dart |
+| `frontend-android` | `CLI/templates/frontend-android/domain` | `domain/frontend/android/{name}` | kotlin |
 
 ### 処理フロー
 

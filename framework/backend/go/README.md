@@ -26,6 +26,7 @@ These packages may depend on Tier 1 packages.
 | Package | Description |
 |---------|-------------|
 | **k1s0-grpc-server** | gRPC server foundation with interceptors |
+| **k1s0-rate-limit** | Rate limiting (token bucket, sliding window) with middleware |
 | **k1s0-health** | Kubernetes health check support (liveness/readiness/startup) |
 
 ## Tier Dependency Rules
@@ -39,6 +40,7 @@ Tier 1 (Foundation) - No framework dependencies
 
 Tier 2 (Infrastructure) - Can depend on Tier 1 only
 |-- k1s0-grpc-server -> k1s0-error, k1s0-observability
+|-- k1s0-rate-limit  -> k1s0-config
 |-- k1s0-health      -> (standalone)
 ```
 
@@ -54,6 +56,7 @@ import (
     k1s0val "github.com/RyuheiKiso/k1s0/framework/backend/go/k1s0-validation"
     k1s0health "github.com/RyuheiKiso/k1s0/framework/backend/go/k1s0-health"
     k1s0grpc "github.com/RyuheiKiso/k1s0/framework/backend/go/k1s0-grpc-server"
+    k1s0ratelimit "github.com/RyuheiKiso/k1s0/framework/backend/go/k1s0-rate-limit"
 )
 ```
 
@@ -241,7 +244,7 @@ go test ./...
 This directory uses Go workspaces for local development:
 
 ```bash
-go work use ./k1s0-error ./k1s0-config ./k1s0-observability ./k1s0-validation ./k1s0-health ./k1s0-grpc-server
+go work use ./k1s0-error ./k1s0-config ./k1s0-observability ./k1s0-validation ./k1s0-health ./k1s0-grpc-server ./k1s0-rate-limit
 ```
 
 ## External Dependencies
@@ -253,6 +256,7 @@ go work use ./k1s0-error ./k1s0-config ./k1s0-observability ./k1s0-validation ./
 | k1s0-validation | github.com/go-playground/validator/v10 |
 | k1s0-observability | go.uber.org/zap, go.opentelemetry.io/otel |
 | k1s0-grpc-server | google.golang.org/grpc |
+| k1s0-rate-limit | golang.org/x/time/rate |
 | k1s0-health | stdlib only |
 
 ## License

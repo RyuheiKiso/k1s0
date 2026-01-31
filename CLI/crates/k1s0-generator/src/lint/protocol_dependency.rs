@@ -4,6 +4,13 @@ use crate::manifest::Manifest;
 
 use super::{LintResult, Linter, RuleId, Severity, Violation};
 
+#[cfg(feature = "ast")]
+use super::ast::parser::Language;
+#[cfg(feature = "ast")]
+use super::ast::query::QueryId;
+#[cfg(feature = "ast")]
+use super::ast::{AstContext, ParserPool, QueryCache};
+
 /// 言語ごとのプロトコル依存パターン
 struct ProtocolPatterns {
     file_extensions: Vec<&'static str>,
@@ -123,10 +130,20 @@ impl Linter {
                 if !domain_path.exists() {
                     return;
                 }
+                let patterns = ProtocolPatterns::csharp();
+                #[cfg(feature = "ast")]
+                if !self.is_fast_mode() {
+                    let mut pool = ParserPool::new();
+                    let mut cache = QueryCache::new();
+                    self.scan_domain_for_protocol_ast(
+                        &domain_path, path, &patterns, &mut pool, &mut cache, result,
+                    );
+                    return;
+                }
                 self.scan_domain_for_protocol(
                     &domain_path,
                     path,
-                    &ProtocolPatterns::csharp(),
+                    &patterns,
                     result,
                 );
                 return;
@@ -138,10 +155,20 @@ impl Linter {
                 if !domain_path.exists() {
                     return;
                 }
+                let patterns = ProtocolPatterns::python();
+                #[cfg(feature = "ast")]
+                if !self.is_fast_mode() {
+                    let mut pool = ParserPool::new();
+                    let mut cache = QueryCache::new();
+                    self.scan_domain_for_protocol_ast(
+                        &domain_path, path, &patterns, &mut pool, &mut cache, result,
+                    );
+                    return;
+                }
                 self.scan_domain_for_protocol(
                     &domain_path,
                     path,
-                    &ProtocolPatterns::python(),
+                    &patterns,
                     result,
                 );
                 return;
@@ -163,6 +190,18 @@ impl Linter {
             return;
         }
 
+        // AST モード（fast でない場合）
+        #[cfg(feature = "ast")]
+        if !self.is_fast_mode() {
+            let mut pool = ParserPool::new();
+            let mut cache = QueryCache::new();
+            self.scan_domain_for_protocol_ast(
+                &domain_path, path, &patterns, &mut pool, &mut cache, result,
+            );
+            return;
+        }
+
+        // grep フォールバック
         self.scan_domain_for_protocol(&domain_path, path, &patterns, result);
     }
 
@@ -243,6 +282,121 @@ impl Linter {
                 }
             }
         }
+    }
+
+    /// AST ベースのドメイン走査（K026）
+    #[cfg(feature = "ast")]
+    fn scan_domain_for_protocol_ast(
+        &self,
+        dir: &Path,
+        base_path: &Path,
+        patterns: &ProtocolPatterns,
+        pool: &mut ParserPool,
+        cache: &mut QueryCache,
+        result: &mut LintResult,
+    ) {
+        let entries = match std::fs::read_dir(dir) {
+            Ok(e) => e,
+            Err(_) => return,
+        };
+
+        for entry in entries.flatten() {
+            let entry_path = entry.path();
+            if entry_path.is_dir() {
+                self.scan_domain_for_protocol_ast(
+                    &entry_path, base_path, patterns, pool, cache, result,
+                );
+            } else if entry_path.is_file() {
+                let ext = entry_path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("");
+                if patterns.file_extensions.contains(&ext) {
+                    self.check_file_for_protocol_ast(
+                        &entry_path, base_path, patterns, pool, cache, result,
+                    );
+                }
+            }
+        }
+    }
+
+    /// AST ベースのプロトコル依存検出（K026）
+    #[cfg(feature = "ast")]
+    fn check_file_for_protocol_ast(
+        &self,
+        file_path: &Path,
+        base_path: &Path,
+        patterns: &ProtocolPatterns,
+        pool: &mut ParserPool,
+        cache: &mut QueryCache,
+        result: &mut LintResult,
+    ) {
+        let lang = match Language::from_path(file_path) {
+            Some(l) => l,
+            None => return,
+        };
+
+        let content = match std::fs::read(file_path) {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+
+        let ctx = match AstContext::parse(pool, lang, &content) {
+            Some(c) => c,
+            None => return,
+        };
+
+        let relative_path = file_path
+            .strip_prefix(base_path)
+            .map(|p| p.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_else(|_| file_path.to_string_lossy().to_string());
+
+        let query_source = match lang {
+            Language::Rust => super::ast::languages::rust::PROTOCOL_DEPENDENCY_QUERY,
+            Language::Go => super::ast::languages::go::PROTOCOL_DEPENDENCY_QUERY,
+            Language::TypeScript => super::ast::languages::typescript::PROTOCOL_DEPENDENCY_QUERY,
+            Language::Python => super::ast::languages::python::PROTOCOL_DEPENDENCY_QUERY,
+            Language::CSharp => super::ast::languages::csharp::PROTOCOL_DEPENDENCY_QUERY,
+            Language::Kotlin => super::ast::languages::kotlin::PROTOCOL_DEPENDENCY_QUERY,
+        };
+
+        ctx.query_matches(
+            cache,
+            QueryId::ProtocolDependency,
+            query_source,
+            |node, _capture_name| {
+                if ctx.is_non_code(node) {
+                    return;
+                }
+
+                let text = ctx.node_text(node);
+
+                // grep パターンのいずれかにマッチするか確認
+                let matched_pattern = patterns
+                    .patterns
+                    .iter()
+                    .find(|p| text.contains(*p));
+
+                if let Some(pattern) = matched_pattern {
+                    let line = ctx.node_line(node);
+                    result.add_violation(
+                        Violation::new(
+                            RuleId::ProtocolDependencyInDomain,
+                            Severity::Error,
+                            format!(
+                                "Domain 層でプロトコル固有の型 '{}' が使用されています",
+                                pattern
+                            ),
+                        )
+                        .with_path(&relative_path)
+                        .with_line(line)
+                        .with_hint(
+                            "Domain 層は HTTP/gRPC などのプロトコルに依存すべきではありません。ドメイン固有のエラー型を定義してください。",
+                        ),
+                    );
+                }
+            },
+        );
     }
 }
 

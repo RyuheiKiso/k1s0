@@ -4,6 +4,7 @@ use (
 	./k1s0-auth
 	./k1s0-cache
 	./k1s0-config
+	./k1s0-consensus
 	./k1s0-db
 	./k1s0-domain-event
 	./k1s0-error
@@ -12,5 +13,6 @@ use (
 	./k1s0-health
 	./k1s0-observability
 	./k1s0-resilience
+	./k1s0-rate-limit
 	./k1s0-validation
 )

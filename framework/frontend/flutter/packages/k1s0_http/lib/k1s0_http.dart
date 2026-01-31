@@ -14,3 +14,4 @@ export 'src/interceptors/logging_interceptor.dart';
 export 'src/interceptors/trace_interceptor.dart';
 export 'src/types/request_options.dart';
 export 'src/types/response.dart';
+export 'src/throttle.dart';

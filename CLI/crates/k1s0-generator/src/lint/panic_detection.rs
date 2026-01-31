@@ -4,6 +4,13 @@ use crate::manifest::Manifest;
 
 use super::{LintResult, Linter, RuleId, Severity, Violation};
 
+#[cfg(feature = "ast")]
+use super::ast::parser::Language;
+#[cfg(feature = "ast")]
+use super::ast::query::QueryId;
+#[cfg(feature = "ast")]
+use super::ast::{AstContext, ParserPool, QueryCache};
+
 /// 言語ごとのパニックパターン
 struct PanicPatterns {
     file_extensions: Vec<&'static str>,
@@ -150,6 +157,18 @@ impl Linter {
             return;
         }
 
+        // AST モード（fast でない場合）
+        #[cfg(feature = "ast")]
+        if !self.is_fast_mode() {
+            let mut pool = ParserPool::new();
+            let mut cache = QueryCache::new();
+            self.scan_directory_for_panic_ast(
+                &src_path, path, &patterns, &mut pool, &mut cache, result,
+            );
+            return;
+        }
+
+        // grep フォールバック
         self.scan_directory_for_panic(&src_path, path, &patterns, result);
     }
 
@@ -238,5 +257,127 @@ impl Linter {
                 }
             }
         }
+    }
+
+    /// AST ベースのディレクトリ走査（K029）
+    #[cfg(feature = "ast")]
+    fn scan_directory_for_panic_ast(
+        &self,
+        dir: &Path,
+        base_path: &Path,
+        patterns: &PanicPatterns,
+        pool: &mut ParserPool,
+        cache: &mut QueryCache,
+        result: &mut LintResult,
+    ) {
+        let entries = match std::fs::read_dir(dir) {
+            Ok(e) => e,
+            Err(_) => return,
+        };
+
+        for entry in entries.flatten() {
+            let entry_path = entry.path();
+            if entry_path.is_dir() {
+                self.scan_directory_for_panic_ast(
+                    &entry_path, base_path, patterns, pool, cache, result,
+                );
+            } else if entry_path.is_file() {
+                let ext = entry_path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("");
+                if patterns.file_extensions.contains(&ext) {
+                    if is_test_file(&entry_path, patterns) {
+                        continue;
+                    }
+                    let relative_path = entry_path
+                        .strip_prefix(base_path)
+                        .map(|p| p.to_string_lossy().replace('\\', "/"))
+                        .unwrap_or_else(|_| entry_path.to_string_lossy().to_string());
+                    if is_entry_point(&relative_path, patterns) {
+                        continue;
+                    }
+                    self.check_file_for_panic_ast(
+                        &entry_path, base_path, pool, cache, result,
+                    );
+                }
+            }
+        }
+    }
+
+    /// AST ベースのパニック検出（K029）
+    #[cfg(feature = "ast")]
+    fn check_file_for_panic_ast(
+        &self,
+        file_path: &Path,
+        base_path: &Path,
+        pool: &mut ParserPool,
+        cache: &mut QueryCache,
+        result: &mut LintResult,
+    ) {
+        let lang = match Language::from_path(file_path) {
+            Some(l) => l,
+            None => return,
+        };
+
+        let content = match std::fs::read(file_path) {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+
+        let ctx = match AstContext::parse(pool, lang, &content) {
+            Some(c) => c,
+            None => return,
+        };
+
+        let relative_path = file_path
+            .strip_prefix(base_path)
+            .map(|p| p.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_else(|_| file_path.to_string_lossy().to_string());
+
+        let query_source = match lang {
+            Language::Rust => super::ast::languages::rust::PANIC_QUERY,
+            Language::Go => super::ast::languages::go::PANIC_QUERY,
+            Language::TypeScript => super::ast::languages::typescript::PANIC_QUERY,
+            Language::Python => super::ast::languages::python::PANIC_QUERY,
+            Language::CSharp => super::ast::languages::csharp::PANIC_QUERY,
+            Language::Kotlin => super::ast::languages::kotlin::PANIC_QUERY,
+        };
+
+        ctx.query_matches(
+            cache,
+            QueryId::PanicDetection,
+            query_source,
+            |node, capture_name| {
+                if capture_name != "match" {
+                    return;
+                }
+                if ctx.is_non_code(node) {
+                    return;
+                }
+                if ctx.is_in_test(node) {
+                    return;
+                }
+
+                let text = ctx.node_text(node);
+                let line = ctx.node_line(node);
+
+                result.add_violation(
+                    Violation::new(
+                        RuleId::PanicInProductionCode,
+                        Severity::Error,
+                        format!(
+                            "本番コードでパニックを起こす可能性があります: '{}'",
+                            text.trim()
+                        ),
+                    )
+                    .with_path(&relative_path)
+                    .with_line(line)
+                    .with_hint(
+                        "Result/Option を適切にハンドリングしてください。unwrap()/expect() の代わりに ? 演算子やパターンマッチを使用してください。",
+                    ),
+                );
+            },
+        );
     }
 }

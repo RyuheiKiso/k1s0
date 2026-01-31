@@ -76,6 +76,10 @@ pub struct LintSettings {
     #[serde(default)]
     pub fix: bool,
 
+    /// AST パースをスキップし grep ベースで高速実行
+    #[serde(default)]
+    pub fast: bool,
+
     /// Watch モードのデバウンス間隔（ミリ秒）
     #[serde(default = "default_debounce_ms")]
     pub watch_debounce_ms: u64,
@@ -252,6 +256,7 @@ impl Settings {
                     self.lint.env_var_allowlist
                 },
                 fix: self.lint.fix || other.lint.fix,
+                fast: self.lint.fast || other.lint.fast,
                 watch_debounce_ms: if self.lint.watch_debounce_ms == default_debounce_ms() {
                     other.lint.watch_debounce_ms
                 } else {
@@ -329,6 +334,7 @@ impl From<&LintSettings> for k1s0_generator::lint::LintConfig {
             strict: settings.strict,
             env_var_allowlist: settings.env_var_allowlist.clone(),
             fix: settings.fix,
+            fast: settings.fast,
         }
     }
 }

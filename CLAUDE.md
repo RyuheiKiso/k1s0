@@ -80,7 +80,7 @@ k1s0/
 ├── framework/                    # Shared libraries & services (Layer 1)
 │   ├── backend/
 │   │   ├── rust/
-│   │   │   ├── crates/          # 12 shared Rust crates
+│   │   │   ├── crates/          # 13 shared Rust crates
 │   │   │   └── services/        # Common microservices (auth, config, endpoint)
 │   │   ├── go/
 │   │   ├── csharp/              # C# NuGet packages
@@ -116,6 +116,7 @@ k1s0/
 │   │   └── android/{feature_name}/
 │   └── database/
 │
+├── observability/                # Observability stack (OTEL Collector + Jaeger + Loki + Prometheus + Grafana)
 ├── bff/                         # Backend-for-Frontend layer (optional)
 │
 ├── docs/                        # Comprehensive documentation
@@ -296,9 +297,10 @@ buf format --exit-code
 | `k1s0 init` | Initialize repository (`.k1s0/` directory) |
 | `k1s0 new-feature --type <type> --name <name>` | Generate service scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, backend-kotlin, frontend-react, frontend-flutter, frontend-android) |
 | `k1s0 new-domain --type <type> --name <name>` | Generate domain scaffold (type: backend-rust, backend-go, backend-csharp, backend-python, backend-kotlin, frontend-react, frontend-flutter, frontend-android). Options: `--with-events`, `--with-repository` (default true), `--version` (default "0.1.0"), `--force`, `-y/--yes` |
-| `k1s0 new-screen --type <type> --screen <id>` | Generate frontend screen (type: react, flutter, android) |
-| `k1s0 lint` | Check conventions |
+| `k1s0 new-screen --type <type> --screen-id <id>` | Generate frontend screen (type: react, flutter, android) |
+| `k1s0 lint` | Check conventions (uses AST analysis by default for K020, K022, K026, K029, K050, K053) |
 | `k1s0 lint --fix` | Auto-fix violations |
+| `k1s0 lint --fast` | Check conventions using grep-based detection (skips AST parsing for faster execution) |
 | `k1s0 upgrade --check` | Show changes without applying |
 | `k1s0 upgrade` | Apply template updates |
 | `k1s0 doctor` | Check development environment health |
@@ -350,9 +352,21 @@ k1s0 new-feature --type backend-rust
 --skip-doctor      # Skip environment health check (new-feature, init)
 --no-color         # Disable ANSI colors
 --json             # JSON format output
+--fast             # Skip AST parsing for faster lint execution (lint command only)
 ```
 
 ## Lint Rules (K001-K060)
+
+k1s0 uses tree-sitter AST (Abstract Syntax Tree) analysis for improved accuracy in detecting violations. Six rules (K020, K022, K026, K029, K050, K053) use AST-based detection by default, significantly reducing false positives compared to grep-based pattern matching.
+
+### AST-Based Analysis
+
+- **Supported languages**: Rust, Go, TypeScript, Python, C#, Kotlin
+- **Advantages**: Eliminates false positives from comments, strings, and test code; provides syntax-aware detection
+- **Performance**: `--fast` flag available to skip AST parsing and use grep-based fallback for faster execution
+- **Feature control**: AST analysis can be disabled at compile time with `--no-default-features`
+
+For detailed information about AST analysis architecture, see `docs/design/lint/ast-analysis.md`.
 
 ### Manifest & Structure Rules (K001-K011)
 
@@ -646,15 +660,17 @@ app/src/main/kotlin/{package}/
 | k1s0-grpc-server | gRPC server foundation | 2 |
 | k1s0-grpc-client | gRPC client utilities | 2 |
 | k1s0-resilience | Retry/circuit breaker patterns | 2 |
+| k1s0-rate-limit | Rate limiting (token bucket, sliding window) | 2 |
 | k1s0-health | Health check probes | 2 |
 | k1s0-db | Database connection/transaction | 2 |
 | k1s0-cache | Redis caching | 2 |
 | k1s0-domain-event | Domain event publish/subscribe/outbox | 2 |
+| k1s0-consensus | Leader election, distributed locks, saga orchestration | 2 |
 | k1s0-auth | Authentication/authorization | 3 |
 
 **Tier dependency rules:**
 - Tier 1: No framework dependencies
-- Tier 2: Can depend on Tier 1 only
+- Tier 2: Can depend on Tier 1 only (k1s0-consensus additionally depends on Tier 2: k1s0-db, k1s0-domain-event, k1s0-observability)
 - Tier 3: Can depend on Tier 1 and 2
 
 ## Framework Packages (React Frontend)
@@ -663,7 +679,7 @@ app/src/main/kotlin/{package}/
 |---------|-------------|
 | @k1s0/navigation | Config-driven routing |
 | @k1s0/config | YAML config management |
-| @k1s0/api-client | HTTP/gRPC API client |
+| @k1s0/api-client | HTTP/gRPC API client (includes RequestThrottle for client-side rate limiting) |
 | @k1s0/ui | Design system (Material-UI based), DataTable (MUI DataGrid), Form Generator (Zod + react-hook-form) |
 | @k1s0/shell | AppShell (Header/Sidebar/Footer) |
 | @k1s0/auth-client | Client-side auth |
@@ -683,10 +699,12 @@ app/src/main/kotlin/{package}/
 | k1s0-grpc-server | gRPC server foundation | 2 |
 | k1s0-grpc-client | gRPC client utilities | 2 |
 | k1s0-resilience | Retry/circuit breaker patterns | 2 |
+| k1s0-rate-limit | Rate limiting (token bucket, sliding window) | 2 |
 | k1s0-health | Health check probes | 2 |
 | k1s0-db | Database connection/transaction | 2 |
 | k1s0-cache | Redis caching | 2 |
 | k1s0-domain-event | Domain event publish/subscribe/outbox | 2 |
+| k1s0-consensus | Leader election, distributed locks, saga orchestration | 2 |
 | k1s0-auth | Authentication/authorization | 3 |
 
 **Tier dependency rules:** Same as Rust -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only, Tier 3 can depend on Tier 1 and 2.
@@ -705,7 +723,9 @@ app/src/main/kotlin/{package}/
 | k1s0-db | Database connection/transaction (SQLAlchemy + asyncpg) | 2 |
 | k1s0-domain-event | Domain event publish/subscribe and outbox pattern | 2 |
 | k1s0-resilience | Circuit breaker, retry, timeout, bulkhead patterns | 2 |
+| k1s0-rate-limit | Rate limiting (token bucket, sliding window) | 2 |
 | k1s0-cache | Redis caching and cache patterns | 2 |
+| k1s0-consensus | Leader election, distributed locks, saga orchestration | 2 |
 | k1s0-auth | JWT/OIDC authentication and policy-based authorization | 3 |
 
 **Tier dependency rules:** Same as Rust/Go/C# -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only, Tier 3 can depend on Tier 1 and 2.
@@ -716,7 +736,7 @@ app/src/main/kotlin/{package}/
 |---------|-------------|
 | k1s0_navigation | Config-driven routing (go_router based) |
 | k1s0_config | YAML config management |
-| k1s0_http | HTTP client (Dio based) |
+| k1s0_http | HTTP client (Dio based, includes RequestThrottle for client-side rate limiting) |
 | k1s0_ui | Design system (Material 3), DataTable, Form Generator (schema-driven) |
 | k1s0_auth | Authentication client (JWT/OIDC) |
 | k1s0_observability | Structured logging, tracing |
@@ -737,7 +757,9 @@ app/src/main/kotlin/{package}/
 | K1s0.Db | Database connection/transaction (EF Core) | 2 |
 | K1s0.DomainEvent | Domain event publish/subscribe and outbox pattern | 2 |
 | K1s0.Resilience | Circuit breaker, retry, timeout, bulkhead patterns | 2 |
+| K1s0.RateLimit | Rate limiting (token bucket, sliding window) | 2 |
 | K1s0.Cache | Redis caching and cache patterns (StackExchange.Redis) | 2 |
+| K1s0.Consensus | Leader election, distributed locks, saga orchestration | 2 |
 | K1s0.Auth | JWT/OIDC authentication and policy-based authorization | 3 |
 
 **Tier dependency rules:** Same as Rust/Go -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only, Tier 3 can depend on Tier 1 and 2.
@@ -756,7 +778,9 @@ app/src/main/kotlin/{package}/
 | k1s0-db | Database (Exposed + HikariCP) | 2 |
 | k1s0-domain-event | Domain event publish/subscribe/outbox | 2 |
 | k1s0-resilience | Circuit breaker, retry, timeout | 2 |
+| k1s0-rate-limit | Rate limiting (token bucket, sliding window) | 2 |
 | k1s0-cache | Redis caching (Lettuce) | 2 |
+| k1s0-consensus | Leader election, distributed locks, saga orchestration (Exposed + Lettuce) | 2 |
 | k1s0-auth | JWT/OIDC auth (nimbus-jose-jwt) | 3 |
 
 **Tier dependency rules:** Same as Rust/Go/C#/Python -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only, Tier 3 can depend on Tier 1 and 2.
@@ -767,7 +791,7 @@ app/src/main/kotlin/{package}/
 |---------|-------------|
 | k1s0-navigation | Navigation Compose routing |
 | k1s0-config | YAML config management |
-| k1s0-http | Ktor Client HTTP |
+| k1s0-http | Ktor Client HTTP (includes RequestThrottle for client-side rate limiting) |
 | k1s0-ui | Material 3 design system |
 | k1s0-auth | JWT auth client |
 | k1s0-observability | Logging, tracing |
@@ -885,6 +909,10 @@ Use canonical codes only: `INVALID_ARGUMENT`, `UNAUTHENTICATED`, `PERMISSION_DEN
 | Domain Development | `docs/guides/domain-development.md` | Domain development guide |
 | Domain Versioning | `docs/guides/domain-versioning.md` | Domain version management |
 | Migration Guide | `docs/guides/migration-to-three-tier.md` | 2-tier to 3-tier migration |
+| Observability | `docs/conventions/observability.md` | Logging/tracing/metrics conventions |
+| Versioning | `docs/conventions/versioning.md` | Versioning conventions |
+| Proxy | `docs/operations/proxy.md` | Proxy environment setup |
+| Observability Stack | `observability/README.md` | OTEL Collector + Jaeger + Loki + Prometheus + Grafana |
 
 ## Available Specialized Agents
 
@@ -920,7 +948,7 @@ This generates:
 ### Adding a New Screen (Frontend)
 
 ```bash
-k1s0 new-screen --type frontend-react --screen user-profile
+k1s0 new-screen --type frontend-react --screen-id user-profile
 ```
 
 ### Running Lint Check

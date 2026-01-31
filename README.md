@@ -81,6 +81,7 @@ k1s0/
 │   │   ├── flutter/
 │   │   └── android/
 │   └── database/
+├── observability/          # 可観測性基盤（OTEL Collector + Jaeger + Loki + Prometheus + Grafana）
 ├── bff/                    # フロントエンド向け集約 API 層（任意）
 ├── docs/                   # ドキュメント
 │   ├── adr/                # Architecture Decision Records
@@ -175,6 +176,10 @@ k1s0 new-feature --type backend-rust
 | `k1s0 migrate plan` | 移行計画を生成 |
 | `k1s0 migrate apply` | 移行計画を適用 |
 | `k1s0 migrate status` | 移行の進捗状況を表示 |
+| `k1s0 feature-update-domain` | feature の domain 依存を更新 |
+| `k1s0 registry` | テンプレートレジストリ操作 |
+| `k1s0 log` | Git コミット履歴を表示 |
+| `k1s0 diff` | Git diff を表示 |
 
 ### 共通オプション
 

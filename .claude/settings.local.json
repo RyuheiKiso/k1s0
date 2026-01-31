@@ -104,7 +104,8 @@
       "Bash(git -C C:/work/github/k1s0 log --oneline --all)",
       "Bash(git diff:*)",
       "Bash(curl:*)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(cargo search:*)"
     ]
   }
 }

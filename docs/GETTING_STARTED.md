@@ -639,12 +639,32 @@ k1s0 upgrade
 
 ---
 
+## Observability スタック（ローカル開発）
+
+ローカル環境で分散トレース・ログ・メトリクスを確認するには、Observability スタックを起動します。
+
+```bash
+cd observability
+docker compose up -d
+```
+
+| サービス | URL | 用途 |
+|---------|-----|------|
+| Grafana | http://localhost:3000 | ダッシュボード（admin/admin） |
+| Jaeger | http://localhost:16686 | トレース検索 |
+| Prometheus | http://localhost:9090 | メトリクスクエリ |
+
+詳細は [observability/README.md](../observability/README.md) を参照してください。
+
+---
+
 ## 次のステップ
 
 1. **環境をセットアップする** → [環境セットアップ](#環境セットアップ)
 2. **最初のサービスを作る** → [新規サービスの作成](#新規サービスの作成)
-3. **規約を読む** → `docs/conventions/` のドキュメント
-4. **共通ライブラリを理解する** → `framework/` のソースコード
+3. **Observability スタックを起動する** → [Observability スタック](#observability-スタックローカル開発)
+4. **規約を読む** → `docs/conventions/` のドキュメント
+5. **共通ライブラリを理解する** → `framework/` のソースコード
 
 ---
 

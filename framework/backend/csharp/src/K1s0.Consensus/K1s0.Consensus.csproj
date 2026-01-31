@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Consensus</RootNamespace>
+    <Description>Distributed consensus for k1s0: leader election, distributed locks, saga orchestration</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="prometheus-net" />
+    <PackageReference Include="System.Text.Json" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\K1s0.Error\K1s0.Error.csproj" />
+    <ProjectReference Include="..\K1s0.Config\K1s0.Config.csproj" />
+    <ProjectReference Include="..\K1s0.Db\K1s0.Db.csproj" />
+    <ProjectReference Include="..\K1s0.DomainEvent\K1s0.DomainEvent.csproj" />
+    <ProjectReference Include="..\K1s0.Observability\K1s0.Observability.csproj" />
+  </ItemGroup>
+</Project>

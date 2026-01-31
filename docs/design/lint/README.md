@@ -8,6 +8,7 @@ k1s0 の Lint 機能は、開発規約に対する違反を検査し、一部は
 
 | ファイル | 内容 |
 |----------|------|
+| [ast-analysis.md](./ast-analysis.md) | AST ベース解析の設計（tree-sitter 統合） |
 | [rules-manifest.md](./rules-manifest.md) | K001-K003 manifest 検査、K010-K011 必須ファイル検査 |
 | [rules-code-quality.md](./rules-code-quality.md) | K020-K029 コード品質検査 |
 | [rules-grpc-retry.md](./rules-grpc-retry.md) | K030-K032 gRPC リトライ設定検査 |
@@ -26,24 +27,38 @@ CLI/crates/k1s0-generator/src/lint/
 ├── types.rs            # 型定義（RuleId, Severity, Violation, LintResult, LintConfig）
 ├── linter.rs           # Linter 本体（manifest/必須ファイル検査）
 ├── required_files.rs   # 必須ディレクトリ/ファイル定義
-├── env_vars.rs         # K020: 環境変数参照検査
+├── ast/                # AST ベース解析（tree-sitter）
+│   ├── mod.rs          # 公開 API
+│   ├── parser.rs       # ParserPool（言語検出・パーサー管理）
+│   ├── query.rs        # QueryCache（Query コンパイル・キャッシュ）
+│   ├── context.rs      # AstContext（is_non_code, is_in_test, query_matches）
+│   └── languages/      # 言語固有クエリ定義
+│       ├── rust.rs
+│       ├── go.rs
+│       ├── typescript.rs
+│       ├── python.rs
+│       ├── csharp.rs
+│       └── kotlin.rs
+├── env_vars.rs         # K020: 環境変数参照検査（AST 対応）
 ├── secret_config.rs    # K021: 機密直書き検査
-├── dependency.rs       # K022: 依存方向違反検査
+├── dependency.rs       # K022: 依存方向違反検査（AST 対応）
 ├── layer_dependency.rs # K040-K047: 層間依存関係検査
 ├── retry.rs            # K030-K032: gRPC リトライ設定検査
 ├── fixer.rs            # 自動修正ロジック
 ├── config_naming.rs    # K025: 設定ファイル命名規約検査
-├── protocol_dependency.rs # K026: Domain 層プロトコル依存検査
+├── protocol_dependency.rs # K026: Domain 層プロトコル依存検査（AST 対応）
 ├── unused_domain.rs    # K028: 未使用 domain 依存検査
-├── panic_detection.rs  # K029: 本番コードパニック検出
-├── sql_injection.rs    # K050: SQL インジェクションリスク検査
-├── sensitive_logging.rs # K053: 機密情報ログ出力検査
+├── panic_detection.rs  # K029: 本番コードパニック検出（AST 対応）
+├── sql_injection.rs    # K050: SQL インジェクションリスク検査（AST 対応）
+├── sensitive_logging.rs # K053: 機密情報ログ出力検査（AST 対応）
 ├── dockerfile_lint.rs  # K060: Dockerfile ベースイメージ検査
 ├── diff.rs             # Git diff フィルタリング
 ├── watch.rs            # ファイル監視モード
 ├── utils.rs            # ユーティリティ関数
 └── tests/              # テスト
 ```
+
+**注記:** K020, K022, K026, K029, K050, K053 は AST ベース解析に対応しています。詳細は [ast-analysis.md](./ast-analysis.md) を参照してください。
 
 ---
 

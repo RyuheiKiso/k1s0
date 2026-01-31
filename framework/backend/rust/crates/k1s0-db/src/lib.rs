@@ -71,7 +71,10 @@ pub use migration::{
     load_migrations, AppliedMigration, Migration, MigrationConfig, MigrationDirection,
     MigrationResult, MigrationRunner,
 };
-pub use pool::{from_env, from_env_with_prefix, DbPoolBuilder};
+pub use pool::{
+    from_env, from_env_with_prefix, BackpressureGuard, BackpressuredPool,
+    BackpressuredPoolConfig, DbPoolBuilder, PoolMetrics, PoolMetricsSnapshot,
+};
 pub use tx::{
     IsolationLevel, TransactionExecutor, TransactionMode, TransactionOptions, TransactionState,
     UnitOfWork,

@@ -4,6 +4,13 @@ use crate::manifest::Manifest;
 
 use super::{LintResult, Linter, RuleId, Severity, Violation};
 
+#[cfg(feature = "ast")]
+use super::ast::parser::Language;
+#[cfg(feature = "ast")]
+use super::ast::query::QueryId;
+#[cfg(feature = "ast")]
+use super::ast::{AstContext, ParserPool, QueryCache};
+
 /// 言語ごとのログ関数パターン
 struct LogPatterns {
     file_extensions: Vec<&'static str>,
@@ -221,6 +228,18 @@ impl Linter {
             return;
         }
 
+        // AST モード（fast でない場合）
+        #[cfg(feature = "ast")]
+        if !self.is_fast_mode() {
+            let mut pool = ParserPool::new();
+            let mut cache = QueryCache::new();
+            self.scan_directory_for_sensitive_logging_ast(
+                &src_path, path, &patterns, &mut pool, &mut cache, result,
+            );
+            return;
+        }
+
+        // grep フォールバック
         self.scan_directory_for_sensitive_logging(&src_path, path, &patterns, result);
     }
 
@@ -300,5 +319,119 @@ impl Linter {
                 }
             }
         }
+    }
+
+    /// AST ベースのディレクトリ走査（K053）
+    #[cfg(feature = "ast")]
+    fn scan_directory_for_sensitive_logging_ast(
+        &self,
+        dir: &Path,
+        base_path: &Path,
+        patterns: &LogPatterns,
+        pool: &mut ParserPool,
+        cache: &mut QueryCache,
+        result: &mut LintResult,
+    ) {
+        let entries = match std::fs::read_dir(dir) {
+            Ok(e) => e,
+            Err(_) => return,
+        };
+
+        for entry in entries.flatten() {
+            let entry_path = entry.path();
+            if entry_path.is_dir() {
+                self.scan_directory_for_sensitive_logging_ast(
+                    &entry_path, base_path, patterns, pool, cache, result,
+                );
+            } else if entry_path.is_file() {
+                let ext = entry_path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("");
+                if patterns.file_extensions.contains(&ext) {
+                    self.check_file_for_sensitive_logging_ast(
+                        &entry_path, base_path, patterns, pool, cache, result,
+                    );
+                }
+            }
+        }
+    }
+
+    /// AST ベースの機密ログ検出（K053）
+    #[cfg(feature = "ast")]
+    fn check_file_for_sensitive_logging_ast(
+        &self,
+        file_path: &Path,
+        base_path: &Path,
+        _patterns: &LogPatterns,
+        pool: &mut ParserPool,
+        cache: &mut QueryCache,
+        result: &mut LintResult,
+    ) {
+        let lang = match Language::from_path(file_path) {
+            Some(l) => l,
+            None => return,
+        };
+
+        let content = match std::fs::read(file_path) {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+
+        let ctx = match AstContext::parse(pool, lang, &content) {
+            Some(c) => c,
+            None => return,
+        };
+
+        let relative_path = file_path
+            .strip_prefix(base_path)
+            .map(|p| p.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_else(|_| file_path.to_string_lossy().to_string());
+
+        let query_source = match lang {
+            Language::Rust => super::ast::languages::rust::LOG_FUNCTION_QUERY,
+            Language::Go => super::ast::languages::go::LOG_FUNCTION_QUERY,
+            Language::TypeScript => super::ast::languages::typescript::LOG_FUNCTION_QUERY,
+            Language::Python => super::ast::languages::python::LOG_FUNCTION_QUERY,
+            Language::CSharp => super::ast::languages::csharp::LOG_FUNCTION_QUERY,
+            Language::Kotlin => super::ast::languages::kotlin::LOG_FUNCTION_QUERY,
+        };
+
+        ctx.query_matches(
+            cache,
+            QueryId::LogFunctions,
+            query_source,
+            |node, capture_name| {
+                if ctx.is_non_code(node) {
+                    return;
+                }
+
+                // "args" キャプチャのみ処理（ログ関数の引数部分）
+                if capture_name != "args" {
+                    return;
+                }
+
+                let text = ctx.node_text(node);
+
+                if let Some(keyword) = contains_sensitive_keyword(text) {
+                    let line = ctx.node_line(node);
+                    result.add_violation(
+                        Violation::new(
+                            RuleId::LoggingSensitiveData,
+                            Severity::Warning,
+                            format!(
+                                "ログ出力に機密情報 '{}' が含まれる可能性があります",
+                                keyword
+                            ),
+                        )
+                        .with_path(&relative_path)
+                        .with_line(line)
+                        .with_hint(
+                            "機密情報をログに出力しないでください。マスキングまたは除外してください。",
+                        ),
+                    );
+                }
+            },
+        );
     }
 }

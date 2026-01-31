@@ -4,6 +4,13 @@ use crate::manifest::Manifest;
 
 use super::{LintResult, Linter, RuleId, Severity, Violation};
 
+#[cfg(feature = "ast")]
+use super::ast::parser::Language;
+#[cfg(feature = "ast")]
+use super::ast::query::QueryId;
+#[cfg(feature = "ast")]
+use super::ast::{AstContext, ParserPool, QueryCache};
+
 /// 環境変数パターンの定義
 #[derive(Debug, Clone)]
 pub struct EnvVarPattern {
@@ -285,7 +292,18 @@ impl Linter {
             return;
         }
 
-        // ソースファイルを走査
+        // AST モード（fast でない場合）
+        #[cfg(feature = "ast")]
+        if !self.is_fast_mode() {
+            let mut pool = ParserPool::new();
+            let mut cache = QueryCache::new();
+            self.scan_directory_for_env_vars_ast(
+                &src_path, path, &patterns, &mut pool, &mut cache, result,
+            );
+            return;
+        }
+
+        // grep フォールバック
         self.scan_directory_for_env_vars(&src_path, path, &patterns, result);
     }
 
@@ -356,6 +374,132 @@ impl Linter {
                 }
             }
         }
+    }
+
+    /// AST ベースのディレクトリ走査（K020）
+    #[cfg(feature = "ast")]
+    fn scan_directory_for_env_vars_ast(
+        &self,
+        dir: &Path,
+        base_path: &Path,
+        patterns: &EnvVarPatterns,
+        pool: &mut ParserPool,
+        cache: &mut QueryCache,
+        result: &mut LintResult,
+    ) {
+        let entries = match std::fs::read_dir(dir) {
+            Ok(e) => e,
+            Err(_) => return,
+        };
+
+        for entry in entries.flatten() {
+            let entry_path = entry.path();
+            if entry_path.is_dir() {
+                self.scan_directory_for_env_vars_ast(
+                    &entry_path, base_path, patterns, pool, cache, result,
+                );
+            } else if entry_path.is_file() {
+                let ext = entry_path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("");
+                if patterns.file_extensions.contains(&ext) {
+                    self.check_file_for_env_vars_ast(
+                        &entry_path, base_path, patterns, pool, cache, result,
+                    );
+                }
+            }
+        }
+    }
+
+    /// AST ベースの環境変数使用検出（K020）
+    #[cfg(feature = "ast")]
+    fn check_file_for_env_vars_ast(
+        &self,
+        file_path: &Path,
+        base_path: &Path,
+        patterns: &EnvVarPatterns,
+        pool: &mut ParserPool,
+        cache: &mut QueryCache,
+        result: &mut LintResult,
+    ) {
+        let relative_path = file_path
+            .strip_prefix(base_path)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| file_path.to_string_lossy().to_string());
+
+        if self.is_path_in_allowlist(&relative_path) {
+            return;
+        }
+
+        let lang = match Language::from_path(file_path) {
+            Some(l) => l,
+            None => return,
+        };
+
+        let content = match std::fs::read(file_path) {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+
+        let ctx = match AstContext::parse(pool, lang, &content) {
+            Some(c) => c,
+            None => return,
+        };
+
+        let query_source = match lang {
+            Language::Rust => super::ast::languages::rust::ENV_VAR_QUERY,
+            Language::Go => super::ast::languages::go::ENV_VAR_QUERY,
+            Language::TypeScript => super::ast::languages::typescript::ENV_VAR_QUERY,
+            Language::Python => super::ast::languages::python::ENV_VAR_QUERY,
+            Language::CSharp => super::ast::languages::csharp::ENV_VAR_QUERY,
+            Language::Kotlin => super::ast::languages::kotlin::ENV_VAR_QUERY,
+        };
+
+        ctx.query_matches(
+            cache,
+            QueryId::EnvVarUsage,
+            query_source,
+            |node, capture_name| {
+                if capture_name != "match" {
+                    return;
+                }
+                if ctx.is_non_code(node) {
+                    return;
+                }
+
+                let text = ctx.node_text(node);
+                let line = ctx.node_line(node);
+
+                // grep パターンとマッチするものを探してヒントを取得
+                let hint = patterns
+                    .patterns
+                    .iter()
+                    .find(|p| text.contains(p.pattern))
+                    .map(|p| p.hint.as_str())
+                    .unwrap_or(
+                        "config/{env}.yaml で設定を管理してください。framework の config モジュールを使用してください。",
+                    );
+
+                let matched_pattern = patterns
+                    .patterns
+                    .iter()
+                    .find(|p| text.contains(p.pattern))
+                    .map(|p| p.pattern)
+                    .unwrap_or(text.trim());
+
+                result.add_violation(
+                    Violation::new(
+                        RuleId::EnvVarUsage,
+                        Severity::Error,
+                        format!("環境変数参照 '{}' が検出されました", matched_pattern),
+                    )
+                    .with_path(&relative_path)
+                    .with_line(line)
+                    .with_hint(hint),
+                );
+            },
+        );
     }
 
     /// パスが allowlist に含まれるかチェック

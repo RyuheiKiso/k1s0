@@ -4,11 +4,11 @@ k1s0 Backend Framework は、マイクロサービス開発のための共通ラ
 
 ## 言語別パッケージ
 
-- [Rust](./rust/) - Rust crate 群
-- [Go](./go/) - Go パッケージ群
-- [C#](./csharp/) - NuGet パッケージ群
-- [Python](./python/) - Python パッケージ群
-- [Kotlin](./kotlin/) - Kotlin パッケージ群
+- Rust - Rust crate 群（本 README 下部に記載）
+- Go - Go パッケージ群（設計書準備中）
+- [C#](./csharp.md) - NuGet パッケージ群
+- [Python](./python.md) - Python パッケージ群
+- [Kotlin](./kotlin.md) - Kotlin パッケージ群
 
 ---
 
@@ -25,6 +25,7 @@ framework/backend/rust/crates/
 ├── k1s0-grpc-server/   # gRPC サーバ共通基盤
 ├── k1s0-grpc-client/   # gRPC クライアント共通
 ├── k1s0-resilience/    # レジリエンスパターン
+├── k1s0-rate-limit/    # レート制限（トークンバケット、スライディングウィンドウ）
 ├── k1s0-health/        # ヘルスチェック
 ├── k1s0-cache/         # Redis キャッシュ
 ├── k1s0-db/            # DB 接続・トランザクション
@@ -41,6 +42,7 @@ framework/backend/rust/crates/
 - [k1s0-grpc-server](k1s0-grpc-server.md)
 - [k1s0-grpc-client](k1s0-grpc-client.md)
 - [k1s0-resilience](k1s0-resilience.md)
+- [k1s0-rate-limit](k1s0-rate-limit.md)
 - [k1s0-health](k1s0-health.md)
 - [k1s0-cache](k1s0-cache.md)
 - [k1s0-db](k1s0-db.md)
@@ -57,6 +59,9 @@ k1s0-config         # 基盤（依存なし）
 k1s0-validation     # 基盤（依存なし）
 k1s0-observability  # 基盤（依存なし）
 k1s0-resilience     # 基盤（依存なし）
+
+k1s0-rate-limit     # インフラ
+  └── k1s0-config (feature="config")
 
 k1s0-grpc-server    # インフラ
   ├── k1s0-error

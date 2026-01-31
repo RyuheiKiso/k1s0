@@ -257,5 +257,7 @@ kubectl delete deployment {service_name}-canary
 
 - [サービス構成規約](../conventions/service-structure.md)
 - [設定と秘密情報の規約](../conventions/config-and-secrets.md)
+- [モニタリング・アラート](monitoring.md) - メトリクス・アラート設定
+- [Observability Stack](../../observability/README.md) - OTEL Collector / Jaeger / Loki / Prometheus / Grafana
 - [トラブルシューティング](troubleshooting.md)
 - [インシデント対応](runbooks/incident-response.md)

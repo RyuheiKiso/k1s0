@@ -292,6 +292,7 @@ fn create_client() {
         strict: false,
         env_var_allowlist: vec![],
         fix: false,
+        fast: false,
     };
     let linter = Linter::new(config);
     let result = linter.lint(path);

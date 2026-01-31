@@ -449,3 +449,23 @@ val cb = CircuitBreaker(CircuitBreakerConfig(
 ))
 val result = cb.execute { callService() }
 ```
+
+## 関連パッケージとの棲み分け
+
+| パッケージ | 責務 | パターン |
+|-----------|------|---------|
+| k1s0-resilience | 障害への耐性 | サーキットブレーカー、リトライ、タイムアウト、セマフォ、バルクヘッド |
+| k1s0-rate-limit | 負荷の制御 | トークンバケット、スライディングウィンドウ、リクエストスロットリング |
+| k1s0-consensus | 分散合意 | リーダー選出、分散ロック、Saga（オーケストレーション/コレオグラフィ） |
+
+### k1s0-consensus との違い
+
+`k1s0-resilience` は **単一サービス内** での障害耐性パターンを提供する。一方 `k1s0-consensus` は **複数サービス/ノード間** での分散合意を提供する。
+
+- **リトライ**: `k1s0-resilience` のリトライは RPC 呼び出しの自動再試行。`k1s0-consensus` の Saga リトライはステップ単位の再実行で、状態が DB に永続化される
+- **セマフォ**: `k1s0-resilience` のセマフォはプロセス内の同時実行制限。`k1s0-consensus` の分散ロックはクラスタ全体の排他制御
+- **タイムアウト**: `k1s0-resilience` のタイムアウトは単一呼び出しのガード。`k1s0-consensus` のリースタイムアウトはリーダー権の自動失効
+
+セマフォ（同時実行制限）は k1s0-resilience に維持する。レート制限（単位時間あたりのリクエスト数制限）は k1s0-rate-limit が担当する。
+
+詳細は [k1s0-rate-limit 設計書](k1s0-rate-limit.md) を参照。

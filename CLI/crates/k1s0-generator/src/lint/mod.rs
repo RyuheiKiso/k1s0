@@ -36,6 +36,9 @@
 //! - Watch モード: `--watch` フラグでファイル変更を監視し継続的に lint 実行
 //! - 差分 lint: `--diff <base>` で変更ファイルのみを対象に lint 実行
 
+#[cfg(feature = "ast")]
+pub(crate) mod ast;
+
 mod config_naming;
 mod dependency;
 pub mod diff;

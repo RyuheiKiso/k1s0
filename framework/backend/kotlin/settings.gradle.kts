@@ -23,4 +23,6 @@ include(
     ":packages:k1s0-resilience",
     ":packages:k1s0-cache",
     ":packages:k1s0-auth",
+    ":packages:k1s0-rate-limit",
+    ":packages:k1s0-consensus",
 )

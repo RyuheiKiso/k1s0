@@ -57,6 +57,7 @@ ADR-{4桁連番}-{kebab-case-title}.md
 | [ADR-0010](ADR-0010-android-frontend-support.md) | Android フロントエンドサポートの追加 | 承認済み |
 | [ADR-0011](ADR-0011-playground-command.md) | Playground コマンドの導入 | 承認済み |
 | [ADR-0012](ADR-0012-migrate-command.md) | Migrate コマンドの導入 | 承認済み |
+| [ADR-0013](ADR-0013-observability-infrastructure.md) | 可観測性基盤の技術選定（OTEL Collector + Jaeger + Loki + Prometheus + Grafana） | 承認済み |
 
 ## テンプレート
 
