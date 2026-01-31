@@ -1,0 +1,20 @@
+package domain
+
+import "time"
+
+type Item struct {
+	ID          int64     `json:"id"`
+	Name        string    `json:"name"`
+	Description *string   `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type CreateItem struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+}
+
+type UpdateItem struct {
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+}

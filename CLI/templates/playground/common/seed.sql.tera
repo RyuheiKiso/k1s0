@@ -1,0 +1,14 @@
+-- k1s0 playground seed data
+-- PostgreSQL / SQLite compatible syntax
+
+CREATE TABLE IF NOT EXISTS items (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO items (name, description) VALUES
+    ('Sample Item 1', 'This is a sample item created by k1s0 playground'),
+    ('Sample Item 2', 'Another sample item for testing'),
+    ('Sample Item 3', 'Try updating or deleting this item');

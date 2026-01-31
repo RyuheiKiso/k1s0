@@ -1,0 +1,127 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../../domain/entities/item.dart';
+
+class ItemListPage extends StatefulWidget {
+  const ItemListPage({super.key});
+
+  @override
+  State<ItemListPage> createState() => _ItemListPageState();
+}
+
+class _ItemListPageState extends State<ItemListPage> {
+  List<Item> _items = [];
+  bool _loading = true;
+  final String _apiBase = 'http://localhost:{{ rest_port }}/api/v1';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchItems();
+  }
+
+  Future<void> _fetchItems() async {
+    setState(() => _loading = true);
+    try {
+      final response = await http.get(Uri.parse('$_apiBase/items'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          _items = data.map((json) => Item.fromJson(json)).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to fetch items: $e');
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _createItem(String name, String? description) async {
+    final body = CreateItem(name: name, description: description);
+    await http.post(
+      Uri.parse('$_apiBase/items'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(body.toJson()),
+    );
+    _fetchItems();
+  }
+
+  Future<void> _deleteItem(int id) async {
+    await http.delete(Uri.parse('$_apiBase/items/$id'));
+    _fetchItems();
+  }
+
+  void _showCreateDialog() {
+    final nameController = TextEditingController();
+    final descController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create New Item'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            TextField(
+              controller: descController,
+              decoration: const InputDecoration(labelText: 'Description'),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              _createItem(
+                nameController.text,
+                descController.text.isEmpty ? null : descController.text,
+              );
+              Navigator.pop(context);
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('k1s0 Playground: {{ feature_name }}'),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showCreateDialog,
+        child: const Icon(Icons.add),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: _items.length,
+              itemBuilder: (context, index) {
+                final item = _items[index];
+                return ListTile(
+                  leading: CircleAvatar(child: Text('${item.id}')),
+                  title: Text(item.name),
+                  subtitle: Text(item.description ?? ''),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () => _deleteItem(item.id),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}

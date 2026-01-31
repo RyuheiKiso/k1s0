@@ -1,0 +1,196 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"gopkg.in/yaml.v3"
+)
+
+type AppConfig struct {
+	Server struct {
+		Host string `yaml:"host"`
+		Port int    `yaml:"port"`
+	} `yaml:"server"`
+{% if with_db %}
+	Database struct {
+		Driver   string `yaml:"driver"`
+		Host     string `yaml:"host"`
+		Port     int    `yaml:"port"`
+		Name     string `yaml:"name"`
+		User     string `yaml:"user"`
+		Password string `yaml:"password"`
+		Path     string `yaml:"path"`
+	} `yaml:"database"`
+{% endif %}
+}
+
+type Item struct {
+	ID          int64      `json:"id"`
+	Name        string     `json:"name"`
+	Description *string    `json:"description"`
+	CreatedAt   time.Time  `json:"created_at"`
+}
+
+type CreateItemInput struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+}
+
+type UpdateItemInput struct {
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+}
+
+type ItemStore struct {
+	mu     sync.RWMutex
+	items  []Item
+	nextID int64
+}
+
+func NewItemStore() *ItemStore {
+	now := time.Now()
+	desc1 := "This is a sample item created by k1s0 playground"
+	desc2 := "Another sample item for testing"
+	desc3 := "Try updating or deleting this item"
+	return &ItemStore{
+		items: []Item{
+			{ID: 1, Name: "Sample Item 1", Description: &desc1, CreatedAt: now},
+			{ID: 2, Name: "Sample Item 2", Description: &desc2, CreatedAt: now},
+			{ID: 3, Name: "Sample Item 3", Description: &desc3, CreatedAt: now},
+		},
+		nextID: 4,
+	}
+}
+
+func main() {
+	// Load config from YAML (not environment variables)
+	data, err := os.ReadFile("config/default.yaml")
+	if err != nil {
+		log.Fatalf("config/default.yaml not found: %v", err)
+	}
+	var config AppConfig
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		log.Fatalf("Failed to parse config: %v", err)
+	}
+
+	store := NewItemStore()
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
+
+	mux.HandleFunc("GET /api/v1/items", func(w http.ResponseWriter, r *http.Request) {
+		store.mu.RLock()
+		defer store.mu.RUnlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(store.items)
+	})
+
+	mux.HandleFunc("POST /api/v1/items", func(w http.ResponseWriter, r *http.Request) {
+		var input CreateItemInput
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+			return
+		}
+		store.mu.Lock()
+		item := Item{
+			ID:          store.nextID,
+			Name:        input.Name,
+			Description: input.Description,
+			CreatedAt:   time.Now(),
+		}
+		store.nextID++
+		store.items = append(store.items, item)
+		store.mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(item)
+	})
+
+	mux.HandleFunc("GET /api/v1/items/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+		if err != nil {
+			http.Error(w, `{"error":"invalid id"}`, http.StatusBadRequest)
+			return
+		}
+		store.mu.RLock()
+		defer store.mu.RUnlock()
+		for _, item := range store.items {
+			if item.ID == id {
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(item)
+				return
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Item not found"})
+	})
+
+	mux.HandleFunc("PUT /api/v1/items/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+		if err != nil {
+			http.Error(w, `{"error":"invalid id"}`, http.StatusBadRequest)
+			return
+		}
+		var input UpdateItemInput
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+			return
+		}
+		store.mu.Lock()
+		defer store.mu.Unlock()
+		for i := range store.items {
+			if store.items[i].ID == id {
+				if input.Name != nil {
+					store.items[i].Name = *input.Name
+				}
+				if input.Description != nil {
+					store.items[i].Description = input.Description
+				}
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(store.items[i])
+				return
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Item not found"})
+	})
+
+	mux.HandleFunc("DELETE /api/v1/items/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+		if err != nil {
+			http.Error(w, `{"error":"invalid id"}`, http.StatusBadRequest)
+			return
+		}
+		store.mu.Lock()
+		defer store.mu.Unlock()
+		for i, item := range store.items {
+			if item.ID == id {
+				store.items = append(store.items[:i], store.items[i+1:]...)
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Item not found"})
+	})
+
+	_ = strings.Join // suppress unused import if needed
+
+	addr := fmt.Sprintf("%s:%d", config.Server.Host, config.Server.Port)
+	log.Printf("Playground server starting on %s", addr)
+	log.Fatal(http.ListenAndServe(addr, mux))
+}

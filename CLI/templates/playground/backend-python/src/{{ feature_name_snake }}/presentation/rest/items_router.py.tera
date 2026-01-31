@@ -1,0 +1,65 @@
+"""Item CRUD REST endpoints."""
+
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, HTTPException
+
+from {{ feature_name_snake }}.domain.entities.item import CreateItem, Item, UpdateItem
+
+router = APIRouter()
+
+# In-memory store for playground
+_items: list[Item] = [
+    Item(id=1, name="Sample Item 1", description="This is a sample item created by k1s0 playground", created_at=datetime.now(timezone.utc)),
+    Item(id=2, name="Sample Item 2", description="Another sample item for testing", created_at=datetime.now(timezone.utc)),
+    Item(id=3, name="Sample Item 3", description="Try updating or deleting this item", created_at=datetime.now(timezone.utc)),
+]
+_next_id = 4
+
+
+@router.get("/items", response_model=list[Item])
+async def list_items():
+    return _items
+
+
+@router.post("/items", response_model=Item, status_code=201)
+async def create_item(input: CreateItem):
+    global _next_id
+    item = Item(
+        id=_next_id,
+        name=input.name,
+        description=input.description,
+        created_at=datetime.now(timezone.utc),
+    )
+    _next_id += 1
+    _items.append(item)
+    return item
+
+
+@router.get("/items/{item_id}", response_model=Item)
+async def get_item(item_id: int):
+    for item in _items:
+        if item.id == item_id:
+            return item
+    raise HTTPException(status_code=404, detail="Item not found")
+
+
+@router.put("/items/{item_id}", response_model=Item)
+async def update_item(item_id: int, input: UpdateItem):
+    for i, item in enumerate(_items):
+        if item.id == item_id:
+            data = item.model_dump()
+            update_data = input.model_dump(exclude_unset=True)
+            data.update(update_data)
+            _items[i] = Item(**data)
+            return _items[i]
+    raise HTTPException(status_code=404, detail="Item not found")
+
+
+@router.delete("/items/{item_id}", status_code=204)
+async def delete_item(item_id: int):
+    for i, item in enumerate(_items):
+        if item.id == item_id:
+            _items.pop(i)
+            return
+    raise HTTPException(status_code=404, detail="Item not found")

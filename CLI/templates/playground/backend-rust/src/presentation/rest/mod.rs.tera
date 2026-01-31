@@ -1,0 +1,75 @@
+use std::sync::Arc;
+use axum::{
+    Router,
+    Json,
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+};
+use crate::AppState;
+use crate::application::usecases::ItemUseCase;
+use crate::domain::entities::{CreateItem, UpdateItem};
+
+pub fn routes(state: Arc<AppState>) -> Router {
+    Router::new()
+        .route("/health", get(health))
+        .route("/api/v1/items", get(list_items).post(create_item))
+        .route("/api/v1/items/{id}", get(get_item).put(update_item).delete(delete_item))
+        .with_state(state)
+}
+
+async fn health() -> impl IntoResponse {
+    Json(serde_json::json!({"status": "ok"}))
+}
+
+async fn list_items(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    match ItemUseCase::list(&state).await {
+        Ok(items) => (StatusCode::OK, Json(serde_json::json!(items))),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e}))),
+    }
+}
+
+async fn create_item(
+    State(state): State<Arc<AppState>>,
+    Json(input): Json<CreateItem>,
+) -> impl IntoResponse {
+    match ItemUseCase::create(&state, input).await {
+        Ok(item) => (StatusCode::CREATED, Json(serde_json::json!(item))),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e}))),
+    }
+}
+
+async fn get_item(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+) -> impl IntoResponse {
+    match ItemUseCase::get(&state, id).await {
+        Ok(Some(item)) => (StatusCode::OK, Json(serde_json::json!(item))),
+        Ok(None) => (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Item not found"}))),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e}))),
+    }
+}
+
+async fn update_item(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+    Json(input): Json<UpdateItem>,
+) -> impl IntoResponse {
+    match ItemUseCase::update(&state, id, input).await {
+        Ok(Some(item)) => (StatusCode::OK, Json(serde_json::json!(item))),
+        Ok(None) => (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Item not found"}))),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e}))),
+    }
+}
+
+async fn delete_item(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+) -> impl IntoResponse {
+    match ItemUseCase::delete(&state, id).await {
+        Ok(true) => (StatusCode::NO_CONTENT, Json(serde_json::json!({}))),
+        Ok(false) => (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Item not found"}))),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e}))),
+    }
+}

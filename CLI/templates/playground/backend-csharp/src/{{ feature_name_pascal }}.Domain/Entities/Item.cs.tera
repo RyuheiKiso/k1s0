@@ -1,0 +1,21 @@
+namespace {{ feature_name_pascal }}.Domain.Entities;
+
+public class Item
+{
+    public long Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CreateItem
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+}
+
+public class UpdateItem
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+}

@@ -18,4 +18,5 @@ pub mod new_domain;
 pub mod new_feature;
 pub mod new_screen;
 pub mod registry;
+pub mod playground;
 pub mod upgrade;

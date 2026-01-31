@@ -1,0 +1,19 @@
+[project]
+name = "{{ feature_name }}"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "pydantic>=2.10",
+    "pyyaml>=6.0",
+{% if with_db %}
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.30",
+    "aiosqlite>=0.20",
+{% endif %}
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

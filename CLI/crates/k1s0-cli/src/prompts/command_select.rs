@@ -26,6 +26,8 @@ pub enum SelectedCommand {
     Domain,
     /// シェル補完スクリプトを生成
     Completions,
+    /// playground 環境の起動・停止
+    Playground,
 }
 
 impl SelectedCommand {
@@ -33,7 +35,7 @@ impl SelectedCommand {
     pub fn supports_interactive(&self) -> bool {
         matches!(
             self,
-            Self::NewFeature | Self::NewDomain | Self::NewScreen | Self::Init
+            Self::NewFeature | Self::NewDomain | Self::NewScreen | Self::Init | Self::Playground
         )
     }
 
@@ -48,6 +50,7 @@ impl SelectedCommand {
             Self::Upgrade => "upgrade",
             Self::Domain => "domain",
             Self::Completions => "completions",
+            Self::Playground => "playground",
         }
     }
 }
@@ -118,6 +121,11 @@ pub fn select_command() -> Result<SelectedCommand> {
             label: "completions",
             description: "シェル補完スクリプトを生成",
         },
+        CommandOption {
+            command: SelectedCommand::Playground,
+            label: "playground",
+            description: "playground 環境の起動・停止",
+        },
     ];
 
     let answer = Select::new("実行するコマンドを選択してください:", options)
@@ -143,6 +151,7 @@ mod tests {
         assert!(!SelectedCommand::Upgrade.supports_interactive());
         assert!(!SelectedCommand::Domain.supports_interactive());
         assert!(!SelectedCommand::Completions.supports_interactive());
+        assert!(SelectedCommand::Playground.supports_interactive());
     }
 
     #[test]
@@ -157,6 +166,10 @@ mod tests {
         assert_eq!(
             SelectedCommand::Completions.subcommand_name(),
             "completions"
+        );
+        assert_eq!(
+            SelectedCommand::Playground.subcommand_name(),
+            "playground"
         );
     }
 }

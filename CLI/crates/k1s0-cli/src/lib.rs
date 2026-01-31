@@ -144,4 +144,7 @@ pub enum Commands {
 
     /// Docker イメージのビルドや docker-compose の操作を支援する
     Docker(commands::docker::DockerArgs),
+
+    /// playground 環境の起動・停止
+    Playground(commands::playground::PlaygroundArgs),
 }

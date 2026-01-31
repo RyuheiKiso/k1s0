@@ -1,0 +1,67 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "{{ rest_port }}:8080"
+{% if with_grpc %}
+      - "{{ grpc_port }}:50051"
+{% endif %}
+    volumes:
+      - ./config:/app/config:ro
+{% if with_db %}
+    depends_on:
+      db:
+        condition: service_healthy
+{% endif %}
+{% if with_cache %}
+    depends_on:
+{% if with_db %}
+      db:
+        condition: service_healthy
+{% endif %}
+      redis:
+        condition: service_healthy
+{% endif %}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+{% if with_db %}
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "{{ db_port }}:5432"
+    environment:
+      POSTGRES_DB: playground
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: playground
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./seed.sql:/docker-entrypoint-initdb.d/seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+{% endif %}
+
+{% if with_cache %}
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "{{ redis_port }}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+{% endif %}
+
+{% if with_db %}
+volumes:
+  db-data:
+{% endif %}

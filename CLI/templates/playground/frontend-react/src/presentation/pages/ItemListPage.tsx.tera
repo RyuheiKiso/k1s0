@@ -1,0 +1,115 @@
+import React, { useEffect, useState } from 'react';
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  TextField,
+  Typography,
+} from '@mui/material';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import DeleteIcon from '@mui/icons-material/Delete';
+import type { Item, CreateItem } from '../../domain/entities/Item';
+
+const API_BASE = '/api/v1';
+
+export function ItemListPage() {
+  const [items, setItems] = useState<Item[]>([]);
+  const [open, setOpen] = useState(false);
+  const [newItem, setNewItem] = useState<CreateItem>({ name: '', description: '' });
+
+  const fetchItems = async () => {
+    const res = await fetch(`${API_BASE}/items`);
+    const data = await res.json();
+    setItems(data);
+  };
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const handleCreate = async () => {
+    await fetch(`${API_BASE}/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newItem),
+    });
+    setNewItem({ name: '', description: '' });
+    setOpen(false);
+    fetchItems();
+  };
+
+  const handleDelete = async (id: number) => {
+    await fetch(`${API_BASE}/items/${id}`, { method: 'DELETE' });
+    fetchItems();
+  };
+
+  const columns: GridColDef[] = [
+    { field: 'id', headerName: 'ID', width: 70 },
+    { field: 'name', headerName: 'Name', flex: 1 },
+    { field: 'description', headerName: 'Description', flex: 2 },
+    { field: 'created_at', headerName: 'Created At', width: 200 },
+    {
+      field: 'actions',
+      headerName: '',
+      width: 80,
+      sortable: false,
+      renderCell: (params) => (
+        <IconButton onClick={() => handleDelete(params.row.id)} size="small">
+          <DeleteIcon />
+        </IconButton>
+      ),
+    },
+  ];
+
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+        <Typography variant="h6">Items</Typography>
+        <Button variant="contained" onClick={() => setOpen(true)}>
+          Add Item
+        </Button>
+      </Box>
+
+      <DataGrid
+        rows={items}
+        columns={columns}
+        autoHeight
+        pageSizeOptions={[10, 25]}
+        initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+      />
+
+      <Dialog open={open} onClose={() => setOpen(false)}>
+        <DialogTitle>Create New Item</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Name"
+            fullWidth
+            value={newItem.name}
+            onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+          />
+          <TextField
+            margin="dense"
+            label="Description"
+            fullWidth
+            multiline
+            rows={3}
+            value={newItem.description}
+            onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreate} variant="contained">
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}

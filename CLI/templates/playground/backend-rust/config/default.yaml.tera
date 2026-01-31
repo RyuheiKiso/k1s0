@@ -1,0 +1,13 @@
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+{% if with_db %}
+database:
+  driver: postgres
+  host: db
+  port: 5432
+  name: playground
+  user: postgres
+  password: playground
+{% endif %}

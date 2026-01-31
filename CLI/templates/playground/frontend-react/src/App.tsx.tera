@@ -1,0 +1,25 @@
+import React from 'react';
+import { ThemeProvider, createTheme, CssBaseline, Container, Typography } from '@mui/material';
+import { ItemListPage } from './presentation/pages/ItemListPage';
+
+const theme = createTheme({
+  palette: {
+    mode: 'light',
+  },
+});
+
+function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          k1s0 Playground: {{ feature_name }}
+        </Typography>
+        <ItemListPage />
+      </Container>
+    </ThemeProvider>
+  );
+}
+
+export default App;

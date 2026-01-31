@@ -1,0 +1,22 @@
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
+
+// Load config from YAML (not environment variables)
+var configText = File.ReadAllText("config/default.yaml");
+var deserializer = new DeserializerBuilder()
+    .WithNamingConvention(UnderscoredNamingConvention.Instance)
+    .Build();
+var config = deserializer.Deserialize<Dictionary<string, object>>(configText);
+var serverConfig = (Dictionary<object, object>)config["server"];
+var host = serverConfig["host"]?.ToString() ?? "0.0.0.0";
+var port = int.Parse(serverConfig["port"]?.ToString() ?? "8080");
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers();
+
+var app = builder.Build();
+
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapControllers();
+
+app.Run($"http://{host}:{port}");

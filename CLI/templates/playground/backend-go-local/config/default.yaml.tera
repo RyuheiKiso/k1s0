@@ -1,0 +1,9 @@
+server:
+  host: "0.0.0.0"
+  port: {{ rest_port }}
+
+{% if with_db %}
+database:
+  driver: sqlite
+  path: ./data/playground.db
+{% endif %}
