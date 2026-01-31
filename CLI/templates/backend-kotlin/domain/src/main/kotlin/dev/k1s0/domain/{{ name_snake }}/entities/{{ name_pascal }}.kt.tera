@@ -1,0 +1,55 @@
+// {{ name_pascal }} entity
+
+package dev.k1s0.domain.{{ name_snake }}.entities
+
+import dev.k1s0.domain.{{ name_snake }}.valueobjects.{{ name_pascal }}Name
+import java.time.Instant
+import java.util.UUID
+
+/**
+ * {{ name_pascal }} identifier value object.
+ */
+data class {{ name_pascal }}Id(val value: String) {
+    init {
+        require(value.isNotBlank()) { "{{ name_pascal }}Id must not be empty" }
+    }
+}
+
+/**
+ * {{ name_pascal }} entity.
+ */
+data class {{ name_pascal }}(
+    val id: {{ name_pascal }}Id,
+    var name: {{ name_pascal }}Name,
+    val createdAt: Instant = Instant.now(),
+    var updatedAt: Instant = Instant.now(),
+) {
+    companion object {
+        /**
+         * Create a new {{ name_pascal }} entity.
+         */
+        fun create(
+            id: {{ name_pascal }}Id,
+            name: {{ name_pascal }}Name,
+        ): {{ name_pascal }} {
+            val now = Instant.now()
+            return {{ name_pascal }}(id = id, name = name, createdAt = now, updatedAt = now)
+        }
+    }
+
+    /**
+     * Update the entity name.
+     */
+    fun updateName(name: {{ name_pascal }}Name) {
+        this.name = name
+        this.updatedAt = Instant.now()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is {{ name_pascal }}) return false
+        return id == other.id
+    }
+
+    override fun hashCode(): Int = id.hashCode()
+}

@@ -1,0 +1,134 @@
+// Tests for {{ name_pascal }} domain entities and value objects
+
+package dev.k1s0.domain.{{ name_snake }}.entities
+
+import dev.k1s0.domain.{{ name_snake }}.valueobjects.{{ name_pascal }}Name
+{% if with_events %}import dev.k1s0.domain.{{ name_snake }}.events.{{ name_pascal }}Created
+{% endif %}
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+
+class {{ name_pascal }}IdTest {
+
+    @Test
+    fun `create valid id`() {
+        val id = {{ name_pascal }}Id(value = "abc-123")
+        assertEquals("abc-123", id.value)
+    }
+
+    @Test
+    fun `empty id raises`() {
+        assertThrows<IllegalArgumentException> {
+            {{ name_pascal }}Id(value = "")
+        }
+    }
+
+    @Test
+    fun `equality`() {
+        val id1 = {{ name_pascal }}Id(value = "same-id")
+        val id2 = {{ name_pascal }}Id(value = "same-id")
+        assertEquals(id1, id2)
+    }
+
+    @Test
+    fun `inequality`() {
+        val id1 = {{ name_pascal }}Id(value = "id-1")
+        val id2 = {{ name_pascal }}Id(value = "id-2")
+        assertNotEquals(id1, id2)
+    }
+}
+
+class {{ name_pascal }}NameTest {
+
+    @Test
+    fun `create valid name`() {
+        val name = {{ name_pascal }}Name(value = "Valid Name")
+        assertEquals("Valid Name", name.value)
+    }
+
+    @Test
+    fun `empty name raises`() {
+        assertThrows<IllegalArgumentException> {
+            {{ name_pascal }}Name(value = "")
+        }
+    }
+
+    @Test
+    fun `whitespace only raises`() {
+        assertThrows<IllegalArgumentException> {
+            {{ name_pascal }}Name(value = "   ")
+        }
+    }
+
+    @Test
+    fun `too long name raises`() {
+        assertThrows<IllegalArgumentException> {
+            {{ name_pascal }}Name(value = "a".repeat(256))
+        }
+    }
+}
+
+class {{ name_pascal }}Test {
+
+    private fun createSampleEntity(): {{ name_pascal }} {
+        return {{ name_pascal }}.create(
+            id = {{ name_pascal }}Id(value = "test-id-001"),
+            name = {{ name_pascal }}Name(value = "Sample Name"),
+        )
+    }
+
+    @Test
+    fun `create entity`() {
+        val entity = createSampleEntity()
+        assertEquals("test-id-001", entity.id.value)
+        assertEquals("Sample Name", entity.name.value)
+        assertNotNull(entity.createdAt)
+        assertNotNull(entity.updatedAt)
+    }
+
+    @Test
+    fun `update name`() {
+        val entity = createSampleEntity()
+        val oldUpdatedAt = entity.updatedAt
+        val newName = {{ name_pascal }}Name(value = "Updated Name")
+        entity.updateName(newName)
+        assertEquals("Updated Name", entity.name.value)
+        assert(entity.updatedAt >= oldUpdatedAt)
+    }
+
+    @Test
+    fun `equality by id`() {
+        val id = {{ name_pascal }}Id(value = "same-id")
+        val entity1 = {{ name_pascal }}.create(id = id, name = {{ name_pascal }}Name(value = "Name One"))
+        val entity2 = {{ name_pascal }}.create(id = id, name = {{ name_pascal }}Name(value = "Name Two"))
+        assertEquals(entity1, entity2)
+    }
+
+    @Test
+    fun `inequality by id`() {
+        val name = {{ name_pascal }}Name(value = "Same Name")
+        val entity1 = {{ name_pascal }}.create(id = {{ name_pascal }}Id(value = "id-1"), name = name)
+        val entity2 = {{ name_pascal }}.create(id = {{ name_pascal }}Id(value = "id-2"), name = name)
+        assertNotEquals(entity1, entity2)
+    }
+}
+{% if with_events %}
+
+class {{ name_pascal }}CreatedTest {
+
+    @Test
+    fun `create event`() {
+        val event = {{ name_pascal }}Created(
+            aggregateId = "test-id-001",
+            {{ name_snake }}Name = "Sample Name",
+        )
+        assertEquals("test-id-001", event.aggregateId)
+        assertEquals("Sample Name", event.{{ name_snake }}Name)
+        assertNotNull(event.occurredAt)
+        assertNotNull(event.eventId)
+    }
+}
+{% endif %}

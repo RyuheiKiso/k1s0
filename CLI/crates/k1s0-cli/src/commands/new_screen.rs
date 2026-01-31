@@ -21,6 +21,9 @@ pub enum FrontendType {
     /// Flutter
     #[value(name = "flutter")]
     Flutter,
+    /// Android
+    #[value(name = "android")]
+    Android,
 }
 
 impl std::fmt::Display for FrontendType {
@@ -28,6 +31,7 @@ impl std::fmt::Display for FrontendType {
         match self {
             FrontendType::React => write!(f, "react"),
             FrontendType::Flutter => write!(f, "flutter"),
+            FrontendType::Android => write!(f, "android"),
         }
     }
 }
@@ -38,6 +42,7 @@ impl FrontendType {
         match self {
             FrontendType::React => "CLI/templates/frontend-react/screen",
             FrontendType::Flutter => "CLI/templates/frontend-flutter/screen",
+            FrontendType::Android => "CLI/templates/frontend-android/screen",
         }
     }
 
@@ -54,6 +59,11 @@ impl FrontendType {
                 let file_name = screen_id.replace('.', "_");
                 format!("lib/src/presentation/pages/{}_page.dart", file_name)
             }
+            FrontendType::Android => {
+                // Android: PascalCase (例: UsersListPage.kt)
+                let component = generate_component_name(screen_id);
+                format!("app/src/main/kotlin/presentation/pages/{}.kt", component)
+            }
         }
     }
 
@@ -62,6 +72,7 @@ impl FrontendType {
         match self {
             FrontendType::React => "Page.tsx.tera",
             FrontendType::Flutter => "page.dart.tera",
+            FrontendType::Android => "Page.kt.tera",
         }
     }
 }
@@ -355,6 +366,10 @@ fn execute_generation(args: ResolvedArgs) -> Result<()> {
             output_react_config_snippets(&tera, &context, args.with_menu)?;
         }
         FrontendType::Flutter => {
+            output_flutter_config_snippets(&tera, &context, args.with_menu)?;
+        }
+        FrontendType::Android => {
+            // Android は Flutter と同様の設定スニペットを出力
             output_flutter_config_snippets(&tera, &context, args.with_menu)?;
         }
     }

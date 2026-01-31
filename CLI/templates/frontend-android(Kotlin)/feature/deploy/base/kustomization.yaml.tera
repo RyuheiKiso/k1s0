@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - configmap.yaml
+
+commonLabels:
+  app: {{ feature_name_kebab }}
+  app.kubernetes.io/name: {{ feature_name_kebab }}
+  app.kubernetes.io/component: frontend
+  app.kubernetes.io/part-of: k1s0
+
+images:
+  - name: {{ feature_name_kebab }}
+    newName: {{ container_registry | default(value="ghcr.io/k1s0") }}/{{ feature_name_kebab }}
+    newTag: latest

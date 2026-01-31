@@ -66,6 +66,16 @@ pub fn select_service_type() -> Result<ServiceType> {
             label: "frontend-flutter",
             description: "Flutter フロントエンドアプリ (Dart)",
         },
+        ServiceTypeOption {
+            service_type: ServiceType::BackendKotlin,
+            label: "backend-kotlin",
+            description: "Kotlin バックエンドサービス (Ktor)",
+        },
+        ServiceTypeOption {
+            service_type: ServiceType::FrontendAndroid,
+            label: "frontend-android",
+            description: "Android フロントエンドアプリ (Jetpack Compose)",
+        },
     ];
 
     let answer = Select::new("サービスタイプを選択してください:", options)
@@ -131,6 +141,16 @@ pub fn select_domain_type() -> Result<DomainType> {
             label: "frontend-flutter",
             description: "Flutter ドメインパッケージ (Dart)",
         },
+        DomainTypeOption {
+            domain_type: DomainType::BackendKotlin,
+            label: "backend-kotlin",
+            description: "Kotlin ドメインモジュール",
+        },
+        DomainTypeOption {
+            domain_type: DomainType::FrontendAndroid,
+            label: "frontend-android",
+            description: "Android ドメインモジュール (Kotlin)",
+        },
     ];
 
     let answer = Select::new("ドメインタイプを選択してください:", options)
@@ -175,6 +195,11 @@ pub fn select_frontend_type() -> Result<FrontendType> {
             frontend_type: FrontendType::Flutter,
             label: "flutter",
             description: "Flutter フロントエンド (Dart)",
+        },
+        FrontendTypeOption {
+            frontend_type: FrontendType::Android,
+            label: "android",
+            description: "Android フロントエンド (Jetpack Compose)",
         },
     ];
 

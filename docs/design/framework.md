@@ -8,7 +8,9 @@
 - Backend（Rust）: [docs/design/framework/backend/README.md](framework/backend/README.md)
 - Backend（C#）: [docs/design/framework/backend/csharp.md](framework/backend/csharp.md)
 - Backend（Python）: [docs/design/framework/backend/python.md](framework/backend/python.md)
+- Backend（Kotlin）: [docs/design/framework/backend/kotlin.md](framework/backend/kotlin.md)
 - Frontend（React/Flutter）: [docs/design/framework/frontend/README.md](framework/frontend/README.md)
+- Frontend（Android）: [docs/design/framework/frontend/android.md](framework/frontend/android.md)
 
 ## 補足
 

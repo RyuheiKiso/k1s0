@@ -1,0 +1,48 @@
+{
+  "$schema": "https://k1s0.dev/schemas/manifest.json",
+  "schema_version": "1.0.0",
+  "k1s0_version": "{{ k1s0_version | default(value="0.1.0") }}",
+  "template": {
+    "name": "frontend-android",
+    "version": "{{ template_version | default(value="0.1.0") }}",
+    "source": "local",
+    "path": "CLI/templates/frontend-android(Kotlin)/feature",
+    "fingerprint": "{{ fingerprint | default(value="") }}"
+  },
+  "service": {
+    "service_name": "{{ feature_name }}",
+    "language": "kotlin",
+    "type": "frontend",
+    "framework": "compose"
+  },
+  "layer": "feature",
+  {% if has_domain | default(value=false) -%}
+  "domain": "{{ domain_name }}",
+  "domain_version": "{{ domain_version_constraint | default(value="^0.1.0") }}",
+  {% else -%}
+  "domain": null,
+  "domain_version": null,
+  {% endif -%}
+  "generated_at": "{{ now | date(format="%Y-%m-%dT%H:%M:%SZ") }}",
+  "managed_paths": [
+    "deploy/",
+    "config/"
+  ],
+  "protected_paths": [
+    "app/src/main/kotlin/dev/k1s0/app/{{ feature_name_package }}/domain/",
+    "app/src/main/kotlin/dev/k1s0/app/{{ feature_name_package }}/application/",
+    "app/src/main/kotlin/dev/k1s0/app/{{ feature_name_package }}/presentation/"
+  ],
+  "update_policy": {
+    "deploy/": "auto",
+    "config/": "suggest_only",
+    "app/src/main/kotlin/": "protected"
+  },
+  "checksums": {},
+  "dependencies": {
+    "framework": []{% if has_domain | default(value=false) %},
+    "domain": {
+      "{{ domain_name }}": "{{ domain_version_constraint | default(value="^0.1.0") }}"
+    }{% endif %}
+  }
+}

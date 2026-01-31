@@ -5,7 +5,9 @@
 ## 目次
 
 - Backend（Rust）: [docs/design/framework/backend/README.md](backend/README.md)
+- Backend（Kotlin）: [backend/kotlin.md](backend/kotlin.md)
 - Frontend（React/Flutter）: [docs/design/framework/frontend/README.md](frontend/README.md)
+- Frontend（Android）: [frontend/android.md](frontend/android.md)
 
 ## 備考
 

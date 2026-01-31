@@ -1,0 +1,90 @@
+# {{ name_pascal }} Domain
+
+{{ name_pascal }} ドメインの共通ビジネスロジックを提供する Kotlin ライブラリモジュールです。
+
+## 概要
+
+このモジュールは {{ name_pascal }} に関連するビジネスロジックを集約し、
+複数の feature アプリケーションから共有して使用できるようにします。
+
+## ディレクトリ構造
+
+```
+src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/
+├── entities/              # エンティティ
+├── valueobjects/          # 値オブジェクト
+├── events/                # ドメインイベント
+└── repositories/          # リポジトリインターフェース（ポート）
+```
+
+## インストール
+
+`settings.gradle.kts` にモジュールを追加：
+
+```kotlin
+include(":domain:{{ name_snake }}")
+```
+
+`build.gradle.kts` に依存を追加：
+
+```kotlin
+dependencies {
+    implementation(project(":domain:{{ name_snake }}"))
+}
+```
+
+## 使用方法
+
+### feature からの依存
+
+```kotlin
+import dev.k1s0.domain.{{ name_snake }}.entities.{{ name_pascal }}
+import dev.k1s0.domain.{{ name_snake }}.repositories.{{ name_pascal }}Repository
+
+// エンティティの使用
+val entity = {{ name_pascal }}(id = "123", name = "example", createdAt = "...", updatedAt = "...")
+
+// リポジトリインターフェースの利用（infrastructure 層で実装）
+class {{ name_pascal }}RepositoryImpl : {{ name_pascal }}Repository {
+    // ...
+}
+```
+
+## 開発ガイド
+
+### エンティティの追加
+
+1. `src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/entities/` に新しいファイルを作成
+2. `@Serializable` データクラスとして定義
+3. `init` ブロックでバリデーションを実装
+
+### 値オブジェクトの追加
+
+1. `src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/valueobjects/` に新しいファイルを作成
+2. `@JvmInline value class` として定義
+3. `init` ブロックでバリデーションを実装
+
+## テスト
+
+```bash
+# 単体テスト
+./gradlew test
+
+# カバレッジ付き
+./gradlew test jacocoTestReport
+```
+
+## バージョン管理
+
+このドメインは SemVer でバージョン管理されています。
+
+- **patch** (0.1.0 -> 0.1.1): バグ修正
+- **minor** (0.1.0 -> 0.2.0): 後方互換性のある機能追加
+- **major** (0.1.0 -> 1.0.0): 破壊的変更
+
+feature アプリケーションは `^0.1.0` のようなバージョン制約で依存します。
+
+## 関連ドキュメント
+
+- [k1s0 ドメイン開発ガイド](../../../../docs/guides/domain-development.md)
+- [Clean Architecture](../../../../docs/architecture/clean-architecture.md)

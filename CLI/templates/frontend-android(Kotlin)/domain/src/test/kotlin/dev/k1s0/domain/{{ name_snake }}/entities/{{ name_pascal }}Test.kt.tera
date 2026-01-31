@@ -1,0 +1,55 @@
+package dev.k1s0.domain.{{ name_snake }}.entities
+
+{% raw %}
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
+import org.junit.Test
+{% endraw %}
+
+/**
+ * {{ name_pascal }} エンティティのテスト
+ */
+class {{ name_pascal }}Test {
+
+    @Test
+    fun `should create entity with valid parameters`() {
+        val entity = {{ name_pascal }}(
+            id = "test-id",
+            name = "test-name",
+            createdAt = "2024-01-01T00:00:00Z",
+            updatedAt = "2024-01-01T00:00:00Z",
+        )
+{% raw %}
+        assertEquals("test-id", entity.id)
+        assertEquals("test-name", entity.name)
+{% endraw %}
+    }
+
+    @Test
+    fun `should throw when id is blank`() {
+{% raw %}
+        assertThrows(IllegalArgumentException::class.java) {
+{% endraw %}
+            {{ name_pascal }}(
+                id = "",
+                name = "test-name",
+                createdAt = "2024-01-01T00:00:00Z",
+                updatedAt = "2024-01-01T00:00:00Z",
+            )
+        }
+    }
+
+    @Test
+    fun `should throw when name is blank`() {
+{% raw %}
+        assertThrows(IllegalArgumentException::class.java) {
+{% endraw %}
+            {{ name_pascal }}(
+                id = "test-id",
+                name = "",
+                createdAt = "2024-01-01T00:00:00Z",
+                updatedAt = "2024-01-01T00:00:00Z",
+            )
+        }
+    }
+}

@@ -245,6 +245,8 @@ mod tests {
             "backend-csharp" => format!("feature/backend/csharp/{}", feature_name),
             "backend-python" => format!("feature/backend/python/{}", feature_name),
             "frontend-react" => format!("feature/frontend/react/{}", feature_name),
+            "backend-kotlin" => format!("feature/backend/kotlin/{}", feature_name),
+            "frontend-android" => format!("feature/frontend/android/{}", feature_name),
             _ => format!("feature/backend/rust/{}", feature_name),
         };
         ctx.insert("feature_relative_path", &feature_relative_path);

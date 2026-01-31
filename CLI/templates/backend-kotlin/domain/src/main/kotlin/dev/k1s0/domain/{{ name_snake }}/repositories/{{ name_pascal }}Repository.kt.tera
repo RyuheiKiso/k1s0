@@ -1,0 +1,28 @@
+{% if with_repository %}// {{ name_pascal }} repository interface (port)
+
+package dev.k1s0.domain.{{ name_snake }}.repositories
+
+import dev.k1s0.domain.{{ name_snake }}.entities.{{ name_pascal }}
+import dev.k1s0.domain.{{ name_snake }}.entities.{{ name_pascal }}Id
+
+/**
+ * Repository interface for {{ name_pascal }} aggregate.
+ */
+interface {{ name_pascal }}Repository {
+
+    /**
+     * Find a {{ name_pascal }} by its ID.
+     */
+    fun findById(id: {{ name_pascal }}Id): {{ name_pascal }}?
+
+    /**
+     * Persist a {{ name_pascal }} entity.
+     */
+    fun save(entity: {{ name_pascal }})
+
+    /**
+     * Delete a {{ name_pascal }} by its ID.
+     */
+    fun delete(id: {{ name_pascal }}Id)
+}
+{% endif %}

@@ -200,6 +200,35 @@ impl EnvVarPatterns {
         }
     }
 
+    /// Kotlin の環境変数パターン
+    pub fn kotlin() -> Self {
+        Self {
+            file_extensions: vec!["kt", "kts"],
+            patterns: vec![
+                EnvVarPattern {
+                    pattern: "System.getenv",
+                    hint: "config/{env}.yaml で設定を管理してください。framework の config モジュールを使用してください。".to_string(),
+                },
+                EnvVarPattern {
+                    pattern: "System.getProperty",
+                    hint: "config/{env}.yaml で設定を管理してください。framework の config モジュールを使用してください。".to_string(),
+                },
+                EnvVarPattern {
+                    pattern: "ProcessBuilder",
+                    hint: "外部プロセス実行は禁止されています。".to_string(),
+                },
+                EnvVarPattern {
+                    pattern: "dotenv",
+                    hint: "dotenv の使用は禁止されています。config/{env}.yaml で設定を管理してください。".to_string(),
+                },
+                EnvVarPattern {
+                    pattern: "BuildConfig.",
+                    hint: "BuildConfig の使用は禁止されています。config/{env}.yaml を使用してください。".to_string(),
+                },
+            ],
+        }
+    }
+
     /// Dart の環境変数パターン
     pub fn dart() -> Self {
         Self {
@@ -240,6 +269,14 @@ impl Linter {
             "csharp" => ("src", EnvVarPatterns::csharp()),
             "python" => ("src", EnvVarPatterns::python()),
             "dart" => ("lib", EnvVarPatterns::dart()),
+            "kotlin" => {
+                let src_dir = if manifest.service.service_type == "frontend" {
+                    "app/src"
+                } else {
+                    "src"
+                };
+                (src_dir, EnvVarPatterns::kotlin())
+            }
             _ => return, // 不明な言語の場合はスキップ
         };
 

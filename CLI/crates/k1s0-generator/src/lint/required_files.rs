@@ -223,6 +223,69 @@ impl RequiredFiles {
         }
     }
 
+    /// backend-kotlin（feature 層）の必須ファイル
+    pub fn backend_kotlin() -> Self {
+        Self {
+            directories: vec![
+                "src/domain",
+                "src/application",
+                "src/infrastructure",
+                "src/presentation",
+                "config",
+                "deploy/base",
+            ],
+            files: vec![
+                "build.gradle.kts",
+                "README.md",
+                "config/default.yaml",
+                "config/dev.yaml",
+                "config/stg.yaml",
+                "config/prod.yaml",
+            ],
+        }
+    }
+
+    /// backend-kotlin（domain 層）の必須ファイル
+    pub fn backend_kotlin_domain() -> Self {
+        Self {
+            directories: vec![
+                "src/domain",
+                "src/application",
+                "src/infrastructure",
+            ],
+            files: vec![
+                "build.gradle.kts",
+                "README.md",
+            ],
+        }
+    }
+
+    /// frontend-android（feature 層）の必須ファイル
+    pub fn frontend_android() -> Self {
+        Self {
+            directories: vec![
+                "app/src/main/kotlin",
+                "config",
+            ],
+            files: vec![
+                "build.gradle.kts",
+                "README.md",
+                "config/default.yaml",
+            ],
+        }
+    }
+
+    /// frontend-android（domain 層）の必須ファイル
+    pub fn frontend_android_domain() -> Self {
+        Self {
+            directories: vec![],
+            files: vec![
+                "build.gradle.kts",
+                "README.md",
+            ],
+        }
+    }
+
     /// テンプレート名とレイヤーから必須ファイルを取得
     pub fn from_template_and_layer(name: &str, layer: &LayerType) -> Option<Self> {
         match (name, layer) {
@@ -238,6 +301,10 @@ impl RequiredFiles {
             ("frontend-react", _) => Some(Self::frontend_react()),
             ("frontend-flutter", LayerType::Domain) => Some(Self::frontend_flutter_domain()),
             ("frontend-flutter", _) => Some(Self::frontend_flutter()),
+            ("backend-kotlin", LayerType::Domain) => Some(Self::backend_kotlin_domain()),
+            ("backend-kotlin", _) => Some(Self::backend_kotlin()),
+            ("frontend-android", LayerType::Domain) => Some(Self::frontend_android_domain()),
+            ("frontend-android", _) => Some(Self::frontend_android()),
             _ => None,
         }
     }

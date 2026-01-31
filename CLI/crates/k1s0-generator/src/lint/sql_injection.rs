@@ -135,6 +135,27 @@ impl SqlInjectionPatterns {
             comment_prefixes: vec!["//"],
         }
     }
+
+    fn kotlin() -> Self {
+        Self {
+            file_extensions: vec!["kt", "kts"],
+            patterns: vec![
+                "\"SELECT $",
+                "\"INSERT $",
+                "\"UPDATE $",
+                "\"DELETE $",
+                "\"select $",
+                "\"insert $",
+                "\"update $",
+                "\"delete $",
+                "\"SELECT \" +",
+                "\"INSERT \" +",
+                "\"UPDATE \" +",
+                "\"DELETE \" +",
+            ],
+            comment_prefixes: vec!["//"],
+        }
+    }
 }
 
 impl Linter {
@@ -153,6 +174,14 @@ impl Linter {
             "csharp" => ("src", SqlInjectionPatterns::csharp()),
             "python" => ("src", SqlInjectionPatterns::python()),
             "dart" => ("lib", SqlInjectionPatterns::dart()),
+            "kotlin" => {
+                let src_dir = if manifest.service.service_type == "frontend" {
+                    "app/src"
+                } else {
+                    "src"
+                };
+                (src_dir, SqlInjectionPatterns::kotlin())
+            }
             _ => return,
         };
 

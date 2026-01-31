@@ -1,0 +1,24 @@
+// {{ feature_name }} API ルート
+
+package dev.k1s0.feature.{{ feature_name_package }}.presentation.routes
+
+import io.ktor.server.application.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class ServiceInfo(val message: String)
+
+fun Application.configureApiRoutes() {
+    routing {
+        get("/") {
+            call.respond(ServiceInfo(message = "{{ feature_name }} service is running"))
+        }
+
+        // TODO: サービス固有のルーターを追加
+        // route("/api/v1") {
+        //     // Example routes
+        // }
+    }
+}

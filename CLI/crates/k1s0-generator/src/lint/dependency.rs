@@ -76,6 +76,17 @@ impl DependencyRules {
             ],
         }
     }
+
+    /// Kotlin の依存方向ルール
+    pub fn kotlin() -> Self {
+        Self {
+            file_extensions: vec!["kt", "kts"],
+            import_patterns: vec![
+                "import {layer}.".to_string(),
+                "import *.{layer}.".to_string(),
+            ],
+        }
+    }
 }
 
 impl Linter {
@@ -95,6 +106,14 @@ impl Linter {
             "typescript" => ("src", DependencyRules::typescript()),
             "python" => ("src", DependencyRules::python()),
             "dart" => ("lib/src", DependencyRules::dart()),
+            "kotlin" => {
+                let src_dir = if manifest.service.service_type == "frontend" {
+                    "app/src/main/kotlin"
+                } else {
+                    "src"
+                };
+                (src_dir, DependencyRules::kotlin())
+            }
             _ => return, // 不明な言語の場合はスキップ
         };
 

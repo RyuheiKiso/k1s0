@@ -1,0 +1,78 @@
+# {{ name_pascal }} Domain
+
+{{ name_pascal }} ドメインの共通ビジネスロジックを提供するライブラリです。
+
+## 概要
+
+このライブラリは {{ name_pascal }} に関連するビジネスロジックを集約し、
+複数の feature サービスから共有して使用できるようにします。
+
+## ディレクトリ構造
+
+```
+src/main/kotlin/dev/k1s0/domain/{{ name_snake }}/
+├── entities/          # エンティティ
+├── valueobjects/      # 値オブジェクト
+├── repositories/      # リポジトリインターフェース（ポート）
+├── services/          # ドメインサービス
+└── events/            # ドメインイベント
+
+src/test/kotlin/dev/k1s0/domain/{{ name_snake }}/
+└── entities/          # 単体テスト
+```
+
+## 依存関係
+
+### Framework 依存
+
+なし（Domain パッケージは外部パッケージに依存しません）
+
+## 使用方法
+
+### feature からの依存
+
+feature サービスの `build.gradle.kts` に以下を追加：
+
+```kotlin
+dependencies {
+    implementation(project(":{{ name }}-domain"))
+}
+```
+
+または `settings.gradle.kts` に composite build を設定：
+
+```kotlin
+includeBuild("../../../../domain/backend/kotlin/{{ name }}")
+```
+
+### コード例
+
+```kotlin
+import dev.k1s0.domain.{{ name_snake }}.entities.{{ name_pascal }}
+import dev.k1s0.domain.{{ name_snake }}.entities.{{ name_pascal }}Id
+import dev.k1s0.domain.{{ name_snake }}.valueobjects.{{ name_pascal }}Name
+
+// エンティティの作成
+val entityId = {{ name_pascal }}Id(value = "unique-id")
+val name = {{ name_pascal }}Name(value = "Sample Name")
+val entity = {{ name_pascal }}.create(id = entityId, name = name)
+```
+
+## テスト
+
+```bash
+./gradlew test
+```
+
+## バージョン管理
+
+このドメインは SemVer でバージョン管理されています。
+
+- **patch** (0.1.0 -> 0.1.1): バグ修正
+- **minor** (0.1.0 -> 0.2.0): 後方互換性のある機能追加
+- **major** (0.1.0 -> 1.0.0): 破壊的変更
+
+## 関連ドキュメント
+
+- [k1s0 ドメイン開発ガイド](../../../../docs/guides/domain-development.md)
+- [Clean Architecture](../../../../docs/architecture/clean-architecture.md)

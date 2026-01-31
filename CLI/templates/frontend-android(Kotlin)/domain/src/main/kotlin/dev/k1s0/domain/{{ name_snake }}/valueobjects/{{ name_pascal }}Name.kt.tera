@@ -1,0 +1,16 @@
+package dev.k1s0.domain.{{ name_snake }}.valueobjects
+
+/**
+ * {{ name_pascal }}Name 値オブジェクト
+ *
+ * TODO: バリデーションルールを実装する。
+ */
+{% raw %}
+@JvmInline
+value class {% endraw %}{{ name_pascal }}Name{% raw %}(val value: String) {
+    init {
+        require(value.isNotBlank()) { "Name must not be blank" }
+        require(value.length <= 255) { "Name must be 255 characters or less" }
+    }
+}
+{% endraw %}

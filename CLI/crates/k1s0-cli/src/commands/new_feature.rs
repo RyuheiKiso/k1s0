@@ -40,6 +40,12 @@ pub enum ServiceType {
     /// Flutter フロントエンド
     #[value(name = "frontend-flutter")]
     FrontendFlutter,
+    /// Kotlin バックエンド
+    #[value(name = "backend-kotlin")]
+    BackendKotlin,
+    /// Android フロントエンド
+    #[value(name = "frontend-android")]
+    FrontendAndroid,
 }
 
 impl ServiceType {
@@ -52,6 +58,8 @@ impl ServiceType {
             ServiceType::BackendPython => "CLI/templates/backend-python/feature",
             ServiceType::FrontendReact => "CLI/templates/frontend-react/feature",
             ServiceType::FrontendFlutter => "CLI/templates/frontend-flutter/feature",
+            ServiceType::BackendKotlin => "CLI/templates/backend-kotlin/feature",
+            ServiceType::FrontendAndroid => "CLI/templates/frontend-android/feature",
         }
     }
 
@@ -64,6 +72,8 @@ impl ServiceType {
             ServiceType::BackendPython => "feature/backend/python",
             ServiceType::FrontendReact => "feature/frontend/react",
             ServiceType::FrontendFlutter => "feature/frontend/flutter",
+            ServiceType::BackendKotlin => "feature/backend/kotlin",
+            ServiceType::FrontendAndroid => "feature/frontend/android",
         }
     }
 
@@ -76,6 +86,8 @@ impl ServiceType {
             ServiceType::BackendPython => "domain/backend/python",
             ServiceType::FrontendReact => "domain/frontend/react",
             ServiceType::FrontendFlutter => "domain/frontend/flutter",
+            ServiceType::BackendKotlin => "domain/backend/kotlin",
+            ServiceType::FrontendAndroid => "domain/frontend/android",
         }
     }
 
@@ -88,14 +100,15 @@ impl ServiceType {
             ServiceType::BackendPython => "python",
             ServiceType::FrontendReact => "typescript",
             ServiceType::FrontendFlutter => "dart",
+            ServiceType::BackendKotlin | ServiceType::FrontendAndroid => "kotlin",
         }
     }
 
     /// サービスタイプ名を取得
     pub fn service_type_name(&self) -> &'static str {
         match self {
-            ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp | ServiceType::BackendPython => "backend",
-            ServiceType::FrontendReact | ServiceType::FrontendFlutter => "frontend",
+            ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp | ServiceType::BackendPython | ServiceType::BackendKotlin => "backend",
+            ServiceType::FrontendReact | ServiceType::FrontendFlutter | ServiceType::FrontendAndroid => "frontend",
         }
     }
 }
@@ -109,6 +122,8 @@ impl std::fmt::Display for ServiceType {
             ServiceType::BackendPython => write!(f, "backend-python"),
             ServiceType::FrontendReact => write!(f, "frontend-react"),
             ServiceType::FrontendFlutter => write!(f, "frontend-flutter"),
+            ServiceType::BackendKotlin => write!(f, "backend-kotlin"),
+            ServiceType::FrontendAndroid => write!(f, "frontend-android"),
         }
     }
 }
@@ -629,6 +644,8 @@ fn create_template_context(args: &ResolvedArgs, domain_info: Option<&DomainInfo>
     context.insert("feature_name_pascal", &to_pascal_case(&args.name));
     context.insert("feature_name_kebab", &args.name); // kebab-case はそのまま
     context.insert("feature_name_title", &to_title_case(&args.name));
+    // Kotlin パッケージ名（ハイフンを除去して小文字）
+    context.insert("feature_name_package", &args.name.replace('-', "").to_lowercase());
 
     // domain 情報
     if let Some(info) = domain_info {
@@ -724,12 +741,12 @@ fn create_manifest(
 /// CLI が管理するパスを取得
 fn get_managed_paths(service_type: ServiceType) -> Vec<String> {
     match service_type {
-        ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp | ServiceType::BackendPython => vec![
+        ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp | ServiceType::BackendPython | ServiceType::BackendKotlin => vec![
             "deploy/".to_string(),
             "buf.yaml".to_string(),
             "buf.gen.yaml".to_string(),
         ],
-        ServiceType::FrontendReact | ServiceType::FrontendFlutter => vec![
+        ServiceType::FrontendReact | ServiceType::FrontendFlutter | ServiceType::FrontendAndroid => vec![
             "deploy/".to_string(),
         ],
     }
@@ -738,7 +755,7 @@ fn get_managed_paths(service_type: ServiceType) -> Vec<String> {
 /// CLI が変更しないパスを取得
 fn get_protected_paths(service_type: ServiceType) -> Vec<String> {
     match service_type {
-        ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp | ServiceType::BackendPython => vec![
+        ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp | ServiceType::BackendPython | ServiceType::BackendKotlin => vec![
             "src/domain/".to_string(),
             "src/application/".to_string(),
             "README.md".to_string(),
@@ -755,6 +772,12 @@ fn get_protected_paths(service_type: ServiceType) -> Vec<String> {
             "lib/src/presentation/".to_string(),
             "README.md".to_string(),
         ],
+        ServiceType::FrontendAndroid => vec![
+            "app/src/main/kotlin/*/domain/".to_string(),
+            "app/src/main/kotlin/*/application/".to_string(),
+            "app/src/main/kotlin/*/presentation/".to_string(),
+            "README.md".to_string(),
+        ],
     }
 }
 
@@ -765,7 +788,7 @@ fn get_update_policy(
     let mut policy = std::collections::HashMap::new();
 
     match service_type {
-        ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp | ServiceType::BackendPython => {
+        ServiceType::BackendRust | ServiceType::BackendGo | ServiceType::BackendCsharp | ServiceType::BackendPython | ServiceType::BackendKotlin => {
             policy.insert("deploy/".to_string(), UpdatePolicy::Auto);
             policy.insert("buf.yaml".to_string(), UpdatePolicy::Auto);
             policy.insert("src/domain/".to_string(), UpdatePolicy::Protected);
@@ -773,7 +796,7 @@ fn get_update_policy(
             policy.insert("README.md".to_string(), UpdatePolicy::SuggestOnly);
             policy.insert("config/".to_string(), UpdatePolicy::SuggestOnly);
         }
-        ServiceType::FrontendReact | ServiceType::FrontendFlutter => {
+        ServiceType::FrontendReact | ServiceType::FrontendFlutter | ServiceType::FrontendAndroid => {
             policy.insert("deploy/".to_string(), UpdatePolicy::Auto);
             policy.insert("README.md".to_string(), UpdatePolicy::SuggestOnly);
             policy.insert("config/".to_string(), UpdatePolicy::SuggestOnly);
