@@ -80,5 +80,6 @@ docs/
 - [開発ガイド](guides/)
 - [Getting Started](GETTING_STARTED.md)
 - [運用ドキュメント](operations/README.md)
+- [Observability Stack](../observability/README.md): OTEL Collector / Jaeger / Loki / Prometheus / Grafana
 - [構想.md](../work/構想.md): 全体方針（草案）
 - [プラン.md](../work/プラン.md): 実装計画（草案）

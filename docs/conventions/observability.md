@@ -184,7 +184,30 @@ grpc.health.v1.Health/Check
 - ネットワーク通信（Ktor Client）のトレースは OkHttp インターセプタ経由で自動収集
 - クラッシュレポートは観測性パイプラインとは分離し、別途管理する
 
+## 9. Observability スタック
+
+k1s0 では以下のコンポーネントで構成される Observability スタックを提供しています。
+
+| コンポーネント | 役割 |
+|--------------|------|
+| **OTEL Collector** | テレメトリデータの受信・処理・転送 |
+| **Jaeger** | 分散トレースの保存・検索・可視化 |
+| **Loki** | ログの集約・検索 |
+| **Prometheus** | メトリクスの収集・保存・クエリ |
+| **Grafana** | ダッシュボード・アラート・統合可視化 |
+
+### ローカル起動
+
+```bash
+cd observability
+docker compose up -d
+```
+
+詳細は [observability/README.md](../../observability/README.md) を参照してください。
+
 ## 関連ドキュメント
 
+- [Observability Stack README](../../observability/README.md) - スタックの構成・起動手順
+- [モニタリング・アラート](../operations/monitoring.md) - メトリクス・アラートルール定義
 - [エラー規約](error-handling.md)
 - [構想.md](../../work/構想.md): 全体方針（12. 観測性）

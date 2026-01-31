@@ -4,11 +4,11 @@ k1s0 Backend Framework は、マイクロサービス開発のための共通ラ
 
 ## 言語別パッケージ
 
-- [Rust](./rust/) - Rust crate 群
-- [Go](./go/) - Go パッケージ群
-- [C#](./csharp/) - NuGet パッケージ群
-- [Python](./python/) - Python パッケージ群
-- [Kotlin](./kotlin/) - Kotlin パッケージ群
+- Rust - Rust crate 群（本 README 下部に記載）
+- Go - Go パッケージ群（設計書準備中）
+- [C#](./csharp.md) - NuGet パッケージ群
+- [Python](./python.md) - Python パッケージ群
+- [Kotlin](./kotlin.md) - Kotlin パッケージ群
 
 ---
 

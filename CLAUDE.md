@@ -116,6 +116,7 @@ k1s0/
 │   │   └── android/{feature_name}/
 │   └── database/
 │
+├── observability/                # Observability stack (OTEL Collector + Jaeger + Loki + Prometheus + Grafana)
 ├── bff/                         # Backend-for-Frontend layer (optional)
 │
 ├── docs/                        # Comprehensive documentation
@@ -325,6 +326,8 @@ buf format --exit-code
 | `k1s0 migrate plan` | Generate migration plan (`--path`, `--name`, `--type`, `--output`, `--dry-run`) |
 | `k1s0 migrate apply` | Apply migration plan (`--path`, `--plan`, `--phase`, `--dry-run`, `--yes`, `--skip-backup`) |
 | `k1s0 migrate status` | Show migration progress (`--path`, `--plan`, `--json`) |
+| `k1s0 log` | Show Git commit history |
+| `k1s0 diff` | Show Git diff |
 
 ### Interactive Mode
 
@@ -885,6 +888,10 @@ Use canonical codes only: `INVALID_ARGUMENT`, `UNAUTHENTICATED`, `PERMISSION_DEN
 | Domain Development | `docs/guides/domain-development.md` | Domain development guide |
 | Domain Versioning | `docs/guides/domain-versioning.md` | Domain version management |
 | Migration Guide | `docs/guides/migration-to-three-tier.md` | 2-tier to 3-tier migration |
+| Observability | `docs/conventions/observability.md` | Logging/tracing/metrics conventions |
+| Versioning | `docs/conventions/versioning.md` | Versioning conventions |
+| Proxy | `docs/operations/proxy.md` | Proxy environment setup |
+| Observability Stack | `observability/README.md` | OTEL Collector + Jaeger + Loki + Prometheus + Grafana |
 
 ## Available Specialized Agents
 
