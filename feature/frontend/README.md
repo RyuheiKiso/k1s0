@@ -8,7 +8,9 @@
 frontend/
 ├── react/          # React フロントエンド
 │   └── {feature_name}/
-└── flutter/        # Flutter フロントエンド
+├── flutter/        # Flutter フロントエンド
+│   └── {feature_name}/
+└── android/        # Android フロントエンド
     └── {feature_name}/
 ```
 
@@ -20,4 +22,7 @@ k1s0 new-feature --type frontend-react --name {name}
 
 # Flutter
 k1s0 new-feature --type frontend-flutter --name {name}
+
+# Android
+k1s0 new-feature --type frontend-android --name {name}
 ```

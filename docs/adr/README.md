@@ -48,6 +48,7 @@ ADR-{4桁連番}-{kebab-case-title}.md
 | [ADR-0001](ADR-0001-scope-and-prerequisites.md) | k1s0 実装スコープと前提の固定 | 承認済み |
 | [ADR-0002](ADR-0002-versioning-and-manifest.md) | バージョニングと manifest の型の固定 | 承認済み |
 | [ADR-0003](ADR-0003-template-fingerprint-strategy.md) | テンプレート fingerprint 戦略 | 承認済み |
+| [ADR-0005](0005-grpc-contract-management.md) | gRPC 契約管理（buf lint/breaking） | 承認済み |
 | [ADR-0006](ADR-0006-three-layer-architecture.md) | 3層アーキテクチャ（framework -> domain -> feature） | 承認済み |
 | [ADR-0007](ADR-0007-csharp-backend-support.md) | C# バックエンドサポートの追加 | 承認済み |
 | [ADR-0008](ADR-0008-python-backend-support.md) | Python バックエンドサポートの追加 | 承認済み |

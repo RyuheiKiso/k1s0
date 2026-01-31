@@ -97,13 +97,24 @@ domain/
 │   ├── rust/           # Rust製のdomainパッケージ
 │   │   ├── finance/    # 例: 財務ドメイン
 │   │   └── inventory/  # 例: 在庫ドメイン
-│   └── go/             # Go製のdomainパッケージ
+│   ├── go/             # Go製のdomainパッケージ
+│   │   ├── finance/
+│   │   └── inventory/
+│   ├── csharp/         # C#製のdomainパッケージ
+│   │   ├── finance/
+│   │   └── inventory/
+│   ├── python/         # Python製のdomainパッケージ
+│   │   ├── finance/
+│   │   └── inventory/
+│   └── kotlin/         # Kotlin製のdomainパッケージ
 │       ├── finance/
 │       └── inventory/
 └── frontend/
     ├── react/          # React用のdomainパッケージ
     │   └── finance/
-    └── flutter/        # Flutter用のdomainパッケージ
+    ├── flutter/        # Flutter用のdomainパッケージ
+    │   └── finance/
+    └── android/        # Android用のdomainパッケージ
         └── finance/
 ```
 
@@ -151,6 +162,56 @@ domain/frontend/react/{domain_name}/
     └── manifest.json   # layer: "domain"
 ```
 
+#### C# (backend-csharp)
+
+```
+domain/backend/csharp/{domain_name}/
+├── {DomainName}.sln
+├── src/
+│   └── {DomainName}.Domain/
+│       ├── {DomainName}.Domain.csproj
+│       ├── Entities/
+│       ├── ValueObjects/
+│       ├── Repositories/
+│       ├── Services/
+│       └── Rules/
+└── .k1s0/
+    └── manifest.json   # layer: "domain"
+```
+
+#### Python (backend-python)
+
+```
+domain/backend/python/{domain_name}/
+├── pyproject.toml
+├── src/
+│   └── {domain_name_snake}/
+│       ├── __init__.py
+│       ├── entities/
+│       ├── value_objects/
+│       ├── repositories/
+│       ├── services/
+│       └── rules/
+└── .k1s0/
+    └── manifest.json   # layer: "domain"
+```
+
+#### Kotlin (backend-kotlin)
+
+```
+domain/backend/kotlin/{domain_name}/
+├── build.gradle.kts
+├── src/
+│   └── main/kotlin/{package}/
+│       ├── entities/
+│       ├── valueobjects/
+│       ├── repositories/
+│       ├── services/
+│       └── rules/
+└── .k1s0/
+    └── manifest.json   # layer: "domain"
+```
+
 #### Flutter (frontend-flutter)
 
 ```
@@ -161,6 +222,21 @@ domain/frontend/flutter/{domain_name}/
 │   └── src/
 │       ├── entities/
 │       ├── value_objects/
+│       └── rules/
+└── .k1s0/
+    └── manifest.json   # layer: "domain"
+```
+
+#### Android (frontend-android)
+
+```
+domain/frontend/android/{domain_name}/
+├── build.gradle.kts
+├── src/
+│   └── main/kotlin/{package}/
+│       ├── entities/
+│       ├── valueobjects/
+│       ├── repositories/
 │       └── rules/
 └── .k1s0/
     └── manifest.json   # layer: "domain"
@@ -180,8 +256,20 @@ k1s0 new-domain --type backend-go --name inventory
 # React frontend domain
 k1s0 new-domain --type frontend-react --name finance
 
+# C# backend domain
+k1s0 new-domain --type backend-csharp --name finance
+
+# Python backend domain
+k1s0 new-domain --type backend-python --name finance
+
+# Kotlin backend domain
+k1s0 new-domain --type backend-kotlin --name finance
+
 # Flutter frontend domain
 k1s0 new-domain --type frontend-flutter --name finance
+
+# Android frontend domain
+k1s0 new-domain --type frontend-android --name finance
 ```
 
 ### featureをdomainに所属させて作成
@@ -198,7 +286,7 @@ k1s0 new-feature --type backend-rust --name invoice-processing --domain finance
 k1s0 lint
 
 # domain依存関係のみを検証
-k1s0 lint --rules K023
+k1s0 lint --rules K040,K041,K042,K043
 ```
 
 ## manifest.json の設定
