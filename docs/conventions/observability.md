@@ -252,6 +252,40 @@ docker compose up -d
 | `k1s0_db_pool_rejected_total` | Counter | `pool_name` | リジェクト数 |
 | `k1s0_db_pool_acquire_duration_seconds` | Histogram | `pool_name` | 接続取得時間 |
 
+## 11. コンセンサスメトリクス
+
+以下のメトリクスは `k1s0_` プレフィックスを使用する。`k1s0-consensus` パッケージが提供する。
+
+### リーダー選出
+
+| メトリクス名 | 型 | ラベル | 説明 |
+|-------------|-----|--------|------|
+| `k1s0_leader_elections_total` | Counter | `lease_key`, `result` | 選出試行数（result=acquired/lost/renewed/failed） |
+| `k1s0_leader_is_leader` | Gauge | `lease_key` | 現在リーダーか（0/1） |
+| `k1s0_leader_lease_duration_seconds` | Histogram | `lease_key` | リーダー保持期間 |
+| `k1s0_leader_heartbeat_failures_total` | Counter | `lease_key` | ハートビート失敗数 |
+
+### 分散ロック
+
+| メトリクス名 | 型 | ラベル | 説明 |
+|-------------|-----|--------|------|
+| `k1s0_lock_acquisitions_total` | Counter | `lock_key`, `backend`, `result` | ロック取得試行数（result=acquired/timeout/failed） |
+| `k1s0_lock_held_duration_seconds` | Histogram | `lock_key`, `backend` | ロック保持時間 |
+| `k1s0_lock_wait_duration_seconds` | Histogram | `lock_key`, `backend` | ロック待機時間 |
+| `k1s0_lock_active_count` | Gauge | `backend` | 現在保持中のロック数 |
+| `k1s0_lock_fence_token_violations_total` | Counter | `lock_key` | フェンシングトークン違反数 |
+
+### Saga
+
+| メトリクス名 | 型 | ラベル | 説明 |
+|-------------|-----|--------|------|
+| `k1s0_saga_executions_total` | Counter | `saga_type`, `result` | Saga 実行数（result=completed/compensated/dead_letter） |
+| `k1s0_saga_duration_seconds` | Histogram | `saga_type` | Saga 全体の実行時間 |
+| `k1s0_saga_step_duration_seconds` | Histogram | `saga_type`, `step_name`, `phase` | ステップ実行時間（phase=execute/compensate） |
+| `k1s0_saga_active_count` | Gauge | `saga_type` | 実行中の Saga 数 |
+| `k1s0_saga_dead_letter_count` | Gauge | `saga_type` | デッドレターキュー内の Saga 数 |
+| `k1s0_saga_retries_total` | Counter | `saga_type`, `step_name` | リトライ回数 |
+
 ## 関連ドキュメント
 
 - [Observability Stack README](../../observability/README.md) - スタックの構成・起動手順

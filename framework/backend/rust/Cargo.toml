@@ -4,6 +4,7 @@ members = [
     "crates/k1s0-auth",
     "crates/k1s0-cache",
     "crates/k1s0-config",
+    "crates/k1s0-consensus",
     "crates/k1s0-db",
     "crates/k1s0-domain-event",
     "crates/k1s0-error",

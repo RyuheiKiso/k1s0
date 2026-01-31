@@ -1,0 +1,69 @@
+[package]
+name = "k1s0-consensus"
+version = "0.1.0"
+edition = "2021"
+description = "k1s0 framework - Distributed consensus: leader election, distributed locks, and saga orchestration"
+license = "MIT"
+repository = "https://github.com/k1s0/k1s0"
+keywords = ["consensus", "leader-election", "distributed-lock", "saga", "k1s0"]
+categories = ["asynchronous"]
+
+[lints]
+workspace = true
+
+[features]
+default = []
+postgres = ["sqlx"]
+redis-backend = ["redis"]
+domain-event = ["k1s0-domain-event"]
+full = ["postgres", "redis-backend", "domain-event"]
+
+[dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
+
+# Error handling
+thiserror = "1.0"
+
+# Async runtime
+tokio = { version = "1.0", features = ["time", "sync", "rt", "macros"] }
+
+# SQLx (optional)
+sqlx = { version = "0.8", features = [
+    "runtime-tokio",
+    "tls-rustls",
+    "postgres",
+    "uuid",
+    "chrono",
+    "json",
+], optional = true }
+
+# Redis (optional)
+redis = { version = "0.27", features = ["aio", "tokio-comp"], optional = true }
+
+# UUID
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Chrono for timestamps
+chrono = { version = "0.4", features = ["serde"] }
+
+# Tracing
+tracing = "0.1"
+
+# Async trait
+async-trait = "0.1"
+
+# Metrics
+prometheus = "0.13"
+
+# k1s0 dependencies (Tier 1)
+k1s0-error = { path = "../k1s0-error" }
+k1s0-config = { path = "../k1s0-config" }
+
+# k1s0 dependencies (Tier 2, optional)
+k1s0-domain-event = { path = "../k1s0-domain-event", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1.0", features = ["full", "test-util"] }
+serde_yaml = "0.9"

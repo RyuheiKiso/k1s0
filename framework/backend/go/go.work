@@ -4,6 +4,7 @@ use (
 	./k1s0-auth
 	./k1s0-cache
 	./k1s0-config
+	./k1s0-consensus
 	./k1s0-db
 	./k1s0-domain-event
 	./k1s0-error

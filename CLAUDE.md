@@ -665,11 +665,12 @@ app/src/main/kotlin/{package}/
 | k1s0-db | Database connection/transaction | 2 |
 | k1s0-cache | Redis caching | 2 |
 | k1s0-domain-event | Domain event publish/subscribe/outbox | 2 |
+| k1s0-consensus | Leader election, distributed locks, saga orchestration | 2 |
 | k1s0-auth | Authentication/authorization | 3 |
 
 **Tier dependency rules:**
 - Tier 1: No framework dependencies
-- Tier 2: Can depend on Tier 1 only
+- Tier 2: Can depend on Tier 1 only (k1s0-consensus additionally depends on Tier 2: k1s0-db, k1s0-domain-event, k1s0-observability)
 - Tier 3: Can depend on Tier 1 and 2
 
 ## Framework Packages (React Frontend)
@@ -703,6 +704,7 @@ app/src/main/kotlin/{package}/
 | k1s0-db | Database connection/transaction | 2 |
 | k1s0-cache | Redis caching | 2 |
 | k1s0-domain-event | Domain event publish/subscribe/outbox | 2 |
+| k1s0-consensus | Leader election, distributed locks, saga orchestration | 2 |
 | k1s0-auth | Authentication/authorization | 3 |
 
 **Tier dependency rules:** Same as Rust -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only, Tier 3 can depend on Tier 1 and 2.
@@ -723,6 +725,7 @@ app/src/main/kotlin/{package}/
 | k1s0-resilience | Circuit breaker, retry, timeout, bulkhead patterns | 2 |
 | k1s0-rate-limit | Rate limiting (token bucket, sliding window) | 2 |
 | k1s0-cache | Redis caching and cache patterns | 2 |
+| k1s0-consensus | Leader election, distributed locks, saga orchestration | 2 |
 | k1s0-auth | JWT/OIDC authentication and policy-based authorization | 3 |
 
 **Tier dependency rules:** Same as Rust/Go/C# -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only, Tier 3 can depend on Tier 1 and 2.
@@ -756,6 +759,7 @@ app/src/main/kotlin/{package}/
 | K1s0.Resilience | Circuit breaker, retry, timeout, bulkhead patterns | 2 |
 | K1s0.RateLimit | Rate limiting (token bucket, sliding window) | 2 |
 | K1s0.Cache | Redis caching and cache patterns (StackExchange.Redis) | 2 |
+| K1s0.Consensus | Leader election, distributed locks, saga orchestration | 2 |
 | K1s0.Auth | JWT/OIDC authentication and policy-based authorization | 3 |
 
 **Tier dependency rules:** Same as Rust/Go -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only, Tier 3 can depend on Tier 1 and 2.
@@ -776,6 +780,7 @@ app/src/main/kotlin/{package}/
 | k1s0-resilience | Circuit breaker, retry, timeout | 2 |
 | k1s0-rate-limit | Rate limiting (token bucket, sliding window) | 2 |
 | k1s0-cache | Redis caching (Lettuce) | 2 |
+| k1s0-consensus | Leader election, distributed locks, saga orchestration (Exposed + Lettuce) | 2 |
 | k1s0-auth | JWT/OIDC auth (nimbus-jose-jwt) | 3 |
 
 **Tier dependency rules:** Same as Rust/Go/C#/Python -- Tier 1 has no framework dependencies, Tier 2 can depend on Tier 1 only, Tier 3 can depend on Tier 1 and 2.
