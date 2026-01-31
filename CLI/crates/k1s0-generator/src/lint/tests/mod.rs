@@ -75,10 +75,13 @@ fn create_backend_rust_structure(dir: &Path) {
     }
 }
 
+mod config_naming;
 mod dependency;
 mod env_vars;
 mod manifest;
+mod protocol_dependency;
 mod required_files;
 mod retry;
 mod secret_config;
+mod sql_injection;
 mod utils;

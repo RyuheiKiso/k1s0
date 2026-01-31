@@ -21,6 +21,10 @@ pub enum RuleId {
     SecretInConfig,
     /// Clean Architecture 依存方向違反
     DependencyDirection,
+    /// 設定ファイル命名規約違反
+    ConfigFileNaming,
+    /// Domain 層でのプロトコル依存
+    ProtocolDependencyInDomain,
     /// gRPC リトライ設定の検出（可視化目的）
     RetryUsageDetected,
     /// gRPC リトライ設定に ADR 参照がない
@@ -46,6 +50,11 @@ pub enum RuleId {
     BreakingChangeImpact,
     /// domain 層に version が未設定
     DomainVersionMissing,
+
+    // === セキュリティルール（K050-K059） ===
+
+    /// SQL インジェクションリスク
+    SqlInjectionRisk,
 }
 
 impl RuleId {
@@ -60,6 +69,8 @@ impl RuleId {
             RuleId::EnvVarUsage => "K020",
             RuleId::SecretInConfig => "K021",
             RuleId::DependencyDirection => "K022",
+            RuleId::ConfigFileNaming => "K025",
+            RuleId::ProtocolDependencyInDomain => "K026",
             RuleId::RetryUsageDetected => "K030",
             RuleId::RetryWithoutAdr => "K031",
             RuleId::RetryConfigIncomplete => "K032",
@@ -72,6 +83,8 @@ impl RuleId {
             RuleId::MinFrameworkVersionViolation => "K045",
             RuleId::BreakingChangeImpact => "K046",
             RuleId::DomainVersionMissing => "K047",
+            // セキュリティルール
+            RuleId::SqlInjectionRisk => "K050",
         }
     }
 
@@ -86,6 +99,8 @@ impl RuleId {
             RuleId::EnvVarUsage => "環境変数の参照は禁止されています",
             RuleId::SecretInConfig => "config YAML に機密情報が直接書かれています",
             RuleId::DependencyDirection => "Clean Architecture の依存方向に違反しています",
+            RuleId::ConfigFileNaming => "設定ファイルの命名規約に違反しています",
+            RuleId::ProtocolDependencyInDomain => "Domain 層でプロトコル固有の型が使用されています",
             RuleId::RetryUsageDetected => "gRPC リトライ設定が検出されました",
             RuleId::RetryWithoutAdr => "gRPC リトライ設定に ADR 参照がありません",
             RuleId::RetryConfigIncomplete => "gRPC リトライ設定が不完全です",
@@ -98,6 +113,8 @@ impl RuleId {
             RuleId::MinFrameworkVersionViolation => "min_framework_version 要件を満たしていません",
             RuleId::BreakingChangeImpact => "破壊的変更の影響を受ける可能性があります",
             RuleId::DomainVersionMissing => "domain 層には version が必須です",
+            // セキュリティルール
+            RuleId::SqlInjectionRisk => "SQL インジェクションのリスクがあります",
         }
     }
 }

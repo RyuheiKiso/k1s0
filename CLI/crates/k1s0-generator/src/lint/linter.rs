@@ -71,6 +71,21 @@ impl Linter {
             self.check_dependency_direction(&path, &mut result);
         }
 
+        // K025: 設定ファイル命名規約
+        if !self.is_rule_skipped(RuleId::ConfigFileNaming) {
+            self.check_config_file_naming(&path, &mut result);
+        }
+
+        // K026: Domain 層プロトコル依存
+        if !self.is_rule_skipped(RuleId::ProtocolDependencyInDomain) {
+            self.check_protocol_dependency_in_domain(&path, &mut result);
+        }
+
+        // K050: SQL インジェクションリスク
+        if !self.is_rule_skipped(RuleId::SqlInjectionRisk) {
+            self.check_sql_injection_risk(&path, &mut result);
+        }
+
         // K030/K031/K032: gRPC リトライ設定検査
         let check_k030 = !self.is_rule_skipped(RuleId::RetryUsageDetected);
         let check_k031 = !self.is_rule_skipped(RuleId::RetryWithoutAdr);
