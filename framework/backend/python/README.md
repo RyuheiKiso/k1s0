@@ -21,6 +21,7 @@ Shared Python framework packages for k1s0 microservices.
 | k1s0-grpc-client | gRPC client utilities and channel factory |
 | k1s0-health | Health check endpoints (liveness and readiness) |
 | k1s0-db | Async SQLAlchemy database utilities |
+| k1s0-rate-limit | Rate limiting (token bucket, sliding window) |
 
 ## Requirements
 

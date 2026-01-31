@@ -24,6 +24,7 @@ Kotlin backend framework packages for k1s0 microservices.
 | k1s0-domain-event | Domain event publish/subscribe and outbox |
 | k1s0-resilience | Circuit breaker, retry, timeout, bulkhead |
 | k1s0-cache | Redis caching (Lettuce) |
+| k1s0-rate-limit | Rate limiting (token bucket, sliding window) |
 
 ### Tier 3 - Business Logic Support (depends on Tier 1 and 2)
 
