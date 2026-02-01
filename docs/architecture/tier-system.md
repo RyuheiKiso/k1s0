@@ -21,6 +21,8 @@ graph TB
         T2_DB[k1s0-db]
         T2_CACHE[k1s0-cache]
         T2_DEVENT[k1s0-domain-event]
+        T2_RATE[k1s0-rate-limit]
+        T2_CONS[k1s0-consensus]
     end
 
     subgraph "Tier 1 - 基盤"
@@ -38,6 +40,10 @@ graph TB
     T2_OBS --> T1_ERROR
     T2_RESIL --> T1_ERROR
     T2_DEVENT --> T1_ERROR
+    T2_RATE --> T1_ERROR
+    T2_CONS --> T2_DB
+    T2_CONS --> T2_DEVENT
+    T2_CONS --> T2_OBS
 
     T2_DB -.-> T1_ERROR
     T2_DB -.-> T1_CONFIG
@@ -92,6 +98,8 @@ serde = { version = "1", features = ["derive"] }
 | `k1s0-db` | DB 接続・トランザクション | k1s0-config (feature: `config`) |
 | `k1s0-cache` | Redis キャッシュ | k1s0-health (feature) |
 | `k1s0-domain-event` | ドメインイベント publish/subscribe/outbox | k1s0-error |
+| `k1s0-rate-limit` | レート制限（トークンバケット、スライディングウィンドウ） | k1s0-error |
+| `k1s0-consensus` | リーダー選出、分散ロック、Saga オーケストレーション | k1s0-db, k1s0-domain-event, k1s0-observability |
 
 ### 依存関係
 
@@ -339,6 +347,32 @@ config feature で追加される型:
 - OutboxRepository: Outbox パターン実装
 ```
 
+#### k1s0-rate-limit
+
+```
+責務: レート制限
+依存: k1s0-error
+
+提供する型:
+- TokenBucket: トークンバケットアルゴリズム
+- SlidingWindow: スライディングウィンドウアルゴリズム
+- RateLimitConfig: レート制限設定
+- RateLimiter: レートリミッター trait
+```
+
+#### k1s0-consensus
+
+```
+責務: リーダー選出、分散ロック、Saga オーケストレーション
+依存: k1s0-db, k1s0-domain-event, k1s0-observability
+
+提供する型:
+- LeaderElection: リーダー選出
+- DistributedLock: 分散ロック
+- SagaOrchestrator: Saga オーケストレーター
+- SagaStep: Saga ステップ定義
+```
+
 ### Tier 3
 
 #### k1s0-auth
@@ -419,7 +453,7 @@ Tier システムは Rust 以外の全バックエンド言語でも同一の構
 | パッケージ | Tier |
 |-----------|------|
 | `k1s0-error`, `k1s0-config`, `k1s0-validation` | Tier 1 |
-| `k1s0-observability`, `k1s0-resilience`, `k1s0-grpc-server`, `k1s0-grpc-client`, `k1s0-health`, `k1s0-db`, `k1s0-cache`, `k1s0-domain-event` | Tier 2 |
+| `k1s0-observability`, `k1s0-resilience`, `k1s0-grpc-server`, `k1s0-grpc-client`, `k1s0-health`, `k1s0-db`, `k1s0-cache`, `k1s0-domain-event`, `k1s0-rate-limit`, `k1s0-consensus` | Tier 2 |
 | `k1s0-auth` | Tier 3 |
 
 ### C# (NuGet)
@@ -427,7 +461,7 @@ Tier システムは Rust 以外の全バックエンド言語でも同一の構
 | パッケージ | Tier |
 |-----------|------|
 | `K1s0.Error`, `K1s0.Config`, `K1s0.Validation` | Tier 1 |
-| `K1s0.Observability`, `K1s0.Resilience`, `K1s0.Grpc.Server`, `K1s0.Grpc.Client`, `K1s0.Health`, `K1s0.Db`, `K1s0.Cache`, `K1s0.DomainEvent` | Tier 2 |
+| `K1s0.Observability`, `K1s0.Resilience`, `K1s0.Grpc.Server`, `K1s0.Grpc.Client`, `K1s0.Health`, `K1s0.Db`, `K1s0.Cache`, `K1s0.DomainEvent`, `K1s0.RateLimit`, `K1s0.Consensus` | Tier 2 |
 | `K1s0.Auth` | Tier 3 |
 
 ### Python (uv)
@@ -435,7 +469,7 @@ Tier システムは Rust 以外の全バックエンド言語でも同一の構
 | パッケージ | Tier |
 |-----------|------|
 | `k1s0-error`, `k1s0-config`, `k1s0-validation` | Tier 1 |
-| `k1s0-observability`, `k1s0-resilience`, `k1s0-grpc-server`, `k1s0-grpc-client`, `k1s0-health`, `k1s0-db`, `k1s0-cache`, `k1s0-domain-event` | Tier 2 |
+| `k1s0-observability`, `k1s0-resilience`, `k1s0-grpc-server`, `k1s0-grpc-client`, `k1s0-health`, `k1s0-db`, `k1s0-cache`, `k1s0-domain-event`, `k1s0-rate-limit`, `k1s0-consensus` | Tier 2 |
 | `k1s0-auth` | Tier 3 |
 
 ### Kotlin (Gradle)
@@ -443,7 +477,7 @@ Tier システムは Rust 以外の全バックエンド言語でも同一の構
 | パッケージ | Tier |
 |-----------|------|
 | `k1s0-error`, `k1s0-config`, `k1s0-validation` | Tier 1 |
-| `k1s0-observability`, `k1s0-resilience`, `k1s0-grpc-server`, `k1s0-grpc-client`, `k1s0-health`, `k1s0-db`, `k1s0-cache`, `k1s0-domain-event` | Tier 2 |
+| `k1s0-observability`, `k1s0-resilience`, `k1s0-grpc-server`, `k1s0-grpc-client`, `k1s0-health`, `k1s0-db`, `k1s0-cache`, `k1s0-domain-event`, `k1s0-rate-limit`, `k1s0-consensus` | Tier 2 |
 | `k1s0-auth` | Tier 3 |
 
 依存ルールは全言語で共通: Tier N は Tier N-1 以下にのみ依存可能。

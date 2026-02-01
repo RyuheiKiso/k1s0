@@ -44,8 +44,8 @@ CLI/
 | `k1s0 init` | リポジトリ初期化（`.k1s0/` 作成等） |
 | `k1s0 new-feature` | 新規サービスの雛形生成 |
 | `k1s0 new-domain` | 新規 domain の雛形生成 |
-| `k1s0 new-screen` | 画面（Screen）の雛形生成（React/Flutter） |
-| `k1s0 lint` | 規約違反の検査 |
+| `k1s0 new-screen` | 画面（Screen）の雛形生成（React/Flutter/Android） |
+| `k1s0 lint` | 規約違反の検査（`--fast` で AST 解析をスキップし grep ベースで高速実行） |
 | `k1s0 upgrade` | テンプレート更新の適用 |
 | `k1s0 doctor` | 開発環境の健全性チェック |
 | `k1s0 completions` | シェル補完スクリプトの生成 |

@@ -19,7 +19,9 @@ framework/backend/kotlin/
 │   ├── k1s0-db/                   # DB 接続（Exposed + HikariCP）
 │   ├── k1s0-domain-event/         # ドメインイベント・Outbox パターン
 │   ├── k1s0-resilience/           # サーキットブレーカー・リトライ・タイムアウト
+│   ├── k1s0-rate-limit/            # レート制限（トークンバケット・スライディングウィンドウ）
 │   ├── k1s0-cache/                # Redis キャッシュ（Lettuce）
+│   ├── k1s0-consensus/            # リーダー選出・分散ロック・Saga オーケストレーション
 │   └── k1s0-auth/                 # JWT/OIDC 認証（nimbus-jose-jwt）
 └── tests/
 ```
@@ -45,7 +47,9 @@ framework/backend/kotlin/
 | k1s0-db | DB 接続プール・トランザクション管理 | Exposed, HikariCP, PostgreSQL JDBC |
 | k1s0-domain-event | ドメインイベント発行・購読・Outbox | kotlinx-coroutines |
 | k1s0-resilience | サーキットブレーカー・リトライ・タイムアウト | resilience4j |
+| k1s0-rate-limit | レート制限。トークンバケット・スライディングウィンドウ | kotlinx-coroutines |
 | k1s0-cache | Redis キャッシュ操作・キャッシュパターン | Lettuce |
+| k1s0-consensus | リーダー選出、分散ロック、Saga オーケストレーション | Exposed, Lettuce, k1s0-db, k1s0-domain-event, k1s0-observability |
 
 ### Tier 3（Tier 1, 2 に依存可）
 

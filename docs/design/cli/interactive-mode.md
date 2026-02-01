@@ -68,6 +68,25 @@ else:
 | `new-screen` | `-i, --interactive` | type, screen_id, title, feature_dir |
 | `init` | `-i, --interactive` | path, template_source, language |
 
+### `--skip-doctor` フラグ
+
+`new-feature` および `init` コマンドでは、実行前に `k1s0 doctor` 相当の環境健全性チェックが自動的に実行されます。`--skip-doctor` フラグを指定すると、この事前チェックをスキップできます。
+
+```bash
+# 環境チェックをスキップして feature を作成
+k1s0 new-feature --type backend-rust --name my-service --skip-doctor
+
+# 環境チェックをスキップして初期化
+k1s0 init --skip-doctor
+```
+
+| コマンド | `--skip-doctor` 対応 |
+|---------|:-------------------:|
+| `new-feature` | Yes |
+| `init` | Yes |
+| `new-domain` | - |
+| `new-screen` | - |
+
 ### 使用例
 
 ```bash

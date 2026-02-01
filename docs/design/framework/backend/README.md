@@ -51,6 +51,10 @@ framework/backend/rust/crates/
 - [k1s0-consensus](k1s0-consensus.md)
 - [k1s0-auth](k1s0-auth.md)
 
+### 横断設計
+
+- [k1s0-backpressure](k1s0-backpressure.md) - バックプレッシャー制御（DB プール、gRPC ストリーム、イベントバス）
+
 ---
 
 ## 依存関係

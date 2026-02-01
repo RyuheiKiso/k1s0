@@ -451,4 +451,4 @@ tree-sitter の増分パースを活用することで、以下の LSP 機能を
 
 - [tree-sitter 公式ドキュメント](https://tree-sitter.github.io/tree-sitter/)
 - [tree-sitter Query Syntax](https://tree-sitter.github.io/tree-sitter/using-parsers#pattern-matching-with-queries)
-- [ADR-0007: AST ベース Lint の導入](../../adr/ADR-0007-ast-based-lint.md)（予定）
+- [ADR-0017: AST ベース Lint エンジンへの移行](../../adr/ADR-0017-ast-based-lint-engine.md)

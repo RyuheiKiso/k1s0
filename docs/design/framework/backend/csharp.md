@@ -16,7 +16,9 @@ framework/backend/csharp/src/
 ├── K1s0.Db/               # DB 接続（EF Core + Npgsql）
 ├── K1s0.DomainEvent/      # ドメインイベント・Outbox パターン
 ├── K1s0.Resilience/       # サーキットブレーカー・リトライ・タイムアウト
+├── K1s0.RateLimit/        # レート制限（トークンバケット・スライディングウィンドウ）
 ├── K1s0.Cache/            # Redis キャッシュ・キャッシュパターン
+├── K1s0.Consensus/        # リーダー選出・分散ロック・Saga オーケストレーション
 └── K1s0.Auth/             # JWT/OIDC 認証・ポリシーエンジン
 ```
 
@@ -41,7 +43,9 @@ framework/backend/csharp/src/
 | K1s0.Db | DB 接続。EF Core + Npgsql、UnitOfWork、RepositoryBase<TEntity, TId> | K1s0.Error, K1s0.Config |
 | K1s0.DomainEvent | ドメインイベント発行/購読。InMemoryEventBus、OutboxRelay パターン | System.Text.Json |
 | K1s0.Resilience | 耐障害性パターン。CircuitBreaker、RetryExecutor、TimeoutGuard、ConcurrencyLimiter、Bulkhead | - |
+| K1s0.RateLimit | レート制限。TokenBucketLimiter、SlidingWindowLimiter | - |
 | K1s0.Cache | Redis キャッシュ。CacheClient、CacheAside/WriteThrough/WriteBehind パターン | StackExchange.Redis |
+| K1s0.Consensus | リーダー選出、分散ロック、Saga オーケストレーション | K1s0.Db, K1s0.DomainEvent, K1s0.Observability |
 
 ### Tier 3（Tier 1/2 依存可）
 
@@ -106,4 +110,6 @@ framework/backend/csharp/src/
 | k1s0-resilience | K1s0.Resilience | 独自実装（SemaphoreSlim, CancellationToken ベース） |
 | k1s0-cache | K1s0.Cache | StackExchange.Redis 使用 |
 | k1s0-domain-event | K1s0.DomainEvent | System.Text.Json 使用 |
+| k1s0-rate-limit | K1s0.RateLimit | 独自実装 |
+| k1s0-consensus | K1s0.Consensus | EF Core + StackExchange.Redis 使用 |
 | k1s0-auth | K1s0.Auth | Microsoft.IdentityModel 使用 |

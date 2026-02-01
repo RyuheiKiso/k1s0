@@ -82,6 +82,8 @@ graph TB
         FW_DB[k1s0-db]
         FW_CACHE[k1s0-cache]
         FW_DEVENT[k1s0-domain-event]
+        FW_RATE[k1s0-rate-limit]
+        FW_CONS[k1s0-consensus]
         FW_AUTH[k1s0-auth]
     end
 
@@ -189,6 +191,8 @@ graph TB
 | `k1s0-db` | DB 接続・トランザクション | Tier 2 |
 | `k1s0-cache` | Redis キャッシュ | Tier 2 |
 | `k1s0-domain-event` | ドメインイベント publish/subscribe/outbox | Tier 2 |
+| `k1s0-rate-limit` | レート制限（トークンバケット、スライディングウィンドウ） | Tier 2 |
+| `k1s0-consensus` | リーダー選出、分散ロック、Saga オーケストレーション | Tier 2 |
 | `k1s0-auth` | 認証・認可 | Tier 3 |
 
 詳細: [Framework 設計書](../design/framework.md)、[Tier システム](./tier-system.md)

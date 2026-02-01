@@ -358,6 +358,100 @@ async fn compensate(&self, ctx: &mut OrderContext, output: &Value) -> Result<(),
 | `k1s0-rate-limit` | 負荷の制御 | トークンバケット、スライディングウィンドウ |
 | `k1s0-consensus` | 分散合意 | リーダー選出、分散ロック、Saga（オーケストレーション/コレオグラフィ） |
 
+## 多言語 API 例
+
+以下に Go, C#, Python, Kotlin の主要 API を示す。Rust API は上記の各セクションを参照。
+
+### Go
+
+```go
+// リーダー選出
+elector := consensus.NewDbLeaderElector(pool, nodeID, config)
+lease, err := elector.TryAcquire(ctx, "scheduler")
+if err != nil {
+    return err
+}
+if lease != nil {
+    defer elector.Release(ctx, lease)
+    // リーダーとして処理を実行
+}
+
+// 分散ロック
+locker := consensus.NewDbDistributedLock(pool, nodeID)
+guard, err := locker.TryLock(ctx, "order:123", 30*time.Second)
+if err != nil {
+    return err
+}
+if guard != nil {
+    defer guard.Close()
+    // ロック保護された処理
+}
+```
+
+### C#
+
+```csharp
+// リーダー選出
+ILeaderElector elector = new DbLeaderElector(dbContext, config);
+var lease = await elector.TryAcquireAsync("scheduler", nodeId);
+if (lease is not null)
+{
+    // リーダーとして処理を実行
+    await elector.ReleaseAsync(lease);
+}
+
+// 分散ロック
+IDistributedLock locker = new DbDistributedLock(dbContext, config);
+var guard = await locker.TryLockAsync("order:123", nodeId, TimeSpan.FromSeconds(30));
+if (guard is not null)
+{
+    // ロック保護された処理
+    await locker.UnlockAsync("order:123", nodeId);
+}
+```
+
+### Python
+
+```python
+# リーダー選出
+elector = DbLeaderElector(pool, node_id=node_id, config=config)
+lease = await elector.try_acquire("scheduler")
+if lease is not None:
+    # リーダーとして処理を実行
+    await elector.release(lease)
+
+# 分散ロック（async context manager 対応）
+locker = DbDistributedLock(pool, node_id=node_id)
+guard = await locker.try_lock("order:123", ttl_ms=30000)
+if guard is not None:
+    async with guard:
+        # ロック保護された処理
+        pass
+```
+
+### Kotlin
+
+```kotlin
+// リーダー選出
+val elector: LeaderElector = DbLeaderElector(database, config)
+val lease = elector.tryAcquire()
+if (lease != null) {
+    // リーダーとして処理を実行
+    elector.release(lease)
+}
+
+// 分散ロック（suspendClose で解放）
+val locker: DistributedLock = DbDistributedLock(database, config)
+val guard = locker.tryLock("order:123", ownerId = nodeId, ttlMs = 30_000L)
+if (guard != null) {
+    try {
+        // ロック保護された処理
+    } finally {
+        guard.suspendClose()
+    }
+}
+```
+
 ## 全言語対応
 
 | 言語 | パッケージ | 場所 |

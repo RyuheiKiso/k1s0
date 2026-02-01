@@ -18,7 +18,9 @@ framework/backend/python/
 │   ├── k1s0-db/               # DB 接続（SQLAlchemy 2.0 + asyncpg）
 │   ├── k1s0-domain-event/     # ドメインイベント・Outbox パターン
 │   ├── k1s0-resilience/       # サーキットブレーカー・リトライ・タイムアウト
+│   ├── k1s0-rate-limit/       # レート制限（トークンバケット・スライディングウィンドウ）
 │   ├── k1s0-cache/            # Redis キャッシュ・キャッシュパターン
+│   ├── k1s0-consensus/        # リーダー選出・分散ロック・Saga オーケストレーション
 │   └── k1s0-auth/             # JWT/OIDC 認証・ポリシーエンジン
 └── tests/
 ```
@@ -44,7 +46,9 @@ framework/backend/python/
 | k1s0-db | DB 接続管理。SQLAlchemy 2.0 async セッション、マイグレーション（Alembic） | sqlalchemy, asyncpg, alembic |
 | k1s0-domain-event | ドメインイベント発行/購読。InMemoryEventBus、Outbox パターン（optional: asyncpg, sqlalchemy） | pydantic |
 | k1s0-resilience | 耐障害性パターン。CircuitBreaker、RetryExecutor、TimeoutGuard、ConcurrencyLimiter、Bulkhead | - |
+| k1s0-rate-limit | レート制限。TokenBucketLimiter、SlidingWindowLimiter | - |
 | k1s0-cache | Redis キャッシュ。CacheClient、CacheAside/WriteThrough/WriteBehind パターン | pydantic, redis（optional） |
+| k1s0-consensus | リーダー選出、分散ロック、Saga オーケストレーション | k1s0-db, k1s0-domain-event, k1s0-observability |
 
 ### Tier 3（Tier 1/2 依存可）
 

@@ -327,6 +327,46 @@ pub fn rate_limit_layer<L: RateLimiter + 'static>(limiter: Arc<L>) -> RateLimitL
 func RateLimitMiddleware(limiter RateLimiter) func(http.Handler) http.Handler
 ```
 
+### REST ミドルウェア（C#）
+
+```csharp
+// ASP.NET Core ミドルウェア
+// RateLimitMiddleware は IRateLimiter を注入し、429 応答 + Retry-After ヘッダを返す
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddSingleton<IRateLimiter>(new TokenBucketLimiter(config));
+
+var app = builder.Build();
+app.UseMiddleware<RateLimitMiddleware>();
+```
+
+### REST ミドルウェア（Python）
+
+```python
+# FastAPI での統合例
+from k1s0_rate_limit import TokenBucket, TokenBucketConfig, RateLimitMiddleware
+
+limiter = TokenBucket(TokenBucketConfig(capacity=100, refill_rate=10))
+middleware = RateLimitMiddleware(limiter)
+
+@app.middleware("http")
+async def rate_limit(request: Request, call_next):
+    try:
+        await middleware.check()
+    except RateLimitExceededError as exc:
+        return JSONResponse(status_code=429, headers={"Retry-After": str(exc.retry_after)})
+    return await call_next(request)
+```
+
+### REST ミドルウェア（Kotlin）
+
+```kotlin
+// Ktor プラグインとして統合
+install(RateLimitPlugin) {
+    limiter = TokenBucket(TokenBucketConfig(capacity = 100, refillRate = 10.0))
+}
+// 超過時は自動的に 429 + Retry-After ヘッダを返す
+```
+
 レート制限を超えた場合のレスポンス:
 - REST: `429 Too Many Requests` + `Retry-After` ヘッダ
 - gRPC: `RESOURCE_EXHAUSTED` + `retry-after-ms` メタデータ

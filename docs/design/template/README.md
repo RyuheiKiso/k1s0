@@ -207,3 +207,9 @@ target, node_modules, ...  # ビルド成果物
 *.pyc, *.log, *.tmp, ...  # 一時ファイル
 .env, .env.local          # 環境設定
 ```
+
+---
+
+## 変更履歴
+
+- **2026-01**: テンプレートディレクトリ `frontend-android(Kotlin)` を `frontend-android` にリネーム。他テンプレート（`backend-kotlin` 等）と命名規則を統一し、括弧を含むパスによるビルドツールの互換性問題を回避するため。
