@@ -9,6 +9,7 @@ pub enum MainMenuChoice {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SettingsMenuChoice {
+    ShowWorkspacePath,
     SetWorkspacePath,
     Back,
 }

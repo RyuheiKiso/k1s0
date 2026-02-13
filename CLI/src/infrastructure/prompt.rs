@@ -24,16 +24,17 @@ impl UserPrompt for DialoguerPrompt {
     }
 
     fn show_settings_menu(&self) -> SettingsMenuChoice {
-        let items = &["ワークスペースパス設定", "戻る"];
+        let items = &["ワークスペースパス確認", "ワークスペースパス設定", "戻る"];
         let selection = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("設定メニュー")
             .items(items)
             .default(0)
             .interact()
-            .unwrap_or(1);
+            .unwrap_or(2);
 
         match selection {
-            0 => SettingsMenuChoice::SetWorkspacePath,
+            0 => SettingsMenuChoice::ShowWorkspacePath,
+            1 => SettingsMenuChoice::SetWorkspacePath,
             _ => SettingsMenuChoice::Back,
         }
     }
