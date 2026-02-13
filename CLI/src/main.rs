@@ -5,6 +5,7 @@ mod infrastructure;
 use application::configure_workspace::ConfigureWorkspaceUseCase;
 use application::create_project::CreateProjectUseCase;
 use application::port::{MainMenuChoice, SettingsMenuChoice, UserPrompt};
+use application::show_workspace::ShowWorkspaceUseCase;
 use infrastructure::config_file::TomlConfigStore;
 use infrastructure::prompt::DialoguerPrompt;
 
@@ -26,8 +27,16 @@ fn run(prompt: &impl UserPrompt, config: &impl application::port::ConfigStore) {
 }
 
 fn settings_loop(prompt: &impl UserPrompt, config: &impl application::port::ConfigStore) {
-    while let SettingsMenuChoice::SetWorkspacePath = prompt.show_settings_menu() {
-        ConfigureWorkspaceUseCase::new(prompt, config).execute();
+    loop {
+        match prompt.show_settings_menu() {
+            SettingsMenuChoice::ShowWorkspacePath => {
+                ShowWorkspaceUseCase::new(prompt, config).execute();
+            }
+            SettingsMenuChoice::SetWorkspacePath => {
+                ConfigureWorkspaceUseCase::new(prompt, config).execute();
+            }
+            SettingsMenuChoice::Back => break,
+        }
     }
 }
 
