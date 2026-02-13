@@ -28,6 +28,7 @@ pub enum RegionChoice {
 pub enum ProjectTypeChoice {
     Library,
     Service,
+    Client,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -59,6 +60,7 @@ pub trait UserPrompt {
     fn show_settings_menu(&self) -> SettingsMenuChoice;
     fn show_region_menu(&self) -> RegionChoice;
     fn show_project_type_menu(&self) -> ProjectTypeChoice;
+    fn show_business_project_type_menu(&self) -> ProjectTypeChoice;
     fn show_language_menu(&self) -> LanguageChoice;
     fn show_service_type_menu(&self) -> ServiceTypeChoice;
     fn show_client_framework_menu(&self) -> ClientFrameworkChoice;

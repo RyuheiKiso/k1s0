@@ -77,6 +77,26 @@ impl UserPrompt for DialoguerPrompt {
         }
     }
 
+    fn show_business_project_type_menu(&self) -> ProjectTypeChoice {
+        let items = &[
+            "Library : ライブラリ",
+            "Service : サービス",
+            "Client  : クライアント",
+        ];
+        let selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("プロジェクト種別を選択してください")
+            .items(items)
+            .default(0)
+            .interact()
+            .unwrap_or(0);
+
+        match selection {
+            0 => ProjectTypeChoice::Library,
+            1 => ProjectTypeChoice::Service,
+            _ => ProjectTypeChoice::Client,
+        }
+    }
+
     fn show_language_menu(&self) -> LanguageChoice {
         let items = &["Rust", "Go"];
         let selection = Select::with_theme(&ColorfulTheme::default())

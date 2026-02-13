@@ -56,6 +56,9 @@ mod tests {
         fn show_project_type_menu(&self) -> crate::application::port::ProjectTypeChoice {
             crate::application::port::ProjectTypeChoice::Library
         }
+        fn show_business_project_type_menu(&self) -> crate::application::port::ProjectTypeChoice {
+            crate::application::port::ProjectTypeChoice::Library
+        }
         fn show_language_menu(&self) -> crate::application::port::LanguageChoice {
             crate::application::port::LanguageChoice::Rust
         }

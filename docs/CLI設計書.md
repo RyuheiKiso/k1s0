@@ -49,6 +49,10 @@ system-region および business-region 選択時はさらにプロジェクト�
 | business-region | 新規追加 → Library → Go   | `system-region/` + `business-region/{入力した領域}/library/go/`                  |
 | business-region | 新規追加 → Service → Rust | `system-region/` + `business-region/{入力した領域}/service/rust/`                |
 | business-region | 新規追加 → Service → Go   | `system-region/` + `business-region/{入力した領域}/service/go/`                  |
+| business-region | 既存 → Client → React     | `system-region/` + `business-region/{選択した領域}/client/react/`                |
+| business-region | 既存 → Client → Flutter   | `system-region/` + `business-region/{選択した領域}/client/flutter/`              |
+| business-region | 新規追加 → Client → React   | `system-region/` + `business-region/{入力した領域}/client/react/`              |
+| business-region | 新規追加 → Client → Flutter | `system-region/` + `business-region/{入力した領域}/client/flutter/`            |
 | service-region  | 部門固有領域選択 → Client → React   | `system-region/` + `business-region/{選択した部門固有領域}/` + `service-region/client/react/`   |
 | service-region  | 部門固有領域選択 → Client → Flutter | `system-region/` + `business-region/{選択した部門固有領域}/` + `service-region/client/flutter/` |
 | service-region  | 部門固有領域選択 → Server → Rust | `system-region/` + `business-region/{選択した部門固有領域}/` + `service-region/server/rust/` |
@@ -89,6 +93,7 @@ flowchart TD
     BRL --> BRPT1["プロジェクト種別を選択"]
     BRPT1 --> BRPT1L["Library : ライブラリ"]
     BRPT1 --> BRPT1S["Service : サービス"]
+    BRPT1 --> BRPT1C["Client : クライアント"]
     BRPT1L --> BRLLLang["言語を選択"]
     BRLLLang --> BRLLLang1["Rust"]
     BRLLLang --> BRLLLang2["Go"]
@@ -99,10 +104,16 @@ flowchart TD
     BRLSLang --> BRLSLang2["Go"]
     BRLSLang1 --> SC2SR["sparse-checkout set system-region/ business-region/{選択した領域}/service/rust/"]
     BRLSLang2 --> SC2SG["sparse-checkout set system-region/ business-region/{選択した領域}/service/go/"]
+    BRPT1C --> BRLCFW["フレームワークを選択"]
+    BRLCFW --> BRLCFW1["React"]
+    BRLCFW --> BRLCFW2["Flutter"]
+    BRLCFW1 --> SC2CR["sparse-checkout set system-region/ business-region/{選択した領域}/client/react/"]
+    BRLCFW2 --> SC2CF["sparse-checkout set system-region/ business-region/{選択した領域}/client/flutter/"]
     BR2 --> BRN["部門固有領域名を入力"]
     BRN --> BRPT2["プロジェクト種別を選択"]
     BRPT2 --> BRPT2L["Library : ライブラリ"]
     BRPT2 --> BRPT2S["Service : サービス"]
+    BRPT2 --> BRPT2C["Client : クライアント"]
     BRPT2L --> BRNLLang["言語を選択"]
     BRNLLang --> BRNLLang1["Rust"]
     BRNLLang --> BRNLLang2["Go"]
@@ -113,6 +124,11 @@ flowchart TD
     BRNSLang --> BRNSLang2["Go"]
     BRNSLang1 --> SC2NSR["sparse-checkout set system-region/ business-region/{入力した領域}/service/rust/"]
     BRNSLang2 --> SC2NSG["sparse-checkout set system-region/ business-region/{入力した領域}/service/go/"]
+    BRPT2C --> BRNCFW["フレームワークを選択"]
+    BRNCFW --> BRNCFW1["React"]
+    BRNCFW --> BRNCFW2["Flutter"]
+    BRNCFW1 --> SC2NCR["sparse-checkout set system-region/ business-region/{入力した領域}/client/react/"]
+    BRNCFW2 --> SC2NCF["sparse-checkout set system-region/ business-region/{入力した領域}/client/flutter/"]
     G3 --> SRBR["属する部門固有領域を選択"]
     SRBR --> SRBRL["部門固有領域一覧から選択"]
     SRBRL --> SRCS["Client / Server を選択"]

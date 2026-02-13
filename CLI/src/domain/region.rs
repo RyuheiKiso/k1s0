@@ -13,6 +13,7 @@ pub enum Region {
 pub enum ProjectType {
     Library,
     Service,
+    Client,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -77,21 +78,33 @@ impl Region {
                     };
                     vec![sub.to_string()]
                 }
-                None => vec!["system-region".to_string()],
+                Some(ProjectType::Client) | None => vec!["system-region".to_string()],
             },
             Region::Business => {
                 let br = match business_region_name {
                     Some(name) => {
                         let base = format!("business-region/{}", name.as_str());
-                        let with_pt = match project_type {
-                            Some(ProjectType::Library) => format!("{base}/library"),
-                            Some(ProjectType::Service) => format!("{base}/service"),
-                            None => base,
-                        };
-                        match language {
-                            Some(Language::Rust) => format!("{with_pt}/rust"),
-                            Some(Language::Go) => format!("{with_pt}/go"),
-                            None => with_pt,
+                        match project_type {
+                            Some(ProjectType::Client) => {
+                                let with_pt = format!("{base}/client");
+                                match client_framework {
+                                    Some(ClientFramework::React) => format!("{with_pt}/react"),
+                                    Some(ClientFramework::Flutter) => format!("{with_pt}/flutter"),
+                                    None => with_pt,
+                                }
+                            }
+                            _ => {
+                                let with_pt = match project_type {
+                                    Some(ProjectType::Library) => format!("{base}/library"),
+                                    Some(ProjectType::Service) => format!("{base}/service"),
+                                    Some(ProjectType::Client) | None => base,
+                                };
+                                match language {
+                                    Some(Language::Rust) => format!("{with_pt}/rust"),
+                                    Some(Language::Go) => format!("{with_pt}/go"),
+                                    None => with_pt,
+                                }
+                            }
                         }
                     }
                     None => "business-region".to_string(),
@@ -596,6 +609,51 @@ mod tests {
                 "business-region/sales",
                 "service-region/server"
             ]
+        );
+    }
+
+    #[test]
+    fn business_region_client_react() {
+        let name = BusinessRegionName::new("sales").unwrap();
+        assert_eq!(
+            Region::Business.checkout_targets(
+                Some(&ProjectType::Client),
+                None,
+                Some(&name),
+                None,
+                Some(&ClientFramework::React),
+            ),
+            vec!["system-region", "business-region/sales/client/react"]
+        );
+    }
+
+    #[test]
+    fn business_region_client_flutter() {
+        let name = BusinessRegionName::new("sales").unwrap();
+        assert_eq!(
+            Region::Business.checkout_targets(
+                Some(&ProjectType::Client),
+                None,
+                Some(&name),
+                None,
+                Some(&ClientFramework::Flutter),
+            ),
+            vec!["system-region", "business-region/sales/client/flutter"]
+        );
+    }
+
+    #[test]
+    fn business_region_client_without_framework_falls_back() {
+        let name = BusinessRegionName::new("sales").unwrap();
+        assert_eq!(
+            Region::Business.checkout_targets(
+                Some(&ProjectType::Client),
+                None,
+                Some(&name),
+                None,
+                None,
+            ),
+            vec!["system-region", "business-region/sales/client"]
         );
     }
 

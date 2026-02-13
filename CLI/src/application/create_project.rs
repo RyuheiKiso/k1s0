@@ -55,6 +55,7 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout, B: BusinessRegionRepo
                         project_type = Some(match pt_choice {
                             ProjectTypeChoice::Library => ProjectType::Library,
                             ProjectTypeChoice::Service => ProjectType::Service,
+                            ProjectTypeChoice::Client => ProjectType::Client,
                         });
                         let lang_choice = self.prompt.show_language_menu();
                         language = Some(match lang_choice {
@@ -64,16 +65,28 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout, B: BusinessRegionRepo
                     }
                     Region::Business => match self.resolve_business_region(&ws) {
                         Some((name, _)) => {
-                            let pt_choice = self.prompt.show_project_type_menu();
+                            let pt_choice = self.prompt.show_business_project_type_menu();
                             project_type = Some(match pt_choice {
                                 ProjectTypeChoice::Library => ProjectType::Library,
                                 ProjectTypeChoice::Service => ProjectType::Service,
+                                ProjectTypeChoice::Client => ProjectType::Client,
                             });
-                            let lang_choice = self.prompt.show_language_menu();
-                            language = Some(match lang_choice {
-                                LanguageChoice::Rust => Language::Rust,
-                                LanguageChoice::Go => Language::Go,
-                            });
+                            match project_type {
+                                Some(ProjectType::Client) => {
+                                    let cf_choice = self.prompt.show_client_framework_menu();
+                                    client_framework = Some(match cf_choice {
+                                        ClientFrameworkChoice::React => ClientFramework::React,
+                                        ClientFrameworkChoice::Flutter => ClientFramework::Flutter,
+                                    });
+                                }
+                                _ => {
+                                    let lang_choice = self.prompt.show_language_menu();
+                                    language = Some(match lang_choice {
+                                        LanguageChoice::Rust => Language::Rust,
+                                        LanguageChoice::Go => Language::Go,
+                                    });
+                                }
+                            }
                             business_region_name = Some(name);
                         }
                         None => return,
@@ -261,6 +274,9 @@ mod tests {
             *self.region_choice.borrow()
         }
         fn show_project_type_menu(&self) -> ProjectTypeChoice {
+            *self.project_type_choice.borrow()
+        }
+        fn show_business_project_type_menu(&self) -> ProjectTypeChoice {
             *self.project_type_choice.borrow()
         }
         fn show_language_menu(&self) -> LanguageChoice {
@@ -602,6 +618,78 @@ mod tests {
         assert_eq!(
             targets,
             &["system-region", "business-region/finance/service/go"]
+        );
+    }
+
+    #[test]
+    fn business_region_select_existing_client_react() {
+        let prompt = MockPrompt::new(RegionChoice::Business)
+            .with_business_region_action(BusinessRegionAction::SelectExisting)
+            .with_business_region_list_selection("sales")
+            .with_project_type(ProjectTypeChoice::Client)
+            .with_client_framework(ClientFrameworkChoice::React);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::with_regions(&["sales", "hr"]);
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(
+            targets,
+            &["system-region", "business-region/sales/client/react"]
+        );
+    }
+
+    #[test]
+    fn business_region_select_existing_client_flutter() {
+        let prompt = MockPrompt::new(RegionChoice::Business)
+            .with_business_region_action(BusinessRegionAction::SelectExisting)
+            .with_business_region_list_selection("sales")
+            .with_project_type(ProjectTypeChoice::Client)
+            .with_client_framework(ClientFrameworkChoice::Flutter);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::with_regions(&["sales", "hr"]);
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(
+            targets,
+            &["system-region", "business-region/sales/client/flutter"]
+        );
+    }
+
+    #[test]
+    fn business_region_create_new_client_react() {
+        let prompt = MockPrompt::new(RegionChoice::Business)
+            .with_business_region_action(BusinessRegionAction::CreateNew)
+            .with_business_region_name_input("marketing")
+            .with_project_type(ProjectTypeChoice::Client)
+            .with_client_framework(ClientFrameworkChoice::React);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::with_regions(&["sales"]);
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(
+            targets,
+            &["system-region", "business-region/marketing/client/react"]
         );
     }
 
