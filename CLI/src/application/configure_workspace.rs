@@ -71,6 +71,9 @@ mod tests {
         fn show_language_menu(&self) -> crate::application::port::LanguageChoice {
             crate::application::port::LanguageChoice::Rust
         }
+        fn show_service_type_menu(&self) -> crate::application::port::ServiceTypeChoice {
+            crate::application::port::ServiceTypeChoice::Client
+        }
         fn show_business_region_action_menu(
             &self,
         ) -> crate::application::port::BusinessRegionAction {

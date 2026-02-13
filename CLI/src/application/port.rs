@@ -1,4 +1,4 @@
-use crate::domain::region::{BusinessRegionName, Language, ProjectType, Region};
+use crate::domain::region::{BusinessRegionName, Language, ProjectType, Region, ServiceType};
 use crate::domain::workspace::WorkspacePath;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,6 +35,12 @@ pub enum LanguageChoice {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ServiceTypeChoice {
+    Client,
+    Server,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BusinessRegionAction {
     SelectExisting,
     CreateNew,
@@ -46,6 +52,7 @@ pub trait UserPrompt {
     fn show_region_menu(&self) -> RegionChoice;
     fn show_project_type_menu(&self) -> ProjectTypeChoice;
     fn show_language_menu(&self) -> LanguageChoice;
+    fn show_service_type_menu(&self) -> ServiceTypeChoice;
     fn show_business_region_action_menu(&self) -> BusinessRegionAction;
     fn show_business_region_list(&self, regions: &[String]) -> String;
     fn input_business_region_name(&self) -> String;
@@ -67,6 +74,7 @@ pub trait RegionCheckout {
         project_type: Option<&ProjectType>,
         language: Option<&Language>,
         business_region_name: Option<&BusinessRegionName>,
+        service_type: Option<&ServiceType>,
     ) -> Result<(), Box<dyn std::error::Error>>;
 }
 

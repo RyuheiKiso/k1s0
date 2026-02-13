@@ -3,7 +3,7 @@ use dialoguer::{Input, Select};
 
 use crate::application::port::{
     BusinessRegionAction, LanguageChoice, MainMenuChoice, ProjectTypeChoice, RegionChoice,
-    SettingsMenuChoice, UserPrompt,
+    ServiceTypeChoice, SettingsMenuChoice, UserPrompt,
 };
 use crate::infrastructure::ui;
 
@@ -89,6 +89,21 @@ impl UserPrompt for DialoguerPrompt {
         match selection {
             0 => LanguageChoice::Rust,
             _ => LanguageChoice::Go,
+        }
+    }
+
+    fn show_service_type_menu(&self) -> ServiceTypeChoice {
+        let items = &["Client : クライアント", "Server : サーバー"];
+        let selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("サービス種別を選択してください")
+            .items(items)
+            .default(0)
+            .interact()
+            .unwrap_or(0);
+
+        match selection {
+            0 => ServiceTypeChoice::Client,
+            _ => ServiceTypeChoice::Server,
         }
     }
 
