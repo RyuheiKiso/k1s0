@@ -80,11 +80,17 @@ impl Region {
                 };
                 vec!["system-region".to_string(), br]
             }
-            Region::Service => vec![
-                "system-region".to_string(),
-                "business-region".to_string(),
-                "service-region".to_string(),
-            ],
+            Region::Service => {
+                let br = match business_region_name {
+                    Some(name) => format!("business-region/{}", name.as_str()),
+                    None => "business-region".to_string(),
+                };
+                vec![
+                    "system-region".to_string(),
+                    br,
+                    "service-region".to_string(),
+                ]
+            }
         }
     }
 }
@@ -255,6 +261,24 @@ mod tests {
         assert_eq!(
             Region::Service.checkout_targets(Some(&ProjectType::Service), None, None),
             vec!["system-region", "business-region", "service-region"]
+        );
+    }
+
+    #[test]
+    fn service_region_with_business_name_uses_subdirectory() {
+        let name = BusinessRegionName::new("sales").unwrap();
+        assert_eq!(
+            Region::Service.checkout_targets(None, None, Some(&name)),
+            vec!["system-region", "business-region/sales", "service-region"]
+        );
+    }
+
+    #[test]
+    fn service_region_with_business_name_ignores_language() {
+        let name = BusinessRegionName::new("hr").unwrap();
+        assert_eq!(
+            Region::Service.checkout_targets(None, Some(&Language::Rust), Some(&name)),
+            vec!["system-region", "business-region/hr", "service-region"]
         );
     }
 

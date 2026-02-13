@@ -69,7 +69,25 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout, B: BusinessRegionRepo
                         }
                         None => return,
                     },
-                    Region::Service => {}
+                    Region::Service => {
+                        let regions = self.business_region_repo.list(&ws).unwrap_or_default();
+                        if regions.is_empty() {
+                            self.prompt.show_message(
+                                "部門固有領域が存在しません。先に部門固有領域を作成してください。",
+                            );
+                            return;
+                        }
+                        let selected = self.prompt.show_business_region_list(&regions);
+                        match BusinessRegionName::new(&selected) {
+                            Ok(name) => {
+                                business_region_name = Some(name);
+                            }
+                            Err(e) => {
+                                self.prompt.show_message(&format!("領域名が不正です: {e}"));
+                                return;
+                            }
+                        }
+                    }
                 }
                 match self.checkout.setup(
                     &ws,
@@ -514,7 +532,34 @@ mod tests {
     }
 
     #[test]
-    fn executes_sparse_checkout_for_service_region() {
+    fn service_region_selects_existing_business_region() {
+        let prompt =
+            MockPrompt::new(RegionChoice::Service).with_business_region_list_selection("sales");
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::with_regions(&["sales", "hr"]);
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(
+            targets,
+            &["system-region", "business-region/sales", "service-region"]
+        );
+
+        let msgs = prompt.messages.borrow();
+        assert!(
+            msgs.iter()
+                .any(|m| m.contains("チェックアウトが完了しました"))
+        );
+    }
+
+    #[test]
+    fn service_region_no_business_regions_shows_error() {
         let prompt = MockPrompt::new(RegionChoice::Service);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
@@ -525,11 +570,15 @@ mod tests {
 
         uc.execute();
 
-        let called = checkout.called_with.borrow();
-        let (_, targets) = called.as_ref().unwrap();
-        assert_eq!(
-            targets,
-            &["system-region", "business-region", "service-region"]
+        assert!(
+            checkout.called_with.borrow().is_none(),
+            "checkout should not be called when no business regions exist"
+        );
+
+        let msgs = prompt.messages.borrow();
+        assert!(
+            msgs.iter()
+                .any(|m| m.contains("部門固有領域が存在しません"))
         );
     }
 
