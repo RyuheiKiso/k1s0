@@ -65,6 +65,9 @@ mod tests {
         fn show_region_menu(&self) -> RegionChoice {
             RegionChoice::System
         }
+        fn show_project_type_menu(&self) -> crate::application::port::ProjectTypeChoice {
+            crate::application::port::ProjectTypeChoice::Library
+        }
         fn input_path(&self, _prompt: &str) -> String {
             self.path_input.clone()
         }

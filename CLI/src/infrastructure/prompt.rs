@@ -1,7 +1,9 @@
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Input, Select};
 
-use crate::application::port::{MainMenuChoice, RegionChoice, SettingsMenuChoice, UserPrompt};
+use crate::application::port::{
+    MainMenuChoice, ProjectTypeChoice, RegionChoice, SettingsMenuChoice, UserPrompt,
+};
 use crate::infrastructure::ui;
 
 pub struct DialoguerPrompt;
@@ -56,6 +58,24 @@ impl UserPrompt for DialoguerPrompt {
             0 => RegionChoice::System,
             1 => RegionChoice::Business,
             _ => RegionChoice::Service,
+        }
+    }
+
+    fn show_project_type_menu(&self) -> ProjectTypeChoice {
+        let items = &[
+            "Library : ライブラリ",
+            "Service : サービス",
+        ];
+        let selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("プロジェクト種別を選択してください")
+            .items(items)
+            .default(0)
+            .interact()
+            .unwrap_or(0);
+
+        match selection {
+            0 => ProjectTypeChoice::Library,
+            _ => ProjectTypeChoice::Service,
         }
     }
 

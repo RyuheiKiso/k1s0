@@ -1,15 +1,20 @@
-use crate::domain::region::Region;
+use crate::domain::region::{ProjectType, Region};
 
-use super::port::{ConfigStore, RegionChoice, UserPrompt};
+use super::port::{ConfigStore, ProjectTypeChoice, RegionCheckout, RegionChoice, UserPrompt};
 
-pub struct CreateProjectUseCase<'a, P: UserPrompt, C: ConfigStore> {
+pub struct CreateProjectUseCase<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout> {
     prompt: &'a P,
     config: &'a C,
+    checkout: &'a R,
 }
 
-impl<'a, P: UserPrompt, C: ConfigStore> CreateProjectUseCase<'a, P, C> {
-    pub fn new(prompt: &'a P, config: &'a C) -> Self {
-        Self { prompt, config }
+impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout> CreateProjectUseCase<'a, P, C, R> {
+    pub fn new(prompt: &'a P, config: &'a C, checkout: &'a R) -> Self {
+        Self {
+            prompt,
+            config,
+            checkout,
+        }
     }
 
     pub fn execute(&self) {
@@ -23,8 +28,26 @@ impl<'a, P: UserPrompt, C: ConfigStore> CreateProjectUseCase<'a, P, C> {
                     RegionChoice::Business => Region::Business,
                     RegionChoice::Service => Region::Service,
                 };
-                self.prompt
-                    .show_message(&format!("選択された領域: {region}"));
+                let project_type = match region {
+                    Region::System => {
+                        let pt_choice = self.prompt.show_project_type_menu();
+                        Some(match pt_choice {
+                            ProjectTypeChoice::Library => ProjectType::Library,
+                            ProjectTypeChoice::Service => ProjectType::Service,
+                        })
+                    }
+                    _ => None,
+                };
+                match self.checkout.setup(&ws, &region, project_type.as_ref()) {
+                    Ok(()) => {
+                        self.prompt
+                            .show_message(&format!("{}のチェックアウトが完了しました", region));
+                    }
+                    Err(e) => {
+                        self.prompt
+                            .show_message(&format!("チェックアウトに失敗しました: {e}"));
+                    }
+                }
             }
             None => {
                 self.prompt
@@ -39,12 +62,15 @@ mod tests {
     use std::cell::RefCell;
 
     use super::*;
-    use crate::application::port::{MainMenuChoice, RegionChoice, SettingsMenuChoice};
+    use crate::application::port::{
+        MainMenuChoice, ProjectTypeChoice, RegionChoice, SettingsMenuChoice,
+    };
     use crate::domain::workspace::WorkspacePath;
 
     struct MockPrompt {
         messages: RefCell<Vec<String>>,
         region_choice: RefCell<RegionChoice>,
+        project_type_choice: RefCell<ProjectTypeChoice>,
     }
 
     impl MockPrompt {
@@ -52,7 +78,13 @@ mod tests {
             Self {
                 messages: RefCell::new(Vec::new()),
                 region_choice: RefCell::new(region_choice),
+                project_type_choice: RefCell::new(ProjectTypeChoice::Library),
             }
+        }
+
+        fn with_project_type(mut self, pt: ProjectTypeChoice) -> Self {
+            self.project_type_choice = RefCell::new(pt);
+            self
         }
     }
 
@@ -65,6 +97,9 @@ mod tests {
         }
         fn show_region_menu(&self) -> RegionChoice {
             *self.region_choice.borrow()
+        }
+        fn show_project_type_menu(&self) -> ProjectTypeChoice {
+            *self.project_type_choice.borrow()
         }
         fn input_path(&self, _prompt: &str) -> String {
             String::new()
@@ -90,55 +125,143 @@ mod tests {
         }
     }
 
-    #[test]
-    fn shows_workspace_and_region_menu_when_configured() {
-        let prompt = MockPrompt::new(RegionChoice::System);
-        let config = MockConfig {
-            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
-        };
-        let uc = CreateProjectUseCase::new(&prompt, &config);
+    struct MockCheckout {
+        called_with: RefCell<Option<(String, Vec<String>)>>,
+        should_fail: bool,
+    }
 
-        uc.execute();
+    impl MockCheckout {
+        fn success() -> Self {
+            Self {
+                called_with: RefCell::new(None),
+                should_fail: false,
+            }
+        }
 
-        let msgs = prompt.messages.borrow();
-        assert_eq!(msgs.len(), 2);
-        assert!(msgs[0].contains(r"C:\projects"));
-        assert!(msgs[1].contains("システム共通領域"));
+        fn failure() -> Self {
+            Self {
+                called_with: RefCell::new(None),
+                should_fail: true,
+            }
+        }
+    }
+
+    impl RegionCheckout for MockCheckout {
+        fn setup(
+            &self,
+            workspace: &WorkspacePath,
+            region: &Region,
+            project_type: Option<&ProjectType>,
+        ) -> Result<(), Box<dyn std::error::Error>> {
+            let targets: Vec<String> = region
+                .checkout_targets(project_type)
+                .iter()
+                .map(|s| s.to_string())
+                .collect();
+            *self.called_with.borrow_mut() = Some((workspace.to_string_lossy(), targets));
+            if self.should_fail {
+                Err("git error".into())
+            } else {
+                Ok(())
+            }
+        }
     }
 
     #[test]
-    fn selects_business_region() {
+    fn executes_sparse_checkout_for_system_library() {
+        let prompt = MockPrompt::new(RegionChoice::System).with_project_type(ProjectTypeChoice::Library);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (ws, targets) = called.as_ref().unwrap();
+        assert_eq!(ws, r"C:\projects");
+        assert_eq!(targets, &["system-region/library"]);
+
+        let msgs = prompt.messages.borrow();
+        assert!(msgs[1].contains("チェックアウトが完了しました"));
+    }
+
+    #[test]
+    fn executes_sparse_checkout_for_system_service() {
+        let prompt = MockPrompt::new(RegionChoice::System).with_project_type(ProjectTypeChoice::Service);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(targets, &["system-region/service"]);
+    }
+
+    #[test]
+    fn executes_sparse_checkout_for_business_region() {
         let prompt = MockPrompt::new(RegionChoice::Business);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
         };
-        let uc = CreateProjectUseCase::new(&prompt, &config);
+        let checkout = MockCheckout::success();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout);
 
         uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(targets, &["system-region", "business-region"]);
 
         let msgs = prompt.messages.borrow();
         assert!(msgs[1].contains("部門固有領域"));
     }
 
     #[test]
-    fn selects_service_region() {
+    fn executes_sparse_checkout_for_service_region() {
         let prompt = MockPrompt::new(RegionChoice::Service);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
         };
-        let uc = CreateProjectUseCase::new(&prompt, &config);
+        let checkout = MockCheckout::success();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(
+            targets,
+            &["system-region", "business-region", "service-region"]
+        );
+    }
+
+    #[test]
+    fn shows_error_when_checkout_fails() {
+        let prompt = MockPrompt::new(RegionChoice::System);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::failure();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout);
 
         uc.execute();
 
         let msgs = prompt.messages.borrow();
-        assert!(msgs[1].contains("業務固有領域"));
+        assert!(msgs[1].contains("チェックアウトに失敗しました"));
     }
 
     #[test]
     fn prompts_settings_when_no_workspace() {
         let prompt = MockPrompt::new(RegionChoice::System);
         let config = MockConfig { workspace: None };
-        let uc = CreateProjectUseCase::new(&prompt, &config);
+        let checkout = MockCheckout::success();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout);
 
         uc.execute();
 
