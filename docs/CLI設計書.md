@@ -40,7 +40,8 @@ CLI/
 │           ├── react.rs               # Reactテンプレート
 │           ├── flutter.rs             # Flutterテンプレート
 │           ├── rust_axum.rs           # Rust（Axum）テンプレート
-│           └── go_gin.rs              # Go（Gin）テンプレート
+│           ├── go_gin.rs              # Go（Gin）テンプレート
+│           └── kubernetes.rs          # Kubernetesマニフェストジェネレータ
 └── tests/
     ├── integration.rs                 # テストモジュール登録
     └── integration/
@@ -282,7 +283,7 @@ Rust + Axum Webフレームワーク構成のバックエンドプロジェク�
 | `tests/health_check.rs`    | ヘルスエンドポイントの統合テスト           |
 | `README.md`                | 開始ガイド                                 |
 | `.github/workflows/ci.yml` | GitHub Actions CI（cargo test）            |
-| `Dockerfile`               | マルチステージビルド（Rust 1.83 → Alpine） |
+| `Dockerfile`               | マルチステージビルド（Rust 1.85 → Alpine） |
 | `.dockerignore`            | Docker除外設定                             |
 
 ポート：3000
@@ -316,6 +317,39 @@ Go + Gin Webフレームワーク構成のバックエンドプロジェクト�
 - **データベースなし**：アプリサービスのみ（テンプレート固有のポートで公開）
 - **PostgreSQL選択時**：アプリサービス＋PostgreSQL 16（ボリューム、`DATABASE_URL`環境変数付き）
 
+#### Kubernetesマニフェスト（`k8s/`）
+
+すべてのテンプレートで `k8s/` ディレクトリ配下にプレーンYAMLのKubernetesマニフェストが自動生成される。テンプレート別にポート・リソース制限・ヘルスチェックパスが設定される。
+
+**基本マニフェスト（全テンプレート共通）：**
+
+| ファイル             | 内容                                                        |
+| -------------------- | ----------------------------------------------------------- |
+| `k8s/namespace.yml`  | Namespace（プロジェクト名）                                 |
+| `k8s/deployment.yml` | Deployment（replicas: 2、リソース制限、ヘルスチェック付き） |
+| `k8s/service.yml`    | Service（ClusterIP）                                        |
+| `k8s/ingress.yml`    | Ingress（nginx）                                            |
+| `k8s/configmap.yml`  | ConfigMap（環境変数）                                       |
+
+**PostgreSQL選択時の追加マニフェスト：**
+
+| ファイル                       | 内容                              |
+| ------------------------------ | --------------------------------- |
+| `k8s/postgres-secret.yml`      | Secret（dev用デフォルト認証情報） |
+| `k8s/postgres-pvc.yml`         | PersistentVolumeClaim（1Gi）      |
+| `k8s/postgres-statefulset.yml` | StatefulSet（postgres:16）        |
+| `k8s/postgres-service.yml`     | Service（ClusterIP, 5432）        |
+
+**テンプレート別設定値：**
+
+| Template      | containerPort | ヘルスチェックパス | CPU req/lim | Memory req/lim |
+| ------------- | ------------- | ------------------ | ----------- | -------------- |
+| React/Flutter | 80            | `/`                | 50m / 200m  | 64Mi / 128Mi   |
+| Rust（Axum）  | 3000          | `/health`          | 100m / 500m | 128Mi / 256Mi  |
+| Go（Gin）     | 8080          | `/health`          | 100m / 500m | 128Mi / 256Mi  |
+
+内部実装として `K8sParams` 構造体で `ProjectConfig` からテンプレート別パラメータを集約し、各マニフェスト生成関数に渡す設計。
+
 #### migrations/001_init.sql
 
 PostgreSQLを選択した場合のみ生成される初期スキーマファイル。
@@ -326,15 +360,16 @@ PostgreSQLを選択した場合のみ生成される初期スキーマファイ�
 
 各モジュールにインラインテストを含む。
 
-| モジュール                        | テスト数 | テスト内容                                                                         |
-| --------------------------------- | -------- | ---------------------------------------------------------------------------------- |
-| `cli.rs`                          | 7        | CLI引数パース、フラグ処理、不正コマンド検出                                        |
-| `domain/model.rs`                 | 8        | 型生成、互換性検証、FromStr・Displayの動作                                         |
-| `domain/validation.rs`            | 8        | 名前バリデーション、特殊文字拒否、長さ制限                                         |
-| `application/new_project.rs`      | 11       | 非対話モード、データベース付きバックエンド、エラー処理、対話モード、キャンセル処理 |
-| `infrastructure/generator.rs`     | 5        | 各テンプレートのファイル生成、内容検証                                             |
-| `infrastructure/templates/mod.rs` | 8        | テンプレートファイル生成、PostgreSQLマイグレーション、Docker Compose               |
-| `infrastructure/templates/*.rs`   | 各8〜11  | ファイル生成検証、内容検証、Docker設定                                             |
+| モジュール                               | テスト数 | テスト内容                                                                         |
+| ---------------------------------------- | -------- | ---------------------------------------------------------------------------------- |
+| `cli.rs`                                 | 7        | CLI引数パース、フラグ処理、不正コマンド検出                                        |
+| `domain/model.rs`                        | 8        | 型生成、互換性検証、FromStr・Displayの動作                                         |
+| `domain/validation.rs`                   | 8        | 名前バリデーション、特殊文字拒否、長さ制限                                         |
+| `application/new_project.rs`             | 11       | 非対話モード、データベース付きバックエンド、エラー処理、対話モード、キャンセル処理 |
+| `infrastructure/generator.rs`            | 5        | 各テンプレートのファイル生成、内容検証                                             |
+| `infrastructure/templates/mod.rs`        | 8        | テンプレートファイル生成、PostgreSQLマイグレーション、Docker Compose               |
+| `infrastructure/templates/kubernetes.rs` | 15       | マニフェスト生成数、ファイルパス、各マニフェスト内容、テンプレート別設定値         |
+| `infrastructure/templates/*.rs`          | 各8〜11  | ファイル生成検証、内容検証、Docker設定                                             |
 
 ### 統合テスト
 
