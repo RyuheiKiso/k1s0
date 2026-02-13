@@ -237,6 +237,7 @@ name = "k1s0"
 version = "0.1.0"
 dependencies = [
  "assert_cmd",
+ "console",
  "dialoguer",
  "dirs",
  "predicates",

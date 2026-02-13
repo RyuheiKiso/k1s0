@@ -34,5 +34,6 @@ fn settings_loop(prompt: &impl UserPrompt, config: &impl application::port::Conf
 fn main() {
     let prompt = DialoguerPrompt;
     let config = TomlConfigStore::new(TomlConfigStore::default_path());
+    prompt.show_banner();
     run(&prompt, &config);
 }

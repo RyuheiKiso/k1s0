@@ -1,13 +1,15 @@
+use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Input, Select};
 
 use crate::application::port::{MainMenuChoice, RegionChoice, SettingsMenuChoice, UserPrompt};
+use crate::infrastructure::ui;
 
 pub struct DialoguerPrompt;
 
 impl UserPrompt for DialoguerPrompt {
     fn show_main_menu(&self) -> MainMenuChoice {
         let items = &["プロジェクト作成", "設定", "終了"];
-        let selection = Select::new()
+        let selection = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("k1s0 メインメニュー")
             .items(items)
             .default(0)
@@ -23,7 +25,7 @@ impl UserPrompt for DialoguerPrompt {
 
     fn show_settings_menu(&self) -> SettingsMenuChoice {
         let items = &["ワークスペースパス設定", "戻る"];
-        let selection = Select::new()
+        let selection = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("設定メニュー")
             .items(items)
             .default(0)
@@ -42,7 +44,7 @@ impl UserPrompt for DialoguerPrompt {
             "business-region : 部門固有領域",
             "service-region  : 業務固有領域",
         ];
-        let selection = Select::new()
+        let selection = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("どの領域の開発を実施しますか？")
             .items(items)
             .default(0)
@@ -57,13 +59,17 @@ impl UserPrompt for DialoguerPrompt {
     }
 
     fn input_path(&self, prompt: &str) -> String {
-        Input::new()
+        Input::with_theme(&ColorfulTheme::default())
             .with_prompt(prompt)
             .interact_text()
             .unwrap_or_default()
     }
 
     fn show_message(&self, message: &str) {
-        println!("{message}");
+        println!("{}", ui::format_message(message));
+    }
+
+    fn show_banner(&self) {
+        ui::render_banner();
     }
 }
