@@ -39,7 +39,7 @@ mod tests {
     use std::cell::RefCell;
 
     use super::*;
-    use crate::application::port::{MainMenuChoice, SettingsMenuChoice};
+    use crate::application::port::{MainMenuChoice, RegionChoice, SettingsMenuChoice};
 
     struct MockPrompt {
         path_input: String,
@@ -61,6 +61,9 @@ mod tests {
         }
         fn show_settings_menu(&self) -> SettingsMenuChoice {
             SettingsMenuChoice::Back
+        }
+        fn show_region_menu(&self) -> RegionChoice {
+            RegionChoice::System
         }
         fn input_path(&self, _prompt: &str) -> String {
             self.path_input.clone()

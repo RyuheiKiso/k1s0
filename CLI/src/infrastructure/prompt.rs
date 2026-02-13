@@ -1,6 +1,6 @@
 use dialoguer::{Input, Select};
 
-use crate::application::port::{MainMenuChoice, SettingsMenuChoice, UserPrompt};
+use crate::application::port::{MainMenuChoice, RegionChoice, SettingsMenuChoice, UserPrompt};
 
 pub struct DialoguerPrompt;
 
@@ -33,6 +33,26 @@ impl UserPrompt for DialoguerPrompt {
         match selection {
             0 => SettingsMenuChoice::SetWorkspacePath,
             _ => SettingsMenuChoice::Back,
+        }
+    }
+
+    fn show_region_menu(&self) -> RegionChoice {
+        let items = &[
+            "system-region  : システム共通領域",
+            "business-region : 部門固有領域",
+            "service-region  : 業務固有領域",
+        ];
+        let selection = Select::new()
+            .with_prompt("どの領域の開発を実施しますか？")
+            .items(items)
+            .default(0)
+            .interact()
+            .unwrap_or(0);
+
+        match selection {
+            0 => RegionChoice::System,
+            1 => RegionChoice::Business,
+            _ => RegionChoice::Service,
         }
     }
 

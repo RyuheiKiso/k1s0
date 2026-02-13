@@ -19,7 +19,10 @@ flowchart TD
     B --> E["終了"]
 
     C --> F{"ワークスペース設定あり?"}
-    F -->|Yes| G["OK表示"]
+    F -->|Yes| G["どの領域の開発を実施しますか？"]
+    G --> G1["system-region : システム共通領域"]
+    G --> G2["business-region : 部門固有領域"]
+    G --> G3["service-region : 業務固有領域"]
     F -->|No| H["ワークスペースパス設定へ促す"]
 
     D --> I["ワークスペースパス設定"]
