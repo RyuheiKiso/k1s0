@@ -2,7 +2,8 @@ use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Input, Select};
 
 use crate::application::port::{
-    MainMenuChoice, ProjectTypeChoice, RegionChoice, SettingsMenuChoice, UserPrompt,
+    BusinessRegionAction, MainMenuChoice, ProjectTypeChoice, RegionChoice, SettingsMenuChoice,
+    UserPrompt,
 };
 use crate::infrastructure::ui;
 
@@ -62,10 +63,7 @@ impl UserPrompt for DialoguerPrompt {
     }
 
     fn show_project_type_menu(&self) -> ProjectTypeChoice {
-        let items = &[
-            "Library : ライブラリ",
-            "Service : サービス",
-        ];
+        let items = &["Library : ライブラリ", "Service : サービス"];
         let selection = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("プロジェクト種別を選択してください")
             .items(items)
@@ -77,6 +75,39 @@ impl UserPrompt for DialoguerPrompt {
             0 => ProjectTypeChoice::Library,
             _ => ProjectTypeChoice::Service,
         }
+    }
+
+    fn show_business_region_action_menu(&self) -> BusinessRegionAction {
+        let items = &["既存の部門固有領域を選択", "新規追加"];
+        let selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("部門固有領域の操作を選択してください")
+            .items(items)
+            .default(0)
+            .interact()
+            .unwrap_or(0);
+
+        match selection {
+            0 => BusinessRegionAction::SelectExisting,
+            _ => BusinessRegionAction::CreateNew,
+        }
+    }
+
+    fn show_business_region_list(&self, regions: &[String]) -> String {
+        let selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("部門固有領域を選択してください")
+            .items(regions)
+            .default(0)
+            .interact()
+            .unwrap_or(0);
+
+        regions[selection].clone()
+    }
+
+    fn input_business_region_name(&self) -> String {
+        Input::with_theme(&ColorfulTheme::default())
+            .with_prompt("部門固有領域名を入力してください")
+            .interact_text()
+            .unwrap_or_default()
     }
 
     fn input_path(&self, prompt: &str) -> String {

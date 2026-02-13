@@ -62,7 +62,13 @@ flowchart TD
     PT --> PT2["Service : サービス"]
     PT1 --> SC1a["sparse-checkout set system-region/library/"]
     PT2 --> SC1b["sparse-checkout set system-region/service/"]
-    G2 --> SC2["sparse-checkout set system-region/ business-region/"]
+    G2 --> BR{"部門固有領域の選択"}
+    BR --> BR1["既存の部門固有領域"]
+    BR --> BR2["新規追加"]
+    BR1 --> BRL["既存の部門固有領域一覧から選択"]
+    BRL --> SC2["sparse-checkout set system-region/ business-region/{選択した領域}/"]
+    BR2 --> BRN["部門固有領域名を入力"]
+    BRN --> SC2N["sparse-checkout set system-region/ business-region/{入力した領域}/"]
     G3 --> SC3["sparse-checkout set system-region/ business-region/ service-region/"]
     F -->|No| H["ワークスペースパス設定へ促す"]
 

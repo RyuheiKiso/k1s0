@@ -1,5 +1,7 @@
 use std::fmt;
 
+use super::error::BusinessRegionError;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Region {
     System,
@@ -13,16 +15,47 @@ pub enum ProjectType {
     Service,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BusinessRegionName(String);
+
+impl BusinessRegionName {
+    pub fn new(name: &str) -> Result<Self, BusinessRegionError> {
+        let trimmed = name.trim();
+        if trimmed.is_empty() {
+            return Err(BusinessRegionError::EmptyName);
+        }
+        Ok(Self(trimmed.to_string()))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
 impl Region {
-    pub fn checkout_targets(&self, project_type: Option<&ProjectType>) -> &[&str] {
+    pub fn checkout_targets(
+        &self,
+        project_type: Option<&ProjectType>,
+        business_region_name: Option<&BusinessRegionName>,
+    ) -> Vec<String> {
         match self {
             Region::System => match project_type {
-                Some(ProjectType::Library) => &["system-region/library"],
-                Some(ProjectType::Service) => &["system-region/service"],
-                None => &["system-region"],
+                Some(ProjectType::Library) => vec!["system-region/library".to_string()],
+                Some(ProjectType::Service) => vec!["system-region/service".to_string()],
+                None => vec!["system-region".to_string()],
             },
-            Region::Business => &["system-region", "business-region"],
-            Region::Service => &["system-region", "business-region", "service-region"],
+            Region::Business => {
+                let br = match business_region_name {
+                    Some(name) => format!("business-region/{}", name.as_str()),
+                    None => "business-region".to_string(),
+                };
+                vec!["system-region".to_string(), br]
+            }
+            Region::Service => vec![
+                "system-region".to_string(),
+                "business-region".to_string(),
+                "service-region".to_string(),
+            ],
         }
     }
 }
@@ -41,59 +74,100 @@ impl fmt::Display for Region {
 mod tests {
     use super::*;
 
+    // --- BusinessRegionName tests ---
+
+    #[test]
+    fn business_region_name_rejects_empty() {
+        assert_eq!(
+            BusinessRegionName::new(""),
+            Err(BusinessRegionError::EmptyName)
+        );
+    }
+
+    #[test]
+    fn business_region_name_rejects_whitespace_only() {
+        assert_eq!(
+            BusinessRegionName::new("   "),
+            Err(BusinessRegionError::EmptyName)
+        );
+    }
+
+    #[test]
+    fn business_region_name_trims_whitespace() {
+        let name = BusinessRegionName::new("  sales  ").unwrap();
+        assert_eq!(name.as_str(), "sales");
+    }
+
+    #[test]
+    fn business_region_name_accepts_valid_name() {
+        let name = BusinessRegionName::new("hr-department").unwrap();
+        assert_eq!(name.as_str(), "hr-department");
+    }
+
+    // --- checkout_targets tests ---
+
     #[test]
     fn system_region_with_library_checks_out_library() {
         assert_eq!(
-            Region::System.checkout_targets(Some(&ProjectType::Library)),
-            &["system-region/library"]
+            Region::System.checkout_targets(Some(&ProjectType::Library), None),
+            vec!["system-region/library"]
         );
     }
 
     #[test]
     fn system_region_with_service_checks_out_service() {
         assert_eq!(
-            Region::System.checkout_targets(Some(&ProjectType::Service)),
-            &["system-region/service"]
+            Region::System.checkout_targets(Some(&ProjectType::Service), None),
+            vec!["system-region/service"]
         );
     }
 
     #[test]
     fn system_region_without_project_type_falls_back() {
         assert_eq!(
-            Region::System.checkout_targets(None),
-            &["system-region"]
+            Region::System.checkout_targets(None, None),
+            vec!["system-region"]
         );
     }
 
     #[test]
-    fn business_region_includes_system_dependency() {
+    fn business_region_without_name_uses_default() {
         assert_eq!(
-            Region::Business.checkout_targets(None),
-            &["system-region", "business-region"]
+            Region::Business.checkout_targets(None, None),
+            vec!["system-region", "business-region"]
+        );
+    }
+
+    #[test]
+    fn business_region_with_name_uses_subdirectory() {
+        let name = BusinessRegionName::new("sales").unwrap();
+        assert_eq!(
+            Region::Business.checkout_targets(None, Some(&name)),
+            vec!["system-region", "business-region/sales"]
         );
     }
 
     #[test]
     fn service_region_includes_all_dependencies() {
         assert_eq!(
-            Region::Service.checkout_targets(None),
-            &["system-region", "business-region", "service-region"]
+            Region::Service.checkout_targets(None, None),
+            vec!["system-region", "business-region", "service-region"]
         );
     }
 
     #[test]
     fn business_region_ignores_project_type() {
         assert_eq!(
-            Region::Business.checkout_targets(Some(&ProjectType::Library)),
-            &["system-region", "business-region"]
+            Region::Business.checkout_targets(Some(&ProjectType::Library), None),
+            vec!["system-region", "business-region"]
         );
     }
 
     #[test]
     fn service_region_ignores_project_type() {
         assert_eq!(
-            Region::Service.checkout_targets(Some(&ProjectType::Service)),
-            &["system-region", "business-region", "service-region"]
+            Region::Service.checkout_targets(Some(&ProjectType::Service), None),
+            vec!["system-region", "business-region", "service-region"]
         );
     }
 

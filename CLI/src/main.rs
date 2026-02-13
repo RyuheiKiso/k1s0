@@ -4,8 +4,11 @@ mod infrastructure;
 
 use application::configure_workspace::ConfigureWorkspaceUseCase;
 use application::create_project::CreateProjectUseCase;
-use application::port::{MainMenuChoice, RegionCheckout, SettingsMenuChoice, UserPrompt};
+use application::port::{
+    BusinessRegionRepository, MainMenuChoice, RegionCheckout, SettingsMenuChoice, UserPrompt,
+};
 use application::show_workspace::ShowWorkspaceUseCase;
+use infrastructure::business_region_repository::GitBusinessRegionRepository;
 use infrastructure::config_file::TomlConfigStore;
 use infrastructure::prompt::DialoguerPrompt;
 use infrastructure::sparse_checkout::GitSparseCheckout;
@@ -14,11 +17,12 @@ fn run(
     prompt: &impl UserPrompt,
     config: &impl application::port::ConfigStore,
     checkout: &impl RegionCheckout,
+    business_region_repo: &impl BusinessRegionRepository,
 ) {
     loop {
         match prompt.show_main_menu() {
             MainMenuChoice::CreateProject => {
-                CreateProjectUseCase::new(prompt, config, checkout).execute();
+                CreateProjectUseCase::new(prompt, config, checkout, business_region_repo).execute();
             }
             MainMenuChoice::Settings => {
                 settings_loop(prompt, config);
@@ -49,6 +53,7 @@ fn main() {
     let prompt = DialoguerPrompt;
     let config = TomlConfigStore::new(TomlConfigStore::default_path());
     let checkout = GitSparseCheckout;
+    let business_region_repo = GitBusinessRegionRepository;
     prompt.show_banner();
-    run(&prompt, &config, &checkout);
+    run(&prompt, &config, &checkout, &business_region_repo);
 }

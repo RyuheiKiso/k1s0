@@ -18,3 +18,18 @@ impl fmt::Display for WorkspaceError {
 }
 
 impl std::error::Error for WorkspaceError {}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BusinessRegionError {
+    EmptyName,
+}
+
+impl fmt::Display for BusinessRegionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyName => write!(f, "部門固有領域名が空です"),
+        }
+    }
+}
+
+impl std::error::Error for BusinessRegionError {}

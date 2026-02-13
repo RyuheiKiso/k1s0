@@ -56,6 +56,17 @@ mod tests {
         fn show_project_type_menu(&self) -> crate::application::port::ProjectTypeChoice {
             crate::application::port::ProjectTypeChoice::Library
         }
+        fn show_business_region_action_menu(
+            &self,
+        ) -> crate::application::port::BusinessRegionAction {
+            crate::application::port::BusinessRegionAction::CreateNew
+        }
+        fn show_business_region_list(&self, _regions: &[String]) -> String {
+            String::new()
+        }
+        fn input_business_region_name(&self) -> String {
+            String::new()
+        }
         fn input_path(&self, _prompt: &str) -> String {
             String::new()
         }

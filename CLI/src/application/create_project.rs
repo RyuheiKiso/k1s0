@@ -1,19 +1,32 @@
-use crate::domain::region::{ProjectType, Region};
+use crate::domain::region::{BusinessRegionName, ProjectType, Region};
 
-use super::port::{ConfigStore, ProjectTypeChoice, RegionCheckout, RegionChoice, UserPrompt};
+use super::port::{
+    BusinessRegionAction, BusinessRegionRepository, ConfigStore, ProjectTypeChoice, RegionCheckout,
+    RegionChoice, UserPrompt,
+};
 
-pub struct CreateProjectUseCase<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout> {
+pub struct CreateProjectUseCase<
+    'a,
+    P: UserPrompt,
+    C: ConfigStore,
+    R: RegionCheckout,
+    B: BusinessRegionRepository,
+> {
     prompt: &'a P,
     config: &'a C,
     checkout: &'a R,
+    business_region_repo: &'a B,
 }
 
-impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout> CreateProjectUseCase<'a, P, C, R> {
-    pub fn new(prompt: &'a P, config: &'a C, checkout: &'a R) -> Self {
+impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout, B: BusinessRegionRepository>
+    CreateProjectUseCase<'a, P, C, R, B>
+{
+    pub fn new(prompt: &'a P, config: &'a C, checkout: &'a R, business_region_repo: &'a B) -> Self {
         Self {
             prompt,
             config,
             checkout,
+            business_region_repo,
         }
     }
 
@@ -38,7 +51,19 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout> CreateProjectUseCase<
                     }
                     _ => None,
                 };
-                match self.checkout.setup(&ws, &region, project_type.as_ref()) {
+                let business_region_name = match region {
+                    Region::Business => match self.resolve_business_region(&ws) {
+                        Some(name) => Some(name),
+                        None => return,
+                    },
+                    _ => None,
+                };
+                match self.checkout.setup(
+                    &ws,
+                    &region,
+                    project_type.as_ref(),
+                    business_region_name.as_ref(),
+                ) {
                     Ok(()) => {
                         self.prompt
                             .show_message(&format!("{}のチェックアウトが完了しました", region));
@@ -55,6 +80,36 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout> CreateProjectUseCase<
             }
         }
     }
+
+    fn resolve_business_region(
+        &self,
+        workspace: &crate::domain::workspace::WorkspacePath,
+    ) -> Option<BusinessRegionName> {
+        let regions = self
+            .business_region_repo
+            .list(workspace)
+            .unwrap_or_default();
+
+        let raw_name = if regions.is_empty() {
+            self.prompt.input_business_region_name()
+        } else {
+            let action = self.prompt.show_business_region_action_menu();
+            match action {
+                BusinessRegionAction::SelectExisting => {
+                    self.prompt.show_business_region_list(&regions)
+                }
+                BusinessRegionAction::CreateNew => self.prompt.input_business_region_name(),
+            }
+        };
+
+        match BusinessRegionName::new(&raw_name) {
+            Ok(name) => Some(name),
+            Err(e) => {
+                self.prompt.show_message(&format!("領域名が不正です: {e}"));
+                None
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -63,7 +118,7 @@ mod tests {
 
     use super::*;
     use crate::application::port::{
-        MainMenuChoice, ProjectTypeChoice, RegionChoice, SettingsMenuChoice,
+        BusinessRegionAction, MainMenuChoice, ProjectTypeChoice, RegionChoice, SettingsMenuChoice,
     };
     use crate::domain::workspace::WorkspacePath;
 
@@ -71,6 +126,9 @@ mod tests {
         messages: RefCell<Vec<String>>,
         region_choice: RefCell<RegionChoice>,
         project_type_choice: RefCell<ProjectTypeChoice>,
+        business_region_action: RefCell<BusinessRegionAction>,
+        business_region_list_selection: RefCell<String>,
+        business_region_name_input: RefCell<String>,
     }
 
     impl MockPrompt {
@@ -79,11 +137,29 @@ mod tests {
                 messages: RefCell::new(Vec::new()),
                 region_choice: RefCell::new(region_choice),
                 project_type_choice: RefCell::new(ProjectTypeChoice::Library),
+                business_region_action: RefCell::new(BusinessRegionAction::CreateNew),
+                business_region_list_selection: RefCell::new(String::new()),
+                business_region_name_input: RefCell::new(String::new()),
             }
         }
 
-        fn with_project_type(mut self, pt: ProjectTypeChoice) -> Self {
-            self.project_type_choice = RefCell::new(pt);
+        fn with_project_type(self, pt: ProjectTypeChoice) -> Self {
+            *self.project_type_choice.borrow_mut() = pt;
+            self
+        }
+
+        fn with_business_region_action(self, action: BusinessRegionAction) -> Self {
+            *self.business_region_action.borrow_mut() = action;
+            self
+        }
+
+        fn with_business_region_list_selection(self, selection: &str) -> Self {
+            *self.business_region_list_selection.borrow_mut() = selection.to_string();
+            self
+        }
+
+        fn with_business_region_name_input(self, name: &str) -> Self {
+            *self.business_region_name_input.borrow_mut() = name.to_string();
             self
         }
     }
@@ -100,6 +176,15 @@ mod tests {
         }
         fn show_project_type_menu(&self) -> ProjectTypeChoice {
             *self.project_type_choice.borrow()
+        }
+        fn show_business_region_action_menu(&self) -> BusinessRegionAction {
+            *self.business_region_action.borrow()
+        }
+        fn show_business_region_list(&self, _regions: &[String]) -> String {
+            self.business_region_list_selection.borrow().clone()
+        }
+        fn input_business_region_name(&self) -> String {
+            self.business_region_name_input.borrow().clone()
         }
         fn input_path(&self, _prompt: &str) -> String {
             String::new()
@@ -152,12 +237,9 @@ mod tests {
             workspace: &WorkspacePath,
             region: &Region,
             project_type: Option<&ProjectType>,
+            business_region_name: Option<&BusinessRegionName>,
         ) -> Result<(), Box<dyn std::error::Error>> {
-            let targets: Vec<String> = region
-                .checkout_targets(project_type)
-                .iter()
-                .map(|s| s.to_string())
-                .collect();
+            let targets = region.checkout_targets(project_type, business_region_name);
             *self.called_with.borrow_mut() = Some((workspace.to_string_lossy(), targets));
             if self.should_fail {
                 Err("git error".into())
@@ -167,14 +249,41 @@ mod tests {
         }
     }
 
+    struct MockBusinessRegionRepo {
+        regions: Vec<String>,
+    }
+
+    impl MockBusinessRegionRepo {
+        fn empty() -> Self {
+            Self { regions: vec![] }
+        }
+
+        fn with_regions(regions: &[&str]) -> Self {
+            Self {
+                regions: regions.iter().map(|s| s.to_string()).collect(),
+            }
+        }
+    }
+
+    impl BusinessRegionRepository for MockBusinessRegionRepo {
+        fn list(
+            &self,
+            _workspace: &WorkspacePath,
+        ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+            Ok(self.regions.clone())
+        }
+    }
+
     #[test]
     fn executes_sparse_checkout_for_system_library() {
-        let prompt = MockPrompt::new(RegionChoice::System).with_project_type(ProjectTypeChoice::Library);
+        let prompt =
+            MockPrompt::new(RegionChoice::System).with_project_type(ProjectTypeChoice::Library);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
         };
         let checkout = MockCheckout::success();
-        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout);
+        let repo = MockBusinessRegionRepo::empty();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
 
         uc.execute();
 
@@ -189,12 +298,14 @@ mod tests {
 
     #[test]
     fn executes_sparse_checkout_for_system_service() {
-        let prompt = MockPrompt::new(RegionChoice::System).with_project_type(ProjectTypeChoice::Service);
+        let prompt =
+            MockPrompt::new(RegionChoice::System).with_project_type(ProjectTypeChoice::Service);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
         };
         let checkout = MockCheckout::success();
-        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout);
+        let repo = MockBusinessRegionRepo::empty();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
 
         uc.execute();
 
@@ -204,22 +315,88 @@ mod tests {
     }
 
     #[test]
-    fn executes_sparse_checkout_for_business_region() {
-        let prompt = MockPrompt::new(RegionChoice::Business);
+    fn business_region_select_existing() {
+        let prompt = MockPrompt::new(RegionChoice::Business)
+            .with_business_region_action(BusinessRegionAction::SelectExisting)
+            .with_business_region_list_selection("sales");
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
         };
         let checkout = MockCheckout::success();
-        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout);
+        let repo = MockBusinessRegionRepo::with_regions(&["sales", "hr"]);
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
 
         uc.execute();
 
         let called = checkout.called_with.borrow();
         let (_, targets) = called.as_ref().unwrap();
-        assert_eq!(targets, &["system-region", "business-region"]);
+        assert_eq!(targets, &["system-region", "business-region/sales"]);
 
         let msgs = prompt.messages.borrow();
         assert!(msgs[1].contains("部門固有領域"));
+    }
+
+    #[test]
+    fn business_region_create_new() {
+        let prompt = MockPrompt::new(RegionChoice::Business)
+            .with_business_region_action(BusinessRegionAction::CreateNew)
+            .with_business_region_name_input("marketing");
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::with_regions(&["sales"]);
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(targets, &["system-region", "business-region/marketing"]);
+    }
+
+    #[test]
+    fn business_region_empty_list_goes_to_new() {
+        let prompt =
+            MockPrompt::new(RegionChoice::Business).with_business_region_name_input("new-dept");
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::empty();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(targets, &["system-region", "business-region/new-dept"]);
+    }
+
+    #[test]
+    fn business_region_invalid_name_aborts_checkout() {
+        let prompt = MockPrompt::new(RegionChoice::Business).with_business_region_name_input("");
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::empty();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        assert!(
+            checkout.called_with.borrow().is_none(),
+            "checkout should not be called when region name is invalid"
+        );
+
+        let msgs = prompt.messages.borrow();
+        assert!(msgs.iter().any(|m| m.contains("領域名が不正です")));
+        assert!(
+            !msgs
+                .iter()
+                .any(|m| m.contains("チェックアウトが完了しました"))
+        );
     }
 
     #[test]
@@ -229,7 +406,8 @@ mod tests {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
         };
         let checkout = MockCheckout::success();
-        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout);
+        let repo = MockBusinessRegionRepo::empty();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
 
         uc.execute();
 
@@ -248,7 +426,8 @@ mod tests {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
         };
         let checkout = MockCheckout::failure();
-        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout);
+        let repo = MockBusinessRegionRepo::empty();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
 
         uc.execute();
 
@@ -261,7 +440,8 @@ mod tests {
         let prompt = MockPrompt::new(RegionChoice::System);
         let config = MockConfig { workspace: None };
         let checkout = MockCheckout::success();
-        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout);
+        let repo = MockBusinessRegionRepo::empty();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
 
         uc.execute();
 
