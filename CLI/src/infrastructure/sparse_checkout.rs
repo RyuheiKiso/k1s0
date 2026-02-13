@@ -15,7 +15,8 @@ impl RegionCheckout for GitSparseCheckout {
         project_type: Option<&ProjectType>,
         business_region_name: Option<&BusinessRegionName>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let targets = region.checkout_targets(project_type, business_region_name);
+        let mut targets = region.checkout_targets(project_type, business_region_name);
+        targets.push("CLI".to_string());
         let ws_path = workspace.to_string_lossy();
         let output = Command::new("git")
             .arg("sparse-checkout")
