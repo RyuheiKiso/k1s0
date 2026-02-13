@@ -1,8 +1,8 @@
-use crate::domain::region::{BusinessRegionName, ProjectType, Region};
+use crate::domain::region::{BusinessRegionName, Language, ProjectType, Region};
 
 use super::port::{
-    BusinessRegionAction, BusinessRegionRepository, ConfigStore, ProjectTypeChoice, RegionCheckout,
-    RegionChoice, UserPrompt,
+    BusinessRegionAction, BusinessRegionRepository, ConfigStore, LanguageChoice, ProjectTypeChoice,
+    RegionCheckout, RegionChoice, UserPrompt,
 };
 
 pub struct CreateProjectUseCase<
@@ -41,15 +41,23 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout, B: BusinessRegionRepo
                     RegionChoice::Business => Region::Business,
                     RegionChoice::Service => Region::Service,
                 };
-                let project_type = match region {
+                let (project_type, language) = match region {
                     Region::System => {
                         let pt_choice = self.prompt.show_project_type_menu();
-                        Some(match pt_choice {
+                        let pt = match pt_choice {
                             ProjectTypeChoice::Library => ProjectType::Library,
                             ProjectTypeChoice::Service => ProjectType::Service,
-                        })
+                        };
+                        let lang = {
+                            let lang_choice = self.prompt.show_language_menu();
+                            Some(match lang_choice {
+                                LanguageChoice::Rust => Language::Rust,
+                                LanguageChoice::Go => Language::Go,
+                            })
+                        };
+                        (Some(pt), lang)
                     }
-                    _ => None,
+                    _ => (None, None),
                 };
                 let business_region_name = match region {
                     Region::Business => match self.resolve_business_region(&ws) {
@@ -62,6 +70,7 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout, B: BusinessRegionRepo
                     &ws,
                     &region,
                     project_type.as_ref(),
+                    language.as_ref(),
                     business_region_name.as_ref(),
                 ) {
                     Ok(()) => {
@@ -118,7 +127,8 @@ mod tests {
 
     use super::*;
     use crate::application::port::{
-        BusinessRegionAction, MainMenuChoice, ProjectTypeChoice, RegionChoice, SettingsMenuChoice,
+        BusinessRegionAction, LanguageChoice, MainMenuChoice, ProjectTypeChoice, RegionChoice,
+        SettingsMenuChoice,
     };
     use crate::domain::workspace::WorkspacePath;
 
@@ -126,6 +136,7 @@ mod tests {
         messages: RefCell<Vec<String>>,
         region_choice: RefCell<RegionChoice>,
         project_type_choice: RefCell<ProjectTypeChoice>,
+        language_choice: RefCell<LanguageChoice>,
         business_region_action: RefCell<BusinessRegionAction>,
         business_region_list_selection: RefCell<String>,
         business_region_name_input: RefCell<String>,
@@ -137,6 +148,7 @@ mod tests {
                 messages: RefCell::new(Vec::new()),
                 region_choice: RefCell::new(region_choice),
                 project_type_choice: RefCell::new(ProjectTypeChoice::Library),
+                language_choice: RefCell::new(LanguageChoice::Rust),
                 business_region_action: RefCell::new(BusinessRegionAction::CreateNew),
                 business_region_list_selection: RefCell::new(String::new()),
                 business_region_name_input: RefCell::new(String::new()),
@@ -145,6 +157,11 @@ mod tests {
 
         fn with_project_type(self, pt: ProjectTypeChoice) -> Self {
             *self.project_type_choice.borrow_mut() = pt;
+            self
+        }
+
+        fn with_language(self, lang: LanguageChoice) -> Self {
+            *self.language_choice.borrow_mut() = lang;
             self
         }
 
@@ -176,6 +193,9 @@ mod tests {
         }
         fn show_project_type_menu(&self) -> ProjectTypeChoice {
             *self.project_type_choice.borrow()
+        }
+        fn show_language_menu(&self) -> LanguageChoice {
+            *self.language_choice.borrow()
         }
         fn show_business_region_action_menu(&self) -> BusinessRegionAction {
             *self.business_region_action.borrow()
@@ -237,9 +257,10 @@ mod tests {
             workspace: &WorkspacePath,
             region: &Region,
             project_type: Option<&ProjectType>,
+            language: Option<&Language>,
             business_region_name: Option<&BusinessRegionName>,
         ) -> Result<(), Box<dyn std::error::Error>> {
-            let targets = region.checkout_targets(project_type, business_region_name);
+            let targets = region.checkout_targets(project_type, language, business_region_name);
             *self.called_with.borrow_mut() = Some((workspace.to_string_lossy(), targets));
             if self.should_fail {
                 Err("git error".into())
@@ -275,9 +296,10 @@ mod tests {
     }
 
     #[test]
-    fn executes_sparse_checkout_for_system_library() {
-        let prompt =
-            MockPrompt::new(RegionChoice::System).with_project_type(ProjectTypeChoice::Library);
+    fn executes_sparse_checkout_for_system_library_rust() {
+        let prompt = MockPrompt::new(RegionChoice::System)
+            .with_project_type(ProjectTypeChoice::Library)
+            .with_language(LanguageChoice::Rust);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
         };
@@ -290,16 +312,17 @@ mod tests {
         let called = checkout.called_with.borrow();
         let (ws, targets) = called.as_ref().unwrap();
         assert_eq!(ws, r"C:\projects");
-        assert_eq!(targets, &["system-region/library"]);
+        assert_eq!(targets, &["system-region/library/rust"]);
 
         let msgs = prompt.messages.borrow();
         assert!(msgs[1].contains("チェックアウトが完了しました"));
     }
 
     #[test]
-    fn executes_sparse_checkout_for_system_service() {
-        let prompt =
-            MockPrompt::new(RegionChoice::System).with_project_type(ProjectTypeChoice::Service);
+    fn executes_sparse_checkout_for_system_library_go() {
+        let prompt = MockPrompt::new(RegionChoice::System)
+            .with_project_type(ProjectTypeChoice::Library)
+            .with_language(LanguageChoice::Go);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
         };
@@ -311,7 +334,45 @@ mod tests {
 
         let called = checkout.called_with.borrow();
         let (_, targets) = called.as_ref().unwrap();
-        assert_eq!(targets, &["system-region/service"]);
+        assert_eq!(targets, &["system-region/library/go"]);
+    }
+
+    #[test]
+    fn executes_sparse_checkout_for_system_service_rust() {
+        let prompt = MockPrompt::new(RegionChoice::System)
+            .with_project_type(ProjectTypeChoice::Service)
+            .with_language(LanguageChoice::Rust);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::empty();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(targets, &["system-region/service/rust"]);
+    }
+
+    #[test]
+    fn executes_sparse_checkout_for_system_service_go() {
+        let prompt = MockPrompt::new(RegionChoice::System)
+            .with_project_type(ProjectTypeChoice::Service)
+            .with_language(LanguageChoice::Go);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::empty();
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(targets, &["system-region/service/go"]);
     }
 
     #[test]

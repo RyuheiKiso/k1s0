@@ -2,8 +2,8 @@ use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Input, Select};
 
 use crate::application::port::{
-    BusinessRegionAction, MainMenuChoice, ProjectTypeChoice, RegionChoice, SettingsMenuChoice,
-    UserPrompt,
+    BusinessRegionAction, LanguageChoice, MainMenuChoice, ProjectTypeChoice, RegionChoice,
+    SettingsMenuChoice, UserPrompt,
 };
 use crate::infrastructure::ui;
 
@@ -74,6 +74,21 @@ impl UserPrompt for DialoguerPrompt {
         match selection {
             0 => ProjectTypeChoice::Library,
             _ => ProjectTypeChoice::Service,
+        }
+    }
+
+    fn show_language_menu(&self) -> LanguageChoice {
+        let items = &["Rust", "Go"];
+        let selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("言語を選択してください")
+            .items(items)
+            .default(0)
+            .interact()
+            .unwrap_or(0);
+
+        match selection {
+            0 => LanguageChoice::Rust,
+            _ => LanguageChoice::Go,
         }
     }
 

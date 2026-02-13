@@ -37,8 +37,10 @@ system-region 選択時はさらにプロジェクト種別（Library / Service�
 
 | Region選択      | プロジェクト種別 | チェックアウト対象                                        |
 | --------------- | ---------------- | --------------------------------------------------------- |
-| system-region   | Library          | `system-region/library/`                                  |
-| system-region   | Service          | `system-region/service/`                                  |
+| system-region   | Library → Rust   | `system-region/library/rust/`                             |
+| system-region   | Library → Go     | `system-region/library/go/`                               |
+| system-region   | Service → Rust   | `system-region/service/rust/`                             |
+| system-region   | Service → Go     | `system-region/service/go/`                               |
 | business-region | —                | `system-region/` + `business-region/`                     |
 | service-region  | —                | `system-region/` + `business-region/` + `service-region/` |
 
@@ -60,8 +62,16 @@ flowchart TD
     G1 --> PT["プロジェクト種別を選択"]
     PT --> PT1["Library : ライブラリ"]
     PT --> PT2["Service : サービス"]
-    PT1 --> SC1a["sparse-checkout set system-region/library/"]
-    PT2 --> SC1b["sparse-checkout set system-region/service/"]
+    PT1 --> LLang["言語を選択"]
+    LLang --> LLang1["Rust"]
+    LLang --> LLang2["Go"]
+    LLang1 --> SC1aR["sparse-checkout set system-region/library/rust/"]
+    LLang2 --> SC1aG["sparse-checkout set system-region/library/go/"]
+    PT2 --> SLang["言語を選択"]
+    SLang --> SLang1["Rust"]
+    SLang --> SLang2["Go"]
+    SLang1 --> SC1bR["sparse-checkout set system-region/service/rust/"]
+    SLang2 --> SC1bG["sparse-checkout set system-region/service/go/"]
     G2 --> BR{"部門固有領域の選択"}
     BR --> BR1["既存の部門固有領域"]
     BR --> BR2["新規追加"]
