@@ -3,12 +3,39 @@ use std::path::PathBuf;
 pub fn generate(name: &str) -> Vec<(PathBuf, String)> {
     vec![
         (PathBuf::from("Cargo.toml"), cargo_toml(name)),
-        (PathBuf::from("src/main.rs"), main_rs()),
+        (PathBuf::from("src/main.rs"), main_rs(name)),
         (PathBuf::from("src/lib.rs"), lib_rs()),
-        (PathBuf::from("tests/health_check.rs"), health_check_test()),
+        (PathBuf::from("tests/health_check.rs"), health_check_test(name)),
         (PathBuf::from("README.md"), readme(name)),
         (PathBuf::from(".github/workflows/ci.yml"), ci_yml()),
+        (PathBuf::from("Dockerfile"), dockerfile(name)),
+        (PathBuf::from(".dockerignore"), dockerignore()),
     ]
+}
+
+pub fn dockerfile(name: &str) -> String {
+    format!(
+        r#"FROM rust:1.83-alpine AS build
+RUN apk add --no-cache musl-dev
+WORKDIR /app
+COPY . .
+RUN cargo build --release
+
+FROM alpine:3.20
+COPY --from=build /app/target/release/{name} /usr/local/bin/app
+EXPOSE 3000
+CMD ["app"]
+"#
+    )
+}
+
+pub fn dockerignore() -> String {
+    r#"target
+.git
+.github
+.env
+"#
+    .to_string()
 }
 
 fn cargo_toml(name: &str) -> String {
@@ -31,11 +58,13 @@ tokio = {{ version = "1", features = ["full"] }}
     )
 }
 
-fn main_rs() -> String {
-    r#"use {name}::create_router;
+fn main_rs(name: &str) -> String {
+    let crate_name = name.replace('-', "_");
+    format!(
+        r#"use {crate_name}::create_router;
 
 #[tokio::main]
-async fn main() {
+async fn main() {{
     let app = create_router();
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
@@ -44,9 +73,9 @@ async fn main() {
 
     println!("Server running on http://0.0.0.0:3000");
     axum::serve(listener, app).await.unwrap();
-}
+}}
 "#
-    .to_string()
+    )
 }
 
 fn lib_rs() -> String {
@@ -65,14 +94,16 @@ async fn health() -> axum::Json<serde_json::Value> {
     .to_string()
 }
 
-fn health_check_test() -> String {
-    r#"use {name}::create_router;
+fn health_check_test(name: &str) -> String {
+    let crate_name = name.replace('-', "_");
+    format!(
+        r#"use {crate_name}::create_router;
 use axum::body::Body;
-use axum::http::{Request, StatusCode};
+use axum::http::{{Request, StatusCode}};
 use tower::ServiceExt;
 
 #[tokio::test]
-async fn health_check_works() {
+async fn health_check_works() {{
     let app = create_router();
 
     let response = app
@@ -86,9 +117,9 @@ async fn health_check_works() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-}
+}}
 "#
-    .to_string()
+    )
 }
 
 fn readme(name: &str) -> String {
@@ -153,6 +184,24 @@ mod tests {
         assert!(paths.contains(&PathBuf::from("tests/health_check.rs")));
         assert!(paths.contains(&PathBuf::from("README.md")));
         assert!(paths.contains(&PathBuf::from(".github/workflows/ci.yml")));
+        assert!(paths.contains(&PathBuf::from("Dockerfile")));
+        assert!(paths.contains(&PathBuf::from(".dockerignore")));
+    }
+
+    #[test]
+    fn test_dockerfile_uses_rust_alpine() {
+        let content = dockerfile("my-rust-svc");
+        assert!(content.contains("rust:1.83-alpine"));
+        assert!(content.contains("alpine:3.20"));
+        assert!(content.contains("cargo build --release"));
+        assert!(content.contains("my-rust-svc"));
+        assert!(content.contains("EXPOSE 3000"));
+    }
+
+    #[test]
+    fn test_dockerignore_excludes_target() {
+        let content = dockerignore();
+        assert!(content.contains("target"));
     }
 
     #[test]

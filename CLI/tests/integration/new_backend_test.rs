@@ -26,6 +26,9 @@ fn test_new_backend_rust_non_interactive() {
     assert!(project_dir.join("tests/health_check.rs").exists());
     assert!(project_dir.join("README.md").exists());
     assert!(project_dir.join(".github/workflows/ci.yml").exists());
+    assert!(project_dir.join("Dockerfile").exists());
+    assert!(project_dir.join(".dockerignore").exists());
+    assert!(project_dir.join("docker-compose.yml").exists());
 }
 
 #[test]
@@ -47,6 +50,8 @@ fn test_new_backend_rust_with_postgresql() {
 
     let project_dir = tmp.path().join("my-db-svc");
     assert!(project_dir.join("Cargo.toml").exists());
+    assert!(project_dir.join("Dockerfile").exists());
+    assert!(project_dir.join(".dockerignore").exists());
     assert!(project_dir.join("docker-compose.yml").exists());
     assert!(project_dir.join("migrations/001_init.sql").exists());
 }
@@ -73,6 +78,9 @@ fn test_new_backend_go_non_interactive() {
     assert!(project_dir.join("main_test.go").exists());
     assert!(project_dir.join("README.md").exists());
     assert!(project_dir.join(".github/workflows/ci.yml").exists());
+    assert!(project_dir.join("Dockerfile").exists());
+    assert!(project_dir.join(".dockerignore").exists());
+    assert!(project_dir.join("docker-compose.yml").exists());
 }
 
 #[test]

@@ -7,7 +7,34 @@ pub fn generate(name: &str) -> Vec<(PathBuf, String)> {
         (PathBuf::from("test/widget_test.dart"), widget_test_dart(name)),
         (PathBuf::from("README.md"), readme(name)),
         (PathBuf::from(".github/workflows/ci.yml"), ci_yml()),
+        (PathBuf::from("Dockerfile"), dockerfile()),
+        (PathBuf::from(".dockerignore"), dockerignore()),
     ]
+}
+
+pub fn dockerfile() -> String {
+    r#"FROM ghcr.io/cirruslabs/flutter:stable AS build
+WORKDIR /app
+COPY . .
+RUN flutter pub get
+RUN flutter build web
+
+FROM nginx:alpine
+COPY --from=build /app/build/web /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+"#
+    .to_string()
+}
+
+pub fn dockerignore() -> String {
+    r#".dart_tool
+build
+.git
+.github
+.env
+"#
+    .to_string()
 }
 
 fn pubspec_yaml(name: &str) -> String {
@@ -160,6 +187,23 @@ mod tests {
         assert!(paths.contains(&PathBuf::from("test/widget_test.dart")));
         assert!(paths.contains(&PathBuf::from("README.md")));
         assert!(paths.contains(&PathBuf::from(".github/workflows/ci.yml")));
+        assert!(paths.contains(&PathBuf::from("Dockerfile")));
+        assert!(paths.contains(&PathBuf::from(".dockerignore")));
+    }
+
+    #[test]
+    fn test_dockerfile_uses_flutter_and_nginx() {
+        let content = dockerfile();
+        assert!(content.contains("ghcr.io/cirruslabs/flutter"));
+        assert!(content.contains("nginx:alpine"));
+        assert!(content.contains("flutter build web"));
+        assert!(content.contains("EXPOSE 80"));
+    }
+
+    #[test]
+    fn test_dockerignore_excludes_dart_tool() {
+        let content = dockerignore();
+        assert!(content.contains(".dart_tool"));
     }
 
     #[test]

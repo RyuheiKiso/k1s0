@@ -7,7 +7,33 @@ pub fn generate(name: &str) -> Vec<(PathBuf, String)> {
         (PathBuf::from("main_test.go"), main_test_go()),
         (PathBuf::from("README.md"), readme(name)),
         (PathBuf::from(".github/workflows/ci.yml"), ci_yml()),
+        (PathBuf::from("Dockerfile"), dockerfile()),
+        (PathBuf::from(".dockerignore"), dockerignore()),
     ]
+}
+
+pub fn dockerfile() -> String {
+    r#"FROM golang:1.22-alpine AS build
+WORKDIR /app
+COPY go.mod go.sum* ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -o server .
+
+FROM alpine:3.20
+COPY --from=build /app/server /usr/local/bin/server
+EXPOSE 8080
+CMD ["server"]
+"#
+    .to_string()
+}
+
+pub fn dockerignore() -> String {
+    r#".git
+.github
+.env
+"#
+    .to_string()
 }
 
 fn go_mod(name: &str) -> String {
@@ -143,6 +169,23 @@ mod tests {
         assert!(paths.contains(&PathBuf::from("main_test.go")));
         assert!(paths.contains(&PathBuf::from("README.md")));
         assert!(paths.contains(&PathBuf::from(".github/workflows/ci.yml")));
+        assert!(paths.contains(&PathBuf::from("Dockerfile")));
+        assert!(paths.contains(&PathBuf::from(".dockerignore")));
+    }
+
+    #[test]
+    fn test_dockerfile_uses_golang_alpine() {
+        let content = dockerfile();
+        assert!(content.contains("golang:1.22-alpine"));
+        assert!(content.contains("alpine:3.20"));
+        assert!(content.contains("go build"));
+        assert!(content.contains("EXPOSE 8080"));
+    }
+
+    #[test]
+    fn test_dockerignore_excludes_git() {
+        let content = dockerignore();
+        assert!(content.contains(".git"));
     }
 
     #[test]

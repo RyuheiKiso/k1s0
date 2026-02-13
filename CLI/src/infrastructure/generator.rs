@@ -53,8 +53,11 @@ mod tests {
         generator.generate(&config).unwrap();
 
         assert!(project_path.join("package.json").exists());
+        assert!(project_path.join("index.html").exists());
+        assert!(project_path.join("vite.config.ts").exists());
+        assert!(project_path.join("tsconfig.json").exists());
+        assert!(project_path.join("src/main.tsx").exists());
         assert!(project_path.join("src/App.tsx").exists());
-        assert!(project_path.join("src/index.tsx").exists());
         assert!(project_path.join("src/App.test.tsx").exists());
         assert!(project_path.join("README.md").exists());
         assert!(project_path.join(".github/workflows/ci.yml").exists());

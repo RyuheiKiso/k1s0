@@ -21,11 +21,17 @@ fn test_new_frontend_react_non_interactive() {
 
     let project_dir = tmp.path().join("my-react-app");
     assert!(project_dir.join("package.json").exists());
+    assert!(project_dir.join("index.html").exists());
+    assert!(project_dir.join("vite.config.ts").exists());
+    assert!(project_dir.join("tsconfig.json").exists());
+    assert!(project_dir.join("src/main.tsx").exists());
     assert!(project_dir.join("src/App.tsx").exists());
-    assert!(project_dir.join("src/index.tsx").exists());
     assert!(project_dir.join("src/App.test.tsx").exists());
     assert!(project_dir.join("README.md").exists());
     assert!(project_dir.join(".github/workflows/ci.yml").exists());
+    assert!(project_dir.join("Dockerfile").exists());
+    assert!(project_dir.join(".dockerignore").exists());
+    assert!(project_dir.join("docker-compose.yml").exists());
 }
 
 #[test]
@@ -50,6 +56,9 @@ fn test_new_frontend_flutter_non_interactive() {
     assert!(project_dir.join("test/widget_test.dart").exists());
     assert!(project_dir.join("README.md").exists());
     assert!(project_dir.join(".github/workflows/ci.yml").exists());
+    assert!(project_dir.join("Dockerfile").exists());
+    assert!(project_dir.join(".dockerignore").exists());
+    assert!(project_dir.join("docker-compose.yml").exists());
 }
 
 #[test]
