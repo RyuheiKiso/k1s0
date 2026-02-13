@@ -41,31 +41,40 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout, B: BusinessRegionRepo
                     RegionChoice::Business => Region::Business,
                     RegionChoice::Service => Region::Service,
                 };
-                let (project_type, language) = match region {
+                let mut project_type = None;
+                let mut language = None;
+                let mut business_region_name = None;
+
+                match region {
                     Region::System => {
                         let pt_choice = self.prompt.show_project_type_menu();
-                        let pt = match pt_choice {
+                        project_type = Some(match pt_choice {
                             ProjectTypeChoice::Library => ProjectType::Library,
                             ProjectTypeChoice::Service => ProjectType::Service,
-                        };
-                        let lang = {
-                            let lang_choice = self.prompt.show_language_menu();
-                            Some(match lang_choice {
-                                LanguageChoice::Rust => Language::Rust,
-                                LanguageChoice::Go => Language::Go,
-                            })
-                        };
-                        (Some(pt), lang)
+                        });
+                        let lang_choice = self.prompt.show_language_menu();
+                        language = Some(match lang_choice {
+                            LanguageChoice::Rust => Language::Rust,
+                            LanguageChoice::Go => Language::Go,
+                        });
                     }
-                    _ => (None, None),
-                };
-                let business_region_name = match region {
-                    Region::Business => match self.resolve_business_region(&ws) {
-                        Some(name) => Some(name),
-                        None => return,
-                    },
-                    _ => None,
-                };
+                    Region::Business => {
+                        match self.resolve_business_region(&ws) {
+                            Some((name, is_existing)) => {
+                                if is_existing {
+                                    let lang_choice = self.prompt.show_language_menu();
+                                    language = Some(match lang_choice {
+                                        LanguageChoice::Rust => Language::Rust,
+                                        LanguageChoice::Go => Language::Go,
+                                    });
+                                }
+                                business_region_name = Some(name);
+                            }
+                            None => return,
+                        }
+                    }
+                    Region::Service => {}
+                }
                 match self.checkout.setup(
                     &ws,
                     &region,
@@ -93,26 +102,28 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout, B: BusinessRegionRepo
     fn resolve_business_region(
         &self,
         workspace: &crate::domain::workspace::WorkspacePath,
-    ) -> Option<BusinessRegionName> {
+    ) -> Option<(BusinessRegionName, bool)> {
         let regions = self
             .business_region_repo
             .list(workspace)
             .unwrap_or_default();
 
-        let raw_name = if regions.is_empty() {
-            self.prompt.input_business_region_name()
+        let (raw_name, is_existing) = if regions.is_empty() {
+            (self.prompt.input_business_region_name(), false)
         } else {
             let action = self.prompt.show_business_region_action_menu();
             match action {
                 BusinessRegionAction::SelectExisting => {
-                    self.prompt.show_business_region_list(&regions)
+                    (self.prompt.show_business_region_list(&regions), true)
                 }
-                BusinessRegionAction::CreateNew => self.prompt.input_business_region_name(),
+                BusinessRegionAction::CreateNew => {
+                    (self.prompt.input_business_region_name(), false)
+                }
             }
         };
 
         match BusinessRegionName::new(&raw_name) {
-            Ok(name) => Some(name),
+            Ok(name) => Some((name, is_existing)),
             Err(e) => {
                 self.prompt.show_message(&format!("領域名が不正です: {e}"));
                 None
@@ -376,10 +387,11 @@ mod tests {
     }
 
     #[test]
-    fn business_region_select_existing() {
+    fn business_region_select_existing_rust() {
         let prompt = MockPrompt::new(RegionChoice::Business)
             .with_business_region_action(BusinessRegionAction::SelectExisting)
-            .with_business_region_list_selection("sales");
+            .with_business_region_list_selection("sales")
+            .with_language(LanguageChoice::Rust);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
         };
@@ -391,10 +403,30 @@ mod tests {
 
         let called = checkout.called_with.borrow();
         let (_, targets) = called.as_ref().unwrap();
-        assert_eq!(targets, &["system-region", "business-region/sales"]);
+        assert_eq!(targets, &["system-region", "business-region/sales/rust"]);
 
         let msgs = prompt.messages.borrow();
         assert!(msgs[1].contains("部門固有領域"));
+    }
+
+    #[test]
+    fn business_region_select_existing_go() {
+        let prompt = MockPrompt::new(RegionChoice::Business)
+            .with_business_region_action(BusinessRegionAction::SelectExisting)
+            .with_business_region_list_selection("sales")
+            .with_language(LanguageChoice::Go);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::with_regions(&["sales", "hr"]);
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(targets, &["system-region", "business-region/sales/go"]);
     }
 
     #[test]

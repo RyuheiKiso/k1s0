@@ -67,7 +67,15 @@ impl Region {
             },
             Region::Business => {
                 let br = match business_region_name {
-                    Some(name) => format!("business-region/{}", name.as_str()),
+                    Some(name) => match language {
+                        Some(Language::Rust) => {
+                            format!("business-region/{}/rust", name.as_str())
+                        }
+                        Some(Language::Go) => {
+                            format!("business-region/{}/go", name.as_str())
+                        }
+                        None => format!("business-region/{}", name.as_str()),
+                    },
                     None => "business-region".to_string(),
                 };
                 vec!["system-region".to_string(), br]
@@ -209,6 +217,24 @@ mod tests {
         assert_eq!(
             Region::Business.checkout_targets(None, None, Some(&name)),
             vec!["system-region", "business-region/sales"]
+        );
+    }
+
+    #[test]
+    fn business_region_with_name_and_rust() {
+        let name = BusinessRegionName::new("sales").unwrap();
+        assert_eq!(
+            Region::Business.checkout_targets(None, Some(&Language::Rust), Some(&name)),
+            vec!["system-region", "business-region/sales/rust"]
+        );
+    }
+
+    #[test]
+    fn business_region_with_name_and_go() {
+        let name = BusinessRegionName::new("sales").unwrap();
+        assert_eq!(
+            Region::Business.checkout_targets(None, Some(&Language::Go), Some(&name)),
+            vec!["system-region", "business-region/sales/go"]
         );
     }
 
