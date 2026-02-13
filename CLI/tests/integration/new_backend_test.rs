@@ -29,6 +29,11 @@ fn test_new_backend_rust_non_interactive() {
     assert!(project_dir.join("Dockerfile").exists());
     assert!(project_dir.join(".dockerignore").exists());
     assert!(project_dir.join("docker-compose.yml").exists());
+    assert!(project_dir.join("k8s/namespace.yml").exists());
+    assert!(project_dir.join("k8s/deployment.yml").exists());
+    assert!(project_dir.join("k8s/service.yml").exists());
+    assert!(project_dir.join("k8s/ingress.yml").exists());
+    assert!(project_dir.join("k8s/configmap.yml").exists());
 }
 
 #[test]
@@ -54,6 +59,11 @@ fn test_new_backend_rust_with_postgresql() {
     assert!(project_dir.join(".dockerignore").exists());
     assert!(project_dir.join("docker-compose.yml").exists());
     assert!(project_dir.join("migrations/001_init.sql").exists());
+    assert!(project_dir.join("k8s/namespace.yml").exists());
+    assert!(project_dir.join("k8s/postgres-secret.yml").exists());
+    assert!(project_dir.join("k8s/postgres-pvc.yml").exists());
+    assert!(project_dir.join("k8s/postgres-statefulset.yml").exists());
+    assert!(project_dir.join("k8s/postgres-service.yml").exists());
 }
 
 #[test]

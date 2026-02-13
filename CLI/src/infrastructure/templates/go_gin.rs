@@ -15,10 +15,10 @@ pub fn generate(name: &str) -> Vec<(PathBuf, String)> {
 pub fn dockerfile() -> String {
     r#"FROM golang:1.22-alpine AS build
 WORKDIR /app
-COPY go.mod go.sum* ./
+COPY go.mod ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -o server .
+RUN go mod tidy && CGO_ENABLED=0 go build -o server .
 
 FROM alpine:3.20
 COPY --from=build /app/server /usr/local/bin/server

@@ -15,7 +15,7 @@ pub fn generate(name: &str) -> Vec<(PathBuf, String)> {
 
 pub fn dockerfile(name: &str) -> String {
     format!(
-        r#"FROM rust:1.83-alpine AS build
+        r#"FROM rust:1.85-alpine AS build
 RUN apk add --no-cache musl-dev
 WORKDIR /app
 COPY . .
@@ -191,7 +191,7 @@ mod tests {
     #[test]
     fn test_dockerfile_uses_rust_alpine() {
         let content = dockerfile("my-rust-svc");
-        assert!(content.contains("rust:1.83-alpine"));
+        assert!(content.contains("rust:1.85-alpine"));
         assert!(content.contains("alpine:3.20"));
         assert!(content.contains("cargo build --release"));
         assert!(content.contains("my-rust-svc"));

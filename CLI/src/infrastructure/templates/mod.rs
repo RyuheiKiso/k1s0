@@ -2,6 +2,7 @@ pub mod react;
 pub mod flutter;
 pub mod rust_axum;
 pub mod go_gin;
+pub mod kubernetes;
 
 use std::path::PathBuf;
 
@@ -16,6 +17,7 @@ pub fn generate_template_files(config: &ProjectConfig) -> Vec<(PathBuf, String)>
     };
 
     files.push((PathBuf::from("docker-compose.yml"), docker_compose(config)));
+    files.extend(kubernetes::generate(config));
 
     if config.database == Database::PostgreSql {
         files.push((PathBuf::from("migrations/001_init.sql"), migration_init()));
@@ -104,6 +106,9 @@ mod tests {
         assert!(paths.contains(&PathBuf::from("Dockerfile")));
         assert!(paths.contains(&PathBuf::from(".dockerignore")));
         assert!(paths.contains(&PathBuf::from("docker-compose.yml")));
+        assert!(paths.contains(&PathBuf::from("k8s/namespace.yml")));
+        assert!(paths.contains(&PathBuf::from("k8s/deployment.yml")));
+        assert!(paths.contains(&PathBuf::from("k8s/service.yml")));
     }
 
     #[test]
@@ -123,6 +128,8 @@ mod tests {
         assert!(paths.contains(&PathBuf::from(".dockerignore")));
         assert!(paths.contains(&PathBuf::from("docker-compose.yml")));
         assert!(paths.contains(&PathBuf::from("migrations/001_init.sql")));
+        assert!(paths.contains(&PathBuf::from("k8s/postgres-secret.yml")));
+        assert!(paths.contains(&PathBuf::from("k8s/postgres-statefulset.yml")));
     }
 
     #[test]
@@ -142,6 +149,8 @@ mod tests {
         assert!(paths.contains(&PathBuf::from(".dockerignore")));
         assert!(paths.contains(&PathBuf::from("docker-compose.yml")));
         assert!(!paths.contains(&PathBuf::from("migrations/001_init.sql")));
+        assert!(paths.contains(&PathBuf::from("k8s/namespace.yml")));
+        assert!(!paths.contains(&PathBuf::from("k8s/postgres-secret.yml")));
     }
 
     #[test]
