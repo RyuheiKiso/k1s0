@@ -101,6 +101,13 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout, B: BusinessRegionRepo
                             ServiceTypeChoice::Client => ServiceType::Client,
                             ServiceTypeChoice::Server => ServiceType::Server,
                         });
+                        if service_type == Some(ServiceType::Server) {
+                            let lang_choice = self.prompt.show_language_menu();
+                            language = Some(match lang_choice {
+                                LanguageChoice::Rust => Language::Rust,
+                                LanguageChoice::Go => Language::Go,
+                            });
+                        }
                         if service_type == Some(ServiceType::Client) {
                             let cf_choice = self.prompt.show_client_framework_menu();
                             client_framework = Some(match cf_choice {
@@ -725,7 +732,61 @@ mod tests {
             &[
                 "system-region",
                 "business-region/sales",
-                "service-region/server"
+                "service-region/server/rust"
+            ]
+        );
+    }
+
+    #[test]
+    fn service_region_server_rust_checkout() {
+        let prompt = MockPrompt::new(RegionChoice::Service)
+            .with_business_region_list_selection("sales")
+            .with_service_type(ServiceTypeChoice::Server)
+            .with_language(LanguageChoice::Rust);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::with_regions(&["sales", "hr"]);
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(
+            targets,
+            &[
+                "system-region",
+                "business-region/sales",
+                "service-region/server/rust"
+            ]
+        );
+    }
+
+    #[test]
+    fn service_region_server_go_checkout() {
+        let prompt = MockPrompt::new(RegionChoice::Service)
+            .with_business_region_list_selection("sales")
+            .with_service_type(ServiceTypeChoice::Server)
+            .with_language(LanguageChoice::Go);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::with_regions(&["sales", "hr"]);
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(
+            targets,
+            &[
+                "system-region",
+                "business-region/sales",
+                "service-region/server/go"
             ]
         );
     }

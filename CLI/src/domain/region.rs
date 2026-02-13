@@ -111,7 +111,11 @@ impl Region {
                         }
                         None => "service-region/client".to_string(),
                     },
-                    Some(ServiceType::Server) => "service-region/server".to_string(),
+                    Some(ServiceType::Server) => match language {
+                        Some(Language::Rust) => "service-region/server/rust".to_string(),
+                        Some(Language::Go) => "service-region/server/go".to_string(),
+                        None => "service-region/server".to_string(),
+                    },
                     None => "service-region".to_string(),
                 };
                 vec!["system-region".to_string(), br, sr]
@@ -515,6 +519,63 @@ mod tests {
                 "system-region",
                 "business-region/sales",
                 "service-region/client"
+            ]
+        );
+    }
+
+    #[test]
+    fn service_region_server_rust_checkout_targets() {
+        let name = BusinessRegionName::new("sales").unwrap();
+        assert_eq!(
+            Region::Service.checkout_targets(
+                None,
+                Some(&Language::Rust),
+                Some(&name),
+                Some(&ServiceType::Server),
+                None,
+            ),
+            vec![
+                "system-region",
+                "business-region/sales",
+                "service-region/server/rust"
+            ]
+        );
+    }
+
+    #[test]
+    fn service_region_server_go_checkout_targets() {
+        let name = BusinessRegionName::new("sales").unwrap();
+        assert_eq!(
+            Region::Service.checkout_targets(
+                None,
+                Some(&Language::Go),
+                Some(&name),
+                Some(&ServiceType::Server),
+                None,
+            ),
+            vec![
+                "system-region",
+                "business-region/sales",
+                "service-region/server/go"
+            ]
+        );
+    }
+
+    #[test]
+    fn service_region_client_ignores_language() {
+        let name = BusinessRegionName::new("sales").unwrap();
+        assert_eq!(
+            Region::Service.checkout_targets(
+                None,
+                Some(&Language::Rust),
+                Some(&name),
+                Some(&ServiceType::Client),
+                Some(&ClientFramework::React),
+            ),
+            vec![
+                "system-region",
+                "business-region/sales",
+                "service-region/client/react"
             ]
         );
     }
