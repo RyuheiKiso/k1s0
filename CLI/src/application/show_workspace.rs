@@ -62,6 +62,9 @@ mod tests {
         fn show_service_type_menu(&self) -> crate::application::port::ServiceTypeChoice {
             crate::application::port::ServiceTypeChoice::Client
         }
+        fn show_client_framework_menu(&self) -> crate::application::port::ClientFrameworkChoice {
+            crate::application::port::ClientFrameworkChoice::React
+        }
         fn show_business_region_action_menu(
             &self,
         ) -> crate::application::port::BusinessRegionAction {

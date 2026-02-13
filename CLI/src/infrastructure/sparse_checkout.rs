@@ -2,7 +2,9 @@ use std::path::Path;
 use std::process::Command;
 
 use crate::application::port::RegionCheckout;
-use crate::domain::region::{BusinessRegionName, Language, ProjectType, Region, ServiceType};
+use crate::domain::region::{
+    BusinessRegionName, ClientFramework, Language, ProjectType, Region, ServiceType,
+};
 use crate::domain::workspace::WorkspacePath;
 
 pub struct GitSparseCheckout;
@@ -16,9 +18,15 @@ impl RegionCheckout for GitSparseCheckout {
         language: Option<&Language>,
         business_region_name: Option<&BusinessRegionName>,
         service_type: Option<&ServiceType>,
+        client_framework: Option<&ClientFramework>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let mut targets =
-            region.checkout_targets(project_type, language, business_region_name, service_type);
+        let mut targets = region.checkout_targets(
+            project_type,
+            language,
+            business_region_name,
+            service_type,
+            client_framework,
+        );
         for keep in ["CLI", "docs"] {
             if !targets.iter().any(|t| t == keep) {
                 targets.push(keep.to_string());

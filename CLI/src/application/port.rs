@@ -1,4 +1,6 @@
-use crate::domain::region::{BusinessRegionName, Language, ProjectType, Region, ServiceType};
+use crate::domain::region::{
+    BusinessRegionName, ClientFramework, Language, ProjectType, Region, ServiceType,
+};
 use crate::domain::workspace::WorkspacePath;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,6 +43,12 @@ pub enum ServiceTypeChoice {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClientFrameworkChoice {
+    React,
+    Flutter,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BusinessRegionAction {
     SelectExisting,
     CreateNew,
@@ -53,6 +61,7 @@ pub trait UserPrompt {
     fn show_project_type_menu(&self) -> ProjectTypeChoice;
     fn show_language_menu(&self) -> LanguageChoice;
     fn show_service_type_menu(&self) -> ServiceTypeChoice;
+    fn show_client_framework_menu(&self) -> ClientFrameworkChoice;
     fn show_business_region_action_menu(&self) -> BusinessRegionAction;
     fn show_business_region_list(&self, regions: &[String]) -> String;
     fn input_business_region_name(&self) -> String;
@@ -67,6 +76,7 @@ pub trait ConfigStore {
 }
 
 pub trait RegionCheckout {
+    #[allow(clippy::too_many_arguments)]
     fn setup(
         &self,
         workspace: &WorkspacePath,
@@ -75,6 +85,7 @@ pub trait RegionCheckout {
         language: Option<&Language>,
         business_region_name: Option<&BusinessRegionName>,
         service_type: Option<&ServiceType>,
+        client_framework: Option<&ClientFramework>,
     ) -> Result<(), Box<dyn std::error::Error>>;
 }
 

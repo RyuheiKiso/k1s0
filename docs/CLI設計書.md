@@ -49,7 +49,8 @@ system-region および business-region 選択時はさらにプロジェクト�
 | business-region | 新規追加 → Library → Go   | `system-region/` + `business-region/{入力した領域}/library/go/`                  |
 | business-region | 新規追加 → Service → Rust | `system-region/` + `business-region/{入力した領域}/service/rust/`                |
 | business-region | 新規追加 → Service → Go   | `system-region/` + `business-region/{入力した領域}/service/go/`                  |
-| service-region  | 部門固有領域選択 → Client | `system-region/` + `business-region/{選択した部門固有領域}/` + `service-region/client/` |
+| service-region  | 部門固有領域選択 → Client → React   | `system-region/` + `business-region/{選択した部門固有領域}/` + `service-region/client/react/`   |
+| service-region  | 部門固有領域選択 → Client → Flutter | `system-region/` + `business-region/{選択した部門固有領域}/` + `service-region/client/flutter/` |
 | service-region  | 部門固有領域選択 → Server | `system-region/` + `business-region/{選択した部門固有領域}/` + `service-region/server/` |
 
 ## フロー図
@@ -116,7 +117,11 @@ flowchart TD
     SRBRL --> SRCS["Client / Server を選択"]
     SRCS --> SRC["Client"]
     SRCS --> SRS["Server"]
-    SRC --> SC3C["sparse-checkout set system-region/ business-region/{選択した部門固有領域}/ service-region/client/"]
+    SRC --> SRCFW["フレームワークを選択"]
+    SRCFW --> SRCFW1["React"]
+    SRCFW --> SRCFW2["Flutter"]
+    SRCFW1 --> SC3CR["sparse-checkout set system-region/ business-region/{選択した部門固有領域}/ service-region/client/react/"]
+    SRCFW2 --> SC3CF["sparse-checkout set system-region/ business-region/{選択した部門固有領域}/ service-region/client/flutter/"]
     SRS --> SC3S["sparse-checkout set system-region/ business-region/{選択した部門固有領域}/ service-region/server/"]
     F -->|No| H["ワークスペースパス設定へ促す"]
 

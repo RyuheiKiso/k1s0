@@ -27,6 +27,12 @@ pub enum ServiceType {
     Server,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClientFramework {
+    React,
+    Flutter,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BusinessRegionName(String);
 
@@ -51,6 +57,7 @@ impl Region {
         language: Option<&Language>,
         business_region_name: Option<&BusinessRegionName>,
         service_type: Option<&ServiceType>,
+        client_framework: Option<&ClientFramework>,
     ) -> Vec<String> {
         match self {
             Region::System => match project_type {
@@ -97,7 +104,13 @@ impl Region {
                     None => "business-region".to_string(),
                 };
                 let sr = match service_type {
-                    Some(ServiceType::Client) => "service-region/client".to_string(),
+                    Some(ServiceType::Client) => match client_framework {
+                        Some(ClientFramework::React) => "service-region/client/react".to_string(),
+                        Some(ClientFramework::Flutter) => {
+                            "service-region/client/flutter".to_string()
+                        }
+                        None => "service-region/client".to_string(),
+                    },
                     Some(ServiceType::Server) => "service-region/server".to_string(),
                     None => "service-region".to_string(),
                 };
@@ -161,6 +174,7 @@ mod tests {
                 Some(&Language::Rust),
                 None,
                 None,
+                None,
             ),
             vec!["system-region/library/rust"]
         );
@@ -173,7 +187,8 @@ mod tests {
                 Some(&ProjectType::Library),
                 Some(&Language::Go),
                 None,
-                None
+                None,
+                None,
             ),
             vec!["system-region/library/go"]
         );
@@ -182,7 +197,7 @@ mod tests {
     #[test]
     fn system_region_library_without_language_falls_back() {
         assert_eq!(
-            Region::System.checkout_targets(Some(&ProjectType::Library), None, None, None),
+            Region::System.checkout_targets(Some(&ProjectType::Library), None, None, None, None),
             vec!["system-region/library"]
         );
     }
@@ -193,6 +208,7 @@ mod tests {
             Region::System.checkout_targets(
                 Some(&ProjectType::Service),
                 Some(&Language::Rust),
+                None,
                 None,
                 None,
             ),
@@ -207,7 +223,8 @@ mod tests {
                 Some(&ProjectType::Service),
                 Some(&Language::Go),
                 None,
-                None
+                None,
+                None,
             ),
             vec!["system-region/service/go"]
         );
@@ -216,7 +233,7 @@ mod tests {
     #[test]
     fn system_region_service_without_language_falls_back() {
         assert_eq!(
-            Region::System.checkout_targets(Some(&ProjectType::Service), None, None, None),
+            Region::System.checkout_targets(Some(&ProjectType::Service), None, None, None, None),
             vec!["system-region/service"]
         );
     }
@@ -224,7 +241,7 @@ mod tests {
     #[test]
     fn system_region_without_project_type_falls_back() {
         assert_eq!(
-            Region::System.checkout_targets(None, None, None, None),
+            Region::System.checkout_targets(None, None, None, None, None),
             vec!["system-region"]
         );
     }
@@ -232,7 +249,7 @@ mod tests {
     #[test]
     fn business_region_without_name_uses_default() {
         assert_eq!(
-            Region::Business.checkout_targets(None, None, None, None),
+            Region::Business.checkout_targets(None, None, None, None, None),
             vec!["system-region", "business-region"]
         );
     }
@@ -241,7 +258,7 @@ mod tests {
     fn business_region_with_name_without_project_type_uses_subdirectory() {
         let name = BusinessRegionName::new("sales").unwrap();
         assert_eq!(
-            Region::Business.checkout_targets(None, None, Some(&name), None),
+            Region::Business.checkout_targets(None, None, Some(&name), None, None),
             vec!["system-region", "business-region/sales"]
         );
     }
@@ -254,6 +271,7 @@ mod tests {
                 Some(&ProjectType::Library),
                 Some(&Language::Rust),
                 Some(&name),
+                None,
                 None,
             ),
             vec!["system-region", "business-region/sales/library/rust"]
@@ -269,6 +287,7 @@ mod tests {
                 Some(&Language::Go),
                 Some(&name),
                 None,
+                None,
             ),
             vec!["system-region", "business-region/sales/library/go"]
         );
@@ -282,6 +301,7 @@ mod tests {
                 Some(&ProjectType::Service),
                 Some(&Language::Rust),
                 Some(&name),
+                None,
                 None,
             ),
             vec!["system-region", "business-region/sales/service/rust"]
@@ -297,6 +317,7 @@ mod tests {
                 Some(&Language::Go),
                 Some(&name),
                 None,
+                None,
             ),
             vec!["system-region", "business-region/sales/service/go"]
         );
@@ -306,7 +327,13 @@ mod tests {
     fn business_region_library_without_language_falls_back() {
         let name = BusinessRegionName::new("sales").unwrap();
         assert_eq!(
-            Region::Business.checkout_targets(Some(&ProjectType::Library), None, Some(&name), None),
+            Region::Business.checkout_targets(
+                Some(&ProjectType::Library),
+                None,
+                Some(&name),
+                None,
+                None
+            ),
             vec!["system-region", "business-region/sales/library"]
         );
     }
@@ -315,7 +342,13 @@ mod tests {
     fn business_region_service_without_language_falls_back() {
         let name = BusinessRegionName::new("sales").unwrap();
         assert_eq!(
-            Region::Business.checkout_targets(Some(&ProjectType::Service), None, Some(&name), None),
+            Region::Business.checkout_targets(
+                Some(&ProjectType::Service),
+                None,
+                Some(&name),
+                None,
+                None
+            ),
             vec!["system-region", "business-region/sales/service"]
         );
     }
@@ -323,7 +356,7 @@ mod tests {
     #[test]
     fn service_region_includes_all_dependencies() {
         assert_eq!(
-            Region::Service.checkout_targets(None, None, None, None),
+            Region::Service.checkout_targets(None, None, None, None, None),
             vec!["system-region", "business-region", "service-region"]
         );
     }
@@ -331,7 +364,7 @@ mod tests {
     #[test]
     fn business_region_without_name_ignores_project_type() {
         assert_eq!(
-            Region::Business.checkout_targets(Some(&ProjectType::Library), None, None, None),
+            Region::Business.checkout_targets(Some(&ProjectType::Library), None, None, None, None),
             vec!["system-region", "business-region"]
         );
     }
@@ -339,7 +372,7 @@ mod tests {
     #[test]
     fn service_region_ignores_project_type() {
         assert_eq!(
-            Region::Service.checkout_targets(Some(&ProjectType::Service), None, None, None),
+            Region::Service.checkout_targets(Some(&ProjectType::Service), None, None, None, None),
             vec!["system-region", "business-region", "service-region"]
         );
     }
@@ -348,7 +381,7 @@ mod tests {
     fn service_region_with_business_name_uses_subdirectory() {
         let name = BusinessRegionName::new("sales").unwrap();
         assert_eq!(
-            Region::Service.checkout_targets(None, None, Some(&name), None),
+            Region::Service.checkout_targets(None, None, Some(&name), None, None),
             vec!["system-region", "business-region/sales", "service-region"]
         );
     }
@@ -357,7 +390,7 @@ mod tests {
     fn service_region_with_business_name_ignores_language() {
         let name = BusinessRegionName::new("hr").unwrap();
         assert_eq!(
-            Region::Service.checkout_targets(None, Some(&Language::Rust), Some(&name), None),
+            Region::Service.checkout_targets(None, Some(&Language::Rust), Some(&name), None, None),
             vec!["system-region", "business-region/hr", "service-region"]
         );
     }
@@ -366,7 +399,13 @@ mod tests {
     fn service_region_client_checkout_targets() {
         let name = BusinessRegionName::new("sales").unwrap();
         assert_eq!(
-            Region::Service.checkout_targets(None, None, Some(&name), Some(&ServiceType::Client)),
+            Region::Service.checkout_targets(
+                None,
+                None,
+                Some(&name),
+                Some(&ServiceType::Client),
+                None
+            ),
             vec![
                 "system-region",
                 "business-region/sales",
@@ -379,7 +418,13 @@ mod tests {
     fn service_region_server_checkout_targets() {
         let name = BusinessRegionName::new("sales").unwrap();
         assert_eq!(
-            Region::Service.checkout_targets(None, None, Some(&name), Some(&ServiceType::Server)),
+            Region::Service.checkout_targets(
+                None,
+                None,
+                Some(&name),
+                Some(&ServiceType::Server),
+                None
+            ),
             vec![
                 "system-region",
                 "business-region/sales",
@@ -396,6 +441,7 @@ mod tests {
                 Some(&Language::Rust),
                 None,
                 Some(&ServiceType::Client),
+                None,
             ),
             vec!["system-region/library/rust"]
         );
@@ -410,8 +456,85 @@ mod tests {
                 Some(&Language::Rust),
                 Some(&name),
                 Some(&ServiceType::Server),
+                None,
             ),
             vec!["system-region", "business-region/sales/library/rust"]
+        );
+    }
+
+    #[test]
+    fn service_region_client_react_checkout_targets() {
+        let name = BusinessRegionName::new("sales").unwrap();
+        assert_eq!(
+            Region::Service.checkout_targets(
+                None,
+                None,
+                Some(&name),
+                Some(&ServiceType::Client),
+                Some(&ClientFramework::React),
+            ),
+            vec![
+                "system-region",
+                "business-region/sales",
+                "service-region/client/react"
+            ]
+        );
+    }
+
+    #[test]
+    fn service_region_client_flutter_checkout_targets() {
+        let name = BusinessRegionName::new("sales").unwrap();
+        assert_eq!(
+            Region::Service.checkout_targets(
+                None,
+                None,
+                Some(&name),
+                Some(&ServiceType::Client),
+                Some(&ClientFramework::Flutter),
+            ),
+            vec![
+                "system-region",
+                "business-region/sales",
+                "service-region/client/flutter"
+            ]
+        );
+    }
+
+    #[test]
+    fn service_region_client_without_framework_falls_back() {
+        let name = BusinessRegionName::new("sales").unwrap();
+        assert_eq!(
+            Region::Service.checkout_targets(
+                None,
+                None,
+                Some(&name),
+                Some(&ServiceType::Client),
+                None,
+            ),
+            vec![
+                "system-region",
+                "business-region/sales",
+                "service-region/client"
+            ]
+        );
+    }
+
+    #[test]
+    fn service_region_server_ignores_client_framework() {
+        let name = BusinessRegionName::new("sales").unwrap();
+        assert_eq!(
+            Region::Service.checkout_targets(
+                None,
+                None,
+                Some(&name),
+                Some(&ServiceType::Server),
+                Some(&ClientFramework::React),
+            ),
+            vec![
+                "system-region",
+                "business-region/sales",
+                "service-region/server"
+            ]
         );
     }
 

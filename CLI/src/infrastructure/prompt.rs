@@ -2,8 +2,8 @@ use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Input, Select};
 
 use crate::application::port::{
-    BusinessRegionAction, LanguageChoice, MainMenuChoice, ProjectTypeChoice, RegionChoice,
-    ServiceTypeChoice, SettingsMenuChoice, UserPrompt,
+    BusinessRegionAction, ClientFrameworkChoice, LanguageChoice, MainMenuChoice, ProjectTypeChoice,
+    RegionChoice, ServiceTypeChoice, SettingsMenuChoice, UserPrompt,
 };
 use crate::infrastructure::ui;
 
@@ -104,6 +104,24 @@ impl UserPrompt for DialoguerPrompt {
         match selection {
             0 => ServiceTypeChoice::Client,
             _ => ServiceTypeChoice::Server,
+        }
+    }
+
+    fn show_client_framework_menu(&self) -> ClientFrameworkChoice {
+        let items = &[
+            "React : Webアプリケーション",
+            "Flutter : クロスプラットフォーム",
+        ];
+        let selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("クライアントフレームワークを選択してください")
+            .items(items)
+            .default(0)
+            .interact()
+            .unwrap_or(0);
+
+        match selection {
+            0 => ClientFrameworkChoice::React,
+            _ => ClientFrameworkChoice::Flutter,
         }
     }
 

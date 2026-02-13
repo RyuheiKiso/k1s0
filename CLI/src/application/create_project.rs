@@ -1,8 +1,10 @@
-use crate::domain::region::{BusinessRegionName, Language, ProjectType, Region, ServiceType};
+use crate::domain::region::{
+    BusinessRegionName, ClientFramework, Language, ProjectType, Region, ServiceType,
+};
 
 use super::port::{
-    BusinessRegionAction, BusinessRegionRepository, ConfigStore, LanguageChoice, ProjectTypeChoice,
-    RegionCheckout, RegionChoice, ServiceTypeChoice, UserPrompt,
+    BusinessRegionAction, BusinessRegionRepository, ClientFrameworkChoice, ConfigStore,
+    LanguageChoice, ProjectTypeChoice, RegionCheckout, RegionChoice, ServiceTypeChoice, UserPrompt,
 };
 
 pub struct CreateProjectUseCase<
@@ -45,6 +47,7 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout, B: BusinessRegionRepo
                 let mut language = None;
                 let mut business_region_name = None;
                 let mut service_type = None;
+                let mut client_framework = None;
 
                 match region {
                     Region::System => {
@@ -98,6 +101,13 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout, B: BusinessRegionRepo
                             ServiceTypeChoice::Client => ServiceType::Client,
                             ServiceTypeChoice::Server => ServiceType::Server,
                         });
+                        if service_type == Some(ServiceType::Client) {
+                            let cf_choice = self.prompt.show_client_framework_menu();
+                            client_framework = Some(match cf_choice {
+                                ClientFrameworkChoice::React => ClientFramework::React,
+                                ClientFrameworkChoice::Flutter => ClientFramework::Flutter,
+                            });
+                        }
                     }
                 }
                 match self.checkout.setup(
@@ -107,6 +117,7 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout, B: BusinessRegionRepo
                     language.as_ref(),
                     business_region_name.as_ref(),
                     service_type.as_ref(),
+                    client_framework.as_ref(),
                 ) {
                     Ok(()) => {
                         self.prompt
@@ -164,8 +175,8 @@ mod tests {
 
     use super::*;
     use crate::application::port::{
-        BusinessRegionAction, LanguageChoice, MainMenuChoice, ProjectTypeChoice, RegionChoice,
-        ServiceTypeChoice, SettingsMenuChoice,
+        BusinessRegionAction, ClientFrameworkChoice, LanguageChoice, MainMenuChoice,
+        ProjectTypeChoice, RegionChoice, ServiceTypeChoice, SettingsMenuChoice,
     };
     use crate::domain::workspace::WorkspacePath;
 
@@ -178,6 +189,7 @@ mod tests {
         business_region_list_selection: RefCell<String>,
         business_region_name_input: RefCell<String>,
         service_type_choice: RefCell<ServiceTypeChoice>,
+        client_framework_choice: RefCell<ClientFrameworkChoice>,
     }
 
     impl MockPrompt {
@@ -191,6 +203,7 @@ mod tests {
                 business_region_list_selection: RefCell::new(String::new()),
                 business_region_name_input: RefCell::new(String::new()),
                 service_type_choice: RefCell::new(ServiceTypeChoice::Client),
+                client_framework_choice: RefCell::new(ClientFrameworkChoice::React),
             }
         }
 
@@ -223,6 +236,11 @@ mod tests {
             *self.service_type_choice.borrow_mut() = st;
             self
         }
+
+        fn with_client_framework(self, cf: ClientFrameworkChoice) -> Self {
+            *self.client_framework_choice.borrow_mut() = cf;
+            self
+        }
     }
 
     impl UserPrompt for MockPrompt {
@@ -243,6 +261,9 @@ mod tests {
         }
         fn show_service_type_menu(&self) -> ServiceTypeChoice {
             *self.service_type_choice.borrow()
+        }
+        fn show_client_framework_menu(&self) -> ClientFrameworkChoice {
+            *self.client_framework_choice.borrow()
         }
         fn show_business_region_action_menu(&self) -> BusinessRegionAction {
             *self.business_region_action.borrow()
@@ -307,9 +328,15 @@ mod tests {
             language: Option<&Language>,
             business_region_name: Option<&BusinessRegionName>,
             service_type: Option<&ServiceType>,
+            client_framework: Option<&ClientFramework>,
         ) -> Result<(), Box<dyn std::error::Error>> {
-            let targets =
-                region.checkout_targets(project_type, language, business_region_name, service_type);
+            let targets = region.checkout_targets(
+                project_type,
+                language,
+                business_region_name,
+                service_type,
+                client_framework,
+            );
             *self.called_with.borrow_mut() = Some((workspace.to_string_lossy(), targets));
             if self.should_fail {
                 Err("git error".into())
@@ -640,7 +667,7 @@ mod tests {
             &[
                 "system-region",
                 "business-region/sales",
-                "service-region/client"
+                "service-region/client/react"
             ]
         );
 
@@ -672,7 +699,7 @@ mod tests {
             &[
                 "system-region",
                 "business-region/sales",
-                "service-region/client"
+                "service-region/client/react"
             ]
         );
     }
@@ -699,6 +726,60 @@ mod tests {
                 "system-region",
                 "business-region/sales",
                 "service-region/server"
+            ]
+        );
+    }
+
+    #[test]
+    fn service_region_client_react_checkout() {
+        let prompt = MockPrompt::new(RegionChoice::Service)
+            .with_business_region_list_selection("sales")
+            .with_service_type(ServiceTypeChoice::Client)
+            .with_client_framework(ClientFrameworkChoice::React);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::with_regions(&["sales", "hr"]);
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(
+            targets,
+            &[
+                "system-region",
+                "business-region/sales",
+                "service-region/client/react"
+            ]
+        );
+    }
+
+    #[test]
+    fn service_region_client_flutter_checkout() {
+        let prompt = MockPrompt::new(RegionChoice::Service)
+            .with_business_region_list_selection("sales")
+            .with_service_type(ServiceTypeChoice::Client)
+            .with_client_framework(ClientFrameworkChoice::Flutter);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::with_regions(&["sales", "hr"]);
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(
+            targets,
+            &[
+                "system-region",
+                "business-region/sales",
+                "service-region/client/flutter"
             ]
         );
     }
