@@ -33,19 +33,23 @@ service-region          ← system-region, business-region に依存
 ## Region別チェックアウト範囲
 
 Git Sparse Checkout を利用し、選択したRegionに必要なディレクトリのみ取得する。
-system-region 選択時はさらにプロジェクト種別（Library / Service）を選択する。
+system-region および business-region 選択時はさらにプロジェクト種別（Library / Service）を選択する。
 
-| Region選択      | プロジェクト種別 | チェックアウト対象                                        |
-| --------------- | ---------------- | --------------------------------------------------------- |
-| system-region   | Library → Rust   | `system-region/library/rust/`                             |
-| system-region   | Library → Go     | `system-region/library/go/`                               |
-| system-region   | Service → Rust   | `system-region/service/rust/`                             |
-| system-region   | Service → Go     | `system-region/service/go/`                               |
-| business-region | 既存 → Rust      | `system-region/` + `business-region/{選択した領域}/rust/`  |
-| business-region | 既存 → Go        | `system-region/` + `business-region/{選択した領域}/go/`    |
-| business-region | 新規追加 → Rust  | `system-region/` + `business-region/{入力した領域}/rust/`  |
-| business-region | 新規追加 → Go    | `system-region/` + `business-region/{入力した領域}/go/`    |
-| service-region  | 部門固有領域選択 | `system-region/` + `business-region/{選択した部門固有領域}/` + `service-region/` |
+| Region選択      | プロジェクト種別          | チェックアウト対象                                                               |
+| --------------- | ------------------------- | -------------------------------------------------------------------------------- |
+| system-region   | Library → Rust            | `system-region/library/rust/`                                                    |
+| system-region   | Library → Go              | `system-region/library/go/`                                                      |
+| system-region   | Service → Rust            | `system-region/service/rust/`                                                    |
+| system-region   | Service → Go              | `system-region/service/go/`                                                      |
+| business-region | 既存 → Library → Rust     | `system-region/` + `business-region/{選択した領域}/library/rust/`                |
+| business-region | 既存 → Library → Go       | `system-region/` + `business-region/{選択した領域}/library/go/`                  |
+| business-region | 既存 → Service → Rust     | `system-region/` + `business-region/{選択した領域}/service/rust/`                |
+| business-region | 既存 → Service → Go       | `system-region/` + `business-region/{選択した領域}/service/go/`                  |
+| business-region | 新規追加 → Library → Rust | `system-region/` + `business-region/{入力した領域}/library/rust/`                |
+| business-region | 新規追加 → Library → Go   | `system-region/` + `business-region/{入力した領域}/library/go/`                  |
+| business-region | 新規追加 → Service → Rust | `system-region/` + `business-region/{入力した領域}/service/rust/`                |
+| business-region | 新規追加 → Service → Go   | `system-region/` + `business-region/{入力した領域}/service/go/`                  |
+| service-region  | 部門固有領域選択          | `system-region/` + `business-region/{選択した部門固有領域}/` + `service-region/` |
 
 ## フロー図
 
@@ -79,17 +83,33 @@ flowchart TD
     BR --> BR1["既存の部門固有領域"]
     BR --> BR2["新規追加"]
     BR1 --> BRL["既存の部門固有領域一覧から選択"]
-    BRL --> BRLang["言語を選択"]
-    BRLang --> BRLang1["Rust"]
-    BRLang --> BRLang2["Go"]
-    BRLang1 --> SC2R["sparse-checkout set system-region/ business-region/{選択した領域}/rust/"]
-    BRLang2 --> SC2G["sparse-checkout set system-region/ business-region/{選択した領域}/go/"]
+    BRL --> BRPT1["プロジェクト種別を選択"]
+    BRPT1 --> BRPT1L["Library : ライブラリ"]
+    BRPT1 --> BRPT1S["Service : サービス"]
+    BRPT1L --> BRLLLang["言語を選択"]
+    BRLLLang --> BRLLLang1["Rust"]
+    BRLLLang --> BRLLLang2["Go"]
+    BRLLLang1 --> SC2LR["sparse-checkout set system-region/ business-region/{選択した領域}/library/rust/"]
+    BRLLLang2 --> SC2LG["sparse-checkout set system-region/ business-region/{選択した領域}/library/go/"]
+    BRPT1S --> BRLSLang["言語を選択"]
+    BRLSLang --> BRLSLang1["Rust"]
+    BRLSLang --> BRLSLang2["Go"]
+    BRLSLang1 --> SC2SR["sparse-checkout set system-region/ business-region/{選択した領域}/service/rust/"]
+    BRLSLang2 --> SC2SG["sparse-checkout set system-region/ business-region/{選択した領域}/service/go/"]
     BR2 --> BRN["部門固有領域名を入力"]
-    BRN --> BRNLang["言語を選択"]
-    BRNLang --> BRNLang1["Rust"]
-    BRNLang --> BRNLang2["Go"]
-    BRNLang1 --> SC2NR["sparse-checkout set system-region/ business-region/{入力した領域}/rust/"]
-    BRNLang2 --> SC2NG["sparse-checkout set system-region/ business-region/{入力した領域}/go/"]
+    BRN --> BRPT2["プロジェクト種別を選択"]
+    BRPT2 --> BRPT2L["Library : ライブラリ"]
+    BRPT2 --> BRPT2S["Service : サービス"]
+    BRPT2L --> BRNLLang["言語を選択"]
+    BRNLLang --> BRNLLang1["Rust"]
+    BRNLLang --> BRNLLang2["Go"]
+    BRNLLang1 --> SC2NLR["sparse-checkout set system-region/ business-region/{入力した領域}/library/rust/"]
+    BRNLLang2 --> SC2NLG["sparse-checkout set system-region/ business-region/{入力した領域}/library/go/"]
+    BRPT2S --> BRNSLang["言語を選択"]
+    BRNSLang --> BRNSLang1["Rust"]
+    BRNSLang --> BRNSLang2["Go"]
+    BRNSLang1 --> SC2NSR["sparse-checkout set system-region/ business-region/{入力した領域}/service/rust/"]
+    BRNSLang2 --> SC2NSG["sparse-checkout set system-region/ business-region/{入力した領域}/service/go/"]
     G3 --> SRBR["属する部門固有領域を選択"]
     SRBR --> SRBRL["部門固有領域一覧から選択"]
     SRBRL --> SC3["sparse-checkout set system-region/ business-region/{選択した部門固有領域}/ service-region/"]

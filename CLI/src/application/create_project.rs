@@ -60,6 +60,11 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout, B: BusinessRegionRepo
                     }
                     Region::Business => match self.resolve_business_region(&ws) {
                         Some((name, _)) => {
+                            let pt_choice = self.prompt.show_project_type_menu();
+                            project_type = Some(match pt_choice {
+                                ProjectTypeChoice::Library => ProjectType::Library,
+                                ProjectTypeChoice::Service => ProjectType::Service,
+                            });
                             let lang_choice = self.prompt.show_language_menu();
                             language = Some(match lang_choice {
                                 LanguageChoice::Rust => Language::Rust,
@@ -401,10 +406,11 @@ mod tests {
     }
 
     #[test]
-    fn business_region_select_existing_rust() {
+    fn business_region_select_existing_library_rust() {
         let prompt = MockPrompt::new(RegionChoice::Business)
             .with_business_region_action(BusinessRegionAction::SelectExisting)
             .with_business_region_list_selection("sales")
+            .with_project_type(ProjectTypeChoice::Library)
             .with_language(LanguageChoice::Rust);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
@@ -417,17 +423,21 @@ mod tests {
 
         let called = checkout.called_with.borrow();
         let (_, targets) = called.as_ref().unwrap();
-        assert_eq!(targets, &["system-region", "business-region/sales/rust"]);
+        assert_eq!(
+            targets,
+            &["system-region", "business-region/sales/library/rust"]
+        );
 
         let msgs = prompt.messages.borrow();
         assert!(msgs[1].contains("部門固有領域"));
     }
 
     #[test]
-    fn business_region_select_existing_go() {
+    fn business_region_select_existing_library_go() {
         let prompt = MockPrompt::new(RegionChoice::Business)
             .with_business_region_action(BusinessRegionAction::SelectExisting)
             .with_business_region_list_selection("sales")
+            .with_project_type(ProjectTypeChoice::Library)
             .with_language(LanguageChoice::Go);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
@@ -440,14 +450,66 @@ mod tests {
 
         let called = checkout.called_with.borrow();
         let (_, targets) = called.as_ref().unwrap();
-        assert_eq!(targets, &["system-region", "business-region/sales/go"]);
+        assert_eq!(
+            targets,
+            &["system-region", "business-region/sales/library/go"]
+        );
     }
 
     #[test]
-    fn business_region_create_new() {
+    fn business_region_select_existing_service_rust() {
+        let prompt = MockPrompt::new(RegionChoice::Business)
+            .with_business_region_action(BusinessRegionAction::SelectExisting)
+            .with_business_region_list_selection("sales")
+            .with_project_type(ProjectTypeChoice::Service)
+            .with_language(LanguageChoice::Rust);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::with_regions(&["sales", "hr"]);
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(
+            targets,
+            &["system-region", "business-region/sales/service/rust"]
+        );
+    }
+
+    #[test]
+    fn business_region_select_existing_service_go() {
+        let prompt = MockPrompt::new(RegionChoice::Business)
+            .with_business_region_action(BusinessRegionAction::SelectExisting)
+            .with_business_region_list_selection("sales")
+            .with_project_type(ProjectTypeChoice::Service)
+            .with_language(LanguageChoice::Go);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::with_regions(&["sales", "hr"]);
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(
+            targets,
+            &["system-region", "business-region/sales/service/go"]
+        );
+    }
+
+    #[test]
+    fn business_region_create_new_library_rust() {
         let prompt = MockPrompt::new(RegionChoice::Business)
             .with_business_region_action(BusinessRegionAction::CreateNew)
             .with_business_region_name_input("marketing")
+            .with_project_type(ProjectTypeChoice::Library)
             .with_language(LanguageChoice::Rust);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
@@ -462,15 +524,16 @@ mod tests {
         let (_, targets) = called.as_ref().unwrap();
         assert_eq!(
             targets,
-            &["system-region", "business-region/marketing/rust"]
+            &["system-region", "business-region/marketing/library/rust"]
         );
     }
 
     #[test]
-    fn business_region_create_new_go() {
+    fn business_region_create_new_service_go() {
         let prompt = MockPrompt::new(RegionChoice::Business)
             .with_business_region_action(BusinessRegionAction::CreateNew)
             .with_business_region_name_input("finance")
+            .with_project_type(ProjectTypeChoice::Service)
             .with_language(LanguageChoice::Go);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
@@ -483,13 +546,17 @@ mod tests {
 
         let called = checkout.called_with.borrow();
         let (_, targets) = called.as_ref().unwrap();
-        assert_eq!(targets, &["system-region", "business-region/finance/go"]);
+        assert_eq!(
+            targets,
+            &["system-region", "business-region/finance/service/go"]
+        );
     }
 
     #[test]
-    fn business_region_empty_list_goes_to_new() {
+    fn business_region_empty_list_goes_to_new_with_library() {
         let prompt = MockPrompt::new(RegionChoice::Business)
             .with_business_region_name_input("new-dept")
+            .with_project_type(ProjectTypeChoice::Library)
             .with_language(LanguageChoice::Go);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
@@ -502,7 +569,10 @@ mod tests {
 
         let called = checkout.called_with.borrow();
         let (_, targets) = called.as_ref().unwrap();
-        assert_eq!(targets, &["system-region", "business-region/new-dept/go"]);
+        assert_eq!(
+            targets,
+            &["system-region", "business-region/new-dept/library/go"]
+        );
     }
 
     #[test]
