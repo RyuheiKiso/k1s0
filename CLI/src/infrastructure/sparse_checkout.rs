@@ -36,9 +36,15 @@ impl RegionCheckout for GitSparseCheckout {
         }
 
         if let (Region::Business, Some(name)) = (region, business_region_name) {
-            let dir = Path::new(ws_path.as_str())
+            let mut dir = Path::new(ws_path.as_str())
                 .join("business-region")
                 .join(name.as_str());
+            if let Some(lang) = language {
+                dir = dir.join(match lang {
+                    Language::Rust => "rust",
+                    Language::Go => "go",
+                });
+            }
             if !dir.exists() {
                 std::fs::create_dir_all(&dir)?;
             }

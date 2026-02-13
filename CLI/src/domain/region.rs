@@ -178,11 +178,7 @@ mod tests {
     #[test]
     fn system_region_service_go_checks_out_service_go() {
         assert_eq!(
-            Region::System.checkout_targets(
-                Some(&ProjectType::Service),
-                Some(&Language::Go),
-                None
-            ),
+            Region::System.checkout_targets(Some(&ProjectType::Service), Some(&Language::Go), None),
             vec!["system-region/service/go"]
         );
     }

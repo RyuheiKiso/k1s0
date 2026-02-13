@@ -43,7 +43,8 @@ system-region 選択時はさらにプロジェクト種別（Library / Service�
 | system-region   | Service → Go     | `system-region/service/go/`                               |
 | business-region | 既存 → Rust      | `system-region/` + `business-region/{選択した領域}/rust/`  |
 | business-region | 既存 → Go        | `system-region/` + `business-region/{選択した領域}/go/`    |
-| business-region | 新規追加         | `system-region/` + `business-region/{入力した領域}/`       |
+| business-region | 新規追加 → Rust  | `system-region/` + `business-region/{入力した領域}/rust/`  |
+| business-region | 新規追加 → Go    | `system-region/` + `business-region/{入力した領域}/go/`    |
 | service-region  | —                | `system-region/` + `business-region/` + `service-region/` |
 
 ## フロー図
@@ -84,7 +85,11 @@ flowchart TD
     BRLang1 --> SC2R["sparse-checkout set system-region/ business-region/{選択した領域}/rust/"]
     BRLang2 --> SC2G["sparse-checkout set system-region/ business-region/{選択した領域}/go/"]
     BR2 --> BRN["部門固有領域名を入力"]
-    BRN --> SC2N["sparse-checkout set system-region/ business-region/{入力した領域}/"]
+    BRN --> BRNLang["言語を選択"]
+    BRNLang --> BRNLang1["Rust"]
+    BRNLang --> BRNLang2["Go"]
+    BRNLang1 --> SC2NR["sparse-checkout set system-region/ business-region/{入力した領域}/rust/"]
+    BRNLang2 --> SC2NG["sparse-checkout set system-region/ business-region/{入力した領域}/go/"]
     G3 --> SC3["sparse-checkout set system-region/ business-region/ service-region/"]
     F -->|No| H["ワークスペースパス設定へ促す"]
 

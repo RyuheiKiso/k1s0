@@ -58,21 +58,17 @@ impl<'a, P: UserPrompt, C: ConfigStore, R: RegionCheckout, B: BusinessRegionRepo
                             LanguageChoice::Go => Language::Go,
                         });
                     }
-                    Region::Business => {
-                        match self.resolve_business_region(&ws) {
-                            Some((name, is_existing)) => {
-                                if is_existing {
-                                    let lang_choice = self.prompt.show_language_menu();
-                                    language = Some(match lang_choice {
-                                        LanguageChoice::Rust => Language::Rust,
-                                        LanguageChoice::Go => Language::Go,
-                                    });
-                                }
-                                business_region_name = Some(name);
-                            }
-                            None => return,
+                    Region::Business => match self.resolve_business_region(&ws) {
+                        Some((name, _)) => {
+                            let lang_choice = self.prompt.show_language_menu();
+                            language = Some(match lang_choice {
+                                LanguageChoice::Rust => Language::Rust,
+                                LanguageChoice::Go => Language::Go,
+                            });
+                            business_region_name = Some(name);
                         }
-                    }
+                        None => return,
+                    },
                     Region::Service => {}
                 }
                 match self.checkout.setup(
@@ -433,7 +429,8 @@ mod tests {
     fn business_region_create_new() {
         let prompt = MockPrompt::new(RegionChoice::Business)
             .with_business_region_action(BusinessRegionAction::CreateNew)
-            .with_business_region_name_input("marketing");
+            .with_business_region_name_input("marketing")
+            .with_language(LanguageChoice::Rust);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
         };
@@ -445,13 +442,37 @@ mod tests {
 
         let called = checkout.called_with.borrow();
         let (_, targets) = called.as_ref().unwrap();
-        assert_eq!(targets, &["system-region", "business-region/marketing"]);
+        assert_eq!(
+            targets,
+            &["system-region", "business-region/marketing/rust"]
+        );
+    }
+
+    #[test]
+    fn business_region_create_new_go() {
+        let prompt = MockPrompt::new(RegionChoice::Business)
+            .with_business_region_action(BusinessRegionAction::CreateNew)
+            .with_business_region_name_input("finance")
+            .with_language(LanguageChoice::Go);
+        let config = MockConfig {
+            workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
+        };
+        let checkout = MockCheckout::success();
+        let repo = MockBusinessRegionRepo::with_regions(&["sales"]);
+        let uc = CreateProjectUseCase::new(&prompt, &config, &checkout, &repo);
+
+        uc.execute();
+
+        let called = checkout.called_with.borrow();
+        let (_, targets) = called.as_ref().unwrap();
+        assert_eq!(targets, &["system-region", "business-region/finance/go"]);
     }
 
     #[test]
     fn business_region_empty_list_goes_to_new() {
-        let prompt =
-            MockPrompt::new(RegionChoice::Business).with_business_region_name_input("new-dept");
+        let prompt = MockPrompt::new(RegionChoice::Business)
+            .with_business_region_name_input("new-dept")
+            .with_language(LanguageChoice::Go);
         let config = MockConfig {
             workspace: Some(WorkspacePath::new(r"C:\projects").unwrap()),
         };
@@ -463,7 +484,7 @@ mod tests {
 
         let called = checkout.called_with.borrow();
         let (_, targets) = called.as_ref().unwrap();
-        assert_eq!(targets, &["system-region", "business-region/new-dept"]);
+        assert_eq!(targets, &["system-region", "business-region/new-dept/go"]);
     }
 
     #[test]
