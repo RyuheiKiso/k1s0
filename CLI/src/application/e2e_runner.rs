@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::cell::RefCell;
 
 use crate::application::configure_workspace::ConfigureWorkspaceUseCase;
@@ -120,18 +122,28 @@ impl BusinessRegionRepository for StubBusinessRegionRepo {
 
 struct MemoryConfigStore {
     workspace: RefCell<Option<WorkspacePath>>,
+    fail_save: bool,
 }
 
 impl MemoryConfigStore {
     fn with_workspace(path: &str) -> Self {
         Self {
             workspace: RefCell::new(Some(WorkspacePath::new(path).unwrap())),
+            fail_save: false,
         }
     }
 
     fn empty() -> Self {
         Self {
             workspace: RefCell::new(None),
+            fail_save: false,
+        }
+    }
+
+    fn with_failing_save() -> Self {
+        Self {
+            workspace: RefCell::new(None),
+            fail_save: true,
         }
     }
 }
@@ -142,6 +154,9 @@ impl ConfigStore for MemoryConfigStore {
     }
 
     fn save_workspace_path(&self, path: &WorkspacePath) -> Result<(), Box<dyn std::error::Error>> {
+        if self.fail_save {
+            return Err("disk error".into());
+        }
         *self.workspace.borrow_mut() = Some(path.clone());
         Ok(())
     }
@@ -159,11 +174,28 @@ fn run_create_scenario(
     let actual = checkout.targets();
     let expected: Vec<String> = expected_targets.iter().map(|s| s.to_string()).collect();
     match actual {
-        Some(targets) if targets == expected => E2eResult {
-            name: name.to_string(),
-            passed: true,
-            detail: None,
-        },
+        Some(targets) if targets == expected => {
+            let msgs = prompt.messages();
+            if msgs
+                .iter()
+                .any(|m| m.contains("チェックアウトが完了しました"))
+            {
+                E2eResult {
+                    name: name.to_string(),
+                    passed: true,
+                    detail: None,
+                }
+            } else {
+                E2eResult {
+                    name: name.to_string(),
+                    passed: false,
+                    detail: Some(format!(
+                        "checkout targets matched but success message not found, got {:?}",
+                        msgs
+                    )),
+                }
+            }
+        }
         Some(targets) => E2eResult {
             name: name.to_string(),
             passed: false,
@@ -384,6 +416,25 @@ fn business_region_scenarios() -> Vec<E2eResult> {
         ));
     }
 
+    // 既存リストが空 → アクションメニューをスキップして自動新規作成
+    {
+        let prompt = ScriptedPrompt::new(RegionChoice::Business)
+            .with_business_region_name_input("new-dept")
+            .with_project_type(ProjectTypeChoice::Library)
+            .with_language(LanguageChoice::Go);
+        let config = MemoryConfigStore::with_workspace(ws);
+        let checkout = VerifyingCheckout::success();
+        let repo = StubBusinessRegionRepo::empty();
+        results.push(run_create_scenario(
+            "Business / 空リスト自動新規 / Library / Go",
+            prompt,
+            &config,
+            &checkout,
+            &repo,
+            &["system-region", "business-region/new-dept/library/go"],
+        ));
+    }
+
     results
 }
 
@@ -487,6 +538,24 @@ fn workspace_scenarios() -> Vec<E2eResult> {
         results.push(run_message_scenario(name, &prompt, "未設定"));
     }
 
+    // 無効なパス入力
+    {
+        let name = "ワークスペース設定 - 無効なパス";
+        let config = MemoryConfigStore::empty();
+        let prompt = ScriptedPrompt::new(RegionChoice::System).with_path_input("");
+        ConfigureWorkspaceUseCase::new(&prompt, &config).execute();
+        results.push(run_message_scenario(name, &prompt, "無効なパス"));
+    }
+
+    // 保存失敗
+    {
+        let name = "ワークスペース設定 - 保存エラー";
+        let config = MemoryConfigStore::with_failing_save();
+        let prompt = ScriptedPrompt::new(RegionChoice::System).with_path_input(r"C:\valid-path");
+        ConfigureWorkspaceUseCase::new(&prompt, &config).execute();
+        results.push(run_message_scenario(name, &prompt, "保存に失敗しました"));
+    }
+
     results
 }
 
@@ -540,6 +609,18 @@ fn error_scenarios() -> Vec<E2eResult> {
             &prompt,
             "部門固有領域が存在しません",
         ));
+    }
+
+    // Service Regionで不正なビジネス領域名
+    {
+        let name = "不正なビジネス領域名(Service Region)";
+        let prompt =
+            ScriptedPrompt::new(RegionChoice::Service).with_business_region_list_selection("");
+        let config = MemoryConfigStore::with_workspace(r"C:\e2e-test");
+        let checkout = VerifyingCheckout::success();
+        let repo = StubBusinessRegionRepo::with_regions(&["sales"]);
+        CreateProjectUseCase::new(&prompt, &config, &checkout, &repo).execute();
+        results.push(run_message_scenario(name, &prompt, "領域名が不正です"));
     }
 
     results
@@ -613,9 +694,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn run_all_returns_26_scenarios() {
+    fn run_all_returns_30_scenarios() {
         let results = run_all();
-        assert_eq!(results.len(), 26);
+        assert_eq!(results.len(), 30);
     }
 
     #[test]
@@ -638,9 +719,9 @@ mod tests {
     }
 
     #[test]
-    fn business_scenarios_produce_12_results() {
+    fn business_scenarios_produce_13_results() {
         let results = business_region_scenarios();
-        assert_eq!(results.len(), 12);
+        assert_eq!(results.len(), 13);
         assert!(results.iter().all(|r| r.passed));
     }
 
@@ -652,16 +733,16 @@ mod tests {
     }
 
     #[test]
-    fn workspace_scenarios_produce_2_results() {
+    fn workspace_scenarios_produce_4_results() {
         let results = workspace_scenarios();
-        assert_eq!(results.len(), 2);
+        assert_eq!(results.len(), 4);
         assert!(results.iter().all(|r| r.passed));
     }
 
     #[test]
-    fn error_scenarios_produce_4_results() {
+    fn error_scenarios_produce_5_results() {
         let results = error_scenarios();
-        assert_eq!(results.len(), 4);
+        assert_eq!(results.len(), 5);
         assert!(results.iter().all(|r| r.passed));
     }
 }

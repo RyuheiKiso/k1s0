@@ -24,7 +24,7 @@ fn all_business_region_scenarios_pass() {
         .iter()
         .filter(|r| r.name.starts_with("Business"))
         .collect();
-    assert_eq!(filtered.len(), 12);
+    assert_eq!(filtered.len(), 13);
     for result in &filtered {
         assert!(
             result.passed,
@@ -63,7 +63,7 @@ fn all_error_scenarios_pass() {
                 || r.name.contains("空で")
         })
         .collect();
-    assert_eq!(filtered.len(), 4);
+    assert_eq!(filtered.len(), 5);
     for result in &filtered {
         assert!(
             result.passed,

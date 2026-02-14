@@ -42,6 +42,7 @@ E2Eテスト実行中...
   ✓ Business / sales(既存) / Client / Flutter
   ✓ Business / marketing(新規) / Library / Rust
   ✓ Business / marketing(新規) / Service / Go
+  ✓ Business / 空リスト自動新規 / Library / Go
 
 [プロジェクト作成 - Service Region]
   ✓ Service / sales / Server / Rust
@@ -52,14 +53,17 @@ E2Eテスト実行中...
 [ワークスペース設定]
   ✓ 設定 → 確認のラウンドトリップ
   ✓ 未設定時のメッセージ表示
+  ✓ ワークスペース設定 - 無効なパス
+  ✓ ワークスペース設定 - 保存エラー
 
 [エラーハンドリング]
   ✓ ワークスペース未設定でプロジェクト作成
   ✓ 不正なビジネス領域名
   ✓ チェックアウト失敗時のメッセージ
-  ✗ 部門固有領域が空でService Region選択  ← 失敗例
+  ✓ 部門固有領域が空でService Region選択
+  ✗ 不正なビジネス領域名(Service Region)  ← 失敗例
 
-結果: 21/22 成功
+結果: 29/30 成功
 ```
 
 ## ディレクトリ構成
@@ -197,7 +201,7 @@ pub fn run_all() -> Vec<E2eResult> {
 | System / Service / Rust | System | Service | Rust | `system-region/service/rust` |
 | System / Service / Go | System | Service | Go | `system-region/service/go` |
 
-##### プロジェクト作成 - Business Region（12件）
+##### プロジェクト作成 - Business Region（13件）
 
 | シナリオ名 | 領域操作 | 種別 | 言語/FW | 期待するチェックアウト対象 |
 |---|---|---|---|---|
@@ -213,6 +217,7 @@ pub fn run_all() -> Vec<E2eResult> {
 | Business / marketing(新規) / Service / Go | 新規作成 | Service | Go | `system-region` + `business-region/marketing/service/go` |
 | Business / marketing(新規) / Client / React | 新規作成 | Client | React | `system-region` + `business-region/marketing/client/react` |
 | Business / marketing(新規) / Client / Flutter | 新規作成 | Client | Flutter | `system-region` + `business-region/marketing/client/flutter` |
+| Business / 空リスト自動新規 / Library / Go | 空リスト→自動新規 | Library | Go | `system-region` + `business-region/new-dept/library/go` |
 
 ##### プロジェクト作成 - Service Region（4件）
 
@@ -223,14 +228,16 @@ pub fn run_all() -> Vec<E2eResult> {
 | Service / sales / Client / React | Client | React | `system-region` + `business-region/sales` + `service-region/client/react` |
 | Service / sales / Client / Flutter | Client | Flutter | `system-region` + `business-region/sales` + `service-region/client/flutter` |
 
-##### ワークスペース設定（2件）
+##### ワークスペース設定（4件）
 
 | シナリオ名 | 操作 | 検証内容 |
 |---|---|---|
 | 設定→確認のラウンドトリップ | set → show | 設定した値が show で表示される |
 | 未設定時のメッセージ表示 | show（未設定状態） | 「未設定」メッセージが表示される |
+| ワークスペース設定 - 無効なパス | 空文字で設定 | 「無効なパス」メッセージが表示される |
+| ワークスペース設定 - 保存エラー | 保存処理失敗 | 「保存に失敗しました」メッセージが表示される |
 
-##### エラーハンドリング（4件）
+##### エラーハンドリング（5件）
 
 | シナリオ名 | 操作 | 検証内容 |
 |---|---|---|
@@ -238,8 +245,9 @@ pub fn run_all() -> Vec<E2eResult> {
 | 不正なビジネス領域名 | 空文字で領域作成 | 「領域名が不正です」メッセージが表示される |
 | チェックアウト失敗 | checkout失敗 | 「失敗しました」メッセージが表示される |
 | 部門固有領域が空でService Region選択 | Service選択（領域なし） | 「部門固有領域が存在しません」メッセージが表示される |
+| 不正なビジネス領域名(Service Region) | Service Region内で不正な選択 | 「領域名が不正です」メッセージが表示される |
 
-**合計: 26シナリオ**
+**合計: 30シナリオ**
 
 ### main.rs の変更
 
@@ -291,18 +299,50 @@ mod workspace;
 use k1s0::application::e2e_runner;
 
 #[test]
-fn all_create_project_scenarios_pass() {
+fn all_system_region_scenarios_pass() {
     let results = e2e_runner::run_all();
-    let create_results: Vec<_> = results.iter()
-        .filter(|r| r.name.starts_with("System")
-                  || r.name.starts_with("Business")
-                  || r.name.starts_with("Service"))
-        .collect();
-
-    for result in &create_results {
+    let filtered: Vec<_> = results.iter()
+        .filter(|r| r.name.starts_with("System")).collect();
+    assert_eq!(filtered.len(), 4);
+    for result in &filtered {
         assert!(result.passed, "FAILED: {} - {:?}", result.name, result.detail);
     }
-    assert_eq!(create_results.len(), 16);
+}
+
+#[test]
+fn all_business_region_scenarios_pass() {
+    let results = e2e_runner::run_all();
+    let filtered: Vec<_> = results.iter()
+        .filter(|r| r.name.starts_with("Business")).collect();
+    assert_eq!(filtered.len(), 13);
+    for result in &filtered {
+        assert!(result.passed, "FAILED: {} - {:?}", result.name, result.detail);
+    }
+}
+
+#[test]
+fn all_service_region_scenarios_pass() {
+    let results = e2e_runner::run_all();
+    let filtered: Vec<_> = results.iter()
+        .filter(|r| r.name.starts_with("Service")).collect();
+    assert_eq!(filtered.len(), 4);
+    for result in &filtered {
+        assert!(result.passed, "FAILED: {} - {:?}", result.name, result.detail);
+    }
+}
+
+#[test]
+fn all_error_scenarios_pass() {
+    let results = e2e_runner::run_all();
+    let filtered: Vec<_> = results.iter()
+        .filter(|r| r.name.contains("未設定でプロジェクト")
+                  || r.name.contains("不正")
+                  || r.name.contains("失敗")
+                  || r.name.contains("空で")).collect();
+    assert_eq!(filtered.len(), 5);
+    for result in &filtered {
+        assert!(result.passed, "FAILED: {} - {:?}", result.name, result.detail);
+    }
 }
 ```
 
@@ -311,30 +351,39 @@ fn all_create_project_scenarios_pass() {
 use k1s0::application::e2e_runner;
 
 #[test]
-fn all_workspace_scenarios_pass() {
+fn workspace_roundtrip_scenario_passes() {
     let results = e2e_runner::run_all();
-    let ws_results: Vec<_> = results.iter()
-        .filter(|r| r.name.contains("設定") || r.name.contains("未設定"))
-        .collect();
-
-    for result in &ws_results {
-        assert!(result.passed, "FAILED: {} - {:?}", result.name, result.detail);
-    }
+    let filtered: Vec<_> = results.iter()
+        .filter(|r| r.name.contains("ラウンドトリップ")).collect();
+    assert_eq!(filtered.len(), 1);
+    assert!(filtered[0].passed, "FAILED: {} - {:?}", filtered[0].name, filtered[0].detail);
 }
 
 #[test]
-fn all_error_scenarios_pass() {
+fn workspace_not_configured_scenario_passes() {
     let results = e2e_runner::run_all();
-    let err_results: Vec<_> = results.iter()
-        .filter(|r| r.name.contains("未設定でプロジェクト")
-                  || r.name.contains("不正")
-                  || r.name.contains("失敗")
-                  || r.name.contains("空"))
-        .collect();
+    let filtered: Vec<_> = results.iter()
+        .filter(|r| r.name.contains("未設定時")).collect();
+    assert_eq!(filtered.len(), 1);
+    assert!(filtered[0].passed, "FAILED: {} - {:?}", filtered[0].name, filtered[0].detail);
+}
 
-    for result in &err_results {
-        assert!(result.passed, "FAILED: {} - {:?}", result.name, result.detail);
-    }
+#[test]
+fn workspace_invalid_path_scenario_passes() {
+    let results = e2e_runner::run_all();
+    let filtered: Vec<_> = results.iter()
+        .filter(|r| r.name.contains("無効なパス")).collect();
+    assert_eq!(filtered.len(), 1);
+    assert!(filtered[0].passed, "FAILED: {} - {:?}", filtered[0].name, filtered[0].detail);
+}
+
+#[test]
+fn workspace_save_failure_scenario_passes() {
+    let results = e2e_runner::run_all();
+    let filtered: Vec<_> = results.iter()
+        .filter(|r| r.name.contains("保存エラー")).collect();
+    assert_eq!(filtered.len(), 1);
+    assert!(filtered[0].passed, "FAILED: {} - {:?}", filtered[0].name, filtered[0].detail);
 }
 ```
 
