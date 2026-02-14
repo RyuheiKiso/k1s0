@@ -1,0 +1,59 @@
+- name: "System / Library / Rust"
+  selections: ["0", "0", "0", "0", "2"]
+  expect_stdout:
+    - "system-region"
+    - "チェックアウト"
+
+- name: "System / Library / Go"
+  selections: ["0", "0", "0", "1", "2"]
+  expect_stdout:
+    - "system-region"
+    - "チェックアウト"
+
+- name: "System / Service / Rust"
+  selections: ["0", "0", "1", "0", "2"]
+  expect_stdout:
+    - "system-region"
+    - "チェックアウト"
+
+- name: "System / Service / Go"
+  selections: ["0", "0", "1", "1", "2"]
+  expect_stdout:
+    - "system-region"
+    - "チェックアウト"
+
+- name: "Business / 新規 / Library / Rust"
+  selections: ["0", "1", "test-dept", "0", "0", "2"]
+  expect_stdout:
+    - "部門固有領域"
+    - "チェックアウト"
+
+- name: "Business / 新規 / Library / Go"
+  selections: ["0", "1", "test-dept", "0", "1", "2"]
+  expect_stdout:
+    - "部門固有領域"
+    - "チェックアウト"
+
+- name: "Business / 新規 / Service / Rust"
+  selections: ["0", "1", "test-dept", "1", "0", "2"]
+  expect_stdout:
+    - "部門固有領域"
+    - "チェックアウト"
+
+- name: "Business / 新規 / Service / Go"
+  selections: ["0", "1", "test-dept", "1", "1", "2"]
+  expect_stdout:
+    - "部門固有領域"
+    - "チェックアウト"
+
+- name: "Business / 新規 / Client / React"
+  selections: ["0", "1", "test-dept", "2", "0", "2"]
+  expect_stdout:
+    - "部門固有領域"
+    - "チェックアウト"
+
+- name: "Business / 新規 / Client / Flutter"
+  selections: ["0", "1", "test-dept", "2", "1", "2"]
+  expect_stdout:
+    - "部門固有領域"
+    - "チェックアウト"
