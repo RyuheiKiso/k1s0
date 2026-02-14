@@ -197,7 +197,7 @@ pub fn run_all() -> Vec<E2eResult> {
 | System / Service / Rust | System | Service | Rust | `system-region/service/rust` |
 | System / Service / Go | System | Service | Go | `system-region/service/go` |
 
-##### プロジェクト作成 - Business Region（8件）
+##### プロジェクト作成 - Business Region（12件）
 
 | シナリオ名 | 領域操作 | 種別 | 言語/FW | 期待するチェックアウト対象 |
 |---|---|---|---|---|
@@ -208,7 +208,11 @@ pub fn run_all() -> Vec<E2eResult> {
 | Business / sales(既存) / Client / React | 既存選択 | Client | React | `system-region` + `business-region/sales/client/react` |
 | Business / sales(既存) / Client / Flutter | 既存選択 | Client | Flutter | `system-region` + `business-region/sales/client/flutter` |
 | Business / marketing(新規) / Library / Rust | 新規作成 | Library | Rust | `system-region` + `business-region/marketing/library/rust` |
+| Business / marketing(新規) / Library / Go | 新規作成 | Library | Go | `system-region` + `business-region/marketing/library/go` |
+| Business / marketing(新規) / Service / Rust | 新規作成 | Service | Rust | `system-region` + `business-region/marketing/service/rust` |
 | Business / marketing(新規) / Service / Go | 新規作成 | Service | Go | `system-region` + `business-region/marketing/service/go` |
+| Business / marketing(新規) / Client / React | 新規作成 | Client | React | `system-region` + `business-region/marketing/client/react` |
+| Business / marketing(新規) / Client / Flutter | 新規作成 | Client | Flutter | `system-region` + `business-region/marketing/client/flutter` |
 
 ##### プロジェクト作成 - Service Region（4件）
 
@@ -235,7 +239,7 @@ pub fn run_all() -> Vec<E2eResult> {
 | チェックアウト失敗 | checkout失敗 | 「失敗しました」メッセージが表示される |
 | 部門固有領域が空でService Region選択 | Service選択（領域なし） | 「部門固有領域が存在しません」メッセージが表示される |
 
-**合計: 22シナリオ**
+**合計: 26シナリオ**
 
 ### main.rs の変更
 

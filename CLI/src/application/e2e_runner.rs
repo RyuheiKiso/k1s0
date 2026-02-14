@@ -324,12 +324,44 @@ fn business_region_scenarios() -> Vec<E2eResult> {
             &["system-region", "business-region/marketing/library/rust"],
         ),
         (
+            "Business / marketing(新規) / Library / Go",
+            "marketing",
+            ProjectTypeChoice::Library,
+            Some(LanguageChoice::Go),
+            None,
+            &["system-region", "business-region/marketing/library/go"],
+        ),
+        (
+            "Business / marketing(新規) / Service / Rust",
+            "marketing",
+            ProjectTypeChoice::Service,
+            Some(LanguageChoice::Rust),
+            None,
+            &["system-region", "business-region/marketing/service/rust"],
+        ),
+        (
             "Business / marketing(新規) / Service / Go",
             "marketing",
             ProjectTypeChoice::Service,
             Some(LanguageChoice::Go),
             None,
             &["system-region", "business-region/marketing/service/go"],
+        ),
+        (
+            "Business / marketing(新規) / Client / React",
+            "marketing",
+            ProjectTypeChoice::Client,
+            None,
+            Some(ClientFrameworkChoice::React),
+            &["system-region", "business-region/marketing/client/react"],
+        ),
+        (
+            "Business / marketing(新規) / Client / Flutter",
+            "marketing",
+            ProjectTypeChoice::Client,
+            None,
+            Some(ClientFrameworkChoice::Flutter),
+            &["system-region", "business-region/marketing/client/flutter"],
         ),
     ];
 
@@ -581,9 +613,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn run_all_returns_22_scenarios() {
+    fn run_all_returns_26_scenarios() {
         let results = run_all();
-        assert_eq!(results.len(), 22);
+        assert_eq!(results.len(), 26);
     }
 
     #[test]
@@ -606,9 +638,9 @@ mod tests {
     }
 
     #[test]
-    fn business_scenarios_produce_8_results() {
+    fn business_scenarios_produce_12_results() {
         let results = business_region_scenarios();
-        assert_eq!(results.len(), 8);
+        assert_eq!(results.len(), 12);
         assert!(results.iter().all(|r| r.passed));
     }
 

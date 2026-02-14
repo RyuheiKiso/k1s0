@@ -24,7 +24,7 @@ fn all_business_region_scenarios_pass() {
         .iter()
         .filter(|r| r.name.starts_with("Business"))
         .collect();
-    assert_eq!(filtered.len(), 8);
+    assert_eq!(filtered.len(), 12);
     for result in &filtered {
         assert!(
             result.passed,
