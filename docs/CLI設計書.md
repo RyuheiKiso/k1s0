@@ -66,12 +66,7 @@ flowchart TD
 
     B --> C["プロジェクト作成"]
     B --> D["設定"]
-    B --> T["E2Eテスト"]
     B --> E["終了"]
-
-    T --> T1["全シナリオ自動実行（ScriptedPrompt + VerifyingCheckout）"]
-    T1 --> T2["結果表示（✓/✗）"]
-    T2 --> B
 
     C --> F{"ワークスペース設定あり?"}
     F -->|Yes| G["どの領域の開発を実施しますか？"]

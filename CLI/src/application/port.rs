@@ -7,7 +7,6 @@ use crate::domain::workspace::WorkspacePath;
 pub enum MainMenuChoice {
     CreateProject,
     Settings,
-    E2eTest,
     Exit,
 }
 

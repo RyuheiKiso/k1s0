@@ -12,14 +12,6 @@ pub fn format_message(message: &str) -> String {
     }
 }
 
-pub fn success_mark() -> String {
-    format!("{}", style("✓").green())
-}
-
-pub fn failure_mark() -> String {
-    format!("{}", style("✗").red())
-}
-
 pub fn render_banner() {
     let line = style("━".repeat(40)).cyan();
     println!("{line}");
