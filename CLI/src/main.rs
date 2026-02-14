@@ -27,6 +27,10 @@ fn run(
             MainMenuChoice::Settings => {
                 settings_loop(prompt, config);
             }
+            MainMenuChoice::E2eTest => {
+                let results = k1s0::application::e2e_runner::run_all();
+                k1s0::application::e2e_runner::print_results(&results);
+            }
             MainMenuChoice::Exit => {
                 prompt.show_message("終了します。");
                 break;
