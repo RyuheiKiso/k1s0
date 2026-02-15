@@ -349,7 +349,7 @@ modules/database/
 └── backup.tf        # バックアップ CronJob 定義
 ```
 
-- PostgreSQL: Bitnami `postgresql` Helm Chart を使用する
+- PostgreSQL: Bitnami Helm Chart を使用する（dev/staging: `postgresql` Chart、prod: `postgresql-ha` Chart で HA 構成。Kong 用 PostgreSQL HA の詳細は [APIゲートウェイ設計.md](APIゲートウェイ設計.md) を参照）
 - MySQL: Bitnami `mysql` Helm Chart を使用する
 - バックアップ: CronJob で `pg_dump` / `mysqldump` を実行し、Ceph オブジェクトストレージに保存する
 - 環境別設定: `variables.tf` で prod / staging / dev の構成（レプリカ数、ストレージサイズ等）を切り替える

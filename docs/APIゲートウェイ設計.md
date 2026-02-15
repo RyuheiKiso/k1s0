@@ -24,7 +24,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.
 ### アーキテクチャ
 
 ```
-Client → Ingress (Nginx) → Kong Proxy → Istio Sidecar → Backend Services
+Client → Nginx Ingress Controller → Kong Proxy → Istio Sidecar → Backend Services
                                 ↕
                           Kong Admin API
                                 ↕
@@ -36,7 +36,7 @@ Client → Ingress (Nginx) → Kong Proxy → Istio Sidecar → Backend Services
 | 項目             | 設定                                          |
 | ---------------- | --------------------------------------------- |
 | 動作モード       | DB-backed（PostgreSQL）                       |
-| データベース     | PostgreSQL 15+                                |
+| データベース     | PostgreSQL 17（Kong 3.7 は PostgreSQL 15+ 対応） |
 | 接続先           | `postgres.k1s0-system.svc.cluster.local:5432` |
 | データベース名   | `kong`                                        |
 | レプリカ構成     | 読み取りレプリカなし（Admin API 経由の管理のみ） |
@@ -446,3 +446,5 @@ jobs:
 - [サービスメッシュ設計.md](サービスメッシュ設計.md) — Istio 設計・耐障害性
 - [CI-CD設計.md](CI-CD設計.md) — CI/CD パイプライン設計
 - [可観測性設計.md](可観測性設計.md) — 監視・ログ・トレース設計
+- [helm設計.md](helm設計.md) — Helm Chart と values 設計
+- [terraform設計.md](terraform設計.md) — Terraform モジュール設計

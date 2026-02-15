@@ -600,7 +600,7 @@ jobs:
 GraphQL は **BFF（Backend for Frontend）としてオプション採用** する。すべてのサービスに GraphQL を導入するのではなく、複数の REST / gRPC エンドポイントを集約して単一のクエリでクライアントに提供する必要がある場合に採用する。
 
 ```
-Client → Kong → GraphQL BFF → gRPC → Backend Services
+Client → Nginx Ingress Controller → Kong → GraphQL BFF → gRPC → Backend Services
 ```
 
 ### GraphQL BFF 導入基準

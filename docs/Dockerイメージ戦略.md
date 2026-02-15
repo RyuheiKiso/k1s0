@@ -16,7 +16,7 @@ k1s0 プロジェクトにおける Docker イメージのビルド・管理方�
 | Go          | `golang:1.23-bookworm`       | `gcr.io/distroless/static-debian12`       |
 | Rust        | `rust:1.82-bookworm`         | `gcr.io/distroless/cc-debian12`           |
 | React       | `node:22-bookworm` (ビルド)  | `nginx:1.27-alpine`（静的配信）           |
-| Flutter Web | `ghcr.io/cirruslabs/flutter:stable` (ビルド) | `nginx:1.27-alpine`（静的配信）  |
+| Flutter Web | `ghcr.io/cirruslabs/flutter:3.24.0` (ビルド) | `nginx:1.27-alpine`（静的配信）  |
 
 ## Dockerfile テンプレート
 
@@ -84,7 +84,7 @@ EXPOSE 80
 
 ```dockerfile
 # ---- Build Stage ----
-FROM ghcr.io/cirruslabs/flutter:stable AS build
+FROM ghcr.io/cirruslabs/flutter:3.24.0 AS build
 WORKDIR /app
 COPY pubspec.* ./
 RUN flutter pub get
