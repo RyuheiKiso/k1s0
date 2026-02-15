@@ -1,0 +1,61 @@
+# 一般用途（ログ、キャッシュ等）- RWO
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ceph-block
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    app.kubernetes.io/managed-by: helm
+provisioner: rbd.csi.ceph.com
+parameters:
+  clusterID: ceph-cluster
+  pool: k1s0-block
+  imageFeatures: layering
+  csi.storage.k8s.io/provisioner-secret-name: csi-rbd-secret
+  csi.storage.k8s.io/provisioner-secret-namespace: ceph-system
+  csi.storage.k8s.io/node-stage-secret-name: csi-rbd-secret
+  csi.storage.k8s.io/node-stage-secret-namespace: ceph-system
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+---
+# 共有ストレージ（複数 Pod 間共有）- RWX
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ceph-filesystem
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    app.kubernetes.io/managed-by: helm
+provisioner: cephfs.csi.ceph.com
+parameters:
+  clusterID: ceph-cluster
+  fsName: k1s0-fs
+  csi.storage.k8s.io/provisioner-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/provisioner-secret-namespace: ceph-system
+  csi.storage.k8s.io/node-stage-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/node-stage-secret-namespace: ceph-system
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+---
+# データベース用（高 IOPS 要求）- RWO（SSD）
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ceph-block-fast
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    app.kubernetes.io/managed-by: helm
+provisioner: rbd.csi.ceph.com
+parameters:
+  clusterID: ceph-cluster
+  pool: k1s0-block-fast
+  imageFeatures: layering
+  csi.storage.k8s.io/provisioner-secret-name: csi-rbd-secret
+  csi.storage.k8s.io/provisioner-secret-namespace: ceph-system
+  csi.storage.k8s.io/node-stage-secret-name: csi-rbd-secret
+  csi.storage.k8s.io/node-stage-secret-namespace: ceph-system
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer

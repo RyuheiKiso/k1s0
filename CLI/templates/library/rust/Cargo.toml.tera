@@ -1,0 +1,12 @@
+[package]
+name = "{{ service_name }}"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+
+[dev-dependencies]
+mockall = "0.13"
+tokio = { version = "1", features = ["test-util", "macros"] }

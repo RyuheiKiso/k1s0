@@ -1,0 +1,44 @@
+# カナリアリリース用 VirtualService
+# ウェイトベースのトラフィック分割で段階的にカナリアへルーティング
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: order-server
+  namespace: k1s0-service
+spec:
+  hosts:
+    - order-server
+  http:
+    - route:
+        - destination:
+            host: order-server
+            subset: stable
+          weight: 90
+        - destination:
+            host: order-server
+            subset: canary
+          weight: 10
+---
+# ヘッダーベースルーティング
+# テスト用にヘッダーでルーティング先を切り替える
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: order-server-header-routing
+  namespace: k1s0-service
+spec:
+  hosts:
+    - order-server
+  http:
+    - match:
+        - headers:
+            x-canary:
+              exact: "true"
+      route:
+        - destination:
+            host: order-server
+            subset: canary
+    - route:
+        - destination:
+            host: order-server
+            subset: stable

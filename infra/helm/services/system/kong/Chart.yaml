@@ -1,0 +1,11 @@
+apiVersion: v2
+name: kong
+description: Kong API Gateway for the k1s0 system tier
+type: application
+version: 0.1.0
+appVersion: "3.7.0"
+
+dependencies:
+  - name: k1s0-common
+    version: "0.1.0"
+    repository: "file://../../../charts/k1s0-common"

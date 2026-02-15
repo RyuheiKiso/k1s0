@@ -1,0 +1,20 @@
+# トラフィックミラーリング: 本番トラフィックのコピーを canary に送信し、
+# レスポンスを検証する（ユーザーには影響しない）。
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: order-server
+  namespace: k1s0-service
+spec:
+  hosts:
+    - order-server
+  http:
+    - route:
+        - destination:
+            host: order-server
+            subset: stable
+      mirror:
+        host: order-server
+        subset: canary
+      mirrorPercentage:
+        value: 10.0

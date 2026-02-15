@@ -1,0 +1,73 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+
+/// API クライアント
+///
+/// Dio を使用した HTTP クライアント。
+/// BFF 経由でバックエンドと通信する。
+/// Cookie ベースの認証に対応（Web の場合は withCredentials で自動送信）。
+class DioClient {
+  DioClient._();
+
+  static final Dio _dio = _createDio();
+
+  static Dio get instance => _dio;
+
+  static Dio _createDio() {
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: const String.fromEnvironment(
+          'API_BASE_URL',
+          defaultValue: 'http://localhost:8080/api',
+        ),
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 30),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        // Web 環境では Cookie を自動送信（BFF + HttpOnly Cookie 方式）
+        extra: {
+          'withCredentials': true,
+        },
+      ),
+    );
+
+    // ログインターセプター（デバッグモードのみ）
+    if (kDebugMode) {
+      dio.interceptors.add(
+        LogInterceptor(
+          requestBody: true,
+          responseBody: true,
+          logPrint: (obj) => debugPrint(obj.toString()),
+        ),
+      );
+    }
+
+    // エラーハンドリングインターセプター
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onError: (DioException error, ErrorInterceptorHandler handler) {
+          switch (error.response?.statusCode) {
+            case 401:
+              // 認証エラー: 再ログインが必要
+              debugPrint('認証エラー: 再ログインが必要です');
+              break;
+            case 403:
+              // 権限エラー: アクセス拒否
+              debugPrint('アクセスが拒否されました');
+              break;
+            case 500:
+              // サーバーエラー
+              debugPrint('サーバーエラーが発生しました');
+              break;
+          }
+          handler.next(error);
+        },
+      ),
+    );
+
+    return dio;
+  }
+}

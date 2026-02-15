@@ -1,0 +1,53 @@
+import axios from 'axios';
+
+/**
+ * API クライアント
+ *
+ * - baseURL: BFF のプロキシエンドポイント
+ * - withCredentials: Cookie を自動送信（BFF + HttpOnly Cookie 方式）
+ * - CSRF トークン: BFF が発行する X-CSRF-Token をリクエストヘッダーに付与
+ */
+const apiClient = axios.create({
+  baseURL: '/api',
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// CSRF トークンをリクエストヘッダーに付与
+apiClient.interceptors.request.use((config) => {
+  const csrfToken = document.querySelector<HTMLMetaElement>(
+    'meta[name="csrf-token"]',
+  )?.content;
+  if (csrfToken) {
+    config.headers['X-CSRF-Token'] = csrfToken;
+  }
+  return config;
+});
+
+// レスポンスインターセプター: エラーハンドリング
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error)) {
+      switch (error.response?.status) {
+        case 401:
+          // 認証エラー: ログインページへリダイレクト
+          window.location.href = '/auth/login';
+          break;
+        case 403:
+          // 権限エラー: アクセス拒否
+          console.error('アクセスが拒否されました');
+          break;
+        case 500:
+          // サーバーエラー
+          console.error('サーバーエラーが発生しました');
+          break;
+      }
+    }
+    return Promise.reject(error);
+  },
+);
+
+export { apiClient };

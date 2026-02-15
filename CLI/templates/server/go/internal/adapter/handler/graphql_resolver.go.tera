@@ -1,0 +1,35 @@
+{% if api_style == "graphql" %}
+package handler
+
+import (
+	"context"
+
+	"{{ go_module }}/internal/domain/model"
+	"{{ go_module }}/internal/usecase"
+)
+
+// Resolver は GraphQL リゾルバーのルート。
+type Resolver struct {
+	uc *usecase.{{ service_name_pascal }}UseCase
+}
+
+// NewResolver はリゾルバーを生成する。
+func NewResolver(uc *usecase.{{ service_name_pascal }}UseCase) *Resolver {
+	return &Resolver{uc: uc}
+}
+
+// Query はクエリリゾルバー。
+func (r *Resolver) Query() QueryResolver {
+	return &queryResolver{r}
+}
+
+type queryResolver struct{ *Resolver }
+
+func (r *queryResolver) {{ service_name_pascal }}(ctx context.Context, id string) (*model.{{ service_name_pascal }}Entity, error) {
+	return r.uc.GetByID(ctx, id)
+}
+
+func (r *queryResolver) {{ service_name_pascal }}List(ctx context.Context) ([]*model.{{ service_name_pascal }}Entity, error) {
+	return r.uc.GetAll(ctx)
+}
+{% endif %}

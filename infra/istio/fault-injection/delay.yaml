@@ -1,0 +1,20 @@
+# フォールトインジェクション: レイテンシ注入
+# staging 環境で障害をシミュレートし、耐障害性を検証する
+# 500ms の遅延を 10% のリクエストに注入
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: order-server-fault-test
+  namespace: k1s0-service
+spec:
+  hosts:
+    - order-server
+  http:
+    - fault:
+        delay:
+          percentage:
+            value: 10.0
+          fixedDelay: 500ms
+      route:
+        - destination:
+            host: order-server

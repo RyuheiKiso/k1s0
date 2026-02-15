@@ -1,0 +1,5 @@
+/// {{ service_name }} ライブラリのエントリポイント
+library {{ service_name | snake_case }};
+
+// TODO: 公開 API をエクスポートする
+// export 'src/some_module.dart';

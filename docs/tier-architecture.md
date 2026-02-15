@@ -139,7 +139,7 @@ regions/
 │   ├── library/
 │   │   ├── go/
 │   │   ├── rust/
-│   │   ├── ts/
+│   │   ├── typescript/
 │   │   └── dart/
 │   └── database/
 ├── business/
@@ -153,7 +153,7 @@ regions/
 │       ├── library/
 │       │   ├── go/
 │       │   ├── rust/
-│       │   ├── ts/
+│       │   ├── typescript/
 │       │   └── dart/
 │       └── database/
 └── service/

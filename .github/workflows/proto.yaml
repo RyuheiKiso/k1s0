@@ -1,0 +1,24 @@
+# .github/workflows/proto.yaml
+name: Proto Check
+
+on:
+  pull_request:
+    paths:
+      - 'api/proto/**'
+      - 'api/proto/buf.yaml'
+      - 'api/proto/buf.gen.yaml'
+
+jobs:
+  proto-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.47.2"              # devcontainer設計.md の BUF_VERSION と同期
+      - name: Lint
+        run: buf lint api/proto
+      - name: Breaking change detection
+        run: buf breaking api/proto --against '.git#branch=main'
+      - name: Generate (dry-run)
+        run: buf generate api/proto --template buf.gen.yaml

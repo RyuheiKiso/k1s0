@@ -1,0 +1,23 @@
+# Istio Gateway: Mesh 内部のトラフィック管理用
+# 外部公開には使用しない（外部トラフィックの入口は Nginx Ingress Controller が担当）
+# VirtualService / DestinationRule によるカナリアリリース、
+# フォールトインジェクション、トラフィックミラーリング、ヘッダーベースルーティングに使用
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: k1s0-mesh-gateway
+  namespace: service-mesh
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      tls:
+        mode: ISTIO_MUTUAL    # Mesh 内部通信のため mTLS を使用
+      hosts:
+        - "*.k1s0-system.svc.cluster.local"
+        - "*.k1s0-business.svc.cluster.local"
+        - "*.k1s0-service.svc.cluster.local"

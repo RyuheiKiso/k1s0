@@ -1,0 +1,23 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - avoid_print
+    - prefer_single_quotes
+    - always_declare_return_types
+    - annotate_overrides
+    - avoid_empty_else
+    - prefer_final_fields
+    - sort_constructors_first
+    - unawaited_futures
+    - unnecessary_brace_in_string_interps
+
+analyzer:
+  errors:
+    missing_return: error
+    dead_code: warning
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"

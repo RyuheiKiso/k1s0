@@ -1,0 +1,43 @@
+# 基本ルーティング: order-server の VirtualService
+# timeout=10s, retry attempts=3 は service Tier のデフォルト値（timeout=15s, retry=2）を
+# サービス固有の要件に基づいて意図的に上書きしたカスタマイズ例。
+# order-server は注文処理の特性上、より短いタイムアウトと多いリトライ回数が適切と判断。
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: order-server
+  namespace: k1s0-service
+spec:
+  hosts:
+    - order-server
+  http:
+    - route:
+        - destination:
+            host: order-server
+            port:
+              number: 80
+      timeout: 10s          # service Tier デフォルト 15s を上書き
+      retries:
+        attempts: 3          # service Tier デフォルト 2 を上書き
+        perTryTimeout: 3s
+        retryOn: "5xx,reset,connect-failure,retriable-4xx"
+        retryRemoteLocalities: true
+---
+# system Tier のデフォルト VirtualService
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: default-system
+  namespace: k1s0-system
+spec:
+  hosts:
+    - "*.k1s0-system.svc.cluster.local"
+  http:
+    - route:
+        - destination:
+            host: "*.k1s0-system.svc.cluster.local"
+      timeout: 5s
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: "5xx,reset,connect-failure"

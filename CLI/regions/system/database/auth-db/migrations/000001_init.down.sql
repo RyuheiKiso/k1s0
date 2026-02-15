@@ -1,0 +1,2 @@
+-- ロールバック
+-- TODO: DROP TABLE 文を追加

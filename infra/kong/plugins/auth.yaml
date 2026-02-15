@@ -1,0 +1,24 @@
+# Authentication Plugins for Kong
+# JWT authentication and JWKS integration with Keycloak.
+
+plugins:
+  # JWT Plugin - JWT 認証（グローバル適用）
+  - name: jwt
+    config:
+      uri_param_names: []
+      cookie_names: []
+      key_claim_name: kid
+      claims_to_verify:
+        - exp
+      maximum_expiration: 900           # 15分（Access Token のライフタイム）
+      header_names:
+        - Authorization
+
+# Keycloak JWKS 連携用 Consumer
+consumers:
+  - username: keycloak
+    jwt_secrets:
+      - algorithm: RS256
+        key: "https://auth.k1s0.internal.example.com/realms/k1s0"
+        # rsa_public_key は JWKS エンドポイントから自動取得
+        # JWKS URL: https://auth.k1s0.internal.example.com/realms/k1s0/protocol/openid-connect/certs

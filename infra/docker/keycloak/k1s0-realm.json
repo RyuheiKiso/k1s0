@@ -1,0 +1,380 @@
+{
+  "realm": "k1s0",
+  "enabled": true,
+  "displayName": "k1s0",
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "accessTokenLifespan": 900,
+  "accessTokenLifespanForImplicitFlow": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionIdleTimeout": 2592000,
+  "offlineSessionMaxLifespan": 5184000,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
+  "actionTokenGeneratedByAdminLifespan": 43200,
+  "actionTokenGeneratedByUserLifespan": 300,
+  "oauth2DeviceCodeLifespan": 600,
+  "oauth2DevicePollingInterval": 5,
+  "defaultSignatureAlgorithm": "RS256",
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Default user role",
+        "composite": false
+      },
+      {
+        "name": "sys_admin",
+        "description": "System administrator - full access to all resources across all tiers",
+        "composite": false
+      },
+      {
+        "name": "sys_operator",
+        "description": "System operator - monitoring, log viewing, configuration changes",
+        "composite": false
+      },
+      {
+        "name": "sys_auditor",
+        "description": "System auditor - read-only access to all resources",
+        "composite": false
+      },
+      {
+        "name": "biz_accounting_admin",
+        "description": "Accounting domain administrator - full access to accounting resources",
+        "composite": false
+      },
+      {
+        "name": "biz_accounting_manager",
+        "description": "Accounting domain manager - read/write access to accounting resources",
+        "composite": false
+      },
+      {
+        "name": "biz_accounting_viewer",
+        "description": "Accounting domain viewer - read-only access to accounting resources",
+        "composite": false
+      },
+      {
+        "name": "svc_order_admin",
+        "description": "Order service administrator - full access to order resources",
+        "composite": false
+      },
+      {
+        "name": "svc_order_user",
+        "description": "Order service user - standard order operations",
+        "composite": false
+      },
+      {
+        "name": "svc_order_viewer",
+        "description": "Order service viewer - read-only access to order resources",
+        "composite": false
+      },
+      {
+        "name": "order_manager",
+        "description": "Order manager - manages orders",
+        "composite": false
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "react-spa",
+      "name": "React SPA Client",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "https://app.k1s0.internal.example.com/callback",
+        "http://localhost:3000/callback"
+      ],
+      "webOrigins": [
+        "https://*.k1s0.internal.example.com",
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tier-access-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tier_access",
+            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "jsonType.label": "JSON",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm-roles-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "flutter-mobile",
+      "name": "Flutter Mobile Client",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "com.example.k1s0://callback"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tier-access-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tier_access",
+            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "jsonType.label": "JSON",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "k1s0-cli",
+      "name": "k1s0 CLI Client",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "true",
+        "oauth2.device.polling.interval": "5"
+      },
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tier-access-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tier_access",
+            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "jsonType.label": "JSON",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "k1s0-bff",
+      "name": "k1s0 BFF Proxy Client",
+      "enabled": true,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "secret": "",
+      "redirectUris": [
+        "https://app.k1s0.internal.example.com/callback"
+      ],
+      "webOrigins": [
+        "https://*.k1s0.internal.example.com"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tier-access-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tier_access",
+            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "jsonType.label": "JSON",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "k1s0-service",
+      "name": "k1s0 Service-to-Service Client",
+      "enabled": true,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "secret": "",
+      "defaultClientScopes": [
+        "openid"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tier-access-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "tier_access",
+            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "jsonType.label": "JSON",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "openid",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      }
+    },
+    {
+      "name": "profile",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      }
+    },
+    {
+      "name": "email",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      }
+    }
+  ],
+  "components": {
+    "org.keycloak.keys.KeyProvider": [
+      {
+        "name": "rsa-generated",
+        "providerId": "rsa-generated",
+        "config": {
+          "keySize": ["2048"],
+          "algorithm": ["RS256"],
+          "priority": ["100"]
+        }
+      }
+    ],
+    "org.keycloak.storage.UserStorageProvider": [
+      {
+        "name": "ldap",
+        "providerId": "ldap",
+        "config": {
+          "vendor": ["ad"],
+          "connectionUrl": ["ldaps://ldap.example.com:636"],
+          "bindDn": ["cn=keycloak,ou=service-accounts,dc=example,dc=com"],
+          "bindCredential": [""],
+          "usersDn": ["ou=users,dc=example,dc=com"],
+          "userObjectClasses": ["person, organizationalPerson, user"],
+          "usernameLDAPAttribute": ["sAMAccountName"],
+          "rdnLDAPAttribute": ["cn"],
+          "uuidLDAPAttribute": ["objectGUID"],
+          "editMode": ["READ_ONLY"],
+          "syncRegistrations": ["false"],
+          "trustEmail": ["true"],
+          "fullSyncPeriod": ["86400"],
+          "changedSyncPeriod": ["60"],
+          "importEnabled": ["true"],
+          "batchSizeForSync": ["1000"],
+          "useTruststoreSpi": ["ldapsOnly"],
+          "connectionPooling": ["true"],
+          "pagination": ["true"]
+        }
+      }
+    ]
+  },
+  "smtpServer": {},
+  "eventsConfig": {
+    "eventsEnabled": true,
+    "eventsListeners": ["jboss-logging"],
+    "enabledEventTypes": [
+      "LOGIN",
+      "LOGIN_ERROR",
+      "LOGOUT",
+      "REGISTER",
+      "REGISTER_ERROR",
+      "CODE_TO_TOKEN",
+      "CODE_TO_TOKEN_ERROR",
+      "CLIENT_LOGIN",
+      "CLIENT_LOGIN_ERROR",
+      "REFRESH_TOKEN",
+      "REFRESH_TOKEN_ERROR",
+      "REVOKE_GRANT",
+      "UPDATE_PROFILE",
+      "UPDATE_PASSWORD",
+      "SEND_RESET_PASSWORD",
+      "RESET_PASSWORD"
+    ],
+    "adminEventsEnabled": true,
+    "adminEventsDetailsEnabled": true
+  }
+}

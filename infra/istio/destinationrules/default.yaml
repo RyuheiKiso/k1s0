@@ -1,0 +1,59 @@
+# order-server DestinationRule (service Tier)
+# サブセット定義、ロードバランシングポリシー、Circuit Breaker を設定
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: order-server
+  namespace: k1s0-service
+spec:
+  host: order-server
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        h2UpgradePolicy: UPGRADE
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+        maxRequestsPerConnection: 10
+    loadBalancer:
+      simple: LEAST_REQUEST
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 60s
+      maxEjectionPercent: 50
+    tls:
+      mode: ISTIO_MUTUAL
+  subsets:
+    - name: stable
+      labels:
+        version: stable
+    - name: canary
+      labels:
+        version: canary
+---
+# auth-server DestinationRule (system Tier)
+# system Tier の Circuit Breaker 設定
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: auth-server
+  namespace: k1s0-system
+spec:
+  host: auth-server
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 200
+      http:
+        http1MaxPendingRequests: 200
+        http2MaxRequests: 2000
+        maxRequestsPerConnection: 20
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 30
+    tls:
+      mode: ISTIO_MUTUAL

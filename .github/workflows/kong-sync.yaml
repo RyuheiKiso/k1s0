@@ -1,0 +1,72 @@
+name: Kong Config Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/kong/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install decK
+        run: |
+          curl -sL https://github.com/Kong/deck/releases/latest/download/deck_linux_amd64.tar.gz | tar xz
+          sudo mv deck /usr/local/bin/
+      - name: Validate config
+        run: deck validate -s infra/kong/kong.yaml
+
+  # NOTE: 各環境の CI/CD ランナーはそれぞれのクラスタ内で動作する。
+  # そのため Kong Admin API のサービス名（kong-admin.k1s0-system.svc.cluster.local:8001）は
+  # 全環境で同一だが、実際の接続先はランナーが属するクラスタコンテキストによって異なる。
+  # dev クラスタのランナー → dev の Kong、staging クラスタのランナー → staging の Kong、
+  # prod クラスタのランナー → prod の Kong にそれぞれ接続される。
+
+  diff:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show diff
+        run: |
+          deck diff -s infra/kong/kong.yaml \
+            --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
+
+  sync-dev:
+    needs: diff
+    runs-on: [self-hosted, dev]
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync to dev
+        run: |
+          # dev クラスタ内のランナーで実行
+          deck sync -s infra/kong/kong.yaml \
+            --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
+
+  sync-staging:
+    needs: sync-dev
+    runs-on: [self-hosted, staging]
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync to staging
+        run: |
+          # staging クラスタ内のランナーで実行
+          deck sync -s infra/kong/kong.yaml \
+            --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
+
+  sync-prod:
+    needs: sync-staging
+    runs-on: [self-hosted, prod]
+    environment:
+      name: prod
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync to prod
+        run: |
+          # prod クラスタ内のランナーで実行
+          deck sync -s infra/kong/kong.yaml \
+            --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001

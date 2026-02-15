@@ -1,0 +1,23 @@
+# k1s0-system: business および service からのインバウンドを許可
+# service Tier から system Tier への直接通信を許可する
+# （認証・config取得等の共通基盤へのアクセスは全 Tier から必要）
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-business-and-service
+  namespace: k1s0-system
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              tier: system
+        - namespaceSelector:
+            matchLabels:
+              tier: business
+        - namespaceSelector:
+            matchLabels:
+              tier: service

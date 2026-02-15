@@ -1,0 +1,6 @@
+/**
+ * {{ service_name }} ライブラリのエントリポイント
+ */
+
+// TODO: 公開 API をエクスポートする
+// export { SomeType } from './some-module';

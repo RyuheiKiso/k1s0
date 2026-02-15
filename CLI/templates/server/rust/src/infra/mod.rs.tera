@@ -1,0 +1,7 @@
+pub mod config;
+{% if has_database %}
+pub mod persistence;
+{% endif %}
+{% if has_kafka %}
+pub mod messaging;
+{% endif %}

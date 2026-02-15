@@ -1,0 +1,17 @@
+# service Tier のサービス定義
+services:
+  - name: order-v1
+    url: http://order-server.k1s0-service.svc.cluster.local:80
+    routes:
+      - name: order-v1-route
+        paths:
+          - /api/v1/orders
+        strip_path: false
+
+  - name: dashboard-v1
+    url: http://dashboard-server.k1s0-service.svc.cluster.local:80
+    routes:
+      - name: dashboard-v1-route
+        paths:
+          - /api/v1/dashboard
+        strip_path: false

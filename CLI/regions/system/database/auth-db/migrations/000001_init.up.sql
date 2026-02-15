@@ -1,0 +1,2 @@
+-- auth-db の初期マイグレーション (PostgreSQL)
+-- TODO: テーブル定義を追加

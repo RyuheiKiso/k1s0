@@ -1,0 +1,39 @@
+{% if api_style == "grpc" %}
+package handler
+
+import (
+	"context"
+
+	pb "{{ go_module }}/api/proto/gen"
+	"{{ go_module }}/internal/usecase"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+// GRPCHandler は gRPC サービス実装。
+type GRPCHandler struct {
+	pb.Unimplemented{{ service_name_pascal }}ServiceServer
+	uc *usecase.{{ service_name_pascal }}UseCase
+}
+
+// NewGRPCHandler はハンドラーを生成する。
+func NewGRPCHandler(uc *usecase.{{ service_name_pascal }}UseCase) *GRPCHandler {
+	return &GRPCHandler{uc: uc}
+}
+
+// Get{{ service_name_pascal }} は ID 指定取得 RPC。
+func (h *GRPCHandler) Get{{ service_name_pascal }}(ctx context.Context, req *pb.Get{{ service_name_pascal }}Request) (*pb.Get{{ service_name_pascal }}Response, error) {
+	entity, err := h.uc.GetByID(ctx, req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "internal error: %v", err)
+	}
+	if entity == nil {
+		return nil, status.Errorf(codes.NotFound, "resource not found: %s", req.GetId())
+	}
+	return &pb.Get{{ service_name_pascal }}Response{
+		Id:   entity.ID,
+		Name: entity.Name,
+	}, nil
+}
+{% endif %}

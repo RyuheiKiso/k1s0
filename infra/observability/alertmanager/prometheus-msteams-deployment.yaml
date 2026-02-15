@@ -1,0 +1,27 @@
+# prometheus-msteams Deployment（環境変数から Webhook URL を参照）
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-msteams
+  namespace: observability
+spec:
+  template:
+    spec:
+      containers:
+        - name: prometheus-msteams
+          env:
+            - name: TEAMS_DEFAULT_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: prometheus-msteams-webhook
+                  key: default_webhook_url
+            - name: TEAMS_CRITICAL_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: prometheus-msteams-webhook
+                  key: critical_webhook_url
+            - name: TEAMS_WARNING_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: prometheus-msteams-webhook
+                  key: warning_webhook_url

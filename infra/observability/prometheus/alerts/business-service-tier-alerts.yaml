@@ -1,0 +1,32 @@
+groups:
+  - name: business-service-tier-alerts
+    rules:
+      - alert: ServiceErrorRateWarning
+        expr: |
+          sum(rate(http_requests_total{namespace=~"k1s0-business|k1s0-service", status=~"5.."}[5m])) by (service)
+          / sum(rate(http_requests_total{namespace=~"k1s0-business|k1s0-service"}[5m])) by (service) > 0.002
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.service }} error rate > 0.2% (SLO target: < 0.1%)"
+          description: "{{ $labels.service }} の 5xx エラー率が {{ $value | humanizePercentage }} です（SLO 目標の約 2 倍）"
+
+      - alert: ServiceHighErrorRate
+        expr: |
+          sum(rate(http_requests_total{namespace=~"k1s0-business|k1s0-service", status=~"5.."}[5m])) by (service)
+          / sum(rate(http_requests_total{namespace=~"k1s0-business|k1s0-service"}[5m])) by (service) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.service }} error rate > 5%"
+
+      - alert: ServiceHighLatency
+        expr: |
+          histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{namespace=~"k1s0-business|k1s0-service"}[5m])) by (service) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.service }} P99 latency > 1s"

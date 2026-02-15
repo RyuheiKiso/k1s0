@@ -1,0 +1,287 @@
+# .github/workflows/deploy.yaml
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: harbor.internal.example.com
+
+jobs:
+  detect-services:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.detect.outputs.services }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: detect
+        name: Detect changed services
+        run: |
+          # ディレクトリ構成図.md に基づくサービス検出:
+          #   system:   regions/system/server/{lang}/{service}/...
+          #   business: regions/business/{domain}/server/{lang}/{service}/...
+          #   service:  regions/service/{service}/server/{lang}/...
+          CHANGED=$(git diff --name-only HEAD~1 HEAD | \
+            grep -E '^regions/' | \
+            sed 's|^regions/||' | \
+            while IFS= read -r path; do
+              case "$path" in
+                system/server/*/*/*)       echo "$path" | cut -d'/' -f1-4 ;;
+                business/*/server/*/*/*)   echo "$path" | cut -d'/' -f1-5 ;;
+                service/*/server/*/*)      echo "$path" | cut -d'/' -f1-4 ;;
+              esac
+            done | sort -u | head -20)
+          echo "services=$(echo "$CHANGED" | jq -R -s -c 'split("\n") | map(select(. != ""))')" >> "$GITHUB_OUTPUT"
+
+  build-and-push:
+    needs: detect-services
+    if: needs.detect-services.outputs.services != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          # 直近の Git タグからバージョンを取得（例: v1.2.3 → 1.2.3）
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+      - name: Determine image metadata
+        id: image
+        run: |
+          TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
+          echo "project=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: regions/${{ matrix.service }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+      - name: Sign image with Cosign
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+
+  # NOTE: デプロイジョブはクラスタネットワーク内の self-hosted ランナーで実行する。
+  # 各環境のランナーはそれぞれのクラスタ内で動作し、Kubernetes API や
+  # 内部サービスへの直接アクセスが可能となる。
+  deploy-dev:
+    needs: [build-and-push, detect-services]
+    runs-on: [self-hosted, dev]
+    environment: dev
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Derive service metadata
+        id: meta
+        run: |
+          # Tier 別のディレクトリ構成に基づきメタデータを導出:
+          #   system/server/{lang}/{service}         → Helm: system/{service}
+          #   business/{domain}/server/{lang}/{service} → Helm: business/{domain}/{service}
+          #   service/{service}/server/{lang}        → Helm: service/{service}
+          TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
+          case "$TIER" in
+            system)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f4)
+              HELM_PATH="system/${SERVICE_NAME}"
+              ;;
+            business)
+              DOMAIN=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f5)
+              HELM_PATH="business/${DOMAIN}/${SERVICE_NAME}"
+              ;;
+            service)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
+              HELM_PATH="service/${SERVICE_NAME}"
+              ;;
+          esac
+          echo "project=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
+          echo "service_name=${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "helm_path=${HELM_PATH}" >> "$GITHUB_OUTPUT"
+          echo "namespace=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
+      - name: Deploy to dev
+        run: |
+          helm upgrade --install ${{ steps.meta.outputs.service_name }} \
+            ./infra/helm/services/${{ steps.meta.outputs.helm_path }} \
+            -n ${{ steps.meta.outputs.namespace }} \
+            -f ./infra/helm/services/${{ steps.meta.outputs.helm_path }}/values-dev.yaml \
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+
+  deploy-staging:
+    needs: [deploy-dev, detect-services]
+    runs-on: [self-hosted, staging]
+    environment: staging
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Derive service metadata
+        id: meta
+        run: |
+          # Tier 別のディレクトリ構成に基づきメタデータを導出:
+          #   system/server/{lang}/{service}         → Helm: system/{service}
+          #   business/{domain}/server/{lang}/{service} → Helm: business/{domain}/{service}
+          #   service/{service}/server/{lang}        → Helm: service/{service}
+          TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
+          case "$TIER" in
+            system)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f4)
+              HELM_PATH="system/${SERVICE_NAME}"
+              ;;
+            business)
+              DOMAIN=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f5)
+              HELM_PATH="business/${DOMAIN}/${SERVICE_NAME}"
+              ;;
+            service)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
+              HELM_PATH="service/${SERVICE_NAME}"
+              ;;
+          esac
+          echo "project=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
+          echo "service_name=${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "helm_path=${HELM_PATH}" >> "$GITHUB_OUTPUT"
+          echo "namespace=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
+      - name: Deploy to staging
+        run: |
+          helm upgrade --install ${{ steps.meta.outputs.service_name }} \
+            ./infra/helm/services/${{ steps.meta.outputs.helm_path }} \
+            -n ${{ steps.meta.outputs.namespace }} \
+            -f ./infra/helm/services/${{ steps.meta.outputs.helm_path }}/values-staging.yaml \
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+
+  deploy-prod:
+    needs: [deploy-staging, detect-services]
+    runs-on: [self-hosted, prod]
+    environment:
+      name: prod
+      url: https://api.k1s0.internal.example.com
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Derive service metadata
+        id: meta
+        run: |
+          # Tier 別のディレクトリ構成に基づきメタデータを導出:
+          #   system/server/{lang}/{service}         → Helm: system/{service}
+          #   business/{domain}/server/{lang}/{service} → Helm: business/{domain}/{service}
+          #   service/{service}/server/{lang}        → Helm: service/{service}
+          TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
+          case "$TIER" in
+            system)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f4)
+              HELM_PATH="system/${SERVICE_NAME}"
+              ;;
+            business)
+              DOMAIN=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f5)
+              HELM_PATH="business/${DOMAIN}/${SERVICE_NAME}"
+              ;;
+            service)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
+              HELM_PATH="service/${SERVICE_NAME}"
+              ;;
+          esac
+          echo "project=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
+          echo "service_name=${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "helm_path=${HELM_PATH}" >> "$GITHUB_OUTPUT"
+          echo "namespace=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
+      - name: Deploy to prod
+        run: |
+          helm upgrade --install ${{ steps.meta.outputs.service_name }} \
+            ./infra/helm/services/${{ steps.meta.outputs.helm_path }} \
+            -n ${{ steps.meta.outputs.namespace }} \
+            -f ./infra/helm/services/${{ steps.meta.outputs.helm_path }}/values-prod.yaml \
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
