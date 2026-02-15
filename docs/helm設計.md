@@ -179,7 +179,7 @@ config:
 # Vault Agent Injector
 vault:
   enabled: true
-  role: "order-service"
+  role: "service"                        # Tier 名を指定（認証認可設計.md の Vault Kubernetes Auth ロールに対応）
   secrets:
     - path: "secret/data/k1s0/service/order/database"
       key: "password"

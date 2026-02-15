@@ -309,7 +309,8 @@ proto ファイルは以下の2つのレベルで管理する。
 
 | パス | 用途 |
 | --- | --- |
-| `api/proto/common/` | 共有プロトコル定義（共通の message 型、共通の enum、Pagination 等） |
+| `api/proto/k1s0/system/common/v1/` | 共有プロトコル定義（共通の message 型、共通の enum、Pagination 等） |
+| `api/proto/k1s0/event/` | イベント定義（メッセージング設計.md 参照） |
 | `api/proto/buf.yaml` | buf 設定（lint・breaking change 検出） |
 
 各サービスは共有定義を import して参照する。
@@ -322,7 +323,8 @@ proto ファイルは以下の2つのレベルで管理する。
 
 | 対象 | 配置先 | 例 |
 | --- | --- | --- |
-| 複数サービスで共有する message 型・enum | `api/proto/common/` | Pagination, Timestamp, Money |
+| 複数サービスで共有する message 型・enum | `api/proto/k1s0/system/common/v1/` | Pagination, Timestamp, Money |
+| イベント定義（Kafka メッセージスキーマ） | `api/proto/k1s0/event/{tier}/{domain}/v1/` | OrderCreatedEvent, LoginEvent |
 | サービス固有の gRPC サービス定義 | `{サービス}/api/proto/` | OrderService, LedgerService |
 | サービス固有の Request/Response 型 | `{サービス}/api/proto/` | CreateOrderRequest |
 
@@ -331,9 +333,16 @@ proto ファイルは以下の2つのレベルで管理する。
 ```
 # プロジェクトルート（共有定義）
 api/proto/
-├── common/                        # 共有プロトコル定義
-│   └── v1/
-│       └── types.proto            # Pagination, Timestamp 等の共通型
+├── k1s0/
+│   ├── event/                     # イベント定義（メッセージング設計.md 参照）
+│   │   ├── system/
+│   │   ├── business/
+│   │   └── service/
+│   └── system/
+│       └── common/
+│           └── v1/
+│               ├── types.proto            # Pagination, Timestamp 等の共通型
+│               └── event_metadata.proto   # イベントメタデータ
 └── buf.yaml                       # buf 設定
 
 # サービス内（固有定義）

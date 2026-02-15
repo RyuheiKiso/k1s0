@@ -119,18 +119,26 @@ resource "kubernetes_network_policy" "deny_cross_tier" {
     pod_selector {}
     policy_types = ["Ingress"]
 
-    ingress {
-      from {
-        namespace_selector {
-          match_labels = {
-            tier = each.value.allowed_from_tier
+    # 許可する Tier からのインバウンド（複数 Tier を指定可能）
+    dynamic "ingress" {
+      for_each = length(each.value.allowed_from_tiers) > 0 ? [1] : []
+      content {
+        dynamic "from" {
+          for_each = each.value.allowed_from_tiers
+          content {
+            namespace_selector {
+              match_labels = {
+                tier = from.value
+              }
+            }
           }
         }
-      }
-      from {
-        namespace_selector {
-          match_labels = {
-            tier = each.value.tier
+        # 同一 Tier 内の通信も許可
+        from {
+          namespace_selector {
+            match_labels = {
+              tier = each.value.tier
+            }
           }
         }
       }
@@ -520,20 +528,20 @@ resource "harbor_robot_account" "ci_push" {
 
 namespaces = {
   "k1s0-system" = {
-    tier              = "system"
-    allowed_from_tier = "business"
+    tier               = "system"
+    allowed_from_tiers = ["system", "business", "service"]   # 全 Tier からのアクセスを許可（認証・config 等の共通基盤）
   }
   "k1s0-business" = {
-    tier              = "business"
-    allowed_from_tier = "service"
+    tier               = "business"
+    allowed_from_tiers = ["business", "service"]             # service および同一 Tier から許可
   }
   "k1s0-service" = {
-    tier              = "service"
-    allowed_from_tier = ""
+    tier               = "service"
+    allowed_from_tiers = ["service"]                         # 同一 Tier のみ（Ingress は別途設定）
   }
   "observability" = {
-    tier              = "infra"
-    allowed_from_tier = ""
+    tier               = "infra"
+    allowed_from_tiers = []
   }
 }
 

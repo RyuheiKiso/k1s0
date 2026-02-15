@@ -166,7 +166,7 @@ plugins:
     config:
       uri_param_names: []
       cookie_names: []
-      key_claim_name: iss
+      key_claim_name: kid
       claims_to_verify:
         - exp
 ```
@@ -273,7 +273,7 @@ plugins:
 
   - name: jwt
     config:
-      key_claim_name: iss
+      key_claim_name: kid
       claims_to_verify:
         - exp
 
@@ -372,7 +372,7 @@ jobs:
 | 項目               | dev              | staging          | prod             |
 | ------------------ | ---------------- | ---------------- | ---------------- |
 | Kong レプリカ      | 1                | 2                | 3                |
-| PostgreSQL         | シングルノード | 2ノード（Primary 1 + Replica 1） | 3ノード HA 構成（Primary 1 + Replica 2） |
+| PostgreSQL         | シングルノード | 2ノード（Primary 1 + Replica 1） | 3ノード HA 構成（Bitnami PostgreSQL HA Chart: Primary 1 + Replica 2） |
 | Rate Limiting 倍率 | x10              | x2               | x1               |
 | Admin API アクセス | Basic認証 + 開発用トークン | IP制限 + mTLS（運用チーム） | IP制限 + mTLS + 監査ログ（インフラチーム個人証明書） |
 | decK 自動 sync     | 自動             | 自動             | 手動承認         |
@@ -382,20 +382,21 @@ jobs:
 **prod 環境（3ノード構成）:**
 
 - Primary 1 ノード + Replica 2 ノードの合計 3 ノード構成
-- **Patroni** によるフェイルオーバー管理
+- **Bitnami PostgreSQL HA Chart** によるストリーミングレプリケーションとフェイルオーバー管理
   - Primary 障害時に Replica の中から自動的に新しい Primary を選出
   - フェイルオーバー時間目標: 30 秒以内
 - **同期レプリケーション**を採用し、データ損失を防止
   - `synchronous_commit = on` により、少なくとも 1 つの Replica への書き込み完了を保証
   - `synchronous_standby_names = 'ANY 1 (*)'` で任意の 1 Replica を同期対象とする
-- Kong からの接続は Patroni が管理する VIP または Kubernetes Service 経由でルーティング
+- Kong からの接続は Kubernetes Service 経由でルーティング
+- PostgreSQL のデプロイは [terraform設計.md](terraform設計.md) の `modules/database/` で管理する
 
 **staging 環境（2ノード構成）:**
 
 - Primary 1 ノード + Replica 1 ノードの合計 2 ノード構成
 - **非同期レプリケーション**を採用（パフォーマンス優先）
   - `synchronous_commit = off`
-- Patroni は導入するが、フェイルオーバーのテスト用途を兼ねる
+- フェイルオーバーのテスト用途を兼ねる
 
 **dev 環境（シングルノード）:**
 

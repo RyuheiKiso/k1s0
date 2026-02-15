@@ -303,6 +303,14 @@ jobs:
             ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+      - name: Sign image with Cosign
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:${{ github.sha }}
+        env:
+          COSIGN_EXPERIMENTAL: "1"
 
   deploy-dev:
     needs: build-and-push
@@ -310,6 +318,13 @@ jobs:
     environment: dev
     steps:
       - uses: actions/checkout@v4
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/$SERVICE_NAME:${{ github.sha }}
       - uses: azure/setup-helm@v4
       - name: Deploy to dev
         run: |
