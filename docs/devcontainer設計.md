@@ -107,7 +107,11 @@ k1s0 の開発環境を DevContainer で統一し、環境構築の手間をゼ�
     8081,   // Schema Registry
     16686,  // Jaeger UI
     3100,   // Loki
-    9090    // Prometheus
+    9090,   // Prometheus
+    3200,   // Grafana
+    8090,   // Kafka UI
+    8200,   // Vault
+    8180    // Keycloak
   ],
 
   "postCreateCommand": "bash .devcontainer/post-create.sh",

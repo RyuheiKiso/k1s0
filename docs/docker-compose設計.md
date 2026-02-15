@@ -14,7 +14,7 @@
 
 | プロファイル  | 対象                                     |
 | ------------- | ---------------------------------------- |
-| infra         | PostgreSQL, MySQL, Redis, Kafka 等       |
+| infra         | PostgreSQL, MySQL, Redis, Kafka, Keycloak 等 |
 | observability | Jaeger, Prometheus, Grafana, Loki        |
 | system        | system 層のサーバー・DB                  |
 | business      | business 層のサーバー・クライアント・DB  |
@@ -147,6 +147,37 @@ services:
       timeout: 5s
       retries: 5
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    profiles: [infra]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: dev
+      KC_DB_PASSWORD: dev
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: dev
+    command: start-dev
+    ports:
+      - "8180:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  redis-session:
+    image: redis:7
+    profiles: [infra]
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-session-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   vault:
     image: hashicorp/vault:1.17
     profiles: [infra]
@@ -206,6 +237,7 @@ volumes:
   postgres-data:
   mysql-data:
   redis-data:
+  redis-session-data:
   kafka-data:
   prometheus-data:
   loki-data:
@@ -303,6 +335,8 @@ services:
 | Schema Registry | `schema-registry.k1s0-system.svc.cluster.local`      | `schema-registry`                     |
 | Jaeger       | `jaeger.k1s0-system.svc.cluster.local`                  | `jaeger`                              |
 | Vault        | `vault.k1s0-system.svc.cluster.local`                   | `vault`                               |
+| Keycloak     | `keycloak.k1s0-system.svc.cluster.local`                | `keycloak`                            |
+| Redis（BFF セッション用） | `redis-session.k1s0-system.svc.cluster.local` | `redis-session`                       |
 | 他サービス   | `{service}.{namespace}.svc.cluster.local`                | `{docker-compose サービス名}`        |
 
 ### config.dev.yaml の例

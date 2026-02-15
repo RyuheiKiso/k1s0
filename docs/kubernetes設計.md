@@ -29,8 +29,9 @@ Tier アーキテクチャの依存ルール（下位 → 上位の一方向の�
 
 **通信方針:**
 - 下位 Tier から上位 Tier（system）への依存は全 Tier で許可する（認証・config 取得等の共通基盤へのアクセスは全 Tier から必要なため）
-- 同階層間の直接依存は禁止（tier-architecture.md の例外規定を除く）
-- k1s0-system の NetworkPolicy では business と service の両方からのインバウンドを許可している
+- 同一 Namespace 内の通信は各 Tier で許可する（tier-architecture.md の同一 Tier 例外規定に基づく）
+- 異なる Tier 間の同階層直接依存は禁止（tier-architecture.md の例外規定を除く）
+- k1s0-system の NetworkPolicy では system 自身・business・service の全 Tier からのインバウンドを許可している
 
 ```yaml
 # k1s0-system: business および service からのインバウンドを許可
@@ -49,13 +50,16 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
+              tier: system
+        - namespaceSelector:
+            matchLabels:
               tier: business
         - namespaceSelector:
             matchLabels:
               tier: service
 
 ---
-# k1s0-business: service からのインバウンドのみ許可
+# k1s0-business: service および同一 Namespace からのインバウンドを許可
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -69,10 +73,13 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
+              tier: business
+        - namespaceSelector:
+            matchLabels:
               tier: service
 
 ---
-# k1s0-service: Ingress からのインバウンドのみ許可（他 Tier からの直接アクセス禁止）
+# k1s0-service: Ingress および同一 Namespace からのインバウンドを許可
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -84,6 +91,9 @@ spec:
     - Ingress
   ingress:
     - from:
+        - namespaceSelector:
+            matchLabels:
+              tier: service
         - namespaceSelector:
             matchLabels:
               app.kubernetes.io/name: ingress-nginx

@@ -32,7 +32,7 @@ grpc:                            # gRPC 有効時のみ
   max_recv_msg_size: 4194304     # 4MB
 
 database:                        # DB 有効時のみ
-  host: "postgres.k1s0-system.svc.cluster.local"
+  host: "postgres.k1s0-service.svc.cluster.local"  # Tier に応じて変更: k1s0-system / k1s0-business / k1s0-service
   port: 5432
   name: "order_db"
   user: "app"
@@ -86,11 +86,14 @@ auth:
     issuer: "https://auth.k1s0.internal.example.com/realms/k1s0"
     audience: "k1s0-api"
     public_key_path: "/etc/secrets/jwt-public.pem"
-  oidc:
+  oidc:                                      # BFF または OIDC 連携サービスで使用
+    discovery_url: "https://auth.k1s0.internal.example.com/realms/k1s0/.well-known/openid-configuration"
     client_id: "k1s0-bff"
     client_secret: ""                        # Vault パス: secret/data/k1s0/system/bff/oidc キー: client_secret
     redirect_uri: "https://app.k1s0.internal.example.com/callback"
     scopes: ["openid", "profile", "email"]
+    jwks_uri: "https://auth.k1s0.internal.example.com/realms/k1s0/protocol/openid-connect/certs"
+    jwks_cache_ttl: "10m"
 ```
 
 ## 環境別オーバーライド
@@ -238,10 +241,13 @@ type JWTConfig struct {
 }
 
 type OIDCConfig struct {
+    DiscoveryURL string   `yaml:"discovery_url" validate:"required,url"`
     ClientID     string   `yaml:"client_id" validate:"required"`
     ClientSecret string   `yaml:"client_secret"`
-    RedirectURI  string   `yaml:"redirect_uri" validate:"required"`
+    RedirectURI  string   `yaml:"redirect_uri" validate:"required,url"`
     Scopes       []string `yaml:"scopes"`
+    JWKSURI      string   `yaml:"jwks_uri" validate:"required,url"`
+    JWKSCacheTTL string   `yaml:"jwks_cache_ttl"`
 }
 
 func Load(basePath, envPath string) (*Config, error) {
@@ -310,10 +316,13 @@ pub struct JwtConfig {
 
 #[derive(Deserialize)]
 pub struct OidcConfig {
+    pub discovery_url: String,
     pub client_id: String,
     pub client_secret: String,
     pub redirect_uri: String,
     pub scopes: Vec<String>,
+    pub jwks_uri: String,
+    pub jwks_cache_ttl: Option<String>,
 }
 ```
 
