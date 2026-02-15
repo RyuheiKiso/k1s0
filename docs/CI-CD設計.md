@@ -23,7 +23,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.
 | Deploy            | `deploy.yaml`     | main マージ時               | image push → deploy     |
 | Proto Check       | `proto.yaml`      | `api/proto/**` 変更時       | proto lint + breaking    |
 | Security Scan     | `security.yaml`   | 日次 + PR 時                | 脆弱性スキャン           |
-| Kong Config Sync  | `kong-sync.yaml`  | push (`kong/`)              | dev → staging → prod    |
+| Kong Config Sync  | `kong-sync.yaml`  | push (`infra/kong/**`)      | dev → staging → prod    |
 | OpenAPI Lint      | `api-lint.yaml`   | push (`openapi/`)           | OpenAPI バリデーション & SDK 生成 |
 
 ### CI ワークフロー（ci.yaml）
@@ -49,7 +49,6 @@ jobs:
       ts: ${{ steps.filter.outputs.ts }}
       dart: ${{ steps.filter.outputs.dart }}
       python: ${{ steps.filter.outputs.python }}
-      proto: ${{ steps.filter.outputs.proto }}
       helm: ${{ steps.filter.outputs.helm }}
     steps:
       - uses: actions/checkout@v4
@@ -70,8 +69,6 @@ jobs:
               - 'regions/**/dart/**'
             python:
               - 'e2e/**'
-            proto:
-              - 'api/proto/**'
             helm:
               - 'infra/helm/**'
 
@@ -192,15 +189,8 @@ jobs:
       - run: pip install -r e2e/requirements.txt
       - run: pytest e2e/ --tb=short
 
-  proto-check:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.proto == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: bufbuild/buf-setup-action@v1
-      - run: buf lint api/proto
-      - run: buf breaking api/proto --against '.git#branch=main'
+  # NOTE: proto チェックは専用ワークフロー proto.yaml で実行する。
+  # ci.yaml の detect-changes で proto 変更を検出し、proto.yaml が独立してトリガーされる。
 
   helm-lint:
     needs: detect-changes
@@ -579,12 +569,12 @@ OpenAPI 定義（`api/openapi/`）の変更時に、バリデーションとク�
 CI/CD パイプラインから Helm デプロイを実行する際の連携方式:
 
 ```
-GitHub Actions → kubeconfig (Secret) → kubectl/helm → Kubernetes Cluster
+GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 ```
 
 | 項目             | 設定                                                |
 | ---------------- | --------------------------------------------------- |
-| kubeconfig       | GitHub Secrets に環境別で格納                       |
+| ランナー         | 各環境のクラスタ内で動作する self-hosted ランナーを使用（`[self-hosted, dev]` 等） |
 | Helm バージョン  | `azure/setup-helm@v4` で固定バージョンを使用        |
 | デプロイ方式     | `helm upgrade --install`（冪等性を保証）            |
 | イメージタグ     | `--set image.tag=${VERSION}-${GITHUB_SHA::7}` で `{version}-{git-sha}` 形式を指定（[Dockerイメージ戦略.md](Dockerイメージ戦略.md) のタグ規則に準拠） |

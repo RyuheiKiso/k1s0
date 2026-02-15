@@ -78,8 +78,12 @@ appVersion: "1.0.0"   # アプリケーションバージョン
 dependencies:
   - name: k1s0-common
     version: "0.1.0"
-    repository: "file://../../charts/k1s0-common"
+    repository: "file://../../../charts/k1s0-common"   # services/service/order/ → helm/charts/ への相対パス
 ```
+
+> **注**: `repository` の相対パスは Chart.yaml の配置場所に応じて変わる。
+> - system / service 層（`services/{tier}/{service}/`）: `file://../../../charts/k1s0-common`
+> - business 層（`services/business/{domain}/{service}/`）: `file://../../../../charts/k1s0-common`
 
 ## values.yaml 設計
 
@@ -342,13 +346,13 @@ helm upgrade --install order ./infra/helm/services/service/order \
 helm upgrade --install order ./infra/helm/services/service/order \
   -n k1s0-service \
   -f ./infra/helm/services/service/order/values-staging.yaml \
-  --set image.tag=1.0.0
+  --set image.tag=1.0.0-a1b2c3d
 
 # prod 環境
 helm upgrade --install order ./infra/helm/services/service/order \
   -n k1s0-service \
   -f ./infra/helm/services/service/order/values-prod.yaml \
-  --set image.tag=1.0.0
+  --set image.tag=1.0.0-a1b2c3d
 ```
 
 ## シークレット注入（Vault Agent Injector）
@@ -386,11 +390,11 @@ Library Chart（k1s0-common）はセマンティックバージョニング（Se
 - 各サービスの `Chart.yaml` では `dependencies[].version` にチルダ範囲指定（`~1.x.x`）を推奨する
 
 ```yaml
-# 各サービスの Chart.yaml での依存指定例
+# 各サービスの Chart.yaml での依存指定例（system / service 層の場合）
 dependencies:
   - name: k1s0-common
     version: "~1.2.0"    # 1.2.x の PATCH アップデートを自動追従
-    repository: "file://../../charts/k1s0-common"
+    repository: "file://../../../charts/k1s0-common"
 ```
 
 ### _deployment.tpl（抜粋）

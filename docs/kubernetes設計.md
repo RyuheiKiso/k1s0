@@ -96,7 +96,7 @@ spec:
               tier: service
         - namespaceSelector:
             matchLabels:
-              app.kubernetes.io/name: ingress-nginx
+              kubernetes.io/metadata.name: ingress
 ```
 
 ## リソースリミット
@@ -250,7 +250,7 @@ spec:
 
 | 環境    | minReplicas | maxReplicas | 備考               |
 | ------- | ----------- | ----------- | ------------------ |
-| dev     | 1           | 2           | コスト最小化       |
+| dev     | 1           | 2           | HPA 無効がデフォルト（[helm設計.md](helm設計.md) 参照）。有効化時はこの値を使用 |
 | staging | 2           | 5           | スケール検証       |
 | prod    | 3           | 10          | トラフィックに追従 |
 

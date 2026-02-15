@@ -16,7 +16,7 @@ k1s0 では環境変数の直接参照を禁止し、`config/config.yaml` で設
 # config/config.yaml
 
 app:
-  name: "order-service"          # サービス名
+  name: "order-server"           # サービス名
   version: "1.0.0"               # アプリケーションバージョン
   environment: "dev"             # dev | staging | prod
 
@@ -46,7 +46,7 @@ kafka:                           # Kafka 有効時のみ
   brokers:
     - "kafka-0.messaging.svc.cluster.local:9092"
     - "kafka-1.messaging.svc.cluster.local:9092"
-  consumer_group: "order-service"
+  consumer_group: "order-server.default"  # 命名規則: {service-name}.{purpose}（メッセージング設計.md 参照）
   security_protocol: "PLAINTEXT"   # PLAINTEXT（dev） | SASL_SSL（staging/prod）
   sasl:                            # security_protocol が SASL_SSL の場合のみ有効
     mechanism: "SCRAM-SHA-512"     # SCRAM-SHA-512 | PLAIN
@@ -56,11 +56,11 @@ kafka:                           # Kafka 有効時のみ
     ca_cert_path: ""               # Strimzi が発行する CA 証明書のパス
   topics:
     publish:
-      - "order.created"
-      - "order.updated"
+      - "k1s0.service.order.created.v1"
+      - "k1s0.service.order.updated.v1"
     subscribe:
-      - "payment.completed"
-      - "inventory.reserved"
+      - "k1s0.service.payment.completed.v1"
+      - "k1s0.service.inventory.reserved.v1"
 
 redis:                           # Redis 有効時のみ
   host: "redis.k1s0-system.svc.cluster.local"
@@ -85,7 +85,7 @@ auth:
   jwt:
     issuer: "https://auth.k1s0.internal.example.com/realms/k1s0"
     audience: "k1s0-api"
-    public_key_path: "/etc/secrets/jwt-public.pem"
+    public_key_path: ""                      # 非推奨: JWKS（oidc.jwks_uri）による動的取得を優先。オフライン検証が必要な場合のみ PEM ファイルパスを指定
   oidc:                                      # BFF または OIDC 連携サービスで使用
     discovery_url: "https://auth.k1s0.internal.example.com/realms/k1s0/.well-known/openid-configuration"
     client_id: "k1s0-bff"

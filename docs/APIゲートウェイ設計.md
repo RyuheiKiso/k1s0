@@ -169,6 +169,9 @@ plugins:
       key_claim_name: kid
       claims_to_verify:
         - exp
+      maximum_expiration: 900           # 15分（Access Token のライフタイム）
+      header_names:
+        - Authorization
 ```
 
 #### CORS プラグイン
