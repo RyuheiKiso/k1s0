@@ -1,0 +1,105 @@
+use serde::Deserialize;
+use std::fs;
+
+/// Config はアプリケーション設定の全体構造。
+#[derive(Debug, Deserialize)]
+pub struct Config {
+    pub app: AppConfig,
+    pub server: ServerConfig,
+{% if has_database %}
+    pub database: DatabaseConfig,
+{% endif %}
+{% if has_kafka %}
+    pub kafka: KafkaConfig,
+{% endif %}
+{% if has_redis %}
+    pub redis: RedisConfig,
+{% endif %}
+    pub observability: ObservabilityConfig,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AppConfig {
+    pub name: String,
+    pub version: String,
+    pub environment: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ServerConfig {
+    pub port: String,
+    pub read_timeout_sec: u64,
+    pub write_timeout_sec: u64,
+}
+
+{% if has_database %}
+#[derive(Debug, Deserialize)]
+pub struct DatabaseConfig {
+    pub host: String,
+    pub port: u16,
+    pub user: String,
+    pub password: String,
+    pub name: String,
+{% if database_type == "postgresql" %}
+    pub ssl_mode: String,
+{% endif %}
+    pub pool: PoolConfig,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PoolConfig {
+    pub max_open: u32,
+    pub max_idle: u32,
+    pub max_lifetime_sec: u64,
+}
+
+impl DatabaseConfig {
+    pub fn connection_string(&self) -> String {
+{% if database_type == "postgresql" %}
+        format!(
+            "postgres://{}:{}@{}:{}/{}?sslmode={}",
+            self.user, self.password, self.host, self.port, self.name, self.ssl_mode
+        )
+{% elif database_type == "mysql" %}
+        format!(
+            "mysql://{}:{}@{}:{}/{}",
+            self.user, self.password, self.host, self.port, self.name
+        )
+{% elif database_type == "sqlite" %}
+        self.name.clone()
+{% endif %}
+    }
+}
+{% endif %}
+
+{% if has_kafka %}
+#[derive(Debug, Deserialize)]
+pub struct KafkaConfig {
+    pub brokers: Vec<String>,
+    pub schema_registry: String,
+}
+{% endif %}
+
+{% if has_redis %}
+#[derive(Debug, Deserialize)]
+pub struct RedisConfig {
+    pub addr: String,
+    pub password: String,
+    pub db: u32,
+}
+{% endif %}
+
+#[derive(Debug, Deserialize)]
+pub struct ObservabilityConfig {
+    pub trace_endpoint: String,
+    pub metric_endpoint: String,
+    pub log_level: String,
+}
+
+impl Config {
+    pub fn load(path: &str) -> anyhow::Result<Self> {
+        let content = fs::read_to_string(path)?;
+        let config: Config = serde_yaml::from_str(&content)?;
+        Ok(config)
+    }
+}

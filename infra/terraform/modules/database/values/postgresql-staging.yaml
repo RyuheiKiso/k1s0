@@ -1,0 +1,40 @@
+# PostgreSQL Helm values - staging environment
+# Bitnami PostgreSQL chart
+
+auth:
+  postgresPassword: ""  # Override via Vault secret
+  database: k1s0
+  username: k1s0
+
+primary:
+  persistence:
+    enabled: true
+    storageClass: ceph-block
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+readReplicas:
+  replicaCount: 1
+  persistence:
+    enabled: true
+    storageClass: ceph-block
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: observability

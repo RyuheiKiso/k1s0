@@ -1,0 +1,43 @@
+module {{ go_module }}
+
+go 1.23
+
+require (
+	github.com/gin-gonic/gin v1.10.0
+	go.opentelemetry.io/otel v1.31.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.31.0
+	go.opentelemetry.io/otel/sdk v1.31.0
+	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.56.0
+	github.com/go-playground/validator/v10 v10.22.1
+	gopkg.in/yaml.v3 v3.0.1
+{% if api_style == "rest" %}
+	github.com/oapi-codegen/oapi-codegen/v2 v2.4.1
+	github.com/oapi-codegen/runtime v1.1.1
+{% endif %}
+{% if api_style == "grpc" %}
+	google.golang.org/grpc v1.68.0
+	google.golang.org/protobuf v1.35.2
+{% endif %}
+{% if api_style == "graphql" %}
+	github.com/99designs/gqlgen v0.17.55
+	github.com/vektah/gqlparser/v2 v2.5.19
+{% endif %}
+{% if has_database %}
+	github.com/jmoiron/sqlx v1.4.0
+{% endif %}
+{% if has_database and database_type == "postgresql" %}
+	github.com/lib/pq v1.10.9
+{% endif %}
+{% if has_database and database_type == "mysql" %}
+	github.com/go-sql-driver/mysql v1.8.1
+{% endif %}
+{% if has_database and database_type == "sqlite" %}
+	github.com/mattn/go-sqlite3 v1.14.24
+{% endif %}
+{% if has_kafka %}
+	github.com/segmentio/kafka-go v0.4.47
+{% endif %}
+{% if has_redis %}
+	github.com/redis/go-redis/v9 v9.7.0
+{% endif %}
+)

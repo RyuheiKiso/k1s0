@@ -1,0 +1,97 @@
+// .devcontainer/devcontainer.json
+{
+  "name": "k1s0",
+  "dockerComposeFile": ["../docker-compose.yaml", "docker-compose.extend.yaml"],
+  "service": "devcontainer",
+  "workspaceFolder": "/workspace",
+
+  "features": {
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.23"
+    },
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "1.82"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "helm": "3.16",
+      "minikube": "none"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "rust-lang.rust-analyzer",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "Dart-Code.dart-code",
+        "Dart-Code.flutter",
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml",
+        "42Crunch.vscode-openapi",
+        "zxh404.vscode-proto3",
+        "GraphQL.vscode-graphql",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll": "explicit",
+          "source.organizeImports": "explicit"
+        },
+        "go.lintTool": "golangci-lint",
+        "go.lintFlags": ["--fast"],
+        "[go]": {
+          "editor.defaultFormatter": "golang.go"
+        },
+        "[rust]": {
+          "editor.defaultFormatter": "rust-lang.rust-analyzer"
+        },
+        "[typescript][typescriptreact]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[dart]": {
+          "editor.defaultFormatter": "Dart-Code.dart-code"
+        },
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        }
+      }
+    }
+  },
+
+  "forwardPorts": [
+    8080,
+    50051,
+    3000,
+    5173,
+    5432,
+    3306,
+    6379,
+    6380,
+    9092,
+    8081,
+    16686,
+    4317,
+    4318,
+    3100,
+    9090,
+    3200,
+    8090,
+    8200,
+    8180
+  ],
+
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "remoteUser": "vscode"
+}

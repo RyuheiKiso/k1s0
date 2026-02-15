@@ -1,0 +1,40 @@
+# MySQL Helm values - staging environment
+# Bitnami MySQL chart
+
+auth:
+  rootPassword: ""  # Override via Vault secret
+  database: k1s0
+  username: k1s0
+
+primary:
+  persistence:
+    enabled: true
+    storageClass: ceph-block
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+secondary:
+  replicaCount: 1
+  persistence:
+    enabled: true
+    storageClass: ceph-block
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: observability

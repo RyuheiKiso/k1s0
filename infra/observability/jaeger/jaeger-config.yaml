@@ -1,0 +1,59 @@
+apiVersion: jaegertracing.io/v1
+kind: Jaeger
+metadata:
+  name: jaeger
+  namespace: observability
+spec:
+  strategy: production
+
+  collector:
+    replicas: 1
+    options:
+      collector:
+        grpc-port: 14250
+        http-port: 14268
+        zipkin.http-port: 9411
+
+  query:
+    replicas: 1
+    options:
+      query:
+        base-path: /jaeger
+
+  agent:
+    strategy: DaemonSet
+    options:
+      agent:
+        tags: "cluster=k1s0"
+
+  storage:
+    type: elasticsearch
+    options:
+      es:
+        server-urls: http://elasticsearch.observability.svc.cluster.local:9200
+        index-prefix: jaeger
+        num-shards: 3
+        num-replicas: 1
+    esIndexCleaner:
+      enabled: true
+      numberOfDays: 14
+      schedule: "55 23 * * *"
+
+  sampling:
+    options:
+      default_strategy:
+        type: probabilistic
+        param: 0.1
+      service_strategies:
+        - service: "k1s0-system.*"
+          type: probabilistic
+          param: 0.5
+        - service: "k1s0-business.*"
+          type: probabilistic
+          param: 0.1
+        - service: "k1s0-service.*"
+          type: probabilistic
+          param: 0.1
+
+  ingress:
+    enabled: false

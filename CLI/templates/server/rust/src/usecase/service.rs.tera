@@ -1,0 +1,54 @@
+use std::sync::Arc;
+
+use crate::domain::model::{{ service_name_pascal }}Entity;
+{% if has_database %}
+use crate::domain::repository::{{ service_name_pascal }}Repository;
+{% endif %}
+
+/// {{ service_name_pascal }}UseCase はビジネスロジックを提供する。
+pub struct {{ service_name_pascal }}UseCase {
+{% if has_database %}
+    repo: Arc<dyn {{ service_name_pascal }}Repository>,
+{% endif %}
+}
+
+impl {{ service_name_pascal }}UseCase {
+    pub fn new(
+{% if has_database %}
+        repo: impl {{ service_name_pascal }}Repository + 'static,
+{% endif %}
+    ) -> Self {
+        Self {
+{% if has_database %}
+            repo: Arc::new(repo),
+{% endif %}
+        }
+    }
+
+    pub async fn get_by_id(&self, id: &str) -> anyhow::Result<Option<{{ service_name_pascal }}Entity>> {
+{% if has_database %}
+        self.repo.find_by_id(id).await
+{% else %}
+        // TODO: 実装
+        Ok(None)
+{% endif %}
+    }
+
+    pub async fn get_all(&self) -> anyhow::Result<Vec<{{ service_name_pascal }}Entity>> {
+{% if has_database %}
+        self.repo.find_all().await
+{% else %}
+        // TODO: 実装
+        Ok(vec![])
+{% endif %}
+    }
+
+    pub async fn create(&self, entity: &{{ service_name_pascal }}Entity) -> anyhow::Result<()> {
+{% if has_database %}
+        self.repo.create(entity).await
+{% else %}
+        // TODO: 実装
+        Ok(())
+{% endif %}
+    }
+}

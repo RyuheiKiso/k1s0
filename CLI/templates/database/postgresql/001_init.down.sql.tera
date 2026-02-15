@@ -1,0 +1,6 @@
+DROP TRIGGER IF EXISTS trigger_update_updated_at ON {{ service_name_snake }}.examples;
+DROP FUNCTION IF EXISTS {{ service_name_snake }}.update_updated_at();
+DROP TABLE IF EXISTS {{ service_name_snake }}.examples;
+DROP SCHEMA IF EXISTS {{ service_name_snake }};
+DROP EXTENSION IF EXISTS "pgcrypto";
+DROP EXTENSION IF EXISTS "uuid-ossp";

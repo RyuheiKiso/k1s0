@@ -1,0 +1,95 @@
+package config
+
+import (
+	"fmt"
+	"os"
+
+	"gopkg.in/yaml.v3"
+)
+
+// Config はアプリケーション設定の全体構造。
+type Config struct {
+	App    AppConfig    `yaml:"app"`
+	Server ServerConfig `yaml:"server"`
+{% if has_database %}
+	Database DatabaseConfig `yaml:"database"`
+{% endif %}
+{% if has_kafka %}
+	Kafka KafkaConfig `yaml:"kafka"`
+{% endif %}
+{% if has_redis %}
+	Redis RedisConfig `yaml:"redis"`
+{% endif %}
+	Observability ObservabilityConfig `yaml:"observability"`
+}
+
+// AppConfig はアプリケーション基本情報。
+type AppConfig struct {
+	Name        string `yaml:"name"`
+	Version     string `yaml:"version"`
+	Environment string `yaml:"environment"`
+}
+
+// ServerConfig はサーバー設定。
+type ServerConfig struct {
+	Port            string `yaml:"port"`
+	ReadTimeoutSec  int    `yaml:"read_timeout_sec"`
+	WriteTimeoutSec int    `yaml:"write_timeout_sec"`
+}
+
+{% if has_database %}
+// DatabaseConfig は DB 接続設定。
+type DatabaseConfig struct {
+	Host     string     `yaml:"host"`
+	Port     int        `yaml:"port"`
+	User     string     `yaml:"user"`
+	Password string     `yaml:"password"`
+	Name     string     `yaml:"name"`
+	SSLMode  string     `yaml:"ssl_mode"`
+	Pool     PoolConfig `yaml:"pool"`
+}
+
+// PoolConfig はコネクションプール設定。
+type PoolConfig struct {
+	MaxOpen        int `yaml:"max_open"`
+	MaxIdle        int `yaml:"max_idle"`
+	MaxLifetimeSec int `yaml:"max_lifetime_sec"`
+}
+{% endif %}
+
+{% if has_kafka %}
+// KafkaConfig は Kafka 接続設定。
+type KafkaConfig struct {
+	Brokers        []string `yaml:"brokers"`
+	SchemaRegistry string   `yaml:"schema_registry"`
+}
+{% endif %}
+
+{% if has_redis %}
+// RedisConfig は Redis 接続設定。
+type RedisConfig struct {
+	Addr     string `yaml:"addr"`
+	Password string `yaml:"password"`
+	DB       int    `yaml:"db"`
+}
+{% endif %}
+
+// ObservabilityConfig は可観測性設定。
+type ObservabilityConfig struct {
+	TraceEndpoint  string `yaml:"trace_endpoint"`
+	MetricEndpoint string `yaml:"metric_endpoint"`
+	LogLevel       string `yaml:"log_level"`
+}
+
+// Load は YAML ファイルから設定を読み込む。
+func Load(path string) (*Config, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file: %w", err)
+	}
+	var cfg Config
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse config file: %w", err)
+	}
+	return &cfg, nil
+}

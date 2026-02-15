@@ -1,0 +1,56 @@
+# docker-compose.override.yaml.example
+# このファイルを docker-compose.override.yaml にコピーして使用してください。
+# 必要なサービスのコメントを解除して起動してください。
+
+services:
+  # --- system 層 ---
+  # auth-server:
+  #   build:
+  #     context: ./regions/system/server/go/auth
+  #     dockerfile: Dockerfile
+  #   profiles: [system]
+  #   ports:
+  #     - "8083:8080"    # 8081 は schema-registry、8082 は order-server が使用するため 8083 を割り当て
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./regions/system/server/go/auth/config:/app/config
+
+  # --- service 層 ---
+  # order-server:
+  #   build:
+  #     context: ./regions/service/order/server/go
+  #     dockerfile: Dockerfile
+  #   profiles: [service]
+  #   ports:
+  #     - "8082:8080"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./regions/service/order/server/go/config:/app/config
+
+  # --- API Gateway ---
+  # kong:
+  #   image: kong:3.7
+  #   profiles: [infra]
+  #   environment:
+  #     KONG_DATABASE: postgres
+  #     KONG_PG_HOST: postgres
+  #     KONG_PG_DATABASE: kong
+  #     KONG_PG_USER: dev
+  #     KONG_PG_PASSWORD: dev
+  #     KONG_PROXY_ACCESS_LOG: /dev/stdout
+  #     KONG_ADMIN_ACCESS_LOG: /dev/stdout
+  #     KONG_PROXY_ERROR_LOG: /dev/stderr
+  #     KONG_ADMIN_ERROR_LOG: /dev/stderr
+  #     KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+  #   ports:
+  #     - "8000:8000"
+  #     - "8001:8001"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy

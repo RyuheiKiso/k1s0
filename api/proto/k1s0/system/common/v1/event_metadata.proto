@@ -1,0 +1,13 @@
+// k1s0/system/common/v1/event_metadata.proto
+syntax = "proto3";
+package k1s0.system.common.v1;
+
+message EventMetadata {
+  string event_id = 1;          // UUID
+  string event_type = 2;        // e.g., "order.created"
+  string source = 3;            // e.g., "order-server"
+  int64 timestamp = 4;          // Unix timestamp (ms)
+  string trace_id = 5;          // 分散トレース ID
+  string correlation_id = 6;    // 業務相関 ID
+  int32 schema_version = 7;     // スキーマバージョン
+}

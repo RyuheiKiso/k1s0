@@ -1,0 +1,10 @@
+{% if api_style == "rest" %}
+mod rest;
+pub use rest::AppHandler;
+{% elif api_style == "grpc" %}
+mod grpc;
+pub use grpc::{{ service_name_pascal }}GrpcService as AppHandler;
+{% elif api_style == "graphql" %}
+mod graphql;
+pub use graphql::{build_schema, AppHandler};
+{% endif %}

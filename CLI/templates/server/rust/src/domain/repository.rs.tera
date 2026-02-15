@@ -1,0 +1,14 @@
+use async_trait::async_trait;
+
+use super::model::{{ service_name_pascal }}Entity;
+
+/// {{ service_name_pascal }}Repository はデータアクセスの抽象化 trait。
+#[cfg_attr(test, mockall::automock)]
+#[async_trait]
+pub trait {{ service_name_pascal }}Repository: Send + Sync {
+    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<{{ service_name_pascal }}Entity>>;
+    async fn find_all(&self) -> anyhow::Result<Vec<{{ service_name_pascal }}Entity>>;
+    async fn create(&self, entity: &{{ service_name_pascal }}Entity) -> anyhow::Result<()>;
+    async fn update(&self, entity: &{{ service_name_pascal }}Entity) -> anyhow::Result<()>;
+    async fn delete(&self, id: &str) -> anyhow::Result<()>;
+}

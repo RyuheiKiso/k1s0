@@ -1,0 +1,36 @@
+groups:
+  - name: system-tier-alerts
+    rules:
+      - alert: SystemServiceErrorRateWarning
+        expr: |
+          sum(rate(http_requests_total{namespace="k1s0-system", status=~"5.."}[5m]))
+          / sum(rate(http_requests_total{namespace="k1s0-system"}[5m])) > 0.001
+        for: 5m
+        labels:
+          severity: warning
+          tier: system
+        annotations:
+          summary: "System Tier error rate > 0.1% (SLO target: < 0.05%)"
+          description: "{{ $labels.service }} の 5xx エラー率が {{ $value | humanizePercentage }} です（SLO 目標の約 2 倍）"
+
+      - alert: SystemServiceHighErrorRate
+        expr: |
+          sum(rate(http_requests_total{namespace="k1s0-system", status=~"5.."}[5m]))
+          / sum(rate(http_requests_total{namespace="k1s0-system"}[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          tier: system
+        annotations:
+          summary: "System Tier error rate > 1%"
+          description: "{{ $labels.service }} の 5xx エラー率が {{ $value | humanizePercentage }} です"
+
+      - alert: SystemServiceHighLatency
+        expr: |
+          histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{namespace="k1s0-system"}[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          tier: system
+        annotations:
+          summary: "System Tier P99 latency > 500ms"

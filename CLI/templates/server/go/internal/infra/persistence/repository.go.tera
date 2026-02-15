@@ -1,0 +1,55 @@
+{% if has_database %}
+package persistence
+
+import (
+	"context"
+
+	"github.com/jmoiron/sqlx"
+
+	"{{ go_module }}/internal/domain/model"
+	"{{ go_module }}/internal/domain/repository"
+)
+
+type {{ service_name_camel }}Repository struct {
+	db *sqlx.DB
+}
+
+// NewRepository はリポジトリ実装を生成する。
+func NewRepository(db *sqlx.DB) repository.{{ service_name_pascal }}Repository {
+	return &{{ service_name_camel }}Repository{db: db}
+}
+
+func (r *{{ service_name_camel }}Repository) FindByID(ctx context.Context, id string) (*model.{{ service_name_pascal }}Entity, error) {
+	var entity model.{{ service_name_pascal }}Entity
+	err := r.db.GetContext(ctx, &entity, "SELECT * FROM examples WHERE id = $1", id)
+	if err != nil {
+		return nil, err
+	}
+	return &entity, nil
+}
+
+func (r *{{ service_name_camel }}Repository) FindAll(ctx context.Context) ([]*model.{{ service_name_pascal }}Entity, error) {
+	var entities []*model.{{ service_name_pascal }}Entity
+	err := r.db.SelectContext(ctx, &entities, "SELECT * FROM examples ORDER BY created_at DESC")
+	return entities, err
+}
+
+func (r *{{ service_name_camel }}Repository) Create(ctx context.Context, entity *model.{{ service_name_pascal }}Entity) error {
+	_, err := r.db.NamedExecContext(ctx,
+		"INSERT INTO examples (id, name, description, status) VALUES (:id, :name, :description, :status)",
+		entity)
+	return err
+}
+
+func (r *{{ service_name_camel }}Repository) Update(ctx context.Context, entity *model.{{ service_name_pascal }}Entity) error {
+	_, err := r.db.NamedExecContext(ctx,
+		"UPDATE examples SET name = :name, description = :description, status = :status WHERE id = :id",
+		entity)
+	return err
+}
+
+func (r *{{ service_name_camel }}Repository) Delete(ctx context.Context, id string) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM examples WHERE id = $1", id)
+	return err
+}
+{% endif %}

@@ -1,0 +1,4 @@
+DROP TRIGGER IF EXISTS trigger_update_updated_at;
+DROP INDEX IF EXISTS idx_examples_created_at;
+DROP INDEX IF EXISTS idx_examples_status;
+DROP TABLE IF EXISTS examples;

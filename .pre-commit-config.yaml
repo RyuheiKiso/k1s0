@@ -1,0 +1,55 @@
+# .pre-commit-config.yaml
+repos:
+  - repo: local
+    hooks:
+      - id: go-lint
+        name: Go Lint
+        entry: golangci-lint run
+        language: system
+        files: '\.go$'
+        pass_filenames: false
+
+      - id: rust-fmt
+        name: Rust Format Check
+        entry: cargo fmt -- --check
+        language: system
+        files: '\.rs$'
+        pass_filenames: false
+
+      - id: rust-clippy
+        name: Rust Clippy
+        entry: cargo clippy -- -D warnings
+        language: system
+        files: '\.rs$'
+        pass_filenames: false
+
+      - id: ts-lint
+        name: TypeScript Lint
+        entry: npx eslint
+        language: system
+        files: '\.[tj]sx?$'
+
+      - id: prettier
+        name: Prettier
+        entry: npx prettier --check
+        language: system
+        files: '\.(ts|tsx|js|jsx|json|yaml|yml)$'
+
+      - id: dart-analyze
+        name: Dart Analyze
+        entry: dart analyze --fatal-infos
+        language: system
+        files: '\.dart$'
+        pass_filenames: false
+
+      - id: dart-format
+        name: Dart Format Check
+        entry: dart format --set-exit-if-changed
+        language: system
+        files: '\.dart$'
+
+      - id: python-lint
+        name: Python Lint
+        entry: ruff check
+        language: system
+        files: '\.py$'

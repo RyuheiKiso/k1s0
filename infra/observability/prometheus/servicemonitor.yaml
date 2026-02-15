@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: k1s0-services
+  namespace: observability
+spec:
+  namespaceSelector:
+    matchNames:
+      - k1s0-system
+      - k1s0-business
+      - k1s0-service
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: k1s0
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

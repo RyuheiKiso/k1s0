@@ -244,3 +244,6 @@ docker buildx build \
 - [helm設計](helm設計.md)
 - [devcontainer設計](devcontainer設計.md)
 - [インフラ設計](インフラ設計.md)
+- [API設計](API設計.md)
+- [テンプレート仕様-サーバー](テンプレート仕様-サーバー.md) — サーバー Dockerfile テンプレート
+- [テンプレート仕様-クライアント](テンプレート仕様-クライアント.md) — クライアント Dockerfile テンプレート

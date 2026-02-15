@@ -1,0 +1,33 @@
+# Kiali Dashboard Helm values
+# Deployed via Terraform service-mesh module
+
+auth:
+  strategy: anonymous  # Override with OpenID Connect in prod
+
+deployment:
+  accessible_namespaces:
+    - "**"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+server:
+  web_root: /kiali
+
+external_services:
+  prometheus:
+    url: http://prometheus-kube-prometheus-prometheus.observability.svc.cluster.local:9090
+  grafana:
+    enabled: true
+    in_cluster_url: http://prometheus-grafana.observability.svc.cluster.local:80
+    url: ""
+  tracing:
+    enabled: true
+    in_cluster_url: http://jaeger-query.observability.svc.cluster.local:16686
+    url: ""
+  istio:
+    root_namespace: service-mesh

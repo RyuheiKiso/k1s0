@@ -1,0 +1,15 @@
+import { QueryClient } from '@tanstack/react-query';
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,       // 5 分間はキャッシュを新鮮とみなす
+      gcTime: 1000 * 60 * 30,          // 30 分間キャッシュを保持
+      retry: 1,                         // リトライ 1 回
+      refetchOnWindowFocus: false,      // ウィンドウフォーカス時の再取得を無効化
+    },
+    mutations: {
+      retry: 0,                         // ミューテーションはリトライしない
+    },
+  },
+});

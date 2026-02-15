@@ -1,0 +1,35 @@
+# system Tier のサービス定義
+services:
+  - name: auth-v1
+    url: http://auth-server.k1s0-system.svc.cluster.local:80
+    routes:
+      - name: auth-v1-route
+        paths:
+          - /api/v1/auth
+        strip_path: false
+      - name: auth-v1-login
+        paths:
+          - /api/v1/auth/login
+        strip_path: false
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 30                  # ブルートフォース防止（API設計.md 参照）
+              policy: redis
+              redis_host: redis.k1s0-system.svc.cluster.local
+
+  - name: config-v1
+    url: http://config-server.k1s0-system.svc.cluster.local:80
+    routes:
+      - name: config-v1-route
+        paths:
+          - /api/v1/config
+        strip_path: false
+
+  - name: master-v1
+    url: http://master-server.k1s0-system.svc.cluster.local:80
+    routes:
+      - name: master-v1-route
+        paths:
+          - /api/v1/master
+        strip_path: false

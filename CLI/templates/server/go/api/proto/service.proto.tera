@@ -1,0 +1,42 @@
+{% if api_style == "grpc" %}
+syntax = "proto3";
+
+package {{ service_name_snake }}.v1;
+
+option go_package = "{{ go_module }}/api/proto/gen";
+
+// {{ service_name_pascal }}Service は {{ service_name }} の gRPC サービス定義。
+service {{ service_name_pascal }}Service {
+  rpc Get{{ service_name_pascal }} (Get{{ service_name_pascal }}Request) returns (Get{{ service_name_pascal }}Response);
+  rpc List{{ service_name_pascal }} (List{{ service_name_pascal }}Request) returns (List{{ service_name_pascal }}Response);
+  rpc Create{{ service_name_pascal }} (Create{{ service_name_pascal }}Request) returns (Create{{ service_name_pascal }}Response);
+}
+
+message Get{{ service_name_pascal }}Request {
+  string id = 1;
+}
+
+message Get{{ service_name_pascal }}Response {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string status = 4;
+  string created_at = 5;
+  string updated_at = 6;
+}
+
+message List{{ service_name_pascal }}Request {}
+
+message List{{ service_name_pascal }}Response {
+  repeated Get{{ service_name_pascal }}Response items = 1;
+}
+
+message Create{{ service_name_pascal }}Request {
+  string name = 1;
+  string description = 2;
+}
+
+message Create{{ service_name_pascal }}Response {
+  string id = 1;
+}
+{% endif %}

@@ -1,0 +1,18 @@
+# === Build Stage ===
+FROM rust:1.82-bookworm AS builder
+
+WORKDIR /app
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release && rm -rf src
+COPY . .
+RUN cargo build --release
+
+# === Runtime Stage ===
+FROM gcr.io/distroless/cc-debian12
+
+COPY --from=builder /app/target/release/{{ rust_crate }} /app/server
+COPY --from=builder /app/config /config
+
+EXPOSE 8080
+USER nonroot:nonroot
+ENTRYPOINT ["/app/server"]

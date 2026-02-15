@@ -1,0 +1,20 @@
+# フォールトインジェクション: HTTP フォルト注入
+# staging 環境で障害をシミュレートし、耐障害性を検証する
+# 503 エラーを 5% のリクエストに注入
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: order-server-abort-test
+  namespace: k1s0-service
+spec:
+  hosts:
+    - order-server
+  http:
+    - fault:
+        abort:
+          percentage:
+            value: 5.0
+          httpStatus: 503
+      route:
+        - destination:
+            host: order-server

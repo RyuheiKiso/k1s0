@@ -1,0 +1,52 @@
+{% if has_database %}
+package persistence
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/jmoiron/sqlx"
+{% if database_type == "postgresql" %}
+	_ "github.com/lib/pq"
+{% elif database_type == "mysql" %}
+	_ "github.com/go-sql-driver/mysql"
+{% elif database_type == "sqlite" %}
+	_ "github.com/mattn/go-sqlite3"
+{% endif %}
+
+	"{{ go_module }}/internal/infra/config"
+)
+
+// NewDB は DB 接続を初期化する。
+func NewDB(cfg config.DatabaseConfig) (*sqlx.DB, error) {
+	dsn := buildDSN(cfg)
+{% if database_type == "postgresql" %}
+	db, err := sqlx.Connect("postgres", dsn)
+{% elif database_type == "mysql" %}
+	db, err := sqlx.Connect("mysql", dsn)
+{% elif database_type == "sqlite" %}
+	db, err := sqlx.Connect("sqlite3", dsn)
+{% endif %}
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	db.SetMaxOpenConns(cfg.Pool.MaxOpen)
+	db.SetMaxIdleConns(cfg.Pool.MaxIdle)
+	db.SetConnMaxLifetime(time.Duration(cfg.Pool.MaxLifetimeSec) * time.Second)
+
+	return db, nil
+}
+
+func buildDSN(cfg config.DatabaseConfig) string {
+{% if database_type == "postgresql" %}
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.Name, cfg.SSLMode)
+{% elif database_type == "mysql" %}
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&charset=utf8mb4",
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name)
+{% elif database_type == "sqlite" %}
+	return cfg.Name
+{% endif %}
+}
+{% endif %}

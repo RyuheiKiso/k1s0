@@ -1,0 +1,16 @@
+# Kong Helm Chart - Development Environment Overrides
+# Environment: dev
+# Kong replicas: 1
+# PostgreSQL: Single node
+# Rate Limiting multiplier: x10
+# Admin API access: Basic auth + development token
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi

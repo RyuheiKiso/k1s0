@@ -1,0 +1,28 @@
+# .github/workflows/api-lint.yaml
+name: OpenAPI Lint
+
+on:
+  push:
+    paths:
+      - '**/api/openapi/**'
+
+jobs:
+  openapi-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate OpenAPI
+        run: |
+          npx @redocly/cli lint api/openapi/openapi.yaml
+
+  openapi-codegen:
+    needs: openapi-validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Go server code
+        run: |
+          go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+          oapi-codegen -config api/openapi/gen.yaml api/openapi/openapi.yaml
+      - name: Verify no diff
+        run: git diff --exit-code

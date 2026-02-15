@@ -1,0 +1,22 @@
+# k1s0-service: Ingress および同一 Namespace からのインバウンドを許可
+# 注意: この NetworkPolicy は L3/L4 レベルで同一 Namespace（tier: service）内の
+# 通信を許可しているが、tier-architecture.md で定義されている「service 層の BFF 間の
+# 通信は原則禁止」ルールは Istio AuthorizationPolicy（L7）で制御する。
+# BFF 間の直接通信の禁止については認証認可設計.md の AuthorizationPolicy を参照。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-ingress
+  namespace: k1s0-service
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              tier: service
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress

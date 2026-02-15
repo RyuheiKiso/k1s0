@@ -1,0 +1,48 @@
+app:
+  name: "{{ service_name }}"
+  version: "0.1.0"
+  environment: "development"
+
+server:
+  port: "8080"
+  read_timeout_sec: 30
+  write_timeout_sec: 30
+
+{% if has_database %}
+database:
+  host: "localhost"
+{% if database_type == "postgresql" %}
+  port: 5432
+{% elif database_type == "mysql" %}
+  port: 3306
+{% endif %}
+  user: "{{ service_name_snake }}"
+  password: ""
+  name: "{{ service_name_snake }}"
+{% if database_type == "postgresql" %}
+  ssl_mode: "disable"
+{% endif %}
+  pool:
+    max_open: 25
+    max_idle: 5
+    max_lifetime_sec: 300
+{% endif %}
+
+{% if has_kafka %}
+kafka:
+  brokers:
+    - "localhost:9092"
+  schema_registry: "http://localhost:8081"
+{% endif %}
+
+{% if has_redis %}
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 0
+{% endif %}
+
+observability:
+  trace_endpoint: "localhost:4317"
+  metric_endpoint: "localhost:4317"
+  log_level: "info"

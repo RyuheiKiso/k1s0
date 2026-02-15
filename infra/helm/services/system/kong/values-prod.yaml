@@ -1,0 +1,16 @@
+# Kong Helm Chart - Production Environment Overrides
+# Environment: prod
+# Kong replicas: 3
+# PostgreSQL: 3 nodes HA (Primary 1 + Replica 2, sync replication, Bitnami HA Chart)
+# Rate Limiting multiplier: x1
+# Admin API access: IP restriction + mTLS + audit log (infra team personal certificates)
+
+replicaCount: 3
+
+resources:
+  requests:
+    cpu: 1000m
+    memory: 1Gi
+  limits:
+    cpu: 4000m
+    memory: 4Gi

@@ -200,6 +200,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
       - run: |
           for chart in infra/helm/services/*/* infra/helm/services/*/*/*; do
             if [ -f "$chart/Chart.yaml" ]; then
@@ -385,6 +387,8 @@ jobs:
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
             ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
       - name: Deploy to dev
         run: |
           helm upgrade --install ${{ steps.meta.outputs.service_name }} \
@@ -447,6 +451,8 @@ jobs:
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
             ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
       - name: Deploy to staging
         run: |
           helm upgrade --install ${{ steps.meta.outputs.service_name }} \
@@ -511,6 +517,8 @@ jobs:
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
             ${{ env.REGISTRY }}/${{ steps.meta.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
       - name: Deploy to prod
         run: |
           helm upgrade --install ${{ steps.meta.outputs.service_name }} \
@@ -555,6 +563,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.47.2"              # devcontainer設計.md の BUF_VERSION と同期
       - name: Lint
         run: buf lint api/proto
       - name: Breaking change detection
@@ -639,7 +649,7 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 | 項目             | 設定                                                |
 | ---------------- | --------------------------------------------------- |
 | ランナー         | 各環境のクラスタ内で動作する self-hosted ランナーを使用（`[self-hosted, dev]` 等） |
-| Helm バージョン  | `azure/setup-helm@v4` で固定バージョンを使用        |
+| Helm バージョン  | `azure/setup-helm@v4` で 3.16 を指定（[devcontainer設計.md](devcontainer設計.md) と同期） |
 | デプロイ方式     | `helm upgrade --install`（冪等性を保証）            |
 | イメージタグ     | `--set image.tag=${VERSION}-${GITHUB_SHA::7}` で `{version}-{git-sha}` 形式を指定（[Dockerイメージ戦略.md](Dockerイメージ戦略.md) のタグ規則に準拠） |
 
@@ -667,3 +677,6 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 - [config設計.md](config設計.md) — config.yaml スキーマ・環境別管理
 - [認証認可設計.md](認証認可設計.md) — 認証・認可・シークレット管理
 - [devcontainer設計.md](devcontainer設計.md) — Dev Container 設定
+- [APIゲートウェイ設計.md](APIゲートウェイ設計.md) — Kong 構成管理
+- [メッセージング設計.md](メッセージング設計.md) — Kafka・Proto スキーマ CI
+- [コーディング規約.md](コーディング規約.md) — Linter・Formatter・命名規則

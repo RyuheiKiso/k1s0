@@ -1,0 +1,5 @@
+# prometheus-msteams ConfigMap（Webhook URL は環境変数から参照）
+connectors:
+  - default: $(TEAMS_DEFAULT_WEBHOOK_URL)
+  - critical: $(TEAMS_CRITICAL_WEBHOOK_URL)
+  - warning: $(TEAMS_WARNING_WEBHOOK_URL)

@@ -1,0 +1,50 @@
+# .github/workflows/security.yaml
+name: Security Scan
+
+on:
+  schedule:
+    - cron: '0 2 * * *'    # 毎日 AM 2:00 (UTC)
+  pull_request:
+    branches: [main]
+
+jobs:
+  trivy-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: 1
+
+  dependency-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - lang: go
+            cmd: "govulncheck ./..."
+          - lang: rust
+            cmd: "cargo audit"
+          - lang: node
+            cmd: "npm audit --audit-level=high"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run dependency check (${{ matrix.lang }})
+        run: ${{ matrix.cmd }}
+
+  image-scan:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Scan latest images
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: image
+          image-ref: harbor.internal.example.com/k1s0-service/order:latest
+          severity: HIGH,CRITICAL
+          format: table

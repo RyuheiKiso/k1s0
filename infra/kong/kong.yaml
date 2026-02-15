@@ -1,0 +1,61 @@
+_format_version: "3.0"
+
+services:
+  # system Tier
+  - name: auth-v1
+    url: http://auth-server.k1s0-system.svc.cluster.local:80
+    routes:
+      - name: auth-v1-route
+        paths:
+          - /api/v1/auth
+        strip_path: false
+      - name: auth-v1-login
+        paths:
+          - /api/v1/auth/login
+        strip_path: false
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 30                  # ブルートフォース防止（API設計.md 参照）
+              policy: redis
+              redis_host: redis.k1s0-system.svc.cluster.local
+
+  # service Tier
+  - name: order-v1
+    url: http://order-server.k1s0-service.svc.cluster.local:80
+    routes:
+      - name: order-v1-route
+        paths:
+          - /api/v1/orders
+        strip_path: false
+
+plugins:
+  # グローバルプラグイン
+  - name: rate-limiting
+    config:
+      minute: 500
+      policy: redis
+      redis_host: redis.k1s0-system.svc.cluster.local
+      redis_port: 6379
+      redis_database: 1
+      fault_tolerant: true
+      hide_client_headers: false
+
+  - name: jwt
+    config:
+      key_claim_name: kid
+      claims_to_verify:
+        - exp
+
+  - name: cors
+    config:
+      origins:
+        - "https://*.k1s0.internal.example.com"
+      credentials: true
+
+  - name: prometheus
+    config:
+      per_consumer: true
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true

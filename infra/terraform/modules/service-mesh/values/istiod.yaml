@@ -1,0 +1,41 @@
+# Istiod (Istio control plane) Helm values
+# Deployed via Terraform service-mesh module
+
+pilot:
+  autoscaleEnabled: true
+  autoscaleMin: 1
+  autoscaleMax: 3
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  traceSampling: 10.0
+
+global:
+  proxy:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    accessLogFile: /dev/stdout
+    accessLogEncoding: JSON
+  meshID: k1s0-mesh
+  network: ""
+
+meshConfig:
+  accessLogFile: /dev/stdout
+  accessLogEncoding: JSON
+  enableTracing: true
+  defaultConfig:
+    tracing:
+      zipkin:
+        address: jaeger-collector.observability.svc.cluster.local:9411
+    holdApplicationUntilProxyStarts: true
+  outboundTrafficPolicy:
+    mode: REGISTRY_ONLY

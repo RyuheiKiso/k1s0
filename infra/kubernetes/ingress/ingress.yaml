@@ -1,0 +1,55 @@
+# ExternalName サービス: ingress -> k1s0-system の Kong Proxy
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-proxy
+  namespace: ingress
+spec:
+  type: ExternalName
+  externalName: kong-proxy.k1s0-system.svc.cluster.local
+---
+# ExternalName サービス: ingress -> observability の Grafana
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: ingress
+spec:
+  type: ExternalName
+  externalName: grafana.observability.svc.cluster.local
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: k1s0-ingress
+  namespace: ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "internal-ca"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - "*.k1s0.internal.example.com"
+      secretName: k1s0-tls
+  rules:
+    - host: api.k1s0.internal.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kong-proxy          # ExternalName -> kong-proxy.k1s0-system
+                port:
+                  number: 80
+    - host: grafana.k1s0.internal.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana             # ExternalName -> grafana.observability
+                port:
+                  number: 3000

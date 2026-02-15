@@ -1,0 +1,47 @@
+# Flagger Canary リソース定義
+# メトリクスに基づく自動判定でトラフィックウェイトを段階的に変更
+#
+# ロールアウトステージ:
+#   Stage 1: stable 90% / canary 10% (5分評価)
+#   Stage 2: stable 70% / canary 30% (5分評価)
+#   Stage 3: stable 50% / canary 50% (5分評価)
+#   Stage 4: stable 20% / canary 80% (5分評価)
+#   Stage 5: stable  0% / canary 100% (完全切り替え / promotion)
+#
+# ロールバック条件:
+#   - エラーレート > 5% の場合、即座にロールバック
+#   - P99 レイテンシ > 1000ms の場合、即座にロールバック
+#   - ロールバック時はトラフィックを 100% stable に戻し、canary Deployment を削除
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: order-server
+  namespace: k1s0-service
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: order-server
+  service:
+    port: 80
+    targetPort: 8080
+    gateways:
+      - mesh
+  analysis:
+    interval: 5m
+    threshold: 2          # ロールバックまでの連続失敗回数
+    maxWeight: 80
+    stepWeight: 20        # 10 -> 30 -> 50 -> 80 の段階で増加（初期値 10 + stepWeight 20）
+    metrics:
+      - name: request-success-rate
+        thresholdRange:
+          min: 99          # エラーレート < 1%（成功率 > 99%）
+        interval: 5m
+      - name: request-duration
+        thresholdRange:
+          max: 500         # P99 レイテンシ < 500ms
+        interval: 5m
+    webhooks:
+      - name: rollback-alert
+        type: rollback
+        url: http://alertmanager.observability.svc.cluster.local:9093/api/v1/alerts

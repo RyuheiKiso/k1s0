@@ -1,0 +1,13 @@
+name: {{ service_name | snake_case }}
+version: 0.1.0
+description: {{ service_name }} ライブラリ
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies: {}
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.0

@@ -1,0 +1,78 @@
+# Harbor Container Registry Helm values
+# Deployed via Terraform harbor module
+# externalURL, S3 storage settings are set via Terraform set blocks
+
+expose:
+  type: ingress
+  ingress:
+    className: nginx
+    hosts:
+      core: harbor.k1s0.internal.example.com
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  tls:
+    enabled: true
+    certSource: secret
+    secret:
+      secretName: harbor-tls
+
+persistence:
+  enabled: true
+  persistentVolumeClaim:
+    registry:
+      storageClass: ceph-block
+      size: 100Gi
+    database:
+      storageClass: ceph-block-fast
+      size: 5Gi
+    redis:
+      storageClass: ceph-block
+      size: 5Gi
+    trivy:
+      storageClass: ceph-block
+      size: 5Gi
+
+database:
+  type: internal
+
+redis:
+  type: internal
+
+trivy:
+  enabled: true
+
+portal:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+core:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+
+registry:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+notary:
+  enabled: false
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true

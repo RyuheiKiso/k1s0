@@ -1,0 +1,77 @@
+# Tier-based AuthorizationPolicy for L7 access control.
+# Works in conjunction with kubernetes設計.md NetworkPolicy (L3/L4 control).
+# NetworkPolicy handles L3/L4 level control; AuthorizationPolicy handles L7 level control.
+---
+# system Tier: Allow access from business, service, and same tier (system)
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-from-lower-tiers
+  namespace: k1s0-system
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["k1s0-business", "k1s0-service"]
+    - from:
+        - source:
+            namespaces: ["k1s0-system"]           # Same tier communication
+---
+# business Tier: Allow access from service tier and same tier (business)
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-from-service-tier
+  namespace: k1s0-business
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["k1s0-service"]
+    - from:
+        - source:
+            namespaces: ["k1s0-business"]         # Same tier communication
+---
+# service Tier: Allow access from ingress and same tier
+# Note: Same-tier communication is allowed at Namespace level, but
+# BFF-to-BFF direct communication is prohibited per tier-architecture.md.
+# The deny policy below enforces this at L7 level.
+# Non-BFF same-tier communication (e.g., BFF -> backend server) is permitted.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-from-ingress
+  namespace: k1s0-service
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["ingress"]
+    - from:
+        - source:
+            namespaces: ["k1s0-service"]          # Same tier communication
+---
+# service Tier: Deny BFF-to-BFF direct communication
+# Enforces the "BFF-to-BFF communication is prohibited" rule from
+# tier-architecture.md at L7 level. BFF service accounts (*-bff-sa)
+# are denied access to other BFF components.
+# BFF to backend server communication is allowed by the ALLOW policy above.
+# Note: BFF service account naming convention is "{service}-bff-sa".
+# When adding a new BFF, add its service account to the principals list.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-bff-to-bff
+  namespace: k1s0-service
+spec:
+  action: DENY
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: bff            # Applied when destination is a BFF
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/k1s0-service/sa/*-bff-sa"]

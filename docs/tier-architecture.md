@@ -139,7 +139,7 @@ regions/
 │   ├── library/
 │   │   ├── go/
 │   │   ├── rust/
-│   │   ├── ts/
+│   │   ├── typescript/
 │   │   └── dart/
 │   └── database/
 ├── business/
@@ -153,7 +153,7 @@ regions/
 │       ├── library/
 │       │   ├── go/
 │       │   ├── rust/
-│       │   ├── ts/
+│       │   ├── typescript/
 │       │   └── dart/
 │       └── database/
 └── service/
@@ -180,3 +180,9 @@ regions/
 - [kubernetes設計](kubernetes設計.md)
 - [メッセージング設計](メッセージング設計.md)
 - [サービスメッシュ設計](サービスメッシュ設計.md)
+- [認証認可設計](認証認可設計.md)
+- [APIゲートウェイ設計](APIゲートウェイ設計.md)
+- [API設計](API設計.md)
+- [CLIフロー](CLIフロー.md)
+- [可観測性設計](可観測性設計.md)
+- [CI-CD設計](CI-CD設計.md)

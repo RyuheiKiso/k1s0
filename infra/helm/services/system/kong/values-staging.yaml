@@ -1,0 +1,16 @@
+# Kong Helm Chart - Staging Environment Overrides
+# Environment: staging
+# Kong replicas: 2
+# PostgreSQL: 2 nodes (Primary 1 + Replica 1, async replication)
+# Rate Limiting multiplier: x2
+# Admin API access: IP restriction + mTLS (operations team)
+
+replicaCount: 2
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi

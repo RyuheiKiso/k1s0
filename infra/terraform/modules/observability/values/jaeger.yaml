@@ -1,0 +1,59 @@
+# Jaeger Helm values
+# Deployed via Terraform observability module
+
+provisionDataStore:
+  cassandra: false
+  elasticsearch: true
+
+storage:
+  type: elasticsearch
+  elasticsearch:
+    host: elasticsearch
+    port: 9200
+
+elasticsearch:
+  replicas: 1
+  minimumMasterNodes: 1
+  persistence:
+    enabled: true
+    storageClassName: ceph-block
+    size: 30Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+collector:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+
+query:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+agent:
+  enabled: true
+  daemonset:
+    useHostPort: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi

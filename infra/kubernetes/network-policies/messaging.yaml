@@ -1,0 +1,21 @@
+# messaging: 全 Tier からのインバウンドを許可（Kafka アクセス）
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-all-tiers
+  namespace: messaging
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              tier: system
+        - namespaceSelector:
+            matchLabels:
+              tier: business
+        - namespaceSelector:
+            matchLabels:
+              tier: service

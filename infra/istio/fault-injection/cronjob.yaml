@@ -1,0 +1,35 @@
+# スケジュール実行用 CronJob: 毎週月曜日 10:00 JST（UTC 01:00）にフォールトインジェクションを実行
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fault-injection-test
+  namespace: k1s0-service
+spec:
+  schedule: "0 1 * * 1"    # 毎週月曜日 10:00 JST（UTC 01:00）
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: fault-injection
+              image: bitnami/kubectl:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # フォールトインジェクション VirtualService を適用
+                  kubectl apply -f /config/fault-delay.yaml
+                  kubectl apply -f /config/fault-abort.yaml
+                  # 30分間テストを実行
+                  sleep 1800
+                  # テスト終了後にフォールトインジェクションを削除
+                  kubectl delete -f /config/fault-delay.yaml
+                  kubectl delete -f /config/fault-abort.yaml
+              volumeMounts:
+                - name: config
+                  mountPath: /config
+          volumes:
+            - name: config
+              configMap:
+                name: fault-injection-config
+          restartPolicy: OnFailure

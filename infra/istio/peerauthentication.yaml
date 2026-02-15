@@ -1,0 +1,53 @@
+# Mesh-wide PeerAuthentication: STRICT mTLS as default for the entire mesh.
+# Defined in the service-mesh Namespace (istiod's Namespace) to enforce mTLS globally.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: service-mesh
+spec:
+  mtls:
+    mode: STRICT
+---
+# observability Namespace uses PERMISSIVE mode because Prometheus
+# scrape uses plain HTTP without mTLS (see サービスメッシュ設計.md).
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: allow-prometheus
+  namespace: observability
+spec:
+  mtls:
+    mode: PERMISSIVE
+---
+# Namespace-level PeerAuthentication for defense-in-depth (multi-layer protection).
+# These complement the mesh-wide STRICT mTLS default defined in the service-mesh
+# Namespace (see サービスメッシュ設計.md). Even if the mesh-wide setting is
+# accidentally modified, these Namespace-level settings act as a defense layer.
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: k1s0-system
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: k1s0-business
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: k1s0-service
+spec:
+  mtls:
+    mode: STRICT

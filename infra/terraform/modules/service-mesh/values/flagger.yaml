@@ -1,0 +1,26 @@
+# Flagger Helm values
+# Deployed via Terraform service-mesh module
+# meshProvider and metricsServer are set via Terraform set blocks
+
+logLevel: info
+
+leaderElection:
+  enabled: true
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+prometheus:
+  install: false  # Use the shared Prometheus from observability module
+
+# Slack/webhook notifications (configure per environment)
+notifiers: []
+#  - name: slack
+#    type: slack
+#    url: ""
+#    channel: ""

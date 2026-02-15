@@ -1,0 +1,18 @@
+package repository
+
+//go:generate mockgen -source=repository.go -destination=mock_repository.go -package=repository
+
+import (
+	"context"
+
+	"{{ go_module }}/internal/domain/model"
+)
+
+// {{ service_name_pascal }}Repository はデータアクセスの抽象化インターフェース。
+type {{ service_name_pascal }}Repository interface {
+	FindByID(ctx context.Context, id string) (*model.{{ service_name_pascal }}Entity, error)
+	FindAll(ctx context.Context) ([]*model.{{ service_name_pascal }}Entity, error)
+	Create(ctx context.Context, entity *model.{{ service_name_pascal }}Entity) error
+	Update(ctx context.Context, entity *model.{{ service_name_pascal }}Entity) error
+	Delete(ctx context.Context, id string) error
+}

@@ -1,0 +1,57 @@
+{% if has_kafka %}
+use rdkafka::config::ClientConfig;
+use rdkafka::producer::{FutureProducer, FutureRecord};
+use rdkafka::consumer::{StreamConsumer, Consumer as _};
+use rdkafka::Message;
+use std::time::Duration;
+
+use crate::infra::config::KafkaConfig;
+
+/// Producer は Kafka プロデューサー。
+/// トピック命名規則: k1s0.{tier}.{domain}.{event-type}.{version}
+pub struct Producer {
+    producer: FutureProducer,
+}
+
+impl Producer {
+    pub fn new(cfg: &KafkaConfig) -> Self {
+        let producer: FutureProducer = ClientConfig::new()
+            .set("bootstrap.servers", cfg.brokers.join(","))
+            .create()
+            .expect("Failed to create Kafka producer");
+        Self { producer }
+    }
+
+    pub async fn publish(&self, topic: &str, key: &str, payload: &[u8]) -> anyhow::Result<()> {
+        self.producer
+            .send(
+                FutureRecord::to(topic)
+                    .key(key)
+                    .payload(payload),
+                Duration::from_secs(5),
+            )
+            .await
+            .map_err(|(e, _)| anyhow::anyhow!("Failed to publish: {}", e))?;
+        Ok(())
+    }
+}
+
+/// Consumer は Kafka コンシューマー。
+/// コンシューマーグループ命名規則: {service-name}.{purpose}
+pub struct KafkaConsumer {
+    consumer: StreamConsumer,
+}
+
+impl KafkaConsumer {
+    pub fn new(cfg: &KafkaConfig, group_id: &str, topics: &[&str]) -> Self {
+        let consumer: StreamConsumer = ClientConfig::new()
+            .set("bootstrap.servers", cfg.brokers.join(","))
+            .set("group.id", group_id)
+            .set("auto.offset.reset", "earliest")
+            .create()
+            .expect("Failed to create Kafka consumer");
+        consumer.subscribe(topics).expect("Failed to subscribe");
+        Self { consumer }
+    }
+}
+{% endif %}
