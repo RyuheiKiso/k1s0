@@ -103,9 +103,12 @@ k1s0 の開発環境を Dev Container で統一し、環境構築の手間をゼ
     5432,   // PostgreSQL
     3306,   // MySQL
     6379,   // Redis
+    6380,   // Redis（BFF セッション用）— docker-compose設計.md の redis-session サービスと対応
     9092,   // Kafka
     8081,   // Schema Registry
     16686,  // Jaeger UI
+    4317,   // Jaeger OTLP gRPC — OpenTelemetry SDK からのトレース送信用（可観測性設計.md 参照）
+    4318,   // Jaeger OTLP HTTP — OpenTelemetry SDK からのトレース送信用
     3100,   // Loki
     9090,   // Prometheus
     3200,   // Grafana

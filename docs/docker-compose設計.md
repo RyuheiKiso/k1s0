@@ -158,9 +158,11 @@ services:
       KC_DB_PASSWORD: dev
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: dev
-    command: start-dev
+    command: start-dev --import-realm
     ports:
       - "8180:8080"
+    volumes:
+      - ./infra/docker/keycloak:/opt/keycloak/data/import    # realm k1s0 の初期設定。config.dev.yaml の auth.jwt.issuer（realms/k1s0）と一致させること
     depends_on:
       postgres:
         condition: service_healthy

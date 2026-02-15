@@ -555,6 +555,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.47.2"              # devcontainer設計.md の BUF_VERSION と同期
       - name: Lint
         run: buf lint api/proto
       - name: Breaking change detection

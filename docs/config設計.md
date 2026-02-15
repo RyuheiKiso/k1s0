@@ -75,9 +75,9 @@ redis:                           # Redis 有効時のみ
   pool_size: 10
 
 redis_session:                   # BFF Proxy 用セッションストア（BFF セッション管理で使用）
-  host: "redis-session.k1s0-system.svc.cluster.local"
+  host: "redis-session.k1s0-system.svc.cluster.local"  # prod 環境では Redis Sentinel 構成（Master 1 + Replica 2 + Sentinel 3）。詳細は認証認可設計.md の「BFF セッション管理」を参照
   port: 6380
-  password: ""                   # Vault 注入
+  password: ""                   # Vault パス: secret/data/k1s0/system/bff/redis キー: password（認証認可設計.md 参照）
 
 observability:
   log:
@@ -161,6 +161,32 @@ config/
 1. Vault の値を採用する
 2. 警告ログを出力する（`WARN: config key "database.password" found in both ConfigMap and Vault, using Vault value`）
 3. アプリケーションは正常に起動する（エラーにはしない）
+
+### 環境別差分の例（config.staging.yaml）
+
+```yaml
+database:
+  ssl_mode: "require"
+  max_open_conns: 30
+  max_idle_conns: 8
+
+kafka:
+  brokers:
+    - "kafka-0.messaging.svc.cluster.local:9093"
+  security_protocol: "SASL_SSL"
+  sasl:
+    mechanism: "SCRAM-SHA-512"
+    username: ""                   # Vault から注入
+    password: ""                   # Vault から注入
+  tls:
+    ca_cert_path: "/etc/kafka/certs/ca.crt"
+
+observability:
+  log:
+    level: "info"
+  trace:
+    sample_rate: 0.5
+```
 
 ### 環境別差分の例（config.prod.yaml）
 
