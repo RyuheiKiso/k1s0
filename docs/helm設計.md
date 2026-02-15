@@ -241,7 +241,7 @@ config:
       app:
         environment: dev
       database:
-        host: postgres.k1s0-system.svc.cluster.local
+        host: postgres.k1s0-service.svc.cluster.local
         ssl_mode: disable
       observability:
         log:
@@ -275,7 +275,7 @@ config:
       app:
         environment: staging
       database:
-        host: postgres.k1s0-system.svc.cluster.local
+        host: postgres.k1s0-service.svc.cluster.local
         ssl_mode: require
       observability:
         log:
@@ -319,7 +319,7 @@ config:
       app:
         environment: prod
       database:
-        host: postgres.k1s0-system.svc.cluster.local
+        host: postgres.k1s0-service.svc.cluster.local
         ssl_mode: verify-full
         max_open_conns: 50
       observability:

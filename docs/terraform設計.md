@@ -246,14 +246,16 @@ Istio サービスメッシュと関連 Addon をデプロイする。
 ```
 modules/service-mesh/
 ├── main.tf          # Istio Helm Chart デプロイ
-├── variables.tf     # Istio バージョン、メッシュ設定
+├── variables.tf     # Istio・Flagger バージョン、メッシュ設定
 ├── outputs.tf       # IngressGateway の IP 等
-└── kiali.tf         # Kiali ダッシュボードのデプロイ
+├── kiali.tf         # Kiali ダッシュボードのデプロイ
+└── flagger.tf       # Flagger カナリアデプロイコントローラーのデプロイ
 ```
 
 - Istio は `istio/istio` Helm Chart を使用してインストールする
 - IstioOperator ではなく Helm ベースのインストールを採用する（管理の簡素化のため）
 - Kiali・Jaeger の Addon も同モジュールでデプロイする
+- Flagger は `flagger/flagger` Helm Chart を使用し、Istio 連携のカナリアデプロイコントローラーとしてデプロイする（詳細は [サービスメッシュ設計.md](サービスメッシュ設計.md) の「カナリアリリースの段階的ロールアウト」を参照）
 
 ```hcl
 # modules/service-mesh/main.tf
@@ -304,6 +306,32 @@ resource "helm_release" "kiali" {
   version    = var.kiali_version
 
   values = [file("${path.module}/values/kiali.yaml")]
+
+  depends_on = [helm_release.istiod]
+}
+```
+
+```hcl
+# modules/service-mesh/flagger.tf
+
+resource "helm_release" "flagger" {
+  name       = "flagger"
+  namespace  = "service-mesh"
+  repository = "https://flagger.app"
+  chart      = "flagger"
+  version    = var.flagger_version
+
+  set {
+    name  = "meshProvider"
+    value = "istio"
+  }
+
+  set {
+    name  = "metricsServer"
+    value = "http://prometheus.observability.svc.cluster.local:9090"
+  }
+
+  values = [file("${path.module}/values/flagger.yaml")]
 
   depends_on = [helm_release.istiod]
 }

@@ -293,7 +293,7 @@ services:
   #     dockerfile: Dockerfile
   #   profiles: [system]
   #   ports:
-  #     - "8081:8080"
+  #     - "8083:8080"    # 8081 は schema-registry、8082 は order-server が使用するため 8083 を割り当て
   #   depends_on:
   #     postgres:
   #       condition: service_healthy
