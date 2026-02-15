@@ -54,6 +54,8 @@ infra/terraform/
 
 ## State 管理
 
+State バックエンドには Kubernetes クラスタ外の共有 Consul サービスを使用する。Consul は Ansible で構築・管理される独立したインフラであり、Terraform の管理対象外である（「Ansible との責務分担」セクションを参照）。
+
 ```hcl
 # environments/dev/backend.tf
 terraform {
@@ -349,7 +351,7 @@ modules/database/
 └── backup.tf        # バックアップ CronJob 定義
 ```
 
-- PostgreSQL: Bitnami `postgresql` Helm Chart を使用する
+- PostgreSQL: Bitnami Helm Chart を使用する（dev/staging: `postgresql` Chart、prod: `postgresql-ha` Chart で HA 構成。Kong 用 PostgreSQL HA の詳細は [APIゲートウェイ設計.md](APIゲートウェイ設計.md) を参照）
 - MySQL: Bitnami `mysql` Helm Chart を使用する
 - バックアップ: CronJob で `pg_dump` / `mysqldump` を実行し、Ceph オブジェクトストレージに保存する
 - 環境別設定: `variables.tf` で prod / staging / dev の構成（レプリカ数、ストレージサイズ等）を切り替える
@@ -565,7 +567,7 @@ namespaces = {
   }
   "k1s0-service" = {
     tier               = "service"
-    allowed_from_tiers = ["service"]                         # 同一 Tier のみ（Ingress は別途設定）
+    allowed_from_tiers = ["service"]                         # 同一 Tier のみ。ingress Namespace からのアクセスは kubernetes設計.md の NetworkPolicy で別途許可している
   }
   "observability" = {
     tier               = "infra"
@@ -645,3 +647,11 @@ Terraform と Ansible はインフラ構築の異なるレイヤーを担当す�
 - prod 環境への apply は 2 名以上の承認を必須とする
 - State のロックを確認してから操作を行う
 - `terraform import` は既存リソースの取り込み時のみ使用し、手動変更は禁止する
+
+## 関連ドキュメント
+
+- [kubernetes設計](kubernetes設計.md)
+- [helm設計](helm設計.md)
+- [インフラ設計](インフラ設計.md)
+- [サービスメッシュ設計](サービスメッシュ設計.md)
+- [可観測性設計](可観測性設計.md)

@@ -190,6 +190,9 @@ services:
 
   # ============================================================
   # 可観測性
+  # NOTE: ローカル開発環境では Promtail を省略している。
+  # Kubernetes 環境では Promtail（DaemonSet）がログを収集し Loki に転送するが、
+  # ローカルでは各コンテナの stdout を直接 docker compose logs で確認する。
   # ============================================================
   jaeger:
     image: jaegertracing/all-in-one:1.62
@@ -224,7 +227,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: dev
     ports:
-      - "3200:3000"
+      - "3200:3000"   # ホストポート 3200 を使用（3000 はフロントエンド開発サーバー等とのポート競合を回避するため）
     volumes:
       - grafana-data:/var/lib/grafana
       - ./infra/docker/grafana/provisioning:/etc/grafana/provisioning
@@ -364,6 +367,8 @@ services:
 | Redis（BFF セッション用） | `redis-session.k1s0-system.svc.cluster.local` | `redis-session`                       |
 | 他サービス   | `{service}.{namespace}.svc.cluster.local`                | `{docker-compose サービス名}`        |
 
+> **注記**: Kubernetes 環境では kafka-1, kafka-2 等の追加ブローカーが存在するが、ブローカー台数は環境により異なるため代表例として kafka-0 のみ記載している。
+
 ### config.dev.yaml の例
 
 ```yaml
@@ -371,6 +376,8 @@ services:
 database:
   host: "postgres"
   port: 5432
+  user: "dev"
+  password: "dev"
   ssl_mode: "disable"
 
 kafka:
@@ -380,6 +387,10 @@ kafka:
 redis:
   host: "redis"
   port: 6379
+
+auth:
+  jwt:
+    issuer: "http://keycloak:8080/realms/k1s0"
 
 observability:
   trace:
@@ -398,3 +409,11 @@ observability:
 - ローカル開発用のパスワードは `dev` で統一する（本番シークレットとの混同を防ぐ）
 - ヘルスチェックを全サービスに定義し、`depends_on` の `condition: service_healthy` で起動順序を制御する
 - ボリューム名はサービス名に対応させ、`docker compose down -v` で一括削除できるようにする
+
+## 関連ドキュメント
+
+- [config設計](config設計.md)
+- [devcontainer設計](devcontainer設計.md)
+- [インフラ設計](インフラ設計.md)
+- [可観測性設計](可観測性設計.md)
+- [メッセージング設計](メッセージング設計.md)

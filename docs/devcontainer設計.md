@@ -1,10 +1,10 @@
-# DevContainer 設計
+# Dev Container 設計
 
-k1s0 の開発環境を DevContainer で統一し、環境構築の手間をゼロにする。
+k1s0 の開発環境を Dev Container で統一し、環境構築の手間をゼロにする。
 
 ## 基本方針
 
-- 開発に必要なツール・拡張機能をすべて DevContainer に含める
+- 開発に必要なツール・拡張機能をすべて Dev Container に含める
 - ホスト環境に依存しない再現可能な開発環境を提供する
 - Docker Compose と連携し、依存サービス（DB・Kafka 等）をワンコマンドで起動する
 
@@ -119,7 +119,7 @@ k1s0 の開発環境を DevContainer で統一し、環境構築の手間をゼ�
 }
 ```
 
-## DevContainer 用 Compose 拡張
+## Dev Container 用 Compose 拡張
 
 ```yaml
 # .devcontainer/docker-compose.extend.yaml
@@ -177,13 +177,21 @@ BUF_VERSION="1.47.2"
 curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-$(uname -s)-$(uname -m)" -o /usr/local/bin/buf
 chmod +x /usr/local/bin/buf
 
-echo "DevContainer setup complete."
+echo "Dev Container setup complete."
 ```
 
 ## sparse-checkout との連携
 
-DevContainer は sparse-checkout の設定に関わらず動作する。開発者がチェックアウトしていない階層の依存サービスは、docker-compose のプロファイルにより選択的に起動する（[docker-compose設計](docker-compose設計.md) を参照）。
+Dev Container は sparse-checkout の設定に関わらず動作する。開発者がチェックアウトしていない階層の依存サービスは、docker-compose のプロファイルにより選択的に起動する（[docker-compose設計](docker-compose設計.md) を参照）。
 
 ## バージョン同期ルール
 
-- **Rust バージョンは [Dockerイメージ戦略](Dockerイメージ戦略.md) のビルドステージと同期すること。** DevContainer と本番ビルドで異なるバージョンを使用すると、ビルド再現性が損なわれるため、バージョン更新時は両ファイルを同時に変更する。
+- **Rust バージョンは [Dockerイメージ戦略](Dockerイメージ戦略.md) のビルドステージと同期すること。** Dev Container と本番ビルドで異なるバージョンを使用すると、ビルド再現性が損なわれるため、バージョン更新時は両ファイルを同時に変更する。
+- **Flutter SDK**: CI/CD ビルドでは `ghcr.io/cirruslabs/flutter:3.24.0` を使用する。Dev Container では公式 Git リポジトリから同一バージョンをインストールする（初期化スクリプト参照）。
+
+## 関連ドキュメント
+
+- [コーディング規約](コーディング規約.md)
+- [CI-CD設計](CI-CD設計.md)
+- [docker-compose設計](docker-compose設計.md)
+- [Dockerイメージ戦略](Dockerイメージ戦略.md)

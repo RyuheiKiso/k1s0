@@ -24,11 +24,19 @@ Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.
 ### アーキテクチャ
 
 ```
-Client → Ingress (Nginx) → Kong Proxy → Istio Sidecar → Backend Services
+Client → Nginx Ingress Controller (TLS終端) → Kong Proxy → Istio Sidecar (mTLS) → Backend Services
                                 ↕
                           Kong Admin API
                                 ↕
                           PostgreSQL (kong-db)
+```
+
+#### BFF Proxy 経由のトラフィックフロー
+
+SPA（React）からのアクセスは BFF Proxy を経由し、HttpOnly Cookie とBearer Token の変換を行う（詳細は [認証認可設計](認証認可設計.md) の「SPA トークン保存方式」参照）。
+
+```
+Browser → [HttpOnly Cookie] → Nginx Ingress Controller → Kong → BFF Proxy → [Bearer Token] → Istio Sidecar (mTLS) → Backend Services
 ```
 
 ### DB-backed モード
@@ -36,7 +44,7 @@ Client → Ingress (Nginx) → Kong Proxy → Istio Sidecar → Backend Services
 | 項目             | 設定                                          |
 | ---------------- | --------------------------------------------- |
 | 動作モード       | DB-backed（PostgreSQL）                       |
-| データベース     | PostgreSQL 15+                                |
+| データベース     | PostgreSQL 17（Kong 3.7 は PostgreSQL 15+ 対応） |
 | 接続先           | `postgres.k1s0-system.svc.cluster.local:5432` |
 | データベース名   | `kong`                                        |
 | レプリカ構成     | 読み取りレプリカなし（Admin API 経由の管理のみ） |
@@ -75,7 +83,7 @@ proxy:
     enabled: true
     containerPort: 8000
   tls:
-    enabled: true
+    enabled: false                  # TLS は Nginx Ingress Controller で終端するため Kong 側では無効化
     containerPort: 8443
 
 admin:
@@ -157,6 +165,7 @@ curl -X POST http://kong-admin:8001/services/order-v1/routes \
 | prometheus           | グローバル | メトリクス収集                |
 | file-log             | グローバル | アクセスログ出力              |
 | ip-restriction       | サービス別 | IP 制限（Admin API 保護等）   |
+| post-function        | グローバル | ユーザー情報（claims）をバックエンドへのリクエストヘッダーに転送（[認証認可設計](認証認可設計.md) の「ヘッダー転送」参照） |
 
 #### JWT プラグイン
 
@@ -246,12 +255,16 @@ services:
         paths:
           - /api/v1/auth
         strip_path: false
-    plugins:
-      - name: rate-limiting
-        config:
-          minute: 30
-          policy: redis
-          redis_host: redis.k1s0-system.svc.cluster.local
+      - name: auth-v1-login
+        paths:
+          - /api/v1/auth/login
+        strip_path: false
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 30                  # ブルートフォース防止（API設計.md 参照）
+              policy: redis
+              redis_host: redis.k1s0-system.svc.cluster.local
 
   # service Tier
   - name: order-v1
@@ -446,3 +459,6 @@ jobs:
 - [サービスメッシュ設計.md](サービスメッシュ設計.md) — Istio 設計・耐障害性
 - [CI-CD設計.md](CI-CD設計.md) — CI/CD パイプライン設計
 - [可観測性設計.md](可観測性設計.md) — 監視・ログ・トレース設計
+- [helm設計.md](helm設計.md) — Helm Chart と values 設計
+- [terraform設計.md](terraform設計.md) — Terraform モジュール設計
+- [インフラ設計.md](インフラ設計.md) — オンプレミスインフラ全体構成

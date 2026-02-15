@@ -600,7 +600,7 @@ jobs:
 GraphQL は **BFF（Backend for Frontend）としてオプション採用** する。すべてのサービスに GraphQL を導入するのではなく、複数の REST / gRPC エンドポイントを集約して単一のクエリでクライアントに提供する必要がある場合に採用する。
 
 ```
-Client → Kong → GraphQL BFF → gRPC → Backend Services
+Client → Nginx Ingress Controller → Kong → (Istio Sidecar) → GraphQL BFF → gRPC (mTLS) → Backend Services
 ```
 
 ### GraphQL BFF 導入基準
@@ -816,11 +816,12 @@ plugins:
 特定のエンドポイントに対してデフォルト値を上書きする。
 
 ```yaml
-# 例: 認証エンドポイントは低めに設定（ブルートフォース防止）
+# 例: 認証ログインエンドポイントは低めに設定（ブルートフォース防止）
+# auth-v1 サービスの特定ルートにのみ適用（APIゲートウェイ設計.md のサービス名と統一）
 services:
-  - name: auth-service
+  - name: auth-v1
     routes:
-      - name: auth-login
+      - name: auth-v1-login
         paths:
           - /api/v1/auth/login
     plugins:
@@ -1375,3 +1376,5 @@ regions/service/{サービス名}/
 - [APIゲートウェイ設計.md](APIゲートウェイ設計.md) — Kong 構成管理
 - [メッセージング設計.md](メッセージング設計.md) — Kafka・イベント駆動設計
 - [CI-CD設計.md](CI-CD設計.md) — CI/CD パイプライン設計
+- [ディレクトリ構成図.md](ディレクトリ構成図.md) — プロジェクトのディレクトリ構成
+- [Dockerイメージ戦略.md](Dockerイメージ戦略.md) — Docker イメージ戦略
