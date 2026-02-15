@@ -258,6 +258,9 @@ PostgreSQL の `docker-entrypoint-initdb.d` に配置し、Tier ごとのデー�
 -- 認証用DB（Keycloak）
 CREATE DATABASE keycloak;
 
+-- API ゲートウェイ用DB（Kong）
+CREATE DATABASE kong;
+
 -- アプリケーション用DB（Tier ごとに分離）
 CREATE DATABASE k1s0_system;
 CREATE DATABASE k1s0_business;
@@ -331,9 +334,9 @@ services:
 | PostgreSQL   | `postgres.k1s0-system.svc.cluster.local`                 | `postgres`                            |
 | MySQL        | `mysql.k1s0-system.svc.cluster.local`                    | `mysql`                               |
 | Redis        | `redis.k1s0-system.svc.cluster.local`                    | `redis`                               |
-| Kafka        | `kafka-0.k1s0-system.svc.cluster.local`                 | `kafka`                               |
+| Kafka        | `kafka-0.messaging.svc.cluster.local`                    | `kafka`                               |
 | Schema Registry | `schema-registry.k1s0-system.svc.cluster.local`      | `schema-registry`                     |
-| Jaeger       | `jaeger.k1s0-system.svc.cluster.local`                  | `jaeger`                              |
+| Jaeger       | `jaeger.observability.svc.cluster.local`                 | `jaeger`                              |
 | Vault        | `vault.k1s0-system.svc.cluster.local`                   | `vault`                               |
 | Keycloak     | `keycloak.k1s0-system.svc.cluster.local`                | `keycloak`                            |
 | Redis（BFF セッション用） | `redis-session.k1s0-system.svc.cluster.local` | `redis-session`                       |

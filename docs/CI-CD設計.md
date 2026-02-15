@@ -208,7 +208,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: azure/setup-helm@v4
       - run: |
-          for chart in infra/helm/services/*/*; do
+          for chart in infra/helm/services/*/* infra/helm/services/*/*/*; do
             if [ -f "$chart/Chart.yaml" ]; then
               helm lint "$chart"
             fi
@@ -288,14 +288,19 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.HARBOR_USERNAME }}
           password: ${{ secrets.HARBOR_PASSWORD }}
+      - name: Determine Harbor project
+        id: image
+        run: |
+          TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
+          echo "project=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: regions/${{ matrix.service }}
           push: true
           tags: |
-            ${{ env.REGISTRY }}/k1s0/${{ matrix.service }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/k1s0/${{ matrix.service }}:latest
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

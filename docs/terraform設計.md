@@ -161,6 +161,36 @@ resource "kubernetes_storage_class" "ceph_block" {
     pool      = var.ceph_pool
   }
 }
+
+resource "kubernetes_storage_class" "ceph_filesystem" {
+  metadata {
+    name = "ceph-filesystem"
+  }
+
+  storage_provisioner    = "cephfs.csi.ceph.com"
+  reclaim_policy         = var.reclaim_policy
+  allow_volume_expansion = true
+
+  parameters = {
+    clusterID = var.ceph_cluster_id
+    fsName    = var.ceph_filesystem_name
+  }
+}
+
+resource "kubernetes_storage_class" "ceph_block_fast" {
+  metadata {
+    name = "ceph-block-fast"
+  }
+
+  storage_provisioner    = "rbd.csi.ceph.com"
+  reclaim_policy         = var.reclaim_policy
+  allow_volume_expansion = true
+
+  parameters = {
+    clusterID = var.ceph_cluster_id
+    pool      = var.ceph_pool_fast   # SSD-backed pool
+  }
+}
 ```
 
 ### observability
@@ -407,7 +437,7 @@ modules/harbor/
 ```
 
 - Harbor Helm Chart を使用してデプロイする
-- プロジェクト自動作成: `k1s0-system`, `k1s0-business`, `k1s0-service` の 3 プロジェクト
+- プロジェクト自動作成: `k1s0-system`, `k1s0-business`, `k1s0-service`, `k1s0-infra` の 4 プロジェクト
 - ロボットアカウント: CI/CD 用のプッシュ権限付きアカウントを自動作成する
 - ストレージバックエンド: Ceph S3 互換ストレージを使用する
 
@@ -451,7 +481,7 @@ resource "helm_release" "harbor" {
 # modules/harbor/projects.tf
 
 resource "harbor_project" "k1s0" {
-  for_each = toset(["k1s0-system", "k1s0-business", "k1s0-service"])
+  for_each = toset(["k1s0-system", "k1s0-business", "k1s0-service", "k1s0-infra"])
 
   name   = each.key
   public = false

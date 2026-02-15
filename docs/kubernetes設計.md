@@ -362,7 +362,7 @@ spec:
 
 ## StorageClass
 
-StorageClass の定義は terraform設計.md の Ceph CSI モジュール（`modules/ceph/`）で管理する。
+StorageClass の定義は terraform設計.md の kubernetes-storage モジュール（`modules/kubernetes-storage/`）で管理する。
 Kubernetes 上では以下の 3 種類の StorageClass を使用する。
 
 | StorageClass 名     | アクセスモード | 用途                             |
@@ -373,7 +373,7 @@ Kubernetes 上では以下の 3 種類の StorageClass を使用する。
 
 - PVC を作成する際は用途に応じて適切な StorageClass を指定する
 - データベース Pod には `ceph-block-fast` を使用し、SSD による低レイテンシを確保する
-- 詳細な設定パラメータは terraform設計.md の `modules/ceph/` セクションを参照
+- 詳細な設定パラメータは terraform設計.md の `modules/kubernetes-storage/` セクションを参照
 
 ## ラベル規約
 
