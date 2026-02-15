@@ -36,7 +36,7 @@ database:                        # DB 有効時のみ
   port: 5432
   name: "order_db"
   user: "app"
-  password: ""                   # Vault から注入
+  password: ""                   # Vault パス: secret/data/k1s0/{tier}/{service}/database キー: password
   ssl_mode: "disable"            # disable | require | verify-full
   max_open_conns: 25
   max_idle_conns: 5
@@ -47,6 +47,13 @@ kafka:                           # Kafka 有効時のみ
     - "kafka-0:9092"
     - "kafka-1:9092"
   consumer_group: "order-service"
+  security_protocol: "PLAINTEXT"   # PLAINTEXT（dev） | SASL_SSL（staging/prod）
+  sasl:                            # security_protocol が SASL_SSL の場合のみ有効
+    mechanism: "SCRAM-SHA-512"     # SCRAM-SHA-512 | PLAIN
+    username: ""                   # Vault パス: secret/data/k1s0/system/kafka/sasl キー: username
+    password: ""                   # Vault パス: secret/data/k1s0/system/kafka/sasl キー: password
+  tls:                             # security_protocol が SASL_SSL の場合のみ有効
+    ca_cert_path: ""               # Strimzi が発行する CA 証明書のパス
   topics:
     publish:
       - "order.created"
@@ -58,7 +65,7 @@ kafka:                           # Kafka 有効時のみ
 redis:                           # Redis 有効時のみ
   host: "localhost"
   port: 6379
-  password: ""                   # Vault から注入
+  password: ""                   # Vault パス: secret/data/k1s0/{tier}/{service}/redis キー: password
   db: 0
   pool_size: 10
 
@@ -81,7 +88,7 @@ auth:
     public_key_path: "/etc/secrets/jwt-public.pem"
   oidc:
     client_id: "k1s0-bff"
-    client_secret: "${OIDC_CLIENT_SECRET}"   # Vault から注入
+    client_secret: "${OIDC_CLIENT_SECRET}"   # Vault パス: secret/data/k1s0/system/bff/oidc キー: client_secret
     redirect_uri: "https://app.k1s0.internal.example.com/callback"
     scopes: ["openid", "profile", "email"]
 ```
@@ -145,6 +152,19 @@ database:
   max_open_conns: 50
   max_idle_conns: 10
 
+kafka:
+  brokers:
+    - "kafka-0.messaging.svc.cluster.local:9093"
+    - "kafka-1.messaging.svc.cluster.local:9093"
+    - "kafka-2.messaging.svc.cluster.local:9093"
+  security_protocol: "SASL_SSL"
+  sasl:
+    mechanism: "SCRAM-SHA-512"
+    username: ""                   # Vault から注入
+    password: ""                   # Vault から注入
+  tls:
+    ca_cert_path: "/etc/kafka/certs/ca.crt"
+
 observability:
   log:
     level: "warn"
@@ -161,8 +181,11 @@ observability:
 | JWT 公開鍵             | Vault           | ファイルパスで参照                    |
 | API キー               | Vault           | 空文字で定義                          |
 | OIDC Client Secret     | Vault           | `${OIDC_CLIENT_SECRET}` で定義        |
+| Kafka SASL ユーザー名  | Vault           | 空文字で定義                          |
+| Kafka SASL パスワード  | Vault           | 空文字で定義                          |
 
 Vault Agent Injector が Pod 起動時にシークレットをファイルとして注入し、アプリケーションが起動時に読み込む。
+各シークレットの具体的な Vault パスとキー名は [認証認可設計.md](認証認可設計.md) の「シークレットパス体系」を参照。
 
 ## Go での読み込み実装
 
@@ -182,6 +205,25 @@ type Config struct {
 type GRPCConfig struct {
     Port           int `yaml:"port" validate:"required,min=1,max=65535"`
     MaxRecvMsgSize int `yaml:"max_recv_msg_size"`
+}
+
+type KafkaConfig struct {
+    Brokers          []string         `yaml:"brokers" validate:"required,min=1"`
+    ConsumerGroup    string           `yaml:"consumer_group" validate:"required"`
+    SecurityProtocol string           `yaml:"security_protocol" validate:"required,oneof=PLAINTEXT SASL_SSL"`
+    SASL             *KafkaSASLConfig `yaml:"sasl,omitempty"`
+    TLS              *KafkaTLSConfig  `yaml:"tls,omitempty"`
+    Topics           KafkaTopics      `yaml:"topics"`
+}
+
+type KafkaSASLConfig struct {
+    Mechanism string `yaml:"mechanism" validate:"required,oneof=SCRAM-SHA-512 PLAIN"`
+    Username  string `yaml:"username"`
+    Password  string `yaml:"password"`
+}
+
+type KafkaTLSConfig struct {
+    CACertPath string `yaml:"ca_cert_path"`
 }
 
 type AuthConfig struct {
@@ -229,6 +271,28 @@ pub struct Config {
 pub struct GrpcConfig {
     pub port: u16,
     pub max_recv_msg_size: Option<usize>,
+}
+
+#[derive(Deserialize)]
+pub struct KafkaConfig {
+    pub brokers: Vec<String>,
+    pub consumer_group: String,
+    pub security_protocol: String,
+    pub sasl: Option<KafkaSaslConfig>,
+    pub tls: Option<KafkaTlsConfig>,
+    pub topics: KafkaTopics,
+}
+
+#[derive(Deserialize)]
+pub struct KafkaSaslConfig {
+    pub mechanism: String,
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Deserialize)]
+pub struct KafkaTlsConfig {
+    pub ca_cert_path: Option<String>,
 }
 
 #[derive(Deserialize)]

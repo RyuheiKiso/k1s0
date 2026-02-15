@@ -174,7 +174,7 @@ vault:
   enabled: true
   role: "order-service"
   secrets:
-    - path: "secret/data/k1s0/order/database"
+    - path: "secret/data/k1s0/service/order/database"
       key: "password"
       mountPath: "/vault/secrets/db-password"
 
@@ -356,9 +356,9 @@ spec:
       annotations:
         vault.hashicorp.com/agent-inject: "true"
         vault.hashicorp.com/role: "{{ .Values.vault.role }}"
-        vault.hashicorp.com/agent-inject-secret-db-password: "secret/data/k1s0/order/database"
+        vault.hashicorp.com/agent-inject-secret-db-password: "secret/data/k1s0/service/order/database"
         vault.hashicorp.com/agent-inject-template-db-password: |
-          {{`{{ with secret "secret/data/k1s0/order/database" }}{{ .Data.data.password }}{{ end }}`}}
+          {{`{{ with secret "secret/data/k1s0/service/order/database" }}{{ .Data.data.password }}{{ end }}`}}
 ```
 
 ## Library Chart（k1s0-common）
