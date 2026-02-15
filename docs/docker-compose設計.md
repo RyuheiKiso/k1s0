@@ -237,6 +237,57 @@ services:
       - ./regions/service/order/server/go/config:/app/config
 ```
 
+## ローカル環境のサービス名解決（D-102）
+
+### 課題
+
+本番環境（Kubernetes）では `postgres.k1s0-system.svc.cluster.local` のような DNS 名でサービスにアクセスするが、ローカル開発環境（docker-compose）には Kubernetes DNS が存在しない。
+
+### 方針: docker-compose サービス名をそのまま使用する
+
+ローカル環境では docker-compose の **サービス名**（`postgres`, `redis`, `kafka` 等）がコンテナ間 DNS として機能する。アプリケーションは `config/config.dev.yaml` でローカル用のホスト名を指定する。
+
+### config.yaml との対応
+
+| 接続先       | 本番（Kubernetes DNS）                                    | ローカル（docker-compose サービス名） |
+| ------------ | --------------------------------------------------------- | ------------------------------------- |
+| PostgreSQL   | `postgres.k1s0-system.svc.cluster.local`                 | `postgres`                            |
+| MySQL        | `mysql.k1s0-system.svc.cluster.local`                    | `mysql`                               |
+| Redis        | `redis.k1s0-system.svc.cluster.local`                    | `redis`                               |
+| Kafka        | `kafka-0.k1s0-system.svc.cluster.local`                 | `kafka`                               |
+| Jaeger       | `jaeger.k1s0-system.svc.cluster.local`                  | `jaeger`                              |
+| Vault        | `vault.k1s0-system.svc.cluster.local`                   | `vault`                               |
+| 他サービス   | `{service}.{namespace}.svc.cluster.local`                | `{docker-compose サービス名}`        |
+
+### config.dev.yaml の例
+
+```yaml
+# config/config.dev.yaml（ローカル開発用）
+database:
+  host: "postgres"
+  port: 5432
+  ssl_mode: "disable"
+
+kafka:
+  brokers:
+    - "kafka:9092"
+
+redis:
+  host: "redis"
+  port: 6379
+
+observability:
+  trace:
+    endpoint: "jaeger:4317"
+```
+
+### ルール
+
+- `config.yaml`（デフォルト）には **本番環境の DNS 名** を記載する
+- `config.dev.yaml` に **docker-compose サービス名** で上書きする
+- アプリケーションコード内でホスト名をハードコードしてはならない（すべて config.yaml 経由）
+- docker-compose の `networks.default.name: k1s0-network` により、全コンテナが同一ネットワークに接続され名前解決が可能
+
 ## 設計上の補足
 
 - ローカル開発用のパスワードは `dev` で統一する（本番シークレットとの混同を防ぐ）
