@@ -26,10 +26,7 @@ k1s0 の開発環境を DevContainer で統一し、環境構築の手間をゼ�
       "version": "stable"
     },
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "22"
-    },
-    "ghcr.io/aspect-build/rules_js/features/dart:1": {
-      "version": "3.5"
+      "version": "22"  // CI/CD でも Node 22 に合わせる（CI-CD設計.md 参照）
     },
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.12"
@@ -108,7 +105,7 @@ k1s0 の開発環境を DevContainer で統一し、環境構築の手間をゼ�
     6379,   // Redis
     9092,   // Kafka
     16686,  // Jaeger UI
-    3100,   // Grafana
+    3100,   // Loki
     9090    // Prometheus
   ],
 
@@ -146,8 +143,19 @@ go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
+# oapi-codegen (OpenAPI Go コード生成)
+go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+
 # Rust コンポーネント
 rustup component add clippy rustfmt
+
+# Flutter SDK
+FLUTTER_VERSION="3.24.0"
+git clone https://github.com/flutter/flutter.git -b "${FLUTTER_VERSION}" --depth 1 /opt/flutter
+export PATH="/opt/flutter/bin:$PATH"
+echo 'export PATH="/opt/flutter/bin:$PATH"' >> ~/.bashrc
+flutter precache --web
+flutter config --no-analytics
 
 # Python（E2E テスト）
 pip install -r e2e/requirements.txt
@@ -158,6 +166,11 @@ pre-commit install
 
 # protobuf コンパイラ
 sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
+# buf (Protocol Buffers ツール)
+BUF_VERSION="1.47.2"
+curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-$(uname -s)-$(uname -m)" -o /usr/local/bin/buf
+chmod +x /usr/local/bin/buf
 
 echo "DevContainer setup complete."
 ```

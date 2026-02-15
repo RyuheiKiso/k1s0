@@ -3,6 +3,13 @@
 Kong API Gateway の構成管理を定義する。
 Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.md) を参照。
 
+> **注記: ドメイン名について**
+> 本ドキュメント内で使用している `example.com`（例: `*.k1s0.internal.example.com`）はプレースホルダーであり、実際のドメインではない。本番環境へのデプロイ時には、以下のフローで実ドメインへ置換すること。
+>
+> 1. `infra/kong/` 配下の設定ファイルでは、環境変数またはHelm values の環境別オーバーライドでドメインを注入する
+> 2. CI/CD パイプラインの各環境ステージ（dev / staging / prod）で、環境固有のドメイン値を `KONG_CORS_ORIGINS` 等の変数から設定する
+> 3. decK の設定ファイルにはプレースホルダーを残し、`deck sync` 実行前に `envsubst` 等で置換する
+
 ## 基本方針
 
 - API ゲートウェイは **Kong** を採用し、**DB-backed モード**（PostgreSQL）で運用する
@@ -306,6 +313,12 @@ jobs:
       - name: Validate config
         run: deck validate -s infra/kong/kong.yaml
 
+  # NOTE: 各環境の CI/CD ランナーはそれぞれのクラスタ内で動作する。
+  # そのため Kong Admin API のサービス名（kong-admin.k1s0-system.svc.cluster.local:8001）は
+  # 全環境で同一だが、実際の接続先はランナーが属するクラスタコンテキストによって異なる。
+  # dev クラスタのランナー → dev の Kong、staging クラスタのランナー → staging の Kong、
+  # prod クラスタのランナー → prod の Kong にそれぞれ接続される。
+
   diff:
     needs: validate
     runs-on: ubuntu-latest
@@ -318,35 +331,38 @@ jobs:
 
   sync-dev:
     needs: diff
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, dev]
     environment: dev
     steps:
       - uses: actions/checkout@v4
       - name: Sync to dev
         run: |
+          # dev クラスタ内のランナーで実行
           deck sync -s infra/kong/kong.yaml \
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
 
   sync-staging:
     needs: sync-dev
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, staging]
     environment: staging
     steps:
       - uses: actions/checkout@v4
       - name: Sync to staging
         run: |
+          # staging クラスタ内のランナーで実行
           deck sync -s infra/kong/kong.yaml \
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
 
   sync-prod:
     needs: sync-staging
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, prod]
     environment:
       name: prod
     steps:
       - uses: actions/checkout@v4
       - name: Sync to prod
         run: |
+          # prod クラスタ内のランナーで実行
           deck sync -s infra/kong/kong.yaml \
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
 ```
@@ -356,10 +372,64 @@ jobs:
 | 項目               | dev              | staging          | prod             |
 | ------------------ | ---------------- | ---------------- | ---------------- |
 | Kong レプリカ      | 1                | 2                | 3                |
-| PostgreSQL         | 単一インスタンス | 単一インスタンス | HA 構成          |
+| PostgreSQL         | シングルノード | 2ノード（Primary 1 + Replica 1） | 3ノード HA 構成（Primary 1 + Replica 2） |
 | Rate Limiting 倍率 | x10              | x2               | x1               |
-| Admin API アクセス | 開発者全員       | 運用チーム       | インフラチームのみ |
+| Admin API アクセス | Basic認証 + 開発用トークン | IP制限 + mTLS（運用チーム） | IP制限 + mTLS + 監査ログ（インフラチーム個人証明書） |
 | decK 自動 sync     | 自動             | 自動             | 手動承認         |
+
+#### PostgreSQL HA 構成詳細
+
+**prod 環境（3ノード構成）:**
+
+- Primary 1 ノード + Replica 2 ノードの合計 3 ノード構成
+- **Patroni** によるフェイルオーバー管理
+  - Primary 障害時に Replica の中から自動的に新しい Primary を選出
+  - フェイルオーバー時間目標: 30 秒以内
+- **同期レプリケーション**を採用し、データ損失を防止
+  - `synchronous_commit = on` により、少なくとも 1 つの Replica への書き込み完了を保証
+  - `synchronous_standby_names = 'ANY 1 (*)'` で任意の 1 Replica を同期対象とする
+- Kong からの接続は Patroni が管理する VIP または Kubernetes Service 経由でルーティング
+
+**staging 環境（2ノード構成）:**
+
+- Primary 1 ノード + Replica 1 ノードの合計 2 ノード構成
+- **非同期レプリケーション**を採用（パフォーマンス優先）
+  - `synchronous_commit = off`
+- Patroni は導入するが、フェイルオーバーのテスト用途を兼ねる
+
+**dev 環境（シングルノード）:**
+
+- PostgreSQL シングルノード構成
+- レプリケーションなし
+- 開発・テスト用途のため可用性要件は設けない
+
+#### Admin API アクセス制御
+
+環境ごとに異なるアクセス制御を適用し、セキュリティレベルを段階的に強化する。
+
+**dev 環境:**
+
+- **Basic 認証** + 開発用トークンによるアクセス制御
+- 開発者全員がアクセス可能
+- 開発用トークンは `kong-admin-dev-token` Secret で管理
+
+**staging 環境:**
+
+- **IP 制限**: 管理ネットワーク（`10.0.0.0/8` 等の社内ネットワーク）からのアクセスのみ許可
+- **mTLS**: クライアント証明書による相互認証を必須とする
+  - 運用チーム用のクライアント証明書を発行し、Kong Admin API への接続時に提示
+- Kong の `ip-restriction` プラグインと Istio の PeerAuthentication を組み合わせて適用
+
+**prod 環境:**
+
+- **IP 制限**: 管理ネットワークからのアクセスのみ許可（staging と同様）
+- **mTLS**: インフラチームメンバー個人に発行されたクライアント証明書による認証
+  - 個人証明書は社内 CA から発行し、有効期限 1 年、失効管理は CRL で実施
+  - 証明書の CN にはメンバーの識別子を含め、誰がアクセスしたかを特定可能にする
+- **監査ログ記録**: Admin API への全リクエストを監査ログとして記録
+  - 記録項目: タイムスタンプ、操作者（証明書 CN）、HTTPメソッド、エンドポイント、リクエストボディ、レスポンスコード
+  - ログは Loki に送信し、90 日間保持
+  - 設定変更操作（POST / PUT / PATCH / DELETE）は Slack の `#infra-audit` チャンネルにもリアルタイム通知
 
 ---
 

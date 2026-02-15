@@ -76,9 +76,14 @@ observability:
 
 auth:
   jwt:
-    issuer: "https://auth.example.com"
-    audience: "order-service"
+    issuer: "https://auth.k1s0.internal.example.com/realms/k1s0"
+    audience: "k1s0-api"
     public_key_path: "/etc/secrets/jwt-public.pem"
+  oidc:
+    client_id: "k1s0-bff"
+    client_secret: "${OIDC_CLIENT_SECRET}"   # Vault から注入
+    redirect_uri: "https://app.k1s0.internal.example.com/callback"
+    scopes: ["openid", "profile", "email"]
 ```
 
 ## 環境別オーバーライド
@@ -149,12 +154,13 @@ observability:
 
 ## シークレット管理
 
-| シークレット       | 注入元          | config.yaml 上の扱い     |
-| ------------------ | --------------- | ------------------------ |
-| DB パスワード      | Vault           | 空文字で定義             |
-| Redis パスワード   | Vault           | 空文字で定義             |
-| JWT 公開鍵         | Vault           | ファイルパスで参照       |
-| API キー           | Vault           | 空文字で定義             |
+| シークレット           | 注入元          | config.yaml 上の扱い                  |
+| ---------------------- | --------------- | ------------------------------------- |
+| DB パスワード          | Vault           | 空文字で定義                          |
+| Redis パスワード       | Vault           | 空文字で定義                          |
+| JWT 公開鍵             | Vault           | ファイルパスで参照                    |
+| API キー               | Vault           | 空文字で定義                          |
+| OIDC Client Secret     | Vault           | `${OIDC_CLIENT_SECRET}` で定義        |
 
 Vault Agent Injector が Pod 起動時にシークレットをファイルとして注入し、アプリケーションが起動時に読み込む。
 
@@ -165,11 +171,35 @@ Vault Agent Injector が Pod 起動時にシークレットをファイルとし
 type Config struct {
     App           AppConfig           `yaml:"app"`
     Server        ServerConfig        `yaml:"server"`
+    GRPC          *GRPCConfig         `yaml:"grpc,omitempty"`
     Database      *DatabaseConfig     `yaml:"database,omitempty"`
     Kafka         *KafkaConfig        `yaml:"kafka,omitempty"`
     Redis         *RedisConfig        `yaml:"redis,omitempty"`
     Observability ObservabilityConfig `yaml:"observability"`
     Auth          AuthConfig          `yaml:"auth"`
+}
+
+type GRPCConfig struct {
+    Port           int `yaml:"port" validate:"required,min=1,max=65535"`
+    MaxRecvMsgSize int `yaml:"max_recv_msg_size"`
+}
+
+type AuthConfig struct {
+    JWT  JWTConfig   `yaml:"jwt"`
+    OIDC *OIDCConfig `yaml:"oidc,omitempty"`
+}
+
+type JWTConfig struct {
+    Issuer        string `yaml:"issuer" validate:"required"`
+    Audience      string `yaml:"audience" validate:"required"`
+    PublicKeyPath string `yaml:"public_key_path"`
+}
+
+type OIDCConfig struct {
+    ClientID     string   `yaml:"client_id" validate:"required"`
+    ClientSecret string   `yaml:"client_secret"`
+    RedirectURI  string   `yaml:"redirect_uri" validate:"required"`
+    Scopes       []string `yaml:"scopes"`
 }
 
 func Load(basePath, envPath string) (*Config, error) {
@@ -187,13 +217,97 @@ func Load(basePath, envPath string) (*Config, error) {
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
+    pub grpc: Option<GrpcConfig>,
     pub database: Option<DatabaseConfig>,
     pub kafka: Option<KafkaConfig>,
     pub redis: Option<RedisConfig>,
     pub observability: ObservabilityConfig,
     pub auth: AuthConfig,
 }
+
+#[derive(Deserialize)]
+pub struct GrpcConfig {
+    pub port: u16,
+    pub max_recv_msg_size: Option<usize>,
+}
+
+#[derive(Deserialize)]
+pub struct AuthConfig {
+    pub jwt: JwtConfig,
+    pub oidc: Option<OidcConfig>,
+}
+
+#[derive(Deserialize)]
+pub struct JwtConfig {
+    pub issuer: String,
+    pub audience: String,
+    pub public_key_path: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct OidcConfig {
+    pub client_id: String,
+    pub client_secret: String,
+    pub redirect_uri: String,
+    pub scopes: Vec<String>,
+}
 ```
+
+## バリデーション
+
+config.yaml の値はアプリケーション起動時にバリデーションを実行し、不正な設定値を早期に検出する。
+
+### Go バリデーション
+
+[go-playground/validator](https://github.com/go-playground/validator) を使用し、構造体タグでバリデーションルールを定義する。
+
+```go
+import "github.com/go-playground/validator/v10"
+
+func (c *Config) Validate() error {
+    validate := validator.New()
+    if err := validate.Struct(c); err != nil {
+        return fmt.Errorf("config validation failed: %w", err)
+    }
+    return nil
+}
+```
+
+- 構造体タグ `validate:"required"` で必須フィールドをチェック
+- ポート番号は `validate:"required,min=1,max=65535"` で範囲チェック
+- URL 形式は `validate:"required,url"` で形式チェック
+
+### Rust バリデーション
+
+カスタムバリデーション関数を `config::validate()` として実装する。
+
+```rust
+impl Config {
+    pub fn validate(&self) -> Result<(), ConfigError> {
+        if self.app.name.is_empty() {
+            return Err(ConfigError::MissingField("app.name".into()));
+        }
+        if self.server.port == 0 {
+            return Err(ConfigError::InvalidValue("server.port must be > 0".into()));
+        }
+        if self.auth.jwt.issuer.is_empty() {
+            return Err(ConfigError::MissingField("auth.jwt.issuer".into()));
+        }
+        // ... 各フィールドの検証
+        Ok(())
+    }
+}
+```
+
+### 実行タイミング
+
+| タイミング             | 実行方法                           | 動作                                   |
+| ---------------------- | ---------------------------------- | -------------------------------------- |
+| アプリケーション起動時 | `config.Validate()` を `main()` 内で呼び出し | 失敗時は即座にエラー終了（`exit(1)`） |
+| CI パイプライン        | `config validate` コマンド         | 事前検証でデプロイ前に不正設定を検出   |
+
+- アプリケーション起動時にバリデーションを実行し、失敗時は即座にエラー終了する。不正な設定のまま稼働することを防止する
+- CI パイプラインでも `config validate` コマンドによる事前検証を行い、デプロイ前に設定の整合性を保証する
 
 ## 設計上の制約
 

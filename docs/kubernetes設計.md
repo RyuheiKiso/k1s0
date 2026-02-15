@@ -27,12 +27,19 @@
 
 Tier アーキテクチャの依存ルール（下位 → 上位の一方向のみ）を NetworkPolicy で強制する。
 
+**通信方針:**
+- 下位 Tier から上位 Tier（system）への依存は全 Tier で許可する（認証・config 取得等の共通基盤へのアクセスは全 Tier から必要なため）
+- 同階層間の直接依存は禁止（tier-architecture.md の例外規定を除く）
+- k1s0-system の NetworkPolicy では business と service の両方からのインバウンドを許可している
+
 ```yaml
-# k1s0-system: business からのインバウンドのみ許可
+# k1s0-system: business および service からのインバウンドを許可
+# service Tier から system Tier への直接通信を許可する
+# （認証・config取得等の共通基盤へのアクセスは全 Tier から必要）
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-from-business
+  name: allow-from-business-and-service
   namespace: k1s0-system
 spec:
   podSelector: {}
@@ -133,7 +140,44 @@ spec:
 
 Namespace 単位でリソースの上限を設定する。
 
+| Namespace       | requests.cpu | requests.memory | limits.cpu | limits.memory | pods  |
+| --------------- | ------------ | --------------- | ---------- | ------------- | ----- |
+| k1s0-system     | 8            | 16Gi            | 16         | 32Gi          | 50    |
+| k1s0-business   | 16           | 32Gi            | 32         | 64Gi          | 100   |
+| k1s0-service    | 8            | 16Gi            | 16         | 32Gi          | 50    |
+
 ```yaml
+# k1s0-system
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: namespace-quota
+  namespace: k1s0-system
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    limits.cpu: "16"
+    limits.memory: 32Gi
+    pods: "50"
+    persistentvolumeclaims: "20"
+---
+# k1s0-business
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: namespace-quota
+  namespace: k1s0-business
+spec:
+  hard:
+    requests.cpu: "16"
+    requests.memory: 32Gi
+    limits.cpu: "32"
+    limits.memory: 64Gi
+    pods: "100"
+    persistentvolumeclaims: "40"
+---
+# k1s0-service
 apiVersion: v1
 kind: ResourceQuota
 metadata:
@@ -221,10 +265,50 @@ spec:
 
 | Role                  | 権限                                          | 対象ユーザー      |
 | --------------------- | --------------------------------------------- | ----------------- |
-| cluster-admin         | クラスタ全体の管理                            | インフラチーム    |
-| namespace-admin       | 特定 Namespace 内の全リソース管理             | チームリーダー    |
-| developer             | Deployment, Pod, Service の参照・ログ閲覧     | 開発者            |
+| k1s0-admin            | クラスタ全体の管理                            | インフラチーム    |
+| k1s0-operator         | リソースの作成・更新・削除を含む運用操作      | 運用チーム        |
+| k1s0-developer        | Deployment, Pod, Service の参照・ログ閲覧     | 開発者            |
 | readonly              | 全リソースの参照のみ                          | 運用監視          |
+
+### ClusterRole 定義
+
+```yaml
+# 開発者用 Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k1s0-developer
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+---
+# 運用者用 Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k1s0-operator
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+# インフラ管理者用 Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k1s0-admin
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+```
 
 ## Ingress 設計
 
@@ -265,6 +349,21 @@ spec:
                 port:
                   number: 3000
 ```
+
+## StorageClass
+
+StorageClass の定義は terraform設計.md の Ceph CSI モジュール（`modules/ceph/`）で管理する。
+Kubernetes 上では以下の 3 種類の StorageClass を使用する。
+
+| StorageClass 名     | アクセスモード | 用途                             |
+| ------------------- | -------------- | -------------------------------- |
+| `ceph-block`        | RWO            | 一般用途（ログ、キャッシュ等）   |
+| `ceph-filesystem`   | RWX            | 共有ストレージ（複数 Pod 間共有）|
+| `ceph-block-fast`   | RWO（SSD）     | データベース用（高 IOPS 要求）   |
+
+- PVC を作成する際は用途に応じて適切な StorageClass を指定する
+- データベース Pod には `ceph-block-fast` を使用し、SSD による低レイテンシを確保する
+- 詳細な設定パラメータは terraform設計.md の `modules/ceph/` セクションを参照
 
 ## ラベル規約
 

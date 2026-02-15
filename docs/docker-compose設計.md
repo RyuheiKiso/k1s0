@@ -6,8 +6,9 @@
 
 - 開発者が必要なサービスだけを起動できるよう、Compose プロファイルで分類する
 - 依存インフラ（DB・Kafka・Redis 等）は共通プロファイルで提供する
-- アプリケーションサービスは階層・種別ごとにプロファイルを割り当てる
+- アプリケーションサービスは `docker-compose.override.yaml` で管理し、本ファイルにはインフラサービスのみ定義する
 - ボリュームでデータを永続化し、コンテナ再作成時もデータを保持する
+- **RDBMS 方針**: PostgreSQL を標準 RDBMS とする。MySQL は既存システム連携用として残す。SQL Server は当プロジェクトでは採用しない
 
 ## プロファイル設計
 
@@ -88,6 +89,10 @@ services:
       timeout: 3s
       retries: 5
 
+  # NOTE: ローカル開発では PLAINTEXT を使用（開発効率優先）。
+  # staging/prod では SASL_SSL を使用し、Strimzi Operator が証明書管理を行う。
+  # ローカルと staging/prod でセキュリティプロトコルが異なるため、
+  # 接続設定は必ず config.yaml 経由で環境ごとに切り替えること。
   kafka:
     image: bitnami/kafka:3.8
     profiles: [infra]
@@ -192,49 +197,68 @@ networks:
 
 ## DB 初期化スクリプト
 
-PostgreSQL の `docker-entrypoint-initdb.d` に配置し、サービスごとのデータベースを自動作成する。
+PostgreSQL の `docker-entrypoint-initdb.d` に配置し、Tier ごとのデータベースを自動作成する。データベースは認証用とアプリケーション用（Tier 別）に分離する。
 
 ```sql
 -- infra/docker/init-db/01-create-databases.sql
-CREATE DATABASE auth_db;
-CREATE DATABASE order_db;
--- 必要に応じて追加
+
+-- 認証用DB（Keycloak）
+CREATE DATABASE keycloak;
+
+-- アプリケーション用DB（Tier ごとに分離）
+CREATE DATABASE k1s0_system;
+CREATE DATABASE k1s0_business;
+CREATE DATABASE k1s0_service;
 ```
 
 ## アプリケーションサービスの追加
 
-CLI の「ひな形生成」で生成された各サービスは、個別の `docker-compose.override.yaml` または本ファイルへの追記で登録する。
+本ファイル（`docker-compose.yaml`）にはインフラサービスのみを定義する。アプリケーションサービスは `docker-compose.override.yaml` で管理し、各開発者がローカルで必要なサービスのみを起動できるようにする。
+
+### 方式
+
+- リポジトリに `docker-compose.override.yaml.example` を配置し、テンプレートとして提供する
+- 各開発者は `docker-compose.override.yaml.example` をコピーして `docker-compose.override.yaml` を作成する
+- `docker-compose.override.yaml` は `.gitignore` に追加し、各開発者のローカル設定として管理する
+- Docker Compose は `docker-compose.yaml` と `docker-compose.override.yaml` を自動的にマージする
+
+### docker-compose.override.yaml.example
 
 ```yaml
-# アプリケーションサービスの例
-services:
-  auth-server:
-    build:
-      context: ./regions/system/server/go/auth
-      dockerfile: Dockerfile
-    profiles: [system]
-    ports:
-      - "8081:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ./regions/system/server/go/auth/config:/app/config
+# docker-compose.override.yaml.example
+# このファイルを docker-compose.override.yaml にコピーして使用してください。
+# 必要なサービスのコメントを解除して起動してください。
 
-  order-server:
-    build:
-      context: ./regions/service/order/server/go
-      dockerfile: Dockerfile
-    profiles: [service]
-    ports:
-      - "8082:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    volumes:
-      - ./regions/service/order/server/go/config:/app/config
+services:
+  # --- system 層 ---
+  # auth-server:
+  #   build:
+  #     context: ./regions/system/server/go/auth
+  #     dockerfile: Dockerfile
+  #   profiles: [system]
+  #   ports:
+  #     - "8081:8080"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./regions/system/server/go/auth/config:/app/config
+
+  # --- service 層 ---
+  # order-server:
+  #   build:
+  #     context: ./regions/service/order/server/go
+  #     dockerfile: Dockerfile
+  #   profiles: [service]
+  #   ports:
+  #     - "8082:8080"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./regions/service/order/server/go/config:/app/config
 ```
 
 ## ローカル環境のサービス名解決（D-102）

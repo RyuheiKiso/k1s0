@@ -99,7 +99,7 @@ replicaCount: 2
 # コンテナ設定
 container:
   port: 8080
-  grpcPort: 50051                      # gRPC 有効時
+  grpcPort: null                       # gRPC 無効（有効時は 50051 を設定）
   command: []
   args: []
 
@@ -133,7 +133,7 @@ probes:
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 50051
+  grpcPort: null                       # gRPC 無効（有効時は 50051 を設定）
 
 # HPA
 autoscaling:
@@ -151,6 +151,18 @@ pdb:
 # Ingress（Kong 経由のため通常は無効）
 ingress:
   enabled: false
+  ingressClassName: nginx       # nginx or kong（管理系UIは nginx を指定）
+
+# セキュリティコンテキスト
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+containerSecurityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
 
 # config.yaml のマウント
 config:
@@ -353,6 +365,27 @@ spec:
 
 各サービスの Chart で共通するテンプレートを Library Chart として提供する。
 
+### バージョニング方針
+
+Library Chart（k1s0-common）はセマンティックバージョニング（SemVer）を採用する。
+
+| バージョン種別 | 変更内容                                                                 |
+| -------------- | ------------------------------------------------------------------------ |
+| MAJOR          | テンプレートの破壊的変更（values.yaml のキー名変更・削除等）             |
+| MINOR          | 新しいテンプレート・パラメータの追加（後方互換あり）                     |
+| PATCH          | バグ修正、ドキュメント更新                                               |
+
+- バージョンは `Chart.yaml` の `version` フィールドで管理する
+- 各サービスの `Chart.yaml` では `dependencies[].version` にチルダ範囲指定（`~1.x.x`）を推奨する
+
+```yaml
+# 各サービスの Chart.yaml での依存指定例
+dependencies:
+  - name: k1s0-common
+    version: "~1.2.0"    # 1.2.x の PATCH アップデートを自動追従
+    repository: "file://../../charts/k1s0-common"
+```
+
 ### _deployment.tpl（抜粋）
 
 ```yaml
@@ -375,12 +408,25 @@ spec:
       labels:
         {{- include "k1s0-common.labels" . | nindent 8 }}
     spec:
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.container.port }}
+            {{- if .Values.container.grpcPort }}
+            - name: grpc
+              containerPort: {{ .Values.container.grpcPort }}
+              protocol: TCP
+            {{- end }}
           {{- with .Values.probes.liveness }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -399,6 +445,81 @@ spec:
         - name: config
           configMap:
             name: {{ include "k1s0-common.fullname" . }}-config
+{{- end }}
+```
+
+### _service.tpl（抜粋）
+
+```yaml
+{{- define "k1s0-common.service" -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "k1s0-common.fullname" . }}
+  labels:
+    {{- include "k1s0-common.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+    {{- if .Values.service.grpcPort }}
+    - name: grpc
+      port: {{ .Values.service.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+    {{- end }}
+  selector:
+    {{- include "k1s0-common.selectorLabels" . | nindent 4 }}
+{{- end }}
+```
+
+### _ingress.tpl（抜粋）
+
+管理系UI（Grafana, Prometheus, Jaeger 等）は Kong を経由せず、Nginx Ingress から直接ルーティングする。
+`ingressClassName` パラメータで `nginx` を指定し、管理系サービス専用の Ingress リソースを個別に定義する。
+
+- ホスト名パターン: `{service}.k1s0.internal.example.com`（例: `grafana.k1s0.internal.example.com`）
+- API サービス: Kong 経由（`api.k1s0.internal.example.com` → Kong Proxy）
+- 管理系サービス: Nginx Ingress から直接ルーティング
+
+```yaml
+{{- define "k1s0-common.ingress" -}}
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "k1s0-common.fullname" . }}
+  labels:
+    {{- include "k1s0-common.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClassName | default "nginx" }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ .backend.serviceName }}
+                port:
+                  number: {{ .backend.servicePort }}
+          {{- end }}
+    {{- end }}
+{{- end }}
 {{- end }}
 ```
 
