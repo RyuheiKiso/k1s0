@@ -120,11 +120,32 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
     ports:
       - "8090:8080"
     depends_on:
       kafka:
         condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.7
+    profiles: [infra]
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    ports:
+      - "8081:8081"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   vault:
     image: hashicorp/vault:1.17
@@ -279,6 +300,7 @@ services:
 | MySQL        | `mysql.k1s0-system.svc.cluster.local`                    | `mysql`                               |
 | Redis        | `redis.k1s0-system.svc.cluster.local`                    | `redis`                               |
 | Kafka        | `kafka-0.k1s0-system.svc.cluster.local`                 | `kafka`                               |
+| Schema Registry | `schema-registry.k1s0-system.svc.cluster.local`      | `schema-registry`                     |
 | Jaeger       | `jaeger.k1s0-system.svc.cluster.local`                  | `jaeger`                              |
 | Vault        | `vault.k1s0-system.svc.cluster.local`                   | `vault`                               |
 | 他サービス   | `{service}.{namespace}.svc.cluster.local`                | `{docker-compose サービス名}`        |

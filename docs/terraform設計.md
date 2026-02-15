@@ -86,8 +86,6 @@ terraform {
 - **リカバリ**: `consul snapshot restore` で Terraform State を復元する
 - **手順**: 障害発生時は直近のスナップショットから復元し、`terraform plan` で差分を確認してから運用を再開する
 
-> **注記**: Consul は共有サービスとして `docs/インフラ設計.md` の共有サービス一覧にも追加すべきである（インフラ設計.md は本ドキュメントの修正対象外のため、別途対応する）。
-
 ## モジュール詳細
 
 ### kubernetes-base

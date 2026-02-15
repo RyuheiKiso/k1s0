@@ -429,7 +429,7 @@ jobs:
 - **監査ログ記録**: Admin API への全リクエストを監査ログとして記録
   - 記録項目: タイムスタンプ、操作者（証明書 CN）、HTTPメソッド、エンドポイント、リクエストボディ、レスポンスコード
   - ログは Loki に送信し、90 日間保持
-  - 設定変更操作（POST / PUT / PATCH / DELETE）は Slack の `#infra-audit` チャンネルにもリアルタイム通知
+  - 設定変更操作（POST / PUT / PATCH / DELETE）は Microsoft Teams の `infra-audit` チャンネルにもリアルタイム通知
 
 ---
 

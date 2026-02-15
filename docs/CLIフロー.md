@@ -176,7 +176,6 @@ $ k1s0
 ? RDBMS を選択してください
 > PostgreSQL
   MySQL
-  SQL Server
   SQLite
 ```
 
@@ -216,7 +215,6 @@ service の場合、ステップ 3 で入力したサービス名をそのまま
 ? (新規作成の場合) RDBMS を選択してください
 > PostgreSQL
   MySQL
-  SQL Server
   SQLite
 
 ? メッセージング (Kafka) を有効にしますか？
