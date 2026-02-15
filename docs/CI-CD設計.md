@@ -24,7 +24,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.
 | Proto Check       | `proto.yaml`      | `api/proto/**` 変更時       | proto lint + breaking    |
 | Security Scan     | `security.yaml`   | 日次 + PR 時                | 脆弱性スキャン           |
 | Kong Config Sync  | `kong-sync.yaml`  | push (`infra/kong/**`)      | dev → staging → prod    |
-| OpenAPI Lint      | `api-lint.yaml`   | push (`openapi/`)           | OpenAPI バリデーション & SDK 生成 |
+| OpenAPI Lint      | `api-lint.yaml`   | push (`**/api/openapi/**`)  | OpenAPI バリデーション & SDK 生成 |
 
 ### CI ワークフロー（ci.yaml）
 
@@ -302,6 +302,7 @@ jobs:
           context: regions/${{ matrix.service }}
           push: true
           tags: |
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}
             ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
             ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ matrix.service }}:latest
           cache-from: type=gha
@@ -482,8 +483,8 @@ on:
   pull_request:
     paths:
       - 'api/proto/**'
-      - 'buf.yaml'
-      - 'buf.gen.yaml'
+      - 'api/proto/buf.yaml'
+      - 'api/proto/buf.gen.yaml'
 
 jobs:
   proto-lint:
