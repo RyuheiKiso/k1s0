@@ -99,7 +99,7 @@ k1s0 の開発環境を DevContainer で統一し、環境構築の手間をゼ�
     8080,   // サーバー（REST）
     50051,  // サーバー（gRPC）
     3000,   // React dev server
-    5173,   // Vite dev server
+    5173,   // Vite dev server（React のビルドツールとして Vite を使用）
     5432,   // PostgreSQL
     3306,   // MySQL
     6379,   // Redis

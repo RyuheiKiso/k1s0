@@ -150,7 +150,7 @@ service:
 autoscaling:
   enabled: true
   minReplicas: 2
-  maxReplicas: 10
+  maxReplicas: 5                # kubernetes設計.md の staging デフォルトと同期
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
 
@@ -167,8 +167,8 @@ ingress:
 # セキュリティコンテキスト
 podSecurityContext:
   runAsNonRoot: true
-  runAsUser: 1000
-  fsGroup: 1000
+  runAsUser: 65534              # distroless nonroot ユーザー（Dockerイメージ戦略.md と同期）
+  fsGroup: 65534
 containerSecurityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false

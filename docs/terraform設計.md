@@ -569,7 +569,7 @@ namespaces = {
   }
   "observability" = {
     tier               = "infra"
-    allowed_from_tiers = []
+    allowed_from_tiers = ["system", "business", "service"]   # 全 Tier からトレース送信・メトリクス取得が必要
   }
   "messaging" = {
     tier               = "infra"

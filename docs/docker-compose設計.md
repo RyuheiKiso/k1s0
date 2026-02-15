@@ -315,6 +315,28 @@ services:
   #       condition: service_healthy
   #   volumes:
   #     - ./regions/service/order/server/go/config:/app/config
+
+  # --- API Gateway ---
+  # kong:
+  #   image: kong:3.7
+  #   profiles: [infra]
+  #   environment:
+  #     KONG_DATABASE: postgres
+  #     KONG_PG_HOST: postgres
+  #     KONG_PG_DATABASE: kong
+  #     KONG_PG_USER: dev
+  #     KONG_PG_PASSWORD: dev
+  #     KONG_PROXY_ACCESS_LOG: /dev/stdout
+  #     KONG_ADMIN_ACCESS_LOG: /dev/stdout
+  #     KONG_PROXY_ERROR_LOG: /dev/stderr
+  #     KONG_ADMIN_ERROR_LOG: /dev/stderr
+  #     KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+  #   ports:
+  #     - "8000:8000"
+  #     - "8001:8001"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
 ```
 
 ## ローカル環境のサービス名解決（D-102）
@@ -331,7 +353,7 @@ services:
 
 | 接続先       | 本番（Kubernetes DNS）                                    | ローカル（docker-compose サービス名） |
 | ------------ | --------------------------------------------------------- | ------------------------------------- |
-| PostgreSQL   | `postgres.k1s0-system.svc.cluster.local`                 | `postgres`                            |
+| PostgreSQL   | `postgres.{k1s0-system\|k1s0-business\|k1s0-service}.svc.cluster.local` | `postgres`                 |
 | MySQL        | `mysql.k1s0-system.svc.cluster.local`                    | `mysql`                               |
 | Redis        | `redis.k1s0-system.svc.cluster.local`                    | `redis`                               |
 | Kafka        | `kafka-0.messaging.svc.cluster.local`                    | `kafka`                               |

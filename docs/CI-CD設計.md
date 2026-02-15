@@ -91,7 +91,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.82       # Dockerイメージ戦略.md / devcontainer設計.md と同期
         with:
           components: clippy, rustfmt
       - run: cargo fmt --all -- --check
@@ -118,7 +118,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: "3.24.0"              # devcontainer設計.md と同期
       - run: dart analyze
       - run: dart format --set-exit-if-changed .
 
@@ -154,7 +154,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.82       # Dockerイメージ戦略.md / devcontainer設計.md と同期
       - run: cargo test --all
 
   test-ts:
@@ -175,7 +175,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: "3.24.0"              # devcontainer設計.md と同期
       - run: flutter test
 
   test-python:

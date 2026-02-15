@@ -47,7 +47,7 @@ database:                        # DB 有効時のみ
   conn_max_lifetime: "5m"
 
 kafka:                           # Kafka 有効時のみ
-  brokers:
+  brokers:                       # dev: 9092（PLAINTEXT）、prod: 9093（SASL_SSL リスナー）
     - "kafka-0.messaging.svc.cluster.local:9092"
     - "kafka-1.messaging.svc.cluster.local:9092"
   consumer_group: "order-server.default"  # 命名規則: {service-name}.{purpose}（メッセージング設計.md 参照）

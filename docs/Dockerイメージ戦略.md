@@ -34,7 +34,8 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app ./cmd/
 # ---- Runtime ----
 FROM gcr.io/distroless/static-debian12
 COPY --from=build /app /app
-COPY config/config.yaml /etc/app/config.yaml
+# config.yaml は Kubernetes 環境では ConfigMap としてマウントされる（helm設計.md 参照）
+# ローカル実行時は -v オプションで config/ をマウントすること
 USER nonroot:nonroot
 EXPOSE 8080
 ENTRYPOINT ["/app"]
@@ -54,7 +55,8 @@ RUN cargo build --release
 # ---- Runtime ----
 FROM gcr.io/distroless/cc-debian12
 COPY --from=build /src/target/release/app /app
-COPY config/config.yaml /etc/app/config.yaml
+# config.yaml は Kubernetes 環境では ConfigMap としてマウントされる（helm設計.md 参照）
+# ローカル実行時は -v オプションで config/ をマウントすること
 USER nonroot:nonroot
 EXPOSE 8080
 ENTRYPOINT ["/app"]

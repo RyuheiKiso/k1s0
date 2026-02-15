@@ -58,7 +58,7 @@ $ k1s0
 ### 生成されるもの
 
 - `regions/` ディレクトリ（選択した階層）
-- `api/` ディレクトリ（`api/proto/`、`api/openapi/`）
+- `api/` ディレクトリ（`api/proto/`）
 - `infra/` ディレクトリ
 - `e2e/` ディレクトリ
 - `docs/` ディレクトリ
