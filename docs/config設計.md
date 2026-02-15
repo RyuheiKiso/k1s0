@@ -6,6 +6,10 @@ k1s0 では環境変数の直接参照を禁止し、`config/config.yaml` で設
 ## 基本方針
 
 - アプリケーションコード内で `os.Getenv` / `std::env::var` 等による環境変数の直接参照を禁止する
+  - **例外**: config ローダー（`config/config.yaml` の読み込み処理）内では環境変数参照を許可する
+  - **例外**: テスト用のフィクスチャやヘルパーでは環境変数参照を許可する
+  - **例外**: Kubernetes の ConfigMap / Secret による環境変数の注入は許可する
+  - **例外**: CI/CD パイプラインでの環境変数設定は許可する
 - すべての設定値は `config/config.yaml` に定義し、起動時に構造体へバインドする
 - 環境別の差分は Kubernetes ConfigMap / Secret から YAML ファイルとしてマウントする
 - シークレット（DB パスワード、API キー等）は HashiCorp Vault から注入する
@@ -79,7 +83,7 @@ observability:
     sample_rate: 1.0             # 0.0 〜 1.0
   metrics:
     enabled: true
-    endpoint: "prometheus.observability.svc.cluster.local:9090"
+    path: "/metrics"                                              # Prometheus ServiceMonitor がスクレイプするパス（可観測性設計.md 参照）
 
 auth:
   jwt:

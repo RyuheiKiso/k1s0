@@ -258,9 +258,20 @@ jobs:
       - id: detect
         name: Detect changed services
         run: |
+          # ディレクトリ構成図.md に基づくサービス検出:
+          #   system:   regions/system/server/{lang}/{service}/...
+          #   business: regions/business/{domain}/server/{lang}/{service}/...
+          #   service:  regions/service/{service}/server/{lang}/...
           CHANGED=$(git diff --name-only HEAD~1 HEAD | \
-            grep -oP 'regions/\K[^/]+/[^/]+/[^/]+/[^/]+' | \
-            sort -u | head -20)
+            grep -E '^regions/' | \
+            sed 's|^regions/||' | \
+            while IFS= read -r path; do
+              case "$path" in
+                system/server/*/*/*)       echo "$path" | cut -d'/' -f1-4 ;;
+                business/*/server/*/*/*)   echo "$path" | cut -d'/' -f1-5 ;;
+                service/*/server/*/*)      echo "$path" | cut -d'/' -f1-4 ;;
+              esac
+            done | sort -u | head -20)
           echo "services=$(echo "$CHANGED" | jq -R -s -c 'split("\n") | map(select(. != ""))')" >> "$GITHUB_OUTPUT"
 
   build-and-push:
@@ -341,12 +352,29 @@ jobs:
       - name: Derive service metadata
         id: meta
         run: |
+          # Tier 別のディレクトリ構成に基づきメタデータを導出:
+          #   system/server/{lang}/{service}         → Helm: system/{service}
+          #   business/{domain}/server/{lang}/{service} → Helm: business/{domain}/{service}
+          #   service/{service}/server/{lang}        → Helm: service/{service}
           TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
-          SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
-          SERVICE_PATH=$(echo "${{ matrix.service }}" | rev | cut -d'/' -f2- | rev)
+          case "$TIER" in
+            system)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f4)
+              HELM_PATH="system/${SERVICE_NAME}"
+              ;;
+            business)
+              DOMAIN=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f5)
+              HELM_PATH="business/${DOMAIN}/${SERVICE_NAME}"
+              ;;
+            service)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
+              HELM_PATH="service/${SERVICE_NAME}"
+              ;;
+          esac
           echo "project=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
           echo "service_name=${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
-          echo "service_path=${SERVICE_PATH}" >> "$GITHUB_OUTPUT"
+          echo "helm_path=${HELM_PATH}" >> "$GITHUB_OUTPUT"
           echo "namespace=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
       - uses: sigstore/cosign-installer@v3
       - name: Verify image signature
@@ -359,9 +387,9 @@ jobs:
       - name: Deploy to dev
         run: |
           helm upgrade --install ${{ steps.meta.outputs.service_name }} \
-            ./infra/helm/services/${{ steps.meta.outputs.service_path }} \
+            ./infra/helm/services/${{ steps.meta.outputs.helm_path }} \
             -n ${{ steps.meta.outputs.namespace }} \
-            -f ./infra/helm/services/${{ steps.meta.outputs.service_path }}/values-dev.yaml \
+            -f ./infra/helm/services/${{ steps.meta.outputs.helm_path }}/values-dev.yaml \
             --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
 
   deploy-staging:
@@ -386,12 +414,29 @@ jobs:
       - name: Derive service metadata
         id: meta
         run: |
+          # Tier 別のディレクトリ構成に基づきメタデータを導出:
+          #   system/server/{lang}/{service}         → Helm: system/{service}
+          #   business/{domain}/server/{lang}/{service} → Helm: business/{domain}/{service}
+          #   service/{service}/server/{lang}        → Helm: service/{service}
           TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
-          SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
-          SERVICE_PATH=$(echo "${{ matrix.service }}" | rev | cut -d'/' -f2- | rev)
+          case "$TIER" in
+            system)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f4)
+              HELM_PATH="system/${SERVICE_NAME}"
+              ;;
+            business)
+              DOMAIN=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f5)
+              HELM_PATH="business/${DOMAIN}/${SERVICE_NAME}"
+              ;;
+            service)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
+              HELM_PATH="service/${SERVICE_NAME}"
+              ;;
+          esac
           echo "project=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
           echo "service_name=${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
-          echo "service_path=${SERVICE_PATH}" >> "$GITHUB_OUTPUT"
+          echo "helm_path=${HELM_PATH}" >> "$GITHUB_OUTPUT"
           echo "namespace=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
       - uses: sigstore/cosign-installer@v3
       - name: Verify image signature
@@ -404,9 +449,9 @@ jobs:
       - name: Deploy to staging
         run: |
           helm upgrade --install ${{ steps.meta.outputs.service_name }} \
-            ./infra/helm/services/${{ steps.meta.outputs.service_path }} \
+            ./infra/helm/services/${{ steps.meta.outputs.helm_path }} \
             -n ${{ steps.meta.outputs.namespace }} \
-            -f ./infra/helm/services/${{ steps.meta.outputs.service_path }}/values-staging.yaml \
+            -f ./infra/helm/services/${{ steps.meta.outputs.helm_path }}/values-staging.yaml \
             --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
 
   deploy-prod:
@@ -433,12 +478,29 @@ jobs:
       - name: Derive service metadata
         id: meta
         run: |
+          # Tier 別のディレクトリ構成に基づきメタデータを導出:
+          #   system/server/{lang}/{service}         → Helm: system/{service}
+          #   business/{domain}/server/{lang}/{service} → Helm: business/{domain}/{service}
+          #   service/{service}/server/{lang}        → Helm: service/{service}
           TIER=$(echo "${{ matrix.service }}" | cut -d'/' -f1)
-          SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
-          SERVICE_PATH=$(echo "${{ matrix.service }}" | rev | cut -d'/' -f2- | rev)
+          case "$TIER" in
+            system)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f4)
+              HELM_PATH="system/${SERVICE_NAME}"
+              ;;
+            business)
+              DOMAIN=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f5)
+              HELM_PATH="business/${DOMAIN}/${SERVICE_NAME}"
+              ;;
+            service)
+              SERVICE_NAME=$(echo "${{ matrix.service }}" | cut -d'/' -f2)
+              HELM_PATH="service/${SERVICE_NAME}"
+              ;;
+          esac
           echo "project=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
           echo "service_name=${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
-          echo "service_path=${SERVICE_PATH}" >> "$GITHUB_OUTPUT"
+          echo "helm_path=${HELM_PATH}" >> "$GITHUB_OUTPUT"
           echo "namespace=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
       - uses: sigstore/cosign-installer@v3
       - name: Verify image signature
@@ -451,9 +513,9 @@ jobs:
       - name: Deploy to prod
         run: |
           helm upgrade --install ${{ steps.meta.outputs.service_name }} \
-            ./infra/helm/services/${{ steps.meta.outputs.service_path }} \
+            ./infra/helm/services/${{ steps.meta.outputs.helm_path }} \
             -n ${{ steps.meta.outputs.namespace }} \
-            -f ./infra/helm/services/${{ steps.meta.outputs.service_path }}/values-prod.yaml \
+            -f ./infra/helm/services/${{ steps.meta.outputs.helm_path }}/values-prod.yaml \
             --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
 ```
 

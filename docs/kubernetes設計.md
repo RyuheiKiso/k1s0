@@ -326,7 +326,29 @@ rules:
 
 ## Ingress 設計
 
+Ingress リソースは `ingress` Namespace に配置する。Kubernetes の Ingress はバックエンドとして同一 Namespace 内のサービスのみ参照できるため、他 Namespace のサービスへのルーティングには ExternalName サービスを `ingress` Namespace に作成する。
+
 ```yaml
+# ExternalName サービス: ingress → k1s0-system の Kong Proxy
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-proxy
+  namespace: ingress
+spec:
+  type: ExternalName
+  externalName: kong-proxy.k1s0-system.svc.cluster.local
+---
+# ExternalName サービス: ingress → observability の Grafana
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: ingress
+spec:
+  type: ExternalName
+  externalName: grafana.observability.svc.cluster.local
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -349,7 +371,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: kong-proxy
+                name: kong-proxy          # ExternalName → kong-proxy.k1s0-system
                 port:
                   number: 80
     - host: grafana.k1s0.internal.example.com
@@ -359,7 +381,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: grafana
+                name: grafana             # ExternalName → grafana.observability
                 port:
                   number: 3000
 ```

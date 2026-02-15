@@ -571,6 +571,26 @@ namespaces = {
     tier               = "infra"
     allowed_from_tiers = []
   }
+  "messaging" = {
+    tier               = "infra"
+    allowed_from_tiers = ["system", "business", "service"]   # 全 Tier から Kafka クラスタへのアクセスを許可
+  }
+  "ingress" = {
+    tier               = "infra"
+    allowed_from_tiers = []                                  # 外部トラフィックのみ受け付け
+  }
+  "service-mesh" = {
+    tier               = "infra"
+    allowed_from_tiers = []                                  # Istio Control Plane（istiod が各 Namespace の Sidecar と通信）
+  }
+  "cert-manager" = {
+    tier               = "infra"
+    allowed_from_tiers = []
+  }
+  "harbor" = {
+    tier               = "infra"
+    allowed_from_tiers = []
+  }
 }
 
 ceph_cluster_id  = "ceph-dev"
