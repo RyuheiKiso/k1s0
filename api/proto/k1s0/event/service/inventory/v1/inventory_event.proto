@@ -1,0 +1,15 @@
+syntax = "proto3";
+package k1s0.event.service.inventory.v1;
+
+import "google/protobuf/timestamp.proto";
+import "k1s0/system/common/v1/event_metadata.proto";
+
+// InventoryEvent represents an inventory change event.
+message InventoryEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string item_id = 2;
+  string warehouse_id = 3;
+  int32 quantity_change = 4;
+  string reason = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}

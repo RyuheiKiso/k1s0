@@ -43,6 +43,8 @@ pub struct TemplateContext {
     pub module_path: String,
     /// 言語識別子: go / rust / typescript / dart
     pub language: String,
+    /// フレームワーク識別子 (client 時): react / flutter (それ以外は空文字列)
+    pub framework: String,
     /// 種別: server / client / library / database
     pub kind: String,
     /// API 方式 (server 時, 後方互換用: api_styles の最初の要素): rest / grpc / graphql
@@ -76,6 +78,7 @@ pub struct TemplateContextBuilder {
     service_name: String,
     tier: String,
     language: String,
+    framework: String,
     kind: String,
     api_styles: Vec<String>,
     has_database: bool,
@@ -99,6 +102,7 @@ impl TemplateContextBuilder {
             service_name: service_name.to_string(),
             tier: tier.to_string(),
             language: language.to_string(),
+            framework: String::new(),
             kind: kind.to_string(),
             api_styles: Vec::new(),
             has_database: false,
@@ -108,6 +112,12 @@ impl TemplateContextBuilder {
             docker_registry: DEFAULT_DOCKER_REGISTRY.to_string(),
             go_module_base: "github.com/org/k1s0".to_string(),
         }
+    }
+
+    /// フレームワークを設定する (client 時)。
+    pub fn framework(mut self, framework: &str) -> Self {
+        self.framework = framework.to_string();
+        self
     }
 
     /// API 方式を設定する (server 時)。単一スタイルの後方互換 API。
@@ -202,6 +212,7 @@ impl TemplateContextBuilder {
             tier: self.tier,
             module_path,
             language: self.language,
+            framework: self.framework,
             kind: self.kind,
             api_style,
             api_styles: self.api_styles,
@@ -231,6 +242,7 @@ impl TemplateContext {
         ctx.insert("tier", &self.tier);
         ctx.insert("module_path", &self.module_path);
         ctx.insert("language", &self.language);
+        ctx.insert("framework", &self.framework);
         ctx.insert("kind", &self.kind);
         ctx.insert("api_style", &self.api_style);
         ctx.insert("api_styles", &self.api_styles);

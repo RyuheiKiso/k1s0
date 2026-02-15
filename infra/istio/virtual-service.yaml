@@ -1,0 +1,76 @@
+# VirtualService 統合定義
+#
+# このファイルはディレクトリ構成図.md で定義された infra/istio/virtual-service.yaml に対応する。
+# 各 VirtualService のデフォルト設定と代表的なパターンを統合して定義する。
+#
+# 詳細な個別設定は以下のファイルを参照:
+#   - virtualservices/default.yaml   基本ルーティング + system Tier デフォルト
+#   - virtualservices/canary.yaml    カナリアリリース + ヘッダーベースルーティング
+#   - virtualservices/mirror.yaml    トラフィックミラーリング
+#   - fault-injection/delay.yaml     レイテンシ注入（staging 環境テスト用）
+#   - fault-injection/abort.yaml     HTTP フォルト注入（staging 環境テスト用）
+#
+# Tier 別 Timeout / Retry デフォルト値（サービスメッシュ設計.md 参照）:
+#   system:   timeout=5s,  retry=3, perTryTimeout=2s
+#   business: timeout=10s, retry=3, perTryTimeout=3s
+#   service:  timeout=15s, retry=2, perTryTimeout=5s
+
+---
+# system Tier デフォルト VirtualService
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: default-system
+  namespace: k1s0-system
+spec:
+  hosts:
+    - "*.k1s0-system.svc.cluster.local"
+  http:
+    - route:
+        - destination:
+            host: "*.k1s0-system.svc.cluster.local"
+      timeout: 5s
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: "5xx,reset,connect-failure"
+
+---
+# business Tier デフォルト VirtualService
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: default-business
+  namespace: k1s0-business
+spec:
+  hosts:
+    - "*.k1s0-business.svc.cluster.local"
+  http:
+    - route:
+        - destination:
+            host: "*.k1s0-business.svc.cluster.local"
+      timeout: 10s
+      retries:
+        attempts: 3
+        perTryTimeout: 3s
+        retryOn: "5xx,reset,connect-failure"
+
+---
+# service Tier デフォルト VirtualService
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: default-service
+  namespace: k1s0-service
+spec:
+  hosts:
+    - "*.k1s0-service.svc.cluster.local"
+  http:
+    - route:
+        - destination:
+            host: "*.k1s0-service.svc.cluster.local"
+      timeout: 15s
+      retries:
+        attempts: 2
+        perTryTimeout: 5s
+        retryOn: "5xx,reset,connect-failure,retriable-4xx"
