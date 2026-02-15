@@ -22,11 +22,12 @@ k1s0 では環境変数の直接参照を禁止し、`config/config.yaml` で設
 app:
   name: "order-server"           # サービス名
   version: "1.0.0"               # アプリケーションバージョン
+  tier: "service"                # system | business | service
   environment: "dev"             # dev | staging | prod
 
 server:
   host: "0.0.0.0"
-  port: 8080
+  port: 8080                     # Kubernetes Service ポート（80）への変換は Kubernetes / Helm で設定
   read_timeout: "30s"
   write_timeout: "30s"
   shutdown_timeout: "10s"
@@ -50,7 +51,7 @@ kafka:                           # Kafka 有効時のみ
   brokers:                       # dev: 9092（PLAINTEXT）、prod: 9093（SASL_SSL リスナー）
     - "kafka-0.messaging.svc.cluster.local:9092"
     - "kafka-1.messaging.svc.cluster.local:9092"
-  consumer_group: "order-server.default"  # 命名規則: {service-name}.{purpose}（メッセージング設計.md 参照）
+  consumer_group: "order-server.default"  # 命名規則: {service-name}.{purpose}（メッセージング設計.md 参照）。サービスごとに変更すること
   security_protocol: "PLAINTEXT"   # PLAINTEXT（dev） | SASL_SSL（staging/prod）
   sasl:                            # security_protocol が SASL_SSL の場合のみ有効
     mechanism: "SCRAM-SHA-512"     # SCRAM-SHA-512 | PLAIN
@@ -73,9 +74,14 @@ redis:                           # Redis 有効時のみ
   db: 0
   pool_size: 10
 
+redis_session:                   # BFF Proxy 用セッションストア（BFF セッション管理で使用）
+  host: "redis-session.k1s0-system.svc.cluster.local"
+  port: 6380
+  password: ""                   # Vault 注入
+
 observability:
   log:
-    level: "info"                # debug | info | warn | error
+    level: "info"                # debug | info | warn | error — staging 環境向け。dev は debug、prod は warn に環境別 config で上書き
     format: "json"               # json | text
   trace:
     enabled: true
@@ -401,3 +407,11 @@ impl Config {
 - 環境別 YAML ファイルにもシークレットを含めない
 - `config.yaml` の全キーに対してデフォルト値を定義し、環境別ファイルは差分のみ記載する
 - 設定値の追加時は Config 構造体とスキーマの両方を更新する
+
+## 関連ドキュメント
+
+- [helm設計](helm設計.md)
+- [認証認可設計](認証認可設計.md)
+- [可観測性設計](可観測性設計.md)
+- [docker-compose設計](docker-compose設計.md)
+- [メッセージング設計](メッセージング設計.md)

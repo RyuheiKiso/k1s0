@@ -13,13 +13,13 @@
 
 | Namespace         | 対象                                | Tier     |
 | ----------------- | ----------------------------------- | -------- |
-| `k1s0-system`     | system 層のサーバー・DB・Schema Registry・Kong API Gateway | system   |
+| `k1s0-system`     | system 層のサーバー・DB・Schema Registry・Kong API Gateway・Keycloak・Vault・Redis・Redis Session（BFF用） | system   |
 | `k1s0-business`   | business 層のサーバー・クライアント・DB | business |
 | `k1s0-service`    | service 層のサーバー・クライアント・DB | service  |
 | `observability`   | Prometheus, Grafana, Jaeger, Loki   | infra    |
 | `messaging`       | Kafka クラスタ                      | infra    |
 | `ingress`         | Nginx Ingress Controller            | infra    |
-| `service-mesh`    | Istio Control Plane                 | infra    |
+| `service-mesh`    | Istio Control Plane, Flagger        | infra    |
 | `cert-manager`    | 証明書管理                          | infra    |
 | `harbor`          | コンテナレジストリ（同一クラスタの場合） | infra |
 
@@ -272,7 +272,7 @@ spec:
     kind: Deployment
     name: order-server
   minReplicas: 2       # staging 環境の値。prod では 3（環境別 HPA 設定を参照）
-  maxReplicas: 10
+  maxReplicas: 5        # staging 環境の値。prod では 10（環境別 HPA 設定を参照）
   metrics:
     - type: Resource
       resource:
@@ -464,3 +464,12 @@ Kubernetes 上では以下の 3 種類の StorageClass を使用する。
 | `app.kubernetes.io/part-of`    | k1s0           | プロジェクト名       |
 | `app.kubernetes.io/managed-by` | helm           | 管理ツール           |
 | `tier`                         | service        | Tier 階層            |
+
+## 関連ドキュメント
+
+- [tier-architecture](tier-architecture.md)
+- [helm設計](helm設計.md)
+- [terraform設計](terraform設計.md)
+- [サービスメッシュ設計](サービスメッシュ設計.md)
+- [可観測性設計](可観測性設計.md)
+- [インフラ設計](インフラ設計.md)

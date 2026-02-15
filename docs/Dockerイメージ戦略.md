@@ -77,7 +77,14 @@ RUN npm run build
 FROM nginx:1.27-alpine
 COPY --from=build /src/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
+# nginx のデフォルトユーザーは root のため、非 root 実行に切り替える。
+# helm設計.md の securityContext（runAsUser: 65532）を使用する場合は
+# Dockerfile 側で該当 UID のユーザーを作成し、nginx が listen する
+# ポートを 1024 以上に変更する必要がある。
+# 簡易的な非 root 化として USER nginx を使用する場合は、
+# helm 側の runAsUser を nginx ユーザーの UID（101）に合わせること。
+USER nginx
+EXPOSE 8080
 ```
 
 ### Flutter Web クライアント
@@ -95,7 +102,10 @@ RUN flutter build web --release
 FROM nginx:1.27-alpine
 COPY --from=build /app/build/web /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
+# nginx のデフォルトユーザーは root のため、非 root 実行に切り替える。
+# helm設計.md の securityContext との整合については React クライアントと同様。
+USER nginx
+EXPOSE 8080
 ```
 
 ## イメージタグ規則
@@ -227,3 +237,10 @@ docker buildx build \
   -t harbor.internal.example.com/k1s0-system/auth:1.0.0 \
   --push .
 ```
+
+## 関連ドキュメント
+
+- [CI-CD設計](CI-CD設計.md)
+- [helm設計](helm設計.md)
+- [devcontainer設計](devcontainer設計.md)
+- [インフラ設計](インフラ設計.md)

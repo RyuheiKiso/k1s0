@@ -131,9 +131,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install ruff
+      - run: pip install ruff mypy
       - run: ruff check .
       - run: ruff format --check .
+      - run: mypy e2e/
 
   test-go:
     needs: lint-go
@@ -663,3 +664,6 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 - [kubernetes設計.md](kubernetes設計.md) — Namespace・NetworkPolicy 設計
 - [API設計.md](API設計.md) — REST API・gRPC・GraphQL 設計
 - [可観測性設計.md](可観測性設計.md) — 監視・ログ・トレース設計
+- [config設計.md](config設計.md) — config.yaml スキーマ・環境別管理
+- [認証認可設計.md](認証認可設計.md) — 認証・認可・シークレット管理
+- [devcontainer設計.md](devcontainer設計.md) — Dev Container 設定

@@ -110,7 +110,7 @@ replicaCount: 2
 # コンテナ設定
 container:
   port: 8080
-  grpcPort: null                       # gRPC 無効（有効時は 50051 を設定）
+  grpcPort: null                       # gRPC 無効。gRPC 有効時は 50051 を設定（config設計.md の grpc.port デフォルト値と一致）
   command: []
   args: []
 
@@ -150,7 +150,7 @@ service:
 autoscaling:
   enabled: true
   minReplicas: 2
-  maxReplicas: 5                # kubernetes設計.md の staging デフォルトと同期
+  maxReplicas: 5                # kubernetes設計.md の staging 設定と同じ値を採用
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
 
@@ -545,3 +545,11 @@ spec:
 
 - リリース履歴は直近 10 リビジョンを保持する（`--history-max 10`）
 - prod のロールバックは即座に実行できるよう、前バージョンの動作確認を staging で事前に行う
+
+## 関連ドキュメント
+
+- [kubernetes設計](kubernetes設計.md)
+- [config設計](config設計.md)
+- [Dockerイメージ戦略](Dockerイメージ戦略.md)
+- [認証認可設計](認証認可設計.md)
+- [terraform設計](terraform設計.md)
