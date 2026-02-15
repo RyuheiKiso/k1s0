@@ -13,7 +13,7 @@
 
 | Namespace         | 対象                                | Tier     |
 | ----------------- | ----------------------------------- | -------- |
-| `k1s0-system`     | system 層のサーバー・DB             | system   |
+| `k1s0-system`     | system 層のサーバー・DB・Schema Registry | system   |
 | `k1s0-business`   | business 層のサーバー・クライアント・DB | business |
 | `k1s0-service`    | service 層のサーバー・クライアント・DB | service  |
 | `observability`   | Prometheus, Grafana, Jaeger, Loki   | infra    |

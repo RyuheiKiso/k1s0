@@ -795,7 +795,7 @@ plugins:
     config:
       minute: 500                    # デフォルト（service Tier）
       policy: redis                  # Redis で共有状態を管理
-      redis_host: redis.messaging.svc.cluster.local
+      redis_host: redis.k1s0-system.svc.cluster.local
       redis_port: 6379
       redis_database: 1
       fault_tolerant: true           # Redis 障害時は制限なしで通過
@@ -839,7 +839,7 @@ services:
 
 | 設定項目         | 値                                            |
 | ---------------- | --------------------------------------------- |
-| Redis ホスト     | `redis.messaging.svc.cluster.local`           |
+| Redis ホスト     | `redis.k1s0-system.svc.cluster.local`         |
 | Redis DB         | 1（レート制限専用）                           |
 | TTL              | Window サイズと同一（自動管理）               |
 | フォールトトレラント | `true`（Redis 障害時は制限を一時停止）    |

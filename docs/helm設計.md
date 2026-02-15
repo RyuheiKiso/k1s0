@@ -26,18 +26,25 @@ infra/helm/
 │           └── _helpers.tpl
 └── services/
     ├── system/
-    │   └── auth/                    # system 層のサービス
+    │   ├── auth/                    # system 層のサービス
+    │   │   ├── Chart.yaml
+    │   │   ├── values.yaml          # デフォルト値
+    │   │   ├── values-dev.yaml
+    │   │   ├── values-staging.yaml
+    │   │   ├── values-prod.yaml
+    │   │   └── templates/
+    │   │       ├── deployment.yaml
+    │   │       ├── service.yaml
+    │   │       ├── configmap.yaml
+    │   │       ├── hpa.yaml
+    │   │       └── pdb.yaml
+    │   └── kong/                    # Kong API Gateway
     │       ├── Chart.yaml
-    │       ├── values.yaml          # デフォルト値
+    │       ├── values.yaml
     │       ├── values-dev.yaml
     │       ├── values-staging.yaml
     │       ├── values-prod.yaml
     │       └── templates/
-    │           ├── deployment.yaml
-    │           ├── service.yaml
-    │           ├── configmap.yaml
-    │           ├── hpa.yaml
-    │           └── pdb.yaml
     ├── business/
     │   └── accounting/
     │       └── ledger/

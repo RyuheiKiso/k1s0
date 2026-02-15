@@ -248,7 +248,7 @@ services:
         config:
           minute: 30
           policy: redis
-          redis_host: redis.messaging.svc.cluster.local
+          redis_host: redis.k1s0-system.svc.cluster.local
 
   # service Tier
   - name: order-v1
@@ -265,7 +265,7 @@ plugins:
     config:
       minute: 500
       policy: redis
-      redis_host: redis.messaging.svc.cluster.local
+      redis_host: redis.k1s0-system.svc.cluster.local
       redis_port: 6379
       redis_database: 1
       fault_tolerant: true

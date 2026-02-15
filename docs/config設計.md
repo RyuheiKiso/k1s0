@@ -32,7 +32,7 @@ grpc:                            # gRPC 有効時のみ
   max_recv_msg_size: 4194304     # 4MB
 
 database:                        # DB 有効時のみ
-  host: "localhost"
+  host: "postgres.k1s0-system.svc.cluster.local"
   port: 5432
   name: "order_db"
   user: "app"
@@ -44,8 +44,8 @@ database:                        # DB 有効時のみ
 
 kafka:                           # Kafka 有効時のみ
   brokers:
-    - "kafka-0:9092"
-    - "kafka-1:9092"
+    - "kafka-0.messaging.svc.cluster.local:9092"
+    - "kafka-1.messaging.svc.cluster.local:9092"
   consumer_group: "order-service"
   security_protocol: "PLAINTEXT"   # PLAINTEXT（dev） | SASL_SSL（staging/prod）
   sasl:                            # security_protocol が SASL_SSL の場合のみ有効
@@ -63,7 +63,7 @@ kafka:                           # Kafka 有効時のみ
       - "inventory.reserved"
 
 redis:                           # Redis 有効時のみ
-  host: "localhost"
+  host: "redis.k1s0-system.svc.cluster.local"
   port: 6379
   password: ""                   # Vault パス: secret/data/k1s0/{tier}/{service}/redis キー: password
   db: 0
@@ -75,11 +75,11 @@ observability:
     format: "json"               # json | text
   trace:
     enabled: true
-    endpoint: "jaeger:4317"      # OTLP gRPC エンドポイント
+    endpoint: "jaeger.observability.svc.cluster.local:4317"  # OTLP gRPC エンドポイント
     sample_rate: 1.0             # 0.0 〜 1.0
   metrics:
     enabled: true
-    endpoint: "prometheus:9090"
+    endpoint: "prometheus.observability.svc.cluster.local:9090"
 
 auth:
   jwt:
@@ -88,7 +88,7 @@ auth:
     public_key_path: "/etc/secrets/jwt-public.pem"
   oidc:
     client_id: "k1s0-bff"
-    client_secret: "${OIDC_CLIENT_SECRET}"   # Vault パス: secret/data/k1s0/system/bff/oidc キー: client_secret
+    client_secret: ""                        # Vault パス: secret/data/k1s0/system/bff/oidc キー: client_secret
     redirect_uri: "https://app.k1s0.internal.example.com/callback"
     scopes: ["openid", "profile", "email"]
 ```
@@ -180,7 +180,7 @@ observability:
 | Redis パスワード       | Vault           | 空文字で定義                          |
 | JWT 公開鍵             | Vault           | ファイルパスで参照                    |
 | API キー               | Vault           | 空文字で定義                          |
-| OIDC Client Secret     | Vault           | `${OIDC_CLIENT_SECRET}` で定義        |
+| OIDC Client Secret     | Vault           | 空文字で定義                          |
 | Kafka SASL ユーザー名  | Vault           | 空文字で定義                          |
 | Kafka SASL パスワード  | Vault           | 空文字で定義                          |
 

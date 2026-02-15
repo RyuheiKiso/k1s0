@@ -222,7 +222,7 @@ modules/service-mesh/
 
 resource "helm_release" "istio_base" {
   name       = "istio-base"
-  namespace  = "istio-system"
+  namespace  = "service-mesh"
   repository = "https://istio-release.storage.googleapis.com/charts"
   chart      = "base"
   version    = var.istio_version
@@ -232,7 +232,7 @@ resource "helm_release" "istio_base" {
 
 resource "helm_release" "istiod" {
   name       = "istiod"
-  namespace  = "istio-system"
+  namespace  = "service-mesh"
   repository = "https://istio-release.storage.googleapis.com/charts"
   chart      = "istiod"
   version    = var.istio_version
@@ -244,7 +244,7 @@ resource "helm_release" "istiod" {
 
 resource "helm_release" "istio_ingress" {
   name       = "istio-ingress"
-  namespace  = "istio-system"
+  namespace  = "service-mesh"
   repository = "https://istio-release.storage.googleapis.com/charts"
   chart      = "gateway"
   version    = var.istio_version
@@ -260,7 +260,7 @@ resource "helm_release" "istio_ingress" {
 
 resource "helm_release" "kiali" {
   name       = "kiali"
-  namespace  = "istio-system"
+  namespace  = "service-mesh"
   repository = "https://kiali.org/helm-charts"
   chart      = "kiali-server"
   version    = var.kiali_version
