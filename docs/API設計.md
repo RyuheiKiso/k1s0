@@ -1,0 +1,776 @@
+# API 設計
+
+k1s0 における REST API / gRPC / GraphQL の設計方針と、レート制限を定義する。
+Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.md) を参照。
+
+## 基本方針
+
+- サービス間通信は **gRPC** を標準とする
+- 外部クライアント向けには **REST API** を Kong API Gateway 経由で公開する
+- BFF が必要な場合は **GraphQL** をオプション採用する
+- 全 API に統一的なエラーレスポンス・バージョニング・レート制限を適用する
+
+---
+
+## D-007: REST API エラーレスポンス設計
+
+### 統一 JSON スキーマ
+
+すべての REST API エラーレスポンスは以下の JSON スキーマに従う。
+
+```json
+{
+  "error": {
+    "code": "SVC_ORDER_NOT_FOUND",
+    "message": "指定された注文が見つかりません",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
+}
+```
+
+| フィールド            | 型       | 必須 | 説明                                       |
+| --------------------- | -------- | ---- | ------------------------------------------ |
+| `error.code`          | string   | Yes  | Tier プレフィックス付きエラーコード        |
+| `error.message`       | string   | Yes  | 人間が読めるエラーメッセージ               |
+| `error.request_id`    | string   | Yes  | リクエスト追跡用の一意な ID               |
+| `error.details`       | array    | No   | バリデーションエラー等の詳細情報           |
+
+### Tier プレフィックス付きエラーコード
+
+エラーコードは Tier アーキテクチャの階層に対応するプレフィックスを付与し、エラーの発生源を明確にする。
+
+| プレフィックス | Tier     | 例                        |
+| -------------- | -------- | ------------------------- |
+| `SYS_`         | system   | `SYS_AUTH_TOKEN_EXPIRED`  |
+| `BIZ_`         | business | `BIZ_ACCT_LEDGER_CLOSED`  |
+| `SVC_`         | service  | `SVC_ORDER_NOT_FOUND`     |
+
+エラーコードの命名規則: `{TIER}_{DOMAIN}_{ERROR_NAME}`
+
+- `TIER`: `SYS` / `BIZ` / `SVC`
+- `DOMAIN`: サービスまたはドメインの省略名（SCREAMING_SNAKE_CASE）
+- `ERROR_NAME`: エラーの内容（SCREAMING_SNAKE_CASE）
+
+### HTTP ステータスコードマッピング
+
+| HTTP ステータス | 用途                               | エラーコード例                  |
+| --------------- | ---------------------------------- | ------------------------------- |
+| 400             | バリデーションエラー               | `SVC_ORDER_INVALID_QUANTITY`    |
+| 401             | 認証エラー（トークン無効・期限切れ）| `SYS_AUTH_TOKEN_EXPIRED`        |
+| 403             | 認可エラー（権限不足）             | `SYS_AUTH_FORBIDDEN`            |
+| 404             | リソースが見つからない             | `SVC_ORDER_NOT_FOUND`           |
+| 409             | 競合（楽観ロック等）               | `SVC_ORDER_VERSION_CONFLICT`    |
+| 422             | ビジネスルール違反                 | `BIZ_ACCT_LEDGER_CLOSED`       |
+| 429             | レート制限超過                     | `SYS_RATE_LIMIT_EXCEEDED`      |
+| 500             | 内部サーバーエラー                 | `SYS_INTERNAL_ERROR`           |
+| 503             | サービス利用不可                   | `SYS_SERVICE_UNAVAILABLE`      |
+
+### バリデーションエラーの details 配列
+
+バリデーションエラー（400）の場合、`details` 配列にフィールド単位のエラー情報を格納する。
+
+```json
+{
+  "error": {
+    "code": "SVC_ORDER_VALIDATION_FAILED",
+    "message": "リクエストのバリデーションに失敗しました",
+    "request_id": "req_abc123def456",
+    "details": [
+      {
+        "field": "quantity",
+        "reason": "must_be_positive",
+        "message": "数量は1以上を指定してください"
+      },
+      {
+        "field": "shipping_address.postal_code",
+        "reason": "invalid_format",
+        "message": "郵便番号の形式が不正です"
+      }
+    ]
+  }
+}
+```
+
+### Go 実装例
+
+```go
+// internal/adapter/handler/error.go
+
+type APIError struct {
+    Code      string          `json:"code"`
+    Message   string          `json:"message"`
+    RequestID string          `json:"request_id"`
+    Details   []ErrorDetail   `json:"details,omitempty"`
+}
+
+type ErrorDetail struct {
+    Field   string `json:"field"`
+    Reason  string `json:"reason"`
+    Message string `json:"message"`
+}
+
+type ErrorResponse struct {
+    Error APIError `json:"error"`
+}
+
+func WriteError(w http.ResponseWriter, r *http.Request, status int, code, message string) {
+    resp := ErrorResponse{
+        Error: APIError{
+            Code:      code,
+            Message:   message,
+            RequestID: middleware.GetRequestID(r.Context()),
+        },
+    }
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(status)
+    json.NewEncoder(w).Encode(resp)
+}
+```
+
+### Rust 実装例
+
+```rust
+// src/adapter/handler/error.rs
+
+use serde::Serialize;
+
+#[derive(Serialize)]
+pub struct ApiError {
+    pub code: String,
+    pub message: String,
+    pub request_id: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub details: Vec<ErrorDetail>,
+}
+
+#[derive(Serialize)]
+pub struct ErrorDetail {
+    pub field: String,
+    pub reason: String,
+    pub message: String,
+}
+
+#[derive(Serialize)]
+pub struct ErrorResponse {
+    pub error: ApiError,
+}
+
+impl axum::response::IntoResponse for ErrorResponse {
+    fn into_response(self) -> axum::response::Response {
+        let status = match self.error.code.as_str() {
+            c if c.ends_with("NOT_FOUND") => StatusCode::NOT_FOUND,
+            c if c.ends_with("VALIDATION_FAILED") => StatusCode::BAD_REQUEST,
+            c if c.ends_with("FORBIDDEN") => StatusCode::FORBIDDEN,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+        (status, axum::Json(self)).into_response()
+    }
+}
+```
+
+---
+
+## D-008: REST API バージョニング
+
+### URL パス方式
+
+REST API のバージョニングは **URL パス方式** を採用する。
+
+```
+https://api.k1s0.internal.example.com/api/v1/orders
+https://api.k1s0.internal.example.com/api/v2/orders
+```
+
+### バージョニングルール
+
+| 項目               | ルール                                               |
+| ------------------ | ---------------------------------------------------- |
+| 方式               | URL パスプレフィックス `/api/v{major}/`              |
+| メジャーバージョン | 後方互換性を破壊する変更時にインクリメント           |
+| 初期バージョン     | `v1`                                                 |
+| 非推奨化ポリシー   | 新バージョンリリース後 **6 か月間** 旧バージョンを並行運用 |
+| 非推奨ヘッダー     | `Deprecation: true` + `Sunset: <date>` をレスポンスに付与 |
+
+### 後方互換とみなす変更（バージョンアップ不要）
+
+- レスポンスへの新規フィールド追加（オプショナル）
+- 新規エンドポイントの追加
+- 新規クエリパラメータの追加（オプショナル）
+
+### 後方互換を破壊する変更（メジャーバージョンアップ）
+
+- 既存フィールドの削除・型変更
+- 必須パラメータの追加
+- エンドポイントの URL 変更
+- レスポンス構造の変更
+
+### Kong ルーティング連携
+
+Kong API Gateway で URL パスに基づいてバージョン別のルーティングを行う。
+
+```yaml
+# Kong Service / Route 設定
+services:
+  - name: order-v1
+    url: http://order-server.k1s0-service.svc.cluster.local:80
+    routes:
+      - name: order-v1-route
+        paths:
+          - /api/v1/orders
+        strip_path: false
+
+  - name: order-v2
+    url: http://order-server-v2.k1s0-service.svc.cluster.local:80
+    routes:
+      - name: order-v2-route
+        paths:
+          - /api/v2/orders
+        strip_path: false
+```
+
+### 非推奨レスポンスヘッダー
+
+旧バージョンのエンドポイントには Kong プラグインで非推奨ヘッダーを付与する。
+
+```
+Deprecation: true
+Sunset: Sat, 01 Mar 2026 00:00:00 GMT
+Link: <https://api.k1s0.internal.example.com/api/v2/orders>; rel="successor-version"
+```
+
+---
+
+## D-009: gRPC サービス定義パターン
+
+### proto パッケージ命名
+
+gRPC の proto ファイルは以下の命名規則に従う。
+
+```
+k1s0.{tier}.{domain}.v{major}
+```
+
+| 要素       | 説明                       | 例                  |
+| ---------- | -------------------------- | ------------------- |
+| `k1s0`     | プロジェクトプレフィックス | 固定                |
+| `tier`     | Tier 名                    | `system`, `service` |
+| `domain`   | ドメイン名                 | `auth`, `order`     |
+| `v{major}` | メジャーバージョン         | `v1`, `v2`          |
+
+### proto ファイル配置
+
+```
+api/proto/
+├── k1s0/
+│   ├── system/
+│   │   ├── auth/
+│   │   │   └── v1/
+│   │   │       └── auth.proto
+│   │   └── common/
+│   │       └── v1/
+│   │           └── types.proto     # 共通型定義
+│   ├── business/
+│   │   └── accounting/
+│   │       └── v1/
+│   │           └── ledger.proto
+│   └── service/
+│       └── order/
+│           └── v1/
+│               └── order.proto
+└── buf.yaml
+```
+
+### 共通型定義
+
+全 Tier で共有する型を `k1s0.system.common.v1` に定義する。
+
+```protobuf
+// k1s0/system/common/v1/types.proto
+syntax = "proto3";
+package k1s0.system.common.v1;
+
+message Pagination {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message PaginationResult {
+  int32 total_count = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  bool has_next = 4;
+}
+
+message Timestamp {
+  int64 seconds = 1;
+  int32 nanos = 2;
+}
+```
+
+### サービス定義例
+
+```protobuf
+// k1s0/service/order/v1/order.proto
+syntax = "proto3";
+package k1s0.service.order.v1;
+
+import "k1s0/system/common/v1/types.proto";
+
+service OrderService {
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+}
+
+message CreateOrderRequest {
+  string product_id = 1;
+  int32 quantity = 2;
+}
+
+message CreateOrderResponse {
+  string order_id = 1;
+}
+
+message GetOrderRequest {
+  string order_id = 1;
+}
+
+message GetOrderResponse {
+  string order_id = 1;
+  string product_id = 2;
+  int32 quantity = 3;
+  string status = 4;
+}
+
+message ListOrdersRequest {
+  k1s0.system.common.v1.Pagination pagination = 1;
+}
+
+message ListOrdersResponse {
+  repeated GetOrderResponse orders = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+```
+
+### gRPC ステータスコードマッピング
+
+| gRPC ステータス       | 用途                               | HTTP 対応 |
+| --------------------- | ---------------------------------- | --------- |
+| `OK`                  | 成功                               | 200       |
+| `INVALID_ARGUMENT`    | バリデーションエラー               | 400       |
+| `UNAUTHENTICATED`     | 認証エラー                         | 401       |
+| `PERMISSION_DENIED`   | 認可エラー                         | 403       |
+| `NOT_FOUND`           | リソースが見つからない             | 404       |
+| `ALREADY_EXISTS`      | リソースの重複                     | 409       |
+| `FAILED_PRECONDITION` | ビジネスルール違反                 | 422       |
+| `RESOURCE_EXHAUSTED`  | レート制限超過                     | 429       |
+| `INTERNAL`            | 内部エラー                         | 500       |
+| `UNAVAILABLE`         | サービス利用不可                   | 503       |
+
+### Go Interceptor 実装例
+
+```go
+// internal/infra/grpc/interceptor.go
+
+func UnaryErrorInterceptor() grpc.UnaryServerInterceptor {
+    return func(
+        ctx context.Context,
+        req interface{},
+        info *grpc.UnaryServerInfo,
+        handler grpc.UnaryHandler,
+    ) (interface{}, error) {
+        resp, err := handler(ctx, req)
+        if err != nil {
+            // ドメインエラーを gRPC ステータスに変換
+            if domainErr, ok := err.(*domain.Error); ok {
+                st := status.New(mapToGRPCCode(domainErr.Code), domainErr.Message)
+                st, _ = st.WithDetails(&errdetails.ErrorInfo{
+                    Reason: domainErr.Code,
+                    Domain: "k1s0",
+                })
+                return nil, st.Err()
+            }
+            return nil, status.Error(codes.Internal, "internal error")
+        }
+        return resp, nil
+    }
+}
+```
+
+### Rust Interceptor 実装例
+
+```rust
+// src/infra/grpc/interceptor.rs
+
+use tonic::{Request, Status};
+
+pub fn auth_interceptor(req: Request<()>) -> Result<Request<()>, Status> {
+    let token = req.metadata().get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| Status::unauthenticated("missing authorization token"))?;
+
+    // JWT 検証ロジック
+    validate_token(token)
+        .map_err(|e| Status::unauthenticated(format!("invalid token: {}", e)))?;
+
+    Ok(req)
+}
+```
+
+### Buf による管理
+
+proto ファイルの lint・破壊的変更検出には [Buf](https://buf.build/) を使用する。
+
+```yaml
+# buf.yaml
+version: v2
+modules:
+  - path: api/proto
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE
+```
+
+```yaml
+# buf.gen.yaml
+version: v2
+plugins:
+  - remote: buf.build/protocolbuffers/go
+    out: gen/go
+    opt: paths=source_relative
+  - remote: buf.build/grpc/go
+    out: gen/go
+    opt: paths=source_relative
+  - remote: buf.build/protocolbuffers/rust
+    out: gen/rust
+```
+
+---
+
+## D-010: gRPC バージョニング
+
+### パッケージレベルバージョニング
+
+gRPC のバージョニングは **proto パッケージ名にメジャーバージョンを含める** 方式を採用する。
+
+```
+k1s0.service.order.v1  →  k1s0.service.order.v2
+```
+
+バージョンアップ時は新しいパッケージディレクトリを作成し、旧バージョンと並行運用する。
+
+```
+api/proto/k1s0/service/order/
+├── v1/
+│   └── order.proto     # 旧バージョン（非推奨期間中は維持）
+└── v2/
+    └── order.proto     # 新バージョン
+```
+
+### 後方互換性ルール
+
+proto ファイルの変更時は以下のルールに従う。
+
+#### 後方互換（バージョンアップ不要）
+
+- 新規フィールドの追加（新しいフィールド番号を使用）
+- 新規 RPC メソッドの追加
+- 新規 enum 値の追加
+
+#### 後方互換性を破壊する変更（メジャーバージョンアップ）
+
+- フィールドの削除・番号変更
+- フィールドの型変更
+- RPC メソッドのシグネチャ変更
+- メッセージ名の変更
+- `required` / `optional` セマンティクスの変更
+
+### buf breaking による CI 検出
+
+CI パイプラインで `buf breaking` を実行し、意図しない破壊的変更を検出する。
+
+```yaml
+# .github/workflows/ci.yaml（proto 関連の抜粋）
+jobs:
+  proto-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-setup-action@v1
+      - name: Lint
+        run: buf lint api/proto
+      - name: Breaking change detection
+        run: buf breaking api/proto --against '.git#branch=main'
+```
+
+破壊的変更が検出された場合は CI が失敗し、意図的な変更であれば新しいバージョンパッケージとして作成する。
+
+---
+
+## D-011: GraphQL 設計
+
+### 採用方針
+
+GraphQL は **BFF（Backend for Frontend）としてオプション採用** する。すべてのサービスに GraphQL を導入するのではなく、複数の REST / gRPC エンドポイントを集約して単一のクエリでクライアントに提供する必要がある場合に採用する。
+
+```
+Client → Kong → GraphQL BFF → gRPC → Backend Services
+```
+
+### クエリ制限
+
+GraphQL の柔軟性に起因するパフォーマンスリスクを制御するため、以下の制限を設ける。
+
+| 項目           | 制限値 | 説明                                   |
+| -------------- | ------ | -------------------------------------- |
+| クエリ深度上限 | 10     | ネストの最大深度                       |
+| 複雑度上限     | 1000   | クエリの複雑度スコアの上限             |
+| タイムアウト   | 30s    | クエリ実行のタイムアウト               |
+
+### ページネーション
+
+Relay スタイルの Cursor ベースページネーションを標準とする。
+
+```graphql
+type Query {
+  orders(first: Int, after: String, last: Int, before: String): OrderConnection!
+}
+
+type OrderConnection {
+  edges: [OrderEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type OrderEdge {
+  node: Order!
+  cursor: String!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+```
+
+### スキーマ進化によるバージョニング不要方針
+
+GraphQL ではスキーマの進化的な変更（Evolutionary Schema Design）により、明示的なバージョニングを行わない。
+
+| 変更種別           | 方法                                     |
+| ------------------ | ---------------------------------------- |
+| フィールド追加     | そのまま追加（既存クエリに影響なし）     |
+| フィールド非推奨化 | `@deprecated(reason: "...")` を付与      |
+| フィールド削除     | 非推奨化から 6 か月後に削除              |
+| 型の追加           | そのまま追加                             |
+
+```graphql
+type Order {
+  id: ID!
+  status: OrderStatus!
+  totalAmount: Float! @deprecated(reason: "Use totalPrice instead")
+  totalPrice: Money!
+}
+```
+
+### スキーマ設計例
+
+```graphql
+# schema.graphql
+
+type Query {
+  order(id: ID!): Order
+  orders(first: Int, after: String): OrderConnection!
+  me: User!
+}
+
+type Mutation {
+  createOrder(input: CreateOrderInput!): CreateOrderPayload!
+}
+
+type Order {
+  id: ID!
+  product: Product!
+  quantity: Int!
+  status: OrderStatus!
+  totalPrice: Money!
+  createdAt: DateTime!
+}
+
+type Money {
+  amount: Float!
+  currency: String!
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+input CreateOrderInput {
+  productId: ID!
+  quantity: Int!
+}
+
+type CreateOrderPayload {
+  order: Order
+  errors: [UserError!]!
+}
+
+type UserError {
+  field: [String!]
+  message: String!
+}
+```
+
+---
+
+## D-012: レート制限設計
+
+### Kong 一元管理
+
+レート制限は **Kong API Gateway の Rate Limiting プラグイン** で一元管理する。個別サービスでのレート制限実装は行わない。
+
+### Tier 別デフォルト値
+
+| Tier     | デフォルト制限 | 説明                               |
+| -------- | -------------- | ---------------------------------- |
+| system   | 3000 req/min   | 内部基盤サービス（高頻度呼び出し） |
+| business | 1000 req/min   | 領域共通サービス                   |
+| service  | 500 req/min    | 個別業務サービス                   |
+
+### Kong プラグイン設定
+
+```yaml
+# Kong Rate Limiting プラグイン（グローバル設定）
+plugins:
+  - name: rate-limiting
+    config:
+      minute: 500                    # デフォルト（service Tier）
+      policy: redis                  # Redis で共有状態を管理
+      redis_host: redis.messaging.svc.cluster.local
+      redis_port: 6379
+      redis_database: 1
+      fault_tolerant: true           # Redis 障害時は制限なしで通過
+      hide_client_headers: false     # X-RateLimit-* ヘッダーを返却
+```
+
+### エンドポイント別オーバーライド
+
+特定のエンドポイントに対してデフォルト値を上書きする。
+
+```yaml
+# 例: 認証エンドポイントは低めに設定（ブルートフォース防止）
+services:
+  - name: auth-service
+    routes:
+      - name: auth-login
+        paths:
+          - /api/v1/auth/login
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 30
+          policy: redis
+
+# 例: ヘルスチェックは高めに設定
+  - name: health-check
+    routes:
+      - name: health-route
+        paths:
+          - /healthz
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 6000
+          policy: redis
+```
+
+### Redis 共有状態
+
+レート制限のカウンターは Redis で共有し、Kong の複数インスタンス間で一貫性を保つ。
+
+| 設定項目         | 値                                            |
+| ---------------- | --------------------------------------------- |
+| Redis ホスト     | `redis.messaging.svc.cluster.local`           |
+| Redis DB         | 1（レート制限専用）                           |
+| TTL              | Window サイズと同一（自動管理）               |
+| フォールトトレラント | `true`（Redis 障害時は制限を一時停止）    |
+
+### バースト制御
+
+短時間のスパイクを許容するため、バースト制御を設定する。
+
+```yaml
+plugins:
+  - name: rate-limiting
+    config:
+      minute: 500
+      second: 20                    # 秒あたりの上限（バースト制御）
+      policy: redis
+```
+
+| Tier     | 分あたり制限 | 秒あたり制限（バースト） |
+| -------- | ------------ | ------------------------ |
+| system   | 3000         | 100                      |
+| business | 1000         | 50                       |
+| service  | 500          | 20                       |
+
+### 環境別倍率
+
+開発環境ではテスト容易性のため制限を緩和する。
+
+| 環境    | 倍率 | system     | business   | service    |
+| ------- | ---- | ---------- | ---------- | ---------- |
+| dev     | x10  | 30000/min  | 10000/min  | 5000/min   |
+| staging | x2   | 6000/min   | 2000/min   | 1000/min   |
+| prod    | x1   | 3000/min   | 1000/min   | 500/min    |
+
+### レート制限レスポンスヘッダー
+
+レート制限情報はレスポンスヘッダーで返却する。
+
+```
+X-RateLimit-Limit: 500
+X-RateLimit-Remaining: 423
+X-RateLimit-Reset: 1710000000
+```
+
+レート制限超過時は HTTP 429 を返却する。
+
+```json
+{
+  "error": {
+    "code": "SYS_RATE_LIMIT_EXCEEDED",
+    "message": "レート制限を超過しました。しばらく待ってから再試行してください",
+    "request_id": "req_xyz789",
+    "details": [
+      {
+        "field": "rate_limit",
+        "reason": "exceeded",
+        "message": "500 requests per minute exceeded"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 関連ドキュメント
+
+- [tier-architecture.md](tier-architecture.md) — Tier アーキテクチャの詳細
+- [config設計.md](config設計.md) — config.yaml スキーマと環境別管理
+- [kubernetes設計.md](kubernetes設計.md) — Namespace・NetworkPolicy 設計
+- [helm設計.md](helm設計.md) — Helm Chart と values 設計
+- [認証認可設計.md](認証認可設計.md) — 認証・認可・Kong 認証フロー
+- [インフラ設計.md](インフラ設計.md) — オンプレミスインフラ全体構成
