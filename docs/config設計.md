@@ -444,3 +444,4 @@ impl Config {
 - [API設計](API設計.md)
 - [CLIフロー](CLIフロー.md)
 - [CI-CD設計](CI-CD設計.md)
+- [テンプレート仕様-サーバー](テンプレート仕様-サーバー.md) — config.yaml テンプレートの詳細

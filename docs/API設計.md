@@ -1379,3 +1379,4 @@ regions/service/{サービス名}/
 - [ディレクトリ構成図.md](ディレクトリ構成図.md) — プロジェクトのディレクトリ構成
 - [Dockerイメージ戦略.md](Dockerイメージ戦略.md) — Docker イメージ戦略
 - [コーディング規約.md](コーディング規約.md) — Linter・Formatter・命名規則
+- [テンプレート仕様-サーバー.md](テンプレート仕様-サーバー.md) — サーバーテンプレート（REST/gRPC/GraphQL ハンドラー）
