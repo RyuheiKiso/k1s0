@@ -766,6 +766,391 @@ X-RateLimit-Reset: 1710000000
 
 ---
 
+## D-123: OpenAPI コード自動生成
+
+### 基本方針
+
+OpenAPI 定義からサーバー・クライアントコードを自動生成し、API 定義と実装の一貫性を保証する。
+
+### ツール選定
+
+| 言語 / 用途          | ツール              | 方式                  |
+| -------------------- | ------------------- | --------------------- |
+| Go サーバー          | oapi-codegen        | OpenAPI → Go コード   |
+| Rust サーバー        | utoipa              | Rust コード → OpenAPI |
+| クライアント SDK     | openapi-generator   | OpenAPI → 各言語 SDK  |
+
+### Go: oapi-codegen
+
+OpenAPI 定義から Go のインターフェースとモデルを生成する。
+
+```yaml
+# oapi-codegen 設定ファイル
+# api/openapi/gen.yaml
+package: api
+output: internal/adapter/handler/api_gen.go
+generate:
+  models: true
+  chi-server: true
+  strict-server: true
+```
+
+```bash
+# 生成コマンド
+oapi-codegen -config api/openapi/gen.yaml api/openapi/openapi.yaml
+```
+
+#### 生成先ディレクトリ
+
+```
+{サービス名}/
+├── api/
+│   └── openapi/
+│       ├── openapi.yaml          # OpenAPI 定義（手動管理）
+│       └── gen.yaml              # oapi-codegen 設定
+├── internal/
+│   └── adapter/
+│       └── handler/
+│           ├── api_gen.go        # 生成コード（git 管理）
+│           └── handler.go        # 手動実装（インターフェース実装）
+```
+
+#### 生成コードの使用例
+
+```go
+// internal/adapter/handler/handler.go
+package handler
+
+// oapi-codegen が生成した StrictServerInterface を実装
+type OrderHandler struct {
+    usecase *usecase.OrderUsecase
+}
+
+// 生成インターフェースの実装
+func (h *OrderHandler) CreateOrder(
+    ctx context.Context,
+    request api.CreateOrderRequestObject,
+) (api.CreateOrderResponseObject, error) {
+    order, err := h.usecase.Create(ctx, request.Body)
+    if err != nil {
+        return nil, err
+    }
+    return api.CreateOrder201JSONResponse(*order), nil
+}
+```
+
+### Rust: utoipa
+
+Rust ではコードファースト方式を採用し、utoipa マクロから OpenAPI ドキュメントを生成する。
+
+```rust
+// src/adapter/handler/order.rs
+use utoipa::ToSchema;
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct CreateOrderInput {
+    /// 商品 ID
+    pub product_id: String,
+    /// 注文数量
+    #[schema(minimum = 1)]
+    pub quantity: i32,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct Order {
+    pub id: String,
+    pub product_id: String,
+    pub quantity: i32,
+    pub status: OrderStatus,
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/orders",
+    request_body = CreateOrderInput,
+    responses(
+        (status = 201, description = "Order created", body = Order),
+        (status = 400, description = "Validation error", body = ErrorResponse),
+    ),
+    tag = "orders"
+)]
+async fn create_order(
+    State(state): State<AppState>,
+    Json(input): Json<CreateOrderInput>,
+) -> Result<Json<Order>, AppError> {
+    // ...
+}
+```
+
+```rust
+// src/main.rs
+use utoipa::OpenApi;
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(handler::create_order, handler::get_order, handler::list_orders),
+    components(schemas(CreateOrderInput, Order, OrderStatus, ErrorResponse))
+)]
+struct ApiDoc;
+
+// /openapi.json エンドポイントで OpenAPI ドキュメントを提供
+```
+
+### クライアント SDK: openapi-generator
+
+OpenAPI 定義から各言語のクライアント SDK を生成する。
+
+```bash
+# TypeScript クライアント生成
+openapi-generator-cli generate \
+  -i api/openapi/openapi.yaml \
+  -g typescript-axios \
+  -o gen/ts-client \
+  --additional-properties=supportsES6=true
+
+# Dart クライアント生成
+openapi-generator-cli generate \
+  -i api/openapi/openapi.yaml \
+  -g dart \
+  -o gen/dart-client
+```
+
+#### 生成先ディレクトリ
+
+```
+{サービス名}/
+├── api/
+│   └── openapi/
+│       └── openapi.yaml
+└── gen/
+    ├── ts-client/           # TypeScript SDK（React 用）
+    └── dart-client/         # Dart SDK（Flutter 用）
+```
+
+### CI 連携
+
+```yaml
+# .github/workflows/ci.yaml（OpenAPI 関連の抜粋）
+jobs:
+  openapi-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate OpenAPI
+        run: |
+          npx @redocly/cli lint api/openapi/openapi.yaml
+
+  openapi-codegen:
+    needs: openapi-validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Go server code
+        run: |
+          go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+          oapi-codegen -config api/openapi/gen.yaml api/openapi/openapi.yaml
+      - name: Verify no diff
+        run: git diff --exit-code
+```
+
+---
+
+## D-124: GraphQL 実装技術選定
+
+### 技術選定
+
+GraphQL BFF の実装には Go と Rust の両方に対応する。
+
+| 言語 | ライブラリ      | 方式             | 特徴                         |
+| ---- | --------------- | ---------------- | ---------------------------- |
+| Go   | gqlgen          | コード生成ベース | スキーマファースト、型安全   |
+| Rust | async-graphql   | マクロベース     | 高パフォーマンス、型安全     |
+
+### Go: gqlgen（コード生成ベース）
+
+スキーマファースト開発で、GraphQL スキーマから Go のリゾルバーインターフェースを生成する。
+
+#### gqlgen 設定
+
+```yaml
+# gqlgen.yml
+schema:
+  - api/graphql/*.graphql
+exec:
+  filename: internal/adapter/graphql/generated.go
+  package: graphql
+model:
+  filename: internal/adapter/graphql/models_gen.go
+  package: graphql
+resolver:
+  layout: follow-schema
+  dir: internal/adapter/graphql
+  package: graphql
+```
+
+#### リゾルバー実装例
+
+```go
+// internal/adapter/graphql/resolver.go
+package graphql
+
+type Resolver struct {
+    orderClient  pb.OrderServiceClient    // gRPC クライアント
+    authClient   pb.AuthServiceClient
+}
+
+// internal/adapter/graphql/order.resolvers.go（生成テンプレートから手動実装）
+func (r *queryResolver) Order(ctx context.Context, id string) (*model.Order, error) {
+    resp, err := r.orderClient.GetOrder(ctx, &pb.GetOrderRequest{OrderId: id})
+    if err != nil {
+        return nil, err
+    }
+    return toGraphQLOrder(resp), nil
+}
+
+func (r *queryResolver) Orders(ctx context.Context, first *int, after *string) (*model.OrderConnection, error) {
+    // Relay Cursor ベースページネーションの実装
+    resp, err := r.orderClient.ListOrders(ctx, &pb.ListOrdersRequest{
+        Pagination: &pb.Pagination{
+            PageSize: int32(derefOr(first, 20)),
+        },
+    })
+    if err != nil {
+        return nil, err
+    }
+    return toOrderConnection(resp), nil
+}
+```
+
+### Rust: async-graphql（マクロベース）
+
+Rust マクロでスキーマとリゾルバーを同時に定義する。
+
+```rust
+// src/adapter/graphql/schema.rs
+use async_graphql::*;
+
+pub struct QueryRoot;
+
+#[Object]
+impl QueryRoot {
+    async fn order(&self, ctx: &Context<'_>, id: ID) -> Result<Option<Order>> {
+        let client = ctx.data::<OrderServiceClient>()?;
+        let resp = client
+            .get_order(GetOrderRequest {
+                order_id: id.to_string(),
+            })
+            .await?;
+        Ok(Some(resp.into()))
+    }
+
+    async fn orders(
+        &self,
+        ctx: &Context<'_>,
+        first: Option<i32>,
+        after: Option<String>,
+    ) -> Result<OrderConnection> {
+        let client = ctx.data::<OrderServiceClient>()?;
+        let resp = client
+            .list_orders(ListOrdersRequest {
+                pagination: Some(Pagination {
+                    page_size: first.unwrap_or(20),
+                    ..Default::default()
+                }),
+            })
+            .await?;
+        Ok(resp.into())
+    }
+}
+
+pub struct MutationRoot;
+
+#[Object]
+impl MutationRoot {
+    async fn create_order(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateOrderInput,
+    ) -> Result<CreateOrderPayload> {
+        let client = ctx.data::<OrderServiceClient>()?;
+        let resp = client
+            .create_order(input.into())
+            .await?;
+        Ok(CreateOrderPayload {
+            order: Some(resp.into()),
+            errors: vec![],
+        })
+    }
+}
+
+#[derive(SimpleObject)]
+pub struct Order {
+    pub id: ID,
+    pub product_id: String,
+    pub quantity: i32,
+    pub status: OrderStatus,
+    pub total_price: Money,
+}
+```
+
+### BFF ディレクトリ構成
+
+GraphQL BFF サーバーは regions 内に配置する。
+
+```
+regions/service/{サービス名}/
+└── server/
+    ├── go/
+    │   └── bff/                        # Go BFF
+    │       ├── cmd/
+    │       │   └── main.go
+    │       ├── internal/
+    │       │   ├── adapter/
+    │       │   │   └── graphql/
+    │       │   │       ├── generated.go     # gqlgen 生成コード
+    │       │   │       ├── models_gen.go    # gqlgen 生成モデル
+    │       │   │       ├── resolver.go      # リゾルバー（手動実装）
+    │       │   │       └── order.resolvers.go
+    │       │   └── infra/
+    │       │       └── grpc/               # バックエンド gRPC クライアント
+    │       ├── api/
+    │       │   └── graphql/
+    │       │       └── schema.graphql      # スキーマ定義
+    │       ├── gqlgen.yml
+    │       └── go.mod
+    └── rust/
+        └── bff/                        # Rust BFF
+            ├── src/
+            │   ├── main.rs
+            │   ├── adapter/
+            │   │   └── graphql/
+            │   │       ├── schema.rs       # スキーマ + リゾルバー
+            │   │       └── types.rs        # GraphQL 型定義
+            │   └── infra/
+            │       └── grpc/               # バックエンド gRPC クライアント
+            ├── api/
+            │   └── graphql/
+            │       └── schema.graphql      # スキーマ定義（参照用）
+            └── Cargo.toml
+```
+
+### スキーマファースト開発フロー
+
+```
+1. schema.graphql を定義・更新
+     ↓
+2. Go: gqlgen generate でリゾルバーインターフェース生成
+   Rust: async-graphql マクロで型を定義
+     ↓
+3. リゾルバー実装（gRPC バックエンドを呼び出し）
+     ↓
+4. CI でスキーマバリデーション + テスト
+     ↓
+5. GraphQL Playground で動作確認（dev 環境のみ有効）
+```
+
+---
+
 ## 関連ドキュメント
 
 - [tier-architecture.md](tier-architecture.md) — Tier アーキテクチャの詳細
@@ -774,3 +1159,6 @@ X-RateLimit-Reset: 1710000000
 - [helm設計.md](helm設計.md) — Helm Chart と values 設計
 - [認証認可設計.md](認証認可設計.md) — 認証・認可・Kong 認証フロー
 - [インフラ設計.md](インフラ設計.md) — オンプレミスインフラ全体構成
+- [APIゲートウェイ設計.md](APIゲートウェイ設計.md) — Kong 構成管理
+- [メッセージング設計.md](メッセージング設計.md) — Kafka・イベント駆動設計
+- [CI-CD設計.md](CI-CD設計.md) — CI/CD パイプライン設計
