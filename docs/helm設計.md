@@ -167,8 +167,8 @@ ingress:
 # セキュリティコンテキスト
 podSecurityContext:
   runAsNonRoot: true
-  runAsUser: 65534              # distroless nonroot ユーザー（Dockerイメージ戦略.md と同期）
-  fsGroup: 65534
+  runAsUser: 65532              # distroless nonroot ユーザー（Dockerイメージ戦略.md と同期）
+  fsGroup: 65532
 containerSecurityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
