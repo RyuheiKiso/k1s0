@@ -24,7 +24,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.
 ### アーキテクチャ
 
 ```
-Client → Nginx Ingress Controller → Kong Proxy → Istio Sidecar → Backend Services
+Client → Nginx Ingress Controller (TLS終端) → Kong Proxy → Istio Sidecar (mTLS) → Backend Services
                                 ↕
                           Kong Admin API
                                 ↕
@@ -75,7 +75,7 @@ proxy:
     enabled: true
     containerPort: 8000
   tls:
-    enabled: true
+    enabled: false                  # TLS は Nginx Ingress Controller で終端するため Kong 側では無効化
     containerPort: 8443
 
 admin:
@@ -246,12 +246,16 @@ services:
         paths:
           - /api/v1/auth
         strip_path: false
-    plugins:
-      - name: rate-limiting
-        config:
-          minute: 30
-          policy: redis
-          redis_host: redis.k1s0-system.svc.cluster.local
+      - name: auth-v1-login
+        paths:
+          - /api/v1/auth/login
+        strip_path: false
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 30                  # ブルートフォース防止（API設計.md 参照）
+              policy: redis
+              redis_host: redis.k1s0-system.svc.cluster.local
 
   # service Tier
   - name: order-v1

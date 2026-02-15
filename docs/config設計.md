@@ -100,6 +100,15 @@ auth:
     jwks_cache_ttl: "10m"
 ```
 
+## config.yaml のマウントパス
+
+| 環境               | マウントパス                  | 説明                                                         |
+| ------------------ | ----------------------------- | ------------------------------------------------------------ |
+| ローカル開発       | `config/config.yaml`          | サービスディレクトリ内の `config/` から読み込み              |
+| Kubernetes         | `/etc/app/config.yaml`        | ConfigMap を `/etc/app` にマウント（[helm設計.md](helm設計.md) 参照） |
+
+config ローダーはファイルパスを引数で受け取り、環境に応じて切り替える。ローカル開発時は `config/config.yaml`、Kubernetes 環境では `/etc/app/config.yaml` を読み込む。Dockerfile の `CMD` や Helm values の `args` でパスを指定する。
+
 ## 環境別オーバーライド
 
 環境ごとの差分は ConfigMap として Kubernetes にデプロイし、Pod にマウントする。

@@ -816,11 +816,12 @@ plugins:
 特定のエンドポイントに対してデフォルト値を上書きする。
 
 ```yaml
-# 例: 認証エンドポイントは低めに設定（ブルートフォース防止）
+# 例: 認証ログインエンドポイントは低めに設定（ブルートフォース防止）
+# auth-v1 サービスの特定ルートにのみ適用（APIゲートウェイ設計.md のサービス名と統一）
 services:
-  - name: auth-service
+  - name: auth-v1
     routes:
-      - name: auth-login
+      - name: auth-v1-login
         paths:
           - /api/v1/auth/login
     plugins:

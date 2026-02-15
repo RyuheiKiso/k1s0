@@ -23,7 +23,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.
 | Deploy            | `deploy.yaml`     | main マージ時               | image push → deploy     |
 | Proto Check       | `proto.yaml`      | `api/proto/**` 変更時       | proto lint + breaking    |
 | Security Scan     | `security.yaml`   | 日次 + PR 時                | 脆弱性スキャン           |
-| Kong Config Sync  | `kong-sync.yaml`  | push (`infra/kong/**`)      | dev → staging → prod    |
+| Kong Config Sync  | `kong-sync.yaml`  | main マージ時 (`infra/kong/**` 変更) | dev → staging → prod    |
 | OpenAPI Lint      | `api-lint.yaml`   | push (`**/api/openapi/**`)  | OpenAPI バリデーション & SDK 生成 |
 
 ### CI ワークフロー（ci.yaml）

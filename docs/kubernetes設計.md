@@ -13,7 +13,7 @@
 
 | Namespace         | 対象                                | Tier     |
 | ----------------- | ----------------------------------- | -------- |
-| `k1s0-system`     | system 層のサーバー・DB・Schema Registry | system   |
+| `k1s0-system`     | system 層のサーバー・DB・Schema Registry・Kong API Gateway | system   |
 | `k1s0-business`   | business 層のサーバー・クライアント・DB | business |
 | `k1s0-service`    | service 層のサーバー・クライアント・DB | service  |
 | `observability`   | Prometheus, Grafana, Jaeger, Loki   | infra    |
@@ -258,6 +258,8 @@ spec:
 
 ## HPA（Horizontal Pod Autoscaler）
 
+> **注記**: 以下のサンプル YAML は staging 環境の設定例である。環境別の minReplicas / maxReplicas は後述の「環境別 HPA 設定」テーブルを参照。
+
 ```yaml
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -269,7 +271,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: order-server
-  minReplicas: 2
+  minReplicas: 2       # staging 環境の値。prod では 3（環境別 HPA 設定を参照）
   maxReplicas: 10
   metrics:
     - type: Resource
