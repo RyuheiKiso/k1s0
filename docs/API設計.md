@@ -1,6 +1,6 @@
 # API 設計
 
-k1s0 における REST API / gRPC / GraphQL の設計方針と、レート制限を定義する。
+k1s0 における REST API / gRPC / GraphQL の設計方針と、バージョニング・レート制限・コード自動生成を定義する。
 Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.md) を参照。
 
 ## 基本方針
