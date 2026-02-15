@@ -441,3 +441,6 @@ impl Config {
 - [可観測性設計](可観測性設計.md)
 - [docker-compose設計](docker-compose設計.md)
 - [メッセージング設計](メッセージング設計.md)
+- [API設計](API設計.md)
+- [CLIフロー](CLIフロー.md)
+- [CI-CD設計](CI-CD設計.md)

@@ -1378,3 +1378,4 @@ regions/service/{サービス名}/
 - [CI-CD設計.md](CI-CD設計.md) — CI/CD パイプライン設計
 - [ディレクトリ構成図.md](ディレクトリ構成図.md) — プロジェクトのディレクトリ構成
 - [Dockerイメージ戦略.md](Dockerイメージ戦略.md) — Docker イメージ戦略
+- [コーディング規約.md](コーディング規約.md) — Linter・Formatter・命名規則
