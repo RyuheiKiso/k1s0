@@ -1,11 +1,11 @@
 # business Tier のサービス定義
 services:
-  - name: ledger-v1
+  - name: accounting-ledger-v1
     url: http://ledger-server.k1s0-business.svc.cluster.local:80
     routes:
       - name: ledger-v1-route
         paths:
-          - /api/v1/ledger
+          - /api/v1/accounting/ledger
         strip_path: false
 
   - name: accounts-v1

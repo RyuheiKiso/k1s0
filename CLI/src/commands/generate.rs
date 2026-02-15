@@ -767,8 +767,14 @@ fn try_generate_from_templates(
         None => return false,
     };
 
-    // kind + language に対応するテンプレートサブディレクトリの存在確認
-    let kind_lang_dir = template_dir.join(&ctx.kind).join(&ctx.language);
+    // kind + language/framework に対応するテンプレートサブディレクトリの存在確認
+    // client の場合はフレームワーク名 (react/flutter) でディレクトリを引く
+    let sub_dir = if ctx.kind == "client" && !ctx.framework.is_empty() {
+        &ctx.framework
+    } else {
+        &ctx.language
+    };
+    let kind_lang_dir = template_dir.join(&ctx.kind).join(sub_dir);
     if !kind_lang_dir.exists() {
         return false;
     }
@@ -801,11 +807,12 @@ fn build_template_context(
             (lang, "server")
         }
         Kind::Client => {
-            let fw = match &config.lang_fw {
-                LangFw::Framework(f) => f.dir_name(),
+            let lang = match &config.lang_fw {
+                LangFw::Framework(Framework::React) => "typescript",
+                LangFw::Framework(Framework::Flutter) => "dart",
                 _ => return None,
             };
-            (fw, "client")
+            (lang, "client")
         }
         Kind::Library => {
             let lang = match &config.lang_fw {
@@ -838,7 +845,14 @@ fn build_template_context(
         })
         .collect();
 
+    let fw_name = match &config.lang_fw {
+        LangFw::Framework(Framework::React) => "react",
+        LangFw::Framework(Framework::Flutter) => "flutter",
+        _ => "",
+    };
+
     let mut builder = TemplateContextBuilder::new(service_name, tier, language, kind)
+        .framework(fw_name)
         .api_styles(api_styles_strs)
         .docker_registry(&cli_config.docker_registry)
         .go_module_base(&cli_config.go_module_base);
@@ -894,11 +908,17 @@ fn run_post_processing(config: &GenerateConfig, output_path: &Path) {
 }
 
 /// 後処理コマンドのリストを決定する。
+///
+/// テンプレートエンジン仕様.md の「生成後の後処理」セクションに準拠:
+///   1. 言語固有の依存解決
+///   2. コード生成 (buf generate / oapi-codegen / cargo xtask codegen)
+///   3. SQL マイグレーション初期化 (DB ありの場合)
 fn determine_post_commands(config: &GenerateConfig) -> Vec<(&'static str, Vec<&'static str>)> {
     let mut commands: Vec<(&str, Vec<&str>)> = Vec::new();
 
     match config.kind {
         Kind::Server => {
+            // 1. 言語固有の依存解決
             match &config.lang_fw {
                 LangFw::Language(Language::Go) => {
                     commands.push(("go", vec!["mod", "tidy"]));
@@ -908,9 +928,26 @@ fn determine_post_commands(config: &GenerateConfig) -> Vec<(&'static str, Vec<&'
                 }
                 _ => {}
             }
+            // 2. コード生成
             // gRPC の場合は buf generate
             if config.detail.api_styles.contains(&ApiStyle::Grpc) {
                 commands.push(("buf", vec!["generate"]));
+            }
+            // REST (OpenAPI) の場合はコード生成
+            if config.detail.api_styles.contains(&ApiStyle::Rest) {
+                match &config.lang_fw {
+                    LangFw::Language(Language::Go) => {
+                        commands.push(("oapi-codegen", vec!["-generate", "types,server", "-package", "handler", "-o", "internal/handler/openapi.gen.go", "api/openapi/openapi.yaml"]));
+                    }
+                    LangFw::Language(Language::Rust) => {
+                        commands.push(("cargo", vec!["xtask", "codegen"]));
+                    }
+                    _ => {}
+                }
+            }
+            // 3. DB ありの場合は SQL マイグレーション初期化
+            if config.detail.db.is_some() {
+                commands.push(("sqlx", vec!["database", "create"]));
             }
         }
         Kind::Client => {
@@ -2435,5 +2472,168 @@ mod tests {
         let ctx = build_template_context(&config, &cli_config).unwrap();
         assert_eq!(ctx.docker_registry, "my-registry.io");
         assert_eq!(ctx.go_module, "github.com/myorg/myrepo/regions/service/order/server/go");
+    }
+
+    // --- 後処理コマンド: REST (OpenAPI) コード生成 ---
+
+    #[test]
+    fn test_determine_post_commands_go_server_rest_openapi() {
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::System,
+            placement: None,
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("auth".to_string()),
+                api_styles: vec![ApiStyle::Rest],
+                db: None,
+                kafka: false,
+                redis: false,
+            },
+        };
+        let cmds = determine_post_commands(&config);
+        assert!(
+            cmds.iter().any(|(c, _)| *c == "oapi-codegen"),
+            "Go + REST should include 'oapi-codegen'"
+        );
+    }
+
+    #[test]
+    fn test_determine_post_commands_rust_server_rest_openapi() {
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::System,
+            placement: None,
+            lang_fw: LangFw::Language(Language::Rust),
+            detail: DetailConfig {
+                name: Some("auth".to_string()),
+                api_styles: vec![ApiStyle::Rest],
+                db: None,
+                kafka: false,
+                redis: false,
+            },
+        };
+        let cmds = determine_post_commands(&config);
+        // cargo check + cargo xtask codegen
+        let cargo_cmds: Vec<_> = cmds.iter().filter(|(c, _)| *c == "cargo").collect();
+        assert!(
+            cargo_cmds.len() >= 2,
+            "Rust + REST should include 'cargo check' and 'cargo xtask codegen', got {:?}",
+            cargo_cmds
+        );
+        assert!(
+            cmds.iter().any(|(c, args)| *c == "cargo" && args.contains(&"xtask")),
+            "Rust + REST should include 'cargo xtask codegen'"
+        );
+    }
+
+    // --- 後処理コマンド: DB有効時の SQL マイグレーション初期化 ---
+
+    #[test]
+    fn test_determine_post_commands_server_with_db() {
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::Service,
+            placement: Some("order".to_string()),
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("order".to_string()),
+                api_styles: vec![ApiStyle::Rest],
+                db: Some(DbInfo {
+                    name: "order-db".to_string(),
+                    rdbms: Rdbms::PostgreSQL,
+                }),
+                kafka: false,
+                redis: false,
+            },
+        };
+        let cmds = determine_post_commands(&config);
+        assert!(
+            cmds.iter().any(|(c, _)| *c == "sqlx"),
+            "Server with DB should include 'sqlx database create'"
+        );
+    }
+
+    #[test]
+    fn test_determine_post_commands_server_without_db() {
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::Service,
+            placement: Some("order".to_string()),
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("order".to_string()),
+                api_styles: vec![ApiStyle::Rest],
+                db: None,
+                kafka: false,
+                redis: false,
+            },
+        };
+        let cmds = determine_post_commands(&config);
+        assert!(
+            !cmds.iter().any(|(c, _)| *c == "sqlx"),
+            "Server without DB should not include 'sqlx'"
+        );
+    }
+
+    // --- language / framework フィールド: クライアント生成時 ---
+
+    #[test]
+    fn test_build_template_context_react_client_language_framework() {
+        let config = GenerateConfig {
+            kind: Kind::Client,
+            tier: Tier::Business,
+            placement: Some("accounting".to_string()),
+            lang_fw: LangFw::Framework(Framework::React),
+            detail: DetailConfig {
+                name: Some("accounting-web".to_string()),
+                ..DetailConfig::default()
+            },
+        };
+        let cli_config = CliConfig::default();
+        let ctx = build_template_context(&config, &cli_config).unwrap();
+        assert_eq!(ctx.language, "typescript", "React client should have language=typescript");
+        assert_eq!(ctx.framework, "react", "React client should have framework=react");
+        assert_eq!(ctx.kind, "client");
+    }
+
+    #[test]
+    fn test_build_template_context_flutter_client_language_framework() {
+        let config = GenerateConfig {
+            kind: Kind::Client,
+            tier: Tier::Service,
+            placement: Some("order".to_string()),
+            lang_fw: LangFw::Framework(Framework::Flutter),
+            detail: DetailConfig {
+                name: Some("order-app".to_string()),
+                ..DetailConfig::default()
+            },
+        };
+        let cli_config = CliConfig::default();
+        let ctx = build_template_context(&config, &cli_config).unwrap();
+        assert_eq!(ctx.language, "dart", "Flutter client should have language=dart");
+        assert_eq!(ctx.framework, "flutter", "Flutter client should have framework=flutter");
+        assert_eq!(ctx.kind, "client");
+    }
+
+    #[test]
+    fn test_build_template_context_server_has_empty_framework() {
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::System,
+            placement: None,
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("auth".to_string()),
+                api_styles: vec![ApiStyle::Rest],
+                db: None,
+                kafka: false,
+                redis: false,
+            },
+        };
+        let cli_config = CliConfig::default();
+        let ctx = build_template_context(&config, &cli_config).unwrap();
+        assert_eq!(ctx.framework, "", "Server should have empty framework");
+        assert_eq!(ctx.language, "go");
     }
 }

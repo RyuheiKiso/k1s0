@@ -1,0 +1,22 @@
+syntax = "proto3";
+package k1s0.event.business.accounting.v1;
+
+import "google/protobuf/timestamp.proto";
+import "k1s0/system/common/v1/event_metadata.proto";
+
+// EntryEvent represents an accounting journal entry event.
+message EntryEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string entry_id = 2;
+  string account_id = 3;
+  int64 amount = 4;              // Smallest currency unit
+  string currency = 5;
+  EntryType entry_type = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+enum EntryType {
+  ENTRY_TYPE_UNSPECIFIED = 0;
+  ENTRY_TYPE_DEBIT = 1;
+  ENTRY_TYPE_CREDIT = 2;
+}
