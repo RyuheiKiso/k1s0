@@ -1,0 +1,6 @@
+.claude
+**/target/**
+nul
+.mcp.json
+__pycache__/
+.pytest_cache/

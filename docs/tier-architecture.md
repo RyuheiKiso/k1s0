@@ -1,0 +1,154 @@
+# Tier Architecture
+
+k1s0 のリポジトリは **system → business → service** の3階層（Tier）で構成される。
+上位層ほど汎用的・共通的であり、下位層は上位層に依存する。
+
+## 階層の概要
+
+<img src="diagrams/tier-overview.svg" width="1000" />
+
+## 各階層の役割
+
+### system（最上位）
+
+全プロジェクトで横断的に利用する共通基盤。
+
+| 種別     | 役割                                           |
+| -------- | ---------------------------------------------- |
+| server   | 共通のサーバー基盤（認証、API ゲートウェイ等） |
+| library  | server・client 双方で使う共通ライブラリ        |
+| database | 共通基盤のデータストア（ユーザー、認証等）     |
+
+### business（中位）
+
+部門名または業務領域（例：経理、FA）ごとにディレクトリを切り、その領域固有の共通基盤を置く。
+
+| 種別     | 役割                                         |
+| -------- | -------------------------------------------- |
+| server   | 領域固有の共通サーバー基盤                   |
+| client   | 領域固有の共通クライアント基盤               |
+| library  | 領域内で server・client 双方が使う共通コード |
+| database | 領域固有の共通データストア                   |
+
+### service（最下位）
+
+実際にデプロイ・稼働する個別サービス。
+
+| 種別     | 役割                                        |
+| -------- | ------------------------------------------- |
+| server   | 業務サービスの実装（Go / Rust）             |
+| client   | ユーザー向けクライアント（React / Flutter） |
+| database | サービス固有のデータストア                  |
+
+## 依存関係
+
+依存は **下位 → 上位** の一方向のみ許可する。逆方向や同階層間の直接依存は禁止。
+
+| 階層     | 依存先           |
+| -------- | ---------------- |
+| system   | なし（独立）     |
+| business | system           |
+| service  | system, business |
+
+### Server 間の依存イメージ
+
+system server が提供する共通機能を、business server が利用する構成。
+
+<img src="diagrams/server-dependency.svg" width="1000" />
+
+**依存の具体例：**
+
+| business server が system server から利用するもの | 方式                       |
+| ------------------------------------------------- | -------------------------- |
+| 認証トークンの検証                                | system library を import   |
+| ユーザー情報の取得                                | system server へ gRPC 呼出 |
+| ログ・トレースの送信                              | system library を import   |
+| レート制限・ルーティング                          | API ゲートウェイを経由     |
+
+### Client 間の依存イメージ
+
+service client が business client の共通UIコンポーネントと system library を利用する構成。
+system 層には client が存在しないため、client は system library を直接 import する。
+
+<img src="diagrams/client-dependency.svg" width="1000" />
+
+**依存の具体例：**
+
+| service/business client が system library から利用するもの | 方式                     |
+| --------------------------------------------------------- | ------------------------ |
+| 認証トークンの取得・管理                                  | system library を import |
+| API リクエストの送信                                      | system library を import |
+| 共通の型定義（DTO・エンティティ）                         | system library を import |
+| バリデーション・フォーマット処理                          | system library を import |
+
+| service client が business client から利用するもの | 方式                       |
+| -------------------------------------------------- | -------------------------- |
+| 領域共通のUIコンポーネント                         | business client を import  |
+| 領域共通のレイアウト・テーマ                       | business client を import  |
+
+## データベース
+
+各階層は独立したデータベースを持つ。RDBMS は要件に応じて以下から選択する。
+
+| RDBMS      | 主な用途                                         |
+| ---------- | ------------------------------------------------ |
+| PostgreSQL | 本番環境の標準選択肢。高機能・高信頼性           |
+| MySQL      | 既存システムとの互換性が求められる場合            |
+| SQL Server | Windows/.NET 環境との連携が求められる場合         |
+| SQLite     | ローカル開発・テスト・軽量な組込み用途            |
+
+### 階層ごとのデータベース責務
+
+| 階層     | データベースが管理する主なデータ                           |
+| -------- | --------------------------------------------------------- |
+| system   | ユーザー、認証・認可、監査ログなど横断的なデータ          |
+| business | 領域固有のマスタデータ、領域内で共有するトランザクション  |
+| service  | サービス固有の業務データ                                  |
+
+各階層のデータベースは **その階層の server からのみアクセス** する。下位層が上位層のデータを必要とする場合は、上位層の server が提供する API（gRPC 等）を経由する。
+
+## ディレクトリ構成
+
+```
+regions/
+├── system/
+│   ├── server/
+│   │   ├── go/
+│   │   └── rust/
+│   ├── library/
+│   │   ├── go/
+│   │   ├── rust/
+│   │   ├── ts/
+│   │   └── dart/
+│   └── database/
+├── business/
+│   └── {領域名}/          # 例: accounting, fa
+│       ├── server/
+│       │   ├── go/
+│       │   └── rust/
+│       ├── client/
+│       │   ├── react/
+│       │   └── flutter/
+│       ├── library/
+│       │   ├── go/
+│       │   ├── rust/
+│       │   ├── ts/
+│       │   └── dart/
+│       └── database/
+└── service/
+    └── {サービス名}/          # 例: order, inventory
+        ├── server/
+        │   ├── go/
+        │   └── rust/
+        ├── client/
+        │   ├── react/
+        │   └── flutter/
+        └── database/
+```
+
+## 設計メモ
+
+- **system に client がない理由** — system 層は基盤提供が目的であり、直接ユーザーに公開する画面を持たない。クライアント実装は business 以下で行う。
+- **business 層に server/client を置く意義** — 同一業務領域内で複数サービスが共通のサーバー処理やクライアントコンポーネントを共有するケースに対応する。共通コードが library だけで足りる場合は library のみ配置すればよい。
+- **各階層に database を置く理由** — データの所有権を階層ごとに明確にし、他階層のデータベースへの直接アクセスを禁止する。これにより階層間の結合度を低く保ち、スキーマ変更の影響範囲を限定できる。
+- **RDBMS の選択** — プロジェクト全体で統一する必要はなく、階層・サービスの要件に応じて PostgreSQL / MySQL / SQL Server / SQLite から選択する。ただし同一階層内ではなるべく統一することを推奨する。
