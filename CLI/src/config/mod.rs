@@ -45,6 +45,63 @@ pub struct RuntimeConfig {
     pub auth: AuthConfig,
 }
 
+impl RuntimeConfig {
+    /// 設定値のバリデーションを実行する。
+    ///
+    /// config設計.md に定義されたルールに基づき、各フィールドの値を検証する。
+    /// オプショナルセクション (grpc, database, kafka, redis) が `None` の場合は
+    /// そのセクションのバリデーションをスキップする。
+    ///
+    /// # Errors
+    /// バリデーション違反があった場合、エラー内容を示す `String` を返す。
+    pub fn validate(&self) -> Result<(), String> {
+        // app.tier: "system" / "business" / "service" のみ許可
+        const VALID_TIERS: &[&str] = &["system", "business", "service"];
+        if !VALID_TIERS.contains(&self.app.tier.as_str()) {
+            return Err(format!(
+                "無効な app.tier: '{}' (許可値: {:?})",
+                self.app.tier, VALID_TIERS
+            ));
+        }
+
+        // app.environment: "dev" / "staging" / "prod" のみ許可
+        const VALID_ENVIRONMENTS: &[&str] = &["dev", "staging", "prod"];
+        if !VALID_ENVIRONMENTS.contains(&self.app.environment.as_str()) {
+            return Err(format!(
+                "無効な app.environment: '{}' (許可値: {:?})",
+                self.app.environment, VALID_ENVIRONMENTS
+            ));
+        }
+
+        // server.port: 1-65535 の範囲
+        if self.server.port == 0 {
+            return Err("無効な server.port: 0 (1-65535 の範囲で指定してください)".to_string());
+        }
+
+        // observability.log.level: "debug" / "info" / "warn" / "error" のみ許可
+        const VALID_LOG_LEVELS: &[&str] = &["debug", "info", "warn", "error"];
+        if !VALID_LOG_LEVELS.contains(&self.observability.log.level.as_str()) {
+            return Err(format!(
+                "無効な observability.log.level: '{}' (許可値: {:?})",
+                self.observability.log.level, VALID_LOG_LEVELS
+            ));
+        }
+
+        // kafka.security_protocol: "PLAINTEXT" / "SASL_SSL" のみ許可 (kafka が Some の場合)
+        if let Some(ref kafka) = self.kafka {
+            const VALID_SECURITY_PROTOCOLS: &[&str] = &["PLAINTEXT", "SASL_SSL"];
+            if !VALID_SECURITY_PROTOCOLS.contains(&kafka.security_protocol.as_str()) {
+                return Err(format!(
+                    "無効な kafka.security_protocol: '{}' (許可値: {:?})",
+                    kafka.security_protocol, VALID_SECURITY_PROTOCOLS
+                ));
+            }
+        }
+
+        Ok(())
+    }
+}
+
 /// アプリケーション基本設定。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
@@ -603,6 +660,155 @@ auth:
         let oidc = config.auth.oidc.unwrap();
         assert_eq!(oidc.client_id, "k1s0-bff");
         assert_eq!(oidc.scopes, vec!["openid", "profile"]);
+    }
+
+    // --- RuntimeConfig バリデーション ---
+
+    /// ヘルパー: バリデーションが通る正常な RuntimeConfig を生成
+    fn valid_runtime_config() -> RuntimeConfig {
+        RuntimeConfig {
+            app: AppConfig {
+                name: "test-service".to_string(),
+                version: "1.0.0".to_string(),
+                tier: "service".to_string(),
+                environment: "dev".to_string(),
+            },
+            server: ServerConfig {
+                host: "0.0.0.0".to_string(),
+                port: 8080,
+                read_timeout: "30s".to_string(),
+                write_timeout: "30s".to_string(),
+                shutdown_timeout: "10s".to_string(),
+            },
+            grpc: None,
+            database: None,
+            kafka: None,
+            redis: None,
+            observability: ObservabilityConfig {
+                log: LogConfig {
+                    level: "info".to_string(),
+                    format: "json".to_string(),
+                },
+                trace: TraceConfig::default(),
+                metrics: MetricsConfig::default(),
+            },
+            auth: AuthConfig::default(),
+        }
+    }
+
+    #[test]
+    fn test_runtime_config_validate_valid() {
+        let config = valid_runtime_config();
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_runtime_config_validate_invalid_tier() {
+        let mut config = valid_runtime_config();
+        config.app.tier = "unknown".to_string();
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("tier"));
+    }
+
+    #[test]
+    fn test_runtime_config_validate_invalid_environment() {
+        let mut config = valid_runtime_config();
+        config.app.environment = "production".to_string();
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("environment"));
+    }
+
+    #[test]
+    fn test_runtime_config_validate_port_out_of_range() {
+        // ポート 0 はエラー
+        let mut config = valid_runtime_config();
+        config.server.port = 0;
+        assert!(config.validate().is_err());
+
+        // ポート 65535 は OK (上限ちょうど)
+        config.server.port = 65535;
+        assert!(config.validate().is_ok());
+
+        // u16 の最大値は 65535 なので 70000 は型レベルで不可。
+        // 代わりにポート 0 の境界テストで十分。
+    }
+
+    #[test]
+    fn test_runtime_config_validate_invalid_log_level() {
+        let mut config = valid_runtime_config();
+        config.observability.log.level = "verbose".to_string();
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("log"));
+    }
+
+    #[test]
+    fn test_runtime_config_validate_optional_sections_none_ok() {
+        let mut config = valid_runtime_config();
+        config.grpc = None;
+        config.database = None;
+        config.kafka = None;
+        config.redis = None;
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_runtime_config_validate_kafka_invalid_security_protocol() {
+        let mut config = valid_runtime_config();
+        config.kafka = Some(KafkaConfig {
+            brokers: vec!["kafka-0:9092".to_string()],
+            consumer_group: "test-group".to_string(),
+            security_protocol: "INVALID".to_string(),
+            sasl: None,
+            tls: None,
+            topics: KafkaTopics::default(),
+        });
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("security_protocol"));
+    }
+
+    #[test]
+    fn test_runtime_config_validate_kafka_valid_sasl_ssl() {
+        let mut config = valid_runtime_config();
+        config.kafka = Some(KafkaConfig {
+            brokers: vec!["kafka-0:9092".to_string()],
+            consumer_group: "test-group".to_string(),
+            security_protocol: "SASL_SSL".to_string(),
+            sasl: None,
+            tls: None,
+            topics: KafkaTopics::default(),
+        });
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_runtime_config_validate_all_tiers() {
+        for tier in &["system", "business", "service"] {
+            let mut config = valid_runtime_config();
+            config.app.tier = tier.to_string();
+            assert!(config.validate().is_ok(), "tier '{}' should be valid", tier);
+        }
+    }
+
+    #[test]
+    fn test_runtime_config_validate_all_environments() {
+        for env in &["dev", "staging", "prod"] {
+            let mut config = valid_runtime_config();
+            config.app.environment = env.to_string();
+            assert!(config.validate().is_ok(), "environment '{}' should be valid", env);
+        }
+    }
+
+    #[test]
+    fn test_runtime_config_validate_all_log_levels() {
+        for level in &["debug", "info", "warn", "error"] {
+            let mut config = valid_runtime_config();
+            config.observability.log.level = level.to_string();
+            assert!(config.validate().is_ok(), "log level '{}' should be valid", level);
+        }
     }
 
     #[test]

@@ -1,0 +1,15 @@
+# {{ service_name }}
+
+{{ service_name }} ライブラリ
+
+## 使い方
+
+```go
+import "{{ go_module }}"
+```
+
+## 開発
+
+```bash
+go test ./...
+```

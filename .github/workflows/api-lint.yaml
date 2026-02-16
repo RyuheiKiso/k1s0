@@ -26,3 +26,32 @@ jobs:
           oapi-codegen -config api/openapi/gen.yaml api/openapi/openapi.yaml
       - name: Verify no diff
         run: git diff --exit-code
+
+  sdk-generate-typescript:
+    needs: openapi-validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate TypeScript SDK
+        run: |
+          npx @openapitools/openapi-generator-cli generate \
+            -i api/openapi/openapi.yaml \
+            -g typescript-axios \
+            -o gen/ts-client \
+            --additional-properties=supportsES6=true
+      - name: Verify no diff
+        run: git diff --exit-code gen/ts-client
+
+  sdk-generate-dart:
+    needs: openapi-validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Dart SDK
+        run: |
+          npx @openapitools/openapi-generator-cli generate \
+            -i api/openapi/openapi.yaml \
+            -g dart \
+            -o gen/dart-client
+      - name: Verify no diff
+        run: git diff --exit-code gen/dart-client
