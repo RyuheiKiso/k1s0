@@ -14,6 +14,10 @@ terraform {
       source  = "hashicorp/vault"
       version = "~> 3.20"
     }
+    harbor = {
+      source  = "goharbor/harbor"
+      version = "~> 3.10"
+    }
   }
 }
 
@@ -29,10 +33,11 @@ provider "helm" {
   }
 }
 
-# --- Kubernetes Base (Namespace, RBAC, NetworkPolicy) ---
+# --- Kubernetes Base (Namespace, RBAC, NetworkPolicy, LimitRange, ResourceQuota) ---
 module "kubernetes_base" {
-  source     = "../../modules/kubernetes-base"
-  namespaces = var.namespaces
+  source          = "../../modules/kubernetes-base"
+  namespaces      = var.namespaces
+  resource_quotas = var.resource_quotas
 }
 
 # --- Kubernetes Storage (StorageClass, PV) ---

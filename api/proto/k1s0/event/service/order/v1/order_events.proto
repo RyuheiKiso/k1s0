@@ -17,3 +17,19 @@ message OrderItem {
   int32 quantity = 2;
   int64 unit_price = 3;
 }
+
+message OrderUpdatedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string order_id = 2;
+  string user_id = 3;
+  repeated OrderItem items = 4;
+  int64 total_amount = 5;
+  string status = 6;
+}
+
+message OrderCancelledEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string order_id = 2;
+  string user_id = 3;
+  string reason = 4;
+}

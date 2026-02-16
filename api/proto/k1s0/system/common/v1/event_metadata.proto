@@ -1,4 +1,3 @@
-// k1s0/system/common/v1/event_metadata.proto
 syntax = "proto3";
 package k1s0.system.common.v1;
 

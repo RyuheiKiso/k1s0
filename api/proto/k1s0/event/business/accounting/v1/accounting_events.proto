@@ -4,15 +4,21 @@ package k1s0.event.business.accounting.v1;
 import "google/protobuf/timestamp.proto";
 import "k1s0/system/common/v1/event_metadata.proto";
 
-// EntryEvent represents an accounting journal entry event.
-message EntryEvent {
+message EntryCreatedEvent {
   k1s0.system.common.v1.EventMetadata metadata = 1;
   string entry_id = 2;
   string account_id = 3;
-  int64 amount = 4;              // Smallest currency unit
+  int64 amount = 4;
   string currency = 5;
   EntryType entry_type = 6;
   google.protobuf.Timestamp created_at = 7;
+}
+
+message EntryApprovedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string entry_id = 2;
+  string approved_by = 3;
+  google.protobuf.Timestamp approved_at = 4;
 }
 
 enum EntryType {

@@ -25,6 +25,19 @@ variable "namespaces" {
   }))
 }
 
+variable "resource_quotas" {
+  description = "Per-namespace resource quota overrides"
+  type = map(object({
+    requests_cpu    = string
+    requests_memory = string
+    limits_cpu      = string
+    limits_memory   = string
+    pods            = string
+    pvcs            = string
+  }))
+  default = {}
+}
+
 # --- Ceph Storage ---
 variable "ceph_cluster_id" {
   description = "Ceph cluster ID"
@@ -170,6 +183,50 @@ variable "ceph_s3_endpoint" {
   description = "Ceph S3-compatible endpoint URL"
   type        = string
   default     = "http://ceph-rgw.internal.example.com:8080"
+}
+
+# --- Vault ---
+variable "vault_address" {
+  description = "Vault server address"
+  type        = string
+  default     = "https://vault.k1s0-system.svc.cluster.local:8200"
+}
+
+variable "kubernetes_host" {
+  description = "Kubernetes API server address"
+  type        = string
+  default     = "https://kubernetes.default.svc"
+}
+
+variable "ldap_url" {
+  description = "LDAP server URL"
+  type        = string
+  default     = "ldaps://ldap.example.com:636"
+}
+
+variable "ldap_user_dn" {
+  description = "LDAP user DN"
+  type        = string
+  default     = "ou=users,dc=example,dc=com"
+}
+
+variable "ldap_group_dn" {
+  description = "LDAP group DN"
+  type        = string
+  default     = "ou=groups,dc=example,dc=com"
+}
+
+variable "ldap_bind_dn" {
+  description = "LDAP bind DN"
+  type        = string
+  default     = "cn=vault,ou=service-accounts,dc=example,dc=com"
+}
+
+variable "ldap_bind_password" {
+  description = "LDAP bind password"
+  type        = string
+  sensitive   = true
+  default     = ""
 }
 
 # --- Service Mesh (Istio) ---
