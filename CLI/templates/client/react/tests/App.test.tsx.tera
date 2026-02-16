@@ -1,0 +1,17 @@
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
+import { QueryClientProvider } from '@tanstack/react-query';
+
+import { queryClient } from '@/lib/query-client';
+
+describe('App', () => {
+  it('renders without crashing', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <div data-testid="app-root">{{ service_name_pascal }}</div>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByTestId('app-root')).toBeInTheDocument();
+  });
+});

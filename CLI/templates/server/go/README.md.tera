@@ -1,0 +1,57 @@
+# {{ service_name }}
+
+{{ service_name_pascal }} サーバー。
+
+## セットアップ
+
+```bash
+# 依存解決
+go mod tidy
+
+# 開発サーバー起動
+go run ./cmd/main.go
+
+# テスト実行
+go test ./...
+```
+
+## ディレクトリ構成
+
+```
+.
+├── cmd/                  # エントリポイント
+├── internal/
+│   ├── domain/           # ドメインモデル・リポジトリインターフェース
+│   ├── usecase/          # ビジネスロジック
+│   ├── adapter/handler/  # ハンドラー（REST / gRPC / GraphQL）
+│   └── infra/            # DB・メッセージング・設定
+├── config/               # 設定ファイル
+{% if api_style == "rest" %}
+├── api/openapi/          # OpenAPI 定義
+{% endif %}
+{% if api_style == "grpc" %}
+├── api/proto/            # Protocol Buffers 定義
+{% endif %}
+{% if api_style == "graphql" %}
+├── api/graphql/          # GraphQL スキーマ
+{% endif %}
+├── Dockerfile
+└── README.md
+```
+
+## API
+
+{% if api_style == "rest" %}
+- **方式**: REST（gin）
+- **定義**: `api/openapi/openapi.yaml`
+{% elif api_style == "grpc" %}
+- **方式**: gRPC（protobuf）
+- **定義**: `api/proto/service.proto`
+{% elif api_style == "graphql" %}
+- **方式**: GraphQL（gqlgen）
+- **定義**: `api/graphql/schema.graphql`
+{% endif %}
+
+## 設定
+
+`config/config.yaml` で接続先を管理する。環境別の上書きは `config/config.dev.yaml` を参照。

@@ -1,0 +1,9 @@
+/**
+ * Vitest グローバルセットアップ
+ *
+ * vitest.config.ts の setupFiles から参照される。
+ * テスト環境の初期化処理を一元管理する。
+ */
+
+// MSW（Mock Service Worker）セットアップの読み込み
+import './msw-setup';

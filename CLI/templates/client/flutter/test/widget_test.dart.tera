@@ -1,0 +1,26 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:{{ service_name_snake }}/main.dart';
+
+void main() {
+  testWidgets('MyApp renders without crashing', (WidgetTester tester) async {
+    await tester.pumpWidget(const MyApp());
+
+    expect(find.text('{{ service_name_pascal }}'), findsOneWidget);
+  });
+
+  testWidgets('HomeScreen displays welcome message', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Text('Welcome to {{ service_name_pascal }}'),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Welcome to {{ service_name_pascal }}'), findsOneWidget);
+  });
+}
