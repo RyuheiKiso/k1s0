@@ -11,3 +11,21 @@ func TestNew(t *testing.T) {
 	assert.NotNil(t, c)
 	assert.Equal(t, "test", c.Name())
 }
+
+func TestValidate_Error(t *testing.T) {
+	cfg := Config{Name: ""}
+	err := cfg.Validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "name is required")
+}
+
+func TestValidate_OK(t *testing.T) {
+	cfg := Config{Name: "valid"}
+	err := cfg.Validate()
+	assert.NoError(t, err)
+}
+
+func TestAppError(t *testing.T) {
+	e := &AppError{Code: "TEST", Message: "test error"}
+	assert.Equal(t, "TEST: test error", e.Error())
+}

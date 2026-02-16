@@ -6,4 +6,19 @@ void main() {
     final client = Client(Config(name: 'test'));
     expect(client.name, equals('test'));
   });
+
+  test('should throw AppException on invalid config', () {
+    const config = Config(name: '');
+    expect(() => config.validate(), throwsA(isA<AppException>()));
+  });
+
+  test('should pass validation with valid config', () {
+    const config = Config(name: 'valid');
+    expect(() => config.validate(), returnsNormally);
+  });
+
+  test('should format error message', () {
+    const error = AppException(code: 'TEST', message: 'test error');
+    expect(error.toString(), equals('TEST: test error'));
+  });
 }

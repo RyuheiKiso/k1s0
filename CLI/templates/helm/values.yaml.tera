@@ -71,6 +71,12 @@ pdb:
   enabled: true
   minAvailable: 1
 
+{% if api_styles is containing("graphql") %}
+graphql:
+  enabled: true
+  apiPath: /query
+{% endif %}
+
 ingress:
   enabled: false
   ingressClassName: nginx

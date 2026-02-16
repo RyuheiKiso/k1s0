@@ -637,6 +637,58 @@ fn test_helm_rest_no_grpc_health_check_in_values() {
     );
 }
 
+// =========================================================================
+// Helm GraphQL テスト
+// =========================================================================
+
+/// GraphQL 選択時: values.yaml に apiPath: /query が含まれることを検証
+#[test]
+fn test_helm_graphql_values_api_path() {
+    let Some((tmp, _)) = render_helm_with_styles(vec!["graphql"], false, false, false) else {
+        eprintln!("SKIP: helm テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "values.yaml");
+    assert!(
+        content.contains("apiPath: /query"),
+        "GraphQL 選択時に values.yaml に apiPath: /query が含まれるべき\n--- values.yaml ---\n{}",
+        content
+    );
+}
+
+/// GraphQL 選択時: values.yaml に graphql セクションが含まれることを検証
+#[test]
+fn test_helm_graphql_values_section() {
+    let Some((tmp, _)) = render_helm_with_styles(vec!["graphql"], false, false, false) else {
+        eprintln!("SKIP: helm テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "values.yaml");
+    assert!(
+        content.contains("graphql:"),
+        "GraphQL 選択時に values.yaml に graphql セクションが含まれるべき\n--- values.yaml ---\n{}",
+        content
+    );
+}
+
+/// REST 選択時: values.yaml に apiPath が /query でないことを検証
+#[test]
+fn test_helm_rest_no_graphql_api_path() {
+    let Some((tmp, _)) = render_helm_with_styles(vec!["rest"], false, false, false) else {
+        eprintln!("SKIP: helm テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "values.yaml");
+    assert!(
+        !content.contains("apiPath: /query"),
+        "REST 選択時に apiPath: /query は含まれるべきでない\n--- values.yaml ---\n{}",
+        content
+    );
+}
+
 /// gRPC のみ選択時: grpcPort が 50051 であることを検証する。
 /// container.grpcPort と service.grpcPort の両方に 50051 が設定される。
 #[test]

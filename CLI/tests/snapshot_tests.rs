@@ -546,6 +546,77 @@ fn test_snapshot_rust_rest_grpc_minimal() {
     insta::assert_yaml_snapshot!("rust_rest_grpc_minimal", sorted);
 }
 
+// =========================================================================
+// ヘルパー関数: 複数APIスタイル対応 Helm
+// =========================================================================
+
+fn render_helm_multi(
+    api_styles: Vec<&str>,
+    has_database: bool,
+    database_type: &str,
+) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let styles: Vec<String> = api_styles.iter().map(|s| s.to_string()).collect();
+
+    let mut builder = TemplateContextBuilder::new("order-api", "service", "go", "helm")
+        .api_styles(styles);
+
+    if has_database {
+        builder = builder.with_database(database_type);
+    }
+
+    let ctx = builder.build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+
+    (tmp, names)
+}
+
+// =========================================================================
+// スナップショットテスト: Helm 追加パターン
+// =========================================================================
+
+/// パターン #23: Helm gRPC
+#[test]
+fn test_snapshot_helm_grpc() {
+    let (_, names) = render_helm_multi(vec!["grpc"], false, "");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("helm_grpc", sorted);
+}
+
+/// パターン #24: Helm GraphQL
+#[test]
+fn test_snapshot_helm_graphql() {
+    let (_, names) = render_helm_multi(vec!["graphql"], false, "");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("helm_graphql", sorted);
+}
+
+/// パターン #25: Helm REST+gRPC
+#[test]
+fn test_snapshot_helm_rest_grpc() {
+    let (_, names) = render_helm_multi(vec!["rest", "grpc"], true, "postgresql");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("helm_rest_grpc", sorted);
+}
+
 /// 複数APIスタイル時にREST・gRPC両方のハンドラが含まれることを検証
 #[test]
 fn test_go_rest_grpc_includes_both_handlers() {

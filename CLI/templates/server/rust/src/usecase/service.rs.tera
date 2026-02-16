@@ -56,4 +56,22 @@ impl {{ service_name_pascal }}UseCase {
         Ok(())
 {% endif %}
     }
+
+    pub async fn update(&self, entity: &{{ service_name_pascal }}Entity) -> anyhow::Result<()> {
+{% if has_database %}
+        self.repo.update(entity).await
+{% else %}
+        let _ = entity;
+        Ok(())
+{% endif %}
+    }
+
+    pub async fn delete(&self, id: &str) -> anyhow::Result<()> {
+{% if has_database %}
+        self.repo.delete(id).await
+{% else %}
+        let _ = id;
+        Ok(())
+{% endif %}
+    }
 }

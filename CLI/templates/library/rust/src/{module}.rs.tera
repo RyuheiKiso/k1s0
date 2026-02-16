@@ -1,9 +1,26 @@
 //! {{ service_name | snake_case }} モジュールの実装
 
+/// LibError はライブラリ共通のエラー型を表す。
+#[derive(Debug, thiserror::Error)]
+pub enum LibError {
+    #[error("invalid config: {0}")]
+    InvalidConfig(String),
+}
+
 /// Config はライブラリの設定を表す。
 #[derive(Debug, Clone)]
 pub struct Config {
     pub name: String,
+}
+
+impl Config {
+    /// validate は Config のバリデーションを行う。
+    pub fn validate(&self) -> Result<(), LibError> {
+        if self.name.is_empty() {
+            return Err(LibError::InvalidConfig("name is required".to_string()));
+        }
+        Ok(())
+    }
 }
 
 /// Client は {{ service_name }} ライブラリのクライアントを表す。
@@ -33,5 +50,23 @@ mod tests {
             name: "test".to_string(),
         });
         assert_eq!(client.name(), "test");
+    }
+
+    #[test]
+    fn test_validate_error() {
+        let config = Config {
+            name: String::new(),
+        };
+        let result = config.validate();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_ok() {
+        let config = Config {
+            name: "valid".to_string(),
+        };
+        let result = config.validate();
+        assert!(result.is_ok());
     }
 }

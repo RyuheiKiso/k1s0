@@ -1,0 +1,44 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:{{ service_name_snake }}/utils/dio_client.dart';
+
+/// {{ service_name_pascal }}State はプロバイダの状態を表す。
+class {{ service_name_pascal }}State {
+  final List<Map<String, dynamic>> items;
+  const {{ service_name_pascal }}State({this.items = const []});
+}
+
+/// {{ service_name_pascal }}Notifier は {{ service_name }} リソースの状態管理を提供する。
+class {{ service_name_pascal }}Notifier extends AsyncNotifier<{{ service_name_pascal }}State> {
+  @override
+  Future<{{ service_name_pascal }}State> build() async {
+    return fetchAll();
+  }
+
+  /// fetchAll は全リソースを取得する。
+  Future<{{ service_name_pascal }}State> fetchAll() async {
+    final client = ref.read(dioClientProvider);
+    final response = await client.get('/api/v1/{{ service_name }}');
+    final items = List<Map<String, dynamic>>.from(response.data as List);
+    return {{ service_name_pascal }}State(items: items);
+  }
+
+  /// create は新しいリソースを作成する。
+  Future<void> create(Map<String, dynamic> data) async {
+    final client = ref.read(dioClientProvider);
+    await client.post('/api/v1/{{ service_name }}', data: data);
+    state = AsyncData(await fetchAll());
+  }
+
+  /// delete はリソースを削除する。
+  Future<void> delete(String id) async {
+    final client = ref.read(dioClientProvider);
+    await client.delete('/api/v1/{{ service_name }}/$id');
+    state = AsyncData(await fetchAll());
+  }
+}
+
+/// {{ service_name_camel }}Provider は {{ service_name_pascal }}Notifier のプロバイダ。
+final {{ service_name_camel }}Provider =
+    AsyncNotifierProvider<{{ service_name_pascal }}Notifier, {{ service_name_pascal }}State>(
+  {{ service_name_pascal }}Notifier.new,
+);

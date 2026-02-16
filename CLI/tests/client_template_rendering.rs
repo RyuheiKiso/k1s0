@@ -301,3 +301,26 @@ fn test_client_flutter_widget_test_content() {
 
     assert!(!content.is_empty());
 }
+
+// =========================================================================
+// Flutter: Riverpod Provider 検証
+// =========================================================================
+
+#[test]
+fn test_flutter_has_provider_file() {
+    let (_, names) = render_client("flutter");
+    assert!(
+        names.iter().any(|n| n.contains("providers/service_provider.dart")),
+        "Flutter should have providers/service_provider.dart"
+    );
+}
+
+#[test]
+fn test_flutter_provider_riverpod_pattern() {
+    let (tmp, _) = render_client("flutter");
+    let content = read_output(&tmp, "lib/providers/service_provider.dart");
+    assert!(content.contains("AsyncNotifier"), "Flutter provider should use AsyncNotifier pattern");
+    assert!(content.contains("fetchAll"), "Flutter provider should have fetchAll method");
+    assert!(content.contains("create"), "Flutter provider should have create method");
+    assert!(content.contains("delete"), "Flutter provider should have delete method");
+}

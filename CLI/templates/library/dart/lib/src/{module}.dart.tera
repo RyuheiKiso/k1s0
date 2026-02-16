@@ -1,5 +1,20 @@
 /// {{ service_name | snake_case }} モジュールの実装
 
+/// ライブラリ共通の例外型
+class AppException implements Exception {
+  /// エラーコード
+  final String code;
+
+  /// エラーメッセージ
+  final String message;
+
+  /// AppException を生成する
+  const AppException({required this.code, required this.message});
+
+  @override
+  String toString() => '$code: $message';
+}
+
 /// ライブラリの設定クラス
 class Config {
   /// 設定名
@@ -7,6 +22,16 @@ class Config {
 
   /// Config を生成する
   const Config({required this.name});
+
+  /// バリデーションを行う
+  void validate() {
+    if (name.isEmpty) {
+      throw const AppException(
+        code: 'INVALID_CONFIG',
+        message: 'name is required',
+      );
+    }
+  }
 }
 
 /// {{ service_name }} クライアント

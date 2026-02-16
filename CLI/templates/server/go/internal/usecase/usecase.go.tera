@@ -59,3 +59,23 @@ func (uc *{{ service_name_pascal }}UseCase) Create(ctx context.Context, entity *
 	return nil
 {% endif %}
 }
+
+// Update はエンティティを更新する。
+func (uc *{{ service_name_pascal }}UseCase) Update(ctx context.Context, entity *model.{{ service_name_pascal }}Entity) error {
+{% if has_database %}
+	return uc.repo.Update(ctx, entity)
+{% else %}
+	_ = entity
+	return nil
+{% endif %}
+}
+
+// Delete はエンティティを削除する。
+func (uc *{{ service_name_pascal }}UseCase) Delete(ctx context.Context, id string) error {
+{% if has_database %}
+	return uc.repo.Delete(ctx, id)
+{% else %}
+	_ = id
+	return nil
+{% endif %}
+}

@@ -1,16 +1,38 @@
-use actix_web::{web, App, HttpServer, HttpResponse};
+use std::sync::Arc;
 
+use actix_web::{web, App, HttpServer, HttpResponse};
+use async_graphql_actix_web::{GraphQLRequest, GraphQLResponse};
+
+mod client;
 mod handler;
+
+use client::upstream::UpstreamClient;
+use handler::graphql::build_schema;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     println!("{{ service_name }}-bff starting on :8080");
-    HttpServer::new(|| {
+
+    let upstream = Arc::new(UpstreamClient::new(
+        "http://{{ service_name }}:8080",
+        "{{ service_name }}:50051",
+    ));
+    let schema = build_schema(upstream);
+
+    HttpServer::new(move || {
         App::new()
+            .app_data(web::Data::new(schema.clone()))
             .route("/healthz", web::get().to(HttpResponse::Ok))
-            .configure(handler::graphql::configure)
+            .route("/query", web::post().to(graphql_handler))
     })
     .bind("0.0.0.0:8080")?
     .run()
     .await
+}
+
+async fn graphql_handler(
+    schema: web::Data<handler::graphql::{{ service_name_pascal }}BffSchema>,
+    req: GraphQLRequest,
+) -> GraphQLResponse {
+    schema.execute(req.into_inner()).await.into()
 }

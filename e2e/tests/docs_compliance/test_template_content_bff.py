@@ -27,6 +27,8 @@ class TestGoBffTemplateFiles:
             "cmd/main.go.tera",
             "go.mod.tera",
             "internal/handler/graphql_resolver.go.tera",
+            "internal/handler/graphql_resolver_test.go.tera",
+            "internal/client/upstream.go.tera",
             "api/graphql/schema.graphql.tera",
             "api/graphql/gqlgen.yml.tera",
             "config/config.yaml.tera",
@@ -52,6 +54,10 @@ class TestRustBffTemplateFiles:
         [
             "src/main.rs.tera",
             "src/handler/graphql.rs.tera",
+            "src/handler/mod.rs.tera",
+            "src/client/mod.rs.tera",
+            "src/client/upstream.rs.tera",
+            "tests/integration_test.rs.tera",
             "Cargo.toml.tera",
             "config/config.yaml.tera",
             "Dockerfile.tera",
@@ -233,14 +239,14 @@ class TestRustBffGraphqlHandlerContent:
             BFF_RUST / "src" / "handler" / "graphql.rs.tera"
         ).read_text(encoding="utf-8")
 
-    def test_actix_web(self) -> None:
-        assert "actix_web" in self.content
+    def test_async_graphql(self) -> None:
+        assert "async_graphql" in self.content
 
-    def test_graphql_handler(self) -> None:
-        assert "graphql_handler" in self.content
+    def test_build_schema(self) -> None:
+        assert "build_schema" in self.content
 
-    def test_query_route(self) -> None:
-        assert "/query" in self.content
+    def test_query_root(self) -> None:
+        assert "QueryRoot" in self.content
 
 
 class TestRustBffCargoTomlContent:
@@ -307,3 +313,224 @@ class TestRustBffReadmeContent:
 
     def test_bff_mention(self) -> None:
         assert "BFF" in self.content or "bff" in self.content
+
+
+# ============================================================================
+# Go BFF 新規テンプレートファイル存在確認
+# ============================================================================
+
+
+class TestGoBffUpstreamClientFile:
+    """Go BFF upstream client テンプレートファイルの存在と内容検証。"""
+
+    def test_upstream_client_exists(self) -> None:
+        path = BFF_GO / "internal" / "client" / "upstream.go.tera"
+        assert path.exists(), "bff/go/internal/client/upstream.go.tera が存在しません"
+
+    def test_upstream_client_has_struct(self) -> None:
+        content = (BFF_GO / "internal" / "client" / "upstream.go.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "UpstreamClient" in content
+
+    def test_upstream_client_has_get(self) -> None:
+        content = (BFF_GO / "internal" / "client" / "upstream.go.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "func (c *UpstreamClient) Get(" in content
+
+    def test_upstream_client_has_post(self) -> None:
+        content = (BFF_GO / "internal" / "client" / "upstream.go.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "func (c *UpstreamClient) Post(" in content
+
+
+class TestGoBffResolverTestFile:
+    """Go BFF resolver test テンプレートファイルの存在と内容検証。"""
+
+    def test_resolver_test_exists(self) -> None:
+        path = BFF_GO / "internal" / "handler" / "graphql_resolver_test.go.tera"
+        assert path.exists(), "bff/go/internal/handler/graphql_resolver_test.go.tera が存在しません"
+
+    def test_resolver_test_has_test_functions(self) -> None:
+        content = (
+            BFF_GO / "internal" / "handler" / "graphql_resolver_test.go.tera"
+        ).read_text(encoding="utf-8")
+        assert "TestNewResolver" in content
+        assert "TestResolverQuery" in content
+        assert "TestResolverMutation" in content
+
+
+# ============================================================================
+# Rust BFF 新規テンプレートファイル存在確認
+# ============================================================================
+
+
+class TestRustBffUpstreamClientFile:
+    """Rust BFF upstream client テンプレートファイルの存在と内容検証。"""
+
+    def test_upstream_client_exists(self) -> None:
+        path = BFF_RUST / "src" / "client" / "upstream.rs.tera"
+        assert path.exists(), "bff/rust/src/client/upstream.rs.tera が存在しません"
+
+    def test_client_mod_exists(self) -> None:
+        path = BFF_RUST / "src" / "client" / "mod.rs.tera"
+        assert path.exists(), "bff/rust/src/client/mod.rs.tera が存在しません"
+
+    def test_upstream_client_has_struct(self) -> None:
+        content = (BFF_RUST / "src" / "client" / "upstream.rs.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "UpstreamClient" in content
+
+    def test_upstream_client_has_get(self) -> None:
+        content = (BFF_RUST / "src" / "client" / "upstream.rs.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "pub async fn get(" in content
+
+    def test_upstream_client_has_post(self) -> None:
+        content = (BFF_RUST / "src" / "client" / "upstream.rs.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "pub async fn post(" in content
+
+
+class TestRustBffIntegrationTestFile:
+    """Rust BFF integration test テンプレートファイルの存在と内容検証。"""
+
+    def test_integration_test_exists(self) -> None:
+        path = BFF_RUST / "tests" / "integration_test.rs.tera"
+        assert path.exists(), "bff/rust/tests/integration_test.rs.tera が存在しません"
+
+    def test_integration_test_has_schema_test(self) -> None:
+        content = (BFF_RUST / "tests" / "integration_test.rs.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "test_schema_creation" in content
+        assert "build_schema" in content
+
+
+class TestRustBffHandlerModFile:
+    """Rust BFF handler/mod.rs.tera テンプレートファイルの存在と内容検証。"""
+
+    def test_handler_mod_exists(self) -> None:
+        path = BFF_RUST / "src" / "handler" / "mod.rs.tera"
+        assert path.exists(), "bff/rust/src/handler/mod.rs.tera が存在しません"
+
+    def test_handler_mod_has_graphql(self) -> None:
+        content = (BFF_RUST / "src" / "handler" / "mod.rs.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "pub mod graphql;" in content
+
+
+# ============================================================================
+# BFF config upstream.grpc_address 検証
+# ============================================================================
+
+
+class TestBffConfigUpstreamGrpc:
+    """BFF config に upstream.grpc_address が含まれることの検証。"""
+
+    def test_go_config_has_grpc_address(self) -> None:
+        content = (BFF_GO / "config" / "config.yaml.tera").read_text(encoding="utf-8")
+        assert "grpc_address:" in content, "Go BFF config should have grpc_address"
+
+    def test_rust_config_has_grpc_address(self) -> None:
+        content = (BFF_RUST / "config" / "config.yaml.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "grpc_address:" in content, "Rust BFF config should have grpc_address"
+
+    def test_go_config_has_http_url(self) -> None:
+        content = (BFF_GO / "config" / "config.yaml.tera").read_text(encoding="utf-8")
+        assert "http_url:" in content, "Go BFF config should have http_url"
+
+    def test_rust_config_has_http_url(self) -> None:
+        content = (BFF_RUST / "config" / "config.yaml.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "http_url:" in content, "Rust BFF config should have http_url"
+
+
+# ============================================================================
+# Go BFF GraphQL resolver Query/Mutation 内容検証
+# ============================================================================
+
+
+class TestGoBffResolverQueryMutation:
+    """Go BFF resolver に Query/Mutation 実装が含まれることの検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (
+            BFF_GO / "internal" / "handler" / "graphql_resolver.go.tera"
+        ).read_text(encoding="utf-8")
+
+    def test_has_query_method(self) -> None:
+        assert "func (r *Resolver) Query()" in self.content
+
+    def test_has_mutation_method(self) -> None:
+        assert "func (r *Resolver) Mutation()" in self.content
+
+    def test_has_upstream_import(self) -> None:
+        assert "client" in self.content
+
+    def test_has_upstream_field(self) -> None:
+        assert "upstream" in self.content
+
+
+# ============================================================================
+# Rust BFF GraphQL handler async-graphql Schema 内容検証
+# ============================================================================
+
+
+class TestRustBffGraphqlSchemaContent:
+    """Rust BFF graphql.rs.tera に async-graphql Schema 構築コードが含まれることの検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (
+            BFF_RUST / "src" / "handler" / "graphql.rs.tera"
+        ).read_text(encoding="utf-8")
+
+    def test_has_query_root(self) -> None:
+        assert "pub struct QueryRoot" in self.content
+
+    def test_has_mutation_root(self) -> None:
+        assert "pub struct MutationRoot" in self.content
+
+    def test_has_build_schema(self) -> None:
+        assert "pub fn build_schema(" in self.content
+
+    def test_has_schema_type(self) -> None:
+        assert "BffSchema" in self.content
+
+    def test_has_upstream_client(self) -> None:
+        assert "UpstreamClient" in self.content
+
+
+# ============================================================================
+# Go BFF schema.graphql Query/Mutation 検証
+# ============================================================================
+
+
+class TestGoBffSchemaQueryMutation:
+    """Go BFF schema.graphql.tera に Query/Mutation が含まれることの検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (
+            BFF_GO / "api" / "graphql" / "schema.graphql.tera"
+        ).read_text(encoding="utf-8")
+
+    def test_has_query_type(self) -> None:
+        assert "type Query" in self.content
+
+    def test_has_mutation_type(self) -> None:
+        assert "type Mutation" in self.content
+
+    def test_has_service_name_pascal(self) -> None:
+        assert "{{ service_name_pascal }}" in self.content
+
+    def test_has_create_input(self) -> None:
+        assert "Create{{ service_name_pascal }}Input" in self.content

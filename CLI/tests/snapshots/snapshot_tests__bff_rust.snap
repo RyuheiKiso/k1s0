@@ -6,5 +6,9 @@ expression: sorted
 - Dockerfile
 - README.md
 - config/config.yaml
+- src/client/mod.rs
+- src/client/upstream.rs
 - src/handler/graphql.rs
+- src/handler/mod.rs
 - src/main.rs
+- tests/integration_test.rs

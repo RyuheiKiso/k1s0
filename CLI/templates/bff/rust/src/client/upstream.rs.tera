@@ -1,0 +1,50 @@
+use anyhow::Result;
+use reqwest::Client;
+use serde_json::Value;
+
+/// UpstreamClient は upstream サービスへの HTTP クライアントを提供する。
+pub struct UpstreamClient {
+    http_url: String,
+    grpc_address: String,
+    client: Client,
+}
+
+impl UpstreamClient {
+    /// 新しい UpstreamClient を生成する。
+    pub fn new(http_url: &str, grpc_address: &str) -> Self {
+        Self {
+            http_url: http_url.to_string(),
+            grpc_address: grpc_address.to_string(),
+            client: Client::new(),
+        }
+    }
+
+    /// upstream から単一リソースを取得する。
+    pub async fn get(&self, path: &str) -> Result<Value> {
+        let url = format!("{}{}", self.http_url, path);
+        let resp = self.client.get(&url).send().await?;
+        let body = resp.json::<Value>().await?;
+        Ok(body)
+    }
+
+    /// upstream からリソース一覧を取得する。
+    pub async fn get_list(&self, path: &str) -> Result<Vec<Value>> {
+        let url = format!("{}{}", self.http_url, path);
+        let resp = self.client.get(&url).send().await?;
+        let body = resp.json::<Vec<Value>>().await?;
+        Ok(body)
+    }
+
+    /// upstream にリソースを作成する。
+    pub async fn post(&self, path: &str, payload: &Value) -> Result<Value> {
+        let url = format!("{}{}", self.http_url, path);
+        let resp = self.client.post(&url).json(payload).send().await?;
+        let body = resp.json::<Value>().await?;
+        Ok(body)
+    }
+
+    /// gRPC アドレスを返す。
+    pub fn grpc_address(&self) -> &str {
+        &self.grpc_address
+    }
+}

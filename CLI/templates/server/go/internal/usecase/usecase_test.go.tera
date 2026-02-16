@@ -72,6 +72,41 @@ func TestCreate(t *testing.T) {
 
 	require.NoError(t, err)
 }
+
+func TestUpdate(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	entity := &model.{{ service_name_pascal }}Entity{
+		ID:   "test-id",
+		Name: "updated-entity",
+	}
+
+	mockRepo := repository.NewMock{{ service_name_pascal }}Repository(ctrl)
+	mockRepo.EXPECT().
+		Update(gomock.Any(), entity).
+		Return(nil)
+
+	uc := New{{ service_name_pascal }}UseCase(mockRepo)
+	err := uc.Update(context.Background(), entity)
+
+	require.NoError(t, err)
+}
+
+func TestDelete(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := repository.NewMock{{ service_name_pascal }}Repository(ctrl)
+	mockRepo.EXPECT().
+		Delete(gomock.Any(), "test-id").
+		Return(nil)
+
+	uc := New{{ service_name_pascal }}UseCase(mockRepo)
+	err := uc.Delete(context.Background(), "test-id")
+
+	require.NoError(t, err)
+}
 {% else %}
 func TestGetByID(t *testing.T) {
 	uc := New{{ service_name_pascal }}UseCase()
@@ -93,6 +128,19 @@ func TestCreate(t *testing.T) {
 	uc := New{{ service_name_pascal }}UseCase()
 	entity := &model.{{ service_name_pascal }}Entity{Name: "test"}
 	err := uc.Create(context.Background(), entity)
+	assert.NoError(t, err)
+}
+
+func TestUpdate(t *testing.T) {
+	uc := New{{ service_name_pascal }}UseCase()
+	entity := &model.{{ service_name_pascal }}Entity{ID: "test-id", Name: "updated"}
+	err := uc.Update(context.Background(), entity)
+	assert.NoError(t, err)
+}
+
+func TestDelete(t *testing.T) {
+	uc := New{{ service_name_pascal }}UseCase()
+	err := uc.Delete(context.Background(), "test-id")
 	assert.NoError(t, err)
 }
 {% endif %}

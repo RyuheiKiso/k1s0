@@ -9,4 +9,6 @@ expression: sorted
 - cmd/main.go
 - config/config.yaml
 - go.mod
+- internal/client/upstream.go
 - internal/handler/graphql_resolver.go
+- internal/handler/graphql_resolver_test.go

@@ -1,0 +1,15 @@
+---
+source: tests/snapshot_tests.rs
+expression: sorted
+---
+- Chart.yaml
+- templates/configmap.yaml
+- templates/deployment.yaml
+- templates/hpa.yaml
+- templates/ingress.yaml
+- templates/pdb.yaml
+- templates/service.yaml
+- values-dev.yaml
+- values-prod.yaml
+- values-staging.yaml
+- values.yaml

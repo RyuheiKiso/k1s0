@@ -7,6 +7,7 @@ expression: sorted
 - analysis_options.yaml
 - lib/app/router.dart
 - lib/main.dart
+- lib/providers/service_provider.dart
 - lib/utils/dio_client.dart
 - nginx.conf
 - pubspec.yaml

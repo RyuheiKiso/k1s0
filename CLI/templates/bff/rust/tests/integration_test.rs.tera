@@ -1,0 +1,11 @@
+use {{ service_name_snake }}_bff::handler::graphql::build_schema;
+use {{ service_name_snake }}_bff::client::upstream::UpstreamClient;
+use std::sync::Arc;
+
+#[test]
+fn test_schema_creation() {
+    let upstream = Arc::new(UpstreamClient::new("http://localhost:8080", "localhost:50051"));
+    let schema = build_schema(upstream);
+    assert!(schema.sdl().contains("Query"));
+    assert!(schema.sdl().contains("Mutation"));
+}

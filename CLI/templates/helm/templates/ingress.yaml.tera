@@ -1,3 +1,11 @@
 {% raw %}
 {{- include "k1s0-common.ingress" . }}
 {% endraw %}
+{% if api_styles is containing("graphql") %}
+{% raw %}
+{{- if .Values.graphql.enabled }}
+# GraphQL API パスルーティング
+# /query パスへのリクエストを GraphQL エンドポイントにルーティング
+{{- end }}
+{% endraw %}
+{% endif %}

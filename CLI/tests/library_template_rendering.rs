@@ -342,3 +342,93 @@ fn test_library_dart_readme_content() {
 
     assert!(content.contains("shared-utils") || content.contains("shared_utils"));
 }
+
+// =========================================================================
+// エラー型・バリデーション検証
+// =========================================================================
+
+#[test]
+fn test_library_go_has_app_error() {
+    let (tmp, _) = render_library("go");
+    let content = read_output(&tmp, "shared-utils.go");
+    assert!(content.contains("AppError"), "Go library should contain AppError struct");
+    assert!(content.contains("func (e *AppError) Error() string"), "Go AppError should implement error interface");
+}
+
+#[test]
+fn test_library_go_has_validate() {
+    let (tmp, _) = render_library("go");
+    let content = read_output(&tmp, "shared-utils.go");
+    assert!(content.contains("func (c Config) Validate() error"), "Go Config should have Validate() method");
+}
+
+#[test]
+fn test_library_go_test_has_error_cases() {
+    let (tmp, _) = render_library("go");
+    let content = read_output(&tmp, "shared-utils_test.go");
+    assert!(content.contains("TestValidate_Error"), "Go test should contain error validation test");
+}
+
+#[test]
+fn test_library_rust_has_lib_error() {
+    let (tmp, _) = render_library("rust");
+    let content = read_output(&tmp, "src/shared_utils.rs");
+    assert!(content.contains("LibError"), "Rust library should contain LibError enum");
+    assert!(content.contains("thiserror::Error"), "Rust LibError should derive thiserror::Error");
+}
+
+#[test]
+fn test_library_rust_has_validate() {
+    let (tmp, _) = render_library("rust");
+    let content = read_output(&tmp, "src/shared_utils.rs");
+    assert!(content.contains("pub fn validate(&self) -> Result<(), LibError>"), "Rust Config should have validate() method");
+}
+
+#[test]
+fn test_library_rust_test_has_error_cases() {
+    let (tmp, _) = render_library("rust");
+    let content = read_output(&tmp, "src/shared_utils.rs");
+    assert!(content.contains("test_validate_error"), "Rust test should contain error validation test");
+}
+
+#[test]
+fn test_library_typescript_has_app_error() {
+    let (tmp, _) = render_library("typescript");
+    let content = read_output(&tmp, "src/index.ts");
+    assert!(content.contains("class AppError extends Error"), "TypeScript should contain AppError class");
+}
+
+#[test]
+fn test_library_typescript_has_validate() {
+    let (tmp, _) = render_library("typescript");
+    let content = read_output(&tmp, "src/index.ts");
+    assert!(content.contains("validate"), "TypeScript should have validate function");
+}
+
+#[test]
+fn test_library_typescript_test_has_error_cases() {
+    let (tmp, _) = render_library("typescript");
+    let content = read_output(&tmp, "tests/index.test.ts");
+    assert!(content.contains("error") || content.contains("AppError"), "TypeScript test should contain error test cases");
+}
+
+#[test]
+fn test_library_dart_has_app_exception() {
+    let (tmp, _) = render_library("dart");
+    let content = read_output(&tmp, "lib/src/shared_utils.dart");
+    assert!(content.contains("class AppException implements Exception"), "Dart should contain AppException class");
+}
+
+#[test]
+fn test_library_dart_has_validate() {
+    let (tmp, _) = render_library("dart");
+    let content = read_output(&tmp, "lib/src/shared_utils.dart");
+    assert!(content.contains("validate"), "Dart Config should have validate() method");
+}
+
+#[test]
+fn test_library_dart_test_has_error_cases() {
+    let (tmp, _) = render_library("dart");
+    let content = read_output(&tmp, "test/shared_utils_test.dart");
+    assert!(content.contains("AppException") || content.contains("error"), "Dart test should contain error test cases");
+}

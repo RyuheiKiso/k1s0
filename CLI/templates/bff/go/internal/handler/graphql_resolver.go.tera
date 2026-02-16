@@ -3,16 +3,54 @@ package handler
 import (
     "context"
     "net/http"
+
+    "{{ go_module }}/internal/client"
 )
 
-type Resolver struct{}
-
-func NewResolver() *Resolver {
-    return &Resolver{}
+// Resolver は GraphQL リゾルバの依存を保持する。
+type Resolver struct {
+    upstream *client.UpstreamClient
 }
 
+// NewResolver はリゾルバを生成する。
+func NewResolver(upstream *client.UpstreamClient) *Resolver {
+    return &Resolver{upstream: upstream}
+}
+
+// Query はクエリリゾルバを返す。
+func (r *Resolver) Query() QueryResolver {
+    return &queryResolver{r}
+}
+
+// Mutation はミューテーションリゾルバを返す。
+func (r *Resolver) Mutation() MutationResolver {
+    return &mutationResolver{r}
+}
+
+type queryResolver struct{ *Resolver }
+type mutationResolver struct{ *Resolver }
+
+// {{ service_name_pascal }} は upstream から {{ service_name }} を取得する。
+func (r *queryResolver) {{ service_name_pascal }}(ctx context.Context, id string) (map[string]interface{}, error) {
+    return r.upstream.Get(ctx, "/api/v1/{{ service_name }}/"+id)
+}
+
+// {{ service_name_pascal }}List は upstream から {{ service_name }} 一覧を取得する。
+func (r *queryResolver) {{ service_name_pascal }}List(ctx context.Context) ([]map[string]interface{}, error) {
+    result, err := r.upstream.GetList(ctx, "/api/v1/{{ service_name }}")
+    if err != nil {
+        return nil, err
+    }
+    return result, nil
+}
+
+// Create{{ service_name_pascal }} は upstream に {{ service_name }} を作成する。
+func (r *mutationResolver) Create{{ service_name_pascal }}(ctx context.Context, input map[string]interface{}) (map[string]interface{}, error) {
+    return r.upstream.Post(ctx, "/api/v1/{{ service_name }}", input)
+}
+
+// NewGraphQLServer は gqlgen サーバーを構築する。
 func NewGraphQLServer(resolver *Resolver) http.Handler {
-    // gqlgen server setup
     mux := http.NewServeMux()
     mux.HandleFunc("/query", func(w http.ResponseWriter, r *http.Request) {
         w.WriteHeader(http.StatusOK)

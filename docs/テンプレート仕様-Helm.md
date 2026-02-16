@@ -886,11 +886,108 @@ helm upgrade --install {service_name} ./infra/helm/services/{tier}/{service_name
   --set image.tag={commit_hash}
 ```
 
+## GraphQL API パス設定
+
+GraphQL エンドポイントを Ingress 経由で公開する場合、`/query` パスへのルーティングを設定する。
+
+### Ingress ルーティング設定
+
+BFF の GraphQL エンドポイント（`/query`）を Ingress 経由で公開する values.yaml の設定例:
+
+```yaml
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+  hosts:
+    - host: api.example.com
+      paths:
+        - path: /query
+          pathType: Exact
+          backend:
+            serviceName: {{ service_name }}-bff
+            servicePort: 80
+        - path: /healthz
+          pathType: Exact
+          backend:
+            serviceName: {{ service_name }}-bff
+            servicePort: 80
+```
+
+GraphQL エンドポイントは通常 `POST /query` のみであるため、`pathType: Exact` を使用する。ヘルスチェックエンドポイント（`/healthz`）も外部からアクセス可能にする場合は同様に追加する。
+
+> **注記**: 通常の API サービスは Kong API Gateway 経由でルーティングされるため Ingress は不要だが、BFF は管理 UI やダッシュボードから直接アクセスされるケースがあるため、Ingress を有効化する場合がある。
+
+---
+
+## BFF 用 Helm Chart 差分
+
+BFF は通常のサーバーと同じ Helm Chart テンプレートを使用するが、以下の点が異なる。
+
+### BFF Chart の特徴
+
+| 項目 | 通常サーバー | BFF |
+|---|---|---|
+| 配置パス | `infra/helm/services/{tier}/{service_name}/` | `infra/helm/services/service/{service_name}-bff/` |
+| Vault シークレット | DB/Kafka/Redis パスを含む | 空配列（`[]`） |
+| upstream 設定 | なし | `config.data` に upstream URL を含む |
+| gRPC ポート | `api_styles` による | `null`（GraphQL over HTTP のみ） |
+| DB 関連設定 | `has_database` による | 常になし |
+
+### BFF 用 values.yaml の差分
+
+通常の values.yaml.tera との差分:
+
+```yaml
+# BFF 固有の設定
+container:
+  port: 8080
+  grpcPort: null          # BFF は HTTP のみ
+
+service:
+  type: ClusterIP
+  port: 80
+  grpcPort: null
+
+# DB / Kafka / Redis は不使用
+vault:
+  enabled: false          # BFF は Vault 不要
+  secrets: []
+
+kafka:
+  enabled: false
+  brokers: []
+
+redis:
+  enabled: false
+  host: ""
+
+# upstream 設定を config に含める
+config:
+  data:
+    config.yaml: |
+      server:
+        port: 8080
+        name: {{ service_name }}-bff
+      upstream:
+        http_url: http://{{ service_name }}:8080
+        grpc_address: {{ service_name }}:50051
+```
+
+### BFF Chart の生成条件
+
+BFF の Helm Chart は、サーバー本体の Helm Chart と同時に生成される。CLI の `build_output_path()` において、BFF 用のパスは `{service_name}-bff` サフィックスで構築される。
+
+---
+
 ## 関連ドキュメント
 
 - [helm設計](helm設計.md) --- Helm Chart の設計・Library Chart・values 設計の詳細
 - [テンプレートエンジン仕様](テンプレートエンジン仕様.md) --- テンプレート変数の定義・Tera 構文リファレンス
 - [テンプレート仕様-サーバー](テンプレート仕様-サーバー.md) --- サーバーテンプレートの詳細
+- [テンプレート仕様-BFF](テンプレート仕様-BFF.md) --- BFF テンプレートの詳細
 - [kubernetes設計](kubernetes設計.md) --- Kubernetes クラスタ設計・ラベル規約
 - [config設計](config設計.md) --- アプリケーション設定ファイルの設計
 - [Dockerイメージ戦略](Dockerイメージ戦略.md) --- Docker イメージのビルド・レジストリ戦略

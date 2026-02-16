@@ -1,9 +1,40 @@
-use actix_web::{web, HttpResponse};
+use std::sync::Arc;
 
-pub fn configure(cfg: &mut web::ServiceConfig) {
-    cfg.route("/query", web::post().to(graphql_handler));
+use async_graphql::{Context, Object, Schema, EmptySubscription};
+
+use crate::client::upstream::UpstreamClient;
+
+pub struct QueryRoot;
+pub struct MutationRoot;
+
+#[Object]
+impl QueryRoot {
+    async fn {{ service_name_snake }}(&self, ctx: &Context<'_>, id: String) -> async_graphql::Result<serde_json::Value> {
+        let client = ctx.data::<Arc<UpstreamClient>>()?;
+        let result = client.get(&format!("/api/v1/{{ service_name }}/{}", id)).await?;
+        Ok(result)
+    }
+
+    async fn {{ service_name_snake }}_list(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<serde_json::Value>> {
+        let client = ctx.data::<Arc<UpstreamClient>>()?;
+        let result = client.get_list("/api/v1/{{ service_name }}").await?;
+        Ok(result)
+    }
 }
 
-async fn graphql_handler() -> HttpResponse {
-    HttpResponse::Ok().json(serde_json::json!({"data": null}))
+#[Object]
+impl MutationRoot {
+    async fn create_{{ service_name_snake }}(&self, ctx: &Context<'_>, input: serde_json::Value) -> async_graphql::Result<serde_json::Value> {
+        let client = ctx.data::<Arc<UpstreamClient>>()?;
+        let result = client.post("/api/v1/{{ service_name }}", &input).await?;
+        Ok(result)
+    }
+}
+
+pub type {{ service_name_pascal }}BffSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
+
+pub fn build_schema(upstream: Arc<UpstreamClient>) -> {{ service_name_pascal }}BffSchema {
+    Schema::build(QueryRoot, MutationRoot, EmptySubscription)
+        .data(upstream)
+        .finish()
 }

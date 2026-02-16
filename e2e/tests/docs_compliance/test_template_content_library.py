@@ -391,3 +391,57 @@ class TestTsLibIndexTestContent:
 
     def test_has_test_case(self) -> None:
         assert "should be defined" in self.content or "expect" in self.content
+
+
+class TestGoLibErrorType:
+    """Go ライブラリの AppError 型検証。"""
+    def setup_method(self) -> None:
+        self.content = (LIB_GO / "{name}.go.tera").read_text(encoding="utf-8")
+
+    def test_app_error_struct(self) -> None:
+        assert "AppError" in self.content
+
+    def test_error_interface(self) -> None:
+        assert "Error() string" in self.content
+
+    def test_validate_method(self) -> None:
+        assert "Validate()" in self.content
+
+
+class TestRustLibErrorType:
+    """Rust ライブラリの LibError 型検証。"""
+    def setup_method(self) -> None:
+        self.content = (LIB_RUST / "src" / "{module}.rs.tera").read_text(encoding="utf-8")
+
+    def test_lib_error_enum(self) -> None:
+        assert "LibError" in self.content
+
+    def test_thiserror_derive(self) -> None:
+        assert "thiserror::Error" in self.content
+
+    def test_validate_method(self) -> None:
+        assert "validate" in self.content
+
+
+class TestTsLibErrorType:
+    """TypeScript ライブラリの AppError 型検証。"""
+    def setup_method(self) -> None:
+        self.content = (LIB_TS / "src" / "index.ts.tera").read_text(encoding="utf-8")
+
+    def test_app_error_class(self) -> None:
+        assert "AppError" in self.content
+
+    def test_validate_function(self) -> None:
+        assert "validate" in self.content
+
+
+class TestDartLibErrorType:
+    """Dart ライブラリの AppException 型検証。"""
+    def setup_method(self) -> None:
+        self.content = (LIB_DART / "lib" / "src" / "{module}.dart.tera").read_text(encoding="utf-8")
+
+    def test_app_exception_class(self) -> None:
+        assert "AppException" in self.content
+
+    def test_validate_method(self) -> None:
+        assert "validate" in self.content
