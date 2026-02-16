@@ -1,0 +1,6 @@
+---
+source: tests/snapshot_tests.rs
+expression: sorted
+---
+- 001_init.down.sql
+- 001_init.up.sql

@@ -3,6 +3,7 @@ mod steps;
 mod execute;
 mod scaffold;
 mod helpers;
+pub mod retry;
 
 pub use types::*;
 pub use execute::{execute_generate, execute_generate_at, execute_generate_with_config, build_output_path};

@@ -428,6 +428,46 @@ service の場合、ステップ 3 で入力したサービス名をアプリ名
 
 > **注記**: service Tierのサーバーで GraphQL（API 方式選択）を選択した場合、通常のサーバー構成に加えて `server/{言語}/bff/` ディレクトリに GraphQL BFF のひな形が生成される。BFF の詳細な内部構成は [API設計.md](API設計.md) の「BFF ディレクトリ構成」を参照。
 
+#### GraphQL BFF 生成フロー（service Tier 限定）
+
+service Tier のサーバーで API 方式に GraphQL を含む場合、以下の追加ステップが表示される。
+
+```
+? GraphQL BFF を生成しますか？
+> はい
+  いいえ
+```
+
+「はい」を選択した場合：
+
+```
+? BFF の言語を選択してください
+> Go
+  Rust
+```
+
+BFF は service Tier のサーバーでのみ生成可能。system / business Tier では BFF 選択ステップは表示されない。
+
+BFF 生成時の確認画面には以下が追加表示される：
+
+```
+[確認] 以下の内容で生成します。よろしいですか？
+    種別:     サーバー
+    Tier:     service
+    サービス: order
+    言語:     Go
+    API:      REST, GraphQL
+    BFF:      あり (Go)
+    DB:       order-db (PostgreSQL)
+    Kafka:    無効
+    Redis:    無効
+    > はい
+      いいえ（前のステップに戻る）
+      キャンセル（メインメニューに戻る）
+```
+
+BFF のテンプレートは通常のサーバーテンプレートと同じ構造で、`regions/service/{service_name}/server/{lang}/bff/` 配下に生成される。生成されるファイルの詳細は [テンプレート仕様-サーバー](テンプレート仕様-サーバー.md) を参照。
+
 ---
 
 ## ビルド
@@ -573,6 +613,73 @@ prod を選択した場合のみ表示される。
       いいえ（前のステップに戻る）
       キャンセル（メインメニューに戻る）
 ```
+
+### デプロイ実行
+
+確認後、以下のステップが順次実行される。
+
+#### ステップ 1 — Docker イメージのビルドとプッシュ
+
+```
+[1/4] Docker イメージをビルドしています...
+      イメージ: harbor.internal.example.com/k1s0-{tier}/{service_name}:{version}-{sha}
+[1/4] ✓ Docker イメージのビルド完了
+
+[2/4] Docker イメージをプッシュしています...
+[2/4] ✓ Docker イメージのプッシュ完了
+```
+
+#### ステップ 2 — Cosign によるイメージ署名
+
+```
+[3/4] イメージに署名しています (Cosign)...
+[3/4] ✓ イメージ署名完了
+```
+
+#### ステップ 3 — Helm デプロイ
+
+```
+[4/4] Helm でデプロイしています...
+      コマンド: helm upgrade --install {service_name} ./infra/helm/services/{helm_path} \
+                -n k1s0-{tier} \
+                -f ./infra/helm/services/{helm_path}/values-{env}.yaml \
+                --set image.tag={version}-{sha}
+[4/4] ✓ デプロイ完了
+```
+
+#### ステップ 4 — デプロイ結果の表示
+
+```
+✓ デプロイが完了しました
+  環境:     {env}
+  サービス: {service_name}
+  イメージ: harbor.internal.example.com/k1s0-{tier}/{service_name}:{version}-{sha}
+  Helm:     helm status {service_name} -n k1s0-{tier}
+```
+
+#### エラー時の動作
+
+各ステップでエラーが発生した場合、処理を中断して以下を表示する。
+
+```
+✗ デプロイに失敗しました
+  ステップ: Docker イメージのビルド
+  エラー:   {error_message}
+
+  手動で再実行する場合:
+    cd {module_path} && docker build -t {image_tag} .
+```
+
+prod 環境でのデプロイ失敗時は、ロールバックの選択肢を表示する。
+
+```
+⚠ 本番環境でのデプロイが失敗しました。
+? ロールバックしますか？
+> はい（前のバージョンに戻す）
+  いいえ（手動で対応する）
+```
+
+「はい」を選択した場合、`helm rollback {service_name} -n k1s0-{tier}` を実行する。
 
 ---
 

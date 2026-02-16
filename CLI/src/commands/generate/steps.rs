@@ -184,12 +184,34 @@ fn step_detail_server(
         None => return Ok(None),
     };
 
+    // BFF (service Tier + GraphQL 時のみ)
+    let bff_language = if tier == Tier::Service && api_styles.contains(&ApiStyle::GraphQL) {
+        let want_bff = prompt::yes_no_prompt("GraphQL BFF を生成しますか？")?;
+        match want_bff {
+            Some(true) => {
+                let items = &["Go", "Rust"];
+                let idx = prompt::select_prompt("BFF の言語を選択してください", items)?;
+                match idx {
+                    Some(0) => Some(Language::Go),
+                    Some(1) => Some(Language::Rust),
+                    Some(_) => unreachable!(),
+                    None => return Ok(None),
+                }
+            }
+            Some(false) => None,
+            None => return Ok(None),
+        }
+    } else {
+        None
+    };
+
     Ok(Some(DetailConfig {
         name: service_name,
         api_styles,
         db,
         kafka,
         redis,
+        bff_language,
     }))
 }
 
@@ -233,15 +255,21 @@ fn step_detail_library() -> Result<Option<DetailConfig>> {
 // ============================================================================
 
 pub(super) fn print_confirmation(config: &GenerateConfig) {
-    println!("\n[確認] 以下の内容で生成します。よろしいですか？");
-    println!("    種別:     {}", config.kind.label());
-    println!("    Tier:     {}", config.tier.as_str());
+    print!("{}", format_confirmation(config));
+}
+
+/// 確認画面の内容を文字列として構築する（テスト可能）。
+pub(super) fn format_confirmation(config: &GenerateConfig) -> String {
+    let mut out = String::new();
+    out.push_str("\n[確認] 以下の内容で生成します。よろしいですか？\n");
+    out.push_str(&format!("    種別:     {}\n", config.kind.label()));
+    out.push_str(&format!("    Tier:     {}\n", config.tier.as_str()));
 
     // 配置先
     if let Some(ref p) = config.placement {
         match config.tier {
-            Tier::Business => println!("    領域:     {}", p),
-            Tier::Service => println!("    サービス: {}", p),
+            Tier::Business => out.push_str(&format!("    領域:     {}\n", p)),
+            Tier::Service => out.push_str(&format!("    サービス: {}\n", p)),
             _ => {}
         }
     }
@@ -252,51 +280,170 @@ pub(super) fn print_confirmation(config: &GenerateConfig) {
             // detail.name の表示をスキップする
             if config.tier != Tier::Service {
                 if let Some(ref name) = config.detail.name {
-                    println!("    サービス: {}", name);
+                    out.push_str(&format!("    サービス: {}\n", name));
                 }
             }
             if let LangFw::Language(lang) = config.lang_fw {
-                println!("    言語:     {}", lang.as_str());
+                out.push_str(&format!("    言語:     {}\n", lang.as_str()));
             }
             if !config.detail.api_styles.is_empty() {
                 let api_strs: Vec<&str> =
                     config.detail.api_styles.iter().map(|a| a.short_label()).collect();
-                println!("    API:      {}", api_strs.join(", "));
+                out.push_str(&format!("    API:      {}\n", api_strs.join(", ")));
+            }
+            // BFF 情報（service Tier + GraphQL 時のみ表示）
+            if let Some(bff_lang) = config.detail.bff_language {
+                out.push_str(&format!("    BFF:      あり ({})\n", bff_lang.as_str()));
             }
             match &config.detail.db {
-                Some(db) => println!("    DB:       {}", db),
-                None => println!("    DB:       なし"),
+                Some(db) => out.push_str(&format!("    DB:       {}\n", db)),
+                None => out.push_str("    DB:       なし\n"),
             }
-            println!(
-                "    Kafka:    {}",
+            out.push_str(&format!(
+                "    Kafka:    {}\n",
                 if config.detail.kafka { "有効" } else { "無効" }
-            );
-            println!(
-                "    Redis:    {}",
+            ));
+            out.push_str(&format!(
+                "    Redis:    {}\n",
                 if config.detail.redis { "有効" } else { "無効" }
-            );
+            ));
         }
         Kind::Client => {
             if let LangFw::Framework(fw) = config.lang_fw {
-                println!("    フレームワーク: {}", fw.as_str());
+                out.push_str(&format!("    フレームワーク: {}\n", fw.as_str()));
             }
             if let Some(ref name) = config.detail.name {
-                println!("    アプリ名:       {}", name);
+                out.push_str(&format!("    アプリ名:       {}\n", name));
             }
         }
         Kind::Library => {
             if let LangFw::Language(lang) = config.lang_fw {
-                println!("    言語:         {}", lang.as_str());
+                out.push_str(&format!("    言語:         {}\n", lang.as_str()));
             }
             if let Some(ref name) = config.detail.name {
-                println!("    ライブラリ名: {}", name);
+                out.push_str(&format!("    ライブラリ名: {}\n", name));
             }
         }
         Kind::Database => {
             if let LangFw::Database { ref name, rdbms } = config.lang_fw {
-                println!("    データベース名: {}", name);
-                println!("    RDBMS:          {}", rdbms.as_str());
+                out.push_str(&format!("    データベース名: {}\n", name));
+                out.push_str(&format!("    RDBMS:          {}\n", rdbms.as_str()));
             }
         }
+    }
+
+    out
+}
+
+// ============================================================================
+// テスト
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_print_confirmation_with_bff() {
+        // BFF 設定が確認画面に表示されること
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::Service,
+            placement: Some("order".to_string()),
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("order".to_string()),
+                api_styles: vec![ApiStyle::GraphQL],
+                db: None,
+                kafka: false,
+                redis: false,
+                bff_language: Some(Language::Go),
+            },
+        };
+        let output = format_confirmation(&config);
+        assert!(
+            output.contains("BFF:      あり (Go)"),
+            "BFF 情報が確認画面に表示されるべき: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_print_confirmation_without_bff() {
+        // bff_language が None の場合は BFF 行が表示されない
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::Service,
+            placement: Some("order".to_string()),
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("order".to_string()),
+                api_styles: vec![ApiStyle::GraphQL],
+                db: None,
+                kafka: false,
+                redis: false,
+                bff_language: None,
+            },
+        };
+        let output = format_confirmation(&config);
+        assert!(
+            !output.contains("BFF:"),
+            "bff_language=None の場合は BFF 行は非表示: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_print_confirmation_bff_rust() {
+        // BFF 言語が Rust の場合
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::Service,
+            placement: Some("order".to_string()),
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("order".to_string()),
+                api_styles: vec![ApiStyle::GraphQL],
+                db: None,
+                kafka: false,
+                redis: false,
+                bff_language: Some(Language::Rust),
+            },
+        };
+        let output = format_confirmation(&config);
+        assert!(
+            output.contains("BFF:      あり (Rust)"),
+            "BFF (Rust) 情報が確認画面に表示されるべき: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_print_confirmation_server_basic() {
+        // サーバーの基本確認表示がそのまま動作すること（既存の互換性）
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::System,
+            placement: None,
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("auth".to_string()),
+                api_styles: vec![ApiStyle::Rest],
+                db: None,
+                kafka: false,
+                redis: false,
+                bff_language: None,
+            },
+        };
+        let output = format_confirmation(&config);
+        assert!(output.contains("種別:     サーバー"));
+        assert!(output.contains("Tier:     system"));
+        assert!(output.contains("サービス: auth"));
+        assert!(output.contains("言語:     Go"));
+        assert!(output.contains("API:      REST"));
+        assert!(output.contains("DB:       なし"));
+        assert!(output.contains("Kafka:    無効"));
+        assert!(output.contains("Redis:    無効"));
+        assert!(!output.contains("BFF:"));
     }
 }

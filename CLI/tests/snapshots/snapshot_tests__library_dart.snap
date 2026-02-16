@@ -1,0 +1,10 @@
+---
+source: tests/snapshot_tests.rs
+expression: sorted
+---
+- README.md
+- analysis_options.yaml
+- lib/order-lib.dart
+- lib/src/order_lib.dart
+- pubspec.yaml
+- test/order_lib_test.dart

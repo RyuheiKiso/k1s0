@@ -89,8 +89,8 @@ impl TemplateEngine {
         let tera_ctx = ctx.to_tera_context();
 
         // kind + language に対応するテンプレートディレクトリを決定
-        // CICD テンプレートは言語サブディレクトリを持たないフラット構造
-        let kind_lang_dir = if ctx.kind == "cicd" {
+        // CICD・Helm テンプレートは言語サブディレクトリを持たないフラット構造
+        let kind_lang_dir = if ctx.kind == "cicd" || ctx.kind == "helm" {
             self.template_dir.join(&ctx.kind)
         } else {
             self.template_dir.join(&ctx.kind).join(&ctx.language)

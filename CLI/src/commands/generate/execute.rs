@@ -1,12 +1,12 @@
 use anyhow::Result;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use crate::config::CliConfig;
 use crate::template::context::TemplateContextBuilder;
 use crate::template::TemplateEngine;
 use super::types::*;
+use super::retry::{RetryConfig, run_with_retry};
 use super::scaffold::{generate_server, generate_client, generate_library, generate_database};
 
 // ============================================================================
@@ -263,50 +263,30 @@ fn build_template_context(
     Some(builder.build())
 }
 
-/// D-08: 後処理コマンドを実行する（best-effort、最大3回リトライ）。
+/// D-08: 後処理コマンドを実行する（best-effort、リトライ付き）。
+///
+/// リトライ対象コマンド（go mod tidy, cargo check, npm install, flutter pub get, buf generate）
+/// は指数バックオフで最大3回リトライする。
+/// 非対象コマンド（oapi-codegen, cargo xtask codegen, gqlgen generate, sqlx database create）
+/// は1回だけ実行する。
 fn run_post_processing(config: &GenerateConfig, output_path: &Path) {
     let commands = determine_post_commands(config);
+    let retry_config = RetryConfig::default();
+
     for (cmd, args) in &commands {
-        let max_retries = 3;
-        let mut success = false;
-        for attempt in 1..=max_retries {
-            match Command::new(cmd).args(args).current_dir(output_path).output() {
-                Ok(output) => {
-                    if output.status.success() {
-                        success = true;
-                        break;
-                    }
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    if attempt < max_retries {
-                        eprintln!(
-                            "後処理コマンド '{} {}' が失敗しました（{}/{} 回目）: {}",
-                            cmd, args.join(" "), attempt, max_retries, stderr.trim()
-                        );
-                    } else {
-                        eprintln!(
-                            "後処理コマンド '{} {}' が {} 回のリトライ後も失敗しました: {}",
-                            cmd, args.join(" "), max_retries, stderr.trim()
-                        );
-                        eprintln!("手動で実行してください: cd {} && {} {}", output_path.display(), cmd, args.join(" "));
-                    }
-                }
-                Err(e) => {
-                    if attempt < max_retries {
-                        eprintln!(
-                            "後処理コマンド '{} {}' の実行に失敗しました（{}/{} 回目）: {}",
-                            cmd, args.join(" "), attempt, max_retries, e
-                        );
-                    } else {
-                        eprintln!(
-                            "後処理コマンド '{} {}' が {} 回のリトライ後も実行に失敗しました: {}",
-                            cmd, args.join(" "), max_retries, e
-                        );
-                        eprintln!("手動で実行してください: cd {} && {} {}", output_path.display(), cmd, args.join(" "));
-                    }
-                }
+        let args_refs: Vec<&str> = args.iter().map(|s| *s).collect();
+        match run_with_retry(cmd, &args_refs, output_path, &retry_config) {
+            Ok(()) => {}
+            Err(e) => {
+                eprintln!("{}", e);
+                eprintln!(
+                    "手動で実行してください: cd {} && {} {}",
+                    output_path.display(),
+                    cmd,
+                    args.join(" ")
+                );
             }
         }
-        let _ = success; // best-effort: 成功/失敗に関わらず次のコマンドへ
     }
 }
 
@@ -731,6 +711,7 @@ mod tests {
                 db: None,
                 kafka: false,
                 redis: false,
+                bff_language: None,
             },
         };
 
@@ -761,6 +742,7 @@ mod tests {
                 db: None,
                 kafka: false,
                 redis: false,
+                bff_language: None,
             },
         };
 
@@ -1005,6 +987,7 @@ mod tests {
                 db: None,
                 kafka: false,
                 redis: false,
+                bff_language: None,
             },
         };
         let cli_config = CliConfig::default();
@@ -1029,6 +1012,7 @@ mod tests {
                 db: None,
                 kafka: false,
                 redis: false,
+                bff_language: None,
             },
         };
         let cmds = determine_post_commands(&config);
@@ -1049,6 +1033,7 @@ mod tests {
                 db: None,
                 kafka: false,
                 redis: false,
+                bff_language: None,
             },
         };
         let cmds = determine_post_commands(&config);
@@ -1069,6 +1054,7 @@ mod tests {
                 db: None,
                 kafka: false,
                 redis: false,
+                bff_language: None,
             },
         };
         let cmds = determine_post_commands(&config);
@@ -1140,6 +1126,7 @@ mod tests {
                 db: None,
                 kafka: false,
                 redis: false,
+                bff_language: None,
             },
         };
         let cli_config = CliConfig::default();
@@ -1166,6 +1153,7 @@ mod tests {
                 db: None,
                 kafka: false,
                 redis: false,
+                bff_language: None,
             },
         };
         let cli_config = CliConfig {
@@ -1193,6 +1181,7 @@ mod tests {
                 db: None,
                 kafka: false,
                 redis: false,
+                bff_language: None,
             },
         };
         let cmds = determine_post_commands(&config);
@@ -1215,6 +1204,7 @@ mod tests {
                 db: None,
                 kafka: false,
                 redis: false,
+                bff_language: None,
             },
         };
         let cmds = determine_post_commands(&config);
@@ -1249,6 +1239,7 @@ mod tests {
                 }),
                 kafka: false,
                 redis: false,
+                bff_language: None,
             },
         };
         let cmds = determine_post_commands(&config);
@@ -1271,6 +1262,7 @@ mod tests {
                 db: None,
                 kafka: false,
                 redis: false,
+                bff_language: None,
             },
         };
         let cmds = determine_post_commands(&config);
@@ -1333,6 +1325,7 @@ mod tests {
                 db: None,
                 kafka: false,
                 redis: false,
+                bff_language: None,
             },
         };
         let cli_config = CliConfig::default();
@@ -1358,11 +1351,129 @@ mod tests {
                 db: None,
                 kafka: false,
                 redis: false,
+                bff_language: None,
             },
         };
         execute_generate_at(&config, tmp.path()).unwrap();
         // BFF ディレクトリが存在するか確認
         let bff_path = tmp.path().join("regions/service/order/server/go/bff");
         assert!(bff_path.exists(), "service Tier + GraphQL should create bff/ directory");
+    }
+
+    // --- BFF 生成: Tier別テスト ---
+
+    #[test]
+    fn test_bff_not_created_for_system_tier_graphql() {
+        // system Tier の GraphQL では BFF ディレクトリは作成されない
+        let tmp = TempDir::new().unwrap();
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::System,
+            placement: None,
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("gateway".to_string()),
+                api_styles: vec![ApiStyle::GraphQL],
+                db: None,
+                kafka: false,
+                redis: false,
+                bff_language: Some(Language::Go),
+            },
+        };
+        execute_generate_at(&config, tmp.path()).unwrap();
+        let bff_path = tmp.path().join("regions/system/server/go/gateway/bff");
+        assert!(!bff_path.exists(), "system Tier では BFF ディレクトリは作成されない");
+    }
+
+    #[test]
+    fn test_bff_not_created_for_business_tier_graphql() {
+        // business Tier の GraphQL では BFF ディレクトリは作成されない
+        let tmp = TempDir::new().unwrap();
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::Business,
+            placement: Some("accounting".to_string()),
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("ledger".to_string()),
+                api_styles: vec![ApiStyle::GraphQL],
+                db: None,
+                kafka: false,
+                redis: false,
+                bff_language: Some(Language::Go),
+            },
+        };
+        execute_generate_at(&config, tmp.path()).unwrap();
+        let bff_path = tmp.path().join("regions/business/accounting/server/go/ledger/bff");
+        assert!(!bff_path.exists(), "business Tier では BFF ディレクトリは作成されない");
+    }
+
+    #[test]
+    fn test_bff_directory_created_with_language() {
+        // service Tier + GraphQL + bff_language=Go の場合に bff/ が作成される
+        let tmp = TempDir::new().unwrap();
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::Service,
+            placement: Some("order".to_string()),
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("order".to_string()),
+                api_styles: vec![ApiStyle::GraphQL],
+                db: None,
+                kafka: false,
+                redis: false,
+                bff_language: Some(Language::Go),
+            },
+        };
+        execute_generate_at(&config, tmp.path()).unwrap();
+        let bff_path = tmp.path().join("regions/service/order/server/go/bff");
+        assert!(bff_path.exists(), "service Tier + GraphQL + bff_language=Go で bff/ が作成される");
+    }
+
+    #[test]
+    fn test_bff_not_created_when_no_graphql() {
+        // GraphQL なしの場合は BFF は作成されない
+        let tmp = TempDir::new().unwrap();
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::Service,
+            placement: Some("order".to_string()),
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("order".to_string()),
+                api_styles: vec![ApiStyle::Rest],
+                db: None,
+                kafka: false,
+                redis: false,
+                bff_language: None,
+            },
+        };
+        execute_generate_at(&config, tmp.path()).unwrap();
+        let bff_path = tmp.path().join("regions/service/order/server/go/bff");
+        assert!(!bff_path.exists(), "GraphQL なしでは BFF ディレクトリは作成されない");
+    }
+
+    #[test]
+    fn test_bff_not_created_when_bff_language_none() {
+        // bff_language=None でも service+GraphQL では空ディレクトリが作成される（既存の互換性）
+        let tmp = TempDir::new().unwrap();
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::Service,
+            placement: Some("order".to_string()),
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("order".to_string()),
+                api_styles: vec![ApiStyle::GraphQL],
+                db: None,
+                kafka: false,
+                redis: false,
+                bff_language: None,
+            },
+        };
+        execute_generate_at(&config, tmp.path()).unwrap();
+        let bff_path = tmp.path().join("regions/service/order/server/go/bff");
+        assert!(bff_path.exists(), "bff_language=None でも service+GraphQL では空 BFF ディレクトリが作成される（互換性維持）");
     }
 }

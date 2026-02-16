@@ -1,0 +1,13 @@
+---
+source: tests/snapshot_tests.rs
+expression: sorted
+---
+- Dockerfile
+- README.md
+- analysis_options.yaml
+- lib/app/router.dart
+- lib/main.dart
+- lib/utils/dio_client.dart
+- nginx.conf
+- pubspec.yaml
+- test/widget_test.dart

@@ -76,6 +76,60 @@ fn render_helm(
     Some((tmp, names))
 }
 
+/// helm テンプレートを複数 API スタイル対応でレンダリングする。
+///
+/// api_styles に複数の API 方式（例: vec!["rest", "grpc"]）を指定できる。
+/// Helm テンプレートは言語サブディレクトリを持たないフラット構造のため、
+/// テンプレートディレクトリは templates/helm/ を直接参照する。
+fn render_helm_with_styles(
+    api_styles: Vec<&str>,
+    has_database: bool,
+    has_kafka: bool,
+    has_redis: bool,
+) -> Option<(TempDir, Vec<String>)> {
+    let tpl_dir = template_dir();
+
+    // helm テンプレートディレクトリの存在チェック（フラット構造）
+    let helm_dir = tpl_dir.join("helm");
+    if !helm_dir.exists() {
+        return None;
+    }
+
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let styles: Vec<String> = api_styles.iter().map(|s| s.to_string()).collect();
+    let mut builder = TemplateContextBuilder::new("order-api", "service", "go", "helm")
+        .api_styles(styles);
+
+    if has_database {
+        builder = builder.with_database("postgresql");
+    }
+    if has_kafka {
+        builder = builder.with_kafka();
+    }
+    if has_redis {
+        builder = builder.with_redis();
+    }
+
+    let ctx = builder.build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+
+    Some((tmp, names))
+}
+
 fn read_output(tmp: &TempDir, path: &str) -> String {
     fs::read_to_string(tmp.path().join("output").join(path)).unwrap()
 }
@@ -322,4 +376,214 @@ fn test_helm_no_tera_syntax() {
         assert!(!content.contains("{%"), "Tera syntax {{%% found in {}", name);
         assert!(!content.contains("{#"), "Tera comment {{# found in {}", name);
     }
+}
+
+// =========================================================================
+// Library Chart 連携テスト
+// =========================================================================
+
+/// deployment.yaml が Library Chart の include を呼び出していることを検証
+#[test]
+fn test_helm_deployment_calls_library_chart() {
+    let Some((tmp, _)) = render_helm("go", "rest", false, false, false) else {
+        eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "deployment.yaml");
+    assert!(
+        content.contains(r#"{{- include "k1s0-common.deployment" . }}"#),
+        "deployment.yaml に Library Chart 呼び出し '{{{{- include \"k1s0-common.deployment\" . }}}}' が含まれていません"
+    );
+}
+
+/// service.yaml が Library Chart の include を呼び出していることを検証
+#[test]
+fn test_helm_service_calls_library_chart() {
+    let Some((tmp, _)) = render_helm("go", "rest", false, false, false) else {
+        eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "service.yaml");
+    assert!(
+        content.contains(r#"{{- include "k1s0-common.service" . }}"#),
+        "service.yaml に Library Chart 呼び出し '{{{{- include \"k1s0-common.service\" . }}}}' が含まれていません"
+    );
+}
+
+/// configmap.yaml が Library Chart の include を呼び出していることを検証
+#[test]
+fn test_helm_configmap_calls_library_chart() {
+    let Some((tmp, _)) = render_helm("go", "rest", false, false, false) else {
+        eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "configmap.yaml");
+    assert!(
+        content.contains(r#"{{- include "k1s0-common.configmap" . }}"#),
+        "configmap.yaml に Library Chart 呼び出し '{{{{- include \"k1s0-common.configmap\" . }}}}' が含まれていません"
+    );
+}
+
+/// hpa.yaml が Library Chart の include を呼び出していることを検証
+#[test]
+fn test_helm_hpa_calls_library_chart() {
+    let Some((tmp, _)) = render_helm("go", "rest", false, false, false) else {
+        eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "hpa.yaml");
+    assert!(
+        content.contains(r#"{{- include "k1s0-common.hpa" . }}"#),
+        "hpa.yaml に Library Chart 呼び出し '{{{{- include \"k1s0-common.hpa\" . }}}}' が含まれていません"
+    );
+}
+
+/// pdb.yaml が Library Chart の include を呼び出していることを検証
+#[test]
+fn test_helm_pdb_calls_library_chart() {
+    let Some((tmp, _)) = render_helm("go", "rest", false, false, false) else {
+        eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "pdb.yaml");
+    assert!(
+        content.contains(r#"{{- include "k1s0-common.pdb" . }}"#),
+        "pdb.yaml に Library Chart 呼び出し '{{{{- include \"k1s0-common.pdb\" . }}}}' が含まれていません"
+    );
+}
+
+/// Chart.yaml が k1s0-common への依存を宣言していることを検証
+#[test]
+fn test_helm_chart_yaml_has_library_dependency() {
+    let Some((tmp, _)) = render_helm("go", "rest", false, false, false) else {
+        eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "Chart.yaml");
+    assert!(
+        content.contains("k1s0-common"),
+        "Chart.yaml に Library Chart 依存 'k1s0-common' が含まれていません"
+    );
+}
+
+// =========================================================================
+// REST + gRPC 同時選択時のポートマッピングテスト
+// =========================================================================
+
+/// REST + gRPC 同時選択時: values.yaml に container.grpcPort: 50051 と
+/// service.grpcPort: 50051 が含まれることを検証する。
+/// container.port: 8080 と service.port: 80 も同時に存在すること。
+#[test]
+fn test_helm_rest_grpc_both_ports() {
+    let Some((tmp, _)) = render_helm_with_styles(vec!["rest", "grpc"], false, false, false) else {
+        eprintln!("SKIP: helm テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "values.yaml");
+
+    // container セクションのポート検証
+    assert!(
+        content.contains("port: 8080"),
+        "REST+gRPC: container.port: 8080 が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
+        content
+    );
+    assert!(
+        content.contains("grpcPort: 50051"),
+        "REST+gRPC: container.grpcPort: 50051 が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
+        content
+    );
+
+    // service セクションのポート検証
+    assert!(
+        content.contains("port: 80"),
+        "REST+gRPC: service.port: 80 が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
+        content
+    );
+
+    // grpcPort: 50051 が2箇所（container + service）に存在することを確認
+    let grpc_port_count = content.matches("grpcPort: 50051").count();
+    assert_eq!(
+        grpc_port_count, 2,
+        "REST+gRPC: grpcPort: 50051 は container と service の2箇所に存在すべき (実際: {})\n--- values.yaml ---\n{}",
+        grpc_port_count, content
+    );
+}
+
+/// REST のみ選択時: grpcPort が null であることを検証する。
+/// gRPC ポートは不要なため null が設定される。
+#[test]
+fn test_helm_rest_only_no_grpc_port() {
+    let Some((tmp, _)) = render_helm_with_styles(vec!["rest"], false, false, false) else {
+        eprintln!("SKIP: helm テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "values.yaml");
+
+    // REST のみの場合、grpcPort は null
+    assert!(
+        content.contains("grpcPort: null"),
+        "REST のみ: grpcPort: null が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
+        content
+    );
+
+    // grpcPort: 50051 は存在しないことを確認
+    assert!(
+        !content.contains("grpcPort: 50051"),
+        "REST のみ: grpcPort: 50051 は values.yaml に含まれるべきでない\n--- values.yaml ---\n{}",
+        content
+    );
+
+    // REST ポートは存在すること
+    assert!(
+        content.contains("port: 8080"),
+        "REST のみ: container.port: 8080 が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
+        content
+    );
+    assert!(
+        content.contains("port: 80"),
+        "REST のみ: service.port: 80 が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
+        content
+    );
+}
+
+/// gRPC のみ選択時: grpcPort が 50051 であることを検証する。
+/// container.grpcPort と service.grpcPort の両方に 50051 が設定される。
+#[test]
+fn test_helm_grpc_only_port() {
+    let Some((tmp, _)) = render_helm_with_styles(vec!["grpc"], false, false, false) else {
+        eprintln!("SKIP: helm テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "values.yaml");
+
+    // gRPC のみの場合、grpcPort: 50051 が設定される
+    assert!(
+        content.contains("grpcPort: 50051"),
+        "gRPC のみ: grpcPort: 50051 が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
+        content
+    );
+
+    // grpcPort: 50051 が2箇所（container + service）に存在することを確認
+    let grpc_port_count = content.matches("grpcPort: 50051").count();
+    assert_eq!(
+        grpc_port_count, 2,
+        "gRPC のみ: grpcPort: 50051 は container と service の2箇所に存在すべき (実際: {})\n--- values.yaml ---\n{}",
+        grpc_port_count, content
+    );
+
+    // grpcPort: null は存在しないことを確認
+    assert!(
+        !content.contains("grpcPort: null"),
+        "gRPC のみ: grpcPort: null は values.yaml に含まれるべきでない\n--- values.yaml ---\n{}",
+        content
+    );
 }

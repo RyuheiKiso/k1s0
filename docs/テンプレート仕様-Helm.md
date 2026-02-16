@@ -8,6 +8,7 @@
 
 - **kind = server のみ** — client, library, database では Helm Chart を生成しない
 - サーバーの言語（Go / Rust）に依存しない共通テンプレート
+- **GraphQL BFF**: service Tier で BFF を生成する場合も、BFF は通常のサーバーと同じ扱いで個別の Helm Chart が生成される。BFF 用の Chart は `infra/helm/services/service/{service_name}-bff/` に配置される
 
 ### 生成条件
 
@@ -78,10 +79,81 @@ Helm Chart のテンプレートファイル自体は全て生成されるが、
 
 | テンプレート変数       | 条件                    | 影響範囲                                                     |
 | ---------------------- | ----------------------- | ------------------------------------------------------------ |
-| `api_style`            | `grpc` を含む           | `container.grpcPort` / `service.grpcPort` に `50051` を設定  |
+| `api_styles`           | `"grpc"` を含む         | `container.grpcPort` / `service.grpcPort` に `50051` を設定  |
 | `has_database`         | `true`                  | `vault.secrets` に DB パスワードパスを追加、config.data に database セクション追加 |
 | `has_kafka`            | `true`                  | `vault.secrets` に Kafka シークレットパスを追加、`kafka.enabled: true` |
 | `has_redis`            | `true`                  | `vault.secrets` に Redis シークレットパスを追加、`redis.enabled: true` |
+
+### 複数 API 方式選択時のポートマッピング
+
+REST と gRPC を同時に選択した場合（`api_styles` に `"rest"` と `"grpc"` の両方が含まれる）、Deployment と Service で以下のポート構成となる。
+
+| ポート名 | ポート番号 | 条件 | 用途 |
+|----------|-----------|------|------|
+| `http` | 8080 (container) / 80 (service) | 常に設定 | REST API / ヘルスチェック |
+| `grpc` | 50051 (container) / 50051 (service) | `api_styles` に `"grpc"` を含む場合 | gRPC API |
+
+#### values.yaml での設定
+
+REST のみの場合:
+```yaml
+container:
+  port: 8080
+  grpcPort: null
+
+service:
+  type: ClusterIP
+  port: 80
+  grpcPort: null
+```
+
+REST + gRPC の場合:
+```yaml
+container:
+  port: 8080
+  grpcPort: 50051
+
+service:
+  type: ClusterIP
+  port: 80
+  grpcPort: 50051
+```
+
+#### Library Chart での処理
+
+`k1s0-common` Library Chart の `_deployment.tpl` と `_service.tpl` は、`grpcPort` が `null` でない場合にのみ gRPC ポートを追加する。
+
+Deployment の ports セクション（`_deployment.tpl`）:
+```yaml
+ports:
+  - name: http
+    containerPort: {{ .Values.container.port }}
+    protocol: TCP
+  {{- if .Values.container.grpcPort }}
+  - name: grpc
+    containerPort: {{ .Values.container.grpcPort }}
+    protocol: TCP
+  {{- end }}
+```
+
+Service の ports セクション（`_service.tpl`）:
+```yaml
+ports:
+  - name: http
+    port: {{ .Values.service.port }}
+    targetPort: http
+    protocol: TCP
+  {{- if .Values.service.grpcPort }}
+  - name: grpc
+    port: {{ .Values.service.grpcPort }}
+    targetPort: grpc
+    protocol: TCP
+  {{- end }}
+```
+
+gRPC を含む場合のヘルスチェックは HTTP ポート (`/healthz`) で行い、gRPC ヘルスチェックプロトコルは使用しない。将来的に gRPC ヘルスチェック（`grpc_health_probe`）への移行を検討する。
+
+> **注記**: Helm の Go テンプレートでは YAML の `null` 値に対して `if` 条件は `false` と評価される。したがって `grpcPort: null` の場合 `{{- if .Values.container.grpcPort }}` は偽となり、gRPC ポート定義は出力されない。
 
 ## Tera / Helm 構文衝突の回避
 

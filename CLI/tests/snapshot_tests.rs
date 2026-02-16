@@ -117,3 +117,295 @@ fn test_snapshot_rust_graphql_minimal() {
     sorted.sort();
     insta::assert_yaml_snapshot!("rust_graphql_minimal", sorted);
 }
+
+// =========================================================================
+// ヘルパー関数: Client
+// =========================================================================
+
+fn render_client(framework: &str) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let ctx = TemplateContextBuilder::new("order-app", "service", framework, "client")
+        .framework(framework)
+        .build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+
+    (tmp, names)
+}
+
+// =========================================================================
+// ヘルパー関数: Library
+// =========================================================================
+
+fn render_library(lang: &str) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let ctx = TemplateContextBuilder::new("order-lib", "system", lang, "library")
+        .build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+
+    (tmp, names)
+}
+
+// =========================================================================
+// ヘルパー関数: Database
+// =========================================================================
+
+fn render_database(db_type: &str) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let ctx = TemplateContextBuilder::new("order-db", "service", db_type, "database")
+        .with_database(db_type)
+        .build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+
+    (tmp, names)
+}
+
+// =========================================================================
+// ヘルパー関数: Helm
+// =========================================================================
+
+fn render_helm(
+    api_style: &str,
+    has_database: bool,
+    database_type: &str,
+) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let mut builder = TemplateContextBuilder::new("order-api", "service", "go", "helm")
+        .api_style(api_style);
+
+    if has_database {
+        builder = builder.with_database(database_type);
+    }
+
+    let ctx = builder.build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+
+    (tmp, names)
+}
+
+// =========================================================================
+// ヘルパー関数: CICD
+// =========================================================================
+
+fn render_cicd(
+    lang: &str,
+    kind_for_ctx: &str,
+    api_style: &str,
+    has_database: bool,
+    database_type: &str,
+) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let mut builder = TemplateContextBuilder::new("order-api", "service", lang, kind_for_ctx)
+        .api_style(api_style);
+
+    if has_database {
+        builder = builder.with_database(database_type);
+    }
+
+    let ctx = builder.build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+
+    (tmp, names)
+}
+
+// =========================================================================
+// スナップショットテスト: Client
+// =========================================================================
+
+/// Client: React
+#[test]
+fn test_snapshot_client_react() {
+    let (_, names) = render_client("react");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("client_react", sorted);
+}
+
+/// Client: Flutter
+#[test]
+fn test_snapshot_client_flutter() {
+    let (_, names) = render_client("flutter");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("client_flutter", sorted);
+}
+
+// =========================================================================
+// スナップショットテスト: Library
+// =========================================================================
+
+/// Library: Go
+#[test]
+fn test_snapshot_library_go() {
+    let (_, names) = render_library("go");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("library_go", sorted);
+}
+
+/// Library: Rust
+#[test]
+fn test_snapshot_library_rust() {
+    let (_, names) = render_library("rust");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("library_rust", sorted);
+}
+
+/// Library: TypeScript
+#[test]
+fn test_snapshot_library_typescript() {
+    let (_, names) = render_library("typescript");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("library_typescript", sorted);
+}
+
+/// Library: Dart
+#[test]
+fn test_snapshot_library_dart() {
+    let (_, names) = render_library("dart");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("library_dart", sorted);
+}
+
+// =========================================================================
+// スナップショットテスト: Database
+// =========================================================================
+
+/// Database: PostgreSQL
+#[test]
+fn test_snapshot_database_postgresql() {
+    let (_, names) = render_database("postgresql");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("database_postgresql", sorted);
+}
+
+/// Database: MySQL
+#[test]
+fn test_snapshot_database_mysql() {
+    let (_, names) = render_database("mysql");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("database_mysql", sorted);
+}
+
+/// Database: SQLite
+#[test]
+fn test_snapshot_database_sqlite() {
+    let (_, names) = render_database("sqlite");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("database_sqlite", sorted);
+}
+
+// =========================================================================
+// スナップショットテスト: Helm
+// =========================================================================
+
+/// Helm: REST + PostgreSQL
+#[test]
+fn test_snapshot_helm_rest_postgresql() {
+    let (_, names) = render_helm("rest", true, "postgresql");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("helm_rest_postgresql", sorted);
+}
+
+// =========================================================================
+// スナップショットテスト: CICD
+// =========================================================================
+
+/// CICD: Go REST + PostgreSQL
+#[test]
+fn test_snapshot_cicd_go_rest_postgresql() {
+    let (_, names) = render_cicd("go", "cicd", "rest", true, "postgresql");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("cicd_go_rest_postgresql", sorted);
+}
+
+/// CICD: Rust gRPC (DB なし)
+#[test]
+fn test_snapshot_cicd_rust_grpc() {
+    let (_, names) = render_cicd("rust", "cicd", "grpc", false, "");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("cicd_rust_grpc", sorted);
+}

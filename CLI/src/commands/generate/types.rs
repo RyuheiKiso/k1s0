@@ -226,6 +226,8 @@ pub struct DetailConfig {
     pub kafka: bool,
     /// サーバー: Redis有効
     pub redis: bool,
+    /// サーバー: BFF言語 (service Tier + GraphQL 時のみ)
+    pub bff_language: Option<Language>,
 }
 
 impl Default for DetailConfig {
@@ -236,6 +238,7 @@ impl Default for DetailConfig {
             db: None,
             kafka: false,
             redis: false,
+            bff_language: None,
         }
     }
 }
@@ -346,5 +349,13 @@ mod tests {
         assert!(d.db.is_none());
         assert!(!d.kafka);
         assert!(!d.redis);
+        assert!(d.bff_language.is_none());
+    }
+
+    #[test]
+    fn test_detail_config_default_bff_language_none() {
+        // bff_language のデフォルトは None
+        let d = DetailConfig::default();
+        assert_eq!(d.bff_language, None);
     }
 }
