@@ -1,0 +1,15 @@
+apiVersion: v2
+name: {{ service_name }}
+description: {{ service_name_pascal }} service
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: k1s0-common
+    version: "~0.1.0"
+{% if tier == "business" %}
+    repository: "file://../../../../charts/k1s0-common"
+{% else %}
+    repository: "file://../../../charts/k1s0-common"
+{% endif %}

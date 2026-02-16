@@ -37,7 +37,7 @@ pub fn render(engine: &Tera, template_name: &str, ctx: &tera::Context) -> Result
 /// Tera エンジンをラップし、CLI/templates/ から .tera ファイルを読み込み、
 /// TemplateContext を適用してレンダリングする。
 pub struct TemplateEngine {
-    tera: Tera,
+    pub(crate) tera: Tera,
     template_dir: PathBuf,
 }
 

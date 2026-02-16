@@ -1137,3 +1137,61 @@ fn test_tera_variable_substitution_rust() {
     let dockerfile = fs::read_to_string(output_dir.join("Dockerfile")).unwrap();
     assert!(dockerfile.contains("/app/target/release/user-auth /app/server"));
 }
+
+// =========================================================================
+// パイプライン関連テスト
+// =========================================================================
+
+#[test]
+fn test_go_server_graphql_file_list_pipeline() {
+    let (_, names) = render_server("go", "graphql", false, "", false, false);
+
+    assert!(names.iter().any(|n| n.contains("graphql_resolver")), "graphql_resolver missing");
+    assert!(names.iter().any(|n| n.contains("schema.graphql")), "schema.graphql missing");
+    assert!(names.iter().any(|n| n.contains("gqlgen.yml")), "gqlgen.yml missing");
+    assert!(!names.iter().any(|n| n.contains("rest_handler")), "rest_handler should not exist for GraphQL");
+    assert!(!names.iter().any(|n| n.contains("service.proto")), "service.proto should not exist for GraphQL");
+}
+
+#[test]
+fn test_go_server_multi_api_file_list() {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let ctx = TemplateContextBuilder::new("order-api", "service", "go", "server")
+        .api_styles(vec!["rest".to_string(), "grpc".to_string()])
+        .with_database("postgresql")
+        .build();
+
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+
+    // REST + gRPC の両方が含まれる
+    assert!(names.iter().any(|n| n.contains("rest_handler")), "rest_handler missing for multi-api");
+    assert!(names.iter().any(|n| n.contains("grpc_handler")), "grpc_handler missing for multi-api");
+    assert!(names.iter().any(|n| n.contains("openapi")), "openapi missing for multi-api");
+    assert!(names.iter().any(|n| n.contains("proto/")), "proto missing for multi-api");
+}
+
+#[test]
+fn test_rust_server_rest_no_tera_syntax_in_output() {
+    let (tmp, names) = render_server("rust", "rest", true, "postgresql", false, false);
+
+    for name in &names {
+        let content = read_output(&tmp, name);
+        assert!(!content.contains("{{"), "Tera syntax {{{{ found in {}", name);
+        assert!(!content.contains("{%"), "Tera syntax {{%% found in {}", name);
+        assert!(!content.contains("{#"), "Tera comment {{# found in {}", name);
+    }
+}

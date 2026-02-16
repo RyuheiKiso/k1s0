@@ -723,9 +723,10 @@ pub fn execute_generate_with_config(
     fs::create_dir_all(&output_path)?;
 
     // D-03: テンプレートエンジンによる生成を試み、失敗時はインライン生成にフォールバック
-    let template_dir = resolve_template_dir(base_dir);
-    let template_generated = if template_dir.exists() {
-        try_generate_from_templates(config, &output_path, &template_dir, cli_config)
+    let tpl_dir = resolve_template_dir(base_dir);
+    let template_context = build_template_context(config, cli_config);
+    let template_generated = if tpl_dir.exists() {
+        try_generate_from_templates(config, &output_path, &tpl_dir, cli_config)
     } else {
         false
     };
@@ -747,6 +748,42 @@ pub fn execute_generate_with_config(
     {
         let bff_path = output_path.join("bff");
         fs::create_dir_all(&bff_path)?;
+    }
+
+    // Helm Chart 生成（server のみ）
+    if config.kind == Kind::Server {
+        let helm_output = build_helm_output_path(config, base_dir);
+        if let Some(ref ctx) = template_context {
+            let helm_tpl_dir = tpl_dir.join("helm");
+            if helm_tpl_dir.exists() {
+                match generate_helm_chart(&helm_tpl_dir, ctx, &helm_output) {
+                    Ok(files) => {
+                        println!("Helm Chart を生成しました: {} ファイル", files.len());
+                    }
+                    Err(e) => {
+                        eprintln!("Helm Chart の生成に失敗しました: {}", e);
+                    }
+                }
+            }
+        }
+    }
+
+    // CI/CD ワークフロー生成（全 kind）
+    {
+        let cicd_output = build_cicd_output_path(config, base_dir);
+        if let Some(ref ctx) = template_context {
+            let cicd_tpl_dir = tpl_dir.join("cicd");
+            if cicd_tpl_dir.exists() {
+                match generate_cicd_workflows(&cicd_tpl_dir, ctx, config, &cicd_output) {
+                    Ok(files) => {
+                        println!("CI/CD ワークフローを生成しました: {} ファイル", files.len());
+                    }
+                    Err(e) => {
+                        eprintln!("CI/CD ワークフローの生成に失敗しました: {}", e);
+                    }
+                }
+            }
+        }
     }
 
     // D-08: 後処理コマンドの実行（best-effort）
@@ -895,33 +932,50 @@ fn build_template_context(
     Some(builder.build())
 }
 
-/// D-08: 後処理コマンドを実行する（best-effort）。
+/// D-08: 後処理コマンドを実行する（best-effort、最大3回リトライ）。
 fn run_post_processing(config: &GenerateConfig, output_path: &Path) {
     let commands = determine_post_commands(config);
     for (cmd, args) in &commands {
-        match Command::new(cmd).args(args).current_dir(output_path).output() {
-            Ok(output) => {
-                if !output.status.success() {
+        let max_retries = 3;
+        let mut success = false;
+        for attempt in 1..=max_retries {
+            match Command::new(cmd).args(args).current_dir(output_path).output() {
+                Ok(output) => {
+                    if output.status.success() {
+                        success = true;
+                        break;
+                    }
                     let stderr = String::from_utf8_lossy(&output.stderr);
-                    eprintln!(
-                        "後処理コマンド '{} {}' が失敗しました: {}",
-                        cmd,
-                        args.join(" "),
-                        stderr.trim()
-                    );
-                    eprintln!("手動で実行してください: cd {} && {} {}", output_path.display(), cmd, args.join(" "));
+                    if attempt < max_retries {
+                        eprintln!(
+                            "後処理コマンド '{} {}' が失敗しました（{}/{} 回目）: {}",
+                            cmd, args.join(" "), attempt, max_retries, stderr.trim()
+                        );
+                    } else {
+                        eprintln!(
+                            "後処理コマンド '{} {}' が {} 回のリトライ後も失敗しました: {}",
+                            cmd, args.join(" "), max_retries, stderr.trim()
+                        );
+                        eprintln!("手動で実行してください: cd {} && {} {}", output_path.display(), cmd, args.join(" "));
+                    }
+                }
+                Err(e) => {
+                    if attempt < max_retries {
+                        eprintln!(
+                            "後処理コマンド '{} {}' の実行に失敗しました（{}/{} 回目）: {}",
+                            cmd, args.join(" "), attempt, max_retries, e
+                        );
+                    } else {
+                        eprintln!(
+                            "後処理コマンド '{} {}' が {} 回のリトライ後も実行に失敗しました: {}",
+                            cmd, args.join(" "), max_retries, e
+                        );
+                        eprintln!("手動で実行してください: cd {} && {} {}", output_path.display(), cmd, args.join(" "));
+                    }
                 }
             }
-            Err(e) => {
-                eprintln!(
-                    "後処理コマンド '{} {}' の実行に失敗しました: {}",
-                    cmd,
-                    args.join(" "),
-                    e
-                );
-                eprintln!("手動で実行してください: cd {} && {} {}", output_path.display(), cmd, args.join(" "));
-            }
         }
+        let _ = success; // best-effort: 成功/失敗に関わらず次のコマンドへ
     }
 }
 
@@ -959,6 +1013,15 @@ fn determine_post_commands(config: &GenerateConfig) -> Vec<(&'static str, Vec<&'
                     }
                     LangFw::Language(Language::Rust) => {
                         commands.push(("cargo", vec!["xtask", "codegen"]));
+                    }
+                    _ => {}
+                }
+            }
+            // GraphQL の場合は gqlgen generate
+            if config.detail.api_styles.contains(&ApiStyle::GraphQL) {
+                match &config.lang_fw {
+                    LangFw::Language(Language::Go) => {
+                        commands.push(("go", vec!["run", "github.com/99designs/gqlgen", "generate"]));
                     }
                     _ => {}
                 }
@@ -1058,6 +1121,126 @@ pub fn build_output_path(config: &GenerateConfig, base_dir: &Path) -> PathBuf {
     }
 
     path
+}
+
+/// Helm Chart の出力先パスを構築する。
+fn build_helm_output_path(config: &GenerateConfig, base_dir: &Path) -> PathBuf {
+    let mut path = base_dir.join("infra").join("helm").join("services");
+    path.push(config.tier.as_str());
+
+    // business Tier の場合はドメインディレクトリを挟む
+    if config.tier == Tier::Business {
+        if let Some(ref placement) = config.placement {
+            path.push(placement);
+        }
+    }
+
+    // サービス名
+    if let Some(ref name) = config.detail.name {
+        path.push(name);
+    }
+
+    path
+}
+
+/// CI/CD ワークフローの出力先パスを構築する。
+fn build_cicd_output_path(_config: &GenerateConfig, base_dir: &Path) -> PathBuf {
+    base_dir.join(".github").join("workflows")
+}
+
+/// Helm Chart テンプレートをレンダリングする。
+fn generate_helm_chart(
+    helm_tpl_dir: &Path,
+    ctx: &crate::template::context::TemplateContext,
+    output_dir: &Path,
+) -> Result<Vec<PathBuf>> {
+    let mut engine = TemplateEngine::new(helm_tpl_dir.parent().unwrap())?;
+    // helm ディレクトリ直下のテンプレートを直接レンダリング
+    let tera_ctx = ctx.to_tera_context();
+    let mut generated = Vec::new();
+
+    for entry in walkdir::WalkDir::new(helm_tpl_dir)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
+        let path = entry.path();
+        if path.is_dir() || path.extension().and_then(|e| e.to_str()) != Some("tera") {
+            continue;
+        }
+
+        let relative = path.strip_prefix(helm_tpl_dir)?;
+        let template_content = fs::read_to_string(path)?;
+        let template_name = relative.to_string_lossy().replace('\\', "/");
+
+        engine.tera.add_raw_template(&template_name, &template_content)?;
+        let rendered = engine.tera.render(&template_name, &tera_ctx)?;
+
+        // .tera 拡張子を除去
+        let output_relative = relative.to_string_lossy().replace('\\', "/");
+        let output_relative = if output_relative.ends_with(".tera") {
+            &output_relative[..output_relative.len() - 5]
+        } else {
+            &output_relative
+        };
+        let output_path = output_dir.join(output_relative);
+
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(&output_path, rendered)?;
+        generated.push(output_path);
+    }
+
+    Ok(generated)
+}
+
+/// CI/CD ワークフローテンプレートをレンダリングする。
+fn generate_cicd_workflows(
+    cicd_tpl_dir: &Path,
+    ctx: &crate::template::context::TemplateContext,
+    config: &GenerateConfig,
+    output_dir: &Path,
+) -> Result<Vec<PathBuf>> {
+    let tera_ctx = ctx.to_tera_context();
+    let mut generated = Vec::new();
+    let mut tera = tera::Tera::default();
+    crate::template::filters::register_filters(&mut tera);
+
+    // CI ワークフロー（全 kind）
+    let ci_template = cicd_tpl_dir.join("ci.yaml.tera");
+    if ci_template.exists() {
+        let template_content = fs::read_to_string(&ci_template)?;
+        tera.add_raw_template("ci.yaml", &template_content)?;
+        let rendered = tera.render("ci.yaml", &tera_ctx)?;
+
+        let service_name = config.detail.name.as_deref().unwrap_or("service");
+        let output_path = output_dir.join(format!("{}-ci.yaml", service_name));
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(&output_path, rendered)?;
+        generated.push(output_path);
+    }
+
+    // Deploy ワークフロー（server のみ）
+    if config.kind == Kind::Server {
+        let deploy_template = cicd_tpl_dir.join("deploy.yaml.tera");
+        if deploy_template.exists() {
+            let template_content = fs::read_to_string(&deploy_template)?;
+            tera.add_raw_template("deploy.yaml", &template_content)?;
+            let rendered = tera.render("deploy.yaml", &tera_ctx)?;
+
+            let service_name = config.detail.name.as_deref().unwrap_or("service");
+            let output_path = output_dir.join(format!("{}-deploy.yaml", service_name));
+            if let Some(parent) = output_path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(&output_path, rendered)?;
+            generated.push(output_path);
+        }
+    }
+
+    Ok(generated)
 }
 
 /// サーバーひな形を生成する。
