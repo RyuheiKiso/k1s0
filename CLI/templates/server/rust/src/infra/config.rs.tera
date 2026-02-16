@@ -6,51 +6,62 @@ use std::fs;
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
+{% if api_style == "grpc" %}
+    pub grpc: Option<GrpcConfig>,
+{% endif %}
 {% if has_database %}
-    pub database: DatabaseConfig,
+    pub database: Option<DatabaseConfig>,
 {% endif %}
 {% if has_kafka %}
-    pub kafka: KafkaConfig,
+    pub kafka: Option<KafkaConfig>,
 {% endif %}
 {% if has_redis %}
-    pub redis: RedisConfig,
+    pub redis: Option<RedisConfig>,
 {% endif %}
+    pub redis_session: Option<RedisSessionConfig>,
     pub observability: ObservabilityConfig,
+    pub auth: AuthConfig,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {
     pub name: String,
     pub version: String,
+    pub tier: String,
     pub environment: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ServerConfig {
-    pub port: String,
-    pub read_timeout_sec: u64,
-    pub write_timeout_sec: u64,
+    pub host: String,
+    pub port: u16,
+    pub read_timeout: String,
+    pub write_timeout: String,
+    pub shutdown_timeout: String,
 }
+
+{% if api_style == "grpc" %}
+#[derive(Debug, Deserialize)]
+pub struct GrpcConfig {
+    pub port: u16,
+    pub max_recv_msg_size: Option<usize>,
+}
+{% endif %}
 
 {% if has_database %}
 #[derive(Debug, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
     pub port: u16,
+    pub name: String,
     pub user: String,
     pub password: String,
-    pub name: String,
 {% if database_type == "postgresql" %}
     pub ssl_mode: String,
 {% endif %}
-    pub pool: PoolConfig,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct PoolConfig {
-    pub max_open: u32,
-    pub max_idle: u32,
-    pub max_lifetime_sec: u64,
+    pub max_open_conns: u32,
+    pub max_idle_conns: u32,
+    pub conn_max_lifetime: String,
 }
 
 impl DatabaseConfig {
@@ -76,24 +87,98 @@ impl DatabaseConfig {
 #[derive(Debug, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
-    pub schema_registry: String,
+    pub consumer_group: String,
+    pub security_protocol: String,
+    pub sasl: Option<KafkaSaslConfig>,
+    pub tls: Option<KafkaTlsConfig>,
+    pub topics: KafkaTopics,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct KafkaSaslConfig {
+    pub mechanism: String,
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct KafkaTlsConfig {
+    pub ca_cert_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct KafkaTopics {
+    pub publish: Vec<String>,
+    pub subscribe: Vec<String>,
 }
 {% endif %}
 
 {% if has_redis %}
 #[derive(Debug, Deserialize)]
 pub struct RedisConfig {
-    pub addr: String,
+    pub host: String,
+    pub port: u16,
     pub password: String,
     pub db: u32,
+    pub pool_size: u32,
 }
 {% endif %}
 
 #[derive(Debug, Deserialize)]
+pub struct RedisSessionConfig {
+    pub host: String,
+    pub port: u16,
+    pub password: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct ObservabilityConfig {
-    pub trace_endpoint: String,
-    pub metric_endpoint: String,
-    pub log_level: String,
+    pub log: LogConfig,
+    pub trace: TraceConfig,
+    pub metrics: MetricsConfig,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LogConfig {
+    pub level: String,
+    pub format: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TraceConfig {
+    pub enabled: bool,
+    pub endpoint: String,
+    pub sample_rate: f64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MetricsConfig {
+    pub enabled: bool,
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AuthConfig {
+    pub jwt: JwtConfig,
+    pub oidc: Option<OidcConfig>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct JwtConfig {
+    pub issuer: String,
+    pub audience: String,
+    pub public_key_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OidcConfig {
+    pub discovery_url: String,
+    pub client_id: String,
+    pub client_secret: String,
+    pub redirect_uri: String,
+    pub scopes: Vec<String>,
+    pub jwks_uri: String,
+    pub jwks_cache_ttl: Option<String>,
 }
 
 impl Config {

@@ -52,7 +52,7 @@ resource "kubernetes_manifest" "kafka_cluster" {
         storage = {
           type = "persistent-claim"
           size = var.kafka_storage_size
-          class = "ceph-block"
+          class = "ceph-block-fast"
         }
         resources = {
           requests = {

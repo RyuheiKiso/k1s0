@@ -1,12 +1,21 @@
 app:
   name: "{{ service_name }}"
   version: "0.1.0"
-  environment: "development"
+  tier: "{{ tier }}"                # system | business | service
+  environment: "dev"             # dev | staging | prod
 
 server:
-  port: "8080"
-  read_timeout_sec: 30
-  write_timeout_sec: 30
+  host: "0.0.0.0"
+  port: 8080
+  read_timeout: "30s"
+  write_timeout: "30s"
+  shutdown_timeout: "10s"
+
+{% if api_style == "grpc" %}
+grpc:
+  port: 50051
+  max_recv_msg_size: 4194304     # 4MB
+{% endif %}
 
 {% if has_database %}
 database:
@@ -16,33 +25,71 @@ database:
 {% elif database_type == "mysql" %}
   port: 3306
 {% endif %}
-  user: "{{ service_name_snake }}"
-  password: ""
-  name: "{{ service_name_snake }}"
+  name: "{{ service_name_snake }}_db"
+  user: "app"
+  password: ""                   # Vault パス: secret/data/k1s0/{{ tier }}/{{ service_name_snake }}/database キー: password
 {% if database_type == "postgresql" %}
-  ssl_mode: "disable"
+  ssl_mode: "disable"            # disable | require | verify-full
 {% endif %}
-  pool:
-    max_open: 25
-    max_idle: 5
-    max_lifetime_sec: 300
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: "5m"
 {% endif %}
 
 {% if has_kafka %}
 kafka:
   brokers:
-    - "localhost:9092"
-  schema_registry: "http://localhost:8081"
+    - "kafka-0.messaging.svc.cluster.local:9092"
+    - "kafka-1.messaging.svc.cluster.local:9092"
+  consumer_group: "{{ service_name_snake }}.default"
+  security_protocol: "PLAINTEXT"   # PLAINTEXT（dev） | SASL_SSL（staging/prod）
+  sasl:
+    mechanism: "SCRAM-SHA-512"
+    username: ""                   # Vault パス: secret/data/k1s0/system/kafka/sasl キー: username
+    password: ""                   # Vault パス: secret/data/k1s0/system/kafka/sasl キー: password
+  tls:
+    ca_cert_path: ""
+  topics:
+    publish: []
+    subscribe: []
 {% endif %}
 
 {% if has_redis %}
 redis:
-  addr: "localhost:6379"
-  password: ""
+  host: "redis.k1s0-system.svc.cluster.local"
+  port: 6379
+  password: ""                   # Vault パス: secret/data/k1s0/{{ tier }}/{{ service_name_snake }}/redis キー: password
   db: 0
+  pool_size: 10
 {% endif %}
 
+redis_session:                   # BFF Proxy 用セッションストア（BFF セッション管理で使用）
+  host: "redis-session.k1s0-system.svc.cluster.local"  # prod 環境では Redis Sentinel 構成（Master 1 + Replica 2 + Sentinel 3）。詳細は認証認可設計.md の「BFF セッション管理」を参照
+  port: 6380
+  password: ""                   # Vault パス: secret/data/k1s0/system/bff/redis キー: password（認証認可設計.md 参照）
+
 observability:
-  trace_endpoint: "localhost:4317"
-  metric_endpoint: "localhost:4317"
-  log_level: "info"
+  log:
+    level: "info"                # debug | info | warn | error
+    format: "json"               # json | text
+  trace:
+    enabled: true
+    endpoint: "jaeger.observability.svc.cluster.local:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: "/metrics"
+
+auth:
+  jwt:
+    issuer: "https://auth.k1s0.internal.example.com/realms/k1s0"
+    audience: "k1s0-api"
+    public_key_path: ""
+  oidc:
+    discovery_url: "https://auth.k1s0.internal.example.com/realms/k1s0/.well-known/openid-configuration"
+    client_id: "k1s0-bff"
+    client_secret: ""            # Vault パス: secret/data/k1s0/system/bff/oidc キー: client_secret
+    redirect_uri: "https://app.k1s0.internal.example.com/callback"
+    scopes: ["openid", "profile", "email"]
+    jwks_uri: "https://auth.k1s0.internal.example.com/realms/k1s0/protocol/openid-connect/certs"
+    jwks_cache_ttl: "10m"
