@@ -560,3 +560,319 @@ class TestGoProtoContent:
         assert "Get{{ service_name_pascal }}" in self.content
         assert "List{{ service_name_pascal }}" in self.content
         assert "Create{{ service_name_pascal }}" in self.content
+
+
+class TestGoOapiCodegenYamlContent:
+    """テンプレート仕様-サーバー.md: oapi-codegen.yaml.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (SERVER_GO / "oapi-codegen.yaml.tera").read_text(encoding="utf-8")
+
+    def test_rest_conditional(self) -> None:
+        assert '{% if api_style == "rest" %}' in self.content
+
+    def test_package_name(self) -> None:
+        assert "package: openapi" in self.content
+
+    def test_gin_server_generation(self) -> None:
+        assert "gin-server: true" in self.content
+
+    def test_models_generation(self) -> None:
+        assert "models: true" in self.content
+
+    def test_embedded_spec(self) -> None:
+        assert "embedded-spec: true" in self.content
+
+    def test_output_path(self) -> None:
+        assert "internal/adapter/handler/openapi_gen.go" in self.content
+
+
+class TestGoGqlgenYmlContent:
+    """テンプレート仕様-サーバー.md: gqlgen.yml.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (SERVER_GO / "gqlgen.yml.tera").read_text(encoding="utf-8")
+
+    def test_graphql_conditional(self) -> None:
+        assert '{% if api_style == "graphql" %}' in self.content
+
+    def test_schema_path(self) -> None:
+        assert "api/graphql/*.graphql" in self.content
+
+    def test_exec_package(self) -> None:
+        assert "package: graphql" in self.content
+
+    def test_resolver_layout(self) -> None:
+        assert "layout: follow-schema" in self.content
+
+
+class TestGoSchemaGraphqlContent:
+    """テンプレート仕様-サーバー.md: schema.graphql.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (SERVER_GO / "api" / "graphql" / "schema.graphql.tera").read_text(encoding="utf-8")
+
+    def test_graphql_conditional(self) -> None:
+        assert '{% if api_style == "graphql" %}' in self.content
+
+    def test_query_type(self) -> None:
+        assert "type Query" in self.content
+
+    def test_entity_type(self) -> None:
+        assert "{{ service_name_pascal }}" in self.content
+
+    def test_create_input(self) -> None:
+        assert "Create{{ service_name_pascal }}Input" in self.content
+
+
+class TestGoBufYamlContent:
+    """テンプレート仕様-サーバー.md: buf.yaml.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (SERVER_GO / "buf.yaml.tera").read_text(encoding="utf-8")
+
+    def test_grpc_conditional(self) -> None:
+        assert '{% if api_style == "grpc" %}' in self.content
+
+    def test_version(self) -> None:
+        assert "version: v2" in self.content
+
+    def test_lint_standard(self) -> None:
+        assert "STANDARD" in self.content
+
+    def test_breaking_file(self) -> None:
+        assert "FILE" in self.content
+
+
+class TestGoBufGenYamlContent:
+    """テンプレート仕様-サーバー.md: buf.gen.yaml.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (SERVER_GO / "buf.gen.yaml.tera").read_text(encoding="utf-8")
+
+    def test_grpc_conditional(self) -> None:
+        assert '{% if api_style == "grpc" %}' in self.content
+
+    def test_protobuf_plugin(self) -> None:
+        assert "buf.build/protocolbuffers/go" in self.content
+
+    def test_grpc_plugin(self) -> None:
+        assert "buf.build/grpc/go" in self.content
+
+    def test_output_path(self) -> None:
+        assert "api/proto/gen" in self.content
+
+
+class TestGoReadmeContent:
+    """テンプレート仕様-サーバー.md: Go README.md.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (SERVER_GO / "README.md.tera").read_text(encoding="utf-8")
+
+    def test_service_name_variable(self) -> None:
+        assert "{{ service_name }}" in self.content
+
+    def test_setup_section(self) -> None:
+        assert "go mod tidy" in self.content
+
+    def test_run_command(self) -> None:
+        assert "go run" in self.content
+
+    def test_test_command(self) -> None:
+        assert "go test" in self.content
+
+    def test_directory_structure(self) -> None:
+        assert "cmd/" in self.content
+        assert "internal/" in self.content
+        assert "config/" in self.content
+
+
+class TestRustReadmeContent:
+    """テンプレート仕様-サーバー.md: Rust README.md.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (SERVER_RUST / "README.md.tera").read_text(encoding="utf-8")
+
+    def test_service_name_variable(self) -> None:
+        assert "{{ service_name }}" in self.content
+
+    def test_setup_section(self) -> None:
+        assert "cargo build" in self.content
+
+    def test_run_command(self) -> None:
+        assert "cargo run" in self.content
+
+    def test_test_command(self) -> None:
+        assert "cargo test" in self.content
+
+    def test_directory_structure(self) -> None:
+        assert "src/" in self.content
+        assert "Cargo.toml" in self.content
+
+
+class TestRustBuildRsContent:
+    """テンプレート仕様-サーバー.md: build.rs.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (SERVER_RUST / "build.rs.tera").read_text(encoding="utf-8")
+
+    def test_grpc_conditional(self) -> None:
+        assert '{% if api_style == "grpc" %}' in self.content
+
+    def test_tonic_build(self) -> None:
+        assert "tonic_build" in self.content
+
+    def test_build_server(self) -> None:
+        assert "build_server(true)" in self.content
+
+    def test_compile_protos(self) -> None:
+        assert "compile_protos" in self.content
+
+
+class TestRustBufYamlContent:
+    """テンプレート仕様-サーバー.md: Rust buf.yaml.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (SERVER_RUST / "buf.yaml.tera").read_text(encoding="utf-8")
+
+    def test_grpc_conditional(self) -> None:
+        assert '{% if api_style == "grpc" %}' in self.content
+
+    def test_version(self) -> None:
+        assert "version: v2" in self.content
+
+    def test_lint_standard(self) -> None:
+        assert "STANDARD" in self.content
+
+
+class TestGoUsecaseTestContent:
+    """テンプレート仕様-サーバー.md: usecase_test.go.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (
+            SERVER_GO / "internal" / "usecase" / "usecase_test.go.tera"
+        ).read_text(encoding="utf-8")
+
+    def test_package_usecase(self) -> None:
+        assert "package usecase" in self.content
+
+    def test_testify_imports(self) -> None:
+        assert "testify/assert" in self.content
+        assert "testify/require" in self.content
+
+    def test_gomock_conditional(self) -> None:
+        assert "{% if has_database %}" in self.content
+        assert "gomock" in self.content
+
+    def test_test_functions(self) -> None:
+        assert "TestGetByID" in self.content
+        assert "TestGetAll" in self.content
+        assert "TestCreate" in self.content
+
+
+class TestGoHandlerTestContent:
+    """テンプレート仕様-サーバー.md: handler_test.go.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (
+            SERVER_GO / "internal" / "adapter" / "handler" / "handler_test.go.tera"
+        ).read_text(encoding="utf-8")
+
+    def test_rest_test(self) -> None:
+        assert '{% if api_style == "rest" %}' in self.content
+        assert "httptest" in self.content
+        assert "TestList" in self.content
+
+    def test_grpc_test(self) -> None:
+        assert '{% if api_style == "grpc" %}' in self.content
+        assert "bufconn" in self.content
+
+    def test_graphql_test(self) -> None:
+        assert '{% if api_style == "graphql" %}' in self.content
+        assert "NewResolver" in self.content
+
+
+class TestGoRepositoryTestContent:
+    """テンプレート仕様-サーバー.md: repository_test.go.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (
+            SERVER_GO / "internal" / "infra" / "persistence" / "repository_test.go.tera"
+        ).read_text(encoding="utf-8")
+
+    def test_database_conditional(self) -> None:
+        assert "{% if has_database %}" in self.content
+
+    def test_testcontainers(self) -> None:
+        assert "testcontainers" in self.content
+
+    def test_integration_skip(self) -> None:
+        assert "testing.Short()" in self.content
+
+    def test_postgresql_container(self) -> None:
+        assert "postgres" in self.content
+
+    def test_mysql_container(self) -> None:
+        assert "mysql" in self.content
+
+
+class TestRustIntegrationTestContent:
+    """テンプレート仕様-サーバー.md: Rust tests/integration_test.rs.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (SERVER_RUST / "tests" / "integration_test.rs.tera").read_text(encoding="utf-8")
+
+    def test_rest_test(self) -> None:
+        assert '{% if api_style == "rest" %}' in self.content
+        assert "StatusCode::OK" in self.content
+
+    def test_grpc_test(self) -> None:
+        assert '{% if api_style == "grpc" %}' in self.content
+
+    def test_graphql_test(self) -> None:
+        assert '{% if api_style == "graphql" %}' in self.content
+        assert "build_schema" in self.content
+
+
+# ============================================================================
+# コンセプト.md ギャップ補完テスト
+# ============================================================================
+
+
+class TestOpenTelemetryInServerTemplates:
+    """コンセプト.md: 可観測性のゼロコンフィグ — OpenTelemetry 初期化コードがサーバーテンプレートに含まれるか。"""
+
+    def test_go_main_otel_import(self) -> None:
+        """コンセプト.md: Go テンプレートに OpenTelemetry のインポートが含まれる。"""
+        content = (SERVER_GO / "cmd" / "main.go.tera").read_text(encoding="utf-8")
+        assert "opentelemetry" in content.lower() or "otelgin" in content
+
+    def test_go_main_otel_middleware(self) -> None:
+        """コンセプト.md: Go テンプレートに otelgin ミドルウェアが設定されている。"""
+        content = (SERVER_GO / "cmd" / "main.go.tera").read_text(encoding="utf-8")
+        assert "otelgin.Middleware" in content
+
+    def test_go_mod_otel_dependency(self) -> None:
+        """コンセプト.md: Go go.mod に OpenTelemetry 依存が含まれる。"""
+        content = (SERVER_GO / "go.mod.tera").read_text(encoding="utf-8")
+        assert "go.opentelemetry.io/otel" in content
+
+    def test_rust_cargo_otel_dependency(self) -> None:
+        """コンセプト.md: Rust Cargo.toml に OpenTelemetry 依存が含まれる。"""
+        content = (SERVER_RUST / "Cargo.toml.tera").read_text(encoding="utf-8")
+        assert "opentelemetry" in content
+
+    def test_rust_main_tracing_subscriber(self) -> None:
+        """コンセプト.md: Rust テンプレートに tracing_subscriber が設定されている。"""
+        content = (SERVER_RUST / "src" / "main.rs.tera").read_text(encoding="utf-8")
+        assert "tracing_subscriber" in content
+
+    def test_go_config_observability_section(self) -> None:
+        """コンセプト.md: Go config.yaml に observability セクションが含まれる。"""
+        content = (SERVER_GO / "config" / "config.yaml.tera").read_text(encoding="utf-8")
+        assert "observability:" in content
+
+    def test_rust_config_observability_section(self) -> None:
+        """コンセプト.md: Rust config.yaml に observability セクションが含まれる。"""
+        content = (SERVER_RUST / "config" / "config.yaml.tera").read_text(encoding="utf-8")
+        assert "observability:" in content

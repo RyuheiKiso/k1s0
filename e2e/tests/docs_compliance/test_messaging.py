@@ -203,3 +203,121 @@ class TestSchemaRegistry:
 
     def test_part_of_label(self) -> None:
         assert "app.kubernetes.io/part-of" in self.content
+
+
+class TestTierPartitionCounts:
+    """メッセージング設計.md: Tier 別パーティション数の検証。"""
+
+    def setup_method(self) -> None:
+        path = MSG / "kafka" / "topics.yaml"
+        content = path.read_text(encoding="utf-8")
+        self.docs = [d for d in yaml.safe_load_all(content) if d]
+
+    def test_system_tier_partitions_6(self) -> None:
+        """メッセージング設計.md: system Tier パーティション数=6。"""
+        system_topics = [
+            d for d in self.docs
+            if d["metadata"]["labels"].get("tier") == "system"
+            and not d["metadata"]["name"].endswith(".dlq")
+        ]
+        for topic in system_topics:
+            assert topic["spec"]["partitions"] == 6, (
+                f"Topic '{topic['metadata']['name']}' のパーティション数が 6 ではありません"
+            )
+
+    def test_business_tier_partitions_3(self) -> None:
+        """メッセージング設計.md: business Tier パーティション数=3。"""
+        biz_topics = [
+            d for d in self.docs
+            if d["metadata"]["labels"].get("tier") == "business"
+            and not d["metadata"]["name"].endswith(".dlq")
+        ]
+        for topic in biz_topics:
+            assert topic["spec"]["partitions"] == 3, (
+                f"Topic '{topic['metadata']['name']}' のパーティション数が 3 ではありません"
+            )
+
+    def test_service_tier_partitions_3(self) -> None:
+        """メッセージング設計.md: service Tier パーティション数=3。"""
+        svc_topics = [
+            d for d in self.docs
+            if d["metadata"]["labels"].get("tier") == "service"
+            and not d["metadata"]["name"].endswith(".dlq")
+        ]
+        for topic in svc_topics:
+            assert topic["spec"]["partitions"] == 3, (
+                f"Topic '{topic['metadata']['name']}' のパーティション数が 3 ではありません"
+            )
+
+
+class TestSagaWorkflowDefinition:
+    """メッセージング設計.md: Saga ワークフロー定義ファイルの検証。"""
+
+    SAGA = ROOT / "infra" / "messaging" / "saga" / "workflows"
+
+    def test_order_fulfillment_yaml_exists(self) -> None:
+        """メッセージング設計.md: order-fulfillment.yaml が存在。"""
+        assert (self.SAGA / "order-fulfillment.yaml").exists()
+
+    def test_order_fulfillment_name(self) -> None:
+        """メッセージング設計.md: ワークフロー名が order-fulfillment。"""
+        path = self.SAGA / "order-fulfillment.yaml"
+        config = yaml.safe_load(path.read_text(encoding="utf-8"))
+        assert config["name"] == "order-fulfillment"
+
+    def test_order_fulfillment_has_steps(self) -> None:
+        """メッセージング設計.md: steps が定義されている。"""
+        path = self.SAGA / "order-fulfillment.yaml"
+        config = yaml.safe_load(path.read_text(encoding="utf-8"))
+        assert "steps" in config
+        assert len(config["steps"]) >= 3
+
+    def test_order_fulfillment_reserve_inventory(self) -> None:
+        """メッセージング設計.md: reserve-inventory ステップが存在。"""
+        path = self.SAGA / "order-fulfillment.yaml"
+        config = yaml.safe_load(path.read_text(encoding="utf-8"))
+        step_names = [s["name"] for s in config["steps"]]
+        assert "reserve-inventory" in step_names
+
+    def test_order_fulfillment_process_payment(self) -> None:
+        """メッセージング設計.md: process-payment ステップが存在。"""
+        path = self.SAGA / "order-fulfillment.yaml"
+        config = yaml.safe_load(path.read_text(encoding="utf-8"))
+        step_names = [s["name"] for s in config["steps"]]
+        assert "process-payment" in step_names
+
+    def test_order_fulfillment_confirm_order(self) -> None:
+        """メッセージング設計.md: confirm-order ステップが存在。"""
+        path = self.SAGA / "order-fulfillment.yaml"
+        config = yaml.safe_load(path.read_text(encoding="utf-8"))
+        step_names = [s["name"] for s in config["steps"]]
+        assert "confirm-order" in step_names
+
+    def test_steps_have_compensate(self) -> None:
+        """メッセージング設計.md: 各ステップに compensate が定義されている。"""
+        path = self.SAGA / "order-fulfillment.yaml"
+        config = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for step in config["steps"]:
+            assert "compensate" in step, (
+                f"ステップ '{step['name']}' に compensate が定義されていません"
+            )
+
+
+class TestEnvironmentClusterConfig:
+    """メッセージング設計.md: 環境別クラスタ構成の検証。"""
+
+    def test_kafka_cluster_has_prod_replicas_3(self) -> None:
+        """メッセージング設計.md: prod 環境は Kafka ブローカー 3 台。"""
+        path = MSG / "kafka" / "kafka-cluster.yaml"
+        content = path.read_text(encoding="utf-8")
+        docs = list(yaml.safe_load_all(content))
+        kafka = docs[0]
+        assert kafka["spec"]["kafka"]["replicas"] == 3
+
+    def test_kafka_cluster_has_zookeeper_replicas_3(self) -> None:
+        """メッセージング設計.md: prod 環境は ZooKeeper 3 ノード。"""
+        path = MSG / "kafka" / "kafka-cluster.yaml"
+        content = path.read_text(encoding="utf-8")
+        docs = list(yaml.safe_load_all(content))
+        kafka = docs[0]
+        assert kafka["spec"]["zookeeper"]["replicas"] == 3

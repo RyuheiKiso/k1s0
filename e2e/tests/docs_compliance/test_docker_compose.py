@@ -123,6 +123,129 @@ class TestDockerComposeServices:
         assert self.config["networks"]["default"]["name"] == "k1s0-network"
 
 
+class TestDockerComposeHealthchecks:
+    """docker-compose設計.md: healthcheck 設定の検証。"""
+
+    def setup_method(self) -> None:
+        config_path = ROOT / "docker-compose.yaml"
+        with open(config_path, encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    @pytest.mark.parametrize(
+        "service,test_cmd",
+        [
+            ("postgres", "pg_isready"),
+            ("mysql", "mysqladmin"),
+            ("redis", "redis-cli"),
+            ("kafka", "kafka-broker-api-versions.sh"),
+            ("schema-registry", "curl"),
+            ("redis-session", "redis-cli"),
+        ],
+    )
+    def test_healthcheck_defined(self, service: str, test_cmd: str) -> None:
+        """docker-compose設計.md: 各サービスに healthcheck が定義されていること。"""
+        svc = self.config["services"][service]
+        assert "healthcheck" in svc, f"{service} に healthcheck が定義されていません"
+        test_str = " ".join(str(x) for x in svc["healthcheck"]["test"])
+        assert test_cmd in test_str, f"{service} の healthcheck に {test_cmd} が含まれていません"
+
+
+class TestDockerComposeVolumeMounts:
+    """docker-compose設計.md: volumes マウント先テスト。"""
+
+    def setup_method(self) -> None:
+        config_path = ROOT / "docker-compose.yaml"
+        with open(config_path, encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    @pytest.mark.parametrize(
+        "service,expected_mount",
+        [
+            ("postgres", "/var/lib/postgresql/data"),
+            ("mysql", "/var/lib/mysql"),
+            ("redis", "/data"),
+            ("kafka", "/bitnami/kafka"),
+            ("redis-session", "/data"),
+            ("prometheus", "/prometheus"),
+            ("loki", "/loki"),
+            ("grafana", "/var/lib/grafana"),
+        ],
+    )
+    def test_volume_mount(self, service: str, expected_mount: str) -> None:
+        """docker-compose設計.md: 各サービスのボリュームマウント先が仕様通りであること。"""
+        svc = self.config["services"][service]
+        volumes_str = str(svc.get("volumes", []))
+        assert expected_mount in volumes_str, (
+            f"{service} のボリュームに {expected_mount} が含まれていません"
+        )
+
+
+class TestDockerComposeDependsOn:
+    """docker-compose設計.md: depends_on 依存関係テスト。"""
+
+    def setup_method(self) -> None:
+        config_path = ROOT / "docker-compose.yaml"
+        with open(config_path, encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_kafka_ui_depends_on_kafka(self) -> None:
+        deps = self.config["services"]["kafka-ui"]["depends_on"]
+        assert "kafka" in deps
+
+    def test_kafka_ui_depends_on_schema_registry(self) -> None:
+        deps = self.config["services"]["kafka-ui"]["depends_on"]
+        assert "schema-registry" in deps
+
+    def test_schema_registry_depends_on_kafka(self) -> None:
+        deps = self.config["services"]["schema-registry"]["depends_on"]
+        assert "kafka" in deps
+
+    def test_keycloak_depends_on_postgres(self) -> None:
+        deps = self.config["services"]["keycloak"]["depends_on"]
+        assert "postgres" in deps
+
+    def test_grafana_depends_on_prometheus(self) -> None:
+        deps = self.config["services"]["grafana"]["depends_on"]
+        assert "prometheus" in deps or "prometheus" in [d if isinstance(d, str) else "" for d in deps]
+
+
+class TestDockerComposeEnvironment:
+    """docker-compose設計.md: environment 詳細テスト。"""
+
+    def setup_method(self) -> None:
+        config_path = ROOT / "docker-compose.yaml"
+        with open(config_path, encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_kafka_environment(self) -> None:
+        env = self.config["services"]["kafka"]["environment"]
+        assert env["KAFKA_CFG_NODE_ID"] == 0
+        assert "broker" in env["KAFKA_CFG_PROCESS_ROLES"]
+        assert "controller" in env["KAFKA_CFG_PROCESS_ROLES"]
+        assert "PLAINTEXT" in env["KAFKA_CFG_LISTENERS"]
+
+    def test_schema_registry_environment(self) -> None:
+        env = self.config["services"]["schema-registry"]["environment"]
+        assert env["SCHEMA_REGISTRY_HOST_NAME"] == "schema-registry"
+        assert "kafka:9092" in env["SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS"]
+        assert "8081" in env["SCHEMA_REGISTRY_LISTENERS"]
+
+    def test_keycloak_environment(self) -> None:
+        env = self.config["services"]["keycloak"]["environment"]
+        assert env["KC_DB"] == "postgres"
+        assert env["KC_DB_URL_HOST"] == "postgres"
+        assert env["KC_DB_URL_DATABASE"] == "keycloak"
+        assert env["KEYCLOAK_ADMIN"] == "admin"
+
+
+class TestDockerComposeOverrideExample:
+    """docker-compose設計.md: docker-compose.override.yaml.example 存在テスト。"""
+
+    def test_override_example_exists(self) -> None:
+        path = ROOT / "docker-compose.override.yaml.example"
+        assert path.exists(), "docker-compose.override.yaml.example が存在しません"
+
+
 class TestInitDBScript:
     """docker-compose設計.md: DB初期化スクリプトの検証。"""
 

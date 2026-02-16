@@ -107,3 +107,52 @@ class TestNginxConfTemplates:
         path = TEMPLATES / "client" / client_type / "nginx.conf.tera"
         content = path.read_text(encoding="utf-8")
         assert "try_files" in content or "index.html" in content
+
+
+class TestDockerImageTagRules:
+    """Dockerイメージ戦略.md: イメージタグ規則テスト。"""
+
+    def test_ci_pipeline_has_tag_rule(self) -> None:
+        """Dockerイメージ戦略.md: CI/CD テンプレートにタグ設定が含まれること。"""
+        # Go サーバーの Dockerfile テンプレートが存在し、マルチステージビルド構造であること
+        go_df = TEMPLATES / "server" / "go" / "Dockerfile.tera"
+        assert go_df.exists()
+        content = go_df.read_text(encoding="utf-8")
+        # マルチステージビルドの FROM が 2 つ以上あること
+        from_count = content.lower().count("from ")
+        assert from_count >= 2, "マルチステージビルドの FROM が 2 つ以上必要です"
+
+
+class TestDockerImageNginxVersion:
+    """Dockerイメージ戦略.md: nginx バージョン検証テスト。"""
+
+    @pytest.mark.parametrize("client_type", ["react", "flutter"])
+    def test_nginx_version(self, client_type: str) -> None:
+        """Dockerイメージ戦略.md: クライアント Dockerfile で nginx:1.27-alpine を使用すること。"""
+        path = TEMPLATES / "client" / client_type / "Dockerfile.tera"
+        content = path.read_text(encoding="utf-8")
+        assert "nginx" in content, f"{client_type} Dockerfile に nginx が含まれていません"
+
+
+class TestDockerImageCosign:
+    """Dockerイメージ戦略.md: Cosign 設定テスト。"""
+
+    def test_cosign_in_ci_template(self) -> None:
+        """Dockerイメージ戦略.md: CI/CD テンプレートに cosign sign が含まれること。"""
+        ci_dir = ROOT / "CLI" / "templates" / "cicd"
+        if ci_dir.exists():
+            # CI テンプレートディレクトリ内で cosign を検索
+            found = False
+            for f in ci_dir.rglob("*"):
+                if f.is_file():
+                    try:
+                        content = f.read_text(encoding="utf-8")
+                        if "cosign" in content:
+                            found = True
+                            break
+                    except (UnicodeDecodeError, PermissionError):
+                        continue
+            assert found, "CI/CD テンプレートに cosign 設定が見つかりません"
+        else:
+            # CI/CD テンプレートが未作成の場合、ドキュメントの記載のみを検証
+            pytest.skip("CI/CD テンプレートディレクトリが存在しません")

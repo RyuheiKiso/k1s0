@@ -256,3 +256,48 @@ fn test_client_flutter_service_name_substitution() {
     // service_name_pascal が正しく "TestApp" に置換されている
     assert!(main.contains("title: 'TestApp'"));
 }
+
+// =========================================================================
+// クライアント: README, テストファイル内容検証
+// =========================================================================
+
+#[test]
+fn test_client_react_readme_content() {
+    let (tmp, _) = render_client("react");
+    let content = read_output(&tmp, "README.md");
+
+    assert!(content.contains("test-app"));
+}
+
+#[test]
+fn test_client_react_app_test_content() {
+    let (tmp, _) = render_client("react");
+    let content = read_output(&tmp, "tests/App.test.tsx");
+
+    assert!(!content.is_empty());
+}
+
+#[test]
+fn test_client_react_msw_setup_content() {
+    let (tmp, _) = render_client("react");
+    let content = read_output(&tmp, "tests/testutil/msw-setup.ts");
+
+    assert!(content.contains("setupServer"));
+    assert!(content.contains("msw"));
+}
+
+#[test]
+fn test_client_flutter_readme_content() {
+    let (tmp, _) = render_client("flutter");
+    let content = read_output(&tmp, "README.md");
+
+    assert!(content.contains("test-app") || content.contains("TestApp") || content.contains("test_app"));
+}
+
+#[test]
+fn test_client_flutter_widget_test_content() {
+    let (tmp, _) = render_client("flutter");
+    let content = read_output(&tmp, "test/widget_test.dart");
+
+    assert!(!content.is_empty());
+}

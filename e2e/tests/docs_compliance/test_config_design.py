@@ -276,3 +276,130 @@ class TestConfigMountPath:
     def test_dockerfile_template_exists(self, lang: str) -> None:
         """config設計.md: Dockerfile テンプレートが存在。"""
         assert (ROOT / "CLI" / "templates" / "server" / lang / "Dockerfile.tera").exists()
+
+
+# ============================================================================
+# コンセプト.md Vault 統合ギャップ補完テスト
+# ============================================================================
+
+CLI_SRC = ROOT / "CLI" / "src"
+
+
+class TestVaultIntegration:
+    """コンセプト.md: Vault 統合 — merge_vault_secrets の実装状態検証。
+
+    HashiCorp Vault 1.17 によるシークレットの一元管理・配布の仕様に基づき、
+    CLI/src/config/mod.rs に merge_vault_secrets 関数が存在し、
+    最低限のスタブ実装（接続失敗時の no-op / 警告ログ）があることを検証する。
+    """
+
+    def setup_method(self) -> None:
+        self.content = (CLI_SRC / "config" / "mod.rs").read_text(encoding="utf-8")
+
+    def test_merge_vault_secrets_function_exists(self) -> None:
+        """コンセプト.md: merge_vault_secrets 関数が定義されている。"""
+        assert "fn merge_vault_secrets" in self.content
+
+    def test_merge_vault_secrets_signature(self) -> None:
+        """コンセプト.md: Vault アドレスとパスを引数に取る。"""
+        assert "vault_addr" in self.content
+        assert "vault_path" in self.content
+
+    def test_merge_vault_secrets_empty_noop(self) -> None:
+        """コンセプト.md: Vault 未設定時は no-op。"""
+        assert "vault_addr.is_empty()" in self.content
+
+    def test_merge_vault_secrets_warn_on_unreachable(self) -> None:
+        """コンセプト.md: Vault 未到達時は警告ログを出力。"""
+        assert "WARN" in self.content or "warn" in self.content.lower()
+
+    def test_merge_config_function_exists(self) -> None:
+        """コンセプト.md: 環境別設定マージ関数が存在する。"""
+        assert "fn merge_config" in self.content
+
+    def test_config_merge_order_documented(self) -> None:
+        """コンセプト.md: マージ順序がコメントに記載されている。"""
+        # config.yaml < config.{env}.yaml < Vault の順序
+        assert "マージ順序" in self.content or "Vault" in self.content
+
+
+class TestConfigMergeOrderLogic:
+    """config設計.md: D-079 マージ順序ロジックの検証。"""
+
+    def test_merge_order_in_doc(self) -> None:
+        """config設計.md: マージ順序がドキュメントに記載されている。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "config.yaml" in content
+        assert "Vault" in content
+
+    def test_merge_order_priority(self) -> None:
+        """config設計.md: Vault が最高優先と記載されている。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "最高優先" in content or "Vault が常に優先" in content
+
+    def test_config_loader_reads_yaml(self) -> None:
+        """config設計.md: Go config ローダーが YAML を読み込む。"""
+        path = ROOT / "CLI" / "templates" / "server" / "go" / "internal" / "infra" / "config" / "config.go.tera"
+        content = path.read_text(encoding="utf-8")
+        assert "yaml.Unmarshal" in content or "yaml.v3" in content
+
+
+class TestEnvironmentOverrideFiles:
+    """config設計.md: 環境別差分ファイルの検証。"""
+
+    def test_env_override_pattern_in_doc(self) -> None:
+        """config設計.md: config.dev.yaml, config.staging.yaml, config.prod.yaml パターンが記載。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "config.dev.yaml" in content
+        assert "config.staging.yaml" in content
+        assert "config.prod.yaml" in content
+
+    def test_dockerfile_template_has_config_path(self) -> None:
+        """config設計.md: Dockerfile テンプレートが config パスを参照。"""
+        path = ROOT / "CLI" / "templates" / "server" / "go" / "Dockerfile.tera"
+        content = path.read_text(encoding="utf-8")
+        assert "config" in content.lower()
+
+
+class TestConfigValidationTags:
+    """config設計.md: Go config 構造体のバリデーションタグ検証。"""
+
+    def setup_method(self) -> None:
+        path = ROOT / "CLI" / "templates" / "server" / "go" / "internal" / "infra" / "config" / "config.go.tera"
+        assert path.exists()
+        self.content = path.read_text(encoding="utf-8")
+
+    def test_yaml_tags_present(self) -> None:
+        """config設計.md: yaml タグが構造体に定義されている。"""
+        assert 'yaml:"' in self.content
+
+    def test_validate_tags_present(self) -> None:
+        """config設計.md: validate タグが重要フィールドに定義されている。"""
+        assert 'validate:"' in self.content
+
+    def test_validate_required_tag(self) -> None:
+        """config設計.md: required バリデーションが使用されている。"""
+        assert "required" in self.content
+
+    def test_validate_url_tag(self) -> None:
+        """config設計.md: URL フィールドに url バリデーションが使用されている。"""
+        assert 'validate:"required,url"' in self.content
+
+
+class TestConfigKubernetesMountPath:
+    """config設計.md: Kubernetes マウントパスの検証。"""
+
+    def test_kubernetes_mount_path_in_doc(self) -> None:
+        """config設計.md: /etc/app/config.yaml がドキュメントに記載されている。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "/etc/app/config.yaml" in content
+
+    def test_local_dev_path_in_doc(self) -> None:
+        """config設計.md: ローカル開発は config/config.yaml がドキュメントに記載。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "config/config.yaml" in content

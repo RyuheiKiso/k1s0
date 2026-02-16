@@ -117,3 +117,79 @@ class TestCodegenPipelineErrorHandling:
 
     def test_manual_execution_guidance(self) -> None:
         assert "手動で実行してください" in self.content
+
+
+class TestCodegenPipelineFunctionMapping:
+    """仕様書の関数マッピングが正しく記載されているかの検証。"""
+
+    def setup_method(self) -> None:
+        self.content = SPEC.read_text(encoding="utf-8")
+
+    def test_execute_generate_function(self) -> None:
+        assert "execute_generate_with_config" in self.content
+
+    def test_try_generate_function(self) -> None:
+        assert "try_generate_from_templates" in self.content
+
+    def test_run_post_processing_function(self) -> None:
+        assert "run_post_processing" in self.content
+
+    def test_determine_post_commands_function(self) -> None:
+        assert "determine_post_commands" in self.content
+
+
+class TestCodegenPipelineImplementationExists:
+    """パイプライン実装ファイルが存在し、仕様書の関数を含むかの検証。"""
+
+    def setup_method(self) -> None:
+        self.generate_rs = (ROOT / "CLI" / "src" / "commands" / "generate.rs").read_text(encoding="utf-8")
+
+    def test_generate_rs_exists(self) -> None:
+        assert (ROOT / "CLI" / "src" / "commands" / "generate.rs").exists()
+
+    def test_determine_post_commands_exists(self) -> None:
+        assert "fn determine_post_commands" in self.generate_rs
+
+    def test_run_post_processing_exists(self) -> None:
+        assert "fn run_post_processing" in self.generate_rs
+
+    def test_go_mod_tidy_in_pipeline(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: Go依存解決。"""
+        assert '"mod"' in self.generate_rs and '"tidy"' in self.generate_rs
+
+    def test_cargo_check_in_pipeline(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: Rust依存解決。"""
+        assert '"cargo"' in self.generate_rs and '"check"' in self.generate_rs
+
+    def test_npm_install_in_pipeline(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: npm依存解決。"""
+        assert '"npm"' in self.generate_rs and '"install"' in self.generate_rs
+
+    def test_flutter_pub_get_in_pipeline(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: Flutter依存解決。"""
+        assert '"flutter"' in self.generate_rs and '"pub"' in self.generate_rs
+
+    def test_buf_generate_in_pipeline(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: gRPCコード生成。"""
+        assert '"buf"' in self.generate_rs and '"generate"' in self.generate_rs
+
+    def test_oapi_codegen_in_pipeline(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: OpenAPIコード生成。"""
+        assert '"oapi-codegen"' in self.generate_rs
+
+    def test_sqlx_database_create_in_pipeline(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: DB初期化。"""
+        assert '"sqlx"' in self.generate_rs and '"database"' in self.generate_rs
+
+    def test_pipeline_execution_order(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: パイプライン実行順序。
+
+        依存解決 → コード生成 → DB初期化の順序で実行される。
+        """
+        content = self.generate_rs
+        dep_pos = content.find("言語固有の依存解決") or content.find("mod tidy")
+        codegen_pos = content.find("コード生成") if content.find("コード生成") > dep_pos else len(content)
+        db_pos = content.find("DB ありの場合") or content.find("sqlx")
+        # 依存解決 < コード生成 < DB初期化
+        assert dep_pos < codegen_pos, "依存解決はコード生成より先に実行されるべき"
+        assert codegen_pos < db_pos, "コード生成はDB初期化より先に実行されるべき"

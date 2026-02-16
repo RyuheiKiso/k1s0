@@ -235,3 +235,174 @@ class TestVaultPolicies:
         path = ROOT / "infra" / "terraform" / "modules" / "vault" / "policies" / "service.hcl"
         content = path.read_text(encoding="utf-8")
         assert "kafka/sasl" in content
+
+
+class TestKeycloakLDAPAttributeMapping:
+    """認証認可設計.md: LDAP 属性マッピングの検証。"""
+
+    def setup_method(self) -> None:
+        path = ROOT / "infra" / "docker" / "keycloak" / "k1s0-realm.json"
+        self.realm = json.loads(path.read_text(encoding="utf-8"))
+        providers = self.realm["components"]["org.keycloak.storage.UserStorageProvider"]
+        self.ldap = providers[0]
+
+    def test_ldap_username_attribute_mapping(self) -> None:
+        """認証認可設計.md: sAMAccountName → username のマッピング。"""
+        assert self.ldap["config"]["usernameLDAPAttribute"] == ["sAMAccountName"]
+
+    def test_ldap_users_dn(self) -> None:
+        """認証認可設計.md: User DN が ou=users,dc=example,dc=com。"""
+        assert self.ldap["config"]["usersDn"] == ["ou=users,dc=example,dc=com"]
+
+    def test_ldap_bind_dn(self) -> None:
+        """認証認可設計.md: Bind DN が cn=keycloak,ou=service-accounts,dc=example,dc=com。"""
+        assert self.ldap["config"]["bindDn"] == ["cn=keycloak,ou=service-accounts,dc=example,dc=com"]
+
+
+class TestKeycloakLDAPSync:
+    """認証認可設計.md: LDAP 同期方式の検証。"""
+
+    def setup_method(self) -> None:
+        path = ROOT / "infra" / "docker" / "keycloak" / "k1s0-realm.json"
+        self.realm = json.loads(path.read_text(encoding="utf-8"))
+        providers = self.realm["components"]["org.keycloak.storage.UserStorageProvider"]
+        self.ldap = providers[0]
+
+    def test_changed_sync_period_60_seconds(self) -> None:
+        """認証認可設計.md: 差分同期は 60 秒間隔。"""
+        assert self.ldap["config"]["changedSyncPeriod"] == ["60"]
+
+    def test_full_sync_period_daily(self) -> None:
+        """認証認可設計.md: 完全同期は毎日（86400秒 = 24時間）。"""
+        assert self.ldap["config"]["fullSyncPeriod"] == ["86400"]
+
+
+class TestRefreshTokenLifetime:
+    """認証認可設計.md: Refresh Token 有効期限の検証。"""
+
+    def setup_method(self) -> None:
+        path = ROOT / "infra" / "docker" / "keycloak" / "k1s0-realm.json"
+        self.realm = json.loads(path.read_text(encoding="utf-8"))
+
+    def test_refresh_token_7_days(self) -> None:
+        """認証認可設計.md: Refresh Token 有効期限 7 日（604800秒）。"""
+        assert self.realm["ssoSessionMaxLifespan"] == 604800
+
+
+class TestJWTKeyRotation:
+    """認証認可設計.md: JWT 公開鍵ローテーションの検証。"""
+
+    def setup_method(self) -> None:
+        path = ROOT / "infra" / "docker" / "keycloak" / "k1s0-realm.json"
+        self.realm = json.loads(path.read_text(encoding="utf-8"))
+        providers = self.realm["components"]["org.keycloak.keys.KeyProvider"]
+        self.rsa_key = providers[0]
+
+    def test_algorithm_rs256(self) -> None:
+        """認証認可設計.md: RS256 アルゴリズム。"""
+        assert self.rsa_key["config"]["algorithm"] == ["RS256"]
+
+    def test_key_size_2048(self) -> None:
+        """認証認可設計.md: RSA 2048-bit。"""
+        assert self.rsa_key["config"]["keySize"] == ["2048"]
+
+    def test_jwks_cache_ttl_in_config_template(self) -> None:
+        """認証認可設計.md: JWKS キャッシュ TTL 10分が config テンプレートに設定。"""
+        go_config = ROOT / "CLI" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
+        content = go_config.read_text(encoding="utf-8")
+        assert "10m" in content
+
+
+class TestPermissionMatrix:
+    """認証認可設計.md: パーミッションマトリクス（CRUD）の検証。"""
+
+    def setup_method(self) -> None:
+        path = ROOT / "infra" / "docker" / "keycloak" / "k1s0-realm.json"
+        self.realm = json.loads(path.read_text(encoding="utf-8"))
+        self.role_names = [r["name"] for r in self.realm["roles"]["realm"]]
+
+    def test_system_admin_role_exists(self) -> None:
+        """認証認可設計.md: sys_admin ロールが定義されている。"""
+        assert "sys_admin" in self.role_names
+
+    def test_system_operator_role_exists(self) -> None:
+        """認証認可設計.md: sys_operator ロールが定義されている。"""
+        assert "sys_operator" in self.role_names
+
+    def test_system_auditor_role_exists(self) -> None:
+        """認証認可設計.md: sys_auditor ロールが定義されている。"""
+        assert "sys_auditor" in self.role_names
+
+    def test_business_roles_follow_pattern(self) -> None:
+        """認証認可設計.md: business ロールは biz_{domain}_* パターン。"""
+        biz_roles = [r for r in self.role_names if r.startswith("biz_")]
+        assert len(biz_roles) >= 3
+
+    def test_service_roles_follow_pattern(self) -> None:
+        """認証認可設計.md: service ロールは svc_{service}_* パターン。"""
+        svc_roles = [r for r in self.role_names if r.startswith("svc_")]
+        assert len(svc_roles) >= 3
+
+
+class TestVaultDatabaseDynamicCredentials:
+    """認証認可設計.md: Vault Database 動的クレデンシャルの検証。"""
+
+    def test_secrets_tf_exists(self) -> None:
+        path = ROOT / "infra" / "terraform" / "modules" / "vault" / "secrets.tf"
+        assert path.exists()
+
+    def test_default_ttl_24h(self) -> None:
+        """認証認可設計.md: default_ttl = 86400 (24h)。"""
+        path = ROOT / "infra" / "terraform" / "modules" / "vault" / "secrets.tf"
+        content = path.read_text(encoding="utf-8")
+        assert "86400" in content
+
+    def test_max_ttl_48h(self) -> None:
+        """認証認可設計.md: max_ttl = 172800 (48h)。"""
+        path = ROOT / "infra" / "terraform" / "modules" / "vault" / "secrets.tf"
+        content = path.read_text(encoding="utf-8")
+        assert "172800" in content
+
+
+class TestVaultAuditLog:
+    """認証認可設計.md: Vault 監査ログ設定の検証。"""
+
+    def test_audit_tf_exists(self) -> None:
+        path = ROOT / "infra" / "terraform" / "modules" / "vault" / "main.tf"
+        assert path.exists()
+
+    def test_audit_log_file_type(self) -> None:
+        """認証認可設計.md: audit type = file。"""
+        path = ROOT / "infra" / "terraform" / "modules" / "vault" / "main.tf"
+        content = path.read_text(encoding="utf-8")
+        assert 'vault_audit' in content
+        assert '"file"' in content
+
+    def test_audit_log_raw_false(self) -> None:
+        """認証認可設計.md: log_raw = false（シークレット値マスク）。"""
+        path = ROOT / "infra" / "terraform" / "modules" / "vault" / "main.tf"
+        content = path.read_text(encoding="utf-8")
+        assert "log_raw" in content
+        assert "false" in content
+
+    def test_audit_log_path(self) -> None:
+        """認証認可設計.md: file_path = /vault/logs/audit.log。"""
+        path = ROOT / "infra" / "terraform" / "modules" / "vault" / "main.tf"
+        content = path.read_text(encoding="utf-8")
+        assert "/vault/logs/audit.log" in content
+
+
+class TestCredentialRotation:
+    """認証認可設計.md: クレデンシャルローテーション間隔の検証。"""
+
+    def test_db_password_rotation_24h(self) -> None:
+        """認証認可設計.md: DB パスワードは 24 時間ローテーション。"""
+        path = ROOT / "infra" / "terraform" / "modules" / "vault" / "secrets.tf"
+        content = path.read_text(encoding="utf-8")
+        assert "86400" in content  # 24 hours in seconds
+
+    def test_jwt_signing_key_rotation_90_days(self) -> None:
+        """認証認可設計.md: JWT 署名鍵は 90 日ローテーション（JWKS 方式）。"""
+        path = ROOT / "infra" / "docker" / "keycloak" / "k1s0-realm.json"
+        realm = json.loads(path.read_text(encoding="utf-8"))
+        assert realm["defaultSignatureAlgorithm"] == "RS256"

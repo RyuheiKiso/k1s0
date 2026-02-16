@@ -55,9 +55,9 @@ fn test_library_go_file_list() {
     let (_, names) = render_library("go");
 
     assert!(names.iter().any(|n| n == "go.mod"), "go.mod missing");
-    assert!(names.iter().any(|n| n == "shared-utils.go"), "{{name}}.go -> shared-utils.go missing");
+    assert!(names.iter().any(|n| n == "shared-utils.go"), "shared-utils.go missing (from name.go.tera)");
     assert!(names.iter().any(|n| n == "internal/internal.go"), "internal/internal.go missing");
-    assert!(names.iter().any(|n| n == "shared-utils_test.go"), "{{name}}_test.go -> shared-utils_test.go missing");
+    assert!(names.iter().any(|n| n == "shared-utils_test.go"), "shared-utils_test.go missing (from name_test.go.tera)");
     assert!(names.iter().any(|n| n == "tests/integration_test.go"), "tests/integration_test.go missing");
     assert!(names.iter().any(|n| n == "README.md"), "README.md missing");
 }
@@ -83,6 +83,39 @@ fn test_library_go_service_name_substitution() {
     assert!(go_mod.contains("module github.com/org/k1s0/regions/system/library/go/shared-utils"));
 }
 
+#[test]
+fn test_library_go_public_package_content() {
+    let (tmp, _) = render_library("go");
+    let content = read_output(&tmp, "shared-utils.go");
+
+    assert!(content.contains("package shared_utils") || content.contains("package "));
+    assert!(content.contains("TODO"));
+}
+
+#[test]
+fn test_library_go_internal_content() {
+    let (tmp, _) = render_library("go");
+    let content = read_output(&tmp, "internal/internal.go");
+
+    assert!(content.contains("package internal"));
+}
+
+#[test]
+fn test_library_go_unit_test_content() {
+    let (tmp, _) = render_library("go");
+    let content = read_output(&tmp, "shared-utils_test.go");
+
+    assert!(content.contains("package ") || content.contains("func Test"));
+}
+
+#[test]
+fn test_library_go_readme_content() {
+    let (tmp, _) = render_library("go");
+    let content = read_output(&tmp, "README.md");
+
+    assert!(content.contains("shared-utils"));
+}
+
 // =========================================================================
 // Rust ライブラリ
 // =========================================================================
@@ -93,7 +126,7 @@ fn test_library_rust_file_list() {
 
     assert!(names.iter().any(|n| n == "Cargo.toml"), "Cargo.toml missing");
     assert!(names.iter().any(|n| n == "src/lib.rs"), "src/lib.rs missing");
-    assert!(names.iter().any(|n| n == "src/shared_utils.rs"), "{{module}}.rs -> shared_utils.rs missing");
+    assert!(names.iter().any(|n| n == "src/shared_utils.rs"), "shared_utils.rs missing (from module.rs.tera)");
     assert!(names.iter().any(|n| n == "tests/integration_test.rs"), "tests/integration_test.rs missing");
     assert!(names.iter().any(|n| n == "README.md"), "README.md missing");
 }
@@ -117,6 +150,43 @@ fn test_library_rust_service_name_substitution() {
     let cargo = read_output(&tmp, "Cargo.toml");
     // rust_crate が正しく導出されている
     assert!(cargo.contains("name = \"shared-utils\""));
+}
+
+#[test]
+fn test_library_rust_cargo_toml_content() {
+    let (tmp, _) = render_library("rust");
+    let content = read_output(&tmp, "Cargo.toml");
+
+    assert!(content.contains("edition = \"2021\""));
+    assert!(content.contains("serde"));
+    assert!(content.contains("thiserror"));
+    assert!(content.contains("[dev-dependencies]"));
+    assert!(content.contains("mockall"));
+}
+
+#[test]
+fn test_library_rust_lib_rs_content() {
+    let (tmp, _) = render_library("rust");
+    let content = read_output(&tmp, "src/lib.rs");
+
+    assert!(content.contains("pub mod"));
+}
+
+#[test]
+fn test_library_rust_module_content() {
+    let (tmp, _) = render_library("rust");
+    let content = read_output(&tmp, "src/shared_utils.rs");
+
+    assert!(content.contains("#[cfg(test)]"));
+    assert!(content.contains("mod tests"));
+}
+
+#[test]
+fn test_library_rust_readme_content() {
+    let (tmp, _) = render_library("rust");
+    let content = read_output(&tmp, "README.md");
+
+    assert!(content.contains("shared-utils"));
 }
 
 // =========================================================================
@@ -154,6 +224,47 @@ fn test_library_typescript_service_name_substitution() {
     assert!(package.contains("\"name\": \"shared-utils\""));
 }
 
+#[test]
+fn test_library_typescript_package_json_content() {
+    let (tmp, _) = render_library("typescript");
+    let content = read_output(&tmp, "package.json");
+
+    assert!(content.contains("\"main\""));
+    assert!(content.contains("dist/index.js"));
+    assert!(content.contains("\"types\""));
+    assert!(content.contains("dist/index.d.ts"));
+    assert!(content.contains("\"build\""));
+    assert!(content.contains("\"test\""));
+    assert!(content.contains("typescript"));
+    assert!(content.contains("vitest"));
+}
+
+#[test]
+fn test_library_typescript_tsconfig_content() {
+    let (tmp, _) = render_library("typescript");
+    let content = read_output(&tmp, "tsconfig.json");
+
+    assert!(content.contains("\"strict\": true"));
+    assert!(content.contains("\"declaration\": true"));
+    assert!(content.contains("\"outDir\": \"dist\""));
+}
+
+#[test]
+fn test_library_typescript_index_ts_content() {
+    let (tmp, _) = render_library("typescript");
+    let content = read_output(&tmp, "src/index.ts");
+
+    assert!(content.contains("shared-utils") || content.contains("export"));
+}
+
+#[test]
+fn test_library_typescript_readme_content() {
+    let (tmp, _) = render_library("typescript");
+    let content = read_output(&tmp, "README.md");
+
+    assert!(content.contains("shared-utils"));
+}
+
 // =========================================================================
 // Dart ライブラリ
 // =========================================================================
@@ -164,9 +275,9 @@ fn test_library_dart_file_list() {
 
     assert!(names.iter().any(|n| n == "pubspec.yaml"), "pubspec.yaml missing");
     assert!(names.iter().any(|n| n == "analysis_options.yaml"), "analysis_options.yaml missing");
-    assert!(names.iter().any(|n| n == "lib/shared-utils.dart"), "{{name}}.dart -> shared-utils.dart missing");
-    assert!(names.iter().any(|n| n == "lib/src/shared_utils.dart"), "lib/src/{{module}}.dart -> shared_utils.dart missing");
-    assert!(names.iter().any(|n| n == "test/shared_utils_test.dart"), "test/{{module}}_test.dart -> shared_utils_test.dart missing");
+    assert!(names.iter().any(|n| n == "lib/shared-utils.dart"), "shared-utils.dart missing (from name.dart.tera)");
+    assert!(names.iter().any(|n| n == "lib/src/shared_utils.dart"), "shared_utils.dart missing (from module.dart.tera)");
+    assert!(names.iter().any(|n| n == "test/shared_utils_test.dart"), "shared_utils_test.dart missing (from module_test.dart.tera)");
     assert!(names.iter().any(|n| n == "README.md"), "README.md missing");
 }
 
@@ -189,4 +300,45 @@ fn test_library_dart_service_name_substitution() {
     let pubspec = read_output(&tmp, "pubspec.yaml");
     // service_name の snake_case が pubspec name に使用される
     assert!(pubspec.contains("shared_utils"));
+}
+
+#[test]
+fn test_library_dart_pubspec_content() {
+    let (tmp, _) = render_library("dart");
+    let content = read_output(&tmp, "pubspec.yaml");
+
+    assert!(content.contains(">=3.0.0 <4.0.0") || content.contains("sdk:"));
+    assert!(content.contains("mocktail") || content.contains("dev_dependencies"));
+}
+
+#[test]
+fn test_library_dart_entry_point_content() {
+    let (tmp, _) = render_library("dart");
+    let content = read_output(&tmp, "lib/shared-utils.dart");
+
+    assert!(content.contains("library"));
+}
+
+#[test]
+fn test_library_dart_src_module_content() {
+    let (tmp, _) = render_library("dart");
+    let content = read_output(&tmp, "lib/src/shared_utils.dart");
+
+    assert!(content.contains("shared_utils") || content.contains("TODO"));
+}
+
+#[test]
+fn test_library_dart_analysis_options_content() {
+    let (tmp, _) = render_library("dart");
+    let content = read_output(&tmp, "analysis_options.yaml");
+
+    assert!(!content.is_empty());
+}
+
+#[test]
+fn test_library_dart_readme_content() {
+    let (tmp, _) = render_library("dart");
+    let content = read_output(&tmp, "README.md");
+
+    assert!(content.contains("shared-utils") || content.contains("shared_utils"));
 }

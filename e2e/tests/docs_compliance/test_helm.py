@@ -182,6 +182,116 @@ class TestHelmOrderDevValues:
         assert self.values["vault"]["enabled"] is False
 
 
+class TestHelmStagingValues:
+    """helm設計.md: order values-staging.yaml 設定値検証。"""
+
+    def setup_method(self) -> None:
+        path = HELM / "services" / "service" / "order" / "values-staging.yaml"
+        assert path.exists()
+        with open(path, encoding="utf-8") as f:
+            self.values = yaml.safe_load(f)
+
+    def test_replica_count(self) -> None:
+        assert self.values["replicaCount"] == 2
+
+    def test_autoscaling_min_replicas(self) -> None:
+        assert self.values["autoscaling"]["minReplicas"] == 2
+
+    def test_autoscaling_max_replicas(self) -> None:
+        assert self.values["autoscaling"]["maxReplicas"] == 5
+
+
+class TestHelmProdValues:
+    """helm設計.md: order values-prod.yaml 設定値検証。"""
+
+    def setup_method(self) -> None:
+        path = HELM / "services" / "service" / "order" / "values-prod.yaml"
+        assert path.exists()
+        with open(path, encoding="utf-8") as f:
+            self.values = yaml.safe_load(f)
+
+    def test_replica_count(self) -> None:
+        assert self.values["replicaCount"] == 3
+
+    def test_autoscaling_min_replicas(self) -> None:
+        assert self.values["autoscaling"]["minReplicas"] == 3
+
+    def test_autoscaling_max_replicas(self) -> None:
+        assert self.values["autoscaling"]["maxReplicas"] == 10
+
+    def test_pod_anti_affinity(self) -> None:
+        """helm設計.md: prod では podAntiAffinity が設定されていること。"""
+        affinity = self.values["affinity"]
+        assert "podAntiAffinity" in affinity
+        rules = affinity["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
+        assert len(rules) > 0
+        assert rules[0]["topologyKey"] == "kubernetes.io/hostname"
+
+
+class TestHelmChartYaml:
+    """helm設計.md: Chart.yaml apiVersion/type/dependencies テスト。"""
+
+    def setup_method(self) -> None:
+        path = HELM / "services" / "service" / "order" / "Chart.yaml"
+        assert path.exists()
+        with open(path, encoding="utf-8") as f:
+            self.chart = yaml.safe_load(f)
+
+    def test_api_version(self) -> None:
+        assert self.chart["apiVersion"] == "v2"
+
+    def test_chart_type(self) -> None:
+        assert self.chart["type"] == "application"
+
+    def test_dependencies(self) -> None:
+        assert "dependencies" in self.chart
+        dep_names = [d["name"] for d in self.chart["dependencies"]]
+        assert "k1s0-common" in dep_names
+
+    def test_dependency_repository(self) -> None:
+        """helm設計.md: 依存の repository が相対パスであること。"""
+        dep = [d for d in self.chart["dependencies"] if d["name"] == "k1s0-common"][0]
+        assert dep["repository"].startswith("file://")
+
+
+class TestHelmVaultAnnotations:
+    """helm設計.md: Vault Agent Injector annotations テスト。"""
+
+    def test_vault_enabled_in_values(self) -> None:
+        path = HELM / "services" / "service" / "order" / "values.yaml"
+        with open(path, encoding="utf-8") as f:
+            values = yaml.safe_load(f)
+        assert values["vault"]["enabled"] is True
+        assert values["vault"]["role"] == "service"
+
+    def test_vault_secrets_config(self) -> None:
+        path = HELM / "services" / "service" / "order" / "values.yaml"
+        with open(path, encoding="utf-8") as f:
+            values = yaml.safe_load(f)
+        secrets = values["vault"]["secrets"]
+        assert len(secrets) > 0
+        assert "secret/data/k1s0/service/order/database" in secrets[0]["path"]
+
+
+class TestHelmKafkaRedisConfig:
+    """helm設計.md: kafka/redis 設定テスト。"""
+
+    def setup_method(self) -> None:
+        path = HELM / "services" / "service" / "order" / "values.yaml"
+        with open(path, encoding="utf-8") as f:
+            self.values = yaml.safe_load(f)
+
+    def test_kafka_config(self) -> None:
+        assert "kafka" in self.values
+        assert self.values["kafka"]["enabled"] is False
+        assert self.values["kafka"]["brokers"] == []
+
+    def test_redis_config(self) -> None:
+        assert "redis" in self.values
+        assert self.values["redis"]["enabled"] is False
+        assert self.values["redis"]["host"] == ""
+
+
 class TestHelmKongValues:
     """APIゲートウェイ設計.md: Kong values.yaml 検証。"""
 
