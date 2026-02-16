@@ -1,0 +1,16 @@
+# {{ service_name }}
+
+{{ service_name }} ライブラリ
+
+## 使い方
+
+```toml
+[dependencies]
+{{ service_name }} = { path = "../{{ service_name }}" }
+```
+
+## 開発
+
+```bash
+cargo test
+```

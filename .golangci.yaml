@@ -1,0 +1,49 @@
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - misspell
+    - gocyclo
+    - gocritic
+    - revive
+    - gosec
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  revive:
+    rules:
+      - name: exported
+      - name: var-naming
+      - name: unexported-return
+  gosec:
+    includes:
+      - G101  # ハードコード認証情報の検出
+      - G201  # SQL インジェクションの検出
+      - G301  # ディレクトリ作成時のパーミッション
+      - G302  # ファイル作成時のパーミッション
+      - G303  # 一時ファイルの安全な作成
+      - G304  # ファイルパストラバーサル
+      - G305  # ZIP スリップ
+      - G306  # ファイル書き込み時のパーミッション
+      - G307  # ファイルクローズの遅延エラー
+      - G401  # 非推奨ハッシュ関数（MD5 等）
+      - G402  # TLS 設定の安全性
+      - G403  # RSA 鍵長の最小値
+      - G404  # 暗号用途での math/rand 使用禁止
+      - G405  # 非推奨 DES 暗号
+      - G501  # 非推奨ブロック暗号のインポート
+      - G502  # 非推奨 DES のインポート
+      - G503  # 非推奨 RC4 のインポート
+      - G504  # 非推奨 CGO のインポート
+      - G505  # 非推奨 SHA1 のインポート
+    excludes:
+      - G104  # 未チェックエラー → errcheck で代替
+      - G114  # net/http デフォルトサーバー → 独自サーバー設定で対応済み

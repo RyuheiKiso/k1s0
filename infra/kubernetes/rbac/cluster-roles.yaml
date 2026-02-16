@@ -35,14 +35,12 @@ rules:
     verbs: ["*"]
 ---
 # 運用監視用 readonly Role
+# 全リソースの参照のみ(get, list, watch)を許可
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: readonly
 rules:
-  - apiGroups: [""]
-    resources: ["pods", "services", "configmaps"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
+  - apiGroups: ["*"]
+    resources: ["*"]
     verbs: ["get", "list", "watch"]

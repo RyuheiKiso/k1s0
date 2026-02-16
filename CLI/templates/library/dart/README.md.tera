@@ -1,0 +1,17 @@
+# {{ service_name }}
+
+{{ service_name }} ライブラリ
+
+## 使い方
+
+```yaml
+dependencies:
+  {{ service_name | snake_case }}:
+    path: ../{{ service_name | snake_case }}
+```
+
+## 開発
+
+```bash
+flutter test
+```

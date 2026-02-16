@@ -1,30 +1,19 @@
 syntax = "proto3";
 package k1s0.event.service.order.v1;
 
-import "google/protobuf/timestamp.proto";
 import "k1s0/system/common/v1/event_metadata.proto";
 
-// OrderEvent represents an order lifecycle event.
-message OrderEvent {
+message OrderCreatedEvent {
   k1s0.system.common.v1.EventMetadata metadata = 1;
   string order_id = 2;
   string customer_id = 3;
   repeated OrderItem items = 4;
-  int64 total_amount = 5;        // Smallest currency unit
-  OrderStatus status = 6;
-  google.protobuf.Timestamp ordered_at = 7;
+  int64 total_amount = 5;       // 最小通貨単位（円）
+  string currency = 6;
 }
 
 message OrderItem {
   string product_id = 1;
   int32 quantity = 2;
   int64 unit_price = 3;
-}
-
-enum OrderStatus {
-  ORDER_STATUS_UNSPECIFIED = 0;
-  ORDER_STATUS_CREATED = 1;
-  ORDER_STATUS_CONFIRMED = 2;
-  ORDER_STATUS_CANCELLED = 3;
-  ORDER_STATUS_COMPLETED = 4;
 }

@@ -700,6 +700,15 @@ pub fn execute_generate_at(config: &GenerateConfig, base_dir: &Path) -> Result<(
         Kind::Database => generate_database(config, &output_path)?,
     }
 
+    // service Tier + GraphQL の場合は BFF ディレクトリを追加生成
+    if config.kind == Kind::Server
+        && config.tier == Tier::Service
+        && config.detail.api_styles.contains(&ApiStyle::GraphQL)
+    {
+        let bff_path = output_path.join("bff");
+        fs::create_dir_all(&bff_path)?;
+    }
+
     Ok(())
 }
 
@@ -729,6 +738,15 @@ pub fn execute_generate_with_config(
             Kind::Library => generate_library(config, &output_path)?,
             Kind::Database => generate_database(config, &output_path)?,
         }
+    }
+
+    // service Tier + GraphQL の場合は BFF ディレクトリを追加生成
+    if config.kind == Kind::Server
+        && config.tier == Tier::Service
+        && config.detail.api_styles.contains(&ApiStyle::GraphQL)
+    {
+        let bff_path = output_path.join("bff");
+        fs::create_dir_all(&bff_path)?;
     }
 
     // D-08: 後処理コマンドの実行（best-effort）
@@ -2635,5 +2653,30 @@ mod tests {
         let ctx = build_template_context(&config, &cli_config).unwrap();
         assert_eq!(ctx.framework, "", "Server should have empty framework");
         assert_eq!(ctx.language, "go");
+    }
+
+    // --- BFF ディレクトリ生成 ---
+
+    #[test]
+    fn test_service_tier_graphql_creates_bff_directory() {
+        // service Tier + GraphQL + Go サーバーで、bff/ ディレクトリが追加生成される
+        let tmp = TempDir::new().unwrap();
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::Service,
+            placement: Some("order".to_string()),
+            lang_fw: LangFw::Language(Language::Go),
+            detail: DetailConfig {
+                name: Some("order".to_string()),
+                api_styles: vec![ApiStyle::GraphQL],
+                db: None,
+                kafka: false,
+                redis: false,
+            },
+        };
+        execute_generate_at(&config, tmp.path()).unwrap();
+        // BFF ディレクトリが存在するか確認
+        let bff_path = tmp.path().join("regions/service/order/server/go/bff");
+        assert!(bff_path.exists(), "service Tier + GraphQL should create bff/ directory");
     }
 }

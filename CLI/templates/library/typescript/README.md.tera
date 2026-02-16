@@ -1,0 +1,16 @@
+# {{ service_name }}
+
+{{ service_name }} ライブラリ
+
+## 使い方
+
+```typescript
+import { } from '{{ service_name }}';
+```
+
+## 開発
+
+```bash
+npm install
+npm test
+```

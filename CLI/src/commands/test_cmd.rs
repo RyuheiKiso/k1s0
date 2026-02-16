@@ -220,6 +220,69 @@ fn print_confirmation(config: &TestConfig) {
     }
 }
 
+/// プロジェクトの言語/フレームワーク種別。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProjectLang {
+    Go,
+    Rust,
+    Node,
+    Flutter,
+}
+
+/// テストコマンド情報。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TestCommand {
+    /// 実行コマンド
+    pub cmd: String,
+    /// 引数
+    pub args: Vec<String>,
+}
+
+/// ディレクトリ内のファイルからプロジェクト言語を検出する。
+pub fn detect_project_lang(target_path: &Path) -> Option<ProjectLang> {
+    if target_path.join("go.mod").exists() {
+        Some(ProjectLang::Go)
+    } else if target_path.join("Cargo.toml").exists() {
+        Some(ProjectLang::Rust)
+    } else if target_path.join("package.json").exists() {
+        Some(ProjectLang::Node)
+    } else if target_path.join("pubspec.yaml").exists() {
+        Some(ProjectLang::Flutter)
+    } else {
+        None
+    }
+}
+
+/// テスト種別とプロジェクト言語からテストコマンドを解決する。
+///
+/// E2Eテストの場合は lang を無視して pytest を返す。
+pub fn resolve_test_command(kind: TestKind, lang: Option<ProjectLang>) -> Option<TestCommand> {
+    if kind == TestKind::E2e {
+        return Some(TestCommand {
+            cmd: "pytest".to_string(),
+            args: vec![".".to_string()],
+        });
+    }
+
+    let lang = lang?;
+    let (cmd, args) = match (lang, kind) {
+        (ProjectLang::Go, TestKind::Unit) => ("go", vec!["test", "./..."]),
+        (ProjectLang::Go, TestKind::Integration) => ("go", vec!["test", "-tags=integration", "./..."]),
+        (ProjectLang::Go, TestKind::All) => ("go", vec!["test", "./..."]),
+        (ProjectLang::Rust, TestKind::Unit) => ("cargo", vec!["test"]),
+        (ProjectLang::Rust, TestKind::Integration) => ("cargo", vec!["test", "--test", "*"]),
+        (ProjectLang::Rust, TestKind::All) => ("cargo", vec!["test", "--all"]),
+        (ProjectLang::Node, _) => ("npm", vec!["test"]),
+        (ProjectLang::Flutter, _) => ("flutter", vec!["test"]),
+        _ => return None,
+    };
+
+    Some(TestCommand {
+        cmd: cmd.to_string(),
+        args: args.into_iter().map(|s| s.to_string()).collect(),
+    })
+}
+
 /// テスト実行。
 pub fn execute_test(config: &TestConfig) -> Result<()> {
     for target in &config.targets {
@@ -242,28 +305,10 @@ pub fn execute_test(config: &TestConfig) -> Result<()> {
         }
 
         // 言語/フレームワーク種別を検出してテストコマンドを決定
-        if target_path.join("go.mod").exists() {
-            match config.kind {
-                TestKind::Unit => run_command("go", &["test", "./..."], target_path)?,
-                TestKind::Integration => {
-                    run_command("go", &["test", "-tags=integration", "./..."], target_path)?
-                }
-                TestKind::All => run_command("go", &["test", "./..."], target_path)?,
-                _ => {}
-            }
-        } else if target_path.join("Cargo.toml").exists() {
-            match config.kind {
-                TestKind::Unit => run_command("cargo", &["test"], target_path)?,
-                TestKind::Integration => {
-                    run_command("cargo", &["test", "--test", "*"], target_path)?
-                }
-                TestKind::All => run_command("cargo", &["test", "--all"], target_path)?,
-                _ => {}
-            }
-        } else if target_path.join("package.json").exists() {
-            run_command("npm", &["test"], target_path)?;
-        } else if target_path.join("pubspec.yaml").exists() {
-            run_command("flutter", &["test"], target_path)?;
+        let lang = detect_project_lang(target_path);
+        if let Some(test_cmd) = resolve_test_command(config.kind, lang) {
+            let args_refs: Vec<&str> = test_cmd.args.iter().map(|s| s.as_str()).collect();
+            run_command(&test_cmd.cmd, &args_refs, target_path)?;
         } else {
             println!("  警告: テスト方法が不明です: {}", target);
         }
@@ -431,6 +476,32 @@ mod tests {
 
         let suites = scan_e2e_suites_at(tmp.path());
         assert_eq!(suites.len(), 2);
+    }
+
+    // --- resolve_test_command ---
+
+    #[test]
+    fn test_go_test_command_unit() {
+        // Goのユニットテストコマンドが "go test ./..." であること
+        let cmd = resolve_test_command(TestKind::Unit, Some(ProjectLang::Go)).unwrap();
+        assert_eq!(cmd.cmd, "go");
+        assert_eq!(cmd.args, vec!["test", "./..."]);
+    }
+
+    #[test]
+    fn test_rust_test_command() {
+        // Rustのテストコマンドが "cargo test" であること
+        let cmd = resolve_test_command(TestKind::Unit, Some(ProjectLang::Rust)).unwrap();
+        assert_eq!(cmd.cmd, "cargo");
+        assert_eq!(cmd.args, vec!["test"]);
+    }
+
+    #[test]
+    fn test_python_e2e_command() {
+        // E2Eテストコマンドが "pytest" であること
+        let cmd = resolve_test_command(TestKind::E2e, None).unwrap();
+        assert_eq!(cmd.cmd, "pytest");
+        assert_eq!(cmd.args, vec!["."]);
     }
 
     // --- execute_test ---

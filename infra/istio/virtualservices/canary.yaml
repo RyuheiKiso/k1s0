@@ -24,7 +24,7 @@ spec:
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: order-server-header-routing
+  name: order-server
   namespace: k1s0-service
 spec:
   hosts:
