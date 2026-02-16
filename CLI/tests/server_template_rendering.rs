@@ -130,6 +130,20 @@ fn test_go_server_rest_full_stack_file_list() {
     );
     assert!(names.iter().any(|n| n == "Dockerfile"), "Dockerfile missing");
 
+    // テストファイルの存在確認
+    assert!(
+        names.iter().any(|n| n == "internal/usecase/usecase_test.go"),
+        "usecase_test.go missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "internal/adapter/handler/handler_test.go"),
+        "handler_test.go missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "internal/infra/persistence/repository_test.go"),
+        "repository_test.go missing"
+    );
+
     // REST の場合 gRPC / GraphQL は除外される
     assert!(
         !names
@@ -149,6 +163,10 @@ fn test_go_server_rest_full_stack_file_list() {
             .any(|n| n.contains("service.proto")),
         "service.proto should not exist for REST"
     );
+    assert!(!names.iter().any(|n| n.contains("buf.yaml")), "buf.yaml should not exist for REST");
+    assert!(!names.iter().any(|n| n.contains("buf.gen")), "buf.gen.yaml should not exist for REST");
+    assert!(!names.iter().any(|n| n.contains("schema.graphql")), "schema.graphql should not exist for REST");
+    assert!(!names.iter().any(|n| n.contains("gqlgen.yml")), "gqlgen.yml should not exist for REST");
 
     // go.mod の内容検証
     let go_mod = read_output(&tmp, "go.mod");
@@ -398,9 +416,15 @@ fn test_go_server_grpc_file_list() {
 
     assert!(names.iter().any(|n| n.contains("grpc_handler.go")));
     assert!(names.iter().any(|n| n.contains("service.proto")));
+    assert!(names.iter().any(|n| n.contains("buf.yaml")), "buf.yaml missing for gRPC");
+    assert!(names.iter().any(|n| n.contains("buf.gen")), "buf.gen.yaml missing for gRPC");
+    assert!(names.iter().any(|n| n.contains("usecase_test.go")), "usecase_test.go missing");
+    assert!(names.iter().any(|n| n.contains("handler_test.go")), "handler_test.go missing");
     assert!(!names.iter().any(|n| n.contains("rest_handler.go")));
     assert!(!names.iter().any(|n| n.contains("openapi")));
     assert!(!names.iter().any(|n| n.contains("graphql_resolver")));
+    assert!(!names.iter().any(|n| n.contains("schema.graphql")));
+    assert!(!names.iter().any(|n| n.contains("gqlgen.yml")));
 }
 
 #[test]
@@ -457,10 +481,16 @@ fn test_go_server_graphql_file_list() {
     let (_, names) = render_server("go", "graphql", false, "", false, false);
 
     assert!(names.iter().any(|n| n.contains("graphql_resolver.go")));
+    assert!(names.iter().any(|n| n.contains("schema.graphql")), "schema.graphql missing for GraphQL");
+    assert!(names.iter().any(|n| n.contains("gqlgen.yml")), "gqlgen.yml missing for GraphQL");
+    assert!(names.iter().any(|n| n.contains("usecase_test.go")), "usecase_test.go missing");
+    assert!(names.iter().any(|n| n.contains("handler_test.go")), "handler_test.go missing");
     assert!(!names.iter().any(|n| n.contains("rest_handler.go")));
     assert!(!names.iter().any(|n| n.contains("grpc_handler.go")));
     assert!(!names.iter().any(|n| n.contains("openapi")));
     assert!(!names.iter().any(|n| n.contains("service.proto")));
+    assert!(!names.iter().any(|n| n.contains("buf.yaml")));
+    assert!(!names.iter().any(|n| n.contains("buf.gen")));
 }
 
 #[test]
@@ -606,9 +636,19 @@ fn test_rust_server_rest_full_stack_file_list() {
     assert!(names.iter().any(|n| n == "config/config.yaml"), "config.yaml missing");
     assert!(names.iter().any(|n| n == "Dockerfile"), "Dockerfile missing");
 
+    // テストファイルの存在確認
+    assert!(
+        names.iter().any(|n| n == "tests/integration_test.rs"),
+        "tests/integration_test.rs missing"
+    );
+
     // REST 以外のハンドラは除外
     assert!(!names.iter().any(|n| n.contains("grpc.rs")));
     assert!(!names.iter().any(|n| n.contains("graphql.rs")));
+    assert!(!names.iter().any(|n| n.contains("buf.yaml")));
+    assert!(!names.iter().any(|n| n.contains("build.rs")));
+    assert!(!names.iter().any(|n| n.contains("schema.graphql")));
+    assert!(!names.iter().any(|n| n.contains("gqlgen.yml")));
 }
 
 #[test]
@@ -841,8 +881,13 @@ fn test_rust_server_grpc_file_list() {
     let (_, names) = render_server("rust", "grpc", false, "", false, false);
 
     assert!(names.iter().any(|n| n.contains("grpc.rs")));
+    assert!(names.iter().any(|n| n.contains("buf.yaml")), "buf.yaml missing for Rust gRPC");
+    assert!(names.iter().any(|n| n.contains("build.rs")), "build.rs missing for Rust gRPC");
+    assert!(names.iter().any(|n| n.contains("integration_test.rs")), "integration_test.rs missing");
     assert!(!names.iter().any(|n| n.contains("rest.rs")));
     assert!(!names.iter().any(|n| n.contains("graphql.rs")));
+    assert!(!names.iter().any(|n| n.contains("schema.graphql")));
+    assert!(!names.iter().any(|n| n.contains("gqlgen.yml")));
 }
 
 #[test]
@@ -891,8 +936,11 @@ fn test_rust_server_graphql_file_list() {
     let (_, names) = render_server("rust", "graphql", false, "", false, false);
 
     assert!(names.iter().any(|n| n.contains("graphql.rs")));
+    assert!(names.iter().any(|n| n.contains("integration_test.rs")), "integration_test.rs missing");
     assert!(!names.iter().any(|n| n.contains("rest.rs")));
     assert!(!names.iter().any(|n| n.contains("grpc.rs")));
+    assert!(!names.iter().any(|n| n.contains("buf.yaml")));
+    assert!(!names.iter().any(|n| n.contains("build.rs")));
 }
 
 #[test]
@@ -917,7 +965,7 @@ fn test_rust_server_graphql_handler_mod() {
     let content = read_output(&tmp, "src/adapter/handler/mod.rs");
 
     assert!(content.contains("mod graphql;"));
-    assert!(content.contains("pub use graphql::{build_schema, AppHandler};"));
+    assert!(content.contains("pub use graphql::{build_schema, OrderApiSchema, QueryRoot};"));
 }
 
 #[test]

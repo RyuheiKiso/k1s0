@@ -6,5 +6,5 @@ mod grpc;
 pub use grpc::{{ service_name_pascal }}GrpcService as AppHandler;
 {% elif api_style == "graphql" %}
 mod graphql;
-pub use graphql::{build_schema, AppHandler};
+pub use graphql::{build_schema, {{ service_name_pascal }}Schema, QueryRoot};
 {% endif %}

@@ -239,6 +239,16 @@ impl TemplateEngine {
             return ctx.api_styles.contains(&"grpc".to_string());
         }
 
+        // GraphQL 定義ファイル
+        if path_str.contains("schema.graphql") || path_str.contains("gqlgen.yml") {
+            return ctx.api_styles.contains(&"graphql".to_string());
+        }
+
+        // gRPC ビルド設定ファイル
+        if path_str.contains("buf.yaml") || path_str.contains("buf.gen") || path_str.contains("build.rs") {
+            return ctx.api_styles.contains(&"grpc".to_string());
+        }
+
         // DB 固有ファイル
         if path_str.contains("persistence") || path_str.contains("db.go") {
             return ctx.has_database;

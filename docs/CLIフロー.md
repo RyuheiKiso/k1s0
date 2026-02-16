@@ -409,6 +409,23 @@ service の場合、ステップ 3 で入力したサービス名をアプリ名
 - データベース → [テンプレート仕様-データベース](テンプレート仕様-データベース.md)
 - テンプレート変数・条件分岐 → [テンプレートエンジン仕様](テンプレートエンジン仕様.md)
 
+#### API 方式による条件付き生成
+
+サーバー種別では、選択した API 方式に応じて追加ファイルが生成される。
+
+| API 方式   | 追加生成ファイル                                                         |
+| ---------- | ------------------------------------------------------------------------ |
+| REST       | OpenAPI 定義（`openapi.yaml`）、oapi-codegen 設定                       |
+| gRPC       | proto 定義（`service.proto`）、`buf.yaml`、`buf.gen.yaml`（Go のみ）    |
+| GraphQL    | スキーマ定義（`schema.graphql`）、`gqlgen.yml`（Go のみ）               |
+
+#### 常に生成されるファイル
+
+サーバー種別では、API 方式に関わらず以下のテストファイルが常に生成される。
+
+- Go: `usecase_test.go`、`handler_test.go`、`repository_test.go`（DB 有効時）
+- Rust: `tests/integration_test.rs`
+
 > **注記**: service Tierのサーバーで GraphQL（API 方式選択）を選択した場合、通常のサーバー構成に加えて `server/{言語}/bff/` ディレクトリに GraphQL BFF のひな形が生成される。BFF の詳細な内部構成は [API設計.md](API設計.md) の「BFF ディレクトリ構成」を参照。
 
 ---
