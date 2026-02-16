@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"log/slog"
+{% if api_styles is containing("grpc") %}
+	"net"
+{% endif %}
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,6 +14,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+{% if api_styles is containing("grpc") %}
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
+
+	pb "{{ go_module }}/api/proto/gen"
+{% endif %}
 
 	"{{ go_module }}/internal/adapter/handler"
 	"{{ go_module }}/internal/infra/config"
@@ -86,7 +96,34 @@ func main() {
 	// API ルート登録
 	h.RegisterRoutes(r)
 
-	// --- Server ---
+{% if api_styles is containing("grpc") %}
+	// --- gRPC Server ---
+	grpcServer := grpc.NewServer()
+
+	// gRPC Health Service
+	healthServer := health.NewServer()
+	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
+
+	// gRPC ハンドラ登録
+	grpcHandler := handler.NewGRPCHandler(uc)
+	pb.Register{{ service_name_pascal }}ServiceServer(grpcServer, grpcHandler)
+
+	go func() {
+		lis, err := net.Listen("tcp", ":"+cfg.Server.GRPCPort)
+		if err != nil {
+			slog.Error("failed to listen gRPC", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("gRPC server starting", "port", cfg.Server.GRPCPort)
+		if err := grpcServer.Serve(lis); err != nil {
+			slog.Error("gRPC server failed", "error", err)
+			os.Exit(1)
+		}
+	}()
+{% endif %}
+
+	// --- HTTP Server ---
 	srv := &http.Server{
 		Addr:    ":" + cfg.Server.Port,
 		Handler: r,
@@ -108,6 +145,10 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+{% if api_styles is containing("grpc") %}
+	grpcServer.GracefulStop()
+	slog.Info("gRPC server exited")
+{% endif %}
 	if err := srv.Shutdown(ctx); err != nil {
 		slog.Error("server forced to shutdown", "error", err)
 	}

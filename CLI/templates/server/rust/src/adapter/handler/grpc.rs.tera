@@ -68,12 +68,23 @@ impl {{ service_name_pascal }}Service for {{ service_name_pascal }}GrpcService {
 
     async fn create_{{ service_name_snake }}(
         &self,
-        _request: Request<Create{{ service_name_pascal }}Request>,
+        request: Request<Create{{ service_name_pascal }}Request>,
     ) -> Result<Response<Create{{ service_name_pascal }}Response>, Status> {
-        // TODO: 実装
-        Ok(Response::new(Create{{ service_name_pascal }}Response {
-            id: "todo".to_string(),
-        }))
+        let req = request.into_inner();
+        let entity = crate::domain::model::{{ service_name_pascal }}Entity {
+            id: uuid::Uuid::new_v4().to_string(),
+            name: req.name,
+            description: if req.description.is_empty() { None } else { Some(req.description) },
+            status: "active".to_string(),
+            created_at: String::new(),
+            updated_at: String::new(),
+        };
+        match self.uc.create(&entity).await {
+            Ok(()) => Ok(Response::new(Create{{ service_name_pascal }}Response {
+                id: entity.id,
+            })),
+            Err(e) => Err(Status::internal(format!("internal error: {}", e))),
+        }
     }
 }
 {% endif %}

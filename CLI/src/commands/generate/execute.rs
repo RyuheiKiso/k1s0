@@ -31,13 +31,34 @@ pub fn execute_generate_at(config: &GenerateConfig, base_dir: &Path) -> Result<(
         Kind::Database => generate_database(config, &output_path)?,
     }
 
-    // service Tier + GraphQL の場合は BFF ディレクトリを追加生成
+    // service Tier + GraphQL の場合は BFF を追加生成
     if config.kind == Kind::Server
         && config.tier == Tier::Service
         && config.detail.api_styles.contains(&ApiStyle::GraphQL)
     {
-        let bff_path = output_path.join("bff");
-        fs::create_dir_all(&bff_path)?;
+        if let Some(bff_lang) = config.detail.bff_language {
+            // BFF 言語が指定されている場合はテンプレートエンジンで生成を試みる
+            let bff_path = output_path.join("bff");
+            fs::create_dir_all(&bff_path)?;
+            let tpl_dir = resolve_template_dir(base_dir);
+            let bff_tpl_dir = tpl_dir.join("bff").join(bff_lang.dir_name());
+            if bff_tpl_dir.exists() {
+                let bff_ctx = TemplateContextBuilder::new(
+                    config.detail.name.as_deref().unwrap_or("service"),
+                    config.tier.as_str(),
+                    bff_lang.dir_name(),
+                    "bff",
+                )
+                .api_style("graphql")
+                .build();
+                let mut engine = TemplateEngine::new(&tpl_dir)?;
+                let _ = engine.render_to_dir(&bff_ctx, &bff_path);
+            }
+        } else {
+            // BFF 言語未指定の場合は空ディレクトリのみ作成（後方互換）
+            let bff_path = output_path.join("bff");
+            fs::create_dir_all(&bff_path)?;
+        }
     }
 
     Ok(())
@@ -72,13 +93,44 @@ pub fn execute_generate_with_config(
         }
     }
 
-    // service Tier + GraphQL の場合は BFF ディレクトリを追加生成
+    // service Tier + GraphQL の場合は BFF を追加生成
     if config.kind == Kind::Server
         && config.tier == Tier::Service
         && config.detail.api_styles.contains(&ApiStyle::GraphQL)
     {
-        let bff_path = output_path.join("bff");
-        fs::create_dir_all(&bff_path)?;
+        if let Some(bff_lang) = config.detail.bff_language {
+            let bff_path = output_path.join("bff");
+            fs::create_dir_all(&bff_path)?;
+            let bff_tpl_dir = tpl_dir.join("bff").join(bff_lang.dir_name());
+            if bff_tpl_dir.exists() {
+                let bff_ctx = TemplateContextBuilder::new(
+                    config.detail.name.as_deref().unwrap_or("service"),
+                    config.tier.as_str(),
+                    bff_lang.dir_name(),
+                    "bff",
+                )
+                .api_style("graphql")
+                .build();
+                match TemplateEngine::new(&tpl_dir) {
+                    Ok(mut engine) => {
+                        match engine.render_to_dir(&bff_ctx, &bff_path) {
+                            Ok(files) => {
+                                println!("BFF テンプレートを生成しました: {} ファイル", files.len());
+                            }
+                            Err(e) => {
+                                eprintln!("BFF テンプレートの生成に失敗しました: {}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("BFF テンプレートエンジンの初期化に失敗しました: {}", e);
+                    }
+                }
+            }
+        } else {
+            let bff_path = output_path.join("bff");
+            fs::create_dir_all(&bff_path)?;
+        }
     }
 
     // Helm Chart 生成（server のみ）

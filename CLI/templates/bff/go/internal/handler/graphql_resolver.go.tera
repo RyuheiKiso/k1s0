@@ -1,0 +1,24 @@
+package handler
+
+import (
+    "context"
+    "net/http"
+)
+
+type Resolver struct{}
+
+func NewResolver() *Resolver {
+    return &Resolver{}
+}
+
+func NewGraphQLServer(resolver *Resolver) http.Handler {
+    // gqlgen server setup
+    mux := http.NewServeMux()
+    mux.HandleFunc("/query", func(w http.ResponseWriter, r *http.Request) {
+        w.WriteHeader(http.StatusOK)
+    })
+    mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+        w.WriteHeader(http.StatusOK)
+    })
+    return mux
+}

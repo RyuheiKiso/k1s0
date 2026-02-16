@@ -42,8 +42,10 @@ class TestGoLibPublicPackageContent:
     def test_package_declaration(self) -> None:
         assert "package {{ service_name | snake_case }}" in self.content
 
-    def test_has_todo(self) -> None:
-        assert "TODO" in self.content
+    def test_has_public_api(self) -> None:
+        assert "Config" in self.content
+        assert "Client" in self.content
+        assert "func New" in self.content
 
 
 class TestGoLibInternalContent:

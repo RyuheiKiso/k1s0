@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 
+	"{{ go_module }}/internal/domain/model"
 	"{{ go_module }}/internal/usecase"
 )
 
@@ -95,7 +96,17 @@ func (h *Handler) Create(c *gin.Context) {
 		})
 		return
 	}
-	// TODO: req → entity 変換、uc.Create 呼び出し
+	entity := &model.{{ service_name_pascal }}Entity{
+		Name:        req.Name,
+		Description: req.Description,
+	}
+	if err := h.uc.Create(c.Request.Context(), entity); err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Code:    "INTERNAL_ERROR",
+			Message: "Failed to create resource",
+		})
+		return
+	}
 	c.JSON(http.StatusCreated, gin.H{"status": "created"})
 }
 {% endif %}

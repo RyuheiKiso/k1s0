@@ -1,4 +1,22 @@
 // Package {{ service_name | snake_case }} は {{ service_name }} ライブラリの公開 API を提供する。
 package {{ service_name | snake_case }}
 
-// TODO: 公開 API の型定義・関数シグネチャを実装する
+// Config はライブラリの設定を表す。
+type Config struct {
+	Name string
+}
+
+// Client は {{ service_name }} ライブラリのクライアントを表す。
+type Client struct {
+	config Config
+}
+
+// New は Client を生成する。
+func New(cfg Config) *Client {
+	return &Client{config: cfg}
+}
+
+// Name は設定名を返す。
+func (c *Client) Name() string {
+	return c.config.Name
+}

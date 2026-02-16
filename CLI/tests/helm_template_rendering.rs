@@ -153,6 +153,7 @@ fn test_helm_file_list() {
     assert!(names.iter().any(|n| n.contains("values-prod.yaml")), "values-prod.yaml missing");
     assert!(names.iter().any(|n| n.contains("deployment.yaml")), "deployment.yaml missing");
     assert!(names.iter().any(|n| n.contains("service.yaml")), "service.yaml missing");
+    assert!(names.iter().any(|n| n.contains("ingress.yaml")), "ingress.yaml missing");
 }
 
 #[test]
@@ -457,6 +458,56 @@ fn test_helm_pdb_calls_library_chart() {
     );
 }
 
+/// ingress.yaml が Library Chart の include を呼び出していることを検証
+#[test]
+fn test_helm_ingress_calls_library_chart() {
+    let Some((tmp, _)) = render_helm("go", "rest", false, false, false) else {
+        eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "ingress.yaml");
+    assert!(
+        content.contains(r#"{{- include "k1s0-common.ingress" . }}"#),
+        "ingress.yaml に Library Chart 呼び出し '{{{{- include \"k1s0-common.ingress\" . }}}}' が含まれていません"
+    );
+}
+
+/// values.yaml に ingress セクションが含まれ、デフォルトで無効であることを検証
+#[test]
+fn test_helm_values_ingress_section() {
+    let Some((tmp, _)) = render_helm("go", "rest", false, false, false) else {
+        eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "values.yaml");
+    assert!(
+        content.contains("ingress:"),
+        "values.yaml に ingress セクションが含まれていません"
+    );
+    assert!(
+        content.contains("enabled: false"),
+        "ingress.enabled のデフォルトが false であるべき"
+    );
+    assert!(
+        content.contains("ingressClassName: nginx"),
+        "ingress.ingressClassName のデフォルトが nginx であるべき"
+    );
+    assert!(
+        content.contains("annotations: {}"),
+        "ingress.annotations のデフォルトが空であるべき"
+    );
+    assert!(
+        content.contains("hosts: []"),
+        "ingress.hosts のデフォルトが空であるべき"
+    );
+    assert!(
+        content.contains("tls: []"),
+        "ingress.tls のデフォルトが空であるべき"
+    );
+}
+
 /// Chart.yaml が k1s0-common への依存を宣言していることを検証
 #[test]
 fn test_helm_chart_yaml_has_library_dependency() {
@@ -550,6 +601,38 @@ fn test_helm_rest_only_no_grpc_port() {
     assert!(
         content.contains("port: 80"),
         "REST のみ: service.port: 80 が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
+        content
+    );
+}
+
+/// gRPC 選択時: values.yaml に grpcHealthCheck セクションが存在することを検証
+#[test]
+fn test_helm_grpc_health_check_in_values() {
+    let Some((tmp, _)) = render_helm_with_styles(vec!["grpc"], false, false, false) else {
+        eprintln!("SKIP: helm テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "values.yaml");
+    assert!(
+        content.contains("grpcHealthCheck"),
+        "gRPC 選択時に values.yaml に grpcHealthCheck セクションが含まれるべき\n--- values.yaml ---\n{}",
+        content
+    );
+}
+
+/// REST のみ選択時: values.yaml に grpcHealthCheck セクションが含まれないことを検証
+#[test]
+fn test_helm_rest_no_grpc_health_check_in_values() {
+    let Some((tmp, _)) = render_helm_with_styles(vec!["rest"], false, false, false) else {
+        eprintln!("SKIP: helm テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "values.yaml");
+    assert!(
+        !content.contains("grpcHealthCheck"),
+        "REST のみ選択時に values.yaml に grpcHealthCheck セクションが含まれるべきでない\n--- values.yaml ---\n{}",
         content
     );
 }

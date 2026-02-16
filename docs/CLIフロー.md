@@ -466,7 +466,106 @@ BFF 生成時の確認画面には以下が追加表示される：
       キャンセル（メインメニューに戻る）
 ```
 
-BFF のテンプレートは通常のサーバーテンプレートと同じ構造で、`regions/service/{service_name}/server/{lang}/bff/` 配下に生成される。生成されるファイルの詳細は [テンプレート仕様-サーバー](テンプレート仕様-サーバー.md) を参照。
+BFF のテンプレートは通常のサーバーテンプレートと同じ構造で、`regions/service/{service_name}/server/{server_lang}/bff/` 配下に生成される。生成されるファイルの詳細は [テンプレート仕様-サーバー](テンプレート仕様-サーバー.md) を参照。
+
+#### BFF 生成フローの対話ステップ詳細
+
+BFF 生成は、service Tier のサーバー詳細設定（ステップ 5）の中で行われる。以下の順序で対話が進行する。
+
+```
+[ステップ 5: サーバー詳細設定]
+
+[5-1] サービス名
+      → service Tier ではステップ 3 で入力済みのためスキップ
+
+[5-2] API 方式選択（複数選択可）
+      ? API 方式を選択してください（複数選択可）
+      > [x] REST (OpenAPI)
+        [ ] gRPC (protobuf)
+        [x] GraphQL            ← GraphQL を含む選択
+
+[5-3] データベース追加
+      ? データベースを追加しますか？
+      > はい / いいえ
+
+[5-4] Kafka 有効化
+      ? メッセージング (Kafka) を有効にしますか？
+      > はい / いいえ
+
+[5-5] Redis 有効化
+      ? キャッシュ (Redis) を有効にしますか？
+      > はい / いいえ
+
+[5-6] BFF 生成提案（GraphQL 選択時のみ表示）
+      ? GraphQL BFF を生成しますか？
+      > はい
+        いいえ
+
+[5-7] BFF 言語選択（BFF 生成「はい」の場合のみ表示）
+      ? BFF の言語を選択してください
+      > Go
+        Rust
+```
+
+この対話フローは `CLI/src/commands/generate/steps.rs` の `step_detail_server()` で実装されている。BFF 関連のステップ（5-6, 5-7）は `tier == Tier::Service && api_styles.contains(&ApiStyle::GraphQL)` の条件を満たす場合にのみ表示される。
+
+選択された BFF 言語は `DetailConfig.bff_language` フィールド（`Option<Language>`）に格納され、確認画面と生成処理に引き渡される。
+
+#### BFF 生成時の確認画面表示例
+
+**REST + GraphQL + BFF (Go) の場合：**
+
+```
+[確認] 以下の内容で生成します。よろしいですか？
+    種別:     サーバー
+    Tier:     service
+    サービス: order
+    言語:     Go
+    API:      REST, GraphQL
+    BFF:      あり (Go)
+    DB:       order-db (PostgreSQL)
+    Kafka:    無効
+    Redis:    無効
+    > はい
+      いいえ（前のステップに戻る）
+      キャンセル（メインメニューに戻る）
+```
+
+**GraphQL + BFF (Rust)、サーバー言語 Go の場合：**
+
+```
+[確認] 以下の内容で生成します。よろしいですか？
+    種別:     サーバー
+    Tier:     service
+    サービス: payment
+    言語:     Go
+    API:      GraphQL
+    BFF:      あり (Rust)
+    DB:       なし
+    Kafka:    無効
+    Redis:    無効
+    > はい
+      いいえ（前のステップに戻る）
+      キャンセル（メインメニューに戻る）
+```
+
+BFF の言語はサーバー本体の言語と異なる選択が可能（例: サーバー Go + BFF Rust）。
+
+#### BFF 配置パス
+
+BFF はサーバー本体の出力ディレクトリ内に `bff/` サブディレクトリとして生成される。
+
+```
+regions/service/{service_name}/server/{server_lang}/bff/
+```
+
+例: サービス名 `order`、サーバー言語 `Go` の場合：
+
+```
+regions/service/order/server/go/bff/
+```
+
+> **注記**: BFF のディレクトリはサーバー本体の言語ディレクトリ（`{server_lang}`）配下に配置される。BFF 言語の選択（Go / Rust）は BFF 内部のスケルトンコード生成に影響するが、配置パスはサーバー本体の言語に従う。
 
 ---
 

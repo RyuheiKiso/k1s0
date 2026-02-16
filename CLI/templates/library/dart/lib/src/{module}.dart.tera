@@ -1,3 +1,21 @@
 /// {{ service_name | snake_case }} モジュールの実装
 
-// TODO: モジュール実装を記述する
+/// ライブラリの設定クラス
+class Config {
+  /// 設定名
+  final String name;
+
+  /// Config を生成する
+  const Config({required this.name});
+}
+
+/// {{ service_name }} クライアント
+class Client {
+  final Config _config;
+
+  /// Client を生成する
+  Client(this._config);
+
+  /// 設定名を返す
+  String get name => _config.name;
+}

@@ -58,8 +58,7 @@ CI/CD テンプレートで使用する変数を以下に示す。変数の定�
 | `language`           | String   | 用  | 用     | 言語別ステップの分岐                       |
 | `kind`               | String   | 用  | 用     | Deploy 生成判定、ビルドステップの分岐      |
 | `tier`               | String   | —   | 用     | Docker プロジェクト名の導出                |
-| `api_style`          | String   | 用  | —      | gRPC 時の buf lint ステップ追加            |
-| `api_styles`         | [String] | 用  | —      | 複数 API スタイル対応時の分岐              |
+| `api_styles`         | [String] | 用  | —      | gRPC 時の buf lint ステップ追加等、API スタイル分岐 |
 | `has_database`       | bool     | 用  | —      | DB マイグレーションテストステップの追加    |
 | `database_type`      | String   | 用  | —      | DB 固有のマイグレーションツール選択        |
 | `docker_registry`    | String   | —   | 用     | Docker レジストリ URL                      |
@@ -347,10 +346,10 @@ concurrency:
 
 #### gRPC 使用時（buf lint）
 
-`api_style == "grpc"` または `api_styles` に `"grpc"` が含まれる場合、lint ジョブに buf lint ステップを追加する。
+`api_styles` に `"grpc"` が含まれる場合、lint ジョブに buf lint ステップを追加する。
 
 ```tera
-{% if api_style == "grpc" or "grpc" in api_styles %}
+{% if api_styles is containing("grpc") %}
   proto-lint:
     runs-on: ubuntu-latest
     steps:
@@ -721,7 +720,7 @@ CLI の対話フローで選択されたオプションに応じて、ワーク�
 | ------------------------ | --------------------------------- | ------------------------------------------------- |
 | 言語 (`language`)        | `go` / `rust`                     | 言語固有の lint → test → build ステップ           |
 | フレームワーク (`framework`) | `react` / `flutter`              | クライアント固有の lint → test → build ステップ   |
-| API 方式 (`api_style`)   | `grpc`                            | buf lint + breaking change detection ステップ追加 |
+| API 方式 (`api_styles`)  | `grpc` を含む                     | buf lint + breaking change detection ステップ追加 |
 | DB 有無 (`has_database`) | `true`                            | DB マイグレーションテストステップ追加             |
 | DB 種別 (`database_type`)| `postgresql` / `mysql` / `sqlite` | service コンテナの種別選択                        |
 | kind (`kind`)            | `server`                          | Deploy ワークフローの生成                         |
@@ -740,7 +739,7 @@ CLI の対話フローで選択されたオプションに応じて、ワーク�
   "language": "go",
   "kind": "server",
   "tier": "service",
-  "api_style": "rest",
+  "api_styles": ["rest"],
   "has_database": true,
   "database_type": "postgresql",
   "docker_registry": "harbor.internal.example.com",
@@ -762,7 +761,7 @@ CLI の対話フローで選択されたオプションに応じて、ワーク�
   "language": "rust",
   "kind": "server",
   "tier": "system",
-  "api_style": "grpc",
+  "api_styles": ["grpc"],
   "has_database": false,
   "docker_registry": "harbor.internal.example.com",
   "docker_project": "k1s0-system"

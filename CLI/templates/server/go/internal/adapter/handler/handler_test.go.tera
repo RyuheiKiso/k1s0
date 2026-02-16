@@ -115,7 +115,7 @@ func setupGRPCServer(t *testing.T) (*grpc.ClientConn, func()) {
 	uc := usecase.New{{ service_name_pascal }}UseCase()
 	cleanup := func() {}
 {% endif %}
-	_ = uc // TODO: RegisterServer
+	_ = uc // gRPC サービス登録のスケルトン
 	s := grpc.NewServer()
 	go func() { _ = s.Serve(lis) }()
 
@@ -139,7 +139,7 @@ func TestGRPCPlaceholder(t *testing.T) {
 	defer teardown()
 
 	assert.NotNil(t, conn)
-	// TODO: gRPC クライアントを使用したテストを実装する
+	// gRPC クライアントを使用したテスト (スケルトン)
 }
 {% endif %}
 {% if api_styles is containing("graphql") %}
@@ -170,6 +170,6 @@ func TestGraphQLResolverCreation(t *testing.T) {
 {% endif %}
 	resolver := NewResolver(uc)
 	assert.NotNil(t, resolver)
-	// TODO: gqlgen client を使用した統合テストを実装する
+	// gqlgen client を使用した統合テスト (スケルトン)
 }
 {% endif %}

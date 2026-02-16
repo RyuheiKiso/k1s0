@@ -529,10 +529,10 @@ fn test_go_server_no_database() {
     // DB 関連ファイルは除外
     assert!(!names.iter().any(|n| n.contains("persistence")));
 
-    // usecase は DB なしパスで生成
+    // usecase は DB なしパスで生成（スケルトンコード）
     let usecase = read_output(&tmp, "internal/usecase/usecase.go");
     assert!(!usecase.contains("repo repository"));
-    assert!(usecase.contains("// TODO:"));
+    assert!(usecase.contains("placeholder"));
 
     // main.go に persistence import がない
     let main = read_output(&tmp, "cmd/main.go");
@@ -994,10 +994,10 @@ fn test_rust_server_no_database() {
     let model = read_output(&tmp, "src/domain/model.rs");
     assert!(!model.contains("sqlx::FromRow"));
 
-    // usecase に repo がない
+    // usecase に repo がない（スケルトンコード）
     let usecase = read_output(&tmp, "src/usecase/service.rs");
     assert!(!usecase.contains("repo: Arc<dyn"));
-    assert!(usecase.contains("// TODO:"));
+    assert!(usecase.contains("placeholder"));
 
     // infra/mod.rs に persistence がない
     let infra_mod = read_output(&tmp, "src/infra/mod.rs");

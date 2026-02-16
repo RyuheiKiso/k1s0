@@ -9,9 +9,9 @@ import (
 {% if has_database %}
 	"go.uber.org/mock/gomock"
 
-	"{{ go_module }}/internal/domain/model"
 	"{{ go_module }}/internal/domain/repository"
 {% endif %}
+	"{{ go_module }}/internal/domain/model"
 )
 
 {% if has_database %}
@@ -73,9 +73,26 @@ func TestCreate(t *testing.T) {
 	require.NoError(t, err)
 }
 {% else %}
-func TestPlaceholder(t *testing.T) {
-	// TODO: ユースケーステストを実装する
+func TestGetByID(t *testing.T) {
 	uc := New{{ service_name_pascal }}UseCase()
-	assert.NotNil(t, uc)
+	result, err := uc.GetByID(context.Background(), "test-id")
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "test-id", result.ID)
+}
+
+func TestGetAll(t *testing.T) {
+	uc := New{{ service_name_pascal }}UseCase()
+	result, err := uc.GetAll(context.Background())
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Len(t, result, 0)
+}
+
+func TestCreate(t *testing.T) {
+	uc := New{{ service_name_pascal }}UseCase()
+	entity := &model.{{ service_name_pascal }}Entity{Name: "test"}
+	err := uc.Create(context.Background(), entity)
+	assert.NoError(t, err)
 }
 {% endif %}

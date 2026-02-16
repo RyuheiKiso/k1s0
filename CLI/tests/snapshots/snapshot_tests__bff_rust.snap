@@ -1,0 +1,10 @@
+---
+source: tests/snapshot_tests.rs
+expression: sorted
+---
+- Cargo.toml
+- Dockerfile
+- README.md
+- config/config.yaml
+- src/handler/graphql.rs
+- src/main.rs

@@ -2,5 +2,21 @@
  * {{ service_name }} ライブラリのエントリポイント
  */
 
-// TODO: 公開 API をエクスポートする
-// export { SomeType } from './some-module';
+/** ライブラリの設定 */
+export interface Config {
+  name: string;
+}
+
+/** {{ service_name }} クライアント */
+export class Client {
+  private config: Config;
+
+  constructor(config: Config) {
+    this.config = config;
+  }
+
+  /** 設定名を返す */
+  get name(): string {
+    return this.config.name;
+  }
+}

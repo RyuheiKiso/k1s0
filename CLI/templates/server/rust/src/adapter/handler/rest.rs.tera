@@ -63,10 +63,20 @@ struct CreateRequest {
 }
 
 async fn create(
-    State(_uc): State<Arc<{{ service_name_pascal }}UseCase>>,
-    Json(_req): Json<CreateRequest>,
+    State(uc): State<Arc<{{ service_name_pascal }}UseCase>>,
+    Json(req): Json<CreateRequest>,
 ) -> StatusCode {
-    // TODO: req → entity 変換、uc.create 呼び出し
-    StatusCode::CREATED
+    let entity = crate::domain::model::{{ service_name_pascal }}Entity {
+        id: String::new(),
+        name: req.name,
+        description: req.description,
+        status: "active".to_string(),
+        created_at: String::new(),
+        updated_at: String::new(),
+    };
+    match uc.create(&entity).await {
+        Ok(()) => StatusCode::CREATED,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
 }
 {% endif %}

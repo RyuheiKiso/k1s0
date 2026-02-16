@@ -6,6 +6,7 @@ expression: sorted
 - templates/configmap.yaml
 - templates/deployment.yaml
 - templates/hpa.yaml
+- templates/ingress.yaml
 - templates/pdb.yaml
 - templates/service.yaml
 - values-dev.yaml

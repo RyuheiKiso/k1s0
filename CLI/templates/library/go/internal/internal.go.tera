@@ -1,4 +1,7 @@
 // Package internal は {{ service_name }} ライブラリの非公開実装を提供する。
 package internal
 
-// TODO: 非公開の実装を記述する
+// Validate は入力値を検証する。
+func Validate(s string) bool {
+	return len(s) > 0
+}

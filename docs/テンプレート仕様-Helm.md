@@ -55,7 +55,8 @@ CLI/
             ├── service.yaml.tera
             ├── configmap.yaml.tera
             ├── hpa.yaml.tera
-            └── pdb.yaml.tera
+            ├── pdb.yaml.tera
+            └── ingress.yaml.tera
 ```
 
 | ファイル                       | 説明               | 条件       |
@@ -70,6 +71,7 @@ CLI/
 | `templates/configmap.yaml.tera`  | ConfigMap マニフェスト | 常に生成 |
 | `templates/hpa.yaml.tera`       | HPA マニフェスト      | 常に生成 |
 | `templates/pdb.yaml.tera`       | PDB マニフェスト      | 常に生成 |
+| `templates/ingress.yaml.tera`   | Ingress マニフェスト  | 常に生成 |
 
 > Helm Chart テンプレートは全ファイル常に生成される。条件分岐（gRPC / DB / Kafka / Redis）は values.yaml 内の値と Helm テンプレート構文（`{{ if }}`）で制御する。
 
@@ -151,7 +153,7 @@ ports:
   {{- end }}
 ```
 
-gRPC を含む場合のヘルスチェックは HTTP ポート (`/healthz`) で行い、gRPC ヘルスチェックプロトコルは使用しない。将来的に gRPC ヘルスチェック（`grpc_health_probe`）への移行を検討する。
+gRPC を含む場合のヘルスチェックは、`probes.grpcHealthCheck.enabled` の値に応じて切り替わる。デフォルトは HTTP ポート (`/healthz`) で行い、gRPC ヘルスチェックを有効にした場合は gRPC ネイティブプローブを使用する。詳細は [gRPC ヘルスチェック仕様](#grpc-ヘルスチェック仕様) を参照。
 
 > **注記**: Helm の Go テンプレートでは YAML の `null` 値に対して `if` 条件は `false` と評価される。したがって `grpcPort: null` の場合 `{{- if .Values.container.grpcPort }}` は偽となり、gRPC ポート定義は出力されない。
 
@@ -568,6 +570,259 @@ Deployment マニフェストは Library Chart（k1s0-common）の `_deployment.
 {% endraw %}
 ```
 
+### templates/ingress.yaml.tera
+
+Ingress マニフェストは Library Chart（k1s0-common）の `_ingress.tpl` を呼び出す形式で生成する。`ingress.enabled: true` の場合にのみ Kubernetes Ingress リソースが出力される。
+
+```tera
+{% raw %}
+{{- include "k1s0-common.ingress" . }}
+{% endraw %}
+```
+
+> Library Chart が Ingress の全構成（metadata、annotations、TLS、ルーティングルール）を提供するため、各サービスの ingress.yaml は Library Chart の呼び出しのみとなる。
+
+## Ingress 詳細仕様
+
+### 概要
+
+Ingress は Kong API Gateway 経由でない管理系 UI や内部ダッシュボードなどに対して、Kubernetes Ingress リソースを通じた直接的なルーティングを提供する。通常の API サービスは Kong 経由でルーティングされるため、デフォルトでは `ingress.enabled: false` となる。
+
+### values.yaml の Ingress 設定
+
+| フィールド | 型 | デフォルト | 説明 |
+|---|---|---|---|
+| `ingress.enabled` | boolean | `false` | Ingress リソースの生成を制御 |
+| `ingress.ingressClassName` | string | `"nginx"` | 使用する Ingress Controller のクラス名（`nginx` または `kong`） |
+| `ingress.annotations` | map | `{}` | Ingress リソースに付与するアノテーション |
+| `ingress.hosts` | list | `[]` | ホストベースのルーティング定義 |
+| `ingress.hosts[].host` | string | --- | ホスト名（例: `admin.example.com`） |
+| `ingress.hosts[].paths` | list | --- | パスベースのルーティング定義 |
+| `ingress.hosts[].paths[].path` | string | --- | URL パス（例: `/`） |
+| `ingress.hosts[].paths[].pathType` | string | `"Prefix"` | パスマッチタイプ（`Prefix` / `Exact` / `ImplementationSpecific`） |
+| `ingress.hosts[].paths[].backend.serviceName` | string | --- | バックエンドサービス名 |
+| `ingress.hosts[].paths[].backend.servicePort` | integer | --- | バックエンドサービスポート番号 |
+| `ingress.tls` | list | `[]` | TLS 設定 |
+| `ingress.tls[].secretName` | string | --- | TLS 証明書の Secret 名 |
+| `ingress.tls[].hosts` | list | --- | TLS を適用するホスト名リスト |
+
+### YAML 設定例
+
+デフォルト（Ingress 無効）:
+
+```yaml
+ingress:
+  enabled: false
+  ingressClassName: nginx
+```
+
+Ingress 有効時の設定例:
+
+```yaml
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  hosts:
+    - host: admin.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            serviceName: admin-ui
+            servicePort: 80
+  tls:
+    - secretName: admin-tls
+      hosts:
+        - admin.example.com
+```
+
+### Library Chart での処理
+
+`k1s0-common` Library Chart の `_ingress.tpl` は、`ingress.enabled` が `true` の場合にのみ Ingress リソースを出力する。
+
+```yaml
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "k1s0-common.fullname" . }}
+  labels:
+    {{- include "k1s0-common.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClassName | default "nginx" }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ .backend.serviceName }}
+                port:
+                  number: {{ .backend.servicePort }}
+          {{- end }}
+    {{- end }}
+{{- end }}
+```
+
+## gRPC ヘルスチェック仕様
+
+### 概要
+
+gRPC サービスに対して、HTTP エンドポイント (`/healthz`) ではなく gRPC ネイティブのヘルスチェックプロトコル（[gRPC Health Checking Protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md)）を使用できる。Kubernetes 1.24 以降で利用可能な `grpc` プローブを使用する。
+
+### values.yaml の gRPC ヘルスチェック設定
+
+| フィールド | 型 | デフォルト | 説明 |
+|---|---|---|---|
+| `probes.grpcHealthCheck.enabled` | boolean | `false` | gRPC ネイティブヘルスチェックの有効化 |
+| `probes.grpcHealthCheck.port` | string | `"grpc"` | gRPC ヘルスチェックで使用するポート名 |
+
+### YAML 設定例
+
+デフォルト（HTTP ヘルスチェック）:
+
+```yaml
+probes:
+  liveness:
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 3
+  readiness:
+    httpGet:
+      path: /readyz
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+  grpcHealthCheck:
+    enabled: false
+    port: "grpc"
+```
+
+gRPC ヘルスチェック有効時:
+
+```yaml
+probes:
+  liveness:
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 3
+  readiness:
+    httpGet:
+      path: /readyz
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+  grpcHealthCheck:
+    enabled: true
+    port: "grpc"
+```
+
+> `probes.liveness` / `probes.readiness` のHTTP定義は values.yaml 上に残るが、`grpcHealthCheck.enabled: true` の場合は Library Chart の `_deployment.tpl` が gRPC プローブで上書きする。
+
+### Library Chart での条件分岐ロジック
+
+`_deployment.tpl` は `probes.grpcHealthCheck.enabled` の値に応じてヘルスチェック方式を切り替える。
+
+#### grpcHealthCheck.enabled が false の場合（デフォルト）
+
+既存の HTTP ベースのプローブをそのまま使用する:
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 15
+  failureThreshold: 3
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  failureThreshold: 3
+```
+
+#### grpcHealthCheck.enabled が true の場合
+
+gRPC ネイティブプローブを使用する:
+
+```yaml
+livenessProbe:
+  grpc:
+    port: 50051
+  initialDelaySeconds: 10
+  periodSeconds: 15
+  failureThreshold: 3
+readinessProbe:
+  grpc:
+    port: 50051
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  failureThreshold: 3
+```
+
+#### `_deployment.tpl` の条件分岐
+
+```yaml
+{{- if and .Values.probes .Values.probes.grpcHealthCheck .Values.probes.grpcHealthCheck.enabled }}
+          livenessProbe:
+            grpc:
+              port: {{ .Values.container.grpcPort }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          readinessProbe:
+            grpc:
+              port: {{ .Values.container.grpcPort }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+{{- else }}
+          {{- with .Values.probes.liveness }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.probes.readiness }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}
+```
+
+### サーバーテンプレートの gRPC Health スタブ
+
+gRPC ヘルスチェックを利用するには、サーバー側で `grpc.health.v1.Health` サービスを実装する必要がある。CLI でサーバーテンプレートを生成する際、`api_styles` に `"grpc"` が含まれる場合は、gRPC Health Checking Protocol のスタブが自動的に含まれる。
+
+- **Go サーバー**: `google.golang.org/grpc/health` パッケージの `health.NewServer()` を gRPC サーバーに登録
+- **Rust サーバー**: `tonic-health` クレートの `health_reporter()` を gRPC サーバーに追加
+
+これにより、`grpcHealthCheck.enabled: true` に切り替えるだけで gRPC ネイティブヘルスチェックが機能する。
+
 ## テンプレート変数一覧
 
 Helm Chart テンプレートで使用する変数の一覧。全変数の定義は [テンプレートエンジン仕様](テンプレートエンジン仕様.md) を参照。
@@ -603,7 +858,8 @@ infra/helm/services/business/{domain}/{service_name}/  # business
     ├── service.yaml
     ├── configmap.yaml
     ├── hpa.yaml
-    └── pdb.yaml
+    ├── pdb.yaml
+    └── ingress.yaml
 ```
 
 ## デプロイコマンド

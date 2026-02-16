@@ -89,7 +89,7 @@ fn test_library_go_public_package_content() {
     let content = read_output(&tmp, "shared-utils.go");
 
     assert!(content.contains("package shared_utils") || content.contains("package "));
-    assert!(content.contains("TODO"));
+    assert!(content.contains("Config") && content.contains("Client") && content.contains("func New"));
 }
 
 #[test]
@@ -324,7 +324,7 @@ fn test_library_dart_src_module_content() {
     let (tmp, _) = render_library("dart");
     let content = read_output(&tmp, "lib/src/shared_utils.dart");
 
-    assert!(content.contains("shared_utils") || content.contains("TODO"));
+    assert!(content.contains("shared_utils"));
 }
 
 #[test]

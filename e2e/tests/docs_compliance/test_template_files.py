@@ -506,9 +506,9 @@ class TestConditionalSyntaxPatterns:
         "pattern",
         [
             "{% if has_database %}",
-            '{% if api_style == "rest" %}',
-            '{% elif api_style == "grpc" %}',
-            '{% elif api_style == "graphql" %}',
+            '{% if api_styles is containing("rest") %}',
+            '{% if api_styles is containing("grpc") %}',
+            '{% if api_styles is containing("graphql") %}',
             '{% if language == "go" %}',
             '{% elif language == "rust" %}',
             "{% if has_kafka %}",

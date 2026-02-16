@@ -376,6 +376,57 @@ fn test_snapshot_database_sqlite() {
 }
 
 // =========================================================================
+// ヘルパー関数: BFF
+// =========================================================================
+
+fn render_bff(lang: &str) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let ctx = TemplateContextBuilder::new("order-api", "service", lang, "bff")
+        .api_style("graphql")
+        .build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+
+    (tmp, names)
+}
+
+// =========================================================================
+// スナップショットテスト: BFF
+// =========================================================================
+
+/// BFF: Go
+#[test]
+fn test_snapshot_bff_go() {
+    let (_, names) = render_bff("go");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("bff_go", sorted);
+}
+
+/// BFF: Rust
+#[test]
+fn test_snapshot_bff_rust() {
+    let (_, names) = render_bff("rust");
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("bff_rust", sorted);
+}
+
+// =========================================================================
 // スナップショットテスト: Helm
 // =========================================================================
 
@@ -408,4 +459,104 @@ fn test_snapshot_cicd_rust_grpc() {
     let mut sorted = names.clone();
     sorted.sort();
     insta::assert_yaml_snapshot!("cicd_rust_grpc", sorted);
+}
+
+// =========================================================================
+// ヘルパー関数: 複数APIスタイル対応 Server
+// =========================================================================
+
+fn render_server_multi(
+    lang: &str,
+    api_styles: Vec<&str>,
+    has_database: bool,
+    database_type: &str,
+    has_kafka: bool,
+    has_redis: bool,
+) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let styles: Vec<String> = api_styles.iter().map(|s| s.to_string()).collect();
+
+    let mut builder = TemplateContextBuilder::new("order-api", "service", lang, "server")
+        .api_styles(styles);
+
+    if has_database {
+        builder = builder.with_database(database_type);
+    }
+    if has_kafka {
+        builder = builder.with_kafka();
+    }
+    if has_redis {
+        builder = builder.with_redis();
+    }
+
+    let ctx = builder.build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+
+    (tmp, names)
+}
+
+// =========================================================================
+// スナップショットテスト: 複数APIスタイル (REST+gRPC)
+// =========================================================================
+
+/// パターン: Go REST+gRPC + PostgreSQL
+#[test]
+fn test_snapshot_go_rest_grpc_postgresql() {
+    let (_, names) = render_server_multi(
+        "go",
+        vec!["rest", "grpc"],
+        true,
+        "postgresql",
+        false,
+        false,
+    );
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("go_rest_grpc_postgresql", sorted);
+}
+
+/// パターン: Rust REST+gRPC (最小)
+#[test]
+fn test_snapshot_rust_rest_grpc_minimal() {
+    let (_, names) = render_server_multi(
+        "rust",
+        vec!["rest", "grpc"],
+        false,
+        "",
+        false,
+        false,
+    );
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("rust_rest_grpc_minimal", sorted);
+}
+
+/// 複数APIスタイル時にREST・gRPC両方のハンドラが含まれることを検証
+#[test]
+fn test_go_rest_grpc_includes_both_handlers() {
+    let (_, files) = render_server_multi(
+        "go",
+        vec!["rest", "grpc"],
+        true,
+        "postgresql",
+        false,
+        false,
+    );
+    assert!(files.iter().any(|f| f.contains("rest")), "REST handler should be included");
+    assert!(files.iter().any(|f| f.contains("grpc")), "gRPC handler should be included");
 }

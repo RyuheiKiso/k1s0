@@ -351,9 +351,9 @@ class TestCodegenRetryNotImplemented:
         """テンプレート仕様-コード生成パイプライン.md: リトライ機構セクションが存在する。"""
         assert "### リトライ機構" in self.content
 
-    def test_retry_not_implemented(self) -> None:
-        """テンプレート仕様-コード生成パイプライン.md: リトライ未実装が明記されている。"""
-        assert "リトライ機構は未実装" in self.content
+    def test_retry_implemented(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: リトライ機構が実装されている。"""
+        assert "リトライ機構を備える" in self.content
 
     def test_retry_future_plan(self) -> None:
         """テンプレート仕様-コード生成パイプライン.md: 将来的な最大3回リトライの計画。"""

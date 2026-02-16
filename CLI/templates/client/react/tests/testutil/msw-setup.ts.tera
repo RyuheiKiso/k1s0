@@ -14,7 +14,18 @@ const handlers = [
     return HttpResponse.json({ status: 'ok' });
   }),
 
-  // TODO: {{ service_name }} 固有のハンドラーを追加
+  // {{ service_name }} 固有のハンドラー
+  http.get('/api/v1/{{ service_name }}', () => {
+    return HttpResponse.json([]);
+  }),
+
+  http.get('/api/v1/{{ service_name }}/:id', ({ params }) => {
+    return HttpResponse.json({ id: params['id'], name: 'mock' });
+  }),
+
+  http.post('/api/v1/{{ service_name }}', () => {
+    return HttpResponse.json({ status: 'created' }, { status: 201 });
+  }),
 ];
 
 export const server = setupServer(...handlers);

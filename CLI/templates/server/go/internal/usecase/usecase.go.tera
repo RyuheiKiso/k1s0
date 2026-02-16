@@ -34,8 +34,10 @@ func (uc *{{ service_name_pascal }}UseCase) GetByID(ctx context.Context, id stri
 {% if has_database %}
 	return uc.repo.FindByID(ctx, id)
 {% else %}
-	// TODO: 実装
-	return nil, nil
+	return &model.{{ service_name_pascal }}Entity{
+		ID:   id,
+		Name: "placeholder",
+	}, nil
 {% endif %}
 }
 
@@ -44,8 +46,7 @@ func (uc *{{ service_name_pascal }}UseCase) GetAll(ctx context.Context) ([]*mode
 {% if has_database %}
 	return uc.repo.FindAll(ctx)
 {% else %}
-	// TODO: 実装
-	return nil, nil
+	return []*model.{{ service_name_pascal }}Entity{}, nil
 {% endif %}
 }
 
@@ -54,7 +55,7 @@ func (uc *{{ service_name_pascal }}UseCase) Create(ctx context.Context, entity *
 {% if has_database %}
 	return uc.repo.Create(ctx, entity)
 {% else %}
-	// TODO: 実装
+	_ = entity
 	return nil
 {% endif %}
 }

@@ -45,6 +45,11 @@ probes:
     initialDelaySeconds: 5
     periodSeconds: 5
     failureThreshold: 3
+{% if api_styles is containing("grpc") %}
+  grpcHealthCheck:
+    enabled: false
+    port: grpc
+{% endif %}
 
 service:
   type: ClusterIP
@@ -69,6 +74,9 @@ pdb:
 ingress:
   enabled: false
   ingressClassName: nginx
+  annotations: {}
+  hosts: []
+  tls: []
 
 podSecurityContext:
   runAsNonRoot: true

@@ -1,13 +1,37 @@
 //! {{ service_name | snake_case }} モジュールの実装
 
-// TODO: モジュール実装を記述する
+/// Config はライブラリの設定を表す。
+#[derive(Debug, Clone)]
+pub struct Config {
+    pub name: String,
+}
+
+/// Client は {{ service_name }} ライブラリのクライアントを表す。
+pub struct Client {
+    config: Config,
+}
+
+impl Client {
+    /// new は Client を生成する。
+    pub fn new(config: Config) -> Self {
+        Self { config }
+    }
+
+    /// name は設定名を返す。
+    pub fn name(&self) -> &str {
+        &self.config.name
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_placeholder() {
-        // TODO: ユニットテストを実装する
+    fn test_new_client() {
+        let client = Client::new(Config {
+            name: "test".to_string(),
+        });
+        assert_eq!(client.name(), "test");
     }
 }

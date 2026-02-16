@@ -4,9 +4,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	{{ service_name | snake_case }} "{{ go_module }}"
 )
 
-func TestIntegrationPlaceholder(t *testing.T) {
-	// TODO: 統合テストを実装する
-	assert.True(t, true)
+func TestIntegrationNew(t *testing.T) {
+	c := {{ service_name | snake_case }}.New({{ service_name | snake_case }}.Config{Name: "integration"})
+	assert.NotNil(t, c)
+	assert.Equal(t, "integration", c.Name())
 }

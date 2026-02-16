@@ -1,0 +1,16 @@
+use actix_web::{web, App, HttpServer, HttpResponse};
+
+mod handler;
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    println!("{{ service_name }}-bff starting on :8080");
+    HttpServer::new(|| {
+        App::new()
+            .route("/healthz", web::get().to(HttpResponse::Ok))
+            .configure(handler::graphql::configure)
+    })
+    .bind("0.0.0.0:8080")?
+    .run()
+    .await
+}

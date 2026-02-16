@@ -48,7 +48,7 @@ func TestRepositoryIntegration(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = container.Terminate(ctx) }()
 
-	// TODO: マイグレーション実行 → Repository 初期化 → CRUD テスト
+	// マイグレーション実行 → Repository 初期化 → CRUD テスト (スケルトン)
 	assert.NotNil(t, container)
 {% endif %}
 }

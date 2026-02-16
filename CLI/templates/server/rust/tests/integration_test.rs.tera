@@ -67,7 +67,7 @@ use {{ rust_crate }}::usecase::{{ service_name_pascal }}UseCase;
 
 #[tokio::test]
 async fn test_grpc_placeholder() {
-    // TODO: tonic テストクライアントを使用した統合テストを実装する
+    // tonic テストクライアントを使用した統合テスト (スケルトン)
     let _uc = {{ service_name_pascal }}UseCase::new(
 {% if has_database %}
         {{ rust_crate }}::domain::repository::Mock{{ service_name_pascal }}Repository::new(),

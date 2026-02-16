@@ -16,7 +16,21 @@ final GoRouter appRouter = GoRouter(
         return const HomeScreen();
       },
     ),
-    // TODO: {{ service_name }} 固有のルートを追加
+    // {{ service_name }} 固有のルート
+    GoRoute(
+      path: '/{{ service_name }}',
+      name: '{{ service_name }}-list',
+      builder: (BuildContext context, GoRouterState state) {
+        return const HomeScreen();
+      },
+    ),
+    GoRoute(
+      path: '/{{ service_name }}/:id',
+      name: '{{ service_name }}-detail',
+      builder: (BuildContext context, GoRouterState state) {
+        return const HomeScreen();
+      },
+    ),
   ],
   errorBuilder: (BuildContext context, GoRouterState state) {
     return const NotFoundScreen();

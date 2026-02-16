@@ -6,7 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPlaceholder(t *testing.T) {
-	// TODO: ユニットテストを実装する
-	assert.True(t, true)
+func TestNew(t *testing.T) {
+	c := New(Config{Name: "test"})
+	assert.NotNil(t, c)
+	assert.Equal(t, "test", c.Name())
 }

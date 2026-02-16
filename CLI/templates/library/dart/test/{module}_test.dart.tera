@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:{{ service_name | snake_case }}/{{ service_name | snake_case }}.dart';
 
 void main() {
-  test('placeholder test', () {
-    // TODO: テストを実装する
-    expect(true, isTrue);
+  test('should create a client', () {
+    final client = Client(Config(name: 'test'));
+    expect(client.name, equals('test'));
   });
 }
