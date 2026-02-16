@@ -1,0 +1,174 @@
+name: {{ service_name }}-deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '{{ module_path }}/**'
+
+{% raw %}
+env:
+  REGISTRY: {% endraw %}{{ docker_registry }}
+
+jobs:
+  build-and-push:
+{% raw %}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: {% endraw %}{{ module_path }}{% raw %}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/{% endraw %}{{ docker_project }}/{{ service_name }}{% raw %}:${{ steps.version.outputs.value }}
+            ${{ env.REGISTRY }}/{% endraw %}{{ docker_project }}/{{ service_name }}{% raw %}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/{% endraw %}{{ docker_project }}/{{ service_name }}{% raw %}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+      - name: Sign image with Cosign
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/{% endraw %}{{ docker_project }}/{{ service_name }}{% raw %}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+{% endraw %}
+
+  deploy-dev:
+    needs: build-and-push
+    runs-on: [self-hosted, dev]
+{% raw %}
+    environment: dev
+{% endraw %}
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/{% endraw %}{{ docker_project }}/{{ service_name }}{% raw %}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"
+      - name: Deploy to dev
+        run: |
+          helm upgrade --install {% endraw %}{{ service_name }} \
+            ./infra/helm/services/{{ helm_path }} \
+            -n k1s0-{{ tier }} \
+            -f ./infra/helm/services/{{ helm_path }}/values-dev.yaml \
+{% raw %}
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+{% endraw %}
+
+  deploy-staging:
+    needs: deploy-dev
+    runs-on: [self-hosted, staging]
+{% raw %}
+    environment: staging
+{% endraw %}
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/{% endraw %}{{ docker_project }}/{{ service_name }}{% raw %}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"
+      - name: Deploy to staging
+        run: |
+          helm upgrade --install {% endraw %}{{ service_name }} \
+            ./infra/helm/services/{{ helm_path }} \
+            -n k1s0-{{ tier }} \
+            -f ./infra/helm/services/{{ helm_path }}/values-staging.yaml \
+{% raw %}
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+{% endraw %}
+
+  deploy-prod:
+    needs: deploy-staging
+    runs-on: [self-hosted, prod]
+{% raw %}
+    environment:
+      name: prod
+{% endraw %}
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/{% endraw %}{{ docker_project }}/{{ service_name }}{% raw %}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"
+      - name: Deploy to prod
+        run: |
+          helm upgrade --install {% endraw %}{{ service_name }} \
+            ./infra/helm/services/{{ helm_path }} \
+            -n k1s0-{{ tier }} \
+            -f ./infra/helm/services/{{ helm_path }}/values-prod.yaml \
+{% raw %}
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+{% endraw %}

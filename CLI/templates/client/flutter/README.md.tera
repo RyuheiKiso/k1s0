@@ -1,0 +1,41 @@
+# {{ service_name }}
+
+{{ service_name_pascal }} クライアント（Flutter）。
+
+## セットアップ
+
+```bash
+# 依存インストール
+flutter pub get
+
+# 開発サーバー起動（Web）
+flutter run -d chrome
+
+# テスト実行
+flutter test
+
+# ビルド（Web）
+flutter build web --release
+```
+
+## ディレクトリ構成
+
+```
+.
+├── lib/
+│   ├── main.dart         # エントリポイント
+│   ├── app/              # ルーティング
+│   └── utils/            # API クライアント・ユーティリティ
+├── test/                 # テスト
+├── pubspec.yaml
+├── analysis_options.yaml
+├── Dockerfile
+└── README.md
+```
+
+## 開発
+
+- **状態管理**: Riverpod
+- **ルーティング**: go_router
+- **HTTP クライアント**: Dio
+- **テスト**: flutter_test + mocktail

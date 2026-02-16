@@ -8,9 +8,9 @@ roleRef:
   kind: ClusterRole
   name: k1s0-admin
 subjects:
-  - kind: ServiceAccount
-    name: k1s0-system-sa
-    namespace: k1s0-system
+  - kind: Group
+    name: k1s0-admin
+    apiGroup: rbac.authorization.k8s.io
 ---
 # k1s0-operator ClusterRoleBinding - 運用チーム
 apiVersion: rbac.authorization.k8s.io/v1
@@ -22,15 +22,9 @@ roleRef:
   kind: ClusterRole
   name: k1s0-operator
 subjects:
-  - kind: ServiceAccount
-    name: k1s0-system-sa
-    namespace: k1s0-system
-  - kind: ServiceAccount
-    name: k1s0-business-sa
-    namespace: k1s0-business
-  - kind: ServiceAccount
-    name: k1s0-service-sa
-    namespace: k1s0-service
+  - kind: Group
+    name: k1s0-operator
+    apiGroup: rbac.authorization.k8s.io
 ---
 # k1s0-developer ClusterRoleBinding - 開発者
 apiVersion: rbac.authorization.k8s.io/v1
@@ -42,12 +36,9 @@ roleRef:
   kind: ClusterRole
   name: k1s0-developer
 subjects:
-  - kind: ServiceAccount
-    name: k1s0-business-sa
-    namespace: k1s0-business
-  - kind: ServiceAccount
-    name: k1s0-service-sa
-    namespace: k1s0-service
+  - kind: Group
+    name: k1s0-developer
+    apiGroup: rbac.authorization.k8s.io
 ---
 # readonly ClusterRoleBinding - 運用監視
 apiVersion: rbac.authorization.k8s.io/v1
@@ -59,12 +50,6 @@ roleRef:
   kind: ClusterRole
   name: readonly
 subjects:
-  - kind: ServiceAccount
-    name: k1s0-system-sa
-    namespace: k1s0-system
-  - kind: ServiceAccount
-    name: k1s0-business-sa
-    namespace: k1s0-business
-  - kind: ServiceAccount
-    name: k1s0-service-sa
-    namespace: k1s0-service
+  - kind: Group
+    name: readonly
+    apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,27 @@
+syntax = "proto3";
+package k1s0.event.system.auth.v1;
+
+import "google/protobuf/timestamp.proto";
+import "k1s0/system/common/v1/event_metadata.proto";
+
+message UserLoggedInEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string user_id = 2;
+  string email = 3;
+  google.protobuf.Timestamp login_at = 4;
+  string ip_address = 5;
+  string user_agent = 6;
+}
+
+message UserLoggedOutEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string user_id = 2;
+  google.protobuf.Timestamp logout_at = 3;
+}
+
+message TokenRefreshedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string user_id = 2;
+  string token_id = 3;
+  google.protobuf.Timestamp refreshed_at = 4;
+}

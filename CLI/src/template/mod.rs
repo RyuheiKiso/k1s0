@@ -37,7 +37,7 @@ pub fn render(engine: &Tera, template_name: &str, ctx: &tera::Context) -> Result
 /// Tera エンジンをラップし、CLI/templates/ から .tera ファイルを読み込み、
 /// TemplateContext を適用してレンダリングする。
 pub struct TemplateEngine {
-    tera: Tera,
+    pub(crate) tera: Tera,
     template_dir: PathBuf,
 }
 
@@ -231,11 +231,21 @@ impl TemplateEngine {
             return ctx.api_styles.contains(&"graphql".to_string());
         }
 
-        // API 定義ファイル
-        if path_str.contains("openapi") {
+        // API 定義ファイル / コード生成設定
+        if path_str.contains("openapi") || path_str.contains("oapi-codegen") {
             return ctx.api_styles.contains(&"rest".to_string());
         }
         if path_str.contains("proto/") || path_str.ends_with(".proto.tera") {
+            return ctx.api_styles.contains(&"grpc".to_string());
+        }
+
+        // GraphQL 定義ファイル
+        if path_str.contains("schema.graphql") || path_str.contains("gqlgen.yml") {
+            return ctx.api_styles.contains(&"graphql".to_string());
+        }
+
+        // gRPC ビルド設定ファイル
+        if path_str.contains("buf.yaml") || path_str.contains("buf.gen") || path_str.contains("build.rs") {
             return ctx.api_styles.contains(&"grpc".to_string());
         }
 
@@ -528,6 +538,42 @@ mod tests {
         ));
         assert!(TemplateEngine::should_include_file(
             Path::new("config/config.yaml.tera"),
+            &ctx,
+        ));
+    }
+
+    #[test]
+    fn test_should_include_oapi_codegen_when_rest() {
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+            .api_style("rest")
+            .build();
+
+        assert!(TemplateEngine::should_include_file(
+            Path::new("oapi-codegen.yaml.tera"),
+            &ctx,
+        ));
+    }
+
+    #[test]
+    fn test_should_exclude_oapi_codegen_when_grpc() {
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+            .api_style("grpc")
+            .build();
+
+        assert!(!TemplateEngine::should_include_file(
+            Path::new("oapi-codegen.yaml.tera"),
+            &ctx,
+        ));
+    }
+
+    #[test]
+    fn test_should_include_readme_always() {
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+            .api_style("rest")
+            .build();
+
+        assert!(TemplateEngine::should_include_file(
+            Path::new("README.md.tera"),
             &ctx,
         ));
     }

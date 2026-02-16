@@ -1,5 +1,4 @@
-pytest>=8.0,<9.0
-requests>=2.32,<3.0
-ruff>=0.8,<1.0
-mypy>=1.13,<2.0
-types-requests>=2.32,<3.0
+pytest>=8.0.0
+pytest-html>=4.0.0
+requests>=2.32.0
+python-dotenv>=1.0.0

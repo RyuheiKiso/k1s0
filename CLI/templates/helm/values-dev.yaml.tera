@@ -1,0 +1,35 @@
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: false
+
+pdb:
+  enabled: false
+
+vault:
+  enabled: false
+
+config:
+  data:
+    config.yaml: |
+      app:
+        environment: dev
+{% if has_database %}
+      database:
+        host: postgres.k1s0-{{ tier }}.svc.cluster.local
+        ssl_mode: disable
+{% endif %}
+      observability:
+        log:
+          level: debug
+          format: text
+        trace:
+          sample_rate: 1.0

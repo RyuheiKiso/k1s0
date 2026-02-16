@@ -1,0 +1,24 @@
+syntax = "proto3";
+package k1s0.event.service.inventory.v1;
+
+import "google/protobuf/timestamp.proto";
+import "k1s0/system/common/v1/event_metadata.proto";
+
+message InventoryReservedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string order_id = 2;
+  string product_id = 3;
+  int32 quantity = 4;
+  string warehouse_id = 5;
+  google.protobuf.Timestamp reserved_at = 6;
+}
+
+message InventoryReleasedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string order_id = 2;
+  string product_id = 3;
+  int32 quantity = 4;
+  string warehouse_id = 5;
+  string reason = 6;
+  google.protobuf.Timestamp released_at = 7;
+}

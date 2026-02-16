@@ -1,0 +1,255 @@
+name: {{ service_name }}-ci
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '{{ module_path }}/**'
+
+{% raw %}
+concurrency:
+  group: ci-${{ github.ref }}-{% endraw %}{{ service_name }}{% raw %}
+  cancel-in-progress: true
+{% endraw %}
+
+jobs:
+{% if language == "go" %}
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: {% endraw %}{{ module_path }}
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+{% endraw %}
+      - run: go test ./... -race -coverprofile=coverage.out
+        working-directory: {{ module_path }}
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+{% endraw %}
+      - run: go build ./...
+        working-directory: {{ module_path }}
+{% elif language == "rust" %}
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82
+        with:
+          components: clippy, rustfmt
+{% endraw %}
+      - run: cargo fmt --all -- --check
+        working-directory: {{ module_path }}
+      - run: cargo clippy --all-targets -- -D warnings
+        working-directory: {{ module_path }}
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82
+{% endraw %}
+      - run: cargo test --all
+        working-directory: {{ module_path }}
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82
+{% endraw %}
+      - run: cargo build --release
+        working-directory: {{ module_path }}
+{% elif language == "typescript" or framework == "react" %}
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+{% endraw %}
+      - run: npm ci
+        working-directory: {{ module_path }}
+      - run: npx eslint .
+        working-directory: {{ module_path }}
+      - run: npx prettier --check .
+        working-directory: {{ module_path }}
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+{% endraw %}
+      - run: npm ci
+        working-directory: {{ module_path }}
+      - run: npm test
+        working-directory: {{ module_path }}
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+{% endraw %}
+      - run: npm ci
+        working-directory: {{ module_path }}
+      - run: npm run build
+        working-directory: {{ module_path }}
+{% elif language == "dart" or framework == "flutter" %}
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+{% endraw %}
+      - run: dart analyze
+        working-directory: {{ module_path }}
+      - run: dart format --set-exit-if-changed .
+        working-directory: {{ module_path }}
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+{% endraw %}
+      - run: flutter test
+        working-directory: {{ module_path }}
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+{% endraw %}
+      - run: flutter build web
+        working-directory: {{ module_path }}
+{% endif %}
+
+{% if api_style == "grpc" or "grpc" in api_styles %}
+  proto-lint:
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.47.2"
+{% endraw %}
+      - name: Lint
+        run: buf lint {{ module_path }}/api/proto
+      - name: Breaking change detection
+{% raw %}
+        run: buf breaking {% endraw %}{{ module_path }}/api/proto --against '.git#branch=main'
+{% endif %}
+
+{% if has_database %}
+  migration-test:
+    runs-on: ubuntu-latest
+{% if database_type == "postgresql" %}
+    services:
+      postgres:
+{% raw %}
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+{% endraw %}
+{% elif database_type == "mysql" %}
+    services:
+      mysql:
+{% raw %}
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+{% endraw %}
+{% endif %}
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+{% endraw %}
+      - name: Run migrations
+        run: |
+          echo "Running migration test for {{ service_name }}"
+{% endif %}
+
+  security-scan:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: {% endraw %}{{ module_path }}{% raw %}
+          severity: HIGH,CRITICAL
+          exit-code: 1
+{% endraw %}

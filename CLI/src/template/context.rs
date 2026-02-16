@@ -39,6 +39,8 @@ pub struct TemplateContext {
     pub service_name_camel: String,
     /// 配置階層: system / business / service
     pub tier: String,
+    /// 業務領域名 (business Tier 時のみ, それ以外は空文字列)
+    pub domain: String,
     /// regions/ からの相対パス (自動導出)
     pub module_path: String,
     /// 言語識別子: go / rust / typescript / dart
@@ -77,6 +79,7 @@ pub struct TemplateContext {
 pub struct TemplateContextBuilder {
     service_name: String,
     tier: String,
+    domain: String,
     language: String,
     framework: String,
     kind: String,
@@ -101,6 +104,7 @@ impl TemplateContextBuilder {
         Self {
             service_name: service_name.to_string(),
             tier: tier.to_string(),
+            domain: String::new(),
             language: language.to_string(),
             framework: String::new(),
             kind: kind.to_string(),
@@ -117,6 +121,12 @@ impl TemplateContextBuilder {
     /// フレームワークを設定する (client 時)。
     pub fn framework(mut self, framework: &str) -> Self {
         self.framework = framework.to_string();
+        self
+    }
+
+    /// 業務領域名を設定する (business Tier 時)。
+    pub fn domain(mut self, domain: &str) -> Self {
+        self.domain = domain.to_string();
         self
     }
 
@@ -176,12 +186,24 @@ impl TemplateContextBuilder {
         let service_name_pascal = self.service_name.to_pascal_case();
         let service_name_camel = self.service_name.to_lower_camel_case();
 
-        // module_path の導出:
-        // "regions/{tier}/{service_name}/{kind}/{language}"
-        let module_path = format!(
-            "regions/{}/{}/{}/{}",
-            self.tier, self.service_name, self.kind, self.language
-        );
+        // module_path の導出（Tier 別ルール）:
+        // service:  "regions/service/{service_name}/{kind}/{language}"
+        // system:   "regions/system/{kind}/{language}/{service_name}"
+        // business: "regions/business/{domain}/{kind}/{language}/{service_name}"
+        let module_path = match self.tier.as_str() {
+            "system" => format!(
+                "regions/system/{}/{}/{}",
+                self.kind, self.language, self.service_name
+            ),
+            "business" => format!(
+                "regions/business/{}/{}/{}/{}",
+                self.domain, self.kind, self.language, self.service_name
+            ),
+            _ => format!(
+                "regions/service/{}/{}/{}",
+                self.service_name, self.kind, self.language
+            ),
+        };
 
         // go_module の導出:
         // "{go_module_base}/{module_path}"
@@ -210,6 +232,7 @@ impl TemplateContextBuilder {
             service_name_pascal,
             service_name_camel,
             tier: self.tier,
+            domain: self.domain,
             module_path,
             language: self.language,
             framework: self.framework,
@@ -240,6 +263,7 @@ impl TemplateContext {
         ctx.insert("service_name_pascal", &self.service_name_pascal);
         ctx.insert("service_name_camel", &self.service_name_camel);
         ctx.insert("tier", &self.tier);
+        ctx.insert("domain", &self.domain);
         ctx.insert("module_path", &self.module_path);
         ctx.insert("language", &self.language);
         ctx.insert("framework", &self.framework);
@@ -329,13 +353,38 @@ mod tests {
     }
 
     // =========================================================================
+    // domain フィールドのテスト
+    // =========================================================================
+
+    #[test]
+    fn test_domain_empty_for_service_tier() {
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+            .build();
+        assert_eq!(ctx.domain, "");
+    }
+
+    #[test]
+    fn test_domain_empty_for_system_tier() {
+        let ctx = TemplateContextBuilder::new("auth", "system", "go", "server")
+            .build();
+        assert_eq!(ctx.domain, "");
+    }
+
+    #[test]
+    fn test_domain_set_for_business_tier() {
+        let ctx = TemplateContextBuilder::new("ledger-api", "business", "go", "server")
+            .domain("accounting")
+            .build();
+        assert_eq!(ctx.domain, "accounting");
+    }
+
+    // =========================================================================
     // module_path の導出テスト
     // =========================================================================
 
     #[test]
     fn test_context_module_path_service_go_server() {
-        // tier=service, service_name=order, kind=server, lang=go
-        // -> "regions/service/order/server/go"
+        // service tier: regions/service/{service_name}/{kind}/{language}
         let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
             .build();
 
@@ -343,23 +392,60 @@ mod tests {
     }
 
     #[test]
-    fn test_context_module_path_business_client_react() {
-        // tier=business, service_name=crm, kind=client, lang=react
-        // -> "regions/business/crm/client/react"
-        let ctx = TemplateContextBuilder::new("crm", "business", "react", "client")
-            .build();
-
-        assert_eq!(ctx.module_path, "regions/business/crm/client/react");
-    }
-
-    #[test]
     fn test_context_module_path_system_library_rust() {
-        // tier=system, service_name=auth, kind=library, lang=rust
-        // -> "regions/system/auth/library/rust"
+        // system tier: regions/system/{kind}/{language}/{service_name}
         let ctx = TemplateContextBuilder::new("auth", "system", "rust", "library")
             .build();
 
-        assert_eq!(ctx.module_path, "regions/system/auth/library/rust");
+        assert_eq!(ctx.module_path, "regions/system/library/rust/auth");
+    }
+
+    #[test]
+    fn test_context_module_path_system_server_go() {
+        // system tier: regions/system/{kind}/{language}/{service_name}
+        let ctx = TemplateContextBuilder::new("auth", "system", "go", "server")
+            .build();
+
+        assert_eq!(ctx.module_path, "regions/system/server/go/auth");
+    }
+
+    #[test]
+    fn test_context_module_path_business_server_go() {
+        // business tier: regions/business/{domain}/{kind}/{language}/{service_name}
+        let ctx = TemplateContextBuilder::new("ledger-api", "business", "go", "server")
+            .domain("accounting")
+            .build();
+
+        assert_eq!(
+            ctx.module_path,
+            "regions/business/accounting/server/go/ledger-api"
+        );
+    }
+
+    #[test]
+    fn test_context_module_path_business_client_react() {
+        // business tier: regions/business/{domain}/{kind}/{language}/{service_name}
+        let ctx = TemplateContextBuilder::new("ledger-app", "business", "react", "client")
+            .domain("accounting")
+            .build();
+
+        assert_eq!(
+            ctx.module_path,
+            "regions/business/accounting/client/react/ledger-app"
+        );
+    }
+
+    #[test]
+    fn test_context_module_path_business_library_go() {
+        // business tier: regions/business/{domain}/{kind}/{language}/{service_name}
+        let ctx = TemplateContextBuilder::new("shared-types", "business", "go", "library")
+            .domain("fa")
+            .build();
+
+        assert_eq!(
+            ctx.module_path,
+            "regions/business/fa/library/go/shared-types"
+        );
     }
 
     // =========================================================================
@@ -522,7 +608,10 @@ mod tests {
             .go_module_base("github.com/myorg/myrepo")
             .build();
 
-        assert_eq!(ctx.go_module, "github.com/myorg/myrepo/regions/service/order/server/go");
+        assert_eq!(
+            ctx.go_module,
+            "github.com/myorg/myrepo/regions/service/order/server/go"
+        );
     }
 
     #[test]
@@ -530,7 +619,33 @@ mod tests {
         let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
             .build();
 
-        assert_eq!(ctx.go_module, "github.com/org/k1s0/regions/service/order/server/go");
+        assert_eq!(
+            ctx.go_module,
+            "github.com/org/k1s0/regions/service/order/server/go"
+        );
+    }
+
+    #[test]
+    fn test_go_module_system_tier() {
+        let ctx = TemplateContextBuilder::new("auth", "system", "go", "server")
+            .build();
+
+        assert_eq!(
+            ctx.go_module,
+            "github.com/org/k1s0/regions/system/server/go/auth"
+        );
+    }
+
+    #[test]
+    fn test_go_module_business_tier() {
+        let ctx = TemplateContextBuilder::new("ledger-api", "business", "go", "server")
+            .domain("accounting")
+            .build();
+
+        assert_eq!(
+            ctx.go_module,
+            "github.com/org/k1s0/regions/business/accounting/server/go/ledger-api"
+        );
     }
 
     #[test]
@@ -551,7 +666,7 @@ mod tests {
     }
 
     #[test]
-    fn test_builder_full_options() {
+    fn test_builder_full_options_service() {
         let ctx = TemplateContextBuilder::new("order-api", "service", "go", "server")
             .api_style("rest")
             .with_database("postgresql")
@@ -564,6 +679,7 @@ mod tests {
         assert_eq!(ctx.service_name_pascal, "OrderApi");
         assert_eq!(ctx.service_name_camel, "orderApi");
         assert_eq!(ctx.tier, "service");
+        assert_eq!(ctx.domain, "");
         assert_eq!(ctx.module_path, "regions/service/order-api/server/go");
         assert_eq!(ctx.language, "go");
         assert_eq!(ctx.kind, "server");
@@ -579,6 +695,27 @@ mod tests {
         assert_eq!(ctx.rust_crate, "");
         assert_eq!(ctx.docker_registry, "harbor.internal.example.com");
         assert_eq!(ctx.docker_project, "k1s0-service");
+    }
+
+    #[test]
+    fn test_builder_full_options_business() {
+        let ctx = TemplateContextBuilder::new("ledger-api", "business", "go", "server")
+            .domain("accounting")
+            .api_style("rest")
+            .with_database("postgresql")
+            .build();
+
+        assert_eq!(ctx.service_name, "ledger-api");
+        assert_eq!(ctx.domain, "accounting");
+        assert_eq!(
+            ctx.module_path,
+            "regions/business/accounting/server/go/ledger-api"
+        );
+        assert_eq!(
+            ctx.go_module,
+            "github.com/org/k1s0/regions/business/accounting/server/go/ledger-api"
+        );
+        assert_eq!(ctx.docker_project, "k1s0-business");
     }
 
     // =========================================================================
@@ -602,6 +739,7 @@ mod tests {
         assert_eq!(json["service_name_pascal"], "OrderApi");
         assert_eq!(json["service_name_camel"], "orderApi");
         assert_eq!(json["tier"], "service");
+        assert_eq!(json["domain"], "");
         assert_eq!(json["module_path"], "regions/service/order-api/server/go");
         assert_eq!(json["language"], "go");
         assert_eq!(json["kind"], "server");
@@ -618,6 +756,22 @@ mod tests {
         assert_eq!(json["rust_crate"], "");
         assert_eq!(json["docker_registry"], "harbor.internal.example.com");
         assert_eq!(json["docker_project"], "k1s0-service");
+    }
+
+    #[test]
+    fn test_to_tera_context_business_with_domain() {
+        let ctx = TemplateContextBuilder::new("ledger-api", "business", "go", "server")
+            .domain("accounting")
+            .build();
+
+        let tera_ctx = ctx.to_tera_context();
+        let json = tera_ctx.into_json();
+
+        assert_eq!(json["domain"], "accounting");
+        assert_eq!(
+            json["module_path"],
+            "regions/business/accounting/server/go/ledger-api"
+        );
     }
 
     #[test]

@@ -39,6 +39,8 @@ pub struct RuntimeConfig {
     pub kafka: Option<KafkaConfig>,
     /// Redis 設定 (Redis 有効時のみ)
     pub redis: Option<RedisConfig>,
+    /// Redis セッション設定 (BFF セッション管理用)
+    pub redis_session: Option<RedisSessionConfig>,
     /// 可観測性設定
     pub observability: ObservabilityConfig,
     /// 認証設定
@@ -238,6 +240,25 @@ impl Default for RedisConfig {
             password: String::new(),
             db: 0,
             pool_size: 10,
+        }
+    }
+}
+
+/// Redis セッション設定 (BFF Proxy 用セッションストア)。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct RedisSessionConfig {
+    pub host: String,
+    pub port: u16,
+    pub password: String,
+}
+
+impl Default for RedisSessionConfig {
+    fn default() -> Self {
+        Self {
+            host: String::new(),
+            port: 6380,
+            password: String::new(),
         }
     }
 }
@@ -569,6 +590,7 @@ mod tests {
         assert!(config.database.is_none());
         assert!(config.kafka.is_none());
         assert!(config.redis.is_none());
+        assert!(config.redis_session.is_none());
         assert_eq!(config.observability.log.level, "info");
         assert_eq!(config.auth.jwt.issuer, "");
     }
@@ -615,6 +637,10 @@ redis:
   port: 6379
   db: 0
   pool_size: 10
+redis_session:
+  host: redis-session.k1s0-system.svc.cluster.local
+  port: 6380
+  password: ""
 observability:
   log:
     level: info
@@ -654,6 +680,9 @@ auth:
         assert_eq!(kafka.security_protocol, "PLAINTEXT");
         let redis = config.redis.unwrap();
         assert_eq!(redis.port, 6379);
+        let redis_session = config.redis_session.unwrap();
+        assert_eq!(redis_session.host, "redis-session.k1s0-system.svc.cluster.local");
+        assert_eq!(redis_session.port, 6380);
         assert_eq!(config.observability.log.level, "info");
         assert_eq!(config.observability.trace.sample_rate, 1.0);
         assert_eq!(config.auth.jwt.issuer, "https://auth.example.com");
@@ -684,6 +713,7 @@ auth:
             database: None,
             kafka: None,
             redis: None,
+            redis_session: None,
             observability: ObservabilityConfig {
                 log: LogConfig {
                     level: "info".to_string(),
@@ -751,6 +781,7 @@ auth:
         config.database = None;
         config.kafka = None;
         config.redis = None;
+        config.redis_session = None;
         assert!(config.validate().is_ok());
     }
 
@@ -825,6 +856,7 @@ auth:
             database: Some(DatabaseConfig::default()),
             kafka: None,
             redis: None,
+            redis_session: None,
             observability: ObservabilityConfig::default(),
             auth: AuthConfig::default(),
         };

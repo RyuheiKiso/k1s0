@@ -1,0 +1,42 @@
+# {{ service_name }}
+
+{{ service_name_pascal }} クライアント（React SPA）。
+
+## セットアップ
+
+```bash
+# 依存インストール
+npm install
+
+# 開発サーバー起動
+npm run dev
+
+# テスト実行
+npm test
+
+# ビルド
+npm run build
+```
+
+## ディレクトリ構成
+
+```
+.
+├── src/
+│   ├── app/              # アプリケーションルート・ルーティング
+│   └── lib/              # API クライアント・ユーティリティ
+├── tests/
+│   └── testutil/         # テストユーティリティ（MSW セットアップ等）
+├── package.json
+├── vite.config.ts
+├── vitest.config.ts
+├── Dockerfile
+└── README.md
+```
+
+## 開発
+
+- **ビルドツール**: Vite
+- **テスト**: Vitest + Testing Library + MSW
+- **Linter**: ESLint (Flat Config)
+- **Formatter**: Prettier

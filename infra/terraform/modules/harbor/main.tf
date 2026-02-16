@@ -1,3 +1,16 @@
+terraform {
+  required_providers {
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.11"
+    }
+    harbor = {
+      source  = "goharbor/harbor"
+      version = "~> 3.10"
+    }
+  }
+}
+
 resource "helm_release" "harbor" {
   name       = "harbor"
   namespace  = "harbor"
