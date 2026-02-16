@@ -163,3 +163,157 @@ class TestApiLintWorkflow:
         with open(WORKFLOWS / "api-lint.yaml", encoding="utf-8") as f:
             config = yaml.safe_load(f)
         assert config["name"] == "OpenAPI Lint"
+
+
+class TestCosignSignStep:
+    """CI-CD設計.md: Cosign 署名ステップの検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "deploy.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_cosign_installer_step(self) -> None:
+        """CI-CD設計.md: Cosign インストーラーが存在。"""
+        build_job = self.config["jobs"]["build-and-push"]
+        steps = build_job["steps"]
+        cosign_steps = [s for s in steps if "sigstore/cosign-installer" in str(s.get("uses", ""))]
+        assert len(cosign_steps) >= 1
+
+    def test_cosign_sign_step(self) -> None:
+        """CI-CD設計.md: cosign sign コマンドが存在。"""
+        build_job = self.config["jobs"]["build-and-push"]
+        steps = build_job["steps"]
+        sign_steps = [s for s in steps if "cosign sign" in str(s.get("run", ""))]
+        assert len(sign_steps) >= 1
+
+
+class TestImageTagFormat:
+    """CI-CD設計.md: イメージタグ形式の検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "deploy.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_version_tag_format(self) -> None:
+        """CI-CD設計.md: {version} タグが設定されている。"""
+        build_job = self.config["jobs"]["build-and-push"]
+        steps = build_job["steps"]
+        build_steps = [s for s in steps if s.get("uses", "").startswith("docker/build-push-action")]
+        assert len(build_steps) >= 1
+        tags = build_steps[0]["with"]["tags"]
+        assert "version" in tags
+
+    def test_version_sha_tag_format(self) -> None:
+        """CI-CD設計.md: {version}-{sha} タグが設定されている。"""
+        build_job = self.config["jobs"]["build-and-push"]
+        steps = build_job["steps"]
+        build_steps = [s for s in steps if s.get("uses", "").startswith("docker/build-push-action")]
+        tags = build_steps[0]["with"]["tags"]
+        assert "sha" in tags
+
+    def test_latest_tag(self) -> None:
+        """CI-CD設計.md: latest タグが設定されている。"""
+        build_job = self.config["jobs"]["build-and-push"]
+        steps = build_job["steps"]
+        build_steps = [s for s in steps if s.get("uses", "").startswith("docker/build-push-action")]
+        tags = build_steps[0]["with"]["tags"]
+        assert "latest" in tags
+
+
+class TestGitHubEnvironments:
+    """CI-CD設計.md: GitHub Environments protection rules の検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "deploy.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_dev_environment(self) -> None:
+        """CI-CD設計.md: deploy-dev ジョブに environment: dev が設定。"""
+        assert self.config["jobs"]["deploy-dev"]["environment"] == "dev"
+
+    def test_staging_environment(self) -> None:
+        """CI-CD設計.md: deploy-staging ジョブに environment: staging が設定。"""
+        assert self.config["jobs"]["deploy-staging"]["environment"] == "staging"
+
+    def test_prod_environment(self) -> None:
+        """CI-CD設計.md: deploy-prod ジョブに environment: prod が設定。"""
+        env = self.config["jobs"]["deploy-prod"]["environment"]
+        if isinstance(env, dict):
+            assert env["name"] == "prod"
+        else:
+            assert env == "prod"
+
+
+class TestSecurityScanDependencyCheck:
+    """CI-CD設計.md: Security Scan dependency-check の検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "ci.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_security_scan_job_exists(self) -> None:
+        assert "security-scan" in self.config["jobs"]
+
+    def test_trivy_scan_used(self) -> None:
+        """CI-CD設計.md: Trivy を使用した脆弱性スキャン。"""
+        steps = self.config["jobs"]["security-scan"]["steps"]
+        trivy_steps = [s for s in steps if "trivy" in str(s.get("uses", "")).lower()]
+        assert len(trivy_steps) >= 1
+
+    def test_trivy_severity_high_critical(self) -> None:
+        """CI-CD設計.md: HIGH,CRITICAL レベルのスキャン。"""
+        steps = self.config["jobs"]["security-scan"]["steps"]
+        trivy_steps = [s for s in steps if "trivy" in str(s.get("uses", "")).lower()]
+        severity = trivy_steps[0]["with"].get("severity", "")
+        assert "HIGH" in severity
+        assert "CRITICAL" in severity
+
+
+class TestProtoCheckDetails:
+    """CI-CD設計.md: Proto Check buf lint/breaking/generate の検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "proto.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_buf_lint_step(self) -> None:
+        """CI-CD設計.md: buf lint ステップが存在。"""
+        steps = self.config["jobs"]["proto-lint"]["steps"]
+        lint_steps = [s for s in steps if "buf lint" in str(s.get("run", ""))]
+        assert len(lint_steps) >= 1
+
+    def test_buf_breaking_step(self) -> None:
+        """CI-CD設計.md: buf breaking ステップが存在。"""
+        steps = self.config["jobs"]["proto-lint"]["steps"]
+        breaking_steps = [s for s in steps if "buf breaking" in str(s.get("run", ""))]
+        assert len(breaking_steps) >= 1
+
+    def test_buf_generate_step(self) -> None:
+        """CI-CD設計.md: buf generate ステップが存在。"""
+        steps = self.config["jobs"]["proto-lint"]["steps"]
+        gen_steps = [s for s in steps if "buf generate" in str(s.get("run", ""))]
+        assert len(gen_steps) >= 1
+
+
+class TestApiLintDetails:
+    """CI-CD設計.md: api-lint.yaml 詳細の検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "api-lint.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_openapi_validate_job(self) -> None:
+        """CI-CD設計.md: OpenAPI バリデーションジョブが存在。"""
+        assert "openapi-validate" in self.config["jobs"]
+
+    def test_openapi_codegen_job(self) -> None:
+        """CI-CD設計.md: コード生成ジョブが存在。"""
+        assert "openapi-codegen" in self.config["jobs"]
+
+    def test_sdk_generate_typescript_job(self) -> None:
+        """CI-CD設計.md: TypeScript SDK 生成ジョブが存在。"""
+        assert "sdk-generate-typescript" in self.config["jobs"]
+
+    def test_sdk_generate_dart_job(self) -> None:
+        """CI-CD設計.md: Dart SDK 生成ジョブが存在。"""
+        assert "sdk-generate-dart" in self.config["jobs"]

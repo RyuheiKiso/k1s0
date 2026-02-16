@@ -1184,6 +1184,184 @@ fn test_go_server_multi_api_file_list() {
     assert!(names.iter().any(|n| n.contains("proto/")), "proto missing for multi-api");
 }
 
+// =========================================================================
+// サーバー: oapi-codegen.yaml, gqlgen.yml, schema.graphql, README, build.rs 内容検証
+// =========================================================================
+
+#[test]
+fn test_go_server_rest_oapi_codegen_yaml() {
+    let (tmp, names) = render_server("go", "rest", false, "", false, false);
+
+    assert!(
+        names.iter().any(|n| n == "oapi-codegen.yaml"),
+        "oapi-codegen.yaml missing for REST"
+    );
+
+    let content = read_output(&tmp, "oapi-codegen.yaml");
+    assert!(content.contains("package: openapi"));
+    assert!(content.contains("gin-server: true"));
+    assert!(content.contains("models: true"));
+    assert!(content.contains("embedded-spec: true"));
+    assert!(content.contains("internal/adapter/handler/openapi_gen.go"));
+}
+
+#[test]
+fn test_go_server_graphql_schema_graphql() {
+    let (tmp, _) = render_server("go", "graphql", false, "", false, false);
+    let content = read_output(&tmp, "api/graphql/schema.graphql");
+
+    assert!(content.contains("type Query"));
+    assert!(content.contains("OrderApi"));
+    assert!(content.contains("CreateOrderApiInput"));
+}
+
+#[test]
+fn test_go_server_graphql_gqlgen_yml() {
+    let (tmp, _) = render_server("go", "graphql", false, "", false, false);
+    let content = read_output(&tmp, "gqlgen.yml");
+
+    assert!(content.contains("api/graphql/*.graphql"));
+    assert!(content.contains("package: graphql"));
+    assert!(content.contains("layout: follow-schema"));
+}
+
+#[test]
+fn test_go_server_rest_readme() {
+    let (tmp, _) = render_server("go", "rest", false, "", false, false);
+    let content = read_output(&tmp, "README.md");
+
+    assert!(content.contains("# order-api"));
+    assert!(content.contains("go mod tidy"));
+    assert!(content.contains("go run"));
+    assert!(content.contains("go test"));
+    assert!(content.contains("cmd/"));
+    assert!(content.contains("internal/"));
+}
+
+#[test]
+fn test_rust_server_rest_readme() {
+    let (tmp, _) = render_server("rust", "rest", false, "", false, false);
+    let content = read_output(&tmp, "README.md");
+
+    assert!(content.contains("# order-api"));
+    assert!(content.contains("cargo build"));
+    assert!(content.contains("cargo run"));
+    assert!(content.contains("cargo test"));
+    assert!(content.contains("src/"));
+    assert!(content.contains("Cargo.toml"));
+}
+
+#[test]
+fn test_rust_server_grpc_build_rs() {
+    let (tmp, _) = render_server("rust", "grpc", false, "", false, false);
+    let content = read_output(&tmp, "build.rs");
+
+    assert!(content.contains("tonic_build"));
+    assert!(content.contains("build_server(true)"));
+    assert!(content.contains("compile_protos"));
+}
+
+#[test]
+fn test_go_server_grpc_buf_yaml() {
+    let (tmp, _) = render_server("go", "grpc", false, "", false, false);
+    let content = read_output(&tmp, "buf.yaml");
+
+    assert!(content.contains("version: v2"));
+    assert!(content.contains("STANDARD"));
+    assert!(content.contains("FILE"));
+}
+
+#[test]
+fn test_go_server_grpc_buf_gen_yaml() {
+    let (tmp, _) = render_server("go", "grpc", false, "", false, false);
+    let content = read_output(&tmp, "buf.gen.yaml");
+
+    assert!(content.contains("buf.build/protocolbuffers/go"));
+    assert!(content.contains("buf.build/grpc/go"));
+    assert!(content.contains("api/proto/gen"));
+}
+
+// =========================================================================
+// サーバー: テストファイル内容検証
+// =========================================================================
+
+#[test]
+fn test_go_server_rest_usecase_test_content() {
+    let (tmp, _) = render_server("go", "rest", true, "postgresql", false, false);
+    let content = read_output(&tmp, "internal/usecase/usecase_test.go");
+
+    assert!(content.contains("package usecase"));
+    assert!(content.contains("testify/assert"));
+    assert!(content.contains("testify/require"));
+    assert!(content.contains("gomock.NewController(t)"));
+    assert!(content.contains("TestGetByID"));
+    assert!(content.contains("TestGetAll"));
+    assert!(content.contains("TestCreate"));
+}
+
+#[test]
+fn test_go_server_rest_handler_test_content() {
+    let (tmp, _) = render_server("go", "rest", true, "postgresql", false, false);
+    let content = read_output(&tmp, "internal/adapter/handler/handler_test.go");
+
+    assert!(content.contains("package handler"));
+    assert!(content.contains("httptest"));
+    assert!(content.contains("TestList"));
+    assert!(content.contains("TestGetByID"));
+    assert!(content.contains("TestCreate"));
+}
+
+#[test]
+fn test_go_server_grpc_handler_test_content() {
+    let (tmp, _) = render_server("go", "grpc", false, "", false, false);
+    let content = read_output(&tmp, "internal/adapter/handler/handler_test.go");
+
+    assert!(content.contains("package handler"));
+    assert!(content.contains("bufconn"));
+    assert!(content.contains("TestGRPCPlaceholder"));
+}
+
+#[test]
+fn test_go_server_graphql_handler_test_content() {
+    let (tmp, _) = render_server("go", "graphql", false, "", false, false);
+    let content = read_output(&tmp, "internal/adapter/handler/handler_test.go");
+
+    assert!(content.contains("package handler"));
+    assert!(content.contains("TestGraphQLResolverCreation"));
+    assert!(content.contains("NewResolver"));
+}
+
+#[test]
+fn test_go_server_rest_repository_test_content() {
+    let (tmp, _) = render_server("go", "rest", true, "postgresql", false, false);
+    let content = read_output(&tmp, "internal/infra/persistence/repository_test.go");
+
+    assert!(content.contains("package persistence"));
+    assert!(content.contains("testcontainers"));
+    assert!(content.contains("testing.Short()"));
+    assert!(content.contains("postgres.Run"));
+}
+
+#[test]
+fn test_rust_server_rest_integration_test_content() {
+    let (tmp, _) = render_server("rust", "rest", true, "postgresql", false, false);
+    let content = read_output(&tmp, "tests/integration_test.rs");
+
+    assert!(content.contains("use axum::body::Body"));
+    assert!(content.contains("StatusCode::OK"));
+    assert!(content.contains("test_list_returns_ok"));
+    assert!(content.contains("test_get_by_id_not_found"));
+}
+
+#[test]
+fn test_rust_server_graphql_integration_test_content() {
+    let (tmp, _) = render_server("rust", "graphql", false, "", false, false);
+    let content = read_output(&tmp, "tests/integration_test.rs");
+
+    assert!(content.contains("build_schema"));
+    assert!(content.contains("test_graphql_schema_creation"));
+}
+
 #[test]
 fn test_rust_server_rest_no_tera_syntax_in_output() {
     let (tmp, names) = render_server("rust", "rest", true, "postgresql", false, false);

@@ -89,7 +89,12 @@ impl TemplateEngine {
         let tera_ctx = ctx.to_tera_context();
 
         // kind + language に対応するテンプレートディレクトリを決定
-        let kind_lang_dir = self.template_dir.join(&ctx.kind).join(&ctx.language);
+        // CICD テンプレートは言語サブディレクトリを持たないフラット構造
+        let kind_lang_dir = if ctx.kind == "cicd" {
+            self.template_dir.join(&ctx.kind)
+        } else {
+            self.template_dir.join(&ctx.kind).join(&ctx.language)
+        };
         if !kind_lang_dir.exists() {
             anyhow::bail!(
                 "テンプレートディレクトリが見つかりません: {}",

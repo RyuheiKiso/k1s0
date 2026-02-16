@@ -83,6 +83,9 @@ class TestCicdTemplateVariables:
             ("deploy.yaml.tera", "{{ service_name }}"),
             ("deploy.yaml.tera", "{{ module_path }}"),
             ("deploy.yaml.tera", "{{ docker_project }}"),
+            ("deploy.yaml.tera", "{{ docker_registry }}"),
+            ("deploy.yaml.tera", "{{ helm_path }}"),
+            ("deploy.yaml.tera", "{{ tier }}"),
         ],
     )
     def test_template_variable_used(self, template: str, variable: str) -> None:
@@ -107,6 +110,31 @@ class TestCicdSpecGenerationTarget:
     def test_deploy_server_only(self) -> None:
         assert "server" in self.content
         assert "Deploy" in self.content
+
+
+class TestCicdDirectoryStructure:
+    """仕様書に定義されたディレクトリ構造との一致検証。"""
+
+    def test_cicd_directory_is_flat(self) -> None:
+        """cicd/ 直下に ci.yaml.tera と deploy.yaml.tera がフラットに配置されている。"""
+        assert (CICD / "ci.yaml.tera").exists()
+        assert (CICD / "deploy.yaml.tera").exists()
+
+    def test_no_language_subdirectories(self) -> None:
+        """cicd/ 配下に言語別サブディレクトリが存在しない。"""
+        for item in CICD.iterdir():
+            assert item.is_file(), f"cicd/ 配下にディレクトリ '{item.name}' が存在します（フラット構造違反）"
+
+
+class TestCicdTemplateRawBlocks:
+    """テンプレートファイル内の {% raw %} ブロック検証。"""
+
+    @pytest.mark.parametrize("template", ["ci.yaml.tera", "deploy.yaml.tera"])
+    def test_template_has_raw_blocks(self, template: str) -> None:
+        path = CICD / template
+        content = path.read_text(encoding="utf-8")
+        assert "{% raw %}" in content, f"cicd/{template} に {{% raw %}} ブロックがありません"
+        assert "{% endraw %}" in content, f"cicd/{template} に {{% endraw %}} ブロックがありません"
 
 
 class TestCicdSpecLanguageVersions:

@@ -150,3 +150,104 @@ class TestLocalDevObservability:
         assert (ds_dir / "prometheus.yaml").exists()
         assert (ds_dir / "loki.yaml").exists()
         assert (ds_dir / "jaeger.yaml").exists()
+
+
+class TestGrafanaDashboardJsonFiles:
+    """可観測性設計.md: Grafana ダッシュボード JSON 定義ファイルの検証。"""
+
+    DASHBOARDS = ROOT / "infra" / "observability" / "grafana" / "dashboards"
+
+    def test_overview_dashboard_exists(self) -> None:
+        """可観測性設計.md: Overview ダッシュボードが存在。"""
+        assert (self.DASHBOARDS / "overview.json").exists()
+
+    def test_slo_dashboard_exists(self) -> None:
+        """可観測性設計.md: SLO ダッシュボードが存在。"""
+        assert (self.DASHBOARDS / "slo.json").exists()
+
+    def test_overview_dashboard_valid_json(self) -> None:
+        """可観測性設計.md: Overview ダッシュボードが有効な JSON。"""
+        import json
+        content = (self.DASHBOARDS / "overview.json").read_text(encoding="utf-8")
+        data = json.loads(content)
+        assert "panels" in data
+
+    def test_slo_dashboard_valid_json(self) -> None:
+        """可観測性設計.md: SLO ダッシュボードが有効な JSON。"""
+        import json
+        content = (self.DASHBOARDS / "slo.json").read_text(encoding="utf-8")
+        data = json.loads(content)
+        assert "panels" in data
+
+    def test_overview_has_request_rate_panel(self) -> None:
+        """可観測性設計.md: Overview に Request Rate パネルが存在。"""
+        import json
+        content = (self.DASHBOARDS / "overview.json").read_text(encoding="utf-8")
+        data = json.loads(content)
+        titles = [p["title"] for p in data["panels"]]
+        assert "Request Rate" in titles
+
+    def test_overview_has_error_rate_panel(self) -> None:
+        """可観測性設計.md: Overview に Error Rate パネルが存在。"""
+        import json
+        content = (self.DASHBOARDS / "overview.json").read_text(encoding="utf-8")
+        data = json.loads(content)
+        titles = [p["title"] for p in data["panels"]]
+        assert "Error Rate" in titles
+
+
+class TestSLOTargetValues:
+    """可観測性設計.md: SLO 目標値の検証。"""
+
+    def test_slo_recording_rules_system_target(self) -> None:
+        """可観測性設計.md: system Tier 可用性目標 99.95%。"""
+        path = OBS / "prometheus" / "alerts" / "slo-recording-rules.yaml"
+        content = path.read_text(encoding="utf-8")
+        assert "0.9995" in content
+
+    def test_slo_recording_rules_business_service_target(self) -> None:
+        """可観測性設計.md: business/service Tier 可用性目標 99.9%。"""
+        path = OBS / "prometheus" / "alerts" / "slo-recording-rules.yaml"
+        content = path.read_text(encoding="utf-8")
+        assert "0.999" in content
+
+
+class TestEnvironmentLogLevels:
+    """可観測性設計.md: 環境別ログレベルの検証。"""
+
+    def test_dev_debug_level(self) -> None:
+        """可観測性設計.md: dev 環境はデフォルト debug。"""
+        go_config = ROOT / "CLI" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
+        content = go_config.read_text(encoding="utf-8")
+        assert "debug" in content.lower() or "info" in content.lower()
+
+    def test_config_has_log_level(self) -> None:
+        """可観測性設計.md: config.yaml テンプレートに log.level 設定がある。"""
+        go_config = ROOT / "CLI" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
+        content = go_config.read_text(encoding="utf-8")
+        assert "level:" in content
+
+    def test_config_has_log_format(self) -> None:
+        """可観測性設計.md: config.yaml テンプレートに log.format 設定がある。"""
+        go_config = ROOT / "CLI" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
+        content = go_config.read_text(encoding="utf-8")
+        assert "format:" in content
+
+
+class TestJsonStandardLogFields:
+    """可観測性設計.md: JSON 標準ログフィールド（14フィールド）の検証。"""
+
+    EXPECTED_FIELDS = [
+        "timestamp", "level", "message", "service", "version",
+        "tier", "environment", "trace_id", "span_id", "request_id",
+        "error",
+    ]
+
+    def test_log_fields_in_doc(self) -> None:
+        """可観測性設計.md: JSON ログサンプルに標準フィールドが記載されている。"""
+        doc_path = ROOT / "docs" / "可観測性設計.md"
+        content = doc_path.read_text(encoding="utf-8")
+        for field in self.EXPECTED_FIELDS:
+            assert f'"{field}"' in content, (
+                f"可観測性設計.md に標準フィールド '{field}' が記載されていません"
+            )

@@ -69,6 +69,8 @@ pub struct TemplateContext {
     pub docker_registry: String,
     /// Docker プロジェクト名 (自動導出: "k1s0-{tier}")
     pub docker_project: String,
+    /// Helm Chart の Tier 別相対パス (自動導出: "{service_name}")
+    pub helm_path: String,
 }
 
 /// TemplateContext を構築するためのビルダー。
@@ -223,6 +225,9 @@ impl TemplateContextBuilder {
         // docker_project の導出: "k1s0-{tier}"
         let docker_project = format!("k1s0-{}", self.tier);
 
+        // helm_path の導出: service_name をそのまま使用
+        let helm_path = self.service_name.clone();
+
         // api_style: 後方互換のため api_styles の先頭要素を設定
         let api_style = self.api_styles.first().cloned().unwrap_or_default();
 
@@ -247,6 +252,7 @@ impl TemplateContextBuilder {
             rust_crate,
             docker_registry: self.docker_registry,
             docker_project,
+            helm_path,
         }
     }
 }
@@ -278,6 +284,7 @@ impl TemplateContext {
         ctx.insert("rust_crate", &self.rust_crate);
         ctx.insert("docker_registry", &self.docker_registry);
         ctx.insert("docker_project", &self.docker_project);
+        ctx.insert("helm_path", &self.helm_path);
         ctx
     }
 }
@@ -695,6 +702,7 @@ mod tests {
         assert_eq!(ctx.rust_crate, "");
         assert_eq!(ctx.docker_registry, "harbor.internal.example.com");
         assert_eq!(ctx.docker_project, "k1s0-service");
+        assert_eq!(ctx.helm_path, "order-api");
     }
 
     #[test]
@@ -756,6 +764,7 @@ mod tests {
         assert_eq!(json["rust_crate"], "");
         assert_eq!(json["docker_registry"], "harbor.internal.example.com");
         assert_eq!(json["docker_project"], "k1s0-service");
+        assert_eq!(json["helm_path"], "order-api");
     }
 
     #[test]

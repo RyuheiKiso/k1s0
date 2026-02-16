@@ -218,3 +218,60 @@ class TestTerraformProdTfvars:
     def test_reclaim_policy_retain(self) -> None:
         content = (TF / "environments" / "prod" / "terraform.tfvars").read_text(encoding="utf-8")
         assert "Retain" in content
+
+
+class TestTerraformObservabilityHelmReleases:
+    """terraform設計.md: observability モジュールの helm_release 定義テスト。"""
+
+    def setup_method(self) -> None:
+        path = TF / "modules" / "observability" / "main.tf"
+        assert path.exists()
+        self.content = path.read_text(encoding="utf-8")
+
+    @pytest.mark.parametrize(
+        "release_name",
+        ["prometheus", "loki", "jaeger"],
+    )
+    def test_helm_release_defined(self, release_name: str) -> None:
+        """terraform設計.md: observability モジュールに helm_release が定義されていること。"""
+        assert f'helm_release" "{release_name}"' in self.content, (
+            f"helm_release '{release_name}' が observability/main.tf に定義されていません"
+        )
+
+    def test_prometheus_chart(self) -> None:
+        assert "kube-prometheus-stack" in self.content
+
+    def test_loki_chart(self) -> None:
+        assert "loki-stack" in self.content
+
+    def test_jaeger_chart(self) -> None:
+        assert '"jaeger"' in self.content
+
+
+class TestTerraformDatabaseBackup:
+    """terraform設計.md: database モジュールの backup.tf 存在テスト。"""
+
+    def test_backup_tf_exists(self) -> None:
+        path = TF / "modules" / "database" / "backup.tf"
+        assert path.exists(), "modules/database/backup.tf が存在しません"
+
+    def test_backup_tf_has_cronjob(self) -> None:
+        content = (TF / "modules" / "database" / "backup.tf").read_text(encoding="utf-8")
+        assert "kubernetes_cron_job_v1" in content
+
+
+class TestTerraformHarborProjects:
+    """terraform設計.md: harbor モジュールの projects.tf テスト。"""
+
+    def test_projects_tf_exists(self) -> None:
+        path = TF / "modules" / "harbor" / "projects.tf"
+        assert path.exists(), "modules/harbor/projects.tf が存在しません"
+
+    @pytest.mark.parametrize(
+        "project",
+        ["k1s0-system", "k1s0-business", "k1s0-service", "k1s0-infra"],
+    )
+    def test_harbor_project_defined(self, project: str) -> None:
+        """terraform設計.md: 4 プロジェクトが定義されていること。"""
+        content = (TF / "modules" / "harbor" / "projects.tf").read_text(encoding="utf-8")
+        assert project in content, f"Harbor プロジェクト '{project}' が定義されていません"

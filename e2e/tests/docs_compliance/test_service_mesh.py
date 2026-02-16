@@ -334,3 +334,90 @@ class TestFaultInjection:
         doc = yaml.safe_load(path.read_text(encoding="utf-8"))
         assert doc["kind"] == "CronJob"
         assert "1" in doc["spec"]["schedule"]  # Monday
+
+
+class TestVirtualServiceConcreteValues:
+    """サービスメッシュ設計.md: VirtualService 具体値の検証。"""
+
+    def setup_method(self) -> None:
+        path = ISTIO / "virtual-service.yaml"
+        content = path.read_text(encoding="utf-8")
+        self.docs = [d for d in yaml.safe_load_all(content) if d]
+
+    def test_business_tier_timeout_10s(self) -> None:
+        """サービスメッシュ設計.md: business Tier timeout=10s。"""
+        biz = [d for d in self.docs if d["metadata"].get("namespace") == "k1s0-business"]
+        assert len(biz) >= 1
+        assert biz[0]["spec"]["http"][0]["timeout"] == "10s"
+
+    def test_business_tier_retries_3(self) -> None:
+        """サービスメッシュ設計.md: business Tier retries.attempts=3。"""
+        biz = [d for d in self.docs if d["metadata"].get("namespace") == "k1s0-business"]
+        assert biz[0]["spec"]["http"][0]["retries"]["attempts"] == 3
+
+    def test_service_tier_retry_on_includes_retriable_4xx(self) -> None:
+        """サービスメッシュ設計.md: service Tier retryOn に retriable-4xx を含む。"""
+        svc = [d for d in self.docs if d["metadata"].get("namespace") == "k1s0-service"]
+        assert len(svc) >= 1
+        retry_on = svc[0]["spec"]["http"][0]["retries"]["retryOn"]
+        assert "retriable-4xx" in retry_on
+
+    def test_system_tier_retry_on(self) -> None:
+        """サービスメッシュ設計.md: system Tier retryOn = 5xx,reset,connect-failure。"""
+        sys = [d for d in self.docs if d["metadata"].get("namespace") == "k1s0-system"]
+        assert len(sys) >= 1
+        retry_on = sys[0]["spec"]["http"][0]["retries"]["retryOn"]
+        assert "5xx" in retry_on
+        assert "reset" in retry_on
+        assert "connect-failure" in retry_on
+
+
+class TestCircuitBreakerTierDefaults:
+    """サービスメッシュ設計.md: Circuit Breaker Tier 別デフォルト値の検証。"""
+
+    def setup_method(self) -> None:
+        path = ISTIO / "destinationrules" / "default.yaml"
+        content = path.read_text(encoding="utf-8")
+        self.docs = [d for d in yaml.safe_load_all(content) if d]
+
+    def test_system_tier_consecutive_5xx_errors(self) -> None:
+        """サービスメッシュ設計.md: system Tier consecutive5xxErrors=3。"""
+        auth = [d for d in self.docs if d["metadata"]["name"] == "auth-server"][0]
+        od = auth["spec"]["trafficPolicy"]["outlierDetection"]
+        assert od["consecutive5xxErrors"] == 3
+
+    def test_system_tier_interval(self) -> None:
+        """サービスメッシュ設計.md: system Tier interval=10s。"""
+        auth = [d for d in self.docs if d["metadata"]["name"] == "auth-server"][0]
+        od = auth["spec"]["trafficPolicy"]["outlierDetection"]
+        assert od["interval"] == "10s"
+
+    def test_system_tier_base_ejection_time(self) -> None:
+        """サービスメッシュ設計.md: system Tier baseEjectionTime=30s。"""
+        auth = [d for d in self.docs if d["metadata"]["name"] == "auth-server"][0]
+        od = auth["spec"]["trafficPolicy"]["outlierDetection"]
+        assert od["baseEjectionTime"] == "30s"
+
+    def test_system_tier_max_ejection_percent(self) -> None:
+        """サービスメッシュ設計.md: system Tier maxEjectionPercent=30。"""
+        auth = [d for d in self.docs if d["metadata"]["name"] == "auth-server"][0]
+        od = auth["spec"]["trafficPolicy"]["outlierDetection"]
+        assert od["maxEjectionPercent"] == 30
+
+    def test_service_tier_consecutive_5xx_errors(self) -> None:
+        """サービスメッシュ設計.md: service Tier consecutive5xxErrors=5。"""
+        order = [d for d in self.docs if d["metadata"]["name"] == "order-server"][0]
+        od = order["spec"]["trafficPolicy"]["outlierDetection"]
+        assert od["consecutive5xxErrors"] == 5
+
+    def test_service_tier_base_ejection_time(self) -> None:
+        """サービスメッシュ設計.md: service Tier baseEjectionTime=60s。"""
+        order = [d for d in self.docs if d["metadata"]["name"] == "order-server"][0]
+        od = order["spec"]["trafficPolicy"]["outlierDetection"]
+        assert od["baseEjectionTime"] == "60s"
+
+    def test_service_tier_max_ejection_percent(self) -> None:
+        """サービスメッシュ設計.md: service Tier maxEjectionPercent=50。"""
+        order = [d for d in self.docs if d["metadata"]["name"] == "order-server"][0]
+        od = order["spec"]["trafficPolicy"]["outlierDetection"]
+        assert od["maxEjectionPercent"] == 50

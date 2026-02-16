@@ -349,3 +349,180 @@ class TestCLIModuleStructure:
 
     def test_template_module_exists(self) -> None:
         assert (CLI_SRC / "template" / "mod.rs").exists()
+
+
+# ============================================================================
+# CLIフロー.md ギャップ補完テスト
+# ============================================================================
+
+
+class TestEscKeyStepBack:
+    """CLIフロー.md: Esc キーで前のステップに戻る動作。
+
+    対話式 CLI の Esc 動作は E2E で直接テストが困難なため、
+    Rust ソースコードにステップ戻りロジックが実装されていることを検証する。
+    """
+
+    def test_generate_esc_back_to_kind(self) -> None:
+        """CLIフロー.md: generate でステップ戻りロジックが存在する。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        # Esc/None で前のステップに戻る処理（Step::Kind への戻り等）
+        assert "Step::Kind" in content
+        assert "Step::Tier" in content
+        assert "Step::Placement" in content
+        assert "StepResult::Back" in content
+
+    def test_init_step_back(self) -> None:
+        """CLIフロー.md: init でステップ戻りロジックが存在する。"""
+        content = (CLI_SRC / "commands" / "init.rs").read_text(encoding="utf-8")
+        # Esc で前のステップに戻る: Step enum と戻り処理
+        assert "Step::" in content
+        assert "GoBack" in content or "step =" in content
+
+    def test_deploy_esc_back_to_environment(self) -> None:
+        """CLIフロー.md: deploy でステップ戻りロジックが存在する。"""
+        content = (CLI_SRC / "commands" / "deploy.rs").read_text(encoding="utf-8")
+        assert "Step::Environment" in content
+        assert "Step::Targets" in content
+        # Esc で Environment に戻る
+        assert "step = Step::Environment" in content
+
+
+class TestCtrlCMainMenuReturn:
+    """CLIフロー.md: Ctrl+C でメインメニューに戻る。
+
+    すべてのプロンプトで Ctrl+C を押すとメインメニューに戻る。
+    interact_opt で None を返すことで Ctrl+C をハンドリングする。
+    """
+
+    def test_main_ctrlc_handler_exists(self) -> None:
+        """CLIフロー.md: ctrlc ハンドラが main.rs に定義されている。"""
+        content = (CLI_SRC / "main.rs").read_text(encoding="utf-8")
+        assert "ctrlc_handler" in content
+        assert "ctrlc::set_handler" in content
+
+    def test_generate_uses_prompt_module(self) -> None:
+        """CLIフロー.md: generate.rs が prompt モジュール経由で Ctrl+C をハンドリングする。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        # prompt モジュール（内部で interact_opt を使用）を利用
+        assert "prompt::" in content
+
+    def test_prompt_interact_opt(self) -> None:
+        """CLIフロー.md: prompt/mod.rs で interact_opt を使用している。"""
+        content = (CLI_SRC / "prompt" / "mod.rs").read_text(encoding="utf-8")
+        assert "interact_opt" in content
+
+    def test_deploy_ctrlc_return(self) -> None:
+        """CLIフロー.md: deploy で Ctrl+C/Esc 時に return Ok(()) で抜ける。"""
+        content = (CLI_SRC / "commands" / "deploy.rs").read_text(encoding="utf-8")
+        assert "return Ok(())" in content
+
+
+class TestGenerateDuplicateCheck:
+    """CLIフロー.md: ひな形生成での重複チェック。
+
+    既存の名前との重複はエラーとする。
+    """
+
+    def test_duplicate_check_in_generate(self) -> None:
+        """CLIフロー.md: generate.rs に重複チェックロジックが存在する。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert "既に存在します" in content
+
+    def test_validate_name_in_prompt_name_or_select(self) -> None:
+        """CLIフロー.md: prompt_name_or_select で名前バリデーション + 重複チェック。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert "validate_name" in content
+        assert "existing_names" in content
+
+
+class TestExistingDirectoryScan:
+    """CLIフロー.md: 既存ディレクトリスキャン・選択肢反映。
+
+    既存の領域/サービスが候補として表示される。
+    """
+
+    def test_scan_existing_dirs_function(self) -> None:
+        """CLIフロー.md: scan_existing_dirs 関数が存在する。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert "fn scan_existing_dirs" in content
+
+    def test_business_existing_scan(self) -> None:
+        """CLIフロー.md: business Tier で既存領域をスキャンする。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert 'scan_existing_dirs("regions/business")' in content
+
+    def test_service_existing_scan(self) -> None:
+        """CLIフロー.md: service Tier で既存サービスをスキャンする。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert 'scan_existing_dirs("regions/service")' in content
+
+    def test_new_or_select_prompt(self) -> None:
+        """CLIフロー.md: (新規作成) と既存候補の選択肢が表示される。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert "(新規作成)" in content
+
+
+class TestExistingDatabaseDisplay:
+    """CLIフロー.md: 既存DB表示テスト。
+
+    既存のデータベースがRDBMS付きで表示される。
+    """
+
+    def test_scan_existing_databases_function(self) -> None:
+        """CLIフロー.md: scan_existing_databases 関数が存在する。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert "fn scan_existing_databases" in content
+
+    def test_db_display_with_rdbms(self) -> None:
+        """CLIフロー.md: DbInfo の Display 実装が名前(RDBMS)形式。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        # DbInfo の Display: "{} ({})" format
+        assert "DbInfo" in content
+        assert 'write!(f, "{} ({})"' in content
+
+
+class TestE2ESuiteSelection:
+    """CLIフロー.md: E2Eスイート選択テスト。
+
+    E2Eテストの場合、テストスイート単位で選択できる。
+    """
+
+    def test_scan_e2e_suites_function(self) -> None:
+        """CLIフロー.md: scan_e2e_suites 関数が存在する。"""
+        content = (CLI_SRC / "commands" / "test_cmd.rs").read_text(encoding="utf-8")
+        assert "fn scan_e2e_suites" in content
+
+    def test_e2e_suite_selection_prompt(self) -> None:
+        """CLIフロー.md: テストスイートを選択してください。"""
+        content = (CLI_SRC / "commands" / "test_cmd.rs").read_text(encoding="utf-8")
+        assert "テストスイートを選択してください" in content
+
+    def test_e2e_kind_routes_to_suite_selection(self) -> None:
+        """CLIフロー.md: E2E 選択時は step_select_e2e_suites を呼び出す。"""
+        content = (CLI_SRC / "commands" / "test_cmd.rs").read_text(encoding="utf-8")
+        assert "step_select_e2e_suites" in content
+
+
+class TestProdDeployConfirmation:
+    """CLIフロー.md: prod "deploy" 入力確認テスト。
+
+    prod を選択した場合のみ "deploy" と入力する追加確認ステップがある。
+    """
+
+    def test_prod_confirm_step(self) -> None:
+        """CLIフロー.md: ProdConfirm ステップが存在する。"""
+        content = (CLI_SRC / "commands" / "deploy.rs").read_text(encoding="utf-8")
+        assert "ProdConfirm" in content
+
+    def test_deploy_input_prompt(self) -> None:
+        """CLIフロー.md: "deploy" と入力する確認プロンプト。"""
+        content = (CLI_SRC / "commands" / "deploy.rs").read_text(encoding="utf-8")
+        assert '"deploy"' in content
+        assert 'deploy' in content
+
+    def test_prod_only_confirmation(self) -> None:
+        """CLIフロー.md: prod の場合のみ ProdConfirm に遷移する。"""
+        content = (CLI_SRC / "commands" / "deploy.rs").read_text(encoding="utf-8")
+        assert "env.is_prod()" in content
+        assert "Step::ProdConfirm" in content

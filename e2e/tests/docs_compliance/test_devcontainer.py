@@ -111,6 +111,38 @@ class TestDevcontainerConfig:
         settings = self.config["customizations"]["vscode"]["settings"]
         assert settings["editor.formatOnSave"] is True
 
+    def test_code_actions_on_save(self) -> None:
+        """devcontainer設計.md: codeActionsOnSave の設定検証。"""
+        settings = self.config["customizations"]["vscode"]["settings"]
+        actions = settings["editor.codeActionsOnSave"]
+        assert actions["source.fixAll"] == "explicit"
+        assert actions["source.organizeImports"] == "explicit"
+
+    def test_go_default_formatter(self) -> None:
+        """devcontainer設計.md: Go の defaultFormatter 設定。"""
+        settings = self.config["customizations"]["vscode"]["settings"]
+        assert settings["[go]"]["editor.defaultFormatter"] == "golang.go"
+
+    def test_rust_default_formatter(self) -> None:
+        """devcontainer設計.md: Rust の defaultFormatter 設定。"""
+        settings = self.config["customizations"]["vscode"]["settings"]
+        assert settings["[rust]"]["editor.defaultFormatter"] == "rust-lang.rust-analyzer"
+
+    def test_typescript_default_formatter(self) -> None:
+        """devcontainer設計.md: TypeScript の defaultFormatter 設定。"""
+        settings = self.config["customizations"]["vscode"]["settings"]
+        assert settings["[typescript][typescriptreact]"]["editor.defaultFormatter"] == "esbenp.prettier-vscode"
+
+    def test_dart_default_formatter(self) -> None:
+        """devcontainer設計.md: Dart の defaultFormatter 設定。"""
+        settings = self.config["customizations"]["vscode"]["settings"]
+        assert settings["[dart]"]["editor.defaultFormatter"] == "Dart-Code.dart-code"
+
+    def test_python_default_formatter(self) -> None:
+        """devcontainer設計.md: Python の defaultFormatter 設定。"""
+        settings = self.config["customizations"]["vscode"]["settings"]
+        assert settings["[python]"]["editor.defaultFormatter"] == "charliermarsh.ruff"
+
 
 class TestDevcontainerExtendCompose:
     """devcontainer設計.md: docker-compose.extend.yaml の検証。"""
@@ -170,3 +202,9 @@ class TestPostCreateScript:
         script = ROOT / ".devcontainer" / "post-create.sh"
         content = script.read_text(encoding="utf-8")
         assert "buf" in content
+
+    def test_post_create_installs_protobuf_compiler(self) -> None:
+        """devcontainer設計.md: protobuf-compiler がインストールされること。"""
+        script = ROOT / ".devcontainer" / "post-create.sh"
+        content = script.read_text(encoding="utf-8")
+        assert "protobuf-compiler" in content

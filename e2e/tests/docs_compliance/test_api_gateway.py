@@ -177,3 +177,88 @@ class TestKongServices:
             path = KONG / "services" / tier_file
             content = path.read_text(encoding="utf-8")
             assert "strip_path: false" in content
+
+
+class TestKongHelmValues:
+    """APIゲートウェイ設計.md: Kong Helm values.yaml の検証。"""
+
+    HELM_KONG = ROOT / "infra" / "helm" / "services" / "system" / "kong"
+
+    def setup_method(self) -> None:
+        path = self.HELM_KONG / "values.yaml"
+        assert path.exists()
+        self.config = yaml.safe_load(path.read_text(encoding="utf-8"))
+
+    def test_image_tag(self) -> None:
+        """APIゲートウェイ設計.md: Kong image tag 3.7。"""
+        assert self.config["image"]["tag"] == "3.7"
+
+    def test_replica_count(self) -> None:
+        """APIゲートウェイ設計.md: デフォルト replicaCount 2。"""
+        assert self.config["replicaCount"] == 2
+
+    def test_resources_requests_cpu(self) -> None:
+        """APIゲートウェイ設計.md: requests.cpu = 500m。"""
+        assert self.config["resources"]["requests"]["cpu"] == "500m"
+
+    def test_resources_requests_memory(self) -> None:
+        """APIゲートウェイ設計.md: requests.memory = 512Mi。"""
+        assert self.config["resources"]["requests"]["memory"] == "512Mi"
+
+    def test_resources_limits_cpu(self) -> None:
+        """APIゲートウェイ設計.md: limits.cpu = 2000m。"""
+        assert self.config["resources"]["limits"]["cpu"] == "2000m"
+
+    def test_resources_limits_memory(self) -> None:
+        """APIゲートウェイ設計.md: limits.memory = 2Gi。"""
+        assert self.config["resources"]["limits"]["memory"] == "2Gi"
+
+
+class TestKongEnvironmentOverrides:
+    """APIゲートウェイ設計.md: 環境別オーバーライドの検証。"""
+
+    HELM_KONG = ROOT / "infra" / "helm" / "services" / "system" / "kong"
+
+    def test_values_dev_exists(self) -> None:
+        assert (self.HELM_KONG / "values-dev.yaml").exists()
+
+    def test_values_prod_exists(self) -> None:
+        assert (self.HELM_KONG / "values-prod.yaml").exists()
+
+    def test_dev_replica_count_1(self) -> None:
+        """APIゲートウェイ設計.md: dev 環境は replicaCount 1。"""
+        config = yaml.safe_load((self.HELM_KONG / "values-dev.yaml").read_text(encoding="utf-8"))
+        assert config["replicaCount"] == 1
+
+    def test_prod_replica_count_3(self) -> None:
+        """APIゲートウェイ設計.md: prod 環境は replicaCount 3。"""
+        config = yaml.safe_load((self.HELM_KONG / "values-prod.yaml").read_text(encoding="utf-8"))
+        assert config["replicaCount"] == 3
+
+    def test_dev_resources_reduced(self) -> None:
+        """APIゲートウェイ設計.md: dev 環境はリソース縮小。"""
+        config = yaml.safe_load((self.HELM_KONG / "values-dev.yaml").read_text(encoding="utf-8"))
+        assert config["resources"]["requests"]["cpu"] == "250m"
+        assert config["resources"]["requests"]["memory"] == "256Mi"
+
+    def test_prod_resources_increased(self) -> None:
+        """APIゲートウェイ設計.md: prod 環境はリソース増加。"""
+        config = yaml.safe_load((self.HELM_KONG / "values-prod.yaml").read_text(encoding="utf-8"))
+        assert config["resources"]["requests"]["cpu"] == "1000m"
+        assert config["resources"]["requests"]["memory"] == "1Gi"
+
+
+class TestKongDeckCICD:
+    """APIゲートウェイ設計.md: decK CI/CD ワークフローの検証。"""
+
+    def test_kong_sync_workflow_exists(self) -> None:
+        assert (ROOT / ".github" / "workflows" / "kong-sync.yaml").exists()
+
+    def test_kong_sync_workflow_name(self) -> None:
+        with open(ROOT / ".github" / "workflows" / "kong-sync.yaml", encoding="utf-8") as f:
+            config = yaml.safe_load(f)
+        assert config["name"] == "Kong Config Sync"
+
+    def test_kong_yaml_declarative_config(self) -> None:
+        """APIゲートウェイ設計.md: decK 用の宣言的設定ファイルが存在。"""
+        assert (KONG / "kong.yaml").exists()

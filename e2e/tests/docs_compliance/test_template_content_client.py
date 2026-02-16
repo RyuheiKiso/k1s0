@@ -404,3 +404,60 @@ class TestFlutterNginxConfContent:
     def test_listen_port(self) -> None:
         content = (FLUTTER / "nginx.conf.tera").read_text(encoding="utf-8")
         assert "listen 8080" in content
+
+
+class TestReactReadmeContent:
+    """テンプレート仕様-クライアント.md: React README.md.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (REACT / "README.md.tera").read_text(encoding="utf-8")
+
+    def test_service_name_variable(self) -> None:
+        assert "{{ service_name }}" in self.content
+
+    def test_npm_install_command(self) -> None:
+        assert "npm install" in self.content or "npm ci" in self.content
+
+    def test_dev_command(self) -> None:
+        assert "npm run dev" in self.content or "dev" in self.content
+
+
+class TestFlutterReadmeContent:
+    """テンプレート仕様-クライアント.md: Flutter README.md.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (FLUTTER / "README.md.tera").read_text(encoding="utf-8")
+
+    def test_service_name_variable(self) -> None:
+        assert "{{ service_name }}" in self.content or "{{ service_name_pascal }}" in self.content
+
+    def test_flutter_command(self) -> None:
+        assert "flutter" in self.content
+
+
+class TestReactTestFilesContent:
+    """テンプレート仕様-クライアント.md: React テストファイルの内容検証。"""
+
+    def test_app_test_exists(self) -> None:
+        assert (REACT / "tests" / "App.test.tsx.tera").exists()
+
+    def test_app_test_content(self) -> None:
+        content = (REACT / "tests" / "App.test.tsx.tera").read_text(encoding="utf-8")
+        assert "test" in content or "describe" in content or "expect" in content
+
+    def test_setup_ts_exists(self) -> None:
+        assert (REACT / "tests" / "testutil" / "setup.ts.tera").exists()
+
+    def test_msw_setup_exists(self) -> None:
+        assert (REACT / "tests" / "testutil" / "msw-setup.ts.tera").exists()
+
+
+class TestFlutterTestFilesContent:
+    """テンプレート仕様-クライアント.md: Flutter テストファイルの内容検証。"""
+
+    def test_widget_test_exists(self) -> None:
+        assert (FLUTTER / "test" / "widget_test.dart.tera").exists()
+
+    def test_widget_test_content(self) -> None:
+        content = (FLUTTER / "test" / "widget_test.dart.tera").read_text(encoding="utf-8")
+        assert "testWidgets" in content or "test" in content

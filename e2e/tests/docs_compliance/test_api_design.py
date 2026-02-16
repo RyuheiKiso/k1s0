@@ -215,3 +215,148 @@ class TestCodeGenDesign:
         """API設計.md: Rust サーバーに handler テンプレートが存在。"""
         path = ROOT / "CLI" / "templates" / "server" / "rust" / "src" / "adapter" / "handler"
         assert path.is_dir()
+
+
+class TestErrorResponseUnifiedSchema:
+    """API設計.md: D-007 エラーレスポンス統一 JSON スキーマの検証。"""
+
+    def test_go_handler_has_error_code_field(self) -> None:
+        """API設計.md: Go handler に code フィールドが定義されている。"""
+        path = ROOT / "CLI" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "rest_handler.go.tera"
+        content = path.read_text(encoding="utf-8")
+        assert '"code"' in content
+
+    def test_go_handler_has_error_message_field(self) -> None:
+        """API設計.md: Go handler に message フィールドが定義されている。"""
+        path = ROOT / "CLI" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "rest_handler.go.tera"
+        content = path.read_text(encoding="utf-8")
+        assert '"message"' in content
+
+    def test_error_schema_in_doc(self) -> None:
+        """API設計.md: ドキュメントに error.code, error.message, error.request_id, error.details が記載。"""
+        doc = ROOT / "docs" / "API設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "error.code" in content or "`error.code`" in content
+        assert "error.message" in content or "`error.message`" in content
+        assert "error.request_id" in content or "`error.request_id`" in content
+        assert "error.details" in content or "`error.details`" in content
+
+
+class TestTierPrefixErrorCodes:
+    """API設計.md: Tier プレフィックス付きエラーコードの検証。"""
+
+    def test_sys_prefix_in_doc(self) -> None:
+        """API設計.md: SYS_ プレフィックスが定義されている。"""
+        doc = ROOT / "docs" / "API設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "SYS_" in content
+
+    def test_biz_prefix_in_doc(self) -> None:
+        """API設計.md: BIZ_ プレフィックスが定義されている。"""
+        doc = ROOT / "docs" / "API設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "BIZ_" in content
+
+    def test_svc_prefix_in_doc(self) -> None:
+        """API設計.md: SVC_ プレフィックスが定義されている。"""
+        doc = ROOT / "docs" / "API設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "SVC_" in content
+
+
+class TestGrpcStatusCodeMapping:
+    """API設計.md: gRPC ステータスコードマッピングの検証。"""
+
+    @pytest.mark.parametrize(
+        "status_code",
+        [
+            "OK",
+            "INVALID_ARGUMENT",
+            "UNAUTHENTICATED",
+            "PERMISSION_DENIED",
+            "NOT_FOUND",
+            "ALREADY_EXISTS",
+            "FAILED_PRECONDITION",
+            "RESOURCE_EXHAUSTED",
+            "INTERNAL",
+            "UNAVAILABLE",
+        ],
+    )
+    def test_grpc_status_code_in_doc(self, status_code: str) -> None:
+        """API設計.md: gRPC ステータスコードがドキュメントに記載されている。"""
+        doc = ROOT / "docs" / "API設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert status_code in content, f"gRPC ステータス '{status_code}' がドキュメントに記載されていません"
+
+
+class TestGraphQLQueryLimits:
+    """API設計.md: D-011 GraphQL クエリ制限の検証。"""
+
+    def setup_method(self) -> None:
+        self.doc = ROOT / "docs" / "API設計.md"
+        self.content = self.doc.read_text(encoding="utf-8")
+
+    def test_query_depth_limit_10(self) -> None:
+        """API設計.md: クエリ深度上限 10。"""
+        assert "10" in self.content
+        assert "クエリ深度" in self.content or "深度" in self.content
+
+    def test_query_complexity_limit_1000(self) -> None:
+        """API設計.md: 複雑度上限 1000。"""
+        assert "1000" in self.content
+        assert "複雑度" in self.content
+
+    def test_query_timeout_30s(self) -> None:
+        """API設計.md: タイムアウト 30s。"""
+        assert "30s" in self.content
+        assert "タイムアウト" in self.content
+
+
+class TestTierRateLimits:
+    """API設計.md: D-012 Tier 別レート制限の検証。"""
+
+    def setup_method(self) -> None:
+        self.doc = ROOT / "docs" / "API設計.md"
+        self.content = self.doc.read_text(encoding="utf-8")
+
+    def test_system_tier_3000_req_min(self) -> None:
+        """API設計.md: system Tier デフォルト 3000 req/min。"""
+        assert "3000" in self.content
+
+    def test_business_tier_1000_req_min(self) -> None:
+        """API設計.md: business Tier デフォルト 1000 req/min。"""
+        assert "1000" in self.content
+
+    def test_service_tier_500_req_min(self) -> None:
+        """API設計.md: service Tier デフォルト 500 req/min。"""
+        assert "500" in self.content
+
+
+class TestBufGenYaml:
+    """API設計.md: buf.gen.yaml の検証。"""
+
+    def setup_method(self) -> None:
+        self.path = PROTO / "buf.gen.yaml"
+        assert self.path.exists()
+        with open(self.path, encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_buf_gen_yaml_exists(self) -> None:
+        """API設計.md: buf.gen.yaml が存在する。"""
+        assert self.path.exists()
+
+    def test_buf_gen_version_v2(self) -> None:
+        """API設計.md: buf.gen.yaml version v2。"""
+        assert self.config["version"] == "v2"
+
+    def test_buf_gen_has_go_plugin(self) -> None:
+        """API設計.md: Go プラグインが定義されている。"""
+        remotes = [p["remote"] for p in self.config["plugins"]]
+        go_plugins = [r for r in remotes if "go" in r]
+        assert len(go_plugins) >= 1, "Go プラグインが定義されていません"
+
+    def test_buf_gen_has_rust_plugin(self) -> None:
+        """API設計.md: Rust プラグインが定義されている。"""
+        remotes = [p["remote"] for p in self.config["plugins"]]
+        rust_plugins = [r for r in remotes if "rust" in r]
+        assert len(rust_plugins) >= 1, "Rust プラグインが定義されていません"

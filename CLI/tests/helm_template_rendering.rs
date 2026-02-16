@@ -227,6 +227,60 @@ fn test_helm_values_prod() {
 }
 
 #[test]
+fn test_helm_values_staging() {
+    let Some((tmp, _)) = render_helm("go", "rest", true, false, false) else {
+        eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "values-staging.yaml");
+    assert!(content.contains("replicaCount:") || content.contains("replica"));
+    assert!(content.contains("staging") || content.contains("autoscaling"));
+}
+
+#[test]
+fn test_helm_configmap() {
+    let Some((tmp, _)) = render_helm("go", "rest", false, false, false) else {
+        eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "configmap.yaml");
+    assert!(
+        content.contains("k1s0-common.configmap") || content.contains("ConfigMap"),
+        "configmap.yaml should reference k1s0-common.configmap"
+    );
+}
+
+#[test]
+fn test_helm_hpa() {
+    let Some((tmp, _)) = render_helm("go", "rest", false, false, false) else {
+        eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "hpa.yaml");
+    assert!(
+        content.contains("k1s0-common.hpa") || content.contains("HorizontalPodAutoscaler"),
+        "hpa.yaml should reference k1s0-common.hpa"
+    );
+}
+
+#[test]
+fn test_helm_pdb() {
+    let Some((tmp, _)) = render_helm("go", "rest", false, false, false) else {
+        eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "pdb.yaml");
+    assert!(
+        content.contains("k1s0-common.pdb") || content.contains("PodDisruptionBudget"),
+        "pdb.yaml should reference k1s0-common.pdb"
+    );
+}
+
+#[test]
 fn test_helm_no_tera_syntax() {
     let Some((tmp, names)) = render_helm("go", "rest", true, true, true) else {
         eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");

@@ -1,0 +1,29 @@
+# workflows/order-fulfillment.yaml
+name: order-fulfillment
+steps:
+  - name: reserve-inventory
+    service: inventory-server
+    method: InventoryService.Reserve
+    compensate: InventoryService.Release
+    timeout: 30s
+    retry:
+      max_attempts: 3
+      backoff: exponential
+
+  - name: process-payment
+    service: payment-server
+    method: PaymentService.Charge
+    compensate: PaymentService.Refund
+    timeout: 30s
+    retry:
+      max_attempts: 3
+      backoff: exponential
+
+  - name: confirm-order
+    service: order-server
+    method: OrderService.Confirm
+    compensate: OrderService.Cancel
+    timeout: 30s
+    retry:
+      max_attempts: 3
+      backoff: exponential

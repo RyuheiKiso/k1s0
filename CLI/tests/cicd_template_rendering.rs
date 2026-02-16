@@ -3,8 +3,11 @@
 /// CLI/templates/cicd/ テンプレートファイルを使用し、
 /// テンプレートエンジンでレンダリングした結果が仕様書と一致することを検証する。
 ///
-/// NOTE: cicd テンプレートは未作成のため、テストは TDD として作成。
-/// テンプレートディレクトリが存在しない場合はエラーになるのが正しい動作。
+/// 仕様書: docs/テンプレート仕様-CICD.md
+/// ディレクトリ構成（フラット）:
+///   CLI/templates/cicd/
+///     ├── ci.yaml.tera
+///     └── deploy.yaml.tera
 use std::fs;
 use std::path::Path;
 
@@ -22,19 +25,19 @@ fn template_dir() -> std::path::PathBuf {
 
 /// cicd テンプレートをレンダリングする。
 ///
-/// 現時点ではテンプレートディレクトリが未作成のため、
-/// テンプレートが存在しない場合は None を返す。
+/// 仕様書に従い、CLI/templates/cicd/ 直下のフラット構造からレンダリングする。
+/// kind="cicd" で TemplateEngine に渡し、言語分岐はテンプレート内部の
+/// {% if language == "go" %} 等で行う。
 fn render_cicd(
-    kind: &str,
+    _kind: &str,
     lang: &str,
     api_style: &str,
     has_database: bool,
 ) -> Option<(TempDir, Vec<String>)> {
     let tpl_dir = template_dir();
 
-    // cicd テンプレートディレクトリの存在チェック
-    // TDD: テンプレートが未作成の場合は None を返す
-    let cicd_dir = tpl_dir.join("cicd").join(lang);
+    // cicd テンプレートディレクトリの存在チェック（フラット構造）
+    let cicd_dir = tpl_dir.join("cicd");
     if !cicd_dir.exists() {
         return None;
     }
@@ -43,6 +46,9 @@ fn render_cicd(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
+    // kind="cicd" で構築。language は Tera 変数として渡される。
+    // 実際の kind (server/client 等) は元のパラメータを使うが、
+    // テンプレート選択用の kind は "cicd" とする。
     let mut builder = TemplateContextBuilder::new("order-api", "service", lang, "cicd")
         .api_style(api_style);
 
@@ -76,76 +82,81 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 // =========================================================================
 
 #[test]
-fn test_cicd_server_go_file_list() {
+fn test_cicd_go_generates_ci_and_deploy() {
     let Some((_, names)) = render_cicd("server", "go", "rest", false) else {
-        eprintln!("SKIP: cicd/go テンプレートディレクトリが未作成");
+        eprintln!("SKIP: cicd テンプレートディレクトリが未作成");
         return;
     };
 
-    // server は CI + Deploy の両方が生成される
+    // CI + Deploy の両方が生成される
     assert!(
         names.iter().any(|n| n.contains("ci")),
-        "CI workflow file missing for server/go"
+        "CI workflow file missing. Generated: {:?}",
+        names
     );
     assert!(
         names.iter().any(|n| n.contains("deploy")),
-        "Deploy workflow file missing for server/go"
+        "Deploy workflow file missing. Generated: {:?}",
+        names
     );
 }
 
 #[test]
-fn test_cicd_server_rust_file_list() {
+fn test_cicd_rust_generates_ci_and_deploy() {
     let Some((_, names)) = render_cicd("server", "rust", "rest", false) else {
-        eprintln!("SKIP: cicd/rust テンプレートディレクトリが未作成");
+        eprintln!("SKIP: cicd テンプレートディレクトリが未作成");
         return;
     };
 
     assert!(
         names.iter().any(|n| n.contains("ci")),
-        "CI workflow file missing for server/rust"
+        "CI workflow file missing. Generated: {:?}",
+        names
     );
     assert!(
         names.iter().any(|n| n.contains("deploy")),
-        "Deploy workflow file missing for server/rust"
+        "Deploy workflow file missing. Generated: {:?}",
+        names
     );
 }
 
 #[test]
-fn test_cicd_client_react_file_list() {
-    let Some((_, names)) = render_cicd("client", "react", "", false) else {
-        eprintln!("SKIP: cicd/react テンプレートディレクトリが未作成");
+fn test_cicd_typescript_generates_ci_and_deploy() {
+    let Some((_, names)) = render_cicd("client", "typescript", "", false) else {
+        eprintln!("SKIP: cicd テンプレートディレクトリが未作成");
         return;
     };
 
-    // client は CI のみ（Deploy は helm 経由のため不要）
+    // CI が生成される
     assert!(
         names.iter().any(|n| n.contains("ci")),
-        "CI workflow file missing for client/react"
+        "CI workflow file missing. Generated: {:?}",
+        names
     );
 }
 
 #[test]
-fn test_cicd_library_go_file_list() {
-    let Some((_, names)) = render_cicd("library", "go", "", false) else {
-        eprintln!("SKIP: cicd/go テンプレートディレクトリが未作成");
+fn test_cicd_dart_generates_ci() {
+    let Some((_, names)) = render_cicd("client", "dart", "", false) else {
+        eprintln!("SKIP: cicd テンプレートディレクトリが未作成");
         return;
     };
 
-    // library は CI のみ
     assert!(
         names.iter().any(|n| n.contains("ci")),
-        "CI workflow file missing for library/go"
+        "CI workflow file missing. Generated: {:?}",
+        names
     );
 }
 
 // =========================================================================
-// CI/CD 内容テスト
+// CI ワークフロー内容テスト（言語別）
 // =========================================================================
 
 #[test]
 fn test_cicd_ci_yaml_go_content() {
     let Some((tmp, names)) = render_cicd("server", "go", "rest", false) else {
-        eprintln!("SKIP: cicd/go テンプレートディレクトリが未作成");
+        eprintln!("SKIP: cicd テンプレートディレクトリが未作成");
         return;
     };
 
@@ -160,7 +171,7 @@ fn test_cicd_ci_yaml_go_content() {
 #[test]
 fn test_cicd_ci_yaml_rust_content() {
     let Some((tmp, names)) = render_cicd("server", "rust", "rest", false) else {
-        eprintln!("SKIP: cicd/rust テンプレートディレクトリが未作成");
+        eprintln!("SKIP: cicd テンプレートディレクトリが未作成");
         return;
     };
 
@@ -172,10 +183,14 @@ fn test_cicd_ci_yaml_rust_content() {
     assert!(content.contains("clippy") || content.contains("lint"), "lint step missing in CI");
 }
 
+// =========================================================================
+// Deploy ワークフロー内容テスト
+// =========================================================================
+
 #[test]
 fn test_cicd_deploy_yaml_content() {
     let Some((tmp, names)) = render_cicd("server", "go", "rest", false) else {
-        eprintln!("SKIP: cicd/go テンプレートディレクトリが未作成");
+        eprintln!("SKIP: cicd テンプレートディレクトリが未作成");
         return;
     };
 
@@ -186,10 +201,14 @@ fn test_cicd_deploy_yaml_content() {
     assert!(content.contains("helm") || content.contains("docker"), "helm or docker reference missing in deploy");
 }
 
+// =========================================================================
+// 条件付きステップテスト
+// =========================================================================
+
 #[test]
 fn test_cicd_ci_grpc_step() {
     let Some((tmp, names)) = render_cicd("server", "go", "grpc", false) else {
-        eprintln!("SKIP: cicd/go テンプレートディレクトリが未作成");
+        eprintln!("SKIP: cicd テンプレートディレクトリが未作成");
         return;
     };
 
@@ -205,7 +224,7 @@ fn test_cicd_ci_grpc_step() {
 #[test]
 fn test_cicd_ci_database_step() {
     let Some((tmp, names)) = render_cicd("server", "go", "rest", true) else {
-        eprintln!("SKIP: cicd/go テンプレートディレクトリが未作成");
+        eprintln!("SKIP: cicd テンプレートディレクトリが未作成");
         return;
     };
 
@@ -218,10 +237,14 @@ fn test_cicd_ci_database_step() {
     );
 }
 
+// =========================================================================
+// Tera 構文残留チェック
+// =========================================================================
+
 #[test]
 fn test_cicd_no_tera_syntax() {
     let Some((tmp, names)) = render_cicd("server", "go", "rest", true) else {
-        eprintln!("SKIP: cicd/go テンプレートディレクトリが未作成");
+        eprintln!("SKIP: cicd テンプレートディレクトリが未作成");
         return;
     };
 
@@ -232,19 +255,20 @@ fn test_cicd_no_tera_syntax() {
     }
 }
 
+// =========================================================================
+// GitHub Actions 構文保持テスト
+// =========================================================================
+
 #[test]
 fn test_cicd_github_actions_syntax() {
     let Some((tmp, names)) = render_cicd("server", "go", "rest", false) else {
-        eprintln!("SKIP: cicd/go テンプレートディレクトリが未作成");
+        eprintln!("SKIP: cicd テンプレートディレクトリが未作成");
         return;
     };
 
     for name in &names {
         let content = read_output(&tmp, name);
-        // GitHub Actions の ${{ }} 構文が保持されていることを検証
-        // (Tera の {{ }} と衝突しないようにエスケープされているはず)
         if content.contains("${{") {
-            // GitHub Actions 構文が正しく保持されている
             assert!(
                 content.contains("${{") && content.contains("}}"),
                 "GitHub Actions syntax broken in {}",
@@ -254,10 +278,14 @@ fn test_cicd_github_actions_syntax() {
     }
 }
 
+// =========================================================================
+// サービス名がワークフロー名に含まれるか
+// =========================================================================
+
 #[test]
 fn test_cicd_service_name_in_workflow_name() {
     let Some((tmp, names)) = render_cicd("server", "go", "rest", false) else {
-        eprintln!("SKIP: cicd/go テンプレートディレクトリが未作成");
+        eprintln!("SKIP: cicd テンプレートディレクトリが未作成");
         return;
     };
 
@@ -267,5 +295,25 @@ fn test_cicd_service_name_in_workflow_name() {
     assert!(
         content.contains("order-api") || content.contains("OrderApi") || content.contains("order_api"),
         "service_name not found in workflow name"
+    );
+}
+
+// =========================================================================
+// セキュリティスキャンステップの存在確認
+// =========================================================================
+
+#[test]
+fn test_cicd_ci_security_scan_step() {
+    let Some((tmp, names)) = render_cicd("server", "go", "rest", false) else {
+        eprintln!("SKIP: cicd テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let ci_file = names.iter().find(|n| n.contains("ci")).unwrap();
+    let content = read_output(&tmp, ci_file);
+
+    assert!(
+        content.contains("security-scan") || content.contains("trivy"),
+        "security-scan step missing in CI"
     );
 }
