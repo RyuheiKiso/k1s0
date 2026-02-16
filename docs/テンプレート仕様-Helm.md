@@ -80,8 +80,8 @@ Helm Chart のテンプレートファイル自体は全て生成されるが、
 | ---------------------- | ----------------------- | ------------------------------------------------------------ |
 | `api_style`            | `grpc` を含む           | `container.grpcPort` / `service.grpcPort` に `50051` を設定  |
 | `has_database`         | `true`                  | `vault.secrets` に DB パスワードパスを追加、config.data に database セクション追加 |
-| `has_kafka`            | `true`                  | `kafka.enabled: true`、`kafka.brokers` にデフォルト値を設定  |
-| `has_redis`            | `true`                  | `redis.enabled: true`、`redis.host` にデフォルト値を設定     |
+| `has_kafka`            | `true`                  | `vault.secrets` に Kafka シークレットパスを追加、`kafka.enabled: true` |
+| `has_redis`            | `true`                  | `vault.secrets` に Redis シークレットパスを追加、`redis.enabled: true` |
 
 ## Tera / Helm 構文衝突の回避
 
@@ -156,6 +156,8 @@ Helm Chart テンプレートで使用するテンプレート変数と、生成
 | `tier`                 | `vault.secrets[].path` の一部     | ---                                                   | `secret/data/k1s0/service/...` |
 | `service_name`         | `vault.secrets[].path` の一部     | ---                                                   | `.../order/database`           |
 | `has_database`         | `vault.secrets` の有無            | `true` 時のみ DB シークレットパスを追加               | ---                            |
+| `has_kafka`            | `vault.secrets` の有無            | `true` 時に Kafka シークレットパスを追加              | ---                            |
+| `has_redis`            | `vault.secrets` の有無            | `true` 時に Redis シークレットパスを追加              | ---                            |
 | `has_kafka`            | `kafka.enabled`                   | そのまま                                              | `true` / `false`               |
 | `has_redis`            | `redis.enabled`                   | そのまま                                              | `true` / `false`               |
 
@@ -288,7 +290,18 @@ vault:
     - path: "secret/data/k1s0/{{ tier }}/{{ service_name }}/database"
       key: "password"
       mountPath: "/vault/secrets/db-password"
-{% else %}
+{% endif %}
+{% if has_kafka %}
+    - path: "secret/data/k1s0/{{ tier }}/{{ service_name }}/kafka"
+      key: "password"
+      mountPath: "/vault/secrets/kafka-password"
+{% endif %}
+{% if has_redis %}
+    - path: "secret/data/k1s0/{{ tier }}/{{ service_name }}/redis"
+      key: "password"
+      mountPath: "/vault/secrets/redis-password"
+{% endif %}
+{% if not has_database and not has_kafka and not has_redis %}
     []
 {% endif %}
 
@@ -306,19 +319,11 @@ labels:
 
 kafka:
   enabled: {{ has_kafka }}
-{% if has_kafka %}
   brokers: []
-{% else %}
-  brokers: []
-{% endif %}
 
 redis:
   enabled: {{ has_redis }}
-{% if has_redis %}
   host: ""
-{% else %}
-  host: ""
-{% endif %}
 ```
 
 ### values-dev.yaml.tera

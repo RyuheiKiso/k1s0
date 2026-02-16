@@ -40,9 +40,9 @@ class TestGoModContent:
     @pytest.mark.parametrize(
         "condition,dep",
         [
-            ('api_style == "rest"', "oapi-codegen"),
-            ('api_style == "grpc"', "google.golang.org/grpc"),
-            ('api_style == "graphql"', "gqlgen"),
+            ('api_styles is containing("rest")', "oapi-codegen"),
+            ('api_styles is containing("grpc")', "google.golang.org/grpc"),
+            ('api_styles is containing("graphql")', "gqlgen"),
             ("has_database", "github.com/jmoiron/sqlx"),
             ('database_type == "postgresql"', "github.com/lib/pq"),
             ('database_type == "mysql"', "go-sql-driver/mysql"),
@@ -186,7 +186,7 @@ class TestGoHandlerRestContent:
         ).read_text(encoding="utf-8")
 
     def test_rest_conditional(self) -> None:
-        assert '{% if api_style == "rest" %}' in self.content
+        assert '{% if api_styles is containing("rest") %}' in self.content
 
     def test_gin_handler(self) -> None:
         assert '"github.com/gin-gonic/gin"' in self.content
@@ -214,7 +214,7 @@ class TestGoHandlerGrpcContent:
         ).read_text(encoding="utf-8")
 
     def test_grpc_conditional(self) -> None:
-        assert '{% if api_style == "grpc" %}' in self.content
+        assert '{% if api_styles is containing("grpc") %}' in self.content
 
     def test_grpc_imports(self) -> None:
         assert "google.golang.org/grpc/codes" in self.content
@@ -233,7 +233,7 @@ class TestGoHandlerGraphqlContent:
         ).read_text(encoding="utf-8")
 
     def test_graphql_conditional(self) -> None:
-        assert '{% if api_style == "graphql" %}' in self.content
+        assert '{% if api_styles is containing("graphql") %}' in self.content
 
     def test_resolver_struct(self) -> None:
         assert "Resolver struct" in self.content
@@ -392,9 +392,9 @@ class TestRustCargoTomlContent:
     @pytest.mark.parametrize(
         "condition,dep",
         [
-            ('api_style == "rest"', "utoipa"),
-            ('api_style == "grpc"', "tonic"),
-            ('api_style == "graphql"', "async-graphql"),
+            ('api_styles is containing("rest")', "utoipa"),
+            ('api_styles is containing("grpc")', "tonic"),
+            ('api_styles is containing("graphql")', "async-graphql"),
             ("has_database", "sqlx"),
             ("has_kafka", "rdkafka"),
             ("has_redis", "redis"),
@@ -460,18 +460,18 @@ class TestRustHandlerContent:
 
     def test_rest_handler(self) -> None:
         content = (SERVER_RUST / "src" / "adapter" / "handler" / "rest.rs.tera").read_text(encoding="utf-8")
-        assert '{% if api_style == "rest" %}' in content
+        assert '{% if api_styles is containing("rest") %}' in content
         assert "AppHandler" in content
         assert "ErrorResponse" in content
 
     def test_grpc_handler(self) -> None:
         content = (SERVER_RUST / "src" / "adapter" / "handler" / "grpc.rs.tera").read_text(encoding="utf-8")
-        assert '{% if api_style == "grpc" %}' in content
+        assert '{% if api_styles is containing("grpc") %}' in content
         assert "tonic" in content
 
     def test_graphql_handler(self) -> None:
         content = (SERVER_RUST / "src" / "adapter" / "handler" / "graphql.rs.tera").read_text(encoding="utf-8")
-        assert '{% if api_style == "graphql" %}' in content
+        assert '{% if api_styles is containing("graphql") %}' in content
         assert "async_graphql" in content
         assert "QueryRoot" in content
 
@@ -529,7 +529,7 @@ class TestGoOpenAPIContent:
         self.content = (SERVER_GO / "api" / "openapi" / "openapi.yaml.tera").read_text(encoding="utf-8")
 
     def test_rest_conditional(self) -> None:
-        assert '{% if api_style == "rest" %}' in self.content
+        assert '{% if api_styles is containing("rest") %}' in self.content
 
     def test_openapi_version(self) -> None:
         assert '"3.0.3"' in self.content
@@ -548,7 +548,7 @@ class TestGoProtoContent:
         self.content = (SERVER_GO / "api" / "proto" / "service.proto.tera").read_text(encoding="utf-8")
 
     def test_grpc_conditional(self) -> None:
-        assert '{% if api_style == "grpc" %}' in self.content
+        assert '{% if api_styles is containing("grpc") %}' in self.content
 
     def test_proto3_syntax(self) -> None:
         assert 'syntax = "proto3"' in self.content
@@ -569,7 +569,7 @@ class TestGoOapiCodegenYamlContent:
         self.content = (SERVER_GO / "oapi-codegen.yaml.tera").read_text(encoding="utf-8")
 
     def test_rest_conditional(self) -> None:
-        assert '{% if api_style == "rest" %}' in self.content
+        assert '{% if api_styles is containing("rest") %}' in self.content
 
     def test_package_name(self) -> None:
         assert "package: openapi" in self.content
@@ -594,7 +594,7 @@ class TestGoGqlgenYmlContent:
         self.content = (SERVER_GO / "gqlgen.yml.tera").read_text(encoding="utf-8")
 
     def test_graphql_conditional(self) -> None:
-        assert '{% if api_style == "graphql" %}' in self.content
+        assert '{% if api_styles is containing("graphql") %}' in self.content
 
     def test_schema_path(self) -> None:
         assert "api/graphql/*.graphql" in self.content
@@ -613,7 +613,7 @@ class TestGoSchemaGraphqlContent:
         self.content = (SERVER_GO / "api" / "graphql" / "schema.graphql.tera").read_text(encoding="utf-8")
 
     def test_graphql_conditional(self) -> None:
-        assert '{% if api_style == "graphql" %}' in self.content
+        assert '{% if api_styles is containing("graphql") %}' in self.content
 
     def test_query_type(self) -> None:
         assert "type Query" in self.content
@@ -632,7 +632,7 @@ class TestGoBufYamlContent:
         self.content = (SERVER_GO / "buf.yaml.tera").read_text(encoding="utf-8")
 
     def test_grpc_conditional(self) -> None:
-        assert '{% if api_style == "grpc" %}' in self.content
+        assert '{% if api_styles is containing("grpc") %}' in self.content
 
     def test_version(self) -> None:
         assert "version: v2" in self.content
@@ -651,7 +651,7 @@ class TestGoBufGenYamlContent:
         self.content = (SERVER_GO / "buf.gen.yaml.tera").read_text(encoding="utf-8")
 
     def test_grpc_conditional(self) -> None:
-        assert '{% if api_style == "grpc" %}' in self.content
+        assert '{% if api_styles is containing("grpc") %}' in self.content
 
     def test_protobuf_plugin(self) -> None:
         assert "buf.build/protocolbuffers/go" in self.content
@@ -717,7 +717,7 @@ class TestRustBuildRsContent:
         self.content = (SERVER_RUST / "build.rs.tera").read_text(encoding="utf-8")
 
     def test_grpc_conditional(self) -> None:
-        assert '{% if api_style == "grpc" %}' in self.content
+        assert '{% if api_styles is containing("grpc") %}' in self.content
 
     def test_tonic_build(self) -> None:
         assert "tonic_build" in self.content
@@ -736,7 +736,7 @@ class TestRustBufYamlContent:
         self.content = (SERVER_RUST / "buf.yaml.tera").read_text(encoding="utf-8")
 
     def test_grpc_conditional(self) -> None:
-        assert '{% if api_style == "grpc" %}' in self.content
+        assert '{% if api_styles is containing("grpc") %}' in self.content
 
     def test_version(self) -> None:
         assert "version: v2" in self.content
@@ -779,16 +779,16 @@ class TestGoHandlerTestContent:
         ).read_text(encoding="utf-8")
 
     def test_rest_test(self) -> None:
-        assert '{% if api_style == "rest" %}' in self.content
+        assert '{% if api_styles is containing("rest") %}' in self.content
         assert "httptest" in self.content
         assert "TestList" in self.content
 
     def test_grpc_test(self) -> None:
-        assert '{% if api_style == "grpc" %}' in self.content
+        assert '{% if api_styles is containing("grpc") %}' in self.content
         assert "bufconn" in self.content
 
     def test_graphql_test(self) -> None:
-        assert '{% if api_style == "graphql" %}' in self.content
+        assert '{% if api_styles is containing("graphql") %}' in self.content
         assert "NewResolver" in self.content
 
 
@@ -823,14 +823,14 @@ class TestRustIntegrationTestContent:
         self.content = (SERVER_RUST / "tests" / "integration_test.rs.tera").read_text(encoding="utf-8")
 
     def test_rest_test(self) -> None:
-        assert '{% if api_style == "rest" %}' in self.content
+        assert '{% if api_styles is containing("rest") %}' in self.content
         assert "StatusCode::OK" in self.content
 
     def test_grpc_test(self) -> None:
-        assert '{% if api_style == "grpc" %}' in self.content
+        assert '{% if api_styles is containing("grpc") %}' in self.content
 
     def test_graphql_test(self) -> None:
-        assert '{% if api_style == "graphql" %}' in self.content
+        assert '{% if api_styles is containing("graphql") %}' in self.content
         assert "build_schema" in self.content
 
 

@@ -281,6 +281,34 @@ fn test_helm_pdb() {
 }
 
 #[test]
+fn test_helm_vault_secrets_with_kafka() {
+    let Some((tmp, _)) = render_helm("go", "rest", false, true, false) else {
+        eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "values.yaml");
+    assert!(
+        content.contains("kafka") && content.contains("vault"),
+        "Kafka 有効時に Vault シークレットに Kafka パスが含まれるべき"
+    );
+}
+
+#[test]
+fn test_helm_vault_secrets_with_redis() {
+    let Some((tmp, _)) = render_helm("go", "rest", false, false, true) else {
+        eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "values.yaml");
+    assert!(
+        content.contains("redis") && content.contains("vault"),
+        "Redis 有効時に Vault シークレットに Redis パスが含まれるべき"
+    );
+}
+
+#[test]
 fn test_helm_no_tera_syntax() {
     let Some((tmp, names)) = render_helm("go", "rest", true, true, true) else {
         eprintln!("SKIP: helm/go テンプレートディレクトリが未作成");

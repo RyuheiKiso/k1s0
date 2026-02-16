@@ -11,7 +11,7 @@ server:
   write_timeout: "30s"
   shutdown_timeout: "10s"
 
-{% if api_style == "grpc" %}
+{% if api_styles is containing("grpc") %}
 grpc:
   port: 50051
   max_recv_msg_size: 4194304     # 4MB

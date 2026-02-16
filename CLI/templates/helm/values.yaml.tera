@@ -92,7 +92,18 @@ vault:
     - path: "secret/data/k1s0/{{ tier }}/{{ service_name }}/database"
       key: "password"
       mountPath: "/vault/secrets/db-password"
-{% else %}
+{% endif %}
+{% if has_kafka %}
+    - path: "secret/data/k1s0/{{ tier }}/{{ service_name }}/kafka"
+      key: "password"
+      mountPath: "/vault/secrets/kafka-password"
+{% endif %}
+{% if has_redis %}
+    - path: "secret/data/k1s0/{{ tier }}/{{ service_name }}/redis"
+      key: "password"
+      mountPath: "/vault/secrets/redis-password"
+{% endif %}
+{% if not has_database and not has_kafka and not has_redis %}
     []
 {% endif %}
 
@@ -110,16 +121,8 @@ labels:
 
 kafka:
   enabled: {{ has_kafka }}
-{% if has_kafka %}
   brokers: []
-{% else %}
-  brokers: []
-{% endif %}
 
 redis:
   enabled: {{ has_redis }}
-{% if has_redis %}
   host: ""
-{% else %}
-  host: ""
-{% endif %}

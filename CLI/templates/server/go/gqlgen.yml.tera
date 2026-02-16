@@ -1,4 +1,4 @@
-{% if api_style == "graphql" %}
+{% if api_styles is containing("graphql") %}
 schema:
   - api/graphql/*.graphql
 exec:

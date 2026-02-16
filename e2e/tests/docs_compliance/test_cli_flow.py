@@ -92,7 +92,7 @@ class TestGenerateKinds:
     """CLIフロー.md: ひな形生成 — 種別の選択。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        self.content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
 
     def test_kind_server(self) -> None:
         assert "サーバー" in self.content
@@ -111,7 +111,7 @@ class TestGenerateTierRestrictions:
     """CLIフロー.md: 種別に応じたTier制限の検証。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        self.content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
 
     def test_server_all_tiers(self) -> None:
         """CLIフロー.md: サーバーは system/business/service。"""
@@ -134,7 +134,7 @@ class TestGenerateLanguages:
     """CLIフロー.md: 言語 / フレームワーク選択の検証。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        self.content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
 
     def test_server_languages(self) -> None:
         """CLIフロー.md: サーバーは Go / Rust。"""
@@ -162,7 +162,7 @@ class TestGenerateApiStyles:
     """CLIフロー.md: API方式選択の検証。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        self.content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
 
     def test_rest_option(self) -> None:
         assert "REST (OpenAPI)" in self.content
@@ -336,7 +336,7 @@ class TestCLIModuleStructure:
 
     @pytest.mark.parametrize(
         "module",
-        ["init.rs", "generate.rs", "build.rs", "test_cmd.rs", "deploy.rs"],
+        ["init.rs", "generate/mod.rs", "build.rs", "test_cmd.rs", "deploy.rs"],
     )
     def test_command_module_exists(self, module: str) -> None:
         assert (CLI_SRC / "commands" / module).exists()
@@ -365,7 +365,7 @@ class TestEscKeyStepBack:
 
     def test_generate_esc_back_to_kind(self) -> None:
         """CLIフロー.md: generate でステップ戻りロジックが存在する。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "mod.rs").read_text(encoding="utf-8")
         # Esc/None で前のステップに戻る処理（Step::Kind への戻り等）
         assert "Step::Kind" in content
         assert "Step::Tier" in content
@@ -402,8 +402,8 @@ class TestCtrlCMainMenuReturn:
         assert "ctrlc::set_handler" in content
 
     def test_generate_uses_prompt_module(self) -> None:
-        """CLIフロー.md: generate.rs が prompt モジュール経由で Ctrl+C をハンドリングする。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        """CLIフロー.md: generate モジュールが prompt モジュール経由で Ctrl+C をハンドリングする。"""
+        content = (CLI_SRC / "commands" / "generate" / "mod.rs").read_text(encoding="utf-8")
         # prompt モジュール（内部で interact_opt を使用）を利用
         assert "prompt::" in content
 
@@ -425,13 +425,13 @@ class TestGenerateDuplicateCheck:
     """
 
     def test_duplicate_check_in_generate(self) -> None:
-        """CLIフロー.md: generate.rs に重複チェックロジックが存在する。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        """CLIフロー.md: generate モジュールに重複チェックロジックが存在する。"""
+        content = (CLI_SRC / "commands" / "generate" / "helpers.rs").read_text(encoding="utf-8")
         assert "既に存在します" in content
 
     def test_validate_name_in_prompt_name_or_select(self) -> None:
         """CLIフロー.md: prompt_name_or_select で名前バリデーション + 重複チェック。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "helpers.rs").read_text(encoding="utf-8")
         assert "validate_name" in content
         assert "existing_names" in content
 
@@ -444,22 +444,22 @@ class TestExistingDirectoryScan:
 
     def test_scan_existing_dirs_function(self) -> None:
         """CLIフロー.md: scan_existing_dirs 関数が存在する。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "helpers.rs").read_text(encoding="utf-8")
         assert "fn scan_existing_dirs" in content
 
     def test_business_existing_scan(self) -> None:
         """CLIフロー.md: business Tier で既存領域をスキャンする。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "steps.rs").read_text(encoding="utf-8")
         assert 'scan_existing_dirs("regions/business")' in content
 
     def test_service_existing_scan(self) -> None:
         """CLIフロー.md: service Tier で既存サービスをスキャンする。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "steps.rs").read_text(encoding="utf-8")
         assert 'scan_existing_dirs("regions/service")' in content
 
     def test_new_or_select_prompt(self) -> None:
         """CLIフロー.md: (新規作成) と既存候補の選択肢が表示される。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "helpers.rs").read_text(encoding="utf-8")
         assert "(新規作成)" in content
 
 
@@ -471,12 +471,12 @@ class TestExistingDatabaseDisplay:
 
     def test_scan_existing_databases_function(self) -> None:
         """CLIフロー.md: scan_existing_databases 関数が存在する。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "helpers.rs").read_text(encoding="utf-8")
         assert "fn scan_existing_databases" in content
 
     def test_db_display_with_rdbms(self) -> None:
         """CLIフロー.md: DbInfo の Display 実装が名前(RDBMS)形式。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
         # DbInfo の Display: "{} ({})" format
         assert "DbInfo" in content
         assert 'write!(f, "{} ({})"' in content
@@ -565,12 +565,12 @@ class TestSystemTierPlacementSkip:
 
     def test_system_tier_skips_placement(self) -> None:
         """CLIフロー.md: System Tier では配置先指定がスキップされる。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "steps.rs").read_text(encoding="utf-8")
         assert "Tier::System => Ok(StepResult::Skip)" in content
 
     def test_placement_was_skipped_function(self) -> None:
         """CLIフロー.md: placement_was_skipped 関数が存在する。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "mod.rs").read_text(encoding="utf-8")
         assert "fn placement_was_skipped" in content
 
 
@@ -578,7 +578,7 @@ class TestServerDetailSettings:
     """CLIフロー.md: サーバー詳細設定の検証。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        self.content = (CLI_SRC / "commands" / "generate" / "steps.rs").read_text(encoding="utf-8")
 
     def test_system_business_service_name_input(self) -> None:
         """CLIフロー.md: system/business でサービス名入力、service でスキップ。"""
@@ -595,16 +595,15 @@ class TestServerDetailSettings:
 class TestServerDbAddFlow:
     """CLIフロー.md: サーバーDB追加フローの検証。"""
 
-    def setup_method(self) -> None:
-        self.content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
-
     def test_db_add_prompt(self) -> None:
         """CLIフロー.md: 「データベースを追加しますか？」プロンプトがある。"""
-        assert "データベースを追加しますか？" in self.content
+        content = (CLI_SRC / "commands" / "generate" / "steps.rs").read_text(encoding="utf-8")
+        assert "データベースを追加しますか？" in content
 
     def test_db_existing_selection(self) -> None:
         """CLIフロー.md: 既存DB選択と新規作成の選択肢がある。"""
-        assert "scan_existing_databases" in self.content
+        content = (CLI_SRC / "commands" / "generate" / "helpers.rs").read_text(encoding="utf-8")
+        assert "scan_existing_databases" in content
 
 
 class TestKafkaEnablePrompt:
@@ -612,7 +611,7 @@ class TestKafkaEnablePrompt:
 
     def test_kafka_prompt_exists(self) -> None:
         """CLIフロー.md: 「メッセージング (Kafka) を有効にしますか？」プロンプトがある。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "steps.rs").read_text(encoding="utf-8")
         assert "メッセージング (Kafka) を有効にしますか？" in content
 
 
@@ -621,7 +620,7 @@ class TestRedisEnablePrompt:
 
     def test_redis_prompt_exists(self) -> None:
         """CLIフロー.md: 「キャッシュ (Redis) を有効にしますか？」プロンプトがある。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "steps.rs").read_text(encoding="utf-8")
         assert "キャッシュ (Redis) を有効にしますか？" in content
 
 
@@ -630,12 +629,12 @@ class TestClientDetailBusinessAppName:
 
     def test_business_app_name_input(self) -> None:
         """CLIフロー.md: business Tier でアプリ名入力プロンプトがある。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "steps.rs").read_text(encoding="utf-8")
         assert "アプリ名を入力してください" in content
 
     def test_service_tier_uses_service_name_for_app(self) -> None:
         """CLIフロー.md: service Tier ではサービス名をアプリ名として使用。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "steps.rs").read_text(encoding="utf-8")
         # step_detail_client で tier == Tier::Service の場合 placement を使う
         assert "step_detail_client" in content
 
@@ -645,7 +644,7 @@ class TestLibraryNamePrompt:
 
     def test_library_name_input(self) -> None:
         """CLIフロー.md: 「ライブラリ名を入力してください」プロンプトがある。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "steps.rs").read_text(encoding="utf-8")
         assert "ライブラリ名を入力してください" in content
 
 
@@ -653,7 +652,7 @@ class TestConfirmScreenPatterns:
     """CLIフロー.md: 確認画面全パターンの検証。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        self.content = (CLI_SRC / "commands" / "generate" / "steps.rs").read_text(encoding="utf-8")
 
     def test_confirm_shows_kind(self) -> None:
         """CLIフロー.md: 確認画面に種別が表示される。"""
@@ -734,7 +733,7 @@ class TestServiceTierGraphQLBffDirectory:
 
     def test_bff_generation_logic_exists(self) -> None:
         """CLIフロー.md: service Tier + GraphQL で BFF ディレクトリ生成ロジックがある。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "execute.rs").read_text(encoding="utf-8")
         assert "bff" in content
         assert "ApiStyle::GraphQL" in content
 

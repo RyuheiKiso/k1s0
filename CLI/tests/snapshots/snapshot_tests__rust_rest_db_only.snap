@@ -1,0 +1,21 @@
+---
+source: tests/snapshot_tests.rs
+expression: sorted
+---
+- Cargo.toml
+- Dockerfile
+- README.md
+- config/config.yaml
+- src/adapter/handler/mod.rs
+- src/adapter/handler/rest.rs
+- src/adapter/mod.rs
+- src/domain/mod.rs
+- src/domain/model.rs
+- src/domain/repository.rs
+- src/infra/config.rs
+- src/infra/mod.rs
+- src/infra/persistence.rs
+- src/main.rs
+- src/usecase/mod.rs
+- src/usecase/service.rs
+- tests/integration_test.rs

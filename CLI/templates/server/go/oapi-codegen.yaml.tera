@@ -1,4 +1,4 @@
-{% if api_style == "rest" %}
+{% if api_styles is containing("rest") %}
 # oapi-codegen 設定
 # 実行: oapi-codegen --config oapi-codegen.yaml api/openapi/openapi.yaml
 package: openapi

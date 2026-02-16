@@ -1,4 +1,4 @@
-{% if api_style == "grpc" %}
+{% if api_styles is containing("grpc") %}
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     tonic_build::configure()
         .build_server(true)

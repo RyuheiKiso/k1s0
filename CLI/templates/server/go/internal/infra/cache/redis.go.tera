@@ -1,0 +1,52 @@
+{% if has_redis %}
+package cache
+
+import (
+	"context"
+	"time"
+
+	"github.com/redis/go-redis/v9"
+
+	"{{ go_module }}/internal/infra/config"
+)
+
+// RedisClient は Redis キャッシュクライアントのラッパー。
+type RedisClient struct {
+	client *redis.Client
+}
+
+// NewRedisClient は Redis クライアントを初期化する。
+func NewRedisClient(cfg config.RedisConfig) *RedisClient {
+	client := redis.NewClient(&redis.Options{
+		Addr:     cfg.Host + ":" + cfg.Port,
+		Password: cfg.Password,
+		DB:       cfg.DB,
+	})
+	return &RedisClient{client: client}
+}
+
+// Get はキーに対応する値を取得する。
+func (r *RedisClient) Get(ctx context.Context, key string) (string, error) {
+	return r.client.Get(ctx, key).Result()
+}
+
+// Set はキーと値をTTL付きで保存する。
+func (r *RedisClient) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+	return r.client.Set(ctx, key, value, ttl).Err()
+}
+
+// Delete はキーを削除する。
+func (r *RedisClient) Delete(ctx context.Context, key string) error {
+	return r.client.Del(ctx, key).Err()
+}
+
+// Close は Redis 接続を閉じる。
+func (r *RedisClient) Close() error {
+	return r.client.Close()
+}
+
+// Ping は Redis への接続を確認する。
+func (r *RedisClient) Ping(ctx context.Context) error {
+	return r.client.Ping(ctx).Err()
+}
+{% endif %}

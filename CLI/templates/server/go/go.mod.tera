@@ -10,15 +10,15 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.56.0
 	github.com/go-playground/validator/v10 v10.22.1
 	gopkg.in/yaml.v3 v3.0.1
-{% if api_style == "rest" %}
+{% if api_styles is containing("rest") %}
 	github.com/oapi-codegen/oapi-codegen/v2 v2.4.1
 	github.com/oapi-codegen/runtime v1.1.1
 {% endif %}
-{% if api_style == "grpc" %}
+{% if api_styles is containing("grpc") %}
 	google.golang.org/grpc v1.68.0
 	google.golang.org/protobuf v1.35.2
 {% endif %}
-{% if api_style == "graphql" %}
+{% if api_styles is containing("graphql") %}
 	github.com/99designs/gqlgen v0.17.55
 	github.com/vektah/gqlparser/v2 v2.5.19
 {% endif %}

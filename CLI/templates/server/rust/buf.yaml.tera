@@ -1,4 +1,4 @@
-{% if api_style == "grpc" %}
+{% if api_styles is containing("grpc") %}
 version: v2
 modules:
   - path: api/proto

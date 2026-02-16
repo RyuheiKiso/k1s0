@@ -176,7 +176,7 @@ jobs:
         working-directory: {{ module_path }}
 {% endif %}
 
-{% if api_style == "grpc" or "grpc" in api_styles %}
+{% if api_styles is containing("grpc") %}
   proto-lint:
     runs-on: ubuntu-latest
     steps:

@@ -34,11 +34,11 @@ cargo test
 
 ## API
 
-{% if api_style == "rest" %}
+{% if api_styles is containing("rest") %}
 - **方式**: REST（axum + utoipa）
-{% elif api_style == "grpc" %}
+{% elif api_styles is containing("grpc") %}
 - **方式**: gRPC（tonic）
-{% elif api_style == "graphql" %}
+{% elif api_styles is containing("graphql") %}
 - **方式**: GraphQL（async-graphql）
 {% endif %}
 

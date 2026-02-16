@@ -1,4 +1,4 @@
-{% if api_style == "graphql" %}
+{% if api_styles is containing("graphql") %}
 type Query {
   {{ service_name_camel }}(id: ID!): {{ service_name_pascal }}
   {{ service_name_camel }}List: [{{ service_name_pascal }}!]!

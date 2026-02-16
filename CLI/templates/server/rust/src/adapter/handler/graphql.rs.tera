@@ -1,4 +1,4 @@
-{% if api_style == "graphql" %}
+{% if api_styles is containing("graphql") %}
 use async_graphql::{Context, Object, Schema, EmptyMutation, EmptySubscription};
 use std::sync::Arc;
 

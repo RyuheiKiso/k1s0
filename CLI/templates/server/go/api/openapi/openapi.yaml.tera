@@ -1,4 +1,4 @@
-{% if api_style == "rest" %}
+{% if api_styles is containing("rest") %}
 openapi: "3.0.3"
 info:
   title: "{{ service_name_pascal }} API"

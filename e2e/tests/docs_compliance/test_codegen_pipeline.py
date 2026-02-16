@@ -143,51 +143,54 @@ class TestCodegenPipelineImplementationExists:
     """パイプライン実装ファイルが存在し、仕様書の関数を含むかの検証。"""
 
     def setup_method(self) -> None:
-        self.generate_rs = (ROOT / "CLI" / "src" / "commands" / "generate.rs").read_text(encoding="utf-8")
+        self.execute_rs = (ROOT / "CLI" / "src" / "commands" / "generate" / "execute.rs").read_text(encoding="utf-8")
 
-    def test_generate_rs_exists(self) -> None:
-        assert (ROOT / "CLI" / "src" / "commands" / "generate.rs").exists()
+    def test_execute_rs_exists(self) -> None:
+        assert (ROOT / "CLI" / "src" / "commands" / "generate" / "execute.rs").exists()
+
+    def test_generate_module_exists(self) -> None:
+        assert (ROOT / "CLI" / "src" / "commands" / "generate").is_dir()
 
     def test_determine_post_commands_exists(self) -> None:
-        assert "fn determine_post_commands" in self.generate_rs
+        assert "fn determine_post_commands" in self.execute_rs
 
     def test_run_post_processing_exists(self) -> None:
-        assert "fn run_post_processing" in self.generate_rs
+        assert "fn run_post_processing" in self.execute_rs
 
     def test_go_mod_tidy_in_pipeline(self) -> None:
         """テンプレート仕様-コード生成パイプライン.md: Go依存解決。"""
-        assert '"mod"' in self.generate_rs and '"tidy"' in self.generate_rs
+        assert '"mod"' in self.execute_rs and '"tidy"' in self.execute_rs
 
     def test_cargo_check_in_pipeline(self) -> None:
         """テンプレート仕様-コード生成パイプライン.md: Rust依存解決。"""
-        assert '"cargo"' in self.generate_rs and '"check"' in self.generate_rs
+        assert '"cargo"' in self.execute_rs and '"check"' in self.execute_rs
 
     def test_npm_install_in_pipeline(self) -> None:
         """テンプレート仕様-コード生成パイプライン.md: npm依存解決。"""
-        assert '"npm"' in self.generate_rs and '"install"' in self.generate_rs
+        assert '"npm"' in self.execute_rs and '"install"' in self.execute_rs
 
     def test_flutter_pub_get_in_pipeline(self) -> None:
         """テンプレート仕様-コード生成パイプライン.md: Flutter依存解決。"""
-        assert '"flutter"' in self.generate_rs and '"pub"' in self.generate_rs
+        assert '"flutter"' in self.execute_rs and '"pub"' in self.execute_rs
 
     def test_buf_generate_in_pipeline(self) -> None:
         """テンプレート仕様-コード生成パイプライン.md: gRPCコード生成。"""
-        assert '"buf"' in self.generate_rs and '"generate"' in self.generate_rs
+        assert '"buf"' in self.execute_rs and '"generate"' in self.execute_rs
 
     def test_oapi_codegen_in_pipeline(self) -> None:
         """テンプレート仕様-コード生成パイプライン.md: OpenAPIコード生成。"""
-        assert '"oapi-codegen"' in self.generate_rs
+        assert '"oapi-codegen"' in self.execute_rs
 
     def test_sqlx_database_create_in_pipeline(self) -> None:
         """テンプレート仕様-コード生成パイプライン.md: DB初期化。"""
-        assert '"sqlx"' in self.generate_rs and '"database"' in self.generate_rs
+        assert '"sqlx"' in self.execute_rs and '"database"' in self.execute_rs
 
     def test_pipeline_execution_order(self) -> None:
         """テンプレート仕様-コード生成パイプライン.md: パイプライン実行順序。
 
         依存解決 → コード生成 → DB初期化の順序で実行される。
         """
-        content = self.generate_rs
+        content = self.execute_rs
         dep_pos = content.find("言語固有の依存解決") or content.find("mod tidy")
         codegen_pos = content.find("コード生成") if content.find("コード生成") > dep_pos else len(content)
         db_pos = content.find("DB ありの場合") or content.find("sqlx")
@@ -278,26 +281,35 @@ class TestCodegenApiDefinitionTemplates:
         assert path.exists(), f"{template_path} が存在しません"
 
 
-# --- ギャップ 3: GraphQL未実装の記載 ---
+# --- ギャップ 3: GraphQL実装状況の記載 ---
 
 
-class TestCodegenGraphQLNotImplemented:
-    """GraphQLコード生成が未実装であることが仕様書に記載されているかの検証。"""
+class TestCodegenGraphQL:
+    """GraphQLコード生成の実装状況が仕様書に正しく記載されているかの検証。"""
 
     def setup_method(self) -> None:
         self.content = SPEC.read_text(encoding="utf-8")
+        self.execute_rs = (ROOT / "CLI" / "src" / "commands" / "generate" / "execute.rs").read_text(encoding="utf-8")
 
-    def test_graphql_not_implemented(self) -> None:
-        """テンプレート仕様-コード生成パイプライン.md: GraphQL未実装が明記されている。"""
-        assert "現状未実装" in self.content
-
-    def test_graphql_future_plan(self) -> None:
-        """テンプレート仕様-コード生成パイプライン.md: GraphQLの将来計画が記載されている。"""
+    def test_graphql_go_gqlgen_implemented(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: Go GraphQL gqlgen が実装済みであること。"""
+        assert "実装済み" in self.content
         assert "gqlgen generate" in self.content
 
+    def test_graphql_rust_macro_based(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: Rust GraphQL がマクロベースで不要であること。"""
+        assert "マクロベース" in self.content
+        assert "コード生成不要" in self.content or "コード生成パイプラインは不要" in self.content
+
+    def test_graphql_go_in_execute_rs(self) -> None:
+        """execute.rs に Go GraphQL 後処理コードが存在すること。"""
+        assert "gqlgen" in self.execute_rs
+        assert "generate" in self.execute_rs
+
     def test_graphql_templates_exist(self) -> None:
-        """テンプレート仕様-コード生成パイプライン.md: GraphQLテンプレート自体は用意済み。"""
-        assert "テンプレート自体" in self.content and "既に用意" in self.content
+        """GraphQLテンプレートが用意されていること。"""
+        assert (ROOT / "CLI" / "templates" / "server" / "go" / "api" / "graphql" / "schema.graphql.tera").exists()
+        assert (ROOT / "CLI" / "templates" / "server" / "go" / "gqlgen.yml.tera").exists()
 
 
 # --- ギャップ 4: エラーメッセージ形式 ---
@@ -370,3 +382,25 @@ class TestCodegenDatabaseNoDependency:
                     found_database_row = True
                     break
         assert found_database_row, "Database kind の依存解決「なし」がマトリクスに記載されていません"
+
+
+class TestCodegenMultipleApiStyles:
+    """複数API方式の同時選択に関する検証。"""
+
+    def setup_method(self) -> None:
+        self.spec = SPEC.read_text(encoding="utf-8")
+
+    def test_api_styles_plural_documented(self) -> None:
+        """仕様書に api_styles（複数形）が記載されているか。"""
+        assert "api_styles" in self.spec
+
+    def test_api_styles_containing_pattern(self) -> None:
+        """テンプレートで api_styles is containing パターンが使用されているか。"""
+        templates_dir = ROOT / "CLI" / "templates"
+        found = False
+        for tera_file in templates_dir.rglob("*.tera"):
+            content = tera_file.read_text(encoding="utf-8")
+            if "api_styles is containing" in content:
+                found = True
+                break
+        assert found, "テンプレートに 'api_styles is containing' パターンが見つかりません"

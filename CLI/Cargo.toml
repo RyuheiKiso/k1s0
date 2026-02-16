@@ -28,3 +28,4 @@ must_use_candidate = "allow"
 [dev-dependencies]
 tempfile = "3"
 pretty_assertions = "1"
+insta = { version = "1", features = ["yaml"] }

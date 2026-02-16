@@ -1373,3 +1373,67 @@ fn test_rust_server_rest_no_tera_syntax_in_output() {
         assert!(!content.contains("{#"), "Tera comment {{# found in {}", name);
     }
 }
+
+// =========================================================================
+// Go サーバー: Redis キャッシュクライアント
+// =========================================================================
+
+#[test]
+fn test_go_server_rest_redis_cache_client() {
+    let (tmp, names) = render_server("go", "rest", false, "", false, true);
+
+    assert!(
+        names.iter().any(|n| n.contains("cache/redis.go")),
+        "cache/redis.go missing when has_redis=true"
+    );
+
+    let content = read_output(&tmp, "internal/infra/cache/redis.go");
+    assert!(content.contains("package cache"));
+    assert!(content.contains("type RedisClient struct {"));
+    assert!(content.contains("func NewRedisClient(cfg config.RedisConfig) *RedisClient"));
+    assert!(content.contains("func (r *RedisClient) Get(ctx context.Context, key string) (string, error)"));
+    assert!(content.contains("func (r *RedisClient) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error"));
+    assert!(content.contains("func (r *RedisClient) Delete(ctx context.Context, key string) error"));
+    assert!(content.contains("func (r *RedisClient) Close() error"));
+}
+
+#[test]
+fn test_go_server_rest_no_redis_cache_client() {
+    let (_, names) = render_server("go", "rest", false, "", false, false);
+
+    assert!(
+        !names.iter().any(|n| n.contains("cache/redis.go")),
+        "cache/redis.go should not exist when has_redis=false"
+    );
+}
+
+// =========================================================================
+// Rust サーバー: Redis キャッシュクライアント
+// =========================================================================
+
+#[test]
+fn test_rust_server_rest_redis_client() {
+    let (tmp, names) = render_server("rust", "rest", false, "", false, true);
+
+    assert!(
+        names.iter().any(|n| n.contains("redis_client.rs")),
+        "redis_client.rs missing when has_redis=true"
+    );
+
+    let content = read_output(&tmp, "src/infra/redis_client.rs");
+    assert!(content.contains("pub struct RedisClient {"));
+    assert!(content.contains("pub fn new(cfg: &RedisConfig) -> Result<Self>"));
+    assert!(content.contains("pub async fn get(&self, key: &str) -> Result<Option<String>>"));
+    assert!(content.contains("pub async fn set(&self, key: &str, value: &str, ttl_secs: u64) -> Result<()>"));
+    assert!(content.contains("pub async fn delete(&self, key: &str) -> Result<()>"));
+}
+
+#[test]
+fn test_rust_server_rest_no_redis_client() {
+    let (_, names) = render_server("rust", "rest", false, "", false, false);
+
+    assert!(
+        !names.iter().any(|n| n.contains("redis_client.rs")),
+        "redis_client.rs should not exist when has_redis=false"
+    );
+}

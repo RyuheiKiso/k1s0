@@ -1,0 +1,18 @@
+---
+source: tests/snapshot_tests.rs
+expression: sorted
+---
+- Dockerfile
+- README.md
+- api/graphql/schema.graphql
+- cmd/main.go
+- config/config.yaml
+- go.mod
+- gqlgen.yml
+- internal/adapter/handler/graphql_resolver.go
+- internal/adapter/handler/handler_test.go
+- internal/domain/model/entity.go
+- internal/domain/repository/repository.go
+- internal/infra/config/config.go
+- internal/usecase/usecase.go
+- internal/usecase/usecase_test.go

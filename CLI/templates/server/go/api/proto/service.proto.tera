@@ -1,4 +1,4 @@
-{% if api_style == "grpc" %}
+{% if api_styles is containing("grpc") %}
 syntax = "proto3";
 
 package k1s0.{{ tier }}.{{ service_name_snake }}.v1;

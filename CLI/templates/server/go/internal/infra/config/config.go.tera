@@ -11,7 +11,7 @@ import (
 type Config struct {
 	App           AppConfig           `yaml:"app"`
 	Server        ServerConfig        `yaml:"server"`
-{% if api_style == "grpc" %}
+{% if api_styles is containing("grpc") %}
 	GRPC          *GRPCConfig         `yaml:"grpc,omitempty"`
 {% endif %}
 {% if has_database %}
@@ -45,7 +45,7 @@ type ServerConfig struct {
 	ShutdownTimeout string `yaml:"shutdown_timeout"`
 }
 
-{% if api_style == "grpc" %}
+{% if api_styles is containing("grpc") %}
 // GRPCConfig は gRPC サーバー設定。
 type GRPCConfig struct {
 	Port           int `yaml:"port" validate:"required,min=1,max=65535"`

@@ -6,7 +6,7 @@ use std::fs;
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
-{% if api_style == "grpc" %}
+{% if api_styles is containing("grpc") %}
     pub grpc: Option<GrpcConfig>,
 {% endif %}
 {% if has_database %}
@@ -40,7 +40,7 @@ pub struct ServerConfig {
     pub shutdown_timeout: String,
 }
 
-{% if api_style == "grpc" %}
+{% if api_styles is containing("grpc") %}
 #[derive(Debug, Deserialize)]
 pub struct GrpcConfig {
     pub port: u16,
