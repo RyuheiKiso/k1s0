@@ -421,3 +421,160 @@ class TestCircuitBreakerTierDefaults:
         order = [d for d in self.docs if d["metadata"]["name"] == "order-server"][0]
         od = order["spec"]["trafficPolicy"]["outlierDetection"]
         assert od["maxEjectionPercent"] == 50
+
+
+class TestCanaryRolloutStages:
+    """サービスメッシュ設計.md: カナリアリリース段階的ロールアウト（5段階）の検証。"""
+
+    def test_doc_defines_5_stages(self) -> None:
+        """サービスメッシュ設計.md: 10%→30%→50%→80%→100% の 5 段階が定義されている。"""
+        doc = (ROOT / "docs" / "サービスメッシュ設計.md").read_text(encoding="utf-8")
+        assert "10%" in doc
+        assert "30%" in doc
+        assert "50%" in doc
+        assert "80%" in doc
+        assert "100%" in doc
+
+    def test_flagger_step_weight_20(self) -> None:
+        """サービスメッシュ設計.md: Flagger stepWeight=20 で段階的増加。"""
+        path = ISTIO / "flagger" / "canary.yaml"
+        canary = yaml.safe_load(path.read_text(encoding="utf-8"))
+        assert canary["spec"]["analysis"]["stepWeight"] == 20
+
+    def test_flagger_max_weight_80(self) -> None:
+        """サービスメッシュ設計.md: Flagger maxWeight=80（最終段階は promotion で 100%）。"""
+        path = ISTIO / "flagger" / "canary.yaml"
+        canary = yaml.safe_load(path.read_text(encoding="utf-8"))
+        assert canary["spec"]["analysis"]["maxWeight"] == 80
+
+    def test_evaluation_interval_5m(self) -> None:
+        """サービスメッシュ設計.md: 各段階の評価期間は 5 分。"""
+        path = ISTIO / "flagger" / "canary.yaml"
+        canary = yaml.safe_load(path.read_text(encoding="utf-8"))
+        assert canary["spec"]["analysis"]["interval"] == "5m"
+
+
+class TestRollbackConditions:
+    """サービスメッシュ設計.md: ロールバック条件の検証。"""
+
+    def test_doc_defines_error_rate_rollback(self) -> None:
+        """サービスメッシュ設計.md: エラーレート > 5% でロールバック。"""
+        doc = (ROOT / "docs" / "サービスメッシュ設計.md").read_text(encoding="utf-8")
+        assert "5%" in doc
+        assert "ロールバック" in doc
+
+    def test_doc_defines_latency_rollback(self) -> None:
+        """サービスメッシュ設計.md: P99 レイテンシ > 1000ms でロールバック。"""
+        doc = (ROOT / "docs" / "サービスメッシュ設計.md").read_text(encoding="utf-8")
+        assert "1000ms" in doc
+
+    def test_flagger_success_rate_threshold(self) -> None:
+        """サービスメッシュ設計.md: Flagger の request-success-rate min=99（エラーレート < 1%）。"""
+        path = ISTIO / "flagger" / "canary.yaml"
+        canary = yaml.safe_load(path.read_text(encoding="utf-8"))
+        metrics = canary["spec"]["analysis"]["metrics"]
+        success_rate = [m for m in metrics if m["name"] == "request-success-rate"][0]
+        assert success_rate["thresholdRange"]["min"] == 99
+
+    def test_flagger_duration_threshold(self) -> None:
+        """サービスメッシュ設計.md: Flagger の request-duration max=500。"""
+        path = ISTIO / "flagger" / "canary.yaml"
+        canary = yaml.safe_load(path.read_text(encoding="utf-8"))
+        metrics = canary["spec"]["analysis"]["metrics"]
+        duration = [m for m in metrics if m["name"] == "request-duration"][0]
+        assert duration["thresholdRange"]["max"] == 500
+
+
+class TestBusinessTierCircuitBreaker:
+    """サービスメッシュ設計.md: business Tier Circuit Breaker 設定の検証。"""
+
+    def _get_cb_table_row(self, setting_name: str) -> str:
+        """Tier 別デフォルト値テーブルから指定設定の行を取得する。"""
+        doc = (ROOT / "docs" / "サービスメッシュ設計.md").read_text(encoding="utf-8")
+        lines = doc.split("\n")
+        for line in lines:
+            if f"| {setting_name}" in line:
+                return line
+        return ""
+
+    def test_doc_defines_business_consecutive_5xx(self) -> None:
+        """サービスメッシュ設計.md: business Tier consecutive5xxErrors=5。"""
+        row = self._get_cb_table_row("consecutive5xxErrors")
+        assert row, "consecutive5xxErrors の行が見つかりません"
+        # テーブル: | consecutive5xxErrors | system(3) | business(5) | service(5) |
+        cells = [c.strip() for c in row.split("|") if c.strip()]
+        assert len(cells) >= 3, "テーブル列が不足しています"
+        # cells[0]=設定名, cells[1]=system, cells[2]=business
+        assert cells[2] == "5", f"business の consecutive5xxErrors は 5 であるべきですが {cells[2]} でした"
+
+    def test_doc_business_interval_30s(self) -> None:
+        """サービスメッシュ設計.md: business Tier interval=30s。"""
+        row = self._get_cb_table_row("interval")
+        assert row, "interval の行が見つかりません"
+        cells = [c.strip() for c in row.split("|") if c.strip()]
+        assert len(cells) >= 3
+        assert cells[2] == "30s", f"business の interval は 30s であるべきですが {cells[2]} でした"
+
+    def test_doc_business_max_ejection_50(self) -> None:
+        """サービスメッシュ設計.md: business Tier maxEjectionPercent=50。"""
+        row = self._get_cb_table_row("maxEjectionPercent")
+        assert row, "maxEjectionPercent の行が見つかりません"
+        cells = [c.strip() for c in row.split("|") if c.strip()]
+        assert len(cells) >= 3
+        assert cells[2] == "50", f"business の maxEjectionPercent は 50 であるべきですが {cells[2]} でした"
+
+
+class TestFaultInjectionGrafanaDashboard:
+    """サービスメッシュ設計.md: フォールトインジェクション結果 Grafana ダッシュボードの検証。"""
+
+    def test_doc_defines_fault_injection_dashboard_panels(self) -> None:
+        """サービスメッシュ設計.md: フォールトインジェクション結果のダッシュボードパネルが定義されている。"""
+        doc = (ROOT / "docs" / "サービスメッシュ設計.md").read_text(encoding="utf-8")
+        assert "エラーレート推移" in doc
+        assert "P99 レイテンシ推移" in doc
+        assert "Circuit Breaker 発動状況" in doc
+        assert "リトライ回数" in doc
+
+    def test_doc_references_fault_injection_results_dashboard(self) -> None:
+        """サービスメッシュ設計.md: Fault Injection Results ダッシュボード名が記載されている。"""
+        doc = (ROOT / "docs" / "サービスメッシュ設計.md").read_text(encoding="utf-8")
+        assert "Fault Injection Results" in doc
+
+
+class TestConnectionPoolSettings:
+    """サービスメッシュ設計.md: DestinationRule の connectionPool 設定の検証。"""
+
+    def setup_method(self) -> None:
+        path = ISTIO / "destinationrules" / "default.yaml"
+        content = path.read_text(encoding="utf-8")
+        self.docs = [d for d in yaml.safe_load_all(content) if d]
+
+    def test_order_server_tcp_max_connections(self) -> None:
+        """サービスメッシュ設計.md: order-server tcp.maxConnections=100。"""
+        order = [d for d in self.docs if d["metadata"]["name"] == "order-server"][0]
+        cp = order["spec"]["trafficPolicy"]["connectionPool"]
+        assert cp["tcp"]["maxConnections"] == 100
+
+    def test_order_server_http2_max_requests(self) -> None:
+        """サービスメッシュ設計.md: order-server http.http2MaxRequests=1000。"""
+        order = [d for d in self.docs if d["metadata"]["name"] == "order-server"][0]
+        cp = order["spec"]["trafficPolicy"]["connectionPool"]
+        assert cp["http"]["http2MaxRequests"] == 1000
+
+    def test_order_server_max_requests_per_connection(self) -> None:
+        """サービスメッシュ設計.md: order-server http.maxRequestsPerConnection=10。"""
+        order = [d for d in self.docs if d["metadata"]["name"] == "order-server"][0]
+        cp = order["spec"]["trafficPolicy"]["connectionPool"]
+        assert cp["http"]["maxRequestsPerConnection"] == 10
+
+    def test_auth_server_tcp_max_connections(self) -> None:
+        """サービスメッシュ設計.md: auth-server tcp.maxConnections=200。"""
+        auth = [d for d in self.docs if d["metadata"]["name"] == "auth-server"][0]
+        cp = auth["spec"]["trafficPolicy"]["connectionPool"]
+        assert cp["tcp"]["maxConnections"] == 200
+
+    def test_auth_server_http2_max_requests(self) -> None:
+        """サービスメッシュ設計.md: auth-server http.http2MaxRequests=2000。"""
+        auth = [d for d in self.docs if d["metadata"]["name"] == "auth-server"][0]
+        cp = auth["spec"]["trafficPolicy"]["connectionPool"]
+        assert cp["http"]["http2MaxRequests"] == 2000

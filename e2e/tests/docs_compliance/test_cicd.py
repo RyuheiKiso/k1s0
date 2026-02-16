@@ -317,3 +317,358 @@ class TestApiLintDetails:
     def test_sdk_generate_dart_job(self) -> None:
         """CI-CD設計.md: Dart SDK 生成ジョブが存在。"""
         assert "sdk-generate-dart" in self.config["jobs"]
+
+
+class TestCIPathsFilter:
+    """CI-CD設計.md: detect-changes の paths フィルタ内容検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "ci.yaml", encoding="utf-8") as f:
+            self.ci = yaml.safe_load(f)
+        self.raw_content = (WORKFLOWS / "ci.yaml").read_text(encoding="utf-8")
+
+    def test_go_paths_filter(self) -> None:
+        """CI-CD設計.md: Go の paths フィルタに regions/**/go/** が含まれる。"""
+        assert "regions/**/go/**" in self.raw_content
+
+    def test_rust_paths_filter(self) -> None:
+        """CI-CD設計.md: Rust の paths フィルタに regions/**/rust/** と CLI/** が含まれる。"""
+        assert "regions/**/rust/**" in self.raw_content
+        assert "CLI/**" in self.raw_content
+
+    def test_ts_paths_filter(self) -> None:
+        """CI-CD設計.md: TS の paths フィルタに regions/**/react/** が含まれる。"""
+        assert "regions/**/react/**" in self.raw_content
+
+    def test_dart_paths_filter(self) -> None:
+        """CI-CD設計.md: Dart の paths フィルタに regions/**/flutter/** が含まれる。"""
+        assert "regions/**/flutter/**" in self.raw_content
+
+    def test_python_paths_filter(self) -> None:
+        """CI-CD設計.md: Python の paths フィルタに e2e/** が含まれる。"""
+        assert "e2e/**" in self.raw_content
+
+    def test_helm_paths_filter(self) -> None:
+        """CI-CD設計.md: Helm の paths フィルタに infra/helm/** が含まれる。"""
+        assert "infra/helm/**" in self.raw_content
+
+
+class TestCILintJobConditions:
+    """CI-CD設計.md: lint ジョブの条件付き実行検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "ci.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    @pytest.mark.parametrize(
+        "job,lang",
+        [
+            ("lint-go", "go"),
+            ("lint-rust", "rust"),
+            ("lint-ts", "ts"),
+            ("lint-dart", "dart"),
+            ("lint-python", "python"),
+        ],
+    )
+    def test_lint_job_needs_detect_changes(self, job: str, lang: str) -> None:
+        """CI-CD設計.md: lint ジョブが detect-changes に依存。"""
+        assert self.config["jobs"][job]["needs"] == "detect-changes"
+
+    @pytest.mark.parametrize(
+        "job,lang",
+        [
+            ("lint-go", "go"),
+            ("lint-rust", "rust"),
+            ("lint-ts", "ts"),
+            ("lint-dart", "dart"),
+            ("lint-python", "python"),
+        ],
+    )
+    def test_lint_job_conditional_execution(self, job: str, lang: str) -> None:
+        """CI-CD設計.md: lint ジョブが detect-changes の出力で条件実行。"""
+        condition = self.config["jobs"][job]["if"]
+        assert lang in condition
+        assert "detect-changes" in condition
+
+
+class TestCITestJobNeeds:
+    """CI-CD設計.md: test ジョブの needs 依存関係検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "ci.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    @pytest.mark.parametrize(
+        "test_job,lint_job",
+        [
+            ("test-go", "lint-go"),
+            ("test-rust", "lint-rust"),
+            ("test-ts", "lint-ts"),
+            ("test-dart", "lint-dart"),
+            ("test-python", "lint-python"),
+        ],
+    )
+    def test_test_needs_lint(self, test_job: str, lint_job: str) -> None:
+        """CI-CD設計.md: test ジョブが対応する lint ジョブに依存。"""
+        needs = self.config["jobs"][test_job]["needs"]
+        if isinstance(needs, list):
+            assert lint_job in needs
+        else:
+            assert needs == lint_job
+
+
+class TestCIBuildJobDetails:
+    """CI-CD設計.md: build ジョブの needs と always() 条件検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "ci.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_build_needs_test_jobs(self) -> None:
+        """CI-CD設計.md: build ジョブが test-go, test-rust, test-ts, test-dart に依存。"""
+        needs = self.config["jobs"]["build"]["needs"]
+        for dep in ["test-go", "test-rust", "test-ts", "test-dart"]:
+            assert dep in needs, f"build ジョブが {dep} に依存していません"
+
+    def test_build_always_condition(self) -> None:
+        """CI-CD設計.md: build ジョブに always() 条件が設定されている。"""
+        condition = self.config["jobs"]["build"]["if"]
+        assert "always()" in condition
+        assert "failure" in condition
+
+
+class TestCILintStepDetails:
+    """CI-CD設計.md: 各言語の lint ステップ詳細検証。"""
+
+    def setup_method(self) -> None:
+        self.raw_content = (WORKFLOWS / "ci.yaml").read_text(encoding="utf-8")
+        with open(WORKFLOWS / "ci.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_ts_lint_eslint_prettier(self) -> None:
+        """CI-CD設計.md: TypeScript lint で eslint + prettier を実行。"""
+        steps = self.config["jobs"]["lint-ts"]["steps"]
+        run_cmds = [s.get("run", "") for s in steps]
+        assert any("eslint" in cmd for cmd in run_cmds), "eslint が lint-ts に含まれていません"
+        assert any("prettier" in cmd for cmd in run_cmds), "prettier が lint-ts に含まれていません"
+
+    def test_dart_lint_analyze_format(self) -> None:
+        """CI-CD設計.md: Dart lint で dart analyze + dart format を実行。"""
+        steps = self.config["jobs"]["lint-dart"]["steps"]
+        run_cmds = [s.get("run", "") for s in steps]
+        assert any("dart analyze" in cmd for cmd in run_cmds)
+        assert any("dart format" in cmd for cmd in run_cmds)
+
+    def test_python_lint_ruff_mypy(self) -> None:
+        """CI-CD設計.md: Python lint で ruff + mypy を実行。"""
+        steps = self.config["jobs"]["lint-python"]["steps"]
+        run_cmds = [s.get("run", "") for s in steps]
+        assert any("ruff" in cmd for cmd in run_cmds)
+        assert any("mypy" in cmd for cmd in run_cmds)
+
+
+class TestCILanguageVersions:
+    """CI-CD設計.md: 各言語のバージョン検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "ci.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_node_version_22(self) -> None:
+        """CI-CD設計.md: Node.js バージョン 22。"""
+        steps = self.config["jobs"]["lint-ts"]["steps"]
+        for step in steps:
+            if step.get("uses", "").startswith("actions/setup-node"):
+                assert step["with"]["node-version"] == "22"
+
+    def test_flutter_version_3_24_0(self) -> None:
+        """CI-CD設計.md: Flutter バージョン 3.24.0。"""
+        steps = self.config["jobs"]["lint-dart"]["steps"]
+        for step in steps:
+            if step.get("uses", "").startswith("subosito/flutter-action"):
+                assert step["with"]["flutter-version"] == "3.24.0"
+
+    def test_python_version_3_12(self) -> None:
+        """CI-CD設計.md: Python バージョン 3.12。"""
+        steps = self.config["jobs"]["lint-python"]["steps"]
+        for step in steps:
+            if step.get("uses", "").startswith("actions/setup-python"):
+                assert step["with"]["python-version"] == "3.12"
+
+
+class TestCIGoCoverageOutput:
+    """CI-CD設計.md: Go テストのカバレッジ出力検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "ci.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_go_coverage_output(self) -> None:
+        """CI-CD設計.md: Go テストで coverprofile を出力。"""
+        steps = self.config["jobs"]["test-go"]["steps"]
+        run_cmds = [s.get("run", "") for s in steps]
+        assert any("coverprofile" in cmd for cmd in run_cmds)
+
+    def test_go_coverage_artifact_upload(self) -> None:
+        """CI-CD設計.md: Go カバレッジを artifact としてアップロード。"""
+        steps = self.config["jobs"]["test-go"]["steps"]
+        upload_steps = [s for s in steps if "upload-artifact" in s.get("uses", "")]
+        assert len(upload_steps) >= 1
+
+
+class TestDeployJobDetails:
+    """CI-CD設計.md: Deploy ジョブの詳細検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "deploy.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+        self.raw_content = (WORKFLOWS / "deploy.yaml").read_text(encoding="utf-8")
+
+    def test_deploy_self_hosted_runner(self) -> None:
+        """CI-CD設計.md: Deploy ジョブが self-hosted ランナーを使用。"""
+        for env_name in ["deploy-dev", "deploy-staging", "deploy-prod"]:
+            runs_on = self.config["jobs"][env_name]["runs-on"]
+            assert "self-hosted" in runs_on, f"{env_name} が self-hosted ランナーを使用していません"
+
+    def test_deploy_cosign_verify(self) -> None:
+        """CI-CD設計.md: Deploy ジョブで cosign verify を実行。"""
+        for env_name in ["deploy-dev", "deploy-staging", "deploy-prod"]:
+            steps = self.config["jobs"][env_name]["steps"]
+            verify_steps = [s for s in steps if "cosign verify" in str(s.get("run", ""))]
+            assert len(verify_steps) >= 1, f"{env_name} に cosign verify がありません"
+
+    def test_deploy_helm_version_3_16(self) -> None:
+        """CI-CD設計.md: Deploy ジョブで Helm バージョン 3.16 を使用。"""
+        for env_name in ["deploy-dev", "deploy-staging", "deploy-prod"]:
+            steps = self.config["jobs"][env_name]["steps"]
+            helm_steps = [s for s in steps if "azure/setup-helm" in s.get("uses", "")]
+            assert len(helm_steps) >= 1
+            assert helm_steps[0]["with"]["version"] == "3.16"
+
+    def test_deploy_helm_upgrade_install(self) -> None:
+        """CI-CD設計.md: Deploy ジョブで helm upgrade --install を実行。"""
+        for env_name in ["deploy-dev", "deploy-staging", "deploy-prod"]:
+            steps = self.config["jobs"][env_name]["steps"]
+            run_cmds = [s.get("run", "") for s in steps]
+            assert any("helm upgrade --install" in cmd for cmd in run_cmds), (
+                f"{env_name} に helm upgrade --install がありません"
+            )
+
+    def test_deploy_values_env_yaml_reference(self) -> None:
+        """CI-CD設計.md: Deploy ジョブで values-{env}.yaml を参照。"""
+        assert "values-dev.yaml" in self.raw_content
+        assert "values-staging.yaml" in self.raw_content
+        assert "values-prod.yaml" in self.raw_content
+
+    def test_deploy_image_tag_format(self) -> None:
+        """CI-CD設計.md: Deploy ジョブで image.tag を設定。"""
+        for env_name in ["deploy-dev", "deploy-staging", "deploy-prod"]:
+            steps = self.config["jobs"][env_name]["steps"]
+            run_cmds = [s.get("run", "") for s in steps]
+            assert any("image.tag" in cmd for cmd in run_cmds), (
+                f"{env_name} に image.tag の設定がありません"
+            )
+
+    def test_deploy_prod_manual_approval(self) -> None:
+        """CI-CD設計.md: prod デプロイに手動承認ゲート（environment.name: prod）。"""
+        env = self.config["jobs"]["deploy-prod"]["environment"]
+        if isinstance(env, dict):
+            assert env["name"] == "prod"
+        else:
+            assert env == "prod"
+
+
+class TestSecurityWorkflowDetails:
+    """CI-CD設計.md: Security ワークフロー詳細検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "security.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_dependency_check_job(self) -> None:
+        """CI-CD設計.md: dependency-check ジョブが存在。"""
+        assert "dependency-check" in self.config["jobs"]
+
+    def test_image_scan_job(self) -> None:
+        """CI-CD設計.md: image-scan ジョブが存在。"""
+        assert "image-scan" in self.config["jobs"]
+
+    def test_schedule_cron(self) -> None:
+        """CI-CD設計.md: 日次スケジュール（cron）が設定。"""
+        triggers = self.config[True]
+        schedules = triggers["schedule"]
+        assert len(schedules) >= 1
+        assert "cron" in schedules[0]
+
+
+class TestKongSyncWorkflowDetails:
+    """CI-CD設計.md: Kong Sync ワークフローのトリガー条件検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "kong-sync.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_kong_sync_trigger_push_main(self) -> None:
+        """CI-CD設計.md: Kong Sync は main ブランチへの push でトリガー。"""
+        triggers = self.config[True]
+        assert "push" in triggers
+        assert triggers["push"]["branches"] == ["main"]
+
+    def test_kong_sync_trigger_paths(self) -> None:
+        """CI-CD設計.md: Kong Sync は infra/kong/** の変更でトリガー。"""
+        raw = (WORKFLOWS / "kong-sync.yaml").read_text(encoding="utf-8")
+        assert "infra/kong/**" in raw
+
+
+class TestCICacheStrategy:
+    """CI-CD設計.md: キャッシュ戦略の検証。"""
+
+    def setup_method(self) -> None:
+        self.doc = (ROOT / "docs" / "CI-CD設計.md").read_text(encoding="utf-8")
+
+    @pytest.mark.parametrize(
+        "lang,cache_target",
+        [
+            ("Go", "~/go/pkg/mod"),
+            ("Rust", "~/.cargo"),
+            ("Node", "node_modules/"),
+            ("Dart", "~/.pub-cache"),
+            ("Python", "~/.cache/pip"),
+        ],
+    )
+    def test_cache_strategy_documented(self, lang: str, cache_target: str) -> None:
+        """CI-CD設計.md: 各言語のキャッシュ戦略が文書化されている。"""
+        assert cache_target in self.doc, f"{lang} のキャッシュ対象 '{cache_target}' が文書に記載されていません"
+
+
+class TestDockerLayerCache:
+    """CI-CD設計.md: Docker layer cache の検証。"""
+
+    def setup_method(self) -> None:
+        with open(WORKFLOWS / "deploy.yaml", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_docker_cache_from_gha(self) -> None:
+        """CI-CD設計.md: Docker ビルドで cache-from: type=gha を使用。"""
+        steps = self.config["jobs"]["build-and-push"]["steps"]
+        build_steps = [s for s in steps if s.get("uses", "").startswith("docker/build-push-action")]
+        assert len(build_steps) >= 1
+        assert "type=gha" in build_steps[0]["with"]["cache-from"]
+
+    def test_docker_cache_to_gha(self) -> None:
+        """CI-CD設計.md: Docker ビルドで cache-to: type=gha を使用。"""
+        steps = self.config["jobs"]["build-and-push"]["steps"]
+        build_steps = [s for s in steps if s.get("uses", "").startswith("docker/build-push-action")]
+        assert "type=gha" in build_steps[0]["with"]["cache-to"]
+
+
+class TestHelmLintLoop:
+    """CI-CD設計.md: Helm lint ループ処理の検証。"""
+
+    def setup_method(self) -> None:
+        self.raw_content = (WORKFLOWS / "ci.yaml").read_text(encoding="utf-8")
+
+    def test_helm_lint_for_loop(self) -> None:
+        """CI-CD設計.md: Helm lint で for ループを使用して全チャートを検証。"""
+        assert "for chart in" in self.raw_content
+        assert "helm lint" in self.raw_content

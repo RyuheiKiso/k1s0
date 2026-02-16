@@ -526,3 +526,259 @@ class TestProdDeployConfirmation:
         content = (CLI_SRC / "commands" / "deploy.rs").read_text(encoding="utf-8")
         assert "env.is_prod()" in content
         assert "Step::ProdConfirm" in content
+
+
+# ============================================================================
+# CLIフロー.md 追加ギャップ補完テスト
+# ============================================================================
+
+TEMPLATES = ROOT / "CLI" / "templates"
+
+
+class TestProjectInitGeneratedItems:
+    """CLIフロー.md: プロジェクト初期化で生成される9項目の検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (CLI_SRC / "commands" / "init.rs").read_text(encoding="utf-8")
+
+    @pytest.mark.parametrize(
+        "item",
+        [
+            "regions",
+            "api",
+            "infra",
+            "e2e",
+            "docs",
+            "docker-compose.yaml",
+            "devcontainer.json",
+            "workflows",
+            "README.md",
+        ],
+    )
+    def test_init_generates_item(self, item: str) -> None:
+        """CLIフロー.md: プロジェクト初期化で生成されるアイテムがソースに含まれる。"""
+        assert item in self.content, f"init.rs に {item} の生成ロジックがありません"
+
+
+class TestSystemTierPlacementSkip:
+    """CLIフロー.md: system Tier 選択時配置先スキップの検証。"""
+
+    def test_system_tier_skips_placement(self) -> None:
+        """CLIフロー.md: System Tier では配置先指定がスキップされる。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert "Tier::System => Ok(StepResult::Skip)" in content
+
+    def test_placement_was_skipped_function(self) -> None:
+        """CLIフロー.md: placement_was_skipped 関数が存在する。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert "fn placement_was_skipped" in content
+
+
+class TestServerDetailSettings:
+    """CLIフロー.md: サーバー詳細設定の検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+
+    def test_system_business_service_name_input(self) -> None:
+        """CLIフロー.md: system/business でサービス名入力、service でスキップ。"""
+        assert 'サービス名を入力してください' in self.content
+        # service Tier では placement のサービス名を流用
+        assert "Tier::Service" in self.content
+
+    def test_service_tier_reuses_placement_name(self) -> None:
+        """CLIフロー.md: service Tier ではステップ3のサービス名をそのまま使用。"""
+        assert "tier == Tier::Service" in self.content
+        assert "placement.clone()" in self.content
+
+
+class TestServerDbAddFlow:
+    """CLIフロー.md: サーバーDB追加フローの検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+
+    def test_db_add_prompt(self) -> None:
+        """CLIフロー.md: 「データベースを追加しますか？」プロンプトがある。"""
+        assert "データベースを追加しますか？" in self.content
+
+    def test_db_existing_selection(self) -> None:
+        """CLIフロー.md: 既存DB選択と新規作成の選択肢がある。"""
+        assert "scan_existing_databases" in self.content
+
+
+class TestKafkaEnablePrompt:
+    """CLIフロー.md: Kafka有効化プロンプトの検証。"""
+
+    def test_kafka_prompt_exists(self) -> None:
+        """CLIフロー.md: 「メッセージング (Kafka) を有効にしますか？」プロンプトがある。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert "メッセージング (Kafka) を有効にしますか？" in content
+
+
+class TestRedisEnablePrompt:
+    """CLIフロー.md: Redis有効化プロンプトの検証。"""
+
+    def test_redis_prompt_exists(self) -> None:
+        """CLIフロー.md: 「キャッシュ (Redis) を有効にしますか？」プロンプトがある。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert "キャッシュ (Redis) を有効にしますか？" in content
+
+
+class TestClientDetailBusinessAppName:
+    """CLIフロー.md: クライアント詳細設定の検証。"""
+
+    def test_business_app_name_input(self) -> None:
+        """CLIフロー.md: business Tier でアプリ名入力プロンプトがある。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert "アプリ名を入力してください" in content
+
+    def test_service_tier_uses_service_name_for_app(self) -> None:
+        """CLIフロー.md: service Tier ではサービス名をアプリ名として使用。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        # step_detail_client で tier == Tier::Service の場合 placement を使う
+        assert "step_detail_client" in content
+
+
+class TestLibraryNamePrompt:
+    """CLIフロー.md: ライブラリ名入力プロンプトの検証。"""
+
+    def test_library_name_input(self) -> None:
+        """CLIフロー.md: 「ライブラリ名を入力してください」プロンプトがある。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert "ライブラリ名を入力してください" in content
+
+
+class TestConfirmScreenPatterns:
+    """CLIフロー.md: 確認画面全パターンの検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+
+    def test_confirm_shows_kind(self) -> None:
+        """CLIフロー.md: 確認画面に種別が表示される。"""
+        assert '種別:' in self.content
+
+    def test_confirm_shows_tier(self) -> None:
+        """CLIフロー.md: 確認画面に Tier が表示される。"""
+        assert '    Tier:' in self.content
+
+    def test_confirm_shows_api_for_server(self) -> None:
+        """CLIフロー.md: サーバーの確認画面に API が表示される。"""
+        assert '    API:' in self.content
+
+    def test_confirm_shows_db_for_server(self) -> None:
+        """CLIフロー.md: サーバーの確認画面に DB が表示される。"""
+        assert '    DB:' in self.content
+
+    def test_confirm_shows_kafka_redis_for_server(self) -> None:
+        """CLIフロー.md: サーバーの確認画面に Kafka と Redis が表示される。"""
+        assert '    Kafka:' in self.content
+        assert '    Redis:' in self.content
+
+    def test_confirm_shows_framework_for_client(self) -> None:
+        """CLIフロー.md: クライアントの確認画面にフレームワークが表示される。"""
+        assert 'フレームワーク:' in self.content
+
+    def test_confirm_shows_library_name(self) -> None:
+        """CLIフロー.md: ライブラリの確認画面にライブラリ名が表示される。"""
+        assert 'ライブラリ名:' in self.content
+
+    def test_confirm_shows_rdbms_for_database(self) -> None:
+        """CLIフロー.md: データベースの確認画面に RDBMS が表示される。"""
+        assert '    RDBMS:' in self.content
+
+
+class TestApiConditionalGeneration:
+    """CLIフロー.md: API方式による条件付き生成の検証。"""
+
+    def test_rest_generates_openapi(self) -> None:
+        """CLIフロー.md: REST 選択時に OpenAPI 定義テンプレートが存在する。"""
+        assert (TEMPLATES / "server" / "go" / "api" / "openapi" / "openapi.yaml.tera").exists()
+        assert (TEMPLATES / "server" / "go" / "oapi-codegen.yaml.tera").exists()
+
+    def test_grpc_generates_proto(self) -> None:
+        """CLIフロー.md: gRPC 選択時に proto テンプレートが存在する。"""
+        assert (TEMPLATES / "server" / "go" / "api" / "proto" / "service.proto.tera").exists()
+        assert (TEMPLATES / "server" / "go" / "buf.yaml.tera").exists()
+        assert (TEMPLATES / "server" / "go" / "buf.gen.yaml.tera").exists()
+
+    def test_graphql_generates_schema(self) -> None:
+        """CLIフロー.md: GraphQL 選択時にスキーマテンプレートが存在する。"""
+        assert (TEMPLATES / "server" / "go" / "api" / "graphql" / "schema.graphql.tera").exists()
+        assert (TEMPLATES / "server" / "go" / "gqlgen.yml.tera").exists()
+
+
+class TestAlwaysGeneratedTestFiles:
+    """CLIフロー.md: 常に生成されるテストファイルの検証。"""
+
+    def test_go_always_generates_usecase_test(self) -> None:
+        """CLIフロー.md: Go では usecase_test.go が常に生成される。"""
+        assert (TEMPLATES / "server" / "go" / "internal" / "usecase" / "usecase_test.go.tera").exists()
+
+    def test_go_always_generates_handler_test(self) -> None:
+        """CLIフロー.md: Go では handler_test.go が常に生成される。"""
+        assert (TEMPLATES / "server" / "go" / "internal" / "adapter" / "handler" / "handler_test.go.tera").exists()
+
+    def test_go_generates_repository_test_with_db(self) -> None:
+        """CLIフロー.md: Go では repository_test.go が DB 有効時に生成される。"""
+        assert (TEMPLATES / "server" / "go" / "internal" / "infra" / "persistence" / "repository_test.go.tera").exists()
+
+    def test_rust_always_generates_integration_test(self) -> None:
+        """CLIフロー.md: Rust では integration_test.rs が常に生成される。"""
+        assert (TEMPLATES / "server" / "rust" / "tests" / "integration_test.rs.tera").exists()
+
+
+class TestServiceTierGraphQLBffDirectory:
+    """CLIフロー.md: service Tier GraphQL BFF ディレクトリ生成の検証。"""
+
+    def test_bff_generation_logic_exists(self) -> None:
+        """CLIフロー.md: service Tier + GraphQL で BFF ディレクトリ生成ロジックがある。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert "bff" in content
+        assert "ApiStyle::GraphQL" in content
+
+
+class TestTestAllSkipsTargetSelection:
+    """CLIフロー.md: テスト実行「すべて」選択時スキップの検証。"""
+
+    def test_all_skips_target_selection(self) -> None:
+        """CLIフロー.md: テスト種別「すべて」選択時は対象選択をスキップする。"""
+        content = (CLI_SRC / "commands" / "test_cmd.rs").read_text(encoding="utf-8")
+        # All の場合は Targets をスキップして Confirm へ
+        assert "TestKind::All" in content
+        assert "Step::Confirm" in content
+
+
+class TestDeployInputValidation:
+    """CLIフロー.md: "deploy" 入力の正確な検証。"""
+
+    def test_deploy_exact_match(self) -> None:
+        """CLIフロー.md: prod デプロイ確認で "deploy" と正確に一致する必要がある。"""
+        content = (CLI_SRC / "commands" / "deploy.rs").read_text(encoding="utf-8")
+        assert '"deploy"' in content
+        assert 'input.trim() == "deploy"' in content
+
+    def test_deploy_warning_text(self) -> None:
+        """CLIフロー.md: 本番環境への警告テキストが表示される。"""
+        content = (CLI_SRC / "commands" / "deploy.rs").read_text(encoding="utf-8")
+        assert "本番環境へのデプロイです" in content
+
+
+class TestBuildModeSelection:
+    """CLIフロー.md: ビルドモード選択（development/production）の検証。"""
+
+    def test_build_mode_development(self) -> None:
+        """CLIフロー.md: development モードが選択可能。"""
+        content = (CLI_SRC / "commands" / "build.rs").read_text(encoding="utf-8")
+        assert '"development"' in content
+
+    def test_build_mode_production(self) -> None:
+        """CLIフロー.md: production モードが選択可能。"""
+        content = (CLI_SRC / "commands" / "build.rs").read_text(encoding="utf-8")
+        assert '"production"' in content
+
+    def test_build_mode_prompt(self) -> None:
+        """CLIフロー.md: ビルドモード選択プロンプトがある。"""
+        content = (CLI_SRC / "commands" / "build.rs").read_text(encoding="utf-8")
+        assert "ビルドモードを選択してください" in content

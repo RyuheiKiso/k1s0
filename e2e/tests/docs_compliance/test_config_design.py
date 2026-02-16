@@ -403,3 +403,86 @@ class TestConfigKubernetesMountPath:
         doc = ROOT / "docs" / "config設計.md"
         content = doc.read_text(encoding="utf-8")
         assert "config/config.yaml" in content
+
+
+class TestConfigMergeConflictBehavior:
+    """config設計.md: D-079 マージ順序の競合時動作の検証。"""
+
+    def test_vault_priority_on_conflict(self) -> None:
+        """config設計.md: 競合時は Vault の値を採用。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "Vault の値を採用" in content
+
+    def test_warning_log_on_conflict(self) -> None:
+        """config設計.md: 競合時に警告ログを出力。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "警告ログ" in content or "WARN" in content
+
+    def test_application_continues_on_conflict(self) -> None:
+        """config設計.md: 競合時もアプリケーションは正常に起動。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "正常に起動" in content or "エラーにはしない" in content
+
+
+class TestRustConfigValidation:
+    """config設計.md: Rust バリデーション実装の検証。"""
+
+    def test_rust_config_has_validate_method(self) -> None:
+        """config設計.md: Rust Config に validate メソッドが定義。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "fn validate" in content
+        assert "ConfigError" in content
+
+    def test_rust_config_validates_app_name(self) -> None:
+        """config設計.md: Rust validate が app.name を検証。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "app.name" in content
+
+    def test_rust_config_validates_server_port(self) -> None:
+        """config設計.md: Rust validate が server.port を検証。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "server.port" in content
+
+
+class TestCIConfigValidate:
+    """config設計.md: CI パイプライン config validate の検証。"""
+
+    def test_config_validate_in_doc(self) -> None:
+        """config設計.md: CI で config validate コマンドを実行。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "config validate" in content
+
+    def test_ci_pre_deploy_validation(self) -> None:
+        """config設計.md: デプロイ前に不正設定を検出。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "デプロイ前" in content or "事前検証" in content
+
+
+class TestRedisSessionSection:
+    """config設計.md: redis_session セクション詳細の検証。"""
+
+    def test_redis_session_host(self) -> None:
+        """config設計.md: redis_session.host が定義。"""
+        content = GO_CONFIG.read_text(encoding="utf-8")
+        assert "redis_session:" in content
+        assert "redis-session" in content
+
+    def test_redis_session_port(self) -> None:
+        """config設計.md: redis_session.port が定義。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "6380" in content
+
+    def test_redis_session_password_vault(self) -> None:
+        """config設計.md: redis_session.password は Vault から注入。"""
+        doc = ROOT / "docs" / "config設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "secret/data/k1s0/system/bff/redis" in content

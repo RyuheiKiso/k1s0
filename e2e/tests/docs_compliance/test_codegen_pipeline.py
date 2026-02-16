@@ -8,6 +8,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 DOCS = ROOT / "docs"
+TEMPLATES = ROOT / "CLI" / "templates"
 SPEC = DOCS / "テンプレート仕様-コード生成パイプライン.md"
 
 
@@ -193,3 +194,179 @@ class TestCodegenPipelineImplementationExists:
         # 依存解決 < コード生成 < DB初期化
         assert dep_pos < codegen_pos, "依存解決はコード生成より先に実行されるべき"
         assert codegen_pos < db_pos, "コード生成はDB初期化より先に実行されるべき"
+
+
+# --- ギャップ 1: 設定ファイルテンプレート一覧 ---
+
+
+class TestCodegenConfigFileTemplates:
+    """設定ファイルテンプレート一覧が仕様書に記載されているかの検証。"""
+
+    def setup_method(self) -> None:
+        self.content = SPEC.read_text(encoding="utf-8")
+
+    def test_config_templates_section(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: 設定ファイルテンプレート一覧セクション。"""
+        assert "## 設定ファイルテンプレート一覧" in self.content
+
+    @pytest.mark.parametrize(
+        "tool,config_file,template_path",
+        [
+            ("buf", "buf.yaml", "CLI/templates/server/go/buf.yaml.tera"),
+            ("buf", "buf.gen.yaml", "CLI/templates/server/go/buf.gen.yaml.tera"),
+            ("buf", "buf.yaml", "CLI/templates/server/rust/buf.yaml.tera"),
+            ("oapi-codegen", "oapi-codegen.yaml", "CLI/templates/server/go/oapi-codegen.yaml.tera"),
+            ("gqlgen", "gqlgen.yml", "CLI/templates/server/go/gqlgen.yml.tera"),
+        ],
+    )
+    def test_config_template_documented(self, tool: str, config_file: str, template_path: str) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: 設定ファイルテンプレートが記載されている。"""
+        assert template_path in self.content, (
+            f"{tool} の設定ファイル '{config_file}' のテンプレートパス '{template_path}' が記載されていません"
+        )
+
+    @pytest.mark.parametrize(
+        "template_path",
+        [
+            "CLI/templates/server/go/buf.yaml.tera",
+            "CLI/templates/server/go/buf.gen.yaml.tera",
+            "CLI/templates/server/rust/buf.yaml.tera",
+            "CLI/templates/server/go/oapi-codegen.yaml.tera",
+            "CLI/templates/server/go/gqlgen.yml.tera",
+        ],
+    )
+    def test_config_template_exists(self, template_path: str) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: 設定ファイルテンプレートが存在する。"""
+        path = ROOT / template_path
+        assert path.exists(), f"{template_path} が存在しません"
+
+
+# --- ギャップ 2: API定義ファイルのテンプレートパス検証 ---
+
+
+class TestCodegenApiDefinitionTemplates:
+    """API定義ファイルのテンプレートパスが仕様書に記載され、実在するかの検証。"""
+
+    def setup_method(self) -> None:
+        self.content = SPEC.read_text(encoding="utf-8")
+
+    @pytest.mark.parametrize(
+        "api_style,definition_file,template_path",
+        [
+            ("REST", "api/openapi/openapi.yaml", "CLI/templates/server/go/api/openapi/openapi.yaml.tera"),
+            ("gRPC", "api/proto/service.proto", "CLI/templates/server/go/api/proto/service.proto.tera"),
+            ("GraphQL", "api/graphql/schema.graphql", "CLI/templates/server/go/api/graphql/schema.graphql.tera"),
+        ],
+    )
+    def test_api_definition_template_documented(self, api_style: str, definition_file: str, template_path: str) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: API定義テンプレートパスが記載されている。"""
+        assert template_path in self.content, (
+            f"{api_style} の定義ファイル '{definition_file}' のテンプレートパス '{template_path}' が記載されていません"
+        )
+
+    @pytest.mark.parametrize(
+        "template_path",
+        [
+            "CLI/templates/server/go/api/openapi/openapi.yaml.tera",
+            "CLI/templates/server/go/api/proto/service.proto.tera",
+            "CLI/templates/server/go/api/graphql/schema.graphql.tera",
+        ],
+    )
+    def test_api_definition_template_exists(self, template_path: str) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: API定義テンプレートが存在する。"""
+        path = ROOT / template_path
+        assert path.exists(), f"{template_path} が存在しません"
+
+
+# --- ギャップ 3: GraphQL未実装の記載 ---
+
+
+class TestCodegenGraphQLNotImplemented:
+    """GraphQLコード生成が未実装であることが仕様書に記載されているかの検証。"""
+
+    def setup_method(self) -> None:
+        self.content = SPEC.read_text(encoding="utf-8")
+
+    def test_graphql_not_implemented(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: GraphQL未実装が明記されている。"""
+        assert "現状未実装" in self.content
+
+    def test_graphql_future_plan(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: GraphQLの将来計画が記載されている。"""
+        assert "gqlgen generate" in self.content
+
+    def test_graphql_templates_exist(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: GraphQLテンプレート自体は用意済み。"""
+        assert "テンプレート自体" in self.content and "既に用意" in self.content
+
+
+# --- ギャップ 4: エラーメッセージ形式 ---
+
+
+class TestCodegenErrorMessageFormat:
+    """エラーメッセージ形式が仕様書に記載されているかの検証。"""
+
+    def setup_method(self) -> None:
+        self.content = SPEC.read_text(encoding="utf-8")
+
+    def test_error_message_section(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: エラーメッセージ形式セクションが存在する。"""
+        assert "### エラーメッセージ形式" in self.content
+
+    def test_error_message_format_failed(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: 失敗時のメッセージ形式。"""
+        assert "後処理コマンド '{cmd} {args}' が失敗しました" in self.content
+
+    def test_error_message_format_execution_failed(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: 実行失敗時のメッセージ形式。"""
+        assert "後処理コマンド '{cmd} {args}' の実行に失敗しました" in self.content
+
+    def test_manual_execution_hint(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: 手動実行ヒントが含まれる。"""
+        assert "手動で実行してください: cd {output_path} && {cmd} {args}" in self.content
+
+
+# --- ギャップ 5: リトライ機構未実装の記載 ---
+
+
+class TestCodegenRetryNotImplemented:
+    """リトライ機構が未実装であることが仕様書に記載されているかの検証。"""
+
+    def setup_method(self) -> None:
+        self.content = SPEC.read_text(encoding="utf-8")
+
+    def test_retry_section(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: リトライ機構セクションが存在する。"""
+        assert "### リトライ機構" in self.content
+
+    def test_retry_not_implemented(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: リトライ未実装が明記されている。"""
+        assert "リトライ機構は未実装" in self.content
+
+    def test_retry_future_plan(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: 将来的な最大3回リトライの計画。"""
+        assert "最大3回" in self.content
+
+
+# --- ギャップ 6: Database kind の依存解決「なし」 ---
+
+
+class TestCodegenDatabaseNoDependency:
+    """Database kind の依存解決が「なし」であることの検証。"""
+
+    def setup_method(self) -> None:
+        self.content = SPEC.read_text(encoding="utf-8")
+
+    def test_database_no_dependency_command(self) -> None:
+        """テンプレート仕様-コード生成パイプライン.md: Database kind は依存解決なし。"""
+        # 仕様書のマトリクスで Database の依存解決コマンドが「なし」であることを確認
+        assert "Database" in self.content
+        # マトリクス内で Database 行に「なし」が含まれる
+        lines = self.content.split("\n")
+        found_database_row = False
+        for line in lines:
+            if "Database" in line and "|" in line:
+                if "なし" in line or "---" in line or "（なし）" in line:
+                    found_database_row = True
+                    break
+        assert found_database_row, "Database kind の依存解決「なし」がマトリクスに記載されていません"

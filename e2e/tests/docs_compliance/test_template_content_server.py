@@ -876,3 +876,176 @@ class TestOpenTelemetryInServerTemplates:
         """コンセプト.md: Rust config.yaml に observability セクションが含まれる。"""
         content = (SERVER_RUST / "config" / "config.yaml.tera").read_text(encoding="utf-8")
         assert "observability:" in content
+
+
+# ============================================================================
+# テンプレート仕様-サーバー.md ギャップ補完テスト (6件)
+# ============================================================================
+
+
+class TestGoPersistenceRepositoryContent:
+    """テンプレート仕様-サーバー.md: persistence/repository.go.tera の内容検証（sqlxベースのCRUD実装）。"""
+
+    def setup_method(self) -> None:
+        self.content = (
+            SERVER_GO / "internal" / "infra" / "persistence" / "repository.go.tera"
+        ).read_text(encoding="utf-8")
+
+    def test_database_conditional(self) -> None:
+        assert "{% if has_database %}" in self.content
+
+    def test_sqlx_import(self) -> None:
+        assert '"github.com/jmoiron/sqlx"' in self.content
+
+    def test_new_repository(self) -> None:
+        assert "NewRepository" in self.content
+
+    def test_find_by_id_method(self) -> None:
+        """テンプレート仕様-サーバー.md: FindByID メソッドが sqlx ベースで実装されている。"""
+        assert "FindByID" in self.content
+        assert "GetContext" in self.content
+
+    def test_find_all_method(self) -> None:
+        """テンプレート仕様-サーバー.md: FindAll メソッドが sqlx ベースで実装されている。"""
+        assert "FindAll" in self.content
+        assert "SelectContext" in self.content
+
+    def test_create_method(self) -> None:
+        """テンプレート仕様-サーバー.md: Create メソッドが sqlx ベースで実装されている。"""
+        assert ") Create(" in self.content
+        assert "NamedExecContext" in self.content
+
+    def test_update_method(self) -> None:
+        """テンプレート仕様-サーバー.md: Update メソッドが sqlx ベースで実装されている。"""
+        assert ") Update(" in self.content
+        assert "NamedExecContext" in self.content
+
+    def test_delete_method(self) -> None:
+        """テンプレート仕様-サーバー.md: Delete メソッドが sqlx ベースで実装されている。"""
+        assert ") Delete(" in self.content
+        assert "ExecContext" in self.content
+
+
+class TestRustConfigYamlContent:
+    """テンプレート仕様-サーバー.md: Rust config/config.yaml.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (SERVER_RUST / "config" / "config.yaml.tera").read_text(encoding="utf-8")
+
+    def test_app_section(self) -> None:
+        assert "app:" in self.content
+        assert "{{ service_name }}" in self.content
+
+    def test_server_section(self) -> None:
+        assert "server:" in self.content
+
+    def test_observability_section(self) -> None:
+        assert "observability:" in self.content
+        assert "trace" in self.content
+
+    def test_database_conditional_section(self) -> None:
+        assert "{% if has_database %}" in self.content
+        assert "database:" in self.content
+
+    def test_kafka_conditional_section(self) -> None:
+        assert "{% if has_kafka %}" in self.content
+        assert "kafka:" in self.content
+
+    def test_redis_conditional_section(self) -> None:
+        assert "{% if has_redis %}" in self.content
+        assert "redis:" in self.content
+
+
+class TestRustPersistenceDetailContent:
+    """テンプレート仕様-サーバー.md: Rust persistence.rs.tera の内容詳細検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (SERVER_RUST / "src" / "infra" / "persistence.rs.tera").read_text(encoding="utf-8")
+
+    def test_find_by_id_function(self) -> None:
+        """テンプレート仕様-サーバー.md: find_by_id 関数シグネチャ。"""
+        assert "find_by_id" in self.content
+        assert "fetch_optional" in self.content
+
+    def test_find_all_function(self) -> None:
+        """テンプレート仕様-サーバー.md: find_all 関数シグネチャ。"""
+        assert "find_all" in self.content
+        assert "fetch_all" in self.content
+
+    def test_create_function(self) -> None:
+        """テンプレート仕様-サーバー.md: create 関数シグネチャ。"""
+        assert "async fn create" in self.content
+
+    def test_update_function(self) -> None:
+        """テンプレート仕様-サーバー.md: update 関数シグネチャ。"""
+        assert "async fn update" in self.content
+
+    def test_delete_function(self) -> None:
+        """テンプレート仕様-サーバー.md: delete 関数シグネチャ。"""
+        assert "async fn delete" in self.content
+
+    def test_async_trait(self) -> None:
+        assert "async_trait" in self.content
+
+    def test_repository_impl(self) -> None:
+        assert "{{ service_name_pascal }}Repository for Repository" in self.content
+
+
+class TestRustMessagingDetailContent:
+    """テンプレート仕様-サーバー.md: Rust messaging.rs.tera の内容詳細検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (SERVER_RUST / "src" / "infra" / "messaging.rs.tera").read_text(encoding="utf-8")
+
+    def test_kafka_consumer_struct(self) -> None:
+        """テンプレート仕様-サーバー.md: KafkaConsumer 構造体が定義されている。"""
+        assert "KafkaConsumer" in self.content
+        assert "StreamConsumer" in self.content
+
+    def test_topic_naming_comment(self) -> None:
+        """テンプレート仕様-サーバー.md: トピック命名規則コメント。"""
+        assert "k1s0.{tier}.{domain}.{event-type}.{version}" in self.content
+
+    def test_consumer_group_naming_comment(self) -> None:
+        """テンプレート仕様-サーバー.md: コンシューマーグループ命名規則コメント。"""
+        assert "{service-name}.{purpose}" in self.content
+
+    def test_future_producer(self) -> None:
+        assert "FutureProducer" in self.content
+
+    def test_publish_method(self) -> None:
+        assert "publish" in self.content
+
+
+class TestGoUsecaseCreateMethod:
+    """テンプレート仕様-サーバー.md: Go Usecase の Create メソッドテスト。"""
+
+    def setup_method(self) -> None:
+        self.content = (
+            SERVER_GO / "internal" / "usecase" / "usecase.go.tera"
+        ).read_text(encoding="utf-8")
+
+    def test_create_method_exists(self) -> None:
+        """テンプレート仕様-サーバー.md: Usecase に Create メソッドが定義されている。"""
+        assert "Create" in self.content
+
+    def test_create_calls_repo(self) -> None:
+        """テンプレート仕様-サーバー.md: Create は repo.Create を呼び出す。"""
+        assert "uc.repo.Create" in self.content
+
+
+class TestGoConfigRedisConditional:
+    """テンプレート仕様-サーバー.md: has_redis による生成分岐の検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (
+            SERVER_GO / "internal" / "infra" / "config" / "config.go.tera"
+        ).read_text(encoding="utf-8")
+
+    def test_redis_conditional(self) -> None:
+        """テンプレート仕様-サーバー.md: config.go.tera に has_redis の条件分岐がある。"""
+        assert "{% if has_redis %}" in self.content
+
+    def test_redis_config_struct(self) -> None:
+        """テンプレート仕様-サーバー.md: RedisConfig 構造体が存在する。"""
+        assert "RedisConfig" in self.content

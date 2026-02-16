@@ -321,3 +321,144 @@ class TestEnvironmentClusterConfig:
         docs = list(yaml.safe_load_all(content))
         kafka = docs[0]
         assert kafka["spec"]["zookeeper"]["replicas"] == 3
+
+    def test_staging_single_broker_in_doc(self) -> None:
+        """メッセージング設計.md: staging は 1 ブローカー。"""
+        doc = ROOT / "docs" / "メッセージング設計.md"
+        content = doc.read_text(encoding="utf-8")
+        # staging の行に 1 があることを確認
+        assert "staging" in content
+        # staging 構成の表で 1 が存在
+        lines = content.split("\n")
+        for line in lines:
+            if "staging" in line and "1" in line:
+                break
+        else:
+            pytest.fail("staging 環境の 1 ブローカー構成が記載されていません")
+
+    def test_dev_kraft_mode_in_doc(self) -> None:
+        """メッセージング設計.md: dev は KRaft モード。"""
+        doc = ROOT / "docs" / "メッセージング設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "KRaft" in content
+
+
+class TestTopicNamingValidation:
+    """メッセージング設計.md: トピック命名規則自動検証。"""
+
+    def setup_method(self) -> None:
+        path = MSG / "kafka" / "topics.yaml"
+        content = path.read_text(encoding="utf-8")
+        self.docs = [d for d in yaml.safe_load_all(content) if d]
+
+    def test_all_topics_follow_naming_convention(self) -> None:
+        """メッセージング設計.md: 全トピックが k1s0.{tier}.{domain}.{event-type}.{version} 形式。"""
+        import re
+        pattern = re.compile(r"^k1s0\.(system|business|service)\.[a-z]+\.[a-z]+\.v\d+(\.(dlq|archive))?$")
+        for doc in self.docs:
+            name = doc["metadata"]["name"]
+            assert pattern.match(name), (
+                f"Topic '{name}' が命名規則 k1s0.{{tier}}.{{domain}}.{{event-type}}.{{version}} に従っていません"
+            )
+
+
+class TestConsumerGroupNaming:
+    """メッセージング設計.md: 消費者グループ命名規則の検証。"""
+
+    def test_consumer_group_naming_in_doc(self) -> None:
+        """メッセージング設計.md: {service-name}.{purpose} 形式が記載。"""
+        doc = ROOT / "docs" / "メッセージング設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "{service-name}.{purpose}" in content
+
+    def test_consumer_group_examples(self) -> None:
+        """メッセージング設計.md: 消費者グループ例が記載。"""
+        doc = ROOT / "docs" / "メッセージング設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "order-server.inventory-check" in content
+        assert "inventory-server.order-reserved" in content
+
+
+class TestDLQReprocessing:
+    """メッセージング設計.md: DLQ メッセージ再処理方式の検証。"""
+
+    def test_dlq_replay_api(self) -> None:
+        """メッセージング設計.md: POST /admin/dlq/{topic}/replay で再処理。"""
+        doc = ROOT / "docs" / "メッセージング設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "/admin/dlq/" in content
+        assert "replay" in content
+
+    def test_dlq_messages_api(self) -> None:
+        """メッセージング設計.md: GET /admin/dlq/{topic}/messages で確認。"""
+        doc = ROOT / "docs" / "メッセージング設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "messages" in content
+
+    def test_dlq_replay_max_3(self) -> None:
+        """メッセージング設計.md: 再処理回数上限 3 回。"""
+        doc = ROOT / "docs" / "メッセージング設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "3 回" in content or "3回" in content
+
+    def test_dlq_archive_topic(self) -> None:
+        """メッセージング設計.md: 上限超過分は *.dlq.archive に移動。"""
+        doc = ROOT / "docs" / "メッセージング設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "dlq.archive" in content
+
+
+class TestCompactTopic:
+    """メッセージング設計.md: コンパクトトピックの検証。"""
+
+    def test_compact_cleanup_policy_in_doc(self) -> None:
+        """メッセージング設計.md: cleanup.policy=compact が記載。"""
+        doc = ROOT / "docs" / "メッセージング設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "compact" in content
+
+    def test_compact_topic_retention_unlimited(self) -> None:
+        """メッセージング設計.md: コンパクトトピックは無期限保持。"""
+        doc = ROOT / "docs" / "メッセージング設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "無期限" in content
+
+
+class TestSchemaRegistryDeploy:
+    """メッセージング設計.md: Schema Registry デプロイ先の検証。"""
+
+    def test_schema_registry_in_k1s0_system(self) -> None:
+        """メッセージング設計.md: Schema Registry は k1s0-system Namespace に配置。"""
+        doc = ROOT / "docs" / "メッセージング設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "k1s0-system" in content
+
+    def test_schema_registry_deployment_namespace(self) -> None:
+        """メッセージング設計.md: Schema Registry の Deployment が k1s0-system。"""
+        path = MSG / "schema-registry" / "schema-registry-config.yaml"
+        content = path.read_text(encoding="utf-8")
+        docs = list(yaml.safe_load_all(content))
+        deploy = [d for d in docs if d and d["kind"] == "Deployment"][0]
+        assert deploy["metadata"]["namespace"] == "k1s0-system"
+
+
+class TestSchemaRegistryEndpoints:
+    """メッセージング設計.md: 環境別エンドポイントの検証。"""
+
+    def test_local_dev_localhost_endpoint(self) -> None:
+        """メッセージング設計.md: ローカル開発は localhost:8081。"""
+        doc = ROOT / "docs" / "メッセージング設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "localhost:8081" in content
+
+    def test_kubernetes_endpoint(self) -> None:
+        """メッセージング設計.md: Kubernetes は schema-registry.k1s0-system.svc.cluster.local:8081。"""
+        doc = ROOT / "docs" / "メッセージング設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "schema-registry.k1s0-system.svc.cluster.local:8081" in content
+
+    def test_container_to_container_endpoint(self) -> None:
+        """メッセージング設計.md: コンテナ間は schema-registry:8081。"""
+        doc = ROOT / "docs" / "メッセージング設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "schema-registry:8081" in content

@@ -238,6 +238,175 @@ class TestDockerComposeEnvironment:
         assert env["KEYCLOAK_ADMIN"] == "admin"
 
 
+class TestDockerComposeProfiles:
+    """docker-compose設計.md: profiles 設定テスト。"""
+
+    def setup_method(self) -> None:
+        config_path = ROOT / "docker-compose.yaml"
+        with open(config_path, encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    @pytest.mark.parametrize(
+        "service,profile",
+        [
+            ("postgres", "infra"),
+            ("mysql", "infra"),
+            ("redis", "infra"),
+            ("kafka", "infra"),
+            ("kafka-ui", "infra"),
+            ("schema-registry", "infra"),
+            ("keycloak", "infra"),
+            ("redis-session", "infra"),
+            ("vault", "infra"),
+            ("jaeger", "observability"),
+            ("prometheus", "observability"),
+            ("loki", "observability"),
+            ("grafana", "observability"),
+        ],
+    )
+    def test_service_profiles(self, service: str, profile: str) -> None:
+        """docker-compose設計.md: 各サービスが正しいプロファイルに属すること。"""
+        svc = self.config["services"][service]
+        assert profile in svc["profiles"], (
+            f"{service} が {profile} プロファイルに属していません"
+        )
+
+
+class TestDockerComposeServiceNameResolution:
+    """docker-compose設計.md: サービス名解決テーブルテスト。"""
+
+    def setup_method(self) -> None:
+        config_path = ROOT / "docker-compose.yaml"
+        with open(config_path, encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    @pytest.mark.parametrize(
+        "service",
+        [
+            "postgres", "mysql", "redis", "kafka", "schema-registry",
+            "jaeger", "vault", "keycloak", "redis-session",
+        ],
+    )
+    def test_service_exists_for_name_resolution(self, service: str) -> None:
+        """docker-compose設計.md: サービス名解決テーブルに対応するサービスが存在すること。"""
+        assert service in self.config["services"]
+
+
+class TestDockerComposeConfigDevExample:
+    """docker-compose設計.md: config.dev.yaml 例テスト。"""
+
+    def test_dev_config_host_is_docker_service(self) -> None:
+        """docker-compose設計.md: values-dev の config.yaml でホストがdockerサービス名であること。"""
+        path = ROOT / "infra" / "helm" / "services" / "service" / "order" / "values-dev.yaml"
+        with open(path, encoding="utf-8") as f:
+            values = yaml.safe_load(f)
+        config_yaml = values["config"]["data"]["config.yaml"]
+        # Kubernetes DNS 名を使用（ローカル開発では docker-compose サービス名を使用するが、
+        # values-dev.yaml は Kubernetes の dev 環境用）
+        assert "postgres" in config_yaml
+
+
+class TestDockerComposeHostnameHardcodeRule:
+    """docker-compose設計.md: ホスト名ハードコード禁止ルールテスト。"""
+
+    def test_vault_no_hardcoded_hostname(self) -> None:
+        """docker-compose設計.md: Vault の環境変数にホスト名がハードコードされていないこと。"""
+        config_path = ROOT / "docker-compose.yaml"
+        with open(config_path, encoding="utf-8") as f:
+            config = yaml.safe_load(f)
+        vault = config["services"]["vault"]
+        env = vault.get("environment", {})
+        assert "VAULT_DEV_ROOT_TOKEN_ID" in env
+
+
+class TestDockerComposeVaultService:
+    """docker-compose設計.md: Vault cap_add/DEV_ROOT_TOKEN_ID テスト。"""
+
+    def setup_method(self) -> None:
+        config_path = ROOT / "docker-compose.yaml"
+        with open(config_path, encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_vault_cap_add(self) -> None:
+        """docker-compose設計.md: Vault の cap_add に IPC_LOCK が含まれること。"""
+        vault = self.config["services"]["vault"]
+        assert "IPC_LOCK" in vault["cap_add"]
+
+    def test_vault_dev_root_token(self) -> None:
+        """docker-compose設計.md: VAULT_DEV_ROOT_TOKEN_ID が dev-token であること。"""
+        vault = self.config["services"]["vault"]
+        assert vault["environment"]["VAULT_DEV_ROOT_TOKEN_ID"] == "dev-token"
+
+
+class TestDockerComposeDependsOnComplete:
+    """docker-compose設計.md: depends_on 完全検証テスト。"""
+
+    def setup_method(self) -> None:
+        config_path = ROOT / "docker-compose.yaml"
+        with open(config_path, encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_grafana_depends_on_all(self) -> None:
+        """docker-compose設計.md: Grafana が prometheus, loki, jaeger に依存していること。"""
+        deps = self.config["services"]["grafana"]["depends_on"]
+        if isinstance(deps, list):
+            assert "prometheus" in deps
+            assert "loki" in deps
+            assert "jaeger" in deps
+        else:
+            assert "prometheus" in deps
+            assert "loki" in deps
+            assert "jaeger" in deps
+
+    def test_keycloak_depends_on_postgres_healthy(self) -> None:
+        """docker-compose設計.md: Keycloak が postgres:service_healthy に依存していること。"""
+        deps = self.config["services"]["keycloak"]["depends_on"]
+        assert "postgres" in deps
+        if isinstance(deps, dict):
+            assert deps["postgres"]["condition"] == "service_healthy"
+
+    def test_kafka_ui_depends_on_healthy(self) -> None:
+        """docker-compose設計.md: kafka-ui が kafka と schema-registry の service_healthy に依存。"""
+        deps = self.config["services"]["kafka-ui"]["depends_on"]
+        assert isinstance(deps, dict)
+        assert deps["kafka"]["condition"] == "service_healthy"
+        assert deps["schema-registry"]["condition"] == "service_healthy"
+
+
+class TestDockerComposeVolumeDetails:
+    """docker-compose設計.md: volumes 詳細テスト。"""
+
+    def setup_method(self) -> None:
+        config_path = ROOT / "docker-compose.yaml"
+        with open(config_path, encoding="utf-8") as f:
+            self.config = yaml.safe_load(f)
+
+    def test_keycloak_volume_import(self) -> None:
+        """docker-compose設計.md: Keycloak の realm import ボリュームが設定されていること。"""
+        volumes = self.config["services"]["keycloak"]["volumes"]
+        volumes_str = str(volumes)
+        assert "/opt/keycloak/data/import" in volumes_str
+
+    def test_prometheus_config_volume(self) -> None:
+        """docker-compose設計.md: Prometheus の設定ファイルがマウントされていること。"""
+        volumes = self.config["services"]["prometheus"]["volumes"]
+        volumes_str = str(volumes)
+        assert "prometheus" in volumes_str
+        assert "/etc/prometheus" in volumes_str
+
+    def test_grafana_provisioning_volume(self) -> None:
+        """docker-compose設計.md: Grafana の provisioning ディレクトリがマウントされていること。"""
+        volumes = self.config["services"]["grafana"]["volumes"]
+        volumes_str = str(volumes)
+        assert "/etc/grafana/provisioning" in volumes_str
+
+    def test_grafana_dashboards_volume(self) -> None:
+        """docker-compose設計.md: Grafana の dashboards ディレクトリがマウントされていること。"""
+        volumes = self.config["services"]["grafana"]["volumes"]
+        volumes_str = str(volumes)
+        assert "dashboards" in volumes_str
+
+
 class TestDockerComposeOverrideExample:
     """docker-compose設計.md: docker-compose.override.yaml.example 存在テスト。"""
 

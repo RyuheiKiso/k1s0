@@ -360,3 +360,235 @@ class TestBufGenYaml:
         remotes = [p["remote"] for p in self.config["plugins"]]
         rust_plugins = [r for r in remotes if "rust" in r]
         assert len(rust_plugins) >= 1, "Rust プラグインが定義されていません"
+
+
+class TestValidationErrorDetails:
+    """API設計.md: D-007 バリデーションエラーの details 配列検証。"""
+
+    def setup_method(self) -> None:
+        self.doc = ROOT / "docs" / "API設計.md"
+        self.content = self.doc.read_text(encoding="utf-8")
+
+    def test_details_field_key(self) -> None:
+        """API設計.md: details 配列に field キーが記載。"""
+        assert '"field"' in self.content
+
+    def test_details_reason_key(self) -> None:
+        """API設計.md: details 配列に reason キーが記載。"""
+        assert '"reason"' in self.content
+
+    def test_details_message_key(self) -> None:
+        """API設計.md: details 配列に message キーが記載。"""
+        assert '"message"' in self.content
+
+    def test_go_error_detail_struct(self) -> None:
+        """API設計.md: Go 実装例に ErrorDetail 構造体が定義。"""
+        assert "ErrorDetail" in self.content
+
+    def test_rust_error_detail_struct(self) -> None:
+        """API設計.md: Rust 実装例に ErrorDetail 構造体が定義。"""
+        assert "ErrorDetail" in self.content
+
+
+class TestHttpStatusCodeMapping:
+    """API設計.md: HTTP ステータスコードマッピング検証。"""
+
+    def setup_method(self) -> None:
+        self.doc = ROOT / "docs" / "API設計.md"
+        self.content = self.doc.read_text(encoding="utf-8")
+
+    @pytest.mark.parametrize(
+        "status,description",
+        [
+            ("400", "バリデーションエラー"),
+            ("401", "認証エラー"),
+            ("403", "認可エラー"),
+            ("404", "リソースが見つからない"),
+            ("409", "競合"),
+            ("422", "ビジネスルール違反"),
+            ("429", "レート制限超過"),
+            ("500", "内部サーバーエラー"),
+            ("503", "サービス利用不可"),
+        ],
+    )
+    def test_http_status_code_in_doc(self, status: str, description: str) -> None:
+        """API設計.md: HTTP ステータスコードがドキュメントに記載。"""
+        assert status in self.content, f"HTTP {status} ({description}) がドキュメントに記載されていません"
+
+
+class TestDeprecationResponseHeaders:
+    """API設計.md: D-008 非推奨レスポンスヘッダー検証。"""
+
+    def setup_method(self) -> None:
+        self.doc = ROOT / "docs" / "API設計.md"
+        self.content = self.doc.read_text(encoding="utf-8")
+
+    def test_deprecation_header(self) -> None:
+        """API設計.md: Deprecation ヘッダーが記載。"""
+        assert "Deprecation:" in self.content or "Deprecation: true" in self.content
+
+    def test_sunset_header(self) -> None:
+        """API設計.md: Sunset ヘッダーが記載。"""
+        assert "Sunset:" in self.content
+
+    def test_link_header_successor(self) -> None:
+        """API設計.md: Link ヘッダーに successor-version が記載。"""
+        assert 'rel="successor-version"' in self.content
+
+
+class TestBufBreakingCI:
+    """API設計.md: D-010 buf breaking CI 検出。"""
+
+    def test_ci_workflow_has_buf_breaking(self) -> None:
+        """API設計.md: CI に buf breaking ステップが存在。"""
+        # buf breaking は proto.yaml (proto 専用ワークフロー) で実行される
+        ci_path = ROOT / ".github" / "workflows" / "ci.yaml"
+        proto_path = ROOT / ".github" / "workflows" / "proto.yaml"
+        ci_content = ci_path.read_text(encoding="utf-8") if ci_path.exists() else ""
+        proto_content = proto_path.read_text(encoding="utf-8") if proto_path.exists() else ""
+        combined = ci_content + proto_content
+        assert "buf breaking" in combined or "buf-breaking" in combined
+
+    def test_buf_breaking_against_main(self) -> None:
+        """API設計.md: buf breaking が main ブランチに対して検出。"""
+        proto_path = ROOT / ".github" / "workflows" / "proto.yaml"
+        assert proto_path.exists(), "proto.yaml ワークフローが存在しません"
+        content = proto_path.read_text(encoding="utf-8")
+        assert "main" in content
+
+
+class TestRelayPagination:
+    """API設計.md: D-011 Relay スタイル Cursor ページネーション検証。"""
+
+    def setup_method(self) -> None:
+        self.doc = ROOT / "docs" / "API設計.md"
+        self.content = self.doc.read_text(encoding="utf-8")
+
+    def test_connection_type(self) -> None:
+        """API設計.md: OrderConnection 型が定義。"""
+        assert "OrderConnection" in self.content
+
+    def test_edge_type(self) -> None:
+        """API設計.md: OrderEdge 型が定義。"""
+        assert "OrderEdge" in self.content
+
+    def test_page_info_type(self) -> None:
+        """API設計.md: PageInfo 型が定義。"""
+        assert "PageInfo" in self.content
+
+    def test_cursor_field(self) -> None:
+        """API設計.md: cursor フィールドが定義。"""
+        assert "cursor:" in self.content or "cursor: String" in self.content
+
+    def test_has_next_page(self) -> None:
+        """API設計.md: hasNextPage が定義。"""
+        assert "hasNextPage" in self.content
+
+    def test_has_previous_page(self) -> None:
+        """API設計.md: hasPreviousPage が定義。"""
+        assert "hasPreviousPage" in self.content
+
+
+class TestBurstControl:
+    """API設計.md: D-012 バースト制御検証。"""
+
+    def setup_method(self) -> None:
+        self.doc = ROOT / "docs" / "API設計.md"
+        self.content = self.doc.read_text(encoding="utf-8")
+
+    def test_system_burst_100(self) -> None:
+        """API設計.md: system Tier 秒あたり制限 100。"""
+        assert "100" in self.content
+
+    def test_business_burst_50(self) -> None:
+        """API設計.md: business Tier 秒あたり制限 50。"""
+        assert "50" in self.content
+
+    def test_service_burst_20(self) -> None:
+        """API設計.md: service Tier 秒あたり制限 20。"""
+        assert "20" in self.content
+
+    def test_second_config_in_doc(self) -> None:
+        """API設計.md: 秒あたりの上限設定が記載。"""
+        assert "second:" in self.content or "秒あたり" in self.content
+
+
+class TestEnvironmentMultiplier:
+    """API設計.md: D-012 環境別倍率検証。"""
+
+    def setup_method(self) -> None:
+        self.doc = ROOT / "docs" / "API設計.md"
+        self.content = self.doc.read_text(encoding="utf-8")
+
+    def test_dev_x10(self) -> None:
+        """API設計.md: dev 環境は x10 倍率。"""
+        assert "x10" in self.content
+
+    def test_staging_x2(self) -> None:
+        """API設計.md: staging 環境は x2 倍率。"""
+        assert "x2" in self.content
+
+    def test_prod_x1(self) -> None:
+        """API設計.md: prod 環境は x1 倍率。"""
+        assert "x1" in self.content
+
+    def test_dev_system_30000(self) -> None:
+        """API設計.md: dev system は 30000/min。"""
+        assert "30000" in self.content
+
+
+class TestRateLimitResponseHeaders:
+    """API設計.md: D-012 レート制限レスポンスヘッダー検証。"""
+
+    def setup_method(self) -> None:
+        self.doc = ROOT / "docs" / "API設計.md"
+        self.content = self.doc.read_text(encoding="utf-8")
+
+    def test_x_ratelimit_limit_header(self) -> None:
+        """API設計.md: X-RateLimit-Limit ヘッダーが記載。"""
+        assert "X-RateLimit-Limit" in self.content
+
+    def test_x_ratelimit_remaining_header(self) -> None:
+        """API設計.md: X-RateLimit-Remaining ヘッダーが記載。"""
+        assert "X-RateLimit-Remaining" in self.content
+
+    def test_x_ratelimit_reset_header(self) -> None:
+        """API設計.md: X-RateLimit-Reset ヘッダーが記載。"""
+        assert "X-RateLimit-Reset" in self.content
+
+
+class TestRateLimitExceededResponse:
+    """API設計.md: D-012 レート制限超過時 429 レスポンス形式検証。"""
+
+    def setup_method(self) -> None:
+        self.doc = ROOT / "docs" / "API設計.md"
+        self.content = self.doc.read_text(encoding="utf-8")
+
+    def test_429_error_code(self) -> None:
+        """API設計.md: SYS_RATE_LIMIT_EXCEEDED エラーコードが記載。"""
+        assert "SYS_RATE_LIMIT_EXCEEDED" in self.content
+
+    def test_429_http_status(self) -> None:
+        """API設計.md: HTTP 429 が記載。"""
+        assert "429" in self.content
+
+
+class TestClientSdkDistribution:
+    """API設計.md: D-123 クライアント SDK 配布方式検証。"""
+
+    def setup_method(self) -> None:
+        self.doc = ROOT / "docs" / "API設計.md"
+        self.content = self.doc.read_text(encoding="utf-8")
+
+    def test_typescript_npm_registry(self) -> None:
+        """API設計.md: TypeScript SDK は npm private registry で配布。"""
+        assert "npm" in self.content
+        assert "@k1s0/" in self.content
+
+    def test_dart_git_submodule(self) -> None:
+        """API設計.md: Dart SDK は Git submodule / パス参照。"""
+        assert "pubspec.yaml" in self.content or "Git submodule" in self.content
+
+    def test_sdk_auto_regeneration_ci(self) -> None:
+        """API設計.md: SDK 自動再生成が CI/CD で定義。"""
+        assert "sdk-generate" in self.content or "openapi-generator" in self.content

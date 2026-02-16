@@ -315,3 +315,296 @@ class TestHelmValuesDevContent:
 
     def test_log_level_debug(self) -> None:
         assert "level: debug" in self.content
+
+
+class TestHelmSpecKindConstraint:
+    """テンプレート仕様-Helm.md: kind=server のみ制約検証。"""
+
+    def setup_method(self) -> None:
+        self.spec_content = SPEC.read_text(encoding="utf-8")
+
+    def test_server_only_documented(self) -> None:
+        """仕様書に kind = server のみ生成と記載。"""
+        assert "kind = server のみ" in self.spec_content
+
+    def test_client_not_generated(self) -> None:
+        """仕様書に client では Helm Chart を生成しないと記載。"""
+        assert "client" in self.spec_content
+        assert "library" in self.spec_content
+        assert "database" in self.spec_content
+
+
+class TestHelmSpecTierPaths:
+    """テンプレート仕様-Helm.md: 配置パス Tier 別検証。"""
+
+    def setup_method(self) -> None:
+        self.spec_content = SPEC.read_text(encoding="utf-8")
+
+    def test_system_path(self) -> None:
+        """仕様書に system Tier の配置パスが記載。"""
+        assert "infra/helm/services/system/{service_name}/" in self.spec_content
+
+    def test_business_path(self) -> None:
+        """仕様書に business Tier の配置パスが記載。"""
+        assert "infra/helm/services/business/{domain}/{service_name}/" in self.spec_content
+
+    def test_service_path(self) -> None:
+        """仕様書に service Tier の配置パスが記載。"""
+        assert "infra/helm/services/service/{service_name}/" in self.spec_content
+
+
+class TestHelmGrpcPortValue:
+    """テンプレート仕様-Helm.md: grpcPort 50051 値検証。"""
+
+    def setup_method(self) -> None:
+        self.values_content = (HELM / "values.yaml.tera").read_text(encoding="utf-8")
+
+    def test_grpc_port_50051(self) -> None:
+        """values.yaml.tera に grpcPort: 50051 が含まれる。"""
+        assert "grpcPort: 50051" in self.values_content
+
+
+class TestHelmKafkaConditional:
+    """テンプレート仕様-Helm.md: has_kafka 条件分岐値検証。"""
+
+    def setup_method(self) -> None:
+        self.values_content = (HELM / "values.yaml.tera").read_text(encoding="utf-8")
+
+    def test_kafka_enabled_variable(self) -> None:
+        """values.yaml.tera に kafka.enabled: {{ has_kafka }} が含まれる。"""
+        assert "{{ has_kafka }}" in self.values_content
+
+    def test_kafka_brokers(self) -> None:
+        """values.yaml.tera に kafka.brokers が含まれる。"""
+        assert "brokers:" in self.values_content
+
+
+class TestHelmRedisConditional:
+    """テンプレート仕様-Helm.md: has_redis 条件分岐値検証。"""
+
+    def setup_method(self) -> None:
+        self.values_content = (HELM / "values.yaml.tera").read_text(encoding="utf-8")
+
+    def test_redis_enabled_variable(self) -> None:
+        """values.yaml.tera に redis.enabled: {{ has_redis }} が含まれる。"""
+        assert "{{ has_redis }}" in self.values_content
+
+    def test_redis_host(self) -> None:
+        """values.yaml.tera に redis.host が含まれる。"""
+        assert "host:" in self.values_content
+
+
+class TestHelmImagePullSecrets:
+    """テンプレート仕様-Helm.md: imagePullSecrets 検証。"""
+
+    def setup_method(self) -> None:
+        self.values_content = (HELM / "values.yaml.tera").read_text(encoding="utf-8")
+
+    def test_image_pull_secrets(self) -> None:
+        """values.yaml.tera に imagePullSecrets が含まれる。"""
+        assert "imagePullSecrets:" in self.values_content
+        assert "harbor-pull-secret" in self.values_content
+
+
+class TestHelmReplicaCountDefault:
+    """テンプレート仕様-Helm.md: replicaCount デフォルト 2 検証。"""
+
+    def setup_method(self) -> None:
+        self.values_content = (HELM / "values.yaml.tera").read_text(encoding="utf-8")
+
+    def test_replica_count_default_2(self) -> None:
+        """values.yaml.tera のデフォルト replicaCount が 2。"""
+        assert "replicaCount: 2" in self.values_content
+
+
+class TestHelmValuesYamlDetails:
+    """テンプレート仕様-Helm.md: values.yaml 具体値検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (HELM / "values.yaml.tera").read_text(encoding="utf-8")
+
+    def test_resources_requests_cpu(self) -> None:
+        """values.yaml.tera に cpu: 250m のリクエストがある。"""
+        assert "cpu: 250m" in self.content
+
+    def test_resources_requests_memory(self) -> None:
+        """values.yaml.tera に memory: 256Mi のリクエストがある。"""
+        assert "memory: 256Mi" in self.content
+
+    def test_resources_limits_cpu(self) -> None:
+        """values.yaml.tera に cpu: 1000m のリミットがある。"""
+        assert "cpu: 1000m" in self.content
+
+    def test_resources_limits_memory(self) -> None:
+        """values.yaml.tera に memory: 1Gi のリミットがある。"""
+        assert "memory: 1Gi" in self.content
+
+    def test_probes_liveness_healthz(self) -> None:
+        """values.yaml.tera に /healthz のプローブがある。"""
+        assert "/healthz" in self.content
+        assert "initialDelaySeconds: 10" in self.content
+
+    def test_probes_readiness_readyz(self) -> None:
+        """values.yaml.tera に /readyz のプローブがある。"""
+        assert "/readyz" in self.content
+        assert "initialDelaySeconds: 5" in self.content
+
+    def test_autoscaling_defaults(self) -> None:
+        """values.yaml.tera に autoscaling のデフォルト値がある。"""
+        assert "enabled: true" in self.content
+        assert "minReplicas: 2" in self.content
+        assert "maxReplicas: 5" in self.content
+        assert "targetCPUUtilizationPercentage: 70" in self.content
+
+    def test_pdb_defaults(self) -> None:
+        """values.yaml.tera に pdb のデフォルト値がある。"""
+        assert "minAvailable: 1" in self.content
+
+    def test_security_context(self) -> None:
+        """values.yaml.tera に securityContext がある。"""
+        assert "runAsNonRoot: true" in self.content
+        assert "readOnlyRootFilesystem: true" in self.content
+        assert "allowPrivilegeEscalation: false" in self.content
+        assert 'drop: ["ALL"]' in self.content
+
+    def test_vault_secrets(self) -> None:
+        """values.yaml.tera に vault secrets セクションがある。"""
+        assert "vault:" in self.content
+        assert "secret/data/k1s0" in self.content
+
+
+class TestHelmValuesYamlServiceAccount:
+    """テンプレート仕様-Helm.md: values.yaml serviceAccount 検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (HELM / "values.yaml.tera").read_text(encoding="utf-8")
+
+    def test_service_account_create(self) -> None:
+        """values.yaml.tera に serviceAccount.create: true がある。"""
+        assert "serviceAccount:" in self.content
+        assert "create: true" in self.content
+
+
+class TestHelmValuesYamlConfigMountPath:
+    """テンプレート仕様-Helm.md: values.yaml config.mountPath 検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (HELM / "values.yaml.tera").read_text(encoding="utf-8")
+
+    def test_config_mount_path(self) -> None:
+        """values.yaml.tera に config.mountPath: /etc/app がある。"""
+        assert "mountPath: /etc/app" in self.content
+
+
+class TestHelmValuesDevDetails:
+    """テンプレート仕様-Helm.md: values-dev 具体値検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (HELM / "values-dev.yaml.tera").read_text(encoding="utf-8")
+
+    def test_resources_requests_cpu(self) -> None:
+        assert "cpu: 100m" in self.content
+
+    def test_resources_requests_memory(self) -> None:
+        assert "memory: 128Mi" in self.content
+
+    def test_database_conditional(self) -> None:
+        """values-dev に has_database 条件がある。"""
+        assert "has_database" in self.content
+
+    def test_observability_trace_sample_rate(self) -> None:
+        assert "sample_rate: 1.0" in self.content
+
+
+class TestHelmValuesStagingDetails:
+    """テンプレート仕様-Helm.md: values-staging 具体値検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (HELM / "values-staging.yaml.tera").read_text(encoding="utf-8")
+
+    def test_resources_requests_cpu(self) -> None:
+        assert "cpu: 250m" in self.content
+
+    def test_resources_requests_memory(self) -> None:
+        assert "memory: 256Mi" in self.content
+
+    def test_max_replicas(self) -> None:
+        assert "maxReplicas: 5" in self.content
+
+
+class TestHelmValuesProdDetails:
+    """テンプレート仕様-Helm.md: values-prod 具体値検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (HELM / "values-prod.yaml.tera").read_text(encoding="utf-8")
+
+    def test_resources_requests_cpu(self) -> None:
+        assert "cpu: 500m" in self.content
+
+    def test_resources_requests_memory(self) -> None:
+        assert "memory: 512Mi" in self.content
+
+    def test_min_replicas(self) -> None:
+        assert "minReplicas: 3" in self.content
+
+    def test_database_conditional(self) -> None:
+        """values-prod に has_database 条件がある。"""
+        assert "has_database" in self.content
+
+    def test_observability_log_level_warn(self) -> None:
+        assert "level: warn" in self.content
+
+    def test_observability_trace_sample_rate(self) -> None:
+        assert "sample_rate: 0.1" in self.content
+
+
+class TestHelmDeploymentServiceRawEndraw:
+    """テンプレート仕様-Helm.md: deployment.yaml/service.yaml raw/endraw 検証。"""
+
+    @pytest.mark.parametrize(
+        "template",
+        [
+            "templates/deployment.yaml.tera",
+            "templates/service.yaml.tera",
+        ],
+    )
+    def test_template_has_raw_endraw(self, template: str) -> None:
+        """Helm テンプレートに raw/endraw がある。"""
+        content = (HELM / template).read_text(encoding="utf-8")
+        assert "{% raw %}" in content
+        assert "{% endraw %}" in content
+
+
+class TestHelmCommonChartRelativePath:
+    """テンプレート仕様-Helm.md: common_chart_relative_path 変数検証。"""
+
+    def setup_method(self) -> None:
+        self.spec_content = SPEC.read_text(encoding="utf-8")
+        self.chart_content = (HELM / "Chart.yaml.tera").read_text(encoding="utf-8")
+
+    def test_relative_path_documented(self) -> None:
+        """仕様書に Library Chart 相対パスの導出が記載。"""
+        assert "../../charts/k1s0-common" in self.spec_content
+
+    def test_business_four_levels(self) -> None:
+        """Chart.yaml.tera に business Tier 用の 4 階層パスがある。"""
+        assert "../../../../charts/k1s0-common" in self.chart_content
+
+    def test_default_three_levels(self) -> None:
+        """Chart.yaml.tera に system/service Tier 用の 3 階層パスがある。"""
+        assert "../../../charts/k1s0-common" in self.chart_content
+
+
+class TestHelmDomainVariable:
+    """テンプレート仕様-Helm.md: domain 変数検証。"""
+
+    def setup_method(self) -> None:
+        self.spec_content = SPEC.read_text(encoding="utf-8")
+
+    def test_domain_variable_documented(self) -> None:
+        """仕様書に domain 変数が記載。"""
+        assert "domain" in self.spec_content
+
+    def test_domain_used_in_business_path(self) -> None:
+        """仕様書の business Tier パスに domain が使われている。"""
+        assert "{domain}" in self.spec_content

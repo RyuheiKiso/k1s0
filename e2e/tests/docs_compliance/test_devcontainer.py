@@ -208,3 +208,82 @@ class TestPostCreateScript:
         script = ROOT / ".devcontainer" / "post-create.sh"
         content = script.read_text(encoding="utf-8")
         assert "protobuf-compiler" in content
+
+
+class TestDevcontainerSparseCheckout:
+    """devcontainer設計.md: sparse-checkout 連携テスト。"""
+
+    def test_sparse_checkout_docs(self) -> None:
+        """devcontainer設計.md: sparse-checkout 連携がドキュメントに記載されていること。"""
+        doc = (ROOT / "docs" / "devcontainer設計.md").read_text(encoding="utf-8")
+        assert "sparse-checkout" in doc
+
+
+class TestDevcontainerRustVersionSync:
+    """devcontainer設計.md: Rust バージョン同期テスト。"""
+
+    def test_rust_version_matches_docker_image_strategy(self) -> None:
+        """devcontainer設計.md: devcontainer の Rust バージョンが Dockerイメージ戦略.md と同期。"""
+        config_path = ROOT / ".devcontainer" / "devcontainer.json"
+        content = config_path.read_text(encoding="utf-8")
+        lines = []
+        for line in content.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("//"):
+                continue
+            if "//" in line and not stripped.startswith('"'):
+                line = line[:line.index("//")]
+            lines.append(line)
+        config = json.loads("\n".join(lines))
+        rust_version = config["features"]["ghcr.io/devcontainers/features/rust:1"]["version"]
+        # Dockerイメージ戦略.md で rust:1.82-bookworm
+        assert rust_version == "1.82"
+
+
+class TestDevcontainerFlutterVersionSync:
+    """devcontainer設計.md: Flutter バージョン同期テスト。"""
+
+    def test_flutter_version_matches_ci(self) -> None:
+        """devcontainer設計.md: post-create.sh の Flutter バージョンが 3.24.0 であること。"""
+        script = ROOT / ".devcontainer" / "post-create.sh"
+        content = script.read_text(encoding="utf-8")
+        assert 'FLUTTER_VERSION="3.24.0"' in content
+
+
+class TestDevcontainerGolangciLintSettings:
+    """devcontainer設計.md: golangci-lint VSCode settings テスト。"""
+
+    def test_golangci_lint_in_settings(self) -> None:
+        """devcontainer設計.md: go.lintTool が golangci-lint に設定されていること。"""
+        config_path = ROOT / ".devcontainer" / "devcontainer.json"
+        content = config_path.read_text(encoding="utf-8")
+        lines = []
+        for line in content.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("//"):
+                continue
+            if "//" in line and not stripped.startswith('"'):
+                line = line[:line.index("//")]
+            lines.append(line)
+        config = json.loads("\n".join(lines))
+        settings = config["customizations"]["vscode"]["settings"]
+        assert settings["go.lintTool"] == "golangci-lint"
+        assert settings["go.lintFlags"] == ["--fast"]
+
+
+class TestDevcontainerExtendDependsOn:
+    """devcontainer設計.md: docker-compose.extend depends_on テスト。"""
+
+    def test_extend_depends_on_postgres_redis(self) -> None:
+        """devcontainer設計.md: devcontainer が postgres と redis に依存していること。"""
+        path = ROOT / ".devcontainer" / "docker-compose.extend.yaml"
+        import yaml as _yaml  # type: ignore[import-untyped]
+        with open(path, encoding="utf-8") as f:
+            config = _yaml.safe_load(f)
+        deps = config["services"]["devcontainer"]["depends_on"]
+        if isinstance(deps, list):
+            assert "postgres" in deps
+            assert "redis" in deps
+        else:
+            assert "postgres" in deps
+            assert "redis" in deps
