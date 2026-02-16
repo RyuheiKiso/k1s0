@@ -350,6 +350,24 @@
           "useTruststoreSpi": ["ldapsOnly"],
           "connectionPooling": ["true"],
           "pagination": ["true"]
+        },
+        "subComponents": {
+          "org.keycloak.storage.ldap.mappers.LDAPStorageMapper": [
+            {
+              "name": "group-ldap-mapper",
+              "providerId": "group-ldap-mapper",
+              "config": {
+                "groups.dn": ["ou=groups,dc=example,dc=com"],
+                "group.name.ldap.attribute": ["cn"],
+                "group.object.classes": ["groupOfNames"],
+                "membership.ldap.attribute": ["memberOf"],
+                "membership.attribute.type": ["DN"],
+                "mode": ["READ_ONLY"],
+                "memberof.ldap.attribute": ["memberOf"],
+                "drop.non.existing.groups.during.sync": ["false"]
+              }
+            }
+          ]
         }
       }
     ]

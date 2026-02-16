@@ -220,3 +220,172 @@ class TestDartLibTestAndAnalysis:
 
     def test_readme_exists(self) -> None:
         assert (LIB_DART / "README.md.tera").exists()
+
+
+# ============================================================================
+# テンプレート仕様-ライブラリ.md ギャップ補完テスト (9件)
+# ============================================================================
+
+
+class TestLibraryTierPlacement:
+    """テンプレート仕様-ライブラリ.md: 配置 Tier ルール（service 層にライブラリ不可）。"""
+
+    def test_service_tier_no_library(self) -> None:
+        """テンプレート仕様-ライブラリ.md: service 層にはライブラリを置かない。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        assert "service 層にはライブラリを置かない" in docs_content
+
+    def test_system_and_business_only(self) -> None:
+        """テンプレート仕様-ライブラリ.md: system と business の2階層にのみ配置。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        assert "**system** と **business** の2階層にのみ配置" in docs_content
+
+
+class TestGoLibTestTooling:
+    """テンプレート仕様-ライブラリ.md: Go テストツール（testify/gomock）の使用検証。"""
+
+    def test_testify_in_integration_test(self) -> None:
+        """テンプレート仕様-ライブラリ.md: 統合テストに testify を使用。"""
+        content = (LIB_GO / "tests" / "integration_test.go.tera").read_text(encoding="utf-8")
+        assert "testify" in content
+
+    def test_testify_assert(self) -> None:
+        """テンプレート仕様-ライブラリ.md: testify/assert を使用。"""
+        content = (LIB_GO / "tests" / "integration_test.go.tera").read_text(encoding="utf-8")
+        assert "testify/assert" in content
+
+    def test_docs_mention_gomock(self) -> None:
+        """テンプレート仕様-ライブラリ.md: ドキュメントに gomock の記載がある。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        assert "gomock" in docs_content
+
+
+class TestRustLibLintTools:
+    """テンプレート仕様-ライブラリ.md: Rust の rustfmt + clippy 検証。"""
+
+    def test_docs_mention_rustfmt(self) -> None:
+        """テンプレート仕様-ライブラリ.md: rustfmt が記載されている。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        assert "rustfmt" in docs_content
+
+    def test_docs_mention_clippy(self) -> None:
+        """テンプレート仕様-ライブラリ.md: clippy が記載されている。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        assert "clippy" in docs_content
+
+
+class TestTsLibLintTools:
+    """テンプレート仕様-ライブラリ.md: TypeScript の ESLint + Prettier 検証。"""
+
+    def test_eslint_in_package_json(self) -> None:
+        """テンプレート仕様-ライブラリ.md: package.json に eslint が含まれる。"""
+        content = (LIB_TS / "package.json.tera").read_text(encoding="utf-8")
+        assert "eslint" in content
+
+    def test_prettier_in_package_json(self) -> None:
+        """テンプレート仕様-ライブラリ.md: package.json に prettier が含まれる。"""
+        content = (LIB_TS / "package.json.tera").read_text(encoding="utf-8")
+        assert "prettier" in content
+
+    def test_lint_script(self) -> None:
+        """テンプレート仕様-ライブラリ.md: lint スクリプトが定義されている。"""
+        content = (LIB_TS / "package.json.tera").read_text(encoding="utf-8")
+        assert '"lint"' in content
+
+    def test_format_script(self) -> None:
+        """テンプレート仕様-ライブラリ.md: format スクリプトが定義されている。"""
+        content = (LIB_TS / "package.json.tera").read_text(encoding="utf-8")
+        assert '"format"' in content
+
+
+class TestDartLibLintTools:
+    """テンプレート仕様-ライブラリ.md: Dart の dart analyze + dart format 検証。"""
+
+    def test_docs_mention_dart_analyze(self) -> None:
+        """テンプレート仕様-ライブラリ.md: dart analyze が記載されている。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        assert "dart analyze" in docs_content
+
+    def test_docs_mention_dart_format(self) -> None:
+        """テンプレート仕様-ライブラリ.md: dart format が記載されている。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        assert "dart format" in docs_content
+
+
+class TestLibraryCommonGuidelines:
+    """テンプレート仕様-ライブラリ.md: 共通ガイドライン検証。"""
+
+    def test_dependency_minimization(self) -> None:
+        """テンプレート仕様-ライブラリ.md: 依存の最小化ガイドライン。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        assert "依存の最小化" in docs_content
+
+    def test_public_api_explicit(self) -> None:
+        """テンプレート仕様-ライブラリ.md: 公開 API の明示ガイドライン。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        assert "公開 API の明示" in docs_content
+
+    def test_implementation_hiding(self) -> None:
+        """テンプレート仕様-ライブラリ.md: 実装の隠蔽ガイドライン。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        assert "実装の隠蔽" in docs_content
+
+    def test_versioning_semver(self) -> None:
+        """テンプレート仕様-ライブラリ.md: SemVer バージョニング。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        assert "SemVer" in docs_content
+
+
+class TestGoLibIntegrationTestContent:
+    """テンプレート仕様-ライブラリ.md: Go tests/integration_test.go.tera の内容テスト。"""
+
+    def setup_method(self) -> None:
+        self.content = (LIB_GO / "tests" / "integration_test.go.tera").read_text(encoding="utf-8")
+
+    def test_package_tests(self) -> None:
+        assert "package tests" in self.content
+
+    def test_testing_import(self) -> None:
+        assert '"testing"' in self.content
+
+    def test_test_function(self) -> None:
+        assert "func Test" in self.content
+
+    def test_testify_assert_import(self) -> None:
+        assert "testify/assert" in self.content
+
+
+class TestRustLibIntegrationTestContent:
+    """テンプレート仕様-ライブラリ.md: Rust tests/integration_test.rs.tera の内容テスト。"""
+
+    def setup_method(self) -> None:
+        self.content = (LIB_RUST / "tests" / "integration_test.rs.tera").read_text(encoding="utf-8")
+
+    def test_use_crate(self) -> None:
+        """テンプレート仕様-ライブラリ.md: クレート名でインポート。"""
+        assert "use {{ service_name | snake_case }}" in self.content
+
+    def test_test_attribute(self) -> None:
+        assert "#[test]" in self.content
+
+    def test_test_function(self) -> None:
+        assert "fn test_" in self.content
+
+
+class TestTsLibIndexTestContent:
+    """テンプレート仕様-ライブラリ.md: TypeScript tests/index.test.ts.tera の内容テスト。"""
+
+    def setup_method(self) -> None:
+        self.content = (LIB_TS / "tests" / "index.test.ts.tera").read_text(encoding="utf-8")
+
+    def test_vitest_imports(self) -> None:
+        """テンプレート仕様-ライブラリ.md: vitest から describe/it/expect を import。"""
+        assert "describe" in self.content
+        assert "it" in self.content
+        assert "expect" in self.content
+
+    def test_service_name_variable(self) -> None:
+        assert "{{ service_name }}" in self.content
+
+    def test_has_test_case(self) -> None:
+        assert "should be defined" in self.content or "expect" in self.content

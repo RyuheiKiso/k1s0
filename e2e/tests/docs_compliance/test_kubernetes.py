@@ -209,6 +209,114 @@ class TestKubernetesIngress:
         assert ingress["spec"]["ingressClassName"] == "nginx"
 
 
+class TestKubernetesResourceLimitValues:
+    """kubernetes設計.md: リソースリミットのテーブル値検証。"""
+
+    @pytest.mark.parametrize(
+        "env_file,expected_resources",
+        [
+            ("values-dev.yaml", {
+                "requests": {"cpu": "100m", "memory": "128Mi"},
+                "limits": {"cpu": "500m", "memory": "512Mi"},
+            }),
+            ("values-staging.yaml", {
+                "requests": {"cpu": "250m", "memory": "256Mi"},
+                "limits": {"cpu": "1000m", "memory": "1Gi"},
+            }),
+            ("values-prod.yaml", {
+                "requests": {"cpu": "500m", "memory": "512Mi"},
+                "limits": {"cpu": "2000m", "memory": "2Gi"},
+            }),
+        ],
+    )
+    def test_server_pod_resource_limits(self, env_file: str, expected_resources: dict) -> None:
+        """kubernetes設計.md: サーバー Pod のリソースリミットが環境別テーブル値と一致すること。"""
+        path = ROOT / "infra" / "helm" / "services" / "service" / "order" / env_file
+        with open(path, encoding="utf-8") as f:
+            values = yaml.safe_load(f)
+        resources = values["resources"]
+        for rtype in ("requests", "limits"):
+            for key in ("cpu", "memory"):
+                actual = str(resources[rtype][key])
+                expected = expected_resources[rtype][key]
+                assert actual == expected, (
+                    f"{env_file}: resources.{rtype}.{key} が {expected} ではなく {actual}"
+                )
+
+
+class TestKubernetesIngressExternalName:
+    """kubernetes設計.md: Ingress ExternalName Service 検証。"""
+
+    def setup_method(self) -> None:
+        path = K8S / "ingress" / "ingress.yaml"
+        assert path.exists()
+        self.docs = list(yaml.safe_load_all(path.read_text(encoding="utf-8")))
+
+    def test_kong_proxy_external_name(self) -> None:
+        """kubernetes設計.md: kong-proxy ExternalName Service が定義されていること。"""
+        ext_svcs = [
+            d for d in self.docs
+            if d and d.get("kind") == "Service" and d.get("spec", {}).get("type") == "ExternalName"
+        ]
+        kong = [s for s in ext_svcs if s["metadata"]["name"] == "kong-proxy"]
+        assert len(kong) > 0, "kong-proxy ExternalName Service が定義されていません"
+        assert kong[0]["spec"]["externalName"] == "kong-proxy.k1s0-system.svc.cluster.local"
+        assert kong[0]["metadata"]["namespace"] == "ingress"
+
+    def test_grafana_external_name(self) -> None:
+        """kubernetes設計.md: grafana ExternalName Service が定義されていること。"""
+        ext_svcs = [
+            d for d in self.docs
+            if d and d.get("kind") == "Service" and d.get("spec", {}).get("type") == "ExternalName"
+        ]
+        grafana = [s for s in ext_svcs if s["metadata"]["name"] == "grafana"]
+        assert len(grafana) > 0, "grafana ExternalName Service が定義されていません"
+        assert grafana[0]["spec"]["externalName"] == "grafana.observability.svc.cluster.local"
+
+    def test_ingress_routing_kong_proxy(self) -> None:
+        """kubernetes設計.md: Ingress ルーティング先に kong-proxy が含まれること。"""
+        ingress = [d for d in self.docs if d and d.get("kind") == "Ingress"][0]
+        rules = ingress["spec"]["rules"]
+        api_rule = [r for r in rules if r["host"] == "api.k1s0.internal.example.com"]
+        assert len(api_rule) > 0
+        backend = api_rule[0]["http"]["paths"][0]["backend"]["service"]
+        assert backend["name"] == "kong-proxy"
+        assert backend["port"]["number"] == 80
+
+    def test_ingress_routing_grafana(self) -> None:
+        """kubernetes設計.md: Ingress ルーティング先に grafana が含まれること。"""
+        ingress = [d for d in self.docs if d and d.get("kind") == "Ingress"][0]
+        rules = ingress["spec"]["rules"]
+        grafana_rule = [r for r in rules if r["host"] == "grafana.k1s0.internal.example.com"]
+        assert len(grafana_rule) > 0
+        backend = grafana_rule[0]["http"]["paths"][0]["backend"]["service"]
+        assert backend["name"] == "grafana"
+        assert backend["port"]["number"] == 3000
+
+
+class TestKubernetesResourceQuotaPVC:
+    """kubernetes設計.md: ResourceQuota persistentvolumeclaims 値の検証。"""
+
+    @pytest.mark.parametrize(
+        "ns_file,expected_pvcs",
+        [
+            ("k1s0-system.yaml", "20"),
+            ("k1s0-business.yaml", "40"),
+            ("k1s0-service.yaml", "20"),
+        ],
+    )
+    def test_resource_quota_pvcs(self, ns_file: str, expected_pvcs: str) -> None:
+        """kubernetes設計.md: ResourceQuota の persistentvolumeclaims が仕様通りであること。"""
+        path = K8S / "namespaces" / ns_file
+        docs = list(yaml.safe_load_all(path.read_text(encoding="utf-8")))
+        quotas = [d for d in docs if d and d.get("kind") == "ResourceQuota"]
+        assert len(quotas) > 0, f"{ns_file} に ResourceQuota が定義されていません"
+        hard = quotas[0]["spec"]["hard"]
+        assert str(hard["persistentvolumeclaims"]) == expected_pvcs, (
+            f"{ns_file}: persistentvolumeclaims が {expected_pvcs} ではなく {hard.get('persistentvolumeclaims')}"
+        )
+
+
 class TestKubernetesStorageClass:
     """kubernetes設計.md: StorageClass 用途テスト。"""
 
@@ -282,6 +390,14 @@ class TestKubernetesNetworkPolicies:
         assert "ingress" in self.content.lower()
         assert "namespace_selector" in self.content
 
+    def test_network_policy_yaml_structure(self) -> None:
+        """kubernetes設計.md: NetworkPolicy YAML 内容詳細検証。"""
+        # kubernetes設計.md の NetworkPolicy 定義で重要な要素が Terraform 内に含まれていること
+        # pod_selector、policy_types、allowed_from_tiers の動的構築
+        assert "pod_selector" in self.content
+        assert '"Ingress"' in self.content  # policy_types = ["Ingress"]
+        assert "allowed_from_tiers" in self.content  # dynamic な from 構築
+
 
 class TestKubernetesHPABehavior:
     """kubernetes設計.md: HPA behavior 設定テスト。"""
@@ -290,6 +406,37 @@ class TestKubernetesHPABehavior:
         """kubernetes設計.md: HPA テンプレートが存在すること。"""
         path = ROOT / "infra" / "helm" / "charts" / "k1s0-common" / "templates" / "_hpa.tpl"
         assert path.exists(), "_hpa.tpl が存在しません"
+
+    def test_hpa_behavior_scale_up(self) -> None:
+        """kubernetes設計.md: HPA behavior scaleUp が仕様通りであること。"""
+        path = ROOT / "infra" / "helm" / "charts" / "k1s0-common" / "templates" / "_hpa.tpl"
+        content = path.read_text(encoding="utf-8")
+        assert "scaleUp" in content
+        assert "stabilizationWindowSeconds: 60" in content
+        # scaleUp: value: 2, periodSeconds: 60
+        assert "value: 2" in content
+
+    def test_hpa_behavior_scale_down(self) -> None:
+        """kubernetes設計.md: HPA behavior scaleDown が仕様通りであること。"""
+        path = ROOT / "infra" / "helm" / "charts" / "k1s0-common" / "templates" / "_hpa.tpl"
+        content = path.read_text(encoding="utf-8")
+        assert "scaleDown" in content
+        assert "stabilizationWindowSeconds: 300" in content
+        assert "periodSeconds: 120" in content
+
+    def test_hpa_metrics_cpu(self) -> None:
+        """kubernetes設計.md: HPA metrics CPU averageUtilization が仕様通りであること。"""
+        path = ROOT / "infra" / "helm" / "charts" / "k1s0-common" / "templates" / "_hpa.tpl"
+        content = path.read_text(encoding="utf-8")
+        assert "name: cpu" in content
+        assert "targetCPUUtilizationPercentage" in content
+
+    def test_hpa_metrics_memory(self) -> None:
+        """kubernetes設計.md: HPA metrics Memory averageUtilization が仕様通りであること。"""
+        path = ROOT / "infra" / "helm" / "charts" / "k1s0-common" / "templates" / "_hpa.tpl"
+        content = path.read_text(encoding="utf-8")
+        assert "name: memory" in content
+        assert "targetMemoryUtilizationPercentage" in content
 
 
 class TestKubernetesEnvironmentHPA:

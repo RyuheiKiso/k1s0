@@ -275,3 +275,193 @@ class TestTerraformHarborProjects:
         """terraform設計.md: 4 プロジェクトが定義されていること。"""
         content = (TF / "modules" / "harbor" / "projects.tf").read_text(encoding="utf-8")
         assert project in content, f"Harbor プロジェクト '{project}' が定義されていません"
+
+    def test_harbor_robot_account(self) -> None:
+        """terraform設計.md: harbor_robot_account が定義されていること。"""
+        content = (TF / "modules" / "harbor" / "projects.tf").read_text(encoding="utf-8")
+        assert "harbor_robot_account" in content
+        assert "ci-push" in content or "ci_push" in content
+
+
+class TestTerraformConsulHA:
+    """terraform設計.md: Consul HA 構成テスト。"""
+
+    @pytest.mark.parametrize("env", ["dev", "staging", "prod"])
+    def test_consul_backend_lock(self, env: str) -> None:
+        """terraform設計.md: Consul バックエンドに lock が設定されていること。"""
+        content = (TF / "environments" / env / "backend.tf").read_text(encoding="utf-8")
+        assert "lock" in content
+
+
+class TestTerraformStateBackup:
+    """terraform設計.md: State バックアップ設計テスト。"""
+
+    def test_consul_backend_scheme_https(self) -> None:
+        """terraform設計.md: Consul バックエンドに scheme = https が設定されていること。"""
+        content = (TF / "environments" / "dev" / "backend.tf").read_text(encoding="utf-8")
+        assert "https" in content
+
+
+class TestTerraformAllowedFromTiers:
+    """terraform設計.md: allowed_from_tiers 値テスト。"""
+
+    def setup_method(self) -> None:
+        self.content = (TF / "environments" / "dev" / "terraform.tfvars").read_text(encoding="utf-8")
+
+    def test_system_allowed_from_all_tiers(self) -> None:
+        """terraform設計.md: k1s0-system は全 Tier から許可。"""
+        # k1s0-system の allowed_from_tiers に system, business, service が含まれる
+        assert "system" in self.content
+        assert "business" in self.content
+        assert "service" in self.content
+
+    def test_observability_allowed_from_all_tiers(self) -> None:
+        """terraform設計.md: observability は全 Tier からアクセスを許可。"""
+        assert "observability" in self.content
+
+    def test_ingress_no_allowed_tiers(self) -> None:
+        """terraform設計.md: ingress の allowed_from_tiers が空であること。"""
+        assert "ingress" in self.content
+
+
+class TestTerraformKubernetesStorageDetails:
+    """terraform設計.md: kubernetes-storage モジュール詳細テスト。"""
+
+    def setup_method(self) -> None:
+        self.content = (TF / "modules" / "kubernetes-storage" / "main.tf").read_text(encoding="utf-8")
+
+    def test_reclaim_policy_variable(self) -> None:
+        """terraform設計.md: reclaim_policy が変数化されていること（dev: Delete, prod: Retain）。"""
+        assert "var.reclaim_policy" in self.content
+
+    def test_allow_volume_expansion(self) -> None:
+        """terraform設計.md: allow_volume_expansion が true であること。"""
+        assert "allow_volume_expansion = true" in self.content
+
+
+class TestTerraformObservabilityNamespace:
+    """terraform設計.md: observability の namespace テスト。"""
+
+    def test_observability_namespace(self) -> None:
+        """terraform設計.md: observability モジュールの namespace が observability であること。"""
+        content = (TF / "modules" / "observability" / "main.tf").read_text(encoding="utf-8")
+        assert '"observability"' in content
+
+
+class TestTerraformServiceMeshDetails:
+    """terraform設計.md: service-mesh モジュール詳細テスト。"""
+
+    def test_depends_on_order(self) -> None:
+        """terraform設計.md: istiod が istio_base に depends_on していること。"""
+        content = (TF / "modules" / "service-mesh" / "main.tf").read_text(encoding="utf-8")
+        assert "depends_on" in content
+        assert "helm_release.istio_base" in content
+
+    def test_service_mesh_namespace(self) -> None:
+        """terraform設計.md: service-mesh の namespace が service-mesh であること。"""
+        content = (TF / "modules" / "service-mesh" / "main.tf").read_text(encoding="utf-8")
+        assert '"service-mesh"' in content
+
+
+class TestTerraformDatabaseDetails:
+    """terraform設計.md: database モジュール詳細テスト。"""
+
+    def test_database_main_postgresql(self) -> None:
+        """terraform設計.md: database/main.tf に postgresql helm_release が定義されていること。"""
+        content = (TF / "modules" / "database" / "main.tf").read_text(encoding="utf-8")
+        assert "helm_release" in content
+        assert "postgresql" in content
+        assert "bitnami" in content
+
+    def test_database_main_mysql(self) -> None:
+        """terraform設計.md: database/main.tf に mysql helm_release が定義されていること。"""
+        content = (TF / "modules" / "database" / "main.tf").read_text(encoding="utf-8")
+        assert "mysql" in content
+
+
+class TestTerraformBackupCronJobSchedule:
+    """terraform設計.md: backup CronJob スケジュールテスト。"""
+
+    def test_backup_schedule(self) -> None:
+        """terraform設計.md: バックアップ CronJob のスケジュールが '0 2 * * *' であること。"""
+        content = (TF / "modules" / "database" / "backup.tf").read_text(encoding="utf-8")
+        assert '0 2 * * *' in content
+
+    def test_backup_pg_dump(self) -> None:
+        """terraform設計.md: pg_dump コマンドが含まれること。"""
+        content = (TF / "modules" / "database" / "backup.tf").read_text(encoding="utf-8")
+        assert "pg_dump" in content
+
+    def test_backup_mysqldump(self) -> None:
+        """terraform設計.md: mysqldump コマンドが含まれること。"""
+        content = (TF / "modules" / "database" / "backup.tf").read_text(encoding="utf-8")
+        assert "mysqldump" in content
+
+
+class TestTerraformHarborMainDetails:
+    """terraform設計.md: harbor/main.tf 詳細テスト。"""
+
+    def setup_method(self) -> None:
+        self.content = (TF / "modules" / "harbor" / "main.tf").read_text(encoding="utf-8")
+
+    def test_harbor_helm_release(self) -> None:
+        """terraform設計.md: harbor helm_release が定義されていること。"""
+        assert "helm_release" in self.content
+        assert "harbor" in self.content
+
+    def test_harbor_s3_storage(self) -> None:
+        """terraform設計.md: Harbor の S3 ストレージバックエンドが設定されていること。"""
+        assert "persistence.imageChartStorage.type" in self.content
+        assert "s3" in self.content
+
+    def test_harbor_external_url(self) -> None:
+        """terraform設計.md: Harbor の externalURL が設定されていること。"""
+        assert "externalURL" in self.content
+
+
+class TestTerraformAnsibleResponsibility:
+    """terraform設計.md: Ansible 責務分担テスト。"""
+
+    def test_terraform_manages_kubernetes_resources(self) -> None:
+        """terraform設計.md: Terraform が kubernetes リソースを管理していること。"""
+        content = (TF / "environments" / "dev" / "main.tf").read_text(encoding="utf-8")
+        assert "kubernetes_base" in content
+        assert "kubernetes_storage" in content
+
+    def test_terraform_manages_helm(self) -> None:
+        """terraform設計.md: Terraform が Helm リリースを管理していること。"""
+        content = (TF / "environments" / "dev" / "main.tf").read_text(encoding="utf-8")
+        assert "helm" in content.lower()
+
+
+class TestTerraformProdApplyRule:
+    """terraform設計.md: 運用ルールテスト。"""
+
+    def test_prod_backend_uses_consul(self) -> None:
+        """terraform設計.md: prod 環境が Consul バックエンドを使用していること。"""
+        content = (TF / "environments" / "prod" / "backend.tf").read_text(encoding="utf-8")
+        assert 'backend "consul"' in content
+
+
+class TestTerraformStagingTfvars:
+    """terraform設計.md: staging terraform.tfvars テスト。"""
+
+    def test_staging_namespaces_defined(self) -> None:
+        """terraform設計.md: staging の terraform.tfvars に namespaces が定義されていること。"""
+        content = (TF / "environments" / "staging" / "terraform.tfvars").read_text(encoding="utf-8")
+        assert "namespaces" in content
+        assert "k1s0-system" in content
+        assert "k1s0-business" in content
+        assert "k1s0-service" in content
+
+
+class TestTerraformProviders:
+    """terraform設計.md: Provider 使用検証テスト。"""
+
+    def test_providers_in_main(self) -> None:
+        """terraform設計.md: 管理対象の Provider が使用されていること。"""
+        content = (TF / "environments" / "dev" / "main.tf").read_text(encoding="utf-8")
+        assert "hashicorp/kubernetes" in content
+        assert "hashicorp/helm" in content
+        assert "hashicorp/vault" in content
+        assert "goharbor/harbor" in content

@@ -495,3 +495,379 @@ class TestTestCodeSeparation:
     def test_rust_library_integration_test_separated(self) -> None:
         """ディレクトリ構成図.md: Rust ライブラリの統合テストは tests/ に分離。"""
         assert (TEMPLATES / "library" / "rust" / "tests" / "integration_test.rs.tera").exists()
+
+
+# ============================================================================
+# ディレクトリ構成図.md 追加ギャップ補完テスト
+# ============================================================================
+
+
+class TestSystemTierDetailedStructure:
+    """ディレクトリ構成図.md: system Tier 詳細構成の検証。"""
+
+    def test_system_server_exists(self) -> None:
+        """ディレクトリ構成図.md: system/server が存在する。"""
+        assert (ROOT / "regions" / "system" / "server").exists()
+
+    def test_system_library_exists(self) -> None:
+        """ディレクトリ構成図.md: system/library が存在する。"""
+        assert (ROOT / "regions" / "system" / "library").exists()
+
+    def test_system_database_exists(self) -> None:
+        """ディレクトリ構成図.md: system/database が存在する。"""
+        assert (ROOT / "regions" / "system" / "database").exists()
+
+    def test_system_has_no_client(self) -> None:
+        """ディレクトリ構成図.md: system に client がない。"""
+        assert not (ROOT / "regions" / "system" / "client").exists(), (
+            "system 層に client が存在してはいけません"
+        )
+
+
+class TestBusinessTierDetailedStructure:
+    """ディレクトリ構成図.md: business Tier 詳細構成の検証。"""
+
+    def test_business_dir_exists(self) -> None:
+        """ディレクトリ構成図.md: regions/business が存在する。"""
+        assert (ROOT / "regions" / "business").exists()
+
+
+class TestServiceTierDetailedStructure:
+    """ディレクトリ構成図.md: service Tier 詳細構成の検証。"""
+
+    def test_service_dir_exists(self) -> None:
+        """ディレクトリ構成図.md: regions/service が存在する。"""
+        assert (ROOT / "regions" / "service").exists()
+
+    def test_service_has_no_library(self) -> None:
+        """ディレクトリ構成図.md: service 層に library がない。"""
+        service_dir = ROOT / "regions" / "service"
+        if service_dir.exists():
+            for child in service_dir.iterdir():
+                if child.is_dir():
+                    assert not (child / "library").exists(), (
+                        f"service/{child.name} に library が存在してはいけません"
+                    )
+
+
+class TestGoServerDetailedStructure:
+    """ディレクトリ構成図.md: Go サーバー詳細構成の検証。"""
+
+    def test_go_domain_service(self) -> None:
+        """ディレクトリ構成図.md: Go サーバーに domain/service テンプレートが存在する。"""
+        # domain/service はドキュメントに記載されているが、テンプレートは domain/model + domain/repository
+        assert (TEMPLATES / "server" / "go" / "internal" / "domain" / "model" / "entity.go.tera").exists()
+        assert (TEMPLATES / "server" / "go" / "internal" / "domain" / "repository" / "repository.go.tera").exists()
+
+    def test_go_adapter_presenter(self) -> None:
+        """ディレクトリ構成図.md: Go サーバーに adapter/handler テンプレートが存在する。"""
+        assert (TEMPLATES / "server" / "go" / "internal" / "adapter" / "handler" / "rest_handler.go.tera").exists()
+
+    def test_go_adapter_gateway_grpc(self) -> None:
+        """ディレクトリ構成図.md: Go サーバーに gRPC ハンドラーテンプレートが存在する。"""
+        assert (TEMPLATES / "server" / "go" / "internal" / "adapter" / "handler" / "grpc_handler.go.tera").exists()
+
+    def test_go_tests_integration(self) -> None:
+        """ディレクトリ構成図.md: Go サーバーに usecase_test.go テンプレートが存在する。"""
+        assert (TEMPLATES / "server" / "go" / "internal" / "usecase" / "usecase_test.go.tera").exists()
+
+    def test_go_handler_test(self) -> None:
+        """ディレクトリ構成図.md: Go サーバーに handler_test.go テンプレートが存在する。"""
+        assert (TEMPLATES / "server" / "go" / "internal" / "adapter" / "handler" / "handler_test.go.tera").exists()
+
+    def test_go_repository_test(self) -> None:
+        """ディレクトリ構成図.md: Go サーバーに repository_test.go テンプレートが存在する（DB有効時）。"""
+        assert (TEMPLATES / "server" / "go" / "internal" / "infra" / "persistence" / "repository_test.go.tera").exists()
+
+    def test_go_config_env_files(self) -> None:
+        """ディレクトリ構成図.md: Go サーバーに config.yaml テンプレートが存在する。"""
+        assert (TEMPLATES / "server" / "go" / "config" / "config.yaml.tera").exists()
+
+
+class TestRustServerDetailedStructure:
+    """ディレクトリ構成図.md: Rust サーバー詳細構成の検証。"""
+
+    def test_rust_domain_service(self) -> None:
+        """ディレクトリ構成図.md: Rust サーバーに domain テンプレートが存在する。"""
+        assert (TEMPLATES / "server" / "rust" / "src" / "domain" / "model.rs.tera").exists()
+        assert (TEMPLATES / "server" / "rust" / "src" / "domain" / "repository.rs.tera").exists()
+
+    def test_rust_adapter_handler(self) -> None:
+        """ディレクトリ構成図.md: Rust サーバーに adapter/handler テンプレートが存在する。"""
+        assert (TEMPLATES / "server" / "rust" / "src" / "adapter" / "handler" / "rest.rs.tera").exists()
+
+    def test_rust_adapter_grpc(self) -> None:
+        """ディレクトリ構成図.md: Rust サーバーに gRPC ハンドラーテンプレートが存在する。"""
+        assert (TEMPLATES / "server" / "rust" / "src" / "adapter" / "handler" / "grpc.rs.tera").exists()
+
+    def test_rust_integration_test(self) -> None:
+        """ディレクトリ構成図.md: Rust サーバーに tests/integration_test.rs テンプレートが存在する。"""
+        assert (TEMPLATES / "server" / "rust" / "tests" / "integration_test.rs.tera").exists()
+
+    def test_rust_config_yaml(self) -> None:
+        """ディレクトリ構成図.md: Rust サーバーに config.yaml テンプレートが存在する。"""
+        assert (TEMPLATES / "server" / "rust" / "config" / "config.yaml.tera").exists()
+
+
+class TestReactClientDetailedStructure:
+    """ディレクトリ構成図.md: React クライアント features/hooks/types 構成の検証。"""
+
+    def test_react_app_exists(self) -> None:
+        """ディレクトリ構成図.md: React に app ディレクトリテンプレートがある。"""
+        assert (TEMPLATES / "client" / "react" / "src" / "app" / "App.tsx.tera").exists()
+
+    def test_react_lib_exists(self) -> None:
+        """ディレクトリ構成図.md: React に lib ディレクトリテンプレートがある。"""
+        assert (TEMPLATES / "client" / "react" / "src" / "lib" / "api-client.ts.tera").exists()
+        assert (TEMPLATES / "client" / "react" / "src" / "lib" / "query-client.ts.tera").exists()
+
+    def test_react_tests_testutil_exists(self) -> None:
+        """ディレクトリ構成図.md: React テストに testutil がある。"""
+        assert (TEMPLATES / "client" / "react" / "tests" / "testutil" / "msw-setup.ts.tera").exists()
+
+
+class TestFlutterClientDetailedStructure:
+    """ディレクトリ構成図.md: Flutter クライアント features/widgets/utils 構成の検証。"""
+
+    def test_flutter_app_router(self) -> None:
+        """ディレクトリ構成図.md: Flutter に app/router テンプレートがある。"""
+        assert (TEMPLATES / "client" / "flutter" / "lib" / "app" / "router.dart.tera").exists()
+
+    def test_flutter_utils_dio(self) -> None:
+        """ディレクトリ構成図.md: Flutter に utils/dio_client テンプレートがある。"""
+        assert (TEMPLATES / "client" / "flutter" / "lib" / "utils" / "dio_client.dart.tera").exists()
+
+    def test_flutter_test_exists(self) -> None:
+        """ディレクトリ構成図.md: Flutter に test ディレクトリテンプレートがある。"""
+        assert (TEMPLATES / "client" / "flutter" / "test" / "widget_test.dart.tera").exists()
+
+
+class TestLibraryDetailedStructure:
+    """ディレクトリ構成図.md: ライブラリ詳細構成の検証。"""
+
+    def test_go_library_tests_integration(self) -> None:
+        """ディレクトリ構成図.md: Go ライブラリに tests/integration_test テンプレートが存在する。"""
+        assert (TEMPLATES / "library" / "go" / "tests" / "integration_test.go.tera").exists()
+
+    def test_rust_library_internal(self) -> None:
+        """ディレクトリ構成図.md: Rust ライブラリに src/lib.rs テンプレートが存在する。"""
+        assert (TEMPLATES / "library" / "rust" / "src" / "lib.rs.tera").exists()
+
+    def test_ts_library_tests(self) -> None:
+        """ディレクトリ構成図.md: TypeScript ライブラリに tests テンプレートが存在する。"""
+        assert (TEMPLATES / "library" / "typescript" / "tests" / "index.test.ts.tera").exists()
+
+    def test_dart_library_test(self) -> None:
+        """ディレクトリ構成図.md: Dart ライブラリに test テンプレートが存在する。"""
+        assert (TEMPLATES / "library" / "dart" / "test" / "{module}_test.dart.tera").exists()
+
+
+class TestDatabaseDetailedStructure:
+    """ディレクトリ構成図.md: データベース構成（seeds/, schema/）のテンプレート検証。"""
+
+    def test_database_migrations_template_exists(self) -> None:
+        """ディレクトリ構成図.md: migrations テンプレートが存在する。"""
+        assert (TEMPLATES / "database" / "postgresql" / "001_init.up.sql.tera").exists()
+        assert (TEMPLATES / "database" / "postgresql" / "001_init.down.sql.tera").exists()
+
+
+class TestDocsDirectoryFullListing:
+    """ディレクトリ構成図.md: docs ディレクトリ全ファイル一覧の検証。"""
+
+    @pytest.mark.parametrize(
+        "doc_file",
+        [
+            "CLIフロー.md",
+            "コンセプト.md",
+            "tier-architecture.md",
+            "ディレクトリ構成図.md",
+            "コーディング規約.md",
+            "config設計.md",
+            "devcontainer設計.md",
+            "docker-compose設計.md",
+            "インフラ設計.md",
+            "terraform設計.md",
+            "Dockerイメージ戦略.md",
+            "kubernetes設計.md",
+            "helm設計.md",
+            "API設計.md",
+            "認証認可設計.md",
+            "CI-CD設計.md",
+            "可観測性設計.md",
+            "サービスメッシュ設計.md",
+            "APIゲートウェイ設計.md",
+            "メッセージング設計.md",
+            "テンプレート仕様-サーバー.md",
+            "テンプレート仕様-クライアント.md",
+            "テンプレート仕様-ライブラリ.md",
+            "テンプレート仕様-データベース.md",
+            "テンプレートエンジン仕様.md",
+        ],
+    )
+    def test_doc_file_exists(self, doc_file: str) -> None:
+        """ディレクトリ構成図.md: docs 内の全ドキュメントが存在する。"""
+        assert (ROOT / "docs" / doc_file).exists(), f"docs/{doc_file} が存在しません"
+
+
+# ============================================================================
+# tier-architecture.md ギャップ補完テスト（追加）
+# ============================================================================
+
+
+class TestTierKindRestrictions:
+    """tier-architecture.md: 各階層の種別制約検証。"""
+
+    def test_system_has_server_library_database(self) -> None:
+        """tier-architecture.md: system は server, library, database を持つ。"""
+        content = (ROOT / "docs" / "tier-architecture.md").read_text(encoding="utf-8")
+        # system セクションに server, library, database が記載されている
+        assert "server" in content
+        assert "library" in content
+        assert "database" in content
+
+    def test_system_no_client_in_doc(self) -> None:
+        """tier-architecture.md: system に client がない理由が記載されている。"""
+        content = (ROOT / "docs" / "tier-architecture.md").read_text(encoding="utf-8")
+        assert "system に client がない理由" in content
+
+    def test_service_no_library_in_doc(self) -> None:
+        """ディレクトリ構成図.md: service に library がない理由が記載されている。"""
+        content = (ROOT / "docs" / "ディレクトリ構成図.md").read_text(encoding="utf-8")
+        assert "service 層に library がない理由" in content
+
+    def test_cli_client_not_available_for_system(self) -> None:
+        """tier-architecture.md: CLI でクライアントの system Tier が選択不可。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert "Kind::Client => vec![Tier::Business, Tier::Service]" in content
+
+    def test_cli_library_not_available_for_service(self) -> None:
+        """tier-architecture.md: CLI でライブラリの service Tier が選択不可。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert "Kind::Library => vec![Tier::System, Tier::Business]" in content
+
+
+class TestSameTierCommunicationBusinessTier:
+    """tier-architecture.md: 同階層間通信ルール - business Tier の検証。"""
+
+    def test_business_same_domain_sync_allowed(self) -> None:
+        """tier-architecture.md: business Tier の同一ドメインコンテキスト内同期通信が許可されている。"""
+        content = (ROOT / "docs" / "tier-architecture.md").read_text(encoding="utf-8")
+        assert "同一ドメインコンテキスト" in content
+        assert "同期通信を許可" in content
+
+    def test_business_cross_domain_async_required(self) -> None:
+        """tier-architecture.md: business Tier の異なるドメインコンテキスト間は非同期メッセージング。"""
+        content = (ROOT / "docs" / "tier-architecture.md").read_text(encoding="utf-8")
+        assert "非同期メッセージング" in content
+
+    def test_business_tier_authorization_policy(self) -> None:
+        """tier-architecture.md: business Tier の AuthorizationPolicy が存在する。"""
+        import yaml
+        path = ROOT / "infra" / "istio" / "authorizationpolicy.yaml"
+        content = path.read_text(encoding="utf-8")
+        docs = [d for d in yaml.safe_load_all(content) if d]
+        business_policies = [
+            d for d in docs if d["metadata"]["namespace"] == "k1s0-business"
+        ]
+        assert len(business_policies) >= 1
+
+
+class TestSameTierCommunicationSystemTier:
+    """tier-architecture.md: 同階層間通信ルール - system Tier の検証。"""
+
+    def test_system_internal_communication_allowed(self) -> None:
+        """tier-architecture.md: system Tier 内の共通基盤サービス間通信が許可されている。"""
+        content = (ROOT / "docs" / "tier-architecture.md").read_text(encoding="utf-8")
+        assert "共通基盤サービス間の通信は許可" in content
+
+    def test_system_tier_allow_policy_includes_same_namespace(self) -> None:
+        """tier-architecture.md: system Tier の ALLOW ポリシーが自身のnamespaceを含む。"""
+        import yaml
+        path = ROOT / "infra" / "istio" / "authorizationpolicy.yaml"
+        content = path.read_text(encoding="utf-8")
+        docs = [d for d in yaml.safe_load_all(content) if d]
+        system_allow = [
+            d for d in docs
+            if d["metadata"]["namespace"] == "k1s0-system"
+            and d["spec"]["action"] == "ALLOW"
+        ]
+        assert len(system_allow) >= 1
+        # system namespace 自身からのアクセスも許可されている
+        rules = system_allow[0]["spec"]["rules"]
+        namespaces_in_rules = []
+        for rule in rules:
+            for source in rule.get("from", []):
+                ns = source.get("source", {}).get("namespaces", [])
+                namespaces_in_rules.extend(ns)
+        assert "k1s0-system" in namespaces_in_rules
+
+
+class TestServerDependencyExamples:
+    """tier-architecture.md: Server 間の依存具体例検証。"""
+
+    def test_server_dependency_documented(self) -> None:
+        """tier-architecture.md: business server が system server から利用するものが記載されている。"""
+        content = (ROOT / "docs" / "tier-architecture.md").read_text(encoding="utf-8")
+        assert "認証トークンの検証" in content
+        assert "ユーザー情報の取得" in content
+        assert "ログ・トレースの送信" in content
+        assert "レート制限・ルーティング" in content
+
+    def test_server_dependency_diagram_exists(self) -> None:
+        """tier-architecture.md: server-dependency.svg が存在する。"""
+        assert (ROOT / "docs" / "diagrams" / "server-dependency.svg").exists()
+
+
+class TestClientDependencyExamples:
+    """tier-architecture.md: Client 間の依存具体例検証。"""
+
+    def test_client_dependency_documented(self) -> None:
+        """tier-architecture.md: client が system library から利用するものが記載されている。"""
+        content = (ROOT / "docs" / "tier-architecture.md").read_text(encoding="utf-8")
+        assert "認証トークンの取得・管理" in content
+        assert "API リクエストの送信" in content
+
+    def test_client_dependency_diagram_exists(self) -> None:
+        """tier-architecture.md: client-dependency.svg が存在する。"""
+        assert (ROOT / "docs" / "diagrams" / "client-dependency.svg").exists()
+
+
+class TestRdbmsSelection:
+    """tier-architecture.md: RDBMS 選択の反映検証。"""
+
+    def test_rdbms_choices_documented(self) -> None:
+        """tier-architecture.md: PostgreSQL/MySQL/SQLite の選択肢が記載されている。"""
+        content = (ROOT / "docs" / "tier-architecture.md").read_text(encoding="utf-8")
+        assert "PostgreSQL" in content
+        assert "MySQL" in content
+        assert "SQLite" in content
+
+    def test_rdbms_choices_in_cli(self) -> None:
+        """tier-architecture.md: CLI に RDBMS 選択肢が実装されている。"""
+        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        assert 'Rdbms::PostgreSQL => "PostgreSQL"' in content
+        assert 'Rdbms::MySQL => "MySQL"' in content
+        assert 'Rdbms::SQLite => "SQLite"' in content
+
+    def test_database_templates_for_all_rdbms(self) -> None:
+        """tier-architecture.md: 全 RDBMS のデータベーステンプレートが存在する。"""
+        for rdbms in ["postgresql", "mysql", "sqlite"]:
+            assert (TEMPLATES / "database" / rdbms / "001_init.up.sql.tera").exists(), (
+                f"database/{rdbms} テンプレートが存在しません"
+            )
+
+
+class TestTierDataResponsibility:
+    """tier-architecture.md: 階層ごとのデータ責務検証。"""
+
+    def test_data_responsibility_documented(self) -> None:
+        """tier-architecture.md: 各階層のデータベース責務が記載されている。"""
+        content = (ROOT / "docs" / "tier-architecture.md").read_text(encoding="utf-8")
+        assert "ユーザー、認証・認可、監査ログ" in content
+        assert "領域固有のマスタデータ" in content
+        assert "サービス固有の業務データ" in content
+
+    def test_db_access_restriction_documented(self) -> None:
+        """tier-architecture.md: DB アクセスはその階層の server のみと記載されている。"""
+        content = (ROOT / "docs" / "tier-architecture.md").read_text(encoding="utf-8")
+        assert "その階層の server からのみアクセス" in content

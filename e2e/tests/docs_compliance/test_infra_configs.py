@@ -122,3 +122,119 @@ class TestServiceMeshTerraform:
         module = ROOT / "infra" / "terraform" / "modules" / "service-mesh"
         assert module.exists()
         assert (module / "main.tf").exists()
+
+
+class TestInfraEnvironmentNodes:
+    """インフラ設計.md: 環境構成ノード台数テスト。"""
+
+    def test_environment_nodes_in_doc(self) -> None:
+        """インフラ設計.md: 環境構成テーブル（dev/staging/prod）が記載されていること。"""
+        doc = (ROOT / "docs" / "インフラ設計.md").read_text(encoding="utf-8")
+        assert "dev" in doc
+        assert "staging" in doc
+        assert "prod" in doc
+        # Master / Worker 台数
+        assert "Master" in doc
+        assert "Worker" in doc
+
+
+class TestInfraServerRequirements:
+    """インフラ設計.md: サーバー要件テスト。"""
+
+    def test_server_requirements_in_doc(self) -> None:
+        """インフラ設計.md: Master/Worker ノードのサーバー要件が記載されていること。"""
+        doc = (ROOT / "docs" / "インフラ設計.md").read_text(encoding="utf-8")
+        assert "vCPU" in doc
+        assert "GB" in doc or "SSD" in doc
+
+
+class TestInfraNetworkDesign:
+    """インフラ設計.md: ネットワーク設計 4 CIDR テスト。"""
+
+    def test_network_4_cidrs(self) -> None:
+        """インフラ設計.md: 4 つの CIDR セグメントが記載されていること。"""
+        doc = (ROOT / "docs" / "インフラ設計.md").read_text(encoding="utf-8")
+        assert "10.244.0.0/16" in doc     # Pod ネットワーク
+        assert "10.96.0.0/12" in doc      # Service ネットワーク
+        assert "10.0.100.0/24" in doc     # MetalLB プール
+        assert "10.0.200.0/24" in doc     # 管理ネットワーク
+
+
+class TestInfraStorageCeph:
+    """インフラ設計.md: ストレージ構成 (Ceph) テスト。"""
+
+    def test_ceph_storage_types(self) -> None:
+        """インフラ設計.md: 3 種類のストレージ（ブロック/ファイル/オブジェクト）が記載されていること。"""
+        doc = (ROOT / "docs" / "インフラ設計.md").read_text(encoding="utf-8")
+        assert "Ceph RBD" in doc
+        assert "CephFS" in doc
+        assert "Ceph RGW" in doc
+
+
+class TestInfraHarborSettings:
+    """インフラ設計.md: Harbor 設定テスト。"""
+
+    def test_harbor_url(self) -> None:
+        """インフラ設計.md: Harbor URL が harbor.internal.example.com であること。"""
+        doc = (ROOT / "docs" / "インフラ設計.md").read_text(encoding="utf-8")
+        assert "harbor.internal.example.com" in doc
+
+    def test_harbor_trivy(self) -> None:
+        """インフラ設計.md: Harbor の脆弱性スキャンに Trivy が使用されること。"""
+        doc = (ROOT / "docs" / "インフラ設計.md").read_text(encoding="utf-8")
+        assert "Trivy" in doc
+
+
+class TestInfraK8sClusterComponents:
+    """インフラ設計.md: K8s クラスタ構築コンポーネントテスト。"""
+
+    @pytest.mark.parametrize(
+        "component",
+        ["kubeadm", "Calico", "Nginx Ingress", "MetalLB", "Ceph CSI", "CoreDNS", "cert-manager", "Flagger"],
+    )
+    def test_cluster_component_documented(self, component: str) -> None:
+        """インフラ設計.md: K8s クラスタ構築コンポーネントが記載されていること。"""
+        doc = (ROOT / "docs" / "インフラ設計.md").read_text(encoding="utf-8")
+        assert component in doc, f"コンポーネント '{component}' が記載されていません"
+
+
+class TestInfraConfigManagementTools:
+    """インフラ設計.md: 構成管理ツール責務分担テスト。"""
+
+    @pytest.mark.parametrize(
+        "tool,usage",
+        [
+            ("Ansible", "OS"),
+            ("Terraform", "Namespace"),
+            ("Helm", "デプロイ"),
+        ],
+    )
+    def test_tool_responsibility(self, tool: str, usage: str) -> None:
+        """インフラ設計.md: 構成管理ツールの責務分担が記載されていること。"""
+        doc = (ROOT / "docs" / "インフラ設計.md").read_text(encoding="utf-8")
+        assert tool in doc
+        assert usage in doc
+
+
+class TestInfraBackupSettings:
+    """インフラ設計.md: バックアップ設定テスト。"""
+
+    @pytest.mark.parametrize(
+        "target",
+        ["etcd", "データベース", "Ceph", "Harbor", "Vault"],
+    )
+    def test_backup_target_documented(self, target: str) -> None:
+        """インフラ設計.md: バックアップ対象が記載されていること。"""
+        doc = (ROOT / "docs" / "インフラ設計.md").read_text(encoding="utf-8")
+        assert target in doc
+
+
+class TestInfraStorageClassYAML:
+    """インフラ設計.md: StorageClass YAML 内容テスト。"""
+
+    def test_storage_class_yaml_in_doc(self) -> None:
+        """インフラ設計.md: StorageClass YAML の provisioner が rbd.csi.ceph.com であること。"""
+        doc = (ROOT / "docs" / "インフラ設計.md").read_text(encoding="utf-8")
+        assert "rbd.csi.ceph.com" in doc
+        assert "ceph-block" in doc
+        assert "allowVolumeExpansion" in doc

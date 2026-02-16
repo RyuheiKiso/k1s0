@@ -262,3 +262,154 @@ class TestKongDeckCICD:
     def test_kong_yaml_declarative_config(self) -> None:
         """APIゲートウェイ設計.md: decK 用の宣言的設定ファイルが存在。"""
         assert (KONG / "kong.yaml").exists()
+
+    def test_deck_validate_step(self) -> None:
+        """APIゲートウェイ設計.md: decK validate ステップが CI に含まれる。"""
+        path = ROOT / ".github" / "workflows" / "kong-sync.yaml"
+        content = path.read_text(encoding="utf-8")
+        assert "deck validate" in content
+
+    def test_deck_diff_step(self) -> None:
+        """APIゲートウェイ設計.md: decK diff ステップが CI に含まれる。"""
+        path = ROOT / ".github" / "workflows" / "kong-sync.yaml"
+        content = path.read_text(encoding="utf-8")
+        assert "deck diff" in content
+
+    def test_deck_sync_step(self) -> None:
+        """APIゲートウェイ設計.md: decK sync ステップが CI に含まれる。"""
+        path = ROOT / ".github" / "workflows" / "kong-sync.yaml"
+        content = path.read_text(encoding="utf-8")
+        assert "deck sync" in content
+
+    def test_deck_sync_per_environment(self) -> None:
+        """APIゲートウェイ設計.md: 環境別 decK sync (dev/staging/prod)。"""
+        path = ROOT / ".github" / "workflows" / "kong-sync.yaml"
+        content = path.read_text(encoding="utf-8")
+        assert "sync-dev" in content
+        assert "sync-staging" in content
+        assert "sync-prod" in content
+
+
+class TestKongDBBackedMode:
+    """APIゲートウェイ設計.md: DB-backed モード設定の検証。"""
+
+    HELM_KONG = ROOT / "infra" / "helm" / "services" / "system" / "kong"
+
+    def test_database_mode_postgres(self) -> None:
+        """APIゲートウェイ設計.md: DB-backed モード(PostgreSQL) で運用。"""
+        config = yaml.safe_load((self.HELM_KONG / "values.yaml").read_text(encoding="utf-8"))
+        assert config["env"]["database"] == "postgres"
+
+    def test_pg_host(self) -> None:
+        """APIゲートウェイ設計.md: PostgreSQL 接続先。"""
+        config = yaml.safe_load((self.HELM_KONG / "values.yaml").read_text(encoding="utf-8"))
+        assert "postgres.k1s0-system.svc.cluster.local" in config["env"]["pg_host"]
+
+    def test_ingress_controller_disabled(self) -> None:
+        """APIゲートウェイ設計.md: Ingress Controller は使わず Admin API で管理。"""
+        config = yaml.safe_load((self.HELM_KONG / "values.yaml").read_text(encoding="utf-8"))
+        assert config["ingressController"]["enabled"] is False
+
+    def test_external_postgresql(self) -> None:
+        """APIゲートウェイ設計.md: 外部 PostgreSQL を使用。"""
+        config = yaml.safe_load((self.HELM_KONG / "values.yaml").read_text(encoding="utf-8"))
+        assert config["postgresql"]["enabled"] is False
+
+
+class TestBFFProxyFlow:
+    """APIゲートウェイ設計.md: BFF Proxy HttpOnly Cookie → Bearer Token 変換。"""
+
+    def test_bff_proxy_flow_in_doc(self) -> None:
+        """APIゲートウェイ設計.md: BFF Proxy トラフィックフローが記載。"""
+        doc = ROOT / "docs" / "APIゲートウェイ設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "HttpOnly Cookie" in content
+        assert "Bearer Token" in content
+        assert "BFF Proxy" in content
+
+
+class TestAdminAPIAccessControl:
+    """APIゲートウェイ設計.md: Admin API アクセス制御の検証。"""
+
+    def test_admin_api_access_in_doc(self) -> None:
+        """APIゲートウェイ設計.md: 環境別 Admin API アクセス制御が記載。"""
+        doc = ROOT / "docs" / "APIゲートウェイ設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "Admin API アクセス" in content or "Admin API" in content
+
+    def test_dev_basic_auth(self) -> None:
+        """APIゲートウェイ設計.md: dev は Basic 認証。"""
+        doc = ROOT / "docs" / "APIゲートウェイ設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "Basic" in content
+
+    def test_staging_ip_restriction_mtls(self) -> None:
+        """APIゲートウェイ設計.md: staging は IP 制限 + mTLS。"""
+        doc = ROOT / "docs" / "APIゲートウェイ設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "IP" in content
+        assert "mTLS" in content
+
+    def test_prod_audit_log(self) -> None:
+        """APIゲートウェイ設計.md: prod は監査ログ記録。"""
+        doc = ROOT / "docs" / "APIゲートウェイ設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "監査ログ" in content
+
+
+class TestPostgreSQLHA:
+    """APIゲートウェイ設計.md: PostgreSQL HA 構成の検証。"""
+
+    def test_prod_3_node_ha(self) -> None:
+        """APIゲートウェイ設計.md: prod は 3 ノード HA 構成。"""
+        doc = ROOT / "docs" / "APIゲートウェイ設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "3ノード" in content or "3 ノード" in content
+
+    def test_bitnami_ha_chart(self) -> None:
+        """APIゲートウェイ設計.md: Bitnami PostgreSQL HA Chart。"""
+        doc = ROOT / "docs" / "APIゲートウェイ設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "Bitnami" in content
+
+    def test_synchronous_replication(self) -> None:
+        """APIゲートウェイ設計.md: prod は同期レプリケーション。"""
+        doc = ROOT / "docs" / "APIゲートウェイ設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "synchronous_commit" in content
+
+
+class TestIpRestrictionPlugin:
+    """APIゲートウェイ設計.md: ip-restriction プラグインの検証。"""
+
+    def test_ip_restriction_in_plugin_list(self) -> None:
+        """APIゲートウェイ設計.md: ip-restriction プラグインが一覧に記載。"""
+        doc = ROOT / "docs" / "APIゲートウェイ設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "ip-restriction" in content
+
+
+class TestRequestResponseTransformers:
+    """APIゲートウェイ設計.md: request-transformer / response-transformer プラグインの検証。"""
+
+    def test_request_transformer_in_doc(self) -> None:
+        """APIゲートウェイ設計.md: request-transformer プラグインが記載。"""
+        doc = ROOT / "docs" / "APIゲートウェイ設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "request-transformer" in content
+
+    def test_response_transformer_in_doc(self) -> None:
+        """APIゲートウェイ設計.md: response-transformer プラグインが記載。"""
+        doc = ROOT / "docs" / "APIゲートウェイ設計.md"
+        content = doc.read_text(encoding="utf-8")
+        assert "response-transformer" in content
+
+
+class TestXUserEmailHeader:
+    """APIゲートウェイ設計.md: X-User-Email ヘッダー転送の検証。"""
+
+    def test_x_user_email_in_global_plugins(self) -> None:
+        """APIゲートウェイ設計.md: post-function で X-User-Email を転送。"""
+        path = KONG / "plugins" / "global.yaml"
+        content = path.read_text(encoding="utf-8")
+        assert "X-User-Email" in content

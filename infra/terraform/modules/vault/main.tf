@@ -51,3 +51,43 @@ resource "vault_audit" "file" {
     log_raw   = "false"
   }
 }
+
+# ============================================================
+# Kubernetes Auth Backend
+# ============================================================
+
+# Enable Kubernetes authentication method for pod-based access
+resource "vault_auth_backend" "kubernetes" {
+  type = "kubernetes"
+  path = "kubernetes"
+}
+
+# System Tier role - bound to k1s0-system namespace
+resource "vault_kubernetes_auth_backend_role" "system" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "system"
+  bound_service_account_names      = ["*"]
+  bound_service_account_namespaces = ["k1s0-system"]
+  token_ttl                        = 3600
+  token_policies                   = ["system-read"]
+}
+
+# Business Tier role - bound to k1s0-business namespace
+resource "vault_kubernetes_auth_backend_role" "business" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "business"
+  bound_service_account_names      = ["*"]
+  bound_service_account_namespaces = ["k1s0-business"]
+  token_ttl                        = 3600
+  token_policies                   = ["business-read"]
+}
+
+# Service Tier role - bound to k1s0-service namespace
+resource "vault_kubernetes_auth_backend_role" "service" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "service"
+  bound_service_account_names      = ["*"]
+  bound_service_account_namespaces = ["k1s0-service"]
+  token_ttl                        = 3600
+  token_policies                   = ["service-read"]
+}

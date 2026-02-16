@@ -251,3 +251,289 @@ class TestJsonStandardLogFields:
             assert f'"{field}"' in content, (
                 f"可観測性設計.md に標準フィールド '{field}' が記載されていません"
             )
+
+
+class TestREDCustomMetrics:
+    """可観測性設計.md: RED メソッドのカスタムメトリクス定義の検証。"""
+
+    def test_doc_defines_grpc_server_handled_total(self) -> None:
+        """可観測性設計.md: grpc_server_handled_total カウンターが定義されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "grpc_server_handled_total" in doc
+
+    def test_doc_defines_grpc_server_handling_seconds(self) -> None:
+        """可観測性設計.md: grpc_server_handling_seconds ヒストグラムが定義されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "grpc_server_handling_seconds" in doc
+
+    def test_doc_defines_db_query_duration_seconds(self) -> None:
+        """可観測性設計.md: db_query_duration_seconds ヒストグラムが定義されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "db_query_duration_seconds" in doc
+
+    def test_doc_defines_kafka_messages_produced_total(self) -> None:
+        """可観測性設計.md: kafka_messages_produced_total カウンターが定義されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "kafka_messages_produced_total" in doc
+
+    def test_doc_defines_kafka_messages_consumed_total(self) -> None:
+        """可観測性設計.md: kafka_messages_consumed_total カウンターが定義されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "kafka_messages_consumed_total" in doc
+
+
+class TestUSEMethodMetrics:
+    """可観測性設計.md: USE メソッドのインフラメトリクス定義の検証。"""
+
+    def test_doc_defines_cpu_utilization_metric(self) -> None:
+        """可観測性設計.md: container_cpu_usage_seconds_total が定義されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "container_cpu_usage_seconds_total" in doc
+
+    def test_doc_defines_memory_saturation_metric(self) -> None:
+        """可観測性設計.md: container_memory_working_set_bytes が定義されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "container_memory_working_set_bytes" in doc
+
+    def test_doc_defines_disk_errors_metric(self) -> None:
+        """可観測性設計.md: node_disk_io_time_seconds_total が定義されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "node_disk_io_time_seconds_total" in doc
+
+
+class TestGrafanaDashboardAll8:
+    """可観測性設計.md: Grafana ダッシュボード全 8 種の定義検証。"""
+
+    EXPECTED_DASHBOARDS = [
+        "Overview", "Service Detail", "Infrastructure", "Kafka",
+        "Kong", "Istio", "Database", "SLO",
+    ]
+
+    def test_all_8_dashboards_documented(self) -> None:
+        """可観測性設計.md: 8 種のダッシュボードが設計書に記載されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        for db_name in self.EXPECTED_DASHBOARDS:
+            assert db_name in doc, (
+                f"可観測性設計.md にダッシュボード '{db_name}' が記載されていません"
+            )
+
+
+class TestGrafanaPanelPromQL:
+    """可観測性設計.md: Grafana パネルの PromQL 定義の検証。"""
+
+    def test_overview_request_rate_promql(self) -> None:
+        """可観測性設計.md: リクエスト数パネルの PromQL が定義されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "rate(http_requests_total[5m])" in doc
+
+    def test_overview_error_rate_promql(self) -> None:
+        """可観測性設計.md: エラーレートパネルの PromQL が定義されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert 'rate(http_requests_total{status=~"5.."}[5m])' in doc
+
+    def test_overview_p99_latency_promql(self) -> None:
+        """可観測性設計.md: P99 レイテンシパネルの PromQL が定義されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "histogram_quantile(0.99" in doc
+
+    def test_slo_error_budget_promql(self) -> None:
+        """可観測性設計.md: エラーバジェット残量パネルの PromQL が定義されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "slo:error_budget:remaining" in doc
+
+    def test_kafka_consumer_lag_promql(self) -> None:
+        """可観測性設計.md: Consumer Lag パネルの PromQL が定義されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "kafka_consumer_group_lag" in doc
+
+
+class TestEnvironmentAlertSuppression:
+    """可観測性設計.md: 環境別アラート抑制設定の検証。"""
+
+    def test_doc_defines_dev_no_alerts(self) -> None:
+        """可観測性設計.md: dev 環境は critical/warning ともに無効。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        # dev行に「無効」が2つあることを確認
+        lines = doc.split("\n")
+        dev_lines = [l for l in lines if "| dev" in l and "無効" in l]
+        assert len(dev_lines) >= 1, "dev 環境のアラート抑制定義が見つかりません"
+
+    def test_doc_defines_staging_critical_only(self) -> None:
+        """可観測性設計.md: staging 環境は critical のみ有効。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        lines = doc.split("\n")
+        staging_lines = [l for l in lines if "| staging" in l and "有効" in l and "無効" in l]
+        assert len(staging_lines) >= 1, "staging 環境のアラート抑制定義が見つかりません"
+
+    def test_doc_defines_prod_all_alerts(self) -> None:
+        """可観測性設計.md: prod 環境は全アラートを通知。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        lines = doc.split("\n")
+        prod_lines = [l for l in lines if "| prod" in l and "有効" in l]
+        assert len(prod_lines) >= 1, "prod 環境のアラート抑制定義が見つかりません"
+
+    def test_staging_warning_suppression_config(self) -> None:
+        """可観測性設計.md: staging の warning 抑制設定例が記載されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "environment: staging" in doc
+        assert "receiver: 'null'" in doc or 'receiver: "null"' in doc
+
+
+class TestAlertThresholdValues:
+    """可観測性設計.md: アラート閾値の具体値検証。"""
+
+    def test_system_warning_threshold(self) -> None:
+        """可観測性設計.md: system warning 閾値 > 0.1%（5分間）。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "> 0.001" in doc, "system warning 閾値 0.001 (0.1%) が見つかりません"
+
+    def test_system_critical_threshold(self) -> None:
+        """可観測性設計.md: system critical 閾値 > 1%（5分間）。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "> 0.01" in doc, "system critical 閾値 0.01 (1%) が見つかりません"
+
+    def test_business_service_warning_threshold(self) -> None:
+        """可観測性設計.md: business/service warning 閾値 > 0.2%（5分間）。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "> 0.002" in doc, "business/service warning 閾値 0.002 (0.2%) が見つかりません"
+
+    def test_business_service_critical_threshold(self) -> None:
+        """可観測性設計.md: business/service critical 閾値 > 5%（5分間）。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "> 0.05" in doc, "business/service critical 閾値 0.05 (5%) が見つかりません"
+
+    def test_alert_rules_for_5m(self) -> None:
+        """可観測性設計.md: アラートルールの for 期間が 5m。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "for: 5m" in doc
+
+
+class TestSLADefinition:
+    """可観測性設計.md: SLA 定義の検証。"""
+
+    def test_sla_system_availability(self) -> None:
+        """可観測性設計.md: system Tier 内部 SLA 可用性 99.9%。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        # SLA テーブル内に system 99.9% が記載されている
+        assert "99.9%" in doc
+
+    def test_sla_business_availability(self) -> None:
+        """可観測性設計.md: business Tier 内部 SLA 可用性 99.8%。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "99.8%" in doc
+
+    def test_sla_system_latency(self) -> None:
+        """可観測性設計.md: system Tier P99 レイテンシ < 500ms。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "< 500ms" in doc
+
+    def test_sla_escalation_defined(self) -> None:
+        """可観測性設計.md: SLA 違反時のエスカレーションが定義されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "エスカレーション" in doc
+        assert "ポストモーテム" in doc
+
+
+class TestOTelSDKInitPattern:
+    """可観測性設計.md: OpenTelemetry SDK 初期化パターンの検証。"""
+
+    def test_go_otel_init_pattern_in_doc(self) -> None:
+        """可観測性設計.md: Go の OTel 初期化パターンが記載されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "initTracer" in doc
+        assert "sdktrace.NewTracerProvider" in doc
+
+    def test_rust_otel_init_pattern_in_doc(self) -> None:
+        """可観測性設計.md: Rust の OTel 初期化パターンが記載されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "init_tracer" in doc
+        assert "TracerProvider::builder" in doc
+
+    def test_go_otel_exporter_grpc(self) -> None:
+        """可観測性設計.md: Go は OTLP gRPC エクスポーターを使用。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "otlptracegrpc" in doc
+
+    def test_rust_otel_exporter_tonic(self) -> None:
+        """可観測性設計.md: Rust は tonic ベースのエクスポーターを使用。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "with_tonic" in doc
+
+
+class TestAutoInstrumentation:
+    """可観測性設計.md: 自動インストルメンテーションの検証。"""
+
+    def test_go_otelhttp_middleware(self) -> None:
+        """可観測性設計.md: Go は otelhttp ミドルウェアを使用。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "otelhttp" in doc
+
+    def test_rust_tracing_opentelemetry(self) -> None:
+        """可観測性設計.md: Rust は tracing-opentelemetry を使用。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "tracing-opentelemetry" in doc
+
+
+class TestStructuredLogGoRustImpl:
+    """可観測性設計.md: 構造化ログ Go/Rust 実装パターンの検証。"""
+
+    def test_go_slog_implementation(self) -> None:
+        """可観測性設計.md: Go は slog による構造化ログ実装が記載されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "slog.NewJSONHandler" in doc
+        assert "NewLogger" in doc
+
+    def test_go_log_with_trace(self) -> None:
+        """可観測性設計.md: Go のトレースコンテキスト埋め込み関数が記載されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "LogWithTrace" in doc
+        assert "SpanContextFromContext" in doc
+
+    def test_rust_tracing_subscriber_impl(self) -> None:
+        """可観測性設計.md: Rust は tracing_subscriber による構造化ログ実装が記載されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "tracing_subscriber::registry" in doc
+        assert "init_logger" in doc
+
+    def test_rust_json_layer(self) -> None:
+        """可観測性設計.md: Rust の JSON レイヤーが記載されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "fmt::layer()" in doc
+        assert ".json()" in doc
+
+
+class TestTraceCorrelation:
+    """可観測性設計.md: トレース相関の検証。"""
+
+    def test_trace_correlation_design(self) -> None:
+        """可観測性設計.md: trace_id と span_id でログとトレースを相関させる設計が記載されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "trace_id" in doc
+        assert "span_id" in doc
+        assert "相関" in doc
+
+    def test_trace_propagation_flow(self) -> None:
+        """可観測性設計.md: Client → Kong → Service のトレース伝搬フローが記載されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "Client" in doc and "Kong" in doc and "Service A" in doc
+
+    def test_grafana_trace_drilldown(self) -> None:
+        """可観測性設計.md: Grafana でトレース統合表示・ドリルダウンが記載されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        assert "ドリルダウン" in doc
+
+
+class TestJsonLogMissingFields:
+    """可観測性設計.md: JSON ログの追加フィールド（method, path, status, duration_ms, user_id）の検証。"""
+
+    ADDITIONAL_FIELDS = [
+        "method", "path", "status", "duration_ms", "user_id",
+    ]
+
+    def test_additional_log_fields_in_doc(self) -> None:
+        """可観測性設計.md: JSON ログサンプルに追加フィールドが記載されている。"""
+        doc = (ROOT / "docs" / "可観測性設計.md").read_text(encoding="utf-8")
+        for field in self.ADDITIONAL_FIELDS:
+            assert f'"{field}"' in doc, (
+                f"可観測性設計.md に追加フィールド '{field}' が記載されていません"
+            )

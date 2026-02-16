@@ -292,6 +292,251 @@ class TestHelmKafkaRedisConfig:
         assert self.values["redis"]["host"] == ""
 
 
+class TestHelmLibraryChartVersioning:
+    """helm設計.md: Library Chart バージョニング方針テスト。"""
+
+    def test_chart_version_exists(self) -> None:
+        """helm設計.md: k1s0-common Chart.yaml に version が定義されていること。"""
+        path = HELM / "charts" / "k1s0-common" / "Chart.yaml"
+        with open(path, encoding="utf-8") as f:
+            chart = yaml.safe_load(f)
+        assert "version" in chart
+        # SemVer 形式: X.Y.Z
+        parts = chart["version"].split(".")
+        assert len(parts) == 3, f"version が SemVer 形式でありません: {chart['version']}"
+
+
+class TestHelmDevResourceValues:
+    """helm設計.md: values-dev.yaml リソース値テスト。"""
+
+    def setup_method(self) -> None:
+        path = HELM / "services" / "service" / "order" / "values-dev.yaml"
+        with open(path, encoding="utf-8") as f:
+            self.values = yaml.safe_load(f)
+
+    def test_dev_resource_requests_cpu(self) -> None:
+        assert str(self.values["resources"]["requests"]["cpu"]) == "100m"
+
+    def test_dev_resource_requests_memory(self) -> None:
+        assert str(self.values["resources"]["requests"]["memory"]) == "128Mi"
+
+    def test_dev_resource_limits_cpu(self) -> None:
+        assert str(self.values["resources"]["limits"]["cpu"]) == "500m"
+
+    def test_dev_resource_limits_memory(self) -> None:
+        assert str(self.values["resources"]["limits"]["memory"]) == "512Mi"
+
+    def test_dev_config_data(self) -> None:
+        """helm設計.md: values-dev.yaml の config.data に config.yaml が含まれること。"""
+        config_data = self.values["config"]["data"]
+        assert "config.yaml" in config_data
+        assert "dev" in config_data["config.yaml"]
+
+
+class TestHelmStagingResourceValues:
+    """helm設計.md: values-staging.yaml リソース値テスト。"""
+
+    def setup_method(self) -> None:
+        path = HELM / "services" / "service" / "order" / "values-staging.yaml"
+        with open(path, encoding="utf-8") as f:
+            self.values = yaml.safe_load(f)
+
+    def test_staging_resource_requests_cpu(self) -> None:
+        assert str(self.values["resources"]["requests"]["cpu"]) == "250m"
+
+    def test_staging_resource_requests_memory(self) -> None:
+        assert str(self.values["resources"]["requests"]["memory"]) == "256Mi"
+
+    def test_staging_resource_limits_cpu(self) -> None:
+        assert str(self.values["resources"]["limits"]["cpu"]) == "1000m"
+
+    def test_staging_resource_limits_memory(self) -> None:
+        assert str(self.values["resources"]["limits"]["memory"]) == "1Gi"
+
+    def test_staging_config_data(self) -> None:
+        """helm設計.md: values-staging.yaml の config.data に config.yaml が含まれること。"""
+        config_data = self.values["config"]["data"]
+        assert "config.yaml" in config_data
+        assert "staging" in config_data["config.yaml"]
+
+
+class TestHelmProdResourceValues:
+    """helm設計.md: values-prod.yaml リソース値テスト。"""
+
+    def setup_method(self) -> None:
+        path = HELM / "services" / "service" / "order" / "values-prod.yaml"
+        with open(path, encoding="utf-8") as f:
+            self.values = yaml.safe_load(f)
+
+    def test_prod_resource_requests_cpu(self) -> None:
+        assert str(self.values["resources"]["requests"]["cpu"]) == "500m"
+
+    def test_prod_resource_requests_memory(self) -> None:
+        assert str(self.values["resources"]["requests"]["memory"]) == "512Mi"
+
+    def test_prod_resource_limits_cpu(self) -> None:
+        assert str(self.values["resources"]["limits"]["cpu"]) == "2000m"
+
+    def test_prod_resource_limits_memory(self) -> None:
+        assert str(self.values["resources"]["limits"]["memory"]) == "2Gi"
+
+    def test_prod_config_data(self) -> None:
+        """helm設計.md: values-prod.yaml の config.data に config.yaml が含まれること。"""
+        config_data = self.values["config"]["data"]
+        assert "config.yaml" in config_data
+        assert "prod" in config_data["config.yaml"]
+
+
+class TestHelmDeploymentTemplate:
+    """helm設計.md: _deployment.tpl 内容詳細テスト。"""
+
+    def setup_method(self) -> None:
+        path = HELM / "charts" / "k1s0-common" / "templates" / "_deployment.tpl"
+        self.content = path.read_text(encoding="utf-8")
+
+    def test_deployment_kind(self) -> None:
+        assert "kind: Deployment" in self.content
+
+    def test_deployment_autoscaling_check(self) -> None:
+        """helm設計.md: autoscaling.enabled チェックが含まれること。"""
+        assert ".Values.autoscaling.enabled" in self.content
+
+    def test_deployment_image_template(self) -> None:
+        """helm設計.md: イメージテンプレートが registry/repository:tag 形式であること。"""
+        assert ".Values.image.registry" in self.content
+        assert ".Values.image.repository" in self.content
+        assert ".Values.image.tag" in self.content
+
+    def test_deployment_grpc_port(self) -> None:
+        """helm設計.md: grpcPort 条件分岐が含まれること。"""
+        assert ".Values.container.grpcPort" in self.content
+
+    def test_deployment_security_context(self) -> None:
+        """helm設計.md: securityContext が含まれること。"""
+        assert ".Values.podSecurityContext" in self.content
+        assert ".Values.containerSecurityContext" in self.content
+
+    def test_deployment_config_volume(self) -> None:
+        """helm設計.md: config ボリュームがマウントされること。"""
+        assert "config" in self.content
+        assert ".Values.config.mountPath" in self.content
+
+    def test_deployment_image_pull_secrets(self) -> None:
+        """helm設計.md: imagePullSecrets が含まれること。"""
+        assert ".Values.imagePullSecrets" in self.content
+
+    def test_deployment_service_account(self) -> None:
+        """helm設計.md: serviceAccountName が含まれること。"""
+        assert "serviceAccountName" in self.content
+
+
+class TestHelmServiceTemplate:
+    """helm設計.md: _service.tpl 内容詳細テスト。"""
+
+    def setup_method(self) -> None:
+        path = HELM / "charts" / "k1s0-common" / "templates" / "_service.tpl"
+        self.content = path.read_text(encoding="utf-8")
+
+    def test_service_kind(self) -> None:
+        assert "kind: Service" in self.content
+
+    def test_service_type(self) -> None:
+        assert ".Values.service.type" in self.content
+
+    def test_service_http_port(self) -> None:
+        assert "name: http" in self.content
+
+    def test_service_grpc_port(self) -> None:
+        """helm設計.md: gRPC ポートが条件分岐で含まれること。"""
+        assert ".Values.service.grpcPort" in self.content
+        assert "name: grpc" in self.content
+
+    def test_service_selector_labels(self) -> None:
+        assert "k1s0-common.selectorLabels" in self.content
+
+
+class TestHelmIngressTemplate:
+    """helm設計.md: _ingress.tpl ルーティング方針テスト。"""
+
+    def setup_method(self) -> None:
+        path = HELM / "charts" / "k1s0-common" / "templates" / "_ingress.tpl"
+        self.content = path.read_text(encoding="utf-8")
+
+    def test_ingress_enabled_check(self) -> None:
+        """helm設計.md: ingress.enabled チェックが含まれること。"""
+        assert ".Values.ingress.enabled" in self.content
+
+    def test_ingress_class_name_default_nginx(self) -> None:
+        """helm設計.md: ingressClassName のデフォルトが nginx であること。"""
+        assert '.Values.ingress.ingressClassName | default "nginx"' in self.content
+
+    def test_ingress_tls_support(self) -> None:
+        assert ".Values.ingress.tls" in self.content
+
+    def test_ingress_hosts_range(self) -> None:
+        assert ".Values.ingress.hosts" in self.content
+
+
+class TestHelmDeployCommandFormat:
+    """helm設計.md: デプロイコマンド形式テスト。"""
+
+    def test_values_yaml_supports_image_tag_override(self) -> None:
+        """helm設計.md: image.tag が空文字列でCI/CD上書き可能であること。"""
+        path = HELM / "services" / "service" / "order" / "values.yaml"
+        with open(path, encoding="utf-8") as f:
+            values = yaml.safe_load(f)
+        assert values["image"]["tag"] == ""
+
+
+class TestHelmImagePullSecrets:
+    """helm設計.md: imagePullSecrets テスト。"""
+
+    def test_image_pull_secrets_defined(self) -> None:
+        """helm設計.md: imagePullSecrets が harbor-pull-secret であること。"""
+        path = HELM / "services" / "service" / "order" / "values.yaml"
+        with open(path, encoding="utf-8") as f:
+            values = yaml.safe_load(f)
+        assert "imagePullSecrets" in values
+        names = [s["name"] for s in values["imagePullSecrets"]]
+        assert "harbor-pull-secret" in names
+
+
+class TestHelmGrpcPortDefault:
+    """helm設計.md: container.grpcPort デフォルト値テスト。"""
+
+    def test_grpc_port_default_null(self) -> None:
+        """helm設計.md: container.grpcPort のデフォルトが null であること。"""
+        path = HELM / "services" / "service" / "order" / "values.yaml"
+        with open(path, encoding="utf-8") as f:
+            values = yaml.safe_load(f)
+        assert values["container"]["grpcPort"] is None
+
+    def test_service_grpc_port_default_null(self) -> None:
+        """helm設計.md: service.grpcPort のデフォルトが null であること。"""
+        path = HELM / "services" / "service" / "order" / "values.yaml"
+        with open(path, encoding="utf-8") as f:
+            values = yaml.safe_load(f)
+        assert values["service"]["grpcPort"] is None
+
+
+class TestHelmServiceAccount:
+    """helm設計.md: serviceAccount 設定テスト。"""
+
+    def test_service_account_create(self) -> None:
+        """helm設計.md: serviceAccount.create がデフォルト true であること。"""
+        path = HELM / "services" / "service" / "order" / "values.yaml"
+        with open(path, encoding="utf-8") as f:
+            values = yaml.safe_load(f)
+        assert values["serviceAccount"]["create"] is True
+
+    def test_service_account_name_empty(self) -> None:
+        """helm設計.md: serviceAccount.name がデフォルト空文字列であること。"""
+        path = HELM / "services" / "service" / "order" / "values.yaml"
+        with open(path, encoding="utf-8") as f:
+            values = yaml.safe_load(f)
+        assert values["serviceAccount"]["name"] == ""
+
+
 class TestHelmKongValues:
     """APIゲートウェイ設計.md: Kong values.yaml 検証。"""
 
