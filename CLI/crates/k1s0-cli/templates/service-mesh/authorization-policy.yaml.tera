@@ -1,0 +1,55 @@
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ service_name }}-allow
+  namespace: {{ namespace }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ service_name }}
+  action: ALLOW
+  rules:
+{% if tier == "system" %}
+    # system 層: business・service・同一 Tier からのアクセスを許可
+    - from:
+        - source:
+            namespaces: ["k1s0-business", "k1s0-service"]
+    - from:
+        - source:
+            namespaces: ["k1s0-system"]
+{% elif tier == "business" %}
+    # business 層: service・同一 Tier からのアクセスを許可
+    - from:
+        - source:
+            namespaces: ["k1s0-service"]
+    - from:
+        - source:
+            namespaces: ["k1s0-business"]
+{% elif tier == "service" %}
+    # service 層: ingress・同一 Tier からのアクセスを許可
+    - from:
+        - source:
+            namespaces: ["ingress"]
+    - from:
+        - source:
+            namespaces: ["k1s0-service"]
+{% endif %}
+{% if kind == "bff" %}
+---
+# BFF 間の直接通信を禁止
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ service_name }}-deny-bff
+  namespace: {{ namespace }}
+spec:
+  action: DENY
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ service_name }}
+      app.kubernetes.io/component: bff
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/{{ namespace }}/sa/*-bff-sa"]
+{% endif %}

@@ -59,6 +59,18 @@ spec:
               containerPort: {{ .Values.container.grpcPort }}
               protocol: TCP
             {{- end }}
+          {{- if and .Values.probes .Values.probes.grpcHealthCheck .Values.probes.grpcHealthCheck.enabled }}
+          livenessProbe:
+            grpc:
+              port: {{ .Values.container.grpcPort | default 9090 }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            grpc:
+              port: {{ .Values.container.grpcPort | default 9090 }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          {{- else }}
           {{- with .Values.probes.liveness }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -66,6 +78,7 @@ spec:
           {{- with .Values.probes.readiness }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

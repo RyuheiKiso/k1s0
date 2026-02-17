@@ -1,0 +1,47 @@
+# {{ service_name }}
+
+{{ service_name_pascal }} サーバー。
+
+## セットアップ
+
+```bash
+# ビルド
+cargo build
+
+# 開発サーバー起動
+cargo run
+
+# テスト実行
+cargo test
+```
+
+## ディレクトリ構成
+
+```
+.
+├── src/
+│   ├── main.rs           # エントリポイント
+│   ├── domain/           # ドメインモデル・リポジトリ trait
+│   ├── usecase/          # ビジネスロジック
+│   ├── adapter/handler/  # ハンドラー（REST / gRPC / GraphQL）
+│   └── infra/            # DB・メッセージング・設定
+├── config/               # 設定ファイル
+├── tests/                # 統合テスト
+├── Cargo.toml
+├── Dockerfile
+└── README.md
+```
+
+## API
+
+{% if api_styles is containing("rest") %}
+- **方式**: REST（axum + utoipa）
+{% elif api_styles is containing("grpc") %}
+- **方式**: gRPC（tonic）
+{% elif api_styles is containing("graphql") %}
+- **方式**: GraphQL（async-graphql）
+{% endif %}
+
+## 設定
+
+`config/config.yaml` で接続先を管理する。環境別の上書きは `config/config.dev.yaml` を参照。

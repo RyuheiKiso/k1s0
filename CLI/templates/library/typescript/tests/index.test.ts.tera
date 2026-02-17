@@ -1,8 +1,0 @@
-import { describe, it, expect } from 'vitest';
-
-describe('{{ service_name }}', () => {
-  it('should be defined', () => {
-    // TODO: テストを実装する
-    expect(true).toBe(true);
-  });
-});

@@ -1,0 +1,141 @@
+use axum::{routing::get, Json, Router};
+use serde_json::json;
+use std::net::SocketAddr;
+use tower_http::cors::CorsLayer;
+use tower_http::trace::TraceLayer;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+mod adapter;
+mod domain;
+mod infra;
+mod usecase;
+
+use infra::config::Config;
+
+#[tokio::main]
+async fn main() {
+    // --- Logger ---
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::try_from_default_env()
+            .unwrap_or_else(|_| "info".into()))
+        .with(tracing_subscriber::fmt::layer().json())
+        .init();
+
+    // --- Config ---
+    let config = Config::load("config/config.yaml")
+        .expect("Failed to load config");
+
+{% if has_database %}
+    // --- Database ---
+    let pool = infra::persistence::create_pool(&config.database)
+        .await
+        .expect("Failed to connect to database");
+{% endif %}
+
+{% if has_kafka %}
+    // --- Kafka ---
+    let producer = infra::messaging::Producer::new(&config.kafka);
+{% endif %}
+
+    // --- DI: Repository → UseCase → Handler ---
+{% if has_database %}
+    let repo = infra::persistence::Repository::new(pool.clone());
+{% endif %}
+    let uc = usecase::{{ service_name_pascal }}UseCase::new(
+{% if has_database %}
+        repo,
+{% endif %}
+    );
+    let handler = adapter::handler::AppHandler::new(uc);
+
+{% if api_styles is containing("grpc") %}
+    // --- gRPC Server ---
+    let grpc_handler = adapter::handler::grpc::{{ service_name_pascal }}GrpcService::new(
+        usecase::{{ service_name_pascal }}UseCase::new(
+{% if has_database %}
+            infra::persistence::Repository::new(pool.clone()),
+{% endif %}
+        ),
+    );
+
+    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+    health_reporter.set_serving::<adapter::handler::grpc::proto::{{ service_name_snake }}_service_server::{{ service_name_pascal }}ServiceServer<adapter::handler::grpc::{{ service_name_pascal }}GrpcService>>().await;
+
+    let grpc_addr: SocketAddr = format!("0.0.0.0:{}", config.server.grpc_port.unwrap_or(50051))
+        .parse()
+        .expect("Invalid gRPC address");
+    tracing::info!("gRPC server starting on {}", grpc_addr);
+
+    tokio::spawn(async move {
+        tonic::transport::Server::builder()
+            .add_service(health_service)
+            .add_service(adapter::handler::grpc::proto::{{ service_name_snake }}_service_server::{{ service_name_pascal }}ServiceServer::new(grpc_handler))
+            .serve(grpc_addr)
+            .await
+            .expect("gRPC server error");
+    });
+{% endif %}
+
+    // --- Router ---
+    let app = Router::new()
+        .route("/healthz", get(|| async { Json(json!({"status": "ok"})) }))
+        .route("/readyz", get({
+{% if has_database %}
+            let pool = pool.clone();
+{% endif %}
+            move || async move {
+{% if has_database %}
+                match sqlx::query("SELECT 1").execute(&pool).await {
+                    Ok(_) => Json(json!({"status": "ready"})),
+                    Err(_) => Json(json!({"status": "not ready"})),
+                }
+{% else %}
+                Json(json!({"status": "ready"}))
+{% endif %}
+            }
+        }))
+        .merge(handler.routes())
+        .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive());
+
+    // --- Server ---
+    let addr: SocketAddr = format!("0.0.0.0:{}", config.server.port)
+        .parse()
+        .expect("Invalid address");
+    tracing::info!("server starting on {}", addr);
+
+    let listener = tokio::net::TcpListener::bind(addr)
+        .await
+        .expect("Failed to bind");
+
+    // --- Graceful Shutdown ---
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .expect("Server error");
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("Failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+    tracing::info!("shutdown signal received");
+}

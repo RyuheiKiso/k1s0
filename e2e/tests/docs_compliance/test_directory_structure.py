@@ -44,7 +44,7 @@ class TestCLIStructure:
         [
             "CLI/src/main.rs",
             "CLI/src/commands/init.rs",
-            "CLI/src/commands/generate.rs",
+            "CLI/src/commands/generate/mod.rs",
             "CLI/src/commands/build.rs",
             "CLI/src/commands/test_cmd.rs",  # test.rs は予約語のため test_cmd.rs
             "CLI/src/commands/deploy.rs",
@@ -213,8 +213,8 @@ class TestTierDependencyDirection:
         assert "{{ rust_crate }}" in content
 
     def test_generate_tier_aware_path(self) -> None:
-        """tier-architecture.md: generate.rs が Tier を考慮したパス生成を行う。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        """tier-architecture.md: generate モジュールが Tier を考慮したパス生成を行う。"""
+        content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
         # Tier に応じたディレクトリ構造を生成する
         assert "Tier::System" in content
         assert "Tier::Business" in content
@@ -737,12 +737,12 @@ class TestTierKindRestrictions:
 
     def test_cli_client_not_available_for_system(self) -> None:
         """tier-architecture.md: CLI でクライアントの system Tier が選択不可。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
         assert "Kind::Client => vec![Tier::Business, Tier::Service]" in content
 
     def test_cli_library_not_available_for_service(self) -> None:
         """tier-architecture.md: CLI でライブラリの service Tier が選択不可。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
         assert "Kind::Library => vec![Tier::System, Tier::Business]" in content
 
 
@@ -844,7 +844,7 @@ class TestRdbmsSelection:
 
     def test_rdbms_choices_in_cli(self) -> None:
         """tier-architecture.md: CLI に RDBMS 選択肢が実装されている。"""
-        content = (CLI_SRC / "commands" / "generate.rs").read_text(encoding="utf-8")
+        content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
         assert 'Rdbms::PostgreSQL => "PostgreSQL"' in content
         assert 'Rdbms::MySQL => "MySQL"' in content
         assert 'Rdbms::SQLite => "SQLite"' in content

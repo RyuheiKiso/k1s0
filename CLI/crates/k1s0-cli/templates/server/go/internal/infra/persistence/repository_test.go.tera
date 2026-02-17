@@ -1,0 +1,55 @@
+{% if has_database %}
+package persistence
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+{% if database_type == "postgresql" %}
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
+{% endif %}
+{% if database_type == "mysql" %}
+	"github.com/testcontainers/testcontainers-go/modules/mysql"
+{% endif %}
+)
+
+func TestRepositoryIntegration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
+	ctx := context.Background()
+{% if database_type == "postgresql" %}
+	container, err := postgres.Run(ctx,
+		"postgres:17-alpine",
+		postgres.WithDatabase("testdb"),
+		postgres.WithUsername("test"),
+		postgres.WithPassword("test"),
+	)
+{% endif %}
+{% if database_type == "mysql" %}
+	container, err := mysql.Run(ctx,
+		"mysql:8",
+		mysql.WithDatabase("testdb"),
+		mysql.WithUsername("test"),
+		mysql.WithPassword("test"),
+	)
+{% endif %}
+{% if database_type == "sqlite" %}
+	// SQLite は testcontainers 不要
+	_ = ctx
+	t.Log("SQLite integration test placeholder")
+	assert.True(t, true)
+	return
+{% endif %}
+{% if database_type != "sqlite" %}
+	require.NoError(t, err)
+	defer func() { _ = container.Terminate(ctx) }()
+
+	// マイグレーション実行 → Repository 初期化 → CRUD テスト (スケルトン)
+	assert.NotNil(t, container)
+{% endif %}
+}
+{% endif %}

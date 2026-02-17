@@ -1,0 +1,77 @@
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: {{ service_name }}
+  namespace: {{ namespace }}
+spec:
+  hosts:
+    - {{ service_name }}
+  http:
+    - route:
+        - destination:
+            host: {{ service_name }}
+            port:
+              number: {{ server_port }}
+            subset: stable
+          weight: 100
+        - destination:
+            host: {{ service_name }}
+            port:
+              number: {{ server_port }}
+            subset: canary
+          weight: 0
+{% if tier == "system" %}
+      timeout: 5s
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: "5xx,reset,connect-failure"
+{% elif tier == "business" %}
+      timeout: 10s
+      retries:
+        attempts: 3
+        perTryTimeout: 3s
+        retryOn: "5xx,reset,connect-failure"
+{% elif tier == "service" %}
+      timeout: 15s
+      retries:
+        attempts: 2
+        perTryTimeout: 5s
+        retryOn: "5xx,reset,connect-failure,retriable-4xx"
+{% endif %}
+{% if api_styles is containing("grpc") %}
+    - match:
+        - port: {{ grpc_port }}
+      route:
+        - destination:
+            host: {{ service_name }}
+            port:
+              number: {{ grpc_port }}
+            subset: stable
+          weight: 100
+        - destination:
+            host: {{ service_name }}
+            port:
+              number: {{ grpc_port }}
+            subset: canary
+          weight: 0
+{% if tier == "system" %}
+      timeout: 5s
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: "cancelled,deadline-exceeded,internal,resource-exhausted,unavailable"
+{% elif tier == "business" %}
+      timeout: 10s
+      retries:
+        attempts: 3
+        perTryTimeout: 3s
+        retryOn: "cancelled,deadline-exceeded,internal,resource-exhausted,unavailable"
+{% elif tier == "service" %}
+      timeout: 15s
+      retries:
+        attempts: 2
+        perTryTimeout: 5s
+        retryOn: "cancelled,deadline-exceeded,internal,resource-exhausted,unavailable"
+{% endif %}
+{% endif %}

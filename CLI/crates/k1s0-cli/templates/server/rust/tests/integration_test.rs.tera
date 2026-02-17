@@ -1,0 +1,94 @@
+{% if api_styles is containing("rest") %}
+use axum::body::Body;
+use axum::http::{Request, StatusCode};
+use tower::ServiceExt;
+
+use {{ rust_crate }}::adapter::handler::rest::AppHandler;
+use {{ rust_crate }}::usecase::{{ service_name_pascal }}UseCase;
+{% if has_database %}
+use {{ rust_crate }}::domain::repository::Mock{{ service_name_pascal }}Repository;
+use {{ rust_crate }}::domain::model::{{ service_name_pascal }}Entity;
+{% endif %}
+
+#[tokio::test]
+async fn test_list_returns_ok() {
+{% if has_database %}
+    let mut mock_repo = Mock{{ service_name_pascal }}Repository::new();
+    mock_repo.expect_find_all()
+        .returning(|| Ok(vec![]));
+    let uc = {{ service_name_pascal }}UseCase::new(mock_repo);
+{% else %}
+    let uc = {{ service_name_pascal }}UseCase::new();
+{% endif %}
+    let handler = AppHandler::new(uc);
+    let app = handler.routes();
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/{{ service_name }}")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_get_by_id_not_found() {
+{% if has_database %}
+    let mut mock_repo = Mock{{ service_name_pascal }}Repository::new();
+    mock_repo.expect_find_by_id()
+        .returning(|_| Ok(None));
+    let uc = {{ service_name_pascal }}UseCase::new(mock_repo);
+{% else %}
+    let uc = {{ service_name_pascal }}UseCase::new();
+{% endif %}
+    let handler = AppHandler::new(uc);
+    let app = handler.routes();
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/{{ service_name }}/nonexistent")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+{% endif %}
+{% if api_styles is containing("grpc") %}
+use {{ rust_crate }}::usecase::{{ service_name_pascal }}UseCase;
+
+#[tokio::test]
+async fn test_grpc_placeholder() {
+    // tonic テストクライアントを使用した統合テスト (スケルトン)
+    let _uc = {{ service_name_pascal }}UseCase::new(
+{% if has_database %}
+        {{ rust_crate }}::domain::repository::Mock{{ service_name_pascal }}Repository::new(),
+{% endif %}
+    );
+    assert!(true);
+}
+{% endif %}
+{% if api_styles is containing("graphql") %}
+use {{ rust_crate }}::adapter::handler::graphql::build_schema;
+use {{ rust_crate }}::usecase::{{ service_name_pascal }}UseCase;
+
+#[tokio::test]
+async fn test_graphql_schema_creation() {
+    let uc = {{ service_name_pascal }}UseCase::new(
+{% if has_database %}
+        {{ rust_crate }}::domain::repository::Mock{{ service_name_pascal }}Repository::new(),
+{% endif %}
+    );
+    let schema = build_schema(uc);
+    let result = schema.execute("{ __typename }").await;
+    assert!(result.errors.is_empty());
+}
+{% endif %}

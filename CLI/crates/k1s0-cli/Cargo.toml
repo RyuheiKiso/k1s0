@@ -1,0 +1,30 @@
+[package]
+name = "k1s0-cli"
+version = "0.1.0"
+edition = "2021"
+description = "k1s0 project CLI tool"
+
+[dependencies]
+k1s0-core = { path = "../k1s0-core" }
+dialoguer = "0.11"
+tera = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+clap = { version = "4", features = ["derive"] }
+heck = "0.5"
+console = "0.15"
+colored = "2"
+walkdir = "2"
+thiserror = "2"
+regex = "1"
+anyhow = "1"
+ctrlc = "3"
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+tempfile = "3"
+pretty_assertions = "1"
+insta = { version = "1", features = ["yaml"] }

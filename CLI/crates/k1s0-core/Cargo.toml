@@ -1,0 +1,24 @@
+[package]
+name = "k1s0-core"
+version = "0.1.0"
+edition = "2021"
+description = "k1s0 shared core library"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+anyhow = "1"
+thiserror = "2"
+regex = "1"
+heck = "0.5"
+tera = "1"
+walkdir = "2"
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+tempfile = "3"
+pretty_assertions = "1"
+insta = { version = "1", features = ["yaml"] }

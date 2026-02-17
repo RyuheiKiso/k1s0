@@ -11,12 +11,13 @@ CI/CD 設計の全体像は [CI-CD設計](CI-CD設計.md) を参照。
 | kind       | CI ワークフロー | Deploy ワークフロー |
 | ---------- | --------------- | ------------------- |
 | `server`   | 生成する        | 生成する            |
+| `bff`      | 生成する        | 生成する            |
 | `client`   | 生成する        | 生成しない          |
 | `library`  | 生成する        | 生成しない          |
 | `database` | 生成する        | 生成しない          |
 
 - **CI**: 全 kind で生成する。lint → test → build → security scan のパイプラインを構成する。
-- **Deploy**: `server` kind のみ生成する。Docker イメージのビルド・プッシュと Helm による環境別デプロイを構成する。
+- **Deploy**: `server` および `bff` kind で生成する。Docker イメージのビルド・プッシュと Helm による環境別デプロイを構成する。
 
 ## 配置パス
 
@@ -34,7 +35,8 @@ CI/CD 設計の全体像は [CI-CD設計](CI-CD設計.md) を参照。
 | テンプレートファイル | 生成先                                           | 説明                              |
 | -------------------- | ------------------------------------------------ | --------------------------------- |
 | `ci.yaml.tera`       | `.github/workflows/{{ service_name }}-ci.yaml`     | CI ワークフロー                   |
-| `deploy.yaml.tera`   | `.github/workflows/{{ service_name }}-deploy.yaml` | Deploy ワークフロー（server のみ）|
+| `deploy.yaml.tera`   | `.github/workflows/{{ service_name }}-deploy.yaml` | Deploy ワークフロー（server / bff）|
+| `dependabot.yml.tera` | `.github/dependabot.yml`                          | Dependabot設定（言語別のパッケージエコシステム定義） |
 
 ### ディレクトリ構成
 
@@ -43,7 +45,8 @@ CLI/
 └── templates/
     └── cicd/
         ├── ci.yaml.tera
-        └── deploy.yaml.tera
+        ├── deploy.yaml.tera
+        └── dependabot.yml.tera
 ```
 
 ## 使用するテンプレート変数
@@ -58,8 +61,7 @@ CI/CD テンプレートで使用する変数を以下に示す。変数の定�
 | `language`           | String   | 用  | 用     | 言語別ステップの分岐                       |
 | `kind`               | String   | 用  | 用     | Deploy 生成判定、ビルドステップの分岐      |
 | `tier`               | String   | —   | 用     | Docker プロジェクト名の導出                |
-| `api_style`          | String   | 用  | —      | gRPC 時の buf lint ステップ追加            |
-| `api_styles`         | [String] | 用  | —      | 複数 API スタイル対応時の分岐              |
+| `api_styles`         | [String] | 用  | —      | gRPC 時の buf lint ステップ追加等、API スタイル分岐 |
 | `has_database`       | bool     | 用  | —      | DB マイグレーションテストステップの追加    |
 | `database_type`      | String   | 用  | —      | DB 固有のマイグレーションツール選択        |
 | `docker_registry`    | String   | —   | 用     | Docker レジストリ URL                      |
@@ -130,7 +132,7 @@ jobs:
 lint → test → build → security-scan (trivy)
 ```
 
-全 kind（server, client, library, database）で生成される。言語と kind に応じてステップが異なる。
+全 kind（server, bff, client, library, database）で生成される。言語と kind に応じてステップが異なる。
 
 ### ワークフロー基本構造
 
@@ -347,10 +349,10 @@ concurrency:
 
 #### gRPC 使用時（buf lint）
 
-`api_style == "grpc"` または `api_styles` に `"grpc"` が含まれる場合、lint ジョブに buf lint ステップを追加する。
+`api_styles` に `"grpc"` が含まれる場合、lint ジョブに buf lint ステップを追加する。
 
 ```tera
-{% if api_style == "grpc" or "grpc" in api_styles %}
+{% if api_styles is containing("grpc") %}
   proto-lint:
     runs-on: ubuntu-latest
     steps:
@@ -445,9 +447,65 @@ concurrency:
 
 ---
 
+## Dependabot 設定仕様（dependabot.yml.tera）
+
+言語とフレームワークに応じて、Dependabot の自動依存関係更新設定を生成する。Docker と GitHub Actions のエコシステムは全 kind で共通で含まれる。
+
+### テンプレート内容
+
+```tera
+version: 2
+updates:
+{% if language == "go" %}
+  - package-ecosystem: gomod
+    directory: "/{{ module_path }}"
+    schedule:
+      interval: weekly
+{% endif %}
+{% if language == "rust" %}
+  - package-ecosystem: cargo
+    directory: "/{{ module_path }}"
+    schedule:
+      interval: weekly
+{% endif %}
+{% if language == "typescript" or framework == "react" %}
+  - package-ecosystem: npm
+    directory: "/{{ module_path }}"
+    schedule:
+      interval: weekly
+{% endif %}
+{% if language == "dart" or framework == "flutter" %}
+  - package-ecosystem: pub
+    directory: "/{{ module_path }}"
+    schedule:
+      interval: weekly
+{% endif %}
+  - package-ecosystem: docker
+    directory: "/{{ module_path }}"
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+```
+
+### エコシステム選択ルール
+
+| 条件                                              | パッケージエコシステム |
+| ------------------------------------------------- | ---------------------- |
+| `language == "go"`                                | `gomod`                |
+| `language == "rust"`                              | `cargo`                |
+| `language == "typescript"` or `framework == "react"` | `npm`                  |
+| `language == "dart"` or `framework == "flutter"`  | `pub`                  |
+| 共通（全 kind）                                   | `docker`               |
+| 共通（全 kind）                                   | `github-actions`       |
+
+---
+
 ## Deploy ワークフロー仕様（deploy.yaml.tera）
 
-`kind == "server"` の場合のみ生成される。main ブランチへのマージ時に、Docker イメージのビルド・プッシュと Helm による段階的デプロイを実行する。
+`kind == "server"` または `kind == "bff"` の場合に生成される。main ブランチへのマージ時に、Docker イメージのビルド・プッシュと Helm による段階的デプロイを実行する。
 
 ### デプロイパイプライン構成
 
@@ -533,6 +591,35 @@ env:
             ${{ env.REGISTRY }}/{{ docker_project }}/{{ service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
         env:
           COSIGN_EXPERIMENTAL: "1"
+{% endraw %}
+```
+
+### Docker イメージ Trivy スキャン
+
+build-and-push ジョブ内で、Docker イメージに対する Trivy 脆弱性スキャンを実施する。CI ワークフローのファイルシステムスキャンとは異なり、ビルド済みイメージ内のパッケージを検査する。
+
+```tera
+      - name: Trivy image scan
+{% raw %}
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/{{ docker_project }}/{{ service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+          severity: HIGH,CRITICAL
+          exit-code: 1
+{% endraw %}
+```
+
+### SBOM（Software Bill of Materials）生成
+
+build-and-push ジョブ内で、ビルド済み Docker イメージから SBOM を生成する。SBOM はソフトウェアサプライチェーンの透明性を確保するために使用される。
+
+```tera
+      - name: Generate SBOM
+{% raw %}
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.REGISTRY }}/{{ docker_project }}/{{ service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+          output-file: sbom.spdx.json
 {% endraw %}
 ```
 
@@ -721,10 +808,11 @@ CLI の対話フローで選択されたオプションに応じて、ワーク�
 | ------------------------ | --------------------------------- | ------------------------------------------------- |
 | 言語 (`language`)        | `go` / `rust`                     | 言語固有の lint → test → build ステップ           |
 | フレームワーク (`framework`) | `react` / `flutter`              | クライアント固有の lint → test → build ステップ   |
-| API 方式 (`api_style`)   | `grpc`                            | buf lint + breaking change detection ステップ追加 |
+| API 方式 (`api_styles`)  | `grpc` を含む                     | buf lint + breaking change detection ステップ追加 |
 | DB 有無 (`has_database`) | `true`                            | DB マイグレーションテストステップ追加             |
 | DB 種別 (`database_type`)| `postgresql` / `mysql` / `sqlite` | service コンテナの種別選択                        |
 | kind (`kind`)            | `server`                          | Deploy ワークフローの生成                         |
+| kind (`kind`)            | `bff`                             | Deploy ワークフローの生成                         |
 
 ---
 
@@ -740,7 +828,7 @@ CLI の対話フローで選択されたオプションに応じて、ワーク�
   "language": "go",
   "kind": "server",
   "tier": "service",
-  "api_style": "rest",
+  "api_styles": ["rest"],
   "has_database": true,
   "database_type": "postgresql",
   "docker_registry": "harbor.internal.example.com",
@@ -762,7 +850,7 @@ CLI の対話フローで選択されたオプションに応じて、ワーク�
   "language": "rust",
   "kind": "server",
   "tier": "system",
-  "api_style": "grpc",
+  "api_styles": ["grpc"],
   "has_database": false,
   "docker_registry": "harbor.internal.example.com",
   "docker_project": "k1s0-system"
@@ -772,6 +860,28 @@ CLI の対話フローで選択されたオプションに応じて、ワーク�
 生成されるファイル:
 - `.github/workflows/auth-service-ci.yaml` — lint (clippy + rustfmt) → proto-lint (buf) → test → build → security-scan
 - `.github/workflows/auth-service-deploy.yaml` — build-and-push → deploy-dev → deploy-staging → deploy-prod
+
+### Go BFF（GraphQL）の場合
+
+入力:
+```json
+{
+  "service_name": "order-bff",
+  "module_path": "regions/service/order/bff/go",
+  "language": "go",
+  "kind": "bff",
+  "tier": "service",
+  "api_styles": ["graphql"],
+  "has_database": false,
+  "docker_registry": "harbor.internal.example.com",
+  "docker_project": "k1s0-service"
+}
+```
+
+生成されるファイル:
+- `.github/workflows/order-bff-ci.yaml` — lint (golangci-lint) → test → build → security-scan
+- `.github/workflows/order-bff-deploy.yaml` — build-and-push (Trivy image scan + SBOM 生成含む) → deploy-dev → deploy-staging → deploy-prod
+- `.github/dependabot.yml` — gomod + docker + github-actions エコシステム
 
 ### React クライアント（Deploy なし）の場合
 
@@ -797,6 +907,7 @@ CLI の対話フローで選択されたオプションに応じて、ワーク�
 - [CI-CD設計](CI-CD設計.md) — CI/CD パイプラインの全体設計
 - [テンプレートエンジン仕様](テンプレートエンジン仕様.md) — テンプレート変数・条件分岐・フィルタの仕様
 - [テンプレート仕様-サーバー](テンプレート仕様-サーバー.md) — サーバーテンプレート仕様
+- [テンプレート仕様-BFF](テンプレート仕様-BFF.md) — BFF テンプレート仕様
 - [テンプレート仕様-クライアント](テンプレート仕様-クライアント.md) — クライアントテンプレート仕様
 - [テンプレート仕様-ライブラリ](テンプレート仕様-ライブラリ.md) — ライブラリテンプレート仕様
 - [テンプレート仕様-データベース](テンプレート仕様-データベース.md) — データベーステンプレート仕様

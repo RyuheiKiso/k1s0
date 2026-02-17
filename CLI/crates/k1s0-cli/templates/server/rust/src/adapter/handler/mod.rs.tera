@@ -1,0 +1,10 @@
+{% if api_styles is containing("rest") %}
+mod rest;
+pub use rest::AppHandler;
+{% elif api_styles is containing("grpc") %}
+mod grpc;
+pub use grpc::{{ service_name_pascal }}GrpcService as AppHandler;
+{% elif api_styles is containing("graphql") %}
+mod graphql;
+pub use graphql::{build_schema, {{ service_name_pascal }}Schema, QueryRoot};
+{% endif %}

@@ -1,0 +1,77 @@
+use std::sync::Arc;
+
+use crate::domain::model::{{ service_name_pascal }}Entity;
+{% if has_database %}
+use crate::domain::repository::{{ service_name_pascal }}Repository;
+{% endif %}
+
+/// {{ service_name_pascal }}UseCase はビジネスロジックを提供する。
+pub struct {{ service_name_pascal }}UseCase {
+{% if has_database %}
+    repo: Arc<dyn {{ service_name_pascal }}Repository>,
+{% endif %}
+}
+
+impl {{ service_name_pascal }}UseCase {
+    pub fn new(
+{% if has_database %}
+        repo: impl {{ service_name_pascal }}Repository + 'static,
+{% endif %}
+    ) -> Self {
+        Self {
+{% if has_database %}
+            repo: Arc::new(repo),
+{% endif %}
+        }
+    }
+
+    pub async fn get_by_id(&self, id: &str) -> anyhow::Result<Option<{{ service_name_pascal }}Entity>> {
+{% if has_database %}
+        self.repo.find_by_id(id).await
+{% else %}
+        Ok(Some({{ service_name_pascal }}Entity {
+            id: id.to_string(),
+            name: "placeholder".to_string(),
+            description: None,
+            status: "active".to_string(),
+            created_at: String::new(),
+            updated_at: String::new(),
+        }))
+{% endif %}
+    }
+
+    pub async fn get_all(&self) -> anyhow::Result<Vec<{{ service_name_pascal }}Entity>> {
+{% if has_database %}
+        self.repo.find_all().await
+{% else %}
+        Ok(vec![])
+{% endif %}
+    }
+
+    pub async fn create(&self, entity: &{{ service_name_pascal }}Entity) -> anyhow::Result<()> {
+{% if has_database %}
+        self.repo.create(entity).await
+{% else %}
+        let _ = entity;
+        Ok(())
+{% endif %}
+    }
+
+    pub async fn update(&self, entity: &{{ service_name_pascal }}Entity) -> anyhow::Result<()> {
+{% if has_database %}
+        self.repo.update(entity).await
+{% else %}
+        let _ = entity;
+        Ok(())
+{% endif %}
+    }
+
+    pub async fn delete(&self, id: &str) -> anyhow::Result<()> {
+{% if has_database %}
+        self.repo.delete(id).await
+{% else %}
+        let _ = id;
+        Ok(())
+{% endif %}
+    }
+}

@@ -1,0 +1,175 @@
+{% if api_styles is containing("rest") %}
+package handler
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+{% if has_database %}
+	"go.uber.org/mock/gomock"
+
+	"{{ go_module }}/internal/domain/model"
+	"{{ go_module }}/internal/domain/repository"
+{% endif %}
+	"{{ go_module }}/internal/usecase"
+)
+
+func setupRouter(t *testing.T) (*gin.Engine, func()) {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+{% if has_database %}
+	ctrl := gomock.NewController(t)
+	mockRepo := repository.NewMock{{ service_name_pascal }}Repository(ctrl)
+	mockRepo.EXPECT().
+		FindAll(gomock.Any()).
+		Return([]*model.{{ service_name_pascal }}Entity{
+			{ID: "1", Name: "test"},
+		}, nil).AnyTimes()
+	mockRepo.EXPECT().
+		FindByID(gomock.Any(), "1").
+		Return(&model.{{ service_name_pascal }}Entity{ID: "1", Name: "test"}, nil).AnyTimes()
+	uc := usecase.New{{ service_name_pascal }}UseCase(mockRepo)
+	cleanup := func() { ctrl.Finish() }
+{% else %}
+	uc := usecase.New{{ service_name_pascal }}UseCase()
+	cleanup := func() {}
+{% endif %}
+	h := NewHandler(uc)
+	r := gin.New()
+	h.RegisterRoutes(r)
+	return r, cleanup
+}
+
+func TestList(t *testing.T) {
+	r, cleanup := setupRouter(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/{{ service_name }}", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetByID(t *testing.T) {
+	r, cleanup := setupRouter(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/{{ service_name }}/1", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestCreate(t *testing.T) {
+	r, cleanup := setupRouter(t)
+	defer cleanup()
+
+	body := `{"name":"test","description":"desc"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/{{ service_name }}", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+{% endif %}
+{% if api_styles is containing("grpc") %}
+package handler
+
+import (
+	"context"
+	"net"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/test/bufconn"
+
+{% if has_database %}
+	"go.uber.org/mock/gomock"
+
+	"{{ go_module }}/internal/domain/repository"
+{% endif %}
+	"{{ go_module }}/internal/usecase"
+)
+
+const bufSize = 1024 * 1024
+
+func setupGRPCServer(t *testing.T) (*grpc.ClientConn, func()) {
+	t.Helper()
+	lis := bufconn.Listen(bufSize)
+{% if has_database %}
+	ctrl := gomock.NewController(t)
+	mockRepo := repository.NewMock{{ service_name_pascal }}Repository(ctrl)
+	uc := usecase.New{{ service_name_pascal }}UseCase(mockRepo)
+	cleanup := func() { ctrl.Finish() }
+{% else %}
+	uc := usecase.New{{ service_name_pascal }}UseCase()
+	cleanup := func() {}
+{% endif %}
+	_ = uc // gRPC サービス登録のスケルトン
+	s := grpc.NewServer()
+	go func() { _ = s.Serve(lis) }()
+
+	conn, err := grpc.NewClient("passthrough:///bufnet",
+		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+			return lis.Dial()
+		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	require.NoError(t, err)
+	teardown := func() {
+		conn.Close()
+		s.Stop()
+		cleanup()
+	}
+	return conn, teardown
+}
+
+func TestGRPCPlaceholder(t *testing.T) {
+	conn, teardown := setupGRPCServer(t)
+	defer teardown()
+
+	assert.NotNil(t, conn)
+	// gRPC クライアントを使用したテスト (スケルトン)
+}
+{% endif %}
+{% if api_styles is containing("graphql") %}
+package handler
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+{% if has_database %}
+	"go.uber.org/mock/gomock"
+
+	"{{ go_module }}/internal/domain/repository"
+{% endif %}
+	"{{ go_module }}/internal/usecase"
+)
+
+func TestGraphQLResolverCreation(t *testing.T) {
+{% if has_database %}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := repository.NewMock{{ service_name_pascal }}Repository(ctrl)
+	uc := usecase.New{{ service_name_pascal }}UseCase(mockRepo)
+{% else %}
+	uc := usecase.New{{ service_name_pascal }}UseCase()
+{% endif %}
+	resolver := NewResolver(uc)
+	assert.NotNil(t, resolver)
+	// gqlgen client を使用した統合テスト (スケルトン)
+}
+{% endif %}

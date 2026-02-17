@@ -1,0 +1,16 @@
+package main
+
+import (
+    "log"
+    "net/http"
+
+    "{{ go_module }}/internal/handler"
+)
+
+func main() {
+    resolver := handler.NewResolver()
+    srv := handler.NewGraphQLServer(resolver)
+
+    log.Printf("{{ service_name }}-bff starting on :8080")
+    log.Fatal(http.ListenAndServe(":8080", srv))
+}

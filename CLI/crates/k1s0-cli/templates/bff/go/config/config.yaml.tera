@@ -1,0 +1,6 @@
+server:
+  port: 8080
+  name: {{ service_name }}-bff
+upstream:
+  http_url: http://{{ service_name }}:8080
+  grpc_address: {{ service_name }}:50051

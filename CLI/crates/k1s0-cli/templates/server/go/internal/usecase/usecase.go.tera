@@ -1,0 +1,81 @@
+package usecase
+
+import (
+	"context"
+
+	"{{ go_module }}/internal/domain/model"
+{% if has_database %}
+	"{{ go_module }}/internal/domain/repository"
+{% endif %}
+)
+
+// {{ service_name_pascal }}UseCase はビジネスロジックを提供する。
+type {{ service_name_pascal }}UseCase struct {
+{% if has_database %}
+	repo repository.{{ service_name_pascal }}Repository
+{% endif %}
+}
+
+// New{{ service_name_pascal }}UseCase はユースケースを生成する。
+func New{{ service_name_pascal }}UseCase(
+{% if has_database %}
+	repo repository.{{ service_name_pascal }}Repository,
+{% endif %}
+) *{{ service_name_pascal }}UseCase {
+	return &{{ service_name_pascal }}UseCase{
+{% if has_database %}
+		repo: repo,
+{% endif %}
+	}
+}
+
+// GetByID は ID を指定してエンティティを取得する。
+func (uc *{{ service_name_pascal }}UseCase) GetByID(ctx context.Context, id string) (*model.{{ service_name_pascal }}Entity, error) {
+{% if has_database %}
+	return uc.repo.FindByID(ctx, id)
+{% else %}
+	return &model.{{ service_name_pascal }}Entity{
+		ID:   id,
+		Name: "placeholder",
+	}, nil
+{% endif %}
+}
+
+// GetAll は全エンティティを取得する。
+func (uc *{{ service_name_pascal }}UseCase) GetAll(ctx context.Context) ([]*model.{{ service_name_pascal }}Entity, error) {
+{% if has_database %}
+	return uc.repo.FindAll(ctx)
+{% else %}
+	return []*model.{{ service_name_pascal }}Entity{}, nil
+{% endif %}
+}
+
+// Create はエンティティを新規作成する。
+func (uc *{{ service_name_pascal }}UseCase) Create(ctx context.Context, entity *model.{{ service_name_pascal }}Entity) error {
+{% if has_database %}
+	return uc.repo.Create(ctx, entity)
+{% else %}
+	_ = entity
+	return nil
+{% endif %}
+}
+
+// Update はエンティティを更新する。
+func (uc *{{ service_name_pascal }}UseCase) Update(ctx context.Context, entity *model.{{ service_name_pascal }}Entity) error {
+{% if has_database %}
+	return uc.repo.Update(ctx, entity)
+{% else %}
+	_ = entity
+	return nil
+{% endif %}
+}
+
+// Delete はエンティティを削除する。
+func (uc *{{ service_name_pascal }}UseCase) Delete(ctx context.Context, id string) error {
+{% if has_database %}
+	return uc.repo.Delete(ctx, id)
+{% else %}
+	_ = id
+	return nil
+{% endif %}
+}

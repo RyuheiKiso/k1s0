@@ -1,0 +1,19 @@
+type Query {
+    {{ service_name_camel }}(id: ID!): {{ service_name_pascal }}
+    {{ service_name_camel }}List: [{{ service_name_pascal }}!]!
+}
+
+type Mutation {
+    create{{ service_name_pascal }}(input: Create{{ service_name_pascal }}Input!): {{ service_name_pascal }}
+}
+
+type {{ service_name_pascal }} {
+    id: ID!
+    name: String!
+    createdAt: String!
+    updatedAt: String!
+}
+
+input Create{{ service_name_pascal }}Input {
+    name: String!
+}

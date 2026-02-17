@@ -1,0 +1,11 @@
+{% if api_styles is containing("grpc") %}
+version: v2
+modules:
+  - path: api/proto
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE
+{% endif %}

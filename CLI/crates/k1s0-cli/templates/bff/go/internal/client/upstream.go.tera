@@ -1,0 +1,97 @@
+package client
+
+import (
+    "bytes"
+    "context"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+// UpstreamClient は upstream サービスへの HTTP/gRPC クライアントを提供する。
+type UpstreamClient struct {
+    httpURL     string
+    grpcAddress string
+    httpClient  *http.Client
+}
+
+// NewUpstreamClient は UpstreamClient を生成する。
+func NewUpstreamClient(httpURL, grpcAddress string) *UpstreamClient {
+    return &UpstreamClient{
+        httpURL:     httpURL,
+        grpcAddress: grpcAddress,
+        httpClient:  &http.Client{},
+    }
+}
+
+// Get は upstream から単一リソースを取得する。
+func (c *UpstreamClient) Get(ctx context.Context, path string) (map[string]interface{}, error) {
+    req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.httpURL+path, nil)
+    if err != nil {
+        return nil, fmt.Errorf("upstream request creation failed: %w", err)
+    }
+    resp, err := c.httpClient.Do(req)
+    if err != nil {
+        return nil, fmt.Errorf("upstream request failed: %w", err)
+    }
+    defer resp.Body.Close()
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return nil, fmt.Errorf("upstream response read failed: %w", err)
+    }
+    var result map[string]interface{}
+    if err := json.Unmarshal(body, &result); err != nil {
+        return nil, fmt.Errorf("upstream response unmarshal failed: %w", err)
+    }
+    return result, nil
+}
+
+// GetList は upstream からリソース一覧を取得する。
+func (c *UpstreamClient) GetList(ctx context.Context, path string) ([]map[string]interface{}, error) {
+    req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.httpURL+path, nil)
+    if err != nil {
+        return nil, fmt.Errorf("upstream request creation failed: %w", err)
+    }
+    resp, err := c.httpClient.Do(req)
+    if err != nil {
+        return nil, fmt.Errorf("upstream request failed: %w", err)
+    }
+    defer resp.Body.Close()
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return nil, fmt.Errorf("upstream response read failed: %w", err)
+    }
+    var result []map[string]interface{}
+    if err := json.Unmarshal(body, &result); err != nil {
+        return nil, fmt.Errorf("upstream response unmarshal failed: %w", err)
+    }
+    return result, nil
+}
+
+// Post は upstream にリソースを作成する。
+func (c *UpstreamClient) Post(ctx context.Context, path string, payload interface{}) (map[string]interface{}, error) {
+    jsonBody, err := json.Marshal(payload)
+    if err != nil {
+        return nil, fmt.Errorf("payload marshal failed: %w", err)
+    }
+    req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.httpURL+path, bytes.NewReader(jsonBody))
+    if err != nil {
+        return nil, fmt.Errorf("upstream request creation failed: %w", err)
+    }
+    req.Header.Set("Content-Type", "application/json")
+    resp, err := c.httpClient.Do(req)
+    if err != nil {
+        return nil, fmt.Errorf("upstream request failed: %w", err)
+    }
+    defer resp.Body.Close()
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return nil, fmt.Errorf("upstream response read failed: %w", err)
+    }
+    var result map[string]interface{}
+    if err := json.Unmarshal(body, &result); err != nil {
+        return nil, fmt.Errorf("upstream response unmarshal failed: %w", err)
+    }
+    return result, nil
+}

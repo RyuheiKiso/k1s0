@@ -1,0 +1,112 @@
+{% if api_styles is containing("rest") %}
+openapi: "3.0.3"
+info:
+  title: "{{ service_name_pascal }} API"
+  version: "1.0.0"
+  description: "{{ service_name }} の REST API 定義"
+servers:
+  - url: "http://localhost:8080"
+    description: "ローカル開発環境"
+paths:
+  /api/v1/{{ service_name }}:
+    get:
+      summary: "一覧取得"
+      operationId: "list{{ service_name_pascal }}"
+      tags:
+        - "{{ service_name }}"
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/{{ service_name_pascal }}"
+    post:
+      summary: "新規作成"
+      operationId: "create{{ service_name_pascal }}"
+      tags:
+        - "{{ service_name }}"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Create{{ service_name_pascal }}Request"
+      responses:
+        "201":
+          description: "作成成功"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/{{ service_name_pascal }}"
+        "400":
+          description: "バリデーションエラー"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/{{ service_name }}/{id}:
+    get:
+      summary: "ID 指定取得"
+      operationId: "get{{ service_name_pascal }}"
+      tags:
+        - "{{ service_name }}"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "成功"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/{{ service_name_pascal }}"
+        "404":
+          description: "リソースが見つからない"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    {{ service_name_pascal }}:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Create{{ service_name_pascal }}Request:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+{% endif %}

@@ -1,0 +1,40 @@
+/**
+ * {{ service_name }} ライブラリのエントリポイント
+ */
+
+/** ライブラリ共通のエラー型 */
+export class AppError extends Error {
+  readonly code: string;
+
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = 'AppError';
+    this.code = code;
+  }
+}
+
+/** ライブラリの設定 */
+export interface Config {
+  name: string;
+}
+
+/** Config のバリデーションを行う */
+export function validate(config: Config): void {
+  if (!config.name) {
+    throw new AppError('INVALID_CONFIG', 'name is required');
+  }
+}
+
+/** {{ service_name }} クライアント */
+export class Client {
+  private config: Config;
+
+  constructor(config: Config) {
+    this.config = config;
+  }
+
+  /** 設定名を返す */
+  get name(): string {
+    return this.config.name;
+  }
+}

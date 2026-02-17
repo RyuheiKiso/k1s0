@@ -1,0 +1,19 @@
+---
+source: tests/snapshot_tests.rs
+expression: sorted
+---
+- Dockerfile
+- README.md
+- api/proto/service.proto
+- buf.gen.yaml
+- buf.yaml
+- cmd/main.go
+- config/config.yaml
+- go.mod
+- internal/adapter/handler/grpc_handler.go
+- internal/adapter/handler/handler_test.go
+- internal/domain/model/entity.go
+- internal/domain/repository/repository.go
+- internal/infra/config/config.go
+- internal/usecase/usecase.go
+- internal/usecase/usecase_test.go

@@ -1,0 +1,23 @@
+---
+source: tests/snapshot_tests.rs
+expression: sorted
+---
+- Dockerfile
+- README.md
+- api/openapi/openapi.yaml
+- cmd/main.go
+- config/config.yaml
+- go.mod
+- internal/adapter/handler/handler_test.go
+- internal/adapter/handler/rest_handler.go
+- internal/domain/model/entity.go
+- internal/domain/repository/repository.go
+- internal/infra/cache/redis.go
+- internal/infra/config/config.go
+- internal/infra/messaging/kafka.go
+- internal/infra/persistence/db.go
+- internal/infra/persistence/repository.go
+- internal/infra/persistence/repository_test.go
+- internal/usecase/usecase.go
+- internal/usecase/usecase_test.go
+- oapi-codegen.yaml

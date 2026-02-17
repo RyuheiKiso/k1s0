@@ -1,0 +1,9 @@
+use {{ service_name | snake_case }}::{Client, Config};
+
+#[test]
+fn test_integration_new_client() {
+    let client = Client::new(Config {
+        name: "integration".to_string(),
+    });
+    assert_eq!(client.name(), "integration");
+}

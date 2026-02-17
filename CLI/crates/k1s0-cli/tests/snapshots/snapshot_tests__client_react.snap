@@ -1,0 +1,19 @@
+---
+source: tests/snapshot_tests.rs
+expression: sorted
+---
+- ".prettierrc"
+- Dockerfile
+- README.md
+- eslint.config.mjs
+- nginx.conf
+- package.json
+- src/app/App.tsx
+- src/lib/api-client.ts
+- src/lib/query-client.ts
+- tests/App.test.tsx
+- tests/testutil/msw-setup.ts
+- tests/testutil/setup.ts
+- tsconfig.json
+- vite.config.ts
+- vitest.config.ts

@@ -1,0 +1,10 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 706
+expression: sorted
+---
+- backend.tf
+- main.tf
+- outputs.tf
+- terraform.tfvars
+- variables.tf

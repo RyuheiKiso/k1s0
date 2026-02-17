@@ -1,0 +1,43 @@
+// Package {{ service_name | snake_case }} は {{ service_name }} ライブラリの公開 API を提供する。
+package {{ service_name | snake_case }}
+
+import "fmt"
+
+// AppError はライブラリ共通のエラー型を表す。
+type AppError struct {
+	Code    string
+	Message string
+}
+
+// Error は error インタフェースを実装する。
+func (e *AppError) Error() string {
+	return fmt.Sprintf("%s: %s", e.Code, e.Message)
+}
+
+// Config はライブラリの設定を表す。
+type Config struct {
+	Name string
+}
+
+// Validate は Config のバリデーションを行う。
+func (c Config) Validate() error {
+	if c.Name == "" {
+		return &AppError{Code: "INVALID_CONFIG", Message: "name is required"}
+	}
+	return nil
+}
+
+// Client は {{ service_name }} ライブラリのクライアントを表す。
+type Client struct {
+	config Config
+}
+
+// New は Client を生成する。
+func New(cfg Config) *Client {
+	return &Client{config: cfg}
+}
+
+// Name は設定名を返す。
+func (c *Client) Name() string {
+	return c.config.Name
+}

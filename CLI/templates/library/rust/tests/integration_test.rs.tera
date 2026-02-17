@@ -1,7 +1,0 @@
-use {{ service_name | snake_case }};
-
-#[test]
-fn test_integration_placeholder() {
-    // TODO: 統合テストを実装する
-    assert!(true);
-}

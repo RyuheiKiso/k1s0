@@ -1,0 +1,6 @@
+//! {{ service_name }} ライブラリ
+
+pub mod {{ service_name | snake_case }};
+
+pub use {{ service_name | snake_case }}::Config;
+pub use {{ service_name | snake_case }}::Client;

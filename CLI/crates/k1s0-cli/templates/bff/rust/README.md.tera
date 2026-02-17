@@ -1,0 +1,11 @@
+# {{ service_name }}-bff
+
+{{ service_name }} の Backend for Frontend (BFF) サービスです。
+
+## 概要
+GraphQL エンドポイントを提供し、上流の {{ service_name }} サーバーにリクエストをプロキシします。
+
+## 起動
+```bash
+cargo run
+```

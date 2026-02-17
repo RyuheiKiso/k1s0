@@ -1,0 +1,4 @@
+/// {{ service_name }} ライブラリのエントリポイント
+library {{ service_name | snake_case }};
+
+export 'src/{{ service_name | snake_case }}.dart';

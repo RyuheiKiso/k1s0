@@ -1,0 +1,53 @@
+{% if has_redis %}
+use anyhow::Result;
+use redis::AsyncCommands;
+
+use crate::infra::config::RedisConfig;
+
+/// Redis キャッシュクライアント。
+pub struct RedisClient {
+    client: redis::Client,
+}
+
+impl RedisClient {
+    /// Redis クライアントを初期化する。
+    pub fn new(cfg: &RedisConfig) -> Result<Self> {
+        let url = format!("redis://{}:{}/{}", cfg.host, cfg.port, cfg.db);
+        let client = redis::Client::open(url)?;
+        Ok(Self { client })
+    }
+
+    /// 非同期接続を取得する。
+    pub async fn get_connection(&self) -> Result<redis::aio::MultiplexedConnection> {
+        Ok(self.client.get_multiplexed_async_connection().await?)
+    }
+
+    /// キーに対応する値を取得する。
+    pub async fn get(&self, key: &str) -> Result<Option<String>> {
+        let mut conn = self.get_connection().await?;
+        let value: Option<String> = conn.get(key).await?;
+        Ok(value)
+    }
+
+    /// キーと値をTTL付きで保存する。
+    pub async fn set(&self, key: &str, value: &str, ttl_secs: u64) -> Result<()> {
+        let mut conn = self.get_connection().await?;
+        conn.set_ex(key, value, ttl_secs).await?;
+        Ok(())
+    }
+
+    /// キーを削除する。
+    pub async fn delete(&self, key: &str) -> Result<()> {
+        let mut conn = self.get_connection().await?;
+        conn.del(key).await?;
+        Ok(())
+    }
+
+    /// Redis への接続を確認する。
+    pub async fn ping(&self) -> Result<()> {
+        let mut conn = self.get_connection().await?;
+        redis::cmd("PING").query_async(&mut conn).await?;
+        Ok(())
+    }
+}
+{% endif %}

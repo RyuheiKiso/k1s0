@@ -1,0 +1,30 @@
+package handler
+
+import (
+    "testing"
+
+    "github.com/stretchr/testify/assert"
+
+    "{{ go_module }}/internal/client"
+)
+
+func TestNewResolver(t *testing.T) {
+    upstream := client.NewUpstreamClient("http://localhost:8080", "localhost:50051")
+    resolver := NewResolver(upstream)
+    assert.NotNil(t, resolver)
+    assert.NotNil(t, resolver.upstream)
+}
+
+func TestResolverQuery(t *testing.T) {
+    upstream := client.NewUpstreamClient("http://localhost:8080", "localhost:50051")
+    resolver := NewResolver(upstream)
+    q := resolver.Query()
+    assert.NotNil(t, q)
+}
+
+func TestResolverMutation(t *testing.T) {
+    upstream := client.NewUpstreamClient("http://localhost:8080", "localhost:50051")
+    resolver := NewResolver(upstream)
+    m := resolver.Mutation()
+    assert.NotNil(t, m)
+}

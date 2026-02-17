@@ -1,0 +1,6 @@
+---
+source: tests/snapshot_tests.rs
+expression: sorted
+---
+- docker-compose.override.yaml.example
+- docker-compose.yaml

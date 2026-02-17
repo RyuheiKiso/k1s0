@@ -1,5 +1,0 @@
-//! {{ service_name }} ライブラリ
-
-pub mod {{ service_name | snake_case }};
-
-// TODO: 公開 API を定義する

@@ -1,0 +1,7 @@
+---
+source: tests/snapshot_tests.rs
+expression: sorted
+---
+- devcontainer.json
+- docker-compose.extend.yaml
+- post-create.sh

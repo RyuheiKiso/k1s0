@@ -1,0 +1,20 @@
+{% if api_styles is containing("graphql") %}
+type Query {
+  {{ service_name_camel }}(id: ID!): {{ service_name_pascal }}
+  {{ service_name_camel }}List: [{{ service_name_pascal }}!]!
+}
+
+type {{ service_name_pascal }} {
+  id: ID!
+  name: String!
+  description: String
+  status: String!
+  createdAt: String!
+  updatedAt: String!
+}
+
+input Create{{ service_name_pascal }}Input {
+  name: String!
+  description: String
+}
+{% endif %}

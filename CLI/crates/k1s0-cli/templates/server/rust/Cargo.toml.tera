@@ -1,0 +1,48 @@
+[package]
+name = "{{ rust_crate }}"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+opentelemetry = "0.24"
+opentelemetry-otlp = "0.17"
+opentelemetry_sdk = "0.24"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+thiserror = "2"
+{% if api_styles is containing("rest") %}
+utoipa = { version = "5", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "8", features = ["axum"] }
+{% endif %}
+{% if api_styles is containing("grpc") %}
+tonic = "0.12"
+prost = "0.13"
+{% endif %}
+{% if api_styles is containing("graphql") %}
+async-graphql = "7"
+async-graphql-axum = "7"
+{% endif %}
+{% if has_database %}
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "{{ database_type }}"] }
+{% endif %}
+{% if has_kafka %}
+rdkafka = { version = "0.36", features = ["cmake-build"] }
+{% endif %}
+{% if has_redis %}
+redis = { version = "0.27", features = ["tokio-comp"] }
+{% endif %}
+
+[dev-dependencies]
+mockall = "0.13"
+tokio = { version = "1", features = ["test-util", "macros"] }
+
+{% if api_styles is containing("grpc") %}
+[build-dependencies]
+tonic-build = "0.12"
+{% endif %}

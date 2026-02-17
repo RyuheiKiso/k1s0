@@ -3,6 +3,8 @@
 k1s0 CLI は対話式で操作する。引数での起動は行わない。
 すべての操作は dialoguer によるプロンプトを通じて行う。
 
+> CLI と同等の操作を GUI で行う場合は [TauriGUI設計](TauriGUI設計.md) を参照。
+
 ## 起動
 
 ```
@@ -407,6 +409,9 @@ service の場合、ステップ 3 で入力したサービス名をアプリ名
 - クライアント → [テンプレート仕様-クライアント](テンプレート仕様-クライアント.md)
 - ライブラリ → [テンプレート仕様-ライブラリ](テンプレート仕様-ライブラリ.md)
 - データベース → [テンプレート仕様-データベース](テンプレート仕様-データベース.md)
+- BFF → [テンプレート仕様-BFF](テンプレート仕様-BFF.md)
+- Helm Chart → [テンプレート仕様-Helm](テンプレート仕様-Helm.md)
+- CI/CD → [テンプレート仕様-CICD](テンプレート仕様-CICD.md)
 - テンプレート変数・条件分岐 → [テンプレートエンジン仕様](テンプレートエンジン仕様.md)
 
 #### API 方式による条件付き生成
@@ -427,6 +432,145 @@ service の場合、ステップ 3 で入力したサービス名をアプリ名
 - Rust: `tests/integration_test.rs`
 
 > **注記**: service Tierのサーバーで GraphQL（API 方式選択）を選択した場合、通常のサーバー構成に加えて `server/{言語}/bff/` ディレクトリに GraphQL BFF のひな形が生成される。BFF の詳細な内部構成は [API設計.md](API設計.md) の「BFF ディレクトリ構成」を参照。
+
+#### GraphQL BFF 生成フロー（service Tier 限定）
+
+service Tier のサーバーで API 方式に GraphQL を含む場合、以下の追加ステップが表示される。
+
+```
+? GraphQL BFF を生成しますか？
+> はい
+  いいえ
+```
+
+「はい」を選択した場合：
+
+```
+? BFF の言語を選択してください
+> Go
+  Rust
+```
+
+BFF は service Tier のサーバーでのみ生成可能。system / business Tier では BFF 選択ステップは表示されない。
+
+BFF 生成時の確認画面には以下が追加表示される：
+
+```
+[確認] 以下の内容で生成します。よろしいですか？
+    種別:     サーバー
+    Tier:     service
+    サービス: order
+    言語:     Go
+    API:      REST, GraphQL
+    BFF:      あり (Go)
+    DB:       order-db (PostgreSQL)
+    Kafka:    無効
+    Redis:    無効
+    > はい
+      いいえ（前のステップに戻る）
+      キャンセル（メインメニューに戻る）
+```
+
+BFF のテンプレートは通常のサーバーテンプレートと同じ構造で、`regions/service/{service_name}/server/{server_lang}/bff/` 配下に生成される。生成されるファイルの詳細は [テンプレート仕様-BFF](テンプレート仕様-BFF.md) を参照。
+
+#### BFF 生成フローの対話ステップ詳細
+
+BFF 生成は、service Tier のサーバー詳細設定（ステップ 5）の中で行われる。以下の順序で対話が進行する。
+
+```
+[ステップ 5: サーバー詳細設定]
+
+[5-1] サービス名
+      → service Tier ではステップ 3 で入力済みのためスキップ
+
+[5-2] API 方式選択（複数選択可）
+      ? API 方式を選択してください（複数選択可）
+      > [x] REST (OpenAPI)
+        [ ] gRPC (protobuf)
+        [x] GraphQL            ← GraphQL を含む選択
+
+[5-3] データベース追加
+      ? データベースを追加しますか？
+      > はい / いいえ
+
+[5-4] Kafka 有効化
+      ? メッセージング (Kafka) を有効にしますか？
+      > はい / いいえ
+
+[5-5] Redis 有効化
+      ? キャッシュ (Redis) を有効にしますか？
+      > はい / いいえ
+
+[5-6] BFF 生成提案（GraphQL 選択時のみ表示）
+      ? GraphQL BFF を生成しますか？
+      > はい
+        いいえ
+
+[5-7] BFF 言語選択（BFF 生成「はい」の場合のみ表示）
+      ? BFF の言語を選択してください
+      > Go
+        Rust
+```
+
+この対話フローは `CLI/src/commands/generate/steps.rs` の `step_detail_server()` で実装されている。BFF 関連のステップ（5-6, 5-7）は `tier == Tier::Service && api_styles.contains(&ApiStyle::GraphQL)` の条件を満たす場合にのみ表示される。
+
+選択された BFF 言語は `DetailConfig.bff_language` フィールド（`Option<Language>`）に格納され、確認画面と生成処理に引き渡される。
+
+#### BFF 生成時の確認画面表示例
+
+**REST + GraphQL + BFF (Go) の場合：**
+
+```
+[確認] 以下の内容で生成します。よろしいですか？
+    種別:     サーバー
+    Tier:     service
+    サービス: order
+    言語:     Go
+    API:      REST, GraphQL
+    BFF:      あり (Go)
+    DB:       order-db (PostgreSQL)
+    Kafka:    無効
+    Redis:    無効
+    > はい
+      いいえ（前のステップに戻る）
+      キャンセル（メインメニューに戻る）
+```
+
+**GraphQL + BFF (Rust)、サーバー言語 Go の場合：**
+
+```
+[確認] 以下の内容で生成します。よろしいですか？
+    種別:     サーバー
+    Tier:     service
+    サービス: payment
+    言語:     Go
+    API:      GraphQL
+    BFF:      あり (Rust)
+    DB:       なし
+    Kafka:    無効
+    Redis:    無効
+    > はい
+      いいえ（前のステップに戻る）
+      キャンセル（メインメニューに戻る）
+```
+
+BFF の言語はサーバー本体の言語と異なる選択が可能（例: サーバー Go + BFF Rust）。
+
+#### BFF 配置パス
+
+BFF はサーバー本体の出力ディレクトリ内に `bff/` サブディレクトリとして生成される。
+
+```
+regions/service/{service_name}/server/{server_lang}/bff/
+```
+
+例: サービス名 `order`、サーバー言語 `Go` の場合：
+
+```
+regions/service/order/server/go/bff/
+```
+
+> **注記**: BFF のディレクトリはサーバー本体の言語ディレクトリ（`{server_lang}`）配下に配置される。BFF 言語の選択（Go / Rust）は BFF 内部のスケルトンコード生成に影響するが、配置パスはサーバー本体の言語に従う。
 
 ---
 
@@ -574,6 +718,73 @@ prod を選択した場合のみ表示される。
       キャンセル（メインメニューに戻る）
 ```
 
+### デプロイ実行
+
+確認後、以下のステップが順次実行される。
+
+#### ステップ 1 — Docker イメージのビルドとプッシュ
+
+```
+[1/4] Docker イメージをビルドしています...
+      イメージ: harbor.internal.example.com/k1s0-{tier}/{service_name}:{version}-{sha}
+[1/4] ✓ Docker イメージのビルド完了
+
+[2/4] Docker イメージをプッシュしています...
+[2/4] ✓ Docker イメージのプッシュ完了
+```
+
+#### ステップ 2 — Cosign によるイメージ署名
+
+```
+[3/4] イメージに署名しています (Cosign)...
+[3/4] ✓ イメージ署名完了
+```
+
+#### ステップ 3 — Helm デプロイ
+
+```
+[4/4] Helm でデプロイしています...
+      コマンド: helm upgrade --install {service_name} ./infra/helm/services/{helm_path} \
+                -n k1s0-{tier} \
+                -f ./infra/helm/services/{helm_path}/values-{env}.yaml \
+                --set image.tag={version}-{sha}
+[4/4] ✓ デプロイ完了
+```
+
+#### ステップ 4 — デプロイ結果の表示
+
+```
+✓ デプロイが完了しました
+  環境:     {env}
+  サービス: {service_name}
+  イメージ: harbor.internal.example.com/k1s0-{tier}/{service_name}:{version}-{sha}
+  Helm:     helm status {service_name} -n k1s0-{tier}
+```
+
+#### エラー時の動作
+
+各ステップでエラーが発生した場合、処理を中断して以下を表示する。
+
+```
+✗ デプロイに失敗しました
+  ステップ: Docker イメージのビルド
+  エラー:   {error_message}
+
+  手動で再実行する場合:
+    cd {module_path} && docker build -t {image_tag} .
+```
+
+prod 環境でのデプロイ失敗時は、ロールバックの選択肢を表示する。
+
+```
+⚠ 本番環境でのデプロイが失敗しました。
+? ロールバックしますか？
+> はい（前のバージョンに戻す）
+  いいえ（手動で対応する）
+```
+
+「はい」を選択した場合、`helm rollback {service_name} -n k1s0-{tier}` を実行する。
+
 ---
 
 ## 共通の操作
@@ -605,4 +816,12 @@ prod を選択した場合のみ表示される。
 - [テンプレート仕様-クライアント](テンプレート仕様-クライアント.md)
 - [テンプレート仕様-ライブラリ](テンプレート仕様-ライブラリ.md)
 - [テンプレート仕様-データベース](テンプレート仕様-データベース.md)
+- [テンプレート仕様-BFF](テンプレート仕様-BFF.md)
+- [テンプレート仕様-Helm](テンプレート仕様-Helm.md)
+- [テンプレート仕様-CICD](テンプレート仕様-CICD.md)
+- [テンプレート仕様-Terraform](テンプレート仕様-Terraform.md)
+- [テンプレート仕様-DockerCompose](テンプレート仕様-DockerCompose.md)
+- [テンプレート仕様-devcontainer](テンプレート仕様-devcontainer.md)
+- [テンプレート仕様-ServiceMesh](テンプレート仕様-ServiceMesh.md)
 - [テンプレートエンジン仕様](テンプレートエンジン仕様.md)
+- [TauriGUI設計](TauriGUI設計.md)

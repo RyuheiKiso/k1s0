@@ -1,0 +1,36 @@
+import '@testing-library/jest-dom/vitest';
+import { setupServer } from 'msw/node';
+import { http, HttpResponse } from 'msw';
+
+/**
+ * MSW ハンドラー定義
+ *
+ * テスト用の API モックハンドラーを定義する。
+ * 各テストファイルで server.use() を使い、テスト固有のハンドラーを追加・上書きできる。
+ */
+const handlers = [
+  // ヘルスチェック
+  http.get('/api/health', () => {
+    return HttpResponse.json({ status: 'ok' });
+  }),
+
+  // {{ service_name }} 固有のハンドラー
+  http.get('/api/v1/{{ service_name }}', () => {
+    return HttpResponse.json([]);
+  }),
+
+  http.get('/api/v1/{{ service_name }}/:id', ({ params }) => {
+    return HttpResponse.json({ id: params['id'], name: 'mock' });
+  }),
+
+  http.post('/api/v1/{{ service_name }}', () => {
+    return HttpResponse.json({ status: 'created' }, { status: 201 });
+  }),
+];
+
+export const server = setupServer(...handlers);
+
+// テストライフサイクル
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());

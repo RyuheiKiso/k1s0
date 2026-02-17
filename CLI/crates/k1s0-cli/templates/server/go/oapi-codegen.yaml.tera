@@ -1,0 +1,12 @@
+{% if api_styles is containing("rest") %}
+# oapi-codegen 設定
+# 実行: oapi-codegen --config oapi-codegen.yaml api/openapi/openapi.yaml
+package: openapi
+generate:
+  gin-server: true
+  models: true
+  embedded-spec: true
+output: internal/adapter/handler/openapi_gen.go
+output-options:
+  skip-prune: true
+{% endif %}

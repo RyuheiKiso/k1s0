@@ -51,6 +51,8 @@ k1s0 の開発環境を Dev Container で統一し、環境構築の手間をゼ
         // Dart / Flutter
         "Dart-Code.dart-code",
         "Dart-Code.flutter",
+        // Tauri
+        "tauri-apps.tauri-vscode",
         // Python
         "ms-python.python",
         "charliermarsh.ruff",
@@ -180,6 +182,16 @@ BUF_VERSION="1.47.2"
 curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-$(uname -s)-$(uname -m)" -o /usr/local/bin/buf
 chmod +x /usr/local/bin/buf
 
+# Tauri CLI（TauriGUI設計.md 参照）
+cargo install tauri-cli --locked
+
+# Tauri WebView 依存ライブラリ（Linux）
+sudo apt-get install -y \
+  libwebkit2gtk-4.1-dev \
+  libgtk-3-dev \
+  libayatana-appindicator3-dev \
+  librsvg2-dev
+
 echo "Dev Container setup complete."
 ```
 
@@ -198,3 +210,4 @@ Dev Container は sparse-checkout の設定に関わらず動作する。開発�
 - [CI-CD設計](CI-CD設計.md)
 - [docker-compose設計](docker-compose設計.md)
 - [Dockerイメージ戦略](Dockerイメージ戦略.md)
+- [TauriGUI設計](TauriGUI設計.md)

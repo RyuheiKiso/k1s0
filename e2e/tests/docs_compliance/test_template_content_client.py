@@ -626,3 +626,35 @@ class TestFlutterNginxConfDetailContent:
         """テンプレート仕様-クライアント.md: 静的アセットのキャッシュ制御。"""
         assert "expires 1y" in self.content
         assert "public, immutable" in self.content
+
+
+class TestFlutterProviderTemplateFiles:
+    """Flutter Riverpod Provider テンプレートの存在検証。"""
+    def test_provider_file_exists(self) -> None:
+        assert (FLUTTER / "lib" / "providers" / "service_provider.dart.tera").exists()
+
+
+class TestFlutterProviderContent:
+    """Flutter Riverpod Provider テンプレートの内容検証。"""
+    def setup_method(self) -> None:
+        self.content = (
+            FLUTTER / "lib" / "providers" / "service_provider.dart.tera"
+        ).read_text(encoding="utf-8")
+
+    def test_async_notifier(self) -> None:
+        assert "AsyncNotifier" in self.content
+
+    def test_fetch_all(self) -> None:
+        assert "fetchAll" in self.content
+
+    def test_create(self) -> None:
+        assert "create" in self.content
+
+    def test_delete(self) -> None:
+        assert "delete" in self.content
+
+    def test_riverpod_import(self) -> None:
+        assert "flutter_riverpod" in self.content
+
+    def test_service_name_variable(self) -> None:
+        assert "{{ service_name_pascal }}" in self.content or "{{ service_name_snake }}" in self.content
