@@ -4,3 +4,6 @@ nul
 .mcp.json
 __pycache__/
 .pytest_cache/
+**/node_modules/
+**/.dart_tool/
+**/pubspec.lock

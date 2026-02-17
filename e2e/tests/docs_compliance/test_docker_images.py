@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
-TEMPLATES = ROOT / "CLI" / "templates"
+TEMPLATES = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates"
 
 
 class TestGoServerDockerfile:
@@ -265,7 +265,7 @@ class TestDockerImageCosign:
 
     def test_cosign_in_ci_template(self) -> None:
         """Dockerイメージ戦略.md: CI/CD テンプレートに cosign sign が含まれること。"""
-        ci_dir = ROOT / "CLI" / "templates" / "cicd"
+        ci_dir = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "cicd"
         if ci_dir.exists():
             # CI テンプレートディレクトリ内で cosign を検索
             found = False

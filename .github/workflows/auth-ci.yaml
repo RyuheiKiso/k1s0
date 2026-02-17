@@ -1,0 +1,134 @@
+# .github/workflows/auth-ci.yaml
+# CI pipeline for auth server (Go + Rust)
+# Triggered on PR with changes in auth server paths
+name: auth-ci
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'regions/system/server/go/auth/**'
+      - 'regions/system/server/rust/auth/**'
+
+concurrency:
+  group: ci-${{ github.ref }}-auth
+  cancel-in-progress: true
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.filter.outputs.go }}
+      rust: ${{ steps.filter.outputs.rust }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            go:
+              - 'regions/system/server/go/auth/**'
+            rust:
+              - 'regions/system/server/rust/auth/**'
+
+  # ---------- Go lint ----------
+  lint-go:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: regions/system/server/go/auth
+
+  # ---------- Rust lint ----------
+  lint-rust:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82
+        with:
+          components: clippy, rustfmt
+      - run: cargo fmt --all -- --check
+        working-directory: regions/system/server/rust/auth
+      - run: cargo clippy --all-targets -- -D warnings
+        working-directory: regions/system/server/rust/auth
+
+  # ---------- Go test ----------
+  test-go:
+    needs: lint-go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - run: go test ./... -race -coverprofile=coverage.out
+        working-directory: regions/system/server/go/auth
+      - uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage-auth
+          path: regions/system/server/go/auth/coverage.out
+
+  # ---------- Rust test ----------
+  test-rust:
+    needs: lint-rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82
+      - run: cargo test --all
+        working-directory: regions/system/server/rust/auth
+
+  # ---------- Go build ----------
+  build-go:
+    needs: test-go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - run: go build ./...
+        working-directory: regions/system/server/go/auth
+
+  # ---------- Rust build ----------
+  build-rust:
+    needs: test-rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82
+      - run: cargo build --release
+        working-directory: regions/system/server/rust/auth
+
+  # ---------- Security scan ----------
+  security-scan:
+    needs:
+      - build-go
+      - build-rust
+    if: always() && !contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan (Go)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: regions/system/server/go/auth
+          severity: HIGH,CRITICAL
+          exit-code: 1
+      - name: Trivy filesystem scan (Rust)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: regions/system/server/rust/auth
+          severity: HIGH,CRITICAL
+          exit-code: 1

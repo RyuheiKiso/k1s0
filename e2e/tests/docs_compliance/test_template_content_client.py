@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
-TEMPLATES = ROOT / "CLI" / "templates"
+TEMPLATES = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates"
 REACT = TEMPLATES / "client" / "react"
 FLUTTER = TEMPLATES / "client" / "flutter"
 

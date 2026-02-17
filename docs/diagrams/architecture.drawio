@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="draw.io">
+  <diagram id="arch-diagram" name="k1s0 アーキテクチャ図">
+    <mxGraphModel dx="2200" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="2400" pageHeight="1600" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="k1s0 アーキテクチャ全体図" style="text;html=1;fontSize=28;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a2e;" vertex="1" parent="1">
+          <mxGeometry x="600" y="-80" width="600" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="subtitle" value="Clean Architecture + DDD + Microservices | 3-Tier Region Model" style="text;html=1;fontSize=14;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="600" y="-40" width="600" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== CLIENTS SECTION ===== -->
+        <mxCell id="clients-group" value="Clients" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;fontSize=14;fontStyle=1;verticalAlign=top;dashed=0;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="400" height="280" as="geometry"/>
+        </mxCell>
+
+        <!-- React SPA -->
+        <mxCell id="react-spa" value="&lt;b&gt;React SPA&lt;/b&gt;&lt;br&gt;TypeScript&lt;br&gt;TanStack Query/Router&lt;br&gt;Zustand | Tailwind CSS&lt;br&gt;Radix UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="170" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Flutter Mobile -->
+        <mxCell id="flutter-app" value="&lt;b&gt;Flutter App&lt;/b&gt;&lt;br&gt;Dart 3.24&lt;br&gt;Riverpod | go_router&lt;br&gt;freezed | dio" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="230" y="50" width="170" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Tauri Desktop -->
+        <mxCell id="tauri-app" value="&lt;b&gt;Tauri 2 Desktop&lt;/b&gt;&lt;br&gt;React + Rust Backend&lt;br&gt;クロスプラットフォーム" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="170" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- k1s0 CLI -->
+        <mxCell id="k1s0-cli" value="&lt;b&gt;k1s0 CLI&lt;/b&gt;&lt;br&gt;Rust (dialoguer)&lt;br&gt;Tera Templates&lt;br&gt;init/generate/build/test/deploy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="230" y="170" width="170" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Auth Flows Label -->
+        <mxCell id="auth-flows" value="OAuth 2.0 Flows:&lt;br&gt;SPA/Mobile: Auth Code + PKCE&lt;br&gt;CLI/Tauri: Device Auth Grant&lt;br&gt;Service: Client Credentials" style="text;html=1;fontSize=10;align=left;verticalAlign=top;fillColor=#fff9c4;strokeColor=#f9a825;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="310" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== KEYCLOAK ===== -->
+        <mxCell id="keycloak" value="&lt;b&gt;Keycloak 26.0 LTS&lt;/b&gt;&lt;br&gt;OAuth 2.0 / OIDC&lt;br&gt;LDAP Federation&lt;br&gt;ユーザー管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;fontSize=12;fontStyle=0;verticalAlign=middle;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="310" width="170" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== API GATEWAY ===== -->
+        <mxCell id="kong-gw" value="&lt;b&gt;Kong API Gateway 3.7&lt;/b&gt;&lt;br&gt;JWT検証 | Rate Limiting&lt;br&gt;ルーティング | OAuth 2.0&lt;br&gt;decK (IaC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;fontSize=13;fontStyle=0;verticalAlign=middle;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="60" width="260" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- REST/GraphQL labels -->
+        <mxCell id="rest-label" value="REST API" style="text;html=1;fontSize=10;align=center;fillColor=none;strokeColor=none;fontColor=#e65100;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="75" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="graphql-label" value="GraphQL (BFF)" style="text;html=1;fontSize=10;align=center;fillColor=none;strokeColor=none;fontColor=#e65100;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="440" y="100" width="80" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Client to Kong -->
+        <mxCell id="edge-client-kong1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#e65100;strokeWidth=2;" edge="1" source="react-spa" target="kong-gw" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-client-kong2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#e65100;strokeWidth=2;" edge="1" source="flutter-app" target="kong-gw" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-client-kong3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#e65100;strokeWidth=1;dashed=1;" edge="1" source="tauri-app" target="kong-gw" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Client to Keycloak -->
+        <mxCell id="edge-client-kc1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#7b1fa2;strokeWidth=1;dashed=1;" edge="1" source="react-spa" target="keycloak" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== ISTIO SERVICE MESH ===== -->
+        <mxCell id="istio-mesh" value="Istio Service Mesh 1.24 (mTLS STRICT)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c62828;fontSize=12;fontStyle=1;verticalAlign=top;dashed=1;dashPattern=8 4;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="470" y="170" width="1110" height="590" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== SERVICE TIER (Bottom) ===== -->
+        <mxCell id="service-tier" value="Service Tier (業務サービス)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=13;fontStyle=1;verticalAlign=top;dashed=0;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="490" y="570" width="520" height="170" as="geometry"/>
+        </mxCell>
+
+        <!-- Order Service -->
+        <mxCell id="order-svc-go" value="&lt;b&gt;Order Service&lt;/b&gt;&lt;br&gt;Go 1.23 (gin + gRPC)&lt;br&gt;注文管理 CRUD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#388e3c;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="510" y="610" width="160" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-svc-rust" value="&lt;b&gt;Order Service&lt;/b&gt;&lt;br&gt;Rust 1.82 (axum + gRPC)&lt;br&gt;注文管理 CRUD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#388e3c;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="690" y="610" width="160" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="order-db" value="&lt;b&gt;Order DB&lt;/b&gt;&lt;br&gt;PostgreSQL 17&lt;br&gt;(sqlx + migrate)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fillColor=#dcedc8;strokeColor=#558b2f;fontSize=10;size=10;" vertex="1" parent="1">
+          <mxGeometry x="880" y="600" width="110" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Order to DB -->
+        <mxCell id="edge-order-db1" style="rounded=1;strokeColor=#388e3c;strokeWidth=1;" edge="1" source="order-svc-go" target="order-db" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-order-db2" style="rounded=1;strokeColor=#388e3c;strokeWidth=1;" edge="1" source="order-svc-rust" target="order-db" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Future Services -->
+        <mxCell id="future-svc" value="Inventory Service&lt;br&gt;(将来拡張)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f8e9;strokeColor=#689f38;fontSize=10;dashed=1;dashPattern=5 3;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="510" y="695" width="130" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== BUSINESS TIER (Middle) ===== -->
+        <mxCell id="business-tier" value="Business Tier (部門ドメイン)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontSize=13;fontStyle=1;verticalAlign=top;dashed=0;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="490" y="380" width="520" height="170" as="geometry"/>
+        </mxCell>
+
+        <!-- Accounting Service -->
+        <mxCell id="acct-svc-go" value="&lt;b&gt;Accounting (Ledger)&lt;/b&gt;&lt;br&gt;Go 1.23 (gin + gRPC)&lt;br&gt;会計仕訳管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1976d2;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="510" y="420" width="160" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="acct-svc-rust" value="&lt;b&gt;Accounting (Ledger)&lt;/b&gt;&lt;br&gt;Rust 1.82 (axum + gRPC)&lt;br&gt;会計仕訳管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1976d2;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="690" y="420" width="160" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="acct-db" value="&lt;b&gt;Accounting DB&lt;/b&gt;&lt;br&gt;PostgreSQL 17&lt;br&gt;(sqlx + migrate)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=10;size=10;" vertex="1" parent="1">
+          <mxGeometry x="880" y="410" width="110" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Accounting to DB -->
+        <mxCell id="edge-acct-db1" style="rounded=1;strokeColor=#1976d2;strokeWidth=1;" edge="1" source="acct-svc-go" target="acct-db" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-acct-db2" style="rounded=1;strokeColor=#1976d2;strokeWidth=1;" edge="1" source="acct-svc-rust" target="acct-db" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Future Business -->
+        <mxCell id="future-biz" value="FA Domain&lt;br&gt;(将来拡張)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1976d2;fontSize=10;dashed=1;dashPattern=5 3;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="510" y="505" width="130" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- Libraries -->
+        <mxCell id="libraries" value="&lt;b&gt;共通ライブラリ (Library)&lt;/b&gt;&lt;br&gt;Go | Rust | TypeScript | Dart&lt;br&gt;auth / config / telemetry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8eaf6;strokeColor=#3949ab;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="690" y="500" width="230" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== SYSTEM TIER (Top-right) ===== -->
+        <mxCell id="system-tier" value="System Tier (共通基盤)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c62828;fontSize=13;fontStyle=1;verticalAlign=top;dashed=0;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="490" y="190" width="520" height="170" as="geometry"/>
+        </mxCell>
+
+        <!-- Auth Service -->
+        <mxCell id="auth-svc-go" value="&lt;b&gt;Auth Service&lt;/b&gt;&lt;br&gt;Go 1.23 (gin + gRPC)&lt;br&gt;JWT検証 | ユーザー管理&lt;br&gt;RBAC | 監査ログ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="510" y="230" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="auth-svc-rust" value="&lt;b&gt;Auth Service&lt;/b&gt;&lt;br&gt;Rust 1.82 (axum + gRPC)&lt;br&gt;JWT検証 | ユーザー管理&lt;br&gt;RBAC | 監査ログ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="690" y="230" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="auth-db" value="&lt;b&gt;Auth DB&lt;/b&gt;&lt;br&gt;PostgreSQL 17&lt;br&gt;users / roles&lt;br&gt;audit_logs" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=10;size=10;" vertex="1" parent="1">
+          <mxGeometry x="880" y="225" width="110" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="config-svc" value="&lt;b&gt;Config Service&lt;/b&gt;&lt;br&gt;Go/Rust (gRPC)&lt;br&gt;設定管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="510" y="320" width="130" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Auth to DB -->
+        <mxCell id="edge-auth-db1" style="rounded=1;strokeColor=#c62828;strokeWidth=1;" edge="1" source="auth-svc-go" target="auth-db" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-auth-db2" style="rounded=1;strokeColor=#c62828;strokeWidth=1;" edge="1" source="auth-svc-rust" target="auth-db" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Kong to Services -->
+        <mxCell id="edge-kong-auth" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#e65100;strokeWidth=2;entryX=0.5;entryY=0;" edge="1" source="kong-gw" target="system-tier" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Tier dependency arrows -->
+        <mxCell id="edge-svc-biz" value="依存" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#455a64;strokeWidth=1;dashed=1;dashPattern=5 3;fontSize=10;fontColor=#455a64;" edge="1" source="service-tier" target="business-tier" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-biz-sys" value="依存" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#455a64;strokeWidth=1;dashed=1;dashPattern=5 3;fontSize=10;fontColor=#455a64;" edge="1" source="business-tier" target="system-tier" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== KAFKA ===== -->
+        <mxCell id="kafka-group" value="Event-Driven (Kafka 3.8 / Strimzi)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#f57f17;fontSize=13;fontStyle=1;verticalAlign=top;dashed=0;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="380" width="510" height="370" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="kafka-broker" value="&lt;b&gt;Kafka Broker&lt;/b&gt;&lt;br&gt;SASL_SSL&lt;br&gt;Strimzi Operator" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#f57f17;fontSize=11;size=15;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="420" width="160" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="schema-registry" value="&lt;b&gt;Schema Registry&lt;/b&gt;&lt;br&gt;Confluent&lt;br&gt;スキーマ管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#f57f17;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="430" width="110" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Kafka Topics -->
+        <mxCell id="topic-auth" value="k1s0.system.auth.audit.v1&lt;br&gt;(監査ログ | 6 partitions)" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#fffde7;strokeColor=#f9a825;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="510" width="220" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="topic-acct" value="k1s0.business.accounting.entry.v1&lt;br&gt;(会計仕訳 | 3 partitions)" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#fffde7;strokeColor=#f9a825;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="560" width="220" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="topic-order" value="k1s0.service.order.created.v1&lt;br&gt;(注文作成 | 3 partitions)" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#fffde7;strokeColor=#f9a825;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="610" width="220" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Saga/CQRS labels -->
+        <mxCell id="saga-label" value="&lt;b&gt;分散トランザクション&lt;/b&gt;&lt;br&gt;Saga パターン&lt;br&gt;4以下: Choreography&lt;br&gt;5以上: Orchestration" style="text;html=1;fontSize=10;align=left;verticalAlign=top;fillColor=#fff9c4;strokeColor=#f57f17;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="510" width="160" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="cqrs-label" value="&lt;b&gt;CQRS + Event Sourcing&lt;/b&gt;&lt;br&gt;段階的導入" style="text;html=1;fontSize=10;align=left;verticalAlign=top;fillColor=#fff9c4;strokeColor=#f57f17;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="590" width="150" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Service to Kafka edges -->
+        <mxCell id="edge-auth-kafka" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#f57f17;strokeWidth=1;" edge="1" source="auth-svc-go" target="kafka-broker" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-acct-kafka" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#f57f17;strokeWidth=1;" edge="1" source="acct-svc-go" target="kafka-broker" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-order-kafka" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#f57f17;strokeWidth=1;" edge="1" source="order-svc-go" target="kafka-broker" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Kafka to topics -->
+        <mxCell id="edge-kb-t1" style="rounded=1;strokeColor=#f9a825;strokeWidth=1;" edge="1" source="kafka-broker" target="topic-auth" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-kb-t2" style="rounded=1;strokeColor=#f9a825;strokeWidth=1;" edge="1" source="kafka-broker" target="topic-acct" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-kb-t3" style="rounded=1;strokeColor=#f9a825;strokeWidth=1;" edge="1" source="kafka-broker" target="topic-order" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== REDIS ===== -->
+        <mxCell id="redis" value="&lt;b&gt;Redis 7&lt;/b&gt;&lt;br&gt;Sentinel (prod)&lt;br&gt;セッション | キャッシュ" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fillColor=#ffcdd2;strokeColor=#d32f2f;fontSize=11;size=10;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="240" width="130" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Auth to Redis -->
+        <mxCell id="edge-auth-redis" style="rounded=1;strokeColor=#d32f2f;strokeWidth=1;" edge="1" source="auth-svc-go" target="redis" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Keycloak to Redis -->
+        <mxCell id="edge-kc-redis" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#7b1fa2;strokeWidth=1;dashed=1;" edge="1" source="keycloak" target="redis" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== VAULT ===== -->
+        <mxCell id="vault" value="&lt;b&gt;HashiCorp Vault 1.17&lt;/b&gt;&lt;br&gt;シークレット一元管理&lt;br&gt;Keycloak Sync" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#424242;fontSize=11;verticalAlign=middle;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="240" width="180" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Vault to Keycloak -->
+        <mxCell id="edge-vault-kc" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#424242;strokeWidth=1;dashed=1;" edge="1" source="vault" target="keycloak" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== OBSERVABILITY ===== -->
+        <mxCell id="obs-group" value="Observability (可観測性)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#1b5e20;fontSize=13;fontStyle=1;verticalAlign=top;dashed=0;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="190" width="510" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Move observability to right side -->
+        <mxCell id="obs-detail" value="Observability Stack" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#1b5e20;fontSize=12;fontStyle=1;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="1440" y="240" width="130" height="290" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="prometheus" value="&lt;b&gt;Prometheus&lt;/b&gt;&lt;br&gt;RED/USE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1450" y="275" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="loki" value="&lt;b&gt;Loki + Promtail&lt;/b&gt;&lt;br&gt;JSON Logs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1450" y="325" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="jaeger" value="&lt;b&gt;Jaeger&lt;/b&gt;&lt;br&gt;OpenTelemetry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1450" y="375" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="grafana" value="&lt;b&gt;Grafana&lt;/b&gt;&lt;br&gt;Dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1450" y="425" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="alertmanager" value="&lt;b&gt;Alertmanager&lt;/b&gt;&lt;br&gt;Teams連携" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1450" y="475" width="110" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== PROTOCOL / COMMUNICATION LEGEND ===== -->
+        <mxCell id="legend" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#9e9e9e;fontSize=10;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="20" y="400" width="400" height="350" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-title" value="凡例 / Legend" style="text;html=1;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="120" y="405" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Protocol Legend -->
+        <mxCell id="leg-grpc" value="" style="endArrow=classic;strokeColor=#1565c0;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="40" y="455" as="sourcePoint"/>
+            <mxPoint x="100" y="455" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg-grpc-t" value="gRPC (サービス間通信)" style="text;html=1;fontSize=11;align=left;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="110" y="445" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="leg-rest" value="" style="endArrow=classic;strokeColor=#e65100;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="40" y="480" as="sourcePoint"/>
+            <mxPoint x="100" y="480" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg-rest-t" value="REST API (Kong Gateway経由)" style="text;html=1;fontSize=11;align=left;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="110" y="470" width="250" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="leg-kafka-e" value="" style="endArrow=classic;strokeColor=#f57f17;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="40" y="505" as="sourcePoint"/>
+            <mxPoint x="100" y="505" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg-kafka-t" value="Kafka (非同期イベント)" style="text;html=1;fontSize=11;align=left;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="110" y="495" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="leg-auth-e" value="" style="endArrow=classic;strokeColor=#7b1fa2;strokeWidth=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="40" y="530" as="sourcePoint"/>
+            <mxPoint x="100" y="530" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg-auth-t" value="認証フロー (OAuth 2.0 / OIDC)" style="text;html=1;fontSize=11;align=left;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="110" y="520" width="250" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Tier Legend -->
+        <mxCell id="leg-sys" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="60" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-sys-t" value="System Tier (共通基盤)" style="text;html=1;fontSize=11;align=left;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="110" y="557" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="leg-biz" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="595" width="60" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-biz-t" value="Business Tier (部門ドメイン)" style="text;html=1;fontSize=11;align=left;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="110" y="592" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="leg-svc" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="630" width="60" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-svc-t" value="Service Tier (業務サービス)" style="text;html=1;fontSize=11;align=left;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="110" y="627" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Tech Stack -->
+        <mxCell id="leg-tech-title" value="&lt;b&gt;技術スタック&lt;/b&gt;" style="text;html=1;fontSize=11;align=left;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="665" width="150" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-tech" value="Backend: Go 1.23 / Rust 1.82&lt;br&gt;Frontend: React (TS) / Flutter (Dart)&lt;br&gt;CLI: Rust (dialoguer + Tera)&lt;br&gt;Proto: buf + Protobuf&lt;br&gt;DB: PostgreSQL 17 / MySQL 8.4 / SQLite&lt;br&gt;ORM: sqlx (SQL-first)" style="text;html=1;fontSize=10;align=left;verticalAlign=top;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="685" width="350" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- gRPC between services -->
+        <mxCell id="grpc-label1" value="gRPC" style="text;html=1;fontSize=9;align=center;fillColor=none;strokeColor=none;fontColor=#1565c0;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="340" width="40" height="15" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

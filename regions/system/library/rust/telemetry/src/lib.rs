@@ -1,0 +1,70 @@
+pub mod logger;
+pub mod middleware;
+
+#[cfg(test)]
+mod tests;
+
+use opentelemetry::global;
+use opentelemetry::trace::TracerProvider as _;
+use opentelemetry::KeyValue;
+use opentelemetry_otlp::{SpanExporter, WithExportConfig};
+use opentelemetry_sdk::{trace as sdktrace, Resource};
+use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+
+/// TelemetryConfig は telemetry ライブラリの初期化設定を保持する。
+pub struct TelemetryConfig {
+    pub service_name: String,
+    pub version: String,
+    pub tier: String,
+    pub environment: String,
+    pub trace_endpoint: Option<String>,
+    pub sample_rate: f64,
+    pub log_level: String,
+}
+
+/// init_telemetry は OpenTelemetry TracerProvider と tracing-subscriber を初期化する。
+/// trace_endpoint が指定されている場合、OTLP gRPC エクスポータを設定する。
+pub fn init_telemetry(cfg: &TelemetryConfig) -> Result<(), Box<dyn std::error::Error>> {
+    let tracer = if let Some(ref endpoint) = cfg.trace_endpoint {
+        let exporter = SpanExporter::builder()
+            .with_tonic()
+            .with_endpoint(endpoint)
+            .build()?;
+        let provider = sdktrace::TracerProvider::builder()
+            .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
+            .with_sampler(sdktrace::Sampler::TraceIdRatioBased(cfg.sample_rate))
+            .with_resource(Resource::new(vec![
+                KeyValue::new("service.name", cfg.service_name.clone()),
+                KeyValue::new("service.version", cfg.version.clone()),
+                KeyValue::new("tier", cfg.tier.clone()),
+                KeyValue::new("environment", cfg.environment.clone()),
+            ]))
+            .build();
+        let tracer = provider.tracer("k1s0");
+        global::set_tracer_provider(provider);
+        Some(tracer)
+    } else {
+        None
+    };
+
+    let filter = EnvFilter::new(&cfg.log_level);
+    let fmt_layer = fmt::layer().json().with_target(true);
+
+    let subscriber = tracing_subscriber::registry()
+        .with(filter)
+        .with(fmt_layer);
+
+    if let Some(t) = tracer {
+        let telemetry_layer = tracing_opentelemetry::layer().with_tracer(t);
+        subscriber.with(telemetry_layer).init();
+    } else {
+        subscriber.init();
+    }
+
+    Ok(())
+}
+
+/// shutdown は OpenTelemetry TracerProvider をシャットダウンする。
+pub fn shutdown() {
+    global::shutdown_tracer_provider();
+}

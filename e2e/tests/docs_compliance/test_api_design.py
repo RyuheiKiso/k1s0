@@ -29,7 +29,7 @@ class TestBufConfig:
         """API設計.md: modules path は api/proto。"""
         modules = self.config["modules"]
         paths = [m["path"] for m in modules]
-        assert "api/proto" in paths
+        assert "." in paths
 
     def test_lint_standard(self) -> None:
         """API設計.md: STANDARD lint ルール。"""
@@ -114,22 +114,22 @@ class TestRestApiErrorDesign:
 
     def test_go_rest_handler_exists(self) -> None:
         """API設計.md: Go REST handler テンプレート。"""
-        path = ROOT / "CLI" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "rest_handler.go.tera"
+        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "rest_handler.go.tera"
         assert path.exists()
 
     def test_rust_rest_handler_exists(self) -> None:
         """API設計.md: Rust REST handler テンプレート。"""
-        path = ROOT / "CLI" / "templates" / "server" / "rust" / "src" / "adapter" / "handler" / "rest.rs.tera"
+        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "rust" / "src" / "adapter" / "handler" / "rest.rs.tera"
         assert path.exists()
 
     def test_go_handler_dir_exists(self) -> None:
         """API設計.md: Go handler ディレクトリが存在。"""
-        path = ROOT / "CLI" / "templates" / "server" / "go" / "internal" / "adapter" / "handler"
+        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "adapter" / "handler"
         assert path.is_dir()
 
     def test_rust_handler_dir_exists(self) -> None:
         """API設計.md: Rust handler ディレクトリが存在。"""
-        path = ROOT / "CLI" / "templates" / "server" / "rust" / "src" / "adapter" / "handler"
+        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "rust" / "src" / "adapter" / "handler"
         assert path.is_dir()
 
 
@@ -156,12 +156,12 @@ class TestGrpcDesign:
 
     def test_go_grpc_handler_template(self) -> None:
         """API設計.md: Go gRPC handler テンプレート。"""
-        path = ROOT / "CLI" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "grpc_handler.go.tera"
+        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "grpc_handler.go.tera"
         assert path.exists()
 
     def test_rust_grpc_handler_template(self) -> None:
         """API設計.md: Rust gRPC handler テンプレート。"""
-        path = ROOT / "CLI" / "templates" / "server" / "rust" / "src" / "adapter" / "handler" / "grpc.rs.tera"
+        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "rust" / "src" / "adapter" / "handler" / "grpc.rs.tera"
         assert path.exists()
 
 
@@ -170,12 +170,12 @@ class TestGraphQLDesign:
 
     def test_go_graphql_resolver_template(self) -> None:
         """API設計.md: Go GraphQL resolver テンプレート。"""
-        path = ROOT / "CLI" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "graphql_resolver.go.tera"
+        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "graphql_resolver.go.tera"
         assert path.exists()
 
     def test_rust_graphql_handler_template(self) -> None:
         """API設計.md: Rust GraphQL handler テンプレート。"""
-        path = ROOT / "CLI" / "templates" / "server" / "rust" / "src" / "adapter" / "handler" / "graphql.rs.tera"
+        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "rust" / "src" / "adapter" / "handler" / "graphql.rs.tera"
         assert path.exists()
 
 
@@ -208,12 +208,12 @@ class TestCodeGenDesign:
     def test_go_openapi_template_exists(self) -> None:
         """API設計.md: Go サーバーに OpenAPI テンプレートが存在。"""
         # Go サーバーテンプレートのハンドラーディレクトリが存在するか
-        path = ROOT / "CLI" / "templates" / "server" / "go" / "internal" / "adapter" / "handler"
+        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "adapter" / "handler"
         assert path.is_dir()
 
     def test_rust_handler_template_exists(self) -> None:
         """API設計.md: Rust サーバーに handler テンプレートが存在。"""
-        path = ROOT / "CLI" / "templates" / "server" / "rust" / "src" / "adapter" / "handler"
+        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "rust" / "src" / "adapter" / "handler"
         assert path.is_dir()
 
 
@@ -222,13 +222,13 @@ class TestErrorResponseUnifiedSchema:
 
     def test_go_handler_has_error_code_field(self) -> None:
         """API設計.md: Go handler に code フィールドが定義されている。"""
-        path = ROOT / "CLI" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "rest_handler.go.tera"
+        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "rest_handler.go.tera"
         content = path.read_text(encoding="utf-8")
         assert '"code"' in content
 
     def test_go_handler_has_error_message_field(self) -> None:
         """API設計.md: Go handler に message フィールドが定義されている。"""
-        path = ROOT / "CLI" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "rest_handler.go.tera"
+        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "rest_handler.go.tera"
         content = path.read_text(encoding="utf-8")
         assert '"message"' in content
 

@@ -1,0 +1,40 @@
+app:
+  name: auth-server
+  version: "0.1.0"
+  environment: development
+  tier: system
+
+server:
+  port: 8080
+  read_timeout: 30s
+  write_timeout: 30s
+  shutdown_timeout: 5s
+
+grpc:
+  port: 50051
+
+database:
+  host: localhost
+  port: 5432
+  user: dev
+  password: dev
+  name: k1s0_system
+  ssl_mode: disable
+
+auth:
+  jwt:
+    issuer: "http://localhost:8180/realms/k1s0"
+    audience: "k1s0-api"
+  oidc:
+    discovery_url: "http://localhost:8180/realms/k1s0/.well-known/openid-configuration"
+    client_id: "auth-server"
+    client_secret: "dev-secret"
+    jwks_uri: "http://localhost:8180/realms/k1s0/protocol/openid-connect/certs"
+    jwks_cache_ttl: "5m"
+
+kafka:
+  brokers:
+    - "localhost:9092"
+  topics:
+    publish: "k1s0.system.auth.audit.v1"
+    subscribe: "k1s0.system.auth.audit.v1"

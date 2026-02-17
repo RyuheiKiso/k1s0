@@ -1,0 +1,36 @@
+replicaCount: 3
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - config
+        topologyKey: kubernetes.io/hostname
+
+config:
+  data:
+    config.yaml: |
+      app:
+        environment: prod
+      observability:
+        log:
+          level: warn
+        trace:
+          sample_rate: 0.1

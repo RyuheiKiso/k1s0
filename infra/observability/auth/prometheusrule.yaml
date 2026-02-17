@@ -1,0 +1,57 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: auth-server-alerts
+  namespace: k1s0-system
+  labels:
+    app.kubernetes.io/name: auth-server
+    tier: system
+    service: auth
+spec:
+  groups:
+    - name: auth_server.rules
+      rules:
+        # High Error Rate
+        - alert: auth_server_high_error_rate
+          expr: |
+            (
+              sum(rate(http_requests_total{service="auth-server", code=~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total{service="auth-server"}[5m]))
+            ) > 0.01
+          for: 1m
+          labels:
+            severity: critical
+            service: auth-server
+            tier: system
+          annotations:
+            summary: "High error rate on auth-server"
+            description: "Error rate is above 1% for auth-server in k1s0-system"
+
+        # High Latency (P99)
+        - alert: auth_server_high_latency
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket{service="auth-server"}[5m])) by (le)
+            ) > 0.5
+          for: 5m
+          labels:
+            severity: critical
+            service: auth-server
+            tier: system
+          annotations:
+            summary: "High P99 latency on auth-server"
+            description: "P99 latency is above 500ms for auth-server in k1s0-system"
+
+        # Pod Restart
+        - alert: auth_server_pod_restart
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="k1s0-system", pod=~"auth-server.*"}[1h]) > 3
+          for: 5m
+          labels:
+            severity: critical
+            service: auth-server
+            tier: system
+          annotations:
+            summary: "Pod restarts detected for auth-server"
+            description: "Pod auth-server in k1s0-system has restarted more than 3 times in the last hour"

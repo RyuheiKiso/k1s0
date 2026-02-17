@@ -1,0 +1,176 @@
+# .github/workflows/auth-deploy.yaml
+# Deploy pipeline for auth server
+# Triggered on push to main with changes in auth server paths
+name: auth-deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'regions/system/server/go/auth/**'
+      - 'regions/system/server/rust/auth/**'
+
+env:
+  REGISTRY: harbor.internal.example.com
+
+jobs:
+  # ---------- Build and push Docker image ----------
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: regions/system/server/go/auth
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/k1s0-system/auth:${{ steps.version.outputs.value }}
+            ${{ env.REGISTRY }}/k1s0-system/auth:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/k1s0-system/auth:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+      - name: Sign image with Cosign
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/k1s0-system/auth:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/k1s0-system/auth:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+          severity: HIGH,CRITICAL
+          exit-code: 1
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.REGISTRY }}/k1s0-system/auth:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+          output-file: sbom.spdx.json
+
+  # ---------- Deploy to dev ----------
+  deploy-dev:
+    needs: build-and-push
+    runs-on: [self-hosted, dev]
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/k1s0-system/auth:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"
+      - name: Deploy to dev
+        run: |
+          helm upgrade --install auth \
+            ./infra/helm/services/system/auth \
+            -n k1s0-system \
+            -f ./infra/helm/services/system/auth/values-dev.yaml \
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+
+  # ---------- Deploy to staging ----------
+  deploy-staging:
+    needs: deploy-dev
+    runs-on: [self-hosted, staging]
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/k1s0-system/auth:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"
+      - name: Deploy to staging
+        run: |
+          helm upgrade --install auth \
+            ./infra/helm/services/system/auth \
+            -n k1s0-system \
+            -f ./infra/helm/services/system/auth/values-staging.yaml \
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+
+  # ---------- Deploy to prod (manual approval) ----------
+  deploy-prod:
+    needs: deploy-staging
+    runs-on: [self-hosted, prod]
+    environment:
+      name: prod
+      url: https://api.k1s0.internal.example.com
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/k1s0-system/auth:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"
+      - name: Deploy to prod
+        run: |
+          helm upgrade --install auth \
+            ./infra/helm/services/system/auth \
+            -n k1s0-system \
+            -f ./infra/helm/services/system/auth/values-prod.yaml \
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}

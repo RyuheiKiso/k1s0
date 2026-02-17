@@ -1,0 +1,114 @@
+syntax = "proto3";
+package k1s0.system.config.v1;
+
+import "k1s0/system/common/v1/types.proto";
+
+// ConfigService はサービス設定値の取得・更新・監視を提供する。
+service ConfigService {
+  // 設定値取得
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
+
+  // 設定値一覧取得
+  rpc ListConfigs(ListConfigsRequest) returns (ListConfigsResponse);
+
+  // サービス向け設定一括取得
+  rpc GetServiceConfig(GetServiceConfigRequest) returns (GetServiceConfigResponse);
+
+  // 設定値更新
+  rpc UpdateConfig(UpdateConfigRequest) returns (UpdateConfigResponse);
+
+  // 設定値削除
+  rpc DeleteConfig(DeleteConfigRequest) returns (DeleteConfigResponse);
+
+  // 設定変更監視（server streaming）
+  rpc WatchConfig(WatchConfigRequest) returns (stream ConfigChangeEvent);
+}
+
+// --- Get Config ---
+
+message GetConfigRequest {
+  string namespace = 1;
+  string key = 2;
+}
+
+message GetConfigResponse {
+  ConfigEntry entry = 1;
+}
+
+message ConfigEntry {
+  string id = 1;
+  string namespace = 2;
+  string key = 3;
+  string value_json = 4;  // JSONB value as string
+  int32 version = 5;
+  string description = 6;
+  string created_by = 7;
+  string updated_by = 8;
+  k1s0.system.common.v1.Timestamp created_at = 9;
+  k1s0.system.common.v1.Timestamp updated_at = 10;
+}
+
+// --- List Configs ---
+
+message ListConfigsRequest {
+  string namespace = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+}
+
+message ListConfigsResponse {
+  repeated ConfigEntry entries = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+// --- Service Config ---
+
+message GetServiceConfigRequest {
+  string service_name = 1;
+  string environment = 2;  // dev | staging | prod
+}
+
+message GetServiceConfigResponse {
+  map<string, string> configs = 1;  // flattened key-value pairs
+}
+
+// --- Update Config ---
+
+message UpdateConfigRequest {
+  string namespace = 1;
+  string key = 2;
+  string value_json = 3;
+  int32 expected_version = 4;  // optimistic concurrency
+  string description = 5;
+}
+
+message UpdateConfigResponse {
+  ConfigEntry entry = 1;
+}
+
+// --- Delete Config ---
+
+message DeleteConfigRequest {
+  string namespace = 1;
+  string key = 2;
+}
+
+message DeleteConfigResponse {
+  bool success = 1;
+}
+
+// --- Watch Config ---
+
+message WatchConfigRequest {
+  string namespace = 1;  // empty = watch all
+  string key = 2;        // empty = watch all in namespace
+}
+
+message ConfigChangeEvent {
+  string namespace = 1;
+  string key = 2;
+  string old_value_json = 3;
+  string new_value_json = 4;
+  string change_type = 5;  // CREATED, UPDATED, DELETED
+  string changed_by = 6;
+  k1s0.system.common.v1.Timestamp changed_at = 7;
+}

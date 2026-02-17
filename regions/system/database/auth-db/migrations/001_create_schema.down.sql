@@ -1,0 +1,3 @@
+DROP FUNCTION IF EXISTS auth.update_updated_at();
+DROP SCHEMA IF EXISTS auth;
+DROP EXTENSION IF EXISTS "pgcrypto";

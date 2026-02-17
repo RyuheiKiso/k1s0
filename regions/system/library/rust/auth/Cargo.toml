@@ -1,0 +1,21 @@
+[package]
+name = "k1s0-auth"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+jsonwebtoken = "9"
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["sync", "time"] }
+thiserror = "2"
+async-trait = "0.1"
+axum = "0.8"
+http = "1"
+base64 = "0.22"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+rsa = { version = "0.9", features = ["pem"] }
+rand = "0.8"

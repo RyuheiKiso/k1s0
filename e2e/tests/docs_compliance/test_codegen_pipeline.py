@@ -8,8 +8,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 DOCS = ROOT / "docs"
-TEMPLATES = ROOT / "CLI" / "templates"
+TEMPLATES = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates"
 SPEC = DOCS / "テンプレート仕様-コード生成パイプライン.md"
+CLI_CORE_SRC = ROOT / "CLI" / "crates" / "k1s0-core" / "src"
 
 
 class TestCodegenPipelineSpecExists:
@@ -143,13 +144,13 @@ class TestCodegenPipelineImplementationExists:
     """パイプライン実装ファイルが存在し、仕様書の関数を含むかの検証。"""
 
     def setup_method(self) -> None:
-        self.execute_rs = (ROOT / "CLI" / "src" / "commands" / "generate" / "execute.rs").read_text(encoding="utf-8")
+        self.execute_rs = (CLI_CORE_SRC / "commands" / "generate" / "execute.rs").read_text(encoding="utf-8")
 
     def test_execute_rs_exists(self) -> None:
-        assert (ROOT / "CLI" / "src" / "commands" / "generate" / "execute.rs").exists()
+        assert (CLI_CORE_SRC / "commands" / "generate" / "execute.rs").exists()
 
     def test_generate_module_exists(self) -> None:
-        assert (ROOT / "CLI" / "src" / "commands" / "generate").is_dir()
+        assert (CLI_CORE_SRC / "commands" / "generate").is_dir()
 
     def test_determine_post_commands_exists(self) -> None:
         assert "fn determine_post_commands" in self.execute_rs
@@ -215,11 +216,11 @@ class TestCodegenConfigFileTemplates:
     @pytest.mark.parametrize(
         "tool,config_file,template_path",
         [
-            ("buf", "buf.yaml", "CLI/templates/server/go/buf.yaml.tera"),
-            ("buf", "buf.gen.yaml", "CLI/templates/server/go/buf.gen.yaml.tera"),
-            ("buf", "buf.yaml", "CLI/templates/server/rust/buf.yaml.tera"),
-            ("oapi-codegen", "oapi-codegen.yaml", "CLI/templates/server/go/oapi-codegen.yaml.tera"),
-            ("gqlgen", "gqlgen.yml", "CLI/templates/server/go/gqlgen.yml.tera"),
+            ("buf", "buf.yaml", "CLI/crates/k1s0-cli/templates/server/go/buf.yaml.tera"),
+            ("buf", "buf.gen.yaml", "CLI/crates/k1s0-cli/templates/server/go/buf.gen.yaml.tera"),
+            ("buf", "buf.yaml", "CLI/crates/k1s0-cli/templates/server/rust/buf.yaml.tera"),
+            ("oapi-codegen", "oapi-codegen.yaml", "CLI/crates/k1s0-cli/templates/server/go/oapi-codegen.yaml.tera"),
+            ("gqlgen", "gqlgen.yml", "CLI/crates/k1s0-cli/templates/server/go/gqlgen.yml.tera"),
         ],
     )
     def test_config_template_documented(self, tool: str, config_file: str, template_path: str) -> None:
@@ -231,11 +232,11 @@ class TestCodegenConfigFileTemplates:
     @pytest.mark.parametrize(
         "template_path",
         [
-            "CLI/templates/server/go/buf.yaml.tera",
-            "CLI/templates/server/go/buf.gen.yaml.tera",
-            "CLI/templates/server/rust/buf.yaml.tera",
-            "CLI/templates/server/go/oapi-codegen.yaml.tera",
-            "CLI/templates/server/go/gqlgen.yml.tera",
+            "CLI/crates/k1s0-cli/templates/server/go/buf.yaml.tera",
+            "CLI/crates/k1s0-cli/templates/server/go/buf.gen.yaml.tera",
+            "CLI/crates/k1s0-cli/templates/server/rust/buf.yaml.tera",
+            "CLI/crates/k1s0-cli/templates/server/go/oapi-codegen.yaml.tera",
+            "CLI/crates/k1s0-cli/templates/server/go/gqlgen.yml.tera",
         ],
     )
     def test_config_template_exists(self, template_path: str) -> None:
@@ -256,9 +257,9 @@ class TestCodegenApiDefinitionTemplates:
     @pytest.mark.parametrize(
         "api_style,definition_file,template_path",
         [
-            ("REST", "api/openapi/openapi.yaml", "CLI/templates/server/go/api/openapi/openapi.yaml.tera"),
-            ("gRPC", "api/proto/service.proto", "CLI/templates/server/go/api/proto/service.proto.tera"),
-            ("GraphQL", "api/graphql/schema.graphql", "CLI/templates/server/go/api/graphql/schema.graphql.tera"),
+            ("REST", "api/openapi/openapi.yaml", "CLI/crates/k1s0-cli/templates/server/go/api/openapi/openapi.yaml.tera"),
+            ("gRPC", "api/proto/service.proto", "CLI/crates/k1s0-cli/templates/server/go/api/proto/service.proto.tera"),
+            ("GraphQL", "api/graphql/schema.graphql", "CLI/crates/k1s0-cli/templates/server/go/api/graphql/schema.graphql.tera"),
         ],
     )
     def test_api_definition_template_documented(self, api_style: str, definition_file: str, template_path: str) -> None:
@@ -270,9 +271,9 @@ class TestCodegenApiDefinitionTemplates:
     @pytest.mark.parametrize(
         "template_path",
         [
-            "CLI/templates/server/go/api/openapi/openapi.yaml.tera",
-            "CLI/templates/server/go/api/proto/service.proto.tera",
-            "CLI/templates/server/go/api/graphql/schema.graphql.tera",
+            "CLI/crates/k1s0-cli/templates/server/go/api/openapi/openapi.yaml.tera",
+            "CLI/crates/k1s0-cli/templates/server/go/api/proto/service.proto.tera",
+            "CLI/crates/k1s0-cli/templates/server/go/api/graphql/schema.graphql.tera",
         ],
     )
     def test_api_definition_template_exists(self, template_path: str) -> None:
@@ -289,7 +290,7 @@ class TestCodegenGraphQL:
 
     def setup_method(self) -> None:
         self.content = SPEC.read_text(encoding="utf-8")
-        self.execute_rs = (ROOT / "CLI" / "src" / "commands" / "generate" / "execute.rs").read_text(encoding="utf-8")
+        self.execute_rs = (CLI_CORE_SRC / "commands" / "generate" / "execute.rs").read_text(encoding="utf-8")
 
     def test_graphql_go_gqlgen_implemented(self) -> None:
         """テンプレート仕様-コード生成パイプライン.md: Go GraphQL gqlgen が実装済みであること。"""
@@ -308,8 +309,8 @@ class TestCodegenGraphQL:
 
     def test_graphql_templates_exist(self) -> None:
         """GraphQLテンプレートが用意されていること。"""
-        assert (ROOT / "CLI" / "templates" / "server" / "go" / "api" / "graphql" / "schema.graphql.tera").exists()
-        assert (ROOT / "CLI" / "templates" / "server" / "go" / "gqlgen.yml.tera").exists()
+        assert (ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "api" / "graphql" / "schema.graphql.tera").exists()
+        assert (ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "gqlgen.yml.tera").exists()
 
 
 # --- ギャップ 4: エラーメッセージ形式 ---
@@ -396,7 +397,7 @@ class TestCodegenMultipleApiStyles:
 
     def test_api_styles_containing_pattern(self) -> None:
         """テンプレートで api_styles is containing パターンが使用されているか。"""
-        templates_dir = ROOT / "CLI" / "templates"
+        templates_dir = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates"
         found = False
         for tera_file in templates_dir.rglob("*.tera"):
             content = tera_file.read_text(encoding="utf-8")

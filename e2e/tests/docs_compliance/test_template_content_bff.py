@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
-TEMPLATES = ROOT / "CLI" / "templates"
+TEMPLATES = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates"
 BFF_GO = TEMPLATES / "bff" / "go"
 BFF_RUST = TEMPLATES / "bff" / "rust"
 

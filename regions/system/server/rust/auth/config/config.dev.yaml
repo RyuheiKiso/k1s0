@@ -1,0 +1,32 @@
+app:
+  name: "auth-server"
+  version: "0.1.0"
+  environment: "dev"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+database:
+  host: localhost
+  port: 5432
+  name: k1s0_system
+  user: dev
+  password: dev
+  ssl_mode: disable
+
+auth:
+  jwt:
+    issuer: "http://localhost:8180/realms/k1s0"
+    audience: "k1s0-api"
+  oidc:
+    discovery_url: "http://localhost:8180/realms/k1s0/.well-known/openid-configuration"
+    client_id: "auth-server"
+    client_secret: "dev-secret"
+    jwks_uri: "http://localhost:8180/realms/k1s0/protocol/openid-connect/certs"
+    jwks_cache_ttl: "5m"
+
+kafka:
+  brokers:
+    - "localhost:9092"
+  topic: "audit-events-dev"

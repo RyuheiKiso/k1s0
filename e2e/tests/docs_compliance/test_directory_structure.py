@@ -42,23 +42,23 @@ class TestCLIStructure:
     @pytest.mark.parametrize(
         "path",
         [
-            "CLI/src/main.rs",
-            "CLI/src/commands/init.rs",
-            "CLI/src/commands/generate/mod.rs",
-            "CLI/src/commands/build.rs",
-            "CLI/src/commands/test_cmd.rs",  # test.rs は予約語のため test_cmd.rs
-            "CLI/src/commands/deploy.rs",
-            "CLI/src/config",
-            "CLI/src/prompt",
-            "CLI/templates/server/go",
-            "CLI/templates/server/rust",
-            "CLI/templates/client/react",
-            "CLI/templates/client/flutter",
-            "CLI/templates/library/go",
-            "CLI/templates/library/rust",
-            "CLI/templates/library/typescript",  # ts → typescript (実装の命名)
-            "CLI/templates/library/dart",
-            "CLI/templates/database",
+            "CLI/crates/k1s0-cli/src/main.rs",
+            "CLI/crates/k1s0-cli/src/commands/init.rs",
+            "CLI/crates/k1s0-cli/src/commands/generate/mod.rs",
+            "CLI/crates/k1s0-cli/src/commands/build.rs",
+            "CLI/crates/k1s0-cli/src/commands/test_cmd.rs",  # test.rs は予約語のため test_cmd.rs
+            "CLI/crates/k1s0-cli/src/commands/deploy.rs",
+            "CLI/crates/k1s0-cli/src/config",
+            "CLI/crates/k1s0-cli/src/prompt",
+            "CLI/crates/k1s0-cli/templates/server/go",
+            "CLI/crates/k1s0-cli/templates/server/rust",
+            "CLI/crates/k1s0-cli/templates/client/react",
+            "CLI/crates/k1s0-cli/templates/client/flutter",
+            "CLI/crates/k1s0-cli/templates/library/go",
+            "CLI/crates/k1s0-cli/templates/library/rust",
+            "CLI/crates/k1s0-cli/templates/library/typescript",  # ts → typescript (実装の命名)
+            "CLI/crates/k1s0-cli/templates/library/dart",
+            "CLI/crates/k1s0-cli/templates/database",
             "CLI/Cargo.toml",
         ],
     )
@@ -185,8 +185,9 @@ class TestGitHubWorkflows:
 # tier-architecture.md ギャップ補完テスト
 # ============================================================================
 
-CLI_SRC = ROOT / "CLI" / "src"
-TEMPLATES = ROOT / "CLI" / "templates"
+CLI_SRC = ROOT / "CLI" / "crates" / "k1s0-cli" / "src"
+CLI_CORE_SRC = ROOT / "CLI" / "crates" / "k1s0-core" / "src"
+TEMPLATES = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates"
 
 
 class TestTierDependencyDirection:
@@ -214,7 +215,7 @@ class TestTierDependencyDirection:
 
     def test_generate_tier_aware_path(self) -> None:
         """tier-architecture.md: generate モジュールが Tier を考慮したパス生成を行う。"""
-        content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
+        content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
         # Tier に応じたディレクトリ構造を生成する
         assert "Tier::System" in content
         assert "Tier::Business" in content
@@ -316,7 +317,7 @@ class TestDocsTsToTypescriptConsistency:
 
     def test_template_dir_is_typescript(self) -> None:
         """ディレクトリ構成図.md: 実装側が CLI/templates/library/typescript/ である。"""
-        assert (ROOT / "CLI" / "templates" / "library" / "typescript").exists()
+        assert (ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "library" / "typescript").exists()
 
 
 class TestServerInternalStructure:
@@ -737,12 +738,12 @@ class TestTierKindRestrictions:
 
     def test_cli_client_not_available_for_system(self) -> None:
         """tier-architecture.md: CLI でクライアントの system Tier が選択不可。"""
-        content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
+        content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
         assert "Kind::Client => vec![Tier::Business, Tier::Service]" in content
 
     def test_cli_library_not_available_for_service(self) -> None:
         """tier-architecture.md: CLI でライブラリの service Tier が選択不可。"""
-        content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
+        content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
         assert "Kind::Library => vec![Tier::System, Tier::Business]" in content
 
 
@@ -844,7 +845,7 @@ class TestRdbmsSelection:
 
     def test_rdbms_choices_in_cli(self) -> None:
         """tier-architecture.md: CLI に RDBMS 選択肢が実装されている。"""
-        content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
+        content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
         assert 'Rdbms::PostgreSQL => "PostgreSQL"' in content
         assert 'Rdbms::MySQL => "MySQL"' in content
         assert 'Rdbms::SQLite => "SQLite"' in content

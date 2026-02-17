@@ -23,7 +23,7 @@ resource "vault_database_secret_backend_connection" "auth_db" {
   allowed_roles = ["system-auth-rw", "system-auth-ro"]
 
   postgresql {
-    connection_url = "postgresql://{{username}}:{{password}}@postgres.k1s0-system.svc.cluster.local:5432/auth_db"
+    connection_url = "postgresql://{{username}}:{{password}}@postgres.k1s0-system.svc.cluster.local:5432/k1s0_system"
   }
 }
 

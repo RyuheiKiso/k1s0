@@ -157,7 +157,7 @@ class TestClippyLints:
         cargo_toml = ROOT / "CLI" / "Cargo.toml"
         assert cargo_toml.exists()
         content = cargo_toml.read_text()
-        assert "[lints.clippy]" in content
+        assert "[workspace.lints.clippy]" in content
         assert "pedantic" in content
         assert "module_name_repetitions" in content
         assert "must_use_candidate" in content

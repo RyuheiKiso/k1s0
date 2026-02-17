@@ -8,7 +8,8 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
-CLI_SRC = ROOT / "CLI" / "src"
+CLI_SRC = ROOT / "CLI" / "crates" / "k1s0-cli" / "src"
+CLI_CORE_SRC = ROOT / "CLI" / "crates" / "k1s0-core" / "src"
 
 
 class TestMainMenu:
@@ -92,7 +93,7 @@ class TestGenerateKinds:
     """CLIフロー.md: ひな形生成 — 種別の選択。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
+        self.content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
 
     def test_kind_server(self) -> None:
         assert "サーバー" in self.content
@@ -111,7 +112,7 @@ class TestGenerateTierRestrictions:
     """CLIフロー.md: 種別に応じたTier制限の検証。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
+        self.content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
 
     def test_server_all_tiers(self) -> None:
         """CLIフロー.md: サーバーは system/business/service。"""
@@ -134,7 +135,7 @@ class TestGenerateLanguages:
     """CLIフロー.md: 言語 / フレームワーク選択の検証。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
+        self.content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
 
     def test_server_languages(self) -> None:
         """CLIフロー.md: サーバーは Go / Rust。"""
@@ -162,7 +163,7 @@ class TestGenerateApiStyles:
     """CLIフロー.md: API方式選択の検証。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
+        self.content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
 
     def test_rest_option(self) -> None:
         assert "REST (OpenAPI)" in self.content
@@ -178,7 +179,7 @@ class TestNameValidation:
     """CLIフロー.md: 入力のバリデーション。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_SRC / "prompt" / "mod.rs").read_text(encoding="utf-8")
+        self.content = (CLI_CORE_SRC / "validation.rs").read_text(encoding="utf-8")
 
     def test_regex_pattern(self) -> None:
         """CLIフロー.md: [a-z0-9-]+ のみ許可。"""
@@ -249,7 +250,8 @@ class TestBuildFlow:
 
     def test_scan_buildable_targets(self) -> None:
         """CLIフロー.md: 既存のサーバー・クライアント・ライブラリが一覧表示される。"""
-        assert "fn scan_buildable_targets" in self.content
+        core_content = (CLI_CORE_SRC / "commands" / "build.rs").read_text(encoding="utf-8")
+        assert "fn scan_buildable_targets" in core_content
 
 
 class TestTestFlow:
@@ -283,14 +285,15 @@ class TestDeployFlow:
         assert "ProdConfirm" in self.content
 
     def test_is_prod_method(self) -> None:
-        assert "fn is_prod" in self.content
+        core_content = (CLI_CORE_SRC / "commands" / "deploy.rs").read_text(encoding="utf-8")
+        assert "fn is_prod" in core_content
 
 
 class TestCLIDependencies:
     """CLIフロー.md: CLI の依存関係が仕様通りか。"""
 
     def setup_method(self) -> None:
-        self.content = (ROOT / "CLI" / "Cargo.toml").read_text(encoding="utf-8")
+        self.content = (ROOT / "CLI" / "crates" / "k1s0-cli" / "Cargo.toml").read_text(encoding="utf-8")
 
     def test_dialoguer_dependency(self) -> None:
         """CLIフロー.md: dialoguer によるプロンプト。"""
@@ -476,7 +479,7 @@ class TestExistingDatabaseDisplay:
 
     def test_db_display_with_rdbms(self) -> None:
         """CLIフロー.md: DbInfo の Display 実装が名前(RDBMS)形式。"""
-        content = (CLI_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
+        content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
         # DbInfo の Display: "{} ({})" format
         assert "DbInfo" in content
         assert 'write!(f, "{} ({})"' in content
@@ -490,7 +493,7 @@ class TestE2ESuiteSelection:
 
     def test_scan_e2e_suites_function(self) -> None:
         """CLIフロー.md: scan_e2e_suites 関数が存在する。"""
-        content = (CLI_SRC / "commands" / "test_cmd.rs").read_text(encoding="utf-8")
+        content = (CLI_CORE_SRC / "commands" / "test_cmd.rs").read_text(encoding="utf-8")
         assert "fn scan_e2e_suites" in content
 
     def test_e2e_suite_selection_prompt(self) -> None:
@@ -532,14 +535,14 @@ class TestProdDeployConfirmation:
 # CLIフロー.md 追加ギャップ補完テスト
 # ============================================================================
 
-TEMPLATES = ROOT / "CLI" / "templates"
+TEMPLATES = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates"
 
 
 class TestProjectInitGeneratedItems:
     """CLIフロー.md: プロジェクト初期化で生成される9項目の検証。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_SRC / "commands" / "init.rs").read_text(encoding="utf-8")
+        self.content = (CLI_CORE_SRC / "commands" / "init.rs").read_text(encoding="utf-8")
 
     @pytest.mark.parametrize(
         "item",
@@ -733,7 +736,7 @@ class TestServiceTierGraphQLBffDirectory:
 
     def test_bff_generation_logic_exists(self) -> None:
         """CLIフロー.md: service Tier + GraphQL で BFF ディレクトリ生成ロジックがある。"""
-        content = (CLI_SRC / "commands" / "generate" / "execute.rs").read_text(encoding="utf-8")
+        content = (CLI_CORE_SRC / "commands" / "generate" / "execute.rs").read_text(encoding="utf-8")
         assert "bff" in content
         assert "ApiStyle::GraphQL" in content
 

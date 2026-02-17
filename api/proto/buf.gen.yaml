@@ -8,3 +8,8 @@ plugins:
     opt: paths=source_relative
   - remote: buf.build/protocolbuffers/rust
     out: gen/rust
+  - remote: buf.build/connectrpc/es
+    out: gen/ts
+    opt: target=ts
+  - remote: buf.build/protocolbuffers/dart
+    out: gen/dart
