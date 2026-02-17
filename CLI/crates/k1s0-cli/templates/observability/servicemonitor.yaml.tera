@@ -1,0 +1,28 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ service_name }}
+  namespace: {{ namespace }}
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: {{ service_name }}
+  namespaceSelector:
+    matchNames:
+      - {{ namespace }}
+  endpoints:
+    - port: http
+      path: /metrics
+{% if tier == "system" %}
+      interval: 15s
+{% elif tier == "business" %}
+      interval: 30s
+{% else %}
+      interval: 60s
+{% endif %}
+      scrapeTimeout: 10s
+      honorLabels: true

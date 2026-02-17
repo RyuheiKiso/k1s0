@@ -1,9 +1,9 @@
 ---
-source: tests/snapshot_tests.rs
-assertion_line: 927
+source: crates/k1s0-cli/tests/snapshot_tests.rs
 expression: sorted
 ---
 - authorization-policy.yaml
 - destination-rule.yaml
+- network-policy.yaml
 - peer-authentication.yaml
 - virtual-service.yaml

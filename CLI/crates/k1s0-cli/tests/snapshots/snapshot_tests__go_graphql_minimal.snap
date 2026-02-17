@@ -1,11 +1,14 @@
 ---
-source: tests/snapshot_tests.rs
+source: crates/k1s0-cli/tests/snapshot_tests.rs
 expression: sorted
 ---
 - Dockerfile
 - README.md
 - api/graphql/schema.graphql
 - cmd/main.go
+- config/config.dev.yaml
+- config/config.prod.yaml
+- config/config.staging.yaml
 - config/config.yaml
 - go.mod
 - gqlgen.yml

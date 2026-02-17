@@ -1,0 +1,82 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ service_name }}-network-policy
+  namespace: {{ namespace }}
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ service_name }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+{% if tier == "system" %}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: k1s0-business
+        - namespaceSelector:
+            matchLabels:
+              name: k1s0-service
+        - namespaceSelector:
+            matchLabels:
+              name: service-mesh
+      ports:
+        - protocol: TCP
+          port: {{ server_port }}
+{% if api_styles is containing("grpc") %}
+        - protocol: TCP
+          port: {{ grpc_port }}
+{% endif %}
+{% elif tier == "business" %}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: k1s0-service
+        - namespaceSelector:
+            matchLabels:
+              name: k1s0-business
+      ports:
+        - protocol: TCP
+          port: {{ server_port }}
+{% if api_styles is containing("grpc") %}
+        - protocol: TCP
+          port: {{ grpc_port }}
+{% endif %}
+{% elif tier == "service" %}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress
+        - namespaceSelector:
+            matchLabels:
+              name: k1s0-service
+      ports:
+        - protocol: TCP
+          port: {{ server_port }}
+{% if api_styles is containing("grpc") %}
+        - protocol: TCP
+          port: {{ grpc_port }}
+{% endif %}
+{% endif %}
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: k1s0-system
+      ports:
+        - protocol: TCP
+          port: 8080

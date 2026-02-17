@@ -1,0 +1,63 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ service_name }}-rate-limit
+  namespace: {{ namespace }}
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
+config:
+{% if tier == "system" %}
+  minute: 120
+  hour: 3600
+{% elif tier == "business" %}
+  minute: 60
+  hour: 1800
+{% else %}
+  minute: 30
+  hour: 900
+{% endif %}
+  policy: redis
+  redis_host: redis.k1s0-system.svc.cluster.local
+  redis_port: 6379
+plugin: rate-limiting
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ service_name }}-cors
+  namespace: {{ namespace }}
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
+config:
+  origins:
+    - "https://app.k1s0.internal.example.com"
+  methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  headers:
+    - Authorization
+    - Content-Type
+  credentials: true
+  max_age: 3600
+plugin: cors
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ service_name }}-jwt
+  namespace: {{ namespace }}
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
+config:
+  uri_param_names:
+    - jwt
+  claims_to_verify:
+    - exp
+  key_claim_name: iss
+plugin: jwt

@@ -1,5 +1,5 @@
 ---
-source: tests/snapshot_tests.rs
+source: crates/k1s0-cli/tests/snapshot_tests.rs
 expression: sorted
 ---
 - Dockerfile
@@ -9,6 +9,9 @@ expression: sorted
 - buf.gen.yaml
 - buf.yaml
 - cmd/main.go
+- config/config.dev.yaml
+- config/config.prod.yaml
+- config/config.staging.yaml
 - config/config.yaml
 - go.mod
 - internal/adapter/handler/grpc_handler.go
