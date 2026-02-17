@@ -1,0 +1,48 @@
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: {{ service_name }}
+  namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/name: {{ service_name }}
+    tier: {{ tier }}
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ service_name }}
+  service:
+    port: {{ server_port }}
+    targetPort: {{ server_port }}
+  analysis:
+{% if tier == "system" %}
+    interval: 30s
+    threshold: 5
+    maxWeight: 30
+    stepWeight: 5
+{% elif tier == "business" %}
+    interval: 1m
+    threshold: 5
+    maxWeight: 50
+    stepWeight: 10
+{% else %}
+    interval: 1m
+    threshold: 10
+    maxWeight: 70
+    stepWeight: 20
+{% endif %}
+    metrics:
+      - name: request-success-rate
+        thresholdRange:
+          min: 99
+        interval: 1m
+      - name: request-duration
+        thresholdRange:
+{% if tier == "system" %}
+          max: 500
+{% elif tier == "business" %}
+          max: 1000
+{% else %}
+          max: 2000
+{% endif %}
+        interval: 1m

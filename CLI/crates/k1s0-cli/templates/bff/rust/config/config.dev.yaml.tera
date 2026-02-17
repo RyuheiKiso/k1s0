@@ -1,0 +1,14 @@
+# Development environment overrides for {{ service_name }}-bff
+server:
+  port: 8080
+  name: {{ service_name }}-bff
+  environment: "dev"
+upstream:
+  http_url: http://localhost:8080
+  grpc_address: localhost:50051
+observability:
+  log:
+    level: "debug"
+    format: "text"
+  trace:
+    sample_rate: 1.0

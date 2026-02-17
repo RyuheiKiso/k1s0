@@ -1,0 +1,33 @@
+{
+  "clientId": "{{ service_name }}",
+  "name": "{{ service_name_pascal }}",
+  "description": "{{ service_name_pascal }} service client ({{ tier }} tier)",
+  "enabled": true,
+  "protocol": "openid-connect",
+  "rootUrl": "https://{{ service_name }}.{{ namespace }}.svc.cluster.local",
+  "baseUrl": "/",
+  "redirectUris": [
+    "https://app.k1s0.internal.example.com/*"
+  ],
+  "webOrigins": [
+    "https://app.k1s0.internal.example.com"
+  ],
+  "bearerOnly": false,
+  "publicClient": false,
+  "standardFlowEnabled": true,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": true,
+  "authorizationServicesEnabled": true,
+  "attributes": {
+    "access.token.lifespan": "300",
+    "client.secret.rotation.enabled": "true"
+  },
+  "defaultClientScopes": [
+    "openid",
+    "profile",
+    "email"
+  ],
+  "optionalClientScopes": [
+    "offline_access"
+  ]
+}

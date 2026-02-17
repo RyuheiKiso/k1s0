@@ -1,0 +1,29 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.{{ tier }}.{{ service_name_snake }}.events.v1
+  namespace: k1s0-system
+  labels:
+    app.kubernetes.io/name: {{ service_name }}
+    tier: {{ tier }}
+    strimzi.io/cluster: k1s0-kafka
+spec:
+{% if tier == "system" %}
+  partitions: 6
+  replicas: 3
+{% else %}
+  partitions: 3
+  replicas: 3
+{% endif %}
+  config:
+{% if tier == "system" %}
+    retention.ms: 604800000
+    cleanup.policy: delete
+{% elif tier == "business" %}
+    retention.ms: 259200000
+    cleanup.policy: delete
+{% else %}
+    retention.ms: 86400000
+    cleanup.policy: delete
+{% endif %}
+    min.insync.replicas: 2

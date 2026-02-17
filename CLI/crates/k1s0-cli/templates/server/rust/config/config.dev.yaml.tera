@@ -1,0 +1,48 @@
+# Development environment overrides for {{ service_name }}
+app:
+  environment: "dev"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+{% if has_database %}
+database:
+{% if database_type == "postgresql" %}
+  host: "localhost"
+  port: 5432
+  ssl_mode: "disable"
+{% elif database_type == "mysql" %}
+  host: "localhost"
+  port: 3306
+{% endif %}
+  name: "{{ service_name_snake }}_db"
+  user: "dev"
+  password: "dev_password"
+{% endif %}
+
+{% if has_kafka %}
+kafka:
+  brokers:
+    - "localhost:9092"
+  security_protocol: "PLAINTEXT"
+{% endif %}
+
+{% if has_redis %}
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+{% endif %}
+
+observability:
+  log:
+    level: "debug"
+    format: "text"
+  trace:
+    enabled: true
+    endpoint: "localhost:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: "/metrics"

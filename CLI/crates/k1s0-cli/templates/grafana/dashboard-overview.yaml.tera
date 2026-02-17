@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ service_name }}-overview
+  namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/name: {{ service_name }}
+    tier: {{ tier }}
+    grafana_dashboard: "true"
+data:
+  {{ service_name }}-overview.json: |
+    {
+      "dashboard": {
+        "title": "{{ service_name }} Overview",
+        "tags": ["{{ tier }}", "{{ service_name }}"],
+        "panels": [
+          {
+            "title": "Request Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{service=\"{{ service_name }}\"}[5m]))"
+              }
+            ]
+          },
+          {
+            "title": "Error Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{service=\"{{ service_name }}\", code=~\"5..\"}[5m])) / sum(rate(http_requests_total{service=\"{{ service_name }}\"}[5m]))",
+{% if tier == "system" %}
+                "thresholds": [0.01]
+{% else %}
+                "thresholds": [0.05]
+{% endif %}
+              }
+            ]
+          },
+          {
+            "title": "Latency P99",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{service=\"{{ service_name }}\"}[5m])) by (le))"
+              }
+            ]
+          }
+        ]
+      }
+    }

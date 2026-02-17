@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ service_name }}-slo
+  namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/name: {{ service_name }}
+    tier: {{ tier }}
+    grafana_dashboard: "true"
+data:
+  {{ service_name }}-slo.json: |
+    {
+      "dashboard": {
+        "title": "{{ service_name }} SLO",
+        "tags": ["{{ tier }}", "{{ service_name }}", "slo"],
+        "panels": [
+          {
+            "title": "Availability SLO",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "1 - (sum(rate(http_requests_total{service=\"{{ service_name }}\", code=~\"5..\"}[30d])) / sum(rate(http_requests_total{service=\"{{ service_name }}\"}[30d])))",
+{% if tier == "system" %}
+                "thresholds": [vector(0.9995)]
+{% elif tier == "business" %}
+                "thresholds": [vector(0.999)]
+{% else %}
+                "thresholds": [vector(0.99)]
+{% endif %}
+              }
+            ]
+          },
+          {
+            "title": "Latency SLO (P99)",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{service=\"{{ service_name }}\"}[5m])) by (le))",
+{% if tier == "system" %}
+                "target": vector(0.2)
+{% elif tier == "business" %}
+                "target": vector(0.5)
+{% else %}
+                "target": vector(1.0)
+{% endif %}
+              }
+            ]
+          }
+        ]
+      }
+    }

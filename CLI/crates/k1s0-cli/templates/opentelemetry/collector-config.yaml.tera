@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ service_name }}-otel-collector
+  namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/name: {{ service_name }}
+    tier: {{ tier }}
+data:
+  otel-collector-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      batch:
+{% if tier == "system" %}
+        timeout: 5s
+        send_batch_size: 512
+{% else %}
+        timeout: 10s
+        send_batch_size: 256
+{% endif %}
+      attributes:
+        actions:
+          - key: service.name
+            value: {{ service_name }}
+            action: upsert
+          - key: service.namespace
+            value: {{ namespace }}
+            action: upsert
+          - key: tier
+            value: {{ tier }}
+            action: upsert
+    exporters:
+      otlp:
+        endpoint: jaeger-collector.k1s0-system.svc:4317
+        tls:
+          insecure: true
+      prometheus:
+        endpoint: 0.0.0.0:8889
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch, attributes]
+          exporters: [otlp]
+        metrics:
+          receivers: [otlp]
+          processors: [batch, attributes]
+          exporters: [prometheus]

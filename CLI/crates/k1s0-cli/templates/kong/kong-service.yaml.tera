@@ -1,0 +1,58 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongIngress
+metadata:
+  name: {{ service_name }}-ingress
+  namespace: {{ namespace }}
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ service_name }}-kong
+  namespace: {{ namespace }}
+  annotations:
+    konghq.com/override: {{ service_name }}-ingress
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
+spec:
+  ports:
+    - name: http
+      port: {{ server_port }}
+      targetPort: {{ server_port }}
+      protocol: TCP
+{% if api_styles is containing("grpc") %}
+    - name: grpc
+      port: {{ grpc_port }}
+      targetPort: {{ grpc_port }}
+      protocol: TCP
+{% endif %}
+  selector:
+    app: {{ service_name }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ service_name }}-route
+  namespace: {{ namespace }}
+  annotations:
+    konghq.com/strip-path: "true"
+    konghq.com/protocols: "https"
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
+spec:
+  ingressClassName: kong
+  rules:
+    - host: api.k1s0.internal.example.com
+      http:
+        paths:
+          - path: /{{ service_name }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ service_name }}-kong
+                port:
+                  number: {{ server_port }}

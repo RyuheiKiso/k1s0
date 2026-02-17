@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ service_name }}-schema-registry-subject
+  namespace: {{ namespace }}
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
+data:
+  subject-name: k1s0.{{ tier }}.{% if domain %}{{ domain }}{% else %}{{ service_name }}{% endif %}.created.v1-value
+  compatibility: BACKWARD

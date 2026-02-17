@@ -2,24 +2,25 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **Istio サービスメッシュリソース** のテンプレート仕様を定義する。VirtualService、DestinationRule、PeerAuthentication、AuthorizationPolicy の4種類の Istio リソースを、サービスの `tier` と `api_styles` に応じて自動生成する。
+本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **Istio サービスメッシュリソース** および **Kubernetes NetworkPolicy** のテンプレート仕様を定義する。VirtualService、DestinationRule、PeerAuthentication、AuthorizationPolicy、NetworkPolicy の5種類のリソースを、サービスの `tier` と `api_styles` に応じて自動生成する。
 
 サービスメッシュ設計の全体像は [サービスメッシュ設計](サービスメッシュ設計.md) を参照。
 
 ## 生成対象
 
-| kind       | VirtualService | DestinationRule | PeerAuthentication | AuthorizationPolicy |
-| ---------- | -------------- | --------------- | ------------------ | ------------------- |
-| `server`   | 生成する       | 生成する        | 生成する           | 生成する            |
-| `bff`      | 生成する       | 生成する        | 生成する           | 生成する            |
-| `client`   | 生成しない     | 生成しない      | 生成しない         | 生成しない          |
-| `library`  | 生成しない     | 生成しない      | 生成しない         | 生成しない          |
-| `database` | 生成しない     | 生成しない      | 生成しない         | 生成しない          |
+| kind       | VirtualService | DestinationRule | PeerAuthentication | AuthorizationPolicy | NetworkPolicy |
+| ---------- | -------------- | --------------- | ------------------ | ------------------- | ------------- |
+| `server`   | 生成する       | 生成する        | 生成する           | 生成する            | 生成する      |
+| `bff`      | 生成する       | 生成する        | 生成する           | 生成する            | 生成する      |
+| `client`   | 生成しない     | 生成しない      | 生成しない         | 生成しない          | 生成しない    |
+| `library`  | 生成しない     | 生成しない      | 生成しない         | 生成しない          | 生成しない    |
+| `database` | 生成しない     | 生成しない      | 生成しない         | 生成しない          | 生成しない    |
 
 - **VirtualService**: ルーティング、timeout、retry、カナリアリリースの設定
 - **DestinationRule**: サブセット定義、ロードバランシング、Circuit Breaker の設定
 - **PeerAuthentication**: mTLS の強制設定
 - **AuthorizationPolicy**: Tier 間アクセス制御の設定
+- **NetworkPolicy**: L3/L4 レベルの Namespace 間アクセス制御（Ingress/Egress）
 
 ## 配置パス
 
@@ -31,6 +32,7 @@
 | DestinationRule       | `infra/service-mesh/{{ service_name }}/destination-rule.yaml`     |
 | PeerAuthentication    | `infra/service-mesh/{{ service_name }}/peer-authentication.yaml`  |
 | AuthorizationPolicy   | `infra/service-mesh/{{ service_name }}/authorization-policy.yaml` |
+| NetworkPolicy         | `infra/service-mesh/{{ service_name }}/network-policy.yaml`       |
 
 ## テンプレートファイル一覧
 
@@ -42,6 +44,7 @@
 | `destination-rule.yaml.tera`       | `infra/service-mesh/{{ service_name }}/destination-rule.yaml`     | DestinationRule（LB・Circuit Breaker）    |
 | `peer-authentication.yaml.tera`    | `infra/service-mesh/{{ service_name }}/peer-authentication.yaml`  | PeerAuthentication（mTLS）                |
 | `authorization-policy.yaml.tera`   | `infra/service-mesh/{{ service_name }}/authorization-policy.yaml` | AuthorizationPolicy（Tier 間アクセス制御）|
+| `network-policy.yaml.tera`         | `infra/service-mesh/{{ service_name }}/network-policy.yaml`       | NetworkPolicy（L3/L4 アクセス制御）       |
 
 ### ディレクトリ構成
 
@@ -52,22 +55,23 @@ CLI/
         ├── virtual-service.yaml.tera
         ├── destination-rule.yaml.tera
         ├── peer-authentication.yaml.tera
-        └── authorization-policy.yaml.tera
+        ├── authorization-policy.yaml.tera
+        └── network-policy.yaml.tera
 ```
 
 ## 使用するテンプレート変数
 
 ServiceMesh テンプレートで使用する変数を以下に示す。変数の定義と導出ルールの詳細は [テンプレートエンジン仕様](テンプレートエンジン仕様.md) を参照。
 
-| 変数名           | 型       | VirtualService | DestinationRule | PeerAuthentication | AuthorizationPolicy | 用途                                          |
-| ---------------- | -------- | -------------- | --------------- | ------------------ | ------------------- | --------------------------------------------- |
-| `service_name`   | String   | 用             | 用              | 用                 | 用                  | リソース名、host 名                           |
-| `tier`           | String   | 用             | 用              | 用                 | 用                  | Namespace 導出、Tier 別デフォルト値の決定     |
-| `namespace`      | String   | 用             | 用              | 用                 | 用                  | リソースの配置先 Namespace                    |
-| `api_styles`     | [String] | 用             | 用              | -                  | -                   | gRPC 時の H2 アップグレードポリシー           |
-| `server_port`    | Number   | 用             | -               | -                  | -                   | HTTP ポート番号                               |
-| `grpc_port`      | Number   | 用             | -               | -                  | -                   | gRPC ポート番号（gRPC 使用時）                |
-| `kind`           | String   | -              | -               | -                  | 用                  | BFF 判定（deny-bff-to-bff ポリシー適用）      |
+| 変数名           | 型       | VirtualService | DestinationRule | PeerAuthentication | AuthorizationPolicy | NetworkPolicy | 用途                                          |
+| ---------------- | -------- | -------------- | --------------- | ------------------ | ------------------- | ------------- | --------------------------------------------- |
+| `service_name`   | String   | 用             | 用              | 用                 | 用                  | 用            | リソース名、host 名                           |
+| `tier`           | String   | 用             | 用              | 用                 | 用                  | 用            | Namespace 導出、Tier 別デフォルト値の決定     |
+| `namespace`      | String   | 用             | 用              | 用                 | 用                  | 用            | リソースの配置先 Namespace                    |
+| `api_styles`     | [String] | 用             | 用              | -                  | -                   | 用            | gRPC 時の H2 アップグレード / ポート開放      |
+| `server_port`    | Number   | 用             | -               | -                  | -                   | 用            | HTTP ポート番号                               |
+| `grpc_port`      | Number   | 用             | -               | -                  | -                   | 用            | gRPC ポート番号（gRPC 使用時）                |
+| `kind`           | String   | -              | -               | -                  | 用                  | -             | BFF 判定（deny-bff-to-bff ポリシー適用）      |
 
 ### Namespace の導出
 

@@ -98,6 +98,18 @@ impl TemplateEngine {
             "docker-compose",
             "devcontainer",
             "service-mesh",
+            "kong",
+            "keycloak",
+            "observability",
+            "grafana",
+            "opentelemetry",
+            "loki",
+            "alertmanager",
+            "kafka",
+            "vault",
+            "flagger",
+            "consul",
+            "storage",
         ];
         let kind_lang_dir = if flat_kinds.contains(&ctx.kind.as_str()) {
             self.template_dir.join(&ctx.kind)

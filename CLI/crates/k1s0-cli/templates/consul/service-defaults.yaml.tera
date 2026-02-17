@@ -1,0 +1,12 @@
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: {{ service_name }}
+  namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/name: {{ service_name }}
+    tier: {{ tier }}
+spec:
+  protocol: http
+  meshGateway:
+    mode: local

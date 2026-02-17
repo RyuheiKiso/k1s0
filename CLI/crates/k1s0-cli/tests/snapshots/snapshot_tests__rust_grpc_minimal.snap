@@ -1,5 +1,5 @@
 ---
-source: tests/snapshot_tests.rs
+source: crates/k1s0-cli/tests/snapshot_tests.rs
 expression: sorted
 ---
 - Cargo.toml
@@ -7,6 +7,9 @@ expression: sorted
 - README.md
 - buf.yaml
 - build.rs
+- config/config.dev.yaml
+- config/config.prod.yaml
+- config/config.staging.yaml
 - config/config.yaml
 - src/adapter/handler/grpc.rs
 - src/adapter/handler/mod.rs

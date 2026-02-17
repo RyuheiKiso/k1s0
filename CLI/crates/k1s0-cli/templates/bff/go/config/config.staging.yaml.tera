@@ -1,0 +1,14 @@
+# Staging environment overrides for {{ service_name }}-bff
+server:
+  port: 8080
+  name: {{ service_name }}-bff
+  environment: "staging"
+upstream:
+  http_url: http://{{ service_name }}:8080
+  grpc_address: {{ service_name }}:50051
+observability:
+  log:
+    level: "info"
+    format: "json"
+  trace:
+    sample_rate: 0.1

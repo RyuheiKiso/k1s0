@@ -1,0 +1,49 @@
+# Staging environment overrides for {{ service_name }}
+app:
+  environment: "staging"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+{% if has_database %}
+database:
+{% if database_type == "postgresql" %}
+  host: "postgresql.k1s0-system.svc.cluster.local"
+  port: 5432
+  ssl_mode: "require"
+{% elif database_type == "mysql" %}
+  host: "mysql.k1s0-system.svc.cluster.local"
+  port: 3306
+{% endif %}
+  name: "{{ service_name_snake }}_db"
+  user: "app"
+  password: ""
+{% endif %}
+
+{% if has_kafka %}
+kafka:
+  brokers:
+    - "kafka-0.messaging.svc.cluster.local:9092"
+    - "kafka-1.messaging.svc.cluster.local:9092"
+  security_protocol: "SASL_SSL"
+{% endif %}
+
+{% if has_redis %}
+redis:
+  host: "redis.k1s0-system.svc.cluster.local"
+  port: 6379
+  password: ""
+{% endif %}
+
+observability:
+  log:
+    level: "info"
+    format: "json"
+  trace:
+    enabled: true
+    endpoint: "jaeger.observability.svc.cluster.local:4317"
+    sample_rate: 0.1
+  metrics:
+    enabled: true
+    path: "/metrics"

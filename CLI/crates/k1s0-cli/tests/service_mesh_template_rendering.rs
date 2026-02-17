@@ -478,3 +478,119 @@ fn test_service_mesh_no_tera_syntax() {
         );
     }
 }
+
+// =========================================================================
+// NetworkPolicy テスト
+// =========================================================================
+
+#[test]
+fn test_network_policy_file_exists() {
+    let Some((_, names)) = render_service_mesh("auth-service", "system", "grpc", 80, 9090) else {
+        eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
+        return;
+    };
+
+    assert!(
+        names.iter().any(|n| n.contains("network-policy.yaml")),
+        "network-policy.yaml missing. Generated: {:?}",
+        names
+    );
+}
+
+#[test]
+fn test_network_policy_system_allows_business_and_service() {
+    let Some((tmp, _)) = render_service_mesh("auth-service", "system", "grpc", 80, 9090) else {
+        eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "network-policy.yaml");
+    assert!(
+        content.contains("k1s0-business"),
+        "System tier NetworkPolicy should allow from k1s0-business\n--- network-policy.yaml ---\n{}",
+        content
+    );
+    assert!(
+        content.contains("k1s0-service"),
+        "System tier NetworkPolicy should allow from k1s0-service\n--- network-policy.yaml ---\n{}",
+        content
+    );
+}
+
+#[test]
+fn test_network_policy_service_allows_ingress() {
+    let Some((tmp, _)) = render_service_mesh("order-api", "service", "rest", 80, 9090) else {
+        eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "network-policy.yaml");
+    assert!(
+        content.contains("ingress"),
+        "Service tier NetworkPolicy should allow from ingress namespace\n--- network-policy.yaml ---\n{}",
+        content
+    );
+}
+
+#[test]
+fn test_network_policy_grpc_port() {
+    let Some((tmp, _)) = render_service_mesh("auth-service", "system", "grpc", 80, 9090) else {
+        eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "network-policy.yaml");
+    assert!(
+        content.contains("9090"),
+        "gRPC NetworkPolicy should include gRPC port\n--- network-policy.yaml ---\n{}",
+        content
+    );
+}
+
+#[test]
+fn test_network_policy_no_grpc_port_for_rest() {
+    let Some((tmp, _)) = render_service_mesh("order-api", "service", "rest", 80, 9090) else {
+        eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "network-policy.yaml");
+    assert!(
+        !content.contains("9090"),
+        "REST-only NetworkPolicy should NOT include gRPC port\n--- network-policy.yaml ---\n{}",
+        content
+    );
+}
+
+#[test]
+fn test_network_policy_dns_egress() {
+    let Some((tmp, _)) = render_service_mesh("order-api", "service", "rest", 80, 9090) else {
+        eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "network-policy.yaml");
+    assert!(
+        content.contains("port: 53"),
+        "NetworkPolicy should allow DNS egress (port 53)\n--- network-policy.yaml ---\n{}",
+        content
+    );
+}
+
+#[test]
+fn test_network_policy_no_tera_syntax() {
+    let Some((tmp, _)) = render_service_mesh("order-api", "service", "rest", 80, 9090) else {
+        eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
+        return;
+    };
+
+    let content = read_output(&tmp, "network-policy.yaml");
+    assert!(
+        !content.contains("{%"),
+        "Tera syntax found in network-policy.yaml"
+    );
+    assert!(
+        !content.contains("{#"),
+        "Tera comment found in network-policy.yaml"
+    );
+}

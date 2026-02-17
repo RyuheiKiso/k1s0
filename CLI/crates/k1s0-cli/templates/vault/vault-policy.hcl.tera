@@ -1,0 +1,7 @@
+path "secret/data/k1s0/{{ tier }}/{{ service_name }}/*" {
+  capabilities = ["read"]
+}
+
+path "secret/metadata/k1s0/{{ tier }}/{{ service_name }}/*" {
+  capabilities = ["list"]
+}

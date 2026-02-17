@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ service_name }}-vault-policy
+  namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/name: {{ service_name }}
+    tier: {{ tier }}
+data:
+  policy.hcl: |
+    path "secret/data/k1s0/{{ tier }}/{{ service_name }}/*" {
+      capabilities = ["read", "list"]
+    }
+{% if tier == "system" %}
+    path "secret/data/k1s0/system/shared/*" {
+      capabilities = ["read", "list"]
+    }
+{% endif %}

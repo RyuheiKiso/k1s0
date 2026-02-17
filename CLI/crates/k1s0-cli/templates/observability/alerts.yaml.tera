@@ -1,0 +1,45 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ service_name }}-alerts
+  namespace: {{ namespace }}
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
+    release: prometheus
+spec:
+  groups:
+    - name: {{ service_name_snake }}.rules
+      rules:
+        - alert: {{ service_name_pascal }}HighErrorRate
+          expr: |
+            sum(rate(http_requests_total{service="{{ service_name }}", code=~"5.."}[5m]))
+            / sum(rate(http_requests_total{service="{{ service_name }}"}[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+            tier: {{ tier }}
+          annotations:
+            summary: "High error rate on {{ service_name }}"
+            description: "Error rate is above 5% for 5 minutes."
+        - alert: {{ service_name_pascal }}HighLatency
+          expr: |
+            histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{service="{{ service_name }}"}[5m])) by (le))
+            > 1.0
+          for: 5m
+          labels:
+            severity: warning
+            tier: {{ tier }}
+          annotations:
+            summary: "High latency on {{ service_name }}"
+            description: "P99 latency is above 1 second for 5 minutes."
+        - alert: {{ service_name_pascal }}PodRestart
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="{{ namespace }}", pod=~"{{ service_name }}-.*"}[1h]) > 3
+          for: 10m
+          labels:
+            severity: warning
+            tier: {{ tier }}
+          annotations:
+            summary: "Frequent pod restarts for {{ service_name }}"
+            description: "Pod has restarted more than 3 times in the last hour."
