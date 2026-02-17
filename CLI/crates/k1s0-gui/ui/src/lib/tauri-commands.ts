@@ -101,6 +101,14 @@ export async function scanDeployableTargets(baseDir: string): Promise<string[]> 
   return invoke<string[]>('scan_deployable_targets', { baseDir });
 }
 
+export async function scanTestableTargets(baseDir: string): Promise<string[]> {
+  return invoke<string[]>('scan_testable_targets', { baseDir });
+}
+
+export async function scanE2eSuites(baseDir: string): Promise<string[]> {
+  return invoke<string[]>('scan_e2e_suites', { baseDir });
+}
+
 export async function scanPlacements(tier: Tier, baseDir: string): Promise<string[]> {
   return invoke<string[]>('scan_placements', { tier, baseDir });
 }

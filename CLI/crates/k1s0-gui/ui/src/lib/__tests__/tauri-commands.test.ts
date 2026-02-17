@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mockInvoke } from '../../test/mocks';
-import { getConfig, executeInit, validateName, scanBuildableTargets, scanDeployableTargets, scanPlacements, executeBuild, executeTest, executeDeploy, executeGenerate, executeTestWithProgress, executeBuildWithProgress, executeDeployWithProgress } from '../tauri-commands';
+import { getConfig, executeInit, validateName, scanBuildableTargets, scanDeployableTargets, scanTestableTargets, scanE2eSuites, scanPlacements, executeBuild, executeTest, executeDeploy, executeGenerate, executeTestWithProgress, executeBuildWithProgress, executeDeployWithProgress } from '../tauri-commands';
 
 beforeEach(() => {
   mockInvoke.mockReset();
@@ -73,6 +73,24 @@ describe('tauri-commands', () => {
       const result = await scanDeployableTargets('.');
       expect(mockInvoke).toHaveBeenCalledWith('scan_deployable_targets', { baseDir: '.' });
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('scanTestableTargets', () => {
+    it('should invoke scan_testable_targets', async () => {
+      mockInvoke.mockResolvedValue(['regions/system/server/go/auth']);
+      const result = await scanTestableTargets('.');
+      expect(mockInvoke).toHaveBeenCalledWith('scan_testable_targets', { baseDir: '.' });
+      expect(result).toEqual(['regions/system/server/go/auth']);
+    });
+  });
+
+  describe('scanE2eSuites', () => {
+    it('should invoke scan_e2e_suites', async () => {
+      mockInvoke.mockResolvedValue(['e2e/tests/order', 'e2e/tests/auth']);
+      const result = await scanE2eSuites('.');
+      expect(mockInvoke).toHaveBeenCalledWith('scan_e2e_suites', { baseDir: '.' });
+      expect(result).toEqual(['e2e/tests/order', 'e2e/tests/auth']);
     });
   });
 

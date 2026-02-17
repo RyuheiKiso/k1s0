@@ -111,6 +111,31 @@ describe('GeneratePage', () => {
     expect(screen.getByTestId('step-confirm')).toBeInTheDocument();
   });
 
+  it('should skip detail step for Client + Service tier', async () => {
+    const user = userEvent.setup();
+    render(<GeneratePage />);
+
+    // Step 0: select Client
+    await user.click(screen.getByText('Client'));
+    await user.click(screen.getByTestId('btn-next'));
+
+    // Step 1: select Service tier
+    await user.click(screen.getByText('service'));
+    await user.click(screen.getByTestId('btn-next'));
+
+    // Step 2: placement (Service tier)
+    expect(screen.getByTestId('step-placement')).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText('サービス名を入力'), 'order');
+    await user.click(screen.getByTestId('btn-next'));
+
+    // Step 3: LangFW
+    expect(screen.getByTestId('step-langfw')).toBeInTheDocument();
+    await user.click(screen.getByTestId('btn-next'));
+
+    // Should go to step 5 (confirm), skipping step 4 (detail)
+    expect(screen.getByTestId('step-confirm')).toBeInTheDocument();
+  });
+
   it('should show only Go and Rust for Server kind language options', async () => {
     const user = userEvent.setup();
     render(<GeneratePage />);

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   executeTestWithProgress,
-  scanBuildableTargets,
+  scanTestableTargets,
+  scanE2eSuites,
   type TestKind,
   type ProgressEvent,
 } from '../lib/tauri-commands';
@@ -20,8 +21,17 @@ export default function TestPage() {
   const [totalSteps, setTotalSteps] = useState(0);
 
   useEffect(() => {
-    scanBuildableTargets('.').then(setTargets).catch(() => {});
-  }, []);
+    setSelected([]);
+    if (kind === 'All') {
+      setTargets([]);
+      return;
+    }
+    if (kind === 'E2e') {
+      scanE2eSuites('.').then(setTargets).catch(() => {});
+    } else {
+      scanTestableTargets('.').then(setTargets).catch(() => {});
+    }
+  }, [kind]);
 
   const toggleTarget = (t: string) => {
     setSelected((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
@@ -41,9 +51,9 @@ export default function TestPage() {
     setStatus('loading');
     setEvents([]);
     setCurrentStep(0);
-    setTotalSteps(selected.length);
+    setTotalSteps(kind === 'All' ? 0 : selected.length);
     try {
-      await executeTestWithProgress({ kind, targets: selected }, handleProgress);
+      await executeTestWithProgress({ kind, targets: kind === 'All' ? [] : selected }, handleProgress);
       setStatus('success');
     } catch (e) {
       setStatus('error');
@@ -69,28 +79,30 @@ export default function TestPage() {
         </RadioGroup.Root>
       </div>
 
-      <div className="mb-4">
-        <h2 className="font-semibold mb-2">テスト対象</h2>
-        {targets.length === 0 ? (
-          <p className="text-gray-500 text-sm">テスト対象が見つかりません。</p>
-        ) : (
-          targets.map((t) => (
-            <div key={t} className="flex items-center gap-2 mb-1">
-              <Checkbox.Root
-                checked={selected.includes(t)}
-                onCheckedChange={() => toggleTarget(t)}
-              >
-                <Checkbox.Indicator><span>✓</span></Checkbox.Indicator>
-              </Checkbox.Root>
-              <label className="text-sm">{t}</label>
-            </div>
-          ))
-        )}
-      </div>
+      {kind !== 'All' && (
+        <div className="mb-4">
+          <h2 className="font-semibold mb-2">テスト対象</h2>
+          {targets.length === 0 ? (
+            <p className="text-gray-500 text-sm">テスト対象が見つかりません。</p>
+          ) : (
+            targets.map((t) => (
+              <div key={t} className="flex items-center gap-2 mb-1">
+                <Checkbox.Root
+                  checked={selected.includes(t)}
+                  onCheckedChange={() => toggleTarget(t)}
+                >
+                  <Checkbox.Indicator><span>✓</span></Checkbox.Indicator>
+                </Checkbox.Root>
+                <label className="text-sm">{t}</label>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       <button
         onClick={handleTest}
-        disabled={status === 'loading' || selected.length === 0}
+        disabled={status === 'loading' || (kind !== 'All' && selected.length === 0)}
         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
         data-testid="btn-test"
       >

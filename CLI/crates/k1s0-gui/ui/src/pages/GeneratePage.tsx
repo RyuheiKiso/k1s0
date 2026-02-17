@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   executeGenerate,
   scanPlacements,
+  validateName,
   type Kind,
   type Tier,
   type LangFw,
@@ -31,15 +32,23 @@ function getAvailableTiers(kind: Kind): Tier[] {
 }
 
 // Step skipping logic per CLIフロー
+function shouldSkipDetail(kind: Kind, tier: Tier): boolean {
+  // Database: detail入力はstep4で完了済み
+  if (kind === 'Database') return true;
+  // Client + Service: アプリ名はステップ3のサービス名を使用するためスキップ
+  if (kind === 'Client' && tier === 'Service') return true;
+  return false;
+}
+
 function getNextStep(currentStep: number, kind: Kind, tier: Tier): number {
   if (currentStep === 1 && tier === 'System') return 3; // skip placement
-  if (currentStep === 3 && kind === 'Database') return 5; // skip detail
+  if (currentStep === 3 && shouldSkipDetail(kind, tier)) return 5; // skip detail
   return currentStep + 1;
 }
 
 function getPrevStep(currentStep: number, kind: Kind, tier: Tier): number {
   if (currentStep === 3 && tier === 'System') return 1; // skip placement
-  if (currentStep === 5 && kind === 'Database') return 3; // skip detail
+  if (currentStep === 5 && shouldSkipDetail(kind, tier)) return 3; // skip detail
   return currentStep - 1;
 }
 
@@ -82,6 +91,10 @@ export default function GeneratePage() {
   // BFF state
   const [bffEnabled, setBffEnabled] = useState(false);
 
+  // Validation state
+  const [nameError, setNameError] = useState('');
+  const [placementError, setPlacementError] = useState('');
+
   // Load existing placements when entering step 2 (placement) or when tier changes
   useEffect(() => {
     if (step === 2 && tier !== 'System') {
@@ -95,6 +108,36 @@ export default function GeneratePage() {
       setDetail((prev) => ({ ...prev, name: placement }));
     }
   }, [step, tier, placement]);
+
+  const handleValidateName = async (name: string, setError: (msg: string) => void) => {
+    if (!name) {
+      setError('');
+      return;
+    }
+    try {
+      await validateName(name);
+      setError('');
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+
+  const handleValidatePlacement = async (name: string) => {
+    if (!name) {
+      setPlacementError('');
+      return;
+    }
+    if (existingPlacements.includes(name)) {
+      setPlacementError('同名の配置先が既に存在します。');
+      return;
+    }
+    try {
+      await validateName(name);
+      setPlacementError('');
+    } catch (e) {
+      setPlacementError(String(e));
+    }
+  };
 
   const handleGenerate = async () => {
     setStatus('loading');
@@ -255,18 +298,29 @@ export default function GeneratePage() {
           )}
 
           {(isNewPlacement || existingPlacements.length === 0) && (
-            <input
-              value={placement}
-              onChange={(e) => setPlacement(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-              placeholder={tier === 'Business' ? '領域名を入力' : 'サービス名を入力'}
-              data-testid={existingPlacements.length > 0 ? 'input-new-placement' : 'input-placement'}
-            />
+            <>
+              <input
+                value={placement}
+                onChange={(e) => setPlacement(e.target.value)}
+                onBlur={() => handleValidatePlacement(placement)}
+                className="w-full border rounded px-3 py-2"
+                placeholder={tier === 'Business' ? '領域名を入力' : 'サービス名を入力'}
+                data-testid={existingPlacements.length > 0 ? 'input-new-placement' : 'input-placement'}
+              />
+              {placementError && (
+                <p className="text-red-500 text-sm mt-1" data-testid="error-placement">{placementError}</p>
+              )}
+            </>
           )}
 
           <div className="flex gap-2 mt-4">
             <button onClick={() => setStep(1)} className="bg-gray-300 px-4 py-2 rounded" data-testid="btn-back">戻る</button>
-            <button onClick={goNext} className="bg-blue-600 text-white px-4 py-2 rounded" data-testid="btn-next">次へ</button>
+            <button
+              onClick={goNext}
+              disabled={placementError !== '' || (isNewPlacement && !placement)}
+              className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+              data-testid="btn-next"
+            >次へ</button>
           </div>
         </div>
       )}
@@ -299,10 +353,14 @@ export default function GeneratePage() {
                       setLangFw({ Database: { name: e.target.value, rdbms: langFw.Database.rdbms } });
                     }
                   }}
+                  onBlur={() => handleValidateName(dbName, setNameError)}
                   className="w-full border rounded px-3 py-2"
                   placeholder="データベース名を入力"
                   data-testid="input-db-name"
                 />
+                {nameError && (
+                  <p className="text-red-500 text-sm mt-1" data-testid="error-name">{nameError}</p>
+                )}
               </div>
               <label className="block text-sm font-medium mb-1">RDBMS</label>
               <RadioGroup.Root onValueChange={(v) => setLangFw({ Database: { name: dbName, rdbms: v as Rdbms } })}>
@@ -350,10 +408,14 @@ export default function GeneratePage() {
                   <input
                     value={detail.name ?? ''}
                     onChange={(e) => setDetail({ ...detail, name: e.target.value || null })}
+                    onBlur={() => handleValidateName(detail.name ?? '', setNameError)}
                     className="w-full border rounded px-3 py-2"
                     placeholder="サービス名"
                     data-testid="input-name"
                   />
+                  {nameError && (
+                    <p className="text-red-500 text-sm mt-1" data-testid="error-name">{nameError}</p>
+                  )}
                 </div>
               )}
 
@@ -498,10 +560,14 @@ export default function GeneratePage() {
               <input
                 value={detail.name ?? ''}
                 onChange={(e) => setDetail({ ...detail, name: e.target.value || null })}
+                onBlur={() => handleValidateName(detail.name ?? '', setNameError)}
                 className="w-full border rounded px-3 py-2"
                 placeholder="アプリ名"
                 data-testid="input-name"
               />
+              {nameError && (
+                <p className="text-red-500 text-sm mt-1" data-testid="error-name">{nameError}</p>
+              )}
             </div>
           )}
 
@@ -512,10 +578,14 @@ export default function GeneratePage() {
               <input
                 value={detail.name ?? ''}
                 onChange={(e) => setDetail({ ...detail, name: e.target.value || null })}
+                onBlur={() => handleValidateName(detail.name ?? '', setNameError)}
                 className="w-full border rounded px-3 py-2"
                 placeholder="ライブラリ名"
                 data-testid="input-name"
               />
+              {nameError && (
+                <p className="text-red-500 text-sm mt-1" data-testid="error-name">{nameError}</p>
+              )}
             </div>
           )}
 

@@ -12,6 +12,8 @@ pub fn run() {
             commands::scan_placements,
             commands::scan_buildable_targets,
             commands::scan_deployable_targets,
+            commands::scan_testable_targets,
+            commands::scan_e2e_suites,
             commands::validate_name,
             commands::execute_test_with_progress,
             commands::execute_build_with_progress,
