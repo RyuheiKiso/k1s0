@@ -1,0 +1,8 @@
+terraform {
+  backend "consul" {
+    address = "consul.k1s0-system.svc:8500"
+    scheme  = "http"
+    path    = "k1s0/{{ tier }}/{{ service_name }}/terraform.tfstate"
+    lock    = true
+  }
+}

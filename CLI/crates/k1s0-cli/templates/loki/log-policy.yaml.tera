@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ service_name }}-log-policy
+  namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/name: {{ service_name }}
+    tier: {{ tier }}
+data:
+  log-policy.yaml: |
+    service: {{ service_name }}
+    namespace: {{ namespace }}
+    tier: {{ tier }}
+{% if tier == "system" %}
+    retention_days: 90
+    log_level: info
+{% elif tier == "business" %}
+    retention_days: 60
+    log_level: info
+{% else %}
+    retention_days: 30
+    log_level: warn
+{% endif %}
+    structured_logging: true
+    format: json

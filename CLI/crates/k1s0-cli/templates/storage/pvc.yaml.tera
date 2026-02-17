@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ service_name }}-data
+  namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/name: {{ service_name }}
+    tier: {{ tier }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ service_name }}-storage
+  resources:
+    requests:
+{% if tier == "system" %}
+      storage: 50Gi
+{% elif tier == "business" %}
+      storage: 20Gi
+{% else %}
+      storage: 10Gi
+{% endif %}

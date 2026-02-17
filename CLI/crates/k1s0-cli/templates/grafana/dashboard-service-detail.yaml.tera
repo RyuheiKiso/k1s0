@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ service_name }}-service-detail
+  namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/name: {{ service_name }}
+    tier: {{ tier }}
+    grafana_dashboard: "true"
+data:
+  {{ service_name }}-service-detail.json: |
+    {
+      "dashboard": {
+        "title": "{{ service_name }} Service Detail",
+        "tags": ["{{ tier }}", "{{ service_name }}", "detail"],
+        "panels": [
+          {
+            "title": "HTTP Request Rate by Endpoint",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{service=\"{{ service_name }}\"}[5m])) by (method, path)"
+              }
+            ]
+          },
+          {
+            "title": "Endpoint Latency",
+            "type": "heatmap",
+            "targets": [
+              {
+                "expr": "sum(rate(http_request_duration_seconds_bucket{service=\"{{ service_name }}\"}[5m])) by (le, path)"
+              }
+            ]
+          },
+          {
+            "title": "Active Connections",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(http_active_connections{service=\"{{ service_name }}\", port=\"{{ server_port }}\"})"
+              }
+            ]
+          }
+        ]
+      }
+    }

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ service_name }}-vault-auth
+  namespace: {{ namespace }}
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
+data:
+  role: {{ service_name }}
+  auth-path: auth/kubernetes
+  bound-service-account-names: {{ service_name }}
+  bound-service-account-namespaces: {{ namespace }}
+  token-policies: {{ service_name }}-policy
+  token-ttl: "3600"

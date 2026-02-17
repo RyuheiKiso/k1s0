@@ -1,0 +1,27 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: {{ service_name }}-instrumentation
+  namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/name: {{ service_name }}
+    tier: {{ tier }}
+spec:
+  exporter:
+    endpoint: http://{{ service_name }}-otel-collector.{{ namespace }}.svc:4317
+  propagators:
+    - tracecontext
+    - baggage
+{% if tier == "system" %}
+  sampler:
+    type: parentbased_traceidratio
+    argument: "1.0"
+{% elif tier == "business" %}
+  sampler:
+    type: parentbased_traceidratio
+    argument: "0.5"
+{% else %}
+  sampler:
+    type: parentbased_traceidratio
+    argument: "0.1"
+{% endif %}

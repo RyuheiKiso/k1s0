@@ -1,0 +1,17 @@
+apiVersion: flagger.app/v1beta1
+kind: MetricTemplate
+metadata:
+  name: {{ service_name }}-metrics
+  namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/name: {{ service_name }}
+    tier: {{ tier }}
+spec:
+  provider:
+    type: prometheus
+    address: http://prometheus.k1s0-system.svc:9090
+  query: |
+    sum(rate(http_requests_total{service="{{ service_name }}", code!~"5.."}[1m]))
+    /
+    sum(rate(http_requests_total{service="{{ service_name }}"}[1m]))
+    * 100
