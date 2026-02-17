@@ -167,6 +167,10 @@ regions/
         └── database/
 ```
 
+## 開発ツールの位置づけ
+
+k1s0 CLI や Tauri GUI（[TauriGUI設計](TauriGUI設計.md)）などの開発ツールは、Tier アーキテクチャの外に位置する。これらは業務システムの構成要素ではなく、開発者のローカル環境で動作するツールである。Tier 内のアプリケーション（server / client / library / database）とは明確に区別する。
+
 ## 設計メモ
 
 - **system に client がない理由** — system 層は基盤提供が目的であり、直接ユーザーに公開する画面を持たない。クライアント実装は business 以下で行う。
@@ -184,5 +188,6 @@ regions/
 - [APIゲートウェイ設計](APIゲートウェイ設計.md)
 - [API設計](API設計.md)
 - [CLIフロー](CLIフロー.md)
+- [TauriGUI設計](TauriGUI設計.md)
 - [可観測性設計](可観測性設計.md)
 - [CI-CD設計](CI-CD設計.md)

@@ -3,6 +3,8 @@
 k1s0 CLI は対話式で操作する。引数での起動は行わない。
 すべての操作は dialoguer によるプロンプトを通じて行う。
 
+> CLI と同等の操作を GUI で行う場合は [TauriGUI設計](TauriGUI設計.md) を参照。
+
 ## 起動
 
 ```
@@ -822,3 +824,4 @@ prod 環境でのデプロイ失敗時は、ロールバックの選択肢を表
 - [テンプレート仕様-devcontainer](テンプレート仕様-devcontainer.md)
 - [テンプレート仕様-ServiceMesh](テンプレート仕様-ServiceMesh.md)
 - [テンプレートエンジン仕様](テンプレートエンジン仕様.md)
+- [TauriGUI設計](TauriGUI設計.md)

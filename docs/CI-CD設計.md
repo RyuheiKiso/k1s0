@@ -25,6 +25,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.
 | Security Scan     | `security.yaml`   | 日次 + PR 時                | 脆弱性スキャン           |
 | Kong Config Sync  | `kong-sync.yaml`  | main マージ時 (`infra/kong/**` 変更) | dev → staging → prod    |
 | OpenAPI Lint      | `api-lint.yaml`   | push (`**/api/openapi/**`)  | OpenAPI バリデーション & SDK 生成 |
+| Tauri GUI Build   | `tauri-build.yaml` | PR 時 + main マージ時 (`CLI/gui/**` 変更) | GUI クロスプラットフォームビルド（[TauriGUI設計](TauriGUI設計.md) 参照） |
 
 ### CI ワークフロー（ci.yaml）
 
