@@ -15,6 +15,6 @@ FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=builder /config /config
 
 USER nonroot:nonroot
-EXPOSE 8080
+EXPOSE 8080 50051
 
 ENTRYPOINT ["/config"]

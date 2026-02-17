@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
-use crate::domain::entity::config_entry::{
-    ConfigEntry, ConfigListResult, Pagination, ServiceConfigEntry, ServiceConfigResult,
-};
+use crate::domain::entity::config_entry::ConfigEntry;
 use crate::usecase::delete_config::{DeleteConfigError, DeleteConfigUseCase};
 use crate::usecase::get_config::{GetConfigError, GetConfigUseCase};
 use crate::usecase::get_service_config::{GetServiceConfigError, GetServiceConfigUseCase};
@@ -206,7 +204,7 @@ impl ConfigGrpcService {
                 let pb_entries: Vec<PbConfigEntry> = result
                     .entries
                     .iter()
-                    .map(|e| domain_config_to_pb(e))
+                    .map(domain_config_to_pb)
                     .collect();
 
                 Ok(ListConfigsResponse {
@@ -368,6 +366,9 @@ fn domain_config_to_pb(e: &ConfigEntry) -> PbConfigEntry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::entity::config_entry::{
+        ConfigListResult, Pagination, ServiceConfigEntry, ServiceConfigResult,
+    };
     use crate::domain::repository::config_repository::MockConfigRepository;
     use chrono::Utc;
     use uuid::Uuid;

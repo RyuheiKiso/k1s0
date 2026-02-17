@@ -53,7 +53,7 @@ impl SearchAuditLogsUseCase {
                 "page must be >= 1".to_string(),
             ));
         }
-        if page_size < 1 || page_size > 200 {
+        if !(1..=200).contains(&page_size) {
             return Err(SearchAuditLogsError::InvalidPageSize(
                 "page_size must be between 1 and 200".to_string(),
             ));

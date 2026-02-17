@@ -1,0 +1,28 @@
+groups:
+  - name: local-dev-alerts
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} is down"
+          description: "{{ $labels.instance }} has been unreachable for more than 1 minute"
+
+      - alert: HighErrorRate
+        expr: service:http_errors:rate5m > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.service }} error rate > 5%"
+          description: "{{ $labels.service }} の 5xx エラー率が {{ $value | humanizePercentage }} です"
+
+      - alert: HighLatency
+        expr: service:http_request_duration_seconds:p99 > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.service }} P99 latency > 1s"

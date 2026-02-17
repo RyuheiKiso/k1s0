@@ -1,19 +1,35 @@
+// k1s0 共通メッセージ型定義。
+// 全 Tier で共有するページネーション・タイムスタンプ等の型を定義する。
 syntax = "proto3";
+
 package k1s0.system.common.v1;
 
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1";
+
+// Pagination はページネーションリクエストパラメータ。
 message Pagination {
+  // ページ番号（1始まり）
   int32 page = 1;
+  // 1ページあたりの件数
   int32 page_size = 2;
 }
 
+// PaginationResult はページネーション結果。
 message PaginationResult {
+  // 全件数
   int32 total_count = 1;
+  // 現在のページ番号
   int32 page = 2;
+  // 1ページあたりの件数
   int32 page_size = 3;
+  // 次ページの有無
   bool has_next = 4;
 }
 
+// Timestamp は時刻情報。google.protobuf.Timestamp と互換。
 message Timestamp {
+  // Unix epoch からの秒数
   int64 seconds = 1;
+  // ナノ秒（0-999999999）
   int32 nanos = 2;
 }

@@ -1,0 +1,44 @@
+groups:
+  - name: red-recording-rules
+    interval: 30s
+    rules:
+      # リクエストレート（サービス別）
+      - record: service:http_requests:rate5m
+        expr: sum(rate(http_requests_total[5m])) by (service)
+
+      # エラーレート（サービス別）
+      - record: service:http_errors:rate5m
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+          / sum(rate(http_requests_total[5m])) by (service)
+
+      # P99 レイテンシ（サービス別）
+      - record: service:http_request_duration_seconds:p99
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le)
+          )
+
+      # P95 レイテンシ（サービス別）
+      - record: service:http_request_duration_seconds:p95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le)
+          )
+
+      # gRPC リクエストレート（サービス別）
+      - record: service:grpc_requests:rate5m
+        expr: sum(rate(grpc_server_handled_total[5m])) by (service, grpc_service)
+
+      # gRPC エラーレート（サービス別）
+      - record: service:grpc_errors:rate5m
+        expr: |
+          sum(rate(grpc_server_handled_total{grpc_code!="OK"}[5m])) by (service, grpc_service)
+          / sum(rate(grpc_server_handled_total[5m])) by (service, grpc_service)
+
+      # gRPC P99 レイテンシ
+      - record: service:grpc_handling_seconds:p99
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(grpc_server_handling_seconds_bucket[5m])) by (service, grpc_service, le)
+          )

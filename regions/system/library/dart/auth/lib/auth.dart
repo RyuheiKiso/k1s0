@@ -4,6 +4,7 @@
 library;
 
 export 'src/auth_client.dart';
+export 'src/device_flow.dart';
 export 'src/pkce.dart';
 export 'src/token_store.dart';
 export 'src/types.dart';

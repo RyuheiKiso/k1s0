@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Claims は JWT トークンの Claims を表す。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct Claims {
     pub sub: String,
     pub iss: String,
@@ -172,23 +172,3 @@ mod tests {
     }
 }
 
-impl Default for Claims {
-    fn default() -> Self {
-        Self {
-            sub: String::new(),
-            iss: String::new(),
-            aud: String::new(),
-            exp: 0,
-            iat: 0,
-            jti: String::new(),
-            typ: String::new(),
-            azp: String::new(),
-            scope: String::new(),
-            preferred_username: String::new(),
-            email: String::new(),
-            realm_access: RealmAccess::default(),
-            resource_access: HashMap::new(),
-            tier_access: Vec::new(),
-        }
-    }
-}

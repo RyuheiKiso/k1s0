@@ -358,7 +358,8 @@ class TestBufGenYaml:
     def test_buf_gen_has_rust_plugin(self) -> None:
         """API設計.md: Rust プラグインが定義されている。"""
         remotes = [p["remote"] for p in self.config["plugins"]]
-        rust_plugins = [r for r in remotes if "rust" in r]
+        rust_keywords = ("rust", "prost", "tonic")
+        rust_plugins = [r for r in remotes if any(kw in r for kw in rust_keywords)]
         assert len(rust_plugins) >= 1, "Rust プラグインが定義されていません"
 
 

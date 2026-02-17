@@ -10,8 +10,10 @@ mod usecase;
 
 use adapter::grpc::{AuditGrpcService, AuthGrpcService};
 use adapter::handler::{self, AppState};
+use adapter::repository::audit_log_postgres::AuditLogPostgresRepository;
+use adapter::repository::user_postgres::UserPostgresRepository;
 use infrastructure::database::DatabaseConfig;
-use infrastructure::kafka_producer::{KafkaConfig, KafkaProducer};
+use infrastructure::kafka_producer::KafkaConfig;
 use infrastructure::keycloak_client::{KeycloakClient, KeycloakConfig};
 
 /// アプリケーション設定。
@@ -103,7 +105,7 @@ async fn main() -> anyhow::Result<()> {
     // Config
     let config_path = std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
     let config_content = std::fs::read_to_string(&config_path)?;
-    let cfg: Config = serde_yaml::from_str(&config_content)?;
+    let mut cfg: Config = serde_yaml::from_str(&config_content)?;
 
     info!(
         app_name = %cfg.app.name,
@@ -126,16 +128,45 @@ async fn main() -> anyhow::Result<()> {
             Arc::new(StubTokenVerifier)
         };
 
-    // User repository (Keycloak client or stub)
-    let user_repo: Arc<dyn domain::repository::UserRepository> = if let Some(kc_config) = cfg.keycloak {
+    // Database pool (optional)
+    let db_pool = if let Some(ref db_config) = cfg.database {
+        let url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| db_config.connection_url());
+        info!(url = %url.replace(|c: char| c == ':' && url.contains("@"), "*"), "connecting to database");
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(db_config.max_open_conns)
+            .connect(&url)
+            .await?;
+        info!("database connection pool established");
+        Some(pool)
+    } else if let Ok(url) = std::env::var("DATABASE_URL") {
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(25)
+            .connect(&url)
+            .await?;
+        info!("database connection pool established from DATABASE_URL");
+        Some(pool)
+    } else {
+        info!("no database configured, using in-memory/stub repositories");
+        None
+    };
+
+    // User repository (PostgreSQL > Keycloak > Stub)
+    let keycloak_config = cfg.keycloak.take();
+    let user_repo: Arc<dyn domain::repository::UserRepository> = if let Some(ref pool) = db_pool {
+        Arc::new(UserPostgresRepository::new(pool.clone()))
+    } else if let Some(kc_config) = keycloak_config {
         Arc::new(KeycloakClient::new(kc_config))
     } else {
         Arc::new(StubUserRepository)
     };
 
-    // Audit log repository (in-memory for dev, PostgreSQL for prod)
-    let audit_repo: Arc<dyn domain::repository::AuditLogRepository> =
-        Arc::new(InMemoryAuditLogRepository::new());
+    // Audit log repository (PostgreSQL or in-memory)
+    let audit_repo: Arc<dyn domain::repository::AuditLogRepository> = if let Some(ref pool) = db_pool {
+        Arc::new(AuditLogPostgresRepository::new(pool.clone()))
+    } else {
+        Arc::new(InMemoryAuditLogRepository::new())
+    };
 
     // --- gRPC Service ---
     let validate_token_uc = Arc::new(usecase::ValidateTokenUseCase::new(
@@ -157,15 +188,19 @@ async fn main() -> anyhow::Result<()> {
         cfg.auth.jwt.audience,
     );
 
-    let _auth_grpc_svc = AuthGrpcService::new(
+    let auth_grpc_svc = Arc::new(AuthGrpcService::new(
         validate_token_uc,
         get_user_uc,
         list_users_uc,
-    );
-    let _audit_grpc_svc = AuditGrpcService::new(
+    ));
+    let audit_grpc_svc = Arc::new(AuditGrpcService::new(
         record_audit_log_uc,
         search_audit_logs_uc,
-    );
+    ));
+
+    // tonic ラッパー（proto 生成後は AuthServiceServer / AuditServiceServer に置換）
+    let _auth_tonic = adapter::grpc::AuthServiceTonic::new(auth_grpc_svc);
+    let _audit_tonic = adapter::grpc::AuditServiceTonic::new(audit_grpc_svc);
 
     // Router
     let app = handler::router(state);
@@ -175,20 +210,16 @@ async fn main() -> anyhow::Result<()> {
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_future = async move {
-        // TODO: tonic::transport::Server::builder()
-        //     .add_service(AuthServiceServer::new(auth_grpc_svc))
-        //     .add_service(AuditServiceServer::new(audit_grpc_svc))
-        //     .serve(grpc_addr)
-        //     .await
-        // proto 生成後に有効化。現時点ではスタブとして待機。
-        let listener = tokio::net::TcpListener::bind(grpc_addr).await?;
-        info!("gRPC server listening on {} (stub, awaiting tonic codegen)", grpc_addr);
-        // ただリスンするだけ（proto 生成後に tonic Server に置き換え）
-        loop {
-            let _ = listener.accept().await;
-        }
-        #[allow(unreachable_code)]
-        Ok::<(), anyhow::Error>(())
+        // tonic gRPC サーバーを起動。
+        // proto 生成コード (tonic-build) が揃った後、以下の add_service を有効化：
+        //   .add_service(AuthServiceServer::new(auth_tonic))
+        //   .add_service(AuditServiceServer::new(audit_tonic))
+        //
+        // 現時点では proto 未生成のため gRPC サーバーは待機状態。
+        // proto コード生成後にサービスを登録して起動する。
+        info!("gRPC server placeholder: waiting for proto codegen to register services");
+        // 無限に待機（REST 側で先に終了するまで動き続ける）
+        std::future::pending::<Result<(), anyhow::Error>>().await
     };
 
     // REST server

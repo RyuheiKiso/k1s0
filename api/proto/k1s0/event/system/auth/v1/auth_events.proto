@@ -1,36 +1,64 @@
+// k1s0 認証系 Kafka イベントスキーマ定義。
+// auth-server が Kafka トピックに配信するイベント型を定義する。
 syntax = "proto3";
+
 package k1s0.event.system.auth.v1;
 
-import "google/protobuf/timestamp.proto";
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/event/system/auth/v1;autheventv1";
+
 import "k1s0/system/common/v1/event_metadata.proto";
 
-message UserLoggedInEvent {
+// LoginEvent はログイン成功/失敗イベント。
+// Kafka トピック: k1s0.system.auth.login.v1
+// パーティションキー: user_id
+message LoginEvent {
   k1s0.system.common.v1.EventMetadata metadata = 1;
   string user_id = 2;
-  string email = 3;
-  google.protobuf.Timestamp login_at = 4;
+  string username = 3;
+  string client_id = 4;
   string ip_address = 5;
   string user_agent = 6;
+  // SUCCESS / FAILURE
+  string result = 7;
+  // 失敗時のみ
+  string failure_reason = 8;
 }
 
-message UserLoggedOutEvent {
+// TokenValidationEvent はトークン検証結果イベント。
+// Kafka トピック: k1s0.system.auth.audit.v1
+// パーティションキー: user_id
+message TokenValidationEvent {
   k1s0.system.common.v1.EventMetadata metadata = 1;
   string user_id = 2;
-  google.protobuf.Timestamp logout_at = 3;
+  string token_jti = 3;
+  bool valid = 4;
+  // 検証失敗時のみ
+  string error_message = 5;
 }
 
-message TokenRefreshedEvent {
+// PermissionCheckEvent はパーミッション確認結果イベント。
+// Kafka トピック: k1s0.system.auth.audit.v1
+// パーティションキー: user_id
+message PermissionCheckEvent {
   k1s0.system.common.v1.EventMetadata metadata = 1;
   string user_id = 2;
-  string token_id = 3;
-  google.protobuf.Timestamp refreshed_at = 4;
+  string permission = 3;
+  string resource = 4;
+  repeated string roles = 5;
+  bool allowed = 6;
+  string reason = 7;
 }
 
-message PermissionChangedEvent {
+// AuditLogRecordedEvent は監査ログ記録イベント。
+// Kafka トピック: k1s0.system.auth.audit.v1
+// パーティションキー: user_id
+message AuditLogRecordedEvent {
   k1s0.system.common.v1.EventMetadata metadata = 1;
-  string user_id = 2;
-  string changed_by = 3;           // 変更実行者の user_id
-  repeated string added_roles = 4;
-  repeated string removed_roles = 5;
-  google.protobuf.Timestamp changed_at = 6;
+  string audit_log_id = 2;
+  string event_type = 3;
+  string user_id = 4;
+  string ip_address = 5;
+  string resource = 6;
+  string action = 7;
+  string result = 8;
 }

@@ -103,6 +103,21 @@ func TestPublish_ConnectionError(t *testing.T) {
 	assert.Contains(t, err.Error(), "broker connection refused")
 }
 
+func TestPublish_TopicName(t *testing.T) {
+	mock := &mockWriter{}
+	p := &KafkaProducer{
+		writer: mock,
+		topic:  "k1s0.system.auth.audit.v1",
+	}
+
+	log := makeTestAuditLog()
+	err := p.Publish(context.Background(), log)
+	require.NoError(t, err)
+
+	require.Len(t, mock.messages, 1)
+	assert.Equal(t, "k1s0.system.auth.audit.v1", mock.messages[0].Topic)
+}
+
 func TestClose_Graceful(t *testing.T) {
 	mock := &mockWriter{}
 	p := &KafkaProducer{

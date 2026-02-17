@@ -115,12 +115,10 @@ func main() {
 	// --- gRPC Server ---
 	authGRPCSvc := authgrpc.NewAuthGRPCService(validateTokenUC, getUserUC, listUsersUC)
 	auditGRPCSvc := authgrpc.NewAuditGRPCService(recordAuditLogUC, searchAuditLogsUC)
-	_ = authGRPCSvc
-	_ = auditGRPCSvc
 
 	grpcServer := grpc.NewServer()
-	// TODO: pb.RegisterAuthServiceServer(grpcServer, authGRPCSvc) — proto 生成後に有効化
-	// TODO: pb.RegisterAuditServiceServer(grpcServer, auditGRPCSvc) — proto 生成後に有効化
+	authgrpc.RegisterAuthServiceServer(grpcServer, authGRPCSvc)
+	authgrpc.RegisterAuditServiceServer(grpcServer, auditGRPCSvc)
 
 	grpcPort := 50051
 	go func() {

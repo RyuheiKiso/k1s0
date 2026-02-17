@@ -3,9 +3,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::audit_log::{AuditLog, CreateAuditLogRequest};
 use crate::usecase::record_audit_log::{RecordAuditLogError, RecordAuditLogUseCase};
-use crate::usecase::search_audit_logs::{
-    SearchAuditLogsError, SearchAuditLogsQueryParams, SearchAuditLogsUseCase,
-};
+use crate::usecase::search_audit_logs::{SearchAuditLogsQueryParams, SearchAuditLogsUseCase};
 
 use super::auth_grpc::{GrpcError, PbPagination, PbPaginationResult, PbTimestamp};
 
@@ -161,7 +159,7 @@ impl AuditGrpcService {
                 let pb_logs: Vec<PbAuditLog> = result
                     .logs
                     .iter()
-                    .map(|log| domain_audit_log_to_pb(log))
+                    .map(domain_audit_log_to_pb)
                     .collect();
 
                 Ok(SearchAuditLogsGrpcResponse {

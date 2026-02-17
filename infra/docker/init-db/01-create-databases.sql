@@ -10,3 +10,9 @@ CREATE DATABASE kong;
 CREATE DATABASE k1s0_system;
 CREATE DATABASE k1s0_business;
 CREATE DATABASE k1s0_service;
+
+-- auth-server 用DB
+CREATE DATABASE auth_db;
+
+-- config-server 用DB
+CREATE DATABASE config_db;

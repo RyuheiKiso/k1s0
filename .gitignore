@@ -1,9 +1,48 @@
+# Claude Code
 .claude
-**/target/**
-nul
 .mcp.json
-__pycache__/
-.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+nul
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Rust
+**/target/
+
+# Go (sum is committed, vendor is not)
+vendor/
+
+# TypeScript / Node.js
 **/node_modules/
+**/dist/
+**/*.tsbuildinfo
+
+# Dart / Flutter
 **/.dart_tool/
 **/pubspec.lock
+**/.packages
+**/build/
+
+# Python
+__pycache__/
+.pytest_cache/
+**/.venv/
+**/*.pyc
+**/*.pyo
+**/*.egg-info/
+
+# Environment / Secrets
+.env
+.env.local
+.env.*.local
+
+# Docker
+docker-compose.override.yaml

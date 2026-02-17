@@ -1,0 +1,27 @@
+// k1s0 設定管理系 Kafka イベントスキーマ定義。
+// config-server が設定変更時に Kafka トピックに配信するイベント型を定義する。
+syntax = "proto3";
+
+package k1s0.event.system.config.v1;
+
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/event/system/config/v1;configeventv1";
+
+import "k1s0/system/common/v1/event_metadata.proto";
+
+// ConfigChangedEvent は設定値変更イベント。
+// Kafka トピック: k1s0.system.config.changed.v1
+// パーティションキー: namespace
+message ConfigChangedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string namespace = 2;
+  string key = 3;
+  // JSON 文字列（変更前。新規作成時は空）
+  string old_value = 4;
+  // JSON 文字列（変更後。削除時は空）
+  string new_value = 5;
+  int32 old_version = 6;
+  int32 new_version = 7;
+  // CREATED, UPDATED, DELETED
+  string change_type = 8;
+  string changed_by = 9;
+}

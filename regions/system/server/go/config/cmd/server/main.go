@@ -106,10 +106,9 @@ func main() {
 	configGRPCSvc := configgrpc.NewConfigGRPCService(
 		getConfigUC, listConfigsUC, getServiceConfigUC, updateConfigUC, deleteConfigUC,
 	)
-	_ = configGRPCSvc
 
 	grpcServer := grpc.NewServer()
-	// TODO: pb.RegisterConfigServiceServer(grpcServer, configGRPCSvc) — proto 生成後に有効化
+	configgrpc.RegisterConfigServiceServer(grpcServer, configGRPCSvc)
 
 	grpcPort := cfg.GRPC.Port
 	if grpcPort == 0 {

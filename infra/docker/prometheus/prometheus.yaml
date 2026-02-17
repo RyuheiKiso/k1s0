@@ -2,7 +2,58 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+rule_files:
+  - /etc/prometheus/recording_rules.yaml
+  - /etc/prometheus/alerting_rules.yaml
+
 scrape_configs:
-  - job_name: "prometheus"
+  # Prometheus 自身
+  - job_name: prometheus
     static_configs:
       - targets: ["localhost:9090"]
+
+  # auth-server (Go)
+  - job_name: auth-server-go
+    static_configs:
+      - targets: ["auth-go:8080"]
+        labels:
+          service: auth-server
+          tier: system
+          lang: go
+    metrics_path: /metrics
+
+  # auth-server (Rust)
+  - job_name: auth-server-rust
+    static_configs:
+      - targets: ["auth-rust:8080"]
+        labels:
+          service: auth-server
+          tier: system
+          lang: rust
+    metrics_path: /metrics
+
+  # config-server (Go)
+  - job_name: config-server-go
+    static_configs:
+      - targets: ["config-go:8082"]
+        labels:
+          service: config-server
+          tier: system
+          lang: go
+    metrics_path: /metrics
+
+  # config-server (Rust)
+  - job_name: config-server-rust
+    static_configs:
+      - targets: ["config-rust:8082"]
+        labels:
+          service: config-server
+          tier: system
+          lang: rust
+    metrics_path: /metrics
+
+  # Kong API Gateway
+  - job_name: kong
+    static_configs:
+      - targets: ["kong:8001"]
+    metrics_path: /metrics

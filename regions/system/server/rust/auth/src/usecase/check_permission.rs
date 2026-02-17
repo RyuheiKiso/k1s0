@@ -15,6 +15,7 @@ pub struct CheckPermissionOutput {
 }
 
 /// CheckPermissionUseCase はパーミッション確認ユースケース。
+#[derive(Default)]
 pub struct CheckPermissionUseCase;
 
 impl CheckPermissionUseCase {

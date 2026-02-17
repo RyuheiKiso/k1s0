@@ -1,0 +1,7 @@
+Collecting PyYAML
+  Using cached pyyaml-6.0.3-cp310-cp310-win_amd64.whl (158 kB)
+Installing collected packages: PyYAML
+Successfully installed PyYAML-6.0.3
+
+[notice] A new release of pip is available: 23.0.1 -> 26.0.1
+[notice] To update, run: python.exe -m pip install --upgrade pip
