@@ -162,6 +162,108 @@ config/
 2. 警告ログを出力する（`WARN: config key "database.password" found in both ConfigMap and Vault, using Vault value`）
 3. アプリケーションは正常に起動する（エラーにはしない）
 
+### ネストされた YAML のマージアルゴリズム（D-080）
+
+環境別 YAML ファイルおよび Vault シークレットのマージは、以下のアルゴリズムに従う。
+
+#### マージルール
+
+| データ型 | マージ動作 | 例 |
+| --- | --- | --- |
+| スカラー値（string, number, bool） | 上位ソースの値で完全置換 | `port: 8080` → `port: 9090` |
+| マップ（object） | キー単位で再帰的にディープマージ | `database.host` のみ上書き、他キーは保持 |
+| 配列（array） | 上位ソースの配列で完全置換（マージしない） | `brokers: [a]` → `brokers: [b, c]` で `[b, c]` に置換 |
+| null 値 | キーの削除として扱う | `redis: null` でベースの redis セクションを削除 |
+
+#### ディープマージの具体例
+
+**config.yaml（ベース）**
+
+```yaml
+database:
+  host: "localhost"
+  port: 5432
+  name: "mydb"
+  ssl_mode: "disable"
+  max_open_conns: 25
+```
+
+**config.staging.yaml（オーバーライド）**
+
+```yaml
+database:
+  host: "postgres.k1s0-system.svc.cluster.local"
+  ssl_mode: "require"
+  max_open_conns: 30
+```
+
+**マージ結果**
+
+```yaml
+database:
+  host: "postgres.k1s0-system.svc.cluster.local"  # staging で上書き
+  port: 5432                                        # ベースを保持
+  name: "mydb"                                      # ベースを保持
+  ssl_mode: "require"                               # staging で上書き
+  max_open_conns: 30                                # staging で上書き
+```
+
+#### 配列の完全置換の理由
+
+配列のマージ（追加・差分比較）は要素の同一性判定が曖昧になるため、**完全置換** を採用する。Kafka brokers のように環境ごとに異なるホスト一覧を持つケースでは、部分マージよりも完全置換が安全である。
+
+#### Go 実装
+
+```go
+// MergeYAML はベース設定を環境別設定でディープマージする。
+// マップはキー単位で再帰マージ、配列とスカラーは完全置換する。
+func MergeYAML(base, override map[string]interface{}) map[string]interface{} {
+    result := make(map[string]interface{})
+    for k, v := range base {
+        result[k] = v
+    }
+    for k, v := range override {
+        if v == nil {
+            delete(result, k)
+            continue
+        }
+        if baseMap, ok := result[k].(map[string]interface{}); ok {
+            if overrideMap, ok := v.(map[string]interface{}); ok {
+                result[k] = MergeYAML(baseMap, overrideMap)
+                continue
+            }
+        }
+        result[k] = v
+    }
+    return result
+}
+```
+
+#### Rust 実装
+
+```rust
+/// ベース設定を環境別設定でディープマージする。
+/// マップはキー単位で再帰マージ、配列とスカラーは完全置換する。
+pub fn merge_yaml(base: &serde_yaml::Value, overlay: &serde_yaml::Value) -> serde_yaml::Value {
+    match (base, overlay) {
+        (serde_yaml::Value::Mapping(base_map), serde_yaml::Value::Mapping(overlay_map)) => {
+            let mut result = base_map.clone();
+            for (key, value) in overlay_map {
+                if value.is_null() {
+                    result.remove(key);
+                } else if let Some(base_value) = result.get(key) {
+                    result.insert(key.clone(), merge_yaml(base_value, value));
+                } else {
+                    result.insert(key.clone(), value.clone());
+                }
+            }
+            serde_yaml::Value::Mapping(result)
+        }
+        (_, overlay) => overlay.clone(),
+    }
+}
+```
+
 ### 環境別差分の例（config.staging.yaml）
 
 ```yaml
@@ -523,3 +625,4 @@ impl Config {
 - [CLIフロー](CLIフロー.md)
 - [CI-CD設計](CI-CD設計.md)
 - [テンプレート仕様-サーバー](テンプレート仕様-サーバー.md) — config.yaml テンプレートの詳細
+- [system-config-server設計](system-config-server設計.md)

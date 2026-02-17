@@ -1,0 +1,1 @@
+{{- include "k1s0-common.pdb" . }}

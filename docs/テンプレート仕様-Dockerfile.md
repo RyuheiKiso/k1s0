@@ -140,7 +140,7 @@ Go BFF 用のマルチステージビルド Dockerfile。
 
 ```tera
 # Build stage
-FROM golang:1.22-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
@@ -162,7 +162,7 @@ ENTRYPOINT ["/{{ service_name }}"]
 
 ### ポイント
 
-- `golang:1.22-alpine` をビルドステージのベースイメージとして使用する（BFF は alpine ベースで軽量化）
+- `golang:1.23-alpine` をビルドステージのベースイメージとして使用する（BFF は alpine ベースで軽量化）
 - `CGO_ENABLED=0` で静的バイナリを生成する
 - ランタイムは `distroless/static-debian12:nonroot` を使用する
 - ビルドターゲットは `./cmd/bff` ディレクトリを指定する

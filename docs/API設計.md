@@ -24,7 +24,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.
 | --- | --- | --- | --- |
 | 認証 API | REST | OAuth 2.0 フローに基づくトークン発行・検証 | `/api/v1/auth/token`, `/api/v1/auth/refresh` |
 | 認証 API | gRPC | サービス間のトークン検証（高速な内部呼び出し） | `AuthService.ValidateToken` |
-| config API | REST | 設定値の取得・更新 | `/api/v1/config/{key}` |
+| config API | REST | 設定値の取得・更新 | `/api/v1/config/:namespace/:key` |
 | config API | gRPC | サービス間の設定値参照 | `ConfigService.GetConfig` |
 | 共通マスタ API | REST | マスタデータの CRUD（外部向け） | `/api/v1/master/{resource}` |
 | 共通マスタ API | gRPC | マスタデータ参照（サービス間） | `MasterService.GetMaster` |
