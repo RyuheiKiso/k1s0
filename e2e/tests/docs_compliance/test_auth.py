@@ -308,7 +308,7 @@ class TestJWTKeyRotation:
 
     def test_jwks_cache_ttl_in_config_template(self) -> None:
         """認証認可設計.md: JWKS キャッシュ TTL 10分が config テンプレートに設定。"""
-        go_config = ROOT / "CLI" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
+        go_config = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
         content = go_config.read_text(encoding="utf-8")
         assert "10m" in content
 

@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
-TEMPLATES = ROOT / "CLI" / "templates"
-CLI_SRC = ROOT / "CLI" / "src"
+TEMPLATES = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates"
+CLI_SRC = ROOT / "CLI" / "crates" / "k1s0-cli" / "src"
 DOCS = ROOT / "docs"
 
 

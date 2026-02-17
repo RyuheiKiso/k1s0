@@ -217,19 +217,19 @@ class TestEnvironmentLogLevels:
 
     def test_dev_debug_level(self) -> None:
         """可観測性設計.md: dev 環境はデフォルト debug。"""
-        go_config = ROOT / "CLI" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
+        go_config = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
         content = go_config.read_text(encoding="utf-8")
         assert "debug" in content.lower() or "info" in content.lower()
 
     def test_config_has_log_level(self) -> None:
         """可観測性設計.md: config.yaml テンプレートに log.level 設定がある。"""
-        go_config = ROOT / "CLI" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
+        go_config = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
         content = go_config.read_text(encoding="utf-8")
         assert "level:" in content
 
     def test_config_has_log_format(self) -> None:
         """可観測性設計.md: config.yaml テンプレートに log.format 設定がある。"""
-        go_config = ROOT / "CLI" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
+        go_config = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
         content = go_config.read_text(encoding="utf-8")
         assert "format:" in content
 
