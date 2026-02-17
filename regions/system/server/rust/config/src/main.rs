@@ -6,21 +6,27 @@ use tracing::info;
 mod adapter;
 mod domain;
 mod infrastructure;
+mod proto;
 mod usecase;
 
+use adapter::grpc::ConfigGrpcService;
 use adapter::handler::{self, AppState};
 use infrastructure::config::Config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Logger
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-        )
-        .json()
-        .init();
+    // Telemetry
+    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
+        service_name: "k1s0-config-server".to_string(),
+        version: "0.1.0".to_string(),
+        tier: "system".to_string(),
+        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
+        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
+        sample_rate: 1.0,
+        log_level: "info".to_string(),
+    };
+    k1s0_telemetry::init_telemetry(&telemetry_cfg)
+        .expect("failed to init telemetry");
 
     // Config
     let config_path =
@@ -38,29 +44,71 @@ async fn main() -> anyhow::Result<()> {
     let config_repo: Arc<dyn domain::repository::ConfigRepository> =
         Arc::new(InMemoryConfigRepository::new());
 
-    // AppState
+    // --- gRPC Service ---
+    let get_config_uc = Arc::new(usecase::GetConfigUseCase::new(config_repo.clone()));
+    let list_configs_uc = Arc::new(usecase::ListConfigsUseCase::new(config_repo.clone()));
+    let get_service_config_uc =
+        Arc::new(usecase::GetServiceConfigUseCase::new(config_repo.clone()));
+    let update_config_uc = Arc::new(usecase::UpdateConfigUseCase::new(config_repo.clone()));
+    let delete_config_uc = Arc::new(usecase::DeleteConfigUseCase::new(config_repo.clone()));
+
+    let _config_grpc_svc = ConfigGrpcService::new(
+        get_config_uc,
+        list_configs_uc,
+        get_service_config_uc,
+        update_config_uc,
+        delete_config_uc,
+    );
+
+    // AppState (REST handler 用)
     let state = AppState::new(config_repo);
 
     // Router
     let app = handler::router(state);
 
-    // Server
-    let addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
-    info!("REST server starting on {}", addr);
+    // gRPC server (port 50053)
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50053).into();
+    info!("gRPC server starting on {}", grpc_addr);
 
-    let listener = tokio::net::TcpListener::bind(addr).await?;
-
-    // Graceful shutdown
-    let shutdown_signal = async {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("failed to install CTRL+C signal handler");
-        info!("shutdown signal received, starting graceful shutdown");
+    let grpc_future = async move {
+        // TODO: tonic::transport::Server::builder()
+        //     .add_service(ConfigServiceServer::new(config_grpc_svc))
+        //     .serve(grpc_addr)
+        //     .await
+        // proto 生成後に有効化。現時点ではスタブとして待機。
+        let listener = tokio::net::TcpListener::bind(grpc_addr).await?;
+        info!(
+            "gRPC server listening on {} (stub, awaiting tonic codegen)",
+            grpc_addr
+        );
+        // ただリスンするだけ（proto 生成後に tonic Server に置き換え）
+        loop {
+            let _ = listener.accept().await;
+        }
+        #[allow(unreachable_code)]
+        Ok::<(), anyhow::Error>(())
     };
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal)
-        .await?;
+    // REST server
+    let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
+    info!("REST server starting on {}", rest_addr);
+
+    let listener = tokio::net::TcpListener::bind(rest_addr).await?;
+    let rest_future = axum::serve(listener, app);
+
+    // REST と gRPC を並行起動
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!("REST server error: {}", e);
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!("gRPC server error: {}", e);
+            }
+        }
+    }
 
     info!("config server stopped");
 

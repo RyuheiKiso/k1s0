@@ -142,4 +142,52 @@ mod tests {
         assert!(output.reason.contains("insufficient permissions"));
         assert!(output.reason.contains("unknown_role"));
     }
+
+    #[test]
+    fn test_sys_operator_read_write() {
+        let uc = CheckPermissionUseCase::new();
+
+        // sys_operator can read
+        let input_read = CheckPermissionInput {
+            roles: vec!["sys_operator".to_string()],
+            permission: "read".to_string(),
+            resource: "config".to_string(),
+        };
+        let output = uc.execute(&input_read);
+        assert!(output.allowed);
+        assert!(output.reason.is_empty());
+
+        // sys_operator can write
+        let input_write = CheckPermissionInput {
+            roles: vec!["sys_operator".to_string()],
+            permission: "write".to_string(),
+            resource: "config".to_string(),
+        };
+        let output = uc.execute(&input_write);
+        assert!(output.allowed);
+        assert!(output.reason.is_empty());
+
+        // sys_operator cannot delete
+        let input_delete = CheckPermissionInput {
+            roles: vec!["sys_operator".to_string()],
+            permission: "delete".to_string(),
+            resource: "config".to_string(),
+        };
+        let output = uc.execute(&input_delete);
+        assert!(!output.allowed);
+    }
+
+    #[test]
+    fn test_user_role_denied() {
+        let uc = CheckPermissionUseCase::new();
+        let input = CheckPermissionInput {
+            roles: vec!["user".to_string()],
+            permission: "read".to_string(),
+            resource: "users".to_string(),
+        };
+        let output = uc.execute(&input);
+        assert!(!output.allowed);
+        assert!(output.reason.contains("insufficient permissions"));
+        assert!(output.reason.contains("user"));
+    }
 }

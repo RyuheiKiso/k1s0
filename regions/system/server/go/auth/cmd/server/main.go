@@ -14,6 +14,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
 
+	"github.com/k1s0-platform/system-library-go-telemetry"
+
 	authgrpc "github.com/k1s0-platform/system-server-go-auth/internal/adapter/grpc"
 	"github.com/k1s0-platform/system-server-go-auth/internal/adapter/gateway"
 	"github.com/k1s0-platform/system-server-go-auth/internal/adapter/handler"
@@ -37,11 +39,25 @@ func main() {
 		os.Exit(1)
 	}
 
-	// --- Logger ---
-	logger := config.NewLogger(
-		cfg.App.Environment, cfg.App.Name, cfg.App.Version, cfg.App.Tier,
-	)
-	slog.SetDefault(logger)
+	// --- Telemetry ---
+	telemetryCfg := telemetry.TelemetryConfig{
+		ServiceName: cfg.App.Name,
+		Version:     cfg.App.Version,
+		Tier:        cfg.App.Tier,
+		Environment: cfg.App.Environment,
+		SampleRate:  1.0,
+		LogLevel:    "info",
+	}
+	tp, err := telemetry.InitTelemetry(context.Background(), telemetryCfg)
+	if err != nil {
+		slog.Error("failed to init telemetry", "error", err)
+		os.Exit(1)
+	}
+	defer tp.Shutdown(context.Background())
+	slog.SetDefault(tp.Logger())
+
+	// --- Metrics ---
+	metrics := telemetry.NewMetrics(cfg.App.Name)
 
 	// --- Database ---
 	db, err := persistence.NewDB(cfg.Database)
@@ -83,6 +99,10 @@ func main() {
 	// ヘルスチェック
 	r.GET("/healthz", handler.HealthzHandler())
 	r.GET("/readyz", handler.ReadyzHandler(db, keycloakClient))
+
+	// メトリクス
+	_ = metrics
+	r.GET("/metrics", gin.WrapH(telemetry.MetricsHandler()))
 
 	// Auth ハンドラー
 	authHandler := handler.NewAuthHandler(validateTokenUC, getUserUC, listUsersUC, checkPermissionUC)

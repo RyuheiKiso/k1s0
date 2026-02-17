@@ -293,18 +293,73 @@ CREATE DATABASE k1s0_service;
 
 services:
   # --- system 層 ---
-  # auth-server:
+  # auth-go:
   #   build:
   #     context: ./regions/system/server/go/auth
   #     dockerfile: Dockerfile
   #   profiles: [system]
   #   ports:
-  #     - "8083:8080"    # 8081 は schema-registry、8082 は order-server が使用するため 8083 を割り当て
+  #     - "8080:8080"    # REST
+  #     - "50051:50051"  # gRPC
   #   depends_on:
   #     postgres:
   #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     keycloak:
+  #       condition: service_started
   #   volumes:
   #     - ./regions/system/server/go/auth/config:/app/config
+
+  # auth-rust:
+  #   build:
+  #     context: ./regions/system/server/rust/auth
+  #     dockerfile: Dockerfile
+  #   profiles: [system]
+  #   ports:
+  #     - "8083:8080"    # REST
+  #     - "50052:50051"  # gRPC
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     keycloak:
+  #       condition: service_started
+  #   volumes:
+  #     - ./regions/system/server/rust/auth/config:/app/config
+
+  # config-go:
+  #   build:
+  #     context: ./regions/system/server/go/config
+  #     dockerfile: Dockerfile
+  #   profiles: [system]
+  #   ports:
+  #     - "8082:8082"    # REST
+  #     - "50053:50053"  # gRPC
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./regions/system/server/go/config/config:/app/config
+
+  # config-rust:
+  #   build:
+  #     context: ./regions/system/server/rust/config
+  #     dockerfile: Dockerfile
+  #   profiles: [system]
+  #   ports:
+  #     - "8084:8082"    # REST
+  #     - "50054:50053"  # gRPC
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./regions/system/server/rust/config/config:/app/config
 
   # --- service 層 ---
   # order-server:

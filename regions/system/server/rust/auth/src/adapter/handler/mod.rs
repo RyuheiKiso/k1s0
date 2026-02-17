@@ -22,6 +22,7 @@ pub struct AppState {
     pub record_audit_log_uc: Arc<RecordAuditLogUseCase>,
     pub search_audit_logs_uc: Arc<SearchAuditLogsUseCase>,
     pub check_permission_uc: Arc<CheckPermissionUseCase>,
+    pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 }
 
 impl AppState {
@@ -43,6 +44,7 @@ impl AppState {
             record_audit_log_uc: Arc::new(RecordAuditLogUseCase::new(audit_repo.clone())),
             search_audit_logs_uc: Arc::new(SearchAuditLogsUseCase::new(audit_repo)),
             check_permission_uc: Arc::new(CheckPermissionUseCase::new()),
+            metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server")),
         }
     }
 }

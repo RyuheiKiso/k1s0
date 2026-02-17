@@ -10,6 +10,7 @@ opentelemetry-otlp = { version = "0.27", features = ["tonic"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 tracing-opentelemetry = "0.28"
+prometheus = "0.13"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }

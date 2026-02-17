@@ -20,6 +20,7 @@ pub struct AppState {
     pub update_config_uc: Arc<UpdateConfigUseCase>,
     pub delete_config_uc: Arc<DeleteConfigUseCase>,
     pub get_service_config_uc: Arc<GetServiceConfigUseCase>,
+    pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 }
 
 impl AppState {
@@ -30,6 +31,7 @@ impl AppState {
             update_config_uc: Arc::new(UpdateConfigUseCase::new(config_repo.clone())),
             delete_config_uc: Arc::new(DeleteConfigUseCase::new(config_repo.clone())),
             get_service_config_uc: Arc::new(GetServiceConfigUseCase::new(config_repo)),
+            metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-config-server")),
         }
     }
 }

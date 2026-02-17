@@ -1,4 +1,5 @@
 pub mod logger;
+pub mod metrics;
 pub mod middleware;
 
 #[cfg(test)]

@@ -28,9 +28,15 @@ pub async fn readyz() -> impl IntoResponse {
 }
 
 /// GET /metrics
-pub async fn metrics() -> impl IntoResponse {
-    // TODO: Prometheus メトリクスのエクスポート実装
-    (StatusCode::OK, "# HELP config_server_requests_total\n")
+pub async fn metrics(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let body = state.metrics.gather_metrics();
+    (
+        StatusCode::OK,
+        [("content-type", "text/plain; version=0.0.4; charset=utf-8")],
+        body,
+    )
 }
 
 /// GET /api/v1/config/:namespace/:key

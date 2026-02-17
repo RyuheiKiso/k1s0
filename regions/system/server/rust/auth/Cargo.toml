@@ -55,6 +55,9 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 # Auth library (JWKS verifier)
 k1s0-auth = { path = "../../../library/rust/auth" }
 
+# Telemetry library
+k1s0-telemetry = { path = "../../../library/rust/telemetry" }
+
 [build-dependencies]
 tonic-build = "0.12"
 

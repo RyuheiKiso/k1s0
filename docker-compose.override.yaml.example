@@ -4,18 +4,111 @@
 
 services:
   # --- system 層 ---
-  # auth-server:
+  # ポート割り当て:
+  #   auth-go:    REST 8080, gRPC 50051
+  #   auth-rust:  REST 8083, gRPC 50052
+  #   config-go:  REST 8082, gRPC 50053
+  #   config-rust: REST 8084, gRPC 50054
+  #
+  # auth-go:
   #   build:
   #     context: ./regions/system/server/go/auth
   #     dockerfile: Dockerfile
   #   profiles: [system]
   #   ports:
-  #     - "8083:8080"    # 8081 は schema-registry、8082 は order-server が使用するため 8083 を割り当て
+  #     - "8080:8080"
+  #     - "50051:50051"
+  #   environment:
+  #     - CONFIG_PATH=/app/config/config.dev.yaml
   #   depends_on:
   #     postgres:
   #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #     keycloak:
+  #       condition: service_started
   #   volumes:
   #     - ./regions/system/server/go/auth/config:/app/config
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #
+  # auth-rust:
+  #   build:
+  #     context: ./regions/system/server/rust/auth
+  #     dockerfile: Dockerfile
+  #   profiles: [system]
+  #   ports:
+  #     - "8083:8080"
+  #     - "50052:50051"
+  #   environment:
+  #     - CONFIG_PATH=/app/config/config.dev.yaml
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #     keycloak:
+  #       condition: service_started
+  #   volumes:
+  #     - ./regions/system/server/rust/auth/config:/app/config
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #
+  # config-go:
+  #   build:
+  #     context: ./regions/system/server/go/config
+  #     dockerfile: Dockerfile
+  #   profiles: [system]
+  #   ports:
+  #     - "8082:8080"
+  #     - "50053:50051"
+  #   environment:
+  #     - CONFIG_PATH=/app/config/config.dev.yaml
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #     keycloak:
+  #       condition: service_started
+  #   volumes:
+  #     - ./regions/system/server/go/config/config:/app/config
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #
+  # config-rust:
+  #   build:
+  #     context: ./regions/system/server/rust/config
+  #     dockerfile: Dockerfile
+  #   profiles: [system]
+  #   ports:
+  #     - "8084:8080"
+  #     - "50054:50051"
+  #   environment:
+  #     - CONFIG_PATH=/app/config/config.dev.yaml
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #     keycloak:
+  #       condition: service_started
+  #   volumes:
+  #     - ./regions/system/server/rust/config/config:/app/config
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
   # --- service 層 ---
   # order-server:
