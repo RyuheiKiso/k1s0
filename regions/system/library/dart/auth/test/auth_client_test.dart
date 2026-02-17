@@ -161,11 +161,11 @@ void main() {
       });
 
       test('should throw on token request failure', () async {
-        final failPost = (Uri url,
+        Future<http.Response> failPost(Uri url,
             {Map<String, String>? headers, Object? body}) async {
           httpPostUrls.add(url.toString());
           return http.Response('Unauthorized', 401);
-        };
+        }
 
         final client = createClient(httpPost: failPost);
         await client.login();
@@ -183,7 +183,7 @@ void main() {
       test('should notify listeners on successful callback', () async {
         final client = createClient();
         final states = <bool>[];
-        client.onAuthStateChange((authenticated) => states.add(authenticated));
+        client.onAuthStateChange(states.add);
 
         await client.login();
         await client.handleCallback('code', 'mock-state-value');
@@ -229,7 +229,7 @@ void main() {
       test('should throw when not authenticated', () async {
         final client = createClient();
         expect(
-          () => client.getAccessToken(),
+          client.getAccessToken,
           throwsA(isA<AuthError>().having(
             (e) => e.message,
             'message',
@@ -281,7 +281,7 @@ void main() {
       test('should throw when no refresh token is available', () async {
         final client = createClient();
         expect(
-          () => client.refreshToken(),
+          client.refreshToken,
           throwsA(isA<AuthError>()),
         );
       });
@@ -295,18 +295,18 @@ void main() {
           expiresAt: DateTime.now().add(const Duration(minutes: 5)),
         ));
 
-        final failPost = (Uri url,
+        Future<http.Response> failPost(Uri url,
             {Map<String, String>? headers, Object? body}) async {
           httpPostUrls.add(url.toString());
           return http.Response('Forbidden', 403);
-        };
+        }
 
         final client = createClient(httpPost: failPost);
         final states = <bool>[];
-        client.onAuthStateChange((authenticated) => states.add(authenticated));
+        client.onAuthStateChange(states.add);
 
         expect(
-          () => client.refreshToken(),
+          client.refreshToken,
           throwsA(isA<AuthError>().having(
             (e) => e.message,
             'message',
@@ -368,7 +368,7 @@ void main() {
         ));
         final client = createClient();
         final states = <bool>[];
-        client.onAuthStateChange((authenticated) => states.add(authenticated));
+        client.onAuthStateChange(states.add);
         await client.logout();
 
         expect(states, contains(false));
@@ -415,7 +415,7 @@ void main() {
       test('should register and notify a listener', () async {
         final client = createClient();
         final states = <bool>[];
-        client.onAuthStateChange((authenticated) => states.add(authenticated));
+        client.onAuthStateChange(states.add);
 
         await client.login();
         await client.handleCallback('code', 'mock-state-value');
@@ -427,7 +427,7 @@ void main() {
         final client = createClient();
         final states = <bool>[];
         final unsubscribe =
-            client.onAuthStateChange((authenticated) => states.add(authenticated));
+            client.onAuthStateChange(states.add);
 
         unsubscribe();
 
@@ -441,8 +441,8 @@ void main() {
         final client = createClient();
         final states1 = <bool>[];
         final states2 = <bool>[];
-        client.onAuthStateChange((a) => states1.add(a));
-        client.onAuthStateChange((a) => states2.add(a));
+        client.onAuthStateChange(states1.add);
+        client.onAuthStateChange(states2.add);
 
         await client.login();
         await client.handleCallback('code', 'mock-state-value');

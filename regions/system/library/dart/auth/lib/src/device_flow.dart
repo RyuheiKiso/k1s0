@@ -1,5 +1,6 @@
 /// Device Authorization Grant フロー（RFC 8628）のクライアント実装。
 /// CLI やスマートデバイス等、ブラウザリダイレクトが困難な環境向け。
+library;
 
 import 'dart:convert';
 

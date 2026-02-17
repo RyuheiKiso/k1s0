@@ -203,7 +203,7 @@ void main() {
         final completer = Completer<void>();
 
         // 2 秒後にキャンセル
-        Timer(const Duration(seconds: 2), () => completer.complete());
+        Timer(const Duration(seconds: 2), completer.complete);
 
         expect(
           () => client.pollToken(
