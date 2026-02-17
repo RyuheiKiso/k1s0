@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "identifier": "com.k1s0.gui",
   "build": {
-    "beforeBuildCommand": "npm run build",
-    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm --prefix ui run build",
+    "beforeDevCommand": "npm --prefix ui run dev",
     "devUrl": "http://localhost:5173",
-    "frontendDist": "../ui/dist"
+    "frontendDist": "ui/dist"
   },
   "app": {
     "security": {
