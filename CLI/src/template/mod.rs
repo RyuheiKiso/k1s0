@@ -89,8 +89,17 @@ impl TemplateEngine {
         let tera_ctx = ctx.to_tera_context();
 
         // kind + language に対応するテンプレートディレクトリを決定
-        // CICD・Helm テンプレートは言語サブディレクトリを持たないフラット構造
-        let kind_lang_dir = if ctx.kind == "cicd" || ctx.kind == "helm" {
+        // CICD・Helm・Terraform・Docker Compose・devcontainer・Service Mesh テンプレートは
+        // 言語サブディレクトリを持たないフラット構造
+        let flat_kinds = [
+            "cicd",
+            "helm",
+            "terraform",
+            "docker-compose",
+            "devcontainer",
+            "service-mesh",
+        ];
+        let kind_lang_dir = if flat_kinds.contains(&ctx.kind.as_str()) {
             self.template_dir.join(&ctx.kind)
         } else {
             self.template_dir.join(&ctx.kind).join(&ctx.language)

@@ -1,0 +1,9 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 918
+expression: sorted
+---
+- authorization-policy.yaml
+- destination-rule.yaml
+- peer-authentication.yaml
+- virtual-service.yaml

@@ -823,6 +823,8 @@ gRPC ヘルスチェックを利用するには、サーバー側で `grpc.healt
 
 これにより、`grpcHealthCheck.enabled: true` に切り替えるだけで gRPC ネイティブヘルスチェックが機能する。
 
+> **サーバーテンプレートとの相互参照**: gRPC Health Check のサーバー側スケルトンコード（`grpc_health.go.tera` / `grpc_health.rs.tera`）は [テンプレート仕様-サーバー](テンプレート仕様-サーバー.md) の「gRPC Health Check テンプレート」セクションで定義されている。values.yaml の `probes.grpcHealthCheck.enabled` と `probes.grpcHealthCheck.port` の設定値がサーバー側の gRPC Health サービス実装と対応する。
+
 ## テンプレート変数一覧
 
 Helm Chart テンプレートで使用する変数の一覧。全変数の定義は [テンプレートエンジン仕様](テンプレートエンジン仕様.md) を参照。

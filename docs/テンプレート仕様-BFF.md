@@ -914,9 +914,59 @@ BFF は DB / Kafka / Redis を使用しないため、Vault シークレット�
 
 ---
 
+## GraphQL Subscription の拡張
+
+BFF テンプレートはデフォルトで Query / Mutation のみを提供し、Subscription 型は含まない。サーバー側で GraphQL Subscription（リアルタイムイベント配信）を実装している場合、BFF がそれを中継するには以下の拡張が必要となる。
+
+### 拡張手順
+
+1. **schema.graphql に Subscription 型を追加する**
+2. **BFF の main に WebSocket transport を追加する**（Go: `github.com/gorilla/websocket`、Rust: `axum::extract::ws`）
+3. **upstream サーバーの WebSocket エンドポイントに接続する** client 実装を追加する
+
+> **サーバーテンプレートとの連携**: サーバー側の GraphQL Subscription テンプレート（Subscription 型定義、WebSocket transport 設定）は [テンプレート仕様-サーバー](テンプレート仕様-サーバー.md) の「GraphQL Subscription テンプレート」セクションで定義されている。BFF が Subscription を中継する場合は、サーバー側のスキーマ定義と整合性を保つ必要がある。
+
+### Go BFF の Subscription 拡張例
+
+```go
+// schema.graphql に追加
+type Subscription {
+    itemChanged: Item!
+}
+
+// cmd/main.go に WebSocket transport を追加
+import "github.com/gorilla/websocket"
+
+srv.AddTransport(transport.Websocket{
+    Upgrader: websocket.Upgrader{
+        CheckOrigin: func(r *http.Request) bool { return true },
+    },
+})
+```
+
+### Rust BFF の Subscription 拡張例
+
+```rust
+// graphql.rs に SubscriptionRoot を追加
+pub struct SubscriptionRoot;
+
+#[Subscription]
+impl SubscriptionRoot {
+    async fn item_changed(&self) -> impl Stream<Item = Item> {
+        // upstream WebSocket 接続からイベントを中継
+        futures_util::stream::empty()
+    }
+}
+
+// main.rs に WebSocket route を追加
+.route("/ws", get(GraphQLSubscription::new(schema.clone())))
+```
+
+---
+
 ## 関連ドキュメント
 
-- [テンプレート仕様-サーバー](テンプレート仕様-サーバー.md) --- サーバーテンプレート（BFF の親サーバー）
+- [テンプレート仕様-サーバー](テンプレート仕様-サーバー.md) --- サーバーテンプレート（BFF の親サーバー、GraphQL Subscription 含む）
 - [API設計](API設計.md) --- D-011 GraphQL 設計、BFF パターン
 - [認証認可設計](認証認可設計.md) --- D-013 BFF + HttpOnly Cookie 認証
 - [テンプレートエンジン仕様](テンプレートエンジン仕様.md) --- 変数置換・条件分岐の仕様

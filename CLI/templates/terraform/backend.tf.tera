@@ -1,0 +1,11 @@
+# backend.tf — {{ environment }} 環境
+# リモート State 設定（Consul バックエンド）
+
+terraform {
+  backend "consul" {
+    address = "consul.internal.example.com:8500"
+    scheme  = "https"
+    path    = "terraform/k1s0/{{ environment }}"
+    lock    = true
+  }
+}

@@ -1,0 +1,83 @@
+# outputs.tf — {{ environment }} 環境
+# 出力定義
+
+# -------------------------------------------
+# Kubernetes 基盤
+# -------------------------------------------
+
+output "namespace_names" {
+  description = "作成された Namespace 名の一覧"
+  value       = module.kubernetes_base.namespace_names
+}
+
+output "storage_class_names" {
+  description = "作成された StorageClass 名の一覧"
+  value       = module.kubernetes_storage.storage_class_names
+}
+
+# -------------------------------------------
+# 可観測性
+# -------------------------------------------
+
+{% if enable_observability %}
+output "prometheus_endpoint" {
+  description = "Prometheus サーバーの内部エンドポイント"
+  value       = module.observability.prometheus_endpoint
+}
+
+output "grafana_endpoint" {
+  description = "Grafana ダッシュボードの内部エンドポイント"
+  value       = module.observability.grafana_endpoint
+}
+
+output "jaeger_endpoint" {
+  description = "Jaeger UI の内部エンドポイント"
+  value       = module.observability.jaeger_endpoint
+}
+{% endif %}
+
+# -------------------------------------------
+# サービスメッシュ
+# -------------------------------------------
+
+{% if enable_service_mesh %}
+output "istio_ingress_ip" {
+  description = "Istio IngressGateway の IP アドレス"
+  value       = module.service_mesh.ingress_gateway_ip
+}
+{% endif %}
+
+# -------------------------------------------
+# データベース
+# -------------------------------------------
+
+{% if enable_postgresql %}
+output "postgresql_endpoint" {
+  description = "PostgreSQL サービスの内部エンドポイント"
+  value       = module.database.postgresql_endpoint
+}
+{% endif %}
+
+{% if enable_mysql %}
+output "mysql_endpoint" {
+  description = "MySQL サービスの内部エンドポイント"
+  value       = module.database.mysql_endpoint
+}
+{% endif %}
+
+# -------------------------------------------
+# Harbor
+# -------------------------------------------
+
+{% if enable_harbor %}
+output "harbor_url" {
+  description = "Harbor レジストリの URL"
+  value       = module.harbor.harbor_url
+}
+
+output "harbor_robot_accounts" {
+  description = "CI/CD 用ロボットアカウント情報"
+  value       = module.harbor.robot_accounts
+  sensitive   = true
+}
+{% endif %}

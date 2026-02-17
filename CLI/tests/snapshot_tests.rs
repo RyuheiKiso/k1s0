@@ -631,3 +631,298 @@ fn test_go_rest_grpc_includes_both_handlers() {
     assert!(files.iter().any(|f| f.contains("rest")), "REST handler should be included");
     assert!(files.iter().any(|f| f.contains("grpc")), "gRPC handler should be included");
 }
+
+// =========================================================================
+// ヘルパー関数: Dev Container
+// =========================================================================
+
+fn render_devcontainer(
+    lang: &str,
+    fw: &str,
+    has_database: bool,
+    database_type: &str,
+    has_kafka: bool,
+    has_redis: bool,
+) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let mut builder =
+        TemplateContextBuilder::new("order-api", "service", lang, "devcontainer")
+            .framework(fw);
+
+    if has_database {
+        builder = builder.with_database(database_type);
+    }
+    if has_kafka {
+        builder = builder.with_kafka();
+    }
+    if has_redis {
+        builder = builder.with_redis();
+    }
+
+    let ctx = builder.build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+
+    (tmp, names)
+}
+
+// =========================================================================
+// スナップショットテスト: Dev Container
+// =========================================================================
+
+/// Dev Container: Go サーバー (PostgreSQL + Redis)
+#[test]
+fn test_snapshot_devcontainer_go() {
+    let (_, names) = render_devcontainer("go", "", true, "postgresql", false, true);
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("devcontainer_go", sorted);
+}
+
+/// Dev Container: Rust サーバー (Kafka)
+#[test]
+fn test_snapshot_devcontainer_rust() {
+    let (_, names) = render_devcontainer("rust", "", false, "", true, false);
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("devcontainer_rust", sorted);
+}
+
+/// Dev Container: React クライアント (最小)
+#[test]
+fn test_snapshot_devcontainer_react() {
+    let (_, names) = render_devcontainer("typescript", "react", false, "", false, false);
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("devcontainer_react", sorted);
+}
+
+// =========================================================================
+// ヘルパー関数: Terraform
+// =========================================================================
+
+fn render_terraform(
+    environment: &str,
+    enable_postgresql: bool,
+    enable_mysql: bool,
+    enable_kafka: bool,
+    enable_observability: bool,
+    enable_service_mesh: bool,
+    enable_vault: bool,
+    enable_harbor: bool,
+) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let mut builder = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
+        .environment(environment);
+
+    if enable_postgresql {
+        builder = builder.enable_postgresql();
+    }
+    if enable_mysql {
+        builder = builder.enable_mysql();
+    }
+    if enable_kafka {
+        builder = builder.enable_kafka();
+    }
+    if enable_observability {
+        builder = builder.enable_observability();
+    }
+    if enable_service_mesh {
+        builder = builder.enable_service_mesh();
+    }
+    if enable_vault {
+        builder = builder.enable_vault();
+    }
+    if enable_harbor {
+        builder = builder.enable_harbor();
+    }
+
+    let ctx = builder.build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+
+    (tmp, names)
+}
+
+// =========================================================================
+// スナップショットテスト: Terraform
+// =========================================================================
+
+/// Terraform: 全 enable=true のスナップショット
+#[test]
+fn test_snapshot_terraform_full() {
+    let (_, names) = render_terraform("prod", true, true, true, true, true, true, true);
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("terraform_full", sorted);
+}
+
+/// Terraform: 全 enable=false のスナップショット
+#[test]
+fn test_snapshot_terraform_minimal() {
+    let (_, names) = render_terraform("dev", false, false, false, false, false, false, false);
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("terraform_minimal", sorted);
+}
+
+// =========================================================================
+// ヘルパー関数: Docker Compose
+// =========================================================================
+
+fn render_docker_compose(
+    server_lang: &str,
+    port: u16,
+    has_database: bool,
+    database_type: &str,
+    has_kafka: bool,
+    has_redis: bool,
+) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let mut builder =
+        TemplateContextBuilder::new("order-api", "service", "go", "docker-compose")
+            .server_language(server_lang)
+            .server_port(port);
+
+    if has_database {
+        builder = builder.with_database(database_type);
+    }
+    if has_kafka {
+        builder = builder.with_kafka();
+    }
+    if has_redis {
+        builder = builder.with_redis();
+    }
+
+    let ctx = builder.build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+
+    (tmp, names)
+}
+
+// =========================================================================
+// スナップショットテスト: Docker Compose
+// =========================================================================
+
+/// Docker Compose: PostgreSQL + Kafka + Redis (フル構成)
+#[test]
+fn test_snapshot_docker_compose_full() {
+    let (_, names) =
+        render_docker_compose("go", 8082, true, "postgresql", true, true);
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("docker_compose_full", sorted);
+}
+
+/// Docker Compose: DB/Kafka/Redis なし (最小構成)
+#[test]
+fn test_snapshot_docker_compose_minimal() {
+    let (_, names) =
+        render_docker_compose("go", 8082, false, "", false, false);
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("docker_compose_minimal", sorted);
+}
+
+// =========================================================================
+// ヘルパー関数: Service Mesh
+// =========================================================================
+
+fn render_service_mesh(
+    service_name: &str,
+    tier: &str,
+    api_style: &str,
+    server_port: u16,
+    grpc_port: u16,
+) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let ctx = TemplateContextBuilder::new(service_name, tier, "go", "service-mesh")
+        .api_style(api_style)
+        .server_port(server_port)
+        .grpc_port(grpc_port)
+        .build();
+
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+
+    (tmp, names)
+}
+
+// =========================================================================
+// スナップショットテスト: Service Mesh
+// =========================================================================
+
+/// Service Mesh: system + gRPC
+#[test]
+fn test_snapshot_service_mesh_system_grpc() {
+    let (_, names) = render_service_mesh("auth-service", "system", "grpc", 80, 9090);
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("service_mesh_system_grpc", sorted);
+}
+
+/// Service Mesh: service + REST
+#[test]
+fn test_snapshot_service_mesh_service_rest() {
+    let (_, names) = render_service_mesh("order-api", "service", "rest", 80, 9090);
+    let mut sorted = names.clone();
+    sorted.sort();
+    insta::assert_yaml_snapshot!("service_mesh_service_rest", sorted);
+}

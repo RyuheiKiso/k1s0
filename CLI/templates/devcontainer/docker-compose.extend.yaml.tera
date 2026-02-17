@@ -1,0 +1,21 @@
+services:
+  devcontainer:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu-24.04
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+{% if has_database or has_kafka or has_redis %}
+    depends_on:
+{% endif %}
+{% if has_database and database_type == "postgresql" %}
+      - postgres
+{% endif %}
+{% if has_database and database_type == "mysql" %}
+      - mysql
+{% endif %}
+{% if has_redis %}
+      - redis
+{% endif %}
+{% if has_kafka %}
+      - kafka
+{% endif %}

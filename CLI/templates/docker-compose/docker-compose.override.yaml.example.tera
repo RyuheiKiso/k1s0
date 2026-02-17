@@ -1,0 +1,39 @@
+# docker-compose.override.yaml.example
+# このファイルを docker-compose.override.yaml にコピーして使用してください。
+# 必要なサービスのコメントを解除して起動してください。
+#
+# cp docker-compose.override.yaml.example docker-compose.override.yaml
+
+services:
+  # --- {{ tier }} 層 ---
+  # {{ service_name }}:
+  #   build:
+{% if server_language == "go" %}
+  #     context: ./regions/{{ tier }}/server/go/{{ service_name }}
+{% elif server_language == "rust" %}
+  #     context: ./regions/{{ tier }}/server/rust/{{ service_name }}
+{% endif %}
+  #     dockerfile: Dockerfile
+  #   profiles: [{{ tier }}]
+  #   ports:
+  #     - "{{ server_port }}:8080"
+{% if has_database and database_type == "postgresql" %}
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+{% elif has_database and database_type == "mysql" %}
+  #   depends_on:
+  #     mysql:
+  #       condition: service_healthy
+{% endif %}
+{% if has_kafka %}
+  #     kafka:
+  #       condition: service_healthy
+{% endif %}
+{% if server_language == "go" %}
+  #   volumes:
+  #     - ./regions/{{ tier }}/server/go/{{ service_name }}/config:/app/config
+{% elif server_language == "rust" %}
+  #   volumes:
+  #     - ./regions/{{ tier }}/server/rust/{{ service_name }}/config:/app/config
+{% endif %}

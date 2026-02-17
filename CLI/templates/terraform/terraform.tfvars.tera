@@ -1,0 +1,172 @@
+# terraform.tfvars — {{ environment }} 環境
+# 環境固有の設定値
+
+environment = "{{ environment }}"
+
+# -------------------------------------------
+# Namespace 定義
+# -------------------------------------------
+
+namespaces = {
+  "k1s0-system" = {
+    tier               = "system"
+    allowed_from_tiers = ["system", "business", "service"]
+  }
+  "k1s0-business" = {
+    tier               = "business"
+    allowed_from_tiers = ["business", "service"]
+  }
+  "k1s0-service" = {
+    tier               = "service"
+    allowed_from_tiers = ["service"]
+  }
+  "observability" = {
+    tier               = "infra"
+    allowed_from_tiers = ["system", "business", "service"]
+  }
+  "messaging" = {
+    tier               = "infra"
+    allowed_from_tiers = ["system", "business", "service"]
+  }
+  "ingress" = {
+    tier               = "infra"
+    allowed_from_tiers = []
+  }
+  "service-mesh" = {
+    tier               = "infra"
+    allowed_from_tiers = []
+  }
+  "cert-manager" = {
+    tier               = "infra"
+    allowed_from_tiers = []
+  }
+  "harbor" = {
+    tier               = "infra"
+    allowed_from_tiers = []
+  }
+}
+
+# -------------------------------------------
+# Kubernetes Storage
+# -------------------------------------------
+
+{% if environment == "prod" %}
+ceph_cluster_id  = "prod-ceph-cluster-001"
+ceph_pool        = "k8s-block-prod"
+ceph_pool_fast   = "k8s-block-fast-prod"
+reclaim_policy   = "Retain"
+{% elif environment == "staging" %}
+ceph_cluster_id  = "ceph-staging"
+ceph_pool        = "k8s-block-staging"
+ceph_pool_fast   = "k8s-block-fast-staging"
+reclaim_policy   = "Delete"
+{% else %}
+ceph_cluster_id  = "ceph-dev"
+ceph_pool        = "k8s-block-dev"
+ceph_pool_fast   = "k8s-block-fast-dev"
+reclaim_policy   = "Delete"
+{% endif %}
+
+# -------------------------------------------
+# 可観測性
+# -------------------------------------------
+
+{% if enable_observability %}
+prometheus_version = "56.6.0"
+loki_version       = "2.10.0"
+jaeger_version     = "0.73.0"
+{% endif %}
+
+# -------------------------------------------
+# サービスメッシュ
+# -------------------------------------------
+
+{% if enable_service_mesh %}
+istio_version   = "1.20.0"
+kiali_version   = "1.77.0"
+flagger_version = "1.36.0"
+{% endif %}
+
+# -------------------------------------------
+# データベース
+# -------------------------------------------
+
+{% if enable_postgresql or enable_mysql %}
+database_namespace = "database"
+backup_bucket      = "k1s0-backup-{{ environment }}"
+{% endif %}
+
+{% if enable_postgresql %}
+enable_postgresql        = true
+postgresql_chart_version = "14.0.0"
+{% endif %}
+
+{% if enable_mysql %}
+enable_mysql        = true
+mysql_chart_version = "9.0.0"
+{% endif %}
+
+# -------------------------------------------
+# メッセージング
+# -------------------------------------------
+
+{% if enable_kafka %}
+kafka_version   = "26.0.0"
+kafka_namespace = "messaging"
+{% endif %}
+
+# -------------------------------------------
+# Vault
+# -------------------------------------------
+
+{% if enable_vault %}
+{% if environment == "prod" %}
+vault_address = "https://vault.internal.example.com:8200"
+{% elif environment == "staging" %}
+vault_address = "https://vault-staging.internal.example.com:8200"
+{% else %}
+vault_address = "https://vault-dev.internal.example.com:8200"
+{% endif %}
+
+vault_policies = {
+  "k1s0-system" = {
+    path         = "secret/data/k1s0/system/*"
+    capabilities = ["read", "list"]
+  }
+  "k1s0-business" = {
+    path         = "secret/data/k1s0/business/*"
+    capabilities = ["read", "list"]
+  }
+  "k1s0-service" = {
+    path         = "secret/data/k1s0/service/*"
+    capabilities = ["read", "list"]
+  }
+}
+
+secret_engines = {
+  "k1s0-kv" = {
+    type = "kv-v2"
+    path = "secret/k1s0"
+  }
+}
+{% endif %}
+
+# -------------------------------------------
+# Harbor
+# -------------------------------------------
+
+{% if enable_harbor %}
+{% if environment == "prod" %}
+harbor_url           = "https://harbor.internal.example.com"
+harbor_domain        = "harbor.internal.example.com"
+{% elif environment == "staging" %}
+harbor_url           = "https://harbor-staging.internal.example.com"
+harbor_domain        = "harbor-staging.internal.example.com"
+{% else %}
+harbor_url           = "https://harbor-dev.internal.example.com"
+harbor_domain        = "harbor-dev.internal.example.com"
+{% endif %}
+harbor_chart_version = "1.14.0"
+harbor_s3_bucket     = "harbor-{{ environment }}"
+ceph_s3_endpoint     = "https://s3.internal.example.com"
+{% endif %}

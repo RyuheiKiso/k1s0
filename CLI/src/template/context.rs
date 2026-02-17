@@ -71,6 +71,36 @@ pub struct TemplateContext {
     pub docker_project: String,
     /// Helm Chart の Tier 別相対パス (自動導出: "{service_name}")
     pub helm_path: String,
+    // -----------------------------------------------------------------
+    // Terraform 用変数
+    // -----------------------------------------------------------------
+    /// 環境識別子 (dev / staging / prod)
+    pub environment: String,
+    /// PostgreSQL モジュール有効化
+    pub enable_postgresql: bool,
+    /// MySQL モジュール有効化
+    pub enable_mysql: bool,
+    /// Kafka モジュール有効化 (Terraform 用; has_kafka とは独立)
+    pub enable_kafka: bool,
+    /// 可観測性スタック有効化
+    pub enable_observability: bool,
+    /// サービスメッシュ有効化
+    pub enable_service_mesh: bool,
+    /// Vault 設定有効化
+    pub enable_vault: bool,
+    /// Harbor プロジェクト管理有効化
+    pub enable_harbor: bool,
+    // -----------------------------------------------------------------
+    // ServiceMesh / DockerCompose 用変数
+    // -----------------------------------------------------------------
+    /// Namespace (Tier から自動導出: "k1s0-{tier}")
+    pub namespace: String,
+    /// HTTP サーバーポート
+    pub server_port: u16,
+    /// gRPC ポート
+    pub grpc_port: u16,
+    /// サーバー言語 (DockerCompose 用: go / rust)
+    pub server_language: String,
 }
 
 /// TemplateContext を構築するためのビルダー。
@@ -92,6 +122,19 @@ pub struct TemplateContextBuilder {
     has_redis: bool,
     docker_registry: String,
     go_module_base: String,
+    // Terraform
+    environment: String,
+    enable_postgresql: bool,
+    enable_mysql: bool,
+    enable_kafka: bool,
+    enable_observability: bool,
+    enable_service_mesh: bool,
+    enable_vault: bool,
+    enable_harbor: bool,
+    // ServiceMesh / DockerCompose
+    server_port: u16,
+    grpc_port: u16,
+    server_language: String,
 }
 
 impl TemplateContextBuilder {
@@ -117,6 +160,17 @@ impl TemplateContextBuilder {
             has_redis: false,
             docker_registry: DEFAULT_DOCKER_REGISTRY.to_string(),
             go_module_base: "github.com/org/k1s0".to_string(),
+            environment: String::new(),
+            enable_postgresql: false,
+            enable_mysql: false,
+            enable_kafka: false,
+            enable_observability: false,
+            enable_service_mesh: false,
+            enable_vault: false,
+            enable_harbor: false,
+            server_port: 8080,
+            grpc_port: 50051,
+            server_language: String::new(),
         }
     }
 
@@ -179,6 +233,72 @@ impl TemplateContextBuilder {
         self
     }
 
+    /// 環境を設定する (Terraform 用)。
+    pub fn environment(mut self, env: &str) -> Self {
+        self.environment = env.to_string();
+        self
+    }
+
+    /// Terraform インフラモジュールの有効化フラグを設定する。
+    pub fn enable_postgresql(mut self) -> Self {
+        self.enable_postgresql = true;
+        self
+    }
+
+    /// MySQL モジュールを有効化する。
+    pub fn enable_mysql(mut self) -> Self {
+        self.enable_mysql = true;
+        self
+    }
+
+    /// Kafka モジュールを有効化する (Terraform 用)。
+    pub fn enable_kafka(mut self) -> Self {
+        self.enable_kafka = true;
+        self
+    }
+
+    /// 可観測性スタックを有効化する。
+    pub fn enable_observability(mut self) -> Self {
+        self.enable_observability = true;
+        self
+    }
+
+    /// サービスメッシュを有効化する。
+    pub fn enable_service_mesh(mut self) -> Self {
+        self.enable_service_mesh = true;
+        self
+    }
+
+    /// Vault を有効化する。
+    pub fn enable_vault(mut self) -> Self {
+        self.enable_vault = true;
+        self
+    }
+
+    /// Harbor を有効化する。
+    pub fn enable_harbor(mut self) -> Self {
+        self.enable_harbor = true;
+        self
+    }
+
+    /// HTTP サーバーポートを設定する。
+    pub fn server_port(mut self, port: u16) -> Self {
+        self.server_port = port;
+        self
+    }
+
+    /// gRPC ポートを設定する。
+    pub fn grpc_port(mut self, port: u16) -> Self {
+        self.grpc_port = port;
+        self
+    }
+
+    /// サーバー言語を設定する (DockerCompose 用)。
+    pub fn server_language(mut self, lang: &str) -> Self {
+        self.server_language = lang.to_string();
+        self
+    }
+
     /// TemplateContext を構築する。
     ///
     /// 入力値から導出ルールに従って全変数を自動計算する。
@@ -231,6 +351,16 @@ impl TemplateContextBuilder {
         // api_style: 後方互換のため api_styles の先頭要素を設定
         let api_style = self.api_styles.first().cloned().unwrap_or_default();
 
+        // namespace の導出: "k1s0-{tier}"
+        let namespace = format!("k1s0-{}", self.tier);
+
+        // server_language の導出: 明示的に設定されていなければ language を使用
+        let server_language = if self.server_language.is_empty() {
+            self.language.clone()
+        } else {
+            self.server_language
+        };
+
         TemplateContext {
             service_name: self.service_name,
             service_name_snake,
@@ -253,6 +383,18 @@ impl TemplateContextBuilder {
             docker_registry: self.docker_registry,
             docker_project,
             helm_path,
+            environment: self.environment,
+            enable_postgresql: self.enable_postgresql,
+            enable_mysql: self.enable_mysql,
+            enable_kafka: self.enable_kafka,
+            enable_observability: self.enable_observability,
+            enable_service_mesh: self.enable_service_mesh,
+            enable_vault: self.enable_vault,
+            enable_harbor: self.enable_harbor,
+            namespace,
+            server_port: self.server_port,
+            grpc_port: self.grpc_port,
+            server_language,
         }
     }
 }
@@ -285,6 +427,18 @@ impl TemplateContext {
         ctx.insert("docker_registry", &self.docker_registry);
         ctx.insert("docker_project", &self.docker_project);
         ctx.insert("helm_path", &self.helm_path);
+        ctx.insert("environment", &self.environment);
+        ctx.insert("enable_postgresql", &self.enable_postgresql);
+        ctx.insert("enable_mysql", &self.enable_mysql);
+        ctx.insert("enable_kafka", &self.enable_kafka);
+        ctx.insert("enable_observability", &self.enable_observability);
+        ctx.insert("enable_service_mesh", &self.enable_service_mesh);
+        ctx.insert("enable_vault", &self.enable_vault);
+        ctx.insert("enable_harbor", &self.enable_harbor);
+        ctx.insert("namespace", &self.namespace);
+        ctx.insert("server_port", &self.server_port);
+        ctx.insert("grpc_port", &self.grpc_port);
+        ctx.insert("server_language", &self.server_language);
         ctx
     }
 }
@@ -812,5 +966,186 @@ mod tests {
         assert_eq!(json["service_name_snake"], "order_api");
         assert_eq!(json["tier"], "service");
         assert_eq!(json["kind"], "server");
+    }
+
+    // =========================================================================
+    // Terraform 用変数のテスト
+    // =========================================================================
+
+    #[test]
+    fn test_builder_environment() {
+        let ctx = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
+            .environment("prod")
+            .build();
+        assert_eq!(ctx.environment, "prod");
+    }
+
+    #[test]
+    fn test_builder_environment_default_empty() {
+        let ctx = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
+            .build();
+        assert_eq!(ctx.environment, "");
+    }
+
+    #[test]
+    fn test_builder_enable_flags() {
+        let ctx = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
+            .environment("dev")
+            .enable_postgresql()
+            .enable_kafka()
+            .enable_observability()
+            .enable_vault()
+            .build();
+
+        assert!(ctx.enable_postgresql);
+        assert!(!ctx.enable_mysql);
+        assert!(ctx.enable_kafka);
+        assert!(ctx.enable_observability);
+        assert!(!ctx.enable_service_mesh);
+        assert!(ctx.enable_vault);
+        assert!(!ctx.enable_harbor);
+    }
+
+    #[test]
+    fn test_builder_enable_all_flags() {
+        let ctx = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
+            .enable_postgresql()
+            .enable_mysql()
+            .enable_kafka()
+            .enable_observability()
+            .enable_service_mesh()
+            .enable_vault()
+            .enable_harbor()
+            .build();
+
+        assert!(ctx.enable_postgresql);
+        assert!(ctx.enable_mysql);
+        assert!(ctx.enable_kafka);
+        assert!(ctx.enable_observability);
+        assert!(ctx.enable_service_mesh);
+        assert!(ctx.enable_vault);
+        assert!(ctx.enable_harbor);
+    }
+
+    #[test]
+    fn test_builder_enable_flags_default_false() {
+        let ctx = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
+            .build();
+
+        assert!(!ctx.enable_postgresql);
+        assert!(!ctx.enable_mysql);
+        assert!(!ctx.enable_kafka);
+        assert!(!ctx.enable_observability);
+        assert!(!ctx.enable_service_mesh);
+        assert!(!ctx.enable_vault);
+        assert!(!ctx.enable_harbor);
+    }
+
+    // =========================================================================
+    // namespace の自動導出テスト
+    // =========================================================================
+
+    #[test]
+    fn test_namespace_derived_from_tier_system() {
+        let ctx = TemplateContextBuilder::new("auth", "system", "go", "server")
+            .build();
+        assert_eq!(ctx.namespace, "k1s0-system");
+    }
+
+    #[test]
+    fn test_namespace_derived_from_tier_business() {
+        let ctx = TemplateContextBuilder::new("ledger", "business", "go", "server")
+            .build();
+        assert_eq!(ctx.namespace, "k1s0-business");
+    }
+
+    #[test]
+    fn test_namespace_derived_from_tier_service() {
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+            .build();
+        assert_eq!(ctx.namespace, "k1s0-service");
+    }
+
+    // =========================================================================
+    // server_port / grpc_port のテスト
+    // =========================================================================
+
+    #[test]
+    fn test_server_port_default() {
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+            .build();
+        assert_eq!(ctx.server_port, 8080);
+    }
+
+    #[test]
+    fn test_server_port_custom() {
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+            .server_port(80)
+            .build();
+        assert_eq!(ctx.server_port, 80);
+    }
+
+    #[test]
+    fn test_grpc_port_default() {
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+            .build();
+        assert_eq!(ctx.grpc_port, 50051);
+    }
+
+    #[test]
+    fn test_grpc_port_custom() {
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+            .grpc_port(9090)
+            .build();
+        assert_eq!(ctx.grpc_port, 9090);
+    }
+
+    // =========================================================================
+    // server_language のテスト
+    // =========================================================================
+
+    #[test]
+    fn test_server_language_defaults_to_language() {
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+            .build();
+        assert_eq!(ctx.server_language, "go");
+    }
+
+    #[test]
+    fn test_server_language_custom() {
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "docker-compose")
+            .server_language("rust")
+            .build();
+        assert_eq!(ctx.server_language, "rust");
+    }
+
+    // =========================================================================
+    // to_tera_context に新フィールドが含まれることのテスト
+    // =========================================================================
+
+    #[test]
+    fn test_to_tera_context_contains_new_fields() {
+        let ctx = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
+            .environment("prod")
+            .enable_postgresql()
+            .enable_observability()
+            .enable_vault()
+            .server_port(80)
+            .grpc_port(9090)
+            .build();
+
+        let tera_ctx = ctx.to_tera_context();
+        let json = tera_ctx.into_json();
+
+        assert_eq!(json["environment"], "prod");
+        assert_eq!(json["enable_postgresql"], true);
+        assert_eq!(json["enable_mysql"], false);
+        assert_eq!(json["enable_observability"], true);
+        assert_eq!(json["enable_vault"], true);
+        assert_eq!(json["enable_harbor"], false);
+        assert_eq!(json["namespace"], "k1s0-system");
+        assert_eq!(json["server_port"], 80);
+        assert_eq!(json["grpc_port"], 9090);
+        assert_eq!(json["server_language"], "go");
     }
 }

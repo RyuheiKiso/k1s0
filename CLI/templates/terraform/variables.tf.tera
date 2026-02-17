@@ -1,0 +1,225 @@
+# variables.tf — {{ environment }} 環境
+# 変数定義
+
+# -------------------------------------------
+# 共通
+# -------------------------------------------
+
+variable "environment" {
+  description = "環境識別子（dev / staging / prod）"
+  type        = string
+}
+
+variable "namespaces" {
+  description = "Kubernetes Namespace 定義（Tier・アクセス制御付き）"
+  type = map(object({
+    tier               = string
+    allowed_from_tiers = list(string)
+  }))
+}
+
+# -------------------------------------------
+# Kubernetes Storage
+# -------------------------------------------
+
+variable "ceph_cluster_id" {
+  description = "Ceph クラスタ ID"
+  type        = string
+}
+
+variable "ceph_pool" {
+  description = "Ceph ブロックストレージプール名"
+  type        = string
+}
+
+variable "ceph_pool_fast" {
+  description = "Ceph 高速ブロックストレージプール名（SSD-backed）"
+  type        = string
+  default     = ""
+}
+
+variable "ceph_filesystem_name" {
+  description = "CephFS ファイルシステム名"
+  type        = string
+  default     = ""
+}
+
+variable "reclaim_policy" {
+  description = "StorageClass の Reclaim Policy（dev: Delete, prod: Retain）"
+  type        = string
+  default     = "Delete"
+}
+
+# -------------------------------------------
+# 可観測性
+# -------------------------------------------
+
+{% if enable_observability %}
+variable "prometheus_version" {
+  description = "kube-prometheus-stack Helm Chart バージョン"
+  type        = string
+}
+
+variable "loki_version" {
+  description = "loki-stack Helm Chart バージョン"
+  type        = string
+}
+
+variable "jaeger_version" {
+  description = "Jaeger Helm Chart バージョン"
+  type        = string
+}
+{% endif %}
+
+# -------------------------------------------
+# サービスメッシュ
+# -------------------------------------------
+
+{% if enable_service_mesh %}
+variable "istio_version" {
+  description = "Istio Helm Chart バージョン"
+  type        = string
+}
+
+variable "kiali_version" {
+  description = "Kiali Helm Chart バージョン"
+  type        = string
+}
+
+variable "flagger_version" {
+  description = "Flagger Helm Chart バージョン"
+  type        = string
+}
+{% endif %}
+
+# -------------------------------------------
+# データベース
+# -------------------------------------------
+
+{% if enable_postgresql or enable_mysql %}
+variable "database_namespace" {
+  description = "データベース用 Namespace"
+  type        = string
+  default     = "database"
+}
+
+variable "backup_bucket" {
+  description = "バックアップ用 Ceph S3 バケット名"
+  type        = string
+}
+{% endif %}
+
+{% if enable_postgresql %}
+variable "enable_postgresql" {
+  description = "PostgreSQL デプロイの有効化"
+  type        = bool
+  default     = false
+}
+
+variable "postgresql_chart_version" {
+  description = "Bitnami PostgreSQL Helm Chart バージョン"
+  type        = string
+}
+{% endif %}
+
+{% if enable_mysql %}
+variable "enable_mysql" {
+  description = "MySQL デプロイの有効化"
+  type        = bool
+  default     = false
+}
+
+variable "mysql_chart_version" {
+  description = "Bitnami MySQL Helm Chart バージョン"
+  type        = string
+}
+{% endif %}
+
+# -------------------------------------------
+# メッセージング
+# -------------------------------------------
+
+{% if enable_kafka %}
+variable "kafka_version" {
+  description = "Kafka Helm Chart バージョン"
+  type        = string
+}
+
+variable "kafka_namespace" {
+  description = "Kafka 用 Namespace"
+  type        = string
+  default     = "messaging"
+}
+{% endif %}
+
+# -------------------------------------------
+# Vault
+# -------------------------------------------
+
+{% if enable_vault %}
+variable "vault_address" {
+  description = "Vault サーバーアドレス"
+  type        = string
+}
+
+variable "vault_policies" {
+  description = "Vault ポリシー定義"
+  type = map(object({
+    path         = string
+    capabilities = list(string)
+  }))
+  default = {}
+}
+
+variable "secret_engines" {
+  description = "Vault シークレットエンジン定義"
+  type = map(object({
+    type = string
+    path = string
+  }))
+  default = {}
+}
+{% endif %}
+
+# -------------------------------------------
+# Harbor
+# -------------------------------------------
+
+{% if enable_harbor %}
+variable "harbor_url" {
+  description = "Harbor レジストリ URL"
+  type        = string
+}
+
+variable "harbor_admin_username" {
+  description = "Harbor 管理者ユーザー名"
+  type        = string
+  sensitive   = true
+}
+
+variable "harbor_admin_password" {
+  description = "Harbor 管理者パスワード"
+  type        = string
+  sensitive   = true
+}
+
+variable "harbor_domain" {
+  description = "Harbor ドメイン名"
+  type        = string
+}
+
+variable "harbor_chart_version" {
+  description = "Harbor Helm Chart バージョン"
+  type        = string
+}
+
+variable "harbor_s3_bucket" {
+  description = "Harbor ストレージ用 S3 バケット名"
+  type        = string
+}
+
+variable "ceph_s3_endpoint" {
+  description = "Ceph S3 互換エンドポイント"
+  type        = string
+}
+{% endif %}

@@ -1,0 +1,16 @@
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: {{ service_name }}
+  namespace: {{ namespace }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ service_name }}
+  mtls:
+    mode: STRICT
+{% if api_styles is containing("grpc") %}
+  portLevelMtls:
+    {{ grpc_port }}:
+      mode: STRICT
+{% endif %}
