@@ -1,0 +1,10 @@
+# sqlx-cli 設定 — auth-db (PostgreSQL 17)
+# マイグレーション実行: sqlx migrate run
+# ロールバック:         sqlx migrate revert
+# DATABASE_URL 環境変数に接続文字列を設定すること
+#   dev:     postgres://app:password@localhost:5432/k1s0_system?sslmode=disable
+#   staging: postgres://app:<vault>@postgres.k1s0-system.svc.cluster.local:5432/k1s0_system?sslmode=require
+#   prod:    postgres://app:<vault>@postgres.k1s0-system.svc.cluster.local:5432/k1s0_system?sslmode=verify-full
+
+[migrate]
+migrations = "migrations"

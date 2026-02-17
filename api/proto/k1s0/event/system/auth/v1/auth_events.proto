@@ -25,3 +25,12 @@ message TokenRefreshedEvent {
   string token_id = 3;
   google.protobuf.Timestamp refreshed_at = 4;
 }
+
+message PermissionChangedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string user_id = 2;
+  string changed_by = 3;           // 変更実行者の user_id
+  repeated string added_roles = 4;
+  repeated string removed_roles = 5;
+  google.protobuf.Timestamp changed_at = 6;
+}

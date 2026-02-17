@@ -1,0 +1,561 @@
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
+use serde::Deserialize;
+
+use super::{AppState, ErrorResponse};
+use crate::usecase::list_users::ListUsersParams;
+
+/// GET /healthz
+pub async fn healthz() -> impl IntoResponse {
+    Json(serde_json::json!({"status": "ok"}))
+}
+
+/// GET /readyz
+pub async fn readyz() -> impl IntoResponse {
+    // TODO: 実際の DB / Keycloak 接続確認を実装する
+    Json(serde_json::json!({
+        "status": "ready",
+        "checks": {
+            "database": "ok",
+            "keycloak": "ok"
+        }
+    }))
+}
+
+/// GET /metrics
+pub async fn metrics() -> impl IntoResponse {
+    // TODO: Prometheus メトリクスのエクスポート実装
+    (StatusCode::OK, "# HELP auth_server_requests_total\n")
+}
+
+/// POST /api/v1/auth/token/validate のリクエストボディ。
+#[derive(Debug, Deserialize)]
+pub struct ValidateTokenRequest {
+    pub token: String,
+}
+
+/// POST /api/v1/auth/token/validate
+pub async fn validate_token(
+    State(state): State<AppState>,
+    Json(req): Json<ValidateTokenRequest>,
+) -> impl IntoResponse {
+    match state.validate_token_uc.execute(&req.token).await {
+        Ok(claims) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "valid": true,
+                "claims": claims
+            })),
+        )
+            .into_response(),
+        Err(_) => {
+            let err = ErrorResponse::new(
+                "SYS_AUTH_TOKEN_INVALID",
+                "Token validation failed",
+            );
+            (StatusCode::UNAUTHORIZED, Json(err)).into_response()
+        }
+    }
+}
+
+/// POST /api/v1/auth/token/introspect のリクエストボディ。
+#[derive(Debug, Deserialize)]
+pub struct IntrospectTokenRequest {
+    pub token: String,
+    #[serde(default)]
+    pub token_type_hint: Option<String>,
+}
+
+/// POST /api/v1/auth/token/introspect
+pub async fn introspect_token(
+    State(state): State<AppState>,
+    Json(req): Json<IntrospectTokenRequest>,
+) -> impl IntoResponse {
+    match state.validate_token_uc.execute(&req.token).await {
+        Ok(claims) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "active": true,
+                "sub": claims.sub,
+                "client_id": claims.azp,
+                "username": claims.preferred_username,
+                "token_type": "Bearer",
+                "exp": claims.exp,
+                "iat": claims.iat,
+                "scope": claims.scope,
+                "realm_access": claims.realm_access
+            })),
+        )
+            .into_response(),
+        Err(_) => (
+            StatusCode::OK,
+            Json(serde_json::json!({"active": false})),
+        )
+            .into_response(),
+    }
+}
+
+/// GET /api/v1/users/:id
+pub async fn get_user(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    match state.get_user_uc.execute(&id).await {
+        Ok(user) => (StatusCode::OK, Json(serde_json::to_value(user).unwrap())).into_response(),
+        Err(_) => {
+            let err = ErrorResponse::new(
+                "SYS_AUTH_USER_NOT_FOUND",
+                "The specified user was not found",
+            );
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+    }
+}
+
+/// GET /api/v1/users
+pub async fn list_users(
+    State(state): State<AppState>,
+    Query(params): Query<ListUsersParams>,
+) -> impl IntoResponse {
+    match state.list_users_uc.execute(&params).await {
+        Ok(result) => {
+            (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response()
+        }
+        Err(e) => {
+            let err = ErrorResponse::new("SYS_AUTH_LIST_USERS_FAILED", &e.to_string());
+            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+        }
+    }
+}
+
+/// GET /api/v1/users/:id/roles
+pub async fn get_user_roles(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    match state.get_user_uc.get_roles(&id).await {
+        Ok(roles) => (StatusCode::OK, Json(serde_json::to_value(roles).unwrap())).into_response(),
+        Err(_) => {
+            let err = ErrorResponse::new(
+                "SYS_AUTH_USER_NOT_FOUND",
+                "The specified user was not found",
+            );
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::adapter::handler::router;
+    use crate::domain::entity::claims::{Claims, RealmAccess};
+    use crate::domain::entity::user::{Pagination, Role, User, UserListResult, UserRoles};
+    use crate::domain::repository::audit_log_repository::MockAuditLogRepository;
+    use crate::domain::repository::user_repository::MockUserRepository;
+    use crate::infrastructure::MockTokenVerifier;
+    use axum::body::Body;
+    use axum::http::Request;
+    use std::collections::HashMap;
+    use tower::ServiceExt;
+
+    fn make_valid_claims() -> Claims {
+        Claims {
+            sub: "user-uuid-1234".to_string(),
+            iss: "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
+            aud: "k1s0-api".to_string(),
+            exp: chrono::Utc::now().timestamp() + 3600,
+            iat: chrono::Utc::now().timestamp(),
+            jti: "token-uuid-5678".to_string(),
+            typ: "Bearer".to_string(),
+            azp: "react-spa".to_string(),
+            scope: "openid profile email".to_string(),
+            preferred_username: "taro.yamada".to_string(),
+            email: "taro.yamada@example.com".to_string(),
+            realm_access: RealmAccess {
+                roles: vec!["user".to_string()],
+            },
+            resource_access: HashMap::new(),
+            tier_access: vec!["system".to_string()],
+        }
+    }
+
+    fn make_app_state(
+        token_verifier: MockTokenVerifier,
+        user_repo: MockUserRepository,
+        audit_repo: MockAuditLogRepository,
+    ) -> AppState {
+        AppState::new(
+            Arc::new(token_verifier),
+            Arc::new(user_repo),
+            Arc::new(audit_repo),
+            "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
+            "k1s0-api".to_string(),
+        )
+    }
+
+    use std::sync::Arc;
+
+    #[tokio::test]
+    async fn test_healthz() {
+        let state = make_app_state(
+            MockTokenVerifier::new(),
+            MockUserRepository::new(),
+            MockAuditLogRepository::new(),
+        );
+        let app = router(state);
+
+        let req = Request::builder()
+            .uri("/healthz")
+            .body(Body::empty())
+            .unwrap();
+
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["status"], "ok");
+    }
+
+    #[tokio::test]
+    async fn test_readyz() {
+        let state = make_app_state(
+            MockTokenVerifier::new(),
+            MockUserRepository::new(),
+            MockAuditLogRepository::new(),
+        );
+        let app = router(state);
+
+        let req = Request::builder()
+            .uri("/readyz")
+            .body(Body::empty())
+            .unwrap();
+
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["status"], "ready");
+    }
+
+    #[tokio::test]
+    async fn test_validate_token_success() {
+        let mut token_verifier = MockTokenVerifier::new();
+        let claims = make_valid_claims();
+        let return_claims = claims.clone();
+        token_verifier
+            .expect_verify_token()
+            .returning(move |_| Ok(return_claims.clone()));
+
+        let state = make_app_state(
+            token_verifier,
+            MockUserRepository::new(),
+            MockAuditLogRepository::new(),
+        );
+        let app = router(state);
+
+        let req = Request::builder()
+            .method("POST")
+            .uri("/api/v1/auth/token/validate")
+            .header("content-type", "application/json")
+            .body(Body::from(r#"{"token":"valid-jwt-token"}"#))
+            .unwrap();
+
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["valid"], true);
+        assert_eq!(json["claims"]["sub"], "user-uuid-1234");
+    }
+
+    #[tokio::test]
+    async fn test_validate_token_invalid() {
+        let mut token_verifier = MockTokenVerifier::new();
+        token_verifier
+            .expect_verify_token()
+            .returning(|_| Err(anyhow::anyhow!("invalid signature")));
+
+        let state = make_app_state(
+            token_verifier,
+            MockUserRepository::new(),
+            MockAuditLogRepository::new(),
+        );
+        let app = router(state);
+
+        let req = Request::builder()
+            .method("POST")
+            .uri("/api/v1/auth/token/validate")
+            .header("content-type", "application/json")
+            .body(Body::from(r#"{"token":"invalid-token"}"#))
+            .unwrap();
+
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["error"]["code"], "SYS_AUTH_TOKEN_INVALID");
+    }
+
+    #[tokio::test]
+    async fn test_introspect_token_active() {
+        let mut token_verifier = MockTokenVerifier::new();
+        let claims = make_valid_claims();
+        let return_claims = claims.clone();
+        token_verifier
+            .expect_verify_token()
+            .returning(move |_| Ok(return_claims.clone()));
+
+        let state = make_app_state(
+            token_verifier,
+            MockUserRepository::new(),
+            MockAuditLogRepository::new(),
+        );
+        let app = router(state);
+
+        let req = Request::builder()
+            .method("POST")
+            .uri("/api/v1/auth/token/introspect")
+            .header("content-type", "application/json")
+            .body(Body::from(
+                r#"{"token":"valid-jwt-token","token_type_hint":"access_token"}"#,
+            ))
+            .unwrap();
+
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["active"], true);
+        assert_eq!(json["sub"], "user-uuid-1234");
+        assert_eq!(json["username"], "taro.yamada");
+    }
+
+    #[tokio::test]
+    async fn test_introspect_token_inactive() {
+        let mut token_verifier = MockTokenVerifier::new();
+        token_verifier
+            .expect_verify_token()
+            .returning(|_| Err(anyhow::anyhow!("invalid")));
+
+        let state = make_app_state(
+            token_verifier,
+            MockUserRepository::new(),
+            MockAuditLogRepository::new(),
+        );
+        let app = router(state);
+
+        let req = Request::builder()
+            .method("POST")
+            .uri("/api/v1/auth/token/introspect")
+            .header("content-type", "application/json")
+            .body(Body::from(r#"{"token":"expired-token"}"#))
+            .unwrap();
+
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["active"], false);
+    }
+
+    #[tokio::test]
+    async fn test_get_user_success() {
+        let mut user_repo = MockUserRepository::new();
+        user_repo.expect_find_by_id()
+            .withf(|id| id == "user-uuid-1234")
+            .returning(|_| {
+                Ok(User {
+                    id: "user-uuid-1234".to_string(),
+                    username: "taro.yamada".to_string(),
+                    email: "taro.yamada@example.com".to_string(),
+                    first_name: "Taro".to_string(),
+                    last_name: "Yamada".to_string(),
+                    enabled: true,
+                    email_verified: true,
+                    created_at: chrono::Utc::now(),
+                    attributes: HashMap::new(),
+                })
+            });
+
+        let state = make_app_state(
+            MockTokenVerifier::new(),
+            user_repo,
+            MockAuditLogRepository::new(),
+        );
+        let app = router(state);
+
+        let req = Request::builder()
+            .uri("/api/v1/users/user-uuid-1234")
+            .body(Body::empty())
+            .unwrap();
+
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["id"], "user-uuid-1234");
+        assert_eq!(json["username"], "taro.yamada");
+    }
+
+    #[tokio::test]
+    async fn test_get_user_not_found() {
+        let mut user_repo = MockUserRepository::new();
+        user_repo
+            .expect_find_by_id()
+            .returning(|_| Err(anyhow::anyhow!("user not found")));
+
+        let state = make_app_state(
+            MockTokenVerifier::new(),
+            user_repo,
+            MockAuditLogRepository::new(),
+        );
+        let app = router(state);
+
+        let req = Request::builder()
+            .uri("/api/v1/users/nonexistent")
+            .body(Body::empty())
+            .unwrap();
+
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["error"]["code"], "SYS_AUTH_USER_NOT_FOUND");
+    }
+
+    #[tokio::test]
+    async fn test_list_users_success() {
+        let mut user_repo = MockUserRepository::new();
+        user_repo.expect_list()
+            .returning(|page, page_size, _, _| {
+                Ok(UserListResult {
+                    users: vec![User {
+                        id: "user-1".to_string(),
+                        username: "taro.yamada".to_string(),
+                        email: "taro@example.com".to_string(),
+                        first_name: "Taro".to_string(),
+                        last_name: "Yamada".to_string(),
+                        enabled: true,
+                        email_verified: true,
+                        created_at: chrono::Utc::now(),
+                        attributes: HashMap::new(),
+                    }],
+                    pagination: Pagination {
+                        total_count: 1,
+                        page,
+                        page_size,
+                        has_next: false,
+                    },
+                })
+            });
+
+        let state = make_app_state(
+            MockTokenVerifier::new(),
+            user_repo,
+            MockAuditLogRepository::new(),
+        );
+        let app = router(state);
+
+        let req = Request::builder()
+            .uri("/api/v1/users?page=1&page_size=20")
+            .body(Body::empty())
+            .unwrap();
+
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["users"].as_array().unwrap().len(), 1);
+        assert_eq!(json["pagination"]["total_count"], 1);
+    }
+
+    #[tokio::test]
+    async fn test_get_user_roles_success() {
+        let mut user_repo = MockUserRepository::new();
+        user_repo.expect_get_roles()
+            .withf(|id| id == "user-uuid-1234")
+            .returning(|_| {
+                Ok(UserRoles {
+                    user_id: "user-uuid-1234".to_string(),
+                    realm_roles: vec![Role {
+                        id: "role-1".to_string(),
+                        name: "user".to_string(),
+                        description: "General user".to_string(),
+                    }],
+                    client_roles: HashMap::new(),
+                })
+            });
+
+        let state = make_app_state(
+            MockTokenVerifier::new(),
+            user_repo,
+            MockAuditLogRepository::new(),
+        );
+        let app = router(state);
+
+        let req = Request::builder()
+            .uri("/api/v1/users/user-uuid-1234/roles")
+            .body(Body::empty())
+            .unwrap();
+
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["user_id"], "user-uuid-1234");
+        assert_eq!(json["realm_roles"].as_array().unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_metrics_endpoint() {
+        let state = make_app_state(
+            MockTokenVerifier::new(),
+            MockUserRepository::new(),
+            MockAuditLogRepository::new(),
+        );
+        let app = router(state);
+
+        let req = Request::builder()
+            .uri("/metrics")
+            .body(Body::empty())
+            .unwrap();
+
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+}

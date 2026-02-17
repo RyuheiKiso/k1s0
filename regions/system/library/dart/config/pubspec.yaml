@@ -1,0 +1,15 @@
+name: k1s0_config
+version: 0.1.0
+description: k1s0 config library for YAML configuration loading, validation, and Vault secret merging.
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  yaml: ^3.1.0
+  json_annotation: ^4.9.0
+
+dev_dependencies:
+  test: ^1.25.0
+  json_serializable: ^6.8.0
+  build_runner: ^2.4.0

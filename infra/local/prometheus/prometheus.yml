@@ -1,0 +1,36 @@
+# Prometheus scrape configuration for local development
+# docker-compose の observability プロファイルで使用
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Prometheus 自身のメトリクス
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # auth-server（system 層）のメトリクス
+  # NOTE: auth-server を docker-compose.override.yaml で起動した場合に有効
+  - job_name: "auth-server"
+    static_configs:
+      - targets: ["auth-server:8083"]
+    metrics_path: /metrics
+
+  # Kafka メトリクス（JMX Exporter 経由）
+  - job_name: "kafka"
+    static_configs:
+      - targets: ["kafka:9092"]
+
+  # Redis メトリクス
+  # NOTE: redis-exporter を別途追加した場合に有効
+  # - job_name: "redis"
+  #   static_configs:
+  #     - targets: ["redis-exporter:9121"]
+
+  # Keycloak メトリクス
+  - job_name: "keycloak"
+    static_configs:
+      - targets: ["keycloak:8080"]
+    metrics_path: /metrics
