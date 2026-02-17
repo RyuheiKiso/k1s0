@@ -1,39 +1,35 @@
 syntax = "proto3";
+
 package k1s0.system.auth.v1;
 
-import "k1s0/system/common/v1/types.proto";
+option go_package = "github.com/k1s0-platform/system-proto-go/auth/v1;authv1";
 
-// AuthService は JWT トークン検証、ユーザー情報管理、パーミッション確認を提供する。
+import "google/protobuf/timestamp.proto";
+import "v1/common.proto";
+
+// AuthService は認証・認可サービス。
 service AuthService {
-  // JWT トークン検証
+  // ValidateToken は JWT トークンを検証する。
   rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
-
-  // トークンイントロスペクション（RFC 7662）
-  rpc IntrospectToken(IntrospectTokenRequest) returns (IntrospectTokenResponse);
-
-  // ユーザー情報取得
+  // GetUser はユーザー情報を取得する。
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
-
-  // ユーザー一覧取得
+  // ListUsers はユーザー一覧を取得する。
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
-
-  // ユーザーロール取得
+  // GetUserRoles はユーザーのロール一覧を取得する。
   rpc GetUserRoles(GetUserRolesRequest) returns (GetUserRolesResponse);
-
-  // パーミッション確認
+  // CheckPermission はロールベースのパーミッション確認を行う。
   rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
 }
 
-// AuditService は監査ログの記録・検索を提供する。
+// AuditService は監査ログサービス。
 service AuditService {
-  // 監査ログ記録
+  // RecordAuditLog は監査ログエントリを記録する。
   rpc RecordAuditLog(RecordAuditLogRequest) returns (RecordAuditLogResponse);
-
-  // 監査ログ検索
+  // SearchAuditLogs は監査ログを検索する。
   rpc SearchAuditLogs(SearchAuditLogsRequest) returns (SearchAuditLogsResponse);
 }
 
-// --- Token Validation ---
+// --- ValidateToken ---
 
 message ValidateTokenRequest {
   string token = 1;
@@ -42,7 +38,7 @@ message ValidateTokenRequest {
 message ValidateTokenResponse {
   bool valid = 1;
   TokenClaims claims = 2;
-  string error_message = 3; // valid == false の場合のエラー理由
+  string error_message = 3;
 }
 
 message TokenClaims {
@@ -67,25 +63,6 @@ message ClientRoles {
   repeated string roles = 1;
 }
 
-// --- Token Introspection ---
-
-message IntrospectTokenRequest {
-  string token = 1;
-  string token_type_hint = 2; // "access_token" or "refresh_token"
-}
-
-message IntrospectTokenResponse {
-  bool active = 1;
-  string sub = 2;
-  string client_id = 3;
-  string username = 4;
-  string token_type = 5;
-  int64 exp = 6;
-  int64 iat = 7;
-  string scope = 8;
-  RealmAccess realm_access = 9;
-}
-
 // --- User ---
 
 message GetUserRequest {
@@ -96,6 +73,24 @@ message GetUserResponse {
   User user = 1;
 }
 
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string first_name = 4;
+  string last_name = 5;
+  bool enabled = 6;
+  bool email_verified = 7;
+  google.protobuf.Timestamp created_at = 8;
+  map<string, StringList> attributes = 9;
+}
+
+message StringList {
+  repeated string values = 1;
+}
+
+// --- ListUsers ---
+
 message ListUsersRequest {
   k1s0.system.common.v1.Pagination pagination = 1;
   string search = 2;
@@ -105,22 +100,6 @@ message ListUsersRequest {
 message ListUsersResponse {
   repeated User users = 1;
   k1s0.system.common.v1.PaginationResult pagination = 2;
-}
-
-message User {
-  string id = 1;
-  string username = 2;
-  string email = 3;
-  string first_name = 4;
-  string last_name = 5;
-  bool enabled = 6;
-  bool email_verified = 7;
-  k1s0.system.common.v1.Timestamp created_at = 8;
-  map<string, StringList> attributes = 9;
-}
-
-message StringList {
-  repeated string values = 1;
 }
 
 // --- Roles ---
@@ -145,45 +124,45 @@ message RoleList {
   repeated Role roles = 1;
 }
 
-// --- Permission Check ---
+// --- Permission ---
 
 message CheckPermissionRequest {
   string user_id = 1;
-  string permission = 2;  // read, write, delete, admin
-  string resource = 3;    // users, auth_config, audit_logs, etc.
-  repeated string roles = 4; // JWT Claims から取得したロール一覧
+  string permission = 2;
+  string resource = 3;
+  repeated string roles = 4;
 }
 
 message CheckPermissionResponse {
   bool allowed = 1;
-  string reason = 2; // 拒否理由（allowed == false の場合）
+  string reason = 2;
 }
 
 // --- Audit Log ---
 
 message RecordAuditLogRequest {
-  string event_type = 1;    // LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
+  string event_type = 1;
   string user_id = 2;
   string ip_address = 3;
   string user_agent = 4;
   string resource = 5;
-  string action = 6;         // HTTP メソッドまたは gRPC メソッド名
-  string result = 7;         // SUCCESS / FAILURE
+  string action = 6;
+  string result = 7;
   map<string, string> metadata = 8;
 }
 
 message RecordAuditLogResponse {
   string id = 1;
-  k1s0.system.common.v1.Timestamp recorded_at = 2;
+  google.protobuf.Timestamp recorded_at = 2;
 }
 
 message SearchAuditLogsRequest {
   k1s0.system.common.v1.Pagination pagination = 1;
   string user_id = 2;
   string event_type = 3;
-  k1s0.system.common.v1.Timestamp from = 4;
-  k1s0.system.common.v1.Timestamp to = 5;
-  string result = 6; // SUCCESS / FAILURE
+  google.protobuf.Timestamp from = 4;
+  google.protobuf.Timestamp to = 5;
+  string result = 6;
 }
 
 message SearchAuditLogsResponse {
@@ -201,5 +180,5 @@ message AuditLog {
   string action = 7;
   string result = 8;
   map<string, string> metadata = 9;
-  k1s0.system.common.v1.Timestamp recorded_at = 10;
+  google.protobuf.Timestamp recorded_at = 10;
 }

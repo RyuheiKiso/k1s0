@@ -1,0 +1,57 @@
+# infra/docker/kong/kong.yaml（ローカル開発用 declarative config）
+# 本番環境の infra/kong/kong.yaml とは異なり、docker-compose サービス名で接続する
+_format_version: "3.0"
+
+services:
+  - name: auth-v1
+    url: http://auth-go:8080
+    routes:
+      - name: auth-token-route
+        paths:
+          - /api/v1/auth
+        strip_path: false
+      - name: auth-users-route
+        paths:
+          - /api/v1/users
+        strip_path: false
+      - name: auth-audit-route
+        paths:
+          - /api/v1/audit
+        strip_path: false
+
+  - name: config-v1
+    url: http://config-go:8080
+    routes:
+      - name: config-route
+        paths:
+          - /api/v1/config
+        strip_path: false
+
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "http://localhost:3000"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Authorization
+        - Content-Type
+        - X-Request-ID
+      credentials: true
+
+  - name: rate-limiting
+    config:
+      minute: 5000
+      policy: local
+      fault_tolerant: true
+
+  - name: prometheus
+    config:
+      per_consumer: true
+      status_code_metrics: true

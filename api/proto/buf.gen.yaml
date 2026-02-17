@@ -1,15 +1,30 @@
+# api/proto/buf.gen.yaml
 version: v2
 plugins:
+  # --- Go ---
   - remote: buf.build/protocolbuffers/go
     out: gen/go
-    opt: paths=source_relative
+    opt:
+      - paths=source_relative
+
   - remote: buf.build/grpc/go
     out: gen/go
-    opt: paths=source_relative
-  - remote: buf.build/protocolbuffers/rust
-    out: gen/rust
-  - remote: buf.build/connectrpc/es
+    opt:
+      - paths=source_relative
+
+  # --- TypeScript (ts-proto) ---
+  - remote: buf.build/community/timostamm-protobuf-ts
     out: gen/ts
-    opt: target=ts
-  - remote: buf.build/protocolbuffers/dart
-    out: gen/dart
+    opt:
+      - long_type_string
+
+  # --- Rust (prost) ---
+  - remote: buf.build/community/neoeinstein-prost
+    out: gen/rust
+    opt:
+      - compile_well_known_types
+
+  - remote: buf.build/community/neoeinstein-tonic
+    out: gen/rust
+    opt:
+      - compile_well_known_types

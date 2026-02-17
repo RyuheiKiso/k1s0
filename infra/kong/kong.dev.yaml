@@ -1,0 +1,107 @@
+# infra/kong/kong.dev.yaml
+# ローカル開発用 Kong Declarative Config (DB-less mode)
+#
+# 本番環境では kong.yaml を decK で管理し、Redis バックエンドの rate-limiting や
+# JWT プラグインを有効にするが、ローカル開発環境では以下の点が異なる:
+#   - サービス URL は docker-compose サービス名で参照
+#   - rate-limiting は local policy（Redis 不要）
+#   - JWT プラグインは無効（開発効率優先）
+#   - CORS は localhost:3000 を許可
+
+_format_version: "3.0"
+
+services:
+  # ============================================================
+  # Auth Service
+  # ============================================================
+  - name: auth-v1
+    url: http://auth-go:8080
+    routes:
+      - name: auth-token-route
+        paths:
+          - /api/v1/auth
+        strip_path: false
+      - name: auth-users-route
+        paths:
+          - /api/v1/users
+        strip_path: false
+      - name: auth-audit-route
+        paths:
+          - /api/v1/audit
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+      - name: request-size-limiting
+        config:
+          allowed_payload_size: 10
+
+  # ============================================================
+  # Config Service
+  # ============================================================
+  - name: config-v1
+    url: http://config-go:8080
+    routes:
+      - name: config-route
+        paths:
+          - /api/v1/config
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 2000
+          policy: local
+
+  # ============================================================
+  # Health Endpoints (no auth required)
+  # ============================================================
+  - name: auth-health
+    url: http://auth-go:8080
+    routes:
+      - name: auth-health-check
+        paths:
+          - /healthz
+          - /readyz
+        strip_path: false
+
+# ============================================================
+# Global Plugins
+# ============================================================
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "http://localhost:3000"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Authorization
+        - Content-Type
+        - X-Request-ID
+      exposed_headers:
+        - X-RateLimit-Limit
+        - X-RateLimit-Remaining
+        - X-RateLimit-Reset
+      credentials: true
+      max_age: 3600
+
+  - name: rate-limiting
+    config:
+      minute: 5000
+      policy: local
+      fault_tolerant: true
+      hide_client_headers: false
+
+  - name: prometheus
+    config:
+      per_consumer: true
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true

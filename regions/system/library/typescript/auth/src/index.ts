@@ -1,5 +1,12 @@
 export { AuthClient, AuthError } from './auth-client.js';
 export type { AuthClientOptions } from './auth-client.js';
+export { DeviceAuthClient, DeviceFlowError } from './device-flow.js';
+export type {
+  DeviceAuthClientOptions,
+  DeviceCodeCallback,
+  DeviceCodeResponse,
+  DeviceTokenResponse,
+} from './device-flow.js';
 export { generateCodeVerifier, generateCodeChallenge, base64UrlEncode } from './pkce.js';
 export { MemoryTokenStore, LocalStorageTokenStore } from './token-store.js';
 export type {

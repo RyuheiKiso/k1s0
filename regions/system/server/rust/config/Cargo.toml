@@ -12,6 +12,11 @@ name = "k1s0-config-server"
 path = "src/main.rs"
 
 [dependencies]
+# gRPC / Protobuf
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+
 # Web framework
 axum = { version = "0.7", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
@@ -24,7 +29,7 @@ serde_json = "1"
 serde_yaml = "0.9"
 
 # DB
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "migrate"] }
 
 # Utilities
 uuid = { version = "1", features = ["v4", "serde"] }
@@ -39,6 +44,12 @@ tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 
 # Kafka
 rdkafka = { version = "0.36", features = ["cmake-build"] }
+
+# Telemetry library
+k1s0-telemetry = { path = "../../../library/rust/telemetry" }
+
+[build-dependencies]
+tonic-build = "0.12"
 
 [dev-dependencies]
 mockall = "0.13"

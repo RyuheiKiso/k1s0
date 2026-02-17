@@ -1,9 +1,12 @@
+# api/proto/buf.yaml
 version: v2
 modules:
   - path: .
 lint:
   use:
     - STANDARD
+  except:
+    - PACKAGE_VERSION_SUFFIX   # v1 パッケージを許容
 breaking:
   use:
     - FILE

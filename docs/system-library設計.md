@@ -1357,7 +1357,8 @@ auth:
 telemetry/
 ├── telemetry.go       # InitTelemetry, Shutdown
 ├── logger.go          # NewLogger, LogWithTrace
-├── metrics.go         # メトリクスヘルパー
+├── metrics.go         # Prometheus メトリクス（RED メソッド: request_total, request_duration, request_errors, request_in_flight）
+├── middleware.go      # gin HTTP middleware + gRPC interceptor（リクエストログ・duration計測・メトリクス記録）
 ├── telemetry_test.go
 ├── go.mod
 └── go.sum
@@ -1483,6 +1484,18 @@ func LogWithTrace(ctx context.Context, logger *slog.Logger) *slog.Logger {
 
 **配置先**: `regions/system/library/rust/telemetry/`
 
+```
+telemetry/
+├── src/
+│   ├── lib.rs           # 公開 API（init_telemetry, shutdown）
+│   ├── metrics.rs       # Prometheus メトリクス（prometheus クレート使用、Go の RED メソッドと同等の4メトリクス）
+│   └── middleware.rs    # axum HTTP middleware + tonic gRPC interceptor
+├── tests/
+│   └── integration/
+│       └── telemetry_test.rs
+└── Cargo.toml
+```
+
 **Cargo.toml**:
 
 ```toml
@@ -1562,6 +1575,20 @@ pub fn shutdown() {
 
 **配置先**: `regions/system/library/typescript/telemetry/`
 
+```
+telemetry/
+├── src/
+│   ├── index.ts             # 公開 API エクスポート
+│   ├── telemetry.ts         # initTelemetry, shutdown, createLogger
+│   ├── metrics.ts           # prom-client ベースのメトリクス収集
+│   └── grpcInterceptor.ts   # gRPC interceptor（リクエストログ・duration計測）
+├── tests/
+│   └── unit/
+│       └── telemetry.test.ts
+├── package.json
+└── tsconfig.json
+```
+
 **package.json**:
 
 ```json
@@ -1631,6 +1658,21 @@ export function createLogger(cfg: TelemetryConfig): pino.Logger {
 ### Dart 実装
 
 **配置先**: `regions/system/library/dart/telemetry/`
+
+```
+telemetry/
+├── lib/
+│   ├── telemetry.dart       # エントリーポイント
+│   └── src/
+│       ├── telemetry.dart   # initTelemetry, createLogger
+│       ├── metrics.dart     # メトリクス収集
+│       └── middleware.dart  # HTTP middleware（リクエストログ・duration計測）
+├── test/
+│   └── unit/
+│       └── telemetry_test.dart
+├── pubspec.yaml
+└── analysis_options.yaml
+```
 
 **pubspec.yaml**:
 

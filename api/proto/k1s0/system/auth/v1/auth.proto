@@ -1,0 +1,248 @@
+// k1s0 認証サービス gRPC 定義。
+// JWT トークン検証・ユーザー情報管理・パーミッション確認・監査ログを提供する。
+syntax = "proto3";
+
+package k1s0.system.auth.v1;
+
+option go_package = "github.com/k1s0-platform/system-server-go-auth/gen/go/k1s0/system/auth/v1;authv1";
+
+import "k1s0/system/common/v1/types.proto";
+
+// AuthService は JWT トークン検証・ユーザー情報管理・パーミッション確認を提供する。
+service AuthService {
+  // JWT トークン検証
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+
+  // ユーザー情報取得
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+
+  // ユーザー一覧取得
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+
+  // ユーザーロール取得
+  rpc GetUserRoles(GetUserRolesRequest) returns (GetUserRolesResponse);
+
+  // パーミッション確認
+  rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
+}
+
+// AuditService は監査ログの記録・検索を提供する。
+service AuditService {
+  // 監査ログ記録
+  rpc RecordAuditLog(RecordAuditLogRequest) returns (RecordAuditLogResponse);
+
+  // 監査ログ検索
+  rpc SearchAuditLogs(SearchAuditLogsRequest) returns (SearchAuditLogsResponse);
+}
+
+// ============================================================
+// Token Validation
+// ============================================================
+
+// ValidateTokenRequest はトークン検証リクエスト。
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+// ValidateTokenResponse はトークン検証レスポンス。
+message ValidateTokenResponse {
+  bool valid = 1;
+  TokenClaims claims = 2;
+  // valid == false の場合のエラー理由
+  string error_message = 3;
+}
+
+// TokenClaims は JWT トークンのクレーム情報。
+message TokenClaims {
+  // ユーザー UUID
+  string sub = 1;
+  // Issuer
+  string iss = 2;
+  // Audience
+  string aud = 3;
+  // 有効期限（Unix epoch）
+  int64 exp = 4;
+  // 発行日時（Unix epoch）
+  int64 iat = 5;
+  // Token ID
+  string jti = 6;
+  // ユーザー名
+  string preferred_username = 7;
+  // メールアドレス
+  string email = 8;
+  // グローバルロール
+  RealmAccess realm_access = 9;
+  // サービス固有ロール
+  map<string, ClientRoles> resource_access = 10;
+  // アクセス可能 Tier
+  repeated string tier_access = 11;
+}
+
+// RealmAccess はグローバルロール一覧。
+message RealmAccess {
+  repeated string roles = 1;
+}
+
+// ClientRoles はクライアント固有ロール一覧。
+message ClientRoles {
+  repeated string roles = 1;
+}
+
+// ============================================================
+// User
+// ============================================================
+
+// GetUserRequest はユーザー情報取得リクエスト。
+message GetUserRequest {
+  string user_id = 1;
+}
+
+// GetUserResponse はユーザー情報取得レスポンス。
+message GetUserResponse {
+  User user = 1;
+}
+
+// ListUsersRequest はユーザー一覧取得リクエスト。
+message ListUsersRequest {
+  k1s0.system.common.v1.Pagination pagination = 1;
+  // ユーザー名・メールで部分一致検索
+  string search = 2;
+  // 有効/無効フィルタ
+  optional bool enabled = 3;
+}
+
+// ListUsersResponse はユーザー一覧取得レスポンス。
+message ListUsersResponse {
+  repeated User users = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+// User はユーザー情報。
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string first_name = 4;
+  string last_name = 5;
+  bool enabled = 6;
+  bool email_verified = 7;
+  k1s0.system.common.v1.Timestamp created_at = 8;
+  // カスタム属性（部署, 社員番号等）
+  map<string, StringList> attributes = 9;
+}
+
+// StringList は文字列のリスト（map の値型として使用）。
+message StringList {
+  repeated string values = 1;
+}
+
+// ============================================================
+// Roles
+// ============================================================
+
+// GetUserRolesRequest はユーザーロール取得リクエスト。
+message GetUserRolesRequest {
+  string user_id = 1;
+}
+
+// GetUserRolesResponse はユーザーロール取得レスポンス。
+message GetUserRolesResponse {
+  string user_id = 1;
+  // グローバルロール一覧
+  repeated Role realm_roles = 2;
+  // クライアント別ロール
+  map<string, RoleList> client_roles = 3;
+}
+
+// Role はロール情報。
+message Role {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+// RoleList はロールのリスト（map の値型として使用）。
+message RoleList {
+  repeated Role roles = 1;
+}
+
+// ============================================================
+// Permission Check
+// ============================================================
+
+// CheckPermissionRequest はパーミッション確認リクエスト。
+message CheckPermissionRequest {
+  string user_id = 1;
+  // read, write, delete, admin
+  string permission = 2;
+  // users, auth_config, audit_logs, etc.
+  string resource = 3;
+  // JWT Claims から取得したロール一覧
+  repeated string roles = 4;
+}
+
+// CheckPermissionResponse はパーミッション確認レスポンス。
+message CheckPermissionResponse {
+  bool allowed = 1;
+  // 拒否理由（allowed == false の場合）
+  string reason = 2;
+}
+
+// ============================================================
+// Audit Log
+// ============================================================
+
+// RecordAuditLogRequest は監査ログ記録リクエスト。
+message RecordAuditLogRequest {
+  // LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
+  string event_type = 1;
+  string user_id = 2;
+  string ip_address = 3;
+  string user_agent = 4;
+  // アクセス対象リソース
+  string resource = 5;
+  // HTTP メソッドまたは gRPC メソッド名
+  string action = 6;
+  // SUCCESS / FAILURE
+  string result = 7;
+  // 追加メタデータ（client_id, grant_type 等）
+  map<string, string> metadata = 8;
+}
+
+// RecordAuditLogResponse は監査ログ記録レスポンス。
+message RecordAuditLogResponse {
+  // 監査ログ UUID
+  string id = 1;
+  k1s0.system.common.v1.Timestamp recorded_at = 2;
+}
+
+// SearchAuditLogsRequest は監査ログ検索リクエスト。
+message SearchAuditLogsRequest {
+  k1s0.system.common.v1.Pagination pagination = 1;
+  string user_id = 2;
+  string event_type = 3;
+  k1s0.system.common.v1.Timestamp from = 4;
+  k1s0.system.common.v1.Timestamp to = 5;
+  // SUCCESS / FAILURE
+  string result = 6;
+}
+
+// SearchAuditLogsResponse は監査ログ検索レスポンス。
+message SearchAuditLogsResponse {
+  repeated AuditLog logs = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+// AuditLog は監査ログエントリ。
+message AuditLog {
+  string id = 1;
+  string event_type = 2;
+  string user_id = 3;
+  string ip_address = 4;
+  string user_agent = 5;
+  string resource = 6;
+  string action = 7;
+  string result = 8;
+  map<string, string> metadata = 9;
+  k1s0.system.common.v1.Timestamp recorded_at = 10;
+}

@@ -68,8 +68,10 @@ impl KafkaProducer {
             .unwrap_or_else(|| "k1s0.system.config.changed.v1".to_string());
 
         let mut client_config = ClientConfig::new();
-        client_config.set("bootstrap.servers", &config.brokers.join(","));
+        client_config.set("bootstrap.servers", config.brokers.join(","));
         client_config.set("security.protocol", &config.security_protocol);
+        client_config.set("acks", "all");
+        client_config.set("message.timeout.ms", "5000");
 
         if !config.sasl.mechanism.is_empty() {
             client_config.set("sasl.mechanism", &config.sasl.mechanism);
@@ -80,6 +82,11 @@ impl KafkaProducer {
         let producer: rdkafka::producer::FutureProducer = client_config.create()?;
 
         Ok(Self { producer, topic })
+    }
+
+    /// 配信先トピック名を返す。
+    pub fn topic(&self) -> &str {
+        &self.topic
     }
 }
 
@@ -259,6 +266,36 @@ brokers:
         let producer = InMemoryProducer::new();
         let result = producer.close().await;
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_default_topic_name() {
+        let yaml = r#"
+brokers:
+  - "localhost:9092"
+"#;
+        let config: KafkaConfig = serde_yaml::from_str(yaml).unwrap();
+        let topic = config
+            .topics
+            .publish
+            .first()
+            .cloned()
+            .unwrap_or_else(|| "k1s0.system.config.changed.v1".to_string());
+        assert_eq!(topic, "k1s0.system.config.changed.v1");
+    }
+
+    #[test]
+    fn test_configured_topic_name() {
+        let yaml = r#"
+brokers:
+  - "localhost:9092"
+topics:
+  publish:
+    - "k1s0.system.config.changed.v1"
+  subscribe: []
+"#;
+        let config: KafkaConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.topics.publish[0], "k1s0.system.config.changed.v1");
     }
 
     #[tokio::test]

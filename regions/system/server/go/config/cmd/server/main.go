@@ -14,6 +14,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
 
+	"github.com/k1s0-platform/system-library-go-telemetry"
+
+	configgrpc "github.com/k1s0-platform/system-server-go-config/internal/adapter/grpc"
 	"github.com/k1s0-platform/system-server-go-config/internal/adapter/handler"
 	"github.com/k1s0-platform/system-server-go-config/internal/adapter/middleware"
 	configrepo "github.com/k1s0-platform/system-server-go-config/internal/adapter/repository"
@@ -35,11 +38,25 @@ func main() {
 		os.Exit(1)
 	}
 
-	// --- Logger ---
-	logger := config.NewLogger(
-		cfg.App.Environment, cfg.App.Name, cfg.App.Version, cfg.App.Tier,
-	)
-	slog.SetDefault(logger)
+	// --- Telemetry ---
+	telemetryCfg := telemetry.TelemetryConfig{
+		ServiceName: cfg.App.Name,
+		Version:     cfg.App.Version,
+		Tier:        cfg.App.Tier,
+		Environment: cfg.App.Environment,
+		SampleRate:  1.0,
+		LogLevel:    "info",
+	}
+	tp, err := telemetry.InitTelemetry(context.Background(), telemetryCfg)
+	if err != nil {
+		slog.Error("failed to init telemetry", "error", err)
+		os.Exit(1)
+	}
+	defer tp.Shutdown(context.Background())
+	slog.SetDefault(tp.Logger())
+
+	// --- Metrics ---
+	metrics := telemetry.NewMetrics(cfg.App.Name)
 
 	// --- Database ---
 	db, err := persistence.NewDB(cfg.Database)
@@ -75,6 +92,10 @@ func main() {
 	r.GET("/healthz", handler.HealthzHandler())
 	r.GET("/readyz", handler.ReadyzHandler(db, producer))
 
+	// メトリクス
+	_ = metrics
+	r.GET("/metrics", gin.WrapH(telemetry.MetricsHandler()))
+
 	// Config ハンドラー
 	configHandler := handler.NewConfigHandler(
 		getConfigUC, listConfigsUC, updateConfigUC, deleteConfigUC, getServiceConfigUC,
@@ -82,8 +103,12 @@ func main() {
 	configHandler.RegisterRoutes(r)
 
 	// --- gRPC Server ---
+	configGRPCSvc := configgrpc.NewConfigGRPCService(
+		getConfigUC, listConfigsUC, getServiceConfigUC, updateConfigUC, deleteConfigUC,
+	)
+
 	grpcServer := grpc.NewServer()
-	// TODO: pb.RegisterConfigServiceServer(grpcServer, configGRPCSvc) — proto 生成後に有効化
+	configgrpc.RegisterConfigServiceServer(grpcServer, configGRPCSvc)
 
 	grpcPort := cfg.GRPC.Port
 	if grpcPort == 0 {

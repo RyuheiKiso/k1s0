@@ -52,6 +52,13 @@ pub trait ConfigRepository: Send + Sync {
     /// 設定変更ログを記録する。
     async fn record_change_log(&self, log: &ConfigChangeLog) -> anyhow::Result<()>;
 
+    /// 設定変更ログを namespace と key で取得する。
+    async fn list_change_logs(
+        &self,
+        namespace: &str,
+        key: &str,
+    ) -> anyhow::Result<Vec<ConfigChangeLog>>;
+
     /// ID で設定値を取得する。
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<ConfigEntry>>;
 }

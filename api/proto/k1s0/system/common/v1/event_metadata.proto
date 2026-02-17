@@ -1,12 +1,25 @@
+// k1s0 イベントメタデータ定義。
+// 全イベントに付与する共通メタデータを定義する。
 syntax = "proto3";
+
 package k1s0.system.common.v1;
 
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1";
+
+// EventMetadata は全イベントに付与する共通メタデータ。
 message EventMetadata {
-  string event_id = 1;          // UUID
-  string event_type = 2;        // e.g., "order.created"
-  string source = 3;            // e.g., "order-server"
-  int64 timestamp = 4;          // Unix timestamp (ms)
-  string trace_id = 5;          // 分散トレース ID
-  string correlation_id = 6;    // 業務相関 ID
-  int32 schema_version = 7;     // スキーマバージョン
+  // UUID
+  string event_id = 1;
+  // イベント種別（例: "auth.audit.recorded"）
+  string event_type = 2;
+  // イベント発行元（例: "auth-server"）
+  string source = 3;
+  // Unix timestamp (ms)
+  int64 timestamp = 4;
+  // 分散トレース ID
+  string trace_id = 5;
+  // 業務相関 ID
+  string correlation_id = 6;
+  // スキーマバージョン
+  int32 schema_version = 7;
 }

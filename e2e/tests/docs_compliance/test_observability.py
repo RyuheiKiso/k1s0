@@ -147,9 +147,13 @@ class TestLocalDevObservability:
 
     def test_grafana_datasources(self) -> None:
         ds_dir = ROOT / "infra" / "docker" / "grafana" / "provisioning" / "datasources"
-        assert (ds_dir / "prometheus.yaml").exists()
-        assert (ds_dir / "loki.yaml").exists()
-        assert (ds_dir / "jaeger.yaml").exists()
+        # datasources は統合ファイル datasources.yaml に定義されている
+        ds_file = ds_dir / "datasources.yaml"
+        assert ds_file.exists(), "datasources.yaml が存在しません"
+        content = ds_file.read_text(encoding="utf-8")
+        assert "prometheus" in content.lower(), "Prometheus datasource が定義されていません"
+        assert "loki" in content.lower(), "Loki datasource が定義されていません"
+        assert "jaeger" in content.lower(), "Jaeger datasource が定義されていません"
 
 
 class TestGrafanaDashboardJsonFiles:

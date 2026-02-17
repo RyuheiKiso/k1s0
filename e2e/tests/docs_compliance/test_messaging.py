@@ -126,7 +126,7 @@ class TestKafkaTopics:
     def test_audit_topic_defined(self) -> None:
         """メッセージング設計.md: 監査トピックが定義されている。"""
         names = [d["metadata"]["name"] for d in self.docs]
-        assert "k1s0.system.audit.events.v1" in names
+        assert "k1s0.system.auth.audit.v1" in names
 
     def test_all_topics_use_strimzi(self) -> None:
         for doc in self.docs:
@@ -142,7 +142,7 @@ class TestKafkaTopics:
     def test_audit_retention_90_days(self) -> None:
         """メッセージング設計.md: 監査トピックの保持期間は 90 日。"""
         for doc in self.docs:
-            if doc["metadata"]["name"] == "k1s0.system.audit.events.v1":
+            if doc["metadata"]["name"] == "k1s0.system.auth.audit.v1":
                 assert doc["spec"]["config"]["retention.ms"] == 7776000000
 
     def test_normal_topic_retention_7_days(self) -> None:

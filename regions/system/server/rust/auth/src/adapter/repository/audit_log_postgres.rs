@@ -136,18 +136,18 @@ impl AuditLogRepository for AuditLogPostgresRepository {
 }
 
 /// AuditLogRow は DB から取得した行を表す中間構造体。
-#[derive(Debug, sqlx::FromRow)]
-struct AuditLogRow {
-    id: uuid::Uuid,
-    event_type: String,
-    user_id: String,
-    ip_address: String,
-    user_agent: String,
-    resource: String,
-    action: String,
-    result: String,
-    metadata: serde_json::Value,
-    recorded_at: chrono::DateTime<chrono::Utc>,
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct AuditLogRow {
+    pub id: uuid::Uuid,
+    pub event_type: String,
+    pub user_id: String,
+    pub ip_address: String,
+    pub user_agent: String,
+    pub resource: String,
+    pub action: String,
+    pub result: String,
+    pub metadata: serde_json::Value,
+    pub recorded_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl From<AuditLogRow> for AuditLog {

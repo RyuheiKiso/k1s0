@@ -14,6 +14,10 @@ use axum::{
 use serde_json::json;
 use std::sync::Arc;
 
+/// ミドルウェアファクトリの戻り値型。
+type AuthMiddlewareFuture =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, AuthErrorResponse>> + Send>>;
+
 /// AuthState はミドルウェアが使用する共有状態。
 #[derive(Clone)]
 pub struct AuthState {
@@ -34,7 +38,7 @@ pub async fn auth_middleware(
         .verifier
         .verify_token(&token)
         .await
-        .map_err(|e| AuthErrorResponse::from_auth_error(e))?;
+        .map_err(AuthErrorResponse::from_auth_error)?;
 
     req.extensions_mut().insert(claims);
 
@@ -45,14 +49,13 @@ pub async fn auth_middleware(
 /// auth_middleware の後に使用すること。
 pub fn require_role(
     role: &'static str,
-) -> impl Fn(Request<Body>, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, AuthErrorResponse>> + Send>> + Clone
-{
+) -> impl Fn(Request<Body>, Next) -> AuthMiddlewareFuture + Clone {
     move |req: Request<Body>, next: Next| {
         Box::pin(async move {
             let claims = req
                 .extensions()
                 .get::<Claims>()
-                .ok_or_else(|| AuthErrorResponse::unauthenticated())?;
+                .ok_or_else(AuthErrorResponse::unauthenticated)?;
 
             if !rbac::has_role(claims, role) {
                 return Err(AuthErrorResponse::forbidden(
@@ -70,14 +73,13 @@ pub fn require_role(
 pub fn require_permission(
     resource: &'static str,
     action: &'static str,
-) -> impl Fn(Request<Body>, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, AuthErrorResponse>> + Send>> + Clone
-{
+) -> impl Fn(Request<Body>, Next) -> AuthMiddlewareFuture + Clone {
     move |req: Request<Body>, next: Next| {
         Box::pin(async move {
             let claims = req
                 .extensions()
                 .get::<Claims>()
-                .ok_or_else(|| AuthErrorResponse::unauthenticated())?;
+                .ok_or_else(AuthErrorResponse::unauthenticated)?;
 
             if !rbac::has_permission(claims, resource, action) {
                 return Err(AuthErrorResponse::forbidden(
@@ -94,14 +96,13 @@ pub fn require_permission(
 /// auth_middleware の後に使用すること。
 pub fn require_tier_access(
     tier: &'static str,
-) -> impl Fn(Request<Body>, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, AuthErrorResponse>> + Send>> + Clone
-{
+) -> impl Fn(Request<Body>, Next) -> AuthMiddlewareFuture + Clone {
     move |req: Request<Body>, next: Next| {
         Box::pin(async move {
             let claims = req
                 .extensions()
                 .get::<Claims>()
-                .ok_or_else(|| AuthErrorResponse::unauthenticated())?;
+                .ok_or_else(AuthErrorResponse::unauthenticated)?;
 
             if !rbac::has_tier_access(claims, tier) {
                 return Err(AuthErrorResponse::tier_forbidden());

@@ -6,21 +6,28 @@ use tracing::info;
 mod adapter;
 mod domain;
 mod infrastructure;
+mod proto;
 mod usecase;
 
+use adapter::grpc::ConfigGrpcService;
 use adapter::handler::{self, AppState};
+use adapter::repository::config_postgres::ConfigPostgresRepository;
 use infrastructure::config::Config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Logger
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-        )
-        .json()
-        .init();
+    // Telemetry
+    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
+        service_name: "k1s0-config-server".to_string(),
+        version: "0.1.0".to_string(),
+        tier: "system".to_string(),
+        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
+        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
+        sample_rate: 1.0,
+        log_level: "info".to_string(),
+    };
+    k1s0_telemetry::init_telemetry(&telemetry_cfg)
+        .expect("failed to init telemetry");
 
     // Config
     let config_path =
@@ -34,33 +41,89 @@ async fn main() -> anyhow::Result<()> {
         "starting config server"
     );
 
-    // Config repository (in-memory for dev, PostgreSQL for prod)
+    // Config repository: PostgreSQL if DATABASE_URL or database config is set, otherwise in-memory
     let config_repo: Arc<dyn domain::repository::ConfigRepository> =
-        Arc::new(InMemoryConfigRepository::new());
+        if let Ok(database_url) = std::env::var("DATABASE_URL") {
+            info!("connecting to PostgreSQL...");
+            let pool = sqlx::postgres::PgPoolOptions::new()
+                .max_connections(cfg.database.as_ref().map_or(25, |db| db.max_open_conns))
+                .connect(&database_url)
+                .await?;
+            info!("connected to PostgreSQL");
+            Arc::new(ConfigPostgresRepository::new(pool))
+        } else if let Some(ref db_cfg) = cfg.database {
+            info!("connecting to PostgreSQL via config...");
+            let pool = sqlx::postgres::PgPoolOptions::new()
+                .max_connections(db_cfg.max_open_conns)
+                .connect(&db_cfg.connection_url())
+                .await?;
+            info!("connected to PostgreSQL");
+            Arc::new(ConfigPostgresRepository::new(pool))
+        } else {
+            info!("no database configured, using in-memory repository");
+            Arc::new(InMemoryConfigRepository::new())
+        };
 
-    // AppState
+    // --- gRPC Service ---
+    let get_config_uc = Arc::new(usecase::GetConfigUseCase::new(config_repo.clone()));
+    let list_configs_uc = Arc::new(usecase::ListConfigsUseCase::new(config_repo.clone()));
+    let get_service_config_uc =
+        Arc::new(usecase::GetServiceConfigUseCase::new(config_repo.clone()));
+    let update_config_uc = Arc::new(usecase::UpdateConfigUseCase::new(config_repo.clone()));
+    let delete_config_uc = Arc::new(usecase::DeleteConfigUseCase::new(config_repo.clone()));
+
+    let config_grpc_svc = Arc::new(ConfigGrpcService::new(
+        get_config_uc,
+        list_configs_uc,
+        get_service_config_uc,
+        update_config_uc,
+        delete_config_uc,
+    ));
+
+    // tonic ラッパー（proto 生成後は ConfigServiceServer に置換）
+    let _config_tonic = adapter::grpc::ConfigServiceTonic::new(config_grpc_svc);
+
+    // AppState (REST handler 用)
     let state = AppState::new(config_repo);
 
     // Router
     let app = handler::router(state);
 
-    // Server
-    let addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
-    info!("REST server starting on {}", addr);
+    // gRPC server (port 50053)
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50053).into();
+    info!("gRPC server starting on {}", grpc_addr);
 
-    let listener = tokio::net::TcpListener::bind(addr).await?;
-
-    // Graceful shutdown
-    let shutdown_signal = async {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("failed to install CTRL+C signal handler");
-        info!("shutdown signal received, starting graceful shutdown");
+    let grpc_future = async move {
+        // tonic gRPC サーバーを起動。
+        // proto 生成コード (tonic-build) が揃った後、以下の add_service を有効化：
+        //   .add_service(ConfigServiceServer::new(config_tonic))
+        //
+        // 現時点では proto 未生成のため gRPC サーバーは待機状態。
+        // proto コード生成後にサービスを登録して起動する。
+        info!("gRPC server placeholder: waiting for proto codegen to register services");
+        std::future::pending::<Result<(), anyhow::Error>>().await
     };
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal)
-        .await?;
+    // REST server
+    let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
+    info!("REST server starting on {}", rest_addr);
+
+    let listener = tokio::net::TcpListener::bind(rest_addr).await?;
+    let rest_future = axum::serve(listener, app);
+
+    // REST と gRPC を並行起動
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!("REST server error: {}", e);
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!("gRPC server error: {}", e);
+            }
+        }
+    }
 
     info!("config server stopped");
 
@@ -233,6 +296,15 @@ impl domain::repository::ConfigRepository for InMemoryConfigRepository {
     async fn record_change_log(&self, _log: &ConfigChangeLog) -> anyhow::Result<()> {
         // In-memory: ログは捨てる（開発用）
         Ok(())
+    }
+
+    async fn list_change_logs(
+        &self,
+        _namespace: &str,
+        _key: &str,
+    ) -> anyhow::Result<Vec<ConfigChangeLog>> {
+        // In-memory: 空リストを返す（開発用）
+        Ok(vec![])
     }
 
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<ConfigEntry>> {

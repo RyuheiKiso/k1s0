@@ -5,3 +5,5 @@ library;
 
 export 'src/init.dart';
 export 'src/logger.dart';
+export 'src/metrics.dart';
+export 'src/middleware.dart';

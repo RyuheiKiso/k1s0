@@ -46,7 +46,7 @@ impl ListUsersUseCase {
                 "page must be >= 1".to_string(),
             ));
         }
-        if page_size < 1 || page_size > 100 {
+        if !(1..=100).contains(&page_size) {
             return Err(ListUsersError::InvalidPageSize(
                 "page_size must be between 1 and 100".to_string(),
             ));

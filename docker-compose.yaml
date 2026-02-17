@@ -118,16 +118,24 @@ services:
       KC_DB_URL_DATABASE: keycloak
       KC_DB_USERNAME: dev
       KC_DB_PASSWORD: dev
+      KC_HEALTH_ENABLED: "true"
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: dev
     command: start-dev --import-realm
     ports:
       - "8180:8080"
+      - "9000:9000"
     volumes:
       - ./infra/docker/keycloak:/opt/keycloak/data/import    # realm k1s0 の初期設定。config.dev.yaml の auth.jwt.issuer（realms/k1s0）と一致させること
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && cat <&3 | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
 
   redis-session:
     image: redis:7
@@ -153,6 +161,153 @@ services:
       - "8200:8200"
 
   # ============================================================
+  # API Gateway
+  # ============================================================
+  kong:
+    image: kong:3.8
+    profiles: [infra]
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yaml
+      KONG_PROXY_LISTEN: "0.0.0.0:8000"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_LOG_LEVEL: info
+    volumes:
+      - ./infra/kong/kong.dev.yaml:/etc/kong/kong.yaml:ro
+    ports:
+      - "8000:8000"    # Proxy
+      - "8001:8001"    # Admin API
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================================
+  # System プロファイル
+  # ============================================================
+  auth-go:
+    build:
+      context: ./regions/system/server/go/auth
+      dockerfile: Dockerfile
+    profiles: [system]
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.dev.yaml
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/go/auth/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-rust:
+    build:
+      context: ./regions/system/server/rust/auth
+      dockerfile: Dockerfile
+    profiles: [system]
+    ports:
+      - "8083:8080"
+      - "50052:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.dev.yaml
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/auth/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  config-go:
+    build:
+      context: ./regions/system/server/go/config
+      dockerfile: Dockerfile
+    profiles: [system]
+    ports:
+      - "8082:8080"
+      - "50053:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.dev.yaml
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/go/config/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  config-rust:
+    build:
+      context: ./regions/system/server/rust/config
+      dockerfile: Dockerfile
+    profiles: [system]
+    ports:
+      - "8084:8080"
+      - "50054:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.dev.yaml
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/config/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # Kafka トピック自動作成
+  # ============================================================
+  kafka-init:
+    image: bitnami/kafka:3.8
+    profiles: [infra]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka:9092
+      KAFKA_REPLICATION_FACTOR: "1"
+    volumes:
+      - ./infra/messaging/kafka/create-topics.sh:/scripts/create-topics.sh:ro
+    entrypoint: ["/bin/bash", "/scripts/create-topics.sh"]
+    restart: "no"
+
+  # ============================================================
   # 可観測性
   # NOTE: ローカル開発環境では Promtail を省略している。
   # Kubernetes 環境では Promtail（DaemonSet）がログを収集し Loki に転送するが、
@@ -172,7 +327,9 @@ services:
     image: prom/prometheus:v2.55
     profiles: [observability]
     volumes:
-      - ./infra/docker/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
+      - ./infra/docker/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/docker/prometheus/recording_rules.yaml:/etc/prometheus/recording_rules.yaml:ro
+      - ./infra/docker/prometheus/alerting_rules.yaml:/etc/prometheus/alerting_rules.yaml:ro
       - prometheus-data:/prometheus
     ports:
       - "9090:9090"
@@ -180,10 +337,12 @@ services:
   loki:
     image: grafana/loki:3.3
     profiles: [observability]
+    volumes:
+      - ./infra/docker/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/loki-config.yaml
     ports:
       - "3100:3100"
-    volumes:
-      - loki-data:/loki
 
   grafana:
     image: grafana/grafana:11.3
@@ -194,8 +353,8 @@ services:
       - "3200:3000"   # ホストポート 3200 を使用（3000 はフロントエンド開発サーバー等とのポート競合を回避するため）
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./infra/docker/grafana/provisioning:/etc/grafana/provisioning
-      - ./infra/docker/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./infra/docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
       - loki

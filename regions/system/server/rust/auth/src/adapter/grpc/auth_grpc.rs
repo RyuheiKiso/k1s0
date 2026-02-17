@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::domain::entity::claims::{Claims, RealmAccess, ResourceAccess};
-use crate::domain::entity::user::{Role, User, UserListResult, UserRoles};
+use crate::domain::entity::claims::Claims;
+use crate::domain::entity::user::User;
 use crate::usecase::get_user::{GetUserError, GetUserUseCase};
-use crate::usecase::list_users::{ListUsersError, ListUsersParams, ListUsersUseCase};
-use crate::usecase::validate_token::{AuthError, ValidateTokenUseCase};
+use crate::usecase::list_users::{ListUsersParams, ListUsersUseCase};
+use crate::usecase::validate_token::ValidateTokenUseCase;
 
 // proto 生成コードが未生成のため、proto 定義に準じた型を手動定義する。
 // tonic build 後に生成コードの型に置き換える。
@@ -242,7 +242,7 @@ impl AuthGrpcService {
                 let pb_users: Vec<PbUser> = result
                     .users
                     .iter()
-                    .map(|u| domain_user_to_pb(u))
+                    .map(domain_user_to_pb)
                     .collect();
 
                 Ok(ListUsersResponse {
@@ -409,7 +409,8 @@ fn domain_user_to_pb(u: &User) -> PbUser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::user::Pagination;
+    use crate::domain::entity::claims::RealmAccess;
+    use crate::domain::entity::user::{Pagination, Role, UserListResult, UserRoles};
     use crate::domain::repository::user_repository::MockUserRepository;
     use crate::infrastructure::MockTokenVerifier;
     use std::collections::HashMap;

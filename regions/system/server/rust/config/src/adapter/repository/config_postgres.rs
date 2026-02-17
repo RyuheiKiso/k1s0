@@ -17,6 +17,11 @@ impl ConfigPostgresRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
+
+    /// テストやマイグレーション用にプールへの参照を返す。
+    pub fn pool(&self) -> &PgPool {
+        &self.pool
+    }
 }
 
 /// PostgreSQL の行から ConfigEntry を構築するヘルパー。
@@ -321,8 +326,8 @@ impl ConfigRepository for ConfigPostgresRepository {
     async fn record_change_log(&self, log: &ConfigChangeLog) -> anyhow::Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO config_change_logs (id, config_entry_id, namespace, key, old_value, new_value, old_version, new_version, change_type, changed_by, changed_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO config_change_logs (id, config_entry_id, namespace, key, old_value_json, new_value_json, change_type, changed_by, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             "#,
         )
         .bind(log.id)
@@ -331,8 +336,6 @@ impl ConfigRepository for ConfigPostgresRepository {
         .bind(&log.key)
         .bind(&log.old_value)
         .bind(&log.new_value)
-        .bind(log.old_version)
-        .bind(log.new_version)
         .bind(&log.change_type)
         .bind(&log.changed_by)
         .bind(log.changed_at)
@@ -340,6 +343,47 @@ impl ConfigRepository for ConfigPostgresRepository {
         .await?;
 
         Ok(())
+    }
+
+    async fn list_change_logs(
+        &self,
+        namespace: &str,
+        key: &str,
+    ) -> anyhow::Result<Vec<ConfigChangeLog>> {
+        let rows = sqlx::query(
+            r#"
+            SELECT id, config_entry_id, namespace, key, old_value_json, new_value_json,
+                   change_type, changed_by, created_at
+            FROM config_change_logs
+            WHERE namespace = $1 AND key = $2
+            ORDER BY created_at DESC
+            "#,
+        )
+        .bind(namespace)
+        .bind(key)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let logs = rows
+            .into_iter()
+            .map(|row| {
+                Ok(ConfigChangeLog {
+                    id: row.try_get("id")?,
+                    config_entry_id: row.try_get("config_entry_id")?,
+                    namespace: row.try_get("namespace")?,
+                    key: row.try_get("key")?,
+                    old_value: row.try_get("old_value_json")?,
+                    new_value: row.try_get("new_value_json")?,
+                    old_version: 0,
+                    new_version: 0,
+                    change_type: row.try_get("change_type")?,
+                    changed_by: row.try_get("changed_by")?,
+                    changed_at: row.try_get("created_at")?,
+                })
+            })
+            .collect::<Result<Vec<_>, sqlx::Error>>()?;
+
+        Ok(logs)
     }
 
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<ConfigEntry>> {

@@ -167,11 +167,11 @@ spec:
     cleanup.policy: delete
     min.insync.replicas: 2
 ---
-# --- Audit Topics ---
+# --- System Tier: Auth Audit ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: k1s0.system.audit.events.v1
+  name: k1s0.system.auth.audit.v1
   namespace: messaging
   labels:
     strimzi.io/cluster: k1s0-kafka
@@ -181,6 +181,57 @@ spec:
   partitions: 6
   replicas: 3
   config:
-    retention.ms: 7776000000      # 90 days
+    retention.ms: 7776000000      # 90 days (audit log retention)
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.auth.audit.v1.dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: dlq
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 2592000000      # 30 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# --- System Tier: Config Changed ---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.config.changed.v1
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+spec:
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 604800000       # 7 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.config.changed.v1.dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: dlq
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 2592000000      # 30 days
     cleanup.policy: delete
     min.insync.replicas: 2

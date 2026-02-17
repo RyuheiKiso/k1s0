@@ -55,8 +55,10 @@ type KafkaProducer struct {
 // NewKafkaProducer は新しい KafkaProducer を作成する。
 func NewKafkaProducer(cfg config.KafkaConfig) *KafkaProducer {
 	w := &kafka.Writer{
-		Addr:     kafka.TCP(cfg.Brokers...),
-		Balancer: &kafka.LeastBytes{},
+		Addr:         kafka.TCP(cfg.Brokers...),
+		Balancer:     &kafka.Hash{},       // パーティションキーによる分散
+		RequiredAcks: kafka.RequireAll,     // acks=all
+		Async:        false,
 	}
 	return &KafkaProducer{
 		writer: &kafkaGoWriter{w: w},

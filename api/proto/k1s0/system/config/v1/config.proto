@@ -1,0 +1,166 @@
+// k1s0 設定管理サービス gRPC 定義。
+// 設定値の取得・更新・削除・監視を提供する。
+syntax = "proto3";
+
+package k1s0.system.config.v1;
+
+option go_package = "github.com/k1s0-platform/system-server-go-config/gen/go/k1s0/system/config/v1;configv1";
+
+import "k1s0/system/common/v1/types.proto";
+
+// ConfigService は設定値の取得・更新・削除・監視を提供する。
+service ConfigService {
+  // 設定値取得
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
+
+  // namespace 内の設定値一覧取得
+  rpc ListConfigs(ListConfigsRequest) returns (ListConfigsResponse);
+
+  // 設定値更新
+  rpc UpdateConfig(UpdateConfigRequest) returns (UpdateConfigResponse);
+
+  // 設定値削除
+  rpc DeleteConfig(DeleteConfigRequest) returns (DeleteConfigResponse);
+
+  // サービス向け設定一括取得
+  rpc GetServiceConfig(GetServiceConfigRequest) returns (GetServiceConfigResponse);
+
+  // 設定変更の監視（Server-Side Streaming）
+  rpc WatchConfig(WatchConfigRequest) returns (stream WatchConfigResponse);
+}
+
+// ============================================================
+// ConfigEntry
+// ============================================================
+
+// ConfigEntry は設定値エントリ。
+message ConfigEntry {
+  // UUID
+  string id = 1;
+  // 名前空間（例: "system.auth.database"）
+  string namespace = 2;
+  // キー名（例: "max_connections"）
+  string key = 3;
+  // JSON エンコード済みの値
+  bytes value = 4;
+  // 楽観的排他制御用バージョン
+  int32 version = 5;
+  string description = 6;
+  string created_by = 7;
+  string updated_by = 8;
+  k1s0.system.common.v1.Timestamp created_at = 9;
+  k1s0.system.common.v1.Timestamp updated_at = 10;
+}
+
+// ============================================================
+// GetConfig
+// ============================================================
+
+// GetConfigRequest は設定値取得リクエスト。
+message GetConfigRequest {
+  string namespace = 1;
+  string key = 2;
+}
+
+// GetConfigResponse は設定値取得レスポンス。
+message GetConfigResponse {
+  ConfigEntry entry = 1;
+}
+
+// ============================================================
+// ListConfigs
+// ============================================================
+
+// ListConfigsRequest は設定値一覧取得リクエスト。
+message ListConfigsRequest {
+  string namespace = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+  // キー名の部分一致検索
+  string search = 3;
+}
+
+// ListConfigsResponse は設定値一覧取得レスポンス。
+message ListConfigsResponse {
+  repeated ConfigEntry entries = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+// ============================================================
+// UpdateConfig
+// ============================================================
+
+// UpdateConfigRequest は設定値更新リクエスト。
+message UpdateConfigRequest {
+  string namespace = 1;
+  string key = 2;
+  // JSON エンコード済みの値
+  bytes value = 3;
+  // 楽観的排他制御用（現在のバージョン番号）
+  int32 version = 4;
+  string description = 5;
+  string updated_by = 6;
+}
+
+// UpdateConfigResponse は設定値更新レスポンス。
+message UpdateConfigResponse {
+  ConfigEntry entry = 1;
+}
+
+// ============================================================
+// DeleteConfig
+// ============================================================
+
+// DeleteConfigRequest は設定値削除リクエスト。
+message DeleteConfigRequest {
+  string namespace = 1;
+  string key = 2;
+  string deleted_by = 3;
+}
+
+// DeleteConfigResponse は設定値削除レスポンス。
+message DeleteConfigResponse {
+  bool success = 1;
+}
+
+// ============================================================
+// GetServiceConfig
+// ============================================================
+
+// GetServiceConfigRequest はサービス向け設定一括取得リクエスト。
+message GetServiceConfigRequest {
+  string service_name = 1;
+  // dev | staging | prod
+  string environment = 2;
+}
+
+// GetServiceConfigResponse はサービス向け設定一括取得レスポンス。
+message GetServiceConfigResponse {
+  // flattened key-value pairs
+  map<string, string> configs = 1;
+}
+
+// ============================================================
+// WatchConfig（Server-Side Streaming）
+// ============================================================
+
+// WatchConfigRequest は設定変更監視リクエスト。
+message WatchConfigRequest {
+  // 監視対象 namespace（空の場合は全件）
+  repeated string namespaces = 1;
+}
+
+// WatchConfigResponse は設定変更の監視レスポンス（ストリーミング）。
+message WatchConfigResponse {
+  string namespace = 1;
+  string key = 2;
+  // 変更前の値（JSON エンコード済み）
+  bytes old_value = 3;
+  // 変更後の値（JSON エンコード済み）
+  bytes new_value = 4;
+  int32 old_version = 5;
+  int32 new_version = 6;
+  string changed_by = 7;
+  // CREATED, UPDATED, DELETED
+  string change_type = 8;
+  k1s0.system.common.v1.Timestamp changed_at = 9;
+}
