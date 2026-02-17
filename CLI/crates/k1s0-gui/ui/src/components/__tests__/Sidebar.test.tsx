@@ -86,7 +86,7 @@ describe('Sidebar', () => {
   it('should highlight the current page', async () => {
     renderWithRouter('/build');
     const buildNav = await screen.findByTestId('nav-build');
-    expect(buildNav.className).toContain('bg-gray-700');
-    expect(screen.getByTestId('nav-init').className).not.toContain('bg-gray-700');
+    expect(buildNav.className).toContain('bg-white/15');
+    expect(screen.getByTestId('nav-init').className).not.toContain('bg-white/15');
   });
 });

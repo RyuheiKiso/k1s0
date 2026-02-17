@@ -14,15 +14,14 @@ export default function ProgressLog({ events, currentStep, totalSteps }: Progres
     <div data-testid="progress-log" className="mt-4">
       {totalSteps > 0 && (
         <div className="mb-3">
-          <div className="flex justify-between text-sm mb-1">
+          <div className="flex justify-between text-sm mb-1 text-white/70">
             <span data-testid="progress-label">
               ステップ {currentStep} / {totalSteps}
             </span>
             <span data-testid="progress-percent">{percentage}%</span>
           </div>
-          <Progress.Root value={percentage} max={100} data-testid="progress-bar-bg" className="w-full bg-gray-200 rounded-full h-2">
+          <Progress.Root value={percentage} max={100} data-testid="progress-bar-bg">
             <Progress.Indicator
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${percentage}%` }}
               data-testid="progress-bar"
             />
@@ -31,11 +30,11 @@ export default function ProgressLog({ events, currentStep, totalSteps }: Progres
       )}
 
       <div
-        className="bg-gray-900 text-gray-100 rounded p-3 font-mono text-xs max-h-60 overflow-y-auto"
+        className="glass-subtle p-3 font-mono text-xs max-h-60 overflow-y-auto"
         data-testid="log-viewer"
       >
         {events.length === 0 ? (
-          <p className="text-gray-500">ログはありません。</p>
+          <p className="text-white/30">ログはありません。</p>
         ) : (
           events.map((event, i) => (
             <div key={i} className={getEventClassName(event)}>
@@ -51,17 +50,17 @@ export default function ProgressLog({ events, currentStep, totalSteps }: Progres
 function getEventClassName(event: ProgressEvent): string {
   switch (event.kind) {
     case 'StepStarted':
-      return 'text-blue-300';
+      return 'text-indigo-300';
     case 'StepCompleted':
-      return 'text-green-300';
+      return 'text-emerald-300';
     case 'Log':
-      return 'text-gray-300';
+      return 'text-white/60';
     case 'Warning':
-      return 'text-yellow-300';
+      return 'text-amber-300';
     case 'Error':
-      return 'text-red-400';
+      return 'text-rose-400';
     case 'Finished':
-      return event.success ? 'text-green-400 font-bold' : 'text-red-400 font-bold';
+      return event.success ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
   }
 }
 

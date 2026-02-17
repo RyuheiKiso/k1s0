@@ -198,8 +198,8 @@ export default function GeneratePage() {
   const showBffOption = kind === 'Server' && tier === 'Service' && detail.api_styles.includes('GraphQL');
 
   return (
-    <div className="max-w-lg" data-testid="generate-page">
-      <h1 className="text-2xl font-bold mb-6">ひな形生成</h1>
+    <div className="glass p-6 max-w-lg" data-testid="generate-page">
+      <h1 className="text-2xl font-bold mb-6 text-white">ひな形生成</h1>
 
       {/* Stepper */}
       <div className="flex gap-2 mb-6" data-testid="stepper">
@@ -207,7 +207,7 @@ export default function GeneratePage() {
           <div
             key={label}
             className={`px-3 py-1 rounded text-sm ${
-              i === step ? 'bg-blue-600 text-white' : i < step ? 'bg-blue-100 text-blue-800' : 'bg-gray-200'
+              i === step ? 'bg-indigo-500/80 text-white' : i < step ? 'bg-indigo-500/30 text-indigo-200' : 'bg-white/8 text-white/40'
             }`}
           >
             {label}
@@ -218,38 +218,38 @@ export default function GeneratePage() {
       {/* Step 0: Kind */}
       {step === 0 && (
         <div data-testid="step-kind">
-          <h2 className="font-semibold mb-2">何を生成しますか？</h2>
+          <h2 className="font-semibold mb-3 text-white/90">何を生成しますか？</h2>
           <RadioGroup.Root value={kind} onValueChange={(v) => handleKindChange(v as Kind)}>
             {(['Server', 'Client', 'Library', 'Database'] as Kind[]).map((k) => (
               <div key={k} className="flex items-center gap-2 mb-1">
-                <RadioGroup.Item value={k} id={`kind-${k}`} className="w-4 h-4 border rounded-full flex items-center justify-center">
-                  <RadioGroup.Indicator className="w-2 h-2 bg-blue-600 rounded-full" />
+                <RadioGroup.Item value={k} id={`kind-${k}`} className="w-4 h-4 border border-white/20 rounded-full flex items-center justify-center">
+                  <RadioGroup.Indicator className="w-2 h-2 bg-indigo-400 rounded-full" />
                 </RadioGroup.Item>
-                <label htmlFor={`kind-${k}`}>{k}</label>
+                <label htmlFor={`kind-${k}`} className="text-sm text-white/80">{k}</label>
               </div>
             ))}
           </RadioGroup.Root>
-          <button onClick={() => setStep(1)} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded" data-testid="btn-next">次へ</button>
+          <button onClick={() => setStep(1)} className="bg-indigo-500/80 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 disabled:opacity-40 mt-4" data-testid="btn-next">次へ</button>
         </div>
       )}
 
       {/* Step 1: Tier */}
       {step === 1 && (
         <div data-testid="step-tier">
-          <h2 className="font-semibold mb-2">Tier を選択してください</h2>
+          <h2 className="font-semibold mb-3 text-white/90">Tier を選択してください</h2>
           <RadioGroup.Root value={tier} onValueChange={(v) => setTier(v as Tier)}>
             {getAvailableTiers(kind).map((t) => (
               <div key={t} className="flex items-center gap-2 mb-1">
-                <RadioGroup.Item value={t} id={`tier-${t}`} className="w-4 h-4 border rounded-full flex items-center justify-center">
-                  <RadioGroup.Indicator className="w-2 h-2 bg-blue-600 rounded-full" />
+                <RadioGroup.Item value={t} id={`tier-${t}`} className="w-4 h-4 border border-white/20 rounded-full flex items-center justify-center">
+                  <RadioGroup.Indicator className="w-2 h-2 bg-indigo-400 rounded-full" />
                 </RadioGroup.Item>
-                <label htmlFor={`tier-${t}`}>{t.toLowerCase()}</label>
+                <label htmlFor={`tier-${t}`} className="text-sm text-white/80">{t.toLowerCase()}</label>
               </div>
             ))}
           </RadioGroup.Root>
           <div className="flex gap-2 mt-4">
-            <button onClick={() => setStep(0)} className="bg-gray-300 px-4 py-2 rounded" data-testid="btn-back">戻る</button>
-            <button onClick={goNext} className="bg-blue-600 text-white px-4 py-2 rounded" data-testid="btn-next">次へ</button>
+            <button onClick={() => setStep(0)} className="bg-white/10 hover:bg-white/15 text-white/70 px-5 py-2.5 rounded-xl transition-all duration-200" data-testid="btn-back">戻る</button>
+            <button onClick={goNext} className="bg-indigo-500/80 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 disabled:opacity-40" data-testid="btn-next">次へ</button>
           </div>
         </div>
       )}
@@ -257,7 +257,7 @@ export default function GeneratePage() {
       {/* Step 2: Placement */}
       {step === 2 && (
         <div data-testid="step-placement">
-          <h2 className="font-semibold mb-2">
+          <h2 className="font-semibold mb-3 text-white/90">
             {tier === 'Business' ? '領域名を入力または選択してください' : 'サービス名を入力または選択してください'}
           </h2>
 
@@ -275,18 +275,18 @@ export default function GeneratePage() {
                   }
                 }}
               >
-                <Select.Trigger className="w-full border rounded px-3 py-2 flex items-center justify-between" data-testid="select-placement">
+                <Select.Trigger className="w-full border border-white/20 rounded-xl bg-white/5 px-3 py-2 flex items-center justify-between text-white/90" data-testid="select-placement">
                   <Select.Value placeholder="選択してください" />
-                  <Select.Icon className="ml-2">▼</Select.Icon>
+                  <Select.Icon className="ml-2 text-white/50">▼</Select.Icon>
                 </Select.Trigger>
                 <Select.Portal>
-                  <Select.Content className="bg-white border rounded shadow-lg">
+                  <Select.Content className="glass border border-white/20 rounded-xl shadow-lg">
                     <Select.Viewport className="p-1">
-                      <Select.Item value="__new__" className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded">
+                      <Select.Item value="__new__" className="px-3 py-2 cursor-pointer hover:bg-white/10 rounded text-white/90">
                         <Select.ItemText>(新規作成)</Select.ItemText>
                       </Select.Item>
                       {existingPlacements.map((p) => (
-                        <Select.Item key={p} value={p} className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded">
+                        <Select.Item key={p} value={p} className="px-3 py-2 cursor-pointer hover:bg-white/10 rounded text-white/90">
                           <Select.ItemText>{p}</Select.ItemText>
                         </Select.Item>
                       ))}
@@ -303,22 +303,22 @@ export default function GeneratePage() {
                 value={placement}
                 onChange={(e) => setPlacement(e.target.value)}
                 onBlur={() => handleValidatePlacement(placement)}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border border-white/20 rounded-xl bg-white/5 px-3 py-2 text-white/90 placeholder-white/30 focus:outline-none focus:border-indigo-400/50"
                 placeholder={tier === 'Business' ? '領域名を入力' : 'サービス名を入力'}
                 data-testid={existingPlacements.length > 0 ? 'input-new-placement' : 'input-placement'}
               />
               {placementError && (
-                <p className="text-red-500 text-sm mt-1" data-testid="error-placement">{placementError}</p>
+                <p className="text-rose-400 text-sm mt-1" data-testid="error-placement">{placementError}</p>
               )}
             </>
           )}
 
           <div className="flex gap-2 mt-4">
-            <button onClick={() => setStep(1)} className="bg-gray-300 px-4 py-2 rounded" data-testid="btn-back">戻る</button>
+            <button onClick={() => setStep(1)} className="bg-white/10 hover:bg-white/15 text-white/70 px-5 py-2.5 rounded-xl transition-all duration-200" data-testid="btn-back">戻る</button>
             <button
               onClick={goNext}
               disabled={placementError !== '' || (isNewPlacement && !placement)}
-              className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+              className="bg-indigo-500/80 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 disabled:opacity-40"
               data-testid="btn-next"
             >次へ</button>
           </div>
@@ -328,22 +328,22 @@ export default function GeneratePage() {
       {/* Step 3: Language/Framework */}
       {step === 3 && (
         <div data-testid="step-langfw">
-          <h2 className="font-semibold mb-2">言語 / フレームワーク</h2>
+          <h2 className="font-semibold mb-3 text-white/90">言語 / フレームワーク</h2>
           {kind === 'Client' ? (
             <RadioGroup.Root onValueChange={(v) => setLangFw({ Framework: v as 'React' | 'Flutter' })}>
               {(['React', 'Flutter'] as const).map((fw) => (
                 <div key={fw} className="flex items-center gap-2 mb-1">
-                  <RadioGroup.Item value={fw} className="w-4 h-4 border rounded-full flex items-center justify-center">
-                    <RadioGroup.Indicator className="w-2 h-2 bg-blue-600 rounded-full" />
+                  <RadioGroup.Item value={fw} className="w-4 h-4 border border-white/20 rounded-full flex items-center justify-center">
+                    <RadioGroup.Indicator className="w-2 h-2 bg-indigo-400 rounded-full" />
                   </RadioGroup.Item>
-                  <label>{fw}</label>
+                  <label className="text-sm text-white/80">{fw}</label>
                 </div>
               ))}
             </RadioGroup.Root>
           ) : kind === 'Database' ? (
             <>
               <div className="mb-3">
-                <label className="block text-sm font-medium mb-1">データベース名</label>
+                <label className="text-white/70 block text-sm font-medium mb-1">データベース名</label>
                 <input
                   value={dbName}
                   onChange={(e) => {
@@ -354,22 +354,22 @@ export default function GeneratePage() {
                     }
                   }}
                   onBlur={() => handleValidateName(dbName, setNameError)}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border border-white/20 rounded-xl bg-white/5 px-3 py-2 text-white/90 placeholder-white/30 focus:outline-none focus:border-indigo-400/50"
                   placeholder="データベース名を入力"
                   data-testid="input-db-name"
                 />
                 {nameError && (
-                  <p className="text-red-500 text-sm mt-1" data-testid="error-name">{nameError}</p>
+                  <p className="text-rose-400 text-sm mt-1" data-testid="error-name">{nameError}</p>
                 )}
               </div>
-              <label className="block text-sm font-medium mb-1">RDBMS</label>
+              <label className="text-white/70 block text-sm font-medium mb-1">RDBMS</label>
               <RadioGroup.Root onValueChange={(v) => setLangFw({ Database: { name: dbName, rdbms: v as Rdbms } })}>
                 {(['PostgreSQL', 'MySQL', 'SQLite'] as Rdbms[]).map((db) => (
                   <div key={db} className="flex items-center gap-2 mb-1">
-                    <RadioGroup.Item value={db} className="w-4 h-4 border rounded-full flex items-center justify-center">
-                      <RadioGroup.Indicator className="w-2 h-2 bg-blue-600 rounded-full" />
+                    <RadioGroup.Item value={db} className="w-4 h-4 border border-white/20 rounded-full flex items-center justify-center">
+                      <RadioGroup.Indicator className="w-2 h-2 bg-indigo-400 rounded-full" />
                     </RadioGroup.Item>
-                    <label>{db}</label>
+                    <label className="text-sm text-white/80">{db}</label>
                   </div>
                 ))}
               </RadioGroup.Root>
@@ -378,17 +378,17 @@ export default function GeneratePage() {
             <RadioGroup.Root onValueChange={(v) => setLangFw({ Language: v as Language })}>
               {getLanguageOptions(kind).map((lang) => (
                 <div key={lang} className="flex items-center gap-2 mb-1">
-                  <RadioGroup.Item value={lang} className="w-4 h-4 border rounded-full flex items-center justify-center">
-                    <RadioGroup.Indicator className="w-2 h-2 bg-blue-600 rounded-full" />
+                  <RadioGroup.Item value={lang} className="w-4 h-4 border border-white/20 rounded-full flex items-center justify-center">
+                    <RadioGroup.Indicator className="w-2 h-2 bg-indigo-400 rounded-full" />
                   </RadioGroup.Item>
-                  <label>{lang}</label>
+                  <label className="text-sm text-white/80">{lang}</label>
                 </div>
               ))}
             </RadioGroup.Root>
           )}
           <div className="flex gap-2 mt-4">
-            <button onClick={goPrev} className="bg-gray-300 px-4 py-2 rounded" data-testid="btn-back">戻る</button>
-            <button onClick={goNext} className="bg-blue-600 text-white px-4 py-2 rounded" data-testid="btn-next">次へ</button>
+            <button onClick={goPrev} className="bg-white/10 hover:bg-white/15 text-white/70 px-5 py-2.5 rounded-xl transition-all duration-200" data-testid="btn-back">戻る</button>
+            <button onClick={goNext} className="bg-indigo-500/80 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 disabled:opacity-40" data-testid="btn-next">次へ</button>
           </div>
         </div>
       )}
@@ -396,7 +396,7 @@ export default function GeneratePage() {
       {/* Step 4: Detail */}
       {step === 4 && (
         <div data-testid="step-detail">
-          <h2 className="font-semibold mb-2">詳細設定</h2>
+          <h2 className="font-semibold mb-3 text-white/90">詳細設定</h2>
 
           {/* Server detail */}
           {kind === 'Server' && (
@@ -404,42 +404,42 @@ export default function GeneratePage() {
               {/* Name input: skip if Service tier (auto-set from placement) */}
               {tier !== 'Service' && (
                 <div className="mb-3">
-                  <label className="block text-sm font-medium mb-1">サービス名</label>
+                  <label className="text-white/70 block text-sm font-medium mb-1">サービス名</label>
                   <input
                     value={detail.name ?? ''}
                     onChange={(e) => setDetail({ ...detail, name: e.target.value || null })}
                     onBlur={() => handleValidateName(detail.name ?? '', setNameError)}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border border-white/20 rounded-xl bg-white/5 px-3 py-2 text-white/90 placeholder-white/30 focus:outline-none focus:border-indigo-400/50"
                     placeholder="サービス名"
                     data-testid="input-name"
                   />
                   {nameError && (
-                    <p className="text-red-500 text-sm mt-1" data-testid="error-name">{nameError}</p>
+                    <p className="text-rose-400 text-sm mt-1" data-testid="error-name">{nameError}</p>
                   )}
                 </div>
               )}
 
               <div className="mb-3">
-                <label className="block text-sm font-medium mb-1">API 方式</label>
+                <label className="text-white/70 block text-sm font-medium mb-1">API 方式</label>
                 {(['Rest', 'Grpc', 'GraphQL'] as ApiStyle[]).map((style) => (
                   <div key={style} className="flex items-center gap-2 mb-1">
                     <Checkbox.Root
                       checked={detail.api_styles.includes(style)}
                       onCheckedChange={() => toggleApiStyle(style)}
                       data-testid={`checkbox-api-${style.toLowerCase()}`}
-                      className="w-4 h-4 border rounded flex items-center justify-center"
+                      className="w-4 h-4 border border-white/20 rounded flex items-center justify-center"
                     >
                       <Checkbox.Indicator>
-                        <span>✓</span>
+                        <span className="text-indigo-300">✓</span>
                       </Checkbox.Indicator>
                     </Checkbox.Root>
-                    <span className="text-sm">{style}</span>
+                    <span className="text-sm text-white/80">{style}</span>
                   </div>
                 ))}
               </div>
 
               <div className="mb-3">
-                <label className="block text-sm font-medium mb-1">データベース</label>
+                <label className="text-white/70 block text-sm font-medium mb-1">データベース</label>
                 <Select.Root
                   value={detail.db?.rdbms ?? 'none'}
                   onValueChange={(v) => {
@@ -453,23 +453,23 @@ export default function GeneratePage() {
                     }
                   }}
                 >
-                  <Select.Trigger className="w-full border rounded px-3 py-2 flex items-center justify-between" data-testid="select-db">
+                  <Select.Trigger className="w-full border border-white/20 rounded-xl bg-white/5 px-3 py-2 flex items-center justify-between text-white/90" data-testid="select-db">
                     <Select.Value placeholder="なし" />
-                    <Select.Icon className="ml-2">▼</Select.Icon>
+                    <Select.Icon className="ml-2 text-white/50">▼</Select.Icon>
                   </Select.Trigger>
                   <Select.Portal>
-                    <Select.Content className="bg-white border rounded shadow-lg">
+                    <Select.Content className="glass border border-white/20 rounded-xl shadow-lg">
                       <Select.Viewport className="p-1">
-                        <Select.Item value="none" className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded">
+                        <Select.Item value="none" className="px-3 py-2 cursor-pointer hover:bg-white/10 rounded text-white/90">
                           <Select.ItemText>なし</Select.ItemText>
                         </Select.Item>
-                        <Select.Item value="PostgreSQL" className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded">
+                        <Select.Item value="PostgreSQL" className="px-3 py-2 cursor-pointer hover:bg-white/10 rounded text-white/90">
                           <Select.ItemText>PostgreSQL</Select.ItemText>
                         </Select.Item>
-                        <Select.Item value="MySQL" className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded">
+                        <Select.Item value="MySQL" className="px-3 py-2 cursor-pointer hover:bg-white/10 rounded text-white/90">
                           <Select.ItemText>MySQL</Select.ItemText>
                         </Select.Item>
-                        <Select.Item value="SQLite" className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded">
+                        <Select.Item value="SQLite" className="px-3 py-2 cursor-pointer hover:bg-white/10 rounded text-white/90">
                           <Select.ItemText>SQLite</Select.ItemText>
                         </Select.Item>
                       </Select.Viewport>
@@ -484,26 +484,26 @@ export default function GeneratePage() {
                     checked={detail.kafka}
                     onCheckedChange={(checked) => setDetail({ ...detail, kafka: checked === true })}
                     data-testid="checkbox-kafka"
-                    className="w-4 h-4 border rounded flex items-center justify-center"
+                    className="w-4 h-4 border border-white/20 rounded flex items-center justify-center"
                   >
                     <Checkbox.Indicator>
-                      <span>✓</span>
+                      <span className="text-indigo-300">✓</span>
                     </Checkbox.Indicator>
                   </Checkbox.Root>
-                  <span className="text-sm">Kafka</span>
+                  <span className="text-sm text-white/80">Kafka</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Checkbox.Root
                     checked={detail.redis}
                     onCheckedChange={(checked) => setDetail({ ...detail, redis: checked === true })}
                     data-testid="checkbox-redis"
-                    className="w-4 h-4 border rounded flex items-center justify-center"
+                    className="w-4 h-4 border border-white/20 rounded flex items-center justify-center"
                   >
                     <Checkbox.Indicator>
-                      <span>✓</span>
+                      <span className="text-indigo-300">✓</span>
                     </Checkbox.Indicator>
                   </Checkbox.Root>
-                  <span className="text-sm">Redis</span>
+                  <span className="text-sm text-white/80">Redis</span>
                 </div>
               </div>
 
@@ -521,17 +521,17 @@ export default function GeneratePage() {
                         }
                       }}
                       data-testid="checkbox-bff"
-                      className="w-4 h-4 border rounded flex items-center justify-center"
+                      className="w-4 h-4 border border-white/20 rounded flex items-center justify-center"
                     >
                       <Checkbox.Indicator>
-                        <span>✓</span>
+                        <span className="text-indigo-300">✓</span>
                       </Checkbox.Indicator>
                     </Checkbox.Root>
-                    <span className="text-sm">GraphQL BFF を生成する</span>
+                    <span className="text-sm text-white/80">GraphQL BFF を生成する</span>
                   </div>
                   {bffEnabled && (
                     <div className="ml-6">
-                      <label className="block text-sm font-medium mb-1">BFF 言語</label>
+                      <label className="text-white/70 block text-sm font-medium mb-1">BFF 言語</label>
                       <RadioGroup.Root
                         value={detail.bff_language ?? undefined}
                         onValueChange={(v) => setDetail({ ...detail, bff_language: v as Language })}
@@ -539,10 +539,10 @@ export default function GeneratePage() {
                       >
                         {(['Go', 'Rust'] as Language[]).map((lang) => (
                           <div key={lang} className="flex items-center gap-2 mb-1">
-                            <RadioGroup.Item value={lang} className="w-4 h-4 border rounded-full flex items-center justify-center">
-                              <RadioGroup.Indicator className="w-2 h-2 bg-blue-600 rounded-full" />
+                            <RadioGroup.Item value={lang} className="w-4 h-4 border border-white/20 rounded-full flex items-center justify-center">
+                              <RadioGroup.Indicator className="w-2 h-2 bg-indigo-400 rounded-full" />
                             </RadioGroup.Item>
-                            <label>{lang}</label>
+                            <label className="text-sm text-white/80">{lang}</label>
                           </div>
                         ))}
                       </RadioGroup.Root>
@@ -556,17 +556,17 @@ export default function GeneratePage() {
           {/* Client detail */}
           {kind === 'Client' && tier !== 'Service' && (
             <div className="mb-3">
-              <label className="block text-sm font-medium mb-1">アプリ名</label>
+              <label className="text-white/70 block text-sm font-medium mb-1">アプリ名</label>
               <input
                 value={detail.name ?? ''}
                 onChange={(e) => setDetail({ ...detail, name: e.target.value || null })}
                 onBlur={() => handleValidateName(detail.name ?? '', setNameError)}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border border-white/20 rounded-xl bg-white/5 px-3 py-2 text-white/90 placeholder-white/30 focus:outline-none focus:border-indigo-400/50"
                 placeholder="アプリ名"
                 data-testid="input-name"
               />
               {nameError && (
-                <p className="text-red-500 text-sm mt-1" data-testid="error-name">{nameError}</p>
+                <p className="text-rose-400 text-sm mt-1" data-testid="error-name">{nameError}</p>
               )}
             </div>
           )}
@@ -574,24 +574,24 @@ export default function GeneratePage() {
           {/* Library detail */}
           {kind === 'Library' && (
             <div className="mb-3">
-              <label className="block text-sm font-medium mb-1">ライブラリ名</label>
+              <label className="text-white/70 block text-sm font-medium mb-1">ライブラリ名</label>
               <input
                 value={detail.name ?? ''}
                 onChange={(e) => setDetail({ ...detail, name: e.target.value || null })}
                 onBlur={() => handleValidateName(detail.name ?? '', setNameError)}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border border-white/20 rounded-xl bg-white/5 px-3 py-2 text-white/90 placeholder-white/30 focus:outline-none focus:border-indigo-400/50"
                 placeholder="ライブラリ名"
                 data-testid="input-name"
               />
               {nameError && (
-                <p className="text-red-500 text-sm mt-1" data-testid="error-name">{nameError}</p>
+                <p className="text-rose-400 text-sm mt-1" data-testid="error-name">{nameError}</p>
               )}
             </div>
           )}
 
           <div className="flex gap-2 mt-4">
-            <button onClick={goPrev} className="bg-gray-300 px-4 py-2 rounded" data-testid="btn-back">戻る</button>
-            <button onClick={() => setStep(5)} className="bg-blue-600 text-white px-4 py-2 rounded" data-testid="btn-next">次へ</button>
+            <button onClick={goPrev} className="bg-white/10 hover:bg-white/15 text-white/70 px-5 py-2.5 rounded-xl transition-all duration-200" data-testid="btn-back">戻る</button>
+            <button onClick={() => setStep(5)} className="bg-indigo-500/80 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 disabled:opacity-40" data-testid="btn-next">次へ</button>
           </div>
         </div>
       )}
@@ -599,66 +599,66 @@ export default function GeneratePage() {
       {/* Step 5: Confirm */}
       {step === 5 && (
         <div data-testid="step-confirm">
-          <h2 className="font-semibold mb-2">確認</h2>
-          <div className="bg-white border rounded p-4 mb-4 space-y-1 text-sm">
-            <p><strong>種別:</strong> {kind}</p>
-            <p><strong>Tier:</strong> {tier.toLowerCase()}</p>
+          <h2 className="font-semibold mb-3 text-white/90">確認</h2>
+          <div className="glass-subtle p-5 mb-4 space-y-1.5 text-sm">
+            <p><strong className="text-white/50">種別:</strong> <span className="text-white/90">{kind}</span></p>
+            <p><strong className="text-white/50">Tier:</strong> <span className="text-white/90">{tier.toLowerCase()}</span></p>
 
             {/* Placement display: Business shows 領域, Service shows サービス */}
-            {tier === 'Business' && placement && <p><strong>領域:</strong> {placement}</p>}
-            {tier === 'Service' && placement && <p><strong>サービス:</strong> {placement}</p>}
+            {tier === 'Business' && placement && <p><strong className="text-white/50">領域:</strong> <span className="text-white/90">{placement}</span></p>}
+            {tier === 'Service' && placement && <p><strong className="text-white/50">サービス:</strong> <span className="text-white/90">{placement}</span></p>}
 
             {/* Kind-specific confirm details */}
             {kind === 'Server' && (
               <>
-                <p><strong>サービス名:</strong> {detail.name ?? ''}</p>
-                <p><strong>{formatLangFw().label}:</strong> {formatLangFw().value}</p>
+                <p><strong className="text-white/50">サービス名:</strong> <span className="text-white/90">{detail.name ?? ''}</span></p>
+                <p><strong className="text-white/50">{formatLangFw().label}:</strong> <span className="text-white/90">{formatLangFw().value}</span></p>
                 {detail.api_styles.length > 0 && (
-                  <p><strong>API:</strong> {detail.api_styles.join(', ')}</p>
+                  <p><strong className="text-white/50">API:</strong> <span className="text-white/90">{detail.api_styles.join(', ')}</span></p>
                 )}
                 {showBffOption && detail.bff_language && (
-                  <p><strong>BFF:</strong> あり ({detail.bff_language})</p>
+                  <p><strong className="text-white/50">BFF:</strong> <span className="text-white/90">あり ({detail.bff_language})</span></p>
                 )}
-                <p><strong>DB:</strong> {detail.db ? `${detail.db.name} (${detail.db.rdbms})` : 'なし'}</p>
-                <p><strong>Kafka:</strong> {detail.kafka ? '有効' : '無効'}</p>
-                <p><strong>Redis:</strong> {detail.redis ? '有効' : '無効'}</p>
+                <p><strong className="text-white/50">DB:</strong> <span className="text-white/90">{detail.db ? `${detail.db.name} (${detail.db.rdbms})` : 'なし'}</span></p>
+                <p><strong className="text-white/50">Kafka:</strong> <span className="text-white/90">{detail.kafka ? '有効' : '無効'}</span></p>
+                <p><strong className="text-white/50">Redis:</strong> <span className="text-white/90">{detail.redis ? '有効' : '無効'}</span></p>
               </>
             )}
 
             {kind === 'Client' && (
               <>
-                <p><strong>{formatLangFw().label}:</strong> {formatLangFw().value}</p>
-                <p><strong>アプリ名:</strong> {detail.name ?? ''}</p>
+                <p><strong className="text-white/50">{formatLangFw().label}:</strong> <span className="text-white/90">{formatLangFw().value}</span></p>
+                <p><strong className="text-white/50">アプリ名:</strong> <span className="text-white/90">{detail.name ?? ''}</span></p>
               </>
             )}
 
             {kind === 'Library' && (
               <>
-                <p><strong>{formatLangFw().label}:</strong> {formatLangFw().value}</p>
-                <p><strong>ライブラリ名:</strong> {detail.name ?? ''}</p>
+                <p><strong className="text-white/50">{formatLangFw().label}:</strong> <span className="text-white/90">{formatLangFw().value}</span></p>
+                <p><strong className="text-white/50">ライブラリ名:</strong> <span className="text-white/90">{detail.name ?? ''}</span></p>
               </>
             )}
 
             {kind === 'Database' && 'Database' in langFw && (
               <>
-                <p><strong>データベース名:</strong> {langFw.Database.name}</p>
-                <p><strong>RDBMS:</strong> {langFw.Database.rdbms}</p>
+                <p><strong className="text-white/50">データベース名:</strong> <span className="text-white/90">{langFw.Database.name}</span></p>
+                <p><strong className="text-white/50">RDBMS:</strong> <span className="text-white/90">{langFw.Database.rdbms}</span></p>
               </>
             )}
           </div>
           <div className="flex gap-2">
-            <button onClick={goPrev} className="bg-gray-300 px-4 py-2 rounded" data-testid="btn-back">戻る</button>
+            <button onClick={goPrev} className="bg-white/10 hover:bg-white/15 text-white/70 px-5 py-2.5 rounded-xl transition-all duration-200" data-testid="btn-back">戻る</button>
             <button
               onClick={handleGenerate}
               disabled={status === 'loading'}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+              className="bg-indigo-500/80 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 disabled:opacity-40"
               data-testid="btn-generate"
             >
               {status === 'loading' ? '生成中...' : '生成'}
             </button>
           </div>
-          {status === 'success' && <p className="text-green-600 mt-2" data-testid="success-message">ひな形の生成が完了しました。</p>}
-          {status === 'error' && <p className="text-red-500 mt-2" data-testid="error-message">{errorMessage}</p>}
+          {status === 'success' && <p className="text-emerald-400 mt-3" data-testid="success-message">ひな形の生成が完了しました。</p>}
+          {status === 'error' && <p className="text-rose-400 mt-3" data-testid="error-message">{errorMessage}</p>}
         </div>
       )}
     </div>
