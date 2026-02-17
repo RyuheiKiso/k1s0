@@ -111,9 +111,7 @@ void main() {
 
     test('should produce structured log output', () {
       final logEntries = <LogRecord>[];
-      Logger.root.onRecord.listen((record) {
-        logEntries.add(record);
-      });
+      Logger.root.onRecord.listen(logEntries.add);
 
       final cfg = TelemetryConfig(
         serviceName: 'test-service',

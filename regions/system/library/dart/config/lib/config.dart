@@ -1,7 +1,7 @@
 /// k1s0 config library.
 ///
 /// YAML 設定読み込み・環境別オーバーライド・バリデーション・Vault シークレットマージ。
-library k1s0_config;
+library;
 
 export 'src/types.dart';
 export 'src/loader.dart';

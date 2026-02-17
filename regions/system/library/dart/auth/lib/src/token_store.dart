@@ -2,6 +2,7 @@
 /// メモリストアと SecureStorage ストアの 2 種類を提供する。
 /// flutter_secure_storage は Pure Dart では使えないため、
 /// 抽象インターフェースを通じてオプショナルに対応する。
+library;
 
 import 'types.dart';
 

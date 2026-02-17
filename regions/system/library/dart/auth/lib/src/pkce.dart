@@ -1,5 +1,6 @@
 /// PKCE (Proof Key for Code Exchange) ユーティリティ
 /// RFC 7636 準拠
+library;
 
 import 'dart:convert';
 import 'dart:math';

@@ -1,4 +1,5 @@
 /// Config クラス定義。config設計.md のスキーマに準拠する。
+library;
 
 class Config {
   final AppConfig app;

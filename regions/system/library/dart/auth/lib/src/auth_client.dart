@@ -1,5 +1,6 @@
 /// OAuth2 Authorization Code + PKCE クライアント
 /// Keycloak 対応のクライアント側認証ライブラリ
+library;
 
 import 'dart:convert';
 
