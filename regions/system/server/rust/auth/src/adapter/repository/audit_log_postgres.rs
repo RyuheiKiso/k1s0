@@ -173,6 +173,8 @@ impl From<AuditLogRow> for AuditLog {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::repository::audit_log_repository::MockAuditLogRepository;
+    use std::collections::HashMap;
 
     #[test]
     fn test_audit_log_row_to_audit_log() {
@@ -211,5 +213,203 @@ mod tests {
 
         let log: AuditLog = row.into();
         assert!(log.metadata.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_mock_create_success() {
+        let mut mock = MockAuditLogRepository::new();
+        mock.expect_create().returning(|_| Ok(()));
+
+        let log = AuditLog {
+            id: uuid::Uuid::new_v4(),
+            event_type: "LOGIN_SUCCESS".to_string(),
+            user_id: "user-1".to_string(),
+            ip_address: "127.0.0.1".to_string(),
+            user_agent: "Mozilla/5.0".to_string(),
+            resource: "/api/v1/auth/token".to_string(),
+            action: "POST".to_string(),
+            result: "SUCCESS".to_string(),
+            metadata: HashMap::from([("client_id".to_string(), "react-spa".to_string())]),
+            recorded_at: chrono::Utc::now(),
+        };
+
+        let result = mock.create(&log).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_mock_search_by_user_id() {
+        let mut mock = MockAuditLogRepository::new();
+        let expected_log = AuditLog {
+            id: uuid::Uuid::new_v4(),
+            event_type: "LOGIN_SUCCESS".to_string(),
+            user_id: "user-1".to_string(),
+            ip_address: "127.0.0.1".to_string(),
+            user_agent: "test".to_string(),
+            resource: "/api/v1/auth/token".to_string(),
+            action: "POST".to_string(),
+            result: "SUCCESS".to_string(),
+            metadata: HashMap::new(),
+            recorded_at: chrono::Utc::now(),
+        };
+        let log_clone = expected_log.clone();
+
+        mock.expect_search()
+            .withf(|p| p.user_id == Some("user-1".to_string()))
+            .returning(move |_| Ok((vec![log_clone.clone()], 1)));
+
+        let params = AuditLogSearchParams {
+            user_id: Some("user-1".to_string()),
+            ..Default::default()
+        };
+        let (logs, total): (Vec<AuditLog>, i64) = mock.search(&params).await.unwrap();
+        assert_eq!(total, 1);
+        assert_eq!(logs.len(), 1);
+        assert_eq!(logs[0].user_id, "user-1");
+    }
+
+    #[tokio::test]
+    async fn test_mock_search_by_event_type() {
+        let mut mock = MockAuditLogRepository::new();
+
+        mock.expect_search()
+            .withf(|p| p.event_type == Some("TOKEN_VALIDATE".to_string()))
+            .returning(|_| {
+                let log = AuditLog {
+                    id: uuid::Uuid::new_v4(),
+                    event_type: "TOKEN_VALIDATE".to_string(),
+                    user_id: "user-1".to_string(),
+                    ip_address: "10.0.0.1".to_string(),
+                    user_agent: "".to_string(),
+                    resource: "/api/v1/auth/token/validate".to_string(),
+                    action: "POST".to_string(),
+                    result: "SUCCESS".to_string(),
+                    metadata: HashMap::new(),
+                    recorded_at: chrono::Utc::now(),
+                };
+                Ok((vec![log], 1))
+            });
+
+        let params = AuditLogSearchParams {
+            event_type: Some("TOKEN_VALIDATE".to_string()),
+            ..Default::default()
+        };
+        let (logs, total): (Vec<AuditLog>, i64) = mock.search(&params).await.unwrap();
+        assert_eq!(total, 1);
+        assert_eq!(logs[0].event_type, "TOKEN_VALIDATE");
+    }
+
+    #[tokio::test]
+    async fn test_mock_search_by_date_range() {
+        let mut mock = MockAuditLogRepository::new();
+
+        mock.expect_search()
+            .withf(|p| p.from.is_some() && p.to.is_some())
+            .returning(|_| {
+                let log = AuditLog {
+                    id: uuid::Uuid::new_v4(),
+                    event_type: "LOGIN_SUCCESS".to_string(),
+                    user_id: "user-1".to_string(),
+                    ip_address: "127.0.0.1".to_string(),
+                    user_agent: "test".to_string(),
+                    resource: "/api/v1/auth/token".to_string(),
+                    action: "POST".to_string(),
+                    result: "SUCCESS".to_string(),
+                    metadata: HashMap::new(),
+                    recorded_at: chrono::Utc::now(),
+                };
+                Ok((vec![log], 1))
+            });
+
+        let from = chrono::Utc::now() - chrono::Duration::days(30);
+        let to = chrono::Utc::now();
+        let params = AuditLogSearchParams {
+            from: Some(from),
+            to: Some(to),
+            page: 1,
+            page_size: 20,
+            ..Default::default()
+        };
+        let (logs, total): (Vec<AuditLog>, i64) = mock.search(&params).await.unwrap();
+        assert_eq!(total, 1);
+        assert_eq!(logs.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_mock_search_pagination() {
+        let mut mock = MockAuditLogRepository::new();
+
+        mock.expect_search()
+            .withf(|p| p.page == 2 && p.page_size == 10)
+            .returning(|_| Ok((vec![], 25)));
+
+        let params = AuditLogSearchParams {
+            page: 2,
+            page_size: 10,
+            ..Default::default()
+        };
+        let (logs, total): (Vec<AuditLog>, i64) = mock.search(&params).await.unwrap();
+        assert_eq!(total, 25);
+        assert!(logs.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_mock_search_multiple_filters() {
+        let mut mock = MockAuditLogRepository::new();
+
+        mock.expect_search()
+            .withf(|p| {
+                p.user_id == Some("user-1".to_string())
+                    && p.event_type == Some("LOGIN_SUCCESS".to_string())
+                    && p.from.is_some()
+            })
+            .returning(|_| {
+                let log = AuditLog {
+                    id: uuid::Uuid::new_v4(),
+                    event_type: "LOGIN_SUCCESS".to_string(),
+                    user_id: "user-1".to_string(),
+                    ip_address: "127.0.0.1".to_string(),
+                    user_agent: "Mozilla/5.0".to_string(),
+                    resource: "/api/v1/auth/token".to_string(),
+                    action: "POST".to_string(),
+                    result: "SUCCESS".to_string(),
+                    metadata: HashMap::from([("client_id".to_string(), "react-spa".to_string())]),
+                    recorded_at: chrono::Utc::now(),
+                };
+                Ok((vec![log], 1))
+            });
+
+        let from = chrono::Utc::now() - chrono::Duration::days(30);
+        let params = AuditLogSearchParams {
+            user_id: Some("user-1".to_string()),
+            event_type: Some("LOGIN_SUCCESS".to_string()),
+            from: Some(from),
+            page: 1,
+            page_size: 20,
+            ..Default::default()
+        };
+        let (logs, total): (Vec<AuditLog>, i64) = mock.search(&params).await.unwrap();
+        assert_eq!(total, 1);
+        assert_eq!(logs[0].user_id, "user-1");
+        assert_eq!(logs[0].event_type, "LOGIN_SUCCESS");
+    }
+
+    #[tokio::test]
+    async fn test_mock_search_no_results() {
+        let mut mock = MockAuditLogRepository::new();
+
+        mock.expect_search()
+            .withf(|p| p.user_id == Some("nonexistent-user".to_string()))
+            .returning(|_| Ok((vec![], 0)));
+
+        let params = AuditLogSearchParams {
+            user_id: Some("nonexistent-user".to_string()),
+            page: 1,
+            page_size: 20,
+            ..Default::default()
+        };
+        let (logs, total): (Vec<AuditLog>, i64) = mock.search(&params).await.unwrap();
+        assert_eq!(total, 0);
+        assert!(logs.is_empty());
     }
 }

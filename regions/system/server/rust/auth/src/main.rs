@@ -8,6 +8,7 @@ mod domain;
 mod infrastructure;
 mod usecase;
 
+use adapter::grpc::{AuditGrpcService, AuthGrpcService};
 use adapter::handler::{self, AppState};
 use infrastructure::database::DatabaseConfig;
 use infrastructure::kafka_producer::{KafkaConfig, KafkaProducer};
@@ -63,12 +64,25 @@ fn default_port() -> u16 {
 #[derive(Debug, Clone, serde::Deserialize)]
 struct AuthConfig {
     jwt: JwtConfig,
+    #[serde(default)]
+    jwks: Option<JwksConfig>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
 struct JwtConfig {
     issuer: String,
     audience: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct JwksConfig {
+    url: String,
+    #[serde(default = "default_cache_ttl_secs")]
+    cache_ttl_secs: u64,
+}
+
+fn default_cache_ttl_secs() -> u64 {
+    3600
 }
 
 #[tokio::main]
@@ -94,9 +108,19 @@ async fn main() -> anyhow::Result<()> {
         "starting auth server"
     );
 
-    // Token verifier (stub for now, real JWKS verifier requires network)
+    // Token verifier (JWKS verifier if configured, stub otherwise)
     let token_verifier: Arc<dyn infrastructure::TokenVerifier> =
-        Arc::new(StubTokenVerifier);
+        if let Some(jwks_config) = &cfg.auth.jwks {
+            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+                &jwks_config.url,
+                &cfg.auth.jwt.issuer,
+                &cfg.auth.jwt.audience,
+                std::time::Duration::from_secs(jwks_config.cache_ttl_secs),
+            ));
+            Arc::new(infrastructure::JwksVerifierAdapter::new(jwks_verifier))
+        } else {
+            Arc::new(StubTokenVerifier)
+        };
 
     // User repository (Keycloak client or stub)
     let user_repo: Arc<dyn domain::repository::UserRepository> = if let Some(kc_config) = cfg.keycloak {
@@ -109,7 +133,18 @@ async fn main() -> anyhow::Result<()> {
     let audit_repo: Arc<dyn domain::repository::AuditLogRepository> =
         Arc::new(InMemoryAuditLogRepository::new());
 
-    // AppState
+    // --- gRPC Service ---
+    let validate_token_uc = Arc::new(usecase::ValidateTokenUseCase::new(
+        token_verifier.clone(),
+        cfg.auth.jwt.issuer.clone(),
+        cfg.auth.jwt.audience.clone(),
+    ));
+    let get_user_uc = Arc::new(usecase::GetUserUseCase::new(user_repo.clone()));
+    let list_users_uc = Arc::new(usecase::ListUsersUseCase::new(user_repo.clone()));
+    let record_audit_log_uc = Arc::new(usecase::RecordAuditLogUseCase::new(audit_repo.clone()));
+    let search_audit_logs_uc = Arc::new(usecase::SearchAuditLogsUseCase::new(audit_repo.clone()));
+
+    // AppState (REST handler 用)
     let state = AppState::new(
         token_verifier,
         user_repo,
@@ -118,15 +153,60 @@ async fn main() -> anyhow::Result<()> {
         cfg.auth.jwt.audience,
     );
 
+    let _auth_grpc_svc = AuthGrpcService::new(
+        validate_token_uc,
+        get_user_uc,
+        list_users_uc,
+    );
+    let _audit_grpc_svc = AuditGrpcService::new(
+        record_audit_log_uc,
+        search_audit_logs_uc,
+    );
+
     // Router
     let app = handler::router(state);
 
-    // Start server
-    let addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
-    info!("REST server starting on {}", addr);
+    // gRPC server (port 50051)
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
+    info!("gRPC server starting on {}", grpc_addr);
 
-    let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
+    let grpc_future = async move {
+        // TODO: tonic::transport::Server::builder()
+        //     .add_service(AuthServiceServer::new(auth_grpc_svc))
+        //     .add_service(AuditServiceServer::new(audit_grpc_svc))
+        //     .serve(grpc_addr)
+        //     .await
+        // proto 生成後に有効化。現時点ではスタブとして待機。
+        let listener = tokio::net::TcpListener::bind(grpc_addr).await?;
+        info!("gRPC server listening on {} (stub, awaiting tonic codegen)", grpc_addr);
+        // ただリスンするだけ（proto 生成後に tonic Server に置き換え）
+        loop {
+            let _ = listener.accept().await;
+        }
+        #[allow(unreachable_code)]
+        Ok::<(), anyhow::Error>(())
+    };
+
+    // REST server
+    let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
+    info!("REST server starting on {}", rest_addr);
+
+    let listener = tokio::net::TcpListener::bind(rest_addr).await?;
+    let rest_future = axum::serve(listener, app);
+
+    // REST と gRPC を並行起動
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!("REST server error: {}", e);
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!("gRPC server error: {}", e);
+            }
+        }
+    }
 
     Ok(())
 }

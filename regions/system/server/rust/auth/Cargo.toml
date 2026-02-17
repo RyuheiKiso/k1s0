@@ -12,6 +12,11 @@ name = "k1s0-auth-server"
 path = "src/main.rs"
 
 [dependencies]
+# gRPC / Protobuf
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+
 # Web framework
 axum = { version = "0.7", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
@@ -41,8 +46,17 @@ async-trait = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 
+# Kafka
+rdkafka = { version = "0.36", features = ["cmake-build"] }
+
 # HTTP client (for Keycloak)
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+
+# Auth library (JWKS verifier)
+k1s0-auth = { path = "../../../library/rust/auth" }
+
+[build-dependencies]
+tonic-build = "0.12"
 
 [dev-dependencies]
 mockall = "0.13"

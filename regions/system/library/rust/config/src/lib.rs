@@ -74,3 +74,5 @@ pub fn validate(config: &Config) -> Result<(), ConfigError> {
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod vault_test;

@@ -53,6 +53,7 @@ system tier の認証サーバーは以下の機能を提供する。
 | GET | `/api/v1/users/:id/roles` | ユーザーロール取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/audit/logs` | 監査ログ記録 | `sys_operator` 以上 |
 | GET | `/api/v1/audit/logs` | 監査ログ検索 | `sys_auditor` 以上 |
+| POST | `/api/v1/auth/permissions/check` | パーミッション確認 | `sys_operator` 以上 |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |
@@ -327,6 +328,59 @@ Keycloak Admin API からユーザー情報を取得する。
     "page": 1,
     "page_size": 50,
     "has_next": true
+  }
+}
+```
+
+#### POST /api/v1/auth/permissions/check
+
+指定されたユーザーが特定リソースに対する操作権限を持つかを確認する。gRPC の `CheckPermission` に対応する REST エンドポイント。
+
+**リクエスト**
+
+```json
+{
+  "user_id": "user-uuid-1234",
+  "permission": "write",
+  "resource": "audit_logs",
+  "roles": ["sys_operator", "user"]
+}
+```
+
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `user_id` | string | Yes | 検証対象のユーザー ID |
+| `permission` | string | Yes | 操作種別（`read`, `write`, `delete`, `admin`） |
+| `resource` | string | Yes | 対象リソース（`users`, `auth_config`, `audit_logs` 等） |
+| `roles` | string[] | Yes | JWT Claims から取得したロール一覧 |
+
+**レスポンス（200 OK - 許可）**
+
+```json
+{
+  "allowed": true,
+  "reason": ""
+}
+```
+
+**レスポンス（200 OK - 拒否）**
+
+```json
+{
+  "allowed": false,
+  "reason": "role 'user' does not have 'write' permission on resource 'audit_logs'"
+}
+```
+
+**レスポンス（400 Bad Request）**
+
+```json
+{
+  "error": {
+    "code": "SYS_AUTH_INVALID_REQUEST",
+    "message": "permission フィールドは必須です",
+    "request_id": "req_abc123def456",
+    "details": []
   }
 }
 ```

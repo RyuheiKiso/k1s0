@@ -80,7 +80,8 @@ func setupAuthRouter(verifier usecase.TokenVerifier, userRepo repository.UserRep
 	getUserUC := usecase.NewGetUserUseCase(userRepo)
 	listUsersUC := usecase.NewListUsersUseCase(userRepo)
 
-	h := NewAuthHandler(validateTokenUC, getUserUC, listUsersUC)
+	checkPermissionUC := usecase.NewCheckPermissionUseCase()
+	h := NewAuthHandler(validateTokenUC, getUserUC, listUsersUC, checkPermissionUC)
 	h.RegisterRoutes(r)
 
 	return r

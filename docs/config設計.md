@@ -235,6 +235,84 @@ observability:
 Vault Agent Injector が Pod 起動時にシークレットをファイルとして注入し、アプリケーションが起動時に読み込む。
 各シークレットの具体的な Vault パスとキー名は [認証認可設計.md](認証認可設計.md) の「シークレットパス体系」を参照。
 
+## Vault ブートストラップ
+
+### シークレットパス階層
+
+Vault の KV v2 シークレットエンジンを使用し、以下のパス階層でシークレットを管理する。
+
+```
+secret/data/k1s0/
+├── system/
+│   ├── auth/
+│   │   └── database          # password
+│   ├── bff/
+│   │   ├── oidc              # client_secret
+│   │   └── redis             # password
+│   ├── kafka/
+│   │   └── sasl              # username, password
+│   └── {service}/
+│       ├── database          # password
+│       └── redis             # password
+├── business/
+│   └── {service}/
+│       ├── database          # password
+│       └── redis             # password
+└── service/
+    └── {service}/
+        ├── database          # password
+        └── redis             # password
+```
+
+### Kubernetes Auth Method 設定手順
+
+1. Vault で Kubernetes auth method を有効化する
+
+```bash
+vault auth enable kubernetes
+```
+
+2. Kubernetes API サーバーの接続情報を設定する
+
+```bash
+vault write auth/kubernetes/config \
+    kubernetes_host="https://kubernetes.default.svc.cluster.local:443" \
+    token_reviewer_jwt=@/var/run/secrets/kubernetes.io/serviceaccount/token \
+    kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+```
+
+3. Tier ごとの Vault ポリシーを作成する
+
+```bash
+# system tier 用ポリシー
+vault policy write k1s0-system - <<EOF
+path "secret/data/k1s0/system/*" {
+  capabilities = ["read"]
+}
+EOF
+```
+
+4. Kubernetes ServiceAccount にロールをバインドする
+
+```bash
+vault write auth/kubernetes/role/k1s0-system-auth \
+    bound_service_account_names=auth-server \
+    bound_service_account_namespaces=k1s0-system \
+    policies=k1s0-system \
+    ttl=1h
+```
+
+### merge_vault_secrets() と Vault パスの対応表
+
+| config.yaml キー | Vault パス | Vault キー | merge_vault_secrets() のルックアップキー |
+| --- | --- | --- | --- |
+| `database.password` | `secret/data/k1s0/{tier}/{service}/database` | `password` | `database.password` |
+| `redis.password` | `secret/data/k1s0/{tier}/{service}/redis` | `password` | `redis.password` |
+| `redis_session.password` | `secret/data/k1s0/system/bff/redis` | `password` | `redis_session.password` |
+| `kafka.sasl.username` | `secret/data/k1s0/system/kafka/sasl` | `username` | `kafka.sasl.username` |
+| `kafka.sasl.password` | `secret/data/k1s0/system/kafka/sasl` | `password` | `kafka.sasl.password` |
+| `auth.oidc.client_secret` | `secret/data/k1s0/system/bff/oidc` | `client_secret` | `auth.oidc.client_secret` |
+
 ## Go での読み込み実装
 
 ```go

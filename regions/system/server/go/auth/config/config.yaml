@@ -35,4 +35,6 @@ auth:
 kafka:
   brokers:
     - "localhost:9092"
-  topic: "audit-events"
+  topics:
+    publish: "k1s0.system.auth.audit.v1"
+    subscribe: "k1s0.system.auth.audit.v1"

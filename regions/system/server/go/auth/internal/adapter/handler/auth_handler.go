@@ -11,9 +11,10 @@ import (
 
 // AuthHandler は認証関連の REST ハンドラー。
 type AuthHandler struct {
-	validateTokenUC *usecase.ValidateTokenUseCase
-	getUserUC       *usecase.GetUserUseCase
-	listUsersUC     *usecase.ListUsersUseCase
+	validateTokenUC  *usecase.ValidateTokenUseCase
+	getUserUC        *usecase.GetUserUseCase
+	listUsersUC      *usecase.ListUsersUseCase
+	checkPermissionUC *usecase.CheckPermissionUseCase
 }
 
 // NewAuthHandler は新しい AuthHandler を作成する。
@@ -21,11 +22,13 @@ func NewAuthHandler(
 	validateTokenUC *usecase.ValidateTokenUseCase,
 	getUserUC *usecase.GetUserUseCase,
 	listUsersUC *usecase.ListUsersUseCase,
+	checkPermissionUC *usecase.CheckPermissionUseCase,
 ) *AuthHandler {
 	return &AuthHandler{
-		validateTokenUC: validateTokenUC,
-		getUserUC:       getUserUC,
-		listUsersUC:     listUsersUC,
+		validateTokenUC:  validateTokenUC,
+		getUserUC:        getUserUC,
+		listUsersUC:      listUsersUC,
+		checkPermissionUC: checkPermissionUC,
 	}
 }
 
@@ -144,6 +147,18 @@ func (h *AuthHandler) GetUserRoles(c *gin.Context) {
 	})
 }
 
+// CheckPermission は POST /api/v1/auth/permissions/check のハンドラー。
+func (h *AuthHandler) CheckPermission(c *gin.Context) {
+	var input usecase.CheckPermissionInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		WriteError(c, http.StatusBadRequest, "SYS_AUTH_VALIDATION_FAILED",
+			"リクエストのバリデーションに失敗しました")
+		return
+	}
+	output := h.checkPermissionUC.Execute(input)
+	c.JSON(http.StatusOK, output)
+}
+
 // RegisterRoutes はルートを登録する。
 func (h *AuthHandler) RegisterRoutes(r *gin.Engine) {
 	v1 := r.Group("/api/v1")
@@ -153,6 +168,7 @@ func (h *AuthHandler) RegisterRoutes(r *gin.Engine) {
 	{
 		auth.POST("/token/validate", h.ValidateToken)
 		auth.POST("/token/introspect", h.IntrospectToken)
+		auth.POST("/permissions/check", h.CheckPermission)
 	}
 
 	// ユーザー管理

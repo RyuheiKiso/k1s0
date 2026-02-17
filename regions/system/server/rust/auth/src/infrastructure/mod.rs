@@ -1,6 +1,9 @@
 pub mod database;
+pub mod jwks_adapter;
 pub mod kafka_producer;
 pub mod keycloak_client;
+
+pub use jwks_adapter::JwksVerifierAdapter;
 
 use async_trait::async_trait;
 use crate::domain::entity::claims::Claims;

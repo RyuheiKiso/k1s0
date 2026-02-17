@@ -32,3 +32,11 @@ func (uc *GetUserUseCase) Execute(ctx context.Context, userID string) (*model.Us
 
 	return user, nil
 }
+
+// GetUserRoles はユーザーに割り当てられたロール一覧を取得する。
+func (uc *GetUserUseCase) GetUserRoles(ctx context.Context, userID string) ([]*model.Role, map[string][]*model.Role, error) {
+	if userID == "" {
+		return nil, nil, ErrUserNotFound
+	}
+	return uc.userRepo.GetUserRoles(ctx, userID)
+}

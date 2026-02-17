@@ -9,8 +9,8 @@ use axum::routing::{get, post};
 use crate::domain::repository::{AuditLogRepository, UserRepository};
 use crate::infrastructure::TokenVerifier;
 use crate::usecase::{
-    GetUserUseCase, ListUsersUseCase, RecordAuditLogUseCase,
-    SearchAuditLogsUseCase, ValidateTokenUseCase,
+    CheckPermissionUseCase, GetUserUseCase, ListUsersUseCase,
+    RecordAuditLogUseCase, SearchAuditLogsUseCase, ValidateTokenUseCase,
 };
 
 /// AppState はアプリケーション全体の共有状態を表す。
@@ -21,6 +21,7 @@ pub struct AppState {
     pub list_users_uc: Arc<ListUsersUseCase>,
     pub record_audit_log_uc: Arc<RecordAuditLogUseCase>,
     pub search_audit_logs_uc: Arc<SearchAuditLogsUseCase>,
+    pub check_permission_uc: Arc<CheckPermissionUseCase>,
 }
 
 impl AppState {
@@ -41,6 +42,7 @@ impl AppState {
             list_users_uc: Arc::new(ListUsersUseCase::new(user_repo)),
             record_audit_log_uc: Arc::new(RecordAuditLogUseCase::new(audit_repo.clone())),
             search_audit_logs_uc: Arc::new(SearchAuditLogsUseCase::new(audit_repo)),
+            check_permission_uc: Arc::new(CheckPermissionUseCase::new()),
         }
     }
 }
@@ -60,6 +62,10 @@ pub fn router(state: AppState) -> Router {
         .route(
             "/api/v1/auth/token/introspect",
             post(auth_handler::introspect_token),
+        )
+        .route(
+            "/api/v1/auth/permissions/check",
+            post(auth_handler::check_permission),
         )
         // User endpoints
         .route("/api/v1/users", get(auth_handler::list_users))

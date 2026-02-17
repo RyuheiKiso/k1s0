@@ -72,8 +72,14 @@ type OIDCConfig struct {
 
 // KafkaConfig は Kafka の設定。
 type KafkaConfig struct {
-	Brokers []string `yaml:"brokers"`
-	Topic   string   `yaml:"topic"`
+	Brokers []string    `yaml:"brokers"`
+	Topics  KafkaTopics `yaml:"topics"`
+}
+
+// KafkaTopics は Kafka のトピック設定。
+type KafkaTopics struct {
+	Publish   string `yaml:"publish"`
+	Subscribe string `yaml:"subscribe"`
 }
 
 // Load は設定ファイルから Config を読み込む。

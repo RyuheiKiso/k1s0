@@ -17,6 +17,7 @@
 | Helm リリース             | hashicorp/helm       | アプリケーションデプロイ       |
 | Vault 設定                | hashicorp/vault      | ポリシー・シークレットエンジン |
 | Harbor プロジェクト       | goharbor/harbor      | プロジェクト・ロボットアカウント |
+| Keycloak Realm 設定      | mrparkers/keycloak   | Realm・クライアント・ロール      |
 
 ## ディレクトリ構成
 
@@ -49,6 +50,7 @@ infra/terraform/
     ├── database/                # PostgreSQL, MySQL（Helm 経由）
     ├── vault/                   # Vault 設定
     ├── harbor/                  # Harbor プロジェクト設定
+    ├── keycloak/                # Keycloak Realm プロビジョニング
     └── service-mesh/            # Istio 設定
 ```
 
@@ -548,6 +550,95 @@ resource "harbor_robot_account" "ci_push" {
   }
 
   depends_on = [harbor_project.k1s0]
+}
+```
+
+### keycloak
+
+[mrparkers/keycloak](https://registry.terraform.io/providers/mrparkers/keycloak/latest) Terraform Provider を使用し、Keycloak の Realm・クライアント・ロールを宣言的に管理する。
+
+```
+modules/keycloak/
+├── main.tf          # Keycloak Provider 設定・Realm 定義
+├── variables.tf     # Keycloak URL、Realm 名、クライアント設定
+├── outputs.tf       # Realm 名、クライアント ID
+├── clients.tf       # OIDC クライアント定義
+└── roles.tf         # Realm ロール・クライアントロール定義
+```
+
+- Realm 定義のベースは `infra/docker/keycloak/k1s0-realm.json` に対応する（ローカル開発環境では JSON インポート、staging/prod では Terraform で管理）
+- OIDC クライアント（`react-spa`, `flutter-app`, `k1s0-bff`, `auth-server`）を Terraform で作成する
+- Realm ロール（`sys_admin`, `sys_operator`, `sys_auditor`, `user` 等）を Terraform で定義する
+- クライアントシークレットは Vault に格納し、Terraform の `vault_generic_secret` data source で参照する
+
+```hcl
+# modules/keycloak/main.tf
+
+terraform {
+  required_providers {
+    keycloak = {
+      source  = "mrparkers/keycloak"
+      version = ">= 4.0.0"
+    }
+  }
+}
+
+provider "keycloak" {
+  client_id = "admin-cli"
+  url       = var.keycloak_url
+  username  = var.keycloak_admin_user
+  password  = var.keycloak_admin_password
+}
+
+resource "keycloak_realm" "k1s0" {
+  realm   = var.realm_name
+  enabled = true
+
+  login_theme   = "keycloak"
+  account_theme = "keycloak.v2"
+
+  access_token_lifespan = "5m"
+
+  internationalization {
+    supported_locales = ["en", "ja"]
+    default_locale    = "ja"
+  }
+}
+```
+
+```hcl
+# modules/keycloak/clients.tf
+
+resource "keycloak_openid_client" "react_spa" {
+  realm_id              = keycloak_realm.k1s0.id
+  client_id             = "react-spa"
+  name                  = "React SPA"
+  access_type           = "PUBLIC"
+  standard_flow_enabled = true
+
+  valid_redirect_uris = var.react_spa_redirect_uris
+  web_origins         = var.react_spa_web_origins
+}
+
+resource "keycloak_openid_client" "bff" {
+  realm_id              = keycloak_realm.k1s0.id
+  client_id             = "k1s0-bff"
+  name                  = "BFF Server"
+  access_type           = "CONFIDENTIAL"
+  standard_flow_enabled = true
+
+  valid_redirect_uris = var.bff_redirect_uris
+}
+```
+
+```hcl
+# modules/keycloak/roles.tf
+
+resource "keycloak_role" "realm_roles" {
+  for_each = toset(["sys_admin", "sys_operator", "sys_auditor", "user"])
+
+  realm_id = keycloak_realm.k1s0.id
+  name     = each.key
 }
 ```
 

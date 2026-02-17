@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,7 +12,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc"
 
+	authgrpc "github.com/k1s0-platform/system-server-go-auth/internal/adapter/grpc"
 	"github.com/k1s0-platform/system-server-go-auth/internal/adapter/gateway"
 	"github.com/k1s0-platform/system-server-go-auth/internal/adapter/handler"
 	"github.com/k1s0-platform/system-server-go-auth/internal/adapter/middleware"
@@ -65,6 +68,7 @@ func main() {
 	validateTokenUC := usecase.NewValidateTokenUseCase(jwksVerifier, jwtConfig)
 	getUserUC := usecase.NewGetUserUseCase(keycloakClient)
 	listUsersUC := usecase.NewListUsersUseCase(keycloakClient)
+	checkPermissionUC := usecase.NewCheckPermissionUseCase()
 	recordAuditLogUC := usecase.NewRecordAuditLogUseCase(auditRepo, producer)
 	searchAuditLogsUC := usecase.NewSearchAuditLogsUseCase(auditRepo)
 
@@ -81,14 +85,38 @@ func main() {
 	r.GET("/readyz", handler.ReadyzHandler(db, keycloakClient))
 
 	// Auth ハンドラー
-	authHandler := handler.NewAuthHandler(validateTokenUC, getUserUC, listUsersUC)
+	authHandler := handler.NewAuthHandler(validateTokenUC, getUserUC, listUsersUC, checkPermissionUC)
 	authHandler.RegisterRoutes(r)
 
 	// Audit ハンドラー
 	auditHandler := handler.NewAuditHandler(recordAuditLogUC, searchAuditLogsUC)
 	auditHandler.RegisterRoutes(r)
 
-	// --- Start Server ---
+	// --- gRPC Server ---
+	authGRPCSvc := authgrpc.NewAuthGRPCService(validateTokenUC, getUserUC, listUsersUC)
+	auditGRPCSvc := authgrpc.NewAuditGRPCService(recordAuditLogUC, searchAuditLogsUC)
+	_ = authGRPCSvc
+	_ = auditGRPCSvc
+
+	grpcServer := grpc.NewServer()
+	// TODO: pb.RegisterAuthServiceServer(grpcServer, authGRPCSvc) — proto 生成後に有効化
+	// TODO: pb.RegisterAuditServiceServer(grpcServer, auditGRPCSvc) — proto 生成後に有効化
+
+	grpcPort := 50051
+	go func() {
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
+		if err != nil {
+			slog.Error("failed to listen for gRPC", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("gRPC server starting", "port", grpcPort)
+		if err := grpcServer.Serve(lis); err != nil {
+			slog.Error("gRPC server failed", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	// --- REST Server ---
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Server.Port),
 		Handler:      r,
@@ -108,8 +136,13 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	slog.Info("shutting down server...")
+	slog.Info("shutting down servers...")
 
+	// gRPC graceful stop
+	grpcServer.GracefulStop()
+	slog.Info("gRPC server stopped")
+
+	// REST graceful shutdown
 	shutdownTimeout := cfg.Server.ShutdownTimeout
 	if shutdownTimeout == 0 {
 		shutdownTimeout = 30 * time.Second
@@ -118,7 +151,7 @@ func main() {
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		slog.Error("server forced to shutdown", "error", err)
+		slog.Error("REST server forced to shutdown", "error", err)
 	}
-	slog.Info("server exited")
+	slog.Info("servers exited")
 }

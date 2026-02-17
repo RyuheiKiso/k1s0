@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::audit_log::{AuditLog, CreateAuditLogRequest, CreateAuditLogResponse};
 use crate::domain::repository::AuditLogRepository;
+use crate::infrastructure::kafka_producer::AuditEventPublisher;
 
 /// RecordAuditLogError は監査ログ記録に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
@@ -16,11 +17,25 @@ pub enum RecordAuditLogError {
 /// RecordAuditLogUseCase は監査ログ記録ユースケース。
 pub struct RecordAuditLogUseCase {
     audit_repo: Arc<dyn AuditLogRepository>,
+    publisher: Option<Arc<dyn AuditEventPublisher>>,
 }
 
 impl RecordAuditLogUseCase {
     pub fn new(audit_repo: Arc<dyn AuditLogRepository>) -> Self {
-        Self { audit_repo }
+        Self {
+            audit_repo,
+            publisher: None,
+        }
+    }
+
+    pub fn with_publisher(
+        audit_repo: Arc<dyn AuditLogRepository>,
+        publisher: Arc<dyn AuditEventPublisher>,
+    ) -> Self {
+        Self {
+            audit_repo,
+            publisher: Some(publisher),
+        }
     }
 
     /// 監査ログエントリを記録する。
@@ -56,6 +71,11 @@ impl RecordAuditLogUseCase {
             .await
             .map_err(|e| RecordAuditLogError::Internal(e.to_string()))?;
 
+        // Kafka に非同期配信（エラーは無視して記録は成功とする）
+        if let Some(ref publisher) = self.publisher {
+            let _ = publisher.publish(&log).await;
+        }
+
         Ok(response)
     }
 }
@@ -64,6 +84,7 @@ impl RecordAuditLogUseCase {
 mod tests {
     use super::*;
     use crate::domain::repository::audit_log_repository::MockAuditLogRepository;
+    use crate::infrastructure::kafka_producer::MockAuditEventPublisher;
     use std::collections::HashMap;
 
     fn make_valid_request() -> CreateAuditLogRequest {
@@ -93,6 +114,41 @@ mod tests {
 
         let response = result.unwrap();
         assert!(!response.id.is_nil());
+    }
+
+    #[tokio::test]
+    async fn test_record_audit_log_with_publisher() {
+        let mut mock_repo = MockAuditLogRepository::new();
+        mock_repo.expect_create().returning(|_| Ok(()));
+
+        let mut mock_pub = MockAuditEventPublisher::new();
+        mock_pub.expect_publish().returning(|_| Ok(()));
+
+        let uc = RecordAuditLogUseCase::with_publisher(
+            Arc::new(mock_repo),
+            Arc::new(mock_pub),
+        );
+        let result = uc.execute(make_valid_request()).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_record_audit_log_publisher_error_ignored() {
+        let mut mock_repo = MockAuditLogRepository::new();
+        mock_repo.expect_create().returning(|_| Ok(()));
+
+        let mut mock_pub = MockAuditEventPublisher::new();
+        mock_pub
+            .expect_publish()
+            .returning(|_| Err(anyhow::anyhow!("kafka error")));
+
+        let uc = RecordAuditLogUseCase::with_publisher(
+            Arc::new(mock_repo),
+            Arc::new(mock_pub),
+        );
+        // publisher のエラーは無視して成功とする
+        let result = uc.execute(make_valid_request()).await;
+        assert!(result.is_ok());
     }
 
     #[tokio::test]
