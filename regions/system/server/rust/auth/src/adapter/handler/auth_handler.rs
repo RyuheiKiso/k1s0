@@ -243,7 +243,7 @@ mod tests {
             preferred_username: "taro.yamada".to_string(),
             email: "taro.yamada@example.com".to_string(),
             realm_access: RealmAccess {
-                roles: vec!["user".to_string()],
+                roles: vec!["sys_auditor".to_string()],
             },
             resource_access: HashMap::new(),
             tier_access: vec!["system".to_string()],

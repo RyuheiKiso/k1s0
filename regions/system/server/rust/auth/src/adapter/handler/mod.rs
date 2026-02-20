@@ -8,6 +8,7 @@ use axum::middleware;
 use axum::routing::{get, post};
 
 use crate::adapter::middleware::auth::auth_middleware;
+use crate::adapter::middleware::rbac::rbac_middleware;
 use crate::domain::repository::{AuditLogRepository, UserRepository};
 use crate::infrastructure::TokenVerifier;
 use crate::usecase::{
@@ -80,6 +81,9 @@ pub fn router(state: AppState) -> Router {
             post(audit_handler::record_audit_log)
                 .get(audit_handler::search_audit_logs),
         )
+        // rbac_middleware: sys_auditor以上のロールを持つユーザーのみ通過 (auth_middlewareの後に実行)
+        .route_layer(middleware::from_fn_with_state(state.clone(), rbac_middleware))
+        // auth_middleware: Bearerトークンを検証しClaimsをextensionに格納 (最初に実行)
         .route_layer(middleware::from_fn_with_state(state.clone(), auth_middleware));
 
     // 公開エンドポイント (認証不要)

@@ -1,9 +1,7 @@
 use std::collections::HashMap;
-use std::path::Path;
 
 use async_trait::async_trait;
 use tokio::sync::RwLock;
-use tracing::info;
 
 use crate::domain::entity::workflow::WorkflowDefinition;
 use crate::domain::repository::WorkflowRepository;
@@ -21,48 +19,6 @@ impl InMemoryWorkflowRepository {
         }
     }
 
-    /// ディレクトリからワークフロー定義を一括ロードする。
-    pub async fn load_from_directory(&self, dir: &str) -> anyhow::Result<usize> {
-        let path = Path::new(dir);
-        if !path.exists() {
-            info!(dir = dir, "workflow directory does not exist, skipping");
-            return Ok(0);
-        }
-
-        let mut count = 0;
-        let mut entries = tokio::fs::read_dir(path).await?;
-        while let Some(entry) = entries.next_entry().await? {
-            let file_path = entry.path();
-            let ext = file_path.extension().and_then(|e| e.to_str()).unwrap_or("");
-
-            if ext == "yaml" || ext == "yml" {
-                let content = tokio::fs::read_to_string(&file_path).await?;
-                match WorkflowDefinition::from_yaml(&content) {
-                    Ok(def) => {
-                        info!(
-                            name = %def.name,
-                            steps = def.steps.len(),
-                            file = %file_path.display(),
-                            "loaded workflow definition"
-                        );
-                        let mut workflows = self.workflows.write().await;
-                        workflows.insert(def.name.clone(), def);
-                        count += 1;
-                    }
-                    Err(e) => {
-                        tracing::warn!(
-                            file = %file_path.display(),
-                            error = %e,
-                            "failed to parse workflow definition, skipping"
-                        );
-                    }
-                }
-            }
-        }
-
-        info!(count = count, "workflow definitions loaded");
-        Ok(count)
-    }
 }
 
 impl Default for InMemoryWorkflowRepository {
@@ -147,10 +103,4 @@ steps:
         assert_eq!(list.len(), 2);
     }
 
-    #[tokio::test]
-    async fn test_load_from_nonexistent_directory() {
-        let repo = InMemoryWorkflowRepository::new();
-        let count = repo.load_from_directory("/nonexistent/path").await.unwrap();
-        assert_eq!(count, 0);
-    }
 }
