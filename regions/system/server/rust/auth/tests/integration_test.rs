@@ -336,7 +336,7 @@ async fn test_audit_log_record_and_search_flow() {
         "resource": "/api/v1/auth/token",
         "action": "POST",
         "result": "SUCCESS",
-        "metadata": {"client_id": "react-spa"}
+        "detail": {"client_id": "react-spa"}
     });
 
     let req = Request::builder()

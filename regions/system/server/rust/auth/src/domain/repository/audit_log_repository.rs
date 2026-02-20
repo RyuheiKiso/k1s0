@@ -34,10 +34,12 @@ mod tests {
             ip_address: "127.0.0.1".to_string(),
             user_agent: "test".to_string(),
             resource: "/api/v1/auth/token".to_string(),
+            resource_id: None,
             action: "POST".to_string(),
             result: "SUCCESS".to_string(),
-            metadata: std::collections::HashMap::new(),
-            recorded_at: chrono::Utc::now(),
+            detail: None,
+            trace_id: None,
+            created_at: chrono::Utc::now(),
         };
 
         let result = mock.create(&log).await;

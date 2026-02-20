@@ -625,6 +625,7 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 
 | 言語   | キャッシュ対象                | アクション                |
 | ------ | ----------------------------- | ------------------------- |
+| Go     | `~/go/pkg/mod`               | `actions/cache`           |
 | Rust   | `~/.cargo`, `target/`        | `actions/cache`           |
 | Node   | `node_modules/`              | `actions/setup-node` 内蔵 |
 | Dart   | `~/.pub-cache`               | `actions/cache`           |

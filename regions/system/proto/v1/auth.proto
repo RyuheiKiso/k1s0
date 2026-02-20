@@ -148,12 +148,14 @@ message RecordAuditLogRequest {
   string resource = 5;
   string action = 6;
   string result = 7;
-  map<string, string> metadata = 8;
+  google.protobuf.Struct detail = 8;
+  string resource_id = 9;
+  string trace_id = 10;
 }
 
 message RecordAuditLogResponse {
   string id = 1;
-  google.protobuf.Timestamp recorded_at = 2;
+  google.protobuf.Timestamp created_at = 2;
 }
 
 message SearchAuditLogsRequest {
@@ -179,6 +181,8 @@ message AuditLog {
   string resource = 6;
   string action = 7;
   string result = 8;
-  map<string, string> metadata = 9;
-  google.protobuf.Timestamp recorded_at = 10;
+  google.protobuf.Struct detail = 9;
+  google.protobuf.Timestamp created_at = 10;
+  string resource_id = 11;
+  string trace_id = 12;
 }

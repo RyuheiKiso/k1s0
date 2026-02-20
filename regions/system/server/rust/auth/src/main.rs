@@ -338,12 +338,12 @@ impl domain::repository::AuditLogRepository for InMemoryAuditLogRepository {
                     }
                 }
                 if let Some(ref from) = params.from {
-                    if log.recorded_at < *from {
+                    if log.created_at < *from {
                         return false;
                     }
                 }
                 if let Some(ref to) = params.to {
-                    if log.recorded_at > *to {
+                    if log.created_at > *to {
                         return false;
                     }
                 }

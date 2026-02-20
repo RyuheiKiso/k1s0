@@ -319,12 +319,14 @@ message RecordAuditLogRequest {
   string resource = 5;             // アクセス対象リソース
   string action = 6;               // HTTP メソッドまたは gRPC メソッド名
   string result = 7;               // SUCCESS / FAILURE
-  map<string, string> metadata = 8; // 追加メタデータ（client_id, grant_type 等）
+  google.protobuf.Struct detail = 8; // 操作の詳細情報（client_id, grant_type 等）
+  string resource_id = 9;          // 操作対象リソースの ID
+  string trace_id = 10;            // OpenTelemetry トレース ID
 }
 
 message RecordAuditLogResponse {
   string id = 1;                                     // 監査ログ UUID
-  k1s0.system.common.v1.Timestamp recorded_at = 2;
+  k1s0.system.common.v1.Timestamp created_at = 2;
 }
 
 message SearchAuditLogsRequest {
@@ -350,8 +352,10 @@ message AuditLog {
   string resource = 6;
   string action = 7;
   string result = 8;
-  map<string, string> metadata = 9;
-  k1s0.system.common.v1.Timestamp recorded_at = 10;
+  google.protobuf.Struct detail = 9;               // 操作の詳細情報（変更前後の値等）
+  k1s0.system.common.v1.Timestamp created_at = 10;
+  string resource_id = 11;                         // 操作対象リソースの ID
+  string trace_id = 12;                            // OpenTelemetry トレース ID
 }
 ```
 

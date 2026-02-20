@@ -227,6 +227,6 @@ WHERE r.name = 'sys_auditor'
   AND p.resource != 'vault_secrets'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
--- 009: カラム名変更
-ALTER TABLE auth.audit_logs RENAME COLUMN detail TO metadata;
-ALTER TABLE auth.audit_logs RENAME COLUMN created_at TO recorded_at;
+-- 009: カラム名変更（010 で元に戻す）
+-- カラム名は detail (JSONB) と created_at を使用する
+-- migration 009 + 010 の最終状態: detail, created_at

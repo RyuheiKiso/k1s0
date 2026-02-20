@@ -122,7 +122,6 @@ impl AuditEventPublisher for KafkaProducer {
 mod tests {
     use super::*;
     use crate::domain::entity::audit_log::{AuditLog, CreateAuditLogRequest};
-    use std::collections::HashMap;
     use std::sync::Mutex;
 
     /// テスト用のインメモリプロデューサー。
@@ -173,7 +172,9 @@ mod tests {
             resource: "/api/v1/auth/token".to_string(),
             action: "POST".to_string(),
             result: "SUCCESS".to_string(),
-            metadata: HashMap::from([("client_id".to_string(), "react-spa".to_string())]),
+            resource_id: None,
+            detail: Some(serde_json::json!({"client_id": "react-spa"})),
+            trace_id: None,
         })
     }
 
@@ -231,10 +232,8 @@ brokers:
         assert_eq!(deserialized.event_type, "LOGIN_SUCCESS");
         assert_eq!(deserialized.user_id, "user-uuid-5678");
         assert_eq!(deserialized.result, "SUCCESS");
-        assert_eq!(
-            deserialized.metadata.get("client_id").unwrap(),
-            "react-spa"
-        );
+        let detail = deserialized.detail.as_ref().unwrap();
+        assert_eq!(detail["client_id"], "react-spa");
     }
 
     #[tokio::test]

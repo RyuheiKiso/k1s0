@@ -271,10 +271,11 @@ Keycloak Admin API からユーザー情報を取得する。
   "resource": "/api/v1/auth/token",
   "action": "POST",
   "result": "SUCCESS",
-  "metadata": {
+  "detail": {
     "client_id": "react-spa",
     "grant_type": "authorization_code"
-  }
+  },
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
 }
 ```
 
@@ -283,7 +284,7 @@ Keycloak Admin API からユーザー情報を取得する。
 ```json
 {
   "id": "audit-uuid-5678",
-  "recorded_at": "2026-02-17T10:30:00.123Z"
+  "created_at": "2026-02-17T10:30:00.123Z"
 }
 ```
 
@@ -316,10 +317,11 @@ Keycloak Admin API からユーザー情報を取得する。
       "resource": "/api/v1/auth/token",
       "action": "POST",
       "result": "SUCCESS",
-      "recorded_at": "2026-02-17T10:30:00.123Z",
-      "metadata": {
+      "detail": {
         "client_id": "react-spa"
-      }
+      },
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "created_at": "2026-02-17T10:30:00.123Z"
     }
   ],
   "pagination": {
@@ -643,8 +645,10 @@ infra（DB接続・Keycloak クライアント・Kafka・設定ローダー）
 | `resource` | string | アクセス対象リソース |
 | `action` | string | HTTP メソッドまたは gRPC メソッド名 |
 | `result` | string | `SUCCESS` / `FAILURE` |
-| `metadata` | map<string, string> | 追加メタデータ（client_id、grant_type 等） |
-| `recorded_at` | timestamp | 記録日時 |
+| `resource_id` | string | 操作対象リソースの ID |
+| `detail` | object (JSON) | 操作の詳細情報（変更前後の値、client_id、grant_type 等） |
+| `trace_id` | string | OpenTelemetry トレース ID |
+| `created_at` | timestamp | 記録日時 |
 
 ### 依存関係図
 
@@ -1028,22 +1032,23 @@ pub struct Permission {
 // src/domain/model/audit_log.rs
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct AuditLog {
     pub id: Uuid,
+    pub user_id: Option<Uuid>,
     pub event_type: String,
-    pub user_id: String,
-    pub ip_address: String,
-    pub user_agent: String,
-    pub resource: String,
     pub action: String,
+    pub resource: Option<String>,
+    pub resource_id: Option<String>,
     pub result: String,
     #[sqlx(json)]
-    pub metadata: HashMap<String, String>,
-    pub recorded_at: DateTime<Utc>,
+    pub detail: Option<serde_json::Value>,
+    pub ip_address: Option<String>,
+    pub user_agent: Option<String>,
+    pub trace_id: Option<String>,
+    pub created_at: DateTime<Utc>,
 }
 ```
 
@@ -1600,32 +1605,32 @@ impl Config {
 監査ログテーブルは PostgreSQL に格納する。ユーザー情報は Keycloak が管理するため、認証サーバーの DB には監査ログのみを格納する。
 
 ```sql
--- migrations/001_create_audit_logs.sql
+-- migrations/006_create_audit_logs.up.sql
+-- auth-db: audit_logs テーブル作成（月次パーティショニング）
+-- 詳細スキーマは system-database設計.md 参照
 
-CREATE TABLE IF NOT EXISTS audit_logs (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE IF NOT EXISTS auth.audit_logs (
+    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID         REFERENCES auth.users(id) ON DELETE SET NULL,
     event_type  VARCHAR(100) NOT NULL,
-    user_id     VARCHAR(255) NOT NULL,
-    ip_address  VARCHAR(45)  NOT NULL,
-    user_agent  TEXT         NOT NULL DEFAULT '',
-    resource    VARCHAR(500) NOT NULL,
-    action      VARCHAR(50)  NOT NULL,
-    result      VARCHAR(20)  NOT NULL CHECK (result IN ('SUCCESS', 'FAILURE')),
-    metadata    JSONB        NOT NULL DEFAULT '{}',
-    recorded_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-);
+    action      VARCHAR(100) NOT NULL,
+    resource    VARCHAR(255),
+    resource_id VARCHAR(255),
+    result      VARCHAR(50)  NOT NULL DEFAULT 'SUCCESS',
+    detail      JSONB,
+    ip_address  INET,
+    user_agent  TEXT,
+    trace_id    VARCHAR(64),
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+) PARTITION BY RANGE (created_at);
 
--- 検索用インデックス
-CREATE INDEX idx_audit_logs_user_id ON audit_logs (user_id);
-CREATE INDEX idx_audit_logs_event_type ON audit_logs (event_type);
-CREATE INDEX idx_audit_logs_recorded_at ON audit_logs (recorded_at DESC);
-CREATE INDEX idx_audit_logs_result ON audit_logs (result);
-
--- 複合インデックス（ユーザー + 日時範囲の検索最適化）
-CREATE INDEX idx_audit_logs_user_recorded ON audit_logs (user_id, recorded_at DESC);
-
--- パーティショニング（月単位）は運用フェーズで検討
-COMMENT ON TABLE audit_logs IS '認証・認可の監査ログ。保持期間は 1 年間（可観測性設計.md 参照）';
+-- インデックス
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id_created_at
+    ON auth.audit_logs (user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_event_type_created_at
+    ON auth.audit_logs (event_type, created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_trace_id
+    ON auth.audit_logs (trace_id) WHERE trace_id IS NOT NULL;
 ```
 
 ---
@@ -1741,15 +1746,17 @@ mod tests {
 
         let log = AuditLog {
             id: uuid::Uuid::new_v4(),
+            user_id: Some(uuid::Uuid::new_v4()),
             event_type: "LOGIN_SUCCESS".to_string(),
-            user_id: "test-user".to_string(),
-            ip_address: "127.0.0.1".to_string(),
-            user_agent: String::new(),
-            resource: "/api/v1/auth/token".to_string(),
             action: "POST".to_string(),
+            resource: Some("/api/v1/auth/token".to_string()),
+            resource_id: None,
             result: "SUCCESS".to_string(),
-            metadata: std::collections::HashMap::new(),
-            recorded_at: chrono::Utc::now(),
+            detail: None,
+            ip_address: Some("127.0.0.1".to_string()),
+            user_agent: Some(String::new()),
+            trace_id: None,
+            created_at: chrono::Utc::now(),
         };
 
         repo.create(&log).await.unwrap();

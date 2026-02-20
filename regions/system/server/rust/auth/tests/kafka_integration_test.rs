@@ -10,7 +10,6 @@ use k1s0_auth_server::domain::entity::audit_log::{AuditLog, CreateAuditLogReques
 use k1s0_auth_server::infrastructure::kafka_producer::{
     AuditEventPublisher, KafkaConfig, TopicsConfig,
 };
-use std::collections::HashMap;
 
 /// テスト用のインメモリプロデューサー/コンシューマー。
 /// Kafka ブローカーなしでメッセージのラウンドトリップを検証する。
@@ -56,7 +55,9 @@ fn make_audit_log(event_type: &str, user_id: &str, result: &str) -> AuditLog {
         resource: "/api/v1/auth/token".to_string(),
         action: "POST".to_string(),
         result: result.to_string(),
-        metadata: HashMap::from([("client_id".to_string(), "test-client".to_string())]),
+        resource_id: None,
+        detail: Some(serde_json::json!({"client_id": "test-client"})),
+        trace_id: None,
     })
 }
 
@@ -78,7 +79,8 @@ fn test_roundtrip_single_message() {
     assert_eq!(received.event_type, "LOGIN_SUCCESS");
     assert_eq!(received.user_id, "user-001");
     assert_eq!(received.result, "SUCCESS");
-    assert_eq!(received.metadata.get("client_id").unwrap(), "test-client");
+    let detail = received.detail.as_ref().unwrap();
+    assert_eq!(detail["client_id"], "test-client");
 }
 
 #[test]

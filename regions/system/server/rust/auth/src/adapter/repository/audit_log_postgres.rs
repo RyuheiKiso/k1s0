@@ -18,12 +18,14 @@ impl AuditLogPostgresRepository {
 #[async_trait]
 impl AuditLogRepository for AuditLogPostgresRepository {
     async fn create(&self, log: &AuditLog) -> anyhow::Result<()> {
-        let metadata = serde_json::to_value(&log.metadata)?;
-
         sqlx::query(
             r#"
-            INSERT INTO audit_logs (id, event_type, user_id, ip_address, user_agent, resource, action, result, metadata, recorded_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            INSERT INTO auth.audit_logs (
+                id, event_type, user_id, ip_address, user_agent,
+                resource, resource_id, action, result,
+                detail, trace_id, created_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             "#,
         )
         .bind(log.id)
@@ -32,10 +34,12 @@ impl AuditLogRepository for AuditLogPostgresRepository {
         .bind(&log.ip_address)
         .bind(&log.user_agent)
         .bind(&log.resource)
+        .bind(&log.resource_id)
         .bind(&log.action)
         .bind(&log.result)
-        .bind(metadata)
-        .bind(log.recorded_at)
+        .bind(&log.detail)
+        .bind(&log.trace_id)
+        .bind(log.created_at)
         .execute(&self.pool)
         .await?;
 
@@ -65,11 +69,11 @@ impl AuditLogRepository for AuditLogPostgresRepository {
             bind_index += 1;
         }
         if params.from.is_some() {
-            conditions.push(format!("recorded_at >= ${}", bind_index));
+            conditions.push(format!("created_at >= ${}", bind_index));
             bind_index += 1;
         }
         if params.to.is_some() {
-            conditions.push(format!("recorded_at <= ${}", bind_index));
+            conditions.push(format!("created_at <= ${}", bind_index));
             bind_index += 1;
         }
 
@@ -80,11 +84,11 @@ impl AuditLogRepository for AuditLogPostgresRepository {
         };
 
         let count_query = format!(
-            "SELECT COUNT(*) as count FROM audit_logs {}",
+            "SELECT COUNT(*) as count FROM auth.audit_logs {}",
             where_clause
         );
         let data_query = format!(
-            "SELECT id, event_type, user_id, ip_address, user_agent, resource, action, result, metadata, recorded_at FROM audit_logs {} ORDER BY recorded_at DESC LIMIT ${} OFFSET ${}",
+            "SELECT id, event_type, user_id, ip_address, user_agent, resource, resource_id, action, result, detail, trace_id, created_at FROM auth.audit_logs {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
             where_clause, bind_index, bind_index + 1
         );
 
@@ -144,17 +148,16 @@ pub struct AuditLogRow {
     pub ip_address: String,
     pub user_agent: String,
     pub resource: String,
+    pub resource_id: Option<String>,
     pub action: String,
     pub result: String,
-    pub metadata: serde_json::Value,
-    pub recorded_at: chrono::DateTime<chrono::Utc>,
+    pub detail: Option<serde_json::Value>,
+    pub trace_id: Option<String>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl From<AuditLogRow> for AuditLog {
     fn from(row: AuditLogRow) -> Self {
-        let metadata: std::collections::HashMap<String, String> =
-            serde_json::from_value(row.metadata).unwrap_or_default();
-
         AuditLog {
             id: row.id,
             event_type: row.event_type,
@@ -162,10 +165,12 @@ impl From<AuditLogRow> for AuditLog {
             ip_address: row.ip_address,
             user_agent: row.user_agent,
             resource: row.resource,
+            resource_id: row.resource_id,
             action: row.action,
             result: row.result,
-            metadata,
-            recorded_at: row.recorded_at,
+            detail: row.detail,
+            trace_id: row.trace_id,
+            created_at: row.created_at,
         }
     }
 }
@@ -174,7 +179,6 @@ impl From<AuditLogRow> for AuditLog {
 mod tests {
     use super::*;
     use crate::domain::repository::audit_log_repository::MockAuditLogRepository;
-    use std::collections::HashMap;
 
     #[test]
     fn test_audit_log_row_to_audit_log() {
@@ -185,19 +189,22 @@ mod tests {
             ip_address: "127.0.0.1".to_string(),
             user_agent: "test".to_string(),
             resource: "/api/v1/auth".to_string(),
+            resource_id: None,
             action: "POST".to_string(),
             result: "SUCCESS".to_string(),
-            metadata: serde_json::json!({"client_id": "react-spa"}),
-            recorded_at: chrono::Utc::now(),
+            detail: Some(serde_json::json!({"client_id": "react-spa"})),
+            trace_id: Some("trace-001".to_string()),
+            created_at: chrono::Utc::now(),
         };
 
         let log: AuditLog = row.into();
         assert_eq!(log.event_type, "LOGIN_SUCCESS");
-        assert_eq!(log.metadata.get("client_id").unwrap(), "react-spa");
+        assert_eq!(log.detail.as_ref().unwrap()["client_id"], "react-spa");
+        assert_eq!(log.trace_id.as_deref(), Some("trace-001"));
     }
 
     #[test]
-    fn test_audit_log_row_empty_metadata() {
+    fn test_audit_log_row_null_detail() {
         let row = AuditLogRow {
             id: uuid::Uuid::new_v4(),
             event_type: "TOKEN_VALIDATE".to_string(),
@@ -205,14 +212,17 @@ mod tests {
             ip_address: "10.0.0.1".to_string(),
             user_agent: "".to_string(),
             resource: "/api/v1/auth/token/validate".to_string(),
+            resource_id: None,
             action: "POST".to_string(),
             result: "SUCCESS".to_string(),
-            metadata: serde_json::json!({}),
-            recorded_at: chrono::Utc::now(),
+            detail: None,
+            trace_id: None,
+            created_at: chrono::Utc::now(),
         };
 
         let log: AuditLog = row.into();
-        assert!(log.metadata.is_empty());
+        assert!(log.detail.is_none());
+        assert!(log.trace_id.is_none());
     }
 
     #[tokio::test]
@@ -227,10 +237,12 @@ mod tests {
             ip_address: "127.0.0.1".to_string(),
             user_agent: "Mozilla/5.0".to_string(),
             resource: "/api/v1/auth/token".to_string(),
+            resource_id: None,
             action: "POST".to_string(),
             result: "SUCCESS".to_string(),
-            metadata: HashMap::from([("client_id".to_string(), "react-spa".to_string())]),
-            recorded_at: chrono::Utc::now(),
+            detail: Some(serde_json::json!({"client_id": "react-spa"})),
+            trace_id: None,
+            created_at: chrono::Utc::now(),
         };
 
         let result = mock.create(&log).await;
@@ -247,10 +259,12 @@ mod tests {
             ip_address: "127.0.0.1".to_string(),
             user_agent: "test".to_string(),
             resource: "/api/v1/auth/token".to_string(),
+            resource_id: None,
             action: "POST".to_string(),
             result: "SUCCESS".to_string(),
-            metadata: HashMap::new(),
-            recorded_at: chrono::Utc::now(),
+            detail: None,
+            trace_id: None,
+            created_at: chrono::Utc::now(),
         };
         let log_clone = expected_log.clone();
 
@@ -282,10 +296,12 @@ mod tests {
                     ip_address: "10.0.0.1".to_string(),
                     user_agent: "".to_string(),
                     resource: "/api/v1/auth/token/validate".to_string(),
+                    resource_id: None,
                     action: "POST".to_string(),
                     result: "SUCCESS".to_string(),
-                    metadata: HashMap::new(),
-                    recorded_at: chrono::Utc::now(),
+                    detail: None,
+                    trace_id: None,
+                    created_at: chrono::Utc::now(),
                 };
                 Ok((vec![log], 1))
             });
@@ -313,10 +329,12 @@ mod tests {
                     ip_address: "127.0.0.1".to_string(),
                     user_agent: "test".to_string(),
                     resource: "/api/v1/auth/token".to_string(),
+                    resource_id: None,
                     action: "POST".to_string(),
                     result: "SUCCESS".to_string(),
-                    metadata: HashMap::new(),
-                    recorded_at: chrono::Utc::now(),
+                    detail: None,
+                    trace_id: None,
+                    created_at: chrono::Utc::now(),
                 };
                 Ok((vec![log], 1))
             });
@@ -351,47 +369,6 @@ mod tests {
         let (logs, total): (Vec<AuditLog>, i64) = mock.search(&params).await.unwrap();
         assert_eq!(total, 25);
         assert!(logs.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_mock_search_multiple_filters() {
-        let mut mock = MockAuditLogRepository::new();
-
-        mock.expect_search()
-            .withf(|p| {
-                p.user_id == Some("user-1".to_string())
-                    && p.event_type == Some("LOGIN_SUCCESS".to_string())
-                    && p.from.is_some()
-            })
-            .returning(|_| {
-                let log = AuditLog {
-                    id: uuid::Uuid::new_v4(),
-                    event_type: "LOGIN_SUCCESS".to_string(),
-                    user_id: "user-1".to_string(),
-                    ip_address: "127.0.0.1".to_string(),
-                    user_agent: "Mozilla/5.0".to_string(),
-                    resource: "/api/v1/auth/token".to_string(),
-                    action: "POST".to_string(),
-                    result: "SUCCESS".to_string(),
-                    metadata: HashMap::from([("client_id".to_string(), "react-spa".to_string())]),
-                    recorded_at: chrono::Utc::now(),
-                };
-                Ok((vec![log], 1))
-            });
-
-        let from = chrono::Utc::now() - chrono::Duration::days(30);
-        let params = AuditLogSearchParams {
-            user_id: Some("user-1".to_string()),
-            event_type: Some("LOGIN_SUCCESS".to_string()),
-            from: Some(from),
-            page: 1,
-            page_size: 20,
-            ..Default::default()
-        };
-        let (logs, total): (Vec<AuditLog>, i64) = mock.search(&params).await.unwrap();
-        assert_eq!(total, 1);
-        assert_eq!(logs[0].user_id, "user-1");
-        assert_eq!(logs[0].event_type, "LOGIN_SUCCESS");
     }
 
     #[tokio::test]

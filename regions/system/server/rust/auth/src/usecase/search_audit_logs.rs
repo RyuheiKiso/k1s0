@@ -125,7 +125,6 @@ mod tests {
     use super::*;
     use crate::domain::entity::audit_log::AuditLog;
     use crate::domain::repository::audit_log_repository::MockAuditLogRepository;
-    use std::collections::HashMap;
     use uuid::Uuid;
 
     fn make_sample_logs() -> Vec<AuditLog> {
@@ -137,10 +136,12 @@ mod tests {
                 ip_address: "192.168.1.100".to_string(),
                 user_agent: "Mozilla/5.0".to_string(),
                 resource: "/api/v1/auth/token".to_string(),
+                resource_id: None,
                 action: "POST".to_string(),
                 result: "SUCCESS".to_string(),
-                metadata: HashMap::from([("client_id".to_string(), "react-spa".to_string())]),
-                recorded_at: chrono::Utc::now(),
+                detail: Some(serde_json::json!({"client_id": "react-spa"})),
+                trace_id: None,
+                created_at: chrono::Utc::now(),
             },
             AuditLog {
                 id: Uuid::new_v4(),
@@ -149,10 +150,12 @@ mod tests {
                 ip_address: "10.0.0.1".to_string(),
                 user_agent: "curl/7.0".to_string(),
                 resource: "/api/v1/auth/token".to_string(),
+                resource_id: None,
                 action: "POST".to_string(),
                 result: "FAILURE".to_string(),
-                metadata: HashMap::new(),
-                recorded_at: chrono::Utc::now(),
+                detail: None,
+                trace_id: None,
+                created_at: chrono::Utc::now(),
             },
         ]
     }

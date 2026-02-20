@@ -553,23 +553,27 @@ CREATE DATABASE k1s0_service;
 
 \c k1s0_system;
 
--- 監査ログテーブル
+-- 監査ログテーブル（auth スキーマ。詳細は system-database設計.md 参照）
+-- ローカル開発では sqlx-cli のマイグレーションで auth.audit_logs が作成される
+-- 以下は参照用の簡略版スキーマ
 CREATE TABLE IF NOT EXISTS audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID,
     event_type VARCHAR(100) NOT NULL,
-    user_id VARCHAR(255),
-    ip_address VARCHAR(45),
+    action VARCHAR(100) NOT NULL,
+    resource VARCHAR(255),
+    resource_id VARCHAR(255),
+    result VARCHAR(50) NOT NULL DEFAULT 'SUCCESS',
+    detail JSONB,
+    ip_address INET,
     user_agent TEXT,
-    resource VARCHAR(500),
-    action VARCHAR(10),
-    result VARCHAR(20) NOT NULL,
-    metadata JSONB DEFAULT '{}',
-    recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    trace_id VARCHAR(64),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
 CREATE INDEX idx_audit_logs_event_type ON audit_logs(event_type);
-CREATE INDEX idx_audit_logs_recorded_at ON audit_logs(recorded_at);
+CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
 ```
 
 #### config-server 用スキーマ

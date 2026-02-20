@@ -60,7 +60,6 @@ mod tests {
     use crate::infrastructure::MockTokenVerifier;
     use axum::body::Body;
     use axum::http::Request;
-    use std::collections::HashMap;
     use std::sync::Arc;
     use tower::ServiceExt;
 
@@ -92,7 +91,7 @@ mod tests {
             "resource": "/api/v1/auth/token",
             "action": "POST",
             "result": "SUCCESS",
-            "metadata": {"client_id": "react-spa"}
+            "detail": {"client_id": "react-spa"}
         });
 
         let req = Request::builder()
@@ -110,7 +109,7 @@ mod tests {
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert!(json["id"].is_string());
-        assert!(json["recorded_at"].is_string());
+        assert!(json["created_at"].is_string());
     }
 
     #[tokio::test]
@@ -151,13 +150,12 @@ mod tests {
                     ip_address: "192.168.1.100".to_string(),
                     user_agent: "Mozilla/5.0".to_string(),
                     resource: "/api/v1/auth/token".to_string(),
+                    resource_id: None,
                     action: "POST".to_string(),
                     result: "SUCCESS".to_string(),
-                    metadata: HashMap::from([(
-                        "client_id".to_string(),
-                        "react-spa".to_string(),
-                    )]),
-                    recorded_at: chrono::Utc::now(),
+                    detail: Some(serde_json::json!({"client_id": "react-spa"})),
+                    trace_id: None,
+                    created_at: chrono::Utc::now(),
                 }],
                 1,
             ))
