@@ -63,11 +63,39 @@ mod tests {
     use std::sync::Arc;
     use tower::ServiceExt;
 
+    fn make_valid_token_verifier() -> MockTokenVerifier {
+        use crate::domain::entity::claims::{Claims, RealmAccess};
+        use std::collections::HashMap;
+
+        let mut token_verifier = MockTokenVerifier::new();
+        token_verifier.expect_verify_token().returning(|_| {
+            Ok(Claims {
+                sub: "user-uuid-1234".to_string(),
+                iss: "test-issuer".to_string(),
+                aud: "test-audience".to_string(),
+                exp: chrono::Utc::now().timestamp() + 3600,
+                iat: chrono::Utc::now().timestamp(),
+                jti: "token-uuid".to_string(),
+                typ: "Bearer".to_string(),
+                azp: "test-client".to_string(),
+                scope: "openid".to_string(),
+                preferred_username: "taro.yamada".to_string(),
+                email: "taro@example.com".to_string(),
+                realm_access: RealmAccess {
+                    roles: vec!["sys_operator".to_string()],
+                },
+                resource_access: HashMap::new(),
+                tier_access: vec![],
+            })
+        });
+        token_verifier
+    }
+
     fn make_app_state(
         audit_repo: MockAuditLogRepository,
     ) -> AppState {
         AppState::new(
-            Arc::new(MockTokenVerifier::new()),
+            Arc::new(make_valid_token_verifier()),
             Arc::new(MockUserRepository::new()),
             Arc::new(audit_repo),
             "test-issuer".to_string(),
@@ -100,6 +128,7 @@ mod tests {
             .method("POST")
             .uri("/api/v1/audit/logs")
             .header("content-type", "application/json")
+            .header("Authorization", "Bearer valid-token")
             .body(Body::from(serde_json::to_string(&body).unwrap()))
             .unwrap();
 
@@ -133,6 +162,7 @@ mod tests {
             .method("POST")
             .uri("/api/v1/audit/logs")
             .header("content-type", "application/json")
+            .header("Authorization", "Bearer valid-token")
             .body(Body::from(serde_json::to_string(&body).unwrap()))
             .unwrap();
 
@@ -168,6 +198,7 @@ mod tests {
 
         let req = Request::builder()
             .uri("/api/v1/audit/logs?page=1&page_size=50")
+            .header("Authorization", "Bearer valid-token")
             .body(Body::empty())
             .unwrap();
 
@@ -197,6 +228,7 @@ mod tests {
 
         let req = Request::builder()
             .uri("/api/v1/audit/logs?user_id=user-1&event_type=LOGIN_SUCCESS")
+            .header("Authorization", "Bearer valid-token")
             .body(Body::empty())
             .unwrap();
 
@@ -223,6 +255,7 @@ mod tests {
             .method("POST")
             .uri("/api/v1/audit/logs")
             .header("content-type", "application/json")
+            .header("Authorization", "Bearer valid-token")
             .body(Body::from(serde_json::to_string(&body).unwrap()))
             .unwrap();
 

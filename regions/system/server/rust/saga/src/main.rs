@@ -12,6 +12,7 @@ use adapter::grpc::{SagaGrpcService, SagaServiceTonic};
 use adapter::handler::{self, AppState};
 use adapter::repository::saga_postgres::SagaPostgresRepository;
 use adapter::repository::workflow_in_memory::InMemoryWorkflowRepository;
+use domain::repository::WorkflowRepository;
 use infrastructure::config::Config;
 use infrastructure::grpc_caller::{ServiceRegistry, TonicGrpcCaller};
 
@@ -72,11 +73,13 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Workflow repository
+    let workflow_loader = infrastructure::workflow_loader::WorkflowLoader::new(&cfg.saga.workflow_dir);
+    let loaded_definitions = workflow_loader.load_all().await?;
     let workflow_repo = Arc::new(InMemoryWorkflowRepository::new());
-    let loaded = workflow_repo
-        .load_from_directory(&cfg.saga.workflow_dir)
-        .await?;
-    info!(count = loaded, "workflow definitions loaded from directory");
+    for workflow in &loaded_definitions {
+        workflow_repo.register(workflow.clone()).await?;
+    }
+    info!(count = loaded_definitions.len(), "workflow definitions loaded from directory via WorkflowLoader");
 
     // Service registry + gRPC caller
     let registry = Arc::new(ServiceRegistry::new(cfg.services.clone()));
