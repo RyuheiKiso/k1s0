@@ -7,7 +7,6 @@ on:
   push:
     branches: [main]
     paths:
-      - 'regions/system/server/go/config/**'
       - 'regions/system/server/rust/config/**'
 
 env:
@@ -40,7 +39,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: regions/system/server/go/config
+          context: regions/system/server/rust/config
           push: true
           tags: |
             ${{ env.REGISTRY }}/k1s0-system/config:${{ steps.version.outputs.value }}

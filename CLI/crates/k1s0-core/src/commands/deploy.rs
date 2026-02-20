@@ -125,8 +125,8 @@ pub struct DeployError {
 
 /// ターゲットパスから tier を抽出する。
 ///
-/// パス例: `regions/service/order/server/go` → `"service"`
-/// パス例: `regions/system/server/go/auth` → `"system"`
+/// パス例: `regions/service/order/server/rust` → `"service"`
+/// パス例: `regions/system/server/rust/auth` → `"system"`
 ///
 /// `regions/{tier}/...` の形式を前提とする。
 /// 抽出できない場合は `None` を返す。
@@ -148,9 +148,9 @@ pub fn extract_tier_from_target_path(target: &str) -> Option<String> {
 /// ターゲットパスから service_name を抽出する。
 ///
 /// パス構造に応じて末尾のディレクトリ名をサービス名として返す。
-/// - `regions/service/order/server/go` → `"order"`  (service tier: サービス名)
-/// - `regions/system/server/go/auth` → `"auth"` (system tier: 末尾ディレクトリ名)
-/// - `regions/business/accounting/server/go/ledger` → `"ledger"` (business tier: 末尾ディレクトリ名)
+/// - `regions/service/order/server/rust` → `"order"`  (service tier: サービス名)
+/// - `regions/system/server/rust/auth` → `"auth"` (system tier: 末尾ディレクトリ名)
+/// - `regions/business/accounting/server/rust/ledger` → `"ledger"` (business tier: 末尾ディレクトリ名)
 ///
 /// 抽出できない場合は `None` を返す。
 pub fn extract_service_name_from_target_path(target: &str) -> Option<String> {
@@ -464,7 +464,7 @@ mod tests {
     fn test_deploy_config_creation() {
         let config = DeployConfig {
             environment: Environment::Dev,
-            targets: vec!["regions/system/server/go/auth".to_string()],
+            targets: vec!["regions/system/server/rust/auth".to_string()],
         };
         assert_eq!(config.environment, Environment::Dev);
         assert_eq!(config.targets.len(), 1);
@@ -486,14 +486,14 @@ mod tests {
         let tmp = TempDir::new().unwrap();
 
         // サーバー (デプロイ可能)
-        let server_path = tmp.path().join("regions/system/server/go/auth");
+        let server_path = tmp.path().join("regions/system/server/rust/auth");
         fs::create_dir_all(&server_path).unwrap();
-        fs::write(server_path.join("go.mod"), "module auth\n").unwrap();
+        fs::write(server_path.join("Cargo.toml"), "[package]\n").unwrap();
 
         // ライブラリ (デプロイ対象外)
-        let lib_path = tmp.path().join("regions/system/library/go/authlib");
+        let lib_path = tmp.path().join("regions/system/library/rust/authlib");
         fs::create_dir_all(&lib_path).unwrap();
-        fs::write(lib_path.join("go.mod"), "module authlib\n").unwrap();
+        fs::write(lib_path.join("Cargo.toml"), "[package]\n").unwrap();
 
         let targets = scan_deployable_targets_at(tmp.path());
 
@@ -676,7 +676,7 @@ mod tests {
         let error = DeployError {
             step: DeployStep::DockerBuild,
             message: "Dockerfile not found".to_string(),
-            manual_command: "cd regions/service/order/server/go && docker build -t order:dev .".to_string(),
+            manual_command: "cd regions/service/order/server/rust && docker build -t order:dev .".to_string(),
         };
         assert_eq!(error.step, DeployStep::DockerBuild);
         assert_eq!(error.message, "Dockerfile not found");
@@ -689,17 +689,17 @@ mod tests {
     fn test_extract_tier_from_target_path() {
         // service tier
         assert_eq!(
-            extract_tier_from_target_path("regions/service/order/server/go"),
+            extract_tier_from_target_path("regions/service/order/server/rust"),
             Some("service".to_string())
         );
         // system tier
         assert_eq!(
-            extract_tier_from_target_path("regions/system/server/go/auth"),
+            extract_tier_from_target_path("regions/system/server/rust/auth"),
             Some("system".to_string())
         );
         // business tier
         assert_eq!(
-            extract_tier_from_target_path("regions/business/accounting/server/go/ledger"),
+            extract_tier_from_target_path("regions/business/accounting/server/rust/ledger"),
             Some("business".to_string())
         );
         // 無効なパス
@@ -714,7 +714,7 @@ mod tests {
         );
         // Windows パス区切りでも動作する
         assert_eq!(
-            extract_tier_from_target_path("regions\\service\\order\\server\\go"),
+            extract_tier_from_target_path("regions\\service\\order\\server\\rust"),
             Some("service".to_string())
         );
     }
@@ -725,17 +725,17 @@ mod tests {
     fn test_extract_service_name_from_target_path() {
         // service tier: サービス名 (regions/service/{service_name}/...)
         assert_eq!(
-            extract_service_name_from_target_path("regions/service/order/server/go"),
+            extract_service_name_from_target_path("regions/service/order/server/rust"),
             Some("order".to_string())
         );
         // system tier: 末尾ディレクトリ名
         assert_eq!(
-            extract_service_name_from_target_path("regions/system/server/go/auth"),
+            extract_service_name_from_target_path("regions/system/server/rust/auth"),
             Some("auth".to_string())
         );
         // business tier: 末尾ディレクトリ名
         assert_eq!(
-            extract_service_name_from_target_path("regions/business/accounting/server/go/ledger"),
+            extract_service_name_from_target_path("regions/business/accounting/server/rust/ledger"),
             Some("ledger".to_string())
         );
         // 無効なパス

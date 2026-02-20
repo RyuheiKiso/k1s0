@@ -1731,13 +1731,13 @@ COMMENT ON TABLE config_change_logs IS '設定変更の監査ログ。全ての 
 
 ### レイヤー別テスト
 
-| レイヤー | テスト種別 | Go | Rust |
-| --- | --- | --- | --- |
-| domain/service | 単体テスト | `testify/assert` | `#[cfg(test)]` + `assert!` |
-| usecase | 単体テスト（モック） | `gomock` | `mockall` |
-| adapter/handler | 統合テスト（HTTP/gRPC） | `httptest` + `testify` | `axum::test` + `tokio::test` |
-| infra/persistence | 統合テスト（DB） | `testcontainers-go` | `testcontainers` |
-| infra/cache | 単体テスト | `testify` | `tokio::test` |
+| レイヤー | テスト種別 | ツール |
+| --- | --- | --- |
+| domain/service | 単体テスト | `#[cfg(test)]` + `assert!` |
+| usecase | 単体テスト（モック） | `mockall` |
+| adapter/handler | 統合テスト（HTTP/gRPC） | `axum::test` + `tokio::test` |
+| infra/persistence | 統合テスト（DB） | `testcontainers` |
+| infra/cache | 単体テスト | `tokio::test` |
 
 ### Rust テスト例
 
@@ -1814,77 +1814,6 @@ mod tests {
 ```
 
 ### testcontainers による DB 統合テスト
-
-#### Go
-
-```go
-// internal/infra/persistence/config_repository_test.go
-package persistence
-
-import (
-    "context"
-    "encoding/json"
-    "testing"
-
-    "github.com/stretchr/testify/assert"
-    "github.com/testcontainers/testcontainers-go"
-    "github.com/testcontainers/testcontainers-go/modules/postgres"
-)
-
-func TestConfigRepository_CRUD(t *testing.T) {
-    ctx := context.Background()
-
-    pgContainer, err := postgres.Run(ctx, "postgres:16-alpine",
-        postgres.WithDatabase("config_db_test"),
-    )
-    assert.NoError(t, err)
-    defer pgContainer.Terminate(ctx)
-
-    connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
-    assert.NoError(t, err)
-
-    db, err := NewDB(DatabaseConfig{/* connStr から設定 */})
-    assert.NoError(t, err)
-    defer db.Close()
-
-    // マイグレーション実行
-    runMigrations(db)
-
-    repo := NewConfigRepository(db)
-
-    // Create
-    entry := &model.ConfigEntry{
-        Namespace:   "system.auth.database",
-        Key:         "max_connections",
-        Value:       json.RawMessage(`25`),
-        Version:     1,
-        Description: "DB 最大接続数",
-        CreatedBy:   "admin@example.com",
-        UpdatedBy:   "admin@example.com",
-    }
-    err = repo.Create(ctx, entry)
-    assert.NoError(t, err)
-
-    // Read
-    found, err := repo.FindByNamespaceAndKey(ctx, "system.auth.database", "max_connections")
-    assert.NoError(t, err)
-    assert.Equal(t, "max_connections", found.Key)
-    assert.Equal(t, 1, found.Version)
-
-    // Update
-    found.Value = json.RawMessage(`50`)
-    found.Version = 2
-    err = repo.Update(ctx, found)
-    assert.NoError(t, err)
-
-    // Delete
-    err = repo.Delete(ctx, "system.auth.database", "max_connections")
-    assert.NoError(t, err)
-
-    _, err = repo.FindByNamespaceAndKey(ctx, "system.auth.database", "max_connections")
-    assert.Error(t, err)
-}
-```
 
 #### Rust
 
@@ -1966,25 +1895,6 @@ mod tests {
 ### Dockerfile
 
 [Dockerイメージ戦略.md](Dockerイメージ戦略.md) のテンプレートに従う。
-
-#### Go
-
-```dockerfile
-# ---- Build ----
-FROM golang:1.23-bookworm AS build
-WORKDIR /src
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app ./cmd/
-
-# ---- Runtime ----
-FROM gcr.io/distroless/static-debian12
-COPY --from=build /app /app
-USER nonroot:nonroot
-EXPOSE 8080 50051
-ENTRYPOINT ["/app"]
-```
 
 #### Rust
 

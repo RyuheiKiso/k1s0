@@ -308,7 +308,7 @@ mod tests {
     fn test_test_config_creation() {
         let config = TestConfig {
             kind: TestKind::Unit,
-            targets: vec!["regions/system/server/go/auth".to_string()],
+            targets: vec!["regions/system/server/rust/auth".to_string()],
         };
         assert_eq!(config.kind, TestKind::Unit);
         assert_eq!(config.targets.len(), 1);
@@ -327,9 +327,9 @@ mod tests {
     fn test_scan_testable_targets_with_projects() {
         let tmp = TempDir::new().unwrap();
 
-        let go_path = tmp.path().join("regions/system/server/go/auth");
-        fs::create_dir_all(&go_path).unwrap();
-        fs::write(go_path.join("go.mod"), "module auth\n").unwrap();
+        let rust_path = tmp.path().join("regions/system/server/rust/auth");
+        fs::create_dir_all(&rust_path).unwrap();
+        fs::write(rust_path.join("Cargo.toml"), "[package]\n").unwrap();
 
         let targets = scan_testable_targets_at(tmp.path());
         assert_eq!(targets.len(), 1);

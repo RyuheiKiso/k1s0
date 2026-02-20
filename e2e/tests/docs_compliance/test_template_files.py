@@ -484,7 +484,7 @@ class TestGoModuleRules:
         "go_module",
         [
             "github.com/org/k1s0/regions/service/order/server/go",
-            "github.com/org/k1s0/regions/system/server/go/auth",
+            "github.com/org/k1s0/regions/system/server/rust/auth",
             "github.com/org/k1s0/regions/business/accounting/server/go/ledger-api",
         ],
     )

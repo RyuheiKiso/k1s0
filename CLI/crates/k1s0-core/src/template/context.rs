@@ -482,7 +482,7 @@ mod tests {
 
     #[test]
     fn test_context_name_derivation_order_api() {
-        let ctx = TemplateContextBuilder::new("order-api", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order-api", "service", "rust", "server")
             .build();
 
         assert_eq!(ctx.service_name, "order-api");
@@ -493,7 +493,7 @@ mod tests {
 
     #[test]
     fn test_context_name_derivation_user_auth_service() {
-        let ctx = TemplateContextBuilder::new("user-auth-service", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("user-auth-service", "service", "rust", "server")
             .build();
 
         assert_eq!(ctx.service_name, "user-auth-service");
@@ -504,7 +504,7 @@ mod tests {
 
     #[test]
     fn test_context_name_derivation_single_word() {
-        let ctx = TemplateContextBuilder::new("inventory", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("inventory", "service", "rust", "server")
             .build();
 
         assert_eq!(ctx.service_name, "inventory");
@@ -519,21 +519,21 @@ mod tests {
 
     #[test]
     fn test_domain_empty_for_service_tier() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .build();
         assert_eq!(ctx.domain, "");
     }
 
     #[test]
     fn test_domain_empty_for_system_tier() {
-        let ctx = TemplateContextBuilder::new("auth", "system", "go", "server")
+        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server")
             .build();
         assert_eq!(ctx.domain, "");
     }
 
     #[test]
     fn test_domain_set_for_business_tier() {
-        let ctx = TemplateContextBuilder::new("ledger-api", "business", "go", "server")
+        let ctx = TemplateContextBuilder::new("ledger-api", "business", "rust", "server")
             .domain("accounting")
             .build();
         assert_eq!(ctx.domain, "accounting");
@@ -544,12 +544,12 @@ mod tests {
     // =========================================================================
 
     #[test]
-    fn test_context_module_path_service_go_server() {
+    fn test_context_module_path_service_rust_server() {
         // service tier: regions/service/{service_name}/{kind}/{language}
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .build();
 
-        assert_eq!(ctx.module_path, "regions/service/order/server/go");
+        assert_eq!(ctx.module_path, "regions/service/order/server/rust");
     }
 
     #[test]
@@ -562,24 +562,24 @@ mod tests {
     }
 
     #[test]
-    fn test_context_module_path_system_server_go() {
+    fn test_context_module_path_system_server_rust() {
         // system tier: regions/system/{kind}/{language}/{service_name}
-        let ctx = TemplateContextBuilder::new("auth", "system", "go", "server")
+        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server")
             .build();
 
-        assert_eq!(ctx.module_path, "regions/system/server/go/auth");
+        assert_eq!(ctx.module_path, "regions/system/server/rust/auth");
     }
 
     #[test]
-    fn test_context_module_path_business_server_go() {
+    fn test_context_module_path_business_server_rust() {
         // business tier: regions/business/{domain}/{kind}/{language}/{service_name}
-        let ctx = TemplateContextBuilder::new("ledger-api", "business", "go", "server")
+        let ctx = TemplateContextBuilder::new("ledger-api", "business", "rust", "server")
             .domain("accounting")
             .build();
 
         assert_eq!(
             ctx.module_path,
-            "regions/business/accounting/server/go/ledger-api"
+            "regions/business/accounting/server/rust/ledger-api"
         );
     }
 
@@ -597,15 +597,15 @@ mod tests {
     }
 
     #[test]
-    fn test_context_module_path_business_library_go() {
+    fn test_context_module_path_business_library_rust() {
         // business tier: regions/business/{domain}/{kind}/{language}/{service_name}
-        let ctx = TemplateContextBuilder::new("shared-types", "business", "go", "library")
+        let ctx = TemplateContextBuilder::new("shared-types", "business", "rust", "library")
             .domain("fa")
             .build();
 
         assert_eq!(
             ctx.module_path,
-            "regions/business/fa/library/go/shared-types"
+            "regions/business/fa/library/rust/shared-types"
         );
     }
 
@@ -615,7 +615,7 @@ mod tests {
 
     #[test]
     fn test_context_docker_project_system() {
-        let ctx = TemplateContextBuilder::new("auth", "system", "go", "server")
+        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server")
             .build();
 
         assert_eq!(ctx.docker_project, "k1s0-system");
@@ -623,7 +623,7 @@ mod tests {
 
     #[test]
     fn test_context_docker_project_business() {
-        let ctx = TemplateContextBuilder::new("crm", "business", "go", "server")
+        let ctx = TemplateContextBuilder::new("crm", "business", "rust", "server")
             .build();
 
         assert_eq!(ctx.docker_project, "k1s0-business");
@@ -631,14 +631,14 @@ mod tests {
 
     #[test]
     fn test_context_docker_project_service() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .build();
 
         assert_eq!(ctx.docker_project, "k1s0-service");
     }
 
     // =========================================================================
-    // go_module の導出テスト
+    // go_module の導出テスト (Go 言語サポート用、後方互換)
     // =========================================================================
 
     #[test]
@@ -686,7 +686,7 @@ mod tests {
 
     #[test]
     fn test_builder_api_style() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .api_style("rest")
             .build();
 
@@ -695,7 +695,7 @@ mod tests {
 
     #[test]
     fn test_builder_with_database() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .with_database("postgresql")
             .build();
 
@@ -705,7 +705,7 @@ mod tests {
 
     #[test]
     fn test_builder_without_database() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .build();
 
         assert!(!ctx.has_database);
@@ -714,7 +714,7 @@ mod tests {
 
     #[test]
     fn test_builder_with_kafka() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .with_kafka()
             .build();
 
@@ -723,7 +723,7 @@ mod tests {
 
     #[test]
     fn test_builder_with_redis() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .with_redis()
             .build();
 
@@ -734,7 +734,7 @@ mod tests {
 
     #[test]
     fn test_builder_api_styles_multiple() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .api_styles(vec!["rest".to_string(), "grpc".to_string()])
             .build();
 
@@ -744,7 +744,7 @@ mod tests {
 
     #[test]
     fn test_builder_api_style_backward_compat() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .api_style("grpc")
             .build();
 
@@ -754,14 +754,14 @@ mod tests {
 
     #[test]
     fn test_builder_api_styles_empty_default() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .build();
 
         assert!(ctx.api_styles.is_empty());
         assert_eq!(ctx.api_style, ""); // no styles = empty string
     }
 
-    // --- D-09: go_module_base ---
+    // --- D-09: go_module_base (Go 言語後方互換) / rust_crate ---
 
     #[test]
     fn test_builder_go_module_base_custom() {
@@ -787,31 +787,29 @@ mod tests {
     }
 
     #[test]
-    fn test_go_module_system_tier() {
-        let ctx = TemplateContextBuilder::new("auth", "system", "go", "server")
+    fn test_rust_crate_system_tier() {
+        // system tier, rust: regions/system/server/rust/auth
+        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server")
             .build();
 
-        assert_eq!(
-            ctx.go_module,
-            "github.com/org/k1s0/regions/system/server/go/auth"
-        );
+        assert_eq!(ctx.rust_crate, "auth");
+        assert_eq!(ctx.module_path, "regions/system/server/rust/auth");
     }
 
     #[test]
-    fn test_go_module_business_tier() {
-        let ctx = TemplateContextBuilder::new("ledger-api", "business", "go", "server")
+    fn test_rust_crate_business_tier() {
+        // business tier, rust: regions/business/accounting/server/rust/ledger-api
+        let ctx = TemplateContextBuilder::new("ledger-api", "business", "rust", "server")
             .domain("accounting")
             .build();
 
-        assert_eq!(
-            ctx.go_module,
-            "github.com/org/k1s0/regions/business/accounting/server/go/ledger-api"
-        );
+        assert_eq!(ctx.rust_crate, "ledger-api");
+        assert_eq!(ctx.module_path, "regions/business/accounting/server/rust/ledger-api");
     }
 
     #[test]
     fn test_builder_docker_registry_default() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .build();
 
         assert_eq!(ctx.docker_registry, "harbor.internal.example.com");
@@ -819,7 +817,7 @@ mod tests {
 
     #[test]
     fn test_builder_docker_registry_custom() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .docker_registry("custom.registry.io")
             .build();
 
@@ -828,7 +826,7 @@ mod tests {
 
     #[test]
     fn test_builder_full_options_service() {
-        let ctx = TemplateContextBuilder::new("order-api", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order-api", "service", "rust", "server")
             .api_style("rest")
             .with_database("postgresql")
             .with_kafka()
@@ -841,19 +839,16 @@ mod tests {
         assert_eq!(ctx.service_name_camel, "orderApi");
         assert_eq!(ctx.tier, "service");
         assert_eq!(ctx.domain, "");
-        assert_eq!(ctx.module_path, "regions/service/order-api/server/go");
-        assert_eq!(ctx.language, "go");
+        assert_eq!(ctx.module_path, "regions/service/order-api/server/rust");
+        assert_eq!(ctx.language, "rust");
         assert_eq!(ctx.kind, "server");
         assert_eq!(ctx.api_style, "rest");
         assert!(ctx.has_database);
         assert_eq!(ctx.database_type, "postgresql");
         assert!(ctx.has_kafka);
         assert!(ctx.has_redis);
-        assert_eq!(
-            ctx.go_module,
-            "github.com/org/k1s0/regions/service/order-api/server/go"
-        );
-        assert_eq!(ctx.rust_crate, "");
+        assert_eq!(ctx.go_module, "");
+        assert_eq!(ctx.rust_crate, "order-api");
         assert_eq!(ctx.docker_registry, "harbor.internal.example.com");
         assert_eq!(ctx.docker_project, "k1s0-service");
         assert_eq!(ctx.helm_path, "order-api");
@@ -861,7 +856,7 @@ mod tests {
 
     #[test]
     fn test_builder_full_options_business() {
-        let ctx = TemplateContextBuilder::new("ledger-api", "business", "go", "server")
+        let ctx = TemplateContextBuilder::new("ledger-api", "business", "rust", "server")
             .domain("accounting")
             .api_style("rest")
             .with_database("postgresql")
@@ -871,12 +866,9 @@ mod tests {
         assert_eq!(ctx.domain, "accounting");
         assert_eq!(
             ctx.module_path,
-            "regions/business/accounting/server/go/ledger-api"
+            "regions/business/accounting/server/rust/ledger-api"
         );
-        assert_eq!(
-            ctx.go_module,
-            "github.com/org/k1s0/regions/business/accounting/server/go/ledger-api"
-        );
+        assert_eq!(ctx.rust_crate, "ledger-api");
         assert_eq!(ctx.docker_project, "k1s0-business");
     }
 
@@ -886,7 +878,7 @@ mod tests {
 
     #[test]
     fn test_to_tera_context_contains_all_fields() {
-        let ctx = TemplateContextBuilder::new("order-api", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order-api", "service", "rust", "server")
             .api_style("rest")
             .with_database("postgresql")
             .with_kafka()
@@ -902,8 +894,8 @@ mod tests {
         assert_eq!(json["service_name_camel"], "orderApi");
         assert_eq!(json["tier"], "service");
         assert_eq!(json["domain"], "");
-        assert_eq!(json["module_path"], "regions/service/order-api/server/go");
-        assert_eq!(json["language"], "go");
+        assert_eq!(json["module_path"], "regions/service/order-api/server/rust");
+        assert_eq!(json["language"], "rust");
         assert_eq!(json["kind"], "server");
         assert_eq!(json["api_style"], "rest");
         assert_eq!(json["api_styles"], serde_json::json!(["rest"]));
@@ -911,11 +903,8 @@ mod tests {
         assert_eq!(json["database_type"], "postgresql");
         assert_eq!(json["has_kafka"], true);
         assert_eq!(json["has_redis"], true);
-        assert_eq!(
-            json["go_module"],
-            "github.com/org/k1s0/regions/service/order-api/server/go"
-        );
-        assert_eq!(json["rust_crate"], "");
+        assert_eq!(json["go_module"], "");
+        assert_eq!(json["rust_crate"], "order-api");
         assert_eq!(json["docker_registry"], "harbor.internal.example.com");
         assert_eq!(json["docker_project"], "k1s0-service");
         assert_eq!(json["helm_path"], "order-api");
@@ -923,7 +912,7 @@ mod tests {
 
     #[test]
     fn test_to_tera_context_business_with_domain() {
-        let ctx = TemplateContextBuilder::new("ledger-api", "business", "go", "server")
+        let ctx = TemplateContextBuilder::new("ledger-api", "business", "rust", "server")
             .domain("accounting")
             .build();
 
@@ -933,14 +922,14 @@ mod tests {
         assert_eq!(json["domain"], "accounting");
         assert_eq!(
             json["module_path"],
-            "regions/business/accounting/server/go/ledger-api"
+            "regions/business/accounting/server/rust/ledger-api"
         );
     }
 
     #[test]
     fn test_to_tera_context_flat_access() {
         // テンプレートで {{ service_name }} のようにフラットアクセスできることを検証
-        let ctx = TemplateContextBuilder::new("order-api", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order-api", "service", "rust", "server")
             .build();
 
         let tera_ctx = ctx.to_tera_context();
@@ -957,7 +946,7 @@ mod tests {
 
     #[test]
     fn test_template_context_serialize() {
-        let ctx = TemplateContextBuilder::new("order-api", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order-api", "service", "rust", "server")
             .api_style("rest")
             .build();
 
@@ -974,7 +963,7 @@ mod tests {
 
     #[test]
     fn test_builder_environment() {
-        let ctx = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
+        let ctx = TemplateContextBuilder::new("k1s0", "system", "rust", "terraform")
             .environment("prod")
             .build();
         assert_eq!(ctx.environment, "prod");
@@ -982,14 +971,14 @@ mod tests {
 
     #[test]
     fn test_builder_environment_default_empty() {
-        let ctx = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
+        let ctx = TemplateContextBuilder::new("k1s0", "system", "rust", "terraform")
             .build();
         assert_eq!(ctx.environment, "");
     }
 
     #[test]
     fn test_builder_enable_flags() {
-        let ctx = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
+        let ctx = TemplateContextBuilder::new("k1s0", "system", "rust", "terraform")
             .environment("dev")
             .enable_postgresql()
             .enable_kafka()
@@ -1008,7 +997,7 @@ mod tests {
 
     #[test]
     fn test_builder_enable_all_flags() {
-        let ctx = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
+        let ctx = TemplateContextBuilder::new("k1s0", "system", "rust", "terraform")
             .enable_postgresql()
             .enable_mysql()
             .enable_kafka()
@@ -1029,7 +1018,7 @@ mod tests {
 
     #[test]
     fn test_builder_enable_flags_default_false() {
-        let ctx = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
+        let ctx = TemplateContextBuilder::new("k1s0", "system", "rust", "terraform")
             .build();
 
         assert!(!ctx.enable_postgresql);
@@ -1047,21 +1036,21 @@ mod tests {
 
     #[test]
     fn test_namespace_derived_from_tier_system() {
-        let ctx = TemplateContextBuilder::new("auth", "system", "go", "server")
+        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server")
             .build();
         assert_eq!(ctx.namespace, "k1s0-system");
     }
 
     #[test]
     fn test_namespace_derived_from_tier_business() {
-        let ctx = TemplateContextBuilder::new("ledger", "business", "go", "server")
+        let ctx = TemplateContextBuilder::new("ledger", "business", "rust", "server")
             .build();
         assert_eq!(ctx.namespace, "k1s0-business");
     }
 
     #[test]
     fn test_namespace_derived_from_tier_service() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .build();
         assert_eq!(ctx.namespace, "k1s0-service");
     }
@@ -1072,14 +1061,14 @@ mod tests {
 
     #[test]
     fn test_server_port_default() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .build();
         assert_eq!(ctx.server_port, 8080);
     }
 
     #[test]
     fn test_server_port_custom() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .server_port(80)
             .build();
         assert_eq!(ctx.server_port, 80);
@@ -1087,14 +1076,14 @@ mod tests {
 
     #[test]
     fn test_grpc_port_default() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .build();
         assert_eq!(ctx.grpc_port, 50051);
     }
 
     #[test]
     fn test_grpc_port_custom() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .grpc_port(9090)
             .build();
         assert_eq!(ctx.grpc_port, 9090);
@@ -1106,14 +1095,14 @@ mod tests {
 
     #[test]
     fn test_server_language_defaults_to_language() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
             .build();
-        assert_eq!(ctx.server_language, "go");
+        assert_eq!(ctx.server_language, "rust");
     }
 
     #[test]
     fn test_server_language_custom() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "docker-compose")
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "docker-compose")
             .server_language("rust")
             .build();
         assert_eq!(ctx.server_language, "rust");
@@ -1125,7 +1114,7 @@ mod tests {
 
     #[test]
     fn test_to_tera_context_contains_new_fields() {
-        let ctx = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
+        let ctx = TemplateContextBuilder::new("k1s0", "system", "rust", "terraform")
             .environment("prod")
             .enable_postgresql()
             .enable_observability()
@@ -1146,6 +1135,6 @@ mod tests {
         assert_eq!(json["namespace"], "k1s0-system");
         assert_eq!(json["server_port"], 80);
         assert_eq!(json["grpc_port"], 9090);
-        assert_eq!(json["server_language"], "go");
+        assert_eq!(json["server_language"], "rust");
     }
 }

@@ -190,31 +190,6 @@ services:
   # ============================================================
   # System プロファイル
   # ============================================================
-  auth-go:
-    build:
-      context: ./regions/system/server/go/auth
-      dockerfile: Dockerfile
-    profiles: [system]
-    ports:
-      - "8080:8080"
-      - "50051:50051"
-    environment:
-      - CONFIG_PATH=/app/config/config.dev.yaml
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      keycloak:
-        condition: service_healthy
-    volumes:
-      - ./regions/system/server/go/auth/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   auth-rust:
     build:
       context: ./regions/system/server/rust/auth
@@ -234,31 +209,6 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/auth/config:/app/config
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  config-go:
-    build:
-      context: ./regions/system/server/go/config
-      dockerfile: Dockerfile
-    profiles: [system]
-    ports:
-      - "8082:8080"
-      - "50053:50051"
-    environment:
-      - CONFIG_PATH=/app/config/config.dev.yaml
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      keycloak:
-        condition: service_healthy
-    volumes:
-      - ./regions/system/server/go/config/config:/app/config
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
       interval: 10s
