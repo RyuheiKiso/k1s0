@@ -161,6 +161,8 @@ fn make_test_app(token_success: bool) -> axum::Router {
         Arc::new(TestAuditLogRepository::new()),
         "test-issuer".to_string(),
         "test-audience".to_string(),
+        None,
+        None,
     );
     router(state)
 }
@@ -324,6 +326,8 @@ async fn test_audit_log_record_and_search_flow() {
         Arc::new(TestAuditLogRepository::new()),
         "test-issuer".to_string(),
         "test-audience".to_string(),
+        None,
+        None,
     );
     let app = router(state);
 

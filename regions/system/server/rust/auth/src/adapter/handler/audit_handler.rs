@@ -72,6 +72,8 @@ mod tests {
             Arc::new(audit_repo),
             "test-issuer".to_string(),
             "test-audience".to_string(),
+            None,
+            None,
         )
     }
 

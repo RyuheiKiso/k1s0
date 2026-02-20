@@ -15,15 +15,53 @@ pub async fn healthz() -> impl IntoResponse {
 }
 
 /// GET /readyz
-pub async fn readyz() -> impl IntoResponse {
-    // TODO: 実際の DB / Keycloak 接続確認を実装する
-    Json(serde_json::json!({
-        "status": "ready",
-        "checks": {
-            "database": "ok",
-            "keycloak": "ok"
+pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
+    let mut db_status = "skipped";
+    let mut kc_status = "skipped";
+    let mut overall_ok = true;
+
+    // DB check
+    if let Some(ref pool) = state.db_pool {
+        match sqlx::query("SELECT 1").execute(pool).await {
+            Ok(_) => db_status = "ok",
+            Err(_) => {
+                db_status = "error";
+                overall_ok = false;
+            }
         }
-    }))
+    }
+
+    // Keycloak check
+    if let Some(ref url) = state.keycloak_url {
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(3))
+            .build()
+            .unwrap_or_default();
+        match client.get(url).send().await {
+            Ok(_) => kc_status = "ok",
+            Err(_) => {
+                kc_status = "error";
+                overall_ok = false;
+            }
+        }
+    }
+
+    let status_code = if overall_ok {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+    (
+        status_code,
+        Json(serde_json::json!({
+            "status": if overall_ok { "ready" } else { "not ready" },
+            "checks": {
+                "database": db_status,
+                "keycloak": kc_status
+            }
+        })),
+    )
+        .into_response()
 }
 
 /// GET /metrics
@@ -223,6 +261,8 @@ mod tests {
             Arc::new(audit_repo),
             "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
             "k1s0-api".to_string(),
+            None,
+            None,
         )
     }
 

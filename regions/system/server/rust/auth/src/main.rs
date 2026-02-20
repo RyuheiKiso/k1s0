@@ -151,6 +151,11 @@ async fn main() -> anyhow::Result<()> {
         None
     };
 
+    // Keycloak health check URL (captured before take())
+    let keycloak_health_url = cfg.keycloak.as_ref().map(|kc| {
+        format!("{}/realms/{}", kc.base_url, kc.realm)
+    });
+
     // User repository (PostgreSQL > Keycloak > Stub)
     let keycloak_config = cfg.keycloak.take();
     let user_repo: Arc<dyn domain::repository::UserRepository> = if let Some(ref pool) = db_pool {
@@ -186,6 +191,8 @@ async fn main() -> anyhow::Result<()> {
         audit_repo,
         cfg.auth.jwt.issuer,
         cfg.auth.jwt.audience,
+        db_pool.clone(),
+        keycloak_health_url,
     );
 
     let auth_grpc_svc = Arc::new(AuthGrpcService::new(

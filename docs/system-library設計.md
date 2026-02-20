@@ -10,6 +10,12 @@ system tier が提供する共通ライブラリの設計を定義する。
 | config | YAML 設定読み込み・環境別オーバーライド・バリデーション | 全サーバー・クライアント |
 | telemetry | OpenTelemetry 初期化・構造化ログ・分散トレース・メトリクス | 全サーバー・クライアント |
 | authlib | JWT 検証（サーバー用）/ OAuth2 PKCE トークン管理（クライアント用） | 全サーバー・クライアント |
+| k1s0-messaging | Kafka イベント発行・購読の抽象化（EventProducer トレイト・EventEnvelope） | 全サーバー（Kafka イベント発行） |
+| k1s0-kafka | Kafka 接続設定・管理・ヘルスチェック（KafkaConfig・TLS 対応） | k1s0-messaging を使うサーバー |
+| k1s0-correlation | 分散トレーシング用相関 ID・トレース ID 管理（UUID v4・32 文字 hex） | 全サーバー・クライアント |
+| k1s0-outbox | トランザクショナルアウトボックスパターン（指数バックオフリトライ） | Kafka 発行を必要とするサーバー |
+| k1s0-schemaregistry | Confluent Schema Registry クライアント（Avro/Json/Protobuf 対応） | Kafka プロデューサー・コンシューマー |
+| k1s0-serviceauth | サービス間 OAuth2 Client Credentials 認証（トークンキャッシュ・SPIFFE） | サービス間 gRPC/HTTP 通信を行うサーバー |
 
 ---
 
@@ -2468,6 +2474,549 @@ class AuthError implements Exception {
 
 ---
 
+## k1s0-messaging ライブラリ
+
+### 概要
+
+Kafka イベント発行・購読の抽象化ライブラリ。`EventProducer` トレイトと `NoOpEventProducer`（テスト用）実装、`EventMetadata`、`EventEnvelope` を提供する。具体的な Kafka クライアント実装は依存せず、トレイト境界でモック差し替えが可能。
+
+Rust 実装のみ（他言語は別途対応予定）
+
+**配置先**: `regions/system/library/rust/messaging/`
+
+### 公開 API
+
+| 型・トレイト | 種別 | 説明 |
+|-------------|------|------|
+| `EventProducer` | トレイト | イベント発行の抽象インターフェース（`async fn publish`） |
+| `MockEventProducer` | 構造体 | テスト用モック（feature = "mock" で有効） |
+| `EventEnvelope` | 構造体 | 発行イベントのラッパー（ペイロード + メタデータ） |
+| `EventMetadata` | 構造体 | イベントID・相関ID・タイムスタンプ・ソースサービス名 |
+| `MessagingConfig` | 構造体 | ブローカー・トピック・コンシューマーグループ設定 |
+| `ConsumerConfig` | 構造体 | コンシューマー固有設定 |
+| `EventConsumer` | トレイト | イベント購読の抽象インターフェース（`async fn subscribe`） |
+| `MessagingError` | enum | 発行・購読エラー型 |
+
+### Rust 実装
+
+**Cargo.toml**:
+
+```toml
+[package]
+name = "k1s0-messaging"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+mock = ["mockall"]
+
+[dependencies]
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time"] }
+tracing = "0.1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+mockall = { version = "0.13", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+mockall = "0.13"
+```
+
+**Cargo.toml への追加行**:
+
+```toml
+k1s0-messaging = { path = "../../system/library/rust/messaging" }
+# テスト時にモックを有効化する場合:
+k1s0-messaging = { path = "../../system/library/rust/messaging", features = ["mock"] }
+```
+
+**モジュール構成**:
+
+```
+messaging/
+├── src/
+│   ├── lib.rs          # 公開 API（再エクスポート）
+│   ├── config.rs       # MessagingConfig・ConsumerConfig
+│   ├── consumer.rs     # EventConsumer トレイト
+│   ├── error.rs        # MessagingError
+│   ├── event.rs        # EventEnvelope・EventMetadata
+│   └── producer.rs     # EventProducer トレイト・MockEventProducer
+└── Cargo.toml
+```
+
+**使用例**:
+
+```rust
+use k1s0_messaging::{EventEnvelope, EventMetadata, EventProducer};
+
+// プロデューサーへのイベント発行
+async fn publish_user_created<P: EventProducer>(
+    producer: &P,
+    user_id: &str,
+) -> Result<(), k1s0_messaging::MessagingError> {
+    let metadata = EventMetadata::new("auth-service");
+    let payload = serde_json::json!({ "user_id": user_id });
+    let envelope = EventEnvelope::new("k1s0.system.auth.user-created.v1", payload, metadata);
+    producer.publish(envelope).await
+}
+```
+
+---
+
+## k1s0-kafka ライブラリ
+
+### 概要
+
+Kafka 接続設定・管理・ヘルスチェックライブラリ。`KafkaConfig`（TLS・SASL 対応）、`KafkaHealthChecker`、`TopicConfig`（命名規則検証）を提供する。k1s0-messaging の具体的な Kafka 実装の基盤となる。
+
+Rust 実装のみ（他言語は別途対応予定）
+
+**配置先**: `regions/system/library/rust/kafka/`
+
+### 公開 API
+
+| 型・トレイト | 種別 | 説明 |
+|-------------|------|------|
+| `KafkaConfig` | 構造体 | ブローカーアドレス・TLS・SASL・コンシューマーグループ設定 |
+| `KafkaHealthChecker` | 構造体 | Kafka クラスター疎通確認・ヘルスチェック |
+| `TopicConfig` | 構造体 | トピック名・パーティション数・レプリカ数の設定 |
+| `TopicPartitionInfo` | 構造体 | トピックのパーティション情報（オフセット等） |
+| `KafkaError` | enum | 接続・設定・ヘルスチェックエラー型 |
+
+### Rust 実装
+
+**Cargo.toml**:
+
+```toml
+[package]
+name = "k1s0-kafka"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time"] }
+tracing = "0.1"
+
+[dev-dependencies]
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+```
+
+**Cargo.toml への追加行**:
+
+```toml
+k1s0-kafka = { path = "../../system/library/rust/kafka" }
+```
+
+**モジュール構成**:
+
+```
+kafka/
+├── src/
+│   ├── lib.rs          # 公開 API（再エクスポート）
+│   ├── config.rs       # KafkaConfig（TLS・SASL 設定を含む）
+│   ├── error.rs        # KafkaError
+│   ├── health.rs       # KafkaHealthChecker
+│   └── topic.rs        # TopicConfig・TopicPartitionInfo・命名規則検証
+└── Cargo.toml
+```
+
+**使用例**:
+
+```rust
+use k1s0_kafka::{KafkaConfig, KafkaHealthChecker, TopicConfig};
+
+// 設定例（SASL_SSL）
+let config = KafkaConfig::builder()
+    .brokers(vec!["kafka:9092".to_string()])
+    .consumer_group("auth-service-group")
+    .security_protocol("SASL_SSL")
+    .build()?;
+
+// ヘルスチェック
+let checker = KafkaHealthChecker::new(config);
+checker.check().await?;
+
+// トピック命名規則検証（k1s0.<tier>.<service>.<event>.<version>）
+let topic = TopicConfig::new("k1s0.system.auth.user-created.v1")?;
+```
+
+---
+
+## k1s0-correlation ライブラリ
+
+### 概要
+
+分散トレーシング用相関 ID・トレース ID 管理ライブラリ。`CorrelationId`（UUID v4）、`TraceId`（32 文字 hex）、`CorrelationContext`、HTTP ヘッダー定数を提供する。サービス間リクエストの追跡に使用し、全サーバー・クライアントで統一的に利用する。
+
+Rust 実装のみ（他言語は別途対応予定）
+
+**配置先**: `regions/system/library/rust/correlation/`
+
+### 公開 API
+
+| 型・定数 | 種別 | 説明 |
+|---------|------|------|
+| `CorrelationId` | 構造体 | UUID v4 ベースの相関 ID（新規生成・文字列変換対応） |
+| `TraceId` | 構造体 | 32 文字 hex のトレース ID（OpenTelemetry 互換） |
+| `CorrelationContext` | 構造体 | 相関 ID + トレース ID をまとめたコンテキスト |
+| `CorrelationHeaders` | 構造体 | HTTP ヘッダー定数（`X-Correlation-Id`・`X-Trace-Id` 等） |
+
+### Rust 実装
+
+**Cargo.toml**:
+
+```toml
+[package]
+name = "k1s0-correlation"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+tracing = "0.1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+serde_json = "1"
+```
+
+**Cargo.toml への追加行**:
+
+```toml
+k1s0-correlation = { path = "../../system/library/rust/correlation" }
+```
+
+**モジュール構成**:
+
+```
+correlation/
+├── src/
+│   ├── lib.rs          # 公開 API（再エクスポート）
+│   ├── context.rs      # CorrelationContext・CorrelationHeaders（HTTP ヘッダー定数）
+│   └── id.rs           # CorrelationId（UUID v4）・TraceId（32 文字 hex）
+└── Cargo.toml
+```
+
+**使用例**:
+
+```rust
+use k1s0_correlation::{CorrelationContext, CorrelationHeaders, CorrelationId, TraceId};
+
+// 新規コンテキスト生成（リクエスト受信時）
+let ctx = CorrelationContext::new(CorrelationId::new(), TraceId::new());
+
+// HTTP ヘッダーへの設定
+let headers = [
+    (CorrelationHeaders::CORRELATION_ID, ctx.correlation_id().to_string()),
+    (CorrelationHeaders::TRACE_ID, ctx.trace_id().to_string()),
+];
+
+// 下流リクエストへの伝播
+let child_ctx = ctx.propagate(); // 相関 ID 継承・新規スパン ID 生成
+```
+
+---
+
+## k1s0-outbox ライブラリ
+
+### 概要
+
+トランザクショナルアウトボックスパターンライブラリ。データベーストランザクションと Kafka メッセージ発行の原子性を保証する。`OutboxMessage`（指数バックオフリトライ）、`OutboxStore` トレイト、`OutboxPublisher` トレイト、`OutboxProcessor` を提供する。
+
+Rust 実装のみ（他言語は別途対応予定）
+
+**配置先**: `regions/system/library/rust/outbox/`
+
+### 公開 API
+
+| 型・トレイト | 種別 | 説明 |
+|-------------|------|------|
+| `OutboxMessage` | 構造体 | アウトボックスに保存するメッセージ（トピック・ペイロード・ステータス・リトライ回数） |
+| `OutboxStatus` | enum | メッセージのステータス（`Pending`・`Published`・`Failed`） |
+| `OutboxStore` | トレイト | アウトボックスメッセージの永続化抽象（`save`・`fetch_pending`・`mark_published`） |
+| `OutboxProcessor` | 構造体 | `OutboxStore` から未発行メッセージを取得し発行するポーリングプロセッサ |
+| `OutboxError` | enum | 保存・取得・発行エラー型 |
+
+### Rust 実装
+
+**Cargo.toml**:
+
+```toml
+[package]
+name = "k1s0-outbox"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time"] }
+tracing = "0.1"
+uuid = { version = "1", features = ["v4", "serde"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+mockall = "0.13"
+```
+
+**Cargo.toml への追加行**:
+
+```toml
+k1s0-outbox = { path = "../../system/library/rust/outbox" }
+```
+
+**モジュール構成**:
+
+```
+outbox/
+├── src/
+│   ├── lib.rs          # 公開 API（再エクスポート）
+│   ├── error.rs        # OutboxError
+│   ├── message.rs      # OutboxMessage・OutboxStatus（指数バックオフ計算含む）
+│   ├── processor.rs    # OutboxProcessor（ポーリングループ・リトライ制御）
+│   └── store.rs        # OutboxStore トレイト・OutboxPublisher トレイト
+└── Cargo.toml
+```
+
+**使用例**:
+
+```rust
+use k1s0_outbox::{OutboxMessage, OutboxProcessor, OutboxStore};
+
+// ドメインイベント保存とメッセージ発行を同一トランザクションで実行
+async fn create_user_with_event<S: OutboxStore>(
+    store: &S,
+    user_id: &str,
+) -> Result<(), k1s0_outbox::OutboxError> {
+    let payload = serde_json::json!({ "user_id": user_id });
+    let msg = OutboxMessage::new("k1s0.system.auth.user-created.v1", payload);
+    // DB トランザクション内で保存（Saga の一部として）
+    store.save(&msg).await
+}
+
+// バックグラウンドで未発行メッセージをポーリング発行
+let processor = OutboxProcessor::new(store, publisher, /* poll_interval */ Duration::from_secs(5));
+processor.run().await;
+```
+
+---
+
+## k1s0-schemaregistry ライブラリ
+
+### 概要
+
+Confluent Schema Registry クライアントライブラリ。`SchemaRegistryClient` トレイト（HTTP 実装: `HttpSchemaRegistryClient`）、`SchemaRegistryConfig`、`RegisteredSchema`、`SchemaType`（Avro/Json/Protobuf）を提供する。Kafka トピックのスキーマ登録・取得・互換性検証に使用する。
+
+Rust 実装のみ（他言語は別途対応予定）
+
+**配置先**: `regions/system/library/rust/schemaregistry/`
+
+### 公開 API
+
+| 型・トレイト | 種別 | 説明 |
+|-------------|------|------|
+| `SchemaRegistryClient` | トレイト | スキーマ登録・取得・互換性確認の抽象インターフェース |
+| `HttpSchemaRegistryClient` | 構造体 | HTTP ベースの Schema Registry クライアント実装 |
+| `MockSchemaRegistryClient` | 構造体 | テスト用モック（feature = "mock" で有効） |
+| `SchemaRegistryConfig` | 構造体 | Registry URL・認証情報・互換性モード設定 |
+| `CompatibilityMode` | enum | スキーマ互換性モード（`Backward`・`Forward`・`Full`・`None`） |
+| `RegisteredSchema` | 構造体 | 登録済みスキーマ（ID・バージョン・スキーマ文字列） |
+| `SchemaType` | enum | スキーマ形式（`Avro`・`Json`・`Protobuf`） |
+| `SchemaRegistryError` | enum | 登録・取得・互換性エラー型 |
+
+### Rust 実装
+
+**Cargo.toml**:
+
+```toml
+[package]
+name = "k1s0-schemaregistry"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+mock = ["mockall"]
+
+[dependencies]
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time"] }
+tracing = "0.1"
+reqwest = { version = "0.12", features = ["json"] }
+mockall = { version = "0.13", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+```
+
+**Cargo.toml への追加行**:
+
+```toml
+k1s0-schemaregistry = { path = "../../system/library/rust/schemaregistry" }
+# テスト時にモックを有効化する場合:
+k1s0-schemaregistry = { path = "../../system/library/rust/schemaregistry", features = ["mock"] }
+```
+
+**モジュール構成**:
+
+```
+schemaregistry/
+├── src/
+│   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
+│   ├── client.rs       # SchemaRegistryClient トレイト・HttpSchemaRegistryClient・MockSchemaRegistryClient
+│   ├── config.rs       # SchemaRegistryConfig・CompatibilityMode・subject_name ヘルパー
+│   ├── error.rs        # SchemaRegistryError
+│   └── schema.rs       # RegisteredSchema・SchemaType
+└── Cargo.toml
+```
+
+**使用例**:
+
+```rust
+use k1s0_schemaregistry::{
+    HttpSchemaRegistryClient, SchemaRegistryClient, SchemaRegistryConfig, SchemaType,
+};
+
+let config = SchemaRegistryConfig::new("http://schema-registry:8081");
+let client = HttpSchemaRegistryClient::new(config)?;
+
+let topic = "k1s0.system.auth.user-created.v1";
+let subject = SchemaRegistryConfig::subject_name(topic); // "<topic>-value"
+
+// Protobuf スキーマを登録
+let schema_id = client
+    .register_schema(
+        &subject,
+        r#"syntax = "proto3"; message UserCreated { string user_id = 1; }"#,
+        SchemaType::Protobuf,
+    )
+    .await?;
+
+// 既存スキーマを ID で取得
+let registered = client.get_schema_by_id(schema_id).await?;
+```
+
+---
+
+## k1s0-serviceauth ライブラリ
+
+### 概要
+
+サービス間 OAuth2 Client Credentials 認証ライブラリ。`ServiceAuthClient` トレイト（HTTP 実装: `HttpServiceAuthClient`）、`ServiceToken`（キャッシュ・自動更新）、`SpiffeId`（SPIFFE URI 検証）を提供する。Istio mTLS 環境でのワークロードアイデンティティ検証もサポートする。
+
+Rust 実装のみ（他言語は別途対応予定）
+
+**配置先**: `regions/system/library/rust/serviceauth/`
+
+### 公開 API
+
+| 型・トレイト | 種別 | 説明 |
+|-------------|------|------|
+| `ServiceAuthClient` | トレイト | トークン取得・検証の抽象インターフェース |
+| `HttpServiceAuthClient` | 構造体 | OAuth2 Client Credentials フローの HTTP 実装 |
+| `MockServiceAuthClient` | 構造体 | テスト用モック（feature = "mock" で有効） |
+| `ServiceClaims` | 構造体 | サービストークンのクレーム（`sub`・`iss`・`scope` 等） |
+| `ServiceAuthConfig` | 構造体 | トークンエンドポイント・クライアント ID/シークレット・JWKS URI |
+| `ServiceToken` | 構造体 | アクセストークン + 有効期限（キャッシュ・自動更新対応） |
+| `SpiffeId` | 構造体 | SPIFFE URI のパース・検証（`spiffe://<trust-domain>/ns/<ns>/sa/<sa>`） |
+| `ServiceAuthError` | enum | トークン取得・検証・SPIFFE エラー型 |
+
+### Rust 実装
+
+**Cargo.toml**:
+
+```toml
+[package]
+name = "k1s0-serviceauth"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+mock = ["mockall"]
+
+[dependencies]
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time"] }
+tracing = "0.1"
+reqwest = { version = "0.12", features = ["json"] }
+jsonwebtoken = "9"
+chrono = { version = "0.4", features = ["serde"] }
+mockall = { version = "0.13", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+```
+
+**Cargo.toml への追加行**:
+
+```toml
+k1s0-serviceauth = { path = "../../system/library/rust/serviceauth" }
+# テスト時にモックを有効化する場合:
+k1s0-serviceauth = { path = "../../system/library/rust/serviceauth", features = ["mock"] }
+```
+
+**モジュール構成**:
+
+```
+serviceauth/
+├── src/
+│   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
+│   ├── client.rs       # ServiceAuthClient トレイト・HttpServiceAuthClient・ServiceClaims・MockServiceAuthClient
+│   ├── config.rs       # ServiceAuthConfig（トークンエンドポイント・JWKS URI 等）
+│   ├── error.rs        # ServiceAuthError
+│   └── token.rs        # ServiceToken（有効期限管理）・SpiffeId（URI 検証）
+└── Cargo.toml
+```
+
+**使用例**:
+
+```rust
+use k1s0_serviceauth::{HttpServiceAuthClient, ServiceAuthClient, ServiceAuthConfig};
+
+let config = ServiceAuthConfig::new(
+    "https://auth.k1s0.internal.example.com/realms/k1s0/protocol/openid-connect/token",
+    "my-service",
+    "my-secret",
+)
+.with_jwks_uri("https://auth.k1s0.internal.example.com/realms/k1s0/protocol/openid-connect/certs");
+
+let client = HttpServiceAuthClient::new(config).unwrap();
+
+// キャッシュ付きトークン取得（有効期限前に自動リフレッシュ）
+let bearer = client.get_cached_token().await.unwrap();
+
+// gRPC 発信時のヘッダー設定
+let mut request = tonic::Request::new(payload);
+request.metadata_mut().insert(
+    "authorization",
+    format!("Bearer {}", bearer.access_token).parse().unwrap(),
+);
+
+// SPIFFE ID 検証（Istio mTLS 環境）
+let spiffe = client
+    .validate_spiffe_id("spiffe://k1s0.internal/ns/system/sa/auth-service", "system")
+    .unwrap();
+```
+
+---
+
 ## テスト方針
 
 全ライブラリで TDD を適用する。
@@ -2486,6 +3035,12 @@ class AuthError implements Exception {
 | config ライブラリ | 90% 以上 |
 | telemetry ライブラリ | 80% 以上 |
 | authlib ライブラリ | 90% 以上 |
+| k1s0-messaging | 85% 以上 |
+| k1s0-kafka | 80% 以上 |
+| k1s0-correlation | 90% 以上 |
+| k1s0-outbox | 85% 以上 |
+| k1s0-schemaregistry | 85% 以上 |
+| k1s0-serviceauth | 90% 以上 |
 
 ---
 
