@@ -1,0 +1,25 @@
+name: order-fulfillment
+steps:
+  - name: reserve-inventory
+    service: inventory-service
+    method: InventoryService.Reserve
+    compensate: InventoryService.Release
+    timeout_secs: 30
+    retry:
+      max_attempts: 3
+      backoff: exponential
+      initial_interval_ms: 1000
+  - name: process-payment
+    service: payment-service
+    method: PaymentService.Charge
+    compensate: PaymentService.Refund
+    timeout_secs: 60
+    retry:
+      max_attempts: 2
+      backoff: exponential
+      initial_interval_ms: 2000
+  - name: arrange-shipping
+    service: shipping-service
+    method: ShippingService.CreateShipment
+    compensate: ShippingService.CancelShipment
+    timeout_secs: 30
