@@ -924,68 +924,8 @@ OpenAPI 定義からサーバー・クライアントコードを自動生成し
 
 | 言語 / 用途          | ツール              | 方式                  |
 | -------------------- | ------------------- | --------------------- |
-| Go サーバー          | oapi-codegen        | OpenAPI → Go コード   |
 | Rust サーバー        | utoipa              | Rust コード → OpenAPI |
 | クライアント SDK     | openapi-generator   | OpenAPI → 各言語 SDK  |
-
-### Go: oapi-codegen
-
-OpenAPI 定義から Go のインターフェースとモデルを生成する。
-
-```yaml
-# oapi-codegen 設定ファイル
-# api/openapi/gen.yaml
-package: api
-output: internal/adapter/handler/api_gen.go
-generate:
-  models: true
-  chi-server: true
-  strict-server: true
-```
-
-```bash
-# 生成コマンド
-oapi-codegen -config api/openapi/gen.yaml api/openapi/openapi.yaml
-```
-
-#### 生成先ディレクトリ
-
-```
-{サービス名}/
-├── api/
-│   └── openapi/
-│       ├── openapi.yaml          # OpenAPI 定義（手動管理）
-│       └── gen.yaml              # oapi-codegen 設定
-├── internal/
-│   └── adapter/
-│       └── handler/
-│           ├── api_gen.go        # 生成コード（git 管理）
-│           └── handler.go        # 手動実装（インターフェース実装）
-```
-
-#### 生成コードの使用例
-
-```go
-// internal/adapter/handler/handler.go
-package handler
-
-// oapi-codegen が生成した StrictServerInterface を実装
-type OrderHandler struct {
-    usecase *usecase.OrderUsecase
-}
-
-// 生成インターフェースの実装
-func (h *OrderHandler) CreateOrder(
-    ctx context.Context,
-    request api.CreateOrderRequestObject,
-) (api.CreateOrderResponseObject, error) {
-    order, err := h.usecase.Create(ctx, request.Body)
-    if err != nil {
-        return nil, err
-    }
-    return api.CreateOrder201JSONResponse(*order), nil
-}
-```
 
 ### Rust: utoipa
 
@@ -1153,18 +1093,6 @@ jobs:
       - name: Validate OpenAPI
         run: |
           npx @redocly/cli lint api/openapi/openapi.yaml
-
-  openapi-codegen:
-    needs: openapi-validate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Generate Go server code
-        run: |
-          go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
-          oapi-codegen -config api/openapi/gen.yaml api/openapi/openapi.yaml
-      - name: Verify no diff
-        run: git diff --exit-code
 ```
 
 ---

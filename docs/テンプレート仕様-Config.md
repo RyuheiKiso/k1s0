@@ -10,14 +10,6 @@ config 設計の全体像は [config設計](config設計.md) を参照。
 
 テンプレートは各 kind/lang ディレクトリの `config/` 配下に配置する。
 
-### server/go
-
-| テンプレートファイル                          | 生成先                    | 説明                         |
-| --------------------------------------------- | ------------------------- | ---------------------------- |
-| `server/go/config/config.dev.yaml.tera`       | `config/config.dev.yaml`     | 開発環境用設定               |
-| `server/go/config/config.staging.yaml.tera`   | `config/config.staging.yaml` | ステージング環境用設定       |
-| `server/go/config/config.prod.yaml.tera`      | `config/config.prod.yaml`    | 本番環境用設定               |
-
 ### server/rust
 
 | テンプレートファイル                            | 生成先                    | 説明                         |

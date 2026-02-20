@@ -34,14 +34,6 @@ API 設計の全体像は [API設計](API設計.md) を参照。
 
 テンプレートは server テンプレート内に配置する。
 
-### Go サーバー
-
-| テンプレートファイル                            | 生成先                       | 説明                     |
-| ----------------------------------------------- | ---------------------------- | ------------------------ |
-| `server/go/api/openapi/openapi.yaml.tera`       | `api/openapi/openapi.yaml`   | OpenAPI 3.0 仕様         |
-| `server/go/api/proto/service.proto.tera`        | `api/proto/service.proto`    | Protocol Buffers 定義    |
-| `server/go/api/graphql/schema.graphql.tera`     | `api/graphql/schema.graphql` | GraphQL スキーマ         |
-
 ### Rust サーバー
 
 Rust サーバーでも同等のスキーマファイルを生成する。gRPC は `grpc.rs.tera` 等の Rust 固有のコード生成も含む。

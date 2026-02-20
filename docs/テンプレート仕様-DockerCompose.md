@@ -59,7 +59,7 @@ Docker Compose テンプレートで使用する変数を以下に示す。変�
 | `database_type`   | String | 用                  | 用                    | `postgresql` / `mysql` の切り替え          |
 | `has_kafka`       | bool   | 用                  | 用                    | Kafka 関連サービスの生成制御               |
 | `has_redis`       | bool   | 用                  | 用                    | Redis サービスの生成制御                   |
-| `server_language` | String | ---                 | 用                    | `go` / `rust`（Dockerfile パスの決定）     |
+| `server_language` | String | ---                 | 用                    | `rust`（Dockerfile パスの決定）            |
 | `server_port`     | int    | ---                 | 用                    | アプリケーションの公開ポート               |
 
 ---
@@ -355,11 +355,7 @@ services:
   # --- {{ tier }} 層 ---
   # {{ service_name }}:
   #   build:
-{% if server_language == "go" %}
-  #     context: ./regions/{{ tier }}/server/go/{{ service_name }}
-{% elif server_language == "rust" %}
   #     context: ./regions/{{ tier }}/server/rust/{{ service_name }}
-{% endif %}
   #     dockerfile: Dockerfile
   #   profiles: [{{ tier }}]
   #   ports:
@@ -377,13 +373,8 @@ services:
   #     kafka:
   #       condition: service_healthy
 {% endif %}
-{% if server_language == "go" %}
-  #   volumes:
-  #     - ./regions/{{ tier }}/server/go/{{ service_name }}/config:/app/config
-{% elif server_language == "rust" %}
   #   volumes:
   #     - ./regions/{{ tier }}/server/rust/{{ service_name }}/config:/app/config
-{% endif %}
 ```
 
 ### 設計ポイント
@@ -391,7 +382,7 @@ services:
 | 項目             | 設定                                                                      |
 | ---------------- | ------------------------------------------------------------------------- |
 | プロファイル     | `tier` 変数に基づき `system` / `business` / `service` を設定             |
-| ビルドコンテキスト | `server_language` と `tier` からパスを導出                               |
+| ビルドコンテキスト | `tier` から `regions/{tier}/server/rust/{service_name}` のパスを導出     |
 | ポートマッピング | `server_port` でホスト側ポートを指定（コンテナ側は常に 8080）            |
 | 依存関係         | `has_database` + `database_type` で DB への依存を設定                     |
 | Kafka 依存       | `has_kafka == true` の場合に Kafka への依存を追加                         |
@@ -418,7 +409,6 @@ CLI の対話フローで選択されたオプションに応じて、docker-com
 
 | 条件                                        | 影響                                              |
 | ------------------------------------------- | ------------------------------------------------- |
-| `server_language == "go"`                   | ビルドコンテキストが Go サーバーのパスになる       |
 | `server_language == "rust"`                 | ビルドコンテキストが Rust サーバーのパスになる     |
 | `has_database == true`                      | DB サービスへの `depends_on` が追加される          |
 | `has_kafka == true`                         | Kafka への `depends_on` が追加される               |
@@ -427,44 +417,6 @@ CLI の対話フローで選択されたオプションに応じて、docker-com
 ---
 
 ## 生成例
-
-### Go REST サーバー（PostgreSQL + Redis あり、Kafka なし）の場合
-
-入力:
-```json
-{
-  "service_name": "order-api",
-  "tier": "service",
-  "has_database": true,
-  "database_type": "postgresql",
-  "has_kafka": false,
-  "has_redis": true,
-  "server_language": "go",
-  "server_port": 8082
-}
-```
-
-生成されるファイル:
-- `docker-compose.yaml` --- PostgreSQL + Redis + Keycloak + redis-session + Vault + 可観測性一式
-- `docker-compose.override.yaml.example` --- order-api サービス（Go、service プロファイル、ポート 8082、PostgreSQL 依存）
-
-docker-compose.yaml に含まれるサービス:
-
-| サービス        | プロファイル  | 含まれる |
-| --------------- | ------------- | -------- |
-| postgres        | infra         | はい     |
-| mysql           | infra         | いいえ   |
-| redis           | infra         | はい     |
-| kafka           | infra         | いいえ   |
-| kafka-ui        | infra         | いいえ   |
-| schema-registry | infra         | いいえ   |
-| keycloak        | infra         | はい     |
-| redis-session   | infra         | はい     |
-| vault           | infra         | はい     |
-| jaeger          | observability | はい     |
-| prometheus      | observability | はい     |
-| loki            | observability | はい     |
-| grafana         | observability | はい     |
 
 ### Rust gRPC サーバー（PostgreSQL + Kafka あり、Redis なし）の場合
 
@@ -485,26 +437,6 @@ docker-compose.yaml に含まれるサービス:
 生成されるファイル:
 - `docker-compose.yaml` --- PostgreSQL + Kafka + Kafka UI + Schema Registry + Keycloak + redis-session + Vault + 可観測性一式
 - `docker-compose.override.yaml.example` --- auth-service サービス（Rust、system プロファイル、ポート 8083、PostgreSQL + Kafka 依存）
-
-### Go サーバー（MySQL、Kafka + Redis あり）の場合
-
-入力:
-```json
-{
-  "service_name": "legacy-adapter",
-  "tier": "business",
-  "has_database": true,
-  "database_type": "mysql",
-  "has_kafka": true,
-  "has_redis": true,
-  "server_language": "go",
-  "server_port": 8084
-}
-```
-
-生成されるファイル:
-- `docker-compose.yaml` --- MySQL + Redis + Kafka + Kafka UI + Schema Registry + Keycloak + redis-session + Vault + 可観測性一式
-- `docker-compose.override.yaml.example` --- legacy-adapter サービス（Go、business プロファイル、ポート 8084、MySQL + Kafka 依存）
 
 ---
 

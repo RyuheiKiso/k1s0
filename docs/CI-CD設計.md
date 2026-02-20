@@ -7,7 +7,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.
 
 - CI/CD は **GitHub Actions** で一元管理する
 - PR 時に CI（lint → test → build）、マージ時に CD（image push → deploy）を実行する
-- 言語別マトリクスビルドで Go / Rust / TypeScript / Dart / Python に対応する
+- 言語別マトリクスビルドで Rust / TypeScript / Dart / Python に対応する
 - 環境別デプロイ: dev 自動 / staging 自動 / prod 手動承認
 - セキュリティスキャン（Trivy・依存関係チェック）を全パイプラインに組み込む
 
@@ -45,7 +45,6 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      go: ${{ steps.filter.outputs.go }}
       rust: ${{ steps.filter.outputs.rust }}
       ts: ${{ steps.filter.outputs.ts }}
       dart: ${{ steps.filter.outputs.dart }}
@@ -57,8 +56,6 @@ jobs:
         id: filter
         with:
           filters: |
-            go:
-              - 'regions/**/go/**'
             rust:
               - 'regions/**/rust/**'
               - 'CLI/**'
@@ -72,19 +69,6 @@ jobs:
               - 'e2e/**'
             helm:
               - 'infra/helm/**'
-
-  lint-go:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.go == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.23"
-      - uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
 
   lint-rust:
     needs: detect-changes
@@ -136,20 +120,6 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: mypy e2e/
-
-  test-go:
-    needs: lint-go
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.23"
-      - run: go test ./... -race -coverprofile=coverage.out
-      - uses: actions/upload-artifact@v4
-        with:
-          name: go-coverage
-          path: coverage.out
 
   test-rust:
     needs: lint-rust
@@ -212,7 +182,6 @@ jobs:
 
   build:
     needs:
-      - test-go
       - test-rust
       - test-ts
       - test-dart
@@ -605,8 +574,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - lang: go
-            cmd: "govulncheck ./..."
           - lang: rust
             cmd: "cargo audit"
           - lang: node
@@ -658,7 +625,6 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 
 | 言語   | キャッシュ対象                | アクション                |
 | ------ | ----------------------------- | ------------------------- |
-| Go     | `~/go/pkg/mod`                | `actions/setup-go` 内蔵   |
 | Rust   | `~/.cargo`, `target/`        | `actions/cache`           |
 | Node   | `node_modules/`              | `actions/setup-node` 内蔵 |
 | Dart   | `~/.pub-cache`               | `actions/cache`           |
