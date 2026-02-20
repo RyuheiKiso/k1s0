@@ -211,7 +211,7 @@ pub async fn list_sagas(
         })
         .collect();
 
-    let has_next = (query.page * query.page_size) < total as i32;
+    let has_next = (query.page as i64 * query.page_size as i64) < total;
 
     Ok(Json(ListSagasResponse {
         sagas: saga_responses,

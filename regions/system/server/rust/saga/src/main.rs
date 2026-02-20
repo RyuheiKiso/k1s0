@@ -13,9 +13,7 @@ use adapter::handler::{self, AppState};
 use adapter::repository::saga_postgres::SagaPostgresRepository;
 use adapter::repository::workflow_in_memory::InMemoryWorkflowRepository;
 use infrastructure::config::Config;
-use infrastructure::database::DatabaseConfig;
 use infrastructure::grpc_caller::{ServiceRegistry, TonicGrpcCaller};
-use infrastructure::kafka_producer::KafkaConfig;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -295,8 +293,10 @@ impl domain::repository::SagaRepository for InMemorySagaRepository {
             .collect();
 
         let total = filtered.len() as i64;
-        let offset = ((params.page - 1) * params.page_size) as usize;
-        let limit = params.page_size as usize;
+        let page = params.page.max(1);
+        let page_size = params.page_size.max(1);
+        let offset = ((page - 1) * page_size) as usize;
+        let limit = page_size as usize;
         let paged: Vec<_> = filtered.into_iter().skip(offset).take(limit).collect();
 
         Ok((paged, total))

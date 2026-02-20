@@ -93,7 +93,7 @@ mod tests {
             None,
         ));
 
-        let mut mock_saga_repo2 = MockSagaRepository::new();
+        let mock_saga_repo2 = MockSagaRepository::new();
         let uc = StartSagaUseCase::new(
             Arc::new(mock_saga_repo2),
             Arc::new(mock_workflow_repo),

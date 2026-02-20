@@ -422,7 +422,7 @@ steps:
         let call_count_clone = call_count.clone();
         mock_caller
             .expect_call_step()
-            .returning(move |_, method, _| {
+            .returning(move |_, _method, _| {
                 let count = call_count_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                 if count == 0 {
                     // step-2 execute fails
