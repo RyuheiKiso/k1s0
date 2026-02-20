@@ -12,16 +12,6 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # auth-server (Go)
-  - job_name: auth-server-go
-    static_configs:
-      - targets: ["auth-go:8080"]
-        labels:
-          service: auth-server
-          tier: system
-          lang: go
-    metrics_path: /metrics
-
   # auth-server (Rust)
   - job_name: auth-server-rust
     static_configs:
@@ -30,16 +20,6 @@ scrape_configs:
           service: auth-server
           tier: system
           lang: rust
-    metrics_path: /metrics
-
-  # config-server (Go)
-  - job_name: config-server-go
-    static_configs:
-      - targets: ["config-go:8082"]
-        labels:
-          service: config-server
-          tier: system
-          lang: go
     metrics_path: /metrics
 
   # config-server (Rust)

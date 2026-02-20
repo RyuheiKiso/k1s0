@@ -4,7 +4,7 @@ _format_version: "3.0"
 
 services:
   - name: auth-v1
-    url: http://auth-go:8080
+    url: http://auth-rust:8080
     routes:
       - name: auth-token-route
         paths:
@@ -20,7 +20,7 @@ services:
         strip_path: false
 
   - name: config-v1
-    url: http://config-go:8080
+    url: http://config-rust:8080
     routes:
       - name: config-route
         paths:
