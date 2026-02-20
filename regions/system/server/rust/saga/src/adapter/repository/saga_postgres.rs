@@ -187,7 +187,9 @@ impl SagaRepository for SagaPostgresRepository {
         let total = count_query.fetch_one(&self.pool).await?;
 
         // Data query
-        let offset = ((params.page - 1) * params.page_size) as i64;
+        let page = params.page.max(1);
+        let page_size = params.page_size.max(1);
+        let offset = ((page - 1) * page_size) as i64;
         let data_sql = format!(
             "SELECT id, workflow_name, current_step, status, payload, correlation_id, initiated_by, error_message, created_at, updated_at FROM saga.saga_states {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
             where_clause, bind_idx, bind_idx + 1
@@ -203,7 +205,7 @@ impl SagaRepository for SagaPostgresRepository {
         if let Some(ref ci) = params.correlation_id {
             data_query = data_query.bind(ci);
         }
-        data_query = data_query.bind(params.page_size as i64).bind(offset);
+        data_query = data_query.bind(page_size as i64).bind(offset);
 
         let rows = data_query.fetch_all(&self.pool).await?;
         let sagas: anyhow::Result<Vec<SagaState>> =
