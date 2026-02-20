@@ -659,14 +659,14 @@ mod tests {
             kind: Kind::Server,
             tier: Tier::System,
             placement: None,
-            lang_fw: LangFw::Language(Language::Go),
+            lang_fw: LangFw::Language(Language::Rust),
             detail: DetailConfig {
                 name: Some("auth".to_string()),
                 ..DetailConfig::default()
             },
         };
         let path = build_output_path(&config, Path::new(""));
-        assert_eq!(path, PathBuf::from("regions/system/server/go/auth"));
+        assert_eq!(path, PathBuf::from("regions/system/server/rust/auth"));
     }
 
     #[test]
@@ -675,7 +675,7 @@ mod tests {
             kind: Kind::Server,
             tier: Tier::Business,
             placement: Some("accounting".to_string()),
-            lang_fw: LangFw::Language(Language::Go),
+            lang_fw: LangFw::Language(Language::Rust),
             detail: DetailConfig {
                 name: Some("ledger".to_string()),
                 ..DetailConfig::default()
@@ -684,7 +684,7 @@ mod tests {
         let path = build_output_path(&config, Path::new(""));
         assert_eq!(
             path,
-            PathBuf::from("regions/business/accounting/server/go/ledger")
+            PathBuf::from("regions/business/accounting/server/rust/ledger")
         );
     }
 
@@ -694,7 +694,7 @@ mod tests {
             kind: Kind::Server,
             tier: Tier::Service,
             placement: Some("order".to_string()),
-            lang_fw: LangFw::Language(Language::Go),
+            lang_fw: LangFw::Language(Language::Rust),
             detail: DetailConfig {
                 name: Some("order".to_string()),
                 ..DetailConfig::default()
@@ -702,7 +702,7 @@ mod tests {
         };
         let path = build_output_path(&config, Path::new(""));
         // service Tier では detail.name をサブディレクトリに追加しない
-        assert_eq!(path, PathBuf::from("regions/service/order/server/go"));
+        assert_eq!(path, PathBuf::from("regions/service/order/server/rust"));
     }
 
     #[test]
@@ -749,7 +749,7 @@ mod tests {
             kind: Kind::Library,
             tier: Tier::System,
             placement: None,
-            lang_fw: LangFw::Language(Language::Go),
+            lang_fw: LangFw::Language(Language::Rust),
             detail: DetailConfig {
                 name: Some("authlib".to_string()),
                 ..DetailConfig::default()
@@ -758,7 +758,7 @@ mod tests {
         let path = build_output_path(&config, Path::new(""));
         assert_eq!(
             path,
-            PathBuf::from("regions/system/library/go/authlib")
+            PathBuf::from("regions/system/library/rust/authlib")
         );
     }
 
@@ -784,15 +784,15 @@ mod tests {
     // --- execute_generate ---
 
     #[test]
-    fn test_execute_generate_go_server() {
+    fn test_execute_generate_rust_server_system() {
         let tmp = TempDir::new().unwrap();
-        let base = tmp.path().join("regions/system/server/go/auth");
+        let base = tmp.path().join("regions/system/server/rust/auth");
 
         let config = GenerateConfig {
             kind: Kind::Server,
             tier: Tier::System,
             placement: None,
-            lang_fw: LangFw::Language(Language::Go),
+            lang_fw: LangFw::Language(Language::Rust),
             detail: DetailConfig {
                 name: Some("auth".to_string()),
                 api_styles: vec![ApiStyle::Rest, ApiStyle::Grpc],
@@ -806,12 +806,9 @@ mod tests {
         let result = execute_generate_at(&config, tmp.path());
 
         assert!(result.is_ok());
-        assert!(base.join("cmd/main.go").is_file());
-        assert!(base.join("internal/handler/handler.go").is_file());
-        assert!(base.join("go.mod").is_file());
+        assert!(base.join("src/main.rs").is_file());
+        assert!(base.join("Cargo.toml").is_file());
         assert!(base.join("Dockerfile").is_file());
-        assert!(base.join("api/openapi/openapi.yaml").is_file());
-        assert!(base.join("api/proto/auth.proto").is_file());
     }
 
     #[test]
@@ -893,15 +890,15 @@ mod tests {
     }
 
     #[test]
-    fn test_execute_generate_go_library() {
+    fn test_execute_generate_rust_library_system() {
         let tmp = TempDir::new().unwrap();
-        let base = tmp.path().join("regions/system/library/go/authlib");
+        let base = tmp.path().join("regions/system/library/rust/authlib");
 
         let config = GenerateConfig {
             kind: Kind::Library,
             tier: Tier::System,
             placement: None,
-            lang_fw: LangFw::Language(Language::Go),
+            lang_fw: LangFw::Language(Language::Rust),
             detail: DetailConfig {
                 name: Some("authlib".to_string()),
                 ..DetailConfig::default()
@@ -911,9 +908,8 @@ mod tests {
         let result = execute_generate_at(&config, tmp.path());
 
         assert!(result.is_ok());
-        assert!(base.join("go.mod").is_file());
-        assert!(base.join("authlib.go").is_file());
-        assert!(base.join("authlib_test.go").is_file());
+        assert!(base.join("Cargo.toml").is_file());
+        assert!(base.join("src/lib.rs").is_file());
     }
 
     #[test]
@@ -1068,7 +1064,7 @@ mod tests {
             kind: Kind::Server,
             tier: Tier::Service,
             placement: Some("order".to_string()),
-            lang_fw: LangFw::Language(Language::Go),
+            lang_fw: LangFw::Language(Language::Rust),
             detail: DetailConfig {
                 name: Some("order".to_string()),
                 api_styles: vec![ApiStyle::Rest, ApiStyle::Grpc],
@@ -1088,48 +1084,6 @@ mod tests {
     // --- D-08: post-processing command determination ---
 
     #[test]
-    fn test_determine_post_commands_go_server() {
-        let config = GenerateConfig {
-            kind: Kind::Server,
-            tier: Tier::System,
-            placement: None,
-            lang_fw: LangFw::Language(Language::Go),
-            detail: DetailConfig {
-                name: Some("auth".to_string()),
-                api_styles: vec![ApiStyle::Rest],
-                db: None,
-                kafka: false,
-                redis: false,
-                bff_language: None,
-            },
-        };
-        let cmds = determine_post_commands(&config);
-        assert!(cmds.iter().any(|(c, _)| *c == "go"), "should include 'go mod tidy'");
-        assert!(!cmds.iter().any(|(c, _)| *c == "buf"), "should not include 'buf generate' without gRPC");
-    }
-
-    #[test]
-    fn test_determine_post_commands_go_server_with_grpc() {
-        let config = GenerateConfig {
-            kind: Kind::Server,
-            tier: Tier::System,
-            placement: None,
-            lang_fw: LangFw::Language(Language::Go),
-            detail: DetailConfig {
-                name: Some("auth".to_string()),
-                api_styles: vec![ApiStyle::Rest, ApiStyle::Grpc],
-                db: None,
-                kafka: false,
-                redis: false,
-                bff_language: None,
-            },
-        };
-        let cmds = determine_post_commands(&config);
-        assert!(cmds.iter().any(|(c, _)| *c == "go"), "should include 'go mod tidy'");
-        assert!(cmds.iter().any(|(c, _)| *c == "buf"), "should include 'buf generate' with gRPC");
-    }
-
-    #[test]
     fn test_determine_post_commands_rust_server() {
         let config = GenerateConfig {
             kind: Kind::Server,
@@ -1147,6 +1101,28 @@ mod tests {
         };
         let cmds = determine_post_commands(&config);
         assert!(cmds.iter().any(|(c, _)| *c == "cargo"), "should include 'cargo check'");
+        assert!(!cmds.iter().any(|(c, _)| *c == "buf"), "should not include 'buf generate' without gRPC");
+    }
+
+    #[test]
+    fn test_determine_post_commands_rust_server_with_grpc() {
+        let config = GenerateConfig {
+            kind: Kind::Server,
+            tier: Tier::System,
+            placement: None,
+            lang_fw: LangFw::Language(Language::Rust),
+            detail: DetailConfig {
+                name: Some("auth".to_string()),
+                api_styles: vec![ApiStyle::Rest, ApiStyle::Grpc],
+                db: None,
+                kafka: false,
+                redis: false,
+                bff_language: None,
+            },
+        };
+        let cmds = determine_post_commands(&config);
+        assert!(cmds.iter().any(|(c, _)| *c == "cargo"), "should include 'cargo check'");
+        assert!(cmds.iter().any(|(c, _)| *c == "buf"), "should include 'buf generate' with gRPC");
     }
 
     #[test]
@@ -1234,7 +1210,7 @@ mod tests {
             kind: Kind::Server,
             tier: Tier::Service,
             placement: Some("order".to_string()),
-            lang_fw: LangFw::Language(Language::Go),
+            lang_fw: LangFw::Language(Language::Rust),
             detail: DetailConfig {
                 name: Some("order".to_string()),
                 api_styles: vec![ApiStyle::Rest],
@@ -1251,33 +1227,11 @@ mod tests {
         };
         let ctx = build_template_context(&config, &cli_config).unwrap();
         assert_eq!(ctx.docker_registry, "my-registry.io");
-        assert_eq!(ctx.go_module, "github.com/myorg/myrepo/regions/service/order/server/go");
+        assert_eq!(ctx.rust_crate, "order");
+        assert_eq!(ctx.module_path, "regions/service/order/server/rust");
     }
 
     // --- 後処理コマンド: REST (OpenAPI) コード生成 ---
-
-    #[test]
-    fn test_determine_post_commands_go_server_rest_openapi() {
-        let config = GenerateConfig {
-            kind: Kind::Server,
-            tier: Tier::System,
-            placement: None,
-            lang_fw: LangFw::Language(Language::Go),
-            detail: DetailConfig {
-                name: Some("auth".to_string()),
-                api_styles: vec![ApiStyle::Rest],
-                db: None,
-                kafka: false,
-                redis: false,
-                bff_language: None,
-            },
-        };
-        let cmds = determine_post_commands(&config);
-        assert!(
-            cmds.iter().any(|(c, _)| *c == "oapi-codegen"),
-            "Go + REST should include 'oapi-codegen'"
-        );
-    }
 
     #[test]
     fn test_determine_post_commands_rust_server_rest_openapi() {
@@ -1317,7 +1271,7 @@ mod tests {
             kind: Kind::Server,
             tier: Tier::Service,
             placement: Some("order".to_string()),
-            lang_fw: LangFw::Language(Language::Go),
+            lang_fw: LangFw::Language(Language::Rust),
             detail: DetailConfig {
                 name: Some("order".to_string()),
                 api_styles: vec![ApiStyle::Rest],
@@ -1343,7 +1297,7 @@ mod tests {
             kind: Kind::Server,
             tier: Tier::Service,
             placement: Some("order".to_string()),
-            lang_fw: LangFw::Language(Language::Go),
+            lang_fw: LangFw::Language(Language::Rust),
             detail: DetailConfig {
                 name: Some("order".to_string()),
                 api_styles: vec![ApiStyle::Rest],
@@ -1406,7 +1360,7 @@ mod tests {
             kind: Kind::Server,
             tier: Tier::System,
             placement: None,
-            lang_fw: LangFw::Language(Language::Go),
+            lang_fw: LangFw::Language(Language::Rust),
             detail: DetailConfig {
                 name: Some("auth".to_string()),
                 api_styles: vec![ApiStyle::Rest],
@@ -1419,14 +1373,14 @@ mod tests {
         let cli_config = CliConfig::default();
         let ctx = build_template_context(&config, &cli_config).unwrap();
         assert_eq!(ctx.framework, "", "Server should have empty framework");
-        assert_eq!(ctx.language, "go");
+        assert_eq!(ctx.language, "rust");
     }
 
     // --- BFF ディレクトリ生成 ---
 
     #[test]
     fn test_service_tier_graphql_creates_bff_directory() {
-        // service Tier + GraphQL + Go サーバーで、bff/ ディレクトリが追加生成される
+        // service Tier + GraphQL + Go 言語サーバー (BFF 用) で、bff/ ディレクトリが追加生成される
         let tmp = TempDir::new().unwrap();
         let config = GenerateConfig {
             kind: Kind::Server,

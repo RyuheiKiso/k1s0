@@ -296,35 +296,8 @@ CREATE DATABASE k1s0_service;
 services:
   # --- system 層 ---
   # ポート割り当て:
-  #   auth-go:    REST 8080, gRPC 50051
   #   auth-rust:  REST 8083, gRPC 50052
-  #   config-go:  REST 8082, gRPC 50053
   #   config-rust: REST 8084, gRPC 50054
-  #
-  # auth-go:
-  #   build:
-  #     context: ./regions/system/server/go/auth
-  #     dockerfile: Dockerfile
-  #   profiles: [system]
-  #   ports:
-  #     - "8080:8080"
-  #     - "50051:50051"
-  #   environment:
-  #     - CONFIG_PATH=/app/config/config.dev.yaml
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     kafka:
-  #       condition: service_healthy
-  #     keycloak:
-  #       condition: service_started
-  #   volumes:
-  #     - ./regions/system/server/go/auth/config:/app/config
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
   #
   # auth-rust:
   #   build:
@@ -345,31 +318,6 @@ services:
   #       condition: service_started
   #   volumes:
   #     - ./regions/system/server/rust/auth/config:/app/config
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #
-  # config-go:
-  #   build:
-  #     context: ./regions/system/server/go/config
-  #     dockerfile: Dockerfile
-  #   profiles: [system]
-  #   ports:
-  #     - "8082:8080"
-  #     - "50053:50051"
-  #   environment:
-  #     - CONFIG_PATH=/app/config/config.dev.yaml
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     kafka:
-  #       condition: service_healthy
-  #     keycloak:
-  #       condition: service_started
-  #   volumes:
-  #     - ./regions/system/server/go/config/config:/app/config
   #   healthcheck:
   #     test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
   #     interval: 10s
@@ -404,7 +352,7 @@ services:
   # --- service 層 ---
   # order-server:
   #   build:
-  #     context: ./regions/service/order/server/go
+  #     context: ./regions/service/order/server/rust
   #     dockerfile: Dockerfile
   #   profiles: [service]
   #   ports:
@@ -415,7 +363,7 @@ services:
   #     kafka:
   #       condition: service_healthy
   #   volumes:
-  #     - ./regions/service/order/server/go/config:/app/config
+  #     - ./regions/service/order/server/rust/config:/app/config
 
   # --- API Gateway ---
   # NOTE: Kong は docker-compose.yaml 本体に定義済み（infra プロファイル）。
@@ -488,46 +436,6 @@ observability:
 
 system 層のアプリケーションサーバーは `docker-compose.override.yaml` で管理する。以下に各サービスの詳細設定を示す。
 
-### auth-server（Go 版）
-
-| 項目 | 設定 |
-| --- | --- |
-| サービス名 | `auth-go` |
-| ビルドコンテキスト | `./regions/system/server/go/auth` |
-| Dockerfile | マルチステージビルド（`golang:1.23-bookworm` → `gcr.io/distroless/static-debian12:nonroot`） |
-| プロファイル | `system` |
-| ポート | REST `8080:8080` / gRPC `50051:50051` |
-| 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（started） |
-| 環境変数 | `CONFIG_PATH=/app/config/config.dev.yaml` |
-| ボリューム | `./regions/system/server/go/auth/config:/app/config` |
-
-```yaml
-auth-go:
-  build:
-    context: ./regions/system/server/go/auth
-    dockerfile: Dockerfile
-  profiles: [system]
-  ports:
-    - "8080:8080"    # REST
-    - "50051:50051"  # gRPC
-  environment:
-    - CONFIG_PATH=/app/config/config.dev.yaml
-  depends_on:
-    postgres:
-      condition: service_healthy
-    kafka:
-      condition: service_healthy
-    keycloak:
-      condition: service_started
-  volumes:
-    - ./regions/system/server/go/auth/config:/app/config
-  healthcheck:
-    test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-    interval: 10s
-    timeout: 5s
-    retries: 5
-```
-
 ### auth-server（Rust 版）
 
 | 項目 | 設定 |
@@ -561,46 +469,6 @@ auth-rust:
       condition: service_started
   volumes:
     - ./regions/system/server/rust/auth/config:/app/config
-  healthcheck:
-    test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
-    interval: 10s
-    timeout: 5s
-    retries: 5
-```
-
-### config-server（Go 版）
-
-| 項目 | 設定 |
-| --- | --- |
-| サービス名 | `config-go` |
-| ビルドコンテキスト | `./regions/system/server/go/config` |
-| Dockerfile | マルチステージビルド（`golang:1.23-bookworm` → `gcr.io/distroless/static-debian12:nonroot`） |
-| プロファイル | `system` |
-| ポート | REST `8082:8080` / gRPC `50053:50051` |
-| 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（started） |
-| 環境変数 | `CONFIG_PATH=/app/config/config.dev.yaml` |
-| ボリューム | `./regions/system/server/go/config/config:/app/config` |
-
-```yaml
-config-go:
-  build:
-    context: ./regions/system/server/go/config
-    dockerfile: Dockerfile
-  profiles: [system]
-  ports:
-    - "8082:8080"    # REST
-    - "50053:50051"  # gRPC
-  environment:
-    - CONFIG_PATH=/app/config/config.dev.yaml
-  depends_on:
-    postgres:
-      condition: service_healthy
-    kafka:
-      condition: service_healthy
-    keycloak:
-      condition: service_started
-  volumes:
-    - ./regions/system/server/go/config/config:/app/config
   healthcheck:
     test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
     interval: 10s
@@ -652,12 +520,8 @@ config-rust:
 
 | サービス | REST ポート | gRPC ポート | 備考 |
 | --- | --- | --- | --- |
-| auth-go | 8080 | 50051 | Go 版 auth-server |
-| config-go | 8082 | 50053 | Go 版 config-server |
 | auth-rust | 8083 | 50052 | Rust 版 auth-server |
 | config-rust | 8084 | 50054 | Rust 版 config-server |
-
-> **注記**: Go 版と Rust 版は同一機能の並行実装であり、通常は一方のみを起動する。両方を同時に起動する場合はポートが競合しないよう上記の通りホストポートを分離している。
 
 ## インフラサービス詳細設定
 
@@ -689,23 +553,27 @@ CREATE DATABASE k1s0_service;
 
 \c k1s0_system;
 
--- 監査ログテーブル
+-- 監査ログテーブル（auth スキーマ。詳細は system-database設計.md 参照）
+-- ローカル開発では sqlx-cli のマイグレーションで auth.audit_logs が作成される
+-- 以下は参照用の簡略版スキーマ
 CREATE TABLE IF NOT EXISTS audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID,
     event_type VARCHAR(100) NOT NULL,
-    user_id VARCHAR(255),
-    ip_address VARCHAR(45),
+    action VARCHAR(100) NOT NULL,
+    resource VARCHAR(255),
+    resource_id VARCHAR(255),
+    result VARCHAR(50) NOT NULL DEFAULT 'SUCCESS',
+    detail JSONB,
+    ip_address INET,
     user_agent TEXT,
-    resource VARCHAR(500),
-    action VARCHAR(10),
-    result VARCHAR(20) NOT NULL,
-    metadata JSONB DEFAULT '{}',
-    recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    trace_id VARCHAR(64),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
 CREATE INDEX idx_audit_logs_event_type ON audit_logs(event_type);
-CREATE INDEX idx_audit_logs_recorded_at ON audit_logs(recorded_at);
+CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
 ```
 
 #### config-server 用スキーマ
@@ -911,7 +779,7 @@ _format_version: "3.0"
 
 services:
   - name: auth-v1
-    url: http://auth-go:8080
+    url: http://auth-rust:8080
     routes:
       - name: auth-token-route
         paths:
@@ -935,7 +803,7 @@ services:
           allowed_payload_size: 10
 
   - name: config-v1
-    url: http://config-go:8080
+    url: http://config-rust:8080
     routes:
       - name: config-route
         paths:
@@ -948,7 +816,7 @@ services:
           policy: local
 
   - name: auth-health
-    url: http://auth-go:8080
+    url: http://auth-rust:8080
     routes:
       - name: auth-health-check
         paths:
@@ -1011,13 +879,13 @@ global:
 scrape_configs:
   - job_name: "auth-server"
     static_configs:
-      - targets: ["auth-go:8080", "auth-rust:8080"]
+      - targets: ["auth-rust:8080"]
     metrics_path: /metrics
     scrape_interval: 15s
 
   - job_name: "config-server"
     static_configs:
-      - targets: ["config-go:8080", "config-rust:8080"]
+      - targets: ["config-rust:8080"]
     metrics_path: /metrics
     scrape_interval: 15s
 
@@ -1108,34 +976,6 @@ providers:
 
 各サーバーの Dockerfile はマルチステージビルドで最小限のランタイムイメージを生成する。詳細は [Dockerイメージ戦略](Dockerイメージ戦略.md) を参照。
 
-### Go サーバー
-
-```dockerfile
-# regions/system/server/go/auth/Dockerfile
-# Build stage
-FROM golang:1.23-bookworm AS builder
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /auth ./cmd/server
-
-# Runtime stage
-FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=builder /auth /auth
-USER nonroot:nonroot
-EXPOSE 8080 50051
-ENTRYPOINT ["/auth"]
-```
-
-| 項目 | 設定 |
-| --- | --- |
-| ビルドイメージ | `golang:1.23-bookworm` |
-| ランタイムイメージ | `gcr.io/distroless/static-debian12:nonroot` |
-| CGO | 無効（`CGO_ENABLED=0`） |
-| バイナリ最適化 | `-ldflags="-s -w"`（デバッグ情報・シンボル除去） |
-| 実行ユーザー | `nonroot:nonroot` |
-
 ### Rust サーバー
 
 ```dockerfile
@@ -1187,7 +1027,7 @@ healthcheck:
   retries: 5
 ```
 
-> **注記**: distroless イメージには `curl` が含まれないため、ビルドステージで `curl` バイナリをコピーするか、Go の場合は自前のヘルスチェックバイナリを使用する。ローカル開発環境では Docker Compose の `healthcheck` ではなく `depends_on` の条件で起動順序を制御するため、distroless 内の curl 有無は問題にならない。
+> **注記**: distroless イメージには `curl` が含まれないため、ビルドステージで `curl` バイナリをコピーするか、自前のヘルスチェックバイナリを使用する。ローカル開発環境では Docker Compose の `healthcheck` ではなく `depends_on` の条件で起動順序を制御するため、distroless 内の curl 有無は問題にならない。
 
 ## 初期化スクリプト設計
 
@@ -1265,7 +1105,7 @@ Keycloak は `start-dev --import-realm` オプションで起動し、`/opt/keyc
 | --- | --- | --- |
 | `infra` | PostgreSQL, MySQL, Redis, Redis-session, Kafka, Kafka-UI, Schema Registry, Keycloak, Vault, kafka-init | 共通インフラ |
 | `observability` | Jaeger, Prometheus, Loki, Grafana | 監視・可視化 |
-| `system` | auth-go/auth-rust, config-go/config-rust | system 層サーバー |
+| `system` | auth-rust, config-rust | system 層サーバー |
 | `business` | (将来追加) | business 層サーバー |
 | `service` | order-server (将来追加) | service 層サーバー |
 
@@ -1288,10 +1128,10 @@ docker compose --profile infra --profile observability --profile system up -d
 docker compose --profile infra --profile observability --profile system --profile business --profile service up -d
 
 # 特定サービスのみ再ビルドして起動
-docker compose --profile infra --profile system up -d --build auth-go
+docker compose --profile infra --profile system up -d --build auth-rust
 
 # ログの確認
-docker compose --profile infra --profile system logs -f auth-go
+docker compose --profile infra --profile system logs -f auth-rust
 
 # 全サービス停止（データ保持）
 docker compose --profile infra --profile observability --profile system down

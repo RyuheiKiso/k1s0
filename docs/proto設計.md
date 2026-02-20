@@ -319,12 +319,14 @@ message RecordAuditLogRequest {
   string resource = 5;             // アクセス対象リソース
   string action = 6;               // HTTP メソッドまたは gRPC メソッド名
   string result = 7;               // SUCCESS / FAILURE
-  map<string, string> metadata = 8; // 追加メタデータ（client_id, grant_type 等）
+  google.protobuf.Struct detail = 8; // 操作の詳細情報（client_id, grant_type 等）
+  string resource_id = 9;          // 操作対象リソースの ID
+  string trace_id = 10;            // OpenTelemetry トレース ID
 }
 
 message RecordAuditLogResponse {
   string id = 1;                                     // 監査ログ UUID
-  k1s0.system.common.v1.Timestamp recorded_at = 2;
+  k1s0.system.common.v1.Timestamp created_at = 2;
 }
 
 message SearchAuditLogsRequest {
@@ -350,8 +352,10 @@ message AuditLog {
   string resource = 6;
   string action = 7;
   string result = 8;
-  map<string, string> metadata = 9;
-  k1s0.system.common.v1.Timestamp recorded_at = 10;
+  google.protobuf.Struct detail = 9;               // 操作の詳細情報（変更前後の値等）
+  k1s0.system.common.v1.Timestamp created_at = 10;
+  string resource_id = 11;                         // 操作対象リソースの ID
+  string trace_id = 12;                            // OpenTelemetry トレース ID
 }
 ```
 
@@ -364,8 +368,8 @@ message AuditLog {
 | `AuthService.ListUsers` | `AuthGRPCService.ListUsers` | `auth_handler::list_users` (REST) | ページネーション付きユーザー一覧 |
 | `AuthService.GetUserRoles` | `AuthGRPCService.GetUserRoles` | `auth_handler::get_user_roles` (REST) | ユーザーのロール一覧（realm + client） |
 | `AuthService.CheckPermission` | `AuthGRPCService.CheckPermission` | `auth_handler::check_permission` (REST) | RBAC パーミッション判定 |
-| `AuditService.RecordAuditLog` | `AuditGRPCService.RecordAuditLog` | (REST handler 未実装) | 監査ログエントリ記録 |
-| `AuditService.SearchAuditLogs` | `AuditGRPCService.SearchAuditLogs` | (REST handler 未実装) | 監査ログ検索 |
+| `AuditService.RecordAuditLog` | `AuditGRPCService.RecordAuditLog` | `auth_handler::record_audit_log` (REST) | 監査ログエントリ記録 |
+| `AuditService.SearchAuditLogs` | `AuditGRPCService.SearchAuditLogs` | `auth_handler::search_audit_logs` (REST) | 監査ログ検索 |
 
 ---
 

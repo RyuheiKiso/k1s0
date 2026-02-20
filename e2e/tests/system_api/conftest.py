@@ -151,6 +151,34 @@ def grpc_config_channel():
     channel.close()
 
 
+@pytest.fixture(scope="session")
+def saga_base_url():
+    return os.environ.get("SAGA_SERVER_URL", "http://localhost:8083")
+
+
+@pytest.fixture(scope="session")
+def saga_client(saga_base_url):
+    session = requests.Session()
+    session.base_url = saga_base_url
+    session.headers.update({"Content-Type": "application/json"})
+    return session
+
+
+@pytest.fixture(scope="session")
+def grpc_saga_channel():
+    """gRPC saga-server チャネル。grpcio 未インストール or 接続不可なら skip。"""
+    if grpc is None:
+        pytest.skip("grpcio is not installed")
+    url = os.environ.get("GRPC_SAGA_URL", "localhost:50053")
+    channel = grpc.insecure_channel(url)
+    try:
+        grpc.channel_ready_future(channel).result(timeout=3)
+    except grpc.FutureTimeoutError:
+        pytest.skip(f"gRPC saga-server is not reachable at {url}")
+    yield channel
+    channel.close()
+
+
 # --- Kafka ---
 
 

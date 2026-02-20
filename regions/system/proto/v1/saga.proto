@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package k1s0.system.saga.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/saga/v1;sagav1";
+
+import "google/protobuf/timestamp.proto";
+import "v1/common.proto";
+
+// SagaService は Saga オーケストレーションサービス。
+service SagaService {
+  // StartSaga は新しい Saga を開始する。
+  rpc StartSaga(StartSagaRequest) returns (StartSagaResponse);
+  // GetSaga は Saga の状態を取得する。
+  rpc GetSaga(GetSagaRequest) returns (GetSagaResponse);
+  // ListSagas は Saga の一覧を取得する。
+  rpc ListSagas(ListSagasRequest) returns (ListSagasResponse);
+  // CancelSaga は実行中の Saga をキャンセルする。
+  rpc CancelSaga(CancelSagaRequest) returns (CancelSagaResponse);
+  // RegisterWorkflow はワークフロー定義を登録する。
+  rpc RegisterWorkflow(RegisterWorkflowRequest) returns (RegisterWorkflowResponse);
+  // ListWorkflows は登録済みワークフロー一覧を取得する。
+  rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse);
+}
+
+// --- StartSaga ---
+
+message StartSagaRequest {
+  string workflow_name = 1;
+  bytes payload = 2;
+  string correlation_id = 3;
+  string initiated_by = 4;
+}
+
+message StartSagaResponse {
+  string saga_id = 1;
+  string status = 2;
+}
+
+// --- GetSaga ---
+
+message GetSagaRequest {
+  string saga_id = 1;
+}
+
+message GetSagaResponse {
+  SagaStateProto state = 1;
+  repeated SagaStepLogProto step_logs = 2;
+}
+
+// --- ListSagas ---
+
+message ListSagasRequest {
+  string workflow_name = 1;
+  string status = 2;
+  string correlation_id = 3;
+  k1s0.system.common.v1.Pagination pagination = 4;
+}
+
+message ListSagasResponse {
+  repeated SagaStateProto sagas = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+// --- CancelSaga ---
+
+message CancelSagaRequest {
+  string saga_id = 1;
+}
+
+message CancelSagaResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// --- RegisterWorkflow ---
+
+message RegisterWorkflowRequest {
+  string workflow_yaml = 1;
+}
+
+message RegisterWorkflowResponse {
+  string name = 1;
+  int32 step_count = 2;
+}
+
+// --- ListWorkflows ---
+
+message ListWorkflowsRequest {}
+
+message ListWorkflowsResponse {
+  repeated WorkflowSummary workflows = 1;
+}
+
+// --- Shared Messages ---
+
+message SagaStateProto {
+  string id = 1;
+  string workflow_name = 2;
+  int32 current_step = 3;
+  string status = 4;
+  bytes payload = 5;
+  string correlation_id = 6;
+  string initiated_by = 7;
+  string error_message = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message SagaStepLogProto {
+  string id = 1;
+  string saga_id = 2;
+  int32 step_index = 3;
+  string step_name = 4;
+  string action = 5;
+  string status = 6;
+  bytes request_payload = 7;
+  bytes response_payload = 8;
+  string error_message = 9;
+  google.protobuf.Timestamp started_at = 10;
+  google.protobuf.Timestamp completed_at = 11;
+}
+
+message WorkflowSummary {
+  string name = 1;
+  int32 step_count = 2;
+  repeated string step_names = 3;
+}

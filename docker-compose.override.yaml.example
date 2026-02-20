@@ -5,9 +5,7 @@
 services:
   # --- system 層 ---
   # ポート割り当て:
-  #   auth-go:    REST 8080, gRPC 50051
   #   auth-rust:  REST 8083, gRPC 50052
-  #   config-go:  REST 8082, gRPC 50053
   #   config-rust: REST 8084, gRPC 50054
   #
   # NOTE: system 層サービスは docker-compose.yaml 本体に定義済み。

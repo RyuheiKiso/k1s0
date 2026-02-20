@@ -63,7 +63,7 @@ impl RecordAuditLogUseCase {
         let log = AuditLog::new(req);
         let response = CreateAuditLogResponse {
             id: log.id,
-            recorded_at: log.recorded_at,
+            created_at: log.created_at,
         };
 
         self.audit_repo
@@ -85,7 +85,6 @@ mod tests {
     use super::*;
     use crate::domain::repository::audit_log_repository::MockAuditLogRepository;
     use crate::infrastructure::kafka_producer::MockAuditEventPublisher;
-    use std::collections::HashMap;
 
     fn make_valid_request() -> CreateAuditLogRequest {
         CreateAuditLogRequest {
@@ -94,11 +93,11 @@ mod tests {
             ip_address: "192.168.1.100".to_string(),
             user_agent: "Mozilla/5.0".to_string(),
             resource: "/api/v1/auth/token".to_string(),
+            resource_id: None,
             action: "POST".to_string(),
             result: "SUCCESS".to_string(),
-            metadata: HashMap::from([
-                ("client_id".to_string(), "react-spa".to_string()),
-            ]),
+            detail: Some(serde_json::json!({"client_id": "react-spa"})),
+            trace_id: None,
         }
     }
 

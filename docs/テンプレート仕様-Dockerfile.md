@@ -2,7 +2,7 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **Dockerfile** テンプレートの仕様を定義する。server/go、server/rust、bff/go、bff/rust、client/react、client/flutter の6種類の Dockerfile テンプレートを提供し、各言語・フレームワークに最適化されたマルチステージビルドを自動生成する。
+本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **Dockerfile** テンプレートの仕様を定義する。server/rust、bff/go、bff/rust、client/react、client/flutter の5種類の Dockerfile テンプレートを提供し、各言語・フレームワークに最適化されたマルチステージビルドを自動生成する。
 
 Docker イメージ戦略の全体像は [Dockerイメージ戦略](Dockerイメージ戦略.md) を参照。
 
@@ -12,7 +12,6 @@ Docker イメージ戦略の全体像は [Dockerイメージ戦略](Dockerイメ
 
 | テンプレートファイル              | 生成先         | 説明                          |
 | --------------------------------- | -------------- | ----------------------------- |
-| `server/go/Dockerfile.tera`       | `Dockerfile`   | Go サーバー用 Dockerfile      |
 | `server/rust/Dockerfile.tera`     | `Dockerfile`   | Rust サーバー用 Dockerfile    |
 | `bff/go/Dockerfile.tera`          | `Dockerfile`   | Go BFF 用 Dockerfile          |
 | `bff/rust/Dockerfile.tera`        | `Dockerfile`   | Rust BFF 用 Dockerfile        |
@@ -25,8 +24,6 @@ Docker イメージ戦略の全体像は [Dockerイメージ戦略](Dockerイメ
 CLI/
 └── templates/
     ├── server/
-    │   ├── go/
-    │   │   └── Dockerfile.tera
     │   └── rust/
     │       └── Dockerfile.tera
     ├── bff/
@@ -45,9 +42,9 @@ CLI/
 
 Dockerfile テンプレートで使用する変数を以下に示す。変数の定義と導出ルールの詳細は [テンプレートエンジン仕様](テンプレートエンジン仕様.md) を参照。
 
-| 変数名         | 型     | server/go | server/rust | bff/go | bff/rust | client/react | client/flutter | 用途                 |
-| -------------- | ------ | --------- | ----------- | ------ | -------- | ------------ | -------------- | -------------------- |
-| `service_name` | String | 用        | 用          | 用     | 用       | -            | -              | バイナリ名・COPY 先  |
+| 変数名         | 型     | server/rust | bff/go | bff/rust | client/react | client/flutter | 用途                 |
+| -------------- | ------ | ----------- | ------ | -------- | ------------ | -------------- | -------------------- |
+| `service_name` | String | 用          | 用     | 用       | -            | -              | バイナリ名・COPY 先  |
 
 ## 共通方針
 
@@ -59,42 +56,6 @@ Dockerfile テンプレートで使用する変数を以下に示す。変数の
 | distroless / nginx         | サーバー系は distroless、クライアント系は nginx をランタイムとして使用 |
 | nonroot ユーザー           | サーバー系は nonroot ユーザーで実行し、特権昇格を防止        |
 | レイヤーキャッシュ最適化   | 依存関係のダウンロードを先に実行し、ビルドキャッシュを活用   |
-
----
-
-## server/go Dockerfile テンプレート
-
-Go サーバー用のマルチステージビルド Dockerfile。
-
-```tera
-# Build stage
-FROM golang:1.23-bookworm AS builder
-
-WORKDIR /app
-
-COPY go.mod go.sum ./
-RUN go mod download
-
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /{{ service_name }} ./cmd/server
-
-# Runtime stage
-FROM gcr.io/distroless/static-debian12:nonroot
-
-COPY --from=builder /{{ service_name }} /{{ service_name }}
-
-USER nonroot:nonroot
-
-ENTRYPOINT ["/{{ service_name }}"]
-```
-
-### ポイント
-
-- `golang:1.23-bookworm` をビルドステージのベースイメージとして使用する
-- `CGO_ENABLED=0` で静的バイナリを生成し、distroless イメージで実行可能にする
-- `go mod download` を先に実行し、依存関係のダウンロードをキャッシュする
-- ランタイムは `distroless/static-debian12:nonroot` を使用し、最小構成で実行する
-- `USER nonroot:nonroot` で非特権ユーザーとして実行する
 
 ---
 
@@ -282,7 +243,6 @@ CMD ["nginx", "-g", "daemon off;"]
 
 | kind/lang        | ベースイメージ                    | ランタイムイメージ                     | 概算サイズ |
 | ---------------- | --------------------------------- | -------------------------------------- | ---------- |
-| server/go        | golang:1.23-bookworm              | distroless/static-debian12:nonroot     | ~10MB      |
 | server/rust      | rust:1.82                         | distroless/cc-debian12:nonroot         | ~15MB      |
 | bff/go           | golang:1.22-alpine                | distroless/static-debian12:nonroot     | ~10MB      |
 | bff/rust         | rust:1.82                         | distroless/cc-debian12:nonroot         | ~15MB      |

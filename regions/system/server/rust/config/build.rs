@@ -1,7 +1,6 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config_proto = "../../proto/v1/config.proto";
-    let common_proto = "../../proto/v1/common.proto";
-    let proto_include = "../../proto";
+    let config_proto = "../../../../../api/proto/k1s0/system/config/v1/config.proto";
+    let proto_include = "../../../../../api/proto";
 
     // proto ファイルが存在し、protoc が利用可能な場合のみコード生成を実行する。
     // CI/CD や buf generate 環境以外では手動型定義で代替するためスキップ可。
@@ -17,7 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build_server(true)
         .build_client(false)
         .out_dir("src/proto")
-        .compile_protos(&[config_proto, common_proto], &[proto_include])
+        .compile_protos(&[config_proto], &[proto_include])
     {
         Ok(()) => {
             println!("cargo:warning=tonic-build succeeded for config proto");

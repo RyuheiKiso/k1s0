@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::domain::entity::audit_log::{AuditLog, CreateAuditLogRequest};
@@ -16,15 +15,17 @@ pub struct RecordAuditLogGrpcRequest {
     pub ip_address: String,
     pub user_agent: String,
     pub resource: String,
+    pub resource_id: String,
     pub action: String,
     pub result: String,
-    pub metadata: HashMap<String, String>,
+    pub detail: Option<serde_json::Value>,
+    pub trace_id: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct RecordAuditLogGrpcResponse {
     pub id: String,
-    pub recorded_at: Option<PbTimestamp>,
+    pub created_at: Option<PbTimestamp>,
 }
 
 #[derive(Debug, Clone)]
@@ -51,10 +52,12 @@ pub struct PbAuditLog {
     pub ip_address: String,
     pub user_agent: String,
     pub resource: String,
+    pub resource_id: String,
     pub action: String,
     pub result: String,
-    pub metadata: HashMap<String, String>,
-    pub recorded_at: Option<PbTimestamp>,
+    pub detail: Option<serde_json::Value>,
+    pub trace_id: String,
+    pub created_at: Option<PbTimestamp>,
 }
 
 // --- AuditGrpcService ---
@@ -92,17 +95,27 @@ impl AuditGrpcService {
             ip_address: req.ip_address,
             user_agent: req.user_agent,
             resource: req.resource,
+            resource_id: if req.resource_id.is_empty() {
+                None
+            } else {
+                Some(req.resource_id)
+            },
             action: req.action,
             result: req.result,
-            metadata: req.metadata,
+            detail: req.detail,
+            trace_id: if req.trace_id.is_empty() {
+                None
+            } else {
+                Some(req.trace_id)
+            },
         };
 
         match self.record_audit_log_uc.execute(create_req).await {
             Ok(response) => Ok(RecordAuditLogGrpcResponse {
                 id: response.id.to_string(),
-                recorded_at: Some(PbTimestamp {
-                    seconds: response.recorded_at.timestamp(),
-                    nanos: response.recorded_at.timestamp_subsec_nanos() as i32,
+                created_at: Some(PbTimestamp {
+                    seconds: response.created_at.timestamp(),
+                    nanos: response.created_at.timestamp_subsec_nanos() as i32,
                 }),
             }),
             Err(RecordAuditLogError::Validation(msg)) => {
@@ -185,12 +198,14 @@ fn domain_audit_log_to_pb(log: &AuditLog) -> PbAuditLog {
         ip_address: log.ip_address.clone(),
         user_agent: log.user_agent.clone(),
         resource: log.resource.clone(),
+        resource_id: log.resource_id.clone().unwrap_or_default(),
         action: log.action.clone(),
         result: log.result.clone(),
-        metadata: log.metadata.clone(),
-        recorded_at: Some(PbTimestamp {
-            seconds: log.recorded_at.timestamp(),
-            nanos: log.recorded_at.timestamp_subsec_nanos() as i32,
+        detail: log.detail.clone(),
+        trace_id: log.trace_id.clone().unwrap_or_default(),
+        created_at: Some(PbTimestamp {
+            seconds: log.created_at.timestamp(),
+            nanos: log.created_at.timestamp_subsec_nanos() as i32,
         }),
     }
 }
@@ -199,7 +214,6 @@ fn domain_audit_log_to_pb(log: &AuditLog) -> PbAuditLog {
 mod tests {
     use super::*;
     use crate::domain::repository::audit_log_repository::MockAuditLogRepository;
-    use std::collections::HashMap;
 
     fn make_audit_service(mock_repo: MockAuditLogRepository) -> AuditGrpcService {
         let repo = Arc::new(mock_repo);
@@ -221,14 +235,16 @@ mod tests {
             ip_address: "192.168.1.100".to_string(),
             user_agent: "Mozilla/5.0".to_string(),
             resource: "/api/v1/auth/token".to_string(),
+            resource_id: String::new(),
             action: "POST".to_string(),
             result: "SUCCESS".to_string(),
-            metadata: HashMap::from([("client_id".to_string(), "react-spa".to_string())]),
+            detail: Some(serde_json::json!({"client_id": "react-spa"})),
+            trace_id: "trace-001".to_string(),
         };
 
         let resp = svc.record_audit_log(req).await.unwrap();
         assert!(!resp.id.is_empty());
-        assert!(resp.recorded_at.is_some());
+        assert!(resp.created_at.is_some());
     }
 
     #[tokio::test]
@@ -242,9 +258,11 @@ mod tests {
             ip_address: String::new(),
             user_agent: String::new(),
             resource: String::new(),
+            resource_id: String::new(),
             action: String::new(),
             result: "SUCCESS".to_string(),
-            metadata: HashMap::new(),
+            detail: None,
+            trace_id: String::new(),
         };
 
         let result = svc.record_audit_log(req).await;

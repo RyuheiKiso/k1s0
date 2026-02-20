@@ -60,10 +60,10 @@ describe('tauri-commands', () => {
 
   describe('scanBuildableTargets', () => {
     it('should invoke scan_buildable_targets', async () => {
-      mockInvoke.mockResolvedValue(['regions/system/server/go/auth']);
+      mockInvoke.mockResolvedValue(['regions/system/server/rust/auth']);
       const result = await scanBuildableTargets('.');
       expect(mockInvoke).toHaveBeenCalledWith('scan_buildable_targets', { baseDir: '.' });
-      expect(result).toEqual(['regions/system/server/go/auth']);
+      expect(result).toEqual(['regions/system/server/rust/auth']);
     });
   });
 
@@ -78,10 +78,10 @@ describe('tauri-commands', () => {
 
   describe('scanTestableTargets', () => {
     it('should invoke scan_testable_targets', async () => {
-      mockInvoke.mockResolvedValue(['regions/system/server/go/auth']);
+      mockInvoke.mockResolvedValue(['regions/system/server/rust/auth']);
       const result = await scanTestableTargets('.');
       expect(mockInvoke).toHaveBeenCalledWith('scan_testable_targets', { baseDir: '.' });
-      expect(result).toEqual(['regions/system/server/go/auth']);
+      expect(result).toEqual(['regions/system/server/rust/auth']);
     });
   });
 

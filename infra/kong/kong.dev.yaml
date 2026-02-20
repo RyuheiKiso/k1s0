@@ -15,7 +15,7 @@ services:
   # Auth Service
   # ============================================================
   - name: auth-v1
-    url: http://auth-go:8080
+    url: http://auth-rust:8080
     routes:
       - name: auth-token-route
         paths:
@@ -42,7 +42,7 @@ services:
   # Config Service
   # ============================================================
   - name: config-v1
-    url: http://config-go:8080
+    url: http://config-rust:8080
     routes:
       - name: config-route
         paths:
@@ -58,7 +58,7 @@ services:
   # Health Endpoints (no auth required)
   # ============================================================
   - name: auth-health
-    url: http://auth-go:8080
+    url: http://auth-rust:8080
     routes:
       - name: auth-health-check
         paths:

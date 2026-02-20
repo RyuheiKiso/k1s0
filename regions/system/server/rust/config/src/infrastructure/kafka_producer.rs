@@ -3,6 +3,17 @@ use serde::Deserialize;
 
 use crate::domain::entity::config_change_log::ConfigChangeLog;
 
+/// ConfigChangedEvent は設定値変更時に Kafka へ発行するイベント。
+#[derive(Debug, serde::Serialize)]
+pub struct ConfigChangedEvent {
+    pub namespace: String,
+    pub key: String,
+    pub new_value: serde_json::Value,
+    pub updated_by: String,
+    pub version: i32,
+    pub timestamp: String, // ISO 8601
+}
+
 /// KafkaConfig は Kafka 接続の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
@@ -87,6 +98,29 @@ impl KafkaProducer {
     /// 配信先トピック名を返す。
     pub fn topic(&self) -> &str {
         &self.topic
+    }
+
+    /// 設定値変更イベントを Kafka へ発行する。
+    /// 内部的には ConfigChangeLog を構築して既存の publish メソッドに委譲する。
+    pub async fn publish_config_changed(&self, event: &ConfigChangedEvent) -> anyhow::Result<()> {
+        use rdkafka::producer::FutureRecord;
+        use std::time::Duration;
+
+        let payload = serde_json::to_vec(event)?;
+        let key = format!("{}:{}", event.namespace, event.key);
+
+        let record = FutureRecord::to(&self.topic)
+            .key(&key)
+            .payload(&payload);
+
+        self.producer
+            .send(record, Duration::from_secs(5))
+            .await
+            .map_err(|(err, _)| {
+                anyhow::anyhow!("failed to publish config changed event: {}", err)
+            })?;
+
+        Ok(())
     }
 }
 
@@ -307,5 +341,56 @@ topics:
         let log = make_test_change_log();
         assert!(mock.publish(&log).await.is_ok());
         assert!(mock.close().await.is_ok());
+    }
+
+    // --- ConfigChangedEvent テスト ---
+
+    fn make_config_changed_event() -> ConfigChangedEvent {
+        ConfigChangedEvent {
+            namespace: "system.auth.database".to_string(),
+            key: "max_connections".to_string(),
+            new_value: serde_json::json!(50),
+            updated_by: "operator@example.com".to_string(),
+            version: 4,
+            timestamp: "2026-02-21T00:00:00Z".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_config_changed_event_serialization() {
+        let event = make_config_changed_event();
+        let json = serde_json::to_value(&event).unwrap();
+
+        assert_eq!(json["namespace"], "system.auth.database");
+        assert_eq!(json["key"], "max_connections");
+        assert_eq!(json["new_value"], 50);
+        assert_eq!(json["updated_by"], "operator@example.com");
+        assert_eq!(json["version"], 4);
+        assert_eq!(json["timestamp"], "2026-02-21T00:00:00Z");
+    }
+
+    #[test]
+    fn test_config_changed_event_serialization_object_value() {
+        let event = ConfigChangedEvent {
+            namespace: "system.auth.jwt".to_string(),
+            key: "settings".to_string(),
+            new_value: serde_json::json!({ "ttl_secs": 7200, "issuer": "https://auth.example.com" }),
+            updated_by: "admin@example.com".to_string(),
+            version: 2,
+            timestamp: "2026-02-21T12:00:00Z".to_string(),
+        };
+
+        let json = serde_json::to_value(&event).unwrap();
+        assert_eq!(json["new_value"]["ttl_secs"], 7200);
+        assert_eq!(json["new_value"]["issuer"], "https://auth.example.com");
+    }
+
+    #[test]
+    fn test_config_changed_event_debug_format() {
+        let event = make_config_changed_event();
+        // Debug トレイトが実装されていることを確認
+        let debug_str = format!("{:?}", event);
+        assert!(debug_str.contains("ConfigChangedEvent"));
+        assert!(debug_str.contains("system.auth.database"));
     }
 }

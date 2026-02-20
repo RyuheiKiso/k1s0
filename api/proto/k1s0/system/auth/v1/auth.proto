@@ -7,6 +7,7 @@ package k1s0.system.auth.v1;
 option go_package = "github.com/k1s0-platform/system-server-go-auth/gen/go/k1s0/system/auth/v1;authv1";
 
 import "k1s0/system/common/v1/types.proto";
+import "google/protobuf/struct.proto";
 
 // AuthService は JWT トークン検証・ユーザー情報管理・パーミッション確認を提供する。
 service AuthService {
@@ -205,15 +206,19 @@ message RecordAuditLogRequest {
   string action = 6;
   // SUCCESS / FAILURE
   string result = 7;
-  // 追加メタデータ（client_id, grant_type 等）
-  map<string, string> metadata = 8;
+  // 操作の詳細情報（client_id, grant_type 等）
+  google.protobuf.Struct detail = 8;
+  // 操作対象リソースの ID
+  string resource_id = 9;
+  // OpenTelemetry トレース ID
+  string trace_id = 10;
 }
 
 // RecordAuditLogResponse は監査ログ記録レスポンス。
 message RecordAuditLogResponse {
   // 監査ログ UUID
   string id = 1;
-  k1s0.system.common.v1.Timestamp recorded_at = 2;
+  k1s0.system.common.v1.Timestamp created_at = 2;
 }
 
 // SearchAuditLogsRequest は監査ログ検索リクエスト。
@@ -243,6 +248,11 @@ message AuditLog {
   string resource = 6;
   string action = 7;
   string result = 8;
-  map<string, string> metadata = 9;
-  k1s0.system.common.v1.Timestamp recorded_at = 10;
+  // 操作の詳細情報（変更前後の値等）
+  google.protobuf.Struct detail = 9;
+  k1s0.system.common.v1.Timestamp created_at = 10;
+  // 操作対象リソースの ID
+  string resource_id = 11;
+  // OpenTelemetry トレース ID
+  string trace_id = 12;
 }

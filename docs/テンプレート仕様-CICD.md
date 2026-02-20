@@ -157,52 +157,6 @@ concurrency:
 
 ### 言語別ステップ
 
-#### Go
-
-```tera
-{% if language == "go" %}
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-{% raw %}
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.23"
-      - uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          working-directory: {{ module_path }}
-{% endraw %}
-
-  test:
-    needs: lint
-    runs-on: ubuntu-latest
-    steps:
-{% raw %}
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.23"
-{% endraw %}
-      - run: go test ./... -race -coverprofile=coverage.out
-        working-directory: {{ module_path }}
-
-  build:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-{% raw %}
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.23"
-{% endraw %}
-      - run: go build ./...
-        working-directory: {{ module_path }}
-{% endif %}
-```
-
 #### Rust
 
 ```tera
@@ -456,12 +410,6 @@ concurrency:
 ```tera
 version: 2
 updates:
-{% if language == "go" %}
-  - package-ecosystem: gomod
-    directory: "/{{ module_path }}"
-    schedule:
-      interval: weekly
-{% endif %}
 {% if language == "rust" %}
   - package-ecosystem: cargo
     directory: "/{{ module_path }}"
@@ -494,7 +442,6 @@ updates:
 
 | 条件                                              | パッケージエコシステム |
 | ------------------------------------------------- | ---------------------- |
-| `language == "go"`                                | `gomod`                |
 | `language == "rust"`                              | `cargo`                |
 | `language == "typescript"` or `framework == "react"` | `npm`                  |
 | `language == "dart"` or `framework == "flutter"`  | `pub`                  |
@@ -792,7 +739,7 @@ CI の実行時間を短縮するため、言語ごとのキャッシュを活�
 
 | 言語   | キャッシュ対象              | アクション                |
 | ------ | --------------------------- | ------------------------- |
-| Go     | `~/go/pkg/mod`              | `actions/setup-go` 内蔵   |
+| Go     | `~/go/pkg/mod`             | `actions/cache`           |
 | Rust   | `~/.cargo`, `target/`      | `actions/cache`           |
 | Node   | `node_modules/`            | `actions/setup-node` 内蔵 |
 | Dart   | `~/.pub-cache`             | `actions/cache`           |
@@ -806,7 +753,8 @@ CLI の対話フローで選択されたオプションに応じて、ワーク�
 
 | 条件                     | 選択肢                            | CI への影響                                       |
 | ------------------------ | --------------------------------- | ------------------------------------------------- |
-| 言語 (`language`)        | `go` / `rust`                     | 言語固有の lint → test → build ステップ           |
+| 言語 (`language`)        | `go`                              | Go 固有の lint → test → build ステップ            |
+| 言語 (`language`)        | `rust`                            | 言語固有の lint → test → build ステップ           |
 | フレームワーク (`framework`) | `react` / `flutter`              | クライアント固有の lint → test → build ステップ   |
 | API 方式 (`api_styles`)  | `grpc` を含む                     | buf lint + breaking change detection ステップ追加 |
 | DB 有無 (`has_database`) | `true`                            | DB マイグレーションテストステップ追加             |
@@ -824,7 +772,7 @@ CLI の対話フローで選択されたオプションに応じて、ワーク�
 ```json
 {
   "service_name": "order-api",
-  "module_path": "regions/service/order-api/server/go",
+  "module_path": "regions/service/order/server/go",
   "language": "go",
   "kind": "server",
   "tier": "service",
@@ -837,7 +785,7 @@ CLI の対話フローで選択されたオプションに応じて、ワーク�
 ```
 
 生成されるファイル:
-- `.github/workflows/order-api-ci.yaml` — lint (golangci-lint) → test → migration-test (PostgreSQL) → build → security-scan
+- `.github/workflows/order-api-ci.yaml` — lint (golangci-lint) → migration-test → test → build → security-scan
 - `.github/workflows/order-api-deploy.yaml` — build-and-push → deploy-dev → deploy-staging → deploy-prod
 
 ### Rust gRPC サーバー（DB なし）の場合

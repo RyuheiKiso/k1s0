@@ -23,6 +23,8 @@ pub struct AppState {
     pub search_audit_logs_uc: Arc<SearchAuditLogsUseCase>,
     pub check_permission_uc: Arc<CheckPermissionUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    pub db_pool: Option<sqlx::PgPool>,
+    pub keycloak_url: Option<String>,
 }
 
 impl AppState {
@@ -32,6 +34,8 @@ impl AppState {
         audit_repo: Arc<dyn AuditLogRepository>,
         expected_issuer: String,
         expected_audience: String,
+        db_pool: Option<sqlx::PgPool>,
+        keycloak_url: Option<String>,
     ) -> Self {
         Self {
             validate_token_uc: Arc::new(ValidateTokenUseCase::new(
@@ -45,6 +49,8 @@ impl AppState {
             search_audit_logs_uc: Arc::new(SearchAuditLogsUseCase::new(audit_repo)),
             check_permission_uc: Arc::new(CheckPermissionUseCase::new()),
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server")),
+            db_pool,
+            keycloak_url,
         }
     }
 }

@@ -245,7 +245,7 @@ mod tests {
     #[test]
     fn test_build_config_creation() {
         let config = BuildConfig {
-            targets: vec!["regions/system/server/go/auth".to_string()],
+            targets: vec!["regions/system/server/rust/auth".to_string()],
             mode: BuildMode::Development,
         };
         assert_eq!(config.targets.len(), 1);
@@ -267,12 +267,12 @@ mod tests {
     fn test_scan_buildable_targets_with_projects() {
         let tmp = TempDir::new().unwrap();
 
-        // Go プロジェクト
-        let go_path = tmp.path().join("regions/system/server/go/auth");
-        fs::create_dir_all(&go_path).unwrap();
-        fs::write(go_path.join("go.mod"), "module auth\n").unwrap();
+        // Rust サーバープロジェクト (system tier)
+        let rust_system_path = tmp.path().join("regions/system/server/rust/auth");
+        fs::create_dir_all(&rust_system_path).unwrap();
+        fs::write(rust_system_path.join("Cargo.toml"), "[package]\n").unwrap();
 
-        // Rust プロジェクト
+        // Rust プロジェクト (business tier)
         let rust_path = tmp.path().join("regions/business/accounting/server/rust/ledger");
         fs::create_dir_all(&rust_path).unwrap();
         fs::write(rust_path.join("Cargo.toml"), "[package]\n").unwrap();

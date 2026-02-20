@@ -7,7 +7,6 @@ on:
   push:
     branches: [main]
     paths:
-      - 'regions/system/server/go/auth/**'
       - 'regions/system/server/rust/auth/**'
 
 env:
@@ -40,7 +39,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: regions/system/server/go/auth
+          context: regions/system/server/rust/auth
           push: true
           tags: |
             ${{ env.REGISTRY }}/k1s0-system/auth:${{ steps.version.outputs.value }}

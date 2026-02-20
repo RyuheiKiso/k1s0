@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use uuid::Uuid;
 
 /// AuditLog は監査ログエントリを表すドメインエンティティ。
@@ -12,11 +11,13 @@ pub struct AuditLog {
     pub ip_address: String,
     pub user_agent: String,
     pub resource: String,
+    pub resource_id: Option<String>,
     pub action: String,
     pub result: String,
     #[serde(default)]
-    pub metadata: HashMap<String, String>,
-    pub recorded_at: DateTime<Utc>,
+    pub detail: Option<serde_json::Value>,
+    pub trace_id: Option<String>,
+    pub created_at: DateTime<Utc>,
 }
 
 /// CreateAuditLogRequest は監査ログ記録リクエストを表す。
@@ -28,10 +29,12 @@ pub struct CreateAuditLogRequest {
     #[serde(default)]
     pub user_agent: String,
     pub resource: String,
+    pub resource_id: Option<String>,
     pub action: String,
     pub result: String,
     #[serde(default)]
-    pub metadata: HashMap<String, String>,
+    pub detail: Option<serde_json::Value>,
+    pub trace_id: Option<String>,
 }
 
 /// AuditLogSearchParams は監査ログ検索パラメータを表す。
@@ -57,7 +60,7 @@ pub struct AuditLogSearchResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateAuditLogResponse {
     pub id: Uuid,
-    pub recorded_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
 }
 
 impl AuditLog {
@@ -70,10 +73,12 @@ impl AuditLog {
             ip_address: req.ip_address,
             user_agent: req.user_agent,
             resource: req.resource,
+            resource_id: req.resource_id,
             action: req.action,
             result: req.result,
-            metadata: req.metadata,
-            recorded_at: Utc::now(),
+            detail: req.detail,
+            trace_id: req.trace_id,
+            created_at: Utc::now(),
         }
     }
 }
@@ -90,11 +95,11 @@ mod tests {
             ip_address: "192.168.1.100".to_string(),
             user_agent: "Mozilla/5.0".to_string(),
             resource: "/api/v1/auth/token".to_string(),
+            resource_id: None,
             action: "POST".to_string(),
             result: "SUCCESS".to_string(),
-            metadata: HashMap::from([
-                ("client_id".to_string(), "react-spa".to_string()),
-            ]),
+            detail: Some(serde_json::json!({"client_id": "react-spa"})),
+            trace_id: Some("4bf92f3577b34da6a3ce929d0e0e4736".to_string()),
         };
 
         let log = AuditLog::new(req);
@@ -103,8 +108,36 @@ mod tests {
         assert_eq!(log.user_id, "user-uuid-1234");
         assert_eq!(log.ip_address, "192.168.1.100");
         assert_eq!(log.result, "SUCCESS");
-        assert_eq!(log.metadata.get("client_id").unwrap(), "react-spa");
+        assert_eq!(
+            log.detail.as_ref().unwrap()["client_id"],
+            "react-spa"
+        );
+        assert_eq!(
+            log.trace_id.as_deref(),
+            Some("4bf92f3577b34da6a3ce929d0e0e4736")
+        );
         assert!(!log.id.is_nil());
+    }
+
+    #[test]
+    fn test_audit_log_new_minimal() {
+        let req = CreateAuditLogRequest {
+            event_type: "TOKEN_VALIDATE".to_string(),
+            user_id: "user-uuid-5678".to_string(),
+            ip_address: "10.0.0.1".to_string(),
+            user_agent: String::new(),
+            resource: "/api/v1/auth/token/validate".to_string(),
+            resource_id: None,
+            action: "POST".to_string(),
+            result: "SUCCESS".to_string(),
+            detail: None,
+            trace_id: None,
+        };
+
+        let log = AuditLog::new(req);
+        assert!(log.detail.is_none());
+        assert!(log.trace_id.is_none());
+        assert!(log.resource_id.is_none());
     }
 
     #[test]
@@ -116,10 +149,12 @@ mod tests {
             ip_address: "10.0.0.1".to_string(),
             user_agent: "k1s0-client/1.0".to_string(),
             resource: "/api/v1/auth/token/validate".to_string(),
+            resource_id: Some("token-001".to_string()),
             action: "POST".to_string(),
             result: "SUCCESS".to_string(),
-            metadata: HashMap::new(),
-            recorded_at: Utc::now(),
+            detail: Some(serde_json::json!({"grant_type": "authorization_code"})),
+            trace_id: Some("abc123".to_string()),
+            created_at: Utc::now(),
         };
 
         let json = serde_json::to_string(&log).unwrap();
@@ -128,16 +163,18 @@ mod tests {
     }
 
     #[test]
-    fn test_audit_log_result_must_be_success_or_failure() {
+    fn test_audit_log_result_failure() {
         let req = CreateAuditLogRequest {
             event_type: "LOGIN_FAILURE".to_string(),
             user_id: "user-uuid-1234".to_string(),
             ip_address: "192.168.1.100".to_string(),
             user_agent: String::new(),
             resource: "/api/v1/auth/token".to_string(),
+            resource_id: None,
             action: "POST".to_string(),
             result: "FAILURE".to_string(),
-            metadata: HashMap::new(),
+            detail: None,
+            trace_id: None,
         };
 
         let log = AuditLog::new(req);

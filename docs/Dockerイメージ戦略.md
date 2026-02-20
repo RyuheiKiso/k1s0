@@ -13,33 +13,11 @@ k1s0 プロジェクトにおける Docker イメージのビルド・管理方�
 
 | 言語 / FW   | ビルドステージ               | ランタイムステージ                        |
 | ----------- | ---------------------------- | ----------------------------------------- |
-| Go          | `golang:1.23-bookworm`       | `gcr.io/distroless/static-debian12`       |
 | Rust        | `rust:1.82-bookworm`         | `gcr.io/distroless/cc-debian12`           |
 | React       | `node:22-bookworm` (ビルド)  | `nginx:1.27-alpine`（静的配信）           |
 | Flutter Web | `ghcr.io/cirruslabs/flutter:3.24.0` (ビルド) | `nginx:1.27-alpine`（静的配信）  |
 
 ## Dockerfile テンプレート
-
-### Go サーバー
-
-```dockerfile
-# ---- Build ----
-FROM golang:1.23-bookworm AS build
-WORKDIR /src
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app ./cmd/
-
-# ---- Runtime ----
-FROM gcr.io/distroless/static-debian12
-COPY --from=build /app /app
-# config.yaml は Kubernetes 環境では ConfigMap としてマウントされる（helm設計.md 参照）
-# ローカル実行時は -v オプションで config/ をマウントすること
-USER nonroot:nonroot
-EXPOSE 8080
-ENTRYPOINT ["/app"]
-```
 
 ### Rust サーバー
 

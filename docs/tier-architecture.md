@@ -38,7 +38,7 @@ k1s0 のリポジトリは **system → business → service** の3階層（Tier
 
 | 種別     | 役割                                        |
 | -------- | ------------------------------------------- |
-| server   | 業務サービスの実装（Go / Rust）             |
+| server   | 業務サービスの実装（Rust）                  |
 | client   | ユーザー向けクライアント（React / Flutter） |
 | database | サービス固有のデータストア                  |
 
@@ -134,7 +134,6 @@ system 層には client が存在しないため、client は system library を
 regions/
 ├── system/
 │   ├── server/
-│   │   ├── go/
 │   │   └── rust/
 │   ├── library/
 │   │   ├── go/
@@ -145,7 +144,6 @@ regions/
 ├── business/
 │   └── {領域名}/          # 例: accounting, fa
 │       ├── server/
-│       │   ├── go/
 │       │   └── rust/
 │       ├── client/
 │       │   ├── react/
@@ -159,7 +157,6 @@ regions/
 └── service/
     └── {サービス名}/          # 例: order, inventory
         ├── server/
-        │   ├── go/
         │   └── rust/
         ├── client/
         │   ├── react/

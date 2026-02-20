@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use chrono::Utc;
 use uuid::Uuid;
 
@@ -107,7 +105,7 @@ mod audit_log_postgres_tests {
     use k1s0_auth_server::adapter::repository::audit_log_postgres::AuditLogRow;
 
     #[test]
-    fn test_audit_log_row_conversion_with_metadata() {
+    fn test_audit_log_row_conversion_with_detail() {
         let row = AuditLogRow {
             id: Uuid::new_v4(),
             event_type: "LOGIN_SUCCESS".to_string(),
@@ -115,20 +113,23 @@ mod audit_log_postgres_tests {
             ip_address: "192.168.1.100".to_string(),
             user_agent: "Mozilla/5.0".to_string(),
             resource: "/api/v1/auth/token".to_string(),
+            resource_id: None,
             action: "POST".to_string(),
             result: "SUCCESS".to_string(),
-            metadata: serde_json::json!({"client_id": "react-spa", "session_id": "sess-123"}),
-            recorded_at: Utc::now(),
+            detail: Some(serde_json::json!({"client_id": "react-spa", "session_id": "sess-123"})),
+            trace_id: Some("trace-001".to_string()),
+            created_at: Utc::now(),
         };
 
         let log: AuditLog = row.into();
         assert_eq!(log.event_type, "LOGIN_SUCCESS");
-        assert_eq!(log.metadata.get("client_id").unwrap(), "react-spa");
-        assert_eq!(log.metadata.get("session_id").unwrap(), "sess-123");
+        assert_eq!(log.detail.as_ref().unwrap()["client_id"], "react-spa");
+        assert_eq!(log.detail.as_ref().unwrap()["session_id"], "sess-123");
+        assert_eq!(log.trace_id.as_deref(), Some("trace-001"));
     }
 
     #[test]
-    fn test_audit_log_row_conversion_with_null_metadata() {
+    fn test_audit_log_row_conversion_with_null_detail() {
         let row = AuditLogRow {
             id: Uuid::new_v4(),
             event_type: "TOKEN_VALIDATE".to_string(),
@@ -136,14 +137,17 @@ mod audit_log_postgres_tests {
             ip_address: "10.0.0.1".to_string(),
             user_agent: "".to_string(),
             resource: "/api/v1/auth/token/validate".to_string(),
+            resource_id: None,
             action: "POST".to_string(),
             result: "SUCCESS".to_string(),
-            metadata: serde_json::Value::Null,
-            recorded_at: Utc::now(),
+            detail: None,
+            trace_id: None,
+            created_at: Utc::now(),
         };
 
         let log: AuditLog = row.into();
-        assert!(log.metadata.is_empty());
+        assert!(log.detail.is_none());
+        assert!(log.trace_id.is_none());
     }
 }
 
@@ -354,8 +358,10 @@ mod database_integration_tests {
                 resource: "/api/v1/auth/token".to_string(),
                 action: "POST".to_string(),
                 result: "SUCCESS".to_string(),
-                metadata: HashMap::from([("client_id".to_string(), "react-spa".to_string())]),
-                recorded_at: Utc::now(),
+                resource_id: None,
+                detail: Some(serde_json::json!({"client_id": "react-spa"})),
+                trace_id: None,
+                created_at: Utc::now(),
             };
 
             repo.create(&log).await.unwrap();

@@ -583,11 +583,11 @@ regions/service/order/server/go/bff/
 ```
 ? ビルド対象を選択してください（複数選択可）
 > [ ] すべて
-  [x] regions/service/order/server/go
+  [x] regions/service/order/server/rust
   [ ] regions/service/order/client/react
-  [ ] regions/business/accounting/server/go/ledger
+  [ ] regions/business/accounting/server/rust/ledger
   [ ] regions/business/accounting/client/react/accounting-web
-  [ ] regions/system/server/go/auth
+  [ ] regions/system/server/rust/auth
   [ ] regions/system/library/go/authlib
   ...
 ```
@@ -606,7 +606,7 @@ regions/service/order/server/go/bff/
 
 ```
 [確認] 以下の対象をビルドします。よろしいですか？
-    対象:   regions/service/order/server/go
+    対象:   regions/service/order/server/rust
     モード: development
     > はい
       いいえ（前のステップに戻る）
@@ -636,11 +636,11 @@ regions/service/order/server/go/bff/
 ```
 ? テスト対象を選択してください（複数選択可）
 > [ ] すべて
-  [x] regions/service/order/server/go
+  [x] regions/service/order/server/rust
   [ ] regions/service/order/client/react
-  [ ] regions/business/accounting/server/go/ledger
+  [ ] regions/business/accounting/server/rust/ledger
   [ ] regions/business/accounting/client/react/accounting-web
-  [ ] regions/system/server/go/auth
+  [ ] regions/system/server/rust/auth
   [ ] regions/system/library/go/authlib
   ...
 ```
@@ -664,7 +664,7 @@ regions/service/order/server/go/bff/
 ```
 [確認] 以下のテストを実行します。よろしいですか？
     種別: ユニットテスト
-    対象: regions/service/order/server/go
+    対象: regions/service/order/server/rust
     > はい
       いいえ（前のステップに戻る）
       キャンセル（メインメニューに戻る）
@@ -690,11 +690,11 @@ regions/service/order/server/go/bff/
 ```
 ? デプロイ対象を選択してください（複数選択可）
 > [ ] すべて
-  [x] regions/service/order/server/go
+  [x] regions/service/order/server/rust
   [ ] regions/service/order/client/react
-  [ ] regions/business/accounting/server/go/ledger
+  [ ] regions/business/accounting/server/rust/ledger
   [ ] regions/business/accounting/client/react/accounting-web
-  [ ] regions/system/server/go/auth
+  [ ] regions/system/server/rust/auth
   ...
 ```
 
@@ -712,7 +712,7 @@ prod を選択した場合のみ表示される。
 ```
 [確認] 以下の内容でデプロイします。よろしいですか？
     環境: dev
-    対象: regions/service/order/server/go
+    対象: regions/service/order/server/rust
     > はい
       いいえ（前のステップに戻る）
       キャンセル（メインメニューに戻る）
