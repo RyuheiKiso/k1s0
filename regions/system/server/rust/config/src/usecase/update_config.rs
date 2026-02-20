@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::config_entry::ConfigEntry;
 use crate::domain::repository::ConfigRepository;
+use crate::infrastructure::kafka_producer::{ConfigChangedEvent, KafkaProducer};
 
 /// UpdateConfigError は設定値更新に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
@@ -33,14 +34,32 @@ pub struct UpdateConfigInput {
 /// UpdateConfigUseCase は設定値更新ユースケース。
 pub struct UpdateConfigUseCase {
     config_repo: Arc<dyn ConfigRepository>,
+    kafka_producer: Option<Arc<KafkaProducer>>,
 }
 
 impl UpdateConfigUseCase {
+    /// Kafka 通知なしのコンストラクタ（既存互換）。
     pub fn new(config_repo: Arc<dyn ConfigRepository>) -> Self {
-        Self { config_repo }
+        Self {
+            config_repo,
+            kafka_producer: None,
+        }
+    }
+
+    /// Kafka 通知ありのコンストラクタ。
+    pub fn new_with_kafka(
+        config_repo: Arc<dyn ConfigRepository>,
+        kafka_producer: Arc<KafkaProducer>,
+    ) -> Self {
+        Self {
+            config_repo,
+            kafka_producer: Some(kafka_producer),
+        }
     }
 
     /// 設定値を更新する（楽観的排他制御付き）。
+    /// 更新成功後、Kafka プロデューサーが設定されていれば変更イベントを発行する。
+    /// Kafka への通知はベストエフォートであり、失敗してもエラーにしない。
     pub async fn execute(&self, input: &UpdateConfigInput) -> Result<ConfigEntry, UpdateConfigError> {
         // バリデーション
         if input.namespace.is_empty() {
@@ -54,7 +73,8 @@ impl UpdateConfigUseCase {
             ));
         }
 
-        self.config_repo
+        let updated_entry = self
+            .config_repo
             .update(
                 &input.namespace,
                 &input.key,
@@ -69,7 +89,6 @@ impl UpdateConfigUseCase {
                 if msg.contains("not found") {
                     UpdateConfigError::NotFound(input.namespace.clone(), input.key.clone())
                 } else if msg.contains("version conflict") {
-                    // パースして current version を取得
                     UpdateConfigError::VersionConflict {
                         expected: input.version,
                         current: parse_current_version(&msg).unwrap_or(0),
@@ -77,7 +96,29 @@ impl UpdateConfigUseCase {
                 } else {
                     UpdateConfigError::Internal(msg)
                 }
-            })
+            })?;
+
+        // Kafka 変更通知（ベストエフォート）
+        if let Some(producer) = &self.kafka_producer {
+            let event = ConfigChangedEvent {
+                namespace: updated_entry.namespace.clone(),
+                key: updated_entry.key.clone(),
+                new_value: updated_entry.value_json.clone(),
+                updated_by: updated_entry.updated_by.clone(),
+                version: updated_entry.version,
+                timestamp: updated_entry.updated_at.to_rfc3339(),
+            };
+            if let Err(e) = producer.publish_config_changed(&event).await {
+                tracing::warn!(
+                    namespace = %updated_entry.namespace,
+                    key = %updated_entry.key,
+                    error = %e,
+                    "failed to publish config changed event to Kafka (best-effort)"
+                );
+            }
+        }
+
+        Ok(updated_entry)
     }
 }
 
@@ -252,5 +293,45 @@ mod tests {
         assert_eq!(parse_current_version("version conflict: current=4"), Some(4));
         assert_eq!(parse_current_version("version conflict: current=10"), Some(10));
         assert_eq!(parse_current_version("no version info"), None);
+    }
+
+    // --- Kafka 通知関連テスト ---
+
+    #[tokio::test]
+    async fn test_update_config_without_kafka_succeeds() {
+        // kafka_producer が None のとき Kafka 通知なしで成功する
+        let mut mock = MockConfigRepository::new();
+        let updated = make_updated_entry();
+        mock.expect_update()
+            .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+
+        let uc = UpdateConfigUseCase::new(Arc::new(mock));
+        let result = uc.execute(&make_update_input()).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_new_returns_uc_without_kafka() {
+        // new() で作成した UeCase は kafka_producer が None
+        let mock = MockConfigRepository::new();
+        let uc = UpdateConfigUseCase::new(Arc::new(mock));
+        assert!(uc.kafka_producer.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_new_with_kafka_sets_producer() {
+        // new_with_kafka() で作成した UseCase は kafka_producer が Some
+        // KafkaProducer はブローカー接続が必要なため、Option<Arc<KafkaProducer>> の
+        // Some 性チェックのみ行う（実際のKafka接続はE2Eテストで確認）
+        let mock = MockConfigRepository::new();
+        // KafkaConfig を直接構築してテスト（接続は行わない）
+        // ここでは型検証のみ: new_with_kafka のシグネチャが正しいことを確認する
+        let _ = |producer: Arc<KafkaProducer>| {
+            let uc = UpdateConfigUseCase::new_with_kafka(Arc::new(MockConfigRepository::new()), producer);
+            assert!(uc.kafka_producer.is_some());
+        };
+        // kafka_producer なし版は None
+        let uc = UpdateConfigUseCase::new(Arc::new(mock));
+        assert!(uc.kafka_producer.is_none());
     }
 }

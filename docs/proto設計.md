@@ -368,8 +368,8 @@ message AuditLog {
 | `AuthService.ListUsers` | `AuthGRPCService.ListUsers` | `auth_handler::list_users` (REST) | ページネーション付きユーザー一覧 |
 | `AuthService.GetUserRoles` | `AuthGRPCService.GetUserRoles` | `auth_handler::get_user_roles` (REST) | ユーザーのロール一覧（realm + client） |
 | `AuthService.CheckPermission` | `AuthGRPCService.CheckPermission` | `auth_handler::check_permission` (REST) | RBAC パーミッション判定 |
-| `AuditService.RecordAuditLog` | `AuditGRPCService.RecordAuditLog` | (REST handler 未実装) | 監査ログエントリ記録 |
-| `AuditService.SearchAuditLogs` | `AuditGRPCService.SearchAuditLogs` | (REST handler 未実装) | 監査ログ検索 |
+| `AuditService.RecordAuditLog` | `AuditGRPCService.RecordAuditLog` | `auth_handler::record_audit_log` (REST) | 監査ログエントリ記録 |
+| `AuditService.SearchAuditLogs` | `AuditGRPCService.SearchAuditLogs` | `auth_handler::search_audit_logs` (REST) | 監査ログ検索 |
 
 ---
 

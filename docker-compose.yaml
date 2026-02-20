@@ -240,6 +240,33 @@ services:
       timeout: 5s
       retries: 5
 
+  saga-rust:
+    build:
+      context: ./regions/system/server/rust/saga
+      dockerfile: Dockerfile
+    profiles: [system]
+    ports:
+      - "8085:8080"
+      - "50055:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.dev.yaml
+      - DATABASE_URL=postgresql://dev:dev@postgres:5432/saga
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/saga/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ============================================================
   # Kafka トピック自動作成
   # ============================================================

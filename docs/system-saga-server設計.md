@@ -309,16 +309,15 @@ YAML 形式のワークフロー定義を登録する。
 proto ファイルは [API設計.md](API設計.md) D-009 の命名規則に従い、以下に配置する。
 
 ```
-regions/system/proto/v1/saga.proto
+api/proto/k1s0/system/saga/v1/saga.proto
 ```
 
 ```protobuf
-// k1s0/system/saga/v1/saga.proto
+// api/proto/k1s0/system/saga/v1/saga.proto
 syntax = "proto3";
 package k1s0.system.saga.v1;
 
-import "google/protobuf/timestamp.proto";
-import "v1/common.proto";
+import "k1s0/system/common/v1/types.proto";
 
 service SagaService {
   rpc StartSaga(StartSagaRequest) returns (StartSagaResponse);
@@ -338,8 +337,8 @@ message SagaStateProto {
   string correlation_id = 6;
   string initiated_by = 7;
   string error_message = 8;
-  google.protobuf.Timestamp created_at = 9;
-  google.protobuf.Timestamp updated_at = 10;
+  k1s0.system.common.v1.Timestamp created_at = 9;
+  k1s0.system.common.v1.Timestamp updated_at = 10;
 }
 
 message SagaStepLogProto {
@@ -352,8 +351,8 @@ message SagaStepLogProto {
   bytes request_payload = 7;
   bytes response_payload = 8;
   string error_message = 9;
-  google.protobuf.Timestamp started_at = 10;
-  google.protobuf.Timestamp completed_at = 11;
+  k1s0.system.common.v1.Timestamp started_at = 10;
+  k1s0.system.common.v1.Timestamp completed_at = 11;
 }
 
 message WorkflowSummary {
@@ -949,6 +948,7 @@ saga:
 - [system-server設計.md](system-server設計.md) — auth-server 設計（同一パターン）
 - [テンプレート仕様-サーバー.md](テンプレート仕様-サーバー.md) — サーバーテンプレート仕様
 - [API設計.md](API設計.md) — REST API・gRPC 設計ガイドライン
+- [system-saga-database設計.md](system-saga-database設計.md) — Saga データベーススキーマ・状態管理テーブル
 - [テンプレート仕様-データベース.md](テンプレート仕様-データベース.md) — データベースマイグレーション仕様
 - [可観測性設計.md](可観測性設計.md) — メトリクス・トレース設計
 - [config設計.md](config設計.md) — config.yaml スキーマ
