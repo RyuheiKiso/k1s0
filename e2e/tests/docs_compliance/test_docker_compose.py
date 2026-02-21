@@ -40,7 +40,7 @@ class TestDockerComposeServices:
 
     def test_kafka_service(self) -> None:
         svc = self.config["services"]["kafka"]
-        assert svc["image"] == "bitnami/kafka:3.8"
+        assert svc["image"] == "confluentinc/cp-kafka:7.7.1"
         assert svc["profiles"] == ["infra"]
         assert "9092:9092" in svc["ports"]
 
@@ -52,7 +52,7 @@ class TestDockerComposeServices:
 
     def test_schema_registry_service(self) -> None:
         svc = self.config["services"]["schema-registry"]
-        assert svc["image"] == "confluentinc/cp-schema-registry:7.7"
+        assert svc["image"] == "confluentinc/cp-schema-registry:7.7.1"
         assert svc["profiles"] == ["infra"]
         assert "8081:8081" in svc["ports"]
 
@@ -137,7 +137,7 @@ class TestDockerComposeHealthchecks:
             ("postgres", "pg_isready"),
             ("mysql", "mysqladmin"),
             ("redis", "redis-cli"),
-            ("kafka", "kafka-broker-api-versions.sh"),
+            ("kafka", "kafka-broker-api-versions"),
             ("schema-registry", "curl"),
             ("redis-session", "redis-cli"),
         ],
@@ -164,7 +164,7 @@ class TestDockerComposeVolumeMounts:
             ("postgres", "/var/lib/postgresql/data"),
             ("mysql", "/var/lib/mysql"),
             ("redis", "/data"),
-            ("kafka", "/bitnami/kafka"),
+            ("kafka", "/var/lib/kafka"),
             ("redis-session", "/data"),
             ("prometheus", "/prometheus"),
             ("loki", "/loki"),
@@ -219,10 +219,10 @@ class TestDockerComposeEnvironment:
 
     def test_kafka_environment(self) -> None:
         env = self.config["services"]["kafka"]["environment"]
-        assert env["KAFKA_CFG_NODE_ID"] == 0
-        assert "broker" in env["KAFKA_CFG_PROCESS_ROLES"]
-        assert "controller" in env["KAFKA_CFG_PROCESS_ROLES"]
-        assert "PLAINTEXT" in env["KAFKA_CFG_LISTENERS"]
+        assert env["KAFKA_NODE_ID"] == 1
+        assert "broker" in env["KAFKA_PROCESS_ROLES"]
+        assert "controller" in env["KAFKA_PROCESS_ROLES"]
+        assert "PLAINTEXT" in env["KAFKA_LISTENERS"]
 
     def test_schema_registry_environment(self) -> None:
         env = self.config["services"]["schema-registry"]["environment"]

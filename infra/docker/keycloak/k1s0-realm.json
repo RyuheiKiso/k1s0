@@ -481,16 +481,24 @@
         "name": "rsa-generated",
         "providerId": "rsa-generated",
         "config": {
-          "keySize": ["2048"],
-          "algorithm": ["RS256"],
-          "priority": ["100"]
+          "keySize": [
+            "2048"
+          ],
+          "algorithm": [
+            "RS256"
+          ],
+          "priority": [
+            "100"
+          ]
         }
       }
     ]
   },
   "smtpServer": {},
   "eventsEnabled": true,
-  "eventsListeners": ["jboss-logging"],
+  "eventsListeners": [
+    "jboss-logging"
+  ],
   "enabledEventTypes": [
     "LOGIN",
     "LOGIN_ERROR",
@@ -510,5 +518,28 @@
     "RESET_PASSWORD"
   ],
   "adminEventsEnabled": true,
-  "adminEventsDetailsEnabled": true
+  "adminEventsDetailsEnabled": true,
+  "eventsConfig": {
+    "eventsEnabled": true,
+    "adminEventsEnabled": true,
+    "adminEventsDetailsEnabled": true,
+    "enabledEventTypes": [
+      "LOGIN",
+      "LOGIN_ERROR",
+      "LOGOUT",
+      "REGISTER",
+      "REGISTER_ERROR",
+      "CODE_TO_TOKEN",
+      "CODE_TO_TOKEN_ERROR",
+      "CLIENT_LOGIN",
+      "CLIENT_LOGIN_ERROR",
+      "REFRESH_TOKEN",
+      "REFRESH_TOKEN_ERROR",
+      "REVOKE_GRANT",
+      "UPDATE_PROFILE",
+      "UPDATE_PASSWORD",
+      "SEND_RESET_PASSWORD",
+      "RESET_PASSWORD"
+    ]
+  }
 }
