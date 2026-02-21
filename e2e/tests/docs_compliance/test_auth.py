@@ -10,6 +10,13 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 
+DOCS = ROOT / "docs"
+AUTH_DOC = DOCS / "認証設計.md"
+JWT_DOC = DOCS / "JWT設計.md"
+MTLS_DOC = DOCS / "サービス間認証設計.md"
+RBAC_DOC = DOCS / "RBAC設計.md"
+VAULT_DOC = DOCS / "Vault設計.md"
+
 
 class TestKeycloakRealm:
     """認証認可設計.md: Keycloak Realm 設定の検証。"""
@@ -423,19 +430,19 @@ class TestKeycloakHA:
 
     def test_ha_config_in_doc(self) -> None:
         """認証認可設計.md: HA 構成が記載されている。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert "HA" in content or "3 ノード" in content or "3ノード" in content
 
     def test_prod_3_nodes(self) -> None:
         """認証認可設計.md: prod は 3 ノード構成。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert "3 ノード" in content or "3ノード" in content
 
     def test_infinispan_distributed_cache(self) -> None:
         """認証認可設計.md: Infinispan 分散キャッシュ。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert "Infinispan" in content
 
@@ -445,7 +452,7 @@ class TestLDAPGroupMapping:
 
     def test_ldap_group_mapping_in_doc(self) -> None:
         """認証認可設計.md: memberOf → グループマッピングが記載。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert "memberOf" in content
         assert "グループ" in content
@@ -470,13 +477,13 @@ class TestKeyRotationSchedule:
 
     def test_rotation_cycle_90_days_in_doc(self) -> None:
         """認証認可設計.md: ローテーション周期 90 日。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = JWT_DOC
         content = doc.read_text(encoding="utf-8")
         assert "90 日" in content or "90日" in content
 
     def test_overlap_period_14_days_in_doc(self) -> None:
         """認証認可設計.md: オーバーラップ期間 14 日。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = JWT_DOC
         content = doc.read_text(encoding="utf-8")
         assert "14 日" in content or "14日" in content
 
@@ -486,13 +493,13 @@ class TestSPIFFEID:
 
     def test_spiffe_id_format_in_doc(self) -> None:
         """認証認可設計.md: SPIFFE ID 形式が記載。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = MTLS_DOC
         content = doc.read_text(encoding="utf-8")
         assert "spiffe://k1s0.internal" in content
 
     def test_spiffe_id_namespace_pattern(self) -> None:
         """認証認可設計.md: SPIFFE ID に namespace/service-account パターン。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = MTLS_DOC
         content = doc.read_text(encoding="utf-8")
         assert "ns/{namespace}/sa/{service-account}" in content
 
@@ -502,7 +509,7 @@ class TestCertificateRotation:
 
     def test_cert_rotation_24h_in_doc(self) -> None:
         """認証認可設計.md: 証明書ローテーション 24 時間。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = MTLS_DOC
         content = doc.read_text(encoding="utf-8")
         assert "24 時間" in content or "24時間" in content
 
@@ -512,13 +519,13 @@ class TestTierAccessDoubleVerification:
 
     def test_mesh_level_verification(self) -> None:
         """認証認可設計.md: Istio AuthorizationPolicy で tier_access を検証。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = RBAC_DOC
         content = doc.read_text(encoding="utf-8")
         assert "request.auth.claims[tier_access]" in content
 
     def test_application_level_verification(self) -> None:
         """認証認可設計.md: アプリケーションレベルで二重検証。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = RBAC_DOC
         content = doc.read_text(encoding="utf-8")
         assert "二重検証" in content or "二次防御" in content
 
@@ -528,19 +535,19 @@ class TestHasPermissionLogic:
 
     def test_has_permission_in_doc(self) -> None:
         """認証認可設計.md: has_permission パーミッション解決が記載。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = RBAC_DOC
         content = doc.read_text(encoding="utf-8")
         assert "has_permission" in content or "hasPermission" in content
 
     def test_jwt_claims_based_resolution(self) -> None:
         """認証認可設計.md: JWT Claims ベースの静的解決。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = RBAC_DOC
         content = doc.read_text(encoding="utf-8")
         assert "JWT Claims ベース" in content or "インメモリ" in content
 
     def test_deny_by_default(self) -> None:
         """認証認可設計.md: deny by default。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = RBAC_DOC
         content = doc.read_text(encoding="utf-8")
         assert "deny by default" in content
 
@@ -550,13 +557,13 @@ class TestVaultAgentInjector:
 
     def test_vault_agent_inject_annotation(self) -> None:
         """認証認可設計.md: vault.hashicorp.com/agent-inject アノテーション。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = VAULT_DOC
         content = doc.read_text(encoding="utf-8")
         assert "vault.hashicorp.com/agent-inject" in content
 
     def test_vault_agent_role_annotation(self) -> None:
         """認証認可設計.md: vault.hashicorp.com/role アノテーション。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = VAULT_DOC
         content = doc.read_text(encoding="utf-8")
         assert "vault.hashicorp.com/role" in content
 
@@ -566,19 +573,19 @@ class TestVaultAgentInjectorFileMountPath:
 
     def test_mount_path_pattern(self) -> None:
         """認証認可設計.md: /vault/secrets/{secret-type} パターン。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = VAULT_DOC
         content = doc.read_text(encoding="utf-8")
         assert "/vault/secrets/" in content
 
     def test_db_password_mount_path(self) -> None:
         """認証認可設計.md: /vault/secrets/db-password マウントパス。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = VAULT_DOC
         content = doc.read_text(encoding="utf-8")
         assert "/vault/secrets/db-password" in content
 
     def test_db_creds_mount_path(self) -> None:
         """認証認可設計.md: /vault/secrets/db-creds マウントパス。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = VAULT_DOC
         content = doc.read_text(encoding="utf-8")
         assert "/vault/secrets/db-creds" in content
 
@@ -588,20 +595,20 @@ class TestCSRFProtection:
 
     def test_samesite_strict(self) -> None:
         """認証認可設計.md: SameSite=Strict。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert "SameSite" in content
         assert "Strict" in content
 
     def test_x_csrf_token(self) -> None:
         """認証認可設計.md: X-CSRF-Token ヘッダー。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert "X-CSRF-Token" in content
 
     def test_origin_check(self) -> None:
         """認証認可設計.md: Origin チェック。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert "Origin" in content
 
@@ -611,31 +618,31 @@ class TestCookieSettings:
 
     def test_httponly(self) -> None:
         """認証認可設計.md: HttpOnly 属性。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert "HttpOnly" in content
 
     def test_secure(self) -> None:
         """認証認可設計.md: Secure 属性。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert "Secure" in content
 
     def test_samesite(self) -> None:
         """認証認可設計.md: SameSite 属性。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert "SameSite" in content
 
     def test_max_age_604800(self) -> None:
         """認証認可設計.md: Max-Age=604800 (7日)。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert "604800" in content
 
     def test_domain(self) -> None:
         """認証認可設計.md: Domain=.k1s0.internal.example.com。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert ".k1s0.internal.example.com" in content
 
@@ -645,19 +652,19 @@ class TestBFFRedisSessionStore:
 
     def test_redis_sentinel_in_doc(self) -> None:
         """認証認可設計.md: Redis Sentinel 構成。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert "Redis Sentinel" in content
 
     def test_session_ttl_30_min(self) -> None:
         """認証認可設計.md: セッション TTL 30 分。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert "30 分" in content or "30分" in content
 
     def test_dedicated_instance(self) -> None:
         """認証認可設計.md: 専用の Redis インスタンス。"""
-        doc = ROOT / "docs" / "認証認可設計.md"
+        doc = AUTH_DOC
         content = doc.read_text(encoding="utf-8")
         assert "専用" in content
 

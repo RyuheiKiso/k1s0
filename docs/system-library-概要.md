@@ -16,6 +16,8 @@ system tier が提供する共通ライブラリの設計を定義する。
 | k1s0-outbox | トランザクショナルアウトボックスパターン（指数バックオフリトライ） | Kafka 発行を必要とするサーバー | [system-library-outbox設計](system-library-outbox設計.md) |
 | k1s0-schemaregistry | Confluent Schema Registry クライアント（Avro/Json/Protobuf 対応） | Kafka プロデューサー・コンシューマー | [system-library-schemaregistry設計](system-library-schemaregistry設計.md) |
 | k1s0-serviceauth | サービス間 OAuth2 Client Credentials 認証（トークンキャッシュ・SPIFFE） | サービス間 gRPC/HTTP 通信を行うサーバー | [system-library-serviceauth設計](system-library-serviceauth設計.md) |
+| k1s0-saga | SagaサーバーREST/gRPCクライアントSDK | サービス間Saga起動・状態確認 | [system-library-saga設計](system-library-saga設計.md) |
+| k1s0-dlq-client | Kafka DLQ メッセージ管理クライアント | DLQメッセージ再処理・モニタリング | [system-library-dlq-client設計](system-library-dlq-client設計.md) |
 
 ---
 
@@ -43,6 +45,8 @@ system tier が提供する共通ライブラリの設計を定義する。
 | k1s0-outbox | 85% 以上 |
 | k1s0-schemaregistry | 85% 以上 |
 | k1s0-serviceauth | 90% 以上 |
+| k1s0-saga | 85% 以上 |
+| k1s0-dlq-client | 85% 以上 |
 
 ---
 

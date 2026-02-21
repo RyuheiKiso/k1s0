@@ -125,6 +125,89 @@ type ServiceAuthClient interface {
 }
 ```
 
+## TypeScript 実装
+
+**配置先**: `regions/system/library/typescript/serviceauth/`
+
+```
+serviceauth/
+├── package.json        # "@k1s0/serviceauth", "type":"module"
+├── tsconfig.json
+├── vitest.config.ts
+├── src/
+│   └── index.ts        # ServiceClaims, SpiffeId, ServiceAuthConfig, ServiceToken, ServiceAuthClient, ServiceAuthError
+└── __tests__/
+    └── serviceauth.test.ts
+```
+
+**主要 API**:
+
+```typescript
+export interface ServiceClaims {
+  sub: string;
+  iss: string;
+  scope?: string;
+  exp?: number;
+}
+
+export interface SpiffeId {
+  trustDomain: string;
+  namespace: string;
+  serviceAccount: string;
+  uri: string;
+}
+
+export function parseSpiffeId(uri: string): SpiffeId;
+export function validateSpiffeId(uri: string, expectedNamespace: string): SpiffeId;
+
+export interface ServiceToken {
+  accessToken: string;
+  tokenType: string;
+  expiresAt: Date;
+  scope?: string;
+}
+
+export function isExpired(token: ServiceToken): boolean;
+export function shouldRefresh(token: ServiceToken): boolean;
+export function bearerHeader(token: ServiceToken): string;
+
+export interface ServiceAuthConfig {
+  tokenEndpoint: string;
+  clientId: string;
+  clientSecret: string;
+}
+
+export interface ServiceAuthClient {
+  getToken(): Promise<ServiceToken>;
+  getCachedToken(): Promise<string>;
+  validateSpiffeId(uri: string, expectedNamespace: string): SpiffeId;
+}
+```
+
+**カバレッジ目標**: 90%以上
+
+## Dart 実装
+
+**配置先**: `regions/system/library/dart/serviceauth/`
+
+```
+serviceauth/
+├── pubspec.yaml        # k1s0_serviceauth, http: ^1.2.0, crypto: ^3.0.0
+├── analysis_options.yaml
+├── lib/
+│   ├── serviceauth.dart
+│   └── src/
+│       ├── types.dart      # ServiceClaims, SpiffeId（parse/validate）
+│       ├── token.dart      # ServiceToken（TTL管理、isExpired, shouldRefresh, bearerHeader）
+│       ├── config.dart     # ServiceAuthConfig
+│       ├── client.dart     # ServiceAuthClient abstract, HttpServiceAuthClient（OAuth2 Client Credentials）
+│       └── error.dart      # ServiceAuthError
+└── test/
+    └── serviceauth_test.dart
+```
+
+**カバレッジ目標**: 90%以上
+
 ---
 
 ## 関連ドキュメント
