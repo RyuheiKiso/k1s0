@@ -1,6 +1,6 @@
 # Build stage
 # Note: build context must be ./regions/system (to include library dependencies)
-FROM rust:1.86-bookworm AS builder
+FROM rust:1.88-bookworm AS builder
 
 # Install protobuf compiler (for tonic-build in build.rs) and
 # cmake + build-essential (for rdkafka cmake-build feature)
@@ -21,6 +21,7 @@ RUN cargo build --release
 # Runtime stage
 FROM gcr.io/distroless/cc-debian12:nonroot
 
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
 COPY --from=builder /app/server/rust/auth/target/release/k1s0-auth-server /k1s0-auth-server
 
 USER nonroot:nonroot

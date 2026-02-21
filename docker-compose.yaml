@@ -206,7 +206,7 @@ services:
       - "8083:8080"
       - "50052:50051"
     environment:
-      - CONFIG_PATH=/app/config/config.dev.yaml
+      - CONFIG_PATH=/app/config/config.docker.yaml
     depends_on:
       postgres:
         condition: service_healthy
@@ -231,7 +231,7 @@ services:
       - "8084:8080"
       - "50054:50051"
     environment:
-      - CONFIG_PATH=/app/config/config.dev.yaml
+      - CONFIG_PATH=/app/config/config.docker.yaml
     depends_on:
       postgres:
         condition: service_healthy
@@ -256,9 +256,7 @@ services:
       - "8085:8080"
       - "50055:50051"
     environment:
-      - CONFIG_PATH=/app/config/config.dev.yaml
-      - DATABASE_URL=postgresql://dev:dev@postgres:5432/saga
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - CONFIG_PATH=/app/config/config.docker.yaml
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,0 +1,29 @@
+app:
+  name: "k1s0-config-server"
+  version: "0.1.0"
+  environment: "dev"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+database:
+  host: "postgres"
+  port: 5432
+  name: "config_db"
+  user: "dev"
+  password: "dev"
+  ssl_mode: "disable"
+  max_open_conns: 10
+  max_idle_conns: 2
+  conn_max_lifetime: "5m"
+
+kafka:
+  brokers:
+    - "kafka:9092"
+  consumer_group: "config-server.dev"
+  security_protocol: "PLAINTEXT"
+  topics:
+    publish:
+      - "k1s0.system.config.changed.v1"
+    subscribe: []
