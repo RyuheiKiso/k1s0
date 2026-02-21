@@ -704,6 +704,50 @@ class TestDocsDirectoryFullListing:
             "テンプレート仕様-ライブラリ.md",
             "テンプレート仕様-データベース.md",
             "テンプレートエンジン仕様.md",
+            # system-library 分割ファイル（system-library設計 から分割）
+            "system-library-概要.md",
+            "system-library-config設計.md",
+            "system-library-telemetry設計.md",
+            "system-library-authlib設計.md",
+            "system-library-messaging設計.md",
+            "system-library-kafka設計.md",
+            "system-library-correlation設計.md",
+            "system-library-outbox設計.md",
+            "system-library-schemaregistry設計.md",
+            "system-library-serviceauth設計.md",
+            # 可観測性設計.md の分割ファイル
+            "可観測性-監視アラート設計.md",
+            "可観測性-SLO設計.md",
+            "可観測性-トレーシング設計.md",
+            "可観測性-ログ設計.md",
+            # 認証認可設計.md の分割ファイル
+            "認証設計.md",
+            "JWT設計.md",
+            "サービス間認証設計.md",
+            "RBAC設計.md",
+            "Vault設計.md",
+            # API設計.md の分割ファイル
+            "REST-API設計.md",
+            "gRPC設計.md",
+            "GraphQL設計.md",
+            # テンプレート仕様-サーバー.md の分割ファイル
+            "テンプレート仕様-サーバー-Rust.md",
+            "テンプレート仕様-サーバー-可観測性.md",
+            "テンプレート仕様-サーバー-認証.md",
+            "テンプレート仕様-サーバー-gRPC.md",
+            # テンプレート仕様-レンダリングテスト.md の分割ファイル
+            "テンプレート仕様-レンダリングテスト-Rust.md",
+            "テンプレート仕様-レンダリングテスト-E2E.md",
+            # system-config-server設計.md の分割ファイル
+            "system-config-server-実装設計.md",
+            "system-config-server-デプロイ設計.md",
+            # system-server設計.md の分割ファイル
+            "system-server-実装設計.md",
+            "system-server-デプロイ設計.md",
+            # docker-compose設計.md の分割ファイル
+            "docker-compose-システムサービス設計.md",
+            "docker-compose-インフラサービス設計.md",
+            "docker-compose-可観測性サービス設計.md",
         ],
     )
     def test_doc_file_exists(self, doc_file: str) -> None:
