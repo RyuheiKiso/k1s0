@@ -1,0 +1,25 @@
+app:
+  name: "dlq-manager"
+  version: "0.1.0"
+  environment: "production"
+server:
+  host: "0.0.0.0"
+  port: 8080
+database:
+  host: "postgres.k1s0-system.svc.cluster.local"
+  port: 5432
+  name: "k1s0_dlq"
+  user: "app"
+  password: ""
+  ssl_mode: "require"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: "5m"
+kafka:
+  brokers:
+    - "kafka-0.messaging.svc.cluster.local:9092"
+    - "kafka-1.messaging.svc.cluster.local:9092"
+    - "kafka-2.messaging.svc.cluster.local:9092"
+  consumer_group: "dlq-manager.production"
+  security_protocol: "SASL_SSL"
+  dlq_topic_pattern: "*.dlq.v1"
