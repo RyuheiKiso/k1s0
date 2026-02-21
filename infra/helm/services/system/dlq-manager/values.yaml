@@ -3,7 +3,7 @@ fullnameOverride: ""
 
 image:
   registry: harbor.internal.example.com
-  repository: k1s0-system/auth
+  repository: k1s0-system/dlq-manager
   tag: ""
   pullPolicy: IfNotPresent
 
@@ -13,8 +13,8 @@ imagePullSecrets:
 replicaCount: 2
 
 container:
-  port: 8080
-  grpcPort: 50051
+  port: 8084
+  grpcPort: null
   command: []
   args: []
 
@@ -45,7 +45,7 @@ probes:
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 50051
+  grpcPort: null
 
 autoscaling:
   enabled: true
@@ -80,7 +80,7 @@ vault:
   enabled: true
   role: "system"
   secrets:
-    - path: "secret/data/k1s0/system/auth/database"
+    - path: "secret/data/k1s0/system/dlq-manager/database"
       key: "password"
       mountPath: "/vault/secrets/db-password"
 
@@ -99,7 +99,7 @@ labels:
   tier: system
 
 kafka:
-  enabled: false
+  enabled: true
   brokers: []
 
 redis:

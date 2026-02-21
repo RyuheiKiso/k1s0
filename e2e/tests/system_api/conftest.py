@@ -202,3 +202,16 @@ def kafka_bootstrap_servers():
     finally:
         consumer.close()
     return servers
+
+
+@pytest.fixture(scope="session")
+def dlq_base_url():
+    return os.environ.get("DLQ_SERVER_URL", "http://localhost:8084")
+
+
+@pytest.fixture(scope="session")
+def dlq_client(dlq_base_url):
+    session = requests.Session()
+    session.base_url = dlq_base_url
+    session.headers.update({"Content-Type": "application/json"})
+    return session

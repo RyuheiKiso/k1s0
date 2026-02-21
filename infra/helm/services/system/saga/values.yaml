@@ -1,4 +1,3 @@
-# Saga service - default values
 nameOverride: ""
 fullnameOverride: ""
 
@@ -14,8 +13,8 @@ imagePullSecrets:
 replicaCount: 2
 
 container:
-  port: 8080
-  grpcPort: null
+  port: 8083
+  grpcPort: 50053
   command: []
   args: []
 
@@ -46,7 +45,7 @@ probes:
 service:
   type: ClusterIP
   port: 80
-  grpcPort: null
+  grpcPort: 50053
 
 autoscaling:
   enabled: true
@@ -93,6 +92,8 @@ serviceAccount:
   create: true
   name: ""
   annotations: {}
+
+podAnnotations: {}
 
 labels:
   tier: system

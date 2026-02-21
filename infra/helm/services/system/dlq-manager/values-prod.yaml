@@ -21,7 +21,7 @@ affinity:
             - key: app.kubernetes.io/name
               operator: In
               values:
-                - config
+                - dlq-manager
         topologyKey: kubernetes.io/hostname
 
 config:

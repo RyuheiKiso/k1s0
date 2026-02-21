@@ -1,0 +1,23 @@
+app:
+  name: "dlq-manager"
+  version: "0.1.0"
+  environment: "dev"
+
+server:
+  host: "0.0.0.0"
+  port: 8084
+
+database:
+  host: postgres
+  port: 5432
+  name: dlq_db
+  user: dev
+  password: dev
+  ssl_mode: disable
+
+kafka:
+  brokers:
+    - "kafka:9092"
+  consumer_group: "dlq-manager.docker"
+  dlq_topic_pattern: "*.dlq.v1"
+  security_protocol: "PLAINTEXT"

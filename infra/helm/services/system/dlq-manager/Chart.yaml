@@ -1,6 +1,6 @@
 apiVersion: v2
-name: config
-description: k1s0 config service
+name: dlq-manager
+description: k1s0 dlq-manager service
 type: application
 version: 0.1.0
 appVersion: "0.1.0"

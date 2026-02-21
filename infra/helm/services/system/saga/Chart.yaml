@@ -1,9 +1,9 @@
 apiVersion: v2
 name: saga
-description: Saga orchestration service for the k1s0 system tier
+description: k1s0 saga service
 type: application
 version: 0.1.0
-appVersion: "1.0.0"
+appVersion: "0.1.0"
 
 dependencies:
   - name: k1s0-common

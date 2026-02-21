@@ -88,12 +88,93 @@ config-rust:
     retries: 5
 ```
 
+### saga-server（Rust 版）
+
+| 項目 | 設定 |
+| --- | --- |
+| サービス名 | `saga-rust` |
+| ビルドコンテキスト | `./regions/system/server/rust/saga` |
+| Dockerfile | マルチステージビルド（`rust:1.82-bookworm` → `gcr.io/distroless/cc-debian12:nonroot`） |
+| プロファイル | `system` |
+| ポート | REST `8085:8080` / gRPC `50055:50051` |
+| 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（started） |
+| 環境変数 | `CONFIG_PATH=/app/config/config.dev.yaml` |
+| ボリューム | `./regions/system/server/rust/saga/config:/app/config` |
+
+```yaml
+saga-rust:
+  build:
+    context: ./regions/system/server/rust/saga
+    dockerfile: Dockerfile
+  profiles: [system]
+  ports:
+    - "8085:8080"    # REST
+    - "50055:50051"  # gRPC
+  environment:
+    - CONFIG_PATH=/app/config/config.dev.yaml
+  depends_on:
+    postgres:
+      condition: service_healthy
+    kafka:
+      condition: service_healthy
+    keycloak:
+      condition: service_started
+  volumes:
+    - ./regions/system/server/rust/saga/config:/app/config
+  healthcheck:
+    test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+```
+
+### dlq-manager（Rust 版）
+
+DLQ（Dead Letter Queue）メッセージの管理・再処理を担う REST API サーバー。gRPC は提供しない。
+
+| 項目 | 設定 |
+| --- | --- |
+| サービス名 | `dlq-manager` |
+| ビルドコンテキスト | `./regions/system/server/rust/dlq-manager` |
+| Dockerfile | マルチステージビルド（`rust:1.82-bookworm` → `gcr.io/distroless/cc-debian12:nonroot`） |
+| プロファイル | `system` |
+| ポート | REST `8086:8080`（gRPC なし） |
+| 依存サービス | `postgres`（healthy）, `kafka`（healthy） |
+| 環境変数 | `CONFIG_PATH=/app/config/config.docker.yaml` |
+| ボリューム | `./regions/system/server/rust/dlq-manager/config:/app/config` |
+
+```yaml
+dlq-manager:
+  build:
+    context: ./regions/system/server/rust/dlq-manager
+    dockerfile: Dockerfile
+  profiles: [system]
+  ports:
+    - "8086:8080"    # REST のみ（gRPC なし）
+  environment:
+    - CONFIG_PATH=/app/config/config.docker.yaml
+  depends_on:
+    postgres:
+      condition: service_healthy
+    kafka:
+      condition: service_healthy
+  volumes:
+    - ./regions/system/server/rust/dlq-manager/config:/app/config
+  healthcheck:
+    test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+```
+
 ### ポート割り当て一覧
 
 | サービス | REST ポート | gRPC ポート | 備考 |
 | --- | --- | --- | --- |
 | auth-rust | 8083 | 50052 | Rust 版 auth-server |
 | config-rust | 8084 | 50054 | Rust 版 config-server |
+| saga-rust | 8085 | 50055 | Rust 版 saga-server |
+| dlq-manager | 8086 | - | DLQ 管理サーバー（gRPC なし） |
 
 ## アプリケーションサービスの追加
 
@@ -118,8 +199,10 @@ config-rust:
 services:
   # --- system 層 ---
   # ポート割り当て:
-  #   auth-rust:  REST 8083, gRPC 50052
+  #   auth-rust:   REST 8083, gRPC 50052
   #   config-rust: REST 8084, gRPC 50054
+  #   saga-rust:   REST 8085, gRPC 50055
+  #   dlq-manager: REST 8086  (gRPC なし)
   #
   # auth-rust:
   #   build:
@@ -165,6 +248,53 @@ services:
   #       condition: service_started
   #   volumes:
   #     - ./regions/system/server/rust/config/config:/app/config
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #
+  # saga-rust:
+  #   build:
+  #     context: ./regions/system/server/rust/saga
+  #     dockerfile: Dockerfile
+  #   profiles: [system]
+  #   ports:
+  #     - "8085:8080"
+  #     - "50055:50051"
+  #   environment:
+  #     - CONFIG_PATH=/app/config/config.dev.yaml
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #     keycloak:
+  #       condition: service_started
+  #   volumes:
+  #     - ./regions/system/server/rust/saga/config:/app/config
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #
+  # dlq-manager:
+  #   build:
+  #     context: ./regions/system/server/rust/dlq-manager
+  #     dockerfile: Dockerfile
+  #   profiles: [system]
+  #   ports:
+  #     - "8086:8080"
+  #   environment:
+  #     - CONFIG_PATH=/app/config/config.docker.yaml
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./regions/system/server/rust/dlq-manager/config:/app/config
   #   healthcheck:
   #     test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
   #     interval: 10s
@@ -456,5 +586,7 @@ healthcheck:
 - [docker-compose-可観測性サービス設計.md](docker-compose-可観測性サービス設計.md) -- Prometheus・Grafana・Loki・Jaeger の詳細設定
 - [system-server設計.md](system-server設計.md) -- 認証サーバー設計
 - [system-config-server設計.md](system-config-server設計.md) -- 設定管理サーバー設計
+- [system-saga-server設計.md](system-saga-server設計.md) -- Saga オーケストレーションサーバー設計
+- [system-dlq-manager-server設計.md](system-dlq-manager-server設計.md) -- DLQ 管理サーバー設計
 - [APIゲートウェイ設計.md](APIゲートウェイ設計.md) -- Kong 構成管理
 - [Dockerイメージ戦略.md](Dockerイメージ戦略.md) -- マルチステージビルド・ベースイメージ

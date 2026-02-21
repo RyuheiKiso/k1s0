@@ -21,7 +21,7 @@ affinity:
             - key: app.kubernetes.io/name
               operator: In
               values:
-                - config
+                - saga
         topologyKey: kubernetes.io/hostname
 
 config:

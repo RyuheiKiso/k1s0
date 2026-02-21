@@ -12,18 +12,19 @@ spec:
   selector:
     matchLabels:
       {{- include "k1s0-common.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   template:
     metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
         {{- include "k1s0-common.labels" . | nindent 8 }}
-      {{- if and .Values.vault .Values.vault.enabled }}
-      annotations:
-        vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: {{ .Values.vault.role | quote }}
-        {{- range .Values.vault.secrets }}
-        vault.hashicorp.com/agent-inject-secret-{{ .key }}: {{ .path | quote }}
-        {{- end }}
-      {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -36,11 +37,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          {{- if .Values.image.registry }}
           image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          {{- else }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- with .Values.containerSecurityContext }}
           securityContext:
@@ -54,12 +51,6 @@ spec:
           args:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          env:
-            - name: CONFIG_PATH
-              value: "{{ .Values.config.mountPath }}/config.yaml"
-            {{- with .Values.container.env }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.container.port }}
@@ -69,17 +60,27 @@ spec:
               containerPort: {{ .Values.container.grpcPort }}
               protocol: TCP
             {{- end }}
+          {{- with .Values.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- if and .Values.probes .Values.probes.grpcHealthCheck .Values.probes.grpcHealthCheck.enabled }}
           livenessProbe:
             grpc:
-              port: {{ .Values.container.grpcPort | default 9090 }}
-            initialDelaySeconds: 10
-            periodSeconds: 10
+              port: {{ .Values.container.grpcPort }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
           readinessProbe:
             grpc:
-              port: {{ .Values.container.grpcPort | default 9090 }}
-            initialDelaySeconds: 5
-            periodSeconds: 5
+              port: {{ .Values.container.grpcPort }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
           {{- else }}
           {{- with .Values.probes.liveness }}
           livenessProbe:
@@ -96,6 +97,16 @@ spec:
             - name: config
               mountPath: {{ .Values.config.mountPath }}
               readOnly: true
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "k1s0-common.fullname" . }}-config
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -108,8 +119,4 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      volumes:
-        - name: config
-          configMap:
-            name: {{ include "k1s0-common.fullname" . }}-config
 {{- end }}
