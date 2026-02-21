@@ -2480,8 +2480,6 @@ class AuthError implements Exception {
 
 Kafka イベント発行・購読の抽象化ライブラリ。`EventProducer` トレイトと `NoOpEventProducer`（テスト用）実装、`EventMetadata`、`EventEnvelope` を提供する。具体的な Kafka クライアント実装は依存せず、トレイト境界でモック差し替えが可能。
 
-Rust 実装のみ（他言語は別途対応予定）
-
 **配置先**: `regions/system/library/rust/messaging/`
 
 ### 公開 API
@@ -2565,6 +2563,35 @@ async fn publish_user_created<P: EventProducer>(
 }
 ```
 
+### Go 実装
+
+**配置先**: `regions/system/library/go/messaging/`
+
+```
+messaging/
+├── messaging.go
+├── noop.go
+├── messaging_test.go
+├── go.mod
+└── go.sum
+```
+
+**依存関係**: `github.com/google/uuid v1.6.0`, `github.com/stretchr/testify v1.10.0`
+
+**主要インターフェース**:
+
+```go
+type EventProducer interface {
+    Publish(ctx context.Context, event EventEnvelope) error
+    Close() error
+}
+
+type EventConsumer interface {
+    Subscribe(ctx context.Context, topic string, handler EventHandler) error
+    Close() error
+}
+```
+
 ---
 
 ## k1s0-kafka ライブラリ
@@ -2572,8 +2599,6 @@ async fn publish_user_created<P: EventProducer>(
 ### 概要
 
 Kafka 接続設定・管理・ヘルスチェックライブラリ。`KafkaConfig`（TLS・SASL 対応）、`KafkaHealthChecker`、`TopicConfig`（命名規則検証）を提供する。k1s0-messaging の具体的な Kafka 実装の基盤となる。
-
-Rust 実装のみ（他言語は別途対応予定）
 
 **配置先**: `regions/system/library/rust/kafka/`
 
@@ -2648,6 +2673,30 @@ checker.check().await?;
 let topic = TopicConfig::new("k1s0.system.auth.user-created.v1")?;
 ```
 
+### Go 実装
+
+**配置先**: `regions/system/library/go/kafka/`
+
+```
+kafka/
+├── config.go
+├── topic.go
+├── health.go
+├── kafka_test.go
+├── go.mod
+└── go.sum
+```
+
+**依存関係**: `github.com/stretchr/testify v1.10.0`（Kafka クライアントライブラリ不要、設定・検証のみ）
+
+**主要型**:
+
+```go
+type KafkaConfig struct { ... }
+type TopicConfig struct { ... }
+type KafkaHealthChecker interface { ... }
+```
+
 ---
 
 ## k1s0-correlation ライブラリ
@@ -2655,8 +2704,6 @@ let topic = TopicConfig::new("k1s0.system.auth.user-created.v1")?;
 ### 概要
 
 分散トレーシング用相関 ID・トレース ID 管理ライブラリ。`CorrelationId`（UUID v4）、`TraceId`（32 文字 hex）、`CorrelationContext`、HTTP ヘッダー定数を提供する。サービス間リクエストの追跡に使用し、全サーバー・クライアントで統一的に利用する。
-
-Rust 実装のみ（他言語は別途対応予定）
 
 **配置先**: `regions/system/library/rust/correlation/`
 
@@ -2724,6 +2771,71 @@ let headers = [
 let child_ctx = ctx.propagate(); // 相関 ID 継承・新規スパン ID 生成
 ```
 
+### Go 実装
+
+**配置先**: `regions/system/library/go/correlation/`
+
+```
+correlation/
+├── correlation.go
+├── headers.go
+├── correlation_test.go
+├── go.mod
+└── go.sum
+```
+
+**依存関係**: `github.com/google/uuid v1.6.0`, `github.com/stretchr/testify v1.10.0`
+
+**主要型**:
+
+```go
+type CorrelationId string
+type TraceId string
+type CorrelationContext struct {
+    CorrelationId CorrelationId
+    TraceId       TraceId
+}
+```
+
+### TypeScript 実装
+
+**配置先**: `regions/system/library/typescript/correlation/`
+
+```
+correlation/
+├── src/
+│   ├── types.ts
+│   ├── headers.ts
+│   └── index.ts
+├── __tests__/
+│   └── correlation.test.ts
+├── package.json
+└── tsconfig.json
+```
+
+**パッケージ名**: `@k1s0/correlation`
+**依存関係**: なし（`crypto.randomUUID()` を使用）
+
+### Dart 実装
+
+**配置先**: `regions/system/library/dart/correlation/`
+
+```
+correlation/
+├── lib/
+│   ├── src/
+│   │   ├── types.dart
+│   │   └── headers.dart
+│   └── correlation.dart
+├── test/
+│   └── correlation_test.dart
+├── pubspec.yaml
+└── analysis_options.yaml
+```
+
+**パッケージ名**: `k1s0_correlation`
+**依存関係**: `uuid: ^4.4.0`
+
 ---
 
 ## k1s0-outbox ライブラリ
@@ -2731,8 +2843,6 @@ let child_ctx = ctx.propagate(); // 相関 ID 継承・新規スパン ID 生成
 ### 概要
 
 トランザクショナルアウトボックスパターンライブラリ。データベーストランザクションと Kafka メッセージ発行の原子性を保証する。`OutboxMessage`（指数バックオフリトライ）、`OutboxStore` トレイト、`OutboxPublisher` トレイト、`OutboxProcessor` を提供する。
-
-Rust 実装のみ（他言語は別途対応予定）
 
 **配置先**: `regions/system/library/rust/outbox/`
 
@@ -2811,6 +2921,35 @@ let processor = OutboxProcessor::new(store, publisher, /* poll_interval */ Durat
 processor.run().await;
 ```
 
+### Go 実装
+
+**配置先**: `regions/system/library/go/outbox/`
+
+```
+outbox/
+├── outbox.go
+├── processor.go
+├── outbox_test.go
+├── go.mod
+└── go.sum
+```
+
+**依存関係**: `github.com/google/uuid v1.6.0`, `github.com/stretchr/testify v1.10.0`
+
+**主要インターフェース**:
+
+```go
+type OutboxStore interface {
+    SaveMessage(ctx context.Context, msg OutboxMessage) error
+    GetPendingMessages(ctx context.Context, limit int) ([]OutboxMessage, error)
+    UpdateStatus(ctx context.Context, id string, status OutboxStatus) error
+}
+
+type OutboxPublisher interface {
+    Publish(ctx context.Context, msg OutboxMessage) error
+}
+```
+
 ---
 
 ## k1s0-schemaregistry ライブラリ
@@ -2818,8 +2957,6 @@ processor.run().await;
 ### 概要
 
 Confluent Schema Registry クライアントライブラリ。`SchemaRegistryClient` トレイト（HTTP 実装: `HttpSchemaRegistryClient`）、`SchemaRegistryConfig`、`RegisteredSchema`、`SchemaType`（Avro/Json/Protobuf）を提供する。Kafka トピックのスキーマ登録・取得・互換性検証に使用する。
-
-Rust 実装のみ（他言語は別途対応予定）
 
 **配置先**: `regions/system/library/rust/schemaregistry/`
 
@@ -2910,6 +3047,35 @@ let schema_id = client
 let registered = client.get_schema_by_id(schema_id).await?;
 ```
 
+### Go 実装
+
+**配置先**: `regions/system/library/go/schemaregistry/`
+
+```
+schemaregistry/
+├── schemaregistry.go
+├── config.go
+├── client.go
+├── schemaregistry_test.go
+├── go.mod
+└── go.sum
+```
+
+**依存関係**: `github.com/stretchr/testify v1.10.0`（`net/http` stdlib 使用）
+
+**主要インターフェース**:
+
+```go
+type SchemaRegistryClient interface {
+    RegisterSchema(ctx context.Context, subject, schema, schemaType string) (int, error)
+    GetSchemaByID(ctx context.Context, id int) (*RegisteredSchema, error)
+    GetLatestSchema(ctx context.Context, subject string) (*RegisteredSchema, error)
+    ListSubjects(ctx context.Context) ([]string, error)
+    CheckCompatibility(ctx context.Context, subject, schema string) (bool, error)
+    HealthCheck(ctx context.Context) error
+}
+```
+
 ---
 
 ## k1s0-serviceauth ライブラリ
@@ -2917,8 +3083,6 @@ let registered = client.get_schema_by_id(schema_id).await?;
 ### 概要
 
 サービス間 OAuth2 Client Credentials 認証ライブラリ。`ServiceAuthClient` トレイト（HTTP 実装: `HttpServiceAuthClient`）、`ServiceToken`（キャッシュ・自動更新）、`SpiffeId`（SPIFFE URI 検証）を提供する。Istio mTLS 環境でのワークロードアイデンティティ検証もサポートする。
-
-Rust 実装のみ（他言語は別途対応予定）
 
 **配置先**: `regions/system/library/rust/serviceauth/`
 
@@ -3013,6 +3177,32 @@ request.metadata_mut().insert(
 let spiffe = client
     .validate_spiffe_id("spiffe://k1s0.internal/ns/system/sa/auth-service", "system")
     .unwrap();
+```
+
+### Go 実装
+
+**配置先**: `regions/system/library/go/serviceauth/`
+
+```
+serviceauth/
+├── serviceauth.go
+├── token.go
+├── client.go
+├── serviceauth_test.go
+├── go.mod
+└── go.sum
+```
+
+**依存関係**: `github.com/lestrrat-go/jwx/v2 v2.1.3`, `github.com/stretchr/testify v1.10.0`
+
+**主要インターフェース**:
+
+```go
+type ServiceAuthClient interface {
+    GetToken(ctx context.Context) (*ServiceToken, error)
+    GetCachedToken(ctx context.Context) (string, error)
+    ValidateSpiffeId(spiffeId string, expectedNamespace string) (*SpiffeId, error)
+}
 ```
 
 ---
