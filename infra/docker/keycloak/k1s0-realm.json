@@ -437,28 +437,26 @@
     ]
   },
   "smtpServer": {},
-  "eventsConfig": {
-    "eventsEnabled": true,
-    "eventsListeners": ["jboss-logging"],
-    "enabledEventTypes": [
-      "LOGIN",
-      "LOGIN_ERROR",
-      "LOGOUT",
-      "REGISTER",
-      "REGISTER_ERROR",
-      "CODE_TO_TOKEN",
-      "CODE_TO_TOKEN_ERROR",
-      "CLIENT_LOGIN",
-      "CLIENT_LOGIN_ERROR",
-      "REFRESH_TOKEN",
-      "REFRESH_TOKEN_ERROR",
-      "REVOKE_GRANT",
-      "UPDATE_PROFILE",
-      "UPDATE_PASSWORD",
-      "SEND_RESET_PASSWORD",
-      "RESET_PASSWORD"
-    ],
-    "adminEventsEnabled": true,
-    "adminEventsDetailsEnabled": true
-  }
+  "eventsEnabled": true,
+  "eventsListeners": ["jboss-logging"],
+  "enabledEventTypes": [
+    "LOGIN",
+    "LOGIN_ERROR",
+    "LOGOUT",
+    "REGISTER",
+    "REGISTER_ERROR",
+    "CODE_TO_TOKEN",
+    "CODE_TO_TOKEN_ERROR",
+    "CLIENT_LOGIN",
+    "CLIENT_LOGIN_ERROR",
+    "REFRESH_TOKEN",
+    "REFRESH_TOKEN_ERROR",
+    "REVOKE_GRANT",
+    "UPDATE_PROFILE",
+    "UPDATE_PASSWORD",
+    "SEND_RESET_PASSWORD",
+    "RESET_PASSWORD"
+  ],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": true
 }

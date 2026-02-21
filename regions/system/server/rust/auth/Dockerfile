@@ -1,4 +1,5 @@
 # Build stage
+# Note: build context must be ./regions/system (to include library dependencies)
 FROM rust:1.82-bookworm AS builder
 
 # Install protobuf compiler (for tonic-build in build.rs) and
@@ -11,16 +12,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo 'fn main() {}' > src/main.rs && cargo build --release && rm -rf src
-
+# Copy the entire system directory to resolve path dependencies
 COPY . .
-RUN touch src/main.rs && cargo build --release
+
+WORKDIR /app/server/rust/auth
+RUN cargo build --release
 
 # Runtime stage
 FROM gcr.io/distroless/cc-debian12:nonroot
 
-COPY --from=builder /app/target/release/k1s0-auth-server /k1s0-auth-server
+COPY --from=builder /app/server/rust/auth/target/release/k1s0-auth-server /k1s0-auth-server
 
 USER nonroot:nonroot
 EXPOSE 8080 50051
