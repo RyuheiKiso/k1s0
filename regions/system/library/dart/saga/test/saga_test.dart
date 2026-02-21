@@ -124,4 +124,25 @@ void main() {
       });
     });
   });
+
+  group('SagaStatus', () {
+    test('fromString: STARTED を started に変換する', () {
+      expect(SagaStatus.fromString('STARTED'), equals(SagaStatus.started));
+    });
+
+    test('fromString: RUNNING を running に変換する', () {
+      expect(SagaStatus.fromString('RUNNING'), equals(SagaStatus.running));
+    });
+
+    test('fromString: COMPLETED を completed に変換する', () {
+      expect(SagaStatus.fromString('COMPLETED'), equals(SagaStatus.completed));
+    });
+
+    test('fromString: 不明な値で ArgumentError を投げる', () {
+      expect(
+        () => SagaStatus.fromString('UNKNOWN'),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+  });
 }

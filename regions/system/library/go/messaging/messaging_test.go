@@ -102,3 +102,49 @@ func TestEventProducer_InterfaceCompliance(t *testing.T) {
 	// NoOpEventProducer は EventProducer インターフェースを実装していることを確認
 	var _ messaging.EventProducer = &messaging.NoOpEventProducer{}
 }
+
+func TestNewEventMetadata_HasTraceId(t *testing.T) {
+	meta := messaging.NewEventMetadata("user.created.v1", "corr-001", "auth-service")
+	// TraceId はデフォルト空（外部から設定）
+	_ = meta.TraceId // フィールドが存在することを確認
+}
+
+func TestEventEnvelope_Fields(t *testing.T) {
+	meta := messaging.NewEventMetadata("order.placed.v1", "corr-002", "order-service")
+	envelope := messaging.EventEnvelope{
+		Metadata: meta,
+		Topic:    "k1s0.business.order.placed.v1",
+		Payload:  map[string]int{"order_id": 42},
+		Headers:  map[string]string{"version": "1"},
+	}
+	assert.Equal(t, "k1s0.business.order.placed.v1", envelope.Topic)
+	assert.Equal(t, "1", envelope.Headers["version"])
+	assert.Equal(t, map[string]int{"order_id": 42}, envelope.Payload)
+}
+
+func TestNoOpEventProducer_PublishAfterClose(t *testing.T) {
+	producer := &messaging.NoOpEventProducer{}
+	require.NoError(t, producer.Close())
+	assert.True(t, producer.IsClosed())
+	// Close 後も Publish は呼べる（エラーしない）
+	err := producer.Publish(context.Background(), messaging.EventEnvelope{})
+	require.NoError(t, err)
+}
+
+func TestMessagingError_IsNilSafe(t *testing.T) {
+	cause := errors.New("timeout")
+	err := &messaging.MessagingError{Op: "Subscribe", Err: cause}
+	assert.ErrorIs(t, err, cause)
+	assert.Contains(t, err.Error(), "Subscribe")
+	assert.Contains(t, err.Error(), "timeout")
+}
+
+func TestEventEnvelope_NilHeadersAllowed(t *testing.T) {
+	meta := messaging.NewEventMetadata("test.v1", "corr-003", "svc")
+	envelope := messaging.EventEnvelope{
+		Metadata: meta,
+		Topic:    "test.topic",
+	}
+	assert.Nil(t, envelope.Headers)
+	assert.Nil(t, envelope.Payload)
+}

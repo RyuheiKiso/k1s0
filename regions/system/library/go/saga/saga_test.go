@@ -186,3 +186,24 @@ func TestSagaError_Unwrap(t *testing.T) {
 	}
 	assert.Equal(t, inner, errors.Unwrap(err))
 }
+
+func TestStartSaga_WithPayload(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req saga.StartSagaRequest
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
+		assert.Equal(t, "order-create", req.WorkflowName)
+		// payload が送信されていることを確認
+		assert.NotNil(t, req.Payload)
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(saga.StartSagaResponse{SagaID: "saga-with-payload"})
+	}))
+	defer server.Close()
+
+	client := saga.NewSagaClientWithHTTPClient(server.URL, server.Client())
+	resp, err := client.StartSaga(context.Background(), &saga.StartSagaRequest{
+		WorkflowName: "order-create",
+		Payload:      map[string]string{"order_id": "ord-999"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "saga-with-payload", resp.SagaID)
+}

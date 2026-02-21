@@ -439,4 +439,27 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
     }
+
+    #[tokio::test]
+    async fn test_delete_message_success() {
+        let msg_id = Uuid::new_v4();
+
+        let mut mock = MockDlqMessageRepository::new();
+        mock.expect_delete().returning(|_| Ok(()));
+
+        let app = handler::router(make_test_state(mock));
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri(format!("/api/v1/dlq/messages/{}", msg_id))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
 }

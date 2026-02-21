@@ -109,4 +109,33 @@ mod tests {
         let retried = uc.execute("orders.dlq.v1").await.unwrap();
         assert_eq!(retried, 1);
     }
+
+    #[tokio::test]
+    async fn test_retry_all_skips_non_retryable_messages() {
+        use crate::domain::entity::DlqStatus;
+
+        let mut mock = MockDlqMessageRepository::new();
+        let mut call_count = 0;
+        mock.expect_find_by_topic().returning(move |_, _, _| {
+            call_count += 1;
+            if call_count == 1 {
+                let mut dead_msg = DlqMessage::new(
+                    "orders.events.v1".to_string(),
+                    "failed".to_string(),
+                    serde_json::json!({}),
+                    3,
+                );
+                dead_msg.mark_dead();
+                assert_eq!(dead_msg.status, DlqStatus::Dead);
+                Ok((vec![dead_msg], 1))
+            } else {
+                Ok((vec![], 0))
+            }
+        });
+        // update は呼ばれないはず（is_retryable が false）
+
+        let uc = RetryAllUseCase::new(Arc::new(mock), None);
+        let retried = uc.execute("orders.dlq.v1").await.unwrap();
+        assert_eq!(retried, 0);
+    }
 }

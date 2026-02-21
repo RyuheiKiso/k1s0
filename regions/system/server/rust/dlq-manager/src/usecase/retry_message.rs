@@ -130,4 +130,27 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("not retryable"));
     }
+
+    #[tokio::test]
+    async fn test_retry_message_max_retries_exceeded() {
+        let mut msg = DlqMessage::new(
+            "orders.events.v1".to_string(),
+            "failed".to_string(),
+            serde_json::json!({}),
+            1, // max 1 retry
+        );
+        // retry_count が max_retries に達している
+        msg.mark_retrying(); // retry_count = 1, max_retries = 1 -> not retryable
+        let msg_id = msg.id;
+        let msg_clone = msg.clone();
+
+        let mut mock = MockDlqMessageRepository::new();
+        mock.expect_find_by_id()
+            .returning(move |_| Ok(Some(msg_clone.clone())));
+
+        let uc = RetryMessageUseCase::new(Arc::new(mock), None);
+        let result = uc.execute(msg_id).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not retryable"));
+    }
 }
