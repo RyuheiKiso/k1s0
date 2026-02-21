@@ -36,7 +36,11 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
+          {{- if .Values.image.registry }}
           image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- with .Values.containerSecurityContext }}
           securityContext:
@@ -50,6 +54,12 @@ spec:
           args:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          env:
+            - name: CONFIG_PATH
+              value: "{{ .Values.config.mountPath }}/config.yaml"
+            {{- with .Values.container.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.container.port }}

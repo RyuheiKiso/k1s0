@@ -24,6 +24,7 @@ container:
   grpcPort: null                       # gRPC 無効。gRPC 有効時は 50051 を設定
   command: []
   args: []
+  env: []                              # 追加の環境変数リスト
 
 # リソース
 resources:
