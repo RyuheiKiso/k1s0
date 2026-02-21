@@ -9,6 +9,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[3]
 DOCS = ROOT / "docs"
 SPEC = DOCS / "テンプレート仕様-レンダリングテスト.md"
+RUST_SPEC = DOCS / "テンプレート仕様-レンダリングテスト-Rust.md"
+E2E_SPEC = DOCS / "テンプレート仕様-レンダリングテスト-E2E.md"
 
 
 class TestRenderingSpecExists:
@@ -22,7 +24,12 @@ class TestRenderingSpecSections:
     """仕様書に主要セクションが存在するかの検証。"""
 
     def setup_method(self) -> None:
-        self.content = SPEC.read_text(encoding="utf-8")
+        # 分割されたドキュメントを結合して検証する
+        self.content = (
+            SPEC.read_text(encoding="utf-8") + "\n"
+            + RUST_SPEC.read_text(encoding="utf-8") + "\n"
+            + E2E_SPEC.read_text(encoding="utf-8")
+        )
 
     @pytest.mark.parametrize(
         "section",
@@ -57,6 +64,7 @@ class TestRenderingSpecNamingConvention:
     """テスト命名規則の検証。"""
 
     def setup_method(self) -> None:
+        # テスト命名規則はメインの仕様書に記載
         self.content = SPEC.read_text(encoding="utf-8")
 
     def test_naming_pattern_documented(self) -> None:
@@ -69,7 +77,8 @@ class TestRenderingSpecHelpers:
     """ヘルパー関数パターンが記載されているかの検証。"""
 
     def setup_method(self) -> None:
-        self.content = SPEC.read_text(encoding="utf-8")
+        # ヘルパー関数パターンは Rust 統合テスト仕様に記載
+        self.content = RUST_SPEC.read_text(encoding="utf-8")
 
     def test_template_context_builder(self) -> None:
         assert "TemplateContextBuilder" in self.content
@@ -113,7 +122,8 @@ class TestRenderingSpecRustTestPatterns:
     """Rust統合テストの5つのパターンが仕様書に記載されているかの検証。"""
 
     def setup_method(self) -> None:
-        self.content = SPEC.read_text(encoding="utf-8")
+        # Rust テストパターンは Rust 統合テスト仕様に記載
+        self.content = RUST_SPEC.read_text(encoding="utf-8")
 
     @pytest.mark.parametrize(
         "pattern_num,keyword",
@@ -177,7 +187,8 @@ class TestRenderingSpecE2EPattern:
     """E2Eテスト構造パターンが仕様書に記載されているかの検証。"""
 
     def setup_method(self) -> None:
-        self.content = SPEC.read_text(encoding="utf-8")
+        # E2E テスト構造パターンとテストクラス名は E2E テスト仕様に記載
+        self.content = E2E_SPEC.read_text(encoding="utf-8")
 
     @pytest.mark.parametrize(
         "element",
@@ -268,7 +279,8 @@ class TestRenderingSpecNewTestExamples:
     """新規テスト例(追加予定)が仕様書に記載されているかの検証。"""
 
     def setup_method(self) -> None:
-        self.content = SPEC.read_text(encoding="utf-8")
+        # 新規テスト例のメソッド名は E2E テスト仕様に記載
+        self.content = E2E_SPEC.read_text(encoding="utf-8")
 
     @pytest.mark.parametrize(
         "test_name",

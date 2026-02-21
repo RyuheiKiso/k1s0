@@ -59,6 +59,23 @@ class TestGoModContent:
 | `TestDatabaseMysqlTemplates` | `database/mysql/` |
 | `TestDatabaseSqliteTemplates` | `database/sqlite/` |
 
+#### 新規カテゴリのテストメソッド例
+
+| テストメソッド | 対象 |
+|--------------|------|
+| `test_client_react_file_list` | React クライアントのファイル一覧 |
+| `test_client_react_package_json` | React の package.json 検証 |
+| `test_client_flutter_file_list` | Flutter クライアントのファイル一覧 |
+| `test_client_flutter_pubspec` | Flutter の pubspec.yaml 検証 |
+| `test_library_go_file_list` | Go ライブラリのファイル一覧 |
+| `test_library_go_module_path` | Go ライブラリのモジュールパス検証 |
+| `test_library_rust_file_list` | Rust ライブラリのファイル一覧 |
+| `test_library_typescript_file_list` | TypeScript ライブラリのファイル一覧 |
+| `test_library_dart_file_list` | Dart ライブラリのファイル一覧 |
+| `test_database_postgresql_file_list` | PostgreSQL のファイル一覧 |
+| `test_database_mysql_file_list` | MySQL のファイル一覧 |
+| `test_database_sqlite_file_list` | SQLite のファイル一覧 |
+
 ### 内容準拠テスト
 
 テンプレートファイルの内容が仕様書のコードブロックと一致することを検証する。
