@@ -25,7 +25,7 @@ type SagaStepLog struct {
 // SagaState は Saga の現在状態。
 type SagaState struct {
 	SagaID    string        `json:"saga_id"`
-	SagaType  string        `json:"saga_type"`
+	WorkflowName string     `json:"workflow_name"`
 	Status    SagaStatus    `json:"status"`
 	StepLogs  []SagaStepLog `json:"step_logs"`
 	CreatedAt time.Time     `json:"created_at"`
@@ -34,7 +34,7 @@ type SagaState struct {
 
 // StartSagaRequest は Saga 開始リクエスト。
 type StartSagaRequest struct {
-	SagaType string `json:"saga_type"`
+	WorkflowName string `json:"workflow_name"`
 	Payload  any    `json:"payload"`
 }
 

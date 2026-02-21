@@ -25,8 +25,8 @@ func TestNewSagaClient_TrimsTrailingSlash(t *testing.T) {
 
 	client = saga.NewSagaClientWithHTTPClient(server.URL+"/", server.Client())
 	_, err := client.StartSaga(context.Background(), &saga.StartSagaRequest{
-		SagaType: "test",
-		Payload:  map[string]string{"key": "value"},
+		WorkflowName: "test",
+		Payload:      map[string]string{"key": "value"},
 	})
 	require.NoError(t, err)
 }
@@ -40,7 +40,7 @@ func TestStartSaga_Success(t *testing.T) {
 		var req saga.StartSagaRequest
 		err := json.NewDecoder(r.Body).Decode(&req)
 		require.NoError(t, err)
-		assert.Equal(t, "order-create", req.SagaType)
+		assert.Equal(t, "order-create", req.WorkflowName)
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(saga.StartSagaResponse{SagaID: "saga-123"})
@@ -49,8 +49,8 @@ func TestStartSaga_Success(t *testing.T) {
 
 	client := saga.NewSagaClientWithHTTPClient(server.URL, server.Client())
 	resp, err := client.StartSaga(context.Background(), &saga.StartSagaRequest{
-		SagaType: "order-create",
-		Payload:  map[string]string{"order_id": "ord-1"},
+		WorkflowName: "order-create",
+		Payload:      map[string]string{"order_id": "ord-1"},
 	})
 
 	require.NoError(t, err)
@@ -66,7 +66,7 @@ func TestStartSaga_ErrorStatus(t *testing.T) {
 
 	client := saga.NewSagaClientWithHTTPClient(server.URL, server.Client())
 	_, err := client.StartSaga(context.Background(), &saga.StartSagaRequest{
-		SagaType: "test",
+		WorkflowName: "test",
 	})
 
 	require.Error(t, err)
@@ -84,8 +84,8 @@ func TestGetSaga_Success(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]any{
 			"saga": map[string]any{
-				"saga_id":    "saga-456",
-				"saga_type":  "order-create",
+				"saga_id":       "saga-456",
+				"workflow_name": "order-create",
 				"status":     "RUNNING",
 				"step_logs":  []any{},
 				"created_at": "2024-01-01T00:00:00Z",
@@ -100,7 +100,7 @@ func TestGetSaga_Success(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "saga-456", state.SagaID)
-	assert.Equal(t, "order-create", state.SagaType)
+	assert.Equal(t, "order-create", state.WorkflowName)
 	assert.Equal(t, saga.SagaStatusRunning, state.Status)
 }
 

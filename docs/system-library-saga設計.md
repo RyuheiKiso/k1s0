@@ -60,7 +60,7 @@ let client = SagaClient::new("http://saga-server:8080");
 
 // Saga 開始
 let request = StartSagaRequest {
-    saga_type: "order-fulfillment".to_string(),
+    workflow_name: "order-fulfillment".to_string(),
     payload: serde_json::json!({ "order_id": "ord-123" }),
 };
 let response = client.start_saga(&request).await?;
@@ -144,11 +144,16 @@ export type SagaStatus =
 
 export interface SagaState {
   sagaId: string;
-  sagaType: string;
+  workflowName: string;  // saga_type → workflow_name に統一
   status: SagaStatus;
   stepLogs: SagaStepLog[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface StartSagaRequest {
+  workflowName: string;  // saga_type → workflow_name に統一
+  payload: unknown;
 }
 
 export class SagaClient {
