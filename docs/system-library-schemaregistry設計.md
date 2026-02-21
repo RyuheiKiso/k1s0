@@ -122,6 +122,85 @@ type SchemaRegistryClient interface {
 }
 ```
 
+## TypeScript 実装
+
+**配置先**: `regions/system/library/typescript/schemaregistry/`
+
+```
+schemaregistry/
+├── package.json        # "@k1s0/schemaregistry", "type":"module"
+├── tsconfig.json
+├── vitest.config.ts
+├── src/
+│   └── index.ts        # RegisteredSchema, SchemaRegistryClient, SchemaRegistryConfig, NotFoundError, SchemaRegistryError
+└── __tests__/
+    └── schemaregistry.test.ts
+```
+
+**主要 API**:
+
+```typescript
+export interface RegisteredSchema {
+  id: number;
+  subject: string;
+  version: number;
+  schema: string;
+  schemaType: string;
+}
+
+export interface SchemaRegistryConfig {
+  url: string;
+  username?: string;
+  password?: string;
+}
+
+export function subjectName(topic: string, keyOrValue: 'key' | 'value'): string;
+
+export interface SchemaRegistryClient {
+  registerSchema(subject: string, schema: string, schemaType: string): Promise<number>;
+  getSchemaById(id: number): Promise<RegisteredSchema>;
+  getLatestSchema(subject: string): Promise<RegisteredSchema>;
+  getSchemaVersion(subject: string, version: number): Promise<RegisteredSchema>;
+  listSubjects(): Promise<string[]>;
+  checkCompatibility(subject: string, schema: string): Promise<boolean>;
+  healthCheck(): Promise<void>;
+}
+
+export class NotFoundError extends Error {
+  constructor(resource: string);
+}
+
+export function isNotFound(err: unknown): boolean;
+
+export class SchemaRegistryError extends Error {
+  statusCode: number;
+  constructor(statusCode: number, message: string);
+}
+```
+
+**カバレッジ目標**: 85%以上
+
+## Dart 実装
+
+**配置先**: `regions/system/library/dart/schemaregistry/`
+
+```
+schemaregistry/
+├── pubspec.yaml        # k1s0_schemaregistry, http: ^1.2.0
+├── analysis_options.yaml
+├── lib/
+│   ├── schemaregistry.dart
+│   └── src/
+│       ├── types.dart      # RegisteredSchema, SchemaType
+│       ├── config.dart     # SchemaRegistryConfig, subjectName
+│       ├── client.dart     # SchemaRegistryClient abstract, HttpSchemaRegistryClient
+│       └── error.dart      # NotFoundError, SchemaRegistryError
+└── test/
+    └── schemaregistry_test.dart
+```
+
+**カバレッジ目標**: 85%以上
+
 ---
 
 ## 関連ドキュメント

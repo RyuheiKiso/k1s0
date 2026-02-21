@@ -116,6 +116,132 @@ type EventConsumer interface {
 }
 ```
 
+## TypeScript 実装
+
+**配置先**: `regions/system/library/typescript/messaging/`
+
+```
+messaging/
+├── package.json        # "@k1s0/messaging", "type":"module"
+├── tsconfig.json       # ES2022, Node16, strict, declaration
+├── vitest.config.ts    # globals:true, __tests__/**/*.test.ts
+├── src/
+│   └── index.ts        # EventMetadata, EventEnvelope, EventHandler, EventProducer, EventConsumer, NoOpEventProducer, MessagingError
+└── __tests__/
+    └── messaging.test.ts
+```
+
+**依存関係**: `uuid` (v9+), `vitest` (dev)
+
+**主要 API**:
+
+```typescript
+export interface EventMetadata {
+  eventId: string;
+  eventType: string;
+  correlationId: string;
+  traceId: string;
+  timestamp: string;
+  source: string;
+}
+
+export interface EventEnvelope {
+  topic: string;
+  payload: unknown;
+  metadata: EventMetadata;
+}
+
+export type EventHandler = (event: EventEnvelope) => Promise<void>;
+
+export interface EventProducer {
+  publish(event: EventEnvelope): Promise<void>;
+  close(): Promise<void>;
+}
+
+export interface EventConsumer {
+  subscribe(topic: string, handler: EventHandler): Promise<void>;
+  close(): Promise<void>;
+}
+
+// テスト用 NoOp 実装
+export class NoOpEventProducer implements EventProducer {
+  published: EventEnvelope[];
+  async publish(event: EventEnvelope): Promise<void>;
+  async close(): Promise<void>;
+}
+
+export class MessagingError extends Error {
+  constructor(op: string, cause?: Error);
+}
+```
+
+**カバレッジ目標**: 85%以上
+
+## Dart 実装
+
+**配置先**: `regions/system/library/dart/messaging/`
+
+```
+messaging/
+├── pubspec.yaml        # k1s0_messaging, sdk >=3.4.0 <4.0.0, uuid: ^4.4.0
+├── analysis_options.yaml
+├── lib/
+│   ├── messaging.dart  # エクスポート
+│   └── src/
+│       ├── types.dart  # EventMetadata, EventEnvelope
+│       ├── producer.dart  # EventProducer abstract class, NoOpEventProducer
+│       ├── consumer.dart  # EventConsumer abstract class, EventHandler typedef
+│       └── error.dart  # MessagingError
+└── test/
+    └── messaging_test.dart
+```
+
+**依存関係**: `uuid: ^4.4.0`, `lints: ^4.0.0` (dev)
+
+**主要 API**:
+
+```dart
+class EventMetadata {
+  final String eventId;
+  final String eventType;
+  final String correlationId;
+  final String traceId;
+  final DateTime timestamp;
+  final String source;
+
+  factory EventMetadata.create(String eventType, String source, {String? correlationId, String? traceId});
+}
+
+class EventEnvelope {
+  final String topic;
+  final Object payload;
+  final EventMetadata metadata;
+}
+
+typedef EventHandler = Future<void> Function(EventEnvelope event);
+
+abstract class EventProducer {
+  Future<void> publish(EventEnvelope event);
+  Future<void> close();
+}
+
+abstract class EventConsumer {
+  Future<void> subscribe(String topic, EventHandler handler);
+  Future<void> close();
+}
+
+class NoOpEventProducer implements EventProducer {
+  final List<EventEnvelope> published = [];
+}
+
+class MessagingError implements Exception {
+  final String op;
+  final Object? cause;
+}
+```
+
+**カバレッジ目標**: 85%以上
+
 ---
 
 ## 関連ドキュメント

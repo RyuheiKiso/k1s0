@@ -110,6 +110,88 @@ type OutboxPublisher interface {
 }
 ```
 
+## TypeScript 実装
+
+**配置先**: `regions/system/library/typescript/outbox/`
+
+```
+outbox/
+├── package.json        # "@k1s0/outbox", "type":"module"
+├── tsconfig.json
+├── vitest.config.ts
+├── src/
+│   └── index.ts        # OutboxMessage, OutboxStatus, OutboxStore, OutboxPublisher, OutboxProcessor, OutboxError
+└── __tests__/
+    └── outbox.test.ts
+```
+
+**主要 API**:
+
+```typescript
+export type OutboxStatus = 'PENDING' | 'PROCESSING' | 'DELIVERED' | 'FAILED';
+
+export interface OutboxMessage {
+  id: string;
+  topic: string;
+  eventType: string;
+  payload: string;
+  status: OutboxStatus;
+  retryCount: number;
+  scheduledAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  correlationId: string;
+}
+
+export function createOutboxMessage(topic: string, eventType: string, payload: string, correlationId: string): OutboxMessage;
+export function nextScheduledAt(retryCount: number): Date;
+export function canTransitionTo(from: OutboxStatus, to: OutboxStatus): boolean;
+
+export interface OutboxStore {
+  saveMessage(msg: OutboxMessage): Promise<void>;
+  getPendingMessages(limit: number): Promise<OutboxMessage[]>;
+  updateStatus(id: string, status: OutboxStatus): Promise<void>;
+  updateStatusWithRetry(id: string, status: OutboxStatus, retryCount: number, scheduledAt: Date): Promise<void>;
+}
+
+export interface OutboxPublisher {
+  publish(msg: OutboxMessage): Promise<void>;
+}
+
+export class OutboxProcessor {
+  constructor(store: OutboxStore, publisher: OutboxPublisher, batchSize?: number);
+  processBatch(): Promise<number>;
+  run(intervalMs: number, signal?: AbortSignal): Promise<void>;
+}
+
+export class OutboxError extends Error {
+  constructor(op: string, cause?: Error);
+}
+```
+
+**カバレッジ目標**: 85%以上
+
+## Dart 実装
+
+**配置先**: `regions/system/library/dart/outbox/`
+
+```
+outbox/
+├── pubspec.yaml        # k1s0_outbox, uuid: ^4.4.0
+├── analysis_options.yaml
+├── lib/
+│   ├── outbox.dart
+│   └── src/
+│       ├── message.dart    # OutboxMessage, OutboxStatus, 状態遷移検証, 指数バックオフ
+│       ├── store.dart      # OutboxStore abstract, OutboxPublisher abstract
+│       ├── processor.dart  # OutboxProcessor（ポーリングループ）
+│       └── error.dart      # OutboxError
+└── test/
+    └── outbox_test.dart
+```
+
+**カバレッジ目標**: 85%以上
+
 ---
 
 ## 関連ドキュメント

@@ -101,6 +101,89 @@ type TopicConfig struct { ... }
 type KafkaHealthChecker interface { ... }
 ```
 
+## TypeScript 実装
+
+**配置先**: `regions/system/library/typescript/kafka/`
+
+```
+kafka/
+├── package.json        # "@k1s0/kafka", "type":"module"
+├── tsconfig.json       # ES2022, Node16, strict
+├── vitest.config.ts
+├── src/
+│   └── index.ts        # KafkaConfig, TopicConfig, KafkaHealthStatus, KafkaHealthChecker, NoOpKafkaHealthChecker, KafkaError
+└── __tests__/
+    └── kafka.test.ts
+```
+
+**主要 API**:
+
+```typescript
+export interface KafkaConfig {
+  bootstrapServers: string[];
+  securityProtocol?: 'PLAINTEXT' | 'SSL' | 'SASL_PLAINTEXT' | 'SASL_SSL';
+  saslMechanism?: string;
+  saslUsername?: string;
+  saslPassword?: string;
+}
+
+export function validateKafkaConfig(config: KafkaConfig): void;
+export function bootstrapServersString(config: KafkaConfig): string;
+export function usesTLS(config: KafkaConfig): boolean;
+
+export interface TopicConfig {
+  name: string;
+  partitions?: number;
+  replicationFactor?: number;
+  retentionMs?: number;
+}
+
+export function validateTopicName(topic: TopicConfig): void;
+export function topicTier(topic: TopicConfig): 'system' | 'business' | 'service' | '';
+
+export interface KafkaHealthStatus {
+  healthy: boolean;
+  message: string;
+  brokerCount: number;
+}
+
+export interface KafkaHealthChecker {
+  healthCheck(): Promise<KafkaHealthStatus>;
+}
+
+export class NoOpKafkaHealthChecker implements KafkaHealthChecker {
+  constructor(status: KafkaHealthStatus, error?: Error);
+  healthCheck(): Promise<KafkaHealthStatus>;
+}
+
+export class KafkaError extends Error {
+  constructor(message: string, cause?: Error);
+}
+```
+
+**カバレッジ目標**: 80%以上
+
+## Dart 実装
+
+**配置先**: `regions/system/library/dart/kafka/`
+
+```
+kafka/
+├── pubspec.yaml        # k1s0_kafka, sdk >=3.4.0 <4.0.0
+├── analysis_options.yaml
+├── lib/
+│   ├── kafka.dart
+│   └── src/
+│       ├── config.dart     # KafkaConfig（バリデーション付き）
+│       ├── topic.dart      # TopicConfig（命名規則検証）
+│       ├── health.dart     # KafkaHealthStatus, KafkaHealthChecker, NoOpKafkaHealthChecker
+│       └── error.dart      # KafkaError
+└── test/
+    └── kafka_test.dart
+```
+
+**カバレッジ目標**: 80%以上
+
 ---
 
 ## 関連ドキュメント
