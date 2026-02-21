@@ -45,16 +45,6 @@
         "postgresql://dev:dev@localhost:5432/dlq_db"
       ],
       "env": {}
-    },
-    "kafka": {
-      "type": "stdio",
-      "command": "kafka-mcp-server",
-      "args": [],
-      "env": {
-        "KAFKA_BROKERS": "localhost:9092",
-        "KAFKA_CLIENT_ID": "claude-mcp",
-        "MCP_TRANSPORT": "stdio"
-      }
     }
   }
 }
