@@ -1,4 +1,4 @@
-"""テンプレート仕様-クライアント.md の内容準拠テスト。
+"""テンプレート仕様-React.md / テンプレート仕様-Flutter.md の内容準拠テスト。
 
 CLI/templates/client/ のテンプレートファイルの内容が
 仕様ドキュメントのコードブロックと一致するかを検証する。
@@ -477,17 +477,17 @@ class TestClientPlacementConstraint:
         assert not system_client.exists(), "system 層に client は配置しない"
 
     def test_business_tier_path_pattern(self) -> None:
-        """テンプレート仕様-クライアント.md: business Tier のパスパターン。"""
+        """テンプレート仕様-React.md: business Tier のパスパターン。"""
         # ドキュメントで定義されたパスパターンの確認
         # regions/business/{domain}/client/{framework}/{service_name}/
-        docs_content = (ROOT / "docs" / "テンプレート仕様-クライアント.md").read_text(encoding="utf-8")
+        docs_content = (ROOT / "docs" / "テンプレート仕様-React.md").read_text(encoding="utf-8")
         assert "business" in docs_content
         assert "client は **business** および **service** Tier のみ" in docs_content
 
     def test_service_tier_path_pattern(self) -> None:
-        """テンプレート仕様-クライアント.md: service Tier のパスパターン。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-クライアント.md").read_text(encoding="utf-8")
-        assert "regions/service/{service_name}/client/{framework}/" in docs_content
+        """テンプレート仕様-React.md: service Tier のパスパターン。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-React.md").read_text(encoding="utf-8")
+        assert "regions/service/{service_name}/client/react/" in docs_content
 
 
 class TestClientAuthArchitecture:
@@ -504,8 +504,8 @@ class TestClientAuthArchitecture:
         assert "'withCredentials': true" in content
 
     def test_docs_describe_bff_httponly_cookie(self) -> None:
-        """テンプレート仕様-クライアント.md: BFF + HttpOnly Cookie 方式がドキュメントに記載。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-クライアント.md").read_text(encoding="utf-8")
+        """テンプレート仕様-React.md: BFF + HttpOnly Cookie 方式がドキュメントに記載。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-React.md").read_text(encoding="utf-8")
         assert "BFF" in docs_content
         assert "HttpOnly Cookie" in docs_content
 
