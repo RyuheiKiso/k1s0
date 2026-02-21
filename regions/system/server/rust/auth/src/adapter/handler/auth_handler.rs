@@ -243,7 +243,7 @@ mod tests {
             preferred_username: "taro.yamada".to_string(),
             email: "taro.yamada@example.com".to_string(),
             realm_access: RealmAccess {
-                roles: vec!["user".to_string()],
+                roles: vec!["sys_auditor".to_string()],
             },
             resource_access: HashMap::new(),
             tier_access: vec!["system".to_string()],
@@ -386,6 +386,7 @@ mod tests {
         let mut token_verifier = MockTokenVerifier::new();
         let claims = make_valid_claims();
         let return_claims = claims.clone();
+        // auth_middleware と introspect_token の両方が verify_token を呼ぶため、2回呼ばれる
         token_verifier
             .expect_verify_token()
             .returning(move |_| Ok(return_claims.clone()));
@@ -401,6 +402,7 @@ mod tests {
             .method("POST")
             .uri("/api/v1/auth/token/introspect")
             .header("content-type", "application/json")
+            .header("Authorization", "Bearer valid-jwt-token")
             .body(Body::from(
                 r#"{"token":"valid-jwt-token","token_type_hint":"access_token"}"#,
             ))
@@ -421,6 +423,14 @@ mod tests {
     #[tokio::test]
     async fn test_introspect_token_inactive() {
         let mut token_verifier = MockTokenVerifier::new();
+        let claims = make_valid_claims();
+        let return_claims = claims.clone();
+        // auth_middleware の検証は成功させ (Bearer ヘッダー)、
+        // リクエストボディのトークン検証は失敗させる (2回目の呼び出し)
+        token_verifier
+            .expect_verify_token()
+            .times(1)
+            .returning(move |_| Ok(return_claims.clone()));
         token_verifier
             .expect_verify_token()
             .returning(|_| Err(anyhow::anyhow!("invalid")));
@@ -436,6 +446,7 @@ mod tests {
             .method("POST")
             .uri("/api/v1/auth/token/introspect")
             .header("content-type", "application/json")
+            .header("Authorization", "Bearer valid-jwt-token")
             .body(Body::from(r#"{"token":"expired-token"}"#))
             .unwrap();
 
@@ -451,6 +462,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_user_success() {
+        let mut token_verifier = MockTokenVerifier::new();
+        let claims = make_valid_claims();
+        token_verifier
+            .expect_verify_token()
+            .returning(move |_| Ok(claims.clone()));
+
         let mut user_repo = MockUserRepository::new();
         user_repo.expect_find_by_id()
             .withf(|id| id == "user-uuid-1234")
@@ -469,7 +486,7 @@ mod tests {
             });
 
         let state = make_app_state(
-            MockTokenVerifier::new(),
+            token_verifier,
             user_repo,
             MockAuditLogRepository::new(),
         );
@@ -477,6 +494,7 @@ mod tests {
 
         let req = Request::builder()
             .uri("/api/v1/users/user-uuid-1234")
+            .header("Authorization", "Bearer valid-token")
             .body(Body::empty())
             .unwrap();
 
@@ -493,13 +511,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_user_not_found() {
+        let mut token_verifier = MockTokenVerifier::new();
+        let claims = make_valid_claims();
+        token_verifier
+            .expect_verify_token()
+            .returning(move |_| Ok(claims.clone()));
+
         let mut user_repo = MockUserRepository::new();
         user_repo
             .expect_find_by_id()
             .returning(|_| Err(anyhow::anyhow!("user not found")));
 
         let state = make_app_state(
-            MockTokenVerifier::new(),
+            token_verifier,
             user_repo,
             MockAuditLogRepository::new(),
         );
@@ -507,6 +531,7 @@ mod tests {
 
         let req = Request::builder()
             .uri("/api/v1/users/nonexistent")
+            .header("Authorization", "Bearer valid-token")
             .body(Body::empty())
             .unwrap();
 
@@ -522,6 +547,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_users_success() {
+        let mut token_verifier = MockTokenVerifier::new();
+        let claims = make_valid_claims();
+        token_verifier
+            .expect_verify_token()
+            .returning(move |_| Ok(claims.clone()));
+
         let mut user_repo = MockUserRepository::new();
         user_repo.expect_list()
             .returning(|page, page_size, _, _| {
@@ -547,7 +578,7 @@ mod tests {
             });
 
         let state = make_app_state(
-            MockTokenVerifier::new(),
+            token_verifier,
             user_repo,
             MockAuditLogRepository::new(),
         );
@@ -555,6 +586,7 @@ mod tests {
 
         let req = Request::builder()
             .uri("/api/v1/users?page=1&page_size=20")
+            .header("Authorization", "Bearer valid-token")
             .body(Body::empty())
             .unwrap();
 
@@ -571,6 +603,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_user_roles_success() {
+        let mut token_verifier = MockTokenVerifier::new();
+        let claims = make_valid_claims();
+        token_verifier
+            .expect_verify_token()
+            .returning(move |_| Ok(claims.clone()));
+
         let mut user_repo = MockUserRepository::new();
         user_repo.expect_get_roles()
             .withf(|id| id == "user-uuid-1234")
@@ -587,7 +625,7 @@ mod tests {
             });
 
         let state = make_app_state(
-            MockTokenVerifier::new(),
+            token_verifier,
             user_repo,
             MockAuditLogRepository::new(),
         );
@@ -595,6 +633,7 @@ mod tests {
 
         let req = Request::builder()
             .uri("/api/v1/users/user-uuid-1234/roles")
+            .header("Authorization", "Bearer valid-token")
             .body(Body::empty())
             .unwrap();
 

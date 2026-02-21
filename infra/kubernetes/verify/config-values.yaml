@@ -1,0 +1,74 @@
+# k8s verify 用オーバーライド値 (config-rust)
+# ローカルDockerイメージ + インクラスターサービス名を使用
+replicaCount: 1
+
+image:
+  registry: ""
+  repository: k1s0-verify-config-rust
+  tag: latest
+  pullPolicy: Never
+
+imagePullSecrets: []
+
+autoscaling:
+  enabled: false
+
+pdb:
+  enabled: false
+
+vault:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+serviceAccount:
+  create: false
+  name: "default"
+
+config:
+  mountPath: /etc/app
+  data:
+    config.yaml: |
+      app:
+        name: "k1s0-config-server"
+        version: "0.1.0"
+        environment: "dev"
+
+      server:
+        host: "0.0.0.0"
+        port: 8080
+
+      database:
+        host: postgres.k1s0-system.svc.cluster.local
+        port: 5432
+        name: config_db
+        user: dev
+        password: dev
+        ssl_mode: disable
+        max_open_conns: 10
+        max_idle_conns: 2
+        conn_max_lifetime: "5m"
+
+      kafka:
+        brokers:
+          - "kafka.k1s0-system.svc.cluster.local:9092"
+        consumer_group: "config-server.dev"
+        security_protocol: "PLAINTEXT"
+        topics:
+          publish:
+            - "k1s0.system.config.changed.v1"
+          subscribe: []
+
+      auth:
+        jwt:
+          issuer: "http://localhost:8180/realms/k1s0"
+          audience: "k1s0-api"
+        jwks:
+          url: "http://keycloak.k1s0-system.svc.cluster.local:8080/realms/k1s0/protocol/openid-connect/certs"
+          cache_ttl_secs: 300

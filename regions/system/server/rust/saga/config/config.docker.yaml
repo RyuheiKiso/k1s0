@@ -1,0 +1,42 @@
+app:
+  name: "saga-server"
+  version: "0.1.0"
+  environment: "dev"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+database:
+  host: "postgres"
+  port: 5432
+  name: "k1s0_system"
+  user: "dev"
+  password: "dev"
+  ssl_mode: "disable"
+  max_open_conns: 10
+
+kafka:
+  brokers:
+    - "kafka:9092"
+  consumer_group: "saga-server.dev"
+  security_protocol: "PLAINTEXT"
+  topics:
+    publish:
+      - "k1s0.system.saga.events.v1"
+    subscribe: []
+
+services:
+  inventory-service:
+    host: "localhost"
+    port: 50051
+  payment-service:
+    host: "localhost"
+    port: 50052
+  shipping-service:
+    host: "localhost"
+    port: 50053
+
+saga:
+  max_concurrent: 10
+  workflow_dir: "workflows"

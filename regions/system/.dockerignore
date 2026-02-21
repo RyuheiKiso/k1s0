@@ -1,0 +1,18 @@
+# Rust build artifacts
+**/target/
+
+# Git
+**/.git/
+**/.gitignore
+
+# IDE
+**/.idea/
+**/.vscode/
+**/*.iml
+
+# Logs
+**/*.log
+
+# Test artifacts
+**/test-results/
+**/coverage/

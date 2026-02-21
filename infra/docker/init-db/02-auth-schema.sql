@@ -94,7 +94,7 @@ CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_id ON auth.role_permi
 
 -- 006: audit_logs テーブル（月次パーティショニング）
 CREATE TABLE IF NOT EXISTS auth.audit_logs (
-    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    id          UUID         NOT NULL DEFAULT gen_random_uuid(),
     user_id     UUID         REFERENCES auth.users(id) ON DELETE SET NULL,
     event_type  VARCHAR(100) NOT NULL,
     action      VARCHAR(100) NOT NULL,
@@ -105,7 +105,8 @@ CREATE TABLE IF NOT EXISTS auth.audit_logs (
     ip_address  INET,
     user_agent  TEXT,
     trace_id    VARCHAR(64),
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
 
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id_created_at

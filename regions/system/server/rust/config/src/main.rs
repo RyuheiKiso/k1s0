@@ -10,7 +10,7 @@ mod proto;
 mod usecase;
 
 use adapter::grpc::ConfigGrpcService;
-use adapter::handler::{self, AppState};
+use adapter::handler;
 use adapter::repository::config_postgres::ConfigPostgresRepository;
 use infrastructure::config::Config;
 
@@ -50,7 +50,13 @@ async fn main() -> anyhow::Result<()> {
                 .connect(&database_url)
                 .await?;
             info!("connected to PostgreSQL");
-            Arc::new(ConfigPostgresRepository::new(pool))
+            let pg_repo = Arc::new(ConfigPostgresRepository::new(pool));
+            // キャッシュでラップ（TTL 300秒、最大10000エントリ）
+            let cache = Arc::new(infrastructure::cache::ConfigCache::new(10_000, 300));
+            info!("config cache initialized (max_capacity=10000, ttl=300s)");
+            Arc::new(adapter::repository::cached_config_repository::CachedConfigRepository::new(
+                pg_repo, cache,
+            ))
         } else if let Some(ref db_cfg) = cfg.database {
             info!("connecting to PostgreSQL via config...");
             let pool = sqlx::postgres::PgPoolOptions::new()
@@ -58,33 +64,85 @@ async fn main() -> anyhow::Result<()> {
                 .connect(&db_cfg.connection_url())
                 .await?;
             info!("connected to PostgreSQL");
-            Arc::new(ConfigPostgresRepository::new(pool))
+            let pg_repo = Arc::new(ConfigPostgresRepository::new(pool));
+            // キャッシュでラップ（TTL 300秒、最大10000エントリ）
+            let cache = Arc::new(infrastructure::cache::ConfigCache::new(10_000, 300));
+            info!("config cache initialized (max_capacity=10000, ttl=300s)");
+            Arc::new(adapter::repository::cached_config_repository::CachedConfigRepository::new(
+                pg_repo, cache,
+            ))
         } else {
             info!("no database configured, using in-memory repository");
             Arc::new(InMemoryConfigRepository::new())
         };
+
+    // Kafka producer (optional)
+    let kafka_producer = cfg.kafka.as_ref().and_then(|kafka_cfg| {
+        match infrastructure::kafka_producer::KafkaProducer::new(kafka_cfg) {
+            Ok(p) => {
+                info!("kafka producer initialized for config change notifications");
+                Some(std::sync::Arc::new(p))
+            }
+            Err(e) => {
+                tracing::warn!(
+                    error = %e,
+                    "failed to create kafka producer, config change events will not be published"
+                );
+                None
+            }
+        }
+    });
 
     // --- gRPC Service ---
     let get_config_uc = Arc::new(usecase::GetConfigUseCase::new(config_repo.clone()));
     let list_configs_uc = Arc::new(usecase::ListConfigsUseCase::new(config_repo.clone()));
     let get_service_config_uc =
         Arc::new(usecase::GetServiceConfigUseCase::new(config_repo.clone()));
-    let update_config_uc = Arc::new(usecase::UpdateConfigUseCase::new(config_repo.clone()));
+    let update_config_uc_grpc = if let Some(ref producer) = kafka_producer {
+        Arc::new(usecase::UpdateConfigUseCase::new_with_kafka(
+            config_repo.clone(),
+            producer.clone(),
+        ))
+    } else {
+        Arc::new(usecase::UpdateConfigUseCase::new(config_repo.clone()))
+    };
     let delete_config_uc = Arc::new(usecase::DeleteConfigUseCase::new(config_repo.clone()));
 
     let config_grpc_svc = Arc::new(ConfigGrpcService::new(
         get_config_uc,
         list_configs_uc,
         get_service_config_uc,
-        update_config_uc,
+        update_config_uc_grpc,
         delete_config_uc,
     ));
 
     // tonic ラッパー（proto 生成後は ConfigServiceServer に置換）
     let _config_tonic = adapter::grpc::ConfigServiceTonic::new(config_grpc_svc);
 
-    // AppState (REST handler 用)
-    let state = AppState::new(config_repo);
+    // AppState (REST handler 用) - Kafka通知付きで構築
+    let state = adapter::handler::AppState {
+        get_config_uc: std::sync::Arc::new(usecase::GetConfigUseCase::new(config_repo.clone())),
+        list_configs_uc: std::sync::Arc::new(usecase::ListConfigsUseCase::new(
+            config_repo.clone(),
+        )),
+        update_config_uc: if let Some(ref producer) = kafka_producer {
+            std::sync::Arc::new(usecase::UpdateConfigUseCase::new_with_kafka(
+                config_repo.clone(),
+                producer.clone(),
+            ))
+        } else {
+            std::sync::Arc::new(usecase::UpdateConfigUseCase::new(config_repo.clone()))
+        },
+        delete_config_uc: std::sync::Arc::new(usecase::DeleteConfigUseCase::new(
+            config_repo.clone(),
+        )),
+        get_service_config_uc: std::sync::Arc::new(usecase::GetServiceConfigUseCase::new(
+            config_repo.clone(),
+        )),
+        metrics: std::sync::Arc::new(k1s0_telemetry::metrics::Metrics::new(
+            "k1s0-config-server",
+        )),
+    };
 
     // Router
     let app = handler::router(state);

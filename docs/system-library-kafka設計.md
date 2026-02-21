@@ -1,0 +1,116 @@
+# k1s0-kafka ライブラリ設計
+
+## 概要
+
+Kafka 接続設定・管理・ヘルスチェックライブラリ。`KafkaConfig`（TLS・SASL 対応）、`KafkaHealthChecker`、`TopicConfig`（命名規則検証）を提供する。k1s0-messaging の具体的な Kafka 実装の基盤となる。
+
+**配置先**: `regions/system/library/rust/kafka/`
+
+## 公開 API
+
+| 型・トレイト | 種別 | 説明 |
+|-------------|------|------|
+| `KafkaConfig` | 構造体 | ブローカーアドレス・TLS・SASL・コンシューマーグループ設定 |
+| `KafkaHealthChecker` | 構造体 | Kafka クラスター疎通確認・ヘルスチェック |
+| `TopicConfig` | 構造体 | トピック名・パーティション数・レプリカ数の設定 |
+| `TopicPartitionInfo` | 構造体 | トピックのパーティション情報（オフセット等） |
+| `KafkaError` | enum | 接続・設定・ヘルスチェックエラー型 |
+
+## Rust 実装
+
+**Cargo.toml**:
+
+```toml
+[package]
+name = "k1s0-kafka"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time"] }
+tracing = "0.1"
+
+[dev-dependencies]
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+```
+
+**Cargo.toml への追加行**:
+
+```toml
+k1s0-kafka = { path = "../../system/library/rust/kafka" }
+```
+
+**モジュール構成**:
+
+```
+kafka/
+├── src/
+│   ├── lib.rs          # 公開 API（再エクスポート）
+│   ├── config.rs       # KafkaConfig（TLS・SASL 設定を含む）
+│   ├── error.rs        # KafkaError
+│   ├── health.rs       # KafkaHealthChecker
+│   └── topic.rs        # TopicConfig・TopicPartitionInfo・命名規則検証
+└── Cargo.toml
+```
+
+**使用例**:
+
+```rust
+use k1s0_kafka::{KafkaConfig, KafkaHealthChecker, TopicConfig};
+
+// 設定例（SASL_SSL）
+let config = KafkaConfig::builder()
+    .brokers(vec!["kafka:9092".to_string()])
+    .consumer_group("auth-service-group")
+    .security_protocol("SASL_SSL")
+    .build()?;
+
+// ヘルスチェック
+let checker = KafkaHealthChecker::new(config);
+checker.check().await?;
+
+// トピック命名規則検証（k1s0.<tier>.<service>.<event>.<version>）
+let topic = TopicConfig::new("k1s0.system.auth.user-created.v1")?;
+```
+
+## Go 実装
+
+**配置先**: `regions/system/library/go/kafka/`
+
+```
+kafka/
+├── config.go
+├── topic.go
+├── health.go
+├── kafka_test.go
+├── go.mod
+└── go.sum
+```
+
+**依存関係**: `github.com/stretchr/testify v1.10.0`（Kafka クライアントライブラリ不要、設定・検証のみ）
+
+**主要型**:
+
+```go
+type KafkaConfig struct { ... }
+type TopicConfig struct { ... }
+type KafkaHealthChecker interface { ... }
+```
+
+---
+
+## 関連ドキュメント
+
+- [system-library-概要](system-library-概要.md) — ライブラリ一覧・テスト方針
+- [system-library-config設計](system-library-config設計.md) — config ライブラリ
+- [system-library-telemetry設計](system-library-telemetry設計.md) — telemetry ライブラリ
+- [system-library-authlib設計](system-library-authlib設計.md) — authlib ライブラリ
+- [system-library-messaging設計](system-library-messaging設計.md) — k1s0-messaging ライブラリ
+- [system-library-correlation設計](system-library-correlation設計.md) — k1s0-correlation ライブラリ
+- [system-library-outbox設計](system-library-outbox設計.md) — k1s0-outbox ライブラリ
+- [system-library-schemaregistry設計](system-library-schemaregistry設計.md) — k1s0-schemaregistry ライブラリ
+- [system-library-serviceauth設計](system-library-serviceauth設計.md) — k1s0-serviceauth ライブラリ

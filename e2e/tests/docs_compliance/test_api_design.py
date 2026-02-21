@@ -10,6 +10,9 @@ import yaml  # type: ignore[import-untyped]
 
 ROOT = Path(__file__).resolve().parents[3]
 PROTO = ROOT / "api" / "proto"
+REST_API_DOC = ROOT / "docs" / "REST-API設計.md"
+GRPC_DOC = ROOT / "docs" / "gRPC設計.md"
+GRAPHQL_DOC = ROOT / "docs" / "GraphQL設計.md"
 
 
 class TestBufConfig:
@@ -233,8 +236,8 @@ class TestErrorResponseUnifiedSchema:
         assert '"message"' in content
 
     def test_error_schema_in_doc(self) -> None:
-        """API設計.md: ドキュメントに error.code, error.message, error.request_id, error.details が記載。"""
-        doc = ROOT / "docs" / "API設計.md"
+        """REST-API設計.md: ドキュメントに error.code, error.message, error.request_id, error.details が記載。"""
+        doc = REST_API_DOC
         content = doc.read_text(encoding="utf-8")
         assert "error.code" in content or "`error.code`" in content
         assert "error.message" in content or "`error.message`" in content
@@ -243,24 +246,21 @@ class TestErrorResponseUnifiedSchema:
 
 
 class TestTierPrefixErrorCodes:
-    """API設計.md: Tier プレフィックス付きエラーコードの検証。"""
+    """REST-API設計.md: Tier プレフィックス付きエラーコードの検証。"""
 
     def test_sys_prefix_in_doc(self) -> None:
-        """API設計.md: SYS_ プレフィックスが定義されている。"""
-        doc = ROOT / "docs" / "API設計.md"
-        content = doc.read_text(encoding="utf-8")
+        """REST-API設計.md: SYS_ プレフィックスが定義されている。"""
+        content = REST_API_DOC.read_text(encoding="utf-8")
         assert "SYS_" in content
 
     def test_biz_prefix_in_doc(self) -> None:
-        """API設計.md: BIZ_ プレフィックスが定義されている。"""
-        doc = ROOT / "docs" / "API設計.md"
-        content = doc.read_text(encoding="utf-8")
+        """REST-API設計.md: BIZ_ プレフィックスが定義されている。"""
+        content = REST_API_DOC.read_text(encoding="utf-8")
         assert "BIZ_" in content
 
     def test_svc_prefix_in_doc(self) -> None:
-        """API設計.md: SVC_ プレフィックスが定義されている。"""
-        doc = ROOT / "docs" / "API設計.md"
-        content = doc.read_text(encoding="utf-8")
+        """REST-API設計.md: SVC_ プレフィックスが定義されている。"""
+        content = REST_API_DOC.read_text(encoding="utf-8")
         assert "SVC_" in content
 
 
@@ -283,17 +283,16 @@ class TestGrpcStatusCodeMapping:
         ],
     )
     def test_grpc_status_code_in_doc(self, status_code: str) -> None:
-        """API設計.md: gRPC ステータスコードがドキュメントに記載されている。"""
-        doc = ROOT / "docs" / "API設計.md"
-        content = doc.read_text(encoding="utf-8")
+        """gRPC設計.md: gRPC ステータスコードがドキュメントに記載されている。"""
+        content = GRPC_DOC.read_text(encoding="utf-8")
         assert status_code in content, f"gRPC ステータス '{status_code}' がドキュメントに記載されていません"
 
 
 class TestGraphQLQueryLimits:
-    """API設計.md: D-011 GraphQL クエリ制限の検証。"""
+    """GraphQL設計.md: D-011 GraphQL クエリ制限の検証。"""
 
     def setup_method(self) -> None:
-        self.doc = ROOT / "docs" / "API設計.md"
+        self.doc = GRAPHQL_DOC
         self.content = self.doc.read_text(encoding="utf-8")
 
     def test_query_depth_limit_10(self) -> None:
@@ -313,10 +312,10 @@ class TestGraphQLQueryLimits:
 
 
 class TestTierRateLimits:
-    """API設計.md: D-012 Tier 別レート制限の検証。"""
+    """REST-API設計.md: D-012 Tier 別レート制限の検証。"""
 
     def setup_method(self) -> None:
-        self.doc = ROOT / "docs" / "API設計.md"
+        self.doc = REST_API_DOC
         self.content = self.doc.read_text(encoding="utf-8")
 
     def test_system_tier_3000_req_min(self) -> None:
@@ -364,10 +363,10 @@ class TestBufGenYaml:
 
 
 class TestValidationErrorDetails:
-    """API設計.md: D-007 バリデーションエラーの details 配列検証。"""
+    """REST-API設計.md: D-007 バリデーションエラーの details 配列検証。"""
 
     def setup_method(self) -> None:
-        self.doc = ROOT / "docs" / "API設計.md"
+        self.doc = REST_API_DOC
         self.content = self.doc.read_text(encoding="utf-8")
 
     def test_details_field_key(self) -> None:
@@ -392,10 +391,10 @@ class TestValidationErrorDetails:
 
 
 class TestHttpStatusCodeMapping:
-    """API設計.md: HTTP ステータスコードマッピング検証。"""
+    """REST-API設計.md: HTTP ステータスコードマッピング検証。"""
 
     def setup_method(self) -> None:
-        self.doc = ROOT / "docs" / "API設計.md"
+        self.doc = REST_API_DOC
         self.content = self.doc.read_text(encoding="utf-8")
 
     @pytest.mark.parametrize(
@@ -418,10 +417,10 @@ class TestHttpStatusCodeMapping:
 
 
 class TestDeprecationResponseHeaders:
-    """API設計.md: D-008 非推奨レスポンスヘッダー検証。"""
+    """REST-API設計.md: D-008 非推奨レスポンスヘッダー検証。"""
 
     def setup_method(self) -> None:
-        self.doc = ROOT / "docs" / "API設計.md"
+        self.doc = REST_API_DOC
         self.content = self.doc.read_text(encoding="utf-8")
 
     def test_deprecation_header(self) -> None:
@@ -459,10 +458,10 @@ class TestBufBreakingCI:
 
 
 class TestRelayPagination:
-    """API設計.md: D-011 Relay スタイル Cursor ページネーション検証。"""
+    """GraphQL設計.md: D-011 Relay スタイル Cursor ページネーション検証。"""
 
     def setup_method(self) -> None:
-        self.doc = ROOT / "docs" / "API設計.md"
+        self.doc = GRAPHQL_DOC
         self.content = self.doc.read_text(encoding="utf-8")
 
     def test_connection_type(self) -> None:
@@ -491,10 +490,10 @@ class TestRelayPagination:
 
 
 class TestBurstControl:
-    """API設計.md: D-012 バースト制御検証。"""
+    """REST-API設計.md: D-012 バースト制御検証。"""
 
     def setup_method(self) -> None:
-        self.doc = ROOT / "docs" / "API設計.md"
+        self.doc = REST_API_DOC
         self.content = self.doc.read_text(encoding="utf-8")
 
     def test_system_burst_100(self) -> None:
@@ -515,10 +514,10 @@ class TestBurstControl:
 
 
 class TestEnvironmentMultiplier:
-    """API設計.md: D-012 環境別倍率検証。"""
+    """REST-API設計.md: D-012 環境別倍率検証。"""
 
     def setup_method(self) -> None:
-        self.doc = ROOT / "docs" / "API設計.md"
+        self.doc = REST_API_DOC
         self.content = self.doc.read_text(encoding="utf-8")
 
     def test_dev_x10(self) -> None:
@@ -539,10 +538,10 @@ class TestEnvironmentMultiplier:
 
 
 class TestRateLimitResponseHeaders:
-    """API設計.md: D-012 レート制限レスポンスヘッダー検証。"""
+    """REST-API設計.md: D-012 レート制限レスポンスヘッダー検証。"""
 
     def setup_method(self) -> None:
-        self.doc = ROOT / "docs" / "API設計.md"
+        self.doc = REST_API_DOC
         self.content = self.doc.read_text(encoding="utf-8")
 
     def test_x_ratelimit_limit_header(self) -> None:
@@ -559,10 +558,10 @@ class TestRateLimitResponseHeaders:
 
 
 class TestRateLimitExceededResponse:
-    """API設計.md: D-012 レート制限超過時 429 レスポンス形式検証。"""
+    """REST-API設計.md: D-012 レート制限超過時 429 レスポンス形式検証。"""
 
     def setup_method(self) -> None:
-        self.doc = ROOT / "docs" / "API設計.md"
+        self.doc = REST_API_DOC
         self.content = self.doc.read_text(encoding="utf-8")
 
     def test_429_error_code(self) -> None:
@@ -575,10 +574,10 @@ class TestRateLimitExceededResponse:
 
 
 class TestClientSdkDistribution:
-    """API設計.md: D-123 クライアント SDK 配布方式検証。"""
+    """REST-API設計.md: D-123 クライアント SDK 配布方式検証。"""
 
     def setup_method(self) -> None:
-        self.doc = ROOT / "docs" / "API設計.md"
+        self.doc = REST_API_DOC
         self.content = self.doc.read_text(encoding="utf-8")
 
     def test_typescript_npm_registry(self) -> None:

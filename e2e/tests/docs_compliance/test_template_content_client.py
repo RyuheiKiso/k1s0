@@ -1,4 +1,4 @@
-"""テンプレート仕様-クライアント.md の内容準拠テスト。
+"""テンプレート仕様-React.md / テンプレート仕様-Flutter.md の内容準拠テスト。
 
 CLI/templates/client/ のテンプレートファイルの内容が
 仕様ドキュメントのコードブロックと一致するかを検証する。
@@ -14,7 +14,7 @@ FLUTTER = TEMPLATES / "client" / "flutter"
 
 
 class TestReactPackageJsonContent:
-    """テンプレート仕様-クライアント.md: package.json.tera の内容検証。"""
+    """テンプレート仕様-React.md: package.json.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / "package.json.tera").read_text(encoding="utf-8")
@@ -69,7 +69,7 @@ class TestReactPackageJsonContent:
 
 
 class TestReactTsconfigContent:
-    """テンプレート仕様-クライアント.md: tsconfig.json.tera の内容検証。"""
+    """テンプレート仕様-React.md: tsconfig.json.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / "tsconfig.json.tera").read_text(encoding="utf-8")
@@ -88,7 +88,7 @@ class TestReactTsconfigContent:
 
 
 class TestReactViteConfigContent:
-    """テンプレート仕様-クライアント.md: vite.config.ts.tera の内容検証。"""
+    """テンプレート仕様-React.md: vite.config.ts.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / "vite.config.ts.tera").read_text(encoding="utf-8")
@@ -108,7 +108,7 @@ class TestReactViteConfigContent:
 
 
 class TestReactEslintConfigContent:
-    """テンプレート仕様-クライアント.md: eslint.config.mjs.tera の内容検証。"""
+    """テンプレート仕様-React.md: eslint.config.mjs.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / "eslint.config.mjs.tera").read_text(encoding="utf-8")
@@ -127,7 +127,7 @@ class TestReactEslintConfigContent:
 
 
 class TestReactPrettierrcContent:
-    """テンプレート仕様-クライアント.md: .prettierrc.tera の内容検証。"""
+    """テンプレート仕様-React.md: .prettierrc.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / ".prettierrc.tera").read_text(encoding="utf-8")
@@ -143,7 +143,7 @@ class TestReactPrettierrcContent:
 
 
 class TestReactVitestConfigContent:
-    """テンプレート仕様-クライアント.md: vitest.config.ts.tera の内容検証。"""
+    """テンプレート仕様-React.md: vitest.config.ts.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / "vitest.config.ts.tera").read_text(encoding="utf-8")
@@ -159,7 +159,7 @@ class TestReactVitestConfigContent:
 
 
 class TestReactAppTsxContent:
-    """テンプレート仕様-クライアント.md: App.tsx.tera の内容検証。"""
+    """テンプレート仕様-React.md: App.tsx.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / "src" / "app" / "App.tsx.tera").read_text(encoding="utf-8")
@@ -175,7 +175,7 @@ class TestReactAppTsxContent:
 
 
 class TestReactApiClientContent:
-    """テンプレート仕様-クライアント.md: api-client.ts.tera の内容検証。"""
+    """テンプレート仕様-React.md: api-client.ts.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / "src" / "lib" / "api-client.ts.tera").read_text(encoding="utf-8")
@@ -184,7 +184,7 @@ class TestReactApiClientContent:
         assert "axios.create" in self.content
 
     def test_with_credentials(self) -> None:
-        """テンプレート仕様-クライアント.md: BFF + HttpOnly Cookie 方式。"""
+        """テンプレート仕様-React.md: BFF + HttpOnly Cookie 方式。"""
         assert "withCredentials: true" in self.content
 
     def test_csrf_token(self) -> None:
@@ -197,7 +197,7 @@ class TestReactApiClientContent:
 
 
 class TestReactQueryClientContent:
-    """テンプレート仕様-クライアント.md: query-client.ts.tera の内容検証。"""
+    """テンプレート仕様-React.md: query-client.ts.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / "src" / "lib" / "query-client.ts.tera").read_text(encoding="utf-8")
@@ -213,7 +213,7 @@ class TestReactQueryClientContent:
 
 
 class TestReactMswSetupContent:
-    """テンプレート仕様-クライアント.md: msw-setup.ts.tera の内容検証。"""
+    """テンプレート仕様-React.md: msw-setup.ts.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / "tests" / "testutil" / "msw-setup.ts.tera").read_text(encoding="utf-8")
@@ -229,7 +229,7 @@ class TestReactMswSetupContent:
 
 
 class TestReactDockerfileContent:
-    """テンプレート仕様-クライアント.md: Dockerfile.tera の内容検証。"""
+    """テンプレート仕様-React.md: Dockerfile.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / "Dockerfile.tera").read_text(encoding="utf-8")
@@ -248,7 +248,7 @@ class TestReactDockerfileContent:
 
 
 class TestReactNginxConfContent:
-    """テンプレート仕様-クライアント.md: nginx.conf.tera の内容検証。"""
+    """テンプレート仕様-React.md: nginx.conf.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / "nginx.conf.tera").read_text(encoding="utf-8")
@@ -269,7 +269,7 @@ class TestReactNginxConfContent:
 
 
 class TestFlutterPubspecContent:
-    """テンプレート仕様-クライアント.md: pubspec.yaml.tera の内容検証。"""
+    """テンプレート仕様-Flutter.md: pubspec.yaml.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (FLUTTER / "pubspec.yaml.tera").read_text(encoding="utf-8")
@@ -296,7 +296,7 @@ class TestFlutterPubspecContent:
 
 
 class TestFlutterAnalysisOptionsContent:
-    """テンプレート仕様-クライアント.md: analysis_options.yaml.tera の内容検証。"""
+    """テンプレート仕様-Flutter.md: analysis_options.yaml.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (FLUTTER / "analysis_options.yaml.tera").read_text(encoding="utf-8")
@@ -316,7 +316,7 @@ class TestFlutterAnalysisOptionsContent:
 
 
 class TestFlutterMainDartContent:
-    """テンプレート仕様-クライアント.md: main.dart.tera の内容検証。"""
+    """テンプレート仕様-Flutter.md: main.dart.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (FLUTTER / "lib" / "main.dart.tera").read_text(encoding="utf-8")
@@ -335,7 +335,7 @@ class TestFlutterMainDartContent:
 
 
 class TestFlutterRouterContent:
-    """テンプレート仕様-クライアント.md: router.dart.tera の内容検証。"""
+    """テンプレート仕様-Flutter.md: router.dart.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (FLUTTER / "lib" / "app" / "router.dart.tera").read_text(encoding="utf-8")
@@ -354,7 +354,7 @@ class TestFlutterRouterContent:
 
 
 class TestFlutterDioClientContent:
-    """テンプレート仕様-クライアント.md: dio_client.dart.tera の内容検証。"""
+    """テンプレート仕様-Flutter.md: dio_client.dart.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (FLUTTER / "lib" / "utils" / "dio_client.dart.tera").read_text(encoding="utf-8")
@@ -363,7 +363,7 @@ class TestFlutterDioClientContent:
         assert "package:dio/dio.dart" in self.content
 
     def test_with_credentials(self) -> None:
-        """テンプレート仕様-クライアント.md: BFF + Cookie 認証。"""
+        """テンプレート仕様-Flutter.md: BFF + Cookie 認証。"""
         assert "'withCredentials': true" in self.content
 
     def test_timeout(self) -> None:
@@ -377,7 +377,7 @@ class TestFlutterDioClientContent:
 
 
 class TestFlutterDockerfileContent:
-    """テンプレート仕様-クライアント.md: Dockerfile.tera の内容検証。"""
+    """テンプレート仕様-Flutter.md: Dockerfile.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (FLUTTER / "Dockerfile.tera").read_text(encoding="utf-8")
@@ -396,7 +396,7 @@ class TestFlutterDockerfileContent:
 
 
 class TestFlutterNginxConfContent:
-    """テンプレート仕様-クライアント.md: nginx.conf.tera が React と同じ。"""
+    """テンプレート仕様-Flutter.md: nginx.conf.tera が React と同じ。"""
 
     def test_nginx_conf_exists(self) -> None:
         assert (FLUTTER / "nginx.conf.tera").exists()
@@ -407,7 +407,7 @@ class TestFlutterNginxConfContent:
 
 
 class TestReactReadmeContent:
-    """テンプレート仕様-クライアント.md: React README.md.tera の内容検証。"""
+    """テンプレート仕様-React.md: React README.md.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / "README.md.tera").read_text(encoding="utf-8")
@@ -423,7 +423,7 @@ class TestReactReadmeContent:
 
 
 class TestFlutterReadmeContent:
-    """テンプレート仕様-クライアント.md: Flutter README.md.tera の内容検証。"""
+    """テンプレート仕様-Flutter.md: Flutter README.md.tera の内容検証。"""
 
     def setup_method(self) -> None:
         self.content = (FLUTTER / "README.md.tera").read_text(encoding="utf-8")
@@ -436,7 +436,7 @@ class TestFlutterReadmeContent:
 
 
 class TestReactTestFilesContent:
-    """テンプレート仕様-クライアント.md: React テストファイルの内容検証。"""
+    """テンプレート仕様-React.md: React テストファイルの内容検証。"""
 
     def test_app_test_exists(self) -> None:
         assert (REACT / "tests" / "App.test.tsx.tera").exists()
@@ -453,7 +453,7 @@ class TestReactTestFilesContent:
 
 
 class TestFlutterTestFilesContent:
-    """テンプレート仕様-クライアント.md: Flutter テストファイルの内容検証。"""
+    """テンプレート仕様-Flutter.md: Flutter テストファイルの内容検証。"""
 
     def test_widget_test_exists(self) -> None:
         assert (FLUTTER / "test" / "widget_test.dart.tera").exists()
@@ -464,166 +464,166 @@ class TestFlutterTestFilesContent:
 
 
 # ============================================================================
-# テンプレート仕様-クライアント.md ギャップ補完テスト (6件)
+# テンプレート仕様-Flutter.md ギャップ補完テスト (6件)
 # ============================================================================
 
 
 class TestClientPlacementConstraint:
-    """テンプレート仕様-クライアント.md: 配置制約（system 層に client を配置しない）。"""
+    """テンプレート仕様-Flutter.md: 配置制約（system 層に client を配置しない）。"""
 
     def test_no_system_client_directory(self) -> None:
-        """テンプレート仕様-クライアント.md: system 層に client ディレクトリが存在しない。"""
+        """テンプレート仕様-Flutter.md: system 層に client ディレクトリが存在しない。"""
         system_client = ROOT / "regions" / "system" / "client"
         assert not system_client.exists(), "system 層に client は配置しない"
 
     def test_business_tier_path_pattern(self) -> None:
-        """テンプレート仕様-クライアント.md: business Tier のパスパターン。"""
+        """テンプレート仕様-React.md: business Tier のパスパターン。"""
         # ドキュメントで定義されたパスパターンの確認
         # regions/business/{domain}/client/{framework}/{service_name}/
-        docs_content = (ROOT / "docs" / "テンプレート仕様-クライアント.md").read_text(encoding="utf-8")
+        docs_content = (ROOT / "docs" / "テンプレート仕様-React.md").read_text(encoding="utf-8")
         assert "business" in docs_content
         assert "client は **business** および **service** Tier のみ" in docs_content
 
     def test_service_tier_path_pattern(self) -> None:
-        """テンプレート仕様-クライアント.md: service Tier のパスパターン。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-クライアント.md").read_text(encoding="utf-8")
-        assert "regions/service/{service_name}/client/{framework}/" in docs_content
+        """テンプレート仕様-React.md: service Tier のパスパターン。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-React.md").read_text(encoding="utf-8")
+        assert "regions/service/{service_name}/client/react/" in docs_content
 
 
 class TestClientAuthArchitecture:
-    """テンプレート仕様-クライアント.md: 認証方式(BFF + HttpOnly Cookie)のアーキテクチャレベルテスト。"""
+    """テンプレート仕様-Flutter.md: 認証方式(BFF + HttpOnly Cookie)のアーキテクチャレベルテスト。"""
 
     def test_react_api_client_with_credentials(self) -> None:
-        """テンプレート仕様-クライアント.md: React api-client は withCredentials: true。"""
+        """テンプレート仕様-Flutter.md: React api-client は withCredentials: true。"""
         content = (REACT / "src" / "lib" / "api-client.ts.tera").read_text(encoding="utf-8")
         assert "withCredentials: true" in content
 
     def test_flutter_dio_with_credentials(self) -> None:
-        """テンプレート仕様-クライアント.md: Flutter dio_client は withCredentials: true。"""
+        """テンプレート仕様-Flutter.md: Flutter dio_client は withCredentials: true。"""
         content = (FLUTTER / "lib" / "utils" / "dio_client.dart.tera").read_text(encoding="utf-8")
         assert "'withCredentials': true" in content
 
     def test_docs_describe_bff_httponly_cookie(self) -> None:
-        """テンプレート仕様-クライアント.md: BFF + HttpOnly Cookie 方式がドキュメントに記載。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-クライアント.md").read_text(encoding="utf-8")
+        """テンプレート仕様-React.md: BFF + HttpOnly Cookie 方式がドキュメントに記載。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-React.md").read_text(encoding="utf-8")
         assert "BFF" in docs_content
         assert "HttpOnly Cookie" in docs_content
 
 
 class TestReactSetupTsContent:
-    """テンプレート仕様-クライアント.md: tests/testutil/setup.ts.tera の内容テスト。"""
+    """テンプレート仕様-React.md: tests/testutil/setup.ts.tera の内容テスト。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / "tests" / "testutil" / "setup.ts.tera").read_text(encoding="utf-8")
 
     def test_msw_import(self) -> None:
-        """テンプレート仕様-クライアント.md: setup.ts が MSW セットアップを import する。"""
+        """テンプレート仕様-React.md: setup.ts が MSW セットアップを import する。"""
         assert "import './msw-setup'" in self.content
 
     def test_vitest_comment(self) -> None:
-        """テンプレート仕様-クライアント.md: Vitest グローバルセットアップのコメント。"""
+        """テンプレート仕様-React.md: Vitest グローバルセットアップのコメント。"""
         assert "Vitest" in self.content
 
 
 class TestReactAppTestDetailContent:
-    """テンプレート仕様-クライアント.md: tests/App.test.tsx.tera の内容詳細テスト。"""
+    """テンプレート仕様-React.md: tests/App.test.tsx.tera の内容詳細テスト。"""
 
     def setup_method(self) -> None:
         self.content = (REACT / "tests" / "App.test.tsx.tera").read_text(encoding="utf-8")
 
     def test_testing_library_imports(self) -> None:
-        """テンプレート仕様-クライアント.md: @testing-library/react の import。"""
+        """テンプレート仕様-React.md: @testing-library/react の import。"""
         assert "render" in self.content
         assert "screen" in self.content
         assert "@testing-library/react" in self.content
 
     def test_vitest_imports(self) -> None:
-        """テンプレート仕様-クライアント.md: vitest から describe/it/expect を import。"""
+        """テンプレート仕様-React.md: vitest から describe/it/expect を import。"""
         assert "describe" in self.content
         assert "it" in self.content
         assert "expect" in self.content
         assert "vitest" in self.content
 
     def test_query_client_provider(self) -> None:
-        """テンプレート仕様-クライアント.md: QueryClientProvider でラップされたテスト。"""
+        """テンプレート仕様-React.md: QueryClientProvider でラップされたテスト。"""
         assert "QueryClientProvider" in self.content
 
     def test_smoke_test(self) -> None:
-        """テンプレート仕様-クライアント.md: renders without crashing のスモークテスト。"""
+        """テンプレート仕様-React.md: renders without crashing のスモークテスト。"""
         assert "renders without crashing" in self.content
 
     def test_data_testid(self) -> None:
-        """テンプレート仕様-クライアント.md: data-testid による要素検証。"""
+        """テンプレート仕様-React.md: data-testid による要素検証。"""
         assert "data-testid" in self.content
         assert "getByTestId" in self.content
 
 
 class TestFlutterWidgetTestDetailContent:
-    """テンプレート仕様-クライアント.md: widget_test.dart.tera の内容詳細テスト。"""
+    """テンプレート仕様-Flutter.md: widget_test.dart.tera の内容詳細テスト。"""
 
     def setup_method(self) -> None:
         self.content = (FLUTTER / "test" / "widget_test.dart.tera").read_text(encoding="utf-8")
 
     def test_flutter_test_import(self) -> None:
-        """テンプレート仕様-クライアント.md: flutter_test のインポート。"""
+        """テンプレート仕様-Flutter.md: flutter_test のインポート。"""
         assert "flutter_test" in self.content
 
     def test_main_dart_import(self) -> None:
-        """テンプレート仕様-クライアント.md: main.dart のインポート。"""
+        """テンプレート仕様-Flutter.md: main.dart のインポート。"""
         assert "{{ service_name_snake }}/main.dart" in self.content
 
     def test_my_app_smoke_test(self) -> None:
-        """テンプレート仕様-クライアント.md: MyApp のスモークテスト。"""
+        """テンプレート仕様-Flutter.md: MyApp のスモークテスト。"""
         assert "MyApp" in self.content
         assert "renders without crashing" in self.content
 
     def test_home_screen_test(self) -> None:
-        """テンプレート仕様-クライアント.md: HomeScreen の welcome メッセージテスト。"""
+        """テンプレート仕様-Flutter.md: HomeScreen の welcome メッセージテスト。"""
         assert "Welcome to {{ service_name_pascal }}" in self.content
 
     def test_finds_one_widget(self) -> None:
-        """テンプレート仕様-クライアント.md: findsOneWidget でウィジェット検証。"""
+        """テンプレート仕様-Flutter.md: findsOneWidget でウィジェット検証。"""
         assert "findsOneWidget" in self.content
 
 
 class TestFlutterNginxConfDetailContent:
-    """テンプレート仕様-クライアント.md: Flutter nginx.conf.tera の内容詳細テスト。"""
+    """テンプレート仕様-Flutter.md: Flutter nginx.conf.tera の内容詳細テスト。"""
 
     def setup_method(self) -> None:
         self.content = (FLUTTER / "nginx.conf.tera").read_text(encoding="utf-8")
 
     def test_gzip_enabled(self) -> None:
-        """テンプレート仕様-クライアント.md: gzip 圧縮が有効。"""
+        """テンプレート仕様-Flutter.md: gzip 圧縮が有効。"""
         assert "gzip on" in self.content
 
     def test_gzip_types(self) -> None:
-        """テンプレート仕様-クライアント.md: gzip 対象 MIME タイプ。"""
+        """テンプレート仕様-Flutter.md: gzip 対象 MIME タイプ。"""
         assert "application/javascript" in self.content
         assert "application/json" in self.content
 
     def test_security_header_x_frame_options(self) -> None:
-        """テンプレート仕様-クライアント.md: X-Frame-Options ヘッダー。"""
+        """テンプレート仕様-Flutter.md: X-Frame-Options ヘッダー。"""
         assert 'X-Frame-Options "SAMEORIGIN"' in self.content
 
     def test_security_header_x_content_type_options(self) -> None:
-        """テンプレート仕様-クライアント.md: X-Content-Type-Options ヘッダー。"""
+        """テンプレート仕様-Flutter.md: X-Content-Type-Options ヘッダー。"""
         assert 'X-Content-Type-Options "nosniff"' in self.content
 
     def test_security_header_x_xss_protection(self) -> None:
-        """テンプレート仕様-クライアント.md: X-XSS-Protection ヘッダー。"""
+        """テンプレート仕様-Flutter.md: X-XSS-Protection ヘッダー。"""
         assert "X-XSS-Protection" in self.content
 
     def test_security_header_referrer_policy(self) -> None:
-        """テンプレート仕様-クライアント.md: Referrer-Policy ヘッダー。"""
+        """テンプレート仕様-Flutter.md: Referrer-Policy ヘッダー。"""
         assert "Referrer-Policy" in self.content
 
     def test_spa_routing(self) -> None:
-        """テンプレート仕様-クライアント.md: SPA ルーティング設定。"""
+        """テンプレート仕様-Flutter.md: SPA ルーティング設定。"""
         assert "try_files" in self.content
         assert "/index.html" in self.content
 
     def test_static_asset_cache(self) -> None:
-        """テンプレート仕様-クライアント.md: 静的アセットのキャッシュ制御。"""
+        """テンプレート仕様-Flutter.md: 静的アセットのキャッシュ制御。"""
         assert "expires 1y" in self.content
         assert "public, immutable" in self.content
 

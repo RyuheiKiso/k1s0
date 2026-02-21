@@ -1,0 +1,308 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm
+  namespace: k1s0-system
+data:
+  k1s0-realm.json: |
+    {
+      "realm": "k1s0",
+      "enabled": true,
+      "displayName": "k1s0",
+      "sslRequired": "none",
+      "registrationAllowed": false,
+      "loginWithEmailAllowed": true,
+      "duplicateEmailsAllowed": false,
+      "resetPasswordAllowed": true,
+      "editUsernameAllowed": false,
+      "bruteForceProtected": true,
+      "permanentLockout": false,
+      "maxFailureWaitSeconds": 900,
+      "minimumQuickLoginWaitSeconds": 60,
+      "waitIncrementSeconds": 60,
+      "quickLoginCheckMilliSeconds": 1000,
+      "maxDeltaTimeSeconds": 43200,
+      "failureFactor": 5,
+      "accessTokenLifespan": 900,
+      "accessTokenLifespanForImplicitFlow": 900,
+      "ssoSessionIdleTimeout": 1800,
+      "ssoSessionMaxLifespan": 604800,
+      "revokeRefreshToken": true,
+      "refreshTokenMaxReuse": 0,
+      "offlineSessionIdleTimeout": 2592000,
+      "offlineSessionMaxLifespan": 5184000,
+      "accessCodeLifespan": 60,
+      "accessCodeLifespanUserAction": 300,
+      "accessCodeLifespanLogin": 1800,
+      "actionTokenGeneratedByAdminLifespan": 43200,
+      "actionTokenGeneratedByUserLifespan": 300,
+      "oauth2DeviceCodeLifespan": 600,
+      "oauth2DevicePollingInterval": 5,
+      "defaultSignatureAlgorithm": "RS256",
+      "roles": {
+        "realm": [
+          { "name": "user",                    "description": "Default user role",                         "composite": false },
+          { "name": "sys_admin",               "description": "System administrator",                      "composite": false },
+          { "name": "sys_operator",            "description": "System operator",                           "composite": false },
+          { "name": "sys_auditor",             "description": "System auditor - read-only",                "composite": false },
+          { "name": "biz_accounting_admin",    "description": "Accounting domain administrator",           "composite": false },
+          { "name": "biz_accounting_manager",  "description": "Accounting domain manager",                 "composite": false },
+          { "name": "biz_accounting_viewer",   "description": "Accounting domain viewer",                  "composite": false },
+          { "name": "svc_order_admin",         "description": "Order service administrator",               "composite": false },
+          { "name": "svc_order_user",          "description": "Order service user",                        "composite": false },
+          { "name": "svc_order_viewer",        "description": "Order service viewer",                      "composite": false },
+          { "name": "order_manager",           "description": "Order manager",                             "composite": false }
+        ]
+      },
+      "clients": [
+        {
+          "clientId": "react-spa",
+          "name": "React SPA Client",
+          "enabled": true,
+          "publicClient": true,
+          "directAccessGrantsEnabled": false,
+          "standardFlowEnabled": true,
+          "implicitFlowEnabled": false,
+          "serviceAccountsEnabled": false,
+          "protocol": "openid-connect",
+          "redirectUris": [
+            "https://app.k1s0.internal.example.com/callback",
+            "http://localhost:3000/callback",
+            "http://localhost:5173/callback"
+          ],
+          "webOrigins": [
+            "https://*.k1s0.internal.example.com",
+            "http://localhost:3000",
+            "http://localhost:5173"
+          ],
+          "attributes": { "pkce.code.challenge.method": "S256" },
+          "defaultClientScopes": ["openid", "profile", "email"],
+          "protocolMappers": [
+            {
+              "name": "realm-roles-mapper",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-usermodel-realm-role-mapper",
+              "config": {
+                "claim.name": "realm_access.roles",
+                "jsonType.label": "String",
+                "multivalued": "true",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "userinfo.token.claim": "true"
+              }
+            }
+          ]
+        },
+        {
+          "clientId": "k1s0-e2e-test",
+          "name": "k1s0 E2E Test Client (dev only)",
+          "description": "E2E/integration test client with direct access grants enabled. Dev environment only.",
+          "enabled": true,
+          "publicClient": false,
+          "directAccessGrantsEnabled": true,
+          "standardFlowEnabled": false,
+          "implicitFlowEnabled": false,
+          "serviceAccountsEnabled": false,
+          "protocol": "openid-connect",
+          "secret": "dev-e2e-test-secret",
+          "defaultClientScopes": ["openid", "profile", "email"],
+          "protocolMappers": [
+            {
+              "name": "realm-roles-mapper",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-usermodel-realm-role-mapper",
+              "config": {
+                "claim.name": "realm_access.roles",
+                "jsonType.label": "String",
+                "multivalued": "true",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "userinfo.token.claim": "true"
+              }
+            },
+            {
+              "name": "audience-k1s0-api",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-audience-mapper",
+              "config": {
+                "included.custom.audience": "k1s0-api",
+                "access.token.claim": "true",
+                "id.token.claim": "false"
+              }
+            }
+          ]
+        }
+      ],
+      "clientScopes": [
+        {
+          "name": "openid",
+          "protocol": "openid-connect",
+          "attributes": { "include.in.token.scope": "true" },
+          "protocolMappers": [
+            {
+              "name": "sub",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-sub-mapper",
+              "config": {
+                "access.token.claim": "true",
+                "id.token.claim": "true",
+                "userinfo.token.claim": "true"
+              }
+            }
+          ]
+        },
+        {
+          "name": "profile",
+          "protocol": "openid-connect",
+          "attributes": { "include.in.token.scope": "true" },
+          "protocolMappers": [
+            {
+              "name": "username",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-usermodel-property-mapper",
+              "config": {
+                "user.attribute": "username",
+                "claim.name": "preferred_username",
+                "jsonType.label": "String",
+                "access.token.claim": "true",
+                "id.token.claim": "true",
+                "userinfo.token.claim": "true"
+              }
+            }
+          ]
+        },
+        {
+          "name": "email",
+          "protocol": "openid-connect",
+          "attributes": { "include.in.token.scope": "true" },
+          "protocolMappers": [
+            {
+              "name": "email",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-usermodel-property-mapper",
+              "config": {
+                "user.attribute": "email",
+                "claim.name": "email",
+                "jsonType.label": "String",
+                "access.token.claim": "true",
+                "id.token.claim": "true",
+                "userinfo.token.claim": "true"
+              }
+            }
+          ]
+        }
+      ],
+      "users": [
+        {
+          "username": "test-admin",
+          "email": "admin@k1s0.dev",
+          "firstName": "Test",
+          "lastName": "Admin",
+          "enabled": true,
+          "emailVerified": true,
+          "credentials": [{ "type": "password", "value": "admin123", "temporary": false }],
+          "realmRoles": ["user", "sys_admin"]
+        },
+        {
+          "username": "test-user",
+          "email": "user@k1s0.dev",
+          "firstName": "Test",
+          "lastName": "User",
+          "enabled": true,
+          "emailVerified": true,
+          "credentials": [{ "type": "password", "value": "user123", "temporary": false }],
+          "realmRoles": ["user"]
+        },
+        {
+          "username": "test-order-manager",
+          "email": "order-manager@k1s0.dev",
+          "firstName": "Test",
+          "lastName": "OrderManager",
+          "enabled": true,
+          "emailVerified": true,
+          "credentials": [{ "type": "password", "value": "order123", "temporary": false }],
+          "realmRoles": ["user", "order_manager", "svc_order_user"]
+        }
+      ],
+      "components": {
+        "org.keycloak.keys.KeyProvider": [
+          {
+            "name": "rsa-generated",
+            "providerId": "rsa-generated",
+            "config": {
+              "keySize": ["2048"],
+              "algorithm": ["RS256"],
+              "priority": ["100"]
+            }
+          }
+        ]
+      },
+      "smtpServer": {},
+      "eventsEnabled": true,
+      "eventsListeners": ["jboss-logging"],
+      "adminEventsEnabled": true,
+      "adminEventsDetailsEnabled": true
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: k1s0-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:26.0
+          args:
+            - start-dev
+            - --import-realm
+          env:
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              value: "admin"
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              value: "admin"
+            - name: KC_HOSTNAME_STRICT
+              value: "false"
+            - name: KC_HOSTNAME_STRICT_HTTPS
+              value: "false"
+            - name: KC_HTTP_ENABLED
+              value: "true"
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /realms/k1s0
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 18
+          volumeMounts:
+            - name: realm-import
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+      volumes:
+        - name: realm-import
+          configMap:
+            name: keycloak-realm
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: k1s0-system
+spec:
+  selector:
+    app: keycloak
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
