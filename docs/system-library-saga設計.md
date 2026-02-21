@@ -109,6 +109,20 @@ const (
     SagaStatusCancelled    SagaStatus = "CANCELLED"
 )
 
+type SagaState struct {
+    SagaID       string        `json:"saga_id"`
+    WorkflowName string        `json:"workflow_name"`
+    Status       SagaStatus    `json:"status"`
+    StepLogs     []SagaStepLog `json:"step_logs"`
+    CreatedAt    time.Time     `json:"created_at"`
+    UpdatedAt    time.Time     `json:"updated_at"`
+}
+
+type StartSagaRequest struct {
+    WorkflowName string `json:"workflow_name"`
+    Payload      any    `json:"payload"`
+}
+
 type SagaClient struct {
     endpoint   string
     httpClient *http.Client

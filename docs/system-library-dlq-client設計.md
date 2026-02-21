@@ -144,6 +144,7 @@ impl DlqClient {
 dlq-client/
 ├── package.json        # "@k1s0/dlq-client", "type":"module"
 ├── tsconfig.json       # ES2022, Node16, strict
+├── vitest.config.ts    # globals:true
 ├── src/
 │   ├── types.ts        # DlqStatus, DlqMessage, Request/Response 型
 │   ├── error.ts        # DlqError クラス
