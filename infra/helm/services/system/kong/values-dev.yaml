@@ -14,3 +14,23 @@ resources:
   limits:
     cpu: 1000m
     memory: 1Gi
+
+# Rate Limiting - 環境別倍率: dev=x10
+# Tier別デフォルト値: system=3000, business=1000, service=500
+# dev環境では各Tierの10倍を適用
+rateLimiting:
+  multiplier: 10
+  tiers:
+    system:
+      minute: 30000
+      second: 1000
+    business:
+      minute: 10000
+      second: 400
+    service:
+      minute: 5000
+      second: 200
+  redis:
+    policy: local              # dev環境ではRedis不要（local policy）
+    fault_tolerant: true
+    hide_client_headers: false

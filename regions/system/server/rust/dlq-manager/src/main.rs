@@ -115,6 +115,9 @@ async fn main() -> anyhow::Result<()> {
     let delete_message_uc = Arc::new(usecase::DeleteMessageUseCase::new(dlq_repo.clone()));
     let retry_all_uc = Arc::new(usecase::RetryAllUseCase::new(dlq_repo.clone(), publisher));
 
+    // Metrics
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-dlq-manager"));
+
     // AppState
     let state = AppState {
         list_messages_uc,
@@ -122,11 +125,12 @@ async fn main() -> anyhow::Result<()> {
         retry_message_uc,
         delete_message_uc,
         retry_all_uc,
-        metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-dlq-manager")),
+        metrics: metrics.clone(),
     };
 
     // Router
-    let app = handler::router(state);
+    let app = handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics));
 
     // REST server
     let rest_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.port).parse()?;

@@ -51,8 +51,18 @@ tokio-stream = "0.1"
 # Kafka
 rdkafka = { version = "0.36", features = ["cmake-build"] }
 
+# Auth library (JWKS verifier + middleware)
+k1s0-auth = { path = "../../../library/rust/auth" }
+
+# HTTP client (for JWKS)
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+
 # Telemetry library
-k1s0-telemetry = { path = "../../../library/rust/telemetry" }
+k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
+
+# OpenAPI
+utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "8", features = ["axum"] }
 
 [build-dependencies]
 tonic-build = "0.12"

@@ -1,0 +1,157 @@
+---
+# common/tasks/main.yaml - OS 基盤設定
+# Idempotent: 全タスクは繰り返し実行可能
+
+# ============================================================
+# パッケージ管理
+# ============================================================
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - software-properties-common
+      - jq
+      - unzip
+      - net-tools
+      - nfs-common
+      - open-iscsi
+    state: present
+
+# ============================================================
+# NTP 設定
+# ============================================================
+
+- name: Install chrony
+  ansible.builtin.apt:
+    name: chrony
+    state: present
+
+- name: Configure chrony
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony/chrony.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart chrony
+  when: chrony_ntp_servers is defined
+
+- name: Ensure chrony is running
+  ansible.builtin.systemd:
+    name: chrony
+    state: started
+    enabled: true
+
+# ============================================================
+# Firewall 設定
+# ============================================================
+
+- name: Install ufw
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+
+- name: Allow SSH
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+
+- name: Allow Kubernetes API server
+  community.general.ufw:
+    rule: allow
+    port: "6443"
+    proto: tcp
+  when: inventory_hostname in groups.get('masters', [])
+
+- name: Allow kubelet API
+  community.general.ufw:
+    rule: allow
+    port: "10250"
+    proto: tcp
+
+- name: Allow NodePort range
+  community.general.ufw:
+    rule: allow
+    port: "30000:32767"
+    proto: tcp
+
+- name: Allow etcd
+  community.general.ufw:
+    rule: allow
+    port: "2379:2380"
+    proto: tcp
+  when: inventory_hostname in groups.get('masters', [])
+
+- name: Allow Flannel VXLAN
+  community.general.ufw:
+    rule: allow
+    port: "8472"
+    proto: udp
+
+- name: Enable ufw
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming
+
+# ============================================================
+# sysctl カーネルパラメータ
+# ============================================================
+
+- name: Load required kernel modules
+  ansible.builtin.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - overlay
+    - br_netfilter
+
+- name: Ensure kernel modules load on boot
+  ansible.builtin.copy:
+    content: |
+      overlay
+      br_netfilter
+    dest: /etc/modules-load.d/k8s.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Set sysctl parameters for Kubernetes
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_file: /etc/sysctl.d/99-kubernetes.conf
+    reload: true
+  loop:
+    - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
+    - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+    - { key: "net.ipv4.ip_forward", value: "1" }
+    - { key: "vm.max_map_count", value: "262144" }
+    - { key: "fs.inotify.max_user_watches", value: "524288" }
+    - { key: "fs.file-max", value: "131072" }
+
+# ============================================================
+# Swap 無効化（Kubernetes 要件）
+# ============================================================
+
+- name: Disable swap
+  ansible.builtin.command: swapoff -a
+  changed_when: false
+
+- name: Remove swap from fstab
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: '\sswap\s'
+    state: absent
+

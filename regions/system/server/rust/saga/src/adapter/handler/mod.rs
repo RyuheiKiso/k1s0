@@ -5,6 +5,8 @@ use std::sync::Arc;
 
 use axum::routing::{get, post};
 use axum::Router;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 use crate::usecase::{
     CancelSagaUseCase, GetSagaUseCase, ListSagasUseCase, ListWorkflowsUseCase,
@@ -22,6 +24,39 @@ pub struct AppState {
     pub list_workflows_uc: Arc<ListWorkflowsUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 }
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        saga_handler::healthz,
+        saga_handler::readyz,
+        saga_handler::metrics,
+        saga_handler::start_saga,
+        saga_handler::list_sagas,
+        saga_handler::get_saga,
+        saga_handler::cancel_saga,
+        saga_handler::register_workflow,
+        saga_handler::list_workflows,
+    ),
+    components(schemas(
+        saga_handler::StartSagaRequest,
+        saga_handler::StartSagaResponse,
+        saga_handler::SagaResponse,
+        saga_handler::SagaDetailResponse,
+        saga_handler::StepLogResponse,
+        saga_handler::ListSagasResponse,
+        saga_handler::PaginationResponse,
+        saga_handler::RegisterWorkflowRequest,
+        saga_handler::RegisterWorkflowResponse,
+        saga_handler::WorkflowSummaryResponse,
+        saga_handler::ListWorkflowsResponse,
+        saga_handler::CancelSagaResponse,
+        ErrorResponse,
+        ErrorBody,
+    )),
+    security(("bearer_auth" = [])),
+)]
+struct ApiDoc;
 
 /// REST API ルーターを構築する。
 pub fn router(state: AppState) -> Router {
@@ -45,16 +80,17 @@ pub fn router(state: AppState) -> Router {
             "/api/v1/workflows",
             post(saga_handler::register_workflow).get(saga_handler::list_workflows),
         )
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(state)
 }
 
 /// ErrorResponse は統一エラーレスポンス。
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct ErrorResponse {
     pub error: ErrorBody,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct ErrorBody {
     pub code: String,
     pub message: String,

@@ -14,3 +14,25 @@ resources:
   limits:
     cpu: 4000m
     memory: 4Gi
+
+# Rate Limiting - 環境別倍率: prod=x1（ベースライン）
+# Tier別デフォルト値: system=3000, business=1000, service=500
+rateLimiting:
+  multiplier: 1
+  tiers:
+    system:
+      minute: 3000
+      second: 100
+    business:
+      minute: 1000
+      second: 40
+    service:
+      minute: 500
+      second: 20
+  redis:
+    policy: redis
+    host: redis.k1s0-system.svc.cluster.local
+    port: 6379
+    database: 1
+    fault_tolerant: true
+    hide_client_headers: false

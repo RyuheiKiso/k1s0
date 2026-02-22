@@ -1,0 +1,28 @@
+---
+# site.yaml - k1s0 Infrastructure Provisioning
+# Usage: ansible-playbook playbooks/site.yaml -l <environment>
+# Example: ansible-playbook playbooks/site.yaml -l staging
+
+# Phase 1: OS 基盤設定（全ノード）
+- name: Common OS configuration
+  hosts: all
+  roles:
+    - common
+  tags:
+    - common
+
+# Phase 2: Kubernetes クラスタ構築（k8s ノード）
+- name: Kubernetes cluster setup
+  hosts: k8s_nodes
+  roles:
+    - kubernetes
+  tags:
+    - kubernetes
+
+# Phase 3: Ceph ストレージ設定（ストレージノード）
+- name: Ceph storage setup
+  hosts: storage
+  roles:
+    - ceph
+  tags:
+    - ceph

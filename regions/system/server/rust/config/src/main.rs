@@ -125,6 +125,23 @@ async fn main() -> anyhow::Result<()> {
     // tonic ラッパー
     let config_tonic = adapter::grpc::ConfigServiceTonic::new(config_grpc_svc);
 
+    // Token verifier (JWKS verifier if auth configured)
+    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for config-server");
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &auth_cfg.jwks_url,
+            &auth_cfg.issuer,
+            &auth_cfg.audience,
+            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+        ));
+        Some(adapter::middleware::auth::ConfigAuthState {
+            verifier: jwks_verifier,
+        })
+    } else {
+        info!("no auth configured, config-server running without authentication");
+        None
+    };
+
     // AppState (REST handler 用) - Kafka通知付きで構築
     let mut state = adapter::handler::AppState {
         get_config_uc: std::sync::Arc::new(usecase::GetConfigUseCase::new(config_repo.clone())),
@@ -146,13 +163,21 @@ async fn main() -> anyhow::Result<()> {
         metrics: std::sync::Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-config-server")),
         config_repo: config_repo.clone(),
         kafka_configured: false,
+        auth_state: None,
     };
     if kafka_producer.is_some() {
         state = state.with_kafka();
     }
+    if let Some(auth_st) = auth_state {
+        state = state.with_auth(auth_st);
+    }
+
+    // Metrics for layers
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-config-server"));
 
     // Router
-    let app = handler::router(state);
+    let app = handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server (port 50053)
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50053).into();
@@ -160,8 +185,10 @@ async fn main() -> anyhow::Result<()> {
 
     use proto::k1s0::system::config::v1::config_service_server::ConfigServiceServer;
 
+    let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(ConfigServiceServer::new(config_tonic))
             .serve(grpc_addr)
             .await

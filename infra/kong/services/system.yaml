@@ -1,7 +1,19 @@
 # system Tier のサービス定義
+# Tier別レート制限: system=3000/min（グローバル500/minをサービスレベルで上書き）
 services:
   - name: auth-v1
     url: http://auth-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 3000
+          second: 100
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
     routes:
       - name: auth-v1-route
         paths:
@@ -20,6 +32,17 @@ services:
 
   - name: config-v1
     url: http://config-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 3000
+          second: 100
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
     routes:
       - name: config-v1-route
         paths:
@@ -28,6 +51,17 @@ services:
 
   - name: master-v1
     url: http://master-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 3000
+          second: 100
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
     routes:
       - name: master-v1-route
         paths:
@@ -44,6 +78,16 @@ services:
         paths: [/api/v1/workflows]
         methods: [GET, POST]
     plugins:
+      - name: rate-limiting
+        config:
+          minute: 3000
+          second: 100
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
       - name: jwt
         config:
           secret_is_base64: false
@@ -61,6 +105,16 @@ services:
         paths: [/api/v1/dlq]
         methods: [GET, POST, DELETE]
     plugins:
+      - name: rate-limiting
+        config:
+          minute: 3000
+          second: 100
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
       - name: jwt
         config:
           secret_is_base64: false

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// User は Keycloak ユーザーを表すドメインエンティティ。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct User {
     pub id: String,
     pub username: String,
@@ -18,7 +18,7 @@ pub struct User {
 }
 
 /// Role はロールを表す。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct Role {
     pub id: String,
     pub name: String,
@@ -26,7 +26,7 @@ pub struct Role {
 }
 
 /// UserRoles はユーザーに割り当てられたロール一覧を表す。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct UserRoles {
     pub user_id: String,
     pub realm_roles: Vec<Role>,
@@ -34,7 +34,7 @@ pub struct UserRoles {
 }
 
 /// Pagination はページネーションパラメータを表す。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct Pagination {
     pub total_count: i64,
     pub page: i32,
@@ -43,7 +43,7 @@ pub struct Pagination {
 }
 
 /// UserListResult はユーザー一覧とページネーション結果を表す。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct UserListResult {
     pub users: Vec<User>,
     pub pagination: Pagination,

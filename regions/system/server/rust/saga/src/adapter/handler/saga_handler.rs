@@ -12,7 +12,7 @@ use crate::usecase::CancelSagaError;
 
 // --- Request / Response DTOs ---
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct StartSagaRequest {
     pub workflow_name: String,
     #[serde(default)]
@@ -21,7 +21,7 @@ pub struct StartSagaRequest {
     pub initiated_by: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct StartSagaResponse {
     pub saga_id: String,
     pub status: String,
@@ -46,7 +46,7 @@ fn default_page_size() -> i32 {
     20
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct SagaResponse {
     pub saga_id: String,
     pub workflow_name: String,
@@ -60,13 +60,13 @@ pub struct SagaResponse {
     pub updated_at: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct SagaDetailResponse {
     pub saga: SagaResponse,
     pub step_logs: Vec<StepLogResponse>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct StepLogResponse {
     pub id: String,
     pub step_index: i32,
@@ -80,13 +80,13 @@ pub struct StepLogResponse {
     pub completed_at: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct ListSagasResponse {
     pub sagas: Vec<SagaResponse>,
     pub pagination: PaginationResponse,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct PaginationResponse {
     pub total_count: i64,
     pub page: i32,
@@ -94,30 +94,30 @@ pub struct PaginationResponse {
     pub has_next: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct RegisterWorkflowRequest {
     pub workflow_yaml: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct RegisterWorkflowResponse {
     pub name: String,
     pub step_count: usize,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct WorkflowSummaryResponse {
     pub name: String,
     pub step_count: usize,
     pub step_names: Vec<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct ListWorkflowsResponse {
     pub workflows: Vec<WorkflowSummaryResponse>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct CancelSagaResponse {
     pub success: bool,
     pub message: String,
@@ -125,22 +125,31 @@ pub struct CancelSagaResponse {
 
 // --- Handlers ---
 
-/// ヘルスチェック
+#[utoipa::path(get, path = "/healthz", responses((status = 200, description = "Health check OK")))]
 pub async fn healthz() -> &'static str {
     "ok"
 }
 
-/// レディネスチェック
+#[utoipa::path(get, path = "/readyz", responses((status = 200, description = "Ready")))]
 pub async fn readyz() -> &'static str {
     "ok"
 }
 
-/// メトリクス
+#[utoipa::path(get, path = "/metrics", responses((status = 200, description = "Prometheus metrics")))]
 pub async fn metrics(State(state): State<AppState>) -> String {
     state.metrics.gather_metrics()
 }
 
-/// Saga開始
+#[utoipa::path(
+    post,
+    path = "/api/v1/sagas",
+    request_body = StartSagaRequest,
+    responses(
+        (status = 201, description = "Saga started", body = StartSagaResponse),
+        (status = 400, description = "Validation error"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn start_saga(
     State(state): State<AppState>,
     Json(req): Json<StartSagaRequest>,
@@ -171,7 +180,20 @@ pub async fn start_saga(
     ))
 }
 
-/// Saga一覧取得
+#[utoipa::path(
+    get,
+    path = "/api/v1/sagas",
+    params(
+        ("workflow_name" = Option<String>, Query, description = "Filter by workflow"),
+        ("status" = Option<String>, Query, description = "Filter by status"),
+        ("page" = Option<i32>, Query, description = "Page number"),
+        ("page_size" = Option<i32>, Query, description = "Page size"),
+    ),
+    responses(
+        (status = 200, description = "Saga list", body = ListSagasResponse),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn list_sagas(
     State(state): State<AppState>,
     Query(query): Query<ListSagasQuery>,
@@ -225,7 +247,16 @@ pub async fn list_sagas(
     }))
 }
 
-/// Saga詳細取得
+#[utoipa::path(
+    get,
+    path = "/api/v1/sagas/{saga_id}",
+    params(("saga_id" = String, Path, description = "Saga ID")),
+    responses(
+        (status = 200, description = "Saga detail", body = SagaDetailResponse),
+        (status = 404, description = "Saga not found"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn get_saga(
     State(state): State<AppState>,
     Path(saga_id): Path<String>,
@@ -273,7 +304,17 @@ pub async fn get_saga(
     }))
 }
 
-/// Sagaキャンセル
+#[utoipa::path(
+    post,
+    path = "/api/v1/sagas/{saga_id}/cancel",
+    params(("saga_id" = String, Path, description = "Saga ID")),
+    responses(
+        (status = 200, description = "Saga cancelled", body = CancelSagaResponse),
+        (status = 404, description = "Saga not found"),
+        (status = 409, description = "Already terminal"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn cancel_saga(
     State(state): State<AppState>,
     Path(saga_id): Path<String>,
@@ -293,7 +334,16 @@ pub async fn cancel_saga(
     }))
 }
 
-/// ワークフロー登録
+#[utoipa::path(
+    post,
+    path = "/api/v1/workflows",
+    request_body = RegisterWorkflowRequest,
+    responses(
+        (status = 201, description = "Workflow registered", body = RegisterWorkflowResponse),
+        (status = 400, description = "Validation error"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn register_workflow(
     State(state): State<AppState>,
     Json(req): Json<RegisterWorkflowRequest>,
@@ -316,7 +366,12 @@ pub async fn register_workflow(
     ))
 }
 
-/// ワークフロー一覧取得
+#[utoipa::path(
+    get,
+    path = "/api/v1/workflows",
+    responses((status = 200, description = "Workflow list", body = ListWorkflowsResponse)),
+    security(("bearer_auth" = []))
+)]
 pub async fn list_workflows(
     State(state): State<AppState>,
 ) -> Result<Json<ListWorkflowsResponse>, SagaError> {

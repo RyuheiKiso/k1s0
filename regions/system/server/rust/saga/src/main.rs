@@ -169,15 +169,21 @@ async fn main() -> anyhow::Result<()> {
 
     let saga_tonic = SagaServiceTonic::new(saga_grpc_svc);
 
+    // Metrics for layers
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-saga-server"));
+
     // Router
-    let app = handler::router(state);
+    let app = handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server (port 50051)
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
     info!("gRPC server starting on {}", grpc_addr);
 
+    let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(SagaServiceServer::new(saga_tonic))
             .serve(grpc_addr)
             .await

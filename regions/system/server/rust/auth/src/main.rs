@@ -318,15 +318,21 @@ async fn main() -> anyhow::Result<()> {
     let auth_tonic = adapter::grpc::AuthServiceTonic::new(auth_grpc_svc);
     let audit_tonic = adapter::grpc::AuditServiceTonic::new(audit_grpc_svc);
 
+    // Metrics for layers
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server"));
+
     // Router
-    let app = handler::router(state);
+    let app = handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server (port 50051)
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
     info!("gRPC server starting on {}", grpc_addr);
 
+    let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(AuthServiceServer::new(auth_tonic))
             .add_service(AuditServiceServer::new(audit_tonic))
             .serve(grpc_addr)

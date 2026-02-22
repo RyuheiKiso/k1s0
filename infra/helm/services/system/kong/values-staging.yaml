@@ -14,3 +14,26 @@ resources:
   limits:
     cpu: 2000m
     memory: 2Gi
+
+# Rate Limiting - 環境別倍率: staging=x2
+# Tier別デフォルト値: system=3000, business=1000, service=500
+# staging環境では各Tierの2倍を適用
+rateLimiting:
+  multiplier: 2
+  tiers:
+    system:
+      minute: 6000
+      second: 200
+    business:
+      minute: 2000
+      second: 80
+    service:
+      minute: 1000
+      second: 40
+  redis:
+    policy: redis
+    host: redis.k1s0-system.svc.cluster.local
+    port: 6379
+    database: 1
+    fault_tolerant: true
+    hide_client_headers: false

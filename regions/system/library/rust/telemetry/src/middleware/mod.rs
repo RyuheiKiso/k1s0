@@ -2,6 +2,16 @@ use std::sync::Arc;
 
 use crate::metrics::Metrics;
 
+#[cfg(any(feature = "axum-layer", test))]
+mod http_layer;
+#[cfg(any(feature = "grpc-layer", test))]
+mod grpc_layer;
+
+#[cfg(any(feature = "axum-layer", test))]
+pub use http_layer::MetricsLayer;
+#[cfg(any(feature = "grpc-layer", test))]
+pub use grpc_layer::GrpcMetricsLayer;
+
 /// TelemetryMiddleware は HTTP リクエストの分散トレーシングとメトリクス記録を提供する。
 /// Go の HTTPMiddleware と同等の機能を持つ。
 ///

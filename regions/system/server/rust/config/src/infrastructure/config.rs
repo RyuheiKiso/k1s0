@@ -3,11 +3,27 @@ use serde::Deserialize;
 use super::database::DatabaseConfig;
 use super::kafka_producer::KafkaConfig;
 
+/// AuthConfig は認証設定を表す。
+#[derive(Debug, Clone, Deserialize)]
+pub struct AuthConfig {
+    pub jwks_url: String,
+    pub issuer: String,
+    pub audience: String,
+    #[serde(default = "default_jwks_cache_ttl_secs")]
+    pub jwks_cache_ttl_secs: u64,
+}
+
+fn default_jwks_cache_ttl_secs() -> u64 {
+    3600
+}
+
 /// Config はアプリケーション全体の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
+    #[serde(default)]
+    pub auth: Option<AuthConfig>,
     #[serde(default)]
     pub database: Option<DatabaseConfig>,
     #[serde(default)]

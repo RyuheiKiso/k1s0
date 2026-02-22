@@ -5,6 +5,8 @@ use std::sync::Arc;
 
 use axum::routing::{get, post};
 use axum::Router;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 use crate::usecase::{
     DeleteMessageUseCase, GetMessageUseCase, ListMessagesUseCase, RetryAllUseCase,
@@ -21,6 +23,32 @@ pub struct AppState {
     pub retry_all_uc: Arc<RetryAllUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 }
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        dlq_handler::healthz,
+        dlq_handler::readyz,
+        dlq_handler::metrics,
+        dlq_handler::list_messages,
+        dlq_handler::get_message,
+        dlq_handler::retry_message,
+        dlq_handler::delete_message,
+        dlq_handler::retry_all,
+    ),
+    components(schemas(
+        dlq_handler::DlqMessageResponse,
+        dlq_handler::ListMessagesResponse,
+        dlq_handler::PaginationResponse,
+        dlq_handler::RetryMessageResponse,
+        dlq_handler::RetryAllResponse,
+        dlq_handler::DeleteMessageResponse,
+        ErrorResponse,
+        ErrorBody,
+    )),
+    security(("bearer_auth" = [])),
+)]
+struct ApiDoc;
 
 /// REST API ルーターを構築する。
 pub fn router(state: AppState) -> Router {
@@ -41,16 +69,17 @@ pub fn router(state: AppState) -> Router {
         // topic-based endpoints
         .route("/api/v1/dlq/:topic", get(dlq_handler::list_messages))
         .route("/api/v1/dlq/:topic/retry-all", post(dlq_handler::retry_all))
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(state)
 }
 
 /// ErrorResponse は統一エラーレスポンス。
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct ErrorResponse {
     pub error: ErrorBody,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct ErrorBody {
     pub code: String,
     pub message: String,

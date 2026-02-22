@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// DlqStatus は DLQ メッセージのステータス。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DlqStatus {
     Pending,
@@ -36,7 +36,7 @@ impl DlqStatus {
 }
 
 /// DlqMessage は DLQ メッセージエンティティ。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct DlqMessage {
     pub id: Uuid,
     pub original_topic: String,

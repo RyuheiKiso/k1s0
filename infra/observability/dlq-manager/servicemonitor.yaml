@@ -1,0 +1,25 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dlq-manager
+  namespace: k1s0-system
+  labels:
+    app.kubernetes.io/name: dlq-manager
+    tier: system
+    service: dlq-manager
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dlq-manager
+  namespaceSelector:
+    matchNames:
+      - k1s0-system
+  endpoints:
+    - port: http-metrics
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: "go_.*"
+          action: drop

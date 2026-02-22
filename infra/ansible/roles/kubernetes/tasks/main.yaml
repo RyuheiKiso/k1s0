@@ -1,0 +1,148 @@
+---
+# kubernetes/tasks/main.yaml - kubeadm クラスタ構築
+# Idempotent: 全タスクは繰り返し実行可能
+
+# ============================================================
+# containerd ランタイム
+# ============================================================
+
+- name: Add Docker GPG key
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+
+- name: Install containerd
+  ansible.builtin.apt:
+    name: containerd.io
+    state: present
+    update_cache: true
+
+- name: Create containerd config directory
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+    mode: "0755"
+
+- name: Generate default containerd config
+  ansible.builtin.shell: containerd config default > /etc/containerd/config.toml
+  args:
+    creates: /etc/containerd/config.toml
+
+- name: Set SystemdCgroup to true in containerd config
+  ansible.builtin.lineinfile:
+    path: /etc/containerd/config.toml
+    regexp: '^\s*SystemdCgroup\s*='
+    line: '            SystemdCgroup = true'
+  notify: Restart containerd
+
+- name: Ensure containerd is running
+  ansible.builtin.systemd:
+    name: containerd
+    state: started
+    enabled: true
+
+# ============================================================
+# kubeadm / kubelet / kubectl
+# ============================================================
+
+- name: Add Kubernetes GPG key
+  ansible.builtin.apt_key:
+    url: "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/Release.key"
+    state: present
+
+- name: Add Kubernetes apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/ /"
+    state: present
+
+- name: Install kubeadm, kubelet, and kubectl
+  ansible.builtin.apt:
+    name:
+      - kubeadm
+      - kubelet
+      - kubectl
+    state: present
+    update_cache: true
+
+- name: Hold kubeadm, kubelet, kubectl at current version
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubeadm
+    - kubelet
+    - kubectl
+
+- name: Ensure kubelet is enabled
+  ansible.builtin.systemd:
+    name: kubelet
+    enabled: true
+
+# ============================================================
+# kubeadm init (master のみ)
+# ============================================================
+
+- name: Check if Kubernetes is already initialized
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: k8s_admin_conf
+
+- name: Initialize Kubernetes cluster
+  ansible.builtin.command: >
+    kubeadm init
+      --pod-network-cidr={{ pod_network_cidr }}
+      --service-cidr={{ service_cidr }}
+      --upload-certs
+  when:
+    - inventory_hostname == groups['masters'][0] | default('')
+    - not k8s_admin_conf.stat.exists
+  register: kubeadm_init
+
+- name: Create .kube directory for admin user
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+  when: inventory_hostname in groups.get('masters', [])
+
+- name: Copy admin.conf to user kubeconfig
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ ansible_user }}/.kube/config"
+    remote_src: true
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+  when:
+    - inventory_hostname in groups.get('masters', [])
+    - k8s_admin_conf.stat.exists or kubeadm_init is changed
+
+# ============================================================
+# Worker ノード join
+# ============================================================
+
+- name: Get join command from master
+  ansible.builtin.command: kubeadm token create --print-join-command
+  register: join_command
+  when: inventory_hostname == groups['masters'][0] | default('')
+  changed_when: false
+
+- name: Check if node already joined
+  ansible.builtin.stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: kubelet_conf
+  when: inventory_hostname in groups.get('workers', [])
+
+- name: Join worker node to cluster
+  ansible.builtin.command: "{{ hostvars[groups['masters'][0]].join_command.stdout }}"
+  when:
+    - inventory_hostname in groups.get('workers', [])
+    - not kubelet_conf.stat.exists
+

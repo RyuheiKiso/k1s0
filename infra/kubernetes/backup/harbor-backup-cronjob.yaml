@@ -1,0 +1,81 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: harbor-backup
+  namespace: k1s0-system
+  labels:
+    app: harbor-backup
+    tier: system
+spec:
+  schedule: "0 4 * * 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 7200
+      template:
+        metadata:
+          labels:
+            app: harbor-backup
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: backup-operator
+          containers:
+            - name: harbor-backup
+              image: postgres:17-alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  BACKUP_DIR="/backup/harbor"
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+
+                  mkdir -p "${BACKUP_DIR}"
+
+                  # Harbor データベースバックアップ
+                  BACKUP_FILE="${BACKUP_DIR}/harbor-db-${TIMESTAMP}.dump"
+                  echo "Backing up Harbor database..."
+                  pg_dump \
+                    -h "${HARBOR_DB_HOST}" \
+                    -U "${HARBOR_DB_USER}" \
+                    -d "${HARBOR_DB_NAME}" \
+                    -Fc \
+                    -f "${BACKUP_FILE}"
+                  echo "Database backup completed: ${BACKUP_FILE}"
+
+                  # 90日より古いバックアップを削除
+                  find "${BACKUP_DIR}" -name "harbor-db-*.dump" -mtime +90 -delete
+
+                  echo "Harbor backup completed."
+              env:
+                - name: HARBOR_DB_HOST
+                  value: "harbor-database.harbor.svc.cluster.local"
+                - name: HARBOR_DB_NAME
+                  value: "registry"
+                - name: HARBOR_DB_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: harbor-backup-credentials
+                      key: username
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: harbor-backup-credentials
+                      key: password
+              volumeMounts:
+                - name: backup-volume
+                  mountPath: /backup
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 256Mi
+                limits:
+                  cpu: 1000m
+                  memory: 1Gi
+          volumes:
+            - name: backup-volume
+              persistentVolumeClaim:
+                claimName: backup-pvc

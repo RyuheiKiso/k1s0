@@ -11,7 +11,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/config"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/handler"
@@ -109,17 +116,31 @@ func run() error {
 		return fmt.Errorf("failed to create proxy handler: %w", err)
 	}
 
+	// Initialize OpenTelemetry tracer provider.
+	tp, err := initTracerProvider(ctx)
+	if err != nil {
+		logger.Warn("Failed to initialize OTel tracer provider", slog.String("error", err.Error()))
+	} else {
+		defer func() {
+			_ = tp.Shutdown(context.Background())
+		}()
+	}
+
 	// Set up Gin router.
 	if cfg.App.Environment == "prod" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	router := gin.New()
 	router.Use(gin.Recovery())
+	router.Use(middleware.PrometheusMiddleware())
+	router.Use(otelgin.Middleware("bff-proxy"))
+	router.Use(middleware.OTelTraceIDMiddleware())
 	router.Use(middleware.CorrelationMiddleware())
 
-	// Health endpoints (no auth required).
+	// Health / Metrics endpoints (no auth required).
 	router.GET("/healthz", healthHandler.Healthz)
 	router.GET("/readyz", healthHandler.Readyz)
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Auth endpoints (no session required).
 	router.GET("/auth/login", authHandler.Login)
@@ -175,6 +196,37 @@ func run() error {
 
 	logger.Info("BFF Proxy stopped")
 	return nil
+}
+
+func initTracerProvider(ctx context.Context) (*sdktrace.TracerProvider, error) {
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if endpoint == "" {
+		endpoint = "localhost:4317"
+	}
+
+	exporter, err := otlptracegrpc.New(ctx,
+		otlptracegrpc.WithEndpoint(endpoint),
+		otlptracegrpc.WithInsecure(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create OTLP exporter: %w", err)
+	}
+
+	res, err := resource.New(ctx,
+		resource.WithAttributes(
+			semconv.ServiceNameKey.String("bff-proxy"),
+		),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create resource: %w", err)
+	}
+
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(res),
+	)
+	otel.SetTracerProvider(tp)
+	return tp, nil
 }
 
 func newLogger(logCfg config.LogConfig) *slog.Logger {

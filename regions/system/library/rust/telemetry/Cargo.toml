@@ -12,5 +12,23 @@ tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 tracing-opentelemetry = "0.28"
 prometheus = "0.13"
 
+# Tower Layer support (optional)
+axum = { version = "0.7", optional = true }
+http = { version = "1", optional = true }
+tonic = { version = "0.12", optional = true }
+tower = { version = "0.5", features = ["util"], optional = true }
+pin-project-lite = { version = "0.2", optional = true }
+
+[features]
+default = []
+axum-layer = ["axum", "http", "tower", "pin-project-lite"]
+grpc-layer = ["tonic", "http", "tower", "pin-project-lite"]
+full = ["axum-layer", "grpc-layer"]
+
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
+axum = "0.7"
+http = "1"
+tonic = "0.12"
+tower = { version = "0.5", features = ["util"] }
+pin-project-lite = "0.2"

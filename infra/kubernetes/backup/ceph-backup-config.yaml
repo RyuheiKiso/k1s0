@@ -1,0 +1,82 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ceph-rbd-snapshot
+  namespace: k1s0-system
+  labels:
+    app: ceph-rbd-snapshot
+    tier: system
+spec:
+  schedule: "0 1 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app: ceph-rbd-snapshot
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: backup-operator
+          containers:
+            - name: ceph-snapshot
+              image: quay.io/ceph/ceph:v18
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  POOL="k1s0-rbd"
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+                  RETENTION_DAYS=14
+
+                  echo "Starting Ceph RBD snapshot for pool: ${POOL}"
+
+                  # プール内の全 RBD イメージをスナップショット
+                  for IMAGE in $(rbd ls "${POOL}"); do
+                    SNAP_NAME="backup-${TIMESTAMP}"
+                    echo "Creating snapshot: ${POOL}/${IMAGE}@${SNAP_NAME}"
+                    rbd snap create "${POOL}/${IMAGE}@${SNAP_NAME}"
+                    rbd snap protect "${POOL}/${IMAGE}@${SNAP_NAME}"
+                  done
+
+                  # 14日より古いスナップショットを削除
+                  CUTOFF_DATE=$(date -d "-${RETENTION_DAYS} days" +%Y%m%d)
+                  for IMAGE in $(rbd ls "${POOL}"); do
+                    rbd snap ls "${POOL}/${IMAGE}" --format json | \
+                      python3 -c "
+                  import sys, json
+                  snaps = json.load(sys.stdin)
+                  for s in snaps:
+                      name = s['name']
+                      if name.startswith('backup-'):
+                          date_part = name.split('-')[1][:8]
+                          if date_part < '${CUTOFF_DATE}':
+                              print(name)
+                  " | while read SNAP; do
+                      echo "Removing old snapshot: ${POOL}/${IMAGE}@${SNAP}"
+                      rbd snap unprotect "${POOL}/${IMAGE}@${SNAP}" 2>/dev/null || true
+                      rbd snap rm "${POOL}/${IMAGE}@${SNAP}"
+                    done
+                  done
+
+                  echo "Ceph RBD snapshot completed."
+              volumeMounts:
+                - name: ceph-config
+                  mountPath: /etc/ceph
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+          volumes:
+            - name: ceph-config
+              secret:
+                secretName: ceph-client-credentials

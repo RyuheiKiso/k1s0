@@ -2,20 +2,21 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
 use serde::Deserialize;
 
 use super::AppState;
+use crate::domain::entity::config_entry::{ConfigEntry, ConfigListResult, ServiceConfigResult};
 use crate::usecase::list_configs::ListConfigsParams;
 use crate::usecase::update_config::UpdateConfigInput;
 
-/// GET /healthz
+#[utoipa::path(get, path = "/healthz", responses((status = 200, description = "Health check OK")))]
 pub async fn healthz() -> impl IntoResponse {
     Json(serde_json::json!({"status": "ok"}))
 }
 
-/// GET /readyz
+#[utoipa::path(get, path = "/readyz", responses((status = 200, description = "Ready"), (status = 503, description = "Not ready")))]
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // DB 接続確認: 軽量クエリで疎通チェック
     let db_ok = state
@@ -53,7 +54,7 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     )
 }
 
-/// GET /metrics
+#[utoipa::path(get, path = "/metrics", responses((status = 200, description = "Prometheus metrics")))]
 pub async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
     let body = state.metrics.gather_metrics();
     (
@@ -63,7 +64,18 @@ pub async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
     )
 }
 
-/// GET /api/v1/config/:namespace/:key
+#[utoipa::path(
+    get,
+    path = "/api/v1/config/{namespace}/{key}",
+    params(
+        ("namespace" = String, Path, description = "Config namespace"),
+        ("key" = String, Path, description = "Config key"),
+    ),
+    responses(
+        (status = 200, description = "Config entry found", body = ConfigEntry),
+        (status = 404, description = "Not found"),
+    )
+)]
 pub async fn get_config(
     State(state): State<AppState>,
     Path((namespace, key)): Path<(String, String)>,
@@ -85,7 +97,16 @@ pub async fn get_config(
     }
 }
 
-/// GET /api/v1/config/:namespace
+#[utoipa::path(
+    get,
+    path = "/api/v1/config/{namespace}",
+    params(
+        ("namespace" = String, Path, description = "Config namespace"),
+        ("page" = Option<i32>, Query, description = "Page number"),
+        ("page_size" = Option<i32>, Query, description = "Page size"),
+    ),
+    responses((status = 200, description = "Config list", body = ConfigListResult))
+)]
 pub async fn list_configs(
     State(state): State<AppState>,
     Path(namespace): Path<String>,
@@ -98,7 +119,7 @@ pub async fn list_configs(
 }
 
 /// PUT /api/v1/config/:namespace/:key のリクエストボディ。
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateConfigRequest {
     pub value: serde_json::Value,
     pub version: i32,
@@ -106,20 +127,38 @@ pub struct UpdateConfigRequest {
     pub description: Option<String>,
 }
 
-/// PUT /api/v1/config/:namespace/:key
+#[utoipa::path(
+    put,
+    path = "/api/v1/config/{namespace}/{key}",
+    params(
+        ("namespace" = String, Path, description = "Config namespace"),
+        ("key" = String, Path, description = "Config key"),
+    ),
+    request_body = UpdateConfigRequest,
+    responses(
+        (status = 200, description = "Config updated", body = ConfigEntry),
+        (status = 404, description = "Not found"),
+        (status = 409, description = "Version conflict"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn update_config(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path((namespace, key)): Path<(String, String)>,
     Json(req): Json<UpdateConfigRequest>,
 ) -> impl IntoResponse {
+    let updated_by = claims
+        .and_then(|Extension(c)| c.preferred_username.clone())
+        .unwrap_or_else(|| "api-user".to_string());
+
     let input = UpdateConfigInput {
         namespace,
         key,
         value: req.value,
         version: req.version,
         description: req.description,
-        // TODO: Bearer トークンから updated_by を取得する
-        updated_by: "api-user".to_string(),
+        updated_by,
     };
 
     match state.update_config_uc.execute(&input).await {
@@ -139,7 +178,19 @@ pub async fn update_config(
     }
 }
 
-/// DELETE /api/v1/config/:namespace/:key
+#[utoipa::path(
+    delete,
+    path = "/api/v1/config/{namespace}/{key}",
+    params(
+        ("namespace" = String, Path, description = "Config namespace"),
+        ("key" = String, Path, description = "Config key"),
+    ),
+    responses(
+        (status = 204, description = "Config deleted"),
+        (status = 404, description = "Not found"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn delete_config(
     State(state): State<AppState>,
     Path((namespace, key)): Path<(String, String)>,
@@ -150,7 +201,15 @@ pub async fn delete_config(
     }
 }
 
-/// GET /api/v1/config/services/:service_name
+#[utoipa::path(
+    get,
+    path = "/api/v1/config/services/{service_name}",
+    params(("service_name" = String, Path, description = "Service name")),
+    responses(
+        (status = 200, description = "Service config", body = ServiceConfigResult),
+        (status = 404, description = "Service not found"),
+    )
+)]
 pub async fn get_service_config(
     State(state): State<AppState>,
     Path(service_name): Path<String>,

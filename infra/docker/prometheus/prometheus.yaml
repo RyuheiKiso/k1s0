@@ -52,6 +52,16 @@ scrape_configs:
           lang: rust
     metrics_path: /metrics
 
+  # bff-proxy (Rust)
+  - job_name: bff-proxy-rust
+    static_configs:
+      - targets: ["bff-proxy-rust:8080"]
+        labels:
+          service: bff-proxy
+          tier: system
+          lang: rust
+    metrics_path: /metrics
+
   # Kong API Gateway
   - job_name: kong
     static_configs:

@@ -1,0 +1,118 @@
+---
+# ceph/tasks/main.yaml - Ceph ストレージ設定
+# Idempotent: 全タスクは繰り返し実行可能
+
+# ============================================================
+# cephadm インストール
+# ============================================================
+
+- name: Install cephadm dependencies
+  ansible.builtin.apt:
+    name:
+      - lvm2
+      - python3
+      - python3-pip
+    state: present
+
+- name: Download cephadm
+  ansible.builtin.get_url:
+    url: https://download.ceph.com/rpm-reef/el9/noarch/cephadm
+    dest: /usr/local/bin/cephadm
+    mode: "0755"
+  when: not cephadm_installed.stat.exists | default(true)
+
+- name: Check if cephadm is installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/cephadm
+  register: cephadm_installed
+
+- name: Add Ceph repository via cephadm
+  ansible.builtin.command: cephadm add-repo --release reef
+  when: cephadm_installed.stat.exists
+  changed_when: false
+
+- name: Install ceph-common
+  ansible.builtin.command: cephadm install ceph-common
+  args:
+    creates: /usr/bin/ceph
+
+# ============================================================
+# Ceph クラスタ bootstrap（最初のノードのみ）
+# ============================================================
+
+- name: Check if Ceph cluster is bootstrapped
+  ansible.builtin.stat:
+    path: /etc/ceph/ceph.conf
+  register: ceph_conf
+
+- name: Bootstrap Ceph cluster
+  ansible.builtin.command: >
+    cephadm bootstrap
+      --mon-ip {{ ansible_default_ipv4.address }}
+      --cluster-network {{ ceph_cluster_network | default('10.0.0.0/8') }}
+      --skip-monitoring-stack
+  when:
+    - inventory_hostname == groups['storage'][0] | default('')
+    - not ceph_conf.stat.exists
+  register: ceph_bootstrap
+
+# ============================================================
+# Mon デーモン追加
+# ============================================================
+
+- name: Get Ceph SSH public key
+  ansible.builtin.command: ceph cephadm get-pub-key
+  register: ceph_pub_key
+  when: inventory_hostname == groups['storage'][0] | default('')
+  changed_when: false
+
+- name: Distribute Ceph SSH key to storage nodes
+  ansible.builtin.authorized_key:
+    user: root
+    key: "{{ hostvars[groups['storage'][0]].ceph_pub_key.stdout }}"
+  when:
+    - inventory_hostname in groups.get('storage', [])
+    - inventory_hostname != groups['storage'][0] | default('')
+
+- name: Add storage hosts to Ceph cluster
+  ansible.builtin.command: >
+    ceph orch host add {{ item }}
+      {{ hostvars[item].ansible_default_ipv4.address }}
+  loop: "{{ groups['storage'] | difference([groups['storage'][0]]) }}"
+  when: inventory_hostname == groups['storage'][0] | default('')
+  changed_when: false
+  failed_when: false
+
+# ============================================================
+# OSD デーモン追加
+# ============================================================
+
+- name: Add OSD devices
+  ansible.builtin.command: >
+    ceph orch daemon add osd {{ inventory_hostname }}:{{ item }}
+  loop: "{{ ceph_osd_devices | default([]) }}"
+  when: inventory_hostname == groups['storage'][0] | default('')
+  changed_when: false
+  failed_when: false
+
+# ============================================================
+# Pool 作成
+# ============================================================
+
+- name: Create k1s0 RBD pool
+  ansible.builtin.command: >
+    ceph osd pool create k1s0-rbd 128 128 replicated
+  when: inventory_hostname == groups['storage'][0] | default('')
+  changed_when: false
+  failed_when: false
+
+- name: Enable RBD application on pool
+  ansible.builtin.command: ceph osd pool application enable k1s0-rbd rbd
+  when: inventory_hostname == groups['storage'][0] | default('')
+  changed_when: false
+  failed_when: false
+
+- name: Set pool replication size
+  ansible.builtin.command: "ceph osd pool set k1s0-rbd size {{ ceph_pool_size | default(3) }}"
+  when: inventory_hostname == groups['storage'][0] | default('')
+  changed_when: false

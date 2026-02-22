@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Claims は JWT トークンの Claims を表す。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, utoipa::ToSchema)]
 pub struct Claims {
     pub sub: String,
     pub iss: String,
@@ -30,14 +30,14 @@ pub struct Claims {
 }
 
 /// RealmAccess は Keycloak の realm_access クレームを表す。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, utoipa::ToSchema)]
 pub struct RealmAccess {
     #[serde(default)]
     pub roles: Vec<String>,
 }
 
 /// ResourceAccess は Keycloak の resource_access クレームを表す。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, utoipa::ToSchema)]
 pub struct ResourceAccess {
     #[serde(default)]
     pub roles: Vec<String>,

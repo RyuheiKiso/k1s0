@@ -9,12 +9,25 @@ use serde::Deserialize;
 use super::{AppState, ErrorResponse};
 use crate::usecase::list_users::ListUsersParams;
 
-/// GET /healthz
+#[utoipa::path(
+    get,
+    path = "/healthz",
+    responses(
+        (status = 200, description = "Health check OK"),
+    )
+)]
 pub async fn healthz() -> impl IntoResponse {
     Json(serde_json::json!({"status": "ok"}))
 }
 
-/// GET /readyz
+#[utoipa::path(
+    get,
+    path = "/readyz",
+    responses(
+        (status = 200, description = "Ready"),
+        (status = 503, description = "Not ready"),
+    )
+)]
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let mut db_status = "skipped";
     let mut kc_status = "skipped";
@@ -64,7 +77,13 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         .into_response()
 }
 
-/// GET /metrics
+#[utoipa::path(
+    get,
+    path = "/metrics",
+    responses(
+        (status = 200, description = "Prometheus metrics"),
+    )
+)]
 pub async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
     let body = state.metrics.gather_metrics();
     (
@@ -75,12 +94,20 @@ pub async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 /// POST /api/v1/auth/token/validate のリクエストボディ。
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct ValidateTokenRequest {
     pub token: String,
 }
 
-/// POST /api/v1/auth/token/validate
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/token/validate",
+    request_body = ValidateTokenRequest,
+    responses(
+        (status = 200, description = "Token is valid"),
+        (status = 401, description = "Token is invalid"),
+    )
+)]
 pub async fn validate_token(
     State(state): State<AppState>,
     Json(req): Json<ValidateTokenRequest>,
@@ -102,14 +129,21 @@ pub async fn validate_token(
 }
 
 /// POST /api/v1/auth/token/introspect のリクエストボディ。
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct IntrospectTokenRequest {
     pub token: String,
     #[serde(default)]
     pub token_type_hint: Option<String>,
 }
 
-/// POST /api/v1/auth/token/introspect
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/token/introspect",
+    request_body = IntrospectTokenRequest,
+    responses(
+        (status = 200, description = "Token introspection result"),
+    )
+)]
 pub async fn introspect_token(
     State(state): State<AppState>,
     Json(req): Json<IntrospectTokenRequest>,
@@ -134,7 +168,16 @@ pub async fn introspect_token(
     }
 }
 
-/// GET /api/v1/users/:id
+#[utoipa::path(
+    get,
+    path = "/api/v1/users/{id}",
+    params(("id" = String, Path, description = "User ID")),
+    responses(
+        (status = 200, description = "User found", body = User),
+        (status = 404, description = "User not found"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn get_user(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     match state.get_user_uc.execute(&id).await {
         Ok(user) => (StatusCode::OK, Json(serde_json::to_value(user).unwrap())).into_response(),
@@ -148,7 +191,19 @@ pub async fn get_user(State(state): State<AppState>, Path(id): Path<String>) -> 
     }
 }
 
-/// GET /api/v1/users
+#[utoipa::path(
+    get,
+    path = "/api/v1/users",
+    params(
+        ("page" = Option<i32>, Query, description = "Page number"),
+        ("page_size" = Option<i32>, Query, description = "Page size"),
+    ),
+    responses(
+        (status = 200, description = "User list", body = UserListResult),
+        (status = 400, description = "Bad request"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn list_users(
     State(state): State<AppState>,
     Query(params): Query<ListUsersParams>,
@@ -163,14 +218,22 @@ pub async fn list_users(
 }
 
 /// POST /api/v1/auth/permissions/check のリクエストボディ。
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CheckPermissionRequest {
     pub roles: Vec<String>,
     pub permission: String,
     pub resource: String,
 }
 
-/// POST /api/v1/auth/permissions/check
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/permissions/check",
+    request_body = CheckPermissionRequest,
+    responses(
+        (status = 200, description = "Permission check result"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn check_permission(
     State(state): State<AppState>,
     Json(req): Json<CheckPermissionRequest>,
@@ -184,7 +247,16 @@ pub async fn check_permission(
     (StatusCode::OK, Json(output)).into_response()
 }
 
-/// GET /api/v1/users/:id/roles
+#[utoipa::path(
+    get,
+    path = "/api/v1/users/{id}/roles",
+    params(("id" = String, Path, description = "User ID")),
+    responses(
+        (status = 200, description = "User roles", body = UserRoles),
+        (status = 404, description = "User not found"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn get_user_roles(
     State(state): State<AppState>,
     Path(id): Path<String>,

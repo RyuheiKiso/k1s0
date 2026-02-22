@@ -43,7 +43,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
       "targets": [
         {
-          "expr": "service:http_errors:rate5m{service=~\"auth-server|config-server\"}",
+          "expr": "service:http_errors:rate5m{service=~\"auth-server|config-server|saga-server|dlq-manager\"}",
           "legendFormat": "{{ service }}",
           "refId": "A"
         }
@@ -95,7 +95,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 9 },
       "targets": [
         {
-          "expr": "service:http_request_duration_seconds:p95{service=~\"auth-server|config-server\"}",
+          "expr": "service:http_request_duration_seconds:p95{service=~\"auth-server|config-server|saga-server|dlq-manager\"}",
           "legendFormat": "{{ service }}",
           "refId": "A"
         }
@@ -117,7 +117,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 9 },
       "targets": [
         {
-          "expr": "service:http_request_duration_seconds:p99{service=~\"auth-server|config-server\"}",
+          "expr": "service:http_request_duration_seconds:p99{service=~\"auth-server|config-server|saga-server|dlq-manager\"}",
           "legendFormat": "{{ service }}",
           "refId": "A"
         }
@@ -167,7 +167,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 18 },
       "targets": [
         {
-          "expr": "service:grpc_errors:rate5m{service=~\"auth-server|config-server\"}",
+          "expr": "service:grpc_errors:rate5m{service=~\"auth-server|config-server|saga-server|dlq-manager\"}",
           "legendFormat": "{{ service }} / {{ grpc_service }}",
           "refId": "A"
         }
@@ -197,7 +197,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 18 },
       "targets": [
         {
-          "expr": "service:grpc_handling_seconds:p99{service=~\"auth-server|config-server\"}",
+          "expr": "service:grpc_handling_seconds:p99{service=~\"auth-server|config-server|saga-server|dlq-manager\"}",
           "legendFormat": "{{ service }} / {{ grpc_service }}",
           "refId": "A"
         }
@@ -342,7 +342,7 @@
       "gridPos": { "h": 4, "w": 24, "x": 0, "y": 53 },
       "targets": [
         {
-          "expr": "up{job=~\"auth-server.*|config-server.*|kong\"}",
+          "expr": "up{job=~\"auth-server.*|config-server.*|saga-server.*|dlq-manager.*|bff-proxy.*|kong\"}",
           "legendFormat": "{{ job }} ({{ instance }})",
           "refId": "A"
         }
