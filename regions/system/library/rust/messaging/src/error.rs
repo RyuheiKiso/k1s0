@@ -18,6 +18,15 @@ pub enum MessagingError {
 
     #[error("timeout error: {0}")]
     TimeoutError(String),
+
+    #[error("publish error: {0}")]
+    PublishError(String),
+
+    #[error("consume error: {0}")]
+    ConsumeError(String),
+
+    #[error("commit error: {0}")]
+    CommitError(String),
 }
 
 #[cfg(test)]

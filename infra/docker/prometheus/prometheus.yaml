@@ -25,9 +25,29 @@ scrape_configs:
   # config-server (Rust)
   - job_name: config-server-rust
     static_configs:
-      - targets: ["config-rust:8082"]
+      - targets: ["config-rust:8080"]
         labels:
           service: config-server
+          tier: system
+          lang: rust
+    metrics_path: /metrics
+
+  # saga-server (Rust)
+  - job_name: saga-server-rust
+    static_configs:
+      - targets: ["saga-rust:8080"]
+        labels:
+          service: saga-server
+          tier: system
+          lang: rust
+    metrics_path: /metrics
+
+  # dlq-manager (Rust)
+  - job_name: dlq-manager-rust
+    static_configs:
+      - targets: ["dlq-manager-rust:8080"]
+        labels:
+          service: dlq-manager
           tier: system
           lang: rust
     metrics_path: /metrics

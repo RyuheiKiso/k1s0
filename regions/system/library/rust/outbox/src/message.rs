@@ -18,6 +18,31 @@ pub enum OutboxStatus {
     DeadLetter,
 }
 
+impl OutboxStatus {
+    /// ステータスを文字列に変換する（DB保存用）。
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            OutboxStatus::Pending => "PENDING",
+            OutboxStatus::Processing => "PROCESSING",
+            OutboxStatus::Delivered => "DELIVERED",
+            OutboxStatus::Failed => "FAILED",
+            OutboxStatus::DeadLetter => "DEAD_LETTER",
+        }
+    }
+
+    /// 文字列からステータスを復元する（DB読み込み用）。
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "PENDING" => OutboxStatus::Pending,
+            "PROCESSING" => OutboxStatus::Processing,
+            "DELIVERED" => OutboxStatus::Delivered,
+            "FAILED" => OutboxStatus::Failed,
+            "DEAD_LETTER" => OutboxStatus::DeadLetter,
+            _ => OutboxStatus::Pending,
+        }
+    }
+}
+
 /// OutboxMessage はアウトボックステーブルに格納するメッセージを表す。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OutboxMessage {

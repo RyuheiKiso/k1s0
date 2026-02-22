@@ -8,7 +8,13 @@ pub mod processor;
 pub mod store;
 pub mod error;
 
+#[cfg(feature = "postgres")]
+pub mod postgres_store;
+
 pub use error::OutboxError;
 pub use message::{OutboxMessage, OutboxStatus};
 pub use processor::OutboxProcessor;
 pub use store::OutboxStore;
+
+#[cfg(feature = "postgres")]
+pub use postgres_store::PostgresOutboxStore;

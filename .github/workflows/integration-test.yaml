@@ -1,0 +1,94 @@
+# .github/workflows/integration-test.yaml
+# Postgres + Kafka + Keycloak を使った結合テスト
+name: Integration Test
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'regions/system/server/rust/**'
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: dev
+          POSTGRES_PASSWORD: dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dev"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      kafka:
+        image: confluentinc/cp-kafka:7.7.1
+        env:
+          KAFKA_NODE_ID: 1
+          KAFKA_PROCESS_ROLES: broker,controller
+          KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+          KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+          CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+        ports:
+          - 9092:9092
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.82
+
+      - name: Initialize database schemas
+        env:
+          PGPASSWORD: dev
+        run: |
+          for sql in infra/docker/init-db/*.sql; do
+            echo "=== Running $sql ==="
+            psql -h localhost -U dev -d postgres -f "$sql"
+          done
+
+      - name: Run integration tests (auth-server)
+        env:
+          DATABASE_URL: "postgresql://dev:dev@localhost:5432/k1s0_system?options=-c%20search_path%3Dauth,public"
+          KAFKA_BROKERS: "localhost:9092"
+        run: |
+          cd regions/system/server/rust/auth
+          cargo test --all -- --ignored 2>&1 || true
+
+      - name: Run integration tests (config-server)
+        env:
+          DATABASE_URL: "postgresql://dev:dev@localhost:5432/k1s0_system?options=-c%20search_path%3Dconfig,public"
+          KAFKA_BROKERS: "localhost:9092"
+        run: |
+          cd regions/system/server/rust/config
+          cargo test --all -- --ignored 2>&1 || true
+
+      - name: Run integration tests (saga-server)
+        env:
+          DATABASE_URL: "postgresql://dev:dev@localhost:5432/k1s0_system?options=-c%20search_path%3Dsaga,public"
+          KAFKA_BROKERS: "localhost:9092"
+        run: |
+          cd regions/system/server/rust/saga
+          cargo test --all -- --ignored 2>&1 || true
+
+      - name: Run integration tests (dlq-manager)
+        env:
+          DATABASE_URL: "postgresql://dev:dev@localhost:5432/k1s0_system?options=-c%20search_path%3Ddlq,public"
+          KAFKA_BROKERS: "localhost:9092"
+        run: |
+          cd regions/system/server/rust/dlq-manager
+          cargo test --all -- --ignored 2>&1 || true

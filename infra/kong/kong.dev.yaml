@@ -55,6 +55,42 @@ services:
           policy: local
 
   # ============================================================
+  # Saga Service
+  # ============================================================
+  - name: saga-v1
+    url: http://saga-rust:8080
+    routes:
+      - name: saga-route
+        paths:
+          - /api/v1/sagas
+        strip_path: false
+      - name: saga-workflow-route
+        paths:
+          - /api/v1/workflows
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # DLQ Manager Service
+  # ============================================================
+  - name: dlq-manager-v1
+    url: http://dlq-manager-rust:8080
+    routes:
+      - name: dlq-route
+        paths:
+          - /api/v1/dlq
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
   # Health Endpoints (no auth required)
   # ============================================================
   - name: auth-health
@@ -64,6 +100,33 @@ services:
         paths:
           - /healthz
           - /readyz
+        strip_path: false
+
+  - name: config-health
+    url: http://config-rust:8080
+    routes:
+      - name: config-health-check
+        paths:
+          - /config/healthz
+          - /config/readyz
+        strip_path: false
+
+  - name: saga-health
+    url: http://saga-rust:8080
+    routes:
+      - name: saga-health-check
+        paths:
+          - /saga/healthz
+          - /saga/readyz
+        strip_path: false
+
+  - name: dlq-manager-health
+    url: http://dlq-manager-rust:8080
+    routes:
+      - name: dlq-manager-health-check
+        paths:
+          - /dlq/healthz
+          - /dlq/readyz
         strip_path: false
 
 # ============================================================
