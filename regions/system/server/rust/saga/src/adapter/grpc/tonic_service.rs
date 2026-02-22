@@ -1,12 +1,37 @@
+//! tonic gRPC サービス実装。
+//!
+//! proto 生成コード (`src/proto/`) の SagaService トレイトを実装する。
+//! 各メソッドで proto 型 ↔ 手動型の変換を行い、既存の SagaGrpcService に委譲する。
+
 use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use crate::proto::k1s0::system::saga::v1::{
+    saga_service_server::SagaService,
+    CancelSagaRequest as ProtoCancelSagaRequest,
+    CancelSagaResponse as ProtoCancelSagaResponse,
+    GetSagaRequest as ProtoGetSagaRequest,
+    GetSagaResponse as ProtoGetSagaResponse,
+    ListSagasRequest as ProtoListSagasRequest,
+    ListSagasResponse as ProtoListSagasResponse,
+    ListWorkflowsRequest as ProtoListWorkflowsRequest,
+    ListWorkflowsResponse as ProtoListWorkflowsResponse,
+    RegisterWorkflowRequest as ProtoRegisterWorkflowRequest,
+    RegisterWorkflowResponse as ProtoRegisterWorkflowResponse,
+    SagaStateProto as ProtoSagaState,
+    SagaStepLogProto as ProtoSagaStepLog,
+    StartSagaRequest as ProtoStartSagaRequest,
+    StartSagaResponse as ProtoStartSagaResponse,
+    WorkflowSummary as ProtoWorkflowSummary,
+};
+use crate::proto::k1s0::system::common::v1::{
+    PaginationResult as ProtoPaginationResult, Timestamp as ProtoTimestamp,
+};
+
 use super::saga_grpc::{
-    CancelSagaRequest, CancelSagaResponse, GetSagaRequest, GetSagaResponse, GrpcError,
-    ListSagasRequest, ListSagasResponse, ListWorkflowsRequest, ListWorkflowsResponse,
-    RegisterWorkflowRequest, RegisterWorkflowResponse, SagaGrpcService, StartSagaRequest,
-    StartSagaResponse,
+    CancelSagaRequest, GetSagaRequest, GrpcError, ListSagasRequest, ListWorkflowsRequest,
+    RegisterWorkflowRequest, SagaGrpcService, StartSagaRequest,
 };
 
 // --- GrpcError -> tonic::Status 変換 ---
@@ -21,9 +46,19 @@ impl From<GrpcError> for Status {
     }
 }
 
+// --- 変換ヘルパー ---
+
+/// RFC3339 文字列を proto Timestamp に変換する。
+fn rfc3339_to_proto_timestamp(s: &str) -> Option<ProtoTimestamp> {
+    chrono::DateTime::parse_from_rfc3339(s).ok().map(|dt| ProtoTimestamp {
+        seconds: dt.timestamp(),
+        nanos: dt.timestamp_subsec_nanos() as i32,
+    })
+}
+
 // --- SagaService tonic ラッパー ---
 
-/// SagaServiceTonic は tonic の gRPC サービスとして SagaGrpcService をラップする。
+/// SagaServiceTonic は tonic の SagaService として SagaGrpcService をラップする。
 pub struct SagaServiceTonic {
     inner: Arc<SagaGrpcService>,
 }
@@ -37,59 +72,170 @@ impl SagaServiceTonic {
     pub fn inner(&self) -> &SagaGrpcService {
         &self.inner
     }
+}
 
-    /// Saga開始。
-    pub async fn start_saga(
+#[async_trait::async_trait]
+impl SagaService for SagaServiceTonic {
+    async fn start_saga(
         &self,
-        request: Request<StartSagaRequest>,
-    ) -> Result<Response<StartSagaResponse>, Status> {
-        let resp = self.inner.start_saga(request.into_inner()).await?;
-        Ok(Response::new(resp))
+        request: Request<ProtoStartSagaRequest>,
+    ) -> Result<Response<ProtoStartSagaResponse>, Status> {
+        let inner = request.into_inner();
+        let req = StartSagaRequest {
+            workflow_name: inner.workflow_name,
+            payload: inner.payload,
+            correlation_id: inner.correlation_id,
+            initiated_by: inner.initiated_by,
+        };
+        let resp = self.inner.start_saga(req).await.map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoStartSagaResponse {
+            saga_id: resp.saga_id,
+            status: resp.status,
+        }))
     }
 
-    /// Saga取得。
-    pub async fn get_saga(
+    async fn get_saga(
         &self,
-        request: Request<GetSagaRequest>,
-    ) -> Result<Response<GetSagaResponse>, Status> {
-        let resp = self.inner.get_saga(request.into_inner()).await?;
-        Ok(Response::new(resp))
+        request: Request<ProtoGetSagaRequest>,
+    ) -> Result<Response<ProtoGetSagaResponse>, Status> {
+        let req = GetSagaRequest {
+            saga_id: request.into_inner().saga_id,
+        };
+        let resp = self.inner.get_saga(req).await.map_err(Into::<Status>::into)?;
+
+        let proto_saga = ProtoSagaState {
+            id: resp.saga.id,
+            workflow_name: resp.saga.workflow_name,
+            current_step: resp.saga.current_step,
+            status: resp.saga.status,
+            payload: resp.saga.payload,
+            correlation_id: resp.saga.correlation_id,
+            initiated_by: resp.saga.initiated_by,
+            error_message: resp.saga.error_message,
+            created_at: rfc3339_to_proto_timestamp(&resp.saga.created_at),
+            updated_at: rfc3339_to_proto_timestamp(&resp.saga.updated_at),
+        };
+
+        let proto_step_logs = resp
+            .step_logs
+            .into_iter()
+            .map(|log| ProtoSagaStepLog {
+                id: log.id,
+                saga_id: log.saga_id,
+                step_index: log.step_index,
+                step_name: log.step_name,
+                action: log.action,
+                status: log.status,
+                request_payload: log.request_payload,
+                response_payload: log.response_payload,
+                error_message: log.error_message,
+                started_at: rfc3339_to_proto_timestamp(&log.started_at),
+                completed_at: if log.completed_at.is_empty() {
+                    None
+                } else {
+                    rfc3339_to_proto_timestamp(&log.completed_at)
+                },
+            })
+            .collect();
+
+        Ok(Response::new(ProtoGetSagaResponse {
+            saga: Some(proto_saga),
+            step_logs: proto_step_logs,
+        }))
     }
 
-    /// Saga一覧取得。
-    pub async fn list_sagas(
+    async fn list_sagas(
         &self,
-        request: Request<ListSagasRequest>,
-    ) -> Result<Response<ListSagasResponse>, Status> {
-        let resp = self.inner.list_sagas(request.into_inner()).await?;
-        Ok(Response::new(resp))
+        request: Request<ProtoListSagasRequest>,
+    ) -> Result<Response<ProtoListSagasResponse>, Status> {
+        let inner = request.into_inner();
+        let (page, page_size) = inner
+            .pagination
+            .map(|p| (p.page, p.page_size))
+            .unwrap_or((1, 20));
+        let req = ListSagasRequest {
+            page,
+            page_size,
+            workflow_name: inner.workflow_name,
+            status: inner.status,
+            correlation_id: inner.correlation_id,
+        };
+        let resp = self.inner.list_sagas(req).await.map_err(Into::<Status>::into)?;
+
+        let proto_sagas = resp
+            .sagas
+            .into_iter()
+            .map(|saga| ProtoSagaState {
+                id: saga.id,
+                workflow_name: saga.workflow_name,
+                current_step: saga.current_step,
+                status: saga.status,
+                payload: saga.payload,
+                correlation_id: saga.correlation_id,
+                initiated_by: saga.initiated_by,
+                error_message: saga.error_message,
+                created_at: rfc3339_to_proto_timestamp(&saga.created_at),
+                updated_at: rfc3339_to_proto_timestamp(&saga.updated_at),
+            })
+            .collect();
+
+        let proto_pagination = Some(ProtoPaginationResult {
+            total_count: resp.total_count as i32,
+            page: resp.page,
+            page_size: resp.page_size,
+            has_next: resp.has_next,
+        });
+
+        Ok(Response::new(ProtoListSagasResponse {
+            sagas: proto_sagas,
+            pagination: proto_pagination,
+        }))
     }
 
-    /// Sagaキャンセル。
-    pub async fn cancel_saga(
+    async fn cancel_saga(
         &self,
-        request: Request<CancelSagaRequest>,
-    ) -> Result<Response<CancelSagaResponse>, Status> {
-        let resp = self.inner.cancel_saga(request.into_inner()).await?;
-        Ok(Response::new(resp))
+        request: Request<ProtoCancelSagaRequest>,
+    ) -> Result<Response<ProtoCancelSagaResponse>, Status> {
+        let req = CancelSagaRequest {
+            saga_id: request.into_inner().saga_id,
+        };
+        let resp = self.inner.cancel_saga(req).await.map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoCancelSagaResponse {
+            success: resp.success,
+            message: resp.message,
+        }))
     }
 
-    /// ワークフロー登録。
-    pub async fn register_workflow(
+    async fn register_workflow(
         &self,
-        request: Request<RegisterWorkflowRequest>,
-    ) -> Result<Response<RegisterWorkflowResponse>, Status> {
-        let resp = self.inner.register_workflow(request.into_inner()).await?;
-        Ok(Response::new(resp))
+        request: Request<ProtoRegisterWorkflowRequest>,
+    ) -> Result<Response<ProtoRegisterWorkflowResponse>, Status> {
+        let req = RegisterWorkflowRequest {
+            workflow_yaml: request.into_inner().workflow_yaml,
+        };
+        let resp = self.inner.register_workflow(req).await.map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoRegisterWorkflowResponse {
+            name: resp.name,
+            step_count: resp.step_count,
+        }))
     }
 
-    /// ワークフロー一覧取得。
-    pub async fn list_workflows(
+    async fn list_workflows(
         &self,
-        request: Request<ListWorkflowsRequest>,
-    ) -> Result<Response<ListWorkflowsResponse>, Status> {
-        let resp = self.inner.list_workflows(request.into_inner()).await?;
-        Ok(Response::new(resp))
+        _request: Request<ProtoListWorkflowsRequest>,
+    ) -> Result<Response<ProtoListWorkflowsResponse>, Status> {
+        let req = ListWorkflowsRequest {};
+        let resp = self.inner.list_workflows(req).await.map_err(Into::<Status>::into)?;
+        let workflows = resp
+            .workflows
+            .into_iter()
+            .map(|wf| ProtoWorkflowSummary {
+                name: wf.name,
+                step_count: wf.step_count,
+                step_names: wf.step_names,
+            })
+            .collect();
+        Ok(Response::new(ProtoListWorkflowsResponse { workflows }))
     }
 }
 
@@ -222,7 +368,7 @@ steps:
             make_dummy_list_workflows_uc(),
         );
 
-        let req = Request::new(StartSagaRequest {
+        let req = Request::new(ProtoStartSagaRequest {
             workflow_name: "test-workflow".to_string(),
             payload: serde_json::to_vec(&serde_json::json!({"order_id": "123"})).unwrap(),
             correlation_id: "corr-001".to_string(),
@@ -252,9 +398,11 @@ steps:
             make_dummy_list_workflows_uc(),
         );
 
-        let req = Request::new(ListSagasRequest {
-            page: 1,
-            page_size: 20,
+        let req = Request::new(ProtoListSagasRequest {
+            pagination: Some(crate::proto::k1s0::system::common::v1::Pagination {
+                page: 1,
+                page_size: 20,
+            }),
             workflow_name: "".to_string(),
             status: "".to_string(),
             correlation_id: "".to_string(),
@@ -263,8 +411,9 @@ steps:
         let resp = svc.list_sagas(req).await.unwrap();
         let inner = resp.into_inner();
         assert!(inner.sagas.is_empty());
-        assert_eq!(inner.total_count, 0);
-        assert!(!inner.has_next);
+        let pagination = inner.pagination.unwrap();
+        assert_eq!(pagination.total_count, 0);
+        assert!(!pagination.has_next);
     }
 
     // --- テスト3: cancel_saga → not found エラー ---
@@ -285,7 +434,7 @@ steps:
         );
 
         let saga_id = uuid::Uuid::new_v4().to_string();
-        let req = Request::new(CancelSagaRequest {
+        let req = Request::new(ProtoCancelSagaRequest {
             saga_id: saga_id.clone(),
         });
 
@@ -352,15 +501,16 @@ steps:
             make_dummy_list_workflows_uc(),
         );
 
-        let req = Request::new(GetSagaRequest {
+        let req = Request::new(ProtoGetSagaRequest {
             saga_id: saga_id.to_string(),
         });
 
         let resp = svc.get_saga(req).await.unwrap();
         let inner = resp.into_inner();
-        assert_eq!(inner.saga.id, saga_id.to_string());
-        assert_eq!(inner.saga.workflow_name, "test-workflow");
-        assert_eq!(inner.saga.status, "STARTED");
+        let saga_proto = inner.saga.unwrap();
+        assert_eq!(saga_proto.id, saga_id.to_string());
+        assert_eq!(saga_proto.workflow_name, "test-workflow");
+        assert_eq!(saga_proto.status, "STARTED");
         assert!(inner.step_logs.is_empty());
     }
 
@@ -392,7 +542,7 @@ steps:
     method: PaymentService.Charge
 "#;
 
-        let req = Request::new(RegisterWorkflowRequest {
+        let req = Request::new(ProtoRegisterWorkflowRequest {
             workflow_yaml: yaml.to_string(),
         });
 
@@ -419,7 +569,7 @@ steps:
             list_workflows_uc,
         );
 
-        let req = Request::new(ListWorkflowsRequest {});
+        let req = Request::new(ProtoListWorkflowsRequest {});
         let resp = svc.list_workflows(req).await.unwrap();
         let inner = resp.into_inner();
         assert!(inner.workflows.is_empty());

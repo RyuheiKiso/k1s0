@@ -1,4 +1,3 @@
-// proto stubs・未接続の gRPC インフラは将来の proto codegen 後に使用される
 #![allow(dead_code, unused_imports)]
 
 use std::net::SocketAddr;
@@ -9,6 +8,7 @@ use tracing::info;
 mod adapter;
 mod domain;
 mod infrastructure;
+mod proto;
 mod usecase;
 
 use adapter::grpc::{AuditGrpcService, AuthGrpcService};
@@ -208,9 +208,13 @@ async fn main() -> anyhow::Result<()> {
         search_audit_logs_uc,
     ));
 
-    // tonic ラッパー（proto 生成後は AuthServiceServer / AuditServiceServer に置換）
-    let _auth_tonic = adapter::grpc::AuthServiceTonic::new(auth_grpc_svc);
-    let _audit_tonic = adapter::grpc::AuditServiceTonic::new(audit_grpc_svc);
+    use proto::k1s0::system::auth::v1::{
+        auth_service_server::AuthServiceServer,
+        audit_service_server::AuditServiceServer,
+    };
+
+    let auth_tonic = adapter::grpc::AuthServiceTonic::new(auth_grpc_svc);
+    let audit_tonic = adapter::grpc::AuditServiceTonic::new(audit_grpc_svc);
 
     // Router
     let app = handler::router(state);
@@ -220,16 +224,12 @@ async fn main() -> anyhow::Result<()> {
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_future = async move {
-        // tonic gRPC サーバーを起動。
-        // proto 生成コード (tonic-build) が揃った後、以下の add_service を有効化：
-        //   .add_service(AuthServiceServer::new(auth_tonic))
-        //   .add_service(AuditServiceServer::new(audit_tonic))
-        //
-        // 現時点では proto 未生成のため gRPC サーバーは待機状態。
-        // proto コード生成後にサービスを登録して起動する。
-        info!("gRPC server placeholder: waiting for proto codegen to register services");
-        // 無限に待機（REST 側で先に終了するまで動き続ける）
-        std::future::pending::<Result<(), anyhow::Error>>().await
+        tonic::transport::Server::builder()
+            .add_service(AuthServiceServer::new(auth_tonic))
+            .add_service(AuditServiceServer::new(audit_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
 
     // REST server

@@ -68,10 +68,6 @@ pub fn router(state: AppState) -> Router {
         .route("/api/v1/users/:id/roles", get(auth_handler::get_user_roles))
         // Auth endpoints (sys_operator以上)
         .route(
-            "/api/v1/auth/token/introspect",
-            post(auth_handler::introspect_token),
-        )
-        .route(
             "/api/v1/auth/permissions/check",
             post(auth_handler::check_permission),
         )
@@ -92,10 +88,14 @@ pub fn router(state: AppState) -> Router {
         .route("/healthz", get(auth_handler::healthz))
         .route("/readyz", get(auth_handler::readyz))
         .route("/metrics", get(auth_handler::metrics))
-        // トークン検証は認証サービス自身なので公開
+        // トークン検証・イントロスペクションは認証サービス自身なので公開 (RFC 7662)
         .route(
             "/api/v1/auth/token/validate",
             post(auth_handler::validate_token),
+        )
+        .route(
+            "/api/v1/auth/token/introspect",
+            post(auth_handler::introspect_token),
         );
 
     Router::new()

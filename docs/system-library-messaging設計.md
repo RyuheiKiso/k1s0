@@ -15,11 +15,11 @@ Kafka イベント発行・購読の抽象化ライブラリ。`EventProducer` �
 | `MockEventProducer` | 構造体 | テスト用モック（feature = "mock" で有効） |
 | `EventEnvelope` | 構造体 | 送信メッセージのラッパー（トピック・キー・バイト列ペイロード・ヘッダー） |
 | `EventMetadata` | 構造体 | イベントID・イベント種別・発行元・タイムスタンプ・トレースID・相関ID・スキーマバージョン |
-| `MessagingConfig` | 構造体 | ブローカー・トピック・コンシューマーグループ設定 |
-| `ConsumerConfig` | 構造体 | グループID・トピックリスト・オートコミット設定 |
-| `ConsumedMessage` | 構造体 | 受信メッセージ（トピック・パーティション・オフセット・キー・ペイロード） |
+| `MessagingConfig` | 構造体 | ブローカー・セキュリティプロトコル・タイムアウト・バッチサイズ設定 |
+| `ConsumerConfig` | 構造体 | グループID・トピックリスト・オートコミット・セッションタイムアウト設定 |
+| `ConsumedMessage` | 構造体 | 受信メッセージ（トピック・パーティション・オフセット・キー(`Option<Vec<u8>>`)・ペイロード） |
 | `EventConsumer` | トレイト | イベント購読インターフェース（`async fn receive` + `async fn commit`） |
-| `MessagingError` | enum | 発行・購読エラー型 |
+| `MessagingError` | enum | ProducerError・ConsumerError・SerializationError・DeserializationError・ConnectionError・TimeoutError |
 
 ## Rust 実装
 
@@ -89,7 +89,7 @@ async fn publish_user_created<P: EventProducer>(
         "k1s0.system.auth.user-created.v1",
         user_id,
         &payload,
-    ).map_err(|e| k1s0_messaging::MessagingError::SerializeError(e.to_string()))?;
+    ).map_err(|e| k1s0_messaging::MessagingError::SerializationError(e.to_string()))?;
     producer.publish(envelope).await
 }
 

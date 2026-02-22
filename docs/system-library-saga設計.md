@@ -10,13 +10,13 @@ Saga パターンクライアントライブラリ。分散トランザクショ
 
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `SagaClient` | 構造体 | Saga サーバーへの REST クライアント |
-| `SagaStatus` | enum | Saga の実行ステータス（`STARTED`・`RUNNING`・`COMPLETED`・`COMPENSATING`・`FAILED`・`CANCELLED`） |
-| `SagaState` | 構造体 | Saga の現在状態（ID・ステータス・ステップログ） |
-| `SagaStepLog` | 構造体 | 各ステップの実行ログ |
-| `StartSagaRequest` | 構造体 | Saga 開始リクエスト（Saga タイプ・ペイロード） |
-| `StartSagaResponse` | 構造体 | Saga 開始レスポンス（Saga ID） |
-| `SagaError` | enum | ネットワーク・デシリアライズ・API エラー型 |
+| `SagaClient` | 構造体 | Saga サーバーへの REST クライアント（HTTP、タイムアウト30秒） |
+| `SagaStatus` | enum | Saga の実行ステータス（`Started`・`Running`・`Completed`・`Compensating`・`Failed`・`Cancelled`、シリアライズ時 SCREAMING_SNAKE_CASE） |
+| `SagaState` | 構造体 | Saga の現在状態（saga_id・workflow_name・current_step・status・payload・correlation_id・initiated_by・error_message・created_at・updated_at） |
+| `SagaStepLog` | 構造体 | 各ステップの実行ログ（id・saga_id・step_index・step_name・action・status・request_payload・response_payload・error_message・started_at・completed_at） |
+| `StartSagaRequest` | 構造体 | Saga 開始リクエスト（workflow_name・payload・correlation_id・initiated_by） |
+| `StartSagaResponse` | 構造体 | Saga 開始レスポンス（saga_id・status） |
+| `SagaError` | enum | NetworkError・DeserializeError・ApiError（status_code + message） |
 
 ## Rust 実装
 
@@ -65,12 +65,15 @@ let client = SagaClient::new("http://saga-server:8080");
 let request = StartSagaRequest {
     workflow_name: "order-fulfillment".to_string(),
     payload: serde_json::json!({ "order_id": "ord-123" }),
+    correlation_id: Some("corr-001".to_string()),
+    initiated_by: Some("order-service".to_string()),
 };
 let response = client.start_saga(&request).await?;
 
 // 状態取得
 let state = client.get_saga(&response.saga_id).await?;
 println!("Status: {:?}", state.status);
+println!("Current step: {}", state.current_step);
 
 // キャンセル
 client.cancel_saga(&response.saga_id).await?;

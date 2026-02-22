@@ -386,7 +386,7 @@ mod tests {
         let mut token_verifier = MockTokenVerifier::new();
         let claims = make_valid_claims();
         let return_claims = claims.clone();
-        // auth_middleware と introspect_token の両方が verify_token を呼ぶため、2回呼ばれる
+        // introspect はpublicエンドポイントのため verify_token は本文トークンに対して1回のみ呼ばれる
         token_verifier
             .expect_verify_token()
             .returning(move |_| Ok(return_claims.clone()));
@@ -423,14 +423,8 @@ mod tests {
     #[tokio::test]
     async fn test_introspect_token_inactive() {
         let mut token_verifier = MockTokenVerifier::new();
-        let claims = make_valid_claims();
-        let return_claims = claims.clone();
-        // auth_middleware の検証は成功させ (Bearer ヘッダー)、
-        // リクエストボディのトークン検証は失敗させる (2回目の呼び出し)
-        token_verifier
-            .expect_verify_token()
-            .times(1)
-            .returning(move |_| Ok(return_claims.clone()));
+        // introspect はpublicエンドポイント (RFC 7662) のため auth_middleware は不要
+        // リクエストボディのトークン検証が失敗すると active: false を返す
         token_verifier
             .expect_verify_token()
             .returning(|_| Err(anyhow::anyhow!("invalid")));
@@ -446,7 +440,6 @@ mod tests {
             .method("POST")
             .uri("/api/v1/auth/token/introspect")
             .header("content-type", "application/json")
-            .header("Authorization", "Bearer valid-jwt-token")
             .body(Body::from(r#"{"token":"expired-token"}"#))
             .unwrap();
 

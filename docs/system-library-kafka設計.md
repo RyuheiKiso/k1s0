@@ -10,11 +10,13 @@ Kafka 接続設定・管理・ヘルスチェックライブラリ。`KafkaConfi
 
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `KafkaConfig` | 構造体 | ブローカーアドレス・TLS・SASL・コンシューマーグループ設定 |
-| `KafkaHealthChecker` | 構造体 | Kafka クラスター疎通確認・ヘルスチェック |
-| `TopicConfig` | 構造体 | トピック名・パーティション数・レプリカ数の設定 |
-| `TopicPartitionInfo` | 構造体 | トピックのパーティション情報（オフセット等） |
-| `KafkaError` | enum | 接続・設定・ヘルスチェックエラー型 |
+| `KafkaConfig` | 構造体 | ブローカーアドレス・セキュリティプロトコル・コンシューマーグループ・タイムアウト・メッセージサイズ設定 |
+| `KafkaConfigBuilder` | 構造体 | `KafkaConfig` のビルダー |
+| `KafkaHealthChecker` | 構造体 | Kafka クラスター設定妥当性確認・ヘルスチェック |
+| `KafkaHealthStatus` | enum | ヘルス状態（`Healthy` / `Unhealthy(String)`） |
+| `TopicConfig` | 構造体 | トピック名・パーティション数・レプリケーションファクター・保持期間の設定 |
+| `TopicPartitionInfo` | 構造体 | トピックのパーティション情報（リーダー・レプリカ・ISR） |
+| `KafkaError` | enum | 接続失敗・トピック未検出・パーティション・設定・タイムアウトエラー型 |
 
 ## Rust 実装
 
@@ -62,21 +64,35 @@ kafka/
 ```rust
 use k1s0_kafka::{KafkaConfig, KafkaHealthChecker, TopicConfig};
 
-// 設定例（SASL_SSL）
+// 設定例（SASL_SSL）- ビルダーパターンで構築
 let config = KafkaConfig::builder()
     .brokers(vec!["kafka:9092".to_string()])
     .consumer_group("auth-service-group")
     .security_protocol("SASL_SSL")
+    .connection_timeout_ms(10000)
+    .request_timeout_ms(60000)
+    .max_message_bytes(2_000_000)
     .build()?;
 
 // ヘルスチェック（設定の妥当性確認）
 let checker = KafkaHealthChecker::new(config.clone());
-checker.check().await?;
+checker.check().await?;  // async 版: KafkaHealthStatus::Healthy を返す
 // 同期チェックも利用可能
 checker.check_config()?;
 
-// トピック命名規則検証（k1s0.<tier>.<service>.<event>.<version>）
-let topic = TopicConfig::new("k1s0.system.auth.user-created.v1")?;
+// TLS 使用判定
+assert!(config.uses_tls());
+// ブローカー文字列取得（rdkafka 用）
+let bootstrap = config.bootstrap_servers();
+
+// トピック設定と命名規則検証（k1s0.{tier}.{domain}.{event-type}.{version}）
+let topic = TopicConfig {
+    name: "k1s0.system.auth.user-created.v1".to_string(),
+    partitions: 3,       // デフォルト: 3
+    replication_factor: 3, // デフォルト: 3
+    retention_ms: 604_800_000, // デフォルト: 7日
+};
+assert!(topic.validate_name());
 ```
 
 ## Go 実装
