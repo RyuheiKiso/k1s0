@@ -1,0 +1,2 @@
+"""k1s0 {{ service_name }} library."""
+from .{{ service_name | snake_case }} import *  # noqa: F401, F403

@@ -1,0 +1,33 @@
+"""{{ service_name }} ライブラリのユニットテスト"""
+import pytest
+
+from k1s0_{{ service_name | snake_case }} import Client, Config
+from k1s0_{{ service_name | snake_case }}.exceptions import {{ service_name | pascal_case }}Error
+
+
+def test_client_creates_successfully() -> None:
+    """クライアントが正常に作成できること。"""
+    config = Config(name="test")
+    client = Client(config)
+    assert client.name == "test"
+
+
+def test_config_validate_raises_on_empty_name() -> None:
+    """空の名前でバリデーションエラーが発生すること。"""
+    config = Config(name="")
+    with pytest.raises({{ service_name | pascal_case }}Error) as exc_info:
+        config.validate()
+    assert exc_info.value.code == "INVALID_CONFIG"
+
+
+def test_config_validate_passes_with_valid_name() -> None:
+    """有効な名前でバリデーションが通ること。"""
+    config = Config(name="valid")
+    config.validate()  # Should not raise
+
+
+def test_error_str_format() -> None:
+    """エラーの文字列表現が正しいこと。"""
+    error = {{ service_name | pascal_case }}Error(code="TEST", message="test error")
+    assert "TEST" in str(error)
+    assert error.code == "TEST"
