@@ -14,12 +14,30 @@ use crate::infrastructure::cache::ConfigCache;
 pub struct CachedConfigRepository {
     inner: Arc<dyn ConfigRepository>,
     cache: Arc<ConfigCache>,
+    metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
 }
 
 impl CachedConfigRepository {
     /// 新しい CachedConfigRepository を作成する。
     pub fn new(inner: Arc<dyn ConfigRepository>, cache: Arc<ConfigCache>) -> Self {
-        Self { inner, cache }
+        Self {
+            inner,
+            cache,
+            metrics: None,
+        }
+    }
+
+    /// メトリクス付きの CachedConfigRepository を作成する。
+    pub fn with_metrics(
+        inner: Arc<dyn ConfigRepository>,
+        cache: Arc<ConfigCache>,
+        metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    ) -> Self {
+        Self {
+            inner,
+            cache,
+            metrics: Some(metrics),
+        }
     }
 }
 
@@ -34,7 +52,14 @@ impl ConfigRepository for CachedConfigRepository {
     ) -> anyhow::Result<Option<ConfigEntry>> {
         // キャッシュヒット確認
         if let Some(cached) = self.cache.get(namespace, key).await {
+            if let Some(ref m) = self.metrics {
+                m.record_cache_hit("config_entries");
+            }
             return Ok(Some((*cached).clone()));
+        }
+
+        if let Some(ref m) = self.metrics {
+            m.record_cache_miss("config_entries");
         }
 
         // キャッシュミス: DBから取得

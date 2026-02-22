@@ -1,12 +1,20 @@
-use prometheus::{CounterVec, Encoder, HistogramOpts, HistogramVec, Opts, Registry, TextEncoder};
+use prometheus::{
+    CounterVec, Encoder, HistogramOpts, HistogramVec, IntCounterVec, Opts, Registry, TextEncoder,
+};
 
 /// Metrics は Prometheus メトリクスのヘルパー構造体である。
-/// RED メソッド（Rate, Errors, Duration）のメトリクスを提供する。
+/// RED メソッド（Rate, Errors, Duration）のメトリクスに加え、
+/// DB クエリ、Kafka、キャッシュのメトリクスも提供する。
 pub struct Metrics {
     pub http_requests_total: Option<CounterVec>,
     pub http_request_duration: Option<HistogramVec>,
     pub grpc_handled_total: Option<CounterVec>,
     pub grpc_handling_duration: Option<HistogramVec>,
+    pub db_query_duration: Option<HistogramVec>,
+    pub kafka_messages_produced_total: Option<IntCounterVec>,
+    pub kafka_messages_consumed_total: Option<IntCounterVec>,
+    pub cache_hits_total: Option<IntCounterVec>,
+    pub cache_misses_total: Option<IntCounterVec>,
     registry: Registry,
 }
 
@@ -60,6 +68,51 @@ impl Metrics {
         )
         .expect("failed to create grpc_server_handling_seconds histogram");
 
+        let db_query_duration = HistogramVec::new(
+            HistogramOpts::new(
+                "db_query_duration_seconds",
+                "Histogram of database query latency",
+            )
+            .const_label("service", service_name)
+            .buckets(DEFAULT_BUCKETS.to_vec()),
+            &["query_name", "table"],
+        )
+        .expect("failed to create db_query_duration histogram");
+
+        let kafka_messages_produced_total = IntCounterVec::new(
+            Opts::new(
+                "kafka_messages_produced_total",
+                "Total number of Kafka messages produced",
+            )
+            .const_label("service", service_name),
+            &["topic"],
+        )
+        .expect("failed to create kafka_messages_produced_total counter");
+
+        let kafka_messages_consumed_total = IntCounterVec::new(
+            Opts::new(
+                "kafka_messages_consumed_total",
+                "Total number of Kafka messages consumed",
+            )
+            .const_label("service", service_name),
+            &["topic", "consumer_group"],
+        )
+        .expect("failed to create kafka_messages_consumed_total counter");
+
+        let cache_hits_total = IntCounterVec::new(
+            Opts::new("cache_hits_total", "Total number of cache hits")
+                .const_label("service", service_name),
+            &["cache_name"],
+        )
+        .expect("failed to create cache_hits_total counter");
+
+        let cache_misses_total = IntCounterVec::new(
+            Opts::new("cache_misses_total", "Total number of cache misses")
+                .const_label("service", service_name),
+            &["cache_name"],
+        )
+        .expect("failed to create cache_misses_total counter");
+
         registry
             .register(Box::new(http_requests_total.clone()))
             .expect("failed to register http_requests_total");
@@ -72,12 +125,32 @@ impl Metrics {
         registry
             .register(Box::new(grpc_handling_duration.clone()))
             .expect("failed to register grpc_handling_duration");
+        registry
+            .register(Box::new(db_query_duration.clone()))
+            .expect("failed to register db_query_duration");
+        registry
+            .register(Box::new(kafka_messages_produced_total.clone()))
+            .expect("failed to register kafka_messages_produced_total");
+        registry
+            .register(Box::new(kafka_messages_consumed_total.clone()))
+            .expect("failed to register kafka_messages_consumed_total");
+        registry
+            .register(Box::new(cache_hits_total.clone()))
+            .expect("failed to register cache_hits_total");
+        registry
+            .register(Box::new(cache_misses_total.clone()))
+            .expect("failed to register cache_misses_total");
 
         Self {
             http_requests_total: Some(http_requests_total),
             http_request_duration: Some(http_request_duration),
             grpc_handled_total: Some(grpc_handled_total),
             grpc_handling_duration: Some(grpc_handling_duration),
+            db_query_duration: Some(db_query_duration),
+            kafka_messages_produced_total: Some(kafka_messages_produced_total),
+            kafka_messages_consumed_total: Some(kafka_messages_consumed_total),
+            cache_hits_total: Some(cache_hits_total),
+            cache_misses_total: Some(cache_misses_total),
             registry,
         }
     }
@@ -111,6 +184,50 @@ impl Metrics {
             histogram
                 .with_label_values(&[service, method])
                 .observe(duration_secs);
+        }
+    }
+
+    /// record_db_query_duration は DB クエリのレイテンシをヒストグラムに記録する。
+    pub fn record_db_query_duration(
+        &self,
+        query_name: &str,
+        table: &str,
+        duration_secs: f64,
+    ) {
+        if let Some(ref histogram) = self.db_query_duration {
+            histogram
+                .with_label_values(&[query_name, table])
+                .observe(duration_secs);
+        }
+    }
+
+    /// record_kafka_message_produced は Kafka メッセージ送信カウンタをインクリメントする。
+    pub fn record_kafka_message_produced(&self, topic: &str) {
+        if let Some(ref counter) = self.kafka_messages_produced_total {
+            counter.with_label_values(&[topic]).inc();
+        }
+    }
+
+    /// record_kafka_message_consumed は Kafka メッセージ受信カウンタをインクリメントする。
+    pub fn record_kafka_message_consumed(&self, topic: &str, consumer_group: &str) {
+        if let Some(ref counter) = self.kafka_messages_consumed_total {
+            counter
+                .with_label_values(&[topic, consumer_group])
+                .inc();
+        }
+    }
+
+    /// record_cache_hit はキャッシュヒットカウンタをインクリメントする。
+    pub fn record_cache_hit(&self, cache_name: &str) {
+        if let Some(ref counter) = self.cache_hits_total {
+            counter.with_label_values(&[cache_name]).inc();
+        }
+    }
+
+    /// record_cache_miss はキャッシュミスカウンタをインクリメントする。
+    pub fn record_cache_miss(&self, cache_name: &str) {
+        if let Some(ref counter) = self.cache_misses_total {
+            counter.with_label_values(&[cache_name]).inc();
         }
     }
 

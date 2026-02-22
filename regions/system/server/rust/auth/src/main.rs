@@ -232,10 +232,13 @@ async fn main() -> anyhow::Result<()> {
         .as_ref()
         .map(|kc| format!("{}/realms/{}", kc.base_url, kc.realm));
 
+    // Metrics (shared across layers and repositories)
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server"));
+
     // User repository (PostgreSQL > Keycloak > Stub)
     let keycloak_config = cfg.keycloak.take();
     let user_repo: Arc<dyn domain::repository::UserRepository> = if let Some(ref pool) = db_pool {
-        Arc::new(UserPostgresRepository::new(pool.clone()))
+        Arc::new(UserPostgresRepository::with_metrics(pool.clone(), metrics.clone()))
     } else if let Some(kc_config) = keycloak_config {
         Arc::new(KeycloakClient::new(kc_config))
     } else {
@@ -245,7 +248,7 @@ async fn main() -> anyhow::Result<()> {
     // Audit log repository (PostgreSQL or in-memory)
     let audit_repo: Arc<dyn domain::repository::AuditLogRepository> =
         if let Some(ref pool) = db_pool {
-            Arc::new(AuditLogPostgresRepository::new(pool.clone()))
+            Arc::new(AuditLogPostgresRepository::with_metrics(pool.clone(), metrics.clone()))
         } else {
             Arc::new(InMemoryAuditLogRepository::new())
         };
@@ -317,9 +320,6 @@ async fn main() -> anyhow::Result<()> {
 
     let auth_tonic = adapter::grpc::AuthServiceTonic::new(auth_grpc_svc);
     let audit_tonic = adapter::grpc::AuditServiceTonic::new(audit_grpc_svc);
-
-    // Metrics for layers
-    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server"));
 
     // Router
     let app = handler::router(state)

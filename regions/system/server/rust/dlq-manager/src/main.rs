@@ -61,6 +61,9 @@ async fn main() -> anyhow::Result<()> {
         None
     };
 
+    // Metrics (shared across layers and Kafka producers/consumers)
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-dlq-manager"));
+
     // DLQ message repository
     let dlq_repo: Arc<dyn domain::repository::DlqMessageRepository> =
         if let Some(ref pool) = db_pool {
@@ -75,7 +78,7 @@ async fn main() -> anyhow::Result<()> {
             match infrastructure::kafka::producer::DlqKafkaProducer::new(kafka_config) {
                 Ok(producer) => {
                     info!("kafka producer initialized");
-                    Some(Arc::new(producer))
+                    Some(Arc::new(producer.with_metrics(metrics.clone())))
                 }
                 Err(e) => {
                     tracing::warn!(error = %e, "failed to create kafka producer, retries will resolve messages without republishing");
@@ -92,6 +95,7 @@ async fn main() -> anyhow::Result<()> {
         match infrastructure::kafka::consumer::DlqKafkaConsumer::new(kafka_config, dlq_repo.clone())
         {
             Ok(consumer) => {
+                let consumer = consumer.with_metrics(metrics.clone());
                 info!("kafka consumer initialized, starting background ingestion");
                 tokio::spawn(async move {
                     if let Err(e) = consumer.run().await {
@@ -114,9 +118,6 @@ async fn main() -> anyhow::Result<()> {
     ));
     let delete_message_uc = Arc::new(usecase::DeleteMessageUseCase::new(dlq_repo.clone()));
     let retry_all_uc = Arc::new(usecase::RetryAllUseCase::new(dlq_repo.clone(), publisher));
-
-    // Metrics
-    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-dlq-manager"));
 
     // AppState
     let state = AppState {
