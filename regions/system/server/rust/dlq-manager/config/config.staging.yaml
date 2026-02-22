@@ -1,0 +1,23 @@
+app:
+  name: "dlq-manager"
+  version: "0.1.0"
+  environment: "staging"
+server:
+  host: "0.0.0.0"
+  port: 8080
+database:
+  host: "postgres.k1s0-system-staging.svc.cluster.local"
+  port: 5432
+  name: "k1s0_dlq"
+  user: "app"
+  password: ""
+  ssl_mode: "disable"
+  max_open_conns: 15
+  max_idle_conns: 3
+  conn_max_lifetime: "5m"
+kafka:
+  brokers:
+    - "kafka-0.messaging-staging.svc.cluster.local:9092"
+  consumer_group: "dlq-manager.staging"
+  security_protocol: "PLAINTEXT"
+  dlq_topic_pattern: "*.dlq.v1"

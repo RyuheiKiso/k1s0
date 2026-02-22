@@ -110,4 +110,41 @@ describe('SagaClient', () => {
       await expect(client.cancelSaga('saga-789')).rejects.toThrow(SagaError);
     });
   });
+
+  describe('startSaga with optional fields', () => {
+    it('correlationId を含むリクエストを送信する', async () => {
+      mockFetch.mockReturnValueOnce(okResponse({ saga_id: 'saga-corr' }));
+
+      const resp = await client.startSaga({
+        workflowName: 'order-create',
+        payload: {},
+        correlationId: 'corr-abc',
+      });
+      expect(resp.sagaId).toBe('saga-corr');
+      const call = mockFetch.mock.calls[0];
+      const body = JSON.parse(call[1].body);
+      expect(body.correlation_id).toBe('corr-abc');
+    });
+
+    it('initiatedBy を含むリクエストを送信する', async () => {
+      mockFetch.mockReturnValueOnce(okResponse({ saga_id: 'saga-init' }));
+
+      await client.startSaga({
+        workflowName: 'order-create',
+        payload: {},
+        initiatedBy: 'user-admin',
+      });
+      const call = mockFetch.mock.calls[0];
+      const body = JSON.parse(call[1].body);
+      expect(body.initiated_by).toBe('user-admin');
+    });
+
+    it('409 コンフリクトで SagaError を投げる', async () => {
+      mockFetch.mockReturnValueOnce(errorResponse(409, 'conflict'));
+
+      await expect(
+        client.startSaga({ workflowName: 'test', payload: {} }),
+      ).rejects.toThrow(SagaError);
+    });
+  });
 });
