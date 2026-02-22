@@ -1,3 +1,6 @@
+// proto stubs・未接続の gRPC インフラは将来の proto codegen 後に使用される
+#![allow(dead_code, unused_imports)]
+
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -26,8 +29,7 @@ async fn main() -> anyhow::Result<()> {
         sample_rate: 1.0,
         log_level: "info".to_string(),
     };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .expect("failed to init telemetry");
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
     // Config
     let config_path =
@@ -54,9 +56,11 @@ async fn main() -> anyhow::Result<()> {
             // キャッシュでラップ（TTL 300秒、最大10000エントリ）
             let cache = Arc::new(infrastructure::cache::ConfigCache::new(10_000, 300));
             info!("config cache initialized (max_capacity=10000, ttl=300s)");
-            Arc::new(adapter::repository::cached_config_repository::CachedConfigRepository::new(
-                pg_repo, cache,
-            ))
+            Arc::new(
+                adapter::repository::cached_config_repository::CachedConfigRepository::new(
+                    pg_repo, cache,
+                ),
+            )
         } else if let Some(ref db_cfg) = cfg.database {
             info!("connecting to PostgreSQL via config...");
             let pool = sqlx::postgres::PgPoolOptions::new()
@@ -68,9 +72,11 @@ async fn main() -> anyhow::Result<()> {
             // キャッシュでラップ（TTL 300秒、最大10000エントリ）
             let cache = Arc::new(infrastructure::cache::ConfigCache::new(10_000, 300));
             info!("config cache initialized (max_capacity=10000, ttl=300s)");
-            Arc::new(adapter::repository::cached_config_repository::CachedConfigRepository::new(
-                pg_repo, cache,
-            ))
+            Arc::new(
+                adapter::repository::cached_config_repository::CachedConfigRepository::new(
+                    pg_repo, cache,
+                ),
+            )
         } else {
             info!("no database configured, using in-memory repository");
             Arc::new(InMemoryConfigRepository::new())
@@ -122,9 +128,7 @@ async fn main() -> anyhow::Result<()> {
     // AppState (REST handler 用) - Kafka通知付きで構築
     let state = adapter::handler::AppState {
         get_config_uc: std::sync::Arc::new(usecase::GetConfigUseCase::new(config_repo.clone())),
-        list_configs_uc: std::sync::Arc::new(usecase::ListConfigsUseCase::new(
-            config_repo.clone(),
-        )),
+        list_configs_uc: std::sync::Arc::new(usecase::ListConfigsUseCase::new(config_repo.clone())),
         update_config_uc: if let Some(ref producer) = kafka_producer {
             std::sync::Arc::new(usecase::UpdateConfigUseCase::new_with_kafka(
                 config_repo.clone(),
@@ -139,9 +143,7 @@ async fn main() -> anyhow::Result<()> {
         get_service_config_uc: std::sync::Arc::new(usecase::GetServiceConfigUseCase::new(
             config_repo.clone(),
         )),
-        metrics: std::sync::Arc::new(k1s0_telemetry::metrics::Metrics::new(
-            "k1s0-config-server",
-        )),
+        metrics: std::sync::Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-config-server")),
     };
 
     // Router
@@ -289,10 +291,7 @@ impl domain::repository::ConfigRepository for InMemoryConfigRepository {
         match entry {
             Some(e) => {
                 if e.version != expected_version {
-                    return Err(anyhow::anyhow!(
-                        "version conflict: current={}",
-                        e.version
-                    ));
+                    return Err(anyhow::anyhow!("version conflict: current={}", e.version));
                 }
                 e.value_json = value_json.clone();
                 e.version += 1;
@@ -303,11 +302,7 @@ impl domain::repository::ConfigRepository for InMemoryConfigRepository {
                 e.updated_at = chrono::Utc::now();
                 Ok(e.clone())
             }
-            None => Err(anyhow::anyhow!(
-                "config not found: {}/{}",
-                namespace,
-                key
-            )),
+            None => Err(anyhow::anyhow!("config not found: {}/{}", namespace, key)),
         }
     }
 

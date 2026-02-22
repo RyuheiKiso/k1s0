@@ -28,9 +28,7 @@ pub async fn readyz() -> impl IntoResponse {
 }
 
 /// GET /metrics
-pub async fn metrics(
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+pub async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
     let body = state.metrics.gather_metrics();
     (
         StatusCode::OK,
@@ -68,9 +66,7 @@ pub async fn list_configs(
     Query(params): Query<ListConfigsParams>,
 ) -> impl IntoResponse {
     match state.list_configs_uc.execute(&namespace, &params).await {
-        Ok(result) => {
-            (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response()
-        }
+        Ok(result) => (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response(),
         Err(e) => e.into_response(),
     }
 }
@@ -134,9 +130,7 @@ pub async fn get_service_config(
     Path(service_name): Path<String>,
 ) -> impl IntoResponse {
     match state.get_service_config_uc.execute(&service_name).await {
-        Ok(result) => {
-            (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response()
-        }
+        Ok(result) => (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response(),
         Err(e) => e.into_response(),
     }
 }
@@ -374,9 +368,7 @@ mod tests {
     async fn test_update_config_version_conflict() {
         let mut mock = MockConfigRepository::new();
         mock.expect_update()
-            .returning(|_, _, _, _, _, _| {
-                Err(anyhow::anyhow!("version conflict: current=4"))
-            });
+            .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("version conflict: current=4")));
 
         let state = make_app_state(mock);
         let app = router(state);
@@ -421,8 +413,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_config_not_found() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_delete()
-            .returning(|_, _| Ok(false));
+        mock.expect_delete().returning(|_, _| Ok(false));
 
         let state = make_app_state(mock);
         let app = router(state);

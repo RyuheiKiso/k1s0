@@ -99,9 +99,7 @@ impl AuditEventPublisher for KafkaProducer {
         let payload = serde_json::to_vec(event)?;
         let key = &event.user_id;
 
-        let record = FutureRecord::to(&self.topic)
-            .key(key)
-            .payload(&payload);
+        let record = FutureRecord::to(&self.topic).key(key).payload(&payload);
 
         self.producer
             .send(record, Duration::from_secs(5))

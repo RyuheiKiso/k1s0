@@ -113,13 +113,12 @@ mod tests {
     #[tokio::test]
     async fn test_get_service_config_empty_entries() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_find_by_service_name()
-            .returning(|name| {
-                Ok(ServiceConfigResult {
-                    service_name: name.to_string(),
-                    entries: vec![],
-                })
-            });
+        mock.expect_find_by_service_name().returning(|name| {
+            Ok(ServiceConfigResult {
+                service_name: name.to_string(),
+                entries: vec![],
+            })
+        });
 
         let uc = GetServiceConfigUseCase::new(Arc::new(mock));
         let result = uc.execute("empty-service").await;

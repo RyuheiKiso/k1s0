@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 # .github/workflows/config-deploy.yaml
 # Deploy pipeline for config server
 # Triggered on push to main with changes in config server paths

@@ -95,13 +95,11 @@ impl UserRepository for TestUserRepository {
         if user_id == "existing-user" {
             Ok(UserRoles {
                 user_id: "existing-user".to_string(),
-                realm_roles: vec![
-                    Role {
-                        id: "role-1".to_string(),
-                        name: "user".to_string(),
-                        description: "General user".to_string(),
-                    },
-                ],
+                realm_roles: vec![Role {
+                    id: "role-1".to_string(),
+                    name: "user".to_string(),
+                    description: "General user".to_string(),
+                }],
                 client_roles: std::collections::HashMap::new(),
             })
         } else {
@@ -129,10 +127,7 @@ impl AuditLogRepository for TestAuditLogRepository {
         Ok(())
     }
 
-    async fn search(
-        &self,
-        params: &AuditLogSearchParams,
-    ) -> anyhow::Result<(Vec<AuditLog>, i64)> {
+    async fn search(&self, params: &AuditLogSearchParams) -> anyhow::Result<(Vec<AuditLog>, i64)> {
         let logs = self.logs.read().await;
         let filtered: Vec<_> = logs
             .iter()
@@ -270,6 +265,7 @@ async fn test_user_crud_flow() {
     // get user
     let req = Request::builder()
         .uri("/api/v1/users/existing-user")
+        .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .unwrap();
     let resp = app.clone().oneshot(req).await.unwrap();
@@ -284,6 +280,7 @@ async fn test_user_crud_flow() {
     // get non-existent user
     let req = Request::builder()
         .uri("/api/v1/users/nonexistent")
+        .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .unwrap();
     let resp = app.clone().oneshot(req).await.unwrap();
@@ -292,6 +289,7 @@ async fn test_user_crud_flow() {
     // list users
     let req = Request::builder()
         .uri("/api/v1/users")
+        .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .unwrap();
     let resp = app.clone().oneshot(req).await.unwrap();
@@ -300,11 +298,12 @@ async fn test_user_crud_flow() {
         .await
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert!(json["users"].as_array().unwrap().len() > 0);
+    assert!(!json["users"].as_array().unwrap().is_empty());
 
     // get user roles
     let req = Request::builder()
         .uri("/api/v1/users/existing-user/roles")
+        .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .unwrap();
     let resp = app.oneshot(req).await.unwrap();
@@ -347,6 +346,7 @@ async fn test_audit_log_record_and_search_flow() {
         .method("POST")
         .uri("/api/v1/audit/logs")
         .header("content-type", "application/json")
+        .header("Authorization", "Bearer test-token")
         .body(Body::from(serde_json::to_string(&body).unwrap()))
         .unwrap();
     let resp = app.clone().oneshot(req).await.unwrap();
@@ -360,6 +360,7 @@ async fn test_audit_log_record_and_search_flow() {
     // Search audit logs
     let req = Request::builder()
         .uri("/api/v1/audit/logs?user_id=user-uuid-1234")
+        .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .unwrap();
     let resp = app.clone().oneshot(req).await.unwrap();
@@ -390,6 +391,7 @@ async fn test_audit_log_validation_errors() {
         .method("POST")
         .uri("/api/v1/audit/logs")
         .header("content-type", "application/json")
+        .header("Authorization", "Bearer test-token")
         .body(Body::from(serde_json::to_string(&body).unwrap()))
         .unwrap();
     let resp = app.clone().oneshot(req).await.unwrap();
@@ -409,6 +411,7 @@ async fn test_audit_log_validation_errors() {
         .method("POST")
         .uri("/api/v1/audit/logs")
         .header("content-type", "application/json")
+        .header("Authorization", "Bearer test-token")
         .body(Body::from(serde_json::to_string(&body).unwrap()))
         .unwrap();
     let resp = app.oneshot(req).await.unwrap();

@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -6,6 +8,7 @@ use tracing::info;
 mod adapter;
 mod domain;
 mod infrastructure;
+mod proto;
 mod usecase;
 
 use adapter::grpc::{SagaGrpcService, SagaServiceTonic};
@@ -73,13 +76,17 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Workflow repository
-    let workflow_loader = infrastructure::workflow_loader::WorkflowLoader::new(&cfg.saga.workflow_dir);
+    let workflow_loader =
+        infrastructure::workflow_loader::WorkflowLoader::new(&cfg.saga.workflow_dir);
     let loaded_definitions = workflow_loader.load_all().await?;
     let workflow_repo = Arc::new(InMemoryWorkflowRepository::new());
     for workflow in &loaded_definitions {
         workflow_repo.register(workflow.clone()).await?;
     }
-    info!(count = loaded_definitions.len(), "workflow definitions loaded from directory via WorkflowLoader");
+    info!(
+        count = loaded_definitions.len(),
+        "workflow definitions loaded from directory via WorkflowLoader"
+    );
 
     // Service registry + gRPC caller
     let registry = Arc::new(ServiceRegistry::new(cfg.services.clone()));
@@ -158,7 +165,9 @@ async fn main() -> anyhow::Result<()> {
         state.register_workflow_uc.clone(),
         state.list_workflows_uc.clone(),
     ));
-    let _saga_tonic = SagaServiceTonic::new(saga_grpc_svc);
+    use proto::k1s0::system::saga::v1::saga_service_server::SagaServiceServer;
+
+    let saga_tonic = SagaServiceTonic::new(saga_grpc_svc);
 
     // Router
     let app = handler::router(state);
@@ -168,8 +177,11 @@ async fn main() -> anyhow::Result<()> {
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_future = async move {
-        info!("gRPC server placeholder: waiting for proto codegen to register services");
-        std::future::pending::<Result<(), anyhow::Error>>().await
+        tonic::transport::Server::builder()
+            .add_service(SagaServiceServer::new(saga_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
 
     // REST server

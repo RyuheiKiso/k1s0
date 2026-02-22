@@ -1,4 +1,4 @@
-replicaCount: 3
+replicaCount: 2
 
 resources:
   requests:
@@ -10,7 +10,7 @@ resources:
 
 autoscaling:
   enabled: true
-  minReplicas: 3
+  minReplicas: 2
   maxReplicas: 10
 
 affinity:
@@ -29,6 +29,10 @@ config:
     config.yaml: |
       app:
         environment: prod
+      database:
+        host: postgres.k1s0-system.svc.cluster.local
+        ssl_mode: verify-full
+        max_open_conns: 50
       observability:
         log:
           level: warn

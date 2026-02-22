@@ -37,7 +37,9 @@ impl AuthDomainService {
 
     /// 指定されたロールが sys_operator 以上の権限を持つかを判定する。
     pub fn is_operator_or_above(roles: &[String]) -> bool {
-        roles.iter().any(|r| r == "sys_admin" || r == "sys_operator")
+        roles
+            .iter()
+            .any(|r| r == "sys_admin" || r == "sys_operator")
     }
 
     /// 指定されたロールが sys_auditor 以上の権限を持つかを判定する。
@@ -201,34 +203,46 @@ mod tests {
 
     #[test]
     fn test_is_operator_or_above_admin() {
-        assert!(AuthDomainService::is_operator_or_above(&roles(&["sys_admin"])));
+        assert!(AuthDomainService::is_operator_or_above(&roles(&[
+            "sys_admin"
+        ])));
     }
 
     #[test]
     fn test_is_operator_or_above_operator() {
-        assert!(AuthDomainService::is_operator_or_above(&roles(&["sys_operator"])));
+        assert!(AuthDomainService::is_operator_or_above(&roles(&[
+            "sys_operator"
+        ])));
     }
 
     #[test]
     fn test_is_operator_or_above_auditor_false() {
-        assert!(!AuthDomainService::is_operator_or_above(&roles(&["sys_auditor"])));
+        assert!(!AuthDomainService::is_operator_or_above(&roles(&[
+            "sys_auditor"
+        ])));
     }
 
     // --- is_auditor_or_above tests ---
 
     #[test]
     fn test_is_auditor_or_above_admin() {
-        assert!(AuthDomainService::is_auditor_or_above(&roles(&["sys_admin"])));
+        assert!(AuthDomainService::is_auditor_or_above(&roles(&[
+            "sys_admin"
+        ])));
     }
 
     #[test]
     fn test_is_auditor_or_above_operator() {
-        assert!(AuthDomainService::is_auditor_or_above(&roles(&["sys_operator"])));
+        assert!(AuthDomainService::is_auditor_or_above(&roles(&[
+            "sys_operator"
+        ])));
     }
 
     #[test]
     fn test_is_auditor_or_above_auditor() {
-        assert!(AuthDomainService::is_auditor_or_above(&roles(&["sys_auditor"])));
+        assert!(AuthDomainService::is_auditor_or_above(&roles(&[
+            "sys_auditor"
+        ])));
     }
 
     #[test]

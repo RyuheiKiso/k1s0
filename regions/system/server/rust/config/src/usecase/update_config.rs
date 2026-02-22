@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::config_entry::ConfigEntry;
 use crate::domain::repository::ConfigRepository;
 use crate::infrastructure::kafka_producer::{ConfigChangedEvent, KafkaProducer};
+use crate::usecase::watch_config::ConfigChangeEvent;
 
 /// UpdateConfigError は設定値更新に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
@@ -35,6 +36,7 @@ pub struct UpdateConfigInput {
 pub struct UpdateConfigUseCase {
     config_repo: Arc<dyn ConfigRepository>,
     kafka_producer: Option<Arc<KafkaProducer>>,
+    watch_sender: Option<tokio::sync::broadcast::Sender<ConfigChangeEvent>>,
 }
 
 impl UpdateConfigUseCase {
@@ -43,6 +45,7 @@ impl UpdateConfigUseCase {
         Self {
             config_repo,
             kafka_producer: None,
+            watch_sender: None,
         }
     }
 
@@ -54,13 +57,43 @@ impl UpdateConfigUseCase {
         Self {
             config_repo,
             kafka_producer: Some(kafka_producer),
+            watch_sender: None,
+        }
+    }
+
+    /// broadcast watch sender ありのコンストラクタ。
+    /// watch_sender を指定すると、更新成功後に ConfigChangeEvent が全購読者に送信される。
+    pub fn new_with_watch(
+        config_repo: Arc<dyn ConfigRepository>,
+        watch_sender: tokio::sync::broadcast::Sender<ConfigChangeEvent>,
+    ) -> Self {
+        Self {
+            config_repo,
+            kafka_producer: None,
+            watch_sender: Some(watch_sender),
+        }
+    }
+
+    /// Kafka 通知と broadcast watch sender の両方を持つコンストラクタ。
+    pub fn new_with_kafka_and_watch(
+        config_repo: Arc<dyn ConfigRepository>,
+        kafka_producer: Arc<KafkaProducer>,
+        watch_sender: tokio::sync::broadcast::Sender<ConfigChangeEvent>,
+    ) -> Self {
+        Self {
+            config_repo,
+            kafka_producer: Some(kafka_producer),
+            watch_sender: Some(watch_sender),
         }
     }
 
     /// 設定値を更新する（楽観的排他制御付き）。
     /// 更新成功後、Kafka プロデューサーが設定されていれば変更イベントを発行する。
     /// Kafka への通知はベストエフォートであり、失敗してもエラーにしない。
-    pub async fn execute(&self, input: &UpdateConfigInput) -> Result<ConfigEntry, UpdateConfigError> {
+    pub async fn execute(
+        &self,
+        input: &UpdateConfigInput,
+    ) -> Result<ConfigEntry, UpdateConfigError> {
         // バリデーション
         if input.namespace.is_empty() {
             return Err(UpdateConfigError::Validation(
@@ -68,9 +101,7 @@ impl UpdateConfigUseCase {
             ));
         }
         if input.key.is_empty() {
-            return Err(UpdateConfigError::Validation(
-                "key is required".to_string(),
-            ));
+            return Err(UpdateConfigError::Validation("key is required".to_string()));
         }
 
         let updated_entry = self
@@ -118,6 +149,19 @@ impl UpdateConfigUseCase {
             }
         }
 
+        // broadcast watch 変更通知（ベストエフォート）
+        if let Some(sender) = &self.watch_sender {
+            let watch_event = ConfigChangeEvent {
+                namespace: updated_entry.namespace.clone(),
+                key: updated_entry.key.clone(),
+                value_json: updated_entry.value_json.clone(),
+                updated_by: updated_entry.updated_by.clone(),
+                version: updated_entry.version,
+            };
+            // 受信者なしエラーは無視（ベストエフォート）
+            let _ = sender.send(watch_event);
+        }
+
         Ok(updated_entry)
     }
 }
@@ -128,7 +172,11 @@ fn parse_current_version(msg: &str) -> Option<i32> {
     msg.split("current=")
         .nth(1)
         .and_then(|s| s.split_whitespace().next())
-        .and_then(|s| s.trim_end_matches(|c: char| !c.is_ascii_digit()).parse().ok())
+        .and_then(|s| {
+            s.trim_end_matches(|c: char| !c.is_ascii_digit())
+                .parse()
+                .ok()
+        })
 }
 
 #[cfg(test)]
@@ -209,9 +257,7 @@ mod tests {
     async fn test_update_config_version_conflict() {
         let mut mock = MockConfigRepository::new();
         mock.expect_update()
-            .returning(|_, _, _, _, _, _| {
-                Err(anyhow::anyhow!("version conflict: current=4"))
-            });
+            .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("version conflict: current=4")));
 
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
         let result = uc.execute(&make_update_input()).await;
@@ -290,8 +336,14 @@ mod tests {
 
     #[test]
     fn test_parse_current_version() {
-        assert_eq!(parse_current_version("version conflict: current=4"), Some(4));
-        assert_eq!(parse_current_version("version conflict: current=10"), Some(10));
+        assert_eq!(
+            parse_current_version("version conflict: current=4"),
+            Some(4)
+        );
+        assert_eq!(
+            parse_current_version("version conflict: current=10"),
+            Some(10)
+        );
         assert_eq!(parse_current_version("no version info"), None);
     }
 
@@ -327,11 +379,95 @@ mod tests {
         // KafkaConfig を直接構築してテスト（接続は行わない）
         // ここでは型検証のみ: new_with_kafka のシグネチャが正しいことを確認する
         let _ = |producer: Arc<KafkaProducer>| {
-            let uc = UpdateConfigUseCase::new_with_kafka(Arc::new(MockConfigRepository::new()), producer);
+            let uc = UpdateConfigUseCase::new_with_kafka(
+                Arc::new(MockConfigRepository::new()),
+                producer,
+            );
             assert!(uc.kafka_producer.is_some());
         };
         // kafka_producer なし版は None
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
         assert!(uc.kafka_producer.is_none());
+    }
+
+    // --- watch_sender 関連テスト ---
+
+    #[tokio::test]
+    async fn test_new_with_watch_sets_sender() {
+        let (tx, _rx) = tokio::sync::broadcast::channel::<ConfigChangeEvent>(16);
+        let mock = MockConfigRepository::new();
+        let uc = UpdateConfigUseCase::new_with_watch(Arc::new(mock), tx);
+        assert!(uc.watch_sender.is_some());
+        assert!(uc.kafka_producer.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_update_config_notifies_watch_sender() {
+        // 更新成功後に broadcast watch イベントが送信されることを確認する
+        let mut mock = MockConfigRepository::new();
+        let updated = make_updated_entry();
+        mock.expect_update()
+            .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+
+        let (tx, mut rx) = tokio::sync::broadcast::channel::<ConfigChangeEvent>(16);
+        let uc = UpdateConfigUseCase::new_with_watch(Arc::new(mock), tx);
+
+        let result = uc.execute(&make_update_input()).await;
+        assert!(result.is_ok());
+
+        let event = rx.recv().await.unwrap();
+        assert_eq!(event.namespace, "system.auth.database");
+        assert_eq!(event.key, "max_connections");
+        assert_eq!(event.value_json, serde_json::json!(50));
+        assert_eq!(event.updated_by, "operator@example.com");
+        assert_eq!(event.version, 4);
+    }
+
+    #[tokio::test]
+    async fn test_update_config_watch_not_sent_on_failure() {
+        // 更新失敗時は watch イベントが送信されないことを確認する
+        let mut mock = MockConfigRepository::new();
+        mock.expect_update()
+            .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("config not found")));
+
+        let (tx, mut rx) = tokio::sync::broadcast::channel::<ConfigChangeEvent>(16);
+        let uc = UpdateConfigUseCase::new_with_watch(Arc::new(mock), tx);
+
+        let result = uc.execute(&make_update_input()).await;
+        assert!(result.is_err());
+
+        // チャンネルは空のまま（イベントが届いていない）
+        assert!(rx.try_recv().is_err());
+    }
+
+    #[tokio::test]
+    async fn test_new_with_kafka_and_watch_sets_both() {
+        // new_with_kafka_and_watch() で作成した UseCase は両方が Some
+        let (tx, _rx) = tokio::sync::broadcast::channel::<ConfigChangeEvent>(16);
+        let _ = |producer: Arc<KafkaProducer>| {
+            let uc = UpdateConfigUseCase::new_with_kafka_and_watch(
+                Arc::new(MockConfigRepository::new()),
+                producer,
+                tx,
+            );
+            assert!(uc.kafka_producer.is_some());
+            assert!(uc.watch_sender.is_some());
+        };
+        // 型チェックのみ（実際のKafka接続はE2Eテストで確認）
+    }
+
+    #[tokio::test]
+    async fn test_update_config_no_watch_sender_still_succeeds() {
+        // watch_sender が None でも更新は成功する（後方互換性）
+        let mut mock = MockConfigRepository::new();
+        let updated = make_updated_entry();
+        mock.expect_update()
+            .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+
+        let uc = UpdateConfigUseCase::new(Arc::new(mock));
+        assert!(uc.watch_sender.is_none());
+
+        let result = uc.execute(&make_update_input()).await;
+        assert!(result.is_ok());
     }
 }

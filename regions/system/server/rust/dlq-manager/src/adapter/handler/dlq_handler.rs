@@ -141,17 +141,13 @@ pub async fn get_message(
     let uuid = Uuid::parse_str(&id)
         .map_err(|_| DlqError::Validation(format!("invalid message id: {}", id)))?;
 
-    let message = state
-        .get_message_uc
-        .execute(uuid)
-        .await
-        .map_err(|e| {
-            if e.to_string().contains("not found") {
-                DlqError::NotFound(e.to_string())
-            } else {
-                DlqError::Internal(e.to_string())
-            }
-        })?;
+    let message = state.get_message_uc.execute(uuid).await.map_err(|e| {
+        if e.to_string().contains("not found") {
+            DlqError::NotFound(e.to_string())
+        } else {
+            DlqError::Internal(e.to_string())
+        }
+    })?;
 
     Ok(Json(to_message_response(&message)))
 }
@@ -164,19 +160,15 @@ pub async fn retry_message(
     let uuid = Uuid::parse_str(&id)
         .map_err(|_| DlqError::Validation(format!("invalid message id: {}", id)))?;
 
-    let message = state
-        .retry_message_uc
-        .execute(uuid)
-        .await
-        .map_err(|e| {
-            if e.to_string().contains("not found") {
-                DlqError::NotFound(e.to_string())
-            } else if e.to_string().contains("not retryable") {
-                DlqError::Conflict(e.to_string())
-            } else {
-                DlqError::Internal(e.to_string())
-            }
-        })?;
+    let message = state.retry_message_uc.execute(uuid).await.map_err(|e| {
+        if e.to_string().contains("not found") {
+            DlqError::NotFound(e.to_string())
+        } else if e.to_string().contains("not retryable") {
+            DlqError::Conflict(e.to_string())
+        } else {
+            DlqError::Internal(e.to_string())
+        }
+    })?;
 
     Ok(Json(RetryMessageResponse {
         id: message.id.to_string(),

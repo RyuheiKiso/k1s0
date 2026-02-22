@@ -28,5 +28,6 @@ pub trait DlqMessageRepository: Send + Sync {
     async fn delete(&self, id: Uuid) -> anyhow::Result<()>;
 
     /// トピック別のメッセージ件数を取得する。
+    #[allow(dead_code)]
     async fn count_by_topic(&self, topic: &str) -> anyhow::Result<i64>;
 }

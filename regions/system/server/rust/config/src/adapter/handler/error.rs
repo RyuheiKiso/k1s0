@@ -120,9 +120,7 @@ impl IntoResponse for GetServiceConfigError {
 mod tests {
     use super::*;
 
-    async fn response_to_json(
-        resp: axum::response::Response,
-    ) -> (StatusCode, serde_json::Value) {
+    async fn response_to_json(resp: axum::response::Response) -> (StatusCode, serde_json::Value) {
         let status = resp.status();
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await

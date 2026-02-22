@@ -71,10 +71,7 @@ mod tests {
         let lib_claims = k1s0_auth::Claims {
             sub: "user-uuid-1234".to_string(),
             iss: "https://auth.example.com/realms/k1s0".to_string(),
-            aud: k1s0_auth::claims::Audience(vec![
-                "k1s0-api".to_string(),
-                "other-api".to_string(),
-            ]),
+            aud: k1s0_auth::claims::Audience(vec!["k1s0-api".to_string(), "other-api".to_string()]),
             exp: 1710000900,
             iat: 1710000000,
             jti: Some("token-uuid-5678".to_string()),
@@ -92,19 +89,13 @@ mod tests {
                     roles: vec!["read".to_string(), "write".to_string()],
                 },
             )])),
-            tier_access: Some(vec![
-                "system".to_string(),
-                "business".to_string(),
-            ]),
+            tier_access: Some(vec!["system".to_string(), "business".to_string()]),
         };
 
         let server_claims = convert_claims(lib_claims);
 
         assert_eq!(server_claims.sub, "user-uuid-1234");
-        assert_eq!(
-            server_claims.iss,
-            "https://auth.example.com/realms/k1s0"
-        );
+        assert_eq!(server_claims.iss, "https://auth.example.com/realms/k1s0");
         assert_eq!(server_claims.aud, "k1s0-api");
         assert_eq!(server_claims.exp, 1710000900);
         assert_eq!(server_claims.iat, 1710000000);
@@ -119,7 +110,11 @@ mod tests {
             vec!["user".to_string(), "sys_admin".to_string()]
         );
         assert_eq!(
-            server_claims.resource_access.get("order-service").unwrap().roles,
+            server_claims
+                .resource_access
+                .get("order-service")
+                .unwrap()
+                .roles,
             vec!["read".to_string(), "write".to_string()]
         );
         assert_eq!(

@@ -84,4 +84,46 @@ mod tests {
         assert!(!cfg.auto_commit);
         assert_eq!(cfg.session_timeout_ms, 30000);
     }
+
+    #[test]
+    fn test_consumed_message_with_none_key() {
+        let msg = ConsumedMessage {
+            topic: "test.topic".to_string(),
+            partition: 1,
+            offset: 100,
+            key: None,
+            payload: b"hello".to_vec(),
+        };
+        assert_eq!(msg.partition, 1);
+        assert_eq!(msg.offset, 100);
+        assert!(msg.key.is_none());
+    }
+
+    #[test]
+    fn test_consumer_config_with_multiple_topics() {
+        let json = r#"{"group_id": "my-group", "topics": ["topic-a", "topic-b", "topic-c"]}"#;
+        let cfg: ConsumerConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(cfg.topics.len(), 3);
+        assert_eq!(cfg.group_id, "my-group");
+    }
+
+    #[test]
+    fn test_consumed_message_deserialize_invalid_json() {
+        let msg = ConsumedMessage {
+            topic: "test.topic".to_string(),
+            partition: 0,
+            offset: 0,
+            key: None,
+            payload: b"not-json".to_vec(),
+        };
+        let result: Result<serde_json::Value, _> = msg.deserialize_json();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_consumer_config_auto_commit_override() {
+        let json = r#"{"group_id": "grp", "topics": ["t"], "auto_commit": true}"#;
+        let cfg: ConsumerConfig = serde_json::from_str(json).unwrap();
+        assert!(cfg.auto_commit);
+    }
 }

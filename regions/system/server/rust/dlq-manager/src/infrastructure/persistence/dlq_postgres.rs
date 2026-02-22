@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::domain::entity::dlq_message::{DlqMessage, DlqStatus};
+use crate::domain::entity::{DlqMessage, DlqStatus};
 use crate::domain::repository::dlq_message_repository::DlqMessageRepository;
 
 /// DlqPostgresRepository は PostgreSQL 実装の DLQ メッセージリポジトリ。
@@ -39,12 +39,11 @@ impl DlqMessageRepository for DlqPostgresRepository {
         page: i32,
         page_size: i32,
     ) -> anyhow::Result<(Vec<DlqMessage>, i64)> {
-        let total: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM dlq.messages WHERE original_topic = $1",
-        )
-        .bind(topic)
-        .fetch_one(&self.pool)
-        .await?;
+        let total: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM dlq.messages WHERE original_topic = $1")
+                .bind(topic)
+                .fetch_one(&self.pool)
+                .await?;
 
         let page = page.max(1);
         let page_size = page_size.max(1);
@@ -129,12 +128,11 @@ impl DlqMessageRepository for DlqPostgresRepository {
     }
 
     async fn count_by_topic(&self, topic: &str) -> anyhow::Result<i64> {
-        let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM dlq.messages WHERE original_topic = $1",
-        )
-        .bind(topic)
-        .fetch_one(&self.pool)
-        .await?;
+        let count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM dlq.messages WHERE original_topic = $1")
+                .bind(topic)
+                .fetch_one(&self.pool)
+                .await?;
 
         Ok(count)
     }

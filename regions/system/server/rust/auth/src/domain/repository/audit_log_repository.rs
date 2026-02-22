@@ -10,10 +10,7 @@ pub trait AuditLogRepository: Send + Sync {
     async fn create(&self, log: &AuditLog) -> anyhow::Result<()>;
 
     /// 監査ログを検索する。(logs, total_count) を返す。
-    async fn search(
-        &self,
-        params: &AuditLogSearchParams,
-    ) -> anyhow::Result<(Vec<AuditLog>, i64)>;
+    async fn search(&self, params: &AuditLogSearchParams) -> anyhow::Result<(Vec<AuditLog>, i64)>;
 }
 
 #[cfg(test)]
@@ -24,8 +21,7 @@ mod tests {
     #[tokio::test]
     async fn test_mock_audit_log_repository_create() {
         let mut mock = MockAuditLogRepository::new();
-        mock.expect_create()
-            .returning(|_| Ok(()));
+        mock.expect_create().returning(|_| Ok(()));
 
         let log = AuditLog {
             id: Uuid::new_v4(),
@@ -49,8 +45,7 @@ mod tests {
     #[tokio::test]
     async fn test_mock_audit_log_repository_search() {
         let mut mock = MockAuditLogRepository::new();
-        mock.expect_search()
-            .returning(|_| Ok((vec![], 0)));
+        mock.expect_search().returning(|_| Ok((vec![], 0)));
 
         let params = AuditLogSearchParams::default();
         let (logs, total) = mock.search(&params).await.unwrap();

@@ -1,0 +1,40 @@
+replicaCount: 2
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - saga
+        topologyKey: kubernetes.io/hostname
+
+config:
+  data:
+    config.yaml: |
+      app:
+        environment: prod
+      database:
+        host: postgres.k1s0-system.svc.cluster.local
+        ssl_mode: verify-full
+        max_open_conns: 50
+      observability:
+        log:
+          level: warn
+        trace:
+          sample_rate: 0.1

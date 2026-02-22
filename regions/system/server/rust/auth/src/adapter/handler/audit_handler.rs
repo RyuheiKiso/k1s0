@@ -21,10 +21,7 @@ pub async fn record_audit_log(
         )
             .into_response(),
         Err(e) => {
-            let err = ErrorResponse::new(
-                "SYS_AUTH_AUDIT_LOG_FAILED",
-                &e.to_string(),
-            );
+            let err = ErrorResponse::new("SYS_AUTH_AUDIT_LOG_FAILED", &e.to_string());
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
     }
@@ -36,14 +33,9 @@ pub async fn search_audit_logs(
     Query(params): Query<SearchAuditLogsQueryParams>,
 ) -> impl IntoResponse {
     match state.search_audit_logs_uc.execute(&params).await {
-        Ok(result) => {
-            (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response()
-        }
+        Ok(result) => (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response(),
         Err(e) => {
-            let err = ErrorResponse::new(
-                "SYS_AUTH_SEARCH_AUDIT_LOGS_FAILED",
-                &e.to_string(),
-            );
+            let err = ErrorResponse::new("SYS_AUTH_SEARCH_AUDIT_LOGS_FAILED", &e.to_string());
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
     }
@@ -91,9 +83,7 @@ mod tests {
         token_verifier
     }
 
-    fn make_app_state(
-        audit_repo: MockAuditLogRepository,
-    ) -> AppState {
+    fn make_app_state(audit_repo: MockAuditLogRepository) -> AppState {
         AppState::new(
             Arc::new(make_valid_token_verifier()),
             Arc::new(MockUserRepository::new()),
@@ -216,7 +206,8 @@ mod tests {
     #[tokio::test]
     async fn test_search_audit_logs_with_filters() {
         let mut audit_repo = MockAuditLogRepository::new();
-        audit_repo.expect_search()
+        audit_repo
+            .expect_search()
             .withf(|params| {
                 params.user_id.as_deref() == Some("user-1")
                     && params.event_type.as_deref() == Some("LOGIN_SUCCESS")

@@ -1,4 +1,3 @@
-# Config service - default values
 nameOverride: ""
 fullnameOverride: ""
 
@@ -15,7 +14,7 @@ replicaCount: 2
 
 container:
   port: 8080
-  grpcPort: null
+  grpcPort: 50051
   command: []
   args: []
 
@@ -46,7 +45,7 @@ probes:
 service:
   type: ClusterIP
   port: 80
-  grpcPort: null
+  grpcPort: 50051
 
 autoscaling:
   enabled: true
@@ -80,7 +79,10 @@ config:
 vault:
   enabled: true
   role: "system"
-  secrets: []
+  secrets:
+    - path: "secret/data/k1s0/system/config/database"
+      key: "password"
+      mountPath: "/vault/secrets/db-password"
 
 nodeSelector: {}
 tolerations: []
@@ -90,6 +92,8 @@ serviceAccount:
   create: true
   name: ""
   annotations: {}
+
+podAnnotations: {}
 
 labels:
   tier: system

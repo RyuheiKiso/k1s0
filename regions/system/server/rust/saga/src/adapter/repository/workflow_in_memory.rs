@@ -18,7 +18,6 @@ impl InMemoryWorkflowRepository {
             workflows: RwLock::new(HashMap::new()),
         }
     }
-
 }
 
 impl Default for InMemoryWorkflowRepository {
@@ -102,5 +101,4 @@ steps:
         let list = repo.list().await.unwrap();
         assert_eq!(list.len(), 2);
     }
-
 }

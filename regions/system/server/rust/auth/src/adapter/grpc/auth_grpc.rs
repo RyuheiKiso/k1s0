@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::domain::entity::claims::Claims;
 use crate::domain::entity::user::User;
 use crate::usecase::get_user::{GetUserError, GetUserUseCase};
+use crate::usecase::get_user_roles::{GetUserRolesError, GetUserRolesUseCase};
 use crate::usecase::list_users::{ListUsersParams, ListUsersUseCase};
 use crate::usecase::validate_token::ValidateTokenUseCase;
 
@@ -170,6 +171,7 @@ pub enum GrpcError {
 pub struct AuthGrpcService {
     validate_token_uc: Arc<ValidateTokenUseCase>,
     get_user_uc: Arc<GetUserUseCase>,
+    get_user_roles_uc: Arc<GetUserRolesUseCase>,
     list_users_uc: Arc<ListUsersUseCase>,
 }
 
@@ -177,11 +179,13 @@ impl AuthGrpcService {
     pub fn new(
         validate_token_uc: Arc<ValidateTokenUseCase>,
         get_user_uc: Arc<GetUserUseCase>,
+        get_user_roles_uc: Arc<GetUserRolesUseCase>,
         list_users_uc: Arc<ListUsersUseCase>,
     ) -> Self {
         Self {
             validate_token_uc,
             get_user_uc,
+            get_user_roles_uc,
             list_users_uc,
         }
     }
@@ -206,10 +210,7 @@ impl AuthGrpcService {
     }
 
     /// ユーザー情報取得。
-    pub async fn get_user(
-        &self,
-        req: GetUserRequest,
-    ) -> Result<GetUserResponse, GrpcError> {
+    pub async fn get_user(&self, req: GetUserRequest) -> Result<GetUserResponse, GrpcError> {
         match self.get_user_uc.execute(&req.user_id).await {
             Ok(user) => Ok(GetUserResponse {
                 user: Some(domain_user_to_pb(&user)),
@@ -222,10 +223,7 @@ impl AuthGrpcService {
     }
 
     /// ユーザー一覧取得。
-    pub async fn list_users(
-        &self,
-        req: ListUsersRequest,
-    ) -> Result<ListUsersResponse, GrpcError> {
+    pub async fn list_users(&self, req: ListUsersRequest) -> Result<ListUsersResponse, GrpcError> {
         let params = ListUsersParams {
             page: req.pagination.as_ref().map(|p| p.page),
             page_size: req.pagination.as_ref().map(|p| p.page_size),
@@ -239,11 +237,7 @@ impl AuthGrpcService {
 
         match self.list_users_uc.execute(&params).await {
             Ok(result) => {
-                let pb_users: Vec<PbUser> = result
-                    .users
-                    .iter()
-                    .map(domain_user_to_pb)
-                    .collect();
+                let pb_users: Vec<PbUser> = result.users.iter().map(domain_user_to_pb).collect();
 
                 Ok(ListUsersResponse {
                     users: pb_users,
@@ -264,7 +258,7 @@ impl AuthGrpcService {
         &self,
         req: GetUserRolesRequest,
     ) -> Result<GetUserRolesResponse, GrpcError> {
-        match self.get_user_uc.get_roles(&req.user_id).await {
+        match self.get_user_roles_uc.execute(&req.user_id).await {
             Ok(user_roles) => {
                 let pb_realm_roles: Vec<PbRole> = user_roles
                     .realm_roles
@@ -286,10 +280,7 @@ impl AuthGrpcService {
                             description: r.description.clone(),
                         })
                         .collect();
-                    pb_client_roles.insert(
-                        client_id.clone(),
-                        PbRoleList { roles: pb_roles },
-                    );
+                    pb_client_roles.insert(client_id.clone(), PbRoleList { roles: pb_roles });
                 }
 
                 Ok(GetUserRolesResponse {
@@ -298,7 +289,7 @@ impl AuthGrpcService {
                     client_roles: pb_client_roles,
                 })
             }
-            Err(GetUserError::NotFound(id)) => {
+            Err(GetUserRolesError::NotFound(id)) => {
                 Err(GrpcError::NotFound(format!("user not found: {}", id)))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
@@ -382,12 +373,7 @@ fn domain_claims_to_pb(c: &Claims) -> PbTokenClaims {
 fn domain_user_to_pb(u: &User) -> PbUser {
     let mut attributes = HashMap::new();
     for (k, v) in &u.attributes {
-        attributes.insert(
-            k.clone(),
-            PbStringList {
-                values: v.clone(),
-            },
-        );
+        attributes.insert(k.clone(), PbStringList { values: v.clone() });
     }
 
     PbUser {
@@ -440,6 +426,7 @@ mod tests {
         verifier: MockTokenVerifier,
         user_repo: MockUserRepository,
     ) -> AuthGrpcService {
+        use crate::usecase::get_user_roles::GetUserRolesUseCase;
         let validate_uc = Arc::new(ValidateTokenUseCase::new(
             Arc::new(verifier),
             "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
@@ -447,9 +434,10 @@ mod tests {
         ));
         let user_repo = Arc::new(user_repo);
         let get_user_uc = Arc::new(GetUserUseCase::new(user_repo.clone()));
+        let get_user_roles_uc = Arc::new(GetUserRolesUseCase::new(user_repo.clone()));
         let list_users_uc = Arc::new(ListUsersUseCase::new(user_repo));
 
-        AuthGrpcService::new(validate_uc, get_user_uc, list_users_uc)
+        AuthGrpcService::new(validate_uc, get_user_uc, get_user_roles_uc, list_users_uc)
     }
 
     #[tokio::test]
@@ -534,19 +522,17 @@ mod tests {
                     attributes: HashMap::new(),
                 })
             });
-        mock_user_repo
-            .expect_list()
-            .returning(|_, _, _, _| {
-                Ok(UserListResult {
-                    users: vec![],
-                    pagination: Pagination {
-                        total_count: 0,
-                        page: 1,
-                        page_size: 20,
-                        has_next: false,
-                    },
-                })
-            });
+        mock_user_repo.expect_list().returning(|_, _, _, _| {
+            Ok(UserListResult {
+                users: vec![],
+                pagination: Pagination {
+                    total_count: 0,
+                    page: 1,
+                    page_size: 20,
+                    has_next: false,
+                },
+            })
+        });
 
         let svc = make_auth_service(mock_verifier, mock_user_repo);
 
@@ -570,19 +556,17 @@ mod tests {
         mock_user_repo
             .expect_find_by_id()
             .returning(|_| Err(anyhow::anyhow!("user not found")));
-        mock_user_repo
-            .expect_list()
-            .returning(|_, _, _, _| {
-                Ok(UserListResult {
-                    users: vec![],
-                    pagination: Pagination {
-                        total_count: 0,
-                        page: 1,
-                        page_size: 20,
-                        has_next: false,
-                    },
-                })
-            });
+        mock_user_repo.expect_list().returning(|_, _, _, _| {
+            Ok(UserListResult {
+                users: vec![],
+                pagination: Pagination {
+                    total_count: 0,
+                    page: 1,
+                    page_size: 20,
+                    has_next: false,
+                },
+            })
+        });
 
         let svc = make_auth_service(mock_verifier, mock_user_repo);
 
@@ -661,19 +645,17 @@ mod tests {
         mock_user_repo
             .expect_find_by_id()
             .returning(|_| Err(anyhow::anyhow!("not used")));
-        mock_user_repo
-            .expect_list()
-            .returning(|_, _, _, _| {
-                Ok(UserListResult {
-                    users: vec![],
-                    pagination: Pagination {
-                        total_count: 0,
-                        page: 1,
-                        page_size: 20,
-                        has_next: false,
-                    },
-                })
-            });
+        mock_user_repo.expect_list().returning(|_, _, _, _| {
+            Ok(UserListResult {
+                users: vec![],
+                pagination: Pagination {
+                    total_count: 0,
+                    page: 1,
+                    page_size: 20,
+                    has_next: false,
+                },
+            })
+        });
         mock_user_repo
             .expect_get_roles()
             .withf(|id| id == "user-uuid-1234")

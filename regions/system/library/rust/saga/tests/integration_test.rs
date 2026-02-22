@@ -1,5 +1,4 @@
-use k1s0_saga::client::SagaClient;
-use k1s0_saga::types::SagaStatus;
+use k1s0_saga::{SagaClient, SagaStatus, StartSagaRequest};
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -41,9 +40,13 @@ async fn test_start_saga_success() {
         .await;
 
     let client = SagaClient::new(&mock_server.uri());
-    let result = client
-        .start_saga("order-fulfillment", &serde_json::json!({"order_id": "ord-001"}), None, None)
-        .await;
+    let req = StartSagaRequest {
+        workflow_name: "order-fulfillment".to_string(),
+        payload: serde_json::json!({"order_id": "ord-001"}),
+        correlation_id: None,
+        initiated_by: None,
+    };
+    let result = client.start_saga(&req).await;
     assert!(result.is_ok());
     let resp = result.unwrap();
     assert_eq!(resp.saga_id, "550e8400-e29b-41d4-a716-446655440000");
@@ -64,14 +67,13 @@ async fn test_start_saga_with_correlation_id() {
         .await;
 
     let client = SagaClient::new(&mock_server.uri());
-    let result = client
-        .start_saga(
-            "order-fulfillment",
-            &serde_json::json!({}),
-            Some("corr-123"),
-            None,
-        )
-        .await;
+    let req = StartSagaRequest {
+        workflow_name: "order-fulfillment".to_string(),
+        payload: serde_json::json!({}),
+        correlation_id: Some("corr-123".to_string()),
+        initiated_by: None,
+    };
+    let result = client.start_saga(&req).await;
     assert!(result.is_ok());
     let resp = result.unwrap();
     assert_eq!(resp.saga_id, "660e8400-e29b-41d4-a716-446655440001");
@@ -88,9 +90,13 @@ async fn test_start_saga_server_error_returns_error() {
         .await;
 
     let client = SagaClient::new(&mock_server.uri());
-    let result = client
-        .start_saga("order-fulfillment", &serde_json::json!({}), None, None)
-        .await;
+    let req = StartSagaRequest {
+        workflow_name: "order-fulfillment".to_string(),
+        payload: serde_json::json!({}),
+        correlation_id: None,
+        initiated_by: None,
+    };
+    let result = client.start_saga(&req).await;
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
     assert!(err_msg.contains("500"));
@@ -109,9 +115,13 @@ async fn test_start_saga_bad_request_returns_error() {
         .await;
 
     let client = SagaClient::new(&mock_server.uri());
-    let result = client
-        .start_saga("", &serde_json::json!({}), None, None)
-        .await;
+    let req = StartSagaRequest {
+        workflow_name: String::new(),
+        payload: serde_json::json!({}),
+        correlation_id: None,
+        initiated_by: None,
+    };
+    let result = client.start_saga(&req).await;
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
     assert!(err_msg.contains("400"));
@@ -314,14 +324,13 @@ async fn test_start_saga_with_initiated_by() {
         .await;
 
     let client = SagaClient::new(&mock_server.uri());
-    let result = client
-        .start_saga(
-            "payment-processing",
-            &serde_json::json!({"amount": 100}),
-            Some("corr-789"),
-            Some("service-order"),
-        )
-        .await;
+    let req = StartSagaRequest {
+        workflow_name: "payment-processing".to_string(),
+        payload: serde_json::json!({"amount": 100}),
+        correlation_id: Some("corr-789".to_string()),
+        initiated_by: Some("service-order".to_string()),
+    };
+    let result = client.start_saga(&req).await;
     assert!(result.is_ok());
     let resp = result.unwrap();
     assert_eq!(resp.saga_id, "770e8400-e29b-41d4-a716-446655440002");

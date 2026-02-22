@@ -32,7 +32,8 @@ mod tests {
     #[tokio::test]
     async fn test_list_messages_empty() {
         let mut mock = MockDlqMessageRepository::new();
-        mock.expect_find_by_topic().returning(|_, _, _| Ok((vec![], 0)));
+        mock.expect_find_by_topic()
+            .returning(|_, _, _| Ok((vec![], 0)));
 
         let uc = ListMessagesUseCase::new(Arc::new(mock));
         let (messages, total) = uc.execute("orders.dlq.v1", 1, 20).await.unwrap();

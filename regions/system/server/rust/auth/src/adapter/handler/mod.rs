@@ -3,16 +3,16 @@ pub mod auth_handler;
 
 use std::sync::Arc;
 
-use axum::Router;
 use axum::middleware;
 use axum::routing::{get, post};
+use axum::Router;
 
 use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::rbac_middleware;
 use crate::domain::repository::{AuditLogRepository, UserRepository};
 use crate::infrastructure::TokenVerifier;
 use crate::usecase::{
-    CheckPermissionUseCase, GetUserUseCase, ListUsersUseCase,
+    CheckPermissionUseCase, GetUserRolesUseCase, GetUserUseCase, ListUsersUseCase,
     RecordAuditLogUseCase, SearchAuditLogsUseCase, ValidateTokenUseCase,
 };
 
@@ -21,6 +21,7 @@ use crate::usecase::{
 pub struct AppState {
     pub validate_token_uc: Arc<ValidateTokenUseCase>,
     pub get_user_uc: Arc<GetUserUseCase>,
+    pub get_user_roles_uc: Arc<GetUserRolesUseCase>,
     pub list_users_uc: Arc<ListUsersUseCase>,
     pub record_audit_log_uc: Arc<RecordAuditLogUseCase>,
     pub search_audit_logs_uc: Arc<SearchAuditLogsUseCase>,
@@ -47,6 +48,7 @@ impl AppState {
                 expected_audience,
             )),
             get_user_uc: Arc::new(GetUserUseCase::new(user_repo.clone())),
+            get_user_roles_uc: Arc::new(GetUserRolesUseCase::new(user_repo.clone())),
             list_users_uc: Arc::new(ListUsersUseCase::new(user_repo)),
             record_audit_log_uc: Arc::new(RecordAuditLogUseCase::new(audit_repo.clone())),
             search_audit_logs_uc: Arc::new(SearchAuditLogsUseCase::new(audit_repo)),
@@ -68,23 +70,24 @@ pub fn router(state: AppState) -> Router {
         .route("/api/v1/users/:id/roles", get(auth_handler::get_user_roles))
         // Auth endpoints (sys_operator以上)
         .route(
-            "/api/v1/auth/token/introspect",
-            post(auth_handler::introspect_token),
-        )
-        .route(
             "/api/v1/auth/permissions/check",
             post(auth_handler::check_permission),
         )
         // Audit log endpoints (sys_auditor以上: GET, sys_operator以上: POST)
         .route(
             "/api/v1/audit/logs",
-            post(audit_handler::record_audit_log)
-                .get(audit_handler::search_audit_logs),
+            post(audit_handler::record_audit_log).get(audit_handler::search_audit_logs),
         )
         // rbac_middleware: sys_auditor以上のロールを持つユーザーのみ通過 (auth_middlewareの後に実行)
-        .route_layer(middleware::from_fn_with_state(state.clone(), rbac_middleware))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            rbac_middleware,
+        ))
         // auth_middleware: Bearerトークンを検証しClaimsをextensionに格納 (最初に実行)
-        .route_layer(middleware::from_fn_with_state(state.clone(), auth_middleware));
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware,
+        ));
 
     // 公開エンドポイント (認証不要)
     let public = Router::new()
@@ -92,10 +95,14 @@ pub fn router(state: AppState) -> Router {
         .route("/healthz", get(auth_handler::healthz))
         .route("/readyz", get(auth_handler::readyz))
         .route("/metrics", get(auth_handler::metrics))
-        // トークン検証は認証サービス自身なので公開
+        // トークン検証・イントロスペクションは認証サービス自身なので公開 (RFC 7662)
         .route(
             "/api/v1/auth/token/validate",
             post(auth_handler::validate_token),
+        )
+        .route(
+            "/api/v1/auth/token/introspect",
+            post(auth_handler::introspect_token),
         );
 
     Router::new()

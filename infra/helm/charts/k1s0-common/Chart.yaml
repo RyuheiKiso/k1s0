@@ -1,8 +1,5 @@
 apiVersion: v2
 name: k1s0-common
-description: k1s0 shared library chart providing common templates for all services
+description: k1s0 共通 Helm Library Chart
 type: library
 version: 0.1.0
-appVersion: "1.0.0"
-maintainers:
-  - name: k1s0-infra-team

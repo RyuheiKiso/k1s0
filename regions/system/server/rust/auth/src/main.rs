@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -6,6 +8,7 @@ use tracing::info;
 mod adapter;
 mod domain;
 mod infrastructure;
+mod proto;
 mod usecase;
 
 use adapter::grpc::{AuditGrpcService, AuthGrpcService};
@@ -99,11 +102,11 @@ async fn main() -> anyhow::Result<()> {
         sample_rate: 1.0,
         log_level: "info".to_string(),
     };
-    k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .expect("failed to init telemetry");
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
     // Config
-    let config_path = std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
+    let config_path =
+        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
     let config_content = std::fs::read_to_string(&config_path)?;
     let mut cfg: Config = serde_yaml::from_str(&config_content)?;
 
@@ -130,8 +133,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Database pool (optional)
     let db_pool = if let Some(ref db_config) = cfg.database {
-        let url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| db_config.connection_url());
+        let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| db_config.connection_url());
         info!(url = %url.replace(|c: char| c == ':' && url.contains("@"), "*"), "connecting to database");
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(db_config.max_open_conns)
@@ -152,9 +154,10 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Keycloak health check URL (captured before take())
-    let keycloak_health_url = cfg.keycloak.as_ref().map(|kc| {
-        format!("{}/realms/{}", kc.base_url, kc.realm)
-    });
+    let keycloak_health_url = cfg
+        .keycloak
+        .as_ref()
+        .map(|kc| format!("{}/realms/{}", kc.base_url, kc.realm));
 
     // User repository (PostgreSQL > Keycloak > Stub)
     let keycloak_config = cfg.keycloak.take();
@@ -167,11 +170,12 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Audit log repository (PostgreSQL or in-memory)
-    let audit_repo: Arc<dyn domain::repository::AuditLogRepository> = if let Some(ref pool) = db_pool {
-        Arc::new(AuditLogPostgresRepository::new(pool.clone()))
-    } else {
-        Arc::new(InMemoryAuditLogRepository::new())
-    };
+    let audit_repo: Arc<dyn domain::repository::AuditLogRepository> =
+        if let Some(ref pool) = db_pool {
+            Arc::new(AuditLogPostgresRepository::new(pool.clone()))
+        } else {
+            Arc::new(InMemoryAuditLogRepository::new())
+        };
 
     // --- gRPC Service ---
     let validate_token_uc = Arc::new(usecase::ValidateTokenUseCase::new(
@@ -180,6 +184,7 @@ async fn main() -> anyhow::Result<()> {
         cfg.auth.jwt.audience.clone(),
     ));
     let get_user_uc = Arc::new(usecase::GetUserUseCase::new(user_repo.clone()));
+    let get_user_roles_uc = Arc::new(usecase::GetUserRolesUseCase::new(user_repo.clone()));
     let list_users_uc = Arc::new(usecase::ListUsersUseCase::new(user_repo.clone()));
     let record_audit_log_uc = Arc::new(usecase::RecordAuditLogUseCase::new(audit_repo.clone()));
     let search_audit_logs_uc = Arc::new(usecase::SearchAuditLogsUseCase::new(audit_repo.clone()));
@@ -198,6 +203,7 @@ async fn main() -> anyhow::Result<()> {
     let auth_grpc_svc = Arc::new(AuthGrpcService::new(
         validate_token_uc,
         get_user_uc,
+        get_user_roles_uc,
         list_users_uc,
     ));
     let audit_grpc_svc = Arc::new(AuditGrpcService::new(
@@ -205,9 +211,12 @@ async fn main() -> anyhow::Result<()> {
         search_audit_logs_uc,
     ));
 
-    // tonic ラッパー（proto 生成後は AuthServiceServer / AuditServiceServer に置換）
-    let _auth_tonic = adapter::grpc::AuthServiceTonic::new(auth_grpc_svc);
-    let _audit_tonic = adapter::grpc::AuditServiceTonic::new(audit_grpc_svc);
+    use proto::k1s0::system::auth::v1::{
+        audit_service_server::AuditServiceServer, auth_service_server::AuthServiceServer,
+    };
+
+    let auth_tonic = adapter::grpc::AuthServiceTonic::new(auth_grpc_svc);
+    let audit_tonic = adapter::grpc::AuditServiceTonic::new(audit_grpc_svc);
 
     // Router
     let app = handler::router(state);
@@ -217,16 +226,12 @@ async fn main() -> anyhow::Result<()> {
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_future = async move {
-        // tonic gRPC サーバーを起動。
-        // proto 生成コード (tonic-build) が揃った後、以下の add_service を有効化：
-        //   .add_service(AuthServiceServer::new(auth_tonic))
-        //   .add_service(AuditServiceServer::new(audit_tonic))
-        //
-        // 現時点では proto 未生成のため gRPC サーバーは待機状態。
-        // proto コード生成後にサービスを登録して起動する。
-        info!("gRPC server placeholder: waiting for proto codegen to register services");
-        // 無限に待機（REST 側で先に終了するまで動き続ける）
-        std::future::pending::<Result<(), anyhow::Error>>().await
+        tonic::transport::Server::builder()
+            .add_service(AuthServiceServer::new(auth_tonic))
+            .add_service(AuditServiceServer::new(audit_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
 
     // REST server
@@ -290,10 +295,7 @@ impl domain::repository::UserRepository for StubUserRepository {
         })
     }
 
-    async fn get_roles(
-        &self,
-        user_id: &str,
-    ) -> anyhow::Result<domain::entity::user::UserRoles> {
+    async fn get_roles(&self, user_id: &str) -> anyhow::Result<domain::entity::user::UserRoles> {
         anyhow::bail!("stub user repository: user not found: {}", user_id)
     }
 }
@@ -313,10 +315,7 @@ impl InMemoryAuditLogRepository {
 
 #[async_trait::async_trait]
 impl domain::repository::AuditLogRepository for InMemoryAuditLogRepository {
-    async fn create(
-        &self,
-        log: &domain::entity::audit_log::AuditLog,
-    ) -> anyhow::Result<()> {
+    async fn create(&self, log: &domain::entity::audit_log::AuditLog) -> anyhow::Result<()> {
         self.logs.write().await.push(log.clone());
         Ok(())
     }
@@ -363,11 +362,7 @@ impl domain::repository::AuditLogRepository for InMemoryAuditLogRepository {
         let offset = ((params.page - 1) * params.page_size) as usize;
         let limit = params.page_size as usize;
 
-        filtered = filtered
-            .into_iter()
-            .skip(offset)
-            .take(limit)
-            .collect();
+        filtered = filtered.into_iter().skip(offset).take(limit).collect();
 
         Ok((filtered, total))
     }

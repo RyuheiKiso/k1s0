@@ -108,10 +108,7 @@ mod tests {
         assert_eq!(log.user_id, "user-uuid-1234");
         assert_eq!(log.ip_address, "192.168.1.100");
         assert_eq!(log.result, "SUCCESS");
-        assert_eq!(
-            log.detail.as_ref().unwrap()["client_id"],
-            "react-spa"
-        );
+        assert_eq!(log.detail.as_ref().unwrap()["client_id"], "react-spa");
         assert_eq!(
             log.trace_id.as_deref(),
             Some("4bf92f3577b34da6a3ce929d0e0e4736")

@@ -16,6 +16,7 @@ nul
 
 # Rust
 **/target/
+**/Cargo.lock
 
 # Go (sum is committed, vendor is not)
 vendor/
@@ -51,3 +52,5 @@ docker-compose.override.yaml
 **/charts/*.tgz
 **/charts/*.tar.gz
 **/Chart.lock
+CLAUDE.md
+tasks/*

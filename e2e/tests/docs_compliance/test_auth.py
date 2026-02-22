@@ -183,7 +183,8 @@ class TestKeycloakEvents:
     def setup_method(self) -> None:
         path = ROOT / "infra" / "docker" / "keycloak" / "k1s0-realm.json"
         self.realm = json.loads(path.read_text(encoding="utf-8"))
-        self.events = self.realm["eventsConfig"]
+        # Keycloak 26.0 では eventsConfig は廃止されトップレベルフィールドに変更
+        self.events = self.realm
 
     def test_events_enabled(self) -> None:
         assert self.events["eventsEnabled"] is True

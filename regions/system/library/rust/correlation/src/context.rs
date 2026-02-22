@@ -145,4 +145,77 @@ mod tests {
         let ctx = CorrelationHeaders::from_headers(&headers);
         assert!(!ctx.correlation_id.as_str().is_empty()); // 自動生成
     }
+
+    #[test]
+    fn test_context_default() {
+        let ctx = CorrelationContext::default();
+        assert!(!ctx.correlation_id.as_str().is_empty());
+        assert!(ctx.trace_id.is_none());
+    }
+
+    #[test]
+    fn test_context_from_correlation_id() {
+        let cid = CorrelationId::from_string("my-corr-id");
+        let ctx = CorrelationContext::from_correlation_id(cid.clone());
+        assert_eq!(ctx.correlation_id.as_str(), "my-corr-id");
+        assert!(ctx.trace_id.is_none());
+    }
+
+    #[test]
+    fn test_to_headers_with_trace_content() {
+        let trace = TraceId::from_string("4bf92f3577b34da6a3ce929d0e0e4736").unwrap();
+        let ctx = CorrelationContext::from_correlation_id(
+            CorrelationId::from_string("corr-xyz"),
+        )
+        .with_trace_id(trace);
+        let headers = CorrelationHeaders::to_headers(&ctx);
+        assert_eq!(headers.len(), 2);
+        let corr_header = headers.iter().find(|(k, _)| k == "x-correlation-id");
+        assert!(corr_header.is_some());
+        assert_eq!(corr_header.unwrap().1, "corr-xyz");
+        let trace_header = headers.iter().find(|(k, _)| k == "x-trace-id");
+        assert!(trace_header.is_some());
+        assert_eq!(
+            trace_header.unwrap().1,
+            "4bf92f3577b34da6a3ce929d0e0e4736"
+        );
+    }
+
+    #[test]
+    fn test_from_headers_case_insensitive() {
+        // ヘッダーキーは小文字に正規化されて比較される
+        let headers = vec![
+            ("X-Correlation-Id".to_string(), "corr-upper".to_string()),
+        ];
+        let ctx = CorrelationHeaders::from_headers(&headers);
+        assert_eq!(ctx.correlation_id.as_str(), "corr-upper");
+    }
+
+    #[test]
+    fn test_from_headers_invalid_trace_id_ignored() {
+        // 不正なトレース ID は None になる
+        let headers = vec![
+            ("x-correlation-id".to_string(), "corr-001".to_string()),
+            ("x-trace-id".to_string(), "invalid-trace".to_string()),
+        ];
+        let ctx = CorrelationHeaders::from_headers(&headers);
+        assert_eq!(ctx.correlation_id.as_str(), "corr-001");
+        assert!(ctx.trace_id.is_none());
+    }
+
+    #[test]
+    fn test_header_name_constants() {
+        assert_eq!(CorrelationHeaders::CORRELATION_ID, "x-correlation-id");
+        assert_eq!(CorrelationHeaders::TRACE_ID, "x-trace-id");
+    }
+
+    #[test]
+    fn test_context_unique_per_new() {
+        let ctx1 = CorrelationContext::new();
+        let ctx2 = CorrelationContext::new();
+        assert_ne!(
+            ctx1.correlation_id.as_str(),
+            ctx2.correlation_id.as_str()
+        );
+    }
 }

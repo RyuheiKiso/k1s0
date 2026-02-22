@@ -55,18 +55,17 @@ mod tests {
     #[tokio::test]
     async fn test_mock_user_repository_list() {
         let mut mock = MockUserRepository::new();
-        mock.expect_list()
-            .returning(|page, page_size, _, _| {
-                Ok(UserListResult {
-                    users: vec![],
-                    pagination: crate::domain::entity::user::Pagination {
-                        total_count: 0,
-                        page,
-                        page_size,
-                        has_next: false,
-                    },
-                })
-            });
+        mock.expect_list().returning(|page, page_size, _, _| {
+            Ok(UserListResult {
+                users: vec![],
+                pagination: crate::domain::entity::user::Pagination {
+                    total_count: 0,
+                    page,
+                    page_size,
+                    has_next: false,
+                },
+            })
+        });
 
         let result = mock.list(1, 20, None, None).await.unwrap();
         assert_eq!(result.pagination.page, 1);

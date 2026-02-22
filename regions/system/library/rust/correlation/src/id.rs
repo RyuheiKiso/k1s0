@@ -139,4 +139,61 @@ mod tests {
         let deserialized: CorrelationId = serde_json::from_str(&json).unwrap();
         assert_eq!(id, deserialized);
     }
+
+    #[test]
+    fn test_correlation_id_default() {
+        let id = CorrelationId::default();
+        assert!(!id.as_str().is_empty());
+    }
+
+    #[test]
+    fn test_correlation_id_hash() {
+        use std::collections::HashSet;
+        let id1 = CorrelationId::from_string("hash-test-id");
+        let id2 = CorrelationId::from_string("hash-test-id");
+        let mut set = HashSet::new();
+        set.insert(id1.clone());
+        set.insert(id2.clone());
+        assert_eq!(set.len(), 1);
+    }
+
+    #[test]
+    fn test_trace_id_display() {
+        let raw = "4bf92f3577b34da6a3ce929d0e0e4736";
+        let id = TraceId::from_string(raw).unwrap();
+        assert_eq!(format!("{}", id), raw);
+    }
+
+    #[test]
+    fn test_trace_id_default() {
+        let id = TraceId::default();
+        assert_eq!(id.as_str().len(), 32);
+        assert!(id.as_str().chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn test_trace_id_from_wrong_length() {
+        // 31文字（1文字短い）
+        let short = "4bf92f3577b34da6a3ce929d0e0e473";
+        assert!(TraceId::from_string(short).is_none());
+        // 33文字（1文字多い）
+        let long = "4bf92f3577b34da6a3ce929d0e0e47360";
+        assert!(TraceId::from_string(long).is_none());
+    }
+
+    #[test]
+    fn test_trace_id_from_uppercase_hex() {
+        // 大文字16進数も有効
+        let upper = "4BF92F3577B34DA6A3CE929D0E0E4736";
+        let id = TraceId::from_string(upper);
+        assert!(id.is_some());
+    }
+
+    #[test]
+    fn test_trace_id_serialization_roundtrip() {
+        let id = TraceId::from_string("4bf92f3577b34da6a3ce929d0e0e4736").unwrap();
+        let json = serde_json::to_string(&id).unwrap();
+        let deserialized: TraceId = serde_json::from_str(&json).unwrap();
+        assert_eq!(id, deserialized);
+    }
 }

@@ -49,9 +49,7 @@ impl DlqEventPublisher for DlqKafkaProducer {
         let payload_bytes = serde_json::to_vec(payload)?;
         let key = uuid::Uuid::new_v4().to_string();
 
-        let record = FutureRecord::to(topic)
-            .key(&key)
-            .payload(&payload_bytes);
+        let record = FutureRecord::to(topic).key(&key).payload(&payload_bytes);
 
         self.producer
             .send(record, Duration::from_secs(5))

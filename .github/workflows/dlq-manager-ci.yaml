@@ -1,0 +1,79 @@
+# .github/workflows/dlq-manager-ci.yaml
+# CI pipeline for dlq-manager server (Rust)
+# Triggered on PR with changes in dlq-manager server paths
+name: dlq-manager-ci
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'regions/system/server/rust/dlq-manager/**'
+
+concurrency:
+  group: ci-${{ github.ref }}-dlq-manager
+  cancel-in-progress: true
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rust:
+              - 'regions/system/server/rust/dlq-manager/**'
+
+  # ---------- Rust lint ----------
+  lint-rust:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82
+        with:
+          components: clippy, rustfmt
+      - run: cargo fmt --all -- --check
+        working-directory: regions/system/server/rust/dlq-manager
+      - run: cargo clippy --all-targets -- -D warnings
+        working-directory: regions/system/server/rust/dlq-manager
+
+  # ---------- Rust test ----------
+  test-rust:
+    needs: lint-rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82
+      - run: cargo test --all
+        working-directory: regions/system/server/rust/dlq-manager
+
+  # ---------- Rust build ----------
+  build-rust:
+    needs: test-rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82
+      - run: cargo build --release
+        working-directory: regions/system/server/rust/dlq-manager
+
+  # ---------- Security scan ----------
+  security-scan:
+    needs:
+      - build-rust
+    if: always() && !contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan (Rust)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: regions/system/server/rust/dlq-manager
+          severity: HIGH,CRITICAL
+          exit-code: 1

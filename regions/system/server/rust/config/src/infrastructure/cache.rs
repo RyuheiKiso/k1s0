@@ -126,12 +126,10 @@ mod tests {
         cache.insert(entry).await;
 
         // 削除前は取得できる
-        assert!(
-            cache
-                .get("system.auth.database", "max_connections")
-                .await
-                .is_some()
-        );
+        assert!(cache
+            .get("system.auth.database", "max_connections")
+            .await
+            .is_some());
 
         cache
             .invalidate("system.auth.database", "max_connections")
@@ -155,19 +153,15 @@ mod tests {
             .await;
 
         // max_connections は削除済み
-        assert!(
-            cache
-                .get("system.auth.database", "max_connections")
-                .await
-                .is_none()
-        );
+        assert!(cache
+            .get("system.auth.database", "max_connections")
+            .await
+            .is_none());
         // ssl_mode は残っている
-        assert!(
-            cache
-                .get("system.auth.database", "ssl_mode")
-                .await
-                .is_some()
-        );
+        assert!(cache
+            .get("system.auth.database", "ssl_mode")
+            .await
+            .is_some());
     }
 
     #[tokio::test]
@@ -183,22 +177,16 @@ mod tests {
         cache.invalidate_namespace("system.auth.database").await;
 
         // system.auth.database の全エントリは削除済み
-        assert!(
-            cache
-                .get("system.auth.database", "max_connections")
-                .await
-                .is_none()
-        );
-        assert!(
-            cache
-                .get("system.auth.database", "ssl_mode")
-                .await
-                .is_none()
-        );
+        assert!(cache
+            .get("system.auth.database", "max_connections")
+            .await
+            .is_none());
+        assert!(cache
+            .get("system.auth.database", "ssl_mode")
+            .await
+            .is_none());
         // system.auth.jwt は残っている
-        assert!(
-            cache.get("system.auth.jwt", "secret_key").await.is_some()
-        );
+        assert!(cache.get("system.auth.jwt", "secret_key").await.is_some());
     }
 
     #[tokio::test]
@@ -250,12 +238,10 @@ mod tests {
         cache.insert(entry).await;
 
         // TTL 内は取得できる
-        assert!(
-            cache
-                .get("system.auth.database", "max_connections")
-                .await
-                .is_some()
-        );
+        assert!(cache
+            .get("system.auth.database", "max_connections")
+            .await
+            .is_some());
 
         // TTL を超えるまで待機
         tokio::time::sleep(Duration::from_millis(1200)).await;

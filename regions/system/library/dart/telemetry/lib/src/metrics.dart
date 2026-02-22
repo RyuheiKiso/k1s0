@@ -45,15 +45,15 @@ class GrpcMetricsKey {
 }
 
 /// ヒストグラムのキー（method + path）。
-class _HistogramKey {
+class HistogramKey {
   final String method;
   final String path;
 
-  _HistogramKey({required this.method, required this.path});
+  HistogramKey({required this.method, required this.path});
 
   @override
   bool operator ==(Object other) =>
-      other is _HistogramKey &&
+      other is HistogramKey &&
       method == other.method &&
       path == other.path;
 
@@ -79,12 +79,12 @@ class _GrpcHistogramKey {
 }
 
 /// ヒストグラムデータを保持するクラス。
-class _HistogramData {
+class HistogramData {
   final Map<double, int> buckets;
   double sum;
   int count;
 
-  _HistogramData(List<double> boundaries)
+  HistogramData(List<double> boundaries)
       : buckets = {for (final b in boundaries) b: 0},
         sum = 0,
         count = 0;
@@ -113,10 +113,10 @@ class Metrics {
   final Map<GrpcMetricsKey, int> grpcHandledTotal = {};
 
   /// HTTP レイテンシヒストグラムデータ。
-  final Map<_HistogramKey, _HistogramData> httpDurationBuckets = {};
+  final Map<HistogramKey, HistogramData> httpDurationBuckets = {};
 
   /// gRPC レイテンシヒストグラムデータ。
-  final Map<_GrpcHistogramKey, _HistogramData> _grpcDurationBuckets = {};
+  final Map<_GrpcHistogramKey, HistogramData> _grpcDurationBuckets = {};
 
   /// Prometheus ヒストグラムのバケット境界。
   static const List<double> _defaultBuckets = [
@@ -147,10 +147,10 @@ class Metrics {
     required String path,
     required Duration duration,
   }) {
-    final key = _HistogramKey(method: method, path: path);
+    final key = HistogramKey(method: method, path: path);
     final data = httpDurationBuckets.putIfAbsent(
       key,
-      () => _HistogramData(_defaultBuckets),
+      () => HistogramData(_defaultBuckets),
     );
     data.observe(duration.inMicroseconds / 1000000.0);
   }
@@ -178,7 +178,7 @@ class Metrics {
     final key = _GrpcHistogramKey(service: service, method: method);
     final data = _grpcDurationBuckets.putIfAbsent(
       key,
-      () => _HistogramData(_defaultBuckets),
+      () => HistogramData(_defaultBuckets),
     );
     data.observe(duration.inMicroseconds / 1000000.0);
   }

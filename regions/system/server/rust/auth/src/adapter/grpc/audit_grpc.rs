@@ -118,9 +118,7 @@ impl AuditGrpcService {
                     nanos: response.created_at.timestamp_subsec_nanos() as i32,
                 }),
             }),
-            Err(RecordAuditLogError::Validation(msg)) => {
-                Err(GrpcError::InvalidArgument(msg))
-            }
+            Err(RecordAuditLogError::Validation(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
@@ -169,11 +167,8 @@ impl AuditGrpcService {
 
         match self.search_audit_logs_uc.execute(&query).await {
             Ok(result) => {
-                let pb_logs: Vec<PbAuditLog> = result
-                    .logs
-                    .iter()
-                    .map(domain_audit_log_to_pb)
-                    .collect();
+                let pb_logs: Vec<PbAuditLog> =
+                    result.logs.iter().map(domain_audit_log_to_pb).collect();
 
                 Ok(SearchAuditLogsGrpcResponse {
                     logs: pb_logs,
@@ -312,9 +307,7 @@ mod tests {
     #[tokio::test]
     async fn test_search_audit_logs_empty() {
         let mut mock_repo = MockAuditLogRepository::new();
-        mock_repo
-            .expect_search()
-            .returning(|_| Ok((vec![], 0)));
+        mock_repo.expect_search().returning(|_| Ok((vec![], 0)));
 
         let svc = make_audit_service(mock_repo);
 

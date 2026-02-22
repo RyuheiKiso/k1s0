@@ -185,7 +185,12 @@ impl ConfigRepository for TestConfigRepository {
     }
 }
 
-fn make_test_entry(namespace: &str, key: &str, value: serde_json::Value, version: i32) -> ConfigEntry {
+fn make_test_entry(
+    namespace: &str,
+    key: &str,
+    value: serde_json::Value,
+    version: i32,
+) -> ConfigEntry {
     ConfigEntry {
         id: Uuid::new_v4(),
         namespace: namespace.to_string(),
@@ -262,10 +267,30 @@ async fn test_get_config_not_found_returns_404() {
 #[tokio::test]
 async fn test_list_configs_with_pagination() {
     let entries = vec![
-        make_test_entry("system.auth.database", "max_connections", serde_json::json!(25), 1),
-        make_test_entry("system.auth.database", "ssl_mode", serde_json::json!("require"), 1),
-        make_test_entry("system.auth.database", "pool_timeout", serde_json::json!(30), 1),
-        make_test_entry("system.auth.jwt", "issuer", serde_json::json!("https://auth.example.com"), 1),
+        make_test_entry(
+            "system.auth.database",
+            "max_connections",
+            serde_json::json!(25),
+            1,
+        ),
+        make_test_entry(
+            "system.auth.database",
+            "ssl_mode",
+            serde_json::json!("require"),
+            1,
+        ),
+        make_test_entry(
+            "system.auth.database",
+            "pool_timeout",
+            serde_json::json!(30),
+            1,
+        ),
+        make_test_entry(
+            "system.auth.jwt",
+            "issuer",
+            serde_json::json!("https://auth.example.com"),
+            1,
+        ),
     ];
     let app = make_app_with_entries(entries);
 
@@ -407,10 +432,30 @@ async fn test_delete_config_not_found_returns_404() {
 #[tokio::test]
 async fn test_get_service_config_returns_all_entries() {
     let entries = vec![
-        make_test_entry("system.auth.database", "max_connections", serde_json::json!(25), 1),
-        make_test_entry("system.auth.database", "ssl_mode", serde_json::json!("require"), 1),
-        make_test_entry("system.auth.jwt", "issuer", serde_json::json!("https://auth.example.com"), 1),
-        make_test_entry("system.config.internal", "cache_ttl", serde_json::json!(300), 1),
+        make_test_entry(
+            "system.auth.database",
+            "max_connections",
+            serde_json::json!(25),
+            1,
+        ),
+        make_test_entry(
+            "system.auth.database",
+            "ssl_mode",
+            serde_json::json!("require"),
+            1,
+        ),
+        make_test_entry(
+            "system.auth.jwt",
+            "issuer",
+            serde_json::json!("https://auth.example.com"),
+            1,
+        ),
+        make_test_entry(
+            "system.config.internal",
+            "cache_ttl",
+            serde_json::json!(300),
+            1,
+        ),
     ];
     let app = make_app_with_entries(entries);
 

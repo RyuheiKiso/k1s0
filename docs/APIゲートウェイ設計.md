@@ -266,6 +266,41 @@ services:
               policy: redis
               redis_host: redis.k1s0-system.svc.cluster.local
 
+  - name: saga-v1
+    url: http://saga-server.k1s0-system.svc.cluster.local:80
+    routes:
+      - name: saga-v1-sagas
+        paths:
+          - /api/v1/sagas
+        strip_path: false
+        methods: [GET, POST]
+      - name: saga-v1-workflows
+        paths:
+          - /api/v1/workflows
+        strip_path: false
+        methods: [GET, POST]
+    plugins:
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - X-Service-Name:saga-server
+
+  - name: dlq-manager-v1
+    url: http://dlq-manager.k1s0-system.svc.cluster.local:80
+    routes:
+      - name: dlq-manager-v1-route
+        paths:
+          - /api/v1/dlq
+        strip_path: false
+        methods: [GET, POST, DELETE]
+    plugins:
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - X-Service-Name:dlq-manager
+
   # service Tier
   - name: order-v1
     url: http://order-server.k1s0-service.svc.cluster.local:80

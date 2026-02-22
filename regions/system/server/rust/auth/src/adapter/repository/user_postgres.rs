@@ -61,10 +61,7 @@ impl From<UserRow> for User {
         let enabled = row.status == "active";
 
         let mut attributes = std::collections::HashMap::new();
-        attributes.insert(
-            "keycloak_sub".to_string(),
-            vec![row.keycloak_sub],
-        );
+        attributes.insert("keycloak_sub".to_string(), vec![row.keycloak_sub]);
 
         User {
             id: row.id.to_string(),
@@ -143,10 +140,7 @@ impl UserRepository for UserPostgresRepository {
             format!("WHERE {}", conditions.join(" AND "))
         };
 
-        let count_query = format!(
-            "SELECT COUNT(*) FROM auth.users {}",
-            where_clause
-        );
+        let count_query = format!("SELECT COUNT(*) FROM auth.users {}", where_clause);
         let data_query = format!(
             "SELECT id, keycloak_sub, username, email, display_name, status, created_at, updated_at FROM auth.users {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
             where_clause, bind_index, bind_index + 1
@@ -401,10 +395,7 @@ mod tests {
             created_at: chrono::Utc::now(),
             attributes: HashMap::new(),
         };
-        assert_eq!(
-            UserPostgresRepository::extract_keycloak_sub(&user),
-            ""
-        );
+        assert_eq!(UserPostgresRepository::extract_keycloak_sub(&user), "");
     }
 
     #[test]
@@ -439,10 +430,7 @@ mod tests {
             created_at: chrono::Utc::now(),
             attributes: HashMap::new(),
         };
-        assert_eq!(
-            UserPostgresRepository::build_display_name(&user),
-            "Admin"
-        );
+        assert_eq!(UserPostgresRepository::build_display_name(&user), "Admin");
     }
 
     #[test]

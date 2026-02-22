@@ -13,10 +13,7 @@ pub struct DlqKafkaConsumer {
 
 impl DlqKafkaConsumer {
     /// 新しい DlqKafkaConsumer を作成する。
-    pub fn new(
-        config: &KafkaConfig,
-        repo: Arc<dyn DlqMessageRepository>,
-    ) -> anyhow::Result<Self> {
+    pub fn new(config: &KafkaConfig, repo: Arc<dyn DlqMessageRepository>) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
         use rdkafka::consumer::Consumer;
 

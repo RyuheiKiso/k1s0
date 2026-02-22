@@ -10,14 +10,16 @@ Kafka イベント発行・購読の抽象化ライブラリ。`EventProducer` �
 
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `EventProducer` | トレイト | イベント発行の抽象インターフェース（`async fn publish`） |
+| `EventProducer` | トレイト | イベント発行の抽象インターフェース（`async fn publish`・`async fn publish_batch`） |
+| `NoOpEventProducer` | 構造体 | テスト・スタブ用の何もしない実装（常に `Ok(())` を返す） |
 | `MockEventProducer` | 構造体 | テスト用モック（feature = "mock" で有効） |
-| `EventEnvelope` | 構造体 | 発行イベントのラッパー（ペイロード + メタデータ） |
-| `EventMetadata` | 構造体 | イベントID・相関ID・タイムスタンプ・ソースサービス名 |
-| `MessagingConfig` | 構造体 | ブローカー・トピック・コンシューマーグループ設定 |
-| `ConsumerConfig` | 構造体 | コンシューマー固有設定 |
-| `EventConsumer` | トレイト | イベント購読の抽象インターフェース（`async fn subscribe`） |
-| `MessagingError` | enum | 発行・購読エラー型 |
+| `EventEnvelope` | 構造体 | 送信メッセージのラッパー（トピック・キー・バイト列ペイロード・ヘッダー） |
+| `EventMetadata` | 構造体 | イベントID・イベント種別・発行元・タイムスタンプ・トレースID・相関ID・スキーマバージョン |
+| `MessagingConfig` | 構造体 | ブローカー・セキュリティプロトコル・タイムアウト・バッチサイズ設定 |
+| `ConsumerConfig` | 構造体 | グループID・トピックリスト・オートコミット・セッションタイムアウト設定 |
+| `ConsumedMessage` | 構造体 | 受信メッセージ（トピック・パーティション・オフセット・キー(`Option<Vec<u8>>`)・ペイロード） |
+| `EventConsumer` | トレイト | イベント購読インターフェース（`async fn receive` + `async fn commit`） |
+| `MessagingError` | enum | ProducerError・ConsumerError・SerializationError・DeserializationError・ConnectionError・TimeoutError |
 
 ## Rust 実装
 
@@ -80,10 +82,25 @@ async fn publish_user_created<P: EventProducer>(
     producer: &P,
     user_id: &str,
 ) -> Result<(), k1s0_messaging::MessagingError> {
-    let metadata = EventMetadata::new("auth-service");
+    let _meta = EventMetadata::new("auth.user-created", "auth-server")
+        .with_correlation_id("corr-001");
     let payload = serde_json::json!({ "user_id": user_id });
-    let envelope = EventEnvelope::new("k1s0.system.auth.user-created.v1", payload, metadata);
+    let envelope = EventEnvelope::json(
+        "k1s0.system.auth.user-created.v1",
+        user_id,
+        &payload,
+    ).map_err(|e| k1s0_messaging::MessagingError::SerializationError(e.to_string()))?;
     producer.publish(envelope).await
+}
+
+// コンシューマーからのメッセージ受信（手動コミット）
+async fn consume_events<C: k1s0_messaging::EventConsumer>(consumer: &C) {
+    loop {
+        let msg = consumer.receive().await.unwrap();
+        let value: serde_json::Value = msg.deserialize_json().unwrap();
+        // 処理...
+        consumer.commit(&msg).await.unwrap();
+    }
 }
 ```
 

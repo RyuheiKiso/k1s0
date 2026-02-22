@@ -5,8 +5,8 @@ pub mod keycloak_client;
 
 pub use jwks_adapter::JwksVerifierAdapter;
 
-use async_trait::async_trait;
 use crate::domain::entity::claims::Claims;
+use async_trait::async_trait;
 
 /// TokenVerifier はトークン検証のためのトレイト。
 /// JWKS エンドポイントから公開鍵を取得し、JWT の署名検証を行う。

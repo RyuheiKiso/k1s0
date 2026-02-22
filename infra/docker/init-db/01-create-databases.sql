@@ -16,3 +16,6 @@ CREATE DATABASE auth_db;
 
 -- config-server 用DB
 CREATE DATABASE config_db;
+
+-- dlq-manager 用DB
+CREATE DATABASE dlq_db;

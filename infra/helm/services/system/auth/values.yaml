@@ -1,4 +1,3 @@
-# Auth service - default values
 nameOverride: ""
 fullnameOverride: ""
 
@@ -15,7 +14,7 @@ replicaCount: 2
 
 container:
   port: 8080
-  grpcPort: null
+  grpcPort: 50051
   command: []
   args: []
 
@@ -46,7 +45,7 @@ probes:
 service:
   type: ClusterIP
   port: 80
-  grpcPort: null
+  grpcPort: 50051
 
 autoscaling:
   enabled: true
@@ -93,6 +92,8 @@ serviceAccount:
   create: true
   name: ""
   annotations: {}
+
+podAnnotations: {}
 
 labels:
   tier: system

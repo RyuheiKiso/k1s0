@@ -61,6 +61,9 @@ k1s0-telemetry = { path = "../../../library/rust/telemetry" }
 [build-dependencies]
 tonic-build = "0.12"
 
+[features]
+db-tests = []
+
 [dev-dependencies]
 mockall = "0.13"
 tokio-test = "0.4"

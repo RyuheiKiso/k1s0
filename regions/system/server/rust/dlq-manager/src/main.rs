@@ -108,8 +108,10 @@ async fn main() -> anyhow::Result<()> {
     // Use cases
     let list_messages_uc = Arc::new(usecase::ListMessagesUseCase::new(dlq_repo.clone()));
     let get_message_uc = Arc::new(usecase::GetMessageUseCase::new(dlq_repo.clone()));
-    let retry_message_uc =
-        Arc::new(usecase::RetryMessageUseCase::new(dlq_repo.clone(), publisher.clone()));
+    let retry_message_uc = Arc::new(usecase::RetryMessageUseCase::new(
+        dlq_repo.clone(),
+        publisher.clone(),
+    ));
     let delete_message_uc = Arc::new(usecase::DeleteMessageUseCase::new(dlq_repo.clone()));
     let retry_all_uc = Arc::new(usecase::RetryAllUseCase::new(dlq_repo.clone(), publisher));
 
@@ -127,7 +129,7 @@ async fn main() -> anyhow::Result<()> {
     let app = handler::router(state);
 
     // REST server
-    let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
+    let rest_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.port).parse()?;
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;

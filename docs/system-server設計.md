@@ -12,7 +12,7 @@ system tier の認証サーバーは以下の機能を提供する。
 | ユーザー情報の取得・管理 API | Keycloak Admin API と連携してユーザー情報を取得・管理する |
 | JWT トークンの検証・イントロスペクション | JWKS エンドポイントから公開鍵を取得し、JWT の署名検証・有効期限検証を行う |
 | RBAC による認可制御 | Keycloak の `realm_access.roles` と `resource_access` に基づいてパーミッションを判定する |
-| 監査ログの記録 | 認証・認可イベントを PostgreSQL に記録し、Kafka に非同期配信する |
+| 監査ログの記録 | 認証・認可イベントを PostgreSQL に記録し、Kafka が設定されている場合は非同期配信する（Kafka はオプション） |
 
 ### 技術スタック
 

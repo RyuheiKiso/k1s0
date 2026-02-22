@@ -1,14 +1,6 @@
 {{/*
-Expand the name of the chart.
-*/}}
-{{- define "k1s0-common.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
-{{- end }}
-
-{{/*
-Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
+k1s0-common.fullname - リリース名とChart名からフルネームを生成する
+63文字に切り詰め、末尾のハイフンを除去する
 */}}
 {{- define "k1s0-common.fullname" -}}
 {{- if .Values.fullnameOverride }}
@@ -24,31 +16,36 @@ If release name contains chart name it will be used as a full name.
 {{- end }}
 
 {{/*
-Create chart name and version as used by the chart label.
+k1s0-common.name - Chart名を返す
 */}}
-{{- define "k1s0-common.chart" -}}
-{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- define "k1s0-common.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
-Common labels (kubernetes設計.md のラベル規約に準拠)
+k1s0-common.labels - 共通ラベルを生成する
+6標準ラベル: name / instance / version / component / part-of / managed-by
+Values.labels で追加ラベル（tier 等）を動的に付与する
 */}}
 {{- define "k1s0-common.labels" -}}
-helm.sh/chart: {{ include "k1s0-common.chart" . }}
-{{ include "k1s0-common.selectorLabels" . }}
-app.kubernetes.io/version: {{ .Values.image.tag | default .Chart.AppVersion | quote }}
-app.kubernetes.io/component: server
-app.kubernetes.io/part-of: k1s0
+helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+app.kubernetes.io/name: {{ include "k1s0-common.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+{{- if .Values.component }}
+app.kubernetes.io/component: {{ .Values.component | quote }}
+{{- end }}
+app.kubernetes.io/part-of: {{ default "k1s0" .Values.partOf | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- if .Values.labels }}
 {{- range $key, $value := .Values.labels }}
 {{ $key }}: {{ $value | quote }}
 {{- end }}
 {{- end }}
-{{- end }}
 
 {{/*
-Selector labels
+k1s0-common.selectorLabels - セレクタ用ラベルを生成する
 */}}
 {{- define "k1s0-common.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "k1s0-common.name" . }}
@@ -56,7 +53,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Create the name of the service account to use
+k1s0-common.serviceAccountName - サービスアカウント名を返す
 */}}
 {{- define "k1s0-common.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}

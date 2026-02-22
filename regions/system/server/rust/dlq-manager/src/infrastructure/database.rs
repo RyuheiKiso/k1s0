@@ -14,8 +14,10 @@ pub struct DatabaseConfig {
     pub ssl_mode: String,
     #[serde(default = "default_max_open_conns")]
     pub max_open_conns: u32,
+    #[allow(dead_code)]
     #[serde(default = "default_max_idle_conns")]
     pub max_idle_conns: u32,
+    #[allow(dead_code)]
     #[serde(default = "default_conn_max_lifetime")]
     pub conn_max_lifetime: String,
 }
