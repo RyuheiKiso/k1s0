@@ -86,6 +86,7 @@ impl ConfigServiceTonic {
     /// レスポンスストリームに書き出す。
     ///
     /// watch 機能が無効の場合は `Status::unimplemented` を返す。
+    #[allow(clippy::result_large_err)]
     pub fn watch_config(
         &self,
         request: Request<WatchConfigRequest>,

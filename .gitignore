@@ -16,6 +16,7 @@ nul
 
 # Rust
 **/target/
+**/Cargo.lock
 
 # Go (sum is committed, vendor is not)
 vendor/

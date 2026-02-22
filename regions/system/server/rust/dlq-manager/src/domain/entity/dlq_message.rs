@@ -88,6 +88,7 @@ impl DlqMessage {
     }
 
     /// デッド（処理不能）としてマークする。
+    #[allow(dead_code)]
     pub fn mark_dead(&mut self) {
         self.status = DlqStatus::Dead;
         self.updated_at = Utc::now();

@@ -1,14 +1,16 @@
-use anyhow::Result;
 use reqwest::Client;
 
-/// SagaClient はSagaサービスへのHTTP RESTクライアント。
+use crate::error::SagaError;
+use crate::types::{SagaState, StartSagaRequest, StartSagaResponse};
+
+/// SagaClient は Saga サービスへの HTTP REST クライアント。
 pub struct SagaClient {
     endpoint: String,
     http_client: Client,
 }
 
 impl SagaClient {
-    /// 新しいSagaClientを作成する。
+    /// 新しい SagaClient を作成する。
     pub fn new(endpoint: &str) -> Self {
         Self {
             endpoint: endpoint.trim_end_matches('/').to_string(),
@@ -19,86 +21,79 @@ impl SagaClient {
         }
     }
 
-    /// Sagaを開始する。
+    /// Saga を開始する。
     pub async fn start_saga(
         &self,
-        workflow_name: &str,
-        payload: &serde_json::Value,
-        correlation_id: Option<&str>,
-        initiated_by: Option<&str>,
-    ) -> Result<crate::types::StartSagaResponse> {
-        let body = serde_json::json!({
-            "workflow_name": workflow_name,
-            "payload": payload,
-            "correlation_id": correlation_id,
-            "initiated_by": initiated_by,
-        });
-
+        request: &StartSagaRequest,
+    ) -> Result<StartSagaResponse, SagaError> {
         let resp = self
             .http_client
             .post(format!("{}/api/v1/sagas", self.endpoint))
-            .json(&body)
+            .json(request)
             .send()
             .await
-            .map_err(|e| anyhow::anyhow!("saga HTTP request failed: {}", e))?;
+            .map_err(|e| SagaError::NetworkError(e.to_string()))?;
 
         if !resp.status().is_success() {
-            let status = resp.status();
+            let status_code = resp.status().as_u16();
             let body = resp.text().await.unwrap_or_default();
-            anyhow::bail!("saga server returned {}: {}", status, body);
+            return Err(SagaError::ApiError {
+                status_code,
+                message: body,
+            });
         }
 
-        let result: crate::types::StartSagaResponse = resp
-            .json()
+        resp.json()
             .await
-            .map_err(|e| anyhow::anyhow!("failed to parse saga response: {}", e))?;
-
-        Ok(result)
+            .map_err(|e| SagaError::DeserializeError(e.to_string()))
     }
 
-    /// SagaをIDで取得する。
-    pub async fn get_saga(&self, saga_id: &str) -> Result<crate::types::SagaState> {
+    /// Saga を ID で取得する。
+    pub async fn get_saga(&self, saga_id: &str) -> Result<SagaState, SagaError> {
         let resp = self
             .http_client
             .get(format!("{}/api/v1/sagas/{}", self.endpoint, saga_id))
             .send()
             .await
-            .map_err(|e| anyhow::anyhow!("saga HTTP request failed: {}", e))?;
+            .map_err(|e| SagaError::NetworkError(e.to_string()))?;
 
         if !resp.status().is_success() {
-            let status = resp.status();
+            let status_code = resp.status().as_u16();
             let body = resp.text().await.unwrap_or_default();
-            anyhow::bail!("saga server returned {}: {}", status, body);
+            return Err(SagaError::ApiError {
+                status_code,
+                message: body,
+            });
         }
 
-        // Response has `saga` key wrapping the object
+        // レスポンスは `saga` キーでラップされている場合がある
         let json: serde_json::Value = resp
             .json()
             .await
-            .map_err(|e| anyhow::anyhow!("failed to parse saga response: {}", e))?;
+            .map_err(|e| SagaError::DeserializeError(e.to_string()))?;
 
-        let state: crate::types::SagaState = serde_json::from_value(
-            json.get("saga").cloned().unwrap_or(json),
-        )
-        .map_err(|e| anyhow::anyhow!("failed to deserialize saga state: {}", e))?;
-
-        Ok(state)
+        let state_value = json.get("saga").cloned().unwrap_or(json);
+        serde_json::from_value(state_value)
+            .map_err(|e| SagaError::DeserializeError(e.to_string()))
     }
 
-    /// Sagaをキャンセルする。
-    pub async fn cancel_saga(&self, saga_id: &str) -> Result<()> {
+    /// Saga をキャンセルする。
+    pub async fn cancel_saga(&self, saga_id: &str) -> Result<(), SagaError> {
         let resp = self
             .http_client
             .post(format!("{}/api/v1/sagas/{}/cancel", self.endpoint, saga_id))
             .json(&serde_json::json!({}))
             .send()
             .await
-            .map_err(|e| anyhow::anyhow!("saga HTTP request failed: {}", e))?;
+            .map_err(|e| SagaError::NetworkError(e.to_string()))?;
 
         if !resp.status().is_success() {
-            let status = resp.status();
+            let status_code = resp.status().as_u16();
             let body = resp.text().await.unwrap_or_default();
-            anyhow::bail!("saga server returned {}: {}", status, body);
+            return Err(SagaError::ApiError {
+                status_code,
+                message: body,
+            });
         }
 
         Ok(())

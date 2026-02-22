@@ -1,3 +1,6 @@
+// proto stubs・未接続の gRPC インフラは将来の proto codegen 後に使用される
+#![allow(dead_code, unused_imports)]
+
 use std::net::SocketAddr;
 use std::sync::Arc;
 

@@ -10,6 +10,7 @@ pub enum Action {
 impl Action {
     /// 文字列から Action を生成する。
     /// "read" / "write" / "delete" / "admin" を受け付ける。
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> anyhow::Result<Self> {
         match s.to_lowercase().as_str() {
             "read" => Ok(Action::Read),

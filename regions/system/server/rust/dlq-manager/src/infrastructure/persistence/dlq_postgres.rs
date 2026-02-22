@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::domain::entity::dlq_message::{DlqMessage, DlqStatus};
+use crate::domain::entity::{DlqMessage, DlqStatus};
 use crate::domain::repository::dlq_message_repository::DlqMessageRepository;
 
 /// DlqPostgresRepository は PostgreSQL 実装の DLQ メッセージリポジトリ。

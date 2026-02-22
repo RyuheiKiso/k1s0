@@ -13,7 +13,7 @@ pub use config::MessagingConfig;
 pub use consumer::{ConsumerConfig, EventConsumer};
 pub use error::MessagingError;
 pub use event::{EventEnvelope, EventMetadata};
-pub use producer::EventProducer;
+pub use producer::{EventProducer, NoOpEventProducer};
 
 #[cfg(feature = "mock")]
 pub use producer::MockEventProducer;

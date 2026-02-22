@@ -69,9 +69,11 @@ let config = KafkaConfig::builder()
     .security_protocol("SASL_SSL")
     .build()?;
 
-// ヘルスチェック
-let checker = KafkaHealthChecker::new(config);
+// ヘルスチェック（設定の妥当性確認）
+let checker = KafkaHealthChecker::new(config.clone());
 checker.check().await?;
+// 同期チェックも利用可能
+checker.check_config()?;
 
 // トピック命名規則検証（k1s0.<tier>.<service>.<event>.<version>）
 let topic = TopicConfig::new("k1s0.system.auth.user-created.v1")?;

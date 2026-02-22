@@ -127,7 +127,7 @@ async fn main() -> anyhow::Result<()> {
     let app = handler::router(state);
 
     // REST server
-    let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
+    let rest_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.port).parse()?;
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
