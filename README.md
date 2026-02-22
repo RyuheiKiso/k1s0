@@ -8,6 +8,7 @@
   <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" alt="React">
   <img src="https://img.shields.io/badge/Flutter-3.24-02569B?logo=flutter" alt="Flutter">
   <img src="https://img.shields.io/badge/C%23-.NET%2010-512BD4?logo=dotnet" alt="C# .NET 10">
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Kubernetes-ready-326CE5?logo=kubernetes" alt="Kubernetes">
   <img src="https://img.shields.io/badge/OpenTelemetry-built--in-7B68EE" alt="OpenTelemetry">
 </p>
@@ -119,7 +120,8 @@ regions/
 | モバイル・クロスプラットフォーム | **Flutter 3.24** (Riverpod, go_router, freezed)   |
 | デスクトップGUI                  | **Tauri 2** + React                               |
 | CLI                              | **Rust** (dialoguer, Tera テンプレートエンジン)   |
-| E2E テスト                       | **Python 3.12** (pytest)                          |
+| システムライブラリ               | **Python 3.12** (uv workspace, ruff, mypy strict) |
+| E2E テスト                       | **Python 3.12** (pytest, testcontainers)          |
 
 ### API・通信
 
@@ -171,6 +173,7 @@ regions/
 - Docker & Docker Compose
 - Go 1.23+（Go サーバー開発時）
 - .NET 10 SDK（C# サーバー開発時）
+- uv（Python ライブラリ開発時）
 
 ### インストールと起動
 
@@ -214,7 +217,7 @@ k1s0/
 ├── regions/                3 階層のアプリケーション基盤
 │   ├── system/               共通基盤
 │   │   ├── server/             auth / config / saga / dlq-manager / bff-proxy
-│   │   ├── library/            11 パッケージ × 4 言語（Rust/Go/Dart/TS）
+│   │   ├── library/            11 パッケージ × 6 言語（Rust/Go/TypeScript/Dart/C#/Python）
 │   │   └── database/           auth-db / config-db / saga-db / dlq-db
 │   ├── business/             部門固有（accounting）
 │   │   ├── server/ client/ library/
@@ -299,6 +302,9 @@ cargo test --workspace
 # Go テスト
 go test ./...
 
+# Python ライブラリテスト
+cd regions/system/library/python && uv run pytest
+
 # E2E テスト（全テスト）
 cd e2e && pytest
 
@@ -320,4 +326,9 @@ cargo fmt --check
 
 # Go
 golangci-lint run ./...
+
+# Python
+cd regions/system/library/python
+uv run ruff check .
+uv run ruff format --check .
 ```
