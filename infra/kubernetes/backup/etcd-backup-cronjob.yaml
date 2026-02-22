@@ -1,0 +1,77 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: etcd-backup
+  namespace: k1s0-system
+  labels:
+    app: etcd-backup
+    tier: system
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            app: etcd-backup
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: backup-operator
+          hostNetwork: true
+          containers:
+            - name: etcd-backup
+              image: registry.k8s.io/etcd:3.5.12-0
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  BACKUP_DIR="/backup/etcd"
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+                  BACKUP_FILE="${BACKUP_DIR}/etcd-snapshot-${TIMESTAMP}.db"
+
+                  mkdir -p "${BACKUP_DIR}"
+
+                  # etcd スナップショット取得
+                  etcdctl snapshot save "${BACKUP_FILE}" \
+                    --endpoints=https://127.0.0.1:2379 \
+                    --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+                    --cert=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
+                    --key=/etc/kubernetes/pki/etcd/healthcheck-client.key
+
+                  # スナップショット検証
+                  etcdctl snapshot status "${BACKUP_FILE}" --write-out=table
+
+                  # 30日より古いバックアップを削除
+                  find "${BACKUP_DIR}" -name "etcd-snapshot-*.db" -mtime +30 -delete
+
+                  echo "etcd backup completed: ${BACKUP_FILE}"
+              env:
+                - name: ETCDCTL_API
+                  value: "3"
+              volumeMounts:
+                - name: etcd-certs
+                  mountPath: /etc/kubernetes/pki/etcd
+                  readOnly: true
+                - name: backup-volume
+                  mountPath: /backup
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: etcd-certs
+              hostPath:
+                path: /etc/kubernetes/pki/etcd
+                type: Directory
+            - name: backup-volume
+              persistentVolumeClaim:
+                claimName: backup-pvc

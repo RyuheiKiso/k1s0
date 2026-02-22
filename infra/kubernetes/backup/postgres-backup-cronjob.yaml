@@ -1,0 +1,81 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: k1s0-system
+  labels:
+    app: postgres-backup
+    tier: system
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app: postgres-backup
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: backup-operator
+          containers:
+            - name: postgres-backup
+              image: postgres:17-alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  BACKUP_DIR="/backup/postgres"
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+
+                  mkdir -p "${BACKUP_DIR}"
+
+                  # 全データベースのバックアップ
+                  for DB in k1s0_system config_db dlq_db; do
+                    BACKUP_FILE="${BACKUP_DIR}/${DB}-${TIMESTAMP}.dump"
+                    echo "Backing up database: ${DB}"
+                    pg_dump \
+                      -h "${PGHOST}" \
+                      -U "${PGUSER}" \
+                      -d "${DB}" \
+                      -Fc \
+                      -f "${BACKUP_FILE}"
+                    echo "Backup completed: ${BACKUP_FILE} ($(du -h ${BACKUP_FILE} | cut -f1))"
+                  done
+
+                  # 30日より古いバックアップを削除
+                  find "${BACKUP_DIR}" -name "*.dump" -mtime +30 -delete
+
+                  echo "All PostgreSQL backups completed."
+              env:
+                - name: PGHOST
+                  value: "postgres.k1s0-system.svc.cluster.local"
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-backup-credentials
+                      key: username
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-backup-credentials
+                      key: password
+              volumeMounts:
+                - name: backup-volume
+                  mountPath: /backup
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 256Mi
+                limits:
+                  cpu: 1000m
+                  memory: 1Gi
+          volumes:
+            - name: backup-volume
+              persistentVolumeClaim:
+                claimName: backup-pvc

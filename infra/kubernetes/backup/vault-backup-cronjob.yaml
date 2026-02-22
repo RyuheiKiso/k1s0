@@ -1,0 +1,80 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vault-backup
+  namespace: k1s0-system
+  labels:
+    app: vault-backup
+    tier: system
+spec:
+  schedule: "0 1 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            app: vault-backup
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: backup-operator
+          containers:
+            - name: vault-backup
+              image: hashicorp/vault:1.17
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  BACKUP_DIR="/backup/vault"
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+                  BACKUP_FILE="${BACKUP_DIR}/vault-raft-${TIMESTAMP}.snap"
+
+                  mkdir -p "${BACKUP_DIR}"
+
+                  # Vault Raft スナップショット取得
+                  echo "Taking Vault Raft snapshot..."
+                  vault operator raft snapshot save "${BACKUP_FILE}"
+
+                  # スナップショットサイズ確認
+                  SNAP_SIZE=$(du -h "${BACKUP_FILE}" | cut -f1)
+                  echo "Vault snapshot completed: ${BACKUP_FILE} (${SNAP_SIZE})"
+
+                  # 30日より古いバックアップを削除
+                  find "${BACKUP_DIR}" -name "vault-raft-*.snap" -mtime +30 -delete
+
+                  echo "Vault backup completed."
+              env:
+                - name: VAULT_ADDR
+                  value: "https://vault.k1s0-system.svc.cluster.local:8200"
+                - name: VAULT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: vault-backup-credentials
+                      key: token
+                - name: VAULT_CACERT
+                  value: "/vault/tls/ca.crt"
+              volumeMounts:
+                - name: backup-volume
+                  mountPath: /backup
+                - name: vault-tls
+                  mountPath: /vault/tls
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: backup-volume
+              persistentVolumeClaim:
+                claimName: backup-pvc
+            - name: vault-tls
+              secret:
+                secretName: vault-tls-cert

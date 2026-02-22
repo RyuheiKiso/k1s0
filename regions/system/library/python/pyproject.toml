@@ -1,0 +1,31 @@
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+asyncio_mode = "auto"
+
+[tool.uv.workspace]
+members = [
+  "config",
+  "correlation",
+  "telemetry",
+  "auth",
+  "kafka",
+  "messaging",
+  "outbox",
+  "schema_registry",
+  "service_auth",
+  "saga",
+  "dlq_client",
+]
+
+[tool.uv]
+dev-dependencies = [
+  "pytest>=8.3",
+  "pytest-cov>=5.0",
+  "pytest-mock>=3.14",
+  "pytest-asyncio>=0.24",
+  "respx>=0.21",
+  "testcontainers>=4.8",
+  "mypy>=1.11",
+  "ruff>=0.6",
+  "types-PyYAML>=6.0",
+]

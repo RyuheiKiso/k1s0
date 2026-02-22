@@ -64,6 +64,7 @@ pub trait ConfigChangeEventPublisher: Send + Sync {
 pub struct KafkaProducer {
     producer: rdkafka::producer::FutureProducer,
     topic: String,
+    metrics: Option<std::sync::Arc<k1s0_telemetry::metrics::Metrics>>,
 }
 
 impl KafkaProducer {
@@ -92,7 +93,17 @@ impl KafkaProducer {
 
         let producer: rdkafka::producer::FutureProducer = client_config.create()?;
 
-        Ok(Self { producer, topic })
+        Ok(Self {
+            producer,
+            topic,
+            metrics: None,
+        })
+    }
+
+    /// メトリクスを設定する。
+    pub fn with_metrics(mut self, metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
+        self.metrics = Some(metrics);
+        self
     }
 
     /// 配信先トピック名を返す。
@@ -118,6 +129,10 @@ impl KafkaProducer {
                 anyhow::anyhow!("failed to publish config changed event: {}", err)
             })?;
 
+        if let Some(ref m) = self.metrics {
+            m.record_kafka_message_produced(&self.topic);
+        }
+
         Ok(())
     }
 }
@@ -139,6 +154,10 @@ impl ConfigChangeEventPublisher for KafkaProducer {
             .map_err(|(err, _)| {
                 anyhow::anyhow!("failed to publish config change event: {}", err)
             })?;
+
+        if let Some(ref m) = self.metrics {
+            m.record_kafka_message_produced(&self.topic);
+        }
 
         Ok(())
     }

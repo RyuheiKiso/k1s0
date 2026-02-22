@@ -58,7 +58,7 @@ CI/CD テンプレートで使用する変数を以下に示す。変数の定�
 | `service_name`       | String   | 用  | 用     | ワークフロー名、paths フィルタ             |
 | `service_name_snake`  | String   | 用  | —      | アーティファクト名                         |
 | `module_path`        | String   | 用  | 用     | paths フィルタ（変更検出）                 |
-| `language`           | String   | 用  | 用     | 言語別ステップの分岐                       |
+| `language`           | String   | 用  | 用     | 言語別ステップの分岐（`"go"` / `"rust"` / `"typescript"` / `"dart"` / `"csharp"`） |
 | `kind`               | String   | 用  | 用     | Deploy 生成判定、ビルドステップの分岐      |
 | `tier`               | String   | —   | 用     | Docker プロジェクト名の導出                |
 | `api_styles`         | [String] | 用  | —      | gRPC 時の buf lint ステップ追加等、API スタイル分岐 |
@@ -297,6 +297,58 @@ concurrency:
 {% endif %}
 ```
 
+#### C# / .NET
+
+```tera
+{% if language == "csharp" %}
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0"
+{% endraw %}
+      - run: dotnet restore
+        working-directory: {{ module_path }}
+      - run: dotnet format --verify-no-changes
+        working-directory: {{ module_path }}
+      - run: dotnet build --no-restore -warnaserror
+        working-directory: {{ module_path }}
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0"
+{% endraw %}
+      - run: dotnet restore
+        working-directory: {{ module_path }}
+      - run: dotnet test --no-restore --collect:"XPlat Code Coverage" --results-directory ./coverage
+        working-directory: {{ module_path }}
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+{% raw %}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0"
+{% endraw %}
+      - run: dotnet restore
+        working-directory: {{ module_path }}
+      - run: dotnet publish -c Release -o /app/publish
+        working-directory: {{ module_path }}
+{% endif %}
+```
+
 ### 条件付きステップ
 
 言語別ステップに加えて、以下の条件で追加ステップが挿入される。
@@ -428,6 +480,12 @@ updates:
     schedule:
       interval: weekly
 {% endif %}
+{% if language == "csharp" %}
+  - package-ecosystem: nuget
+    directory: "/{{ module_path }}"
+    schedule:
+      interval: weekly
+{% endif %}
   - package-ecosystem: docker
     directory: "/{{ module_path }}"
     schedule:
@@ -445,6 +503,7 @@ updates:
 | `language == "rust"`                              | `cargo`                |
 | `language == "typescript"` or `framework == "react"` | `npm`                  |
 | `language == "dart"` or `framework == "flutter"`  | `pub`                  |
+| `language == "csharp"`                            | `nuget`                |
 | 共通（全 kind）                                   | `docker`               |
 | 共通（全 kind）                                   | `github-actions`       |
 
@@ -730,6 +789,7 @@ CI/CD ワークフローで使用する言語・ツールのバージョンを�
 | Flutter     | 3.24.0     | `subosito/flutter-action@v2`     |
 | Helm        | 3.16       | `azure/setup-helm@v4`            |
 | buf         | 1.47.2     | `bufbuild/buf-setup-action@v1`   |
+| .NET        | 10         | `actions/setup-dotnet@v4`        |
 
 ---
 
@@ -743,6 +803,7 @@ CI の実行時間を短縮するため、言語ごとのキャッシュを活�
 | Rust   | `~/.cargo`, `target/`      | `actions/cache`           |
 | Node   | `node_modules/`            | `actions/setup-node` 内蔵 |
 | Dart   | `~/.pub-cache`             | `actions/cache`           |
+| C#     | `~/.nuget/packages`        | `actions/setup-dotnet` 内蔵 |
 | Docker | Docker layer cache         | `cache-from: type=gha`   |
 
 ---
@@ -755,6 +816,7 @@ CLI の対話フローで選択されたオプションに応じて、ワーク�
 | ------------------------ | --------------------------------- | ------------------------------------------------- |
 | 言語 (`language`)        | `go`                              | Go 固有の lint → test → build ステップ            |
 | 言語 (`language`)        | `rust`                            | 言語固有の lint → test → build ステップ           |
+| 言語 (`language`)        | `csharp`                          | C# 固有の lint → test → build ステップ            |
 | フレームワーク (`framework`) | `react` / `flutter`              | クライアント固有の lint → test → build ステップ   |
 | API 方式 (`api_styles`)  | `grpc` を含む                     | buf lint + breaking change detection ステップ追加 |
 | DB 有無 (`has_database`) | `true`                            | DB マイグレーションテストステップ追加             |

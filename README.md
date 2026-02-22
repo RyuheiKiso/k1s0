@@ -7,6 +7,8 @@
   <img src="https://img.shields.io/badge/Go-1.23-00ADD8?logo=go" alt="Go">
   <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" alt="React">
   <img src="https://img.shields.io/badge/Flutter-3.24-02569B?logo=flutter" alt="Flutter">
+  <img src="https://img.shields.io/badge/C%23-.NET%2010-512BD4?logo=dotnet" alt="C# .NET 10">
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Kubernetes-ready-326CE5?logo=kubernetes" alt="Kubernetes">
   <img src="https://img.shields.io/badge/OpenTelemetry-built--in-7B68EE" alt="OpenTelemetry">
 </p>
@@ -35,7 +37,7 @@ k1s0（キソ）は、企業のシステム開発部門を対象とした **ワ�
 
 ### 設計ドキュメントが「生きている」
 
-k1s0 のリポジトリには 50 以上の設計ドキュメントが同梱されています。API設計・認証認可・可観測性・メッセージング・サービスメッシュ・Kubernetes・Helm・Terraform――これらはコードと同じリポジトリで管理され、実装と常に同期しています。ドキュメントが形骸化しない仕組みが、チームのオンボーディングと意思決定を加速します。
+k1s0 のリポジトリには 100 以上の設計ドキュメントが同梱されています。API設計・認証認可・可観測性・メッセージング・サービスメッシュ・Kubernetes・Helm・Terraform――これらはコードと同じリポジトリで管理され、実装と常に同期しています。ドキュメントが形骸化しない仕組みが、チームのオンボーディングと意思決定を加速します。
 
 ### コード生成ではなく「アーキテクチャ生成」
 
@@ -100,10 +102,10 @@ regions/
 | コンポーネント            | 用途                         |
 | ------------------------- | ---------------------------- |
 | OpenTelemetry             | テレメトリデータの収集・送信 |
-| Jaeger                    | 分散トレーシング             |
-| Prometheus + Alertmanager | メトリクス収集・アラート管理 |
-| Grafana                   | ダッシュボード・可視化       |
-| Loki + Promtail           | ログ集約・収集               |
+| Jaeger 1.62               | 分散トレーシング             |
+| Prometheus v2.55 + Alertmanager | メトリクス収集・アラート管理 |
+| Grafana 11.3              | ダッシュボード・可視化       |
+| Loki 3.3 + Promtail       | ログ集約・収集               |
 
 ---
 
@@ -113,12 +115,13 @@ regions/
 
 | カテゴリ                         | 技術                                              |
 | -------------------------------- | ------------------------------------------------- |
-| サーバー                         | **Go 1.23** / **Rust 1.82**                       |
+| サーバー                         | **Go 1.23** / **Rust 1.82** / **C# (.NET 10)**    |
 | Web クライアント                 | **React** (TanStack Query, Zustand, Tailwind CSS) |
 | モバイル・クロスプラットフォーム | **Flutter 3.24** (Riverpod, go_router, freezed)   |
 | デスクトップGUI                  | **Tauri 2** + React                               |
 | CLI                              | **Rust** (dialoguer, Tera テンプレートエンジン)   |
-| E2E テスト                       | **Python 3.12** (pytest)                          |
+| システムライブラリ               | **Python 3.12** (uv workspace, ruff, mypy strict) |
+| E2E テスト                       | **Python 3.12** (pytest, testcontainers)          |
 
 ### API・通信
 
@@ -137,7 +140,7 @@ regions/
 | Helm                | マニフェストのテンプレート管理       |
 | Terraform + Ansible | IaC・プロビジョニング                |
 | Istio + Envoy       | サービスメッシュ・mTLS               |
-| Kong 3.7            | API ゲートウェイ                     |
+| Kong 3.8            | API ゲートウェイ                     |
 | GitHub Actions      | CI/CD パイプライン                   |
 | Flagger             | プログレッシブデリバリー（カナリア） |
 | Harbor + Cosign     | コンテナレジストリ・イメージ署名     |
@@ -169,6 +172,8 @@ regions/
 - Rust 1.82+
 - Docker & Docker Compose
 - Go 1.23+（Go サーバー開発時）
+- .NET 10 SDK（C# サーバー開発時）
+- uv（Python ライブラリ開発時）
 
 ### インストールと起動
 
@@ -207,16 +212,37 @@ docker compose --profile infra up -d
 
 ```
 k1s0/
-├── CLI/                 Rust 製の対話式 CLI ツール + Tauri GUI
-├── regions/             3 階層のアプリケーション基盤
-│   ├── system/            共通基盤（認証・設定管理・テレメトリ）
-│   ├── business/          部門固有の共通基盤
-│   └── service/           個別サービスの実装
-├── api/proto/           共有 Protocol Buffers 定義
-├── infra/               IaC（Terraform / Helm / Kong / Istio / Docker）
-├── e2e/                 E2E テスト（Python + pytest）
-├── docs/                設計ドキュメント（50+ ファイル）
-└── docker-compose.yaml  ローカル開発環境
+├── CLI/                    Rust CLI（k1s0-cli / k1s0-core / k1s0-gui）
+│   └── crates/               3 クレート構成（CLI・コアライブラリ・Tauri GUI）
+├── regions/                3 階層のアプリケーション基盤
+│   ├── system/               共通基盤
+│   │   ├── server/             auth / config / saga / dlq-manager / bff-proxy
+│   │   ├── library/            11 パッケージ × 6 言語（Rust/Go/TypeScript/Dart/C#/Python）
+│   │   └── database/           auth-db / config-db / saga-db / dlq-db
+│   ├── business/             部門固有（accounting）
+│   │   ├── server/ client/ library/
+│   │   └── database/
+│   └── service/              個別サービス（order / inventory）
+│       ├── server/ client/
+│       └── database/
+├── api/proto/              共有 Protocol Buffers 定義（buf 管理）
+├── infra/                  IaC・インフラ設定
+│   ├── docker/               Docker 初期化・設定
+│   ├── kubernetes/           K8s マニフェスト
+│   ├── helm/                 Helm Charts
+│   ├── terraform/            Terraform モジュール
+│   ├── istio/                サービスメッシュ設定
+│   ├── kong/                 API ゲートウェイ設定
+│   ├── keycloak/             認証基盤設定
+│   ├── vault/                シークレット管理
+│   ├── messaging/            Kafka・Schema Registry
+│   ├── observability/        監視・アラート設定
+│   └── ansible/              プロビジョニング
+├── e2e/                    E2E テスト（Python + pytest）
+├── scripts/                ユーティリティスクリプト
+├── docs/                   設計ドキュメント（100+ ファイル）
+├── .github/workflows/      CI/CD パイプライン（20 ワークフロー）
+└── docker-compose.yaml     ローカル開発環境（3 プロファイル）
 ```
 
 ---
@@ -276,8 +302,19 @@ cargo test --workspace
 # Go テスト
 go test ./...
 
-# E2E テスト
+# Python ライブラリテスト
+cd regions/system/library/python && uv run pytest
+
+# E2E テスト（全テスト）
 cd e2e && pytest
+
+# E2E テスト（カテゴリ指定）
+cd e2e && pytest -m "auth"        # 認証テスト
+cd e2e && pytest -m "compliance"  # ドキュメント準拠テスト
+cd e2e && pytest -m "health"      # ヘルスチェックテスト
+
+# テストカバレッジ
+scripts/coverage.sh
 ```
 
 ### リント
@@ -289,4 +326,9 @@ cargo fmt --check
 
 # Go
 golangci-lint run ./...
+
+# Python
+cd regions/system/library/python
+uv run ruff check .
+uv run ruff format --check .
 ```

@@ -9,6 +9,8 @@ use super::KafkaConfig;
 pub struct DlqKafkaConsumer {
     _consumer: rdkafka::consumer::StreamConsumer,
     repo: Arc<dyn DlqMessageRepository>,
+    consumer_group: String,
+    metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
 }
 
 impl DlqKafkaConsumer {
@@ -38,7 +40,15 @@ impl DlqKafkaConsumer {
         Ok(Self {
             _consumer: consumer,
             repo,
+            consumer_group: config.consumer_group.clone(),
+            metrics: None,
         })
+    }
+
+    /// メトリクスを設定する。
+    pub fn with_metrics(mut self, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
+        self.metrics = Some(metrics);
+        self
     }
 
     /// バックグラウンドでメッセージ取り込みを開始する。
@@ -55,6 +65,9 @@ impl DlqKafkaConsumer {
                 }
                 Ok(msg) => {
                     let topic = msg.topic().to_string();
+                    if let Some(ref m) = self.metrics {
+                        m.record_kafka_message_consumed(&topic, &self.consumer_group);
+                    }
                     let payload = match msg.payload() {
                         Some(bytes) => {
                             serde_json::from_slice(bytes).unwrap_or(serde_json::Value::Null)

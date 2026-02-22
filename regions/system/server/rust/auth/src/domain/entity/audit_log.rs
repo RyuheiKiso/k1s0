@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// AuditLog は監査ログエントリを表すドメインエンティティ。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct AuditLog {
     pub id: Uuid,
     pub event_type: String,
@@ -21,7 +21,7 @@ pub struct AuditLog {
 }
 
 /// CreateAuditLogRequest は監査ログ記録リクエストを表す。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct CreateAuditLogRequest {
     pub event_type: String,
     pub user_id: String,
@@ -50,14 +50,14 @@ pub struct AuditLogSearchParams {
 }
 
 /// AuditLogSearchResult は監査ログ検索結果を表す。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct AuditLogSearchResult {
     pub logs: Vec<AuditLog>,
     pub pagination: super::user::Pagination,
 }
 
 /// CreateAuditLogResponse は監査ログ作成レスポンスを表す。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct CreateAuditLogResponse {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,

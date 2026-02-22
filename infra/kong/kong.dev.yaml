@@ -5,7 +5,7 @@
 # JWT プラグインを有効にするが、ローカル開発環境では以下の点が異なる:
 #   - サービス URL は docker-compose サービス名で参照
 #   - rate-limiting は local policy（Redis 不要）
-#   - JWT プラグインは無効（開発効率優先）
+#   - JWT プラグインは有効（Keycloak JWKS 連携、ヘルスチェックエンドポイントは除外）
 #   - CORS は localhost:3000 を許可
 
 _format_version: "3.0"
@@ -101,6 +101,9 @@ services:
           - /healthz
           - /readyz
         strip_path: false
+        plugins:
+          - name: jwt
+            enabled: false
 
   - name: config-health
     url: http://config-rust:8080
@@ -110,6 +113,9 @@ services:
           - /config/healthz
           - /config/readyz
         strip_path: false
+        plugins:
+          - name: jwt
+            enabled: false
 
   - name: saga-health
     url: http://saga-rust:8080
@@ -119,6 +125,9 @@ services:
           - /saga/healthz
           - /saga/readyz
         strip_path: false
+        plugins:
+          - name: jwt
+            enabled: false
 
   - name: dlq-manager-health
     url: http://dlq-manager-rust:8080
@@ -128,6 +137,9 @@ services:
           - /dlq/healthz
           - /dlq/readyz
         strip_path: false
+        plugins:
+          - name: jwt
+            enabled: false
 
 # ============================================================
 # Global Plugins
@@ -162,9 +174,33 @@ plugins:
       fault_tolerant: true
       hide_client_headers: false
 
+  # JWT Plugin - Keycloak JWKS 連携（ローカル開発用）
+  # 本番では infra/kong/plugins/auth.yaml で管理
+  - name: jwt
+    config:
+      uri_param_names: []
+      cookie_names: []
+      key_claim_name: kid
+      claims_to_verify:
+        - exp
+      maximum_expiration: 900           # 15分（Access Token のライフタイム）
+      header_names:
+        - Authorization
+
   - name: prometheus
     config:
       per_consumer: true
       status_code_metrics: true
       latency_metrics: true
       bandwidth_metrics: true
+
+# ============================================================
+# Consumers - Keycloak JWKS 連携
+# ============================================================
+consumers:
+  - username: keycloak
+    jwt_secrets:
+      - algorithm: RS256
+        key: "http://keycloak:8080/realms/k1s0"
+        # ローカル開発では Keycloak の内部URL を使用
+        # JWKS URL: http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs

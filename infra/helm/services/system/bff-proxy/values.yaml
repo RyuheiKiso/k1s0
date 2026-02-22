@@ -99,6 +99,15 @@ podAnnotations: {}
 labels:
   tier: system
 
+metrics:
+  enabled: true
+  port: 8080
+  path: /metrics
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+
 redis:
   enabled: true
   host: "redis.k1s0-system.svc.cluster.local"

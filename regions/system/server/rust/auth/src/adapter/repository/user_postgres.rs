@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -9,11 +11,22 @@ use crate::domain::repository::UserRepository;
 /// auth.users テーブルに対する CRUD 操作を提供する。
 pub struct UserPostgresRepository {
     pool: PgPool,
+    metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
 }
 
 impl UserPostgresRepository {
     pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            metrics: None,
+        }
+    }
+
+    pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
+        Self {
+            pool,
+            metrics: Some(metrics),
+        }
     }
 
     /// User ドメインモデルから DB 用パラメータへの変換ヘルパー。
@@ -93,6 +106,7 @@ impl UserRepository for UserPostgresRepository {
         let uuid = Uuid::parse_str(user_id)
             .map_err(|e| anyhow::anyhow!("invalid user ID format: {}", e))?;
 
+        let start = std::time::Instant::now();
         let row = sqlx::query_as::<_, UserRow>(
             r#"
             SELECT id, keycloak_sub, username, email, display_name, status, created_at, updated_at
@@ -102,9 +116,12 @@ impl UserRepository for UserPostgresRepository {
         )
         .bind(uuid)
         .fetch_optional(&self.pool)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("user not found: {}", user_id))?;
+        .await;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("find_by_id", "users", start.elapsed().as_secs_f64());
+        }
 
+        let row = row?.ok_or_else(|| anyhow::anyhow!("user not found: {}", user_id))?;
         Ok(row.into())
     }
 
@@ -155,7 +172,11 @@ impl UserRepository for UserPostgresRepository {
             let status = if en { "active" } else { "inactive" };
             count_q = count_q.bind(status);
         }
+        let start = std::time::Instant::now();
         let total_count = count_q.fetch_one(&self.pool).await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("list_count", "users", start.elapsed().as_secs_f64());
+        }
 
         // data
         let mut data_q = sqlx::query_as::<_, UserRow>(&data_query);
@@ -169,7 +190,11 @@ impl UserRepository for UserPostgresRepository {
         data_q = data_q.bind(page_size as i64);
         data_q = data_q.bind(offset as i64);
 
+        let start = std::time::Instant::now();
         let rows: Vec<UserRow> = data_q.fetch_all(&self.pool).await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("list", "users", start.elapsed().as_secs_f64());
+        }
         let users: Vec<User> = rows.into_iter().map(|r| r.into()).collect();
 
         let has_next = (page as i64 * page_size as i64) < total_count;
@@ -200,6 +225,7 @@ impl UserRepository for UserPostgresRepository {
 impl UserPostgresRepository {
     /// keycloak_sub でユーザーを検索する。
     pub async fn find_by_keycloak_sub(&self, sub: &str) -> anyhow::Result<Option<User>> {
+        let start = std::time::Instant::now();
         let row = sqlx::query_as::<_, UserRow>(
             r#"
             SELECT id, keycloak_sub, username, email, display_name, status, created_at, updated_at
@@ -210,6 +236,9 @@ impl UserPostgresRepository {
         .bind(sub)
         .fetch_optional(&self.pool)
         .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("find_by_keycloak_sub", "users", start.elapsed().as_secs_f64());
+        }
 
         Ok(row.map(|r| r.into()))
     }
@@ -220,6 +249,7 @@ impl UserPostgresRepository {
         let display_name = Self::build_display_name(user);
         let status = Self::status_from_enabled(user.enabled);
 
+        let start = std::time::Instant::now();
         let row = sqlx::query_as::<_, UserRow>(
             r#"
             INSERT INTO auth.users (keycloak_sub, username, email, display_name, status)
@@ -234,6 +264,9 @@ impl UserPostgresRepository {
         .bind(status)
         .fetch_one(&self.pool)
         .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("create", "users", start.elapsed().as_secs_f64());
+        }
 
         Ok(row.into())
     }
@@ -245,6 +278,7 @@ impl UserPostgresRepository {
         let display_name = Self::build_display_name(user);
         let status = Self::status_from_enabled(user.enabled);
 
+        let start = std::time::Instant::now();
         let row = sqlx::query_as::<_, UserRow>(
             r#"
             UPDATE auth.users
@@ -260,6 +294,9 @@ impl UserPostgresRepository {
         .bind(status)
         .fetch_one(&self.pool)
         .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("update", "users", start.elapsed().as_secs_f64());
+        }
 
         Ok(row.into())
     }

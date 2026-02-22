@@ -43,7 +43,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
       "targets": [
         {
-          "expr": "service:http_errors:rate5m{service=~\"auth-server|config-server\"}",
+          "expr": "service:http_errors:rate5m{service=~\"auth-server|config-server|saga-server|dlq-manager\"}",
           "legendFormat": "{{ service }}",
           "refId": "A"
         }
@@ -95,7 +95,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 9 },
       "targets": [
         {
-          "expr": "service:http_request_duration_seconds:p95{service=~\"auth-server|config-server\"}",
+          "expr": "service:http_request_duration_seconds:p95{service=~\"auth-server|config-server|saga-server|dlq-manager\"}",
           "legendFormat": "{{ service }}",
           "refId": "A"
         }
@@ -117,7 +117,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 9 },
       "targets": [
         {
-          "expr": "service:http_request_duration_seconds:p99{service=~\"auth-server|config-server\"}",
+          "expr": "service:http_request_duration_seconds:p99{service=~\"auth-server|config-server|saga-server|dlq-manager\"}",
           "legendFormat": "{{ service }}",
           "refId": "A"
         }
@@ -167,7 +167,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 18 },
       "targets": [
         {
-          "expr": "service:grpc_errors:rate5m{service=~\"auth-server|config-server\"}",
+          "expr": "service:grpc_errors:rate5m{service=~\"auth-server|config-server|saga-server|dlq-manager\"}",
           "legendFormat": "{{ service }} / {{ grpc_service }}",
           "refId": "A"
         }
@@ -197,7 +197,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 18 },
       "targets": [
         {
-          "expr": "service:grpc_handling_seconds:p99{service=~\"auth-server|config-server\"}",
+          "expr": "service:grpc_handling_seconds:p99{service=~\"auth-server|config-server|saga-server|dlq-manager\"}",
           "legendFormat": "{{ service }} / {{ grpc_service }}",
           "refId": "A"
         }
@@ -237,13 +237,57 @@
       "collapsed": false
     },
     {
-      "title": "DB Query P99 Latency",
+      "title": "DB Query Duration (P50)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 35 },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 35 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(db_query_duration_seconds_bucket[5m])) by (query_name, le))",
-          "legendFormat": "{{ query_name }}",
+          "expr": "histogram_quantile(0.50, sum(rate(db_query_duration_seconds_bucket[5m])) by (le, service, table))",
+          "legendFormat": "{{ service }} / {{ table }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10
+          }
+        }
+      }
+    },
+    {
+      "title": "DB Query Duration (P95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 35 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(db_query_duration_seconds_bucket[5m])) by (le, service, table))",
+          "legendFormat": "{{ service }} / {{ table }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10
+          }
+        }
+      }
+    },
+    {
+      "title": "DB Query Duration (P99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 35 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(db_query_duration_seconds_bucket[5m])) by (le, service, table))",
+          "legendFormat": "{{ service }} / {{ table }}",
           "refId": "A"
         }
       ],
@@ -261,11 +305,11 @@
     {
       "title": "DB Query Rate",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 35 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 43 },
       "targets": [
         {
-          "expr": "sum(rate(db_query_duration_seconds_count[5m])) by (query_name)",
-          "legendFormat": "{{ query_name }}",
+          "expr": "sum(rate(db_query_duration_seconds_count[5m])) by (service, query_name)",
+          "legendFormat": "{{ service }} / {{ query_name }}",
           "refId": "A"
         }
       ],
@@ -283,13 +327,13 @@
     {
       "title": "Kafka",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 43 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 51 },
       "collapsed": false
     },
     {
       "title": "Kafka Messages Produced",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 44 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 52 },
       "targets": [
         {
           "expr": "sum(rate(kafka_messages_produced_total[5m])) by (service, topic)",
@@ -311,7 +355,7 @@
     {
       "title": "Kafka Messages Consumed",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 44 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 52 },
       "targets": [
         {
           "expr": "sum(rate(kafka_messages_consumed_total[5m])) by (service, topic, consumer_group)",
@@ -333,16 +377,16 @@
     {
       "title": "Service Health",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 52 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 60 },
       "collapsed": false
     },
     {
       "title": "Service Up/Down",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 53 },
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 61 },
       "targets": [
         {
-          "expr": "up{job=~\"auth-server.*|config-server.*|kong\"}",
+          "expr": "up{job=~\"auth-server.*|config-server.*|saga-server.*|dlq-manager.*|bff-proxy.*|kong\"}",
           "legendFormat": "{{ job }} ({{ instance }})",
           "refId": "A"
         }

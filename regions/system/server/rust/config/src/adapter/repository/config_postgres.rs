@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -11,11 +13,22 @@ use crate::domain::repository::ConfigRepository;
 /// ConfigPostgresRepository は ConfigRepository の PostgreSQL 実装。
 pub struct ConfigPostgresRepository {
     pool: PgPool,
+    metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
 }
 
 impl ConfigPostgresRepository {
     pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            metrics: None,
+        }
+    }
+
+    pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
+        Self {
+            pool,
+            metrics: Some(metrics),
+        }
     }
 
     /// テストやマイグレーション用にプールへの参照を返す。
@@ -58,6 +71,7 @@ impl ConfigRepository for ConfigPostgresRepository {
         namespace: &str,
         key: &str,
     ) -> anyhow::Result<Option<ConfigEntry>> {
+        let start = std::time::Instant::now();
         let row = sqlx::query(
             r#"
             SELECT id, namespace, key, value_json, version, description,
@@ -70,6 +84,9 @@ impl ConfigRepository for ConfigPostgresRepository {
         .bind(key)
         .fetch_optional(&self.pool)
         .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("find_by_namespace_and_key", "config_entries", start.elapsed().as_secs_f64());
+        }
 
         match row {
             Some(row) => Ok(Some(row_to_config_entry(row)?)),
@@ -88,6 +105,7 @@ impl ConfigRepository for ConfigPostgresRepository {
 
         let (entries, total_count) = if let Some(ref search_term) = search {
             let pattern = format!("%{}%", search_term);
+            let start = std::time::Instant::now();
             let rows = sqlx::query(
                 r#"
                 SELECT id, namespace, key, value_json, version, description,
@@ -104,12 +122,16 @@ impl ConfigRepository for ConfigPostgresRepository {
             .bind(offset as i64)
             .fetch_all(&self.pool)
             .await?;
+            if let Some(ref m) = self.metrics {
+                m.record_db_query_duration("list_by_namespace", "config_entries", start.elapsed().as_secs_f64());
+            }
 
             let entries: Vec<ConfigEntry> = rows
                 .into_iter()
                 .map(row_to_config_entry)
                 .collect::<Result<Vec<_>, _>>()?;
 
+            let start = std::time::Instant::now();
             let count_row: (i64,) = sqlx::query_as(
                 "SELECT COUNT(*) FROM config_entries WHERE namespace = $1 AND key LIKE $2",
             )
@@ -117,9 +139,13 @@ impl ConfigRepository for ConfigPostgresRepository {
             .bind(&pattern)
             .fetch_one(&self.pool)
             .await?;
+            if let Some(ref m) = self.metrics {
+                m.record_db_query_duration("list_by_namespace_count", "config_entries", start.elapsed().as_secs_f64());
+            }
 
             (entries, count_row.0)
         } else {
+            let start = std::time::Instant::now();
             let rows = sqlx::query(
                 r#"
                 SELECT id, namespace, key, value_json, version, description,
@@ -135,17 +161,24 @@ impl ConfigRepository for ConfigPostgresRepository {
             .bind(offset as i64)
             .fetch_all(&self.pool)
             .await?;
+            if let Some(ref m) = self.metrics {
+                m.record_db_query_duration("list_by_namespace", "config_entries", start.elapsed().as_secs_f64());
+            }
 
             let entries: Vec<ConfigEntry> = rows
                 .into_iter()
                 .map(row_to_config_entry)
                 .collect::<Result<Vec<_>, _>>()?;
 
+            let start = std::time::Instant::now();
             let count_row: (i64,) =
                 sqlx::query_as("SELECT COUNT(*) FROM config_entries WHERE namespace = $1")
                     .bind(namespace)
                     .fetch_one(&self.pool)
                     .await?;
+            if let Some(ref m) = self.metrics {
+                m.record_db_query_duration("list_by_namespace_count", "config_entries", start.elapsed().as_secs_f64());
+            }
 
             (entries, count_row.0)
         };
@@ -164,6 +197,7 @@ impl ConfigRepository for ConfigPostgresRepository {
     }
 
     async fn create(&self, entry: &ConfigEntry) -> anyhow::Result<ConfigEntry> {
+        let start = std::time::Instant::now();
         let row = sqlx::query(
             r#"
             INSERT INTO config_entries (id, namespace, key, value_json, version, description, created_by, updated_by, created_at, updated_at)
@@ -183,6 +217,9 @@ impl ConfigRepository for ConfigPostgresRepository {
         .bind(entry.updated_at)
         .fetch_one(&self.pool)
         .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("create", "config_entries", start.elapsed().as_secs_f64());
+        }
 
         Ok(row_to_config_entry(row)?)
     }
@@ -199,6 +236,7 @@ impl ConfigRepository for ConfigPostgresRepository {
         let now = chrono::Utc::now();
         let new_version = expected_version + 1;
 
+        let start = std::time::Instant::now();
         let row = sqlx::query(
             r#"
             UPDATE config_entries
@@ -221,6 +259,9 @@ impl ConfigRepository for ConfigPostgresRepository {
         .bind(expected_version)
         .fetch_optional(&self.pool)
         .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("update", "config_entries", start.elapsed().as_secs_f64());
+        }
 
         match row {
             Some(row) => Ok(row_to_config_entry(row)?),
@@ -246,11 +287,15 @@ impl ConfigRepository for ConfigPostgresRepository {
     }
 
     async fn delete(&self, namespace: &str, key: &str) -> anyhow::Result<bool> {
+        let start = std::time::Instant::now();
         let result = sqlx::query("DELETE FROM config_entries WHERE namespace = $1 AND key = $2")
             .bind(namespace)
             .bind(key)
             .execute(&self.pool)
             .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("delete", "config_entries", start.elapsed().as_secs_f64());
+        }
 
         Ok(result.rows_affected() > 0)
     }
@@ -263,6 +308,7 @@ impl ConfigRepository for ConfigPostgresRepository {
         // 例: "auth-server" → "system.auth.%" のような namespace にマッチ
         let pattern = format!("%.{}%", service_name.replace('-', "."));
 
+        let start = std::time::Instant::now();
         let rows = sqlx::query(
             r#"
             SELECT namespace, key, value_json
@@ -274,6 +320,9 @@ impl ConfigRepository for ConfigPostgresRepository {
         .bind(&pattern)
         .fetch_all(&self.pool)
         .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("find_by_service_name", "config_entries", start.elapsed().as_secs_f64());
+        }
 
         let entries: Vec<ServiceConfigEntry> = rows
             .into_iter()
@@ -317,6 +366,7 @@ impl ConfigRepository for ConfigPostgresRepository {
     }
 
     async fn record_change_log(&self, log: &ConfigChangeLog) -> anyhow::Result<()> {
+        let start = std::time::Instant::now();
         sqlx::query(
             r#"
             INSERT INTO config_change_logs (id, config_entry_id, namespace, key, old_value_json, new_value_json, change_type, changed_by, created_at)
@@ -334,6 +384,9 @@ impl ConfigRepository for ConfigPostgresRepository {
         .bind(log.changed_at)
         .execute(&self.pool)
         .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("record_change_log", "config_change_logs", start.elapsed().as_secs_f64());
+        }
 
         Ok(())
     }
@@ -343,6 +396,7 @@ impl ConfigRepository for ConfigPostgresRepository {
         namespace: &str,
         key: &str,
     ) -> anyhow::Result<Vec<ConfigChangeLog>> {
+        let start = std::time::Instant::now();
         let rows = sqlx::query(
             r#"
             SELECT id, config_entry_id, namespace, key, old_value_json, new_value_json,
@@ -356,6 +410,9 @@ impl ConfigRepository for ConfigPostgresRepository {
         .bind(key)
         .fetch_all(&self.pool)
         .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("list_change_logs", "config_change_logs", start.elapsed().as_secs_f64());
+        }
 
         let logs = rows
             .into_iter()
@@ -380,6 +437,7 @@ impl ConfigRepository for ConfigPostgresRepository {
     }
 
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<ConfigEntry>> {
+        let start = std::time::Instant::now();
         let row = sqlx::query(
             r#"
             SELECT id, namespace, key, value_json, version, description,
@@ -391,6 +449,9 @@ impl ConfigRepository for ConfigPostgresRepository {
         .bind(id)
         .fetch_optional(&self.pool)
         .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("find_by_id", "config_entries", start.elapsed().as_secs_f64());
+        }
 
         match row {
             Some(row) => Ok(Some(row_to_config_entry(row)?)),

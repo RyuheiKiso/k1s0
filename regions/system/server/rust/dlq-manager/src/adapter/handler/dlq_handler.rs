@@ -24,7 +24,7 @@ fn default_page_size() -> i32 {
     20
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct DlqMessageResponse {
     pub id: String,
     pub original_topic: String,
@@ -38,13 +38,13 @@ pub struct DlqMessageResponse {
     pub last_retry_at: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct ListMessagesResponse {
     pub messages: Vec<DlqMessageResponse>,
     pub pagination: PaginationResponse,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct PaginationResponse {
     pub total_count: i64,
     pub page: i32,
@@ -52,20 +52,20 @@ pub struct PaginationResponse {
     pub has_next: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct RetryMessageResponse {
     pub id: String,
     pub status: String,
     pub message: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct RetryAllResponse {
     pub retried: i64,
     pub message: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct DeleteMessageResponse {
     pub success: bool,
     pub message: String,
@@ -90,22 +90,34 @@ fn to_message_response(msg: &crate::domain::entity::DlqMessage) -> DlqMessageRes
 
 // --- Handlers ---
 
-/// ヘルスチェック
+#[utoipa::path(get, path = "/healthz", responses((status = 200, description = "Health check OK")))]
 pub async fn healthz() -> &'static str {
     "ok"
 }
 
-/// レディネスチェック
+#[utoipa::path(get, path = "/readyz", responses((status = 200, description = "Ready")))]
 pub async fn readyz() -> &'static str {
     "ok"
 }
 
-/// メトリクス
+#[utoipa::path(get, path = "/metrics", responses((status = 200, description = "Prometheus metrics")))]
 pub async fn metrics(State(state): State<AppState>) -> String {
     state.metrics.gather_metrics()
 }
 
-/// DLQ メッセージ一覧取得
+#[utoipa::path(
+    get,
+    path = "/api/v1/dlq/{topic}",
+    params(
+        ("topic" = String, Path, description = "DLQ topic name"),
+        ("page" = Option<i32>, Query, description = "Page number"),
+        ("page_size" = Option<i32>, Query, description = "Page size"),
+    ),
+    responses(
+        (status = 200, description = "Message list", body = ListMessagesResponse),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn list_messages(
     State(state): State<AppState>,
     Path(topic): Path<String>,
@@ -133,7 +145,16 @@ pub async fn list_messages(
     }))
 }
 
-/// DLQ メッセージ詳細取得
+#[utoipa::path(
+    get,
+    path = "/api/v1/dlq/messages/{id}",
+    params(("id" = String, Path, description = "Message ID")),
+    responses(
+        (status = 200, description = "Message found", body = DlqMessageResponse),
+        (status = 404, description = "Message not found"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn get_message(
     State(state): State<AppState>,
     Path(id): Path<String>,
@@ -152,7 +173,17 @@ pub async fn get_message(
     Ok(Json(to_message_response(&message)))
 }
 
-/// DLQ メッセージ再処理
+#[utoipa::path(
+    post,
+    path = "/api/v1/dlq/messages/{id}/retry",
+    params(("id" = String, Path, description = "Message ID")),
+    responses(
+        (status = 200, description = "Retry initiated", body = RetryMessageResponse),
+        (status = 404, description = "Message not found"),
+        (status = 409, description = "Message not retryable"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn retry_message(
     State(state): State<AppState>,
     Path(id): Path<String>,
@@ -177,7 +208,15 @@ pub async fn retry_message(
     }))
 }
 
-/// DLQ メッセージ削除
+#[utoipa::path(
+    delete,
+    path = "/api/v1/dlq/messages/{id}",
+    params(("id" = String, Path, description = "Message ID")),
+    responses(
+        (status = 200, description = "Message deleted", body = DeleteMessageResponse),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn delete_message(
     State(state): State<AppState>,
     Path(id): Path<String>,
@@ -197,7 +236,15 @@ pub async fn delete_message(
     }))
 }
 
-/// トピック内全メッセージの一括再処理
+#[utoipa::path(
+    post,
+    path = "/api/v1/dlq/{topic}/retry-all",
+    params(("topic" = String, Path, description = "DLQ topic name")),
+    responses(
+        (status = 200, description = "All messages retried", body = RetryAllResponse),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn retry_all(
     State(state): State<AppState>,
     Path(topic): Path<String>,

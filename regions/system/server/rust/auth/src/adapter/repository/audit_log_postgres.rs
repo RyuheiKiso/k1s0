@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use sqlx::PgPool;
 
@@ -7,18 +9,31 @@ use crate::domain::repository::AuditLogRepository;
 /// AuditLogPostgresRepository は AuditLogRepository の PostgreSQL 実装。
 pub struct AuditLogPostgresRepository {
     pool: PgPool,
+    metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
 }
 
 impl AuditLogPostgresRepository {
     pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            metrics: None,
+        }
+    }
+
+    pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
+        Self {
+            pool,
+            metrics: Some(metrics),
+        }
     }
 }
 
 #[async_trait]
 impl AuditLogRepository for AuditLogPostgresRepository {
     async fn create(&self, log: &AuditLog) -> anyhow::Result<()> {
-        sqlx::query(
+        let start = std::time::Instant::now();
+
+        let result = sqlx::query(
             r#"
             INSERT INTO auth.audit_logs (
                 id, event_type, user_id, ip_address, user_agent,
@@ -41,8 +56,13 @@ impl AuditLogRepository for AuditLogPostgresRepository {
         .bind(&log.trace_id)
         .bind(log.created_at)
         .execute(&self.pool)
-        .await?;
+        .await;
 
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("create", "audit_logs", start.elapsed().as_secs_f64());
+        }
+
+        result?;
         Ok(())
     }
 
@@ -107,7 +127,11 @@ impl AuditLogRepository for AuditLogPostgresRepository {
             count_q = count_q.bind(v);
         }
 
+        let start = std::time::Instant::now();
         let total_count = count_q.fetch_one(&self.pool).await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("search_count", "audit_logs", start.elapsed().as_secs_f64());
+        }
 
         // データクエリ
         let mut data_q = sqlx::query_as::<_, AuditLogRow>(&data_query);
@@ -129,7 +153,11 @@ impl AuditLogRepository for AuditLogPostgresRepository {
         data_q = data_q.bind(params.page_size as i64);
         data_q = data_q.bind(offset as i64);
 
+        let start = std::time::Instant::now();
         let rows: Vec<AuditLogRow> = data_q.fetch_all(&self.pool).await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration("search", "audit_logs", start.elapsed().as_secs_f64());
+        }
         let logs: Vec<AuditLog> = rows.into_iter().map(|r| r.into()).collect();
 
         Ok((logs, total_count))

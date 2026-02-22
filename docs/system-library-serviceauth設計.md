@@ -208,6 +208,89 @@ serviceauth/
 
 **カバレッジ目標**: 90%以上
 
+## C# 実装
+
+**配置先**: `regions/system/library/csharp/serviceauth/`
+
+```
+serviceauth/
+├── src/
+│   ├── ServiceAuth.csproj
+│   ├── IServiceAuthClient.cs      # トークン取得・SPIFFE 検証インターフェース
+│   ├── ServiceAuthClient.cs       # OAuth2 Client Credentials フロー実装（トークンキャッシュ+自動更新）
+│   ├── ServiceToken.cs            # アクセストークン + 有効期限
+│   ├── ServiceClaims.cs           # サービストークンのクレーム
+│   ├── SpiffeId.cs                # SPIFFE URI パース・検証
+│   └── ServiceAuthException.cs    # 公開例外型
+├── tests/
+│   ├── ServiceAuth.Tests.csproj
+│   ├── Unit/
+│   │   ├── SpiffeIdTests.cs
+│   │   └── ServiceTokenTests.cs
+│   └── Integration/
+│       └── ServiceAuthClientTests.cs
+├── .editorconfig
+└── README.md
+```
+
+**NuGet 依存関係**:
+
+| パッケージ | 用途 |
+|-----------|------|
+| Microsoft.IdentityModel.Tokens | JWT トークン検証 |
+
+**名前空間**: `K1s0.System.ServiceAuth`
+
+**主要クラス・インターフェース**:
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `IServiceAuthClient` | interface | トークン取得・検証・SPIFFE 検証の抽象 |
+| `ServiceAuthClient` | class | OAuth2 Client Credentials フロー実装（トークンキャッシュ+自動更新） |
+| `ServiceToken` | record | アクセストークン + 有効期限（IsExpired, ShouldRefresh プロパティ） |
+| `ServiceClaims` | record | サービストークンのクレーム（Sub・Iss・Scope 等） |
+| `SpiffeId` | record | SPIFFE URI のパース・検証（TrustDomain・Namespace・ServiceAccount） |
+| `ServiceAuthException` | class | serviceauth ライブラリの公開例外型 |
+
+**主要 API**:
+
+```csharp
+namespace K1s0.System.ServiceAuth;
+
+public interface IServiceAuthClient
+{
+    Task<ServiceToken> GetTokenAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<string> GetCachedTokenAsync(
+        CancellationToken cancellationToken = default);
+
+    SpiffeId ValidateSpiffeId(string uri, string expectedNamespace);
+}
+
+public record ServiceToken(
+    string AccessToken,
+    string TokenType,
+    DateTimeOffset ExpiresAt,
+    string? Scope)
+{
+    public bool IsExpired => DateTimeOffset.UtcNow >= ExpiresAt;
+    public bool ShouldRefresh => DateTimeOffset.UtcNow >= ExpiresAt.AddMinutes(-1);
+    public string BearerHeader => $"Bearer {AccessToken}";
+}
+
+public record SpiffeId(
+    string TrustDomain,
+    string Namespace,
+    string ServiceAccount,
+    string Uri)
+{
+    public static SpiffeId Parse(string uri);
+}
+```
+
+**カバレッジ目標**: 90%以上
+
 ---
 
 ## 関連ドキュメント

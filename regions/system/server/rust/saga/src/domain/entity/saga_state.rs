@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// SagaStatus はSagaの状態を表す。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SagaStatus {
     Started,
@@ -42,7 +42,7 @@ impl SagaStatus {
 }
 
 /// SagaState はSagaの状態を表す。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct SagaState {
     pub saga_id: Uuid,
     pub workflow_name: String,

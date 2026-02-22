@@ -17,6 +17,7 @@ pub trait DlqEventPublisher: Send + Sync {
 /// DlqKafkaProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
 pub struct DlqKafkaProducer {
     producer: rdkafka::producer::FutureProducer,
+    metrics: Option<std::sync::Arc<k1s0_telemetry::metrics::Metrics>>,
 }
 
 impl DlqKafkaProducer {
@@ -32,7 +33,16 @@ impl DlqKafkaProducer {
 
         let producer: rdkafka::producer::FutureProducer = client_config.create()?;
 
-        Ok(Self { producer })
+        Ok(Self {
+            producer,
+            metrics: None,
+        })
+    }
+
+    /// メトリクスを設定する。
+    pub fn with_metrics(mut self, metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
+        self.metrics = Some(metrics);
+        self
     }
 }
 
@@ -55,6 +65,10 @@ impl DlqEventPublisher for DlqKafkaProducer {
             .send(record, Duration::from_secs(5))
             .await
             .map_err(|(err, _)| anyhow::anyhow!("failed to publish to topic {}: {}", topic, err))?;
+
+        if let Some(ref m) = self.metrics {
+            m.record_kafka_message_produced(topic);
+        }
 
         Ok(())
     }

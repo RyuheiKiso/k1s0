@@ -1,7 +1,19 @@
 # service Tier のサービス定義
+# Tier別レート制限: service=500/min（グローバルデフォルトと同値、明示的に設定）
 services:
   - name: order-v1
     url: http://order-server.k1s0-service.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 500
+          second: 20
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
     routes:
       - name: order-v1-route
         paths:
@@ -10,6 +22,17 @@ services:
 
   - name: dashboard-v1
     url: http://dashboard-server.k1s0-service.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 500
+          second: 20
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
     routes:
       - name: dashboard-v1-route
         paths:

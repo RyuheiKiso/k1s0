@@ -202,6 +202,82 @@ kafka/
 
 **カバレッジ目標**: 80%以上
 
+## C# 実装
+
+**配置先**: `regions/system/library/csharp/kafka/`
+
+```
+kafka/
+├── src/
+│   ├── Kafka.csproj
+│   ├── KafkaConfig.cs             # Kafka 接続設定（TLS・SASL 対応）
+│   ├── KafkaConfigBuilder.cs      # ビルダーパターン
+│   ├── IKafkaHealthCheck.cs       # ヘルスチェックインターフェース
+│   ├── KafkaHealthCheck.cs        # ヘルスチェック実装
+│   ├── TopicConfig.cs             # トピック設定・命名規則検証
+│   ├── TopicPartitionInfo.cs      # パーティション情報
+│   └── KafkaException.cs          # 公開例外型
+├── tests/
+│   ├── Kafka.Tests.csproj
+│   └── Unit/
+│       ├── KafkaConfigTests.cs
+│       └── TopicConfigTests.cs
+├── .editorconfig
+└── README.md
+```
+
+**NuGet 依存関係**:
+
+| パッケージ | 用途 |
+|-----------|------|
+| Confluent.Kafka | Kafka クライアント |
+
+**名前空間**: `K1s0.System.Kafka`
+
+**主要クラス・インターフェース**:
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `KafkaConfig` | record | ブローカー・セキュリティプロトコル・コンシューマーグループ等の設定 |
+| `KafkaConfigBuilder` | class | `KafkaConfig` のビルダー |
+| `IKafkaHealthCheck` | interface | Kafka ヘルスチェック抽象 |
+| `KafkaHealthCheck` | class | 設定妥当性確認・ヘルスチェック実装 |
+| `TopicConfig` | record | トピック名・パーティション数・レプリケーションファクター・保持期間 |
+| `TopicPartitionInfo` | record | トピックのパーティション情報（リーダー・レプリカ・ISR） |
+| `KafkaException` | class | kafka ライブラリの公開例外型 |
+
+**主要 API**:
+
+```csharp
+namespace K1s0.System.Kafka;
+
+public record KafkaConfig
+{
+    public IReadOnlyList<string> Brokers { get; init; }
+    public string ConsumerGroup { get; init; }
+    public string SecurityProtocol { get; init; }
+    public string BootstrapServers();
+    public bool UsesTls();
+}
+
+public class KafkaConfigBuilder
+{
+    public KafkaConfigBuilder Brokers(IEnumerable<string> brokers);
+    public KafkaConfigBuilder ConsumerGroup(string group);
+    public KafkaConfigBuilder SecurityProtocol(string protocol);
+    public KafkaConfigBuilder ConnectionTimeoutMs(int timeout);
+    public KafkaConfig Build();
+}
+
+public interface IKafkaHealthCheck
+{
+    Task<KafkaHealthStatus> CheckAsync(
+        CancellationToken cancellationToken = default);
+}
+```
+
+**カバレッジ目標**: 80%以上
+
 ---
 
 ## 関連ドキュメント

@@ -51,7 +51,26 @@ plugins:
       policy: local
       fault_tolerant: true
 
+  # JWT Plugin - Keycloak JWKS 連携（Docker用）
+  - name: jwt
+    config:
+      uri_param_names: []
+      cookie_names: []
+      key_claim_name: kid
+      claims_to_verify:
+        - exp
+      maximum_expiration: 900
+      header_names:
+        - Authorization
+
   - name: prometheus
     config:
       per_consumer: true
       status_code_metrics: true
+
+# Consumers - Keycloak JWKS 連携
+consumers:
+  - username: keycloak
+    jwt_secrets:
+      - algorithm: RS256
+        key: "http://keycloak:8080/realms/k1s0"

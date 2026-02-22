@@ -54,7 +54,11 @@ rdkafka = { version = "0.36", features = ["cmake-build"] }
 k1s0-auth = { path = "../../../library/rust/auth" }
 
 # Telemetry library
-k1s0-telemetry = { path = "../../../library/rust/telemetry" }
+k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
+
+# OpenAPI
+utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "8", features = ["axum"] }
 
 [build-dependencies]
 tonic-build = "0.12"

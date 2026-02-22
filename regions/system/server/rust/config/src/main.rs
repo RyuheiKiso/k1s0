@@ -43,6 +43,9 @@ async fn main() -> anyhow::Result<()> {
         "starting config server"
     );
 
+    // Metrics (shared across layers and repositories)
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-config-server"));
+
     // Config repository: PostgreSQL if DATABASE_URL or database config is set, otherwise in-memory
     let config_repo: Arc<dyn domain::repository::ConfigRepository> =
         if let Ok(database_url) = std::env::var("DATABASE_URL") {
@@ -52,13 +55,13 @@ async fn main() -> anyhow::Result<()> {
                 .connect(&database_url)
                 .await?;
             info!("connected to PostgreSQL");
-            let pg_repo = Arc::new(ConfigPostgresRepository::new(pool));
+            let pg_repo = Arc::new(ConfigPostgresRepository::with_metrics(pool, metrics.clone()));
             // キャッシュでラップ（TTL 300秒、最大10000エントリ）
             let cache = Arc::new(infrastructure::cache::ConfigCache::new(10_000, 300));
             info!("config cache initialized (max_capacity=10000, ttl=300s)");
             Arc::new(
-                adapter::repository::cached_config_repository::CachedConfigRepository::new(
-                    pg_repo, cache,
+                adapter::repository::cached_config_repository::CachedConfigRepository::with_metrics(
+                    pg_repo, cache, metrics.clone(),
                 ),
             )
         } else if let Some(ref db_cfg) = cfg.database {
@@ -68,13 +71,13 @@ async fn main() -> anyhow::Result<()> {
                 .connect(&db_cfg.connection_url())
                 .await?;
             info!("connected to PostgreSQL");
-            let pg_repo = Arc::new(ConfigPostgresRepository::new(pool));
+            let pg_repo = Arc::new(ConfigPostgresRepository::with_metrics(pool, metrics.clone()));
             // キャッシュでラップ（TTL 300秒、最大10000エントリ）
             let cache = Arc::new(infrastructure::cache::ConfigCache::new(10_000, 300));
             info!("config cache initialized (max_capacity=10000, ttl=300s)");
             Arc::new(
-                adapter::repository::cached_config_repository::CachedConfigRepository::new(
-                    pg_repo, cache,
+                adapter::repository::cached_config_repository::CachedConfigRepository::with_metrics(
+                    pg_repo, cache, metrics.clone(),
                 ),
             )
         } else {
@@ -87,7 +90,7 @@ async fn main() -> anyhow::Result<()> {
         match infrastructure::kafka_producer::KafkaProducer::new(kafka_cfg) {
             Ok(p) => {
                 info!("kafka producer initialized for config change notifications");
-                Some(std::sync::Arc::new(p))
+                Some(std::sync::Arc::new(p.with_metrics(metrics.clone())))
             }
             Err(e) => {
                 tracing::warn!(
@@ -125,6 +128,23 @@ async fn main() -> anyhow::Result<()> {
     // tonic ラッパー
     let config_tonic = adapter::grpc::ConfigServiceTonic::new(config_grpc_svc);
 
+    // Token verifier (JWKS verifier if auth configured)
+    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for config-server");
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &auth_cfg.jwks_url,
+            &auth_cfg.issuer,
+            &auth_cfg.audience,
+            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+        ));
+        Some(adapter::middleware::auth::ConfigAuthState {
+            verifier: jwks_verifier,
+        })
+    } else {
+        info!("no auth configured, config-server running without authentication");
+        None
+    };
+
     // AppState (REST handler 用) - Kafka通知付きで構築
     let mut state = adapter::handler::AppState {
         get_config_uc: std::sync::Arc::new(usecase::GetConfigUseCase::new(config_repo.clone())),
@@ -143,16 +163,21 @@ async fn main() -> anyhow::Result<()> {
         get_service_config_uc: std::sync::Arc::new(usecase::GetServiceConfigUseCase::new(
             config_repo.clone(),
         )),
-        metrics: std::sync::Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-config-server")),
+        metrics: metrics.clone(),
         config_repo: config_repo.clone(),
         kafka_configured: false,
+        auth_state: None,
     };
     if kafka_producer.is_some() {
         state = state.with_kafka();
     }
+    if let Some(auth_st) = auth_state {
+        state = state.with_auth(auth_st);
+    }
 
     // Router
-    let app = handler::router(state);
+    let app = handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server (port 50053)
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50053).into();
@@ -160,8 +185,10 @@ async fn main() -> anyhow::Result<()> {
 
     use proto::k1s0::system::config::v1::config_service_server::ConfigServiceServer;
 
+    let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(ConfigServiceServer::new(config_tonic))
             .serve(grpc_addr)
             .await

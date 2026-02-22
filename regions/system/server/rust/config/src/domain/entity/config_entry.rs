@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// ConfigEntry は設定値を表すドメインエンティティ。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct ConfigEntry {
     pub id: Uuid,
     pub namespace: String,
@@ -18,7 +18,7 @@ pub struct ConfigEntry {
 }
 
 /// Pagination はページネーションパラメータを表す。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct Pagination {
     pub total_count: i64,
     pub page: i32,
@@ -27,14 +27,14 @@ pub struct Pagination {
 }
 
 /// ConfigListResult は設定値一覧とページネーション結果を表す。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct ConfigListResult {
     pub entries: Vec<ConfigEntry>,
     pub pagination: Pagination,
 }
 
 /// ServiceConfigEntry はサービス向け設定の簡易表現。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct ServiceConfigEntry {
     pub namespace: String,
     pub key: String,
@@ -42,7 +42,7 @@ pub struct ServiceConfigEntry {
 }
 
 /// ServiceConfigResult はサービス向け設定一括取得の結果を表す。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct ServiceConfigResult {
     pub service_name: String,
     pub entries: Vec<ServiceConfigEntry>,

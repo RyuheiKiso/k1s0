@@ -25,15 +25,30 @@ route:
 receivers:
   - name: teams-default
     webhook_configs:
-      - url: 'http://prometheus-msteams:2000/default'
+      # 環境別 Webhook URL 設定:
+      #   dev:     http://localhost:2000/default (または通知なし)
+      #   staging: https://outlook.office.com/webhook/staging-xxxx/IncomingWebhook/default
+      #   prod:    https://outlook.office.com/webhook/prod-xxxx/IncomingWebhook/default
+      - url: '{{ .Values.alertmanager.webhookUrl | default "http://prometheus-msteams:2000/default" }}'
         send_resolved: true
 
   - name: teams-critical
     webhook_configs:
-      - url: 'http://prometheus-msteams:2000/critical'
+      # 環境別 Webhook URL 設定:
+      #   dev:     http://localhost:2000/critical (または通知なし)
+      #   staging: https://outlook.office.com/webhook/staging-xxxx/IncomingWebhook/critical
+      #   prod:    https://outlook.office.com/webhook/prod-xxxx/IncomingWebhook/critical
+      - url: '{{ .Values.alertmanager.criticalWebhookUrl | default "http://prometheus-msteams:2000/critical" }}'
         send_resolved: true
 
   - name: teams-warning
     webhook_configs:
-      - url: 'http://prometheus-msteams:2000/warning'
+      # 環境別 Webhook URL 設定:
+      #   dev:     http://localhost:2000/warning (または通知なし)
+      #   staging: https://outlook.office.com/webhook/staging-xxxx/IncomingWebhook/warning
+      #   prod:    https://outlook.office.com/webhook/prod-xxxx/IncomingWebhook/warning
+      - url: '{{ .Values.alertmanager.warningWebhookUrl | default "http://prometheus-msteams:2000/warning" }}'
         send_resolved: true
+
+  - name: 'null'
+    # 通知抑制用の空レシーバー

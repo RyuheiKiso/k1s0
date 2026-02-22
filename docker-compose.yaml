@@ -353,6 +353,16 @@ services:
     ports:
       - "3100:3100"
 
+  promtail:
+    image: grafana/promtail:2.9.0
+    profiles: [observability]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./infra/docker/promtail/promtail-config.yaml:/etc/promtail/config.yaml:ro
+    command: -config.file=/etc/promtail/config.yaml
+    depends_on:
+      - loki
+
   grafana:
     image: grafana/grafana:11.3
     profiles: [observability]

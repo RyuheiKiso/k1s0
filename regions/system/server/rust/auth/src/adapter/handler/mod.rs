@@ -6,6 +6,8 @@ use std::sync::Arc;
 use axum::middleware;
 use axum::routing::{get, post};
 use axum::Router;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::make_rbac_middleware;
@@ -59,6 +61,44 @@ impl AppState {
         }
     }
 }
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        auth_handler::healthz,
+        auth_handler::readyz,
+        auth_handler::metrics,
+        auth_handler::validate_token,
+        auth_handler::introspect_token,
+        auth_handler::get_user,
+        auth_handler::list_users,
+        auth_handler::check_permission,
+        auth_handler::get_user_roles,
+        audit_handler::record_audit_log,
+        audit_handler::search_audit_logs,
+    ),
+    components(schemas(
+        crate::domain::entity::claims::Claims,
+        crate::domain::entity::claims::RealmAccess,
+        crate::domain::entity::claims::ResourceAccess,
+        crate::domain::entity::user::User,
+        crate::domain::entity::user::Role,
+        crate::domain::entity::user::UserRoles,
+        crate::domain::entity::user::Pagination,
+        crate::domain::entity::user::UserListResult,
+        crate::domain::entity::audit_log::AuditLog,
+        crate::domain::entity::audit_log::CreateAuditLogRequest,
+        crate::domain::entity::audit_log::AuditLogSearchResult,
+        crate::domain::entity::audit_log::CreateAuditLogResponse,
+        auth_handler::ValidateTokenRequest,
+        auth_handler::IntrospectTokenRequest,
+        auth_handler::CheckPermissionRequest,
+        ErrorResponse,
+        ErrorBody,
+    )),
+    security(("bearer_auth" = [])),
+)]
+struct ApiDoc;
 
 /// Build the REST API router.
 pub fn router(state: AppState) -> Router {
@@ -137,16 +177,17 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .merge(protected)
         .merge(public)
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(state)
 }
 
 /// ErrorResponse は統一エラーレスポンス。
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct ErrorResponse {
     pub error: ErrorBody,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct ErrorBody {
     pub code: String,
     pub message: String,

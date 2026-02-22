@@ -9,7 +9,16 @@ use super::{AppState, ErrorResponse};
 use crate::domain::entity::audit_log::CreateAuditLogRequest;
 use crate::usecase::search_audit_logs::SearchAuditLogsQueryParams;
 
-/// POST /api/v1/audit/logs
+#[utoipa::path(
+    post,
+    path = "/api/v1/audit/logs",
+    request_body = CreateAuditLogRequest,
+    responses(
+        (status = 201, description = "Audit log created", body = CreateAuditLogResponse),
+        (status = 400, description = "Bad request"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn record_audit_log(
     State(state): State<AppState>,
     Json(req): Json<CreateAuditLogRequest>,
@@ -27,7 +36,21 @@ pub async fn record_audit_log(
     }
 }
 
-/// GET /api/v1/audit/logs
+#[utoipa::path(
+    get,
+    path = "/api/v1/audit/logs",
+    params(
+        ("user_id" = Option<String>, Query, description = "Filter by user ID"),
+        ("event_type" = Option<String>, Query, description = "Filter by event type"),
+        ("page" = Option<i32>, Query, description = "Page number"),
+        ("page_size" = Option<i32>, Query, description = "Page size"),
+    ),
+    responses(
+        (status = 200, description = "Audit log search results", body = AuditLogSearchResult),
+        (status = 400, description = "Bad request"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn search_audit_logs(
     State(state): State<AppState>,
     Query(params): Query<SearchAuditLogsQueryParams>,

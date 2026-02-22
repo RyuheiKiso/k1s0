@@ -1,0 +1,150 @@
+---
+all:
+  children:
+    # ============================================================
+    # dev 環境
+    # ============================================================
+    dev:
+      children:
+        dev_masters:
+          hosts:
+            dev-master-01:
+              ansible_host: 10.10.1.11
+        dev_workers:
+          hosts:
+            dev-worker-01:
+              ansible_host: 10.10.1.21
+            dev-worker-02:
+              ansible_host: 10.10.1.22
+        dev_storage:
+          hosts:
+            dev-ceph-01:
+              ansible_host: 10.10.1.31
+              ceph_osd_devices:
+                - /dev/sdb
+      vars:
+        env: dev
+        kubernetes_version: "1.31"
+        pod_network_cidr: "10.244.0.0/16"
+        service_cidr: "10.96.0.0/12"
+
+    # ============================================================
+    # staging 環境
+    # ============================================================
+    staging:
+      children:
+        staging_masters:
+          hosts:
+            staging-master-01:
+              ansible_host: 10.20.1.11
+            staging-master-02:
+              ansible_host: 10.20.1.12
+            staging-master-03:
+              ansible_host: 10.20.1.13
+        staging_workers:
+          hosts:
+            staging-worker-01:
+              ansible_host: 10.20.1.21
+            staging-worker-02:
+              ansible_host: 10.20.1.22
+            staging-worker-03:
+              ansible_host: 10.20.1.23
+        staging_storage:
+          hosts:
+            staging-ceph-01:
+              ansible_host: 10.20.1.31
+              ceph_osd_devices:
+                - /dev/sdb
+                - /dev/sdc
+            staging-ceph-02:
+              ansible_host: 10.20.1.32
+              ceph_osd_devices:
+                - /dev/sdb
+                - /dev/sdc
+            staging-ceph-03:
+              ansible_host: 10.20.1.33
+              ceph_osd_devices:
+                - /dev/sdb
+                - /dev/sdc
+      vars:
+        env: staging
+        kubernetes_version: "1.31"
+        pod_network_cidr: "10.244.0.0/16"
+        service_cidr: "10.96.0.0/12"
+
+    # ============================================================
+    # prod 環境
+    # ============================================================
+    prod:
+      children:
+        prod_masters:
+          hosts:
+            prod-master-01:
+              ansible_host: 10.30.1.11
+            prod-master-02:
+              ansible_host: 10.30.1.12
+            prod-master-03:
+              ansible_host: 10.30.1.13
+        prod_workers:
+          hosts:
+            prod-worker-01:
+              ansible_host: 10.30.1.21
+            prod-worker-02:
+              ansible_host: 10.30.1.22
+            prod-worker-03:
+              ansible_host: 10.30.1.23
+            prod-worker-04:
+              ansible_host: 10.30.1.24
+            prod-worker-05:
+              ansible_host: 10.30.1.25
+        prod_storage:
+          hosts:
+            prod-ceph-01:
+              ansible_host: 10.30.1.31
+              ceph_osd_devices:
+                - /dev/sdb
+                - /dev/sdc
+                - /dev/sdd
+            prod-ceph-02:
+              ansible_host: 10.30.1.32
+              ceph_osd_devices:
+                - /dev/sdb
+                - /dev/sdc
+                - /dev/sdd
+            prod-ceph-03:
+              ansible_host: 10.30.1.33
+              ceph_osd_devices:
+                - /dev/sdb
+                - /dev/sdc
+                - /dev/sdd
+      vars:
+        env: prod
+        kubernetes_version: "1.31"
+        pod_network_cidr: "10.244.0.0/16"
+        service_cidr: "10.96.0.0/12"
+
+    # ============================================================
+    # 論理グループ（環境横断）
+    # ============================================================
+    masters:
+      children:
+        dev_masters:
+        staging_masters:
+        prod_masters:
+
+    workers:
+      children:
+        dev_workers:
+        staging_workers:
+        prod_workers:
+
+    k8s_nodes:
+      children:
+        masters:
+        workers:
+
+    storage:
+      children:
+        dev_storage:
+        staging_storage:
+        prod_storage:
