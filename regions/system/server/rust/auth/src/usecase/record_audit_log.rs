@@ -104,8 +104,7 @@ mod tests {
     #[tokio::test]
     async fn test_record_audit_log_success() {
         let mut mock = MockAuditLogRepository::new();
-        mock.expect_create()
-            .returning(|_| Ok(()));
+        mock.expect_create().returning(|_| Ok(()));
 
         let uc = RecordAuditLogUseCase::new(Arc::new(mock));
         let result = uc.execute(make_valid_request()).await;
@@ -123,10 +122,7 @@ mod tests {
         let mut mock_pub = MockAuditEventPublisher::new();
         mock_pub.expect_publish().returning(|_| Ok(()));
 
-        let uc = RecordAuditLogUseCase::with_publisher(
-            Arc::new(mock_repo),
-            Arc::new(mock_pub),
-        );
+        let uc = RecordAuditLogUseCase::with_publisher(Arc::new(mock_repo), Arc::new(mock_pub));
         let result = uc.execute(make_valid_request()).await;
         assert!(result.is_ok());
     }
@@ -141,10 +137,7 @@ mod tests {
             .expect_publish()
             .returning(|_| Err(anyhow::anyhow!("kafka error")));
 
-        let uc = RecordAuditLogUseCase::with_publisher(
-            Arc::new(mock_repo),
-            Arc::new(mock_pub),
-        );
+        let uc = RecordAuditLogUseCase::with_publisher(Arc::new(mock_repo), Arc::new(mock_pub));
         // publisher のエラーは無視して成功とする
         let result = uc.execute(make_valid_request()).await;
         assert!(result.is_ok());
@@ -200,8 +193,7 @@ mod tests {
     #[tokio::test]
     async fn test_record_audit_log_failure_result() {
         let mut mock = MockAuditLogRepository::new();
-        mock.expect_create()
-            .returning(|_| Ok(()));
+        mock.expect_create().returning(|_| Ok(()));
 
         let uc = RecordAuditLogUseCase::new(Arc::new(mock));
         let mut req = make_valid_request();

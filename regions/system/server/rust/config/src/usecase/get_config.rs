@@ -24,11 +24,7 @@ impl GetConfigUseCase {
     }
 
     /// namespace と key で設定値を取得する。
-    pub async fn execute(
-        &self,
-        namespace: &str,
-        key: &str,
-    ) -> Result<ConfigEntry, GetConfigError> {
+    pub async fn execute(&self, namespace: &str, key: &str) -> Result<ConfigEntry, GetConfigError> {
         self.config_repo
             .find_by_namespace_and_key(namespace, key)
             .await
@@ -70,9 +66,7 @@ mod tests {
             .returning(move |_, _| Ok(Some(entry.clone())));
 
         let uc = GetConfigUseCase::new(Arc::new(mock));
-        let result = uc
-            .execute("system.auth.database", "max_connections")
-            .await;
+        let result = uc.execute("system.auth.database", "max_connections").await;
         assert!(result.is_ok());
 
         let entry = result.unwrap();
@@ -108,9 +102,7 @@ mod tests {
             .returning(|_, _| Err(anyhow::anyhow!("connection refused")));
 
         let uc = GetConfigUseCase::new(Arc::new(mock));
-        let result = uc
-            .execute("system.auth.database", "max_connections")
-            .await;
+        let result = uc.execute("system.auth.database", "max_connections").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {

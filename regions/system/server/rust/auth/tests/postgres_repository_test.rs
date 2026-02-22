@@ -1,11 +1,8 @@
 use chrono::Utc;
 use uuid::Uuid;
 
-use k1s0_auth_server::adapter::repository::audit_log_postgres::AuditLogPostgresRepository;
-use k1s0_auth_server::adapter::repository::user_postgres::UserPostgresRepository;
-use k1s0_auth_server::domain::entity::audit_log::{AuditLog, AuditLogSearchParams};
+use k1s0_auth_server::domain::entity::audit_log::AuditLog;
 use k1s0_auth_server::domain::entity::user::User;
-use k1s0_auth_server::domain::repository::{AuditLogRepository, UserRepository};
 
 // -------------------------------------------------------
 // UserPostgresRepository テスト（モック使用）
@@ -158,6 +155,7 @@ mod audit_log_postgres_tests {
 
 #[cfg(test)]
 mod database_integration_tests {
+    #[allow(unused_imports)]
     use super::*;
 
     // sqlx::test は DATABASE_URL 環境変数が設定されている場合に
@@ -169,9 +167,7 @@ mod database_integration_tests {
         use super::*;
         use sqlx::PgPool;
 
-        #[sqlx::test(
-            migrations = "../../database/auth-db/migrations"
-        )]
+        #[sqlx::test(migrations = "../../database/auth-db/migrations")]
         async fn test_user_create_and_find_by_id(pool: PgPool) {
             let repo = UserPostgresRepository::new(pool);
 
@@ -198,9 +194,7 @@ mod database_integration_tests {
             assert_eq!(found.email, "create@example.com");
         }
 
-        #[sqlx::test(
-            migrations = "../../database/auth-db/migrations"
-        )]
+        #[sqlx::test(migrations = "../../database/auth-db/migrations")]
         async fn test_user_find_by_keycloak_sub(pool: PgPool) {
             let repo = UserPostgresRepository::new(pool);
 
@@ -229,9 +223,7 @@ mod database_integration_tests {
             assert_eq!(found.unwrap().username, "test.kcsub");
         }
 
-        #[sqlx::test(
-            migrations = "../../database/auth-db/migrations"
-        )]
+        #[sqlx::test(migrations = "../../database/auth-db/migrations")]
         async fn test_user_list_with_pagination(pool: PgPool) {
             let repo = UserPostgresRepository::new(pool.clone());
 
@@ -263,9 +255,7 @@ mod database_integration_tests {
             assert!(!result.pagination.has_next);
         }
 
-        #[sqlx::test(
-            migrations = "../../database/auth-db/migrations"
-        )]
+        #[sqlx::test(migrations = "../../database/auth-db/migrations")]
         async fn test_user_list_with_search(pool: PgPool) {
             let repo = UserPostgresRepository::new(pool);
 
@@ -309,9 +299,7 @@ mod database_integration_tests {
             assert_eq!(result.users[0].username, "search.alice");
         }
 
-        #[sqlx::test(
-            migrations = "../../database/auth-db/migrations"
-        )]
+        #[sqlx::test(migrations = "../../database/auth-db/migrations")]
         async fn test_user_update(pool: PgPool) {
             let repo = UserPostgresRepository::new(pool);
 
@@ -343,9 +331,7 @@ mod database_integration_tests {
             assert!(!updated.enabled);
         }
 
-        #[sqlx::test(
-            migrations = "../../database/auth-db/migrations"
-        )]
+        #[sqlx::test(migrations = "../../database/auth-db/migrations")]
         async fn test_audit_log_create_and_search(pool: PgPool) {
             let repo = AuditLogPostgresRepository::new(pool);
 

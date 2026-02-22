@@ -1,6 +1,4 @@
-use prometheus::{
-    CounterVec, Encoder, HistogramOpts, HistogramVec, Opts, Registry, TextEncoder,
-};
+use prometheus::{CounterVec, Encoder, HistogramOpts, HistogramVec, Opts, Registry, TextEncoder};
 
 /// Metrics は Prometheus メトリクスのヘルパー構造体である。
 /// RED メソッド（Rate, Errors, Duration）のメトリクスを提供する。
@@ -13,7 +11,9 @@ pub struct Metrics {
 }
 
 /// デフォルトのヒストグラムバケット（Go 実装と同一）。
-const DEFAULT_BUCKETS: &[f64] = &[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0];
+const DEFAULT_BUCKETS: &[f64] = &[
+    0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0,
+];
 
 impl Metrics {
     /// new は Prometheus メトリクスを初期化して返す。

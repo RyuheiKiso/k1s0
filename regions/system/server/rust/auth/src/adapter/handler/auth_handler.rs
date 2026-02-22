@@ -65,9 +65,7 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 /// GET /metrics
-pub async fn metrics(
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+pub async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
     let body = state.metrics.gather_metrics();
     (
         StatusCode::OK,
@@ -97,10 +95,7 @@ pub async fn validate_token(
         )
             .into_response(),
         Err(_) => {
-            let err = ErrorResponse::new(
-                "SYS_AUTH_TOKEN_INVALID",
-                "Token validation failed",
-            );
+            let err = ErrorResponse::new("SYS_AUTH_TOKEN_INVALID", "Token validation failed");
             (StatusCode::UNAUTHORIZED, Json(err)).into_response()
         }
     }
@@ -135,19 +130,12 @@ pub async fn introspect_token(
             })),
         )
             .into_response(),
-        Err(_) => (
-            StatusCode::OK,
-            Json(serde_json::json!({"active": false})),
-        )
-            .into_response(),
+        Err(_) => (StatusCode::OK, Json(serde_json::json!({"active": false}))).into_response(),
     }
 }
 
 /// GET /api/v1/users/:id
-pub async fn get_user(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> impl IntoResponse {
+pub async fn get_user(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     match state.get_user_uc.execute(&id).await {
         Ok(user) => (StatusCode::OK, Json(serde_json::to_value(user).unwrap())).into_response(),
         Err(_) => {
@@ -166,9 +154,7 @@ pub async fn list_users(
     Query(params): Query<ListUsersParams>,
 ) -> impl IntoResponse {
     match state.list_users_uc.execute(&params).await {
-        Ok(result) => {
-            (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response()
-        }
+        Ok(result) => (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_AUTH_LIST_USERS_FAILED", &e.to_string());
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
@@ -203,7 +189,7 @@ pub async fn get_user_roles(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    match state.get_user_uc.get_roles(&id).await {
+    match state.get_user_roles_uc.execute(&id).await {
         Ok(roles) => (StatusCode::OK, Json(serde_json::to_value(roles).unwrap())).into_response(),
         Err(_) => {
             let err = ErrorResponse::new(
@@ -462,7 +448,8 @@ mod tests {
             .returning(move |_| Ok(claims.clone()));
 
         let mut user_repo = MockUserRepository::new();
-        user_repo.expect_find_by_id()
+        user_repo
+            .expect_find_by_id()
             .withf(|id| id == "user-uuid-1234")
             .returning(|_| {
                 Ok(User {
@@ -478,11 +465,7 @@ mod tests {
                 })
             });
 
-        let state = make_app_state(
-            token_verifier,
-            user_repo,
-            MockAuditLogRepository::new(),
-        );
+        let state = make_app_state(token_verifier, user_repo, MockAuditLogRepository::new());
         let app = router(state);
 
         let req = Request::builder()
@@ -515,11 +498,7 @@ mod tests {
             .expect_find_by_id()
             .returning(|_| Err(anyhow::anyhow!("user not found")));
 
-        let state = make_app_state(
-            token_verifier,
-            user_repo,
-            MockAuditLogRepository::new(),
-        );
+        let state = make_app_state(token_verifier, user_repo, MockAuditLogRepository::new());
         let app = router(state);
 
         let req = Request::builder()
@@ -547,34 +526,29 @@ mod tests {
             .returning(move |_| Ok(claims.clone()));
 
         let mut user_repo = MockUserRepository::new();
-        user_repo.expect_list()
-            .returning(|page, page_size, _, _| {
-                Ok(UserListResult {
-                    users: vec![User {
-                        id: "user-1".to_string(),
-                        username: "taro.yamada".to_string(),
-                        email: "taro@example.com".to_string(),
-                        first_name: "Taro".to_string(),
-                        last_name: "Yamada".to_string(),
-                        enabled: true,
-                        email_verified: true,
-                        created_at: chrono::Utc::now(),
-                        attributes: HashMap::new(),
-                    }],
-                    pagination: Pagination {
-                        total_count: 1,
-                        page,
-                        page_size,
-                        has_next: false,
-                    },
-                })
-            });
+        user_repo.expect_list().returning(|page, page_size, _, _| {
+            Ok(UserListResult {
+                users: vec![User {
+                    id: "user-1".to_string(),
+                    username: "taro.yamada".to_string(),
+                    email: "taro@example.com".to_string(),
+                    first_name: "Taro".to_string(),
+                    last_name: "Yamada".to_string(),
+                    enabled: true,
+                    email_verified: true,
+                    created_at: chrono::Utc::now(),
+                    attributes: HashMap::new(),
+                }],
+                pagination: Pagination {
+                    total_count: 1,
+                    page,
+                    page_size,
+                    has_next: false,
+                },
+            })
+        });
 
-        let state = make_app_state(
-            token_verifier,
-            user_repo,
-            MockAuditLogRepository::new(),
-        );
+        let state = make_app_state(token_verifier, user_repo, MockAuditLogRepository::new());
         let app = router(state);
 
         let req = Request::builder()
@@ -603,7 +577,8 @@ mod tests {
             .returning(move |_| Ok(claims.clone()));
 
         let mut user_repo = MockUserRepository::new();
-        user_repo.expect_get_roles()
+        user_repo
+            .expect_get_roles()
             .withf(|id| id == "user-uuid-1234")
             .returning(|_| {
                 Ok(UserRoles {
@@ -617,11 +592,7 @@ mod tests {
                 })
             });
 
-        let state = make_app_state(
-            token_verifier,
-            user_repo,
-            MockAuditLogRepository::new(),
-        );
+        let state = make_app_state(token_verifier, user_repo, MockAuditLogRepository::new());
         let app = router(state);
 
         let req = Request::builder()

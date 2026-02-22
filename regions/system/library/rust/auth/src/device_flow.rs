@@ -133,7 +133,10 @@ impl DeviceAuthClient {
             params.push(("scope", s));
         }
 
-        let (status, body) = self.http_client.post_form(&self.device_endpoint, &params).await?;
+        let (status, body) = self
+            .http_client
+            .post_form(&self.device_endpoint, &params)
+            .await?;
 
         if status != 200 {
             return Err(DeviceFlowError::HttpError(format!(
@@ -159,15 +162,15 @@ impl DeviceAuthClient {
 
         loop {
             let params = [
-                (
-                    "grant_type",
-                    "urn:ietf:params:oauth:grant-type:device_code",
-                ),
+                ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
                 ("device_code", device_code),
                 ("client_id", client_id),
             ];
 
-            let (status, body) = self.http_client.post_form(&self.token_endpoint, &params).await?;
+            let (status, body) = self
+                .http_client
+                .post_form(&self.token_endpoint, &params)
+                .await?;
 
             if status == 200 {
                 return serde_json::from_str(&body)
@@ -210,8 +213,13 @@ impl DeviceAuthClient {
     {
         let device_resp = self.request_device_code(client_id, scope).await?;
         on_user_code(&device_resp);
-        self.poll_token(client_id, &device_resp.device_code, device_resp.interval, cancel)
-            .await
+        self.poll_token(
+            client_id,
+            &device_resp.device_code,
+            device_resp.interval,
+            cancel,
+        )
+        .await
     }
 }
 
@@ -287,11 +295,7 @@ mod tests {
             "https://auth.example.com/token",
             Box::new(MockHttpClient {
                 handler: Box::new(move |_url, params| {
-                    let gt = params
-                        .iter()
-                        .find(|(k, _)| *k == "grant_type")
-                        .unwrap()
-                        .1;
+                    let gt = params.iter().find(|(k, _)| *k == "grant_type").unwrap().1;
                     assert_eq!(gt, "urn:ietf:params:oauth:grant-type:device_code");
 
                     let count = cc.fetch_add(1, Ordering::SeqCst) + 1;
@@ -482,10 +486,7 @@ mod tests {
         assert_eq!(result.access_token, "flow-access-token");
         assert_eq!(result.refresh_token.as_deref(), Some("flow-refresh-token"));
         assert_eq!(received_user_code, "WXYZ-1234");
-        assert_eq!(
-            received_verification_uri,
-            "https://auth.example.com/device"
-        );
+        assert_eq!(received_verification_uri, "https://auth.example.com/device");
     }
 
     #[tokio::test]

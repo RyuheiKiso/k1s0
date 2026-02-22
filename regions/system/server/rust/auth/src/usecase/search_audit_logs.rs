@@ -67,10 +67,7 @@ impl SearchAuditLogsUseCase {
                 chrono::DateTime::parse_from_rfc3339(s)
                     .map(|dt| dt.with_timezone(&chrono::Utc))
                     .map_err(|_| {
-                        SearchAuditLogsError::InvalidPage(format!(
-                            "invalid from datetime: {}",
-                            s
-                        ))
+                        SearchAuditLogsError::InvalidPage(format!("invalid from datetime: {}", s))
                     })
             })
             .transpose()?;
@@ -82,10 +79,7 @@ impl SearchAuditLogsUseCase {
                 chrono::DateTime::parse_from_rfc3339(s)
                     .map(|dt| dt.with_timezone(&chrono::Utc))
                     .map_err(|_| {
-                        SearchAuditLogsError::InvalidPage(format!(
-                            "invalid to datetime: {}",
-                            s
-                        ))
+                        SearchAuditLogsError::InvalidPage(format!("invalid to datetime: {}", s))
                     })
             })
             .transpose()?;
@@ -166,17 +160,14 @@ mod tests {
         let logs = make_sample_logs();
         let log_count = logs.len() as i64;
 
-        mock.expect_search()
-            .returning(move |params| {
-                assert_eq!(params.page, 1);
-                assert_eq!(params.page_size, 50);
-                Ok((logs.clone(), log_count))
-            });
+        mock.expect_search().returning(move |params| {
+            assert_eq!(params.page, 1);
+            assert_eq!(params.page_size, 50);
+            Ok((logs.clone(), log_count))
+        });
 
         let uc = SearchAuditLogsUseCase::new(Arc::new(mock));
-        let result = uc
-            .execute(&SearchAuditLogsQueryParams::default())
-            .await;
+        let result = uc.execute(&SearchAuditLogsQueryParams::default()).await;
         assert!(result.is_ok());
 
         let search_result = result.unwrap();
@@ -196,9 +187,7 @@ mod tests {
                     && params.event_type.as_deref() == Some("LOGIN_SUCCESS")
                     && params.result.as_deref() == Some("SUCCESS")
             })
-            .returning(|_| {
-                Ok((vec![make_sample_logs()[0].clone()], 1))
-            });
+            .returning(|_| Ok((vec![make_sample_logs()[0].clone()], 1)));
 
         let uc = SearchAuditLogsUseCase::new(Arc::new(mock));
         let query = SearchAuditLogsQueryParams {
@@ -238,8 +227,7 @@ mod tests {
     #[tokio::test]
     async fn test_search_audit_logs_has_next_false_on_last_page() {
         let mut mock = MockAuditLogRepository::new();
-        mock.expect_search()
-            .returning(|_| Ok((vec![], 20)));
+        mock.expect_search().returning(|_| Ok((vec![], 20)));
 
         let uc = SearchAuditLogsUseCase::new(Arc::new(mock));
         let query = SearchAuditLogsQueryParams {

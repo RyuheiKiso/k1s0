@@ -43,11 +43,7 @@ pub struct Permission {
 
 impl Permission {
     /// 新しい Permission を生成する。
-    pub fn new(
-        resource: impl Into<String>,
-        action: Action,
-        allowed_roles: Vec<String>,
-    ) -> Self {
+    pub fn new(resource: impl Into<String>, action: Action, allowed_roles: Vec<String>) -> Self {
         Self {
             resource: resource.into(),
             action,
@@ -106,7 +102,10 @@ mod tests {
     fn test_action_from_str_unknown() {
         let result = Action::from_str("unknown");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("unknown action: 'unknown'"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("unknown action: 'unknown'"));
     }
 
     #[test]

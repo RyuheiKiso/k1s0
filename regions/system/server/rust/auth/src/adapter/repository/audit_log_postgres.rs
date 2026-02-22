@@ -46,10 +46,7 @@ impl AuditLogRepository for AuditLogPostgresRepository {
         Ok(())
     }
 
-    async fn search(
-        &self,
-        params: &AuditLogSearchParams,
-    ) -> anyhow::Result<(Vec<AuditLog>, i64)> {
+    async fn search(&self, params: &AuditLogSearchParams) -> anyhow::Result<(Vec<AuditLog>, i64)> {
         let offset = (params.page - 1) * params.page_size;
 
         // 動的にクエリを組み立てる

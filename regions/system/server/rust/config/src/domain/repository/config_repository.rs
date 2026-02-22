@@ -44,10 +44,8 @@ pub trait ConfigRepository: Send + Sync {
     async fn delete(&self, namespace: &str, key: &str) -> anyhow::Result<bool>;
 
     /// サービス名に紐づく設定値を一括取得する。
-    async fn find_by_service_name(
-        &self,
-        service_name: &str,
-    ) -> anyhow::Result<ServiceConfigResult>;
+    async fn find_by_service_name(&self, service_name: &str)
+        -> anyhow::Result<ServiceConfigResult>;
 
     /// 設定変更ログを記録する。
     async fn record_change_log(&self, log: &ConfigChangeLog) -> anyhow::Result<()>;

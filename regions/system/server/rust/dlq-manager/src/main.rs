@@ -108,8 +108,10 @@ async fn main() -> anyhow::Result<()> {
     // Use cases
     let list_messages_uc = Arc::new(usecase::ListMessagesUseCase::new(dlq_repo.clone()));
     let get_message_uc = Arc::new(usecase::GetMessageUseCase::new(dlq_repo.clone()));
-    let retry_message_uc =
-        Arc::new(usecase::RetryMessageUseCase::new(dlq_repo.clone(), publisher.clone()));
+    let retry_message_uc = Arc::new(usecase::RetryMessageUseCase::new(
+        dlq_repo.clone(),
+        publisher.clone(),
+    ));
     let delete_message_uc = Arc::new(usecase::DeleteMessageUseCase::new(dlq_repo.clone()));
     let retry_all_uc = Arc::new(usecase::RetryAllUseCase::new(dlq_repo.clone(), publisher));
 

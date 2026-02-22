@@ -67,7 +67,10 @@ mod tests {
     }
 
     /// テスト用の JWT トークンを生成する。
-    fn generate_test_token(private_key: &RsaPrivateKey, claims_override: Option<TestClaims>) -> String {
+    fn generate_test_token(
+        private_key: &RsaPrivateKey,
+        claims_override: Option<TestClaims>,
+    ) -> String {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -105,7 +108,9 @@ mod tests {
         let mut header = Header::new(Algorithm::RS256);
         header.kid = Some(TEST_KID.into());
 
-        let pem = private_key.to_pkcs1_pem(rsa::pkcs1::LineEnding::LF).unwrap();
+        let pem = private_key
+            .to_pkcs1_pem(rsa::pkcs1::LineEnding::LF)
+            .unwrap();
         let key = EncodingKey::from_rsa_pem(pem.as_bytes()).unwrap();
 
         encode(&header, &claims, &key).unwrap()
@@ -262,14 +267,8 @@ mod tests {
         assert_eq!(claims.sub, "user-uuid-1234");
         assert_eq!(claims.iss, TEST_ISSUER);
         assert_eq!(claims.audience(), Some(TEST_AUDIENCE));
-        assert_eq!(
-            claims.preferred_username.as_deref(),
-            Some("taro.yamada")
-        );
-        assert_eq!(
-            claims.email.as_deref(),
-            Some("taro.yamada@example.com")
-        );
+        assert_eq!(claims.preferred_username.as_deref(), Some("taro.yamada"));
+        assert_eq!(claims.email.as_deref(), Some("taro.yamada@example.com"));
     }
 
     #[tokio::test]
@@ -513,4 +512,3 @@ mod tests {
         assert!(has_tier_access(&claims, "service"));
     }
 }
-

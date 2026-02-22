@@ -59,8 +59,7 @@ impl Claims {
 
     /// sys_operator 以上のロールを持っているかどうかを判定する。
     pub fn is_sys_operator_or_above(&self) -> bool {
-        self.has_realm_role("sys_operator")
-            || self.has_realm_role("sys_admin")
+        self.has_realm_role("sys_operator") || self.has_realm_role("sys_admin")
     }
 
     /// sys_auditor 以上のロールを持っているかどうかを判定する。
@@ -89,10 +88,7 @@ mod tests {
             preferred_username: "taro.yamada".to_string(),
             email: "taro.yamada@example.com".to_string(),
             realm_access: RealmAccess {
-                roles: vec![
-                    "user".to_string(),
-                    "sys_auditor".to_string(),
-                ],
+                roles: vec!["user".to_string(), "sys_auditor".to_string()],
             },
             resource_access: HashMap::from([(
                 "order-service".to_string(),
@@ -171,4 +167,3 @@ mod tests {
         assert!(claims.tier_access.is_empty());
     }
 }
-

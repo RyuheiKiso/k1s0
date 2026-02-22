@@ -35,11 +35,7 @@ impl TelemetryMiddleware {
     /// on_request はリクエスト開始時にトレーシングスパンを作成する。
     /// axum の middleware::from_fn 等から呼び出す。
     pub fn on_request(&self, method: &str, path: &str) {
-        tracing::info_span!(
-            "http_request",
-            http.method = method,
-            http.path = path,
-        );
+        tracing::info_span!("http_request", http.method = method, http.path = path,);
     }
 
     /// on_response はレスポンス完了時にメトリクスを記録する。
@@ -47,7 +43,8 @@ impl TelemetryMiddleware {
     pub fn on_response(&self, method: &str, path: &str, status: u16, duration_secs: f64) {
         let status_str = status.to_string();
         self.metrics.record_http_request(method, path, &status_str);
-        self.metrics.record_http_duration(method, path, duration_secs);
+        self.metrics
+            .record_http_duration(method, path, duration_secs);
 
         tracing::info!(
             http.method = method,
@@ -86,18 +83,15 @@ impl GrpcInterceptor {
 
     /// on_request は gRPC リクエスト開始時にトレーシングスパンを作成する。
     pub fn on_request(&self, service: &str, method: &str) {
-        tracing::info_span!(
-            "grpc_call",
-            rpc.service = service,
-            rpc.method = method,
-        );
+        tracing::info_span!("grpc_call", rpc.service = service, rpc.method = method,);
     }
 
     /// on_response は gRPC レスポンス完了時にメトリクスを記録する。
     /// gRPC ステータスコードとレイテンシを記録し、構造化ログを出力する。
     pub fn on_response(&self, service: &str, method: &str, code: &str, duration_secs: f64) {
         self.metrics.record_grpc_request(service, method, code);
-        self.metrics.record_grpc_duration(service, method, duration_secs);
+        self.metrics
+            .record_grpc_duration(service, method, duration_secs);
 
         if code == "OK" {
             tracing::info!(
@@ -131,11 +125,7 @@ impl GrpcInterceptor {
 #[macro_export]
 macro_rules! trace_request {
     ($method:expr, $path:expr, $body:block) => {{
-        let span = tracing::info_span!(
-            "http_request",
-            http.method = $method,
-            http.path = $path,
-        );
+        let span = tracing::info_span!("http_request", http.method = $method, http.path = $path,);
         let _enter = span.enter();
         let start = std::time::Instant::now();
         let result = $body;
@@ -160,10 +150,7 @@ macro_rules! trace_request {
 #[macro_export]
 macro_rules! trace_grpc_call {
     ($method:expr, $body:block) => {{
-        let span = tracing::info_span!(
-            "grpc_call",
-            rpc.method = $method,
-        );
+        let span = tracing::info_span!("grpc_call", rpc.method = $method,);
         let _enter = span.enter();
         let start = std::time::Instant::now();
         let result = $body;

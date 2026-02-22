@@ -8,30 +8,20 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::auth::v1::{
-    audit_service_server::AuditService,
-    auth_service_server::AuthService,
-    CheckPermissionRequest as ProtoCheckPermissionRequest,
-    CheckPermissionResponse as ProtoCheckPermissionResponse,
-    ClientRoles as ProtoClientRoles,
-    GetUserRequest as ProtoGetUserRequest,
-    GetUserResponse as ProtoGetUserResponse,
+    audit_service_server::AuditService, auth_service_server::AuthService,
+    AuditLog as ProtoAuditLog, CheckPermissionRequest as ProtoCheckPermissionRequest,
+    CheckPermissionResponse as ProtoCheckPermissionResponse, ClientRoles as ProtoClientRoles,
+    GetUserRequest as ProtoGetUserRequest, GetUserResponse as ProtoGetUserResponse,
     GetUserRolesRequest as ProtoGetUserRolesRequest,
-    GetUserRolesResponse as ProtoGetUserRolesResponse,
-    ListUsersRequest as ProtoListUsersRequest,
-    ListUsersResponse as ProtoListUsersResponse,
+    GetUserRolesResponse as ProtoGetUserRolesResponse, ListUsersRequest as ProtoListUsersRequest,
+    ListUsersResponse as ProtoListUsersResponse, RealmAccess as ProtoRealmAccess,
     RecordAuditLogRequest as ProtoRecordAuditLogRequest,
-    RecordAuditLogResponse as ProtoRecordAuditLogResponse,
-    RealmAccess as ProtoRealmAccess,
-    Role as ProtoRole,
-    RoleList as ProtoRoleList,
-    SearchAuditLogsRequest as ProtoSearchAuditLogsRequest,
-    SearchAuditLogsResponse as ProtoSearchAuditLogsResponse,
-    StringList as ProtoStringList,
-    TokenClaims as ProtoTokenClaims,
-    User as ProtoUser,
+    RecordAuditLogResponse as ProtoRecordAuditLogResponse, Role as ProtoRole,
+    RoleList as ProtoRoleList, SearchAuditLogsRequest as ProtoSearchAuditLogsRequest,
+    SearchAuditLogsResponse as ProtoSearchAuditLogsResponse, StringList as ProtoStringList,
+    TokenClaims as ProtoTokenClaims, User as ProtoUser,
     ValidateTokenRequest as ProtoValidateTokenRequest,
     ValidateTokenResponse as ProtoValidateTokenResponse,
-    AuditLog as ProtoAuditLog,
 };
 use crate::proto::k1s0::system::common::v1::{
     PaginationResult as ProtoPaginationResult, Timestamp as ProtoTimestamp,
@@ -39,8 +29,8 @@ use crate::proto::k1s0::system::common::v1::{
 
 use super::audit_grpc::{AuditGrpcService, RecordAuditLogGrpcRequest, SearchAuditLogsGrpcRequest};
 use super::auth_grpc::{
-    AuthGrpcService, CheckPermissionRequest, GetUserRequest, GetUserRolesRequest,
-    GrpcError, ListUsersRequest, PbPagination, ValidateTokenRequest,
+    AuthGrpcService, CheckPermissionRequest, GetUserRequest, GetUserRolesRequest, GrpcError,
+    ListUsersRequest, PbPagination, ValidateTokenRequest,
 };
 
 // --- GrpcError -> tonic::Status 変換 ---
@@ -80,11 +70,9 @@ fn prost_value_to_json(v: prost_types::Value) -> serde_json::Value {
         None => serde_json::Value::Null,
         Some(prost_types::value::Kind::NullValue(_)) => serde_json::Value::Null,
         Some(prost_types::value::Kind::BoolValue(b)) => serde_json::Value::Bool(b),
-        Some(prost_types::value::Kind::NumberValue(n)) => {
-            serde_json::Value::Number(
-                serde_json::Number::from_f64(n).unwrap_or(serde_json::Number::from(0)),
-            )
-        }
+        Some(prost_types::value::Kind::NumberValue(n)) => serde_json::Value::Number(
+            serde_json::Number::from_f64(n).unwrap_or(serde_json::Number::from(0)),
+        ),
         Some(prost_types::value::Kind::StringValue(s)) => serde_json::Value::String(s),
         Some(prost_types::value::Kind::StructValue(s)) => prost_struct_to_json(s),
         Some(prost_types::value::Kind::ListValue(l)) => {
@@ -115,7 +103,11 @@ impl AuthService for AuthServiceTonic {
         let req = ValidateTokenRequest {
             token: request.into_inner().token,
         };
-        let resp = self.inner.validate_token(req).await.map_err(Into::<Status>::into)?;
+        let resp = self
+            .inner
+            .validate_token(req)
+            .await
+            .map_err(Into::<Status>::into)?;
 
         let proto_claims = resp.claims.map(|c| ProtoTokenClaims {
             sub: c.sub,
@@ -126,7 +118,9 @@ impl AuthService for AuthServiceTonic {
             jti: c.jti,
             preferred_username: c.preferred_username,
             email: c.email,
-            realm_access: c.realm_access.map(|ra| ProtoRealmAccess { roles: ra.roles }),
+            realm_access: c
+                .realm_access
+                .map(|ra| ProtoRealmAccess { roles: ra.roles }),
             resource_access: c
                 .resource_access
                 .into_iter()
@@ -149,7 +143,11 @@ impl AuthService for AuthServiceTonic {
         let req = GetUserRequest {
             user_id: request.into_inner().user_id,
         };
-        let resp = self.inner.get_user(req).await.map_err(Into::<Status>::into)?;
+        let resp = self
+            .inner
+            .get_user(req)
+            .await
+            .map_err(Into::<Status>::into)?;
 
         let proto_user = resp.user.map(|u| ProtoUser {
             id: u.id,
@@ -183,7 +181,11 @@ impl AuthService for AuthServiceTonic {
             search: inner.search,
             enabled: inner.enabled,
         };
-        let resp = self.inner.list_users(req).await.map_err(Into::<Status>::into)?;
+        let resp = self
+            .inner
+            .list_users(req)
+            .await
+            .map_err(Into::<Status>::into)?;
 
         let proto_users = resp
             .users
@@ -225,7 +227,11 @@ impl AuthService for AuthServiceTonic {
         let req = GetUserRolesRequest {
             user_id: request.into_inner().user_id,
         };
-        let resp = self.inner.get_user_roles(req).await.map_err(Into::<Status>::into)?;
+        let resp = self
+            .inner
+            .get_user_roles(req)
+            .await
+            .map_err(Into::<Status>::into)?;
 
         let proto_realm_roles = resp
             .realm_roles
@@ -272,7 +278,11 @@ impl AuthService for AuthServiceTonic {
             resource: inner.resource,
             roles: inner.roles,
         };
-        let resp = self.inner.check_permission(req).await.map_err(Into::<Status>::into)?;
+        let resp = self
+            .inner
+            .check_permission(req)
+            .await
+            .map_err(Into::<Status>::into)?;
 
         Ok(Response::new(ProtoCheckPermissionResponse {
             allowed: resp.allowed,
@@ -314,7 +324,11 @@ impl AuditService for AuditServiceTonic {
             detail,
             trace_id: inner.trace_id,
         };
-        let resp = self.inner.record_audit_log(req).await.map_err(Into::<Status>::into)?;
+        let resp = self
+            .inner
+            .record_audit_log(req)
+            .await
+            .map_err(Into::<Status>::into)?;
 
         Ok(Response::new(ProtoRecordAuditLogResponse {
             id: resp.id,
@@ -390,6 +404,7 @@ mod tests {
     use crate::domain::repository::user_repository::MockUserRepository;
     use crate::infrastructure::MockTokenVerifier;
     use crate::usecase::get_user::GetUserUseCase;
+    use crate::usecase::get_user_roles::GetUserRolesUseCase;
     use crate::usecase::list_users::ListUsersUseCase;
     use crate::usecase::validate_token::ValidateTokenUseCase;
     use std::collections::HashMap;
@@ -429,28 +444,26 @@ mod tests {
     #[tokio::test]
     async fn test_auth_service_tonic_validate_token() {
         let mut mock_verifier = MockTokenVerifier::new();
-        mock_verifier
-            .expect_verify_token()
-            .returning(|_| {
-                Ok(Claims {
-                    sub: "tonic-test-user".to_string(),
-                    iss: "test-issuer".to_string(),
-                    aud: "test-audience".to_string(),
-                    exp: chrono::Utc::now().timestamp() + 3600,
-                    iat: chrono::Utc::now().timestamp(),
-                    jti: "test-jti".to_string(),
-                    typ: "Bearer".to_string(),
-                    azp: "test-client".to_string(),
-                    scope: "openid".to_string(),
-                    preferred_username: "tonic.user".to_string(),
-                    email: "tonic@test.com".to_string(),
-                    realm_access: RealmAccess {
-                        roles: vec!["user".to_string()],
-                    },
-                    resource_access: HashMap::new(),
-                    tier_access: vec!["system".to_string()],
-                })
-            });
+        mock_verifier.expect_verify_token().returning(|_| {
+            Ok(Claims {
+                sub: "tonic-test-user".to_string(),
+                iss: "test-issuer".to_string(),
+                aud: "test-audience".to_string(),
+                exp: chrono::Utc::now().timestamp() + 3600,
+                iat: chrono::Utc::now().timestamp(),
+                jti: "test-jti".to_string(),
+                typ: "Bearer".to_string(),
+                azp: "test-client".to_string(),
+                scope: "openid".to_string(),
+                preferred_username: "tonic.user".to_string(),
+                email: "tonic@test.com".to_string(),
+                realm_access: RealmAccess {
+                    roles: vec!["user".to_string()],
+                },
+                resource_access: HashMap::new(),
+                tier_access: vec!["system".to_string()],
+            })
+        });
 
         let validate_uc = Arc::new(ValidateTokenUseCase::new(
             Arc::new(mock_verifier),
@@ -459,9 +472,15 @@ mod tests {
         ));
         let user_repo = Arc::new(MockUserRepository::new());
         let get_user_uc = Arc::new(GetUserUseCase::new(user_repo.clone()));
+        let get_user_roles_uc = Arc::new(GetUserRolesUseCase::new(user_repo.clone()));
         let list_users_uc = Arc::new(ListUsersUseCase::new(user_repo));
 
-        let auth_svc = Arc::new(AuthGrpcService::new(validate_uc, get_user_uc, list_users_uc));
+        let auth_svc = Arc::new(AuthGrpcService::new(
+            validate_uc,
+            get_user_uc,
+            get_user_roles_uc,
+            list_users_uc,
+        ));
         let tonic_svc = AuthServiceTonic::new(auth_svc);
 
         let req = Request::new(ProtoValidateTokenRequest {
@@ -488,9 +507,15 @@ mod tests {
         ));
         let user_repo = Arc::new(MockUserRepository::new());
         let get_user_uc = Arc::new(GetUserUseCase::new(user_repo.clone()));
+        let get_user_roles_uc = Arc::new(GetUserRolesUseCase::new(user_repo.clone()));
         let list_users_uc = Arc::new(ListUsersUseCase::new(user_repo));
 
-        let auth_svc = Arc::new(AuthGrpcService::new(validate_uc, get_user_uc, list_users_uc));
+        let auth_svc = Arc::new(AuthGrpcService::new(
+            validate_uc,
+            get_user_uc,
+            get_user_roles_uc,
+            list_users_uc,
+        ));
         let tonic_svc = AuthServiceTonic::new(auth_svc);
 
         // sys_admin should be allowed

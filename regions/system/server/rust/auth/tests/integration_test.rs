@@ -95,13 +95,11 @@ impl UserRepository for TestUserRepository {
         if user_id == "existing-user" {
             Ok(UserRoles {
                 user_id: "existing-user".to_string(),
-                realm_roles: vec![
-                    Role {
-                        id: "role-1".to_string(),
-                        name: "user".to_string(),
-                        description: "General user".to_string(),
-                    },
-                ],
+                realm_roles: vec![Role {
+                    id: "role-1".to_string(),
+                    name: "user".to_string(),
+                    description: "General user".to_string(),
+                }],
                 client_roles: std::collections::HashMap::new(),
             })
         } else {
@@ -129,10 +127,7 @@ impl AuditLogRepository for TestAuditLogRepository {
         Ok(())
     }
 
-    async fn search(
-        &self,
-        params: &AuditLogSearchParams,
-    ) -> anyhow::Result<(Vec<AuditLog>, i64)> {
+    async fn search(&self, params: &AuditLogSearchParams) -> anyhow::Result<(Vec<AuditLog>, i64)> {
         let logs = self.logs.read().await;
         let filtered: Vec<_> = logs
             .iter()
@@ -303,7 +298,7 @@ async fn test_user_crud_flow() {
         .await
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert!(json["users"].as_array().unwrap().len() > 0);
+    assert!(!json["users"].as_array().unwrap().is_empty());
 
     // get user roles
     let req = Request::builder()

@@ -78,7 +78,14 @@ impl ConfigRepository for CachedConfigRepository {
     ) -> anyhow::Result<ConfigEntry> {
         let result = self
             .inner
-            .update(namespace, key, value_json, expected_version, description, updated_by)
+            .update(
+                namespace,
+                key,
+                value_json,
+                expected_version,
+                description,
+                updated_by,
+            )
             .await?;
 
         // 更新成功時はキャッシュを invalidate して古い値を除去
@@ -220,9 +227,7 @@ mod tests {
 
         let mut mock = MockConfigRepository::new();
         mock.expect_update()
-            .withf(|ns, key, _, _, _, _| {
-                ns == "system.auth.database" && key == "max_connections"
-            })
+            .withf(|ns, key, _, _, _, _| ns == "system.auth.database" && key == "max_connections")
             .once()
             .returning(move |_, _, _, _, _, _| Ok(entry_v2_clone.clone()));
 
@@ -248,7 +253,10 @@ mod tests {
 
         // キャッシュから古いエントリが invalidate されていることを確認
         let cached = cache.get("system.auth.database", "max_connections").await;
-        assert!(cached.is_none(), "update 後はキャッシュが invalidate されるべき");
+        assert!(
+            cached.is_none(),
+            "update 後はキャッシュが invalidate されるべき"
+        );
     }
 
     /// delete 後にキャッシュが invalidate される。
@@ -277,7 +285,10 @@ mod tests {
 
         // キャッシュから削除されていることを確認
         let cached = cache.get("system.auth.database", "max_connections").await;
-        assert!(cached.is_none(), "delete 後はキャッシュが invalidate されるべき");
+        assert!(
+            cached.is_none(),
+            "delete 後はキャッシュが invalidate されるべき"
+        );
     }
 
     /// delete が false を返したときはキャッシュを invalidate しない。
@@ -304,6 +315,9 @@ mod tests {
 
         // delete=false のときはキャッシュはそのまま残る
         let cached = cache.get("system.auth.database", "max_connections").await;
-        assert!(cached.is_some(), "削除対象なしのときはキャッシュを保持すべき");
+        assert!(
+            cached.is_some(),
+            "削除対象なしのときはキャッシュを保持すべき"
+        );
     }
 }

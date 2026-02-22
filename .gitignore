@@ -53,3 +53,4 @@ docker-compose.override.yaml
 **/charts/*.tar.gz
 **/Chart.lock
 CLAUDE.md
+tasks/*

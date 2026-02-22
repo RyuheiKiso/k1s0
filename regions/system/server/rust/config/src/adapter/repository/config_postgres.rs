@@ -235,12 +235,10 @@ impl ConfigRepository for ConfigPostgresRepository {
                 .await?;
 
                 match exists {
-                    Some((current_version,)) => {
-                        Err(anyhow::anyhow!(
-                            "version conflict: current={}",
-                            current_version
-                        ))
-                    }
+                    Some((current_version,)) => Err(anyhow::anyhow!(
+                        "version conflict: current={}",
+                        current_version
+                    )),
                     None => Err(anyhow::anyhow!("config not found: {}/{}", namespace, key)),
                 }
             }
@@ -248,13 +246,11 @@ impl ConfigRepository for ConfigPostgresRepository {
     }
 
     async fn delete(&self, namespace: &str, key: &str) -> anyhow::Result<bool> {
-        let result = sqlx::query(
-            "DELETE FROM config_entries WHERE namespace = $1 AND key = $2",
-        )
-        .bind(namespace)
-        .bind(key)
-        .execute(&self.pool)
-        .await?;
+        let result = sqlx::query("DELETE FROM config_entries WHERE namespace = $1 AND key = $2")
+            .bind(namespace)
+            .bind(key)
+            .execute(&self.pool)
+            .await?;
 
         Ok(result.rows_affected() > 0)
     }
@@ -305,10 +301,7 @@ impl ConfigRepository for ConfigPostgresRepository {
                 .collect::<Result<Vec<_>, _>>()?;
 
             if mapped_entries.is_empty() {
-                return Err(anyhow::anyhow!(
-                    "service not found: {}",
-                    service_name
-                ));
+                return Err(anyhow::anyhow!("service not found: {}", service_name));
             }
 
             return Ok(ServiceConfigResult {

@@ -7,9 +7,7 @@
 //! InMemory プロデューサーを使用してメッセージのシリアライズ/デシリアライズを検証する。
 
 use k1s0_auth_server::domain::entity::audit_log::{AuditLog, CreateAuditLogRequest};
-use k1s0_auth_server::infrastructure::kafka_producer::{
-    AuditEventPublisher, KafkaConfig, TopicsConfig,
-};
+use k1s0_auth_server::infrastructure::kafka_producer::{KafkaConfig, TopicsConfig};
 
 /// テスト用のインメモリプロデューサー/コンシューマー。
 /// Kafka ブローカーなしでメッセージのラウンドトリップを検証する。

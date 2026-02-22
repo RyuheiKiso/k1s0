@@ -120,8 +120,7 @@ mod tests {
     async fn test_namespace_filter_passes_matching() {
         let (uc, _tx) = WatchConfigUseCase::new();
         let rx = uc.subscribe();
-        let mut handler =
-            WatchConfigStreamHandler::new(rx, Some("system.auth".to_string()));
+        let mut handler = WatchConfigStreamHandler::new(rx, Some("system.auth".to_string()));
 
         uc.notify(make_event("system.auth.database", "max_connections", 3));
 
@@ -134,8 +133,7 @@ mod tests {
     async fn test_namespace_filter_skips_non_matching_and_returns_next() {
         let (uc, _tx) = WatchConfigUseCase::new();
         let rx = uc.subscribe();
-        let mut handler =
-            WatchConfigStreamHandler::new(rx, Some("system.auth".to_string()));
+        let mut handler = WatchConfigStreamHandler::new(rx, Some("system.auth".to_string()));
 
         // 最初の通知はフィルタ対象外（スキップされる）
         uc.notify(make_event("business.billing", "rate", 1));

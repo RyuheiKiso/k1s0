@@ -40,10 +40,7 @@ pub fn router(state: AppState) -> Router {
         )
         // topic-based endpoints
         .route("/api/v1/dlq/:topic", get(dlq_handler::list_messages))
-        .route(
-            "/api/v1/dlq/:topic/retry-all",
-            post(dlq_handler::retry_all),
-        )
+        .route("/api/v1/dlq/:topic/retry-all", post(dlq_handler::retry_all))
         .with_state(state)
 }
 

@@ -36,15 +36,16 @@ impl ListUsersUseCase {
     }
 
     /// ユーザー一覧を取得する。
-    pub async fn execute(&self, params: &ListUsersParams) -> Result<UserListResult, ListUsersError> {
+    pub async fn execute(
+        &self,
+        params: &ListUsersParams,
+    ) -> Result<UserListResult, ListUsersError> {
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(20);
 
         // バリデーション
         if page < 1 {
-            return Err(ListUsersError::InvalidPage(
-                "page must be >= 1".to_string(),
-            ));
+            return Err(ListUsersError::InvalidPage("page must be >= 1".to_string()));
         }
         if !(1..=100).contains(&page_size) {
             return Err(ListUsersError::InvalidPageSize(
@@ -53,12 +54,7 @@ impl ListUsersUseCase {
         }
 
         self.user_repo
-            .list(
-                page,
-                page_size,
-                params.search.clone(),
-                params.enabled,
-            )
+            .list(page, page_size, params.search.clone(), params.enabled)
             .await
             .map_err(|e| ListUsersError::Internal(e.to_string()))
     }
@@ -209,7 +205,10 @@ mod tests {
             ..Default::default()
         };
         let result = uc.execute(&params).await;
-        assert!(matches!(result.unwrap_err(), ListUsersError::InvalidPage(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            ListUsersError::InvalidPage(_)
+        ));
     }
 
     #[tokio::test]
@@ -222,7 +221,10 @@ mod tests {
             ..Default::default()
         };
         let result = uc.execute(&params).await;
-        assert!(matches!(result.unwrap_err(), ListUsersError::InvalidPageSize(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            ListUsersError::InvalidPageSize(_)
+        ));
     }
 
     #[tokio::test]
@@ -235,6 +237,9 @@ mod tests {
             ..Default::default()
         };
         let result = uc.execute(&params).await;
-        assert!(matches!(result.unwrap_err(), ListUsersError::InvalidPageSize(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            ListUsersError::InvalidPageSize(_)
+        ));
     }
 }

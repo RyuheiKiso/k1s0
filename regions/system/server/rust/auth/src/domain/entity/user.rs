@@ -76,10 +76,7 @@ mod tests {
     #[test]
     fn test_user_serialization_roundtrip() {
         let mut attrs = HashMap::new();
-        attrs.insert(
-            "department".to_string(),
-            vec!["engineering".to_string()],
-        );
+        attrs.insert("department".to_string(), vec!["engineering".to_string()]);
 
         let user = User {
             id: "user-uuid-1234".to_string(),

@@ -66,9 +66,9 @@ impl WorkflowLoader {
 
     /// 指定ファイルを読み込み、WorkflowDefinition を返す。
     pub async fn load_file(&self, path: &Path) -> anyhow::Result<WorkflowDefinition> {
-        let content = tokio::fs::read_to_string(path).await.map_err(|e| {
-            anyhow::anyhow!("failed to read file {}: {}", path.display(), e)
-        })?;
+        let content = tokio::fs::read_to_string(path)
+            .await
+            .map_err(|e| anyhow::anyhow!("failed to read file {}: {}", path.display(), e))?;
         let wf = WorkflowDefinition::from_yaml(&content).map_err(|e| {
             anyhow::anyhow!("failed to parse workflow from {}: {}", path.display(), e)
         })?;
@@ -138,7 +138,11 @@ steps: []
         let result = loader.load_file(&dir.path().join("nonexistent.yaml")).await;
         assert!(result.is_err());
         let msg = result.unwrap_err().to_string();
-        assert!(msg.contains("failed to read file"), "unexpected error: {}", msg);
+        assert!(
+            msg.contains("failed to read file"),
+            "unexpected error: {}",
+            msg
+        );
     }
 
     #[tokio::test]

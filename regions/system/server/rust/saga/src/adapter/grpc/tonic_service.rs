@@ -7,26 +7,19 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
-use crate::proto::k1s0::system::saga::v1::{
-    saga_service_server::SagaService,
-    CancelSagaRequest as ProtoCancelSagaRequest,
-    CancelSagaResponse as ProtoCancelSagaResponse,
-    GetSagaRequest as ProtoGetSagaRequest,
-    GetSagaResponse as ProtoGetSagaResponse,
-    ListSagasRequest as ProtoListSagasRequest,
-    ListSagasResponse as ProtoListSagasResponse,
-    ListWorkflowsRequest as ProtoListWorkflowsRequest,
-    ListWorkflowsResponse as ProtoListWorkflowsResponse,
-    RegisterWorkflowRequest as ProtoRegisterWorkflowRequest,
-    RegisterWorkflowResponse as ProtoRegisterWorkflowResponse,
-    SagaStateProto as ProtoSagaState,
-    SagaStepLogProto as ProtoSagaStepLog,
-    StartSagaRequest as ProtoStartSagaRequest,
-    StartSagaResponse as ProtoStartSagaResponse,
-    WorkflowSummary as ProtoWorkflowSummary,
-};
 use crate::proto::k1s0::system::common::v1::{
     PaginationResult as ProtoPaginationResult, Timestamp as ProtoTimestamp,
+};
+use crate::proto::k1s0::system::saga::v1::{
+    saga_service_server::SagaService, CancelSagaRequest as ProtoCancelSagaRequest,
+    CancelSagaResponse as ProtoCancelSagaResponse, GetSagaRequest as ProtoGetSagaRequest,
+    GetSagaResponse as ProtoGetSagaResponse, ListSagasRequest as ProtoListSagasRequest,
+    ListSagasResponse as ProtoListSagasResponse, ListWorkflowsRequest as ProtoListWorkflowsRequest,
+    ListWorkflowsResponse as ProtoListWorkflowsResponse,
+    RegisterWorkflowRequest as ProtoRegisterWorkflowRequest,
+    RegisterWorkflowResponse as ProtoRegisterWorkflowResponse, SagaStateProto as ProtoSagaState,
+    SagaStepLogProto as ProtoSagaStepLog, StartSagaRequest as ProtoStartSagaRequest,
+    StartSagaResponse as ProtoStartSagaResponse, WorkflowSummary as ProtoWorkflowSummary,
 };
 
 use super::saga_grpc::{
@@ -50,10 +43,12 @@ impl From<GrpcError> for Status {
 
 /// RFC3339 文字列を proto Timestamp に変換する。
 fn rfc3339_to_proto_timestamp(s: &str) -> Option<ProtoTimestamp> {
-    chrono::DateTime::parse_from_rfc3339(s).ok().map(|dt| ProtoTimestamp {
-        seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
-    })
+    chrono::DateTime::parse_from_rfc3339(s)
+        .ok()
+        .map(|dt| ProtoTimestamp {
+            seconds: dt.timestamp(),
+            nanos: dt.timestamp_subsec_nanos() as i32,
+        })
 }
 
 // --- SagaService tonic ラッパー ---
@@ -87,7 +82,11 @@ impl SagaService for SagaServiceTonic {
             correlation_id: inner.correlation_id,
             initiated_by: inner.initiated_by,
         };
-        let resp = self.inner.start_saga(req).await.map_err(Into::<Status>::into)?;
+        let resp = self
+            .inner
+            .start_saga(req)
+            .await
+            .map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoStartSagaResponse {
             saga_id: resp.saga_id,
             status: resp.status,
@@ -101,7 +100,11 @@ impl SagaService for SagaServiceTonic {
         let req = GetSagaRequest {
             saga_id: request.into_inner().saga_id,
         };
-        let resp = self.inner.get_saga(req).await.map_err(Into::<Status>::into)?;
+        let resp = self
+            .inner
+            .get_saga(req)
+            .await
+            .map_err(Into::<Status>::into)?;
 
         let proto_saga = ProtoSagaState {
             id: resp.saga.id,
@@ -160,7 +163,11 @@ impl SagaService for SagaServiceTonic {
             status: inner.status,
             correlation_id: inner.correlation_id,
         };
-        let resp = self.inner.list_sagas(req).await.map_err(Into::<Status>::into)?;
+        let resp = self
+            .inner
+            .list_sagas(req)
+            .await
+            .map_err(Into::<Status>::into)?;
 
         let proto_sagas = resp
             .sagas
@@ -199,7 +206,11 @@ impl SagaService for SagaServiceTonic {
         let req = CancelSagaRequest {
             saga_id: request.into_inner().saga_id,
         };
-        let resp = self.inner.cancel_saga(req).await.map_err(Into::<Status>::into)?;
+        let resp = self
+            .inner
+            .cancel_saga(req)
+            .await
+            .map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoCancelSagaResponse {
             success: resp.success,
             message: resp.message,
@@ -213,7 +224,11 @@ impl SagaService for SagaServiceTonic {
         let req = RegisterWorkflowRequest {
             workflow_yaml: request.into_inner().workflow_yaml,
         };
-        let resp = self.inner.register_workflow(req).await.map_err(Into::<Status>::into)?;
+        let resp = self
+            .inner
+            .register_workflow(req)
+            .await
+            .map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoRegisterWorkflowResponse {
             name: resp.name,
             step_count: resp.step_count,
@@ -225,7 +240,11 @@ impl SagaService for SagaServiceTonic {
         _request: Request<ProtoListWorkflowsRequest>,
     ) -> Result<Response<ProtoListWorkflowsResponse>, Status> {
         let req = ListWorkflowsRequest {};
-        let resp = self.inner.list_workflows(req).await.map_err(Into::<Status>::into)?;
+        let resp = self
+            .inner
+            .list_workflows(req)
+            .await
+            .map_err(Into::<Status>::into)?;
         let workflows = resp
             .workflows
             .into_iter()
@@ -247,11 +266,11 @@ mod tests {
     use crate::domain::repository::saga_repository::MockSagaRepository;
     use crate::domain::repository::workflow_repository::MockWorkflowRepository;
     use crate::infrastructure::grpc_caller::MockGrpcStepCaller;
+    use crate::usecase::ExecuteSagaUseCase;
     use crate::usecase::{
         CancelSagaUseCase, GetSagaUseCase, ListSagasUseCase, ListWorkflowsUseCase,
         RegisterWorkflowUseCase, StartSagaUseCase,
     };
-    use crate::usecase::ExecuteSagaUseCase;
     use tonic::Code;
 
     fn make_tonic_service(

@@ -177,10 +177,7 @@ impl SagaGrpcService {
     }
 
     /// Saga開始。
-    pub async fn start_saga(
-        &self,
-        req: StartSagaRequest,
-    ) -> Result<StartSagaResponse, GrpcError> {
+    pub async fn start_saga(&self, req: StartSagaRequest) -> Result<StartSagaResponse, GrpcError> {
         let json_payload: serde_json::Value = if req.payload.is_empty() {
             serde_json::Value::Null
         } else {
@@ -235,8 +232,7 @@ impl SagaGrpcService {
             workflow_name: saga.workflow_name.clone(),
             current_step: saga.current_step,
             status: saga.status.to_string(),
-            payload: serde_json::to_vec(&saga.payload)
-                .unwrap_or_default(),
+            payload: serde_json::to_vec(&saga.payload).unwrap_or_default(),
             correlation_id: saga.correlation_id.unwrap_or_default(),
             initiated_by: saga.initiated_by.unwrap_or_default(),
             error_message: saga.error_message.unwrap_or_default(),
@@ -265,10 +261,7 @@ impl SagaGrpcService {
                     .unwrap_or_default(),
                 error_message: log.error_message.unwrap_or_default(),
                 started_at: log.started_at.to_rfc3339(),
-                completed_at: log
-                    .completed_at
-                    .map(|t| t.to_rfc3339())
-                    .unwrap_or_default(),
+                completed_at: log.completed_at.map(|t| t.to_rfc3339()).unwrap_or_default(),
             })
             .collect();
 
@@ -279,10 +272,7 @@ impl SagaGrpcService {
     }
 
     /// Saga一覧取得。
-    pub async fn list_sagas(
-        &self,
-        req: ListSagasRequest,
-    ) -> Result<ListSagasResponse, GrpcError> {
+    pub async fn list_sagas(&self, req: ListSagasRequest) -> Result<ListSagasResponse, GrpcError> {
         let status_filter = if req.status.is_empty() {
             None
         } else {
@@ -348,23 +338,19 @@ impl SagaGrpcService {
         &self,
         req: CancelSagaRequest,
     ) -> Result<CancelSagaResponse, GrpcError> {
-        let id = uuid::Uuid::parse_str(&req.saga_id).map_err(|_| {
-            GrpcError::InvalidArgument(format!("invalid saga_id: {}", req.saga_id))
-        })?;
+        let id = uuid::Uuid::parse_str(&req.saga_id)
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid saga_id: {}", req.saga_id)))?;
 
-        self.cancel_saga_uc
-            .execute(id)
-            .await
-            .map_err(|e| {
-                let msg = e.to_string();
-                if msg.contains("not found") {
-                    GrpcError::NotFound(msg)
-                } else if msg.contains("terminal") {
-                    GrpcError::InvalidArgument(msg)
-                } else {
-                    GrpcError::Internal(format!("failed to cancel saga: {}", msg))
-                }
-            })?;
+        self.cancel_saga_uc.execute(id).await.map_err(|e| {
+            let msg = e.to_string();
+            if msg.contains("not found") {
+                GrpcError::NotFound(msg)
+            } else if msg.contains("terminal") {
+                GrpcError::InvalidArgument(msg)
+            } else {
+                GrpcError::Internal(format!("failed to cancel saga: {}", msg))
+            }
+        })?;
 
         Ok(CancelSagaResponse {
             success: true,
@@ -389,7 +375,11 @@ impl SagaGrpcService {
             .await
             .map_err(|e| {
                 let msg = e.to_string();
-                if msg.contains("name") || msg.contains("step") || msg.contains("service") || msg.contains("method") {
+                if msg.contains("name")
+                    || msg.contains("step")
+                    || msg.contains("service")
+                    || msg.contains("method")
+                {
                     GrpcError::InvalidArgument(format!("invalid workflow definition: {}", msg))
                 } else {
                     GrpcError::Internal(format!("failed to register workflow: {}", msg))

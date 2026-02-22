@@ -76,13 +76,17 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Workflow repository
-    let workflow_loader = infrastructure::workflow_loader::WorkflowLoader::new(&cfg.saga.workflow_dir);
+    let workflow_loader =
+        infrastructure::workflow_loader::WorkflowLoader::new(&cfg.saga.workflow_dir);
     let loaded_definitions = workflow_loader.load_all().await?;
     let workflow_repo = Arc::new(InMemoryWorkflowRepository::new());
     for workflow in &loaded_definitions {
         workflow_repo.register(workflow.clone()).await?;
     }
-    info!(count = loaded_definitions.len(), "workflow definitions loaded from directory via WorkflowLoader");
+    info!(
+        count = loaded_definitions.len(),
+        "workflow definitions loaded from directory via WorkflowLoader"
+    );
 
     // Service registry + gRPC caller
     let registry = Arc::new(ServiceRegistry::new(cfg.services.clone()));

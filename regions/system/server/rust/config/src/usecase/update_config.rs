@@ -90,7 +90,10 @@ impl UpdateConfigUseCase {
     /// 設定値を更新する（楽観的排他制御付き）。
     /// 更新成功後、Kafka プロデューサーが設定されていれば変更イベントを発行する。
     /// Kafka への通知はベストエフォートであり、失敗してもエラーにしない。
-    pub async fn execute(&self, input: &UpdateConfigInput) -> Result<ConfigEntry, UpdateConfigError> {
+    pub async fn execute(
+        &self,
+        input: &UpdateConfigInput,
+    ) -> Result<ConfigEntry, UpdateConfigError> {
         // バリデーション
         if input.namespace.is_empty() {
             return Err(UpdateConfigError::Validation(
@@ -98,9 +101,7 @@ impl UpdateConfigUseCase {
             ));
         }
         if input.key.is_empty() {
-            return Err(UpdateConfigError::Validation(
-                "key is required".to_string(),
-            ));
+            return Err(UpdateConfigError::Validation("key is required".to_string()));
         }
 
         let updated_entry = self
@@ -171,7 +172,11 @@ fn parse_current_version(msg: &str) -> Option<i32> {
     msg.split("current=")
         .nth(1)
         .and_then(|s| s.split_whitespace().next())
-        .and_then(|s| s.trim_end_matches(|c: char| !c.is_ascii_digit()).parse().ok())
+        .and_then(|s| {
+            s.trim_end_matches(|c: char| !c.is_ascii_digit())
+                .parse()
+                .ok()
+        })
 }
 
 #[cfg(test)]
@@ -252,9 +257,7 @@ mod tests {
     async fn test_update_config_version_conflict() {
         let mut mock = MockConfigRepository::new();
         mock.expect_update()
-            .returning(|_, _, _, _, _, _| {
-                Err(anyhow::anyhow!("version conflict: current=4"))
-            });
+            .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("version conflict: current=4")));
 
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
         let result = uc.execute(&make_update_input()).await;
@@ -333,8 +336,14 @@ mod tests {
 
     #[test]
     fn test_parse_current_version() {
-        assert_eq!(parse_current_version("version conflict: current=4"), Some(4));
-        assert_eq!(parse_current_version("version conflict: current=10"), Some(10));
+        assert_eq!(
+            parse_current_version("version conflict: current=4"),
+            Some(4)
+        );
+        assert_eq!(
+            parse_current_version("version conflict: current=10"),
+            Some(10)
+        );
         assert_eq!(parse_current_version("no version info"), None);
     }
 
@@ -370,7 +379,10 @@ mod tests {
         // KafkaConfig を直接構築してテスト（接続は行わない）
         // ここでは型検証のみ: new_with_kafka のシグネチャが正しいことを確認する
         let _ = |producer: Arc<KafkaProducer>| {
-            let uc = UpdateConfigUseCase::new_with_kafka(Arc::new(MockConfigRepository::new()), producer);
+            let uc = UpdateConfigUseCase::new_with_kafka(
+                Arc::new(MockConfigRepository::new()),
+                producer,
+            );
             assert!(uc.kafka_producer.is_some());
         };
         // kafka_producer なし版は None

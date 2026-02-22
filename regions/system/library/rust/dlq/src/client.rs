@@ -84,10 +84,7 @@ impl DlqClient {
     /// DLQ メッセージを再処理する。
     /// POST /api/v1/dlq/messages/:id/retry
     pub async fn retry_message(&self, message_id: &str) -> Result<RetryDlqMessageResponse> {
-        let url = format!(
-            "{}/api/v1/dlq/messages/{}/retry",
-            self.endpoint, message_id
-        );
+        let url = format!("{}/api/v1/dlq/messages/{}/retry", self.endpoint, message_id);
 
         let resp = self
             .http_client
@@ -174,8 +171,14 @@ mod tests {
     #[test]
     fn test_list_messages_url() {
         let client = DlqClient::new("http://dlq-server:8080");
-        let expected = format!("{}/api/v1/dlq/orders.dlq.v1?page=1&page_size=20", client.endpoint);
-        assert_eq!(expected, "http://dlq-server:8080/api/v1/dlq/orders.dlq.v1?page=1&page_size=20");
+        let expected = format!(
+            "{}/api/v1/dlq/orders.dlq.v1?page=1&page_size=20",
+            client.endpoint
+        );
+        assert_eq!(
+            expected,
+            "http://dlq-server:8080/api/v1/dlq/orders.dlq.v1?page=1&page_size=20"
+        );
     }
 
     #[test]
@@ -183,15 +186,24 @@ mod tests {
         let client = DlqClient::new("http://dlq-server:8080");
         let message_id = "msg-123";
         let expected = format!("{}/api/v1/dlq/messages/{}", client.endpoint, message_id);
-        assert_eq!(expected, "http://dlq-server:8080/api/v1/dlq/messages/msg-123");
+        assert_eq!(
+            expected,
+            "http://dlq-server:8080/api/v1/dlq/messages/msg-123"
+        );
     }
 
     #[test]
     fn test_retry_message_url() {
         let client = DlqClient::new("http://dlq-server:8080");
         let message_id = "msg-456";
-        let expected = format!("{}/api/v1/dlq/messages/{}/retry", client.endpoint, message_id);
-        assert_eq!(expected, "http://dlq-server:8080/api/v1/dlq/messages/msg-456/retry");
+        let expected = format!(
+            "{}/api/v1/dlq/messages/{}/retry",
+            client.endpoint, message_id
+        );
+        assert_eq!(
+            expected,
+            "http://dlq-server:8080/api/v1/dlq/messages/msg-456/retry"
+        );
     }
 
     #[test]
@@ -199,6 +211,9 @@ mod tests {
         let client = DlqClient::new("http://dlq-server:8080");
         let topic = "orders.dlq.v1";
         let expected = format!("{}/api/v1/dlq/{}/retry-all", client.endpoint, topic);
-        assert_eq!(expected, "http://dlq-server:8080/api/v1/dlq/orders.dlq.v1/retry-all");
+        assert_eq!(
+            expected,
+            "http://dlq-server:8080/api/v1/dlq/orders.dlq.v1/retry-all"
+        );
     }
 }

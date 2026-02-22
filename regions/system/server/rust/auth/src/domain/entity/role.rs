@@ -11,7 +11,11 @@ pub struct Role {
 
 impl Role {
     /// 新しい Role を生成する。
-    pub fn new(id: impl Into<String>, name: impl Into<String>, description: impl Into<String>) -> Self {
+    pub fn new(
+        id: impl Into<String>,
+        name: impl Into<String>,
+        description: impl Into<String>,
+    ) -> Self {
         Self {
             id: id.into(),
             name: name.into(),
@@ -63,11 +67,7 @@ mod tests {
     use super::*;
 
     fn sample_role(name: &str) -> Role {
-        Role::new(
-            format!("role-id-{}", name),
-            name,
-            format!("{} role", name),
-        )
+        Role::new(format!("role-id-{}", name), name, format!("{} role", name))
     }
 
     #[test]
@@ -145,10 +145,9 @@ mod tests {
     fn test_user_roles_serialization_roundtrip() {
         let mut user_roles = UserRoles::new("user-uuid-1234");
         user_roles.realm_roles.push(sample_role("sys_admin"));
-        user_roles.client_roles.insert(
-            "my-service".to_string(),
-            vec![sample_role("read")],
-        );
+        user_roles
+            .client_roles
+            .insert("my-service".to_string(), vec![sample_role("read")]);
 
         let json = serde_json::to_string(&user_roles).unwrap();
         let deserialized: UserRoles = serde_json::from_str(&json).unwrap();

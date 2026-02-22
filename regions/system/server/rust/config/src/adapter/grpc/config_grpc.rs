@@ -184,10 +184,7 @@ impl ConfigGrpcService {
     }
 
     /// 設定値取得。
-    pub async fn get_config(
-        &self,
-        req: GetConfigRequest,
-    ) -> Result<GetConfigResponse, GrpcError> {
+    pub async fn get_config(&self, req: GetConfigRequest) -> Result<GetConfigResponse, GrpcError> {
         if req.namespace.is_empty() || req.key.is_empty() {
             return Err(GrpcError::InvalidArgument(
                 "namespace and key are required".to_string(),
@@ -229,11 +226,8 @@ impl ConfigGrpcService {
 
         match self.list_configs_uc.execute(&req.namespace, &params).await {
             Ok(result) => {
-                let pb_entries: Vec<PbConfigEntry> = result
-                    .entries
-                    .iter()
-                    .map(domain_config_to_pb)
-                    .collect();
+                let pb_entries: Vec<PbConfigEntry> =
+                    result.entries.iter().map(domain_config_to_pb).collect();
 
                 Ok(ListConfigsResponse {
                     entries: pb_entries,
@@ -245,9 +239,7 @@ impl ConfigGrpcService {
                     }),
                 })
             }
-            Err(ListConfigsError::Validation(msg)) => {
-                Err(GrpcError::InvalidArgument(msg))
-            }
+            Err(ListConfigsError::Validation(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
@@ -263,11 +255,7 @@ impl ConfigGrpcService {
             ));
         }
 
-        match self
-            .get_service_config_uc
-            .execute(&req.service_name)
-            .await
-        {
+        match self.get_service_config_uc.execute(&req.service_name).await {
             Ok(result) => {
                 let pb_entries: Vec<PbServiceConfigEntry> = result
                     .entries
@@ -284,10 +272,9 @@ impl ConfigGrpcService {
                     entries: pb_entries,
                 })
             }
-            Err(GetServiceConfigError::NotFound(name)) => Err(GrpcError::NotFound(format!(
-                "service not found: {}",
-                name
-            ))),
+            Err(GetServiceConfigError::NotFound(name)) => {
+                Err(GrpcError::NotFound(format!("service not found: {}", name)))
+            }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
@@ -303,10 +290,8 @@ impl ConfigGrpcService {
             ));
         }
 
-        let value: serde_json::Value =
-            serde_json::from_str(&req.value_json).map_err(|e| {
-                GrpcError::InvalidArgument(format!("invalid value_json: {}", e))
-            })?;
+        let value: serde_json::Value = serde_json::from_str(&req.value_json)
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid value_json: {}", e)))?;
 
         let input = UpdateConfigInput {
             namespace: req.namespace,
@@ -329,9 +314,7 @@ impl ConfigGrpcService {
                 "config not found: {}/{}",
                 ns, key
             ))),
-            Err(UpdateConfigError::Validation(msg)) => {
-                Err(GrpcError::InvalidArgument(msg))
-            }
+            Err(UpdateConfigError::Validation(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(UpdateConfigError::VersionConflict { expected, current }) => {
                 Err(GrpcError::InvalidArgument(format!(
                     "version conflict: expected={}, current={}",
@@ -779,8 +762,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_config_not_found() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_delete()
-            .returning(|_, _| Ok(false));
+        mock.expect_delete().returning(|_, _| Ok(false));
 
         let svc = make_config_service(mock);
 
@@ -801,7 +783,10 @@ mod tests {
 
     fn make_config_service_with_watch(
         mock: MockConfigRepository,
-    ) -> (ConfigGrpcService, tokio::sync::broadcast::Sender<ConfigChangeEvent>) {
+    ) -> (
+        ConfigGrpcService,
+        tokio::sync::broadcast::Sender<ConfigChangeEvent>,
+    ) {
         use crate::usecase::watch_config::WatchConfigUseCase;
         let repo = Arc::new(mock);
         let get_config_uc = Arc::new(GetConfigUseCase::new(repo.clone()));

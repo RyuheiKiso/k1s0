@@ -3,8 +3,8 @@ pub mod error;
 
 use std::sync::Arc;
 
-use axum::Router;
 use axum::routing::get;
+use axum::Router;
 
 use crate::domain::repository::ConfigRepository;
 use crate::usecase::{

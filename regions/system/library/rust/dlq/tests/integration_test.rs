@@ -1,4 +1,6 @@
-use k1s0_dlq::{DlqClient, DlqMessage, DlqStatus, ListDlqMessagesResponse, RetryDlqMessageResponse};
+use k1s0_dlq::{
+    DlqClient, DlqMessage, DlqStatus, ListDlqMessagesResponse, RetryDlqMessageResponse,
+};
 use wiremock::matchers::{method, path, path_regex, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -94,9 +96,7 @@ async fn test_get_message_success() {
 
     Mock::given(method("GET"))
         .and(path("/api/v1/dlq/messages/msg-100"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(make_dlq_message("msg-100")),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(make_dlq_message("msg-100")))
         .mount(&mock_server)
         .await;
 

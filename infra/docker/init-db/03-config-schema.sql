@@ -97,3 +97,18 @@ INSERT INTO config.config_entries (namespace, key, value_json, description, crea
     ('system.config.server', 'read_timeout',  '30',     '読み取りタイムアウト（秒）', 'migration', 'migration'),
     ('system.config.server', 'write_timeout', '30',     '書き込みタイムアウト（秒）', 'migration', 'migration')
 ON CONFLICT (namespace, key) DO NOTHING;
+
+-- 005: service_config_mappings テーブル
+CREATE TABLE IF NOT EXISTS config.service_config_mappings (
+    id               UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    service_name     VARCHAR(255) NOT NULL,
+    config_entry_id  UUID         NOT NULL REFERENCES config.config_entries(id) ON DELETE CASCADE,
+    created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT uq_service_config_mappings_service_entry UNIQUE (service_name, config_entry_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_service_config_mappings_service_name
+    ON config.service_config_mappings (service_name);
+CREATE INDEX IF NOT EXISTS idx_service_config_mappings_config_entry_id
+    ON config.service_config_mappings (config_entry_id);

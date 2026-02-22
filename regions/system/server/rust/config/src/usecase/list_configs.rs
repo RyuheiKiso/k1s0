@@ -63,7 +63,12 @@ impl ListConfigsUseCase {
         }
 
         self.config_repo
-            .list_by_namespace(namespace, params.page, params.page_size, params.search.clone())
+            .list_by_namespace(
+                namespace,
+                params.page,
+                params.page_size,
+                params.search.clone(),
+            )
             .await
             .map_err(|e| ListConfigsError::Internal(e.to_string()))
     }

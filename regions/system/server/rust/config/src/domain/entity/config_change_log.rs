@@ -89,7 +89,9 @@ mod tests {
             namespace: "system.auth.jwt".to_string(),
             key: "issuer".to_string(),
             old_value: None,
-            new_value: Some(serde_json::json!("https://auth.k1s0.internal.example.com/realms/k1s0")),
+            new_value: Some(serde_json::json!(
+                "https://auth.k1s0.internal.example.com/realms/k1s0"
+            )),
             old_version: 0,
             new_version: 1,
             change_type: "CREATED".to_string(),

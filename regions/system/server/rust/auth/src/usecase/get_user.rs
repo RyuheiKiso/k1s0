@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::domain::entity::user::{User, UserRoles};
+use crate::domain::entity::user::User;
 use crate::domain::repository::UserRepository;
 
 /// GetUserError はユーザー取得に関するエラーを表す。
@@ -25,39 +25,20 @@ impl GetUserUseCase {
 
     /// ユーザー ID でユーザー情報を取得する。
     pub async fn execute(&self, user_id: &str) -> Result<User, GetUserError> {
-        self.user_repo
-            .find_by_id(user_id)
-            .await
-            .map_err(|e| {
-                let msg = e.to_string();
-                if msg.contains("not found") {
-                    GetUserError::NotFound(user_id.to_string())
-                } else {
-                    GetUserError::Internal(msg)
-                }
-            })
-    }
-
-    /// ユーザーのロール一覧を取得する。
-    pub async fn get_roles(&self, user_id: &str) -> Result<UserRoles, GetUserError> {
-        self.user_repo
-            .get_roles(user_id)
-            .await
-            .map_err(|e| {
-                let msg = e.to_string();
-                if msg.contains("not found") {
-                    GetUserError::NotFound(user_id.to_string())
-                } else {
-                    GetUserError::Internal(msg)
-                }
-            })
+        self.user_repo.find_by_id(user_id).await.map_err(|e| {
+            let msg = e.to_string();
+            if msg.contains("not found") {
+                GetUserError::NotFound(user_id.to_string())
+            } else {
+                GetUserError::Internal(msg)
+            }
+        })
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::user::Role;
     use crate::domain::repository::user_repository::MockUserRepository;
     use std::collections::HashMap;
 
@@ -128,56 +109,5 @@ mod tests {
             GetUserError::Internal(msg) => assert!(msg.contains("connection refused")),
             e => panic!("unexpected error: {:?}", e),
         }
-    }
-
-    #[tokio::test]
-    async fn test_get_user_roles_success() {
-        let mut mock = MockUserRepository::new();
-        mock.expect_get_roles()
-            .withf(|id| id == "user-uuid-1234")
-            .returning(|_| {
-                Ok(UserRoles {
-                    user_id: "user-uuid-1234".to_string(),
-                    realm_roles: vec![
-                        Role {
-                            id: "role-1".to_string(),
-                            name: "user".to_string(),
-                            description: "General user".to_string(),
-                        },
-                        Role {
-                            id: "role-2".to_string(),
-                            name: "sys_auditor".to_string(),
-                            description: "Auditor".to_string(),
-                        },
-                    ],
-                    client_roles: HashMap::from([(
-                        "order-service".to_string(),
-                        vec![Role {
-                            id: "role-3".to_string(),
-                            name: "read".to_string(),
-                            description: "Read access".to_string(),
-                        }],
-                    )]),
-                })
-            });
-
-        let uc = GetUserUseCase::new(Arc::new(mock));
-        let result = uc.get_roles("user-uuid-1234").await;
-        assert!(result.is_ok());
-
-        let roles = result.unwrap();
-        assert_eq!(roles.realm_roles.len(), 2);
-        assert_eq!(roles.client_roles.get("order-service").unwrap().len(), 1);
-    }
-
-    #[tokio::test]
-    async fn test_get_user_roles_not_found() {
-        let mut mock = MockUserRepository::new();
-        mock.expect_get_roles()
-            .returning(|_| Err(anyhow::anyhow!("user not found")));
-
-        let uc = GetUserUseCase::new(Arc::new(mock));
-        let result = uc.get_roles("nonexistent").await;
-        assert!(matches!(result.unwrap_err(), GetUserError::NotFound(_)));
     }
 }

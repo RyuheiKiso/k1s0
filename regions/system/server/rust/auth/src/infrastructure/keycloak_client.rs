@@ -43,10 +43,7 @@ impl KeycloakClient {
 
     /// Keycloak のヘルスチェックを行う。
     pub async fn healthy(&self) -> anyhow::Result<()> {
-        let url = format!(
-            "{}/realms/{}",
-            self.config.base_url, self.config.realm
-        );
+        let url = format!("{}/realms/{}", self.config.base_url, self.config.realm);
         let resp = self.http_client.get(&url).send().await?;
         resp.error_for_status()?;
         Ok(())
@@ -95,8 +92,7 @@ impl KeycloakClient {
 
         *cache = Some(CachedToken {
             token: token.clone(),
-            expires_at: chrono::Utc::now()
-                + chrono::Duration::seconds(expires_in - 30), // 30 sec buffer
+            expires_at: chrono::Utc::now() + chrono::Duration::seconds(expires_in - 30), // 30 sec buffer
         });
 
         Ok(token)

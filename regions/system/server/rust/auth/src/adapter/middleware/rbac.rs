@@ -305,14 +305,12 @@ mod tests {
         let app = Router::new()
             .route(
                 "/api/v1/users/:id",
-                delete(|| async { StatusCode::NO_CONTENT }).layer(
-                    middleware::from_fn_with_state(
-                        state_clone,
-                        |_s: State<AppState>, req: Request<Body>, next: Next| {
-                            rbac_check(req, next, "users", "delete")
-                        },
-                    ),
-                ),
+                delete(|| async { StatusCode::NO_CONTENT }).layer(middleware::from_fn_with_state(
+                    state_clone,
+                    |_s: State<AppState>, req: Request<Body>, next: Next| {
+                        rbac_check(req, next, "users", "delete")
+                    },
+                )),
             )
             .with_state(state);
 
@@ -353,14 +351,12 @@ mod tests {
         let app = Router::new()
             .route(
                 "/api/v1/users/:id",
-                delete(|| async { StatusCode::NO_CONTENT }).layer(
-                    middleware::from_fn_with_state(
-                        state_clone,
-                        |_s: State<AppState>, req: Request<Body>, next: Next| {
-                            rbac_check(req, next, "users", "delete")
-                        },
-                    ),
-                ),
+                delete(|| async { StatusCode::NO_CONTENT }).layer(middleware::from_fn_with_state(
+                    state_clone,
+                    |_s: State<AppState>, req: Request<Body>, next: Next| {
+                        rbac_check(req, next, "users", "delete")
+                    },
+                )),
             )
             .with_state(state);
 

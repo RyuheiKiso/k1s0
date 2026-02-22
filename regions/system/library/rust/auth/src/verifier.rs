@@ -201,4 +201,3 @@ impl JwksVerifier {
         *cache = None;
     }
 }
-

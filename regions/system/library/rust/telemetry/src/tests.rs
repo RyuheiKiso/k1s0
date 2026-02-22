@@ -2,7 +2,7 @@
 mod tests {
     use crate::logger::parse_log_level;
     use crate::TelemetryConfig;
-    use crate::{trace_request, trace_grpc_call};
+    use crate::{trace_grpc_call, trace_request};
 
     #[test]
     fn test_telemetry_config_creation() {
@@ -153,7 +153,7 @@ mod tests {
 
     // --- middleware tests ---
 
-    use crate::middleware::{TelemetryMiddleware, GrpcInterceptor};
+    use crate::middleware::{GrpcInterceptor, TelemetryMiddleware};
     use std::sync::Arc;
 
     #[test]

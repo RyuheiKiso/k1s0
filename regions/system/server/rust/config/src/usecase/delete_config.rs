@@ -23,11 +23,7 @@ impl DeleteConfigUseCase {
     }
 
     /// 設定値を削除する。
-    pub async fn execute(
-        &self,
-        namespace: &str,
-        key: &str,
-    ) -> Result<(), DeleteConfigError> {
+    pub async fn execute(&self, namespace: &str, key: &str) -> Result<(), DeleteConfigError> {
         let deleted = self
             .config_repo
             .delete(namespace, key)
@@ -58,22 +54,17 @@ mod tests {
             .returning(|_, _| Ok(true));
 
         let uc = DeleteConfigUseCase::new(Arc::new(mock));
-        let result = uc
-            .execute("system.auth.database", "max_connections")
-            .await;
+        let result = uc.execute("system.auth.database", "max_connections").await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_delete_config_not_found() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_delete()
-            .returning(|_, _| Ok(false));
+        mock.expect_delete().returning(|_, _| Ok(false));
 
         let uc = DeleteConfigUseCase::new(Arc::new(mock));
-        let result = uc
-            .execute("nonexistent.namespace", "missing_key")
-            .await;
+        let result = uc.execute("nonexistent.namespace", "missing_key").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
@@ -92,9 +83,7 @@ mod tests {
             .returning(|_, _| Err(anyhow::anyhow!("connection refused")));
 
         let uc = DeleteConfigUseCase::new(Arc::new(mock));
-        let result = uc
-            .execute("system.auth.database", "max_connections")
-            .await;
+        let result = uc.execute("system.auth.database", "max_connections").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {

@@ -57,7 +57,11 @@ impl DlqMessageRepository for InMemoryDlqRepo {
             .collect();
         let total = filtered.len() as i64;
         let start = ((page - 1) * page_size) as usize;
-        let page_items = filtered.into_iter().skip(start).take(page_size as usize).collect();
+        let page_items = filtered
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((page_items, total))
     }
 
@@ -107,7 +111,12 @@ async fn test_healthz_returns_ok() {
     let app = handler::router(make_app_state(repo));
 
     let response = app
-        .oneshot(Request::builder().uri("/healthz").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::builder()
+                .uri("/healthz")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -120,7 +129,12 @@ async fn test_readyz_returns_ok() {
     let app = handler::router(make_app_state(repo));
 
     let response = app
-        .oneshot(Request::builder().uri("/readyz").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::builder()
+                .uri("/readyz")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 

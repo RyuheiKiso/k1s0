@@ -109,9 +109,7 @@ impl KafkaProducer {
         let payload = serde_json::to_vec(event)?;
         let key = format!("{}:{}", event.namespace, event.key);
 
-        let record = FutureRecord::to(&self.topic)
-            .key(&key)
-            .payload(&payload);
+        let record = FutureRecord::to(&self.topic).key(&key).payload(&payload);
 
         self.producer
             .send(record, Duration::from_secs(5))
@@ -133,14 +131,14 @@ impl ConfigChangeEventPublisher for KafkaProducer {
         let payload = serde_json::to_vec(event)?;
         let key = format!("{}/{}", event.namespace, event.key);
 
-        let record = FutureRecord::to(&self.topic)
-            .key(&key)
-            .payload(&payload);
+        let record = FutureRecord::to(&self.topic).key(&key).payload(&payload);
 
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| anyhow::anyhow!("failed to publish config change event: {}", err))?;
+            .map_err(|(err, _)| {
+                anyhow::anyhow!("failed to publish config change event: {}", err)
+            })?;
 
         Ok(())
     }

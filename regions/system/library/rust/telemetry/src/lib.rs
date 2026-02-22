@@ -51,9 +51,7 @@ pub fn init_telemetry(cfg: &TelemetryConfig) -> Result<(), Box<dyn std::error::E
     let filter = EnvFilter::new(&cfg.log_level);
     let fmt_layer = fmt::layer().json().with_target(true);
 
-    let subscriber = tracing_subscriber::registry()
-        .with(filter)
-        .with(fmt_layer);
+    let subscriber = tracing_subscriber::registry().with(filter).with(fmt_layer);
 
     if let Some(t) = tracer {
         let telemetry_layer = tracing_opentelemetry::layer().with_tracer(t);

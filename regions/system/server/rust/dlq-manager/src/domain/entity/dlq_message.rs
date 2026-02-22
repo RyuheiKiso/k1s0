@@ -194,9 +194,18 @@ mod tests {
 
     #[test]
     fn test_status_from_str() {
-        assert_eq!(DlqStatus::from_str_value("PENDING").unwrap(), DlqStatus::Pending);
-        assert_eq!(DlqStatus::from_str_value("RETRYING").unwrap(), DlqStatus::Retrying);
-        assert_eq!(DlqStatus::from_str_value("RESOLVED").unwrap(), DlqStatus::Resolved);
+        assert_eq!(
+            DlqStatus::from_str_value("PENDING").unwrap(),
+            DlqStatus::Pending
+        );
+        assert_eq!(
+            DlqStatus::from_str_value("RETRYING").unwrap(),
+            DlqStatus::Retrying
+        );
+        assert_eq!(
+            DlqStatus::from_str_value("RESOLVED").unwrap(),
+            DlqStatus::Resolved
+        );
         assert_eq!(DlqStatus::from_str_value("DEAD").unwrap(), DlqStatus::Dead);
         assert!(DlqStatus::from_str_value("INVALID").is_err());
     }

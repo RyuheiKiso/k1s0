@@ -15,8 +15,9 @@ use serde_json::json;
 use std::sync::Arc;
 
 /// ミドルウェアファクトリの戻り値型。
-type AuthMiddlewareFuture =
-    std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, AuthErrorResponse>> + Send>>;
+type AuthMiddlewareFuture = std::pin::Pin<
+    Box<dyn std::future::Future<Output = Result<Response, AuthErrorResponse>> + Send>,
+>;
 
 /// AuthState はミドルウェアが使用する共有状態。
 #[derive(Clone)]
