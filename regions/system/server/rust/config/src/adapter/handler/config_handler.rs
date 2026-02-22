@@ -16,15 +16,41 @@ pub async fn healthz() -> impl IntoResponse {
 }
 
 /// GET /readyz
-pub async fn readyz() -> impl IntoResponse {
-    // TODO: 実際の DB / Kafka 接続確認を実装する
-    Json(serde_json::json!({
-        "status": "ready",
-        "checks": {
-            "database": "ok",
-            "kafka": "ok"
-        }
-    }))
+pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
+    // DB 接続確認: 軽量クエリで疎通チェック
+    let db_ok = state
+        .config_repo
+        .list_by_namespace("__readyz__", 1, 1, None)
+        .await
+        .is_ok();
+
+    let db_status = if db_ok { "ok" } else { "error" };
+
+    // Kafka: 設定済みかどうか（プロデューサーは起動時に初期化済み）
+    let kafka_status = if state.kafka_configured {
+        "ok"
+    } else {
+        "not_configured"
+    };
+
+    let all_ok = db_ok;
+    let status = if all_ok { "ready" } else { "not_ready" };
+    let code = if all_ok {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    (
+        code,
+        Json(serde_json::json!({
+            "status": status,
+            "checks": {
+                "database": db_status,
+                "kafka": kafka_status
+            }
+        })),
+    )
 }
 
 /// GET /metrics
@@ -191,7 +217,20 @@ mod tests {
 
     #[tokio::test]
     async fn test_readyz() {
-        let state = make_app_state(MockConfigRepository::new());
+        let mut mock = MockConfigRepository::new();
+        mock.expect_list_by_namespace()
+            .returning(|_, _, _, _| {
+                Ok(ConfigListResult {
+                    entries: vec![],
+                    pagination: Pagination {
+                        total_count: 0,
+                        page: 1,
+                        page_size: 1,
+                        has_next: false,
+                    },
+                })
+            });
+        let state = make_app_state(mock);
         let app = router(state);
 
         let req = Request::builder()
@@ -207,6 +246,7 @@ mod tests {
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["status"], "ready");
+        assert_eq!(json["checks"]["database"], "ok");
     }
 
     #[tokio::test]

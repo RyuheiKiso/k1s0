@@ -19,7 +19,7 @@ use infrastructure::database::DatabaseConfig;
 use infrastructure::kafka_producer::KafkaConfig;
 use infrastructure::keycloak_client::{KeycloakClient, KeycloakConfig};
 
-/// アプリケーション設定。
+/// Application configuration.
 #[derive(Debug, Clone, serde::Deserialize)]
 struct Config {
     app: AppConfig,
@@ -31,6 +31,12 @@ struct Config {
     kafka: Option<KafkaConfig>,
     #[serde(default)]
     keycloak: Option<KeycloakConfig>,
+    #[serde(default)]
+    permission_cache: PermissionCacheConfig,
+    #[serde(default)]
+    audit: AuditConfig,
+    #[serde(default)]
+    keycloak_admin: KeycloakAdminConfig,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -88,6 +94,73 @@ struct JwksConfig {
 
 fn default_cache_ttl_secs() -> u64 {
     3600
+}
+
+/// Permission cache configuration.
+#[derive(Debug, Clone, serde::Deserialize)]
+struct PermissionCacheConfig {
+    #[serde(default = "default_permission_cache_ttl_secs")]
+    ttl_secs: u64,
+    #[serde(default = "default_refresh_on_miss")]
+    refresh_on_miss: bool,
+}
+
+impl Default for PermissionCacheConfig {
+    fn default() -> Self {
+        Self {
+            ttl_secs: default_permission_cache_ttl_secs(),
+            refresh_on_miss: default_refresh_on_miss(),
+        }
+    }
+}
+
+fn default_permission_cache_ttl_secs() -> u64 {
+    300
+}
+
+fn default_refresh_on_miss() -> bool {
+    true
+}
+
+/// Audit configuration.
+#[derive(Debug, Clone, serde::Deserialize)]
+struct AuditConfig {
+    #[serde(default)]
+    kafka_enabled: bool,
+    #[serde(default = "default_retention_days")]
+    retention_days: u32,
+}
+
+impl Default for AuditConfig {
+    fn default() -> Self {
+        Self {
+            kafka_enabled: false,
+            retention_days: default_retention_days(),
+        }
+    }
+}
+
+fn default_retention_days() -> u32 {
+    365
+}
+
+/// Keycloak admin client configuration.
+#[derive(Debug, Clone, serde::Deserialize)]
+struct KeycloakAdminConfig {
+    #[serde(default = "default_keycloak_admin_token_cache_ttl_secs")]
+    token_cache_ttl_secs: u64,
+}
+
+impl Default for KeycloakAdminConfig {
+    fn default() -> Self {
+        Self {
+            token_cache_ttl_secs: default_keycloak_admin_token_cache_ttl_secs(),
+        }
+    }
+}
+
+fn default_keycloak_admin_token_cache_ttl_secs() -> u64 {
+    300
 }
 
 #[tokio::main]
@@ -177,6 +250,29 @@ async fn main() -> anyhow::Result<()> {
             Arc::new(InMemoryAuditLogRepository::new())
         };
 
+    // Kafka producer (conditional on audit.kafka_enabled)
+    let kafka_publisher: Option<Arc<dyn infrastructure::kafka_producer::AuditEventPublisher>> =
+        if cfg.audit.kafka_enabled {
+            if let Some(ref kafka_config) = cfg.kafka {
+                match infrastructure::kafka_producer::KafkaProducer::new(kafka_config) {
+                    Ok(producer) => {
+                        info!("Kafka audit event publisher enabled");
+                        Some(Arc::new(producer))
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to create Kafka producer, audit events will not be published: {}", e);
+                        None
+                    }
+                }
+            } else {
+                tracing::warn!("audit.kafka_enabled=true but no kafka config found");
+                None
+            }
+        } else {
+            info!("Kafka audit event publishing disabled");
+            None
+        };
+
     // --- gRPC Service ---
     let validate_token_uc = Arc::new(usecase::ValidateTokenUseCase::new(
         token_verifier.clone(),
@@ -186,7 +282,11 @@ async fn main() -> anyhow::Result<()> {
     let get_user_uc = Arc::new(usecase::GetUserUseCase::new(user_repo.clone()));
     let get_user_roles_uc = Arc::new(usecase::GetUserRolesUseCase::new(user_repo.clone()));
     let list_users_uc = Arc::new(usecase::ListUsersUseCase::new(user_repo.clone()));
-    let record_audit_log_uc = Arc::new(usecase::RecordAuditLogUseCase::new(audit_repo.clone()));
+    let record_audit_log_uc = Arc::new(if let Some(ref publisher) = kafka_publisher {
+        usecase::RecordAuditLogUseCase::with_publisher(audit_repo.clone(), publisher.clone())
+    } else {
+        usecase::RecordAuditLogUseCase::new(audit_repo.clone())
+    });
     let search_audit_logs_uc = Arc::new(usecase::SearchAuditLogsUseCase::new(audit_repo.clone()));
 
     // AppState (REST handler 用)

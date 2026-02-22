@@ -21,6 +21,8 @@ pub struct AppState {
     pub delete_config_uc: Arc<DeleteConfigUseCase>,
     pub get_service_config_uc: Arc<GetServiceConfigUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    pub config_repo: Arc<dyn ConfigRepository>,
+    pub kafka_configured: bool,
 }
 
 impl AppState {
@@ -30,9 +32,16 @@ impl AppState {
             list_configs_uc: Arc::new(ListConfigsUseCase::new(config_repo.clone())),
             update_config_uc: Arc::new(UpdateConfigUseCase::new(config_repo.clone())),
             delete_config_uc: Arc::new(DeleteConfigUseCase::new(config_repo.clone())),
-            get_service_config_uc: Arc::new(GetServiceConfigUseCase::new(config_repo)),
+            get_service_config_uc: Arc::new(GetServiceConfigUseCase::new(config_repo.clone())),
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-config-server")),
+            config_repo,
+            kafka_configured: false,
         }
+    }
+
+    pub fn with_kafka(mut self) -> Self {
+        self.kafka_configured = true;
+        self
     }
 }
 

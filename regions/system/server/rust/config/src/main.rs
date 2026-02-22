@@ -122,11 +122,11 @@ async fn main() -> anyhow::Result<()> {
         delete_config_uc,
     ));
 
-    // tonic ラッパー（proto 生成後は ConfigServiceServer に置換）
-    let _config_tonic = adapter::grpc::ConfigServiceTonic::new(config_grpc_svc);
+    // tonic ラッパー
+    let config_tonic = adapter::grpc::ConfigServiceTonic::new(config_grpc_svc);
 
     // AppState (REST handler 用) - Kafka通知付きで構築
-    let state = adapter::handler::AppState {
+    let mut state = adapter::handler::AppState {
         get_config_uc: std::sync::Arc::new(usecase::GetConfigUseCase::new(config_repo.clone())),
         list_configs_uc: std::sync::Arc::new(usecase::ListConfigsUseCase::new(config_repo.clone())),
         update_config_uc: if let Some(ref producer) = kafka_producer {
@@ -144,7 +144,12 @@ async fn main() -> anyhow::Result<()> {
             config_repo.clone(),
         )),
         metrics: std::sync::Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-config-server")),
+        config_repo: config_repo.clone(),
+        kafka_configured: false,
     };
+    if kafka_producer.is_some() {
+        state = state.with_kafka();
+    }
 
     // Router
     let app = handler::router(state);
@@ -153,15 +158,14 @@ async fn main() -> anyhow::Result<()> {
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50053).into();
     info!("gRPC server starting on {}", grpc_addr);
 
+    use proto::k1s0::system::config::v1::config_service_server::ConfigServiceServer;
+
     let grpc_future = async move {
-        // tonic gRPC サーバーを起動。
-        // proto 生成コード (tonic-build) が揃った後、以下の add_service を有効化：
-        //   .add_service(ConfigServiceServer::new(config_tonic))
-        //
-        // 現時点では proto 未生成のため gRPC サーバーは待機状態。
-        // proto コード生成後にサービスを登録して起動する。
-        info!("gRPC server placeholder: waiting for proto codegen to register services");
-        std::future::pending::<Result<(), anyhow::Error>>().await
+        tonic::transport::Server::builder()
+            .add_service(ConfigServiceServer::new(config_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
 
     // REST server

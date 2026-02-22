@@ -97,6 +97,177 @@ impl ConfigServiceTonic {
     }
 }
 
+// --- Proto 生成コードの ConfigService トレイト実装 ---
+//
+// ConfigServiceTonic は手動定義型を使った gRPC サービスラッパー。
+// proto 生成コードの ConfigService トレイトを実装し、
+// tonic::transport::Server に add_service で登録可能にする。
+
+use crate::proto::k1s0::system::config::v1 as pb;
+
+#[tonic::async_trait]
+impl pb::config_service_server::ConfigService for ConfigServiceTonic {
+    async fn get_config(
+        &self,
+        request: Request<pb::GetConfigRequest>,
+    ) -> Result<Response<pb::GetConfigResponse>, Status> {
+        let req = request.into_inner();
+        let hand_req = GetConfigRequest {
+            namespace: req.namespace,
+            key: req.key,
+        };
+        let resp = self.inner.get_config(hand_req).await?;
+        Ok(Response::new(pb::GetConfigResponse {
+            entry: resp.entry.map(|e| hand_pb_to_proto_entry(&e)),
+        }))
+    }
+
+    async fn list_configs(
+        &self,
+        request: Request<pb::ListConfigsRequest>,
+    ) -> Result<Response<pb::ListConfigsResponse>, Status> {
+        let req = request.into_inner();
+        let hand_req = ListConfigsRequest {
+            namespace: req.namespace,
+            pagination: req.pagination.map(|p| super::config_grpc::PbPagination {
+                page: p.page,
+                page_size: p.page_size,
+            }),
+            search: req.search,
+        };
+        let resp = self.inner.list_configs(hand_req).await?;
+        Ok(Response::new(pb::ListConfigsResponse {
+            entries: resp.entries.iter().map(hand_pb_to_proto_entry).collect(),
+            pagination: resp.pagination.map(|p| {
+                crate::proto::k1s0::system::common::v1::PaginationResult {
+                    total_count: p.total_count as i32,
+                    page: p.page,
+                    page_size: p.page_size,
+                    has_next: p.has_next,
+                }
+            }),
+        }))
+    }
+
+    async fn update_config(
+        &self,
+        request: Request<pb::UpdateConfigRequest>,
+    ) -> Result<Response<pb::UpdateConfigResponse>, Status> {
+        let req = request.into_inner();
+        let value_json = String::from_utf8(req.value)
+            .unwrap_or_default();
+        let hand_req = UpdateConfigRequest {
+            namespace: req.namespace,
+            key: req.key,
+            value_json,
+            version: req.version,
+            description: req.description,
+            updated_by: req.updated_by,
+        };
+        let resp = self.inner.update_config(hand_req).await?;
+        Ok(Response::new(pb::UpdateConfigResponse {
+            entry: resp.entry.map(|e| hand_pb_to_proto_entry(&e)),
+        }))
+    }
+
+    async fn delete_config(
+        &self,
+        request: Request<pb::DeleteConfigRequest>,
+    ) -> Result<Response<pb::DeleteConfigResponse>, Status> {
+        let req = request.into_inner();
+        let hand_req = DeleteConfigRequest {
+            namespace: req.namespace,
+            key: req.key,
+        };
+        let resp = self.inner.delete_config(hand_req).await?;
+        Ok(Response::new(pb::DeleteConfigResponse {
+            success: resp.success,
+        }))
+    }
+
+    async fn get_service_config(
+        &self,
+        request: Request<pb::GetServiceConfigRequest>,
+    ) -> Result<Response<pb::GetServiceConfigResponse>, Status> {
+        let req = request.into_inner();
+        let hand_req = GetServiceConfigRequest {
+            service_name: req.service_name,
+        };
+        let resp = self.inner.get_service_config(hand_req).await?;
+        let configs: std::collections::HashMap<String, String> = resp
+            .entries
+            .into_iter()
+            .map(|e| (format!("{}.{}", e.namespace, e.key), e.value_json))
+            .collect();
+        Ok(Response::new(pb::GetServiceConfigResponse { configs }))
+    }
+
+    type WatchConfigStream = tokio_stream::wrappers::ReceiverStream<
+        Result<pb::WatchConfigResponse, Status>,
+    >;
+
+    async fn watch_config(
+        &self,
+        request: Request<pb::WatchConfigRequest>,
+    ) -> Result<Response<Self::WatchConfigStream>, Status> {
+        let req = request.into_inner();
+        let namespace_filter = req.namespaces.first().cloned().unwrap_or_default();
+        let hand_req = WatchConfigRequest {
+            namespace: namespace_filter,
+        };
+        let mut handler = self.inner.watch_config(hand_req).map_err(Status::from)?;
+
+        let (tx, rx) = tokio::sync::mpsc::channel(128);
+
+        tokio::spawn(async move {
+            while let Some(notif) = handler.next().await {
+                let resp = pb::WatchConfigResponse {
+                    namespace: notif.namespace,
+                    key: notif.key,
+                    old_value: vec![],
+                    new_value: notif.value_json.into_bytes(),
+                    old_version: 0,
+                    new_version: notif.version,
+                    changed_by: notif.updated_by,
+                    change_type: "UPDATED".to_string(),
+                    changed_at: None,
+                };
+                if tx.send(Ok(resp)).await.is_err() {
+                    break;
+                }
+            }
+        });
+
+        Ok(Response::new(tokio_stream::wrappers::ReceiverStream::new(rx)))
+    }
+}
+
+/// 手動 PbConfigEntry を proto 生成 ConfigEntry に変換する。
+fn hand_pb_to_proto_entry(e: &super::config_grpc::PbConfigEntry) -> pb::ConfigEntry {
+    pb::ConfigEntry {
+        id: e.id.clone(),
+        namespace: e.namespace.clone(),
+        key: e.key.clone(),
+        value: e.value_json.as_bytes().to_vec(),
+        version: e.version,
+        description: e.description.clone(),
+        created_by: e.created_by.clone(),
+        updated_by: e.updated_by.clone(),
+        created_at: e.created_at.as_ref().map(|t| {
+            crate::proto::k1s0::system::common::v1::Timestamp {
+                seconds: t.seconds,
+                nanos: t.nanos,
+            }
+        }),
+        updated_at: e.updated_at.as_ref().map(|t| {
+            crate::proto::k1s0::system::common::v1::Timestamp {
+                seconds: t.seconds,
+                nanos: t.nanos,
+            }
+        }),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

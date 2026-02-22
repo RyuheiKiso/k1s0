@@ -27,3 +27,15 @@ resource "helm_release" "jaeger" {
 
   values = [file("${path.module}/values/jaeger.yaml")]
 }
+
+resource "helm_release" "otel_collector" {
+  name       = "otel-collector"
+  namespace  = "observability"
+  repository = "https://open-telemetry.github.io/opentelemetry-helm-charts"
+  chart      = "opentelemetry-collector"
+  version    = var.otel_collector_version
+
+  values = [file("${path.module}/values/otel-collector.yaml")]
+
+  depends_on = [helm_release.jaeger]
+}

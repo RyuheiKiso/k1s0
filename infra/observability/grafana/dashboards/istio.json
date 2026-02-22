@@ -1,0 +1,143 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "mTLS Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(envoy_cluster_ssl_handshake{cluster_name=~\".*k1s0.*\"}) by (cluster_name)",
+          "legendFormat": "{{cluster_name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "mTLS Connection Failures",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(envoy_cluster_ssl_connection_error{cluster_name=~\".*k1s0.*\"}[5m])",
+          "legendFormat": "{{cluster_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        }
+      }
+    },
+    {
+      "title": "Request Rate by Source/Destination",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(istio_requests_total{destination_service_namespace=~\"k1s0-.*\"}[5m])",
+          "legendFormat": "{{source_workload}} -> {{destination_workload}} [{{response_code}}]",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        }
+      }
+    },
+    {
+      "title": "Circuit Breaker Ejections",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "envoy_cluster_outlier_detection_ejections_active{cluster_name=~\".*k1s0.*\"}",
+          "legendFormat": "{{cluster_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Circuit Breaker Overflow",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "rate(envoy_cluster_upstream_cx_overflow{cluster_name=~\".*k1s0.*\"}[5m])",
+          "legendFormat": "{{cluster_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        }
+      }
+    },
+    {
+      "title": "Canary Traffic Split",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "expr": "rate(istio_requests_total{destination_service_namespace=~\"k1s0-.*\", destination_version=\"canary\"}[5m]) / rate(istio_requests_total{destination_service_namespace=~\"k1s0-.*\"}[5m])",
+          "legendFormat": "{{destination_workload}} canary %",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        }
+      }
+    },
+    {
+      "title": "Canary vs Stable Error Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        {
+          "expr": "rate(istio_requests_total{destination_service_namespace=~\"k1s0-.*\", destination_version=\"canary\", response_code=~\"5..\"}[5m])",
+          "legendFormat": "canary 5xx {{destination_workload}}",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(istio_requests_total{destination_service_namespace=~\"k1s0-.*\", destination_version=\"stable\", response_code=~\"5..\"}[5m])",
+          "legendFormat": "stable 5xx {{destination_workload}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        }
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["k1s0", "istio", "service-mesh"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "title": "k1s0 Istio",
+  "uid": "k1s0-istio"
+}

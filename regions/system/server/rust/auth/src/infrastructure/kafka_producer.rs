@@ -49,14 +49,15 @@ pub trait AuditEventPublisher: Send + Sync {
     async fn close(&self) -> anyhow::Result<()>;
 }
 
-/// KafkaProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
+/// KafkaProducer is a Kafka producer using rdkafka FutureProducer.
 pub struct KafkaProducer {
     producer: rdkafka::producer::FutureProducer,
     topic: String,
+    topic_map: std::collections::HashMap<String, String>,
 }
 
 impl KafkaProducer {
-    /// 新しい KafkaProducer を作成する。
+    /// Create a new KafkaProducer.
     pub fn new(config: &KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -81,12 +82,44 @@ impl KafkaProducer {
 
         let producer: rdkafka::producer::FutureProducer = client_config.create()?;
 
-        Ok(Self { producer, topic })
+        let topic_map = Self::build_default_topic_map();
+
+        Ok(Self {
+            producer,
+            topic,
+            topic_map,
+        })
     }
 
-    /// 配信先トピック名を返す。
+    /// Return the default topic name.
     pub fn topic(&self) -> &str {
         &self.topic
+    }
+
+    /// Resolve a topic by event type prefix, falling back to the default topic.
+    pub fn resolve_topic(&self, event_type: &str) -> &str {
+        let prefix = event_type.split('_').next().unwrap_or("");
+        self.topic_map
+            .get(prefix)
+            .map(|s| s.as_str())
+            .unwrap_or(&self.topic)
+    }
+
+    fn build_default_topic_map() -> std::collections::HashMap<String, String> {
+        let mut map = std::collections::HashMap::new();
+        map.insert(
+            "LOGIN".to_string(),
+            "k1s0.system.auth.login.v1".to_string(),
+        );
+        map.insert(
+            "TOKEN".to_string(),
+            "k1s0.system.auth.token_validate.v1".to_string(),
+        );
+        map.insert(
+            "PERMISSION".to_string(),
+            "k1s0.system.auth.permission_denied.v1".to_string(),
+        );
+        map
     }
 }
 
@@ -98,8 +131,9 @@ impl AuditEventPublisher for KafkaProducer {
 
         let payload = serde_json::to_vec(event)?;
         let key = &event.user_id;
+        let target_topic = self.resolve_topic(&event.event_type);
 
-        let record = FutureRecord::to(&self.topic).key(key).payload(&payload);
+        let record = FutureRecord::to(target_topic).key(key).payload(&payload);
 
         self.producer
             .send(record, Duration::from_secs(5))

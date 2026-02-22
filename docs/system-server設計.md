@@ -46,7 +46,7 @@ system tier の認証サーバーは以下の機能を提供する。
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
 | POST | `/api/v1/auth/token/validate` | トークン検証 | 不要（公開） |
-| POST | `/api/v1/auth/token/introspect` | トークンイントロスペクション | `sys_operator` 以上 |
+| POST | `/api/v1/auth/token/introspect` | トークンイントロスペクション | 不要（公開 / RFC 7662 準拠） |
 | GET | `/api/v1/users/:id` | ユーザー情報取得 | `sys_auditor` 以上 |
 | GET | `/api/v1/users` | ユーザー一覧 | `sys_auditor` 以上 |
 | GET | `/api/v1/users/:id/roles` | ユーザーロール取得 | `sys_auditor` 以上 |

@@ -2,10 +2,63 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use bytes::{Buf, BufMut};
+use http::uri::PathAndQuery;
 use tokio::sync::RwLock;
+use tonic::codec::{Codec, DecodeBuf, EncodeBuf, Encoder, Decoder};
 use tonic::transport::Channel;
 
 use crate::infrastructure::config::ServiceEndpoint;
+
+/// JSON codec for generic gRPC calls using raw bytes.
+#[derive(Debug, Clone, Copy, Default)]
+struct JsonCodec;
+
+#[derive(Debug)]
+struct JsonEncoder;
+
+#[derive(Debug)]
+struct JsonDecoder;
+
+impl Encoder for JsonEncoder {
+    type Item = Vec<u8>;
+    type Error = tonic::Status;
+
+    fn encode(&mut self, item: Self::Item, dst: &mut EncodeBuf<'_>) -> Result<(), Self::Error> {
+        dst.put_slice(&item);
+        Ok(())
+    }
+}
+
+impl Decoder for JsonDecoder {
+    type Item = Vec<u8>;
+    type Error = tonic::Status;
+
+    fn decode(&mut self, src: &mut DecodeBuf<'_>) -> Result<Option<Self::Item>, Self::Error> {
+        let remaining = src.remaining();
+        if remaining == 0 {
+            return Ok(None);
+        }
+        let mut buf = vec![0u8; remaining];
+        src.copy_to_slice(&mut buf);
+        Ok(Some(buf))
+    }
+}
+
+impl Codec for JsonCodec {
+    type Encode = Vec<u8>;
+    type Decode = Vec<u8>;
+    type Encoder = JsonEncoder;
+    type Decoder = JsonDecoder;
+
+    fn encoder(&mut self) -> Self::Encoder {
+        JsonEncoder
+    }
+
+    fn decoder(&mut self) -> Self::Decoder {
+        JsonDecoder
+    }
+}
 
 /// GrpcStepCaller はSagaステップのgRPC呼び出しトレイト。
 #[cfg_attr(test, mockall::automock)]
@@ -102,25 +155,33 @@ impl GrpcStepCaller for TonicGrpcCaller {
     ) -> anyhow::Result<serde_json::Value> {
         let endpoint = self.registry.resolve(service_name)?;
         let channel = self.get_channel(&endpoint).await?;
-        let _path = Self::build_grpc_path(method)?;
+        let path_str = Self::build_grpc_path(method)?;
 
-        // Note: In production, this would use tonic's generic codec to make
-        // dynamic gRPC calls. For now, we serialize payload as JSON bytes
-        // and send via a generic unary call.
-        let _payload_bytes = serde_json::to_vec(payload)?;
+        let payload_bytes = serde_json::to_vec(payload)?;
 
-        // Placeholder: actual gRPC call would use the channel and path
-        // For production, implement with tonic::codec::ProstCodec or similar
-        let _ = channel;
         tracing::info!(
             service = service_name,
             method = method,
             "executing gRPC step call"
         );
 
-        // TODO: Implement actual gRPC call with generic codec
-        // For now, return the payload as-is to enable testing
-        Ok(serde_json::json!({"status": "ok"}))
+        let path = PathAndQuery::try_from(path_str)
+            .map_err(|e| anyhow::anyhow!("invalid gRPC path: {}", e))?;
+
+        let mut client = tonic::client::Grpc::new(channel);
+        client.ready().await.map_err(|e| anyhow::anyhow!("gRPC not ready: {}", e))?;
+
+        let request = tonic::Request::new(payload_bytes);
+        let response = client
+            .unary(request, path, JsonCodec)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC call failed: {}", e))?;
+
+        let response_bytes = response.into_inner();
+        let result: serde_json::Value = serde_json::from_slice(&response_bytes)
+            .map_err(|e| anyhow::anyhow!("failed to deserialize gRPC response: {}", e))?;
+
+        Ok(result)
     }
 }
 

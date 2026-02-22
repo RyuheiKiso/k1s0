@@ -8,6 +8,7 @@ use super::error::SagaError;
 use super::AppState;
 use crate::domain::entity::saga_state::SagaStatus;
 use crate::domain::repository::saga_repository::SagaListParams;
+use crate::usecase::CancelSagaError;
 
 // --- Request / Response DTOs ---
 
@@ -280,14 +281,10 @@ pub async fn cancel_saga(
     let id = Uuid::parse_str(&saga_id)
         .map_err(|_| SagaError::Validation(format!("invalid saga_id: {}", saga_id)))?;
 
-    state.cancel_saga_uc.execute(id).await.map_err(|e| {
-        if e.to_string().contains("not found") {
-            SagaError::NotFound(e.to_string())
-        } else if e.to_string().contains("terminal") {
-            SagaError::Conflict(e.to_string())
-        } else {
-            SagaError::Internal(e.to_string())
-        }
+    state.cancel_saga_uc.execute(id).await.map_err(|e| match e {
+        CancelSagaError::NotFound(_) => SagaError::NotFound(e.to_string()),
+        CancelSagaError::AlreadyTerminal(_) => SagaError::Conflict(e.to_string()),
+        CancelSagaError::Internal(_) => SagaError::Internal(e.to_string()),
     })?;
 
     Ok(Json(CancelSagaResponse {

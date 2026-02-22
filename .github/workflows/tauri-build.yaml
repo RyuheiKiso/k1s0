@@ -1,0 +1,81 @@
+# .github/workflows/tauri-build.yaml
+# CI pipeline for Tauri GUI application
+# Triggered on PR with changes in CLI/gui paths
+name: tauri-build
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'CLI/gui/**'
+
+concurrency:
+  group: ci-${{ github.ref }}-tauri
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+        working-directory: CLI/gui
+      - run: npx eslint .
+        working-directory: CLI/gui
+      - run: npx tsc --noEmit
+        working-directory: CLI/gui
+
+  build:
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: dtolnay/rust-toolchain@1.82
+        with:
+          targets: ${{ matrix.target }}
+
+      # Linux dependencies for Tauri
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - run: npm ci
+        working-directory: CLI/gui
+
+      - name: Build Tauri application
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: CLI/gui
+          args: --target ${{ matrix.target }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tauri-${{ matrix.platform }}
+          path: |
+            CLI/gui/src-tauri/target/${{ matrix.target }}/release/bundle/**

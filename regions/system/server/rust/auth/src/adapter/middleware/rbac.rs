@@ -33,8 +33,8 @@ pub fn make_rbac_middleware(
     }
 }
 
-/// RBAC チェックの実体。make_rbac_middleware から呼び出される。
-async fn rbac_check(
+/// Core RBAC check logic. Called from make_rbac_middleware.
+pub async fn rbac_check(
     req: Request<axum::body::Body>,
     next: Next,
     resource: &str,

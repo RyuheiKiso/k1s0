@@ -40,3 +40,14 @@ keycloak:
   realm: "k1s0"
   client_id: "auth-server"
   client_secret: ""
+
+permission_cache:
+  ttl_secs: 300
+  refresh_on_miss: true
+
+audit:
+  kafka_enabled: true
+  retention_days: 365
+
+keycloak_admin:
+  token_cache_ttl_secs: 300

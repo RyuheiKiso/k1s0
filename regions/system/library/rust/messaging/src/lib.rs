@@ -9,6 +9,11 @@ pub mod error;
 pub mod event;
 pub mod producer;
 
+#[cfg(feature = "kafka")]
+pub mod kafka_producer;
+#[cfg(feature = "kafka")]
+pub mod kafka_consumer;
+
 pub use config::MessagingConfig;
 pub use consumer::{ConsumerConfig, EventConsumer};
 pub use error::MessagingError;
@@ -17,3 +22,8 @@ pub use producer::{EventProducer, NoOpEventProducer};
 
 #[cfg(feature = "mock")]
 pub use producer::MockEventProducer;
+
+#[cfg(feature = "kafka")]
+pub use kafka_producer::KafkaEventProducer;
+#[cfg(feature = "kafka")]
+pub use kafka_consumer::KafkaEventConsumer;

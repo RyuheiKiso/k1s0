@@ -98,9 +98,9 @@ class TestGrpcSagaService:
 
 
 class TestGrpcWorkflowService:
-    """gRPC WorkflowService の E2E テスト。"""
+    """gRPC SagaService の WorkflowService 相当 RPC の E2E テスト。"""
 
-    SERVICE = "k1s0.system.saga.v1.WorkflowService"
+    SERVICE = "k1s0.system.saga.v1.SagaService"
 
     def test_register_workflow_rpc(self, grpc_saga_channel):
         """RegisterWorkflow RPC が正常に応答する。"""

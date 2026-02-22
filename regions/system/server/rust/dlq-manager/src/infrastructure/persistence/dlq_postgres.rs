@@ -22,7 +22,7 @@ impl DlqMessageRepository for DlqPostgresRepository {
         let row = sqlx::query_as::<_, DlqMessageRow>(
             r#"
             SELECT id, original_topic, error_message, retry_count, max_retries, payload, status, created_at, updated_at, last_retry_at
-            FROM dlq.messages
+            FROM dlq.dlq_messages
             WHERE id = $1
             "#,
         )
@@ -40,7 +40,7 @@ impl DlqMessageRepository for DlqPostgresRepository {
         page_size: i32,
     ) -> anyhow::Result<(Vec<DlqMessage>, i64)> {
         let total: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM dlq.messages WHERE original_topic = $1")
+            sqlx::query_scalar("SELECT COUNT(*) FROM dlq.dlq_messages WHERE original_topic = $1")
                 .bind(topic)
                 .fetch_one(&self.pool)
                 .await?;
@@ -52,7 +52,7 @@ impl DlqMessageRepository for DlqPostgresRepository {
         let rows = sqlx::query_as::<_, DlqMessageRow>(
             r#"
             SELECT id, original_topic, error_message, retry_count, max_retries, payload, status, created_at, updated_at, last_retry_at
-            FROM dlq.messages
+            FROM dlq.dlq_messages
             WHERE original_topic = $1
             ORDER BY created_at DESC
             LIMIT $2 OFFSET $3
@@ -73,7 +73,7 @@ impl DlqMessageRepository for DlqPostgresRepository {
     async fn create(&self, message: &DlqMessage) -> anyhow::Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO dlq.messages
+            INSERT INTO dlq.dlq_messages
                 (id, original_topic, error_message, retry_count, max_retries, payload, status, created_at, updated_at, last_retry_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             "#,
@@ -97,7 +97,7 @@ impl DlqMessageRepository for DlqPostgresRepository {
     async fn update(&self, message: &DlqMessage) -> anyhow::Result<()> {
         sqlx::query(
             r#"
-            UPDATE dlq.messages
+            UPDATE dlq.dlq_messages
             SET original_topic = $2, error_message = $3, retry_count = $4, max_retries = $5,
                 payload = $6, status = $7, updated_at = $8, last_retry_at = $9
             WHERE id = $1
@@ -119,7 +119,7 @@ impl DlqMessageRepository for DlqPostgresRepository {
     }
 
     async fn delete(&self, id: Uuid) -> anyhow::Result<()> {
-        sqlx::query("DELETE FROM dlq.messages WHERE id = $1")
+        sqlx::query("DELETE FROM dlq.dlq_messages WHERE id = $1")
             .bind(id)
             .execute(&self.pool)
             .await?;
@@ -129,7 +129,7 @@ impl DlqMessageRepository for DlqPostgresRepository {
 
     async fn count_by_topic(&self, topic: &str) -> anyhow::Result<i64> {
         let count: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM dlq.messages WHERE original_topic = $1")
+            sqlx::query_scalar("SELECT COUNT(*) FROM dlq.dlq_messages WHERE original_topic = $1")
                 .bind(topic)
                 .fetch_one(&self.pool)
                 .await?;

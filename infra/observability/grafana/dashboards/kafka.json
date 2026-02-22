@@ -1,0 +1,165 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "Broker Active Controllers",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "kafka_controller_active_controller_count",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Under-Replicated Partitions",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 0 },
+      "targets": [
+        {
+          "expr": "kafka_server_replica_manager_under_replicated_partitions",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Offline Partitions",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 0 },
+      "targets": [
+        {
+          "expr": "kafka_controller_offline_partitions_count",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Messages In Per Second",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "rate(kafka_server_broker_topic_metrics_messages_in_total[5m])",
+          "legendFormat": "{{topic}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        }
+      }
+    },
+    {
+      "title": "Bytes In Per Second",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        {
+          "expr": "rate(kafka_server_broker_topic_metrics_bytes_in_total[5m])",
+          "legendFormat": "{{topic}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps"
+        }
+      }
+    },
+    {
+      "title": "Bytes Out Per Second",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "rate(kafka_server_broker_topic_metrics_bytes_out_total[5m])",
+          "legendFormat": "{{topic}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps"
+        }
+      }
+    },
+    {
+      "title": "Consumer Group Lag",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "kafka_consumergroup_lag",
+          "legendFormat": "{{consumergroup}} / {{topic}} [{{partition}}]",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Consumer Lag Rate of Change",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
+      "targets": [
+        {
+          "expr": "rate(kafka_consumergroup_lag[5m])",
+          "legendFormat": "{{consumergroup}} / {{topic}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        }
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["k1s0", "kafka"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "title": "k1s0 Kafka",
+  "uid": "k1s0-kafka"
+}

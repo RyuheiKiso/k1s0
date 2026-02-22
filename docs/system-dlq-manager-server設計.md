@@ -480,6 +480,58 @@ kafka:
 
 ---
 
+## デプロイ
+
+### Helm values
+
+[helm設計.md](helm設計.md) のサーバー用 Helm Chart を使用する。dlq-manager 固有の values は以下の通り。
+
+```yaml
+# values-dlq-manager.yaml（infra/helm/services/system/dlq-manager/values.yaml）
+image:
+  registry: harbor.internal.example.com
+  repository: k1s0-system/dlq-manager
+  tag: ""
+
+replicaCount: 2
+
+container:
+  port: 8080
+  grpcPort: null    # HTTP only（gRPC なし）
+
+service:
+  type: ClusterIP
+  port: 80
+  grpcPort: null
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+kafka:
+  enabled: true
+  brokers: []
+
+vault:
+  enabled: true
+  role: "system"
+  secrets:
+    - path: "secret/data/k1s0/system/dlq-manager/database"
+      key: "password"
+      mountPath: "/vault/secrets/db-password"
+```
+
+### Vault シークレットパス
+
+| シークレット | パス |
+| --- | --- |
+| DB パスワード | `secret/data/k1s0/system/dlq-manager/database` |
+| Kafka SASL | `secret/data/k1s0/system/kafka/sasl` |
+
+---
+
 ## 関連ドキュメント
 
 - [メッセージング設計.md](メッセージング設計.md) -- DLQ パターンの基本方針・採用基準
@@ -492,3 +544,4 @@ kafka:
 - [可観測性設計.md](可観測性設計.md) -- メトリクス・トレース設計
 - [config設計.md](config設計.md) -- config.yaml スキーマ
 - [tier-architecture.md](tier-architecture.md) -- Tier アーキテクチャ
+- [helm設計.md](helm設計.md) -- Helm Chart・Vault Agent Injector

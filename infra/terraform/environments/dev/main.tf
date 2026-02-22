@@ -52,10 +52,11 @@ module "kubernetes_storage" {
 
 # --- Observability (Prometheus, Grafana, Jaeger, Loki) ---
 module "observability" {
-  source             = "../../modules/observability"
-  prometheus_version = var.prometheus_version
-  loki_version       = var.loki_version
-  jaeger_version     = var.jaeger_version
+  source                 = "../../modules/observability"
+  prometheus_version     = var.prometheus_version
+  loki_version           = var.loki_version
+  jaeger_version         = var.jaeger_version
+  otel_collector_version = var.otel_collector_version
 
   depends_on = [module.kubernetes_base]
 }
@@ -109,6 +110,17 @@ module "vault" {
   ldap_group_dn      = var.ldap_group_dn
   ldap_bind_dn       = var.ldap_bind_dn
   ldap_bind_password = var.ldap_bind_password
+}
+
+# --- Keycloak (Identity Provider) ---
+module "keycloak" {
+  source       = "../../modules/keycloak"
+  keycloak_url = var.keycloak_url
+  realm_name   = "k1s0"
+
+  react_spa_redirect_uris = ["http://localhost:3000/*"]
+  react_spa_web_origins   = ["http://localhost:3000"]
+  bff_redirect_uris       = ["http://localhost:8080/callback"]
 }
 
 # --- Service Mesh (Istio) ---

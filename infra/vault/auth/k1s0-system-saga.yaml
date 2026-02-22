@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: saga-server-vault-auth
+  namespace: k1s0-system
+  labels:
+    app.kubernetes.io/name: saga-server
+    app.kubernetes.io/component: vault-auth
+data:
+  vault-auth-config.json: |
+    {
+      "role_name": "saga-server",
+      "bound_service_account_names": ["saga-server"],
+      "bound_service_account_namespaces": ["k1s0-system"],
+      "token_policies": ["k1s0-system", "saga-server"],
+      "token_ttl": "3600",
+      "token_max_ttl": "86400"
+    }

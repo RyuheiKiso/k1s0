@@ -1,0 +1,44 @@
+app:
+  environment: "staging"
+
+database:
+  ssl_mode: "require"
+  max_open_conns: 30
+  max_idle_conns: 8
+
+kafka:
+  brokers:
+    - "kafka-0.messaging.svc.cluster.local:9093"
+  consumer_group: "saga-server.staging"
+  security_protocol: "SASL_SSL"
+  sasl:
+    mechanism: "SCRAM-SHA-512"
+    username: ""                   # Vault injection
+    password: ""                   # Vault injection
+  tls:
+    ca_cert_path: "/etc/kafka/certs/ca.crt"
+  topics:
+    publish:
+      - "k1s0.system.saga.events.v1"
+    subscribe: []
+
+services:
+  inventory-service:
+    host: "inventory.k1s0-business.svc.cluster.local"
+    port: 50051
+  payment-service:
+    host: "payment.k1s0-business.svc.cluster.local"
+    port: 50051
+  shipping-service:
+    host: "shipping.k1s0-business.svc.cluster.local"
+    port: 50051
+
+saga:
+  max_concurrent: 50
+  workflow_dir: "workflows"
+
+observability:
+  log:
+    level: "info"
+  trace:
+    sample_rate: 0.5

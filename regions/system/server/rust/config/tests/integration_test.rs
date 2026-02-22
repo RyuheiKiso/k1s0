@@ -532,7 +532,7 @@ async fn test_readyz_returns_ready() {
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(json["status"], "ready");
     assert_eq!(json["checks"]["database"], "ok");
-    assert_eq!(json["checks"]["kafka"], "ok");
+    assert_eq!(json["checks"]["kafka"], "not_configured");
 }
 
 #[tokio::test]

@@ -12,3 +12,8 @@ variable "jaeger_version" {
   description = "Jaeger Helm chart version"
   type        = string
 }
+
+variable "otel_collector_version" {
+  description = "OpenTelemetry Collector Helm chart version"
+  type        = string
+}

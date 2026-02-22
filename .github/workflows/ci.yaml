@@ -50,9 +50,14 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"
-      - uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
+      - name: Lint Go modules
+        run: |
+          for mod in regions/system/library/go/*/; do
+            if [ -f "$mod/go.mod" ]; then
+              echo "=== Linting $mod ==="
+              (cd "$mod" && golangci-lint run ./...)
+            fi
+          done
 
   lint-rust:
     needs: detect-changes
@@ -63,8 +68,34 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.82       # Dockerイメージ戦略.md / devcontainer設計.md と同期
         with:
           components: clippy, rustfmt
-      - run: cargo fmt --all -- --check
-      - run: cargo clippy --all-targets -- -D warnings
+      - name: Format check Rust crates
+        run: |
+          for crate in regions/system/server/rust/*/; do
+            if [ -f "$crate/Cargo.toml" ]; then
+              echo "=== fmt $crate ==="
+              (cd "$crate" && cargo fmt --all -- --check)
+            fi
+          done
+          for lib in regions/system/library/rust/*/; do
+            if [ -f "$lib/Cargo.toml" ]; then
+              echo "=== fmt $lib ==="
+              (cd "$lib" && cargo fmt --all -- --check)
+            fi
+          done
+      - name: Clippy check Rust crates
+        run: |
+          for crate in regions/system/server/rust/*/; do
+            if [ -f "$crate/Cargo.toml" ]; then
+              echo "=== clippy $crate ==="
+              (cd "$crate" && cargo clippy --all-targets -- -D warnings)
+            fi
+          done
+          for lib in regions/system/library/rust/*/; do
+            if [ -f "$lib/Cargo.toml" ]; then
+              echo "=== clippy $lib ==="
+              (cd "$lib" && cargo clippy --all-targets -- -D warnings)
+            fi
+          done
 
   lint-ts:
     needs: detect-changes
@@ -113,11 +144,21 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"
-      - run: go test ./... -race -coverprofile=coverage.out
+      - name: Test Go modules
+        run: |
+          mkdir -p coverage
+          for mod in regions/system/library/go/*/; do
+            if [ -f "$mod/go.mod" ]; then
+              modname=$(basename "$mod")
+              echo "=== Testing $mod ==="
+              (cd "$mod" && go test ./... -race -count=1 -coverprofile="$GITHUB_WORKSPACE/coverage/${modname}.out")
+            fi
+          done
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: go-coverage
-          path: coverage.out
+          path: coverage/
 
   test-rust:
     needs: lint-rust
@@ -125,7 +166,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.82       # Dockerイメージ戦略.md / devcontainer設計.md と同期
-      - run: cargo test --all
+      - name: Test Rust crates
+        run: |
+          for crate in regions/system/server/rust/*/; do
+            if [ -f "$crate/Cargo.toml" ]; then
+              echo "=== Testing $crate ==="
+              (cd "$crate" && cargo test --all)
+            fi
+          done
+          for lib in regions/system/library/rust/*/; do
+            if [ -f "$lib/Cargo.toml" ]; then
+              echo "=== Testing $lib ==="
+              (cd "$lib" && cargo test --all)
+            fi
+          done
 
   test-ts:
     needs: lint-ts

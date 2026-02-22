@@ -1,0 +1,92 @@
+# .github/workflows/bff-proxy-ci.yaml
+# CI pipeline for BFF Proxy server (Go)
+# Triggered on PR with changes in BFF proxy paths
+name: bff-proxy-ci
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'regions/system/server/go/bff-proxy/**'
+
+concurrency:
+  group: ci-${{ github.ref }}-bff-proxy
+  cancel-in-progress: true
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.filter.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            go:
+              - 'regions/system/server/go/bff-proxy/**'
+
+  # ---------- Go lint ----------
+  lint-go:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: regions/system/server/go/bff-proxy
+          version: latest
+      - name: go vet
+        run: go vet ./...
+        working-directory: regions/system/server/go/bff-proxy
+
+  # ---------- Go test ----------
+  test-go:
+    needs: lint-go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - run: go test -race -coverprofile=coverage.out ./...
+        working-directory: regions/system/server/go/bff-proxy
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: bff-proxy-coverage
+          path: regions/system/server/go/bff-proxy/coverage.out
+
+  # ---------- Go build ----------
+  build-go:
+    needs: test-go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - run: CGO_ENABLED=0 go build -o bff-proxy ./cmd/main.go
+        working-directory: regions/system/server/go/bff-proxy
+
+  # ---------- Security scan ----------
+  security-scan:
+    needs:
+      - build-go
+    if: always() && !contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan (Go)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: regions/system/server/go/bff-proxy
+          severity: HIGH,CRITICAL
+          exit-code: 1

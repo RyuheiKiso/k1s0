@@ -1,6 +1,4 @@
-use k1s0_dlq::{
-    DlqClient, DlqMessage, DlqStatus, ListDlqMessagesResponse, RetryDlqMessageResponse,
-};
+use k1s0_dlq::{DlqClient, DlqStatus};
 use wiremock::matchers::{method, path, path_regex, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 

@@ -5,6 +5,17 @@ use uuid::Uuid;
 use crate::domain::entity::saga_state::SagaStatus;
 use crate::domain::repository::SagaRepository;
 
+/// CancelSagaError はキャンセル操作のエラーを型安全に表現する。
+#[derive(Debug, thiserror::Error)]
+pub enum CancelSagaError {
+    #[error("saga not found: {0}")]
+    NotFound(Uuid),
+    #[error("saga is already in terminal state: {0}")]
+    AlreadyTerminal(String),
+    #[error("{0}")]
+    Internal(#[from] anyhow::Error),
+}
+
 /// CancelSagaUseCase はSagaキャンセルを担う。
 pub struct CancelSagaUseCase {
     saga_repo: Arc<dyn SagaRepository>,
@@ -16,20 +27,22 @@ impl CancelSagaUseCase {
     }
 
     /// Sagaをキャンセルする。
-    pub async fn execute(&self, saga_id: Uuid) -> anyhow::Result<()> {
+    pub async fn execute(&self, saga_id: Uuid) -> Result<(), CancelSagaError> {
         let saga = self
             .saga_repo
             .find_by_id(saga_id)
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("saga not found: {}", saga_id))?;
+            .await
+            .map_err(CancelSagaError::Internal)?
+            .ok_or(CancelSagaError::NotFound(saga_id))?;
 
         if saga.is_terminal() {
-            anyhow::bail!("saga is already in terminal state: {}", saga.status);
+            return Err(CancelSagaError::AlreadyTerminal(saga.status.to_string()));
         }
 
         self.saga_repo
             .update_status(saga_id, &SagaStatus::Cancelled, None)
-            .await?;
+            .await
+            .map_err(CancelSagaError::Internal)?;
 
         tracing::info!(saga_id = %saga_id, "saga cancelled");
         Ok(())
@@ -64,8 +77,7 @@ mod tests {
 
         let uc = CancelSagaUseCase::new(Arc::new(mock));
         let result = uc.execute(Uuid::new_v4()).await;
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("not found"));
+        assert!(matches!(result, Err(CancelSagaError::NotFound(_))));
     }
 
     #[tokio::test]
@@ -81,7 +93,6 @@ mod tests {
 
         let uc = CancelSagaUseCase::new(Arc::new(mock));
         let result = uc.execute(saga_id).await;
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("terminal"));
+        assert!(matches!(result, Err(CancelSagaError::AlreadyTerminal(_))));
     }
 }

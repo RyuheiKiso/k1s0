@@ -125,14 +125,11 @@ impl OutboxPublisher for AlwaysSuccessPublisher {
     }
 }
 
-struct SelectivePublisher {
-    /// publish が失敗するメッセージのインデックス（呼び出し順）
-    fail_indices: Vec<usize>,
-}
+struct SelectivePublisher;
 
 impl SelectivePublisher {
-    fn new(fail_indices: Vec<usize>) -> Self {
-        Self { fail_indices }
+    fn new(_fail_indices: Vec<usize>) -> Self {
+        Self
     }
 }
 
