@@ -126,7 +126,7 @@ async fn main() -> anyhow::Result<()> {
     let config_tonic = adapter::grpc::ConfigServiceTonic::new(config_grpc_svc);
 
     // AppState (REST handler 用) - Kafka通知付きで構築
-    let state = adapter::handler::AppState {
+    let mut state = adapter::handler::AppState {
         get_config_uc: std::sync::Arc::new(usecase::GetConfigUseCase::new(config_repo.clone())),
         list_configs_uc: std::sync::Arc::new(usecase::ListConfigsUseCase::new(config_repo.clone())),
         update_config_uc: if let Some(ref producer) = kafka_producer {
@@ -144,7 +144,12 @@ async fn main() -> anyhow::Result<()> {
             config_repo.clone(),
         )),
         metrics: std::sync::Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-config-server")),
+        config_repo: config_repo.clone(),
+        kafka_configured: false,
     };
+    if kafka_producer.is_some() {
+        state = state.with_kafka();
+    }
 
     // Router
     let app = handler::router(state);

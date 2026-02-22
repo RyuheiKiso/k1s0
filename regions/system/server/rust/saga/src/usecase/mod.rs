@@ -7,7 +7,7 @@ pub mod recover_sagas;
 pub mod register_workflow;
 pub mod start_saga;
 
-pub use cancel_saga::CancelSagaUseCase;
+pub use cancel_saga::{CancelSagaError, CancelSagaUseCase};
 pub use execute_saga::ExecuteSagaUseCase;
 pub use get_saga::GetSagaUseCase;
 pub use list_sagas::ListSagasUseCase;
