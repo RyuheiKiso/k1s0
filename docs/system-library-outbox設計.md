@@ -192,6 +192,97 @@ outbox/
 
 **カバレッジ目標**: 85%以上
 
+## C# 実装
+
+**配置先**: `regions/system/library/csharp/outbox/`
+
+```
+outbox/
+├── src/
+│   ├── Outbox.csproj
+│   ├── IOutboxStore.cs            # アウトボックス永続化インターフェース
+│   ├── PostgresOutboxStore.cs     # PostgreSQL 実装
+│   ├── OutboxProcessor.cs         # BackgroundService 継承ポーリングプロセッサ
+│   ├── OutboxMessage.cs           # アウトボックスメッセージ
+│   ├── OutboxStatus.cs            # ステータス列挙型（Pending/Published/Failed）
+│   └── OutboxException.cs         # 公開例外型
+├── tests/
+│   ├── Outbox.Tests.csproj
+│   ├── Unit/
+│   │   ├── OutboxProcessorTests.cs
+│   │   └── OutboxMessageTests.cs
+│   └── Integration/
+│       └── PostgresOutboxStoreTests.cs
+├── .editorconfig
+└── README.md
+```
+
+**NuGet 依存関係**:
+
+| パッケージ | 用途 |
+|-----------|------|
+| Npgsql | PostgreSQL ドライバー |
+| Dapper | 軽量 ORM |
+
+**名前空間**: `K1s0.System.Outbox`
+
+**主要クラス・インターフェース**:
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `IOutboxStore` | interface | アウトボックスメッセージの永続化抽象 |
+| `PostgresOutboxStore` | class | PostgreSQL ベースの OutboxStore 実装 |
+| `OutboxProcessor` | class | BackgroundService 継承、指数バックオフリトライ付きポーリングプロセッサ |
+| `OutboxMessage` | record | アウトボックスメッセージ（topic・payload・status・retryCount） |
+| `OutboxStatus` | enum | `Pending` / `Published` / `Failed` |
+| `OutboxException` | class | outbox ライブラリの公開例外型 |
+
+**主要 API**:
+
+```csharp
+namespace K1s0.System.Outbox;
+
+public interface IOutboxStore
+{
+    Task SaveAsync(
+        OutboxMessage message,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<OutboxMessage>> FetchPendingAsync(
+        int limit,
+        CancellationToken cancellationToken = default);
+
+    Task MarkPublishedAsync(
+        Guid messageId,
+        CancellationToken cancellationToken = default);
+
+    Task MarkFailedAsync(
+        Guid messageId,
+        int retryCount,
+        CancellationToken cancellationToken = default);
+}
+
+public class OutboxProcessor : BackgroundService
+{
+    public OutboxProcessor(
+        IOutboxStore store,
+        IEventProducer producer,
+        TimeSpan pollInterval);
+
+    protected override Task ExecuteAsync(
+        CancellationToken stoppingToken);
+}
+
+public enum OutboxStatus
+{
+    Pending,
+    Published,
+    Failed,
+}
+```
+
+**カバレッジ目標**: 85%以上
+
 ---
 
 ## 関連ドキュメント

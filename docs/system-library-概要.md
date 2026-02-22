@@ -1,7 +1,7 @@
 # system-library 概要
 
 system tier が提供する共通ライブラリの設計を定義する。
-全ライブラリは Go / Rust / TypeScript / Dart の 4 言語で平等に実装する。
+全ライブラリは Go / Rust / TypeScript / Dart / C# の 5 言語で平等に実装する。
 
 ## ライブラリ一覧
 
@@ -31,6 +31,7 @@ system tier が提供する共通ライブラリの設計を定義する。
 | Rust | #[cfg(test)] + assert | mockall | wiremock |
 | TypeScript | vitest + expect | MSW | vitest |
 | Dart | test + expect | mocktail | test |
+| C# | xUnit + Assert | NSubstitute | WireMock.Net + Testcontainers |
 
 ### テストカバレッジ目標
 
@@ -47,6 +48,8 @@ system tier が提供する共通ライブラリの設計を定義する。
 | k1s0-serviceauth | 90% 以上 |
 | k1s0-saga | 85% 以上 |
 | k1s0-dlq-client | 85% 以上 |
+
+C# 実装のカバレッジ計測には `coverlet` + `dotnet test --collect:"XPlat Code Coverage"` を使用し、各ライブラリのカバレッジ目標は上記テーブルと同一とする。
 
 ---
 

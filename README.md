@@ -7,6 +7,7 @@
   <img src="https://img.shields.io/badge/Go-1.23-00ADD8?logo=go" alt="Go">
   <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" alt="React">
   <img src="https://img.shields.io/badge/Flutter-3.24-02569B?logo=flutter" alt="Flutter">
+  <img src="https://img.shields.io/badge/C%23-.NET%2010-512BD4?logo=dotnet" alt="C# .NET 10">
   <img src="https://img.shields.io/badge/Kubernetes-ready-326CE5?logo=kubernetes" alt="Kubernetes">
   <img src="https://img.shields.io/badge/OpenTelemetry-built--in-7B68EE" alt="OpenTelemetry">
 </p>
@@ -113,7 +114,7 @@ regions/
 
 | カテゴリ                         | 技術                                              |
 | -------------------------------- | ------------------------------------------------- |
-| サーバー                         | **Go 1.23** / **Rust 1.82**                       |
+| サーバー                         | **Go 1.23** / **Rust 1.82** / **C# (.NET 10)**    |
 | Web クライアント                 | **React** (TanStack Query, Zustand, Tailwind CSS) |
 | モバイル・クロスプラットフォーム | **Flutter 3.24** (Riverpod, go_router, freezed)   |
 | デスクトップGUI                  | **Tauri 2** + React                               |
@@ -169,6 +170,7 @@ regions/
 - Rust 1.82+
 - Docker & Docker Compose
 - Go 1.23+（Go サーバー開発時）
+- .NET 10 SDK（C# サーバー開発時）
 
 ### インストールと起動
 

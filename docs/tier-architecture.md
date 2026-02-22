@@ -139,7 +139,8 @@ regions/
 │   │   ├── go/
 │   │   ├── rust/
 │   │   ├── typescript/
-│   │   └── dart/
+│   │   ├── dart/
+│   │   └── csharp/
 │   └── database/
 ├── business/
 │   └── {領域名}/          # 例: accounting, fa
@@ -152,7 +153,8 @@ regions/
 │       │   ├── go/
 │       │   ├── rust/
 │       │   ├── typescript/
-│       │   └── dart/
+│       │   ├── dart/
+│       │   └── csharp/
 │       └── database/
 └── service/
     └── {サービス名}/          # 例: order, inventory

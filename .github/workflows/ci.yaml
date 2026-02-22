@@ -19,6 +19,7 @@ jobs:
       dart: ${{ steps.filter.outputs.dart }}
       python: ${{ steps.filter.outputs.python }}
       helm: ${{ steps.filter.outputs.helm }}
+      csharp: ${{ steps.filter.outputs.csharp }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -40,6 +41,8 @@ jobs:
               - 'e2e/**'
             helm:
               - 'infra/helm/**'
+            csharp:
+              - 'regions/**/csharp/**'
 
   lint-go:
     needs: detect-changes
@@ -122,6 +125,40 @@ jobs:
       - run: dart analyze
       - run: dart format --set-exit-if-changed .
 
+  lint-csharp:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.csharp == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+      - name: Restore all libraries
+        run: |
+          for proj in regions/system/library/csharp/*/K1s0.System.*.csproj; do
+            if [ -f "$proj" ]; then
+              echo "=== Restoring $proj ==="
+              dotnet restore "$proj"
+            fi
+          done
+      - name: Format check
+        run: |
+          for proj in regions/system/library/csharp/*/K1s0.System.*.csproj; do
+            if [ -f "$proj" ]; then
+              echo "=== Format check $proj ==="
+              dotnet format "$proj" --verify-no-changes
+            fi
+          done
+      - name: Build (TreatWarningsAsErrors)
+        run: |
+          for proj in regions/system/library/csharp/*/K1s0.System.*.csproj; do
+            if [ -f "$proj" ]; then
+              echo "=== Building $proj ==="
+              dotnet build "$proj" -c Release --no-restore
+            fi
+          done
+
   lint-python:
     needs: detect-changes
     if: needs.detect-changes.outputs.python == 'true'
@@ -202,6 +239,34 @@ jobs:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       - run: flutter test
 
+  test-csharp:
+    needs: lint-csharp
+    if: needs.detect-changes.outputs.csharp == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+      - name: Test with coverage
+        run: |
+          mkdir -p coverage
+          for testproj in regions/system/library/csharp/*/tests/K1s0.System.*.Tests.csproj; do
+            if [ -f "$testproj" ]; then
+              lib=$(basename "$(dirname "$(dirname "$testproj")")")
+              echo "=== Testing $testproj ==="
+              dotnet test "$testproj" \
+                --collect:"XPlat Code Coverage" \
+                --results-directory "./coverage/$lib" \
+                -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: csharp-coverage
+          path: coverage/
+
   test-python:
     needs: lint-python
     runs-on: ubuntu-latest
@@ -238,6 +303,7 @@ jobs:
       - test-rust
       - test-ts
       - test-dart
+      - test-csharp
     if: always() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     steps:

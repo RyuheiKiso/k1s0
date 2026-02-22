@@ -53,3 +53,17 @@ repos:
         entry: ruff check
         language: system
         files: '\.py$'
+
+      - id: dotnet-format
+        name: dotnet format
+        entry: bash -c 'for proj in regions/system/library/csharp/*/K1s0.System.*.csproj; do [ -f "$proj" ] && dotnet format "$proj" --verify-no-changes; done'
+        language: system
+        files: '\.cs$'
+        pass_filenames: false
+
+      - id: dotnet-build
+        name: dotnet build
+        entry: bash -c 'for proj in regions/system/library/csharp/*/K1s0.System.*.csproj; do [ -f "$proj" ] && dotnet build "$proj" -c Release --no-restore; done'
+        language: system
+        files: '\.cs$'
+        pass_filenames: false

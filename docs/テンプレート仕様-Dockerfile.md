@@ -17,6 +17,7 @@ Docker イメージ戦略の全体像は [Dockerイメージ戦略](Dockerイメ
 | `bff/rust/Dockerfile.tera`        | `Dockerfile`   | Rust BFF 用 Dockerfile        |
 | `client/react/Dockerfile.tera`    | `Dockerfile`   | React クライアント用 Dockerfile |
 | `client/flutter/Dockerfile.tera`  | `Dockerfile`   | Flutter クライアント用 Dockerfile |
+| `server/csharp/Dockerfile.tera`   | `Dockerfile`   | C# サーバー用 Dockerfile          |
 
 ### ディレクトリ構成
 
@@ -24,7 +25,9 @@ Docker イメージ戦略の全体像は [Dockerイメージ戦略](Dockerイメ
 CLI/
 └── templates/
     ├── server/
-    │   └── rust/
+    │   ├── rust/
+    │   │   └── Dockerfile.tera
+    │   └── csharp/
     │       └── Dockerfile.tera
     ├── bff/
     │   ├── go/
@@ -237,6 +240,44 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ---
 
+## server/csharp Dockerfile テンプレート
+
+C# サーバー用のマルチステージビルド Dockerfile。
+
+```tera
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10 AS builder
+
+WORKDIR /src
+
+COPY *.csproj .
+RUN dotnet restore
+
+COPY . .
+RUN dotnet publish -c Release -o /app/publish
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app/publish .
+
+USER nonroot:nonroot
+
+ENTRYPOINT ["dotnet", "{{ service_name_pascal }}.dll"]
+```
+
+### ポイント
+
+- `mcr.microsoft.com/dotnet/sdk:10` をビルドステージのベースイメージとして使用する
+- `dotnet restore` で依存関係を先にダウンロードし、レイヤーキャッシュを活用する
+- `dotnet publish -c Release` で最適化ビルドを行う
+- ランタイムは `mcr.microsoft.com/dotnet/aspnet:10-alpine` を使用する（Alpine ベースで軽量化）
+- `USER nonroot:nonroot` で非特権ユーザーとして実行する
+
+---
+
 ## イメージサイズ比較
 
 各 Dockerfile で生成されるイメージの概算サイズを以下に示す。
@@ -248,6 +289,7 @@ CMD ["nginx", "-g", "daemon off;"]
 | bff/rust         | rust:1.82                         | distroless/cc-debian12:nonroot         | ~15MB      |
 | client/react     | node:20-alpine                    | nginx:1.27-alpine                      | ~25MB      |
 | client/flutter   | cirruslabs/flutter:stable         | nginx:1.27-alpine                      | ~25MB      |
+| server/csharp    | dotnet/sdk:10                     | dotnet/aspnet:10-alpine                | ~90MB      |
 
 ---
 

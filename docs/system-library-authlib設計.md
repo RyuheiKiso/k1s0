@@ -717,6 +717,101 @@ class AuthError implements Exception {
 }
 ```
 
+## C# 実装
+
+**配置先**: `regions/system/library/csharp/auth/`
+
+```
+auth/
+├── src/
+│   ├── Auth.csproj
+│   ├── IJwksVerifier.cs        # JWKS 検証インターフェース
+│   ├── JwksVerifier.cs         # JWT 検証・JWKS キャッシュ実装
+│   ├── IJwksFetcher.cs         # JWKS 取得インターフェース
+│   ├── HttpJwksFetcher.cs      # HTTP ベースの JWKS 取得
+│   ├── Claims.cs               # TokenClaims 型定義
+│   ├── RbacChecker.cs          # RBAC 権限チェック
+│   ├── DeviceFlowClient.cs     # Device Authorization Grant（オプショナル）
+│   ├── Middleware/
+│   │   └── JwtAuthMiddleware.cs # ASP.NET Core 認証ミドルウェア
+│   └── AuthException.cs        # 公開例外型
+├── tests/
+│   ├── Auth.Tests.csproj
+│   ├── Unit/
+│   │   ├── JwksVerifierTests.cs
+│   │   └── RbacCheckerTests.cs
+│   └── Integration/
+│       └── JwtAuthMiddlewareTests.cs
+├── .editorconfig
+└── README.md
+```
+
+**NuGet 依存関係**:
+
+| パッケージ | 用途 |
+|-----------|------|
+| Microsoft.IdentityModel.Tokens | JWT トークン検証 |
+| System.IdentityModel.Tokens.Jwt | JWT トークンハンドリング |
+
+**名前空間**: `K1s0.System.Auth`
+
+**主要クラス・インターフェース**:
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `IJwksVerifier` | interface | JWT トークン検証の抽象 |
+| `JwksVerifier` | class | JWKS ベースの JWT 検証（キャッシュ TTL 付き） |
+| `IJwksFetcher` | interface | JWKS エンドポイントからの鍵取得抽象 |
+| `HttpJwksFetcher` | class | HTTP ベースの JWKS 取得実装 |
+| `TokenClaims` | record | JWT クレーム（Sub・Iss・Aud・RealmAccess・ResourceAccess 等） |
+| `RbacChecker` | static class | RBAC 権限チェック |
+| `DeviceFlowClient` | class | OAuth2 Device Authorization Grant クライアント（オプショナル） |
+| `AuthException` | class | authlib の公開例外型 |
+
+**主要 API**:
+
+```csharp
+namespace K1s0.System.Auth;
+
+public interface IJwksVerifier
+{
+    Task<TokenClaims> VerifyTokenAsync(
+        string token,
+        CancellationToken cancellationToken = default);
+}
+
+public interface IJwksFetcher
+{
+    Task<JsonWebKeySet> FetchKeysAsync(
+        CancellationToken cancellationToken = default);
+}
+
+public static class RbacChecker
+{
+    public static bool CheckPermission(
+        TokenClaims claims,
+        string resource,
+        string action);
+}
+```
+
+**DI 拡張・ミドルウェア登録**:
+
+```csharp
+public static class AuthExtensions
+{
+    public static IServiceCollection AddK1s0JwtAuth(
+        this IServiceCollection services,
+        string jwksUrl,
+        string issuer,
+        string audience,
+        TimeSpan? cacheTtl = null);
+
+    public static IApplicationBuilder UseK1s0JwtAuth(
+        this IApplicationBuilder app);
+}
+```
+
 ---
 
 ## 関連ドキュメント
