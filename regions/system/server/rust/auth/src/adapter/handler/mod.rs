@@ -8,7 +8,7 @@ use axum::routing::{get, post};
 use axum::Router;
 
 use crate::adapter::middleware::auth::auth_middleware;
-use crate::adapter::middleware::rbac::rbac_middleware;
+use crate::adapter::middleware::rbac::make_rbac_middleware;
 use crate::domain::repository::{AuditLogRepository, UserRepository};
 use crate::infrastructure::TokenVerifier;
 use crate::usecase::{
@@ -60,42 +60,71 @@ impl AppState {
     }
 }
 
-/// REST API ルーターを構築する。
+/// Build the REST API router.
 pub fn router(state: AppState) -> Router {
-    // 認証が必要なエンドポイント (auth_middleware を適用)
-    let protected = Router::new()
-        // User endpoints (sys_auditor以上)
+    // User endpoints: require "users" / "read" permission
+    let user_routes = Router::new()
         .route("/api/v1/users", get(auth_handler::list_users))
         .route("/api/v1/users/:id", get(auth_handler::get_user))
-        .route("/api/v1/users/:id/roles", get(auth_handler::get_user_roles))
-        // Auth endpoints (sys_operator以上)
+        .route(
+            "/api/v1/users/:id/roles",
+            get(auth_handler::get_user_roles),
+        )
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            make_rbac_middleware("users", "read"),
+        ));
+
+    // Permission check endpoint: require "auth_config" / "read" permission
+    let permission_routes = Router::new()
         .route(
             "/api/v1/auth/permissions/check",
             post(auth_handler::check_permission),
         )
-        // Audit log endpoints (sys_auditor以上: GET, sys_operator以上: POST)
-        .route(
-            "/api/v1/audit/logs",
-            post(audit_handler::record_audit_log).get(audit_handler::search_audit_logs),
-        )
-        // rbac_middleware: sys_auditor以上のロールを持つユーザーのみ通過 (auth_middlewareの後に実行)
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
-            rbac_middleware,
-        ))
-        // auth_middleware: Bearerトークンを検証しClaimsをextensionに格納 (最初に実行)
+            make_rbac_middleware("auth_config", "read"),
+        ));
+
+    // Audit log endpoints: GET requires "audit_logs" / "read", POST requires "audit_logs" / "write"
+    let audit_read_routes = Router::new()
+        .route(
+            "/api/v1/audit/logs",
+            get(audit_handler::search_audit_logs),
+        )
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            make_rbac_middleware("audit_logs", "read"),
+        ));
+
+    let audit_write_routes = Router::new()
+        .route(
+            "/api/v1/audit/logs",
+            post(audit_handler::record_audit_log),
+        )
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            make_rbac_middleware("audit_logs", "write"),
+        ));
+
+    // Protected routes share auth_middleware for Bearer token validation
+    let protected = Router::new()
+        .merge(user_routes)
+        .merge(permission_routes)
+        .merge(audit_read_routes)
+        .merge(audit_write_routes)
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
         ));
 
-    // 公開エンドポイント (認証不要)
+    // Public endpoints (no auth required)
     let public = Router::new()
         // Health / Readiness / Metrics
         .route("/healthz", get(auth_handler::healthz))
         .route("/readyz", get(auth_handler::readyz))
         .route("/metrics", get(auth_handler::metrics))
-        // トークン検証・イントロスペクションは認証サービス自身なので公開 (RFC 7662)
+        // Token validate/introspect are public (RFC 7662)
         .route(
             "/api/v1/auth/token/validate",
             post(auth_handler::validate_token),

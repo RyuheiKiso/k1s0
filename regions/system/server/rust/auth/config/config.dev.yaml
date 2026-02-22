@@ -30,3 +30,14 @@ kafka:
   brokers:
     - "localhost:9092"
   topic: "audit-events-dev"
+
+permission_cache:
+  ttl_secs: 60
+  refresh_on_miss: true
+
+audit:
+  kafka_enabled: false
+  retention_days: 30
+
+keycloak_admin:
+  token_cache_ttl_secs: 60

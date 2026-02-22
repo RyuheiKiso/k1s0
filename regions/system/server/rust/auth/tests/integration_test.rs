@@ -31,7 +31,7 @@ impl TokenVerifier for TestTokenVerifier {
                 preferred_username: "test.user".to_string(),
                 email: "test@example.com".to_string(),
                 realm_access: RealmAccess {
-                    roles: vec!["user".to_string(), "sys_auditor".to_string()],
+                    roles: vec!["user".to_string(), "sys_operator".to_string()],
                 },
                 ..Default::default()
             })

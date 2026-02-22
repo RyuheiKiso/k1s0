@@ -1,0 +1,18 @@
+app:
+  environment: dev
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+auth:
+  discovery_url: "http://keycloak:8080/realms/k1s0"
+  client_id: "k1s0-bff"
+  redirect_uri: "http://localhost:8080/auth/callback"
+
+session:
+  redis:
+    addr: "redis:6379"
+
+upstream:
+  base_url: "http://auth-server:8080"

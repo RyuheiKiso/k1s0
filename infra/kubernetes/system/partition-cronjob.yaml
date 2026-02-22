@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: audit-log-partition-maintenance
+  namespace: k1s0-system
+  labels:
+    app: audit-log-maintenance
+    tier: system
+spec:
+  # Run on the 1st of every month at 02:00 UTC
+  schedule: "0 2 1 * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            app: audit-log-maintenance
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: partition-maintenance
+          containers:
+            - name: partition-maintenance
+              image: postgres:16-alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  psql "$DATABASE_URL" -c "SELECT public.run_maintenance('auth.audit_logs');"
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: url
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: partition-maintenance
+  namespace: k1s0-system
+  labels:
+    app: audit-log-maintenance

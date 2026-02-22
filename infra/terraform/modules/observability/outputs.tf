@@ -12,3 +12,8 @@ output "jaeger_status" {
   description = "Status of the Jaeger Helm release"
   value       = helm_release.jaeger.status
 }
+
+output "otel_collector_status" {
+  description = "Status of the OpenTelemetry Collector Helm release"
+  value       = helm_release.otel_collector.status
+}

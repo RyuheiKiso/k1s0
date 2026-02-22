@@ -1,0 +1,40 @@
+replicaCount: 3
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - bff-proxy
+        topologyKey: kubernetes.io/hostname
+
+config:
+  data:
+    config.yaml: |
+      app:
+        environment: prod
+      session:
+        redis:
+          addr: redis-sentinel.k1s0-system.svc.cluster.local:26379
+          master_name: mymaster
+      observability:
+        log:
+          level: warn
+        trace:
+          sample_rate: 0.1

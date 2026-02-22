@@ -249,7 +249,7 @@ PostgreSQL の公式 Docker イメージは、初回起動時に `/docker-entryp
 
 | ファイル | 実行順 | 内容 |
 | --- | --- | --- |
-| `01-create-databases.sql` | 1 | データベース作成（keycloak, kong, k1s0_system, k1s0_business, k1s0_service） |
+| `01-create-databases.sql` | 1 | データベース作成（keycloak, kong, k1s0_system, k1s0_business, k1s0_service） + 個別DB作成（auth_db, config_db, dlq_db） |
 | `02-auth-schema.sql` | 2 | 監査ログテーブル作成（k1s0_system DB） |
 | `03-config-schema.sql` | 3 | 設定値テーブル・設定変更監査ログテーブル作成（k1s0_system DB） |
 

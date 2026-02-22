@@ -94,7 +94,7 @@ services:
   # ローカルと staging/prod でセキュリティプロトコルが異なるため、
   # 接続設定は必ず config.yaml 経由で環境ごとに切り替えること。
   kafka:
-    image: bitnami/kafka:3.8
+    image: confluentinc/cp-kafka:7.7.1
     profiles: [infra]
     environment:
       KAFKA_CFG_NODE_ID: 0

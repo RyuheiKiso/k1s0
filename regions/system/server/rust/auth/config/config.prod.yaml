@@ -23,6 +23,17 @@ kafka:
   tls:
     ca_cert_path: "/etc/kafka/certs/ca.crt"
 
+permission_cache:
+  ttl_secs: 300
+  refresh_on_miss: true
+
+audit:
+  kafka_enabled: true
+  retention_days: 365
+
+keycloak_admin:
+  token_cache_ttl_secs: 300
+
 observability:
   log:
     level: "warn"

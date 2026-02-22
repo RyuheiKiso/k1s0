@@ -228,6 +228,23 @@ WHERE r.name = 'sys_auditor'
   AND p.resource != 'vault_secrets'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
--- 009: カラム名変更（010 で元に戻す）
+-- 009: pg_partman setup for automatic partition management
+CREATE EXTENSION IF NOT EXISTS pg_partman SCHEMA public;
+
+SELECT public.create_parent(
+    p_parent_table  := 'auth.audit_logs',
+    p_control       := 'created_at',
+    p_type          := 'range',
+    p_interval      := '1 month',
+    p_premake       := 3
+);
+
+UPDATE public.part_config
+SET retention       = '12 months',
+    retention_keep_table = false,
+    infinite_time_partitions = true
+WHERE parent_table = 'auth.audit_logs';
+
+-- 010: カラム名変更（元に戻す）
 -- カラム名は detail (JSONB) と created_at を使用する
 -- migration 009 + 010 の最終状態: detail, created_at

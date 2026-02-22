@@ -1,0 +1,176 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# .github/workflows/bff-proxy-deploy.yaml
+# Deploy pipeline for BFF Proxy server
+# Triggered on push to main with changes in BFF proxy paths
+name: bff-proxy-deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'regions/system/server/go/bff-proxy/**'
+
+env:
+  REGISTRY: harbor.internal.example.com
+
+jobs:
+  # ---------- Build and push Docker image ----------
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: regions/system/server/go/bff-proxy
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/k1s0-system/bff-proxy:${{ steps.version.outputs.value }}
+            ${{ env.REGISTRY }}/k1s0-system/bff-proxy:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/k1s0-system/bff-proxy:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+      - name: Sign image with Cosign
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/k1s0-system/bff-proxy:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/k1s0-system/bff-proxy:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+          severity: HIGH,CRITICAL
+          exit-code: 1
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.REGISTRY }}/k1s0-system/bff-proxy:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+          output-file: sbom.spdx.json
+
+  # ---------- Deploy to dev ----------
+  deploy-dev:
+    needs: build-and-push
+    runs-on: [self-hosted, dev]
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/k1s0-system/bff-proxy:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"
+      - name: Deploy to dev
+        run: |
+          helm upgrade --install bff-proxy \
+            ./infra/helm/services/system/bff-proxy \
+            -n k1s0-system \
+            -f ./infra/helm/services/system/bff-proxy/values-dev.yaml \
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+
+  # ---------- Deploy to staging ----------
+  deploy-staging:
+    needs: deploy-dev
+    runs-on: [self-hosted, staging]
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/k1s0-system/bff-proxy:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"
+      - name: Deploy to staging
+        run: |
+          helm upgrade --install bff-proxy \
+            ./infra/helm/services/system/bff-proxy \
+            -n k1s0-system \
+            -f ./infra/helm/services/system/bff-proxy/values-staging.yaml \
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+
+  # ---------- Deploy to prod (manual approval) ----------
+  deploy-prod:
+    needs: deploy-staging
+    runs-on: [self-hosted, prod]
+    environment:
+      name: prod
+      url: https://bff.k1s0.internal.example.com
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
+            ${{ env.REGISTRY }}/k1s0-system/bff-proxy:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"
+      - name: Deploy to prod
+        run: |
+          helm upgrade --install bff-proxy \
+            ./infra/helm/services/system/bff-proxy \
+            -n k1s0-system \
+            -f ./infra/helm/services/system/bff-proxy/values-prod.yaml \
+            --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}

@@ -1,0 +1,28 @@
+replicaCount: 2
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+
+config:
+  data:
+    config.yaml: |
+      app:
+        environment: staging
+      session:
+        redis:
+          addr: redis.k1s0-system.svc.cluster.local:6379
+      observability:
+        log:
+          level: info
+        trace:
+          sample_rate: 0.5
