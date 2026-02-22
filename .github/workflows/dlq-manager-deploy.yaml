@@ -1,14 +1,14 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-# .github/workflows/config-deploy.yaml
-# Deploy pipeline for config server
-# Triggered on push to main with changes in config server paths
-name: config-deploy
+# .github/workflows/dlq-manager-deploy.yaml
+# Deploy pipeline for dlq-manager server
+# Triggered on push to main with changes in dlq-manager server paths
+name: dlq-manager-deploy
 
 on:
   push:
     branches: [main]
     paths:
-      - 'regions/system/server/rust/config/**'
+      - 'regions/system/server/rust/dlq-manager/**'
 
 env:
   REGISTRY: harbor.internal.example.com
@@ -40,12 +40,12 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: regions/system/server/rust/config
+          context: regions/system/server/rust/dlq-manager
           push: true
           tags: |
-            ${{ env.REGISTRY }}/k1s0-system/config:${{ steps.version.outputs.value }}
-            ${{ env.REGISTRY }}/k1s0-system/config:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-            ${{ env.REGISTRY }}/k1s0-system/config:latest
+            ${{ env.REGISTRY }}/k1s0-system/dlq-manager:${{ steps.version.outputs.value }}
+            ${{ env.REGISTRY }}/k1s0-system/dlq-manager:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/k1s0-system/dlq-manager:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Install Cosign
@@ -53,19 +53,19 @@ jobs:
       - name: Sign image with Cosign
         run: |
           cosign sign --yes \
-            ${{ env.REGISTRY }}/k1s0-system/config:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/k1s0-system/dlq-manager:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
         env:
           COSIGN_EXPERIMENTAL: "1"
       - name: Trivy image scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/k1s0-system/config:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+          image-ref: ${{ env.REGISTRY }}/k1s0-system/dlq-manager:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
           severity: HIGH,CRITICAL
           exit-code: 1
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ env.REGISTRY }}/k1s0-system/config:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+          image: ${{ env.REGISTRY }}/k1s0-system/dlq-manager:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
           output-file: sbom.spdx.json
 
   # ---------- Deploy to dev ----------
@@ -91,16 +91,16 @@ jobs:
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
-            ${{ env.REGISTRY }}/k1s0-system/config:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/k1s0-system/dlq-manager:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       - uses: azure/setup-helm@v4
         with:
           version: "3.16"
       - name: Deploy to dev
         run: |
-          helm upgrade --install config \
-            ./infra/helm/services/system/config \
+          helm upgrade --install dlq-manager \
+            ./infra/helm/services/system/dlq-manager \
             -n k1s0-system \
-            -f ./infra/helm/services/system/config/values-dev.yaml \
+            -f ./infra/helm/services/system/dlq-manager/values-dev.yaml \
             --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
 
   # ---------- Deploy to staging ----------
@@ -126,16 +126,16 @@ jobs:
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
-            ${{ env.REGISTRY }}/k1s0-system/config:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/k1s0-system/dlq-manager:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       - uses: azure/setup-helm@v4
         with:
           version: "3.16"
       - name: Deploy to staging
         run: |
-          helm upgrade --install config \
-            ./infra/helm/services/system/config \
+          helm upgrade --install dlq-manager \
+            ./infra/helm/services/system/dlq-manager \
             -n k1s0-system \
-            -f ./infra/helm/services/system/config/values-staging.yaml \
+            -f ./infra/helm/services/system/dlq-manager/values-staging.yaml \
             --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
 
   # ---------- Deploy to prod (manual approval) ----------
@@ -163,14 +163,14 @@ jobs:
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             --certificate-identity-regexp "github.com/k1s0-org/k1s0" \
-            ${{ env.REGISTRY }}/k1s0-system/config:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/k1s0-system/dlq-manager:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
       - uses: azure/setup-helm@v4
         with:
           version: "3.16"
       - name: Deploy to prod
         run: |
-          helm upgrade --install config \
-            ./infra/helm/services/system/config \
+          helm upgrade --install dlq-manager \
+            ./infra/helm/services/system/dlq-manager \
             -n k1s0-system \
-            -f ./infra/helm/services/system/config/values-prod.yaml \
+            -f ./infra/helm/services/system/dlq-manager/values-prod.yaml \
             --set image.tag=${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}

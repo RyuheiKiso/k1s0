@@ -13,8 +13,8 @@ imagePullSecrets:
 replicaCount: 2
 
 container:
-  port: 8082
-  grpcPort: 50052
+  port: 8080
+  grpcPort: 50051
   command: []
   args: []
 
@@ -45,7 +45,7 @@ probes:
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 50052
+  grpcPort: 50051
 
 autoscaling:
   enabled: true

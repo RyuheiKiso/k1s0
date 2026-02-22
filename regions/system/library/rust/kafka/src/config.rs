@@ -118,4 +118,72 @@ mod tests {
         assert_eq!(cfg.security_protocol, "PLAINTEXT");
         assert_eq!(cfg.connection_timeout_ms, 5000);
     }
+
+    #[test]
+    fn test_uses_tls_with_ssl() {
+        let cfg = KafkaConfig {
+            brokers: vec!["kafka:9093".to_string()],
+            security_protocol: "SSL".to_string(),
+            connection_timeout_ms: 5000,
+            request_timeout_ms: 30000,
+            max_message_bytes: 1_000_000,
+        };
+        assert!(cfg.uses_tls());
+    }
+
+    #[test]
+    fn test_uses_tls_with_sasl_ssl() {
+        let cfg = KafkaConfig {
+            brokers: vec!["kafka:9094".to_string()],
+            security_protocol: "SASL_SSL".to_string(),
+            connection_timeout_ms: 5000,
+            request_timeout_ms: 30000,
+            max_message_bytes: 1_000_000,
+        };
+        assert!(cfg.uses_tls());
+    }
+
+    #[test]
+    fn test_uses_tls_with_plaintext() {
+        let cfg = KafkaConfig {
+            brokers: vec!["kafka:9092".to_string()],
+            security_protocol: "PLAINTEXT".to_string(),
+            connection_timeout_ms: 5000,
+            request_timeout_ms: 30000,
+            max_message_bytes: 1_000_000,
+        };
+        assert!(!cfg.uses_tls());
+    }
+
+    #[test]
+    fn test_uses_tls_with_sasl_plaintext() {
+        let cfg = KafkaConfig {
+            brokers: vec!["kafka:9092".to_string()],
+            security_protocol: "SASL_PLAINTEXT".to_string(),
+            connection_timeout_ms: 5000,
+            request_timeout_ms: 30000,
+            max_message_bytes: 1_000_000,
+        };
+        assert!(!cfg.uses_tls());
+    }
+
+    #[test]
+    fn test_deserialize_request_timeout_default() {
+        let json = r#"{"brokers": ["kafka:9092"]}"#;
+        let cfg: KafkaConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(cfg.request_timeout_ms, 30000);
+        assert_eq!(cfg.max_message_bytes, 1_000_000);
+    }
+
+    #[test]
+    fn test_bootstrap_servers_empty() {
+        let cfg = KafkaConfig {
+            brokers: vec![],
+            security_protocol: "PLAINTEXT".to_string(),
+            connection_timeout_ms: 5000,
+            request_timeout_ms: 30000,
+            max_message_bytes: 1_000_000,
+        };
+        assert_eq!(cfg.bootstrap_servers(), "");
+    }
 }

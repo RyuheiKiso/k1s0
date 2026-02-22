@@ -13,7 +13,7 @@ imagePullSecrets:
 replicaCount: 2
 
 container:
-  port: 8084
+  port: 8080
   grpcPort: null
   command: []
   args: []

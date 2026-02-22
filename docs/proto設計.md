@@ -89,6 +89,10 @@ api/proto/
         └── config/
             └── v1/
                 └── config.proto          # ConfigService gRPC 定義
+
+# saga-server
+api/proto/k1s0/system/saga/v1/
+└── saga.proto                            # SagaService gRPC 定義（共有 proto）
 ```
 
 ---
@@ -528,7 +532,58 @@ message ConfigChangeEvent {
 | `ConfigService.UpdateConfig` | `ConfigGRPCService.UpdateConfig` | `ConfigGrpcService.update_config` | 楽観的排他制御付き設定値更新 |
 | `ConfigService.DeleteConfig` | `ConfigGRPCService.DeleteConfig` | `ConfigGrpcService.delete_config` | 設定値削除（sys_admin 権限） |
 | `ConfigService.GetServiceConfig` | `ConfigGRPCService.GetServiceConfig` | `ConfigGrpcService.get_service_config` | サービス名で設定一括取得 |
-| `ConfigService.WatchConfig` | `ConfigGRPCService.WatchConfig` (未実装) | (未実装) | 設定変更のリアルタイム監視 |
+| `ConfigService.WatchConfig` | `ConfigGRPCService.WatchConfig` (未実装) | `ConfigGrpcService.watch_config` (実装済み) | 設定変更のリアルタイム監視 |
+
+---
+
+## Saga サービス定義（saga.proto）
+
+パッケージ: `k1s0.system.saga.v1`
+
+分散トランザクション（Saga パターン）のオーケストレーション機能を提供するサービス定義。
+定義ファイルは `api/proto/k1s0/system/saga/v1/saga.proto` に配置する（共有 proto）。
+
+```protobuf
+// api/proto/k1s0/system/saga/v1/saga.proto
+syntax = "proto3";
+package k1s0.system.saga.v1;
+
+option go_package = "github.com/k1s0-platform/system-server-go-saga/gen/go/k1s0/system/saga/v1;sagav1";
+
+import "k1s0/system/common/v1/types.proto";
+
+// SagaService は Saga オーケストレーション機能を提供する。
+service SagaService {
+  // Saga 開始（非同期実行）
+  rpc StartSaga(StartSagaRequest) returns (StartSagaResponse);
+
+  // Saga 詳細取得（ステップログ含む）
+  rpc GetSaga(GetSagaRequest) returns (GetSagaResponse);
+
+  // Saga 一覧取得
+  rpc ListSagas(ListSagasRequest) returns (ListSagasResponse);
+
+  // Saga キャンセル
+  rpc CancelSaga(CancelSagaRequest) returns (CancelSagaResponse);
+
+  // ワークフロー登録（YAML 文字列）
+  rpc RegisterWorkflow(RegisterWorkflowRequest) returns (RegisterWorkflowResponse);
+
+  // ワークフロー一覧取得
+  rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse);
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | Rust ハンドラー | 説明 |
+| --- | --- | --- |
+| `SagaService.StartSaga` | `SagaGrpcService.start_saga` | ワークフロー名・ペイロードで Saga を開始 |
+| `SagaService.GetSaga` | `SagaGrpcService.get_saga` | Saga ID でステップログを含む詳細取得 |
+| `SagaService.ListSagas` | `SagaGrpcService.list_sagas` | ページネーション・フィルタ付き一覧取得 |
+| `SagaService.CancelSaga` | `SagaGrpcService.cancel_saga` | 実行中 Saga のキャンセル |
+| `SagaService.RegisterWorkflow` | `SagaGrpcService.register_workflow` | YAML 形式のワークフロー定義を登録 |
+| `SagaService.ListWorkflows` | `SagaGrpcService.list_workflows` | 登録済みワークフロー一覧取得 |
 
 ---
 

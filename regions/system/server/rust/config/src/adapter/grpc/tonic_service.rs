@@ -13,6 +13,7 @@ use super::config_grpc::{
     GetConfigResponse, GetServiceConfigRequest, GetServiceConfigResponse, GrpcError,
     ListConfigsRequest, ListConfigsResponse, UpdateConfigRequest, UpdateConfigResponse,
 };
+use super::watch_stream::{WatchConfigRequest, WatchConfigStreamHandler};
 
 // --- GrpcError -> tonic::Status 変換 ---
 
@@ -76,6 +77,22 @@ impl ConfigServiceTonic {
     ) -> Result<Response<DeleteConfigResponse>, Status> {
         let resp = self.inner.delete_config(request.into_inner()).await?;
         Ok(Response::new(resp))
+    }
+
+    /// 設定変更監視ストリームハンドラを生成して返す。
+    ///
+    /// gRPC サーバーストリーミングが利用可能になった後は、返された
+    /// `WatchConfigStreamHandler` を `next()` でポーリングして
+    /// レスポンスストリームに書き出す。
+    ///
+    /// watch 機能が無効の場合は `Status::unimplemented` を返す。
+    pub fn watch_config(
+        &self,
+        request: Request<WatchConfigRequest>,
+    ) -> Result<WatchConfigStreamHandler, Status> {
+        self.inner
+            .watch_config(request.into_inner())
+            .map_err(Status::from)
     }
 }
 
@@ -203,5 +220,79 @@ mod tests {
         assert!(result.is_err());
         let status = result.unwrap_err();
         assert_eq!(status.code(), Code::InvalidArgument);
+    }
+
+    #[tokio::test]
+    async fn test_watch_config_not_enabled_returns_internal_status() {
+        use crate::domain::repository::config_repository::MockConfigRepository;
+        use crate::usecase::delete_config::DeleteConfigUseCase;
+        use crate::usecase::get_config::GetConfigUseCase;
+        use crate::usecase::get_service_config::GetServiceConfigUseCase;
+        use crate::usecase::list_configs::ListConfigsUseCase;
+        use crate::usecase::update_config::UpdateConfigUseCase;
+
+        let mock_repo = MockConfigRepository::new();
+        let repo = Arc::new(mock_repo);
+        let get_config_uc = Arc::new(GetConfigUseCase::new(repo.clone()));
+        let list_configs_uc = Arc::new(ListConfigsUseCase::new(repo.clone()));
+        let get_service_config_uc = Arc::new(GetServiceConfigUseCase::new(repo.clone()));
+        let update_config_uc = Arc::new(UpdateConfigUseCase::new(repo.clone()));
+        let delete_config_uc = Arc::new(DeleteConfigUseCase::new(repo));
+
+        // watch_sender なしの ConfigGrpcService
+        let config_svc = Arc::new(ConfigGrpcService::new(
+            get_config_uc,
+            list_configs_uc,
+            get_service_config_uc,
+            update_config_uc,
+            delete_config_uc,
+        ));
+        let tonic_svc = ConfigServiceTonic::new(config_svc);
+
+        let req = Request::new(WatchConfigRequest {
+            namespace: "system.auth".to_string(),
+        });
+        let result = tonic_svc.watch_config(req);
+
+        assert!(result.is_err());
+        let status = result.unwrap_err();
+        assert_eq!(status.code(), Code::Internal);
+    }
+
+    #[tokio::test]
+    async fn test_watch_config_enabled_returns_handler() {
+        use crate::domain::repository::config_repository::MockConfigRepository;
+        use crate::usecase::delete_config::DeleteConfigUseCase;
+        use crate::usecase::get_config::GetConfigUseCase;
+        use crate::usecase::get_service_config::GetServiceConfigUseCase;
+        use crate::usecase::list_configs::ListConfigsUseCase;
+        use crate::usecase::update_config::UpdateConfigUseCase;
+        use crate::usecase::watch_config::WatchConfigUseCase;
+
+        let mock_repo = MockConfigRepository::new();
+        let repo = Arc::new(mock_repo);
+        let get_config_uc = Arc::new(GetConfigUseCase::new(repo.clone()));
+        let list_configs_uc = Arc::new(ListConfigsUseCase::new(repo.clone()));
+        let get_service_config_uc = Arc::new(GetServiceConfigUseCase::new(repo.clone()));
+        let update_config_uc = Arc::new(UpdateConfigUseCase::new(repo.clone()));
+        let delete_config_uc = Arc::new(DeleteConfigUseCase::new(repo));
+        let (_watch_uc, tx) = WatchConfigUseCase::new();
+
+        let config_svc = Arc::new(ConfigGrpcService::new_with_watch(
+            get_config_uc,
+            list_configs_uc,
+            get_service_config_uc,
+            update_config_uc,
+            delete_config_uc,
+            tx,
+        ));
+        let tonic_svc = ConfigServiceTonic::new(config_svc);
+
+        let req = Request::new(WatchConfigRequest {
+            namespace: "system.auth".to_string(),
+        });
+        let result = tonic_svc.watch_config(req);
+
+        assert!(result.is_ok());
     }
 }

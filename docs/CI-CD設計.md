@@ -26,6 +26,13 @@ Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.
 | Kong Config Sync  | `kong-sync.yaml`  | main マージ時 (`infra/kong/**` 変更) | dev → staging → prod    |
 | OpenAPI Lint      | `api-lint.yaml`   | push (`**/api/openapi/**`)  | OpenAPI バリデーション & SDK 生成 |
 | Tauri GUI Build   | `tauri-build.yaml` | PR 時 + main マージ時 (`CLI/gui/**` 変更) | GUI クロスプラットフォームビルド（[TauriGUI設計](TauriGUI設計.md) 参照） |
+| auth CI           | `auth-ci.yaml`    | PR 時 (`regions/system/server/rust/auth/**`) | auth-server 専用 lint → test → build |
+| config CI         | `config-ci.yaml`  | PR 時 (`regions/system/server/rust/config/**`) | config-server 専用 CI |
+| saga CI           | `saga-ci.yaml`    | PR 時 (`regions/system/server/rust/saga/**`) | saga-server 専用 CI |
+| dlq-manager CI    | `dlq-manager-ci.yaml` | PR 時 (`regions/system/server/rust/dlq-manager/**`) | dlq-manager 専用 lint → test → build |
+| auth Deploy       | `auth-deploy.yaml` | main マージ時 (`regions/system/server/rust/auth/**`) | auth-server 専用デプロイ |
+| config Deploy     | `config-deploy.yaml` | main マージ時 (`regions/system/server/rust/config/**`) | config-server 専用デプロイ |
+| dlq-manager Deploy | `dlq-manager-deploy.yaml` | main マージ時 (`regions/system/server/rust/dlq-manager/**`) | dlq-manager 専用デプロイ（dev→staging→prod）|
 
 ### CI ワークフロー（ci.yaml）
 

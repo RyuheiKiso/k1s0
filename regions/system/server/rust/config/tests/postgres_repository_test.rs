@@ -272,16 +272,16 @@ async fn test_delete_nonexistent_returns_false(pool: PgPool) {
 async fn test_find_by_service_name_via_mappings(pool: PgPool) {
     let repo = make_repo(pool).await;
 
-    // 設定エントリを作成
+    // 設定エントリを作成（シードデータと衝突しないキーを使用）
     let entry1 = make_entry(
-        "system.auth.database",
+        "test.service.mapping",
         "max_connections",
         serde_json::json!(25),
     );
     let entry2 = make_entry(
-        "system.auth.database",
-        "ssl_mode",
-        serde_json::json!("require"),
+        "test.service.mapping",
+        "connection_timeout",
+        serde_json::json!(30),
     );
     repo.create(&entry1).await.unwrap();
     repo.create(&entry2).await.unwrap();
@@ -290,15 +290,15 @@ async fn test_find_by_service_name_via_mappings(pool: PgPool) {
     sqlx::query(
         "INSERT INTO service_config_mappings (service_name, config_entry_id) VALUES ($1, $2), ($1, $3)",
     )
-    .bind("auth-server")
+    .bind("test-custom-service")
     .bind(entry1.id)
     .bind(entry2.id)
     .execute(repo.pool())
     .await
     .unwrap();
 
-    let result = repo.find_by_service_name("auth-server").await.unwrap();
-    assert_eq!(result.service_name, "auth-server");
+    let result = repo.find_by_service_name("test-custom-service").await.unwrap();
+    assert_eq!(result.service_name, "test-custom-service");
     assert_eq!(result.entries.len(), 2);
 }
 

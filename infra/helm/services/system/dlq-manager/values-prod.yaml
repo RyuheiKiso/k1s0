@@ -1,4 +1,4 @@
-replicaCount: 3
+replicaCount: 1
 
 resources:
   requests:
@@ -10,7 +10,7 @@ resources:
 
 autoscaling:
   enabled: true
-  minReplicas: 3
+  minReplicas: 1
   maxReplicas: 10
 
 affinity:
