@@ -1,0 +1,34 @@
+<mxfile>
+  <diagram name="Navigation Server Flow">
+    <mxGraphModel dx="1422" dy="762" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="600" pageHeight="480" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="2" value="Navigation サーバー処理フロー" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="15" width="400" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="3" value="GET /api/v1/navigation&lt;br&gt;リクエスト受信" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="150" y="65" width="300" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="4" value="navigation.yaml を読み込む&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;（起動時にキャッシュ済み）&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="150" y="175" width="300" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="5" value="ユーザーロールでルートをフィルタリング&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;（オプション・Phase 10）&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="150" y="285" width="300" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="6" value="NavigationResponse を JSON で返す" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="150" y="395" width="300" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="7" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" source="3" target="4" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="8" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" source="4" target="5" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="9" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" source="5" target="6" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
