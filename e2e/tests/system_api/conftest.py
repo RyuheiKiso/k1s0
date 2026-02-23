@@ -273,3 +273,68 @@ def vault_client(vault_base_url):
     session.base_url = vault_base_url
     session.headers.update({"Content-Type": "application/json"})
     return session
+
+
+@pytest.fixture(scope="session")
+def notification_base_url():
+    return os.environ.get("NOTIFICATION_BASE_URL", "http://localhost:8092")
+
+
+@pytest.fixture(scope="session")
+def notification_client(notification_base_url):
+    session = requests.Session()
+    session.base_url = notification_base_url
+    session.headers.update({"Content-Type": "application/json"})
+    return session
+
+
+@pytest.fixture(scope="session")
+def scheduler_base_url():
+    return os.environ.get("SCHEDULER_BASE_URL", "http://localhost:8093")
+
+
+@pytest.fixture(scope="session")
+def scheduler_client(scheduler_base_url):
+    session = requests.Session()
+    session.base_url = scheduler_base_url
+    session.headers.update({"Content-Type": "application/json"})
+    return session
+
+
+@pytest.fixture(scope="session")
+def search_base_url():
+    return os.environ.get("SEARCH_BASE_URL", "http://localhost:8094")
+
+
+@pytest.fixture(scope="session")
+def search_client(search_base_url):
+    session = requests.Session()
+    session.base_url = search_base_url
+    session.headers.update({"Content-Type": "application/json"})
+    return session
+
+
+@pytest.fixture(scope="session")
+def graphql_gateway_base_url():
+    return os.environ.get("GRAPHQL_GATEWAY_BASE_URL", "http://localhost:8095")
+
+
+@pytest.fixture(scope="session")
+def graphql_gateway_client(graphql_gateway_base_url):
+    session = requests.Session()
+    session.base_url = graphql_gateway_base_url
+    session.headers.update({"Content-Type": "application/json"})
+    return session
+
+
+@pytest.fixture(scope="session")
+def policy_base_url():
+    return os.environ.get("POLICY_BASE_URL", "http://localhost:8096")
+
+
+@pytest.fixture(scope="session")
+def policy_client(policy_base_url):
+    session = requests.Session()
+    session.base_url = policy_base_url
+    session.headers.update({"Content-Type": "application/json"})
+    return session
