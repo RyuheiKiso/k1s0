@@ -246,6 +246,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     // service Tier の場合: config-schema.yaml と初期型定義ファイルを生成
     generate_config_schema_stub(output_path, app_name, "react")?;
 
+    // navigation.yaml スタブとプレースホルダーを生成
+    generate_navigation_stub(output_path, app_name, "react")?;
+
     Ok(())
 }
 
@@ -358,6 +361,9 @@ class MyApp extends StatelessWidget {{
 
     // service Tier の場合: config-schema.yaml と初期型定義ファイルを生成
     generate_config_schema_stub(output_path, app_name, "flutter")?;
+
+    // navigation.yaml スタブとプレースホルダーを生成
+    generate_navigation_stub(output_path, app_name, "flutter")?;
 
     Ok(())
 }
@@ -771,6 +777,89 @@ rdbms: {}
             rdbms.as_str()
         ),
     )?;
+
+    Ok(())
+}
+
+/// navigation.yaml スタブとフレームワーク別のプレースホルダーを生成する。
+fn generate_navigation_stub(output_path: &Path, _app_name: &str, framework: &str) -> Result<()> {
+    // navigation.yaml (React: public/, Flutter: assets/)
+    let nav_yaml = format!(
+        r#"# $schema: ./navigation-schema.json
+version: 1
+
+guards:
+  - id: auth_required
+    type: auth_required
+    redirect_to: /login
+
+routes:
+  - id: root
+    path: /
+    redirect_to: /dashboard
+
+  - id: login
+    path: /login
+    component_id: LoginPage
+    guards: []
+
+  - id: dashboard
+    path: /dashboard
+    component_id: DashboardPage
+    guards: [auth_required]
+    transition: fade
+"#
+    );
+
+    match framework {
+        "react" => {
+            let public_dir = output_path.join("public");
+            fs::create_dir_all(&public_dir)?;
+            fs::write(public_dir.join("navigation.yaml"), &nav_yaml)?;
+
+            // component-registry.ts プレースホルダー
+            let nav_gen_dir = output_path.join("src/navigation/__generated__");
+            fs::create_dir_all(&nav_gen_dir)?;
+            fs::write(
+                nav_gen_dir.join("component-registry.ts"),
+                "// src/navigation/__generated__/component-registry.ts\n\
+                 // このファイルは雛形です。navigation.yaml の component_id に対応するコンポーネントを登録してください。\n\n\
+                 import type { ComponentRegistry } from 'system-client';\n\n\
+                 export const componentRegistry: ComponentRegistry = {\n\
+                 \x20 LoginPage:     () => import('../../pages/LoginPage'),\n\
+                 \x20 DashboardPage: () => import('../../pages/DashboardPage'),\n\
+                 };\n",
+            )?;
+
+            // route-types.ts プレースホルダー
+            fs::write(
+                nav_gen_dir.join("route-types.ts"),
+                "// src/navigation/__generated__/route-types.ts\n\
+                 // このファイルは CLI が自動生成する。直接編集しないこと。\n\
+                 // k1s0 generate navigation で再生成できます。\n\n\
+                 // TODO: k1s0 generate navigation --target react を実行して型定義を生成してください。\n\
+                 export const RouteIds = {} as const;\n\
+                 export type RouteId = string;\n\
+                 export type RouteParams = Record<string, Record<string, never>>;\n",
+            )?;
+        }
+        "flutter" => {
+            let assets_dir = output_path.join("assets");
+            fs::create_dir_all(&assets_dir)?;
+            fs::write(assets_dir.join("navigation.yaml"), &nav_yaml)?;
+
+            // route_ids.dart プレースホルダー
+            let nav_gen_dir = output_path.join("lib/navigation/__generated__");
+            fs::create_dir_all(&nav_gen_dir)?;
+            fs::write(
+                nav_gen_dir.join("route_ids.dart"),
+                "// lib/navigation/__generated__/route_ids.dart\n\
+                 // このファイルは CLI が自動生成する。直接編集しないこと。\n\n\
+                 // TODO: k1s0 generate navigation --target flutter を実行して型定義を生成してください。\n",
+            )?;
+        }
+        _ => {}
+    }
 
     Ok(())
 }

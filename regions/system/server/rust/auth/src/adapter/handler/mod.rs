@@ -1,6 +1,8 @@
 pub mod audit_handler;
 pub mod auth_handler;
+pub mod navigation_handler;
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::middleware;
@@ -31,6 +33,7 @@ pub struct AppState {
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub db_pool: Option<sqlx::PgPool>,
     pub keycloak_url: Option<String>,
+    pub navigation_config_path: Option<PathBuf>,
 }
 
 impl AppState {
@@ -58,6 +61,7 @@ impl AppState {
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server")),
             db_pool,
             keycloak_url,
+            navigation_config_path: None,
         }
     }
 }
@@ -76,6 +80,7 @@ impl AppState {
         auth_handler::get_user_roles,
         audit_handler::record_audit_log,
         audit_handler::search_audit_logs,
+        navigation_handler::get_navigation,
     ),
     components(schemas(
         crate::domain::entity::claims::Claims,
@@ -163,6 +168,11 @@ pub fn router(state: AppState) -> Router {
         .route(
             "/api/v1/auth/token/introspect",
             post(auth_handler::introspect_token),
+        )
+        // Navigation config (public)
+        .route(
+            "/api/v1/navigation",
+            get(navigation_handler::get_navigation),
         );
 
     Router::new()

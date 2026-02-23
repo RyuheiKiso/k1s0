@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://k1s0.dev/schemas/navigation.json",
+  "title": "Navigation Schema",
+  "description": "k1s0 navigation.yaml の JSON Schema",
+  "type": "object",
+  "required": ["version", "routes"],
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+    "guards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "redirect_to"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string", "enum": ["auth_required", "role_required", "redirect_if_authenticated"] },
+          "redirect_to": { "type": "string" },
+          "roles": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "routes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/route" }
+    }
+  },
+  "$defs": {
+    "route": {
+      "type": "object",
+      "required": ["id", "path"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z_]+$" },
+        "path": { "type": "string" },
+        "component_id": { "type": "string" },
+        "guards": { "type": "array", "items": { "type": "string" } },
+        "transition": { "type": "string", "enum": ["fade", "slide", "modal"] },
+        "redirect_to": { "type": "string" },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/route" } },
+        "params": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "type"],
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "type": "string", "enum": ["string", "int", "uuid"] }
+            }
+          }
+        }
+      }
+    }
+  }
+}

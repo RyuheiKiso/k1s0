@@ -1,0 +1,82 @@
+// k1s0 ナビゲーション管理サービス gRPC 定義。
+// クライアントアプリのルーティング・ガード設定を提供する。
+syntax = "proto3";
+
+package k1s0.system.navigation.v1;
+
+option go_package   = "github.com/k1s0/api/gen/go/k1s0/system/navigation/v1;navigationv1";
+option java_package = "io.k1s0.system.navigation.v1";
+
+// NavigationService はクライアントアプリのルーティング設定を提供する。
+service NavigationService {
+  // ナビゲーション設定取得
+  rpc GetNavigation(GetNavigationRequest) returns (NavigationResponse);
+}
+
+// GetNavigationRequest はナビゲーション設定取得リクエスト。
+message GetNavigationRequest {
+  // 省略時は公開ルートのみ返す
+  string bearer_token = 1;
+}
+
+// NavigationResponse はナビゲーション設定取得レスポンス。
+message NavigationResponse {
+  repeated Route routes = 1;
+  repeated Guard guards = 2;
+}
+
+// Route はルーティング定義。
+message Route {
+  string          id           = 1;
+  string          path         = 2;
+  string          component_id = 3;
+  repeated string guard_ids    = 4;
+  repeated Route  children     = 5;
+  TransitionConfig transition  = 6;
+  repeated Param  params       = 7;
+  string          redirect_to  = 8;
+}
+
+// Guard はルートガード定義。
+message Guard {
+  string          id          = 1;
+  GuardType       type        = 2;
+  string          redirect_to = 3;
+  repeated string roles       = 4;
+}
+
+// Param はルートパラメータ定義。
+message Param {
+  string    name = 1;
+  ParamType type = 2;
+}
+
+// TransitionConfig はページ遷移アニメーション設定。
+message TransitionConfig {
+  TransitionType type        = 1;
+  uint32         duration_ms = 2;
+}
+
+// GuardType はガードの種別を表す。
+enum GuardType {
+  GUARD_TYPE_UNSPECIFIED               = 0;
+  GUARD_TYPE_AUTH_REQUIRED             = 1;
+  GUARD_TYPE_ROLE_REQUIRED             = 2;
+  GUARD_TYPE_REDIRECT_IF_AUTHENTICATED = 3;
+}
+
+// TransitionType はページ遷移アニメーションの種別を表す。
+enum TransitionType {
+  TRANSITION_TYPE_UNSPECIFIED = 0;
+  TRANSITION_TYPE_FADE        = 1;
+  TRANSITION_TYPE_SLIDE       = 2;
+  TRANSITION_TYPE_MODAL       = 3;
+}
+
+// ParamType はルートパラメータの型を表す。
+enum ParamType {
+  PARAM_TYPE_UNSPECIFIED = 0;
+  PARAM_TYPE_STRING      = 1;
+  PARAM_TYPE_INT         = 2;
+  PARAM_TYPE_UUID        = 3;
+}
