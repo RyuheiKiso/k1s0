@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package k1s0.system.tenant.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/tenant/v1;tenantv1";
+
+import "google/protobuf/timestamp.proto";
+import "v1/common.proto";
+
+service TenantService {
+  rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
+  rpc GetTenant(GetTenantRequest) returns (GetTenantResponse);
+  rpc ListTenants(ListTenantsRequest) returns (ListTenantsResponse);
+  rpc AddMember(AddMemberRequest) returns (AddMemberResponse);
+  rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
+  rpc GetProvisioningStatus(GetProvisioningStatusRequest) returns (GetProvisioningStatusResponse);
+}
+
+message CreateTenantRequest {
+  string name = 1;
+  string display_name = 2;
+  string owner_user_id = 3;
+  string plan = 4;
+}
+
+message CreateTenantResponse {
+  Tenant tenant = 1;
+}
+
+message GetTenantRequest {
+  string tenant_id = 1;
+}
+
+message GetTenantResponse {
+  Tenant tenant = 1;
+}
+
+message ListTenantsRequest {
+  k1s0.system.common.v1.Pagination pagination = 1;
+}
+
+message ListTenantsResponse {
+  repeated Tenant tenants = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message AddMemberRequest {
+  string tenant_id = 1;
+  string user_id = 2;
+  string role = 3;
+}
+
+message AddMemberResponse {
+  TenantMember member = 1;
+}
+
+message RemoveMemberRequest {
+  string tenant_id = 1;
+  string user_id = 2;
+}
+
+message RemoveMemberResponse {
+  bool success = 1;
+}
+
+message GetProvisioningStatusRequest {
+  string job_id = 1;
+}
+
+message GetProvisioningStatusResponse {
+  ProvisioningJob job = 1;
+}
+
+message Tenant {
+  string id = 1;
+  string name = 2;
+  string display_name = 3;
+  string status = 4;
+  string plan = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message TenantMember {
+  string id = 1;
+  string tenant_id = 2;
+  string user_id = 3;
+  string role = 4;
+  google.protobuf.Timestamp joined_at = 5;
+}
+
+message ProvisioningJob {
+  string id = 1;
+  string tenant_id = 2;
+  string status = 3;
+  string current_step = 4;
+  string error_message = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}

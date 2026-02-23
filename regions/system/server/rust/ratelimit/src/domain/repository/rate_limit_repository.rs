@@ -1,0 +1,47 @@
+use async_trait::async_trait;
+use uuid::Uuid;
+
+use crate::domain::entity::{RateLimitDecision, RateLimitRule};
+
+/// RateLimitRepository はルールの永続化を担当する（PostgreSQL）。
+#[cfg_attr(test, mockall::automock)]
+#[async_trait]
+pub trait RateLimitRepository: Send + Sync {
+    /// ルールを作成する。
+    async fn create(&self, rule: &RateLimitRule) -> anyhow::Result<RateLimitRule>;
+
+    /// ID でルールを取得する。
+    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<RateLimitRule>;
+
+    /// name でルールを取得する。
+    async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<RateLimitRule>>;
+}
+
+/// RateLimitStateStore はレートリミット状態の管理を担当する（Redis）。
+#[cfg_attr(test, mockall::automock)]
+#[async_trait]
+pub trait RateLimitStateStore: Send + Sync {
+    /// トークンバケットアルゴリズムでレートリミットをチェックする。
+    async fn check_token_bucket(
+        &self,
+        key: &str,
+        limit: i64,
+        window_secs: i64,
+    ) -> anyhow::Result<RateLimitDecision>;
+
+    /// 固定ウィンドウアルゴリズムでレートリミットをチェックする。
+    async fn check_fixed_window(
+        &self,
+        key: &str,
+        limit: i64,
+        window_secs: i64,
+    ) -> anyhow::Result<RateLimitDecision>;
+
+    /// スライディングウィンドウアルゴリズムでレートリミットをチェックする。
+    async fn check_sliding_window(
+        &self,
+        key: &str,
+        limit: i64,
+        window_secs: i64,
+    ) -> anyhow::Result<RateLimitDecision>;
+}

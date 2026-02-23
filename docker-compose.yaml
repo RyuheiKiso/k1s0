@@ -298,6 +298,100 @@ services:
       timeout: 5s
       retries: 5
 
+  featureflag-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/featureflag/Dockerfile
+    profiles: [system]
+    ports:
+      - "8087:8080"
+      - "50056:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/featureflag/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ratelimit-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/ratelimit/Dockerfile
+    profiles: [system]
+    ports:
+      - "8088:8080"
+      - "50057:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/ratelimit/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  tenant-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/tenant/Dockerfile
+    profiles: [system]
+    ports:
+      - "8089:8080"
+      - "50058:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    volumes:
+      - ./regions/system/server/rust/tenant/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  vault-rust:
+    build:
+      context: ./regions/system
+      dockerfile: ./server/rust/vault/Dockerfile
+    profiles: [system]
+    ports:
+      - "8091:8080"
+      - "50059:50051"
+    environment:
+      - CONFIG_PATH=/app/config/config.docker.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vault:
+        condition: service_started
+    volumes:
+      - ./regions/system/server/rust/vault/config:/app/config
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   bff-proxy:
     build:
       context: ./regions/system/server/go/bff-proxy

@@ -218,3 +218,58 @@ def dlq_client(dlq_base_url):
     session.base_url = dlq_base_url
     session.headers.update({"Content-Type": "application/json"})
     return session
+
+
+# --- 新規サーバー (featureflag / ratelimit / tenant / vault) ---
+
+
+@pytest.fixture(scope="session")
+def featureflag_base_url():
+    return os.environ.get("FEATUREFLAG_BASE_URL", "http://localhost:8087")
+
+
+@pytest.fixture(scope="session")
+def featureflag_client(featureflag_base_url):
+    session = requests.Session()
+    session.base_url = featureflag_base_url
+    session.headers.update({"Content-Type": "application/json"})
+    return session
+
+
+@pytest.fixture(scope="session")
+def ratelimit_base_url():
+    return os.environ.get("RATELIMIT_BASE_URL", "http://localhost:8088")
+
+
+@pytest.fixture(scope="session")
+def ratelimit_client(ratelimit_base_url):
+    session = requests.Session()
+    session.base_url = ratelimit_base_url
+    session.headers.update({"Content-Type": "application/json"})
+    return session
+
+
+@pytest.fixture(scope="session")
+def tenant_base_url():
+    return os.environ.get("TENANT_BASE_URL", "http://localhost:8089")
+
+
+@pytest.fixture(scope="session")
+def tenant_client(tenant_base_url):
+    session = requests.Session()
+    session.base_url = tenant_base_url
+    session.headers.update({"Content-Type": "application/json"})
+    return session
+
+
+@pytest.fixture(scope="session")
+def vault_base_url():
+    return os.environ.get("VAULT_BASE_URL", "http://localhost:8091")
+
+
+@pytest.fixture(scope="session")
+def vault_client(vault_base_url):
+    session = requests.Session()
+    session.base_url = vault_base_url
+    session.headers.update({"Content-Type": "application/json"})
+    return session

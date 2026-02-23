@@ -9,12 +9,17 @@ resolution-markers = [
 [manifest]
 members = [
     "k1s0-auth",
+    "k1s0-cache",
     "k1s0-config",
     "k1s0-correlation",
     "k1s0-dlq-client",
+    "k1s0-event-store",
+    "k1s0-featureflag",
+    "k1s0-idempotency",
     "k1s0-kafka",
     "k1s0-messaging",
     "k1s0-outbox",
+    "k1s0-retry",
     "k1s0-saga",
     "k1s0-schema-registry",
     "k1s0-service-auth",
@@ -542,6 +547,11 @@ requires-dist = [
 ]
 
 [[package]]
+name = "k1s0-cache"
+version = "0.1.0"
+source = { editable = "cache" }
+
+[[package]]
 name = "k1s0-config"
 version = "0.1.0"
 source = { editable = "config" }
@@ -571,6 +581,21 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "httpx", specifier = ">=0.27" }]
+
+[[package]]
+name = "k1s0-event-store"
+version = "0.1.0"
+source = { editable = "event_store" }
+
+[[package]]
+name = "k1s0-featureflag"
+version = "0.1.0"
+source = { editable = "featureflag" }
+
+[[package]]
+name = "k1s0-idempotency"
+version = "0.1.0"
+source = { editable = "idempotency" }
 
 [[package]]
 name = "k1s0-kafka"
@@ -608,6 +633,11 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.29" },
     { name = "pydantic", specifier = ">=2.8" },
 ]
+
+[[package]]
+name = "k1s0-retry"
+version = "0.1.0"
+source = { editable = "retry" }
 
 [[package]]
 name = "k1s0-saga"

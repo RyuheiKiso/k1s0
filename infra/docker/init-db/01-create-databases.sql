@@ -19,3 +19,15 @@ CREATE DATABASE config_db;
 
 -- dlq-manager 用DB
 CREATE DATABASE dlq_db;
+
+-- featureflag-server 用DB
+CREATE DATABASE featureflag_db;
+
+-- ratelimit-server 用DB
+CREATE DATABASE ratelimit_db;
+
+-- tenant-server 用DB
+CREATE DATABASE tenant_db;
+
+-- vault-server 用DB
+CREATE DATABASE vault_db;
