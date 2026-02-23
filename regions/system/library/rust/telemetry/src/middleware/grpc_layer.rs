@@ -165,7 +165,8 @@ mod tests {
 
     #[test]
     fn test_extract_grpc_service_method() {
-        let (svc, method) = extract_grpc_service_method("/k1s0.system.auth.v1.AuthService/ValidateToken");
+        let (svc, method) =
+            extract_grpc_service_method("/k1s0.system.auth.v1.AuthService/ValidateToken");
         assert_eq!(svc, "k1s0.system.auth.v1.AuthService");
         assert_eq!(method, "ValidateToken");
     }

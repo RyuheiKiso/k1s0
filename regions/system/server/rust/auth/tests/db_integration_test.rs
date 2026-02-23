@@ -16,8 +16,10 @@ mod testcontainers_db_tests {
     async fn setup_pool() -> (PgPool, testcontainers::ContainerAsync<Postgres>) {
         let container = Postgres::default().start().await.unwrap();
         let host_port = container.get_host_port_ipv4(5432).await.unwrap();
-        let connection_string =
-            format!("postgres://postgres:postgres@127.0.0.1:{}/postgres", host_port);
+        let connection_string = format!(
+            "postgres://postgres:postgres@127.0.0.1:{}/postgres",
+            host_port
+        );
 
         let pool = PgPool::connect(&connection_string).await.unwrap();
 
@@ -64,10 +66,7 @@ mod testcontainers_db_tests {
         assert_eq!(logs.len(), 1);
         assert_eq!(logs[0].event_type, "LOGIN_SUCCESS");
         assert_eq!(logs[0].user_id, "user-tc-1");
-        assert_eq!(
-            logs[0].detail.as_ref().unwrap()["source"],
-            "testcontainers"
-        );
+        assert_eq!(logs[0].detail.as_ref().unwrap()["source"], "testcontainers");
     }
 
     #[tokio::test]

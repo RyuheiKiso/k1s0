@@ -238,7 +238,10 @@ async fn main() -> anyhow::Result<()> {
     // User repository (PostgreSQL > Keycloak > Stub)
     let keycloak_config = cfg.keycloak.take();
     let user_repo: Arc<dyn domain::repository::UserRepository> = if let Some(ref pool) = db_pool {
-        Arc::new(UserPostgresRepository::with_metrics(pool.clone(), metrics.clone()))
+        Arc::new(UserPostgresRepository::with_metrics(
+            pool.clone(),
+            metrics.clone(),
+        ))
     } else if let Some(kc_config) = keycloak_config {
         Arc::new(KeycloakClient::new(kc_config))
     } else {
@@ -248,7 +251,10 @@ async fn main() -> anyhow::Result<()> {
     // Audit log repository (PostgreSQL or in-memory)
     let audit_repo: Arc<dyn domain::repository::AuditLogRepository> =
         if let Some(ref pool) = db_pool {
-            Arc::new(AuditLogPostgresRepository::with_metrics(pool.clone(), metrics.clone()))
+            Arc::new(AuditLogPostgresRepository::with_metrics(
+                pool.clone(),
+                metrics.clone(),
+            ))
         } else {
             Arc::new(InMemoryAuditLogRepository::new())
         };
@@ -322,8 +328,7 @@ async fn main() -> anyhow::Result<()> {
     let audit_tonic = adapter::grpc::AuditServiceTonic::new(audit_grpc_svc);
 
     // Router
-    let app = handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server (port 50051)
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();

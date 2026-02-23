@@ -101,7 +101,10 @@ impl KafkaProducer {
     }
 
     /// メトリクスを設定する。
-    pub fn with_metrics(mut self, metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
+    pub fn with_metrics(
+        mut self,
+        metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
+    ) -> Self {
         self.metrics = Some(metrics);
         self
     }

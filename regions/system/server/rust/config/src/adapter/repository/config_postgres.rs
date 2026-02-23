@@ -85,7 +85,11 @@ impl ConfigRepository for ConfigPostgresRepository {
         .fetch_optional(&self.pool)
         .await?;
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration("find_by_namespace_and_key", "config_entries", start.elapsed().as_secs_f64());
+            m.record_db_query_duration(
+                "find_by_namespace_and_key",
+                "config_entries",
+                start.elapsed().as_secs_f64(),
+            );
         }
 
         match row {
@@ -123,7 +127,11 @@ impl ConfigRepository for ConfigPostgresRepository {
             .fetch_all(&self.pool)
             .await?;
             if let Some(ref m) = self.metrics {
-                m.record_db_query_duration("list_by_namespace", "config_entries", start.elapsed().as_secs_f64());
+                m.record_db_query_duration(
+                    "list_by_namespace",
+                    "config_entries",
+                    start.elapsed().as_secs_f64(),
+                );
             }
 
             let entries: Vec<ConfigEntry> = rows
@@ -140,7 +148,11 @@ impl ConfigRepository for ConfigPostgresRepository {
             .fetch_one(&self.pool)
             .await?;
             if let Some(ref m) = self.metrics {
-                m.record_db_query_duration("list_by_namespace_count", "config_entries", start.elapsed().as_secs_f64());
+                m.record_db_query_duration(
+                    "list_by_namespace_count",
+                    "config_entries",
+                    start.elapsed().as_secs_f64(),
+                );
             }
 
             (entries, count_row.0)
@@ -162,7 +174,11 @@ impl ConfigRepository for ConfigPostgresRepository {
             .fetch_all(&self.pool)
             .await?;
             if let Some(ref m) = self.metrics {
-                m.record_db_query_duration("list_by_namespace", "config_entries", start.elapsed().as_secs_f64());
+                m.record_db_query_duration(
+                    "list_by_namespace",
+                    "config_entries",
+                    start.elapsed().as_secs_f64(),
+                );
             }
 
             let entries: Vec<ConfigEntry> = rows
@@ -177,7 +193,11 @@ impl ConfigRepository for ConfigPostgresRepository {
                     .fetch_one(&self.pool)
                     .await?;
             if let Some(ref m) = self.metrics {
-                m.record_db_query_duration("list_by_namespace_count", "config_entries", start.elapsed().as_secs_f64());
+                m.record_db_query_duration(
+                    "list_by_namespace_count",
+                    "config_entries",
+                    start.elapsed().as_secs_f64(),
+                );
             }
 
             (entries, count_row.0)
@@ -321,7 +341,11 @@ impl ConfigRepository for ConfigPostgresRepository {
         .fetch_all(&self.pool)
         .await?;
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration("find_by_service_name", "config_entries", start.elapsed().as_secs_f64());
+            m.record_db_query_duration(
+                "find_by_service_name",
+                "config_entries",
+                start.elapsed().as_secs_f64(),
+            );
         }
 
         let entries: Vec<ServiceConfigEntry> = rows
@@ -385,7 +409,11 @@ impl ConfigRepository for ConfigPostgresRepository {
         .execute(&self.pool)
         .await?;
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration("record_change_log", "config_change_logs", start.elapsed().as_secs_f64());
+            m.record_db_query_duration(
+                "record_change_log",
+                "config_change_logs",
+                start.elapsed().as_secs_f64(),
+            );
         }
 
         Ok(())
@@ -411,7 +439,11 @@ impl ConfigRepository for ConfigPostgresRepository {
         .fetch_all(&self.pool)
         .await?;
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration("list_change_logs", "config_change_logs", start.elapsed().as_secs_f64());
+            m.record_db_query_duration(
+                "list_change_logs",
+                "config_change_logs",
+                start.elapsed().as_secs_f64(),
+            );
         }
 
         let logs = rows
@@ -450,7 +482,11 @@ impl ConfigRepository for ConfigPostgresRepository {
         .fetch_optional(&self.pool)
         .await?;
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration("find_by_id", "config_entries", start.elapsed().as_secs_f64());
+            m.record_db_query_duration(
+                "find_by_id",
+                "config_entries",
+                start.elapsed().as_secs_f64(),
+            );
         }
 
         match row {

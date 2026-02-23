@@ -104,7 +104,8 @@ where
             Poll::Ready(Ok(response)) => {
                 let duration = this.start.elapsed().as_secs_f64();
                 let status = response.status().as_u16();
-                this.mw.on_response(this.method, this.path, status, duration);
+                this.mw
+                    .on_response(this.method, this.path, status, duration);
                 Poll::Ready(Ok(response))
             }
             Poll::Ready(Err(e)) => Poll::Ready(Err(e)),

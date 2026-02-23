@@ -58,9 +58,12 @@ class TestCrossServiceHealth:
                 resp = requests.get(f"{url}/metrics", timeout=5)
                 if resp.status_code != 200:
                     continue
-                assert "http_requests" in resp.text or "process_" in resp.text or len(resp.text) > 0, (
-                    f"{name}: /metrics returned empty or invalid content"
+                has_content = (
+                    "http_requests" in resp.text
+                    or "process_" in resp.text
+                    or len(resp.text) > 0
                 )
+                assert has_content, f"{name}: /metrics returned empty or invalid content"
             except requests.ConnectionError:
                 pytest.skip(f"{name} not running at {url}")
 

@@ -154,8 +154,7 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         request: Request<pb::UpdateConfigRequest>,
     ) -> Result<Response<pb::UpdateConfigResponse>, Status> {
         let req = request.into_inner();
-        let value_json = String::from_utf8(req.value)
-            .unwrap_or_default();
+        let value_json = String::from_utf8(req.value).unwrap_or_default();
         let hand_req = UpdateConfigRequest {
             namespace: req.namespace,
             key: req.key,
@@ -202,9 +201,8 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         Ok(Response::new(pb::GetServiceConfigResponse { configs }))
     }
 
-    type WatchConfigStream = tokio_stream::wrappers::ReceiverStream<
-        Result<pb::WatchConfigResponse, Status>,
-    >;
+    type WatchConfigStream =
+        tokio_stream::wrappers::ReceiverStream<Result<pb::WatchConfigResponse, Status>>;
 
     async fn watch_config(
         &self,
@@ -238,7 +236,9 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
             }
         });
 
-        Ok(Response::new(tokio_stream::wrappers::ReceiverStream::new(rx)))
+        Ok(Response::new(tokio_stream::wrappers::ReceiverStream::new(
+            rx,
+        )))
     }
 }
 

@@ -277,18 +277,17 @@ mod tests {
     #[tokio::test]
     async fn test_readyz() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_list_by_namespace()
-            .returning(|_, _, _, _| {
-                Ok(ConfigListResult {
-                    entries: vec![],
-                    pagination: Pagination {
-                        total_count: 0,
-                        page: 1,
-                        page_size: 1,
-                        has_next: false,
-                    },
-                })
-            });
+        mock.expect_list_by_namespace().returning(|_, _, _, _| {
+            Ok(ConfigListResult {
+                entries: vec![],
+                pagination: Pagination {
+                    total_count: 0,
+                    page: 1,
+                    page_size: 1,
+                    has_next: false,
+                },
+            })
+        });
         let state = make_app_state(mock);
         let app = router(state);
 

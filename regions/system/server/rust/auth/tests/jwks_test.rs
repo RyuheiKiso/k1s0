@@ -155,9 +155,7 @@ mod jwks_wiremock_tests {
         // 少なくとも 2 回フェッチされることを期待
         Mock::given(method("GET"))
             .and(path("/realms/k1s0/protocol/openid-connect/certs"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_json(sample_jwks_response()),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_json(sample_jwks_response()))
             .expect(2..)
             .mount(&mock_server)
             .await;
@@ -188,9 +186,7 @@ mod jwks_wiremock_tests {
         // 正確に 1 回だけフェッチされることを期待
         Mock::given(method("GET"))
             .and(path("/realms/k1s0/protocol/openid-connect/certs"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_json(sample_jwks_response()),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_json(sample_jwks_response()))
             .expect(1..=1)
             .mount(&mock_server)
             .await;
@@ -220,9 +216,7 @@ mod jwks_wiremock_tests {
 
         Mock::given(method("GET"))
             .and(path("/realms/k1s0/protocol/openid-connect/certs"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_json(sample_jwks_response()),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_json(sample_jwks_response()))
             .expect(1..)
             .mount(&mock_server)
             .await;

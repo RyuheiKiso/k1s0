@@ -130,8 +130,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Router
-    let app = handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics));
+    let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics));
 
     // REST server
     let rest_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.port).parse()?;

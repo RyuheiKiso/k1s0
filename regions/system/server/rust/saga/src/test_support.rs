@@ -206,10 +206,10 @@ pub fn make_test_app_state(
     let get_saga_uc = Arc::new(crate::usecase::GetSagaUseCase::new(saga_repo.clone()));
     let list_sagas_uc = Arc::new(crate::usecase::ListSagasUseCase::new(saga_repo.clone()));
     let cancel_saga_uc = Arc::new(crate::usecase::CancelSagaUseCase::new(saga_repo.clone()));
-    let register_workflow_uc =
-        Arc::new(crate::usecase::RegisterWorkflowUseCase::new(workflow_repo.clone()));
-    let list_workflows_uc =
-        Arc::new(crate::usecase::ListWorkflowsUseCase::new(workflow_repo));
+    let register_workflow_uc = Arc::new(crate::usecase::RegisterWorkflowUseCase::new(
+        workflow_repo.clone(),
+    ));
+    let list_workflows_uc = Arc::new(crate::usecase::ListWorkflowsUseCase::new(workflow_repo));
 
     AppState {
         start_saga_uc,

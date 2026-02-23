@@ -573,12 +573,8 @@ async fn test_get_saga_step_logs_include_compensate_action() {
         .unwrap();
 
     // 補償ログ (COMPENSATE, SUCCESS)
-    let mut compensate_log = SagaStepLog::new_compensate(
-        saga_id,
-        0,
-        "reserve-inventory".to_string(),
-        None,
-    );
+    let mut compensate_log =
+        SagaStepLog::new_compensate(saga_id, 0, "reserve-inventory".to_string(), None);
     compensate_log.mark_success(Some(serde_json::json!({"released": true})));
     saga_repo
         .update_with_step_log(&saga, &compensate_log)
@@ -605,13 +601,20 @@ async fn test_get_saga_step_logs_include_compensate_action() {
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
     let step_logs = json["step_logs"].as_array().unwrap();
-    assert_eq!(step_logs.len(), 2, "EXECUTE と COMPENSATE の 2 件のログが返るべき");
+    assert_eq!(
+        step_logs.len(),
+        2,
+        "EXECUTE と COMPENSATE の 2 件のログが返るべき"
+    );
 
     // COMPENSATE アクションのログが含まれることを確認
     let has_compensate = step_logs
         .iter()
         .any(|l| l["action"].as_str() == Some(StepAction::Compensate.to_string().as_str()));
-    assert!(has_compensate, "step_logs に COMPENSATE アクションが含まれるべき");
+    assert!(
+        has_compensate,
+        "step_logs に COMPENSATE アクションが含まれるべき"
+    );
 
     // EXECUTE アクションのログも含まれることを確認
     let has_execute = step_logs

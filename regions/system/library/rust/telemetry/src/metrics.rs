@@ -188,12 +188,7 @@ impl Metrics {
     }
 
     /// record_db_query_duration は DB クエリのレイテンシをヒストグラムに記録する。
-    pub fn record_db_query_duration(
-        &self,
-        query_name: &str,
-        table: &str,
-        duration_secs: f64,
-    ) {
+    pub fn record_db_query_duration(&self, query_name: &str, table: &str, duration_secs: f64) {
         if let Some(ref histogram) = self.db_query_duration {
             histogram
                 .with_label_values(&[query_name, table])
@@ -211,9 +206,7 @@ impl Metrics {
     /// record_kafka_message_consumed は Kafka メッセージ受信カウンタをインクリメントする。
     pub fn record_kafka_message_consumed(&self, topic: &str, consumer_group: &str) {
         if let Some(ref counter) = self.kafka_messages_consumed_total {
-            counter
-                .with_label_values(&[topic, consumer_group])
-                .inc();
+            counter.with_label_values(&[topic, consumer_group]).inc();
         }
     }
 

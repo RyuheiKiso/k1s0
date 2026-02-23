@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use bytes::{Buf, BufMut};
 use http::uri::PathAndQuery;
 use tokio::sync::RwLock;
-use tonic::codec::{Codec, DecodeBuf, EncodeBuf, Encoder, Decoder};
+use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};
 use tonic::transport::Channel;
 
 use crate::infrastructure::config::ServiceEndpoint;
@@ -169,7 +169,10 @@ impl GrpcStepCaller for TonicGrpcCaller {
             .map_err(|e| anyhow::anyhow!("invalid gRPC path: {}", e))?;
 
         let mut client = tonic::client::Grpc::new(channel);
-        client.ready().await.map_err(|e| anyhow::anyhow!("gRPC not ready: {}", e))?;
+        client
+            .ready()
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC not ready: {}", e))?;
 
         let request = tonic::Request::new(payload_bytes);
         let response = client

@@ -237,7 +237,11 @@ impl UserPostgresRepository {
         .fetch_optional(&self.pool)
         .await?;
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration("find_by_keycloak_sub", "users", start.elapsed().as_secs_f64());
+            m.record_db_query_duration(
+                "find_by_keycloak_sub",
+                "users",
+                start.elapsed().as_secs_f64(),
+            );
         }
 
         Ok(row.map(|r| r.into()))
