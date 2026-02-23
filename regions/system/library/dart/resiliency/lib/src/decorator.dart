@@ -27,7 +27,7 @@ class ResiliencyDecorator {
     _checkCircuitBreaker();
 
     if (_bulkhead != null) {
-      await _bulkhead!.acquire();
+      await _bulkhead.acquire();
     }
 
     try {

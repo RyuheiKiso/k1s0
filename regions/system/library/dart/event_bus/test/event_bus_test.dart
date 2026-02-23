@@ -9,7 +9,7 @@ void main() {
     bus = InMemoryEventBus();
   });
 
-  Event _makeEvent(String type) => Event(
+  Event makeEvent(String type) => Event(
         id: 'evt-1',
         eventType: type,
         payload: {'key': 'value'},
@@ -20,7 +20,7 @@ void main() {
     test('handler receives matching event', () async {
       final received = <Event>[];
       bus.subscribe('user.created', (e) async => received.add(e));
-      await bus.publish(_makeEvent('user.created'));
+      await bus.publish(makeEvent('user.created'));
       expect(received, hasLength(1));
       expect(received.first.eventType, equals('user.created'));
     });
@@ -28,7 +28,7 @@ void main() {
     test('handler does not receive non-matching event', () async {
       final received = <Event>[];
       bus.subscribe('user.created', (e) async => received.add(e));
-      await bus.publish(_makeEvent('user.deleted'));
+      await bus.publish(makeEvent('user.deleted'));
       expect(received, isEmpty);
     });
 
@@ -36,7 +36,7 @@ void main() {
       var count = 0;
       bus.subscribe('test', (e) async => count++);
       bus.subscribe('test', (e) async => count++);
-      await bus.publish(_makeEvent('test'));
+      await bus.publish(makeEvent('test'));
       expect(count, equals(2));
     });
   });
@@ -46,14 +46,14 @@ void main() {
       final received = <Event>[];
       bus.subscribe('test', (e) async => received.add(e));
       bus.unsubscribe('test');
-      await bus.publish(_makeEvent('test'));
+      await bus.publish(makeEvent('test'));
       expect(received, isEmpty);
     });
   });
 
   group('Event', () {
     test('stores all fields', () {
-      final event = _makeEvent('test');
+      final event = makeEvent('test');
       expect(event.id, equals('evt-1'));
       expect(event.eventType, equals('test'));
       expect(event.payload, containsPair('key', 'value'));

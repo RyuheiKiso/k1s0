@@ -12,7 +12,7 @@ void main() {
 
   group('WsMessage', () {
     test('creates text message', () {
-      final msg = WsMessage(type: MessageType.text, payload: 'hello');
+      const msg = WsMessage(type: MessageType.text, payload: 'hello');
       expect(msg.textPayload, equals('hello'));
       expect(msg.type, equals(MessageType.text));
     });
@@ -35,7 +35,7 @@ void main() {
     });
 
     test('custom config', () {
-      final config = WsConfig(
+      const config = WsConfig(
         url: 'ws://example.com',
         reconnect: false,
         maxReconnectAttempts: 3,
@@ -72,19 +72,19 @@ void main() {
 
     test('send stores messages', () async {
       await client.connect();
-      final msg = WsMessage(type: MessageType.text, payload: 'test');
+      const msg = WsMessage(type: MessageType.text, payload: 'test');
       await client.send(msg);
       expect(client.sentMessages, hasLength(1));
       expect(client.sentMessages.first.textPayload, equals('test'));
     });
 
     test('send throws when not connected', () async {
-      final msg = WsMessage(type: MessageType.text, payload: 'test');
+      const msg = WsMessage(type: MessageType.text, payload: 'test');
       expect(() => client.send(msg), throwsStateError);
     });
 
     test('receive returns injected messages', () async {
-      final msg = WsMessage(type: MessageType.text, payload: 'incoming');
+      const msg = WsMessage(type: MessageType.text, payload: 'incoming');
       client.injectMessage(msg);
       final received = await client.receive();
       expect(received.textPayload, equals('incoming'));
@@ -95,8 +95,8 @@ void main() {
     });
 
     test('receive returns messages in order', () async {
-      client.injectMessage(WsMessage(type: MessageType.text, payload: 'first'));
-      client.injectMessage(WsMessage(type: MessageType.text, payload: 'second'));
+      client.injectMessage(const WsMessage(type: MessageType.text, payload: 'first'));
+      client.injectMessage(const WsMessage(type: MessageType.text, payload: 'second'));
       final first = await client.receive();
       final second = await client.receive();
       expect(first.textPayload, equals('first'));
@@ -105,7 +105,7 @@ void main() {
 
     test('send ping message', () async {
       await client.connect();
-      final msg = WsMessage(type: MessageType.ping, payload: '');
+      const msg = WsMessage(type: MessageType.ping, payload: '');
       await client.send(msg);
       expect(client.sentMessages.first.type, equals(MessageType.ping));
     });
