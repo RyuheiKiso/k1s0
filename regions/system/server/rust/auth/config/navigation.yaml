@@ -1,0 +1,37 @@
+version: 1
+
+guards:
+  - id: auth_required
+    type: auth_required
+    redirect_to: /login
+
+  - id: admin_only
+    type: role_required
+    roles: [admin]
+    redirect_to: /forbidden
+
+routes:
+  - id: root
+    path: /
+    redirect_to: /dashboard
+
+  - id: login
+    path: /login
+    component_id: LoginPage
+    guards: []
+
+  - id: dashboard
+    path: /dashboard
+    component_id: DashboardPage
+    guards: [auth_required]
+    transition: fade
+
+  - id: forbidden
+    path: /forbidden
+    component_id: ForbiddenPage
+    guards: []
+
+  - id: not_found
+    path: '*'
+    component_id: NotFoundPage
+    guards: []

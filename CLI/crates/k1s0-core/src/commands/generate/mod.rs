@@ -1,5 +1,6 @@
 pub mod config_types;
 pub mod execute;
+pub mod navigation;
 pub mod retry;
 pub mod scaffold;
 pub mod types;

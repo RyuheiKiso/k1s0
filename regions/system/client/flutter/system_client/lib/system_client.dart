@@ -10,3 +10,5 @@ export 'src/widgets/loading_indicator.dart';
 export 'src/config/config_types.dart';
 export 'src/config/config_interpreter.dart';
 export 'src/config/config_editor_page.dart';
+export 'src/navigation/navigation_types.dart';
+export 'src/navigation/navigation_interpreter.dart';

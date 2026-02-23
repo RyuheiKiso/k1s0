@@ -1,0 +1,7 @@
+import type { ComponentRegistry } from 'system-client';
+
+// component_id が navigation.yaml に追加されたら、このファイルも更新すること
+export const componentRegistry: ComponentRegistry = {
+  LoginPage:     () => import('../../pages/LoginPage'),
+  DashboardPage: () => import('../../pages/DashboardPage'),
+};

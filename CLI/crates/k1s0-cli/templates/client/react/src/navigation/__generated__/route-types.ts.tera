@@ -1,0 +1,4 @@
+// このファイルは CLI が自動生成する。直接編集しないこと。
+// TODO: k1s0 generate navigation を実行して型定義を生成してください。
+export const RouteIds = {} as const;
+export type RouteId = string;
