@@ -1,0 +1,22 @@
+[package]
+name = "k1s0-migration"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+sqlite = ["sqlx/sqlite"]
+cli = ["clap"]
+
+[dependencies]
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time"] }
+tracing = "0.1"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "migrate", "chrono"] }
+chrono = { version = "0.4", features = ["serde"] }
+sha2 = "0.10"
+clap = { version = "4", features = ["derive"], optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
