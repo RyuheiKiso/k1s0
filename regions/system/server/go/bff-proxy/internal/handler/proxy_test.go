@@ -15,6 +15,16 @@ import (
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
 )
 
+// closeNotifierRecorder wraps httptest.ResponseRecorder with http.CloseNotifier
+// to satisfy httputil.ReverseProxy requirements in tests.
+type closeNotifierRecorder struct {
+	*httptest.ResponseRecorder
+}
+
+func (c *closeNotifierRecorder) CloseNotify() <-chan bool {
+	return make(chan bool)
+}
+
 // proxyTestStore is an in-memory store for proxy handler tests.
 type proxyTestStore struct {
 	sessions map[string]*session.SessionData
@@ -77,11 +87,12 @@ func TestProxyHandler_InjectsAuthHeader(t *testing.T) {
 		handler.Handle(c)
 	})
 
-	w := httptest.NewRecorder()
+	rec := httptest.NewRecorder()
+	w := &closeNotifierRecorder{rec}
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/test", nil)
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
 func TestProxyHandler_NoSession(t *testing.T) {

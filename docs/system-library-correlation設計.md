@@ -268,3 +268,75 @@ public enum CorrelationHeaders {
 - Swift Testing フレームワーク（@Suite, @Test, #expect）
 - カバレッジ目標: 80%以上
 - [system-library-serviceauth設計](system-library-serviceauth設計.md) — k1s0-serviceauth ライブラリ
+
+---
+
+## Python 実装
+
+### パッケージ構造
+
+```
+correlation/
+├── pyproject.toml
+├── src/
+│   └── k1s0_correlation/
+│       ├── __init__.py        # 公開 API エクスポート
+│       ├── context.py         # CorrelationContext データクラス（correlation_id・trace_id・request_id）
+│       ├── generator.py       # generate_correlation_id()（UUID v4）・generate_trace_id()（32文字 hex）
+│       ├── propagation.py     # contextvars ベースのコンテキスト伝播・HTTP ヘッダー抽出/注入
+│       ├── headers.py         # HTTP ヘッダー定数（x-correlation-id・x-trace-id・x-request-id）
+│       ├── exceptions.py      # CorrelationError・CorrelationErrorCodes
+│       └── py.typed           # PEP 561 型スタブマーカー
+└── tests/
+    ├── test_context.py
+    ├── test_generator.py
+    └── test_propagation.py
+```
+
+### 主要クラス・インターフェース
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `CorrelationContext` | dataclass | 相関 ID + トレース ID + リクエスト ID を保持するコンテキスト |
+| `generate_correlation_id()` | function | UUID v4 形式の相関 ID を生成 |
+| `generate_trace_id()` | function | 32 文字 hex のトレース ID を生成 |
+| `set_correlation_context()` | function | `contextvars` で現在のコンテキストに相関コンテキストをセット |
+| `get_correlation_context()` | function | 現在のコンテキストから相関コンテキストを取得 |
+| `extract_from_headers()` | function | HTTP ヘッダー辞書から `CorrelationContext` を抽出（未存在時は新規生成） |
+| `inject_into_headers()` | function | `CorrelationContext` を HTTP ヘッダー辞書に注入 |
+| `X_CORRELATION_ID` / `X_TRACE_ID` / `X_REQUEST_ID` | str 定数 | HTTP ヘッダー名定数 |
+
+### 使用例
+
+```python
+from k1s0_correlation import (
+    CorrelationContext,
+    extract_from_headers,
+    inject_into_headers,
+    set_correlation_context,
+    get_correlation_context,
+)
+
+# HTTP ヘッダーからコンテキスト抽出
+ctx = extract_from_headers(request.headers)
+set_correlation_context(ctx)
+
+# 下流リクエストへのヘッダー注入
+headers: dict[str, str] = {}
+inject_into_headers(ctx, headers)
+
+# 現在のコンテキスト取得（asyncio / contextvars 対応）
+current = get_correlation_context()
+```
+
+### 依存ライブラリ
+
+外部依存なし（標準ライブラリの `uuid`・`contextvars` のみ使用）。
+
+### テスト方針
+
+- テストフレームワーク: pytest
+- リント/フォーマット: ruff
+- モック: unittest.mock / pytest-mock
+- カバレッジ目標: 90% 以上（`pyproject.toml` の `fail_under = 90`）
+- 実行: `pytest` / `ruff check .`

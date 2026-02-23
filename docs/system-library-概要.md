@@ -1,7 +1,7 @@
 # system-library 概要
 
 system tier が提供する共通ライブラリの設計を定義する。
-全ライブラリは Go / Rust / TypeScript / Dart / C# / Swift の 6 言語で平等に実装する。
+全ライブラリは Go / Rust / TypeScript / Dart / C# / Swift / Python の 7 言語で平等に実装する。
 Swift 実装は Swift Package Manager（SPM）を用い、iOS / macOS ネイティブクライアントおよび Swift サーバーサイド（Vapor 等）向けの共有ライブラリとして提供する。Swift 6 Concurrency（actor / Sendable）に準拠し、型安全な非同期 API を設計する。
 
 ## ライブラリ一覧
@@ -34,6 +34,7 @@ Swift 実装は Swift Package Manager（SPM）を用い、iOS / macOS ネイテ�
 | Dart | test + expect | mocktail | test |
 | C# | xUnit + Assert | NSubstitute | WireMock.Net + Testcontainers |
 | Swift | Swift Testing (@Suite, @Test) | Swift Concurrency + protocol | Swift Testing |
+| Python | pytest + assert | unittest.mock / pytest-mock | pytest + testcontainers |
 
 ### テストカバレッジ目標
 
@@ -52,6 +53,7 @@ Swift 実装は Swift Package Manager（SPM）を用い、iOS / macOS ネイテ�
 | k1s0-dlq-client | 85% 以上 |
 
 C# 実装のカバレッジ計測には `coverlet` + `dotnet test --collect:"XPlat Code Coverage"` を使用し、各ライブラリのカバレッジ目標は上記テーブルと同一とする。
+Python 実装のカバレッジ計測には `pytest-cov`（`coverage.py`）を使用し、各ライブラリのカバレッジ目標は上記テーブルと同一とする。リント・フォーマットには `ruff` を使用する。
 
 ---
 

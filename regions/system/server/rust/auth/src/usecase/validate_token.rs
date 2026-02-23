@@ -135,7 +135,7 @@ mod tests {
 
         match result.unwrap_err() {
             AuthError::InvalidToken(msg) => assert!(msg.contains("invalid signature")),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 

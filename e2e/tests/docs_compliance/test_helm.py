@@ -51,6 +51,10 @@ class TestHelmServiceCharts:
         [
             "system/auth",
             "system/kong",
+            "system/config",
+            "system/saga",
+            "system/dlq-manager",
+            "system/bff-proxy",
             "business/accounting/ledger",
             "service/order",
         ],
@@ -64,6 +68,10 @@ class TestHelmServiceCharts:
         [
             "system/auth",
             "system/kong",
+            "system/config",
+            "system/saga",
+            "system/dlq-manager",
+            "system/bff-proxy",
             "business/accounting/ledger",
             "service/order",
         ],
@@ -82,6 +90,10 @@ class TestHelmServiceCharts:
         [
             "system/auth",
             "system/kong",
+            "system/config",
+            "system/saga",
+            "system/dlq-manager",
+            "system/bff-proxy",
             "business/accounting/ledger",
             "service/order",
         ],

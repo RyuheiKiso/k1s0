@@ -249,7 +249,7 @@ mod tests {
                 assert_eq!(ns, "system.auth.database");
                 assert_eq!(key, "max_connections");
             }
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -268,7 +268,7 @@ mod tests {
                 assert_eq!(expected, 3);
                 assert_eq!(current, 4);
             }
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -284,7 +284,7 @@ mod tests {
 
         match result.unwrap_err() {
             UpdateConfigError::Internal(msg) => assert!(msg.contains("connection refused")),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -307,7 +307,7 @@ mod tests {
 
         match result.unwrap_err() {
             UpdateConfigError::Validation(msg) => assert!(msg.contains("namespace is required")),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -330,7 +330,7 @@ mod tests {
 
         match result.unwrap_err() {
             UpdateConfigError::Validation(msg) => assert!(msg.contains("key is required")),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 

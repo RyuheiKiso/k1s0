@@ -106,7 +106,7 @@ mod tests {
 
         match result.unwrap_err() {
             GetServiceConfigError::NotFound(name) => assert_eq!(name, "nonexistent-service"),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -126,7 +126,7 @@ mod tests {
 
         match result.unwrap_err() {
             GetServiceConfigError::NotFound(name) => assert_eq!(name, "empty-service"),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -142,7 +142,7 @@ mod tests {
 
         match result.unwrap_err() {
             GetServiceConfigError::Internal(msg) => assert!(msg.contains("connection refused")),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 }

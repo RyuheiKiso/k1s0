@@ -72,7 +72,7 @@ mod tests {
                 assert_eq!(ns, "nonexistent.namespace");
                 assert_eq!(key, "missing_key");
             }
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -88,7 +88,7 @@ mod tests {
 
         match result.unwrap_err() {
             DeleteConfigError::Internal(msg) => assert!(msg.contains("connection refused")),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 }

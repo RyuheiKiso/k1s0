@@ -552,3 +552,88 @@ public struct Logger: Sendable {
 - Swift Testing フレームワーク（@Suite, @Test, #expect）
 - カバレッジ目標: 80%以上
 - [可観測性設計](可観測性設計.md) — OpenTelemetry・構造化ログ・メトリクス
+
+---
+
+## Python 実装
+
+**配置先**: `regions/system/library/python/telemetry/`
+
+### パッケージ構造
+
+```
+telemetry/
+├── pyproject.toml
+├── src/
+│   └── k1s0_telemetry/
+│       ├── __init__.py       # 公開 API（再エクスポート）
+│       ├── initializer.py    # init_telemetry（OpenTelemetry SDK 初期化）
+│       ├── logger.py         # new_logger（structlog ベースの構造化ロガー）
+│       ├── metrics.py        # RED メトリクス定義（request_total, request_duration_seconds, request_errors_total, requests_in_flight）
+│       ├── models.py         # TelemetryConfig, LogConfig, TraceConfig, MetricsConfig
+│       ├── exceptions.py     # TelemetryError, TelemetryErrorCodes
+│       └── py.typed
+└── tests/
+    ├── test_initializer.py
+    ├── test_logger.py
+    └── test_metrics.py
+```
+
+### 主要クラス・インターフェース
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `init_telemetry` | function | OpenTelemetry SDK の初期化（TracerProvider + OTLP エクスポーター設定） |
+| `new_logger` | function | structlog ベースの構造化ロガー生成（JSON / テキスト出力切替） |
+| `request_total` | Counter | リクエスト合計カウンター |
+| `request_duration_seconds` | Histogram | リクエスト処理時間ヒストグラム |
+| `request_errors_total` | Counter | エラー合計カウンター |
+| `requests_in_flight` | UpDownCounter | 処理中リクエスト数 |
+| `TelemetryConfig` | dataclass | テレメトリー全体設定（service_name, service_version, log, trace, metrics） |
+| `LogConfig` | dataclass | ログ設定（level, format） |
+| `TraceConfig` | dataclass | 分散トレーシング設定（enabled, endpoint, sample_rate, service_name） |
+| `MetricsConfig` | dataclass | メトリクス設定（enabled, path） |
+| `TelemetryError` | Exception | エラー基底クラス（code, message, cause） |
+| `TelemetryErrorCodes` | class | エラーコード定数（INITIALIZATION_ERROR, EXPORT_ERROR） |
+
+### 使用例
+
+```python
+from k1s0_telemetry import (
+    TelemetryConfig, TraceConfig, init_telemetry, new_logger,
+    request_total, request_duration_seconds,
+)
+
+# テレメトリー初期化
+config = TelemetryConfig(
+    service_name="order-service",
+    service_version="0.1.0",
+    trace=TraceConfig(enabled=True, endpoint="http://otel-collector:4317", sample_rate=0.5),
+)
+init_telemetry(config)
+
+# 構造化ロガー生成
+logger = new_logger(level="INFO", format="json")
+logger.info("order.created", order_id="ord-001")
+
+# RED メトリクス記録
+request_total.add(1, {"method": "POST", "path": "/api/orders"})
+request_duration_seconds.record(0.123, {"method": "POST", "path": "/api/orders"})
+```
+
+### 依存ライブラリ
+
+| パッケージ | バージョン | 用途 |
+|-----------|-----------|------|
+| opentelemetry-api | >=1.27 | OpenTelemetry API |
+| opentelemetry-sdk | >=1.27 | OpenTelemetry SDK |
+| opentelemetry-exporter-otlp-proto-grpc | >=1.27 | OTLP gRPC エクスポーター |
+| structlog | >=24.4 | 構造化ログ |
+
+### テスト方針
+
+- テストフレームワーク: pytest
+- リント/フォーマット: ruff
+- モック: unittest.mock / pytest-mock
+- カバレッジ目標: 80%以上
+- 実行: `pytest` / `ruff check .`

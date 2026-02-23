@@ -26,18 +26,41 @@ infra/helm/
 │           └── _helpers.tpl
 └── services/
     ├── system/
-    │   ├── auth/                    # system 層のサービス
+    │   ├── auth/                    # 認証・認可サービス（Rust, gRPC+HTTP）
     │   │   ├── Chart.yaml
-    │   │   ├── values.yaml          # デフォルト値
+    │   │   ├── values.yaml
     │   │   ├── values-dev.yaml
     │   │   ├── values-staging.yaml
     │   │   ├── values-prod.yaml
     │   │   └── templates/
-    │   │       ├── deployment.yaml
-    │   │       ├── service.yaml
-    │   │       ├── configmap.yaml
-    │   │       ├── hpa.yaml
-    │   │       └── pdb.yaml
+    │   ├── config/                  # 構成管理サービス（Rust, gRPC+HTTP）
+    │   │   ├── Chart.yaml
+    │   │   ├── values.yaml
+    │   │   ├── values-dev.yaml
+    │   │   ├── values-staging.yaml
+    │   │   ├── values-prod.yaml
+    │   │   └── templates/
+    │   ├── saga/                    # Saga オーケストレータ（Rust, gRPC+HTTP）
+    │   │   ├── Chart.yaml
+    │   │   ├── values.yaml
+    │   │   ├── values-dev.yaml
+    │   │   ├── values-staging.yaml
+    │   │   ├── values-prod.yaml
+    │   │   └── templates/
+    │   ├── dlq-manager/             # DLQ 管理サービス（Rust, HTTP）
+    │   │   ├── Chart.yaml
+    │   │   ├── values.yaml
+    │   │   ├── values-dev.yaml
+    │   │   ├── values-staging.yaml
+    │   │   ├── values-prod.yaml
+    │   │   └── templates/
+    │   ├── bff-proxy/               # BFF プロキシ（Go, HTTP）
+    │   │   ├── Chart.yaml
+    │   │   ├── values.yaml
+    │   │   ├── values-dev.yaml
+    │   │   ├── values-staging.yaml
+    │   │   ├── values-prod.yaml
+    │   │   └── templates/
     │   └── kong/                    # Kong API Gateway
     │       ├── Chart.yaml
     │       ├── values.yaml
@@ -62,6 +85,122 @@ infra/helm/
             ├── values-staging.yaml
             ├── values-prod.yaml
             └── templates/
+```
+
+## System Tier Chart 一覧
+
+system 層には以下の 6 つの Chart が存在する。全て `k1s0-common` Library Chart に依存し、`labels.tier: system` を設定する。
+
+| Chart | 説明 | 言語 | gRPC | Kafka | Redis | Vault secrets |
+| --- | --- | --- | --- | --- | --- | --- |
+| auth | 認証・認可（JWT 検証、ユーザー管理） | Rust | 50051 | - | - | DB パスワード |
+| config | 構成管理（サービス設定の集中管理） | Rust | 50051 | - | - | DB パスワード |
+| saga | Saga オーケストレータ（分散トランザクション） | Rust | 50051 | 有効 | - | DB パスワード |
+| dlq-manager | Dead Letter Queue 管理（失敗メッセージの再処理） | Rust | - | 有効 | - | DB パスワード |
+| bff-proxy | BFF プロキシ（OIDC 認証、セッション管理、リバースプロキシ） | Go | - | - | 有効 | OIDC client secret, Redis パスワード |
+| kong | API Gateway（DB-backed PostgreSQL モード） | - | - | - | - | DB パスワード（SecretKeyRef） |
+
+### 実ファイル配置
+
+各 Chart は `infra/helm/services/system/` 配下に配置されている。
+
+| Chart | Chart.yaml パス | values.yaml パス |
+|-------|----------------|-----------------|
+| auth | `infra/helm/services/system/auth/Chart.yaml` | `infra/helm/services/system/auth/values.yaml` |
+| config | `infra/helm/services/system/config/Chart.yaml` | `infra/helm/services/system/config/values.yaml` |
+| saga | `infra/helm/services/system/saga/Chart.yaml` | `infra/helm/services/system/saga/values.yaml` |
+| dlq-manager | `infra/helm/services/system/dlq-manager/Chart.yaml` | `infra/helm/services/system/dlq-manager/values.yaml` |
+| bff-proxy | `infra/helm/services/system/bff-proxy/Chart.yaml` | `infra/helm/services/system/bff-proxy/values.yaml` |
+| kong | `infra/helm/services/system/kong/Chart.yaml` | `infra/helm/services/system/kong/values.yaml` |
+
+全 Chart は `k1s0-common` Library Chart に依存し、`appVersion: "0.1.0"`（kong は `"3.7.0"`）。
+
+### 各 Chart の values.yaml 重要フィールド差分
+
+| フィールド | auth | config | saga | dlq-manager | bff-proxy | kong |
+|-----------|------|--------|------|-------------|-----------|------|
+| `container.grpcPort` | 50051 | 50051 | 50051 | null | - | - |
+| `kafka.enabled` | false | false | true | true | - | - |
+| `redis.enabled` | false | false | false | false | true | - |
+| `autoscaling.maxReplicas` | 5 | 5 | 5 | 5 | 10 | - |
+| `resources.requests.cpu` | 250m | 250m | 250m | 250m | 100m | 500m |
+| `resources.requests.memory` | 256Mi | 256Mi | 256Mi | 256Mi | 128Mi | 512Mi |
+| `vault.secrets` | DB | DB | DB | DB | OIDC + Redis | SecretKeyRef |
+
+### 共通設定（auth / config / saga / dlq-manager）
+
+Rust 製サービスの共通パラメータ:
+
+```yaml
+image:
+  registry: harbor.internal.example.com
+  repository: k1s0-system/{service-name}
+container:
+  port: 8080
+  grpcPort: 50051        # dlq-manager は null
+service:
+  type: ClusterIP
+  port: 80
+  grpcPort: 50051        # dlq-manager は null
+vault:
+  role: "system"
+  secrets:
+    - path: "secret/data/k1s0/system/{service-name}/database"
+labels:
+  tier: system
+```
+
+### bff-proxy 固有の設定
+
+bff-proxy は Go 製の BFF（Backend for Frontend）で、OIDC 認証フローとセッション管理を担当する。他の Rust サービスとは以下の点が異なる:
+
+```yaml
+container:
+  port: 8080
+  # grpcPort なし（HTTP のみ）
+resources:
+  requests:
+    cpu: 100m              # 軽量プロキシのため低リソース
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+autoscaling:
+  maxReplicas: 10          # フロントエンドトラフィック対応のため高めに設定
+vault:
+  secrets:
+    - path: "secret/data/k1s0/system/bff-proxy/oidc"
+      key: "client_secret"
+    - path: "secret/data/k1s0/system/bff-proxy/redis"
+      key: "password"
+redis:
+  enabled: true
+  host: "redis.k1s0-system.svc.cluster.local"
+metrics:
+  enabled: true
+  port: 8080
+  path: /metrics
+serviceMonitor:
+  enabled: true
+  interval: 30s
+```
+
+### Kong 固有の設定
+
+Kong は公式 Helm Chart のカスタム values を使用する。詳細は [APIゲートウェイ設計](APIゲートウェイ設計.md) を参照。
+
+```yaml
+image:
+  tag: "3.7"
+env:
+  database: postgres
+proxy:
+  type: ClusterIP
+ingressController:
+  enabled: false           # Admin API で管理
+postgresql:
+  enabled: false           # 外部 PostgreSQL を使用
+replicaCount: 2
 ```
 
 ## Chart.yaml

@@ -578,7 +578,7 @@ mod tests {
         assert!(result.is_err());
         match result.unwrap_err() {
             GrpcError::NotFound(msg) => assert!(msg.contains("not found")),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
