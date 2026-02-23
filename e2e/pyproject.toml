@@ -1,0 +1,26 @@
+[project]
+name = "k1s0-e2e"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "pytest>=8.0.0",
+  "pytest-html>=4.0.0",
+  "requests>=2.32.0",
+  "python-dotenv>=1.0.0",
+  "grpcio>=1.60.0",
+  "grpcio-tools>=1.60.0",
+  "protobuf>=4.25.0",
+  "confluent-kafka>=2.3.0",
+  "PyYAML>=6.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+  "smoke: Smoke tests",
+  "regression: Regression tests",
+]
+addopts = "-v --tb=short"

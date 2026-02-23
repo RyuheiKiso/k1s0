@@ -1,9 +1,0 @@
-pytest>=8.0.0
-pytest-html>=4.0.0
-requests>=2.32.0
-python-dotenv>=1.0.0
-grpcio>=1.60.0
-grpcio-tools>=1.60.0
-protobuf>=4.25.0
-confluent-kafka>=2.3.0
-PyYAML>=6.0
