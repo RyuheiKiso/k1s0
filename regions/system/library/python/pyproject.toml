@@ -15,6 +15,21 @@ members = [
   "service_auth",
   "saga",
   "dlq_client",
+  "retry",
+  "featureflag",
+  "cache",
+  "idempotency",
+  "event_store",
+  "validation",
+  "pagination",
+  "encryption",
+  "health",
+  "circuit_breaker",
+  "distributed_lock",
+  "webhook_client",
+  "audit_client",
+  "notification_client",
+  "event_bus",
 ]
 
 [tool.uv]

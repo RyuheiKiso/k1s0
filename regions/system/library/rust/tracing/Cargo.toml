@@ -1,0 +1,10 @@
+[package]
+name = "k1s0-tracing"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+# なし（純粋なロジックのみ）

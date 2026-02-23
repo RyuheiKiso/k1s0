@@ -266,7 +266,7 @@ mod tests {
             GrpcError::InvalidArgument(msg) => {
                 assert!(msg.contains("event_type is required"));
             }
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 

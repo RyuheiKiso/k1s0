@@ -1,0 +1,7 @@
+pub mod notification_channel_repository;
+pub mod notification_log_repository;
+pub mod notification_template_repository;
+
+pub use notification_channel_repository::NotificationChannelRepository;
+pub use notification_log_repository::NotificationLogRepository;
+pub use notification_template_repository::NotificationTemplateRepository;

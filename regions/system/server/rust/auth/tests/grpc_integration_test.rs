@@ -223,7 +223,7 @@ async fn test_get_user_grpc_not_found() {
         k1s0_auth_server::adapter::grpc::auth_grpc::GrpcError::NotFound(msg) => {
             assert!(msg.contains("not found"));
         }
-        e => panic!("unexpected error: {:?}", e),
+        e => unreachable!("unexpected error in test: {:?}", e),
     }
 }
 

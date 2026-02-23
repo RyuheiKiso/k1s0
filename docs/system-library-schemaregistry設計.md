@@ -363,3 +363,82 @@ public enum SchemaRegistryError: Error, Sendable {
 - Swift Testing フレームワーク（@Suite, @Test, #expect）
 - カバレッジ目標: 80%以上
 - [system-library-serviceauth設計](system-library-serviceauth設計.md) — k1s0-serviceauth ライブラリ
+
+---
+
+## Python 実装
+
+**配置先**: `regions/system/library/python/schema_registry/`
+
+### パッケージ構造
+
+```
+schema_registry/
+├── pyproject.toml
+├── src/
+│   └── k1s0_schema_registry/
+│       ├── __init__.py       # 公開 API（再エクスポート）
+│       ├── client.py         # SchemaRegistryClient ABC
+│       ├── http_client.py    # HttpSchemaRegistryClient（httpx 同期/非同期実装）
+│       ├── models.py         # SchemaType, CompatibilityMode, RegisteredSchema, SchemaRegistryConfig
+│       ├── exceptions.py     # SchemaRegistryError, SchemaRegistryErrorCodes
+│       └── py.typed
+└── tests/
+    ├── test_http_client.py
+    └── test_models.py
+```
+
+### 主要クラス・インターフェース
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `SchemaRegistryClient` | ABC | スキーマ登録・取得・互換性確認の抽象基底クラス（同期/非同期の両方をサポート） |
+| `HttpSchemaRegistryClient` | class | httpx を使った HTTP クライアント実装（同期: `httpx.Client`, 非同期: `httpx.AsyncClient`） |
+| `SchemaType` | StrEnum | スキーマタイプ（AVRO, JSON, PROTOBUF） |
+| `CompatibilityMode` | StrEnum | 互換性モード（BACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE, NONE） |
+| `RegisteredSchema` | dataclass | 登録済みスキーマ（id, subject, version, schema, schema_type） |
+| `SchemaRegistryConfig` | dataclass | 接続設定（url, username, password, compatibility_mode, timeout_seconds） |
+| `SchemaRegistryError` | Exception | エラー基底クラス（code, message, cause） |
+| `SchemaRegistryErrorCodes` | class | エラーコード定数（SCHEMA_NOT_FOUND, HTTP_ERROR, COMPATIBILITY_ERROR, SERIALIZATION_ERROR） |
+
+### 使用例
+
+```python
+from k1s0_schema_registry import (
+    HttpSchemaRegistryClient, SchemaRegistryConfig, SchemaType,
+)
+
+config = SchemaRegistryConfig(url="http://schema-registry:8081")
+client = HttpSchemaRegistryClient(config)
+
+# スキーマ登録（同期）
+schema_id = client.register_schema(
+    subject="k1s0.system.auth.user-created.v1-value",
+    schema='{"type":"record","name":"UserCreated","fields":[{"name":"user_id","type":"string"}]}',
+    schema_type=SchemaType.AVRO,
+)
+
+# スキーマ取得
+registered = client.get_schema_by_id(schema_id)
+print(f"Schema: {registered.schema}")
+
+# 互換性チェック
+is_compatible = client.check_compatibility(
+    subject="k1s0.system.auth.user-created.v1-value",
+    schema='{"type":"record","name":"UserCreated","fields":[{"name":"user_id","type":"string"},{"name":"email","type":["null","string"],"default":null}]}',
+)
+```
+
+### 依存ライブラリ
+
+| パッケージ | バージョン | 用途 |
+|-----------|-----------|------|
+| httpx | >=0.27 | HTTP クライアント（同期/非同期） |
+
+### テスト方針
+
+- テストフレームワーク: pytest
+- リント/フォーマット: ruff
+- モック: unittest.mock / pytest-mock
+- カバレッジ目標: 85%以上
+- 実行: `pytest` / `ruff check .`

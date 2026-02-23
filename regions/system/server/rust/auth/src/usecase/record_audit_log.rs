@@ -186,7 +186,7 @@ mod tests {
             RecordAuditLogError::Validation(msg) => {
                 assert!(msg.contains("SUCCESS or FAILURE"));
             }
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 

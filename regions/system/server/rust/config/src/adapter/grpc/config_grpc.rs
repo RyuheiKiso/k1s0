@@ -486,7 +486,7 @@ mod tests {
         assert!(result.is_err());
         match result.unwrap_err() {
             GrpcError::NotFound(msg) => assert!(msg.contains("not found")),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -506,7 +506,7 @@ mod tests {
             GrpcError::InvalidArgument(msg) => {
                 assert!(msg.contains("namespace and key are required"))
             }
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -672,7 +672,7 @@ mod tests {
         assert!(result.is_err());
         match result.unwrap_err() {
             GrpcError::NotFound(msg) => assert!(msg.contains("not found")),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -737,7 +737,7 @@ mod tests {
             GrpcError::InvalidArgument(msg) => {
                 assert!(msg.contains("namespace and key are required"))
             }
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -775,7 +775,7 @@ mod tests {
         assert!(result.is_err());
         match result.unwrap_err() {
             GrpcError::NotFound(msg) => assert!(msg.contains("not found")),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -821,7 +821,7 @@ mod tests {
         assert!(result.is_err());
         match result.unwrap_err() {
             GrpcError::Internal(msg) => assert!(msg.contains("not enabled")),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 

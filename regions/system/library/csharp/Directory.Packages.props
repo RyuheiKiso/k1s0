@@ -26,6 +26,11 @@
     <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.1" />
   </ItemGroup>
 
+  <!-- caching -->
+  <ItemGroup Label="caching">
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="9.0.1" />
+  </ItemGroup>
+
   <!-- config -->
   <ItemGroup Label="config">
     <PackageVersion Include="YamlDotNet" Version="16.3.0" />

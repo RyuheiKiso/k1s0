@@ -177,7 +177,7 @@ mod tests {
 
         match result.unwrap_err() {
             ListConfigsError::Validation(msg) => assert!(msg.contains("page must be >= 1")),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -198,7 +198,7 @@ mod tests {
             ListConfigsError::Validation(msg) => {
                 assert!(msg.contains("page_size must be between 1 and 100"))
             }
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -219,7 +219,7 @@ mod tests {
             ListConfigsError::Validation(msg) => {
                 assert!(msg.contains("page_size must be between 1 and 100"))
             }
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 
@@ -241,7 +241,7 @@ mod tests {
 
         match result.unwrap_err() {
             ListConfigsError::Internal(msg) => assert!(msg.contains("connection refused")),
-            e => panic!("unexpected error: {:?}", e),
+            e => unreachable!("unexpected error in test: {:?}", e),
         }
     }
 

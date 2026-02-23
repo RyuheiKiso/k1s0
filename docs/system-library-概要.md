@@ -1,7 +1,7 @@
 # system-library 概要
 
 system tier が提供する共通ライブラリの設計を定義する。
-全ライブラリは Go / Rust / TypeScript / Dart / C# / Swift の 6 言語で平等に実装する。
+全ライブラリは Go / Rust / TypeScript / Dart / C# / Swift / Python の 7 言語で平等に実装する。
 Swift 実装は Swift Package Manager（SPM）を用い、iOS / macOS ネイティブクライアントおよび Swift サーバーサイド（Vapor 等）向けの共有ライブラリとして提供する。Swift 6 Concurrency（actor / Sendable）に準拠し、型安全な非同期 API を設計する。
 
 ## ライブラリ一覧
@@ -19,6 +19,15 @@ Swift 実装は Swift Package Manager（SPM）を用い、iOS / macOS ネイテ�
 | k1s0-serviceauth | サービス間 OAuth2 Client Credentials 認証（トークンキャッシュ・SPIFFE） | サービス間 gRPC/HTTP 通信を行うサーバー | [system-library-serviceauth設計](system-library-serviceauth設計.md) |
 | k1s0-saga | SagaサーバーREST/gRPCクライアントSDK | サービス間Saga起動・状態確認 | [system-library-saga設計](system-library-saga設計.md) |
 | k1s0-dlq-client | Kafka DLQ メッセージ管理クライアント | DLQメッセージ再処理・モニタリング | [system-library-dlq-client設計](system-library-dlq-client設計.md) |
+| k1s0-cache | Redis 分散キャッシュ抽象化（get/set/delete/分散ロック・Redis Cluster/Sentinel 対応） | 全サーバー（分散キャッシュを必要とする場合） | [system-library-cache設計](system-library-cache設計.md) |
+| k1s0-idempotency | API リクエストの冪等性保証（Idempotency-Key ヘッダー処理・TTL 付きレスポンスキャッシュ） | REST/gRPC エンドポイントを提供する全サーバー | [system-library-idempotency設計](system-library-idempotency設計.md) |
+| k1s0-retry | 指数バックオフリトライ・サーキットブレーカーパターン（OpenTelemetry メトリクス連携） | サービス間 gRPC/HTTP 通信を行うサーバー | [system-library-retry設計](system-library-retry設計.md) |
+| k1s0-featureflag | フィーチャーフラグサーバーのクライアント SDK（ローカルキャッシュ・Kafka リアルタイム更新） | 動的機能制御を必要とする全サーバー・クライアント | [system-library-featureflag設計](system-library-featureflag設計.md) |
+| k1s0-eventstore | イベントソーシング向けイベント永続化・再生基盤（Append-only ストリーム・スナップショット対応） | イベントソーシングを採用するサーバー | [system-library-eventstore設計](system-library-eventstore設計.md) |
+| k1s0-tracing | W3C TraceContext 伝播・Span 作成・Baggage 管理に特化した分散トレーシングライブラリ（telemetry から分離） | 分散トレーシングを必要とする全サーバー・クライアント | [system-library-tracing設計](system-library-tracing設計.md) |
+| k1s0-graphql-client | GraphQL クエリ・ミューテーション・サブスクリプション（WebSocket）クライアント | graphql-gateway を利用する全サーバー・クライアント | [system-library-graphql-client設計](system-library-graphql-client設計.md) |
+| k1s0-websocket | WebSocket 接続管理・自動再接続・Ping/Pong ハートビート・メッセージキューイング | リアルタイム通信を必要とするサーバー・クライアント | [system-library-websocket設計](system-library-websocket設計.md) |
+| k1s0-session-client | session-server（ポート 8102）へのセッション作成・取得・更新・失効クライアント | セッション管理を必要とする全サーバー・クライアント | [system-library-session-client設計](system-library-session-client設計.md) |
 
 ---
 
@@ -34,6 +43,7 @@ Swift 実装は Swift Package Manager（SPM）を用い、iOS / macOS ネイテ�
 | Dart | test + expect | mocktail | test |
 | C# | xUnit + Assert | NSubstitute | WireMock.Net + Testcontainers |
 | Swift | Swift Testing (@Suite, @Test) | Swift Concurrency + protocol | Swift Testing |
+| Python | pytest + assert | unittest.mock / pytest-mock | pytest + testcontainers |
 
 ### テストカバレッジ目標
 
@@ -50,8 +60,18 @@ Swift 実装は Swift Package Manager（SPM）を用い、iOS / macOS ネイテ�
 | k1s0-serviceauth | 90% 以上 |
 | k1s0-saga | 85% 以上 |
 | k1s0-dlq-client | 85% 以上 |
+| k1s0-cache | 85% 以上 |
+| k1s0-idempotency | 85% 以上 |
+| k1s0-retry | 85% 以上 |
+| k1s0-featureflag | 85% 以上 |
+| k1s0-eventstore | 85% 以上 |
+| k1s0-tracing | 80% 以上 |
+| k1s0-graphql-client | 90% 以上 |
+| k1s0-websocket | 90% 以上 |
+| k1s0-session-client | 90% 以上 |
 
 C# 実装のカバレッジ計測には `coverlet` + `dotnet test --collect:"XPlat Code Coverage"` を使用し、各ライブラリのカバレッジ目標は上記テーブルと同一とする。
+Python 実装のカバレッジ計測には `pytest-cov`（`coverage.py`）を使用し、各ライブラリのカバレッジ目標は上記テーブルと同一とする。リント・フォーマットには `ruff` を使用する。
 
 ---
 

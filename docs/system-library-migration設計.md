@@ -1,0 +1,572 @@
+# k1s0-migration ライブラリ設計
+
+## 概要
+
+DB スキーマ移行ライブラリ。sqlx Migrator（Rust）/ goose（Go）/ node-pg-migrate（TypeScript）/ sqflite_migration（Dart）/ FluentMigrator（C#）/ SwiftMigrations（Swift）/ Alembic（Python）の各言語標準ツールに共通インターフェースを被せ、マイグレーションファイルの命名規則・ディレクトリ構成・ロールバック・状態管理を標準化する。
+
+テスト用インメモリマイグレーション（SQLite サポート）により、CI 環境での高速なスキーマ検証を可能にする。マイグレーション状態の確認（適用済み/未適用）と down migration（ロールバック）を全言語で統一 API として提供する。
+
+**配置先**: `regions/system/library/rust/migration/`
+
+## 公開 API
+
+| 型・トレイト | 種別 | 説明 |
+|-------------|------|------|
+| `MigrationRunner` | トレイト | マイグレーション実行の抽象インターフェース |
+| `SqlxMigrationRunner` | 構造体 | sqlx Migrator 実装（PostgreSQL・SQLite 対応） |
+| `MigrationConfig` | 構造体 | マイグレーションディレクトリ・DB URL・テーブル名設定 |
+| `MigrationReport` | 構造体 | 適用済みマイグレーション数・所要時間・エラー情報 |
+| `MigrationStatus` | 構造体 | バージョン・名前・適用日時・チェックサム |
+| `PendingMigration` | 構造体 | 未適用マイグレーションのバージョン・名前 |
+| `MigrationError` | enum | `ConnectionFailed`・`MigrationFailed`・`ChecksumMismatch`・`DirectoryNotFound` |
+
+## Rust 実装
+
+**Cargo.toml**:
+
+```toml
+[package]
+name = "k1s0-migration"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+sqlite = ["sqlx/sqlite"]
+cli = ["clap"]
+
+[dependencies]
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time"] }
+tracing = "0.1"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "migrate", "chrono"] }
+chrono = { version = "0.4", features = ["serde"] }
+sha2 = "0.10"
+clap = { version = "4", features = ["derive"], optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+testcontainers = "0.23"
+testcontainers-modules = { version = "0.11", features = ["postgres"] }
+```
+
+**Cargo.toml への追加行**:
+
+```toml
+k1s0-migration = { path = "../../system/library/rust/migration" }
+# SQLite（テスト用インメモリ）を有効化する場合:
+k1s0-migration = { path = "../../system/library/rust/migration", features = ["sqlite"] }
+```
+
+**モジュール構成**:
+
+```
+migration/
+├── src/
+│   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
+│   ├── runner.rs       # MigrationRunner トレイト・SqlxMigrationRunner
+│   ├── config.rs       # MigrationConfig（ディレクトリ・DB URL・テーブル名）
+│   ├── model.rs        # MigrationReport・MigrationStatus・PendingMigration
+│   └── error.rs        # MigrationError
+└── Cargo.toml
+```
+
+**命名規則・ディレクトリ構成**:
+
+```
+migrations/
+├── 20240101000001_create_users.up.sql
+├── 20240101000001_create_users.down.sql
+├── 20240101000002_add_email_index.up.sql
+├── 20240101000002_add_email_index.down.sql
+└── 20240201000001_add_tenant_id.up.sql
+```
+
+ファイル命名規則: `{version}_{name}.{direction}.sql`
+- `version`: 14桁の数値（YYYYMMDDHHmmSS）
+- `name`: スネークケースの説明的な名前
+- `direction`: `up`（適用）または `down`（ロールバック）
+
+**使用例**:
+
+```rust
+use k1s0_migration::{MigrationRunner, SqlxMigrationRunner, MigrationConfig};
+use std::path::PathBuf;
+
+let config = MigrationConfig {
+    migrations_dir: PathBuf::from("./migrations"),
+    database_url: std::env::var("DATABASE_URL").unwrap(),
+    table_name: "_migrations".to_string(),
+};
+
+let runner = SqlxMigrationRunner::new(config).await.unwrap();
+
+// up マイグレーション（全件適用）
+let report = runner.run_up().await.unwrap();
+println!("Applied {} migrations in {:?}", report.applied_count, report.elapsed);
+
+// ステータス確認
+let statuses = runner.status().await.unwrap();
+for s in &statuses {
+    println!(
+        "{} {} [{}]",
+        s.version,
+        s.name,
+        if s.applied_at.is_some() { "applied" } else { "pending" }
+    );
+}
+
+// 未適用マイグレーション一覧
+let pending = runner.pending().await.unwrap();
+println!("{} pending migrations", pending.len());
+
+// down マイグレーション（2ステップロールバック）
+let report = runner.run_down(2).await.unwrap();
+println!("Rolled back {} migrations", report.applied_count);
+```
+
+## Go 実装
+
+**配置先**: `regions/system/library/go/migration/`
+
+```
+migration/
+├── migration.go
+├── runner.go
+├── config.go
+├── model.go
+├── migration_test.go
+├── go.mod
+└── go.sum
+```
+
+**依存関係**: `github.com/pressly/goose/v3 v3.24.0`, `github.com/stretchr/testify v1.10.0`
+
+**主要インターフェース**:
+
+```go
+type MigrationRunner interface {
+    RunUp(ctx context.Context) (*MigrationReport, error)
+    RunDown(ctx context.Context, steps int) (*MigrationReport, error)
+    Status(ctx context.Context) ([]*MigrationStatus, error)
+    Pending(ctx context.Context) ([]*PendingMigration, error)
+}
+
+type MigrationConfig struct {
+    MigrationsDir string
+    DatabaseURL   string
+    TableName     string   // default: _migrations
+    Driver        string   // postgres, sqlite3
+}
+
+type MigrationReport struct {
+    AppliedCount int
+    Elapsed      time.Duration
+    Errors       []error
+}
+
+type MigrationStatus struct {
+    Version   int64
+    Name      string
+    AppliedAt *time.Time
+    Checksum  string
+}
+
+type PendingMigration struct {
+    Version int64
+    Name    string
+}
+
+func NewGooseMigrationRunner(cfg MigrationConfig) (MigrationRunner, error)
+```
+
+## TypeScript 実装
+
+**配置先**: `regions/system/library/typescript/migration/`
+
+```
+migration/
+├── package.json        # "@k1s0/migration", "type":"module"
+├── tsconfig.json
+├── vitest.config.ts
+├── src/
+│   └── index.ts        # MigrationRunner, PgMigrationRunner, MigrationConfig, MigrationStatus, MigrationError
+└── __tests__/
+    └── migration.test.ts
+```
+
+**主要 API**:
+
+```typescript
+export interface MigrationStatus {
+  version: string;
+  name: string;
+  appliedAt: Date | null;
+  checksum: string;
+}
+
+export interface PendingMigration {
+  version: string;
+  name: string;
+}
+
+export interface MigrationReport {
+  appliedCount: number;
+  elapsedMs: number;
+  errors: Error[];
+}
+
+export interface MigrationConfig {
+  migrationsDir: string;
+  databaseUrl: string;
+  tableName?: string;  // default: "_migrations"
+}
+
+export interface MigrationRunner {
+  runUp(): Promise<MigrationReport>;
+  runDown(steps: number): Promise<MigrationReport>;
+  status(): Promise<MigrationStatus[]>;
+  pending(): Promise<PendingMigration[]>;
+}
+
+export class PgMigrationRunner implements MigrationRunner {
+  constructor(config: MigrationConfig);
+  runUp(): Promise<MigrationReport>;
+  runDown(steps: number): Promise<MigrationReport>;
+  status(): Promise<MigrationStatus[]>;
+  pending(): Promise<PendingMigration[]>;
+  close(): Promise<void>;
+}
+
+export class MigrationError extends Error {
+  constructor(message: string, public readonly cause?: Error);
+}
+```
+
+**カバレッジ目標**: 85%以上
+
+## Dart 実装
+
+**配置先**: `regions/system/library/dart/migration/`
+
+```
+migration/
+├── pubspec.yaml        # k1s0_migration
+├── analysis_options.yaml
+├── lib/
+│   ├── migration.dart
+│   └── src/
+│       ├── runner.dart       # MigrationRunner abstract, SqliteMigrationRunner
+│       ├── config.dart       # MigrationConfig
+│       ├── model.dart        # MigrationReport, MigrationStatus, PendingMigration
+│       └── error.dart        # MigrationError
+└── test/
+    └── migration_test.dart
+```
+
+**pubspec.yaml 主要依存**:
+
+```yaml
+dependencies:
+  sqflite_common_ffi: ^2.3.4
+  path: ^1.9.0
+  meta: ^1.14.0
+```
+
+**主要インターフェース**:
+
+```dart
+abstract class MigrationRunner {
+  Future<MigrationReport> runUp();
+  Future<MigrationReport> runDown(int steps);
+  Future<List<MigrationStatus>> status();
+  Future<List<PendingMigration>> pending();
+}
+
+class MigrationConfig {
+  final String migrationsDir;
+  final String databaseUrl;
+  final String tableName;
+
+  const MigrationConfig({
+    required this.migrationsDir,
+    required this.databaseUrl,
+    this.tableName = '_migrations',
+  });
+}
+
+class MigrationStatus {
+  final String version;
+  final String name;
+  final DateTime? appliedAt;
+  final String checksum;
+}
+```
+
+**カバレッジ目標**: 85%以上
+
+## C# 実装
+
+**配置先**: `regions/system/library/csharp/migration/`
+
+```
+migration/
+├── src/
+│   ├── Migration.csproj
+│   ├── IMigrationRunner.cs         # マイグレーション実行インターフェース
+│   ├── FluentMigrationRunner.cs    # FluentMigrator 実装
+│   ├── MigrationConfig.cs          # ディレクトリ・DB URL・テーブル名設定
+│   ├── MigrationReport.cs          # 実行結果（適用数・所要時間・エラー）
+│   ├── MigrationStatus.cs          # バージョン・名前・適用日時・チェックサム
+│   ├── PendingMigration.cs         # 未適用マイグレーション情報
+│   └── MigrationException.cs       # 公開例外型
+├── tests/
+│   ├── Migration.Tests.csproj
+│   ├── Unit/
+│   │   └── MigrationConfigTests.cs
+│   └── Integration/
+│       └── FluentMigrationRunnerTests.cs
+├── .editorconfig
+└── README.md
+```
+
+**NuGet 依存関係**:
+
+| パッケージ | 用途 |
+|-----------|------|
+| FluentMigrator 6.2 | SQL マイグレーション管理 |
+| FluentMigrator.Runner.Postgres 6.2 | PostgreSQL ランナー |
+| FluentMigrator.Runner.SQLite 6.2 | SQLite ランナー（テスト用） |
+| Npgsql 8.0 | PostgreSQL ドライバー |
+
+**名前空間**: `K1s0.System.Migration`
+
+**主要クラス・インターフェース**:
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `IMigrationRunner` | interface | マイグレーション実行の抽象インターフェース |
+| `FluentMigrationRunner` | class | FluentMigrator 実装 |
+| `MigrationConfig` | record | ディレクトリ・DB URL・テーブル名設定 |
+| `MigrationReport` | record | 適用数・所要時間・エラー情報 |
+| `MigrationStatus` | record | バージョン・名前・適用日時・チェックサム |
+| `PendingMigration` | record | 未適用マイグレーションの情報 |
+| `MigrationException` | class | migration ライブラリの公開例外型 |
+
+**主要 API**:
+
+```csharp
+namespace K1s0.System.Migration;
+
+public interface IMigrationRunner
+{
+    Task<MigrationReport> RunUpAsync(CancellationToken ct = default);
+    Task<MigrationReport> RunDownAsync(int steps, CancellationToken ct = default);
+    Task<IReadOnlyList<MigrationStatus>> StatusAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<PendingMigration>> PendingAsync(CancellationToken ct = default);
+}
+
+public record MigrationConfig(
+    string MigrationsDir,
+    string DatabaseUrl,
+    string TableName = "_migrations");
+
+public record MigrationReport(
+    int AppliedCount,
+    TimeSpan Elapsed,
+    IReadOnlyList<Exception> Errors);
+
+public record MigrationStatus(
+    string Version,
+    string Name,
+    DateTimeOffset? AppliedAt,
+    string Checksum);
+
+public record PendingMigration(string Version, string Name);
+```
+
+**カバレッジ目標**: 85%以上
+
+---
+
+## Swift
+
+### パッケージ構成
+- ターゲット: `K1s0Migration`
+- Swift 6.0 / swift-tools-version: 6.0
+- プラットフォーム: macOS 14+, iOS 17+
+
+### 主要な公開API
+
+```swift
+// マイグレーションランナープロトコル
+public protocol MigrationRunner: Sendable {
+    func runUp() async throws -> MigrationReport
+    func runDown(steps: Int) async throws -> MigrationReport
+    func status() async throws -> [MigrationStatus]
+    func pending() async throws -> [PendingMigration]
+}
+
+// マイグレーション設定
+public struct MigrationConfig: Sendable {
+    public let migrationsDir: URL
+    public let databaseUrl: String
+    public let tableName: String
+
+    public init(
+        migrationsDir: URL,
+        databaseUrl: String,
+        tableName: String = "_migrations"
+    )
+}
+
+// マイグレーションレポート
+public struct MigrationReport: Sendable {
+    public let appliedCount: Int
+    public let elapsed: Duration
+    public let errors: [Error]
+}
+
+// マイグレーションステータス
+public struct MigrationStatus: Sendable {
+    public let version: String
+    public let name: String
+    public let appliedAt: Date?
+    public let checksum: String
+}
+
+// 未適用マイグレーション
+public struct PendingMigration: Sendable {
+    public let version: String
+    public let name: String
+}
+
+// SQLite 実装（テスト用）
+public actor SQLiteMigrationRunner: MigrationRunner {
+    public init(config: MigrationConfig) throws
+    public func runUp() async throws -> MigrationReport
+    public func runDown(steps: Int) async throws -> MigrationReport
+    public func status() async throws -> [MigrationStatus]
+    public func pending() async throws -> [PendingMigration]
+}
+```
+
+### エラー型
+
+```swift
+public enum MigrationError: Error, Sendable {
+    case connectionFailed(underlying: Error)
+    case migrationFailed(version: String, underlying: Error)
+    case checksumMismatch(version: String, expected: String, actual: String)
+    case directoryNotFound(path: String)
+    case rollbackNotSupported(version: String)
+}
+```
+
+### テスト
+- Swift Testing フレームワーク（@Suite, @Test, #expect）
+- カバレッジ目標: 85%以上
+
+---
+
+## Python 実装
+
+**配置先**: `regions/system/library/python/migration/`
+
+### パッケージ構造
+
+```
+migration/
+├── pyproject.toml
+├── src/
+│   └── k1s0_migration/
+│       ├── __init__.py       # 公開 API（再エクスポート）
+│       ├── runner.py         # MigrationRunner ABC・AlembicMigrationRunner
+│       ├── config.py         # MigrationConfig dataclass
+│       ├── model.py          # MigrationReport・MigrationStatus・PendingMigration
+│       ├── exceptions.py     # MigrationError
+│       └── py.typed
+└── tests/
+    ├── test_runner.py
+    └── test_status.py
+```
+
+### 主要クラス・インターフェース
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `MigrationRunner` | ABC | マイグレーション実行抽象基底クラス |
+| `AlembicMigrationRunner` | class | Alembic 実装（PostgreSQL・SQLite 対応） |
+| `MigrationConfig` | dataclass | ディレクトリ・DB URL・テーブル名設定 |
+| `MigrationReport` | dataclass | 適用数・所要時間・エラー情報 |
+| `MigrationStatus` | dataclass | バージョン・名前・適用日時・チェックサム |
+| `PendingMigration` | dataclass | 未適用マイグレーション情報 |
+| `MigrationError` | Exception | マイグレーションエラー基底クラス |
+
+### 使用例
+
+```python
+import asyncio
+from pathlib import Path
+from k1s0_migration import AlembicMigrationRunner, MigrationConfig
+
+config = MigrationConfig(
+    migrations_dir=Path("./migrations"),
+    database_url="postgresql+asyncpg://user:pass@localhost/db",
+    table_name="_migrations",
+)
+runner = AlembicMigrationRunner(config)
+
+# up マイグレーション（全件適用）
+report = await runner.run_up()
+print(f"Applied {report.applied_count} migrations in {report.elapsed:.2f}s")
+
+# ステータス確認
+statuses = await runner.status()
+for s in statuses:
+    state = "applied" if s.applied_at else "pending"
+    print(f"{s.version} {s.name} [{state}]")
+
+# 未適用マイグレーション一覧
+pending = await runner.pending()
+print(f"{len(pending)} pending migrations")
+
+# down マイグレーション（2ステップロールバック）
+report = await runner.run_down(2)
+print(f"Rolled back {report.applied_count} migrations")
+```
+
+### 依存ライブラリ
+
+| パッケージ | バージョン | 用途 |
+|-----------|-----------|------|
+| alembic | >=1.14 | DB マイグレーション管理 |
+| sqlalchemy[asyncio] | >=2.0 | DB 接続・クエリ |
+| asyncpg | >=0.30 | PostgreSQL 非同期ドライバー |
+| aiosqlite | >=0.20 | SQLite 非同期ドライバー（テスト用） |
+
+### テスト方針
+
+- テストフレームワーク: pytest
+- リント/フォーマット: ruff
+- モック: unittest.mock / pytest-mock
+- カバレッジ目標: 85%以上
+- 実行: `pytest` / `ruff check .`
+
+## テスト戦略
+
+| テスト種別 | 対象 | ツール |
+|-----------|------|--------|
+| ユニットテスト（`#[cfg(test)]`） | ファイル名パース・チェックサム計算・バージョン順ソート | tokio::test |
+| インメモリテスト | SQLite インメモリ DB での up/down/status ラウンドトリップ | tokio::test + SQLite feature |
+| PostgreSQL 統合テスト | testcontainers + PostgreSQL コンテナでの全操作検証 | testcontainers |
+| チェックサム検証テスト | 適用済みマイグレーションファイル改ざん時の `ChecksumMismatch` エラー確認 | tokio::test |
+| ロールバックテスト | down マイグレーションでのスキーマ巻き戻し確認 | testcontainers |
+
+## 関連ドキュメント
+
+- [system-library-概要](system-library-概要.md) — ライブラリ一覧・テスト方針
+- [system-library-test-helper設計](system-library-test-helper設計.md) — テスト用 DB 起動との組み合わせ
+- [開発ルール.md](開発ルール.md) — マイグレーションファイルの命名規則・レビュー手順
+- [system-auth-server設計](system-auth-server設計.md) — DB スキーマ管理の実例

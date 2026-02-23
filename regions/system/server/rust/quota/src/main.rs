@@ -1,0 +1,201 @@
+#![allow(dead_code, unused_imports)]
+
+use std::collections::HashMap;
+use std::net::SocketAddr;
+use std::sync::Arc;
+
+use tokio::sync::RwLock;
+use tracing::info;
+
+mod adapter;
+mod domain;
+mod usecase;
+
+use domain::entity::quota::QuotaPolicy;
+use domain::repository::{QuotaPolicyRepository, QuotaUsageRepository};
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct Config {
+    app: AppConfig,
+    server: ServerConfig,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct AppConfig {
+    name: String,
+    #[serde(default = "default_version")]
+    version: String,
+    #[serde(default = "default_environment")]
+    environment: String,
+}
+
+fn default_version() -> String {
+    "0.1.0".to_string()
+}
+
+fn default_environment() -> String {
+    "dev".to_string()
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct ServerConfig {
+    #[serde(default = "default_host")]
+    host: String,
+    #[serde(default = "default_port")]
+    port: u16,
+}
+
+fn default_host() -> String {
+    "0.0.0.0".to_string()
+}
+
+fn default_port() -> u16 {
+    8097
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
+        service_name: "k1s0-quota-server".to_string(),
+        version: "0.1.0".to_string(),
+        tier: "system".to_string(),
+        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
+        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
+        sample_rate: 1.0,
+        log_level: "info".to_string(),
+    };
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
+
+    let config_path =
+        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
+    let config_content = std::fs::read_to_string(&config_path)?;
+    let cfg: Config = serde_yaml::from_str(&config_content)?;
+
+    info!(
+        app_name = %cfg.app.name,
+        version = %cfg.app.version,
+        environment = %cfg.app.environment,
+        "starting quota server"
+    );
+
+    let policy_repo: Arc<dyn QuotaPolicyRepository> =
+        Arc::new(InMemoryQuotaPolicyRepository::new());
+    let usage_repo: Arc<dyn QuotaUsageRepository> =
+        Arc::new(InMemoryQuotaUsageRepository::new());
+
+    let _create_policy_uc =
+        Arc::new(usecase::CreateQuotaPolicyUseCase::new(policy_repo.clone()));
+    let _get_policy_uc =
+        Arc::new(usecase::GetQuotaPolicyUseCase::new(policy_repo.clone()));
+    let _list_policies_uc =
+        Arc::new(usecase::ListQuotaPoliciesUseCase::new(policy_repo.clone()));
+    let _update_policy_uc =
+        Arc::new(usecase::UpdateQuotaPolicyUseCase::new(policy_repo.clone()));
+    let _delete_policy_uc =
+        Arc::new(usecase::DeleteQuotaPolicyUseCase::new(policy_repo.clone()));
+    let _get_usage_uc = Arc::new(usecase::GetQuotaUsageUseCase::new(
+        policy_repo.clone(),
+        usage_repo.clone(),
+    ));
+    let _increment_usage_uc = Arc::new(usecase::IncrementQuotaUsageUseCase::new(
+        policy_repo.clone(),
+        usage_repo.clone(),
+    ));
+    let _reset_usage_uc = Arc::new(usecase::ResetQuotaUsageUseCase::new(
+        policy_repo,
+        usage_repo,
+    ));
+
+    let app = axum::Router::new()
+        .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
+        .route("/readyz", axum::routing::get(adapter::handler::health::readyz));
+
+    let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
+    info!("REST server starting on {}", rest_addr);
+
+    let listener = tokio::net::TcpListener::bind(rest_addr).await?;
+    axum::serve(listener, app).await?;
+
+    Ok(())
+}
+
+// --- InMemory Repositories ---
+
+struct InMemoryQuotaPolicyRepository {
+    policies: RwLock<HashMap<String, QuotaPolicy>>,
+}
+
+impl InMemoryQuotaPolicyRepository {
+    fn new() -> Self {
+        Self {
+            policies: RwLock::new(HashMap::new()),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl QuotaPolicyRepository for InMemoryQuotaPolicyRepository {
+    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<QuotaPolicy>> {
+        let policies = self.policies.read().await;
+        Ok(policies.get(id).cloned())
+    }
+
+    async fn find_all(&self, page: u32, page_size: u32) -> anyhow::Result<(Vec<QuotaPolicy>, u64)> {
+        let policies = self.policies.read().await;
+        let all: Vec<QuotaPolicy> = policies.values().cloned().collect();
+        let total = all.len() as u64;
+        let start = ((page - 1) * page_size) as usize;
+        let items: Vec<QuotaPolicy> = all.into_iter().skip(start).take(page_size as usize).collect();
+        Ok((items, total))
+    }
+
+    async fn create(&self, policy: &QuotaPolicy) -> anyhow::Result<()> {
+        let mut policies = self.policies.write().await;
+        policies.insert(policy.id.clone(), policy.clone());
+        Ok(())
+    }
+
+    async fn update(&self, policy: &QuotaPolicy) -> anyhow::Result<()> {
+        let mut policies = self.policies.write().await;
+        policies.insert(policy.id.clone(), policy.clone());
+        Ok(())
+    }
+
+    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+        let mut policies = self.policies.write().await;
+        Ok(policies.remove(id).is_some())
+    }
+}
+
+struct InMemoryQuotaUsageRepository {
+    counters: RwLock<HashMap<String, u64>>,
+}
+
+impl InMemoryQuotaUsageRepository {
+    fn new() -> Self {
+        Self {
+            counters: RwLock::new(HashMap::new()),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl QuotaUsageRepository for InMemoryQuotaUsageRepository {
+    async fn get_usage(&self, quota_id: &str) -> anyhow::Result<Option<u64>> {
+        let counters = self.counters.read().await;
+        Ok(counters.get(quota_id).cloned())
+    }
+
+    async fn increment(&self, quota_id: &str, amount: u64) -> anyhow::Result<u64> {
+        let mut counters = self.counters.write().await;
+        let counter = counters.entry(quota_id.to_string()).or_insert(0);
+        *counter += amount;
+        Ok(*counter)
+    }
+
+    async fn reset(&self, quota_id: &str) -> anyhow::Result<()> {
+        let mut counters = self.counters.write().await;
+        counters.insert(quota_id.to_string(), 0);
+        Ok(())
+    }
+}

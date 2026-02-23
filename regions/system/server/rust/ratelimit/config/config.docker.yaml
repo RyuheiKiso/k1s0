@@ -1,0 +1,19 @@
+app:
+  name: "ratelimit-server"
+  version: "0.1.0"
+  environment: "dev"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+database:
+  host: postgres
+  port: 5432
+  name: ratelimit_db
+  user: dev
+  password: dev
+  ssl_mode: disable
+
+redis:
+  url: "redis://redis:6379"

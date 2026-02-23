@@ -1,0 +1,190 @@
+#![allow(dead_code, unused_imports)]
+
+use std::collections::HashMap;
+use std::net::SocketAddr;
+use std::sync::Arc;
+
+use tracing::info;
+use uuid::Uuid;
+
+mod adapter;
+mod domain;
+mod usecase;
+
+use domain::entity::policy::Policy;
+use domain::entity::policy_bundle::PolicyBundle;
+use domain::repository::PolicyRepository;
+use domain::repository::PolicyBundleRepository;
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct Config {
+    app: AppConfig,
+    server: ServerConfig,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct AppConfig {
+    name: String,
+    #[serde(default = "default_version")]
+    version: String,
+    #[serde(default = "default_environment")]
+    environment: String,
+}
+
+fn default_version() -> String {
+    "0.1.0".to_string()
+}
+
+fn default_environment() -> String {
+    "dev".to_string()
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct ServerConfig {
+    #[serde(default = "default_host")]
+    host: String,
+    #[serde(default = "default_port")]
+    port: u16,
+}
+
+fn default_host() -> String {
+    "0.0.0.0".to_string()
+}
+
+fn default_port() -> u16 {
+    8096
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
+        service_name: "k1s0-policy-server".to_string(),
+        version: "0.1.0".to_string(),
+        tier: "system".to_string(),
+        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
+        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
+        sample_rate: 1.0,
+        log_level: "info".to_string(),
+    };
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
+
+    let config_path =
+        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
+    let config_content = std::fs::read_to_string(&config_path)?;
+    let cfg: Config = serde_yaml::from_str(&config_content)?;
+
+    info!(
+        app_name = %cfg.app.name,
+        version = %cfg.app.version,
+        environment = %cfg.app.environment,
+        "starting policy server"
+    );
+
+    let policy_repo: Arc<dyn PolicyRepository> = Arc::new(InMemoryPolicyRepository::new());
+    let bundle_repo: Arc<dyn PolicyBundleRepository> = Arc::new(InMemoryPolicyBundleRepository::new());
+
+    let _create_policy_uc = Arc::new(usecase::CreatePolicyUseCase::new(policy_repo.clone()));
+    let _get_policy_uc = Arc::new(usecase::GetPolicyUseCase::new(policy_repo.clone()));
+    let _update_policy_uc = Arc::new(usecase::UpdatePolicyUseCase::new(policy_repo.clone()));
+    let _evaluate_policy_uc = Arc::new(usecase::EvaluatePolicyUseCase::new(policy_repo));
+    let _create_bundle_uc = Arc::new(usecase::CreateBundleUseCase::new(bundle_repo));
+
+    let app = axum::Router::new()
+        .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
+        .route("/readyz", axum::routing::get(adapter::handler::health::readyz));
+
+    let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
+    info!("REST server starting on {}", rest_addr);
+
+    let listener = tokio::net::TcpListener::bind(rest_addr).await?;
+    axum::serve(listener, app).await?;
+
+    Ok(())
+}
+
+// --- InMemoryPolicyRepository ---
+
+struct InMemoryPolicyRepository {
+    policies: tokio::sync::RwLock<HashMap<Uuid, Policy>>,
+}
+
+impl InMemoryPolicyRepository {
+    fn new() -> Self {
+        Self {
+            policies: tokio::sync::RwLock::new(HashMap::new()),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl PolicyRepository for InMemoryPolicyRepository {
+    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Policy>> {
+        let policies = self.policies.read().await;
+        Ok(policies.get(id).cloned())
+    }
+
+    async fn find_all(&self) -> anyhow::Result<Vec<Policy>> {
+        let policies = self.policies.read().await;
+        Ok(policies.values().cloned().collect())
+    }
+
+    async fn create(&self, policy: &Policy) -> anyhow::Result<()> {
+        let mut policies = self.policies.write().await;
+        policies.insert(policy.id, policy.clone());
+        Ok(())
+    }
+
+    async fn update(&self, policy: &Policy) -> anyhow::Result<()> {
+        let mut policies = self.policies.write().await;
+        policies.insert(policy.id, policy.clone());
+        Ok(())
+    }
+
+    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+        let mut policies = self.policies.write().await;
+        Ok(policies.remove(id).is_some())
+    }
+
+    async fn exists_by_name(&self, name: &str) -> anyhow::Result<bool> {
+        let policies = self.policies.read().await;
+        Ok(policies.values().any(|p| p.name == name))
+    }
+}
+
+// --- InMemoryPolicyBundleRepository ---
+
+struct InMemoryPolicyBundleRepository {
+    bundles: tokio::sync::RwLock<HashMap<Uuid, PolicyBundle>>,
+}
+
+impl InMemoryPolicyBundleRepository {
+    fn new() -> Self {
+        Self {
+            bundles: tokio::sync::RwLock::new(HashMap::new()),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl PolicyBundleRepository for InMemoryPolicyBundleRepository {
+    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<PolicyBundle>> {
+        let bundles = self.bundles.read().await;
+        Ok(bundles.get(id).cloned())
+    }
+
+    async fn find_all(&self) -> anyhow::Result<Vec<PolicyBundle>> {
+        let bundles = self.bundles.read().await;
+        Ok(bundles.values().cloned().collect())
+    }
+
+    async fn create(&self, bundle: &PolicyBundle) -> anyhow::Result<()> {
+        let mut bundles = self.bundles.write().await;
+        bundles.insert(bundle.id, bundle.clone());
+        Ok(())
+    }
+
+    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+        let mut bundles = self.bundles.write().await;
+        Ok(bundles.remove(id).is_some())
+    }
+}

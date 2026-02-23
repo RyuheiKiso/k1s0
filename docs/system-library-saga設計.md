@@ -358,3 +358,85 @@ public enum SagaError: Error, Sendable {
 - Swift Testing フレームワーク（@Suite, @Test, #expect）
 - カバレッジ目標: 80%以上
 - [system-library-outbox設計](system-library-outbox設計.md) — k1s0-outbox ライブラリ
+
+---
+
+## Python 実装
+
+**配置先**: `regions/system/library/python/saga/`
+
+### パッケージ構造
+
+```
+saga/
+├── pyproject.toml
+├── src/
+│   └── k1s0_saga/
+│       ├── __init__.py       # 公開 API（再エクスポート）
+│       ├── client.py         # SagaClient ABC
+│       ├── http_client.py    # HttpSagaClient（httpx REST 実装）
+│       ├── models.py         # SagaStatus, SagaState, SagaStepLog, StartSagaRequest, StartSagaResponse, SagaConfig
+│       ├── exceptions.py     # SagaError, SagaErrorCodes
+│       └── py.typed
+└── tests/
+    ├── test_http_client.py
+    └── test_models.py
+```
+
+### 主要クラス・インターフェース
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `SagaClient` | ABC | Saga クライアント抽象基底クラス（`start_saga`, `get_saga`, `cancel_saga`） |
+| `HttpSagaClient` | class | httpx を使った REST クライアント実装（AsyncClient ベース） |
+| `SagaStatus` | StrEnum | Saga ステータス（STARTED, RUNNING, COMPLETED, COMPENSATING, FAILED, CANCELLED） |
+| `SagaState` | dataclass | Saga 状態（saga_id, workflow_name, current_step, status, correlation_id, payload, step_logs, created_at, updated_at） |
+| `SagaStepLog` | dataclass | ステップ実行ログ（step_name, status, started_at, completed_at, error） |
+| `StartSagaRequest` | dataclass | Saga 開始リクエスト（workflow_name, payload, correlation_id） |
+| `StartSagaResponse` | dataclass | Saga 開始レスポンス（saga_id, status） |
+| `SagaConfig` | dataclass | クライアント設定（rest_url, timeout_seconds, api_key） |
+| `SagaError` | Exception | エラー基底クラス（code, message, cause） |
+| `SagaErrorCodes` | class | エラーコード定数（SAGA_NOT_FOUND, HTTP_ERROR, INVALID_STATE, CANCEL_FAILED） |
+
+### 使用例
+
+```python
+import asyncio
+from k1s0_saga import HttpSagaClient, SagaConfig, StartSagaRequest
+
+config = SagaConfig(rest_url="http://saga-server:8080")
+client = HttpSagaClient(config)
+
+async def main():
+    # Saga 開始
+    request = StartSagaRequest(
+        workflow_name="order-fulfillment",
+        payload={"order_id": "ord-123"},
+        correlation_id="corr-001",
+    )
+    response = await client.start_saga(request)
+    print(f"Saga started: {response.saga_id}")
+
+    # 状態取得
+    state = await client.get_saga(response.saga_id)
+    print(f"Status: {state.status}")
+
+    # キャンセル
+    await client.cancel_saga(response.saga_id)
+
+asyncio.run(main())
+```
+
+### 依存ライブラリ
+
+| パッケージ | バージョン | 用途 |
+|-----------|-----------|------|
+| httpx | >=0.27 | HTTP クライアント（同期/非同期） |
+
+### テスト方針
+
+- テストフレームワーク: pytest
+- リント/フォーマット: ruff
+- モック: unittest.mock / pytest-mock
+- カバレッジ目標: 85%以上
+- 実行: `pytest` / `ruff check .`

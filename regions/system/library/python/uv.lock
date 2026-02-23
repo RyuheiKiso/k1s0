@@ -8,17 +8,32 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "k1s0-audit-client",
     "k1s0-auth",
+    "k1s0-cache",
+    "k1s0-circuit-breaker",
     "k1s0-config",
     "k1s0-correlation",
+    "k1s0-distributed-lock",
     "k1s0-dlq-client",
+    "k1s0-encryption",
+    "k1s0-event-bus",
+    "k1s0-event-store",
+    "k1s0-featureflag",
+    "k1s0-health",
+    "k1s0-idempotency",
     "k1s0-kafka",
     "k1s0-messaging",
+    "k1s0-notification-client",
     "k1s0-outbox",
+    "k1s0-pagination",
+    "k1s0-retry",
     "k1s0-saga",
     "k1s0-schema-registry",
     "k1s0-service-auth",
     "k1s0-telemetry",
+    "k1s0-validation",
+    "k1s0-webhook-client",
 ]
 
 [manifest.dependency-groups]
@@ -527,6 +542,11 @@ wheels = [
 ]
 
 [[package]]
+name = "k1s0-audit-client"
+version = "0.1.0"
+source = { editable = "audit_client" }
+
+[[package]]
 name = "k1s0-auth"
 version = "0.1.0"
 source = { editable = "auth" }
@@ -540,6 +560,16 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.9" },
 ]
+
+[[package]]
+name = "k1s0-cache"
+version = "0.1.0"
+source = { editable = "cache" }
+
+[[package]]
+name = "k1s0-circuit-breaker"
+version = "0.1.0"
+source = { editable = "circuit_breaker" }
 
 [[package]]
 name = "k1s0-config"
@@ -562,6 +592,11 @@ version = "0.1.0"
 source = { editable = "correlation" }
 
 [[package]]
+name = "k1s0-distributed-lock"
+version = "0.1.0"
+source = { editable = "distributed_lock" }
+
+[[package]]
 name = "k1s0-dlq-client"
 version = "0.1.0"
 source = { editable = "dlq_client" }
@@ -571,6 +606,36 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "httpx", specifier = ">=0.27" }]
+
+[[package]]
+name = "k1s0-encryption"
+version = "0.1.0"
+source = { editable = "encryption" }
+
+[[package]]
+name = "k1s0-event-bus"
+version = "0.1.0"
+source = { editable = "event_bus" }
+
+[[package]]
+name = "k1s0-event-store"
+version = "0.1.0"
+source = { editable = "event_store" }
+
+[[package]]
+name = "k1s0-featureflag"
+version = "0.1.0"
+source = { editable = "featureflag" }
+
+[[package]]
+name = "k1s0-health"
+version = "0.1.0"
+source = { editable = "health" }
+
+[[package]]
+name = "k1s0-idempotency"
+version = "0.1.0"
+source = { editable = "idempotency" }
 
 [[package]]
 name = "k1s0-kafka"
@@ -595,6 +660,11 @@ dependencies = [
 requires-dist = [{ name = "confluent-kafka", specifier = ">=2.5" }]
 
 [[package]]
+name = "k1s0-notification-client"
+version = "0.1.0"
+source = { editable = "notification_client" }
+
+[[package]]
 name = "k1s0-outbox"
 version = "0.1.0"
 source = { editable = "outbox" }
@@ -608,6 +678,16 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.29" },
     { name = "pydantic", specifier = ">=2.8" },
 ]
+
+[[package]]
+name = "k1s0-pagination"
+version = "0.1.0"
+source = { editable = "pagination" }
+
+[[package]]
+name = "k1s0-retry"
+version = "0.1.0"
+source = { editable = "retry" }
 
 [[package]]
 name = "k1s0-saga"
@@ -664,6 +744,16 @@ requires-dist = [
     { name = "opentelemetry-sdk", specifier = ">=1.27" },
     { name = "structlog", specifier = ">=24.4" },
 ]
+
+[[package]]
+name = "k1s0-validation"
+version = "0.1.0"
+source = { editable = "validation" }
+
+[[package]]
+name = "k1s0-webhook-client"
+version = "0.1.0"
+source = { editable = "webhook_client" }
 
 [[package]]
 name = "librt"

@@ -1,0 +1,7 @@
+app:
+  name: "tenant-server"
+  version: "0.1.0"
+
+server:
+  http_port: 8089
+  grpc_port: 50058
