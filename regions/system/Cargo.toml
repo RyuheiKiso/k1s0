@@ -1,0 +1,73 @@
+[workspace]
+resolver = "2"
+members = [
+    # Servers (19)
+    "server/rust/api-registry",
+    "server/rust/auth",
+    "server/rust/config",
+    "server/rust/dlq-manager",
+    "server/rust/event-store",
+    "server/rust/featureflag",
+    "server/rust/file",
+    "server/rust/graphql-gateway",
+    "server/rust/notification",
+    "server/rust/policy",
+    "server/rust/quota",
+    "server/rust/ratelimit",
+    "server/rust/saga",
+    "server/rust/scheduler",
+    "server/rust/search",
+    "server/rust/session",
+    "server/rust/tenant",
+    "server/rust/vault",
+    "server/rust/workflow",
+    # Libraries (39)
+    "library/rust/audit-client",
+    "library/rust/auth",
+    "library/rust/cache",
+    "library/rust/circuit-breaker",
+    "library/rust/config",
+    "library/rust/correlation",
+    "library/rust/distributed-lock",
+    "library/rust/dlq",
+    "library/rust/encryption",
+    "library/rust/event-bus",
+    "library/rust/eventstore",
+    "library/rust/featureflag",
+    "library/rust/file-client",
+    "library/rust/graphql-client",
+    "library/rust/health",
+    "library/rust/idempotency",
+    "library/rust/kafka",
+    "library/rust/messaging",
+    "library/rust/migration",
+    "library/rust/notification-client",
+    "library/rust/outbox",
+    "library/rust/pagination",
+    "library/rust/quota-client",
+    "library/rust/ratelimit-client",
+    "library/rust/resiliency",
+    "library/rust/retry",
+    "library/rust/saga",
+    "library/rust/scheduler-client",
+    "library/rust/schemaregistry",
+    "library/rust/search-client",
+    "library/rust/serviceauth",
+    "library/rust/session-client",
+    "library/rust/telemetry",
+    "library/rust/tenant-client",
+    "library/rust/test-helper",
+    "library/rust/tracing",
+    "library/rust/validation",
+    "library/rust/vault-client",
+    "library/rust/webhook-client",
+    "library/rust/websocket",
+]
+
+[profile.dev]
+debug = 1
+
+[profile.release]
+lto = "thin"
+strip = true
+opt-level = 3

@@ -4,12 +4,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY . .
-WORKDIR /app/server/rust/quota
-RUN cargo build --release
+RUN cargo build --release -p k1s0-quota-server
 
 FROM gcr.io/distroless/cc-debian12:nonroot
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
-COPY --from=builder /app/server/rust/quota/target/release/k1s0-quota-server /k1s0-quota-server
+COPY --from=builder /app/target/release/k1s0-quota-server /k1s0-quota-server
 USER nonroot:nonroot
 EXPOSE 8080
 ENTRYPOINT ["/k1s0-quota-server"]
