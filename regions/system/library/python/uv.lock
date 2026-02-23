@@ -20,20 +20,34 @@ members = [
     "k1s0-event-bus",
     "k1s0-event-store",
     "k1s0-featureflag",
+    "k1s0-file-client",
+    "k1s0-graphql-client",
     "k1s0-health",
     "k1s0-idempotency",
     "k1s0-kafka",
     "k1s0-messaging",
+    "k1s0-migration",
     "k1s0-notification-client",
     "k1s0-outbox",
     "k1s0-pagination",
+    "k1s0-quota-client",
+    "k1s0-ratelimit-client",
+    "k1s0-resiliency",
     "k1s0-retry",
     "k1s0-saga",
+    "k1s0-scheduler-client",
     "k1s0-schema-registry",
+    "k1s0-search-client",
     "k1s0-service-auth",
+    "k1s0-session-client",
     "k1s0-telemetry",
+    "k1s0-tenant-client",
+    "k1s0-test-helper",
+    "k1s0-tracing",
     "k1s0-validation",
+    "k1s0-vault-client",
     "k1s0-webhook-client",
+    "k1s0-websocket",
 ]
 
 [manifest.dependency-groups]
@@ -628,6 +642,29 @@ version = "0.1.0"
 source = { editable = "featureflag" }
 
 [[package]]
+name = "k1s0-file-client"
+version = "0.1.0"
+source = { editable = "file_client" }
+
+[[package]]
+name = "k1s0-graphql-client"
+version = "0.1.0"
+source = { editable = "graphql_client" }
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'" },
+]
+provides-extras = ["dev"]
+
+[[package]]
 name = "k1s0-health"
 version = "0.1.0"
 source = { editable = "health" }
@@ -660,6 +697,11 @@ dependencies = [
 requires-dist = [{ name = "confluent-kafka", specifier = ">=2.5" }]
 
 [[package]]
+name = "k1s0-migration"
+version = "0.1.0"
+source = { editable = "migration" }
+
+[[package]]
 name = "k1s0-notification-client"
 version = "0.1.0"
 source = { editable = "notification_client" }
@@ -685,6 +727,27 @@ version = "0.1.0"
 source = { editable = "pagination" }
 
 [[package]]
+name = "k1s0-quota-client"
+version = "0.1.0"
+source = { editable = "quota_client" }
+dependencies = [
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "httpx", specifier = ">=0.27" }]
+
+[[package]]
+name = "k1s0-ratelimit-client"
+version = "0.1.0"
+source = { editable = "ratelimit_client" }
+
+[[package]]
+name = "k1s0-resiliency"
+version = "0.1.0"
+source = { editable = "resiliency" }
+
+[[package]]
 name = "k1s0-retry"
 version = "0.1.0"
 source = { editable = "retry" }
@@ -701,6 +764,11 @@ dependencies = [
 requires-dist = [{ name = "httpx", specifier = ">=0.27" }]
 
 [[package]]
+name = "k1s0-scheduler-client"
+version = "0.1.0"
+source = { editable = "scheduler_client" }
+
+[[package]]
 name = "k1s0-schema-registry"
 version = "0.1.0"
 source = { editable = "schema_registry" }
@@ -710,6 +778,11 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "httpx", specifier = ">=0.27" }]
+
+[[package]]
+name = "k1s0-search-client"
+version = "0.1.0"
+source = { editable = "search_client" }
 
 [[package]]
 name = "k1s0-service-auth"
@@ -725,6 +798,24 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.9" },
 ]
+
+[[package]]
+name = "k1s0-session-client"
+version = "0.1.0"
+source = { editable = "session_client" }
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "k1s0-telemetry"
@@ -746,14 +837,65 @@ requires-dist = [
 ]
 
 [[package]]
+name = "k1s0-tenant-client"
+version = "0.1.0"
+source = { editable = "tenant_client" }
+
+[[package]]
+name = "k1s0-test-helper"
+version = "0.1.0"
+source = { editable = "test_helper" }
+
+[[package]]
+name = "k1s0-tracing"
+version = "0.1.0"
+source = { editable = "tracing" }
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'" },
+]
+provides-extras = ["dev"]
+
+[[package]]
 name = "k1s0-validation"
 version = "0.1.0"
 source = { editable = "validation" }
 
 [[package]]
+name = "k1s0-vault-client"
+version = "0.1.0"
+source = { editable = "vault_client" }
+
+[[package]]
 name = "k1s0-webhook-client"
 version = "0.1.0"
 source = { editable = "webhook_client" }
+
+[[package]]
+name = "k1s0-websocket"
+version = "0.1.0"
+source = { editable = "websocket" }
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "librt"

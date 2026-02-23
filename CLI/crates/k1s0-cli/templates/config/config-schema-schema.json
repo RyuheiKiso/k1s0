@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://k1s0.dev/schemas/config-schema.json",
+  "title": "Config Schema",
+  "description": "k1s0 config-schema.yaml の JSON Schema",
+  "type": "object",
+  "required": ["version", "service", "namespace_prefix", "categories"],
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+    "service": { "type": "string", "pattern": "^[a-z][a-z0-9-]+$" },
+    "namespace_prefix": { "type": "string", "pattern": "^[a-z][a-z0-9.]+$" },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "namespaces", "fields"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z_]+$" },
+          "label": { "type": "string" },
+          "icon": { "type": "string" },
+          "namespaces": { "type": "array", "items": { "type": "string" } },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["key", "label", "type"],
+              "properties": {
+                "key": { "type": "string", "pattern": "^[a-z_]+$" },
+                "label": { "type": "string" },
+                "description": { "type": "string" },
+                "type": {
+                  "type": "string",
+                  "enum": ["string", "integer", "float", "boolean", "enum", "object", "array"]
+                },
+                "min": { "type": "number" },
+                "max": { "type": "number" },
+                "options": { "type": "array", "items": { "type": "string" } },
+                "pattern": { "type": "string" },
+                "unit": { "type": "string" },
+                "default": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

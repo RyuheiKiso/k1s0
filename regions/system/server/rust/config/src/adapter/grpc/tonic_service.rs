@@ -201,6 +201,24 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         Ok(Response::new(pb::GetServiceConfigResponse { configs }))
     }
 
+    async fn get_config_schema(
+        &self,
+        _request: Request<pb::GetConfigSchemaRequest>,
+    ) -> Result<Response<pb::GetConfigSchemaResponse>, Status> {
+        Err(Status::unimplemented(
+            "get_config_schema is not yet implemented via gRPC; use REST API",
+        ))
+    }
+
+    async fn upsert_config_schema(
+        &self,
+        _request: Request<pb::UpsertConfigSchemaRequest>,
+    ) -> Result<Response<pb::UpsertConfigSchemaResponse>, Status> {
+        Err(Status::unimplemented(
+            "upsert_config_schema is not yet implemented via gRPC; use REST API",
+        ))
+    }
+
     type WatchConfigStream =
         tokio_stream::wrappers::ReceiverStream<Result<pb::WatchConfigResponse, Status>>;
 

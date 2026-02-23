@@ -1,5 +1,4 @@
 import 'context.dart';
-import 'error.dart';
 import 'flag.dart';
 import 'result.dart';
 

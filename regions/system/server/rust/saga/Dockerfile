@@ -15,14 +15,13 @@ WORKDIR /app
 # Copy the entire system directory to resolve path dependencies
 COPY . .
 
-WORKDIR /app/server/rust/saga
-RUN cargo build --release
+RUN cargo build --release -p k1s0-saga-server
 
 # Runtime stage
 FROM gcr.io/distroless/cc-debian12:nonroot
 
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
-COPY --from=builder /app/server/rust/saga/target/release/k1s0-saga-server /k1s0-saga-server
+COPY --from=builder /app/target/release/k1s0-saga-server /k1s0-saga-server
 
 USER nonroot:nonroot
 EXPOSE 8080 50051

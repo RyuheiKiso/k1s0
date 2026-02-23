@@ -18,7 +18,7 @@ void main() {
   group('indexDocument', () {
     test('indexes a document', () async {
       await client.createIndex('products', IndexMapping());
-      final doc = IndexDocument(
+      const doc = IndexDocument(
         id: 'p-1',
         fields: {'name': 'Rust Programming'},
       );
@@ -28,7 +28,7 @@ void main() {
     });
 
     test('throws on missing index', () async {
-      final doc = IndexDocument(id: '1', fields: {});
+      const doc = IndexDocument(id: '1', fields: {});
       expect(
         () => client.indexDocument('nonexistent', doc),
         throwsA(isA<SearchError>()),
@@ -40,8 +40,8 @@ void main() {
     test('bulk indexes documents', () async {
       await client.createIndex('items', IndexMapping());
       final docs = [
-        IndexDocument(id: 'i-1', fields: {'name': 'Item 1'}),
-        IndexDocument(id: 'i-2', fields: {'name': 'Item 2'}),
+        const IndexDocument(id: 'i-1', fields: {'name': 'Item 1'}),
+        const IndexDocument(id: 'i-2', fields: {'name': 'Item 2'}),
       ];
       final result = await client.bulkIndex('items', docs);
       expect(result.successCount, equals(2));
@@ -53,16 +53,16 @@ void main() {
   group('search', () {
     test('searches documents', () async {
       await client.createIndex('products', IndexMapping());
-      await client.indexDocument('products', IndexDocument(
+      await client.indexDocument('products', const IndexDocument(
         id: 'p-1',
         fields: {'name': 'Rust Programming'},
       ));
-      await client.indexDocument('products', IndexDocument(
+      await client.indexDocument('products', const IndexDocument(
         id: 'p-2',
         fields: {'name': 'Go Language'},
       ));
 
-      final result = await client.search('products', SearchQuery(
+      final result = await client.search('products', const SearchQuery(
         query: 'Rust',
         facets: ['name'],
       ));
@@ -73,18 +73,18 @@ void main() {
 
     test('throws on missing index', () async {
       expect(
-        () => client.search('nonexistent', SearchQuery(query: 'test')),
+        () => client.search('nonexistent', const SearchQuery(query: 'test')),
         throwsA(isA<SearchError>()),
       );
     });
 
     test('empty query returns all', () async {
       await client.createIndex('items', IndexMapping());
-      await client.indexDocument('items', IndexDocument(
+      await client.indexDocument('items', const IndexDocument(
         id: 'i-1',
         fields: {'name': 'Item'},
       ));
-      final result = await client.search('items', SearchQuery(query: ''));
+      final result = await client.search('items', const SearchQuery(query: ''));
       expect(result.total, equals(1));
     });
   });
@@ -92,7 +92,7 @@ void main() {
   group('deleteDocument', () {
     test('deletes a document', () async {
       await client.createIndex('products', IndexMapping());
-      await client.indexDocument('products', IndexDocument(
+      await client.indexDocument('products', const IndexDocument(
         id: 'p-1',
         fields: {'name': 'Test'},
       ));
@@ -117,7 +117,7 @@ void main() {
 
   group('SearchError', () {
     test('toString contains code', () {
-      final err = SearchError('test', SearchErrorCode.indexNotFound);
+      const err = SearchError('test', SearchErrorCode.indexNotFound);
       expect(err.toString(), contains('indexNotFound'));
     });
   });

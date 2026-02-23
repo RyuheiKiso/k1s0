@@ -15,6 +15,7 @@ mod usecase;
 use adapter::grpc::ConfigGrpcService;
 use adapter::handler;
 use adapter::repository::config_postgres::ConfigPostgresRepository;
+use adapter::repository::config_schema_postgres::ConfigSchemaPostgresRepository;
 use infrastructure::config::Config;
 
 #[tokio::main]
@@ -47,53 +48,72 @@ async fn main() -> anyhow::Result<()> {
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-config-server"));
 
     // Config repository: PostgreSQL if DATABASE_URL or database config is set, otherwise in-memory
-    let config_repo: Arc<dyn domain::repository::ConfigRepository> =
-        if let Ok(database_url) = std::env::var("DATABASE_URL") {
-            info!("connecting to PostgreSQL...");
-            let pool = sqlx::postgres::PgPoolOptions::new()
-                .max_connections(cfg.database.as_ref().map_or(25, |db| db.max_open_conns))
-                .connect(&database_url)
-                .await?;
-            info!("connected to PostgreSQL");
-            let pg_repo = Arc::new(ConfigPostgresRepository::with_metrics(
-                pool,
-                metrics.clone(),
-            ));
-            // キャッシュでラップ（TTL 300秒、最大10000エントリ）
-            let cache = Arc::new(infrastructure::cache::ConfigCache::new(10_000, 300));
-            info!("config cache initialized (max_capacity=10000, ttl=300s)");
+    let (config_repo, schema_repo): (
+        Arc<dyn domain::repository::ConfigRepository>,
+        Arc<dyn domain::repository::ConfigSchemaRepository>,
+    ) = if let Ok(database_url) = std::env::var("DATABASE_URL") {
+        info!("connecting to PostgreSQL...");
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(cfg.database.as_ref().map_or(25, |db| db.max_open_conns))
+            .connect(&database_url)
+            .await?;
+        info!("connected to PostgreSQL");
+        let pg_repo = Arc::new(ConfigPostgresRepository::with_metrics(
+            pool.clone(),
+            metrics.clone(),
+        ));
+        let schema_pg_repo = Arc::new(ConfigSchemaPostgresRepository::with_metrics(
+            pool,
+            metrics.clone(),
+        ));
+        // キャッシュでラップ（TTL 300秒、最大10000エントリ）
+        let cache = Arc::new(infrastructure::cache::ConfigCache::new(10_000, 300));
+        info!("config cache initialized (max_capacity=10000, ttl=300s)");
+        (
             Arc::new(
                 adapter::repository::cached_config_repository::CachedConfigRepository::with_metrics(
                     pg_repo,
                     cache,
                     metrics.clone(),
                 ),
-            )
-        } else if let Some(ref db_cfg) = cfg.database {
-            info!("connecting to PostgreSQL via config...");
-            let pool = sqlx::postgres::PgPoolOptions::new()
-                .max_connections(db_cfg.max_open_conns)
-                .connect(&db_cfg.connection_url())
-                .await?;
-            info!("connected to PostgreSQL");
-            let pg_repo = Arc::new(ConfigPostgresRepository::with_metrics(
-                pool,
-                metrics.clone(),
-            ));
-            // キャッシュでラップ（TTL 300秒、最大10000エントリ）
-            let cache = Arc::new(infrastructure::cache::ConfigCache::new(10_000, 300));
-            info!("config cache initialized (max_capacity=10000, ttl=300s)");
+            ),
+            schema_pg_repo,
+        )
+    } else if let Some(ref db_cfg) = cfg.database {
+        info!("connecting to PostgreSQL via config...");
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(db_cfg.max_open_conns)
+            .connect(&db_cfg.connection_url())
+            .await?;
+        info!("connected to PostgreSQL");
+        let pg_repo = Arc::new(ConfigPostgresRepository::with_metrics(
+            pool.clone(),
+            metrics.clone(),
+        ));
+        let schema_pg_repo = Arc::new(ConfigSchemaPostgresRepository::with_metrics(
+            pool,
+            metrics.clone(),
+        ));
+        // キャッシュでラップ（TTL 300秒、最大10000エントリ）
+        let cache = Arc::new(infrastructure::cache::ConfigCache::new(10_000, 300));
+        info!("config cache initialized (max_capacity=10000, ttl=300s)");
+        (
             Arc::new(
                 adapter::repository::cached_config_repository::CachedConfigRepository::with_metrics(
                     pg_repo,
                     cache,
                     metrics.clone(),
                 ),
-            )
-        } else {
-            info!("no database configured, using in-memory repository");
-            Arc::new(InMemoryConfigRepository::new())
-        };
+            ),
+            schema_pg_repo,
+        )
+    } else {
+        info!("no database configured, using in-memory repository");
+        (
+            Arc::new(InMemoryConfigRepository::new()),
+            Arc::new(InMemoryConfigSchemaRepository::new()),
+        )
+    };
 
     // Kafka producer (optional)
     let kafka_producer = cfg.kafka.as_ref().and_then(|kafka_cfg| {
@@ -173,6 +193,12 @@ async fn main() -> anyhow::Result<()> {
         get_service_config_uc: std::sync::Arc::new(usecase::GetServiceConfigUseCase::new(
             config_repo.clone(),
         )),
+        get_config_schema_uc: std::sync::Arc::new(usecase::GetConfigSchemaUseCase::new(
+            schema_repo.clone(),
+        )),
+        upsert_config_schema_uc: std::sync::Arc::new(usecase::UpsertConfigSchemaUseCase::new(
+            schema_repo,
+        )),
         metrics: metrics.clone(),
         config_repo: config_repo.clone(),
         kafka_configured: false,
@@ -236,6 +262,7 @@ use domain::entity::config_change_log::ConfigChangeLog;
 use domain::entity::config_entry::{
     ConfigEntry, ConfigListResult, Pagination, ServiceConfigEntry, ServiceConfigResult,
 };
+use domain::entity::config_schema::ConfigSchema;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
@@ -403,5 +430,49 @@ impl domain::repository::ConfigRepository for InMemoryConfigRepository {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<ConfigEntry>> {
         let entries = self.entries.read().await;
         Ok(entries.iter().find(|e| e.id == *id).cloned())
+    }
+}
+
+/// InMemoryConfigSchemaRepository は開発用のインメモリ設定スキーマリポジトリ。
+struct InMemoryConfigSchemaRepository {
+    schemas: RwLock<Vec<ConfigSchema>>,
+}
+
+impl InMemoryConfigSchemaRepository {
+    fn new() -> Self {
+        Self {
+            schemas: RwLock::new(Vec::new()),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl domain::repository::ConfigSchemaRepository for InMemoryConfigSchemaRepository {
+    async fn find_by_service_name(
+        &self,
+        service_name: &str,
+    ) -> anyhow::Result<Option<ConfigSchema>> {
+        let schemas = self.schemas.read().await;
+        Ok(schemas
+            .iter()
+            .find(|s| s.service_name == service_name)
+            .cloned())
+    }
+
+    async fn upsert(&self, schema: &ConfigSchema) -> anyhow::Result<ConfigSchema> {
+        let mut schemas = self.schemas.write().await;
+        if let Some(existing) = schemas
+            .iter_mut()
+            .find(|s| s.service_name == schema.service_name)
+        {
+            existing.namespace_prefix = schema.namespace_prefix.clone();
+            existing.schema_json = schema.schema_json.clone();
+            existing.updated_by = schema.updated_by.clone();
+            existing.updated_at = chrono::Utc::now();
+            Ok(existing.clone())
+        } else {
+            schemas.push(schema.clone());
+            Ok(schema.clone())
+        }
     }
 }

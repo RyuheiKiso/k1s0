@@ -38,7 +38,7 @@ void main() {
 
   group('CreateSessionRequest', () {
     test('creates with fields', () {
-      final req = CreateSessionRequest(userId: 'u1', ttlSeconds: 3600);
+      const req = CreateSessionRequest(userId: 'u1', ttlSeconds: 3600);
       expect(req.userId, equals('u1'));
       expect(req.ttlSeconds, equals(3600));
       expect(req.metadata, isNull);
@@ -48,7 +48,7 @@ void main() {
   group('InMemorySessionClient', () {
     test('create returns session with generated id', () async {
       final session = await client.create(
-        CreateSessionRequest(userId: 'user1', ttlSeconds: 3600),
+        const CreateSessionRequest(userId: 'user1', ttlSeconds: 3600),
       );
       expect(session.id, isNotEmpty);
       expect(session.userId, equals('user1'));
@@ -58,7 +58,7 @@ void main() {
 
     test('create with metadata', () async {
       final session = await client.create(
-        CreateSessionRequest(
+        const CreateSessionRequest(
           userId: 'user1',
           ttlSeconds: 3600,
           metadata: {'device': 'mobile'},
@@ -69,7 +69,7 @@ void main() {
 
     test('get returns existing session', () async {
       final created = await client.create(
-        CreateSessionRequest(userId: 'user1', ttlSeconds: 3600),
+        const CreateSessionRequest(userId: 'user1', ttlSeconds: 3600),
       );
       final fetched = await client.get(created.id);
       expect(fetched, isNotNull);
@@ -83,7 +83,7 @@ void main() {
 
     test('refresh updates expiry and token', () async {
       final created = await client.create(
-        CreateSessionRequest(userId: 'user1', ttlSeconds: 60),
+        const CreateSessionRequest(userId: 'user1', ttlSeconds: 60),
       );
       final refreshed = await client.refresh(
         RefreshSessionRequest(id: created.id, ttlSeconds: 7200),
@@ -95,14 +95,14 @@ void main() {
 
     test('refresh throws for nonexistent session', () async {
       expect(
-        () => client.refresh(RefreshSessionRequest(id: 'bad', ttlSeconds: 60)),
+        () => client.refresh(const RefreshSessionRequest(id: 'bad', ttlSeconds: 60)),
         throwsStateError,
       );
     });
 
     test('revoke marks session as revoked', () async {
       final created = await client.create(
-        CreateSessionRequest(userId: 'user1', ttlSeconds: 3600),
+        const CreateSessionRequest(userId: 'user1', ttlSeconds: 3600),
       );
       await client.revoke(created.id);
       final fetched = await client.get(created.id);
@@ -114,17 +114,17 @@ void main() {
     });
 
     test('listUserSessions returns user sessions', () async {
-      await client.create(CreateSessionRequest(userId: 'u1', ttlSeconds: 60));
-      await client.create(CreateSessionRequest(userId: 'u1', ttlSeconds: 60));
-      await client.create(CreateSessionRequest(userId: 'u2', ttlSeconds: 60));
+      await client.create(const CreateSessionRequest(userId: 'u1', ttlSeconds: 60));
+      await client.create(const CreateSessionRequest(userId: 'u1', ttlSeconds: 60));
+      await client.create(const CreateSessionRequest(userId: 'u2', ttlSeconds: 60));
       final sessions = await client.listUserSessions('u1');
       expect(sessions, hasLength(2));
     });
 
     test('revokeAll revokes all user sessions', () async {
-      await client.create(CreateSessionRequest(userId: 'u1', ttlSeconds: 60));
-      await client.create(CreateSessionRequest(userId: 'u1', ttlSeconds: 60));
-      await client.create(CreateSessionRequest(userId: 'u2', ttlSeconds: 60));
+      await client.create(const CreateSessionRequest(userId: 'u1', ttlSeconds: 60));
+      await client.create(const CreateSessionRequest(userId: 'u1', ttlSeconds: 60));
+      await client.create(const CreateSessionRequest(userId: 'u2', ttlSeconds: 60));
       final count = await client.revokeAll('u1');
       expect(count, equals(2));
       final sessions = await client.listUserSessions('u1');

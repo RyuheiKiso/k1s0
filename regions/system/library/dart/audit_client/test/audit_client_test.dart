@@ -9,7 +9,7 @@ void main() {
     client = BufferedAuditClient();
   });
 
-  AuditEvent _makeEvent(String action) => AuditEvent(
+  AuditEvent makeEvent(String action) => AuditEvent(
         id: 'evt-1',
         tenantId: 'tenant-1',
         actorId: 'user-1',
@@ -21,7 +21,7 @@ void main() {
 
   group('record', () {
     test('adds event to buffer', () async {
-      await client.record(_makeEvent('create'));
+      await client.record(makeEvent('create'));
       final events = await client.flush();
       expect(events, hasLength(1));
       expect(events.first.action, equals('create'));
@@ -30,14 +30,14 @@ void main() {
 
   group('flush', () {
     test('returns all buffered events', () async {
-      await client.record(_makeEvent('create'));
-      await client.record(_makeEvent('update'));
+      await client.record(makeEvent('create'));
+      await client.record(makeEvent('update'));
       final events = await client.flush();
       expect(events, hasLength(2));
     });
 
     test('clears buffer after flush', () async {
-      await client.record(_makeEvent('create'));
+      await client.record(makeEvent('create'));
       await client.flush();
       final events = await client.flush();
       expect(events, isEmpty);
@@ -46,7 +46,7 @@ void main() {
 
   group('AuditEvent', () {
     test('stores all fields', () {
-      final event = _makeEvent('delete');
+      final event = makeEvent('delete');
       expect(event.id, equals('evt-1'));
       expect(event.tenantId, equals('tenant-1'));
       expect(event.action, equals('delete'));

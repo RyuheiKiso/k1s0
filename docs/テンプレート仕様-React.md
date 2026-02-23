@@ -12,8 +12,8 @@ k1s0 CLI の `ひな形生成 → client → react` で使用するテンプレ�
 
 ### 配置制約
 
-- **system 層には client を配置しない** — system は基盤提供が目的であり、ユーザー向け画面を持たない（[ディレクトリ構成図](ディレクトリ構成図.md) 参照）
-- client は **business** および **service** Tier のみに配置する
+- **system/client は共通 SDK として配置** — `system/client/react/system-client` は UI を持たない共有ライブラリパッケージであり、直接ユーザーに公開する画面アプリではない（[system-client設計](system-client設計.md) 参照）
+- エンドユーザー向けのアプリ（画面）は **business** および **service** Tier のみに配置する
 
 ### 認証方式
 

@@ -1,6 +1,5 @@
 import 'model.dart';
 import 'config.dart';
-import 'error.dart';
 
 abstract class MigrationRunner {
   Future<MigrationReport> runUp();

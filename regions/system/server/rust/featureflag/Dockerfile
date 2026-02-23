@@ -4,12 +4,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY . .
-WORKDIR /app/server/rust/featureflag
-RUN cargo build --release
+RUN cargo build --release -p k1s0-featureflag-server
 
 FROM gcr.io/distroless/cc-debian12:nonroot
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
-COPY --from=builder /app/server/rust/featureflag/target/release/k1s0-featureflag-server /k1s0-featureflag-server
+COPY --from=builder /app/target/release/k1s0-featureflag-server /k1s0-featureflag-server
 USER nonroot:nonroot
 EXPOSE 8087 50056
 ENTRYPOINT ["/k1s0-featureflag-server"]

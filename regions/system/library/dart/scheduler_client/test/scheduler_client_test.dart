@@ -59,7 +59,7 @@ void main() {
       await client.pauseJob(jobB.id);
 
       final paused =
-          await client.listJobs(JobFilter(status: JobStatus.paused));
+          await client.listJobs(const JobFilter(status: JobStatus.paused));
       expect(paused.length, equals(1));
       expect(paused[0].status, equals(JobStatus.paused));
     });
@@ -76,7 +76,7 @@ void main() {
       ));
 
       final daily =
-          await client.listJobs(JobFilter(namePrefix: 'daily'));
+          await client.listJobs(const JobFilter(namePrefix: 'daily'));
       expect(daily.length, equals(1));
       expect(daily[0].name, equals('daily-report'));
     });
@@ -94,7 +94,7 @@ void main() {
       final oneShot = Schedule.oneShot(DateTime.now());
       expect(oneShot, isA<OneShotSchedule>());
 
-      final interval = Schedule.interval(Duration(minutes: 10));
+      final interval = Schedule.interval(const Duration(minutes: 10));
       expect(interval, isA<IntervalSchedule>());
     });
 

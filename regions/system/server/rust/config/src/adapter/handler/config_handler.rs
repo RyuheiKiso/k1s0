@@ -228,6 +228,7 @@ mod tests {
         ConfigEntry, ConfigListResult, Pagination, ServiceConfigEntry, ServiceConfigResult,
     };
     use crate::domain::repository::config_repository::MockConfigRepository;
+    use crate::domain::repository::config_schema_repository::MockConfigSchemaRepository;
     use axum::body::Body;
     use axum::http::Request;
     use chrono::Utc;
@@ -251,7 +252,7 @@ mod tests {
     }
 
     fn make_app_state(mock: MockConfigRepository) -> AppState {
-        AppState::new(Arc::new(mock))
+        AppState::new(Arc::new(mock), Arc::new(MockConfigSchemaRepository::new()))
     }
 
     #[tokio::test]

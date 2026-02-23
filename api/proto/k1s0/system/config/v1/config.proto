@@ -27,6 +27,12 @@ service ConfigService {
 
   // 設定変更の監視（Server-Side Streaming）
   rpc WatchConfig(WatchConfigRequest) returns (stream WatchConfigResponse);
+
+  // 設定スキーマ取得
+  rpc GetConfigSchema(GetConfigSchemaRequest) returns (GetConfigSchemaResponse);
+
+  // 設定スキーマ作成・更新
+  rpc UpsertConfigSchema(UpsertConfigSchemaRequest) returns (UpsertConfigSchemaResponse);
 }
 
 // ============================================================
@@ -163,4 +169,80 @@ message WatchConfigResponse {
   // CREATED, UPDATED, DELETED
   string change_type = 8;
   k1s0.system.common.v1.Timestamp changed_at = 9;
+}
+
+// ============================================================
+// ConfigEditorSchema（設定エディタ向けスキーマ）
+// ============================================================
+
+// ConfigFieldType は設定フィールドの型を表す。
+enum ConfigFieldType {
+  CONFIG_FIELD_TYPE_UNSPECIFIED = 0;
+  CONFIG_FIELD_TYPE_STRING      = 1;
+  CONFIG_FIELD_TYPE_INTEGER     = 2;
+  CONFIG_FIELD_TYPE_FLOAT       = 3;
+  CONFIG_FIELD_TYPE_BOOLEAN     = 4;
+  CONFIG_FIELD_TYPE_ENUM        = 5;
+  CONFIG_FIELD_TYPE_OBJECT      = 6;
+  CONFIG_FIELD_TYPE_ARRAY       = 7;
+}
+
+// ConfigFieldSchema は設定フィールドのスキーマ定義。
+message ConfigFieldSchema {
+  string          key           = 1;
+  string          label         = 2;
+  string          description   = 3;
+  ConfigFieldType type          = 4;
+  int64           min           = 5;
+  int64           max           = 6;
+  repeated string options       = 7;
+  string          pattern       = 8;
+  string          unit          = 9;
+  bytes           default_value = 10;
+}
+
+// ConfigCategorySchema はカテゴリ単位のスキーマ定義。
+message ConfigCategorySchema {
+  string                     id         = 1;
+  string                     label      = 2;
+  string                     icon       = 3;
+  repeated string            namespaces = 4;
+  repeated ConfigFieldSchema fields     = 5;
+}
+
+// ConfigEditorSchema はサービスの設定エディタスキーマ全体を表す。
+message ConfigEditorSchema {
+  string                        service          = 1;
+  string                        namespace_prefix = 2;
+  repeated ConfigCategorySchema categories       = 3;
+  k1s0.system.common.v1.Timestamp updated_at    = 4;
+}
+
+// ============================================================
+// GetConfigSchema
+// ============================================================
+
+// GetConfigSchemaRequest は設定スキーマ取得リクエスト。
+message GetConfigSchemaRequest {
+  string service_name = 1;
+}
+
+// GetConfigSchemaResponse は設定スキーマ取得レスポンス。
+message GetConfigSchemaResponse {
+  ConfigEditorSchema schema = 1;
+}
+
+// ============================================================
+// UpsertConfigSchema
+// ============================================================
+
+// UpsertConfigSchemaRequest は設定スキーマ作成・更新リクエスト。
+message UpsertConfigSchemaRequest {
+  ConfigEditorSchema schema     = 1;
+  string             updated_by = 2;
+}
+
+// UpsertConfigSchemaResponse は設定スキーマ作成・更新レスポンス。
+message UpsertConfigSchemaResponse {
+  ConfigEditorSchema schema = 1;
 }

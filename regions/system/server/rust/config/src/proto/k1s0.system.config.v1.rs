@@ -152,6 +152,127 @@ pub struct WatchConfigResponse {
     #[prost(message, optional, tag = "9")]
     pub changed_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
+/// ConfigFieldSchema は設定フィールドのスキーマ定義。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ConfigFieldSchema {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(enumeration = "ConfigFieldType", tag = "4")]
+    pub r#type: i32,
+    #[prost(int64, tag = "5")]
+    pub min: i64,
+    #[prost(int64, tag = "6")]
+    pub max: i64,
+    #[prost(string, repeated, tag = "7")]
+    pub options: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "8")]
+    pub pattern: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub unit: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "10")]
+    pub default_value: ::prost::alloc::vec::Vec<u8>,
+}
+/// ConfigCategorySchema はカテゴリ単位のスキーマ定義。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ConfigCategorySchema {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub icon: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub namespaces: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "5")]
+    pub fields: ::prost::alloc::vec::Vec<ConfigFieldSchema>,
+}
+/// ConfigEditorSchema はサービスの設定エディタスキーマ全体を表す。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ConfigEditorSchema {
+    #[prost(string, tag = "1")]
+    pub service: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub namespace_prefix: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub categories: ::prost::alloc::vec::Vec<ConfigCategorySchema>,
+    #[prost(message, optional, tag = "4")]
+    pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+}
+/// GetConfigSchemaRequest は設定スキーマ取得リクエスト。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetConfigSchemaRequest {
+    #[prost(string, tag = "1")]
+    pub service_name: ::prost::alloc::string::String,
+}
+/// GetConfigSchemaResponse は設定スキーマ取得レスポンス。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetConfigSchemaResponse {
+    #[prost(message, optional, tag = "1")]
+    pub schema: ::core::option::Option<ConfigEditorSchema>,
+}
+/// UpsertConfigSchemaRequest は設定スキーマ作成・更新リクエスト。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpsertConfigSchemaRequest {
+    #[prost(message, optional, tag = "1")]
+    pub schema: ::core::option::Option<ConfigEditorSchema>,
+    #[prost(string, tag = "2")]
+    pub updated_by: ::prost::alloc::string::String,
+}
+/// UpsertConfigSchemaResponse は設定スキーマ作成・更新レスポンス。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpsertConfigSchemaResponse {
+    #[prost(message, optional, tag = "1")]
+    pub schema: ::core::option::Option<ConfigEditorSchema>,
+}
+/// ConfigFieldType は設定フィールドの型を表す。
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ConfigFieldType {
+    Unspecified = 0,
+    String = 1,
+    Integer = 2,
+    Float = 3,
+    Boolean = 4,
+    Enum = 5,
+    Object = 6,
+    Array = 7,
+}
+impl ConfigFieldType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "CONFIG_FIELD_TYPE_UNSPECIFIED",
+            Self::String => "CONFIG_FIELD_TYPE_STRING",
+            Self::Integer => "CONFIG_FIELD_TYPE_INTEGER",
+            Self::Float => "CONFIG_FIELD_TYPE_FLOAT",
+            Self::Boolean => "CONFIG_FIELD_TYPE_BOOLEAN",
+            Self::Enum => "CONFIG_FIELD_TYPE_ENUM",
+            Self::Object => "CONFIG_FIELD_TYPE_OBJECT",
+            Self::Array => "CONFIG_FIELD_TYPE_ARRAY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "CONFIG_FIELD_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "CONFIG_FIELD_TYPE_STRING" => Some(Self::String),
+            "CONFIG_FIELD_TYPE_INTEGER" => Some(Self::Integer),
+            "CONFIG_FIELD_TYPE_FLOAT" => Some(Self::Float),
+            "CONFIG_FIELD_TYPE_BOOLEAN" => Some(Self::Boolean),
+            "CONFIG_FIELD_TYPE_ENUM" => Some(Self::Enum),
+            "CONFIG_FIELD_TYPE_OBJECT" => Some(Self::Object),
+            "CONFIG_FIELD_TYPE_ARRAY" => Some(Self::Array),
+            _ => None,
+        }
+    }
+}
 /// Generated server implementations.
 pub mod config_service_server {
     #![allow(
@@ -217,6 +338,22 @@ pub mod config_service_server {
             request: tonic::Request<super::WatchConfigRequest>,
         ) -> std::result::Result<
             tonic::Response<Self::WatchConfigStream>,
+            tonic::Status,
+        >;
+        /// 設定スキーマ取得
+        async fn get_config_schema(
+            &self,
+            request: tonic::Request<super::GetConfigSchemaRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetConfigSchemaResponse>,
+            tonic::Status,
+        >;
+        /// 設定スキーマ作成・更新
+        async fn upsert_config_schema(
+            &self,
+            request: tonic::Request<super::UpsertConfigSchemaRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpsertConfigSchemaResponse>,
             tonic::Status,
         >;
     }
@@ -565,6 +702,98 @@ pub mod config_service_server {
                                 max_encoding_message_size,
                             );
                         let res = grpc.server_streaming(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.config.v1.ConfigService/GetConfigSchema" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetConfigSchemaSvc<T: ConfigService>(pub Arc<T>);
+                    impl<
+                        T: ConfigService,
+                    > tonic::server::UnaryService<super::GetConfigSchemaRequest>
+                    for GetConfigSchemaSvc<T> {
+                        type Response = super::GetConfigSchemaResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetConfigSchemaRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ConfigService>::get_config_schema(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetConfigSchemaSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.config.v1.ConfigService/UpsertConfigSchema" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpsertConfigSchemaSvc<T: ConfigService>(pub Arc<T>);
+                    impl<
+                        T: ConfigService,
+                    > tonic::server::UnaryService<super::UpsertConfigSchemaRequest>
+                    for UpsertConfigSchemaSvc<T> {
+                        type Response = super::UpsertConfigSchemaResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpsertConfigSchemaRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ConfigService>::upsert_config_schema(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UpsertConfigSchemaSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)

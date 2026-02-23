@@ -5,9 +5,11 @@ use axum::Json;
 use super::{ErrorDetail, ErrorResponse};
 use crate::usecase::delete_config::DeleteConfigError;
 use crate::usecase::get_config::GetConfigError;
+use crate::usecase::get_config_schema::GetConfigSchemaError;
 use crate::usecase::get_service_config::GetServiceConfigError;
 use crate::usecase::list_configs::ListConfigsError;
 use crate::usecase::update_config::UpdateConfigError;
+use crate::usecase::upsert_config_schema::UpsertConfigSchemaError;
 
 /// GetConfigError を HTTP レスポンスに変換する。
 impl IntoResponse for GetConfigError {
@@ -109,6 +111,37 @@ impl IntoResponse for GetServiceConfigError {
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
             GetServiceConfigError::Internal(msg) => {
+                let err = ErrorResponse::new("SYS_CONFIG_INTERNAL_ERROR", &msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            }
+        }
+    }
+}
+
+/// GetConfigSchemaError を HTTP レスポンスに変換する。
+impl IntoResponse for GetConfigSchemaError {
+    fn into_response(self) -> axum::response::Response {
+        match self {
+            GetConfigSchemaError::NotFound(name) => {
+                let err = ErrorResponse::new(
+                    "SYS_CONFIG_SCHEMA_NOT_FOUND",
+                    &format!("指定されたサービスの設定スキーマが見つかりません: {}", name),
+                );
+                (StatusCode::NOT_FOUND, Json(err)).into_response()
+            }
+            GetConfigSchemaError::Internal(msg) => {
+                let err = ErrorResponse::new("SYS_CONFIG_INTERNAL_ERROR", &msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            }
+        }
+    }
+}
+
+/// UpsertConfigSchemaError を HTTP レスポンスに変換する。
+impl IntoResponse for UpsertConfigSchemaError {
+    fn into_response(self) -> axum::response::Response {
+        match self {
+            UpsertConfigSchemaError::Internal(msg) => {
                 let err = ErrorResponse::new("SYS_CONFIG_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }

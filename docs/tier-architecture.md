@@ -89,19 +89,19 @@ system server が提供する共通機能を、business server が利用する�
 
 ### Client 間の依存イメージ
 
-service client が business client の共通UIコンポーネントと system library を利用する構成。
-system 層には client が存在しないため、client は system library を直接 import する。
+service client が business client の共通UIコンポーネントと system client SDK を利用する構成。
+system/client は UI を持たない共通 SDK として、認証・API クライアント・共通 Widget を提供する。
 
 <img src="diagrams/client-dependency.svg" width="1000" />
 
 **依存の具体例：**
 
-| service/business client が system library から利用するもの | 方式                     |
-| --------------------------------------------------------- | ------------------------ |
-| 認証トークンの取得・管理                                  | system library を import |
-| API リクエストの送信                                      | system library を import |
-| 共通の型定義（DTO・エンティティ）                         | system library を import |
-| バリデーション・フォーマット処理                          | system library を import |
+| service/business client が system client SDK から利用するもの | 方式                         |
+| ------------------------------------------------------------ | ---------------------------- |
+| 認証状態の管理・ログイン/ログアウト                          | system client SDK を import  |
+| API リクエストの送信（Cookie / CSRF 対応済み）               | system client SDK を import  |
+| ルーティングガード（未認証リダイレクト）                     | system client SDK を import  |
+| 共通 Widget / Component                                      | system client SDK を import  |
 
 | service client が business client から利用するもの | 方式                       |
 | -------------------------------------------------- | -------------------------- |
@@ -135,6 +135,9 @@ regions/
 ├── system/
 │   ├── server/
 │   │   └── rust/
+│   ├── client/
+│   │   ├── flutter/               # 共通 Flutter SDK（system_client パッケージ）
+│   │   └── react/                 # 共通 React SDK（system-client パッケージ）
 │   ├── library/
 │   │   ├── go/
 │   │   ├── rust/
@@ -172,7 +175,7 @@ k1s0 CLI や Tauri GUI（[TauriGUI設計](TauriGUI設計.md)）などの開発�
 
 ## 設計メモ
 
-- **system に client がない理由** — system 層は基盤提供が目的であり、直接ユーザーに公開する画面を持たない。クライアント実装は business 以下で行う。
+- **system/client は UI を持たない共通 SDK** — system/client はエンドユーザー向けの画面アプリではなく、business/service client が共通して使う認証・API クライアント・共通 Widget・ルーティングガードを提供する共有ライブラリパッケージである。直接デプロイする対象ではなく、下位層が依存パッケージとして import して使用する。
 - **business 層に server/client を置く意義** — 同一業務領域内で複数サービスが共通のサーバー処理やクライアントコンポーネントを共有するケースに対応する。共通コードが library だけで足りる場合は library のみ配置すればよい。
 - **各階層に database を置く理由** — データの所有権を階層ごとに明確にし、他階層のデータベースへの直接アクセスを禁止する。これにより階層間の結合度を低く保ち、スキーマ変更の影響範囲を限定できる。
 - **RDBMS の選択** — プロジェクト全体で統一する必要はなく、階層・サービスの要件に応じて PostgreSQL / MySQL / SQLite から選択する。ただし同一階層内ではなるべく統一することを推奨する。

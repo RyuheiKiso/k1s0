@@ -243,6 +243,69 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         ),
     )?;
 
+    // service Tier の場合: config-schema.yaml と初期型定義ファイルを生成
+    generate_config_schema_stub(output_path, app_name, "react")?;
+
+    Ok(())
+}
+
+/// service Tier クライアント向けの config-schema.yaml スタブを生成する。
+/// scaffold 内ではTier情報を持たないため、呼び出し元で制御する代わりに
+/// 常に生成して利用者に活用してもらう方式とする。
+fn generate_config_schema_stub(output_path: &Path, app_name: &str, framework: &str) -> Result<()> {
+    let snake_name = app_name.replace('-', "_");
+    fs::write(
+        output_path.join("config-schema.yaml"),
+        format!(
+            r#"# $schema: ./config-schema-schema.json
+version: 1
+
+service: {app_name}
+namespace_prefix: service.{snake_name}
+
+categories:
+  - id: general
+    label: 一般設定
+    icon: settings
+    namespaces:
+      - service.{snake_name}.general
+    fields:
+      - key: example_flag
+        label: サンプル機能フラグ
+        description: この設定はサンプルです。削除して独自の設定を追加してください
+        type: boolean
+        default: false
+"#
+        ),
+    )?;
+
+    match framework {
+        "react" => {
+            let gen_dir = output_path.join("src/config/__generated__");
+            fs::create_dir_all(&gen_dir)?;
+            fs::write(
+                gen_dir.join("config-types.ts"),
+                "// src/config/__generated__/config-types.ts\n\
+                 // このファイルは CLI が自動生成する。直接編集しないこと。\n\
+                 // k1s0 generate config-types で再生成できます。\n\n\
+                 // TODO: k1s0 generate config-types を実行して型定義を生成してください。\n\
+                 export const ConfigKeys = {} as const;\n\
+                 export type ConfigValues = Record<string, unknown>;\n",
+            )?;
+        }
+        "flutter" => {
+            let gen_dir = output_path.join("lib/config/__generated__");
+            fs::create_dir_all(&gen_dir)?;
+            fs::write(
+                gen_dir.join("config_types.dart"),
+                "// lib/config/__generated__/config_types.dart\n\
+                 // このファイルは CLI が自動生成する。直接編集しないこと。\n\n\
+                 // TODO: k1s0 generate config-types を実行して型定義を生成してください。\n",
+            )?;
+        }
+        _ => {}
+    }
+
     Ok(())
 }
 
@@ -292,6 +355,9 @@ class MyApp extends StatelessWidget {{
 "
         ),
     )?;
+
+    // service Tier の場合: config-schema.yaml と初期型定義ファイルを生成
+    generate_config_schema_stub(output_path, app_name, "flutter")?;
 
     Ok(())
 }

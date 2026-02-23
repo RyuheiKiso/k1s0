@@ -9,10 +9,17 @@ tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
 tracing = "0.1"
+{% if tier == "system" %}
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 opentelemetry = "0.24"
 opentelemetry-otlp = "0.17"
 opentelemetry_sdk = "0.24"
+{% else %}
+# system library (tier1 共通基盤)
+k1s0-config = { path = "{{ system_library_rust_path }}/config" }
+k1s0-telemetry = { path = "{{ system_library_rust_path }}/telemetry", features = ["axum-layer"] }
+k1s0-auth = { path = "{{ system_library_rust_path }}/auth" }
+{% endif %}
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 thiserror = "2"

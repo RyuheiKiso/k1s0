@@ -10,14 +10,14 @@ void main() {
 
   group('GraphQlQuery', () {
     test('creates with required fields', () {
-      final q = GraphQlQuery(query: '{ users { id } }');
+      const q = GraphQlQuery(query: '{ users { id } }');
       expect(q.query, equals('{ users { id } }'));
       expect(q.variables, isNull);
       expect(q.operationName, isNull);
     });
 
     test('creates with all fields', () {
-      final q = GraphQlQuery(
+      const q = GraphQlQuery(
         query: 'query GetUser(\$id: ID!) { user(id: \$id) { name } }',
         variables: {'id': '1'},
         operationName: 'GetUser',
@@ -29,26 +29,26 @@ void main() {
 
   group('GraphQlResponse', () {
     test('hasErrors is false when no errors', () {
-      final resp = GraphQlResponse<String>(data: 'ok');
+      const resp = GraphQlResponse<String>(data: 'ok');
       expect(resp.hasErrors, isFalse);
     });
 
     test('hasErrors is true with errors', () {
-      final resp = GraphQlResponse<String>(
+      const resp = GraphQlResponse<String>(
         errors: [GraphQlError(message: 'fail')],
       );
       expect(resp.hasErrors, isTrue);
     });
 
     test('hasErrors is false with empty list', () {
-      final resp = GraphQlResponse<String>(errors: []);
+      const resp = GraphQlResponse<String>(errors: []);
       expect(resp.hasErrors, isFalse);
     });
   });
 
   group('ErrorLocation', () {
     test('stores line and column', () {
-      final loc = ErrorLocation(3, 5);
+      const loc = ErrorLocation(3, 5);
       expect(loc.line, equals(3));
       expect(loc.column, equals(5));
     });
@@ -56,14 +56,14 @@ void main() {
 
   group('GraphQlError', () {
     test('creates with message', () {
-      final err = GraphQlError(message: 'Not found');
+      const err = GraphQlError(message: 'Not found');
       expect(err.message, equals('Not found'));
       expect(err.locations, isNull);
       expect(err.path, isNull);
     });
 
     test('creates with locations and path', () {
-      final err = GraphQlError(
+      const err = GraphQlError(
         message: 'err',
         locations: [ErrorLocation(1, 2)],
         path: ['user', 0, 'name'],
@@ -79,7 +79,7 @@ void main() {
         'data': {'id': '1', 'name': 'Alice'},
       });
       final result = await client.execute(
-        GraphQlQuery(
+        const GraphQlQuery(
           query: 'query GetUser { user { id name } }',
           operationName: 'GetUser',
         ),
@@ -91,7 +91,7 @@ void main() {
 
     test('execute returns error for unconfigured operation', () async {
       final result = await client.execute(
-        GraphQlQuery(query: '{ unknown }', operationName: 'Unknown'),
+        const GraphQlQuery(query: '{ unknown }', operationName: 'Unknown'),
         (json) => json,
       );
       expect(result.hasErrors, isTrue);
@@ -103,7 +103,7 @@ void main() {
         'data': {'id': '2', 'name': 'Bob'},
       });
       final result = await client.executeMutation(
-        GraphQlQuery(
+        const GraphQlQuery(
           query: 'mutation CreateUser { createUser { id name } }',
           operationName: 'CreateUser',
         ),
@@ -118,7 +118,7 @@ void main() {
         'data': {'id': '42'},
       });
       final result = await client.execute(
-        GraphQlQuery(query: '{ me { id } }'),
+        const GraphQlQuery(query: '{ me { id } }'),
         (json) => json,
       );
       expect(result.data?['id'], equals('42'));
@@ -131,7 +131,7 @@ void main() {
         ],
       });
       final result = await client.execute(
-        GraphQlQuery(query: 'query Fail { fail }', operationName: 'Fail'),
+        const GraphQlQuery(query: 'query Fail { fail }', operationName: 'Fail'),
         (json) => json,
       );
       expect(result.hasErrors, isTrue);

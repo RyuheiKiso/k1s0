@@ -1,4 +1,5 @@
 pub mod config_handler;
+pub mod config_schema_handler;
 pub mod error;
 
 use std::sync::Arc;
@@ -12,8 +13,8 @@ use crate::adapter::middleware::auth::{auth_middleware, ConfigAuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::domain::repository::ConfigRepository;
 use crate::usecase::{
-    DeleteConfigUseCase, GetConfigUseCase, GetServiceConfigUseCase, ListConfigsUseCase,
-    UpdateConfigUseCase,
+    DeleteConfigUseCase, GetConfigSchemaUseCase, GetConfigUseCase, GetServiceConfigUseCase,
+    ListConfigsUseCase, UpdateConfigUseCase, UpsertConfigSchemaUseCase,
 };
 
 /// AppState はアプリケーション全体の共有状態を表す。
@@ -24,6 +25,8 @@ pub struct AppState {
     pub update_config_uc: Arc<UpdateConfigUseCase>,
     pub delete_config_uc: Arc<DeleteConfigUseCase>,
     pub get_service_config_uc: Arc<GetServiceConfigUseCase>,
+    pub get_config_schema_uc: Arc<GetConfigSchemaUseCase>,
+    pub upsert_config_schema_uc: Arc<UpsertConfigSchemaUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub config_repo: Arc<dyn ConfigRepository>,
     pub kafka_configured: bool,
@@ -31,13 +34,18 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(config_repo: Arc<dyn ConfigRepository>) -> Self {
+    pub fn new(
+        config_repo: Arc<dyn ConfigRepository>,
+        schema_repo: Arc<dyn crate::domain::repository::ConfigSchemaRepository>,
+    ) -> Self {
         Self {
             get_config_uc: Arc::new(GetConfigUseCase::new(config_repo.clone())),
             list_configs_uc: Arc::new(ListConfigsUseCase::new(config_repo.clone())),
             update_config_uc: Arc::new(UpdateConfigUseCase::new(config_repo.clone())),
             delete_config_uc: Arc::new(DeleteConfigUseCase::new(config_repo.clone())),
             get_service_config_uc: Arc::new(GetServiceConfigUseCase::new(config_repo.clone())),
+            get_config_schema_uc: Arc::new(GetConfigSchemaUseCase::new(schema_repo.clone())),
+            upsert_config_schema_uc: Arc::new(UpsertConfigSchemaUseCase::new(schema_repo)),
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-config-server")),
             config_repo,
             kafka_configured: false,
@@ -67,6 +75,8 @@ impl AppState {
         config_handler::update_config,
         config_handler::delete_config,
         config_handler::get_service_config,
+        config_schema_handler::get_config_schema,
+        config_schema_handler::upsert_config_schema,
     ),
     components(schemas(
         crate::domain::entity::config_entry::ConfigEntry,
@@ -74,7 +84,9 @@ impl AppState {
         crate::domain::entity::config_entry::ConfigListResult,
         crate::domain::entity::config_entry::ServiceConfigEntry,
         crate::domain::entity::config_entry::ServiceConfigResult,
+        crate::domain::entity::config_schema::ConfigSchema,
         config_handler::UpdateConfigRequest,
+        config_schema_handler::UpsertConfigSchemaRequest,
         ErrorResponse,
         ErrorBody,
         ErrorDetail,
@@ -107,6 +119,10 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/config/:namespace",
                 get(config_handler::list_configs),
             )
+            .route(
+                "/api/v1/config-schema/:service_name",
+                get(config_schema_handler::get_config_schema),
+            )
             .route_layer(axum::middleware::from_fn(require_permission(
                 "config", "read",
             )));
@@ -121,11 +137,15 @@ pub fn router(state: AppState) -> Router {
                 "config", "write",
             )));
 
-        // DELETE -> config/admin
+        // DELETE + schema admin -> config/admin
         let admin_routes = Router::new()
             .route(
                 "/api/v1/config/:namespace/:key",
                 delete(config_handler::delete_config),
+            )
+            .route(
+                "/api/v1/config-schema/:service_name",
+                put(config_schema_handler::upsert_config_schema),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
                 "config", "admin",
@@ -156,6 +176,11 @@ pub fn router(state: AppState) -> Router {
             .route(
                 "/api/v1/config/:namespace",
                 get(config_handler::list_configs),
+            )
+            .route(
+                "/api/v1/config-schema/:service_name",
+                get(config_schema_handler::get_config_schema)
+                    .put(config_schema_handler::upsert_config_schema),
             )
     };
 
