@@ -1,0 +1,570 @@
+# k1s0-quota-client ライブラリ設計
+
+## 概要
+
+quota-server へのクライアント SDK ライブラリ。`QuotaClient` トレイトによりクォータ残量の事前確認・使用量インクリメント・ポリシー取得を統一インターフェースで提供する。check before execute パターンによりリソース超過を事前に阻止し、TTL 付きキャッシュによるポリシーの高速参照を実現する。
+
+クォータポリシーはローカルキャッシュで TTL 付きに保持し、quota-server への問い合わせ頻度を削減する。クォータ超過時は `QuotaExceededError` を返し、呼び出し側でリトライや代替処理への切り替えを判断できるよう設計する。
+
+**配置先**: `regions/system/library/rust/quota-client/`
+
+## 公開 API
+
+| 型・トレイト | 種別 | 説明 |
+|-------------|------|------|
+| `QuotaClient` | トレイト | クォータ操作の抽象インターフェース |
+| `HttpQuotaClient` | 構造体 | quota-server HTTP/gRPC 実装 |
+| `CachedQuotaClient` | 構造体 | ポリシーキャッシュ付きラッパー（TTL 設定可） |
+| `MockQuotaClient` | 構造体 | テスト用モック（feature = "mock" で有効） |
+| `QuotaClientConfig` | 構造体 | サーバー URL・タイムアウト・キャッシュ TTL 設定 |
+| `QuotaStatus` | 構造体 | 許可フラグ・残量・上限・リセット日時 |
+| `QuotaUsage` | 構造体 | クォータ ID・使用量・上限・期間・リセット日時 |
+| `QuotaPolicy` | 構造体 | クォータ ID・上限・期間・リセット戦略 |
+| `QuotaPeriod` | enum | `Hourly` / `Daily` / `Monthly` / `Custom(Duration)` |
+| `QuotaClientError` | enum | 接続エラー・クォータ超過・NotFound 等 |
+
+## Rust 実装
+
+**Cargo.toml**:
+
+```toml
+[package]
+name = "k1s0-quota-client"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+mock = ["mockall"]
+
+[dependencies]
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time"] }
+tracing = "0.1"
+reqwest = { version = "0.12", features = ["json"] }
+chrono = { version = "0.4", features = ["serde"] }
+moka = { version = "0.12", features = ["future"] }
+mockall = { version = "0.13", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+wiremock = "0.6"
+```
+
+**Cargo.toml への追加行**:
+
+```toml
+k1s0-quota-client = { path = "../../system/library/rust/quota-client" }
+# モックを有効化する場合:
+k1s0-quota-client = { path = "../../system/library/rust/quota-client", features = ["mock"] }
+```
+
+**モジュール構成**:
+
+```
+quota-client/
+├── src/
+│   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
+│   ├── client.rs       # QuotaClient トレイト・HttpQuotaClient・CachedQuotaClient・MockQuotaClient
+│   ├── config.rs       # QuotaClientConfig（サーバー URL・タイムアウト・TTL）
+│   ├── model.rs        # QuotaStatus・QuotaUsage・QuotaPolicy・QuotaPeriod
+│   └── error.rs        # QuotaClientError
+└── Cargo.toml
+```
+
+**使用例**:
+
+```rust
+use k1s0_quota_client::{QuotaClient, QuotaClientConfig, HttpQuotaClient, CachedQuotaClient};
+use std::time::Duration;
+
+// HTTP クライアント + キャッシュラッパー
+let config = QuotaClientConfig::new("http://quota-server:8080")
+    .with_timeout(Duration::from_secs(5))
+    .with_policy_cache_ttl(Duration::from_secs(60));
+
+let http_client = HttpQuotaClient::new(config).await.unwrap();
+let client = CachedQuotaClient::new(http_client);
+
+// check before execute パターン
+let status = client.check("storage:tenant-123", 1024 * 1024).await.unwrap();
+if !status.allowed {
+    return Err(AppError::StorageQuotaExceeded);
+}
+
+// 操作実行後に使用量を記録
+let usage = client.increment("storage:tenant-123", 1024 * 1024).await.unwrap();
+println!("Used: {} / {} bytes", usage.used, usage.limit);
+
+// 使用量の確認
+let current = client.get_usage("storage:tenant-123").await.unwrap();
+println!("Reset at: {}", current.reset_at);
+
+// ポリシー取得（キャッシュ済み）
+let policy = client.get_policy("storage:tenant-123").await.unwrap();
+println!("Period: {:?}, Limit: {}", policy.period, policy.limit);
+```
+
+## Go 実装
+
+**配置先**: `regions/system/library/go/quota-client/`
+
+```
+quota-client/
+├── quota_client.go
+├── client.go
+├── cached_client.go
+├── model.go
+├── quota_client_test.go
+├── go.mod
+└── go.sum
+```
+
+**依存関係**: `github.com/stretchr/testify v1.10.0`
+
+**主要インターフェース**:
+
+```go
+type QuotaClient interface {
+    Check(ctx context.Context, quotaID string, amount uint64) (*QuotaStatus, error)
+    Increment(ctx context.Context, quotaID string, amount uint64) (*QuotaUsage, error)
+    GetUsage(ctx context.Context, quotaID string) (*QuotaUsage, error)
+    GetPolicy(ctx context.Context, quotaID string) (*QuotaPolicy, error)
+}
+
+type QuotaStatus struct {
+    Allowed   bool
+    Remaining uint64
+    Limit     uint64
+    ResetAt   time.Time
+}
+
+type QuotaUsage struct {
+    QuotaID string
+    Used    uint64
+    Limit   uint64
+    Period  QuotaPeriod
+    ResetAt time.Time
+}
+
+type QuotaPeriod int
+
+const (
+    PeriodHourly  QuotaPeriod = iota
+    PeriodDaily
+    PeriodMonthly
+    PeriodCustom
+)
+
+func NewHttpQuotaClient(serverURL string, opts ...Option) QuotaClient
+func NewCachedQuotaClient(inner QuotaClient, policyTTL time.Duration) QuotaClient
+```
+
+## TypeScript 実装
+
+**配置先**: `regions/system/library/typescript/quota-client/`
+
+```
+quota-client/
+├── package.json        # "@k1s0/quota-client", "type":"module"
+├── tsconfig.json
+├── vitest.config.ts
+├── src/
+│   └── index.ts        # QuotaClient, HttpQuotaClient, CachedQuotaClient, QuotaStatus, QuotaUsage, QuotaPolicy, QuotaClientError
+└── __tests__/
+    ├── quota-client.test.ts
+    └── cached-client.test.ts
+```
+
+**主要 API**:
+
+```typescript
+export interface QuotaStatus {
+  allowed: boolean;
+  remaining: bigint;
+  limit: bigint;
+  resetAt: Date;
+}
+
+export interface QuotaUsage {
+  quotaId: string;
+  used: bigint;
+  limit: bigint;
+  period: QuotaPeriod;
+  resetAt: Date;
+}
+
+export interface QuotaPolicy {
+  quotaId: string;
+  limit: bigint;
+  period: QuotaPeriod;
+  resetStrategy: 'sliding' | 'fixed';
+}
+
+export type QuotaPeriod = 'hourly' | 'daily' | 'monthly' | { customMs: number };
+
+export interface QuotaClient {
+  check(quotaId: string, amount: bigint): Promise<QuotaStatus>;
+  increment(quotaId: string, amount: bigint): Promise<QuotaUsage>;
+  getUsage(quotaId: string): Promise<QuotaUsage>;
+  getPolicy(quotaId: string): Promise<QuotaPolicy>;
+}
+
+export interface QuotaClientConfig {
+  serverUrl: string;
+  timeoutMs?: number;
+  policyCacheTtlMs?: number;
+}
+
+export class HttpQuotaClient implements QuotaClient {
+  constructor(config: QuotaClientConfig);
+  check(quotaId: string, amount: bigint): Promise<QuotaStatus>;
+  increment(quotaId: string, amount: bigint): Promise<QuotaUsage>;
+  getUsage(quotaId: string): Promise<QuotaUsage>;
+  getPolicy(quotaId: string): Promise<QuotaPolicy>;
+}
+
+export class CachedQuotaClient implements QuotaClient {
+  constructor(inner: QuotaClient, policyTtlMs: number);
+  check(quotaId: string, amount: bigint): Promise<QuotaStatus>;
+  increment(quotaId: string, amount: bigint): Promise<QuotaUsage>;
+  getUsage(quotaId: string): Promise<QuotaUsage>;
+  getPolicy(quotaId: string): Promise<QuotaPolicy>;
+}
+
+export class QuotaExceededError extends Error {
+  constructor(public readonly quotaId: string, public readonly remaining: bigint);
+}
+```
+
+**カバレッジ目標**: 85%以上
+
+## Dart 実装
+
+**配置先**: `regions/system/library/dart/quota_client/`
+
+```
+quota_client/
+├── pubspec.yaml        # k1s0_quota_client
+├── analysis_options.yaml
+├── lib/
+│   ├── quota_client.dart
+│   └── src/
+│       ├── client.dart       # QuotaClient abstract, HttpQuotaClient, CachedQuotaClient
+│       ├── config.dart       # QuotaClientConfig
+│       ├── model.dart        # QuotaStatus, QuotaUsage, QuotaPolicy, QuotaPeriod
+│       └── error.dart        # QuotaClientError
+└── test/
+    └── quota_client_test.dart
+```
+
+**pubspec.yaml 主要依存**:
+
+```yaml
+dependencies:
+  http: ^1.2.0
+  meta: ^1.14.0
+```
+
+**主要インターフェース**:
+
+```dart
+abstract class QuotaClient {
+  Future<QuotaStatus> check(String quotaId, int amount);
+  Future<QuotaUsage> increment(String quotaId, int amount);
+  Future<QuotaUsage> getUsage(String quotaId);
+  Future<QuotaPolicy> getPolicy(String quotaId);
+}
+
+class QuotaStatus {
+  final bool allowed;
+  final int remaining;
+  final int limit;
+  final DateTime resetAt;
+}
+
+class QuotaUsage {
+  final String quotaId;
+  final int used;
+  final int limit;
+  final QuotaPeriod period;
+  final DateTime resetAt;
+}
+
+enum QuotaPeriod { hourly, daily, monthly, custom }
+```
+
+**カバレッジ目標**: 85%以上
+
+## C# 実装
+
+**配置先**: `regions/system/library/csharp/quota-client/`
+
+```
+quota-client/
+├── src/
+│   ├── QuotaClient.csproj
+│   ├── IQuotaClient.cs         # クォータ操作インターフェース
+│   ├── HttpQuotaClient.cs      # HTTP 実装
+│   ├── CachedQuotaClient.cs    # キャッシュラッパー（TTL 付き）
+│   ├── QuotaClientConfig.cs    # サーバー URL・タイムアウト・TTL 設定
+│   ├── QuotaStatus.cs          # 許可フラグ・残量・上限・リセット日時
+│   ├── QuotaUsage.cs           # 使用量・上限・期間・リセット日時
+│   ├── QuotaPolicy.cs          # クォータポリシー
+│   ├── QuotaPeriod.cs          # Hourly / Daily / Monthly / Custom enum
+│   └── QuotaClientException.cs # 公開例外型
+├── tests/
+│   ├── QuotaClient.Tests.csproj
+│   ├── Unit/
+│   │   ├── HttpQuotaClientTests.cs
+│   │   └── CachedQuotaClientTests.cs
+│   └── Integration/
+│       └── QuotaServerIntegrationTests.cs
+├── .editorconfig
+└── README.md
+```
+
+**NuGet 依存関係**:
+
+| パッケージ | 用途 |
+|-----------|------|
+| Microsoft.Extensions.Caching.Memory 9.0 | ポリシーキャッシュ（TTL 付き） |
+
+**名前空間**: `K1s0.System.QuotaClient`
+
+**主要クラス・インターフェース**:
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `IQuotaClient` | interface | クォータ操作の抽象インターフェース |
+| `HttpQuotaClient` | class | HTTP 実装（quota-server 通信） |
+| `CachedQuotaClient` | class | TTL 付きポリシーキャッシュラッパー |
+| `QuotaClientConfig` | record | サーバー URL・タイムアウト・キャッシュ TTL |
+| `QuotaStatus` | record | 許可フラグ・残量・上限・リセット日時 |
+| `QuotaUsage` | record | クォータ ID・使用量・上限・期間・リセット日時 |
+| `QuotaPolicy` | record | クォータ ID・上限・期間・リセット戦略 |
+| `QuotaPeriod` | enum | Hourly / Daily / Monthly / Custom |
+| `QuotaExceededException` | class | クォータ超過例外 |
+
+**主要 API**:
+
+```csharp
+namespace K1s0.System.QuotaClient;
+
+public interface IQuotaClient
+{
+    Task<QuotaStatus> CheckAsync(string quotaId, ulong amount, CancellationToken ct = default);
+    Task<QuotaUsage> IncrementAsync(string quotaId, ulong amount, CancellationToken ct = default);
+    Task<QuotaUsage> GetUsageAsync(string quotaId, CancellationToken ct = default);
+    Task<QuotaPolicy> GetPolicyAsync(string quotaId, CancellationToken ct = default);
+}
+
+public record QuotaClientConfig(
+    string ServerUrl,
+    TimeSpan? Timeout = null,
+    TimeSpan? PolicyCacheTtl = null);
+
+public record QuotaStatus(
+    bool Allowed,
+    ulong Remaining,
+    ulong Limit,
+    DateTimeOffset ResetAt);
+
+public record QuotaUsage(
+    string QuotaId,
+    ulong Used,
+    ulong Limit,
+    QuotaPeriod Period,
+    DateTimeOffset ResetAt);
+
+public enum QuotaPeriod { Hourly, Daily, Monthly, Custom }
+```
+
+**カバレッジ目標**: 85%以上
+
+---
+
+## Swift
+
+### パッケージ構成
+- ターゲット: `K1s0QuotaClient`
+- Swift 6.0 / swift-tools-version: 6.0
+- プラットフォーム: macOS 14+, iOS 17+
+
+### 主要な公開API
+
+```swift
+// クォータクライアントプロトコル
+public protocol QuotaClient: Sendable {
+    func check(quotaId: String, amount: UInt64) async throws -> QuotaStatus
+    func increment(quotaId: String, amount: UInt64) async throws -> QuotaUsage
+    func getUsage(quotaId: String) async throws -> QuotaUsage
+    func getPolicy(quotaId: String) async throws -> QuotaPolicy
+}
+
+// クォータステータス
+public struct QuotaStatus: Sendable, Codable {
+    public let allowed: Bool
+    public let remaining: UInt64
+    public let limit: UInt64
+    public let resetAt: Date
+}
+
+// 使用量
+public struct QuotaUsage: Sendable, Codable {
+    public let quotaId: String
+    public let used: UInt64
+    public let limit: UInt64
+    public let period: QuotaPeriod
+    public let resetAt: Date
+}
+
+// 期間
+public enum QuotaPeriod: Sendable, Codable {
+    case hourly
+    case daily
+    case monthly
+    case custom(seconds: Int)
+}
+
+// 設定
+public struct QuotaClientConfig: Sendable {
+    public let serverUrl: URL
+    public let timeout: Duration
+    public let policyCacheTtl: Duration
+
+    public init(
+        serverUrl: URL,
+        timeout: Duration = .seconds(5),
+        policyCacheTtl: Duration = .seconds(60)
+    )
+}
+
+// HTTP 実装
+public actor HttpQuotaClient: QuotaClient {
+    public init(config: QuotaClientConfig)
+    public func check(quotaId: String, amount: UInt64) async throws -> QuotaStatus
+    public func increment(quotaId: String, amount: UInt64) async throws -> QuotaUsage
+    public func getUsage(quotaId: String) async throws -> QuotaUsage
+    public func getPolicy(quotaId: String) async throws -> QuotaPolicy
+}
+```
+
+### エラー型
+
+```swift
+public enum QuotaClientError: Error, Sendable {
+    case connectionFailed(underlying: Error)
+    case quotaExceeded(quotaId: String, remaining: UInt64)
+    case notFound(quotaId: String)
+    case invalidResponse
+}
+```
+
+### テスト
+- Swift Testing フレームワーク（@Suite, @Test, #expect）
+- カバレッジ目標: 85%以上
+
+---
+
+## Python 実装
+
+**配置先**: `regions/system/library/python/quota_client/`
+
+### パッケージ構造
+
+```
+quota_client/
+├── pyproject.toml
+├── src/
+│   └── k1s0_quota_client/
+│       ├── __init__.py       # 公開 API（再エクスポート）
+│       ├── client.py         # QuotaClient ABC・HttpQuotaClient・CachedQuotaClient
+│       ├── config.py         # QuotaClientConfig dataclass
+│       ├── model.py          # QuotaStatus・QuotaUsage・QuotaPolicy・QuotaPeriod
+│       ├── exceptions.py     # QuotaClientError・QuotaExceededError
+│       └── py.typed
+└── tests/
+    ├── test_client.py
+    └── test_cached_client.py
+```
+
+### 主要クラス・インターフェース
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `QuotaClient` | ABC | クォータ操作抽象基底クラス |
+| `HttpQuotaClient` | class | HTTP 実装（httpx 使用） |
+| `CachedQuotaClient` | class | TTL 付きポリシーキャッシュラッパー |
+| `QuotaClientConfig` | dataclass | サーバー URL・タイムアウト・TTL 設定 |
+| `QuotaStatus` | dataclass | 許可フラグ・残量・上限・リセット日時 |
+| `QuotaUsage` | dataclass | クォータ ID・使用量・上限・期間・リセット日時 |
+| `QuotaPeriod` | Enum | HOURLY / DAILY / MONTHLY / CUSTOM |
+| `QuotaExceededError` | Exception | クォータ超過エラー |
+
+### 使用例
+
+```python
+import asyncio
+from k1s0_quota_client import (
+    HttpQuotaClient, CachedQuotaClient, QuotaClientConfig,
+    QuotaExceededError,
+)
+from datetime import timedelta
+
+config = QuotaClientConfig(
+    server_url="http://quota-server:8080",
+    timeout=timedelta(seconds=5),
+    policy_cache_ttl=timedelta(seconds=60),
+)
+inner = HttpQuotaClient(config)
+client = CachedQuotaClient(inner, policy_ttl=timedelta(seconds=60))
+
+# check before execute パターン
+status = await client.check("storage:tenant-123", 1024 * 1024)
+if not status.allowed:
+    raise QuotaExceededError("storage:tenant-123", status.remaining)
+
+# 使用量インクリメント
+usage = await client.increment("storage:tenant-123", 1024 * 1024)
+print(f"Used: {usage.used} / {usage.limit} bytes")
+
+# ポリシー取得（キャッシュ済み）
+policy = await client.get_policy("storage:tenant-123")
+print(f"Period: {policy.period}, Limit: {policy.limit}")
+```
+
+### 依存ライブラリ
+
+| パッケージ | バージョン | 用途 |
+|-----------|-----------|------|
+| httpx | >=0.27 | 非同期 HTTP クライアント |
+| cachetools | >=5.5 | TTL 付きポリシーキャッシュ |
+| pydantic | >=2.10 | 設定バリデーション |
+
+### テスト方針
+
+- テストフレームワーク: pytest
+- リント/フォーマット: ruff
+- モック: unittest.mock / pytest-mock / respx（httpx モック）
+- カバレッジ目標: 85%以上
+- 実行: `pytest` / `ruff check .`
+
+## テスト戦略
+
+| テスト種別 | 対象 | ツール |
+|-----------|------|--------|
+| ユニットテスト（`#[cfg(test)]`） | check/increment ロジック・キャッシュ TTL 判定・エラーハンドリング | tokio::test |
+| モックテスト | `mockall` による QuotaClient モック・クォータ超過シナリオ | mockall (feature = "mock") |
+| キャッシュテスト | TTL 期限切れでの再取得・TTL 内でのキャッシュヒット検証 | tokio::test + 時間操作 |
+| 統合テスト | wiremock による quota-server レスポンスシミュレーション | wiremock |
+| プロパティテスト | 任意クォータ ID・使用量での check/increment ラウンドトリップ | proptest |
+
+## 関連ドキュメント
+
+- [system-library-概要](system-library-概要.md) — ライブラリ一覧・テスト方針
+- [system-library-file-client設計](system-library-file-client設計.md) — ストレージクォータ管理の利用例
+- [system-library-cache設計](system-library-cache設計.md) — ポリシーキャッシュの実装参考
+- [system-ratelimit-server設計](system-ratelimit-server設計.md) — レートリミットとクォータの関係

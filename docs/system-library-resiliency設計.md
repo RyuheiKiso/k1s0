@@ -1,0 +1,588 @@
+# k1s0-resiliency ライブラリ設計
+
+## 概要
+
+retry・circuit-breaker・bulkhead・timeout を統合した複合回復力パターンライブラリ。Resilience4j 相当の機能を単一の `ResiliencyPolicy` で一括設定し、`ResiliencyDecorator` でAny関数をラップして実行する。
+
+個別ライブラリ（k1s0-retry、k1s0-circuit-breaker）を内部で組み合わせることでシンプルな API を実現する。OpenTelemetry メトリクス連携により回復力イベント（リトライ回数・サーキットブレーカー状態・バルクヘッド拒否数）を自動記録する。featureflag-server と連携してポリシーのホットリロードにも対応する。
+
+**配置先**: `regions/system/library/rust/resiliency/`
+
+## 公開 API
+
+| 型・トレイト | 種別 | 説明 |
+|-------------|------|------|
+| `ResiliencyPolicy` | 構造体 | retry・circuit-breaker・bulkhead・timeout の統合設定 |
+| `RetryConfig` | 構造体 | 最大試行回数・指数バックオフ・リトライ対象エラー設定 |
+| `CircuitBreakerConfig` | 構造体 | 失敗閾値・復旧タイムアウト・HalfOpen 試行数 |
+| `BulkheadConfig` | 構造体 | 最大同時実行数・待機タイムアウト |
+| `ResiliencyDecorator` | 構造体 | ポリシーを適用した関数実行器 |
+| `ResiliencyMetrics` | 構造体 | OpenTelemetry メトリクス（回復力イベント全種別） |
+| `ResiliencyError` | enum | `MaxRetriesExceeded`・`CircuitOpen`・`BulkheadFull`・`Timeout` |
+
+## Rust 実装
+
+**Cargo.toml**:
+
+```toml
+[package]
+name = "k1s0-resiliency"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+metrics = ["opentelemetry"]
+hot-reload = ["k1s0-featureflag"]
+
+[dependencies]
+async-trait = "0.1"
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time"] }
+tracing = "0.1"
+rand = "0.8"
+opentelemetry = { version = "0.27", optional = true }
+k1s0-retry = { path = "../retry" }
+k1s0-circuit-breaker = { path = "../circuit-breaker" }
+k1s0-featureflag = { path = "../featureflag", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+```
+
+**Cargo.toml への追加行**:
+
+```toml
+k1s0-resiliency = { path = "../../system/library/rust/resiliency" }
+# メトリクス連携を有効化する場合:
+k1s0-resiliency = { path = "../../system/library/rust/resiliency", features = ["metrics"] }
+# ホットリロードを有効化する場合:
+k1s0-resiliency = { path = "../../system/library/rust/resiliency", features = ["hot-reload"] }
+```
+
+**モジュール構成**:
+
+```
+resiliency/
+├── src/
+│   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
+│   ├── policy.rs       # ResiliencyPolicy・RetryConfig・CircuitBreakerConfig・BulkheadConfig
+│   ├── decorator.rs    # ResiliencyDecorator（統合実行器）
+│   ├── bulkhead.rs     # Bulkhead（セマフォベース同時実行制御）
+│   ├── metrics.rs      # ResiliencyMetrics（OTel メトリクス）
+│   └── error.rs        # ResiliencyError
+└── Cargo.toml
+```
+
+**使用例**:
+
+```rust
+use k1s0_resiliency::{ResiliencyPolicy, RetryConfig, CircuitBreakerConfig, BulkheadConfig};
+use std::time::Duration;
+
+// 統合ポリシーを定義
+let policy = ResiliencyPolicy::builder()
+    .retry(RetryConfig {
+        max_attempts: 3,
+        backoff: ExponentialBackoff::new(Duration::from_millis(100), Duration::from_secs(5)),
+        retryable_errors: vec!["network_error", "timeout"],
+    })
+    .circuit_breaker(CircuitBreakerConfig {
+        failure_threshold: 5,
+        recovery_timeout: Duration::from_secs(30),
+        half_open_max_calls: 2,
+    })
+    .bulkhead(BulkheadConfig {
+        max_concurrent_calls: 20,
+        max_wait_duration: Duration::from_millis(500),
+    })
+    .timeout(Duration::from_secs(10))
+    .build();
+
+// デコレーターでラップして実行
+let decorator = policy.decorate();
+
+let result = decorator.execute(|| async {
+    grpc_client.call_service(request.clone()).await
+}).await?;
+
+// ホットリロード対応（featureflag-server と連携）
+let reloadable_policy = ResiliencyPolicy::from_featureflag("payment-service-policy", &ff_client).await?;
+```
+
+## Go 実装
+
+**配置先**: `regions/system/library/go/resiliency/`
+
+```
+resiliency/
+├── resiliency.go
+├── policy.go
+├── decorator.go
+├── bulkhead.go
+├── metrics.go
+├── resiliency_test.go
+├── go.mod
+└── go.sum
+```
+
+**依存関係**: `go.opentelemetry.io/otel v1.34`, `github.com/stretchr/testify v1.10.0`
+
+**主要インターフェース**:
+
+```go
+type RetryConfig struct {
+    MaxAttempts int
+    BaseDelay   time.Duration
+    MaxDelay    time.Duration
+    Jitter      bool
+    RetryableErrors []string
+}
+
+type CircuitBreakerConfig struct {
+    FailureThreshold int
+    RecoveryTimeout  time.Duration
+    HalfOpenMaxCalls int
+}
+
+type BulkheadConfig struct {
+    MaxConcurrentCalls int
+    MaxWaitDuration    time.Duration
+}
+
+type ResiliencyPolicy struct {
+    Retry          *RetryConfig
+    CircuitBreaker *CircuitBreakerConfig
+    Bulkhead       *BulkheadConfig
+    Timeout        time.Duration
+}
+
+type ResiliencyDecorator struct {
+    // unexported fields
+}
+
+func NewResiliencyDecorator(policy ResiliencyPolicy) *ResiliencyDecorator
+
+func Execute[T any](ctx context.Context, d *ResiliencyDecorator, fn func() (T, error)) (T, error)
+```
+
+## TypeScript 実装
+
+**配置先**: `regions/system/library/typescript/resiliency/`
+
+```
+resiliency/
+├── package.json        # "@k1s0/resiliency", "type":"module"
+├── tsconfig.json
+├── vitest.config.ts
+├── src/
+│   └── index.ts        # ResiliencyPolicy, RetryConfig, CircuitBreakerConfig, BulkheadConfig, ResiliencyDecorator, ResiliencyError
+└── __tests__/
+    ├── resiliency.test.ts
+    └── bulkhead.test.ts
+```
+
+**主要 API**:
+
+```typescript
+export interface RetryConfig {
+  maxAttempts: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+  jitter?: boolean;
+  retryableErrors?: string[];
+}
+
+export interface CircuitBreakerConfig {
+  failureThreshold: number;
+  recoveryTimeoutMs: number;
+  halfOpenMaxCalls?: number;
+}
+
+export interface BulkheadConfig {
+  maxConcurrentCalls: number;
+  maxWaitDurationMs: number;
+}
+
+export interface ResiliencyPolicy {
+  retry?: RetryConfig;
+  circuitBreaker?: CircuitBreakerConfig;
+  bulkhead?: BulkheadConfig;
+  timeoutMs?: number;
+}
+
+export class ResiliencyDecorator {
+  constructor(policy: ResiliencyPolicy);
+  execute<T>(fn: () => Promise<T>): Promise<T>;
+}
+
+export function withResiliency<T>(
+  policy: ResiliencyPolicy,
+  fn: () => Promise<T>
+): Promise<T>;
+
+export class ResiliencyError extends Error {
+  constructor(message: string, public readonly kind: 'retry_exceeded' | 'circuit_open' | 'bulkhead_full' | 'timeout');
+}
+```
+
+**カバレッジ目標**: 85%以上
+
+## Dart 実装
+
+**配置先**: `regions/system/library/dart/resiliency/`
+
+```
+resiliency/
+├── pubspec.yaml        # k1s0_resiliency
+├── analysis_options.yaml
+├── lib/
+│   ├── resiliency.dart
+│   └── src/
+│       ├── policy.dart       # ResiliencyPolicy・RetryConfig・CircuitBreakerConfig・BulkheadConfig
+│       ├── decorator.dart    # ResiliencyDecorator
+│       ├── bulkhead.dart     # Bulkhead（セマフォベース）
+│       └── error.dart        # ResiliencyError
+└── test/
+    ├── resiliency_test.dart
+    └── bulkhead_test.dart
+```
+
+**pubspec.yaml 主要依存**:
+
+```yaml
+dependencies:
+  meta: ^1.14.0
+```
+
+**主要インターフェース**:
+
+```dart
+class RetryConfig {
+  final int maxAttempts;
+  final Duration baseDelay;
+  final Duration maxDelay;
+  final bool jitter;
+  final List<String> retryableErrors;
+}
+
+class CircuitBreakerConfig {
+  final int failureThreshold;
+  final Duration recoveryTimeout;
+  final int halfOpenMaxCalls;
+}
+
+class BulkheadConfig {
+  final int maxConcurrentCalls;
+  final Duration maxWaitDuration;
+}
+
+class ResiliencyPolicy {
+  final RetryConfig? retry;
+  final CircuitBreakerConfig? circuitBreaker;
+  final BulkheadConfig? bulkhead;
+  final Duration? timeout;
+}
+
+class ResiliencyDecorator {
+  ResiliencyDecorator(ResiliencyPolicy policy);
+  Future<T> execute<T>(Future<T> Function() fn);
+}
+```
+
+**カバレッジ目標**: 85%以上
+
+## C# 実装
+
+**配置先**: `regions/system/library/csharp/resiliency/`
+
+```
+resiliency/
+├── src/
+│   ├── Resiliency.csproj
+│   ├── ResiliencyPolicy.cs         # 統合ポリシー設定
+│   ├── RetryConfig.cs              # リトライ設定
+│   ├── CircuitBreakerConfig.cs     # サーキットブレーカー設定
+│   ├── BulkheadConfig.cs           # バルクヘッド設定
+│   ├── ResiliencyDecorator.cs      # 統合実行器
+│   ├── Bulkhead.cs                 # セマフォベース同時実行制御
+│   ├── ResiliencyMetrics.cs        # OpenTelemetry メトリクス連携
+│   └── ResiliencyException.cs      # 公開例外型
+├── tests/
+│   ├── Resiliency.Tests.csproj
+│   ├── Unit/
+│   │   ├── ResiliencyDecoratorTests.cs
+│   │   └── BulkheadTests.cs
+│   └── Integration/
+│       └── ResiliencyIntegrationTests.cs
+├── .editorconfig
+└── README.md
+```
+
+**NuGet 依存関係**:
+
+| パッケージ | 用途 |
+|-----------|------|
+| OpenTelemetry | メトリクス連携 |
+| Microsoft.Extensions.Http.Resilience 9.0 | Polly ベースの HTTP 回復力基盤（内部活用） |
+
+**名前空間**: `K1s0.System.Resiliency`
+
+**主要クラス・インターフェース**:
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `ResiliencyPolicy` | record | retry・circuit-breaker・bulkhead・timeout の統合設定 |
+| `RetryConfig` | record | 最大試行回数・基底遅延・最大遅延・ジッター |
+| `CircuitBreakerConfig` | record | 失敗閾値・復旧タイムアウト・HalfOpen 試行数 |
+| `BulkheadConfig` | record | 最大同時実行数・待機タイムアウト |
+| `ResiliencyDecorator` | class | 統合ポリシーを適用した関数実行器 |
+| `Bulkhead` | class | SemaphoreSlim ベースの同時実行制御 |
+| `ResiliencyMetrics` | class | OpenTelemetry メトリクス記録 |
+| `ResiliencyException` | class | 回復力パターンの公開例外型 |
+
+**主要 API**:
+
+```csharp
+namespace K1s0.System.Resiliency;
+
+public record RetryConfig(
+    int MaxAttempts,
+    TimeSpan BaseDelay,
+    TimeSpan MaxDelay,
+    bool Jitter = true,
+    IReadOnlyList<string>? RetryableErrors = null);
+
+public record CircuitBreakerConfig(
+    int FailureThreshold,
+    TimeSpan RecoveryTimeout,
+    int HalfOpenMaxCalls = 1);
+
+public record BulkheadConfig(
+    int MaxConcurrentCalls,
+    TimeSpan MaxWaitDuration);
+
+public record ResiliencyPolicy(
+    RetryConfig? Retry = null,
+    CircuitBreakerConfig? CircuitBreaker = null,
+    BulkheadConfig? Bulkhead = null,
+    TimeSpan? Timeout = null);
+
+public class ResiliencyDecorator
+{
+    public ResiliencyDecorator(ResiliencyPolicy policy);
+
+    public Task<T> ExecuteAsync<T>(
+        Func<CancellationToken, Task<T>> fn,
+        CancellationToken ct = default);
+}
+
+public static class ResiliencyExtensions
+{
+    public static ResiliencyDecorator Decorate(this ResiliencyPolicy policy);
+}
+```
+
+**カバレッジ目標**: 85%以上
+
+---
+
+## Swift
+
+### パッケージ構成
+- ターゲット: `K1s0Resiliency`
+- Swift 6.0 / swift-tools-version: 6.0
+- プラットフォーム: macOS 14+, iOS 17+
+
+### 主要な公開API
+
+```swift
+// リトライ設定
+public struct RetryConfig: Sendable {
+    public let maxAttempts: Int
+    public let baseDelay: Duration
+    public let maxDelay: Duration
+    public let jitter: Bool
+    public let retryableErrors: [String]
+
+    public init(
+        maxAttempts: Int = 3,
+        baseDelay: Duration = .milliseconds(100),
+        maxDelay: Duration = .seconds(5),
+        jitter: Bool = true,
+        retryableErrors: [String] = []
+    )
+}
+
+// サーキットブレーカー設定
+public struct CircuitBreakerConfig: Sendable {
+    public let failureThreshold: Int
+    public let recoveryTimeout: Duration
+    public let halfOpenMaxCalls: Int
+
+    public init(
+        failureThreshold: Int = 5,
+        recoveryTimeout: Duration = .seconds(30),
+        halfOpenMaxCalls: Int = 2
+    )
+}
+
+// バルクヘッド設定
+public struct BulkheadConfig: Sendable {
+    public let maxConcurrentCalls: Int
+    public let maxWaitDuration: Duration
+
+    public init(maxConcurrentCalls: Int = 20, maxWaitDuration: Duration = .milliseconds(500))
+}
+
+// 統合ポリシー
+public struct ResiliencyPolicy: Sendable {
+    public let retry: RetryConfig?
+    public let circuitBreaker: CircuitBreakerConfig?
+    public let bulkhead: BulkheadConfig?
+    public let timeout: Duration?
+
+    public init(
+        retry: RetryConfig? = nil,
+        circuitBreaker: CircuitBreakerConfig? = nil,
+        bulkhead: BulkheadConfig? = nil,
+        timeout: Duration? = nil
+    )
+}
+
+// 統合実行器
+public actor ResiliencyDecorator {
+    public init(policy: ResiliencyPolicy)
+
+    public func execute<T: Sendable>(
+        _ operation: @Sendable () async throws -> T
+    ) async throws -> T
+}
+
+public func withResiliency<T: Sendable>(
+    policy: ResiliencyPolicy,
+    operation: @Sendable () async throws -> T
+) async throws -> T
+```
+
+### エラー型
+
+```swift
+public enum ResiliencyError: Error, Sendable {
+    case maxRetriesExceeded(attempts: Int, lastError: Error)
+    case circuitBreakerOpen(remainingDuration: Duration)
+    case bulkheadFull(maxConcurrent: Int)
+    case timeout(after: Duration)
+}
+```
+
+### テスト
+- Swift Testing フレームワーク（@Suite, @Test, #expect）
+- カバレッジ目標: 85%以上
+
+---
+
+## Python 実装
+
+**配置先**: `regions/system/library/python/resiliency/`
+
+### パッケージ構造
+
+```
+resiliency/
+├── pyproject.toml
+├── src/
+│   └── k1s0_resiliency/
+│       ├── __init__.py       # 公開 API（再エクスポート）
+│       ├── policy.py         # ResiliencyPolicy・RetryConfig・CircuitBreakerConfig・BulkheadConfig dataclass
+│       ├── decorator.py      # ResiliencyDecorator（統合実行器）
+│       ├── bulkhead.py       # Bulkhead（asyncio.Semaphore ベース）
+│       ├── metrics.py        # ResiliencyMetrics（OTel 連携）
+│       ├── exceptions.py     # ResiliencyError 系例外
+│       └── py.typed
+└── tests/
+    ├── test_decorator.py
+    └── test_bulkhead.py
+```
+
+### 主要クラス・インターフェース
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `ResiliencyPolicy` | dataclass | retry・circuit-breaker・bulkhead・timeout の統合設定 |
+| `RetryConfig` | dataclass | 最大試行回数・基底遅延・最大遅延・ジッター |
+| `CircuitBreakerConfig` | dataclass | 失敗閾値・復旧タイムアウト・HalfOpen 試行数 |
+| `BulkheadConfig` | dataclass | 最大同時実行数・待機タイムアウト |
+| `ResiliencyDecorator` | class | 統合ポリシーを適用した関数実行器 |
+| `Bulkhead` | class | asyncio.Semaphore ベースの同時実行制御 |
+| `ResiliencyError` | Exception | 回復力パターンエラー基底クラス |
+
+### 使用例
+
+```python
+import asyncio
+from k1s0_resiliency import (
+    ResiliencyPolicy, RetryConfig, CircuitBreakerConfig,
+    BulkheadConfig, ResiliencyDecorator, with_resiliency,
+)
+from datetime import timedelta
+
+# 統合ポリシーを定義
+policy = ResiliencyPolicy(
+    retry=RetryConfig(
+        max_attempts=3,
+        base_delay=0.1,
+        max_delay=5.0,
+        jitter=True,
+    ),
+    circuit_breaker=CircuitBreakerConfig(
+        failure_threshold=5,
+        recovery_timeout=30.0,
+        half_open_max_calls=2,
+    ),
+    bulkhead=BulkheadConfig(
+        max_concurrent_calls=20,
+        max_wait_duration=0.5,
+    ),
+    timeout=timedelta(seconds=10),
+)
+
+# デコレーターでラップして実行
+decorator = ResiliencyDecorator(policy)
+
+result = await decorator.execute(grpc_client.call_service, request)
+
+# 関数型スタイル
+result = await with_resiliency(policy, lambda: grpc_client.call_service(request))
+```
+
+### 依存ライブラリ
+
+| パッケージ | バージョン | 用途 |
+|-----------|-----------|------|
+| opentelemetry-api | >=1.29 | メトリクス連携 |
+
+### テスト方針
+
+- テストフレームワーク: pytest
+- リント/フォーマット: ruff
+- モック: unittest.mock / pytest-mock
+- カバレッジ目標: 85%以上
+- 実行: `pytest` / `ruff check .`
+
+## テスト戦略
+
+| テスト種別 | 対象 | ツール |
+|-----------|------|--------|
+| ユニットテスト（`#[cfg(test)]`） | 各ポリシー要素の単独動作・組み合わせ動作の検証 | tokio::test |
+| バルクヘッドテスト | 最大同時実行数の上限制御・待機タイムアウト発火確認 | tokio::test（複数スポーン） |
+| 統合テスト | retry→circuit-breaker の連携・全要素統合シナリオ | tokio::test |
+| カオステスト | ランダム失敗注入によるポリシー組み合わせの安定性検証 | proptest |
+| ホットリロードテスト | featureflag 変更イベントによるポリシー動的更新の検証 | モック featureflag-server |
+
+## 関連ドキュメント
+
+- [system-library-概要](system-library-概要.md) — ライブラリ一覧・テスト方針
+- [system-library-retry設計](system-library-retry設計.md) — k1s0-retry ライブラリ（内部依存）
+- [system-library-circuit-breaker設計](system-library-circuit-breaker設計.md) — k1s0-circuit-breaker ライブラリ（内部依存）
+- [可観測性設計](可観測性設計.md) — OpenTelemetry メトリクス設計
+- [gRPC設計](gRPC設計.md) — サービス間呼び出し設計
