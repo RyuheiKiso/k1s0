@@ -3,7 +3,12 @@ use serde_json::json;
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
+{% if tier == "system" %}
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+{% else %}
+use k1s0_telemetry::TelemetryConfig;
+use k1s0_auth::JwksVerifier;
+{% endif %}
 
 mod adapter;
 mod domain;
@@ -14,16 +19,39 @@ use infra::config::Config;
 
 #[tokio::main]
 async fn main() {
+{% if tier == "system" %}
     // --- Logger ---
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::try_from_default_env()
             .unwrap_or_else(|_| "info".into()))
         .with(tracing_subscriber::fmt::layer().json())
         .init();
-
+{% endif %}
     // --- Config ---
     let config = Config::load("config/config.yaml")
         .expect("Failed to load config");
+{% if tier != "system" %}
+    // --- Telemetry (k1s0-telemetry) ---
+    k1s0_telemetry::init_telemetry(&TelemetryConfig {
+        service_name: config.app.name.clone(),
+        version: config.app.version.clone(),
+        tier: config.app.tier.clone(),
+        environment: config.app.environment.clone(),
+        trace_endpoint: config.observability.trace.enabled
+            .then(|| config.observability.trace.endpoint.clone()),
+        sample_rate: config.observability.trace.sample_rate,
+        log_level: config.observability.log.level.clone(),
+    })
+    .expect("Failed to init telemetry");
+
+    // --- Auth Verifier (k1s0-auth) ---
+    let _verifier = JwksVerifier::new(
+        config.auth.oidc.as_ref().map(|o| o.jwks_uri.as_str()).unwrap_or(""),
+        &config.auth.jwt.issuer,
+        &config.auth.jwt.audience,
+        std::time::Duration::from_secs(600),
+    );
+{% endif %}
 
 {% if has_database %}
     // --- Database ---
@@ -113,6 +141,9 @@ async fn main() {
         .with_graceful_shutdown(shutdown_signal())
         .await
         .expect("Server error");
+{% if tier != "system" %}
+    k1s0_telemetry::shutdown();
+{% endif %}
 }
 
 async fn shutdown_signal() {

@@ -102,6 +102,10 @@ pub struct TemplateContext {
     pub grpc_port: u16,
     /// サーバー言語 (`DockerCompose` 用: go / rust)
     pub server_language: String,
+    /// system library への相対パス (Rust Cargo.toml からの相対パス)
+    pub system_library_rust_path: String,
+    /// system library への相対パス (Go go.mod からの相対パス)
+    pub system_library_go_local_path: String,
 }
 
 /// `TemplateContext` を構築するためのビルダー。
@@ -372,6 +376,20 @@ impl TemplateContextBuilder {
         // namespace の導出: "k1s0-{tier}"
         let namespace = format!("k1s0-{}", self.tier);
 
+        // system library への相対パス計算（Cargo.toml / go.mod から regions/system/library/ へ）
+        // business: regions/business/{domain}/server/{lang}/{name}/ → 5段上 → regions/
+        // service:  regions/service/{name}/server/{lang}/          → 4段上 → regions/
+        let system_library_rust_path = match self.tier.as_str() {
+            "business" => "../../../../../system/library/rust".to_string(),
+            "service" => "../../../../system/library/rust".to_string(),
+            _ => String::new(),
+        };
+        let system_library_go_local_path = match self.tier.as_str() {
+            "business" => "../../../../../system/library/go".to_string(),
+            "service" => "../../../../system/library/go".to_string(),
+            _ => String::new(),
+        };
+
         // server_language の導出: 明示的に設定されていなければ language を使用
         let server_language = if self.server_language.is_empty() {
             self.language.clone()
@@ -413,6 +431,8 @@ impl TemplateContextBuilder {
             server_port: self.server_port,
             grpc_port: self.grpc_port,
             server_language,
+            system_library_rust_path,
+            system_library_go_local_path,
         }
     }
 }
@@ -457,6 +477,14 @@ impl TemplateContext {
         ctx.insert("server_port", &self.server_port);
         ctx.insert("grpc_port", &self.grpc_port);
         ctx.insert("server_language", &self.server_language);
+        ctx.insert(
+            "system_library_rust_path",
+            &self.system_library_rust_path,
+        );
+        ctx.insert(
+            "system_library_go_local_path",
+            &self.system_library_go_local_path,
+        );
         ctx
     }
 }

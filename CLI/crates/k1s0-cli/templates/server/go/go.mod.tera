@@ -40,4 +40,17 @@ require (
 {% if has_redis %}
 	github.com/redis/go-redis/v9 v9.7.0
 {% endif %}
+{% if tier != "system" %}
+	github.com/k1s0-platform/system-library-go-config v0.1.0
+	github.com/k1s0-platform/system-library-go-telemetry v0.1.0
+	github.com/k1s0-platform/system-library-go-auth v0.1.0
+{% endif %}
 )
+{% if tier != "system" %}
+
+replace (
+	github.com/k1s0-platform/system-library-go-config => {{ system_library_go_local_path }}/config
+	github.com/k1s0-platform/system-library-go-telemetry => {{ system_library_go_local_path }}/telemetry
+	github.com/k1s0-platform/system-library-go-auth => {{ system_library_go_local_path }}/auth
+)
+{% endif %}

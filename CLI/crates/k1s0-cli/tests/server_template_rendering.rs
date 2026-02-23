@@ -1642,3 +1642,260 @@ fn test_rust_server_rest_usecase_has_delete() {
         "Rust usecase should have delete method"
     );
 }
+
+// =========================================================================
+// system library 統合テスト
+// =========================================================================
+
+/// business tier の Rust サーバーをレンダリングするヘルパー。
+fn render_server_business_rust(api_style: &str) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let ctx = TemplateContextBuilder::new("ledger-api", "business", "rust", "server")
+        .domain("accounting")
+        .api_style(api_style)
+        .build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+    (tmp, names)
+}
+
+/// business tier の Go サーバーをレンダリングするヘルパー。
+fn render_server_business_go(api_style: &str) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let ctx = TemplateContextBuilder::new("ledger-api", "business", "go", "server")
+        .domain("accounting")
+        .api_style(api_style)
+        .build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+    (tmp, names)
+}
+
+/// system tier のサーバーをレンダリングするヘルパー。
+fn render_server_system(lang: &str, api_style: &str) -> (TempDir, Vec<String>) {
+    let tpl_dir = template_dir();
+    let tmp = TempDir::new().unwrap();
+    let output_dir = tmp.path().join("output");
+    fs::create_dir_all(&output_dir).unwrap();
+
+    let ctx = TemplateContextBuilder::new("auth-server", "system", lang, "server")
+        .api_style(api_style)
+        .build();
+    let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
+    let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
+    let names: Vec<String> = generated
+        .iter()
+        .map(|p| {
+            p.strip_prefix(&output_dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+    (tmp, names)
+}
+
+// --- Rust: business tier ---
+
+#[test]
+fn test_rust_business_server_cargo_toml_has_system_libs() {
+    let (tmp, _) = render_server_business_rust("rest");
+    let content = read_output(&tmp, "Cargo.toml");
+
+    // system library 依存が含まれる
+    assert!(
+        content.contains("k1s0-config"),
+        "k1s0-config should be in business tier Cargo.toml"
+    );
+    assert!(
+        content.contains("k1s0-telemetry"),
+        "k1s0-telemetry should be in business tier Cargo.toml"
+    );
+    assert!(
+        content.contains("k1s0-auth"),
+        "k1s0-auth should be in business tier Cargo.toml"
+    );
+    // パスに business tier の相対パスが含まれる
+    assert!(
+        content.contains("../../../../../system/library/rust"),
+        "system library path should use 5-level relative path for business tier"
+    );
+}
+
+#[test]
+fn test_rust_service_server_cargo_toml_has_system_libs() {
+    let (tmp, _) = render_server("rust", "rest", false, "", false, false);
+    let content = read_output(&tmp, "Cargo.toml");
+
+    assert!(
+        content.contains("k1s0-config"),
+        "k1s0-config should be in service tier Cargo.toml"
+    );
+    assert!(
+        content.contains("k1s0-telemetry"),
+        "k1s0-telemetry should be in service tier Cargo.toml"
+    );
+    assert!(
+        content.contains("k1s0-auth"),
+        "k1s0-auth should be in service tier Cargo.toml"
+    );
+    // パスに service tier の相対パスが含まれる
+    assert!(
+        content.contains("../../../../system/library/rust"),
+        "system library path should use 4-level relative path for service tier"
+    );
+}
+
+#[test]
+fn test_rust_service_server_main_rs_has_telemetry_init() {
+    let (tmp, _) = render_server("rust", "rest", false, "", false, false);
+    let content = read_output(&tmp, "src/main.rs");
+
+    assert!(
+        content.contains("k1s0_telemetry::init_telemetry"),
+        "main.rs should call k1s0_telemetry::init_telemetry for service tier"
+    );
+    assert!(
+        content.contains("k1s0_auth::JwksVerifier") || content.contains("JwksVerifier::new"),
+        "main.rs should initialize JwksVerifier for service tier"
+    );
+    assert!(
+        content.contains("k1s0_telemetry::shutdown"),
+        "main.rs should call k1s0_telemetry::shutdown for service tier"
+    );
+}
+
+// --- Rust: system tier (回帰テスト) ---
+
+#[test]
+fn test_rust_system_server_cargo_toml_has_no_k1s0_lib() {
+    let (tmp, _) = render_server_system("rust", "rest");
+    let content = read_output(&tmp, "Cargo.toml");
+
+    // system tier は system library を参照しない
+    assert!(
+        !content.contains("k1s0-config"),
+        "k1s0-config should NOT be in system tier Cargo.toml"
+    );
+    assert!(
+        !content.contains("k1s0-telemetry"),
+        "k1s0-telemetry should NOT be in system tier Cargo.toml"
+    );
+    // system tier は既存の tracing-subscriber を使う
+    assert!(
+        content.contains("tracing-subscriber"),
+        "tracing-subscriber should be in system tier Cargo.toml"
+    );
+}
+
+// --- Go: business tier ---
+
+#[test]
+fn test_go_business_server_go_mod_has_system_libs() {
+    let (tmp, _) = render_server_business_go("rest");
+    let content = read_output(&tmp, "go.mod");
+
+    assert!(
+        content.contains("system-library-go-config"),
+        "system-library-go-config should be in business tier go.mod"
+    );
+    assert!(
+        content.contains("system-library-go-telemetry"),
+        "system-library-go-telemetry should be in business tier go.mod"
+    );
+    assert!(
+        content.contains("system-library-go-auth"),
+        "system-library-go-auth should be in business tier go.mod"
+    );
+    // replace ディレクティブに business tier の相対パスが含まれる
+    assert!(
+        content.contains("../../../../../system/library/go"),
+        "replace directive should use 5-level relative path for business tier"
+    );
+}
+
+#[test]
+fn test_go_service_server_go_mod_has_system_libs() {
+    let (tmp, _) = render_server("go", "rest", false, "", false, false);
+    let content = read_output(&tmp, "go.mod");
+
+    assert!(
+        content.contains("system-library-go-config"),
+        "system-library-go-config should be in service tier go.mod"
+    );
+    assert!(
+        content.contains("system-library-go-telemetry"),
+        "system-library-go-telemetry should be in service tier go.mod"
+    );
+    assert!(
+        content.contains("system-library-go-auth"),
+        "system-library-go-auth should be in service tier go.mod"
+    );
+    // replace ディレクティブに service tier の相対パスが含まれる
+    assert!(
+        content.contains("../../../../system/library/go"),
+        "replace directive should use 4-level relative path for service tier"
+    );
+}
+
+#[test]
+fn test_go_service_server_main_go_has_telemetry_init() {
+    let (tmp, _) = render_server("go", "rest", false, "", false, false);
+    let content = read_output(&tmp, "cmd/main.go");
+
+    assert!(
+        content.contains("telemetry.InitTelemetry"),
+        "main.go should call telemetry.InitTelemetry for service tier"
+    );
+    assert!(
+        content.contains("auth.NewJWKSVerifier"),
+        "main.go should call auth.NewJWKSVerifier for service tier"
+    );
+    assert!(
+        content.contains("tel.Shutdown"),
+        "main.go should call tel.Shutdown for service tier"
+    );
+}
+
+// --- Go: system tier (回帰テスト) ---
+
+#[test]
+fn test_go_system_server_go_mod_has_no_k1s0_lib() {
+    let (tmp, _) = render_server_system("go", "rest");
+    let content = read_output(&tmp, "go.mod");
+
+    assert!(
+        !content.contains("system-library-go-config"),
+        "system-library-go-config should NOT be in system tier go.mod"
+    );
+    assert!(
+        !content.contains("system-library-go-telemetry"),
+        "system-library-go-telemetry should NOT be in system tier go.mod"
+    );
+}
