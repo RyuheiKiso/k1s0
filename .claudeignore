@@ -1,0 +1,16 @@
+# Build artifacts
+**/target/
+**/node_modules/
+**/.dart_tool/
+**/build/
+
+# Lock files (large binary dependency manifests, no value for Claude)
+**/Cargo.lock
+**/package-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
+**/pubspec.lock
+**/go.sum
+
+# Misc
+**/.git/
