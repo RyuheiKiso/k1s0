@@ -3,6 +3,7 @@
 API スキーマテンプレート（OpenAPI、Proto、GraphQL）の
 仕様書とテンプレートファイルの一致を検証する。
 """
+
 from pathlib import Path
 
 import pytest

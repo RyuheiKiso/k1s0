@@ -3,7 +3,6 @@ target-version = "py312"
 
 [lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "ANN"]
-ignore = ["ANN101", "ANN102"]
 
 [lint.per-file-ignores]
 "**/tests/**" = ["ANN"]

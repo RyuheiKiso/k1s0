@@ -2,6 +2,7 @@
 
 api/proto/ の構成がドキュメントと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -41,12 +42,16 @@ class TestProtoCommonTypes:
         assert path.exists()
 
     def test_types_has_pagination(self) -> None:
-        content = (PROTO / "k1s0" / "system" / "common" / "v1" / "types.proto").read_text(encoding="utf-8")
+        content = (PROTO / "k1s0" / "system" / "common" / "v1" / "types.proto").read_text(
+            encoding="utf-8"
+        )
         assert "message Pagination" in content
         assert "message PaginationResult" in content
 
     def test_types_has_timestamp(self) -> None:
-        content = (PROTO / "k1s0" / "system" / "common" / "v1" / "types.proto").read_text(encoding="utf-8")
+        content = (PROTO / "k1s0" / "system" / "common" / "v1" / "types.proto").read_text(
+            encoding="utf-8"
+        )
         assert "message Timestamp" in content
 
     def test_event_metadata_exists(self) -> None:
@@ -54,7 +59,9 @@ class TestProtoCommonTypes:
         assert path.exists()
 
     def test_event_metadata_fields(self) -> None:
-        content = (PROTO / "k1s0" / "system" / "common" / "v1" / "event_metadata.proto").read_text(encoding="utf-8")
+        content = (PROTO / "k1s0" / "system" / "common" / "v1" / "event_metadata.proto").read_text(
+            encoding="utf-8"
+        )
         assert "message EventMetadata" in content
         assert "event_id" in content
         assert "event_type" in content
@@ -82,18 +89,22 @@ class TestProtoEventStructure:
     def test_event_tier_directories(self, tier: str) -> None:
         """各tier のイベントディレクトリが存在すること。"""
         path = PROTO / "k1s0" / "event" / tier
-        assert path.exists() or any(
-            (PROTO / "k1s0" / "event").iterdir()
-        ), f"event/{tier}/ が存在しません"
+        assert path.exists() or any((PROTO / "k1s0" / "event").iterdir()), (
+            f"event/{tier}/ が存在しません"
+        )
 
 
 class TestProtoPackageConvention:
     """proto パッケージ命名規約の検証。"""
 
     def test_common_package(self) -> None:
-        content = (PROTO / "k1s0" / "system" / "common" / "v1" / "types.proto").read_text(encoding="utf-8")
+        content = (PROTO / "k1s0" / "system" / "common" / "v1" / "types.proto").read_text(
+            encoding="utf-8"
+        )
         assert "package k1s0.system.common.v1" in content
 
     def test_event_metadata_package(self) -> None:
-        content = (PROTO / "k1s0" / "system" / "common" / "v1" / "event_metadata.proto").read_text(encoding="utf-8")
+        content = (PROTO / "k1s0" / "system" / "common" / "v1" / "event_metadata.proto").read_text(
+            encoding="utf-8"
+        )
         assert "package k1s0.system.common.v1" in content

@@ -2,6 +2,7 @@
 
 infra/helm/ の構成がドキュメントと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -71,7 +72,9 @@ class TestHelmServiceCharts:
         base = HELM / "services" / service_path
         assert (base / "values.yaml").exists(), f"{service_path}/values.yaml がありません"
         assert (base / "values-dev.yaml").exists(), f"{service_path}/values-dev.yaml がありません"
-        assert (base / "values-staging.yaml").exists(), f"{service_path}/values-staging.yaml がありません"
+        assert (base / "values-staging.yaml").exists(), (
+            f"{service_path}/values-staging.yaml がありません"
+        )
         assert (base / "values-prod.yaml").exists(), f"{service_path}/values-prod.yaml がありません"
 
     @pytest.mark.parametrize(

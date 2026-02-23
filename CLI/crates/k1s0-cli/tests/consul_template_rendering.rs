@@ -10,10 +10,7 @@ fn template_dir() -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("templates")
 }
 
-fn render_consul(
-    service_name: &str,
-    tier: &str,
-) -> Option<(TempDir, Vec<String>)> {
+fn render_consul(service_name: &str, tier: &str) -> Option<(TempDir, Vec<String>)> {
     let tpl_dir = template_dir();
     let cat_dir = tpl_dir.join("consul");
     if !cat_dir.exists() {
@@ -24,8 +21,7 @@ fn render_consul(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new(service_name, tier, "go", "consul")
-        .build();
+    let ctx = TemplateContextBuilder::new(service_name, tier, "go", "consul").build();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
@@ -56,13 +52,11 @@ fn test_consul_file_list() {
 
     assert!(
         names.iter().any(|n| n.contains("backend-config.tf")),
-        "backend-config.tf missing. Generated: {:?}",
-        names
+        "backend-config.tf missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("service-defaults.yaml")),
-        "service-defaults.yaml missing. Generated: {:?}",
-        names
+        "service-defaults.yaml missing. Generated: {names:?}"
     );
 }
 
@@ -76,8 +70,7 @@ fn test_consul_backend_has_service_name() {
     let content = read_output(&tmp, "backend-config.tf");
     assert!(
         content.contains("order-api"),
-        "Backend config should contain service name\n--- backend-config.tf ---\n{}",
-        content
+        "Backend config should contain service name\n--- backend-config.tf ---\n{content}"
     );
 }
 
@@ -91,8 +84,7 @@ fn test_consul_backend_has_tier_path() {
     let content = read_output(&tmp, "backend-config.tf");
     assert!(
         content.contains("k1s0/service/order-api"),
-        "Backend config should contain tier-based path\n--- backend-config.tf ---\n{}",
-        content
+        "Backend config should contain tier-based path\n--- backend-config.tf ---\n{content}"
     );
 }
 
@@ -106,8 +98,7 @@ fn test_consul_service_defaults_has_service_name() {
     let content = read_output(&tmp, "service-defaults.yaml");
     assert!(
         content.contains("order-api"),
-        "Service defaults should contain service name\n--- service-defaults.yaml ---\n{}",
-        content
+        "Service defaults should contain service name\n--- service-defaults.yaml ---\n{content}"
     );
 }
 
@@ -121,8 +112,7 @@ fn test_consul_service_defaults_has_namespace() {
     let content = read_output(&tmp, "service-defaults.yaml");
     assert!(
         content.contains("k1s0-service"),
-        "Service defaults should contain namespace\n--- service-defaults.yaml ---\n{}",
-        content
+        "Service defaults should contain namespace\n--- service-defaults.yaml ---\n{content}"
     );
 }
 
@@ -135,7 +125,7 @@ fn test_consul_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(!content.contains("{%"), "Tera block syntax found in {}", name);
-        assert!(!content.contains("{#"), "Tera comment found in {}", name);
+        assert!(!content.contains("{%"), "Tera block syntax found in {name}");
+        assert!(!content.contains("{#"), "Tera comment found in {name}");
     }
 }

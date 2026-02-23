@@ -2,6 +2,7 @@
 
 CICDテンプレート仕様書とテンプレートファイルの検証。
 """
+
 from pathlib import Path
 
 import pytest
@@ -123,7 +124,9 @@ class TestCicdDirectoryStructure:
     def test_no_language_subdirectories(self) -> None:
         """cicd/ 配下に言語別サブディレクトリが存在しない。"""
         for item in CICD.iterdir():
-            assert item.is_file(), f"cicd/ 配下にディレクトリ '{item.name}' が存在します（フラット構造違反）"
+            assert item.is_file(), (
+                f"cicd/ 配下にディレクトリ '{item.name}' が存在します（フラット構造違反）"
+            )
 
 
 class TestCicdTemplateRawBlocks:
@@ -154,7 +157,9 @@ class TestCicdSpecLanguageVersions:
         ],
     )
     def test_version_documented(self, tool: str, version: str) -> None:
-        assert version in self.content, f"{tool} のバージョン '{version}' が仕様書に記載されていません"
+        assert version in self.content, (
+            f"{tool} のバージョン '{version}' が仕様書に記載されていません"
+        )
 
 
 class TestCicdCILanguageSteps:
@@ -386,7 +391,9 @@ class TestCicdCacheStrategy:
     )
     def test_cache_strategy_in_spec(self, lang: str, cache: str) -> None:
         """仕様書にキャッシュ戦略が記載。"""
-        assert cache in self.spec_content, f"{lang} のキャッシュ対象 '{cache}' が仕様書に記載されていません"
+        assert cache in self.spec_content, (
+            f"{lang} のキャッシュ対象 '{cache}' が仕様書に記載されていません"
+        )
 
     def test_docker_cache_gha(self) -> None:
         """仕様書に Docker layer cache (type=gha) が記載。"""

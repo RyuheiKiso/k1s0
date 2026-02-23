@@ -23,8 +23,9 @@ fn template_dir() -> std::path::PathBuf {
 /// Terraform テンプレートをレンダリングする。
 ///
 /// Terraform テンプレートはフラット構造（言語サブディレクトリなし）。
-/// kind を "terraform" として TemplateEngine に渡す。
+/// kind を "terraform" として `TemplateEngine` に渡す。
 /// テンプレートディレクトリが存在しない場合は None を返す（TDD パターン）。
+#[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
 fn render_terraform(
     environment: &str,
     enable_postgresql: bool,
@@ -48,8 +49,8 @@ fn render_terraform(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
-        .environment(environment);
+    let mut builder =
+        TemplateContextBuilder::new("k1s0", "system", "go", "terraform").environment(environment);
 
     if enable_postgresql {
         builder = builder.enable_postgresql();
@@ -135,8 +136,7 @@ fn test_terraform_file_list() {
 
 #[test]
 fn test_terraform_main_tf_content() {
-    let Some((tmp, _)) =
-        render_terraform("dev", false, false, false, false, false, false, false)
+    let Some((tmp, _)) = render_terraform("dev", false, false, false, false, false, false, false)
     else {
         eprintln!("SKIP: terraform テンプレートディレクトリが未作成");
         return;
@@ -159,8 +159,7 @@ fn test_terraform_main_tf_content() {
 
 #[test]
 fn test_terraform_backend_tf_content() {
-    let Some((tmp, _)) =
-        render_terraform("dev", false, false, false, false, false, false, false)
+    let Some((tmp, _)) = render_terraform("dev", false, false, false, false, false, false, false)
     else {
         eprintln!("SKIP: terraform テンプレートディレクトリが未作成");
         return;
@@ -179,8 +178,7 @@ fn test_terraform_backend_tf_content() {
 
 #[test]
 fn test_terraform_variables_tf_content() {
-    let Some((tmp, _)) =
-        render_terraform("dev", false, false, false, false, false, false, false)
+    let Some((tmp, _)) = render_terraform("dev", false, false, false, false, false, false, false)
     else {
         eprintln!("SKIP: terraform テンプレートディレクトリが未作成");
         return;
@@ -199,8 +197,7 @@ fn test_terraform_variables_tf_content() {
 
 #[test]
 fn test_terraform_tfvars_content() {
-    let Some((tmp, _)) =
-        render_terraform("dev", false, false, false, false, false, false, false)
+    let Some((tmp, _)) = render_terraform("dev", false, false, false, false, false, false, false)
     else {
         eprintln!("SKIP: terraform テンプレートディレクトリが未作成");
         return;
@@ -219,8 +216,7 @@ fn test_terraform_tfvars_content() {
 
 #[test]
 fn test_terraform_outputs_tf_content() {
-    let Some((tmp, _)) =
-        render_terraform("dev", false, false, false, false, false, false, false)
+    let Some((tmp, _)) = render_terraform("dev", false, false, false, false, false, false, false)
     else {
         eprintln!("SKIP: terraform テンプレートディレクトリが未作成");
         return;
@@ -239,8 +235,7 @@ fn test_terraform_outputs_tf_content() {
 
 #[test]
 fn test_terraform_observability_enabled() {
-    let Some((tmp, _)) =
-        render_terraform("dev", false, false, false, true, false, false, false)
+    let Some((tmp, _)) = render_terraform("dev", false, false, false, true, false, false, false)
     else {
         eprintln!("SKIP: terraform テンプレートディレクトリが未作成");
         return;
@@ -255,8 +250,7 @@ fn test_terraform_observability_enabled() {
 
 #[test]
 fn test_terraform_observability_disabled() {
-    let Some((tmp, _)) =
-        render_terraform("dev", false, false, false, false, false, false, false)
+    let Some((tmp, _)) = render_terraform("dev", false, false, false, false, false, false, false)
     else {
         eprintln!("SKIP: terraform テンプレートディレクトリが未作成");
         return;
@@ -275,8 +269,7 @@ fn test_terraform_observability_disabled() {
 
 #[test]
 fn test_terraform_vault_provider() {
-    let Some((tmp, _)) =
-        render_terraform("dev", false, false, false, false, false, true, false)
+    let Some((tmp, _)) = render_terraform("dev", false, false, false, false, false, true, false)
     else {
         eprintln!("SKIP: terraform テンプレートディレクトリが未作成");
         return;
@@ -295,8 +288,7 @@ fn test_terraform_vault_provider() {
 
 #[test]
 fn test_terraform_harbor_provider() {
-    let Some((tmp, _)) =
-        render_terraform("dev", false, false, false, false, false, false, true)
+    let Some((tmp, _)) = render_terraform("dev", false, false, false, false, false, false, true)
     else {
         eprintln!("SKIP: terraform テンプレートディレクトリが未作成");
         return;
@@ -315,8 +307,7 @@ fn test_terraform_harbor_provider() {
 
 #[test]
 fn test_terraform_prod_reclaim_policy() {
-    let Some((tmp, _)) =
-        render_terraform("prod", false, false, false, false, false, false, false)
+    let Some((tmp, _)) = render_terraform("prod", false, false, false, false, false, false, false)
     else {
         eprintln!("SKIP: terraform テンプレートディレクトリが未作成");
         return;
@@ -325,15 +316,13 @@ fn test_terraform_prod_reclaim_policy() {
     let content = read_output(&tmp, "terraform.tfvars");
     assert!(
         content.contains("reclaim_policy   = \"Retain\""),
-        "environment=\"prod\" で terraform.tfvars に reclaim_policy = \"Retain\" が含まれるべき\n--- terraform.tfvars ---\n{}",
-        content
+        "environment=\"prod\" で terraform.tfvars に reclaim_policy = \"Retain\" が含まれるべき\n--- terraform.tfvars ---\n{content}"
     );
 }
 
 #[test]
 fn test_terraform_dev_reclaim_policy() {
-    let Some((tmp, _)) =
-        render_terraform("dev", false, false, false, false, false, false, false)
+    let Some((tmp, _)) = render_terraform("dev", false, false, false, false, false, false, false)
     else {
         eprintln!("SKIP: terraform テンプレートディレクトリが未作成");
         return;
@@ -342,8 +331,7 @@ fn test_terraform_dev_reclaim_policy() {
     let content = read_output(&tmp, "terraform.tfvars");
     assert!(
         content.contains("reclaim_policy   = \"Delete\""),
-        "environment=\"dev\" で terraform.tfvars に reclaim_policy = \"Delete\" が含まれるべき\n--- terraform.tfvars ---\n{}",
-        content
+        "environment=\"dev\" で terraform.tfvars に reclaim_policy = \"Delete\" が含まれるべき\n--- terraform.tfvars ---\n{content}"
     );
 }
 
@@ -353,8 +341,7 @@ fn test_terraform_dev_reclaim_policy() {
 
 #[test]
 fn test_terraform_no_tera_syntax() {
-    let Some((tmp, names)) =
-        render_terraform("dev", true, true, true, true, true, true, true)
+    let Some((tmp, names)) = render_terraform("dev", true, true, true, true, true, true, true)
     else {
         eprintln!("SKIP: terraform テンプレートディレクトリが未作成");
         return;
@@ -362,15 +349,7 @@ fn test_terraform_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(
-            !content.contains("{%"),
-            "Tera syntax {{%% found in {}",
-            name
-        );
-        assert!(
-            !content.contains("{#"),
-            "Tera comment {{# found in {}",
-            name
-        );
+        assert!(!content.contains("{%"), "Tera syntax {{%% found in {name}");
+        assert!(!content.contains("{#"), "Tera comment {{# found in {name}");
     }
 }

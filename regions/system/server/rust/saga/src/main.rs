@@ -173,8 +173,7 @@ async fn main() -> anyhow::Result<()> {
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-saga-server"));
 
     // Router
-    let app = handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server (port 50051)
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();

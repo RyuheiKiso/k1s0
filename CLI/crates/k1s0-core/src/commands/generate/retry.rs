@@ -60,7 +60,7 @@ pub fn is_retryable_command(cmd: &str, args: &[&str]) -> bool {
     match cmd {
         "cargo" => {
             // cargo xtask は非対象
-            !args.first().is_some_and(|&a| a == "xtask")
+            args.first().is_none_or(|&a| a != "xtask")
         }
         "go" => {
             // go run ... gqlgen ... は非対象
@@ -80,8 +80,8 @@ pub fn is_retryable_command(cmd: &str, args: &[&str]) -> bool {
 
 /// 指数バックオフの遅延時間を計算する（ミリ秒）。
 ///
-/// delay = initial_delay_ms * (backoff_multiplier ^ attempt)
-/// ただし max_delay_ms を超えない。
+/// delay = `initial_delay_ms` * (`backoff_multiplier` ^ attempt)
+/// ただし `max_delay_ms` を超えない。
 pub fn calculate_delay(config: &RetryConfig, attempt: u32) -> u64 {
     let multiplier = config.backoff_multiplier.saturating_pow(attempt);
     let delay = config.initial_delay_ms.saturating_mul(multiplier);
@@ -94,8 +94,12 @@ pub fn calculate_delay(config: &RetryConfig, attempt: u32) -> u64 {
 
 /// コマンドをリトライ付きで実行する。
 ///
-/// リトライ対象のコマンドが失敗した場合、指数バックオフで最大 max_retries 回リトライする。
+/// リトライ対象のコマンドが失敗した場合、指数バックオフで最大 `max_retries` 回リトライする。
 /// リトライ非対象のコマンドは1回だけ実行する。
+///
+/// # Errors
+///
+/// 指定されたコマンドが全リトライ回数を超えても失敗した場合、またはコマンドが見つからない場合にエラー文字列を返す。
 pub fn run_with_retry(
     cmd: &str,
     args: &[&str],
@@ -126,7 +130,7 @@ pub fn run_with_retry(
                         max_attempts,
                         stderr.trim()
                     );
-                    eprintln!("{}ms 後にリトライします...", delay);
+                    eprintln!("{delay}ms 後にリトライします...");
                     thread::sleep(Duration::from_millis(delay));
                 } else {
                     return Err(format!(
@@ -149,7 +153,7 @@ pub fn run_with_retry(
                         max_attempts,
                         e
                     );
-                    eprintln!("{}ms 後にリトライします...", delay);
+                    eprintln!("{delay}ms 後にリトライします...");
                     thread::sleep(Duration::from_millis(delay));
                 } else {
                     return Err(format!(

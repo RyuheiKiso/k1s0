@@ -29,6 +29,10 @@ enum Step {
 ///
 /// 各ステップで Esc を押すと前のステップに戻る。
 /// 最初のステップで Esc を押すとメインメニューに戻る。
+///
+/// # Errors
+///
+/// プロンプトの入出力に失敗した場合、またはプロジェクト初期化に失敗した場合にエラーを返す。
 pub fn run() -> Result<()> {
     println!("\n--- プロジェクト初期化 ---\n");
 
@@ -130,10 +134,7 @@ fn step_project_name() -> Result<Option<String>> {
             }
         };
         if Path::new(&name).exists() {
-            println!(
-                "'{}' は既に存在します。別の名前を入力してください。",
-                name
-            );
+            println!("'{name}' は既に存在します。別の名前を入力してください。");
             continue;
         }
         return Ok(Some(name));
@@ -174,18 +175,23 @@ fn step_tier_selection() -> Result<Option<Vec<Tier>>> {
 
 /// 確認内容を表示する。
 fn print_confirmation(config: &InitConfig) {
-    let tiers_str: Vec<&str> = config.tiers.iter().map(|t| t.display()).collect();
+    let tiers_str: Vec<&str> = config
+        .tiers
+        .iter()
+        .map(k1s0_core::commands::init::Tier::display)
+        .collect();
     println!("\n[確認] 以下の内容で初期化します。よろしいですか？");
     println!("    プロジェクト名: {}", config.project_name);
     println!(
         "    Git 初期化:     {}",
-        if config.git_init { "はい" } else { "いいえ" }
+        if config.git_init {
+            "はい"
+        } else {
+            "いいえ"
+        }
     );
     if config.sparse_checkout {
-        println!(
-            "    sparse-checkout: はい ({})",
-            tiers_str.join(", ")
-        );
+        println!("    sparse-checkout: はい ({})", tiers_str.join(", "));
     } else {
         println!("    sparse-checkout: いいえ");
     }
@@ -193,6 +199,6 @@ fn print_confirmation(config: &InitConfig) {
 
 /// dialoguer のエスケープ/Ctrl+C を検出するヘルパー
 fn is_dialoguer_escape(e: &anyhow::Error) -> bool {
-    let msg = format!("{}", e);
+    let msg = format!("{e}");
     msg.contains("interrupted") || msg.contains("Escape")
 }

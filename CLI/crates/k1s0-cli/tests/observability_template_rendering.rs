@@ -65,13 +65,11 @@ fn test_observability_file_list() {
 
     assert!(
         names.iter().any(|n| n.contains("servicemonitor.yaml")),
-        "servicemonitor.yaml missing. Generated: {:?}",
-        names
+        "servicemonitor.yaml missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("alerts.yaml")),
-        "alerts.yaml missing. Generated: {:?}",
-        names
+        "alerts.yaml missing. Generated: {names:?}"
     );
 }
 
@@ -89,8 +87,7 @@ fn test_servicemonitor_has_service_name() {
     let content = read_output(&tmp, "servicemonitor.yaml");
     assert!(
         content.contains("order-api"),
-        "ServiceMonitor should contain service name\n--- servicemonitor.yaml ---\n{}",
-        content
+        "ServiceMonitor should contain service name\n--- servicemonitor.yaml ---\n{content}"
     );
 }
 
@@ -104,8 +101,7 @@ fn test_servicemonitor_system_interval() {
     let content = read_output(&tmp, "servicemonitor.yaml");
     assert!(
         content.contains("interval: 15s"),
-        "System tier should have interval: 15s\n--- servicemonitor.yaml ---\n{}",
-        content
+        "System tier should have interval: 15s\n--- servicemonitor.yaml ---\n{content}"
     );
 }
 
@@ -119,8 +115,7 @@ fn test_servicemonitor_business_interval() {
     let content = read_output(&tmp, "servicemonitor.yaml");
     assert!(
         content.contains("interval: 30s"),
-        "Business tier should have interval: 30s\n--- servicemonitor.yaml ---\n{}",
-        content
+        "Business tier should have interval: 30s\n--- servicemonitor.yaml ---\n{content}"
     );
 }
 
@@ -134,8 +129,7 @@ fn test_servicemonitor_service_interval() {
     let content = read_output(&tmp, "servicemonitor.yaml");
     assert!(
         content.contains("interval: 60s"),
-        "Service tier should have interval: 60s\n--- servicemonitor.yaml ---\n{}",
-        content
+        "Service tier should have interval: 60s\n--- servicemonitor.yaml ---\n{content}"
     );
 }
 
@@ -149,8 +143,7 @@ fn test_servicemonitor_has_namespace() {
     let content = read_output(&tmp, "servicemonitor.yaml");
     assert!(
         content.contains("k1s0-service"),
-        "ServiceMonitor should contain namespace\n--- servicemonitor.yaml ---\n{}",
-        content
+        "ServiceMonitor should contain namespace\n--- servicemonitor.yaml ---\n{content}"
     );
 }
 
@@ -168,8 +161,7 @@ fn test_alerts_has_high_error_rate() {
     let content = read_output(&tmp, "alerts.yaml");
     assert!(
         content.contains("OrderApiHighErrorRate"),
-        "Alerts should contain HighErrorRate rule\n--- alerts.yaml ---\n{}",
-        content
+        "Alerts should contain HighErrorRate rule\n--- alerts.yaml ---\n{content}"
     );
 }
 
@@ -183,8 +175,7 @@ fn test_alerts_has_high_latency() {
     let content = read_output(&tmp, "alerts.yaml");
     assert!(
         content.contains("OrderApiHighLatency"),
-        "Alerts should contain HighLatency rule\n--- alerts.yaml ---\n{}",
-        content
+        "Alerts should contain HighLatency rule\n--- alerts.yaml ---\n{content}"
     );
 }
 
@@ -198,8 +189,7 @@ fn test_alerts_has_pod_restart() {
     let content = read_output(&tmp, "alerts.yaml");
     assert!(
         content.contains("OrderApiPodRestart"),
-        "Alerts should contain PodRestart rule\n--- alerts.yaml ---\n{}",
-        content
+        "Alerts should contain PodRestart rule\n--- alerts.yaml ---\n{content}"
     );
 }
 
@@ -213,8 +203,7 @@ fn test_alerts_has_namespace() {
     let content = read_output(&tmp, "alerts.yaml");
     assert!(
         content.contains("k1s0-service"),
-        "Alerts should contain namespace\n--- alerts.yaml ---\n{}",
-        content
+        "Alerts should contain namespace\n--- alerts.yaml ---\n{content}"
     );
 }
 
@@ -231,15 +220,7 @@ fn test_observability_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(
-            !content.contains("{%"),
-            "Tera syntax found in {}",
-            name
-        );
-        assert!(
-            !content.contains("{#"),
-            "Tera comment found in {}",
-            name
-        );
+        assert!(!content.contains("{%"), "Tera syntax found in {name}");
+        assert!(!content.contains("{#"), "Tera comment found in {name}");
     }
 }

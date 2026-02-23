@@ -106,10 +106,7 @@ pub fn router(state: AppState) -> Router {
     let user_routes = Router::new()
         .route("/api/v1/users", get(auth_handler::list_users))
         .route("/api/v1/users/:id", get(auth_handler::get_user))
-        .route(
-            "/api/v1/users/:id/roles",
-            get(auth_handler::get_user_roles),
-        )
+        .route("/api/v1/users/:id/roles", get(auth_handler::get_user_roles))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             make_rbac_middleware("users", "read"),
@@ -128,20 +125,14 @@ pub fn router(state: AppState) -> Router {
 
     // Audit log endpoints: GET requires "audit_logs" / "read", POST requires "audit_logs" / "write"
     let audit_read_routes = Router::new()
-        .route(
-            "/api/v1/audit/logs",
-            get(audit_handler::search_audit_logs),
-        )
+        .route("/api/v1/audit/logs", get(audit_handler::search_audit_logs))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             make_rbac_middleware("audit_logs", "read"),
         ));
 
     let audit_write_routes = Router::new()
-        .route(
-            "/api/v1/audit/logs",
-            post(audit_handler::record_audit_log),
-        )
+        .route("/api/v1/audit/logs", post(audit_handler::record_audit_log))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             make_rbac_middleware("audit_logs", "write"),

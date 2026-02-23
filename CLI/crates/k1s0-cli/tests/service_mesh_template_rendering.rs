@@ -65,11 +65,11 @@ fn render_service_mesh(
 /// service-mesh テンプレートを kind を上書きしてレンダリングする。
 ///
 /// テンプレートディレクトリは templates/service-mesh/ を使うが、
-/// コンテキストの kind は kind_override を使う。
-/// AuthorizationPolicy の BFF deny テストで使用する。
+/// コンテキストの kind は `kind_override` を使う。
+/// `AuthorizationPolicy` の BFF deny テストで使用する。
 ///
-/// TemplateEngine の tera フィールドは pub(crate) のため、
-/// 直接 tera::Tera を使用してテンプレートを登録・レンダリングする。
+/// `TemplateEngine` の tera フィールドは pub(crate) のため、
+/// 直接 `tera::Tera` を使用してテンプレートを登録・レンダリングする。
 fn render_service_mesh_with_kind(
     service_name: &str,
     tier: &str,
@@ -109,7 +109,7 @@ fn render_service_mesh_with_kind(
 
     for entry in walkdir::WalkDir::new(&mesh_template_dir)
         .into_iter()
-        .filter_map(|e| e.ok())
+        .filter_map(std::result::Result::ok)
     {
         let path = entry.path();
         if path.is_dir() {
@@ -120,10 +120,7 @@ fn render_service_mesh_with_kind(
             continue;
         }
 
-        let relative = path
-            .strip_prefix(&mesh_template_dir)
-            .unwrap()
-            .to_path_buf();
+        let relative = path.strip_prefix(&mesh_template_dir).unwrap().to_path_buf();
         let template_name = relative.to_string_lossy().replace('\\', "/");
 
         let content = fs::read_to_string(path).unwrap();
@@ -174,23 +171,21 @@ fn test_service_mesh_file_list() {
     // 4ファイルの存在確認
     assert!(
         names.iter().any(|n| n.contains("virtual-service.yaml")),
-        "virtual-service.yaml missing. Generated: {:?}",
-        names
+        "virtual-service.yaml missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("destination-rule.yaml")),
-        "destination-rule.yaml missing. Generated: {:?}",
-        names
+        "destination-rule.yaml missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("peer-authentication.yaml")),
-        "peer-authentication.yaml missing. Generated: {:?}",
-        names
+        "peer-authentication.yaml missing. Generated: {names:?}"
     );
     assert!(
-        names.iter().any(|n| n.contains("authorization-policy.yaml")),
-        "authorization-policy.yaml missing. Generated: {:?}",
         names
+            .iter()
+            .any(|n| n.contains("authorization-policy.yaml")),
+        "authorization-policy.yaml missing. Generated: {names:?}"
     );
 }
 
@@ -208,8 +203,7 @@ fn test_virtual_service_system_timeout() {
     let content = read_output(&tmp, "virtual-service.yaml");
     assert!(
         content.contains("timeout: 5s"),
-        "system tier should have timeout: 5s\n--- virtual-service.yaml ---\n{}",
-        content
+        "system tier should have timeout: 5s\n--- virtual-service.yaml ---\n{content}"
     );
 }
 
@@ -223,8 +217,7 @@ fn test_virtual_service_business_timeout() {
     let content = read_output(&tmp, "virtual-service.yaml");
     assert!(
         content.contains("timeout: 10s"),
-        "business tier should have timeout: 10s\n--- virtual-service.yaml ---\n{}",
-        content
+        "business tier should have timeout: 10s\n--- virtual-service.yaml ---\n{content}"
     );
 }
 
@@ -238,8 +231,7 @@ fn test_virtual_service_service_timeout() {
     let content = read_output(&tmp, "virtual-service.yaml");
     assert!(
         content.contains("timeout: 15s"),
-        "service tier should have timeout: 15s\n--- virtual-service.yaml ---\n{}",
-        content
+        "service tier should have timeout: 15s\n--- virtual-service.yaml ---\n{content}"
     );
 }
 
@@ -254,13 +246,11 @@ fn test_virtual_service_grpc_route() {
     // gRPC 固有ルートが含まれる
     assert!(
         content.contains("port: 9090"),
-        "gRPC route should contain port: 9090\n--- virtual-service.yaml ---\n{}",
-        content
+        "gRPC route should contain port: 9090\n--- virtual-service.yaml ---\n{content}"
     );
     assert!(
         content.contains("cancelled,deadline-exceeded,internal,resource-exhausted,unavailable"),
-        "gRPC route should have gRPC-specific retryOn\n--- virtual-service.yaml ---\n{}",
-        content
+        "gRPC route should have gRPC-specific retryOn\n--- virtual-service.yaml ---\n{content}"
     );
 }
 
@@ -275,8 +265,7 @@ fn test_virtual_service_no_grpc_route() {
     // REST のみの場合、gRPC ルートが含まれない
     assert!(
         !content.contains("cancelled,deadline-exceeded,internal,resource-exhausted,unavailable"),
-        "REST-only should NOT have gRPC-specific retryOn\n--- virtual-service.yaml ---\n{}",
-        content
+        "REST-only should NOT have gRPC-specific retryOn\n--- virtual-service.yaml ---\n{content}"
     );
 }
 
@@ -294,8 +283,7 @@ fn test_destination_rule_system_connections() {
     let content = read_output(&tmp, "destination-rule.yaml");
     assert!(
         content.contains("maxConnections: 200"),
-        "system tier should have maxConnections: 200\n--- destination-rule.yaml ---\n{}",
-        content
+        "system tier should have maxConnections: 200\n--- destination-rule.yaml ---\n{content}"
     );
 }
 
@@ -309,8 +297,7 @@ fn test_destination_rule_service_connections() {
     let content = read_output(&tmp, "destination-rule.yaml");
     assert!(
         content.contains("maxConnections: 100"),
-        "service tier should have maxConnections: 100\n--- destination-rule.yaml ---\n{}",
-        content
+        "service tier should have maxConnections: 100\n--- destination-rule.yaml ---\n{content}"
     );
 }
 
@@ -324,8 +311,7 @@ fn test_destination_rule_grpc_h2_upgrade() {
     let content = read_output(&tmp, "destination-rule.yaml");
     assert!(
         content.contains("h2UpgradePolicy: UPGRADE"),
-        "gRPC should have h2UpgradePolicy: UPGRADE\n--- destination-rule.yaml ---\n{}",
-        content
+        "gRPC should have h2UpgradePolicy: UPGRADE\n--- destination-rule.yaml ---\n{content}"
     );
 }
 
@@ -339,8 +325,7 @@ fn test_destination_rule_no_h2_upgrade() {
     let content = read_output(&tmp, "destination-rule.yaml");
     assert!(
         !content.contains("h2UpgradePolicy"),
-        "REST-only should NOT have h2UpgradePolicy\n--- destination-rule.yaml ---\n{}",
-        content
+        "REST-only should NOT have h2UpgradePolicy\n--- destination-rule.yaml ---\n{content}"
     );
 }
 
@@ -358,8 +343,7 @@ fn test_peer_auth_strict() {
     let content = read_output(&tmp, "peer-authentication.yaml");
     assert!(
         content.contains("mode: STRICT"),
-        "PeerAuthentication should have mode: STRICT\n--- peer-authentication.yaml ---\n{}",
-        content
+        "PeerAuthentication should have mode: STRICT\n--- peer-authentication.yaml ---\n{content}"
     );
 }
 
@@ -373,8 +357,7 @@ fn test_peer_auth_grpc_port_level() {
     let content = read_output(&tmp, "peer-authentication.yaml");
     assert!(
         content.contains("portLevelMtls"),
-        "gRPC should have portLevelMtls\n--- peer-authentication.yaml ---\n{}",
-        content
+        "gRPC should have portLevelMtls\n--- peer-authentication.yaml ---\n{content}"
     );
 }
 
@@ -393,13 +376,11 @@ fn test_authorization_policy_system() {
     // system 層: business・service からのアクセス許可
     assert!(
         content.contains("k1s0-business"),
-        "system tier should allow access from k1s0-business\n--- authorization-policy.yaml ---\n{}",
-        content
+        "system tier should allow access from k1s0-business\n--- authorization-policy.yaml ---\n{content}"
     );
     assert!(
         content.contains("k1s0-service"),
-        "system tier should allow access from k1s0-service\n--- authorization-policy.yaml ---\n{}",
-        content
+        "system tier should allow access from k1s0-service\n--- authorization-policy.yaml ---\n{content}"
     );
 }
 
@@ -414,13 +395,11 @@ fn test_authorization_policy_service() {
     // service 層: ingress・同一 Tier からのアクセス許可
     assert!(
         content.contains("ingress"),
-        "service tier should allow access from ingress\n--- authorization-policy.yaml ---\n{}",
-        content
+        "service tier should allow access from ingress\n--- authorization-policy.yaml ---\n{content}"
     );
     assert!(
         content.contains("k1s0-service"),
-        "service tier should allow access from k1s0-service\n--- authorization-policy.yaml ---\n{}",
-        content
+        "service tier should allow access from k1s0-service\n--- authorization-policy.yaml ---\n{content}"
     );
 }
 
@@ -437,18 +416,15 @@ fn test_authorization_policy_bff_deny() {
     // BFF deny ポリシーが含まれる
     assert!(
         content.contains("deny-bff"),
-        "BFF kind should include deny-bff policy\n--- authorization-policy.yaml ---\n{}",
-        content
+        "BFF kind should include deny-bff policy\n--- authorization-policy.yaml ---\n{content}"
     );
     assert!(
         content.contains("action: DENY"),
-        "BFF kind should include DENY action\n--- authorization-policy.yaml ---\n{}",
-        content
+        "BFF kind should include DENY action\n--- authorization-policy.yaml ---\n{content}"
     );
     assert!(
         content.contains("bff-sa"),
-        "BFF deny policy should reference bff-sa principal\n--- authorization-policy.yaml ---\n{}",
-        content
+        "BFF deny policy should reference bff-sa principal\n--- authorization-policy.yaml ---\n{content}"
     );
 }
 
@@ -458,24 +434,15 @@ fn test_authorization_policy_bff_deny() {
 
 #[test]
 fn test_service_mesh_no_tera_syntax() {
-    let Some((tmp, names)) = render_service_mesh("auth-service", "system", "grpc", 80, 9090)
-    else {
+    let Some((tmp, names)) = render_service_mesh("auth-service", "system", "grpc", 80, 9090) else {
         eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
         return;
     };
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(
-            !content.contains("{%"),
-            "Tera syntax {{%% found in {}",
-            name
-        );
-        assert!(
-            !content.contains("{#"),
-            "Tera comment {{# found in {}",
-            name
-        );
+        assert!(!content.contains("{%"), "Tera syntax {{%% found in {name}");
+        assert!(!content.contains("{#"), "Tera comment {{# found in {name}");
     }
 }
 
@@ -492,8 +459,7 @@ fn test_network_policy_file_exists() {
 
     assert!(
         names.iter().any(|n| n.contains("network-policy.yaml")),
-        "network-policy.yaml missing. Generated: {:?}",
-        names
+        "network-policy.yaml missing. Generated: {names:?}"
     );
 }
 
@@ -507,13 +473,11 @@ fn test_network_policy_system_allows_business_and_service() {
     let content = read_output(&tmp, "network-policy.yaml");
     assert!(
         content.contains("k1s0-business"),
-        "System tier NetworkPolicy should allow from k1s0-business\n--- network-policy.yaml ---\n{}",
-        content
+        "System tier NetworkPolicy should allow from k1s0-business\n--- network-policy.yaml ---\n{content}"
     );
     assert!(
         content.contains("k1s0-service"),
-        "System tier NetworkPolicy should allow from k1s0-service\n--- network-policy.yaml ---\n{}",
-        content
+        "System tier NetworkPolicy should allow from k1s0-service\n--- network-policy.yaml ---\n{content}"
     );
 }
 
@@ -527,8 +491,7 @@ fn test_network_policy_service_allows_ingress() {
     let content = read_output(&tmp, "network-policy.yaml");
     assert!(
         content.contains("ingress"),
-        "Service tier NetworkPolicy should allow from ingress namespace\n--- network-policy.yaml ---\n{}",
-        content
+        "Service tier NetworkPolicy should allow from ingress namespace\n--- network-policy.yaml ---\n{content}"
     );
 }
 
@@ -542,8 +505,7 @@ fn test_network_policy_grpc_port() {
     let content = read_output(&tmp, "network-policy.yaml");
     assert!(
         content.contains("9090"),
-        "gRPC NetworkPolicy should include gRPC port\n--- network-policy.yaml ---\n{}",
-        content
+        "gRPC NetworkPolicy should include gRPC port\n--- network-policy.yaml ---\n{content}"
     );
 }
 
@@ -557,8 +519,7 @@ fn test_network_policy_no_grpc_port_for_rest() {
     let content = read_output(&tmp, "network-policy.yaml");
     assert!(
         !content.contains("9090"),
-        "REST-only NetworkPolicy should NOT include gRPC port\n--- network-policy.yaml ---\n{}",
-        content
+        "REST-only NetworkPolicy should NOT include gRPC port\n--- network-policy.yaml ---\n{content}"
     );
 }
 
@@ -572,8 +533,7 @@ fn test_network_policy_dns_egress() {
     let content = read_output(&tmp, "network-policy.yaml");
     assert!(
         content.contains("port: 53"),
-        "NetworkPolicy should allow DNS egress (port 53)\n--- network-policy.yaml ---\n{}",
-        content
+        "NetworkPolicy should allow DNS egress (port 53)\n--- network-policy.yaml ---\n{content}"
     );
 }
 

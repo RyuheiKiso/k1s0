@@ -2,7 +2,9 @@ use anyhow::Result;
 
 use crate::prompt::{self, ConfirmResult};
 
-pub use k1s0_core::commands::test_cmd::{TestKind, TestConfig, execute_test, scan_testable_targets, scan_e2e_suites};
+pub use k1s0_core::commands::test_cmd::{
+    execute_test, scan_e2e_suites, scan_testable_targets, TestConfig, TestKind,
+};
 
 const TEST_KIND_LABELS: &[&str] = &["ユニットテスト", "統合テスト", "E2Eテスト", "すべて"];
 const ALL_TEST_KINDS: &[TestKind] = &[
@@ -29,6 +31,10 @@ enum Step {
 ///
 /// 各ステップで Esc を押すと前のステップに戻る。
 /// 最初のステップで Esc → メインメニューに戻る。
+///
+/// # Errors
+///
+/// プロンプトの入出力に失敗した場合、またはテスト実行に失敗した場合にエラーを返す。
 pub fn run() -> Result<()> {
     println!("\n--- テスト実行 ---\n");
 
@@ -121,10 +127,8 @@ fn step_select_test_targets() -> Result<Option<Vec<String>>> {
         items.push(t.as_str());
     }
 
-    let selected = prompt::multi_select_prompt(
-        "テスト対象を選択してください（複数選択可）",
-        &items,
-    )?;
+    let selected =
+        prompt::multi_select_prompt("テスト対象を選択してください（複数選択可）", &items)?;
 
     match selected {
         None => Ok(None),
@@ -157,10 +161,8 @@ fn step_select_e2e_suites() -> Result<Option<Vec<String>>> {
         items.push(s.as_str());
     }
 
-    let selected = prompt::multi_select_prompt(
-        "テストスイートを選択してください（複数選択可）",
-        &items,
-    )?;
+    let selected =
+        prompt::multi_select_prompt("テストスイートを選択してください（複数選択可）", &items)?;
 
     match selected {
         None => Ok(None),
@@ -171,10 +173,8 @@ fn step_select_e2e_suites() -> Result<Option<Vec<String>>> {
             } else if indices.contains(&0) {
                 Ok(Some(all_suites))
             } else {
-                let targets: Vec<String> = indices
-                    .iter()
-                    .map(|&i| all_suites[i - 1].clone())
-                    .collect();
+                let targets: Vec<String> =
+                    indices.iter().map(|&i| all_suites[i - 1].clone()).collect();
                 Ok(Some(targets))
             }
         }
@@ -186,6 +186,6 @@ fn print_confirmation(config: &TestConfig) {
     println!("\n[確認] 以下のテストを実行します。よろしいですか？");
     println!("    種別: {}", config.kind.label());
     for target in &config.targets {
-        println!("    対象: {}", target);
+        println!("    対象: {target}");
     }
 }

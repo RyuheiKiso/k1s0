@@ -1,5 +1,5 @@
 use anyhow::Result;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -32,13 +32,16 @@ pub struct BuildConfig {
 }
 
 /// ビルド実行。
+///
+/// # Errors
+/// エラーが発生した場合。
 pub fn execute_build(config: &BuildConfig) -> Result<()> {
     for target in &config.targets {
         println!("\nビルド中: {} ({})", target, config.mode.as_str());
         let target_path = Path::new(target);
 
         if !target_path.is_dir() {
-            println!("  警告: ディレクトリが見つかりません: {}", target);
+            println!("  警告: ディレクトリが見つかりません: {target}");
             continue;
         }
 
@@ -62,7 +65,7 @@ pub fn execute_build(config: &BuildConfig) -> Result<()> {
         } else if target_path.join("pubspec.yaml").exists() {
             run_command("flutter", &["build"], target_path)?;
         } else {
-            println!("  警告: ビルド方法が不明なディレクトリです: {}", target);
+            println!("  警告: ビルド方法が不明なディレクトリです: {target}");
         }
     }
     Ok(())
@@ -79,16 +82,19 @@ fn run_command(cmd: &str, args: &[&str], cwd: &Path) -> Result<()> {
         }
         Ok(s) => {
             let code = s.code().unwrap_or(-1);
-            anyhow::bail!("コマンドがエラーで終了しました (exit code: {})", code);
+            anyhow::bail!("コマンドがエラーで終了しました (exit code: {code})");
         }
         Err(e) => {
-            println!("  警告: コマンド '{}' の実行に失敗しました: {}", cmd, e);
+            println!("  警告: コマンド '{cmd}' の実行に失敗しました: {e}");
             Ok(())
         }
     }
 }
 
 /// プログレスコールバック付きビルド実行。
+///
+/// # Errors
+/// エラーが発生した場合。
 pub fn execute_build_with_progress(
     config: &BuildConfig,
     on_progress: impl Fn(ProgressEvent),
@@ -105,12 +111,12 @@ pub fn execute_build_with_progress(
         let target_path = Path::new(target);
         if !target_path.is_dir() {
             on_progress(ProgressEvent::Warning {
-                message: format!("ディレクトリが見つかりません: {}", target),
+                message: format!("ディレクトリが見つかりません: {target}"),
             });
             on_progress(ProgressEvent::StepCompleted {
                 step,
                 total,
-                message: format!("スキップ: {}", target),
+                message: format!("スキップ: {target}"),
             });
             continue;
         }
@@ -121,12 +127,12 @@ pub fn execute_build_with_progress(
                 on_progress(ProgressEvent::StepCompleted {
                     step,
                     total,
-                    message: format!("ビルド完了: {}", target),
+                    message: format!("ビルド完了: {target}"),
                 });
             }
             Err(e) => {
                 on_progress(ProgressEvent::Error {
-                    message: format!("ビルド失敗: {} - {}", target, e),
+                    message: format!("ビルド失敗: {target} - {e}"),
                 });
             }
         }
@@ -165,7 +171,7 @@ fn run_command_with_progress(
             "dev"
         };
         on_progress(ProgressEvent::Log {
-            message: format!("実行: npm run {}", script),
+            message: format!("実行: npm run {script}"),
         });
         run_command("npm", &["run", script], target_path)?;
     } else if target_path.join("pubspec.yaml").exists() {
@@ -175,7 +181,10 @@ fn run_command_with_progress(
         run_command("flutter", &["build"], target_path)?;
     } else {
         on_progress(ProgressEvent::Warning {
-            message: format!("ビルド方法が不明なディレクトリです: {}", target_path.display()),
+            message: format!(
+                "ビルド方法が不明なディレクトリです: {}",
+                target_path.display()
+            ),
         });
     }
     Ok(())
@@ -273,7 +282,9 @@ mod tests {
         fs::write(rust_system_path.join("Cargo.toml"), "[package]\n").unwrap();
 
         // Rust プロジェクト (business tier)
-        let rust_path = tmp.path().join("regions/business/accounting/server/rust/ledger");
+        let rust_path = tmp
+            .path()
+            .join("regions/business/accounting/server/rust/ledger");
         fs::create_dir_all(&rust_path).unwrap();
         fs::write(rust_path.join("Cargo.toml"), "[package]\n").unwrap();
 
@@ -318,9 +329,19 @@ mod tests {
         let collected = events.lock().unwrap();
         // StepStarted + Warning + StepCompleted + Finished = 4 events
         assert!(collected.len() >= 3);
-        assert!(matches!(&collected[0], ProgressEvent::StepStarted { step: 1, total: 1, .. }));
+        assert!(matches!(
+            &collected[0],
+            ProgressEvent::StepStarted {
+                step: 1,
+                total: 1,
+                ..
+            }
+        ));
         assert!(matches!(&collected[1], ProgressEvent::Warning { .. }));
-        assert!(matches!(collected.last().unwrap(), ProgressEvent::Finished { success: true, .. }));
+        assert!(matches!(
+            collected.last().unwrap(),
+            ProgressEvent::Finished { success: true, .. }
+        ));
     }
 
     #[test]
@@ -339,7 +360,10 @@ mod tests {
         let collected = events.lock().unwrap();
         // Only Finished event
         assert_eq!(collected.len(), 1);
-        assert!(matches!(&collected[0], ProgressEvent::Finished { success: true, .. }));
+        assert!(matches!(
+            &collected[0],
+            ProgressEvent::Finished { success: true, .. }
+        ));
     }
 
     #[test]
@@ -359,6 +383,8 @@ mod tests {
 
         let collected = events.lock().unwrap();
         // Should have StepStarted, Warning (unknown), StepCompleted, Finished
-        assert!(collected.iter().any(|e| matches!(e, ProgressEvent::Warning { .. })));
+        assert!(collected
+            .iter()
+            .any(|e| matches!(e, ProgressEvent::Warning { .. })));
     }
 }

@@ -2,24 +2,32 @@ use anyhow::Result;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::retry::{run_with_retry, RetryConfig};
+use super::scaffold::{generate_client, generate_database, generate_library, generate_server};
+use super::types::{ApiStyle, Framework, GenerateConfig, Kind, LangFw, Language, Rdbms, Tier};
 use crate::config::CliConfig;
 use crate::template::context::TemplateContextBuilder;
 use crate::template::TemplateEngine;
-use super::types::*;
-use super::retry::{RetryConfig, run_with_retry};
-use super::scaffold::{generate_server, generate_client, generate_library, generate_database};
 
 // ============================================================================
 // 生成実行
 // ============================================================================
 
 /// ひな形生成を実行する。
+///
+/// # Errors
+///
+/// カレントディレクトリの取得に失敗した場合、またはひな形生成処理でエラーが発生した場合にエラーを返す。
 pub fn execute_generate(config: &GenerateConfig) -> Result<()> {
     execute_generate_with_config(config, &std::env::current_dir()?, &CliConfig::default())
 }
 
 /// 指定されたベースディレクトリを起点にひな形生成を実行する。
 /// テンプレートエンジンを使わず、インライン生成のみ行う（テスト後方互換用）。
+///
+/// # Errors
+///
+/// ディレクトリの作成またはファイルの書き込みに失敗した場合にエラーを返す。
 pub fn execute_generate_at(config: &GenerateConfig, base_dir: &Path) -> Result<()> {
     let output_path = build_output_path(config, base_dir);
     fs::create_dir_all(&output_path)?;
@@ -64,8 +72,12 @@ pub fn execute_generate_at(config: &GenerateConfig, base_dir: &Path) -> Result<(
     Ok(())
 }
 
-/// CliConfig を指定してひな形生成を実行する。
+/// `CliConfig` を指定してひな形生成を実行する。
 /// テンプレートエンジン + 後処理コマンド付き。
+///
+/// # Errors
+///
+/// ディレクトリの作成、ファイルの書き込み、またはテンプレートのレンダリングに失敗した場合にエラーを返す。
 pub fn execute_generate_with_config(
     config: &GenerateConfig,
     base_dir: &Path,
@@ -112,18 +124,16 @@ pub fn execute_generate_with_config(
                 .api_style("graphql")
                 .build();
                 match TemplateEngine::new(&tpl_dir) {
-                    Ok(mut engine) => {
-                        match engine.render_to_dir(&bff_ctx, &bff_path) {
-                            Ok(files) => {
-                                println!("BFF テンプレートを生成しました: {} ファイル", files.len());
-                            }
-                            Err(e) => {
-                                eprintln!("BFF テンプレートの生成に失敗しました: {}", e);
-                            }
+                    Ok(mut engine) => match engine.render_to_dir(&bff_ctx, &bff_path) {
+                        Ok(files) => {
+                            println!("BFF テンプレートを生成しました: {} ファイル", files.len());
                         }
-                    }
+                        Err(e) => {
+                            eprintln!("BFF テンプレートの生成に失敗しました: {e}");
+                        }
+                    },
                     Err(e) => {
-                        eprintln!("BFF テンプレートエンジンの初期化に失敗しました: {}", e);
+                        eprintln!("BFF テンプレートエンジンの初期化に失敗しました: {e}");
                     }
                 }
             }
@@ -144,7 +154,7 @@ pub fn execute_generate_with_config(
                         println!("Helm Chart を生成しました: {} ファイル", files.len());
                     }
                     Err(e) => {
-                        eprintln!("Helm Chart の生成に失敗しました: {}", e);
+                        eprintln!("Helm Chart の生成に失敗しました: {e}");
                     }
                 }
             }
@@ -162,7 +172,7 @@ pub fn execute_generate_with_config(
                         println!("CI/CD ワークフローを生成しました: {} ファイル", files.len());
                     }
                     Err(e) => {
-                        eprintln!("CI/CD ワークフローの生成に失敗しました: {}", e);
+                        eprintln!("CI/CD ワークフローの生成に失敗しました: {e}");
                     }
                 }
             }
@@ -200,9 +210,8 @@ fn try_generate_from_templates(
     template_dir: &Path,
     cli_config: &CliConfig,
 ) -> bool {
-    let ctx = match build_template_context(config, cli_config) {
-        Some(ctx) => ctx,
-        None => return false,
+    let Some(ctx) = build_template_context(config, cli_config) else {
+        return false;
     };
 
     // kind + language/framework に対応するテンプレートサブディレクトリの存在確認
@@ -217,9 +226,8 @@ fn try_generate_from_templates(
         return false;
     }
 
-    let mut engine = match TemplateEngine::new(template_dir) {
-        Ok(e) => e,
-        Err(_) => return false,
+    let Ok(mut engine) = TemplateEngine::new(template_dir) else {
+        return false;
     };
 
     match engine.render_to_dir(&ctx, output_path) {
@@ -228,7 +236,7 @@ fn try_generate_from_templates(
     }
 }
 
-/// GenerateConfig から TemplateContext を構築する。
+/// `GenerateConfig` から `TemplateContext` を構築する。
 fn build_template_context(
     config: &GenerateConfig,
     cli_config: &CliConfig,
@@ -326,11 +334,11 @@ fn run_post_processing(config: &GenerateConfig, output_path: &Path) {
     let retry_config = RetryConfig::default();
 
     for (cmd, args) in &commands {
-        let args_refs: Vec<&str> = args.iter().map(|s| *s).collect();
+        let args_refs: Vec<&str> = args.clone();
         match run_with_retry(cmd, &args_refs, output_path, &retry_config) {
             Ok(()) => {}
             Err(e) => {
-                eprintln!("{}", e);
+                eprintln!("{e}");
                 eprintln!(
                     "手動で実行してください: cd {} && {} {}",
                     output_path.display(),
@@ -372,7 +380,18 @@ fn determine_post_commands(config: &GenerateConfig) -> Vec<(&'static str, Vec<&'
             if config.detail.api_styles.contains(&ApiStyle::Rest) {
                 match &config.lang_fw {
                     LangFw::Language(Language::Go) => {
-                        commands.push(("oapi-codegen", vec!["-generate", "types,server", "-package", "handler", "-o", "internal/handler/openapi.gen.go", "api/openapi/openapi.yaml"]));
+                        commands.push((
+                            "oapi-codegen",
+                            vec![
+                                "-generate",
+                                "types,server",
+                                "-package",
+                                "handler",
+                                "-o",
+                                "internal/handler/openapi.gen.go",
+                                "api/openapi/openapi.yaml",
+                            ],
+                        ));
                     }
                     LangFw::Language(Language::Rust) => {
                         commands.push(("cargo", vec!["xtask", "codegen"]));
@@ -382,11 +401,8 @@ fn determine_post_commands(config: &GenerateConfig) -> Vec<(&'static str, Vec<&'
             }
             // GraphQL の場合は gqlgen generate
             if config.detail.api_styles.contains(&ApiStyle::GraphQL) {
-                match &config.lang_fw {
-                    LangFw::Language(Language::Go) => {
-                        commands.push(("go", vec!["run", "github.com/99designs/gqlgen", "generate"]));
-                    }
-                    _ => {}
+                if let LangFw::Language(Language::Go) = &config.lang_fw {
+                    commands.push(("go", vec!["run", "github.com/99designs/gqlgen", "generate"]));
                 }
             }
             // 3. DB ありの場合は SQL マイグレーション初期化
@@ -394,34 +410,33 @@ fn determine_post_commands(config: &GenerateConfig) -> Vec<(&'static str, Vec<&'
                 commands.push(("sqlx", vec!["database", "create"]));
             }
         }
-        Kind::Client => {
-            match &config.lang_fw {
-                LangFw::Framework(Framework::React) => {
-                    commands.push(("npm", vec!["install"]));
-                }
-                LangFw::Framework(Framework::Flutter) => {
-                    commands.push(("flutter", vec!["pub", "get"]));
-                }
-                _ => {}
+        Kind::Client => match &config.lang_fw {
+            LangFw::Framework(Framework::React) => {
+                commands.push(("npm", vec!["install"]));
             }
-        }
-        Kind::Library => {
-            match &config.lang_fw {
-                LangFw::Language(Language::Go) => {
-                    commands.push(("go", vec!["mod", "tidy"]));
-                }
-                LangFw::Language(Language::Rust) => {
-                    commands.push(("cargo", vec!["check"]));
-                }
-                LangFw::Language(Language::TypeScript) => {
-                    commands.push(("npm", vec!["install"]));
-                }
-                LangFw::Language(Language::Dart) => {
-                    commands.push(("flutter", vec!["pub", "get"]));
-                }
-                _ => {}
+            LangFw::Framework(Framework::Flutter) => {
+                commands.push(("flutter", vec!["pub", "get"]));
             }
-        }
+            _ => {}
+        },
+        Kind::Library => match &config.lang_fw {
+            LangFw::Language(Language::Go) => {
+                commands.push(("go", vec!["mod", "tidy"]));
+            }
+            LangFw::Language(Language::Rust) => {
+                commands.push(("cargo", vec!["check"]));
+            }
+            LangFw::Language(Language::TypeScript) => {
+                commands.push(("npm", vec!["install"]));
+            }
+            LangFw::Language(Language::Dart) => {
+                commands.push(("flutter", vec!["pub", "get"]));
+            }
+            LangFw::Language(Language::Python) => {
+                commands.push(("pip", vec!["install", "-e", "."]));
+            }
+            _ => {}
+        },
         Kind::Database => {
             // no post-processing for database
         }
@@ -524,7 +539,7 @@ fn generate_helm_chart(
 
     for entry in walkdir::WalkDir::new(helm_tpl_dir)
         .into_iter()
-        .filter_map(|e| e.ok())
+        .filter_map(std::result::Result::ok)
     {
         let path = entry.path();
         if path.is_dir() || path.extension().and_then(|e| e.to_str()) != Some("tera") {
@@ -535,17 +550,22 @@ fn generate_helm_chart(
         let template_content = fs::read_to_string(path)?;
         let template_name = relative.to_string_lossy().replace('\\', "/");
 
-        engine.tera.add_raw_template(&template_name, &template_content)?;
+        engine
+            .tera
+            .add_raw_template(&template_name, &template_content)?;
         let rendered = engine.tera.render(&template_name, &tera_ctx)?;
 
         // .tera 拡張子を除去
         let output_relative = relative.to_string_lossy().replace('\\', "/");
-        let output_relative = if output_relative.ends_with(".tera") {
-            &output_relative[..output_relative.len() - 5]
+        let output_relative = if Path::new(&output_relative)
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("tera"))
+        {
+            output_relative[..output_relative.len() - 5].to_string()
         } else {
-            &output_relative
+            output_relative.clone()
         };
-        let output_path = output_dir.join(output_relative);
+        let output_path = output_dir.join(&output_relative);
 
         if let Some(parent) = output_path.parent() {
             fs::create_dir_all(parent)?;
@@ -577,7 +597,7 @@ fn generate_cicd_workflows(
         let rendered = tera.render("ci.yaml", &tera_ctx)?;
 
         let service_name = config.detail.name.as_deref().unwrap_or("service");
-        let output_path = output_dir.join(format!("{}-ci.yaml", service_name));
+        let output_path = output_dir.join(format!("{service_name}-ci.yaml"));
         if let Some(parent) = output_path.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -594,7 +614,7 @@ fn generate_cicd_workflows(
             let rendered = tera.render("deploy.yaml", &tera_ctx)?;
 
             let service_name = config.detail.name.as_deref().unwrap_or("service");
-            let output_path = output_dir.join(format!("{}-deploy.yaml", service_name));
+            let output_path = output_dir.join(format!("{service_name}-deploy.yaml"));
             if let Some(parent) = output_path.parent() {
                 fs::create_dir_all(parent)?;
             }
@@ -648,6 +668,7 @@ pub fn scan_placements(tier: &Tier) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::types::{DbInfo, DetailConfig};
     use super::*;
     use tempfile::TempDir;
 
@@ -737,10 +758,7 @@ mod tests {
             },
         };
         let path = build_output_path(&config, Path::new(""));
-        assert_eq!(
-            path,
-            PathBuf::from("regions/service/order/client/react")
-        );
+        assert_eq!(path, PathBuf::from("regions/service/order/client/react"));
     }
 
     #[test]
@@ -756,10 +774,7 @@ mod tests {
             },
         };
         let path = build_output_path(&config, Path::new(""));
-        assert_eq!(
-            path,
-            PathBuf::from("regions/system/library/rust/authlib")
-        );
+        assert_eq!(path, PathBuf::from("regions/system/library/rust/authlib"));
     }
 
     #[test]
@@ -775,10 +790,7 @@ mod tests {
             detail: DetailConfig::default(),
         };
         let path = build_output_path(&config, Path::new(""));
-        assert_eq!(
-            path,
-            PathBuf::from("regions/system/database/auth-db")
-        );
+        assert_eq!(path, PathBuf::from("regions/system/database/auth-db"));
     }
 
     // --- execute_generate ---
@@ -915,7 +927,9 @@ mod tests {
     #[test]
     fn test_execute_generate_rust_library() {
         let tmp = TempDir::new().unwrap();
-        let base = tmp.path().join("regions/business/accounting/library/rust/ledger-lib");
+        let base = tmp
+            .path()
+            .join("regions/business/accounting/library/rust/ledger-lib");
 
         let config = GenerateConfig {
             kind: Kind::Library,
@@ -1027,7 +1041,10 @@ mod tests {
         assert!(result.is_ok());
         let base = tmp.path().join("regions/service/order/database/order-db");
         assert!(base.join("seeds").is_dir(), "seeds/ directory should exist");
-        assert!(base.join("schema").is_dir(), "schema/ directory should exist");
+        assert!(
+            base.join("schema").is_dir(),
+            "schema/ directory should exist"
+        );
     }
 
     // --- D-12: 3-digit migration prefix ---
@@ -1100,8 +1117,14 @@ mod tests {
             },
         };
         let cmds = determine_post_commands(&config);
-        assert!(cmds.iter().any(|(c, _)| *c == "cargo"), "should include 'cargo check'");
-        assert!(!cmds.iter().any(|(c, _)| *c == "buf"), "should not include 'buf generate' without gRPC");
+        assert!(
+            cmds.iter().any(|(c, _)| *c == "cargo"),
+            "should include 'cargo check'"
+        );
+        assert!(
+            !cmds.iter().any(|(c, _)| *c == "buf"),
+            "should not include 'buf generate' without gRPC"
+        );
     }
 
     #[test]
@@ -1121,8 +1144,14 @@ mod tests {
             },
         };
         let cmds = determine_post_commands(&config);
-        assert!(cmds.iter().any(|(c, _)| *c == "cargo"), "should include 'cargo check'");
-        assert!(cmds.iter().any(|(c, _)| *c == "buf"), "should include 'buf generate' with gRPC");
+        assert!(
+            cmds.iter().any(|(c, _)| *c == "cargo"),
+            "should include 'cargo check'"
+        );
+        assert!(
+            cmds.iter().any(|(c, _)| *c == "buf"),
+            "should include 'buf generate' with gRPC"
+        );
     }
 
     #[test]
@@ -1138,7 +1167,10 @@ mod tests {
             },
         };
         let cmds = determine_post_commands(&config);
-        assert!(cmds.iter().any(|(c, _)| *c == "npm"), "should include 'npm install'");
+        assert!(
+            cmds.iter().any(|(c, _)| *c == "npm"),
+            "should include 'npm install'"
+        );
     }
 
     #[test]
@@ -1154,7 +1186,10 @@ mod tests {
             },
         };
         let cmds = determine_post_commands(&config);
-        assert!(cmds.iter().any(|(c, _)| *c == "flutter"), "should include 'flutter pub get'");
+        assert!(
+            cmds.iter().any(|(c, _)| *c == "flutter"),
+            "should include 'flutter pub get'"
+        );
     }
 
     #[test]
@@ -1170,7 +1205,10 @@ mod tests {
             detail: DetailConfig::default(),
         };
         let cmds = determine_post_commands(&config);
-        assert!(cmds.is_empty(), "database should have no post-processing commands");
+        assert!(
+            cmds.is_empty(),
+            "database should have no post-processing commands"
+        );
     }
 
     // --- D-03: template engine wiring ---
@@ -1254,11 +1292,11 @@ mod tests {
         let cargo_cmds: Vec<_> = cmds.iter().filter(|(c, _)| *c == "cargo").collect();
         assert!(
             cargo_cmds.len() >= 2,
-            "Rust + REST should include 'cargo check' and 'cargo xtask codegen', got {:?}",
-            cargo_cmds
+            "Rust + REST should include 'cargo check' and 'cargo xtask codegen', got {cargo_cmds:?}"
         );
         assert!(
-            cmds.iter().any(|(c, args)| *c == "cargo" && args.contains(&"xtask")),
+            cmds.iter()
+                .any(|(c, args)| *c == "cargo" && args.contains(&"xtask")),
             "Rust + REST should include 'cargo xtask codegen'"
         );
     }
@@ -1330,8 +1368,14 @@ mod tests {
         };
         let cli_config = CliConfig::default();
         let ctx = build_template_context(&config, &cli_config).unwrap();
-        assert_eq!(ctx.language, "typescript", "React client should have language=typescript");
-        assert_eq!(ctx.framework, "react", "React client should have framework=react");
+        assert_eq!(
+            ctx.language, "typescript",
+            "React client should have language=typescript"
+        );
+        assert_eq!(
+            ctx.framework, "react",
+            "React client should have framework=react"
+        );
         assert_eq!(ctx.kind, "client");
     }
 
@@ -1349,8 +1393,14 @@ mod tests {
         };
         let cli_config = CliConfig::default();
         let ctx = build_template_context(&config, &cli_config).unwrap();
-        assert_eq!(ctx.language, "dart", "Flutter client should have language=dart");
-        assert_eq!(ctx.framework, "flutter", "Flutter client should have framework=flutter");
+        assert_eq!(
+            ctx.language, "dart",
+            "Flutter client should have language=dart"
+        );
+        assert_eq!(
+            ctx.framework, "flutter",
+            "Flutter client should have framework=flutter"
+        );
         assert_eq!(ctx.kind, "client");
     }
 
@@ -1399,7 +1449,10 @@ mod tests {
         execute_generate_at(&config, tmp.path()).unwrap();
         // BFF ディレクトリが存在するか確認
         let bff_path = tmp.path().join("regions/service/order/server/go/bff");
-        assert!(bff_path.exists(), "service Tier + GraphQL should create bff/ directory");
+        assert!(
+            bff_path.exists(),
+            "service Tier + GraphQL should create bff/ directory"
+        );
     }
 
     // --- BFF 生成: Tier別テスト ---
@@ -1424,7 +1477,10 @@ mod tests {
         };
         execute_generate_at(&config, tmp.path()).unwrap();
         let bff_path = tmp.path().join("regions/system/server/go/gateway/bff");
-        assert!(!bff_path.exists(), "system Tier では BFF ディレクトリは作成されない");
+        assert!(
+            !bff_path.exists(),
+            "system Tier では BFF ディレクトリは作成されない"
+        );
     }
 
     #[test]
@@ -1446,8 +1502,13 @@ mod tests {
             },
         };
         execute_generate_at(&config, tmp.path()).unwrap();
-        let bff_path = tmp.path().join("regions/business/accounting/server/go/ledger/bff");
-        assert!(!bff_path.exists(), "business Tier では BFF ディレクトリは作成されない");
+        let bff_path = tmp
+            .path()
+            .join("regions/business/accounting/server/go/ledger/bff");
+        assert!(
+            !bff_path.exists(),
+            "business Tier では BFF ディレクトリは作成されない"
+        );
     }
 
     #[test]
@@ -1470,7 +1531,10 @@ mod tests {
         };
         execute_generate_at(&config, tmp.path()).unwrap();
         let bff_path = tmp.path().join("regions/service/order/server/go/bff");
-        assert!(bff_path.exists(), "service Tier + GraphQL + bff_language=Go で bff/ が作成される");
+        assert!(
+            bff_path.exists(),
+            "service Tier + GraphQL + bff_language=Go で bff/ が作成される"
+        );
     }
 
     #[test]
@@ -1493,7 +1557,10 @@ mod tests {
         };
         execute_generate_at(&config, tmp.path()).unwrap();
         let bff_path = tmp.path().join("regions/service/order/server/go/bff");
-        assert!(!bff_path.exists(), "GraphQL なしでは BFF ディレクトリは作成されない");
+        assert!(
+            !bff_path.exists(),
+            "GraphQL なしでは BFF ディレクトリは作成されない"
+        );
     }
 
     #[test]

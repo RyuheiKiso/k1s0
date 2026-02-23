@@ -40,29 +40,29 @@ pub fn print_progress(event: &ProgressEvent) {
             total,
             message,
         } => {
-            println!("[{}/{}] {} ...", step, total, message);
+            println!("[{step}/{total}] {message} ...");
         }
         ProgressEvent::StepCompleted {
             step,
             total,
             message,
         } => {
-            println!("[{}/{}] \u{2713} {}", step, total, message);
+            println!("[{step}/{total}] \u{2713} {message}");
         }
         ProgressEvent::Log { message } => {
-            println!("  {}", message);
+            println!("  {message}");
         }
         ProgressEvent::Warning { message } => {
-            println!("  警告: {}", message);
+            println!("  警告: {message}");
         }
         ProgressEvent::Error { message } => {
-            eprintln!("  エラー: {}", message);
+            eprintln!("  エラー: {message}");
         }
         ProgressEvent::Finished { success, message } => {
             if *success {
-                println!("\u{2713} {}", message);
+                println!("\u{2713} {message}");
             } else {
-                eprintln!("\u{2717} {}", message);
+                eprintln!("\u{2717} {message}");
             }
         }
     }

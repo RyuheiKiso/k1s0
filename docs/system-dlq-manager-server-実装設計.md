@@ -612,6 +612,10 @@ CREATE TRIGGER trg_dlq_messages_updated_at
 | `test_retry_message_resolves_pending_message` | PENDING メッセージが RESOLVED になる |
 | `test_delete_message_returns_ok` | メッセージ削除成功 |
 | `test_retry_all_returns_retried_count` | 一括リトライで retried 件数を返す |
+| `test_retry_with_publisher_calls_publish_to_original_topic` | リトライ時に元トピックへ Kafka メッセージが発行される（SpyPublisher） |
+| `test_retry_with_failing_publisher_keeps_retrying_status` | パブリッシュ失敗時はステータスが RETRYING のまま維持される |
+| `test_retry_all_with_successful_publisher_resolves_all_messages` | retry-all で全 PENDING メッセージが RESOLVED になる |
+| `test_retry_exhausted_message_returns_conflict` | retry_count=max_retries のメッセージは 409 CONFLICT を返す |
 
 ---
 

@@ -289,4 +289,72 @@ public enum SagaStatus
 - [system-library-概要](system-library-概要.md) — ライブラリ一覧・テスト方針
 - [system-saga-server設計](system-saga-server設計.md) — saga-server REST API 設計
 - [system-library-messaging設計](system-library-messaging設計.md) — k1s0-messaging ライブラリ
+
+---
+
+## Swift
+
+### パッケージ構成
+- ターゲット: `K1s0Saga`
+- Swift 6.0 / swift-tools-version: 6.0
+- プラットフォーム: macOS 14+, iOS 17+
+
+### 主要な公開API
+```swift
+// Saga クライアント（actor で並行安全）
+public actor SagaClient {
+    public init(baseURL: URL, session: URLSession = .shared)
+
+    /// Saga 開始
+    public func startSaga(type: String, payload: Data, correlationId: String? = nil) async throws -> SagaState
+
+    /// Saga 状態取得
+    public func getSaga(id: UUID) async throws -> SagaState
+
+    /// Saga キャンセル
+    public func cancelSaga(id: UUID, reason: String? = nil) async throws -> SagaState
+}
+
+// Saga 状態
+public struct SagaState: Codable, Sendable, Identifiable {
+    public let id: UUID
+    public let type: String
+    public let status: SagaStatus
+    public let steps: [SagaStep]
+    public let createdAt: Date
+    public let updatedAt: Date
+    public let completedAt: Date?
+}
+
+// Saga ステータス
+public enum SagaStatus: String, Codable, Sendable {
+    case started
+    case running
+    case completed
+    case compensating
+    case cancelled
+    case failed
+}
+
+public struct SagaStep: Codable, Sendable {
+    public let name: String
+    public let status: SagaStatus
+    public let executedAt: Date?
+}
+```
+
+### エラー型
+```swift
+public enum SagaError: Error, Sendable {
+    case notFound(id: UUID)
+    case invalidTransition(from: SagaStatus, to: SagaStatus)
+    case httpError(statusCode: Int, body: String)
+    case networkError(underlying: Error)
+    case decodingFailed(underlying: Error)
+}
+```
+
+### テスト
+- Swift Testing フレームワーク（@Suite, @Test, #expect）
+- カバレッジ目標: 80%以上
 - [system-library-outbox設計](system-library-outbox設計.md) — k1s0-outbox ライブラリ

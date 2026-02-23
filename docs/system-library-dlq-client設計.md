@@ -285,4 +285,64 @@ public enum DlqStatus
 
 - [system-library-概要](system-library-概要.md) — ライブラリ一覧・テスト方針
 - [system-library-messaging設計](system-library-messaging設計.md) — k1s0-messaging ライブラリ
+
+---
+
+## Swift
+
+### パッケージ構成
+- ターゲット: `K1s0DlqClient`
+- Swift 6.0 / swift-tools-version: 6.0
+- プラットフォーム: macOS 14+, iOS 17+
+
+### 主要な公開API
+```swift
+// DLQ クライアント（actor で並行安全）
+public actor DlqClient {
+    public init(baseURL: URL, session: URLSession = .shared)
+
+    /// DLQ メッセージ一覧取得
+    public func listMessages(topic: String, limit: Int = 100, offset: Int = 0) async throws -> [DlqMessage]
+
+    /// DLQ メッセージ詳細取得
+    public func getMessage(topic: String, id: String) async throws -> DlqMessage
+
+    /// メッセージ再処理
+    public func retryMessage(topic: String, id: String) async throws
+
+    /// メッセージ削除
+    public func deleteMessage(topic: String, id: String) async throws
+
+    /// 全メッセージ一括再処理
+    public func retryAll(topic: String) async throws -> RetryAllResult
+}
+
+public struct DlqMessage: Codable, Sendable {
+    public let id: String
+    public let topic: String
+    public let payload: Data
+    public let errorReason: String
+    public let failedAt: Date
+    public let retryCount: Int
+}
+
+public struct RetryAllResult: Sendable {
+    public let queued: Int
+    public let failed: Int
+}
+```
+
+### エラー型
+```swift
+public enum DlqError: Error, Sendable {
+    case notFound(id: String)
+    case httpError(statusCode: Int, body: String)
+    case networkError(underlying: Error)
+    case decodingFailed(underlying: Error)
+}
+```
+
+### テスト
+- Swift Testing フレームワーク（@Suite, @Test, #expect）
+- カバレッジ目標: 80%以上
 - [system-library-kafka設計](system-library-kafka設計.md) — k1s0-kafka ライブラリ

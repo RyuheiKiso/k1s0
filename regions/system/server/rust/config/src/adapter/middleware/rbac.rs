@@ -19,7 +19,10 @@ use k1s0_auth::Claims;
 pub fn require_permission(
     resource: &'static str,
     action: &'static str,
-) -> impl Fn(Request<Body>, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
+) -> impl Fn(
+    Request<Body>,
+    Next,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
        + Clone {
     move |req: Request<Body>, next: Next| Box::pin(rbac_check(req, next, resource, action))
 }
@@ -133,8 +136,9 @@ mod tests {
     async fn test_rbac_missing_claims_returns_401() {
         let app = Router::new().route(
             "/api/v1/config/:ns/:key",
-            get(|| async { "ok" })
-                .route_layer(axum::middleware::from_fn(require_permission("config", "read"))),
+            get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
+                "config", "read",
+            ))),
         );
 
         let req = Request::builder()
@@ -156,8 +160,9 @@ mod tests {
     async fn test_rbac_sys_admin_read_allowed() {
         let app = Router::new().route(
             "/api/v1/config/:ns/:key",
-            get(|| async { "ok" })
-                .route_layer(axum::middleware::from_fn(require_permission("config", "read"))),
+            get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
+                "config", "read",
+            ))),
         );
 
         let claims = make_claims_with_roles(&["sys_admin"]);
@@ -171,8 +176,9 @@ mod tests {
     async fn test_rbac_sys_operator_write_allowed() {
         let app = Router::new().route(
             "/api/v1/config/:ns/:key",
-            put(|| async { "ok" })
-                .route_layer(axum::middleware::from_fn(require_permission("config", "write"))),
+            put(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
+                "config", "write",
+            ))),
         );
 
         let claims = make_claims_with_roles(&["sys_operator"]);
@@ -186,8 +192,9 @@ mod tests {
     async fn test_rbac_sys_auditor_read_allowed() {
         let app = Router::new().route(
             "/api/v1/config/:ns/:key",
-            get(|| async { "ok" })
-                .route_layer(axum::middleware::from_fn(require_permission("config", "read"))),
+            get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
+                "config", "read",
+            ))),
         );
 
         let claims = make_claims_with_roles(&["sys_auditor"]);
@@ -201,8 +208,9 @@ mod tests {
     async fn test_rbac_sys_auditor_write_denied() {
         let app = Router::new().route(
             "/api/v1/config/:ns/:key",
-            put(|| async { "ok" })
-                .route_layer(axum::middleware::from_fn(require_permission("config", "write"))),
+            put(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
+                "config", "write",
+            ))),
         );
 
         let claims = make_claims_with_roles(&["sys_auditor"]);
@@ -222,9 +230,9 @@ mod tests {
     async fn test_rbac_sys_operator_admin_denied() {
         let app = Router::new().route(
             "/api/v1/config/:ns/:key",
-            delete(|| async { StatusCode::NO_CONTENT }).route_layer(
-                axum::middleware::from_fn(require_permission("config", "admin")),
-            ),
+            delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
+                require_permission("config", "admin"),
+            )),
         );
 
         let claims = make_claims_with_roles(&["sys_operator"]);
@@ -238,9 +246,9 @@ mod tests {
     async fn test_rbac_sys_admin_delete_allowed() {
         let app = Router::new().route(
             "/api/v1/config/:ns/:key",
-            delete(|| async { StatusCode::NO_CONTENT }).route_layer(
-                axum::middleware::from_fn(require_permission("config", "admin")),
-            ),
+            delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
+                require_permission("config", "admin"),
+            )),
         );
 
         let claims = make_claims_with_roles(&["sys_admin"]);
@@ -254,8 +262,9 @@ mod tests {
     async fn test_rbac_unknown_role_denied() {
         let app = Router::new().route(
             "/api/v1/config/:ns/:key",
-            get(|| async { "ok" })
-                .route_layer(axum::middleware::from_fn(require_permission("config", "read"))),
+            get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
+                "config", "read",
+            ))),
         );
 
         let claims = make_claims_with_roles(&["viewer"]);

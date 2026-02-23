@@ -1,4 +1,5 @@
 """gRPC config-service E2E テスト。"""
+
 import pytest
 
 try:
@@ -22,8 +23,7 @@ class TestGrpcConfigService:
         namespace = b"e2e-test"
         key = b"test-key"
         request_bytes = (
-            b"\x0a" + bytes([len(namespace)]) + namespace
-            + b"\x12" + bytes([len(key)]) + key
+            b"\x0a" + bytes([len(namespace)]) + namespace + b"\x12" + bytes([len(key)]) + key
         )
 
         try:
@@ -86,9 +86,15 @@ class TestGrpcConfigService:
         key = b"grpc-test-key"
         value = b"grpc-test-value"
         request_bytes = (
-            b"\x0a" + bytes([len(namespace)]) + namespace
-            + b"\x12" + bytes([len(key)]) + key
-            + b"\x1a" + bytes([len(value)]) + value
+            b"\x0a"
+            + bytes([len(namespace)])
+            + namespace
+            + b"\x12"
+            + bytes([len(key)])
+            + key
+            + b"\x1a"
+            + bytes([len(value)])
+            + value
         )
 
         try:
@@ -110,8 +116,7 @@ class TestGrpcConfigService:
         namespace = b"e2e-test"
         key = b"grpc-test-key"
         request_bytes = (
-            b"\x0a" + bytes([len(namespace)]) + namespace
-            + b"\x12" + bytes([len(key)]) + key
+            b"\x0a" + bytes([len(namespace)]) + namespace + b"\x12" + bytes([len(key)]) + key
         )
 
         try:

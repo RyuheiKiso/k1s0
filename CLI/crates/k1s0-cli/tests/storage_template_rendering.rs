@@ -10,10 +10,7 @@ fn template_dir() -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("templates")
 }
 
-fn render_storage(
-    service_name: &str,
-    tier: &str,
-) -> Option<(TempDir, Vec<String>)> {
+fn render_storage(service_name: &str, tier: &str) -> Option<(TempDir, Vec<String>)> {
     let tpl_dir = template_dir();
     let cat_dir = tpl_dir.join("storage");
     if !cat_dir.exists() {
@@ -24,8 +21,7 @@ fn render_storage(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new(service_name, tier, "go", "storage")
-        .build();
+    let ctx = TemplateContextBuilder::new(service_name, tier, "go", "storage").build();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
@@ -56,13 +52,11 @@ fn test_storage_file_list() {
 
     assert!(
         names.iter().any(|n| n.contains("storage-class.yaml")),
-        "storage-class.yaml missing. Generated: {:?}",
-        names
+        "storage-class.yaml missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("pvc.yaml")),
-        "pvc.yaml missing. Generated: {:?}",
-        names
+        "pvc.yaml missing. Generated: {names:?}"
     );
 }
 
@@ -76,8 +70,7 @@ fn test_storage_class_has_service_name() {
     let content = read_output(&tmp, "storage-class.yaml");
     assert!(
         content.contains("order-api"),
-        "StorageClass should contain service name\n--- storage-class.yaml ---\n{}",
-        content
+        "StorageClass should contain service name\n--- storage-class.yaml ---\n{content}"
     );
 }
 
@@ -91,8 +84,7 @@ fn test_storage_class_has_tier_pool() {
     let content = read_output(&tmp, "storage-class.yaml");
     assert!(
         content.contains("k1s0-service-pool"),
-        "StorageClass should contain tier-based pool\n--- storage-class.yaml ---\n{}",
-        content
+        "StorageClass should contain tier-based pool\n--- storage-class.yaml ---\n{content}"
     );
 }
 
@@ -106,8 +98,7 @@ fn test_storage_class_has_ceph_provisioner() {
     let content = read_output(&tmp, "storage-class.yaml");
     assert!(
         content.contains("rbd.csi.ceph.com"),
-        "StorageClass should use Ceph RBD provisioner\n--- storage-class.yaml ---\n{}",
-        content
+        "StorageClass should use Ceph RBD provisioner\n--- storage-class.yaml ---\n{content}"
     );
 }
 
@@ -121,8 +112,7 @@ fn test_pvc_has_service_name() {
     let content = read_output(&tmp, "pvc.yaml");
     assert!(
         content.contains("order-api"),
-        "PVC should contain service name\n--- pvc.yaml ---\n{}",
-        content
+        "PVC should contain service name\n--- pvc.yaml ---\n{content}"
     );
 }
 
@@ -136,8 +126,7 @@ fn test_pvc_has_namespace() {
     let content = read_output(&tmp, "pvc.yaml");
     assert!(
         content.contains("k1s0-service"),
-        "PVC should contain namespace\n--- pvc.yaml ---\n{}",
-        content
+        "PVC should contain namespace\n--- pvc.yaml ---\n{content}"
     );
 }
 
@@ -151,8 +140,7 @@ fn test_pvc_system_storage_size() {
     let content = read_output(&tmp, "pvc.yaml");
     assert!(
         content.contains("storage: 50Gi"),
-        "System tier should have 50Gi storage\n--- pvc.yaml ---\n{}",
-        content
+        "System tier should have 50Gi storage\n--- pvc.yaml ---\n{content}"
     );
 }
 
@@ -166,8 +154,7 @@ fn test_pvc_business_storage_size() {
     let content = read_output(&tmp, "pvc.yaml");
     assert!(
         content.contains("storage: 20Gi"),
-        "Business tier should have 20Gi storage\n--- pvc.yaml ---\n{}",
-        content
+        "Business tier should have 20Gi storage\n--- pvc.yaml ---\n{content}"
     );
 }
 
@@ -181,8 +168,7 @@ fn test_pvc_service_storage_size() {
     let content = read_output(&tmp, "pvc.yaml");
     assert!(
         content.contains("storage: 10Gi"),
-        "Service tier should have 10Gi storage\n--- pvc.yaml ---\n{}",
-        content
+        "Service tier should have 10Gi storage\n--- pvc.yaml ---\n{content}"
     );
 }
 
@@ -195,7 +181,7 @@ fn test_storage_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(!content.contains("{%"), "Tera block syntax found in {}", name);
-        assert!(!content.contains("{#"), "Tera comment found in {}", name);
+        assert!(!content.contains("{%"), "Tera block syntax found in {name}");
+        assert!(!content.contains("{#"), "Tera comment found in {name}");
     }
 }

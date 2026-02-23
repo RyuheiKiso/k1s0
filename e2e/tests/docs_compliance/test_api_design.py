@@ -3,6 +3,7 @@
 proto ファイル、buf 設定、およびプロジェクト構成が
 API 設計ドキュメントと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -117,22 +118,68 @@ class TestRestApiErrorDesign:
 
     def test_go_rest_handler_exists(self) -> None:
         """API設計.md: Go REST handler テンプレート。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "rest_handler.go.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "internal"
+            / "adapter"
+            / "handler"
+            / "rest_handler.go.tera"
+        )
         assert path.exists()
 
     def test_rust_rest_handler_exists(self) -> None:
         """API設計.md: Rust REST handler テンプレート。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "rust" / "src" / "adapter" / "handler" / "rest.rs.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "rust"
+            / "src"
+            / "adapter"
+            / "handler"
+            / "rest.rs.tera"
+        )
         assert path.exists()
 
     def test_go_handler_dir_exists(self) -> None:
         """API設計.md: Go handler ディレクトリが存在。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "adapter" / "handler"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "internal"
+            / "adapter"
+            / "handler"
+        )
         assert path.is_dir()
 
     def test_rust_handler_dir_exists(self) -> None:
         """API設計.md: Rust handler ディレクトリが存在。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "rust" / "src" / "adapter" / "handler"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "rust"
+            / "src"
+            / "adapter"
+            / "handler"
+        )
         assert path.is_dir()
 
 
@@ -159,12 +206,36 @@ class TestGrpcDesign:
 
     def test_go_grpc_handler_template(self) -> None:
         """API設計.md: Go gRPC handler テンプレート。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "grpc_handler.go.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "internal"
+            / "adapter"
+            / "handler"
+            / "grpc_handler.go.tera"
+        )
         assert path.exists()
 
     def test_rust_grpc_handler_template(self) -> None:
         """API設計.md: Rust gRPC handler テンプレート。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "rust" / "src" / "adapter" / "handler" / "grpc.rs.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "rust"
+            / "src"
+            / "adapter"
+            / "handler"
+            / "grpc.rs.tera"
+        )
         assert path.exists()
 
 
@@ -173,12 +244,36 @@ class TestGraphQLDesign:
 
     def test_go_graphql_resolver_template(self) -> None:
         """API設計.md: Go GraphQL resolver テンプレート。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "graphql_resolver.go.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "internal"
+            / "adapter"
+            / "handler"
+            / "graphql_resolver.go.tera"
+        )
         assert path.exists()
 
     def test_rust_graphql_handler_template(self) -> None:
         """API設計.md: Rust GraphQL handler テンプレート。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "rust" / "src" / "adapter" / "handler" / "graphql.rs.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "rust"
+            / "src"
+            / "adapter"
+            / "handler"
+            / "graphql.rs.tera"
+        )
         assert path.exists()
 
 
@@ -211,12 +306,34 @@ class TestCodeGenDesign:
     def test_go_openapi_template_exists(self) -> None:
         """API設計.md: Go サーバーに OpenAPI テンプレートが存在。"""
         # Go サーバーテンプレートのハンドラーディレクトリが存在するか
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "adapter" / "handler"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "internal"
+            / "adapter"
+            / "handler"
+        )
         assert path.is_dir()
 
     def test_rust_handler_template_exists(self) -> None:
         """API設計.md: Rust サーバーに handler テンプレートが存在。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "rust" / "src" / "adapter" / "handler"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "rust"
+            / "src"
+            / "adapter"
+            / "handler"
+        )
         assert path.is_dir()
 
 
@@ -225,13 +342,37 @@ class TestErrorResponseUnifiedSchema:
 
     def test_go_handler_has_error_code_field(self) -> None:
         """API設計.md: Go handler に code フィールドが定義されている。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "rest_handler.go.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "internal"
+            / "adapter"
+            / "handler"
+            / "rest_handler.go.tera"
+        )
         content = path.read_text(encoding="utf-8")
         assert '"code"' in content
 
     def test_go_handler_has_error_message_field(self) -> None:
         """API設計.md: Go handler に message フィールドが定義されている。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "adapter" / "handler" / "rest_handler.go.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "internal"
+            / "adapter"
+            / "handler"
+            / "rest_handler.go.tera"
+        )
         content = path.read_text(encoding="utf-8")
         assert '"message"' in content
 
@@ -285,7 +426,9 @@ class TestGrpcStatusCodeMapping:
     def test_grpc_status_code_in_doc(self, status_code: str) -> None:
         """gRPC設計.md: gRPC ステータスコードがドキュメントに記載されている。"""
         content = GRPC_DOC.read_text(encoding="utf-8")
-        assert status_code in content, f"gRPC ステータス '{status_code}' がドキュメントに記載されていません"
+        assert status_code in content, (
+            f"gRPC ステータス '{status_code}' がドキュメントに記載されていません"
+        )
 
 
 class TestGraphQLQueryLimits:
@@ -413,7 +556,9 @@ class TestHttpStatusCodeMapping:
     )
     def test_http_status_code_in_doc(self, status: str, description: str) -> None:
         """API設計.md: HTTP ステータスコードがドキュメントに記載。"""
-        assert status in self.content, f"HTTP {status} ({description}) がドキュメントに記載されていません"
+        assert status in self.content, (
+            f"HTTP {status} ({description}) がドキュメントに記載されていません"
+        )
 
 
 class TestDeprecationResponseHeaders:

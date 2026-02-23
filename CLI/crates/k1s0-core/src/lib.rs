@@ -7,6 +7,8 @@ pub mod template;
 pub mod validation;
 
 pub use config::{load_config, CliConfig};
-pub use validation::validate_name;
-pub use template::context::{build_context, ProjectContext, TemplateContext, TemplateContextBuilder};
+pub use template::context::{
+    build_context, ProjectContext, TemplateContext, TemplateContextBuilder,
+};
 pub use template::TemplateEngine;
+pub use validation::validate_name;

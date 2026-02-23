@@ -2,6 +2,7 @@
 
 Dockerfile テンプレートの内容がドキュメントと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -125,6 +126,7 @@ class TestDockerImageTagRules:
     def test_image_tag_4_patterns_in_doc(self) -> None:
         """Dockerイメージ戦略.md: イメージタグ規則4パターンがドキュメントに記載されていること。"""
         from pathlib import Path
+
         doc = Path(ROOT / "docs" / "Dockerイメージ戦略.md").read_text(encoding="utf-8")
         assert "{version}" in doc
         assert "{version}-{git-sha}" in doc
@@ -138,6 +140,7 @@ class TestDockerImageTaggingRules:
     def test_tagging_rules_in_doc(self) -> None:
         """Dockerイメージ戦略.md: main ブランチマージ時のタグ付けルールが記載されていること。"""
         from pathlib import Path
+
         doc = Path(ROOT / "docs" / "Dockerイメージ戦略.md").read_text(encoding="utf-8")
         assert "main" in doc
         assert "latest" in doc
@@ -151,6 +154,7 @@ class TestDockerImageRegistryNaming:
         """Dockerイメージ戦略.md: レジストリ命名規則が harbor.internal.example.com であること。"""
         values_path = ROOT / "infra" / "helm" / "services" / "service" / "order" / "values.yaml"
         import yaml as _yaml  # type: ignore[import-untyped]
+
         with open(values_path, encoding="utf-8") as f:
             values = _yaml.safe_load(f)
         assert values["image"]["registry"] == "harbor.internal.example.com"
@@ -163,6 +167,7 @@ class TestDockerImageProjectStorage:
     def test_project_storage_doc(self) -> None:
         """Dockerイメージ戦略.md: プロジェクト別格納先がドキュメントに記載されていること。"""
         from pathlib import Path
+
         doc = Path(ROOT / "docs" / "Dockerイメージ戦略.md").read_text(encoding="utf-8")
         assert "k1s0-system" in doc
         assert "k1s0-business" in doc
@@ -176,6 +181,7 @@ class TestDockerImageVulnerabilityPolicy:
     def test_vulnerability_policy_in_doc(self) -> None:
         """Dockerイメージ戦略.md: 脆弱性ポリシー4段階が記載されていること。"""
         from pathlib import Path
+
         doc = Path(ROOT / "docs" / "Dockerイメージ戦略.md").read_text(encoding="utf-8")
         assert "Critical" in doc
         assert "High" in doc
@@ -189,6 +195,7 @@ class TestDockerImageRetentionPolicy:
     def test_retention_policy_in_doc(self) -> None:
         """Dockerイメージ戦略.md: イメージ保持ポリシーが記載されていること。"""
         from pathlib import Path
+
         doc = Path(ROOT / "docs" / "Dockerイメージ戦略.md").read_text(encoding="utf-8")
         assert "10 バージョン" in doc or "10バージョン" in doc
         assert "7 日" in doc or "7日" in doc
@@ -200,6 +207,7 @@ class TestDockerImageCosignKeyless:
     def test_cosign_keyless_in_doc(self) -> None:
         """Dockerイメージ戦略.md: keyless signing が記載されていること。"""
         from pathlib import Path
+
         doc = Path(ROOT / "docs" / "Dockerイメージ戦略.md").read_text(encoding="utf-8")
         assert "keyless" in doc.lower()
         assert "COSIGN_EXPERIMENTAL" in doc or "Sigstore" in doc
@@ -211,6 +219,7 @@ class TestDockerImageSignatureVerification:
     def test_signature_verification_in_doc(self) -> None:
         """Dockerイメージ戦略.md: cosign verify が記載されていること。"""
         from pathlib import Path
+
         doc = Path(ROOT / "docs" / "Dockerイメージ戦略.md").read_text(encoding="utf-8")
         assert "cosign verify" in doc
         assert "certificate-oidc-issuer" in doc
@@ -222,6 +231,7 @@ class TestDockerImageMultiArch:
     def test_amd64_only_policy(self) -> None:
         """Dockerイメージ戦略.md: amd64 のみがビルドターゲットであること。"""
         from pathlib import Path
+
         doc = Path(ROOT / "docs" / "Dockerイメージ戦略.md").read_text(encoding="utf-8")
         assert "amd64" in doc
         assert "ARM64" in doc or "arm64" in doc

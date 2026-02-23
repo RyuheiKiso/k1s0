@@ -1,0 +1,21 @@
+# k1s0-{{ service_name }}
+
+k1s0 {{ service_name }} Swift ライブラリ
+
+## 使い方
+
+```swift
+import K1s0{{ service_name_pascal }}
+
+let config = {{ service_name_pascal }}Config(name: "example")
+try config.validate()
+let client = {{ service_name_pascal }}Client(config: config)
+print(client.name)
+```
+
+## 開発
+
+```bash
+swift build
+swift test
+```

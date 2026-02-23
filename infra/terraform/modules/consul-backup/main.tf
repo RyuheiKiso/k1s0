@@ -18,8 +18,10 @@ resource "kubernetes_cron_job_v1" "consul_backup" {
     concurrency_policy            = "Forbid"
 
     job_template {
+      metadata {}
       spec {
         template {
+          metadata {}
           spec {
             container {
               name  = "consul-backup"

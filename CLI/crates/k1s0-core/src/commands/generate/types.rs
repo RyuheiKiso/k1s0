@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 // ============================================================================
@@ -27,10 +27,9 @@ impl Kind {
     /// 選択可能なTier一覧を返す。
     pub fn available_tiers(&self) -> Vec<Tier> {
         match self {
-            Kind::Server => vec![Tier::System, Tier::Business, Tier::Service],
+            Kind::Server | Kind::Database => vec![Tier::System, Tier::Business, Tier::Service],
             Kind::Client => vec![Tier::Business, Tier::Service],
             Kind::Library => vec![Tier::System, Tier::Business],
-            Kind::Database => vec![Tier::System, Tier::Business, Tier::Service],
         }
     }
 }
@@ -75,6 +74,8 @@ pub enum Language {
     Rust,
     TypeScript,
     Dart,
+    Python,
+    Swift,
 }
 
 impl Language {
@@ -84,6 +85,8 @@ impl Language {
             Language::Rust => "Rust",
             Language::TypeScript => "TypeScript",
             Language::Dart => "Dart",
+            Language::Python => "Python",
+            Language::Swift => "Swift",
         }
     }
 
@@ -93,6 +96,8 @@ impl Language {
             Language::Rust => "rust",
             Language::TypeScript => "typescript",
             Language::Dart => "dart",
+            Language::Python => "python",
+            Language::Swift => "swift",
         }
     }
 }
@@ -215,7 +220,7 @@ pub enum LangFw {
 }
 
 /// 詳細設定
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct DetailConfig {
     /// サーバー: サービス名 / クライアント: アプリ名 / ライブラリ: ライブラリ名
     pub name: Option<String>,
@@ -229,19 +234,6 @@ pub struct DetailConfig {
     pub redis: bool,
     /// サーバー: BFF言語 (service Tier + GraphQL 時のみ)
     pub bff_language: Option<Language>,
-}
-
-impl Default for DetailConfig {
-    fn default() -> Self {
-        Self {
-            name: None,
-            api_styles: Vec::new(),
-            db: None,
-            kafka: false,
-            redis: false,
-            bff_language: None,
-        }
-    }
 }
 
 // ============================================================================
@@ -297,6 +289,8 @@ mod tests {
         assert_eq!(Language::Rust.as_str(), "Rust");
         assert_eq!(Language::TypeScript.as_str(), "TypeScript");
         assert_eq!(Language::Dart.as_str(), "Dart");
+        assert_eq!(Language::Python.as_str(), "Python");
+        assert_eq!(Language::Swift.as_str(), "Swift");
     }
 
     #[test]
@@ -305,6 +299,8 @@ mod tests {
         assert_eq!(Language::Rust.dir_name(), "rust");
         assert_eq!(Language::TypeScript.dir_name(), "typescript");
         assert_eq!(Language::Dart.dir_name(), "dart");
+        assert_eq!(Language::Python.dir_name(), "python");
+        assert_eq!(Language::Swift.dir_name(), "swift");
     }
 
     #[test]
@@ -339,7 +335,7 @@ mod tests {
             name: "order-db".to_string(),
             rdbms: Rdbms::PostgreSQL,
         };
-        assert_eq!(format!("{}", db), "order-db (PostgreSQL)");
+        assert_eq!(format!("{db}"), "order-db (PostgreSQL)");
     }
 
     #[test]

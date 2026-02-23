@@ -2,6 +2,7 @@
 
 linter/formatter 設定ファイルの内容がドキュメントと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -51,9 +52,25 @@ class TestGolangciLintConfig:
     def test_gosec_includes(self) -> None:
         includes = self.config["linters-settings"]["gosec"]["includes"]
         expected_rules = [
-            "G101", "G201", "G301", "G302", "G303", "G304", "G305",
-            "G306", "G307", "G401", "G402", "G403", "G404", "G405",
-            "G501", "G502", "G503", "G504", "G505",
+            "G101",
+            "G201",
+            "G301",
+            "G302",
+            "G303",
+            "G304",
+            "G305",
+            "G306",
+            "G307",
+            "G401",
+            "G402",
+            "G403",
+            "G404",
+            "G405",
+            "G501",
+            "G502",
+            "G503",
+            "G504",
+            "G505",
         ]
         for rule in expected_rules:
             assert rule in includes, f"gosec ルール {rule} が includes に含まれていません"
@@ -201,6 +218,7 @@ class TestPrettierrcConfig:
 
     def setup_method(self) -> None:
         import json
+
         path = ROOT / ".prettierrc"
         assert path.exists(), ".prettierrc が存在しません"
         self.content = path.read_text(encoding="utf-8")

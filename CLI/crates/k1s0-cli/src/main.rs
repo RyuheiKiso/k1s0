@@ -24,7 +24,7 @@ fn main() {
     let cli_config = match config::load_config("k1s0.yaml") {
         Ok(config) => config,
         Err(e) => {
-            eprintln!("設定ファイルの読み込みに失敗しました: {}", e);
+            eprintln!("設定ファイルの読み込みに失敗しました: {e}");
             eprintln!("デフォルト設定を使用します。");
             config::CliConfig::default()
         }
@@ -39,15 +39,14 @@ fn main() {
                 }
             }
             Err(e) => {
-                let msg = format!("{}", e);
+                let msg = format!("{e}");
                 if msg.contains("interrupted") {
                     // メインメニューで Ctrl+C → 終了
                     println!("\n終了します。");
                     break;
                 }
                 // その他のエラーはメインメニューに戻る
-                eprintln!("エラーが発生しました: {}", e);
-                continue;
+                eprintln!("エラーが発生しました: {e}");
             }
         }
     }
@@ -78,27 +77,27 @@ fn show_main_menu(_cli_config: &config::CliConfig) -> Result<bool> {
             match index {
                 0 => {
                     if let Err(e) = commands::init::run() {
-                        eprintln!("初期化エラー: {}", e);
+                        eprintln!("初期化エラー: {e}");
                     }
                 }
                 1 => {
                     if let Err(e) = commands::generate::run() {
-                        eprintln!("ひな形生成エラー: {}", e);
+                        eprintln!("ひな形生成エラー: {e}");
                     }
                 }
                 2 => {
                     if let Err(e) = commands::build::run() {
-                        eprintln!("ビルドエラー: {}", e);
+                        eprintln!("ビルドエラー: {e}");
                     }
                 }
                 3 => {
                     if let Err(e) = commands::test_cmd::run() {
-                        eprintln!("テスト実行エラー: {}", e);
+                        eprintln!("テスト実行エラー: {e}");
                     }
                 }
                 4 => {
                     if let Err(e) = commands::deploy::run() {
-                        eprintln!("デプロイエラー: {}", e);
+                        eprintln!("デプロイエラー: {e}");
                     }
                 }
                 5 => return Ok(true),

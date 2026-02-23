@@ -290,4 +290,66 @@ public interface IKafkaHealthCheck
 - [system-library-correlation設計](system-library-correlation設計.md) — k1s0-correlation ライブラリ
 - [system-library-outbox設計](system-library-outbox設計.md) — k1s0-outbox ライブラリ
 - [system-library-schemaregistry設計](system-library-schemaregistry設計.md) — k1s0-schemaregistry ライブラリ
+
+---
+
+## Swift
+
+### パッケージ構成
+- ターゲット: `K1s0Kafka`
+- Swift 6.0 / swift-tools-version: 6.0
+- プラットフォーム: macOS 14+, iOS 17+
+
+### 主要な公開API
+```swift
+// Kafka 接続設定（TLS・SASL 対応）
+public struct KafkaConfig: Sendable {
+    public let brokers: [String]
+    public let tlsEnabled: Bool
+    public let saslMechanism: SaslMechanism?
+    public let clientId: String
+    public init(brokers: [String], tlsEnabled: Bool = false, saslMechanism: SaslMechanism? = nil, clientId: String)
+}
+
+public enum SaslMechanism: Sendable {
+    case plain(username: String, password: String)
+    case scramSha256(username: String, password: String)
+    case scramSha512(username: String, password: String)
+}
+
+// Kafka ヘルスチェッカー（actor で並行安全）
+public actor KafkaHealthChecker {
+    public init(config: KafkaConfig)
+    public func check() async throws -> HealthStatus
+}
+
+public struct HealthStatus: Sendable {
+    public let isHealthy: Bool
+    public let brokerCount: Int
+    public let latencyMs: Double?
+}
+
+// トピック設定（命名規則検証付き）
+public struct TopicConfig: Sendable {
+    public let name: String
+    public let partitions: Int
+    public let replicationFactor: Int
+    public init(name: String, partitions: Int = 3, replicationFactor: Int = 3) throws
+}
+```
+
+### エラー型
+```swift
+public enum KafkaError: Error, Sendable {
+    case connectionFailed(brokers: [String], underlying: Error)
+    case invalidTopicName(String)
+    case healthCheckFailed(underlying: Error)
+    case authenticationFailed
+    case timeout(after: Duration)
+}
+```
+
+### テスト
+- Swift Testing フレームワーク（@Suite, @Test, #expect）
+- カバレッジ目標: 80%以上
 - [system-library-serviceauth設計](system-library-serviceauth設計.md) — k1s0-serviceauth ライブラリ

@@ -14,9 +14,12 @@ use context::TemplateContext;
 ///
 /// 指定されたディレクトリからテンプレートファイルを読み込み、
 /// カスタムフィルタを登録した Tera インスタンスを返す。
+///
+/// # Errors
+/// エラーが発生した場合。
 #[allow(dead_code)]
 pub fn create_engine(templates_dir: &str) -> Result<Tera> {
-    let glob_pattern = format!("{}/**/*", templates_dir);
+    let glob_pattern = format!("{templates_dir}/**/*");
     let mut tera = Tera::new(&glob_pattern)?;
     filters::register_filters(&mut tera);
     Ok(tera)
@@ -26,6 +29,9 @@ pub fn create_engine(templates_dir: &str) -> Result<Tera> {
 ///
 /// テンプレート名と Tera コンテキストを受け取り、
 /// レンダリング結果の文字列を返す。
+///
+/// # Errors
+/// エラーが発生した場合。
 #[allow(dead_code)]
 pub fn render(engine: &Tera, template_name: &str, ctx: &tera::Context) -> Result<String> {
     let rendered = engine.render(template_name, ctx)?;
@@ -35,7 +41,7 @@ pub fn render(engine: &Tera, template_name: &str, ctx: &tera::Context) -> Result
 /// テンプレートエンジン。
 ///
 /// Tera エンジンをラップし、CLI/templates/ から .tera ファイルを読み込み、
-/// TemplateContext を適用してレンダリングする。
+/// `TemplateContext` を適用してレンダリングする。
 pub struct TemplateEngine {
     pub(crate) tera: Tera,
     template_dir: PathBuf,
@@ -57,6 +63,9 @@ impl TemplateEngine {
     ///
     /// # Arguments
     /// * `template_dir` - テンプレートファイルのルートディレクトリ (例: "CLI/templates")
+    ///
+    /// # Errors
+    /// エラーが発生した場合。
     pub fn new(template_dir: &Path) -> Result<Self> {
         let mut tera = Tera::default();
         filters::register_filters(&mut tera);
@@ -71,7 +80,7 @@ impl TemplateEngine {
     ///
     /// 処理の流れ:
     /// 1. kind + language に対応するテンプレートディレクトリを選択
-    /// 2. 条件付きファイル (api_style, has_database 等) をフィルタ
+    /// 2. 条件付きファイル (`api_style`, `has_database` 等) をフィルタ
     /// 3. ファイル名のプレースホルダ ({name}, {module} 等) を置換
     /// 4. 各テンプレートをレンダリングして出力先に書き込み
     ///
@@ -81,6 +90,9 @@ impl TemplateEngine {
     ///
     /// # Returns
     /// 生成されたファイルのパス一覧
+    ///
+    /// # Errors
+    /// エラーが発生した場合。
     pub fn render_to_dir(
         &mut self,
         ctx: &TemplateContext,
@@ -124,7 +136,7 @@ impl TemplateEngine {
         }
 
         // テンプレートファイルを収集
-        let template_files = self.collect_template_files(&kind_lang_dir, ctx)?;
+        let template_files = Self::collect_template_files(&kind_lang_dir, ctx)?;
 
         // 各テンプレートを登録・レンダリング・書き込み
         let mut generated_files = Vec::new();
@@ -133,22 +145,18 @@ impl TemplateEngine {
             let full_template_path = kind_lang_dir.join(&file_info.relative_path);
 
             // テンプレートファイルの内容を読み込み
-            let template_content = fs::read_to_string(&full_template_path)
-                .with_context(|| {
-                    format!(
-                        "テンプレートファイルの読み込みに失敗: {}",
-                        full_template_path.display()
-                    )
-                })?;
+            let template_content = fs::read_to_string(&full_template_path).with_context(|| {
+                format!(
+                    "テンプレートファイルの読み込みに失敗: {}",
+                    full_template_path.display()
+                )
+            })?;
 
             // Tera にテンプレートを登録
             self.tera
                 .add_raw_template(&file_info.template_name, &template_content)
                 .with_context(|| {
-                    format!(
-                        "テンプレートの登録に失敗: {}",
-                        file_info.template_name
-                    )
+                    format!("テンプレートの登録に失敗: {}", file_info.template_name)
                 })?;
 
             // レンダリング
@@ -174,17 +182,13 @@ impl TemplateEngine {
             // 親ディレクトリを作成
             if let Some(parent) = output_path.parent() {
                 fs::create_dir_all(parent).with_context(|| {
-                    format!(
-                        "出力ディレクトリの作成に失敗: {}",
-                        parent.display()
-                    )
+                    format!("出力ディレクトリの作成に失敗: {}", parent.display())
                 })?;
             }
 
             // ファイルに書き込み
-            fs::write(&output_path, rendered).with_context(|| {
-                format!("ファイルの書き込みに失敗: {}", output_path.display())
-            })?;
+            fs::write(&output_path, rendered)
+                .with_context(|| format!("ファイルの書き込みに失敗: {}", output_path.display()))?;
 
             generated_files.push(output_path);
         }
@@ -194,7 +198,6 @@ impl TemplateEngine {
 
     /// テンプレートディレクトリから条件に合致するファイルを収集する。
     fn collect_template_files(
-        &self,
         kind_lang_dir: &Path,
         ctx: &TemplateContext,
     ) -> Result<Vec<TemplateFileInfo>> {
@@ -202,7 +205,7 @@ impl TemplateEngine {
 
         for entry in WalkDir::new(kind_lang_dir)
             .into_iter()
-            .filter_map(|e| e.ok())
+            .filter_map(std::result::Result::ok)
         {
             let path = entry.path();
 
@@ -271,7 +274,10 @@ impl TemplateEngine {
         }
 
         // gRPC ビルド設定ファイル
-        if path_str.contains("buf.yaml") || path_str.contains("buf.gen") || path_str.contains("build.rs") {
+        if path_str.contains("buf.yaml")
+            || path_str.contains("buf.gen")
+            || path_str.contains("build.rs")
+        {
             return ctx.api_styles.contains(&"grpc".to_string());
         }
 
@@ -297,8 +303,8 @@ impl TemplateEngine {
     /// 出力ファイルパスを計算する。
     ///
     /// - .tera 拡張子を除去
-    /// - {name} プレースホルダを service_name で置換
-    /// - {module} プレースホルダを service_name_snake で置換
+    /// - {name} プレースホルダを `service_name` で置換
+    /// - {module} プレースホルダを `service_name_snake` で置換
     fn resolve_output_path(
         template_relative: &Path,
         service_name: &str,
@@ -307,7 +313,8 @@ impl TemplateEngine {
         let path_str = template_relative.to_string_lossy().replace('\\', "/");
 
         // .tera 拡張子を除去
-        let without_tera = if path_str.ends_with(".tera") {
+        let without_tera = if template_relative.extension().and_then(|e| e.to_str()) == Some("tera")
+        {
             &path_str[..path_str.len() - 5]
         } else {
             &path_str
@@ -335,11 +342,8 @@ mod tests {
 
     #[test]
     fn test_resolve_output_path_removes_tera_extension() {
-        let result = TemplateEngine::resolve_output_path(
-            Path::new("cmd/main.go.tera"),
-            "order",
-            "order",
-        );
+        let result =
+            TemplateEngine::resolve_output_path(Path::new("cmd/main.go.tera"), "order", "order");
         assert_eq!(result, PathBuf::from("cmd/main.go"));
     }
 
@@ -511,8 +515,7 @@ mod tests {
 
     #[test]
     fn test_should_exclude_persistence_when_no_database() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server").build();
 
         assert!(!TemplateEngine::should_include_file(
             Path::new("internal/infra/persistence/db.go.tera"),
@@ -534,8 +537,7 @@ mod tests {
 
     #[test]
     fn test_should_exclude_kafka_when_disabled() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server").build();
 
         assert!(!TemplateEngine::should_include_file(
             Path::new("internal/infra/messaging/kafka.go.tera"),
@@ -726,6 +728,7 @@ mod tests {
     // =========================================================================
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn test_render_go_server_rest() {
         // テスト用のテンプレートディレクトリを作成
         let tmp = TempDir::new().unwrap();
@@ -889,9 +892,8 @@ mod tests {
         // レンダリング内容の検証
         let main_content = fs::read_to_string(output_dir.join("cmd/main.go")).unwrap();
         assert!(main_content.contains("// Service: order-api"));
-        assert!(main_content.contains(
-            "// Module: github.com/org/k1s0/regions/service/order-api/server/go"
-        ));
+        assert!(main_content
+            .contains("// Module: github.com/org/k1s0/regions/service/order-api/server/go"));
 
         let go_mod_content = fs::read_to_string(output_dir.join("go.mod")).unwrap();
         assert!(go_mod_content
@@ -941,11 +943,7 @@ mod tests {
 
         let openapi_dir = go_server_dir.join("api").join("openapi");
         fs::create_dir_all(&openapi_dir).unwrap();
-        fs::write(
-            openapi_dir.join("openapi.yaml.tera"),
-            "openapi: 3.0\n",
-        )
-        .unwrap();
+        fs::write(openapi_dir.join("openapi.yaml.tera"), "openapi: 3.0\n").unwrap();
 
         let output_dir = tmp.path().join("output");
         fs::create_dir_all(&output_dir).unwrap();
@@ -974,10 +972,9 @@ mod tests {
         assert!(!generated_names.contains(&"api/openapi/openapi.yaml".to_string()));
 
         // gRPC ハンドラの内容検証
-        let grpc_content = fs::read_to_string(
-            output_dir.join("internal/adapter/handler/grpc_handler.go"),
-        )
-        .unwrap();
+        let grpc_content =
+            fs::read_to_string(output_dir.join("internal/adapter/handler/grpc_handler.go"))
+                .unwrap();
         assert!(grpc_content.contains("// gRPC for OrderApi"));
     }
 
@@ -988,7 +985,10 @@ mod tests {
         let go_server_dir = template_root.join("server").join("go");
 
         // DB 固有テンプレート
-        let persistence_dir = go_server_dir.join("internal").join("infra").join("persistence");
+        let persistence_dir = go_server_dir
+            .join("internal")
+            .join("infra")
+            .join("persistence");
         fs::create_dir_all(&persistence_dir).unwrap();
         fs::write(
             persistence_dir.join("db.go.tera"),
@@ -997,7 +997,10 @@ mod tests {
         .unwrap();
 
         // Kafka 固有テンプレート
-        let messaging_dir = go_server_dir.join("internal").join("infra").join("messaging");
+        let messaging_dir = go_server_dir
+            .join("internal")
+            .join("infra")
+            .join("messaging");
         fs::create_dir_all(&messaging_dir).unwrap();
         fs::write(
             messaging_dir.join("kafka.go.tera"),
@@ -1044,22 +1047,20 @@ mod tests {
         let go_server_dir = template_root.join("server").join("go");
 
         // DB 固有テンプレート
-        let persistence_dir = go_server_dir.join("internal").join("infra").join("persistence");
+        let persistence_dir = go_server_dir
+            .join("internal")
+            .join("infra")
+            .join("persistence");
         fs::create_dir_all(&persistence_dir).unwrap();
-        fs::write(
-            persistence_dir.join("db.go.tera"),
-            "package persistence\n",
-        )
-        .unwrap();
+        fs::write(persistence_dir.join("db.go.tera"), "package persistence\n").unwrap();
 
         // Kafka 固有テンプレート
-        let messaging_dir = go_server_dir.join("internal").join("infra").join("messaging");
+        let messaging_dir = go_server_dir
+            .join("internal")
+            .join("infra")
+            .join("messaging");
         fs::create_dir_all(&messaging_dir).unwrap();
-        fs::write(
-            messaging_dir.join("kafka.go.tera"),
-            "package messaging\n",
-        )
-        .unwrap();
+        fs::write(messaging_dir.join("kafka.go.tera"), "package messaging\n").unwrap();
 
         let output_dir = tmp.path().join("output");
         fs::create_dir_all(&output_dir).unwrap();
@@ -1112,17 +1113,12 @@ mod tests {
         // internal/internal.go.tera
         let internal_dir = go_lib_dir.join("internal");
         fs::create_dir_all(&internal_dir).unwrap();
-        fs::write(
-            internal_dir.join("internal.go.tera"),
-            "package internal\n",
-        )
-        .unwrap();
+        fs::write(internal_dir.join("internal.go.tera"), "package internal\n").unwrap();
 
         let output_dir = tmp.path().join("output");
         fs::create_dir_all(&output_dir).unwrap();
 
-        let ctx = TemplateContextBuilder::new("order-api", "system", "go", "library")
-            .build();
+        let ctx = TemplateContextBuilder::new("order-api", "system", "go", "library").build();
 
         let mut engine = TemplateEngine::new(&template_root).unwrap();
         let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
@@ -1140,8 +1136,7 @@ mod tests {
         // {name} が "order-api" に置換されていることを検証
         assert!(
             generated_names.contains(&"order-api.go".to_string()),
-            "Placeholder {{name}} should be replaced with service_name. Generated: {:?}",
-            generated_names
+            "Placeholder {{name}} should be replaced with service_name. Generated: {generated_names:?}"
         );
         assert!(generated_names.contains(&"go.mod".to_string()));
         assert!(generated_names.contains(&"internal/internal.go".to_string()));
@@ -1186,8 +1181,7 @@ mod tests {
         let output_dir = tmp.path().join("output");
         fs::create_dir_all(&output_dir).unwrap();
 
-        let ctx = TemplateContextBuilder::new("order-api", "service", "rust", "library")
-            .build();
+        let ctx = TemplateContextBuilder::new("order-api", "service", "rust", "library").build();
 
         let mut engine = TemplateEngine::new(&template_root).unwrap();
         let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
@@ -1205,8 +1199,7 @@ mod tests {
         // {module} が "order_api" (snake_case) に置換されていることを検証
         assert!(
             generated_names.contains(&"src/order_api.rs".to_string()),
-            "Placeholder {{module}} should be replaced with service_name_snake. Generated: {:?}",
-            generated_names
+            "Placeholder {{module}} should be replaced with service_name_snake. Generated: {generated_names:?}"
         );
         assert!(generated_names.contains(&"src/lib.rs".to_string()));
         assert!(generated_names.contains(&"Cargo.toml".to_string()));
@@ -1231,8 +1224,7 @@ mod tests {
         let output_dir = tmp.path().join("output");
         fs::create_dir_all(&output_dir).unwrap();
 
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server").build();
 
         let mut engine = TemplateEngine::new(&template_root).unwrap();
         let result = engine.render_to_dir(&ctx, &output_dir);
@@ -1241,8 +1233,7 @@ mod tests {
         let err_msg = result.unwrap_err().to_string();
         assert!(
             err_msg.contains("テンプレートディレクトリが見つかりません"),
-            "Expected directory not found error, got: {}",
-            err_msg
+            "Expected directory not found error, got: {err_msg}"
         );
     }
 
@@ -1287,13 +1278,11 @@ mod tests {
         // 基本ファイルの存在確認
         assert!(
             generated_names.iter().any(|n| n.contains("main.go")),
-            "main.go should be generated. Files: {:?}",
-            generated_names
+            "main.go should be generated. Files: {generated_names:?}"
         );
         assert!(
             generated_names.iter().any(|n| n.contains("go.mod")),
-            "go.mod should be generated. Files: {:?}",
-            generated_names
+            "go.mod should be generated. Files: {generated_names:?}"
         );
     }
 }

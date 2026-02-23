@@ -825,4 +825,57 @@ public static class AuthExtensions
 - [system-library-outbox設計](system-library-outbox設計.md) — k1s0-outbox ライブラリ
 - [system-library-schemaregistry設計](system-library-schemaregistry設計.md) — k1s0-schemaregistry ライブラリ
 - [system-library-serviceauth設計](system-library-serviceauth設計.md) — k1s0-serviceauth ライブラリ
+
+---
+
+## Swift
+
+### パッケージ構成
+- ターゲット: `K1s0Authlib`
+- Swift 6.0 / swift-tools-version: 6.0
+- プラットフォーム: macOS 14+, iOS 17+
+
+### 主要な公開API
+```swift
+// JWKS 検証器（actor で並行安全）
+public actor JwksVerifier {
+    public init(jwksURL: URL, cacheTTL: Duration)
+    public func verify(token: String) async throws -> Claims
+}
+
+// JWT クレーム
+public struct Claims: Codable, Sendable {
+    public let sub: String
+    public let exp: Date
+    public let iat: Date
+    public let roles: [String]
+    public let scopes: [String]
+}
+
+// ロールベースアクセス制御
+public enum RBAC: Sendable {
+    case admin
+    case editor
+    case viewer
+    case custom(String)
+
+    public static func hasRole(_ role: RBAC, in claims: Claims) -> Bool
+}
+```
+
+### エラー型
+```swift
+public enum AuthError: Error, Sendable {
+    case tokenExpired
+    case invalidToken(String)
+    case jwksFetchFailed(underlying: Error)
+    case keyNotFound(kid: String)
+    case algorithmMismatch
+    case insufficientPermissions
+}
+```
+
+### テスト
+- Swift Testing フレームワーク（@Suite, @Test, #expect）
+- カバレッジ目標: 80%以上
 - [認証認可設計](認証認可設計.md) — OAuth2.0・JWT・RBAC

@@ -3,10 +3,8 @@
 可観測性スタック（Prometheus, Alertmanager, Loki, Jaeger）の設定が
 設計ドキュメントと一致するかを検証する。
 """
-from pathlib import Path
 
-import pytest
-import yaml  # type: ignore[import-untyped]
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 OBS = ROOT / "infra" / "observability"
@@ -176,6 +174,7 @@ class TestGrafanaDashboardJsonFiles:
     def test_overview_dashboard_valid_json(self) -> None:
         """可観測性設計.md: Overview ダッシュボードが有効な JSON。"""
         import json
+
         content = (self.DASHBOARDS / "overview.json").read_text(encoding="utf-8")
         data = json.loads(content)
         assert "panels" in data
@@ -183,6 +182,7 @@ class TestGrafanaDashboardJsonFiles:
     def test_slo_dashboard_valid_json(self) -> None:
         """可観測性設計.md: SLO ダッシュボードが有効な JSON。"""
         import json
+
         content = (self.DASHBOARDS / "slo.json").read_text(encoding="utf-8")
         data = json.loads(content)
         assert "panels" in data
@@ -190,6 +190,7 @@ class TestGrafanaDashboardJsonFiles:
     def test_overview_has_request_rate_panel(self) -> None:
         """可観測性設計.md: Overview に Request Rate パネルが存在。"""
         import json
+
         content = (self.DASHBOARDS / "overview.json").read_text(encoding="utf-8")
         data = json.loads(content)
         titles = [p["title"] for p in data["panels"]]
@@ -198,6 +199,7 @@ class TestGrafanaDashboardJsonFiles:
     def test_overview_has_error_rate_panel(self) -> None:
         """可観測性設計.md: Overview に Error Rate パネルが存在。"""
         import json
+
         content = (self.DASHBOARDS / "overview.json").read_text(encoding="utf-8")
         data = json.loads(content)
         titles = [p["title"] for p in data["panels"]]
@@ -225,19 +227,49 @@ class TestEnvironmentLogLevels:
 
     def test_dev_debug_level(self) -> None:
         """可観測性設計.md: dev 環境はデフォルト debug。"""
-        go_config = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
+        go_config = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "config"
+            / "config.yaml.tera"
+        )
         content = go_config.read_text(encoding="utf-8")
         assert "debug" in content.lower() or "info" in content.lower()
 
     def test_config_has_log_level(self) -> None:
         """可観測性設計.md: config.yaml テンプレートに log.level 設定がある。"""
-        go_config = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
+        go_config = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "config"
+            / "config.yaml.tera"
+        )
         content = go_config.read_text(encoding="utf-8")
         assert "level:" in content
 
     def test_config_has_log_format(self) -> None:
         """可観測性設計.md: config.yaml テンプレートに log.format 設定がある。"""
-        go_config = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
+        go_config = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "config"
+            / "config.yaml.tera"
+        )
         content = go_config.read_text(encoding="utf-8")
         assert "format:" in content
 
@@ -246,8 +278,16 @@ class TestJsonStandardLogFields:
     """可観測性設計.md: JSON 標準ログフィールド（14フィールド）の検証。"""
 
     EXPECTED_FIELDS = [
-        "timestamp", "level", "message", "service", "version",
-        "tier", "environment", "trace_id", "span_id", "request_id",
+        "timestamp",
+        "level",
+        "message",
+        "service",
+        "version",
+        "tier",
+        "environment",
+        "trace_id",
+        "span_id",
+        "request_id",
         "error",
     ]
 
@@ -312,8 +352,14 @@ class TestGrafanaDashboardAll8:
     """可観測性設計.md: Grafana ダッシュボード全 8 種の定義検証。"""
 
     EXPECTED_DASHBOARDS = [
-        "Overview", "Service Detail", "Infrastructure", "Kafka",
-        "Kong", "Istio", "Database", "SLO",
+        "Overview",
+        "Service Detail",
+        "Infrastructure",
+        "Kafka",
+        "Kong",
+        "Istio",
+        "Database",
+        "SLO",
     ]
 
     def test_all_8_dashboards_documented(self) -> None:
@@ -362,21 +408,23 @@ class TestEnvironmentAlertSuppression:
         doc = KANSHI_DOC.read_text(encoding="utf-8")
         # dev行に「無効」が2つあることを確認
         lines = doc.split("\n")
-        dev_lines = [l for l in lines if "| dev" in l and "無効" in l]
+        dev_lines = [line for line in lines if "| dev" in line and "無効" in line]
         assert len(dev_lines) >= 1, "dev 環境のアラート抑制定義が見つかりません"
 
     def test_doc_defines_staging_critical_only(self) -> None:
         """可観測性-監視アラート設計.md: staging 環境は critical のみ有効。"""
         doc = KANSHI_DOC.read_text(encoding="utf-8")
         lines = doc.split("\n")
-        staging_lines = [l for l in lines if "| staging" in l and "有効" in l and "無効" in l]
+        staging_lines = [
+            line for line in lines if "| staging" in line and "有効" in line and "無効" in line
+        ]
         assert len(staging_lines) >= 1, "staging 環境のアラート抑制定義が見つかりません"
 
     def test_doc_defines_prod_all_alerts(self) -> None:
         """可観測性-監視アラート設計.md: prod 環境は全アラートを通知。"""
         doc = KANSHI_DOC.read_text(encoding="utf-8")
         lines = doc.split("\n")
-        prod_lines = [l for l in lines if "| prod" in l and "有効" in l]
+        prod_lines = [line for line in lines if "| prod" in line and "有効" in line]
         assert len(prod_lines) >= 1, "prod 環境のアラート抑制定義が見つかりません"
 
     def test_staging_warning_suppression_config(self) -> None:
@@ -534,7 +582,11 @@ class TestJsonLogMissingFields:
     """可観測性設計.md: JSON ログの追加フィールド（method, path, status, duration_ms, user_id）の検証。"""
 
     ADDITIONAL_FIELDS = [
-        "method", "path", "status", "duration_ms", "user_id",
+        "method",
+        "path",
+        "status",
+        "duration_ms",
+        "user_id",
     ]
 
     def test_additional_log_fields_in_doc(self) -> None:

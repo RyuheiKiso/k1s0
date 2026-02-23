@@ -2,6 +2,7 @@
 
 パイプライン仕様書の構造・内容が正しいかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -144,7 +145,9 @@ class TestCodegenPipelineImplementationExists:
     """パイプライン実装ファイルが存在し、仕様書の関数を含むかの検証。"""
 
     def setup_method(self) -> None:
-        self.execute_rs = (CLI_CORE_SRC / "commands" / "generate" / "execute.rs").read_text(encoding="utf-8")
+        self.execute_rs = (CLI_CORE_SRC / "commands" / "generate" / "execute.rs").read_text(
+            encoding="utf-8"
+        )
 
     def test_execute_rs_exists(self) -> None:
         assert (CLI_CORE_SRC / "commands" / "generate" / "execute.rs").exists()
@@ -193,7 +196,9 @@ class TestCodegenPipelineImplementationExists:
         """
         content = self.execute_rs
         dep_pos = content.find("言語固有の依存解決") or content.find("mod tidy")
-        codegen_pos = content.find("コード生成") if content.find("コード生成") > dep_pos else len(content)
+        codegen_pos = (
+            content.find("コード生成") if content.find("コード生成") > dep_pos else len(content)
+        )
         db_pos = content.find("DB ありの場合") or content.find("sqlx")
         # 依存解決 < コード生成 < DB初期化
         assert dep_pos < codegen_pos, "依存解決はコード生成より先に実行されるべき"
@@ -219,11 +224,17 @@ class TestCodegenConfigFileTemplates:
             ("buf", "buf.yaml", "CLI/crates/k1s0-cli/templates/server/go/buf.yaml.tera"),
             ("buf", "buf.gen.yaml", "CLI/crates/k1s0-cli/templates/server/go/buf.gen.yaml.tera"),
             ("buf", "buf.yaml", "CLI/crates/k1s0-cli/templates/server/rust/buf.yaml.tera"),
-            ("oapi-codegen", "oapi-codegen.yaml", "CLI/crates/k1s0-cli/templates/server/go/oapi-codegen.yaml.tera"),
+            (
+                "oapi-codegen",
+                "oapi-codegen.yaml",
+                "CLI/crates/k1s0-cli/templates/server/go/oapi-codegen.yaml.tera",
+            ),
             ("gqlgen", "gqlgen.yml", "CLI/crates/k1s0-cli/templates/server/go/gqlgen.yml.tera"),
         ],
     )
-    def test_config_template_documented(self, tool: str, config_file: str, template_path: str) -> None:
+    def test_config_template_documented(
+        self, tool: str, config_file: str, template_path: str
+    ) -> None:
         """テンプレート仕様-コード生成パイプライン.md: 設定ファイルテンプレートが記載されている。"""
         assert template_path in self.content, (
             f"{tool} の設定ファイル '{config_file}' のテンプレートパス '{template_path}' が記載されていません"
@@ -257,12 +268,26 @@ class TestCodegenApiDefinitionTemplates:
     @pytest.mark.parametrize(
         "api_style,definition_file,template_path",
         [
-            ("REST", "api/openapi/openapi.yaml", "CLI/crates/k1s0-cli/templates/server/go/api/openapi/openapi.yaml.tera"),
-            ("gRPC", "api/proto/service.proto", "CLI/crates/k1s0-cli/templates/server/go/api/proto/service.proto.tera"),
-            ("GraphQL", "api/graphql/schema.graphql", "CLI/crates/k1s0-cli/templates/server/go/api/graphql/schema.graphql.tera"),
+            (
+                "REST",
+                "api/openapi/openapi.yaml",
+                "CLI/crates/k1s0-cli/templates/server/go/api/openapi/openapi.yaml.tera",
+            ),
+            (
+                "gRPC",
+                "api/proto/service.proto",
+                "CLI/crates/k1s0-cli/templates/server/go/api/proto/service.proto.tera",
+            ),
+            (
+                "GraphQL",
+                "api/graphql/schema.graphql",
+                "CLI/crates/k1s0-cli/templates/server/go/api/graphql/schema.graphql.tera",
+            ),
         ],
     )
-    def test_api_definition_template_documented(self, api_style: str, definition_file: str, template_path: str) -> None:
+    def test_api_definition_template_documented(
+        self, api_style: str, definition_file: str, template_path: str
+    ) -> None:
         """テンプレート仕様-コード生成パイプライン.md: API定義テンプレートパスが記載されている。"""
         assert template_path in self.content, (
             f"{api_style} の定義ファイル '{definition_file}' のテンプレートパス '{template_path}' が記載されていません"
@@ -290,7 +315,9 @@ class TestCodegenGraphQL:
 
     def setup_method(self) -> None:
         self.content = SPEC.read_text(encoding="utf-8")
-        self.execute_rs = (CLI_CORE_SRC / "commands" / "generate" / "execute.rs").read_text(encoding="utf-8")
+        self.execute_rs = (CLI_CORE_SRC / "commands" / "generate" / "execute.rs").read_text(
+            encoding="utf-8"
+        )
 
     def test_graphql_go_gqlgen_implemented(self) -> None:
         """テンプレート仕様-コード生成パイプライン.md: Go GraphQL gqlgen が実装済みであること。"""
@@ -309,8 +336,21 @@ class TestCodegenGraphQL:
 
     def test_graphql_templates_exist(self) -> None:
         """GraphQLテンプレートが用意されていること。"""
-        assert (ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "api" / "graphql" / "schema.graphql.tera").exists()
-        assert (ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "gqlgen.yml.tera").exists()
+        assert (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "api"
+            / "graphql"
+            / "schema.graphql.tera"
+        ).exists()
+        assert (
+            ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "gqlgen.yml.tera"
+        ).exists()
 
 
 # --- ギャップ 4: エラーメッセージ形式 ---
@@ -378,11 +418,16 @@ class TestCodegenDatabaseNoDependency:
         lines = self.content.split("\n")
         found_database_row = False
         for line in lines:
-            if "Database" in line and "|" in line:
-                if "なし" in line or "---" in line or "（なし）" in line:
-                    found_database_row = True
-                    break
-        assert found_database_row, "Database kind の依存解決「なし」がマトリクスに記載されていません"
+            if (
+                "Database" in line
+                and "|" in line
+                and ("なし" in line or "---" in line or "（なし）" in line)
+            ):
+                found_database_row = True
+                break
+        assert found_database_row, (
+            "Database kind の依存解決「なし」がマトリクスに記載されていません"
+        )
 
 
 class TestCodegenMultipleApiStyles:

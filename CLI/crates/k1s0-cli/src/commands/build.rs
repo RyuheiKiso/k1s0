@@ -2,7 +2,9 @@ use anyhow::Result;
 
 use crate::prompt::{self, ConfirmResult};
 
-pub use k1s0_core::commands::build::{BuildConfig, BuildMode, execute_build, scan_buildable_targets};
+pub use k1s0_core::commands::build::{
+    execute_build, scan_buildable_targets, BuildConfig, BuildMode,
+};
 
 const BUILD_MODE_LABELS: &[&str] = &["development", "production"];
 
@@ -23,6 +25,10 @@ enum Step {
 ///
 /// 各ステップで Esc を押すと前のステップに戻る。
 /// 最初のステップで Esc → メインメニューに戻る。
+///
+/// # Errors
+///
+/// プロンプトの入出力に失敗した場合、またはビルド実行に失敗した場合にエラーを返す。
 pub fn run() -> Result<()> {
     println!("\n--- ビルド ---\n");
 
@@ -89,10 +95,8 @@ fn step_select_targets() -> Result<Option<Vec<String>>> {
         items.push(t.as_str());
     }
 
-    let selected = prompt::multi_select_prompt(
-        "ビルド対象を選択してください（複数選択可）",
-        &items,
-    )?;
+    let selected =
+        prompt::multi_select_prompt("ビルド対象を選択してください（複数選択可）", &items)?;
 
     match selected {
         None => Ok(None),
@@ -128,7 +132,7 @@ fn step_build_mode() -> Result<Option<BuildMode>> {
 fn print_confirmation(config: &BuildConfig) {
     println!("\n[確認] 以下の対象をビルドします。よろしいですか？");
     for target in &config.targets {
-        println!("    対象:   {}", target);
+        println!("    対象:   {target}");
     }
     println!("    モード: {}", config.mode.as_str());
 }

@@ -1,14 +1,16 @@
 """gRPC auth-service E2E テスト。"""
+
 import pytest
 
 try:
     import grpc
-    from grpc_reflection.v1alpha import reflection_pb2, reflection_pb2_grpc
 except ImportError:
     grpc = None
 
 
-def _make_unary_call(channel, service, method, request_serializer, response_deserializer, request_bytes):
+def _make_unary_call(
+    channel, service, method, request_serializer, response_deserializer, request_bytes
+):
     """汎用 gRPC unary 呼び出し。生成済み stub がなくても動作する。"""
     return channel.unary_unary(
         f"/{service}/{method}",
@@ -94,9 +96,15 @@ class TestGrpcAuthService:
         permission = b"read"
         resource = b"config"
         request_bytes = (
-            b"\x0a" + bytes([len(user_id)]) + user_id
-            + b"\x12" + bytes([len(permission)]) + permission
-            + b"\x1a" + bytes([len(resource)]) + resource
+            b"\x0a"
+            + bytes([len(user_id)])
+            + user_id
+            + b"\x12"
+            + bytes([len(permission)])
+            + permission
+            + b"\x1a"
+            + bytes([len(resource)])
+            + resource
         )
 
         try:
@@ -141,8 +149,12 @@ class TestGrpcAuditService:
         event_type = b"LOGIN"
         user_id = b"test-user-001"
         request_bytes = (
-            b"\x0a" + bytes([len(event_type)]) + event_type
-            + b"\x12" + bytes([len(user_id)]) + user_id
+            b"\x0a"
+            + bytes([len(event_type)])
+            + event_type
+            + b"\x12"
+            + bytes([len(user_id)])
+            + user_id
         )
 
         try:

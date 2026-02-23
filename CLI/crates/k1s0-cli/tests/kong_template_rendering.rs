@@ -69,13 +69,11 @@ fn test_kong_file_list() {
 
     assert!(
         names.iter().any(|n| n.contains("kong-service.yaml")),
-        "kong-service.yaml missing. Generated: {:?}",
-        names
+        "kong-service.yaml missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("kong-plugins.yaml")),
-        "kong-plugins.yaml missing. Generated: {:?}",
-        names
+        "kong-plugins.yaml missing. Generated: {names:?}"
     );
 }
 
@@ -93,8 +91,7 @@ fn test_kong_service_has_service_name() {
     let content = read_output(&tmp, "kong-service.yaml");
     assert!(
         content.contains("order-api"),
-        "Kong service should contain service name\n--- kong-service.yaml ---\n{}",
-        content
+        "Kong service should contain service name\n--- kong-service.yaml ---\n{content}"
     );
 }
 
@@ -108,8 +105,7 @@ fn test_kong_service_has_namespace() {
     let content = read_output(&tmp, "kong-service.yaml");
     assert!(
         content.contains("k1s0-service"),
-        "Kong service should contain namespace\n--- kong-service.yaml ---\n{}",
-        content
+        "Kong service should contain namespace\n--- kong-service.yaml ---\n{content}"
     );
 }
 
@@ -123,8 +119,7 @@ fn test_kong_service_grpc_port() {
     let content = read_output(&tmp, "kong-service.yaml");
     assert!(
         content.contains("50051"),
-        "Kong service should contain gRPC port for grpc api_style\n--- kong-service.yaml ---\n{}",
-        content
+        "Kong service should contain gRPC port for grpc api_style\n--- kong-service.yaml ---\n{content}"
     );
 }
 
@@ -138,8 +133,7 @@ fn test_kong_service_no_grpc_port_for_rest() {
     let content = read_output(&tmp, "kong-service.yaml");
     assert!(
         !content.contains("50051"),
-        "Kong service should NOT contain gRPC port for REST-only\n--- kong-service.yaml ---\n{}",
-        content
+        "Kong service should NOT contain gRPC port for REST-only\n--- kong-service.yaml ---\n{content}"
     );
 }
 
@@ -157,8 +151,7 @@ fn test_kong_plugins_rate_limit_system() {
     let content = read_output(&tmp, "kong-plugins.yaml");
     assert!(
         content.contains("minute: 120"),
-        "System tier should have rate limit minute: 120\n--- kong-plugins.yaml ---\n{}",
-        content
+        "System tier should have rate limit minute: 120\n--- kong-plugins.yaml ---\n{content}"
     );
 }
 
@@ -172,8 +165,7 @@ fn test_kong_plugins_rate_limit_service() {
     let content = read_output(&tmp, "kong-plugins.yaml");
     assert!(
         content.contains("minute: 30"),
-        "Service tier should have rate limit minute: 30\n--- kong-plugins.yaml ---\n{}",
-        content
+        "Service tier should have rate limit minute: 30\n--- kong-plugins.yaml ---\n{content}"
     );
 }
 
@@ -187,8 +179,7 @@ fn test_kong_plugins_has_cors() {
     let content = read_output(&tmp, "kong-plugins.yaml");
     assert!(
         content.contains("plugin: cors"),
-        "Kong plugins should include CORS plugin\n--- kong-plugins.yaml ---\n{}",
-        content
+        "Kong plugins should include CORS plugin\n--- kong-plugins.yaml ---\n{content}"
     );
 }
 
@@ -202,8 +193,7 @@ fn test_kong_plugins_has_jwt() {
     let content = read_output(&tmp, "kong-plugins.yaml");
     assert!(
         content.contains("plugin: jwt"),
-        "Kong plugins should include JWT plugin\n--- kong-plugins.yaml ---\n{}",
-        content
+        "Kong plugins should include JWT plugin\n--- kong-plugins.yaml ---\n{content}"
     );
 }
 
@@ -220,15 +210,7 @@ fn test_kong_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(
-            !content.contains("{%"),
-            "Tera syntax found in {}",
-            name
-        );
-        assert!(
-            !content.contains("{#"),
-            "Tera comment found in {}",
-            name
-        );
+        assert!(!content.contains("{%"), "Tera syntax found in {name}");
+        assert!(!content.contains("{#"), "Tera comment found in {name}");
     }
 }

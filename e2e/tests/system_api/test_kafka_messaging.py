@@ -4,6 +4,7 @@ System Tier の Kafka トピックの存在確認、監査ログ・設定変更�
 発行と消費を検証する。
 前提: docker compose --profile messaging (kafka) が起動済みであること。
 """
+
 import json
 import time
 import uuid
@@ -82,12 +83,14 @@ class TestKafkaTopics:
 
 def _consume_recent_messages(bootstrap_servers, topic, timeout_sec=10, max_lookback=100):
     """指定トピックの最新メッセージを消費して返すヘルパー。"""
-    consumer = Consumer({
-        "bootstrap.servers": bootstrap_servers,
-        "group.id": f"e2e-{uuid.uuid4().hex[:8]}",
-        "auto.offset.reset": "latest",
-        "enable.auto.commit": False,
-    })
+    consumer = Consumer(
+        {
+            "bootstrap.servers": bootstrap_servers,
+            "group.id": f"e2e-{uuid.uuid4().hex[:8]}",
+            "auto.offset.reset": "latest",
+            "enable.auto.commit": False,
+        }
+    )
 
     partitions = consumer.list_topics(topic=topic, timeout=5)
     topic_meta = partitions.topics[topic]
@@ -149,14 +152,15 @@ class TestKafkaAuditMessaging:
         assert resp.status_code in (200, 201)
 
         messages = _consume_recent_messages(
-            kafka_bootstrap_servers, self.AUDIT_TOPIC, timeout_sec=10,
+            kafka_bootstrap_servers,
+            self.AUDIT_TOPIC,
+            timeout_sec=10,
         )
 
         found = any(m.get("user_id") == marker for m in messages)
         if not found:
             pytest.skip(
-                "Audit event not found in Kafka "
-                "(Kafka producer may not be enabled in auth-server)"
+                "Audit event not found in Kafka (Kafka producer may not be enabled in auth-server)"
             )
 
     def test_audit_event_schema(self, kafka_bootstrap_servers, auth_base_url):
@@ -176,14 +180,15 @@ class TestKafkaAuditMessaging:
         )
 
         messages = _consume_recent_messages(
-            kafka_bootstrap_servers, self.AUDIT_TOPIC, timeout_sec=10,
+            kafka_bootstrap_servers,
+            self.AUDIT_TOPIC,
+            timeout_sec=10,
         )
 
         event = next((m for m in messages if m.get("user_id") == marker), None)
         if event is None:
             pytest.skip(
-                "Audit event not found in Kafka "
-                "(Kafka producer may not be enabled in auth-server)"
+                "Audit event not found in Kafka (Kafka producer may not be enabled in auth-server)"
             )
 
         # スキーマ検証: action/event_type と user_id は必須
@@ -215,7 +220,9 @@ class TestKafkaConfigMessaging:
         assert resp.status_code in (200, 201)
 
         messages = _consume_recent_messages(
-            kafka_bootstrap_servers, self.CONFIG_TOPIC, timeout_sec=10,
+            kafka_bootstrap_servers,
+            self.CONFIG_TOPIC,
+            timeout_sec=10,
         )
 
         found = any(unique_key in json.dumps(m) for m in messages)

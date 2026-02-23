@@ -19,5 +19,5 @@ fn main() {
         assert!(status.success(), "Frontend build failed");
     }
 
-    tauri_build::build()
+    tauri_build::build();
 }

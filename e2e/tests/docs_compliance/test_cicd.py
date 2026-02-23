@@ -2,6 +2,7 @@
 
 .github/workflows/ のワークフロー定義がドキュメントと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -638,7 +639,9 @@ class TestCICacheStrategy:
     )
     def test_cache_strategy_documented(self, lang: str, cache_target: str) -> None:
         """CI-CD設計.md: 各言語のキャッシュ戦略が文書化されている。"""
-        assert cache_target in self.doc, f"{lang} のキャッシュ対象 '{cache_target}' が文書に記載されていません"
+        assert cache_target in self.doc, (
+            f"{lang} のキャッシュ対象 '{cache_target}' が文書に記載されていません"
+        )
 
 
 class TestDockerLayerCache:

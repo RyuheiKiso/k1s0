@@ -58,13 +58,11 @@ fn test_alertmanager_file_list() {
 
     assert!(
         names.iter().any(|n| n.contains("alertmanager-config.yaml")),
-        "alertmanager-config.yaml missing. Generated: {:?}",
-        names
+        "alertmanager-config.yaml missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("notification-secret.yaml")),
-        "notification-secret.yaml missing. Generated: {:?}",
-        names
+        "notification-secret.yaml missing. Generated: {names:?}"
     );
 }
 
@@ -78,8 +76,7 @@ fn test_alertmanager_has_service_name() {
     let content = read_output(&tmp, "alertmanager-config.yaml");
     assert!(
         content.contains("order-api"),
-        "Alertmanager config should contain service name\n--- alertmanager-config.yaml ---\n{}",
-        content
+        "Alertmanager config should contain service name\n--- alertmanager-config.yaml ---\n{content}"
     );
 }
 
@@ -93,8 +90,7 @@ fn test_alertmanager_has_namespace() {
     let content = read_output(&tmp, "alertmanager-config.yaml");
     assert!(
         content.contains("k1s0-service"),
-        "Alertmanager config should contain namespace\n--- alertmanager-config.yaml ---\n{}",
-        content
+        "Alertmanager config should contain namespace\n--- alertmanager-config.yaml ---\n{content}"
     );
 }
 
@@ -108,8 +104,7 @@ fn test_alertmanager_system_group_interval() {
     let content = read_output(&tmp, "alertmanager-config.yaml");
     assert!(
         content.contains("group_interval: 1m"),
-        "System tier should have group_interval 1m\n--- alertmanager-config.yaml ---\n{}",
-        content
+        "System tier should have group_interval 1m\n--- alertmanager-config.yaml ---\n{content}"
     );
 }
 
@@ -123,8 +118,7 @@ fn test_alertmanager_service_group_interval() {
     let content = read_output(&tmp, "alertmanager-config.yaml");
     assert!(
         content.contains("group_interval: 5m"),
-        "Service tier should have group_interval 5m\n--- alertmanager-config.yaml ---\n{}",
-        content
+        "Service tier should have group_interval 5m\n--- alertmanager-config.yaml ---\n{content}"
     );
 }
 
@@ -138,8 +132,7 @@ fn test_alertmanager_system_repeat_interval() {
     let content = read_output(&tmp, "alertmanager-config.yaml");
     assert!(
         content.contains("repeat_interval: 4h"),
-        "System tier should have repeat_interval 4h\n--- alertmanager-config.yaml ---\n{}",
-        content
+        "System tier should have repeat_interval 4h\n--- alertmanager-config.yaml ---\n{content}"
     );
 }
 
@@ -153,8 +146,7 @@ fn test_notification_secret_has_service_name() {
     let content = read_output(&tmp, "notification-secret.yaml");
     assert!(
         content.contains("order-api"),
-        "Notification secret should contain service name\n--- notification-secret.yaml ---\n{}",
-        content
+        "Notification secret should contain service name\n--- notification-secret.yaml ---\n{content}"
     );
 }
 
@@ -167,7 +159,7 @@ fn test_alertmanager_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(!content.contains("{%"), "Tera block syntax found in {}", name);
-        assert!(!content.contains("{#"), "Tera comment found in {}", name);
+        assert!(!content.contains("{%"), "Tera block syntax found in {name}");
+        assert!(!content.contains("{#"), "Tera comment found in {name}");
     }
 }

@@ -3,9 +3,8 @@
 CLI/templates/library/ のテンプレートファイルの内容が
 仕様ドキュメントのコードブロックと一致するかを検証する。
 """
-from pathlib import Path
 
-import pytest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 TEMPLATES = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates"
@@ -13,6 +12,7 @@ LIB_GO = TEMPLATES / "library" / "go"
 LIB_RUST = TEMPLATES / "library" / "rust"
 LIB_TS = TEMPLATES / "library" / "typescript"
 LIB_DART = TEMPLATES / "library" / "dart"
+LIB_SWIFT = TEMPLATES / "library" / "swift"
 
 
 class TestGoLibModContent:
@@ -234,12 +234,16 @@ class TestLibraryTierPlacement:
 
     def test_service_tier_no_library(self) -> None:
         """テンプレート仕様-ライブラリ.md: service 層にはライブラリを置かない。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(
+            encoding="utf-8"
+        )
         assert "service 層にはライブラリを置かない" in docs_content
 
     def test_system_and_business_only(self) -> None:
         """テンプレート仕様-ライブラリ.md: system と business の2階層にのみ配置。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(
+            encoding="utf-8"
+        )
         assert "**system** と **business** の2階層にのみ配置" in docs_content
 
 
@@ -258,7 +262,9 @@ class TestGoLibTestTooling:
 
     def test_docs_mention_gomock(self) -> None:
         """テンプレート仕様-ライブラリ.md: ドキュメントに gomock の記載がある。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(
+            encoding="utf-8"
+        )
         assert "gomock" in docs_content
 
 
@@ -267,12 +273,16 @@ class TestRustLibLintTools:
 
     def test_docs_mention_rustfmt(self) -> None:
         """テンプレート仕様-ライブラリ.md: rustfmt が記載されている。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(
+            encoding="utf-8"
+        )
         assert "rustfmt" in docs_content
 
     def test_docs_mention_clippy(self) -> None:
         """テンプレート仕様-ライブラリ.md: clippy が記載されている。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(
+            encoding="utf-8"
+        )
         assert "clippy" in docs_content
 
 
@@ -305,12 +315,16 @@ class TestDartLibLintTools:
 
     def test_docs_mention_dart_analyze(self) -> None:
         """テンプレート仕様-ライブラリ.md: dart analyze が記載されている。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(
+            encoding="utf-8"
+        )
         assert "dart analyze" in docs_content
 
     def test_docs_mention_dart_format(self) -> None:
         """テンプレート仕様-ライブラリ.md: dart format が記載されている。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(
+            encoding="utf-8"
+        )
         assert "dart format" in docs_content
 
 
@@ -319,22 +333,30 @@ class TestLibraryCommonGuidelines:
 
     def test_dependency_minimization(self) -> None:
         """テンプレート仕様-ライブラリ.md: 依存の最小化ガイドライン。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(
+            encoding="utf-8"
+        )
         assert "依存の最小化" in docs_content
 
     def test_public_api_explicit(self) -> None:
         """テンプレート仕様-ライブラリ.md: 公開 API の明示ガイドライン。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(
+            encoding="utf-8"
+        )
         assert "公開 API の明示" in docs_content
 
     def test_implementation_hiding(self) -> None:
         """テンプレート仕様-ライブラリ.md: 実装の隠蔽ガイドライン。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(
+            encoding="utf-8"
+        )
         assert "実装の隠蔽" in docs_content
 
     def test_versioning_semver(self) -> None:
         """テンプレート仕様-ライブラリ.md: SemVer バージョニング。"""
-        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(encoding="utf-8")
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(
+            encoding="utf-8"
+        )
         assert "SemVer" in docs_content
 
 
@@ -395,6 +417,7 @@ class TestTsLibIndexTestContent:
 
 class TestGoLibErrorType:
     """Go ライブラリの AppError 型検証。"""
+
     def setup_method(self) -> None:
         self.content = (LIB_GO / "{name}.go.tera").read_text(encoding="utf-8")
 
@@ -410,6 +433,7 @@ class TestGoLibErrorType:
 
 class TestRustLibErrorType:
     """Rust ライブラリの LibError 型検証。"""
+
     def setup_method(self) -> None:
         self.content = (LIB_RUST / "src" / "{module}.rs.tera").read_text(encoding="utf-8")
 
@@ -425,6 +449,7 @@ class TestRustLibErrorType:
 
 class TestTsLibErrorType:
     """TypeScript ライブラリの AppError 型検証。"""
+
     def setup_method(self) -> None:
         self.content = (LIB_TS / "src" / "index.ts.tera").read_text(encoding="utf-8")
 
@@ -437,6 +462,7 @@ class TestTsLibErrorType:
 
 class TestDartLibErrorType:
     """Dart ライブラリの AppException 型検証。"""
+
     def setup_method(self) -> None:
         self.content = (LIB_DART / "lib" / "src" / "{module}.dart.tera").read_text(encoding="utf-8")
 
@@ -445,3 +471,150 @@ class TestDartLibErrorType:
 
     def test_validate_method(self) -> None:
         assert "validate" in self.content
+
+
+# ============================================================================
+# Swift テンプレート検証
+# ============================================================================
+
+
+class TestSwiftLibPackageSwiftContent:
+    """テンプレート仕様-ライブラリ.md: Swift Package.swift.tera の内容検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (LIB_SWIFT / "Package.swift.tera").read_text(encoding="utf-8")
+
+    def test_swift_tools_version(self) -> None:
+        assert "swift-tools-version: 6.0" in self.content
+
+    def test_service_name_variable(self) -> None:
+        assert "{{ service_name }}" in self.content
+
+    def test_service_name_pascal(self) -> None:
+        assert "{{ service_name_pascal }}" in self.content
+
+    def test_swift_language_mode(self) -> None:
+        assert "swiftLanguageMode(.v6)" in self.content
+
+    def test_platforms(self) -> None:
+        assert ".macOS(.v14)" in self.content
+        assert ".iOS(.v17)" in self.content
+
+    def test_no_deprecated_language_version(self) -> None:
+        """非推奨の swiftLanguageVersion を使っていないこと。"""
+        assert "swiftLanguageVersion" not in self.content
+
+
+class TestSwiftLibSourceContent:
+    """テンプレート仕様-ライブラリ.md: Swift Sources テンプレートの内容検証。"""
+
+    def test_lib_error_exists(self) -> None:
+        assert (LIB_SWIFT / "Sources" / "{module}" / "LibError.swift.tera").exists()
+
+    def test_config_exists(self) -> None:
+        assert (LIB_SWIFT / "Sources" / "{module}" / "Config.swift.tera").exists()
+
+    def test_client_exists(self) -> None:
+        assert (LIB_SWIFT / "Sources" / "{module}" / "Client.swift.tera").exists()
+
+    def test_lib_error_sendable(self) -> None:
+        content = (LIB_SWIFT / "Sources" / "{module}" / "LibError.swift.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "Sendable" in content
+
+    def test_lib_error_enum(self) -> None:
+        content = (LIB_SWIFT / "Sources" / "{module}" / "LibError.swift.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "LibError" in content
+        assert "Error" in content
+
+    def test_config_sendable(self) -> None:
+        content = (LIB_SWIFT / "Sources" / "{module}" / "Config.swift.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "Sendable" in content
+
+    def test_config_validate_method(self) -> None:
+        content = (LIB_SWIFT / "Sources" / "{module}" / "Config.swift.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "validate" in content
+
+    def test_client_sendable(self) -> None:
+        content = (LIB_SWIFT / "Sources" / "{module}" / "Client.swift.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "Sendable" in content
+
+    def test_client_service_name_pascal(self) -> None:
+        content = (LIB_SWIFT / "Sources" / "{module}" / "Client.swift.tera").read_text(
+            encoding="utf-8"
+        )
+        assert "{{ service_name_pascal }}" in content
+
+
+class TestSwiftLibTestContent:
+    """テンプレート仕様-ライブラリ.md: Swift テストファイルの検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (
+            LIB_SWIFT / "Tests" / "{module}_tests" / "ClientTests.swift.tera"
+        ).read_text(encoding="utf-8")
+
+    def test_test_file_exists(self) -> None:
+        assert (LIB_SWIFT / "Tests" / "{module}_tests" / "ClientTests.swift.tera").exists()
+
+    def test_readme_exists(self) -> None:
+        assert (LIB_SWIFT / "README.md.tera").exists()
+
+    def test_uses_swift_testing_framework(self) -> None:
+        """Swift Testing フレームワーク (@Suite, @Test, #expect) を使用していること。"""
+        assert "import Testing" in self.content
+        assert "@Suite" in self.content
+        assert "@Test" in self.content
+        assert "#expect" in self.content
+
+    def test_testable_import(self) -> None:
+        assert "@testable import K1s0" in self.content
+
+    def test_service_name_pascal_in_test(self) -> None:
+        assert "{{ service_name_pascal }}" in self.content
+
+
+class TestSwiftLibErrorType:
+    """Swift ライブラリの LibError 型検証。"""
+
+    def setup_method(self) -> None:
+        self.content = (LIB_SWIFT / "Sources" / "{module}" / "LibError.swift.tera").read_text(
+            encoding="utf-8"
+        )
+
+    def test_lib_error_enum(self) -> None:
+        assert "LibError" in self.content
+
+    def test_error_conformance(self) -> None:
+        assert "Error" in self.content
+
+    def test_sendable_conformance(self) -> None:
+        assert "Sendable" in self.content
+
+    def test_custom_string_description(self) -> None:
+        assert "description" in self.content
+
+
+class TestSwiftLibLintTools:
+    """テンプレート仕様-ライブラリ.md: Swift の swift-format 検証。"""
+
+    def test_docs_mention_swift_format(self) -> None:
+        """テンプレート仕様-ライブラリ.md: swift-format が記載されている。"""
+        docs_content = (ROOT / "docs" / "テンプレート仕様-ライブラリ.md").read_text(
+            encoding="utf-8"
+        )
+        assert "swift-format" in docs_content
+
+    def test_swift_format_config_exists(self) -> None:
+        """.swift-format 設定ファイルが存在すること。"""
+        swift_libs = ROOT / "regions" / "system" / "library" / "swift"
+        assert (swift_libs / ".swift-format").exists()

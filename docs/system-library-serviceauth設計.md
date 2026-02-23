@@ -303,4 +303,56 @@ public record SpiffeId(
 - [system-library-kafka設計](system-library-kafka設計.md) — k1s0-kafka ライブラリ
 - [system-library-correlation設計](system-library-correlation設計.md) — k1s0-correlation ライブラリ
 - [system-library-outbox設計](system-library-outbox設計.md) — k1s0-outbox ライブラリ
+
+---
+
+## Swift
+
+### パッケージ構成
+- ターゲット: `K1s0Serviceauth`
+- Swift 6.0 / swift-tools-version: 6.0
+- プラットフォーム: macOS 14+, iOS 17+
+
+### 主要な公開API
+```swift
+// サービス間認証クライアントプロトコル
+public protocol ServiceAuthClient: Sendable {
+    func fetchToken() async throws -> ServiceToken
+}
+
+// URLSession ベース実装（actor で並行安全・キャッシュ付き）
+public actor URLSessionServiceAuthClient: ServiceAuthClient {
+    public init(config: ServiceAuthConfig, session: URLSession = .shared)
+    public func fetchToken() async throws -> ServiceToken
+}
+
+// サービストークン（自動更新対応）
+public struct ServiceToken: Sendable {
+    public let accessToken: String
+    public let expiresAt: Date
+    public var isExpired: Bool { expiresAt <= .now }
+}
+
+// SPIFFE ID 検証
+public struct SpiffeId: Hashable, Sendable {
+    public let trustDomain: String
+    public let path: String
+    public init?(uri: String)
+    public var uri: String { "spiffe://\(trustDomain)\(path)" }
+}
+```
+
+### エラー型
+```swift
+public enum ServiceAuthError: Error, Sendable {
+    case tokenFetchFailed(underlying: Error)
+    case invalidResponse(statusCode: Int)
+    case tokenExpired
+    case invalidSpiffeId(String)
+}
+```
+
+### テスト
+- Swift Testing フレームワーク（@Suite, @Test, #expect）
+- カバレッジ目標: 80%以上
 - [system-library-schemaregistry設計](system-library-schemaregistry設計.md) — k1s0-schemaregistry ライブラリ

@@ -107,10 +107,7 @@ impl KafkaProducer {
 
     fn build_default_topic_map() -> std::collections::HashMap<String, String> {
         let mut map = std::collections::HashMap::new();
-        map.insert(
-            "LOGIN".to_string(),
-            "k1s0.system.auth.login.v1".to_string(),
-        );
+        map.insert("LOGIN".to_string(), "k1s0.system.auth.login.v1".to_string());
         map.insert(
             "TOKEN".to_string(),
             "k1s0.system.auth.token_validate.v1".to_string(),

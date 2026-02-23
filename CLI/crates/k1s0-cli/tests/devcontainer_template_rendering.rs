@@ -44,8 +44,7 @@ fn render_devcontainer(
     fs::create_dir_all(&output_dir).unwrap();
 
     let mut builder =
-        TemplateContextBuilder::new("order-api", "service", lang, "devcontainer")
-            .framework(fw);
+        TemplateContextBuilder::new("order-api", "service", lang, "devcontainer").framework(fw);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -95,14 +94,16 @@ fn test_devcontainer_file_list() {
         "devcontainer.json missing"
     );
     assert!(
-        names.iter().any(|n| n.contains("docker-compose.extend.yaml")),
+        names
+            .iter()
+            .any(|n| n.contains("docker-compose.extend.yaml")),
         "docker-compose.extend.yaml missing"
     );
     assert!(
         names.iter().any(|n| n.contains("post-create.sh")),
         "post-create.sh missing"
     );
-    assert_eq!(names.len(), 3, "Expected 3 files, got: {:?}", names);
+    assert_eq!(names.len(), 3, "Expected 3 files, got: {names:?}");
 }
 
 // =========================================================================
@@ -151,9 +152,7 @@ fn test_devcontainer_rust_features() {
 
 #[test]
 fn test_devcontainer_react_features() {
-    let Some((tmp, _)) =
-        render_devcontainer("typescript", "react", false, "", false, false)
-    else {
+    let Some((tmp, _)) = render_devcontainer("typescript", "react", false, "", false, false) else {
         eprintln!("SKIP: devcontainer テンプレートディレクトリが未作成");
         return;
     };
@@ -175,8 +174,7 @@ fn test_devcontainer_react_features() {
 
 #[test]
 fn test_devcontainer_flutter_features() {
-    let Some((tmp, _)) = render_devcontainer("dart", "flutter", false, "", false, false)
-    else {
+    let Some((tmp, _)) = render_devcontainer("dart", "flutter", false, "", false, false) else {
         eprintln!("SKIP: devcontainer テンプレートディレクトリが未作成");
         return;
     };
@@ -224,9 +222,7 @@ fn test_devcontainer_common_features() {
 
 #[test]
 fn test_devcontainer_postgresql_port() {
-    let Some((tmp, _)) =
-        render_devcontainer("go", "", true, "postgresql", false, false)
-    else {
+    let Some((tmp, _)) = render_devcontainer("go", "", true, "postgresql", false, false) else {
         eprintln!("SKIP: devcontainer テンプレートディレクトリが未作成");
         return;
     };
@@ -266,9 +262,7 @@ fn test_devcontainer_kafka_ports() {
 
 #[test]
 fn test_devcontainer_compose_extends_postgres() {
-    let Some((tmp, _)) =
-        render_devcontainer("go", "", true, "postgresql", false, false)
-    else {
+    let Some((tmp, _)) = render_devcontainer("go", "", true, "postgresql", false, false) else {
         eprintln!("SKIP: devcontainer テンプレートディレクトリが未作成");
         return;
     };
@@ -348,8 +342,7 @@ fn test_devcontainer_post_create_rust() {
 
 #[test]
 fn test_devcontainer_post_create_flutter() {
-    let Some((tmp, _)) = render_devcontainer("dart", "flutter", false, "", false, false)
-    else {
+    let Some((tmp, _)) = render_devcontainer("dart", "flutter", false, "", false, false) else {
         eprintln!("SKIP: devcontainer テンプレートディレクトリが未作成");
         return;
     };
@@ -371,24 +364,14 @@ fn test_devcontainer_post_create_flutter() {
 
 #[test]
 fn test_devcontainer_no_tera_syntax() {
-    let Some((tmp, names)) =
-        render_devcontainer("go", "", true, "postgresql", true, true)
-    else {
+    let Some((tmp, names)) = render_devcontainer("go", "", true, "postgresql", true, true) else {
         eprintln!("SKIP: devcontainer テンプレートディレクトリが未作成");
         return;
     };
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(
-            !content.contains("{%"),
-            "Tera syntax {{%% found in {}",
-            name
-        );
-        assert!(
-            !content.contains("{#"),
-            "Tera comment {{# found in {}",
-            name
-        );
+        assert!(!content.contains("{%"), "Tera syntax {{%% found in {name}");
+        assert!(!content.contains("{#"), "Tera comment {{# found in {name}");
     }
 }

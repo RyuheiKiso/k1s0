@@ -7,6 +7,7 @@ use axum::{
 use serde::Deserialize;
 
 use super::{AppState, ErrorResponse};
+use crate::domain::entity::user::{User, UserListResult, UserRoles};
 use crate::usecase::list_users::ListUsersParams;
 
 #[utoipa::path(

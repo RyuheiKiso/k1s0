@@ -67,14 +67,14 @@ fn test_vault_file_list() {
     };
 
     assert!(
-        names.iter().any(|n| n.contains("secret-provider-class.yaml")),
-        "secret-provider-class.yaml missing. Generated: {:?}",
         names
+            .iter()
+            .any(|n| n.contains("secret-provider-class.yaml")),
+        "secret-provider-class.yaml missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("vault-policy.yaml")),
-        "vault-policy.yaml missing. Generated: {:?}",
-        names
+        "vault-policy.yaml missing. Generated: {names:?}"
     );
 }
 
@@ -88,8 +88,7 @@ fn test_vault_has_service_name() {
     let content = read_output(&tmp, "secret-provider-class.yaml");
     assert!(
         content.contains("order-api"),
-        "Vault config should contain service name\n--- secret-provider-class.yaml ---\n{}",
-        content
+        "Vault config should contain service name\n--- secret-provider-class.yaml ---\n{content}"
     );
 }
 
@@ -103,8 +102,7 @@ fn test_vault_has_namespace() {
     let content = read_output(&tmp, "secret-provider-class.yaml");
     assert!(
         content.contains("k1s0-service"),
-        "Vault config should contain namespace\n--- secret-provider-class.yaml ---\n{}",
-        content
+        "Vault config should contain namespace\n--- secret-provider-class.yaml ---\n{content}"
     );
 }
 
@@ -118,8 +116,7 @@ fn test_vault_with_database() {
     let content = read_output(&tmp, "secret-provider-class.yaml");
     assert!(
         content.contains("db-username"),
-        "Should include database secrets when has_database=true\n--- secret-provider-class.yaml ---\n{}",
-        content
+        "Should include database secrets when has_database=true\n--- secret-provider-class.yaml ---\n{content}"
     );
 }
 
@@ -133,8 +130,7 @@ fn test_vault_without_database() {
     let content = read_output(&tmp, "secret-provider-class.yaml");
     assert!(
         !content.contains("db-username"),
-        "Should NOT include database secrets when has_database=false\n--- secret-provider-class.yaml ---\n{}",
-        content
+        "Should NOT include database secrets when has_database=false\n--- secret-provider-class.yaml ---\n{content}"
     );
 }
 
@@ -148,8 +144,7 @@ fn test_vault_with_kafka() {
     let content = read_output(&tmp, "secret-provider-class.yaml");
     assert!(
         content.contains("kafka-password"),
-        "Should include kafka secrets when has_kafka=true\n--- secret-provider-class.yaml ---\n{}",
-        content
+        "Should include kafka secrets when has_kafka=true\n--- secret-provider-class.yaml ---\n{content}"
     );
 }
 
@@ -163,8 +158,7 @@ fn test_vault_with_redis() {
     let content = read_output(&tmp, "secret-provider-class.yaml");
     assert!(
         content.contains("redis-password"),
-        "Should include redis secrets when has_redis=true\n--- secret-provider-class.yaml ---\n{}",
-        content
+        "Should include redis secrets when has_redis=true\n--- secret-provider-class.yaml ---\n{content}"
     );
 }
 
@@ -178,8 +172,7 @@ fn test_vault_secret_path_uses_tier() {
     let content = read_output(&tmp, "secret-provider-class.yaml");
     assert!(
         content.contains("secret/data/k1s0/service/order-api"),
-        "Secret path should include tier and service name\n--- secret-provider-class.yaml ---\n{}",
-        content
+        "Secret path should include tier and service name\n--- secret-provider-class.yaml ---\n{content}"
     );
 }
 
@@ -193,8 +186,7 @@ fn test_vault_policy_system_shared() {
     let content = read_output(&tmp, "vault-policy.yaml");
     assert!(
         content.contains("secret/data/k1s0/system/shared"),
-        "System tier should have access to shared secrets\n--- vault-policy.yaml ---\n{}",
-        content
+        "System tier should have access to shared secrets\n--- vault-policy.yaml ---\n{content}"
     );
 }
 
@@ -208,8 +200,7 @@ fn test_vault_policy_service_no_shared() {
     let content = read_output(&tmp, "vault-policy.yaml");
     assert!(
         !content.contains("shared"),
-        "Service tier should NOT have access to shared secrets\n--- vault-policy.yaml ---\n{}",
-        content
+        "Service tier should NOT have access to shared secrets\n--- vault-policy.yaml ---\n{content}"
     );
 }
 
@@ -222,7 +213,7 @@ fn test_vault_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(!content.contains("{%"), "Tera block syntax found in {}", name);
-        assert!(!content.contains("{#"), "Tera comment found in {}", name);
+        assert!(!content.contains("{%"), "Tera block syntax found in {name}");
+        assert!(!content.contains("{#"), "Tera comment found in {name}");
     }
 }

@@ -10,11 +10,7 @@ fn template_dir() -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("templates")
 }
 
-fn render_loki(
-    service_name: &str,
-    tier: &str,
-    server_port: u16,
-) -> Option<(TempDir, Vec<String>)> {
+fn render_loki(service_name: &str, tier: &str, server_port: u16) -> Option<(TempDir, Vec<String>)> {
     let tpl_dir = template_dir();
     let cat_dir = tpl_dir.join("loki");
     if !cat_dir.exists() {
@@ -62,13 +58,11 @@ fn test_loki_file_list() {
 
     assert!(
         names.iter().any(|n| n.contains("promtail-config.yaml")),
-        "promtail-config.yaml missing. Generated: {:?}",
-        names
+        "promtail-config.yaml missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("log-policy.yaml")),
-        "log-policy.yaml missing. Generated: {:?}",
-        names
+        "log-policy.yaml missing. Generated: {names:?}"
     );
 }
 
@@ -86,8 +80,7 @@ fn test_promtail_has_service_name() {
     let content = read_output(&tmp, "promtail-config.yaml");
     assert!(
         content.contains("order-api"),
-        "Promtail config should contain service name\n--- promtail-config.yaml ---\n{}",
-        content
+        "Promtail config should contain service name\n--- promtail-config.yaml ---\n{content}"
     );
 }
 
@@ -101,8 +94,7 @@ fn test_promtail_has_namespace() {
     let content = read_output(&tmp, "promtail-config.yaml");
     assert!(
         content.contains("k1s0-service"),
-        "Promtail config should contain namespace\n--- promtail-config.yaml ---\n{}",
-        content
+        "Promtail config should contain namespace\n--- promtail-config.yaml ---\n{content}"
     );
 }
 
@@ -116,8 +108,7 @@ fn test_promtail_system_has_metrics_stage() {
     let content = read_output(&tmp, "promtail-config.yaml");
     assert!(
         content.contains("log_lines_total"),
-        "System tier should have metrics stage\n--- promtail-config.yaml ---\n{}",
-        content
+        "System tier should have metrics stage\n--- promtail-config.yaml ---\n{content}"
     );
 }
 
@@ -131,8 +122,7 @@ fn test_promtail_service_no_metrics_stage() {
     let content = read_output(&tmp, "promtail-config.yaml");
     assert!(
         !content.contains("log_lines_total"),
-        "Service tier should NOT have metrics stage\n--- promtail-config.yaml ---\n{}",
-        content
+        "Service tier should NOT have metrics stage\n--- promtail-config.yaml ---\n{content}"
     );
 }
 
@@ -150,8 +140,7 @@ fn test_log_policy_system_retention() {
     let content = read_output(&tmp, "log-policy.yaml");
     assert!(
         content.contains("retention_days: 90"),
-        "System tier should have 90 days retention\n--- log-policy.yaml ---\n{}",
-        content
+        "System tier should have 90 days retention\n--- log-policy.yaml ---\n{content}"
     );
 }
 
@@ -165,8 +154,7 @@ fn test_log_policy_business_retention() {
     let content = read_output(&tmp, "log-policy.yaml");
     assert!(
         content.contains("retention_days: 60"),
-        "Business tier should have 60 days retention\n--- log-policy.yaml ---\n{}",
-        content
+        "Business tier should have 60 days retention\n--- log-policy.yaml ---\n{content}"
     );
 }
 
@@ -180,8 +168,7 @@ fn test_log_policy_service_retention() {
     let content = read_output(&tmp, "log-policy.yaml");
     assert!(
         content.contains("retention_days: 30"),
-        "Service tier should have 30 days retention\n--- log-policy.yaml ---\n{}",
-        content
+        "Service tier should have 30 days retention\n--- log-policy.yaml ---\n{content}"
     );
 }
 
@@ -198,7 +185,7 @@ fn test_loki_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(!content.contains("{%"), "Tera block syntax found in {}", name);
-        assert!(!content.contains("{#"), "Tera comment found in {}", name);
+        assert!(!content.contains("{%"), "Tera block syntax found in {name}");
+        assert!(!content.contains("{#"), "Tera comment found in {name}");
     }
 }

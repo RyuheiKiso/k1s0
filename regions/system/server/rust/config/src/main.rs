@@ -55,13 +55,18 @@ async fn main() -> anyhow::Result<()> {
                 .connect(&database_url)
                 .await?;
             info!("connected to PostgreSQL");
-            let pg_repo = Arc::new(ConfigPostgresRepository::with_metrics(pool, metrics.clone()));
+            let pg_repo = Arc::new(ConfigPostgresRepository::with_metrics(
+                pool,
+                metrics.clone(),
+            ));
             // キャッシュでラップ（TTL 300秒、最大10000エントリ）
             let cache = Arc::new(infrastructure::cache::ConfigCache::new(10_000, 300));
             info!("config cache initialized (max_capacity=10000, ttl=300s)");
             Arc::new(
                 adapter::repository::cached_config_repository::CachedConfigRepository::with_metrics(
-                    pg_repo, cache, metrics.clone(),
+                    pg_repo,
+                    cache,
+                    metrics.clone(),
                 ),
             )
         } else if let Some(ref db_cfg) = cfg.database {
@@ -71,13 +76,18 @@ async fn main() -> anyhow::Result<()> {
                 .connect(&db_cfg.connection_url())
                 .await?;
             info!("connected to PostgreSQL");
-            let pg_repo = Arc::new(ConfigPostgresRepository::with_metrics(pool, metrics.clone()));
+            let pg_repo = Arc::new(ConfigPostgresRepository::with_metrics(
+                pool,
+                metrics.clone(),
+            ));
             // キャッシュでラップ（TTL 300秒、最大10000エントリ）
             let cache = Arc::new(infrastructure::cache::ConfigCache::new(10_000, 300));
             info!("config cache initialized (max_capacity=10000, ttl=300s)");
             Arc::new(
                 adapter::repository::cached_config_repository::CachedConfigRepository::with_metrics(
-                    pg_repo, cache, metrics.clone(),
+                    pg_repo,
+                    cache,
+                    metrics.clone(),
                 ),
             )
         } else {
@@ -176,8 +186,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // Router
-    let app = handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server (port 50053)
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50053).into();

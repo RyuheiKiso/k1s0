@@ -1,4 +1,5 @@
 """Health check E2E tests."""
+
 import pytest
 import requests
 

@@ -1,10 +1,14 @@
 /// 名前バリデーション: [a-z0-9-]+, 先頭末尾ハイフン禁止
+///
+/// # Errors
+/// 名前が無効な場合。
+///
+/// # Panics
+/// 正規表現のコンパイルに失敗した場合（正規表現が静的に正しいため実際には発生しない）。
 pub fn validate_name(name: &str) -> Result<(), String> {
     let re = regex::Regex::new(r"^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$").unwrap();
     if !re.is_match(name) {
-        return Err(
-            "英小文字・ハイフン・数字のみ許可。先頭末尾のハイフンは禁止。".into(),
-        );
+        return Err("英小文字・ハイフン・数字のみ許可。先頭末尾のハイフンは禁止。".into());
     }
     Ok(())
 }

@@ -3,13 +3,34 @@
 config.yaml テンプレートの内容が config 設計ドキュメントの
 スキーマ定義と一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
-GO_CONFIG = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
-RUST_CONFIG = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "rust" / "config" / "config.yaml.tera"
+GO_CONFIG = (
+    ROOT
+    / "CLI"
+    / "crates"
+    / "k1s0-cli"
+    / "templates"
+    / "server"
+    / "go"
+    / "config"
+    / "config.yaml.tera"
+)
+RUST_CONFIG = (
+    ROOT
+    / "CLI"
+    / "crates"
+    / "k1s0-cli"
+    / "templates"
+    / "server"
+    / "rust"
+    / "config"
+    / "config.yaml.tera"
+)
 
 
 class TestGoConfigYamlSchema:
@@ -212,7 +233,7 @@ class TestConfigDesignConstraints:
             if stripped.startswith("password:"):
                 value = stripped.split(":", 1)[1].strip()
                 if "#" in value:
-                    value = value[:value.index("#")].strip()
+                    value = value[: value.index("#")].strip()
                 assert value == '""', f"password フィールドに実値が含まれています: {line}"
 
     def test_vault_annotations(self) -> None:
@@ -230,19 +251,55 @@ class TestConfigGoImplementation:
 
     def test_go_config_loader_template(self) -> None:
         """config設計.md: Go config ローダーテンプレートが存在。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "infra" / "config" / "config.go.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "internal"
+            / "infra"
+            / "config"
+            / "config.go.tera"
+        )
         assert path.exists()
 
     def test_go_config_struct(self) -> None:
         """config設計.md: Config 構造体が定義されている。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "infra" / "config" / "config.go.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "internal"
+            / "infra"
+            / "config"
+            / "config.go.tera"
+        )
         if path.exists():
             content = path.read_text(encoding="utf-8")
             assert "Config" in content
 
     def test_go_config_yaml_tags(self) -> None:
         """config設計.md: yaml タグが使用されている。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "infra" / "config" / "config.go.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "internal"
+            / "infra"
+            / "config"
+            / "config.go.tera"
+        )
         if path.exists():
             content = path.read_text(encoding="utf-8")
             assert "yaml:" in content
@@ -253,12 +310,34 @@ class TestConfigRustImplementation:
 
     def test_rust_config_loader_template(self) -> None:
         """config設計.md: Rust config ローダーテンプレートが存在。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "rust" / "src" / "infra" / "config.rs.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "rust"
+            / "src"
+            / "infra"
+            / "config.rs.tera"
+        )
         assert path.exists()
 
     def test_rust_config_struct(self) -> None:
         """config設計.md: Rust Config 構造体が定義されている。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "rust" / "src" / "infra" / "config.rs.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "rust"
+            / "src"
+            / "infra"
+            / "config.rs.tera"
+        )
         if path.exists():
             content = path.read_text(encoding="utf-8")
             assert "Config" in content
@@ -270,12 +349,16 @@ class TestConfigMountPath:
     @pytest.mark.parametrize("lang", ["go", "rust"])
     def test_config_dir_in_template(self, lang: str) -> None:
         """config設計.md: ローカル開発は config/config.yaml。"""
-        assert (ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / lang / "config").is_dir()
+        assert (
+            ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / lang / "config"
+        ).is_dir()
 
     @pytest.mark.parametrize("lang", ["go", "rust"])
     def test_dockerfile_template_exists(self, lang: str) -> None:
         """config設計.md: Dockerfile テンプレートが存在。"""
-        assert (ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / lang / "Dockerfile.tera").exists()
+        assert (
+            ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / lang / "Dockerfile.tera"
+        ).exists()
 
 
 # ============================================================================
@@ -342,7 +425,19 @@ class TestConfigMergeOrderLogic:
 
     def test_config_loader_reads_yaml(self) -> None:
         """config設計.md: Go config ローダーが YAML を読み込む。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "infra" / "config" / "config.go.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "internal"
+            / "infra"
+            / "config"
+            / "config.go.tera"
+        )
         content = path.read_text(encoding="utf-8")
         assert "yaml.Unmarshal" in content or "yaml.v3" in content
 
@@ -360,7 +455,9 @@ class TestEnvironmentOverrideFiles:
 
     def test_dockerfile_template_has_config_path(self) -> None:
         """config設計.md: Dockerfile テンプレートが config パスを参照。"""
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "Dockerfile.tera"
+        path = (
+            ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "Dockerfile.tera"
+        )
         content = path.read_text(encoding="utf-8")
         assert "config" in content.lower()
 
@@ -369,7 +466,19 @@ class TestConfigValidationTags:
     """config設計.md: Go config 構造体のバリデーションタグ検証。"""
 
     def setup_method(self) -> None:
-        path = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "internal" / "infra" / "config" / "config.go.tera"
+        path = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "internal"
+            / "infra"
+            / "config"
+            / "config.go.tera"
+        )
         assert path.exists()
         self.content = path.read_text(encoding="utf-8")
 

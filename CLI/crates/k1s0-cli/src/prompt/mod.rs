@@ -8,6 +8,10 @@ pub fn theme() -> ColorfulTheme {
 }
 
 /// 選択プロンプト。Ctrl+C / Esc で None を返す。
+///
+/// # Errors
+///
+/// プロンプトの入出力に失敗した場合にエラーを返す。
 pub fn select_prompt(prompt: &str, items: &[&str]) -> anyhow::Result<Option<usize>> {
     let selection = Select::with_theme(&theme())
         .with_prompt(prompt)
@@ -18,10 +22,11 @@ pub fn select_prompt(prompt: &str, items: &[&str]) -> anyhow::Result<Option<usiz
 }
 
 /// 複数選択プロンプト。Ctrl+C / Esc で None を返す。
-pub fn multi_select_prompt(
-    prompt: &str,
-    items: &[&str],
-) -> anyhow::Result<Option<Vec<usize>>> {
+///
+/// # Errors
+///
+/// プロンプトの入出力に失敗した場合にエラーを返す。
+pub fn multi_select_prompt(prompt: &str, items: &[&str]) -> anyhow::Result<Option<Vec<usize>>> {
     let selection = MultiSelect::with_theme(&theme())
         .with_prompt(prompt)
         .items(items)
@@ -30,6 +35,10 @@ pub fn multi_select_prompt(
 }
 
 /// テキスト入力プロンプト（バリデーション付き）。
+///
+/// # Errors
+///
+/// プロンプトの入出力に失敗した場合にエラーを返す。
 pub fn input_prompt(prompt: &str) -> anyhow::Result<String> {
     let value: String = Input::with_theme(&theme())
         .with_prompt(prompt)
@@ -39,6 +48,10 @@ pub fn input_prompt(prompt: &str) -> anyhow::Result<String> {
 }
 
 /// テキスト入力プロンプト（バリデーションなし）。
+///
+/// # Errors
+///
+/// プロンプトの入出力に失敗した場合にエラーを返す。
 pub fn input_prompt_raw(prompt: &str) -> anyhow::Result<String> {
     let value: String = Input::with_theme(&theme())
         .with_prompt(prompt)
@@ -47,6 +60,10 @@ pub fn input_prompt_raw(prompt: &str) -> anyhow::Result<String> {
 }
 
 /// テキスト入力プロンプト（カスタムバリデーション付き）。
+///
+/// # Errors
+///
+/// プロンプトの入出力に失敗した場合にエラーを返す。
 pub fn input_with_validation<F>(prompt_text: &str, validator: F) -> anyhow::Result<String>
 where
     F: Fn(&String) -> Result<(), String> + Clone,
@@ -59,6 +76,10 @@ where
 }
 
 /// はい/いいえプロンプト。
+///
+/// # Errors
+///
+/// プロンプトの入出力に失敗した場合にエラーを返す。
 pub fn yes_no_prompt(prompt: &str) -> anyhow::Result<Option<bool>> {
     let items = &["はい", "いいえ"];
     let selection = Select::with_theme(&theme())
@@ -87,6 +108,10 @@ pub enum ConfirmResult {
 
 /// 確認プロンプト（はい / いいえ（前のステップに戻る）/ キャンセル の3択）。
 /// Ctrl+C / Esc の場合は Cancel を返す。
+///
+/// # Errors
+///
+/// プロンプトの入出力に失敗した場合にエラーを返す。
 pub fn confirm_prompt() -> anyhow::Result<ConfirmResult> {
     let items = &[
         "はい",
@@ -99,10 +124,9 @@ pub fn confirm_prompt() -> anyhow::Result<ConfirmResult> {
         .default(0)
         .interact_opt()?;
     match selection {
-        None => Ok(ConfirmResult::Cancel),
+        None | Some(2) => Ok(ConfirmResult::Cancel),
         Some(0) => Ok(ConfirmResult::Yes),
         Some(1) => Ok(ConfirmResult::GoBack),
-        Some(2) => Ok(ConfirmResult::Cancel),
         _ => unreachable!(),
     }
 }

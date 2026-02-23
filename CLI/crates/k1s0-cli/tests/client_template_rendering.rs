@@ -56,17 +56,50 @@ fn test_client_react_file_list() {
     let (_, names) = render_client("react");
 
     // 必須ファイルの存在確認
-    assert!(names.iter().any(|n| n == "package.json"), "package.json missing");
-    assert!(names.iter().any(|n| n == "tsconfig.json"), "tsconfig.json missing");
-    assert!(names.iter().any(|n| n == "vite.config.ts"), "vite.config.ts missing");
-    assert!(names.iter().any(|n| n == "vitest.config.ts"), "vitest.config.ts missing");
-    assert!(names.iter().any(|n| n == "eslint.config.mjs"), "eslint.config.mjs missing");
-    assert!(names.iter().any(|n| n == ".prettierrc"), ".prettierrc missing");
-    assert!(names.iter().any(|n| n == "src/app/App.tsx"), "src/app/App.tsx missing");
-    assert!(names.iter().any(|n| n == "src/lib/api-client.ts"), "src/lib/api-client.ts missing");
-    assert!(names.iter().any(|n| n == "src/lib/query-client.ts"), "src/lib/query-client.ts missing");
-    assert!(names.iter().any(|n| n == "Dockerfile"), "Dockerfile missing");
-    assert!(names.iter().any(|n| n == "nginx.conf"), "nginx.conf missing");
+    assert!(
+        names.iter().any(|n| n == "package.json"),
+        "package.json missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "tsconfig.json"),
+        "tsconfig.json missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "vite.config.ts"),
+        "vite.config.ts missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "vitest.config.ts"),
+        "vitest.config.ts missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "eslint.config.mjs"),
+        "eslint.config.mjs missing"
+    );
+    assert!(
+        names.iter().any(|n| n == ".prettierrc"),
+        ".prettierrc missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "src/app/App.tsx"),
+        "src/app/App.tsx missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "src/lib/api-client.ts"),
+        "src/lib/api-client.ts missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "src/lib/query-client.ts"),
+        "src/lib/query-client.ts missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "Dockerfile"),
+        "Dockerfile missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "nginx.conf"),
+        "nginx.conf missing"
+    );
     assert!(names.iter().any(|n| n == "README.md"), "README.md missing");
 }
 
@@ -125,9 +158,9 @@ fn test_client_react_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(!content.contains("{{"), "Tera syntax {{{{ found in {}", name);
-        assert!(!content.contains("{%"), "Tera syntax {{%% found in {}", name);
-        assert!(!content.contains("{#"), "Tera comment {{# found in {}", name);
+        assert!(!content.contains("{{"), "Tera syntax {{{{ found in {name}");
+        assert!(!content.contains("{%"), "Tera syntax {{%% found in {name}");
+        assert!(!content.contains("{#"), "Tera comment {{# found in {name}");
     }
 }
 
@@ -196,14 +229,38 @@ fn test_client_react_prettier_config() {
 fn test_client_flutter_file_list() {
     let (_, names) = render_client("flutter");
 
-    assert!(names.iter().any(|n| n == "pubspec.yaml"), "pubspec.yaml missing");
-    assert!(names.iter().any(|n| n == "analysis_options.yaml"), "analysis_options.yaml missing");
-    assert!(names.iter().any(|n| n == "lib/main.dart"), "lib/main.dart missing");
-    assert!(names.iter().any(|n| n == "lib/app/router.dart"), "lib/app/router.dart missing");
-    assert!(names.iter().any(|n| n == "lib/utils/dio_client.dart"), "lib/utils/dio_client.dart missing");
-    assert!(names.iter().any(|n| n == "Dockerfile"), "Dockerfile missing");
-    assert!(names.iter().any(|n| n == "nginx.conf"), "nginx.conf missing");
-    assert!(names.iter().any(|n| n == "test/widget_test.dart"), "test/widget_test.dart missing");
+    assert!(
+        names.iter().any(|n| n == "pubspec.yaml"),
+        "pubspec.yaml missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "analysis_options.yaml"),
+        "analysis_options.yaml missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "lib/main.dart"),
+        "lib/main.dart missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "lib/app/router.dart"),
+        "lib/app/router.dart missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "lib/utils/dio_client.dart"),
+        "lib/utils/dio_client.dart missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "Dockerfile"),
+        "Dockerfile missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "nginx.conf"),
+        "nginx.conf missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "test/widget_test.dart"),
+        "test/widget_test.dart missing"
+    );
     assert!(names.iter().any(|n| n == "README.md"), "README.md missing");
 }
 
@@ -238,9 +295,9 @@ fn test_client_flutter_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(!content.contains("{{"), "Tera syntax {{{{ found in {}", name);
-        assert!(!content.contains("{%"), "Tera syntax {{%% found in {}", name);
-        assert!(!content.contains("{#"), "Tera comment {{# found in {}", name);
+        assert!(!content.contains("{{"), "Tera syntax {{{{ found in {name}");
+        assert!(!content.contains("{%"), "Tera syntax {{%% found in {name}");
+        assert!(!content.contains("{#"), "Tera comment {{# found in {name}");
     }
 }
 
@@ -291,7 +348,9 @@ fn test_client_flutter_readme_content() {
     let (tmp, _) = render_client("flutter");
     let content = read_output(&tmp, "README.md");
 
-    assert!(content.contains("test-app") || content.contains("TestApp") || content.contains("test_app"));
+    assert!(
+        content.contains("test-app") || content.contains("TestApp") || content.contains("test_app")
+    );
 }
 
 #[test]
@@ -310,7 +369,9 @@ fn test_client_flutter_widget_test_content() {
 fn test_flutter_has_provider_file() {
     let (_, names) = render_client("flutter");
     assert!(
-        names.iter().any(|n| n.contains("providers/service_provider.dart")),
+        names
+            .iter()
+            .any(|n| n.contains("providers/service_provider.dart")),
         "Flutter should have providers/service_provider.dart"
     );
 }
@@ -319,8 +380,20 @@ fn test_flutter_has_provider_file() {
 fn test_flutter_provider_riverpod_pattern() {
     let (tmp, _) = render_client("flutter");
     let content = read_output(&tmp, "lib/providers/service_provider.dart");
-    assert!(content.contains("AsyncNotifier"), "Flutter provider should use AsyncNotifier pattern");
-    assert!(content.contains("fetchAll"), "Flutter provider should have fetchAll method");
-    assert!(content.contains("create"), "Flutter provider should have create method");
-    assert!(content.contains("delete"), "Flutter provider should have delete method");
+    assert!(
+        content.contains("AsyncNotifier"),
+        "Flutter provider should use AsyncNotifier pattern"
+    );
+    assert!(
+        content.contains("fetchAll"),
+        "Flutter provider should have fetchAll method"
+    );
+    assert!(
+        content.contains("create"),
+        "Flutter provider should have create method"
+    );
+    assert!(
+        content.contains("delete"),
+        "Flutter provider should have delete method"
+    );
 }

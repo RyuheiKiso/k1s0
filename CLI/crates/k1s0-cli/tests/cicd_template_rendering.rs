@@ -26,7 +26,7 @@ fn template_dir() -> std::path::PathBuf {
 /// cicd テンプレートをレンダリングする。
 ///
 /// 仕様書に従い、CLI/templates/cicd/ 直下のフラット構造からレンダリングする。
-/// kind="cicd" で TemplateEngine に渡し、言語分岐はテンプレート内部の
+/// kind="cicd" で `TemplateEngine` に渡し、言語分岐はテンプレート内部の
 /// {% if language == "go" %} 等で行う。
 fn render_cicd(
     _kind: &str,
@@ -49,8 +49,8 @@ fn render_cicd(
     // kind="cicd" で構築。language は Tera 変数として渡される。
     // 実際の kind (server/client 等) は元のパラメータを使うが、
     // テンプレート選択用の kind は "cicd" とする。
-    let mut builder = TemplateContextBuilder::new("order-api", "service", lang, "cicd")
-        .api_style(api_style);
+    let mut builder =
+        TemplateContextBuilder::new("order-api", "service", lang, "cicd").api_style(api_style);
 
     if has_database {
         builder = builder.with_database("postgresql");
@@ -91,13 +91,11 @@ fn test_cicd_go_generates_ci_and_deploy() {
     // CI + Deploy の両方が生成される
     assert!(
         names.iter().any(|n| n.contains("ci")),
-        "CI workflow file missing. Generated: {:?}",
-        names
+        "CI workflow file missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("deploy")),
-        "Deploy workflow file missing. Generated: {:?}",
-        names
+        "Deploy workflow file missing. Generated: {names:?}"
     );
 }
 
@@ -110,13 +108,11 @@ fn test_cicd_rust_generates_ci_and_deploy() {
 
     assert!(
         names.iter().any(|n| n.contains("ci")),
-        "CI workflow file missing. Generated: {:?}",
-        names
+        "CI workflow file missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("deploy")),
-        "Deploy workflow file missing. Generated: {:?}",
-        names
+        "Deploy workflow file missing. Generated: {names:?}"
     );
 }
 
@@ -130,8 +126,7 @@ fn test_cicd_typescript_generates_ci_and_deploy() {
     // CI が生成される
     assert!(
         names.iter().any(|n| n.contains("ci")),
-        "CI workflow file missing. Generated: {:?}",
-        names
+        "CI workflow file missing. Generated: {names:?}"
     );
 }
 
@@ -144,8 +139,7 @@ fn test_cicd_dart_generates_ci() {
 
     assert!(
         names.iter().any(|n| n.contains("ci")),
-        "CI workflow file missing. Generated: {:?}",
-        names
+        "CI workflow file missing. Generated: {names:?}"
     );
 }
 
@@ -163,9 +157,18 @@ fn test_cicd_ci_yaml_go_content() {
     let ci_file = names.iter().find(|n| n.contains("ci")).unwrap();
     let content = read_output(&tmp, ci_file);
 
-    assert!(content.contains("go") || content.contains("Go"), "Go reference missing in CI");
-    assert!(content.contains("test") || content.contains("Test"), "test step missing in CI");
-    assert!(content.contains("lint") || content.contains("Lint"), "lint step missing in CI");
+    assert!(
+        content.contains("go") || content.contains("Go"),
+        "Go reference missing in CI"
+    );
+    assert!(
+        content.contains("test") || content.contains("Test"),
+        "test step missing in CI"
+    );
+    assert!(
+        content.contains("lint") || content.contains("Lint"),
+        "lint step missing in CI"
+    );
 }
 
 #[test]
@@ -178,9 +181,18 @@ fn test_cicd_ci_yaml_rust_content() {
     let ci_file = names.iter().find(|n| n.contains("ci")).unwrap();
     let content = read_output(&tmp, ci_file);
 
-    assert!(content.contains("cargo") || content.contains("rust"), "Rust/cargo reference missing in CI");
-    assert!(content.contains("test") || content.contains("Test"), "test step missing in CI");
-    assert!(content.contains("clippy") || content.contains("lint"), "lint step missing in CI");
+    assert!(
+        content.contains("cargo") || content.contains("rust"),
+        "Rust/cargo reference missing in CI"
+    );
+    assert!(
+        content.contains("test") || content.contains("Test"),
+        "test step missing in CI"
+    );
+    assert!(
+        content.contains("clippy") || content.contains("lint"),
+        "lint step missing in CI"
+    );
 }
 
 // =========================================================================
@@ -197,8 +209,14 @@ fn test_cicd_deploy_yaml_content() {
     let deploy_file = names.iter().find(|n| n.contains("deploy")).unwrap();
     let content = read_output(&tmp, deploy_file);
 
-    assert!(content.contains("deploy") || content.contains("Deploy"), "deploy reference missing");
-    assert!(content.contains("helm") || content.contains("docker"), "helm or docker reference missing in deploy");
+    assert!(
+        content.contains("deploy") || content.contains("Deploy"),
+        "deploy reference missing"
+    );
+    assert!(
+        content.contains("helm") || content.contains("docker"),
+        "helm or docker reference missing in deploy"
+    );
 }
 
 // =========================================================================
@@ -232,7 +250,9 @@ fn test_cicd_ci_database_step() {
     let content = read_output(&tmp, ci_file);
 
     assert!(
-        content.contains("migration") || content.contains("migrate") || content.contains("database"),
+        content.contains("migration")
+            || content.contains("migrate")
+            || content.contains("database"),
         "migration test step missing when DB enabled"
     );
 }
@@ -250,8 +270,8 @@ fn test_cicd_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(!content.contains("{%"), "Tera syntax {{%% found in {}", name);
-        assert!(!content.contains("{#"), "Tera comment {{# found in {}", name);
+        assert!(!content.contains("{%"), "Tera syntax {{%% found in {name}");
+        assert!(!content.contains("{#"), "Tera comment {{# found in {name}");
     }
 }
 
@@ -271,8 +291,7 @@ fn test_cicd_github_actions_syntax() {
         if content.contains("${{") {
             assert!(
                 content.contains("${{") && content.contains("}}"),
-                "GitHub Actions syntax broken in {}",
-                name
+                "GitHub Actions syntax broken in {name}"
             );
         }
     }
@@ -293,7 +312,9 @@ fn test_cicd_service_name_in_workflow_name() {
     let content = read_output(&tmp, ci_file);
 
     assert!(
-        content.contains("order-api") || content.contains("OrderApi") || content.contains("order_api"),
+        content.contains("order-api")
+            || content.contains("OrderApi")
+            || content.contains("order_api"),
         "service_name not found in workflow name"
     );
 }

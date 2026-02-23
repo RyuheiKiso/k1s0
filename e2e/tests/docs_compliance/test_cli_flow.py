@@ -3,6 +3,7 @@
 CLI のソースコード (Rust) がフロー仕様ドキュメントと
 一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -43,7 +44,14 @@ class TestMainMenu:
     def test_menu_item_count(self) -> None:
         """CLIフロー.md: メニューは6項目。"""
         assert "MENU_ITEMS" in self.content
-        for item in ["プロジェクト初期化", "ひな形生成", "ビルド", "テスト実行", "デプロイ", "終了"]:
+        for item in [
+            "プロジェクト初期化",
+            "ひな形生成",
+            "ビルド",
+            "テスト実行",
+            "デプロイ",
+            "終了",
+        ]:
             assert item in self.content
 
     def test_ctrlc_handler(self) -> None:
@@ -93,7 +101,9 @@ class TestGenerateKinds:
     """CLIフロー.md: ひな形生成 — 種別の選択。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
+        self.content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(
+            encoding="utf-8"
+        )
 
     def test_kind_server(self) -> None:
         assert "サーバー" in self.content
@@ -112,11 +122,13 @@ class TestGenerateTierRestrictions:
     """CLIフロー.md: 種別に応じたTier制限の検証。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
+        self.content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(
+            encoding="utf-8"
+        )
 
     def test_server_all_tiers(self) -> None:
         """CLIフロー.md: サーバーは system/business/service。"""
-        assert "Kind::Server => vec![Tier::System, Tier::Business, Tier::Service]" in self.content
+        assert "Kind::Server | Kind::Database => vec![Tier::System, Tier::Business, Tier::Service]" in self.content
 
     def test_client_no_system(self) -> None:
         """CLIフロー.md: クライアントは business/service のみ。"""
@@ -135,7 +147,9 @@ class TestGenerateLanguages:
     """CLIフロー.md: 言語 / フレームワーク選択の検証。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
+        self.content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(
+            encoding="utf-8"
+        )
 
     def test_server_languages(self) -> None:
         """CLIフロー.md: サーバーは Go / Rust。"""
@@ -163,7 +177,9 @@ class TestGenerateApiStyles:
     """CLIフロー.md: API方式選択の検証。"""
 
     def setup_method(self) -> None:
-        self.content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(encoding="utf-8")
+        self.content = (CLI_CORE_SRC / "commands" / "generate" / "types.rs").read_text(
+            encoding="utf-8"
+        )
 
     def test_rest_option(self) -> None:
         assert "REST (OpenAPI)" in self.content
@@ -293,7 +309,9 @@ class TestCLIDependencies:
     """CLIフロー.md: CLI の依存関係が仕様通りか。"""
 
     def setup_method(self) -> None:
-        self.content = (ROOT / "CLI" / "crates" / "k1s0-cli" / "Cargo.toml").read_text(encoding="utf-8")
+        self.content = (ROOT / "CLI" / "crates" / "k1s0-cli" / "Cargo.toml").read_text(
+            encoding="utf-8"
+        )
 
     def test_dialoguer_dependency(self) -> None:
         """CLIフロー.md: dialoguer によるプロンプト。"""
@@ -522,7 +540,7 @@ class TestProdDeployConfirmation:
         """CLIフロー.md: "deploy" と入力する確認プロンプト。"""
         content = (CLI_SRC / "commands" / "deploy.rs").read_text(encoding="utf-8")
         assert '"deploy"' in content
-        assert 'deploy' in content
+        assert "deploy" in content
 
     def test_prod_only_confirmation(self) -> None:
         """CLIフロー.md: prod の場合のみ ProdConfirm に遷移する。"""
@@ -585,14 +603,14 @@ class TestServerDetailSettings:
 
     def test_system_business_service_name_input(self) -> None:
         """CLIフロー.md: system/business でサービス名入力、service でスキップ。"""
-        assert 'サービス名を入力してください' in self.content
+        assert "サービス名を入力してください" in self.content
         # service Tier では placement のサービス名を流用
         assert "Tier::Service" in self.content
 
     def test_service_tier_reuses_placement_name(self) -> None:
         """CLIフロー.md: service Tier ではステップ3のサービス名をそのまま使用。"""
         assert "tier == Tier::Service" in self.content
-        assert "placement.clone()" in self.content
+        assert "placement.map(str::to_owned)" in self.content
 
 
 class TestServerDbAddFlow:
@@ -659,36 +677,36 @@ class TestConfirmScreenPatterns:
 
     def test_confirm_shows_kind(self) -> None:
         """CLIフロー.md: 確認画面に種別が表示される。"""
-        assert '種別:' in self.content
+        assert "種別:" in self.content
 
     def test_confirm_shows_tier(self) -> None:
         """CLIフロー.md: 確認画面に Tier が表示される。"""
-        assert '    Tier:' in self.content
+        assert "    Tier:" in self.content
 
     def test_confirm_shows_api_for_server(self) -> None:
         """CLIフロー.md: サーバーの確認画面に API が表示される。"""
-        assert '    API:' in self.content
+        assert "    API:" in self.content
 
     def test_confirm_shows_db_for_server(self) -> None:
         """CLIフロー.md: サーバーの確認画面に DB が表示される。"""
-        assert '    DB:' in self.content
+        assert "    DB:" in self.content
 
     def test_confirm_shows_kafka_redis_for_server(self) -> None:
         """CLIフロー.md: サーバーの確認画面に Kafka と Redis が表示される。"""
-        assert '    Kafka:' in self.content
-        assert '    Redis:' in self.content
+        assert "    Kafka:" in self.content
+        assert "    Redis:" in self.content
 
     def test_confirm_shows_framework_for_client(self) -> None:
         """CLIフロー.md: クライアントの確認画面にフレームワークが表示される。"""
-        assert 'フレームワーク:' in self.content
+        assert "フレームワーク:" in self.content
 
     def test_confirm_shows_library_name(self) -> None:
         """CLIフロー.md: ライブラリの確認画面にライブラリ名が表示される。"""
-        assert 'ライブラリ名:' in self.content
+        assert "ライブラリ名:" in self.content
 
     def test_confirm_shows_rdbms_for_database(self) -> None:
         """CLIフロー.md: データベースの確認画面に RDBMS が表示される。"""
-        assert '    RDBMS:' in self.content
+        assert "    RDBMS:" in self.content
 
 
 class TestApiConditionalGeneration:
@@ -716,15 +734,33 @@ class TestAlwaysGeneratedTestFiles:
 
     def test_go_always_generates_usecase_test(self) -> None:
         """CLIフロー.md: Go では usecase_test.go が常に生成される。"""
-        assert (TEMPLATES / "server" / "go" / "internal" / "usecase" / "usecase_test.go.tera").exists()
+        assert (
+            TEMPLATES / "server" / "go" / "internal" / "usecase" / "usecase_test.go.tera"
+        ).exists()
 
     def test_go_always_generates_handler_test(self) -> None:
         """CLIフロー.md: Go では handler_test.go が常に生成される。"""
-        assert (TEMPLATES / "server" / "go" / "internal" / "adapter" / "handler" / "handler_test.go.tera").exists()
+        assert (
+            TEMPLATES
+            / "server"
+            / "go"
+            / "internal"
+            / "adapter"
+            / "handler"
+            / "handler_test.go.tera"
+        ).exists()
 
     def test_go_generates_repository_test_with_db(self) -> None:
         """CLIフロー.md: Go では repository_test.go が DB 有効時に生成される。"""
-        assert (TEMPLATES / "server" / "go" / "internal" / "infra" / "persistence" / "repository_test.go.tera").exists()
+        assert (
+            TEMPLATES
+            / "server"
+            / "go"
+            / "internal"
+            / "infra"
+            / "persistence"
+            / "repository_test.go.tera"
+        ).exists()
 
     def test_rust_always_generates_integration_test(self) -> None:
         """CLIフロー.md: Rust では integration_test.rs が常に生成される。"""
@@ -736,7 +772,9 @@ class TestServiceTierGraphQLBffDirectory:
 
     def test_bff_generation_logic_exists(self) -> None:
         """CLIフロー.md: service Tier + GraphQL で BFF ディレクトリ生成ロジックがある。"""
-        content = (CLI_CORE_SRC / "commands" / "generate" / "execute.rs").read_text(encoding="utf-8")
+        content = (CLI_CORE_SRC / "commands" / "generate" / "execute.rs").read_text(
+            encoding="utf-8"
+        )
         assert "bff" in content
         assert "ApiStyle::GraphQL" in content
 

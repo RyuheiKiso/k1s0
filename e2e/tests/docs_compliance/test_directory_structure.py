@@ -3,7 +3,7 @@
 docs/ディレクトリ構成図.md で定義されたディレクトリ構成が
 実際のプロジェクト構造と一致するかを検証する。
 """
-import os
+
 from pathlib import Path
 
 import pytest
@@ -176,9 +176,9 @@ class TestGitHubWorkflows:
     )
     def test_workflow_exists(self, workflow: str) -> None:
         """CI-CD設計.md: 全ワークフローファイルが存在する。"""
-        assert (
-            ROOT / ".github" / "workflows" / workflow
-        ).exists(), f".github/workflows/{workflow} が存在しません"
+        assert (ROOT / ".github" / "workflows" / workflow).exists(), (
+            f".github/workflows/{workflow} が存在しません"
+        )
 
 
 # ============================================================================
@@ -236,6 +236,7 @@ class TestSameTierCommunicationRules:
     def test_deny_bff_to_bff_policy(self) -> None:
         """tier-architecture.md: BFF 間通信禁止ポリシーが存在する。"""
         import yaml
+
         path = ROOT / "infra" / "istio" / "authorizationpolicy.yaml"
         content = path.read_text(encoding="utf-8")
         docs = [d for d in yaml.safe_load_all(content) if d]
@@ -246,13 +247,14 @@ class TestSameTierCommunicationRules:
     def test_system_tier_allow_from_lower(self) -> None:
         """tier-architecture.md: system は business, service からアクセス可。"""
         import yaml
+
         path = ROOT / "infra" / "istio" / "authorizationpolicy.yaml"
         content = path.read_text(encoding="utf-8")
         docs = [d for d in yaml.safe_load_all(content) if d]
         system_allow = [
-            d for d in docs
-            if d["metadata"]["namespace"] == "k1s0-system"
-            and d["spec"]["action"] == "ALLOW"
+            d
+            for d in docs
+            if d["metadata"]["namespace"] == "k1s0-system" and d["spec"]["action"] == "ALLOW"
         ]
         assert len(system_allow) >= 1
 
@@ -271,7 +273,9 @@ class TestDatabaseAccessRestriction:
     def test_go_db_template_is_server_only(self) -> None:
         """tier-architecture.md: DB テンプレート (persistence) はサーバーテンプレート内にのみ存在する。"""
         # サーバーテンプレートに persistence がある
-        assert (TEMPLATES / "server" / "go" / "internal" / "infra" / "persistence" / "db.go.tera").exists()
+        assert (
+            TEMPLATES / "server" / "go" / "internal" / "infra" / "persistence" / "db.go.tera"
+        ).exists()
         # クライアントテンプレートには persistence がない
         assert not (TEMPLATES / "client" / "react" / "persistence").exists()
         assert not (TEMPLATES / "client" / "flutter" / "persistence").exists()
@@ -317,7 +321,9 @@ class TestDocsTsToTypescriptConsistency:
 
     def test_template_dir_is_typescript(self) -> None:
         """ディレクトリ構成図.md: 実装側が CLI/templates/library/typescript/ である。"""
-        assert (ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "library" / "typescript").exists()
+        assert (
+            ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "library" / "typescript"
+        ).exists()
 
 
 class TestServerInternalStructure:
@@ -470,8 +476,18 @@ class TestTestCodeSeparation:
     def test_go_server_test_files_colocated(self) -> None:
         """ディレクトリ構成図.md: Go ユニットテストはソースと同一パッケージに配置。"""
         # usecase_test.go がソースと同じディレクトリにある
-        assert (TEMPLATES / "server" / "go" / "internal" / "usecase" / "usecase_test.go.tera").exists()
-        assert (TEMPLATES / "server" / "go" / "internal" / "adapter" / "handler" / "handler_test.go.tera").exists()
+        assert (
+            TEMPLATES / "server" / "go" / "internal" / "usecase" / "usecase_test.go.tera"
+        ).exists()
+        assert (
+            TEMPLATES
+            / "server"
+            / "go"
+            / "internal"
+            / "adapter"
+            / "handler"
+            / "handler_test.go.tera"
+        ).exists()
 
     def test_rust_server_integration_tests_separated(self) -> None:
         """ディレクトリ構成図.md: Rust 統合テストは tests/ に分離。"""
@@ -557,28 +573,72 @@ class TestGoServerDetailedStructure:
     def test_go_domain_service(self) -> None:
         """ディレクトリ構成図.md: Go サーバーに domain/service テンプレートが存在する。"""
         # domain/service はドキュメントに記載されているが、テンプレートは domain/model + domain/repository
-        assert (TEMPLATES / "server" / "go" / "internal" / "domain" / "model" / "entity.go.tera").exists()
-        assert (TEMPLATES / "server" / "go" / "internal" / "domain" / "repository" / "repository.go.tera").exists()
+        assert (
+            TEMPLATES / "server" / "go" / "internal" / "domain" / "model" / "entity.go.tera"
+        ).exists()
+        assert (
+            TEMPLATES
+            / "server"
+            / "go"
+            / "internal"
+            / "domain"
+            / "repository"
+            / "repository.go.tera"
+        ).exists()
 
     def test_go_adapter_presenter(self) -> None:
         """ディレクトリ構成図.md: Go サーバーに adapter/handler テンプレートが存在する。"""
-        assert (TEMPLATES / "server" / "go" / "internal" / "adapter" / "handler" / "rest_handler.go.tera").exists()
+        assert (
+            TEMPLATES
+            / "server"
+            / "go"
+            / "internal"
+            / "adapter"
+            / "handler"
+            / "rest_handler.go.tera"
+        ).exists()
 
     def test_go_adapter_gateway_grpc(self) -> None:
         """ディレクトリ構成図.md: Go サーバーに gRPC ハンドラーテンプレートが存在する。"""
-        assert (TEMPLATES / "server" / "go" / "internal" / "adapter" / "handler" / "grpc_handler.go.tera").exists()
+        assert (
+            TEMPLATES
+            / "server"
+            / "go"
+            / "internal"
+            / "adapter"
+            / "handler"
+            / "grpc_handler.go.tera"
+        ).exists()
 
     def test_go_tests_integration(self) -> None:
         """ディレクトリ構成図.md: Go サーバーに usecase_test.go テンプレートが存在する。"""
-        assert (TEMPLATES / "server" / "go" / "internal" / "usecase" / "usecase_test.go.tera").exists()
+        assert (
+            TEMPLATES / "server" / "go" / "internal" / "usecase" / "usecase_test.go.tera"
+        ).exists()
 
     def test_go_handler_test(self) -> None:
         """ディレクトリ構成図.md: Go サーバーに handler_test.go テンプレートが存在する。"""
-        assert (TEMPLATES / "server" / "go" / "internal" / "adapter" / "handler" / "handler_test.go.tera").exists()
+        assert (
+            TEMPLATES
+            / "server"
+            / "go"
+            / "internal"
+            / "adapter"
+            / "handler"
+            / "handler_test.go.tera"
+        ).exists()
 
     def test_go_repository_test(self) -> None:
         """ディレクトリ構成図.md: Go サーバーに repository_test.go テンプレートが存在する（DB有効時）。"""
-        assert (TEMPLATES / "server" / "go" / "internal" / "infra" / "persistence" / "repository_test.go.tera").exists()
+        assert (
+            TEMPLATES
+            / "server"
+            / "go"
+            / "internal"
+            / "infra"
+            / "persistence"
+            / "repository_test.go.tera"
+        ).exists()
 
     def test_go_config_env_files(self) -> None:
         """ディレクトリ構成図.md: Go サーバーに config.yaml テンプレートが存在する。"""
@@ -595,11 +655,15 @@ class TestRustServerDetailedStructure:
 
     def test_rust_adapter_handler(self) -> None:
         """ディレクトリ構成図.md: Rust サーバーに adapter/handler テンプレートが存在する。"""
-        assert (TEMPLATES / "server" / "rust" / "src" / "adapter" / "handler" / "rest.rs.tera").exists()
+        assert (
+            TEMPLATES / "server" / "rust" / "src" / "adapter" / "handler" / "rest.rs.tera"
+        ).exists()
 
     def test_rust_adapter_grpc(self) -> None:
         """ディレクトリ構成図.md: Rust サーバーに gRPC ハンドラーテンプレートが存在する。"""
-        assert (TEMPLATES / "server" / "rust" / "src" / "adapter" / "handler" / "grpc.rs.tera").exists()
+        assert (
+            TEMPLATES / "server" / "rust" / "src" / "adapter" / "handler" / "grpc.rs.tera"
+        ).exists()
 
     def test_rust_integration_test(self) -> None:
         """ディレクトリ構成図.md: Rust サーバーに tests/integration_test.rs テンプレートが存在する。"""
@@ -624,7 +688,9 @@ class TestReactClientDetailedStructure:
 
     def test_react_tests_testutil_exists(self) -> None:
         """ディレクトリ構成図.md: React テストに testutil がある。"""
-        assert (TEMPLATES / "client" / "react" / "tests" / "testutil" / "msw-setup.ts.tera").exists()
+        assert (
+            TEMPLATES / "client" / "react" / "tests" / "testutil" / "msw-setup.ts.tera"
+        ).exists()
 
 
 class TestFlutterClientDetailedStructure:
@@ -636,7 +702,9 @@ class TestFlutterClientDetailedStructure:
 
     def test_flutter_utils_dio(self) -> None:
         """ディレクトリ構成図.md: Flutter に utils/dio_client テンプレートがある。"""
-        assert (TEMPLATES / "client" / "flutter" / "lib" / "utils" / "dio_client.dart.tera").exists()
+        assert (
+            TEMPLATES / "client" / "flutter" / "lib" / "utils" / "dio_client.dart.tera"
+        ).exists()
 
     def test_flutter_test_exists(self) -> None:
         """ディレクトリ構成図.md: Flutter に test ディレクトリテンプレートがある。"""
@@ -809,12 +877,11 @@ class TestSameTierCommunicationBusinessTier:
     def test_business_tier_authorization_policy(self) -> None:
         """tier-architecture.md: business Tier の AuthorizationPolicy が存在する。"""
         import yaml
+
         path = ROOT / "infra" / "istio" / "authorizationpolicy.yaml"
         content = path.read_text(encoding="utf-8")
         docs = [d for d in yaml.safe_load_all(content) if d]
-        business_policies = [
-            d for d in docs if d["metadata"]["namespace"] == "k1s0-business"
-        ]
+        business_policies = [d for d in docs if d["metadata"]["namespace"] == "k1s0-business"]
         assert len(business_policies) >= 1
 
 
@@ -829,13 +896,14 @@ class TestSameTierCommunicationSystemTier:
     def test_system_tier_allow_policy_includes_same_namespace(self) -> None:
         """tier-architecture.md: system Tier の ALLOW ポリシーが自身のnamespaceを含む。"""
         import yaml
+
         path = ROOT / "infra" / "istio" / "authorizationpolicy.yaml"
         content = path.read_text(encoding="utf-8")
         docs = [d for d in yaml.safe_load_all(content) if d]
         system_allow = [
-            d for d in docs
-            if d["metadata"]["namespace"] == "k1s0-system"
-            and d["spec"]["action"] == "ALLOW"
+            d
+            for d in docs
+            if d["metadata"]["namespace"] == "k1s0-system" and d["spec"]["action"] == "ALLOW"
         ]
         assert len(system_allow) >= 1
         # system namespace 自身からのアクセスも許可されている

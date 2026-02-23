@@ -2,10 +2,10 @@ pub mod logger;
 pub mod metrics;
 pub mod middleware;
 
-#[cfg(any(feature = "axum-layer", test))]
-pub use middleware::MetricsLayer;
 #[cfg(any(feature = "grpc-layer", test))]
 pub use middleware::GrpcMetricsLayer;
+#[cfg(any(feature = "axum-layer", test))]
+pub use middleware::MetricsLayer;
 
 #[cfg(test)]
 mod tests;
@@ -15,7 +15,9 @@ use opentelemetry::trace::TracerProvider as _;
 use opentelemetry::KeyValue;
 use opentelemetry_otlp::{SpanExporter, WithExportConfig};
 use opentelemetry_sdk::{trace as sdktrace, Resource};
-use tracing_subscriber::{fmt, fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use tracing_subscriber::{
+    fmt, fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter,
+};
 
 /// TelemetryConfig は telemetry ライブラリの初期化設定を保持する。
 pub struct TelemetryConfig {

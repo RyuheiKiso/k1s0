@@ -2,10 +2,9 @@
 
 .devcontainer/devcontainer.json の内容がドキュメントと一致するかを検証する。
 """
+
 import json
 from pathlib import Path
-
-import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -25,7 +24,7 @@ class TestDevcontainerConfig:
                 continue
             # インラインコメントは JSON パーサーが処理できないので除去
             if "//" in line and not stripped.startswith('"'):
-                line = line[:line.index("//")]
+                line = line[: line.index("//")]
             lines.append(line)
         self.config = json.loads("\n".join(lines))
 
@@ -94,9 +93,25 @@ class TestDevcontainerConfig:
     def test_forward_ports(self) -> None:
         ports = self.config["forwardPorts"]
         expected_ports = [
-            8080, 50051, 3000, 5173, 5432, 3306,
-            6379, 6380, 9092, 8081, 16686, 4317,
-            4318, 3100, 9090, 3200, 8090, 8200, 8180,
+            8080,
+            50051,
+            3000,
+            5173,
+            5432,
+            3306,
+            6379,
+            6380,
+            9092,
+            8081,
+            16686,
+            4317,
+            4318,
+            3100,
+            9090,
+            3200,
+            8090,
+            8200,
+            8180,
         ]
         for port in expected_ports:
             assert port in ports, f"ポート {port} がフォワードされていません"
@@ -131,7 +146,10 @@ class TestDevcontainerConfig:
     def test_typescript_default_formatter(self) -> None:
         """devcontainer設計.md: TypeScript の defaultFormatter 設定。"""
         settings = self.config["customizations"]["vscode"]["settings"]
-        assert settings["[typescript][typescriptreact]"]["editor.defaultFormatter"] == "esbenp.prettier-vscode"
+        assert (
+            settings["[typescript][typescriptreact]"]["editor.defaultFormatter"]
+            == "esbenp.prettier-vscode"
+        )
 
     def test_dart_default_formatter(self) -> None:
         """devcontainer設計.md: Dart の defaultFormatter 設定。"""
@@ -154,6 +172,7 @@ class TestDevcontainerExtendCompose:
     def test_devcontainer_service(self) -> None:
         path = ROOT / ".devcontainer" / "docker-compose.extend.yaml"
         import yaml  # type: ignore[import-untyped]
+
         with open(path, encoding="utf-8") as f:
             config = yaml.safe_load(f)
         svc = config["services"]["devcontainer"]
@@ -232,7 +251,7 @@ class TestDevcontainerRustVersionSync:
             if stripped.startswith("//"):
                 continue
             if "//" in line and not stripped.startswith('"'):
-                line = line[:line.index("//")]
+                line = line[: line.index("//")]
             lines.append(line)
         config = json.loads("\n".join(lines))
         rust_version = config["features"]["ghcr.io/devcontainers/features/rust:1"]["version"]
@@ -263,7 +282,7 @@ class TestDevcontainerGolangciLintSettings:
             if stripped.startswith("//"):
                 continue
             if "//" in line and not stripped.startswith('"'):
-                line = line[:line.index("//")]
+                line = line[: line.index("//")]
             lines.append(line)
         config = json.loads("\n".join(lines))
         settings = config["customizations"]["vscode"]["settings"]
@@ -278,6 +297,7 @@ class TestDevcontainerExtendDependsOn:
         """devcontainer設計.md: devcontainer が postgres と redis に依存していること。"""
         path = ROOT / ".devcontainer" / "docker-compose.extend.yaml"
         import yaml as _yaml  # type: ignore[import-untyped]
+
         with open(path, encoding="utf-8") as f:
             config = _yaml.safe_load(f)
         deps = config["services"]["devcontainer"]["depends_on"]

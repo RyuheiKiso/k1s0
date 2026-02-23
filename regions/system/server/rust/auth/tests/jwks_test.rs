@@ -142,4 +142,114 @@ mod jwks_wiremock_tests {
         let result = verifier.verify_token("invalid-jwt-token").await;
         assert!(result.is_err());
     }
+
+    // -----------------------------------------------------------------------
+    // TTL キャッシュ動作テスト
+    // -----------------------------------------------------------------------
+
+    /// TTL = Duration::ZERO の場合、毎回 JWKS エンドポイントへフェッチすること。
+    #[tokio::test]
+    async fn test_jwks_ttl_zero_always_refetches() {
+        let mock_server = MockServer::start().await;
+
+        // 少なくとも 2 回フェッチされることを期待
+        Mock::given(method("GET"))
+            .and(path("/realms/k1s0/protocol/openid-connect/certs"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(sample_jwks_response()))
+            .expect(2..)
+            .mount(&mock_server)
+            .await;
+
+        let jwks_url = format!(
+            "{}/realms/k1s0/protocol/openid-connect/certs",
+            mock_server.uri()
+        );
+
+        // TTL = 0 → キャッシュは常に期限切れ → 毎回フェッチ
+        let verifier = JwksVerifier::new(
+            &jwks_url,
+            "http://localhost:8180/realms/k1s0",
+            "k1s0-api",
+            Duration::ZERO,
+        );
+
+        let _ = verifier.verify_token("invalid-token").await;
+        let _ = verifier.verify_token("invalid-token").await;
+        // mock_server は Drop 時に expect(2..) を検証する
+    }
+
+    /// TTL が十分長い場合、2 回目以降はキャッシュを再利用すること（フェッチは 1 回のみ）。
+    #[tokio::test]
+    async fn test_jwks_long_ttl_reuses_cached_keys() {
+        let mock_server = MockServer::start().await;
+
+        // 正確に 1 回だけフェッチされることを期待
+        Mock::given(method("GET"))
+            .and(path("/realms/k1s0/protocol/openid-connect/certs"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(sample_jwks_response()))
+            .expect(1..=1)
+            .mount(&mock_server)
+            .await;
+
+        let jwks_url = format!(
+            "{}/realms/k1s0/protocol/openid-connect/certs",
+            mock_server.uri()
+        );
+
+        // TTL = 1 時間 → 2 回目はキャッシュを使用
+        let verifier = JwksVerifier::new(
+            &jwks_url,
+            "http://localhost:8180/realms/k1s0",
+            "k1s0-api",
+            Duration::from_secs(3600),
+        );
+
+        let _ = verifier.verify_token("invalid-token").await;
+        let _ = verifier.verify_token("invalid-token").await;
+        // mock_server は Drop 時に expect(1..=1) を検証する
+    }
+
+    /// 並行リクエストがあってもパニックせず、すべてのリクエストがエラーを返すこと。
+    #[tokio::test]
+    async fn test_jwks_concurrent_requests_no_panic() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/realms/k1s0/protocol/openid-connect/certs"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(sample_jwks_response()))
+            .expect(1..)
+            .mount(&mock_server)
+            .await;
+
+        let jwks_url = format!(
+            "{}/realms/k1s0/protocol/openid-connect/certs",
+            mock_server.uri()
+        );
+
+        let verifier = Arc::new(JwksVerifier::new(
+            &jwks_url,
+            "http://localhost:8180/realms/k1s0",
+            "k1s0-api",
+            Duration::from_secs(3600),
+        ));
+
+        // 4 つの並行リクエストを発行
+        let v1 = verifier.clone();
+        let v2 = verifier.clone();
+        let v3 = verifier.clone();
+        let v4 = verifier.clone();
+
+        let (r1, r2, r3, r4) = tokio::join!(
+            async move { v1.verify_token("invalid-token-1").await },
+            async move { v2.verify_token("invalid-token-2").await },
+            async move { v3.verify_token("invalid-token-3").await },
+            async move { v4.verify_token("invalid-token-4").await },
+        );
+
+        // 無効なトークンなのでエラーになるが、パニックはしない
+        assert!(r1.is_err());
+        assert!(r2.is_err());
+        assert!(r3.is_err());
+        assert!(r4.is_err());
+    }
 }
