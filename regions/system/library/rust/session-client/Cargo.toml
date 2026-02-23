@@ -1,0 +1,23 @@
+[package]
+name = "k1s0-session-client"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+mock = ["dep:mockall"]
+
+[dependencies]
+async-trait = "0.1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+tokio = { version = "1", features = ["sync"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+
+[dependencies.mockall]
+version = "0.13"
+optional = true
