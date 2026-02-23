@@ -1,0 +1,18 @@
+# $schema: ./config-schema-schema.json
+version: 1
+
+service: {{ service_name }}
+namespace_prefix: service.{{ service_name | replace(from="-", to="_") }}
+
+categories:
+  - id: general
+    label: 一般設定
+    icon: settings
+    namespaces:
+      - service.{{ service_name | replace(from="-", to="_") }}.general
+    fields:
+      - key: example_flag
+        label: サンプル機能フラグ
+        description: この設定はサンプルです。削除して独自の設定を追加してください
+        type: boolean
+        default: false

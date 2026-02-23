@@ -14,3 +14,15 @@ export { ProtectedRoute } from './routing/ProtectedRoute';
 export { AppButton } from './components/AppButton';
 export { LoadingSpinner } from './components/LoadingSpinner';
 export { ErrorBoundary } from './components/ErrorBoundary';
+
+// Config
+export { ConfigEditorPage } from './config/ConfigEditorPage';
+export { ConfigInterpreter } from './config/ConfigInterpreter';
+export type {
+  ConfigFieldType,
+  ConfigFieldSchema,
+  ConfigCategorySchema,
+  ConfigEditorSchema,
+  ConfigFieldValue,
+  ConfigEditorConfig,
+} from './config/types';

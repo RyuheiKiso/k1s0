@@ -1,0 +1,7 @@
+// src/config/__generated__/config-types.ts
+// このファイルは CLI が自動生成する。直接編集しないこと。
+// k1s0 generate config-types で再生成できます。
+
+// TODO: k1s0 generate config-types を実行して型定義を生成してください。
+export const ConfigKeys = {} as const;
+export type ConfigValues = Record<string, unknown>;
