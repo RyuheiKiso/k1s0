@@ -1,0 +1,48 @@
+{
+  "name": "system-client",
+  "version": "0.1.0",
+  "description": "System-tier shared client SDK for authentication, API client, routing guard, and common components.",
+  "type": "module",
+  "main": "./dist/system-client.umd.js",
+  "module": "./dist/system-client.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/system-client.js",
+      "require": "./dist/system-client.umd.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext ts,tsx",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "@tanstack/react-router": "^1.57.15"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.5.0",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "jsdom": "^25.0.1",
+    "msw": "^2.4.9",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.5.3",
+    "vite": "^5.4.8",
+    "vite-plugin-dts": "^4.2.3",
+    "vitest": "^2.1.2"
+  }
+}
