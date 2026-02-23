@@ -3,6 +3,7 @@
 Kong Proxy 経由で各バックエンドサービスへのルーティング、
 レート制限、CORS ヘッダーを検証する。
 """
+
 import pytest
 import requests
 
@@ -103,7 +104,8 @@ class TestKongRateLimiting:
         assert response.status_code == 200
         # Kong rate-limiting プラグインはレート制限ヘッダーを付与する
         rate_limit_headers = [
-            h for h in response.headers
+            h
+            for h in response.headers
             if h.lower().startswith("x-ratelimit") or h.lower().startswith("ratelimit")
         ]
         assert len(rate_limit_headers) > 0, (
@@ -127,9 +129,9 @@ class TestKongCORS:
                 "Access-Control-Request-Headers": "Authorization, Content-Type",
             },
         )
-        assert "access-control-allow-origin" in {
-            h.lower() for h in response.headers
-        }, f"Expected CORS headers, got: {dict(response.headers)}"
+        assert "access-control-allow-origin" in {h.lower() for h in response.headers}, (
+            f"Expected CORS headers, got: {dict(response.headers)}"
+        )
 
     def test_cors_origin_header(self, kong_client):
         """GET リクエストに Access-Control-Allow-Origin が返る。"""
@@ -141,9 +143,7 @@ class TestKongCORS:
             headers={"Origin": "http://localhost:3000"},
         )
         assert response.status_code == 200
-        assert "access-control-allow-origin" in {
-            h.lower() for h in response.headers
-        }
+        assert "access-control-allow-origin" in {h.lower() for h in response.headers}
 
 
 class TestKongAdminAPI:

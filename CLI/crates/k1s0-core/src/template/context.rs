@@ -16,7 +16,7 @@ pub struct ProjectContext {
     pub project_type: String,
 }
 
-/// ProjectContext から Tera の Context を構築する（旧 API との互換性維持）。
+/// `ProjectContext` から Tera の Context を構築する（旧 API との互換性維持）。
 pub fn build_context(project: &ProjectContext) -> Context {
     let mut ctx = Context::new();
     ctx.insert("project", project);
@@ -27,13 +27,14 @@ pub fn build_context(project: &ProjectContext) -> Context {
 ///
 /// CLI の対話フローで収集した入力値から、テンプレートエンジン仕様に定義された
 /// 全変数を自動導出して保持する。
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Serialize)]
 pub struct TemplateContext {
     /// サービス名 (kebab-case, 正規形)
     pub service_name: String,
-    /// サービス名 (snake_case, 自動導出)
+    /// サービス名 (`snake_case`, 自動導出)
     pub service_name_snake: String,
-    /// サービス名 (PascalCase, 自動導出)
+    /// サービス名 (`PascalCase`, 自動導出)
     pub service_name_pascal: String,
     /// サービス名 (camelCase, 自動導出)
     pub service_name_camel: String,
@@ -49,7 +50,7 @@ pub struct TemplateContext {
     pub framework: String,
     /// 種別: server / client / library / database
     pub kind: String,
-    /// API 方式 (server 時, 後方互換用: api_styles の最初の要素): rest / grpc / graphql
+    /// API 方式 (server 時, 後方互換用: `api_styles` の最初の要素): rest / grpc / graphql
     pub api_style: String,
     /// API 方式一覧 (server 時, 複数選択対応): vec!["rest", "grpc", ...]
     pub api_styles: Vec<String>,
@@ -69,18 +70,18 @@ pub struct TemplateContext {
     pub docker_registry: String,
     /// Docker プロジェクト名 (自動導出: "k1s0-{tier}")
     pub docker_project: String,
-    /// Helm Chart の Tier 別相対パス (自動導出: "{service_name}")
+    /// Helm Chart の Tier 別相対パス (自動導出: "{`service_name`}")
     pub helm_path: String,
     // -----------------------------------------------------------------
     // Terraform 用変数
     // -----------------------------------------------------------------
     /// 環境識別子 (dev / staging / prod)
     pub environment: String,
-    /// PostgreSQL モジュール有効化
+    /// `PostgreSQL` モジュール有効化
     pub enable_postgresql: bool,
-    /// MySQL モジュール有効化
+    /// `MySQL` モジュール有効化
     pub enable_mysql: bool,
-    /// Kafka モジュール有効化 (Terraform 用; has_kafka とは独立)
+    /// Kafka モジュール有効化 (Terraform 用; `has_kafka` とは独立)
     pub enable_kafka: bool,
     /// 可観測性スタック有効化
     pub enable_observability: bool,
@@ -99,14 +100,15 @@ pub struct TemplateContext {
     pub server_port: u16,
     /// gRPC ポート
     pub grpc_port: u16,
-    /// サーバー言語 (DockerCompose 用: go / rust)
+    /// サーバー言語 (`DockerCompose` 用: go / rust)
     pub server_language: String,
 }
 
-/// TemplateContext を構築するためのビルダー。
+/// `TemplateContext` を構築するためのビルダー。
 ///
 /// CLI の対話フローで収集した最小限の入力値から、
 /// テンプレートエンジン仕様の導出ルールに従って全変数を自動計算する。
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct TemplateContextBuilder {
     service_name: String,
@@ -175,34 +177,35 @@ impl TemplateContextBuilder {
     }
 
     /// フレームワークを設定する (client 時)。
+    #[must_use]
     pub fn framework(mut self, framework: &str) -> Self {
         self.framework = framework.to_string();
         self
     }
 
     /// 業務領域名を設定する (business Tier 時)。
+    #[must_use]
     pub fn domain(mut self, domain: &str) -> Self {
         self.domain = domain.to_string();
         self
     }
 
     /// API 方式を設定する (server 時)。単一スタイルの後方互換 API。
+    #[must_use]
     pub fn api_style(mut self, api_style: &str) -> Self {
-        if self.api_styles.is_empty() {
-            self.api_styles = vec![api_style.to_string()];
-        } else {
-            self.api_styles = vec![api_style.to_string()];
-        }
+        self.api_styles = vec![api_style.to_string()];
         self
     }
 
     /// 複数の API 方式を設定する (server 時)。
+    #[must_use]
     pub fn api_styles(mut self, styles: Vec<String>) -> Self {
         self.api_styles = styles;
         self
     }
 
     /// データベース設定を有効にする。
+    #[must_use]
     pub fn with_database(mut self, database_type: &str) -> Self {
         self.has_database = true;
         self.database_type = database_type.to_string();
@@ -210,96 +213,111 @@ impl TemplateContextBuilder {
     }
 
     /// Kafka を有効にする。
+    #[must_use]
     pub fn with_kafka(mut self) -> Self {
         self.has_kafka = true;
         self
     }
 
     /// Redis を有効にする。
+    #[must_use]
     pub fn with_redis(mut self) -> Self {
         self.has_redis = true;
         self
     }
 
     /// Docker レジストリを設定する。
+    #[must_use]
     pub fn docker_registry(mut self, registry: &str) -> Self {
         self.docker_registry = registry.to_string();
         self
     }
 
     /// Go モジュールベースパスを設定する。
+    #[must_use]
     pub fn go_module_base(mut self, base: &str) -> Self {
         self.go_module_base = base.to_string();
         self
     }
 
     /// 環境を設定する (Terraform 用)。
+    #[must_use]
     pub fn environment(mut self, env: &str) -> Self {
         self.environment = env.to_string();
         self
     }
 
     /// Terraform インフラモジュールの有効化フラグを設定する。
+    #[must_use]
     pub fn enable_postgresql(mut self) -> Self {
         self.enable_postgresql = true;
         self
     }
 
-    /// MySQL モジュールを有効化する。
+    /// `MySQL` モジュールを有効化する。
+    #[must_use]
     pub fn enable_mysql(mut self) -> Self {
         self.enable_mysql = true;
         self
     }
 
     /// Kafka モジュールを有効化する (Terraform 用)。
+    #[must_use]
     pub fn enable_kafka(mut self) -> Self {
         self.enable_kafka = true;
         self
     }
 
     /// 可観測性スタックを有効化する。
+    #[must_use]
     pub fn enable_observability(mut self) -> Self {
         self.enable_observability = true;
         self
     }
 
     /// サービスメッシュを有効化する。
+    #[must_use]
     pub fn enable_service_mesh(mut self) -> Self {
         self.enable_service_mesh = true;
         self
     }
 
     /// Vault を有効化する。
+    #[must_use]
     pub fn enable_vault(mut self) -> Self {
         self.enable_vault = true;
         self
     }
 
     /// Harbor を有効化する。
+    #[must_use]
     pub fn enable_harbor(mut self) -> Self {
         self.enable_harbor = true;
         self
     }
 
     /// HTTP サーバーポートを設定する。
+    #[must_use]
     pub fn server_port(mut self, port: u16) -> Self {
         self.server_port = port;
         self
     }
 
     /// gRPC ポートを設定する。
+    #[must_use]
     pub fn grpc_port(mut self, port: u16) -> Self {
         self.grpc_port = port;
         self
     }
 
-    /// サーバー言語を設定する (DockerCompose 用)。
+    /// サーバー言語を設定する (`DockerCompose` 用)。
+    #[must_use]
     pub fn server_language(mut self, lang: &str) -> Self {
         self.server_language = lang.to_string();
         self
     }
 
-    /// TemplateContext を構築する。
+    /// `TemplateContext` を構築する。
     ///
     /// 入力値から導出ルールに従って全変数を自動計算する。
     pub fn build(self) -> TemplateContext {
@@ -400,7 +418,7 @@ impl TemplateContextBuilder {
 }
 
 impl TemplateContext {
-    /// TemplateContext を Tera の Context に変換する。
+    /// `TemplateContext` を Tera の Context に変換する。
     ///
     /// 全フィールドを個別の変数として Context に挿入する。
     /// テンプレート内で `{{ service_name }}` のようにフラットにアクセスできる。
@@ -482,8 +500,7 @@ mod tests {
 
     #[test]
     fn test_context_name_derivation_order_api() {
-        let ctx = TemplateContextBuilder::new("order-api", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order-api", "service", "rust", "server").build();
 
         assert_eq!(ctx.service_name, "order-api");
         assert_eq!(ctx.service_name_snake, "order_api");
@@ -493,8 +510,8 @@ mod tests {
 
     #[test]
     fn test_context_name_derivation_user_auth_service() {
-        let ctx = TemplateContextBuilder::new("user-auth-service", "service", "rust", "server")
-            .build();
+        let ctx =
+            TemplateContextBuilder::new("user-auth-service", "service", "rust", "server").build();
 
         assert_eq!(ctx.service_name, "user-auth-service");
         assert_eq!(ctx.service_name_snake, "user_auth_service");
@@ -504,8 +521,7 @@ mod tests {
 
     #[test]
     fn test_context_name_derivation_single_word() {
-        let ctx = TemplateContextBuilder::new("inventory", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("inventory", "service", "rust", "server").build();
 
         assert_eq!(ctx.service_name, "inventory");
         assert_eq!(ctx.service_name_snake, "inventory");
@@ -519,15 +535,13 @@ mod tests {
 
     #[test]
     fn test_domain_empty_for_service_tier() {
-        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server").build();
         assert_eq!(ctx.domain, "");
     }
 
     #[test]
     fn test_domain_empty_for_system_tier() {
-        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server").build();
         assert_eq!(ctx.domain, "");
     }
 
@@ -546,8 +560,7 @@ mod tests {
     #[test]
     fn test_context_module_path_service_rust_server() {
         // service tier: regions/service/{service_name}/{kind}/{language}
-        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server").build();
 
         assert_eq!(ctx.module_path, "regions/service/order/server/rust");
     }
@@ -555,8 +568,7 @@ mod tests {
     #[test]
     fn test_context_module_path_system_library_rust() {
         // system tier: regions/system/{kind}/{language}/{service_name}
-        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "library")
-            .build();
+        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "library").build();
 
         assert_eq!(ctx.module_path, "regions/system/library/rust/auth");
     }
@@ -564,8 +576,7 @@ mod tests {
     #[test]
     fn test_context_module_path_system_server_rust() {
         // system tier: regions/system/{kind}/{language}/{service_name}
-        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server").build();
 
         assert_eq!(ctx.module_path, "regions/system/server/rust/auth");
     }
@@ -615,24 +626,21 @@ mod tests {
 
     #[test]
     fn test_context_docker_project_system() {
-        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server").build();
 
         assert_eq!(ctx.docker_project, "k1s0-system");
     }
 
     #[test]
     fn test_context_docker_project_business() {
-        let ctx = TemplateContextBuilder::new("crm", "business", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("crm", "business", "rust", "server").build();
 
         assert_eq!(ctx.docker_project, "k1s0-business");
     }
 
     #[test]
     fn test_context_docker_project_service() {
-        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server").build();
 
         assert_eq!(ctx.docker_project, "k1s0-service");
     }
@@ -643,8 +651,7 @@ mod tests {
 
     #[test]
     fn test_go_module_for_go_project() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server").build();
 
         assert_eq!(
             ctx.go_module,
@@ -654,8 +661,7 @@ mod tests {
 
     #[test]
     fn test_go_module_empty_for_non_go() {
-        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server").build();
 
         assert_eq!(ctx.go_module, "");
     }
@@ -666,16 +672,14 @@ mod tests {
 
     #[test]
     fn test_rust_crate_for_rust_project() {
-        let ctx = TemplateContextBuilder::new("order-api", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order-api", "service", "rust", "server").build();
 
         assert_eq!(ctx.rust_crate, "order-api");
     }
 
     #[test]
     fn test_rust_crate_empty_for_non_rust() {
-        let ctx = TemplateContextBuilder::new("order-api", "service", "go", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order-api", "service", "go", "server").build();
 
         assert_eq!(ctx.rust_crate, "");
     }
@@ -705,8 +709,7 @@ mod tests {
 
     #[test]
     fn test_builder_without_database() {
-        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server").build();
 
         assert!(!ctx.has_database);
         assert_eq!(ctx.database_type, "");
@@ -754,8 +757,7 @@ mod tests {
 
     #[test]
     fn test_builder_api_styles_empty_default() {
-        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server").build();
 
         assert!(ctx.api_styles.is_empty());
         assert_eq!(ctx.api_style, ""); // no styles = empty string
@@ -777,8 +779,7 @@ mod tests {
 
     #[test]
     fn test_builder_go_module_base_default() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "go", "server").build();
 
         assert_eq!(
             ctx.go_module,
@@ -789,8 +790,7 @@ mod tests {
     #[test]
     fn test_rust_crate_system_tier() {
         // system tier, rust: regions/system/server/rust/auth
-        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server").build();
 
         assert_eq!(ctx.rust_crate, "auth");
         assert_eq!(ctx.module_path, "regions/system/server/rust/auth");
@@ -804,13 +804,15 @@ mod tests {
             .build();
 
         assert_eq!(ctx.rust_crate, "ledger-api");
-        assert_eq!(ctx.module_path, "regions/business/accounting/server/rust/ledger-api");
+        assert_eq!(
+            ctx.module_path,
+            "regions/business/accounting/server/rust/ledger-api"
+        );
     }
 
     #[test]
     fn test_builder_docker_registry_default() {
-        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server").build();
 
         assert_eq!(ctx.docker_registry, "harbor.internal.example.com");
     }
@@ -929,8 +931,7 @@ mod tests {
     #[test]
     fn test_to_tera_context_flat_access() {
         // テンプレートで {{ service_name }} のようにフラットアクセスできることを検証
-        let ctx = TemplateContextBuilder::new("order-api", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order-api", "service", "rust", "server").build();
 
         let tera_ctx = ctx.to_tera_context();
         let json = tera_ctx.into_json();
@@ -971,8 +972,7 @@ mod tests {
 
     #[test]
     fn test_builder_environment_default_empty() {
-        let ctx = TemplateContextBuilder::new("k1s0", "system", "rust", "terraform")
-            .build();
+        let ctx = TemplateContextBuilder::new("k1s0", "system", "rust", "terraform").build();
         assert_eq!(ctx.environment, "");
     }
 
@@ -1018,8 +1018,7 @@ mod tests {
 
     #[test]
     fn test_builder_enable_flags_default_false() {
-        let ctx = TemplateContextBuilder::new("k1s0", "system", "rust", "terraform")
-            .build();
+        let ctx = TemplateContextBuilder::new("k1s0", "system", "rust", "terraform").build();
 
         assert!(!ctx.enable_postgresql);
         assert!(!ctx.enable_mysql);
@@ -1036,22 +1035,19 @@ mod tests {
 
     #[test]
     fn test_namespace_derived_from_tier_system() {
-        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("auth", "system", "rust", "server").build();
         assert_eq!(ctx.namespace, "k1s0-system");
     }
 
     #[test]
     fn test_namespace_derived_from_tier_business() {
-        let ctx = TemplateContextBuilder::new("ledger", "business", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("ledger", "business", "rust", "server").build();
         assert_eq!(ctx.namespace, "k1s0-business");
     }
 
     #[test]
     fn test_namespace_derived_from_tier_service() {
-        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server").build();
         assert_eq!(ctx.namespace, "k1s0-service");
     }
 
@@ -1061,8 +1057,7 @@ mod tests {
 
     #[test]
     fn test_server_port_default() {
-        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server").build();
         assert_eq!(ctx.server_port, 8080);
     }
 
@@ -1076,8 +1071,7 @@ mod tests {
 
     #[test]
     fn test_grpc_port_default() {
-        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server").build();
         assert_eq!(ctx.grpc_port, 50051);
     }
 
@@ -1095,8 +1089,7 @@ mod tests {
 
     #[test]
     fn test_server_language_defaults_to_language() {
-        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
-            .build();
+        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server").build();
         assert_eq!(ctx.server_language, "rust");
     }
 

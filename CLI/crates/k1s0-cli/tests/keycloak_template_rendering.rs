@@ -13,10 +13,7 @@ fn template_dir() -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("templates")
 }
 
-fn render_keycloak(
-    service_name: &str,
-    tier: &str,
-) -> Option<(TempDir, Vec<String>)> {
+fn render_keycloak(service_name: &str, tier: &str) -> Option<(TempDir, Vec<String>)> {
     let tpl_dir = template_dir();
     let keycloak_dir = tpl_dir.join("keycloak");
     if !keycloak_dir.exists() {
@@ -27,8 +24,7 @@ fn render_keycloak(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new(service_name, tier, "go", "keycloak")
-        .build();
+    let ctx = TemplateContextBuilder::new(service_name, tier, "go", "keycloak").build();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
@@ -63,8 +59,7 @@ fn test_keycloak_file_list() {
 
     assert!(
         names.iter().any(|n| n.contains("keycloak-client.json")),
-        "keycloak-client.json missing. Generated: {:?}",
-        names
+        "keycloak-client.json missing. Generated: {names:?}"
     );
 }
 
@@ -82,8 +77,7 @@ fn test_keycloak_client_has_client_id() {
     let content = read_output(&tmp, "keycloak-client.json");
     assert!(
         content.contains("\"clientId\": \"order-api\""),
-        "Keycloak client should have correct clientId\n--- keycloak-client.json ---\n{}",
-        content
+        "Keycloak client should have correct clientId\n--- keycloak-client.json ---\n{content}"
     );
 }
 
@@ -97,8 +91,7 @@ fn test_keycloak_client_has_pascal_name() {
     let content = read_output(&tmp, "keycloak-client.json");
     assert!(
         content.contains("OrderApi"),
-        "Keycloak client should use PascalCase name\n--- keycloak-client.json ---\n{}",
-        content
+        "Keycloak client should use PascalCase name\n--- keycloak-client.json ---\n{content}"
     );
 }
 
@@ -112,8 +105,7 @@ fn test_keycloak_client_has_namespace() {
     let content = read_output(&tmp, "keycloak-client.json");
     assert!(
         content.contains("k1s0-service"),
-        "Keycloak client should contain namespace\n--- keycloak-client.json ---\n{}",
-        content
+        "Keycloak client should contain namespace\n--- keycloak-client.json ---\n{content}"
     );
 }
 
@@ -127,8 +119,7 @@ fn test_keycloak_client_has_tier() {
     let content = read_output(&tmp, "keycloak-client.json");
     assert!(
         content.contains("service tier"),
-        "Keycloak client should mention tier in description\n--- keycloak-client.json ---\n{}",
-        content
+        "Keycloak client should mention tier in description\n--- keycloak-client.json ---\n{content}"
     );
 }
 
@@ -142,8 +133,7 @@ fn test_keycloak_client_openid_connect() {
     let content = read_output(&tmp, "keycloak-client.json");
     assert!(
         content.contains("openid-connect"),
-        "Keycloak client should use openid-connect protocol\n--- keycloak-client.json ---\n{}",
-        content
+        "Keycloak client should use openid-connect protocol\n--- keycloak-client.json ---\n{content}"
     );
 }
 
@@ -157,8 +147,7 @@ fn test_keycloak_client_service_accounts_enabled() {
     let content = read_output(&tmp, "keycloak-client.json");
     assert!(
         content.contains("\"serviceAccountsEnabled\": true"),
-        "Keycloak client should have service accounts enabled\n--- keycloak-client.json ---\n{}",
-        content
+        "Keycloak client should have service accounts enabled\n--- keycloak-client.json ---\n{content}"
     );
 }
 
@@ -175,15 +164,7 @@ fn test_keycloak_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(
-            !content.contains("{%"),
-            "Tera syntax found in {}",
-            name
-        );
-        assert!(
-            !content.contains("{#"),
-            "Tera comment found in {}",
-            name
-        );
+        assert!(!content.contains("{%"), "Tera syntax found in {name}");
+        assert!(!content.contains("{#"), "Tera comment found in {name}");
     }
 }

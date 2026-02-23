@@ -3,6 +3,7 @@
 仕様書のコマンドマトリクスとソースコードの整合性、
 および determine_post_commands の出力を検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -84,9 +85,7 @@ class TestFlatKindsConsistency:
         ],
     )
     def test_flat_kind_in_source(self, kind: str) -> None:
-        assert (
-            f'"{kind}"' in self.mod_content
-        ), f"flat_kinds に '{kind}' が含まれていません"
+        assert f'"{kind}"' in self.mod_content, f"flat_kinds に '{kind}' が含まれていません"
 
 
 class TestPostCommandsInSpec:

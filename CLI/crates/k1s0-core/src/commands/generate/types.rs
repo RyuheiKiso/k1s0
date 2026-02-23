@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 // ============================================================================
@@ -27,10 +27,9 @@ impl Kind {
     /// 選択可能なTier一覧を返す。
     pub fn available_tiers(&self) -> Vec<Tier> {
         match self {
-            Kind::Server => vec![Tier::System, Tier::Business, Tier::Service],
+            Kind::Server | Kind::Database => vec![Tier::System, Tier::Business, Tier::Service],
             Kind::Client => vec![Tier::Business, Tier::Service],
             Kind::Library => vec![Tier::System, Tier::Business],
-            Kind::Database => vec![Tier::System, Tier::Business, Tier::Service],
         }
     }
 }
@@ -221,7 +220,7 @@ pub enum LangFw {
 }
 
 /// 詳細設定
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct DetailConfig {
     /// サーバー: サービス名 / クライアント: アプリ名 / ライブラリ: ライブラリ名
     pub name: Option<String>,
@@ -235,19 +234,6 @@ pub struct DetailConfig {
     pub redis: bool,
     /// サーバー: BFF言語 (service Tier + GraphQL 時のみ)
     pub bff_language: Option<Language>,
-}
-
-impl Default for DetailConfig {
-    fn default() -> Self {
-        Self {
-            name: None,
-            api_styles: Vec::new(),
-            db: None,
-            kafka: false,
-            redis: false,
-            bff_language: None,
-        }
-    }
 }
 
 // ============================================================================
@@ -349,7 +335,7 @@ mod tests {
             name: "order-db".to_string(),
             rdbms: Rdbms::PostgreSQL,
         };
-        assert_eq!(format!("{}", db), "order-db (PostgreSQL)");
+        assert_eq!(format!("{db}"), "order-db (PostgreSQL)");
     }
 
     #[test]

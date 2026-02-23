@@ -30,8 +30,8 @@ fn render_server(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder = TemplateContextBuilder::new("order-api", "service", lang, "server")
-        .api_style(api_style);
+    let mut builder =
+        TemplateContextBuilder::new("order-api", "service", lang, "server").api_style(api_style);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -64,7 +64,7 @@ fn render_server(
 // スナップショットテスト: 代表6パターン
 // =========================================================================
 
-/// パターン1: Go REST + PostgreSQL + Kafka + Redis (フルスタック)
+/// パターン1: Go REST + `PostgreSQL` + Kafka + Redis (フルスタック)
 #[test]
 fn test_snapshot_go_rest_full_stack() {
     let (_, names) = render_server("go", "rest", true, "postgresql", true, true);
@@ -91,7 +91,7 @@ fn test_snapshot_go_graphql_minimal() {
     insta::assert_yaml_snapshot!("go_graphql_minimal", sorted);
 }
 
-/// パターン4: Rust REST + PostgreSQL (DB のみ)
+/// パターン4: Rust REST + `PostgreSQL` (DB のみ)
 #[test]
 fn test_snapshot_rust_rest_db_only() {
     let (_, names) = render_server("rust", "rest", true, "postgresql", false, false);
@@ -157,8 +157,7 @@ fn render_library(lang: &str) -> (TempDir, Vec<String>) {
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new("order-lib", "system", lang, "library")
-        .build();
+    let ctx = TemplateContextBuilder::new("order-lib", "system", lang, "library").build();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -208,18 +207,14 @@ fn render_database(db_type: &str) -> (TempDir, Vec<String>) {
 // ヘルパー関数: Helm
 // =========================================================================
 
-fn render_helm(
-    api_style: &str,
-    has_database: bool,
-    database_type: &str,
-) -> (TempDir, Vec<String>) {
+fn render_helm(api_style: &str, has_database: bool, database_type: &str) -> (TempDir, Vec<String>) {
     let tpl_dir = template_dir();
     let tmp = TempDir::new().unwrap();
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder = TemplateContextBuilder::new("order-api", "service", "go", "helm")
-        .api_style(api_style);
+    let mut builder =
+        TemplateContextBuilder::new("order-api", "service", "go", "helm").api_style(api_style);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -348,7 +343,7 @@ fn test_snapshot_library_dart() {
 // スナップショットテスト: Database
 // =========================================================================
 
-/// Database: PostgreSQL
+/// Database: `PostgreSQL`
 #[test]
 fn test_snapshot_database_postgresql() {
     let (_, names) = render_database("postgresql");
@@ -357,7 +352,7 @@ fn test_snapshot_database_postgresql() {
     insta::assert_yaml_snapshot!("database_postgresql", sorted);
 }
 
-/// Database: MySQL
+/// Database: `MySQL`
 #[test]
 fn test_snapshot_database_mysql() {
     let (_, names) = render_database("mysql");
@@ -366,7 +361,7 @@ fn test_snapshot_database_mysql() {
     insta::assert_yaml_snapshot!("database_mysql", sorted);
 }
 
-/// Database: SQLite
+/// Database: `SQLite`
 #[test]
 fn test_snapshot_database_sqlite() {
     let (_, names) = render_database("sqlite");
@@ -430,7 +425,7 @@ fn test_snapshot_bff_rust() {
 // スナップショットテスト: Helm
 // =========================================================================
 
-/// Helm: REST + PostgreSQL
+/// Helm: REST + `PostgreSQL`
 #[test]
 fn test_snapshot_helm_rest_postgresql() {
     let (_, names) = render_helm("rest", true, "postgresql");
@@ -443,7 +438,7 @@ fn test_snapshot_helm_rest_postgresql() {
 // スナップショットテスト: CICD
 // =========================================================================
 
-/// CICD: Go REST + PostgreSQL
+/// CICD: Go REST + `PostgreSQL`
 #[test]
 fn test_snapshot_cicd_go_rest_postgresql() {
     let (_, names) = render_cicd("go", "cicd", "rest", true, "postgresql");
@@ -465,6 +460,7 @@ fn test_snapshot_cicd_rust_grpc() {
 // ヘルパー関数: 複数APIスタイル対応 Server
 // =========================================================================
 
+#[allow(clippy::needless_pass_by_value)]
 fn render_server_multi(
     lang: &str,
     api_styles: Vec<&str>,
@@ -478,10 +474,13 @@ fn render_server_multi(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let styles: Vec<String> = api_styles.iter().map(|s| s.to_string()).collect();
+    let styles: Vec<String> = api_styles
+        .iter()
+        .map(std::string::ToString::to_string)
+        .collect();
 
-    let mut builder = TemplateContextBuilder::new("order-api", "service", lang, "server")
-        .api_styles(styles);
+    let mut builder =
+        TemplateContextBuilder::new("order-api", "service", lang, "server").api_styles(styles);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -514,17 +513,11 @@ fn render_server_multi(
 // スナップショットテスト: 複数APIスタイル (REST+gRPC)
 // =========================================================================
 
-/// パターン: Go REST+gRPC + PostgreSQL
+/// パターン: Go REST+gRPC + `PostgreSQL`
 #[test]
 fn test_snapshot_go_rest_grpc_postgresql() {
-    let (_, names) = render_server_multi(
-        "go",
-        vec!["rest", "grpc"],
-        true,
-        "postgresql",
-        false,
-        false,
-    );
+    let (_, names) =
+        render_server_multi("go", vec!["rest", "grpc"], true, "postgresql", false, false);
     let mut sorted = names.clone();
     sorted.sort();
     insta::assert_yaml_snapshot!("go_rest_grpc_postgresql", sorted);
@@ -533,14 +526,7 @@ fn test_snapshot_go_rest_grpc_postgresql() {
 /// パターン: Rust REST+gRPC (最小)
 #[test]
 fn test_snapshot_rust_rest_grpc_minimal() {
-    let (_, names) = render_server_multi(
-        "rust",
-        vec!["rest", "grpc"],
-        false,
-        "",
-        false,
-        false,
-    );
+    let (_, names) = render_server_multi("rust", vec!["rest", "grpc"], false, "", false, false);
     let mut sorted = names.clone();
     sorted.sort();
     insta::assert_yaml_snapshot!("rust_rest_grpc_minimal", sorted);
@@ -550,6 +536,7 @@ fn test_snapshot_rust_rest_grpc_minimal() {
 // ヘルパー関数: 複数APIスタイル対応 Helm
 // =========================================================================
 
+#[allow(clippy::needless_pass_by_value)]
 fn render_helm_multi(
     api_styles: Vec<&str>,
     has_database: bool,
@@ -560,10 +547,13 @@ fn render_helm_multi(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let styles: Vec<String> = api_styles.iter().map(|s| s.to_string()).collect();
+    let styles: Vec<String> = api_styles
+        .iter()
+        .map(std::string::ToString::to_string)
+        .collect();
 
-    let mut builder = TemplateContextBuilder::new("order-api", "service", "go", "helm")
-        .api_styles(styles);
+    let mut builder =
+        TemplateContextBuilder::new("order-api", "service", "go", "helm").api_styles(styles);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -620,16 +610,16 @@ fn test_snapshot_helm_rest_grpc() {
 /// 複数APIスタイル時にREST・gRPC両方のハンドラが含まれることを検証
 #[test]
 fn test_go_rest_grpc_includes_both_handlers() {
-    let (_, files) = render_server_multi(
-        "go",
-        vec!["rest", "grpc"],
-        true,
-        "postgresql",
-        false,
-        false,
+    let (_, files) =
+        render_server_multi("go", vec!["rest", "grpc"], true, "postgresql", false, false);
+    assert!(
+        files.iter().any(|f| f.contains("rest")),
+        "REST handler should be included"
     );
-    assert!(files.iter().any(|f| f.contains("rest")), "REST handler should be included");
-    assert!(files.iter().any(|f| f.contains("grpc")), "gRPC handler should be included");
+    assert!(
+        files.iter().any(|f| f.contains("grpc")),
+        "gRPC handler should be included"
+    );
 }
 
 // =========================================================================
@@ -650,8 +640,7 @@ fn render_devcontainer(
     fs::create_dir_all(&output_dir).unwrap();
 
     let mut builder =
-        TemplateContextBuilder::new("order-api", "service", lang, "devcontainer")
-            .framework(fw);
+        TemplateContextBuilder::new("order-api", "service", lang, "devcontainer").framework(fw);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -684,7 +673,7 @@ fn render_devcontainer(
 // スナップショットテスト: Dev Container
 // =========================================================================
 
-/// Dev Container: Go サーバー (PostgreSQL + Redis)
+/// Dev Container: Go サーバー (`PostgreSQL` + Redis)
 #[test]
 fn test_snapshot_devcontainer_go() {
     let (_, names) = render_devcontainer("go", "", true, "postgresql", false, true);
@@ -715,6 +704,7 @@ fn test_snapshot_devcontainer_react() {
 // ヘルパー関数: Terraform
 // =========================================================================
 
+#[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
 fn render_terraform(
     environment: &str,
     enable_postgresql: bool,
@@ -730,8 +720,8 @@ fn render_terraform(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder = TemplateContextBuilder::new("k1s0", "system", "go", "terraform")
-        .environment(environment);
+    let mut builder =
+        TemplateContextBuilder::new("k1s0", "system", "go", "terraform").environment(environment);
 
     if enable_postgresql {
         builder = builder.enable_postgresql();
@@ -811,10 +801,9 @@ fn render_docker_compose(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder =
-        TemplateContextBuilder::new("order-api", "service", "go", "docker-compose")
-            .server_language(server_lang)
-            .server_port(port);
+    let mut builder = TemplateContextBuilder::new("order-api", "service", "go", "docker-compose")
+        .server_language(server_lang)
+        .server_port(port);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -847,11 +836,10 @@ fn render_docker_compose(
 // スナップショットテスト: Docker Compose
 // =========================================================================
 
-/// Docker Compose: PostgreSQL + Kafka + Redis (フル構成)
+/// Docker Compose: `PostgreSQL` + Kafka + Redis (フル構成)
 #[test]
 fn test_snapshot_docker_compose_full() {
-    let (_, names) =
-        render_docker_compose("go", 8082, true, "postgresql", true, true);
+    let (_, names) = render_docker_compose("go", 8082, true, "postgresql", true, true);
     let mut sorted = names.clone();
     sorted.sort();
     insta::assert_yaml_snapshot!("docker_compose_full", sorted);
@@ -860,8 +848,7 @@ fn test_snapshot_docker_compose_full() {
 /// Docker Compose: DB/Kafka/Redis なし (最小構成)
 #[test]
 fn test_snapshot_docker_compose_minimal() {
-    let (_, names) =
-        render_docker_compose("go", 8082, false, "", false, false);
+    let (_, names) = render_docker_compose("go", 8082, false, "", false, false);
     let mut sorted = names.clone();
     sorted.sort();
     insta::assert_yaml_snapshot!("docker_compose_minimal", sorted);

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -81,9 +81,10 @@ pub fn resolve_test_command(kind: TestKind, lang: Option<ProjectLang>) -> Option
 
     let lang = lang?;
     let (cmd, args) = match (lang, kind) {
-        (ProjectLang::Go, TestKind::Unit) => ("go", vec!["test", "./..."]),
-        (ProjectLang::Go, TestKind::Integration) => ("go", vec!["test", "-tags=integration", "./..."]),
-        (ProjectLang::Go, TestKind::All) => ("go", vec!["test", "./..."]),
+        (ProjectLang::Go, TestKind::Unit | TestKind::All) => ("go", vec!["test", "./..."]),
+        (ProjectLang::Go, TestKind::Integration) => {
+            ("go", vec!["test", "-tags=integration", "./..."])
+        }
         (ProjectLang::Rust, TestKind::Unit) => ("cargo", vec!["test"]),
         (ProjectLang::Rust, TestKind::Integration) => ("cargo", vec!["test", "--test", "*"]),
         (ProjectLang::Rust, TestKind::All) => ("cargo", vec!["test", "--all"]),
@@ -94,71 +95,77 @@ pub fn resolve_test_command(kind: TestKind, lang: Option<ProjectLang>) -> Option
 
     Some(TestCommand {
         cmd: cmd.to_string(),
-        args: args.into_iter().map(|s| s.to_string()).collect(),
+        args: args
+            .into_iter()
+            .map(std::string::ToString::to_string)
+            .collect(),
     })
 }
 
 /// テスト実行。
+///
+/// # Errors
+/// エラーが発生した場合。
 pub fn execute_test(config: &TestConfig) -> Result<()> {
     for target in &config.targets {
-        println!(
-            "\nテスト実行中: {} ({})",
-            target,
-            config.kind.label()
-        );
+        println!("\nテスト実行中: {} ({})", target, config.kind.label());
         let target_path = Path::new(target);
 
         if !target_path.is_dir() {
-            println!("  警告: ディレクトリが見つかりません: {}", target);
+            println!("  警告: ディレクトリが見つかりません: {target}");
             continue;
         }
 
         // E2Eテストか判定
         if target.starts_with("e2e/") || target.starts_with("e2e\\") {
-            run_e2e_test(target_path)?;
+            run_e2e_test(target_path);
             continue;
         }
 
         // 言語/フレームワーク種別を検出してテストコマンドを決定
         let lang = detect_project_lang(target_path);
         if let Some(test_cmd) = resolve_test_command(config.kind, lang) {
-            let args_refs: Vec<&str> = test_cmd.args.iter().map(|s| s.as_str()).collect();
-            run_command(&test_cmd.cmd, &args_refs, target_path)?;
+            let args_refs: Vec<&str> = test_cmd
+                .args
+                .iter()
+                .map(std::string::String::as_str)
+                .collect();
+            run_command(&test_cmd.cmd, &args_refs, target_path);
         } else {
-            println!("  警告: テスト方法が不明です: {}", target);
+            println!("  警告: テスト方法が不明です: {target}");
         }
     }
     Ok(())
 }
 
 /// E2Eテストを実行する。
-fn run_e2e_test(path: &Path) -> Result<()> {
+fn run_e2e_test(path: &Path) {
     // Python + pytest を想定
-    run_command("pytest", &["."], path)
+    run_command("pytest", &["."], path);
 }
 
 /// 外部コマンドを実行する。
-fn run_command(cmd: &str, args: &[&str], cwd: &Path) -> Result<()> {
+fn run_command(cmd: &str, args: &[&str], cwd: &Path) {
     println!("  実行: {} {}", cmd, args.join(" "));
     let status = Command::new(cmd).args(args).current_dir(cwd).status();
     match status {
         Ok(s) if s.success() => {
             println!("  完了");
-            Ok(())
         }
         Ok(s) => {
             let code = s.code().unwrap_or(-1);
-            println!("  警告: テストがエラーで終了しました (exit code: {})", code);
-            Ok(())
+            println!("  警告: テストがエラーで終了しました (exit code: {code})");
         }
         Err(e) => {
-            println!("  警告: コマンド '{}' の実行に失敗しました: {}", cmd, e);
-            Ok(())
+            println!("  警告: コマンド '{cmd}' の実行に失敗しました: {e}");
         }
     }
 }
 
 /// プログレスコールバック付きテスト実行。
+///
+/// # Errors
+/// エラーが発生した場合。
 pub fn execute_test_with_progress(
     config: &TestConfig,
     on_progress: impl Fn(ProgressEvent),
@@ -175,12 +182,12 @@ pub fn execute_test_with_progress(
         let target_path = Path::new(target);
         if !target_path.is_dir() {
             on_progress(ProgressEvent::Warning {
-                message: format!("ディレクトリが見つかりません: {}", target),
+                message: format!("ディレクトリが見つかりません: {target}"),
             });
             on_progress(ProgressEvent::StepCompleted {
                 step,
                 total,
-                message: format!("スキップ: {}", target),
+                message: format!("スキップ: {target}"),
             });
             continue;
         }
@@ -189,18 +196,22 @@ pub fn execute_test_with_progress(
             on_progress(ProgressEvent::Log {
                 message: "実行: pytest .".to_string(),
             });
-            let _ = run_command("pytest", &["."], target_path);
+            run_command("pytest", &["."], target_path);
         } else {
             let lang = detect_project_lang(target_path);
             if let Some(test_cmd) = resolve_test_command(config.kind, lang) {
                 on_progress(ProgressEvent::Log {
                     message: format!("実行: {} {}", test_cmd.cmd, test_cmd.args.join(" ")),
                 });
-                let args_refs: Vec<&str> = test_cmd.args.iter().map(|s| s.as_str()).collect();
-                let _ = run_command(&test_cmd.cmd, &args_refs, target_path);
+                let args_refs: Vec<&str> = test_cmd
+                    .args
+                    .iter()
+                    .map(std::string::String::as_str)
+                    .collect();
+                run_command(&test_cmd.cmd, &args_refs, target_path);
             } else {
                 on_progress(ProgressEvent::Warning {
-                    message: format!("テスト方法が不明です: {}", target),
+                    message: format!("テスト方法が不明です: {target}"),
                 });
             }
         }
@@ -208,7 +219,7 @@ pub fn execute_test_with_progress(
         on_progress(ProgressEvent::StepCompleted {
             step,
             total,
-            message: format!("テスト完了: {}", target),
+            message: format!("テスト完了: {target}"),
         });
     }
     on_progress(ProgressEvent::Finished {
@@ -406,8 +417,18 @@ mod tests {
         });
         assert!(result.is_ok());
         let collected = events.lock().unwrap();
-        assert!(matches!(&collected[0], ProgressEvent::StepStarted { step: 1, total: 1, .. }));
-        assert!(matches!(collected.last().unwrap(), ProgressEvent::Finished { success: true, .. }));
+        assert!(matches!(
+            &collected[0],
+            ProgressEvent::StepStarted {
+                step: 1,
+                total: 1,
+                ..
+            }
+        ));
+        assert!(matches!(
+            collected.last().unwrap(),
+            ProgressEvent::Finished { success: true, .. }
+        ));
     }
 
     #[test]
@@ -424,6 +445,9 @@ mod tests {
         assert!(result.is_ok());
         let collected = events.lock().unwrap();
         assert_eq!(collected.len(), 1);
-        assert!(matches!(&collected[0], ProgressEvent::Finished { success: true, .. }));
+        assert!(matches!(
+            &collected[0],
+            ProgressEvent::Finished { success: true, .. }
+        ));
     }
 }

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -56,10 +56,7 @@ pub fn build_image_tag(
     version: &str,
     sha: &str,
 ) -> String {
-    format!(
-        "{}/k1s0-{}/{}:{}-{}",
-        registry, tier, service_name, version, sha
-    )
+    format!("{registry}/k1s0-{tier}/{service_name}:{version}-{sha}")
 }
 
 /// Helm upgrade コマンドの引数を構築する。
@@ -86,10 +83,7 @@ pub fn build_helm_args(
         "-n".to_string(),
         format!("k1s0-{}", tier),
         "-f".to_string(),
-        format!(
-            "./infra/helm/services/{}/values-{}.yaml",
-            helm_path, env
-        ),
+        format!("./infra/helm/services/{}/values-{}.yaml", helm_path, env),
         "--set".to_string(),
         format!("image.tag={}", image_tag),
     ]
@@ -145,7 +139,7 @@ pub fn extract_tier_from_target_path(target: &str) -> Option<String> {
     None
 }
 
-/// ターゲットパスから service_name を抽出する。
+/// ターゲットパスから `service_name` を抽出する。
 ///
 /// パス構造に応じて末尾のディレクトリ名をサービス名として返す。
 /// - `regions/service/order/server/rust` → `"order"`  (service tier: サービス名)
@@ -178,22 +172,16 @@ pub fn extract_service_name_from_target_path(target: &str) -> Option<String> {
         }
         "system" | "business" => {
             // 末尾のディレクトリ名をサービス名とする
-            parts.last().map(|s| s.to_string())
+            parts.last().map(std::string::ToString::to_string)
         }
         _ => None,
     }
 }
 
 /// デプロイ結果の表示メッセージを構築する。
-pub fn format_deploy_success(
-    env: &str,
-    service_name: &str,
-    image_tag: &str,
-    tier: &str,
-) -> String {
+pub fn format_deploy_success(env: &str, service_name: &str, image_tag: &str, tier: &str) -> String {
     format!(
-        "\u{2713} デプロイが完了しました\n  環境:     {}\n  サービス: {}\n  イメージ: {}\n  Helm:     helm status {} -n k1s0-{}",
-        env, service_name, image_tag, service_name, tier
+        "\u{2713} デプロイが完了しました\n  環境:     {env}\n  サービス: {service_name}\n  イメージ: {image_tag}\n  Helm:     helm status {service_name} -n k1s0-{tier}"
     )
 }
 
@@ -259,17 +247,16 @@ pub struct DeployConfig {
 }
 
 /// デプロイ実行。
+///
+/// # Errors
+/// エラーが発生した場合。
 pub fn execute_deploy(config: &DeployConfig) -> Result<()> {
     for target in &config.targets {
-        println!(
-            "\nデプロイ中: {} → {}",
-            target,
-            config.environment.as_str()
-        );
+        println!("\nデプロイ中: {} → {}", target, config.environment.as_str());
         let target_path = Path::new(target);
 
         if !target_path.is_dir() {
-            println!("  警告: ディレクトリが見つかりません: {}", target);
+            println!("  警告: ディレクトリが見つかりません: {target}");
             continue;
         }
 
@@ -277,23 +264,23 @@ pub fn execute_deploy(config: &DeployConfig) -> Result<()> {
         if target_path.join("Dockerfile").exists() {
             let image_tag = format!(
                 "{}:{}",
-                target.replace('/', "-").replace('\\', "-"),
+                target.replace(['/', '\\'], "-"),
                 config.environment.as_str()
             );
-            println!("  Docker イメージビルド: {}", image_tag);
+            println!("  Docker イメージビルド: {image_tag}");
             let build_status = Command::new("docker")
                 .args(["build", "-t", &image_tag, "."])
                 .current_dir(target_path)
                 .status();
             match build_status {
                 Ok(s) if s.success() => {
-                    println!("  イメージビルド完了: {}", image_tag);
+                    println!("  イメージビルド完了: {image_tag}");
                 }
                 Ok(_) => {
                     println!("  警告: Docker ビルドに失敗しました");
                 }
                 Err(e) => {
-                    println!("  警告: docker コマンドの実行に失敗しました: {}", e);
+                    println!("  警告: docker コマンドの実行に失敗しました: {e}");
                 }
             }
         } else {
@@ -308,6 +295,9 @@ pub fn execute_deploy(config: &DeployConfig) -> Result<()> {
 }
 
 /// プログレスコールバック付きデプロイ実行。
+///
+/// # Errors
+/// エラーが発生した場合。
 pub fn execute_deploy_with_progress(
     config: &DeployConfig,
     on_progress: impl Fn(ProgressEvent),
@@ -324,12 +314,12 @@ pub fn execute_deploy_with_progress(
         let target_path = Path::new(target);
         if !target_path.is_dir() {
             on_progress(ProgressEvent::Warning {
-                message: format!("ディレクトリが見つかりません: {}", target),
+                message: format!("ディレクトリが見つかりません: {target}"),
             });
             on_progress(ProgressEvent::StepCompleted {
                 step,
                 total,
-                message: format!("スキップ: {}", target),
+                message: format!("スキップ: {target}"),
             });
             continue;
         }
@@ -337,11 +327,11 @@ pub fn execute_deploy_with_progress(
         if target_path.join("Dockerfile").exists() {
             let image_tag = format!(
                 "{}:{}",
-                target.replace('/', "-").replace('\\', "-"),
+                target.replace(['/', '\\'], "-"),
                 config.environment.as_str()
             );
             on_progress(ProgressEvent::Log {
-                message: format!("Docker イメージビルド: {}", image_tag),
+                message: format!("Docker イメージビルド: {image_tag}"),
             });
             let build_status = Command::new("docker")
                 .args(["build", "-t", &image_tag, "."])
@@ -350,7 +340,7 @@ pub fn execute_deploy_with_progress(
             match build_status {
                 Ok(s) if s.success() => {
                     on_progress(ProgressEvent::Log {
-                        message: format!("イメージビルド完了: {}", image_tag),
+                        message: format!("イメージビルド完了: {image_tag}"),
                     });
                 }
                 Ok(_) => {
@@ -360,7 +350,7 @@ pub fn execute_deploy_with_progress(
                 }
                 Err(e) => {
                     on_progress(ProgressEvent::Warning {
-                        message: format!("docker コマンドの実行に失敗しました: {}", e),
+                        message: format!("docker コマンドの実行に失敗しました: {e}"),
                     });
                 }
             }
@@ -377,7 +367,7 @@ pub fn execute_deploy_with_progress(
         on_progress(ProgressEvent::StepCompleted {
             step,
             total,
-            message: format!("デプロイ完了: {}", target),
+            message: format!("デプロイ完了: {target}"),
         });
     }
     on_progress(ProgressEvent::Finished {
@@ -595,65 +585,50 @@ mod tests {
 
     #[test]
     fn test_build_image_tag_with_custom_registry() {
-        let tag = build_image_tag(
-            "my-registry.io",
-            "system",
-            "auth",
-            "0.1.0",
-            "def5678",
-        );
-        assert_eq!(
-            tag,
-            "my-registry.io/k1s0-system/auth:0.1.0-def5678"
-        );
+        let tag = build_image_tag("my-registry.io", "system", "auth", "0.1.0", "def5678");
+        assert_eq!(tag, "my-registry.io/k1s0-system/auth:0.1.0-def5678");
     }
 
     // --- Helm 引数 ---
 
     #[test]
     fn test_build_helm_args() {
-        let args = build_helm_args(
-            "order",
-            "order",
-            "service",
-            "dev",
-            "1.2.3-abc1234",
+        let args = build_helm_args("order", "order", "service", "dev", "1.2.3-abc1234");
+        assert_eq!(
+            args,
+            vec![
+                "upgrade",
+                "--install",
+                "order",
+                "./infra/helm/services/order",
+                "-n",
+                "k1s0-service",
+                "-f",
+                "./infra/helm/services/order/values-dev.yaml",
+                "--set",
+                "image.tag=1.2.3-abc1234",
+            ]
         );
-        assert_eq!(args, vec![
-            "upgrade",
-            "--install",
-            "order",
-            "./infra/helm/services/order",
-            "-n",
-            "k1s0-service",
-            "-f",
-            "./infra/helm/services/order/values-dev.yaml",
-            "--set",
-            "image.tag=1.2.3-abc1234",
-        ]);
     }
 
     #[test]
     fn test_build_helm_args_prod() {
-        let args = build_helm_args(
-            "auth",
-            "auth",
-            "system",
-            "prod",
-            "2.0.0-fff9999",
+        let args = build_helm_args("auth", "auth", "system", "prod", "2.0.0-fff9999");
+        assert_eq!(
+            args,
+            vec![
+                "upgrade",
+                "--install",
+                "auth",
+                "./infra/helm/services/auth",
+                "-n",
+                "k1s0-system",
+                "-f",
+                "./infra/helm/services/auth/values-prod.yaml",
+                "--set",
+                "image.tag=2.0.0-fff9999",
+            ]
         );
-        assert_eq!(args, vec![
-            "upgrade",
-            "--install",
-            "auth",
-            "./infra/helm/services/auth",
-            "-n",
-            "k1s0-system",
-            "-f",
-            "./infra/helm/services/auth/values-prod.yaml",
-            "--set",
-            "image.tag=2.0.0-fff9999",
-        ]);
     }
 
     // --- Helm ロールバック ---
@@ -661,12 +636,7 @@ mod tests {
     #[test]
     fn test_build_helm_rollback_args() {
         let args = build_helm_rollback_args("order", "service");
-        assert_eq!(args, vec![
-            "rollback",
-            "order",
-            "-n",
-            "k1s0-service",
-        ]);
+        assert_eq!(args, vec!["rollback", "order", "-n", "k1s0-service",]);
     }
 
     // --- DeployError ---
@@ -676,7 +646,8 @@ mod tests {
         let error = DeployError {
             step: DeployStep::DockerBuild,
             message: "Dockerfile not found".to_string(),
-            manual_command: "cd regions/service/order/server/rust && docker build -t order:dev .".to_string(),
+            manual_command: "cd regions/service/order/server/rust && docker build -t order:dev ."
+                .to_string(),
         };
         assert_eq!(error.step, DeployStep::DockerBuild);
         assert_eq!(error.message, "Dockerfile not found");
@@ -703,15 +674,9 @@ mod tests {
             Some("business".to_string())
         );
         // 無効なパス
-        assert_eq!(
-            extract_tier_from_target_path("invalid/path"),
-            None
-        );
+        assert_eq!(extract_tier_from_target_path("invalid/path"), None);
         // regions の後に無効な tier
-        assert_eq!(
-            extract_tier_from_target_path("regions/unknown/foo"),
-            None
-        );
+        assert_eq!(extract_tier_from_target_path("regions/unknown/foo"), None);
         // Windows パス区切りでも動作する
         assert_eq!(
             extract_tier_from_target_path("regions\\service\\order\\server\\rust"),
@@ -739,10 +704,7 @@ mod tests {
             Some("ledger".to_string())
         );
         // 無効なパス
-        assert_eq!(
-            extract_service_name_from_target_path("invalid"),
-            None
-        );
+        assert_eq!(extract_service_name_from_target_path("invalid"), None);
         // 短すぎるパス
         assert_eq!(
             extract_service_name_from_target_path("regions/service"),
@@ -850,9 +812,19 @@ mod tests {
 
         let collected = events.lock().unwrap();
         assert!(collected.len() >= 3);
-        assert!(matches!(&collected[0], ProgressEvent::StepStarted { step: 1, total: 1, .. }));
+        assert!(matches!(
+            &collected[0],
+            ProgressEvent::StepStarted {
+                step: 1,
+                total: 1,
+                ..
+            }
+        ));
         assert!(matches!(&collected[1], ProgressEvent::Warning { .. }));
-        assert!(matches!(collected.last().unwrap(), ProgressEvent::Finished { success: true, .. }));
+        assert!(matches!(
+            collected.last().unwrap(),
+            ProgressEvent::Finished { success: true, .. }
+        ));
     }
 
     #[test]
@@ -870,7 +842,10 @@ mod tests {
 
         let collected = events.lock().unwrap();
         assert_eq!(collected.len(), 1);
-        assert!(matches!(&collected[0], ProgressEvent::Finished { success: true, .. }));
+        assert!(matches!(
+            &collected[0],
+            ProgressEvent::Finished { success: true, .. }
+        ));
     }
 
     #[test]

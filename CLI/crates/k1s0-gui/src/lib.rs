@@ -100,6 +100,11 @@ fn serve_request(mut stream: std::net::TcpStream, dist_dir: &std::path::Path) {
     }
 }
 
+/// Tauri アプリケーションを起動する。
+///
+/// # Panics
+///
+/// Tauri アプリケーションの初期化または実行に失敗した場合にパニックする。
 pub fn run() {
     #[cfg(dev)]
     ensure_dev_server();

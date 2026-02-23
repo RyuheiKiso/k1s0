@@ -2,6 +2,7 @@
 
 Kubernetes リソース定義が設計ドキュメントと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -39,27 +40,36 @@ class TestKubernetesResourceQuota:
     @pytest.mark.parametrize(
         "ns_file,expected",
         [
-            ("k1s0-system.yaml", {
-                "requests.cpu": "8",
-                "requests.memory": "16Gi",
-                "limits.cpu": "16",
-                "limits.memory": "32Gi",
-                "pods": "50",
-            }),
-            ("k1s0-business.yaml", {
-                "requests.cpu": "16",
-                "requests.memory": "32Gi",
-                "limits.cpu": "32",
-                "limits.memory": "64Gi",
-                "pods": "100",
-            }),
-            ("k1s0-service.yaml", {
-                "requests.cpu": "8",
-                "requests.memory": "16Gi",
-                "limits.cpu": "16",
-                "limits.memory": "32Gi",
-                "pods": "50",
-            }),
+            (
+                "k1s0-system.yaml",
+                {
+                    "requests.cpu": "8",
+                    "requests.memory": "16Gi",
+                    "limits.cpu": "16",
+                    "limits.memory": "32Gi",
+                    "pods": "50",
+                },
+            ),
+            (
+                "k1s0-business.yaml",
+                {
+                    "requests.cpu": "16",
+                    "requests.memory": "32Gi",
+                    "limits.cpu": "32",
+                    "limits.memory": "64Gi",
+                    "pods": "100",
+                },
+            ),
+            (
+                "k1s0-service.yaml",
+                {
+                    "requests.cpu": "8",
+                    "requests.memory": "16Gi",
+                    "limits.cpu": "16",
+                    "limits.memory": "32Gi",
+                    "pods": "50",
+                },
+            ),
         ],
     )
     def test_resource_quota_values(self, ns_file: str, expected: dict) -> None:
@@ -119,9 +129,7 @@ class TestKubernetesRBAC:
     def test_cluster_role_defined(self, role_name: str) -> None:
         """kubernetes設計.md: 4つの ClusterRole が定義されている。"""
         role_names = [
-            doc["metadata"]["name"]
-            for doc in self.docs
-            if doc and doc.get("kind") == "ClusterRole"
+            doc["metadata"]["name"] for doc in self.docs if doc and doc.get("kind") == "ClusterRole"
         ]
         assert role_name in role_names, f"ClusterRole '{role_name}' が定義されていません"
 
@@ -215,18 +223,27 @@ class TestKubernetesResourceLimitValues:
     @pytest.mark.parametrize(
         "env_file,expected_resources",
         [
-            ("values-dev.yaml", {
-                "requests": {"cpu": "100m", "memory": "128Mi"},
-                "limits": {"cpu": "500m", "memory": "512Mi"},
-            }),
-            ("values-staging.yaml", {
-                "requests": {"cpu": "250m", "memory": "256Mi"},
-                "limits": {"cpu": "1000m", "memory": "1Gi"},
-            }),
-            ("values-prod.yaml", {
-                "requests": {"cpu": "500m", "memory": "512Mi"},
-                "limits": {"cpu": "2000m", "memory": "2Gi"},
-            }),
+            (
+                "values-dev.yaml",
+                {
+                    "requests": {"cpu": "100m", "memory": "128Mi"},
+                    "limits": {"cpu": "500m", "memory": "512Mi"},
+                },
+            ),
+            (
+                "values-staging.yaml",
+                {
+                    "requests": {"cpu": "250m", "memory": "256Mi"},
+                    "limits": {"cpu": "1000m", "memory": "1Gi"},
+                },
+            ),
+            (
+                "values-prod.yaml",
+                {
+                    "requests": {"cpu": "500m", "memory": "512Mi"},
+                    "limits": {"cpu": "2000m", "memory": "2Gi"},
+                },
+            ),
         ],
     )
     def test_server_pod_resource_limits(self, env_file: str, expected_resources: dict) -> None:
@@ -255,7 +272,8 @@ class TestKubernetesIngressExternalName:
     def test_kong_proxy_external_name(self) -> None:
         """kubernetes設計.md: kong-proxy ExternalName Service が定義されていること。"""
         ext_svcs = [
-            d for d in self.docs
+            d
+            for d in self.docs
             if d and d.get("kind") == "Service" and d.get("spec", {}).get("type") == "ExternalName"
         ]
         kong = [s for s in ext_svcs if s["metadata"]["name"] == "kong-proxy"]
@@ -266,7 +284,8 @@ class TestKubernetesIngressExternalName:
     def test_grafana_external_name(self) -> None:
         """kubernetes設計.md: grafana ExternalName Service が定義されていること。"""
         ext_svcs = [
-            d for d in self.docs
+            d
+            for d in self.docs
             if d and d.get("kind") == "Service" and d.get("spec", {}).get("type") == "ExternalName"
         ]
         grafana = [s for s in ext_svcs if s["metadata"]["name"] == "grafana"]

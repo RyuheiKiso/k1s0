@@ -1,4 +1,5 @@
 """System API E2E テスト共通設定。"""
+
 import os
 
 import pytest
@@ -188,11 +189,13 @@ def kafka_bootstrap_servers():
     if _KafkaConsumer is None:
         pytest.skip("confluent-kafka is not installed")
     servers = os.environ.get("KAFKA_BROKERS", "localhost:9092")
-    consumer = _KafkaConsumer({
-        "bootstrap.servers": servers,
-        "group.id": "e2e-health-check",
-        "session.timeout.ms": 5000,
-    })
+    consumer = _KafkaConsumer(
+        {
+            "bootstrap.servers": servers,
+            "group.id": "e2e-health-check",
+            "session.timeout.ms": 5000,
+        }
+    )
     try:
         metadata = consumer.list_topics(timeout=5)
         if metadata is None:

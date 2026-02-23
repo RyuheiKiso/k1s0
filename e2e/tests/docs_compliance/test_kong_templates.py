@@ -2,6 +2,7 @@
 
 テンプレートファイルの存在と仕様書との一致を検証する。
 """
+
 from pathlib import Path
 
 import pytest

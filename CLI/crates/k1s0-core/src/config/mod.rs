@@ -57,8 +57,11 @@ impl RuntimeConfig {
     /// # Errors
     /// バリデーション違反があった場合、エラー内容を示す `String` を返す。
     pub fn validate(&self) -> Result<(), String> {
-        // app.tier: "system" / "business" / "service" のみ許可
         const VALID_TIERS: &[&str] = &["system", "business", "service"];
+        const VALID_ENVIRONMENTS: &[&str] = &["dev", "staging", "prod"];
+        const VALID_LOG_LEVELS: &[&str] = &["debug", "info", "warn", "error"];
+
+        // app.tier: "system" / "business" / "service" のみ許可
         if !VALID_TIERS.contains(&self.app.tier.as_str()) {
             return Err(format!(
                 "無効な app.tier: '{}' (許可値: {:?})",
@@ -67,7 +70,6 @@ impl RuntimeConfig {
         }
 
         // app.environment: "dev" / "staging" / "prod" のみ許可
-        const VALID_ENVIRONMENTS: &[&str] = &["dev", "staging", "prod"];
         if !VALID_ENVIRONMENTS.contains(&self.app.environment.as_str()) {
             return Err(format!(
                 "無効な app.environment: '{}' (許可値: {:?})",
@@ -81,7 +83,6 @@ impl RuntimeConfig {
         }
 
         // observability.log.level: "debug" / "info" / "warn" / "error" のみ許可
-        const VALID_LOG_LEVELS: &[&str] = &["debug", "info", "warn", "error"];
         if !VALID_LOG_LEVELS.contains(&self.observability.log.level.as_str()) {
             return Err(format!(
                 "無効な observability.log.level: '{}' (許可値: {:?})",
@@ -370,15 +371,18 @@ impl Default for CliConfig {
 ///
 /// 指定されたパスから YAML 形式の設定ファイルを読み込む。
 /// ファイルが存在しない場合はデフォルト値を返す。
+///
+/// # Errors
+/// ファイルの読み込みに失敗した場合、またはYAMLのパースに失敗した場合にエラーを返す。
 pub fn load_config(path: &str) -> anyhow::Result<CliConfig> {
     let config_path = Path::new(path);
     if !config_path.exists() {
         return Ok(CliConfig::default());
     }
     let content = std::fs::read_to_string(config_path)
-        .map_err(|e| anyhow::anyhow!("設定ファイルの読み込みに失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("設定ファイルの読み込みに失敗: {e}"))?;
     let config: CliConfig = serde_yaml::from_str(&content)
-        .map_err(|e| anyhow::anyhow!("設定ファイルのパースに失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("設定ファイルのパースに失敗: {e}"))?;
     Ok(config)
 }
 
@@ -396,6 +400,9 @@ pub fn load_config(path: &str) -> anyhow::Result<CliConfig> {
 ///
 /// # Returns
 /// 成功時は `Ok(())`、Vault 未到達時は警告ログを出力して `Ok(())` を返す。
+///
+/// # Errors
+/// Vault との通信中に回復不能なエラーが発生した場合にエラーを返す。
 ///
 /// TODO: Vault統合 -- 実際の Vault 通信を実装する
 pub fn merge_vault_secrets(
@@ -416,8 +423,7 @@ pub fn merge_vault_secrets(
 
     // Vault 未到達時は警告ログを出力
     eprintln!(
-        "WARN: Vault ({}) にアクセスできません。シークレットのマージをスキップします。path={}",
-        vault_addr, vault_path
+        "WARN: Vault ({vault_addr}) にアクセスできません。シークレットのマージをスキップします。path={vault_path}"
     );
 
     Ok(())
@@ -427,28 +433,39 @@ pub fn merge_vault_secrets(
 ///
 /// ベース設定に環境別設定を上書きマージする。
 /// config設計.md のマージ順序: config.yaml < config.{env}.yaml < Vault
+///
+/// # Errors
+/// ファイルの読み込みに失敗した場合、またはYAMLのパースに失敗した場合にエラーを返す。
 pub fn merge_config(base: &mut CliConfig, override_path: &str) -> anyhow::Result<()> {
     let path = Path::new(override_path);
     if !path.exists() {
         return Ok(());
     }
     let content = std::fs::read_to_string(path)
-        .map_err(|e| anyhow::anyhow!("環境別設定の読み込みに失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("環境別設定の読み込みに失敗: {e}"))?;
     let override_config: serde_yaml::Value = serde_yaml::from_str(&content)
-        .map_err(|e| anyhow::anyhow!("環境別設定のパースに失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("環境別設定のパースに失敗: {e}"))?;
 
     if let serde_yaml::Value::Mapping(map) = override_config {
-        if let Some(serde_yaml::Value::String(name)) = map.get(&serde_yaml::Value::String("project_name".to_string())) {
-            base.project_name = name.clone();
+        if let Some(serde_yaml::Value::String(name)) =
+            map.get(serde_yaml::Value::String("project_name".to_string()))
+        {
+            base.project_name.clone_from(name);
         }
-        if let Some(serde_yaml::Value::String(root)) = map.get(&serde_yaml::Value::String("regions_root".to_string())) {
-            base.regions_root = root.clone();
+        if let Some(serde_yaml::Value::String(root)) =
+            map.get(serde_yaml::Value::String("regions_root".to_string()))
+        {
+            base.regions_root.clone_from(root);
         }
-        if let Some(serde_yaml::Value::String(registry)) = map.get(&serde_yaml::Value::String("docker_registry".to_string())) {
-            base.docker_registry = registry.clone();
+        if let Some(serde_yaml::Value::String(registry)) =
+            map.get(serde_yaml::Value::String("docker_registry".to_string()))
+        {
+            base.docker_registry.clone_from(registry);
         }
-        if let Some(serde_yaml::Value::String(go_base)) = map.get(&serde_yaml::Value::String("go_module_base".to_string())) {
-            base.go_module_base = go_base.clone();
+        if let Some(serde_yaml::Value::String(go_base)) =
+            map.get(serde_yaml::Value::String("go_module_base".to_string()))
+        {
+            base.go_module_base.clone_from(go_base);
         }
     }
     Ok(())
@@ -457,8 +474,8 @@ pub fn merge_config(base: &mut CliConfig, override_path: &str) -> anyhow::Result
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::NamedTempFile;
     use std::io::Write;
+    use tempfile::NamedTempFile;
 
     #[test]
     fn test_default_config() {
@@ -510,11 +527,17 @@ mod tests {
 
     #[test]
     fn test_merge_config_overrides_values() {
-        let mut base = CliConfig::default();
-        base.project_name = "base-project".to_string();
+        let mut base = CliConfig {
+            project_name: "base-project".to_string(),
+            ..CliConfig::default()
+        };
 
         let mut file = NamedTempFile::new().unwrap();
-        writeln!(file, "project_name: overridden\ndocker_registry: custom-registry.io").unwrap();
+        writeln!(
+            file,
+            "project_name: overridden\ndocker_registry: custom-registry.io"
+        )
+        .unwrap();
 
         merge_config(&mut base, file.path().to_str().unwrap()).unwrap();
         assert_eq!(base.project_name, "overridden");
@@ -524,8 +547,10 @@ mod tests {
 
     #[test]
     fn test_merge_config_nonexistent_file_noop() {
-        let mut base = CliConfig::default();
-        base.project_name = "original".to_string();
+        let mut base = CliConfig {
+            project_name: "original".to_string(),
+            ..CliConfig::default()
+        };
         merge_config(&mut base, "nonexistent.yaml").unwrap();
         assert_eq!(base.project_name, "original");
     }
@@ -550,8 +575,10 @@ mod tests {
 
     #[test]
     fn test_merge_vault_secrets_empty_addr_is_noop() {
-        let mut base = CliConfig::default();
-        base.project_name = "original".to_string();
+        let mut base = CliConfig {
+            project_name: "original".to_string(),
+            ..CliConfig::default()
+        };
         let result = merge_vault_secrets(&mut base, "", "secret/data/k1s0");
         assert!(result.is_ok());
         assert_eq!(base.project_name, "original");
@@ -559,8 +586,10 @@ mod tests {
 
     #[test]
     fn test_merge_vault_secrets_empty_path_is_noop() {
-        let mut base = CliConfig::default();
-        base.project_name = "original".to_string();
+        let mut base = CliConfig {
+            project_name: "original".to_string(),
+            ..CliConfig::default()
+        };
         let result = merge_vault_secrets(&mut base, "https://vault.example.com", "");
         assert!(result.is_ok());
         assert_eq!(base.project_name, "original");
@@ -681,10 +710,13 @@ auth:
         let redis = config.redis.unwrap();
         assert_eq!(redis.port, 6379);
         let redis_session = config.redis_session.unwrap();
-        assert_eq!(redis_session.host, "redis-session.k1s0-system.svc.cluster.local");
+        assert_eq!(
+            redis_session.host,
+            "redis-session.k1s0-system.svc.cluster.local"
+        );
         assert_eq!(redis_session.port, 6380);
         assert_eq!(config.observability.log.level, "info");
-        assert_eq!(config.observability.trace.sample_rate, 1.0);
+        assert!((config.observability.trace.sample_rate - 1.0_f64).abs() < f64::EPSILON);
         assert_eq!(config.auth.jwt.issuer, "https://auth.example.com");
         let oidc = config.auth.oidc.unwrap();
         assert_eq!(oidc.client_id, "k1s0-bff");
@@ -693,7 +725,7 @@ auth:
 
     // --- RuntimeConfig バリデーション ---
 
-    /// ヘルパー: バリデーションが通る正常な RuntimeConfig を生成
+    /// ヘルパー: バリデーションが通る正常な `RuntimeConfig` を生成
     fn valid_runtime_config() -> RuntimeConfig {
         RuntimeConfig {
             app: AppConfig {
@@ -820,7 +852,7 @@ auth:
         for tier in &["system", "business", "service"] {
             let mut config = valid_runtime_config();
             config.app.tier = tier.to_string();
-            assert!(config.validate().is_ok(), "tier '{}' should be valid", tier);
+            assert!(config.validate().is_ok(), "tier '{tier}' should be valid");
         }
     }
 
@@ -829,7 +861,10 @@ auth:
         for env in &["dev", "staging", "prod"] {
             let mut config = valid_runtime_config();
             config.app.environment = env.to_string();
-            assert!(config.validate().is_ok(), "environment '{}' should be valid", env);
+            assert!(
+                config.validate().is_ok(),
+                "environment '{env}' should be valid"
+            );
         }
     }
 
@@ -838,7 +873,10 @@ auth:
         for level in &["debug", "info", "warn", "error"] {
             let mut config = valid_runtime_config();
             config.observability.log.level = level.to_string();
-            assert!(config.validate().is_ok(), "log level '{}' should be valid", level);
+            assert!(
+                config.validate().is_ok(),
+                "log level '{level}' should be valid"
+            );
         }
     }
 

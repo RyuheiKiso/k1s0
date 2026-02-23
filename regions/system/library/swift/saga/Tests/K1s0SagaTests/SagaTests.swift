@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import K1s0Saga
 
@@ -20,9 +21,9 @@ struct SagaTests {
             initiatedBy: "order-service"
         )
         let data = try JSONEncoder().encode(request)
-        let json = try JSONDecoder().decode([String: String].self, from: data)
-        #expect(json["workflow_name"] == "order-saga")
-        #expect(json["initiated_by"] == "order-service")
+        let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        #expect(json["workflow_name"] as? String == "order-saga")
+        #expect(json["initiated_by"] as? String == "order-service")
     }
 
     @Test("SagaError の説明が含まれること")

@@ -3,6 +3,7 @@
 Kong decK 設定、プラグイン、サービス定義が
 設計ドキュメントと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest

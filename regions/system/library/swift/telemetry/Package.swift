@@ -5,7 +5,7 @@ let package = Package(
     name: "k1s0-telemetry",
     platforms: [.macOS(.v14), .iOS(.v17)],
     products: [
-        .library(name: "K1s0Telemetry", targets: ["K1s0Telemetry"]),
+        .library(name: "K1s0Telemetry", targets: ["K1s0Telemetry"])
     ],
     targets: [
         .target(

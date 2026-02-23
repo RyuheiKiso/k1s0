@@ -3,6 +3,7 @@
 CLI/templates/ 配下のテンプレートファイルが
 テンプレートエンジン仕様.md で定義された構成と一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest

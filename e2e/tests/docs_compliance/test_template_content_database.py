@@ -3,6 +3,7 @@
 CLI/templates/database/ のテンプレートファイルの内容が
 仕様ドキュメントのコードブロックと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest

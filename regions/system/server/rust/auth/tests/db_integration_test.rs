@@ -24,7 +24,7 @@ mod testcontainers_db_tests {
         let pool = PgPool::connect(&connection_string).await.unwrap();
 
         // Run migrations
-        sqlx::migrate!("../../database/auth-db/migrations")
+        sqlx::migrate!("../../../database/auth-db/migrations")
             .run(&pool)
             .await
             .unwrap();

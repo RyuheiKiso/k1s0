@@ -22,20 +22,22 @@ pub fn register_filters(tera: &mut Tera) {
 
 /// 文字列値を Value から取り出すヘルパー。
 fn extract_str<'a>(value: &'a Value, filter_name: &str) -> Result<&'a str> {
-    value
-        .as_str()
-        .ok_or_else(|| tera::Error::msg(format!("{} フィルタは文字列に対してのみ使用できます", filter_name)))
+    value.as_str().ok_or_else(|| {
+        tera::Error::msg(format!(
+            "{filter_name} フィルタは文字列に対してのみ使用できます"
+        ))
+    })
 }
 
 /// スネークケースに変換するフィルタ。
-/// 例: "order-api" -> "order_api"
+/// 例: "order-api" -> "`order_api`"
 fn to_snake_case(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
     let s = extract_str(value, "snake_case")?;
     Ok(Value::String(s.to_snake_case()))
 }
 
 /// パスカルケースに変換するフィルタ。
-/// 例: "order-api" -> "OrderApi"
+/// 例: "order-api" -> "`OrderApi`"
 fn to_pascal_case(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
     let s = extract_str(value, "pascal_case")?;
     Ok(Value::String(s.to_pascal_case()))
@@ -49,7 +51,7 @@ fn to_camel_case(value: &Value, _args: &HashMap<String, Value>) -> Result<Value>
 }
 
 /// ケバブケースに変換するフィルタ。
-/// 例: "order_api" -> "order-api"
+/// 例: "`order_api`" -> "order-api"
 fn to_kebab_case(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
     let s = extract_str(value, "kebab_case")?;
     Ok(Value::String(s.to_kebab_case()))
@@ -63,7 +65,7 @@ fn to_upper_case(value: &Value, _args: &HashMap<String, Value>) -> Result<Value>
 }
 
 /// 全て小文字に変換するフィルタ。
-/// 例: "OrderApi" -> "orderapi"
+/// 例: "`OrderApi`" -> "orderapi"
 fn to_lower_case(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
     let s = extract_str(value, "lower_case")?;
     Ok(Value::String(s.to_lowercase()))

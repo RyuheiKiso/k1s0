@@ -3,6 +3,7 @@
 docs/コンセプト.md で定義された技術スタック・設計思想が
 プロジェクト内のファイル（テンプレート、設定ファイル等）に正しく反映されているかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -298,7 +299,9 @@ class TestMessagingStack:
 
     def test_kafka_template_exists(self) -> None:
         """コンセプト.md: Kafka テンプレート（messaging）が Go サーバーに存在する。"""
-        assert (TEMPLATES / "server" / "go" / "internal" / "infra" / "messaging" / "kafka.go.tera").exists()
+        assert (
+            TEMPLATES / "server" / "go" / "internal" / "infra" / "messaging" / "kafka.go.tera"
+        ).exists()
 
     def test_kafka_template_exists_rust(self) -> None:
         """コンセプト.md: Kafka テンプレート（messaging）が Rust サーバーに存在する。"""
@@ -330,7 +333,9 @@ class TestOrmQueryBuilder:
 
     def test_go_persistence_template_exists(self) -> None:
         """コンセプト.md: Go サーバーに persistence テンプレートが存在する。"""
-        assert (TEMPLATES / "server" / "go" / "internal" / "infra" / "persistence" / "db.go.tera").exists()
+        assert (
+            TEMPLATES / "server" / "go" / "internal" / "infra" / "persistence" / "db.go.tera"
+        ).exists()
 
     def test_rust_persistence_template_exists(self) -> None:
         """コンセプト.md: Rust サーバーに persistence テンプレートが存在する。"""
@@ -533,7 +538,9 @@ class TestTestingStack:
 
     def test_go_test_template_exists(self) -> None:
         """コンセプト.md: Go テストテンプレートが存在する。"""
-        assert (TEMPLATES / "server" / "go" / "internal" / "usecase" / "usecase_test.go.tera").exists()
+        assert (
+            TEMPLATES / "server" / "go" / "internal" / "usecase" / "usecase_test.go.tera"
+        ).exists()
 
     def test_rust_integration_test_template_exists(self) -> None:
         """コンセプト.md: Rust 統合テストテンプレートが存在する。"""

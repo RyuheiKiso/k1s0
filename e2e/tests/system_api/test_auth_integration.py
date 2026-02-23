@@ -5,6 +5,7 @@ Keycloak から実際のトークンを取得し、auth-server API と統合テ�
 テスト用クライアント k1s0-e2e-test は directAccessGrantsEnabled=true で、
 Resource Owner Password Credentials Grant によりトークンを取得する。
 """
+
 import base64
 import json
 
@@ -241,9 +242,7 @@ class TestTokenRefresh:
         if not _keycloak_available(keycloak_base_url):
             pytest.skip("Keycloak is not running")
 
-    def test_refresh_token_grants_new_access_token(
-        self, keycloak_base_url, keycloak_admin_token
-    ):
+    def test_refresh_token_grants_new_access_token(self, keycloak_base_url, keycloak_admin_token):
         """refresh_token で新しい access_token を取得できる。"""
         resp = requests.post(
             _keycloak_token_url(keycloak_base_url),
@@ -333,9 +332,7 @@ class TestAuthServerIntegration:
         data = response.json()
         assert data["active"] is True
 
-    def test_check_permission_with_admin_token(
-        self, auth_client, keycloak_admin_token
-    ):
+    def test_check_permission_with_admin_token(self, auth_client, keycloak_admin_token):
         """sys_admin ロール持ちトークンでパーミッションチェックが通る。"""
         response = auth_client.post(
             auth_client.base_url + "/api/v1/auth/check-permission",
@@ -373,8 +370,7 @@ class TestOIDCDiscovery:
     def test_discovery_endpoint(self, keycloak_base_url):
         """OIDC Discovery エンドポイントが正しいメタデータを返す。"""
         resp = requests.get(
-            f"{keycloak_base_url}/realms/{KEYCLOAK_REALM}"
-            "/.well-known/openid-configuration",
+            f"{keycloak_base_url}/realms/{KEYCLOAK_REALM}/.well-known/openid-configuration",
             timeout=10,
         )
         assert resp.status_code == 200
@@ -389,8 +385,7 @@ class TestOIDCDiscovery:
     def test_jwks_endpoint(self, keycloak_base_url):
         """JWKS エンドポイントから公開鍵を取得できる。"""
         resp = requests.get(
-            f"{keycloak_base_url}/realms/{KEYCLOAK_REALM}"
-            "/protocol/openid-connect/certs",
+            f"{keycloak_base_url}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs",
             timeout=10,
         )
         assert resp.status_code == 200

@@ -1,8 +1,15 @@
+use std::fmt::Write as FmtWrite;
+
 use anyhow::Result;
 
+use super::helpers::{
+    prompt_db_selection, prompt_name_or_select, scan_existing_databases, scan_existing_dirs,
+};
+use super::types::{
+    ApiStyle, DetailConfig, Framework, GenerateConfig, Kind, LangFw, Language, Tier,
+    ALL_API_STYLES, ALL_KINDS, ALL_RDBMS, API_LABELS, KIND_LABELS, RDBMS_LABELS,
+};
 use crate::prompt;
-use super::types::*;
-use super::helpers::{scan_existing_dirs, scan_existing_databases, prompt_name_or_select, prompt_db_selection};
 
 // ============================================================================
 // 各ステップ
@@ -23,15 +30,18 @@ pub(super) fn step_kind() -> Result<Option<Kind>> {
 /// ステップ2: Tier選択
 pub(super) fn step_tier(kind: Kind) -> Result<Option<Tier>> {
     let available = kind.available_tiers();
-    let labels: Vec<&str> = available.iter().map(|t| t.label()).collect();
+    let labels: Vec<&str> = available
+        .iter()
+        .map(k1s0_core::commands::generate::Tier::label)
+        .collect();
     let idx = prompt::select_prompt("Tier を選択してください", &labels)?;
     Ok(idx.map(|i| available[i]))
 }
 
 /// ステップ3: 配置先指定
 ///
-/// Tier::System の場合は配置先不要のためスキップ (StepResult::Skip)。
-/// Esc が押された場合は StepResult::Back を返す。
+/// `Tier::System` の場合は配置先不要のためスキップ (`StepResult::Skip`)。
+/// Esc が押された場合は `StepResult::Back` を返す。
 pub(super) fn step_placement(tier: Tier) -> Result<StepResult<Option<String>>> {
     match tier {
         Tier::System => Ok(StepResult::Skip),
@@ -125,25 +135,22 @@ pub(super) fn step_lang_fw(kind: Kind) -> Result<Option<LangFw>> {
 pub(super) fn step_detail(
     kind: Kind,
     tier: Tier,
-    placement: &Option<String>,
+    placement: Option<&str>,
     _lang_fw: &LangFw,
 ) -> Result<Option<DetailConfig>> {
     match kind {
         Kind::Server => step_detail_server(tier, placement),
-        Kind::Client => step_detail_client(tier, placement),
-        Kind::Library => step_detail_library(),
+        Kind::Client => Ok(step_detail_client(tier, placement)),
+        Kind::Library => Ok(step_detail_library()),
         Kind::Database => Ok(Some(DetailConfig::default())),
     }
 }
 
 /// サーバー詳細設定
-fn step_detail_server(
-    tier: Tier,
-    placement: &Option<String>,
-) -> Result<Option<DetailConfig>> {
+fn step_detail_server(tier: Tier, placement: Option<&str>) -> Result<Option<DetailConfig>> {
     // サービス名: service Tier ではステップ3 のサービス名を使う
     let service_name = if tier == Tier::Service {
-        placement.clone()
+        placement.map(str::to_owned)
     } else {
         match prompt::input_prompt("サービス名を入力してください") {
             Ok(n) => Some(n),
@@ -152,10 +159,8 @@ fn step_detail_server(
     };
 
     // API方式
-    let api_indices = prompt::multi_select_prompt(
-        "API 方式を選択してください（複数選択可）",
-        API_LABELS,
-    )?;
+    let api_indices =
+        prompt::multi_select_prompt("API 方式を選択してください（複数選択可）", API_LABELS)?;
     let api_styles: Vec<ApiStyle> = match api_indices {
         Some(indices) => indices.iter().map(|&i| ALL_API_STYLES[i]).collect(),
         None => return Ok(None),
@@ -167,23 +172,23 @@ fn step_detail_server(
         Some(true) => {
             // 既存DBの探索
             let existing_dbs = scan_existing_databases();
-            let db_info = prompt_db_selection(&existing_dbs)?;
-            db_info
+
+            prompt_db_selection(&existing_dbs)?
         }
         Some(false) => None,
         None => return Ok(None),
     };
 
     // Kafka
-    let kafka = match prompt::yes_no_prompt("メッセージング (Kafka) を有効にしますか？")? {
-        Some(v) => v,
-        None => return Ok(None),
+    let Some(kafka) = prompt::yes_no_prompt("メッセージング (Kafka) を有効にしますか？")?
+    else {
+        return Ok(None);
     };
 
     // Redis
-    let redis = match prompt::yes_no_prompt("キャッシュ (Redis) を有効にしますか？")? {
-        Some(v) => v,
-        None => return Ok(None),
+    let Some(redis) = prompt::yes_no_prompt("キャッシュ (Redis) を有効にしますか？")?
+    else {
+        return Ok(None);
     };
 
     // BFF (service Tier + GraphQL 時のみ)
@@ -218,38 +223,34 @@ fn step_detail_server(
 }
 
 /// クライアント詳細設定
-fn step_detail_client(
-    tier: Tier,
-    placement: &Option<String>,
-) -> Result<Option<DetailConfig>> {
+fn step_detail_client(tier: Tier, placement: Option<&str>) -> Option<DetailConfig> {
     let app_name = if tier == Tier::Service {
         // service Tier: ステップ3のサービス名をアプリ名として使用
-        placement.clone()
+        placement.map(str::to_owned)
     } else {
         // business Tier: アプリ名入力
         match prompt::input_prompt("アプリ名を入力してください") {
             Ok(n) => Some(n),
-            Err(_) => return Ok(None),
+            Err(_) => return None,
         }
     };
 
-    Ok(Some(DetailConfig {
+    Some(DetailConfig {
         name: app_name,
         ..DetailConfig::default()
-    }))
+    })
 }
 
 /// ライブラリ詳細設定
-fn step_detail_library() -> Result<Option<DetailConfig>> {
-    let lib_name = match prompt::input_prompt("ライブラリ名を入力してください") {
-        Ok(n) => n,
-        Err(_) => return Ok(None),
+fn step_detail_library() -> Option<DetailConfig> {
+    let Ok(lib_name) = prompt::input_prompt("ライブラリ名を入力してください") else {
+        return None;
     };
 
-    Ok(Some(DetailConfig {
+    Some(DetailConfig {
         name: Some(lib_name),
         ..DetailConfig::default()
-    }))
+    })
 }
 
 // ============================================================================
@@ -264,15 +265,15 @@ pub(super) fn print_confirmation(config: &GenerateConfig) {
 pub(super) fn format_confirmation(config: &GenerateConfig) -> String {
     let mut out = String::new();
     out.push_str("\n[確認] 以下の内容で生成します。よろしいですか？\n");
-    out.push_str(&format!("    種別:     {}\n", config.kind.label()));
-    out.push_str(&format!("    Tier:     {}\n", config.tier.as_str()));
+    writeln!(out, "    種別:     {}", config.kind.label()).unwrap();
+    writeln!(out, "    Tier:     {}", config.tier.as_str()).unwrap();
 
     // 配置先
     if let Some(ref p) = config.placement {
         match config.tier {
-            Tier::Business => out.push_str(&format!("    領域:     {}\n", p)),
-            Tier::Service => out.push_str(&format!("    サービス: {}\n", p)),
-            _ => {}
+            Tier::Business => writeln!(out, "    領域:     {p}").unwrap(),
+            Tier::Service => writeln!(out, "    サービス: {p}").unwrap(),
+            Tier::System => {}
         }
     }
 
@@ -282,54 +283,70 @@ pub(super) fn format_confirmation(config: &GenerateConfig) -> String {
             // detail.name の表示をスキップする
             if config.tier != Tier::Service {
                 if let Some(ref name) = config.detail.name {
-                    out.push_str(&format!("    サービス: {}\n", name));
+                    writeln!(out, "    サービス: {name}").unwrap();
                 }
             }
             if let LangFw::Language(lang) = config.lang_fw {
-                out.push_str(&format!("    言語:     {}\n", lang.as_str()));
+                writeln!(out, "    言語:     {}", lang.as_str()).unwrap();
             }
             if !config.detail.api_styles.is_empty() {
-                let api_strs: Vec<&str> =
-                    config.detail.api_styles.iter().map(|a| a.short_label()).collect();
-                out.push_str(&format!("    API:      {}\n", api_strs.join(", ")));
+                let api_strs: Vec<&str> = config
+                    .detail
+                    .api_styles
+                    .iter()
+                    .map(k1s0_core::commands::generate::ApiStyle::short_label)
+                    .collect();
+                writeln!(out, "    API:      {}", api_strs.join(", ")).unwrap();
             }
             // BFF 情報（service Tier + GraphQL 時のみ表示）
             if let Some(bff_lang) = config.detail.bff_language {
-                out.push_str(&format!("    BFF:      あり ({})\n", bff_lang.as_str()));
+                writeln!(out, "    BFF:      あり ({})", bff_lang.as_str()).unwrap();
             }
             match &config.detail.db {
-                Some(db) => out.push_str(&format!("    DB:       {}\n", db)),
+                Some(db) => writeln!(out, "    DB:       {db}").unwrap(),
                 None => out.push_str("    DB:       なし\n"),
             }
-            out.push_str(&format!(
-                "    Kafka:    {}\n",
-                if config.detail.kafka { "有効" } else { "無効" }
-            ));
-            out.push_str(&format!(
-                "    Redis:    {}\n",
-                if config.detail.redis { "有効" } else { "無効" }
-            ));
+            writeln!(
+                out,
+                "    Kafka:    {}",
+                if config.detail.kafka {
+                    "有効"
+                } else {
+                    "無効"
+                }
+            )
+            .unwrap();
+            writeln!(
+                out,
+                "    Redis:    {}",
+                if config.detail.redis {
+                    "有効"
+                } else {
+                    "無効"
+                }
+            )
+            .unwrap();
         }
         Kind::Client => {
             if let LangFw::Framework(fw) = config.lang_fw {
-                out.push_str(&format!("    フレームワーク: {}\n", fw.as_str()));
+                writeln!(out, "    フレームワーク: {}", fw.as_str()).unwrap();
             }
             if let Some(ref name) = config.detail.name {
-                out.push_str(&format!("    アプリ名:       {}\n", name));
+                writeln!(out, "    アプリ名:       {name}").unwrap();
             }
         }
         Kind::Library => {
             if let LangFw::Language(lang) = config.lang_fw {
-                out.push_str(&format!("    言語:         {}\n", lang.as_str()));
+                writeln!(out, "    言語:         {}", lang.as_str()).unwrap();
             }
             if let Some(ref name) = config.detail.name {
-                out.push_str(&format!("    ライブラリ名: {}\n", name));
+                writeln!(out, "    ライブラリ名: {name}").unwrap();
             }
         }
         Kind::Database => {
             if let LangFw::Database { ref name, rdbms } = config.lang_fw {
-                out.push_str(&format!("    データベース名: {}\n", name));
-                out.push_str(&format!("    RDBMS:          {}\n", rdbms.as_str()));
+                writeln!(out, "    データベース名: {name}").unwrap();
+                writeln!(out, "    RDBMS:          {}", rdbms.as_str()).unwrap();
             }
         }
     }
@@ -365,8 +382,7 @@ mod tests {
         let output = format_confirmation(&config);
         assert!(
             output.contains("BFF:      あり (Go)"),
-            "BFF 情報が確認画面に表示されるべき: {}",
-            output
+            "BFF 情報が確認画面に表示されるべき: {output}"
         );
     }
 
@@ -390,8 +406,7 @@ mod tests {
         let output = format_confirmation(&config);
         assert!(
             !output.contains("BFF:"),
-            "bff_language=None の場合は BFF 行は非表示: {}",
-            output
+            "bff_language=None の場合は BFF 行は非表示: {output}"
         );
     }
 
@@ -415,8 +430,7 @@ mod tests {
         let output = format_confirmation(&config);
         assert!(
             output.contains("BFF:      あり (Rust)"),
-            "BFF (Rust) 情報が確認画面に表示されるべき: {}",
-            output
+            "BFF (Rust) 情報が確認画面に表示されるべき: {output}"
         );
     }
 

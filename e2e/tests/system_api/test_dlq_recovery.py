@@ -3,6 +3,7 @@
 DLQ メッセージのリカバリーフロー（リトライ・一括リトライ・削除）に関する
 API の振る舞いを検証する。
 """
+
 import uuid
 
 import pytest
@@ -85,9 +86,7 @@ class TestDlqMessageLifecycle:
             response = dlq_client.get(
                 dlq_client.base_url + f"/api/v1/dlq/{topic}",
             )
-            assert response.status_code == 200, (
-                f"topic={topic} returned {response.status_code}"
-            )
+            assert response.status_code == 200, f"topic={topic} returned {response.status_code}"
             data = response.json()
             assert "messages" in data
             assert "pagination" in data

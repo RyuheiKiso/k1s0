@@ -2,6 +2,7 @@
 
 レンダリングテスト仕様書の構造・内容が正しいかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -26,8 +27,10 @@ class TestRenderingSpecSections:
     def setup_method(self) -> None:
         # 分割されたドキュメントを結合して検証する
         self.content = (
-            SPEC.read_text(encoding="utf-8") + "\n"
-            + RUST_SPEC.read_text(encoding="utf-8") + "\n"
+            SPEC.read_text(encoding="utf-8")
+            + "\n"
+            + RUST_SPEC.read_text(encoding="utf-8")
+            + "\n"
             + E2E_SPEC.read_text(encoding="utf-8")
         )
 
@@ -301,6 +304,4 @@ class TestRenderingSpecNewTestExamples:
     )
     def test_new_test_example_documented(self, test_name: str) -> None:
         """テンプレート仕様-レンダリングテスト.md: 新規テスト例が記載されている。"""
-        assert test_name in self.content, (
-            f"新規テスト例 '{test_name}' が仕様書に記載されていません"
-        )
+        assert test_name in self.content, f"新規テスト例 '{test_name}' が仕様書に記載されていません"

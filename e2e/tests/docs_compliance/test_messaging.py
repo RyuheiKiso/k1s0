@@ -3,6 +3,7 @@
 Kafka クラスタ、トピック、Schema Registry の設定が
 設計ドキュメントと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -49,7 +50,7 @@ class TestKafkaCluster:
     def test_kafka_listeners(self) -> None:
         """メッセージング設計.md: plain(9092) と tls(9093) リスナー。"""
         listeners = self.kafka["spec"]["kafka"]["listeners"]
-        names = [l["name"] for l in listeners]
+        names = [listener["name"] for listener in listeners]
         assert "plain" in names
         assert "tls" in names
 
@@ -216,7 +217,8 @@ class TestTierPartitionCounts:
     def test_system_tier_partitions_6(self) -> None:
         """メッセージング設計.md: system Tier パーティション数=6。"""
         system_topics = [
-            d for d in self.docs
+            d
+            for d in self.docs
             if d["metadata"]["labels"].get("tier") == "system"
             and not d["metadata"]["name"].endswith(".dlq")
         ]
@@ -228,7 +230,8 @@ class TestTierPartitionCounts:
     def test_business_tier_partitions_3(self) -> None:
         """メッセージング設計.md: business Tier パーティション数=3。"""
         biz_topics = [
-            d for d in self.docs
+            d
+            for d in self.docs
             if d["metadata"]["labels"].get("tier") == "business"
             and not d["metadata"]["name"].endswith(".dlq")
         ]
@@ -240,7 +243,8 @@ class TestTierPartitionCounts:
     def test_service_tier_partitions_3(self) -> None:
         """メッセージング設計.md: service Tier パーティション数=3。"""
         svc_topics = [
-            d for d in self.docs
+            d
+            for d in self.docs
             if d["metadata"]["labels"].get("tier") == "service"
             and not d["metadata"]["name"].endswith(".dlq")
         ]
@@ -354,7 +358,10 @@ class TestTopicNamingValidation:
     def test_all_topics_follow_naming_convention(self) -> None:
         """メッセージング設計.md: 全トピックが k1s0.{tier}.{domain}.{event-type}.{version} 形式。"""
         import re
-        pattern = re.compile(r"^k1s0\.(system|business|service)\.[a-z]+\.[a-z]+\.v\d+(\.(dlq|archive))?$")
+
+        pattern = re.compile(
+            r"^k1s0\.(system|business|service)\.[a-z]+\.[a-z]+\.v\d+(\.(dlq|archive))?$"
+        )
         for doc in self.docs:
             name = doc["metadata"]["name"]
             assert pattern.match(name), (

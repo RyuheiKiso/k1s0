@@ -26,6 +26,10 @@ enum Step {
 ///
 /// 各ステップで Esc を押すと前のステップに戻る。
 /// 最初のステップで Esc → メインメニューに戻る。
+///
+/// # Errors
+///
+/// プロンプトの入出力に失敗した場合、またはデプロイ実行に失敗した場合にエラーを返す。
 pub fn run() -> Result<()> {
     println!("\n--- デプロイ ---\n");
 
@@ -63,14 +67,11 @@ pub fn run() -> Result<()> {
                 }
             }
             Step::ProdConfirm => {
-                match step_prod_confirmation()? {
-                    Some(true) => {
-                        step = Step::Confirm; // 通過
-                    }
-                    _ => {
-                        println!("キャンセルしました。");
-                        step = Step::Targets; // Esc → Targets に戻る
-                    }
+                if let Some(true) = step_prod_confirmation()? {
+                    step = Step::Confirm; // 通過
+                } else {
+                    println!("キャンセルしました。");
+                    step = Step::Targets; // Esc → Targets に戻る
                 }
             }
             Step::Confirm => {
@@ -121,10 +122,8 @@ fn step_select_targets() -> Result<Option<Vec<String>>> {
         items.push(t.as_str());
     }
 
-    let selected = prompt::multi_select_prompt(
-        "デプロイ対象を選択してください（複数選択可）",
-        &items,
-    )?;
+    let selected =
+        prompt::multi_select_prompt("デプロイ対象を選択してください（複数選択可）", &items)?;
 
     match selected {
         None => Ok(None),
@@ -148,9 +147,7 @@ fn step_select_targets() -> Result<Option<Vec<String>>> {
 /// ステップ3: 本番環境の追加確認。"deploy" と入力させる。
 fn step_prod_confirmation() -> Result<Option<bool>> {
     println!("\n⚠ 本番環境へのデプロイです。");
-    let input = prompt::input_prompt_raw(
-        "本当にデプロイしますか？ \"deploy\" と入力してください",
-    )?;
+    let input = prompt::input_prompt_raw("本当にデプロイしますか？ \"deploy\" と入力してください")?;
     if input.trim() == "deploy" {
         Ok(Some(true))
     } else {
@@ -164,6 +161,6 @@ fn print_confirmation(config: &DeployConfig) {
     println!("\n[確認] 以下の内容でデプロイします。よろしいですか？");
     println!("    環境: {}", config.environment.as_str());
     for target in &config.targets {
-        println!("    対象: {}", target);
+        println!("    対象: {target}");
     }
 }

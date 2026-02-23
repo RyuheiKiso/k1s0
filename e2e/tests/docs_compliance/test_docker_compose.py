@@ -2,6 +2,7 @@
 
 docker-compose.yaml の各サービス定義がドキュメントと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -103,18 +104,33 @@ class TestDockerComposeServices:
 
     def test_all_services_count(self) -> None:
         expected_services = [
-            "postgres", "mysql", "redis", "kafka", "kafka-ui",
-            "schema-registry", "keycloak", "redis-session", "vault",
-            "jaeger", "prometheus", "loki", "grafana",
+            "postgres",
+            "mysql",
+            "redis",
+            "kafka",
+            "kafka-ui",
+            "schema-registry",
+            "keycloak",
+            "redis-session",
+            "vault",
+            "jaeger",
+            "prometheus",
+            "loki",
+            "grafana",
         ]
         for svc in expected_services:
             assert svc in self.config["services"], f"サービス {svc} が存在しません"
 
     def test_volumes(self) -> None:
         expected_volumes = [
-            "postgres-data", "mysql-data", "redis-data",
-            "redis-session-data", "kafka-data",
-            "prometheus-data", "loki-data", "grafana-data",
+            "postgres-data",
+            "mysql-data",
+            "redis-data",
+            "redis-session-data",
+            "kafka-data",
+            "prometheus-data",
+            "loki-data",
+            "grafana-data",
         ]
         for vol in expected_volumes:
             assert vol in self.config["volumes"], f"ボリューム {vol} が存在しません"
@@ -206,7 +222,9 @@ class TestDockerComposeDependsOn:
 
     def test_grafana_depends_on_prometheus(self) -> None:
         deps = self.config["services"]["grafana"]["depends_on"]
-        assert "prometheus" in deps or "prometheus" in [d if isinstance(d, str) else "" for d in deps]
+        assert "prometheus" in deps or "prometheus" in [
+            d if isinstance(d, str) else "" for d in deps
+        ]
 
 
 class TestDockerComposeEnvironment:
@@ -267,9 +285,7 @@ class TestDockerComposeProfiles:
     def test_service_profiles(self, service: str, profile: str) -> None:
         """docker-compose設計.md: 各サービスが正しいプロファイルに属すること。"""
         svc = self.config["services"][service]
-        assert profile in svc["profiles"], (
-            f"{service} が {profile} プロファイルに属していません"
-        )
+        assert profile in svc["profiles"], f"{service} が {profile} プロファイルに属していません"
 
 
 class TestDockerComposeServiceNameResolution:
@@ -283,8 +299,15 @@ class TestDockerComposeServiceNameResolution:
     @pytest.mark.parametrize(
         "service",
         [
-            "postgres", "mysql", "redis", "kafka", "schema-registry",
-            "jaeger", "vault", "keycloak", "redis-session",
+            "postgres",
+            "mysql",
+            "redis",
+            "kafka",
+            "schema-registry",
+            "jaeger",
+            "vault",
+            "keycloak",
+            "redis-session",
         ],
     )
     def test_service_exists_for_name_resolution(self, service: str) -> None:

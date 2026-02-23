@@ -3,6 +3,7 @@
 補償トランザクションに関連する API の振る舞いを検証する。
 Saga の status フィルタ、detail レスポンス構造、キャンセルフローを確認する。
 """
+
 import uuid
 
 import pytest

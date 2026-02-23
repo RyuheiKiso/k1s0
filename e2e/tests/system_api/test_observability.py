@@ -4,6 +4,7 @@ Prometheus, Jaeger, Grafana, Loki が起動しているかを検証する。
 
 前提: docker compose --profile observability up -d
 """
+
 import pytest
 import requests
 

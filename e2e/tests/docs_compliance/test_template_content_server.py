@@ -3,6 +3,7 @@
 CLI/templates/server/ のテンプレートファイルの内容が
 仕様ドキュメントのコードブロックと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -105,9 +106,9 @@ class TestGoEntityContent:
     """テンプレート仕様-サーバー.md: entity.go.tera の内容検証。"""
 
     def setup_method(self) -> None:
-        self.content = (
-            SERVER_GO / "internal" / "domain" / "model" / "entity.go.tera"
-        ).read_text(encoding="utf-8")
+        self.content = (SERVER_GO / "internal" / "domain" / "model" / "entity.go.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_package_model(self) -> None:
         assert "package model" in self.content
@@ -157,9 +158,9 @@ class TestGoUsecaseContent:
     """テンプレート仕様-サーバー.md: usecase.go.tera の内容検証。"""
 
     def setup_method(self) -> None:
-        self.content = (
-            SERVER_GO / "internal" / "usecase" / "usecase.go.tera"
-        ).read_text(encoding="utf-8")
+        self.content = (SERVER_GO / "internal" / "usecase" / "usecase.go.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_package_usecase(self) -> None:
         assert "package usecase" in self.content
@@ -246,9 +247,9 @@ class TestGoDbContent:
     """テンプレート仕様-サーバー.md: db.go.tera の内容検証。"""
 
     def setup_method(self) -> None:
-        self.content = (
-            SERVER_GO / "internal" / "infra" / "persistence" / "db.go.tera"
-        ).read_text(encoding="utf-8")
+        self.content = (SERVER_GO / "internal" / "infra" / "persistence" / "db.go.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_database_conditional(self) -> None:
         assert "{% if has_database %}" in self.content
@@ -271,9 +272,9 @@ class TestGoKafkaContent:
     """テンプレート仕様-サーバー.md: kafka.go.tera の内容検証。"""
 
     def setup_method(self) -> None:
-        self.content = (
-            SERVER_GO / "internal" / "infra" / "messaging" / "kafka.go.tera"
-        ).read_text(encoding="utf-8")
+        self.content = (SERVER_GO / "internal" / "infra" / "messaging" / "kafka.go.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_kafka_conditional(self) -> None:
         assert "{% if has_kafka %}" in self.content
@@ -297,9 +298,9 @@ class TestGoConfigContent:
     """テンプレート仕様-サーバー.md: config.go.tera の内容検証。"""
 
     def setup_method(self) -> None:
-        self.content = (
-            SERVER_GO / "internal" / "infra" / "config" / "config.go.tera"
-        ).read_text(encoding="utf-8")
+        self.content = (SERVER_GO / "internal" / "infra" / "config" / "config.go.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_config_struct(self) -> None:
         assert "Config struct" in self.content
@@ -444,7 +445,9 @@ class TestRustDomainContent:
         assert "Deserialize" in content
 
     def test_repository_trait(self) -> None:
-        content = (SERVER_RUST / "src" / "domain" / "repository.rs.tera").read_text(encoding="utf-8")
+        content = (SERVER_RUST / "src" / "domain" / "repository.rs.tera").read_text(
+            encoding="utf-8"
+        )
         assert "{{ service_name_pascal }}Repository" in content
         assert "async_trait" in content
         assert "mockall" in content
@@ -459,18 +462,24 @@ class TestRustHandlerContent:
     """テンプレート仕様-サーバー.md: Rust handler テンプレートの内容検証。"""
 
     def test_rest_handler(self) -> None:
-        content = (SERVER_RUST / "src" / "adapter" / "handler" / "rest.rs.tera").read_text(encoding="utf-8")
+        content = (SERVER_RUST / "src" / "adapter" / "handler" / "rest.rs.tera").read_text(
+            encoding="utf-8"
+        )
         assert '{% if api_styles is containing("rest") %}' in content
         assert "AppHandler" in content
         assert "ErrorResponse" in content
 
     def test_grpc_handler(self) -> None:
-        content = (SERVER_RUST / "src" / "adapter" / "handler" / "grpc.rs.tera").read_text(encoding="utf-8")
+        content = (SERVER_RUST / "src" / "adapter" / "handler" / "grpc.rs.tera").read_text(
+            encoding="utf-8"
+        )
         assert '{% if api_styles is containing("grpc") %}' in content
         assert "tonic" in content
 
     def test_graphql_handler(self) -> None:
-        content = (SERVER_RUST / "src" / "adapter" / "handler" / "graphql.rs.tera").read_text(encoding="utf-8")
+        content = (SERVER_RUST / "src" / "adapter" / "handler" / "graphql.rs.tera").read_text(
+            encoding="utf-8"
+        )
         assert '{% if api_styles is containing("graphql") %}' in content
         assert "async_graphql" in content
         assert "QueryRoot" in content
@@ -480,7 +489,9 @@ class TestRustInfraContent:
     """テンプレート仕様-サーバー.md: Rust infra テンプレートの内容検証。"""
 
     def test_persistence(self) -> None:
-        content = (SERVER_RUST / "src" / "infra" / "persistence.rs.tera").read_text(encoding="utf-8")
+        content = (SERVER_RUST / "src" / "infra" / "persistence.rs.tera").read_text(
+            encoding="utf-8"
+        )
         assert "{% if has_database %}" in content
         assert "sqlx" in content
         assert "DbPool" in content
@@ -526,7 +537,9 @@ class TestGoOpenAPIContent:
     """テンプレート仕様-サーバー.md: openapi.yaml.tera の内容検証。"""
 
     def setup_method(self) -> None:
-        self.content = (SERVER_GO / "api" / "openapi" / "openapi.yaml.tera").read_text(encoding="utf-8")
+        self.content = (SERVER_GO / "api" / "openapi" / "openapi.yaml.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_rest_conditional(self) -> None:
         assert '{% if api_styles is containing("rest") %}' in self.content
@@ -545,7 +558,9 @@ class TestGoProtoContent:
     """テンプレート仕様-サーバー.md: service.proto.tera の内容検証。"""
 
     def setup_method(self) -> None:
-        self.content = (SERVER_GO / "api" / "proto" / "service.proto.tera").read_text(encoding="utf-8")
+        self.content = (SERVER_GO / "api" / "proto" / "service.proto.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_grpc_conditional(self) -> None:
         assert '{% if api_styles is containing("grpc") %}' in self.content
@@ -610,7 +625,9 @@ class TestGoSchemaGraphqlContent:
     """テンプレート仕様-サーバー.md: schema.graphql.tera の内容検証。"""
 
     def setup_method(self) -> None:
-        self.content = (SERVER_GO / "api" / "graphql" / "schema.graphql.tera").read_text(encoding="utf-8")
+        self.content = (SERVER_GO / "api" / "graphql" / "schema.graphql.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_graphql_conditional(self) -> None:
         assert '{% if api_styles is containing("graphql") %}' in self.content
@@ -749,9 +766,9 @@ class TestGoUsecaseTestContent:
     """テンプレート仕様-サーバー.md: usecase_test.go.tera の内容検証。"""
 
     def setup_method(self) -> None:
-        self.content = (
-            SERVER_GO / "internal" / "usecase" / "usecase_test.go.tera"
-        ).read_text(encoding="utf-8")
+        self.content = (SERVER_GO / "internal" / "usecase" / "usecase_test.go.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_package_usecase(self) -> None:
         assert "package usecase" in self.content
@@ -820,7 +837,9 @@ class TestRustIntegrationTestContent:
     """テンプレート仕様-サーバー.md: Rust tests/integration_test.rs.tera の内容検証。"""
 
     def setup_method(self) -> None:
-        self.content = (SERVER_RUST / "tests" / "integration_test.rs.tera").read_text(encoding="utf-8")
+        self.content = (SERVER_RUST / "tests" / "integration_test.rs.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_rest_test(self) -> None:
         assert '{% if api_styles is containing("rest") %}' in self.content
@@ -960,7 +979,9 @@ class TestRustPersistenceDetailContent:
     """テンプレート仕様-サーバー.md: Rust persistence.rs.tera の内容詳細検証。"""
 
     def setup_method(self) -> None:
-        self.content = (SERVER_RUST / "src" / "infra" / "persistence.rs.tera").read_text(encoding="utf-8")
+        self.content = (SERVER_RUST / "src" / "infra" / "persistence.rs.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_find_by_id_function(self) -> None:
         """テンプレート仕様-サーバー.md: find_by_id 関数シグネチャ。"""
@@ -995,7 +1016,9 @@ class TestRustMessagingDetailContent:
     """テンプレート仕様-サーバー.md: Rust messaging.rs.tera の内容詳細検証。"""
 
     def setup_method(self) -> None:
-        self.content = (SERVER_RUST / "src" / "infra" / "messaging.rs.tera").read_text(encoding="utf-8")
+        self.content = (SERVER_RUST / "src" / "infra" / "messaging.rs.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_kafka_consumer_struct(self) -> None:
         """テンプレート仕様-サーバー.md: KafkaConsumer 構造体が定義されている。"""
@@ -1021,9 +1044,9 @@ class TestGoUsecaseCreateMethod:
     """テンプレート仕様-サーバー.md: Go Usecase の Create メソッドテスト。"""
 
     def setup_method(self) -> None:
-        self.content = (
-            SERVER_GO / "internal" / "usecase" / "usecase.go.tera"
-        ).read_text(encoding="utf-8")
+        self.content = (SERVER_GO / "internal" / "usecase" / "usecase.go.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_create_method_exists(self) -> None:
         """テンプレート仕様-サーバー.md: Usecase に Create メソッドが定義されている。"""
@@ -1038,9 +1061,9 @@ class TestGoConfigRedisConditional:
     """テンプレート仕様-サーバー.md: has_redis による生成分岐の検証。"""
 
     def setup_method(self) -> None:
-        self.content = (
-            SERVER_GO / "internal" / "infra" / "config" / "config.go.tera"
-        ).read_text(encoding="utf-8")
+        self.content = (SERVER_GO / "internal" / "infra" / "config" / "config.go.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_redis_conditional(self) -> None:
         """テンプレート仕様-サーバー.md: config.go.tera に has_redis の条件分岐がある。"""

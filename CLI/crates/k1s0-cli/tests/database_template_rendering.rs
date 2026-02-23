@@ -23,8 +23,7 @@ fn render_database(db_type: &str) -> (TempDir, Vec<String>) {
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new("main-db", "system", db_type, "database")
-        .build();
+    let ctx = TemplateContextBuilder::new("main-db", "system", db_type, "database").build();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
@@ -85,7 +84,9 @@ fn test_database_postgresql_down_migration_content() {
     let (tmp, _) = render_database("postgresql");
     let content = read_output(&tmp, "001_init.down.sql");
 
-    assert!(content.contains("DROP TRIGGER IF EXISTS trigger_update_updated_at ON main_db.examples"));
+    assert!(
+        content.contains("DROP TRIGGER IF EXISTS trigger_update_updated_at ON main_db.examples")
+    );
     assert!(content.contains("DROP FUNCTION IF EXISTS main_db.update_updated_at()"));
     assert!(content.contains("DROP TABLE IF EXISTS main_db.examples"));
     assert!(content.contains("DROP SCHEMA IF EXISTS main_db"));

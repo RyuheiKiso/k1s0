@@ -3,6 +3,7 @@
 Keycloak Realm 設定と Vault ポリシーが
 設計ドキュメントと一致するかを検証する。
 """
+
 import json
 from pathlib import Path
 
@@ -271,7 +272,9 @@ class TestKeycloakLDAPAttributeMapping:
 
     def test_ldap_bind_dn(self) -> None:
         """認証認可設計.md: Bind DN が cn=keycloak,ou=service-accounts,dc=example,dc=com。"""
-        assert self.ldap["config"]["bindDn"] == ["cn=keycloak,ou=service-accounts,dc=example,dc=com"]
+        assert self.ldap["config"]["bindDn"] == [
+            "cn=keycloak,ou=service-accounts,dc=example,dc=com"
+        ]
 
 
 class TestKeycloakLDAPSync:
@@ -326,7 +329,17 @@ class TestJWTKeyRotation:
 
     def test_jwks_cache_ttl_in_config_template(self) -> None:
         """認証認可設計.md: JWKS キャッシュ TTL 10分が config テンプレートに設定。"""
-        go_config = ROOT / "CLI" / "crates" / "k1s0-cli" / "templates" / "server" / "go" / "config" / "config.yaml.tera"
+        go_config = (
+            ROOT
+            / "CLI"
+            / "crates"
+            / "k1s0-cli"
+            / "templates"
+            / "server"
+            / "go"
+            / "config"
+            / "config.yaml.tera"
+        )
         content = go_config.read_text(encoding="utf-8")
         assert "10m" in content
 
@@ -393,7 +406,7 @@ class TestVaultAuditLog:
         """認証認可設計.md: audit type = file。"""
         path = ROOT / "infra" / "terraform" / "modules" / "vault" / "main.tf"
         content = path.read_text(encoding="utf-8")
-        assert 'vault_audit' in content
+        assert "vault_audit" in content
         assert '"file"' in content
 
     def test_audit_log_raw_false(self) -> None:

@@ -23,14 +23,7 @@ fn template_dir() -> std::path::PathBuf {
 /// templates/docker-compose/ を直接参照する。
 /// テンプレートディレクトリが未作成の場合は None を返す。
 fn render_docker_compose() -> Option<(TempDir, Vec<String>)> {
-    render_docker_compose_with(
-        "go",
-        8082,
-        true,
-        "postgresql",
-        true,
-        true,
-    )
+    render_docker_compose_with("go", 8082, true, "postgresql", true, true)
 }
 
 /// docker-compose テンプレートをカスタムパラメータでレンダリングする。
@@ -54,10 +47,9 @@ fn render_docker_compose_with(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder =
-        TemplateContextBuilder::new("order-api", "service", "go", "docker-compose")
-            .server_language(server_lang)
-            .server_port(port);
+    let mut builder = TemplateContextBuilder::new("order-api", "service", "go", "docker-compose")
+        .server_language(server_lang)
+        .server_port(port);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -104,24 +96,21 @@ fn test_docker_compose_file_list() {
 
     assert!(
         names.iter().any(|n| n.contains("docker-compose.yaml")),
-        "docker-compose.yaml missing. Generated: {:?}",
-        names
+        "docker-compose.yaml missing. Generated: {names:?}"
     );
     assert!(
         names
             .iter()
             .any(|n| n.contains("docker-compose.override.yaml.example")),
-        "docker-compose.override.yaml.example missing. Generated: {:?}",
-        names
+        "docker-compose.override.yaml.example missing. Generated: {names:?}"
     );
-    assert_eq!(names.len(), 2, "Expected exactly 2 files, got: {:?}", names);
+    assert_eq!(names.len(), 2, "Expected exactly 2 files, got: {names:?}");
 }
 
-/// has_database=true, database_type=postgresql で postgres サービスが含まれる
+/// `has_database=true`, `database_type=postgresql` で postgres サービスが含まれる
 #[test]
 fn test_docker_compose_postgresql_service() {
-    let Some((tmp, _)) =
-        render_docker_compose_with("go", 8082, true, "postgresql", false, false)
+    let Some((tmp, _)) = render_docker_compose_with("go", 8082, true, "postgresql", false, false)
     else {
         eprintln!("SKIP: docker-compose テンプレートディレクトリが未作成");
         return;
@@ -142,12 +131,10 @@ fn test_docker_compose_postgresql_service() {
     );
 }
 
-/// has_database=true, database_type=mysql で mysql サービスが含まれる
+/// `has_database=true`, `database_type=mysql` で mysql サービスが含まれる
 #[test]
 fn test_docker_compose_mysql_service() {
-    let Some((tmp, _)) =
-        render_docker_compose_with("go", 8082, true, "mysql", false, false)
-    else {
+    let Some((tmp, _)) = render_docker_compose_with("go", 8082, true, "mysql", false, false) else {
         eprintln!("SKIP: docker-compose テンプレートディレクトリが未作成");
         return;
     };
@@ -167,12 +154,10 @@ fn test_docker_compose_mysql_service() {
     );
 }
 
-/// has_redis=true で redis サービスが含まれる
+/// `has_redis=true` で redis サービスが含まれる
 #[test]
 fn test_docker_compose_redis_service() {
-    let Some((tmp, _)) =
-        render_docker_compose_with("go", 8082, false, "", false, true)
-    else {
+    let Some((tmp, _)) = render_docker_compose_with("go", 8082, false, "", false, true) else {
         eprintln!("SKIP: docker-compose テンプレートディレクトリが未作成");
         return;
     };
@@ -188,12 +173,10 @@ fn test_docker_compose_redis_service() {
     );
 }
 
-/// has_kafka=true で kafka, kafka-ui, schema-registry が含まれる
+/// `has_kafka=true` で kafka, kafka-ui, schema-registry が含まれる
 #[test]
 fn test_docker_compose_kafka_services() {
-    let Some((tmp, _)) =
-        render_docker_compose_with("go", 8082, false, "", true, false)
-    else {
+    let Some((tmp, _)) = render_docker_compose_with("go", 8082, false, "", true, false) else {
         eprintln!("SKIP: docker-compose テンプレートディレクトリが未作成");
         return;
     };
@@ -213,12 +196,10 @@ fn test_docker_compose_kafka_services() {
     );
 }
 
-/// has_kafka=false で kafka が含まれない
+/// `has_kafka=false` で kafka が含まれない
 #[test]
 fn test_docker_compose_no_kafka() {
-    let Some((tmp, _)) =
-        render_docker_compose_with("go", 8082, false, "", false, false)
-    else {
+    let Some((tmp, _)) = render_docker_compose_with("go", 8082, false, "", false, false) else {
         eprintln!("SKIP: docker-compose テンプレートディレクトリが未作成");
         return;
     };
@@ -241,9 +222,7 @@ fn test_docker_compose_no_kafka() {
 /// keycloak は常に含まれる
 #[test]
 fn test_docker_compose_keycloak_always() {
-    let Some((tmp, _)) =
-        render_docker_compose_with("go", 8082, false, "", false, false)
-    else {
+    let Some((tmp, _)) = render_docker_compose_with("go", 8082, false, "", false, false) else {
         eprintln!("SKIP: docker-compose テンプレートディレクトリが未作成");
         return;
     };
@@ -262,9 +241,7 @@ fn test_docker_compose_keycloak_always() {
 /// jaeger, prometheus, grafana, loki は常に含まれる
 #[test]
 fn test_docker_compose_observability_always() {
-    let Some((tmp, _)) =
-        render_docker_compose_with("go", 8082, false, "", false, false)
-    else {
+    let Some((tmp, _)) = render_docker_compose_with("go", 8082, false, "", false, false) else {
         eprintln!("SKIP: docker-compose テンプレートディレクトリが未作成");
         return;
     };
@@ -282,17 +259,13 @@ fn test_docker_compose_observability_always() {
         content.contains("grafana:"),
         "Grafana サービスは常に含まれるべき"
     );
-    assert!(
-        content.contains("loki:"),
-        "Loki サービスは常に含まれるべき"
-    );
+    assert!(content.contains("loki:"), "Loki サービスは常に含まれるべき");
 }
 
-/// server_language=go でビルドコンテキストが Go パス
+/// `server_language=go` でビルドコンテキストが Go パス
 #[test]
 fn test_docker_compose_override_go_context() {
-    let Some((tmp, _)) =
-        render_docker_compose_with("go", 8082, true, "postgresql", false, false)
+    let Some((tmp, _)) = render_docker_compose_with("go", 8082, true, "postgresql", false, false)
     else {
         eprintln!("SKIP: docker-compose テンプレートディレクトリが未作成");
         return;
@@ -301,16 +274,14 @@ fn test_docker_compose_override_go_context() {
     let content = read_output(&tmp, "docker-compose.override.yaml.example");
     assert!(
         content.contains("./regions/service/server/go/order-api"),
-        "Go ビルドコンテキストが含まれるべき\n--- content ---\n{}",
-        content
+        "Go ビルドコンテキストが含まれるべき\n--- content ---\n{content}"
     );
 }
 
-/// server_language=rust でビルドコンテキストが Rust パス
+/// `server_language=rust` でビルドコンテキストが Rust パス
 #[test]
 fn test_docker_compose_override_rust_context() {
-    let Some((tmp, _)) =
-        render_docker_compose_with("rust", 8082, true, "postgresql", false, false)
+    let Some((tmp, _)) = render_docker_compose_with("rust", 8082, true, "postgresql", false, false)
     else {
         eprintln!("SKIP: docker-compose テンプレートディレクトリが未作成");
         return;
@@ -319,17 +290,14 @@ fn test_docker_compose_override_rust_context() {
     let content = read_output(&tmp, "docker-compose.override.yaml.example");
     assert!(
         content.contains("./regions/service/server/rust/order-api"),
-        "Rust ビルドコンテキストが含まれるべき\n--- content ---\n{}",
-        content
+        "Rust ビルドコンテキストが含まれるべき\n--- content ---\n{content}"
     );
 }
 
-/// server_port=8082 でポートマッピングに反映
+/// `server_port=8082` でポートマッピングに反映
 #[test]
 fn test_docker_compose_override_port() {
-    let Some((tmp, _)) =
-        render_docker_compose_with("go", 8082, false, "", false, false)
-    else {
+    let Some((tmp, _)) = render_docker_compose_with("go", 8082, false, "", false, false) else {
         eprintln!("SKIP: docker-compose テンプレートディレクトリが未作成");
         return;
     };
@@ -337,8 +305,7 @@ fn test_docker_compose_override_port() {
     let content = read_output(&tmp, "docker-compose.override.yaml.example");
     assert!(
         content.contains("\"8082:8080\""),
-        "ポートマッピング 8082:8080 が含まれるべき\n--- content ---\n{}",
-        content
+        "ポートマッピング 8082:8080 が含まれるべき\n--- content ---\n{content}"
     );
 }
 
@@ -352,15 +319,7 @@ fn test_docker_compose_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(
-            !content.contains("{%"),
-            "Tera syntax {{%% found in {}",
-            name
-        );
-        assert!(
-            !content.contains("{#"),
-            "Tera comment {{# found in {}",
-            name
-        );
+        assert!(!content.contains("{%"), "Tera syntax {{%% found in {name}");
+        assert!(!content.contains("{#"), "Tera comment {{# found in {name}");
     }
 }

@@ -5,6 +5,7 @@
 
 前提: docker compose --profile infra --profile system up -d
 """
+
 import pytest
 import requests
 
@@ -59,9 +60,7 @@ class TestCrossServiceHealth:
                 if resp.status_code != 200:
                     continue
                 has_content = (
-                    "http_requests" in resp.text
-                    or "process_" in resp.text
-                    or len(resp.text) > 0
+                    "http_requests" in resp.text or "process_" in resp.text or len(resp.text) > 0
                 )
                 assert has_content, f"{name}: /metrics returned empty or invalid content"
             except requests.ConnectionError:

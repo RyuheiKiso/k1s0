@@ -62,13 +62,11 @@ fn test_opentelemetry_file_list() {
 
     assert!(
         names.iter().any(|n| n.contains("collector-config.yaml")),
-        "collector-config.yaml missing. Generated: {:?}",
-        names
+        "collector-config.yaml missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("instrumentation.yaml")),
-        "instrumentation.yaml missing. Generated: {:?}",
-        names
+        "instrumentation.yaml missing. Generated: {names:?}"
     );
 }
 
@@ -86,8 +84,7 @@ fn test_collector_has_service_name() {
     let content = read_output(&tmp, "collector-config.yaml");
     assert!(
         content.contains("order-api"),
-        "Collector config should contain service name\n--- collector-config.yaml ---\n{}",
-        content
+        "Collector config should contain service name\n--- collector-config.yaml ---\n{content}"
     );
 }
 
@@ -101,8 +98,7 @@ fn test_collector_has_namespace() {
     let content = read_output(&tmp, "collector-config.yaml");
     assert!(
         content.contains("k1s0-service"),
-        "Collector config should contain namespace\n--- collector-config.yaml ---\n{}",
-        content
+        "Collector config should contain namespace\n--- collector-config.yaml ---\n{content}"
     );
 }
 
@@ -116,8 +112,7 @@ fn test_collector_system_batch_timeout() {
     let content = read_output(&tmp, "collector-config.yaml");
     assert!(
         content.contains("timeout: 5s"),
-        "System tier should have batch timeout 5s\n--- collector-config.yaml ---\n{}",
-        content
+        "System tier should have batch timeout 5s\n--- collector-config.yaml ---\n{content}"
     );
 }
 
@@ -131,8 +126,7 @@ fn test_collector_service_batch_timeout() {
     let content = read_output(&tmp, "collector-config.yaml");
     assert!(
         content.contains("timeout: 10s"),
-        "Service tier should have batch timeout 10s\n--- collector-config.yaml ---\n{}",
-        content
+        "Service tier should have batch timeout 10s\n--- collector-config.yaml ---\n{content}"
     );
 }
 
@@ -150,8 +144,7 @@ fn test_instrumentation_system_sampler() {
     let content = read_output(&tmp, "instrumentation.yaml");
     assert!(
         content.contains("\"1.0\""),
-        "System tier should have sampler ratio 1.0\n--- instrumentation.yaml ---\n{}",
-        content
+        "System tier should have sampler ratio 1.0\n--- instrumentation.yaml ---\n{content}"
     );
 }
 
@@ -165,8 +158,7 @@ fn test_instrumentation_business_sampler() {
     let content = read_output(&tmp, "instrumentation.yaml");
     assert!(
         content.contains("\"0.5\""),
-        "Business tier should have sampler ratio 0.5\n--- instrumentation.yaml ---\n{}",
-        content
+        "Business tier should have sampler ratio 0.5\n--- instrumentation.yaml ---\n{content}"
     );
 }
 
@@ -180,8 +172,7 @@ fn test_instrumentation_service_sampler() {
     let content = read_output(&tmp, "instrumentation.yaml");
     assert!(
         content.contains("\"0.1\""),
-        "Service tier should have sampler ratio 0.1\n--- instrumentation.yaml ---\n{}",
-        content
+        "Service tier should have sampler ratio 0.1\n--- instrumentation.yaml ---\n{content}"
     );
 }
 
@@ -198,7 +189,7 @@ fn test_opentelemetry_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(!content.contains("{%"), "Tera block syntax found in {}", name);
-        assert!(!content.contains("{#"), "Tera comment found in {}", name);
+        assert!(!content.contains("{%"), "Tera block syntax found in {name}");
+        assert!(!content.contains("{#"), "Tera comment found in {name}");
     }
 }

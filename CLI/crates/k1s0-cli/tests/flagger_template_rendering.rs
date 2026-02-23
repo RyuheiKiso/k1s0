@@ -58,13 +58,11 @@ fn test_flagger_file_list() {
 
     assert!(
         names.iter().any(|n| n.contains("canary.yaml")),
-        "canary.yaml missing. Generated: {:?}",
-        names
+        "canary.yaml missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("metric-template.yaml")),
-        "metric-template.yaml missing. Generated: {:?}",
-        names
+        "metric-template.yaml missing. Generated: {names:?}"
     );
 }
 
@@ -78,8 +76,7 @@ fn test_canary_has_service_name() {
     let content = read_output(&tmp, "canary.yaml");
     assert!(
         content.contains("order-api"),
-        "Canary should contain service name\n--- canary.yaml ---\n{}",
-        content
+        "Canary should contain service name\n--- canary.yaml ---\n{content}"
     );
 }
 
@@ -93,8 +90,7 @@ fn test_canary_has_namespace() {
     let content = read_output(&tmp, "canary.yaml");
     assert!(
         content.contains("k1s0-service"),
-        "Canary should contain namespace\n--- canary.yaml ---\n{}",
-        content
+        "Canary should contain namespace\n--- canary.yaml ---\n{content}"
     );
 }
 
@@ -108,8 +104,7 @@ fn test_canary_has_server_port() {
     let content = read_output(&tmp, "canary.yaml");
     assert!(
         content.contains("3000"),
-        "Canary should contain server_port\n--- canary.yaml ---\n{}",
-        content
+        "Canary should contain server_port\n--- canary.yaml ---\n{content}"
     );
 }
 
@@ -123,8 +118,7 @@ fn test_canary_system_max_weight() {
     let content = read_output(&tmp, "canary.yaml");
     assert!(
         content.contains("maxWeight: 30"),
-        "System tier should have maxWeight 30\n--- canary.yaml ---\n{}",
-        content
+        "System tier should have maxWeight 30\n--- canary.yaml ---\n{content}"
     );
 }
 
@@ -138,8 +132,7 @@ fn test_canary_business_max_weight() {
     let content = read_output(&tmp, "canary.yaml");
     assert!(
         content.contains("maxWeight: 50"),
-        "Business tier should have maxWeight 50\n--- canary.yaml ---\n{}",
-        content
+        "Business tier should have maxWeight 50\n--- canary.yaml ---\n{content}"
     );
 }
 
@@ -153,8 +146,7 @@ fn test_canary_service_max_weight() {
     let content = read_output(&tmp, "canary.yaml");
     assert!(
         content.contains("maxWeight: 70"),
-        "Service tier should have maxWeight 70\n--- canary.yaml ---\n{}",
-        content
+        "Service tier should have maxWeight 70\n--- canary.yaml ---\n{content}"
     );
 }
 
@@ -168,8 +160,7 @@ fn test_canary_system_duration_threshold() {
     let content = read_output(&tmp, "canary.yaml");
     assert!(
         content.contains("max: 500"),
-        "System tier should have duration threshold 500ms\n--- canary.yaml ---\n{}",
-        content
+        "System tier should have duration threshold 500ms\n--- canary.yaml ---\n{content}"
     );
 }
 
@@ -183,8 +174,7 @@ fn test_metric_template_has_service_name() {
     let content = read_output(&tmp, "metric-template.yaml");
     assert!(
         content.contains("order-api"),
-        "MetricTemplate should contain service name\n--- metric-template.yaml ---\n{}",
-        content
+        "MetricTemplate should contain service name\n--- metric-template.yaml ---\n{content}"
     );
 }
 
@@ -197,7 +187,7 @@ fn test_flagger_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(!content.contains("{%"), "Tera block syntax found in {}", name);
-        assert!(!content.contains("{#"), "Tera comment found in {}", name);
+        assert!(!content.contains("{%"), "Tera block syntax found in {name}");
+        assert!(!content.contains("{#"), "Tera comment found in {name}");
     }
 }

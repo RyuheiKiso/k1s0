@@ -3,10 +3,10 @@
 APIゲートウェイ設計.md, サービスメッシュ設計.md, 可観測性設計.md,
 メッセージング設計.md, Dockerイメージ戦略.md の仕様と実装の一致を検証する。
 """
+
 from pathlib import Path
 
 import pytest
-import yaml  # type: ignore[import-untyped]
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -154,10 +154,10 @@ class TestInfraNetworkDesign:
     def test_network_4_cidrs(self) -> None:
         """インフラ設計.md: 4 つの CIDR セグメントが記載されていること。"""
         doc = (ROOT / "docs" / "インフラ設計.md").read_text(encoding="utf-8")
-        assert "10.244.0.0/16" in doc     # Pod ネットワーク
-        assert "10.96.0.0/12" in doc      # Service ネットワーク
-        assert "10.0.100.0/24" in doc     # MetalLB プール
-        assert "10.0.200.0/24" in doc     # 管理ネットワーク
+        assert "10.244.0.0/16" in doc  # Pod ネットワーク
+        assert "10.96.0.0/12" in doc  # Service ネットワーク
+        assert "10.0.100.0/24" in doc  # MetalLB プール
+        assert "10.0.200.0/24" in doc  # 管理ネットワーク
 
 
 class TestInfraStorageCeph:
@@ -190,7 +190,16 @@ class TestInfraK8sClusterComponents:
 
     @pytest.mark.parametrize(
         "component",
-        ["kubeadm", "Calico", "Nginx Ingress", "MetalLB", "Ceph CSI", "CoreDNS", "cert-manager", "Flagger"],
+        [
+            "kubeadm",
+            "Calico",
+            "Nginx Ingress",
+            "MetalLB",
+            "Ceph CSI",
+            "CoreDNS",
+            "cert-manager",
+            "Flagger",
+        ],
     )
     def test_cluster_component_documented(self, component: str) -> None:
         """インフラ設計.md: K8s クラスタ構築コンポーネントが記載されていること。"""

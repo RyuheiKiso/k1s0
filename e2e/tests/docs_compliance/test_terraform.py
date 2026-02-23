@@ -2,6 +2,7 @@
 
 infra/terraform/ の構成がドキュメントと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -88,7 +89,9 @@ class TestTerraformBackend:
     def test_backend_uses_consul(self, env: str) -> None:
         backend = TF / "environments" / env / "backend.tf"
         content = backend.read_text(encoding="utf-8")
-        assert 'backend "consul"' in content, f"{env}/backend.tf が Consul バックエンドを使用していません"
+        assert 'backend "consul"' in content, (
+            f"{env}/backend.tf が Consul バックエンドを使用していません"
+        )
 
     def test_dev_backend_path(self) -> None:
         content = (TF / "environments" / "dev" / "backend.tf").read_text(encoding="utf-8")
@@ -306,7 +309,9 @@ class TestTerraformAllowedFromTiers:
     """terraform設計.md: allowed_from_tiers 値テスト。"""
 
     def setup_method(self) -> None:
-        self.content = (TF / "environments" / "dev" / "terraform.tfvars").read_text(encoding="utf-8")
+        self.content = (TF / "environments" / "dev" / "terraform.tfvars").read_text(
+            encoding="utf-8"
+        )
 
     def test_system_allowed_from_all_tiers(self) -> None:
         """terraform設計.md: k1s0-system は全 Tier から許可。"""
@@ -328,7 +333,9 @@ class TestTerraformKubernetesStorageDetails:
     """terraform設計.md: kubernetes-storage モジュール詳細テスト。"""
 
     def setup_method(self) -> None:
-        self.content = (TF / "modules" / "kubernetes-storage" / "main.tf").read_text(encoding="utf-8")
+        self.content = (TF / "modules" / "kubernetes-storage" / "main.tf").read_text(
+            encoding="utf-8"
+        )
 
     def test_reclaim_policy_variable(self) -> None:
         """terraform設計.md: reclaim_policy が変数化されていること（dev: Delete, prod: Retain）。"""
@@ -385,7 +392,7 @@ class TestTerraformBackupCronJobSchedule:
     def test_backup_schedule(self) -> None:
         """terraform設計.md: バックアップ CronJob のスケジュールが '0 2 * * *' であること。"""
         content = (TF / "modules" / "database" / "backup.tf").read_text(encoding="utf-8")
-        assert '0 2 * * *' in content
+        assert "0 2 * * *" in content
 
     def test_backup_pg_dump(self) -> None:
         """terraform設計.md: pg_dump コマンドが含まれること。"""

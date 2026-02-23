@@ -1,4 +1,5 @@
 """gRPC saga-service E2E テスト。"""
+
 import pytest
 
 try:

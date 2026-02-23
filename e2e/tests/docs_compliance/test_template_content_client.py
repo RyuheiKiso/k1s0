@@ -3,6 +3,7 @@
 CLI/templates/client/ のテンプレートファイルの内容が
 仕様ドキュメントのコードブロックと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -30,7 +31,17 @@ class TestReactPackageJsonContent:
 
     @pytest.mark.parametrize(
         "script",
-        ["dev", "build", "test", "test:watch", "test:coverage", "lint", "lint:fix", "format", "format:check"],
+        [
+            "dev",
+            "build",
+            "test",
+            "test:watch",
+            "test:coverage",
+            "lint",
+            "lint:fix",
+            "format",
+            "format:check",
+        ],
     )
     def test_script_defined(self, script: str) -> None:
         assert f'"{script}"' in self.content
@@ -216,7 +227,9 @@ class TestReactMswSetupContent:
     """テンプレート仕様-React.md: msw-setup.ts.tera の内容検証。"""
 
     def setup_method(self) -> None:
-        self.content = (REACT / "tests" / "testutil" / "msw-setup.ts.tera").read_text(encoding="utf-8")
+        self.content = (REACT / "tests" / "testutil" / "msw-setup.ts.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_msw_import(self) -> None:
         assert "setupServer" in self.content
@@ -357,7 +370,9 @@ class TestFlutterDioClientContent:
     """テンプレート仕様-Flutter.md: dio_client.dart.tera の内容検証。"""
 
     def setup_method(self) -> None:
-        self.content = (FLUTTER / "lib" / "utils" / "dio_client.dart.tera").read_text(encoding="utf-8")
+        self.content = (FLUTTER / "lib" / "utils" / "dio_client.dart.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_dio_import(self) -> None:
         assert "package:dio/dio.dart" in self.content
@@ -630,16 +645,18 @@ class TestFlutterNginxConfDetailContent:
 
 class TestFlutterProviderTemplateFiles:
     """Flutter Riverpod Provider テンプレートの存在検証。"""
+
     def test_provider_file_exists(self) -> None:
         assert (FLUTTER / "lib" / "providers" / "service_provider.dart.tera").exists()
 
 
 class TestFlutterProviderContent:
     """Flutter Riverpod Provider テンプレートの内容検証。"""
+
     def setup_method(self) -> None:
-        self.content = (
-            FLUTTER / "lib" / "providers" / "service_provider.dart.tera"
-        ).read_text(encoding="utf-8")
+        self.content = (FLUTTER / "lib" / "providers" / "service_provider.dart.tera").read_text(
+            encoding="utf-8"
+        )
 
     def test_async_notifier(self) -> None:
         assert "AsyncNotifier" in self.content
@@ -657,4 +674,7 @@ class TestFlutterProviderContent:
         assert "flutter_riverpod" in self.content
 
     def test_service_name_variable(self) -> None:
-        assert "{{ service_name_pascal }}" in self.content or "{{ service_name_snake }}" in self.content
+        assert (
+            "{{ service_name_pascal }}" in self.content
+            or "{{ service_name_snake }}" in self.content
+        )

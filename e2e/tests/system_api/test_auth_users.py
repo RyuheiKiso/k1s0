@@ -1,4 +1,5 @@
 """Auth サービス ユーザー管理 E2E テスト。"""
+
 import pytest
 import requests
 

@@ -1,4 +1,5 @@
 """Library Chart ヘルパーテンプレートの存在検証。"""
+
 from pathlib import Path
 
 import pytest

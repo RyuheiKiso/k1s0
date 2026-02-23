@@ -1,4 +1,5 @@
 import Testing
+
 @testable import K1s0Telemetry
 
 @Suite("Telemetry Tests")

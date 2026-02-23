@@ -23,7 +23,7 @@ fn template_dir() -> std::path::PathBuf {
 /// helm テンプレートをレンダリングする。
 ///
 /// helm テンプレートは server と同じコンテキストを使用するが、
-/// kind を "helm" として TemplateEngine に渡す想定。
+/// kind を "helm" として `TemplateEngine` に渡す想定。
 /// 現時点ではテンプレートディレクトリが未作成のため、
 /// テンプレートが存在しない場合は None を返す。
 fn render_helm(
@@ -46,8 +46,8 @@ fn render_helm(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder = TemplateContextBuilder::new("order-api", "service", lang, "helm")
-        .api_style(api_style);
+    let mut builder =
+        TemplateContextBuilder::new("order-api", "service", lang, "helm").api_style(api_style);
 
     if has_database {
         builder = builder.with_database("postgresql");
@@ -78,9 +78,10 @@ fn render_helm(
 
 /// helm テンプレートを複数 API スタイル対応でレンダリングする。
 ///
-/// api_styles に複数の API 方式（例: vec!["rest", "grpc"]）を指定できる。
+/// `api_styles` に複数の API 方式（例: vec!["rest", "grpc"]）を指定できる。
 /// Helm テンプレートは言語サブディレクトリを持たないフラット構造のため、
 /// テンプレートディレクトリは templates/helm/ を直接参照する。
+#[allow(clippy::needless_pass_by_value)]
 fn render_helm_with_styles(
     api_styles: Vec<&str>,
     has_database: bool,
@@ -99,9 +100,12 @@ fn render_helm_with_styles(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let styles: Vec<String> = api_styles.iter().map(|s| s.to_string()).collect();
-    let mut builder = TemplateContextBuilder::new("order-api", "service", "go", "helm")
-        .api_styles(styles);
+    let styles: Vec<String> = api_styles
+        .iter()
+        .map(std::string::ToString::to_string)
+        .collect();
+    let mut builder =
+        TemplateContextBuilder::new("order-api", "service", "go", "helm").api_styles(styles);
 
     if has_database {
         builder = builder.with_database("postgresql");
@@ -147,13 +151,34 @@ fn test_helm_file_list() {
     };
 
     // 全10ファイルの存在確認
-    assert!(names.iter().any(|n| n.contains("Chart.yaml")), "Chart.yaml missing");
-    assert!(names.iter().any(|n| n.contains("values.yaml")), "values.yaml missing");
-    assert!(names.iter().any(|n| n.contains("values-dev.yaml")), "values-dev.yaml missing");
-    assert!(names.iter().any(|n| n.contains("values-prod.yaml")), "values-prod.yaml missing");
-    assert!(names.iter().any(|n| n.contains("deployment.yaml")), "deployment.yaml missing");
-    assert!(names.iter().any(|n| n.contains("service.yaml")), "service.yaml missing");
-    assert!(names.iter().any(|n| n.contains("ingress.yaml")), "ingress.yaml missing");
+    assert!(
+        names.iter().any(|n| n.contains("Chart.yaml")),
+        "Chart.yaml missing"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("values.yaml")),
+        "values.yaml missing"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("values-dev.yaml")),
+        "values-dev.yaml missing"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("values-prod.yaml")),
+        "values-prod.yaml missing"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("deployment.yaml")),
+        "deployment.yaml missing"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("service.yaml")),
+        "service.yaml missing"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("ingress.yaml")),
+        "ingress.yaml missing"
+    );
 }
 
 #[test]
@@ -213,7 +238,10 @@ fn test_helm_grpc_port_in_service() {
     };
 
     let content = read_output(&tmp, "service.yaml");
-    assert!(content.contains("grpc") || content.contains("50051"), "gRPC port missing in service.yaml");
+    assert!(
+        content.contains("grpc") || content.contains("50051"),
+        "gRPC port missing in service.yaml"
+    );
 }
 
 #[test]
@@ -374,8 +402,8 @@ fn test_helm_no_tera_syntax() {
         let content = read_output(&tmp, name);
         // Helm テンプレートの {{ }} は Tera のものではなく、Helm の構文
         // ここでは Tera の {%  %} と {#  #} のみチェック
-        assert!(!content.contains("{%"), "Tera syntax {{%% found in {}", name);
-        assert!(!content.contains("{#"), "Tera comment {{# found in {}", name);
+        assert!(!content.contains("{%"), "Tera syntax {{%% found in {name}");
+        assert!(!content.contains("{#"), "Tera comment {{# found in {name}");
     }
 }
 
@@ -542,28 +570,24 @@ fn test_helm_rest_grpc_both_ports() {
     // container セクションのポート検証
     assert!(
         content.contains("port: 8080"),
-        "REST+gRPC: container.port: 8080 が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
-        content
+        "REST+gRPC: container.port: 8080 が values.yaml に含まれるべき\n--- values.yaml ---\n{content}"
     );
     assert!(
         content.contains("grpcPort: 50051"),
-        "REST+gRPC: container.grpcPort: 50051 が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
-        content
+        "REST+gRPC: container.grpcPort: 50051 が values.yaml に含まれるべき\n--- values.yaml ---\n{content}"
     );
 
     // service セクションのポート検証
     assert!(
         content.contains("port: 80"),
-        "REST+gRPC: service.port: 80 が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
-        content
+        "REST+gRPC: service.port: 80 が values.yaml に含まれるべき\n--- values.yaml ---\n{content}"
     );
 
     // grpcPort: 50051 が2箇所（container + service）に存在することを確認
     let grpc_port_count = content.matches("grpcPort: 50051").count();
     assert_eq!(
         grpc_port_count, 2,
-        "REST+gRPC: grpcPort: 50051 は container と service の2箇所に存在すべき (実際: {})\n--- values.yaml ---\n{}",
-        grpc_port_count, content
+        "REST+gRPC: grpcPort: 50051 は container と service の2箇所に存在すべき (実際: {grpc_port_count})\n--- values.yaml ---\n{content}"
     );
 }
 
@@ -581,27 +605,23 @@ fn test_helm_rest_only_no_grpc_port() {
     // REST のみの場合、grpcPort は null
     assert!(
         content.contains("grpcPort: null"),
-        "REST のみ: grpcPort: null が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
-        content
+        "REST のみ: grpcPort: null が values.yaml に含まれるべき\n--- values.yaml ---\n{content}"
     );
 
     // grpcPort: 50051 は存在しないことを確認
     assert!(
         !content.contains("grpcPort: 50051"),
-        "REST のみ: grpcPort: 50051 は values.yaml に含まれるべきでない\n--- values.yaml ---\n{}",
-        content
+        "REST のみ: grpcPort: 50051 は values.yaml に含まれるべきでない\n--- values.yaml ---\n{content}"
     );
 
     // REST ポートは存在すること
     assert!(
         content.contains("port: 8080"),
-        "REST のみ: container.port: 8080 が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
-        content
+        "REST のみ: container.port: 8080 が values.yaml に含まれるべき\n--- values.yaml ---\n{content}"
     );
     assert!(
         content.contains("port: 80"),
-        "REST のみ: service.port: 80 が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
-        content
+        "REST のみ: service.port: 80 が values.yaml に含まれるべき\n--- values.yaml ---\n{content}"
     );
 }
 
@@ -616,8 +636,7 @@ fn test_helm_grpc_health_check_in_values() {
     let content = read_output(&tmp, "values.yaml");
     assert!(
         content.contains("grpcHealthCheck"),
-        "gRPC 選択時に values.yaml に grpcHealthCheck セクションが含まれるべき\n--- values.yaml ---\n{}",
-        content
+        "gRPC 選択時に values.yaml に grpcHealthCheck セクションが含まれるべき\n--- values.yaml ---\n{content}"
     );
 }
 
@@ -632,8 +651,7 @@ fn test_helm_rest_no_grpc_health_check_in_values() {
     let content = read_output(&tmp, "values.yaml");
     assert!(
         !content.contains("grpcHealthCheck"),
-        "REST のみ選択時に values.yaml に grpcHealthCheck セクションが含まれるべきでない\n--- values.yaml ---\n{}",
-        content
+        "REST のみ選択時に values.yaml に grpcHealthCheck セクションが含まれるべきでない\n--- values.yaml ---\n{content}"
     );
 }
 
@@ -652,8 +670,7 @@ fn test_helm_graphql_values_api_path() {
     let content = read_output(&tmp, "values.yaml");
     assert!(
         content.contains("apiPath: /query"),
-        "GraphQL 選択時に values.yaml に apiPath: /query が含まれるべき\n--- values.yaml ---\n{}",
-        content
+        "GraphQL 選択時に values.yaml に apiPath: /query が含まれるべき\n--- values.yaml ---\n{content}"
     );
 }
 
@@ -668,8 +685,7 @@ fn test_helm_graphql_values_section() {
     let content = read_output(&tmp, "values.yaml");
     assert!(
         content.contains("graphql:"),
-        "GraphQL 選択時に values.yaml に graphql セクションが含まれるべき\n--- values.yaml ---\n{}",
-        content
+        "GraphQL 選択時に values.yaml に graphql セクションが含まれるべき\n--- values.yaml ---\n{content}"
     );
 }
 
@@ -684,8 +700,7 @@ fn test_helm_rest_no_graphql_api_path() {
     let content = read_output(&tmp, "values.yaml");
     assert!(
         !content.contains("apiPath: /query"),
-        "REST 選択時に apiPath: /query は含まれるべきでない\n--- values.yaml ---\n{}",
-        content
+        "REST 選択時に apiPath: /query は含まれるべきでない\n--- values.yaml ---\n{content}"
     );
 }
 
@@ -703,22 +718,19 @@ fn test_helm_grpc_only_port() {
     // gRPC のみの場合、grpcPort: 50051 が設定される
     assert!(
         content.contains("grpcPort: 50051"),
-        "gRPC のみ: grpcPort: 50051 が values.yaml に含まれるべき\n--- values.yaml ---\n{}",
-        content
+        "gRPC のみ: grpcPort: 50051 が values.yaml に含まれるべき\n--- values.yaml ---\n{content}"
     );
 
     // grpcPort: 50051 が2箇所（container + service）に存在することを確認
     let grpc_port_count = content.matches("grpcPort: 50051").count();
     assert_eq!(
         grpc_port_count, 2,
-        "gRPC のみ: grpcPort: 50051 は container と service の2箇所に存在すべき (実際: {})\n--- values.yaml ---\n{}",
-        grpc_port_count, content
+        "gRPC のみ: grpcPort: 50051 は container と service の2箇所に存在すべき (実際: {grpc_port_count})\n--- values.yaml ---\n{content}"
     );
 
     // grpcPort: null は存在しないことを確認
     assert!(
         !content.contains("grpcPort: null"),
-        "gRPC のみ: grpcPort: null は values.yaml に含まれるべきでない\n--- values.yaml ---\n{}",
-        content
+        "gRPC のみ: grpcPort: null は values.yaml に含まれるべきでない\n--- values.yaml ---\n{content}"
     );
 }

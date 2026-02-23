@@ -3,6 +3,7 @@
 Server (Go/Rust) と BFF (Go/Rust) の dev/staging/prod 環境別
 config テンプレートが正しく存在し、内容が適切かを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -46,7 +47,7 @@ class TestConfigTemplateEnvironmentField:
         path = config_dir / f"config.{env}.yaml.tera"
         content = path.read_text(encoding="utf-8")
         assert f'environment: "{env}"' in content, (
-            f"{kind}/config.{env}.yaml.tera に environment: \"{env}\" が含まれていません"
+            f'{kind}/config.{env}.yaml.tera に environment: "{env}" が含まれていません'
         )
 
 

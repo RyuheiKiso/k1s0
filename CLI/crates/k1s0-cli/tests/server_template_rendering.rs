@@ -31,8 +31,8 @@ fn render_server(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder = TemplateContextBuilder::new("order-api", "service", lang, "server")
-        .api_style(api_style);
+    let mut builder =
+        TemplateContextBuilder::new("order-api", "service", lang, "server").api_style(api_style);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -69,13 +69,17 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 // Go サーバー: REST + PostgreSQL + Kafka + Redis
 // =========================================================================
 
+#[allow(clippy::too_many_lines)]
 #[test]
 fn test_go_server_rest_full_stack_file_list() {
     let (tmp, names) = render_server("go", "rest", true, "postgresql", true, false);
 
     // 必須ファイルの存在確認
     assert!(names.iter().any(|n| n == "go.mod"), "go.mod missing");
-    assert!(names.iter().any(|n| n == "cmd/main.go"), "cmd/main.go missing");
+    assert!(
+        names.iter().any(|n| n == "cmd/main.go"),
+        "cmd/main.go missing"
+    );
     assert!(
         names.iter().any(|n| n == "internal/domain/model/entity.go"),
         "entity.go missing"
@@ -115,9 +119,7 @@ fn test_go_server_rest_full_stack_file_list() {
         "kafka.go missing"
     );
     assert!(
-        names
-            .iter()
-            .any(|n| n == "internal/infra/config/config.go"),
+        names.iter().any(|n| n == "internal/infra/config/config.go"),
         "config.go missing"
     );
     assert!(
@@ -128,45 +130,60 @@ fn test_go_server_rest_full_stack_file_list() {
         names.iter().any(|n| n == "api/openapi/openapi.yaml"),
         "openapi.yaml missing"
     );
-    assert!(names.iter().any(|n| n == "Dockerfile"), "Dockerfile missing");
+    assert!(
+        names.iter().any(|n| n == "Dockerfile"),
+        "Dockerfile missing"
+    );
 
     // テストファイルの存在確認
     assert!(
-        names.iter().any(|n| n == "internal/usecase/usecase_test.go"),
+        names
+            .iter()
+            .any(|n| n == "internal/usecase/usecase_test.go"),
         "usecase_test.go missing"
     );
     assert!(
-        names.iter().any(|n| n == "internal/adapter/handler/handler_test.go"),
+        names
+            .iter()
+            .any(|n| n == "internal/adapter/handler/handler_test.go"),
         "handler_test.go missing"
     );
     assert!(
-        names.iter().any(|n| n == "internal/infra/persistence/repository_test.go"),
+        names
+            .iter()
+            .any(|n| n == "internal/infra/persistence/repository_test.go"),
         "repository_test.go missing"
     );
 
     // REST の場合 gRPC / GraphQL は除外される
     assert!(
-        !names
-            .iter()
-            .any(|n| n.contains("grpc_handler")),
+        !names.iter().any(|n| n.contains("grpc_handler")),
         "grpc_handler should not exist for REST"
     );
     assert!(
-        !names
-            .iter()
-            .any(|n| n.contains("graphql_resolver")),
+        !names.iter().any(|n| n.contains("graphql_resolver")),
         "graphql_resolver should not exist for REST"
     );
     assert!(
-        !names
-            .iter()
-            .any(|n| n.contains("service.proto")),
+        !names.iter().any(|n| n.contains("service.proto")),
         "service.proto should not exist for REST"
     );
-    assert!(!names.iter().any(|n| n.contains("buf.yaml")), "buf.yaml should not exist for REST");
-    assert!(!names.iter().any(|n| n.contains("buf.gen")), "buf.gen.yaml should not exist for REST");
-    assert!(!names.iter().any(|n| n.contains("schema.graphql")), "schema.graphql should not exist for REST");
-    assert!(!names.iter().any(|n| n.contains("gqlgen.yml")), "gqlgen.yml should not exist for REST");
+    assert!(
+        !names.iter().any(|n| n.contains("buf.yaml")),
+        "buf.yaml should not exist for REST"
+    );
+    assert!(
+        !names.iter().any(|n| n.contains("buf.gen")),
+        "buf.gen.yaml should not exist for REST"
+    );
+    assert!(
+        !names.iter().any(|n| n.contains("schema.graphql")),
+        "schema.graphql should not exist for REST"
+    );
+    assert!(
+        !names.iter().any(|n| n.contains("gqlgen.yml")),
+        "gqlgen.yml should not exist for REST"
+    );
 
     // go.mod の内容検証
     let go_mod = read_output(&tmp, "go.mod");
@@ -188,7 +205,8 @@ fn test_go_server_rest_main_go_content() {
 
     // import文の検証
     assert!(content.contains("\"github.com/gin-gonic/gin\""));
-    assert!(content.contains("go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"));
+    assert!(content
+        .contains("go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"));
     assert!(content.contains("/internal/adapter/handler\""));
     assert!(content.contains("/internal/infra/config\""));
     assert!(content.contains("/internal/infra/persistence\""));
@@ -227,7 +245,9 @@ fn test_go_server_rest_entity() {
     assert!(content.contains("import \"time\""));
     assert!(content.contains("type OrderApiEntity struct {"));
     assert!(content.contains("ID          string    `json:\"id\" db:\"id\"`"));
-    assert!(content.contains("Name        string    `json:\"name\" db:\"name\" validate:\"required,max=255\"`"));
+    assert!(content.contains(
+        "Name        string    `json:\"name\" db:\"name\" validate:\"required,max=255\"`"
+    ));
     assert!(content.contains("CreatedAt   time.Time `json:\"created_at\" db:\"created_at\"`"));
 }
 
@@ -239,7 +259,9 @@ fn test_go_server_rest_repository() {
     assert!(content.contains("package repository"));
     assert!(content.contains("//go:generate mockgen"));
     assert!(content.contains("type OrderApiRepository interface {"));
-    assert!(content.contains("FindByID(ctx context.Context, id string) (*model.OrderApiEntity, error)"));
+    assert!(
+        content.contains("FindByID(ctx context.Context, id string) (*model.OrderApiEntity, error)")
+    );
     assert!(content.contains("FindAll(ctx context.Context) ([]*model.OrderApiEntity, error)"));
     assert!(content.contains("Create(ctx context.Context, entity *model.OrderApiEntity) error"));
     assert!(content.contains("Update(ctx context.Context, entity *model.OrderApiEntity) error"));
@@ -315,10 +337,16 @@ fn test_go_server_rest_persistence_repository() {
     assert!(content.contains("package persistence"));
     assert!(content.contains("type orderApiRepository struct {"));
     assert!(content.contains("func NewRepository(db *sqlx.DB) repository.OrderApiRepository"));
-    assert!(content.contains("func (r *orderApiRepository) FindByID(ctx context.Context, id string)"));
+    assert!(
+        content.contains("func (r *orderApiRepository) FindByID(ctx context.Context, id string)")
+    );
     assert!(content.contains("func (r *orderApiRepository) FindAll(ctx context.Context)"));
-    assert!(content.contains("func (r *orderApiRepository) Create(ctx context.Context, entity *model.OrderApiEntity)"));
-    assert!(content.contains("func (r *orderApiRepository) Update(ctx context.Context, entity *model.OrderApiEntity)"));
+    assert!(content.contains(
+        "func (r *orderApiRepository) Create(ctx context.Context, entity *model.OrderApiEntity)"
+    ));
+    assert!(content.contains(
+        "func (r *orderApiRepository) Update(ctx context.Context, entity *model.OrderApiEntity)"
+    ));
     assert!(content.contains("func (r *orderApiRepository) Delete(ctx context.Context, id string)"));
 }
 
@@ -330,11 +358,16 @@ fn test_go_server_rest_kafka() {
     assert!(content.contains("package messaging"));
     assert!(content.contains("type Producer struct {"));
     assert!(content.contains("func NewProducer(cfg config.KafkaConfig) *Producer"));
-    assert!(content.contains("func (p *Producer) Publish(ctx context.Context, topic string, key, value []byte) error"));
+    assert!(content.contains(
+        "func (p *Producer) Publish(ctx context.Context, topic string, key, value []byte) error"
+    ));
     assert!(content.contains("func (p *Producer) Close()"));
     assert!(content.contains("type Consumer struct {"));
-    assert!(content.contains("func NewConsumer(cfg config.KafkaConfig, topic, groupID string) *Consumer"));
-    assert!(content.contains("func (c *Consumer) Consume(ctx context.Context, handler func(kafka.Message) error) error"));
+    assert!(content
+        .contains("func NewConsumer(cfg config.KafkaConfig, topic, groupID string) *Consumer"));
+    assert!(content.contains(
+        "func (c *Consumer) Consume(ctx context.Context, handler func(kafka.Message) error) error"
+    ));
     assert!(content.contains("func (c *Consumer) Close()"));
     // 命名規則コメント
     assert!(content.contains("k1s0.{tier}.{domain}.{event-type}.{version}"));
@@ -416,10 +449,22 @@ fn test_go_server_grpc_file_list() {
 
     assert!(names.iter().any(|n| n.contains("grpc_handler.go")));
     assert!(names.iter().any(|n| n.contains("service.proto")));
-    assert!(names.iter().any(|n| n.contains("buf.yaml")), "buf.yaml missing for gRPC");
-    assert!(names.iter().any(|n| n.contains("buf.gen")), "buf.gen.yaml missing for gRPC");
-    assert!(names.iter().any(|n| n.contains("usecase_test.go")), "usecase_test.go missing");
-    assert!(names.iter().any(|n| n.contains("handler_test.go")), "handler_test.go missing");
+    assert!(
+        names.iter().any(|n| n.contains("buf.yaml")),
+        "buf.yaml missing for gRPC"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("buf.gen")),
+        "buf.gen.yaml missing for gRPC"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("usecase_test.go")),
+        "usecase_test.go missing"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("handler_test.go")),
+        "handler_test.go missing"
+    );
     assert!(!names.iter().any(|n| n.contains("rest_handler.go")));
     assert!(!names.iter().any(|n| n.contains("openapi")));
     assert!(!names.iter().any(|n| n.contains("graphql_resolver")));
@@ -436,7 +481,9 @@ fn test_go_server_grpc_handler() {
     assert!(content.contains("type GRPCHandler struct {"));
     assert!(content.contains("pb.UnimplementedOrderApiServiceServer"));
     assert!(content.contains("func NewGRPCHandler(uc *usecase.OrderApiUseCase) *GRPCHandler"));
-    assert!(content.contains("func (h *GRPCHandler) GetOrderApi(ctx context.Context, req *pb.GetOrderApiRequest)"));
+    assert!(content.contains(
+        "func (h *GRPCHandler) GetOrderApi(ctx context.Context, req *pb.GetOrderApiRequest)"
+    ));
     assert!(content.contains("codes.Internal"));
     assert!(content.contains("codes.NotFound"));
 }
@@ -481,10 +528,22 @@ fn test_go_server_graphql_file_list() {
     let (_, names) = render_server("go", "graphql", false, "", false, false);
 
     assert!(names.iter().any(|n| n.contains("graphql_resolver.go")));
-    assert!(names.iter().any(|n| n.contains("schema.graphql")), "schema.graphql missing for GraphQL");
-    assert!(names.iter().any(|n| n.contains("gqlgen.yml")), "gqlgen.yml missing for GraphQL");
-    assert!(names.iter().any(|n| n.contains("usecase_test.go")), "usecase_test.go missing");
-    assert!(names.iter().any(|n| n.contains("handler_test.go")), "handler_test.go missing");
+    assert!(
+        names.iter().any(|n| n.contains("schema.graphql")),
+        "schema.graphql missing for GraphQL"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("gqlgen.yml")),
+        "gqlgen.yml missing for GraphQL"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("usecase_test.go")),
+        "usecase_test.go missing"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("handler_test.go")),
+        "handler_test.go missing"
+    );
     assert!(!names.iter().any(|n| n.contains("rest_handler.go")));
     assert!(!names.iter().any(|n| n.contains("grpc_handler.go")));
     assert!(!names.iter().any(|n| n.contains("openapi")));
@@ -594,33 +653,50 @@ fn test_go_server_sqlite() {
 fn test_rust_server_rest_full_stack_file_list() {
     let (_, names) = render_server("rust", "rest", true, "postgresql", true, false);
 
-    assert!(names.iter().any(|n| n == "Cargo.toml"), "Cargo.toml missing");
-    assert!(names.iter().any(|n| n == "src/main.rs"), "src/main.rs missing");
-    assert!(names.iter().any(|n| n == "src/domain/mod.rs"), "domain/mod.rs missing");
-    assert!(names.iter().any(|n| n == "src/domain/model.rs"), "domain/model.rs missing");
+    assert!(
+        names.iter().any(|n| n == "Cargo.toml"),
+        "Cargo.toml missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "src/main.rs"),
+        "src/main.rs missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "src/domain/mod.rs"),
+        "domain/mod.rs missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "src/domain/model.rs"),
+        "domain/model.rs missing"
+    );
     assert!(
         names.iter().any(|n| n == "src/domain/repository.rs"),
         "domain/repository.rs missing"
     );
-    assert!(names.iter().any(|n| n == "src/usecase/mod.rs"), "usecase/mod.rs missing");
+    assert!(
+        names.iter().any(|n| n == "src/usecase/mod.rs"),
+        "usecase/mod.rs missing"
+    );
     assert!(
         names.iter().any(|n| n == "src/usecase/service.rs"),
         "usecase/service.rs missing"
     );
-    assert!(names.iter().any(|n| n == "src/adapter/mod.rs"), "adapter/mod.rs missing");
     assert!(
-        names
-            .iter()
-            .any(|n| n == "src/adapter/handler/mod.rs"),
+        names.iter().any(|n| n == "src/adapter/mod.rs"),
+        "adapter/mod.rs missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "src/adapter/handler/mod.rs"),
         "adapter/handler/mod.rs missing"
     );
     assert!(
-        names
-            .iter()
-            .any(|n| n == "src/adapter/handler/rest.rs"),
+        names.iter().any(|n| n == "src/adapter/handler/rest.rs"),
         "adapter/handler/rest.rs missing"
     );
-    assert!(names.iter().any(|n| n == "src/infra/mod.rs"), "infra/mod.rs missing");
+    assert!(
+        names.iter().any(|n| n == "src/infra/mod.rs"),
+        "infra/mod.rs missing"
+    );
     assert!(
         names.iter().any(|n| n == "src/infra/config.rs"),
         "infra/config.rs missing"
@@ -633,8 +709,14 @@ fn test_rust_server_rest_full_stack_file_list() {
         names.iter().any(|n| n == "src/infra/messaging.rs"),
         "infra/messaging.rs missing"
     );
-    assert!(names.iter().any(|n| n == "config/config.yaml"), "config.yaml missing");
-    assert!(names.iter().any(|n| n == "Dockerfile"), "Dockerfile missing");
+    assert!(
+        names.iter().any(|n| n == "config/config.yaml"),
+        "config.yaml missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "Dockerfile"),
+        "Dockerfile missing"
+    );
 
     // テストファイルの存在確認
     assert!(
@@ -661,9 +743,13 @@ fn test_rust_server_rest_cargo_toml() {
     assert!(content.contains("tokio = { version = \"1\", features = [\"full\"] }"));
     assert!(content.contains("serde = { version = \"1\", features = [\"derive\"] }"));
     assert!(content.contains("tracing = \"0.1\""));
-    assert!(content.contains("tower-http = { version = \"0.6\", features = [\"cors\", \"trace\"] }"));
+    assert!(
+        content.contains("tower-http = { version = \"0.6\", features = [\"cors\", \"trace\"] }")
+    );
     assert!(content.contains("utoipa = { version = \"5\", features = [\"axum_extras\"] }"));
-    assert!(content.contains("sqlx = { version = \"0.8\", features = [\"runtime-tokio-rustls\", \"postgresql\"] }"));
+    assert!(content.contains(
+        "sqlx = { version = \"0.8\", features = [\"runtime-tokio-rustls\", \"postgresql\"] }"
+    ));
     assert!(content.contains("rdkafka = { version = \"0.36\", features = [\"cmake-build\"] }"));
     assert!(content.contains("redis = { version = \"0.27\", features = [\"tokio-comp\"] }"));
     assert!(content.contains("[dev-dependencies]"));
@@ -737,10 +823,16 @@ fn test_rust_server_rest_domain_repository() {
     assert!(content.contains("#[cfg_attr(test, mockall::automock)]"));
     assert!(content.contains("#[async_trait]"));
     assert!(content.contains("pub trait OrderApiRepository: Send + Sync {"));
-    assert!(content.contains("async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<OrderApiEntity>>;"));
+    assert!(content.contains(
+        "async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<OrderApiEntity>>;"
+    ));
     assert!(content.contains("async fn find_all(&self) -> anyhow::Result<Vec<OrderApiEntity>>;"));
-    assert!(content.contains("async fn create(&self, entity: &OrderApiEntity) -> anyhow::Result<()>;"));
-    assert!(content.contains("async fn update(&self, entity: &OrderApiEntity) -> anyhow::Result<()>;"));
+    assert!(
+        content.contains("async fn create(&self, entity: &OrderApiEntity) -> anyhow::Result<()>;")
+    );
+    assert!(
+        content.contains("async fn update(&self, entity: &OrderApiEntity) -> anyhow::Result<()>;")
+    );
     assert!(content.contains("async fn delete(&self, id: &str) -> anyhow::Result<()>;"));
 }
 
@@ -756,7 +848,9 @@ fn test_rust_server_rest_usecase_service() {
     assert!(content.contains("repo: Arc<dyn OrderApiRepository>,"));
     assert!(content.contains("pub fn new("));
     assert!(content.contains("repo: impl OrderApiRepository + 'static,"));
-    assert!(content.contains("pub async fn get_by_id(&self, id: &str) -> anyhow::Result<Option<OrderApiEntity>>"));
+    assert!(content.contains(
+        "pub async fn get_by_id(&self, id: &str) -> anyhow::Result<Option<OrderApiEntity>>"
+    ));
     assert!(content.contains("self.repo.find_by_id(id).await"));
     assert!(content.contains("pub async fn get_all(&self) -> anyhow::Result<Vec<OrderApiEntity>>"));
     assert!(content.contains("self.repo.find_all().await"));
@@ -810,7 +904,8 @@ fn test_rust_server_rest_persistence() {
     assert!(content.contains("use crate::domain::model::OrderApiEntity;"));
     assert!(content.contains("use crate::domain::repository::OrderApiRepository;"));
     assert!(content.contains("use crate::infra::config::DatabaseConfig;"));
-    assert!(content.contains("pub async fn create_pool(cfg: &DatabaseConfig) -> anyhow::Result<DbPool>"));
+    assert!(content
+        .contains("pub async fn create_pool(cfg: &DatabaseConfig) -> anyhow::Result<DbPool>"));
     assert!(content.contains("pub struct Repository {"));
     assert!(content.contains("impl OrderApiRepository for Repository {"));
     assert!(content.contains("async fn find_by_id(&self, id: &str)"));
@@ -830,9 +925,13 @@ fn test_rust_server_rest_messaging() {
     assert!(content.contains("use crate::infra::config::KafkaConfig;"));
     assert!(content.contains("pub struct Producer {"));
     assert!(content.contains("pub fn new(cfg: &KafkaConfig) -> Self"));
-    assert!(content.contains("pub async fn publish(&self, topic: &str, key: &str, payload: &[u8]) -> anyhow::Result<()>"));
+    assert!(content.contains(
+        "pub async fn publish(&self, topic: &str, key: &str, payload: &[u8]) -> anyhow::Result<()>"
+    ));
     assert!(content.contains("pub struct KafkaConsumer {"));
-    assert!(content.contains("pub fn new(cfg: &KafkaConfig, group_id: &str, topics: &[&str]) -> Self"));
+    assert!(
+        content.contains("pub fn new(cfg: &KafkaConfig, group_id: &str, topics: &[&str]) -> Self")
+    );
     // 命名規則
     assert!(content.contains("k1s0.{tier}.{domain}.{event-type}.{version}"));
     assert!(content.contains("{service-name}.{purpose}"));
@@ -881,9 +980,18 @@ fn test_rust_server_grpc_file_list() {
     let (_, names) = render_server("rust", "grpc", false, "", false, false);
 
     assert!(names.iter().any(|n| n.contains("grpc.rs")));
-    assert!(names.iter().any(|n| n.contains("buf.yaml")), "buf.yaml missing for Rust gRPC");
-    assert!(names.iter().any(|n| n.contains("build.rs")), "build.rs missing for Rust gRPC");
-    assert!(names.iter().any(|n| n.contains("integration_test.rs")), "integration_test.rs missing");
+    assert!(
+        names.iter().any(|n| n.contains("buf.yaml")),
+        "buf.yaml missing for Rust gRPC"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("build.rs")),
+        "build.rs missing for Rust gRPC"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("integration_test.rs")),
+        "integration_test.rs missing"
+    );
     assert!(!names.iter().any(|n| n.contains("rest.rs")));
     assert!(!names.iter().any(|n| n.contains("graphql.rs")));
     assert!(!names.iter().any(|n| n.contains("schema.graphql")));
@@ -936,7 +1044,10 @@ fn test_rust_server_graphql_file_list() {
     let (_, names) = render_server("rust", "graphql", false, "", false, false);
 
     assert!(names.iter().any(|n| n.contains("graphql.rs")));
-    assert!(names.iter().any(|n| n.contains("integration_test.rs")), "integration_test.rs missing");
+    assert!(
+        names.iter().any(|n| n.contains("integration_test.rs")),
+        "integration_test.rs missing"
+    );
     assert!(!names.iter().any(|n| n.contains("rest.rs")));
     assert!(!names.iter().any(|n| n.contains("grpc.rs")));
     assert!(!names.iter().any(|n| n.contains("buf.yaml")));
@@ -948,14 +1059,18 @@ fn test_rust_server_graphql_handler() {
     let (tmp, _) = render_server("rust", "graphql", false, "", false, false);
     let content = read_output(&tmp, "src/adapter/handler/graphql.rs");
 
-    assert!(content.contains("use async_graphql::{Context, Object, Schema, EmptyMutation, EmptySubscription};"));
+    assert!(content.contains(
+        "use async_graphql::{Context, Object, Schema, EmptyMutation, EmptySubscription};"
+    ));
     assert!(content.contains("use crate::domain::model::OrderApiEntity;"));
     assert!(content.contains("use crate::usecase::OrderApiUseCase;"));
     assert!(content.contains("pub struct QueryRoot;"));
     assert!(content.contains("#[Object]"));
     assert!(content.contains("async fn order_api("));
     assert!(content.contains("async fn order_api_list("));
-    assert!(content.contains("pub type OrderApiSchema = Schema<QueryRoot, EmptyMutation, EmptySubscription>;"));
+    assert!(content.contains(
+        "pub type OrderApiSchema = Schema<QueryRoot, EmptyMutation, EmptySubscription>;"
+    ));
     assert!(content.contains("pub fn build_schema(uc: OrderApiUseCase) -> OrderApiSchema"));
 }
 
@@ -1064,7 +1179,8 @@ fn test_tera_variable_substitution_consistency() {
     assert!(entity.contains("type UserAuthEntity struct {"));
 
     // repository: PascalCase
-    let repo = fs::read_to_string(output_dir.join("internal/domain/repository/repository.go")).unwrap();
+    let repo =
+        fs::read_to_string(output_dir.join("internal/domain/repository/repository.go")).unwrap();
     assert!(repo.contains("type UserAuthRepository interface {"));
 
     // usecase: PascalCase
@@ -1073,11 +1189,13 @@ fn test_tera_variable_substitution_consistency() {
     assert!(uc.contains("func NewUserAuthUseCase("));
 
     // persistence: camelCase
-    let persistence = fs::read_to_string(output_dir.join("internal/infra/persistence/repository.go")).unwrap();
+    let persistence =
+        fs::read_to_string(output_dir.join("internal/infra/persistence/repository.go")).unwrap();
     assert!(persistence.contains("type userAuthRepository struct {"));
 
     // REST handler: PascalCase in type, kebab-case in route
-    let handler = fs::read_to_string(output_dir.join("internal/adapter/handler/rest_handler.go")).unwrap();
+    let handler =
+        fs::read_to_string(output_dir.join("internal/adapter/handler/rest_handler.go")).unwrap();
     assert!(handler.contains("uc *usecase.UserAuthUseCase"));
     assert!(handler.contains("v1.GET(\"/user-auth\""));
 
@@ -1146,11 +1264,26 @@ fn test_tera_variable_substitution_rust() {
 fn test_go_server_graphql_file_list_pipeline() {
     let (_, names) = render_server("go", "graphql", false, "", false, false);
 
-    assert!(names.iter().any(|n| n.contains("graphql_resolver")), "graphql_resolver missing");
-    assert!(names.iter().any(|n| n.contains("schema.graphql")), "schema.graphql missing");
-    assert!(names.iter().any(|n| n.contains("gqlgen.yml")), "gqlgen.yml missing");
-    assert!(!names.iter().any(|n| n.contains("rest_handler")), "rest_handler should not exist for GraphQL");
-    assert!(!names.iter().any(|n| n.contains("service.proto")), "service.proto should not exist for GraphQL");
+    assert!(
+        names.iter().any(|n| n.contains("graphql_resolver")),
+        "graphql_resolver missing"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("schema.graphql")),
+        "schema.graphql missing"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("gqlgen.yml")),
+        "gqlgen.yml missing"
+    );
+    assert!(
+        !names.iter().any(|n| n.contains("rest_handler")),
+        "rest_handler should not exist for GraphQL"
+    );
+    assert!(
+        !names.iter().any(|n| n.contains("service.proto")),
+        "service.proto should not exist for GraphQL"
+    );
 }
 
 #[test]
@@ -1178,10 +1311,22 @@ fn test_go_server_multi_api_file_list() {
         .collect();
 
     // REST + gRPC の両方が含まれる
-    assert!(names.iter().any(|n| n.contains("rest_handler")), "rest_handler missing for multi-api");
-    assert!(names.iter().any(|n| n.contains("grpc_handler")), "grpc_handler missing for multi-api");
-    assert!(names.iter().any(|n| n.contains("openapi")), "openapi missing for multi-api");
-    assert!(names.iter().any(|n| n.contains("proto/")), "proto missing for multi-api");
+    assert!(
+        names.iter().any(|n| n.contains("rest_handler")),
+        "rest_handler missing for multi-api"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("grpc_handler")),
+        "grpc_handler missing for multi-api"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("openapi")),
+        "openapi missing for multi-api"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("proto/")),
+        "proto missing for multi-api"
+    );
 }
 
 // =========================================================================
@@ -1368,9 +1513,9 @@ fn test_rust_server_rest_no_tera_syntax_in_output() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(!content.contains("{{"), "Tera syntax {{{{ found in {}", name);
-        assert!(!content.contains("{%"), "Tera syntax {{%% found in {}", name);
-        assert!(!content.contains("{#"), "Tera comment {{# found in {}", name);
+        assert!(!content.contains("{{"), "Tera syntax {{{{ found in {name}");
+        assert!(!content.contains("{%"), "Tera syntax {{%% found in {name}");
+        assert!(!content.contains("{#"), "Tera comment {{# found in {name}");
     }
 }
 
@@ -1391,7 +1536,8 @@ fn test_go_server_rest_redis_cache_client() {
     assert!(content.contains("package cache"));
     assert!(content.contains("type RedisClient struct {"));
     assert!(content.contains("func NewRedisClient(cfg config.RedisConfig) *RedisClient"));
-    assert!(content.contains("func (r *RedisClient) Get(ctx context.Context, key string) (string, error)"));
+    assert!(content
+        .contains("func (r *RedisClient) Get(ctx context.Context, key string) (string, error)"));
     assert!(content.contains("func (r *RedisClient) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error"));
     assert!(content.contains("func (r *RedisClient) Delete(ctx context.Context, key string) error"));
     assert!(content.contains("func (r *RedisClient) Close() error"));
@@ -1424,7 +1570,8 @@ fn test_rust_server_rest_redis_client() {
     assert!(content.contains("pub struct RedisClient {"));
     assert!(content.contains("pub fn new(cfg: &RedisConfig) -> Result<Self>"));
     assert!(content.contains("pub async fn get(&self, key: &str) -> Result<Option<String>>"));
-    assert!(content.contains("pub async fn set(&self, key: &str, value: &str, ttl_secs: u64) -> Result<()>"));
+    assert!(content
+        .contains("pub async fn set(&self, key: &str, value: &str, ttl_secs: u64) -> Result<()>"));
     assert!(content.contains("pub async fn delete(&self, key: &str) -> Result<()>"));
 }
 
@@ -1446,34 +1593,52 @@ fn test_rust_server_rest_no_redis_client() {
 fn test_go_server_rest_usecase_has_update() {
     let (tmp, _) = render_server("go", "rest", true, "postgresql", false, false);
     let content = read_output(&tmp, "internal/usecase/usecase.go");
-    assert!(content.contains("func (uc *OrderApiUseCase) Update("), "Go usecase should have Update method");
+    assert!(
+        content.contains("func (uc *OrderApiUseCase) Update("),
+        "Go usecase should have Update method"
+    );
 }
 
 #[test]
 fn test_go_server_rest_usecase_has_delete() {
     let (tmp, _) = render_server("go", "rest", true, "postgresql", false, false);
     let content = read_output(&tmp, "internal/usecase/usecase.go");
-    assert!(content.contains("func (uc *OrderApiUseCase) Delete("), "Go usecase should have Delete method");
+    assert!(
+        content.contains("func (uc *OrderApiUseCase) Delete("),
+        "Go usecase should have Delete method"
+    );
 }
 
 #[test]
 fn test_go_server_rest_usecase_test_error_cases() {
     let (tmp, _) = render_server("go", "rest", true, "postgresql", false, false);
     let content = read_output(&tmp, "internal/usecase/usecase_test.go");
-    assert!(content.contains("TestUpdate"), "Go usecase test should have TestUpdate");
-    assert!(content.contains("TestDelete"), "Go usecase test should have TestDelete");
+    assert!(
+        content.contains("TestUpdate"),
+        "Go usecase test should have TestUpdate"
+    );
+    assert!(
+        content.contains("TestDelete"),
+        "Go usecase test should have TestDelete"
+    );
 }
 
 #[test]
 fn test_rust_server_rest_usecase_has_update() {
     let (tmp, _) = render_server("rust", "rest", true, "postgresql", false, false);
     let content = read_output(&tmp, "src/usecase/service.rs");
-    assert!(content.contains("pub async fn update("), "Rust usecase should have update method");
+    assert!(
+        content.contains("pub async fn update("),
+        "Rust usecase should have update method"
+    );
 }
 
 #[test]
 fn test_rust_server_rest_usecase_has_delete() {
     let (tmp, _) = render_server("rust", "rest", true, "postgresql", false, false);
     let content = read_output(&tmp, "src/usecase/service.rs");
-    assert!(content.contains("pub async fn delete("), "Rust usecase should have delete method");
+    assert!(
+        content.contains("pub async fn delete("),
+        "Rust usecase should have delete method"
+    );
 }

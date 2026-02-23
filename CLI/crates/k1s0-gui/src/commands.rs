@@ -10,66 +10,82 @@ use k1s0_core::progress::ProgressEvent;
 use tauri::ipc::Channel;
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn get_config(config_path: String) -> Result<CliConfig, String> {
     k1s0_core::load_config(&config_path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn execute_init(config: InitConfig) -> Result<(), String> {
     init_cmd::execute_init(&config).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn execute_generate(config: GenerateConfig) -> Result<(), String> {
     gen_cmd::execute_generate(&config).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn execute_build(config: BuildConfig) -> Result<(), String> {
     build_cmd::execute_build(&config).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn execute_test(config: TestConfig) -> Result<(), String> {
     test_cmd::execute_test(&config).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn execute_deploy(config: DeployConfig) -> Result<(), String> {
     deploy_cmd::execute_deploy(&config).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn scan_placements(tier: k1s0_core::commands::generate::types::Tier, base_dir: String) -> Vec<String> {
+#[allow(clippy::needless_pass_by_value)]
+pub fn scan_placements(
+    tier: k1s0_core::commands::generate::types::Tier,
+    base_dir: String,
+) -> Vec<String> {
     gen_cmd::scan_placements_at(&tier, Path::new(&base_dir))
 }
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn scan_buildable_targets(base_dir: String) -> Vec<String> {
     build_cmd::scan_buildable_targets_at(Path::new(&base_dir))
 }
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn scan_deployable_targets(base_dir: String) -> Vec<String> {
     deploy_cmd::scan_deployable_targets_at(Path::new(&base_dir))
 }
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn scan_testable_targets(base_dir: String) -> Vec<String> {
     test_cmd::scan_testable_targets_at(Path::new(&base_dir))
 }
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn scan_e2e_suites(base_dir: String) -> Vec<String> {
     test_cmd::scan_e2e_suites_at(Path::new(&base_dir))
 }
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn validate_name(name: String) -> Result<(), String> {
     k1s0_core::validate_name(&name)
 }
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn execute_test_with_progress(
     config: TestConfig,
     on_event: Channel<ProgressEvent>,
@@ -81,6 +97,7 @@ pub fn execute_test_with_progress(
 }
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn execute_build_with_progress(
     config: BuildConfig,
     on_event: Channel<ProgressEvent>,
@@ -92,6 +109,7 @@ pub fn execute_build_with_progress(
 }
 
 #[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
 pub fn execute_deploy_with_progress(
     config: DeployConfig,
     on_event: Channel<ProgressEvent>,
@@ -117,7 +135,7 @@ mod tests {
     fn test_validate_name_invalid() {
         assert!(validate_name("-order".to_string()).is_err());
         assert!(validate_name("Order".to_string()).is_err());
-        assert!(validate_name("".to_string()).is_err());
+        assert!(validate_name(String::new()).is_err());
     }
 
     #[test]

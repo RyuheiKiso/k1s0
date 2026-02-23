@@ -4,6 +4,7 @@ Istio CRD（Gateway, PeerAuthentication, AuthorizationPolicy,
 DestinationRule, VirtualService）、Flagger Canary、
 フォールトインジェクションの設定が設計ドキュメントと一致するかを検証する。
 """
+
 from pathlib import Path
 
 import pytest
@@ -62,19 +63,16 @@ class TestPeerAuthentication:
     def test_mesh_wide_strict_mtls(self) -> None:
         """サービスメッシュ設計.md: メッシュ全体で STRICT mTLS。"""
         mesh_wide = [
-            d for d in self.docs
-            if d["metadata"]["namespace"] == "service-mesh"
-            and d["metadata"]["name"] == "default"
+            d
+            for d in self.docs
+            if d["metadata"]["namespace"] == "service-mesh" and d["metadata"]["name"] == "default"
         ]
         assert len(mesh_wide) == 1
         assert mesh_wide[0]["spec"]["mtls"]["mode"] == "STRICT"
 
     def test_observability_permissive(self) -> None:
         """サービスメッシュ設計.md: observability は PERMISSIVE。"""
-        obs = [
-            d for d in self.docs
-            if d["metadata"]["namespace"] == "observability"
-        ]
+        obs = [d for d in self.docs if d["metadata"]["namespace"] == "observability"]
         assert len(obs) == 1
         assert obs[0]["spec"]["mtls"]["mode"] == "PERMISSIVE"
 
@@ -84,10 +82,7 @@ class TestPeerAuthentication:
     )
     def test_namespace_strict_mtls(self, namespace: str) -> None:
         """サービスメッシュ設計.md: 各 Tier Namespace で STRICT mTLS。"""
-        ns_docs = [
-            d for d in self.docs
-            if d["metadata"]["namespace"] == namespace
-        ]
+        ns_docs = [d for d in self.docs if d["metadata"]["namespace"] == namespace]
         assert len(ns_docs) >= 1
         assert ns_docs[0]["spec"]["mtls"]["mode"] == "STRICT"
 
@@ -107,36 +102,33 @@ class TestAuthorizationPolicy:
     def test_system_tier_allow_policy(self) -> None:
         """サービスメッシュ設計.md: system は business, service からアクセス可。"""
         system_policies = [
-            d for d in self.docs
-            if d["metadata"]["namespace"] == "k1s0-system"
-            and d["spec"]["action"] == "ALLOW"
+            d
+            for d in self.docs
+            if d["metadata"]["namespace"] == "k1s0-system" and d["spec"]["action"] == "ALLOW"
         ]
         assert len(system_policies) >= 1
 
     def test_business_tier_allow_policy(self) -> None:
         """サービスメッシュ設計.md: business は service からアクセス可。"""
         biz_policies = [
-            d for d in self.docs
-            if d["metadata"]["namespace"] == "k1s0-business"
-            and d["spec"]["action"] == "ALLOW"
+            d
+            for d in self.docs
+            if d["metadata"]["namespace"] == "k1s0-business" and d["spec"]["action"] == "ALLOW"
         ]
         assert len(biz_policies) >= 1
 
     def test_service_tier_allow_policy(self) -> None:
         """サービスメッシュ設計.md: service は ingress からアクセス可。"""
         svc_policies = [
-            d for d in self.docs
-            if d["metadata"]["namespace"] == "k1s0-service"
-            and d["spec"]["action"] == "ALLOW"
+            d
+            for d in self.docs
+            if d["metadata"]["namespace"] == "k1s0-service" and d["spec"]["action"] == "ALLOW"
         ]
         assert len(svc_policies) >= 1
 
     def test_deny_bff_to_bff(self) -> None:
         """サービスメッシュ設計.md: BFF 間通信の禁止。"""
-        deny_policies = [
-            d for d in self.docs
-            if d["spec"]["action"] == "DENY"
-        ]
+        deny_policies = [d for d in self.docs if d["spec"]["action"] == "DENY"]
         assert len(deny_policies) >= 1
         deny = deny_policies[0]
         assert deny["metadata"]["name"] == "deny-bff-to-bff"
@@ -505,7 +497,9 @@ class TestBusinessTierCircuitBreaker:
         cells = [c.strip() for c in row.split("|") if c.strip()]
         assert len(cells) >= 3, "テーブル列が不足しています"
         # cells[0]=設定名, cells[1]=system, cells[2]=business
-        assert cells[2] == "5", f"business の consecutive5xxErrors は 5 であるべきですが {cells[2]} でした"
+        assert cells[2] == "5", (
+            f"business の consecutive5xxErrors は 5 であるべきですが {cells[2]} でした"
+        )
 
     def test_doc_business_interval_30s(self) -> None:
         """サービスメッシュ設計.md: business Tier interval=30s。"""
@@ -521,7 +515,9 @@ class TestBusinessTierCircuitBreaker:
         assert row, "maxEjectionPercent の行が見つかりません"
         cells = [c.strip() for c in row.split("|") if c.strip()]
         assert len(cells) >= 3
-        assert cells[2] == "50", f"business の maxEjectionPercent は 50 であるべきですが {cells[2]} でした"
+        assert cells[2] == "50", (
+            f"business の maxEjectionPercent は 50 であるべきですが {cells[2]} でした"
+        )
 
 
 class TestFaultInjectionGrafanaDashboard:

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -44,6 +44,9 @@ impl Tier {
 }
 
 /// 実際の初期化処理を実行する。
+///
+/// # Errors
+/// エラーが発生した場合。
 pub fn execute_init(config: &InitConfig) -> Result<()> {
     let base = Path::new(&config.project_name);
 
@@ -96,10 +99,7 @@ pub fn execute_init(config: &InitConfig) -> Result<()> {
 
     // Git初期化
     if config.git_init {
-        let status = Command::new("git")
-            .arg("init")
-            .current_dir(base)
-            .status();
+        let status = Command::new("git").arg("init").current_dir(base).status();
         match status {
             Ok(s) if s.success() => {
                 // sparse-checkout
@@ -134,19 +134,18 @@ pub fn execute_init(config: &InitConfig) -> Result<()> {
 fn generate_devcontainer_json(project_name: &str) -> String {
     format!(
         r#"{{
-  "name": "{}",
+  "name": "{project_name}",
   "dockerComposeFile": "../docker-compose.yaml",
   "service": "app",
   "workspaceFolder": "/workspace"
 }}
-"#,
-        project_name
+"#
     )
 }
 
 fn generate_ci_yaml(project_name: &str) -> String {
     format!(
-        r#"name: CI - {}
+        r#"name: CI - {project_name}
 
 on:
   push:
@@ -160,17 +159,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build
-        run: echo "Build step for {}"
+        run: echo "Build step for {project_name}"
       - name: Test
-        run: echo "Test step for {}"
-"#,
-        project_name, project_name, project_name
+        run: echo "Test step for {project_name}"
+"#
     )
 }
 
 fn generate_deploy_yaml(project_name: &str) -> String {
     format!(
-        r#"name: Deploy - {}
+        r#"name: Deploy - {project_name}
 
 on:
   workflow_dispatch:
@@ -191,9 +189,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Deploy
-        run: echo "Deploying {} to ${{{{ github.event.inputs.environment }}}}"
-"#,
-        project_name, project_name
+        run: echo "Deploying {project_name} to ${{{{ github.event.inputs.environment }}}}"
+"#
     )
 }
 
@@ -204,18 +201,17 @@ fn generate_docker_compose(project_name: &str) -> String {
 services:
   app:
     build: .
-    container_name: {}-app
+    container_name: {project_name}-app
     volumes:
       - .:/workspace
     working_dir: /workspace
-"#,
-        project_name
+"#
     )
 }
 
 fn generate_readme(project_name: &str) -> String {
     format!(
-        r#"# {}
+        r"# {project_name}
 
 k1s0 で生成されたプロジェクトです。
 
@@ -226,8 +222,7 @@ k1s0 で生成されたプロジェクトです。
 - `infra/` - インフラ設定
 - `e2e/` - E2E テスト
 - `docs/` - ドキュメント
-"#,
-        project_name
+"
     )
 }
 
@@ -267,11 +262,7 @@ mod tests {
     #[test]
     fn test_execute_init_creates_directories() {
         let tmp = TempDir::new().unwrap();
-        let project_name = tmp
-            .path()
-            .join("my-project")
-            .to_string_lossy()
-            .to_string();
+        let project_name = tmp.path().join("my-project").to_string_lossy().to_string();
         let config = InitConfig {
             project_name,
             git_init: false,
@@ -320,11 +311,7 @@ mod tests {
     #[test]
     fn test_execute_init_with_git() {
         let tmp = TempDir::new().unwrap();
-        let project_name = tmp
-            .path()
-            .join("git-project")
-            .to_string_lossy()
-            .to_string();
+        let project_name = tmp.path().join("git-project").to_string_lossy().to_string();
         let config = InitConfig {
             project_name,
             git_init: true,

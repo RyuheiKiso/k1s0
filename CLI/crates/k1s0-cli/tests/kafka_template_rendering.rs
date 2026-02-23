@@ -10,10 +10,7 @@ fn template_dir() -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("templates")
 }
 
-fn render_kafka(
-    service_name: &str,
-    tier: &str,
-) -> Option<(TempDir, Vec<String>)> {
+fn render_kafka(service_name: &str, tier: &str) -> Option<(TempDir, Vec<String>)> {
     let tpl_dir = template_dir();
     let cat_dir = tpl_dir.join("kafka");
     if !cat_dir.exists() {
@@ -57,13 +54,11 @@ fn test_kafka_file_list() {
 
     assert!(
         names.iter().any(|n| n.contains("kafka-topic.yaml")),
-        "kafka-topic.yaml missing. Generated: {:?}",
-        names
+        "kafka-topic.yaml missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("kafka-topic-dlq.yaml")),
-        "kafka-topic-dlq.yaml missing. Generated: {:?}",
-        names
+        "kafka-topic-dlq.yaml missing. Generated: {names:?}"
     );
 }
 
@@ -77,8 +72,7 @@ fn test_kafka_topic_has_service_name() {
     let content = read_output(&tmp, "kafka-topic.yaml");
     assert!(
         content.contains("order_api"),
-        "Kafka topic should contain service_name_snake\n--- kafka-topic.yaml ---\n{}",
-        content
+        "Kafka topic should contain service_name_snake\n--- kafka-topic.yaml ---\n{content}"
     );
 }
 
@@ -92,8 +86,7 @@ fn test_kafka_topic_naming_convention() {
     let content = read_output(&tmp, "kafka-topic.yaml");
     assert!(
         content.contains("k1s0.service.order_api.events.v1"),
-        "Kafka topic should follow naming convention\n--- kafka-topic.yaml ---\n{}",
-        content
+        "Kafka topic should follow naming convention\n--- kafka-topic.yaml ---\n{content}"
     );
 }
 
@@ -107,8 +100,7 @@ fn test_kafka_topic_system_partitions() {
     let content = read_output(&tmp, "kafka-topic.yaml");
     assert!(
         content.contains("partitions: 6"),
-        "System tier should have 6 partitions\n--- kafka-topic.yaml ---\n{}",
-        content
+        "System tier should have 6 partitions\n--- kafka-topic.yaml ---\n{content}"
     );
 }
 
@@ -122,8 +114,7 @@ fn test_kafka_topic_service_partitions() {
     let content = read_output(&tmp, "kafka-topic.yaml");
     assert!(
         content.contains("partitions: 3"),
-        "Service tier should have 3 partitions\n--- kafka-topic.yaml ---\n{}",
-        content
+        "Service tier should have 3 partitions\n--- kafka-topic.yaml ---\n{content}"
     );
 }
 
@@ -137,8 +128,7 @@ fn test_kafka_dlq_topic_naming() {
     let content = read_output(&tmp, "kafka-topic-dlq.yaml");
     assert!(
         content.contains("k1s0.service.order_api.events.v1.dlq"),
-        "DLQ topic should have .dlq suffix\n--- kafka-topic-dlq.yaml ---\n{}",
-        content
+        "DLQ topic should have .dlq suffix\n--- kafka-topic-dlq.yaml ---\n{content}"
     );
 }
 
@@ -152,8 +142,7 @@ fn test_kafka_dlq_has_dlq_label() {
     let content = read_output(&tmp, "kafka-topic-dlq.yaml");
     assert!(
         content.contains("dlq: \"true\""),
-        "DLQ topic should have dlq label\n--- kafka-topic-dlq.yaml ---\n{}",
-        content
+        "DLQ topic should have dlq label\n--- kafka-topic-dlq.yaml ---\n{content}"
     );
 }
 
@@ -166,7 +155,7 @@ fn test_kafka_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(!content.contains("{%"), "Tera block syntax found in {}", name);
-        assert!(!content.contains("{#"), "Tera comment found in {}", name);
+        assert!(!content.contains("{%"), "Tera block syntax found in {name}");
+        assert!(!content.contains("{#"), "Tera comment found in {name}");
     }
 }

@@ -6,9 +6,8 @@ use super::types::{ApiStyle, Framework, GenerateConfig, LangFw, Language};
 
 /// サーバーひな形を生成する。
 pub(super) fn generate_server(config: &GenerateConfig, output_path: &Path) -> Result<()> {
-    let lang = match config.lang_fw {
-        LangFw::Language(l) => l,
-        _ => unreachable!(),
+    let LangFw::Language(lang) = config.lang_fw else {
+        unreachable!()
     };
     let service_name = config.detail.name.as_deref().unwrap_or("service");
 
@@ -21,7 +20,11 @@ pub(super) fn generate_server(config: &GenerateConfig, output_path: &Path) -> Re
     Ok(())
 }
 
-fn generate_go_server(output_path: &Path, service_name: &str, config: &GenerateConfig) -> Result<()> {
+fn generate_go_server(
+    output_path: &Path,
+    service_name: &str,
+    config: &GenerateConfig,
+) -> Result<()> {
     // cmd/
     let cmd_dir = output_path.join("cmd");
     fs::create_dir_all(&cmd_dir)?;
@@ -33,10 +36,9 @@ fn generate_go_server(output_path: &Path, service_name: &str, config: &GenerateC
 import "fmt"
 
 func main() {{
-	fmt.Println("Starting {} server...")
+	fmt.Println("Starting {service_name} server...")
 }}
-"#,
-            service_name
+"#
         ),
     )?;
 
@@ -46,14 +48,8 @@ func main() {{
     fs::create_dir_all(internal_dir.join("service"))?;
     fs::create_dir_all(internal_dir.join("repository"))?;
 
-    fs::write(
-        internal_dir.join("handler/handler.go"),
-        "package handler\n",
-    )?;
-    fs::write(
-        internal_dir.join("service/service.go"),
-        "package service\n",
-    )?;
+    fs::write(internal_dir.join("handler/handler.go"), "package handler\n")?;
+    fs::write(internal_dir.join("service/service.go"), "package service\n")?;
     fs::write(
         internal_dir.join("repository/repository.go"),
         "package repository\n",
@@ -62,11 +58,14 @@ func main() {{
     // go.mod
     fs::write(
         output_path.join("go.mod"),
-        format!("module {}\n\ngo 1.21\n", service_name),
+        format!("module {service_name}\n\ngo 1.21\n"),
     )?;
 
     // Dockerfile
-    fs::write(output_path.join("Dockerfile"), generate_go_dockerfile(service_name))?;
+    fs::write(
+        output_path.join("Dockerfile"),
+        generate_go_dockerfile(service_name),
+    )?;
 
     // API定義
     for api in &config.detail.api_styles {
@@ -74,20 +73,26 @@ func main() {{
             ApiStyle::Rest => {
                 let api_dir = output_path.join("api/openapi");
                 fs::create_dir_all(&api_dir)?;
-                fs::write(api_dir.join("openapi.yaml"), generate_openapi_stub(service_name))?;
+                fs::write(
+                    api_dir.join("openapi.yaml"),
+                    generate_openapi_stub(service_name),
+                )?;
             }
             ApiStyle::Grpc => {
                 let proto_dir = output_path.join("api/proto");
                 fs::create_dir_all(&proto_dir)?;
                 fs::write(
-                    proto_dir.join(format!("{}.proto", service_name)),
+                    proto_dir.join(format!("{service_name}.proto")),
                     generate_proto_stub(service_name),
                 )?;
             }
             ApiStyle::GraphQL => {
                 let gql_dir = output_path.join("api/graphql");
                 fs::create_dir_all(&gql_dir)?;
-                fs::write(gql_dir.join("schema.graphql"), generate_graphql_stub(service_name))?;
+                fs::write(
+                    gql_dir.join("schema.graphql"),
+                    generate_graphql_stub(service_name),
+                )?;
             }
         }
     }
@@ -95,7 +100,11 @@ func main() {{
     Ok(())
 }
 
-fn generate_rust_server(output_path: &Path, service_name: &str, config: &GenerateConfig) -> Result<()> {
+fn generate_rust_server(
+    output_path: &Path,
+    service_name: &str,
+    config: &GenerateConfig,
+) -> Result<()> {
     // src/
     let src_dir = output_path.join("src");
     fs::create_dir_all(&src_dir)?;
@@ -103,10 +112,9 @@ fn generate_rust_server(output_path: &Path, service_name: &str, config: &Generat
         src_dir.join("main.rs"),
         format!(
             r#"fn main() {{
-    println!("Starting {} server...");
+    println!("Starting {service_name} server...");
 }}
-"#,
-            service_name
+"#
         ),
     )?;
 
@@ -115,16 +123,18 @@ fn generate_rust_server(output_path: &Path, service_name: &str, config: &Generat
         output_path.join("Cargo.toml"),
         format!(
             r#"[package]
-name = "{}"
+name = "{service_name}"
 version = "0.1.0"
 edition = "2021"
-"#,
-            service_name
+"#
         ),
     )?;
 
     // Dockerfile
-    fs::write(output_path.join("Dockerfile"), generate_rust_dockerfile(service_name))?;
+    fs::write(
+        output_path.join("Dockerfile"),
+        generate_rust_dockerfile(service_name),
+    )?;
 
     // API定義
     for api in &config.detail.api_styles {
@@ -132,20 +142,26 @@ edition = "2021"
             ApiStyle::Rest => {
                 let api_dir = output_path.join("api/openapi");
                 fs::create_dir_all(&api_dir)?;
-                fs::write(api_dir.join("openapi.yaml"), generate_openapi_stub(service_name))?;
+                fs::write(
+                    api_dir.join("openapi.yaml"),
+                    generate_openapi_stub(service_name),
+                )?;
             }
             ApiStyle::Grpc => {
                 let proto_dir = output_path.join("api/proto");
                 fs::create_dir_all(&proto_dir)?;
                 fs::write(
-                    proto_dir.join(format!("{}.proto", service_name)),
+                    proto_dir.join(format!("{service_name}.proto")),
                     generate_proto_stub(service_name),
                 )?;
             }
             ApiStyle::GraphQL => {
                 let gql_dir = output_path.join("api/graphql");
                 fs::create_dir_all(&gql_dir)?;
-                fs::write(gql_dir.join("schema.graphql"), generate_graphql_stub(service_name))?;
+                fs::write(
+                    gql_dir.join("schema.graphql"),
+                    generate_graphql_stub(service_name),
+                )?;
             }
         }
     }
@@ -155,9 +171,8 @@ edition = "2021"
 
 /// クライアントひな形を生成する。
 pub(super) fn generate_client(config: &GenerateConfig, output_path: &Path) -> Result<()> {
-    let fw = match config.lang_fw {
-        LangFw::Framework(f) => f,
-        _ => unreachable!(),
+    let LangFw::Framework(fw) = config.lang_fw else {
+        unreachable!()
     };
     let app_name = config.detail.name.as_deref().unwrap_or("app");
 
@@ -177,7 +192,7 @@ fn generate_react_client(output_path: &Path, app_name: &str) -> Result<()> {
         output_path.join("package.json"),
         format!(
             r#"{{
-  "name": "{}",
+  "name": "{app_name}",
   "version": "0.1.0",
   "private": true,
   "scripts": {{
@@ -186,21 +201,19 @@ fn generate_react_client(output_path: &Path, app_name: &str) -> Result<()> {
     "test": "vitest"
   }}
 }}
-"#,
-            app_name
+"#
         ),
     )?;
 
     fs::write(
         src_dir.join("App.tsx"),
         format!(
-            r#"function App() {{
-  return <div>{}</div>;
+            r"function App() {{
+  return <div>{app_name}</div>;
 }}
 
 export default App;
-"#,
-            app_name
+"
         ),
     )?;
 
@@ -218,13 +231,17 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 "#,
     )?;
 
-    fs::write(output_path.join("index.html"), format!(
-        r#"<!DOCTYPE html>
+    fs::write(
+        output_path.join("index.html"),
+        format!(
+            r#"<!DOCTYPE html>
 <html lang="ja">
-<head><meta charset="UTF-8"><title>{}</title></head>
+<head><meta charset="UTF-8"><title>{app_name}</title></head>
 <body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>
 </html>
-"#, app_name))?;
+"#
+        ),
+    )?;
 
     Ok(())
 }
@@ -236,7 +253,7 @@ fn generate_flutter_client(output_path: &Path, app_name: &str) -> Result<()> {
     fs::write(
         output_path.join("pubspec.yaml"),
         format!(
-            r#"name: {}
+            r#"name: {app_name}
 description: A Flutter application
 version: 0.1.0
 
@@ -246,15 +263,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-"#,
-            app_name
+"#
         ),
     )?;
 
     fs::write(
         lib_dir.join("main.dart"),
         format!(
-            r#"import 'package:flutter/material.dart';
+            r"import 'package:flutter/material.dart';
 
 void main() {{
   runApp(const MyApp());
@@ -266,15 +282,14 @@ class MyApp extends StatelessWidget {{
   @override
   Widget build(BuildContext context) {{
     return MaterialApp(
-      title: '{}',
+      title: '{app_name}',
       home: const Scaffold(
-        body: Center(child: Text('{}')),
+        body: Center(child: Text('{app_name}')),
       ),
     );
   }}
 }}
-"#,
-            app_name, app_name
+"
         ),
     )?;
 
@@ -282,10 +297,10 @@ class MyApp extends StatelessWidget {{
 }
 
 /// ライブラリひな形を生成する。
+#[allow(clippy::too_many_lines)]
 pub(super) fn generate_library(config: &GenerateConfig, output_path: &Path) -> Result<()> {
-    let lang = match config.lang_fw {
-        LangFw::Language(l) => l,
-        _ => unreachable!(),
+    let LangFw::Language(lang) = config.lang_fw else {
+        unreachable!()
     };
     let lib_name = config.detail.name.as_deref().unwrap_or("lib");
 
@@ -293,7 +308,7 @@ pub(super) fn generate_library(config: &GenerateConfig, output_path: &Path) -> R
         Language::Go => {
             fs::write(
                 output_path.join("go.mod"),
-                format!("module {}\n\ngo 1.21\n", lib_name),
+                format!("module {lib_name}\n\ngo 1.21\n"),
             )?;
             fs::write(
                 output_path.join(format!("{}.go", lib_name.replace('-', "_"))),
@@ -319,27 +334,26 @@ func TestPlaceholder(t *testing.T) {{
                 output_path.join("Cargo.toml"),
                 format!(
                     r#"[package]
-name = "{}"
+name = "{lib_name}"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-"#,
-                    lib_name
+"#
                 ),
             )?;
             let src_dir = output_path.join("src");
             fs::create_dir_all(&src_dir)?;
             fs::write(
                 src_dir.join("lib.rs"),
-                r#"#[cfg(test)]
+                r"#[cfg(test)]
 mod tests {
     #[test]
     fn it_works() {
         assert_eq!(2 + 2, 4);
     }
 }
-"#,
+",
             )?;
         }
         Language::TypeScript => {
@@ -347,7 +361,7 @@ mod tests {
                 output_path.join("package.json"),
                 format!(
                     r#"{{
-  "name": "{}",
+  "name": "{lib_name}",
   "version": "0.1.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -356,8 +370,7 @@ mod tests {
     "test": "vitest"
   }}
 }}
-"#,
-                    lib_name
+"#
                 ),
             )?;
             let src_dir = output_path.join("src");
@@ -382,13 +395,12 @@ mod tests {
             fs::write(
                 output_path.join("pubspec.yaml"),
                 format!(
-                    r#"name: {}
+                    r#"name: {lib_name}
 version: 0.1.0
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
-"#,
-                    lib_name
+"#
                 ),
             )?;
             let lib_dir = output_path.join("lib");
@@ -415,7 +427,7 @@ environment:
                 output_path.join("pyproject.toml"),
                 format!(
                     r#"[project]
-name = "k1s0-{}"
+name = "k1s0-{lib_name}"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = []
@@ -425,7 +437,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/k1s0_{}"]
+packages = ["src/k1s0_{snake_name}"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -437,36 +449,34 @@ branch = true
 
 [tool.coverage.report]
 fail_under = 85
-"#,
-                    lib_name, snake_name
+"#
                 ),
             )?;
 
-            let src_pkg_dir = output_path.join("src").join(format!("k1s0_{}", snake_name));
+            let src_pkg_dir = output_path.join("src").join(format!("k1s0_{snake_name}"));
             fs::create_dir_all(&src_pkg_dir)?;
 
             fs::write(
                 src_pkg_dir.join("__init__.py"),
                 format!(
-                    r#""""k1s0-{} ライブラリ"""
-from .{} import Client, Config
-from .exceptions import {}Error
+                    r#""""k1s0-{lib_name} ライブラリ"""
+from .{snake_name} import Client, Config
+from .exceptions import {pascal_name}Error
 
-__all__ = ["Client", "Config", "{}Error"]
-"#,
-                    lib_name, snake_name, pascal_name, pascal_name
+__all__ = ["Client", "Config", "{pascal_name}Error"]
+"#
                 ),
             )?;
 
             fs::write(
                 src_pkg_dir.join("exceptions.py"),
                 format!(
-                    r#""""{} ライブラリの例外型定義"""
+                    r#""""{lib_name} ライブラリの例外型定義"""
 from __future__ import annotations
 
 
-class {}Error(Exception):
-    """{}ライブラリのエラー基底クラス。"""
+class {pascal_name}Error(Exception):
+    """{pascal_name}ライブラリのエラー基底クラス。"""
 
     def __init__(
         self,
@@ -481,18 +491,17 @@ class {}Error(Exception):
 
     def __str__(self) -> str:
         return f"{{self.code}}: {{super().__str__()}}"
-"#,
-                    lib_name, pascal_name, pascal_name
+"#
                 ),
             )?;
 
             fs::write(
-                src_pkg_dir.join(format!("{}.py", snake_name)),
+                src_pkg_dir.join(format!("{snake_name}.py")),
                 format!(
-                    r#""""{} ライブラリの実装"""
+                    r#""""{lib_name} ライブラリの実装"""
 from __future__ import annotations
 
-from .exceptions import {}Error
+from .exceptions import {pascal_name}Error
 
 
 class Config:
@@ -504,14 +513,14 @@ class Config:
     def validate(self) -> None:
         """バリデーションを行う。"""
         if not self.name:
-            raise {}Error(
+            raise {pascal_name}Error(
                 code="INVALID_CONFIG",
                 message="name is required",
             )
 
 
 class Client:
-    """{} クライアント。"""
+    """{lib_name} クライアント。"""
 
     def __init__(self, config: Config) -> None:
         self._config = config
@@ -520,8 +529,7 @@ class Client:
     def name(self) -> str:
         """設定名を返す。"""
         return self._config.name
-"#,
-                    lib_name, pascal_name, pascal_name, lib_name
+"#
                 ),
             )?;
 
@@ -530,12 +538,12 @@ class Client:
             fs::write(tests_dir.join("__init__.py"), "")?;
 
             fs::write(
-                tests_dir.join(format!("test_{}.py", snake_name)),
+                tests_dir.join(format!("test_{snake_name}.py")),
                 format!(
-                    r#""""{} ライブラリのユニットテスト"""
+                    r#""""{lib_name} ライブラリのユニットテスト"""
 import pytest
-from k1s0_{}.{} import Client, Config
-from k1s0_{}.exceptions import {}Error
+from k1s0_{snake_name}.{snake_name} import Client, Config
+from k1s0_{snake_name}.exceptions import {pascal_name}Error
 
 
 def test_client_name() -> None:
@@ -551,17 +559,16 @@ def test_validate_ok() -> None:
 
 def test_validate_error() -> None:
     config = Config(name="")
-    with pytest.raises({}Error) as exc_info:
+    with pytest.raises({pascal_name}Error) as exc_info:
         config.validate()
     assert exc_info.value.code == "INVALID_CONFIG"
-"#,
-                    lib_name, snake_name, snake_name, snake_name, pascal_name, pascal_name
+"#
                 ),
             )?;
 
             fs::write(
                 output_path.join("README.md"),
-                format!("# k1s0-{}\n\nk1s0 {} Python ライブラリ\n", lib_name, lib_name),
+                format!("# k1s0-{lib_name}\n\nk1s0 {lib_name} Python ライブラリ\n"),
             )?;
         }
         Language::Swift => {
@@ -585,21 +592,71 @@ let package = Package(
 )
 "#,
                     lib_name,
-                    snake_name.replace('_', "").chars().enumerate().map(|(i, c)| if i == 0 { c.to_uppercase().next().unwrap_or(c) } else { c }).collect::<String>(),
-                    snake_name.replace('_', "").chars().enumerate().map(|(i, c)| if i == 0 { c.to_uppercase().next().unwrap_or(c) } else { c }).collect::<String>(),
-                    snake_name.replace('_', "").chars().enumerate().map(|(i, c)| if i == 0 { c.to_uppercase().next().unwrap_or(c) } else { c }).collect::<String>(),
+                    snake_name
+                        .replace('_', "")
+                        .chars()
+                        .enumerate()
+                        .map(|(i, c)| if i == 0 {
+                            c.to_uppercase().next().unwrap_or(c)
+                        } else {
+                            c
+                        })
+                        .collect::<String>(),
+                    snake_name
+                        .replace('_', "")
+                        .chars()
+                        .enumerate()
+                        .map(|(i, c)| if i == 0 {
+                            c.to_uppercase().next().unwrap_or(c)
+                        } else {
+                            c
+                        })
+                        .collect::<String>(),
+                    snake_name
+                        .replace('_', "")
+                        .chars()
+                        .enumerate()
+                        .map(|(i, c)| if i == 0 {
+                            c.to_uppercase().next().unwrap_or(c)
+                        } else {
+                            c
+                        })
+                        .collect::<String>(),
                     snake_name,
-                    snake_name.replace('_', "").chars().enumerate().map(|(i, c)| if i == 0 { c.to_uppercase().next().unwrap_or(c) } else { c }).collect::<String>(),
-                    snake_name.replace('_', "").chars().enumerate().map(|(i, c)| if i == 0 { c.to_uppercase().next().unwrap_or(c) } else { c }).collect::<String>(),
+                    snake_name
+                        .replace('_', "")
+                        .chars()
+                        .enumerate()
+                        .map(|(i, c)| if i == 0 {
+                            c.to_uppercase().next().unwrap_or(c)
+                        } else {
+                            c
+                        })
+                        .collect::<String>(),
+                    snake_name
+                        .replace('_', "")
+                        .chars()
+                        .enumerate()
+                        .map(|(i, c)| if i == 0 {
+                            c.to_uppercase().next().unwrap_or(c)
+                        } else {
+                            c
+                        })
+                        .collect::<String>(),
                     snake_name,
                 ),
             )?;
             let src_dir = output_path.join("Sources").join(&snake_name);
             fs::create_dir_all(&src_dir)?;
             fs::write(src_dir.join("Client.swift"), "// TODO: implement\n")?;
-            let test_dir = output_path.join("Tests").join(format!("{}_tests", snake_name));
+            let test_dir = output_path
+                .join("Tests")
+                .join(format!("{snake_name}_tests"));
             fs::create_dir_all(&test_dir)?;
-            fs::write(test_dir.join("ClientTests.swift"), "// TODO: implement tests\n")?;
+            fs::write(
+                test_dir.join("ClientTests.swift"),
+                "// TODO: implement tests\n",
+            )?;
         }
     }
 
@@ -641,9 +698,9 @@ pub(super) fn generate_database(config: &GenerateConfig, output_path: &Path) -> 
     fs::write(
         output_path.join("database.yaml"),
         format!(
-            r#"name: {}
+            r"name: {}
 rdbms: {}
-"#,
+",
             db_name,
             rdbms.as_str()
         ),
@@ -661,13 +718,12 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -o /bin/{} ./cmd/
+RUN CGO_ENABLED=0 go build -o /bin/{service_name} ./cmd/
 
 FROM alpine:3.19
-COPY --from=builder /bin/{} /bin/{}
-ENTRYPOINT ["/bin/{}"]
-"#,
-        service_name, service_name, service_name, service_name
+COPY --from=builder /bin/{service_name} /bin/{service_name}
+ENTRYPOINT ["/bin/{service_name}"]
+"#
     )
 }
 
@@ -679,10 +735,9 @@ COPY . .
 RUN cargo build --release
 
 FROM debian:bookworm-slim
-COPY --from=builder /app/target/release/{} /usr/local/bin/{}
-ENTRYPOINT ["{}"]
-"#,
-        service_name, service_name, service_name
+COPY --from=builder /app/target/release/{service_name} /usr/local/bin/{service_name}
+ENTRYPOINT ["{service_name}"]
+"#
     )
 }
 
@@ -690,11 +745,10 @@ pub(super) fn generate_openapi_stub(service_name: &str) -> String {
     format!(
         r#"openapi: "3.0.3"
 info:
-  title: {} API
+  title: {service_name} API
   version: "0.1.0"
 paths: {{}}
-"#,
-        service_name
+"#
     )
 }
 
@@ -703,25 +757,23 @@ pub(super) fn generate_proto_stub(service_name: &str) -> String {
     format!(
         r#"syntax = "proto3";
 
-package {};
+package {pkg};
 
-service {}Service {{
+service {pkg}Service {{
   // TODO: RPC メソッドを定義
 }}
-"#,
-        pkg, pkg
+"#
     )
 }
 
 pub(super) fn generate_graphql_stub(service_name: &str) -> String {
     format!(
-        r#"# {} GraphQL Schema
+        r"# {service_name} GraphQL Schema
 
 type Query {{
   hello: String!
 }}
-"#,
-        service_name
+"
     )
 }
 

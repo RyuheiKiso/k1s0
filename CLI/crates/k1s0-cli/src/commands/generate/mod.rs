@@ -1,13 +1,15 @@
-mod types;
-mod steps;
 mod execute;
 mod helpers;
+mod steps;
+mod types;
 pub use types::*;
 
-use anyhow::Result;
 use crate::prompt::{self, ConfirmResult};
+use anyhow::Result;
 
-use steps::{StepResult, step_kind, step_tier, step_placement, step_lang_fw, step_detail, print_confirmation};
+use steps::{
+    print_confirmation, step_detail, step_kind, step_lang_fw, step_placement, step_tier, StepResult,
+};
 
 // ============================================================================
 // ステートマシン
@@ -27,7 +29,7 @@ enum Step {
 /// Placement ステップがスキップされたかどうかを判定する。
 ///
 /// System Tier の場合は配置先指定がスキップされるため、
-/// LangFw ステップから Esc で戻るときの戻り先を Tier にする。
+/// `LangFw` ステップから Esc で戻るときの戻り先を Tier にする。
 fn placement_was_skipped(tier: Tier) -> bool {
     tier == Tier::System
 }
@@ -41,6 +43,10 @@ fn placement_was_skipped(tier: Tier) -> bool {
 /// CLIフロー.md の「ひな形生成」セクションに完全準拠。
 /// 各ステップで Esc を押すと前のステップに戻る。
 /// 最初のステップで Esc → メインメニューに戻る。
+///
+/// # Errors
+///
+/// プロンプトの入出力に失敗した場合、またはひな形生成に失敗した場合にエラーを返す。
 pub fn run() -> Result<()> {
     println!("\n--- ひな形生成 ---\n");
 
@@ -102,7 +108,7 @@ pub fn run() -> Result<()> {
                 }
             },
 
-            Step::Detail => match step_detail(kind, tier, &placement, &lang_fw)? {
+            Step::Detail => match step_detail(kind, tier, placement.as_deref(), &lang_fw)? {
                 Some(d) => {
                     detail = d;
                     step = Step::Confirm;

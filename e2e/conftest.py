@@ -1,5 +1,7 @@
 """k1s0 E2E テスト共通設定"""
+
 import os
+
 import pytest
 import requests
 

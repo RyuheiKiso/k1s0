@@ -65,20 +65,17 @@ fn test_grafana_file_list() {
 
     assert!(
         names.iter().any(|n| n.contains("dashboard-overview.yaml")),
-        "dashboard-overview.yaml missing. Generated: {:?}",
-        names
+        "dashboard-overview.yaml missing. Generated: {names:?}"
     );
     assert!(
         names
             .iter()
             .any(|n| n.contains("dashboard-service-detail.yaml")),
-        "dashboard-service-detail.yaml missing. Generated: {:?}",
-        names
+        "dashboard-service-detail.yaml missing. Generated: {names:?}"
     );
     assert!(
         names.iter().any(|n| n.contains("dashboard-slo.yaml")),
-        "dashboard-slo.yaml missing. Generated: {:?}",
-        names
+        "dashboard-slo.yaml missing. Generated: {names:?}"
     );
 }
 
@@ -96,8 +93,7 @@ fn test_overview_has_service_name() {
     let content = read_output(&tmp, "dashboard-overview.yaml");
     assert!(
         content.contains("order-api"),
-        "Overview dashboard should contain service name\n--- dashboard-overview.yaml ---\n{}",
-        content
+        "Overview dashboard should contain service name\n--- dashboard-overview.yaml ---\n{content}"
     );
 }
 
@@ -111,8 +107,7 @@ fn test_overview_has_namespace() {
     let content = read_output(&tmp, "dashboard-overview.yaml");
     assert!(
         content.contains("k1s0-service"),
-        "Overview dashboard should contain namespace\n--- dashboard-overview.yaml ---\n{}",
-        content
+        "Overview dashboard should contain namespace\n--- dashboard-overview.yaml ---\n{content}"
     );
 }
 
@@ -126,8 +121,7 @@ fn test_overview_has_grafana_dashboard_label() {
     let content = read_output(&tmp, "dashboard-overview.yaml");
     assert!(
         content.contains("grafana_dashboard"),
-        "Overview dashboard should have grafana_dashboard label\n--- dashboard-overview.yaml ---\n{}",
-        content
+        "Overview dashboard should have grafana_dashboard label\n--- dashboard-overview.yaml ---\n{content}"
     );
 }
 
@@ -141,8 +135,7 @@ fn test_overview_system_error_threshold() {
     let content = read_output(&tmp, "dashboard-overview.yaml");
     assert!(
         content.contains("0.01"),
-        "System tier should have error threshold 0.01 (1%)\n--- dashboard-overview.yaml ---\n{}",
-        content
+        "System tier should have error threshold 0.01 (1%)\n--- dashboard-overview.yaml ---\n{content}"
     );
 }
 
@@ -156,8 +149,7 @@ fn test_overview_business_error_threshold() {
     let content = read_output(&tmp, "dashboard-overview.yaml");
     assert!(
         content.contains("0.05"),
-        "Business tier should have error threshold 0.05 (5%)\n--- dashboard-overview.yaml ---\n{}",
-        content
+        "Business tier should have error threshold 0.05 (5%)\n--- dashboard-overview.yaml ---\n{content}"
     );
 }
 
@@ -175,8 +167,7 @@ fn test_slo_has_service_name() {
     let content = read_output(&tmp, "dashboard-slo.yaml");
     assert!(
         content.contains("order-api"),
-        "SLO dashboard should contain service name\n--- dashboard-slo.yaml ---\n{}",
-        content
+        "SLO dashboard should contain service name\n--- dashboard-slo.yaml ---\n{content}"
     );
 }
 
@@ -190,8 +181,7 @@ fn test_slo_system_availability_target() {
     let content = read_output(&tmp, "dashboard-slo.yaml");
     assert!(
         content.contains("0.9995"),
-        "System tier should have availability target 0.9995\n--- dashboard-slo.yaml ---\n{}",
-        content
+        "System tier should have availability target 0.9995\n--- dashboard-slo.yaml ---\n{content}"
     );
 }
 
@@ -205,8 +195,7 @@ fn test_slo_business_availability_target() {
     let content = read_output(&tmp, "dashboard-slo.yaml");
     assert!(
         content.contains("0.999"),
-        "Business tier should have availability target 0.999\n--- dashboard-slo.yaml ---\n{}",
-        content
+        "Business tier should have availability target 0.999\n--- dashboard-slo.yaml ---\n{content}"
     );
 }
 
@@ -220,8 +209,7 @@ fn test_slo_system_latency_target() {
     let content = read_output(&tmp, "dashboard-slo.yaml");
     assert!(
         content.contains("vector(0.2)"),
-        "System tier should have P99 latency target 200ms\n--- dashboard-slo.yaml ---\n{}",
-        content
+        "System tier should have P99 latency target 200ms\n--- dashboard-slo.yaml ---\n{content}"
     );
 }
 
@@ -235,8 +223,7 @@ fn test_slo_business_latency_target() {
     let content = read_output(&tmp, "dashboard-slo.yaml");
     assert!(
         content.contains("vector(0.5)"),
-        "Business tier should have P99 latency target 500ms\n--- dashboard-slo.yaml ---\n{}",
-        content
+        "Business tier should have P99 latency target 500ms\n--- dashboard-slo.yaml ---\n{content}"
     );
 }
 
@@ -250,8 +237,7 @@ fn test_slo_service_latency_target() {
     let content = read_output(&tmp, "dashboard-slo.yaml");
     assert!(
         content.contains("vector(1.0)"),
-        "Service tier should have P99 latency target 1s\n--- dashboard-slo.yaml ---\n{}",
-        content
+        "Service tier should have P99 latency target 1s\n--- dashboard-slo.yaml ---\n{content}"
     );
 }
 
@@ -269,8 +255,7 @@ fn test_service_detail_has_service_name() {
     let content = read_output(&tmp, "dashboard-service-detail.yaml");
     assert!(
         content.contains("order-api"),
-        "Service Detail dashboard should contain service name\n--- dashboard-service-detail.yaml ---\n{}",
-        content
+        "Service Detail dashboard should contain service name\n--- dashboard-service-detail.yaml ---\n{content}"
     );
 }
 
@@ -284,8 +269,7 @@ fn test_service_detail_has_server_port() {
     let content = read_output(&tmp, "dashboard-service-detail.yaml");
     assert!(
         content.contains("3000"),
-        "Service Detail dashboard should contain server_port\n--- dashboard-service-detail.yaml ---\n{}",
-        content
+        "Service Detail dashboard should contain server_port\n--- dashboard-service-detail.yaml ---\n{content}"
     );
 }
 
@@ -302,15 +286,7 @@ fn test_grafana_no_tera_syntax() {
 
     for name in &names {
         let content = read_output(&tmp, name);
-        assert!(
-            !content.contains("{%"),
-            "Tera block syntax found in {}",
-            name
-        );
-        assert!(
-            !content.contains("{#"),
-            "Tera comment found in {}",
-            name
-        );
+        assert!(!content.contains("{%"), "Tera block syntax found in {name}");
+        assert!(!content.contains("{#"), "Tera comment found in {name}");
     }
 }
