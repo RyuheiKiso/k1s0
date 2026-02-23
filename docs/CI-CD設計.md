@@ -57,6 +57,7 @@ jobs:
       dart: ${{ steps.filter.outputs.dart }}
       python: ${{ steps.filter.outputs.python }}
       csharp: ${{ steps.filter.outputs.csharp }}
+      swift: ${{ steps.filter.outputs.swift }}
       helm: ${{ steps.filter.outputs.helm }}
     steps:
       - uses: actions/checkout@v4
@@ -77,6 +78,8 @@ jobs:
               - 'e2e/**'
             csharp:
               - 'regions/**/csharp/**'
+            swift:
+              - 'regions/**/swift/**'
             helm:
               - 'infra/helm/**'
 
@@ -143,6 +146,21 @@ jobs:
       - run: dotnet restore
       - run: dotnet format --verify-no-changes
       - run: dotnet build --no-restore -warnaserror
+
+  lint-swift:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.swift == 'true'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift-format lint --recursive .
+
+  test-swift:
+    needs: lint-swift
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test --parallel
 
   test-rust:
     needs: lint-rust
@@ -223,6 +241,7 @@ jobs:
       - test-rust
       - test-ts
       - test-dart
+      - test-swift
     if: always() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     steps:

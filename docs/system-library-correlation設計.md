@@ -214,4 +214,57 @@ public static class CorrelationHeaders
 - [system-library-kafka設計](system-library-kafka設計.md) — k1s0-kafka ライブラリ
 - [system-library-outbox設計](system-library-outbox設計.md) — k1s0-outbox ライブラリ
 - [system-library-schemaregistry設計](system-library-schemaregistry設計.md) — k1s0-schemaregistry ライブラリ
+
+---
+
+## Swift
+
+### パッケージ構成
+- ターゲット: `K1s0Correlation`
+- Swift 6.0 / swift-tools-version: 6.0
+- プラットフォーム: macOS 14+, iOS 17+
+
+### 主要な公開API
+```swift
+// 相関 ID（UUID v4 ラッパー）
+public struct CorrelationId: Hashable, Sendable, CustomStringConvertible {
+    public let value: UUID
+    public init()
+    public init?(string: String)
+    public var description: String { value.uuidString }
+}
+
+// トレース ID（32 文字 hex）
+public struct TraceId: Hashable, Sendable, CustomStringConvertible {
+    public let value: String
+    public init()
+    public init?(hex: String)
+    public var description: String { value }
+}
+
+// 相関コンテキスト
+public struct CorrelationContext: Sendable {
+    public let correlationId: CorrelationId
+    public let traceId: TraceId
+    public let parentId: String?
+    public init(correlationId: CorrelationId = .init(), traceId: TraceId = .init(), parentId: String? = nil)
+}
+
+// HTTP ヘッダー定数
+public enum CorrelationHeaders {
+    public static let correlationId = "X-Correlation-Id"
+    public static let traceId = "X-Trace-Id"
+    public static let parentId = "X-Parent-Id"
+
+    public static func extract(from headers: [String: String]) -> CorrelationContext?
+    public static func inject(_ context: CorrelationContext, into headers: inout [String: String])
+}
+```
+
+### エラー型
+なし（不正な値は `Optional` で対応）
+
+### テスト
+- Swift Testing フレームワーク（@Suite, @Test, #expect）
+- カバレッジ目標: 80%以上
 - [system-library-serviceauth設計](system-library-serviceauth設計.md) — k1s0-serviceauth ライブラリ

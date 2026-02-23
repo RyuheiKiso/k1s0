@@ -295,4 +295,69 @@ public enum OutboxStatus
 - [system-library-kafka設計](system-library-kafka設計.md) — k1s0-kafka ライブラリ
 - [system-library-correlation設計](system-library-correlation設計.md) — k1s0-correlation ライブラリ
 - [system-library-schemaregistry設計](system-library-schemaregistry設計.md) — k1s0-schemaregistry ライブラリ
+
+---
+
+## Swift
+
+### パッケージ構成
+- ターゲット: `K1s0Outbox`
+- Swift 6.0 / swift-tools-version: 6.0
+- プラットフォーム: macOS 14+, iOS 17+
+
+### 主要な公開API
+```swift
+// アウトボックスメッセージ（指数バックオフリトライ対応）
+public struct OutboxMessage: Codable, Sendable, Identifiable {
+    public let id: UUID
+    public let topic: String
+    public let key: String?
+    public let payload: Data
+    public let status: OutboxStatus
+    public let retryCount: Int
+    public let createdAt: Date
+    public let scheduledAt: Date
+}
+
+public enum OutboxStatus: String, Codable, Sendable {
+    case pending
+    case processing
+    case published
+    case failed
+}
+
+// アウトボックスストアプロトコル
+public protocol OutboxStore: Sendable {
+    func save(_ message: OutboxMessage) async throws
+    func fetchPending(limit: Int) async throws -> [OutboxMessage]
+    func markPublished(id: UUID) async throws
+    func markFailed(id: UUID, reason: String) async throws
+}
+
+// イベント発行プロトコル
+public protocol OutboxPublisher: Sendable {
+    func publish(_ message: OutboxMessage) async throws
+}
+
+// アウトボックス処理器（actor で並行安全）
+public actor OutboxProcessor {
+    public init(store: any OutboxStore, publisher: any OutboxPublisher, pollingInterval: Duration = .seconds(5))
+    public func start() async
+    public func stop()
+}
+```
+
+### エラー型
+```swift
+public enum OutboxError: Error, Sendable {
+    case saveFailed(underlying: Error)
+    case publishFailed(messageId: UUID, underlying: Error)
+    case maxRetriesExceeded(messageId: UUID)
+    case storeUnavailable(underlying: Error)
+}
+```
+
+### テスト
+- Swift Testing フレームワーク（@Suite, @Test, #expect）
+- カバレッジ目標: 80%以上
 - [system-library-serviceauth設計](system-library-serviceauth設計.md) — k1s0-serviceauth ライブラリ

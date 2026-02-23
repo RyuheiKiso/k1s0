@@ -493,3 +493,104 @@ fn test_library_python_test_has_error_cases() {
     let content = read_output(&tmp, "tests/test_shared_utils.py");
     assert!(content.contains("Error") || content.contains("error"), "Python test should contain error test cases");
 }
+
+// =========================================================================
+// Swift ライブラリ
+// =========================================================================
+
+#[test]
+fn test_library_swift_file_list() {
+    let (_, names) = render_library("swift");
+
+    assert!(names.iter().any(|n| n == "Package.swift"), "Package.swift missing");
+    assert!(
+        names.iter().any(|n| n == "Sources/shared_utils/Client.swift"),
+        "Client.swift missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "Sources/shared_utils/LibError.swift"),
+        "LibError.swift missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "Sources/shared_utils/Config.swift"),
+        "Config.swift missing"
+    );
+    assert!(
+        names.iter().any(|n| n == "Tests/shared_utils_tests/ClientTests.swift"),
+        "ClientTests.swift missing"
+    );
+    assert!(names.iter().any(|n| n == "README.md"), "README.md missing");
+}
+
+#[test]
+fn test_library_swift_no_tera_syntax() {
+    let (tmp, names) = render_library("swift");
+
+    for name in &names {
+        let content = read_output(&tmp, name);
+        assert!(!content.contains("{{"), "Tera syntax {{{{ found in {}", name);
+        assert!(!content.contains("{%"), "Tera syntax {{%% found in {}", name);
+        assert!(!content.contains("{#"), "Tera comment {{# found in {}", name);
+    }
+}
+
+#[test]
+fn test_library_swift_service_name_substitution() {
+    let (tmp, _) = render_library("swift");
+
+    let package = read_output(&tmp, "Package.swift");
+    assert!(
+        package.contains("k1s0-shared-utils"),
+        "Package name not substituted"
+    );
+    assert!(
+        package.contains("K1s0SharedUtils"),
+        "Target name not substituted"
+    );
+}
+
+#[test]
+fn test_library_swift_package_content() {
+    let (tmp, _) = render_library("swift");
+    let content = read_output(&tmp, "Package.swift");
+
+    assert!(content.contains("swift-tools-version"));
+    assert!(content.contains(".library("));
+    assert!(content.contains(".testTarget("));
+}
+
+#[test]
+fn test_library_swift_has_lib_error() {
+    let (tmp, _) = render_library("swift");
+    let content = read_output(&tmp, "Sources/shared_utils/LibError.swift");
+
+    assert!(content.contains("LibError"), "Swift library should contain LibError");
+    assert!(content.contains("enum LibError"), "Swift LibError should be an enum");
+}
+
+#[test]
+fn test_library_swift_has_validate() {
+    let (tmp, _) = render_library("swift");
+    let content = read_output(&tmp, "Sources/shared_utils/Config.swift");
+
+    assert!(content.contains("validate"), "Swift Config should have validate() method");
+}
+
+#[test]
+fn test_library_swift_test_has_error_cases() {
+    let (tmp, _) = render_library("swift");
+    let content = read_output(&tmp, "Tests/shared_utils_tests/ClientTests.swift");
+
+    assert!(
+        content.contains("LibError") || content.contains("error"),
+        "Swift test should contain error test cases"
+    );
+}
+
+#[test]
+fn test_library_swift_readme_content() {
+    let (tmp, _) = render_library("swift");
+    let content = read_output(&tmp, "README.md");
+
+    assert!(content.contains("shared-utils"));
+}

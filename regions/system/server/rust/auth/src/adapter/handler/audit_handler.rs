@@ -6,7 +6,9 @@ use axum::{
 };
 
 use super::{AppState, ErrorResponse};
-use crate::domain::entity::audit_log::CreateAuditLogRequest;
+use crate::domain::entity::audit_log::{
+    AuditLogSearchResult, CreateAuditLogRequest, CreateAuditLogResponse,
+};
 use crate::usecase::search_audit_logs::SearchAuditLogsQueryParams;
 
 #[utoipa::path(

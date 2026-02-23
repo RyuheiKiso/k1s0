@@ -86,6 +86,12 @@ variable "jaeger_version" {
   default     = "0.71.0"
 }
 
+variable "otel_collector_version" {
+  description = "OpenTelemetry Collector Helm chart version"
+  type        = string
+  default     = "0.90.0"
+}
+
 # --- Messaging (Kafka) ---
 variable "strimzi_operator_version" {
   description = "Strimzi Kafka Operator Helm chart version"
@@ -246,4 +252,11 @@ variable "flagger_version" {
   description = "Flagger Helm chart version"
   type        = string
   default     = "1.35.0"
+}
+
+# --- Keycloak ---
+variable "keycloak_url" {
+  description = "Keycloak server URL"
+  type        = string
+  default     = "https://keycloak.k1s0-system.svc.cluster.local:8443"
 }

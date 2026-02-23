@@ -732,6 +732,14 @@ Saga の状態遷移時に以下のイベントを `k1s0.system.saga.events.v1` 
 | `postgres_repository_test.rs` | PostgreSQL | DB 操作の検証（`#[ignore]`） |
 | `kafka_integration_test.rs` | Kafka | イベント発行の検証（`#[ignore]`） |
 
+`integration_test.rs` の補償フロー関連テストケース:
+
+| テスト名 | 内容 |
+|---------|------|
+| `test_get_compensating_saga_returns_compensating_status` | COMPENSATING 状態の Saga を取得すると status=COMPENSATING が返る |
+| `test_get_failed_saga_returns_error_message` | FAILED 状態の Saga には error_message が含まれる |
+| `test_get_saga_step_logs_include_compensate_action` | 補償後のステップログに EXECUTE と COMPENSATE の両アクションが記録される |
+
 ---
 
 ## 関連ドキュメント

@@ -398,6 +398,209 @@ environment:
                 format!("library {};\n", lib_name.replace('-', "_")),
             )?;
         }
+        Language::Python => {
+            let snake_name = lib_name.replace('-', "_");
+            let pascal_name = snake_name
+                .split('_')
+                .map(|s| {
+                    let mut c = s.chars();
+                    match c.next() {
+                        None => String::new(),
+                        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+                    }
+                })
+                .collect::<String>();
+
+            fs::write(
+                output_path.join("pyproject.toml"),
+                format!(
+                    r#"[project]
+name = "k1s0-{}"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/k1s0_{}"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 85
+"#,
+                    lib_name, snake_name
+                ),
+            )?;
+
+            let src_pkg_dir = output_path.join("src").join(format!("k1s0_{}", snake_name));
+            fs::create_dir_all(&src_pkg_dir)?;
+
+            fs::write(
+                src_pkg_dir.join("__init__.py"),
+                format!(
+                    r#""""k1s0-{} ライブラリ"""
+from .{} import Client, Config
+from .exceptions import {}Error
+
+__all__ = ["Client", "Config", "{}Error"]
+"#,
+                    lib_name, snake_name, pascal_name, pascal_name
+                ),
+            )?;
+
+            fs::write(
+                src_pkg_dir.join("exceptions.py"),
+                format!(
+                    r#""""{} ライブラリの例外型定義"""
+from __future__ import annotations
+
+
+class {}Error(Exception):
+    """{}ライブラリのエラー基底クラス。"""
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        cause: Exception | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        if cause is not None:
+            self.__cause__ = cause
+
+    def __str__(self) -> str:
+        return f"{{self.code}}: {{super().__str__()}}"
+"#,
+                    lib_name, pascal_name, pascal_name
+                ),
+            )?;
+
+            fs::write(
+                src_pkg_dir.join(format!("{}.py", snake_name)),
+                format!(
+                    r#""""{} ライブラリの実装"""
+from __future__ import annotations
+
+from .exceptions import {}Error
+
+
+class Config:
+    """ライブラリの設定クラス。"""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def validate(self) -> None:
+        """バリデーションを行う。"""
+        if not self.name:
+            raise {}Error(
+                code="INVALID_CONFIG",
+                message="name is required",
+            )
+
+
+class Client:
+    """{} クライアント。"""
+
+    def __init__(self, config: Config) -> None:
+        self._config = config
+
+    @property
+    def name(self) -> str:
+        """設定名を返す。"""
+        return self._config.name
+"#,
+                    lib_name, pascal_name, pascal_name, lib_name
+                ),
+            )?;
+
+            let tests_dir = output_path.join("tests");
+            fs::create_dir_all(&tests_dir)?;
+            fs::write(tests_dir.join("__init__.py"), "")?;
+
+            fs::write(
+                tests_dir.join(format!("test_{}.py", snake_name)),
+                format!(
+                    r#""""{} ライブラリのユニットテスト"""
+import pytest
+from k1s0_{}.{} import Client, Config
+from k1s0_{}.exceptions import {}Error
+
+
+def test_client_name() -> None:
+    config = Config(name="test")
+    client = Client(config=config)
+    assert client.name == "test"
+
+
+def test_validate_ok() -> None:
+    config = Config(name="test")
+    config.validate()  # should not raise
+
+
+def test_validate_error() -> None:
+    config = Config(name="")
+    with pytest.raises({}Error) as exc_info:
+        config.validate()
+    assert exc_info.value.code == "INVALID_CONFIG"
+"#,
+                    lib_name, snake_name, snake_name, snake_name, pascal_name, pascal_name
+                ),
+            )?;
+
+            fs::write(
+                output_path.join("README.md"),
+                format!("# k1s0-{}\n\nk1s0 {} Python ライブラリ\n", lib_name, lib_name),
+            )?;
+        }
+        Language::Swift => {
+            let snake_name = lib_name.replace('-', "_");
+            fs::write(
+                output_path.join("Package.swift"),
+                format!(
+                    r#"// swift-tools-version: 6.0
+import PackageDescription
+
+let package = Package(
+    name: "k1s0-{}",
+    platforms: [.macOS(.v14), .iOS(.v17)],
+    products: [
+        .library(name: "K1s0{}", targets: ["K1s0{}"]),
+    ],
+    targets: [
+        .target(name: "K1s0{}", path: "Sources/{}"),
+        .testTarget(name: "K1s0{}Tests", dependencies: ["K1s0{}"], path: "Tests/{}_tests"),
+    ]
+)
+"#,
+                    lib_name,
+                    snake_name.replace('_', "").chars().enumerate().map(|(i, c)| if i == 0 { c.to_uppercase().next().unwrap_or(c) } else { c }).collect::<String>(),
+                    snake_name.replace('_', "").chars().enumerate().map(|(i, c)| if i == 0 { c.to_uppercase().next().unwrap_or(c) } else { c }).collect::<String>(),
+                    snake_name.replace('_', "").chars().enumerate().map(|(i, c)| if i == 0 { c.to_uppercase().next().unwrap_or(c) } else { c }).collect::<String>(),
+                    snake_name,
+                    snake_name.replace('_', "").chars().enumerate().map(|(i, c)| if i == 0 { c.to_uppercase().next().unwrap_or(c) } else { c }).collect::<String>(),
+                    snake_name.replace('_', "").chars().enumerate().map(|(i, c)| if i == 0 { c.to_uppercase().next().unwrap_or(c) } else { c }).collect::<String>(),
+                    snake_name,
+                ),
+            )?;
+            let src_dir = output_path.join("Sources").join(&snake_name);
+            fs::create_dir_all(&src_dir)?;
+            fs::write(src_dir.join("Client.swift"), "// TODO: implement\n")?;
+            let test_dir = output_path.join("Tests").join(format!("{}_tests", snake_name));
+            fs::create_dir_all(&test_dir)?;
+            fs::write(test_dir.join("ClientTests.swift"), "// TODO: implement tests\n")?;
+        }
     }
 
     Ok(())

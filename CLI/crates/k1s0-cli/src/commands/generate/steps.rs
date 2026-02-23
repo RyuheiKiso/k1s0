@@ -88,7 +88,7 @@ pub(super) fn step_lang_fw(kind: Kind) -> Result<Option<LangFw>> {
             }))
         }
         Kind::Library => {
-            let items = &["Go", "Rust", "TypeScript", "Dart"];
+            let items = &["Go", "Rust", "TypeScript", "Dart", "Python", "Swift"];
             let idx = prompt::select_prompt("言語を選択してください", items)?;
             Ok(idx.map(|i| {
                 LangFw::Language(match i {
@@ -96,6 +96,8 @@ pub(super) fn step_lang_fw(kind: Kind) -> Result<Option<LangFw>> {
                     1 => Language::Rust,
                     2 => Language::TypeScript,
                     3 => Language::Dart,
+                    4 => Language::Python,
+                    5 => Language::Swift,
                     _ => unreachable!(),
                 })
             }))

@@ -1,7 +1,8 @@
 # system-library 概要
 
 system tier が提供する共通ライブラリの設計を定義する。
-全ライブラリは Go / Rust / TypeScript / Dart / C# の 5 言語で平等に実装する。
+全ライブラリは Go / Rust / TypeScript / Dart / C# / Swift の 6 言語で平等に実装する。
+Swift 実装は Swift Package Manager（SPM）を用い、iOS / macOS ネイティブクライアントおよび Swift サーバーサイド（Vapor 等）向けの共有ライブラリとして提供する。Swift 6 Concurrency（actor / Sendable）に準拠し、型安全な非同期 API を設計する。
 
 ## ライブラリ一覧
 
@@ -32,6 +33,7 @@ system tier が提供する共通ライブラリの設計を定義する。
 | TypeScript | vitest + expect | MSW | vitest |
 | Dart | test + expect | mocktail | test |
 | C# | xUnit + Assert | NSubstitute | WireMock.Net + Testcontainers |
+| Swift | Swift Testing (@Suite, @Test) | Swift Concurrency + protocol | Swift Testing |
 
 ### テストカバレッジ目標
 

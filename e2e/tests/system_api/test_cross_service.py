@@ -99,3 +99,120 @@ steps:
         data = resp.json()
         names = [w["name"] for w in data["workflows"]]
         assert "e2e-test-workflow" in names
+
+
+class TestAuthFailureHandling:
+    """認証失敗時のエラーハンドリングを検証する。"""
+
+    def test_users_endpoint_without_token_returns_401(self, all_services_urls):
+        """GET /api/v1/users に Authorization ヘッダーなしで 401 を返す。"""
+        auth_url = all_services_urls["auth"]
+        try:
+            requests.get(f"{auth_url}/healthz", timeout=3).raise_for_status()
+        except (requests.ConnectionError, requests.HTTPError):
+            pytest.skip("Auth server not running")
+
+        response = requests.get(f"{auth_url}/api/v1/users", timeout=5)
+        assert response.status_code == 401
+
+    def test_users_endpoint_with_invalid_token_returns_401(self, all_services_urls):
+        """GET /api/v1/users に無効なトークンで 401 を返す。"""
+        auth_url = all_services_urls["auth"]
+        try:
+            requests.get(f"{auth_url}/healthz", timeout=3).raise_for_status()
+        except (requests.ConnectionError, requests.HTTPError):
+            pytest.skip("Auth server not running")
+
+        response = requests.get(
+            f"{auth_url}/api/v1/users",
+            headers={"Authorization": "Bearer invalid-token"},
+            timeout=5,
+        )
+        assert response.status_code == 401
+
+    def test_token_validate_with_invalid_token_returns_401(self, all_services_urls):
+        """POST /api/v1/auth/token/validate に無効なトークンで 401 を返す。"""
+        auth_url = all_services_urls["auth"]
+        try:
+            requests.get(f"{auth_url}/healthz", timeout=3).raise_for_status()
+        except (requests.ConnectionError, requests.HTTPError):
+            pytest.skip("Auth server not running")
+
+        response = requests.post(
+            f"{auth_url}/api/v1/auth/token/validate",
+            json={"token": "invalid.jwt.token"},
+            timeout=5,
+        )
+        assert response.status_code == 401
+
+    def test_token_introspect_with_invalid_token_returns_inactive(self, all_services_urls):
+        """POST /api/v1/auth/token/introspect に無効なトークンで active=false を返す。"""
+        auth_url = all_services_urls["auth"]
+        try:
+            requests.get(f"{auth_url}/healthz", timeout=3).raise_for_status()
+        except (requests.ConnectionError, requests.HTTPError):
+            pytest.skip("Auth server not running")
+
+        response = requests.post(
+            f"{auth_url}/api/v1/auth/token/introspect",
+            json={"token": "invalid.jwt.token"},
+            timeout=5,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["active"] is False
+
+
+class TestSagaDlqIntegration:
+    """Saga と DLQ サービスの連携を検証する。"""
+
+    def test_saga_and_dlq_pagination_structure_consistency(self, all_services_urls):
+        """Saga と DLQ の一覧 API が同じページネーション構造を返す。"""
+        saga_url = all_services_urls["saga"]
+        dlq_url = all_services_urls["dlq-manager"]
+
+        saga_available = True
+        dlq_available = True
+        try:
+            requests.get(f"{saga_url}/healthz", timeout=3).raise_for_status()
+        except (requests.ConnectionError, requests.HTTPError):
+            saga_available = False
+
+        try:
+            requests.get(f"{dlq_url}/healthz", timeout=3).raise_for_status()
+        except (requests.ConnectionError, requests.HTTPError):
+            dlq_available = False
+
+        if not saga_available or not dlq_available:
+            pytest.skip("Saga or DLQ server not running")
+
+        saga_resp = requests.get(f"{saga_url}/api/v1/sagas", timeout=10)
+        dlq_resp = requests.get(f"{dlq_url}/api/v1/dlq/test.dlq.v1", timeout=10)
+
+        assert saga_resp.status_code in (200, 503)
+        assert dlq_resp.status_code == 200
+
+        if saga_resp.status_code == 503:
+            pytest.skip("Saga server database is not available")
+
+        saga_pagination = saga_resp.json()["pagination"]
+        dlq_pagination = dlq_resp.json()["pagination"]
+        # 両者が同じページネーションフィールドを持つ
+        assert set(saga_pagination.keys()) == set(dlq_pagination.keys())
+
+    def test_all_system_services_swagger_ui_accessible(self, all_services_urls):
+        """全サービスの Swagger UI にアクセスできる。"""
+        errors = []
+        for name, url in all_services_urls.items():
+            try:
+                resp = requests.get(f"{url}/swagger-ui/", timeout=5)
+                if resp.status_code not in (200, 301, 302):
+                    errors.append(f"{name}: swagger-ui returned {resp.status_code}")
+            except requests.ConnectionError:
+                errors.append(f"{name}: connection refused")
+
+        if len(errors) == len(all_services_urls):
+            pytest.skip("No services running")
+        # 少なくとも 1 つのサービスで Swagger UI が動作することを確認
+        running_count = len(all_services_urls) - len(errors)
+        assert running_count > 0

@@ -419,6 +419,9 @@ fn determine_post_commands(config: &GenerateConfig) -> Vec<(&'static str, Vec<&'
                 LangFw::Language(Language::Dart) => {
                     commands.push(("flutter", vec!["pub", "get"]));
                 }
+                LangFw::Language(Language::Python) => {
+                    commands.push(("pip", vec!["install", "-e", "."]));
+                }
                 _ => {}
             }
         }

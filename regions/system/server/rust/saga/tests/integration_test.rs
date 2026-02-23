@@ -10,6 +10,9 @@ use tower::ServiceExt;
 
 use k1s0_saga_server::adapter::handler;
 use k1s0_saga_server::adapter::repository::workflow_in_memory::InMemoryWorkflowRepository;
+use k1s0_saga_server::domain::entity::saga_state::SagaState;
+use k1s0_saga_server::domain::entity::saga_step_log::{SagaStepLog, StepAction};
+use k1s0_saga_server::domain::repository::SagaRepository;
 use k1s0_saga_server::test_support::{make_test_app_state, InMemorySagaRepository};
 
 /// テスト用ワークフローYAML
@@ -451,6 +454,170 @@ async fn test_cancel_saga() {
         "expected OK or CONFLICT, got {}",
         status
     );
+}
+
+// ---------------------------------------------------------------------------
+// Saga 補償トランザクション検証
+// ---------------------------------------------------------------------------
+
+/// COMPENSATING 状態の Saga を API で取得すると正しいステータスとエラーメッセージが返ること。
+#[tokio::test]
+async fn test_get_compensating_saga_returns_compensating_status() {
+    let (_, saga_repo, workflow_repo) = make_app_with_repos();
+
+    // COMPENSATING 状態の Saga を直接リポジトリに挿入
+    let mut saga = SagaState::new(
+        "order-workflow".to_string(),
+        serde_json::json!({"order_id": "order-999"}),
+        Some("corr-comp-001".to_string()),
+        Some("test-user".to_string()),
+    );
+    saga.start_compensation("reserve-inventory step failed".to_string());
+    let saga_id = saga.saga_id;
+    saga_repo.create(&saga).await.unwrap();
+
+    // GET /api/v1/sagas/{id}
+    let app = rebuild_app(saga_repo, workflow_repo);
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/v1/sagas/{}", saga_id))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(json["saga"]["status"], "COMPENSATING");
+    assert_eq!(
+        json["saga"]["error_message"],
+        "reserve-inventory step failed"
+    );
+}
+
+/// FAILED 状態の Saga を API で取得すると error_message が返ること。
+#[tokio::test]
+async fn test_get_failed_saga_returns_error_message() {
+    let (_, saga_repo, workflow_repo) = make_app_with_repos();
+
+    // FAILED 状態の Saga を直接リポジトリに挿入
+    let mut saga = SagaState::new(
+        "order-workflow".to_string(),
+        serde_json::json!({}),
+        None,
+        None,
+    );
+    saga.fail("unrecoverable compensation error".to_string());
+    let saga_id = saga.saga_id;
+    saga_repo.create(&saga).await.unwrap();
+
+    // GET /api/v1/sagas/{id}
+    let app = rebuild_app(saga_repo, workflow_repo);
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/v1/sagas/{}", saga_id))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(json["saga"]["status"], "FAILED");
+    assert!(json["saga"]["is_terminal"].is_null() || json["saga"].get("is_terminal").is_none());
+    assert_eq!(
+        json["saga"]["error_message"],
+        "unrecoverable compensation error"
+    );
+}
+
+/// 補償ステップのログが API レスポンスに含まれること。
+#[tokio::test]
+async fn test_get_saga_step_logs_include_compensate_action() {
+    let (_, saga_repo, workflow_repo) = make_app_with_repos();
+
+    // COMPENSATING 状態の Saga を作成
+    let mut saga = SagaState::new(
+        "order-workflow".to_string(),
+        serde_json::json!({}),
+        None,
+        None,
+    );
+    saga.start_compensation("step 0 failed".to_string());
+    let saga_id = saga.saga_id;
+    saga_repo.create(&saga).await.unwrap();
+
+    // 実行ログ (EXECUTE, FAILED)
+    let mut execute_log = SagaStepLog::new_execute(
+        saga_id,
+        0,
+        "reserve-inventory".to_string(),
+        Some(serde_json::json!({"item_id": "abc"})),
+    );
+    execute_log.mark_failed("service timeout".to_string());
+    saga_repo
+        .update_with_step_log(&saga, &execute_log)
+        .await
+        .unwrap();
+
+    // 補償ログ (COMPENSATE, SUCCESS)
+    let mut compensate_log = SagaStepLog::new_compensate(
+        saga_id,
+        0,
+        "reserve-inventory".to_string(),
+        None,
+    );
+    compensate_log.mark_success(Some(serde_json::json!({"released": true})));
+    saga_repo
+        .update_with_step_log(&saga, &compensate_log)
+        .await
+        .unwrap();
+
+    // GET /api/v1/sagas/{id}
+    let app = rebuild_app(saga_repo, workflow_repo);
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/v1/sagas/{}", saga_id))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+    let step_logs = json["step_logs"].as_array().unwrap();
+    assert_eq!(step_logs.len(), 2, "EXECUTE と COMPENSATE の 2 件のログが返るべき");
+
+    // COMPENSATE アクションのログが含まれることを確認
+    let has_compensate = step_logs
+        .iter()
+        .any(|l| l["action"].as_str() == Some(StepAction::Compensate.to_string().as_str()));
+    assert!(has_compensate, "step_logs に COMPENSATE アクションが含まれるべき");
+
+    // EXECUTE アクションのログも含まれることを確認
+    let has_execute = step_logs
+        .iter()
+        .any(|l| l["action"].as_str() == Some(StepAction::Execute.to_string().as_str()));
+    assert!(has_execute, "step_logs に EXECUTE アクションが含まれるべき");
 }
 
 // ---------------------------------------------------------------------------

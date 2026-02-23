@@ -1086,6 +1086,38 @@ impl Config {
 
 ---
 
+## テスト構成（config-server）
+
+### WatchConfig gRPC Stream テスト
+
+`regions/system/server/rust/config/tests/grpc_stream_test.rs` に外部インテグレーションテストを実装する。
+
+`WatchConfigStreamHandler` のインライン単体テスト（`watch_stream.rs` 内、7件）に加え、複数クライアントシナリオを外部テストで検証する:
+
+| テスト名 | 内容 |
+|---------|------|
+| `test_watch_config_multiple_clients_receive_same_event` | 複数クライアントが同一の設定変更イベントを受信する |
+| `test_watch_config_multiple_clients_independent_namespace_filters` | クライアントごとに独立した namespace フィルタが適用される |
+| `test_watch_config_subscriber_receives_only_post_subscription_events` | サブスクライブ後に発行されたイベントのみ受信する（サブスクライブ前は受信しない） |
+
+`ConfigChangedEvent` の JSON スキーマ例:
+
+```json
+{
+  "namespace": "system",
+  "key": "feature.flags.new_ui",
+  "old_value": false,
+  "new_value": true,
+  "old_version": 3,
+  "new_version": 4,
+  "change_type": "UPDATED"
+}
+```
+
+`change_type` の値: `CREATED`（新規作成）/ `UPDATED`（更新）/ `DELETED`（削除）
+
+---
+
 ## 関連ドキュメント
 
 - [system-config-server設計.md](system-config-server設計.md) -- 概要・API 定義・アーキテクチャ

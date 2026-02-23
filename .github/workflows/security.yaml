@@ -32,6 +32,15 @@ jobs:
             cmd: "cargo audit"
           - lang: node
             cmd: "npm audit --audit-level=high"
+          - lang: swift
+            runs_on: macos-latest
+            cmd: |
+              for lib in regions/system/library/swift/*/; do
+                if [ -f "$lib/Package.swift" ]; then
+                  echo "=== $lib ==="
+                  (cd "$lib" && swift package show-dependencies 2>&1 || true)
+                fi
+              done
     steps:
       - uses: actions/checkout@v4
       - name: Run dependency check (${{ matrix.lang }})

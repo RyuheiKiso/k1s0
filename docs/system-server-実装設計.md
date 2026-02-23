@@ -912,6 +912,30 @@ impl Config {
 
 ---
 
+## テスト構成（auth-server）
+
+### JWKS TTL キャッシュテスト
+
+`regions/system/server/rust/auth/tests/jwks_test.rs` に wiremock を使用した JWKS 取得テストを実装する。
+
+| テスト名 | 内容 |
+|---------|------|
+| `test_jwks_fetch_from_mock_endpoint` | モックエンドポイントから JWKS を取得できる |
+| `test_jwks_fetch_failure_returns_error` | JWKS 取得失敗時にエラーを返す |
+| `test_jwks_cache_invalidation` | `invalidate_cache()` でキャッシュを無効化し再フェッチする |
+| `test_jwks_empty_keys_response` | 空キーレスポンスでエラーを返す |
+| `test_jwks_ttl_zero_always_refetches` | TTL=0 の場合は毎回 JWKS エンドポイントへフェッチする |
+| `test_jwks_long_ttl_reuses_cached_keys` | TTL が十分長い場合は 2 回目以降キャッシュを再利用する（フェッチ 1 回のみ） |
+| `test_jwks_concurrent_requests_no_panic` | 並行リクエスト中にパニックせず全リクエストがエラーを返す |
+
+TTL 動作の詳細:
+
+- `cache_ttl = Duration::ZERO`: キャッシュは常に期限切れ → 毎回フェッチ
+- `cache_ttl = Duration::from_secs(3600)`: キャッシュが有効 → 再フェッチなし
+- `invalidate_cache()` 呼び出し後は次のリクエストで強制フェッチ
+
+---
+
 ## 関連ドキュメント
 
 - [system-server設計.md](system-server設計.md) -- 概要・API 定義・アーキテクチャ
