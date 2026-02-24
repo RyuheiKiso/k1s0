@@ -1,0 +1,86 @@
+// k1s0 ワークフローオーケストレーションサービス gRPC 定義。
+// 人間タスク・承認フロー込みのワークフローインスタンス管理を提供する。
+// gRPC ポート: 9090
+syntax = "proto3";
+
+package k1s0.system.workflow.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/workflow/v1;workflowv1";
+
+import "k1s0/system/common/v1/types.proto";
+
+service WorkflowService {
+  rpc StartInstance(StartInstanceRequest) returns (StartInstanceResponse);
+  rpc GetInstance(GetInstanceRequest) returns (GetInstanceResponse);
+  rpc ApproveTask(ApproveTaskRequest) returns (ApproveTaskResponse);
+  rpc RejectTask(RejectTaskRequest) returns (RejectTaskResponse);
+}
+
+message StartInstanceRequest {
+  string workflow_id = 1;
+  string title = 2;
+  string initiator_id = 3;
+  // ワークフロー実行コンテキスト（JSON バイト列）
+  bytes context_json = 4;
+}
+
+message StartInstanceResponse {
+  string instance_id = 1;
+  // インスタンス状態（pending / running / completed / cancelled / failed）
+  string status = 2;
+  string current_step_id = 3;
+  k1s0.system.common.v1.Timestamp started_at = 4;
+}
+
+message GetInstanceRequest {
+  string instance_id = 1;
+}
+
+message GetInstanceResponse {
+  WorkflowInstance instance = 1;
+}
+
+message WorkflowInstance {
+  string id = 1;
+  string workflow_id = 2;
+  string workflow_name = 3;
+  string title = 4;
+  string initiator_id = 5;
+  string current_step_id = 6;
+  // インスタンス状態（pending / running / completed / cancelled / failed）
+  string status = 7;
+  // ワークフロー実行コンテキスト（JSON バイト列）
+  bytes context_json = 8;
+  k1s0.system.common.v1.Timestamp started_at = 9;
+  optional k1s0.system.common.v1.Timestamp completed_at = 10;
+}
+
+message ApproveTaskRequest {
+  string task_id = 1;
+  string actor_id = 2;
+  optional string comment = 3;
+}
+
+message ApproveTaskResponse {
+  string task_id = 1;
+  // タスク状態（approved）
+  string status = 2;
+  optional string next_task_id = 3;
+  // インスタンス状態（running / completed）
+  string instance_status = 4;
+}
+
+message RejectTaskRequest {
+  string task_id = 1;
+  string actor_id = 2;
+  optional string comment = 3;
+}
+
+message RejectTaskResponse {
+  string task_id = 1;
+  // タスク状態（rejected）
+  string status = 2;
+  optional string next_task_id = 3;
+  // インスタンス状態（running / failed）
+  string instance_status = 4;
+}

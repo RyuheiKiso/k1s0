@@ -54,7 +54,7 @@ system tier の API スキーマレジストリサーバーは以下の機能を
 | DB | PostgreSQL の `apiregistry` スキーマ（api_schemas, api_schema_versions テーブル） |
 | Kafka | プロデューサー（`k1s0.system.apiregistry.schema_updated.v1`） |
 | 認証 | JWTによる認可。管理系エンドポイントは `sys_operator` / `sys_admin` ロールが必要 |
-| ポート | ホスト側 8101（内部 8080）、gRPC 9090 |
+| ポート | 8101（REST）/ 9090（gRPC） |
 
 ---
 

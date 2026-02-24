@@ -1,7 +1,40 @@
 app:
-  name: k1s0-graphql-gateway-server
+  name: "graphql-gateway"
   version: "0.1.0"
-  environment: dev
+  environment: "production"
+
 server:
   host: "0.0.0.0"
-  port: 8095
+  port: 8080
+
+graphql:
+  introspection: false
+  playground: false
+  max_depth: 10
+  max_complexity: 1000
+
+auth:
+  jwks_url: "http://auth-server.k1s0-system.svc.cluster.local/jwks"
+
+backends:
+  tenant:
+    address: "http://tenant-server.k1s0-system.svc.cluster.local:9090"
+    timeout_ms: 3000
+  featureflag:
+    address: "http://featureflag-server.k1s0-system.svc.cluster.local:9090"
+    timeout_ms: 3000
+  config:
+    address: "http://config-server.k1s0-system.svc.cluster.local:9090"
+    timeout_ms: 3000
+
+observability:
+  log:
+    level: "info"
+    format: "json"
+  trace:
+    enabled: true
+    endpoint: "jaeger.observability.svc.cluster.local:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: "/metrics"

@@ -1,53 +1,25 @@
-#![allow(dead_code, unused_imports)]
-
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 use tracing::info;
 
-mod handler;
-mod schema;
+mod adapter;
+mod domain;
+mod infra;
+mod usecase;
 
-#[derive(Debug, Clone, serde::Deserialize)]
-struct Config {
-    app: AppConfig,
-    server: ServerConfig,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct AppConfig {
-    name: String,
-    #[serde(default = "default_version")]
-    version: String,
-    #[serde(default = "default_environment")]
-    environment: String,
-}
-
-fn default_version() -> String {
-    "0.1.0".to_string()
-}
-
-fn default_environment() -> String {
-    "dev".to_string()
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct ServerConfig {
-    #[serde(default = "default_host")]
-    host: String,
-    #[serde(default = "default_port")]
-    port: u16,
-}
-
-fn default_host() -> String {
-    "0.0.0.0".to_string()
-}
-
-fn default_port() -> u16 {
-    8095
-}
+use adapter::graphql_handler;
+use infra::auth::JwksVerifier;
+use infra::config::Config;
+use infra::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
+use usecase::{
+    ConfigQueryResolver, FeatureFlagQueryResolver, SubscriptionResolver, TenantMutationResolver,
+    TenantQueryResolver,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // --- Telemetry ---
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-graphql-gateway-server".to_string(),
         version: "0.1.0".to_string(),
@@ -59,10 +31,9 @@ async fn main() -> anyhow::Result<()> {
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
-    let config_path =
-        std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let config_content = std::fs::read_to_string(&config_path)?;
-    let cfg: Config = serde_yaml::from_str(&config_content)?;
+    // --- Config ---
+    let cfg = Config::load("config/config.yaml")?;
+    cfg.validate()?;
 
     info!(
         app_name = %cfg.app.name,
@@ -71,20 +42,63 @@ async fn main() -> anyhow::Result<()> {
         "starting graphql-gateway server"
     );
 
-    let graphql_schema = crate::schema::build_schema();
+    // --- gRPC クライアント ---
+    let tenant_client = Arc::new(TenantGrpcClient::connect(&cfg.backends.tenant).await?);
+    let feature_flag_client =
+        Arc::new(FeatureFlagGrpcClient::connect(&cfg.backends.featureflag).await?);
+    let config_client = Arc::new(ConfigGrpcClient::connect(&cfg.backends.config).await?);
 
-    let app = axum::Router::new()
-        .route("/healthz", axum::routing::get(crate::handler::health::healthz))
-        .route("/readyz", axum::routing::get(crate::handler::health::readyz))
-        .route("/graphql", axum::routing::post(crate::handler::graphql::graphql_handler))
-        .route("/graphql", axum::routing::get(crate::handler::graphql::graphql_playground))
-        .with_state(graphql_schema);
+    // --- JWT 検証 ---
+    let jwks_verifier = Arc::new(JwksVerifier::new(cfg.auth.jwks_url.clone()));
 
-    let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
-    info!("REST server starting on {}", rest_addr);
+    // --- Resolver DI ---
+    let tenant_query = Arc::new(TenantQueryResolver::new(tenant_client.clone()));
+    let feature_flag_query = Arc::new(FeatureFlagQueryResolver::new(feature_flag_client.clone()));
+    let config_query = Arc::new(ConfigQueryResolver::new(config_client.clone()));
+    let tenant_mutation = Arc::new(TenantMutationResolver::new(tenant_client.clone()));
+    let subscription = Arc::new(SubscriptionResolver::new(config_client.clone()));
 
-    let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    axum::serve(listener, app).await?;
+    // --- Router ---
+    let app = graphql_handler::router(
+        jwks_verifier,
+        tenant_query,
+        feature_flag_query,
+        config_query,
+        tenant_mutation,
+        subscription,
+        feature_flag_client,
+        cfg.graphql.clone(),
+    );
 
+    let addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
+    info!("graphql-gateway starting on {}", addr);
+
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
+
+    info!("graphql-gateway exited");
     Ok(())
+}
+
+async fn shutdown_signal() {
+    use tokio::signal;
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = signal::ctrl_c() => {},
+        _ = terminate => {},
+    }
+    info!("shutdown signal received");
 }

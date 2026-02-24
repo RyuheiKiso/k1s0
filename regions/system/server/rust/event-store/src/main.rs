@@ -8,49 +8,13 @@ use tracing::info;
 
 mod adapter;
 mod domain;
+mod infrastructure;
 mod usecase;
 
+use adapter::grpc::EventStoreGrpcService;
 use domain::entity::event::{EventStream, Snapshot, StoredEvent};
 use domain::repository::{EventRepository, EventStreamRepository, SnapshotRepository};
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct Config {
-    app: AppConfig,
-    server: ServerConfig,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct AppConfig {
-    name: String,
-    #[serde(default = "default_version")]
-    version: String,
-    #[serde(default = "default_environment")]
-    environment: String,
-}
-
-fn default_version() -> String {
-    "0.1.0".to_string()
-}
-
-fn default_environment() -> String {
-    "dev".to_string()
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct ServerConfig {
-    #[serde(default = "default_host")]
-    host: String,
-    #[serde(default = "default_port")]
-    port: u16,
-}
-
-fn default_host() -> String {
-    "0.0.0.0".to_string()
-}
-
-fn default_port() -> u16 {
-    8099
-}
+use infrastructure::config::Config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -67,8 +31,7 @@ async fn main() -> anyhow::Result<()> {
 
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let config_content = std::fs::read_to_string(&config_path)?;
-    let cfg: Config = serde_yaml::from_str(&config_content)?;
+    let cfg = Config::load(&config_path)?;
 
     info!(
         app_name = %cfg.app.name,
@@ -108,6 +71,17 @@ async fn main() -> anyhow::Result<()> {
         event_repo,
         snapshot_repo,
     ));
+
+    let _grpc_svc = Arc::new(EventStoreGrpcService::new(
+        _append_events_uc,
+        _read_events_uc,
+        _read_event_by_sequence_uc,
+        _create_snapshot_uc,
+        _get_latest_snapshot_uc,
+    ));
+
+    let grpc_addr: std::net::SocketAddr = "0.0.0.0:9090".parse()?;
+    info!("gRPC server starting on {}", grpc_addr);
 
     let app = axum::Router::new()
         .route(

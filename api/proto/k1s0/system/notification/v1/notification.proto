@@ -1,0 +1,50 @@
+// k1s0 通知サービス gRPC 定義。
+// 通知の即時送信と配信履歴取得を提供する。
+syntax = "proto3";
+
+package k1s0.system.notification.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/notification/v1;notificationv1";
+
+service NotificationService {
+  rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
+  rpc GetNotification(GetNotificationRequest) returns (GetNotificationResponse);
+}
+
+message SendNotificationRequest {
+  string channel_id = 1;
+  optional string template_id = 2;
+  map<string, string> variables = 3;
+  string recipient = 4;
+  optional string subject = 5;
+  optional string body = 6;
+}
+
+message SendNotificationResponse {
+  string notification_id = 1;
+  string status = 2;
+  string created_at = 3;
+}
+
+message GetNotificationRequest {
+  string notification_id = 1;
+}
+
+message GetNotificationResponse {
+  NotificationLog notification = 1;
+}
+
+message NotificationLog {
+  string id = 1;
+  string channel_id = 2;
+  string channel_type = 3;
+  optional string template_id = 4;
+  string recipient = 5;
+  optional string subject = 6;
+  string body = 7;
+  string status = 8;
+  uint32 retry_count = 9;
+  optional string error_message = 10;
+  optional string sent_at = 11;
+  string created_at = 12;
+}

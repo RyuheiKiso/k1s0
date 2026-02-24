@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package k1s0.system.apiregistry.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/apiregistry/v1;apiregistryv1";
+
+import "google/protobuf/timestamp.proto";
+
+service ApiRegistryService {
+  rpc GetSchema(GetSchemaRequest) returns (GetSchemaResponse);
+  rpc GetSchemaVersion(GetSchemaVersionRequest) returns (GetSchemaVersionResponse);
+  rpc CheckCompatibility(CheckCompatibilityRequest) returns (CheckCompatibilityResponse);
+}
+
+message GetSchemaRequest {
+  string name = 1;
+}
+
+message GetSchemaResponse {
+  ApiSchemaProto schema = 1;
+  string latest_content = 2;
+}
+
+message GetSchemaVersionRequest {
+  string name = 1;
+  uint32 version = 2;
+}
+
+message GetSchemaVersionResponse {
+  ApiSchemaVersionProto version = 1;
+}
+
+message CheckCompatibilityRequest {
+  string name = 1;
+  string content = 2;
+  optional uint32 base_version = 3;
+}
+
+message CheckCompatibilityResponse {
+  string name = 1;
+  uint32 base_version = 2;
+  CompatibilityResultProto result = 3;
+}
+
+message ApiSchemaProto {
+  string name = 1;
+  string description = 2;
+  string schema_type = 3;
+  uint32 latest_version = 4;
+  uint32 version_count = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message ApiSchemaVersionProto {
+  string name = 1;
+  uint32 version = 2;
+  string schema_type = 3;
+  string content = 4;
+  string content_hash = 5;
+  bool breaking_changes = 6;
+  string registered_by = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message CompatibilityResultProto {
+  bool compatible = 1;
+  repeated string breaking_changes = 2;
+  repeated string non_breaking_changes = 3;
+}

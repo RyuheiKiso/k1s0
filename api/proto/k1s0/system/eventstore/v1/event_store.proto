@@ -1,0 +1,106 @@
+// k1s0 イベントストアサービス gRPC 定義。
+// CQRS パターン向け Append-only イベントストリームの管理を提供する。
+syntax = "proto3";
+
+package k1s0.system.eventstore.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/eventstore/v1;eventstorev1";
+
+service EventStoreService {
+  rpc AppendEvents(AppendEventsRequest) returns (AppendEventsResponse);
+  rpc ReadEvents(ReadEventsRequest) returns (ReadEventsResponse);
+  rpc ReadEventBySequence(ReadEventBySequenceRequest) returns (ReadEventBySequenceResponse);
+  rpc CreateSnapshot(CreateSnapshotRequest) returns (CreateSnapshotResponse);
+  rpc GetLatestSnapshot(GetLatestSnapshotRequest) returns (GetLatestSnapshotResponse);
+}
+
+message AppendEventsRequest {
+  string stream_id = 1;
+  repeated EventData events = 2;
+  int64 expected_version = 3;
+}
+
+message AppendEventsResponse {
+  string stream_id = 1;
+  repeated StoredEvent events = 2;
+  int64 current_version = 3;
+}
+
+message ReadEventsRequest {
+  string stream_id = 1;
+  int64 from_version = 2;
+  optional int64 to_version = 3;
+  uint32 page = 4;
+  uint32 page_size = 5;
+}
+
+message ReadEventsResponse {
+  string stream_id = 1;
+  repeated StoredEvent events = 2;
+  int64 current_version = 3;
+  uint64 total_count = 4;
+  bool has_next = 5;
+}
+
+message ReadEventBySequenceRequest {
+  string stream_id = 1;
+  uint64 sequence = 2;
+}
+
+message ReadEventBySequenceResponse {
+  StoredEvent event = 1;
+}
+
+message CreateSnapshotRequest {
+  string stream_id = 1;
+  int64 snapshot_version = 2;
+  string aggregate_type = 3;
+  bytes state_json = 4;
+}
+
+message CreateSnapshotResponse {
+  string id = 1;
+  string stream_id = 2;
+  int64 snapshot_version = 3;
+  string created_at = 4;
+}
+
+message GetLatestSnapshotRequest {
+  string stream_id = 1;
+}
+
+message GetLatestSnapshotResponse {
+  Snapshot snapshot = 1;
+}
+
+message EventData {
+  string event_type = 1;
+  bytes payload_json = 2;
+  EventMetadata metadata = 3;
+}
+
+message StoredEvent {
+  string stream_id = 1;
+  uint64 sequence = 2;
+  string event_type = 3;
+  int64 version = 4;
+  bytes payload_json = 5;
+  EventMetadata metadata = 6;
+  string occurred_at = 7;
+  string stored_at = 8;
+}
+
+message EventMetadata {
+  optional string actor_id = 1;
+  optional string correlation_id = 2;
+  optional string causation_id = 3;
+}
+
+message Snapshot {
+  string id = 1;
+  string stream_id = 2;
+  int64 snapshot_version = 3;
+  string aggregate_type = 4;
+  bytes state_json = 5;
+  string created_at = 6;
+}

@@ -1,0 +1,54 @@
+// k1s0 ポリシー評価サービス gRPC 定義。
+// OPA（Open Policy Agent）連携による動的 RBAC・アクセス制御ポリシーの評価・取得を提供する。
+// gRPC ポート: 9090
+syntax = "proto3";
+
+package k1s0.system.policy.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/policy/v1;policyv1";
+
+import "k1s0/system/common/v1/types.proto";
+
+service PolicyService {
+  rpc EvaluatePolicy(EvaluatePolicyRequest) returns (EvaluatePolicyResponse);
+  rpc GetPolicy(GetPolicyRequest) returns (GetPolicyResponse);
+}
+
+message EvaluatePolicyRequest {
+  // 評価対象 Rego パッケージパス（例: k1s0.system.tenant）
+  string package_path = 1;
+  // 評価入力データ（JSON バイト列）
+  bytes input_json = 2;
+}
+
+message EvaluatePolicyResponse {
+  // 評価結果（true: 許可 / false: 拒否）
+  bool allowed = 1;
+  // 評価対象 Rego パッケージパス
+  string package_path = 2;
+  // OPA 評価 ID
+  string decision_id = 3;
+  // キャッシュヒットフラグ
+  bool cached = 4;
+}
+
+message GetPolicyRequest {
+  string id = 1;
+}
+
+message GetPolicyResponse {
+  Policy policy = 1;
+}
+
+message Policy {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string package_path = 4;
+  string rego_content = 5;
+  string bundle_id = 6;
+  bool enabled = 7;
+  uint32 version = 8;
+  k1s0.system.common.v1.Timestamp created_at = 9;
+  k1s0.system.common.v1.Timestamp updated_at = 10;
+}

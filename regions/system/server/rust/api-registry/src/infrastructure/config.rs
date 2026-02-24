@@ -36,6 +36,8 @@ pub struct ServerConfig {
     pub host: String,
     #[serde(default = "default_port")]
     pub port: u16,
+    #[serde(default = "default_grpc_port")]
+    pub grpc_port: u16,
 }
 
 fn default_host() -> String {
@@ -43,6 +45,9 @@ fn default_host() -> String {
 }
 fn default_port() -> u16 {
     8101
+}
+fn default_grpc_port() -> u16 {
+    9090
 }
 
 #[derive(Debug, Clone, Deserialize)]
