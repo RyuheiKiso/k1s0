@@ -8,6 +8,7 @@
   <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" alt="React">
   <img src="https://img.shields.io/badge/Flutter-3.24-02569B?logo=flutter" alt="Flutter">
   <img src="https://img.shields.io/badge/C%23-.NET%2010-512BD4?logo=dotnet" alt="C# .NET 10">
+  <img src="https://img.shields.io/badge/Swift-5.9-FA7343?logo=swift" alt="Swift 5.9">
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Kubernetes-ready-326CE5?logo=kubernetes" alt="Kubernetes">
   <img src="https://img.shields.io/badge/OpenTelemetry-built--in-7B68EE" alt="OpenTelemetry">
@@ -99,13 +100,13 @@ regions/
 
 すべてのサービスに OpenTelemetry ベースの可観測性スタックが初期構成として組み込まれます。
 
-| コンポーネント            | 用途                         |
-| ------------------------- | ---------------------------- |
-| OpenTelemetry             | テレメトリデータの収集・送信 |
-| Jaeger 1.62               | 分散トレーシング             |
-| Prometheus v2.55 + Alertmanager | メトリクス収集・アラート管理 |
-| Grafana 11.3              | ダッシュボード・可視化       |
-| Loki 3.3 + Promtail       | ログ集約・収集               |
+| コンポーネント                      | 用途                         |
+| ----------------------------------- | ---------------------------- |
+| OpenTelemetry                       | テレメトリデータの収集・送信 |
+| Jaeger 1.62                         | 分散トレーシング             |
+| Prometheus v2.55 + Alertmanager     | メトリクス収集・アラート管理 |
+| Grafana 11.3                        | ダッシュボード・可視化       |
+| Loki 3.3 + Promtail                 | ログ集約・収集               |
 
 ---
 
@@ -120,7 +121,7 @@ regions/
 | モバイル・クロスプラットフォーム | **Flutter 3.24** (Riverpod, go_router, freezed)   |
 | デスクトップGUI                  | **Tauri 2** + React                               |
 | CLI                              | **Rust** (dialoguer, Tera テンプレートエンジン)   |
-| システムライブラリ               | **Python 3.12** (uv workspace, ruff, mypy strict) |
+| システムライブラリ               | **Go / Rust / TypeScript / Dart / C# / Swift / Python**（7言語） |
 | E2E テスト                       | **Python 3.12** (pytest, testcontainers)          |
 
 ### API・通信
@@ -216,16 +217,16 @@ k1s0/
 │   └── crates/               3 クレート構成（CLI・コアライブラリ・Tauri GUI）
 ├── regions/                3 階層のアプリケーション基盤
 │   ├── system/               共通基盤
-│   │   ├── server/             auth / config / saga / dlq-manager / bff-proxy
-│   │   ├── library/            11 パッケージ × 6 言語（Rust/Go/TypeScript/Dart/C#/Python）
-│   │   └── database/           auth-db / config-db / saga-db / dlq-db
+│   │   ├── server/             22 サービス（Rust 21 + Go 1）
+│   │   ├── library/            48 パッケージ × 7 言語（336 ライブラリ）
+│   │   └── database/           auth-db / config-db / api-registry-db / saga-db / dlq-db
 │   ├── business/             部門固有（accounting）
 │   │   ├── server/ client/ library/
 │   │   └── database/
-│   └── service/              個別サービス（order / inventory）
+│   └── service/              個別サービス（order）
 │       ├── server/ client/
 │       └── database/
-├── api/proto/              共有 Protocol Buffers 定義（buf 管理）
+├── api/proto/              共有 Protocol Buffers 定義（buf 管理、14 サービス）
 ├── infra/                  IaC・インフラ設定
 │   ├── docker/               Docker 初期化・設定
 │   ├── kubernetes/           K8s マニフェスト
@@ -244,6 +245,80 @@ k1s0/
 ├── .github/workflows/      CI/CD パイプライン（20 ワークフロー）
 └── docker-compose.yaml     ローカル開発環境（3 プロファイル）
 ```
+
+---
+
+## System Tier サービス一覧
+
+`regions/system/server/` に実装済みの 22 サービスです。
+
+| サービス          | 言語 | 主な機能                                         |
+| ----------------- | ---- | ------------------------------------------------ |
+| auth              | Rust | 認証・認可・RBAC・JWT 発行（gRPC）               |
+| config            | Rust | 設定管理・Watch ストリーム・スキーマ検証         |
+| api-registry      | Rust | API スキーマ・バージョン管理（PostgreSQL）       |
+| event-store       | Rust | イベント永続化・スナップショット（CQRS 基盤）    |
+| search            | Rust | 検索インデックス・ドキュメント管理               |
+| session           | Rust | セッション管理・有効期限制御                     |
+| saga              | Rust | Saga パターンによる分散トランザクション          |
+| featureflag       | Rust | 機能フラグの動的制御                             |
+| vault             | Rust | Vault 連携・シークレット取得                     |
+| ratelimit         | Rust | レート制限・クォータ管理                         |
+| tenant            | Rust | マルチテナント管理                               |
+| scheduler         | Rust | スケジュールジョブ管理                           |
+| quota             | Rust | リソースクォータ管理                             |
+| notification      | Rust | 通知配信（メール・Push・Webhook）                |
+| policy            | Rust | ポリシー評価・アクセス制御                       |
+| workflow          | Rust | ワークフロー定義・実行管理                       |
+| dlq-manager       | Rust | Dead Letter Queue の監視・再処理                 |
+| file              | Rust | ファイルアップロード・ストレージ管理             |
+| graphql-gateway   | Rust | GraphQL フェデレーション・ゲートウェイ           |
+| audit             | Rust | 監査ログ記録・検索                               |
+| idempotency       | Rust | 冪等性キー管理                                   |
+| bff-proxy         | Go   | BFF プロキシ・クライアント集約                   |
+
+---
+
+## System Tier ライブラリ
+
+`regions/system/library/` に 7 言語 × 48 パッケージ（計 336 ライブラリ）を提供します。
+
+| パッケージ           | 用途                              |
+| -------------------- | --------------------------------- |
+| auth                 | 認証・トークン検証                |
+| config               | 設定取得・ウォッチ                |
+| telemetry / tracing  | OpenTelemetry 計装                |
+| kafka                | Kafka プロデューサー / コンシューマー |
+| event-bus / outbox   | イベント発行・Transactional Outbox |
+| eventstore           | イベントストアクライアント        |
+| saga                 | Saga パターン実装                 |
+| resiliency / retry / circuit-breaker | 回復力パターン      |
+| cache                | Redis キャッシュ                  |
+| distributed-lock     | 分散ロック                        |
+| pagination           | ページネーション共通実装          |
+| validation           | 入力バリデーション                |
+| health               | ヘルスチェックエンドポイント      |
+| migration            | DB マイグレーション               |
+| idempotency          | 冪等性キー管理                    |
+| featureflag          | 機能フラグクライアント            |
+| session-client       | セッションクライアント            |
+| vault-client         | Vault シークレット取得            |
+| tenant-client        | テナント情報取得                  |
+| notification-client  | 通知送信クライアント              |
+| search-client        | 検索クライアント                  |
+| scheduler-client     | スケジューラクライアント          |
+| quota-client         | クォータクライアント              |
+| ratelimit-client     | レート制限クライアント            |
+| serviceauth          | サービス間認証（mTLS / JWT）      |
+| schemaregistry       | Kafka Schema Registry クライアント |
+| messaging            | 汎用メッセージングインターフェース |
+| websocket            | WebSocket サポート                |
+| webhook-client       | Webhook 送信クライアント          |
+| graphql-client       | GraphQL クライアント              |
+| file-client          | ファイルストレージクライアント    |
+| audit-client         | 監査ログクライアント              |
+| correlation          | 相関 ID 伝播                      |
+| test-helper          | テストユーティリティ              |
 
 ---
 
@@ -296,8 +371,8 @@ k1s0/
 ### テストの実行
 
 ```bash
-# Rust テスト
-cargo test --workspace
+# Rust ユニットテスト
+cargo test --lib
 
 # Go テスト
 go test ./...
