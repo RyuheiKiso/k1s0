@@ -114,13 +114,13 @@ impl ApiRegistryGrpcService {
                 GetSchemaVersionError::Internal(msg) => GrpcError::Internal(msg),
             })?;
         Ok(GetSchemaVersionResponse {
-            name: output.version.name,
-            version: output.version.version,
-            schema_type: output.version.schema_type.to_string(),
-            content: output.version.content,
-            content_hash: output.version.content_hash,
-            breaking_changes: output.version.breaking_changes,
-            registered_by: output.version.registered_by,
+            name: output.name,
+            version: output.version,
+            schema_type: output.schema_type.to_string(),
+            content: output.content,
+            content_hash: output.content_hash,
+            breaking_changes: output.breaking_changes,
+            registered_by: output.registered_by,
         })
     }
 
