@@ -1,6 +1,6 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let tenant_proto = "../../../../proto/v1/tenant.proto";
-    let proto_include = "../../../../proto";
+    let tenant_proto = "../../../../../api/proto/k1s0/system/tenant/v1/tenant.proto";
+    let proto_include = "../../../../../api/proto";
 
     if !std::path::Path::new(tenant_proto).exists() {
         println!(

@@ -36,49 +36,76 @@ k1s0.{tier}.{domain}.v{major}
 
 ## ディレクトリ構造
 
-### 共有 proto 定義
+### gRPC サービス定義（canonical 位置）
 
-全サービスで共有される proto ファイルは `regions/system/proto/v1/` に集約して配置する。
-
-```
-regions/system/proto/v1/
-├── common.proto          # Pagination, PaginationResult 等の共通型
-├── auth.proto            # AuthService / AuditService gRPC 定義
-├── config.proto          # ConfigService gRPC 定義
-├── saga.proto            # SagaService gRPC 定義
-├── featureflag.proto     # FeatureFlagService gRPC 定義
-├── ratelimit.proto       # RateLimitService gRPC 定義
-├── tenant.proto          # TenantService gRPC 定義
-├── vault.proto           # VaultService gRPC 定義
-└── api_registry.proto    # ApiRegistryService gRPC 定義
-```
-
-### Kafka イベント定義
-
-Kafka イベントスキーマは `api/proto/` に配置する。
+全サービスの proto ファイルは `api/proto/k1s0/system/` に集約して配置する。
+各サービスは `{service}/v1/{service}.proto` のディレクトリ構造に従う。
 
 ```
 api/proto/
 ├── buf.yaml                              # buf 設定（lint・breaking change 検出）
-├── buf.gen.yaml                          # コード生成設定
+├── buf.gen.yaml                          # コード生成設定（Go / TypeScript / Rust）
 ├── buf.lock                              # 依存ロック
 └── k1s0/
-    └── event/
-        ├── system/
-        │   └── auth/
-        │       └── v1/
-        │           └── auth_events.proto # 認証系イベント
-        ├── business/
-        │   └── accounting/
-        │       └── v1/
-        │           └── entry_event.proto
-        └── service/
-            ├── order/
-            │   └── v1/
-            │       └── order_event.proto
-            └── inventory/
-                └── v1/
-                    └── inventory_event.proto
+    └── system/
+        ├── common/
+        │   └── v1/
+        │       ├── types.proto           # Pagination, PaginationResult, Timestamp
+        │       └── event_metadata.proto  # EventMetadata（Kafka イベント共通ヘッダー）
+        ├── auth/
+        │   └── v1/auth.proto             # AuthService / AuditService
+        ├── config/
+        │   └── v1/config.proto           # ConfigService（WatchConfig streaming 含む）
+        ├── saga/
+        │   └── v1/saga.proto             # SagaService
+        ├── featureflag/
+        │   └── v1/featureflag.proto      # FeatureFlagService
+        ├── ratelimit/
+        │   └── v1/ratelimit.proto        # RateLimitService
+        ├── tenant/
+        │   └── v1/tenant.proto           # TenantService
+        ├── vault/
+        │   └── v1/vault.proto            # VaultService
+        ├── apiregistry/
+        │   └── v1/api_registry.proto     # ApiRegistryService
+        ├── eventstore/
+        │   └── v1/event_store.proto      # EventStoreService
+        ├── navigation/
+        │   └── v1/navigation.proto       # NavigationService
+        ├── notification/
+        │   └── v1/notification.proto     # NotificationService
+        ├── policy/
+        │   └── v1/policy.proto           # PolicyService
+        ├── scheduler/
+        │   └── v1/scheduler.proto        # SchedulerService
+        ├── search/
+        │   └── v1/search.proto           # SearchService
+        ├── session/
+        │   └── v1/session.proto          # SessionService
+        └── workflow/
+            └── v1/workflow.proto         # WorkflowService
+```
+
+### Kafka イベント定義
+
+Kafka イベントスキーマも `api/proto/` に配置する。
+
+```
+api/proto/k1s0/
+└── event/
+    ├── system/
+    │   ├── auth/
+    │   │   └── v1/auth_events.proto      # 認証系イベント
+    │   └── config/
+    │       └── v1/config_events.proto    # 設定変更イベント
+    ├── business/
+    │   └── accounting/
+    │       └── v1/entry_event.proto
+    └── service/
+        ├── order/
+        │   └── v1/order_event.proto
+        └── inventory/
+            └── v1/inventory_event.proto
 ```
 
 ---
@@ -1051,6 +1078,254 @@ message ListSecretsResponse {
 
 ---
 
+## イベントストアサービス定義（event_store.proto）
+
+パッケージ: `k1s0.system.eventstore.v1`
+
+CQRS / イベントソーシング向けにイベントを Append-only で永続化・再生するサービス。
+
+```protobuf
+// api/proto/k1s0/system/eventstore/v1/event_store.proto
+syntax = "proto3";
+package k1s0.system.eventstore.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/eventstore/v1;eventstorev1";
+
+service EventStoreService {
+  rpc AppendEvents(AppendEventsRequest) returns (AppendEventsResponse);
+  rpc ReadEvents(ReadEventsRequest) returns (ReadEventsResponse);
+  rpc ReadEventBySequence(ReadEventBySequenceRequest) returns (ReadEventBySequenceResponse);
+  rpc CreateSnapshot(CreateSnapshotRequest) returns (CreateSnapshotResponse);
+  rpc GetLatestSnapshot(GetLatestSnapshotRequest) returns (GetLatestSnapshotResponse);
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `EventStoreService.AppendEvents` | ストリームへのイベント追記（楽観的排他制御） |
+| `EventStoreService.ReadEvents` | ストリームからのイベント一括読み取り（バージョン範囲指定） |
+| `EventStoreService.ReadEventBySequence` | シーケンス番号によるイベント単体取得 |
+| `EventStoreService.CreateSnapshot` | 特定バージョン時点のスナップショット生成 |
+| `EventStoreService.GetLatestSnapshot` | 最新スナップショット取得 |
+
+---
+
+## ナビゲーションサービス定義（navigation.proto）
+
+パッケージ: `k1s0.system.navigation.v1`
+
+クライアント向けルーティング定義を動的に返すサービス。ロールベースでルート・ガードを制御する。
+
+```protobuf
+// api/proto/k1s0/system/navigation/v1/navigation.proto
+syntax = "proto3";
+package k1s0.system.navigation.v1;
+
+option go_package = "github.com/k1s0/api/gen/go/k1s0/system/navigation/v1;navigationv1";
+
+service NavigationService {
+  rpc GetNavigation(GetNavigationRequest) returns (NavigationResponse);
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `NavigationService.GetNavigation` | ロール・テナントに基づいたナビゲーションルート一覧を返す |
+
+---
+
+## 通知サービス定義（notification.proto）
+
+パッケージ: `k1s0.system.notification.v1`
+
+メール・SMS・Push 通知を統一インターフェースで送信するサービス。
+
+```protobuf
+// api/proto/k1s0/system/notification/v1/notification.proto
+syntax = "proto3";
+package k1s0.system.notification.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/notification/v1;notificationv1";
+
+service NotificationService {
+  rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
+  rpc GetNotification(GetNotificationRequest) returns (GetNotificationResponse);
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `NotificationService.SendNotification` | メール/SMS/Push 通知を送信（チャネル種別指定） |
+| `NotificationService.GetNotification` | 通知送信ログを ID で取得 |
+
+---
+
+## ポリシーサービス定義（policy.proto）
+
+パッケージ: `k1s0.system.policy.v1`
+
+OPA (Open Policy Agent) Rego ポリシーを評価・管理するサービス。
+
+```protobuf
+// api/proto/k1s0/system/policy/v1/policy.proto
+syntax = "proto3";
+package k1s0.system.policy.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/policy/v1;policyv1";
+
+import "k1s0/system/common/v1/types.proto";
+
+service PolicyService {
+  rpc EvaluatePolicy(EvaluatePolicyRequest) returns (EvaluatePolicyResponse);
+  rpc GetPolicy(GetPolicyRequest) returns (GetPolicyResponse);
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `PolicyService.EvaluatePolicy` | Rego ポリシーを JSON 入力で評価（allow/deny 判定） |
+| `PolicyService.GetPolicy` | ポリシーパスでポリシー定義（Rego コード）を取得 |
+
+---
+
+## スケジューラーサービス定義（scheduler.proto）
+
+パッケージ: `k1s0.system.scheduler.v1`
+
+cron スケジュールおよびジョブ実行を管理するサービス。
+
+```protobuf
+// api/proto/k1s0/system/scheduler/v1/scheduler.proto
+syntax = "proto3";
+package k1s0.system.scheduler.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/scheduler/v1;schedulerv1";
+
+import "k1s0/system/common/v1/types.proto";
+
+service SchedulerService {
+  rpc TriggerJob(TriggerJobRequest) returns (TriggerJobResponse);
+  rpc GetJobExecution(GetJobExecutionRequest) returns (GetJobExecutionResponse);
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `SchedulerService.TriggerJob` | ジョブ名・パラメータを指定して即時実行トリガー |
+| `SchedulerService.GetJobExecution` | ジョブ実行 ID で実行結果・ステータスを取得 |
+
+---
+
+## 検索サービス定義（search.proto）
+
+パッケージ: `k1s0.system.search.v1`
+
+Elasticsearch / OpenSearch ベースの全文検索サービス。
+
+```protobuf
+// api/proto/k1s0/system/search/v1/search.proto
+syntax = "proto3";
+package k1s0.system.search.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/search/v1;searchv1";
+
+service SearchService {
+  rpc IndexDocument(IndexDocumentRequest) returns (IndexDocumentResponse);
+  rpc Search(SearchRequest) returns (SearchResponse);
+  rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `SearchService.IndexDocument` | ドキュメントをインデックスに追加・更新（upsert） |
+| `SearchService.Search` | クエリ文字列・フィルター・ページネーション付き全文検索 |
+| `SearchService.DeleteDocument` | インデックスからドキュメントを削除 |
+
+---
+
+## セッションサービス定義（session.proto）
+
+パッケージ: `k1s0.system.session.v1`
+
+Redis ベースのセッション管理サービス。マルチデバイス対応（最大 10 デバイス）。
+
+```protobuf
+// api/proto/k1s0/system/session/v1/session.proto
+syntax = "proto3";
+package k1s0.system.session.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/session/v1;sessionv1";
+
+service SessionService {
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+  rpc RefreshSession(RefreshSessionRequest) returns (RefreshSessionResponse);
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
+  rpc RevokeAllSessions(RevokeAllSessionsRequest) returns (RevokeAllSessionsResponse);
+  rpc ListUserSessions(ListUserSessionsRequest) returns (ListUserSessionsResponse);
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `SessionService.CreateSession` | 新規セッション作成（TTL 設定・デバイス情報記録） |
+| `SessionService.GetSession` | セッション ID でセッション情報を取得 |
+| `SessionService.RefreshSession` | セッション有効期限を延長（スライディング TTL） |
+| `SessionService.RevokeSession` | 特定セッションを無効化 |
+| `SessionService.RevokeAllSessions` | ユーザーの全セッションを一括無効化 |
+| `SessionService.ListUserSessions` | ユーザーのアクティブセッション一覧を取得 |
+
+---
+
+## ワークフローサービス定義（workflow.proto）
+
+パッケージ: `k1s0.system.workflow.v1`
+
+人間タスク・承認フローを含むワークフローオーケストレーションサービス。
+
+```protobuf
+// api/proto/k1s0/system/workflow/v1/workflow.proto
+syntax = "proto3";
+package k1s0.system.workflow.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/workflow/v1;workflowv1";
+
+import "k1s0/system/common/v1/types.proto";
+
+service WorkflowService {
+  rpc StartInstance(StartInstanceRequest) returns (StartInstanceResponse);
+  rpc GetInstance(GetInstanceRequest) returns (GetInstanceResponse);
+  rpc ApproveTask(ApproveTaskRequest) returns (ApproveTaskResponse);
+  rpc RejectTask(RejectTaskRequest) returns (RejectTaskResponse);
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `WorkflowService.StartInstance` | ワークフロー定義 ID・入力パラメータでインスタンス起動 |
+| `WorkflowService.GetInstance` | インスタンス ID でワークフロー実行状態・ステップ履歴を取得 |
+| `WorkflowService.ApproveTask` | 人間タスクを承認（コメント付き） |
+| `WorkflowService.RejectTask` | 人間タスクを却下（コメント付き） |
+
+---
+
 ## buf 設定
 
 ### buf.yaml
@@ -1068,6 +1343,8 @@ lint:
 breaking:
   use:
     - FILE
+deps:
+  - buf.build/googleapis/googleapis   # google.protobuf.Timestamp 等の標準型
 ```
 
 ### buf.gen.yaml
@@ -1092,22 +1369,34 @@ plugins:
     out: gen/ts
     opt:
       - long_type_string
+
+  # --- Rust (prost + tonic) ---
+  - remote: buf.build/community/neoeinstein-prost
+    out: gen/rust
+    opt:
+      - compile_well_known_types
+
+  - remote: buf.build/community/neoeinstein-tonic
+    out: gen/rust
+    opt:
+      - compile_well_known_types
 ```
 
-#### Rust (tonic-build)
+#### Rust (tonic-build) — サーバーごとのローカルコード生成
 
-Rust は `buf.gen.yaml` ではなく、各サービスの `build.rs` で `tonic-build` を使用してコード生成する。
+Rust サーバーは `buf.gen.yaml` とは別に、各サービスの `build.rs` で `tonic-build` を用いてローカルコード生成する。
+proto ファイルはすべて `api/proto/k1s0/system/` を参照する（`regions/system/proto/` は廃止済み）。
 
 ```rust
-// build.rs
+// build.rs（例: auth サーバー）
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     tonic_build::configure()
         .build_server(true)
-        .build_client(true)
+        .build_client(false)
         .out_dir("src/proto")
         .compile_protos(
-            &["api/proto/k1s0/system/auth/v1/auth.proto"],
-            &["api/proto", "../../api/proto"],  // 共有定義のパスを含める
+            &["../../../../../api/proto/k1s0/system/auth/v1/auth.proto"],
+            &["../../../../../api/proto"],  // api/proto を include パスとして指定
         )?;
     Ok(())
 }

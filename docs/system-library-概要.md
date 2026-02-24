@@ -10,7 +10,7 @@ Swift 実装は Swift Package Manager（SPM）を用い、iOS / macOS ネイテ�
 |-----------|------|--------|---------|
 | config | YAML 設定読み込み・環境別オーバーライド・バリデーション | 全サーバー・クライアント | [system-library-config設計](system-library-config設計.md) |
 | telemetry | OpenTelemetry 初期化・構造化ログ・分散トレース・メトリクス | 全サーバー・クライアント | [system-library-telemetry設計](system-library-telemetry設計.md) |
-| authlib | JWT 検証（サーバー用）/ OAuth2 PKCE トークン管理（クライアント用） | 全サーバー・クライアント | [system-library-authlib設計](system-library-authlib設計.md) |
+| auth | JWT 検証（サーバー用）/ OAuth2 PKCE トークン管理（クライアント用） | 全サーバー・クライアント | [system-library-authlib設計](system-library-authlib設計.md) |
 | k1s0-messaging | Kafka イベント発行・購読の抽象化（EventProducer トレイト・EventEnvelope） | 全サーバー（Kafka イベント発行） | [system-library-messaging設計](system-library-messaging設計.md) |
 | k1s0-kafka | Kafka 接続設定・管理・ヘルスチェック（KafkaConfig・TLS 対応） | k1s0-messaging を使うサーバー | [system-library-kafka設計](system-library-kafka設計.md) |
 | k1s0-correlation | 分散トレーシング用相関 ID・トレース ID 管理（UUID v4・32 文字 hex） | 全サーバー・クライアント | [system-library-correlation設計](system-library-correlation設計.md) |
@@ -18,7 +18,7 @@ Swift 実装は Swift Package Manager（SPM）を用い、iOS / macOS ネイテ�
 | k1s0-schemaregistry | Confluent Schema Registry クライアント（Avro/Json/Protobuf 対応） | Kafka プロデューサー・コンシューマー | [system-library-schemaregistry設計](system-library-schemaregistry設計.md) |
 | k1s0-serviceauth | サービス間 OAuth2 Client Credentials 認証（トークンキャッシュ・SPIFFE） | サービス間 gRPC/HTTP 通信を行うサーバー | [system-library-serviceauth設計](system-library-serviceauth設計.md) |
 | k1s0-saga | SagaサーバーREST/gRPCクライアントSDK | サービス間Saga起動・状態確認 | [system-library-saga設計](system-library-saga設計.md) |
-| k1s0-dlq-client | Kafka DLQ メッセージ管理クライアント | DLQメッセージ再処理・モニタリング | [system-library-dlq-client設計](system-library-dlq-client設計.md) |
+| k1s0-dlq | Kafka DLQ メッセージ管理クライアント | DLQメッセージ再処理・モニタリング | [system-library-dlq-client設計](system-library-dlq-client設計.md) |
 | k1s0-cache | Redis 分散キャッシュ抽象化（get/set/delete/分散ロック・Redis Cluster/Sentinel 対応） | 全サーバー（分散キャッシュを必要とする場合） | [system-library-cache設計](system-library-cache設計.md) |
 | k1s0-idempotency | API リクエストの冪等性保証（Idempotency-Key ヘッダー処理・TTL 付きレスポンスキャッシュ） | REST/gRPC エンドポイントを提供する全サーバー | [system-library-idempotency設計](system-library-idempotency設計.md) |
 | k1s0-retry | 指数バックオフリトライ・サーキットブレーカーパターン（OpenTelemetry メトリクス連携） | サービス間 gRPC/HTTP 通信を行うサーバー | [system-library-retry設計](system-library-retry設計.md) |
