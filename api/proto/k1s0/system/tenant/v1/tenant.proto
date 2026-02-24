@@ -5,14 +5,22 @@ package k1s0.system.tenant.v1;
 option go_package = "github.com/k1s0-platform/system-proto-go/tenant/v1;tenantv1";
 
 import "google/protobuf/timestamp.proto";
-import "v1/common.proto";
+import "k1s0/system/common/v1/types.proto";
 
+// TenantService はマルチテナント管理サービス。
+// Keycloak realm プロビジョニングおよびメンバー管理を担当する。
 service TenantService {
+  // CreateTenant は新しいテナントを作成し、Keycloak realm をプロビジョニングする。
   rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
+  // GetTenant はテナントIDでテナント情報を取得する。
   rpc GetTenant(GetTenantRequest) returns (GetTenantResponse);
+  // ListTenants は全テナントの一覧をページネーション付きで返す。
   rpc ListTenants(ListTenantsRequest) returns (ListTenantsResponse);
+  // AddMember はテナントにメンバーを追加する。
   rpc AddMember(AddMemberRequest) returns (AddMemberResponse);
+  // RemoveMember はテナントからメンバーを削除する。
   rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
+  // GetProvisioningStatus はテナントプロビジョニングジョブのステータスを返す。
   rpc GetProvisioningStatus(GetProvisioningStatusRequest) returns (GetProvisioningStatusResponse);
 }
 

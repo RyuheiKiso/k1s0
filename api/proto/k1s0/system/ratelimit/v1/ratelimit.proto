@@ -5,11 +5,16 @@ package k1s0.system.ratelimit.v1;
 option go_package = "github.com/k1s0-platform/system-proto-go/ratelimit/v1;ratelimitv1";
 
 import "google/protobuf/timestamp.proto";
-import "v1/common.proto";
+import "k1s0/system/common/v1/types.proto";
 
+// RateLimitService は API レート制限サービス。
+// スライディングウィンドウ・トークンバケット等のアルゴリズムをサポートする。
 service RateLimitService {
+  // CheckRateLimit はリクエストがレートリミットに引っかかるか確認する。
   rpc CheckRateLimit(CheckRateLimitRequest) returns (CheckRateLimitResponse);
+  // CreateRule は新しいレートリミットルールを作成する。
   rpc CreateRule(CreateRuleRequest) returns (CreateRuleResponse);
+  // GetRule はルールIDでルール情報を取得する。
   rpc GetRule(GetRuleRequest) returns (GetRuleResponse);
 }
 

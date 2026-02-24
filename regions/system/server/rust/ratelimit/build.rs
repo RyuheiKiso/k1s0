@@ -1,6 +1,6 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let proto = "../../../../proto/v1/ratelimit.proto";
-    let include = "../../../../proto";
+    let proto = "../../../../../api/proto/k1s0/system/ratelimit/v1/ratelimit.proto";
+    let include = "../../../../../api/proto";
     if !std::path::Path::new(proto).exists() {
         println!(
             "cargo:warning=Proto file not found, skipping tonic codegen: {}",

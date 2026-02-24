@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" width="900" height="400">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#0f172a"/>
@@ -46,68 +46,12 @@
   </defs>
 
   <!-- ==================== Background ==================== -->
-  <rect width="1200" height="400" fill="url(#bg)"/>
-  <rect width="1200" height="400" fill="url(#grid)"/>
+  <rect width="900" height="400" fill="url(#bg)"/>
+  <rect width="900" height="400" fill="url(#grid)"/>
 
   <!-- Top/Bottom accent lines -->
-  <rect x="0" y="0" width="1200" height="3" fill="url(#shimmer)"/>
-  <rect x="0" y="397" width="1200" height="3" fill="url(#shimmer)"/>
-
-  <!-- ==================== Background microservice topology (right area, very subtle) ==================== -->
-  <g opacity="0">
-    <animate attributeName="opacity" from="0" to="0.07" dur="1.5s" begin="2.8s" fill="freeze"/>
-    <!-- Background network edges -->
-    <line x1="790" y1="68" x2="890" y2="44" stroke="#3b82f6" stroke-width="1"/>
-    <line x1="890" y1="44" x2="985" y2="80" stroke="#60a5fa" stroke-width="1"/>
-    <line x1="985" y1="80" x2="1075" y2="52" stroke="#3b82f6" stroke-width="1"/>
-    <line x1="1075" y1="52" x2="1148" y2="118" stroke="#8b5cf6" stroke-width="1"/>
-    <line x1="1148" y1="118" x2="1130" y2="228" stroke="#8b5cf6" stroke-width="1"/>
-    <line x1="1130" y1="228" x2="1078" y2="322" stroke="#ec4899" stroke-width="1"/>
-    <line x1="1078" y1="322" x2="968" y2="348" stroke="#ec4899" stroke-width="1"/>
-    <line x1="968" y1="348" x2="848" y2="302" stroke="#a78bfa" stroke-width="1"/>
-    <line x1="848" y1="302" x2="790" y2="192" stroke="#3b82f6" stroke-width="1"/>
-    <line x1="790" y1="192" x2="790" y2="68" stroke="#3b82f6" stroke-width="1"/>
-    <!-- cross connections -->
-    <line x1="908" y1="178" x2="790" y2="192" stroke="#60a5fa" stroke-width="1"/>
-    <line x1="908" y1="178" x2="985" y2="80" stroke="#60a5fa" stroke-width="1"/>
-    <line x1="908" y1="178" x2="1012" y2="202" stroke="#8b5cf6" stroke-width="1"/>
-    <line x1="908" y1="178" x2="848" y2="302" stroke="#a78bfa" stroke-width="1"/>
-    <line x1="1012" y1="202" x2="1148" y2="118" stroke="#8b5cf6" stroke-width="1"/>
-    <line x1="1012" y1="202" x2="1078" y2="322" stroke="#ec4899" stroke-width="1"/>
-    <line x1="890" y1="44" x2="908" y2="178" stroke="#60a5fa" stroke-width="0.8" stroke-dasharray="3,4"/>
-    <line x1="1075" y1="52" x2="1012" y2="202" stroke="#8b5cf6" stroke-width="0.8" stroke-dasharray="3,4"/>
-    <line x1="968" y1="348" x2="1012" y2="202" stroke="#a78bfa" stroke-width="0.8" stroke-dasharray="3,4"/>
-    <!-- Background node circles -->
-    <circle cx="790" cy="68" r="5" fill="#3b82f6"/>
-    <circle cx="890" cy="44" r="5" fill="#3b82f6"/>
-    <circle cx="985" cy="80" r="4" fill="#60a5fa"/>
-    <circle cx="1075" cy="52" r="5" fill="#3b82f6"/>
-    <circle cx="1148" cy="118" r="4" fill="#8b5cf6"/>
-    <circle cx="1130" cy="228" r="5" fill="#8b5cf6"/>
-    <circle cx="1078" cy="322" r="4" fill="#ec4899"/>
-    <circle cx="968" cy="348" r="5" fill="#ec4899"/>
-    <circle cx="848" cy="302" r="4" fill="#a78bfa"/>
-    <circle cx="790" cy="192" r="5" fill="#3b82f6"/>
-    <circle cx="908" cy="178" r="7" fill="#22c55e"/>
-    <circle cx="1012" cy="202" r="5" fill="#8b5cf6"/>
-  </g>
-
-  <!-- Background network slow particles -->
-  <g opacity="0">
-    <animate attributeName="opacity" from="0" to="0.18" dur="1s" begin="3.5s" fill="freeze"/>
-    <circle r="2" fill="#60a5fa" filter="url(#glow)">
-      <animateMotion dur="6s" repeatCount="indefinite" path="M890,44 L908,178 L848,302"/>
-      <animate attributeName="opacity" values="0.6;0.1;0.6" dur="6s" repeatCount="indefinite"/>
-    </circle>
-    <circle r="1.5" fill="#8b5cf6" filter="url(#glow)">
-      <animateMotion dur="7s" repeatCount="indefinite" path="M1075,52 L1012,202 L968,348"/>
-      <animate attributeName="opacity" values="0.5;0.1;0.5" dur="7s" repeatCount="indefinite"/>
-    </circle>
-    <circle r="1.5" fill="#ec4899" filter="url(#glow)">
-      <animateMotion dur="5s" repeatCount="indefinite" path="M1130,228 L1012,202 L790,192"/>
-      <animate attributeName="opacity" values="0.5;0.1;0.5" dur="5s" repeatCount="indefinite"/>
-    </circle>
-  </g>
+  <rect x="0" y="0" width="900" height="3" fill="url(#shimmer)"/>
+  <rect x="0" y="397" width="900" height="3" fill="url(#shimmer)"/>
 
   <!-- ==================== Service Mesh Network (left side) ==================== -->
 
@@ -115,9 +59,9 @@
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="0.3" dur="0.8s" begin="1.0s" fill="freeze"/>
 
-    <!-- session ↔ auth -->
+    <!-- session <-> auth -->
     <line x1="75" y1="60" x2="120" y2="95" stroke="#3b82f6" stroke-width="1"/>
-    <!-- session ↔ config -->
+    <!-- session <-> config -->
     <line x1="75" y1="60" x2="205" y2="75" stroke="#3b82f6" stroke-width="1" stroke-dasharray="4,3"/>
 
     <!-- system internal -->
@@ -236,7 +180,7 @@
 
   <!-- === SYSTEM TIER NODES (blue) === -->
 
-  <!-- Session node (new) -->
+  <!-- Session node -->
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0.7s" fill="freeze"/>
     <g transform="translate(55,40)">
@@ -284,7 +228,7 @@
     </g>
   </g>
 
-  <!-- API Registry node (new) -->
+  <!-- API Registry node -->
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.05s" fill="freeze"/>
     <g transform="translate(230,115)">
@@ -338,7 +282,7 @@
     </g>
   </g>
 
-  <!-- Workflow node (new) -->
+  <!-- Workflow node -->
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.45s" fill="freeze"/>
     <g transform="translate(220,220)">
@@ -387,7 +331,7 @@
     </g>
   </g>
 
-  <!-- Notify node (new) -->
+  <!-- Notify node -->
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.9s" fill="freeze"/>
     <g transform="translate(300,310)">
@@ -402,7 +346,7 @@
   <!-- Kafka label -->
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="0.6" dur="0.5s" begin="2.0s" fill="freeze"/>
-    <text x="370" y="379" font-family="'Segoe UI',Arial,sans-serif" font-size="8" fill="#c084fc" font-weight="600">Kafka Event Bus</text>
+    <text x="200" y="392" font-family="'Segoe UI',Arial,sans-serif" font-size="8" fill="#c084fc" font-weight="600" text-anchor="middle">Kafka Event Bus</text>
   </g>
 
   <!-- ==================== Tier labels (vertical, left edge) ==================== -->
@@ -422,62 +366,62 @@
   </g>
 
   <!-- ==================== Divider line (mesh | branding) ==================== -->
-  <line x1="430" y1="40" x2="430" y2="360" stroke="#1e3a5f" stroke-width="1" opacity="0.4"/>
+  <line x1="400" y1="40" x2="400" y2="360" stroke="#1e3a5f" stroke-width="1" opacity="0.4"/>
 
   <!-- ==================== Right side: Branding ==================== -->
 
   <!-- Breathing decorative circles -->
-  <circle cx="710" cy="100" r="160" fill="#3b82f6" opacity="0.02">
-    <animate attributeName="r" values="160;180;160" dur="6s" repeatCount="indefinite"/>
+  <circle cx="680" cy="100" r="140" fill="#3b82f6" opacity="0.02">
+    <animate attributeName="r" values="140;160;140" dur="6s" repeatCount="indefinite"/>
     <animate attributeName="opacity" values="0.02;0.04;0.02" dur="6s" repeatCount="indefinite"/>
   </circle>
-  <circle cx="1050" cy="320" r="120" fill="#ec4899" opacity="0.02">
-    <animate attributeName="r" values="120;135;120" dur="7s" repeatCount="indefinite"/>
+  <circle cx="820" cy="320" r="100" fill="#ec4899" opacity="0.02">
+    <animate attributeName="r" values="100;115;100" dur="7s" repeatCount="indefinite"/>
     <animate attributeName="opacity" values="0.02;0.04;0.02" dur="7s" repeatCount="indefinite"/>
   </circle>
 
   <!-- Floating ambient particles -->
-  <circle cx="500" cy="60" r="1.5" fill="#3b82f6" opacity="0">
+  <circle cx="480" cy="60" r="1.5" fill="#3b82f6" opacity="0">
     <animate attributeName="cy" values="60;40;60" dur="5s" repeatCount="indefinite"/>
     <animate attributeName="opacity" values="0;0.4;0" dur="5s" repeatCount="indefinite"/>
   </circle>
-  <circle cx="900" cy="350" r="1" fill="#8b5cf6" opacity="0">
+  <circle cx="780" cy="350" r="1" fill="#8b5cf6" opacity="0">
     <animate attributeName="cy" values="350;335;350" dur="4s" repeatCount="indefinite"/>
     <animate attributeName="opacity" values="0;0.3;0" dur="4s" repeatCount="indefinite"/>
   </circle>
-  <circle cx="1100" cy="80" r="1.2" fill="#ec4899" opacity="0">
+  <circle cx="860" cy="80" r="1.2" fill="#ec4899" opacity="0">
     <animate attributeName="cy" values="80;65;80" dur="6s" repeatCount="indefinite"/>
     <animate attributeName="opacity" values="0;0.3;0" dur="6s" repeatCount="indefinite"/>
   </circle>
-  <circle cx="650" cy="370" r="1" fill="#60a5fa" opacity="0">
+  <circle cx="620" cy="370" r="1" fill="#60a5fa" opacity="0">
     <animate attributeName="cy" values="370;355;370" dur="5.5s" repeatCount="indefinite"/>
     <animate attributeName="opacity" values="0;0.25;0" dur="5.5s" repeatCount="indefinite"/>
   </circle>
 
   <!-- Main logo -->
-  <text x="460" y="165" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="110" font-weight="800" fill="white" letter-spacing="-3" opacity="0">
+  <text x="430" y="165" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="110" font-weight="800" fill="white" letter-spacing="-3" opacity="0">
     k1s0
     <animate attributeName="opacity" from="0" to="1" dur="0.8s" begin="0.2s" fill="freeze"/>
   </text>
 
   <!-- Accent underline -->
-  <rect x="460" y="180" width="280" height="4" rx="2" fill="url(#accent)" filter="url(#glow)"/>
-  <rect x="460" y="180" width="280" height="4" rx="2" fill="url(#underlineShimmer)" filter="url(#glow)" opacity="0.7"/>
+  <rect x="430" y="180" width="270" height="4" rx="2" fill="url(#accent)" filter="url(#glow)"/>
+  <rect x="430" y="180" width="270" height="4" rx="2" fill="url(#underlineShimmer)" filter="url(#glow)" opacity="0.7"/>
 
   <!-- Tagline -->
-  <text x="460" y="225" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="22" fill="#94a3b8" font-weight="400" letter-spacing="1" opacity="0">
+  <text x="430" y="225" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="22" fill="#94a3b8" font-weight="400" letter-spacing="1" opacity="0">
     CLIひとつで、構築から運用まで。
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="0.8s" fill="freeze"/>
   </text>
 
   <!-- Subtitle -->
-  <text x="460" y="260" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="16" fill="#64748b" font-weight="400" letter-spacing="2" opacity="0">
+  <text x="430" y="260" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="16" fill="#64748b" font-weight="400" letter-spacing="1" opacity="0">
     Enterprise Microservice Development Platform
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.0s" fill="freeze"/>
   </text>
 
   <!-- ==================== Tech badges (staggered fade in) ==================== -->
-  <g transform="translate(460, 290)">
+  <g transform="translate(430, 290)">
     <g opacity="0"><animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="2.4s" fill="freeze"/>
       <rect x="0" y="0" width="64" height="26" rx="13" fill="#f97316" opacity="0.15" stroke="#f97316" stroke-width="0.8" stroke-opacity="0.5"/>
       <text x="32" y="17" font-family="'Segoe UI',Arial,sans-serif" font-size="11" fill="#fb923c" font-weight="600" text-anchor="middle">Rust</text>
@@ -495,7 +439,7 @@
       <text x="242" y="17" font-family="'Segoe UI',Arial,sans-serif" font-size="11" fill="#60a5fa" font-weight="600" text-anchor="middle">Flutter</text>
     </g>
   </g>
-  <g transform="translate(460, 326)">
+  <g transform="translate(430, 326)">
     <g opacity="0"><animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="2.8s" fill="freeze"/>
       <rect x="0" y="0" width="40" height="26" rx="13" fill="#3b82f6" opacity="0.15" stroke="#3b82f6" stroke-width="0.8" stroke-opacity="0.5"/>
       <text x="20" y="17" font-family="'Segoe UI',Arial,sans-serif" font-size="11" fill="#60a5fa" font-weight="600" text-anchor="middle">K8s</text>
@@ -516,18 +460,5 @@
       <rect x="250" y="0" width="52" height="26" rx="13" fill="#f43f5e" opacity="0.15" stroke="#f43f5e" stroke-width="0.8" stroke-opacity="0.5"/>
       <text x="276" y="17" font-family="'Segoe UI',Arial,sans-serif" font-size="11" fill="#fb7185" font-weight="600" text-anchor="middle">Istio</text>
     </g>
-  </g>
-
-  <!-- ==================== Mesh topology legend (top right) ==================== -->
-  <g transform="translate(1050, 50)" opacity="0">
-    <animate attributeName="opacity" from="0" to="0.7" dur="0.5s" begin="2.5s" fill="freeze"/>
-    <circle cx="0" cy="0" r="4" fill="#3b82f6"/>
-    <text x="12" y="4" font-family="'Segoe UI',Arial,sans-serif" font-size="10" fill="#475569">System</text>
-    <circle cx="0" cy="18" r="4" fill="#8b5cf6"/>
-    <text x="12" y="22" font-family="'Segoe UI',Arial,sans-serif" font-size="10" fill="#475569">Business</text>
-    <circle cx="0" cy="36" r="4" fill="#ec4899"/>
-    <text x="12" y="40" font-family="'Segoe UI',Arial,sans-serif" font-size="10" fill="#475569">Service</text>
-    <polygon points="82,0 86,-3 86,3" fill="#22c55e"/>
-    <text x="92" y="4" font-family="'Segoe UI',Arial,sans-serif" font-size="10" fill="#475569">Gateway</text>
   </g>
 </svg>
