@@ -26,3 +26,21 @@ public func validateTenantID(_ tenantID: String) throws {
         throw ValidationError.invalidTenantID(tenantID)
     }
 }
+
+public func validatePagination(page: Int, perPage: Int) throws {
+    if page < 1 {
+        throw ValidationError.invalidPage(page)
+    }
+    if perPage < 1 || perPage > 100 {
+        throw ValidationError.invalidPerPage(perPage)
+    }
+}
+
+public func validateDateRange(startDate: Date, endDate: Date) throws {
+    if startDate > endDate {
+        let formatter = ISO8601DateFormatter()
+        throw ValidationError.invalidDateRange(
+            "start (\(formatter.string(from: startDate))) must be <= end (\(formatter.string(from: endDate)))"
+        )
+    }
+}

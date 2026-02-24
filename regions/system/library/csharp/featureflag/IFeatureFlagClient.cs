@@ -7,4 +7,6 @@ public interface IFeatureFlagClient
     Task<FeatureFlag> GetFlagAsync(string flagKey);
 
     Task<bool> IsEnabledAsync(string flagKey, EvaluationContext context);
+
+    Task<string?> GetVariationAsync(string flagKey, EvaluationContext context);
 }

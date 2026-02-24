@@ -51,11 +51,11 @@ async fn main() -> anyhow::Result<()> {
     let task_repo: Arc<dyn WorkflowTaskRepository> =
         Arc::new(InMemoryWorkflowTaskRepository::new());
 
-    let _create_wf_uc = Arc::new(usecase::CreateWorkflowUseCase::new(def_repo.clone()));
+    let create_wf_uc = Arc::new(usecase::CreateWorkflowUseCase::new(def_repo.clone()));
     let _update_wf_uc = Arc::new(usecase::UpdateWorkflowUseCase::new(def_repo.clone()));
     let _delete_wf_uc = Arc::new(usecase::DeleteWorkflowUseCase::new(def_repo.clone()));
-    let _get_wf_uc = Arc::new(usecase::GetWorkflowUseCase::new(def_repo.clone()));
-    let _list_wf_uc = Arc::new(usecase::ListWorkflowsUseCase::new(def_repo.clone()));
+    let get_wf_uc = Arc::new(usecase::GetWorkflowUseCase::new(def_repo.clone()));
+    let list_wf_uc = Arc::new(usecase::ListWorkflowsUseCase::new(def_repo.clone()));
     let start_inst_uc = Arc::new(usecase::StartInstanceUseCase::new(
         def_repo.clone(),
         inst_repo.clone(),
@@ -79,21 +79,21 @@ async fn main() -> anyhow::Result<()> {
     let _check_overdue_uc = Arc::new(usecase::CheckOverdueTasksUseCase::new(task_repo));
 
     let _grpc_svc = Arc::new(WorkflowGrpcService::new(
-        start_inst_uc,
-        get_inst_uc,
+        start_inst_uc.clone(),
+        get_inst_uc.clone(),
         approve_task_uc,
         reject_task_uc,
     ));
 
-    let app = axum::Router::new()
-        .route(
-            "/healthz",
-            axum::routing::get(adapter::handler::health::healthz),
-        )
-        .route(
-            "/readyz",
-            axum::routing::get(adapter::handler::health::readyz),
-        );
+    let handler_state = adapter::handler::AppState {
+        create_workflow_uc: create_wf_uc,
+        get_workflow_uc: get_wf_uc,
+        list_workflows_uc: list_wf_uc,
+        start_instance_uc: start_inst_uc,
+        get_instance_uc: get_inst_uc,
+    };
+
+    let app = adapter::handler::router(handler_state);
 
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);

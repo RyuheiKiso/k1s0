@@ -58,4 +58,31 @@ public class InMemoryNotificationClientTests
         }
         Assert.Equal(4, client.Sent.Count);
     }
+
+    [Fact]
+    public async Task SendBatch_ReturnsMultipleResponses()
+    {
+        var client = new InMemoryNotificationClient();
+        var requests = new List<NotificationRequest>
+        {
+            new("1", NotificationChannel.Email, "a@b.com", "Subject1", "Body1"),
+            new("2", NotificationChannel.Sms, "+1234567890", null, "OTP"),
+            new("3", NotificationChannel.Push, "device-1", null, "Push body"),
+        };
+
+        var responses = await client.SendBatchAsync(requests);
+
+        Assert.Equal(3, responses.Count);
+        Assert.All(responses, r => Assert.Equal("sent", r.Status));
+        Assert.Equal(3, client.Sent.Count);
+    }
+
+    [Fact]
+    public async Task SendBatch_EmptyList_ReturnsEmpty()
+    {
+        var client = new InMemoryNotificationClient();
+        var responses = await client.SendBatchAsync(new List<NotificationRequest>());
+        Assert.Empty(responses);
+        Assert.Empty(client.Sent);
+    }
 }

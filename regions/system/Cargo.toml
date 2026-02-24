@@ -37,6 +37,7 @@ members = [
     "library/rust/file-client",
     "library/rust/graphql-client",
     "library/rust/health",
+    "library/rust/server-common",
     "library/rust/idempotency",
     "library/rust/kafka",
     "library/rust/messaging",

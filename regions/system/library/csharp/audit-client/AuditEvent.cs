@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace K1s0.System.AuditClient;
 
 public record AuditEvent(
@@ -7,4 +9,5 @@ public record AuditEvent(
     string Action,
     string ResourceType,
     string ResourceId,
-    DateTimeOffset Timestamp);
+    DateTimeOffset Timestamp,
+    JsonElement? Metadata = null);

@@ -186,9 +186,34 @@ impl SubscriptionRoot {
             .watch_config(namespaces.unwrap_or_default())
             .await
     }
+
+    async fn tenant_updated(
+        &self,
+        _ctx: &Context<'_>,
+        tenant_id: async_graphql::ID,
+    ) -> impl Stream<Item = Tenant> {
+        self.subscription
+            .watch_tenant_updated(tenant_id.to_string())
+    }
+
+    async fn feature_flag_changed(
+        &self,
+        _ctx: &Context<'_>,
+        key: String,
+    ) -> impl Stream<Item = FeatureFlag> {
+        self.subscription
+            .watch_feature_flag_changed(key)
+    }
 }
 
 pub type AppSchema = Schema<QueryRoot, MutationRoot, SubscriptionRoot>;
+
+/// アプリケーション共有状態。GraphQL スキーマと Prometheus メトリクスを保持する。
+#[derive(Clone)]
+pub struct AppState {
+    pub schema: AppSchema,
+    pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+}
 
 pub fn router(
     jwks_verifier: Arc<JwksVerifier>,
@@ -199,6 +224,7 @@ pub fn router(
     subscription: Arc<SubscriptionResolver>,
     feature_flag_client: Arc<FeatureFlagGrpcClient>,
     graphql_cfg: GraphQLConfig,
+    metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 ) -> Router {
     let mut builder = Schema::build(
         QueryRoot {
@@ -221,6 +247,11 @@ pub fn router(
 
     let schema = builder.finish();
 
+    let app_state = AppState {
+        schema: schema.clone(),
+        metrics,
+    };
+
     let graphql_post = post(graphql_handler).layer(AuthMiddlewareLayer::new(jwks_verifier));
 
     let mut router = Router::new()
@@ -230,9 +261,9 @@ pub fn router(
         .route("/graphql", graphql_post)
         .route(
             "/graphql/ws",
-            get_service(GraphQLSubscription::new(schema.clone())),
+            get_service(GraphQLSubscription::new(schema)),
         )
-        .with_state(schema.clone());
+        .with_state(app_state);
 
     // 開発環境のみ Playground を有効化
     if graphql_cfg.playground {
@@ -243,12 +274,12 @@ pub fn router(
 }
 
 async fn graphql_handler(
-    State(schema): State<AppSchema>,
+    State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     req: GraphQLRequest,
 ) -> GraphQLResponse {
     let request = req.into_inner().data(claims);
-    schema.execute(request).await.into()
+    state.schema.execute(request).await.into()
 }
 
 async fn graphql_playground() -> impl IntoResponse {
@@ -266,6 +297,11 @@ async fn readyz() -> Json<serde_json::Value> {
     Json(serde_json::json!({"status": "ready"}))
 }
 
-async fn metrics_handler() -> impl IntoResponse {
-    (StatusCode::OK, "# metrics not configured\n")
+async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let body = state.metrics.gather_metrics();
+    (
+        StatusCode::OK,
+        [("content-type", "text/plain; version=0.0.4; charset=utf-8")],
+        body,
+    )
 }

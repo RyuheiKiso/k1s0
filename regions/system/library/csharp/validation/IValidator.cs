@@ -9,4 +9,8 @@ public interface IValidator
     void ValidateUrl(string url);
 
     void ValidateTenantId(string tenantId);
+
+    void ValidatePagination(int page, int perPage);
+
+    void ValidateDateRange(DateTime startDate, DateTime endDate);
 }

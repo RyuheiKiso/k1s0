@@ -9,10 +9,12 @@ system-dlq-manager-server の Dockerfile・テスト・CI/CD パイプライン�
 [Dockerイメージ戦略.md](Dockerイメージ戦略.md) のテンプレートに従う。ビルドコンテキストは `regions/system`（ライブラリ依存解決のため）。
 
 ```dockerfile
-# ---- Build ----
+# Build stage
+# Note: build context must be ./regions/system (to include library dependencies)
 FROM rust:1.88-bookworm AS builder
 
-# protobuf compiler（tonic-build 用）、cmake + build-essential（rdkafka cmake-build 用）
+# Install protobuf compiler (for tonic-build in build.rs) and
+# cmake + build-essential (for rdkafka cmake-build feature)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler \
     cmake \
@@ -20,19 +22,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY . .
-WORKDIR /app/server/rust/dlq-manager
-RUN cargo build --release
 
-# ---- Runtime ----
+# Copy the entire system directory to resolve path dependencies
+COPY . .
+
+RUN cargo build --release -p k1s0-dlq-manager
+
+# Runtime stage
 FROM gcr.io/distroless/cc-debian12:nonroot
 
-# rdkafka が必要とする libz を手動コピー
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
-COPY --from=builder /app/server/rust/dlq-manager/target/release/k1s0-dlq-manager /k1s0-dlq-manager
+COPY --from=builder /app/target/release/k1s0-dlq-manager /k1s0-dlq-manager
 
 USER nonroot:nonroot
 EXPOSE 8080
+
 ENTRYPOINT ["/k1s0-dlq-manager"]
 ```
 
@@ -44,6 +48,7 @@ ENTRYPOINT ["/k1s0-dlq-manager"]
 | ランタイムステージ | `gcr.io/distroless/cc-debian12:nonroot`（最小イメージ） |
 | 追加パッケージ | `protobuf-compiler`（proto 生成）、`cmake` + `build-essential`（rdkafka ビルド） |
 | libz コピー | distroless には zlib が含まれないため、ビルドステージから手動コピー |
+| ビルドコマンド | `cargo build --release -p k1s0-dlq-manager`（ワークスペースから特定パッケージを指定） |
 | ビルドコンテキスト | `regions/system`（`COPY . .` でシステム全体のライブラリ依存を含める） |
 | 公開ポート | 8080（REST API のみ、gRPC なし） |
 | 実行ユーザー | `nonroot:nonroot`（セキュリティベストプラクティス） |
@@ -61,10 +66,10 @@ ENTRYPOINT ["/k1s0-dlq-manager"]
 | domain/entity | 単体テスト | `#[cfg(test)]` + `assert!` |
 | usecase | 単体テスト（モック） | `mockall` |
 | adapter/handler | 統合テスト（HTTP） | `axum::test` + `tokio::test` |
-| infra/config | 単体テスト | `#[cfg(test)]` |
-| infra/database | 単体テスト | `#[cfg(test)]` |
-| infra/kafka | 単体テスト（モック） | `mockall` |
-| infra/persistence | 統合テスト（DB） | `testcontainers` |
+| infrastructure/config | 単体テスト | `#[cfg(test)]` |
+| infrastructure/database | 単体テスト | `#[cfg(test)]` |
+| infrastructure/kafka | 単体テスト（モック） | `mockall` |
+| infrastructure/persistence | 統合テスト（DB） | `testcontainers` |
 
 ### ユニットテスト一覧（48 テスト）
 

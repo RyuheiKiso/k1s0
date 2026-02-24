@@ -35,16 +35,62 @@ struct PaginationTests {
 
     @Test("カーソルのエンコードとデコードが正しく動作すること")
     func testCursorRoundTrip() throws {
-        let original = "item-123"
-        let encoded = encodeCursor(original)
-        let decoded = try decodeCursor(encoded)
-        #expect(decoded == original)
+        let sortKey = "2024-01-15"
+        let id = "item-123"
+        let encoded = encodeCursor(sortKey: sortKey, id: id)
+        let (decodedSortKey, decodedId) = try decodeCursor(encoded)
+        #expect(decodedSortKey == sortKey)
+        #expect(decodedId == id)
     }
 
     @Test("無効なカーソルがエラーになること")
     func testInvalidCursor() {
         #expect(throws: CursorError.self) {
             try decodeCursor("!!!invalid-base64!!!")
+        }
+    }
+
+    @Test("CursorRequestフィールド")
+    func testCursorRequest() {
+        let req = CursorRequest(cursor: "abc", limit: 20)
+        #expect(req.cursor == "abc")
+        #expect(req.limit == 20)
+    }
+
+    @Test("CursorMetaフィールド")
+    func testCursorMeta() {
+        let meta = CursorMeta(nextCursor: "next", hasMore: true)
+        #expect(meta.nextCursor == "next")
+        #expect(meta.hasMore == true)
+    }
+
+    @Test("PaginationMetaフィールド")
+    func testPaginationMeta() {
+        let meta = PaginationMeta(total: 100, page: 2, perPage: 10, totalPages: 10)
+        #expect(meta.total == 100)
+        #expect(meta.page == 2)
+        #expect(meta.perPage == 10)
+        #expect(meta.totalPages == 10)
+    }
+
+    @Test("validatePerPage有効値")
+    func testValidatePerPageValid() throws {
+        #expect(try validatePerPage(1) == 1)
+        #expect(try validatePerPage(50) == 50)
+        #expect(try validatePerPage(100) == 100)
+    }
+
+    @Test("validatePerPageゼロ")
+    func testValidatePerPageZero() {
+        #expect(throws: PerPageValidationError.self) {
+            try validatePerPage(0)
+        }
+    }
+
+    @Test("validatePerPage最大超過")
+    func testValidatePerPageOverMax() {
+        #expect(throws: PerPageValidationError.self) {
+            try validatePerPage(101)
         }
     }
 }

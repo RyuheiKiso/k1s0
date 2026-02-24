@@ -6,45 +6,54 @@ system-graphql-gateway の Dockerfile・Helm values・環境変数・ヘルス�
 
 ## Dockerfile
 
-[Dockerイメージ戦略.md](Dockerイメージ戦略.md) のマルチステージビルドテンプレートに従う。
+> **注意**: Dockerfile は現時点では未作成（`regions/system/server/rust/graphql-gateway/Dockerfile` が存在しない）。ソースコード（`src/`、`Cargo.toml`、`build.rs`）は実装済みであるが、デプロイインフラは Phase 6-5 で作成予定。
+
+[Dockerイメージ戦略.md](Dockerイメージ戦略.md) のマルチステージビルドテンプレートおよび他の system サーバーの Dockerfile パターンに従い、以下の Dockerfile を作成する予定。
 
 ```dockerfile
-# ---- Build ----
-FROM rust:1.81-bookworm AS build
-WORKDIR /src
+# Build stage
+# Note: build context must be ./regions/system (to include library dependencies)
+FROM rust:1.88-bookworm AS builder
 
-# protoc のインストール（tonic-build に必要）
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends protobuf-compiler \
+# Install protobuf compiler (for tonic-build in build.rs) and
+# cmake + build-essential (for rdkafka cmake-build feature)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    protobuf-compiler \
+    cmake \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# 依存関係のキャッシュ（Cargo.toml / Cargo.lock のみコピーして空ビルド）
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs \
-    && cargo build --release \
-    && rm -rf src
-
-# ソースコードのコピーと本番ビルド
-COPY . .
-RUN cargo build --release
-
-# ---- Runtime ----
-FROM debian:bookworm-slim
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# 非 root ユーザーで実行
-RUN useradd -r -u 65534 -g nogroup appuser
-COPY --from=build /src/target/release/k1s0-graphql-gateway-server /app/k1s0-graphql-gateway-server
-COPY --from=build /src/config /app/config
-
-USER appuser
 WORKDIR /app
 
+# Copy the entire system directory to resolve path dependencies
+COPY . .
+
+RUN cargo build --release -p k1s0-graphql-gateway
+
+# Runtime stage
+FROM gcr.io/distroless/cc-debian12:nonroot
+
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
+COPY --from=builder /app/target/release/k1s0-graphql-gateway /k1s0-graphql-gateway
+
+USER nonroot:nonroot
 EXPOSE 8080
-ENTRYPOINT ["/app/k1s0-graphql-gateway-server"]
+
+ENTRYPOINT ["/k1s0-graphql-gateway"]
 ```
+
+### Dockerfile 構成のポイント（予定）
+
+| 項目 | 詳細 |
+| --- | --- |
+| ビルドステージ | `rust:1.88-bookworm`（他サーバーと統一） |
+| ランタイムステージ | `gcr.io/distroless/cc-debian12:nonroot`（他サーバーと統一、debian:bookworm-slim ではない） |
+| 追加パッケージ | `protobuf-compiler`（proto 生成）、`cmake` + `build-essential`（rdkafka ビルド） |
+| libz コピー | distroless には zlib が含まれないため、ビルドステージから手動コピー |
+| ビルドコマンド | `cargo build --release -p k1s0-graphql-gateway`（ワークスペースから特定パッケージを指定） |
+| ビルドコンテキスト | `regions/system`（`COPY . .` でシステム全体のライブラリ依存を含める） |
+| 公開ポート | 8080（REST / GraphQL API のみ、gRPC なし） |
+| 実行ユーザー | `nonroot:nonroot`（セキュリティベストプラクティス） |
 
 ---
 
@@ -391,7 +400,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: regions/system/server/rust/graphql-gateway
+          context: regions/system
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: |
             harbor.internal.example.com/k1s0-system/graphql-gateway:${{ github.sha }}

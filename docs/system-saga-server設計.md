@@ -565,7 +565,7 @@ usecase（ビジネスロジック）
   ^
 adapter（ハンドラー・プレゼンター・リポジトリ実装）
   ^
-infra（DB接続・gRPC Caller・Kafka・設定ローダー）
+infrastructure（DB接続・gRPC Caller・Kafka・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
@@ -576,10 +576,10 @@ infra（DB接続・gRPC Caller・Kafka・設定ローダー）
 | adapter/handler | REST ハンドラー | プロトコル変換（axum） |
 | adapter/grpc | gRPC サービス | プロトコル変換（tonic） |
 | adapter/repository | `SagaPostgresRepository`, `InMemoryWorkflowRepository` | リポジトリ実装 |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/database | DatabaseConfig | DB 接続設定 |
-| infra/grpc_caller | `GrpcStepCaller`, `ServiceRegistry`, `TonicGrpcCaller` | gRPC 動的呼び出し |
-| infra/kafka_producer | `SagaEventPublisher`, `KafkaProducer` | Kafka イベント発行 |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/database | DatabaseConfig | DB 接続設定 |
+| infrastructure/grpc_caller | `GrpcStepCaller`, `ServiceRegistry`, `TonicGrpcCaller` | gRPC 動的呼び出し |
+| infrastructure/kafka_producer | `SagaEventPublisher`, `KafkaProducer` | Kafka イベント発行 |
 
 ### ドメインモデル
 
@@ -659,7 +659,7 @@ infra（DB接続・gRPC Caller・Kafka・設定ローダー）
     └────────────────┘  └────────────────┘  └──────────┬──────────┘
                                                        │
                     ┌──────────────────────────────────┼──────────────┐
-                    │                  infra 層         │              │
+                    │             infrastructure 層         │              │
                     │  ┌──────────────┐  ┌─────────────▼──────────┐  │
                     │  │ ServiceReg + │  │ PostgreSQL Repository  │  │
                     │  │ GrpcCaller   │  │ InMemoryWorkflowRepo   │  │

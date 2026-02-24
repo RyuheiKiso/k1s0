@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.82
+      - uses: dtolnay/rust-toolchain@1.88
         with:
           components: clippy, rustfmt
       - run: cargo fmt --all -- --check
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.82
+      - uses: dtolnay/rust-toolchain@1.88
       - run: cargo test --all
         working-directory: regions/system/server/rust/dlq-manager
 
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.82
+      - uses: dtolnay/rust-toolchain@1.88
       - run: cargo build --release
         working-directory: regions/system/server/rust/dlq-manager
 

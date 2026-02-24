@@ -85,4 +85,39 @@ public class FeatureFlagTests
         var client = new InMemoryFeatureFlagClient();
         await Assert.ThrowsAsync<FeatureFlagNotFoundException>(() => client.GetFlagAsync("missing"));
     }
+
+    [Fact]
+    public async Task GetVariation_WithVariants_ReturnsVariantValue()
+    {
+        var client = new InMemoryFeatureFlagClient();
+        var variants = new List<FlagVariant>
+        {
+            new("control", "A", 50),
+            new("experiment", "B", 50),
+        };
+        client.SetFlag(new FeatureFlag("1", "ab-test", "ab", true, variants));
+
+        var variation = await client.GetVariationAsync("ab-test", new EvaluationContext(UserId: "user-1"));
+        Assert.NotNull(variation);
+    }
+
+    [Fact]
+    public async Task GetVariation_NoVariants_ReturnsNull()
+    {
+        var client = new InMemoryFeatureFlagClient();
+        client.SetFlag(new FeatureFlag("1", "feat-simple", "simple", true, []));
+
+        var variation = await client.GetVariationAsync("feat-simple", new EvaluationContext());
+        Assert.Null(variation);
+    }
+
+    [Fact]
+    public async Task GetVariation_DisabledFlag_ReturnsNull()
+    {
+        var client = new InMemoryFeatureFlagClient();
+        client.SetFlag(new FeatureFlag("1", "feat-off", "off", false, []));
+
+        var variation = await client.GetVariationAsync("feat-off", new EvaluationContext());
+        Assert.Null(variation);
+    }
 }

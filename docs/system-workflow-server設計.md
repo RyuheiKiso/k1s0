@@ -673,19 +673,19 @@ usecase（ビジネスロジック）
   ^
 adapter（REST ハンドラー・gRPC ハンドラー）
   ^
-infra（DB接続・Kafka Producer・設定ローダー）
+infrastructure（DB接続・Kafka Producer・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `WorkflowDefinition`, `WorkflowStep`, `WorkflowInstance`, `WorkflowTask` | エンティティ定義 |
+| domain/entity | `WorkflowDefinition`, `WorkflowStep`, `WorkflowInstance`, `WorkflowTask` | エンティティ定義 |
 | domain/repository | `WorkflowDefinitionRepository`, `WorkflowInstanceRepository`, `WorkflowTaskRepository` | リポジトリトレイト |
 | domain/service | `WorkflowDomainService` | ステップ遷移計算・タスク生成・期日計算・状態機械ロジック |
 | usecase | `CreateWorkflowUsecase`, `UpdateWorkflowUsecase`, `DeleteWorkflowUsecase`, `GetWorkflowUsecase`, `ListWorkflowsUsecase`, `StartInstanceUsecase`, `GetInstanceUsecase`, `ListInstancesUsecase`, `CancelInstanceUsecase`, `ListTasksUsecase`, `ApproveTaskUsecase`, `RejectTaskUsecase`, `ReassignTaskUsecase`, `CheckOverdueTasksUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/persistence | `WorkflowDefinitionPostgresRepository`, `WorkflowInstancePostgresRepository`, `WorkflowTaskPostgresRepository` | PostgreSQL リポジトリ実装 |
-| infra/messaging | `WorkflowStateChangedKafkaProducer`, `NotificationRequestKafkaProducer` | Kafka プロデューサー |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `WorkflowDefinitionPostgresRepository`, `WorkflowInstancePostgresRepository`, `WorkflowTaskPostgresRepository` | PostgreSQL リポジトリ実装 |
+| infrastructure/messaging | `WorkflowStateChangedKafkaProducer`, `NotificationRequestKafkaProducer` | Kafka プロデューサー |
 
 ### ドメインモデル
 
@@ -782,7 +782,7 @@ infra（DB接続・Kafka Producer・設定ローダー）
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
-    │  domain/model   │              │ domain/repository          │   │
+    │  domain/entity  │              │ domain/repository          │   │
     │  WorkflowDef,   │              │ WorkflowDefinitionRepo     │   │
     │  WorkflowStep,  │              │ WorkflowInstanceRepo       │   │
     │  WorkflowInst,  │              │ WorkflowTaskRepo           │   │
@@ -795,7 +795,7 @@ infra（DB接続・Kafka Producer・設定ローダー）
                  │ Service        │            │                     │
                  └────────────────┘            │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Kafka        │  │ WorkflowDefinition     │  │
                     │  │ Producer     │  │ PostgresRepository     │  │

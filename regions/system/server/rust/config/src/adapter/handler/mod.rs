@@ -14,7 +14,7 @@ use crate::adapter::middleware::rbac::require_permission;
 use crate::domain::repository::ConfigRepository;
 use crate::usecase::{
     DeleteConfigUseCase, GetConfigSchemaUseCase, GetConfigUseCase, GetServiceConfigUseCase,
-    ListConfigsUseCase, UpdateConfigUseCase, UpsertConfigSchemaUseCase,
+    ListConfigSchemasUseCase, ListConfigsUseCase, UpdateConfigUseCase, UpsertConfigSchemaUseCase,
 };
 
 /// AppState はアプリケーション全体の共有状態を表す。
@@ -26,6 +26,7 @@ pub struct AppState {
     pub delete_config_uc: Arc<DeleteConfigUseCase>,
     pub get_service_config_uc: Arc<GetServiceConfigUseCase>,
     pub get_config_schema_uc: Arc<GetConfigSchemaUseCase>,
+    pub list_config_schemas_uc: Arc<ListConfigSchemasUseCase>,
     pub upsert_config_schema_uc: Arc<UpsertConfigSchemaUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub config_repo: Arc<dyn ConfigRepository>,
@@ -45,6 +46,7 @@ impl AppState {
             delete_config_uc: Arc::new(DeleteConfigUseCase::new(config_repo.clone())),
             get_service_config_uc: Arc::new(GetServiceConfigUseCase::new(config_repo.clone())),
             get_config_schema_uc: Arc::new(GetConfigSchemaUseCase::new(schema_repo.clone())),
+            list_config_schemas_uc: Arc::new(ListConfigSchemasUseCase::new(schema_repo.clone())),
             upsert_config_schema_uc: Arc::new(UpsertConfigSchemaUseCase::new(schema_repo)),
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-config-server")),
             config_repo,
@@ -75,6 +77,7 @@ impl AppState {
         config_handler::update_config,
         config_handler::delete_config,
         config_handler::get_service_config,
+        config_schema_handler::list_config_schemas,
         config_schema_handler::get_config_schema,
         config_schema_handler::upsert_config_schema,
     ),
@@ -118,6 +121,10 @@ pub fn router(state: AppState) -> Router {
             .route(
                 "/api/v1/config/:namespace",
                 get(config_handler::list_configs),
+            )
+            .route(
+                "/api/v1/config-schema",
+                get(config_schema_handler::list_config_schemas),
             )
             .route(
                 "/api/v1/config-schema/:service_name",
@@ -176,6 +183,10 @@ pub fn router(state: AppState) -> Router {
             .route(
                 "/api/v1/config/:namespace",
                 get(config_handler::list_configs),
+            )
+            .route(
+                "/api/v1/config-schema",
+                get(config_schema_handler::list_config_schemas),
             )
             .route(
                 "/api/v1/config-schema/:service_name",

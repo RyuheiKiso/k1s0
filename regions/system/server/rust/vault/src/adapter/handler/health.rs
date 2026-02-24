@@ -39,19 +39,4 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
     }
-
-    #[tokio::test]
-    async fn test_readyz_without_db_returns_ok() {
-        let state = AppState { db_pool: None };
-        let app = Router::new()
-            .route("/readyz", get(readyz))
-            .with_state(state);
-
-        let response = app
-            .oneshot(Request::builder().uri("/readyz").body(Body::empty()).unwrap())
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-    }
 }

@@ -1,0 +1,40 @@
+app:
+  name: "graphql-gateway"
+  version: "0.1.0"
+  environment: "dev"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+graphql:
+  introspection: true
+  playground: true
+  max_depth: 10
+  max_complexity: 1000
+
+auth:
+  jwks_url: "http://auth-rust:8080/jwks"
+
+backends:
+  tenant:
+    address: "http://tenant-rust:50051"
+    timeout_ms: 3000
+  featureflag:
+    address: "http://featureflag-rust:50051"
+    timeout_ms: 3000
+  config:
+    address: "http://config-rust:50051"
+    timeout_ms: 3000
+
+observability:
+  log:
+    level: "debug"
+    format: "text"
+  trace:
+    enabled: true
+    endpoint: "jaeger:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: false
+    path: "/metrics"

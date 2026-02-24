@@ -66,4 +66,10 @@ public class InMemoryFeatureFlagClient : IFeatureFlagClient
         var result = await EvaluateAsync(flagKey, context).ConfigureAwait(false);
         return result.Enabled;
     }
+
+    public async Task<string?> GetVariationAsync(string flagKey, EvaluationContext context)
+    {
+        var result = await EvaluateAsync(flagKey, context).ConfigureAwait(false);
+        return result.Variant;
+    }
 }

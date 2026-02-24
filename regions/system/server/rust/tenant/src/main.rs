@@ -1,8 +1,11 @@
 #![allow(dead_code, unused_imports)]
 
+use std::collections::HashMap;
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 use tracing::info;
+use uuid::Uuid;
 
 mod adapter;
 mod domain;
@@ -10,6 +13,8 @@ mod infrastructure;
 mod usecase;
 
 use adapter::handler::{self, AppState};
+use domain::entity::{Tenant, TenantStatus};
+use domain::repository::TenantRepository;
 
 #[derive(Debug, Clone, serde::Deserialize)]
 struct Config {
@@ -44,6 +49,55 @@ fn default_grpc_port() -> u16 {
     50058
 }
 
+// --- InMemory Repository ---
+
+struct InMemoryTenantRepository {
+    tenants: tokio::sync::RwLock<Vec<Tenant>>,
+}
+
+impl InMemoryTenantRepository {
+    fn new() -> Self {
+        Self {
+            tenants: tokio::sync::RwLock::new(Vec::new()),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl TenantRepository for InMemoryTenantRepository {
+    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Tenant>> {
+        let tenants = self.tenants.read().await;
+        Ok(tenants.iter().find(|t| t.id == *id).cloned())
+    }
+
+    async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<Tenant>> {
+        let tenants = self.tenants.read().await;
+        Ok(tenants.iter().find(|t| t.name == name).cloned())
+    }
+
+    async fn list(&self, page: i32, page_size: i32) -> anyhow::Result<(Vec<Tenant>, i64)> {
+        let tenants = self.tenants.read().await;
+        let total = tenants.len() as i64;
+        let offset = ((page - 1) * page_size) as usize;
+        let result: Vec<_> = tenants.iter().skip(offset).take(page_size as usize).cloned().collect();
+        Ok((result, total))
+    }
+
+    async fn create(&self, tenant: &Tenant) -> anyhow::Result<()> {
+        let mut tenants = self.tenants.write().await;
+        tenants.push(tenant.clone());
+        Ok(())
+    }
+
+    async fn update(&self, tenant: &Tenant) -> anyhow::Result<()> {
+        let mut tenants = self.tenants.write().await;
+        if let Some(existing) = tenants.iter_mut().find(|t| t.id == tenant.id) {
+            *existing = tenant.clone();
+        }
+        Ok(())
+    }
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -67,7 +121,17 @@ async fn main() -> anyhow::Result<()> {
         "starting tenant server"
     );
 
-    let state = AppState::new(cfg.app.name.clone(), cfg.app.version.clone());
+    let tenant_repo: Arc<dyn TenantRepository> = Arc::new(InMemoryTenantRepository::new());
+
+    let create_tenant_uc = Arc::new(usecase::CreateTenantUseCase::new(tenant_repo.clone()));
+    let get_tenant_uc = Arc::new(usecase::GetTenantUseCase::new(tenant_repo.clone()));
+    let list_tenants_uc = Arc::new(usecase::ListTenantsUseCase::new(tenant_repo));
+
+    let state = AppState {
+        create_tenant_uc,
+        get_tenant_uc,
+        list_tenants_uc,
+    };
     let app = handler::router(state);
 
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.http_port));

@@ -49,6 +49,14 @@ public class AesEncryptionTests
 public class PasswordHasherTests
 {
     [Fact]
+    public void Hash_ProducesArgon2idFormat()
+    {
+        var hash = PasswordHasher.Hash("password123");
+        Assert.StartsWith("$argon2id$", hash);
+        Assert.Contains("m=19456,t=2,p=1", hash);
+    }
+
+    [Fact]
     public void Hash_ProducesNonEmptyString()
     {
         var hash = PasswordHasher.Hash("password123");
@@ -75,5 +83,11 @@ public class PasswordHasherTests
         var a = PasswordHasher.Hash("same");
         var b = PasswordHasher.Hash("same");
         Assert.NotEqual(a, b);
+    }
+
+    [Fact]
+    public void Verify_InvalidFormat_ReturnsFalse()
+    {
+        Assert.False(PasswordHasher.Verify("test", "not-a-valid-hash"));
     }
 }

@@ -14,12 +14,11 @@ HMAC-SHA256 署名付きの HTTP POST 配信、指数バックオフリトライ
 
 | 型・関数 | 種別 | 説明 |
 |---------|------|------|
-| `WebhookClient` | 構造体 | Webhook 配信クライアント（reqwest ベース）|
-| `WebhookConfig` | 構造体 | エンドポイント URL・シークレット・タイムアウト・リトライ設定 |
-| `WebhookPayload` | 構造体 | イベント種別・データ・タイムスタンプ・Idempotency-Key |
-| `WebhookResponse` | 構造体 | HTTP ステータスコード・レスポンスボディ |
-| `WebhookSignature` | 構造体 | HMAC-SHA256 署名生成・検証 |
-| `WebhookError` | enum | `DeliveryFailed`・`SignatureError`・`Timeout`・`MaxRetriesExceeded` |
+| `WebhookClient` | トレイト | Webhook 配信インターフェース（`send`・`send_with_signature`） |
+| `WebhookPayload` | 構造体 | イベント種別・タイムスタンプ・データ |
+| `generate_signature` | 関数 | HMAC-SHA256 署名生成 |
+| `verify_signature` | 関数 | HMAC-SHA256 署名検証 |
+| `WebhookError` | enum | Webhook 送信エラー |
 
 ## Rust 実装
 
@@ -58,11 +57,10 @@ k1s0-webhook-client = { path = "../../system/library/rust/webhook-client" }
 ```
 webhook-client/
 ├── src/
-│   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
-│   ├── client.rs       # WebhookClient
-│   ├── config.rs       # WebhookConfig
-│   ├── payload.rs      # WebhookPayload・WebhookResponse
-│   ├── signature.rs    # WebhookSignature（HMAC-SHA256）
+│   ├── lib.rs          # 公開 API（再エクスポート）
+│   ├── client.rs       # WebhookClient トレイト
+│   ├── payload.rs      # WebhookPayload
+│   ├── signature.rs    # generate_signature・verify_signature
 │   └── error.rs        # WebhookError
 └── Cargo.toml
 ```
@@ -70,35 +68,21 @@ webhook-client/
 **使用例**:
 
 ```rust
-use k1s0_webhook_client::{WebhookClient, WebhookConfig, WebhookPayload};
-use std::time::Duration;
-use serde_json::json;
+use k1s0_webhook_client::{WebhookClient, WebhookPayload, generate_signature, verify_signature};
 
-// クライアントの構築
-let config = WebhookConfig::new("https://example.com/webhooks")
-    .with_secret("my-hmac-secret")
-    .with_timeout(Duration::from_secs(10))
-    .with_max_retries(3);
+// WebhookClient トレイト経由で送信
+let status = client.send("https://example.com/webhooks", &payload).await?;
 
-let client = WebhookClient::new(config);
-
-// Webhook 配信
-let payload = WebhookPayload::new("order.created", json!({
-    "order_id": "ord_123",
-    "amount": 4900,
-}));
-
-// 署名・Idempotency-Key を自動付与して送信（失敗時はリトライ）
-let response = client.deliver(payload).await?;
-println!("delivered: status={}", response.status_code);
-
-// 受信側での署名検証
-use k1s0_webhook_client::WebhookSignature;
-let is_valid = WebhookSignature::verify(
+// 署名付き送信
+let status = client.send_with_signature(
+    "https://example.com/webhooks",
+    &payload,
     "my-hmac-secret",
-    request_body_bytes,
-    &request_headers["X-K1s0-Signature"],
-)?;
+).await?;
+
+// 署名生成・検証
+let sig = generate_signature("my-hmac-secret", body_bytes);
+let is_valid = verify_signature("my-hmac-secret", body_bytes, &sig);
 ```
 
 ## Go 実装
@@ -107,46 +91,41 @@ let is_valid = WebhookSignature::verify(
 
 ```
 webhook-client/
-├── webhook.go
-├── client.go
-├── config.go
-├── payload.go
-├── signature.go
-├── webhook_test.go
+├── webhookclient.go
+├── webhookclient_test.go
 ├── go.mod
 └── go.sum
 ```
 
-**依存関係**: `github.com/stretchr/testify v1.10.0`（標準ライブラリの `crypto/hmac`・`net/http` を使用）
+**依存関係**: 標準ライブラリの `crypto/hmac`・`net/http` を使用
 
 **主要インターフェース**:
 
 ```go
-type WebhookClient struct{}
-
-func NewWebhookClient(config WebhookConfig) *WebhookClient
-
-func (c *WebhookClient) Deliver(ctx context.Context, payload WebhookPayload) (*WebhookResponse, error)
-
-type WebhookConfig struct {
-    EndpointURL string
-    Secret      string
-    Timeout     time.Duration
-    MaxRetries  int
-}
-
 type WebhookPayload struct {
-    EventType      string          `json:"event_type"`
-    Data           json.RawMessage `json:"data"`
-    Timestamp      time.Time       `json:"timestamp"`
-    IdempotencyKey string          `json:"idempotency_key"`
+    EventType string         `json:"event_type"`
+    Timestamp string         `json:"timestamp"`
+    Data      map[string]any `json:"data"`
 }
+
+type WebhookClient interface {
+    Send(ctx context.Context, url string, payload *WebhookPayload) (int, error)
+}
+
+type HTTPWebhookClient struct {
+    Secret     string
+    HTTPClient *http.Client
+}
+
+func NewHTTPWebhookClient(secret string) *HTTPWebhookClient
+
+func (c *HTTPWebhookClient) Send(ctx context.Context, url string, payload *WebhookPayload) (int, error)
 
 // HMAC-SHA256 署名生成
-func Sign(secret string, body []byte) string
+func GenerateSignature(secret string, body []byte) string
 
 // 署名検証
-func Verify(secret string, body []byte, signature string) bool
+func VerifySignature(secret string, body []byte, sig string) bool
 ```
 
 ## TypeScript 実装
@@ -167,38 +146,23 @@ webhook-client/
 **主要 API**:
 
 ```typescript
-export interface WebhookConfig {
-  endpointUrl: string;
-  secret: string;
-  timeoutMs?: number;
-  maxRetries?: number;
-}
-
 export interface WebhookPayload {
   eventType: string;
-  data: unknown;
-  timestamp?: Date;
-  idempotencyKey?: string;
+  timestamp: string;
+  data: Record<string, unknown>;
 }
 
-export interface WebhookResponse {
-  statusCode: number;
-  body: string;
+export interface WebhookClient {
+  send(url: string, payload: WebhookPayload): Promise<number>;
 }
 
-export class WebhookClient {
-  constructor(config: WebhookConfig);
-  deliver(payload: WebhookPayload): Promise<WebhookResponse>;
+export class InMemoryWebhookClient implements WebhookClient {
+  async send(url: string, payload: WebhookPayload): Promise<number>;
+  getSent(): Array<{ url: string; payload: WebhookPayload }>;
 }
 
-export class WebhookSignature {
-  static sign(secret: string, body: string): string;
-  static verify(secret: string, body: string, signature: string): boolean;
-}
-
-export class WebhookError extends Error {
-  readonly kind: 'DeliveryFailed' | 'SignatureError' | 'Timeout' | 'MaxRetriesExceeded';
-}
+export function generateSignature(secret: string, body: string): string;
+export function verifySignature(secret: string, body: string, signature: string): boolean;
 ```
 
 **カバレッジ目標**: 90%以上
@@ -262,15 +226,10 @@ print('status: ${response.statusCode}');
 
 ```
 webhook-client/
-├── src/
-│   ├── WebhookClient.csproj
-│   ├── IWebhookClient.cs       # Webhook 配信インターフェース
-│   ├── WebhookClient.cs        # reqwest 相当（HttpClient ベース）
-│   ├── WebhookConfig.cs        # エンドポイント URL・シークレット・リトライ設定
-│   ├── WebhookPayload.cs       # イベント種別・データ・Idempotency-Key
-│   ├── WebhookResponse.cs      # HTTP ステータスコード・レスポンスボディ
-│   ├── WebhookSignature.cs     # HMAC-SHA256 署名生成・検証
-│   └── WebhookException.cs     # 公開例外型
+├── IWebhookClient.cs       # Webhook 配信インターフェース
+├── WebhookPayload.cs       # イベント種別・タイムスタンプ・データ
+├── WebhookSignature.cs     # HMAC-SHA256 署名生成・検証
+├── K1s0.System.WebhookClient.csproj
 ├── tests/
 │   ├── WebhookClient.Tests.csproj
 │   ├── Unit/
@@ -295,12 +254,8 @@ webhook-client/
 | 型 | 種別 | 説明 |
 |---|------|------|
 | `IWebhookClient` | interface | Webhook 配信インターフェース |
-| `WebhookClient` | class | HttpClient ベースの配信実装 |
-| `WebhookConfig` | record | エンドポイント URL・シークレット・タイムアウト・リトライ設定 |
-| `WebhookPayload` | record | イベント種別・データ・タイムスタンプ・Idempotency-Key |
-| `WebhookResponse` | record | HTTP ステータスコード・レスポンスボディ |
-| `WebhookSignature` | class | HMAC-SHA256 署名生成・検証（静的メソッド）|
-| `WebhookException` | class | 配信エラーの公開例外型 |
+| `WebhookPayload` | record | イベント種別・タイムスタンプ・データ |
+| `WebhookSignature` | static class | HMAC-SHA256 署名生成・検証 |
 
 **主要 API**:
 
@@ -309,25 +264,18 @@ namespace K1s0.System.WebhookClient;
 
 public interface IWebhookClient
 {
-    Task<WebhookResponse> DeliverAsync(WebhookPayload payload, CancellationToken ct = default);
+    Task<int> SendAsync(string url, WebhookPayload payload, CancellationToken ct = default);
 }
-
-public record WebhookConfig(
-    string EndpointUrl,
-    string Secret,
-    TimeSpan? Timeout = null,
-    int MaxRetries = 3);
 
 public record WebhookPayload(
     string EventType,
-    object Data,
-    DateTimeOffset? Timestamp = null,
-    string? IdempotencyKey = null);
+    string Timestamp,
+    Dictionary<string, object> Data);
 
 public static class WebhookSignature
 {
-    public static string Sign(string secret, ReadOnlySpan<byte> body);
-    public static bool Verify(string secret, ReadOnlySpan<byte> body, string signature);
+    public static string Generate(string secret, byte[] body);
+    public static bool Verify(string secret, byte[] body, string signature);
 }
 ```
 

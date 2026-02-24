@@ -32,19 +32,60 @@ void main() {
       expect(resp.totalPages, equals(0));
       expect(resp.items, isEmpty);
     });
+
+    test('meta returns PaginationMeta', () {
+      const req = PageRequest(page: 2, perPage: 10);
+      final resp = PageResponse<String>.create(['a'], 25, req);
+      final meta = resp.meta;
+      expect(meta.total, equals(25));
+      expect(meta.page, equals(2));
+      expect(meta.perPage, equals(10));
+      expect(meta.totalPages, equals(3));
+    });
   });
 
   group('cursor', () {
     test('encode and decode round-trip', () {
+      const sortKey = '2024-01-15';
       const id = 'abc-123';
-      final cursor = encodeCursor(id);
-      expect(decodeCursor(cursor), equals(id));
+      final cursor = encodeCursor(sortKey, id);
+      final result = decodeCursor(cursor);
+      expect(result.sortKey, equals(sortKey));
+      expect(result.id, equals(id));
     });
 
     test('produces base64url string', () {
-      final cursor = encodeCursor('test-id');
+      final cursor = encodeCursor('key', 'test-id');
       expect(cursor, isNotEmpty);
       expect(cursor, isNot(contains(' ')));
+    });
+
+    test('CursorRequest stores fields', () {
+      const req = CursorRequest(cursor: 'abc', limit: 20);
+      expect(req.cursor, equals('abc'));
+      expect(req.limit, equals(20));
+    });
+
+    test('CursorMeta stores fields', () {
+      const meta = CursorMeta(nextCursor: 'next', hasMore: true);
+      expect(meta.nextCursor, equals('next'));
+      expect(meta.hasMore, isTrue);
+    });
+  });
+
+  group('validatePerPage', () {
+    test('accepts valid values', () {
+      expect(validatePerPage(1), equals(1));
+      expect(validatePerPage(50), equals(50));
+      expect(validatePerPage(100), equals(100));
+    });
+
+    test('rejects zero', () {
+      expect(() => validatePerPage(0), throwsA(isA<PerPageValidationException>()));
+    });
+
+    test('rejects over max', () {
+      expect(() => validatePerPage(101), throwsA(isA<PerPageValidationException>()));
     });
   });
 }

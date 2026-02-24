@@ -41,18 +41,20 @@ public class PaginationTests
     [Fact]
     public void CursorPagination_EncodeAndDecode_Roundtrip()
     {
-        var original = "item-12345";
-        var cursor = CursorPagination.Encode(original);
-        var decoded = CursorPagination.Decode(cursor);
+        var sortKey = "2024-01-15";
+        var id = "item-12345";
+        var cursor = CursorPagination.Encode(sortKey, id);
+        var (decodedSortKey, decodedId) = CursorPagination.Decode(cursor);
 
-        Assert.Equal(original, decoded);
+        Assert.Equal(sortKey, decodedSortKey);
+        Assert.Equal(id, decodedId);
     }
 
     [Fact]
-    public void CursorPagination_Encode_ReturnsBase64()
+    public void CursorPagination_Decode_MissingSeparator_Throws()
     {
-        var cursor = CursorPagination.Encode("test");
-        Assert.Equal("dGVzdA==", cursor);
+        var cursor = Convert.ToBase64String(global::System.Text.Encoding.UTF8.GetBytes("noseparator"));
+        Assert.Throws<FormatException>(() => CursorPagination.Decode(cursor));
     }
 
     [Fact]
@@ -61,5 +63,51 @@ public class PaginationTests
         var a = new PageRequest(1, 10);
         var b = new PageRequest(1, 10);
         Assert.Equal(a, b);
+    }
+
+    [Fact]
+    public void CursorRequest_Fields()
+    {
+        var req = new CursorRequest("abc", 20);
+        Assert.Equal("abc", req.Cursor);
+        Assert.Equal(20u, req.Limit);
+    }
+
+    [Fact]
+    public void CursorMeta_Fields()
+    {
+        var meta = new CursorMeta("next", true);
+        Assert.Equal("next", meta.NextCursor);
+        Assert.True(meta.HasMore);
+    }
+
+    [Fact]
+    public void PaginationMeta_Fields()
+    {
+        var meta = new PaginationMeta(100, 2, 10, 10);
+        Assert.Equal(100, meta.Total);
+        Assert.Equal(2u, meta.Page);
+        Assert.Equal(10u, meta.PerPage);
+        Assert.Equal(10u, meta.TotalPages);
+    }
+
+    [Fact]
+    public void PerPageValidator_ValidValues()
+    {
+        Assert.Equal(1u, PerPageValidator.Validate(1));
+        Assert.Equal(50u, PerPageValidator.Validate(50));
+        Assert.Equal(100u, PerPageValidator.Validate(100));
+    }
+
+    [Fact]
+    public void PerPageValidator_Zero_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => PerPageValidator.Validate(0));
+    }
+
+    [Fact]
+    public void PerPageValidator_OverMax_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => PerPageValidator.Validate(101));
     }
 }

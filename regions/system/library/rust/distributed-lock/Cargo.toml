@@ -5,6 +5,7 @@ edition = "2021"
 
 [features]
 mock = ["mockall"]
+redis = ["dep:redis"]
 
 [dependencies]
 async-trait = "0.1"
@@ -12,6 +13,7 @@ thiserror = "2"
 tokio = { version = "1", features = ["sync", "time", "macros"] }
 uuid = { version = "1", features = ["v4"] }
 mockall = { version = "0.13", optional = true }
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager", "script"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }

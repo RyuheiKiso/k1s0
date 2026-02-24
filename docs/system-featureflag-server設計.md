@@ -478,20 +478,20 @@ usecase（ビジネスロジック）
   ^
 adapter（REST ハンドラー・gRPC ハンドラー）
   ^
-infra（DB接続・Kafka Producer・moka キャッシュ・設定ローダー）
+infrastructure（DB接続・Kafka Producer・moka キャッシュ・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `FeatureFlag`, `FlagEvaluation`, `FlagAuditLog` | エンティティ定義 |
+| domain/entity | `FeatureFlag`, `FlagEvaluation`, `FlagAuditLog` | エンティティ定義 |
 | domain/repository | `FeatureFlagRepository`, `FlagAuditLogRepository` | リポジトリトレイト |
 | domain/service | `FeatureFlagDomainService` | 評価ロジック・ロールアウト判定 |
 | usecase | `EvaluateFlagUsecase`, `GetFlagUsecase`, `ListFlagsUsecase`, `CreateFlagUsecase`, `UpdateFlagUsecase`, `DeleteFlagUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/persistence | `FeatureFlagPostgresRepository`, `FlagAuditLogPostgresRepository` | PostgreSQL リポジトリ実装 |
-| infra/cache | `FlagCacheService` | moka キャッシュ実装 |
-| infra/messaging | `FlagChangeKafkaProducer` | Kafka プロデューサー（フラグ変更通知） |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `FeatureFlagPostgresRepository`, `FlagAuditLogPostgresRepository` | PostgreSQL リポジトリ実装 |
+| infrastructure/cache | `FlagCacheService` | moka キャッシュ実装 |
+| infrastructure/messaging | `FlagChangeKafkaProducer` | Kafka プロデューサー（フラグ変更通知） |
 
 ### ドメインモデル
 
@@ -561,7 +561,7 @@ infra（DB接続・Kafka Producer・moka キャッシュ・設定ローダー）
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
-    │  domain/model   │              │ domain/repository          │   │
+    │  domain/entity  │              │ domain/repository          │   │
     │  FeatureFlag,   │              │ FeatureFlagRepository      │   │
     │  FlagEvaluation,│              │ FlagAuditLogRepository     │   │
     │  FlagAuditLog   │              │ (trait)                    │   │
@@ -573,7 +573,7 @@ infra（DB接続・Kafka Producer・moka キャッシュ・設定ローダー）
                  │ Service        │            │                     │
                  └────────────────┘            │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Kafka        │  │ FeatureFlagPostgres    │  │
                     │  │ Producer     │  │ Repository             │  │

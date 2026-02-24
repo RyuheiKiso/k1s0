@@ -1,8 +1,41 @@
+const int minPerPage = 1;
+const int maxPerPage = 100;
+
+class PerPageValidationException implements Exception {
+  final int value;
+  PerPageValidationException(this.value);
+
+  @override
+  String toString() =>
+      'PerPageValidationException: invalid perPage: $value (must be between $minPerPage and $maxPerPage)';
+}
+
+int validatePerPage(int perPage) {
+  if (perPage < minPerPage || perPage > maxPerPage) {
+    throw PerPageValidationException(perPage);
+  }
+  return perPage;
+}
+
 class PageRequest {
   final int page;
   final int perPage;
 
   const PageRequest({required this.page, required this.perPage});
+}
+
+class PaginationMeta {
+  final int total;
+  final int page;
+  final int perPage;
+  final int totalPages;
+
+  const PaginationMeta({
+    required this.total,
+    required this.page,
+    required this.perPage,
+    required this.totalPages,
+  });
 }
 
 class PageResponse<T> {
@@ -30,4 +63,11 @@ class PageResponse<T> {
       totalPages: totalPages,
     );
   }
+
+  PaginationMeta get meta => PaginationMeta(
+        total: total,
+        page: page,
+        perPage: perPage,
+        totalPages: totalPages,
+      );
 }

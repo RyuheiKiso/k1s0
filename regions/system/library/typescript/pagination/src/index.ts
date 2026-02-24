@@ -11,6 +11,42 @@ export interface PageResponse<T> {
   totalPages: number;
 }
 
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  perPage: number;
+  totalPages: number;
+}
+
+export interface CursorRequest {
+  cursor?: string;
+  limit: number;
+}
+
+export interface CursorMeta {
+  nextCursor?: string;
+  hasMore: boolean;
+}
+
+const MIN_PER_PAGE = 1;
+const MAX_PER_PAGE = 100;
+
+export class PerPageValidationError extends Error {
+  constructor(value: number) {
+    super(
+      `invalid perPage: ${value} (must be between ${MIN_PER_PAGE} and ${MAX_PER_PAGE})`,
+    );
+    this.name = "PerPageValidationError";
+  }
+}
+
+export function validatePerPage(perPage: number): number {
+  if (perPage < MIN_PER_PAGE || perPage > MAX_PER_PAGE) {
+    throw new PerPageValidationError(perPage);
+  }
+  return perPage;
+}
+
 export function createPageResponse<T>(
   items: T[],
   total: number,
@@ -25,10 +61,20 @@ export function createPageResponse<T>(
   };
 }
 
-export function encodeCursor(id: string): string {
-  return btoa(id);
+const CURSOR_SEPARATOR = "|";
+
+export function encodeCursor(sortKey: string, id: string): string {
+  return btoa(`${sortKey}${CURSOR_SEPARATOR}${id}`);
 }
 
-export function decodeCursor(cursor: string): string {
-  return atob(cursor);
+export function decodeCursor(cursor: string): { sortKey: string; id: string } {
+  const decoded = atob(cursor);
+  const idx = decoded.indexOf(CURSOR_SEPARATOR);
+  if (idx < 0) {
+    throw new Error("invalid cursor: missing separator");
+  }
+  return {
+    sortKey: decoded.substring(0, idx),
+    id: decoded.substring(idx + 1),
+  };
 }

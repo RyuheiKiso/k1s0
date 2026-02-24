@@ -433,21 +433,21 @@ usecase（ビジネスロジック）
   ^
 adapter（REST ハンドラー・gRPC ハンドラー）
   ^
-infra（DB接続・OPA クライアント・Kafka Producer・moka キャッシュ・設定ローダー）
+infrastructure（DB接続・OPA クライアント・Kafka Producer・moka キャッシュ・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `Policy`, `PolicyBundle`, `PolicyEvaluation` | エンティティ定義 |
+| domain/entity | `Policy`, `PolicyBundle`, `PolicyEvaluation` | エンティティ定義 |
 | domain/repository | `PolicyRepository`, `PolicyBundleRepository` | リポジトリトレイト |
 | domain/service | `PolicyDomainService` | Rego 構文バリデーション・評価結果キャッシュキー生成 |
 | usecase | `GetPolicyUsecase`, `ListPoliciesUsecase`, `CreatePolicyUsecase`, `UpdatePolicyUsecase`, `DeletePolicyUsecase`, `EvaluatePolicyUsecase`, `ListBundlesUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/persistence | `PolicyPostgresRepository`, `PolicyBundlePostgresRepository` | PostgreSQL リポジトリ実装 |
-| infra/cache | `PolicyEvalCacheService` | moka キャッシュ実装（評価結果キャッシュ） |
-| infra/opa | `OpaHttpClient` | OPA HTTP API 呼び出し実装 |
-| infra/messaging | `PolicyChangeKafkaProducer` | Kafka プロデューサー（ポリシー変更通知） |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `PolicyPostgresRepository`, `PolicyBundlePostgresRepository` | PostgreSQL リポジトリ実装 |
+| infrastructure/cache | `PolicyEvalCacheService` | moka キャッシュ実装（評価結果キャッシュ） |
+| infrastructure/opa | `OpaHttpClient` | OPA HTTP API 呼び出し実装 |
+| infrastructure/messaging | `PolicyChangeKafkaProducer` | Kafka プロデューサー（ポリシー変更通知） |
 
 ### ドメインモデル
 
@@ -528,7 +528,7 @@ infra（DB接続・OPA クライアント・Kafka Producer・moka キャッシ�
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
-    │  domain/model   │              │ domain/repository          │   │
+    │  domain/entity  │              │ domain/repository          │   │
     │  Policy,        │              │ PolicyRepository           │   │
     │  PolicyBundle,  │              │ PolicyBundleRepository     │   │
     │  PolicyEvaluation              │ (trait)                    │   │
@@ -540,7 +540,7 @@ infra（DB接続・OPA クライアント・Kafka Producer・moka キャッシ�
                  │ Service        │            │                     │
                  └────────────────┘            │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Kafka        │  │ PolicyPostgres         │  │
                     │  │ Producer     │  │ Repository             │  │

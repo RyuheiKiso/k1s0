@@ -396,20 +396,20 @@ usecase（ビジネスロジック）
   ^
 adapter（REST ハンドラー・gRPC ハンドラー）
   ^
-infra（DB接続・Redis・Kafka Producer・設定ローダー）
+infrastructure（DB接続・Redis・Kafka Producer・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `QuotaPolicy`, `QuotaUsage` | エンティティ定義 |
+| domain/entity | `QuotaPolicy`, `QuotaUsage` | エンティティ定義 |
 | domain/repository | `QuotaPolicyRepository`, `QuotaUsageRepository`, `QuotaCounterRepository` | リポジトリトレイト |
 | domain/service | `QuotaDomainService` | 超過判定・アラート閾値判定ロジック |
 | usecase | `CreateQuotaPolicyUsecase`, `UpdateQuotaPolicyUsecase`, `DeleteQuotaPolicyUsecase`, `GetQuotaPolicyUsecase`, `ListQuotaPoliciesUsecase`, `GetQuotaUsageUsecase`, `IncrementQuotaUsageUsecase`, `ResetQuotaUsageUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/persistence | `QuotaPolicyPostgresRepository`, `QuotaUsagePostgresRepository` | PostgreSQL リポジトリ実装 |
-| infra/cache | `QuotaRedisCounterRepository` | Redis アトミックカウンター実装 |
-| infra/messaging | `QuotaExceededKafkaProducer` | Kafka プロデューサー（超過イベント発行） |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `QuotaPolicyPostgresRepository`, `QuotaUsagePostgresRepository` | PostgreSQL リポジトリ実装 |
+| infrastructure/cache | `QuotaRedisCounterRepository` | Redis アトミックカウンター実装 |
+| infrastructure/messaging | `QuotaExceededKafkaProducer` | Kafka プロデューサー（超過イベント発行） |
 
 ### ドメインモデル
 
@@ -477,7 +477,7 @@ infra（DB接続・Redis・Kafka Producer・設定ローダー）
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
-    │  domain/model   │              │ domain/repository          │   │
+    │  domain/entity  │              │ domain/repository          │   │
     │  QuotaPolicy,   │              │ QuotaPolicyRepository      │   │
     │  QuotaUsage     │              │ QuotaUsageRepository       │   │
     └────────────────┘              │ QuotaCounterRepository     │   │
@@ -488,7 +488,7 @@ infra（DB接続・Redis・Kafka Producer・設定ローダー）
                  │ Service       │             │                     │
                  └────────────────┘             │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Kafka        │  │ QuotaPolicy/Usage       │  │
                     │  │ Producer     │  │ PostgresRepository      │  │

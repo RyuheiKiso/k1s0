@@ -1,24 +1,27 @@
 pub mod health;
+pub mod tenant_handler;
 
-use axum::{routing::get, Router};
-use std::sync::Arc;
+pub use tenant_handler::AppState;
 
-#[derive(Clone)]
-pub struct AppState {
-    pub app_name: String,
-    pub version: String,
-}
+use axum::routing::get;
+use axum::Router;
 
-impl AppState {
-    pub fn new(app_name: String, version: String) -> Self {
-        Self { app_name, version }
-    }
-}
-
+/// REST API router.
 pub fn router(state: AppState) -> Router {
     Router::new()
-        .route("/health", get(health::health_check))
-        .with_state(Arc::new(state))
+        .route("/healthz", get(tenant_handler::healthz))
+        .route("/readyz", get(tenant_handler::readyz))
+        .route(
+            "/api/v1/tenants",
+            get(tenant_handler::list_tenants).post(tenant_handler::create_tenant),
+        )
+        .route(
+            "/api/v1/tenants/:id",
+            get(tenant_handler::get_tenant)
+                .put(tenant_handler::update_tenant)
+                .delete(tenant_handler::delete_tenant),
+        )
+        .with_state(state)
 }
 
 #[cfg(test)]
@@ -28,13 +31,25 @@ mod tests {
     use axum::http::{Request, StatusCode};
     use tower::ServiceExt;
 
+    use crate::domain::repository::tenant_repository::MockTenantRepository;
+    use std::sync::Arc;
+
+    fn make_app_state(mock: MockTenantRepository) -> AppState {
+        let repo = Arc::new(mock);
+        AppState {
+            create_tenant_uc: Arc::new(crate::usecase::CreateTenantUseCase::new(repo.clone())),
+            get_tenant_uc: Arc::new(crate::usecase::GetTenantUseCase::new(repo.clone())),
+            list_tenants_uc: Arc::new(crate::usecase::ListTenantsUseCase::new(repo)),
+        }
+    }
+
     #[tokio::test]
-    async fn test_health_check() {
-        let state = AppState::new("tenant-server".to_string(), "0.1.0".to_string());
+    async fn test_healthz() {
+        let state = make_app_state(MockTenantRepository::new());
         let app = router(state);
 
         let req = Request::builder()
-            .uri("/health")
+            .uri("/healthz")
             .body(Body::empty())
             .unwrap();
 

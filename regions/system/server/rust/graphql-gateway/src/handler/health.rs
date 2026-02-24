@@ -1,10 +1,4 @@
-use axum::response::IntoResponse;
-use axum::Json;
-
-pub async fn healthz() -> impl IntoResponse {
-    Json(serde_json::json!({"status": "ok"}))
-}
-
-pub async fn readyz() -> impl IntoResponse {
-    Json(serde_json::json!({"status": "ready"}))
-}
+// handler::health は以前プレースホルダーの healthz/readyz を含んでいたが、
+// 実際のヘルスチェックは adapter::graphql_handler 内で実装されているため削除。
+//
+// 実際のヘルスチェック: adapter::graphql_handler::healthz, readyz

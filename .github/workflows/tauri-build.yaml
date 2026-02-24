@@ -48,7 +48,7 @@ jobs:
         with:
           node-version: "22"
 
-      - uses: dtolnay/rust-toolchain@1.82
+      - uses: dtolnay/rust-toolchain@1.88
         with:
           targets: ${{ matrix.target }}
 

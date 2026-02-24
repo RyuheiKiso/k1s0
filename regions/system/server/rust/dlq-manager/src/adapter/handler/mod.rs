@@ -13,6 +13,9 @@ use crate::usecase::{
     RetryMessageUseCase,
 };
 
+// Re-export shared error types for backward compatibility within the crate.
+pub use k1s0_server_common::{ErrorBody, ErrorResponse};
+
 /// AppState はアプリケーション全体の共有状態を表す。
 #[derive(Clone)]
 pub struct AppState {
@@ -43,8 +46,6 @@ pub struct AppState {
         dlq_handler::RetryMessageResponse,
         dlq_handler::RetryAllResponse,
         dlq_handler::DeleteMessageResponse,
-        ErrorResponse,
-        ErrorBody,
     )),
     security(("bearer_auth" = [])),
 )]
@@ -71,31 +72,4 @@ pub fn router(state: AppState) -> Router {
         .route("/api/v1/dlq/:topic/retry-all", post(dlq_handler::retry_all))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(state)
-}
-
-/// ErrorResponse は統一エラーレスポンス。
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
-pub struct ErrorResponse {
-    pub error: ErrorBody,
-}
-
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
-pub struct ErrorBody {
-    pub code: String,
-    pub message: String,
-    pub request_id: String,
-    pub details: Vec<String>,
-}
-
-impl ErrorResponse {
-    pub fn new(code: &str, message: &str) -> Self {
-        Self {
-            error: ErrorBody {
-                code: code.to_string(),
-                message: message.to_string(),
-                request_id: uuid::Uuid::new_v4().to_string(),
-                details: vec![],
-            },
-        }
-    }
 }

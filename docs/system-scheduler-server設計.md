@@ -418,21 +418,21 @@ usecase（ビジネスロジック）
   ^
 adapter（REST ハンドラー・gRPC ハンドラー・スケジューラーエンジン）
   ^
-infra（DB接続・Kafka Producer・分散ロック・設定ローダー）
+infrastructure（DB接続・Kafka Producer・分散ロック・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `SchedulerJob`, `JobExecution` | エンティティ定義 |
+| domain/entity | `SchedulerJob`, `JobExecution` | エンティティ定義 |
 | domain/repository | `SchedulerJobRepository`, `JobExecutionRepository` | リポジトリトレイト |
 | domain/service | `SchedulerDomainService` | cron 式解析・次回実行時刻計算・分散ロック判定 |
 | usecase | `CreateJobUsecase`, `UpdateJobUsecase`, `DeleteJobUsecase`, `GetJobUsecase`, `ListJobsUsecase`, `TriggerJobUsecase`, `PauseJobUsecase`, `ResumeJobUsecase`, `ListExecutionsUsecase`, `GetExecutionUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
 | adapter/scheduler | `CronSchedulerEngine` | tokio による cron スケジューリングループ |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/persistence | `SchedulerJobPostgresRepository`, `JobExecutionPostgresRepository` | PostgreSQL リポジトリ実装 |
-| infra/lock | `DistributedLockPostgres` | PostgreSQL 分散ロック実装 |
-| infra/messaging | `JobTriggeredKafkaProducer` | Kafka プロデューサー（ジョブトリガー通知） |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `SchedulerJobPostgresRepository`, `JobExecutionPostgresRepository` | PostgreSQL リポジトリ実装 |
+| infrastructure/lock | `DistributedLockPostgres` | PostgreSQL 分散ロック実装 |
+| infrastructure/messaging | `JobTriggeredKafkaProducer` | Kafka プロデューサー（ジョブトリガー通知） |
 
 ### ドメインモデル
 
@@ -500,7 +500,7 @@ infra（DB接続・Kafka Producer・分散ロック・設定ローダー）
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
-    │  domain/model   │              │ domain/repository          │   │
+    │  domain/entity  │              │ domain/repository          │   │
     │  SchedulerJob,  │              │ SchedulerJobRepository     │   │
     │  JobExecution   │              │ JobExecutionRepository     │   │
     └────────────────┘              │ (trait)                    │   │
@@ -511,7 +511,7 @@ infra（DB接続・Kafka Producer・分散ロック・設定ローダー）
                  │ DomainService  │            │                     │
                  └────────────────┘            │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Kafka        │  │ SchedulerJobPostgres   │  │
                     │  │ Producer     │  │ Repository             │  │

@@ -47,7 +47,13 @@ pub fn validate_tenant_id(id: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
-pub fn validate_pagination(_page: u32, per_page: u32) -> Result<(), ValidationError> {
+pub fn validate_pagination(page: u32, per_page: u32) -> Result<(), ValidationError> {
+    if page < 1 {
+        return Err(ValidationError::InvalidPagination(format!(
+            "page must be >= 1, got {}",
+            page
+        )));
+    }
     if per_page < 1 || per_page > 100 {
         return Err(ValidationError::InvalidPagination(format!(
             "per_page must be 1-100, got {}",
@@ -127,15 +133,45 @@ mod tests {
 
     #[test]
     fn test_validate_pagination_success() {
-        assert!(validate_pagination(0, 10).is_ok());
+        assert!(validate_pagination(1, 10).is_ok());
         assert!(validate_pagination(5, 100).is_ok());
-        assert!(validate_pagination(0, 1).is_ok());
+        assert!(validate_pagination(1, 1).is_ok());
     }
 
     #[test]
     fn test_validate_pagination_failure() {
-        assert!(validate_pagination(0, 0).is_err());
-        assert!(validate_pagination(0, 101).is_err());
+        assert!(validate_pagination(0, 10).is_err()); // page < 1
+        assert!(validate_pagination(1, 0).is_err()); // per_page < 1
+        assert!(validate_pagination(1, 101).is_err()); // per_page > 100
+    }
+
+    #[test]
+    fn test_validation_error_code() {
+        let err = ValidationError::InvalidEmail("bad".to_string());
+        assert_eq!(err.code(), "INVALID_EMAIL");
+
+        let err = ValidationError::InvalidPagination("bad".to_string());
+        assert_eq!(err.code(), "INVALID_PAGINATION");
+
+        let err = ValidationError::InvalidDateRange("bad".to_string());
+        assert_eq!(err.code(), "INVALID_DATE_RANGE");
+    }
+
+    #[test]
+    fn test_validation_errors_collection() {
+        use crate::error::ValidationErrors;
+
+        let mut errors = ValidationErrors::new();
+        assert!(!errors.has_errors());
+        assert!(errors.get_errors().is_empty());
+
+        errors.add(ValidationError::InvalidEmail("a".to_string()));
+        errors.add(ValidationError::InvalidPagination("b".to_string()));
+
+        assert!(errors.has_errors());
+        assert_eq!(errors.get_errors().len(), 2);
+        assert_eq!(errors.get_errors()[0].code(), "INVALID_EMAIL");
+        assert_eq!(errors.get_errors()[1].code(), "INVALID_PAGINATION");
     }
 
     #[test]

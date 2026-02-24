@@ -45,21 +45,21 @@ async fn main() -> anyhow::Result<()> {
     let usage_repo: Arc<dyn QuotaUsageRepository> =
         Arc::new(InMemoryQuotaUsageRepository::new());
 
-    let _create_policy_uc =
+    let create_policy_uc =
         Arc::new(usecase::CreateQuotaPolicyUseCase::new(policy_repo.clone()));
-    let _get_policy_uc =
+    let get_policy_uc =
         Arc::new(usecase::GetQuotaPolicyUseCase::new(policy_repo.clone()));
-    let _list_policies_uc =
+    let list_policies_uc =
         Arc::new(usecase::ListQuotaPoliciesUseCase::new(policy_repo.clone()));
-    let _update_policy_uc =
+    let update_policy_uc =
         Arc::new(usecase::UpdateQuotaPolicyUseCase::new(policy_repo.clone()));
     let _delete_policy_uc =
         Arc::new(usecase::DeleteQuotaPolicyUseCase::new(policy_repo.clone()));
-    let _get_usage_uc = Arc::new(usecase::GetQuotaUsageUseCase::new(
+    let get_usage_uc = Arc::new(usecase::GetQuotaUsageUseCase::new(
         policy_repo.clone(),
         usage_repo.clone(),
     ));
-    let _increment_usage_uc = Arc::new(usecase::IncrementQuotaUsageUseCase::new(
+    let increment_usage_uc = Arc::new(usecase::IncrementQuotaUsageUseCase::new(
         policy_repo.clone(),
         usage_repo.clone(),
     ));
@@ -68,9 +68,16 @@ async fn main() -> anyhow::Result<()> {
         usage_repo,
     ));
 
-    let app = axum::Router::new()
-        .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
-        .route("/readyz", axum::routing::get(adapter::handler::health::readyz));
+    let state = adapter::handler::AppState {
+        create_policy_uc,
+        get_policy_uc,
+        list_policies_uc,
+        update_policy_uc,
+        get_usage_uc,
+        increment_usage_uc,
+    };
+
+    let app = adapter::handler::router(state);
 
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);

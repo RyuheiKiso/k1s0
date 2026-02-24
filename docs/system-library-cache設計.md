@@ -2,7 +2,7 @@
 
 ## 概要
 
-Redis 分散キャッシュ抽象化ライブラリ。`CacheClient` トレイトにより `get`/`set`/`delete`/`exists`/`ttl` の統一インターフェースを提供する。分散ロック（`acquire_lock`/`release_lock`）対応。Redis Cluster・Sentinel・スタンドアロンをサポート。
+Redis 分散キャッシュ抽象化ライブラリ。`CacheClient` トレイトにより `get`/`set`/`delete`/`exists`/`set_nx`/`expire` の統一インターフェースを提供する。Redis Cluster・Sentinel・スタンドアロンをサポート。
 
 **配置先**: `regions/system/library/rust/cache/`
 
@@ -10,12 +10,10 @@ Redis 分散キャッシュ抽象化ライブラリ。`CacheClient` トレイト
 
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `CacheClient` | トレイト | キャッシュ操作の抽象インターフェース |
-| `RedisCacheClient` | 構造体 | Redis 実装（deadpool-redis 使用、コネクションプール付き） |
-| `InMemoryCacheClient` | 構造体 | テスト用インメモリ実装 |
+| `CacheClient` | トレイト | キャッシュ操作の抽象インターフェース（`get`/`set`/`delete`/`exists`/`set_nx`/`expire`） |
+| `CacheEntry` | 構造体 | キャッシュエントリ（value・expires_at） |
+| `LockGuard` | 構造体 | ロックガード（key・lock_value） |
 | `MockCacheClient` | 構造体 | テスト用モック（feature = "mock" で有効） |
-| `CacheConfig` | 構造体 | Redis URL・プール設定・TTL デフォルト |
-| `LockGuard` | 構造体 | 分散ロックの RAII ガード（Drop で自動解放） |
 | `CacheError` | enum | 接続エラー・シリアライゼーションエラー等 |
 
 ## Rust 実装
@@ -61,10 +59,8 @@ k1s0-cache = { path = "../../system/library/rust/cache", features = ["mock"] }
 ```
 cache/
 ├── src/
-│   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
-│   ├── client.rs       # CacheClient トレイト・RedisCacheClient・InMemoryCacheClient・MockCacheClient
-│   ├── config.rs       # CacheConfig（Redis URL・プール設定）
-│   ├── lock.rs         # LockGuard（分散ロック RAII）
+│   ├── lib.rs          # 公開 API（再エクスポート）
+│   ├── client.rs       # CacheClient トレイト・CacheEntry・LockGuard・MockCacheClient
 │   └── error.rs        # CacheError
 └── Cargo.toml
 ```
@@ -72,24 +68,20 @@ cache/
 **使用例**:
 
 ```rust
-use k1s0_cache::{CacheClient, CacheConfig, RedisCacheClient};
+use k1s0_cache::CacheClient;
 use std::time::Duration;
 
-let config = CacheConfig::new("redis://localhost:6379")
-    .with_pool_size(10)
-    .with_default_ttl(Duration::from_secs(300));
-
-let client = RedisCacheClient::new(config).await.unwrap();
-
-// 値の設定
-client.set("user:123", &user, Some(Duration::from_secs(600))).await.unwrap();
+// 値の設定（文字列ベース）
+client.set("user:123", &serde_json::to_string(&user)?, Some(Duration::from_secs(600))).await?;
 
 // 値の取得
-let user: Option<User> = client.get("user:123").await.unwrap();
+let value: Option<String> = client.get("user:123").await?;
 
-// 分散ロック
-let lock = client.acquire_lock("order:lock:456", Duration::from_secs(30)).await.unwrap();
-// lock がスコープ外に出ると自動解放される
+// キーが存在しない場合のみセット（分散ロック等に利用）
+let acquired = client.set_nx("lock:order:456", "owner-id", Duration::from_secs(30)).await?;
+
+// TTL 更新
+client.expire("user:123", Duration::from_secs(900)).await?;
 ```
 
 ## Go 実装
@@ -99,25 +91,28 @@ let lock = client.acquire_lock("order:lock:456", Duration::from_secs(30)).await.
 ```
 cache/
 ├── cache.go
-├── client.go
-├── lock.go
 ├── cache_test.go
 ├── go.mod
 └── go.sum
 ```
 
-**依存関係**: `github.com/redis/go-redis/v9 v9.7.0`, `github.com/stretchr/testify v1.10.0`
+**依存関係**: なし（標準ライブラリのみ）
 
 **主要インターフェース**:
 
 ```go
 type CacheClient interface {
-    Get(ctx context.Context, key string, dest interface{}) error
-    Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error
-    Delete(ctx context.Context, key string) error
+    Get(ctx context.Context, key string) (*string, error)
+    Set(ctx context.Context, key string, value string, ttl *time.Duration) error
+    Delete(ctx context.Context, key string) (bool, error)
     Exists(ctx context.Context, key string) (bool, error)
-    AcquireLock(ctx context.Context, key string, ttl time.Duration) (*LockGuard, error)
-    ReleaseLock(ctx context.Context, lock *LockGuard) error
+    SetNX(ctx context.Context, key string, value string, ttl time.Duration) (bool, error)
+    Expire(ctx context.Context, key string, ttl time.Duration) (bool, error)
+}
+
+type CacheError struct {
+    Code    string
+    Message string
 }
 ```
 
@@ -139,42 +134,24 @@ cache/
 **主要 API**:
 
 ```typescript
+export class CacheError extends Error {
+  constructor(message: string, public readonly code: string);
+}
+
 export interface CacheClient {
-  get<T>(key: string): Promise<T | null>;
-  set<T>(key: string, value: T, ttlMs?: number): Promise<void>;
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string, ttlMs?: number): Promise<void>;
   delete(key: string): Promise<boolean>;
   exists(key: string): Promise<boolean>;
-  acquireLock(key: string, ttlMs: number): Promise<LockGuard | null>;
-}
-
-export interface LockGuard {
-  key: string;
-  token: string;
-  release(): Promise<void>;
-}
-
-export interface CacheConfig {
-  redisUrl: string;
-  poolSize?: number;
-  defaultTtlMs?: number;
-}
-
-export class RedisCacheClient implements CacheClient {
-  constructor(config: CacheConfig);
-  get<T>(key: string): Promise<T | null>;
-  set<T>(key: string, value: T, ttlMs?: number): Promise<void>;
-  delete(key: string): Promise<boolean>;
-  exists(key: string): Promise<boolean>;
-  acquireLock(key: string, ttlMs: number): Promise<LockGuard | null>;
-  close(): Promise<void>;
+  setNX(key: string, value: string, ttlMs: number): Promise<boolean>;
 }
 
 export class InMemoryCacheClient implements CacheClient {
-  get<T>(key: string): Promise<T | null>;
-  set<T>(key: string, value: T, ttlMs?: number): Promise<void>;
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string, ttlMs?: number): Promise<void>;
   delete(key: string): Promise<boolean>;
   exists(key: string): Promise<boolean>;
-  acquireLock(key: string, ttlMs: number): Promise<LockGuard | null>;
+  setNX(key: string, value: string, ttlMs: number): Promise<boolean>;
 }
 ```
 

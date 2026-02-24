@@ -508,19 +508,19 @@ usecase（ビジネスロジック）
   ^
 adapter（REST ハンドラー・gRPC ハンドラー）
   ^
-infra（DB接続・Kafka Producer・設定ローダー）
+infrastructure（DB接続・Kafka Producer・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `EventStream`, `StoredEvent`, `Snapshot` | エンティティ定義 |
+| domain/entity | `EventStream`, `StoredEvent`, `Snapshot` | エンティティ定義 |
 | domain/repository | `EventStreamRepository`, `EventRepository`, `SnapshotRepository` | リポジトリトレイト |
 | domain/service | `EventStoreDomainService` | バージョン競合判定・イベント検証ロジック |
 | usecase | `AppendEventsUsecase`, `ReadEventsUsecase`, `ReadEventBySequenceUsecase`, `CreateSnapshotUsecase`, `GetLatestSnapshotUsecase`, `DeleteStreamUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/persistence | `EventStreamPostgresRepository`, `EventPostgresRepository`, `SnapshotPostgresRepository` | PostgreSQL リポジトリ実装（append-only） |
-| infra/messaging | `EventPublishedKafkaProducer` | Kafka プロデューサー（イベント転送） |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `EventStreamPostgresRepository`, `EventPostgresRepository`, `SnapshotPostgresRepository` | PostgreSQL リポジトリ実装（append-only） |
+| infrastructure/messaging | `EventPublishedKafkaProducer` | Kafka プロデューサー（イベント転送） |
 
 ### ドメインモデル
 
@@ -591,7 +591,7 @@ infra（DB接続・Kafka Producer・設定ローダー）
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
-    │  domain/model   │              │ domain/repository          │   │
+    │  domain/entity  │              │ domain/repository          │   │
     │  EventStream,   │              │ EventStreamRepository      │   │
     │  StoredEvent,   │              │ EventRepository            │   │
     │  Snapshot       │              │ SnapshotRepository         │   │
@@ -603,7 +603,7 @@ infra（DB接続・Kafka Producer・設定ローダー）
                  │ DomainService │            │                     │
                  └────────────────┘            │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Kafka        │  │ EventStream/Event/      │  │
                     │  │ Producer     │  │ Snapshot Postgres       │  │

@@ -503,19 +503,19 @@ usecase（ビジネスロジック）
   ^
 adapter（REST ハンドラー・gRPC ハンドラー）
   ^
-infra（PostgreSQL・Redis + Lua スクリプト・設定ローダー）
+infrastructure（PostgreSQL・Redis + Lua スクリプト・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `RateLimitRule`, `RateLimitStatus`, `RateLimitCheck` | エンティティ定義 |
+| domain/entity | `RateLimitRule`, `RateLimitStatus`, `RateLimitCheck` | エンティティ定義 |
 | domain/repository | `RateLimitRuleRepository`（PostgreSQL）, `RateLimitStateRepository`（Redis） | リポジトリトレイト |
 | domain/service | `RateLimitDomainService` | トークンバケット判定ロジック |
 | usecase | `CheckRateLimitUsecase`, `GetUsageUsecase`, `ResetLimitUsecase`, `CreateRuleUsecase`, `UpdateRuleUsecase`, `DeleteRuleUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/persistence | `RateLimitRulePostgresRepository` | PostgreSQL リポジトリ実装（ルール永続化） |
-| infra/cache | `RateLimitRedisRepository` + Lua スクリプト | Redis リポジトリ実装（状態管理） |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `RateLimitRulePostgresRepository` | PostgreSQL リポジトリ実装（ルール永続化） |
+| infrastructure/cache | `RateLimitRedisRepository` + Lua スクリプト | Redis リポジトリ実装（状態管理） |
 
 ### ドメインモデル
 
@@ -592,7 +592,7 @@ infra（PostgreSQL・Redis + Lua スクリプト・設定ローダー）
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
-    │  domain/model   │              │ domain/repository          │   │
+    │  domain/entity  │              │ domain/repository          │   │
     │  RateLimitRule, │              │ RateLimitRuleRepository    │   │
     │  RateLimitStatus│              │ (PostgreSQL trait)         │   │
     │  RateLimitCheck │              │ RateLimitStateRepository   │   │
@@ -605,7 +605,7 @@ infra（PostgreSQL・Redis + Lua スクリプト・設定ローダー）
                  │ Service        │            │                     │
                  └────────────────┘            │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Redis +      │  │ RateLimitRulePostgres  │  │
                     │  │ Lua Script   │  │ Repository             │  │

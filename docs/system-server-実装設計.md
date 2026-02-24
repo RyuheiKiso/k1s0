@@ -14,7 +14,7 @@ regions/system/server/rust/auth/
 │   ├── main.rs                          # エントリポイント
 │   ├── domain/
 │   │   ├── mod.rs
-│   │   ├── model/
+│   │   ├── entity/
 │   │   │   ├── mod.rs
 │   │   │   ├── user.rs                  # User エンティティ
 │   │   │   ├── role.rs                  # Role エンティティ
@@ -53,7 +53,7 @@ regions/system/server/rust/auth/
 │   │       ├── mod.rs
 │   │       ├── auth.rs                  # JWT 認証ミドルウェア
 │   │       └── rbac.rs                  # RBAC ミドルウェア
-│   └── infra/
+│   └── infrastructure/
 │       ├── mod.rs
 │       ├── config/
 │       │   ├── mod.rs
@@ -177,16 +177,16 @@ use tracing::info;
 
 mod adapter;
 mod domain;
-mod infra;
+mod infrastructure;
 mod usecase;
 
 use adapter::gateway::KeycloakClient;
 use adapter::handler::{grpc_handler, rest_handler};
 use domain::service::AuthDomainService;
-use infra::auth::JwksVerifier;
-use infra::config::Config;
-use infra::messaging::KafkaProducer;
-use infra::persistence;
+use infrastructure::auth::JwksVerifier;
+use infrastructure::config::Config;
+use infrastructure::messaging::KafkaProducer;
+use infrastructure::persistence;
 use usecase::*;
 
 #[tokio::main]
@@ -196,10 +196,10 @@ async fn main() -> anyhow::Result<()> {
     cfg.validate()?;
 
     // --- Logger ---
-    infra::config::init_logger(&cfg.app.environment);
+    infrastructure::config::init_logger(&cfg.app.environment);
 
     // --- OpenTelemetry ---
-    let _tracer = infra::config::init_tracer(&cfg.app.name)?;
+    let _tracer = infrastructure::config::init_tracer(&cfg.app.name)?;
 
     // --- Database ---
     let pool = persistence::connect(&cfg.database).await?;
@@ -301,7 +301,7 @@ async fn shutdown_signal() {
 ### ドメインモデル（Rust）
 
 ```rust
-// src/domain/model/user.rs
+// src/domain/entity/user.rs
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -322,7 +322,7 @@ pub struct User {
 ```
 
 ```rust
-// src/domain/model/role.rs
+// src/domain/entity/role.rs
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -341,7 +341,7 @@ pub struct Permission {
 ```
 
 ```rust
-// src/domain/model/audit_log.rs
+// src/domain/entity/audit_log.rs
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -370,7 +370,7 @@ pub struct AuditLog {
 // src/domain/repository/audit_log_repository.rs
 use async_trait::async_trait;
 
-use crate::domain::model::AuditLog;
+use crate::domain::entity::AuditLog;
 
 #[derive(Debug, Clone)]
 pub struct AuditLogSearchParams {
@@ -402,8 +402,8 @@ use std::sync::Arc;
 
 use tracing::instrument;
 
-use crate::infra::auth::JwksVerifier;
-use crate::infra::config::JwtConfig;
+use crate::infrastructure::auth::JwksVerifier;
+use crate::infrastructure::config::JwtConfig;
 
 pub struct ValidateTokenUseCase {
     verifier: Arc<JwksVerifier>,
@@ -660,8 +660,8 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::instrument;
 
-use crate::domain::model::User;
-use crate::infra::config::OidcConfig;
+use crate::domain::entity::User;
+use crate::infrastructure::config::OidcConfig;
 
 pub struct KeycloakClient {
     base_url: String,
@@ -836,7 +836,7 @@ auth_server:
 ### 設定の読み込み実装
 
 ```rust
-// src/infra/config/mod.rs
+// src/infrastructure/config/mod.rs
 use serde::Deserialize;
 use std::fs;
 
