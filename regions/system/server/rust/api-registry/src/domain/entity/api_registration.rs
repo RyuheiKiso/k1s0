@@ -37,6 +37,16 @@ pub enum SchemaType {
     Protobuf,
 }
 
+impl SchemaType {
+    pub fn from_str(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "openapi" | "open_api" => Self::OpenApi,
+            "protobuf" | "proto" => Self::Protobuf,
+            _ => Self::OpenApi,
+        }
+    }
+}
+
 impl std::fmt::Display for SchemaType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

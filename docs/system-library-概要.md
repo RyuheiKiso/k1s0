@@ -28,6 +28,26 @@ Swift 実装は Swift Package Manager（SPM）を用い、iOS / macOS ネイテ�
 | k1s0-graphql-client | GraphQL クエリ・ミューテーション・サブスクリプション（WebSocket）クライアント | graphql-gateway を利用する全サーバー・クライアント | [system-library-graphql-client設計](system-library-graphql-client設計.md) |
 | k1s0-websocket | WebSocket 接続管理・自動再接続・Ping/Pong ハートビート・メッセージキューイング | リアルタイム通信を必要とするサーバー・クライアント | [system-library-websocket設計](system-library-websocket設計.md) |
 | k1s0-session-client | session-server（ポート 8102）へのセッション作成・取得・更新・失効クライアント | セッション管理を必要とする全サーバー・クライアント | [system-library-session-client設計](system-library-session-client設計.md) |
+| k1s0-audit-client | 監査ログ送信クライアント（audit-server への構造化ログ記録・バッチ送信） | 監査ログ記録を必要とする全サーバー | [system-library-audit-client設計](system-library-audit-client設計.md) |
+| k1s0-circuit-breaker | サーキットブレーカーパターン（Open/HalfOpen/Closed 状態管理・閾値ベースの自動遮断） | サービス間通信を行う全サーバー | [system-library-circuit-breaker設計](system-library-circuit-breaker設計.md) |
+| k1s0-distributed-lock | 分散ロック（Redis / PostgreSQL ベースの排他制御・TTL 付きリース） | 排他制御を必要とする全サーバー | [system-library-distributed-lock設計](system-library-distributed-lock設計.md) |
+| k1s0-encryption | 暗号化・復号化ユーティリティ（AES-GCM / RSA / キーローテーション対応） | データ暗号化を必要とする全サーバー・クライアント | [system-library-encryption設計](system-library-encryption設計.md) |
+| k1s0-event-bus | ドメインイベントバス（in-process パブサブ・非同期ハンドラー・イベント優先度制御） | ドメインイベント駆動を採用するサーバー | [system-library-event-bus設計](system-library-event-bus設計.md) |
+| k1s0-file-client | ファイルストレージクライアント（S3 / GCS / Azure Blob 対応・マルチパートアップロード） | ファイル操作を必要とする全サーバー | [system-library-file-client設計](system-library-file-client設計.md) |
+| k1s0-health | ヘルスチェック（liveness / readiness / startup プローブ・依存サービス状態集約） | 全サーバー | [system-library-health設計](system-library-health設計.md) |
+| k1s0-migration | DB マイグレーション管理（バージョン管理・ロールバック・マイグレーション履歴） | DB を使用する全サーバー | [system-library-migration設計](system-library-migration設計.md) |
+| k1s0-notification-client | 通知送信クライアント（メール / SMS / Push 通知の統一インターフェース） | 通知送信を必要とする全サーバー | [system-library-notification-client設計](system-library-notification-client設計.md) |
+| k1s0-pagination | ページネーション共通ユーティリティ（カーソルベース / オフセットベース・ソート対応） | 一覧取得 API を提供する全サーバー | [system-library-pagination設計](system-library-pagination設計.md) |
+| k1s0-quota-client | クォータ管理クライアント（リソース使用量の追跡・制限チェック・超過通知） | リソース制限を必要とする全サーバー | [system-library-quota-client設計](system-library-quota-client設計.md) |
+| k1s0-ratelimit-client | レートリミットクライアント（スライディングウィンドウ / トークンバケット・分散カウンター） | API レート制限を必要とする全サーバー | [system-library-ratelimit-client設計](system-library-ratelimit-client設計.md) |
+| k1s0-resiliency | リトライ + バックオフ + タイムアウト統合（ポリシーベースのレジリエンス制御） | サービス間通信を行う全サーバー | [system-library-resiliency設計](system-library-resiliency設計.md) |
+| k1s0-scheduler-client | スケジューラークライアント（ジョブ登録・cron スケジュール・実行履歴管理） | 定期実行を必要とする全サーバー | [system-library-scheduler-client設計](system-library-scheduler-client設計.md) |
+| k1s0-search-client | 全文検索クライアント（Elasticsearch / OpenSearch 対応・クエリビルダー・集約） | 全文検索を必要とする全サーバー | [system-library-search-client設計](system-library-search-client設計.md) |
+| k1s0-tenant-client | テナント管理クライアント（テナント作成・メンバー管理・プロビジョニング状態確認） | マルチテナント機能を必要とする全サーバー | [system-library-tenant-client設計](system-library-tenant-client設計.md) |
+| k1s0-test-helper | テストユーティリティ（フィクスチャ生成・モックビルダー・DB セットアップ・テストコンテナ管理） | 全ライブラリ・サーバーのテストコード | [system-library-test-helper設計](system-library-test-helper設計.md) |
+| k1s0-validation | バリデーションユーティリティ（宣言的ルール定義・多言語エラーメッセージ・カスタムバリデーター） | 入力バリデーションを必要とする全サーバー・クライアント | [system-library-validation設計](system-library-validation設計.md) |
+| k1s0-vault-client | Vault シークレット管理クライアント（シークレット取得・更新・削除・リース管理） | シークレット管理を必要とする全サーバー | [system-library-vault-client設計](system-library-vault-client設計.md) |
+| k1s0-webhook-client | Webhook 送信クライアント（HMAC 署名・リトライ・配信ログ・ペイロードシリアライゼーション） | Webhook 配信を必要とする全サーバー | [system-library-webhook-client設計](system-library-webhook-client設計.md) |
 
 ---
 
@@ -69,6 +89,26 @@ Swift 実装は Swift Package Manager（SPM）を用い、iOS / macOS ネイテ�
 | k1s0-graphql-client | 90% 以上 |
 | k1s0-websocket | 90% 以上 |
 | k1s0-session-client | 90% 以上 |
+| k1s0-audit-client | 85% 以上 |
+| k1s0-circuit-breaker | 85% 以上 |
+| k1s0-distributed-lock | 85% 以上 |
+| k1s0-encryption | 90% 以上 |
+| k1s0-event-bus | 85% 以上 |
+| k1s0-file-client | 85% 以上 |
+| k1s0-health | 85% 以上 |
+| k1s0-migration | 80% 以上 |
+| k1s0-notification-client | 85% 以上 |
+| k1s0-pagination | 90% 以上 |
+| k1s0-quota-client | 85% 以上 |
+| k1s0-ratelimit-client | 85% 以上 |
+| k1s0-resiliency | 85% 以上 |
+| k1s0-scheduler-client | 85% 以上 |
+| k1s0-search-client | 85% 以上 |
+| k1s0-tenant-client | 85% 以上 |
+| k1s0-test-helper | 80% 以上 |
+| k1s0-validation | 90% 以上 |
+| k1s0-vault-client | 85% 以上 |
+| k1s0-webhook-client | 85% 以上 |
 
 C# 実装のカバレッジ計測には `coverlet` + `dotnet test --collect:"XPlat Code Coverage"` を使用し、各ライブラリのカバレッジ目標は上記テーブルと同一とする。
 Python 実装のカバレッジ計測には `pytest-cov`（`coverage.py`）を使用し、各ライブラリのカバレッジ目標は上記テーブルと同一とする。リント・フォーマットには `ruff` を使用する。

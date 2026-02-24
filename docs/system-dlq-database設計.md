@@ -98,6 +98,109 @@ dlq_messages と同一スキーマを持つアーカイブテーブル。RESOLVE
 
 ---
 
+## マイグレーションファイル
+
+配置先: `regions/system/database/dlq-db/migrations/`
+
+命名規則は [テンプレート仕様-データベース](テンプレート仕様-データベース.md) に準拠する。
+
+```
+migrations/
+├── 001_create_schema.up.sql                  # スキーマ・拡張機能・共通関数
+├── 001_create_schema.down.sql
+├── 002_create_dlq_messages.up.sql            # dlq_messages テーブル・インデックス・トリガー
+├── 002_create_dlq_messages.down.sql
+├── 003_add_partition_management.up.sql       # アーカイブテーブル・アーカイブプロシージャ
+└── 003_add_partition_management.down.sql
+```
+
+### マイグレーション一覧
+
+| 番号 | ファイル名 | 説明 |
+|------|-----------|------|
+| 001 | create_schema | pgcrypto 拡張・dlq スキーマ・`update_updated_at()` 関数の作成 |
+| 002 | create_dlq_messages | dlq_messages テーブル・インデックス・updated_at トリガー |
+| 003 | add_partition_management | dlq_messages_archive テーブル作成・バッチ対応アーカイブプロシージャ |
+
+### 001_create_schema.up.sql
+
+```sql
+-- dlq-db: スキーマ・拡張機能・共通関数の作成 (PostgreSQL 17)
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE SCHEMA IF NOT EXISTS dlq;
+
+CREATE OR REPLACE FUNCTION dlq.update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### 002_create_dlq_messages.up.sql
+
+dlq_messages テーブル・インデックス・updated_at トリガーを作成する。
+
+### 003_add_partition_management.up.sql
+
+dlq_messages_archive テーブルと、バッチ処理対応のアーカイブプロシージャを作成する。
+
+```sql
+-- アーカイブ用テーブル
+CREATE TABLE IF NOT EXISTS dlq.dlq_messages_archive (
+    LIKE dlq.dlq_messages INCLUDING ALL
+);
+
+-- アーカイブ実行プロシージャ（バッチ処理対応）
+CREATE OR REPLACE PROCEDURE dlq.archive_old_dlq_messages(
+    p_retention_days INT DEFAULT 30,
+    p_batch_size INT DEFAULT 1000
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_cutoff TIMESTAMPTZ;
+    v_archived_count INT := 0;
+    v_batch_count INT;
+BEGIN
+    v_cutoff := NOW() - (p_retention_days || ' days')::INTERVAL;
+
+    LOOP
+        WITH to_archive AS (
+            SELECT id FROM dlq.dlq_messages
+            WHERE status IN ('RESOLVED', 'DEAD') AND updated_at < v_cutoff
+            LIMIT p_batch_size FOR UPDATE SKIP LOCKED
+        ),
+        archived AS (
+            INSERT INTO dlq.dlq_messages_archive
+            SELECT m.* FROM dlq.dlq_messages m
+            INNER JOIN to_archive ta ON m.id = ta.id
+            RETURNING 1
+        )
+        SELECT COUNT(*) INTO v_batch_count FROM archived;
+
+        DELETE FROM dlq.dlq_messages
+        WHERE id IN (
+            SELECT id FROM dlq.dlq_messages
+            WHERE status IN ('RESOLVED', 'DEAD') AND updated_at < v_cutoff
+            LIMIT p_batch_size
+        );
+
+        v_archived_count := v_archived_count + v_batch_count;
+        EXIT WHEN v_batch_count = 0;
+        COMMIT;
+    END LOOP;
+
+    RAISE NOTICE 'Archived % DLQ messages older than % days',
+        v_archived_count, p_retention_days;
+END;
+$$;
+```
+
+---
+
 ## インデックス設計
 
 ### インデックス一覧
@@ -134,6 +237,153 @@ DLQ メッセージ量が増加した場合は、以下のパーティション�
 
 ---
 
+## マイグレーションファイル
+
+配置先: `regions/system/database/dlq-db/migrations/`
+
+命名規則は [テンプレート仕様-データベース](テンプレート仕様-データベース.md) に準拠する。
+
+```
+migrations/
+├── 001_create_schema.up.sql                    # スキーマ・拡張機能・共通関数
+├── 001_create_schema.down.sql
+├── 002_create_dlq_messages.up.sql              # dlq_messages テーブル + インデックス + トリガー
+├── 002_create_dlq_messages.down.sql
+├── 003_add_partition_management.up.sql         # dlq_messages_archive テーブル + アーカイブプロシージャ
+└── 003_add_partition_management.down.sql
+```
+
+### 001_create_schema.up.sql
+
+```sql
+-- dlq-db: スキーマ・拡張機能・共通関数の作成 (PostgreSQL 17)
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE SCHEMA IF NOT EXISTS dlq;
+
+CREATE OR REPLACE FUNCTION dlq.update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### 001_create_schema.down.sql
+
+```sql
+DROP FUNCTION IF EXISTS dlq.update_updated_at();
+DROP SCHEMA IF EXISTS dlq CASCADE;
+DROP EXTENSION IF EXISTS "pgcrypto";
+```
+
+### 002_create_dlq_messages.up.sql
+
+```sql
+-- dlq-db: dlq_messages テーブル作成
+
+CREATE TABLE IF NOT EXISTS dlq.dlq_messages (
+    id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    original_topic  VARCHAR(255) NOT NULL,
+    error_message   TEXT         NOT NULL,
+    retry_count     INT          NOT NULL DEFAULT 0,
+    max_retries     INT          NOT NULL DEFAULT 3,
+    payload         JSONB,
+    status          VARCHAR(50)  NOT NULL DEFAULT 'PENDING',
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    last_retry_at   TIMESTAMPTZ,
+
+    CONSTRAINT chk_dlq_messages_status CHECK (status IN ('PENDING', 'RETRYING', 'RESOLVED', 'DEAD'))
+);
+
+-- インデックス
+CREATE INDEX IF NOT EXISTS idx_dlq_messages_original_topic ON dlq.dlq_messages (original_topic);
+CREATE INDEX IF NOT EXISTS idx_dlq_messages_status ON dlq.dlq_messages (status);
+CREATE INDEX IF NOT EXISTS idx_dlq_messages_created_at ON dlq.dlq_messages (created_at);
+
+-- updated_at トリガー
+CREATE TRIGGER trg_dlq_messages_updated_at
+    BEFORE UPDATE ON dlq.dlq_messages
+    FOR EACH ROW
+    EXECUTE FUNCTION dlq.update_updated_at();
+```
+
+### 002_create_dlq_messages.down.sql
+
+```sql
+DROP TRIGGER IF EXISTS trg_dlq_messages_updated_at ON dlq.dlq_messages;
+DROP TABLE IF EXISTS dlq.dlq_messages;
+```
+
+### 003_add_partition_management.up.sql
+
+```sql
+-- dlq-db: 古い DLQ メッセージのアーカイブ管理
+
+-- アーカイブ用テーブル
+CREATE TABLE IF NOT EXISTS dlq.dlq_messages_archive (
+    LIKE dlq.dlq_messages INCLUDING ALL
+);
+
+-- アーカイブ実行プロシージャ（バッチ処理対応）
+CREATE OR REPLACE PROCEDURE dlq.archive_old_dlq_messages(
+    p_retention_days INT DEFAULT 30,
+    p_batch_size INT DEFAULT 1000
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_cutoff TIMESTAMPTZ;
+    v_archived_count INT := 0;
+    v_batch_count INT;
+BEGIN
+    v_cutoff := NOW() - (p_retention_days || ' days')::INTERVAL;
+
+    LOOP
+        WITH to_archive AS (
+            SELECT id FROM dlq.dlq_messages
+            WHERE status IN ('RESOLVED', 'DEAD')
+              AND updated_at < v_cutoff
+            LIMIT p_batch_size
+            FOR UPDATE SKIP LOCKED
+        ),
+        archived AS (
+            INSERT INTO dlq.dlq_messages_archive
+            SELECT m.* FROM dlq.dlq_messages m
+            INNER JOIN to_archive ta ON m.id = ta.id
+            RETURNING 1
+        )
+        SELECT COUNT(*) INTO v_batch_count FROM archived;
+
+        DELETE FROM dlq.dlq_messages
+        WHERE id IN (
+            SELECT id FROM dlq.dlq_messages
+            WHERE status IN ('RESOLVED', 'DEAD')
+              AND updated_at < v_cutoff
+            LIMIT p_batch_size
+        );
+
+        v_archived_count := v_archived_count + v_batch_count;
+        EXIT WHEN v_batch_count = 0;
+        COMMIT;
+    END LOOP;
+
+    RAISE NOTICE 'Archived % DLQ messages older than % days', v_archived_count, p_retention_days;
+END;
+$$;
+```
+
+### 003_add_partition_management.down.sql
+
+```sql
+DROP PROCEDURE IF EXISTS dlq.archive_old_dlq_messages(INT, INT);
+DROP TABLE IF EXISTS dlq.dlq_messages_archive;
+```
+
+---
+
 ## リテンションポリシー
 
 | 対象 | 保持期間 | 処理 |
@@ -144,22 +394,14 @@ DLQ メッセージ量が増加した場合は、以下のパーティション�
 
 ### アーカイブプロシージャ
 
-```sql
-CREATE OR REPLACE PROCEDURE dlq.archive_old_dlq_messages()
-LANGUAGE plpgsql AS $$
-BEGIN
-    -- RESOLVED / DEAD で30日経過したメッセージをアーカイブ
-    INSERT INTO dlq.dlq_messages_archive
-        SELECT * FROM dlq.dlq_messages
-        WHERE status IN ('RESOLVED', 'DEAD')
-          AND updated_at < NOW() - INTERVAL '30 days';
+実装は `003_add_partition_management.up.sql` で定義された `dlq.archive_old_dlq_messages()` プロシージャを使用する。バッチ処理対応により、大量メッセージのアーカイブ時もロック時間を最小化する。
 
-    -- アーカイブ済みメッセージを本テーブルから削除
-    DELETE FROM dlq.dlq_messages
-    WHERE status IN ('RESOLVED', 'DEAD')
-      AND updated_at < NOW() - INTERVAL '30 days';
-END;
-$$;
+```sql
+-- 実行例（デフォルト: 30日経過、バッチサイズ1000件）
+CALL dlq.archive_old_dlq_messages();
+
+-- カスタムパラメータ（60日経過、バッチサイズ500件）
+CALL dlq.archive_old_dlq_messages(p_retention_days := 60, p_batch_size := 500);
 ```
 
 このプロシージャは CronJob（`infra/kubernetes/system/partition-cronjob.yaml` のパターンを参照）で定期実行する。

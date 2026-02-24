@@ -146,12 +146,16 @@ Saga の実行状態を管理する。各 Saga は一意の ID を持ち、ワ�
 
 ```
 migrations/
-├── 001_create_schema.up.sql
+├── 001_create_schema.up.sql                    # スキーマ・拡張機能・共通関数
 ├── 001_create_schema.down.sql
-├── 002_create_saga_states.up.sql
+├── 002_create_saga_states.up.sql               # saga_states テーブル
 ├── 002_create_saga_states.down.sql
-├── 003_create_saga_step_logs.up.sql
-└── 003_create_saga_step_logs.down.sql
+├── 003_create_saga_step_logs.up.sql            # saga_step_logs テーブル
+├── 003_create_saga_step_logs.down.sql
+├── 004_add_indexes.up.sql                      # saga_step_logs への追加インデックス
+├── 004_add_indexes.down.sql
+├── 005_add_updated_at_trigger.up.sql           # saga_step_logs に updated_at カラム追加 + トリガー
+└── 005_add_updated_at_trigger.down.sql
 ```
 
 ### 001_create_schema.up.sql
@@ -255,6 +259,62 @@ CREATE INDEX IF NOT EXISTS idx_saga_step_logs_saga_id_step_index ON saga.saga_st
 DROP TABLE IF EXISTS saga.saga_step_logs;
 ```
 
+### 004_add_indexes.up.sql
+
+```sql
+-- saga-db: saga_states および saga_step_logs への追加インデックス
+
+-- saga_step_logs: ステップ名での検索用
+CREATE INDEX IF NOT EXISTS idx_saga_step_logs_step_name
+    ON saga.saga_step_logs (step_name);
+
+-- saga_step_logs: ステータスでのフィルタ用
+CREATE INDEX IF NOT EXISTS idx_saga_step_logs_status
+    ON saga.saga_step_logs (status);
+
+-- saga_step_logs: アクションでのフィルタ用
+CREATE INDEX IF NOT EXISTS idx_saga_step_logs_action
+    ON saga.saga_step_logs (action);
+
+-- saga_step_logs: 開始時刻での範囲検索用
+CREATE INDEX IF NOT EXISTS idx_saga_step_logs_started_at
+    ON saga.saga_step_logs (started_at);
+```
+
+### 004_add_indexes.down.sql
+
+```sql
+DROP INDEX IF EXISTS saga.idx_saga_step_logs_step_name;
+DROP INDEX IF EXISTS saga.idx_saga_step_logs_status;
+DROP INDEX IF EXISTS saga.idx_saga_step_logs_action;
+DROP INDEX IF EXISTS saga.idx_saga_step_logs_started_at;
+```
+
+### 005_add_updated_at_trigger.up.sql
+
+```sql
+-- saga-db: saga_step_logs の updated_at 関連拡張
+-- 注意: saga_states のトリガーは 002_create_saga_states.up.sql で作成済み
+--       saga.update_updated_at() 関数は 001_create_schema.up.sql で作成済み
+
+-- saga_step_logs に updated_at カラムを追加
+ALTER TABLE saga.saga_step_logs
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+-- saga_step_logs の updated_at トリガー
+CREATE TRIGGER trigger_saga_step_logs_update_updated_at
+    BEFORE UPDATE ON saga.saga_step_logs
+    FOR EACH ROW
+    EXECUTE FUNCTION saga.update_updated_at();
+```
+
+### 005_add_updated_at_trigger.down.sql
+
+```sql
+DROP TRIGGER IF EXISTS trigger_saga_step_logs_update_updated_at ON saga.saga_step_logs;
+ALTER TABLE saga.saga_step_logs DROP COLUMN IF EXISTS updated_at;
+```
+
 ---
 
 ## インデックス設計
@@ -268,6 +328,10 @@ DROP TABLE IF EXISTS saga.saga_step_logs;
 | saga_states | idx_saga_states_correlation_id | correlation_id (WHERE NOT NULL) | B-tree（部分） | 業務相関 ID による Saga 検索 |
 | saga_states | idx_saga_states_created_at | created_at | B-tree | 作成日時による範囲検索・ソート |
 | saga_step_logs | idx_saga_step_logs_saga_id_step_index | (saga_id, step_index) | B-tree（複合） | Saga に紐づくステップログの順序付き取得 |
+| saga_step_logs | idx_saga_step_logs_step_name | step_name | B-tree | ステップ名での検索 |
+| saga_step_logs | idx_saga_step_logs_status | status | B-tree | ステータスでのフィルタリング |
+| saga_step_logs | idx_saga_step_logs_action | action | B-tree | アクション種別でのフィルタリング |
+| saga_step_logs | idx_saga_step_logs_started_at | started_at | B-tree | 開始時刻での範囲検索 |
 
 ### 設計方針
 

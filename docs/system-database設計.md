@@ -234,26 +234,34 @@ Keycloak の `sub` claim（UUID）と紐づくアプリケーション固有の�
 
 ```
 migrations/
-├── 001_create_users.up.sql
-├── 001_create_users.down.sql
-├── 002_create_roles.up.sql
-├── 002_create_roles.down.sql
-├── 003_create_permissions.up.sql
-├── 003_create_permissions.down.sql
-├── 004_create_user_roles.up.sql
-├── 004_create_user_roles.down.sql
-├── 005_create_role_permissions.up.sql
-├── 005_create_role_permissions.down.sql
-├── 006_create_audit_logs.up.sql
+├── 001_create_schema.up.sql                            # スキーマ・拡張機能・共通関数
+├── 001_create_schema.down.sql
+├── 002_create_users.up.sql                             # users テーブル
+├── 002_create_users.down.sql
+├── 003_create_roles.up.sql                             # roles テーブル
+├── 003_create_roles.down.sql
+├── 004_create_permissions.up.sql                       # permissions テーブル
+├── 004_create_permissions.down.sql
+├── 005_create_user_roles_and_role_permissions.up.sql   # user_roles + role_permissions 中間テーブル
+├── 005_create_user_roles_and_role_permissions.down.sql
+├── 006_create_audit_logs.up.sql                        # audit_logs テーブル（月次パーティション）
 ├── 006_create_audit_logs.down.sql
-└── 007_create_api_keys.up.sql
-└── 007_create_api_keys.down.sql
+├── 007_create_api_keys.up.sql                          # api_keys テーブル
+├── 007_create_api_keys.down.sql
+├── 008_seed_initial_data.up.sql                        # 初期データ投入（ロール・権限・マッピング）
+├── 008_seed_initial_data.down.sql
+├── 009_align_audit_log_columns.up.sql                  # audit_logs カラム名変更（detail→metadata, created_at→recorded_at）
+├── 009_align_audit_log_columns.down.sql
+├── 010_fix_audit_log_columns.up.sql                    # audit_logs カラム名を正規設計に戻す（metadata→detail, recorded_at→created_at）
+├── 010_fix_audit_log_columns.down.sql
+├── 011_create_partition_management.up.sql              # pg_partman による自動パーティション管理
+└── 011_create_partition_management.down.sql
 ```
 
-### 001_create_users.up.sql
+### 001_create_schema.up.sql
 
 ```sql
--- auth-db: users テーブル作成 (PostgreSQL 17)
+-- auth-db: スキーマ・拡張機能・共通関数の作成 (PostgreSQL 17)
 
 -- 拡張機能
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -269,8 +277,21 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+```
 
--- users テーブル
+### 001_create_schema.down.sql
+
+```sql
+DROP FUNCTION IF EXISTS auth.update_updated_at();
+DROP SCHEMA IF EXISTS auth;
+DROP EXTENSION IF EXISTS "pgcrypto";
+```
+
+### 002_create_users.up.sql
+
+```sql
+-- auth-db: users テーブル作成
+
 CREATE TABLE IF NOT EXISTS auth.users (
     id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     keycloak_sub  VARCHAR(255) UNIQUE NOT NULL,
@@ -296,17 +317,14 @@ CREATE TRIGGER trigger_users_update_updated_at
     EXECUTE FUNCTION auth.update_updated_at();
 ```
 
-### 001_create_users.down.sql
+### 002_create_users.down.sql
 
 ```sql
 DROP TRIGGER IF EXISTS trigger_users_update_updated_at ON auth.users;
 DROP TABLE IF EXISTS auth.users;
-DROP FUNCTION IF EXISTS auth.update_updated_at();
-DROP SCHEMA IF EXISTS auth;
-DROP EXTENSION IF EXISTS "pgcrypto";
 ```
 
-### 002_create_roles.up.sql
+### 003_create_roles.up.sql
 
 ```sql
 -- auth-db: roles テーブル作成
@@ -326,13 +344,13 @@ CREATE INDEX IF NOT EXISTS idx_roles_tier ON auth.roles (tier);
 CREATE INDEX IF NOT EXISTS idx_roles_name ON auth.roles (name);
 ```
 
-### 002_create_roles.down.sql
+### 003_create_roles.down.sql
 
 ```sql
 DROP TABLE IF EXISTS auth.roles;
 ```
 
-### 003_create_permissions.up.sql
+### 004_create_permissions.up.sql
 
 ```sql
 -- auth-db: permissions テーブル作成
@@ -351,17 +369,18 @@ CREATE TABLE IF NOT EXISTS auth.permissions (
 CREATE INDEX IF NOT EXISTS idx_permissions_resource ON auth.permissions (resource);
 ```
 
-### 003_create_permissions.down.sql
+### 004_create_permissions.down.sql
 
 ```sql
 DROP TABLE IF EXISTS auth.permissions;
 ```
 
-### 004_create_user_roles.up.sql
+### 005_create_user_roles_and_role_permissions.up.sql
 
 ```sql
--- auth-db: user_roles 中間テーブル作成
+-- auth-db: user_roles / role_permissions 中間テーブル作成
 
+-- user_roles テーブル
 CREATE TABLE IF NOT EXISTS auth.user_roles (
     id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id     UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -372,22 +391,11 @@ CREATE TABLE IF NOT EXISTS auth.user_roles (
     CONSTRAINT uq_user_roles_user_role UNIQUE (user_id, role_id)
 );
 
--- インデックス
+-- user_roles インデックス
 CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON auth.user_roles (user_id);
 CREATE INDEX IF NOT EXISTS idx_user_roles_role_id ON auth.user_roles (role_id);
-```
 
-### 004_create_user_roles.down.sql
-
-```sql
-DROP TABLE IF EXISTS auth.user_roles;
-```
-
-### 005_create_role_permissions.up.sql
-
-```sql
--- auth-db: role_permissions 中間テーブル作成
-
+-- role_permissions テーブル
 CREATE TABLE IF NOT EXISTS auth.role_permissions (
     id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     role_id       UUID        NOT NULL REFERENCES auth.roles(id) ON DELETE CASCADE,
@@ -397,15 +405,16 @@ CREATE TABLE IF NOT EXISTS auth.role_permissions (
     CONSTRAINT uq_role_permissions_role_permission UNIQUE (role_id, permission_id)
 );
 
--- インデックス
+-- role_permissions インデックス
 CREATE INDEX IF NOT EXISTS idx_role_permissions_role_id ON auth.role_permissions (role_id);
 CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_id ON auth.role_permissions (permission_id);
 ```
 
-### 005_create_role_permissions.down.sql
+### 005_create_user_roles_and_role_permissions.down.sql
 
 ```sql
 DROP TABLE IF EXISTS auth.role_permissions;
+DROP TABLE IF EXISTS auth.user_roles;
 ```
 
 ### 006_create_audit_logs.up.sql
@@ -510,9 +519,144 @@ DROP TRIGGER IF EXISTS trigger_api_keys_update_updated_at ON auth.api_keys;
 DROP TABLE IF EXISTS auth.api_keys;
 ```
 
+### 008_seed_initial_data.up.sql
+
+初期データ投入（デフォルトロール・権限・ロール権限マッピング）。以前は seeds/ ディレクトリに配置していたが、マイグレーションに統合した。
+
+```sql
+-- auth-db: 初期データ投入（デフォルトロール・権限・ロール権限マッピング）
+
+-- デフォルトロール
+INSERT INTO auth.roles (name, description, tier) VALUES
+    ('sys_admin',    'システム全体の管理者。すべてのリソースに対する全権限',         'system'),
+    ('sys_operator', 'システム運用担当。監視・ログ閲覧・設定変更',                   'system'),
+    ('sys_auditor',  '監査担当。全リソースの読み取り専用',                            'system')
+ON CONFLICT (name) DO NOTHING;
+
+-- デフォルト権限
+INSERT INTO auth.permissions (resource, action, description) VALUES
+    ('users',        'read',   'ユーザー情報の閲覧'),
+    ('users',        'write',  'ユーザー情報の作成・更新'),
+    ('users',        'delete', 'ユーザーの削除'),
+    ('users',        'admin',  'ユーザー管理の全権限'),
+    ('auth_config',  'read',   '認証設定の閲覧'),
+    ('auth_config',  'write',  '認証設定の作成・更新'),
+    ('auth_config',  'delete', '認証設定の削除'),
+    ('auth_config',  'admin',  '認証設定管理の全権限'),
+    ('audit_logs',   'read',   '監査ログの閲覧'),
+    ('api_gateway',  'read',   'API Gateway 設定の閲覧'),
+    ('api_gateway',  'write',  'API Gateway 設定の作成・更新'),
+    ('api_gateway',  'delete', 'API Gateway 設定の削除'),
+    ('api_gateway',  'admin',  'API Gateway 管理の全権限'),
+    ('vault_secrets','read',   'Vault シークレットの閲覧'),
+    ('vault_secrets','write',  'Vault シークレットの作成・更新'),
+    ('vault_secrets','delete', 'Vault シークレットの削除'),
+    ('vault_secrets','admin',  'Vault シークレット管理の全権限'),
+    ('monitoring',   'read',   '監視データの閲覧'),
+    ('monitoring',   'write',  '監視設定の作成・更新'),
+    ('monitoring',   'delete', '監視設定の削除'),
+    ('monitoring',   'admin',  '監視管理の全権限')
+ON CONFLICT (resource, action) DO NOTHING;
+
+-- デフォルトロール・権限マッピング（sys_admin / sys_operator / sys_auditor）
+-- 省略（詳細は Seeds セクション参照）
+```
+
+### 008_seed_initial_data.down.sql
+
+```sql
+DELETE FROM auth.role_permissions;
+DELETE FROM auth.permissions;
+DELETE FROM auth.roles WHERE name IN ('sys_admin', 'sys_operator', 'sys_auditor');
+```
+
+### 009_align_audit_log_columns.up.sql
+
+audit_logs テーブルのカラム名を変更（`detail` → `metadata`、`created_at` → `recorded_at`）。
+
+```sql
+ALTER TABLE auth.audit_logs RENAME COLUMN detail TO metadata;
+ALTER TABLE auth.audit_logs RENAME COLUMN created_at TO recorded_at;
+```
+
+### 009_align_audit_log_columns.down.sql
+
+```sql
+ALTER TABLE auth.audit_logs RENAME COLUMN metadata TO detail;
+ALTER TABLE auth.audit_logs RENAME COLUMN recorded_at TO created_at;
+```
+
+### 010_fix_audit_log_columns.up.sql
+
+009 で変更されたカラム名を正規設計（system-database設計.md）に戻す。
+
+```sql
+ALTER TABLE auth.audit_logs RENAME COLUMN metadata TO detail;
+ALTER TABLE auth.audit_logs RENAME COLUMN recorded_at TO created_at;
+```
+
+### 010_fix_audit_log_columns.down.sql
+
+```sql
+ALTER TABLE auth.audit_logs RENAME COLUMN detail TO metadata;
+ALTER TABLE auth.audit_logs RENAME COLUMN created_at TO recorded_at;
+```
+
+### 011_create_partition_management.up.sql
+
+pg_partman 拡張を使用した audit_logs テーブルの月次パーティション自動管理。pg_partman が利用できない環境（テストコンテナ等）では自動的にスキップする。
+
+```sql
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM pg_available_extensions WHERE name = 'pg_partman'
+    ) THEN
+        CREATE EXTENSION IF NOT EXISTS pg_partman SCHEMA partman;
+
+        PERFORM partman.create_parent(
+            p_parent_table   := 'auth.audit_logs',
+            p_control        := 'created_at',
+            p_type           := 'native',
+            p_interval       := '1 month',
+            p_premake        := 3
+        );
+
+        UPDATE partman.part_config
+        SET
+            retention                = '24 months',
+            retention_keep_table     = false,
+            retention_keep_index     = false,
+            automatic_maintenance    = 'on',
+            infinite_time_partitions = true
+        WHERE parent_table = 'auth.audit_logs';
+
+        PERFORM partman.run_maintenance(p_parent_table := 'auth.audit_logs');
+    ELSE
+        RAISE NOTICE 'pg_partman is not available; skipping partition management setup.';
+    END IF;
+END $$;
+```
+
+### 011_create_partition_management.down.sql
+
+```sql
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM pg_extension WHERE extname = 'pg_partman'
+    ) THEN
+        DELETE FROM partman.part_config WHERE parent_table = 'auth.audit_logs';
+        DROP EXTENSION IF EXISTS pg_partman;
+    END IF;
+END $$;
+```
+
 ---
 
 ## Seeds（初期データ）
+
+> **注**: 初期データ投入は `008_seed_initial_data` マイグレーションに統合済み。以下は参照用。
 
 配置先: `regions/system/database/auth-db/seeds/`
 

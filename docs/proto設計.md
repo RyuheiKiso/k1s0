@@ -36,9 +36,25 @@ k1s0.{tier}.{domain}.v{major}
 
 ## ディレクトリ構造
 
-### プロジェクトルート共有定義
+### 共有 proto 定義
 
-プロジェクトルート `api/proto/` にはサービス間で共有される型定義・イベント定義を配置する。
+全サービスで共有される proto ファイルは `regions/system/proto/v1/` に集約して配置する。
+
+```
+regions/system/proto/v1/
+├── common.proto        # Pagination, PaginationResult 等の共通型
+├── auth.proto          # AuthService / AuditService gRPC 定義
+├── config.proto        # ConfigService gRPC 定義
+├── saga.proto          # SagaService gRPC 定義
+├── featureflag.proto   # FeatureFlagService gRPC 定義
+├── ratelimit.proto     # RateLimitService gRPC 定義
+├── tenant.proto        # TenantService gRPC 定義
+└── vault.proto         # VaultService gRPC 定義
+```
+
+### Kafka イベント定義
+
+Kafka イベントスキーマは `api/proto/` に配置する。
 
 ```
 api/proto/
@@ -46,11 +62,6 @@ api/proto/
 ├── buf.gen.yaml                          # コード生成設定
 ├── buf.lock                              # 依存ロック
 └── k1s0/
-    ├── system/
-    │   └── common/
-    │       └── v1/
-    │           ├── types.proto           # Pagination, Timestamp 等の共通型
-    │           └── event_metadata.proto  # イベントメタデータ
     └── event/
         ├── system/
         │   └── auth/
@@ -67,32 +78,6 @@ api/proto/
             └── inventory/
                 └── v1/
                     └── inventory_event.proto
-```
-
-### サービス固有定義
-
-各サービス内の `api/proto/` にはそのサービス固有の gRPC サービス定義を配置する。
-
-```
-# auth-server
-{auth-server}/api/proto/
-└── k1s0/
-    └── system/
-        └── auth/
-            └── v1/
-                └── auth.proto            # AuthService gRPC 定義
-
-# config-server
-{config-server}/api/proto/
-└── k1s0/
-    └── system/
-        └── config/
-            └── v1/
-                └── config.proto          # ConfigService gRPC 定義
-
-# saga-server
-api/proto/k1s0/system/saga/v1/
-└── saga.proto                            # SagaService gRPC 定義（共有 proto）
 ```
 
 ---
@@ -410,7 +395,7 @@ service ConfigService {
   rpc GetServiceConfig(GetServiceConfigRequest) returns (GetServiceConfigResponse);
 
   // 設定変更の監視（Server-Side Streaming）
-  rpc WatchConfig(WatchConfigRequest) returns (stream ConfigChangeEvent);
+  rpc WatchConfig(WatchConfigRequest) returns (stream WatchConfigResponse);
 }
 
 // ============================================================
@@ -507,19 +492,13 @@ message GetServiceConfigResponse {
 // ============================================================
 
 message WatchConfigRequest {
-  repeated string namespaces = 1;  // 監視対象 namespace（空の場合は全件）
+  string namespace = 1;  // 監視対象 namespace
+  string key = 2;        // 監視対象 key
 }
 
-message ConfigChangeEvent {
-  string namespace = 1;
-  string key = 2;
-  bytes old_value = 3;                               // 変更前の値（JSON エンコード済み）
-  bytes new_value = 4;                               // 変更後の値（JSON エンコード済み）
-  int32 old_version = 5;
-  int32 new_version = 6;
-  string changed_by = 7;
-  string change_type = 8;                            // CREATED, UPDATED, DELETED
-  k1s0.system.common.v1.Timestamp changed_at = 9;
+message WatchConfigResponse {
+  string change_type = 1;                            // CREATED, UPDATED, DELETED
+  ConfigEntry entry = 2;                             // 変更後の設定エントリ
 }
 ```
 
@@ -584,6 +563,404 @@ service SagaService {
 | `SagaService.CancelSaga` | `SagaGrpcService.cancel_saga` | 実行中 Saga のキャンセル |
 | `SagaService.RegisterWorkflow` | `SagaGrpcService.register_workflow` | YAML 形式のワークフロー定義を登録 |
 | `SagaService.ListWorkflows` | `SagaGrpcService.list_workflows` | 登録済みワークフロー一覧取得 |
+
+---
+
+## フィーチャーフラグサービス定義（featureflag.proto）
+
+パッケージ: `k1s0.system.featureflag.v1`
+
+フィーチャーフラグの評価・管理機能を提供するサービス定義。
+
+```protobuf
+// regions/system/proto/v1/featureflag.proto
+syntax = "proto3";
+package k1s0.system.featureflag.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/featureflag/v1;featureflagv1";
+
+import "google/protobuf/timestamp.proto";
+import "v1/common.proto";
+
+service FeatureFlagService {
+  // フラグ評価（ユーザーコンテキストに応じた判定）
+  rpc EvaluateFlag(EvaluateFlagRequest) returns (EvaluateFlagResponse);
+
+  // フラグ定義取得
+  rpc GetFlag(GetFlagRequest) returns (GetFlagResponse);
+
+  // フラグ定義作成
+  rpc CreateFlag(CreateFlagRequest) returns (CreateFlagResponse);
+
+  // フラグ定義更新
+  rpc UpdateFlag(UpdateFlagRequest) returns (UpdateFlagResponse);
+}
+
+message EvaluateFlagRequest {
+  string flag_key = 1;
+  EvaluationContext context = 2;
+}
+
+message EvaluateFlagResponse {
+  string flag_key = 1;
+  bool enabled = 2;
+  string variant = 3;
+  string reason = 4;
+}
+
+message EvaluationContext {
+  string user_id = 1;
+  string tenant_id = 2;
+  map<string, string> attributes = 3;
+}
+
+message GetFlagRequest {
+  string flag_key = 1;
+}
+
+message GetFlagResponse {
+  FeatureFlag flag = 1;
+}
+
+message CreateFlagRequest {
+  string flag_key = 1;
+  string description = 2;
+  bool enabled = 3;
+  repeated FlagVariant variants = 4;
+}
+
+message CreateFlagResponse {
+  FeatureFlag flag = 1;
+}
+
+message UpdateFlagRequest {
+  string flag_key = 1;
+  bool enabled = 2;
+  string description = 3;
+}
+
+message UpdateFlagResponse {
+  FeatureFlag flag = 1;
+}
+
+message FeatureFlag {
+  string id = 1;
+  string flag_key = 2;
+  string description = 3;
+  bool enabled = 4;
+  repeated FlagVariant variants = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message FlagVariant {
+  string name = 1;
+  string value = 2;
+  int32 weight = 3;
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `FeatureFlagService.EvaluateFlag` | ユーザーコンテキストに基づくフラグ評価（バリアント決定） |
+| `FeatureFlagService.GetFlag` | flag_key でフラグ定義取得 |
+| `FeatureFlagService.CreateFlag` | フラグ定義の新規作成（バリアント含む） |
+| `FeatureFlagService.UpdateFlag` | フラグの有効/無効切り替え・説明更新 |
+
+---
+
+## レートリミットサービス定義（ratelimit.proto）
+
+パッケージ: `k1s0.system.ratelimit.v1`
+
+API リクエストのレートリミット判定・ルール管理を提供するサービス定義。
+
+```protobuf
+// regions/system/proto/v1/ratelimit.proto
+syntax = "proto3";
+package k1s0.system.ratelimit.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/ratelimit/v1;ratelimitv1";
+
+import "google/protobuf/timestamp.proto";
+import "v1/common.proto";
+
+service RateLimitService {
+  // レートリミット判定
+  rpc CheckRateLimit(CheckRateLimitRequest) returns (CheckRateLimitResponse);
+
+  // ルール作成
+  rpc CreateRule(CreateRuleRequest) returns (CreateRuleResponse);
+
+  // ルール取得
+  rpc GetRule(GetRuleRequest) returns (GetRuleResponse);
+}
+
+message CheckRateLimitRequest {
+  string rule_id = 1;
+  string subject = 2;
+}
+
+message CheckRateLimitResponse {
+  bool allowed = 1;
+  int64 remaining = 2;
+  int64 reset_at = 3;
+  string reason = 4;
+}
+
+message CreateRuleRequest {
+  string name = 1;
+  string key = 2;
+  int64 limit = 3;
+  int64 window_secs = 4;
+  string algorithm = 5;
+}
+
+message CreateRuleResponse {
+  RateLimitRule rule = 1;
+}
+
+message GetRuleRequest {
+  string rule_id = 1;
+}
+
+message GetRuleResponse {
+  RateLimitRule rule = 1;
+}
+
+message RateLimitRule {
+  string id = 1;
+  string name = 2;
+  string key = 3;
+  int64 limit = 4;
+  int64 window_secs = 5;
+  string algorithm = 6;
+  bool enabled = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `RateLimitService.CheckRateLimit` | ルール ID + サブジェクトでレートリミット判定（残り回数・リセット時刻を返却） |
+| `RateLimitService.CreateRule` | レートリミットルールの作成（アルゴリズム・ウィンドウサイズ指定） |
+| `RateLimitService.GetRule` | ルール ID でルール定義取得 |
+
+---
+
+## テナントサービス定義（tenant.proto）
+
+パッケージ: `k1s0.system.tenant.v1`
+
+マルチテナント環境でのテナント管理・メンバー管理・プロビジョニング機能を提供するサービス定義。
+
+```protobuf
+// regions/system/proto/v1/tenant.proto
+syntax = "proto3";
+package k1s0.system.tenant.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/tenant/v1;tenantv1";
+
+import "google/protobuf/timestamp.proto";
+import "v1/common.proto";
+
+service TenantService {
+  // テナント作成
+  rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
+
+  // テナント取得
+  rpc GetTenant(GetTenantRequest) returns (GetTenantResponse);
+
+  // テナント一覧取得
+  rpc ListTenants(ListTenantsRequest) returns (ListTenantsResponse);
+
+  // メンバー追加
+  rpc AddMember(AddMemberRequest) returns (AddMemberResponse);
+
+  // メンバー削除
+  rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
+
+  // プロビジョニング状態取得
+  rpc GetProvisioningStatus(GetProvisioningStatusRequest) returns (GetProvisioningStatusResponse);
+}
+
+message CreateTenantRequest {
+  string name = 1;
+  string display_name = 2;
+  string owner_user_id = 3;
+  string plan = 4;
+}
+
+message CreateTenantResponse {
+  Tenant tenant = 1;
+}
+
+message GetTenantRequest {
+  string tenant_id = 1;
+}
+
+message GetTenantResponse {
+  Tenant tenant = 1;
+}
+
+message ListTenantsRequest {
+  k1s0.system.common.v1.Pagination pagination = 1;
+}
+
+message ListTenantsResponse {
+  repeated Tenant tenants = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message AddMemberRequest {
+  string tenant_id = 1;
+  string user_id = 2;
+  string role = 3;
+}
+
+message AddMemberResponse {
+  TenantMember member = 1;
+}
+
+message RemoveMemberRequest {
+  string tenant_id = 1;
+  string user_id = 2;
+}
+
+message RemoveMemberResponse {
+  bool success = 1;
+}
+
+message GetProvisioningStatusRequest {
+  string job_id = 1;
+}
+
+message GetProvisioningStatusResponse {
+  ProvisioningJob job = 1;
+}
+
+message Tenant {
+  string id = 1;
+  string name = 2;
+  string display_name = 3;
+  string status = 4;
+  string plan = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message TenantMember {
+  string id = 1;
+  string tenant_id = 2;
+  string user_id = 3;
+  string role = 4;
+  google.protobuf.Timestamp joined_at = 5;
+}
+
+message ProvisioningJob {
+  string id = 1;
+  string tenant_id = 2;
+  string status = 3;
+  string current_step = 4;
+  string error_message = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `TenantService.CreateTenant` | テナントの新規作成（名前・表示名・オーナー・プラン指定） |
+| `TenantService.GetTenant` | テナント ID で詳細取得 |
+| `TenantService.ListTenants` | ページネーション付きテナント一覧取得 |
+| `TenantService.AddMember` | テナントにメンバーを追加（ロール指定） |
+| `TenantService.RemoveMember` | テナントからメンバーを削除 |
+| `TenantService.GetProvisioningStatus` | テナントプロビジョニングジョブの進捗確認 |
+
+---
+
+## Vault サービス定義（vault.proto）
+
+パッケージ: `k1s0.system.vault.v1`
+
+シークレット管理（取得・設定・削除・一覧）を提供するサービス定義。
+
+```protobuf
+// regions/system/proto/v1/vault.proto
+syntax = "proto3";
+package k1s0.system.vault.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/vault/v1;vaultv1";
+
+import "google/protobuf/timestamp.proto";
+import "v1/common.proto";
+
+service VaultService {
+  // シークレット取得
+  rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
+
+  // シークレット設定
+  rpc SetSecret(SetSecretRequest) returns (SetSecretResponse);
+
+  // シークレット削除
+  rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse);
+
+  // シークレット一覧取得
+  rpc ListSecrets(ListSecretsRequest) returns (ListSecretsResponse);
+}
+
+message GetSecretRequest {
+  string path = 1;
+  string version = 2;
+}
+
+message GetSecretResponse {
+  map<string, string> data = 1;
+  int64 version = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+message SetSecretRequest {
+  string path = 1;
+  map<string, string> data = 2;
+}
+
+message SetSecretResponse {
+  int64 version = 1;
+  google.protobuf.Timestamp created_at = 2;
+}
+
+message DeleteSecretRequest {
+  string path = 1;
+  repeated int64 versions = 2;
+}
+
+message DeleteSecretResponse {
+  bool success = 1;
+}
+
+message ListSecretsRequest {
+  string path_prefix = 1;
+}
+
+message ListSecretsResponse {
+  repeated string keys = 1;
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `VaultService.GetSecret` | パス + バージョンでシークレット取得（バージョニング対応） |
+| `VaultService.SetSecret` | パスにシークレットを設定（key-value マップ） |
+| `VaultService.DeleteSecret` | シークレットの削除（特定バージョン指定可能） |
+| `VaultService.ListSecrets` | パスプレフィックスでシークレットキー一覧取得 |
 
 ---
 
