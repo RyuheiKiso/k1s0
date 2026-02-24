@@ -321,4 +321,4 @@ React 版のみ提供する開発時のナビゲーション可視化ツール�
 - [テンプレート仕様-Flutter](テンプレート仕様-Flutter.md)
 - [テンプレート仕様-React](テンプレート仕様-React.md)
 - [system-config-database設計](system-config-database設計.md)
-- [system-navigation設計](system-navigation設計.md)
+- [navigation設計](navigation設計.md)

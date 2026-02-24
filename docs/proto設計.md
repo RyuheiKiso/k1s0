@@ -42,14 +42,15 @@ k1s0.{tier}.{domain}.v{major}
 
 ```
 regions/system/proto/v1/
-├── common.proto        # Pagination, PaginationResult 等の共通型
-├── auth.proto          # AuthService / AuditService gRPC 定義
-├── config.proto        # ConfigService gRPC 定義
-├── saga.proto          # SagaService gRPC 定義
-├── featureflag.proto   # FeatureFlagService gRPC 定義
-├── ratelimit.proto     # RateLimitService gRPC 定義
-├── tenant.proto        # TenantService gRPC 定義
-└── vault.proto         # VaultService gRPC 定義
+├── common.proto          # Pagination, PaginationResult 等の共通型
+├── auth.proto            # AuthService / AuditService gRPC 定義
+├── config.proto          # ConfigService gRPC 定義
+├── saga.proto            # SagaService gRPC 定義
+├── featureflag.proto     # FeatureFlagService gRPC 定義
+├── ratelimit.proto       # RateLimitService gRPC 定義
+├── tenant.proto          # TenantService gRPC 定義
+├── vault.proto           # VaultService gRPC 定義
+└── api_registry.proto    # ApiRegistryService gRPC 定義
 ```
 
 ### Kafka イベント定義

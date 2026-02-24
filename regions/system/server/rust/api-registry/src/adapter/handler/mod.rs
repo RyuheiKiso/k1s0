@@ -45,6 +45,7 @@ pub fn router(state: AppState) -> Router {
     let public = Router::new()
         .route("/healthz", get(health::healthz))
         .route("/readyz", get(health::readyz))
+        .route("/metrics", get(health::metrics))
         .route("/api/v1/schemas", get(schema_handler::list_schemas))
         .route("/api/v1/schemas/{name}", get(schema_handler::get_schema))
         .route(

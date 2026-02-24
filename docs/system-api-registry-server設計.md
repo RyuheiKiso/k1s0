@@ -483,6 +483,8 @@ system tier の API スキーマレジストリサーバーは以下の機能を
 
 ### gRPC サービス定義
 
+proto ファイルは `regions/system/proto/v1/api_registry.proto` に配置する。
+
 ```protobuf
 syntax = "proto3";
 package k1s0.system.apiregistry.v1;
@@ -498,7 +500,8 @@ message GetSchemaRequest {
 }
 
 message GetSchemaResponse {
-  ApiSchema schema = 1;
+  ApiSchemaProto schema = 1;
+  string latest_content = 2;
 }
 
 message GetSchemaVersionRequest {
@@ -507,7 +510,7 @@ message GetSchemaVersionRequest {
 }
 
 message GetSchemaVersionResponse {
-  ApiSchemaVersion schema_version = 1;
+  ApiSchemaVersionProto version = 1;
 }
 
 message CheckCompatibilityRequest {
@@ -517,22 +520,22 @@ message CheckCompatibilityRequest {
 }
 
 message CheckCompatibilityResponse {
-  bool compatible = 1;
-  repeated BreakingChange breaking_changes = 2;
+  string name = 1;
+  uint32 base_version = 2;
+  CompatibilityResultProto result = 3;
 }
 
-message ApiSchema {
+message ApiSchemaProto {
   string name = 1;
   string description = 2;
   string schema_type = 3;
   uint32 latest_version = 4;
-  string content = 5;
-  string content_hash = 6;
-  string created_at = 7;
-  string updated_at = 8;
+  uint32 version_count = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
 }
 
-message ApiSchemaVersion {
+message ApiSchemaVersionProto {
   string name = 1;
   uint32 version = 2;
   string schema_type = 3;
@@ -540,13 +543,13 @@ message ApiSchemaVersion {
   string content_hash = 5;
   bool breaking_changes = 6;
   string registered_by = 7;
-  string created_at = 8;
+  google.protobuf.Timestamp created_at = 8;
 }
 
-message BreakingChange {
-  string change_type = 1;
-  string path = 2;
-  string description = 3;
+message CompatibilityResultProto {
+  bool compatible = 1;
+  repeated string breaking_changes = 2;
+  repeated string non_breaking_changes = 3;
 }
 ```
 
@@ -862,11 +865,6 @@ vault:
 | Kafka SASL | `secret/data/k1s0/system/kafka/sasl` |
 
 ---
-
-## 詳細設計ドキュメント
-
-- [system-api-registry-server-実装設計.md](system-api-registry-server-実装設計.md) -- 実装設計の詳細
-- [system-api-registry-server-デプロイ設計.md](system-api-registry-server-デプロイ設計.md) -- デプロイ設計の詳細
 
 ---
 
