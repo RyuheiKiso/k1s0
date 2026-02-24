@@ -9,46 +9,14 @@ use tracing::info;
 mod adapter;
 mod domain;
 mod error;
+mod infrastructure;
 mod usecase;
 
+use adapter::grpc::SessionGrpcService;
 use domain::entity::session::Session;
 use domain::repository::SessionRepository;
 use error::SessionError;
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct Config {
-    server: ServerConfig,
-    session: SessionConfig,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct ServerConfig {
-    #[serde(default = "default_host")]
-    host: String,
-    #[serde(default = "default_port")]
-    port: u16,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct SessionConfig {
-    #[serde(default = "default_ttl")]
-    default_ttl_seconds: i64,
-    #[serde(default = "default_max_ttl")]
-    max_ttl_seconds: i64,
-}
-
-fn default_host() -> String {
-    "0.0.0.0".to_string()
-}
-fn default_port() -> u16 {
-    8102
-}
-fn default_ttl() -> i64 {
-    3600
-}
-fn default_max_ttl() -> i64 {
-    86400
-}
+use infrastructure::config::Config;
 
 // --- InMemory Repository ---
 
@@ -110,8 +78,7 @@ async fn main() -> anyhow::Result<()> {
 
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let config_content = std::fs::read_to_string(&config_path)?;
-    let cfg: Config = serde_yaml::from_str(&config_content)?;
+    let cfg = Config::load(&config_path)?;
 
     info!(port = cfg.server.port, "starting session server");
 
@@ -130,6 +97,16 @@ async fn main() -> anyhow::Result<()> {
     let revoke_uc = Arc::new(usecase::RevokeSessionUseCase::new(repo.clone()));
     let list_uc = Arc::new(usecase::ListUserSessionsUseCase::new(repo.clone()));
     let revoke_all_uc = Arc::new(usecase::RevokeAllSessionsUseCase::new(repo));
+
+    let _grpc_svc = Arc::new(SessionGrpcService::new(
+        create_uc.clone(),
+        get_uc.clone(),
+        refresh_uc.clone(),
+        revoke_uc.clone(),
+        revoke_all_uc.clone(),
+        list_uc.clone(),
+        cfg.session.default_ttl_seconds,
+    ));
 
     let state = adapter::handler::session_handler::AppState {
         create_uc,
@@ -167,6 +144,9 @@ async fn main() -> anyhow::Result<()> {
             axum::routing::delete(adapter::handler::session_handler::revoke_all_sessions),
         )
         .with_state(state);
+
+    let grpc_addr = SocketAddr::from(([0, 0, 0, 0], 9090));
+    info!("gRPC server starting on {}", grpc_addr);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", addr);

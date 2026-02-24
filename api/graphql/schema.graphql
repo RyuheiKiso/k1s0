@@ -1,0 +1,66 @@
+type Query {
+  tenant(id: ID!): Tenant
+  tenants(page: Int, pageSize: Int): TenantConnection!
+  featureFlag(key: String!): FeatureFlag
+  featureFlags(environment: String): [FeatureFlag!]!
+  config(key: String!): ConfigEntry
+}
+
+type Mutation {
+  createTenant(input: CreateTenantInput!): Tenant!
+  updateTenant(id: ID!, input: UpdateTenantInput!): Tenant!
+  setFeatureFlag(key: String!, input: SetFeatureFlagInput!): FeatureFlag!
+}
+
+type Subscription {
+  configChanged(namespaces: [String!]): ConfigEntry!
+}
+
+type Tenant {
+  id: ID!
+  name: String!
+  status: TenantStatus!
+  createdAt: String!
+  updatedAt: String!
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+type FeatureFlag {
+  key: String!
+  name: String!
+  enabled: Boolean!
+  rolloutPercentage: Int!
+  targetEnvironments: [String!]!
+}
+
+type ConfigEntry {
+  key: String!
+  value: String!
+  updatedAt: String!
+}
+
+type TenantConnection {
+  nodes: [Tenant!]!
+  totalCount: Int!
+  hasNext: Boolean!
+}
+
+input CreateTenantInput {
+  name: String!
+}
+
+input UpdateTenantInput {
+  name: String
+  status: TenantStatus
+}
+
+input SetFeatureFlagInput {
+  enabled: Boolean!
+  rolloutPercentage: Int
+  targetEnvironments: [String!]
+}

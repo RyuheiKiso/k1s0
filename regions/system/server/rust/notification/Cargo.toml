@@ -34,6 +34,9 @@ k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"]
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "8", features = ["axum"] }
 
+[build-dependencies]
+tonic-build = "0.12"
+
 [dev-dependencies]
 mockall = "0.13"
 tokio-test = "0.4"

@@ -9,53 +9,17 @@ use uuid::Uuid;
 
 mod adapter;
 mod domain;
+mod infrastructure;
 mod usecase;
 
+use adapter::grpc::NotificationGrpcService;
 use domain::entity::notification_channel::NotificationChannel;
 use domain::entity::notification_log::NotificationLog;
 use domain::entity::notification_template::NotificationTemplate;
 use domain::repository::NotificationChannelRepository;
 use domain::repository::NotificationLogRepository;
 use domain::repository::NotificationTemplateRepository;
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct Config {
-    app: AppConfig,
-    server: ServerConfig,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct AppConfig {
-    name: String,
-    #[serde(default = "default_version")]
-    version: String,
-    #[serde(default = "default_environment")]
-    environment: String,
-}
-
-fn default_version() -> String {
-    "0.1.0".to_string()
-}
-
-fn default_environment() -> String {
-    "dev".to_string()
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct ServerConfig {
-    #[serde(default = "default_host")]
-    host: String,
-    #[serde(default = "default_port")]
-    port: u16,
-}
-
-fn default_host() -> String {
-    "0.0.0.0".to_string()
-}
-
-fn default_port() -> u16 {
-    8092
-}
+use infrastructure::config::Config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -72,8 +36,7 @@ async fn main() -> anyhow::Result<()> {
 
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let config_content = std::fs::read_to_string(&config_path)?;
-    let cfg: Config = serde_yaml::from_str(&config_content)?;
+    let cfg = Config::load(&config_path)?;
 
     info!(
         app_name = %cfg.app.name,
@@ -92,7 +55,15 @@ async fn main() -> anyhow::Result<()> {
     let _create_channel_uc = Arc::new(usecase::CreateChannelUseCase::new(channel_repo.clone()));
     let _update_channel_uc = Arc::new(usecase::UpdateChannelUseCase::new(channel_repo.clone()));
     let _send_notification_uc =
-        Arc::new(usecase::SendNotificationUseCase::new(channel_repo, log_repo));
+        Arc::new(usecase::SendNotificationUseCase::new(channel_repo, log_repo.clone()));
+
+    let _grpc_svc = Arc::new(NotificationGrpcService::new(
+        _send_notification_uc,
+        log_repo,
+    ));
+
+    let grpc_addr: std::net::SocketAddr = "0.0.0.0:9090".parse()?;
+    info!("gRPC server starting on {}", grpc_addr);
 
     let app = axum::Router::new()
         .route("/healthz", axum::routing::get(adapter::handler::health::healthz))

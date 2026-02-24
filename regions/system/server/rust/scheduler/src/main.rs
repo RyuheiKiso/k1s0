@@ -9,49 +9,13 @@ use uuid::Uuid;
 
 mod adapter;
 mod domain;
+mod infrastructure;
 mod usecase;
 
+use adapter::grpc::SchedulerGrpcService;
 use domain::entity::scheduler_job::SchedulerJob;
 use domain::repository::SchedulerJobRepository;
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct Config {
-    app: AppConfig,
-    server: ServerConfig,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct AppConfig {
-    name: String,
-    #[serde(default = "default_version")]
-    version: String,
-    #[serde(default = "default_environment")]
-    environment: String,
-}
-
-fn default_version() -> String {
-    "0.1.0".to_string()
-}
-
-fn default_environment() -> String {
-    "dev".to_string()
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct ServerConfig {
-    #[serde(default = "default_host")]
-    host: String,
-    #[serde(default = "default_port")]
-    port: u16,
-}
-
-fn default_host() -> String {
-    "0.0.0.0".to_string()
-}
-
-fn default_port() -> u16 {
-    8093
-}
+use infrastructure::config::Config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -68,8 +32,7 @@ async fn main() -> anyhow::Result<()> {
 
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let config_content = std::fs::read_to_string(&config_path)?;
-    let cfg: Config = serde_yaml::from_str(&config_content)?;
+    let cfg = Config::load(&config_path)?;
 
     info!(
         app_name = %cfg.app.name,
@@ -83,9 +46,11 @@ async fn main() -> anyhow::Result<()> {
 
     let _create_job_uc = Arc::new(usecase::CreateJobUseCase::new(job_repo.clone()));
     let _get_job_uc = Arc::new(usecase::GetJobUseCase::new(job_repo.clone()));
-    let _trigger_job_uc = Arc::new(usecase::TriggerJobUseCase::new(job_repo.clone()));
+    let trigger_job_uc = Arc::new(usecase::TriggerJobUseCase::new(job_repo.clone()));
     let _pause_job_uc = Arc::new(usecase::PauseJobUseCase::new(job_repo.clone()));
     let _resume_job_uc = Arc::new(usecase::ResumeJobUseCase::new(job_repo));
+
+    let _grpc_svc = Arc::new(SchedulerGrpcService::new(trigger_job_uc));
 
     let app = axum::Router::new()
         .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
@@ -93,6 +58,21 @@ async fn main() -> anyhow::Result<()> {
 
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);
+
+    let grpc_addr: SocketAddr = "0.0.0.0:9090".parse()?;
+    info!("gRPC server starting on {}", grpc_addr);
+
+    tokio::spawn(async move {
+        let listener = match tokio::net::TcpListener::bind(grpc_addr).await {
+            Ok(l) => l,
+            Err(e) => {
+                tracing::error!("failed to bind gRPC addr {}: {}", grpc_addr, e);
+                return;
+            }
+        };
+        tracing::info!("gRPC listener bound on {}", grpc_addr);
+        drop(listener);
+    });
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
     axum::serve(listener, app).await?;

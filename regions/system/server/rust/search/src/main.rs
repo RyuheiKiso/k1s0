@@ -9,49 +9,13 @@ use uuid::Uuid;
 
 mod adapter;
 mod domain;
+mod infrastructure;
 mod usecase;
 
+use adapter::grpc::SearchGrpcService;
 use domain::entity::search_index::{SearchDocument, SearchIndex, SearchQuery, SearchResult};
 use domain::repository::SearchRepository;
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct Config {
-    app: AppConfig,
-    server: ServerConfig,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct AppConfig {
-    name: String,
-    #[serde(default = "default_version")]
-    version: String,
-    #[serde(default = "default_environment")]
-    environment: String,
-}
-
-fn default_version() -> String {
-    "0.1.0".to_string()
-}
-
-fn default_environment() -> String {
-    "dev".to_string()
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct ServerConfig {
-    #[serde(default = "default_host")]
-    host: String,
-    #[serde(default = "default_port")]
-    port: u16,
-}
-
-fn default_host() -> String {
-    "0.0.0.0".to_string()
-}
-
-fn default_port() -> u16 {
-    8094
-}
+use infrastructure::config::Config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -68,8 +32,7 @@ async fn main() -> anyhow::Result<()> {
 
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let config_content = std::fs::read_to_string(&config_path)?;
-    let cfg: Config = serde_yaml::from_str(&config_content)?;
+    let cfg = Config::load(&config_path)?;
 
     info!(
         app_name = %cfg.app.name,
@@ -81,13 +44,22 @@ async fn main() -> anyhow::Result<()> {
     let search_repo: Arc<dyn SearchRepository> = Arc::new(InMemorySearchRepository::new());
 
     let _create_index_uc = Arc::new(usecase::CreateIndexUseCase::new(search_repo.clone()));
-    let _index_document_uc = Arc::new(usecase::IndexDocumentUseCase::new(search_repo.clone()));
-    let _search_uc = Arc::new(usecase::SearchUseCase::new(search_repo.clone()));
-    let _delete_document_uc = Arc::new(usecase::DeleteDocumentUseCase::new(search_repo));
+    let index_document_uc = Arc::new(usecase::IndexDocumentUseCase::new(search_repo.clone()));
+    let search_uc = Arc::new(usecase::SearchUseCase::new(search_repo.clone()));
+    let delete_document_uc = Arc::new(usecase::DeleteDocumentUseCase::new(search_repo));
+
+    let _grpc_svc = Arc::new(SearchGrpcService::new(
+        index_document_uc,
+        search_uc,
+        delete_document_uc,
+    ));
 
     let app = axum::Router::new()
         .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
         .route("/readyz", axum::routing::get(adapter::handler::health::readyz));
+
+    let grpc_addr = SocketAddr::from(([0, 0, 0, 0], 9090));
+    info!("gRPC server starting on {}", grpc_addr);
 
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);

@@ -12,17 +12,31 @@ name = "k1s0-graphql-gateway-server"
 path = "src/main.rs"
 
 [dependencies]
-tonic = "0.12"
-prost = "0.13"
-prost-types = "0.13"
-axum = { version = "0.7", features = ["macros"] }
+# Web フレームワーク
+axum = { version = "0.7", features = ["macros", "ws"] }
 tokio = { version = "1", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
+
+# gRPC
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+
+# GraphQL
+async-graphql = { version = "7", features = ["dataloader"] }
+async-graphql-axum = "7"
+
+# JWT 検証
+jsonwebtoken = "9"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+
+# シリアライゼーション
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+
+# ユーティリティ
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1"
@@ -30,11 +44,9 @@ thiserror = "2"
 async-trait = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+
+# 内部ライブラリ
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
-utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
-utoipa-swagger-ui = { version = "8", features = ["axum"] }
-async-graphql = { version = "7", features = ["dataloader"] }
-async-graphql-axum = "7"
 
 [build-dependencies]
 tonic-build = "0.12"

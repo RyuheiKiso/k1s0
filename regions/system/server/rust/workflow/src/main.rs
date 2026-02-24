@@ -8,53 +8,17 @@ use tracing::info;
 
 mod adapter;
 mod domain;
+mod infrastructure;
 mod usecase;
 
+use adapter::grpc::WorkflowGrpcService;
 use domain::entity::workflow_definition::WorkflowDefinition;
 use domain::entity::workflow_instance::WorkflowInstance;
 use domain::entity::workflow_task::WorkflowTask;
 use domain::repository::WorkflowDefinitionRepository;
 use domain::repository::WorkflowInstanceRepository;
 use domain::repository::WorkflowTaskRepository;
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct Config {
-    app: AppConfig,
-    server: ServerConfig,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct AppConfig {
-    name: String,
-    #[serde(default = "default_version")]
-    version: String,
-    #[serde(default = "default_environment")]
-    environment: String,
-}
-
-fn default_version() -> String {
-    "0.1.0".to_string()
-}
-
-fn default_environment() -> String {
-    "dev".to_string()
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct ServerConfig {
-    #[serde(default = "default_host")]
-    host: String,
-    #[serde(default = "default_port")]
-    port: u16,
-}
-
-fn default_host() -> String {
-    "0.0.0.0".to_string()
-}
-
-fn default_port() -> u16 {
-    8100
-}
+use infrastructure::config::Config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -71,8 +35,7 @@ async fn main() -> anyhow::Result<()> {
 
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
-    let config_content = std::fs::read_to_string(&config_path)?;
-    let cfg: Config = serde_yaml::from_str(&config_content)?;
+    let cfg = Config::load(&config_path)?;
 
     info!(
         app_name = %cfg.app.name,
@@ -93,27 +56,34 @@ async fn main() -> anyhow::Result<()> {
     let _delete_wf_uc = Arc::new(usecase::DeleteWorkflowUseCase::new(def_repo.clone()));
     let _get_wf_uc = Arc::new(usecase::GetWorkflowUseCase::new(def_repo.clone()));
     let _list_wf_uc = Arc::new(usecase::ListWorkflowsUseCase::new(def_repo.clone()));
-    let _start_inst_uc = Arc::new(usecase::StartInstanceUseCase::new(
+    let start_inst_uc = Arc::new(usecase::StartInstanceUseCase::new(
         def_repo.clone(),
         inst_repo.clone(),
         task_repo.clone(),
     ));
-    let _get_inst_uc = Arc::new(usecase::GetInstanceUseCase::new(inst_repo.clone()));
+    let get_inst_uc = Arc::new(usecase::GetInstanceUseCase::new(inst_repo.clone()));
     let _list_inst_uc = Arc::new(usecase::ListInstancesUseCase::new(inst_repo.clone()));
     let _cancel_inst_uc = Arc::new(usecase::CancelInstanceUseCase::new(inst_repo.clone()));
     let _list_tasks_uc = Arc::new(usecase::ListTasksUseCase::new(task_repo.clone()));
-    let _approve_task_uc = Arc::new(usecase::ApproveTaskUseCase::new(
+    let approve_task_uc = Arc::new(usecase::ApproveTaskUseCase::new(
         task_repo.clone(),
         inst_repo.clone(),
         def_repo.clone(),
     ));
-    let _reject_task_uc = Arc::new(usecase::RejectTaskUseCase::new(
+    let reject_task_uc = Arc::new(usecase::RejectTaskUseCase::new(
         task_repo.clone(),
         inst_repo.clone(),
         def_repo.clone(),
     ));
     let _reassign_task_uc = Arc::new(usecase::ReassignTaskUseCase::new(task_repo.clone()));
     let _check_overdue_uc = Arc::new(usecase::CheckOverdueTasksUseCase::new(task_repo));
+
+    let _grpc_svc = Arc::new(WorkflowGrpcService::new(
+        start_inst_uc,
+        get_inst_uc,
+        approve_task_uc,
+        reject_task_uc,
+    ));
 
     let app = axum::Router::new()
         .route(
@@ -127,6 +97,21 @@ async fn main() -> anyhow::Result<()> {
 
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);
+
+    let grpc_addr: SocketAddr = "0.0.0.0:9090".parse()?;
+    info!("gRPC server starting on {}", grpc_addr);
+
+    tokio::spawn(async move {
+        let listener = match tokio::net::TcpListener::bind(grpc_addr).await {
+            Ok(l) => l,
+            Err(e) => {
+                tracing::error!("failed to bind gRPC addr {}: {}", grpc_addr, e);
+                return;
+            }
+        };
+        tracing::info!("gRPC listener bound on {}", grpc_addr);
+        drop(listener);
+    });
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
     axum::serve(listener, app).await?;
