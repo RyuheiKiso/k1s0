@@ -11,7 +11,7 @@ use axum::{
     Extension, Json, Router,
 };
 
-use crate::adapter::middleware::auth_middleware::{auth_layer, Claims};
+use crate::adapter::middleware::auth_middleware::{AuthMiddlewareLayer, Claims};
 use crate::domain::model::{ConfigEntry, FeatureFlag, Tenant, TenantConnection, TenantStatus};
 use crate::infra::auth::JwksVerifier;
 use crate::infra::config::GraphQLConfig;
@@ -221,7 +221,7 @@ pub fn router(
 
     let schema = builder.finish();
 
-    let graphql_post = post(graphql_handler).layer(auth_layer(jwks_verifier));
+    let graphql_post = post(graphql_handler).layer(AuthMiddlewareLayer::new(jwks_verifier));
 
     let mut router = Router::new()
         .route("/healthz", get(healthz))

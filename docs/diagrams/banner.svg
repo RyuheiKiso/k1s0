@@ -53,47 +53,127 @@
   <rect x="0" y="0" width="1200" height="3" fill="url(#shimmer)"/>
   <rect x="0" y="397" width="1200" height="3" fill="url(#shimmer)"/>
 
+  <!-- ==================== Background microservice topology (right area, very subtle) ==================== -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="0.07" dur="1.5s" begin="2.8s" fill="freeze"/>
+    <!-- Background network edges -->
+    <line x1="790" y1="68" x2="890" y2="44" stroke="#3b82f6" stroke-width="1"/>
+    <line x1="890" y1="44" x2="985" y2="80" stroke="#60a5fa" stroke-width="1"/>
+    <line x1="985" y1="80" x2="1075" y2="52" stroke="#3b82f6" stroke-width="1"/>
+    <line x1="1075" y1="52" x2="1148" y2="118" stroke="#8b5cf6" stroke-width="1"/>
+    <line x1="1148" y1="118" x2="1130" y2="228" stroke="#8b5cf6" stroke-width="1"/>
+    <line x1="1130" y1="228" x2="1078" y2="322" stroke="#ec4899" stroke-width="1"/>
+    <line x1="1078" y1="322" x2="968" y2="348" stroke="#ec4899" stroke-width="1"/>
+    <line x1="968" y1="348" x2="848" y2="302" stroke="#a78bfa" stroke-width="1"/>
+    <line x1="848" y1="302" x2="790" y2="192" stroke="#3b82f6" stroke-width="1"/>
+    <line x1="790" y1="192" x2="790" y2="68" stroke="#3b82f6" stroke-width="1"/>
+    <!-- cross connections -->
+    <line x1="908" y1="178" x2="790" y2="192" stroke="#60a5fa" stroke-width="1"/>
+    <line x1="908" y1="178" x2="985" y2="80" stroke="#60a5fa" stroke-width="1"/>
+    <line x1="908" y1="178" x2="1012" y2="202" stroke="#8b5cf6" stroke-width="1"/>
+    <line x1="908" y1="178" x2="848" y2="302" stroke="#a78bfa" stroke-width="1"/>
+    <line x1="1012" y1="202" x2="1148" y2="118" stroke="#8b5cf6" stroke-width="1"/>
+    <line x1="1012" y1="202" x2="1078" y2="322" stroke="#ec4899" stroke-width="1"/>
+    <line x1="890" y1="44" x2="908" y2="178" stroke="#60a5fa" stroke-width="0.8" stroke-dasharray="3,4"/>
+    <line x1="1075" y1="52" x2="1012" y2="202" stroke="#8b5cf6" stroke-width="0.8" stroke-dasharray="3,4"/>
+    <line x1="968" y1="348" x2="1012" y2="202" stroke="#a78bfa" stroke-width="0.8" stroke-dasharray="3,4"/>
+    <!-- Background node circles -->
+    <circle cx="790" cy="68" r="5" fill="#3b82f6"/>
+    <circle cx="890" cy="44" r="5" fill="#3b82f6"/>
+    <circle cx="985" cy="80" r="4" fill="#60a5fa"/>
+    <circle cx="1075" cy="52" r="5" fill="#3b82f6"/>
+    <circle cx="1148" cy="118" r="4" fill="#8b5cf6"/>
+    <circle cx="1130" cy="228" r="5" fill="#8b5cf6"/>
+    <circle cx="1078" cy="322" r="4" fill="#ec4899"/>
+    <circle cx="968" cy="348" r="5" fill="#ec4899"/>
+    <circle cx="848" cy="302" r="4" fill="#a78bfa"/>
+    <circle cx="790" cy="192" r="5" fill="#3b82f6"/>
+    <circle cx="908" cy="178" r="7" fill="#22c55e"/>
+    <circle cx="1012" cy="202" r="5" fill="#8b5cf6"/>
+  </g>
+
+  <!-- Background network slow particles -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="0.18" dur="1s" begin="3.5s" fill="freeze"/>
+    <circle r="2" fill="#60a5fa" filter="url(#glow)">
+      <animateMotion dur="6s" repeatCount="indefinite" path="M890,44 L908,178 L848,302"/>
+      <animate attributeName="opacity" values="0.6;0.1;0.6" dur="6s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="1.5" fill="#8b5cf6" filter="url(#glow)">
+      <animateMotion dur="7s" repeatCount="indefinite" path="M1075,52 L1012,202 L968,348"/>
+      <animate attributeName="opacity" values="0.5;0.1;0.5" dur="7s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="1.5" fill="#ec4899" filter="url(#glow)">
+      <animateMotion dur="5s" repeatCount="indefinite" path="M1130,228 L1012,202 L790,192"/>
+      <animate attributeName="opacity" values="0.5;0.1;0.5" dur="5s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
   <!-- ==================== Service Mesh Network (left side) ==================== -->
 
   <!-- Connection lines between nodes (drawn first, behind nodes) -->
   <g opacity="0">
-    <animate attributeName="opacity" from="0" to="0.25" dur="0.8s" begin="1.0s" fill="freeze"/>
+    <animate attributeName="opacity" from="0" to="0.3" dur="0.8s" begin="1.0s" fill="freeze"/>
+
+    <!-- session ↔ auth -->
+    <line x1="75" y1="60" x2="120" y2="95" stroke="#3b82f6" stroke-width="1"/>
+    <!-- session ↔ config -->
+    <line x1="75" y1="60" x2="205" y2="75" stroke="#3b82f6" stroke-width="1" stroke-dasharray="4,3"/>
 
     <!-- system internal -->
     <line x1="120" y1="95" x2="205" y2="75" stroke="#3b82f6" stroke-width="1"/>
     <line x1="120" y1="95" x2="175" y2="160" stroke="#3b82f6" stroke-width="1"/>
     <line x1="205" y1="75" x2="175" y2="160" stroke="#3b82f6" stroke-width="1"/>
 
+    <!-- api-registry internal -->
+    <line x1="205" y1="75" x2="250" y2="135" stroke="#3b82f6" stroke-width="1"/>
+    <line x1="175" y1="160" x2="250" y2="135" stroke="#3b82f6" stroke-width="1"/>
+
     <!-- system to gateway -->
     <line x1="175" y1="160" x2="290" y2="195" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4,3"/>
     <line x1="120" y1="95" x2="290" y2="195" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="250" y1="135" x2="290" y2="195" stroke="#60a5fa" stroke-width="1.2" stroke-dasharray="4,3"/>
 
     <!-- gateway to business -->
     <line x1="290" y1="195" x2="165" y2="265" stroke="#8b5cf6" stroke-width="1" stroke-dasharray="4,3"/>
     <line x1="290" y1="195" x2="95" y2="230" stroke="#8b5cf6" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="290" y1="195" x2="240" y2="240" stroke="#8b5cf6" stroke-width="1" stroke-dasharray="4,3"/>
 
     <!-- business internal -->
     <line x1="95" y1="230" x2="165" y2="265" stroke="#8b5cf6" stroke-width="1"/>
+    <line x1="165" y1="265" x2="240" y2="240" stroke="#8b5cf6" stroke-width="1"/>
+    <line x1="95" y1="230" x2="240" y2="240" stroke="#8b5cf6" stroke-width="0.8" stroke-dasharray="3,4"/>
 
     <!-- business to service -->
     <line x1="95" y1="230" x2="65" y2="330" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4,3"/>
     <line x1="165" y1="265" x2="155" y2="340" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4,3"/>
     <line x1="165" y1="265" x2="250" y2="330" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="240" y1="240" x2="320" y2="330" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4,3"/>
 
     <!-- service internal -->
     <line x1="65" y1="330" x2="155" y2="340" stroke="#ec4899" stroke-width="1"/>
     <line x1="155" y1="340" x2="250" y2="330" stroke="#ec4899" stroke-width="1"/>
+    <line x1="250" y1="330" x2="320" y2="330" stroke="#ec4899" stroke-width="1"/>
+    <line x1="155" y1="340" x2="320" y2="330" stroke="#ec4899" stroke-width="0.8" stroke-dasharray="3,4"/>
 
     <!-- kafka bus (horizontal bar at bottom) -->
-    <line x1="40" y1="370" x2="280" y2="370" stroke="#a855f7" stroke-width="1.5" opacity="0.4" stroke-dasharray="2,4"/>
-    <line x1="65" y1="330" x2="65" y2="370" stroke="#a855f7" stroke-width="0.8" opacity="0.3"/>
-    <line x1="155" y1="340" x2="155" y2="370" stroke="#a855f7" stroke-width="0.8" opacity="0.3"/>
-    <line x1="250" y1="330" x2="250" y2="370" stroke="#a855f7" stroke-width="0.8" opacity="0.3"/>
+    <line x1="40" y1="375" x2="360" y2="375" stroke="#a855f7" stroke-width="1.5" opacity="0.5" stroke-dasharray="2,4"/>
+    <line x1="65" y1="330" x2="65" y2="375" stroke="#a855f7" stroke-width="0.8" opacity="0.4"/>
+    <line x1="155" y1="340" x2="155" y2="375" stroke="#a855f7" stroke-width="0.8" opacity="0.4"/>
+    <line x1="250" y1="330" x2="250" y2="375" stroke="#a855f7" stroke-width="0.8" opacity="0.4"/>
+    <line x1="320" y1="330" x2="320" y2="375" stroke="#a855f7" stroke-width="0.8" opacity="0.4"/>
+    <line x1="290" y1="195" x2="290" y2="375" stroke="#a855f7" stroke-width="0.6" opacity="0.2" stroke-dasharray="2,6"/>
   </g>
 
   <!-- ==================== Data flow particles on connections ==================== -->
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="2.0s" fill="freeze"/>
+
+    <!-- session -> auth flow -->
+    <circle r="1.5" fill="#60a5fa" filter="url(#glow)">
+      <animateMotion dur="2s" repeatCount="indefinite" path="M75,60 L120,95"/>
+      <animate attributeName="opacity" values="0.7;0.2;0.7" dur="2s" repeatCount="indefinite"/>
+    </circle>
 
     <!-- system -> gateway flow -->
     <circle r="2" fill="#60a5fa" filter="url(#glow)">
@@ -103,6 +183,10 @@
     <circle r="2" fill="#60a5fa" filter="url(#glow)">
       <animateMotion dur="3s" repeatCount="indefinite" path="M120,95 L290,195"/>
       <animate attributeName="opacity" values="0.6;0.2;0.6" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="1.5" fill="#60a5fa" filter="url(#glow)">
+      <animateMotion dur="2.2s" repeatCount="indefinite" path="M250,135 L290,195"/>
+      <animate attributeName="opacity" values="0.7;0.1;0.7" dur="2.2s" repeatCount="indefinite"/>
     </circle>
 
     <!-- gateway -> business flow -->
@@ -114,6 +198,10 @@
       <animateMotion dur="2.8s" repeatCount="indefinite" path="M290,195 L95,230"/>
       <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2.8s" repeatCount="indefinite"/>
     </circle>
+    <circle r="1.5" fill="#a78bfa" filter="url(#glow)">
+      <animateMotion dur="2.4s" repeatCount="indefinite" path="M290,195 L240,240"/>
+      <animate attributeName="opacity" values="0.7;0.1;0.7" dur="2.4s" repeatCount="indefinite"/>
+    </circle>
 
     <!-- business -> service flow -->
     <circle r="2" fill="#f472b6" filter="url(#glow)">
@@ -124,21 +212,42 @@
       <animateMotion dur="2.6s" repeatCount="indefinite" path="M95,230 L65,330"/>
       <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2.6s" repeatCount="indefinite"/>
     </circle>
+    <circle r="1.5" fill="#f472b6" filter="url(#glow)">
+      <animateMotion dur="2s" repeatCount="indefinite" path="M240,240 L320,330"/>
+      <animate attributeName="opacity" values="0.7;0.1;0.7" dur="2s" repeatCount="indefinite"/>
+    </circle>
 
     <!-- Kafka message bus particles (horizontal) -->
     <circle r="1.5" fill="#c084fc" filter="url(#glow)">
-      <animateMotion dur="3s" repeatCount="indefinite" path="M40,370 L280,370"/>
+      <animateMotion dur="3s" repeatCount="indefinite" path="M40,375 L360,375"/>
       <animate attributeName="opacity" values="0;0.7;0.7;0" dur="3s" repeatCount="indefinite"/>
     </circle>
     <circle r="1.5" fill="#c084fc" filter="url(#glow)">
-      <animateMotion dur="3.5s" repeatCount="indefinite" path="M280,370 L40,370"/>
+      <animateMotion dur="3.5s" repeatCount="indefinite" path="M360,375 L40,375"/>
       <animate attributeName="opacity" values="0;0.5;0.5;0" dur="3.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="1" fill="#d946ef" filter="url(#glow)">
+      <animateMotion dur="4s" repeatCount="indefinite" begin="1s" path="M40,375 L360,375"/>
+      <animate attributeName="opacity" values="0;0.5;0.5;0" dur="4s" repeatCount="indefinite"/>
     </circle>
   </g>
 
   <!-- ==================== Service Nodes ==================== -->
 
   <!-- === SYSTEM TIER NODES (blue) === -->
+
+  <!-- Session node (new) -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0.7s" fill="freeze"/>
+    <g transform="translate(55,40)">
+      <use href="#hex" fill="#3b82f6" fill-opacity="0.1" stroke="#3b82f6" stroke-width="1.2" stroke-opacity="0.6"/>
+      <circle cx="20" cy="20" r="3" fill="#3b82f6" filter="url(#glow)">
+        <animate attributeName="r" values="2.5;4;2.5" dur="4s" repeatCount="indefinite"/>
+      </circle>
+      <text x="20" y="52" font-family="'Segoe UI',Arial,sans-serif" font-size="8" fill="#60a5fa" text-anchor="middle" font-weight="600">Session</text>
+    </g>
+  </g>
+
   <!-- Auth node -->
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0.8s" fill="freeze"/>
@@ -172,6 +281,18 @@
         <animate attributeName="r" values="2.5;4;2.5" dur="2.8s" repeatCount="indefinite"/>
       </circle>
       <text x="20" y="52" font-family="'Segoe UI',Arial,sans-serif" font-size="8" fill="#60a5fa" text-anchor="middle" font-weight="600">OTel</text>
+    </g>
+  </g>
+
+  <!-- API Registry node (new) -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.05s" fill="freeze"/>
+    <g transform="translate(230,115)">
+      <use href="#hex" fill="#3b82f6" fill-opacity="0.1" stroke="#3b82f6" stroke-width="1.2" stroke-opacity="0.6"/>
+      <circle cx="20" cy="20" r="3" fill="#3b82f6" filter="url(#glow)">
+        <animate attributeName="r" values="2.5;4;2.5" dur="3.3s" repeatCount="indefinite"/>
+      </circle>
+      <text x="20" y="52" font-family="'Segoe UI',Arial,sans-serif" font-size="8" fill="#60a5fa" text-anchor="middle" font-weight="600">API Reg</text>
     </g>
   </g>
 
@@ -217,6 +338,18 @@
     </g>
   </g>
 
+  <!-- Workflow node (new) -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.45s" fill="freeze"/>
+    <g transform="translate(220,220)">
+      <use href="#hex" fill="#8b5cf6" fill-opacity="0.1" stroke="#8b5cf6" stroke-width="1.2" stroke-opacity="0.6"/>
+      <circle cx="20" cy="20" r="3" fill="#8b5cf6" filter="url(#glow)">
+        <animate attributeName="r" values="2.5;4;2.5" dur="3.7s" repeatCount="indefinite"/>
+      </circle>
+      <text x="20" y="52" font-family="'Segoe UI',Arial,sans-serif" font-size="8" fill="#a78bfa" text-anchor="middle" font-weight="600">Workflow</text>
+    </g>
+  </g>
+
   <!-- === SERVICE TIER NODES (pink) === -->
   <!-- Order node -->
   <g opacity="0">
@@ -254,18 +387,30 @@
     </g>
   </g>
 
+  <!-- Notify node (new) -->
+  <g opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.9s" fill="freeze"/>
+    <g transform="translate(300,310)">
+      <use href="#hex" fill="#ec4899" fill-opacity="0.1" stroke="#ec4899" stroke-width="1.2" stroke-opacity="0.6"/>
+      <circle cx="20" cy="20" r="3" fill="#ec4899" filter="url(#glow)">
+        <animate attributeName="r" values="2.5;4;2.5" dur="3.5s" repeatCount="indefinite"/>
+      </circle>
+      <text x="20" y="52" font-family="'Segoe UI',Arial,sans-serif" font-size="8" fill="#f472b6" text-anchor="middle" font-weight="600">Notify</text>
+    </g>
+  </g>
+
   <!-- Kafka label -->
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="0.6" dur="0.5s" begin="2.0s" fill="freeze"/>
-    <text x="310" y="374" font-family="'Segoe UI',Arial,sans-serif" font-size="8" fill="#c084fc" font-weight="600">Kafka Event Bus</text>
+    <text x="370" y="379" font-family="'Segoe UI',Arial,sans-serif" font-size="8" fill="#c084fc" font-weight="600">Kafka Event Bus</text>
   </g>
 
   <!-- ==================== Tier labels (vertical, left edge) ==================== -->
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="2.2s" fill="freeze"/>
     <!-- system label -->
-    <rect x="12" y="72" width="8" height="110" rx="4" fill="#3b82f6" opacity="0.3"/>
-    <text x="16" y="135" font-family="'Segoe UI',Arial,sans-serif" font-size="9" fill="#60a5fa" font-weight="600" writing-mode="tb" text-anchor="middle" letter-spacing="2">SYSTEM</text>
+    <rect x="12" y="42" width="8" height="148" rx="4" fill="#3b82f6" opacity="0.3"/>
+    <text x="16" y="125" font-family="'Segoe UI',Arial,sans-serif" font-size="9" fill="#60a5fa" font-weight="600" writing-mode="tb" text-anchor="middle" letter-spacing="2">SYSTEM</text>
 
     <!-- business label -->
     <rect x="12" y="206" width="8" height="80" rx="4" fill="#8b5cf6" opacity="0.3"/>
@@ -277,7 +422,7 @@
   </g>
 
   <!-- ==================== Divider line (mesh | branding) ==================== -->
-  <line x1="400" y1="40" x2="400" y2="360" stroke="#1e3a5f" stroke-width="1" opacity="0.4"/>
+  <line x1="430" y1="40" x2="430" y2="360" stroke="#1e3a5f" stroke-width="1" opacity="0.4"/>
 
   <!-- ==================== Right side: Branding ==================== -->
 
@@ -310,29 +455,29 @@
   </circle>
 
   <!-- Main logo -->
-  <text x="470" y="165" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="110" font-weight="800" fill="white" letter-spacing="-3" opacity="0">
+  <text x="460" y="165" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="110" font-weight="800" fill="white" letter-spacing="-3" opacity="0">
     k1s0
     <animate attributeName="opacity" from="0" to="1" dur="0.8s" begin="0.2s" fill="freeze"/>
   </text>
 
   <!-- Accent underline -->
-  <rect x="470" y="180" width="280" height="4" rx="2" fill="url(#accent)" filter="url(#glow)"/>
-  <rect x="470" y="180" width="280" height="4" rx="2" fill="url(#underlineShimmer)" filter="url(#glow)" opacity="0.7"/>
+  <rect x="460" y="180" width="280" height="4" rx="2" fill="url(#accent)" filter="url(#glow)"/>
+  <rect x="460" y="180" width="280" height="4" rx="2" fill="url(#underlineShimmer)" filter="url(#glow)" opacity="0.7"/>
 
   <!-- Tagline -->
-  <text x="470" y="225" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="22" fill="#94a3b8" font-weight="400" letter-spacing="1" opacity="0">
+  <text x="460" y="225" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="22" fill="#94a3b8" font-weight="400" letter-spacing="1" opacity="0">
     CLIひとつで、構築から運用まで。
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="0.8s" fill="freeze"/>
   </text>
 
   <!-- Subtitle -->
-  <text x="470" y="260" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="16" fill="#64748b" font-weight="400" letter-spacing="2" opacity="0">
+  <text x="460" y="260" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="16" fill="#64748b" font-weight="400" letter-spacing="2" opacity="0">
     Enterprise Microservice Development Platform
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="1.0s" fill="freeze"/>
   </text>
 
   <!-- ==================== Tech badges (staggered fade in) ==================== -->
-  <g transform="translate(470, 290)">
+  <g transform="translate(460, 290)">
     <g opacity="0"><animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="2.4s" fill="freeze"/>
       <rect x="0" y="0" width="64" height="26" rx="13" fill="#f97316" opacity="0.15" stroke="#f97316" stroke-width="0.8" stroke-opacity="0.5"/>
       <text x="32" y="17" font-family="'Segoe UI',Arial,sans-serif" font-size="11" fill="#fb923c" font-weight="600" text-anchor="middle">Rust</text>
@@ -350,7 +495,7 @@
       <text x="242" y="17" font-family="'Segoe UI',Arial,sans-serif" font-size="11" fill="#60a5fa" font-weight="600" text-anchor="middle">Flutter</text>
     </g>
   </g>
-  <g transform="translate(470, 326)">
+  <g transform="translate(460, 326)">
     <g opacity="0"><animate attributeName="opacity" from="0" to="1" dur="0.4s" begin="2.8s" fill="freeze"/>
       <rect x="0" y="0" width="40" height="26" rx="13" fill="#3b82f6" opacity="0.15" stroke="#3b82f6" stroke-width="0.8" stroke-opacity="0.5"/>
       <text x="20" y="17" font-family="'Segoe UI',Arial,sans-serif" font-size="11" fill="#60a5fa" font-weight="600" text-anchor="middle">K8s</text>

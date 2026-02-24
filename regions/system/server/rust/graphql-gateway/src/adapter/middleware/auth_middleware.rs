@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use axum::{
+    body::Body,
     extract::Request,
     http::{HeaderMap, StatusCode},
-    middleware::Next,
     response::{IntoResponse, Response},
     Json,
 };
@@ -35,66 +35,101 @@ pub struct RealmAccess {
     pub roles: Vec<String>,
 }
 
-/// auth_layer は Authorization ヘッダーの Bearer JWT を検証する axum ミドルウェアレイヤーを返す。
-/// `verifier` を Arc でキャプチャし、`from_fn` ミドルウェアとして返す。
-pub fn auth_layer(
-    verifier: Arc<JwksVerifier>,
-) -> axum::middleware::FromFnLayer<
-    impl Fn(Request, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
-        + Clone,
-    (),
-    (),
-> {
-    axum::middleware::from_fn(move |req: Request, next: Next| {
-        let verifier = verifier.clone();
-        Box::pin(async move { verify_jwt(verifier, req, next).await })
-            as std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
-    })
-}
-
-async fn verify_jwt(verifier: Arc<JwksVerifier>, mut req: Request, next: Next) -> Response {
-    let token = extract_bearer_token(req.headers());
-
-    let token = match token {
-        Some(t) => t,
-        None => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({
-                    "error": {
-                        "code": "UNAUTHORIZED",
-                        "message": "missing Authorization header"
-                    }
-                })),
-            )
-                .into_response();
-        }
-    };
-
-    let claims = match verifier.verify_token(&token).await {
-        Ok(c) => c,
-        Err(_) => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({
-                    "error": {
-                        "code": "UNAUTHORIZED",
-                        "message": "invalid or expired JWT token"
-                    }
-                })),
-            )
-                .into_response();
-        }
-    };
-
-    req.extensions_mut().insert(claims);
-    next.run(req).await
-}
-
 fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
     headers
         .get("Authorization")
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "))
         .map(|t| t.to_owned())
+}
+
+/// AuthMiddlewareLayer は JwksVerifier を保持し、JWT 検証ミドルウェアを提供する Tower Layer。
+#[derive(Clone)]
+pub struct AuthMiddlewareLayer {
+    verifier: Arc<JwksVerifier>,
+}
+
+impl AuthMiddlewareLayer {
+    pub fn new(verifier: Arc<JwksVerifier>) -> Self {
+        Self { verifier }
+    }
+}
+
+impl<S> tower::Layer<S> for AuthMiddlewareLayer {
+    type Service = AuthMiddlewareService<S>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        AuthMiddlewareService {
+            inner,
+            verifier: self.verifier.clone(),
+        }
+    }
+}
+
+/// AuthMiddlewareService は JWT 検証を行う Tower Service。
+#[derive(Clone)]
+pub struct AuthMiddlewareService<S> {
+    inner: S,
+    verifier: Arc<JwksVerifier>,
+}
+
+impl<S> tower::Service<Request<Body>> for AuthMiddlewareService<S>
+where
+    S: tower::Service<Request<Body>, Response = Response> + Clone + Send + 'static,
+    S::Future: Send + 'static,
+{
+    type Response = Response;
+    type Error = S::Error;
+    type Future = std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, S::Error>> + Send>>;
+
+    fn poll_ready(
+        &mut self,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, mut req: Request<Body>) -> Self::Future {
+        let verifier = self.verifier.clone();
+        let mut inner = self.inner.clone();
+
+        Box::pin(async move {
+            let token = extract_bearer_token(req.headers());
+
+            let token = match token {
+                Some(t) => t,
+                None => {
+                    return Ok((
+                        StatusCode::UNAUTHORIZED,
+                        Json(serde_json::json!({
+                            "error": {
+                                "code": "UNAUTHORIZED",
+                                "message": "missing Authorization header"
+                            }
+                        })),
+                    )
+                        .into_response());
+                }
+            };
+
+            let claims = match verifier.verify_token(&token).await {
+                Ok(c) => c,
+                Err(_) => {
+                    return Ok((
+                        StatusCode::UNAUTHORIZED,
+                        Json(serde_json::json!({
+                            "error": {
+                                "code": "UNAUTHORIZED",
+                                "message": "invalid or expired JWT token"
+                            }
+                        })),
+                    )
+                        .into_response());
+                }
+            };
+
+            req.extensions_mut().insert(claims);
+            inner.call(req).await
+        })
+    }
 }
