@@ -53,6 +53,18 @@ config-db は system Tier に属する PostgreSQL 17 データベースであり
               │ config_entry_id (FK)        │
               │ created_at                  │
               └─────────────────────────────┘
+
+┌──────────────────────────┐
+│     config_schemas       │
+├──────────────────────────┤
+│ id (PK)                  │
+│ service_name (UNIQUE)    │
+│ namespace_prefix         │
+│ schema_json (JSONB)      │
+│ updated_by               │
+│ created_at               │
+│ updated_at               │
+└──────────────────────────┘
 ```
 
 ### リレーション
@@ -61,6 +73,7 @@ config-db は system Tier に属する PostgreSQL 17 データベースであり
 |------|-----------------|------|
 | config_entries - config_change_logs | 1:N | 設定エントリは複数の変更ログを持つ |
 | config_entries - service_config_mappings | 1:N | 設定エントリは複数のサービスにマッピングされる |
+| config_schemas（独立） | -- | サービス名をキーに設定エディタのスキーマ定義を管理（config_entries との直接 FK なし） |
 
 ---
 
@@ -113,6 +126,20 @@ config-db は system Tier に属する PostgreSQL 17 データベースであり
 | created_at | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | 作成日時 |
 | | | UNIQUE(service_name, config_entry_id) | 同一サービスに同一設定は1回のみ |
 
+### config_schemas テーブル
+
+サービスごとの設定エディタスキーマ定義を管理する。クライアント（Flutter / React）の ConfigInterpreter が `GET /api/v1/config-schema/:service` で取得するスキーマの永続化先。schema_json にはカテゴリ・フィールド定義が JSONB で格納される。
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | スキーマ識別子 |
+| service_name | VARCHAR(255) | UNIQUE NOT NULL | サービス名（例: auth-server） |
+| namespace_prefix | VARCHAR(255) | NOT NULL | 設定値の名前空間プレフィックス |
+| schema_json | JSONB | NOT NULL | スキーマ定義（categories, fields 等） |
+| updated_by | VARCHAR(255) | NOT NULL DEFAULT 'system' | 最終更新者 |
+| created_at | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | 作成日時 |
+| updated_at | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | 更新日時（トリガーで自動更新） |
+
 ---
 
 ## インデックス設計
@@ -130,6 +157,7 @@ config-db は system Tier に属する PostgreSQL 17 データベースであり
 | config_change_logs | idx_config_change_logs_trace_id | trace_id (WHERE NOT NULL) | B-tree (部分) | OpenTelemetry トレース ID による検索 |
 | service_config_mappings | idx_service_config_mappings_service_name | service_name | B-tree | サービス名による設定マッピング取得 |
 | service_config_mappings | idx_service_config_mappings_config_entry_id | config_entry_id | B-tree | 設定エントリに紐づくサービス取得 |
+| config_schemas | idx_config_schemas_service_name | service_name | B-tree | サービス名によるスキーマ取得（UNIQUE 制約とは別にパフォーマンス用） |
 
 ### 設計方針
 

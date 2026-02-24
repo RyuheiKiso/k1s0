@@ -114,80 +114,26 @@ routes:
 
 ---
 
-## Proto スキーマ（サーバー-クライアント プロトコル）
+## 実装方式
 
-`navigation.yaml` の内容をサーバーが proto で定義されたレスポンスとして返す。
-proto を IDL とすることで React / Flutter / Swift 向けの型定義が自動生成される。
+**REST API のみ**で実装する。gRPC は将来検討。
 
-配置パス: `api/proto/k1s0/system/navigation/v1/navigation.proto`
+`navigation.yaml` の内容をサーバーが JSON レスポンスとして返す。
+クライアントは `GET /api/v1/navigation` エンドポイントから NavigationResponse を取得し、
+各フレームワークのルーターに変換する。
 
-```proto
-syntax = "proto3";
+---
 
-package k1s0.system.navigation.v1;
+## 実装状況
 
-option go_package   = "github.com/k1s0/api/gen/go/k1s0/system/navigation/v1;navigationv1";
-option java_package = "io.k1s0.system.navigation.v1";
-
-// ナビゲーション全体の定義
-message NavigationResponse {
-  repeated Route routes = 1;
-  repeated Guard guards  = 2;
-}
-
-// ルート定義
-message Route {
-  string          id           = 1;
-  string          path         = 2;
-  string          component_id = 3;
-  repeated string guard_ids    = 4;
-  repeated Route  children     = 5;
-  TransitionConfig transition  = 6;
-  repeated Param  params       = 7;
-  string          redirect_to  = 8; // 設定時は component_id を無視
-}
-
-// ガード定義
-message Guard {
-  string          id          = 1;
-  GuardType       type        = 2;
-  string          redirect_to = 3;
-  repeated string roles       = 4;
-}
-
-// パスパラメーター定義
-message Param {
-  string    name = 1;
-  ParamType type = 2;
-}
-
-// 遷移アニメーション設定
-message TransitionConfig {
-  TransitionType type        = 1;
-  uint32         duration_ms = 2; // 省略時はフレームワークデフォルト
-}
-
-enum GuardType {
-  GUARD_TYPE_UNSPECIFIED               = 0;
-  GUARD_TYPE_AUTH_REQUIRED             = 1;
-  GUARD_TYPE_ROLE_REQUIRED             = 2;
-  GUARD_TYPE_REDIRECT_IF_AUTHENTICATED = 3;
-}
-
-enum TransitionType {
-  TRANSITION_TYPE_UNSPECIFIED = 0;
-  TRANSITION_TYPE_FADE        = 1;
-  TRANSITION_TYPE_SLIDE       = 2;
-  TRANSITION_TYPE_MODAL       = 3;
-}
-
-enum ParamType {
-  PARAM_TYPE_UNSPECIFIED = 0;
-  PARAM_TYPE_STRING      = 1;
-  PARAM_TYPE_INT         = 2;
-  PARAM_TYPE_UUID        = 3;
-}
-```
+| コンポーネント | 状態 |
+|---|---|
+| auth-server: GET /api/v1/navigation | 実装済み |
+| Flutter: NavigationInterpreter | 実装済み |
+| React: NavigationInterpreter | 実装済み |
+| navigation.yaml 仕様 | 定義済み |
+| CLI route-types/component-registry 生成 | 未実装 |
+| Swift SDK | 未実装 |
 
 ---
 
@@ -552,38 +498,29 @@ regions/system/
                 └── adapter/
                     └── handler/
                         └── navigation.rs
-
-api/
-└── proto/
-    └── k1s0/
-        └── system/
-            └── navigation/
-                └── v1/
-                    └── navigation.proto
 ```
 
 ---
 
 ## 実装ロードマップ
 
-| Phase | 内容 | 優先度 |
-| ----- | ---- | ------ |
-| 1 | proto スキーマ定義（`navigation.proto`） | 高 |
-| 2 | system server に `GET /api/v1/navigation` を追加 | 高 |
-| 3 | CLI `generate navigation` コマンド（route-types 生成） | 高 |
-| 4 | React `NavigationInterpreter` + Local-first モード | 高 |
-| 5 | Flutter `NavigationInterpreter` + Local-first モード | 高 |
-| 6 | CLI `validate navigation` コマンド | 中 |
-| 7 | JSON Schema 生成（IDE 補完用） | 中 |
-| 8 | Navigation DevTools（React / Flutter） | 中 |
-| 9 | Swift `NavigationInterpreter` | 低 |
-| 10 | ユーザーロール別ナビゲーションフィルタリング | 低 |
+| Phase | 内容 | 優先度 | 状態 |
+| ----- | ---- | ------ | ---- |
+| 1 | system server に `GET /api/v1/navigation` を追加 | 高 | 実装済み |
+| 2 | React `NavigationInterpreter` + Local-first モード | 高 | 実装済み |
+| 3 | Flutter `NavigationInterpreter` + Local-first モード | 高 | 実装済み |
+| 4 | CLI `generate navigation` コマンド（route-types 生成） | 高 | 未実装 |
+| 5 | CLI `validate navigation` コマンド | 中 | 未実装 |
+| 6 | JSON Schema 生成（IDE 補完用） | 中 | 未実装 |
+| 7 | Navigation DevTools（React / Flutter） | 中 | 未実装 |
+| 8 | Swift `NavigationInterpreter` | 低 | 未実装 |
+| 9 | ユーザーロール別ナビゲーションフィルタリング | 低 | 未実装 |
 
 ---
 
 ## 設計上の補足
 
-- **後方互換性** — proto の breaking change は `buf breaking` で CI 上で検出する。`component_id` を削除する場合は deprecated 扱いとし、1バージョン猶予を設ける
+- **後方互換性** — `navigation.yaml` のスキーマ変更は `version` フィールドで管理する。`component_id` を削除する場合は deprecated 扱いとし、1バージョン猶予を設ける
 - **キャッシュ戦略** — クライアントは `NavigationResponse` をローカルストレージにキャッシュし、サーバーが落ちていても最後の定義で動作する
 - **A/B テスト** — サーバーがユーザーセグメントに応じて異なる `NavigationResponse` を返すことで、クライアント変更なしに遷移を実験できる（Phase 10 以降）
 - **navigation.yaml の配置** — `regions/system/server/rust/auth-server/config/navigation.yaml` に配置し、`config.yaml` と同様に環境別オーバーライドを許容する

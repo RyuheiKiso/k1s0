@@ -70,3 +70,11 @@ class HealthChecker:
                 )
                 overall = HealthStatus.UNHEALTHY
         return HealthResponse(status=overall, checks=results)
+
+    async def readyz(self) -> HealthResponse:
+        """Run all registered checks (alias for run_all)."""
+        return await self.run_all()
+
+    def healthz(self) -> dict[str, str]:
+        """Return a simple liveness response."""
+        return {"status": "ok"}

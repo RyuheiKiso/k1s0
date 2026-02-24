@@ -4,7 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+default = []
+postgres = ["sqlx"]
+redis = ["deadpool-redis"]
+http = ["reqwest"]
+kafka = ["rdkafka"]
 mock = ["mockall"]
+full = ["postgres", "redis", "http", "kafka"]
 
 [dependencies]
 async-trait = "0.1"
@@ -12,6 +18,10 @@ thiserror = "2"
 tokio = { version = "1", features = ["sync", "time", "macros"] }
 serde = { version = "1", features = ["derive"] }
 mockall = { version = "0.13", optional = true }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"], optional = true }
+deadpool-redis = { version = "0.18", optional = true }
+reqwest = { version = "0.12", features = ["json"], optional = true }
+rdkafka = { version = "0.36", features = ["cmake-build"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }

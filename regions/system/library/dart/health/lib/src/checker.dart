@@ -52,4 +52,8 @@ class HealthChecker {
       timestamp: DateTime.now(),
     );
   }
+
+  Future<HealthResponse> readyz() => runAll();
+
+  Map<String, String> healthz() => {'status': 'ok'};
 }

@@ -69,3 +69,13 @@ func (c *Checker) RunAll(ctx context.Context) HealthResponse {
 		Timestamp: time.Now(),
 	}
 }
+
+// Readyz は全ヘルスチェックを実行する（RunAll のエイリアス）。
+func (c *Checker) Readyz(ctx context.Context) HealthResponse {
+	return c.RunAll(ctx)
+}
+
+// Healthz はサーバーが起動していることを示す簡易レスポンスを返す。
+func (c *Checker) Healthz() map[string]string {
+	return map[string]string{"status": "ok"}
+}

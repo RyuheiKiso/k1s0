@@ -601,6 +601,21 @@ pub fn router(state: AppState) -> Router {
             "/api/v1/config/:namespace",
             get(list_configs).layer(middleware::require_permission("read", "config")),
         )
+        // 設定スキーマ管理
+        .route(
+            "/api/v1/config-schema",
+            get(list_config_schemas)
+                .layer(middleware::require_permission("read", "config-schema"))
+                .post(create_config_schema)
+                .layer(middleware::require_permission("write", "config-schema")),
+        )
+        .route(
+            "/api/v1/config-schema/:name",
+            get(get_config_schema)
+                .layer(middleware::require_permission("read", "config-schema"))
+                .put(update_config_schema)
+                .layer(middleware::require_permission("write", "config-schema")),
+        )
         // サービス向け設定一括取得
         .route(
             "/api/v1/config/services/:service_name",
@@ -712,6 +727,39 @@ async fn delete_config(
         })?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+// config-schema ハンドラー（同様のパターンで実装）
+async fn list_config_schemas(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>, ErrorResponse> {
+    // ... list_config_schemas_uc.execute().await
+    todo!()
+}
+
+async fn create_config_schema(
+    State(state): State<AppState>,
+    Json(req): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, ErrorResponse> {
+    // ... create_config_schema_uc.execute(req).await
+    todo!()
+}
+
+async fn get_config_schema(
+    State(state): State<AppState>,
+    Path(name): Path<String>,
+) -> Result<Json<serde_json::Value>, ErrorResponse> {
+    // ... get_config_schema_uc.execute(&name).await
+    todo!()
+}
+
+async fn update_config_schema(
+    State(state): State<AppState>,
+    Path(name): Path<String>,
+    Json(req): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, ErrorResponse> {
+    // ... update_config_schema_uc.execute(&name, req).await
+    todo!()
 }
 
 // ... 他のハンドラーも同様のパターンで実装

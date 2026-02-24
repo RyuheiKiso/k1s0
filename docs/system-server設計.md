@@ -53,6 +53,7 @@ system tier の認証サーバーは以下の機能を提供する。
 | POST | `/api/v1/audit/logs` | 監査ログ記録 | `sys_operator` 以上 |
 | GET | `/api/v1/audit/logs` | 監査ログ検索 | `sys_auditor` 以上 |
 | POST | `/api/v1/auth/permissions/check` | パーミッション確認 | `sys_operator` 以上 |
+| GET | `/api/v1/navigation` | ナビゲーション設定取得 | Bearer token required |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |
