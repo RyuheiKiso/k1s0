@@ -89,7 +89,7 @@ impl ApiRegistryGrpcService {
             return Err(GrpcError::InvalidArgument("name is required".to_string()));
         }
         let output = self.get_schema_uc.execute(&request.name).await.map_err(|e| match e {
-            GetSchemaError::NotFound(n) => GrpcError::NotFound(format\!("schema not found: {}", n)),
+            GetSchemaError::NotFound(n) => GrpcError::NotFound(format!("schema not found: {}", n)),
             GetSchemaError::Internal(msg) => GrpcError::Internal(msg),
         })?;
         Ok(GetSchemaResponse {
@@ -110,7 +110,7 @@ impl ApiRegistryGrpcService {
         }
         let output = self.get_schema_version_uc.execute(&request.name, request.version).await
             .map_err(|e| match e {
-                GetSchemaVersionError::NotFound { name, version } => GrpcError::NotFound(format\!("{}@{} not found", name, version)),
+                GetSchemaVersionError::NotFound { name, version } => GrpcError::NotFound(format!("{}@{} not found", name, version)),
                 GetSchemaVersionError::Internal(msg) => GrpcError::Internal(msg),
             })?;
         Ok(GetSchemaVersionResponse {
@@ -141,8 +141,8 @@ impl ApiRegistryGrpcService {
         };
         let output = self.check_compatibility_uc.execute(&input).await
             .map_err(|e| match e {
-                CheckCompatibilityError::SchemaNotFound(n) => GrpcError::NotFound(format\!("schema not found: {}", n)),
-                CheckCompatibilityError::VersionNotFound { name, version } => GrpcError::NotFound(format\!("{}@{} not found", name, version)),
+                CheckCompatibilityError::SchemaNotFound(n) => GrpcError::NotFound(format!("schema not found: {}", n)),
+                CheckCompatibilityError::VersionNotFound { name, version } => GrpcError::NotFound(format!("{}@{} not found", name, version)),
                 CheckCompatibilityError::Internal(msg) => GrpcError::Internal(msg),
             })?;
         Ok(CheckCompatibilityResponse {

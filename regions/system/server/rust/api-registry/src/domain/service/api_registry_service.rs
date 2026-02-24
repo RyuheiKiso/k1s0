@@ -40,21 +40,21 @@ impl ApiRegistryDomainService {
             new_val.get("paths").and_then(|p| p.as_object()),
         ) {
             for (path, _) in old_paths {
-                if \!new_paths.contains_key(path.as_str()) {
+                if !new_paths.contains_key(path.as_str()) {
                     breaking_changes.push(BreakingChange::new(
                         "path_removed".to_string(), path.clone(),
-                        format\!("API path {} was removed", path),
+                        format!("API path {} was removed", path),
                     ));
                 } else {
                     let old_m = old_paths.get(path.as_str()).and_then(|p| p.as_object());
                     let new_m = new_paths.get(path.as_str()).and_then(|p| p.as_object());
                     if let (Some(om), Some(nm)) = (old_m, new_m) {
                         for method in ["get", "post", "put", "delete", "patch"] {
-                            if om.contains_key(method) && \!nm.contains_key(method) {
+                            if om.contains_key(method) && !nm.contains_key(method) {
                                 breaking_changes.push(BreakingChange::new(
                                     "method_removed".to_string(),
-                                    format\!("{} {}", method.to_uppercase(), path),
-                                    format\!("HTTP method {} was removed from {}", method.to_uppercase(), path),
+                                    format!("{} {}", method.to_uppercase(), path),
+                                    format!("HTTP method {} was removed from {}", method.to_uppercase(), path),
                                 ));
                             }
                         }
@@ -62,10 +62,10 @@ impl ApiRegistryDomainService {
                 }
             }
             for (path, _) in new_paths {
-                if \!old_paths.contains_key(path.as_str()) {
+                if !old_paths.contains_key(path.as_str()) {
                     non_breaking_changes.push(ChangeDetail {
                         change_type: "path_added".to_string(), path: path.clone(),
-                        description: format\!("New API path {} was added", path),
+                        description: format!("New API path {} was added", path),
                     });
                 }
             }
@@ -79,11 +79,11 @@ impl ApiRegistryDomainService {
         let old_fields = extract_proto_fields(old_content);
         let new_fields = extract_proto_fields(new_content);
         for (field_num, field_name) in &old_fields {
-            if \!new_fields.iter().any(|(n, _)| n == field_num) {
+            if !new_fields.iter().any(|(n, _)| n == field_num) {
                 breaking_changes.push(BreakingChange::new(
                     "field_removed".to_string(),
-                    format\!("field {}", field_name),
-                    format\!("Proto field {} (number {}) was removed", field_name, field_num),
+                    format!("field {}", field_name),
+                    format!("Proto field {} (number {}) was removed", field_name, field_num),
                 ));
             }
         }
@@ -101,8 +101,8 @@ impl ApiRegistryDomainService {
             new_val.get("paths").and_then(|p| p.as_object()),
         ) {
             for (path, _) in new_paths {
-                if \!old_paths.contains_key(path.as_str()) {
-                    added.push(DiffEntry { path: path.clone(), entry_type: "path".to_string(), description: format\!("New path {}", path) });
+                if !old_paths.contains_key(path.as_str()) {
+                    added.push(DiffEntry { path: path.clone(), entry_type: "path".to_string(), description: format!("New path {}", path) });
                 }
             }
             for (path, _) in old_paths {
@@ -110,7 +110,7 @@ impl ApiRegistryDomainService {
                     let os = old_paths.get(path.as_str()).and_then(|p| p.get("get")).and_then(|g| g.get("summary")).and_then(|s| s.as_str());
                     let ns = new_paths.get(path.as_str()).and_then(|p| p.get("get")).and_then(|g| g.get("summary")).and_then(|s| s.as_str());
                     if let (Some(o), Some(n)) = (os, ns) {
-                        if o \!= n { modified.push(DiffModifiedEntry { path: format\!("{} GET summary", path), before: o.to_string(), after: n.to_string() }); }
+                        if o != n { modified.push(DiffModifiedEntry { path: format!("{} GET summary", path), before: o.to_string(), after: n.to_string() }); }
                     }
                 }
             }
@@ -124,8 +124,8 @@ impl ApiRegistryDomainService {
         let mut added = Vec::new();
         let removed = Vec::new();
         for (field_num, field_name) in &new_fields {
-            if \!old_fields.iter().any(|(n, _)| n == field_num) {
-                added.push(DiffEntry { path: format\!("field {}", field_name), entry_type: "field".to_string(), description: format\!("New proto field {} (number {})", field_name, field_num) });
+            if !old_fields.iter().any(|(n, _)| n == field_num) {
+                added.push(DiffEntry { path: format!("field {}", field_name), entry_type: "field".to_string(), description: format!("New proto field {} (number {})", field_name, field_num) });
             }
         }
         SchemaDiff { added, modified: Vec::new(), removed }

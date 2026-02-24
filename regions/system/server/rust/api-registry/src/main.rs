@@ -13,6 +13,9 @@ use k1s0_api_registry_server::domain::entity::api_registration::{
 use k1s0_api_registry_server::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
 use k1s0_api_registry_server::infrastructure::config::Config;
 use k1s0_api_registry_server::usecase;
+use k1s0_api_registry_server::infrastructure::kafka::{NoopSchemaEventPublisher, KafkaSchemaEventPublisher};
+use k1s0_api_registry_server::adapter::grpc::{ApiRegistryGrpcService, ApiRegistryServiceTonic};
+
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

@@ -8,6 +8,10 @@ pub struct Config {
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
     pub auth: Option<AuthConfig>,
+    #[serde(default)]
+    pub kafka: Option<KafkaConfig>,
+    #[serde(default)]
+    pub validator: Option<ValidatorConfig>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -81,6 +85,39 @@ pub struct AuthConfig {
 
 fn default_jwks_cache_ttl() -> u64 {
     300
+}
+
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct KafkaConfig {
+    pub brokers: Vec<String>,
+    pub schema_updated_topic: String,
+}
+
+impl Default for KafkaConfig {
+    fn default() -> Self {
+        Self {
+            brokers: vec!["localhost:9092".to_string()],
+            schema_updated_topic: "k1s0.system.apiregistry.schema_updated.v1".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ValidatorConfig {
+    pub openapi_validator_path: String,
+    pub buf_path: String,
+    pub timeout_secs: u64,
+}
+
+impl Default for ValidatorConfig {
+    fn default() -> Self {
+        Self {
+            openapi_validator_path: "openapi-spec-validator".to_string(),
+            buf_path: "buf".to_string(),
+            timeout_secs: 10,
+        }
+    }
 }
 
 impl Config {
