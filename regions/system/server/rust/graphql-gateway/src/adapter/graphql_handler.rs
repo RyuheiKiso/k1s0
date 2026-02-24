@@ -1,15 +1,13 @@
 use std::sync::Arc;
 
-use async_graphql::{
-    Context, EmptySubscription, FieldResult, Object, Schema, Subscription,
-};
-use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
+use async_graphql::{Context, FieldResult, Object, Schema, Subscription};
 use async_graphql::futures_util::Stream;
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{
     extract::State,
     http::StatusCode,
     response::{Html, IntoResponse},
-    routing::{get, post},
+    routing::{get, get_service, post},
     Extension, Json, Router,
 };
 
@@ -17,6 +15,7 @@ use crate::adapter::middleware::auth_middleware::{auth_layer, Claims};
 use crate::domain::model::{ConfigEntry, FeatureFlag, Tenant, TenantConnection, TenantStatus};
 use crate::infra::auth::JwksVerifier;
 use crate::infra::config::GraphQLConfig;
+use crate::infra::grpc::FeatureFlagGrpcClient;
 use crate::usecase::{
     ConfigQueryResolver, FeatureFlagQueryResolver, SubscriptionResolver, TenantMutationResolver,
     TenantQueryResolver,
@@ -52,7 +51,11 @@ pub struct QueryRoot {
 
 #[Object]
 impl QueryRoot {
-    async fn tenant(&self, _ctx: &Context<'_>, id: async_graphql::ID) -> FieldResult<Option<Tenant>> {
+    async fn tenant(
+        &self,
+        _ctx: &Context<'_>,
+        id: async_graphql::ID,
+    ) -> FieldResult<Option<Tenant>> {
         self.tenant_query
             .get_tenant(id.as_str())
             .await
@@ -109,7 +112,7 @@ impl QueryRoot {
 
 pub struct MutationRoot {
     pub tenant_mutation: Arc<TenantMutationResolver>,
-    pub feature_flag_client: Arc<crate::infra::grpc::FeatureFlagGrpcClient>,
+    pub feature_flag_client: Arc<FeatureFlagGrpcClient>,
 }
 
 #[Object]
@@ -194,7 +197,7 @@ pub fn router(
     config_query: Arc<ConfigQueryResolver>,
     tenant_mutation: Arc<TenantMutationResolver>,
     subscription: Arc<SubscriptionResolver>,
-    feature_flag_client: Arc<crate::infra::grpc::FeatureFlagGrpcClient>,
+    feature_flag_client: Arc<FeatureFlagGrpcClient>,
     graphql_cfg: GraphQLConfig,
 ) -> Router {
     let mut builder = Schema::build(
@@ -218,23 +221,22 @@ pub fn router(
 
     let schema = builder.finish();
 
+    let graphql_post = post(graphql_handler).layer(auth_layer(jwks_verifier));
+
     let mut router = Router::new()
         .route("/healthz", get(healthz))
         .route("/readyz", get(readyz))
         .route("/metrics", get(metrics_handler))
-        .route(
-            "/graphql",
-            post(graphql_handler).layer(auth_layer(jwks_verifier.clone())),
-        )
+        .route("/graphql", graphql_post)
         .route(
             "/graphql/ws",
-            get(graphql_ws_handler),
+            get_service(GraphQLSubscription::new(schema.clone())),
         )
         .with_state(schema.clone());
 
     // 開発環境のみ Playground を有効化
     if graphql_cfg.playground {
-        router = router.route("/graphql", get(graphql_playground).with_state(schema));
+        router = router.route("/graphql", get(graphql_playground));
     }
 
     router
@@ -247,13 +249,6 @@ async fn graphql_handler(
 ) -> GraphQLResponse {
     let request = req.into_inner().data(claims);
     schema.execute(request).await.into()
-}
-
-async fn graphql_ws_handler(
-    State(schema): State<AppSchema>,
-    ws: axum::extract::WebSocketUpgrade,
-) -> impl IntoResponse {
-    GraphQLSubscription::new(schema).on_upgrade(ws)
 }
 
 async fn graphql_playground() -> impl IntoResponse {
