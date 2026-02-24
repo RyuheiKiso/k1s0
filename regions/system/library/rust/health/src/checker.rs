@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 
 use crate::error::HealthError;
-use crate::response::{CheckResult, HealthResponse, HealthStatus};
+use crate::response::{CheckResult, HealthResponse, HealthStatus, HealthzResponse};
 
 #[async_trait]
 #[cfg_attr(feature = "mock", mockall::automock)]
@@ -48,6 +48,19 @@ impl CompositeHealthChecker {
             status: overall,
             checks: results,
             timestamp: chrono_now(),
+        }
+    }
+
+    /// readyz は全ヘルスチェッカーを実行し、トラフィック受け入れ可否を返す。
+    /// run_all() と同等。
+    pub async fn readyz(&self) -> HealthResponse {
+        self.run_all().await
+    }
+
+    /// healthz は死活確認用エンドポイント。常に ok を返す。
+    pub fn healthz(&self) -> HealthzResponse {
+        HealthzResponse {
+            status: "ok".to_string(),
         }
     }
 }
@@ -128,5 +141,22 @@ mod tests {
         let response = checker.run_all().await;
         assert_eq!(response.status, HealthStatus::Healthy);
         assert!(response.checks.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_readyz_is_alias_of_run_all() {
+        let mut checker = CompositeHealthChecker::new();
+        checker.add_check(Box::new(AlwaysHealthy));
+
+        let readyz = checker.readyz().await;
+        assert_eq!(readyz.status, HealthStatus::Healthy);
+        assert_eq!(readyz.checks.len(), 1);
+    }
+
+    #[test]
+    fn test_healthz_always_ok() {
+        let checker = CompositeHealthChecker::new();
+        let response = checker.healthz();
+        assert_eq!(response.status, "ok");
     }
 }

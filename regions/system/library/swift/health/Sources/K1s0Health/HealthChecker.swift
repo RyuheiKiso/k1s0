@@ -23,4 +23,12 @@ public actor HealthChecker {
         }
         return HealthResponse(status: overall, checks: results, timestamp: Date())
     }
+
+    public func readyz() async -> HealthResponse {
+        return await runAll()
+    }
+
+    public func healthz() async -> [String: String] {
+        return ["status": "ok"]
+    }
 }

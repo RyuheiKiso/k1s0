@@ -51,6 +51,10 @@ system tier の設定管理サーバーは以下の機能を提供する。
 | PUT | `/api/v1/config/:namespace/:key` | 設定値更新 | `sys_operator` 以上 |
 | DELETE | `/api/v1/config/:namespace/:key` | 設定値削除 | `sys_admin` |
 | GET | `/api/v1/config/services/:service_name` | サービス向け設定一括取得 | Bearer token required |
+| GET | `/api/v1/config-schema` | 設定スキーマ一覧 | `sys_auditor` 以上 |
+| POST | `/api/v1/config-schema` | 設定スキーマ作成 | `sys_operator` 以上 |
+| GET | `/api/v1/config-schema/:name` | 設定スキーマ取得 | `sys_auditor` 以上 |
+| PUT | `/api/v1/config-schema/:name` | 設定スキーマ更新 | `sys_operator` 以上 |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |

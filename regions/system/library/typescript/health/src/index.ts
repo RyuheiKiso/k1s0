@@ -44,4 +44,12 @@ export class HealthChecker {
       timestamp: new Date().toISOString(),
     };
   }
+
+  async readyz(): Promise<HealthResponse> {
+    return this.runAll();
+  }
+
+  async healthz(): Promise<{ status: 'ok' }> {
+    return { status: 'ok' };
+  }
 }

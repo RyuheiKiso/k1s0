@@ -20,3 +20,8 @@ pub struct HealthResponse {
     pub checks: HashMap<String, CheckResult>,
     pub timestamp: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HealthzResponse {
+    pub status: String, // always "ok"
+}
