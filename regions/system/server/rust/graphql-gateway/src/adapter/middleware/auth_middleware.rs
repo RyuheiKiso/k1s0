@@ -36,45 +36,6 @@ pub struct RealmAccess {
     pub roles: Vec<String>,
 }
 
-async fn verify_jwt(verifier: Arc<JwksVerifier>, mut req: Request<Body>, next: Next) -> Response {
-    let token = extract_bearer_token(req.headers());
-
-    let token = match token {
-        Some(t) => t,
-        None => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({
-                    "error": {
-                        "code": "UNAUTHORIZED",
-                        "message": "missing Authorization header"
-                    }
-                })),
-            )
-                .into_response();
-        }
-    };
-
-    let claims = match verifier.verify_token(&token).await {
-        Ok(c) => c,
-        Err(_) => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({
-                    "error": {
-                        "code": "UNAUTHORIZED",
-                        "message": "invalid or expired JWT token"
-                    }
-                })),
-            )
-                .into_response();
-        }
-    };
-
-    req.extensions_mut().insert(claims);
-    next.run(req).await
-}
-
 fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
     headers
         .get("Authorization")
