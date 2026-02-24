@@ -1,0 +1,49 @@
+// k1s0 スケジューラーサービス gRPC 定義。
+// cron 式によるジョブのトリガーおよび実行履歴取得を提供する。
+// gRPC ポート: 9090
+syntax = "proto3";
+
+package k1s0.system.scheduler.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/scheduler/v1;schedulerv1";
+
+import "k1s0/system/common/v1/types.proto";
+
+service SchedulerService {
+  rpc TriggerJob(TriggerJobRequest) returns (TriggerJobResponse);
+  rpc GetJobExecution(GetJobExecutionRequest) returns (GetJobExecutionResponse);
+}
+
+message TriggerJobRequest {
+  string job_id = 1;
+}
+
+message TriggerJobResponse {
+  string execution_id = 1;
+  string job_id = 2;
+  // 実行状態（running / succeeded / failed）
+  string status = 3;
+  k1s0.system.common.v1.Timestamp triggered_at = 4;
+}
+
+message GetJobExecutionRequest {
+  string execution_id = 1;
+}
+
+message GetJobExecutionResponse {
+  JobExecution execution = 1;
+}
+
+message JobExecution {
+  string id = 1;
+  string job_id = 2;
+  // 実行状態（running / succeeded / failed）
+  string status = 3;
+  // 実行トリガー（scheduler / manual）
+  string triggered_by = 4;
+  k1s0.system.common.v1.Timestamp started_at = 5;
+  optional k1s0.system.common.v1.Timestamp finished_at = 6;
+  // 実行時間（ミリ秒）
+  optional uint64 duration_ms = 7;
+  optional string error_message = 8;
+}

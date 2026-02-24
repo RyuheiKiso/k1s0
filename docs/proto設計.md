@@ -397,6 +397,12 @@ service ConfigService {
 
   // 設定変更の監視（Server-Side Streaming）
   rpc WatchConfig(WatchConfigRequest) returns (stream WatchConfigResponse);
+
+  // 設定スキーマ取得
+  rpc GetConfigSchema(GetConfigSchemaRequest) returns (GetConfigSchemaResponse);
+
+  // 設定スキーマ作成・更新
+  rpc UpsertConfigSchema(UpsertConfigSchemaRequest) returns (UpsertConfigSchemaResponse);
 }
 
 // ============================================================
@@ -493,13 +499,91 @@ message GetServiceConfigResponse {
 // ============================================================
 
 message WatchConfigRequest {
-  string namespace = 1;  // 監視対象 namespace
-  string key = 2;        // 監視対象 key
+  repeated string namespaces = 1;  // 監視対象 namespace リスト（空の場合は全件）
 }
 
 message WatchConfigResponse {
-  string change_type = 1;                            // CREATED, UPDATED, DELETED
-  ConfigEntry entry = 2;                             // 変更後の設定エントリ
+  string namespace = 1;
+  string key = 2;
+  bytes old_value = 3;             // 変更前の値（JSON エンコード済み）
+  bytes new_value = 4;             // 変更後の値（JSON エンコード済み）
+  int32 old_version = 5;
+  int32 new_version = 6;
+  string changed_by = 7;
+  string change_type = 8;          // CREATED, UPDATED, DELETED
+  k1s0.system.common.v1.Timestamp changed_at = 9;
+}
+
+// ============================================================
+// ConfigEditorSchema（設定エディタ向けスキーマ）
+// ============================================================
+
+// ConfigFieldType は設定フィールドの型を表す。
+enum ConfigFieldType {
+  CONFIG_FIELD_TYPE_UNSPECIFIED = 0;
+  CONFIG_FIELD_TYPE_STRING      = 1;
+  CONFIG_FIELD_TYPE_INTEGER     = 2;
+  CONFIG_FIELD_TYPE_FLOAT       = 3;
+  CONFIG_FIELD_TYPE_BOOLEAN     = 4;
+  CONFIG_FIELD_TYPE_ENUM        = 5;
+  CONFIG_FIELD_TYPE_OBJECT      = 6;
+  CONFIG_FIELD_TYPE_ARRAY       = 7;
+}
+
+// ConfigFieldSchema は設定フィールドのスキーマ定義。
+message ConfigFieldSchema {
+  string          key           = 1;
+  string          label         = 2;
+  string          description   = 3;
+  ConfigFieldType type          = 4;
+  int64           min           = 5;
+  int64           max           = 6;
+  repeated string options       = 7;
+  string          pattern       = 8;
+  string          unit          = 9;
+  bytes           default_value = 10;
+}
+
+// ConfigCategorySchema はカテゴリ単位のスキーマ定義。
+message ConfigCategorySchema {
+  string                     id         = 1;
+  string                     label      = 2;
+  string                     icon       = 3;
+  repeated string            namespaces = 4;
+  repeated ConfigFieldSchema fields     = 5;
+}
+
+// ConfigEditorSchema はサービスの設定エディタスキーマ全体を表す。
+message ConfigEditorSchema {
+  string                        service          = 1;
+  string                        namespace_prefix = 2;
+  repeated ConfigCategorySchema categories       = 3;
+  k1s0.system.common.v1.Timestamp updated_at    = 4;
+}
+
+// ============================================================
+// GetConfigSchema
+// ============================================================
+
+message GetConfigSchemaRequest {
+  string service_name = 1;
+}
+
+message GetConfigSchemaResponse {
+  ConfigEditorSchema schema = 1;
+}
+
+// ============================================================
+// UpsertConfigSchema
+// ============================================================
+
+message UpsertConfigSchemaRequest {
+  ConfigEditorSchema schema     = 1;
+  string             updated_by = 2;
+}
+
+message UpsertConfigSchemaResponse {
+  ConfigEditorSchema schema = 1;
 }
 ```
 
@@ -511,8 +595,10 @@ message WatchConfigResponse {
 | `ConfigService.ListConfigs` | `ConfigGRPCService.ListConfigs` | `ConfigGrpcService.list_configs` | namespace 内の設定値一覧（ページネーション付き） |
 | `ConfigService.UpdateConfig` | `ConfigGRPCService.UpdateConfig` | `ConfigGrpcService.update_config` | 楽観的排他制御付き設定値更新 |
 | `ConfigService.DeleteConfig` | `ConfigGRPCService.DeleteConfig` | `ConfigGrpcService.delete_config` | 設定値削除（sys_admin 権限） |
-| `ConfigService.GetServiceConfig` | `ConfigGRPCService.GetServiceConfig` | `ConfigGrpcService.get_service_config` | サービス名で設定一括取得 |
-| `ConfigService.WatchConfig` | `ConfigGRPCService.WatchConfig` (未実装) | `ConfigGrpcService.watch_config` (実装済み) | 設定変更のリアルタイム監視 |
+| `ConfigService.GetServiceConfig` | `ConfigGRPCService.GetServiceConfig` | `ConfigGrpcService.get_service_config` | サービス名 + 環境名で設定一括取得 |
+| `ConfigService.WatchConfig` | `ConfigGRPCService.WatchConfig` (未実装) | `ConfigGrpcService.watch_config` (実装済み) | 設定変更のリアルタイム監視（複数 namespace 対応） |
+| `ConfigService.GetConfigSchema` | `ConfigGRPCService.GetConfigSchema` | `ConfigGrpcService.get_config_schema` | サービス名でエディタスキーマ取得 |
+| `ConfigService.UpsertConfigSchema` | `ConfigGRPCService.UpsertConfigSchema` | `ConfigGrpcService.upsert_config_schema` | エディタスキーマの作成・更新 |
 
 ---
 
