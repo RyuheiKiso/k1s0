@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
+use crate::infrastructure::kafka::{NoopSchemaEventPublisher, SchemaEventPublisher, SchemaUpdatedEvent};
 
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteVersionError {
@@ -17,6 +18,7 @@ pub enum DeleteVersionError {
 pub struct DeleteVersionUseCase {
     schema_repo: Arc<dyn ApiSchemaRepository>,
     version_repo: Arc<dyn ApiSchemaVersionRepository>,
+    publisher: Arc<dyn SchemaEventPublisher>,
 }
 
 impl DeleteVersionUseCase {
@@ -27,6 +29,19 @@ impl DeleteVersionUseCase {
         Self {
             schema_repo,
             version_repo,
+            publisher: Arc::new(NoopSchemaEventPublisher),
+        }
+    }
+
+    pub fn with_publisher(
+        schema_repo: Arc<dyn ApiSchemaRepository>,
+        version_repo: Arc<dyn ApiSchemaVersionRepository>,
+        publisher: Arc<dyn SchemaEventPublisher>,
+    ) -> Self {
+        Self {
+            schema_repo,
+            version_repo,
+            publisher,
         }
     }
 
@@ -61,6 +76,22 @@ impl DeleteVersionUseCase {
                 name: name.to_string(),
                 version,
             });
+        }
+
+        // Kafka イベント発行
+        let event = SchemaUpdatedEvent {
+            event_type: "SCHEMA_VERSION_DELETED".to_string(),
+            schema_name: name.to_string(),
+            schema_type: schema.schema_type.to_string(),
+            version,
+            content_hash: None,
+            breaking_changes: None,
+            registered_by: None,
+            deleted_by: None,
+            timestamp: chrono::Utc::now().to_rfc3339(),
+        };
+        if let Err(e) = self.publisher.publish_schema_updated(&event).await {
+            tracing::warn!("Failed to publish schema version deleted event: {}", e);
         }
 
         Ok(())

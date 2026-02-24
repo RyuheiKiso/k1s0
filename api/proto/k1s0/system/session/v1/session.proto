@@ -1,0 +1,89 @@
+// k1s0 セッション管理サービス gRPC 定義。
+// ユーザーセッションのライフサイクル管理を提供する。
+syntax = "proto3";
+
+package k1s0.system.session.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/session/v1;sessionv1";
+
+service SessionService {
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+  rpc RefreshSession(RefreshSessionRequest) returns (RefreshSessionResponse);
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
+  rpc RevokeAllSessions(RevokeAllSessionsRequest) returns (RevokeAllSessionsResponse);
+  rpc ListUserSessions(ListUserSessionsRequest) returns (ListUserSessionsResponse);
+}
+
+message CreateSessionRequest {
+  string user_id = 1;
+  string device_id = 2;
+  optional string device_name = 3;
+  optional string device_type = 4;
+  optional string user_agent = 5;
+  optional string ip_address = 6;
+}
+
+message CreateSessionResponse {
+  string session_id = 1;
+  string user_id = 2;
+  string device_id = 3;
+  string expires_at = 4;
+  string created_at = 5;
+}
+
+message GetSessionRequest {
+  string session_id = 1;
+}
+
+message GetSessionResponse {
+  Session session = 1;
+}
+
+message RefreshSessionRequest {
+  string session_id = 1;
+}
+
+message RefreshSessionResponse {
+  string session_id = 1;
+  string expires_at = 2;
+}
+
+message RevokeSessionRequest {
+  string session_id = 1;
+}
+
+message RevokeSessionResponse {
+  bool success = 1;
+}
+
+message RevokeAllSessionsRequest {
+  string user_id = 1;
+}
+
+message RevokeAllSessionsResponse {
+  uint32 revoked_count = 1;
+}
+
+message ListUserSessionsRequest {
+  string user_id = 1;
+}
+
+message ListUserSessionsResponse {
+  repeated Session sessions = 1;
+  uint32 total_count = 2;
+}
+
+message Session {
+  string session_id = 1;
+  string user_id = 2;
+  string device_id = 3;
+  optional string device_name = 4;
+  optional string device_type = 5;
+  optional string user_agent = 6;
+  optional string ip_address = 7;
+  string status = 8;
+  string expires_at = 9;
+  string created_at = 10;
+  optional string last_accessed_at = 11;
+}

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::api_registration::{ApiSchemaVersion, BreakingChange};
 use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
+use crate::infrastructure::kafka::{NoopSchemaEventPublisher, SchemaEventPublisher, SchemaUpdatedEvent};
 
 #[derive(Debug, Clone)]
 pub struct RegisterVersionInput {
@@ -21,6 +22,7 @@ pub enum RegisterVersionError {
 pub struct RegisterVersionUseCase {
     schema_repo: Arc<dyn ApiSchemaRepository>,
     version_repo: Arc<dyn ApiSchemaVersionRepository>,
+    publisher: Arc<dyn SchemaEventPublisher>,
 }
 
 impl RegisterVersionUseCase {
@@ -31,6 +33,19 @@ impl RegisterVersionUseCase {
         Self {
             schema_repo,
             version_repo,
+            publisher: Arc::new(NoopSchemaEventPublisher),
+        }
+    }
+
+    pub fn with_publisher(
+        schema_repo: Arc<dyn ApiSchemaRepository>,
+        version_repo: Arc<dyn ApiSchemaVersionRepository>,
+        publisher: Arc<dyn SchemaEventPublisher>,
+    ) -> Self {
+        Self {
+            schema_repo,
+            version_repo,
+            publisher,
         }
     }
 
@@ -80,6 +95,22 @@ impl RegisterVersionUseCase {
             .update(&schema)
             .await
             .map_err(|e| RegisterVersionError::Internal(e.to_string()))?;
+
+        // Kafka イベント発行
+        let event = SchemaUpdatedEvent {
+            event_type: "SCHEMA_VERSION_REGISTERED".to_string(),
+            schema_name: version.name.clone(),
+            schema_type: version.schema_type.to_string(),
+            version: version.version,
+            content_hash: Some(version.content_hash.clone()),
+            breaking_changes: Some(has_breaking),
+            registered_by: Some(input.registered_by.clone()),
+            deleted_by: None,
+            timestamp: chrono::Utc::now().to_rfc3339(),
+        };
+        if let Err(e) = self.publisher.publish_schema_updated(&event).await {
+            tracing::warn!("Failed to publish schema version registered event: {}", e);
+        }
 
         Ok(version)
     }

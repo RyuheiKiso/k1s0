@@ -5,3 +5,16 @@ app:
 server:
   host: "0.0.0.0"
   port: 8101
+  grpc_port: 9090
+database:
+  host: "localhost"
+  port: 5432
+  name: "apiregistry"
+  user: "apiregistry"
+  password: "apiregistry"
+  ssl_mode: "disable"
+  max_open_conns: 10
+kafka:
+  brokers:
+    - "localhost:9092"
+  schema_updated_topic: "k1s0.system.apiregistry.schema_updated.v1"

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::api_registration::{ApiSchema, ApiSchemaVersion, SchemaType};
 use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
+use crate::infrastructure::kafka::{NoopSchemaEventPublisher, SchemaEventPublisher, SchemaUpdatedEvent};
 
 #[derive(Debug, Clone)]
 pub struct RegisterSchemaInput {
@@ -23,6 +24,7 @@ pub enum RegisterSchemaError {
 pub struct RegisterSchemaUseCase {
     schema_repo: Arc<dyn ApiSchemaRepository>,
     version_repo: Arc<dyn ApiSchemaVersionRepository>,
+    publisher: Arc<dyn SchemaEventPublisher>,
 }
 
 impl RegisterSchemaUseCase {
@@ -33,6 +35,19 @@ impl RegisterSchemaUseCase {
         Self {
             schema_repo,
             version_repo,
+            publisher: Arc::new(NoopSchemaEventPublisher),
+        }
+    }
+
+    pub fn with_publisher(
+        schema_repo: Arc<dyn ApiSchemaRepository>,
+        version_repo: Arc<dyn ApiSchemaVersionRepository>,
+        publisher: Arc<dyn SchemaEventPublisher>,
+    ) -> Self {
+        Self {
+            schema_repo,
+            version_repo,
+            publisher,
         }
     }
 
@@ -73,6 +88,22 @@ impl RegisterSchemaUseCase {
             .create(&version)
             .await
             .map_err(|e| RegisterSchemaError::Internal(e.to_string()))?;
+
+        // Kafka イベント発行
+        let event = SchemaUpdatedEvent {
+            event_type: "SCHEMA_REGISTERED".to_string(),
+            schema_name: version.name.clone(),
+            schema_type: version.schema_type.to_string(),
+            version: version.version,
+            content_hash: Some(version.content_hash.clone()),
+            breaking_changes: Some(false),
+            registered_by: Some(input.registered_by.clone()),
+            deleted_by: None,
+            timestamp: chrono::Utc::now().to_rfc3339(),
+        };
+        if let Err(e) = self.publisher.publish_schema_updated(&event).await {
+            tracing::warn!("Failed to publish schema registered event: {}", e);
+        }
 
         Ok(version)
     }

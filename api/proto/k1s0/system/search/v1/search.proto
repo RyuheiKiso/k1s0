@@ -1,0 +1,57 @@
+// k1s0 全文検索サービス gRPC 定義。
+// ドキュメントのインデックス管理と全文検索を提供する。
+syntax = "proto3";
+
+package k1s0.system.search.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/search/v1;searchv1";
+
+service SearchService {
+  rpc IndexDocument(IndexDocumentRequest) returns (IndexDocumentResponse);
+  rpc Search(SearchRequest) returns (SearchResponse);
+  rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
+}
+
+message IndexDocumentRequest {
+  string index = 1;
+  string document_id = 2;
+  bytes document_json = 3;
+}
+
+message IndexDocumentResponse {
+  string document_id = 1;
+  string index = 2;
+  string result = 3;
+}
+
+message SearchRequest {
+  string index = 1;
+  string query = 2;
+  bytes filters_json = 3;
+  uint32 page = 4;
+  uint32 page_size = 5;
+}
+
+message SearchResponse {
+  repeated SearchHit hits = 1;
+  uint64 total_count = 2;
+  uint32 page = 3;
+  uint32 page_size = 4;
+  bool has_next = 5;
+}
+
+message SearchHit {
+  string id = 1;
+  float score = 2;
+  bytes document_json = 3;
+}
+
+message DeleteDocumentRequest {
+  string index = 1;
+  string document_id = 2;
+}
+
+message DeleteDocumentResponse {
+  bool success = 1;
+  string message = 2;
+}
