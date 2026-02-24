@@ -1,0 +1,51 @@
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 10
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - graphql-gateway
+        topologyKey: kubernetes.io/hostname
+
+config:
+  data:
+    config.yaml: |
+      app:
+        environment: prod
+      graphql:
+        introspection: false
+        playground: false
+        max_depth: 8
+        max_complexity: 500
+      backends:
+        tenant:
+          address: "http://tenant.k1s0-system.svc.cluster.local:9090"
+          timeout_ms: 2000
+        featureflag:
+          address: "http://featureflag.k1s0-system.svc.cluster.local:9090"
+          timeout_ms: 2000
+        config:
+          address: "http://config.k1s0-system.svc.cluster.local:9090"
+          timeout_ms: 2000
+      observability:
+        log:
+          level: warn
+        trace:
+          sample_rate: 0.1

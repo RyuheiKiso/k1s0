@@ -398,21 +398,21 @@ usecase（ビジネスロジック）
   ^
 adapter（ハンドラー・プレゼンター・ゲートウェイ）
   ^
-infra（Vault Client・DB接続・Kafka Producer・キャッシュ・設定ローダー）
+infrastructure（Vault Client・DB接続・Kafka Producer・キャッシュ・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `Secret`, `SecretMetadata`, `SecretAccessLog` | エンティティ定義 |
+| domain/entity | `Secret`, `SecretMetadata`, `SecretAccessLog` | エンティティ定義 |
 | domain/repository | `SecretAccessLogRepository` | 監査ログリポジトリトレイト |
 | domain/service | `VaultDomainService` | SPIFFE ベースのアクセス制御、キャッシュ管理ポリシー |
 | usecase | `GetSecretUsecase`, `ListSecretsUsecase`, `RotateSecretUsecase`, `GetMetadataUsecase`, `LogAccessUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー, gRPC ハンドラー | プロトコル変換（axum / tonic） |
 | adapter/gateway | `VaultClient` | Vault API クライアント（vaultrs 使用） |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/persistence | `SecretAccessLogPostgresRepository` | PostgreSQL リポジトリ実装（監査ログ） |
-| infra/cache | `SecretCache` | moka キャッシュ（シークレット値 TTL キャッシュ） |
-| infra/messaging | `VaultEventPublisher`, `VaultKafkaProducer` | Kafka プロデューサー（ローテーション通知） |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `SecretAccessLogPostgresRepository` | PostgreSQL リポジトリ実装（監査ログ） |
+| infrastructure/cache | `SecretCache` | moka キャッシュ（シークレット値 TTL キャッシュ） |
+| infrastructure/messaging | `VaultEventPublisher`, `VaultKafkaProducer` | Kafka プロデューサー（ローテーション通知） |
 
 ### ドメインモデル
 
@@ -481,7 +481,7 @@ infra（Vault Client・DB接続・Kafka Producer・キャッシュ・設定ロ�
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────────┐         ┌──────────▼──────────────────┐   │
-    │  domain/model       │         │ domain/repository           │   │
+    │  domain/entity      │         │ domain/repository           │   │
     │  Secret,            │         │ SecretAccessLogRepository   │   │
     │  SecretMetadata,    │         │ (trait)                     │   │
     │  SecretAccessLog    │         └──────────┬─────────────────┘   │
@@ -491,7 +491,7 @@ infra（Vault Client・DB接続・Kafka Producer・キャッシュ・設定ロ�
     └─────────────────────┘                    │                     │
                                                │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Kafka        │  │ SecretAccessLog-       │  │
                     │  │ Producer     │  │ PostgresRepository     │  │

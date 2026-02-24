@@ -134,48 +134,57 @@ if let Some(snap) = snapshot_store.load_latest(&stream_id).await.unwrap() {
 
 ```
 eventstore/
-├── eventstore.go       # EventStore インターフェース
-├── envelope.go         # EventEnvelope・StreamId・EventVersion
-├── snapshot.go         # Snapshot・SnapshotStore インターフェース
-├── postgres.go         # PostgresEventStore・PostgresSnapshotStore 実装
-├── inmemory.go         # テスト用インメモリ実装
-├── config.go           # EventStoreConfig
-├── error.go            # EventStoreError・ConcurrencyError
+├── eventstore.go       # EventStore・SnapshotStore インターフェース・StreamId・EventEnvelope・Snapshot・EventStoreError
+├── memory.go           # テスト用インメモリ実装
+├── postgres.go         # PostgreSQL 実装
 ├── eventstore_test.go
+├── postgres_test.go
 ├── go.mod
 └── go.sum
 ```
 
-**依存関係**: `github.com/jackc/pgx/v5 v5.7.2`, `github.com/stretchr/testify v1.10.0`, `github.com/google/uuid v1.6.0`
+**依存関係**: `github.com/jackc/pgx/v5 v5.7.2`
 
 **主要インターフェース**:
 
 ```go
+type StreamId struct {
+    // unexported value field
+}
+
+func NewStreamId(value string) StreamId
+func (s StreamId) String() string
+
+type EventEnvelope struct {
+    EventID    string
+    StreamID   string
+    Version    uint64
+    EventType  string
+    Payload    json.RawMessage
+    Metadata   json.RawMessage
+    RecordedAt time.Time
+}
+
+func NewEventEnvelope(streamID StreamId, version uint64, eventType string, payload json.RawMessage) *EventEnvelope
+
+type Snapshot struct {
+    StreamID  string
+    Version   uint64
+    State     json.RawMessage
+    CreatedAt time.Time
+}
+
 type EventStore interface {
-    Append(ctx context.Context, streamID StreamID, events []EventEnvelope, expectedVersion *int64) error
-    Load(ctx context.Context, streamID StreamID, fromVersion int64, toVersion *int64) ([]EventEnvelope, error)
-    LoadAll(ctx context.Context, streamID StreamID) ([]EventEnvelope, error)
-    Exists(ctx context.Context, streamID StreamID) (bool, error)
+    Append(ctx context.Context, streamID StreamId, events []*EventEnvelope, expectedVersion *uint64) (uint64, error)
+    Load(ctx context.Context, streamID StreamId) ([]*EventEnvelope, error)
+    LoadFrom(ctx context.Context, streamID StreamId, fromVersion uint64) ([]*EventEnvelope, error)
+    Exists(ctx context.Context, streamID StreamId) (bool, error)
+    CurrentVersion(ctx context.Context, streamID StreamId) (uint64, error)
 }
 
 type SnapshotStore interface {
-    Save(ctx context.Context, streamID StreamID, version int64, state interface{}) error
-    LoadLatest(ctx context.Context, streamID StreamID) (*Snapshot, error)
-}
-
-type StreamID struct {
-    AggregateType string
-    AggregateID   string
-}
-
-type EventEnvelope struct {
-    ID            uuid.UUID
-    StreamID      StreamID
-    Version       int64
-    EventType     string
-    Payload       json.RawMessage
-    Metadata      json.RawMessage
-    OccurredAt    time.Time
+    SaveSnapshot(ctx context.Context, snapshot *Snapshot) error
+    LoadSnapshot(ctx context.Context, streamID StreamId) (*Snapshot, error)
 }
 ```
 

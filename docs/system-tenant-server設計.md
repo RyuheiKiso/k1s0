@@ -589,20 +589,20 @@ usecase（ビジネスロジック）
   ^
 adapter（ハンドラー・プレゼンター・ゲートウェイ）
   ^
-infra（DB接続・Kafka Producer・Keycloak Client・設定ローダー）
+infrastructure（DB接続・Kafka Producer・Keycloak Client・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `Tenant`, `TenantMember`, `TenantProvisioningJob`, `TenantStatus` | エンティティ定義・状態遷移 |
+| domain/entity | `Tenant`, `TenantMember`, `TenantProvisioningJob`, `TenantStatus` | エンティティ定義・状態遷移 |
 | domain/repository | `TenantRepository`, `TenantMemberRepository` | リポジトリトレイト |
 | domain/service | `TenantDomainService` | スラッグ重複チェック、ステータス遷移バリデーション |
 | usecase | `CreateTenantUsecase`, `GetTenantUsecase`, `ListTenantsUsecase`, `UpdateTenantUsecase`, `SuspendTenantUsecase`, `ActivateTenantUsecase`, `DeleteTenantUsecase`, `AddMemberUsecase`, `RemoveMemberUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー, gRPC ハンドラー | プロトコル変換（axum / tonic） |
 | adapter/gateway | `KeycloakAdminClient` | Keycloak Admin API クライアント（realm 管理） |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/persistence | `TenantPostgresRepository`, `TenantMemberPostgresRepository` | PostgreSQL リポジトリ実装 |
-| infra/messaging | `TenantEventPublisher`, `TenantKafkaProducer` | Kafka プロデューサー（テナントイベント配信） |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `TenantPostgresRepository`, `TenantMemberPostgresRepository` | PostgreSQL リポジトリ実装 |
+| infrastructure/messaging | `TenantEventPublisher`, `TenantKafkaProducer` | Kafka プロデューサー（テナントイベント配信） |
 
 ### ドメインモデル
 
@@ -675,7 +675,7 @@ infra（DB接続・Kafka Producer・Keycloak Client・設定ローダー）
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────────┐         ┌──────────▼──────────────────┐   │
-    │  domain/model       │         │ domain/repository           │   │
+    │  domain/entity      │         │ domain/repository           │   │
     │  Tenant,            │         │ TenantRepository            │   │
     │  TenantMember,      │         │ TenantMemberRepository      │   │
     │  TenantStatus,      │         │ (trait)                     │   │
@@ -686,7 +686,7 @@ infra（DB接続・Kafka Producer・Keycloak Client・設定ローダー）
     └─────────────────────┘                    │                     │
                                                │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Kafka        │  │ TenantPostgres-        │  │
                     │  │ Producer     │  │ Repository             │  │

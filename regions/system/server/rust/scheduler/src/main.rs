@@ -44,17 +44,23 @@ async fn main() -> anyhow::Result<()> {
     let job_repo: Arc<dyn SchedulerJobRepository> =
         Arc::new(InMemorySchedulerJobRepository::new());
 
-    let _create_job_uc = Arc::new(usecase::CreateJobUseCase::new(job_repo.clone()));
-    let _get_job_uc = Arc::new(usecase::GetJobUseCase::new(job_repo.clone()));
+    let create_job_uc = Arc::new(usecase::CreateJobUseCase::new(job_repo.clone()));
+    let get_job_uc = Arc::new(usecase::GetJobUseCase::new(job_repo.clone()));
     let trigger_job_uc = Arc::new(usecase::TriggerJobUseCase::new(job_repo.clone()));
-    let _pause_job_uc = Arc::new(usecase::PauseJobUseCase::new(job_repo.clone()));
-    let _resume_job_uc = Arc::new(usecase::ResumeJobUseCase::new(job_repo));
+    let pause_job_uc = Arc::new(usecase::PauseJobUseCase::new(job_repo.clone()));
+    let resume_job_uc = Arc::new(usecase::ResumeJobUseCase::new(job_repo.clone()));
 
     let _grpc_svc = Arc::new(SchedulerGrpcService::new(trigger_job_uc));
 
-    let app = axum::Router::new()
-        .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
-        .route("/readyz", axum::routing::get(adapter::handler::health::readyz));
+    let state = adapter::handler::AppState {
+        job_repo,
+        create_job_uc,
+        get_job_uc,
+        pause_job_uc,
+        resume_job_uc,
+    };
+
+    let app = adapter::handler::router(state);
 
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);

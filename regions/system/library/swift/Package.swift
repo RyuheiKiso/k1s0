@@ -48,6 +48,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-crypto.git", from: "3.0.0"),
+        .package(url: "https://github.com/tmthecoder/Argon2Swift.git", from: "1.0.0"),
     ],
     targets: [
         // audit-client
@@ -64,6 +65,10 @@ let package = Package(
         // auth
         .target(
             name: "K1s0Auth",
+            dependencies: [
+                .product(name: "Crypto", package: "swift-crypto"),
+                .product(name: "_CryptoExtras", package: "swift-crypto"),
+            ],
             path: "auth/Sources/K1s0Auth",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
@@ -143,6 +148,7 @@ let package = Package(
             name: "K1s0Encryption",
             dependencies: [
                 .product(name: "Crypto", package: "swift-crypto"),
+                .product(name: "Argon2Swift", package: "Argon2Swift"),
             ],
             path: "encryption/Sources/K1s0Encryption",
             swiftSettings: [.swiftLanguageMode(.v6)]

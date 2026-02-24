@@ -10,14 +10,11 @@
 
 | 型・関数 | 種別 | 説明 |
 |---------|------|------|
-| `PageRequest` | 構造体 | page（>=1）・page_size（1-200）・デフォルト値設定 |
-| `CursorRequest` | 構造体 | cursor（opaque token）・limit（1-100）|
-| `PaginatedResponse<T>` | 構造体 | items + PaginationMeta |
-| `PaginationMeta` | 構造体 | total_count・page・page_size・has_next（オフセット方式）|
-| `CursorMeta` | 構造体 | next_cursor・has_next（カーソル方式）|
-| `Paginator` | トレイト | ページネーションクエリ実行インターフェース |
-| `encode_cursor` | 関数 | ソートキー + ID を Base64 エンコード |
-| `decode_cursor` | 関数 | カーソル文字列を復元 |
+| `PageRequest` | 構造体 | page・per_page |
+| `PageResponse<T>` | 構造体 | items・total・page・per_page・total_pages |
+| `encode_cursor` | 関数 | ID を Base64 エンコード |
+| `decode_cursor` | 関数 | カーソル文字列を復元（単一文字列） |
+| `PaginationError` | enum | `InvalidCursor` |
 
 ## Rust 実装
 
@@ -50,10 +47,9 @@ k1s0-pagination = { path = "../../system/library/rust/pagination" }
 ```
 pagination/
 ├── src/
-│   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
-│   ├── page.rs         # PageRequest・PaginatedResponse・PaginationMeta
-│   ├── cursor.rs       # CursorRequest・CursorMeta・encode/decode
-│   ├── paginator.rs    # Paginator トレイト
+│   ├── lib.rs          # 公開 API（再エクスポート）
+│   ├── page.rs         # PageRequest・PageResponse
+│   ├── cursor.rs       # encode_cursor・decode_cursor
 │   └── error.rs        # PaginationError
 └── Cargo.toml
 ```
@@ -61,53 +57,20 @@ pagination/
 **使用例**:
 
 ```rust
-use k1s0_pagination::{
-    CursorRequest, CursorMeta, PageRequest, PaginatedResponse, PaginationMeta,
-    Paginator, decode_cursor, encode_cursor,
-};
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize)]
-struct User {
-    id: String,
-    name: String,
-    created_at: String,
-}
+use k1s0_pagination::{PageRequest, PageResponse, encode_cursor, decode_cursor};
 
 // オフセットベースページネーション
-let req = PageRequest::new()
-    .page(2)
-    .page_size(20);
+let req = PageRequest { page: 2, per_page: 20 };
 
-// クエリ実行後にレスポンスを構築
-let users: Vec<User> = db.fetch_users(req.offset(), req.page_size).await?;
-let total_count = db.count_users().await?;
+let users: Vec<User> = db.fetch_users(req.page, req.per_page).await?;
+let total = db.count_users().await?;
 
-let response: PaginatedResponse<User> = PaginatedResponse::new(users)
-    .meta(PaginationMeta {
-        total_count,
-        page: req.page,
-        page_size: req.page_size,
-        has_next: req.has_next(total_count),
-    });
+let response: PageResponse<User> = PageResponse::new(users, total, &req);
+// response.total_pages は自動計算
 
 // カーソルベースページネーション
-let cursor_req = CursorRequest::new().limit(50);
-
-let decoded = cursor_req.cursor
-    .as_deref()
-    .map(decode_cursor)
-    .transpose()?; // Option<(sort_key, id)>
-
-let users: Vec<User> = db.fetch_users_after(decoded, cursor_req.limit + 1).await?;
-let has_next = users.len() > cursor_req.limit as usize;
-let items: Vec<User> = users.into_iter().take(cursor_req.limit as usize).collect();
-
-let next_cursor = items.last()
-    .map(|u| encode_cursor(&u.created_at, &u.id));
-
-let response = PaginatedResponse::new(items)
-    .cursor_meta(CursorMeta { next_cursor, has_next });
+let cursor = encode_cursor("last-record-id");
+let decoded_id = decode_cursor(&cursor)?;
 ```
 
 ## Go 実装
@@ -117,9 +80,6 @@ let response = PaginatedResponse::new(items)
 ```
 pagination/
 ├── pagination.go
-├── page.go
-├── cursor.go
-├── paginator.go
 ├── pagination_test.go
 ├── go.mod
 └── go.sum
@@ -131,43 +91,22 @@ pagination/
 
 ```go
 type PageRequest struct {
-    Page     int `json:"page"`
-    PageSize int `json:"page_size"`
+    Page    uint32
+    PerPage uint32
 }
 
-func NewPageRequest(page, pageSize int) PageRequest
-func (r PageRequest) Offset() int
-func (r PageRequest) HasNext(totalCount int64) bool
-
-type CursorRequest struct {
-    Cursor *string `json:"cursor,omitempty"`
-    Limit  int     `json:"limit"`
+type PageResponse[T any] struct {
+    Items      []T
+    Total      uint64
+    Page       uint32
+    PerPage    uint32
+    TotalPages uint32
 }
 
-type PaginationMeta struct {
-    TotalCount int64 `json:"total_count"`
-    Page       int   `json:"page"`
-    PageSize   int   `json:"page_size"`
-    HasNext    bool  `json:"has_next"`
-}
+func NewPageResponse[T any](items []T, total uint64, req PageRequest) PageResponse[T]
 
-type CursorMeta struct {
-    NextCursor *string `json:"next_cursor,omitempty"`
-    HasNext    bool    `json:"has_next"`
-}
-
-type PaginatedResponse[T any] struct {
-    Items []T            `json:"items"`
-    Meta  PaginationMeta `json:"meta,omitempty"`
-}
-
-type CursorResponse[T any] struct {
-    Items []T        `json:"items"`
-    Meta  CursorMeta `json:"meta"`
-}
-
-func EncodeCursor(sortKey, id string) string
-func DecodeCursor(cursor string) (sortKey, id string, err error)
+func EncodeCursor(id string) string
+func DecodeCursor(cursor string) (string, error)
 ```
 
 ## TypeScript 実装
@@ -190,60 +129,22 @@ pagination/
 
 ```typescript
 export interface PageRequest {
-  page: number;      // >= 1
-  pageSize: number;  // 1-200
-}
-
-export interface CursorRequest {
-  cursor?: string;
-  limit: number;  // 1-100
-}
-
-export interface PaginationMeta {
-  totalCount: number;
   page: number;
-  pageSize: number;
-  hasNext: boolean;
+  perPage: number;
 }
 
-export interface CursorMeta {
-  nextCursor?: string;
-  hasNext: boolean;
-}
-
-export interface PaginatedResponse<T> {
+export interface PageResponse<T> {
   items: T[];
-  meta: PaginationMeta;
+  total: number;
+  page: number;
+  perPage: number;
+  totalPages: number;
 }
 
-export interface CursorResponse<T> {
-  items: T[];
-  meta: CursorMeta;
-}
+export function createPageResponse<T>(items: T[], total: number, req: PageRequest): PageResponse<T>;
 
-export function createPageRequest(page?: number, pageSize?: number): PageRequest;
-export function getOffset(req: PageRequest): number;
-export function hasNext(req: PageRequest, totalCount: number): boolean;
-
-export function encodeCursor(sortKey: string, id: string): string;
-export function decodeCursor(cursor: string): { sortKey: string; id: string };
-
-export function buildPaginatedResponse<T>(
-  items: T[],
-  meta: PaginationMeta
-): PaginatedResponse<T>;
-
-export function buildCursorResponse<T>(
-  items: T[],
-  meta: CursorMeta
-): CursorResponse<T>;
-
-export class PaginationError extends Error {
-  constructor(
-    message: string,
-    public readonly code: 'INVALID_PAGE' | 'INVALID_CURSOR' | 'PAGE_SIZE_EXCEEDED'
-  );
-}
+export function encodeCursor(id: string): string;
+export function decodeCursor(cursor: string): string;
 ```
 
 **カバレッジ目標**: 90%以上

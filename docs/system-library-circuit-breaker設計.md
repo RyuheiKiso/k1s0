@@ -14,9 +14,9 @@
 |-------------|------|------|
 | `CircuitBreaker` | 構造体 | 失敗閾値・オープン時間・ハーフオープン試行数の設定と状態管理 |
 | `CircuitBreakerState` | enum | `Closed`（正常）/ `Open`（遮断中）/ `HalfOpen`（試行中） |
-| `CircuitBreakerConfig` | 構造体 | failure_threshold, success_threshold, open_duration 設定 |
+| `CircuitBreakerConfig` | 構造体 | failure_threshold, success_threshold, timeout 設定 |
 | `CircuitBreakerMetrics` | 構造体 | OpenTelemetry メトリクス（状態変化・成功率） |
-| `CircuitBreakerError` | enum | `CircuitOpen`・`ExecutionFailed` |
+| `CircuitBreakerError` | enum | `Open`・`Inner` |
 
 ## Rust 実装
 
@@ -59,7 +59,7 @@ circuit-breaker/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
 │   ├── breaker.rs      # CircuitBreaker・CircuitBreakerState
-│   ├── config.rs       # CircuitBreakerConfig
+│   ├── config.rs       # CircuitBreakerConfig（failure_threshold, success_threshold, timeout）
 │   ├── metrics.rs      # CircuitBreakerMetrics（OTel メトリクス）
 │   └── error.rs        # CircuitBreakerError
 └── Cargo.toml
@@ -71,17 +71,17 @@ circuit-breaker/
 use k1s0_circuit_breaker::{CircuitBreaker, CircuitBreakerConfig};
 use std::time::Duration;
 
-// サーキットブレーカー設定（連続5回失敗で30秒遮断、HalfOpen で2回成功なら復旧）
-let config = CircuitBreakerConfig::new()
-    .failure_threshold(5)
-    .success_threshold(2)
-    .open_duration(Duration::from_secs(30))
-    .half_open_max_calls(2);
+// サーキットブレーカー設定（連続5回失敗で30秒遮断、HalfOpen で3回成功なら復旧）
+let config = CircuitBreakerConfig {
+    failure_threshold: 5,
+    success_threshold: 3,
+    timeout: Duration::from_secs(30),
+};
 
 let cb = CircuitBreaker::new(config);
 
 // サーキットブレーカー経由でサービス呼び出し
-let result = cb.execute(|| async {
+let result = cb.call(|| async {
     grpc_client.call_service(request.clone()).await
 }).await?;
 
@@ -89,8 +89,9 @@ let result = cb.execute(|| async {
 let state = cb.state().await;
 println!("CircuitBreaker state: {:?}", state);
 
-// 手動リセット（管理操作用）
-cb.reset().await;
+// メトリクス取得
+let metrics = cb.metrics().await;
+println!("failures: {}, successes: {}", metrics.failure_count, metrics.success_count);
 ```
 
 ## Go 実装
@@ -99,46 +100,46 @@ cb.reset().await;
 
 ```
 circuit-breaker/
-├── circuit_breaker.go
-├── config.go
-├── state.go
-├── metrics.go
-├── circuit_breaker_test.go
+├── circuitbreaker.go
+├── circuitbreaker_test.go
 ├── go.mod
 └── go.sum
 ```
 
-**依存関係**: `go.opentelemetry.io/otel v1.34`
+**依存関係**: なし（標準ライブラリのみ）
 
 **主要インターフェース**:
 
 ```go
-type CircuitBreakerState int
+type State int
 
 const (
-    StateClosed   CircuitBreakerState = iota
+    StateClosed   State = iota
     StateOpen
     StateHalfOpen
 )
 
-type CircuitBreakerConfig struct {
-    FailureThreshold int
-    SuccessThreshold int
-    OpenDuration     time.Duration
-    HalfOpenMaxCalls int
+type Config struct {
+    FailureThreshold uint32
+    SuccessThreshold uint32
+    Timeout          time.Duration
 }
 
 type CircuitBreaker struct {
     // unexported fields
 }
 
-func NewCircuitBreaker(config CircuitBreakerConfig) *CircuitBreaker
+func New(cfg Config) *CircuitBreaker
 
-func (cb *CircuitBreaker) Execute(ctx context.Context, fn func() (any, error)) (any, error)
+func (cb *CircuitBreaker) Call(fn func() error) error
 
-func (cb *CircuitBreaker) State() CircuitBreakerState
+func (cb *CircuitBreaker) State() State
 
-func (cb *CircuitBreaker) Reset()
+func (cb *CircuitBreaker) IsOpen() bool
+
+func (cb *CircuitBreaker) RecordSuccess()
+
+func (cb *CircuitBreaker) RecordFailure()
 ```
 
 ## TypeScript 実装
@@ -159,28 +160,25 @@ circuit-breaker/
 **主要 API**:
 
 ```typescript
-export type CircuitBreakerState = 'closed' | 'open' | 'half_open';
+export type CircuitState = 'closed' | 'open' | 'half-open';
 
 export interface CircuitBreakerConfig {
   failureThreshold: number;
   successThreshold: number;
-  openDurationMs: number;
-  halfOpenMaxCalls?: number;
+  timeoutMs: number;
+}
+
+export class CircuitBreakerError extends Error {
+  constructor();
 }
 
 export class CircuitBreaker {
   constructor(config: CircuitBreakerConfig);
-  get state(): CircuitBreakerState;
-  async execute<T>(fn: () => Promise<T>): Promise<T>;
-  reset(): void;
-}
-
-export class CircuitOpenError extends Error {
-  constructor(public readonly remainingMs: number);
-}
-
-export class ExecutionFailedError extends Error {
-  constructor(message: string, public readonly cause?: Error);
+  get state(): CircuitState;
+  isOpen(): boolean;
+  recordSuccess(): void;
+  recordFailure(): void;
+  async call<T>(fn: () => Promise<T>): Promise<T>;
 }
 ```
 
@@ -213,14 +211,9 @@ circuit-breaker/
 
 ```
 circuit-breaker/
-├── src/
-│   ├── CircuitBreaker.csproj
-│   ├── ICircuitBreaker.cs          # サーキットブレーカーインターフェース
-│   ├── CircuitBreaker.cs           # 実装（スレッドセーフ）
-│   ├── CircuitBreakerState.cs      # Closed / Open / HalfOpen enum
-│   ├── CircuitBreakerConfig.cs     # 閾値・タイムアウト設定
-│   ├── CircuitBreakerMetrics.cs    # OpenTelemetry メトリクス連携
-│   └── CircuitBreakerException.cs  # 公開例外型
+├── CircuitBreaker.cs           # 実装（スレッドセーフ）
+├── ICircuitBreaker.cs          # CircuitState enum・CircuitBreakerConfig・CircuitBreakerOpenException
+├── K1s0.System.CircuitBreaker.csproj
 ├── tests/
 │   ├── CircuitBreaker.Tests.csproj
 │   ├── Unit/
@@ -244,48 +237,35 @@ circuit-breaker/
 
 | 型 | 種別 | 説明 |
 |---|------|------|
-| `ICircuitBreaker` | interface | サーキットブレーカー操作の抽象インターフェース |
 | `CircuitBreaker` | class | スレッドセーフな3状態管理実装 |
-| `CircuitBreakerState` | enum | Closed / Open / HalfOpen |
-| `CircuitBreakerConfig` | record | 失敗閾値・オープン時間・HalfOpen 試行数設定 |
-| `CircuitBreakerMetrics` | class | OpenTelemetry メトリクス記録 |
-| `CircuitBreakerException` | class | CircuitOpen・ExecutionFailed の例外型 |
+| `CircuitState` | enum | Closed / Open / HalfOpen |
+| `CircuitBreakerConfig` | record | 失敗閾値・成功閾値・タイムアウト設定 |
+| `CircuitBreakerOpenException` | class | サーキットブレーカーオープン時の例外型 |
 
 **主要 API**:
 
 ```csharp
 namespace K1s0.System.CircuitBreaker;
 
-public enum CircuitBreakerState { Closed, Open, HalfOpen }
+public enum CircuitState { Closed, Open, HalfOpen }
 
-public record CircuitBreakerConfig(
-    int FailureThreshold,
-    int SuccessThreshold,
-    TimeSpan OpenDuration,
-    int HalfOpenMaxCalls = 1);
+public record CircuitBreakerConfig(int FailureThreshold, int SuccessThreshold, TimeSpan Timeout);
 
-public interface ICircuitBreaker
-{
-    CircuitBreakerState State { get; }
+public class CircuitBreakerOpenException : Exception { }
 
-    Task<T> ExecuteAsync<T>(
-        Func<CancellationToken, Task<T>> fn,
-        CancellationToken ct = default);
-
-    void Reset();
-}
-
-public class CircuitBreaker : ICircuitBreaker
+public class CircuitBreaker
 {
     public CircuitBreaker(CircuitBreakerConfig config);
 
-    public CircuitBreakerState State { get; }
+    public CircuitState State { get; }
 
-    public Task<T> ExecuteAsync<T>(
-        Func<CancellationToken, Task<T>> fn,
-        CancellationToken ct = default);
+    public bool IsOpen { get; }
 
-    public void Reset();
+    public void RecordSuccess();
+
+    public void RecordFailure();
+
+    public Task<T> CallAsync<T>(Func<Task<T>> fn, CancellationToken ct = default);
 }
 ```
 

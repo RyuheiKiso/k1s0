@@ -51,12 +51,21 @@ async fn main() -> anyhow::Result<()> {
     // --- JWT 検証 ---
     let jwks_verifier = Arc::new(JwksVerifier::new(cfg.auth.jwks_url.clone()));
 
+    // --- Metrics ---
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-graphql-gateway-server",
+    ));
+
     // --- Resolver DI ---
     let tenant_query = Arc::new(TenantQueryResolver::new(tenant_client.clone()));
     let feature_flag_query = Arc::new(FeatureFlagQueryResolver::new(feature_flag_client.clone()));
     let config_query = Arc::new(ConfigQueryResolver::new(config_client.clone()));
     let tenant_mutation = Arc::new(TenantMutationResolver::new(tenant_client.clone()));
-    let subscription = Arc::new(SubscriptionResolver::new(config_client.clone()));
+    let subscription = Arc::new(SubscriptionResolver::new(
+        config_client.clone(),
+        tenant_client.clone(),
+        feature_flag_client.clone(),
+    ));
 
     // --- Router ---
     let app = graphql_handler::router(
@@ -68,6 +77,7 @@ async fn main() -> anyhow::Result<()> {
         subscription,
         feature_flag_client,
         cfg.graphql.clone(),
+        metrics,
     );
 
     let addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));

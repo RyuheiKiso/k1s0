@@ -75,6 +75,10 @@ pub fn router(state: AppState) -> Router {
             "/api/v1/sagas/:saga_id/cancel",
             post(saga_handler::cancel_saga),
         )
+        .route(
+            "/api/v1/sagas/:saga_id/compensate",
+            post(saga_handler::cancel_saga),
+        )
         // Workflow endpoints
         .route(
             "/api/v1/workflows",

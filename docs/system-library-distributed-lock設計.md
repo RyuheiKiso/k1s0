@@ -104,39 +104,35 @@ match lock.try_acquire("order:process:789").await {
 
 ```
 distributed-lock/
-├── lock.go
-├── postgres.go
-├── redis.go
-├── config.go
-├── lock_test.go
+├── distributedlock.go
+├── distributedlock_test.go
 ├── go.mod
 └── go.sum
 ```
 
-**依存関係**: `github.com/jackc/pgx/v5 v5.7.0`, `github.com/redis/go-redis/v9 v9.7.0`, `github.com/stretchr/testify v1.10.0`
+**依存関係**: なし（標準ライブラリのみ）
 
 **主要インターフェース**:
 
 ```go
-type DistributedLock interface {
-    Acquire(ctx context.Context, key string) (*LockGuard, error)
-    TryAcquire(ctx context.Context, key string) (*LockGuard, error)
-    Release(ctx context.Context, guard *LockGuard) error
-}
+var ErrAlreadyLocked = errors.New("既にロックされています")
+var ErrTokenMismatch = errors.New("トークンが一致しません")
+var ErrLockNotFound  = errors.New("ロックが見つかりません")
 
 type LockGuard struct {
     Key   string
     Token string
 }
 
-type LockConfig struct {
-    TTL           time.Duration
-    RetryInterval time.Duration
-    MaxRetries    int
+type DistributedLock interface {
+    Acquire(ctx context.Context, key string, ttl time.Duration) (*LockGuard, error)
+    Release(ctx context.Context, guard *LockGuard) error
+    IsLocked(ctx context.Context, key string) (bool, error)
 }
 
-func NewPostgresDistributedLock(db *pgxpool.Pool, config LockConfig) DistributedLock
-func NewRedisDistributedLock(client *redis.Client, config LockConfig) DistributedLock
+type InMemoryLock struct{}
+
+func NewInMemoryLock() *InMemoryLock
 ```
 
 ## TypeScript 実装

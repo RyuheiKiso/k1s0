@@ -1,0 +1,11 @@
+apiVersion: v2
+name: graphql-gateway
+description: k1s0 graphql-gateway service
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+  - name: k1s0-common
+    version: "0.1.0"
+    repository: "file://../../../charts/k1s0-common"

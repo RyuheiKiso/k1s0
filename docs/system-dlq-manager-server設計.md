@@ -317,7 +317,7 @@ usecase（ビジネスロジック）
   ^
 adapter（ハンドラー・プレゼンター）
   ^
-infra（DB接続・Kafka Consumer/Producer・設定ローダー）
+infrastructure（DB接続・Kafka Consumer/Producer・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
@@ -326,11 +326,11 @@ infra（DB接続・Kafka Consumer/Producer・設定ローダー）
 | domain/repository | `DlqMessageRepository` | リポジトリトレイト |
 | usecase | `ListMessagesUseCase`, `GetMessageUseCase`, `RetryMessageUseCase`, `DeleteMessageUseCase`, `RetryAllUseCase` | ユースケース |
 | adapter/handler | REST ハンドラー | プロトコル変換（axum） |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/database | DatabaseConfig | DB 接続設定 |
-| infra/kafka/consumer | `DlqKafkaConsumer` | DLQ トピック購読・メッセージ取り込み |
-| infra/kafka/producer | `DlqEventPublisher`, `DlqKafkaProducer` | 元トピックへの再発行 |
-| infra/persistence | `DlqPostgresRepository` | PostgreSQL リポジトリ実装 |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/database | DatabaseConfig | DB 接続設定 |
+| infrastructure/kafka/consumer | `DlqKafkaConsumer` | DLQ トピック購読・メッセージ取り込み |
+| infrastructure/kafka/producer | `DlqEventPublisher`, `DlqKafkaProducer` | 元トピックへの再発行 |
+| infrastructure/persistence | `DlqPostgresRepository` | PostgreSQL リポジトリ実装 |
 
 ### ドメインモデル
 
@@ -386,7 +386,7 @@ infra（DB接続・Kafka Consumer/Producer・設定ローダー）
     └────────────────┘              └──────────┬─────────────────┘   │
                                                │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Kafka        │  │ DlqPostgresRepository  │  │
                     │  │ Consumer +   │  │ InMemoryDlqRepository  │  │

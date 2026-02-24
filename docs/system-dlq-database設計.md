@@ -207,7 +207,7 @@ $$;
 
 | テーブル | インデックス名 | カラム | 種別 | 用途 |
 |----------|---------------|--------|------|------|
-| dlq_messages | idx_dlq_messages_topic | original_topic | B-tree | トピック別のメッセージ検索 |
+| dlq_messages | idx_dlq_messages_original_topic | original_topic | B-tree | トピック別のメッセージ検索 |
 | dlq_messages | idx_dlq_messages_status | status | B-tree | ステータス別のメッセージ検索（リトライ対象取得） |
 | dlq_messages | idx_dlq_messages_created_at | created_at | B-tree | 作成日時による範囲検索 |
 

@@ -2,7 +2,7 @@
 
 ## 概要
 
-指数バックオフリトライ + サーキットブレーカーパターン実装ライブラリ。サービス間 gRPC/HTTP 呼び出しで利用する。`RetryPolicy` と `CircuitBreaker` を組み合わせた `with_retry` / `with_circuit_breaker` 関数を提供する。OpenTelemetry メトリクス連携によりリトライ回数・サーキットブレーカー状態を計測する。
+指数バックオフリトライ + サーキットブレーカーパターン実装ライブラリ。サービス間 gRPC/HTTP 呼び出しで利用する。`RetryConfig` と `CircuitBreaker` を組み合わせた `with_retry` 関数を提供する。OpenTelemetry メトリクス連携によりリトライ回数・サーキットブレーカー状態を計測する。
 
 **配置先**: `regions/system/library/rust/retry/`
 
@@ -10,14 +10,11 @@
 
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `RetryPolicy` | 構造体 | 最大リトライ回数・基底遅延・最大遅延・ジッター設定 |
+| `RetryConfig` | 構造体 | 最大試行回数・初期遅延・最大遅延・倍率・ジッター設定 |
 | `CircuitBreaker` | 構造体 | 失敗閾値・オープン時間・ハーフオープン試行数設定 |
 | `CircuitBreakerState` | enum | `Closed`（正常）/ `Open`（遮断中）/ `HalfOpen`（試行中） |
-| `RetryableError` | トレイト | リトライ可能エラーの判定インターフェース |
-| `with_retry` | 関数 | RetryPolicy に基づいて非同期クロージャをリトライ実行 |
-| `with_circuit_breaker` | 関数 | CircuitBreaker 状態チェック + 実行 |
-| `RetryMetrics` | 構造体 | OpenTelemetry メトリクス（リトライ回数・失敗率） |
-| `RetryError` | enum | 最大リトライ超過・サーキットブレーカーオープン |
+| `with_retry` | 関数 | RetryConfig に基づいて非同期クロージャをリトライ実行 |
+| `RetryError` | enum | 最大リトライ超過 |
 
 ## Rust 実装
 
@@ -57,40 +54,29 @@ k1s0-retry = { path = "../../system/library/rust/retry", features = ["metrics"] 
 ```
 retry/
 ├── src/
-│   ├── lib.rs              # 公開 API・使用例ドキュメント
-│   ├── policy.rs           # RetryPolicy（指数バックオフ・ジッター設定）
+│   ├── lib.rs              # 公開 API（再エクスポート）
+│   ├── policy.rs           # RetryConfig（指数バックオフ・ジッター設定）
 │   ├── circuit_breaker.rs  # CircuitBreaker・CircuitBreakerState
-│   ├── retry.rs            # with_retry・with_circuit_breaker 関数
-│   ├── metrics.rs          # RetryMetrics（OTel メトリクス）
-│   └── error.rs            # RetryError・RetryableError トレイト
+│   ├── retry.rs            # with_retry 関数
+│   └── error.rs            # RetryError
 └── Cargo.toml
 ```
 
 **使用例**:
 
 ```rust
-use k1s0_retry::{RetryPolicy, CircuitBreaker, with_retry, with_circuit_breaker};
+use k1s0_retry::{RetryConfig, with_retry};
 use std::time::Duration;
 
 // 指数バックオフリトライ
-let policy = RetryPolicy::new()
-    .max_attempts(3)
-    .base_delay(Duration::from_millis(100))
-    .max_delay(Duration::from_secs(5))
-    .with_jitter();
+let config = RetryConfig::new(3)
+    .with_initial_delay(Duration::from_millis(100))
+    .with_max_delay(Duration::from_secs(5))
+    .with_multiplier(2.0)
+    .with_jitter(true);
 
-let result = with_retry(policy, || async {
+let result = with_retry(&config, || async {
     grpc_client.call_service(request.clone()).await
-}).await?;
-
-// サーキットブレーカー（連続5回失敗で30秒遮断）
-let cb = CircuitBreaker::new()
-    .failure_threshold(5)
-    .open_duration(Duration::from_secs(30))
-    .half_open_max_calls(2);
-
-let result = with_circuit_breaker(&cb, || async {
-    http_client.post("/api/v1/orders").send().await
 }).await?;
 ```
 
@@ -101,46 +87,34 @@ let result = with_circuit_breaker(&cb, || async {
 ```
 retry/
 ├── retry.go
-├── policy.go
-├── circuit_breaker.go
-├── metrics.go
 ├── retry_test.go
 ├── go.mod
 └── go.sum
 ```
 
-**依存関係**: `go.opentelemetry.io/otel v1.34`
+**依存関係**: なし（標準ライブラリのみ）
 
 **主要インターフェース**:
 
 ```go
-type RetryableError interface {
-    IsRetryable() bool
+type RetryConfig struct {
+    MaxAttempts  int
+    InitialDelay time.Duration
+    MaxDelay     time.Duration
+    Multiplier   float64
+    Jitter       bool
 }
 
-func WithRetry[T any](ctx context.Context, policy RetryPolicy, fn func() (T, error)) (T, error)
-func WithCircuitBreaker[T any](ctx context.Context, cb *CircuitBreaker, fn func() (T, error)) (T, error)
+func DefaultRetryConfig() *RetryConfig
 
-type RetryPolicy struct {
-    MaxAttempts int
-    BaseDelay   time.Duration
-    MaxDelay    time.Duration
-    Jitter      bool
+func (c *RetryConfig) ComputeDelay(attempt int) time.Duration
+
+func WithRetry[T any](ctx context.Context, config *RetryConfig, operation func(ctx context.Context) (T, error)) (T, error)
+
+type RetryError struct {
+    Attempts  int
+    LastError error
 }
-
-type CircuitBreaker struct {
-    FailureThreshold int
-    OpenDuration     time.Duration
-    HalfOpenMaxCalls int
-}
-
-type CircuitBreakerState int
-
-const (
-    StateClosed   CircuitBreakerState = iota
-    StateOpen
-    StateHalfOpen
-)
 ```
 
 ## TypeScript 実装
@@ -153,7 +127,7 @@ retry/
 ├── tsconfig.json
 ├── vitest.config.ts
 ├── src/
-│   └── index.ts        # RetryPolicy, CircuitBreaker, CircuitBreakerState, withRetry, RetryError
+│   └── index.ts        # RetryConfig, CircuitBreaker, CircuitBreakerState, withRetry, RetryError
 └── __tests__/
     ├── retry.test.ts
     └── circuit-breaker.test.ts
@@ -162,40 +136,43 @@ retry/
 **主要 API**:
 
 ```typescript
-export interface RetryPolicy {
+export interface RetryConfig {
   maxAttempts: number;
-  baseDelayMs: number;
+  initialDelayMs: number;
   maxDelayMs: number;
-  jitter?: boolean;
+  multiplier: number;
+  jitter: boolean;
+}
+
+export const defaultRetryConfig: RetryConfig;
+
+export function computeDelay(config: RetryConfig, attempt: number): number;
+
+export async function withRetry<T>(
+  config: RetryConfig,
+  operation: () => Promise<T>,
+): Promise<T>;
+
+export class RetryError extends Error {
+  constructor(public readonly attempts: number, public readonly lastError: Error);
 }
 
 export interface CircuitBreakerConfig {
   failureThreshold: number;
-  openDurationMs: number;
-  halfOpenMaxCalls?: number;
+  successThreshold: number;
+  timeoutMs: number;
 }
 
-export type CircuitBreakerState = 'closed' | 'open' | 'half_open';
+export const defaultCircuitBreakerConfig: CircuitBreakerConfig;
 
-export async function withRetry<T>(
-  policy: RetryPolicy,
-  fn: () => Promise<T>,
-  isRetryable?: (error: unknown) => boolean
-): Promise<T>;
+export type CircuitBreakerState = 'closed' | 'open' | 'half-open';
 
 export class CircuitBreaker {
-  constructor(config: CircuitBreakerConfig);
-  get state(): CircuitBreakerState;
-  async execute<T>(fn: () => Promise<T>): Promise<T>;
-  reset(): void;
-}
-
-export class RetryError extends Error {
-  constructor(message: string, public readonly attempts: number, public readonly lastError?: Error);
-}
-
-export class CircuitBreakerOpenError extends Error {
-  constructor(public readonly remainingMs: number);
+  constructor(config?: Partial<CircuitBreakerConfig>);
+  getState(): CircuitBreakerState;
+  isOpen(): boolean;
+  recordSuccess(): void;
+  recordFailure(): void;
 }
 ```
 
@@ -210,16 +187,54 @@ retry/
 ├── pubspec.yaml        # k1s0_retry
 ├── analysis_options.yaml
 ├── lib/
+│   ├── k1s0_retry.dart          # ライブラリエクスポート
 │   ├── retry.dart
 │   └── src/
-│       ├── policy.dart          # RetryPolicy（指数バックオフ・ジッター設定）
-│       ├── circuit_breaker.dart # CircuitBreaker・CircuitBreakerState
-│       ├── retry.dart           # withRetry・withCircuitBreaker 関数
-│       ├── metrics.dart         # RetryMetrics
-│       └── error.dart           # RetryError・CircuitBreakerOpenError
+│       ├── config.dart          # RetryConfig（指数バックオフ・ジッター設定）・computeDelay
+│       ├── circuit_breaker.dart # CircuitBreaker・CircuitBreakerState・CircuitBreakerConfig
+│       ├── retry.dart           # withRetry 関数
+│       └── error.dart           # RetryError
 └── test/
     ├── retry_test.dart
     └── circuit_breaker_test.dart
+```
+
+**主要 API**:
+
+```dart
+class RetryConfig {
+  final int maxAttempts;
+  final int initialDelayMs;
+  final int maxDelayMs;
+  final double multiplier;
+  final bool jitter;
+  const RetryConfig({...});
+}
+
+int computeDelay(RetryConfig config, int attempt);
+
+Future<T> withRetry<T>(RetryConfig config, Future<T> Function() operation);
+
+class RetryError implements Exception {
+  final int attempts;
+  final Object lastError;
+}
+
+enum CircuitBreakerState { closed, open, halfOpen }
+
+class CircuitBreakerConfig {
+  final int failureThreshold;
+  final int successThreshold;
+  final int timeoutMs;
+}
+
+class CircuitBreaker {
+  CircuitBreaker({CircuitBreakerConfig? config});
+  CircuitBreakerState get state;
+  bool get isOpen;
+  void recordSuccess();
+  void recordFailure();
+}
 ```
 
 **カバレッジ目標**: 90%以上
@@ -230,30 +245,16 @@ retry/
 
 ```
 retry/
-├── src/
-│   ├── Retry.csproj
-│   ├── RetryPolicy.cs             # リトライポリシー設定
-│   ├── CircuitBreaker.cs          # サーキットブレーカー実装
-│   ├── CircuitBreakerState.cs     # Closed / Open / HalfOpen enum
-│   ├── RetryExtensions.cs         # WithRetryAsync 拡張メソッド
-│   ├── RetryMetrics.cs            # OpenTelemetry メトリクス連携
-│   └── RetryException.cs          # 公開例外型
+├── RetryConfig.cs             # RetryConfig record（指数バックオフ・ジッター設定）
+├── RetryPolicy.cs             # RetryPolicy static class（WithRetryAsync）
+├── CircuitBreaker.cs          # CircuitBreaker・CircuitBreakerState・CircuitBreakerConfig
+├── RetryError.cs              # RetryExhaustedException
+├── K1s0.System.Retry.csproj
 ├── tests/
-│   ├── Retry.Tests.csproj
-│   ├── Unit/
-│   │   ├── RetryPolicyTests.cs
-│   │   └── CircuitBreakerTests.cs
-│   └── Integration/
-│       └── RetryIntegrationTests.cs
-├── .editorconfig
-└── README.md
+│   ├── K1s0.System.Retry.Tests.csproj
+│   └── RetryPolicyTests.cs
+└── .editorconfig
 ```
-
-**NuGet 依存関係**:
-
-| パッケージ | 用途 |
-|-----------|------|
-| OpenTelemetry | メトリクス連携 |
 
 **名前空間**: `K1s0.System.Retry`
 
@@ -261,49 +262,61 @@ retry/
 
 | 型 | 種別 | 説明 |
 |---|------|------|
-| `RetryPolicy` | record | 最大リトライ回数・基底遅延・最大遅延・ジッター設定 |
-| `CircuitBreaker` | class | 失敗閾値・オープン時間・状態管理 |
+| `RetryConfig` | record | 最大リトライ回数・初期遅延・最大遅延・倍率・ジッター設定 |
+| `RetryPolicy` | static class | `WithRetryAsync` 静的メソッド |
+| `CircuitBreaker` | class | 失敗閾値・成功閾値・タイムアウト・状態管理 |
 | `CircuitBreakerState` | enum | Closed / Open / HalfOpen |
-| `RetryExtensions` | static class | `WithRetryAsync` 拡張メソッド |
-| `RetryMetrics` | class | OpenTelemetry メトリクス記録 |
-| `RetryException` | class | リトライ超過・サーキットブレーカーオープンの例外型 |
+| `CircuitBreakerConfig` | class | FailureThreshold / SuccessThreshold / Timeout 設定 |
+| `RetryExhaustedException` | class | リトライ超過例外 |
 
 **主要 API**:
 
 ```csharp
 namespace K1s0.System.Retry;
 
-public record RetryPolicy(
-    int MaxAttempts,
-    TimeSpan BaseDelay,
-    TimeSpan MaxDelay,
-    bool Jitter = true);
+public record RetryConfig(
+    int MaxAttempts = 3,
+    TimeSpan? InitialDelay = null,
+    TimeSpan? MaxDelay = null,
+    double Multiplier = 2.0,
+    bool Jitter = true)
+{
+    public TimeSpan ComputeDelay(int attempt);
+}
 
-public static class RetryExtensions
+public static class RetryPolicy
 {
     public static Task<T> WithRetryAsync<T>(
-        this RetryPolicy policy,
-        Func<CancellationToken, Task<T>> fn,
-        Func<Exception, bool>? isRetryable = null,
-        CancellationToken ct = default);
+        RetryConfig config, Func<Task<T>> operation);
+    public static Task WithRetryAsync(
+        RetryConfig config, Func<Task> operation);
+}
+
+public class RetryExhaustedException : Exception
+{
+    public int Attempts { get; }
+    public Exception LastError { get; }
 }
 
 public enum CircuitBreakerState { Closed, Open, HalfOpen }
 
+public class CircuitBreakerConfig
+{
+    public int FailureThreshold { get; init; }     // default: 5
+    public int SuccessThreshold { get; init; }     // default: 2
+    public TimeSpan Timeout { get; init; }         // default: 30s
+}
+
 public class CircuitBreaker
 {
-    public CircuitBreaker(
-        int failureThreshold,
-        TimeSpan openDuration,
-        int halfOpenMaxCalls = 1);
+    public CircuitBreaker(CircuitBreakerConfig config);
 
     public CircuitBreakerState State { get; }
 
-    public Task<T> ExecuteAsync<T>(
-        Func<CancellationToken, Task<T>> fn,
-        CancellationToken ct = default);
+    public bool IsOpen();
 
-    public void Reset();
+    public Task RecordSuccessAsync();
+    public Task RecordFailureAsync();
 }
 ```
 
@@ -321,41 +334,54 @@ public class CircuitBreaker
 ### 主要な公開API
 
 ```swift
-public struct RetryPolicy: Sendable {
+public struct RetryConfig: Sendable {
     public let maxAttempts: Int
-    public let baseDelay: Duration
-    public let maxDelay: Duration
+    public let initialDelay: TimeInterval
+    public let maxDelay: TimeInterval
+    public let multiplier: Double
     public let jitter: Bool
 
     public init(
         maxAttempts: Int = 3,
-        baseDelay: Duration = .milliseconds(100),
-        maxDelay: Duration = .seconds(5),
-        jitter: Bool = true
+        initialDelay: TimeInterval = 0.1,
+        maxDelay: TimeInterval = 30.0,
+        multiplier: Double = 2.0,
+        jitter: Bool = false
     )
+
+    public static let `default`: RetryConfig
 }
 
 public func withRetry<T: Sendable>(
-    policy: RetryPolicy,
-    operation: @Sendable () async throws -> T
+    _ operation: @Sendable () async throws -> T,
+    config: RetryConfig = .default
 ) async throws -> T
 
-public actor CircuitBreaker {
-    public enum State: Sendable { case closed, open, halfOpen }
+public enum CircuitBreakerState: Sendable, Equatable {
+    case closed, open, halfOpen
+}
+
+public struct CircuitBreakerConfig: Sendable {
+    public let failureThreshold: Int
+    public let successThreshold: Int
+    public let timeout: TimeInterval
 
     public init(
         failureThreshold: Int = 5,
-        openDuration: Duration = .seconds(30),
-        halfOpenMaxCalls: Int = 2
+        successThreshold: Int = 2,
+        timeout: TimeInterval = 60.0
     )
+}
 
-    public var state: State { get }
+public actor CircuitBreaker {
+    public init(config: CircuitBreakerConfig = CircuitBreakerConfig())
 
-    public func execute<T: Sendable>(
-        _ operation: @Sendable () async throws -> T
-    ) async throws -> T
+    public var state: CircuitBreakerState { get }
 
-    public func reset()
+    public func isOpen() -> Bool
+    public func recordSuccess()
+    public func recordFailure()
+    public func tryTransitionToHalfOpen()
 }
 ```
 
@@ -363,8 +389,8 @@ public actor CircuitBreaker {
 
 ```swift
 public enum RetryError: Error, Sendable {
-    case maxAttemptsExceeded(attempts: Int, lastError: Error)
-    case circuitBreakerOpen(remainingDuration: Duration)
+    case maxAttemptsReached(Int)
+    case cancelled
 }
 ```
 
@@ -386,11 +412,10 @@ retry/
 ├── src/
 │   └── k1s0_retry/
 │       ├── __init__.py           # 公開 API（再エクスポート）
-│       ├── policy.py             # RetryPolicy dataclass
-│       ├── circuit_breaker.py    # CircuitBreaker, CircuitBreakerState
-│       ├── retry.py              # with_retry（同期/非同期対応）
-│       ├── metrics.py            # RetryMetrics（OTel 連携）
-│       ├── exceptions.py         # RetryError, CircuitBreakerOpenError
+│       ├── models.py             # RetryConfig dataclass
+│       ├── memory.py             # CircuitBreaker, CircuitBreakerState
+│       ├── client.py             # with_retry（非同期）
+│       ├── exceptions.py         # RetryError
 │       └── py.typed
 └── tests/
     ├── test_policy.py
@@ -402,31 +427,31 @@ retry/
 
 | 型 | 種別 | 説明 |
 |---|------|------|
-| `RetryPolicy` | dataclass | 最大試行回数・基底遅延・最大遅延・ジッター設定 |
-| `CircuitBreaker` | class | 失敗閾値・オープン時間・状態管理 |
+| `RetryConfig` | dataclass | 最大試行回数・初期遅延・最大遅延・倍率・ジッター設定 |
+| `CircuitBreaker` | class | 失敗閾値・成功閾値・タイムアウト・状態管理 |
 | `CircuitBreakerState` | Enum | CLOSED / OPEN / HALF_OPEN |
-| `with_retry` | 関数 | RetryPolicy によるリトライ実行（同期/非同期対応） |
+| `with_retry` | 関数 | RetryConfig による非同期リトライ実行 |
 | `RetryError` | Exception | 最大リトライ超過エラー |
-| `CircuitBreakerOpenError` | Exception | サーキットブレーカーオープン時エラー |
 
 ### 使用例
 
 ```python
 import asyncio
-from k1s0_retry import RetryPolicy, CircuitBreaker, with_retry
+from k1s0_retry import RetryConfig, CircuitBreaker, with_retry
 
 # 指数バックオフリトライ
-policy = RetryPolicy(
+config = RetryConfig(
     max_attempts=3,
-    base_delay=0.1,
-    max_delay=5.0,
+    initial_delay=0.1,
+    max_delay=30.0,
+    multiplier=2.0,
     jitter=True,
 )
 
 # 非同期リトライ
 async def call_service():
     result = await with_retry(
-        policy,
+        config,
         grpc_client.call_service,
     )
     return result
@@ -434,20 +459,16 @@ async def call_service():
 # サーキットブレーカー
 cb = CircuitBreaker(
     failure_threshold=5,
-    open_duration=30.0,
-    half_open_max_calls=2,
+    success_threshold=2,
+    timeout=30.0,
 )
 
-async def call_with_cb():
-    result = await cb.execute(http_client.post, "/api/v1/orders")
-    return result
+# 状態確認・手動記録
+print(f"State: {cb.state}")
+cb.record_success()
+cb.record_failure()
+print(f"Is open: {cb.is_open()}")
 ```
-
-### 依存ライブラリ
-
-| パッケージ | バージョン | 用途 |
-|-----------|-----------|------|
-| opentelemetry-api | >=1.29 | メトリクス連携 |
 
 ### テスト方針
 

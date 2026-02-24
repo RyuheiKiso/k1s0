@@ -116,39 +116,47 @@ let app = Router::new()
 ```
 health/
 ├── health.go
-├── checker.go
-├── checks/
-│   ├── postgres.go
-│   ├── redis.go
-│   └── http.go
 ├── health_test.go
 ├── go.mod
 └── go.sum
 ```
 
-**依存関係**: `github.com/jackc/pgx/v5 v5.7.0`, `github.com/redis/go-redis/v9 v9.7.0`, `github.com/stretchr/testify v1.10.0`
+**依存関係**: なし（標準ライブラリのみ）
 
 **主要インターフェース**:
 
 ```go
-type HealthCheck interface {
-    Name() string
-    Check(ctx context.Context) (HealthStatus, error)
-}
-
-type HealthStatus string
+type Status string
 
 const (
-    StatusHealthy   HealthStatus = "Healthy"
-    StatusDegraded  HealthStatus = "Degraded"
-    StatusUnhealthy HealthStatus = "Unhealthy"
+    StatusHealthy   Status = "healthy"
+    StatusDegraded  Status = "degraded"
+    StatusUnhealthy Status = "unhealthy"
 )
 
-type HealthChecker struct{}
+type CheckResult struct {
+    Status  Status
+    Message string
+}
 
-func NewHealthChecker() *HealthChecker
-func (h *HealthChecker) AddCheck(check HealthCheck) *HealthChecker
-func (h *HealthChecker) Readyz(ctx context.Context) HealthResponse
+type HealthResponse struct {
+    Status    Status
+    Checks    map[string]CheckResult
+    Timestamp time.Time
+}
+
+type HealthCheck interface {
+    Name() string
+    Check(ctx context.Context) error
+}
+
+type Checker struct{}
+
+func NewChecker() *Checker
+func (c *Checker) Add(check HealthCheck)
+func (c *Checker) RunAll(ctx context.Context) HealthResponse
+func (c *Checker) Readyz(ctx context.Context) HealthResponse
+func (c *Checker) Healthz() map[string]string
 ```
 
 ## TypeScript 実装

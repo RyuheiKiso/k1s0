@@ -1,9 +1,35 @@
 use serde::{Deserialize, Serialize};
 
+use crate::error::PaginationError;
+
+const MIN_PER_PAGE: u32 = 1;
+const MAX_PER_PAGE: u32 = 100;
+
+/// Validate that per_page is between 1 and 100.
+pub fn validate_per_page(per_page: u32) -> Result<u32, PaginationError> {
+    if per_page < MIN_PER_PAGE || per_page > MAX_PER_PAGE {
+        return Err(PaginationError::InvalidPerPage {
+            value: per_page,
+            min: MIN_PER_PAGE,
+            max: MAX_PER_PAGE,
+        });
+    }
+    Ok(per_page)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PageRequest {
     pub page: u32,
     pub per_page: u32,
+}
+
+/// Offset pagination metadata.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaginationMeta {
+    pub total: u64,
+    pub page: u32,
+    pub per_page: u32,
+    pub total_pages: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,6 +54,16 @@ impl<T> PageResponse<T> {
             page: request.page,
             per_page: request.per_page,
             total_pages,
+        }
+    }
+
+    /// Return the pagination metadata for this response.
+    pub fn meta(&self) -> PaginationMeta {
+        PaginationMeta {
+            total: self.total,
+            page: self.page,
+            per_page: self.per_page,
+            total_pages: self.total_pages,
         }
     }
 }
@@ -61,5 +97,48 @@ mod tests {
         let items: Vec<i32> = vec![];
         let response = PageResponse::new(items, 10, &request);
         assert_eq!(response.total_pages, 2);
+    }
+
+    #[test]
+    fn test_page_response_meta() {
+        let request = PageRequest {
+            page: 2,
+            per_page: 10,
+        };
+        let response = PageResponse::new(vec![1, 2, 3], 25, &request);
+        let meta = response.meta();
+        assert_eq!(meta.total, 25);
+        assert_eq!(meta.page, 2);
+        assert_eq!(meta.per_page, 10);
+        assert_eq!(meta.total_pages, 3);
+    }
+
+    #[test]
+    fn test_validate_per_page_valid() {
+        assert!(validate_per_page(1).is_ok());
+        assert!(validate_per_page(50).is_ok());
+        assert!(validate_per_page(100).is_ok());
+    }
+
+    #[test]
+    fn test_validate_per_page_zero() {
+        assert!(validate_per_page(0).is_err());
+    }
+
+    #[test]
+    fn test_validate_per_page_over_max() {
+        assert!(validate_per_page(101).is_err());
+    }
+
+    #[test]
+    fn test_pagination_meta_fields() {
+        let meta = PaginationMeta {
+            total: 100,
+            page: 1,
+            per_page: 10,
+            total_pages: 10,
+        };
+        assert_eq!(meta.total, 100);
+        assert_eq!(meta.total_pages, 10);
     }
 }

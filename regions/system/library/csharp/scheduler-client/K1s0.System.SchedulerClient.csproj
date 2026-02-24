@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>K1s0.System.SchedulerClient</RootNamespace>
+    <AssemblyName>K1s0.System.SchedulerClient</AssemblyName>
+    <Version>0.1.0</Version>
   </PropertyGroup>
 </Project>

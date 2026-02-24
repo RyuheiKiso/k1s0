@@ -73,6 +73,31 @@ impl ConfigSchemaRepository for ConfigSchemaPostgresRepository {
         }
     }
 
+    async fn list_all(&self) -> anyhow::Result<Vec<ConfigSchema>> {
+        let start = std::time::Instant::now();
+        let rows = sqlx::query(
+            r#"
+            SELECT id, service_name, namespace_prefix, schema_json,
+                   updated_by, created_at, updated_at
+            FROM config.config_schemas
+            ORDER BY service_name ASC
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        if let Some(ref m) = self.metrics {
+            m.record_db_query_duration(
+                "list_all",
+                "config_schemas",
+                start.elapsed().as_secs_f64(),
+            );
+        }
+
+        rows.into_iter()
+            .map(|row| row_to_config_schema(row).map_err(|e| anyhow::anyhow!(e)))
+            .collect()
+    }
+
     async fn upsert(&self, schema: &ConfigSchema) -> anyhow::Result<ConfigSchema> {
         let start = std::time::Instant::now();
         let row = sqlx::query(

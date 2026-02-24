@@ -100,12 +100,12 @@ api/proto/k1s0/
     │       └── v1/config_events.proto    # 設定変更イベント
     ├── business/
     │   └── accounting/
-    │       └── v1/entry_event.proto
+    │       └── v1/accounting_events.proto
     └── service/
         ├── order/
-        │   └── v1/order_event.proto
+        │   └── v1/order_events.proto
         └── inventory/
-            └── v1/inventory_event.proto
+            └── v1/inventory_events.proto
 ```
 
 ---

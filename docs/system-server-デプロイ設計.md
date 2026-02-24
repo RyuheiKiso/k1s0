@@ -6,26 +6,26 @@ system-server（認証サーバー）の DB マイグレーション・テスト
 
 ## データベースマイグレーション
 
-監査ログテーブルは PostgreSQL に格納する。ユーザー情報は Keycloak が管理するため、認証サーバーの DB には監査ログのみを格納する。
+監査ログテーブルは PostgreSQL に格納する。ユーザー情報は Keycloak が管理するため、認証サーバーの DB には監査ログのみを格納する。詳細スキーマは [system-database設計.md](system-database設計.md) 参照。
 
 ```sql
 -- migrations/006_create_audit_logs.up.sql
 -- auth-db: audit_logs テーブル作成（月次パーティショニング）
--- 詳細スキーマは system-database設計.md 参照
 
 CREATE TABLE IF NOT EXISTS auth.audit_logs (
-    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id     UUID         REFERENCES auth.users(id) ON DELETE SET NULL,
+    id          UUID         NOT NULL DEFAULT gen_random_uuid(),
+    user_id     TEXT,
     event_type  VARCHAR(100) NOT NULL,
     action      VARCHAR(100) NOT NULL,
     resource    VARCHAR(255),
     resource_id VARCHAR(255),
     result      VARCHAR(50)  NOT NULL DEFAULT 'SUCCESS',
     detail      JSONB,
-    ip_address  INET,
+    ip_address  TEXT,
     user_agent  TEXT,
     trace_id    VARCHAR(64),
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
 
 -- インデックス
@@ -33,9 +33,15 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id_created_at
     ON auth.audit_logs (user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_event_type_created_at
     ON auth.audit_logs (event_type, created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action_created_at
+    ON auth.audit_logs (action, created_at);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_trace_id
     ON auth.audit_logs (trace_id) WHERE trace_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_audit_logs_resource
+    ON auth.audit_logs (resource, resource_id) WHERE resource IS NOT NULL;
 ```
+
+> **注意**: パーティショニングテーブルの PRIMARY KEY は `(id, created_at)` の複合キーである。PostgreSQL のパーティショニングではパーティションキー（`created_at`）を PRIMARY KEY に含める必要がある。また `user_id` は `TEXT` 型（FK なし）、`ip_address` は `TEXT` 型（INET ではなく IPv4/IPv6 文字列を柔軟に格納）。
 
 ---
 
@@ -49,8 +55,8 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_trace_id
 | usecase | 単体テスト（モック） | `mockall` |
 | adapter/handler | 統合テスト（HTTP/gRPC） | `axum::test` + `tokio::test` |
 | adapter/gateway | 統合テスト | `mockall` + `wiremock` |
-| infra/persistence | 統合テスト（DB） | `testcontainers` |
-| infra/auth | 単体テスト | `tokio::test` |
+| infrastructure/persistence | 統合テスト（DB） | `testcontainers` |
+| infrastructure/auth | 単体テスト | `tokio::test` |
 
 ### テスト例
 
@@ -59,8 +65,8 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_trace_id
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::infra::auth::MockTokenVerifier;
-    use crate::infra::config::JwtConfig;
+    use crate::infrastructure::auth::MockTokenVerifier;
+    use crate::infrastructure::config::JwtConfig;
 
     #[tokio::test]
     async fn test_validate_token_success() {
@@ -122,7 +128,7 @@ mod tests {
 ### testcontainers による DB 統合テスト
 
 ```rust
-// src/infra/persistence/audit_log_repository_test.rs
+// src/infrastructure/persistence/audit_log_repository_test.rs
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -187,28 +193,52 @@ mod tests {
 
 ### Dockerfile
 
-[Dockerイメージ戦略.md](Dockerイメージ戦略.md) のテンプレートに従う。
+[Dockerイメージ戦略.md](Dockerイメージ戦略.md) のテンプレートに従う。ビルドコンテキストは `regions/system`（ライブラリ依存解決のため）。
 
 ```dockerfile
-# ---- Build ----
-FROM rust:1.82-bookworm AS build
-WORKDIR /src
+# Build stage
+# Note: build context must be ./regions/system (to include library dependencies)
+FROM rust:1.88-bookworm AS builder
 
-# protoc のインストール（tonic-build に必要）
-RUN apt-get update && apt-get install -y protobuf-compiler && rm -rf /var/lib/apt/lists/*
+# Install protobuf compiler (for tonic-build in build.rs) and
+# cmake + build-essential (for rdkafka cmake-build feature)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    protobuf-compiler \
+    cmake \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release && rm -rf src
+WORKDIR /app
+
+# Copy the entire system directory to resolve path dependencies
 COPY . .
-RUN cargo build --release
 
-# ---- Runtime ----
-FROM gcr.io/distroless/cc-debian12
-COPY --from=build /src/target/release/auth-server /app
+RUN cargo build --release -p k1s0-auth-server
+
+# Runtime stage
+FROM gcr.io/distroless/cc-debian12:nonroot
+
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
+COPY --from=builder /app/target/release/k1s0-auth-server /k1s0-auth-server
+
 USER nonroot:nonroot
 EXPOSE 8080 50051
-ENTRYPOINT ["/app"]
+
+ENTRYPOINT ["/k1s0-auth-server"]
 ```
+
+### Dockerfile 構成のポイント
+
+| 項目 | 詳細 |
+| --- | --- |
+| ビルドステージ | `rust:1.88-bookworm`（マルチステージビルド） |
+| ランタイムステージ | `gcr.io/distroless/cc-debian12:nonroot`（最小イメージ） |
+| 追加パッケージ | `protobuf-compiler`（proto 生成）、`cmake` + `build-essential`（rdkafka ビルド） |
+| libz コピー | distroless には zlib が含まれないため、ビルドステージから手動コピー |
+| ビルドコマンド | `cargo build --release -p k1s0-auth-server`（ワークスペースから特定パッケージを指定） |
+| ビルドコンテキスト | `regions/system`（`COPY . .` でシステム全体のライブラリ依存を含める） |
+| 公開ポート | 8080（REST API）、50051（gRPC） |
+| 実行ユーザー | `nonroot:nonroot`（セキュリティベストプラクティス） |
 
 ### Helm values
 

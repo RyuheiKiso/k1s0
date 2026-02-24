@@ -16,6 +16,9 @@ export interface HealthCheck {
   check(): Promise<void>;
 }
 
+export { HttpHealthCheck } from './http-health-check.js';
+export type { HttpHealthCheckOptions } from './http-health-check.js';
+
 export class HealthChecker {
   private checks: HealthCheck[] = [];
 

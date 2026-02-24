@@ -118,30 +118,25 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let app = axum::Router::new()
-        .route("/health", axum::routing::get(adapter::handler::health::health))
+        .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
+        .route("/readyz", axum::routing::get(adapter::handler::health::readyz))
         .route(
-            "/sessions",
+            "/api/v1/sessions",
             axum::routing::post(adapter::handler::session_handler::create_session),
         )
         .route(
-            "/sessions/{id}",
-            axum::routing::get(adapter::handler::session_handler::get_session),
+            "/api/v1/sessions/:id",
+            axum::routing::get(adapter::handler::session_handler::get_session)
+                .delete(adapter::handler::session_handler::revoke_session),
         )
         .route(
-            "/sessions/{id}/refresh",
-            axum::routing::put(adapter::handler::session_handler::refresh_session),
+            "/api/v1/sessions/:id/refresh",
+            axum::routing::post(adapter::handler::session_handler::refresh_session),
         )
         .route(
-            "/sessions/{id}",
-            axum::routing::delete(adapter::handler::session_handler::revoke_session),
-        )
-        .route(
-            "/users/{user_id}/sessions",
-            axum::routing::get(adapter::handler::session_handler::list_user_sessions),
-        )
-        .route(
-            "/users/{user_id}/sessions",
-            axum::routing::delete(adapter::handler::session_handler::revoke_all_sessions),
+            "/api/v1/users/:user_id/sessions",
+            axum::routing::get(adapter::handler::session_handler::list_user_sessions)
+                .delete(adapter::handler::session_handler::revoke_all_sessions),
         )
         .with_state(state);
 

@@ -12,9 +12,14 @@ mod infrastructure;
 mod usecase;
 
 use adapter::grpc::EventStoreGrpcService;
+use adapter::handler::{self, AppState};
 use domain::entity::event::{EventStream, Snapshot, StoredEvent};
 use domain::repository::{EventRepository, EventStreamRepository, SnapshotRepository};
 use infrastructure::config::Config;
+use infrastructure::kafka::EventPublisher;
+use infrastructure::persistence::{
+    EventPostgresRepository, SnapshotPostgresRepository, StreamPostgresRepository,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -40,58 +45,114 @@ async fn main() -> anyhow::Result<()> {
         "starting event-store server"
     );
 
-    let stream_repo: Arc<dyn EventStreamRepository> =
-        Arc::new(InMemoryEventStreamRepository::new());
-    let event_repo: Arc<dyn EventRepository> = Arc::new(InMemoryEventRepository::new());
-    let snapshot_repo: Arc<dyn SnapshotRepository> =
-        Arc::new(InMemorySnapshotRepository::new());
+    // Database pool (optional)
+    let db_pool = if let Some(ref db_config) = cfg.database {
+        let _url = std::env::var("DATABASE_URL").unwrap_or_else(|_| db_config.url.clone());
+        info!("connecting to database");
+        let pool = infrastructure::database::connect(db_config).await?;
+        info!("database connection pool established");
+        Some(pool)
+    } else if let Ok(url) = std::env::var("DATABASE_URL") {
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(25)
+            .connect(&url)
+            .await?;
+        info!("database connection pool established from DATABASE_URL");
+        Some(pool)
+    } else {
+        info!("no database configured, using in-memory repositories");
+        None
+    };
 
-    let _append_events_uc = Arc::new(usecase::AppendEventsUseCase::new(
+    // Repositories
+    let stream_repo: Arc<dyn EventStreamRepository> = if let Some(ref pool) = db_pool {
+        Arc::new(StreamPostgresRepository::new(pool.clone()))
+    } else {
+        Arc::new(InMemoryEventStreamRepository::new())
+    };
+
+    let event_repo: Arc<dyn EventRepository> = if let Some(ref pool) = db_pool {
+        Arc::new(EventPostgresRepository::new(pool.clone()))
+    } else {
+        Arc::new(InMemoryEventRepository::new())
+    };
+
+    let snapshot_repo: Arc<dyn SnapshotRepository> = if let Some(ref pool) = db_pool {
+        Arc::new(SnapshotPostgresRepository::new(pool.clone()))
+    } else {
+        Arc::new(InMemorySnapshotRepository::new())
+    };
+
+    // Kafka producer (optional)
+    let event_publisher: Arc<dyn EventPublisher> = if let Some(ref kafka_config) = cfg.kafka {
+        match infrastructure::kafka::EventStoreKafkaProducer::new(kafka_config) {
+            Ok(producer) => {
+                info!("kafka producer initialized");
+                Arc::new(producer)
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "failed to create kafka producer, using noop publisher");
+                Arc::new(infrastructure::kafka::NoopEventPublisher)
+            }
+        }
+    } else {
+        info!("no kafka configured, using noop publisher");
+        Arc::new(infrastructure::kafka::NoopEventPublisher)
+    };
+
+    // Use cases
+    let append_events_uc = Arc::new(usecase::AppendEventsUseCase::new(
         stream_repo.clone(),
         event_repo.clone(),
     ));
-    let _read_events_uc = Arc::new(usecase::ReadEventsUseCase::new(
+    let read_events_uc = Arc::new(usecase::ReadEventsUseCase::new(
         stream_repo.clone(),
         event_repo.clone(),
     ));
-    let _read_event_by_sequence_uc = Arc::new(usecase::ReadEventBySequenceUseCase::new(
+    let read_event_by_sequence_uc = Arc::new(usecase::ReadEventBySequenceUseCase::new(
         stream_repo.clone(),
         event_repo.clone(),
     ));
-    let _create_snapshot_uc = Arc::new(usecase::CreateSnapshotUseCase::new(
+    let create_snapshot_uc = Arc::new(usecase::CreateSnapshotUseCase::new(
         stream_repo.clone(),
         snapshot_repo.clone(),
     ));
-    let _get_latest_snapshot_uc = Arc::new(usecase::GetLatestSnapshotUseCase::new(
+    let get_latest_snapshot_uc = Arc::new(usecase::GetLatestSnapshotUseCase::new(
         stream_repo.clone(),
         snapshot_repo.clone(),
     ));
     let _delete_stream_uc = Arc::new(usecase::DeleteStreamUseCase::new(
-        stream_repo,
-        event_repo,
-        snapshot_repo,
+        stream_repo.clone(),
+        event_repo.clone(),
+        snapshot_repo.clone(),
     ));
 
+    // gRPC service
     let _grpc_svc = Arc::new(EventStoreGrpcService::new(
-        _append_events_uc,
-        _read_events_uc,
-        _read_event_by_sequence_uc,
-        _create_snapshot_uc,
-        _get_latest_snapshot_uc,
+        append_events_uc.clone(),
+        read_events_uc.clone(),
+        read_event_by_sequence_uc,
+        create_snapshot_uc.clone(),
+        get_latest_snapshot_uc.clone(),
     ));
 
-    let grpc_addr: std::net::SocketAddr = "0.0.0.0:9090".parse()?;
+    let grpc_addr: std::net::SocketAddr =
+        format!("{}:{}", cfg.server.host, cfg.server.grpc_port).parse()?;
     info!("gRPC server starting on {}", grpc_addr);
 
-    let app = axum::Router::new()
-        .route(
-            "/healthz",
-            axum::routing::get(adapter::handler::health::healthz),
-        )
-        .route(
-            "/readyz",
-            axum::routing::get(adapter::handler::health::readyz),
-        );
+    // REST AppState
+    let state = AppState {
+        append_events_uc,
+        read_events_uc,
+        create_snapshot_uc,
+        get_latest_snapshot_uc,
+        stream_repo,
+        event_repo,
+        event_publisher,
+    };
+
+    // Router
+    let app = handler::router(state);
 
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);
@@ -121,6 +182,17 @@ impl EventStreamRepository for InMemoryEventStreamRepository {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<EventStream>> {
         let streams = self.streams.read().await;
         Ok(streams.get(id).cloned())
+    }
+
+    async fn list_all(&self, page: u32, page_size: u32) -> anyhow::Result<(Vec<EventStream>, u64)> {
+        let streams = self.streams.read().await;
+        let all: Vec<EventStream> = streams.values().cloned().collect();
+        let total = all.len() as u64;
+        let page = page.max(1);
+        let page_size = page_size.max(1).min(200);
+        let offset = ((page - 1) * page_size) as usize;
+        let paged: Vec<EventStream> = all.into_iter().skip(offset).take(page_size as usize).collect();
+        Ok((paged, total))
     }
 
     async fn create(&self, stream: &EventStream) -> anyhow::Result<()> {
@@ -198,6 +270,26 @@ impl EventRepository for InMemoryEventRepository {
             .cloned()
             .collect();
         let total = filtered.len() as u64;
+        let offset = ((page - 1) * page_size) as usize;
+        let paged: Vec<_> = filtered.into_iter().skip(offset).take(page_size as usize).collect();
+        Ok((paged, total))
+    }
+
+    async fn find_all(
+        &self,
+        event_type: Option<String>,
+        page: u32,
+        page_size: u32,
+    ) -> anyhow::Result<(Vec<StoredEvent>, u64)> {
+        let all_events = self.events.read().await;
+        let filtered: Vec<_> = all_events
+            .iter()
+            .filter(|e| event_type.as_ref().map_or(true, |et| e.event_type == *et))
+            .cloned()
+            .collect();
+        let total = filtered.len() as u64;
+        let page = page.max(1);
+        let page_size = page_size.max(1).min(200);
         let offset = ((page - 1) * page_size) as usize;
         let paged: Vec<_> = filtered.into_iter().skip(offset).take(page_size as usize).collect();
         Ok((paged, total))

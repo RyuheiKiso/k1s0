@@ -422,22 +422,22 @@ usecase（ビジネスロジック）
   ^
 adapter（ハンドラー・プレゼンター・ゲートウェイ）
   ^
-infra（DB接続・Kafka プロデューサー・キャッシュ・設定ローダー）
+infrastructure（DB接続・Kafka プロデューサー・キャッシュ・設定ローダー）
 ```
 
 | レイヤー | パッケージ / モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `ConfigEntry`, `ConfigChangeLog` | エンティティ定義 |
+| domain/entity | `ConfigEntry`, `ConfigChangeLog` | エンティティ定義 |
 | domain/repository | `ConfigRepository`, `ConfigChangeLogRepository` | リポジトリインターフェース / トレイト |
 | domain/service | `ConfigDomainService` | ドメインサービス（namespace バリデーション・バージョン検証ロジック） |
 | usecase | `GetConfigUsecase`, `ListConfigsUsecase`, `UpdateConfigUsecase`, `DeleteConfigUsecase`, `GetServiceConfigUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー, gRPC ハンドラー | プロトコル変換 |
 | adapter/presenter | レスポンスフォーマット | ドメインモデル → API レスポンス変換 |
 | adapter/gateway | （外部サービスなし） | - |
-| infra/persistence | PostgreSQL リポジトリ実装 | 設定値・変更ログの永続化 |
-| infra/config | Config ローダー | config.yaml の読み込みとバリデーション |
-| infra/messaging | Kafka プロデューサー | 設定変更イベントの非同期配信 |
-| infra/cache | インメモリキャッシュ | 設定値のキャッシュ管理（TTL 制御） |
+| infrastructure/persistence | PostgreSQL リポジトリ実装 | 設定値・変更ログの永続化 |
+| infrastructure/config | Config ローダー | config.yaml の読み込みとバリデーション |
+| infrastructure/messaging | Kafka プロデューサー | 設定変更イベントの非同期配信 |
+| infrastructure/cache | インメモリキャッシュ | 設定値のキャッシュ管理（TTL 制御） |
 
 ### ドメインモデル
 
@@ -492,7 +492,7 @@ infra（DB接続・Kafka プロデューサー・キャッシュ・設定ロー�
               ┌───────────────┼───────────────────────┐
               │               │                       │
     ┌─────────▼──────┐  ┌────▼───────────┐  ┌───────▼─────────────┐
-    │  domain/model   │  │ domain/service │  │ domain/repository   │
+    │  domain/entity  │  │ domain/service │  │ domain/repository   │
     │  ConfigEntry,   │  │ ConfigDomain   │  │ ConfigRepository    │
     │  ConfigChange   │  │ Service        │  │ ConfigChangeLog     │
     │  Log            │  │                │  │ Repository          │
@@ -500,7 +500,7 @@ infra（DB接続・Kafka プロデューサー・キャッシュ・設定ロー�
                                             └──────────┬──────────┘
                                                        │
                     ┌──────────────────────────────────┼──────────────┐
-                    │                  infra 層         │              │
+                    │             infrastructure 層         │              │
                     │  ┌──────────────┐  ┌─────────────▼──────────┐  │
                     │  │ In-Memory    │  │ PostgreSQL Repository  │  │
                     │  │ Cache        │  │ (impl)                 │  │

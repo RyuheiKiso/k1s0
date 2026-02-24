@@ -196,6 +196,9 @@ async fn main() -> anyhow::Result<()> {
         get_config_schema_uc: std::sync::Arc::new(usecase::GetConfigSchemaUseCase::new(
             schema_repo.clone(),
         )),
+        list_config_schemas_uc: std::sync::Arc::new(usecase::ListConfigSchemasUseCase::new(
+            schema_repo.clone(),
+        )),
         upsert_config_schema_uc: std::sync::Arc::new(usecase::UpsertConfigSchemaUseCase::new(
             schema_repo,
         )),
@@ -457,6 +460,11 @@ impl domain::repository::ConfigSchemaRepository for InMemoryConfigSchemaReposito
             .iter()
             .find(|s| s.service_name == service_name)
             .cloned())
+    }
+
+    async fn list_all(&self) -> anyhow::Result<Vec<ConfigSchema>> {
+        let schemas = self.schemas.read().await;
+        Ok(schemas.clone())
     }
 
     async fn upsert(&self, schema: &ConfigSchema) -> anyhow::Result<ConfigSchema> {

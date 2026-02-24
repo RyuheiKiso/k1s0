@@ -398,20 +398,20 @@ usecase（ビジネスロジック）
   ^
 adapter（REST ハンドラー・gRPC ハンドラー・Kafka コンシューマー）
   ^
-infra（DB接続・Kafka Producer/Consumer・外部通知クライアント・設定ローダー）
+infrastructure（DB接続・Kafka Producer/Consumer・外部通知クライアント・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `NotificationChannel`, `NotificationTemplate`, `NotificationLog` | エンティティ定義 |
+| domain/entity | `NotificationChannel`, `NotificationTemplate`, `NotificationLog` | エンティティ定義 |
 | domain/repository | `NotificationChannelRepository`, `NotificationTemplateRepository`, `NotificationLogRepository` | リポジトリトレイト |
 | domain/service | `NotificationDomainService` | テンプレート適用・リトライ判定ロジック |
 | usecase | `SendNotificationUsecase`, `RetryNotificationUsecase`, `GetNotificationUsecase`, `ListNotificationsUsecase`, `CreateChannelUsecase`, `UpdateChannelUsecase`, `DeleteChannelUsecase`, `CreateTemplateUsecase`, `UpdateTemplateUsecase`, `DeleteTemplateUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic）, Kafka コンシューマー | プロトコル変換・メッセージ受信 |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/persistence | `NotificationChannelPostgresRepository`, `NotificationTemplatePostgresRepository`, `NotificationLogPostgresRepository` | PostgreSQL リポジトリ実装 |
-| infra/messaging | `NotificationKafkaConsumer`, `NotificationDeliveredKafkaProducer` | Kafka コンシューマー・プロデューサー |
-| infra/delivery | `EmailDeliveryClient`, `SlackDeliveryClient`, `WebhookDeliveryClient` | 外部通知配信クライアント |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `NotificationChannelPostgresRepository`, `NotificationTemplatePostgresRepository`, `NotificationLogPostgresRepository` | PostgreSQL リポジトリ実装 |
+| infrastructure/messaging | `NotificationKafkaConsumer`, `NotificationDeliveredKafkaProducer` | Kafka コンシューマー・プロデューサー |
+| infrastructure/delivery | `EmailDeliveryClient`, `SlackDeliveryClient`, `WebhookDeliveryClient` | 外部通知配信クライアント |
 
 ### ドメインモデル
 
@@ -493,7 +493,7 @@ infra（DB接続・Kafka Producer/Consumer・外部通知クライアント・�
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
-    │  domain/model   │              │ domain/repository          │   │
+    │  domain/entity  │              │ domain/repository          │   │
     │  Notification   │              │ NotificationChannelRepo    │   │
     │  Channel,       │              │ NotificationTemplateRepo   │   │
     │  Template, Log  │              │ NotificationLogRepo        │   │
@@ -505,7 +505,7 @@ infra（DB接続・Kafka Producer/Consumer・外部通知クライアント・�
                  │ DomainService  │            │                     │
                  └────────────────┘            │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Kafka        │  │ Notification*Postgres   │  │
                     │  │ Consumer /   │  │ Repository (x3)         │  │

@@ -2,8 +2,8 @@ use async_graphql::dataloader::Loader;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::domain::model::graphql_context::{FeatureFlagLoader, TenantLoader};
-use crate::domain::model::{FeatureFlag, Tenant};
+use crate::domain::model::graphql_context::{ConfigLoader, FeatureFlagLoader, TenantLoader};
+use crate::domain::model::{ConfigEntry, FeatureFlag, Tenant};
 
 /// TenantLoader は ID リストを受け取り、TenantService を呼び出してバッチ取得する。
 impl Loader<String> for TenantLoader {
@@ -39,5 +39,33 @@ impl Loader<String> for FeatureFlagLoader {
             .await
             .map_err(Arc::new)?;
         Ok(flags.into_iter().map(|f| (f.key.clone(), f)).collect())
+    }
+}
+
+/// ConfigLoader は config キー（"namespace/key" 形式）リストを受け取り、
+/// ConfigService を呼び出してバッチ取得する。
+impl Loader<String> for ConfigLoader {
+    type Value = ConfigEntry;
+    type Error = Arc<anyhow::Error>;
+
+    async fn load(
+        &self,
+        keys: &[String],
+    ) -> Result<HashMap<String, Self::Value>, Self::Error> {
+        let mut result = HashMap::new();
+        for key in keys {
+            let parts: Vec<&str> = key.splitn(2, '/').collect();
+            if parts.len() != 2 {
+                continue;
+            }
+            match self.client.get_config(parts[0], parts[1]).await {
+                Ok(Some(entry)) => {
+                    result.insert(key.clone(), entry);
+                }
+                Ok(None) => {}
+                Err(e) => return Err(Arc::new(e)),
+            }
+        }
+        Ok(result)
     }
 }

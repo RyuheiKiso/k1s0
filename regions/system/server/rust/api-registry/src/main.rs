@@ -18,13 +18,17 @@ use k1s0_api_registry_server::adapter::grpc::{ApiRegistryGrpcService, ApiRegistr
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-        )
-        .json()
-        .init();
+    // Telemetry
+    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
+        service_name: "k1s0-api-registry-server".to_string(),
+        version: "0.1.0".to_string(),
+        tier: "system".to_string(),
+        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
+        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
+        sample_rate: 1.0,
+        log_level: "info".to_string(),
+    };
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
@@ -120,6 +124,11 @@ async fn main() -> anyhow::Result<()> {
         version_repo.clone(),
     ));
 
+    // Metrics
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-api-registry-server",
+    ));
+
     // REST app state
     let state = adapter::handler::AppState {
         list_schemas_uc,
@@ -131,9 +140,11 @@ async fn main() -> anyhow::Result<()> {
         delete_version_uc,
         check_compatibility_uc: check_compatibility_uc.clone(),
         get_diff_uc,
+        metrics: metrics.clone(),
     };
 
-    let app = adapter::handler::router(state);
+    let app = adapter::handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC service
     let grpc_svc = Arc::new(ApiRegistryGrpcService::new(

@@ -3,7 +3,10 @@ import {
   createPageResponse,
   encodeCursor,
   decodeCursor,
+  validatePerPage,
+  PerPageValidationError,
 } from '../src/index.js';
+import type { CursorRequest, CursorMeta, PaginationMeta } from '../src/index.js';
 
 describe('createPageResponse', () => {
   it('正しいページレスポンスを生成する', () => {
@@ -29,17 +32,60 @@ describe('createPageResponse', () => {
 
 describe('encodeCursor / decodeCursor', () => {
   it('エンコードとデコードが可逆である', () => {
+    const sortKey = '2024-01-15';
     const id = 'abc-123';
-    const cursor = encodeCursor(id);
-    expect(decodeCursor(cursor)).toBe(id);
+    const cursor = encodeCursor(sortKey, id);
+    const decoded = decodeCursor(cursor);
+    expect(decoded.sortKey).toBe(sortKey);
+    expect(decoded.id).toBe(id);
   });
 
   it('base64文字列を返す', () => {
-    const cursor = encodeCursor('test-id');
-    expect(cursor).toBe(btoa('test-id'));
+    const cursor = encodeCursor('key', 'test-id');
+    expect(cursor).toBe(btoa('key|test-id'));
   });
 
-  it('空文字でも動作する', () => {
-    expect(decodeCursor(encodeCursor(''))).toBe('');
+  it('セパレータがないカーソルはエラーになる', () => {
+    expect(() => decodeCursor(btoa('noseparator'))).toThrow('missing separator');
+  });
+});
+
+describe('validatePerPage', () => {
+  it('有効な値を受け入れる', () => {
+    expect(validatePerPage(1)).toBe(1);
+    expect(validatePerPage(50)).toBe(50);
+    expect(validatePerPage(100)).toBe(100);
+  });
+
+  it('0はエラーになる', () => {
+    expect(() => validatePerPage(0)).toThrow(PerPageValidationError);
+  });
+
+  it('最大値超過はエラーになる', () => {
+    expect(() => validatePerPage(101)).toThrow(PerPageValidationError);
+  });
+});
+
+describe('CursorRequest type', () => {
+  it('型が正しく使える', () => {
+    const req: CursorRequest = { limit: 20 };
+    expect(req.limit).toBe(20);
+    expect(req.cursor).toBeUndefined();
+  });
+});
+
+describe('CursorMeta type', () => {
+  it('型が正しく使える', () => {
+    const meta: CursorMeta = { nextCursor: 'next', hasMore: true };
+    expect(meta.nextCursor).toBe('next');
+    expect(meta.hasMore).toBe(true);
+  });
+});
+
+describe('PaginationMeta type', () => {
+  it('型が正しく使える', () => {
+    const meta: PaginationMeta = { total: 100, page: 2, perPage: 10, totalPages: 10 };
+    expect(meta.total).toBe(100);
+    expect(meta.totalPages).toBe(10);
   });
 });

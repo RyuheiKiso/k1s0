@@ -79,35 +79,35 @@ async fn main() -> anyhow::Result<()> {
     let storage_repo: Arc<dyn FileStorageRepository> =
         Arc::new(InMemoryFileStorageRepository::new());
 
-    let _list_files_uc = Arc::new(usecase::ListFilesUseCase::new(metadata_repo.clone()));
-    let _generate_upload_url_uc = Arc::new(usecase::GenerateUploadUrlUseCase::new(
+    let list_files_uc = Arc::new(usecase::ListFilesUseCase::new(metadata_repo.clone()));
+    let generate_upload_url_uc = Arc::new(usecase::GenerateUploadUrlUseCase::new(
         metadata_repo.clone(),
         storage_repo.clone(),
     ));
     let _complete_upload_uc =
         Arc::new(usecase::CompleteUploadUseCase::new(metadata_repo.clone()));
-    let _get_file_metadata_uc =
+    let get_file_metadata_uc =
         Arc::new(usecase::GetFileMetadataUseCase::new(metadata_repo.clone()));
-    let _generate_download_url_uc = Arc::new(usecase::GenerateDownloadUrlUseCase::new(
+    let generate_download_url_uc = Arc::new(usecase::GenerateDownloadUrlUseCase::new(
         metadata_repo.clone(),
         storage_repo.clone(),
     ));
-    let _delete_file_uc = Arc::new(usecase::DeleteFileUseCase::new(
+    let delete_file_uc = Arc::new(usecase::DeleteFileUseCase::new(
         metadata_repo.clone(),
         storage_repo.clone(),
     ));
     let _update_file_tags_uc =
         Arc::new(usecase::UpdateFileTagsUseCase::new(metadata_repo.clone()));
 
-    let app = axum::Router::new()
-        .route(
-            "/healthz",
-            axum::routing::get(adapter::handler::health::healthz),
-        )
-        .route(
-            "/readyz",
-            axum::routing::get(adapter::handler::health::readyz),
-        );
+    let state = adapter::handler::AppState {
+        list_files_uc,
+        generate_upload_url_uc,
+        get_file_metadata_uc,
+        generate_download_url_uc,
+        delete_file_uc,
+    };
+
+    let app = adapter::handler::router(state);
 
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);

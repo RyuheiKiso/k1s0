@@ -1,5 +1,4 @@
 import Testing
-import Crypto
 @testable import K1s0Encryption
 
 @Suite("Encryption Tests")
@@ -31,6 +30,13 @@ struct EncryptionTests {
         }
     }
 
+    @Test("パスワードハッシュがArgon2id形式であること")
+    func testPasswordHashFormat() {
+        let hash = hashPassword("myPassword123")
+        #expect(hash.hasPrefix("$argon2id$"))
+        #expect(hash.contains("m=19456,t=2,p=1") || hash.contains("m=19456"))
+    }
+
     @Test("パスワードハッシュが一致すること")
     func testPasswordHash() {
         let hash = hashPassword("myPassword123")
@@ -43,10 +49,15 @@ struct EncryptionTests {
         #expect(!verifyPassword("password2", hash: hash))
     }
 
-    @Test("同じパスワードは常に同じハッシュになること")
-    func testPasswordHashDeterministic() {
+    @Test("同じパスワードでもランダムソルトにより異なるハッシュになること")
+    func testPasswordHashRandomSalt() {
         let hash1 = hashPassword("test")
         let hash2 = hashPassword("test")
-        #expect(hash1 == hash2)
+        #expect(hash1 != hash2)
+    }
+
+    @Test("無効なハッシュ形式でverifyがfalseを返すこと")
+    func testVerifyInvalidFormat() {
+        #expect(!verifyPassword("test", hash: "not-a-valid-hash"))
     }
 }

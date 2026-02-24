@@ -2,7 +2,7 @@
 
 ## 概要
 
-system-session-server（ポート 8102）へのセッション管理クライアントライブラリ。セッション作成・取得・更新・失効・ユーザーセッション一覧取得・全セッション失効を統一インターフェースで gRPC 経由で提供する。全 Tier のサービスから共通利用し、JWT 認証と組み合わせてセッション状態の確認・管理を行う。
+セッション管理クライアントライブラリ。セッション作成・取得・更新・失効・ユーザーセッション一覧取得・全セッション失効を統一インターフェースで提供する。セッションはトークンベースで管理し、任意のメタデータ（key-value）を付与可能。全 Tier のサービスから共通利用し、JWT 認証と組み合わせてセッション状態の確認・管理を行う。
 
 **配置先**: `regions/system/library/rust/session-client/`
 
@@ -11,13 +11,11 @@ system-session-server（ポート 8102）へのセッション管理クライア
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
 | `SessionClient` | トレイト | セッション CRUD・ユーザーセッション管理インターフェース |
-| `GrpcSessionClient` | 構造体 | gRPC 経由の session-server 接続実装 |
-| `Session` | 構造体 | セッションID・ユーザーID・デバイス情報・有効期限 |
-| `CreateSessionRequest` | 構造体 | ユーザーID・デバイスID・デバイス情報・IPアドレス |
-| `CreateSessionResponse` | 構造体 | セッションID・ユーザーID・有効期限・作成日時 |
-| `RefreshSessionResponse` | 構造体 | セッションID・新しい有効期限 |
-| `UserSessions` | 構造体 | セッション一覧・総件数 |
-| `SessionError` | enum | `NotFound`・`Expired`・`AlreadyRevoked`・`ServerError`・`Timeout` |
+| `InMemorySessionClient` | 構造体 | メモリ内セッション管理実装（テスト・開発用） |
+| `Session` | 構造体 | id・user_id・token・expires_at・created_at・revoked・metadata |
+| `CreateSessionRequest` | 構造体 | user_id・ttl_seconds・metadata |
+| `RefreshSessionRequest` | 構造体 | id・ttl_seconds |
+| `SessionError` | enum | `NotFound`・`Expired`・`Revoked`・`Connection`・`Internal` |
 
 ## Rust 実装
 
@@ -30,27 +28,22 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-grpc = ["tonic"]
+mock = ["mockall"]
 
 [dependencies]
 async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
 thiserror = "2"
-tracing = "0.1"
-tonic = { version = "0.12", optional = true }
-
-[dev-dependencies]
-tokio = { version = "1", features = ["full"] }
-mockall = "0.13"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+tokio = { version = "1", features = ["sync"] }
+mockall = { version = "0.13", optional = true }
 ```
 
 **Cargo.toml への追加行**:
 
 ```toml
 k1s0-session-client = { path = "../../system/library/rust/session-client" }
-# gRPC 経由を有効化する場合:
-k1s0-session-client = { path = "../../system/library/rust/session-client", features = ["grpc"] }
 ```
 
 **モジュール構成**:
@@ -59,66 +52,106 @@ k1s0-session-client = { path = "../../system/library/rust/session-client", featu
 session-client/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）
-│   ├── client.rs       # SessionClient トレイト
-│   ├── grpc.rs         # GrpcSessionClient
-│   ├── model.rs        # Session・CreateSessionRequest・CreateSessionResponse・RefreshSessionResponse・UserSessions
+│   ├── client.rs       # SessionClient トレイト・InMemorySessionClient
+│   ├── model.rs        # Session・CreateSessionRequest・RefreshSessionRequest
 │   └── error.rs        # SessionError
 └── Cargo.toml
+```
+
+**データモデル**:
+
+```rust
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Session {
+    pub id: String,
+    pub user_id: String,
+    pub token: String,
+    pub expires_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub revoked: bool,
+    pub metadata: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateSessionRequest {
+    pub user_id: String,
+    pub ttl_seconds: i64,
+    pub metadata: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RefreshSessionRequest {
+    pub id: String,
+    pub ttl_seconds: i64,
+}
+```
+
+**トレイト**:
+
+```rust
+#[async_trait]
+pub trait SessionClient: Send + Sync {
+    async fn create(&self, req: CreateSessionRequest) -> Result<Session, SessionError>;
+    async fn get(&self, id: &str) -> Result<Option<Session>, SessionError>;
+    async fn refresh(&self, req: RefreshSessionRequest) -> Result<Session, SessionError>;
+    async fn revoke(&self, id: &str) -> Result<(), SessionError>;
+    async fn list_user_sessions(&self, user_id: &str) -> Result<Vec<Session>, SessionError>;
+    async fn revoke_all(&self, user_id: &str) -> Result<u32, SessionError>;
+}
+```
+
+**エラー型**:
+
+```rust
+pub enum SessionError {
+    NotFound(String),
+    Expired,
+    Revoked,
+    Connection(String),
+    Internal(String),
+}
 ```
 
 **使用例**:
 
 ```rust
-use k1s0_session_client::{CreateSessionRequest, GrpcSessionClient, SessionClient};
+use k1s0_session_client::{
+    CreateSessionRequest, InMemorySessionClient, RefreshSessionRequest, SessionClient,
+};
+use std::collections::HashMap;
 
-// クライアントの構築
-let client = GrpcSessionClient::new("http://session-server:8080").await?;
+let client = InMemorySessionClient::new();
 
 // セッションの作成
-let request = CreateSessionRequest::new("usr_01JABCDEF1234567890", "device_abc123")
-    .device_name("MacBook Pro")
-    .device_type("desktop")
-    .ip_address("192.168.1.1");
+let session = client.create(CreateSessionRequest {
+    user_id: "user-1".to_string(),
+    ttl_seconds: 3600,
+    metadata: HashMap::new(),
+}).await?;
+tracing::info!(id = %session.id, token = %session.token, "セッション作成完了");
 
-let response = client.create_session(request).await?;
-tracing::info!(
-    session_id = %response.session_id,
-    expires_at = %response.expires_at,
-    "セッション作成完了"
-);
-
-// セッションの取得・有効性確認
-match client.get_session(&response.session_id).await {
-    Ok(session) => {
-        tracing::info!(
-            user_id = %session.user_id,
-            device_name = ?session.device_name,
-            "セッション有効"
-        );
-    }
-    Err(SessionError::NotFound(_)) => {
-        tracing::warn!("セッションが見つからない");
-    }
-    Err(SessionError::Expired(_)) => {
-        tracing::warn!("セッションが有効期限切れ");
-    }
-    Err(e) => return Err(e.into()),
+// セッションの取得
+if let Some(session) = client.get(&session.id).await? {
+    tracing::info!(user_id = %session.user_id, "セッション有効");
 }
 
 // セッションの更新（TTL延長）
-let refreshed = client.refresh_session(&response.session_id).await?;
+let refreshed = client.refresh(RefreshSessionRequest {
+    id: session.id.clone(),
+    ttl_seconds: 7200,
+}).await?;
 tracing::info!(expires_at = %refreshed.expires_at, "セッション更新完了");
 
 // ユーザーの全セッション一覧取得
-let user_sessions = client.list_user_sessions("usr_01JABCDEF1234567890").await?;
-tracing::info!(count = user_sessions.total_count, "セッション一覧取得");
+let sessions = client.list_user_sessions("user-1").await?;
+tracing::info!(count = sessions.len(), "セッション一覧取得");
 
 // セッションの失効（ログアウト）
-client.revoke_session(&response.session_id).await?;
+client.revoke(&session.id).await?;
 
 // ユーザーの全セッション失効（強制ログアウト）
-let revoked = client.revoke_all_sessions("usr_01JABCDEF1234567890").await?;
-tracing::info!(revoked_count = revoked, "全セッション失効完了");
+let revoked_count = client.revoke_all("user-1").await?;
+tracing::info!(revoked_count = revoked_count, "全セッション失効完了");
 ```
 
 ## Go 実装
@@ -128,86 +161,45 @@ tracing::info!(revoked_count = revoked, "全セッション失効完了");
 ```
 session-client/
 ├── session_client.go
-├── grpc_client.go
-├── model.go
 ├── session_client_test.go
-├── go.mod
-└── go.sum
+└── go.mod
 ```
-
-**依存関係**: `google.golang.org/grpc v1.70`, `github.com/stretchr/testify v1.10.0`
 
 **主要インターフェース**:
 
 ```go
-type SessionClient interface {
-    CreateSession(ctx context.Context, req CreateSessionRequest) (CreateSessionResponse, error)
-    GetSession(ctx context.Context, sessionID string) (Session, error)
-    RefreshSession(ctx context.Context, sessionID string) (RefreshSessionResponse, error)
-    RevokeSession(ctx context.Context, sessionID string) error
-    ListUserSessions(ctx context.Context, userID string) (UserSessions, error)
-    RevokeAllSessions(ctx context.Context, userID string) (int, error)
+type Session struct {
+    ID        string            `json:"id"`
+    UserID    string            `json:"user_id"`
+    Token     string            `json:"token"`
+    ExpiresAt time.Time         `json:"expires_at"`
+    CreatedAt time.Time         `json:"created_at"`
+    Revoked   bool              `json:"revoked"`
+    Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
 type CreateSessionRequest struct {
-    UserID     string
-    DeviceID   string
-    DeviceName string
-    DeviceType string
-    UserAgent  string
-    IPAddress  string
+    UserID     string            `json:"user_id"`
+    TTLSeconds int64             `json:"ttl_seconds"`
+    Metadata   map[string]string `json:"metadata,omitempty"`
 }
 
-type Session struct {
-    SessionID      string
-    UserID         string
-    DeviceID       string
-    DeviceName     string
-    DeviceType     string
-    IPAddress      string
-    ExpiresAt      time.Time
-    CreatedAt      time.Time
-    LastAccessedAt time.Time
+type RefreshSessionRequest struct {
+    ID         string `json:"id"`
+    TTLSeconds int64  `json:"ttl_seconds"`
 }
 
-type CreateSessionResponse struct {
-    SessionID string
-    UserID    string
-    DeviceID  string
-    ExpiresAt time.Time
-    CreatedAt time.Time
+type SessionClient interface {
+    Create(ctx context.Context, req CreateSessionRequest) (*Session, error)
+    Get(ctx context.Context, id string) (*Session, error)
+    Refresh(ctx context.Context, req RefreshSessionRequest) (*Session, error)
+    Revoke(ctx context.Context, id string) error
+    ListUserSessions(ctx context.Context, userID string) ([]*Session, error)
+    RevokeAll(ctx context.Context, userID string) (int, error)
 }
 
-type RefreshSessionResponse struct {
-    SessionID string
-    ExpiresAt time.Time
-}
-
-type UserSessions struct {
-    Sessions   []Session
-    TotalCount int
-}
-
-type GrpcSessionClient struct{ /* ... */ }
-func NewGrpcSessionClient(addr string) (*GrpcSessionClient, error)
-```
-
-**使用例**:
-
-```go
-client, err := NewGrpcSessionClient("session-server:8080")
-if err != nil {
-    log.Fatal(err)
-}
-
-resp, err := client.CreateSession(ctx, CreateSessionRequest{
-    UserID:   "usr_01JABCDEF1234567890",
-    DeviceID: "device_abc123",
-})
-if err != nil {
-    return err
-}
-fmt.Printf("セッション作成: %s, 有効期限: %s\n", resp.SessionID, resp.ExpiresAt)
+type InMemorySessionClient struct{ /* ... */ }
+func NewInMemorySessionClient() *InMemorySessionClient
 ```
 
 ## TypeScript 実装
@@ -218,128 +210,50 @@ fmt.Printf("セッション作成: %s, 有効期限: %s\n", resp.SessionID, resp
 session-client/
 ├── package.json        # "@k1s0/session-client", "type":"module"
 ├── tsconfig.json
-├── vitest.config.ts
 ├── src/
-│   └── index.ts        # SessionClient, GrpcSessionClient, Session, CreateSessionRequest, CreateSessionResponse, RefreshSessionResponse, UserSessions, SessionError
+│   ├── types.ts        # Session, CreateSessionRequest, RefreshSessionRequest
+│   ├── client.ts       # SessionClient, InMemorySessionClient
+│   └── index.ts
 └── __tests__/
-    └── session-client.test.ts
+    └── client.test.ts
 ```
 
 **主要 API**:
 
 ```typescript
+export interface Session {
+  id: string;
+  userId: string;
+  token: string;
+  expiresAt: Date;
+  createdAt: Date;
+  revoked: boolean;
+  metadata: Record<string, string>;
+}
+
 export interface CreateSessionRequest {
   userId: string;
-  deviceId: string;
-  deviceName?: string;
-  deviceType?: string;
-  userAgent?: string;
-  ipAddress?: string;
+  ttlSeconds: number;
+  metadata?: Record<string, string>;
 }
 
-export interface Session {
-  sessionId: string;
-  userId: string;
-  deviceId: string;
-  deviceName?: string;
-  deviceType?: string;
-  ipAddress?: string;
-  expiresAt: string;
-  createdAt: string;
-  lastAccessedAt: string;
-}
-
-export interface CreateSessionResponse {
-  sessionId: string;
-  userId: string;
-  deviceId: string;
-  expiresAt: string;
-  createdAt: string;
-}
-
-export interface RefreshSessionResponse {
-  sessionId: string;
-  expiresAt: string;
-}
-
-export interface UserSessions {
-  sessions: Session[];
-  totalCount: number;
+export interface RefreshSessionRequest {
+  id: string;
+  ttlSeconds: number;
 }
 
 export interface SessionClient {
-  createSession(req: CreateSessionRequest): Promise<CreateSessionResponse>;
-  getSession(sessionId: string): Promise<Session>;
-  refreshSession(sessionId: string): Promise<RefreshSessionResponse>;
-  revokeSession(sessionId: string): Promise<void>;
-  listUserSessions(userId: string): Promise<UserSessions>;
-  revokeAllSessions(userId: string): Promise<number>;
+  create(req: CreateSessionRequest): Promise<Session>;
+  get(id: string): Promise<Session | null>;
+  refresh(req: RefreshSessionRequest): Promise<Session>;
+  revoke(id: string): Promise<void>;
+  listUserSessions(userId: string): Promise<Session[]>;
+  revokeAll(userId: string): Promise<number>;
 }
 
-export class GrpcSessionClient implements SessionClient {
-  constructor(serverUrl: string);
-  createSession(req: CreateSessionRequest): Promise<CreateSessionResponse>;
-  getSession(sessionId: string): Promise<Session>;
-  refreshSession(sessionId: string): Promise<RefreshSessionResponse>;
-  revokeSession(sessionId: string): Promise<void>;
-  listUserSessions(userId: string): Promise<UserSessions>;
-  revokeAllSessions(userId: string): Promise<number>;
-  close(): Promise<void>;
+export class InMemorySessionClient implements SessionClient {
+  // 全メソッド実装
 }
-
-export class SessionError extends Error {
-  constructor(
-    message: string,
-    public readonly code: 'NOT_FOUND' | 'EXPIRED' | 'ALREADY_REVOKED' | 'SERVER_ERROR' | 'TIMEOUT'
-  );
-}
-```
-
-**カバレッジ目標**: 90%以上
-
-## Dart 実装
-
-**配置先**: `regions/system/library/dart/session_client/`
-
-```
-session_client/
-├── pubspec.yaml        # k1s0_session_client
-├── analysis_options.yaml
-├── lib/
-│   ├── session_client.dart
-│   └── src/
-│       ├── client.dart       # SessionClient abstract, GrpcSessionClient
-│       ├── model.dart        # Session, CreateSessionRequest, CreateSessionResponse, etc.
-│       └── error.dart        # SessionError
-└── test/
-    └── session_client_test.dart
-```
-
-**pubspec.yaml 主要依存**:
-
-```yaml
-dependencies:
-  grpc: ^4.0.0
-  protobuf: ^3.1.0
-```
-
-**使用例**:
-
-```dart
-import 'package:k1s0_session_client/session_client.dart';
-
-final client = GrpcSessionClient('session-server:8080');
-
-final response = await client.createSession(CreateSessionRequest(
-  userId: 'usr_01JABCDEF1234567890',
-  deviceId: 'device_abc123',
-  deviceName: 'iPhone 15',
-  deviceType: 'mobile',
-));
-print('セッション作成: ${response.sessionId}');
-
-final session = await client.getSession(response.sessionId);
-print('ユーザー: ${session.userId}, 有効期限: ${session.expiresAt}');
 ```
 
 **カバレッジ目標**: 90%以上
@@ -351,93 +265,53 @@ print('ユーザー: ${session.userId}, 有効期限: ${session.expiresAt}');
 ```
 session-client/
 ├── src/
-│   ├── SessionClient.csproj
-│   ├── ISessionClient.cs          # セッション管理インターフェース
-│   ├── GrpcSessionClient.cs       # gRPC 実装
-│   ├── Session.cs                 # Session・CreateSessionRequest・CreateSessionResponse・RefreshSessionResponse・UserSessions
-│   └── SessionException.cs        # 公開例外型
+│   └── K1s0.SessionClient/
+│       ├── K1s0.SessionClient.csproj
+│       ├── ISessionClient.cs
+│       ├── InMemorySessionClient.cs
+│       └── Session.cs
 ├── tests/
-│   ├── SessionClient.Tests.csproj
-│   ├── Unit/
-│   │   └── SessionTests.cs
-│   └── Integration/
-│       └── GrpcSessionClientTests.cs
-├── .editorconfig
-└── README.md
+│   └── K1s0.SessionClient.Tests/
+│       ├── K1s0.SessionClient.Tests.csproj
+│       └── SessionClientTests.cs
 ```
 
-**NuGet 依存関係**:
-
-| パッケージ | 用途 |
-|-----------|------|
-| Grpc.Net.Client 2.67 | gRPC クライアント |
-| Google.Protobuf 3.29 | Protobuf シリアライゼーション |
-
-**名前空間**: `K1s0.System.SessionClient`
-
-**主要クラス・インターフェース**:
-
-| 型 | 種別 | 説明 |
-|---|------|------|
-| `ISessionClient` | interface | セッション管理の抽象インターフェース |
-| `GrpcSessionClient` | class | gRPC 経由の session-server 接続実装 |
-| `CreateSessionRequest` | record | ユーザーID・デバイスID・デバイス情報・IPアドレス |
-| `Session` | record | セッション情報全体 |
-| `CreateSessionResponse` | record | セッションID・ユーザーID・有効期限・作成日時 |
-| `RefreshSessionResponse` | record | セッションID・新しい有効期限 |
-| `UserSessions` | record | セッション一覧・総件数 |
-| `SessionException` | class | セッションエラーの公開例外型 |
+**名前空間**: `K1s0.SessionClient`
 
 **主要 API**:
 
 ```csharp
-namespace K1s0.System.SessionClient;
+namespace K1s0.SessionClient;
+
+public record Session(
+    string Id,
+    string UserId,
+    string Token,
+    DateTimeOffset ExpiresAt,
+    DateTimeOffset CreatedAt,
+    bool Revoked,
+    IReadOnlyDictionary<string, string> Metadata);
 
 public record CreateSessionRequest(
     string UserId,
-    string DeviceId,
-    string? DeviceName = null,
-    string? DeviceType = null,
-    string? UserAgent = null,
-    string? IpAddress = null);
+    long TtlSeconds,
+    IReadOnlyDictionary<string, string>? Metadata = null);
 
-public record Session(
-    string SessionId,
-    string UserId,
-    string DeviceId,
-    string? DeviceName,
-    string? DeviceType,
-    string? IpAddress,
-    DateTimeOffset ExpiresAt,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset LastAccessedAt);
+public record RefreshSessionRequest(string Id, long TtlSeconds);
 
-public record CreateSessionResponse(
-    string SessionId,
-    string UserId,
-    string DeviceId,
-    DateTimeOffset ExpiresAt,
-    DateTimeOffset CreatedAt);
-
-public record RefreshSessionResponse(string SessionId, DateTimeOffset ExpiresAt);
-
-public record UserSessions(IReadOnlyList<Session> Sessions, int TotalCount);
-
-public interface ISessionClient : IAsyncDisposable
+public interface ISessionClient
 {
-    Task<CreateSessionResponse> CreateSessionAsync(CreateSessionRequest req, CancellationToken ct = default);
-    Task<Session> GetSessionAsync(string sessionId, CancellationToken ct = default);
-    Task<RefreshSessionResponse> RefreshSessionAsync(string sessionId, CancellationToken ct = default);
-    Task RevokeSessionAsync(string sessionId, CancellationToken ct = default);
-    Task<UserSessions> ListUserSessionsAsync(string userId, CancellationToken ct = default);
-    Task<int> RevokeAllSessionsAsync(string userId, CancellationToken ct = default);
+    Task<Session> CreateAsync(CreateSessionRequest req, CancellationToken ct = default);
+    Task<Session?> GetAsync(string id, CancellationToken ct = default);
+    Task<Session> RefreshAsync(RefreshSessionRequest req, CancellationToken ct = default);
+    Task RevokeAsync(string id, CancellationToken ct = default);
+    Task<IReadOnlyList<Session>> ListUserSessionsAsync(string userId, CancellationToken ct = default);
+    Task<int> RevokeAllAsync(string userId, CancellationToken ct = default);
 }
 
-public sealed class GrpcSessionClient : ISessionClient
+public sealed class InMemorySessionClient : ISessionClient
 {
-    public GrpcSessionClient(string serverUrl);
-    // ... ISessionClient 実装
-    public ValueTask DisposeAsync();
+    // 全メソッド実装
 }
 ```
 
@@ -455,42 +329,45 @@ public sealed class GrpcSessionClient : ISessionClient
 ### 主要な公開 API
 
 ```swift
+public struct Session: Sendable {
+    public let id: String
+    public let userId: String
+    public let token: String
+    public let expiresAt: Date
+    public let createdAt: Date
+    public let revoked: Bool
+    public let metadata: [String: String]
+
+    public init(id: String, userId: String, token: String, expiresAt: Date, createdAt: Date,
+                revoked: Bool = false, metadata: [String: String] = [:])
+}
+
 public struct CreateSessionRequest: Sendable {
     public let userId: String
-    public let deviceId: String
-    public let deviceName: String?
-    public let deviceType: String?
-    public let ipAddress: String?
-    public init(userId: String, deviceId: String, deviceName: String? = nil, deviceType: String? = nil, ipAddress: String? = nil)
+    public let ttlSeconds: Int
+    public let metadata: [String: String]
+
+    public init(userId: String, ttlSeconds: Int, metadata: [String: String] = [:])
 }
 
-public struct Session: Sendable {
-    public let sessionId: String
-    public let userId: String
-    public let deviceId: String
-    public let deviceName: String?
-    public let deviceType: String?
-    public let ipAddress: String?
-    public let expiresAt: Date
-    public let createdAt: Date
-    public let lastAccessedAt: Date
-}
+public struct RefreshSessionRequest: Sendable {
+    public let id: String
+    public let ttlSeconds: Int
 
-public struct CreateSessionResponse: Sendable {
-    public let sessionId: String
-    public let userId: String
-    public let deviceId: String
-    public let expiresAt: Date
-    public let createdAt: Date
+    public init(id: String, ttlSeconds: Int)
 }
 
 public protocol SessionClient: Sendable {
-    func createSession(_ req: CreateSessionRequest) async throws -> CreateSessionResponse
-    func getSession(_ sessionId: String) async throws -> Session
-    func refreshSession(_ sessionId: String) async throws -> (sessionId: String, expiresAt: Date)
-    func revokeSession(_ sessionId: String) async throws
-    func listUserSessions(_ userId: String) async throws -> [Session]
-    func revokeAllSessions(_ userId: String) async throws -> Int
+    func create(req: CreateSessionRequest) async throws -> Session
+    func get(id: String) async throws -> Session?
+    func refresh(req: RefreshSessionRequest) async throws -> Session
+    func revoke(id: String) async throws
+    func listUserSessions(userId: String) async throws -> [Session]
+    func revokeAll(userId: String) async throws -> Int
+}
+
+public actor InMemorySessionClient: SessionClient {
+    // 全メソッド実装
 }
 ```
 
@@ -498,11 +375,9 @@ public protocol SessionClient: Sendable {
 
 ```swift
 public enum SessionError: Error, Sendable {
-    case notFound(sessionId: String)
-    case expired(sessionId: String)
-    case alreadyRevoked(sessionId: String)
-    case serverError(underlying: Error)
-    case timeout
+    case sessionNotFound(id: String)
+    case sessionRevoked(id: String)
+    case sessionExpired(id: String)
 }
 ```
 
@@ -512,145 +387,49 @@ public enum SessionError: Error, Sendable {
 
 ---
 
-## Python 実装
-
-**配置先**: `regions/system/library/python/session_client/`
-
-### パッケージ構造
-
-```
-session_client/
-├── pyproject.toml
-├── src/
-│   └── k1s0_session_client/
-│       ├── __init__.py       # 公開 API（再エクスポート）
-│       ├── client.py         # SessionClient ABC・GrpcSessionClient
-│       ├── model.py          # Session・CreateSessionRequest・CreateSessionResponse dataclass
-│       ├── exceptions.py     # SessionError
-│       └── py.typed
-└── tests/
-    ├── test_session_client.py
-    └── test_session_lifecycle.py
-```
-
-### 主要クラス・インターフェース
-
-| 型 | 種別 | 説明 |
-|---|------|------|
-| `SessionClient` | ABC | セッション CRUD 抽象基底クラス |
-| `GrpcSessionClient` | class | gRPC 経由の session-server 接続実装 |
-| `CreateSessionRequest` | dataclass | ユーザーID・デバイスID・デバイス情報 |
-| `Session` | dataclass | セッション情報 |
-| `CreateSessionResponse` | dataclass | セッションID・有効期限 |
-| `SessionError` | Exception | 基底エラークラス |
-
-### 使用例
-
-```python
-from k1s0_session_client import CreateSessionRequest, GrpcSessionClient, SessionError
-
-client = GrpcSessionClient(server_url="http://session-server:8080")
-
-# セッション作成
-response = await client.create_session(CreateSessionRequest(
-    user_id="usr_01JABCDEF1234567890",
-    device_id="device_abc123",
-    device_name="MacBook Pro",
-    device_type="desktop",
-    ip_address="192.168.1.1",
-))
-print(f"セッション作成: {response.session_id}")
-
-# セッション取得
-try:
-    session = await client.get_session(response.session_id)
-    print(f"有効期限: {session.expires_at}")
-except SessionError as e:
-    print(f"エラー: {e}")
-
-# セッション失効
-await client.revoke_session(response.session_id)
-```
-
-### 依存ライブラリ
-
-| パッケージ | バージョン | 用途 |
-|-----------|-----------|------|
-| grpcio | >=1.70 | gRPC クライアント |
-| grpcio-tools | >=1.70 | Protobuf コード生成 |
-| pydantic | >=2.10 | リクエスト・レスポンスバリデーション |
-
-### テスト方針
-
-- テストフレームワーク: pytest
-- リント/フォーマット: ruff
-- モック: unittest.mock / pytest-mock
-- カバレッジ目標: 90%以上
-- 実行: `pytest` / `ruff check .`
-
 ## テスト戦略
 
-### ユニットテスト（`#[cfg(test)]`）
+### ユニットテスト（Rust）
 
 ```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[tokio::test]
+async fn test_create() {
+    let client = InMemorySessionClient::new();
+    let session = client
+        .create(CreateSessionRequest {
+            user_id: "user-1".to_string(),
+            ttl_seconds: 3600,
+            metadata: HashMap::new(),
+        })
+        .await
+        .unwrap();
 
-    #[test]
-    fn test_create_session_request_builder() {
-        let req = CreateSessionRequest::new("user-1", "device-1")
-            .device_name("MacBook Pro")
-            .device_type("desktop");
+    assert_eq!(session.user_id, "user-1");
+    assert!(!session.revoked);
+    assert!(!session.id.is_empty());
+    assert!(!session.token.is_empty());
+}
 
-        assert_eq!(req.user_id, "user-1");
-        assert_eq!(req.device_name, Some("MacBook Pro".to_string()));
+#[tokio::test]
+async fn test_revoke_all() {
+    let client = InMemorySessionClient::new();
+    for _ in 0..2 {
+        client.create(CreateSessionRequest {
+            user_id: "user-1".to_string(),
+            ttl_seconds: 3600,
+            metadata: HashMap::new(),
+        }).await.unwrap();
     }
-
-    #[test]
-    fn test_session_error_types() {
-        let err = SessionError::NotFound("sess-1".to_string());
-        assert!(matches!(err, SessionError::NotFound(_)));
-    }
+    let count = client.revoke_all("user-1").await.unwrap();
+    assert_eq!(count, 2);
 }
 ```
-
-### 統合テスト
-
-- `testcontainers` で session-server コンテナを起動して実際のセッションライフサイクル（作成→取得→更新→失効）を検証
-- 有効期限切れセッションへのアクセスで `Expired` エラーが返ることを確認
-- 失効済みセッションへの再失効操作で `AlreadyRevoked` エラーが返ることを確認
-- 存在しないセッションIDで `NotFound` エラーが返ることを確認
 
 ### モックテスト
 
 ```rust
-use mockall::mock;
-
-mock! {
-    pub TestSessionClient {}
-    #[async_trait]
-    impl SessionClient for TestSessionClient {
-        async fn create_session(&self, req: CreateSessionRequest) -> Result<CreateSessionResponse, SessionError>;
-        async fn get_session(&self, session_id: &str) -> Result<Session, SessionError>;
-        async fn refresh_session(&self, session_id: &str) -> Result<RefreshSessionResponse, SessionError>;
-        async fn revoke_session(&self, session_id: &str) -> Result<(), SessionError>;
-        async fn list_user_sessions(&self, user_id: &str) -> Result<UserSessions, SessionError>;
-        async fn revoke_all_sessions(&self, user_id: &str) -> Result<u32, SessionError>;
-    }
-}
-
-#[tokio::test]
-async fn test_logout_revokes_session() {
-    let mut mock = MockTestSessionClient::new();
-    mock.expect_revoke_session()
-        .withf(|id| id == "sess-001")
-        .once()
-        .returning(|_| Ok(()));
-
-    let auth_service = AuthService::new(Arc::new(mock));
-    auth_service.logout("sess-001").await.unwrap();
-}
+// feature = "mock" 有効時に MockSessionClient が自動生成される
+use k1s0_session_client::MockSessionClient;
 ```
 
 **カバレッジ目標**: 90%以上
@@ -660,7 +439,6 @@ async fn test_logout_revokes_session() {
 ## 関連ドキュメント
 
 - [system-library-概要](system-library-概要.md) — ライブラリ一覧・テスト方針
-- [system-session-server設計](system-session-server設計.md) — セッションサーバー設計
 - [system-library-authlib設計](system-library-authlib設計.md) — JWT 認証ライブラリ（JWT 検証と組み合わせて利用）
 - [system-library-cache設計](system-library-cache設計.md) — Redis キャッシュライブラリ（セッションストアの内部実装）
 - [認証設計.md](認証設計.md) — 認証設計

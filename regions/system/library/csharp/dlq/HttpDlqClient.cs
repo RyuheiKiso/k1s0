@@ -12,6 +12,26 @@ public sealed class HttpDlqClient : IDlqClient
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     }
 
+    public async Task<DlqMessage> SendAsync(DlqSendRequest request, CancellationToken ct = default)
+    {
+        const string url = "api/v1/dlq/messages";
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(url, request, ct);
+            await EnsureSuccessAsync(response, ct);
+            return await response.Content.ReadFromJsonAsync<DlqMessage>(ct)
+                ?? throw new DlqException(DlqErrorCodes.ServerError, "Empty response body");
+        }
+        catch (DlqException)
+        {
+            throw;
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new DlqException(DlqErrorCodes.Network, "Network error during send", ex);
+        }
+    }
+
     public async Task<ListDlqMessagesResponse> ListMessagesAsync(
         string topic, int page = 1, int pageSize = 20, CancellationToken ct = default)
     {

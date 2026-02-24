@@ -40,7 +40,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: regions/system/server/rust/dlq-manager
+          context: regions/system
+          file: regions/system/server/rust/dlq-manager/Dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/k1s0-system/dlq-manager:${{ steps.version.outputs.value }}

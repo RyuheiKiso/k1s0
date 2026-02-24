@@ -50,19 +50,26 @@ async fn main() -> anyhow::Result<()> {
     let evaluate_flag_uc = Arc::new(usecase::EvaluateFlagUseCase::new(flag_repo.clone()));
     let get_flag_uc = Arc::new(usecase::GetFlagUseCase::new(flag_repo.clone()));
     let create_flag_uc = Arc::new(usecase::CreateFlagUseCase::new(flag_repo.clone()));
-    let update_flag_uc = Arc::new(usecase::UpdateFlagUseCase::new(flag_repo));
+    let update_flag_uc = Arc::new(usecase::UpdateFlagUseCase::new(flag_repo.clone()));
 
     let _grpc_svc = Arc::new(FeatureFlagGrpcService::new(
+        evaluate_flag_uc.clone(),
+        get_flag_uc.clone(),
+        create_flag_uc.clone(),
+        update_flag_uc.clone(),
+    ));
+
+    // AppState for REST handlers
+    let state = adapter::handler::AppState {
+        flag_repo: flag_repo.clone(),
         evaluate_flag_uc,
         get_flag_uc,
         create_flag_uc,
         update_flag_uc,
-    ));
+    };
 
     // REST router
-    let app = axum::Router::new()
-        .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
-        .route("/readyz", axum::routing::get(adapter::handler::health::readyz));
+    let app = adapter::handler::router(state);
 
     // REST server
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));

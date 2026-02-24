@@ -363,19 +363,19 @@ usecase（ビジネスロジック）
   ^
 adapter（REST ハンドラー・gRPC ハンドラー・Kafka コンシューマー）
   ^
-infra（Redis接続・DB接続・Kafka Producer/Consumer・設定ローダー）
+infrastructure（Redis接続・DB接続・Kafka Producer/Consumer・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `Session`, `UserSession` | エンティティ定義 |
+| domain/entity | `Session`, `UserSession` | エンティティ定義 |
 | domain/repository | `SessionRepository`, `UserSessionRepository` | リポジトリトレイト |
 | domain/service | `SessionDomainService` | TTL計算・デバイス数制限ロジック |
 | usecase | `CreateSessionUsecase`, `GetSessionUsecase`, `RefreshSessionUsecase`, `RevokeSessionUsecase`, `RevokeAllSessionsUsecase`, `ListUserSessionsUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic）, Kafka コンシューマー | プロトコル変換 |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/persistence | `SessionRedisRepository`, `UserSessionPostgresRepository` | Redis・PostgreSQL リポジトリ実装 |
-| infra/messaging | `SessionRevokeAllKafkaConsumer`, `SessionKafkaProducer` | Kafka コンシューマー・プロデューサー |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `SessionRedisRepository`, `UserSessionPostgresRepository` | Redis・PostgreSQL リポジトリ実装 |
+| infrastructure/messaging | `SessionRevokeAllKafkaConsumer`, `SessionKafkaProducer` | Kafka コンシューマー・プロデューサー |
 
 ### ドメインモデル
 
@@ -429,7 +429,7 @@ infra（Redis接続・DB接続・Kafka Producer/Consumer・設定ローダー）
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
-    │  domain/model   │              │ domain/repository          │   │
+    │  domain/entity  │              │ domain/repository          │   │
     │  Session,       │              │ SessionRepository          │   │
     │  UserSession    │              │ UserSessionRepository      │   │
     └────────────────┘              │ (trait)                    │   │
@@ -442,7 +442,7 @@ infra（Redis接続・DB接続・Kafka Producer/Consumer・設定ローダー）
                  │  デバイス制限) │            │                     │
                  └────────────────┘            │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Kafka        │  │ SessionRedis            │  │
                     │  │ Consumer /   │  │ Repository              │  │

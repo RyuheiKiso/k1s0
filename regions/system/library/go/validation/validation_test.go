@@ -2,6 +2,7 @@ package validation_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/k1s0-platform/system-library-go-validation"
 	"github.com/stretchr/testify/assert"
@@ -67,4 +68,73 @@ func TestValidationError_Message(t *testing.T) {
 	var ve *validation.ValidationError
 	require.ErrorAs(t, err, &ve)
 	assert.Equal(t, "email", ve.Field)
+	assert.Equal(t, "INVALID_EMAIL", ve.Code)
+}
+
+func TestValidatePagination_Valid(t *testing.T) {
+	v := validation.NewDefaultValidator()
+	assert.NoError(t, v.ValidatePagination(1, 10))
+	assert.NoError(t, v.ValidatePagination(1, 1))
+	assert.NoError(t, v.ValidatePagination(1, 100))
+	assert.NoError(t, v.ValidatePagination(999, 50))
+}
+
+func TestValidatePagination_Invalid(t *testing.T) {
+	v := validation.NewDefaultValidator()
+	assert.Error(t, v.ValidatePagination(0, 10))  // page < 1
+	assert.Error(t, v.ValidatePagination(1, 0))   // perPage < 1
+	assert.Error(t, v.ValidatePagination(1, 101)) // perPage > 100
+	assert.Error(t, v.ValidatePagination(-1, 50)) // negative page
+}
+
+func TestValidatePagination_ErrorCode(t *testing.T) {
+	v := validation.NewDefaultValidator()
+	err := v.ValidatePagination(0, 10)
+	require.Error(t, err)
+	var ve *validation.ValidationError
+	require.ErrorAs(t, err, &ve)
+	assert.Equal(t, "INVALID_PAGE", ve.Code)
+
+	err = v.ValidatePagination(1, 0)
+	require.Error(t, err)
+	require.ErrorAs(t, err, &ve)
+	assert.Equal(t, "INVALID_PER_PAGE", ve.Code)
+}
+
+func TestValidateDateRange_Valid(t *testing.T) {
+	v := validation.NewDefaultValidator()
+	start := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2024, 12, 31, 23, 59, 59, 0, time.UTC)
+	assert.NoError(t, v.ValidateDateRange(start, end))
+}
+
+func TestValidateDateRange_Equal(t *testing.T) {
+	v := validation.NewDefaultValidator()
+	dt := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
+	assert.NoError(t, v.ValidateDateRange(dt, dt))
+}
+
+func TestValidateDateRange_Invalid(t *testing.T) {
+	v := validation.NewDefaultValidator()
+	start := time.Date(2024, 12, 31, 23, 59, 59, 0, time.UTC)
+	end := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	err := v.ValidateDateRange(start, end)
+	require.Error(t, err)
+	var ve *validation.ValidationError
+	require.ErrorAs(t, err, &ve)
+	assert.Equal(t, "INVALID_DATE_RANGE", ve.Code)
+}
+
+func TestValidationErrors_Collection(t *testing.T) {
+	errors := validation.NewValidationErrors()
+	assert.False(t, errors.HasErrors())
+	assert.Empty(t, errors.GetErrors())
+
+	errors.Add(&validation.ValidationError{Field: "email", Message: "invalid", Code: "INVALID_EMAIL"})
+	errors.Add(&validation.ValidationError{Field: "page", Message: "invalid", Code: "INVALID_PAGE"})
+
+	assert.True(t, errors.HasErrors())
+	assert.Len(t, errors.GetErrors(), 2)
+	assert.Equal(t, "INVALID_EMAIL", errors.GetErrors()[0].Code)
+	assert.Equal(t, "INVALID_PAGE", errors.GetErrors()[1].Code)
 }

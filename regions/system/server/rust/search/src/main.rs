@@ -49,14 +49,33 @@ async fn main() -> anyhow::Result<()> {
     let delete_document_uc = Arc::new(usecase::DeleteDocumentUseCase::new(search_repo));
 
     let _grpc_svc = Arc::new(SearchGrpcService::new(
-        index_document_uc,
-        search_uc,
-        delete_document_uc,
+        index_document_uc.clone(),
+        search_uc.clone(),
+        delete_document_uc.clone(),
     ));
+
+    let handler_state = adapter::handler::search_handler::AppState {
+        search_uc,
+        index_document_uc,
+        delete_document_uc,
+    };
 
     let app = axum::Router::new()
         .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
-        .route("/readyz", axum::routing::get(adapter::handler::health::readyz));
+        .route("/readyz", axum::routing::get(adapter::handler::health::readyz))
+        .route(
+            "/api/v1/search",
+            axum::routing::post(adapter::handler::search_handler::search),
+        )
+        .route(
+            "/api/v1/search/index",
+            axum::routing::post(adapter::handler::search_handler::index_document),
+        )
+        .route(
+            "/api/v1/search/index/:index_name/:id",
+            axum::routing::delete(adapter::handler::search_handler::delete_document_from_index),
+        )
+        .with_state(handler_state);
 
     let grpc_addr = SocketAddr::from(([0, 0, 0, 0], 9090));
     info!("gRPC server starting on {}", grpc_addr);

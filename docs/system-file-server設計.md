@@ -424,20 +424,20 @@ usecase（ビジネスロジック）
   ^
 adapter（REST ハンドラー・gRPC ハンドラー）
   ^
-infra（DB接続・S3クライアント・Kafka Producer・設定ローダー）
+infrastructure（DB接続・S3クライアント・Kafka Producer・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `FileMetadata` | エンティティ定義 |
+| domain/entity | `FileMetadata` | エンティティ定義 |
 | domain/repository | `FileMetadataRepository`, `FileStorageRepository` | リポジトリトレイト |
 | domain/service | `FileDomainService` | テナント分離・ストレージキー生成ロジック |
 | usecase | `ListFilesUsecase`, `GenerateUploadUrlUsecase`, `CompleteUploadUsecase`, `GetFileMetadataUsecase`, `GenerateDownloadUrlUsecase`, `DeleteFileUsecase`, `UpdateFileTagsUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/persistence | `FileMetadataPostgresRepository` | PostgreSQL リポジトリ実装 |
-| infra/storage | `S3FileStorageRepository` | aws-sdk-s3 ストレージ実装 |
-| infra/messaging | `FileUploadedKafkaProducer`, `FileDeletedKafkaProducer` | Kafka プロデューサー |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `FileMetadataPostgresRepository` | PostgreSQL リポジトリ実装 |
+| infrastructure/storage | `S3FileStorageRepository` | aws-sdk-s3 ストレージ実装 |
+| infrastructure/messaging | `FileUploadedKafkaProducer`, `FileDeletedKafkaProducer` | Kafka プロデューサー |
 
 ### ドメインモデル
 
@@ -491,7 +491,7 @@ infra（DB接続・S3クライアント・Kafka Producer・設定ローダー）
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
-    │  domain/model   │              │ domain/repository          │   │
+    │  domain/entity  │              │ domain/repository          │   │
     │  FileMetadata   │              │ FileMetadataRepository     │   │
     └────────────────┘              │ FileStorageRepository      │   │
               │                     │ (trait)                    │   │
@@ -501,7 +501,7 @@ infra（DB接続・S3クライアント・Kafka Producer・設定ローダー）
                  │ Service       │             │                     │
                  └────────────────┘             │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Kafka        │  │ FileMetadataPostgres   │  │
                     │  │ Producer     │  │ Repository             │  │

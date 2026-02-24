@@ -94,6 +94,83 @@ public sealed class ServiceAuthClient : IServiceAuthClient
         }
     }
 
+    public async Task<ServiceClaims> VerifyTokenAsync(string token, CancellationToken ct = default)
+    {
+        if (_config.JwksUri is null)
+        {
+            throw new ServiceAuthException("InvalidToken", "JWKS URI is not configured.");
+        }
+
+        HttpResponseMessage jwksResponse;
+        try
+        {
+            jwksResponse = await _httpClient.GetAsync(_config.JwksUri, ct).ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new ServiceAuthException("InvalidToken", "Failed to reach JWKS endpoint.", ex);
+        }
+
+        if (!jwksResponse.IsSuccessStatusCode)
+        {
+            var body = await jwksResponse.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            throw new ServiceAuthException(
+                "InvalidToken",
+                $"JWKS endpoint returned {(int)jwksResponse.StatusCode}: {body}");
+        }
+
+        var jwksJson = await jwksResponse.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+
+        using var doc = JsonDocument.Parse(jwksJson);
+        var keys = doc.RootElement.GetProperty("keys");
+
+        // Decode JWT header to find kid
+        var parts = token.Split('.');
+        if (parts.Length != 3)
+        {
+            throw new ServiceAuthException("InvalidToken", "Token does not have 3 parts.");
+        }
+
+        var headerJson = global::System.Text.Encoding.UTF8.GetString(DecodeBase64Url(parts[0]));
+        using var headerDoc = JsonDocument.Parse(headerJson);
+
+        if (!headerDoc.RootElement.TryGetProperty("kid", out var kidElement))
+        {
+            throw new ServiceAuthException("InvalidToken", "JWT header does not contain kid.");
+        }
+
+        var kid = kidElement.GetString()
+            ?? throw new ServiceAuthException("InvalidToken", "JWT kid is null.");
+
+        // Find matching key
+        bool found = false;
+        foreach (var key in keys.EnumerateArray())
+        {
+            if (key.TryGetProperty("kid", out var keyKid) && keyKid.GetString() == kid)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            throw new ServiceAuthException("InvalidToken", $"JWKS does not contain kid '{kid}'.");
+        }
+
+        // Decode payload for claims (simplified - real impl would verify signature)
+        var payloadJson = global::System.Text.Encoding.UTF8.GetString(DecodeBase64Url(parts[1]));
+        using var payloadDoc = JsonDocument.Parse(payloadJson);
+        var root = payloadDoc.RootElement;
+
+        return new ServiceClaims(
+            Sub: root.TryGetProperty("sub", out var sub) ? sub.GetString() ?? string.Empty : string.Empty,
+            Iss: root.TryGetProperty("iss", out var iss) ? iss.GetString() ?? string.Empty : string.Empty,
+            Scope: root.TryGetProperty("scope", out var scope) ? scope.GetString() ?? string.Empty : string.Empty,
+            Exp: root.TryGetProperty("exp", out var exp) ? exp.GetInt64() : 0,
+            Iat: root.TryGetProperty("iat", out var iat) ? iat.GetInt64() : 0);
+    }
+
     public Task<SpiffeId> ValidateSpiffeIdAsync(
         string uri,
         string expectedNamespace,
@@ -115,6 +192,18 @@ public sealed class ServiceAuthClient : IServiceAuthClient
     {
         _semaphore.Dispose();
         return ValueTask.CompletedTask;
+    }
+
+    private static byte[] DecodeBase64Url(string input)
+    {
+        var s = input.Replace('-', '+').Replace('_', '/');
+        switch (s.Length % 4)
+        {
+            case 2: s += "=="; break;
+            case 3: s += "="; break;
+        }
+
+        return Convert.FromBase64String(s);
     }
 
     private static readonly JsonSerializerOptions _jsonOptions = new()

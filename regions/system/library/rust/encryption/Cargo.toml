@@ -6,7 +6,8 @@ edition = "2021"
 [dependencies]
 aes-gcm = "0.10"
 rand = "0.8"
-bcrypt = "0.15"
+argon2 = "0.5"
+password-hash = { version = "0.5", features = ["rand_core"] }
 thiserror = "2"
 base64 = "0.22"
 

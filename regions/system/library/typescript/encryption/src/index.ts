@@ -1,4 +1,5 @@
-import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'crypto';
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+import argon2 from 'argon2';
 
 export function generateKey(): Buffer {
   return randomBytes(32);
@@ -25,13 +26,14 @@ export function decrypt(key: Buffer, ciphertext: string): string {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16).toString('hex');
-  const hash = createHash('sha256').update(salt + password).digest('hex');
-  return `${salt}:${hash}`;
+  return argon2.hash(password, {
+    type: argon2.argon2id,
+    memoryCost: 19456,
+    timeCost: 2,
+    parallelism: 1,
+  });
 }
 
-export async function verifyPassword(password: string, stored: string): Promise<boolean> {
-  const [salt, hash] = stored.split(':');
-  const computed = createHash('sha256').update(salt + password).digest('hex');
-  return computed === hash;
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return argon2.verify(hash, password);
 }

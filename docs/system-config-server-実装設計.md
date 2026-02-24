@@ -14,7 +14,7 @@ regions/system/server/rust/config/
 │   ├── main.rs                          # エントリポイント
 │   ├── domain/
 │   │   ├── mod.rs
-│   │   ├── model/
+│   │   ├── entity/
 │   │   │   ├── mod.rs
 │   │   │   ├── config_entry.rs          # ConfigEntry エンティティ
 │   │   │   └── config_change_log.rs     # ConfigChangeLog エンティティ
@@ -46,7 +46,7 @@ regions/system/server/rust/config/
 │   │       ├── mod.rs
 │   │       ├── auth.rs                  # JWT 認証ミドルウェア
 │   │       └── rbac.rs                  # RBAC ミドルウェア
-│   └── infra/
+│   └── infrastructure/
 │       ├── mod.rs
 │       ├── config/
 │       │   ├── mod.rs
@@ -171,15 +171,15 @@ use tracing::info;
 
 mod adapter;
 mod domain;
-mod infra;
+mod infrastructure;
 mod usecase;
 
 use adapter::handler::{grpc_handler, rest_handler};
 use domain::service::ConfigDomainService;
-use infra::cache::ConfigCache;
-use infra::config::Config;
-use infra::messaging::KafkaProducer;
-use infra::persistence;
+use infrastructure::cache::ConfigCache;
+use infrastructure::config::Config;
+use infrastructure::messaging::KafkaProducer;
+use infrastructure::persistence;
 use usecase::*;
 
 #[tokio::main]
@@ -189,10 +189,10 @@ async fn main() -> anyhow::Result<()> {
     cfg.validate()?;
 
     // --- Logger ---
-    infra::config::init_logger(&cfg.app.environment);
+    infrastructure::config::init_logger(&cfg.app.environment);
 
     // --- OpenTelemetry ---
-    let _tracer = infra::config::init_tracer(&cfg.app.name)?;
+    let _tracer = infrastructure::config::init_tracer(&cfg.app.name)?;
 
     // --- Database ---
     let pool = persistence::connect(&cfg.database).await?;
@@ -298,7 +298,7 @@ async fn shutdown_signal() {
 ### ドメインモデル（Rust）
 
 ```rust
-// src/domain/model/config_entry.rs
+// src/domain/entity/config_entry.rs
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -320,7 +320,7 @@ pub struct ConfigEntry {
 ```
 
 ```rust
-// src/domain/model/config_change_log.rs
+// src/domain/entity/config_change_log.rs
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -349,7 +349,7 @@ pub struct ConfigChangeLog {
 // src/domain/repository/config_repository.rs
 use async_trait::async_trait;
 
-use crate::domain::model::ConfigEntry;
+use crate::domain::entity::ConfigEntry;
 
 #[derive(Debug, Clone)]
 pub struct ListParams {
@@ -388,7 +388,7 @@ pub trait ConfigRepository: Send + Sync {
 // src/domain/repository/config_change_log_repository.rs
 use async_trait::async_trait;
 
-use crate::domain::model::ConfigChangeLog;
+use crate::domain::entity::ConfigChangeLog;
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -411,9 +411,9 @@ use std::sync::Arc;
 
 use tracing::instrument;
 
-use crate::domain::model::ConfigEntry;
+use crate::domain::entity::ConfigEntry;
 use crate::domain::repository::ConfigRepository;
-use crate::infra::cache::ConfigCache;
+use crate::infrastructure::cache::ConfigCache;
 
 pub struct GetConfigUseCase {
     repo: Arc<dyn ConfigRepository>,
@@ -461,11 +461,11 @@ use chrono::Utc;
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::domain::model::{ConfigChangeLog, ConfigEntry};
+use crate::domain::entity::{ConfigChangeLog, ConfigEntry};
 use crate::domain::repository::{ConfigChangeLogRepository, ConfigRepository};
 use crate::domain::service::ConfigDomainService;
-use crate::infra::cache::ConfigCache;
-use crate::infra::messaging::KafkaProducer;
+use crate::infrastructure::cache::ConfigCache;
+use crate::infrastructure::messaging::KafkaProducer;
 
 pub struct UpdateConfigUseCase {
     repo: Arc<dyn ConfigRepository>,
@@ -1054,7 +1054,7 @@ func (c *Config) Validate() error {
 #### Rust
 
 ```rust
-// src/infra/config/mod.rs
+// src/infrastructure/config/mod.rs
 use serde::Deserialize;
 use std::fs;
 

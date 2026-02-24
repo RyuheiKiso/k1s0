@@ -60,6 +60,9 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 # Telemetry library
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
 
+# Server common (error codes)
+k1s0-server-common = { path = "../../../library/rust/server-common", features = ["axum"] }
+
 # OpenAPI
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "8", features = ["axum"] }

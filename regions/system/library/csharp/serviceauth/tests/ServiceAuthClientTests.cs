@@ -53,6 +53,21 @@ public class ServiceAuthClientTests
         Assert.Equal(1, handler.CallCount);
     }
 
+    [Fact]
+    public async Task VerifyTokenAsync_NoJwksUri_ThrowsServiceAuthException()
+    {
+        var responseJson = """{"access_token":"dummy","expires_in":3600,"token_type":"Bearer"}""";
+        using var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, responseJson);
+        using var httpClient = new HttpClient(handler);
+        await using var client = new ServiceAuthClient(httpClient, TestConfig);
+
+        var ex = await Assert.ThrowsAsync<ServiceAuthException>(
+            () => client.VerifyTokenAsync("dummy-token"));
+
+        Assert.Equal("InvalidToken", ex.Code);
+        Assert.Contains("JWKS URI", ex.Message);
+    }
+
     private sealed class FakeHttpMessageHandler(HttpStatusCode statusCode, string responseBody) : HttpMessageHandler
     {
         public int CallCount { get; private set; }

@@ -18,6 +18,22 @@ pub struct UpsertConfigSchemaRequest {
 
 #[utoipa::path(
     get,
+    path = "/api/v1/config-schema",
+    responses(
+        (status = 200, description = "All config schemas", body = Vec<ConfigSchema>),
+    )
+)]
+pub async fn list_config_schemas(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    match state.list_config_schemas_uc.execute().await {
+        Ok(schemas) => (StatusCode::OK, Json(serde_json::to_value(schemas).unwrap())).into_response(),
+        Err(e) => e.into_response(),
+    }
+}
+
+#[utoipa::path(
+    get,
     path = "/api/v1/config-schema/{service_name}",
     params(("service_name" = String, Path, description = "Service name")),
     responses(

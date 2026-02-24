@@ -54,20 +54,23 @@ async fn main() -> anyhow::Result<()> {
 
     let _create_channel_uc = Arc::new(usecase::CreateChannelUseCase::new(channel_repo.clone()));
     let _update_channel_uc = Arc::new(usecase::UpdateChannelUseCase::new(channel_repo.clone()));
-    let _send_notification_uc =
+    let send_notification_uc =
         Arc::new(usecase::SendNotificationUseCase::new(channel_repo, log_repo.clone()));
 
     let _grpc_svc = Arc::new(NotificationGrpcService::new(
-        _send_notification_uc,
-        log_repo,
+        send_notification_uc.clone(),
+        log_repo.clone(),
     ));
 
     let grpc_addr: std::net::SocketAddr = "0.0.0.0:9090".parse()?;
     info!("gRPC server starting on {}", grpc_addr);
 
-    let app = axum::Router::new()
-        .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
-        .route("/readyz", axum::routing::get(adapter::handler::health::readyz));
+    let state = adapter::handler::AppState {
+        send_notification_uc,
+        log_repo,
+    };
+
+    let app = adapter::handler::router(state);
 
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);

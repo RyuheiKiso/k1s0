@@ -2,11 +2,14 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 
+use k1s0_server_common::error as codes;
+
 use super::{ErrorDetail, ErrorResponse};
 use crate::usecase::delete_config::DeleteConfigError;
 use crate::usecase::get_config::GetConfigError;
 use crate::usecase::get_config_schema::GetConfigSchemaError;
 use crate::usecase::get_service_config::GetServiceConfigError;
+use crate::usecase::list_config_schemas::ListConfigSchemasError;
 use crate::usecase::list_configs::ListConfigsError;
 use crate::usecase::update_config::UpdateConfigError;
 use crate::usecase::upsert_config_schema::UpsertConfigSchemaError;
@@ -17,13 +20,13 @@ impl IntoResponse for GetConfigError {
         match self {
             GetConfigError::NotFound(ns, key) => {
                 let err = ErrorResponse::new(
-                    "SYS_CONFIG_KEY_NOT_FOUND",
+                    codes::config::key_not_found().as_str(),
                     &format!("指定された設定キーが見つかりません: {}/{}", ns, key),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
             GetConfigError::Internal(msg) => {
-                let err = ErrorResponse::new("SYS_CONFIG_INTERNAL_ERROR", &msg);
+                let err = ErrorResponse::new(codes::config::internal_error().as_str(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -35,11 +38,12 @@ impl IntoResponse for ListConfigsError {
     fn into_response(self) -> axum::response::Response {
         match self {
             ListConfigsError::Validation(msg) => {
-                let err = ErrorResponse::new("SYS_CONFIG_VALIDATION_FAILED", &msg);
+                let err =
+                    ErrorResponse::new(codes::config::validation_failed().as_str(), &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             }
             ListConfigsError::Internal(msg) => {
-                let err = ErrorResponse::new("SYS_CONFIG_INTERNAL_ERROR", &msg);
+                let err = ErrorResponse::new(codes::config::internal_error().as_str(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -52,14 +56,14 @@ impl IntoResponse for UpdateConfigError {
         match self {
             UpdateConfigError::NotFound(ns, key) => {
                 let err = ErrorResponse::new(
-                    "SYS_CONFIG_KEY_NOT_FOUND",
+                    codes::config::key_not_found().as_str(),
                     &format!("指定された設定キーが見つかりません: {}/{}", ns, key),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
             UpdateConfigError::VersionConflict { expected, current } => {
                 let err = ErrorResponse::with_details(
-                    "SYS_CONFIG_VERSION_CONFLICT",
+                    codes::config::version_conflict().as_str(),
                     "設定値が他のユーザーによって更新されています。最新のバージョンを取得してください",
                     vec![ErrorDetail {
                         field: "version".to_string(),
@@ -69,11 +73,12 @@ impl IntoResponse for UpdateConfigError {
                 (StatusCode::CONFLICT, Json(err)).into_response()
             }
             UpdateConfigError::Validation(msg) => {
-                let err = ErrorResponse::new("SYS_CONFIG_VALIDATION_FAILED", &msg);
+                let err =
+                    ErrorResponse::new(codes::config::validation_failed().as_str(), &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             }
             UpdateConfigError::Internal(msg) => {
-                let err = ErrorResponse::new("SYS_CONFIG_INTERNAL_ERROR", &msg);
+                let err = ErrorResponse::new(codes::config::internal_error().as_str(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -86,13 +91,13 @@ impl IntoResponse for DeleteConfigError {
         match self {
             DeleteConfigError::NotFound(ns, key) => {
                 let err = ErrorResponse::new(
-                    "SYS_CONFIG_KEY_NOT_FOUND",
+                    codes::config::key_not_found().as_str(),
                     &format!("指定された設定キーが見つかりません: {}/{}", ns, key),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
             DeleteConfigError::Internal(msg) => {
-                let err = ErrorResponse::new("SYS_CONFIG_INTERNAL_ERROR", &msg);
+                let err = ErrorResponse::new(codes::config::internal_error().as_str(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -105,13 +110,13 @@ impl IntoResponse for GetServiceConfigError {
         match self {
             GetServiceConfigError::NotFound(name) => {
                 let err = ErrorResponse::new(
-                    "SYS_CONFIG_SERVICE_NOT_FOUND",
+                    codes::config::service_not_found().as_str(),
                     &format!("指定されたサービスの設定が見つかりません: {}", name),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
             GetServiceConfigError::Internal(msg) => {
-                let err = ErrorResponse::new("SYS_CONFIG_INTERNAL_ERROR", &msg);
+                let err = ErrorResponse::new(codes::config::internal_error().as_str(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -124,13 +129,13 @@ impl IntoResponse for GetConfigSchemaError {
         match self {
             GetConfigSchemaError::NotFound(name) => {
                 let err = ErrorResponse::new(
-                    "SYS_CONFIG_SCHEMA_NOT_FOUND",
+                    codes::config::schema_not_found().as_str(),
                     &format!("指定されたサービスの設定スキーマが見つかりません: {}", name),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
             GetConfigSchemaError::Internal(msg) => {
-                let err = ErrorResponse::new("SYS_CONFIG_INTERNAL_ERROR", &msg);
+                let err = ErrorResponse::new(codes::config::internal_error().as_str(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -142,7 +147,19 @@ impl IntoResponse for UpsertConfigSchemaError {
     fn into_response(self) -> axum::response::Response {
         match self {
             UpsertConfigSchemaError::Internal(msg) => {
-                let err = ErrorResponse::new("SYS_CONFIG_INTERNAL_ERROR", &msg);
+                let err = ErrorResponse::new(codes::config::internal_error().as_str(), &msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            }
+        }
+    }
+}
+
+/// ListConfigSchemasError を HTTP レスポンスに変換する。
+impl IntoResponse for ListConfigSchemasError {
+    fn into_response(self) -> axum::response::Response {
+        match self {
+            ListConfigSchemasError::Internal(msg) => {
+                let err = ErrorResponse::new(codes::config::internal_error().as_str(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }

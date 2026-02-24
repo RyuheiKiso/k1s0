@@ -99,37 +99,41 @@ validate_date_range("date_range", from, to)?;
 ```
 validation/
 ├── validation.go
-├── rules.go
-├── errors.go
 ├── validation_test.go
 ├── go.mod
 └── go.sum
 ```
 
-**依存関係**: `github.com/google/uuid v1.6.0`, `github.com/stretchr/testify v1.10.0`
+**依存関係**: なし（標準ライブラリのみ）
 
 **主要インターフェース**:
 
 ```go
-type ValidationError struct {
-    Field   string
-    Code    string
-    Message string
+type Validator interface {
+    ValidateEmail(email string) error
+    ValidateUUID(id string) error
+    ValidateURL(rawURL string) error
+    ValidateTenantID(tenantID string) error
+    ValidatePagination(page, perPage int) error
+    ValidateDateRange(startDate, endDate time.Time) error
 }
 
-type ValidationErrors []ValidationError
+type ValidationError struct {
+    Field   string
+    Message string
+    Code    string
+}
 
-func (e ValidationErrors) Error() string
+type ValidationErrors struct {}
 
-func ValidateEmail(field, value string) *ValidationError
-func ValidateUUID(field, value string) *ValidationError
-func ValidateURL(field, value string) *ValidationError
-func ValidatePagination(field string, page, pageSize int) *ValidationError
-func ValidateDateRange(field string, from, to time.Time) *ValidationError
-func ValidateTenantID(field, value string) *ValidationError
+func NewValidationErrors() *ValidationErrors
+func (ve *ValidationErrors) HasErrors() bool
+func (ve *ValidationErrors) GetErrors() []*ValidationError
+func (ve *ValidationErrors) Add(err *ValidationError)
 
-// 複数バリデーションの一括実行
-func Collect(validators ...func() *ValidationError) ValidationErrors
+type DefaultValidator struct{}
+
+func NewDefaultValidator() *DefaultValidator
 ```
 
 ## TypeScript 実装

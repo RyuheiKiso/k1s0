@@ -391,20 +391,20 @@ usecase（ビジネスロジック）
   ^
 adapter（REST ハンドラー・gRPC ハンドラー・Kafka Consumer）
   ^
-infra（OpenSearch クライアント・Kafka Producer/Consumer・moka キャッシュ・設定ローダー）
+infrastructure（OpenSearch クライアント・Kafka Producer/Consumer・moka キャッシュ・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `SearchIndex`, `SearchDocument`, `SearchQuery`, `SearchResult` | エンティティ定義 |
+| domain/entity | `SearchIndex`, `SearchDocument`, `SearchQuery`, `SearchResult` | エンティティ定義 |
 | domain/repository | `SearchIndexRepository`, `SearchDocumentRepository` | リポジトリトレイト |
 | domain/service | `SearchDomainService` | 検索クエリ構築・ファセット集計ロジック |
 | usecase | `CreateIndexUsecase`, `DeleteIndexUsecase`, `ListIndicesUsecase`, `IndexDocumentUsecase`, `UpdateDocumentUsecase`, `DeleteDocumentUsecase`, `SearchUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic）, Kafka Consumer ハンドラー | プロトコル変換 |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/persistence | `OpenSearchIndexRepository`, `OpenSearchDocumentRepository` | OpenSearch リポジトリ実装 |
-| infra/cache | `SearchCacheService` | moka キャッシュ実装（インデックスステータスキャッシュ） |
-| infra/messaging | `SearchIndexKafkaConsumer` | Kafka Consumer（非同期インデックス要求） |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `OpenSearchIndexRepository`, `OpenSearchDocumentRepository` | OpenSearch リポジトリ実装 |
+| infrastructure/cache | `SearchCacheService` | moka キャッシュ実装（インデックスステータスキャッシュ） |
+| infrastructure/messaging | `SearchIndexKafkaConsumer` | Kafka Consumer（非同期インデックス要求） |
 
 ### ドメインモデル
 
@@ -469,7 +469,7 @@ infra（OpenSearch クライアント・Kafka Producer/Consumer・moka キャッ
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
-    │  domain/model   │              │ domain/repository          │   │
+    │  domain/entity  │              │ domain/repository          │   │
     │  SearchIndex,   │              │ SearchIndexRepository      │   │
     │  SearchDocument,│              │ SearchDocumentRepository   │   │
     │  SearchQuery,   │              │ (trait)                    │   │
@@ -482,7 +482,7 @@ infra（OpenSearch クライアント・Kafka Producer/Consumer・moka キャッ
                  │ Service        │            │                     │
                  └────────────────┘            │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Kafka        │  │ OpenSearchIndex        │  │
                     │  │ Consumer     │  │ Repository             │  │

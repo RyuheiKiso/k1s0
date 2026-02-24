@@ -75,4 +75,85 @@ public class DefaultValidatorTests
         var ex = Assert.Throws<ValidationException>(() => _validator.ValidateTenantId(tenantId));
         Assert.Equal("tenantId", ex.Field);
     }
+
+    [Theory]
+    [InlineData(1, 10)]
+    [InlineData(1, 1)]
+    [InlineData(1, 100)]
+    [InlineData(999, 50)]
+    public void ValidatePagination_ValidInput_DoesNotThrow(int page, int perPage)
+    {
+        _validator.ValidatePagination(page, perPage);
+    }
+
+    [Fact]
+    public void ValidatePagination_PageLessThan1_ThrowsWithCode()
+    {
+        var ex = Assert.Throws<ValidationException>(() => _validator.ValidatePagination(0, 10));
+        Assert.Equal("page", ex.Field);
+        Assert.Equal("INVALID_PAGE", ex.Code);
+    }
+
+    [Theory]
+    [InlineData(1, 0)]
+    [InlineData(1, 101)]
+    public void ValidatePagination_PerPageOutOfRange_ThrowsWithCode(int page, int perPage)
+    {
+        var ex = Assert.Throws<ValidationException>(() => _validator.ValidatePagination(page, perPage));
+        Assert.Equal("perPage", ex.Field);
+        Assert.Equal("INVALID_PER_PAGE", ex.Code);
+    }
+
+    [Fact]
+    public void ValidateDateRange_ValidRange_DoesNotThrow()
+    {
+        var start = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var end = new DateTime(2024, 12, 31, 23, 59, 59, DateTimeKind.Utc);
+        _validator.ValidateDateRange(start, end);
+    }
+
+    [Fact]
+    public void ValidateDateRange_EqualDates_DoesNotThrow()
+    {
+        var dt = new DateTime(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc);
+        _validator.ValidateDateRange(dt, dt);
+    }
+
+    [Fact]
+    public void ValidateDateRange_StartAfterEnd_ThrowsWithCode()
+    {
+        var start = new DateTime(2024, 12, 31, 23, 59, 59, DateTimeKind.Utc);
+        var end = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var ex = Assert.Throws<ValidationException>(() => _validator.ValidateDateRange(start, end));
+        Assert.Equal("dateRange", ex.Field);
+        Assert.Equal("INVALID_DATE_RANGE", ex.Code);
+    }
+
+    [Fact]
+    public void ValidationException_HasCode()
+    {
+        var ex = Assert.Throws<ValidationException>(() => _validator.ValidateEmail("bad"));
+        Assert.Equal("INVALID_EMAIL", ex.Code);
+    }
+
+    [Fact]
+    public void ValidationErrors_EmptyCollection()
+    {
+        var errors = new ValidationErrors();
+        Assert.False(errors.HasErrors());
+        Assert.Empty(errors.GetErrors());
+    }
+
+    [Fact]
+    public void ValidationErrors_AddAndRetrieve()
+    {
+        var errors = new ValidationErrors();
+        errors.Add(new ValidationException("email", "bad", "INVALID_EMAIL"));
+        errors.Add(new ValidationException("page", "bad", "INVALID_PAGE"));
+
+        Assert.True(errors.HasErrors());
+        Assert.Equal(2, errors.GetErrors().Count);
+        Assert.Equal("INVALID_EMAIL", errors.GetErrors()[0].Code);
+        Assert.Equal("INVALID_PAGE", errors.GetErrors()[1].Code);
+    }
 }

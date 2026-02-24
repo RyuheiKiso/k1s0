@@ -121,23 +121,41 @@ featureflag/
 
 ```go
 type FeatureFlagClient interface {
-    Evaluate(ctx context.Context, key string, evalCtx *EvaluationContext) (bool, error)
-    GetFlag(ctx context.Context, key string) (*FeatureFlag, error)
-    Close() error
+    Evaluate(ctx context.Context, flagKey string, evalCtx *EvaluationContext) (*EvaluationResult, error)
+    GetFlag(ctx context.Context, flagKey string) (*FeatureFlag, error)
+    IsEnabled(ctx context.Context, flagKey string, evalCtx *EvaluationContext) (bool, error)
 }
 
 type EvaluationContext struct {
-    Environment string
-    UserID      string
-    ServiceName string
+    UserID     *string
+    TenantID   *string
+    Attributes map[string]string
+}
+
+func NewEvaluationContext() *EvaluationContext
+func (c *EvaluationContext) WithUserID(userID string) *EvaluationContext
+func (c *EvaluationContext) WithTenantID(tenantID string) *EvaluationContext
+func (c *EvaluationContext) WithAttribute(key, value string) *EvaluationContext
+
+type EvaluationResult struct {
+    FlagKey string
+    Enabled bool
+    Variant *string
+    Reason  string
+}
+
+type FlagVariant struct {
+    Name   string
+    Value  string
+    Weight int
 }
 
 type FeatureFlag struct {
-    Key                string
-    Enabled            bool
-    RolloutPercentage  int
-    TargetEnvironments []string
-    UpdatedAt          time.Time
+    ID          string
+    FlagKey     string
+    Description string
+    Enabled     bool
+    Variants    []FlagVariant
 }
 ```
 

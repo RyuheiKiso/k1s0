@@ -24,6 +24,7 @@ pub struct AppState {
     pub delete_version_uc: Arc<DeleteVersionUseCase>,
     pub check_compatibility_uc: Arc<CheckCompatibilityUseCase>,
     pub get_diff_uc: Arc<GetDiffUseCase>,
+    pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 }
 
 pub fn router(state: AppState) -> Router {

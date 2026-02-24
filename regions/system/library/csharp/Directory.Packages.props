@@ -79,6 +79,11 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.1" />
   </ItemGroup>
 
+  <!-- encryption -->
+  <ItemGroup Label="encryption">
+    <PackageVersion Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
+  </ItemGroup>
+
   <!-- dlq -->
   <!-- Uses System.Net.Http.Json (built-in to .NET) -->
 

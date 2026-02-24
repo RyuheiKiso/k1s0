@@ -68,22 +68,24 @@ Keycloak は自身の DB（`keycloak` データベース）でユーザー認証
        │              │ description      │
        │              └──────────────────┘
        │
-       │              ┌──────────────────┐
-       │              │  audit_logs      │
-       │              ├──────────────────┤
-       └─────────────>│ id (PK)          │
-                      │ user_id (FK)     │
-                      │ event_type       │
-                      │ action           │
-                      │ resource         │
-                      │ resource_id      │
-                      │ result           │
-                      │ detail (JSONB)   │
-                      │ ip_address       │
-                      │ user_agent       │
-                      │ trace_id         │
-                      │ created_at       │
-                      └──────────────────┘
+       │              ┌──────────────────────┐
+       │              │  audit_logs          │
+       │              │  (user_id は TEXT、   │
+       │              │   FK なし)            │
+       │              ├──────────────────────┤
+       │              │ id (PK composite)    │
+       │              │ user_id (TEXT)       │
+       │              │ event_type           │
+       │              │ action               │
+       │              │ resource             │
+       │              │ resource_id          │
+       │              │ result               │
+       │              │ detail (JSONB)       │
+       │              │ ip_address (TEXT)    │
+       │              │ user_agent           │
+       │              │ trace_id             │
+       │              │ created_at (PK comp) │
+       │              └──────────────────────┘
 
 ┌─────────────────┐
 │   api_keys      │
@@ -112,7 +114,7 @@ Keycloak は自身の DB（`keycloak` データベース）でユーザー認証
 | roles - user_roles | 1:N | ロールは複数のユーザーに割り当てられる |
 | roles - role_permissions | 1:N | ロールは複数の権限を持てる |
 | permissions - role_permissions | 1:N | 権限は複数のロールに付与される |
-| users - audit_logs | 1:N | ユーザーは複数の監査ログを生成する |
+| users - audit_logs | 1:N（論理的。FK なし） | ユーザーは複数の監査ログを生成する（user_id は TEXT 型で FK 制約なし） |
 | users - api_keys | 1:N | ユーザーは複数の API キーを作成できる |
 
 ---
@@ -189,20 +191,23 @@ Keycloak の `sub` claim（UUID）と紐づくアプリケーション固有の�
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| id | UUID | PK, DEFAULT gen_random_uuid() | ログ識別子 |
-| user_id | UUID | FK users(id) ON DELETE SET NULL | 操作ユーザーの ID |
+| id | UUID | NOT NULL, DEFAULT gen_random_uuid() | ログ識別子 |
+| user_id | TEXT | | 操作ユーザーの ID（文字列型。FK なし） |
 | event_type | VARCHAR(100) | NOT NULL | イベント種別（LOGIN_SUCCESS, LOGIN_FAILURE, LOGOUT, PERMISSION_CHANGE 等） |
 | action | VARCHAR(100) | NOT NULL | 操作種別（login, logout, permission_change, user_create, user_update, role_assign, api_key_create 等） |
 | resource | VARCHAR(255) | | 操作対象リソース種別 |
 | resource_id | VARCHAR(255) | | 操作対象リソースの ID |
 | result | VARCHAR(50) | NOT NULL DEFAULT 'SUCCESS' | 操作結果（SUCCESS, FAILURE, DENIED） |
 | detail | JSONB | | 操作の詳細情報（変更前後の値等） |
-| ip_address | INET | | クライアント IP アドレス |
+| ip_address | TEXT | | クライアント IP アドレス（TEXT 型で IPv4/IPv6 文字列を柔軟に格納） |
 | user_agent | TEXT | | クライアント User-Agent |
 | trace_id | VARCHAR(64) | | OpenTelemetry トレース ID |
 | created_at | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | 記録日時 |
+| | | PRIMARY KEY (id, created_at) | パーティションキーを含む複合主キー |
 
-**インデックス**: `(user_id, created_at)`, `(event_type, created_at)`, `(action, created_at)`, `(trace_id)`
+> **注意**: PostgreSQL のパーティショニングでは、パーティションキー（`created_at`）を PRIMARY KEY に含める必要があるため、`PRIMARY KEY (id, created_at)` の複合主キーを使用する。`user_id` は `TEXT` 型（users テーブルへの FK なし）であり、Keycloak sub やシステムアカウント名など柔軟な識別子を格納できる。`ip_address` は `TEXT` 型であり、INET 型ではない。
+
+**インデックス**: `(user_id, created_at)`, `(event_type, created_at)`, `(action, created_at)`, `(trace_id WHERE NOT NULL)`, `(resource, resource_id WHERE NOT NULL)`
 
 ### api_keys テーブル
 
@@ -423,18 +428,19 @@ DROP TABLE IF EXISTS auth.user_roles;
 -- auth-db: audit_logs テーブル作成（月次パーティショニング）
 
 CREATE TABLE IF NOT EXISTS auth.audit_logs (
-    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id     UUID         REFERENCES auth.users(id) ON DELETE SET NULL,
+    id          UUID         NOT NULL DEFAULT gen_random_uuid(),
+    user_id     TEXT,
     event_type  VARCHAR(100) NOT NULL,
     action      VARCHAR(100) NOT NULL,
     resource    VARCHAR(255),
     resource_id VARCHAR(255),
     result      VARCHAR(50)  NOT NULL DEFAULT 'SUCCESS',
     detail      JSONB,
-    ip_address  INET,
+    ip_address  TEXT,
     user_agent  TEXT,
     trace_id    VARCHAR(64),
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
 
 -- インデックス

@@ -33,11 +33,11 @@ system-config-server のキャッシュ戦略・DB マイグレーション・�
 ### Rust キャッシュ実装例
 
 ```rust
-// src/infra/cache/config_cache.rs
+// src/infrastructure/cache/config_cache.rs
 use moka::future::Cache;
 use std::time::Duration;
 
-use crate::domain::model::ConfigEntry;
+use crate::domain::entity::ConfigEntry;
 
 pub struct ConfigCache {
     cache: Cache<String, ConfigEntry>,
@@ -71,18 +71,18 @@ impl ConfigCache {
 
 ## データベースマイグレーション
 
-設定値と変更ログの2テーブルを PostgreSQL（config-db）に格納する。
+設定値と変更ログの2テーブルを PostgreSQL（config-db）に格納する。詳細なスキーマ定義と全マイグレーションファイルは [system-config-database設計.md](system-config-database設計.md) 参照。
 
 ```sql
--- migrations/001_create_config_entries.sql
+-- migrations/002_create_config_entries.up.sql
 
-CREATE TABLE IF NOT EXISTS config_entries (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE IF NOT EXISTS config.config_entries (
+    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     namespace   VARCHAR(255) NOT NULL,
     key         VARCHAR(255) NOT NULL,
-    value       JSONB        NOT NULL,
-    version     INTEGER      NOT NULL DEFAULT 1,
-    description TEXT         NOT NULL DEFAULT '',
+    value_json  JSONB        NOT NULL DEFAULT '{}',
+    version     INT          NOT NULL DEFAULT 1,
+    description TEXT,
     created_by  VARCHAR(255) NOT NULL,
     updated_by  VARCHAR(255) NOT NULL,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
@@ -91,51 +91,59 @@ CREATE TABLE IF NOT EXISTS config_entries (
     CONSTRAINT uq_config_entries_namespace_key UNIQUE (namespace, key)
 );
 
--- 検索用インデックス
-CREATE INDEX idx_config_entries_namespace ON config_entries (namespace);
-CREATE INDEX idx_config_entries_key ON config_entries (key);
-CREATE INDEX idx_config_entries_updated_at ON config_entries (updated_at DESC);
+-- インデックス
+CREATE INDEX IF NOT EXISTS idx_config_entries_namespace
+    ON config.config_entries (namespace);
+CREATE INDEX IF NOT EXISTS idx_config_entries_namespace_key
+    ON config.config_entries (namespace, key);
+CREATE INDEX IF NOT EXISTS idx_config_entries_created_at
+    ON config.config_entries (created_at);
 
--- サービス名検索用（namespace の第2階層がサービス名に対応）
--- 例: system.auth.database → auth がサービス名
-CREATE INDEX idx_config_entries_namespace_prefix ON config_entries USING btree (namespace varchar_pattern_ops);
-
-COMMENT ON TABLE config_entries IS '設定値エントリ。namespace.key の一意制約で管理。';
-COMMENT ON COLUMN config_entries.namespace IS 'Tier.Service.Section 形式の名前空間（例: system.auth.database）';
-COMMENT ON COLUMN config_entries.value IS 'JSONB 形式の設定値。string, number, boolean, object を格納可能';
-COMMENT ON COLUMN config_entries.version IS '楽観的排他制御用のバージョン番号。更新のたびにインクリメント';
+-- updated_at トリガー
+CREATE TRIGGER trigger_config_entries_update_updated_at
+    BEFORE UPDATE ON config.config_entries
+    FOR EACH ROW
+    EXECUTE FUNCTION config.update_updated_at();
 ```
 
 ```sql
--- migrations/002_create_config_change_logs.sql
+-- migrations/003_create_config_change_logs.up.sql
 
-CREATE TABLE IF NOT EXISTS config_change_logs (
-    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    config_entry_id  UUID         NOT NULL,
+CREATE TABLE IF NOT EXISTS config.config_change_logs (
+    id               UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    config_entry_id  UUID         REFERENCES config.config_entries(id) ON DELETE SET NULL,
     namespace        VARCHAR(255) NOT NULL,
     key              VARCHAR(255) NOT NULL,
-    old_value        JSONB,
-    new_value        JSONB,
-    old_version      INTEGER      NOT NULL DEFAULT 0,
-    new_version      INTEGER      NOT NULL,
-    change_type      VARCHAR(20)  NOT NULL CHECK (change_type IN ('CREATED', 'UPDATED', 'DELETED')),
+    change_type      VARCHAR(20)  NOT NULL,
+    old_value_json   JSONB,
+    new_value_json   JSONB,
     changed_by       VARCHAR(255) NOT NULL,
-    changed_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    trace_id         VARCHAR(64),
+    created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT chk_config_change_logs_change_type
+        CHECK (change_type IN ('CREATED', 'UPDATED', 'DELETED'))
 );
 
--- 検索用インデックス
-CREATE INDEX idx_config_change_logs_config_entry_id ON config_change_logs (config_entry_id);
-CREATE INDEX idx_config_change_logs_namespace ON config_change_logs (namespace);
-CREATE INDEX idx_config_change_logs_changed_at ON config_change_logs (changed_at DESC);
-CREATE INDEX idx_config_change_logs_changed_by ON config_change_logs (changed_by);
-CREATE INDEX idx_config_change_logs_change_type ON config_change_logs (change_type);
-
--- 複合インデックス（設定エントリ + 日時範囲の検索最適化）
-CREATE INDEX idx_config_change_logs_entry_changed ON config_change_logs (config_entry_id, changed_at DESC);
-
--- パーティショニング（月単位）は運用フェーズで検討
-COMMENT ON TABLE config_change_logs IS '設定変更の監査ログ。全ての CRUD 操作を記録。保持期間は 1 年間（可観測性設計.md 参照）';
+-- インデックス
+CREATE INDEX IF NOT EXISTS idx_config_change_logs_config_entry_id
+    ON config.config_change_logs (config_entry_id);
+CREATE INDEX IF NOT EXISTS idx_config_change_logs_namespace_key
+    ON config.config_change_logs (namespace, key);
+CREATE INDEX IF NOT EXISTS idx_config_change_logs_change_type_created_at
+    ON config.config_change_logs (change_type, created_at);
+CREATE INDEX IF NOT EXISTS idx_config_change_logs_trace_id
+    ON config.config_change_logs (trace_id)
+    WHERE trace_id IS NOT NULL;
 ```
+
+> **注意**: 実装済みの config_change_logs テーブルはドキュメント初期設計から以下の変更を反映済み:
+> - `config.` スキーマプレフィックスを使用（スキーマなしではない）
+> - カラム名: `old_value` -> `old_value_json`, `new_value` -> `new_value_json`（JSONB であることを明示）
+> - `old_version` / `new_version` カラムを削除（バージョン管理は config_entries.version で行う）
+> - `changed_at` -> `created_at`（他テーブルとの命名統一）
+> - `trace_id` カラムを追加（OpenTelemetry 連携）
+> - FK 制約: `config_entry_id` に `ON DELETE SET NULL` を追加（削除後もログ参照可能）
 
 ---
 
@@ -148,8 +156,8 @@ COMMENT ON TABLE config_change_logs IS '設定変更の監査ログ。全ての 
 | domain/service | 単体テスト | `#[cfg(test)]` + `assert!` |
 | usecase | 単体テスト（モック） | `mockall` |
 | adapter/handler | 統合テスト（HTTP/gRPC） | `axum::test` + `tokio::test` |
-| infra/persistence | 統合テスト（DB） | `testcontainers` |
-| infra/cache | 単体テスト | `tokio::test` |
+| infrastructure/persistence | 統合テスト（DB） | `testcontainers` |
+| infrastructure/cache | 単体テスト | `tokio::test` |
 
 ### Rust テスト例
 
@@ -159,7 +167,7 @@ COMMENT ON TABLE config_change_logs IS '設定変更の監査ログ。全ての 
 mod tests {
     use super::*;
     use crate::domain::repository::MockConfigRepository;
-    use crate::infra::cache::ConfigCache;
+    use crate::infrastructure::cache::ConfigCache;
 
     #[tokio::test]
     async fn test_get_config_cache_hit() {
@@ -230,7 +238,7 @@ mod tests {
 #### Rust
 
 ```rust
-// src/infra/persistence/config_repository_test.rs
+// src/infrastructure/persistence/config_repository_test.rs
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -306,30 +314,52 @@ mod tests {
 
 ### Dockerfile
 
-[Dockerイメージ戦略.md](Dockerイメージ戦略.md) のテンプレートに従う。
-
-#### Rust
+[Dockerイメージ戦略.md](Dockerイメージ戦略.md) のテンプレートに従う。ビルドコンテキストは `regions/system`（ライブラリ依存解決のため）。
 
 ```dockerfile
-# ---- Build ----
-FROM rust:1.82-bookworm AS build
-WORKDIR /src
+# Build stage
+# Note: build context must be ./regions/system (to include library dependencies)
+FROM rust:1.88-bookworm AS builder
 
-# protoc のインストール（tonic-build に必要）
-RUN apt-get update && apt-get install -y protobuf-compiler && rm -rf /var/lib/apt/lists/*
+# Install protobuf compiler (for tonic-build in build.rs) and
+# cmake + build-essential (for rdkafka cmake-build feature)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    protobuf-compiler \
+    cmake \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release && rm -rf src
+WORKDIR /app
+
+# Copy the entire system directory to resolve path dependencies
 COPY . .
-RUN cargo build --release
 
-# ---- Runtime ----
-FROM gcr.io/distroless/cc-debian12
-COPY --from=build /src/target/release/config-server /app
+RUN cargo build --release -p k1s0-config-server
+
+# Runtime stage
+FROM gcr.io/distroless/cc-debian12:nonroot
+
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
+COPY --from=builder /app/target/release/k1s0-config-server /k1s0-config-server
+
 USER nonroot:nonroot
 EXPOSE 8080 50051
-ENTRYPOINT ["/app"]
+
+ENTRYPOINT ["/k1s0-config-server"]
 ```
+
+### Dockerfile 構成のポイント
+
+| 項目 | 詳細 |
+| --- | --- |
+| ビルドステージ | `rust:1.88-bookworm`（マルチステージビルド） |
+| ランタイムステージ | `gcr.io/distroless/cc-debian12:nonroot`（最小イメージ） |
+| 追加パッケージ | `protobuf-compiler`（proto 生成）、`cmake` + `build-essential`（rdkafka ビルド） |
+| libz コピー | distroless には zlib が含まれないため、ビルドステージから手動コピー |
+| ビルドコマンド | `cargo build --release -p k1s0-config-server`（ワークスペースから特定パッケージを指定） |
+| ビルドコンテキスト | `regions/system`（`COPY . .` でシステム全体のライブラリ依存を含める） |
+| 公開ポート | 8080（REST API）、50051（gRPC） |
+| 実行ユーザー | `nonroot:nonroot`（セキュリティベストプラクティス） |
 
 ### Helm values
 

@@ -4,8 +4,8 @@ namespace K1s0.System.AuditClient.Tests;
 
 public class BufferedAuditClientTests
 {
-    private static AuditEvent MakeEvent(string id = "1") =>
-        new(id, "tenant-1", "actor-1", "create", "user", "res-1", DateTimeOffset.UtcNow);
+    private static AuditEvent MakeEvent(string id = "1", string tenantId = "tenant-1", string actorId = "actor-1", string action = "create") =>
+        new(id, tenantId, actorId, action, "user", "res-1", DateTimeOffset.UtcNow);
 
     [Fact]
     public async Task Record_AddsToBuffer()
@@ -50,5 +50,58 @@ public class BufferedAuditClientTests
         Assert.Equal("42", events[0].Id);
         Assert.Equal("tenant-1", events[0].TenantId);
         Assert.Equal("actor-1", events[0].ActorId);
+    }
+
+    [Fact]
+    public async Task Query_ByTenantId_FiltersCorrectly()
+    {
+        var client = new BufferedAuditClient();
+        await client.RecordAsync(MakeEvent("1", tenantId: "tenant-A"));
+        await client.RecordAsync(MakeEvent("2", tenantId: "tenant-B"));
+        await client.RecordAsync(MakeEvent("3", tenantId: "tenant-A"));
+
+        var result = await client.QueryAsync(new AuditFilter(TenantId: "tenant-A"));
+
+        Assert.Equal(2, result.Count);
+        Assert.All(result, e => Assert.Equal("tenant-A", e.TenantId));
+    }
+
+    [Fact]
+    public async Task Query_ByAction_FiltersCorrectly()
+    {
+        var client = new BufferedAuditClient();
+        await client.RecordAsync(MakeEvent("1", action: "create"));
+        await client.RecordAsync(MakeEvent("2", action: "delete"));
+        await client.RecordAsync(MakeEvent("3", action: "create"));
+
+        var result = await client.QueryAsync(new AuditFilter(Action: "delete"));
+
+        Assert.Single(result);
+        Assert.Equal("2", result[0].Id);
+    }
+
+    [Fact]
+    public async Task Query_EmptyFilter_ReturnsAll()
+    {
+        var client = new BufferedAuditClient();
+        await client.RecordAsync(MakeEvent("1"));
+        await client.RecordAsync(MakeEvent("2"));
+
+        var result = await client.QueryAsync(new AuditFilter());
+
+        Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public async Task Query_ByActorId_FiltersCorrectly()
+    {
+        var client = new BufferedAuditClient();
+        await client.RecordAsync(MakeEvent("1", actorId: "user-A"));
+        await client.RecordAsync(MakeEvent("2", actorId: "user-B"));
+
+        var result = await client.QueryAsync(new AuditFilter(ActorId: "user-A"));
+
+        Assert.Single(result);
+        Assert.Equal("user-A", result[0].ActorId);
     }
 }

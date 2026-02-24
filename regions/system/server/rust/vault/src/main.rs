@@ -103,14 +103,20 @@ async fn main() -> anyhow::Result<()> {
 
     // gRPC service
     let _vault_grpc_svc = Arc::new(VaultGrpcService::new(
+        get_secret_uc.clone(),
+        set_secret_uc.clone(),
+        delete_secret_uc.clone(),
+        list_secrets_uc.clone(),
+    ));
+
+    // AppState (REST)
+    let state = AppState {
         get_secret_uc,
         set_secret_uc,
         delete_secret_uc,
         list_secrets_uc,
-    ));
-
-    // AppState (REST)
-    let state = AppState { db_pool: None };
+        db_pool: None,
+    };
 
     // REST Router
     let app = handler::router(state);

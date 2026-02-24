@@ -6,5 +6,7 @@ public interface IServiceAuthClient : IAsyncDisposable
 
     Task<ServiceToken> GetCachedTokenAsync(CancellationToken ct = default);
 
+    Task<ServiceClaims> VerifyTokenAsync(string token, CancellationToken ct = default);
+
     Task<SpiffeId> ValidateSpiffeIdAsync(string uri, string expectedNamespace, CancellationToken ct = default);
 }

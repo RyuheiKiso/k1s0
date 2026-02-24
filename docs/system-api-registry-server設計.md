@@ -611,20 +611,20 @@ usecase（ビジネスロジック）
   ^
 adapter（REST ハンドラー・gRPC ハンドラー）
   ^
-infra（DB接続・Kafka Producer・バリデーター subprocess・設定ローダー）
+infrastructure（DB接続・Kafka Producer・バリデーター subprocess・設定ローダー）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/model | `ApiSchema`, `ApiSchemaVersion`, `CompatibilityResult`, `SchemaDiff` | エンティティ定義 |
+| domain/entity | `ApiSchema`, `ApiSchemaVersion`, `CompatibilityResult`, `SchemaDiff` | エンティティ定義 |
 | domain/repository | `ApiSchemaRepository`, `ApiSchemaVersionRepository` | リポジトリトレイト |
 | domain/service | `ApiRegistryDomainService` | 破壊的変更検出ロジック・差分算出・コンテンツハッシュ計算 |
 | usecase | `ListSchemasUsecase`, `RegisterSchemaUsecase`, `GetSchemaUsecase`, `ListVersionsUsecase`, `GetSchemaVersionUsecase`, `RegisterVersionUsecase`, `DeleteVersionUsecase`, `CheckCompatibilityUsecase`, `GetDiffUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
-| infra/config | Config ローダー | config.yaml の読み込み |
-| infra/persistence | `ApiSchemaPostgresRepository`, `ApiSchemaVersionPostgresRepository` | PostgreSQL リポジトリ実装 |
-| infra/validator | `OpenApiValidator`, `ProtobufValidator` | subprocess 経由バリデーター実装 |
-| infra/messaging | `SchemaUpdatedKafkaProducer` | Kafka プロデューサー（スキーマ更新通知） |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `ApiSchemaPostgresRepository`, `ApiSchemaVersionPostgresRepository` | PostgreSQL リポジトリ実装 |
+| infrastructure/validator | `OpenApiValidator`, `ProtobufValidator` | subprocess 経由バリデーター実装 |
+| infrastructure/messaging | `SchemaUpdatedKafkaProducer` | Kafka プロデューサー（スキーマ更新通知） |
 
 ### ドメインモデル
 
@@ -705,7 +705,7 @@ infra（DB接続・Kafka Producer・バリデーター subprocess・設定ロー
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
-    │  domain/model   │              │ domain/repository          │   │
+    │  domain/entity  │              │ domain/repository          │   │
     │  ApiSchema,     │              │ ApiSchemaRepository        │   │
     │  ApiSchemaVer,  │              │ ApiSchemaVersionRepository │   │
     │  Compatibility  │              │ (trait)                    │   │
@@ -719,7 +719,7 @@ infra（DB接続・Kafka Producer・バリデーター subprocess・設定ロー
                  │ DomainService  │            │                     │
                  └────────────────┘            │                     │
                     ┌──────────────────────────┼─────────────────────┘
-                    │                  infra 層  │
+                    │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
                     │  │ Kafka        │  │ ApiSchemaPostgres       │  │
                     │  │ Producer     │  │ Repository             │  │

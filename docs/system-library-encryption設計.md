@@ -97,9 +97,6 @@ assert!(valid);
 ```
 encryption/
 ├── encryption.go
-├── aes.go
-├── rsa.go
-├── hash.go
 ├── encryption_test.go
 ├── go.mod
 └── go.sum
@@ -107,24 +104,23 @@ encryption/
 
 **依存関係**: `golang.org/x/crypto v0.31.0`
 
-**主要インターフェース**:
+**主要関数**:
 
 ```go
-type Cipher interface {
-    Encrypt(plaintext []byte) (string, error)
-    Decrypt(ciphertext string) ([]byte, error)
-}
+// 32バイトランダムキー生成
+func GenerateKey() ([]byte, error)
 
-type Hasher interface {
-    Hash(password string) (string, error)
-    Verify(password, hash string) (bool, error)
-}
+// AES-256-GCM 暗号化（Base64 返却）
+func Encrypt(key, plaintext []byte) (string, error)
 
-// AES-256-GCM 暗号化
-func NewAesGcmCipher(key []byte) (Cipher, error)
+// AES-256-GCM 復号化（Base64 入力）
+func Decrypt(key []byte, ciphertext string) ([]byte, error)
 
-// Argon2id ハッシュ化
-func NewArgon2Hasher() Hasher
+// Argon2id パスワードハッシュ化
+func HashPassword(password string) (string, error)
+
+// Argon2id パスワード検証（不一致時は error 返却）
+func VerifyPassword(password, encodedHash string) error
 ```
 
 ## TypeScript 実装

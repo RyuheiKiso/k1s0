@@ -2,6 +2,8 @@ namespace K1s0.System.Dlq;
 
 public interface IDlqClient : IAsyncDisposable
 {
+    Task<DlqMessage> SendAsync(DlqSendRequest request, CancellationToken ct = default);
+
     Task<ListDlqMessagesResponse> ListMessagesAsync(
         string topic, int page = 1, int pageSize = 20, CancellationToken ct = default);
 

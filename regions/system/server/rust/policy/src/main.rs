@@ -46,20 +46,26 @@ async fn main() -> anyhow::Result<()> {
     let policy_repo: Arc<dyn PolicyRepository> = Arc::new(InMemoryPolicyRepository::new());
     let bundle_repo: Arc<dyn PolicyBundleRepository> = Arc::new(InMemoryPolicyBundleRepository::new());
 
-    let _create_policy_uc = Arc::new(usecase::CreatePolicyUseCase::new(policy_repo.clone()));
+    let create_policy_uc = Arc::new(usecase::CreatePolicyUseCase::new(policy_repo.clone()));
     let get_policy_uc = Arc::new(usecase::GetPolicyUseCase::new(policy_repo.clone()));
-    let _update_policy_uc = Arc::new(usecase::UpdatePolicyUseCase::new(policy_repo.clone()));
-    let evaluate_policy_uc = Arc::new(usecase::EvaluatePolicyUseCase::new(policy_repo));
+    let update_policy_uc = Arc::new(usecase::UpdatePolicyUseCase::new(policy_repo.clone()));
+    let evaluate_policy_uc = Arc::new(usecase::EvaluatePolicyUseCase::new(policy_repo.clone()));
     let _create_bundle_uc = Arc::new(usecase::CreateBundleUseCase::new(bundle_repo));
 
     let _grpc_svc = Arc::new(PolicyGrpcService::new(
-        evaluate_policy_uc,
-        get_policy_uc,
+        evaluate_policy_uc.clone(),
+        get_policy_uc.clone(),
     ));
 
-    let app = axum::Router::new()
-        .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
-        .route("/readyz", axum::routing::get(adapter::handler::health::readyz));
+    let state = adapter::handler::AppState {
+        policy_repo,
+        create_policy_uc,
+        get_policy_uc,
+        update_policy_uc,
+        evaluate_policy_uc,
+    };
+
+    let app = adapter::handler::router(state);
 
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);
