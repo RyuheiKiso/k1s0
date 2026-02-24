@@ -4,7 +4,6 @@ use axum::{
     body::Body,
     extract::Request,
     http::{HeaderMap, StatusCode},
-    middleware::Next,
     response::{IntoResponse, Response},
     Json,
 };
