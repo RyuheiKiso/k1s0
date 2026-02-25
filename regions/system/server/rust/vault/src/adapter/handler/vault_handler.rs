@@ -172,3 +172,85 @@ pub async fn delete_secret(
             .into_response(),
     }
 }
+
+/// GET /api/v1/secrets
+pub async fn list_secrets(
+    State(state): State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> impl IntoResponse {
+    let prefix = params.get("prefix").cloned().unwrap_or_default();
+
+    match state.list_secrets_uc.execute(&prefix).await {
+        Ok(paths) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "secrets": paths })),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": e.to_string()})),
+        )
+            .into_response(),
+    }
+}
+
+/// GET /api/v1/secrets/:key/metadata
+pub async fn get_secret_metadata(
+    State(state): State<AppState>,
+    Path(key): Path<String>,
+) -> impl IntoResponse {
+    let input = GetSecretInput { path: key.clone(), version: None };
+
+    match state.get_secret_uc.execute(&input).await {
+        Ok(secret) => {
+            let resp = serde_json::json!({
+                "path": secret.path,
+                "current_version": secret.current_version,
+                "version_count": secret.versions.len(),
+                "created_at": secret.created_at.to_rfc3339(),
+                "updated_at": secret.updated_at.to_rfc3339(),
+            });
+            (StatusCode::OK, Json(resp)).into_response()
+        }
+        Err(GetSecretError::NotFound(path)) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": format!("secret not found: {}", path)})),
+        )
+            .into_response(),
+        Err(GetSecretError::Internal(msg)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+    }
+}
+
+/// POST /api/v1/secrets/:key/rotate
+pub async fn rotate_secret(
+    State(state): State<AppState>,
+    Path(key): Path<String>,
+    Json(req): Json<std::collections::HashMap<String, String>>,
+) -> impl IntoResponse {
+    // ローテーションは新しいデータで上書き（バージョンインクリメント）
+    let input = SetSecretInput {
+        path: key.clone(),
+        data: req,
+    };
+
+    match state.set_secret_uc.execute(&input).await {
+        Ok(version) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "path": key,
+                "new_version": version,
+                "rotated": true,
+            })),
+        )
+            .into_response(),
+        Err(SetSecretError::Internal(msg)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+    }
+}

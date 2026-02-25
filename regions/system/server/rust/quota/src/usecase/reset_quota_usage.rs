@@ -11,7 +11,7 @@ pub struct ResetQuotaUsageInput {
     pub reset_by: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ResetQuotaUsageOutput {
     pub quota_id: String,
     pub used: u64,

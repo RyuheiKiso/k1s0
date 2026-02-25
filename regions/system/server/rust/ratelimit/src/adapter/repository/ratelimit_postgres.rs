@@ -73,6 +73,53 @@ impl RateLimitRepository for RateLimitPostgresRepository {
             None => Ok(None),
         }
     }
+
+    async fn find_all(&self) -> anyhow::Result<Vec<RateLimitRule>> {
+        let rows = sqlx::query_as::<_, RuleRow>(
+            r#"
+            SELECT id, name, key, limit_count, window_secs, algorithm, enabled, created_at, updated_at
+            FROM ratelimit.rate_limit_rules
+            ORDER BY created_at DESC
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        rows.into_iter().map(|r| r.into_rule()).collect()
+    }
+
+    async fn update(&self, rule: &RateLimitRule) -> anyhow::Result<()> {
+        sqlx::query(
+            r#"
+            UPDATE ratelimit.rate_limit_rules
+            SET name = $1, key = $2, limit_count = $3, window_secs = $4, algorithm = $5, enabled = $6, updated_at = $7
+            WHERE id = $8
+            "#,
+        )
+        .bind(&rule.name)
+        .bind(&rule.key)
+        .bind(rule.limit)
+        .bind(rule.window_secs)
+        .bind(rule.algorithm.as_str())
+        .bind(rule.enabled)
+        .bind(rule.updated_at)
+        .bind(rule.id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+        let result = sqlx::query(
+            r#"DELETE FROM ratelimit.rate_limit_rules WHERE id = $1"#,
+        )
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
 }
 
 #[derive(sqlx::FromRow)]

@@ -137,10 +137,105 @@ pub async fn resume_job(
     }
 }
 
+/// PUT /api/v1/jobs/:id
+pub async fn update_job(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Json(req): Json<UpdateJobRequest>,
+) -> impl IntoResponse {
+    use crate::usecase::update_job::{UpdateJobError, UpdateJobInput};
+
+    let input = UpdateJobInput {
+        id,
+        name: req.name,
+        cron_expression: req.cron_expression,
+        payload: req.payload,
+    };
+
+    match state.update_job_uc.execute(&input).await {
+        Ok(job) => (StatusCode::OK, Json(serde_json::to_value(job).unwrap())).into_response(),
+        Err(UpdateJobError::NotFound(id)) => {
+            let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(UpdateJobError::InvalidCron(expr)) => {
+            let err = ErrorResponse::new(
+                "SYS_SCHED_INVALID_CRON",
+                &format!("invalid cron expression: {}", expr),
+            );
+            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+        }
+        Err(UpdateJobError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_SCHED_UPDATE_FAILED", &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+    }
+}
+
+/// POST /api/v1/jobs/:id/trigger
+pub async fn trigger_job(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    use crate::usecase::trigger_job::TriggerJobError;
+
+    match state.trigger_job_uc.execute(&id).await {
+        Ok(execution) => {
+            (StatusCode::OK, Json(serde_json::to_value(execution).unwrap())).into_response()
+        }
+        Err(TriggerJobError::NotFound(id)) => {
+            let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(TriggerJobError::NotActive(id)) => {
+            let err = ErrorResponse::new(
+                "SYS_SCHED_NOT_ACTIVE",
+                &format!("job is not active: {}", id),
+            );
+            (StatusCode::CONFLICT, Json(err)).into_response()
+        }
+        Err(TriggerJobError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_SCHED_TRIGGER_FAILED", &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+    }
+}
+
+/// GET /api/v1/jobs/:id/executions
+pub async fn list_executions(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    use crate::usecase::list_executions::ListExecutionsError;
+
+    match state.list_executions_uc.execute(&id).await {
+        Ok(executions) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "executions": executions })),
+        )
+            .into_response(),
+        Err(ListExecutionsError::NotFound(id)) => {
+            let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(ListExecutionsError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_SCHED_LIST_EXECUTIONS_FAILED", &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+    }
+}
+
 // --- Request / Response types ---
 
 #[derive(Debug, Deserialize)]
 pub struct CreateJobRequest {
+    pub name: String,
+    pub cron_expression: String,
+    pub payload: serde_json::Value,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateJobRequest {
     pub name: String,
     pub cron_expression: String,
     pub payload: serde_json::Value,

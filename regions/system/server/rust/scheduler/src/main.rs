@@ -77,8 +77,10 @@ async fn main() -> anyhow::Result<()> {
     let trigger_job_uc = Arc::new(usecase::TriggerJobUseCase::new(job_repo.clone()));
     let pause_job_uc = Arc::new(usecase::PauseJobUseCase::new(job_repo.clone()));
     let resume_job_uc = Arc::new(usecase::ResumeJobUseCase::new(job_repo.clone()));
+    let update_job_uc = Arc::new(usecase::UpdateJobUseCase::new(job_repo.clone()));
+    let list_executions_uc = Arc::new(usecase::ListExecutionsUseCase::new(job_repo.clone()));
 
-    let grpc_svc = Arc::new(SchedulerGrpcService::new(trigger_job_uc));
+    let grpc_svc = Arc::new(SchedulerGrpcService::new(trigger_job_uc.clone()));
 
     // Metrics
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
@@ -92,6 +94,9 @@ async fn main() -> anyhow::Result<()> {
         delete_job_uc,
         pause_job_uc,
         resume_job_uc,
+        update_job_uc,
+        trigger_job_uc,
+        list_executions_uc,
         metrics,
     };
 

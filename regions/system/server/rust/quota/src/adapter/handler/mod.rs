@@ -6,12 +6,13 @@ use std::sync::Arc;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::routing::{get, post, put};
+use axum::routing::{delete, get, post};
 use axum::Router;
 
 use crate::usecase::{
-    CreateQuotaPolicyUseCase, GetQuotaPolicyUseCase, GetQuotaUsageUseCase,
-    IncrementQuotaUsageUseCase, ListQuotaPoliciesUseCase, UpdateQuotaPolicyUseCase,
+    CreateQuotaPolicyUseCase, DeleteQuotaPolicyUseCase, GetQuotaPolicyUseCase,
+    GetQuotaUsageUseCase, IncrementQuotaUsageUseCase, ListQuotaPoliciesUseCase,
+    ResetQuotaUsageUseCase, UpdateQuotaPolicyUseCase,
 };
 
 /// Shared application state for REST handlers.
@@ -21,8 +22,10 @@ pub struct AppState {
     pub get_policy_uc: Arc<GetQuotaPolicyUseCase>,
     pub list_policies_uc: Arc<ListQuotaPoliciesUseCase>,
     pub update_policy_uc: Arc<UpdateQuotaPolicyUseCase>,
+    pub delete_policy_uc: Arc<DeleteQuotaPolicyUseCase>,
     pub get_usage_uc: Arc<GetQuotaUsageUseCase>,
     pub increment_usage_uc: Arc<IncrementQuotaUsageUseCase>,
+    pub reset_usage_uc: Arc<ResetQuotaUsageUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 }
 
@@ -32,13 +35,31 @@ pub fn router(state: AppState) -> Router {
         .route("/healthz", get(health::healthz))
         .route("/readyz", get(health::readyz))
         .route("/metrics", get(metrics_handler))
-        .route("/api/v1/quotas", get(quota_handler::list_quotas))
-        .route("/api/v1/quotas", post(quota_handler::create_quota))
-        .route("/api/v1/quotas/:id", get(quota_handler::get_quota))
-        .route("/api/v1/quotas/:id", put(quota_handler::update_quota))
+        .route(
+            "/api/v1/quotas",
+            get(quota_handler::list_quotas).post(quota_handler::create_quota),
+        )
+        .route(
+            "/api/v1/quotas/:id",
+            get(quota_handler::get_quota)
+                .put(quota_handler::update_quota)
+                .delete(quota_handler::delete_quota),
+        )
         .route(
             "/api/v1/quotas/:id/check",
             post(quota_handler::check_quota),
+        )
+        .route(
+            "/api/v1/quotas/:id/usage",
+            get(quota_handler::get_usage),
+        )
+        .route(
+            "/api/v1/quotas/:id/usage/increment",
+            post(quota_handler::increment_usage),
+        )
+        .route(
+            "/api/v1/quotas/:id/usage/reset",
+            post(quota_handler::reset_usage),
         )
         .with_state(state)
 }
