@@ -393,8 +393,8 @@ infrastructure（OpenSearch クライアント・Kafka Producer/Consumer・moka 
 | `query` | String | 全文検索キーワード |
 | `from` | u32 | オフセット（スキップ件数、デフォルト 0） |
 | `size` | u32 | 取得件数（デフォルト 10） |
-
-> **Phase 2 追加予定フィールド**: `filters` (HashMap\<String, String\>)、`facets` (Vec\<String\>)
+| `filters` | HashMap\<String, String\> | フィールドフィルタ |
+| `facets` | Vec\<String\> | ファセット集計対象フィールド |
 
 #### SearchResult
 
