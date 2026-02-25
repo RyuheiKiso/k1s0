@@ -241,6 +241,197 @@ pub async fn get_rule(
     }
 }
 
+/// PUT /api/v1/ratelimit/rules/:id のリクエストボディ。
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
+pub struct UpdateRuleRequest {
+    pub name: String,
+    pub key: String,
+    pub limit: i64,
+    pub window_secs: i64,
+    pub algorithm: String,
+    pub enabled: bool,
+}
+
+/// GET /api/v1/ratelimit/usage のレスポンスボディ。
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct UsageResponse {
+    pub rule_id: String,
+    pub rule_name: String,
+    pub limit: i64,
+    pub window_secs: i64,
+    pub algorithm: String,
+    pub enabled: bool,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/ratelimit/rules",
+    responses(
+        (status = 200, description = "List of rules"),
+    )
+)]
+pub async fn list_rules(State(state): State<AppState>) -> impl IntoResponse {
+    match state.list_uc.execute().await {
+        Ok(rules) => {
+            let resp: Vec<RuleResponse> = rules
+                .into_iter()
+                .map(|r| RuleResponse {
+                    id: r.id.to_string(),
+                    name: r.name,
+                    key: r.key,
+                    limit: r.limit,
+                    window_secs: r.window_secs,
+                    algorithm: r.algorithm.as_str().to_string(),
+                    enabled: r.enabled,
+                })
+                .collect();
+            (StatusCode::OK, Json(serde_json::json!({ "rules": resp }))).into_response()
+        }
+        Err(e) => {
+            let err = ErrorResponse::new("SYS_RATELIMIT_INTERNAL_ERROR", &e.to_string());
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+    }
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/v1/ratelimit/rules/{id}",
+    params(("id" = String, Path, description = "Rule ID")),
+    request_body = UpdateRuleRequest,
+    responses(
+        (status = 200, description = "Rule updated", body = RuleResponse),
+        (status = 400, description = "Bad request"),
+        (status = 404, description = "Rule not found"),
+    )
+)]
+pub async fn update_rule(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(req): Json<UpdateRuleRequest>,
+) -> impl IntoResponse {
+    use crate::usecase::update_rule::{UpdateRuleError, UpdateRuleInput};
+    let input = UpdateRuleInput {
+        id,
+        name: req.name,
+        key: req.key,
+        limit: req.limit,
+        window_secs: req.window_secs,
+        algorithm: req.algorithm,
+        enabled: req.enabled,
+    };
+
+    match state.update_uc.execute(&input).await {
+        Ok(rule) => (
+            StatusCode::OK,
+            Json(RuleResponse {
+                id: rule.id.to_string(),
+                name: rule.name,
+                key: rule.key,
+                limit: rule.limit,
+                window_secs: rule.window_secs,
+                algorithm: rule.algorithm.as_str().to_string(),
+                enabled: rule.enabled,
+            }),
+        )
+            .into_response(),
+        Err(e) => {
+            let (status, code) = match &e {
+                UpdateRuleError::NotFound(_) => (StatusCode::NOT_FOUND, "SYS_RATELIMIT_RULE_NOT_FOUND"),
+                UpdateRuleError::InvalidAlgorithm(_) | UpdateRuleError::Validation(_) => {
+                    (StatusCode::BAD_REQUEST, "SYS_RATELIMIT_VALIDATION_ERROR")
+                }
+                UpdateRuleError::Internal(_) => {
+                    (StatusCode::INTERNAL_SERVER_ERROR, "SYS_RATELIMIT_INTERNAL_ERROR")
+                }
+            };
+            let err = ErrorResponse::new(code, &e.to_string());
+            (status, Json(err)).into_response()
+        }
+    }
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/ratelimit/rules/{id}",
+    params(("id" = String, Path, description = "Rule ID")),
+    responses(
+        (status = 204, description = "Rule deleted"),
+        (status = 404, description = "Rule not found"),
+    )
+)]
+pub async fn delete_rule(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    use crate::usecase::delete_rule::DeleteRuleError;
+
+    match state.delete_uc.execute(&id).await {
+        Ok(()) => StatusCode::NO_CONTENT.into_response(),
+        Err(DeleteRuleError::NotFound(_)) | Err(DeleteRuleError::InvalidRuleId(_)) => {
+            let err = ErrorResponse::new(
+                "SYS_RATELIMIT_RULE_NOT_FOUND",
+                &format!("rule not found: {}", id),
+            );
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(DeleteRuleError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_RATELIMIT_INTERNAL_ERROR", &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/ratelimit/usage",
+    params(("rule_id" = String, Query, description = "Rule ID")),
+    responses(
+        (status = 200, description = "Usage info", body = UsageResponse),
+        (status = 404, description = "Rule not found"),
+    )
+)]
+pub async fn get_usage(
+    State(state): State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> impl IntoResponse {
+    use crate::usecase::get_usage::GetUsageError;
+
+    let rule_id = match params.get("rule_id") {
+        Some(id) => id.clone(),
+        None => {
+            let err = ErrorResponse::new("SYS_RATELIMIT_VALIDATION_ERROR", "rule_id is required");
+            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+        }
+    };
+
+    match state.get_usage_uc.execute(&rule_id).await {
+        Ok(info) => (
+            StatusCode::OK,
+            Json(UsageResponse {
+                rule_id: info.rule_id,
+                rule_name: info.rule_name,
+                limit: info.limit,
+                window_secs: info.window_secs,
+                algorithm: info.algorithm,
+                enabled: info.enabled,
+            }),
+        )
+            .into_response(),
+        Err(GetUsageError::NotFound(_)) | Err(GetUsageError::InvalidRuleId(_)) => {
+            let err = ErrorResponse::new(
+                "SYS_RATELIMIT_RULE_NOT_FOUND",
+                &format!("rule not found: {}", rule_id),
+            );
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(GetUsageError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_RATELIMIT_INTERNAL_ERROR", &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -262,12 +453,26 @@ mod tests {
             Arc::new(repo),
             Arc::new(state_store),
         ));
-        let create_repo = MockRateLimitRepository::new();
-        let get_repo = MockRateLimitRepository::new();
-        let create_uc = Arc::new(crate::usecase::CreateRuleUseCase::new(Arc::new(create_repo)));
-        let get_uc = Arc::new(crate::usecase::GetRuleUseCase::new(Arc::new(get_repo)));
+        let create_uc = Arc::new(crate::usecase::CreateRuleUseCase::new(Arc::new(
+            MockRateLimitRepository::new(),
+        )));
+        let get_uc = Arc::new(crate::usecase::GetRuleUseCase::new(Arc::new(
+            MockRateLimitRepository::new(),
+        )));
+        let list_uc = Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(
+            MockRateLimitRepository::new(),
+        )));
+        let update_uc = Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(
+            MockRateLimitRepository::new(),
+        )));
+        let delete_uc = Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(
+            MockRateLimitRepository::new(),
+        )));
+        let get_usage_uc = Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(
+            MockRateLimitRepository::new(),
+        )));
 
-        AppState::new(check_uc, create_uc, get_uc, None)
+        AppState::new(check_uc, create_uc, get_uc, list_uc, update_uc, delete_uc, get_usage_uc, None)
     }
 
     #[tokio::test]
@@ -356,7 +561,16 @@ mod tests {
             MockRateLimitRepository::new(),
         )));
 
-        let state = AppState::new(check_uc, create_uc, get_uc, None);
+        let state = AppState::new(
+            check_uc,
+            create_uc,
+            get_uc,
+            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            None,
+        );
         let app = router(state);
 
         let body = serde_json::json!({
@@ -420,7 +634,16 @@ mod tests {
             MockRateLimitRepository::new(),
         )));
 
-        let state = AppState::new(check_uc, create_uc, get_uc, None);
+        let state = AppState::new(
+            check_uc,
+            create_uc,
+            get_uc,
+            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            None,
+        );
         let app = router(state);
 
         let body = serde_json::json!({
@@ -461,7 +684,16 @@ mod tests {
             MockRateLimitRepository::new(),
         )));
 
-        let state = AppState::new(check_uc, create_uc, get_uc, None);
+        let state = AppState::new(
+            check_uc,
+            create_uc,
+            get_uc,
+            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            None,
+        );
         let app = router(state);
 
         let body = serde_json::json!({
@@ -505,7 +737,16 @@ mod tests {
         )));
         let get_uc = Arc::new(crate::usecase::GetRuleUseCase::new(Arc::new(repo)));
 
-        let state = AppState::new(check_uc, create_uc, get_uc, None);
+        let state = AppState::new(
+            check_uc,
+            create_uc,
+            get_uc,
+            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            None,
+        );
         let app = router(state);
 
         let req = Request::builder()

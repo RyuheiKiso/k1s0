@@ -15,6 +15,15 @@ pub trait RateLimitRepository: Send + Sync {
 
     /// name でルールを取得する。
     async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<RateLimitRule>>;
+
+    /// 全ルールを取得する。
+    async fn find_all(&self) -> anyhow::Result<Vec<RateLimitRule>>;
+
+    /// ルールを更新する。
+    async fn update(&self, rule: &RateLimitRule) -> anyhow::Result<()>;
+
+    /// ルールを削除する。削除された場合 true を返す。
+    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool>;
 }
 
 /// RateLimitStateStore はレートリミット状態の管理を担当する（Redis）。

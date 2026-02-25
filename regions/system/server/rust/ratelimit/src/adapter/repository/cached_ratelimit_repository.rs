@@ -101,6 +101,24 @@ impl RateLimitRepository for CachedRateLimitRepository {
 
         Ok(result)
     }
+
+    async fn find_all(&self) -> anyhow::Result<Vec<RateLimitRule>> {
+        self.inner.find_all().await
+    }
+
+    async fn update(&self, rule: &RateLimitRule) -> anyhow::Result<()> {
+        self.inner.update(rule).await?;
+        self.cache.insert(rule).await;
+        Ok(())
+    }
+
+    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+        let deleted = self.inner.delete(id).await?;
+        if deleted {
+            self.cache.invalidate_by_id(id).await;
+        }
+        Ok(deleted)
+    }
 }
 
 #[cfg(test)]

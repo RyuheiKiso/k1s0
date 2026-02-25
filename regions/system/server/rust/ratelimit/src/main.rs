@@ -119,10 +119,23 @@ async fn main() -> anyhow::Result<()> {
         state_store,
     ));
     let create_uc = Arc::new(usecase::CreateRuleUseCase::new(rule_repo.clone()));
-    let get_uc = Arc::new(usecase::GetRuleUseCase::new(rule_repo));
+    let get_uc = Arc::new(usecase::GetRuleUseCase::new(rule_repo.clone()));
+    let list_uc = Arc::new(usecase::ListRulesUseCase::new(rule_repo.clone()));
+    let update_uc = Arc::new(usecase::UpdateRuleUseCase::new(rule_repo.clone()));
+    let delete_uc = Arc::new(usecase::DeleteRuleUseCase::new(rule_repo.clone()));
+    let get_usage_uc = Arc::new(usecase::GetUsageUseCase::new(rule_repo));
 
     // AppState (REST handler 用)
-    let state = AppState::new(check_uc.clone(), create_uc.clone(), get_uc.clone(), db_pool);
+    let state = AppState::new(
+        check_uc.clone(),
+        create_uc.clone(),
+        get_uc.clone(),
+        list_uc,
+        update_uc,
+        delete_uc,
+        get_usage_uc,
+        db_pool,
+    );
 
     // gRPC service
     let grpc_svc = Arc::new(RateLimitGrpcService::new(check_uc, create_uc, get_uc));
@@ -211,6 +224,26 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
     ) -> anyhow::Result<Option<domain::entity::RateLimitRule>> {
         let rules = self.rules.read().await;
         Ok(rules.iter().find(|r| r.name == name).cloned())
+    }
+
+    async fn find_all(&self) -> anyhow::Result<Vec<domain::entity::RateLimitRule>> {
+        let rules = self.rules.read().await;
+        Ok(rules.clone())
+    }
+
+    async fn update(&self, rule: &domain::entity::RateLimitRule) -> anyhow::Result<()> {
+        let mut rules = self.rules.write().await;
+        if let Some(existing) = rules.iter_mut().find(|r| r.id == rule.id) {
+            *existing = rule.clone();
+        }
+        Ok(())
+    }
+
+    async fn delete(&self, id: &uuid::Uuid) -> anyhow::Result<bool> {
+        let mut rules = self.rules.write().await;
+        let len_before = rules.len();
+        rules.retain(|r| r.id != *id);
+        Ok(rules.len() < len_before)
     }
 }
 

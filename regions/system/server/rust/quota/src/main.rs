@@ -122,7 +122,7 @@ async fn main() -> anyhow::Result<()> {
         policy_repo.clone(),
         usage_repo.clone(),
     ));
-    let _reset_usage_uc = Arc::new(usecase::ResetQuotaUsageUseCase::new(
+    let reset_usage_uc = Arc::new(usecase::ResetQuotaUsageUseCase::new(
         policy_repo,
         usage_repo,
     ));
@@ -132,7 +132,7 @@ async fn main() -> anyhow::Result<()> {
         get_policy_uc.clone(),
         list_policies_uc.clone(),
         update_policy_uc.clone(),
-        delete_policy_uc,
+        delete_policy_uc.clone(),
         get_usage_uc.clone(),
         increment_usage_uc.clone(),
     ));
@@ -147,8 +147,10 @@ async fn main() -> anyhow::Result<()> {
         get_policy_uc,
         list_policies_uc,
         update_policy_uc,
+        delete_policy_uc,
         get_usage_uc,
         increment_usage_uc,
+        reset_usage_uc,
         metrics,
     };
 

@@ -10,6 +10,7 @@ use super::AppState;
 use crate::usecase::create_quota_policy::CreateQuotaPolicyInput;
 use crate::usecase::increment_quota_usage::IncrementQuotaUsageInput;
 use crate::usecase::list_quota_policies::ListQuotaPoliciesInput;
+use crate::usecase::reset_quota_usage::ResetQuotaUsageInput;
 use crate::usecase::update_quota_policy::UpdateQuotaPolicyInput;
 
 /// GET /api/v1/quotas
@@ -206,6 +207,119 @@ pub struct UpdateQuotaRequest {
     pub period: String,
     pub enabled: bool,
     pub alert_threshold_percent: Option<u8>,
+}
+
+/// DELETE /api/v1/quotas/:id
+pub async fn delete_quota(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    use crate::usecase::delete_quota_policy::DeleteQuotaPolicyError;
+
+    match state.delete_policy_uc.execute(&id).await {
+        Ok(()) => StatusCode::NO_CONTENT.into_response(),
+        Err(DeleteQuotaPolicyError::NotFound(id)) => {
+            let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(DeleteQuotaPolicyError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_QUOTA_DELETE_FAILED", &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+    }
+}
+
+/// GET /api/v1/quotas/:id/usage
+pub async fn get_usage(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    use crate::usecase::get_quota_usage::GetQuotaUsageError;
+
+    match state.get_usage_uc.execute(&id).await {
+        Ok(usage) => (StatusCode::OK, Json(serde_json::to_value(usage).unwrap())).into_response(),
+        Err(GetQuotaUsageError::NotFound(id)) => {
+            let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(GetQuotaUsageError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_QUOTA_USAGE_FAILED", &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+    }
+}
+
+/// POST /api/v1/quotas/:id/usage/increment
+pub async fn increment_usage(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(req): Json<IncrementUsageRequest>,
+) -> impl IntoResponse {
+    let input = IncrementQuotaUsageInput {
+        quota_id: id,
+        amount: req.amount,
+    };
+
+    match state.increment_usage_uc.execute(&input).await {
+        Ok(result) => (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response(),
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("not found") {
+                let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &msg);
+                (StatusCode::NOT_FOUND, Json(err)).into_response()
+            } else if msg.contains("exceeded") {
+                let err = ErrorResponse::new("SYS_QUOTA_EXCEEDED", &msg);
+                (StatusCode::TOO_MANY_REQUESTS, Json(err)).into_response()
+            } else {
+                let err = ErrorResponse::new("SYS_QUOTA_INCREMENT_FAILED", &msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            }
+        }
+    }
+}
+
+/// POST /api/v1/quotas/:id/usage/reset
+pub async fn reset_usage(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(req): Json<ResetUsageRequest>,
+) -> impl IntoResponse {
+    use crate::usecase::reset_quota_usage::ResetQuotaUsageError;
+
+    let input = ResetQuotaUsageInput {
+        quota_id: id,
+        reason: req.reason,
+        reset_by: req.reset_by,
+    };
+
+    match state.reset_usage_uc.execute(&input).await {
+        Ok(output) => {
+            (StatusCode::OK, Json(serde_json::to_value(output).unwrap())).into_response()
+        }
+        Err(ResetQuotaUsageError::NotFound(id)) => {
+            let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(ResetQuotaUsageError::Validation(msg)) => {
+            let err = ErrorResponse::new("SYS_QUOTA_VALIDATION", &msg);
+            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+        }
+        Err(ResetQuotaUsageError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_QUOTA_RESET_FAILED", &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct IncrementUsageRequest {
+    pub amount: u64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ResetUsageRequest {
+    pub reason: String,
+    pub reset_by: String,
 }
 
 #[derive(Debug, Deserialize)]
