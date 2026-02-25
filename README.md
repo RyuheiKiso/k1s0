@@ -7,8 +7,6 @@
   <img src="https://img.shields.io/badge/Go-1.23-00ADD8?logo=go" alt="Go">
   <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" alt="React">
   <img src="https://img.shields.io/badge/Flutter-3.24-02569B?logo=flutter" alt="Flutter">
-  <img src="https://img.shields.io/badge/C%23-.NET%2010-512BD4?logo=dotnet" alt="C# .NET 10">
-  <img src="https://img.shields.io/badge/Swift-5.9-FA7343?logo=swift" alt="Swift 5.9">
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Kubernetes-ready-326CE5?logo=kubernetes" alt="Kubernetes">
   <img src="https://img.shields.io/badge/OpenTelemetry-built--in-7B68EE" alt="OpenTelemetry">
@@ -116,12 +114,12 @@ regions/
 
 | カテゴリ                         | 技術                                              |
 | -------------------------------- | ------------------------------------------------- |
-| サーバー                         | **Go 1.23** / **Rust 1.82** / **C# (.NET 10)**    |
+| サーバー                         | **Go 1.23** / **Rust 1.82**                       |
 | Web クライアント                 | **React** (TanStack Query, Zustand, Tailwind CSS) |
 | モバイル・クロスプラットフォーム | **Flutter 3.24** (Riverpod, go_router, freezed)   |
 | デスクトップGUI                  | **Tauri 2** + React                               |
 | CLI                              | **Rust** (dialoguer, Tera テンプレートエンジン)   |
-| システムライブラリ               | **Go / Rust / TypeScript / Dart / C# / Swift / Python**（7言語） |
+| システムライブラリ               | **Go / Rust / TypeScript / Dart / Python**（5言語） |
 | E2E テスト                       | **Python 3.12** (pytest, testcontainers)          |
 
 ### API・通信
@@ -173,7 +171,6 @@ regions/
 - Rust 1.82+
 - Docker & Docker Compose
 - Go 1.23+（Go サーバー開発時）
-- .NET 10 SDK（C# サーバー開発時）
 - uv（Python ライブラリ開発時）
 
 ### インストールと起動
@@ -218,7 +215,7 @@ k1s0/
 ├── regions/                3 階層のアプリケーション基盤
 │   ├── system/               共通基盤
 │   │   ├── server/             22 サービス（Rust 21 + Go 1）
-│   │   ├── library/            48 パッケージ × 7 言語（336 ライブラリ）
+│   │   ├── library/            48 パッケージ × 5 言語（240 ライブラリ）
 │   │   └── database/           auth-db / config-db / api-registry-db / saga-db / dlq-db
 │   ├── business/             部門固有（accounting）
 │   │   ├── server/ client/ library/
@@ -281,7 +278,7 @@ k1s0/
 
 ## System Tier ライブラリ
 
-`regions/system/library/` に 7 言語 × 48 パッケージ（計 336 ライブラリ）を提供します。
+`regions/system/library/` に 5 言語 × 48 パッケージ（計 240 ライブラリ）を提供します。
 
 | パッケージ           | 用途                              |
 | -------------------- | --------------------------------- |

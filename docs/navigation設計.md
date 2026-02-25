@@ -1,7 +1,7 @@
 # Navigation 設計
 
 k1s0 におけるクライアントナビゲーション（画面遷移）の統一設計を定義する。
-React・Flutter・Swift のいずれのフレームワークでも同一の `navigation.yaml` から
+React・Flutter のいずれのフレームワークでも同一の `navigation.yaml` から
 ナビゲーションを制御し、開発者体験（DX）と保守性を両立する。
 
 > **設計思想** — Netflix の Server-Driven UI アプローチを参考に、k1s0 の既存インフラ
@@ -15,7 +15,7 @@ React・Flutter・Swift のいずれのフレームワークでも同一の `nav
 | 課題 | 従来のアプローチ | 本設計 |
 | ---- | --------------- | ------ |
 | 開発者ごとに遷移実装が異なる | コードレビューで対応（限界あり） | `navigation.yaml` を唯一の定義源とする |
-| フレームワーク追加時の再実装 | React / Flutter / Swift それぞれで実装 | NavigationInterpreter のアダプターを追加するだけ |
+| フレームワーク追加時の再実装 | React / Flutter それぞれで実装 | NavigationInterpreter のアダプターを追加するだけ |
 | 認証ガードの実装漏れ | 個々の開発者の判断に依存 | YAML でガードを宣言、実装は SDK が担う |
 | ローカル開発にサーバーが必要 | 常にサーバーを起動 | Local-first モードで YAML を直接読む |
 | ルート ID の文字列タイポ | runtime エラー | CLI 生成の型定義でコンパイルエラー |
@@ -133,7 +133,6 @@ routes:
 | React: NavigationInterpreter | 実装済み |
 | navigation.yaml 仕様 | 定義済み |
 | CLI route-types/component-registry 生成 | 未実装 |
-| Swift SDK | 未実装 |
 
 ---
 
@@ -256,26 +255,6 @@ class NavigationInterpreter {
 enum NavigationMode { remote, local }
 ```
 
-### Swift
-
-```swift
-// system_client_swift/Sources/Navigation/NavigationInterpreter.swift
-
-public class NavigationInterpreter {
-    private let mode: NavigationMode
-    private let registry: ComponentRegistry
-
-    public init(mode: NavigationMode, registry: ComponentRegistry) {
-        self.mode = mode
-        self.registry = registry
-    }
-
-    public func build() async throws -> NavigationStack {
-        let nav = try await fetchNavigation()
-        return buildNavigationStack(nav)
-    }
-}
-```
 
 ---
 
@@ -296,7 +275,6 @@ public class NavigationInterpreter {
 | -------------- | ------------------------- |
 | React | `public/navigation.yaml` |
 | Flutter | `assets/navigation.yaml`（pubspec.yaml の `assets:` に追加） |
-| Swift | `Resources/navigation.yaml`（Bundle に含める） |
 
 ---
 
@@ -307,7 +285,6 @@ public class NavigationInterpreter {
 ```bash
 k1s0 generate navigation --target react
 k1s0 generate navigation --target flutter
-k1s0 generate navigation --target swift
 ```
 
 **React 生成例（`src/navigation/__generated__/route-types.ts`）:**
@@ -487,10 +464,6 @@ regions/system/
 │   │       └── lib/src/navigation/
 │   │           ├── navigation_interpreter.dart
 │   │           └── navigation_interpreter_test.dart
-│   └── swift/
-│       └── system_client_swift/
-│           └── Sources/Navigation/
-│               └── NavigationInterpreter.swift
 └── server/
     └── rust/
         └── auth-server/               # Navigation エンドポイントを追加
@@ -513,7 +486,6 @@ regions/system/
 | 5 | CLI `validate navigation` コマンド | 中 | 未実装 |
 | 6 | JSON Schema 生成（IDE 補完用） | 中 | 未実装 |
 | 7 | Navigation DevTools（React / Flutter） | 中 | 未実装 |
-| 8 | Swift `NavigationInterpreter` | 低 | 未実装 |
 | 9 | ユーザーロール別ナビゲーションフィルタリング | 低 | 未実装 |
 
 ---

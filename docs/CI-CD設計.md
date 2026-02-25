@@ -7,7 +7,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.
 
 - CI/CD は **GitHub Actions** で一元管理する
 - PR 時に CI（lint → test → build）、マージ時に CD（image push → deploy）を実行する
-- 言語別マトリクスビルドで Rust / TypeScript / Dart / Python / C# に対応する
+- 言語別マトリクスビルドで Rust / TypeScript / Dart / Python に対応する
 - 環境別デプロイ: dev 自動 / staging 自動 / prod 手動承認
 - セキュリティスキャン（Trivy・依存関係チェック）を全パイプラインに組み込む
 
@@ -56,8 +56,6 @@ jobs:
       ts: ${{ steps.filter.outputs.ts }}
       dart: ${{ steps.filter.outputs.dart }}
       python: ${{ steps.filter.outputs.python }}
-      csharp: ${{ steps.filter.outputs.csharp }}
-      swift: ${{ steps.filter.outputs.swift }}
       helm: ${{ steps.filter.outputs.helm }}
     steps:
       - uses: actions/checkout@v4
@@ -76,10 +74,6 @@ jobs:
               - 'regions/**/dart/**'
             python:
               - 'e2e/**'
-            csharp:
-              - 'regions/**/csharp/**'
-            swift:
-              - 'regions/**/swift/**'
             helm:
               - 'infra/helm/**'
 
@@ -134,34 +128,6 @@ jobs:
       - run: ruff format --check .
       - run: mypy e2e/
 
-  lint-csharp:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.csharp == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.0"
-      - run: dotnet restore
-      - run: dotnet format --verify-no-changes
-      - run: dotnet build --no-restore -warnaserror
-
-  lint-swift:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.swift == 'true'
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: swift-format lint --recursive .
-
-  test-swift:
-    needs: lint-swift
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: swift test --parallel
-
   test-rust:
     needs: lint-rust
     runs-on: ubuntu-latest
@@ -202,24 +168,6 @@ jobs:
       - run: pip install -r e2e/requirements.txt
       - run: pytest e2e/ --tb=short
 
-  test-csharp:
-    needs: lint-csharp
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.0"
-      - run: dotnet restore
-      - run: dotnet test --no-restore --collect:"XPlat Code Coverage" --results-directory ./coverage
-      - name: Generate Cobertura report
-        run: |
-          dotnet tool install -g dotnet-reportgenerator-globaltool
-          reportgenerator -reports:./coverage/**/coverage.cobertura.xml -targetdir:./coverage/report -reporttypes:Cobertura
-
-  # NOTE: proto チェックは専用ワークフロー proto.yaml で実行する。
-  # ci.yaml の detect-changes で proto 変更を検出し、proto.yaml が独立してトリガーされる。
-
   helm-lint:
     needs: detect-changes
     if: needs.detect-changes.outputs.helm == 'true'
@@ -241,7 +189,6 @@ jobs:
       - test-rust
       - test-ts
       - test-dart
-      - test-swift
     if: always() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     steps:
@@ -687,7 +634,6 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 | Node   | `node_modules/`              | `actions/setup-node` 内蔵 |
 | Dart   | `~/.pub-cache`               | `actions/cache`           |
 | Python | `~/.cache/pip`               | `actions/setup-python` 内蔵 |
-| C#     | `~/.nuget/packages`          | `actions/setup-dotnet` 内蔵 |
 | Docker | Docker layer cache           | `cache-from: type=gha`   |
 
 ---

@@ -1,16 +1,65 @@
-# Build artifacts
-**/target/
-**/node_modules/
-**/.dart_tool/
-**/build/
+# ===========================================
+# .claudeignore - Claude Code token optimization
+# ===========================================
 
-# Lock files (large binary dependency manifests, no value for Claude)
+# Git internals
+**/.git/
+
+# Lock files (large, auto-generated, no semantic value)
 **/Cargo.lock
 **/package-lock.json
 **/yarn.lock
 **/pnpm-lock.yaml
 **/pubspec.lock
 **/go.sum
+**/Chart.lock
 
-# Misc
-**/.git/
+# Build artifacts & dependencies
+**/target/
+**/node_modules/
+**/dist/
+**/.dart_tool/
+**/build/
+**/obj/
+**/bin/
+**/.vs/
+**/*.tsbuildinfo
+
+# Python caches
+__pycache__/
+.pytest_cache/
+**/.venv/
+**/*.pyc
+**/*.pyo
+**/*.egg-info/
+**/.ruff_cache/
+**/.mypy_cache/
+
+# IDE / Editor
+.idea/
+.vscode/
+
+# Helm packaged charts
+**/charts/*.tgz
+**/charts/*.tar.gz
+
+# Proto generated code (read source .proto files instead)
+**/gen/
+**/pb/
+
+# Binary / media files (no text content for Claude)
+**/*.wasm
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.ico
+**/*.svg
+**/*.woff
+**/*.woff2
+**/*.ttf
+**/*.eot
+
+# Tauri frontend build output
+CLI/crates/k1s0-gui/ui/dist/
+CLI/crates/k1s0-gui/ui/.next/

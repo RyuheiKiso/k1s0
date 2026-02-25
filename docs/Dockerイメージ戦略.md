@@ -16,7 +16,6 @@ k1s0 プロジェクトにおける Docker イメージのビルド・管理方�
 | Rust        | `rust:1.82-bookworm`         | `gcr.io/distroless/cc-debian12`           |
 | React       | `node:22-bookworm` (ビルド)  | `nginx:1.27-alpine`（静的配信）           |
 | Flutter Web | `ghcr.io/cirruslabs/flutter:3.24.0` (ビルド) | `nginx:1.27-alpine`（静的配信）  |
-| C# / .NET   | `mcr.microsoft.com/dotnet/sdk:10` (ビルド)    | `mcr.microsoft.com/dotnet/aspnet:10-alpine`  |
 
 ## Dockerfile テンプレート
 
@@ -85,26 +84,6 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # helm設計.md の securityContext との整合については React クライアントと同様。
 USER nginx
 EXPOSE 8080
-```
-
-### C# / .NET サーバー
-
-```dockerfile
-# ---- Build ----
-FROM mcr.microsoft.com/dotnet/sdk:10 AS build
-WORKDIR /src
-COPY *.csproj .
-RUN dotnet restore
-COPY . .
-RUN dotnet publish -c Release -o /app/publish
-
-# ---- Runtime ----
-FROM mcr.microsoft.com/dotnet/aspnet:10-alpine AS runtime
-WORKDIR /app
-COPY --from=build /app/publish .
-USER nonroot:nonroot
-EXPOSE 8080
-ENTRYPOINT ["dotnet", "YourApp.dll"]
 ```
 
 ## イメージタグ規則

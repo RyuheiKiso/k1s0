@@ -75,7 +75,6 @@ pub enum Language {
     TypeScript,
     Dart,
     Python,
-    Swift,
 }
 
 impl Language {
@@ -86,7 +85,6 @@ impl Language {
             Language::TypeScript => "TypeScript",
             Language::Dart => "Dart",
             Language::Python => "Python",
-            Language::Swift => "Swift",
         }
     }
 
@@ -97,7 +95,6 @@ impl Language {
             Language::TypeScript => "typescript",
             Language::Dart => "dart",
             Language::Python => "python",
-            Language::Swift => "swift",
         }
     }
 }
@@ -290,7 +287,6 @@ mod tests {
         assert_eq!(Language::TypeScript.as_str(), "TypeScript");
         assert_eq!(Language::Dart.as_str(), "Dart");
         assert_eq!(Language::Python.as_str(), "Python");
-        assert_eq!(Language::Swift.as_str(), "Swift");
     }
 
     #[test]
@@ -300,7 +296,6 @@ mod tests {
         assert_eq!(Language::TypeScript.dir_name(), "typescript");
         assert_eq!(Language::Dart.dir_name(), "dart");
         assert_eq!(Language::Python.dir_name(), "python");
-        assert_eq!(Language::Swift.dir_name(), "swift");
     }
 
     #[test]

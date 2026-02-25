@@ -1,7 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <RootNamespace>K1s0.System.RateLimitClient</RootNamespace>
-    <AssemblyName>K1s0.System.RateLimitClient</AssemblyName>
-    <Version>0.1.0</Version>
-  </PropertyGroup>
-</Project>

@@ -1,7 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <RootNamespace>K1s0.System.EventStore</RootNamespace>
-    <AssemblyName>K1s0.System.EventStore</AssemblyName>
-    <Version>0.1.0</Version>
-  </PropertyGroup>
-</Project>

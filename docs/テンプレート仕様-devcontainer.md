@@ -56,7 +56,7 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
 | 変数名          | 型     | devcontainer.json | compose.extend | post-create.sh | 用途                                          |
 | --------------- | ------ | ----------------- | -------------- | -------------- | --------------------------------------------- |
 | `service_name`  | String | 用                | 用             | 用             | コンテナ名、ワークスペース識別                |
-| `language`      | String | 用                | ---            | 用             | 言語別 features / extensions / ツールの選択（`"go"` / `"rust"` / `"typescript"` / `"dart"` / `"csharp"`） |
+| `language`      | String | 用                | ---            | 用             | 言語別 features / extensions / ツールの選択（`"go"` / `"rust"` / `"typescript"` / `"dart"`） |
 | `framework`     | String | 用                | ---            | 用             | フレームワーク固有の features / extensions    |
 | `has_database`  | bool   | 用                | 用             | ---            | DB 関連の forwardPorts / depends_on 追加      |
 | `database_type` | String | 用                | 用             | ---            | DB 固有のポート / サービス選択                |
@@ -97,11 +97,6 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
       "version": "22"
     },
 {% endif %}
-{% if language == "csharp" %}
-    "ghcr.io/devcontainers/features/dotnet:2": {
-      "version": "latest"
-    },
-{% endif %}
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.12"
     },
@@ -128,10 +123,6 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
 {% if language == "dart" or framework == "flutter" %}
         "Dart-Code.dart-code",
         "Dart-Code.flutter",
-{% endif %}
-{% if language == "csharp" %}
-        "ms-dotnettools.csharp",
-        "ms-dotnettools.csdevkit",
 {% endif %}
         "ms-python.python",
         "charliermarsh.ruff",
@@ -161,10 +152,7 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
         }{% endif %}{% if language == "dart" or framework == "flutter" %},
         "[dart]": {
           "editor.defaultFormatter": "Dart-Code.dart-code"
-        }{% endif %}{% if language == "csharp" %},
-        "[csharp]": {
-          "editor.defaultFormatter": "ms-dotnettools.csharp"
-        }{% endif %},
+        
         "[python]": {
           "editor.defaultFormatter": "charliermarsh.ruff"
         }
@@ -217,7 +205,6 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
 | Rust                  | `ghcr.io/devcontainers/features/rust:1`          | 1.82       |
 | TypeScript / React    | `ghcr.io/devcontainers/features/node:1`          | 22         |
 | Dart / Flutter        | `ghcr.io/devcontainers/features/node:1`          | 22         |
-| C# / .NET             | `ghcr.io/devcontainers/features/dotnet:2`        | latest     |
 | 共通 (Python)         | `ghcr.io/devcontainers/features/python:1`        | 3.12       |
 | 共通 (Docker)         | `ghcr.io/devcontainers/features/docker-in-docker:2` | ---     |
 | 共通 (Helm)           | `ghcr.io/devcontainers/features/kubectl-helm-minikube:1` | 3.16 |
@@ -230,7 +217,6 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
 | Rust                  | `rust-lang.rust-analyzer`                    |
 | TypeScript / React    | `dbaeumer.vscode-eslint`, `esbenp.prettier-vscode` |
 | Dart / Flutter        | `Dart-Code.dart-code`, `Dart-Code.flutter`   |
-| C# / .NET             | `ms-dotnettools.csharp`, `ms-dotnettools.csdevkit` |
 | 共通                  | `ms-python.python`, `charliermarsh.ruff`, `ms-azuretools.vscode-docker`, `redhat.vscode-yaml`, `42Crunch.vscode-openapi`, `zxh404.vscode-proto3`, `GraphQL.vscode-graphql`, `eamodio.gitlens` |
 
 ### forwardPorts の条件別選択
@@ -328,11 +314,6 @@ flutter precache --web
 flutter config --no-analytics
 {% endif %}
 
-{% if language == "csharp" %}
-# C# / .NET ツール
-dotnet tool install -g dotnet-format
-dotnet restore
-{% endif %}
 
 # Python（E2E テスト）
 pip install -r e2e/requirements.txt
@@ -361,7 +342,6 @@ echo "Dev Container setup complete for {{ service_name }}."
 | Go                    | goimports, golangci-lint, protoc-gen-go, protoc-gen-go-grpc, oapi-codegen, protobuf-compiler, buf |
 | Rust                  | clippy, rustfmt                                                                   |
 | Dart / Flutter        | Flutter SDK 3.24.0, flutter precache, flutter config                              |
-| C# / .NET             | .NET SDK、dotnet-format、dotnet restore                                           |
 | 共通                  | pip install e2e/requirements.txt, pre-commit                                      |
 
 ---
@@ -376,7 +356,6 @@ CLI の対話フローで選択されたオプションに応じて、Dev Contai
 | 言語 (`language`)              | `rust`                      | Rust feature + extensions + settings 追加           | ---                            | clippy + rustfmt インストール               |
 | 言語 (`language`)              | `typescript`                | Node feature + ESLint/Prettier extensions 追加      | ---                            | ---                                         |
 | 言語 (`language`)              | `dart`                      | Node feature + Dart/Flutter extensions 追加         | ---                            | Flutter SDK インストール                    |
-| 言語 (`language`)              | `csharp`                    | .NET feature + C# extensions + settings 追加        | ---                            | .NET SDK + dotnet restore                   |
 | フレームワーク (`framework`)   | `react`                     | Node feature + ESLint/Prettier + forwardPorts 3000/5173 | ---                        | ---                                         |
 | フレームワーク (`framework`)   | `flutter`                   | Node feature + Dart/Flutter extensions 追加         | ---                            | Flutter SDK インストール                    |
 | DB 有無 (`has_database`)       | `true`                      | DB ポートを forwardPorts に追加                     | DB サービスを depends_on に追加 | ---                                         |
@@ -524,7 +503,6 @@ Dev Container テンプレートで使用する言語・ツールのバージョ
 | Flutter     | 3.24.0     | [CI-CD設計](CI-CD設計.md), [devcontainer設計](devcontainer設計.md)    |
 | Helm        | 3.16       | [CI-CD設計](CI-CD設計.md), [devcontainer設計](devcontainer設計.md)    |
 | buf         | 1.47.2     | [CI-CD設計](CI-CD設計.md), [devcontainer設計](devcontainer設計.md)    |
-| .NET        | 10         | [CI-CD設計](CI-CD設計.md), [devcontainer設計](devcontainer設計.md)    |
 
 ---
 

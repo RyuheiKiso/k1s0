@@ -19,8 +19,6 @@ jobs:
       dart: ${{ steps.filter.outputs.dart }}
       python: ${{ steps.filter.outputs.python }}
       helm: ${{ steps.filter.outputs.helm }}
-      csharp: ${{ steps.filter.outputs.csharp }}
-      swift: ${{ steps.filter.outputs.swift }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -43,10 +41,6 @@ jobs:
               - 'regions/**/python/**'
             helm:
               - 'infra/helm/**'
-            csharp:
-              - 'regions/**/csharp/**'
-            swift:
-              - 'regions/**/swift/**'
 
   lint-go:
     needs: detect-changes
@@ -128,57 +122,6 @@ jobs:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       - run: dart analyze
       - run: dart format --set-exit-if-changed .
-
-  lint-csharp:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.csharp == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.x'
-      - name: Restore all libraries
-        run: |
-          for proj in regions/system/library/csharp/*/K1s0.System.*.csproj; do
-            if [ -f "$proj" ]; then
-              echo "=== Restoring $proj ==="
-              dotnet restore "$proj"
-            fi
-          done
-      - name: Format check
-        run: |
-          for proj in regions/system/library/csharp/*/K1s0.System.*.csproj; do
-            if [ -f "$proj" ]; then
-              echo "=== Format check $proj ==="
-              dotnet format "$proj" --verify-no-changes
-            fi
-          done
-      - name: Build (TreatWarningsAsErrors)
-        run: |
-          for proj in regions/system/library/csharp/*/K1s0.System.*.csproj; do
-            if [ -f "$proj" ]; then
-              echo "=== Building $proj ==="
-              dotnet build "$proj" -c Release --no-restore
-            fi
-          done
-
-  lint-swift:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.swift == 'true'
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install swift-format
-        run: brew install swift-format
-      - name: Format check Swift libraries
-        run: |
-          for lib in regions/system/library/swift/*/; do
-            if [ -f "$lib/Package.swift" ]; then
-              echo "=== swift-format lint $lib ==="
-              swift-format lint --recursive "$lib/Sources" "$lib/Tests"
-            fi
-          done
 
   lint-python:
     needs: detect-changes
@@ -275,34 +218,6 @@ jobs:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       - run: flutter test
 
-  test-csharp:
-    needs: lint-csharp
-    if: needs.detect-changes.outputs.csharp == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.x'
-      - name: Test with coverage
-        run: |
-          mkdir -p coverage
-          for testproj in regions/system/library/csharp/*/tests/K1s0.System.*.Tests.csproj; do
-            if [ -f "$testproj" ]; then
-              lib=$(basename "$(dirname "$(dirname "$testproj")")")
-              echo "=== Testing $testproj ==="
-              dotnet test "$testproj" \
-                --collect:"XPlat Code Coverage" \
-                --results-directory "./coverage/$lib" \
-                -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
-            fi
-          done
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: csharp-coverage
-          path: coverage/
-
   test-python:
     needs: lint-python
     runs-on: ubuntu-latest
@@ -348,21 +263,6 @@ jobs:
           name: python-lib-coverage
           path: regions/system/library/python/coverage/
 
-  test-swift:
-    needs: lint-swift
-    if: needs.detect-changes.outputs.swift == 'true'
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Test Swift libraries
-        run: |
-          for lib in regions/system/library/swift/*/; do
-            if [ -f "$lib/Package.swift" ]; then
-              echo "=== Testing $lib ==="
-              (cd "$lib" && swift test --parallel)
-            fi
-          done
-
   # NOTE: proto チェックは専用ワークフロー proto.yaml で実行する。
   # ci.yaml の detect-changes で proto 変更を検出し、proto.yaml が独立してトリガーされる。
 
@@ -388,9 +288,7 @@ jobs:
       - test-rust
       - test-ts
       - test-dart
-      - test-csharp
       - test-python-lib
-      - test-swift
     if: always() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     steps:
