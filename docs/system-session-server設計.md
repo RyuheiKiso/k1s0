@@ -65,9 +65,9 @@ system tier のセッション管理サーバーは以下の機能を提供す�
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
 | POST | `/api/v1/sessions` | セッション作成 | JWTトークン必須（ユーザー本人） |
-| GET | `/api/v1/sessions/:session_id` | セッション取得 | JWTトークン必須 |
-| PUT | `/api/v1/sessions/:session_id/refresh` | セッション更新（TTL延長） | JWTトークン必須 |
-| DELETE | `/api/v1/sessions/:session_id` | セッション失効 | JWTトークン必須 |
+| GET | `/api/v1/sessions/:id` | セッション取得 | JWTトークン必須 |
+| POST | `/api/v1/sessions/:id/refresh` | セッション更新（TTL延長） | JWTトークン必須 |
+| DELETE | `/api/v1/sessions/:id` | セッション失効 | JWTトークン必須 |
 | GET | `/api/v1/users/:user_id/sessions` | ユーザーのセッション一覧 | `sys_auditor` 以上 |
 | DELETE | `/api/v1/users/:user_id/sessions` | ユーザーの全セッション失効 | `sys_operator` 以上 |
 | GET | `/healthz` | ヘルスチェック | 不要 |
@@ -383,15 +383,19 @@ infrastructure（Redis接続・DB接続・Kafka Producer/Consumer・設定ロー
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `session_id` | String | セッションの一意識別子（UUID v4） |
+| `id` | String | セッションの一意識別子 |
 | `user_id` | String | セッション所有ユーザーID |
-| `device_id` | String | デバイス識別子 |
-| `device_name` | Option\<String\> | デバイス表示名 |
-| `device_type` | Option\<String\> | デバイス種別（desktop/mobile/tablet） |
-| `ip_address` | Option\<String\> | 接続元IPアドレス |
+| `token` | String | セッショントークン |
 | `expires_at` | DateTime\<Utc\> | セッション有効期限 |
 | `created_at` | DateTime\<Utc\> | 作成日時 |
-| `last_accessed_at` | DateTime\<Utc\> | 最終アクセス日時 |
+| `revoked` | bool | 失効フラグ |
+| `metadata` | HashMap\<String, String\> | セッションメタデータ（デバイス情報等を格納可能） |
+
+**メソッド:**
+- `is_valid()` -- セッションが有効か判定（未失効かつ未期限切れ）
+- `is_expired()` -- 有効期限切れか判定
+- `revoke()` -- セッションを失効状態にする
+- `refresh(new_expires_at)` -- 有効期限を延長する
 
 ### 依存関係図
 

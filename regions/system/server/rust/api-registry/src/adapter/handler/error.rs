@@ -50,19 +50,17 @@ impl ApiError {
     }
 }
 
-/// Convert a ServiceError into the legacy (StatusCode, Json<Value>) tuple format
-/// used by the api-registry schema_handler.
-impl From<ServiceError> for (StatusCode, Json<serde_json::Value>) {
-    fn from(err: ServiceError) -> Self {
-        let status = match &err {
-            ServiceError::NotFound { .. } => StatusCode::NOT_FOUND,
-            ServiceError::BadRequest { .. } => StatusCode::BAD_REQUEST,
-            ServiceError::Unauthorized { .. } => StatusCode::UNAUTHORIZED,
-            ServiceError::Forbidden { .. } => StatusCode::FORBIDDEN,
-            ServiceError::Conflict { .. } => StatusCode::CONFLICT,
-            ServiceError::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
-        };
-        let body = err.to_error_response();
-        (status, Json(serde_json::to_value(&body).unwrap()))
-    }
+/// Convert a ServiceError into the (StatusCode, Json<Value>) tuple format
+/// used by the api-registry handlers.
+pub fn service_error_to_response(err: ServiceError) -> (StatusCode, Json<serde_json::Value>) {
+    let status = match &err {
+        ServiceError::NotFound { .. } => StatusCode::NOT_FOUND,
+        ServiceError::BadRequest { .. } => StatusCode::BAD_REQUEST,
+        ServiceError::Unauthorized { .. } => StatusCode::UNAUTHORIZED,
+        ServiceError::Forbidden { .. } => StatusCode::FORBIDDEN,
+        ServiceError::Conflict { .. } => StatusCode::CONFLICT,
+        ServiceError::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+    };
+    let body = err.to_error_response();
+    (status, Json(serde_json::to_value(&body).unwrap()))
 }

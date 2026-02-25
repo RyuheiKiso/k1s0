@@ -163,6 +163,81 @@ pub async fn delete_file(
     }
 }
 
+/// POST /api/v1/files/:id/complete
+pub async fn complete_upload(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(req): Json<CompleteUploadRequest>,
+) -> impl IntoResponse {
+    use crate::usecase::complete_upload::CompleteUploadInput;
+
+    let input = CompleteUploadInput {
+        file_id: id.clone(),
+        checksum_sha256: req.checksum_sha256,
+    };
+
+    match state.complete_upload_uc.execute(&input).await {
+        Ok(file) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "file_id": file.id,
+                "status": file.status,
+                "message": "upload completed"
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("not found") {
+                let err = ErrorResponse::new("SYS_FILE_NOT_FOUND", &msg);
+                (StatusCode::NOT_FOUND, Json(err)).into_response()
+            } else if msg.contains("already completed") {
+                let err = ErrorResponse::new("SYS_FILE_ALREADY_COMPLETED", &msg);
+                (StatusCode::CONFLICT, Json(err)).into_response()
+            } else {
+                let err = ErrorResponse::new("SYS_FILE_COMPLETE_FAILED", &msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            }
+        }
+    }
+}
+
+/// PUT /api/v1/files/:id/tags
+pub async fn update_file_tags(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(req): Json<UpdateFileTagsRequest>,
+) -> impl IntoResponse {
+    use crate::usecase::update_file_tags::UpdateFileTagsInput;
+
+    let input = UpdateFileTagsInput {
+        file_id: id.clone(),
+        tags: req.tags,
+    };
+
+    match state.update_file_tags_uc.execute(&input).await {
+        Ok(file) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "file_id": file.id,
+                "tags": file.tags,
+                "message": "tags updated"
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("not found") {
+                let err = ErrorResponse::new("SYS_FILE_NOT_FOUND", &msg);
+                (StatusCode::NOT_FOUND, Json(err)).into_response()
+            } else {
+                let err = ErrorResponse::new("SYS_FILE_TAGS_UPDATE_FAILED", &msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            }
+        }
+    }
+}
+
 // --- Request / Response types ---
 
 #[derive(Debug, Deserialize)]
@@ -174,6 +249,16 @@ pub struct UploadFileRequest {
     pub owner_id: String,
     pub tags: Option<HashMap<String, String>>,
     pub expires_in_seconds: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CompleteUploadRequest {
+    pub checksum_sha256: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateFileTagsRequest {
+    pub tags: HashMap<String, String>,
 }
 
 #[derive(Debug, Deserialize)]

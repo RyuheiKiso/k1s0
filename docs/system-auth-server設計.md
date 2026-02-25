@@ -174,9 +174,8 @@ RFC 7662 準拠のトークンイントロスペクション。トークンが�
       "id": "user-uuid-1234",
       "username": "taro.yamada",
       "email": "taro.yamada@example.com",
-      "first_name": "Taro",
-      "last_name": "Yamada",
-      "enabled": true,
+      "display_name": "Taro Yamada",
+      "status": "active",
       "email_verified": true,
       "created_at": "2026-01-15T09:00:00Z",
       "attributes": {}
@@ -202,9 +201,8 @@ RFC 7662 準拠のトークンイントロスペクション。トークンが�
   "id": "user-uuid-1234",
   "username": "taro.yamada",
   "email": "taro.yamada@example.com",
-  "first_name": "Taro",
-  "last_name": "Yamada",
-  "enabled": true,
+  "display_name": "Taro Yamada",
+  "status": "active",
   "email_verified": true,
   "created_at": "2026-01-15T09:00:00Z",
   "attributes": {}
@@ -409,7 +407,7 @@ PostgreSQL と Keycloak への接続を確認する。
 proto ファイルは [API設計.md](API設計.md) D-009 の命名規則に従い、以下に配置する。
 
 ```
-regions/system/proto/v1/auth.proto
+api/proto/k1s0/system/auth/v1/auth.proto
 ```
 
 ```protobuf
@@ -481,12 +479,11 @@ message User {
   string id = 1;
   string username = 2;
   string email = 3;
-  string first_name = 4;
-  string last_name = 5;
-  bool enabled = 6;
-  bool email_verified = 7;
-  google.protobuf.Timestamp created_at = 8;
-  map<string, StringList> attributes = 9;
+  string display_name = 4;
+  string status = 5;          // "active", "suspended", "deleted"
+  bool email_verified = 6;
+  google.protobuf.Timestamp created_at = 7;
+  map<string, StringList> attributes = 8;
 }
 
 message AuditLog {
@@ -597,6 +594,8 @@ rbac_middleware       -- Claims のロールが必要な権限を持つか判定
 
 ### パーミッションキャッシュ
 
+moka を使用したインメモリキャッシュで RBAC 判定結果をキャッシュする。
+
 - TTL: `permission_cache.ttl_secs`（デフォルト 300 秒）
 - キャッシュミス時の自動リフレッシュ: `permission_cache.refresh_on_miss`
 
@@ -620,8 +619,13 @@ rbac_middleware       -- Claims のロールが必要な権限を持つか判定
 | --- | --- | --- | --- |
 | `host` | string | `0.0.0.0` | バインドアドレス |
 | `port` | int | `8080` | REST API ポート |
+| `grpc_port` | int | `50051` | gRPC ポート |
 
-gRPC は別ポート `50051` で起動する。
+### auth
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `jwks_url` | string | JWKS エンドポイント URL（例: `http://auth-server:8080/.well-known/jwks.json`）。Keycloak URL から自動導出せず、明示的に指定する |
 
 ### auth.jwt
 
@@ -686,8 +690,8 @@ gRPC は別ポート `50051` で起動する。
 
 | フィールド | 型 | デフォルト | 説明 |
 | --- | --- | --- | --- |
-| `kafka_enabled` | bool | `true` | Kafka への監査イベント配信を有効化 |
-| `retention_days` | int | `365` | 監査ログの保持日数 |
+| `kafka_enabled` | bool | `false` | Kafka への監査イベント配信を有効化 |
+| `retention_days` | int | `365` | 監査ログの保持日数（pg_partman によりDB レベルでパーティション管理される） |
 
 ---
 
@@ -799,13 +803,13 @@ Realm: `k1s0`
 
 ### Kafka
 
-認証関連イベントの非同期配信に使用する。
+認証関連イベントの非同期配信に使用する。トークン検証・権限チェックの結果は Kafka に自動パブリッシュされる（`audit.kafka_enabled` が `true` の場合）。
 
 | トピック | 用途 |
 | --- | --- |
 | `k1s0.system.auth.login.v1` | ログイン成功・失敗イベント |
-| `k1s0.system.auth.token_validate.v1` | トークン検証イベント |
-| `k1s0.system.auth.permission_denied.v1` | 権限拒否イベント |
+| `k1s0.system.auth.token_validate.v1` | トークン検証イベント（自動パブリッシュ） |
+| `k1s0.system.auth.permission_denied.v1` | 権限拒否イベント（自動パブリッシュ） |
 
 接続先: `kafka-0.messaging.svc.cluster.local:9092`
 コンシューマーグループ: `auth-server.default`

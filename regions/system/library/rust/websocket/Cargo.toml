@@ -11,6 +11,7 @@ mock = ["dep:mockall"]
 async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
+tokio = { version = "1", features = ["sync"] }
 mockall = { version = "0.13", optional = true }
 
 [dev-dependencies]

@@ -70,7 +70,8 @@ system tier のワークフローオーケストレーションサーバーは�
 | GET | `/api/v1/workflows/:id` | ワークフロー定義取得 | `sys_auditor` 以上 |
 | PUT | `/api/v1/workflows/:id` | ワークフロー定義更新 | `sys_operator` 以上 |
 | DELETE | `/api/v1/workflows/:id` | ワークフロー定義削除 | `sys_admin` のみ |
-| POST | `/api/v1/workflows/:id/instances` | インスタンス起動 | `sys_operator` 以上 |
+| POST | `/api/v1/workflows/:id/execute` | インスタンス起動（実行開始） | `sys_operator` 以上 |
+| GET | `/api/v1/workflows/:id/status` | ワークフロー実行ステータス取得 | `sys_auditor` 以上 |
 | GET | `/api/v1/instances` | インスタンス一覧取得 | `sys_auditor` 以上 |
 | GET | `/api/v1/instances/:id` | インスタンス取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/instances/:id/cancel` | インスタンスキャンセル | `sys_operator` 以上 |

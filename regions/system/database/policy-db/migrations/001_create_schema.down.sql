@@ -1,0 +1,3 @@
+DROP FUNCTION IF EXISTS policy.update_updated_at();
+DROP SCHEMA IF EXISTS policy CASCADE;
+DROP EXTENSION IF EXISTS "pgcrypto";

@@ -84,7 +84,7 @@ async fn main() -> anyhow::Result<()> {
         metadata_repo.clone(),
         storage_repo.clone(),
     ));
-    let _complete_upload_uc =
+    let complete_upload_uc =
         Arc::new(usecase::CompleteUploadUseCase::new(metadata_repo.clone()));
     let get_file_metadata_uc =
         Arc::new(usecase::GetFileMetadataUseCase::new(metadata_repo.clone()));
@@ -96,15 +96,21 @@ async fn main() -> anyhow::Result<()> {
         metadata_repo.clone(),
         storage_repo.clone(),
     ));
-    let _update_file_tags_uc =
+    let update_file_tags_uc =
         Arc::new(usecase::UpdateFileTagsUseCase::new(metadata_repo.clone()));
+
+    // Metrics
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-file-server"));
 
     let state = adapter::handler::AppState {
         list_files_uc,
         generate_upload_url_uc,
+        complete_upload_uc,
         get_file_metadata_uc,
         generate_download_url_uc,
         delete_file_uc,
+        update_file_tags_uc,
+        metrics,
     };
 
     let app = adapter::handler::router(state);

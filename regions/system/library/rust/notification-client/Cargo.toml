@@ -17,3 +17,4 @@ mockall = { version = "0.13", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
+mockall = "0.13"

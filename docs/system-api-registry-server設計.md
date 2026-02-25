@@ -483,7 +483,7 @@ system tier の API スキーマレジストリサーバーは以下の機能を
 
 ### gRPC サービス定義
 
-proto ファイルは `regions/system/proto/v1/api_registry.proto` に配置する。
+proto ファイルは `api/proto/k1s0/system/apiregistry/v1/api_registry.proto` に配置する。
 
 ```protobuf
 syntax = "proto3";

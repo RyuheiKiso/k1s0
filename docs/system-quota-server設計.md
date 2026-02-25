@@ -67,10 +67,11 @@ system tier のAPIクォータ管理サーバーは以下の機能を提供す�
 | POST | `/api/v1/quotas` | クォータポリシー作成 | `sys_operator` 以上 |
 | GET | `/api/v1/quotas/:id` | クォータポリシー取得 | `sys_auditor` 以上 |
 | PUT | `/api/v1/quotas/:id` | クォータポリシー更新 | `sys_operator` 以上 |
-| DELETE | `/api/v1/quotas/:id` | クォータポリシー削除 | `sys_admin` のみ |
-| GET | `/api/v1/quotas/:id/usage` | 使用量照会 | `sys_auditor` 以上 |
-| POST | `/api/v1/quotas/:id/usage/increment` | 使用量インクリメント | `sys_operator` 以上 |
-| POST | `/api/v1/quotas/:id/usage/reset` | 使用量リセット | `sys_admin` のみ |
+| POST | `/api/v1/quotas/:id/check` | クォータチェック（残量判定） | `sys_operator` 以上 |
+| DELETE | `/api/v1/quotas/:id` | クォータポリシー削除（未実装・将来対応予定） | `sys_admin` のみ |
+| GET | `/api/v1/quotas/:id/usage` | 使用量照会（未実装・将来対応予定） | `sys_auditor` 以上 |
+| POST | `/api/v1/quotas/:id/usage/increment` | 使用量インクリメント（未実装・将来対応予定） | `sys_operator` 以上 |
+| POST | `/api/v1/quotas/:id/usage/reset` | 使用量リセット（未実装・将来対応予定） | `sys_admin` のみ |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |

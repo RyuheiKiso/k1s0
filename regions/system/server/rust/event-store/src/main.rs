@@ -141,6 +141,11 @@ async fn main() -> anyhow::Result<()> {
         format!("{}:{}", cfg.server.host, cfg.server.grpc_port).parse()?;
     info!("gRPC server starting on {}", grpc_addr);
 
+    // Metrics
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-event-store-server",
+    ));
+
     // REST AppState
     let state = AppState {
         append_events_uc,
@@ -150,6 +155,7 @@ async fn main() -> anyhow::Result<()> {
         stream_repo,
         event_repo,
         event_publisher,
+        metrics,
     };
 
     // tonic wrapper

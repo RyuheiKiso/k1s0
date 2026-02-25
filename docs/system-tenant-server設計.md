@@ -71,8 +71,8 @@ system tier の Tenant Server は以下の機能を提供する。
 | POST | `/api/v1/tenants/:id/activate` | テナント再開 | `sys_admin` のみ |
 | DELETE | `/api/v1/tenants/:id` | テナント削除 | `sys_admin` のみ |
 | GET | `/api/v1/tenants/:id/members` | テナントメンバー一覧 | `sys_auditor` 以上 |
-| POST | `/api/v1/tenants/:id/members` | テナントメンバー追加 | `sys_operator` 以上 |
-| DELETE | `/api/v1/tenants/:id/members/:user_id` | テナントメンバー削除 | `sys_operator` 以上 |
+| POST | `/api/v1/tenants/:id/members` | テナントメンバー追加（未実装・将来対応予定） | `sys_operator` 以上 |
+| DELETE | `/api/v1/tenants/:id/members/:user_id` | テナントメンバー削除（未実装・将来対応予定） | `sys_operator` 以上 |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |

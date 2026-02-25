@@ -3,12 +3,16 @@ pub mod policy_handler;
 
 use std::sync::Arc;
 
+use axum::extract::State;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use axum::routing::{delete, get, post, put};
 use axum::Router;
 
 use crate::domain::repository::PolicyRepository;
 use crate::usecase::{
-    CreatePolicyUseCase, EvaluatePolicyUseCase, GetPolicyUseCase, UpdatePolicyUseCase,
+    CreateBundleUseCase, CreatePolicyUseCase, EvaluatePolicyUseCase, GetPolicyUseCase,
+    ListBundlesUseCase, UpdatePolicyUseCase,
 };
 
 /// Shared application state for REST handlers.
@@ -19,6 +23,9 @@ pub struct AppState {
     pub get_policy_uc: Arc<GetPolicyUseCase>,
     pub update_policy_uc: Arc<UpdatePolicyUseCase>,
     pub evaluate_policy_uc: Arc<EvaluatePolicyUseCase>,
+    pub create_bundle_uc: Arc<CreateBundleUseCase>,
+    pub list_bundles_uc: Arc<ListBundlesUseCase>,
+    pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 }
 
 /// Build the REST API router.
@@ -26,6 +33,7 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/healthz", get(health::healthz))
         .route("/readyz", get(health::readyz))
+        .route("/metrics", get(metrics_handler))
         .route("/api/v1/policies", get(policy_handler::list_policies))
         .route("/api/v1/policies", post(policy_handler::create_policy))
         .route("/api/v1/policies/:id", get(policy_handler::get_policy))
@@ -38,5 +46,22 @@ pub fn router(state: AppState) -> Router {
             "/api/v1/policies/:id/evaluate",
             post(policy_handler::evaluate_policy),
         )
+        .route(
+            "/api/v1/bundles",
+            get(policy_handler::list_bundles),
+        )
+        .route(
+            "/api/v1/bundles",
+            post(policy_handler::create_bundle),
+        )
         .with_state(state)
+}
+
+async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let body = state.metrics.gather_metrics();
+    (
+        StatusCode::OK,
+        [("content-type", "text/plain; version=0.0.4; charset=utf-8")],
+        body,
+    )
 }

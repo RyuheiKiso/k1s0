@@ -21,6 +21,10 @@ use domain::repository::{MemberRepository, TenantRepository};
 struct Config {
     app: AppConfig,
     server: ServerConfig,
+    #[serde(default)]
+    database: Option<DatabaseConfig>,
+    #[serde(default)]
+    kafka: Option<infrastructure::kafka_producer::KafkaConfig>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -48,6 +52,16 @@ fn default_http_port() -> u16 {
 
 fn default_grpc_port() -> u16 {
     50058
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct DatabaseConfig {
+    #[serde(default = "default_max_connections")]
+    max_connections: u32,
+}
+
+fn default_max_connections() -> u32 {
+    25
 }
 
 // --- InMemory Repository ---
@@ -122,14 +136,68 @@ async fn main() -> anyhow::Result<()> {
         "starting tenant server"
     );
 
-    let tenant_repo: Arc<dyn TenantRepository> = Arc::new(InMemoryTenantRepository::new());
-    let member_repo: Arc<dyn MemberRepository> = Arc::new(InMemoryMemberRepository::new());
+    // Repository: PostgreSQL if DATABASE_URL is set, otherwise InMemory
+    let (tenant_repo, member_repo): (Arc<dyn TenantRepository>, Arc<dyn MemberRepository>) =
+        if let Ok(database_url) = std::env::var("DATABASE_URL") {
+            info!("connecting to PostgreSQL...");
+            let max_conns = cfg.database.as_ref().map_or(25, |db| db.max_connections);
+            let pool = Arc::new(
+                sqlx::postgres::PgPoolOptions::new()
+                    .max_connections(max_conns)
+                    .connect(&database_url)
+                    .await?,
+            );
+            info!("connected to PostgreSQL");
+            (
+                Arc::new(adapter::repository::tenant_postgres::TenantPostgresRepository::new(
+                    pool.clone(),
+                )),
+                Arc::new(adapter::repository::member_postgres::MemberPostgresRepository::new(pool)),
+            )
+        } else {
+            info!("DATABASE_URL not set, using in-memory repositories");
+            (
+                Arc::new(InMemoryTenantRepository::new()),
+                Arc::new(InMemoryMemberRepository::new()),
+            )
+        };
+
+    // Kafka event publisher: Kafka if config or KAFKA_BROKERS env var is set, otherwise Noop
+    let _event_publisher: Arc<dyn infrastructure::kafka_producer::TenantEventPublisher> =
+        if let Some(ref kafka_cfg) = cfg.kafka {
+            info!("initializing Kafka event publisher...");
+            let publisher =
+                infrastructure::kafka_producer::KafkaTenantEventPublisher::new(kafka_cfg)?;
+            info!(topic = %publisher.topic(), "Kafka event publisher initialized");
+            Arc::new(publisher)
+        } else if let Ok(brokers) = std::env::var("KAFKA_BROKERS") {
+            info!("initializing Kafka event publisher from KAFKA_BROKERS env...");
+            let kafka_cfg = infrastructure::kafka_producer::KafkaConfig {
+                brokers: brokers.split(',').map(|s| s.trim().to_string()).collect(),
+                consumer_group: String::new(),
+                security_protocol: "PLAINTEXT".to_string(),
+                sasl: Default::default(),
+                topics: Default::default(),
+            };
+            let publisher =
+                infrastructure::kafka_producer::KafkaTenantEventPublisher::new(&kafka_cfg)?;
+            info!(topic = %publisher.topic(), "Kafka event publisher initialized");
+            Arc::new(publisher)
+        } else {
+            info!("Kafka not configured, using noop event publisher");
+            Arc::new(infrastructure::kafka_producer::NoopTenantEventPublisher)
+        };
 
     let create_tenant_uc = Arc::new(usecase::CreateTenantUseCase::new(tenant_repo.clone()));
     let get_tenant_uc = Arc::new(usecase::GetTenantUseCase::new(tenant_repo.clone()));
-    let list_tenants_uc = Arc::new(usecase::ListTenantsUseCase::new(tenant_repo));
+    let list_tenants_uc = Arc::new(usecase::ListTenantsUseCase::new(tenant_repo.clone()));
+    let update_tenant_uc = Arc::new(usecase::UpdateTenantUseCase::new(tenant_repo.clone()));
+    let delete_tenant_uc = Arc::new(usecase::DeleteTenantUseCase::new(tenant_repo.clone()));
+    let suspend_tenant_uc = Arc::new(usecase::SuspendTenantUseCase::new(tenant_repo.clone()));
+    let activate_tenant_uc = Arc::new(usecase::ActivateTenantUseCase::new(tenant_repo));
     let add_member_uc = Arc::new(usecase::AddMemberUseCase::new(member_repo.clone()));
     let remove_member_uc = Arc::new(usecase::RemoveMemberUseCase::new(member_repo.clone()));
+    let list_members_uc = Arc::new(usecase::ListMembersUseCase::new(member_repo.clone()));
     let get_provisioning_status_uc =
         Arc::new(usecase::GetProvisioningStatusUseCase::new(member_repo));
 
@@ -147,10 +215,21 @@ async fn main() -> anyhow::Result<()> {
     ));
     let tenant_tonic = adapter::grpc::TenantServiceTonic::new(tenant_grpc_svc);
 
+    // Metrics
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-tenant-server",
+    ));
+
     let state = AppState {
         create_tenant_uc,
         get_tenant_uc,
         list_tenants_uc,
+        update_tenant_uc,
+        delete_tenant_uc,
+        suspend_tenant_uc,
+        activate_tenant_uc,
+        list_members_uc,
+        metrics,
     };
     let app = handler::router(state);
 

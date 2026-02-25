@@ -60,7 +60,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 
 ### REST API エンドポイント
 
-全エンドポイントは [API設計.md](API設計.md) D-007 の統一エラーレスポンスに従う。エラーコードのプレフィックスは `SYS_FLAG_` とする。
+全エンドポイントは [API設計.md](API設計.md) D-007 の統一エラーレスポンスに従う。エラーコードのプレフィックスは `SYS_FF_` とする。
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
@@ -138,7 +138,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 ```json
 {
   "error": {
-    "code": "SYS_FLAG_NOT_FOUND",
+    "code": "SYS_FF_NOT_FOUND",
     "message": "feature flag not found: enable-new-checkout",
     "request_id": "req_abc123def456",
     "details": []
@@ -185,7 +185,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 ```json
 {
   "error": {
-    "code": "SYS_FLAG_ALREADY_EXISTS",
+    "code": "SYS_FF_ALREADY_EXISTS",
     "message": "feature flag already exists: enable-new-checkout",
     "request_id": "req_abc123def456",
     "details": []
@@ -198,7 +198,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 ```json
 {
   "error": {
-    "code": "SYS_FLAG_VALIDATION_ERROR",
+    "code": "SYS_FF_VALIDATION_ERROR",
     "message": "validation failed",
     "request_id": "req_abc123def456",
     "details": [
@@ -247,7 +247,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 ```json
 {
   "error": {
-    "code": "SYS_FLAG_NOT_FOUND",
+    "code": "SYS_FF_NOT_FOUND",
     "message": "feature flag not found: enable-new-checkout",
     "request_id": "req_abc123def456",
     "details": []
@@ -273,7 +273,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 ```json
 {
   "error": {
-    "code": "SYS_FLAG_NOT_FOUND",
+    "code": "SYS_FF_NOT_FOUND",
     "message": "feature flag not found: enable-new-checkout",
     "request_id": "req_abc123def456",
     "details": []
@@ -318,7 +318,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 ```json
 {
   "error": {
-    "code": "SYS_FLAG_NOT_FOUND",
+    "code": "SYS_FF_NOT_FOUND",
     "message": "feature flag not found: enable-new-checkout",
     "request_id": "req_abc123def456",
     "details": []
@@ -330,10 +330,10 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 
 | コード | HTTP Status | 説明 |
 | --- | --- | --- |
-| `SYS_FLAG_NOT_FOUND` | 404 | 指定されたフラグが見つからない |
-| `SYS_FLAG_ALREADY_EXISTS` | 409 | 同一キーのフラグが既に存在する |
-| `SYS_FLAG_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー |
-| `SYS_FLAG_INTERNAL_ERROR` | 500 | 内部エラー |
+| `SYS_FF_NOT_FOUND` | 404 | 指定されたフラグが見つからない |
+| `SYS_FF_ALREADY_EXISTS` | 409 | 同一キーのフラグが既に存在する |
+| `SYS_FF_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー |
+| `SYS_FF_INTERNAL_ERROR` | 500 | 内部エラー |
 
 ### gRPC サービス定義
 
@@ -499,26 +499,48 @@ infrastructure（DB接続・Kafka Producer・moka キャッシュ・設定ロー
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `key` | String | フラグの一意キー（例: `enable-new-checkout`） |
-| `name` | String | フラグの表示名 |
+| `id` | Uuid | フラグ ID（自動生成） |
+| `flag_key` | String | フラグの一意キー（例: `enable-new-checkout`） |
 | `description` | String | フラグの説明 |
 | `enabled` | bool | フラグの有効/無効 |
-| `rollout_percentage` | u32 | ロールアウト割合（0-100） |
-| `target_environments` | Vec\<String\> | 対象環境リスト |
-| `target_user_ids` | Vec\<String\> | 対象ユーザー ID リスト |
+| `variants` | Vec\<FlagVariant\> | バリアント定義リスト |
+| `rules` | Vec\<FlagRule\> | ルール定義リスト |
 | `created_at` | DateTime\<Utc\> | 作成日時 |
 | `updated_at` | DateTime\<Utc\> | 更新日時 |
 
-#### FlagEvaluation
+#### FlagVariant
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `name` | String | バリアント名 |
+| `value` | String | バリアント値 |
+| `weight` | i32 | 重み（ロールアウト割合制御） |
+
+#### FlagRule
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `attribute` | String | 評価対象属性名 |
+| `operator` | String | 比較演算子（`eq`, `contains`, `in`） |
+| `value` | String | 比較値 |
+| `variant` | String | マッチ時に返すバリアント名 |
+
+#### EvaluationContext
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `user_id` | Option\<String\> | 評価対象ユーザー ID |
+| `tenant_id` | Option\<String\> | 評価対象テナント ID |
+| `attributes` | HashMap\<String, String\> | 追加属性（ルール評価用） |
+
+#### EvaluationResult
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `flag_key` | String | 評価対象のフラグキー |
-| `environment` | String | 評価環境 |
-| `user_id` | Option\<String\> | 評価対象ユーザー ID |
 | `enabled` | bool | 評価結果 |
+| `variant` | Option\<String\> | 選択されたバリアント名 |
 | `reason` | String | 評価理由 |
-| `evaluated_at` | DateTime\<Utc\> | 評価日時 |
 
 #### FlagAuditLog
 

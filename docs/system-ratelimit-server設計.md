@@ -65,12 +65,13 @@ system tier のレートリミットサーバーは以下の機能を提供す�
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
 | POST | `/api/v1/ratelimit/check` | レート制限チェック | 不要（内部サービス用） |
-| GET | `/api/v1/ratelimit/usage` | 使用量照会 | `sys_auditor` 以上 |
-| GET | `/api/v1/ratelimit/rules` | ルール一覧取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/ratelimit/rules` | ルール作成 | `sys_operator` 以上 |
-| PUT | `/api/v1/ratelimit/rules/:id` | ルール更新 | `sys_operator` 以上 |
-| DELETE | `/api/v1/ratelimit/rules/:id` | ルール削除 | `sys_admin` のみ |
-| POST | `/api/v1/ratelimit/reset` | カウンターリセット | `sys_operator` 以上 |
+| GET | `/api/v1/ratelimit/rules/:id` | ルール取得 | `sys_auditor` 以上 |
+| GET | `/api/v1/ratelimit/usage` | 使用量照会（未実装・将来対応予定） | `sys_auditor` 以上 |
+| GET | `/api/v1/ratelimit/rules` | ルール一覧取得（未実装・将来対応予定） | `sys_auditor` 以上 |
+| PUT | `/api/v1/ratelimit/rules/:id` | ルール更新（未実装・将来対応予定） | `sys_operator` 以上 |
+| DELETE | `/api/v1/ratelimit/rules/:id` | ルール削除（未実装・将来対応予定） | `sys_admin` のみ |
+| POST | `/api/v1/ratelimit/reset` | カウンターリセット（未実装・将来対応予定） | `sys_operator` 以上 |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |

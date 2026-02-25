@@ -14,11 +14,18 @@ mod proto;
 mod usecase;
 
 use adapter::grpc::PolicyGrpcService;
+use adapter::repository::bundle_postgres::BundlePostgresRepository;
+use adapter::repository::cached_policy_repository::CachedPolicyRepository;
+use adapter::repository::policy_postgres::PolicyPostgresRepository;
 use domain::entity::policy::Policy;
 use domain::entity::policy_bundle::PolicyBundle;
-use domain::repository::PolicyRepository;
 use domain::repository::PolicyBundleRepository;
+use domain::repository::PolicyRepository;
+use infrastructure::cache::PolicyCache;
 use infrastructure::config::Config;
+use infrastructure::kafka_producer::{
+    KafkaPolicyProducer, NoopPolicyEventPublisher, PolicyEventPublisher,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -44,14 +51,65 @@ async fn main() -> anyhow::Result<()> {
         "starting policy server"
     );
 
-    let policy_repo: Arc<dyn PolicyRepository> = Arc::new(InMemoryPolicyRepository::new());
-    let bundle_repo: Arc<dyn PolicyBundleRepository> = Arc::new(InMemoryPolicyBundleRepository::new());
+    // Metrics
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-policy-server",
+    ));
+
+    // Cache
+    let cache = Arc::new(PolicyCache::new(
+        cfg.cache.max_entries,
+        cfg.cache.ttl_seconds,
+    ));
+
+    // Repositories: PostgreSQL or InMemory fallback
+    let (policy_repo, bundle_repo): (
+        Arc<dyn PolicyRepository>,
+        Arc<dyn PolicyBundleRepository>,
+    ) = if let Some(ref db_cfg) = cfg.database {
+        info!("connecting to PostgreSQL: {}:{}/{}", db_cfg.host, db_cfg.port, db_cfg.name);
+        let pool = Arc::new(infrastructure::database::connect(db_cfg).await?);
+        info!("PostgreSQL connection established");
+
+        let pg_policy_repo: Arc<dyn PolicyRepository> =
+            Arc::new(PolicyPostgresRepository::new(pool.clone()));
+        let cached_policy_repo: Arc<dyn PolicyRepository> =
+            Arc::new(CachedPolicyRepository::new(pg_policy_repo, cache.clone()));
+
+        let bundle_repo: Arc<dyn PolicyBundleRepository> =
+            Arc::new(BundlePostgresRepository::new(pool));
+
+        (cached_policy_repo, bundle_repo)
+    } else {
+        info!("no database configured, using in-memory repositories");
+        let policy_repo: Arc<dyn PolicyRepository> =
+            Arc::new(InMemoryPolicyRepository::new());
+        let bundle_repo: Arc<dyn PolicyBundleRepository> =
+            Arc::new(InMemoryPolicyBundleRepository::new());
+        (policy_repo, bundle_repo)
+    };
+
+    // Kafka event publisher
+    let _event_publisher: Arc<dyn PolicyEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
+        info!(
+            brokers = %kafka_cfg.brokers.join(","),
+            topic = %kafka_cfg.topic,
+            "initializing Kafka policy event publisher"
+        );
+        let producer = KafkaPolicyProducer::new(kafka_cfg)?
+            .with_metrics(metrics.clone());
+        Arc::new(producer)
+    } else {
+        info!("no Kafka configured, using no-op event publisher");
+        Arc::new(NoopPolicyEventPublisher)
+    };
 
     let create_policy_uc = Arc::new(usecase::CreatePolicyUseCase::new(policy_repo.clone()));
     let get_policy_uc = Arc::new(usecase::GetPolicyUseCase::new(policy_repo.clone()));
     let update_policy_uc = Arc::new(usecase::UpdatePolicyUseCase::new(policy_repo.clone()));
     let evaluate_policy_uc = Arc::new(usecase::EvaluatePolicyUseCase::new(policy_repo.clone()));
-    let _create_bundle_uc = Arc::new(usecase::CreateBundleUseCase::new(bundle_repo));
+    let create_bundle_uc = Arc::new(usecase::CreateBundleUseCase::new(bundle_repo.clone()));
+    let list_bundles_uc = Arc::new(usecase::ListBundlesUseCase::new(bundle_repo));
 
     let grpc_svc = Arc::new(PolicyGrpcService::new(
         evaluate_policy_uc.clone(),
@@ -64,6 +122,9 @@ async fn main() -> anyhow::Result<()> {
         get_policy_uc,
         update_policy_uc,
         evaluate_policy_uc,
+        create_bundle_uc,
+        list_bundles_uc,
+        metrics,
     };
 
     let app = adapter::handler::router(state);

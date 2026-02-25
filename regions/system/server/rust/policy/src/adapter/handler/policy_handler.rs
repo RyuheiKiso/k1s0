@@ -176,6 +176,63 @@ pub async fn evaluate_policy(
     }
 }
 
+/// GET /api/v1/bundles
+pub async fn list_bundles(State(state): State<AppState>) -> impl IntoResponse {
+    match state.list_bundles_uc.execute().await {
+        Ok(bundles) => {
+            let items: Vec<BundleResponse> =
+                bundles.into_iter().map(BundleResponse::from).collect();
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({ "bundles": items })),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            let err = ErrorResponse::new("SYS_POLICY_BUNDLE_LIST_FAILED", &e.to_string());
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+    }
+}
+
+/// POST /api/v1/bundles
+pub async fn create_bundle(
+    State(state): State<AppState>,
+    Json(req): Json<CreateBundleRequest>,
+) -> impl IntoResponse {
+    use crate::usecase::create_bundle::CreateBundleInput;
+
+    let policy_ids: Result<Vec<Uuid>, _> = req
+        .policy_ids
+        .iter()
+        .map(|s| Uuid::parse_str(s))
+        .collect();
+
+    let policy_ids = match policy_ids {
+        Ok(ids) => ids,
+        Err(_) => {
+            let err = ErrorResponse::new("SYS_POLICY_INVALID_ID", "invalid policy_id format");
+            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+        }
+    };
+
+    let input = CreateBundleInput {
+        name: req.name,
+        policy_ids,
+    };
+
+    match state.create_bundle_uc.execute(&input).await {
+        Ok(bundle) => {
+            let resp = BundleResponse::from(bundle);
+            (StatusCode::CREATED, Json(serde_json::to_value(resp).unwrap())).into_response()
+        }
+        Err(e) => {
+            let err = ErrorResponse::new("SYS_POLICY_BUNDLE_CREATE_FAILED", &e.to_string());
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+    }
+}
+
 // --- Request / Response types ---
 
 #[derive(Debug, Deserialize)]
@@ -195,6 +252,33 @@ pub struct UpdatePolicyRequest {
 #[derive(Debug, Deserialize)]
 pub struct EvaluatePolicyRequest {
     pub input: serde_json::Value,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateBundleRequest {
+    pub name: String,
+    pub policy_ids: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BundleResponse {
+    pub id: String,
+    pub name: String,
+    pub policy_ids: Vec<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+impl From<crate::domain::entity::policy_bundle::PolicyBundle> for BundleResponse {
+    fn from(b: crate::domain::entity::policy_bundle::PolicyBundle) -> Self {
+        Self {
+            id: b.id.to_string(),
+            name: b.name,
+            policy_ids: b.policy_ids.iter().map(|id| id.to_string()).collect(),
+            created_at: b.created_at.to_rfc3339(),
+            updated_at: b.updated_at.to_rfc3339(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]

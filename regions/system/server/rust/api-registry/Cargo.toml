@@ -56,6 +56,9 @@ tonic = "0.12"
 prost = "0.13"
 prost-types = "0.13"
 
+# Cache
+moka = { version = "0.12", features = ["future"] }
+
 # Kafka
 rdkafka = { version = "0.36", features = ["cmake-build"] }
 

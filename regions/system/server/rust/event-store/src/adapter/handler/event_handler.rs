@@ -531,6 +531,7 @@ mod tests {
             stream_repo: stream,
             event_repo: event,
             event_publisher: publisher,
+            metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-event-store-server-test")),
         }
     }
 

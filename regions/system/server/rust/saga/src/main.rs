@@ -15,6 +15,7 @@ use adapter::grpc::{SagaGrpcService, SagaServiceTonic};
 use adapter::handler::{self, AppState};
 use adapter::repository::saga_postgres::SagaPostgresRepository;
 use adapter::repository::workflow_in_memory::InMemoryWorkflowRepository;
+use adapter::repository::workflow_postgres::WorkflowPostgresRepository;
 use domain::repository::WorkflowRepository;
 use infrastructure::config::Config;
 use infrastructure::grpc_caller::{ServiceRegistry, TonicGrpcCaller};
@@ -76,10 +77,15 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Workflow repository
+    let workflow_repo: Arc<dyn WorkflowRepository> = if let Some(ref pool) = db_pool {
+        Arc::new(WorkflowPostgresRepository::new(pool.clone()))
+    } else {
+        Arc::new(InMemoryWorkflowRepository::new())
+    };
+
     let workflow_loader =
         infrastructure::workflow_loader::WorkflowLoader::new(&cfg.saga.workflow_dir);
     let loaded_definitions = workflow_loader.load_all().await?;
-    let workflow_repo = Arc::new(InMemoryWorkflowRepository::new());
     for workflow in &loaded_definitions {
         workflow_repo.register(workflow.clone()).await?;
     }

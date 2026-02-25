@@ -181,6 +181,7 @@ type Mutation {
 type Subscription {
   tenantUpdated(tenantId: ID!): Tenant!
   featureFlagChanged(key: String!): FeatureFlag!
+  configChanged(namespaces: [String!]): ConfigEntry!
 }
 
 type Tenant {

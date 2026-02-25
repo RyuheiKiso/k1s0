@@ -4,7 +4,7 @@ use crate::error::NotificationClientError;
 use crate::request::{NotificationRequest, NotificationResponse};
 
 #[async_trait]
-#[cfg_attr(feature = "mock", mockall::automock)]
+#[cfg_attr(any(feature = "mock", test), mockall::automock)]
 pub trait NotificationClient: Send + Sync {
     async fn send(
         &self,
