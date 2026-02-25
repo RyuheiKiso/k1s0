@@ -389,8 +389,6 @@ server:
   port: 8090
 ```
 
-> **注意**: Phase 1 では REST ポート（8090）のみ config で指定。gRPC ポート（50051）はコード内でハードコード。Phase 2 で `grpc_port`、`database`、`vault`、`cache`、`kafka` セクションを追加予定。
-
 ---
 
 ## デプロイ
