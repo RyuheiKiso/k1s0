@@ -17,7 +17,6 @@ jobs:
       rust: ${{ steps.filter.outputs.rust }}
       ts: ${{ steps.filter.outputs.ts }}
       dart: ${{ steps.filter.outputs.dart }}
-      python: ${{ steps.filter.outputs.python }}
       helm: ${{ steps.filter.outputs.helm }}
     steps:
       - uses: actions/checkout@v4
@@ -36,8 +35,6 @@ jobs:
             dart:
               - 'regions/**/flutter/**'
               - 'regions/**/dart/**'
-            python:
-              - 'regions/**/python/**'
             helm:
               - 'infra/helm/**'
 
@@ -122,29 +119,6 @@ jobs:
       - run: dart analyze
       - run: dart format --set-exit-if-changed .
 
-  lint-python:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.python == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - uses: astral-sh/setup-uv@v5
-      - name: Lint Python libraries
-        run: |
-          cd regions/system/library/python
-          uv sync --all-packages --quiet
-          for lib in */; do
-            if [ -f "$lib/pyproject.toml" ] && [ -d "$lib/src" ]; then
-              echo "=== Linting $lib ==="
-              uv run ruff check "$lib/src" "$lib/tests"
-              uv run ruff format --check "$lib/src" "$lib/tests"
-              uv run mypy --config-file mypy.ini "$lib/src"
-            fi
-          done
-
   test-go:
     needs: lint-go
     runs-on: ubuntu-latest
@@ -211,40 +185,6 @@ jobs:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       - run: flutter test
 
-  test-python-lib:
-    needs: lint-python
-    if: needs.detect-changes.outputs.python == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - uses: astral-sh/setup-uv@v5
-      - name: Sync workspace
-        run: uv sync --all-packages
-        working-directory: regions/system/library/python
-      - name: Test Python libraries with coverage
-        run: |
-          mkdir -p coverage
-          for lib in */; do
-            if [ -f "$lib/pyproject.toml" ] && [ -d "$lib/tests" ]; then
-              libname=$(basename "$lib")
-              echo "=== Testing $lib ==="
-              uv run pytest "$lib/tests" \
-                --cov="$lib/src" \
-                --cov-report=xml:"coverage/${libname}.xml" \
-                --cov-report=term-missing \
-                --tb=short
-            fi
-          done
-        working-directory: regions/system/library/python
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: python-lib-coverage
-          path: regions/system/library/python/coverage/
-
   # NOTE: proto チェックは専用ワークフロー proto.yaml で実行する。
   # ci.yaml の detect-changes で proto 変更を検出し、proto.yaml が独立してトリガーされる。
 
@@ -270,7 +210,6 @@ jobs:
       - test-rust
       - test-ts
       - test-dart
-      - test-python-lib
     if: always() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     steps:

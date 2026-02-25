@@ -200,59 +200,6 @@ void injectContext(Map<String, String> headers, TraceContext ctx, [Baggage? bagg
 ({TraceContext? context, Baggage baggage}) extractContext(Map<String, String> headers);
 ```
 
-## Python 実装
-
-**配置先**: `regions/system/library/python/tracing/`
-
-```
-tracing/
-├── pyproject.toml
-├── src/
-│   └── k1s0_tracing/
-│       ├── __init__.py          # 公開 API（再エクスポート）
-│       ├── trace_context.py     # TraceContext dataclass
-│       ├── baggage.py           # Baggage クラス
-│       └── propagation.py       # inject_context, extract_context
-└── tests/
-    ├── __init__.py
-    └── test_tracing.py
-```
-
-**依存関係**: なし（標準ライブラリのみ）
-
-**主要 API**:
-
-```python
-@dataclass
-class TraceContext:
-    trace_id: str   # 32 hex chars
-    parent_id: str  # 16 hex chars
-    flags: int = 1
-
-    def to_traceparent(self) -> str: ...
-    @classmethod
-    def from_traceparent(cls, s: str) -> TraceContext | None: ...
-
-class Baggage:
-    def set(self, key: str, value: str) -> None: ...
-    def get(self, key: str) -> str | None: ...
-    def to_header(self) -> str: ...
-    @classmethod
-    def from_header(cls, s: str) -> Baggage: ...
-
-def inject_context(headers: dict[str, str], ctx: TraceContext, baggage: Baggage | None = None) -> None: ...
-def extract_context(headers: dict[str, str]) -> tuple[TraceContext | None, Baggage]: ...
-```
-
-### テスト方針
-
-- テストフレームワーク: pytest
-- リント/フォーマット: ruff
-- カバレッジ目標: 80%以上
-- 実行: `pytest` / `ruff check .`
-
----
-
 ## 関連ドキュメント
 
 - [system-library-概要](system-library-概要.md) — ライブラリ一覧・テスト方針

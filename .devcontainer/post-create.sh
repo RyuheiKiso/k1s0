@@ -23,10 +23,6 @@ echo 'export PATH="/opt/flutter/bin:$PATH"' >> ~/.bashrc
 flutter precache --web
 flutter config --no-analytics
 
-# Pre-commit フック
-pip install pre-commit
-pre-commit install
-
 # protobuf コンパイラ
 sudo apt-get update && sudo apt-get install -y protobuf-compiler
 

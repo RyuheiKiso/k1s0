@@ -168,7 +168,6 @@ Tierに応じて追加の入力を求める。
   Rust
   TypeScript
   Dart
-  Python
 ```
 
 **データベースの場合：**

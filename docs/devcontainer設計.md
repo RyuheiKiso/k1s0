@@ -28,7 +28,6 @@ k1s0 の開発環境を Dev Container で統一し、環境構築の手間をゼ
     "ghcr.io/devcontainers/features/node:1": {
       "version": "22"  // CI/CD でも Node 22 に合わせる（CI-CD設計.md 参照）
     },
-    "ghcr.io/devcontainers/features/python:1": {
       "version": "3.12"
     },
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
@@ -53,9 +52,6 @@ k1s0 の開発環境を Dev Container で統一し、環境構築の手間をゼ
         "Dart-Code.flutter",
         // Tauri
         "tauri-apps.tauri-vscode",
-        // Python
-        "ms-python.python",
-        "charliermarsh.ruff",
         // 共通
         "ms-azuretools.vscode-docker",
         "redhat.vscode-yaml",
@@ -89,9 +85,6 @@ k1s0 の開発環境を Dev Container で統一し、環境構築の手間をゼ
         "[dart]": {
           "editor.defaultFormatter": "Dart-Code.dart-code"
         },
-        // Python
-        "[python]": {
-          "editor.defaultFormatter": "charliermarsh.ruff"
         }
       }
     }
@@ -169,7 +162,6 @@ flutter config --no-analytics
 
 
 # Pre-commit フック
-pip install pre-commit
 pre-commit install
 
 # protobuf コンパイラ

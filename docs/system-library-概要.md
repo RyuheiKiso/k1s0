@@ -1,7 +1,7 @@
 # system-library 概要
 
 system tier が提供する共通ライブラリの設計を定義する。
-全ライブラリは Go / Rust / TypeScript / Dart / Python の 5 言語で平等に実装する。
+全ライブラリは Go / Rust / TypeScript / Dart の 5 言語で平等に実装する。
 
 ## ライブラリ一覧
 
@@ -60,7 +60,6 @@ system tier が提供する共通ライブラリの設計を定義する。
 | Rust | #[cfg(test)] + assert | mockall | wiremock |
 | TypeScript | vitest + expect | MSW | vitest |
 | Dart | test + expect | mocktail | test |
-| Python | pytest + assert | unittest.mock / pytest-mock | pytest + testcontainers |
 
 ### テストカバレッジ目標
 
@@ -106,8 +105,6 @@ system tier が提供する共通ライブラリの設計を定義する。
 | k1s0-validation | 90% 以上 |
 | k1s0-vault-client | 85% 以上 |
 | k1s0-webhook-client | 85% 以上 |
-
-Python 実装のカバレッジ計測には `pytest-cov`（`coverage.py`）を使用し、各ライブラリのカバレッジ目標は上記テーブルと同一とする。リント・フォーマットには `ruff` を使用する。
 
 ---
 

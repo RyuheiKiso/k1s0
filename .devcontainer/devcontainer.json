@@ -15,9 +15,6 @@
     "ghcr.io/devcontainers/features/node:1": {
       "version": "22"
     },
-    "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.12"
-    },
     "ghcr.io/nicknisi/features/flutter:1": {
       "version": "3.24.0"
     },
@@ -37,8 +34,6 @@
         "esbenp.prettier-vscode",
         "Dart-Code.dart-code",
         "Dart-Code.flutter",
-        "ms-python.python",
-        "charliermarsh.ruff",
         "ms-azuretools.vscode-docker",
         "redhat.vscode-yaml",
         "42Crunch.vscode-openapi",
@@ -66,9 +61,6 @@
         "[dart]": {
           "editor.defaultFormatter": "Dart-Code.dart-code"
         },
-        "[python]": {
-          "editor.defaultFormatter": "charliermarsh.ruff"
-        }
       }
     }
   },
