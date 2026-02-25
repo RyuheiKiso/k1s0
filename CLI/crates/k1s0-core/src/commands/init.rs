@@ -61,9 +61,6 @@ pub fn execute_init(config: &InitConfig) -> Result<()> {
     // infra/ ディレクトリ
     fs::create_dir_all(base.join("infra"))?;
 
-    // e2e/ ディレクトリ
-    fs::create_dir_all(base.join("e2e"))?;
-
     // docs/ ディレクトリ
     fs::create_dir_all(base.join("docs"))?;
 
@@ -220,7 +217,6 @@ k1s0 で生成されたプロジェクトです。
 - `regions/` - リージョン構成 (system / business / service)
 - `api/` - API 定義 (proto / OpenAPI)
 - `infra/` - インフラ設定
-- `e2e/` - E2E テスト
 - `docs/` - ドキュメント
 "
     )
@@ -277,7 +273,6 @@ mod tests {
         assert!(base.join("regions/service").is_dir());
         assert!(base.join("api/proto").is_dir());
         assert!(base.join("infra").is_dir());
-        assert!(base.join("e2e").is_dir());
         assert!(base.join("docs").is_dir());
         assert!(base.join(".devcontainer/devcontainer.json").is_file());
         assert!(base.join(".github/workflows/ci.yaml").is_file());

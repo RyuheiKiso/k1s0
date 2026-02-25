@@ -428,7 +428,7 @@ infrastructure（DB接続・Kafka Consumer/Producer・設定ローダー）
 
 | テストファイル | 要件 | 内容 |
 | --- | --- | --- |
-| `integration_test.rs` | InMemory | REST API の E2E テスト（12 テストケース） |
+| `integration_test.rs` | InMemory | REST API の統合テスト（12 テストケース） |
 
 統合テスト一覧:
 - `test_healthz_returns_ok` -- ヘルスチェック正常

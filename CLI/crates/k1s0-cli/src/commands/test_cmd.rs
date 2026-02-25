@@ -3,14 +3,13 @@ use anyhow::Result;
 use crate::prompt::{self, ConfirmResult};
 
 pub use k1s0_core::commands::test_cmd::{
-    execute_test, scan_e2e_suites, scan_testable_targets, TestConfig, TestKind,
+    execute_test, scan_testable_targets, TestConfig, TestKind,
 };
 
-const TEST_KIND_LABELS: &[&str] = &["ユニットテスト", "統合テスト", "E2Eテスト", "すべて"];
+const TEST_KIND_LABELS: &[&str] = &["ユニットテスト", "統合テスト", "すべて"];
 const ALL_TEST_KINDS: &[TestKind] = &[
     TestKind::Unit,
     TestKind::Integration,
-    TestKind::E2e,
     TestKind::All,
 ];
 
@@ -50,10 +49,7 @@ pub fn run() -> Result<()> {
                         kind = k;
                         // All の場合は Targets をスキップして Confirm へ
                         if kind == TestKind::All {
-                            let mut all = scan_testable_targets();
-                            let e2e = scan_e2e_suites();
-                            all.extend(e2e);
-                            targets = all;
+                            targets = scan_testable_targets();
                             step = Step::Confirm;
                         } else {
                             step = Step::Targets;
@@ -63,10 +59,7 @@ pub fn run() -> Result<()> {
                 }
             }
             Step::Targets => {
-                let result = match kind {
-                    TestKind::E2e => step_select_e2e_suites()?,
-                    _ => step_select_test_targets()?,
-                };
+                let result = step_select_test_targets()?;
                 match result {
                     Some(t) => {
                         if t.is_empty() {
@@ -143,38 +136,6 @@ fn step_select_test_targets() -> Result<Option<Vec<String>>> {
                     .iter()
                     .map(|&i| all_targets[i - 1].clone())
                     .collect();
-                Ok(Some(targets))
-            }
-        }
-    }
-}
-
-/// ステップ2: E2Eテストスイート選択
-fn step_select_e2e_suites() -> Result<Option<Vec<String>>> {
-    let all_suites = scan_e2e_suites();
-    if all_suites.is_empty() {
-        return Ok(Some(Vec::new()));
-    }
-
-    let mut items: Vec<&str> = vec!["すべて"];
-    for s in &all_suites {
-        items.push(s.as_str());
-    }
-
-    let selected =
-        prompt::multi_select_prompt("テストスイートを選択してください（複数選択可）", &items)?;
-
-    match selected {
-        None => Ok(None),
-        Some(indices) => {
-            if indices.is_empty() {
-                println!("少なくとも1つのスイートを選択してください。");
-                step_select_e2e_suites()
-            } else if indices.contains(&0) {
-                Ok(Some(all_suites))
-            } else {
-                let targets: Vec<String> =
-                    indices.iter().map(|&i| all_suites[i - 1].clone()).collect();
                 Ok(Some(targets))
             }
         }

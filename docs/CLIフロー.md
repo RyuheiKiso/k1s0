@@ -62,7 +62,6 @@ $ k1s0
 - `regions/` ディレクトリ（選択したTier）
 - `api/` ディレクトリ（`api/proto/`）
 - `infra/` ディレクトリ
-- `e2e/` ディレクトリ
 - `docs/` ディレクトリ
 - `docker-compose.yaml`
 - `.devcontainer/devcontainer.json`
@@ -626,7 +625,6 @@ regions/service/order/server/go/bff/
 ? テスト種別を選択してください
 > ユニットテスト
   統合テスト
-  E2Eテスト
   すべて
 ```
 
@@ -646,15 +644,6 @@ regions/service/order/server/go/bff/
   ...
 ```
 
-**E2Eテストの場合：**
-
-```
-? テストスイートを選択してください（複数選択可）
-> [ ] すべて
-  [x] e2e/tests/order
-  [ ] e2e/tests/auth
-  ...
-```
 
 **すべての場合：**
 

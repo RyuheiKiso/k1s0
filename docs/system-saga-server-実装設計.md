@@ -727,7 +727,7 @@ Saga の状態遷移時に以下のイベントを `k1s0.system.saga.events.v1` 
 
 | テストファイル | 要件 | 内容 |
 |-------------|------|------|
-| `integration_test.rs` | InMemory | REST API の E2E テスト（axum-test 使用） |
+| `integration_test.rs` | InMemory | REST API の統合テスト（axum-test 使用） |
 | `workflow_engine_test.rs` | モック | ワークフロー実行パスの検証 |
 | `postgres_repository_test.rs` | PostgreSQL | DB 操作の検証（`#[ignore]`） |
 | `kafka_integration_test.rs` | Kafka | イベント発行の検証（`#[ignore]`） |

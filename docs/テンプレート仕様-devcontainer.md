@@ -315,8 +315,6 @@ flutter config --no-analytics
 {% endif %}
 
 
-# Python（E2E テスト）
-pip install -r e2e/requirements.txt
 
 # Pre-commit フック
 pip install pre-commit
@@ -342,7 +340,7 @@ echo "Dev Container setup complete for {{ service_name }}."
 | Go                    | goimports, golangci-lint, protoc-gen-go, protoc-gen-go-grpc, oapi-codegen, protobuf-compiler, buf |
 | Rust                  | clippy, rustfmt                                                                   |
 | Dart / Flutter        | Flutter SDK 3.24.0, flutter precache, flutter config                              |
-| 共通                  | pip install e2e/requirements.txt, pre-commit                                      |
+| 共通                  | pre-commit                                      |
 
 ---
 
@@ -397,7 +395,7 @@ CLI の対話フローで選択されたオプションに応じて、Dev Contai
 **`.devcontainer/post-create.sh`**:
 - Go ツール（goimports, golangci-lint, protoc-gen-go 等）
 - protobuf-compiler + buf
-- Python E2E + pre-commit
+- pre-commit
 
 ### Rust gRPC サーバー（DB なし・Kafka あり）の場合
 
@@ -427,7 +425,7 @@ CLI の対話フローで選択されたオプションに応じて、Dev Contai
 
 **`.devcontainer/post-create.sh`**:
 - Rust コンポーネント（clippy, rustfmt）
-- Python E2E + pre-commit
+- pre-commit
 
 ### React クライアントの場合
 
@@ -456,7 +454,7 @@ CLI の対話フローで選択されたオプションに応じて、Dev Contai
 - depends_on: なし
 
 **`.devcontainer/post-create.sh`**:
-- Python E2E + pre-commit
+- pre-commit
 
 ### Flutter クライアントの場合
 
@@ -486,7 +484,7 @@ CLI の対話フローで選択されたオプションに応じて、Dev Contai
 
 **`.devcontainer/post-create.sh`**:
 - Flutter SDK 3.24.0 インストール
-- Python E2E + pre-commit
+- pre-commit
 
 ---
 

@@ -37,7 +37,6 @@ jobs:
               - 'regions/**/flutter/**'
               - 'regions/**/dart/**'
             python:
-              - 'e2e/**'
               - 'regions/**/python/**'
             helm:
               - 'infra/helm/**'
@@ -133,12 +132,6 @@ jobs:
         with:
           python-version: "3.12"
       - uses: astral-sh/setup-uv@v5
-      - name: Lint E2E tests
-        run: |
-          pip install ruff mypy
-          ruff check e2e/
-          ruff format --check e2e/
-          mypy e2e/
       - name: Lint Python libraries
         run: |
           cd regions/system/library/python
@@ -217,17 +210,6 @@ jobs:
         with:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       - run: flutter test
-
-  test-python:
-    needs: lint-python
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install -r e2e/requirements.txt
-      - run: pytest e2e/ --tb=short
 
   test-python-lib:
     needs: lint-python

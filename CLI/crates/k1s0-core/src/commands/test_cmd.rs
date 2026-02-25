@@ -11,7 +11,6 @@ use crate::progress::ProgressEvent;
 pub enum TestKind {
     Unit,
     Integration,
-    E2e,
     All,
 }
 
@@ -20,7 +19,6 @@ impl TestKind {
         match self {
             TestKind::Unit => "ユニットテスト",
             TestKind::Integration => "統合テスト",
-            TestKind::E2e => "E2Eテスト",
             TestKind::All => "すべて",
         }
     }
@@ -69,16 +67,7 @@ pub fn detect_project_lang(target_path: &Path) -> Option<ProjectLang> {
 }
 
 /// テスト種別とプロジェクト言語からテストコマンドを解決する。
-///
-/// E2Eテストの場合は lang を無視して pytest を返す。
 pub fn resolve_test_command(kind: TestKind, lang: Option<ProjectLang>) -> Option<TestCommand> {
-    if kind == TestKind::E2e {
-        return Some(TestCommand {
-            cmd: "pytest".to_string(),
-            args: vec![".".to_string()],
-        });
-    }
-
     let lang = lang?;
     let (cmd, args) = match (lang, kind) {
         (ProjectLang::Go, TestKind::Unit | TestKind::All) => ("go", vec!["test", "./..."]),
@@ -116,12 +105,6 @@ pub fn execute_test(config: &TestConfig) -> Result<()> {
             continue;
         }
 
-        // E2Eテストか判定
-        if target.starts_with("e2e/") || target.starts_with("e2e\\") {
-            run_e2e_test(target_path);
-            continue;
-        }
-
         // 言語/フレームワーク種別を検出してテストコマンドを決定
         let lang = detect_project_lang(target_path);
         if let Some(test_cmd) = resolve_test_command(config.kind, lang) {
@@ -136,12 +119,6 @@ pub fn execute_test(config: &TestConfig) -> Result<()> {
         }
     }
     Ok(())
-}
-
-/// E2Eテストを実行する。
-fn run_e2e_test(path: &Path) {
-    // Python + pytest を想定
-    run_command("pytest", &["."], path);
 }
 
 /// 外部コマンドを実行する。
@@ -192,28 +169,21 @@ pub fn execute_test_with_progress(
             continue;
         }
 
-        if target.starts_with("e2e/") || target.starts_with("e2e\\") {
+        let lang = detect_project_lang(target_path);
+        if let Some(test_cmd) = resolve_test_command(config.kind, lang) {
             on_progress(ProgressEvent::Log {
-                message: "実行: pytest .".to_string(),
+                message: format!("実行: {} {}", test_cmd.cmd, test_cmd.args.join(" ")),
             });
-            run_command("pytest", &["."], target_path);
+            let args_refs: Vec<&str> = test_cmd
+                .args
+                .iter()
+                .map(std::string::String::as_str)
+                .collect();
+            run_command(&test_cmd.cmd, &args_refs, target_path);
         } else {
-            let lang = detect_project_lang(target_path);
-            if let Some(test_cmd) = resolve_test_command(config.kind, lang) {
-                on_progress(ProgressEvent::Log {
-                    message: format!("実行: {} {}", test_cmd.cmd, test_cmd.args.join(" ")),
-                });
-                let args_refs: Vec<&str> = test_cmd
-                    .args
-                    .iter()
-                    .map(std::string::String::as_str)
-                    .collect();
-                run_command(&test_cmd.cmd, &args_refs, target_path);
-            } else {
-                on_progress(ProgressEvent::Warning {
-                    message: format!("テスト方法が不明です: {target}"),
-                });
-            }
+            on_progress(ProgressEvent::Warning {
+                message: format!("テスト方法が不明です: {target}"),
+            });
         }
 
         on_progress(ProgressEvent::StepCompleted {
@@ -272,32 +242,6 @@ fn scan_targets_recursive(path: &Path, targets: &mut Vec<String>) {
     }
 }
 
-/// E2Eテストスイートを走査する (e2e/tests/ 配下)。
-pub fn scan_e2e_suites() -> Vec<String> {
-    scan_e2e_suites_at(Path::new("."))
-}
-
-/// 指定ディレクトリを基点にE2Eテストスイートを走査する (e2e/tests/ 配下)。
-pub fn scan_e2e_suites_at(base_dir: &Path) -> Vec<String> {
-    let mut suites = Vec::new();
-    let e2e_tests = base_dir.join("e2e/tests");
-    if !e2e_tests.is_dir() {
-        return suites;
-    }
-
-    if let Ok(entries) = fs::read_dir(e2e_tests) {
-        for entry in entries.flatten() {
-            if entry.path().is_dir() {
-                if let Some(p) = entry.path().to_str() {
-                    suites.push(p.to_string());
-                }
-            }
-        }
-    }
-    suites.sort();
-    suites
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -309,7 +253,6 @@ mod tests {
     fn test_test_kind_label() {
         assert_eq!(TestKind::Unit.label(), "ユニットテスト");
         assert_eq!(TestKind::Integration.label(), "統合テスト");
-        assert_eq!(TestKind::E2e.label(), "E2Eテスト");
         assert_eq!(TestKind::All.label(), "すべて");
     }
 
@@ -346,24 +289,6 @@ mod tests {
         assert_eq!(targets.len(), 1);
     }
 
-    #[test]
-    fn test_scan_e2e_suites_empty() {
-        let tmp = TempDir::new().unwrap();
-        let suites = scan_e2e_suites_at(tmp.path());
-        assert!(suites.is_empty());
-    }
-
-    #[test]
-    fn test_scan_e2e_suites_with_tests() {
-        let tmp = TempDir::new().unwrap();
-
-        fs::create_dir_all(tmp.path().join("e2e/tests/order")).unwrap();
-        fs::create_dir_all(tmp.path().join("e2e/tests/auth")).unwrap();
-
-        let suites = scan_e2e_suites_at(tmp.path());
-        assert_eq!(suites.len(), 2);
-    }
-
     // --- resolve_test_command ---
 
     #[test]
@@ -380,14 +305,6 @@ mod tests {
         let cmd = resolve_test_command(TestKind::Unit, Some(ProjectLang::Rust)).unwrap();
         assert_eq!(cmd.cmd, "cargo");
         assert_eq!(cmd.args, vec!["test"]);
-    }
-
-    #[test]
-    fn test_python_e2e_command() {
-        // E2Eテストコマンドが "pytest" であること
-        let cmd = resolve_test_command(TestKind::E2e, None).unwrap();
-        assert_eq!(cmd.cmd, "pytest");
-        assert_eq!(cmd.args, vec!["."]);
     }
 
     // --- execute_test ---

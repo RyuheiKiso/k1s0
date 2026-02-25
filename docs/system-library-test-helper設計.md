@@ -440,4 +440,3 @@ email = FixtureBuilder.email()
 - [system-library-概要](system-library-概要.md) — ライブラリ一覧・テスト方針
 - [system-library-migration設計](system-library-migration設計.md) — テスト用 DB マイグレーション
 - [system-library-serviceauth設計](system-library-serviceauth設計.md) — JWT 認証テスト
-- [e2e.md](e2e.md) — E2E テスト設計

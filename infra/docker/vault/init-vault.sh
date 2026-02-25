@@ -72,9 +72,7 @@ vault kv put secret/k1s0/system/kafka/sasl \
 echo "--- Keycloak シークレットを登録 ---"
 vault kv put secret/k1s0/system/keycloak \
   client-id="k1s0-api" \
-  client-secret="dev-client-secret" \
-  e2e-client-id="k1s0-e2e-test" \
-  e2e-client-secret="dev-e2e-test-secret"
+  client-secret="dev-client-secret"
 
 # === ポリシー登録 ===
 echo "--- Vault ポリシーを登録 ---"

@@ -120,7 +120,6 @@ regions/
 | デスクトップGUI                  | **Tauri 2** + React                               |
 | CLI                              | **Rust** (dialoguer, Tera テンプレートエンジン)   |
 | システムライブラリ               | **Go / Rust / TypeScript / Dart / Python**（5言語） |
-| E2E テスト                       | **Python 3.12** (pytest, testcontainers)          |
 
 ### API・通信
 
@@ -236,7 +235,6 @@ k1s0/
 │   ├── messaging/            Kafka・Schema Registry
 │   ├── observability/        監視・アラート設定
 │   └── ansible/              プロビジョニング
-├── e2e/                    E2E テスト（Python + pytest）
 ├── scripts/                ユーティリティスクリプト
 ├── docs/                   設計ドキュメント（100+ ファイル）
 ├── .github/workflows/      CI/CD パイプライン（20 ワークフロー）
@@ -376,14 +374,6 @@ go test ./...
 
 # Python ライブラリテスト
 cd regions/system/library/python && uv run pytest
-
-# E2E テスト（全テスト）
-cd e2e && pytest
-
-# E2E テスト（カテゴリ指定）
-cd e2e && pytest -m "auth"        # 認証テスト
-cd e2e && pytest -m "compliance"  # ドキュメント準拠テスト
-cd e2e && pytest -m "health"      # ヘルスチェックテスト
 
 # テストカバレッジ
 scripts/coverage.sh

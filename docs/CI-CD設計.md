@@ -73,7 +73,6 @@ jobs:
               - 'regions/**/flutter/**'
               - 'regions/**/dart/**'
             python:
-              - 'e2e/**'
             helm:
               - 'infra/helm/**'
 
@@ -126,7 +125,6 @@ jobs:
       - run: pip install ruff mypy
       - run: ruff check .
       - run: ruff format --check .
-      - run: mypy e2e/
 
   test-rust:
     needs: lint-rust
@@ -165,8 +163,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r e2e/requirements.txt
-      - run: pytest e2e/ --tb=short
 
   helm-lint:
     needs: detect-changes

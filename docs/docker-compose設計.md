@@ -324,7 +324,6 @@ docker compose --profile infra --profile observability --profile system down -v
 | config-server の開発 | infra + system | `docker compose --profile infra --profile system up -d` |
 | フロントエンド開発（API モック不要） | infra + system | `docker compose --profile infra --profile system up -d` |
 | パフォーマンス測定 | infra + observability + system | `docker compose --profile infra --profile observability --profile system up -d` |
-| E2E テスト実行 | infra + observability + system + service | `docker compose --profile infra --profile observability --profile system --profile service up -d` |
 | DB マイグレーション確認 | infra | `docker compose --profile infra up -d` |
 
 ## 設計上の補足
