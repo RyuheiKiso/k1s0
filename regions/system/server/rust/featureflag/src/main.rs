@@ -10,6 +10,7 @@ use uuid::Uuid;
 mod adapter;
 mod domain;
 mod infrastructure;
+mod proto;
 mod usecase;
 
 use adapter::grpc::FeatureFlagGrpcService;
@@ -52,12 +53,16 @@ async fn main() -> anyhow::Result<()> {
     let create_flag_uc = Arc::new(usecase::CreateFlagUseCase::new(flag_repo.clone()));
     let update_flag_uc = Arc::new(usecase::UpdateFlagUseCase::new(flag_repo.clone()));
 
-    let _grpc_svc = Arc::new(FeatureFlagGrpcService::new(
+    let grpc_svc = Arc::new(FeatureFlagGrpcService::new(
         evaluate_flag_uc.clone(),
         get_flag_uc.clone(),
         create_flag_uc.clone(),
         update_flag_uc.clone(),
     ));
+
+    // tonic wrapper
+    use proto::k1s0::system::featureflag::v1::feature_flag_service_server::FeatureFlagServiceServer;
+    let featureflag_tonic = adapter::grpc::FeatureFlagServiceTonic::new(grpc_svc);
 
     // AppState for REST handlers
     let state = adapter::handler::AppState {
@@ -71,12 +76,38 @@ async fn main() -> anyhow::Result<()> {
     // REST router
     let app = adapter::handler::router(state);
 
+    // gRPC server
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
+    info!("gRPC server starting on {}", grpc_addr);
+
+    let grpc_future = async move {
+        tonic::transport::Server::builder()
+            .add_service(FeatureFlagServiceServer::new(featureflag_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+    };
+
     // REST server
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    axum::serve(listener, app).await?;
+    let rest_future = axum::serve(listener, app);
+
+    // REST と gRPC を並行起動
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!("REST server error: {}", e);
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!("gRPC server error: {}", e);
+            }
+        }
+    }
 
     Ok(())
 }

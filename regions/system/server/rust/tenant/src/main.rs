@@ -10,11 +10,12 @@ use uuid::Uuid;
 mod adapter;
 mod domain;
 mod infrastructure;
+mod proto;
 mod usecase;
 
 use adapter::handler::{self, AppState};
-use domain::entity::{Tenant, TenantStatus};
-use domain::repository::TenantRepository;
+use domain::entity::{ProvisioningJob, Tenant, TenantMember, TenantStatus};
+use domain::repository::{MemberRepository, TenantRepository};
 
 #[derive(Debug, Clone, serde::Deserialize)]
 struct Config {
@@ -122,10 +123,29 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let tenant_repo: Arc<dyn TenantRepository> = Arc::new(InMemoryTenantRepository::new());
+    let member_repo: Arc<dyn MemberRepository> = Arc::new(InMemoryMemberRepository::new());
 
     let create_tenant_uc = Arc::new(usecase::CreateTenantUseCase::new(tenant_repo.clone()));
     let get_tenant_uc = Arc::new(usecase::GetTenantUseCase::new(tenant_repo.clone()));
     let list_tenants_uc = Arc::new(usecase::ListTenantsUseCase::new(tenant_repo));
+    let add_member_uc = Arc::new(usecase::AddMemberUseCase::new(member_repo.clone()));
+    let remove_member_uc = Arc::new(usecase::RemoveMemberUseCase::new(member_repo.clone()));
+    let get_provisioning_status_uc =
+        Arc::new(usecase::GetProvisioningStatusUseCase::new(member_repo));
+
+    // gRPC service
+    use adapter::grpc::TenantGrpcService;
+    use proto::k1s0::system::tenant::v1::tenant_service_server::TenantServiceServer;
+
+    let tenant_grpc_svc = Arc::new(TenantGrpcService::new(
+        create_tenant_uc.clone(),
+        get_tenant_uc.clone(),
+        list_tenants_uc.clone(),
+        add_member_uc,
+        remove_member_uc,
+        get_provisioning_status_uc,
+    ));
+    let tenant_tonic = adapter::grpc::TenantServiceTonic::new(tenant_grpc_svc);
 
     let state = AppState {
         create_tenant_uc,
@@ -134,11 +154,93 @@ async fn main() -> anyhow::Result<()> {
     };
     let app = handler::router(state);
 
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
+    info!("gRPC server starting on {}", grpc_addr);
+
+    let grpc_future = async move {
+        tonic::transport::Server::builder()
+            .add_service(TenantServiceServer::new(tenant_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+    };
+
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.http_port));
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    axum::serve(listener, app).await?;
+    let rest_future = axum::serve(listener, app);
+
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!("REST server error: {}", e);
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!("gRPC server error: {}", e);
+            }
+        }
+    }
 
     Ok(())
+}
+
+// --- InMemory MemberRepository ---
+
+struct InMemoryMemberRepository {
+    members: tokio::sync::RwLock<Vec<TenantMember>>,
+    jobs: tokio::sync::RwLock<Vec<ProvisioningJob>>,
+}
+
+impl InMemoryMemberRepository {
+    fn new() -> Self {
+        Self {
+            members: tokio::sync::RwLock::new(Vec::new()),
+            jobs: tokio::sync::RwLock::new(Vec::new()),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl MemberRepository for InMemoryMemberRepository {
+    async fn find_by_tenant(&self, tenant_id: &Uuid) -> anyhow::Result<Vec<TenantMember>> {
+        let members = self.members.read().await;
+        Ok(members
+            .iter()
+            .filter(|m| m.tenant_id == *tenant_id)
+            .cloned()
+            .collect())
+    }
+
+    async fn find_member(
+        &self,
+        tenant_id: &Uuid,
+        user_id: &Uuid,
+    ) -> anyhow::Result<Option<TenantMember>> {
+        let members = self.members.read().await;
+        Ok(members
+            .iter()
+            .find(|m| m.tenant_id == *tenant_id && m.user_id == *user_id)
+            .cloned())
+    }
+
+    async fn add(&self, member: &TenantMember) -> anyhow::Result<()> {
+        let mut members = self.members.write().await;
+        members.push(member.clone());
+        Ok(())
+    }
+
+    async fn remove(&self, tenant_id: &Uuid, user_id: &Uuid) -> anyhow::Result<bool> {
+        let mut members = self.members.write().await;
+        let len_before = members.len();
+        members.retain(|m| !(m.tenant_id == *tenant_id && m.user_id == *user_id));
+        Ok(members.len() < len_before)
+    }
+
+    async fn find_job(&self, job_id: &Uuid) -> anyhow::Result<Option<ProvisioningJob>> {
+        let jobs = self.jobs.read().await;
+        Ok(jobs.iter().find(|j| j.id == *job_id).cloned())
+    }
 }

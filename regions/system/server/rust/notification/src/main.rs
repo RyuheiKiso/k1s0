@@ -10,6 +10,7 @@ use uuid::Uuid;
 mod adapter;
 mod domain;
 mod infrastructure;
+mod proto;
 mod usecase;
 
 use adapter::grpc::NotificationGrpcService;
@@ -57,13 +58,17 @@ async fn main() -> anyhow::Result<()> {
     let send_notification_uc =
         Arc::new(usecase::SendNotificationUseCase::new(channel_repo, log_repo.clone()));
 
-    let _grpc_svc = Arc::new(NotificationGrpcService::new(
+    let grpc_svc = Arc::new(NotificationGrpcService::new(
         send_notification_uc.clone(),
         log_repo.clone(),
     ));
 
     let grpc_addr: std::net::SocketAddr = "0.0.0.0:9090".parse()?;
     info!("gRPC server starting on {}", grpc_addr);
+
+    // tonic wrapper
+    use proto::k1s0::system::notification::v1::notification_service_server::NotificationServiceServer;
+    let notification_tonic = adapter::grpc::NotificationServiceTonic::new(grpc_svc);
 
     let state = adapter::handler::AppState {
         send_notification_uc,
@@ -72,11 +77,35 @@ async fn main() -> anyhow::Result<()> {
 
     let app = adapter::handler::router(state);
 
+    // gRPC server
+    let grpc_future = async move {
+        tonic::transport::Server::builder()
+            .add_service(NotificationServiceServer::new(notification_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+    };
+
+    // REST server
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    axum::serve(listener, app).await?;
+    let rest_future = axum::serve(listener, app);
+
+    // REST と gRPC を並行起動
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!("REST server error: {}", e);
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!("gRPC server error: {}", e);
+            }
+        }
+    }
 
     Ok(())
 }

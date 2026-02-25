@@ -38,6 +38,14 @@ k1s0-server-common = { path = "../../../library/rust/server-common", features = 
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "8", features = ["axum"] }
 
+# gRPC
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+
+[build-dependencies]
+tonic-build = "0.12"
+
 [dev-dependencies]
 mockall = "0.13"
 tokio-test = "0.4"

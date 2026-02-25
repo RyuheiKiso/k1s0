@@ -10,6 +10,7 @@ use uuid::Uuid;
 mod adapter;
 mod domain;
 mod infrastructure;
+mod proto;
 mod usecase;
 
 use adapter::grpc::SchedulerGrpcService;
@@ -50,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
     let pause_job_uc = Arc::new(usecase::PauseJobUseCase::new(job_repo.clone()));
     let resume_job_uc = Arc::new(usecase::ResumeJobUseCase::new(job_repo.clone()));
 
-    let _grpc_svc = Arc::new(SchedulerGrpcService::new(trigger_job_uc));
+    let grpc_svc = Arc::new(SchedulerGrpcService::new(trigger_job_uc));
 
     let state = adapter::handler::AppState {
         job_repo,
@@ -62,26 +63,41 @@ async fn main() -> anyhow::Result<()> {
 
     let app = adapter::handler::router(state);
 
+    // gRPC server
+    use proto::k1s0::system::scheduler::v1::scheduler_service_server::SchedulerServiceServer;
+
+    let scheduler_tonic = adapter::grpc::SchedulerServiceTonic::new(grpc_svc);
+
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
+    info!("gRPC server starting on {}", grpc_addr);
+
+    let grpc_future = async move {
+        tonic::transport::Server::builder()
+            .add_service(SchedulerServiceServer::new(scheduler_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+    };
+
+    // REST server
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);
 
-    let grpc_addr: SocketAddr = "0.0.0.0:9090".parse()?;
-    info!("gRPC server starting on {}", grpc_addr);
-
-    tokio::spawn(async move {
-        let listener = match tokio::net::TcpListener::bind(grpc_addr).await {
-            Ok(l) => l,
-            Err(e) => {
-                tracing::error!("failed to bind gRPC addr {}: {}", grpc_addr, e);
-                return;
-            }
-        };
-        tracing::info!("gRPC listener bound on {}", grpc_addr);
-        drop(listener);
-    });
-
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    axum::serve(listener, app).await?;
+    let rest_future = axum::serve(listener, app);
+
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!("REST server error: {}", e);
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!("gRPC server error: {}", e);
+            }
+        }
+    }
 
     Ok(())
 }

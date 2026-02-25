@@ -27,8 +27,14 @@ async-trait = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
 
 [dev-dependencies]
 mockall = "0.13"
 tokio-test = "0.4"
 axum-test = "16"
+
+[build-dependencies]
+tonic-build = "0.12"

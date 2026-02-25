@@ -9,6 +9,7 @@ use tracing::info;
 mod adapter;
 mod domain;
 mod infrastructure;
+mod proto;
 mod usecase;
 
 use adapter::grpc::WorkflowGrpcService;
@@ -78,7 +79,7 @@ async fn main() -> anyhow::Result<()> {
     let _reassign_task_uc = Arc::new(usecase::ReassignTaskUseCase::new(task_repo.clone()));
     let _check_overdue_uc = Arc::new(usecase::CheckOverdueTasksUseCase::new(task_repo));
 
-    let _grpc_svc = Arc::new(WorkflowGrpcService::new(
+    let grpc_svc = Arc::new(WorkflowGrpcService::new(
         start_inst_uc.clone(),
         get_inst_uc.clone(),
         approve_task_uc,
@@ -98,23 +99,37 @@ async fn main() -> anyhow::Result<()> {
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);
 
+    // gRPC service
+    use proto::k1s0::system::workflow::v1::workflow_service_server::WorkflowServiceServer;
+
+    let workflow_tonic = adapter::grpc::WorkflowServiceTonic::new(grpc_svc);
+
     let grpc_addr: SocketAddr = "0.0.0.0:9090".parse()?;
     info!("gRPC server starting on {}", grpc_addr);
 
-    tokio::spawn(async move {
-        let listener = match tokio::net::TcpListener::bind(grpc_addr).await {
-            Ok(l) => l,
-            Err(e) => {
-                tracing::error!("failed to bind gRPC addr {}: {}", grpc_addr, e);
-                return;
-            }
-        };
-        tracing::info!("gRPC listener bound on {}", grpc_addr);
-        drop(listener);
-    });
+    let grpc_future = async move {
+        tonic::transport::Server::builder()
+            .add_service(WorkflowServiceServer::new(workflow_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+    };
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    axum::serve(listener, app).await?;
+    let rest_future = axum::serve(listener, app);
+
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!("REST server error: {}", e);
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!("gRPC server error: {}", e);
+            }
+        }
+    }
 
     Ok(())
 }
