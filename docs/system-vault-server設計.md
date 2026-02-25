@@ -421,17 +421,13 @@ autoscaling:
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
 
-# Phase 2 で有効化
 kafka:
-  enabled: false
+  enabled: true
   brokers: []
 
-# Phase 2 で有効化
 vault:
-  enabled: false
+  enabled: true
 ```
-
-> **Phase 2 追加予定**: `kafka.enabled: true`、`vault.enabled: true`（AppRole 認証）、Vault シークレットパス設定
 
 ---
 
