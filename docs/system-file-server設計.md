@@ -42,12 +42,10 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 
 [認証認可設計.md](認証認可設計.md) の RBAC モデルに基づき、以下の方針で実装する。
 
-> **注意**: S3/GCS ストレージ統合は Phase 2（将来対応予定）。現在の Phase 1 実装ではインメモリストレージリポジトリ（`InMemoryFileStorageRepository`, `InMemoryFileMetadataRepository`）を使用する（開発・テスト用途）。Phase 2 で `FileStorageRepository` / `FileMetadataRepository` トレイトの S3/PostgreSQL 実装に切り替え予定。
-
 | 項目 | 設計 |
 | --- | --- |
 | 実装言語 | Rust |
-| ストレージバックエンド | Phase 1: インメモリストレージ（開発用）。Phase 2: aws-sdk-s3 クライアントで S3/GCS/Ceph 互換エンドポイントに接続。バックエンドはconfig で切り替え |
+| ストレージバックエンド | aws-sdk-s3 クライアントで S3/GCS/Ceph 互換エンドポイントに接続。バックエンドは config で切り替え |
 | メタデータ永続化 | PostgreSQL の `file` スキーマ（file_metadata テーブル）でメタデータを管理 |
 | テナント分離 | バケット名またはオブジェクトキープレフィックスにテナント ID を付与（例: `tenant-abc/path/to/file`） |
 | プリサインドURL | aws-sdk-s3 の presigned request 機能で TTL 付き署名 URL を発行 |
@@ -71,7 +69,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 | POST | `/api/v1/files/:id/complete` | アップロード完了通知 | `sys_operator` 以上 |
 | DELETE | `/api/v1/files/:id` | ファイル削除 | `sys_operator` 以上 |
 | PUT | `/api/v1/files/:id/tags` | タグ更新 | `sys_operator` 以上 |
-| GET | `/api/v1/files/:id/download-url` | ダウンロードプリサインドURL発行（未実装・将来対応予定） | `sys_auditor` 以上 |
+| GET | `/api/v1/files/:id/download-url` | ダウンロードプリサインドURL発行 | `sys_auditor` 以上 |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
@@ -438,7 +436,7 @@ infrastructure（DB接続・S3クライアント・Kafka Producer・設定ロー
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
 | infrastructure/persistence | `FileMetadataPostgresRepository` | PostgreSQL リポジトリ実装 |
-| infrastructure/storage | Phase 1: `InMemoryFileStorageRepository`（開発用）。Phase 2: `S3FileStorageRepository` | ストレージ実装 |
+| infrastructure/storage | `S3FileStorageRepository` | ストレージ実装 |
 | infrastructure/messaging | `FileUploadedKafkaProducer`, `FileDeletedKafkaProducer` | Kafka プロデューサー |
 
 ### ドメインモデル

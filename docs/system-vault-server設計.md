@@ -52,12 +52,12 @@ system tier の Vault Server は以下の機能を提供する。
 | 項目 | 設計 |
 | --- | --- |
 | 実装言語 | Rust |
-| ストレージ | Phase 1: インメモリ KV ストア。Phase 2: HashiCorp Vault 連携 |
+| ストレージ | HashiCorp Vault 連携（KV v2） |
 | バージョン管理 | シークレット更新時にバージョンが自動インクリメント（KV v2 互換） |
-| アクセス制御 | Phase 2: SPIFFE ID ベースの認可。Phase 1 は認証なし |
-| キャッシュ | Phase 2: moka キャッシュ |
-| Kafka | Phase 2: ローテーション通知 |
-| 監査ログ | Phase 2: PostgreSQL に記録 |
+| アクセス制御 | SPIFFE ID ベースの認可 |
+| キャッシュ | moka キャッシュ |
+| Kafka | ローテーション通知 |
+| 監査ログ | PostgreSQL に記録 |
 
 ---
 
@@ -69,15 +69,17 @@ system tier の Vault Server は以下の機能を提供する。
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| POST | `/api/v1/secrets` | シークレット作成 | Phase 2: `sys_operator` 以上 |
-| GET | `/api/v1/secrets/:key` | シークレット取得 | Phase 2: SPIFFE ID ベースの認可 |
-| PUT | `/api/v1/secrets/:key` | シークレット更新 | Phase 2: `sys_operator` 以上 |
-| DELETE | `/api/v1/secrets/:key` | シークレット削除 | Phase 2: `sys_admin` のみ |
+| POST | `/api/v1/secrets` | シークレット作成 | `sys_operator` 以上 |
+| GET | `/api/v1/secrets/:key` | シークレット取得 | SPIFFE ID ベースの認可 |
+| PUT | `/api/v1/secrets/:key` | シークレット更新 | `sys_operator` 以上 |
+| DELETE | `/api/v1/secrets/:key` | シークレット削除 | `sys_admin` のみ |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
+| GET | `/api/v1/secrets` | シークレット一覧 | `sys_auditor` 以上 |
+| GET | `/api/v1/secrets/:key/metadata` | メタデータ取得 | `sys_auditor` 以上 |
+| POST | `/api/v1/secrets/:key/rotate` | ローテーション | `sys_operator` 以上 |
+| GET | `/api/v1/audit/logs` | 監査ログ | `sys_auditor` 以上 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
-
-> **Phase 2 追加予定エンドポイント**: GET `/api/v1/secrets`（シークレット一覧）、GET `/api/v1/secrets/:key/metadata`（メタデータ取得）、POST `/api/v1/secrets/:key/rotate`（ローテーション）、GET `/api/v1/audit/logs`（監査ログ）
 
 #### POST /api/v1/secrets
 
@@ -171,9 +173,11 @@ system tier の Vault Server は以下の機能を提供する。
 | コード | HTTP Status | 説明 |
 | --- | --- | --- |
 | `SYS_VAULT_NOT_FOUND` | 404 | 指定されたシークレットが見つからない |
+| `SYS_VAULT_ACCESS_DENIED` | 403 | アクセスが拒否された |
+| `SYS_VAULT_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー |
+| `SYS_VAULT_UPSTREAM_ERROR` | 502 | HashiCorp Vault への接続・クエリエラー |
+| `SYS_VAULT_CACHE_ERROR` | 500 | キャッシュ操作エラー |
 | `SYS_VAULT_INTERNAL_ERROR` | 500 | 内部エラー |
-
-> **Phase 2 追加予定エラーコード**: `SYS_VAULT_ACCESS_DENIED` (403)、`SYS_VAULT_VALIDATION_ERROR` (400)、`SYS_VAULT_UPSTREAM_ERROR` (502)、`SYS_VAULT_CACHE_ERROR` (500)
 
 ### gRPC サービス定義
 
@@ -231,15 +235,11 @@ message ListSecretsResponse {
 }
 ```
 
-> **Phase 2 追加予定 RPC**: `RotateSecret`、`GetSecretMetadata`
-
 ---
 
 ## キャッシュ設計
 
-> **Phase 2 で追加予定**。Phase 1 ではキャッシュなし（InMemory ストアが直接サービスするためキャッシュ不要）。
-
-Phase 2 では moka を使用した TTL ベースのインメモリキャッシュを導入し、Vault への問い合わせ頻度を削減する。
+moka を使用した TTL ベースのインメモリキャッシュにより、Vault への問い合わせ頻度を削減する。
 
 | 設定項目 | 値 |
 | --- | --- |
@@ -264,7 +264,7 @@ usecase（ビジネスロジック）
   ^
 adapter（REST ハンドラー・gRPC ハンドラー）
   ^
-infrastructure（Phase 1: InMemory 実装。Phase 2: Vault Client・DB・Kafka・キャッシュ）
+infrastructure（Vault Client・DB・Kafka・キャッシュ）
 ```
 
 | レイヤー | モジュール | 責務 |
@@ -274,9 +274,10 @@ infrastructure（Phase 1: InMemory 実装。Phase 2: Vault Client・DB・Kafka�
 | usecase | `GetSecretUseCase`, `SetSecretUseCase`, `DeleteSecretUseCase`, `ListSecretsUseCase` | ユースケース |
 | adapter/handler | `vault_handler.rs`（REST）, `health.rs` | axum REST ハンドラー |
 | adapter/grpc | `VaultGrpcService`, `VaultServiceTonic` | tonic gRPC ハンドラー |
-| infrastructure | Phase 1: `InMemorySecretStore`, `NoopAccessLogRepository`（main.rs 内） | Phase 1 インメモリ実装 |
-
-> **Phase 2 追加予定レイヤー**: `adapter/gateway`（VaultClient）、`infrastructure/persistence`（PostgreSQL 監査ログ）、`infrastructure/cache`（moka キャッシュ）、`infrastructure/messaging`（Kafka プロデューサー）
+| adapter/gateway | `VaultClient` | HashiCorp Vault クライアント（vaultrs 経由） |
+| infrastructure/persistence | `PostgresAccessLogRepository` | PostgreSQL 監査ログリポジトリ実装 |
+| infrastructure/cache | `SecretCacheService` | moka キャッシュ実装 |
+| infrastructure/messaging | `VaultKafkaProducer` | Kafka プロデューサー（ローテーション通知） |
 
 ### ドメインモデル
 
@@ -317,15 +318,13 @@ infrastructure（Phase 1: InMemory 実装。Phase 2: Vault Client・DB・Kafka�
 | `id` | Uuid | ログエントリ ID |
 | `path` | String | アクセス対象のシークレットパス |
 | `action` | AccessAction | アクション種別（Read / Write / Delete / List） |
-| `subject` | Option\<String\> | アクセス主体（Phase 2: SPIFFE ID） |
+| `subject` | Option\<String\> | アクセス主体（SPIFFE ID） |
 | `tenant_id` | Option\<String\> | テナント ID |
 | `ip_address` | Option\<String\> | クライアント IP |
 | `trace_id` | Option\<String\> | OTel トレース ID |
 | `success` | bool | 成功フラグ |
 | `error_msg` | Option\<String\> | エラーメッセージ（失敗時） |
 | `created_at` | DateTime\<Utc\> | 記録日時 |
-
-> **注意**: Phase 1 では `NoopAccessLogRepository` により監査ログは記録されない。Phase 2 で PostgreSQL バックエンドを実装予定。
 
 ### 依存関係図
 
@@ -362,17 +361,17 @@ infrastructure（Phase 1: InMemory 実装。Phase 2: Vault Client・DB・Kafka�
     └─────────────────────┘                                           │
                                                                       │
                     ┌─────────────────────────────────────────────────┘
-                    │             infrastructure 層（Phase 1）
+                    │             infrastructure 層
                     │  ┌────────────────────────────────────────────┐ │
-                    │  │ InMemorySecretStore (main.rs)              │ │
-                    │  │ NoopAccessLogRepository (main.rs)          │ │
+                    │  │ VaultClient (vaultrs)                      │ │
+                    │  │ PostgresAccessLogRepository                │ │
+                    │  │ SecretCacheService (moka)                  │ │
+                    │  │ VaultKafkaProducer (rdkafka)               │ │
                     │  ├────────────────────────────────────────────┤ │
                     │  │ Config Loader (serde_yaml)                 │ │
                     │  └────────────────────────────────────────────┘ │
                     └─────────────────────────────────────────────────┘
 ```
-
-> **Phase 2 追加予定**: VaultClient（vaultrs）ゲートウェイ、PostgreSQL 監査ログリポジトリ、moka キャッシュ、Kafka プロデューサー
 
 ---
 

@@ -460,7 +460,7 @@ bff/rust/
 
 | ファイル | テンプレート | 説明 |
 |---|---|---|
-| `src/main.rs` | `src/main.rs.tera` | axum + async-graphql server（現状は actix、axum 移行予定） |
+| `src/main.rs` | `src/main.rs.tera` | axum + async-graphql server |
 | `src/handler/mod.rs` | `src/handler/mod.rs.tera` | handler モジュール定義 |
 | `src/handler/graphql.rs` | `src/handler/graphql.rs.tera` | async-graphql Schema、QueryRoot/MutationRoot |
 | `src/client/mod.rs` | `src/client/mod.rs.tera` | client モジュール定義 |
@@ -473,7 +473,7 @@ bff/rust/
 
 ### src/main.rs
 
-`src/main.rs.tera` — エントリポイント。現状は actix-web を使用しているが、axum への移行を予定している。
+`src/main.rs.tera` — エントリポイント。actix-web を使用。
 
 ```rust
 use actix_web::{web, App, HttpServer, HttpResponse};

@@ -1314,7 +1314,7 @@ export const masterMaintenanceDataProvider: DataProvider = {
 1. JWT から user_id + roles を取得
 2. table_definitions の RBAC 設定を確認
    - allow_create / allow_update / allow_delete フラグ
-   - テーブル単位の追加パーミッション（将来拡張）
+   - テーブル単位の追加パーミッション
 3. column_definitions の is_readonly フラグ
    - readonly カラムは UPDATE 時に除外
 4. 操作が許可されていない場合は 403 Forbidden を返却

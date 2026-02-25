@@ -166,7 +166,7 @@ app:
 
 server:
   host: "0.0.0.0"
-  port: 8084          # docker-compose 内部ポート（ホスト: 8086 → コンテナ: 8080 予定）
+  port: 8084          # docker-compose 内部ポート（ホスト: 8086 → コンテナ: 8080）
 
 database:
   host: postgres
