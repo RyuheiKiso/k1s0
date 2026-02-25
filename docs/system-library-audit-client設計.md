@@ -255,46 +255,6 @@ public sealed class BufferedAuditClient : IAuditClient
 
 ---
 
-## Swift
-
-### パッケージ構成
-- ターゲット: `K1s0AuditClient`
-- Swift 6.0 / swift-tools-version: 6.0
-- プラットフォーム: macOS 14+, iOS 17+
-
-### 主要な公開API
-
-```swift
-public struct AuditEvent: Sendable {
-    public let id: String
-    public let tenantId: String
-    public let actorId: String
-    public let action: String
-    public let resourceType: String
-    public let resourceId: String
-    public let timestamp: Date
-
-    public init(tenantId: String, actorId: String, action: String, resourceType: String, resourceId: String)
-}
-
-public protocol AuditClient: Sendable {
-    func record(_ event: AuditEvent) async throws
-    func flush() async throws -> [AuditEvent]
-}
-
-public actor BufferedAuditClient: AuditClient {
-    public init()
-    public func record(_ event: AuditEvent) async throws
-    public func flush() async throws -> [AuditEvent]
-}
-```
-
-### テスト
-- Swift Testing フレームワーク（@Suite, @Test, #expect）
-- カバレッジ目標: 80%以上
-
----
-
 ## テスト戦略
 
 ### ユニットテスト

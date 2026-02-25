@@ -2,7 +2,7 @@
 
 ## 概要
 
-DB スキーマ移行ライブラリ。sqlx Migrator（Rust）/ goose（Go）/ node-pg-migrate（TypeScript）/ sqflite_migration（Dart）/ FluentMigrator（C#）/ SwiftMigrations（Swift）/ Alembic（Python）の各言語標準ツールに共通インターフェースを被せ、マイグレーションファイルの命名規則・ディレクトリ構成・ロールバック・状態管理を標準化する。
+DB スキーマ移行ライブラリ。sqlx Migrator（Rust）/ goose（Go）/ node-pg-migrate（TypeScript）/ sqflite_migration（Dart）/ FluentMigrator（C#）/ Alembic（Python）の各言語標準ツールに共通インターフェースを被せ、マイグレーションファイルの命名規則・ディレクトリ構成・ロールバック・状態管理を標準化する。
 
 テスト用インメモリマイグレーション（SQLite サポート）により、CI 環境での高速なスキーマ検証を可能にする。マイグレーション状態の確認（適用済み/未適用）と down migration（ロールバック）を全言語で統一 API として提供する。
 
@@ -387,86 +387,6 @@ public record PendingMigration(string Version, string Name);
 ```
 
 **カバレッジ目標**: 85%以上
-
----
-
-## Swift
-
-### パッケージ構成
-- ターゲット: `K1s0Migration`
-- Swift 6.0 / swift-tools-version: 6.0
-- プラットフォーム: macOS 14+, iOS 17+
-
-### 主要な公開API
-
-```swift
-// マイグレーションランナープロトコル
-public protocol MigrationRunner: Sendable {
-    func runUp() async throws -> MigrationReport
-    func runDown(steps: Int) async throws -> MigrationReport
-    func status() async throws -> [MigrationStatus]
-    func pending() async throws -> [PendingMigration]
-}
-
-// マイグレーション設定
-public struct MigrationConfig: Sendable {
-    public let migrationsDir: URL
-    public let databaseUrl: String
-    public let tableName: String
-
-    public init(
-        migrationsDir: URL,
-        databaseUrl: String,
-        tableName: String = "_migrations"
-    )
-}
-
-// マイグレーションレポート
-public struct MigrationReport: Sendable {
-    public let appliedCount: Int
-    public let elapsed: Duration
-    public let errors: [Error]
-}
-
-// マイグレーションステータス
-public struct MigrationStatus: Sendable {
-    public let version: String
-    public let name: String
-    public let appliedAt: Date?
-    public let checksum: String
-}
-
-// 未適用マイグレーション
-public struct PendingMigration: Sendable {
-    public let version: String
-    public let name: String
-}
-
-// SQLite 実装（テスト用）
-public actor SQLiteMigrationRunner: MigrationRunner {
-    public init(config: MigrationConfig) throws
-    public func runUp() async throws -> MigrationReport
-    public func runDown(steps: Int) async throws -> MigrationReport
-    public func status() async throws -> [MigrationStatus]
-    public func pending() async throws -> [PendingMigration]
-}
-```
-
-### エラー型
-
-```swift
-public enum MigrationError: Error, Sendable {
-    case connectionFailed(underlying: Error)
-    case migrationFailed(version: String, underlying: Error)
-    case checksumMismatch(version: String, expected: String, actual: String)
-    case directoryNotFound(path: String)
-    case rollbackNotSupported(version: String)
-}
-```
-
-### テスト
-- Swift Testing フレームワーク（@Suite, @Test, #expect）
-- カバレッジ目標: 85%以上
 
 ---
 

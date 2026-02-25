@@ -169,7 +169,8 @@ Tierに応じて追加の入力を求める。
   Rust
   TypeScript
   Dart
-  Swift
+  C#
+  Python
 ```
 
 **データベースの場合：**

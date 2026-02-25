@@ -25,9 +25,6 @@
 **/.vs/
 **/*.tsbuildinfo
 
-# Swift Package Manager (checkout trees are very large)
-regions/system/library/swift/.build/
-
 # Python caches
 __pycache__/
 .pytest_cache/

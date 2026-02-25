@@ -275,47 +275,6 @@ public static class ValidationRules
 
 ---
 
-## Swift
-
-### パッケージ構成
-- ターゲット: `K1s0Validation`
-- Swift 6.0 / swift-tools-version: 6.0
-- プラットフォーム: macOS 14+, iOS 17+
-
-### 主要な公開API
-
-```swift
-public struct ValidationError: Sendable {
-    public let field: String
-    public let code: String
-    public let message: String
-}
-
-public struct ValidationErrors: Error, Sendable {
-    public private(set) var errors: [ValidationError]
-    public var isEmpty: Bool { errors.isEmpty }
-    public mutating func add(_ error: ValidationError)
-}
-
-public enum ValidationRules {
-    public static func validateEmail(field: String, value: String) -> ValidationError?
-    public static func validateUUID(field: String, value: String) -> ValidationError?
-    public static func validateURL(field: String, value: String) -> ValidationError?
-    public static func validatePagination(field: String, page: Int, pageSize: Int) -> ValidationError?
-    public static func validateDateRange(field: String, from: Date, to: Date) -> ValidationError?
-    public static func validateTenantId(field: String, value: String) -> ValidationError?
-
-    // 複数バリデーションの一括実行
-    public static func collect(_ validators: () -> ValidationError?...) -> ValidationErrors
-}
-```
-
-### テスト
-- Swift Testing フレームワーク（@Suite, @Test, #expect）
-- カバレッジ目標: 80%以上
-
----
-
 ## Python 実装
 
 **配置先**: `regions/system/library/python/validation/`

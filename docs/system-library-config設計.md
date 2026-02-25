@@ -1428,58 +1428,6 @@ public static class ServiceCollectionExtensions
 
 ---
 
-## Swift
-
-### パッケージ構成
-- ターゲット: `K1s0Config`
-- Swift 6.0 / swift-tools-version: 6.0
-- プラットフォーム: macOS 14+, iOS 17+
-
-### 主要な公開API
-```swift
-// 設定ロード（enum namespace）
-public enum ConfigLoader {
-    public static func load(basePath: URL, envPath: URL? = nil) throws -> Config
-    public static func validate(_ config: Config) throws
-}
-
-// 設定型
-public struct Config: Codable, Sendable {
-    public let app: AppConfig
-    public let server: ServerConfig
-    public let database: DatabaseConfig?
-    public let kafka: KafkaConfig?
-}
-
-public struct AppConfig: Codable, Sendable {
-    public let name: String
-    public let env: String
-    public let logLevel: String
-}
-
-public struct ServerConfig: Codable, Sendable {
-    public let host: String
-    public let port: Int
-    public let grpcPort: Int?
-}
-```
-
-### エラー型
-```swift
-public enum ConfigError: Error, Sendable {
-    case readFile(path: String, underlying: Error)
-    case parseJSON(underlying: Error)
-    case validation(field: String, reason: String)
-}
-```
-
-### テスト
-- Swift Testing フレームワーク（@Suite, @Test, #expect）
-- カバレッジ目標: 80%以上
-- [config設計](config設計.md) — config.yaml スキーマ・環境別管理
-
----
-
 ## Python 実装
 
 ### パッケージ構造

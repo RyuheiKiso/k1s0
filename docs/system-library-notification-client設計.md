@@ -289,57 +289,6 @@ public class InMemoryNotificationClient : INotificationClient
 
 ---
 
-## Swift
-
-### パッケージ構成
-- ターゲット: `K1s0NotificationClient`
-- Swift 6.0 / swift-tools-version: 6.0
-- プラットフォーム: macOS 14+, iOS 17+
-
-### 主要な公開API
-
-```swift
-public enum NotificationChannel: String, Sendable {
-    case email
-    case sms
-    case push
-    case webhook
-}
-
-public struct NotificationRequest: Sendable {
-    public let id: String
-    public let channel: NotificationChannel
-    public let recipient: String
-    public let subject: String?
-    public let body: String
-
-    public init(channel: NotificationChannel, recipient: String, body: String, subject: String? = nil)
-}
-
-public struct NotificationResponse: Sendable {
-    public let id: String
-    public let status: String
-
-    public init(id: String, status: String)
-}
-
-public protocol NotificationClient: Sendable {
-    func send(_ request: NotificationRequest) async throws -> NotificationResponse
-}
-
-public actor InMemoryNotificationClient: NotificationClient {
-    public init()
-    public func sent() -> [NotificationRequest]
-    public func send(_ request: NotificationRequest) async throws -> NotificationResponse
-}
-```
-
-### テスト
-- Swift Testing フレームワーク（@Suite, @Test, #expect）
-- カバレッジ目標: 80%以上
-
----
-
 ## テスト戦略
 
 ### ユニットテスト（Rust）

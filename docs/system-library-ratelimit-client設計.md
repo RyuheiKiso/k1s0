@@ -358,59 +358,6 @@ public sealed class GrpcRateLimitClient : IRateLimitClient
 
 ---
 
-## Swift
-
-### パッケージ構成
-- ターゲット: `K1s0RateLimitClient`
-- Swift 6.0 / swift-tools-version: 6.0
-- プラットフォーム: macOS 14+, iOS 17+
-
-### 主要な公開 API
-
-```swift
-public protocol RateLimitClient: Sendable {
-    func check(key: String, cost: UInt32) async throws -> RateLimitStatus
-    func consume(key: String, cost: UInt32) async throws -> RateLimitResult
-    func getLimit(key: String) async throws -> RateLimitPolicy
-}
-
-public struct RateLimitStatus: Sendable {
-    public let allowed: Bool
-    public let remaining: UInt32
-    public let resetAt: Date
-    public let retryAfterSecs: UInt64?
-}
-
-public struct RateLimitResult: Sendable {
-    public let remaining: UInt32
-    public let resetAt: Date
-}
-
-public struct RateLimitPolicy: Sendable {
-    public let key: String
-    public let limit: UInt32
-    public let windowSecs: UInt64
-    public let algorithm: String
-}
-```
-
-### エラー型
-
-```swift
-public enum RateLimitError: Error, Sendable {
-    case limitExceeded(retryAfterSecs: UInt64)
-    case keyNotFound(key: String)
-    case serverError(underlying: Error)
-    case timeout
-}
-```
-
-### テスト
-- Swift Testing フレームワーク（@Suite, @Test, #expect）
-- カバレッジ目標: 80%以上
-
----
-
 ## Python 実装
 
 **配置先**: `regions/system/library/python/ratelimit_client/`

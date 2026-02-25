@@ -248,41 +248,6 @@ public static class Propagation
 }
 ```
 
-## Swift 実装
-
-### パッケージ構成
-- ターゲット: `K1s0Tracing`
-- Swift 6.0 / swift-tools-version: 6.0
-- プラットフォーム: macOS 14+, iOS 17+
-
-### 主要な公開API
-
-```swift
-public struct TraceContext: Sendable {
-    public let traceId: String   // 32 hex chars
-    public let parentId: String  // 16 hex chars
-    public let flags: UInt8
-
-    public init(traceId: String, parentId: String, flags: UInt8 = 1)
-    public func toTraceparent() -> String
-    public static func fromTraceparent(_ s: String) -> TraceContext?
-}
-
-public class Baggage: Sendable {
-    public func set(_ key: String, value: String)
-    public func get(_ key: String) -> String?
-    public func toHeader() -> String
-    public static func fromHeader(_ s: String) -> Baggage
-}
-
-public func injectContext(into headers: inout [String: String], context: TraceContext, baggage: Baggage? = nil)
-public func extractContext(from headers: [String: String]) -> (context: TraceContext?, baggage: Baggage)
-```
-
-### テスト
-- Swift Testing フレームワーク（@Suite, @Test, #expect）
-- カバレッジ目標: 80%以上
-
 ## Python 実装
 
 **配置先**: `regions/system/library/python/tracing/`

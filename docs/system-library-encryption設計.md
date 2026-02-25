@@ -300,57 +300,6 @@ public sealed class Argon2Hasher : IHasher
 
 ---
 
-## Swift
-
-### パッケージ構成
-- ターゲット: `K1s0Encryption`
-- Swift 6.0 / swift-tools-version: 6.0
-- プラットフォーム: macOS 14+, iOS 17+
-
-### 主要な公開API
-```swift
-// 暗号化プロトコル
-public protocol Cipher: Sendable {
-    func encrypt(_ plaintext: Data) throws -> String
-    func decrypt(_ ciphertext: String) throws -> Data
-}
-
-// AES-256-GCM 暗号化
-public struct AesGcmCipher: Cipher, Sendable {
-    public init(key: Data) throws
-    public func encrypt(_ plaintext: Data) throws -> String
-    public func decrypt(_ ciphertext: String) throws -> Data
-}
-
-// ハッシュ化プロトコル
-public protocol Hasher: Sendable {
-    func hash(password: String) async throws -> String
-    func verify(password: String, hash: String) async throws -> Bool
-}
-
-// 暗号化設定
-public struct EncryptionConfig: Sendable {
-    public let keySize: Int
-    public init(keySize: Int = 32)
-}
-```
-
-### エラー型
-```swift
-public enum EncryptionError: Error, Sendable {
-    case invalidKey
-    case decryptionFailed(underlying: Error)
-    case hashingFailed(underlying: Error)
-    case invalidBase64
-}
-```
-
-### テスト
-- Swift Testing フレームワーク（@Suite, @Test, #expect）
-- カバレッジ目標: 80%以上
-
----
-
 ## Python 実装
 
 **配置先**: `regions/system/library/python/encryption/`

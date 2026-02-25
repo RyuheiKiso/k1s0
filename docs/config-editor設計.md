@@ -383,7 +383,6 @@ class ConfigInterpreter {
 ? 対象フレームワーク（複数選択可）
 > [x] React (TypeScript)
   [x] Flutter (Dart)
-  [ ] Swift
 
 ? config server に push しますか？（スキーマをサーバーに登録する）
 > はい

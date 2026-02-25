@@ -290,56 +290,6 @@ public sealed class LockGuard : IAsyncDisposable
 
 ---
 
-## Swift
-
-### パッケージ構成
-- ターゲット: `K1s0DistributedLock`
-- Swift 6.0 / swift-tools-version: 6.0
-- プラットフォーム: macOS 14+, iOS 17+
-
-### 主要な公開API
-
-```swift
-public protocol DistributedLock: Sendable {
-    func acquire(key: String) async throws -> LockGuard
-    func tryAcquire(key: String) async throws -> LockGuard?
-}
-
-public struct LockGuard: Sendable {
-    public let key: String
-    public let token: String
-    public func release() async throws
-}
-
-public struct LockConfig: Sendable {
-    public let ttl: Duration
-    public let retryInterval: Duration
-    public let maxRetries: Int
-
-    public init(
-        ttl: Duration = .seconds(30),
-        retryInterval: Duration = .milliseconds(100),
-        maxRetries: Int = 10
-    )
-}
-```
-
-### エラー型
-
-```swift
-public enum LockError: Error, Sendable {
-    case alreadyLocked(key: String)
-    case timeout(key: String)
-    case backendError(underlying: Error)
-}
-```
-
-### テスト
-- Swift Testing フレームワーク（@Suite, @Test, #expect）
-- カバレッジ目標: 80%以上
-
----
-
 ## Python 実装
 
 **配置先**: `regions/system/library/python/distributed-lock/`

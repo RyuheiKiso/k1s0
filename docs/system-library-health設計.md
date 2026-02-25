@@ -326,57 +326,6 @@ public sealed class HealthChecker
 
 ---
 
-## Swift
-
-### パッケージ構成
-- ターゲット: `K1s0Health`
-- Swift 6.0 / swift-tools-version: 6.0
-- プラットフォーム: macOS 14+, iOS 17+
-
-### 主要な公開API
-```swift
-// ヘルスチェックプロトコル
-public protocol HealthCheck: Sendable {
-    var name: String { get }
-    func check() async -> HealthStatus
-}
-
-// ヘルスステータス
-public enum HealthStatus: String, Codable, Sendable {
-    case healthy = "Healthy"
-    case degraded = "Degraded"
-    case unhealthy = "Unhealthy"
-}
-
-// ヘルスレスポンス
-public struct HealthResponse: Codable, Sendable {
-    public let status: HealthStatus
-    public let checks: [String: HealthCheckResult]
-}
-
-// HTTP ヘルスチェック
-public struct HttpHealthCheck: HealthCheck, Sendable {
-    public let name: String
-    public let url: URL
-    public let timeoutSeconds: Double
-    public init(name: String, url: URL, timeoutSeconds: Double = 5.0)
-    public func check() async -> HealthStatus
-}
-
-// 集約チェッカー
-public actor HealthChecker {
-    public init()
-    public func addCheck(_ check: any HealthCheck)
-    public func readyz() async -> HealthResponse
-}
-```
-
-### テスト
-- Swift Testing フレームワーク（@Suite, @Test, #expect）
-- カバレッジ目標: 80%以上
-
----
-
 ## Python 実装
 
 **配置先**: `regions/system/library/python/health/`
