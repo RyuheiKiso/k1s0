@@ -53,7 +53,6 @@ class InMemorySearchClient implements SearchClient {
     }).toList();
 
     final start = query.page * query.size;
-    final end = start + query.size;
     final paged = filtered.skip(start).take(query.size).toList();
 
     final hits = paged

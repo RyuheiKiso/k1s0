@@ -79,7 +79,6 @@ pub fn resolve_test_command(kind: TestKind, lang: Option<ProjectLang>) -> Option
         (ProjectLang::Rust, TestKind::All) => ("cargo", vec!["test", "--all"]),
         (ProjectLang::Node, _) => ("npm", vec!["test"]),
         (ProjectLang::Flutter, _) => ("flutter", vec!["test"]),
-        _ => return None,
     };
 
     Some(TestCommand {
