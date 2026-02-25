@@ -10,6 +10,7 @@ use uuid::Uuid;
 mod adapter;
 mod domain;
 mod infrastructure;
+mod proto;
 mod usecase;
 
 use adapter::grpc::SearchGrpcService;
@@ -48,7 +49,7 @@ async fn main() -> anyhow::Result<()> {
     let search_uc = Arc::new(usecase::SearchUseCase::new(search_repo.clone()));
     let delete_document_uc = Arc::new(usecase::DeleteDocumentUseCase::new(search_repo));
 
-    let _grpc_svc = Arc::new(SearchGrpcService::new(
+    let grpc_svc = Arc::new(SearchGrpcService::new(
         index_document_uc.clone(),
         search_uc.clone(),
         delete_document_uc.clone(),
@@ -77,14 +78,41 @@ async fn main() -> anyhow::Result<()> {
         )
         .with_state(handler_state);
 
-    let grpc_addr = SocketAddr::from(([0, 0, 0, 0], 9090));
+    // gRPC server
+    use proto::k1s0::system::search::v1::search_service_server::SearchServiceServer;
+
+    let search_tonic = adapter::grpc::SearchServiceTonic::new(grpc_svc);
+
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
     info!("gRPC server starting on {}", grpc_addr);
 
+    let grpc_future = async move {
+        tonic::transport::Server::builder()
+            .add_service(SearchServiceServer::new(search_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+    };
+
+    // REST server
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    axum::serve(listener, app).await?;
+    let rest_future = axum::serve(listener, app);
+
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!("REST server error: {}", e);
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!("gRPC server error: {}", e);
+            }
+        }
+    }
 
     Ok(())
 }

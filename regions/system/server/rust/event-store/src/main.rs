@@ -9,6 +9,7 @@ use tracing::info;
 mod adapter;
 mod domain;
 mod infrastructure;
+mod proto;
 mod usecase;
 
 use adapter::grpc::EventStoreGrpcService;
@@ -128,7 +129,7 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // gRPC service
-    let _grpc_svc = Arc::new(EventStoreGrpcService::new(
+    let grpc_svc = Arc::new(EventStoreGrpcService::new(
         append_events_uc.clone(),
         read_events_uc.clone(),
         read_event_by_sequence_uc,
@@ -151,14 +152,42 @@ async fn main() -> anyhow::Result<()> {
         event_publisher,
     };
 
+    // tonic wrapper
+    use proto::k1s0::system::eventstore::v1::event_store_service_server::EventStoreServiceServer;
+    let event_store_tonic = adapter::grpc::EventStoreServiceTonic::new(grpc_svc);
+
     // Router
     let app = handler::router(state);
 
+    // gRPC server
+    let grpc_future = async move {
+        tonic::transport::Server::builder()
+            .add_service(EventStoreServiceServer::new(event_store_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+    };
+
+    // REST server
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    axum::serve(listener, app).await?;
+    let rest_future = axum::serve(listener, app);
+
+    // REST と gRPC を並行起動
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!("REST server error: {}", e);
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!("gRPC server error: {}", e);
+            }
+        }
+    }
 
     Ok(())
 }

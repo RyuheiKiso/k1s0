@@ -10,6 +10,7 @@ mod adapter;
 mod domain;
 mod error;
 mod infrastructure;
+mod proto;
 mod usecase;
 
 use adapter::grpc::SessionGrpcService;
@@ -98,7 +99,7 @@ async fn main() -> anyhow::Result<()> {
     let list_uc = Arc::new(usecase::ListUserSessionsUseCase::new(repo.clone()));
     let revoke_all_uc = Arc::new(usecase::RevokeAllSessionsUseCase::new(repo));
 
-    let _grpc_svc = Arc::new(SessionGrpcService::new(
+    let grpc_svc = Arc::new(SessionGrpcService::new(
         create_uc.clone(),
         get_uc.clone(),
         refresh_uc.clone(),
@@ -140,14 +141,40 @@ async fn main() -> anyhow::Result<()> {
         )
         .with_state(state);
 
-    let grpc_addr = SocketAddr::from(([0, 0, 0, 0], 9090));
+    // gRPC service
+    use proto::k1s0::system::session::v1::session_service_server::SessionServiceServer;
+
+    let session_tonic = adapter::grpc::SessionServiceTonic::new(grpc_svc);
+
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 9090).into();
     info!("gRPC server starting on {}", grpc_addr);
+
+    let grpc_future = async move {
+        tonic::transport::Server::builder()
+            .add_service(SessionServiceServer::new(session_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+    };
 
     let addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
+    let rest_future = axum::serve(listener, app);
+
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!("REST server error: {}", e);
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!("gRPC server error: {}", e);
+            }
+        }
+    }
 
     Ok(())
 }

@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+package k1s0.system.quota.v1;
+
+option go_package = "github.com/k1s0/api/gen/go/k1s0/system/quota/v1;quotav1";
+
+/// QuotaService はクォータポリシー管理サービス。
+service QuotaService {
+  rpc CreateQuotaPolicy(CreateQuotaPolicyRequest) returns (CreateQuotaPolicyResponse);
+  rpc GetQuotaPolicy(GetQuotaPolicyRequest) returns (GetQuotaPolicyResponse);
+  rpc ListQuotaPolicies(ListQuotaPoliciesRequest) returns (ListQuotaPoliciesResponse);
+  rpc UpdateQuotaPolicy(UpdateQuotaPolicyRequest) returns (UpdateQuotaPolicyResponse);
+  rpc DeleteQuotaPolicy(DeleteQuotaPolicyRequest) returns (DeleteQuotaPolicyResponse);
+  rpc GetQuotaUsage(GetQuotaUsageRequest) returns (GetQuotaUsageResponse);
+  rpc IncrementQuotaUsage(IncrementQuotaUsageRequest) returns (IncrementQuotaUsageResponse);
+}
+
+message QuotaPolicy {
+  string id = 1;
+  string name = 2;
+  string subject_type = 3;
+  string subject_id = 4;
+  uint64 limit = 5;
+  string period = 6;
+  bool enabled = 7;
+  optional uint32 alert_threshold_percent = 8;
+}
+
+message QuotaUsage {
+  string quota_id = 1;
+  string subject_type = 2;
+  string subject_id = 3;
+  string period = 4;
+  uint64 limit = 5;
+  uint64 used = 6;
+  uint64 remaining = 7;
+  double usage_percent = 8;
+  bool exceeded = 9;
+}
+
+message CreateQuotaPolicyRequest {
+  string name = 1;
+  string subject_type = 2;
+  string subject_id = 3;
+  uint64 limit = 4;
+  string period = 5;
+  bool enabled = 6;
+  optional uint32 alert_threshold_percent = 7;
+}
+
+message CreateQuotaPolicyResponse {
+  QuotaPolicy policy = 1;
+}
+
+message GetQuotaPolicyRequest {
+  string id = 1;
+}
+
+message GetQuotaPolicyResponse {
+  QuotaPolicy policy = 1;
+}
+
+message ListQuotaPoliciesRequest {
+  uint32 page = 1;
+  uint32 page_size = 2;
+}
+
+message ListQuotaPoliciesResponse {
+  repeated QuotaPolicy policies = 1;
+  uint64 total = 2;
+}
+
+message UpdateQuotaPolicyRequest {
+  string id = 1;
+  optional bool enabled = 2;
+  optional uint64 limit = 3;
+}
+
+message UpdateQuotaPolicyResponse {
+  QuotaPolicy policy = 1;
+}
+
+message DeleteQuotaPolicyRequest {
+  string id = 1;
+}
+
+message DeleteQuotaPolicyResponse {
+  string id = 1;
+  bool deleted = 2;
+}
+
+message GetQuotaUsageRequest {
+  string quota_id = 1;
+}
+
+message GetQuotaUsageResponse {
+  QuotaUsage usage = 1;
+}
+
+message IncrementQuotaUsageRequest {
+  string quota_id = 1;
+  uint64 amount = 2;
+}
+
+message IncrementQuotaUsageResponse {
+  string quota_id = 1;
+  uint64 used = 2;
+  uint64 remaining = 3;
+  double usage_percent = 4;
+  bool exceeded = 5;
+  bool allowed = 6;
+}

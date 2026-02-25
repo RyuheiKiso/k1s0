@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package k1s0.system.dlq.v1;
+
+option go_package = "github.com/k1s0/api/gen/go/k1s0/system/dlq/v1;dlqv1";
+
+import "k1s0/system/common/v1/common.proto";
+
+/// DlqService は DLQ メッセージ管理サービス。
+service DlqService {
+  /// DLQ メッセージ一覧取得
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  /// DLQ メッセージ取得
+  rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+  /// DLQ メッセージのリトライ
+  rpc RetryMessage(RetryMessageRequest) returns (RetryMessageResponse);
+  /// DLQ メッセージ削除
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+  /// DLQ メッセージ一括リトライ
+  rpc RetryAll(RetryAllRequest) returns (RetryAllResponse);
+}
+
+/// DlqMessage は DLQ メッセージ。
+message DlqMessage {
+  string id = 1;
+  string original_topic = 2;
+  string error_message = 3;
+  int32 retry_count = 4;
+  int32 max_retries = 5;
+  string payload_json = 6;
+  string status = 7;
+  k1s0.system.common.v1.Timestamp created_at = 8;
+  k1s0.system.common.v1.Timestamp updated_at = 9;
+  optional k1s0.system.common.v1.Timestamp last_retry_at = 10;
+}
+
+/// ListMessagesRequest は一覧取得リクエスト。
+message ListMessagesRequest {
+  string topic = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+/// ListMessagesResponse は一覧取得レスポンス。
+message ListMessagesResponse {
+  repeated DlqMessage messages = 1;
+  int64 total = 2;
+}
+
+/// GetMessageRequest はメッセージ取得リクエスト。
+message GetMessageRequest {
+  string id = 1;
+}
+
+/// GetMessageResponse はメッセージ取得レスポンス。
+message GetMessageResponse {
+  DlqMessage message = 1;
+}
+
+/// RetryMessageRequest はリトライリクエスト。
+message RetryMessageRequest {
+  string id = 1;
+}
+
+/// RetryMessageResponse はリトライレスポンス。
+message RetryMessageResponse {
+  DlqMessage message = 1;
+}
+
+/// DeleteMessageRequest は削除リクエスト。
+message DeleteMessageRequest {
+  string id = 1;
+}
+
+/// DeleteMessageResponse は削除レスポンス。
+message DeleteMessageResponse {
+  string id = 1;
+}
+
+/// RetryAllRequest は一括リトライリクエスト。
+message RetryAllRequest {
+  string topic = 1;
+}
+
+/// RetryAllResponse は一括リトライレスポンス。
+message RetryAllResponse {
+  int32 retried_count = 1;
+}

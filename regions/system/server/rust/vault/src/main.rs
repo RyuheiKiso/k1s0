@@ -8,6 +8,7 @@ use tracing::info;
 
 mod adapter;
 mod domain;
+mod proto;
 mod usecase;
 
 use adapter::grpc::VaultGrpcService;
@@ -102,7 +103,7 @@ async fn main() -> anyhow::Result<()> {
     let list_secrets_uc = Arc::new(usecase::ListSecretsUseCase::new(secret_store));
 
     // gRPC service
-    let _vault_grpc_svc = Arc::new(VaultGrpcService::new(
+    let vault_grpc_svc = Arc::new(VaultGrpcService::new(
         get_secret_uc.clone(),
         set_secret_uc.clone(),
         delete_secret_uc.clone(),
@@ -121,12 +122,41 @@ async fn main() -> anyhow::Result<()> {
     // REST Router
     let app = handler::router(state);
 
+    // gRPC tonic service
+    use proto::k1s0::system::vault::v1::vault_service_server::VaultServiceServer;
+
+    let vault_tonic = adapter::grpc::VaultServiceTonic::new(vault_grpc_svc);
+
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
+    info!("gRPC server starting on {}", grpc_addr);
+
+    let grpc_future = async move {
+        tonic::transport::Server::builder()
+            .add_service(VaultServiceServer::new(vault_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+    };
+
     // REST server
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    axum::serve(listener, app).await?;
+    let rest_future = axum::serve(listener, app);
+
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!("REST server error: {}", e);
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!("gRPC server error: {}", e);
+            }
+        }
+    }
 
     Ok(())
 }

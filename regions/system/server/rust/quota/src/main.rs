@@ -10,8 +10,10 @@ use tracing::info;
 mod adapter;
 mod domain;
 mod infrastructure;
+mod proto;
 mod usecase;
 
+use adapter::grpc::QuotaGrpcService;
 use domain::entity::quota::QuotaPolicy;
 use domain::repository::{QuotaPolicyRepository, QuotaUsageRepository};
 use infrastructure::config::Config;
@@ -53,7 +55,7 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(usecase::ListQuotaPoliciesUseCase::new(policy_repo.clone()));
     let update_policy_uc =
         Arc::new(usecase::UpdateQuotaPolicyUseCase::new(policy_repo.clone()));
-    let _delete_policy_uc =
+    let delete_policy_uc =
         Arc::new(usecase::DeleteQuotaPolicyUseCase::new(policy_repo.clone()));
     let get_usage_uc = Arc::new(usecase::GetQuotaUsageUseCase::new(
         policy_repo.clone(),
@@ -68,6 +70,16 @@ async fn main() -> anyhow::Result<()> {
         usage_repo,
     ));
 
+    let grpc_svc = Arc::new(QuotaGrpcService::new(
+        create_policy_uc.clone(),
+        get_policy_uc.clone(),
+        list_policies_uc.clone(),
+        update_policy_uc.clone(),
+        delete_policy_uc,
+        get_usage_uc.clone(),
+        increment_usage_uc.clone(),
+    ));
+
     let state = adapter::handler::AppState {
         create_policy_uc,
         get_policy_uc,
@@ -79,11 +91,41 @@ async fn main() -> anyhow::Result<()> {
 
     let app = adapter::handler::router(state);
 
+    // gRPC server
+    use proto::k1s0::system::quota::v1::quota_service_server::QuotaServiceServer;
+
+    let quota_tonic = adapter::grpc::QuotaServiceTonic::new(grpc_svc);
+
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
+    info!("gRPC server starting on {}", grpc_addr);
+
+    let grpc_future = async move {
+        tonic::transport::Server::builder()
+            .add_service(QuotaServiceServer::new(quota_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+    };
+
+    // REST server
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    axum::serve(listener, app).await?;
+    let rest_future = axum::serve(listener, app);
+
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!("REST server error: {}", e);
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!("gRPC server error: {}", e);
+            }
+        }
+    }
 
     Ok(())
 }

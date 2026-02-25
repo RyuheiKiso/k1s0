@@ -6,11 +6,14 @@ use tracing::info;
 mod adapter;
 mod domain;
 mod infrastructure;
+mod proto;
 mod usecase;
 
+use adapter::grpc::{dlq_grpc::DlqGrpcService, tonic_service::DlqServiceTonic};
 use adapter::handler::{self, AppState};
 use infrastructure::config::Config;
 use infrastructure::persistence::DlqPostgresRepository;
+use proto::k1s0::system::dlq::v1::dlq_service_server::DlqServiceServer;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -119,6 +122,16 @@ async fn main() -> anyhow::Result<()> {
     let delete_message_uc = Arc::new(usecase::DeleteMessageUseCase::new(dlq_repo.clone()));
     let retry_all_uc = Arc::new(usecase::RetryAllUseCase::new(dlq_repo.clone(), publisher));
 
+    // gRPC service
+    let dlq_grpc_service = Arc::new(DlqGrpcService::new(
+        list_messages_uc.clone(),
+        get_message_uc.clone(),
+        retry_message_uc.clone(),
+        delete_message_uc.clone(),
+        retry_all_uc.clone(),
+    ));
+    let dlq_tonic = DlqServiceTonic::new(dlq_grpc_service);
+
     // AppState
     let state = AppState {
         list_messages_uc,
@@ -137,7 +150,36 @@ async fn main() -> anyhow::Result<()> {
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    axum::serve(listener, app).await?;
+
+    // gRPC server
+    let grpc_addr: std::net::SocketAddr = ([0, 0, 0, 0], 50051).into();
+    let grpc_future = async move {
+        tonic::transport::Server::builder()
+            .add_service(DlqServiceServer::new(dlq_tonic))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+    };
+
+    let rest_future = async move {
+        axum::serve(listener, app)
+            .await
+            .map_err(|e| anyhow::anyhow!("REST server error: {}", e))
+    };
+
+    info!("gRPC server starting on {}", grpc_addr);
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!(error = %e, "REST server stopped");
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!(error = %e, "gRPC server stopped");
+            }
+        }
+    }
 
     Ok(())
 }
