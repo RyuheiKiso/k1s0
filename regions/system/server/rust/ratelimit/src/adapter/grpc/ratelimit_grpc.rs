@@ -102,15 +102,16 @@ impl RateLimitGrpcService {
             return Err(GrpcError::InvalidArgument("subject is required".to_string()));
         }
 
+        // gRPC は rule_id/subject を scope/identifier として扱う（後方互換）
         let decision = self
             .check_uc
-            .execute(&req.rule_id, &req.subject)
+            .execute(&req.rule_id, &req.subject, 60)
             .await
             .map_err(|e| match e {
                 crate::usecase::check_rate_limit::CheckRateLimitError::RuleNotFound(msg) => {
                     GrpcError::NotFound(msg)
                 }
-                crate::usecase::check_rate_limit::CheckRateLimitError::InvalidRuleId(msg) => {
+                crate::usecase::check_rate_limit::CheckRateLimitError::ValidationError(msg) => {
                     GrpcError::InvalidArgument(msg)
                 }
                 crate::usecase::check_rate_limit::CheckRateLimitError::RuleDisabled(msg) => {
@@ -134,11 +135,11 @@ impl RateLimitGrpcService {
         req: CreateRuleRequest,
     ) -> Result<CreateRuleResponse, GrpcError> {
         let input = CreateRuleInput {
-            name: req.name,
-            key: req.key,
+            scope: req.name,
+            identifier_pattern: req.key,
             limit: req.limit,
-            window_secs: req.window_secs,
-            algorithm: req.algorithm,
+            window_seconds: req.window_secs,
+            enabled: true,
         };
 
         let rule = self.create_uc.execute(&input).await.map_err(|e| match e {
@@ -164,10 +165,10 @@ impl RateLimitGrpcService {
         Ok(CreateRuleResponse {
             rule: RuleResponse {
                 id: rule.id.to_string(),
-                name: rule.name,
-                key: rule.key,
+                name: rule.scope,
+                key: rule.identifier_pattern,
                 limit: rule.limit,
-                window_secs: rule.window_secs,
+                window_secs: rule.window_seconds,
                 algorithm: rule.algorithm.as_str().to_string(),
                 enabled: rule.enabled,
                 created_at: Some(ts),
@@ -196,10 +197,10 @@ impl RateLimitGrpcService {
         Ok(GetRuleResponse {
             rule: RuleResponse {
                 id: rule.id.to_string(),
-                name: rule.name,
-                key: rule.key,
+                name: rule.scope,
+                key: rule.identifier_pattern,
                 limit: rule.limit,
-                window_secs: rule.window_secs,
+                window_secs: rule.window_seconds,
                 algorithm: rule.algorithm.as_str().to_string(),
                 enabled: rule.enabled,
                 created_at: Some(ts),
@@ -218,7 +219,7 @@ mod tests {
 
     fn make_rule() -> RateLimitRule {
         RateLimitRule::new(
-            "api-global".to_string(),
+            "service".to_string(),
             "global".to_string(),
             100,
             60,
@@ -229,12 +230,11 @@ mod tests {
     #[tokio::test]
     async fn test_grpc_check_rate_limit_allowed() {
         let rule = make_rule();
-        let rule_id = rule.id;
 
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
-        repo.expect_find_by_id()
-            .returning(move |_| Ok(return_rule.clone()));
+        repo.expect_find_by_scope()
+            .returning(move |_| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -251,7 +251,7 @@ mod tests {
         let svc = RateLimitGrpcService::new(check_uc, create_uc, get_uc);
         let result = svc
             .check_rate_limit(CheckRateLimitRequest {
-                rule_id: rule_id.to_string(),
+                rule_id: "service".to_string(),
                 subject: "user-123".to_string(),
             })
             .await;

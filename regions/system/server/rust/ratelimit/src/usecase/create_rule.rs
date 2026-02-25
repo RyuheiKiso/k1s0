@@ -21,11 +21,11 @@ pub enum CreateRuleError {
 
 /// CreateRuleInput はルール作成の入力。
 pub struct CreateRuleInput {
-    pub name: String,
-    pub key: String,
+    pub scope: String,
+    pub identifier_pattern: String,
     pub limit: i64,
-    pub window_secs: i64,
-    pub algorithm: String,
+    pub window_seconds: i64,
+    pub enabled: bool,
 }
 
 /// CreateRuleUseCase はルール作成ユースケース。
@@ -40,38 +40,36 @@ impl CreateRuleUseCase {
 
     pub async fn execute(&self, input: &CreateRuleInput) -> Result<RateLimitRule, CreateRuleError> {
         // バリデーション
-        if input.name.is_empty() {
-            return Err(CreateRuleError::Validation("name is required".to_string()));
+        if input.scope.is_empty() {
+            return Err(CreateRuleError::Validation("scope is required".to_string()));
         }
-        if input.key.is_empty() {
-            return Err(CreateRuleError::Validation("key is required".to_string()));
+        if input.identifier_pattern.is_empty() {
+            return Err(CreateRuleError::Validation("identifier_pattern is required".to_string()));
         }
         if input.limit <= 0 {
             return Err(CreateRuleError::Validation(
                 "limit must be positive".to_string(),
             ));
         }
-        if input.window_secs <= 0 {
+        if input.window_seconds <= 0 {
             return Err(CreateRuleError::Validation(
-                "window_secs must be positive".to_string(),
+                "window_seconds must be positive".to_string(),
             ));
         }
 
-        let algorithm = Algorithm::from_str(&input.algorithm)
-            .map_err(|e| CreateRuleError::InvalidAlgorithm(e))?;
-
-        // 重複チェック
-        if let Ok(Some(_)) = self.repo.find_by_name(&input.name).await {
-            return Err(CreateRuleError::AlreadyExists(input.name.clone()));
+        // 重複チェック（scope+identifier_patternで確認）
+        if let Ok(Some(_)) = self.repo.find_by_name(&input.scope).await {
+            return Err(CreateRuleError::AlreadyExists(input.scope.clone()));
         }
 
-        let rule = RateLimitRule::new(
-            input.name.clone(),
-            input.key.clone(),
+        let mut rule = RateLimitRule::new(
+            input.scope.clone(),
+            input.identifier_pattern.clone(),
             input.limit,
-            input.window_secs,
-            algorithm,
+            input.window_seconds,
+            Algorithm::TokenBucket,
         );
+        rule.enabled = input.enabled;
 
         let created = self
             .repo
@@ -98,30 +96,30 @@ mod tests {
         let uc = CreateRuleUseCase::new(Arc::new(repo));
         let result = uc
             .execute(&CreateRuleInput {
-                name: "api-global".to_string(),
-                key: "global".to_string(),
+                scope: "service".to_string(),
+                identifier_pattern: "global".to_string(),
                 limit: 100,
-                window_secs: 60,
-                algorithm: "token_bucket".to_string(),
+                window_seconds: 60,
+                enabled: true,
             })
             .await;
 
         assert!(result.is_ok());
         let rule = result.unwrap();
-        assert_eq!(rule.name, "api-global");
-        assert_eq!(rule.key, "global");
+        assert_eq!(rule.scope, "service");
+        assert_eq!(rule.identifier_pattern, "global");
         assert_eq!(rule.limit, 100);
-        assert_eq!(rule.window_secs, 60);
+        assert_eq!(rule.window_seconds, 60);
         assert_eq!(rule.algorithm, Algorithm::TokenBucket);
         assert!(rule.enabled);
     }
 
     #[tokio::test]
-    async fn test_create_rule_duplicate_name() {
+    async fn test_create_rule_duplicate_scope() {
         let mut repo = MockRateLimitRepository::new();
         repo.expect_find_by_name().returning(|_| {
             Ok(Some(RateLimitRule::new(
-                "api-global".to_string(),
+                "service".to_string(),
                 "global".to_string(),
                 100,
                 60,
@@ -132,11 +130,11 @@ mod tests {
         let uc = CreateRuleUseCase::new(Arc::new(repo));
         let result = uc
             .execute(&CreateRuleInput {
-                name: "api-global".to_string(),
-                key: "global".to_string(),
+                scope: "service".to_string(),
+                identifier_pattern: "global".to_string(),
                 limit: 100,
-                window_secs: 60,
-                algorithm: "token_bucket".to_string(),
+                window_seconds: 60,
+                enabled: true,
             })
             .await;
 
@@ -145,39 +143,16 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_rule_invalid_algorithm() {
-        let mut repo = MockRateLimitRepository::new();
-        repo.expect_find_by_name().returning(|_| Ok(None));
-
-        let uc = CreateRuleUseCase::new(Arc::new(repo));
-        let result = uc
-            .execute(&CreateRuleInput {
-                name: "test".to_string(),
-                key: "test".to_string(),
-                limit: 100,
-                window_secs: 60,
-                algorithm: "unknown_algo".to_string(),
-            })
-            .await;
-
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            CreateRuleError::InvalidAlgorithm(_)
-        ));
-    }
-
-    #[tokio::test]
-    async fn test_create_rule_empty_name() {
+    async fn test_create_rule_empty_scope() {
         let repo = MockRateLimitRepository::new();
         let uc = CreateRuleUseCase::new(Arc::new(repo));
         let result = uc
             .execute(&CreateRuleInput {
-                name: "".to_string(),
-                key: "test".to_string(),
+                scope: "".to_string(),
+                identifier_pattern: "test".to_string(),
                 limit: 100,
-                window_secs: 60,
-                algorithm: "token_bucket".to_string(),
+                window_seconds: 60,
+                enabled: true,
             })
             .await;
 
@@ -191,11 +166,11 @@ mod tests {
         let uc = CreateRuleUseCase::new(Arc::new(repo));
         let result = uc
             .execute(&CreateRuleInput {
-                name: "test".to_string(),
-                key: "test".to_string(),
+                scope: "service".to_string(),
+                identifier_pattern: "test".to_string(),
                 limit: 0,
-                window_secs: 60,
-                algorithm: "token_bucket".to_string(),
+                window_seconds: 60,
+                enabled: true,
             })
             .await;
 
@@ -209,11 +184,11 @@ mod tests {
         let uc = CreateRuleUseCase::new(Arc::new(repo));
         let result = uc
             .execute(&CreateRuleInput {
-                name: "test".to_string(),
-                key: "test".to_string(),
+                scope: "service".to_string(),
+                identifier_pattern: "test".to_string(),
                 limit: 100,
-                window_secs: -1,
-                algorithm: "token_bucket".to_string(),
+                window_seconds: -1,
+                enabled: true,
             })
             .await;
 

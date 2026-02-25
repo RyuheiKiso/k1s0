@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, HeaderValue, StatusCode},
     response::IntoResponse,
     Json,
 };
@@ -77,8 +77,9 @@ pub async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
 /// POST /api/v1/ratelimit/check のリクエストボディ。
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CheckRateLimitRequest {
-    pub rule_id: String,
-    pub subject: String,
+    pub scope: String,       // "service" | "user" | "endpoint"
+    pub identifier: String,  // "user-001" など
+    pub window: Option<String>, // "60s" など（省略時は60秒）
 }
 
 /// POST /api/v1/ratelimit/check のレスポンスボディ。
@@ -87,7 +88,21 @@ pub struct CheckRateLimitResponse {
     pub allowed: bool,
     pub remaining: i64,
     pub reset_at: i64,
+    pub limit: i64,
     pub reason: String,
+}
+
+fn parse_window_secs(window: &Option<String>) -> i64 {
+    match window {
+        Some(w) => {
+            if let Some(stripped) = w.strip_suffix('s') {
+                stripped.parse::<i64>().unwrap_or(60)
+            } else {
+                w.parse::<i64>().unwrap_or(60)
+            }
+        }
+        None => 60,
+    }
 }
 
 #[utoipa::path(
@@ -96,7 +111,6 @@ pub struct CheckRateLimitResponse {
     request_body = CheckRateLimitRequest,
     responses(
         (status = 200, description = "Rate limit check result", body = CheckRateLimitResponse),
-        (status = 404, description = "Rule not found"),
         (status = 429, description = "Rate limit exceeded"),
     )
 )]
@@ -104,19 +118,42 @@ pub async fn check_rate_limit(
     State(state): State<AppState>,
     Json(req): Json<CheckRateLimitRequest>,
 ) -> impl IntoResponse {
-    match state.check_uc.execute(&req.rule_id, &req.subject).await {
+    let window_secs = parse_window_secs(&req.window);
+
+    match state.check_uc.execute(&req.scope, &req.identifier, window_secs).await {
         Ok(decision) => {
+            // デフォルトlimit=100（ルールが見つかればusecaseが適用する）
+            let limit = 100i64;
             let status = if decision.allowed {
                 StatusCode::OK
             } else {
                 StatusCode::TOO_MANY_REQUESTS
             };
+
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                "X-RateLimit-Limit",
+                HeaderValue::from_str(&limit.to_string()).unwrap_or(HeaderValue::from_static("100")),
+            );
+            headers.insert(
+                "X-RateLimit-Remaining",
+                HeaderValue::from_str(&decision.remaining.to_string())
+                    .unwrap_or(HeaderValue::from_static("0")),
+            );
+            headers.insert(
+                "X-RateLimit-Reset",
+                HeaderValue::from_str(&decision.reset_at.to_string())
+                    .unwrap_or(HeaderValue::from_static("0")),
+            );
+
             (
                 status,
+                headers,
                 Json(CheckRateLimitResponse {
                     allowed: decision.allowed,
                     remaining: decision.remaining,
                     reset_at: decision.reset_at,
+                    limit,
                     reason: decision.reason,
                 }),
             )
@@ -129,26 +166,70 @@ pub async fn check_rate_limit(
     }
 }
 
+/// POST /api/v1/ratelimit/reset のリクエストボディ。
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
+pub struct ResetRateLimitRequest {
+    pub scope: String,
+    pub identifier: String,
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/ratelimit/reset",
+    request_body = ResetRateLimitRequest,
+    responses(
+        (status = 200, description = "Rate limit reset"),
+        (status = 400, description = "Bad request"),
+    )
+)]
+pub async fn reset_rate_limit(
+    State(state): State<AppState>,
+    Json(req): Json<ResetRateLimitRequest>,
+) -> impl IntoResponse {
+    use crate::usecase::reset_rate_limit::ResetRateLimitInput;
+
+    let input = ResetRateLimitInput {
+        scope: req.scope.clone(),
+        identifier: req.identifier.clone(),
+    };
+
+    match state.reset_uc.execute(&input).await {
+        Ok(()) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "success": true,
+                "message": format!("rate limit reset for {}:{}", req.scope, req.identifier)
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            let err = ErrorResponse::new("SYS_RATELIMIT_ERROR", &e.to_string());
+            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+        }
+    }
+}
+
 /// POST /api/v1/ratelimit/rules のリクエストボディ。
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateRuleRequest {
-    pub name: String,
-    pub key: String,
+    pub scope: String,
+    pub identifier_pattern: String,
     pub limit: i64,
-    pub window_secs: i64,
-    pub algorithm: String,
+    pub window_seconds: i64,
+    pub enabled: bool,
 }
 
 /// ルールレスポンス。
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct RuleResponse {
     pub id: String,
-    pub name: String,
-    pub key: String,
+    pub scope: String,
+    pub identifier_pattern: String,
     pub limit: i64,
-    pub window_secs: i64,
-    pub algorithm: String,
+    pub window_seconds: i64,
     pub enabled: bool,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 #[utoipa::path(
@@ -166,11 +247,11 @@ pub async fn create_rule(
     Json(req): Json<CreateRuleRequest>,
 ) -> impl IntoResponse {
     let input = crate::usecase::create_rule::CreateRuleInput {
-        name: req.name,
-        key: req.key,
+        scope: req.scope,
+        identifier_pattern: req.identifier_pattern,
         limit: req.limit,
-        window_secs: req.window_secs,
-        algorithm: req.algorithm,
+        window_seconds: req.window_seconds,
+        enabled: req.enabled,
     };
 
     match state.create_uc.execute(&input).await {
@@ -178,12 +259,13 @@ pub async fn create_rule(
             StatusCode::CREATED,
             Json(RuleResponse {
                 id: rule.id.to_string(),
-                name: rule.name,
-                key: rule.key,
+                scope: rule.scope,
+                identifier_pattern: rule.identifier_pattern,
                 limit: rule.limit,
-                window_secs: rule.window_secs,
-                algorithm: rule.algorithm.as_str().to_string(),
+                window_seconds: rule.window_seconds,
                 enabled: rule.enabled,
+                created_at: rule.created_at.to_rfc3339(),
+                updated_at: rule.updated_at.to_rfc3339(),
             }),
         )
             .into_response(),
@@ -222,12 +304,13 @@ pub async fn get_rule(
             StatusCode::OK,
             Json(RuleResponse {
                 id: rule.id.to_string(),
-                name: rule.name,
-                key: rule.key,
+                scope: rule.scope,
+                identifier_pattern: rule.identifier_pattern,
                 limit: rule.limit,
-                window_secs: rule.window_secs,
-                algorithm: rule.algorithm.as_str().to_string(),
+                window_seconds: rule.window_seconds,
                 enabled: rule.enabled,
+                created_at: rule.created_at.to_rfc3339(),
+                updated_at: rule.updated_at.to_rfc3339(),
             }),
         )
             .into_response(),
@@ -244,11 +327,10 @@ pub async fn get_rule(
 /// PUT /api/v1/ratelimit/rules/:id のリクエストボディ。
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateRuleRequest {
-    pub name: String,
-    pub key: String,
+    pub scope: String,
+    pub identifier_pattern: String,
     pub limit: i64,
-    pub window_secs: i64,
-    pub algorithm: String,
+    pub window_seconds: i64,
     pub enabled: bool,
 }
 
@@ -258,7 +340,7 @@ pub struct UsageResponse {
     pub rule_id: String,
     pub rule_name: String,
     pub limit: i64,
-    pub window_secs: i64,
+    pub window_seconds: i64,
     pub algorithm: String,
     pub enabled: bool,
 }
@@ -277,12 +359,13 @@ pub async fn list_rules(State(state): State<AppState>) -> impl IntoResponse {
                 .into_iter()
                 .map(|r| RuleResponse {
                     id: r.id.to_string(),
-                    name: r.name,
-                    key: r.key,
+                    scope: r.scope,
+                    identifier_pattern: r.identifier_pattern,
                     limit: r.limit,
-                    window_secs: r.window_secs,
-                    algorithm: r.algorithm.as_str().to_string(),
+                    window_seconds: r.window_seconds,
                     enabled: r.enabled,
+                    created_at: r.created_at.to_rfc3339(),
+                    updated_at: r.updated_at.to_rfc3339(),
                 })
                 .collect();
             (StatusCode::OK, Json(serde_json::json!({ "rules": resp }))).into_response()
@@ -313,11 +396,10 @@ pub async fn update_rule(
     use crate::usecase::update_rule::{UpdateRuleError, UpdateRuleInput};
     let input = UpdateRuleInput {
         id,
-        name: req.name,
-        key: req.key,
+        scope: req.scope,
+        identifier_pattern: req.identifier_pattern,
         limit: req.limit,
-        window_secs: req.window_secs,
-        algorithm: req.algorithm,
+        window_seconds: req.window_seconds,
         enabled: req.enabled,
     };
 
@@ -326,12 +408,13 @@ pub async fn update_rule(
             StatusCode::OK,
             Json(RuleResponse {
                 id: rule.id.to_string(),
-                name: rule.name,
-                key: rule.key,
+                scope: rule.scope,
+                identifier_pattern: rule.identifier_pattern,
                 limit: rule.limit,
-                window_secs: rule.window_secs,
-                algorithm: rule.algorithm.as_str().to_string(),
+                window_seconds: rule.window_seconds,
                 enabled: rule.enabled,
+                created_at: rule.created_at.to_rfc3339(),
+                updated_at: rule.updated_at.to_rfc3339(),
             }),
         )
             .into_response(),
@@ -412,7 +495,7 @@ pub async fn get_usage(
                 rule_id: info.rule_id,
                 rule_name: info.rule_name,
                 limit: info.limit,
-                window_secs: info.window_secs,
+                window_seconds: info.window_seconds,
                 algorithm: info.algorithm,
                 enabled: info.enabled,
             }),
@@ -445,6 +528,10 @@ mod tests {
     use std::sync::Arc;
     use tower::ServiceExt;
 
+    fn make_reset_uc(state_store: MockRateLimitStateStore) -> Arc<crate::usecase::ResetRateLimitUseCase> {
+        Arc::new(crate::usecase::ResetRateLimitUseCase::new(Arc::new(state_store)))
+    }
+
     fn make_app_state(
         repo: MockRateLimitRepository,
         state_store: MockRateLimitStateStore,
@@ -471,8 +558,9 @@ mod tests {
         let get_usage_uc = Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(
             MockRateLimitRepository::new(),
         )));
+        let reset_uc = make_reset_uc(MockRateLimitStateStore::new());
 
-        AppState::new(check_uc, create_uc, get_uc, list_uc, update_uc, delete_uc, get_usage_uc, None)
+        AppState::new(check_uc, create_uc, get_uc, list_uc, update_uc, delete_uc, get_usage_uc, reset_uc, None)
     }
 
     #[tokio::test]
@@ -532,18 +620,17 @@ mod tests {
     #[tokio::test]
     async fn test_check_rate_limit_allowed() {
         let rule = RateLimitRule::new(
-            "api-global".to_string(),
+            "service".to_string(),
             "global".to_string(),
             100,
             60,
             Algorithm::TokenBucket,
         );
-        let rule_id = rule.id;
 
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
-        repo.expect_find_by_id()
-            .returning(move |_| Ok(return_rule.clone()));
+        repo.expect_find_by_scope()
+            .returning(move |_| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -569,13 +656,14 @@ mod tests {
             Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
             Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
             Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            make_reset_uc(MockRateLimitStateStore::new()),
             None,
         );
         let app = router(state);
 
         let body = serde_json::json!({
-            "rule_id": rule_id.to_string(),
-            "subject": "user-123"
+            "scope": "service",
+            "identifier": "user-123"
         });
 
         let req = Request::builder()
@@ -599,18 +687,17 @@ mod tests {
     #[tokio::test]
     async fn test_check_rate_limit_denied() {
         let rule = RateLimitRule::new(
-            "api-global".to_string(),
+            "service".to_string(),
             "global".to_string(),
             100,
             60,
             Algorithm::TokenBucket,
         );
-        let rule_id = rule.id;
 
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
-        repo.expect_find_by_id()
-            .returning(move |_| Ok(return_rule.clone()));
+        repo.expect_find_by_scope()
+            .returning(move |_| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -642,13 +729,14 @@ mod tests {
             Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
             Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
             Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            make_reset_uc(MockRateLimitStateStore::new()),
             None,
         );
         let app = router(state);
 
         let body = serde_json::json!({
-            "rule_id": rule_id.to_string(),
-            "subject": "user-123"
+            "scope": "service",
+            "identifier": "user-123"
         });
 
         let req = Request::builder()
@@ -692,16 +780,17 @@ mod tests {
             Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
             Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
             Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            make_reset_uc(MockRateLimitStateStore::new()),
             None,
         );
         let app = router(state);
 
         let body = serde_json::json!({
-            "name": "api-global",
-            "key": "global",
+            "scope": "service",
+            "identifier_pattern": "global",
             "limit": 100,
-            "window_secs": 60,
-            "algorithm": "token_bucket"
+            "window_seconds": 60,
+            "enabled": true
         });
 
         let req = Request::builder()
@@ -718,8 +807,8 @@ mod tests {
             .await
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-        assert_eq!(json["name"], "api-global");
-        assert_eq!(json["algorithm"], "token_bucket");
+        assert_eq!(json["scope"], "service");
+        assert_eq!(json["identifier_pattern"], "global");
     }
 
     #[tokio::test]
@@ -745,6 +834,7 @@ mod tests {
             Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
             Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
             Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            make_reset_uc(MockRateLimitStateStore::new()),
             None,
         );
         let app = router(state);
@@ -756,5 +846,53 @@ mod tests {
 
         let resp = app.oneshot(req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn test_reset_rate_limit_success() {
+        let mut state_store = MockRateLimitStateStore::new();
+        state_store
+            .expect_reset()
+            .returning(|_| Ok(()));
+
+        let check_uc = Arc::new(crate::usecase::CheckRateLimitUseCase::new(
+            Arc::new(MockRateLimitRepository::new()),
+            Arc::new(MockRateLimitStateStore::new()),
+        ));
+        let reset_uc = make_reset_uc(state_store);
+
+        let state = AppState::new(
+            check_uc,
+            Arc::new(crate::usecase::CreateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::GetRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::ListRulesUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(crate::usecase::GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            reset_uc,
+            None,
+        );
+        let app = router(state);
+
+        let body = serde_json::json!({
+            "scope": "service",
+            "identifier": "user-123"
+        });
+
+        let req = Request::builder()
+            .method("POST")
+            .uri("/api/v1/ratelimit/reset")
+            .header("content-type", "application/json")
+            .body(Body::from(serde_json::to_string(&body).unwrap()))
+            .unwrap();
+
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["success"], true);
     }
 }

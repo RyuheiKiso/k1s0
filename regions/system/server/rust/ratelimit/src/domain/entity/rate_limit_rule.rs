@@ -40,10 +40,10 @@ impl std::fmt::Display for Algorithm {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RateLimitRule {
     pub id: Uuid,
-    pub name: String,
-    pub key: String,
+    pub scope: String,
+    pub identifier_pattern: String,
     pub limit: i64,
-    pub window_secs: i64,
+    pub window_seconds: i64,
     pub algorithm: Algorithm,
     pub enabled: bool,
     pub created_at: DateTime<Utc>,
@@ -51,14 +51,14 @@ pub struct RateLimitRule {
 }
 
 impl RateLimitRule {
-    pub fn new(name: String, key: String, limit: i64, window_secs: i64, algorithm: Algorithm) -> Self {
+    pub fn new(scope: String, identifier_pattern: String, limit: i64, window_seconds: i64, algorithm: Algorithm) -> Self {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
-            name,
-            key,
+            scope,
+            identifier_pattern,
             limit,
-            window_secs,
+            window_seconds,
             algorithm,
             enabled: true,
             created_at: now,
@@ -118,16 +118,16 @@ mod tests {
     #[test]
     fn test_rate_limit_rule_new() {
         let rule = RateLimitRule::new(
-            "api-global".to_string(),
+            "service".to_string(),
             "global".to_string(),
             100,
             60,
             Algorithm::TokenBucket,
         );
-        assert_eq!(rule.name, "api-global");
-        assert_eq!(rule.key, "global");
+        assert_eq!(rule.scope, "service");
+        assert_eq!(rule.identifier_pattern, "global");
         assert_eq!(rule.limit, 100);
-        assert_eq!(rule.window_secs, 60);
+        assert_eq!(rule.window_seconds, 60);
         assert_eq!(rule.algorithm, Algorithm::TokenBucket);
         assert!(rule.enabled);
     }

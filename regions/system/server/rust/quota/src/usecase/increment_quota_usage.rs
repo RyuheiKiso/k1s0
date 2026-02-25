@@ -2,6 +2,9 @@ use std::sync::Arc;
 
 use crate::domain::entity::quota::IncrementResult;
 use crate::domain::repository::{QuotaPolicyRepository, QuotaUsageRepository};
+use crate::infrastructure::kafka_producer::{
+    QuotaEventPublisher, QuotaExceededEvent, QuotaThresholdReachedEvent,
+};
 
 #[derive(Debug, Clone)]
 pub struct IncrementQuotaUsageInput {
@@ -30,16 +33,31 @@ pub enum IncrementQuotaUsageError {
 pub struct IncrementQuotaUsageUseCase {
     policy_repo: Arc<dyn QuotaPolicyRepository>,
     usage_repo: Arc<dyn QuotaUsageRepository>,
+    event_publisher: Arc<dyn QuotaEventPublisher>,
 }
 
 impl IncrementQuotaUsageUseCase {
     pub fn new(
         policy_repo: Arc<dyn QuotaPolicyRepository>,
         usage_repo: Arc<dyn QuotaUsageRepository>,
+        event_publisher: Arc<dyn QuotaEventPublisher>,
     ) -> Self {
         Self {
             policy_repo,
             usage_repo,
+            event_publisher,
+        }
+    }
+
+    pub fn new_without_publisher(
+        policy_repo: Arc<dyn QuotaPolicyRepository>,
+        usage_repo: Arc<dyn QuotaUsageRepository>,
+    ) -> Self {
+        use crate::infrastructure::kafka_producer::NoopQuotaEventPublisher;
+        Self {
+            policy_repo,
+            usage_repo,
+            event_publisher: Arc::new(NoopQuotaEventPublisher),
         }
     }
 
@@ -72,7 +90,46 @@ impl IncrementQuotaUsageUseCase {
             (new_used as f64 / policy.limit as f64) * 100.0
         };
 
+        // 閾値到達チェック（超過前の使用量で判定）
+        if !exceeded {
+            if let Some(threshold) = policy.alert_threshold_percent {
+                let prev_percent = if policy.limit == 0 {
+                    100.0
+                } else {
+                    ((new_used.saturating_sub(input.amount)) as f64 / policy.limit as f64) * 100.0
+                };
+                if usage_percent >= threshold as f64 && prev_percent < threshold as f64 {
+                    let event = QuotaThresholdReachedEvent {
+                        event_type: "QUOTA_THRESHOLD_REACHED".to_string(),
+                        quota_id: policy.id.clone(),
+                        subject_type: policy.subject_type.as_str().to_string(),
+                        subject_id: policy.subject_id.clone(),
+                        period: policy.period.as_str().to_string(),
+                        limit: policy.limit,
+                        used: new_used,
+                        usage_percent,
+                        alert_threshold_percent: threshold,
+                        reached_at: chrono::Utc::now().to_rfc3339(),
+                    };
+                    let _ = self.event_publisher.publish_threshold_reached(&event).await;
+                }
+            }
+        }
+
         if exceeded {
+            let event = QuotaExceededEvent {
+                event_type: "QUOTA_EXCEEDED".to_string(),
+                quota_id: policy.id.clone(),
+                subject_type: policy.subject_type.as_str().to_string(),
+                subject_id: policy.subject_id.clone(),
+                period: policy.period.as_str().to_string(),
+                limit: policy.limit,
+                used: new_used,
+                exceeded_at: chrono::Utc::now().to_rfc3339(),
+                reset_at: "".to_string(),
+            };
+            let _ = self.event_publisher.publish_quota_exceeded(&event).await;
+
             return Err(IncrementQuotaUsageError::Exceeded {
                 quota_id: policy.id,
                 subject_id: policy.subject_id,
@@ -131,7 +188,10 @@ mod tests {
             .expect_increment()
             .returning(|_, _| Ok(7524));
 
-        let uc = IncrementQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
+        let uc = IncrementQuotaUsageUseCase::new_without_publisher(
+            Arc::new(policy_mock),
+            Arc::new(usage_mock),
+        );
         let input = IncrementQuotaUsageInput {
             quota_id: policy.id.clone(),
             amount: 1,
@@ -164,7 +224,10 @@ mod tests {
             .expect_increment()
             .returning(|_, _| Ok(10001));
 
-        let uc = IncrementQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
+        let uc = IncrementQuotaUsageUseCase::new_without_publisher(
+            Arc::new(policy_mock),
+            Arc::new(usage_mock),
+        );
         let input = IncrementQuotaUsageInput {
             quota_id: policy.id.clone(),
             amount: 1,
@@ -192,7 +255,10 @@ mod tests {
             .expect_find_by_id()
             .returning(|_| Ok(None));
 
-        let uc = IncrementQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
+        let uc = IncrementQuotaUsageUseCase::new_without_publisher(
+            Arc::new(policy_mock),
+            Arc::new(usage_mock),
+        );
         let input = IncrementQuotaUsageInput {
             quota_id: "nonexistent".to_string(),
             amount: 1,
@@ -214,7 +280,10 @@ mod tests {
             .expect_find_by_id()
             .returning(|_| Err(anyhow::anyhow!("db error")));
 
-        let uc = IncrementQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
+        let uc = IncrementQuotaUsageUseCase::new_without_publisher(
+            Arc::new(policy_mock),
+            Arc::new(usage_mock),
+        );
         let input = IncrementQuotaUsageInput {
             quota_id: "some-id".to_string(),
             amount: 1,

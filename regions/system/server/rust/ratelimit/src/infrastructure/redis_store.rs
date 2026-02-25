@@ -232,4 +232,13 @@ impl RateLimitStateStore for RedisRateLimitStore {
             ))
         }
     }
+
+    async fn reset(&self, key: &str) -> anyhow::Result<()> {
+        let mut conn = self.conn.clone();
+        redis::cmd("DEL")
+            .arg(key)
+            .query_async::<()>(&mut conn)
+            .await?;
+        Ok(())
+    }
 }

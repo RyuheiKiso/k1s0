@@ -40,15 +40,15 @@ mod tests {
         repo.expect_find_all().returning(|| {
             Ok(vec![
                 RateLimitRule::new(
-                    "rule-1".to_string(),
-                    "key-1".to_string(),
+                    "service".to_string(),
+                    "pattern-1".to_string(),
                     100,
                     60,
                     Algorithm::TokenBucket,
                 ),
                 RateLimitRule::new(
-                    "rule-2".to_string(),
-                    "key-2".to_string(),
+                    "user".to_string(),
+                    "pattern-2".to_string(),
                     200,
                     120,
                     Algorithm::FixedWindow,

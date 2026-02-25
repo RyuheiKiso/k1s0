@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::scheduler_execution::SchedulerExecution;
 use crate::domain::repository::SchedulerJobRepository;
+use crate::infrastructure::kafka_producer::SchedulerEventPublisher;
 
 #[derive(Debug, thiserror::Error)]
 pub enum TriggerJobError {
@@ -19,11 +20,26 @@ pub enum TriggerJobError {
 
 pub struct TriggerJobUseCase {
     repo: Arc<dyn SchedulerJobRepository>,
+    event_publisher: Arc<dyn SchedulerEventPublisher>,
 }
 
 impl TriggerJobUseCase {
     pub fn new(repo: Arc<dyn SchedulerJobRepository>) -> Self {
-        Self { repo }
+        use crate::infrastructure::kafka_producer::NoopSchedulerEventPublisher;
+        Self {
+            repo,
+            event_publisher: Arc::new(NoopSchedulerEventPublisher),
+        }
+    }
+
+    pub fn with_publisher(
+        repo: Arc<dyn SchedulerJobRepository>,
+        event_publisher: Arc<dyn SchedulerEventPublisher>,
+    ) -> Self {
+        Self {
+            repo,
+            event_publisher,
+        }
     }
 
     pub async fn execute(&self, job_id: &Uuid) -> Result<SchedulerExecution, TriggerJobError> {
@@ -47,6 +63,11 @@ impl TriggerJobUseCase {
             .update(&job)
             .await
             .map_err(|e| TriggerJobError::Internal(e.to_string()))?;
+
+        let _ = self
+            .event_publisher
+            .publish_job_executed(&job, &execution)
+            .await;
 
         Ok(execution)
     }

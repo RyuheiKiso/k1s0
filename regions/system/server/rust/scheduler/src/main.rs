@@ -71,10 +71,14 @@ async fn main() -> anyhow::Result<()> {
     let _job_cache = Arc::new(JobCache::default_config());
     info!("job cache initialized (max=1000, TTL=120s)");
 
+    let list_jobs_uc = Arc::new(usecase::ListJobsUseCase::new(job_repo.clone()));
     let create_job_uc = Arc::new(usecase::CreateJobUseCase::new(job_repo.clone()));
     let get_job_uc = Arc::new(usecase::GetJobUseCase::new(job_repo.clone()));
     let delete_job_uc = Arc::new(usecase::DeleteJobUseCase::new(job_repo.clone()));
-    let trigger_job_uc = Arc::new(usecase::TriggerJobUseCase::new(job_repo.clone()));
+    let trigger_job_uc = Arc::new(usecase::TriggerJobUseCase::with_publisher(
+        job_repo.clone(),
+        event_publisher.clone(),
+    ));
     let pause_job_uc = Arc::new(usecase::PauseJobUseCase::new(job_repo.clone()));
     let resume_job_uc = Arc::new(usecase::ResumeJobUseCase::new(job_repo.clone()));
     let update_job_uc = Arc::new(usecase::UpdateJobUseCase::new(job_repo.clone()));
@@ -88,7 +92,7 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     let state = adapter::handler::AppState {
-        job_repo,
+        list_jobs_uc,
         create_job_uc,
         get_job_uc,
         delete_job_uc,

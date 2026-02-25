@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -11,9 +11,30 @@ use super::AppState;
 use crate::usecase::create_job::CreateJobInput;
 
 /// GET /api/v1/jobs
-pub async fn list_jobs(State(state): State<AppState>) -> impl IntoResponse {
-    match state.job_repo.find_all().await {
-        Ok(jobs) => (StatusCode::OK, Json(serde_json::json!({ "jobs": jobs }))).into_response(),
+pub async fn list_jobs(
+    State(state): State<AppState>,
+    Query(params): Query<ListJobsParams>,
+) -> impl IntoResponse {
+    use crate::usecase::list_jobs::ListJobsInput;
+    let input = ListJobsInput {
+        status: params.status,
+        page: params.page.unwrap_or(1),
+        page_size: params.page_size.unwrap_or(20),
+    };
+    match state.list_jobs_uc.execute(&input).await {
+        Ok(output) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "jobs": output.jobs,
+                "pagination": {
+                    "total_count": output.total_count,
+                    "page": output.page,
+                    "page_size": output.page_size,
+                    "has_next": output.has_next
+                }
+            })),
+        )
+            .into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_SCHED_LIST_FAILED", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
@@ -48,7 +69,11 @@ pub async fn create_job(
 ) -> impl IntoResponse {
     let input = CreateJobInput {
         name: req.name,
+        description: req.description,
         cron_expression: req.cron_expression,
+        timezone: req.timezone.unwrap_or_else(|| "UTC".to_string()),
+        target_type: req.target_type.unwrap_or_else(|| "kafka".to_string()),
+        target: req.target,
         payload: req.payload,
     };
 
@@ -148,7 +173,11 @@ pub async fn update_job(
     let input = UpdateJobInput {
         id,
         name: req.name,
+        description: req.description,
         cron_expression: req.cron_expression,
+        timezone: req.timezone.unwrap_or_else(|| "UTC".to_string()),
+        target_type: req.target_type.unwrap_or_else(|| "kafka".to_string()),
+        target: req.target,
         payload: req.payload,
     };
 
@@ -228,16 +257,31 @@ pub async fn list_executions(
 // --- Request / Response types ---
 
 #[derive(Debug, Deserialize)]
+pub struct ListJobsParams {
+    pub status: Option<String>,
+    pub page: Option<u32>,
+    pub page_size: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct CreateJobRequest {
     pub name: String,
+    pub description: Option<String>,
     pub cron_expression: String,
+    pub timezone: Option<String>,
+    pub target_type: Option<String>,
+    pub target: Option<String>,
     pub payload: serde_json::Value,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateJobRequest {
     pub name: String,
+    pub description: Option<String>,
     pub cron_expression: String,
+    pub timezone: Option<String>,
+    pub target_type: Option<String>,
+    pub target: Option<String>,
     pub payload: serde_json::Value,
 }
 
