@@ -10,7 +10,7 @@ use axum::routing::{delete, get, post, put};
 use axum::Router;
 
 use crate::domain::repository::SchedulerJobRepository;
-use crate::usecase::{CreateJobUseCase, GetJobUseCase, PauseJobUseCase, ResumeJobUseCase};
+use crate::usecase::{CreateJobUseCase, DeleteJobUseCase, GetJobUseCase, PauseJobUseCase, ResumeJobUseCase};
 
 /// Shared application state for REST handlers.
 #[derive(Clone)]
@@ -18,6 +18,7 @@ pub struct AppState {
     pub job_repo: Arc<dyn SchedulerJobRepository>,
     pub create_job_uc: Arc<CreateJobUseCase>,
     pub get_job_uc: Arc<GetJobUseCase>,
+    pub delete_job_uc: Arc<DeleteJobUseCase>,
     pub pause_job_uc: Arc<PauseJobUseCase>,
     pub resume_job_uc: Arc<ResumeJobUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,

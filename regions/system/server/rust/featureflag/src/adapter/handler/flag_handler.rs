@@ -114,18 +114,20 @@ pub async fn delete_flag(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.flag_repo.delete(&id).await {
-        Ok(true) => (
+    use crate::usecase::delete_flag::DeleteFlagError;
+
+    match state.delete_flag_uc.execute(&id).await {
+        Ok(()) => (
             StatusCode::OK,
             Json(serde_json::json!({"success": true, "message": format!("flag {} deleted", id)})),
         )
             .into_response(),
-        Ok(false) => {
+        Err(DeleteFlagError::NotFound(_)) => {
             let err = ErrorResponse::new("SYS_FF_NOT_FOUND", &format!("flag not found: {}", id));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
-        Err(e) => {
-            let err = ErrorResponse::new("SYS_FF_DELETE_FAILED", &e.to_string());
+        Err(DeleteFlagError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_FF_DELETE_FAILED", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

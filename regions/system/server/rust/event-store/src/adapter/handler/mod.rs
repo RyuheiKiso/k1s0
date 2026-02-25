@@ -7,7 +7,7 @@ use std::sync::Arc;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::extract::State;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post};
 use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -15,7 +15,8 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::domain::repository::{EventRepository, EventStreamRepository};
 use crate::infrastructure::kafka::EventPublisher;
 use crate::usecase::{
-    AppendEventsUseCase, CreateSnapshotUseCase, GetLatestSnapshotUseCase, ReadEventsUseCase,
+    AppendEventsUseCase, CreateSnapshotUseCase, DeleteStreamUseCase, GetLatestSnapshotUseCase,
+    ReadEventsUseCase,
 };
 
 /// AppState はアプリケーション全体の共有状態を表す。
@@ -25,6 +26,7 @@ pub struct AppState {
     pub read_events_uc: Arc<ReadEventsUseCase>,
     pub create_snapshot_uc: Arc<CreateSnapshotUseCase>,
     pub get_latest_snapshot_uc: Arc<GetLatestSnapshotUseCase>,
+    pub delete_stream_uc: Arc<DeleteStreamUseCase>,
     pub stream_repo: Arc<dyn EventStreamRepository>,
     pub event_repo: Arc<dyn EventRepository>,
     pub event_publisher: Arc<dyn EventPublisher>,
@@ -38,6 +40,7 @@ pub struct AppState {
         event_handler::read_events,
         event_handler::list_events,
         event_handler::list_streams,
+        event_handler::delete_stream,
         event_handler::get_snapshot,
         event_handler::create_snapshot,
     ),
@@ -75,6 +78,10 @@ pub fn router(state: AppState) -> Router {
         )
         // Streams
         .route("/api/v1/streams", get(event_handler::list_streams))
+        .route(
+            "/api/v1/streams/:stream_id",
+            delete(event_handler::delete_stream),
+        )
         .route(
             "/api/v1/streams/:stream_id/snapshot",
             get(event_handler::get_snapshot).post(event_handler::create_snapshot),

@@ -7,6 +7,7 @@ use super::AppState;
 use crate::domain::entity::event::{EventData, EventMetadata};
 use crate::usecase::append_events::{AppendEventsError, AppendEventsInput};
 use crate::usecase::create_snapshot::{CreateSnapshotError, CreateSnapshotInput};
+use crate::usecase::delete_stream::{DeleteStreamError, DeleteStreamInput};
 use crate::usecase::get_latest_snapshot::{GetLatestSnapshotError, GetLatestSnapshotInput};
 use crate::usecase::read_events::{ReadEventsError, ReadEventsInput};
 
@@ -485,6 +486,35 @@ pub async fn create_snapshot(
     ))
 }
 
+/// DELETE /api/v1/streams/:stream_id - Delete a stream and all its events/snapshots
+#[utoipa::path(
+    delete,
+    path = "/api/v1/streams/{stream_id}",
+    params(("stream_id" = String, Path, description = "Stream ID")),
+    responses(
+        (status = 200, description = "Stream deleted"),
+        (status = 404, description = "Stream not found"),
+    ),
+)]
+pub async fn delete_stream(
+    State(state): State<AppState>,
+    Path(stream_id): Path<String>,
+) -> Result<impl axum::response::IntoResponse, EventStoreError> {
+    let input = DeleteStreamInput { stream_id };
+
+    state.delete_stream_uc.execute(&input).await.map_err(|e| match e {
+        DeleteStreamError::StreamNotFound(id) => {
+            EventStoreError::NotFound(format!("stream not found: {}", id))
+        }
+        DeleteStreamError::Internal(msg) => EventStoreError::Internal(msg),
+    })?;
+
+    Ok((
+        axum::http::StatusCode::OK,
+        Json(serde_json::json!({"success": true})),
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -526,6 +556,11 @@ mod tests {
             )),
             get_latest_snapshot_uc: Arc::new(GetLatestSnapshotUseCase::new(
                 stream.clone(),
+                snap.clone(),
+            )),
+            delete_stream_uc: Arc::new(crate::usecase::DeleteStreamUseCase::new(
+                stream.clone(),
+                event.clone(),
                 snap.clone(),
             )),
             stream_repo: stream,

@@ -73,6 +73,7 @@ async fn main() -> anyhow::Result<()> {
 
     let create_job_uc = Arc::new(usecase::CreateJobUseCase::new(job_repo.clone()));
     let get_job_uc = Arc::new(usecase::GetJobUseCase::new(job_repo.clone()));
+    let delete_job_uc = Arc::new(usecase::DeleteJobUseCase::new(job_repo.clone()));
     let trigger_job_uc = Arc::new(usecase::TriggerJobUseCase::new(job_repo.clone()));
     let pause_job_uc = Arc::new(usecase::PauseJobUseCase::new(job_repo.clone()));
     let resume_job_uc = Arc::new(usecase::ResumeJobUseCase::new(job_repo.clone()));
@@ -88,6 +89,7 @@ async fn main() -> anyhow::Result<()> {
         job_repo,
         create_job_uc,
         get_job_uc,
+        delete_job_uc,
         pause_job_uc,
         resume_job_uc,
         metrics,
