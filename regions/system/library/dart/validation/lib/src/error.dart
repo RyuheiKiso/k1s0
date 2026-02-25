@@ -1,10 +1,11 @@
 class ValidationError implements Exception {
   final String field;
   final String message;
-  final String code;
+  final String? _code;
 
-  const ValidationError(this.field, this.message, {String? code})
-      : code = code ?? 'INVALID_${field.toUpperCase()}';
+  String get code => _code ?? 'INVALID_${field.toUpperCase()}';
+
+  const ValidationError(this.field, this.message, {String? code}) : _code = code;
 
   @override
   String toString() => 'ValidationError($field, $code): $message';
