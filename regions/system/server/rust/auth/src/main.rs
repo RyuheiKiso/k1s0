@@ -14,10 +14,12 @@ mod usecase;
 use adapter::grpc::{AuditGrpcService, AuthGrpcService};
 use adapter::handler::{self, AppState};
 use adapter::repository::audit_log_postgres::AuditLogPostgresRepository;
+use adapter::repository::cached_user_repository::CachedUserRepository;
 use adapter::repository::user_postgres::UserPostgresRepository;
 use infrastructure::database::DatabaseConfig;
 use infrastructure::kafka_producer::KafkaConfig;
 use infrastructure::keycloak_client::{KeycloakClient, KeycloakConfig};
+use infrastructure::user_cache::UserCache;
 
 /// Application configuration.
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -235,15 +237,30 @@ async fn main() -> anyhow::Result<()> {
     // Metrics (shared across layers and repositories)
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server"));
 
+    // User cache (max 5000 entries, TTL 300 seconds)
+    let user_cache = Arc::new(UserCache::new(5000, 300));
+
     // User repository (PostgreSQL > Keycloak > Stub)
     let keycloak_config = cfg.keycloak.take();
     let user_repo: Arc<dyn domain::repository::UserRepository> = if let Some(ref pool) = db_pool {
-        Arc::new(UserPostgresRepository::with_metrics(
-            pool.clone(),
+        let inner: Arc<dyn domain::repository::UserRepository> =
+            Arc::new(UserPostgresRepository::with_metrics(
+                pool.clone(),
+                metrics.clone(),
+            ));
+        Arc::new(CachedUserRepository::with_metrics(
+            inner,
+            user_cache,
             metrics.clone(),
         ))
     } else if let Some(kc_config) = keycloak_config {
-        Arc::new(KeycloakClient::new(kc_config))
+        let inner: Arc<dyn domain::repository::UserRepository> =
+            Arc::new(KeycloakClient::new(kc_config));
+        Arc::new(CachedUserRepository::with_metrics(
+            inner,
+            user_cache,
+            metrics.clone(),
+        ))
     } else {
         Arc::new(StubUserRepository)
     };

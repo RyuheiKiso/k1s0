@@ -8,6 +8,7 @@ use tracing::info;
 
 mod adapter;
 mod domain;
+mod infrastructure;
 mod proto;
 mod usecase;
 
@@ -15,12 +16,19 @@ use adapter::grpc::VaultGrpcService;
 use adapter::handler::{self, AppState};
 use domain::entity::secret::Secret;
 use domain::repository::{AccessLogRepository, SecretStore};
+use infrastructure::database::DatabaseConfig;
+use infrastructure::encryption::MasterKey;
+use infrastructure::kafka_producer::KafkaConfig;
 
 /// Application configuration.
 #[derive(Debug, Clone, serde::Deserialize)]
 struct Config {
     app: AppConfig,
     server: ServerConfig,
+    #[serde(default)]
+    database: Option<DatabaseConfig>,
+    #[serde(default)]
+    kafka: Option<KafkaConfig>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -83,9 +91,56 @@ async fn main() -> anyhow::Result<()> {
         "starting vault server"
     );
 
-    // InMemory implementations for dev mode
-    let secret_store: Arc<dyn SecretStore> = Arc::new(InMemorySecretStore::new());
-    let audit_repo: Arc<dyn AccessLogRepository> = Arc::new(NoopAccessLogRepository);
+    // MasterKey for encryption
+    let master_key = Arc::new(MasterKey::from_env()?);
+    info!("master key loaded");
+
+    // Cache (max 10000 entries, TTL 48 min = 2880 seconds)
+    // TODO: Wire cache as a decorator around SecretStore in a future phase
+    let _secret_cache = Arc::new(infrastructure::cache::SecretCache::new(10_000, 2880));
+
+    // Secret store + audit repository (PG or InMemory)
+    let (secret_store, audit_repo, db_pool): (
+        Arc<dyn SecretStore>,
+        Arc<dyn AccessLogRepository>,
+        Option<sqlx::PgPool>,
+    ) = if let Some(ref db_config) = cfg.database {
+        info!("connecting to PostgreSQL for vault storage");
+        let pool = sqlx::PgPool::connect(&db_config.connection_url()).await?;
+        let pool = Arc::new(pool);
+        info!("PostgreSQL connection pool established");
+
+        let store: Arc<dyn SecretStore> = Arc::new(
+            adapter::repository::secret_store_postgres::SecretStorePostgresRepository::new(
+                pool.clone(),
+                master_key.clone(),
+            ),
+        );
+        let audit: Arc<dyn AccessLogRepository> = Arc::new(
+            adapter::repository::access_log_postgres::AccessLogPostgresRepository::new(
+                pool.clone(),
+            ),
+        );
+
+        (store, audit, Some(pool.as_ref().clone()))
+    } else {
+        info!("using in-memory secret store (dev mode)");
+        let store: Arc<dyn SecretStore> = Arc::new(InMemorySecretStore::new());
+        let audit: Arc<dyn AccessLogRepository> = Arc::new(NoopAccessLogRepository);
+        (store, audit, None)
+    };
+
+    // Kafka event publisher
+    let _event_publisher: Arc<dyn infrastructure::kafka_producer::VaultEventPublisher> =
+        if let Some(ref kafka_config) = cfg.kafka {
+            info!("connecting to Kafka for vault events");
+            let producer = infrastructure::kafka_producer::KafkaProducer::new(kafka_config)?;
+            info!(topic = producer.topic(), "Kafka producer ready");
+            Arc::new(producer)
+        } else {
+            info!("using noop vault event publisher (dev mode)");
+            Arc::new(infrastructure::kafka_producer::NoopVaultEventPublisher)
+        };
 
     // Use cases
     let get_secret_uc = Arc::new(usecase::GetSecretUseCase::new(
@@ -110,13 +165,19 @@ async fn main() -> anyhow::Result<()> {
         list_secrets_uc.clone(),
     ));
 
+    // Metrics
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-vault-server",
+    ));
+
     // AppState (REST)
     let state = AppState {
         get_secret_uc,
         set_secret_uc,
         delete_secret_uc,
         list_secrets_uc,
-        db_pool: None,
+        db_pool,
+        metrics,
     };
 
     // REST Router
@@ -161,7 +222,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-// --- InMemory SecretStore ---
+// --- InMemory SecretStore (dev fallback) ---
 
 struct InMemorySecretStore {
     secrets: tokio::sync::RwLock<HashMap<String, Secret>>,
@@ -233,7 +294,7 @@ impl domain::repository::SecretStore for InMemorySecretStore {
     }
 }
 
-// --- Noop AccessLogRepository ---
+// --- Noop AccessLogRepository (dev fallback) ---
 
 struct NoopAccessLogRepository;
 

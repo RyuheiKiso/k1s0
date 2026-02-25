@@ -8,8 +8,11 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::usecase::{
-    CreateTenantError, CreateTenantInput, CreateTenantUseCase, GetTenantError, GetTenantUseCase,
-    ListTenantsError, ListTenantsUseCase,
+    ActivateTenantError, ActivateTenantUseCase, CreateTenantError, CreateTenantInput,
+    CreateTenantUseCase, DeleteTenantError, DeleteTenantUseCase, GetTenantError, GetTenantUseCase,
+    ListMembersError, ListMembersUseCase, ListTenantsError, ListTenantsUseCase,
+    SuspendTenantError, SuspendTenantUseCase, UpdateTenantError, UpdateTenantInput,
+    UpdateTenantUseCase,
 };
 
 #[derive(Clone)]
@@ -17,6 +20,12 @@ pub struct AppState {
     pub create_tenant_uc: Arc<CreateTenantUseCase>,
     pub get_tenant_uc: Arc<GetTenantUseCase>,
     pub list_tenants_uc: Arc<ListTenantsUseCase>,
+    pub update_tenant_uc: Arc<UpdateTenantUseCase>,
+    pub delete_tenant_uc: Arc<DeleteTenantUseCase>,
+    pub suspend_tenant_uc: Arc<SuspendTenantUseCase>,
+    pub activate_tenant_uc: Arc<ActivateTenantUseCase>,
+    pub list_members_uc: Arc<ListMembersUseCase>,
+    pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 }
 
 // --- Request / Response DTOs ---
@@ -37,6 +46,21 @@ pub struct TenantResponse {
     pub status: String,
     pub plan: String,
     pub created_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateTenantRequest {
+    pub display_name: String,
+    pub plan: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct MemberResponse {
+    pub id: String,
+    pub tenant_id: String,
+    pub user_id: String,
+    pub role: String,
+    pub joined_at: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -189,22 +213,236 @@ pub async fn create_tenant(
     }
 }
 
-/// PUT /api/v1/tenants/:id - Update tenant (stub for now, no UpdateTenantUseCase exists)
+/// PUT /api/v1/tenants/:id
 pub async fn update_tenant(
+    State(state): State<AppState>,
     Path(id): Path<String>,
+    Json(req): Json<UpdateTenantRequest>,
 ) -> impl IntoResponse {
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(serde_json::json!({"error": format!("update tenant {} not yet implemented", id)})),
-    )
+    let tenant_id = match Uuid::parse_str(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": format!("invalid tenant id: {}", id)})),
+            )
+                .into_response()
+        }
+    };
+
+    let input = UpdateTenantInput {
+        id: tenant_id,
+        display_name: req.display_name,
+        plan: req.plan,
+    };
+
+    match state.update_tenant_uc.execute(input).await {
+        Ok(t) => {
+            let resp = TenantResponse {
+                id: t.id.to_string(),
+                name: t.name,
+                display_name: t.display_name,
+                status: t.status.as_str().to_string(),
+                plan: t.plan,
+                created_at: t.created_at.to_rfc3339(),
+            };
+            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+        }
+        Err(UpdateTenantError::NotFound(_)) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": format!("tenant not found: {}", id)})),
+        )
+            .into_response(),
+        Err(UpdateTenantError::InvalidStatus(msg)) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+        Err(UpdateTenantError::Internal(msg)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+    }
 }
 
-/// DELETE /api/v1/tenants/:id - Delete tenant (stub for now, no DeleteTenantUseCase exists)
+/// DELETE /api/v1/tenants/:id
 pub async fn delete_tenant(
+    State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(serde_json::json!({"error": format!("delete tenant {} not yet implemented", id)})),
-    )
+    let tenant_id = match Uuid::parse_str(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": format!("invalid tenant id: {}", id)})),
+            )
+                .into_response()
+        }
+    };
+
+    match state.delete_tenant_uc.execute(tenant_id).await {
+        Ok(t) => {
+            let resp = TenantResponse {
+                id: t.id.to_string(),
+                name: t.name,
+                display_name: t.display_name,
+                status: t.status.as_str().to_string(),
+                plan: t.plan,
+                created_at: t.created_at.to_rfc3339(),
+            };
+            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+        }
+        Err(DeleteTenantError::NotFound(_)) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": format!("tenant not found: {}", id)})),
+        )
+            .into_response(),
+        Err(DeleteTenantError::InvalidStatus(msg)) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+        Err(DeleteTenantError::Internal(msg)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+    }
+}
+
+/// POST /api/v1/tenants/:id/suspend
+pub async fn suspend_tenant(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let tenant_id = match Uuid::parse_str(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": format!("invalid tenant id: {}", id)})),
+            )
+                .into_response()
+        }
+    };
+
+    match state.suspend_tenant_uc.execute(tenant_id).await {
+        Ok(t) => {
+            let resp = TenantResponse {
+                id: t.id.to_string(),
+                name: t.name,
+                display_name: t.display_name,
+                status: t.status.as_str().to_string(),
+                plan: t.plan,
+                created_at: t.created_at.to_rfc3339(),
+            };
+            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+        }
+        Err(SuspendTenantError::NotFound(_)) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": format!("tenant not found: {}", id)})),
+        )
+            .into_response(),
+        Err(SuspendTenantError::InvalidStatus(msg)) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+        Err(SuspendTenantError::Internal(msg)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+    }
+}
+
+/// POST /api/v1/tenants/:id/activate
+pub async fn activate_tenant(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let tenant_id = match Uuid::parse_str(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": format!("invalid tenant id: {}", id)})),
+            )
+                .into_response()
+        }
+    };
+
+    match state.activate_tenant_uc.execute(tenant_id).await {
+        Ok(t) => {
+            let resp = TenantResponse {
+                id: t.id.to_string(),
+                name: t.name,
+                display_name: t.display_name,
+                status: t.status.as_str().to_string(),
+                plan: t.plan,
+                created_at: t.created_at.to_rfc3339(),
+            };
+            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+        }
+        Err(ActivateTenantError::NotFound(_)) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": format!("tenant not found: {}", id)})),
+        )
+            .into_response(),
+        Err(ActivateTenantError::InvalidStatus(msg)) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+        Err(ActivateTenantError::Internal(msg)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+    }
+}
+
+/// GET /api/v1/tenants/:id/members
+pub async fn list_members(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let tenant_id = match Uuid::parse_str(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": format!("invalid tenant id: {}", id)})),
+            )
+                .into_response()
+        }
+    };
+
+    match state.list_members_uc.execute(tenant_id).await {
+        Ok(members) => {
+            let resp: Vec<MemberResponse> = members
+                .into_iter()
+                .map(|m| MemberResponse {
+                    id: m.id.to_string(),
+                    tenant_id: m.tenant_id.to_string(),
+                    user_id: m.user_id.to_string(),
+                    role: m.role,
+                    joined_at: m.joined_at.to_rfc3339(),
+                })
+                .collect();
+            (StatusCode::OK, Json(serde_json::json!({"members": resp}))).into_response()
+        }
+        Err(ListMembersError::NotFound(_)) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": format!("tenant not found: {}", id)})),
+        )
+            .into_response(),
+        Err(ListMembersError::Internal(msg)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+    }
 }

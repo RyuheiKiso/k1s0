@@ -14,6 +14,9 @@ mod proto;
 mod usecase;
 
 use adapter::grpc::NotificationGrpcService;
+use adapter::repository::channel_postgres::ChannelPostgresRepository;
+use adapter::repository::notification_log_postgres::NotificationLogPostgresRepository;
+use adapter::repository::template_postgres::TemplatePostgresRepository;
 use domain::entity::notification_channel::NotificationChannel;
 use domain::entity::notification_log::NotificationLog;
 use domain::entity::notification_template::NotificationTemplate;
@@ -21,6 +24,9 @@ use domain::repository::NotificationChannelRepository;
 use domain::repository::NotificationLogRepository;
 use domain::repository::NotificationTemplateRepository;
 use infrastructure::config::Config;
+use infrastructure::kafka_producer::{
+    KafkaNotificationProducer, NoopNotificationEventPublisher, NotificationEventPublisher,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -46,17 +52,56 @@ async fn main() -> anyhow::Result<()> {
         "starting notification server"
     );
 
-    let channel_repo: Arc<dyn NotificationChannelRepository> =
-        Arc::new(InMemoryNotificationChannelRepository::new());
-    let log_repo: Arc<dyn NotificationLogRepository> =
-        Arc::new(InMemoryNotificationLogRepository::new());
-    let _template_repo: Arc<dyn NotificationTemplateRepository> =
-        Arc::new(InMemoryNotificationTemplateRepository::new());
+    // --- Repository wiring: PostgreSQL or InMemory fallback ---
+    let (channel_repo, log_repo, template_repo): (
+        Arc<dyn NotificationChannelRepository>,
+        Arc<dyn NotificationLogRepository>,
+        Arc<dyn NotificationTemplateRepository>,
+    ) = if let Some(ref db_cfg) = cfg.database {
+        info!("connecting to PostgreSQL");
+        let pool = Arc::new(infrastructure::database::connect(db_cfg).await?);
+        info!("PostgreSQL connection established");
 
-    let _create_channel_uc = Arc::new(usecase::CreateChannelUseCase::new(channel_repo.clone()));
-    let _update_channel_uc = Arc::new(usecase::UpdateChannelUseCase::new(channel_repo.clone()));
+        (
+            Arc::new(ChannelPostgresRepository::new(pool.clone())),
+            Arc::new(NotificationLogPostgresRepository::new(pool.clone())),
+            Arc::new(TemplatePostgresRepository::new(pool)),
+        )
+    } else {
+        info!("no database configured, using in-memory repositories");
+        (
+            Arc::new(InMemoryNotificationChannelRepository::new()),
+            Arc::new(InMemoryNotificationLogRepository::new()),
+            Arc::new(InMemoryNotificationTemplateRepository::new()),
+        )
+    };
+
+    // --- Kafka wiring: KafkaProducer or Noop fallback ---
+    let _event_publisher: Arc<dyn NotificationEventPublisher> =
+        if let Some(ref kafka_cfg) = cfg.kafka {
+            info!("initializing Kafka producer");
+            let producer = KafkaNotificationProducer::new(kafka_cfg)?;
+            info!(topic = %producer.topic(), "Kafka producer initialized");
+            Arc::new(producer)
+        } else {
+            info!("no Kafka configured, using noop event publisher");
+            Arc::new(NoopNotificationEventPublisher)
+        };
+
+    let create_channel_uc = Arc::new(usecase::CreateChannelUseCase::new(channel_repo.clone()));
+    let list_channels_uc = Arc::new(usecase::ListChannelsUseCase::new(channel_repo.clone()));
+    let get_channel_uc = Arc::new(usecase::GetChannelUseCase::new(channel_repo.clone()));
+    let update_channel_uc = Arc::new(usecase::UpdateChannelUseCase::new(channel_repo.clone()));
+    let delete_channel_uc = Arc::new(usecase::DeleteChannelUseCase::new(channel_repo.clone()));
     let send_notification_uc =
-        Arc::new(usecase::SendNotificationUseCase::new(channel_repo, log_repo.clone()));
+        Arc::new(usecase::SendNotificationUseCase::new(channel_repo.clone(), log_repo.clone()));
+    let retry_notification_uc =
+        Arc::new(usecase::RetryNotificationUseCase::new(log_repo.clone(), channel_repo));
+    let create_template_uc = Arc::new(usecase::CreateTemplateUseCase::new(template_repo.clone()));
+    let list_templates_uc = Arc::new(usecase::ListTemplatesUseCase::new(template_repo.clone()));
+    let get_template_uc = Arc::new(usecase::GetTemplateUseCase::new(template_repo.clone()));
+    let update_template_uc = Arc::new(usecase::UpdateTemplateUseCase::new(template_repo.clone()));
+    let delete_template_uc = Arc::new(usecase::DeleteTemplateUseCase::new(template_repo));
 
     let grpc_svc = Arc::new(NotificationGrpcService::new(
         send_notification_uc.clone(),
@@ -70,9 +115,26 @@ async fn main() -> anyhow::Result<()> {
     use proto::k1s0::system::notification::v1::notification_service_server::NotificationServiceServer;
     let notification_tonic = adapter::grpc::NotificationServiceTonic::new(grpc_svc);
 
+    // Metrics
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-notification-server",
+    ));
+
     let state = adapter::handler::AppState {
         send_notification_uc,
+        retry_notification_uc,
         log_repo,
+        create_channel_uc,
+        list_channels_uc,
+        get_channel_uc,
+        update_channel_uc,
+        delete_channel_uc,
+        create_template_uc,
+        list_templates_uc,
+        get_template_uc,
+        update_template_uc,
+        delete_template_uc,
+        metrics,
     };
 
     let app = adapter::handler::router(state);

@@ -65,13 +65,15 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | --- | --- | --- | --- |
 | GET | `/api/v1/channels` | チャネル一覧取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/channels` | チャネル作成 | `sys_operator` 以上 |
+| GET | `/api/v1/channels/:id` | チャネル詳細取得 | `sys_auditor` 以上 |
 | PUT | `/api/v1/channels/:id` | チャネル更新 | `sys_operator` 以上 |
 | DELETE | `/api/v1/channels/:id` | チャネル削除 | `sys_admin` のみ |
 | GET | `/api/v1/templates` | テンプレート一覧取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/templates` | テンプレート作成 | `sys_operator` 以上 |
+| GET | `/api/v1/templates/:id` | テンプレート詳細取得 | `sys_auditor` 以上 |
 | PUT | `/api/v1/templates/:id` | テンプレート更新 | `sys_operator` 以上 |
 | DELETE | `/api/v1/templates/:id` | テンプレート削除 | `sys_admin` のみ |
-| POST | `/api/v1/notifications/send` | 即時通知送信 | `sys_operator` 以上 |
+| POST | `/api/v1/notifications` | 即時通知送信 | `sys_operator` 以上 |
 | GET | `/api/v1/notifications` | 配信履歴一覧 | `sys_auditor` 以上 |
 | GET | `/api/v1/notifications/:id` | 配信履歴詳細 | `sys_auditor` 以上 |
 | POST | `/api/v1/notifications/:id/retry` | 通知再送 | `sys_operator` 以上 |

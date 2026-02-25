@@ -20,6 +20,9 @@ use domain::repository::WorkflowDefinitionRepository;
 use domain::repository::WorkflowInstanceRepository;
 use domain::repository::WorkflowTaskRepository;
 use infrastructure::config::Config;
+use infrastructure::kafka_producer::{
+    KafkaWorkflowEventPublisher, NoopWorkflowEventPublisher, WorkflowEventPublisher,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -45,16 +48,50 @@ async fn main() -> anyhow::Result<()> {
         "starting workflow server"
     );
 
-    let def_repo: Arc<dyn WorkflowDefinitionRepository> =
-        Arc::new(InMemoryWorkflowDefinitionRepository::new());
-    let inst_repo: Arc<dyn WorkflowInstanceRepository> =
-        Arc::new(InMemoryWorkflowInstanceRepository::new());
-    let task_repo: Arc<dyn WorkflowTaskRepository> =
-        Arc::new(InMemoryWorkflowTaskRepository::new());
+    // --- Repository / Event Publisher 初期化 ---
+    // database 設定がある場合は PostgreSQL、なければ InMemory フォールバック
+    let (def_repo, inst_repo, task_repo): (
+        Arc<dyn WorkflowDefinitionRepository>,
+        Arc<dyn WorkflowInstanceRepository>,
+        Arc<dyn WorkflowTaskRepository>,
+    ) = if let Some(ref db_cfg) = cfg.database {
+        let pool = Arc::new(
+            infrastructure::database::create_pool(
+                &db_cfg.connection_url(),
+                db_cfg.max_open_conns,
+            )
+            .await?,
+        );
+        info!("connected to PostgreSQL database");
+
+        (
+            Arc::new(adapter::repository::DefinitionPostgresRepository::new(pool.clone())),
+            Arc::new(adapter::repository::InstancePostgresRepository::new(pool.clone())),
+            Arc::new(adapter::repository::TaskPostgresRepository::new(pool)),
+        )
+    } else {
+        info!("no database config found, using in-memory repositories");
+        (
+            Arc::new(InMemoryWorkflowDefinitionRepository::new()),
+            Arc::new(InMemoryWorkflowInstanceRepository::new()),
+            Arc::new(InMemoryWorkflowTaskRepository::new()),
+        )
+    };
+
+    // Kafka event publisher
+    let _event_publisher: Arc<dyn WorkflowEventPublisher> =
+        if let Some(ref kafka_cfg) = cfg.kafka {
+            let publisher = KafkaWorkflowEventPublisher::new(kafka_cfg)?;
+            info!(topic = %publisher.topic(), "Kafka event publisher initialized");
+            Arc::new(publisher)
+        } else {
+            info!("no Kafka config found, using noop event publisher");
+            Arc::new(NoopWorkflowEventPublisher)
+        };
 
     let create_wf_uc = Arc::new(usecase::CreateWorkflowUseCase::new(def_repo.clone()));
-    let _update_wf_uc = Arc::new(usecase::UpdateWorkflowUseCase::new(def_repo.clone()));
-    let _delete_wf_uc = Arc::new(usecase::DeleteWorkflowUseCase::new(def_repo.clone()));
+    let update_wf_uc = Arc::new(usecase::UpdateWorkflowUseCase::new(def_repo.clone()));
+    let delete_wf_uc = Arc::new(usecase::DeleteWorkflowUseCase::new(def_repo.clone()));
     let get_wf_uc = Arc::new(usecase::GetWorkflowUseCase::new(def_repo.clone()));
     let list_wf_uc = Arc::new(usecase::ListWorkflowsUseCase::new(def_repo.clone()));
     let start_inst_uc = Arc::new(usecase::StartInstanceUseCase::new(
@@ -63,9 +100,9 @@ async fn main() -> anyhow::Result<()> {
         task_repo.clone(),
     ));
     let get_inst_uc = Arc::new(usecase::GetInstanceUseCase::new(inst_repo.clone()));
-    let _list_inst_uc = Arc::new(usecase::ListInstancesUseCase::new(inst_repo.clone()));
-    let _cancel_inst_uc = Arc::new(usecase::CancelInstanceUseCase::new(inst_repo.clone()));
-    let _list_tasks_uc = Arc::new(usecase::ListTasksUseCase::new(task_repo.clone()));
+    let list_inst_uc = Arc::new(usecase::ListInstancesUseCase::new(inst_repo.clone()));
+    let cancel_inst_uc = Arc::new(usecase::CancelInstanceUseCase::new(inst_repo.clone()));
+    let list_tasks_uc = Arc::new(usecase::ListTasksUseCase::new(task_repo.clone()));
     let approve_task_uc = Arc::new(usecase::ApproveTaskUseCase::new(
         task_repo.clone(),
         inst_repo.clone(),
@@ -76,22 +113,36 @@ async fn main() -> anyhow::Result<()> {
         inst_repo.clone(),
         def_repo.clone(),
     ));
-    let _reassign_task_uc = Arc::new(usecase::ReassignTaskUseCase::new(task_repo.clone()));
+    let reassign_task_uc = Arc::new(usecase::ReassignTaskUseCase::new(task_repo.clone()));
     let _check_overdue_uc = Arc::new(usecase::CheckOverdueTasksUseCase::new(task_repo));
 
     let grpc_svc = Arc::new(WorkflowGrpcService::new(
         start_inst_uc.clone(),
         get_inst_uc.clone(),
-        approve_task_uc,
-        reject_task_uc,
+        approve_task_uc.clone(),
+        reject_task_uc.clone(),
+    ));
+
+    // Metrics
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-workflow-server",
     ));
 
     let handler_state = adapter::handler::AppState {
         create_workflow_uc: create_wf_uc,
+        update_workflow_uc: update_wf_uc,
+        delete_workflow_uc: delete_wf_uc,
         get_workflow_uc: get_wf_uc,
         list_workflows_uc: list_wf_uc,
         start_instance_uc: start_inst_uc,
         get_instance_uc: get_inst_uc,
+        list_instances_uc: list_inst_uc,
+        cancel_instance_uc: cancel_inst_uc,
+        list_tasks_uc,
+        approve_task_uc,
+        reject_task_uc,
+        reassign_task_uc,
+        metrics,
     };
 
     let app = adapter::handler::router(handler_state);

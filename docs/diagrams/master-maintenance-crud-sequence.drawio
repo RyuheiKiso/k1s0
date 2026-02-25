@@ -1,0 +1,424 @@
+<mxfile>
+  <diagram name="Master Maintenance CRUD Sequence">
+    <mxGraphModel dx="1422" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1200">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b&gt;Master Maintenance Server &amp;mdash; CRUD Operation Sequence (UPDATE)&lt;/b&gt;" style="text;html=1;fontSize=20;fontStyle=0;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#1a1a2e;" vertex="1" parent="1">
+          <mxGeometry x="250" y="10" width="700" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="subtitle" value="Sequence diagram showing the complete flow of a record UPDATE operation" style="text;html=1;fontSize=11;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="350" y="42" width="500" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Participant boxes                                         -->
+        <!-- ======================================================== -->
+
+        <!-- 1. React Client (green) x=60 -->
+        <mxCell id="p-react" value="&lt;b&gt;React Client&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;shadow=1;arcSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="30" y="75" width="130" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- 2. GraphQL Gateway (blue) x=240 -->
+        <mxCell id="p-graphql" value="&lt;b&gt;GraphQL Gateway&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;shadow=1;arcSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="200" y="75" width="150" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- 3. Master Maintenance Server (blue, larger) x=440 -->
+        <mxCell id="p-mm" value="&lt;b&gt;Master Maintenance&lt;br&gt;Server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;shadow=1;arcSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="410" y="70" width="170" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- 4. Auth Server (purple) x=660 -->
+        <mxCell id="p-auth" value="&lt;b&gt;Auth Server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;shadow=1;arcSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="640" y="75" width="130" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- 5. PostgreSQL (orange cylinder) x=850 -->
+        <mxCell id="p-postgres" value="&lt;b&gt;PostgreSQL&lt;/b&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;shadow=1;size=8;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="830" y="68" width="120" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- 6. ZEN Rule Engine (purple) x=1030 -->
+        <mxCell id="p-zen" value="&lt;b&gt;ZEN Rule&lt;br&gt;Engine&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;shadow=1;arcSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="70" width="120" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- 7. Kafka (red) x=1210 -->
+        <mxCell id="p-kafka" value="&lt;b&gt;Kafka&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;shadow=1;arcSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="75" width="120" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Lifelines (vertical dashed lines)                         -->
+        <!-- ======================================================== -->
+
+        <!-- React Client lifeline -->
+        <mxCell id="ll-react" style="endArrow=none;dashed=1;strokeColor=#82b366;strokeWidth=1.5;dashPattern=8 4;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="115" as="sourcePoint"/>
+            <mxPoint x="95" y="1130" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- GraphQL Gateway lifeline -->
+        <mxCell id="ll-graphql" style="endArrow=none;dashed=1;strokeColor=#6c8ebf;strokeWidth=1.5;dashPattern=8 4;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="275" y="115" as="sourcePoint"/>
+            <mxPoint x="275" y="1130" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Master Maintenance Server lifeline -->
+        <mxCell id="ll-mm" style="endArrow=none;dashed=1;strokeColor=#6c8ebf;strokeWidth=1.5;dashPattern=8 4;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="495" y="120" as="sourcePoint"/>
+            <mxPoint x="495" y="1130" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Auth Server lifeline -->
+        <mxCell id="ll-auth" style="endArrow=none;dashed=1;strokeColor=#9673a6;strokeWidth=1.5;dashPattern=8 4;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="705" y="115" as="sourcePoint"/>
+            <mxPoint x="705" y="1130" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- PostgreSQL lifeline -->
+        <mxCell id="ll-postgres" style="endArrow=none;dashed=1;strokeColor=#d6b656;strokeWidth=1.5;dashPattern=8 4;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="890" y="118" as="sourcePoint"/>
+            <mxPoint x="890" y="1130" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ZEN Rule Engine lifeline -->
+        <mxCell id="ll-zen" style="endArrow=none;dashed=1;strokeColor=#9673a6;strokeWidth=1.5;dashPattern=8 4;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1070" y="120" as="sourcePoint"/>
+            <mxPoint x="1070" y="1130" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Kafka lifeline -->
+        <mxCell id="ll-kafka" style="endArrow=none;dashed=1;strokeColor=#b85450;strokeWidth=1.5;dashPattern=8 4;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1250" y="115" as="sourcePoint"/>
+            <mxPoint x="1250" y="1130" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Activation bars (thin rectangles on lifelines)            -->
+        <!-- ======================================================== -->
+
+        <!-- React Client activation -->
+        <mxCell id="act-react" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="90" y="145" width="10" height="990" as="geometry"/>
+        </mxCell>
+
+        <!-- GraphQL Gateway activation -->
+        <mxCell id="act-graphql" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="270" y="155" width="10" height="935" as="geometry"/>
+        </mxCell>
+
+        <!-- Master Maintenance Server activation -->
+        <mxCell id="act-mm" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="490" y="210" width="10" height="820" as="geometry"/>
+        </mxCell>
+
+        <!-- Auth Server activation -->
+        <mxCell id="act-auth" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="700" y="265" width="10" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- PostgreSQL activation (metadata query) -->
+        <mxCell id="act-pg1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="885" y="385" width="10" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- PostgreSQL activation (before data query) -->
+        <mxCell id="act-pg2" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="885" y="505" width="10" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- ZEN Rule Engine activation -->
+        <mxCell id="act-zen" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1065" y="625" width="10" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- PostgreSQL activation (update + changelog) -->
+        <mxCell id="act-pg3" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="885" y="800" width="10" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Kafka activation -->
+        <mxCell id="act-kafka" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1245" y="920" width="10" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 1: React Client -> GraphQL Gateway                   -->
+        <!-- ======================================================== -->
+        <mxCell id="s1" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="100" y="160" as="sourcePoint"/>
+            <mxPoint x="270" y="160" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s1-label" value="&lt;font style=&quot;font-size:10px;color:#2d6a2d;&quot;&gt;&lt;b&gt;1.&lt;/b&gt; mutation updateRecord(...)&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="100" y="138" width="170" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 2: GraphQL Gateway -> Master Maintenance Server      -->
+        <!-- ======================================================== -->
+        <mxCell id="s2" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="280" y="220" as="sourcePoint"/>
+            <mxPoint x="490" y="220" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s2-label" value="&lt;font style=&quot;font-size:9px;color:#3a6ea5;&quot;&gt;&lt;b&gt;2.&lt;/b&gt; PUT /api/v1/tables/{name}/records/{id}&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="280" y="198" width="210" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 3: MM Server -> Auth Server (request)                -->
+        <!-- ======================================================== -->
+        <mxCell id="s3" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="500" y="275" as="sourcePoint"/>
+            <mxPoint x="700" y="275" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s3-label" value="&lt;font style=&quot;font-size:9px;color:#7b4f8a;&quot;&gt;&lt;b&gt;3.&lt;/b&gt; Validate JWT + Check table permission&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="500" y="253" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 4: Auth Server -> MM Server (response)               -->
+        <!-- ======================================================== -->
+        <mxCell id="s4" style="endArrow=open;endFill=0;dashed=1;strokeWidth=2;strokeColor=#9673a6;dashPattern=6 3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="315" as="sourcePoint"/>
+            <mxPoint x="500" y="315" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s4-label" value="&lt;font style=&quot;font-size:9px;color:#7b4f8a;&quot;&gt;&lt;b&gt;4.&lt;/b&gt; 200 OK (authorized)&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="520" y="293" width="170" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 5: MM Server -> PostgreSQL (metadata query)          -->
+        <!-- ======================================================== -->
+        <mxCell id="s5" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#d6b656;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="500" y="395" as="sourcePoint"/>
+            <mxPoint x="885" y="395" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s5-label" value="&lt;font style=&quot;font-size:9px;color:#8a7a2e;&quot;&gt;&lt;b&gt;5.&lt;/b&gt; SELECT metadata FROM table_definitions WHERE name = ...&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="530" y="373" width="330" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 6: PostgreSQL -> MM Server (metadata response)       -->
+        <!-- ======================================================== -->
+        <mxCell id="s6" style="endArrow=open;endFill=0;dashed=1;strokeWidth=2;strokeColor=#d6b656;dashPattern=6 3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="885" y="435" as="sourcePoint"/>
+            <mxPoint x="500" y="435" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s6-label" value="&lt;font style=&quot;font-size:9px;color:#8a7a2e;&quot;&gt;&lt;b&gt;6.&lt;/b&gt; table metadata + column definitions&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="560" y="413" width="300" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 7: MM Server -> PostgreSQL (before data query)       -->
+        <!-- ======================================================== -->
+        <mxCell id="s7" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#d6b656;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="500" y="515" as="sourcePoint"/>
+            <mxPoint x="885" y="515" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s7-label" value="&lt;font style=&quot;font-size:9px;color:#8a7a2e;&quot;&gt;&lt;b&gt;7.&lt;/b&gt; SELECT * FROM target_table WHERE id = ... (before data)&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="530" y="493" width="330" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 8: PostgreSQL -> MM Server (current record)          -->
+        <!-- ======================================================== -->
+        <mxCell id="s8" style="endArrow=open;endFill=0;dashed=1;strokeWidth=2;strokeColor=#d6b656;dashPattern=6 3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="885" y="555" as="sourcePoint"/>
+            <mxPoint x="500" y="555" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s8-label" value="&lt;font style=&quot;font-size:9px;color:#8a7a2e;&quot;&gt;&lt;b&gt;8.&lt;/b&gt; current record (before)&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="580" y="533" width="280" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 9: MM Server -> ZEN Rule Engine (validation)         -->
+        <!-- ======================================================== -->
+        <mxCell id="s9" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="500" y="635" as="sourcePoint"/>
+            <mxPoint x="1065" y="635" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s9-label" value="&lt;font style=&quot;font-size:9px;color:#7b4f8a;&quot;&gt;&lt;b&gt;9.&lt;/b&gt; Validate(before_data, after_data, rules)&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="600" y="613" width="350" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 10: ZEN Rule Engine -> MM Server (validation result)  -->
+        <!-- ======================================================== -->
+        <mxCell id="s10" style="endArrow=open;endFill=0;dashed=1;strokeWidth=2;strokeColor=#9673a6;dashPattern=6 3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1065" y="675" as="sourcePoint"/>
+            <mxPoint x="500" y="675" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s10-label" value="&lt;font style=&quot;font-size:9px;color:#7b4f8a;&quot;&gt;&lt;b&gt;10.&lt;/b&gt; ValidationResult { errors: [], warnings: [] }&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="580" y="653" width="380" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 11: Note (validation error condition)                -->
+        <!-- ======================================================== -->
+        <mxCell id="s11-note" value="&lt;font style=&quot;font-size:10px;&quot;&gt;&lt;b&gt;alt&lt;/b&gt; [errors present]&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#b85450;&quot;&gt;If errors &amp;rarr; return &lt;b&gt;422 Validation Error&lt;/b&gt;&lt;br&gt;(skip steps 12-16, respond with error details)&lt;/font&gt;&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;shadow=1;size=14;align=left;spacingLeft=8;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="510" y="720" width="280" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 12: MM Server -> PostgreSQL (update + changelog)     -->
+        <!-- ======================================================== -->
+        <mxCell id="s12" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#d6b656;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="500" y="810" as="sourcePoint"/>
+            <mxPoint x="885" y="810" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s12-label" value="&lt;font style=&quot;font-size:8px;color:#8a7a2e;&quot;&gt;&lt;b&gt;12.&lt;/b&gt; BEGIN; UPDATE target_table SET ...; INSERT INTO change_logs ...; COMMIT;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="510" y="788" width="370" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 13: PostgreSQL -> MM Server (update OK)              -->
+        <!-- ======================================================== -->
+        <mxCell id="s13" style="endArrow=open;endFill=0;dashed=1;strokeWidth=2;strokeColor=#d6b656;dashPattern=6 3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="885" y="850" as="sourcePoint"/>
+            <mxPoint x="500" y="850" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s13-label" value="&lt;font style=&quot;font-size:9px;color:#8a7a2e;&quot;&gt;&lt;b&gt;13.&lt;/b&gt; OK (1 row updated)&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="590" y="828" width="270" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 14: MM Server -> Kafka (publish event)               -->
+        <!-- ======================================================== -->
+        <mxCell id="s14" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#b85450;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="500" y="930" as="sourcePoint"/>
+            <mxPoint x="1245" y="930" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s14-label" value="&lt;font style=&quot;font-size:9px;color:#b85450;&quot;&gt;&lt;b&gt;14.&lt;/b&gt; Publish data_changed event&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="700" y="908" width="400" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 15: MM Server -> GraphQL Gateway (response)          -->
+        <!-- ======================================================== -->
+        <mxCell id="s15" style="endArrow=open;endFill=0;dashed=1;strokeWidth=2;strokeColor=#6c8ebf;dashPattern=6 3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="490" y="1010" as="sourcePoint"/>
+            <mxPoint x="280" y="1010" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s15-label" value="&lt;font style=&quot;font-size:9px;color:#3a6ea5;&quot;&gt;&lt;b&gt;15.&lt;/b&gt; 200 OK { record, warnings }&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="290" y="988" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Step 16: GraphQL Gateway -> React Client (response)       -->
+        <!-- ======================================================== -->
+        <mxCell id="s16" style="endArrow=open;endFill=0;dashed=1;strokeWidth=2;strokeColor=#82b366;dashPattern=6 3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="270" y="1080" as="sourcePoint"/>
+            <mxPoint x="100" y="1080" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s16-label" value="&lt;font style=&quot;font-size:9px;color:#2d6a2d;&quot;&gt;&lt;b&gt;16.&lt;/b&gt; { data: { updateRecord: { ... } } }&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=bottom;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1058" width="170" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ======================================================== -->
+        <!-- Legend                                                     -->
+        <!-- ======================================================== -->
+        <mxCell id="legend-box" value="&lt;b&gt;Legend&lt;/b&gt;" style="swimlane;startSize=20;fillColor=#f5f5f5;strokeColor=#cccccc;rounded=1;arcSize=8;fontStyle=1;fontSize=10;swimlaneLine=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1145" width="600" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-solid" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="legend-box">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="10" y="32" as="sourcePoint"/>
+            <mxPoint x="55" y="32" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-solid-text" value="Request" style="text;fontSize=9;align=left;" vertex="1" parent="legend-box">
+          <mxGeometry x="60" y="23" width="50" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-dashed" style="endArrow=open;endFill=0;dashed=1;strokeWidth=2;strokeColor=#333333;dashPattern=6 3;" edge="1" parent="legend-box">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="115" y="32" as="sourcePoint"/>
+            <mxPoint x="160" y="32" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-dashed-text" value="Response" style="text;fontSize=9;align=left;" vertex="1" parent="legend-box">
+          <mxGeometry x="165" y="23" width="55" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-green-box" value="" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="legend-box">
+          <mxGeometry x="230" y="25" width="12" height="12" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-green-text" value="Client" style="text;fontSize=9;align=left;" vertex="1" parent="legend-box">
+          <mxGeometry x="245" y="23" width="40" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-blue-box" value="" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="legend-box">
+          <mxGeometry x="290" y="25" width="12" height="12" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-blue-text" value="API / Server" style="text;fontSize=9;align=left;" vertex="1" parent="legend-box">
+          <mxGeometry x="305" y="23" width="60" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-purple-box" value="" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="legend-box">
+          <mxGeometry x="375" y="25" width="12" height="12" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-purple-text" value="Auth / Rules" style="text;fontSize=9;align=left;" vertex="1" parent="legend-box">
+          <mxGeometry x="390" y="23" width="60" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-orange-box" value="" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="legend-box">
+          <mxGeometry x="460" y="25" width="12" height="12" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-orange-text" value="Database" style="text;fontSize=9;align=left;" vertex="1" parent="legend-box">
+          <mxGeometry x="475" y="23" width="50" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-red-box" value="" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="legend-box">
+          <mxGeometry x="535" y="25" width="12" height="12" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-red-text" value="Event Bus" style="text;fontSize=9;align=left;" vertex="1" parent="legend-box">
+          <mxGeometry x="550" y="23" width="50" height="18" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

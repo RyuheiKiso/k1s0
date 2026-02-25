@@ -21,6 +21,7 @@ system tier の DLQ Manager は以下の機能を提供する。
 | コンポーネント | Rust |
 | --- | --- |
 | HTTP フレームワーク | axum + tokio |
+| gRPC | tonic v0.12 |
 | DB アクセス | sqlx v0.8 |
 | Kafka | rdkafka (rust-rdkafka) |
 | OTel | k1s0-telemetry |
@@ -232,6 +233,56 @@ DLQ メッセージを削除する。
 | `SYS_DLQ_CONFLICT` | 409 | リトライ不可能なメッセージに対する再処理要求 |
 | `SYS_DLQ_INTERNAL_ERROR` | 500 | 内部エラー |
 
+### gRPC サービス定義
+
+proto ファイル: `api/proto/k1s0/system/dlq/v1/dlq.proto`
+
+```protobuf
+syntax = "proto3";
+package k1s0.system.dlq.v1;
+
+service DlqService {
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+  rpc RetryMessage(RetryMessageRequest) returns (RetryMessageResponse);
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+  rpc RetryAll(RetryAllRequest) returns (RetryAllResponse);
+}
+
+message DlqMessage {
+  string id = 1;
+  string original_topic = 2;
+  string error_message = 3;
+  int32 retry_count = 4;
+  int32 max_retries = 5;
+  string payload_json = 6;
+  string status = 7;
+  k1s0.system.common.v1.Timestamp created_at = 8;
+  k1s0.system.common.v1.Timestamp updated_at = 9;
+  optional k1s0.system.common.v1.Timestamp last_retry_at = 10;
+}
+
+message ListMessagesRequest {
+  string topic = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListMessagesResponse {
+  repeated DlqMessage messages = 1;
+  int64 total = 2;
+}
+
+message GetMessageRequest { string id = 1; }
+message GetMessageResponse { DlqMessage message = 1; }
+message RetryMessageRequest { string id = 1; }
+message RetryMessageResponse { DlqMessage message = 1; }
+message DeleteMessageRequest { string id = 1; }
+message DeleteMessageResponse { string id = 1; }
+message RetryAllRequest { string topic = 1; }
+message RetryAllResponse { int32 retried_count = 1; }
+```
+
 ---
 
 ## DLQ メッセージ状態遷移
@@ -326,6 +377,7 @@ infrastructure（DB接続・Kafka Consumer/Producer・設定ローダー）
 | domain/repository | `DlqMessageRepository` | リポジトリトレイト |
 | usecase | `ListMessagesUseCase`, `GetMessageUseCase`, `RetryMessageUseCase`, `DeleteMessageUseCase`, `RetryAllUseCase` | ユースケース |
 | adapter/handler | REST ハンドラー | プロトコル変換（axum） |
+| adapter/grpc | gRPC ハンドラー | プロトコル変換（tonic）— 上記 gRPC サービス定義に対応 |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
 | infrastructure/database | DatabaseConfig | DB 接続設定 |
 | infrastructure/kafka/consumer | `DlqKafkaConsumer` | DLQ トピック購読・メッセージ取り込み |
@@ -367,6 +419,11 @@ infrastructure（DB接続・Kafka Consumer/Producer・設定ローダー）
                     │  │  list_messages / get_message             │   │
                     │  │  retry_message / delete_message          │   │
                     │  │  retry_all                               │   │
+                    │  ├──────────────────────────────────────────┤   │
+                    │  │ gRPC Handler (dlq_grpc.rs)               │   │
+                    │  │  ListMessages / GetMessage /             │   │
+                    │  │  RetryMessage / DeleteMessage /          │   │
+                    │  │  RetryAll                                │   │
                     │  └──────────────────────┬───────────────────┘   │
                     └─────────────────────────┼───────────────────────┘
                                               │
@@ -497,12 +554,12 @@ replicaCount: 2
 
 container:
   port: 8080
-  grpcPort: null    # HTTP only（gRPC なし）
+  grpcPort: 9090
 
 service:
   type: ClusterIP
   port: 80
-  grpcPort: null
+  grpcPort: 9090
 
 autoscaling:
   enabled: true

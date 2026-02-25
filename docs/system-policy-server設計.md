@@ -70,8 +70,9 @@ system tier のポリシー評価サーバーは以下の機能を提供する�
 | POST | `/api/v1/policies` | ポリシー作成 | `sys_admin` のみ |
 | PUT | `/api/v1/policies/:id` | ポリシー更新 | `sys_admin` のみ |
 | DELETE | `/api/v1/policies/:id` | ポリシー削除 | `sys_admin` のみ |
-| POST | `/api/v1/evaluate` | ポリシー評価 | `sys_operator` 以上 |
+| POST | `/api/v1/policies/:id/evaluate` | ポリシー評価（ポリシー ID 指定） | `sys_operator` 以上 |
 | GET | `/api/v1/bundles` | バンドル一覧取得 | `sys_auditor` 以上 |
+| POST | `/api/v1/bundles` | バンドル作成 | `sys_admin` のみ |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
@@ -257,7 +258,7 @@ ID 指定でポリシーの詳細を取得する。
 }
 ```
 
-#### POST /api/v1/evaluate
+#### POST /api/v1/policies/:id/evaluate
 
 指定ポリシーに対して入力データを評価し、allow/deny を返す。評価結果は moka キャッシュに TTL 30 秒で保存される。
 

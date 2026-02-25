@@ -4,9 +4,11 @@ use std::sync::Arc;
 use tracing::info;
 
 use k1s0_api_registry_server::adapter;
+use k1s0_api_registry_server::adapter::repository::cached_schema_repository::CachedSchemaRepository;
 use k1s0_api_registry_server::adapter::repository::schema_postgres::SchemaPostgresRepository;
 use k1s0_api_registry_server::adapter::repository::version_postgres::VersionPostgresRepository;
 use k1s0_api_registry_server::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
+use k1s0_api_registry_server::infrastructure::cache::SchemaCache;
 use k1s0_api_registry_server::infrastructure::config::Config;
 use k1s0_api_registry_server::infrastructure::database::create_pool;
 use k1s0_api_registry_server::infrastructure::kafka::{
@@ -57,13 +59,18 @@ async fn main() -> anyhow::Result<()> {
         None
     };
 
+    // Schema cache (max 5000 entries, TTL 600 seconds)
+    let schema_cache = Arc::new(SchemaCache::new(5000, 600));
+
     // Repositories
     let (schema_repo, version_repo): (
         Arc<dyn ApiSchemaRepository>,
         Arc<dyn ApiSchemaVersionRepository>,
     ) = if let Some(ref pool) = db_pool {
+        let inner_schema: Arc<dyn ApiSchemaRepository> =
+            Arc::new(SchemaPostgresRepository::new(pool.clone()));
         (
-            Arc::new(SchemaPostgresRepository::new(pool.clone())),
+            Arc::new(CachedSchemaRepository::new(inner_schema, schema_cache)),
             Arc::new(VersionPostgresRepository::new(pool.clone())),
         )
     } else {

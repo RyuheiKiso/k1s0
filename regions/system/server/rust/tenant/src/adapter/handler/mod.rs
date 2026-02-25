@@ -3,7 +3,10 @@ pub mod tenant_handler;
 
 pub use tenant_handler::AppState;
 
-use axum::routing::get;
+use axum::extract::State;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use axum::routing::{get, post};
 use axum::Router;
 
 /// REST API router.
@@ -11,6 +14,7 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/healthz", get(tenant_handler::healthz))
         .route("/readyz", get(tenant_handler::readyz))
+        .route("/metrics", get(metrics_handler))
         .route(
             "/api/v1/tenants",
             get(tenant_handler::list_tenants).post(tenant_handler::create_tenant),
@@ -21,7 +25,28 @@ pub fn router(state: AppState) -> Router {
                 .put(tenant_handler::update_tenant)
                 .delete(tenant_handler::delete_tenant),
         )
+        .route(
+            "/api/v1/tenants/:id/suspend",
+            post(tenant_handler::suspend_tenant),
+        )
+        .route(
+            "/api/v1/tenants/:id/activate",
+            post(tenant_handler::activate_tenant),
+        )
+        .route(
+            "/api/v1/tenants/:id/members",
+            get(tenant_handler::list_members),
+        )
         .with_state(state)
+}
+
+async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let body = state.metrics.gather_metrics();
+    (
+        StatusCode::OK,
+        [("content-type", "text/plain; version=0.0.4; charset=utf-8")],
+        body,
+    )
 }
 
 #[cfg(test)]
@@ -31,15 +56,23 @@ mod tests {
     use axum::http::{Request, StatusCode};
     use tower::ServiceExt;
 
+    use crate::domain::repository::member_repository::MockMemberRepository;
     use crate::domain::repository::tenant_repository::MockTenantRepository;
     use std::sync::Arc;
 
     fn make_app_state(mock: MockTenantRepository) -> AppState {
         let repo = Arc::new(mock);
+        let member_repo = Arc::new(MockMemberRepository::new());
         AppState {
             create_tenant_uc: Arc::new(crate::usecase::CreateTenantUseCase::new(repo.clone())),
             get_tenant_uc: Arc::new(crate::usecase::GetTenantUseCase::new(repo.clone())),
-            list_tenants_uc: Arc::new(crate::usecase::ListTenantsUseCase::new(repo)),
+            list_tenants_uc: Arc::new(crate::usecase::ListTenantsUseCase::new(repo.clone())),
+            update_tenant_uc: Arc::new(crate::usecase::UpdateTenantUseCase::new(repo.clone())),
+            delete_tenant_uc: Arc::new(crate::usecase::DeleteTenantUseCase::new(repo.clone())),
+            suspend_tenant_uc: Arc::new(crate::usecase::SuspendTenantUseCase::new(repo.clone())),
+            activate_tenant_uc: Arc::new(crate::usecase::ActivateTenantUseCase::new(repo)),
+            list_members_uc: Arc::new(crate::usecase::ListMembersUseCase::new(member_repo)),
+            metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-tenant-server-test")),
         }
     }
 

@@ -14,10 +14,28 @@ mod proto;
 mod usecase;
 
 use adapter::grpc::SessionGrpcService;
+use adapter::repository::session_metadata_postgres::{
+    NoopSessionMetadataRepository, SessionMetadataPostgresRepository, SessionMetadataRepository,
+};
+use adapter::repository::session_redis::RedisSessionRepository;
 use domain::entity::session::Session;
 use domain::repository::SessionRepository;
 use error::SessionError;
 use infrastructure::config::Config;
+use infrastructure::kafka_producer::{
+    KafkaSessionProducer, NoopSessionEventPublisher, SessionEventPublisher,
+};
+
+async fn metrics_handler(
+    axum::extract::State(state): axum::extract::State<adapter::handler::session_handler::AppState>,
+) -> impl axum::response::IntoResponse {
+    let body = state.metrics.gather_metrics();
+    (
+        axum::http::StatusCode::OK,
+        [("content-type", "text/plain; version=0.0.4; charset=utf-8")],
+        body,
+    )
+}
 
 // --- InMemory Repository ---
 
@@ -83,7 +101,43 @@ async fn main() -> anyhow::Result<()> {
 
     info!(port = cfg.server.port, "starting session server");
 
-    let repo: Arc<dyn SessionRepository> = Arc::new(InMemorySessionRepository::new());
+    // --- Session Repository: Redis or InMemory fallback ---
+    let repo: Arc<dyn SessionRepository> = if let Some(ref redis_cfg) = cfg.redis {
+        info!(url = %redis_cfg.url, "connecting to Redis");
+        let client = redis::Client::open(redis_cfg.url.as_str())
+            .map_err(|e| anyhow::anyhow!("failed to create Redis client: {}", e))?;
+        let conn = redis::aio::ConnectionManager::new(client)
+            .await
+            .map_err(|e| anyhow::anyhow!("failed to connect to Redis: {}", e))?;
+        info!("Redis connection established");
+        Arc::new(RedisSessionRepository::new(conn))
+    } else {
+        info!("Redis not configured, using InMemory session repository");
+        Arc::new(InMemorySessionRepository::new())
+    };
+
+    // --- Session Metadata Repository: PostgreSQL or Noop fallback ---
+    let metadata_repo: Arc<dyn SessionMetadataRepository> = if let Some(ref db_cfg) = cfg.database
+    {
+        info!("connecting to PostgreSQL for session metadata");
+        let pool = infrastructure::database::create_pool(&db_cfg.url, db_cfg.max_connections).await?;
+        info!("PostgreSQL connection pool established");
+        Arc::new(SessionMetadataPostgresRepository::new(Arc::new(pool)))
+    } else {
+        info!("Database not configured, using Noop session metadata repository");
+        Arc::new(NoopSessionMetadataRepository)
+    };
+
+    // --- Event Publisher: Kafka or Noop fallback ---
+    let event_publisher: Arc<dyn SessionEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
+        info!(brokers = ?kafka_cfg.brokers, "connecting to Kafka");
+        let producer = KafkaSessionProducer::new(kafka_cfg)?;
+        info!("Kafka producer initialized");
+        Arc::new(producer)
+    } else {
+        info!("Kafka not configured, using Noop event publisher");
+        Arc::new(NoopSessionEventPublisher)
+    };
 
     let create_uc = Arc::new(usecase::CreateSessionUseCase::new(
         repo.clone(),
@@ -109,6 +163,22 @@ async fn main() -> anyhow::Result<()> {
         cfg.session.default_ttl_seconds,
     ));
 
+    // Metrics
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-session-server",
+    ));
+
+    // Log metadata and event publisher status
+    info!(
+        has_metadata_repo = cfg.database.is_some(),
+        has_event_publisher = cfg.kafka.is_some(),
+        "infrastructure components initialized"
+    );
+
+    // Store metadata_repo and event_publisher for future use by handlers
+    let _metadata_repo = metadata_repo;
+    let _event_publisher = event_publisher;
+
     let state = adapter::handler::session_handler::AppState {
         create_uc,
         get_uc,
@@ -116,11 +186,13 @@ async fn main() -> anyhow::Result<()> {
         revoke_uc,
         list_uc,
         revoke_all_uc,
+        metrics,
     };
 
     let app = axum::Router::new()
         .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
         .route("/readyz", axum::routing::get(adapter::handler::health::readyz))
+        .route("/metrics", axum::routing::get(metrics_handler))
         .route(
             "/api/v1/sessions",
             axum::routing::post(adapter::handler::session_handler::create_session),

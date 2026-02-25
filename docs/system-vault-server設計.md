@@ -1,7 +1,6 @@
 # system-vault-server 設計
 
-system tier の Vault 統合サーバー設計を定義する。HashiCorp Vault からシークレットを取得し、全サービスへの安全な配布を仲介する。シークレットのローテーション時に Kafka でサービスに通知し、シークレットアクセスの監査ログを PostgreSQL に記録する。
-Rust での実装を定義する。
+system tier のシークレット管理サーバー設計を定義する。HashiCorp Vault 統合によるバージョン管理付き KV シークレットストアを提供し、Kafka 通知、SPIFFE 認証、監査ログに対応する。Rust での実装を定義する。
 
 ## 概要
 
@@ -9,28 +8,32 @@ system tier の Vault Server は以下の機能を提供する。
 
 | 機能 | 説明 |
 | --- | --- |
-| シークレット取得 | Vault KV v2 / Dynamic Secrets からシークレットを取得して各サービスに提供する |
-| シークレット一覧 | 権限範囲内のシークレットパス一覧取得 |
-| シークレットローテーション | 手動または Vault リース期限に基づく自動ローテーション実行 |
-| ローテーション通知 | シークレットローテーション時に Kafka `k1s0.system.vault.rotated.v1` でサービスに通知 |
-| アクセス監査ログ | シークレットアクセス・ローテーションイベントを PostgreSQL に記録 |
-| ヘルスモニタリング | Vault の接続状態・リース有効期限の監視 |
+| シークレット作成 | KV パス指定でシークレットを作成する（バージョン 1） |
+| シークレット取得 | パス指定でシークレットを取得する（バージョン指定可能） |
+| シークレット更新 | 既存シークレットを更新する（バージョンが自動インクリメントされる） |
+| シークレット削除 | パス指定でシークレットを削除する |
+| HashiCorp Vault 連携 | KV v2 / Dynamic Secrets 連携 |
+| シークレットローテーション | 自動・手動によるシークレットローテーション |
+| Kafka 通知 | `k1s0.system.vault.rotated.v1` トピックでローテーション通知を配信 |
+| アクセス監査ログ | シークレットアクセスの監査ログを PostgreSQL に記録 |
+| ヘルスモニタリング | ヘルスチェック・レディネスチェック・Prometheus メトリクス |
 
 ### 技術スタック
 
 | コンポーネント | Rust |
 | --- | --- |
-| HTTP フレームワーク | axum + tokio |
-| gRPC | tonic v0.12 |
-| DB アクセス | sqlx v0.8 |
-| Kafka | rdkafka (rust-rdkafka) |
-| Vault クライアント | vaultrs v0.7 |
-| OTel | opentelemetry v0.27 / k1s0-telemetry |
+| HTTP フレームワーク | axum 0.7 + tokio 1 |
+| gRPC | tonic v0.12 + prost v0.13 |
+| DB アクセス | sqlx v0.8（監査ログ用） |
+| OTel | k1s0-telemetry |
 | 設定管理 | serde_yaml |
-| バリデーション | validator v0.18 |
-| キャッシュ | moka v0.12 |
 | シリアライゼーション | serde + serde_json |
 | 非同期ランタイム | tokio 1 (full) |
+| Vault クライアント | vaultrs |
+| Kafka | rdkafka (rust-rdkafka) |
+| キャッシュ | moka v0.12 |
+| バリデーション | validator v0.18 |
+| テスト | mockall 0.13, axum-test 16 |
 
 ### 配置パス
 
@@ -48,14 +51,13 @@ system tier の Vault Server は以下の機能を提供する。
 
 | 項目 | 設計 |
 | --- | --- |
-| Vault 認証方式 | AppRole 認証（サービス用 role_id / secret_id）または Kubernetes Auth |
-| シークレットキャッシュ | moka でシークレット値を TTL（リース期限の 80%）キャッシュ。ローテーション時にクリア |
-| 直接アクセス禁止 | 各サービスは Vault に直接アクセスせず、本サーバーを経由する |
-| アクセス制御 | 要求元サービスのサービスアカウント（SPIFFE ID）に基づくアクセス制御 |
-| ローテーション自動化 | Vault Agent Sidecar と協調。本サーバーはローテーションイベントを Kafka で通知 |
-| DB | PostgreSQL の `vault` スキーマ（監査ログのみ。シークレット値は DB 保存しない） |
-| RBAC | `sys_admin`（全権限）/ `sys_operator`（ローテーション実行）/ `sys_auditor`（読み取り・監査ログ閲覧） |
-| Kafka オプショナル | Kafka 未設定時もシークレット取得は動作する。ローテーション通知のみスキップ |
+| 実装言語 | Rust |
+| ストレージ | HashiCorp Vault 連携（KV v2） |
+| バージョン管理 | シークレット更新時にバージョンが自動インクリメント（KV v2 互換） |
+| アクセス制御 | SPIFFE ID ベースの認可 |
+| キャッシュ | moka キャッシュ |
+| Kafka | ローテーション通知 |
+| 監査ログ | PostgreSQL に記録 |
 
 ---
 
@@ -67,150 +69,59 @@ system tier の Vault Server は以下の機能を提供する。
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| GET | `/api/v1/secrets/:path` | シークレット取得 | SPIFFE ID ベースの認可 |
-| GET | `/api/v1/secrets/:path/metadata` | シークレットメタデータ取得 | SPIFFE ID ベースの認可 |
-| GET | `/api/v1/secrets` | シークレット一覧（パスのみ） | `sys_auditor` 以上 |
-| POST | `/api/v1/secrets/:path/rotate` | シークレットローテーション | `sys_operator` 以上 |
-| GET | `/api/v1/audit/logs` | アクセス監査ログ | `sys_auditor` 以上 |
+| POST | `/api/v1/secrets` | シークレット作成 | `sys_operator` 以上 |
+| GET | `/api/v1/secrets/:key` | シークレット取得 | SPIFFE ID ベースの認可 |
+| PUT | `/api/v1/secrets/:key` | シークレット更新 | `sys_operator` 以上 |
+| DELETE | `/api/v1/secrets/:key` | シークレット削除 | `sys_admin` のみ |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
+| GET | `/api/v1/secrets` | シークレット一覧 | `sys_auditor` 以上 |
+| GET | `/api/v1/secrets/:key/metadata` | メタデータ取得 | `sys_auditor` 以上 |
+| POST | `/api/v1/secrets/:key/rotate` | ローテーション | `sys_operator` 以上 |
+| GET | `/api/v1/audit/logs` | 監査ログ | `sys_auditor` 以上 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
 
-#### GET /api/v1/secrets/:path
+#### POST /api/v1/secrets
 
-指定パスのシークレットを Vault から取得する。キャッシュが有効な場合はキャッシュから返却する。アクセスは監査ログに記録される。
-
-**クエリパラメータ**
-
-| パラメータ | 型 | 必須 | デフォルト | 説明 |
-| --- | --- | --- | --- | --- |
-| `version` | int | No | - | シークレットのバージョン（未指定時は最新） |
-
-**レスポンス（200 OK）**
-
-```json
-{
-  "data": {
-    "username": "db_admin",
-    "password": "s3cret-v4lue"
-  },
-  "version": 3,
-  "created_at": "2026-02-23T10:00:00.000+00:00"
-}
-```
-
-**レスポンス（403 Forbidden）**
-
-```json
-{
-  "error": {
-    "code": "SYS_VAULT_ACCESS_DENIED",
-    "message": "service 'spiffe://k1s0/ns/default/sa/order-service' is not authorized to access 'secret/data/k1s0/system/auth/database'",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
-
-**レスポンス（404 Not Found）**
-
-```json
-{
-  "error": {
-    "code": "SYS_VAULT_SECRET_NOT_FOUND",
-    "message": "secret not found at path: secret/data/k1s0/system/nonexistent",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
-
-**レスポンス（502 Bad Gateway）**
-
-```json
-{
-  "error": {
-    "code": "SYS_VAULT_UPSTREAM_ERROR",
-    "message": "failed to connect to Vault: connection refused",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
-
-#### GET /api/v1/secrets/:path/metadata
-
-シークレットのメタデータ（バージョン情報、リース期限等）を取得する。シークレット値は含まない。
-
-**レスポンス（200 OK）**
-
-```json
-{
-  "path": "secret/data/k1s0/system/auth/database",
-  "current_version": 3,
-  "oldest_version": 1,
-  "created_at": "2026-01-15T08:00:00.000+00:00",
-  "updated_at": "2026-02-23T10:00:00.000+00:00",
-  "lease_duration": "768h"
-}
-```
-
-**レスポンス（404 Not Found）**
-
-```json
-{
-  "error": {
-    "code": "SYS_VAULT_SECRET_NOT_FOUND",
-    "message": "secret metadata not found at path: secret/data/k1s0/system/nonexistent",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
-
-#### GET /api/v1/secrets
-
-権限範囲内のシークレットパス一覧を取得する。シークレット値は含まない。
-
-**クエリパラメータ**
-
-| パラメータ | 型 | 必須 | デフォルト | 説明 |
-| --- | --- | --- | --- | --- |
-| `path_prefix` | string | No | - | パスプレフィックスフィルタ（例: `secret/data/k1s0/system/`） |
-
-**レスポンス（200 OK）**
-
-```json
-{
-  "paths": [
-    "secret/data/k1s0/system/auth/database",
-    "secret/data/k1s0/system/auth/jwt-signing-key",
-    "secret/data/k1s0/system/config/database",
-    "secret/data/k1s0/system/saga/database",
-    "secret/data/k1s0/system/kafka/sasl"
-  ]
-}
-```
-
-#### POST /api/v1/secrets/:path/rotate
-
-指定パスのシークレットをローテーションする。Vault の KV v2 に新バージョンを書き込み、キャッシュをクリアし、Kafka でローテーション通知を配信する。
+新しいシークレットを作成する。`path` でシークレットのキーパスを指定し、`data` に KV データを格納する。
 
 **リクエスト**
 
 ```json
 {
-  "reason": "Scheduled quarterly rotation"
+  "path": "app/db/password",
+  "data": {
+    "username": "db_admin",
+    "password": "s3cret-v4lue"
+  }
 }
 ```
+
+**レスポンス（201 Created）**
+
+```json
+{
+  "path": "app/db/password",
+  "version": 1,
+  "created_at": "2026-02-23T10:00:00.000+00:00"
+}
+```
+
+#### GET /api/v1/secrets/:key
+
+指定パスのシークレットを取得する。バージョン未指定時は最新バージョンを返す。
 
 **レスポンス（200 OK）**
 
 ```json
 {
-  "success": true,
-  "new_version": 4,
-  "rotated_at": "2026-02-23T12:00:00.000+00:00"
+  "path": "app/db/password",
+  "data": {
+    "username": "db_admin",
+    "password": "s3cret-v4lue"
+  },
+  "version": 1,
+  "created_at": "2026-02-23T10:00:00.000+00:00"
 }
 ```
 
@@ -218,110 +129,101 @@ system tier の Vault Server は以下の機能を提供する。
 
 ```json
 {
-  "error": {
-    "code": "SYS_VAULT_SECRET_NOT_FOUND",
-    "message": "secret not found at path: secret/data/k1s0/system/nonexistent",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
+  "error": "secret not found: app/db/password"
 }
 ```
 
-**レスポンス（502 Bad Gateway）**
+#### PUT /api/v1/secrets/:key
+
+既存シークレットを更新する。バージョンが自動インクリメントされる。
+
+**リクエスト**
 
 ```json
 {
-  "error": {
-    "code": "SYS_VAULT_UPSTREAM_ERROR",
-    "message": "failed to rotate secret in Vault: permission denied",
-    "request_id": "req_abc123def456",
-    "details": []
+  "data": {
+    "username": "db_admin",
+    "password": "new-s3cret-v4lue"
   }
 }
 ```
-
-#### GET /api/v1/audit/logs
-
-シークレットアクセスの監査ログをページネーション付きで取得する。
-
-**クエリパラメータ**
-
-| パラメータ | 型 | 必須 | デフォルト | 説明 |
-| --- | --- | --- | --- | --- |
-| `page` | int | No | 1 | ページ番号 |
-| `page_size` | int | No | 50 | 1 ページあたりの件数 |
-| `path` | string | No | - | シークレットパスフィルタ |
-| `action` | string | No | - | アクションフィルタ（GET / ROTATE / LIST） |
-| `service` | string | No | - | 要求元サービスフィルタ |
 
 **レスポンス（200 OK）**
 
 ```json
 {
-  "logs": [
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "path": "secret/data/k1s0/system/auth/database",
-      "action": "GET",
-      "requester_service": "auth-server",
-      "requester_spiffe_id": "spiffe://k1s0/ns/k1s0-system/sa/auth-server",
-      "version": 3,
-      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
-      "created_at": "2026-02-23T10:00:00.000+00:00"
-    },
-    {
-      "id": "660e8400-e29b-41d4-a716-446655440001",
-      "path": "secret/data/k1s0/system/auth/database",
-      "action": "ROTATE",
-      "requester_service": "vault-admin",
-      "requester_spiffe_id": "spiffe://k1s0/ns/k1s0-system/sa/vault-admin",
-      "version": 4,
-      "trace_id": "5bf92f3577b34da6a3ce929d0e0e4737",
-      "created_at": "2026-02-23T12:00:00.000+00:00"
-    }
-  ],
-  "pagination": {
-    "total_count": 1250,
-    "page": 1,
-    "page_size": 50,
-    "has_next": true
-  }
+  "path": "app/db/password",
+  "version": 2,
+  "updated_at": "2026-02-23T12:00:00.000+00:00"
 }
 ```
+
+#### DELETE /api/v1/secrets/:key
+
+指定パスのシークレットを削除する。
+
+**レスポンス（204 No Content）**
+
+レスポンスボディなし。
+
+
 
 ### エラーコード
 
 | コード | HTTP Status | 説明 |
 | --- | --- | --- |
-| `SYS_VAULT_SECRET_NOT_FOUND` | 404 | 指定されたシークレットが Vault に見つからない |
-| `SYS_VAULT_ACCESS_DENIED` | 403 | SPIFFE ID に基づくアクセス制御で拒否された |
-| `SYS_VAULT_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー（不正なパス等） |
-| `SYS_VAULT_UPSTREAM_ERROR` | 502 | Vault への接続・操作が失敗した |
-| `SYS_VAULT_CACHE_ERROR` | 500 | キャッシュ操作の内部エラー |
+| `SYS_VAULT_NOT_FOUND` | 404 | 指定されたシークレットが見つからない |
+| `SYS_VAULT_ACCESS_DENIED` | 403 | アクセスが拒否された |
+| `SYS_VAULT_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー |
+| `SYS_VAULT_UPSTREAM_ERROR` | 502 | HashiCorp Vault への接続・クエリエラー |
+| `SYS_VAULT_CACHE_ERROR` | 500 | キャッシュ操作エラー |
 | `SYS_VAULT_INTERNAL_ERROR` | 500 | 内部エラー |
 
 ### gRPC サービス定義
+
+`api/proto/k1s0/system/vault/v1/vault.proto` に定義。4 つの RPC（GetSecret / SetSecret / DeleteSecret / ListSecrets）を提供する。
 
 ```protobuf
 syntax = "proto3";
 package k1s0.system.vault.v1;
 
+import "k1s0/system/common/v1/types.proto";
+
 service VaultService {
   rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
+  rpc SetSecret(SetSecretRequest) returns (SetSecretResponse);
+  rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse);
   rpc ListSecrets(ListSecretsRequest) returns (ListSecretsResponse);
-  rpc RotateSecret(RotateSecretRequest) returns (RotateSecretResponse);
-  rpc GetSecretMetadata(GetSecretMetadataRequest) returns (GetSecretMetadataResponse);
 }
 
 message GetSecretRequest {
   string path = 1;
-  optional int32 version = 2;
+  string version = 2;
 }
 
 message GetSecretResponse {
   map<string, string> data = 1;
-  int32 version = 2;
-  string created_at = 3;
+  int64 version = 2;
+  k1s0.system.common.v1.Timestamp created_at = 3;
+}
+
+message SetSecretRequest {
+  string path = 1;
+  map<string, string> data = 2;
+}
+
+message SetSecretResponse {
+  int64 version = 1;
+  k1s0.system.common.v1.Timestamp created_at = 2;
+}
+
+message DeleteSecretRequest {
+  string path = 1;
+  repeated int64 versions = 2;
+}
+
+message DeleteSecretResponse {
+  bool success = 1;
 }
 
 message ListSecretsRequest {
@@ -329,31 +231,7 @@ message ListSecretsRequest {
 }
 
 message ListSecretsResponse {
-  repeated string paths = 1;
-}
-
-message RotateSecretRequest {
-  string path = 1;
-  string reason = 2;
-}
-
-message RotateSecretResponse {
-  bool success = 1;
-  int32 new_version = 2;
-  string rotated_at = 3;
-}
-
-message GetSecretMetadataRequest {
-  string path = 1;
-}
-
-message GetSecretMetadataResponse {
-  string path = 1;
-  int32 current_version = 2;
-  int32 oldest_version = 3;
-  string created_at = 4;
-  string updated_at = 5;
-  string lease_duration = 6;
+  repeated string keys = 1;
 }
 ```
 
@@ -361,9 +239,7 @@ message GetSecretMetadataResponse {
 
 ## キャッシュ設計
 
-### シークレットキャッシュ
-
-moka を使用した TTL ベースのインメモリキャッシュ。シークレット値をメモリ上に保持することで Vault への問い合わせ頻度を削減する。
+moka を使用した TTL ベースのインメモリキャッシュにより、Vault への問い合わせ頻度を削減する。
 
 | 設定項目 | 値 |
 | --- | --- |
@@ -372,16 +248,6 @@ moka を使用した TTL ベースのインメモリキャッシュ。シーク�
 | 最大エントリ数 | 10,000 |
 | エビクションポリシー | TTL 期限切れ + LRU |
 | キャッシュキー | `{path}:{version}` |
-
-### キャッシュ無効化
-
-以下のイベントでキャッシュエントリを無効化する。
-
-```
-1. ローテーション実行時 -> 対象パスのキャッシュをクリア
-2. TTL 期限切れ -> moka が自動エビクション
-3. Vault リース失効通知受信時 -> 対象パスのキャッシュをクリア
-```
 
 ---
 
@@ -392,27 +258,26 @@ moka を使用した TTL ベースのインメモリキャッシュ。シーク�
 [テンプレート仕様-サーバー.md](テンプレート仕様-サーバー.md) の 4 レイヤー構成に従う。
 
 ```
-domain（エンティティ・リポジトリインターフェース・ドメインサービス）
+domain（エンティティ・リポジトリインターフェース）
   ^
 usecase（ビジネスロジック）
   ^
-adapter（ハンドラー・プレゼンター・ゲートウェイ）
+adapter（REST ハンドラー・gRPC ハンドラー）
   ^
-infrastructure（Vault Client・DB接続・Kafka Producer・キャッシュ・設定ローダー）
+infrastructure（Vault Client・DB・Kafka・キャッシュ）
 ```
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/entity | `Secret`, `SecretMetadata`, `SecretAccessLog` | エンティティ定義 |
-| domain/repository | `SecretAccessLogRepository` | 監査ログリポジトリトレイト |
-| domain/service | `VaultDomainService` | SPIFFE ベースのアクセス制御、キャッシュ管理ポリシー |
-| usecase | `GetSecretUsecase`, `ListSecretsUsecase`, `RotateSecretUsecase`, `GetMetadataUsecase`, `LogAccessUsecase` | ユースケース |
-| adapter/handler | REST ハンドラー, gRPC ハンドラー | プロトコル変換（axum / tonic） |
-| adapter/gateway | `VaultClient` | Vault API クライアント（vaultrs 使用） |
-| infrastructure/config | Config ローダー | config.yaml の読み込み |
-| infrastructure/persistence | `SecretAccessLogPostgresRepository` | PostgreSQL リポジトリ実装（監査ログ） |
-| infrastructure/cache | `SecretCache` | moka キャッシュ（シークレット値 TTL キャッシュ） |
-| infrastructure/messaging | `VaultEventPublisher`, `VaultKafkaProducer` | Kafka プロデューサー（ローテーション通知） |
+| domain/entity | `Secret`, `SecretVersion`, `SecretValue`, `SecretAccessLog` | エンティティ定義 |
+| domain/repository | `SecretStore`（trait）, `AccessLogRepository`（trait） | リポジトリトレイト |
+| usecase | `GetSecretUseCase`, `SetSecretUseCase`, `DeleteSecretUseCase`, `ListSecretsUseCase` | ユースケース |
+| adapter/handler | `vault_handler.rs`（REST）, `health.rs` | axum REST ハンドラー |
+| adapter/grpc | `VaultGrpcService`, `VaultServiceTonic` | tonic gRPC ハンドラー |
+| adapter/gateway | `VaultClient` | HashiCorp Vault クライアント（vaultrs 経由） |
+| infrastructure/persistence | `PostgresAccessLogRepository` | PostgreSQL 監査ログリポジトリ実装 |
+| infrastructure/cache | `SecretCacheService` | moka キャッシュ実装 |
+| infrastructure/messaging | `VaultKafkaProducer` | Kafka プロデューサー（ローテーション通知） |
 
 ### ドメインモデル
 
@@ -420,35 +285,46 @@ infrastructure（Vault Client・DB接続・Kafka Producer・キャッシュ・�
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `path` | String | シークレットパス（Vault KV v2 パス） |
-| `version` | i32 | シークレットバージョン |
-| `data` | Map\<String, String\> | シークレットデータ（key-value ペア） |
-| `lease_duration` | Duration | リース期限 |
+| `path` | String | シークレットパス（キー） |
+| `current_version` | i64 | 現在のバージョン番号 |
+| `versions` | Vec\<SecretVersion\> | 全バージョンのリスト |
 | `created_at` | DateTime\<Utc\> | 作成日時 |
+| `updated_at` | DateTime\<Utc\> | 更新日時 |
 
-#### SecretMetadata
+**メソッド:**
+- `new(path, data)` -- 初期バージョン（version=1）で作成
+- `get_version(version)` -- 指定バージョン（None 時は最新）を取得。destroyed 済みは None を返す
+- `update(data)` -- 新バージョンを追加し、current_version をインクリメント
+
+#### SecretVersion
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `path` | String | シークレットパス |
-| `current_version` | i32 | 現在のバージョン |
-| `oldest_version` | i32 | 最古のバージョン |
+| `version` | i64 | バージョン番号 |
+| `value` | SecretValue | シークレット値 |
 | `created_at` | DateTime\<Utc\> | 作成日時 |
-| `updated_at` | DateTime\<Utc\> | 更新日時 |
-| `lease_duration` | Duration | リース期限 |
+| `destroyed` | bool | 破棄済みフラグ |
+
+#### SecretValue
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `data` | HashMap\<String, String\> | シークレットデータ（key-value ペア） |
 
 #### SecretAccessLog
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `id` | UUID | 監査ログの一意識別子 |
-| `path` | String | アクセスされたシークレットパス |
-| `action` | String | アクション種別（GET / ROTATE / LIST） |
-| `requester_service` | String | 要求元サービス名 |
-| `requester_spiffe_id` | String | 要求元の SPIFFE ID |
-| `version` | i32 | アクセスされたバージョン |
-| `trace_id` | String | OpenTelemetry トレース ID |
-| `created_at` | DateTime\<Utc\> | アクセス日時 |
+| `id` | Uuid | ログエントリ ID |
+| `path` | String | アクセス対象のシークレットパス |
+| `action` | AccessAction | アクション種別（Read / Write / Delete / List） |
+| `subject` | Option\<String\> | アクセス主体（SPIFFE ID） |
+| `tenant_id` | Option\<String\> | テナント ID |
+| `ip_address` | Option\<String\> | クライアント IP |
+| `trace_id` | Option\<String\> | OTel トレース ID |
+| `success` | bool | 成功フラグ |
+| `error_msg` | Option\<String\> | エラーメッセージ（失敗時） |
+| `created_at` | DateTime\<Utc\> | 記録日時 |
 
 ### 依存関係図
 
@@ -457,102 +333,60 @@ infrastructure（Vault Client・DB接続・Kafka Producer・キャッシュ・�
                     │                    adapter 層                    │
                     │  ┌──────────────────────────────────────────┐   │
                     │  │ REST Handler (vault_handler.rs)          │   │
-                    │  │  healthz / readyz / metrics              │   │
-                    │  │  get_secret / get_metadata               │   │
-                    │  │  list_secrets / rotate_secret            │   │
-                    │  │  get_audit_logs                          │   │
+                    │  │  healthz / readyz                        │   │
+                    │  │  create_secret / get_secret              │   │
+                    │  │  update_secret / delete_secret           │   │
                     │  ├──────────────────────────────────────────┤   │
                     │  │ gRPC Handler (vault_grpc.rs)             │   │
-                    │  │  VaultService impl                       │   │
-                    │  ├──────────────────────────────────────────┤   │
-                    │  │ Gateway: VaultClient (vaultrs)           │   │
-                    │  │  read_secret / list_secrets              │   │
-                    │  │  write_secret / read_metadata            │   │
+                    │  │  VaultGrpcService                        │   │
+                    │  │  get_secret / set_secret                 │   │
+                    │  │  delete_secret / list_secrets            │   │
                     │  └──────────────────────┬───────────────────┘   │
                     └─────────────────────────┼───────────────────────┘
                                               │
                     ┌─────────────────────────▼───────────────────────┐
                     │                   usecase 層                    │
-                    │  GetSecretUsecase / ListSecretsUsecase /        │
-                    │  RotateSecretUsecase / GetMetadataUsecase /     │
-                    │  LogAccessUsecase                               │
+                    │  GetSecretUseCase / SetSecretUseCase /          │
+                    │  DeleteSecretUseCase / ListSecretsUseCase       │
                     └─────────────────────────┬───────────────────────┘
                                               │
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────────┐         ┌──────────▼──────────────────┐   │
     │  domain/entity      │         │ domain/repository           │   │
-    │  Secret,            │         │ SecretAccessLogRepository   │   │
-    │  SecretMetadata,    │         │ (trait)                     │   │
-    │  SecretAccessLog    │         └──────────┬─────────────────┘   │
-    ├─────────────────────┤                    │                     │
-    │  domain/service     │                    │                     │
-    │  VaultDomainService │                    │                     │
-    └─────────────────────┘                    │                     │
-                                               │                     │
-                    ┌──────────────────────────┼─────────────────────┘
-                    │             infrastructure 層  │
-                    │  ┌──────────────┐  ┌─────▼──────────────────┐  │
-                    │  │ Kafka        │  │ SecretAccessLog-       │  │
-                    │  │ Producer     │  │ PostgresRepository     │  │
-                    │  │ (rotation    │  │ (監査ログ)             │  │
-                    │  │  notify)     │  │                        │  │
-                    │  └──────────────┘  └────────────────────────┘  │
-                    │  ┌──────────────┐  ┌────────────────────────┐  │
-                    │  │ moka Cache   │  │ Config                 │  │
-                    │  │ (SecretCache)│  │ Loader                 │  │
-                    │  └──────────────┘  └────────────────────────┘  │
-                    │  ┌──────────────┐                              │
-                    │  │ Database     │                              │
-                    │  │ Config       │                              │
-                    │  └──────────────┘                              │
-                    └────────────────────────────────────────────────┘
+    │  Secret,            │         │ SecretStore (trait)          │   │
+    │  SecretVersion,     │         │ AccessLogRepository (trait)  │   │
+    │  SecretValue,       │         └─────────────────────────────┘   │
+    │  SecretAccessLog    │                                           │
+    └─────────────────────┘                                           │
+                                                                      │
+                    ┌─────────────────────────────────────────────────┘
+                    │             infrastructure 層
+                    │  ┌────────────────────────────────────────────┐ │
+                    │  │ VaultClient (vaultrs)                      │ │
+                    │  │ PostgresAccessLogRepository                │ │
+                    │  │ SecretCacheService (moka)                  │ │
+                    │  │ VaultKafkaProducer (rdkafka)               │ │
+                    │  ├────────────────────────────────────────────┤ │
+                    │  │ Config Loader (serde_yaml)                 │ │
+                    │  └────────────────────────────────────────────┘ │
+                    └─────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 設定ファイル
 
-### config.yaml（本番）
+### config.yaml
 
 ```yaml
 app:
-  name: "vault-server"
+  name: k1s0-vault-server
   version: "0.1.0"
-  environment: "production"
-
+  environment: dev
 server:
   host: "0.0.0.0"
-  port: 8080
-  grpc_port: 50051
-
-database:
-  host: "postgres.k1s0-system.svc.cluster.local"
-  port: 5432
-  name: "k1s0_system"
-  user: "app"
-  password: ""
-  ssl_mode: "disable"
-  max_open_conns: 25
-  max_idle_conns: 5
-  conn_max_lifetime: "5m"
-
-vault:
-  address: "http://vault.k1s0-system.svc.cluster.local:8200"
-  auth_method: "approle"
-  role_id: ""
-  secret_id: ""
-  mount_path: "secret"
-
-cache:
-  max_entries: 10000
-  ttl_ratio: 0.8
-
-kafka:
-  brokers:
-    - "kafka-0.messaging.svc.cluster.local:9092"
-  security_protocol: "PLAINTEXT"
-  topic: "k1s0.system.vault.rotated.v1"
+  port: 8090
 ```
 
 ---
@@ -573,7 +407,7 @@ image:
 replicaCount: 2
 
 container:
-  port: 8080
+  port: 8090
   grpcPort: 50051
 
 service:
@@ -593,23 +427,7 @@ kafka:
 
 vault:
   enabled: true
-  role: "system"
-  secrets:
-    - path: "secret/data/k1s0/system/vault-server/database"
-      key: "password"
-      mountPath: "/vault/secrets/db-password"
-    - path: "secret/data/k1s0/system/vault-server/approle"
-      key: "secret_id"
-      mountPath: "/vault/secrets/vault-secret-id"
 ```
-
-### Vault シークレットパス
-
-| シークレット | パス |
-| --- | --- |
-| DB パスワード | `secret/data/k1s0/system/vault-server/database` |
-| Vault AppRole Secret ID | `secret/data/k1s0/system/vault-server/approle` |
-| Kafka SASL | `secret/data/k1s0/system/kafka/sasl` |
 
 ---
 

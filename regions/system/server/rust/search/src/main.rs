@@ -14,9 +14,14 @@ mod proto;
 mod usecase;
 
 use adapter::grpc::SearchGrpcService;
+use adapter::repository::SearchPostgresRepository;
 use domain::entity::search_index::{SearchDocument, SearchIndex, SearchQuery, SearchResult};
 use domain::repository::SearchRepository;
+use infrastructure::cache::IndexCache;
 use infrastructure::config::Config;
+use infrastructure::kafka_producer::{
+    KafkaSearchProducer, NoopSearchEventPublisher, SearchEventPublisher,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -42,12 +47,52 @@ async fn main() -> anyhow::Result<()> {
         "starting search server"
     );
 
-    let search_repo: Arc<dyn SearchRepository> = Arc::new(InMemorySearchRepository::new());
+    // --- Repository: PostgreSQL or InMemory fallback ---
+    let search_repo: Arc<dyn SearchRepository> = {
+        let db_url = std::env::var("DATABASE_URL").ok();
+        if let Some(url) = db_url {
+            info!("connecting to PostgreSQL for search repository");
+            let pool = infrastructure::database::connect(&url, 10).await?;
+            let pool = Arc::new(pool);
+            Arc::new(SearchPostgresRepository::new(pool))
+        } else {
+            info!("using in-memory search repository (DATABASE_URL not set)");
+            Arc::new(InMemorySearchRepository::new())
+        }
+    };
 
-    let _create_index_uc = Arc::new(usecase::CreateIndexUseCase::new(search_repo.clone()));
+    // --- Cache: moka (max 1000, TTL 30s) ---
+    let _index_cache = Arc::new(IndexCache::new(
+        cfg.cache.max_entries,
+        cfg.cache.ttl_seconds,
+    ));
+    info!(
+        max_entries = cfg.cache.max_entries,
+        ttl_seconds = cfg.cache.ttl_seconds,
+        "index cache initialized"
+    );
+
+    // --- Kafka: Producer or Noop fallback ---
+    let _event_publisher: Arc<dyn SearchEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
+        let brokers = kafka_cfg.brokers.join(",");
+        let topic = "k1s0.system.search.indexed.v1".to_string();
+        info!(brokers = %brokers, topic = %topic, "connecting to Kafka");
+        let producer = KafkaSearchProducer::new(
+            &brokers,
+            &kafka_cfg.security_protocol,
+            &topic,
+        )?;
+        Arc::new(producer)
+    } else {
+        info!("using noop event publisher (kafka not configured)");
+        Arc::new(NoopSearchEventPublisher)
+    };
+
+    let create_index_uc = Arc::new(usecase::CreateIndexUseCase::new(search_repo.clone()));
     let index_document_uc = Arc::new(usecase::IndexDocumentUseCase::new(search_repo.clone()));
     let search_uc = Arc::new(usecase::SearchUseCase::new(search_repo.clone()));
-    let delete_document_uc = Arc::new(usecase::DeleteDocumentUseCase::new(search_repo));
+    let delete_document_uc = Arc::new(usecase::DeleteDocumentUseCase::new(search_repo.clone()));
+    let list_indices_uc = Arc::new(usecase::ListIndicesUseCase::new(search_repo));
 
     let grpc_svc = Arc::new(SearchGrpcService::new(
         index_document_uc.clone(),
@@ -55,15 +100,24 @@ async fn main() -> anyhow::Result<()> {
         delete_document_uc.clone(),
     ));
 
+    // Metrics
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-search-server",
+    ));
+
     let handler_state = adapter::handler::search_handler::AppState {
         search_uc,
         index_document_uc,
         delete_document_uc,
+        create_index_uc,
+        list_indices_uc,
+        metrics,
     };
 
     let app = axum::Router::new()
         .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
         .route("/readyz", axum::routing::get(adapter::handler::health::readyz))
+        .route("/metrics", axum::routing::get(metrics_handler))
         .route(
             "/api/v1/search",
             axum::routing::post(adapter::handler::search_handler::search),
@@ -75,6 +129,14 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/api/v1/search/index/:index_name/:id",
             axum::routing::delete(adapter::handler::search_handler::delete_document_from_index),
+        )
+        .route(
+            "/api/v1/search/indices",
+            axum::routing::post(adapter::handler::search_handler::create_index),
+        )
+        .route(
+            "/api/v1/search/indices",
+            axum::routing::get(adapter::handler::search_handler::list_indices),
         )
         .with_state(handler_state);
 
@@ -115,6 +177,17 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+async fn metrics_handler(
+    axum::extract::State(state): axum::extract::State<adapter::handler::search_handler::AppState>,
+) -> impl axum::response::IntoResponse {
+    let body = state.metrics.gather_metrics();
+    (
+        axum::http::StatusCode::OK,
+        [("content-type", "text/plain; version=0.0.4; charset=utf-8")],
+        body,
+    )
 }
 
 // --- InMemory Repository ---
@@ -182,5 +255,10 @@ impl SearchRepository for InMemorySearchRepository {
         } else {
             Ok(false)
         }
+    }
+
+    async fn list_indices(&self) -> anyhow::Result<Vec<SearchIndex>> {
+        let indices = self.indices.read().await;
+        Ok(indices.values().cloned().collect())
     }
 }

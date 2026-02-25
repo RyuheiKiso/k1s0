@@ -45,7 +45,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 | 項目 | 設計 |
 | --- | --- |
 | 実装言語 | Rust |
-| ストレージバックエンド | aws-sdk-s3 クライアントで S3/GCS/Ceph 互換エンドポイントに接続。バックエンドはconfig で切り替え |
+| ストレージバックエンド | aws-sdk-s3 クライアントで S3/GCS/Ceph 互換エンドポイントに接続。バックエンドは config で切り替え |
 | メタデータ永続化 | PostgreSQL の `file` スキーマ（file_metadata テーブル）でメタデータを管理 |
 | テナント分離 | バケット名またはオブジェクトキープレフィックスにテナント ID を付与（例: `tenant-abc/path/to/file`） |
 | プリサインドURL | aws-sdk-s3 の presigned request 機能で TTL 付き署名 URL を発行 |
@@ -64,12 +64,12 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
 | GET | `/api/v1/files` | ファイル一覧取得 | `sys_auditor` 以上 |
-| POST | `/api/v1/files/upload-url` | アップロードプリサインドURL発行 | `sys_operator` 以上 |
-| POST | `/api/v1/files/:id/complete` | アップロード完了通知 | `sys_operator` 以上 |
+| POST | `/api/v1/files` | ファイルアップロード（プリサインドURL発行） | `sys_operator` 以上 |
 | GET | `/api/v1/files/:id` | ファイルメタデータ取得 | `sys_auditor` 以上 |
-| GET | `/api/v1/files/:id/download-url` | ダウンロードプリサインドURL発行 | `sys_auditor` 以上 |
+| POST | `/api/v1/files/:id/complete` | アップロード完了通知 | `sys_operator` 以上 |
 | DELETE | `/api/v1/files/:id` | ファイル削除 | `sys_operator` 以上 |
 | PUT | `/api/v1/files/:id/tags` | タグ更新 | `sys_operator` 以上 |
+| GET | `/api/v1/files/:id/download-url` | ダウンロードプリサインドURL発行 | `sys_auditor` 以上 |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
@@ -436,7 +436,7 @@ infrastructure（DB接続・S3クライアント・Kafka Producer・設定ロー
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
 | infrastructure/persistence | `FileMetadataPostgresRepository` | PostgreSQL リポジトリ実装 |
-| infrastructure/storage | `S3FileStorageRepository` | aws-sdk-s3 ストレージ実装 |
+| infrastructure/storage | `S3FileStorageRepository` | ストレージ実装 |
 | infrastructure/messaging | `FileUploadedKafkaProducer`, `FileDeletedKafkaProducer` | Kafka プロデューサー |
 
 ### ドメインモデル

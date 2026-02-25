@@ -33,6 +33,8 @@ tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "8", features = ["axum"] }
+rdkafka = { version = "0.37", features = ["cmake-build"] }
+moka = { version = "0.12", features = ["future"] }
 
 [build-dependencies]
 tonic-build = "0.12"

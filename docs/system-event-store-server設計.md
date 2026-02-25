@@ -61,19 +61,18 @@ system tier のイベントソーシングサーバーは以下の機能を提�
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| POST | `/api/v1/streams/:stream_id/events` | イベント追記 | `sys_operator` 以上 |
-| GET | `/api/v1/streams/:stream_id/events` | イベント一覧取得 | `sys_auditor` 以上 |
-| GET | `/api/v1/streams/:stream_id/events/:sequence` | 特定イベント取得 | `sys_auditor` 以上 |
-| POST | `/api/v1/streams/:stream_id/snapshots` | スナップショット作成 | `sys_operator` 以上 |
-| GET | `/api/v1/streams/:stream_id/snapshots/latest` | 最新スナップショット取得 | `sys_auditor` 以上 |
-| DELETE | `/api/v1/streams/:stream_id` | ストリーム削除 | `sys_admin` のみ |
+| POST | `/api/v1/events` | イベント追記（`stream_id` はリクエストボディで指定） | `sys_operator` 以上 |
+| GET | `/api/v1/events` | 全イベント一覧取得 | `sys_auditor` 以上 |
+| GET | `/api/v1/events/:stream_id` | ストリーム別イベント一覧取得 | `sys_auditor` 以上 |
+| GET | `/api/v1/streams` | ストリーム一覧取得 | `sys_auditor` 以上 |
+| POST | `/api/v1/streams/:stream_id/snapshot` | スナップショット作成 | `sys_operator` 以上 |
+| GET | `/api/v1/streams/:stream_id/snapshot` | 最新スナップショット取得 | `sys_auditor` 以上 |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
-| GET | `/metrics` | Prometheus メトリクス | 不要 |
 
-#### POST /api/v1/streams/:stream_id/events
+#### POST /api/v1/events
 
-イベントをストリームに追記する。`expected_version` を指定することで楽観的ロックを実現する。`expected_version` が `-1` の場合はストリームが存在しないことを期待する（新規ストリーム作成）。
+イベントをストリームに追記する。`stream_id` はリクエストボディで指定する。`expected_version` を指定することで楽観的ロックを実現する。`expected_version` が `-1` の場合はストリームが存在しないことを期待する（新規ストリーム作成）。
 
 **リクエスト**
 
@@ -149,7 +148,7 @@ system tier のイベントソーシングサーバーは以下の機能を提�
 }
 ```
 
-#### GET /api/v1/streams/:stream_id/events
+#### GET /api/v1/events/:stream_id
 
 ストリームのイベント一覧をページネーション付きで取得する。`from_version` / `to_version` でバージョン範囲を絞り込める。
 
@@ -228,34 +227,56 @@ system tier のイベントソーシングサーバーは以下の機能を提�
 }
 ```
 
-#### GET /api/v1/streams/:stream_id/events/:sequence
+#### GET /api/v1/events
 
-シーケンス番号で特定のイベントを取得する。
+全ストリームのイベントを一覧取得する。ページネーション付き。
 
 **レスポンス（200 OK）**
 
 ```json
 {
-  "stream_id": "order-order-001",
-  "sequence": 1,
-  "event_type": "OrderPlaced",
-  "version": 1,
-  "payload": {
-    "order_id": "order-001",
-    "tenant_id": "tenant-abc",
-    "total_amount": 3000
-  },
-  "metadata": {
-    "actor_id": "user-001",
-    "correlation_id": "corr_01JABCDEF1234567890",
-    "causation_id": null
-  },
-  "occurred_at": "2026-02-23T10:00:00.000+00:00",
-  "stored_at": "2026-02-23T10:00:00.012+00:00"
+  "events": [
+    {
+      "stream_id": "order-order-001",
+      "sequence": 1,
+      "event_type": "OrderPlaced",
+      "version": 1,
+      "payload": { "..." : "..." },
+      "metadata": { "..." : "..." },
+      "occurred_at": "2026-02-23T10:00:00.000+00:00",
+      "stored_at": "2026-02-23T10:00:00.012+00:00"
+    }
+  ],
+  "pagination": {
+    "total_count": 100,
+    "page": 1,
+    "page_size": 50,
+    "has_next": true
+  }
 }
 ```
 
-#### POST /api/v1/streams/:stream_id/snapshots
+#### GET /api/v1/streams
+
+登録済みストリームの一覧を取得する。
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "streams": [
+    {
+      "id": "order-order-001",
+      "aggregate_type": "Order",
+      "current_version": 2,
+      "created_at": "2026-02-23T10:00:00.000+00:00",
+      "updated_at": "2026-02-23T14:00:00.000+00:00"
+    }
+  ]
+}
+```
+
+#### POST /api/v1/streams/:stream_id/snapshot
 
 集約の現在状態をスナップショットとして保存する。`snapshot_version` には状態が対応するイベントのバージョンを指定する。
 
@@ -287,7 +308,7 @@ system tier のイベントソーシングサーバーは以下の機能を提�
 }
 ```
 
-#### GET /api/v1/streams/:stream_id/snapshots/latest
+#### GET /api/v1/streams/:stream_id/snapshot
 
 ストリームの最新スナップショットを取得する。スナップショットが存在しない場合は `404` を返す。
 

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::usecase::evaluate_policy::{EvaluatePolicyError, EvaluatePolicyInput, EvaluatePolicyUseCase};
+use crate::usecase::evaluate_policy::EvaluatePolicyUseCase;
 use crate::usecase::get_policy::{GetPolicyError, GetPolicyUseCase};
 
 // --- gRPC Request/Response Types ---

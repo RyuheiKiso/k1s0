@@ -7,13 +7,11 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
-use crate::proto::k1s0::system::common::v1::Timestamp as ProtoTimestamp;
 use crate::proto::k1s0::system::featureflag::v1::{
     feature_flag_service_server::FeatureFlagService,
     CreateFlagRequest as ProtoCreateFlagRequest, CreateFlagResponse as ProtoCreateFlagResponse,
     EvaluateFlagRequest as ProtoEvaluateFlagRequest,
-    EvaluateFlagResponse as ProtoEvaluateFlagResponse,
-    EvaluationContext as ProtoEvaluationContext, FeatureFlag as ProtoFeatureFlag,
+    EvaluateFlagResponse as ProtoEvaluateFlagResponse, FeatureFlag as ProtoFeatureFlag,
     FlagVariant as ProtoFlagVariant, GetFlagRequest as ProtoGetFlagRequest,
     GetFlagResponse as ProtoGetFlagResponse, UpdateFlagRequest as ProtoUpdateFlagRequest,
     UpdateFlagResponse as ProtoUpdateFlagResponse,

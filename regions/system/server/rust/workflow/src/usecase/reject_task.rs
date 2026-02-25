@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::domain::entity::workflow_instance::WorkflowInstance;
 use crate::domain::entity::workflow_task::WorkflowTask;
 use crate::domain::repository::WorkflowDefinitionRepository;
 use crate::domain::repository::WorkflowInstanceRepository;
@@ -155,6 +154,7 @@ impl RejectTaskUseCase {
 mod tests {
     use super::*;
     use crate::domain::entity::workflow_definition::WorkflowDefinition;
+    use crate::domain::entity::workflow_instance::WorkflowInstance;
     use crate::domain::entity::workflow_step::WorkflowStep;
     use crate::domain::repository::workflow_definition_repository::MockWorkflowDefinitionRepository;
     use crate::domain::repository::workflow_instance_repository::MockWorkflowInstanceRepository;

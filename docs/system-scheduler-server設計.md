@@ -70,8 +70,8 @@ system tier のスケジューラーサーバーは以下の機能を提供す�
 | PUT | `/api/v1/jobs/:id` | ジョブ更新 | `sys_operator` 以上 |
 | DELETE | `/api/v1/jobs/:id` | ジョブ削除 | `sys_admin` のみ |
 | POST | `/api/v1/jobs/:id/trigger` | ジョブ手動実行 | `sys_operator` 以上 |
-| POST | `/api/v1/jobs/:id/pause` | ジョブ一時停止 | `sys_operator` 以上 |
-| POST | `/api/v1/jobs/:id/resume` | ジョブ再開 | `sys_operator` 以上 |
+| PUT | `/api/v1/jobs/:id/pause` | ジョブ一時停止 | `sys_operator` 以上 |
+| PUT | `/api/v1/jobs/:id/resume` | ジョブ再開 | `sys_operator` 以上 |
 | GET | `/api/v1/jobs/:id/executions` | 実行履歴一覧 | `sys_auditor` 以上 |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |

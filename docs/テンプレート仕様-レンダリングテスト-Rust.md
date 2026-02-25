@@ -51,7 +51,7 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 }
 ```
 
-#### 新規 kind 用ヘルパー（追加予定）
+#### 新規 kind 用ヘルパー
 
 client / library / database 用のヘルパーも同様のパターンで作成する。
 

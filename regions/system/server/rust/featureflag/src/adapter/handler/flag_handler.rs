@@ -131,6 +131,48 @@ pub async fn delete_flag(
     }
 }
 
+/// POST /api/v1/flags/:key/evaluate
+pub async fn evaluate_flag(
+    State(state): State<AppState>,
+    Path(key): Path<String>,
+    Json(req): Json<EvaluateFlagRequest>,
+) -> impl IntoResponse {
+    use crate::usecase::evaluate_flag::EvaluateFlagInput;
+    use crate::domain::entity::evaluation::EvaluationContext;
+
+    let input = EvaluateFlagInput {
+        flag_key: key,
+        context: EvaluationContext {
+            user_id: req.user_id,
+            tenant_id: req.tenant_id,
+            attributes: req.attributes.unwrap_or_default(),
+        },
+    };
+
+    match state.evaluate_flag_uc.execute(&input).await {
+        Ok(result) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "flag_key": result.flag_key,
+                "enabled": result.enabled,
+                "variant": result.variant,
+                "reason": result.reason
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("not found") {
+                let err = ErrorResponse::new("SYS_FF_NOT_FOUND", &msg);
+                (StatusCode::NOT_FOUND, Json(err)).into_response()
+            } else {
+                let err = ErrorResponse::new("SYS_FF_EVALUATE_FAILED", &msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            }
+        }
+    }
+}
+
 // --- Request / Response types ---
 
 #[derive(Debug, Deserialize)]
@@ -145,6 +187,13 @@ pub struct CreateFlagRequest {
 pub struct UpdateFlagRequest {
     pub enabled: Option<bool>,
     pub description: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct EvaluateFlagRequest {
+    pub user_id: Option<String>,
+    pub tenant_id: Option<String>,
+    pub attributes: Option<std::collections::HashMap<String, String>>,
 }
 
 #[derive(Debug, Serialize)]

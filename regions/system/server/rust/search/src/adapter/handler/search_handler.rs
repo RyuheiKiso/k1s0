@@ -9,13 +9,19 @@ use serde::{Deserialize, Serialize};
 use crate::usecase::delete_document::{DeleteDocumentError, DeleteDocumentInput};
 use crate::usecase::index_document::{IndexDocumentError, IndexDocumentInput};
 use crate::usecase::search::{SearchError, SearchInput};
-use crate::usecase::{DeleteDocumentUseCase, IndexDocumentUseCase, SearchUseCase};
+use crate::usecase::{
+    CreateIndexUseCase, DeleteDocumentUseCase, IndexDocumentUseCase, ListIndicesUseCase,
+    SearchUseCase,
+};
 
 #[derive(Clone)]
 pub struct AppState {
     pub search_uc: Arc<SearchUseCase>,
     pub index_document_uc: Arc<IndexDocumentUseCase>,
     pub delete_document_uc: Arc<DeleteDocumentUseCase>,
+    pub create_index_uc: Arc<CreateIndexUseCase>,
+    pub list_indices_uc: Arc<ListIndicesUseCase>,
+    pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 }
 
 // --- Request / Response DTOs ---
@@ -46,6 +52,13 @@ pub struct HitResponse {
     pub index_name: String,
     pub content: serde_json::Value,
     pub indexed_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateIndexRequest {
+    pub name: String,
+    #[serde(default)]
+    pub mapping: serde_json::Value,
 }
 
 #[derive(Debug, Deserialize)]
@@ -138,6 +151,75 @@ pub async fn index_document(
         Err(IndexDocumentError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+    }
+}
+
+/// POST /api/v1/search/indices - Create a search index
+pub async fn create_index(
+    State(state): State<AppState>,
+    Json(req): Json<CreateIndexRequest>,
+) -> impl IntoResponse {
+    use crate::usecase::create_index::CreateIndexInput;
+
+    let input = CreateIndexInput {
+        name: req.name,
+        mapping: req.mapping,
+    };
+
+    match state.create_index_uc.execute(&input).await {
+        Ok(index) => (
+            StatusCode::CREATED,
+            Json(serde_json::json!({
+                "name": index.name,
+                "mapping": index.mapping,
+                "created_at": index.created_at.to_rfc3339()
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("already exists") {
+                (
+                    StatusCode::CONFLICT,
+                    Json(serde_json::json!({"error": msg})),
+                )
+                    .into_response()
+            } else {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error": msg})),
+                )
+                    .into_response()
+            }
+        }
+    }
+}
+
+/// GET /api/v1/search/indices - List all search indices
+pub async fn list_indices(State(state): State<AppState>) -> impl IntoResponse {
+    match state.list_indices_uc.execute().await {
+        Ok(indices) => {
+            let items: Vec<serde_json::Value> = indices
+                .into_iter()
+                .map(|idx| {
+                    serde_json::json!({
+                        "name": idx.name,
+                        "mapping": idx.mapping,
+                        "created_at": idx.created_at.to_rfc3339()
+                    })
+                })
+                .collect();
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({"indices": items})),
+            )
+                .into_response()
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": e.to_string()})),
         )
             .into_response(),
     }

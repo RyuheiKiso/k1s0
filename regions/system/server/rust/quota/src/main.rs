@@ -42,10 +42,67 @@ async fn main() -> anyhow::Result<()> {
         "starting quota server"
     );
 
-    let policy_repo: Arc<dyn QuotaPolicyRepository> =
-        Arc::new(InMemoryQuotaPolicyRepository::new());
-    let usage_repo: Arc<dyn QuotaUsageRepository> =
-        Arc::new(InMemoryQuotaUsageRepository::new());
+    // --- Repository initialization: PostgreSQL or InMemory fallback ---
+    let (policy_repo, usage_repo): (
+        Arc<dyn QuotaPolicyRepository>,
+        Arc<dyn QuotaUsageRepository>,
+    ) = if let Some(ref db_cfg) = cfg.database {
+        info!(url = %db_cfg.url, "connecting to PostgreSQL");
+        match infrastructure::database::create_pool(&db_cfg.url, db_cfg.max_connections).await {
+            Ok(pool) => {
+                let pool = Arc::new(pool);
+                info!("PostgreSQL connection pool created successfully");
+                let policy_repo = Arc::new(
+                    adapter::repository::QuotaPolicyPostgresRepository::new(pool.clone()),
+                );
+                let usage_repo = Arc::new(
+                    adapter::repository::QuotaUsagePostgresRepository::new(pool),
+                );
+                (policy_repo, usage_repo)
+            }
+            Err(e) => {
+                tracing::warn!(
+                    error = %e,
+                    "failed to connect to PostgreSQL, falling back to InMemory"
+                );
+                (
+                    Arc::new(InMemoryQuotaPolicyRepository::new()) as Arc<dyn QuotaPolicyRepository>,
+                    Arc::new(InMemoryQuotaUsageRepository::new()) as Arc<dyn QuotaUsageRepository>,
+                )
+            }
+        }
+    } else {
+        info!("no database config found, using InMemory repositories");
+        (
+            Arc::new(InMemoryQuotaPolicyRepository::new()) as Arc<dyn QuotaPolicyRepository>,
+            Arc::new(InMemoryQuotaUsageRepository::new()) as Arc<dyn QuotaUsageRepository>,
+        )
+    };
+
+    // --- Kafka event publisher initialization ---
+    let _event_publisher: Arc<dyn infrastructure::kafka_producer::QuotaEventPublisher> =
+        if let Some(ref kafka_cfg) = cfg.kafka {
+            match infrastructure::kafka_producer::KafkaQuotaProducer::new(
+                &kafka_cfg.brokers.join(","),
+                &kafka_cfg.security_protocol,
+                &kafka_cfg.topic_exceeded,
+            ) {
+                Ok(producer) => {
+                    info!("Kafka producer initialized for quota exceeded events");
+                    Arc::new(producer)
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        error = %e,
+                        "failed to create Kafka producer, using NoopQuotaEventPublisher"
+                    );
+                    Arc::new(infrastructure::kafka_producer::NoopQuotaEventPublisher)
+                }
+            }
+        } else {
+            info!("no Kafka config found, using NoopQuotaEventPublisher");
+            Arc::new(infrastructure::kafka_producer::NoopQuotaEventPublisher)
+        };
 
     let create_policy_uc =
         Arc::new(usecase::CreateQuotaPolicyUseCase::new(policy_repo.clone()));
@@ -80,6 +137,11 @@ async fn main() -> anyhow::Result<()> {
         increment_usage_uc.clone(),
     ));
 
+    // Metrics
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-quota-server",
+    ));
+
     let state = adapter::handler::AppState {
         create_policy_uc,
         get_policy_uc,
@@ -87,6 +149,7 @@ async fn main() -> anyhow::Result<()> {
         update_policy_uc,
         get_usage_uc,
         increment_usage_uc,
+        metrics,
     };
 
     let app = adapter::handler::router(state);

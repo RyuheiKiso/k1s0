@@ -10,4 +10,5 @@ pub trait SearchRepository: Send + Sync {
     async fn index_document(&self, doc: &SearchDocument) -> anyhow::Result<()>;
     async fn search(&self, query: &SearchQuery) -> anyhow::Result<SearchResult>;
     async fn delete_document(&self, index_name: &str, doc_id: &str) -> anyhow::Result<bool>;
+    async fn list_indices(&self) -> anyhow::Result<Vec<SearchIndex>>;
 }

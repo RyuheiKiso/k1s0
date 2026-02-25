@@ -1,0 +1,3 @@
+DROP FUNCTION IF EXISTS workflow.update_updated_at();
+DROP SCHEMA IF EXISTS workflow CASCADE;
+DROP EXTENSION IF EXISTS "pgcrypto";

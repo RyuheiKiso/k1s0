@@ -21,6 +21,7 @@ pub struct AppState {
     pub revoke_uc: Arc<RevokeSessionUseCase>,
     pub list_uc: Arc<ListUserSessionsUseCase>,
     pub revoke_all_uc: Arc<RevokeAllSessionsUseCase>,
+    pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 }
 
 fn error_response(err: SessionError) -> (StatusCode, Json<serde_json::Value>) {

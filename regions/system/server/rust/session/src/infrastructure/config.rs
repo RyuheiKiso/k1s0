@@ -6,6 +6,8 @@ pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
     #[serde(default)]
+    pub database: Option<DatabaseConfig>,
+    #[serde(default)]
     pub redis: Option<RedisConfig>,
     #[serde(default)]
     pub kafka: Option<KafkaConfig>,
@@ -58,6 +60,18 @@ fn default_port() -> u16 {
 
 fn default_grpc_port() -> u16 {
     9090
+}
+
+/// DatabaseConfig は PostgreSQL データベース接続の設定を表す。
+#[derive(Debug, Clone, Deserialize)]
+pub struct DatabaseConfig {
+    pub url: String,
+    #[serde(default = "default_max_connections")]
+    pub max_connections: u32,
+}
+
+fn default_max_connections() -> u32 {
+    10
 }
 
 /// RedisConfig は Redis 接続の設定を表す。

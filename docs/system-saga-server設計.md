@@ -70,6 +70,7 @@ system tier の Saga Orchestrator は以下の機能を提供する。
 | GET | `/api/v1/sagas` | Saga 一覧取得 | `sys_auditor` 以上 |
 | GET | `/api/v1/sagas/:saga_id` | Saga 詳細取得（ステップログ含む） | `sys_auditor` 以上 |
 | POST | `/api/v1/sagas/:saga_id/cancel` | Saga キャンセル | `sys_operator` 以上 |
+| POST | `/api/v1/sagas/:saga_id/compensate` | Saga キャンセル（`/cancel` のエイリアス） | `sys_operator` 以上 |
 | POST | `/api/v1/workflows` | ワークフロー登録 | `sys_operator` 以上 |
 | GET | `/api/v1/workflows` | ワークフロー一覧取得 | `sys_auditor` 以上 |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |

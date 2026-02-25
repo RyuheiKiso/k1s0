@@ -6,9 +6,7 @@ system-graphql-gateway の Dockerfile・Helm values・環境変数・ヘルス�
 
 ## Dockerfile
 
-> **注意**: Dockerfile は現時点では未作成（`regions/system/server/rust/graphql-gateway/Dockerfile` が存在しない）。ソースコード（`src/`、`Cargo.toml`、`build.rs`）は実装済みであるが、デプロイインフラは Phase 6-5 で作成予定。
-
-[Dockerイメージ戦略.md](Dockerイメージ戦略.md) のマルチステージビルドテンプレートおよび他の system サーバーの Dockerfile パターンに従い、以下の Dockerfile を作成する予定。
+[Dockerイメージ戦略.md](Dockerイメージ戦略.md) のマルチステージビルドテンプレートおよび他の system サーバーの Dockerfile パターンに従う。
 
 ```dockerfile
 # Build stage
@@ -42,7 +40,7 @@ EXPOSE 8080
 ENTRYPOINT ["/k1s0-graphql-gateway"]
 ```
 
-### Dockerfile 構成のポイント（予定）
+### Dockerfile 構成のポイント
 
 | 項目 | 詳細 |
 | --- | --- |

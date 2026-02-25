@@ -13,7 +13,9 @@ mod usecase;
 
 use adapter::grpc::RateLimitGrpcService;
 use adapter::handler::{self, AppState};
+use adapter::repository::cached_ratelimit_repository::CachedRateLimitRepository;
 use adapter::repository::ratelimit_postgres::RateLimitPostgresRepository;
+use infrastructure::cache::RuleCache;
 use infrastructure::config::Config;
 use infrastructure::redis_store::RedisRateLimitStore;
 
@@ -82,10 +84,24 @@ async fn main() -> anyhow::Result<()> {
         None
     };
 
+    // Metrics
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-ratelimit-server",
+    ));
+
+    // Rule cache (max 2000 entries, TTL 120 seconds)
+    let rule_cache = Arc::new(RuleCache::new(2000, 120));
+
     // Repositories
     let rule_repo: Arc<dyn domain::repository::RateLimitRepository> =
         if let Some(ref pool) = db_pool {
-            Arc::new(RateLimitPostgresRepository::new(pool.clone()))
+            let inner: Arc<dyn domain::repository::RateLimitRepository> =
+                Arc::new(RateLimitPostgresRepository::new(pool.clone()));
+            Arc::new(CachedRateLimitRepository::with_metrics(
+                inner,
+                rule_cache,
+                metrics.clone(),
+            ))
         } else {
             Arc::new(InMemoryRateLimitRepository::new())
         };
@@ -96,11 +112,6 @@ async fn main() -> anyhow::Result<()> {
         } else {
             Arc::new(InMemoryRateLimitStateStore::new())
         };
-
-    // Metrics
-    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
-        "k1s0-ratelimit-server",
-    ));
 
     // Use cases
     let check_uc = Arc::new(usecase::CheckRateLimitUseCase::new(

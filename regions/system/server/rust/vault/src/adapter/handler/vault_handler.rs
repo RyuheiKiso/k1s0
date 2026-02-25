@@ -19,6 +19,7 @@ pub struct AppState {
     pub delete_secret_uc: Arc<DeleteSecretUseCase>,
     pub list_secrets_uc: Arc<ListSecretsUseCase>,
     pub db_pool: Option<sqlx::PgPool>,
+    pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 }
 
 // --- Request / Response DTOs ---

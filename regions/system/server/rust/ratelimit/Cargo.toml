@@ -31,6 +31,9 @@ serde_yaml = "0.9"
 # DB
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
 
+# Cache
+moka = { version = "0.12", features = ["future"] }
+
 # Redis
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
 

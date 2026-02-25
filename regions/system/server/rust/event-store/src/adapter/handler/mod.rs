@@ -4,6 +4,9 @@ pub mod health;
 
 use std::sync::Arc;
 
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use axum::extract::State;
 use axum::routing::{get, post};
 use axum::Router;
 use utoipa::OpenApi;
@@ -25,6 +28,7 @@ pub struct AppState {
     pub stream_repo: Arc<dyn EventStreamRepository>,
     pub event_repo: Arc<dyn EventRepository>,
     pub event_publisher: Arc<dyn EventPublisher>,
+    pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 }
 
 #[derive(OpenApi)]
@@ -56,9 +60,10 @@ struct ApiDoc;
 /// REST API ルーターを構築する。
 pub fn router(state: AppState) -> Router {
     Router::new()
-        // Health / Readiness
+        // Health / Readiness / Metrics
         .route("/healthz", get(health::healthz))
         .route("/readyz", get(health::readyz))
+        .route("/metrics", get(metrics_handler))
         // Events
         .route(
             "/api/v1/events",
@@ -103,4 +108,13 @@ impl ErrorResponse {
             },
         }
     }
+}
+
+async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let body = state.metrics.gather_metrics();
+    (
+        StatusCode::OK,
+        [("content-type", "text/plain; version=0.0.4; charset=utf-8")],
+        body,
+    )
 }

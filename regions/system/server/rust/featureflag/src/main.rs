@@ -44,8 +44,98 @@ async fn main() -> anyhow::Result<()> {
         "starting featureflag server"
     );
 
-    // In-memory flag repository (default stub)
-    let flag_repo: Arc<dyn FeatureFlagRepository> = Arc::new(InMemoryFeatureFlagRepository::new());
+    // Metrics (shared across layers and repositories)
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-featureflag-server",
+    ));
+
+    // Flag repository: PostgreSQL if DATABASE_URL or database config is set, otherwise in-memory
+    let flag_repo: Arc<dyn FeatureFlagRepository> =
+        if let Ok(database_url) = std::env::var("DATABASE_URL") {
+            info!("connecting to PostgreSQL...");
+            let pool = sqlx::postgres::PgPoolOptions::new()
+                .max_connections(cfg.database.as_ref().map_or(25, |db| db.max_open_conns))
+                .connect(&database_url)
+                .await?;
+            info!("connected to PostgreSQL");
+            let pg_repo = Arc::new(
+                adapter::repository::featureflag_postgres::FeatureFlagPostgresRepository::new(
+                    Arc::new(pool),
+                ),
+            );
+            // キャッシュでラップ（設定から TTL と最大エントリ数を読み取り）
+            let cache = Arc::new(infrastructure::cache::FlagCache::new(
+                cfg.cache.max_entries,
+                cfg.cache.ttl_seconds,
+            ));
+            info!(
+                max_entries = cfg.cache.max_entries,
+                ttl_seconds = cfg.cache.ttl_seconds,
+                "flag cache initialized"
+            );
+            Arc::new(
+                adapter::repository::cached_featureflag_repository::CachedFeatureFlagRepository::with_metrics(
+                    pg_repo,
+                    cache,
+                    metrics.clone(),
+                ),
+            )
+        } else if let Some(ref db_cfg) = cfg.database {
+            info!("connecting to PostgreSQL via config...");
+            let pool = sqlx::postgres::PgPoolOptions::new()
+                .max_connections(db_cfg.max_open_conns)
+                .connect(&db_cfg.connection_url())
+                .await?;
+            info!("connected to PostgreSQL");
+            let pg_repo = Arc::new(
+                adapter::repository::featureflag_postgres::FeatureFlagPostgresRepository::new(
+                    Arc::new(pool),
+                ),
+            );
+            // キャッシュでラップ
+            let cache = Arc::new(infrastructure::cache::FlagCache::new(
+                cfg.cache.max_entries,
+                cfg.cache.ttl_seconds,
+            ));
+            info!(
+                max_entries = cfg.cache.max_entries,
+                ttl_seconds = cfg.cache.ttl_seconds,
+                "flag cache initialized"
+            );
+            Arc::new(
+                adapter::repository::cached_featureflag_repository::CachedFeatureFlagRepository::with_metrics(
+                    pg_repo,
+                    cache,
+                    metrics.clone(),
+                ),
+            )
+        } else {
+            info!("no database configured, using in-memory repository");
+            Arc::new(InMemoryFeatureFlagRepository::new())
+        };
+
+    // Kafka producer (optional)
+    let _kafka_producer: Arc<dyn infrastructure::kafka_producer::FlagEventPublisher> =
+        if let Some(ref kafka_cfg) = cfg.kafka {
+            match infrastructure::kafka_producer::KafkaFlagProducer::new(kafka_cfg) {
+                Ok(p) => {
+                    info!(
+                        topic = %kafka_cfg.topic,
+                        "kafka producer initialized for flag change notifications"
+                    );
+                    Arc::new(p.with_metrics(metrics.clone()))
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        error = %e,
+                        "failed to create kafka producer, flag change events will not be published"
+                    );
+                    Arc::new(infrastructure::kafka_producer::NoopFlagEventPublisher)
+                }
+            }
+        } else {
+            Arc::new(infrastructure::kafka_producer::NoopFlagEventPublisher)
+        };
 
     // Use cases
     let evaluate_flag_uc = Arc::new(usecase::EvaluateFlagUseCase::new(flag_repo.clone()));
@@ -71,6 +161,7 @@ async fn main() -> anyhow::Result<()> {
         get_flag_uc,
         create_flag_uc,
         update_flag_uc,
+        metrics,
     };
 
     // REST router

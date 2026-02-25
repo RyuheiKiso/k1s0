@@ -14,9 +14,14 @@ mod proto;
 mod usecase;
 
 use adapter::grpc::SchedulerGrpcService;
+use adapter::repository::scheduler_job_postgres::SchedulerJobPostgresRepository;
 use domain::entity::scheduler_job::SchedulerJob;
 use domain::repository::SchedulerJobRepository;
+use infrastructure::cache::JobCache;
 use infrastructure::config::Config;
+use infrastructure::kafka_producer::{
+    KafkaSchedulerProducer, NoopSchedulerEventPublisher, SchedulerEventPublisher,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -42,8 +47,29 @@ async fn main() -> anyhow::Result<()> {
         "starting scheduler server"
     );
 
-    let job_repo: Arc<dyn SchedulerJobRepository> =
-        Arc::new(InMemorySchedulerJobRepository::new());
+    // --- Repository: PostgreSQL or InMemory fallback ---
+    let job_repo: Arc<dyn SchedulerJobRepository> = if let Some(ref db_cfg) = cfg.database {
+        info!("connecting to PostgreSQL: {}:{}/{}", db_cfg.host, db_cfg.port, db_cfg.name);
+        let pool = infrastructure::database::connect(db_cfg).await?;
+        Arc::new(SchedulerJobPostgresRepository::new(Arc::new(pool)))
+    } else {
+        info!("no database configured, using in-memory repository");
+        Arc::new(InMemorySchedulerJobRepository::new())
+    };
+
+    // --- Kafka: real or Noop fallback ---
+    let event_publisher: Arc<dyn SchedulerEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
+        info!("connecting to Kafka brokers: {:?}", kafka_cfg.brokers);
+        let producer = KafkaSchedulerProducer::new(kafka_cfg)?;
+        Arc::new(producer)
+    } else {
+        info!("no Kafka configured, using noop event publisher");
+        Arc::new(NoopSchedulerEventPublisher)
+    };
+
+    // --- Cache ---
+    let _job_cache = Arc::new(JobCache::default_config());
+    info!("job cache initialized (max=1000, TTL=120s)");
 
     let create_job_uc = Arc::new(usecase::CreateJobUseCase::new(job_repo.clone()));
     let get_job_uc = Arc::new(usecase::GetJobUseCase::new(job_repo.clone()));
@@ -53,12 +79,18 @@ async fn main() -> anyhow::Result<()> {
 
     let grpc_svc = Arc::new(SchedulerGrpcService::new(trigger_job_uc));
 
+    // Metrics
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "k1s0-scheduler-server",
+    ));
+
     let state = adapter::handler::AppState {
         job_repo,
         create_job_uc,
         get_job_uc,
         pause_job_uc,
         resume_job_uc,
+        metrics,
     };
 
     let app = adapter::handler::router(state);
@@ -99,10 +131,15 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
+    // Graceful shutdown: close Kafka producer
+    if let Err(e) = event_publisher.close().await {
+        tracing::warn!("failed to close event publisher: {}", e);
+    }
+
     Ok(())
 }
 
-// --- InMemory Repository ---
+// --- InMemory Repository (fallback) ---
 
 struct InMemorySchedulerJobRepository {
     jobs: tokio::sync::RwLock<HashMap<Uuid, SchedulerJob>>,

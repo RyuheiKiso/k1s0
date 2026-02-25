@@ -46,9 +46,9 @@ system tier の全文検索サーバーは以下の機能を提供する。
 | 項目 | 設計 |
 | --- | --- |
 | 実装言語 | Rust |
-| 検索エンジン | OpenSearch。opensearch-rs クライアント経由でアクセス |
+| 検索エンジン | OpenSearch（opensearch-rs クライアント経由でアクセス） |
 | 非同期インデックス | Kafka トピック `k1s0.system.search.index.requested.v1` を Consumer し非同期にインデックス登録 |
-| 同期インデックス | REST POST `/api/v1/indices/:name/documents` により即座にインデックス登録 |
+| 同期インデックス | REST POST `/api/v1/search/index` により即座にインデックス登録（`index_name` はリクエストボディで指定） |
 | キャッシュ | インデックス一覧・ドキュメント数等のステータスを moka で TTL 30 秒キャッシュ |
 | 認可 | インデックス管理は `sys_admin`、ドキュメント操作は `sys_operator`、検索・参照は `sys_auditor` |
 | ポート | ホスト側 8094（内部 8080）、gRPC 9090 |
@@ -63,12 +63,10 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| POST | `/api/v1/indices` | インデックス作成 | `sys_admin` のみ |
-| DELETE | `/api/v1/indices/:name` | インデックス削除 | `sys_admin` のみ |
-| GET | `/api/v1/indices` | インデックス一覧取得 | `sys_auditor` 以上 |
-| POST | `/api/v1/indices/:name/documents` | ドキュメント登録 | `sys_operator` 以上 |
-| PUT | `/api/v1/indices/:name/documents/:id` | ドキュメント更新 | `sys_operator` 以上 |
-| DELETE | `/api/v1/indices/:name/documents/:id` | ドキュメント削除 | `sys_operator` 以上 |
+| POST | `/api/v1/search/indices` | インデックス作成 | `sys_admin` のみ |
+| GET | `/api/v1/search/indices` | インデックス一覧取得 | `sys_auditor` 以上 |
+| POST | `/api/v1/search/index` | ドキュメント登録（`index_name` はリクエストボディで指定） | `sys_operator` 以上 |
+| DELETE | `/api/v1/search/index/:index_name/:id` | ドキュメント削除 | `sys_operator` 以上 |
 | POST | `/api/v1/search` | 全文検索 | `sys_auditor` 以上 |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
@@ -76,23 +74,18 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 #### POST /api/v1/indices
 
-新しいインデックスを OpenSearch に作成する。マッピング定義を指定することで、フィールド型・アナライザー設定を行う。
+新しいインデックスを作成する。`mapping` フィールドで任意の JSON マッピング定義を指定可能（省略時はデフォルト空オブジェクト）。
 
 **リクエスト**
 
 ```json
 {
   "name": "k1s0-products",
-  "settings": {
-    "number_of_shards": 1,
-    "number_of_replicas": 1
-  },
-  "mappings": {
+  "mapping": {
     "properties": {
-      "title": { "type": "text", "analyzer": "kuromoji" },
-      "description": { "type": "text", "analyzer": "kuromoji" },
-      "tenant_id": { "type": "keyword" },
-      "created_at": { "type": "date" }
+      "title": { "type": "text" },
+      "description": { "type": "text" },
+      "tenant_id": { "type": "keyword" }
     }
   }
 }
@@ -102,8 +95,9 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 ```json
 {
+  "id": "550e8400-e29b-41d4-a716-446655440000",
   "name": "k1s0-products",
-  "status": "created",
+  "mapping": { "..." : "..." },
   "created_at": "2026-02-20T10:00:00.000+00:00"
 }
 ```
@@ -112,18 +106,13 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 ```json
 {
-  "error": {
-    "code": "SYS_SEARCH_INDEX_ALREADY_EXISTS",
-    "message": "index already exists: k1s0-products",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
+  "error": "index already exists: k1s0-products"
 }
 ```
 
 #### GET /api/v1/indices
 
-登録済みインデックスの一覧とステータス（ドキュメント数・サイズ）を取得する。
+登録済みインデックスの一覧を取得する。
 
 **レスポンス（200 OK）**
 
@@ -131,27 +120,26 @@ system tier の全文検索サーバーは以下の機能を提供する。
 {
   "indices": [
     {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
       "name": "k1s0-products",
-      "doc_count": 12450,
-      "size_bytes": 5242880,
-      "status": "green",
+      "mapping": { "..." : "..." },
       "created_at": "2026-02-20T10:00:00.000+00:00"
     }
-  ],
-  "total_count": 1
+  ]
 }
 ```
 
-#### POST /api/v1/indices/:name/documents
+#### POST /api/v1/search/index
 
-指定インデックスにドキュメントを同期登録する。`id` を指定した場合は upsert として動作する。
+ドキュメントをインデックスに登録する。`index_name` はリクエストボディで指定する。
 
 **リクエスト**
 
 ```json
 {
   "id": "product-001",
-  "document": {
+  "index_name": "k1s0-products",
+  "content": {
     "title": "高性能ノートPC",
     "description": "最新世代プロセッサー搭載の高性能ノートパソコン",
     "tenant_id": "tenant-abc",
@@ -165,8 +153,8 @@ system tier の全文検索サーバーは以下の機能を提供する。
 ```json
 {
   "id": "product-001",
-  "index": "k1s0-products",
-  "result": "created"
+  "index_name": "k1s0-products",
+  "indexed_at": "2026-02-20T10:00:00.000+00:00"
 }
 ```
 
@@ -174,89 +162,49 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 ```json
 {
-  "error": {
-    "code": "SYS_SEARCH_INDEX_NOT_FOUND",
-    "message": "index not found: k1s0-products",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
+  "error": "index not found: k1s0-products"
 }
 ```
 
 #### POST /api/v1/search
 
-指定されたクエリで全文検索を実行する。インデックス名・キーワード・フィルタ・ファセット・ページネーションをサポートする。
+指定されたクエリで全文検索を実行する。`index_name` でインデックスを指定し、`from` / `size` でページネーション制御する。
 
 **リクエスト**
 
 ```json
 {
-  "index": "k1s0-products",
+  "index_name": "k1s0-products",
   "query": "高性能ノートPC",
-  "filters": {
-    "tenant_id": "tenant-abc"
-  },
-  "facets": ["tenant_id"],
-  "page": 1,
-  "page_size": 20
+  "from": 0,
+  "size": 20
 }
 ```
+
+| フィールド | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `index_name` | String | （必須） | 検索対象インデックス名 |
+| `query` | String | （必須） | 検索キーワード |
+| `from` | u32 | 0 | オフセット（スキップ件数） |
+| `size` | u32 | 10 | 取得件数 |
 
 **レスポンス（200 OK）**
 
 ```json
 {
+  "total": 1,
   "hits": [
     {
       "id": "product-001",
-      "score": 1.8752,
-      "document": {
+      "index_name": "k1s0-products",
+      "content": {
         "title": "高性能ノートPC",
         "description": "最新世代プロセッサー搭載の高性能ノートパソコン",
-        "tenant_id": "tenant-abc",
-        "created_at": "2026-02-20T10:00:00.000+00:00"
-      }
+        "tenant_id": "tenant-abc"
+      },
+      "indexed_at": "2026-02-20T10:00:00.000+00:00"
     }
-  ],
-  "facets": {
-    "tenant_id": [
-      { "value": "tenant-abc", "count": 350 }
-    ]
-  },
-  "pagination": {
-    "total_count": 1,
-    "page": 1,
-    "page_size": 20,
-    "has_next": false
-  }
-}
-```
-
-**レスポンス（400 Bad Request）**
-
-```json
-{
-  "error": {
-    "code": "SYS_SEARCH_VALIDATION_ERROR",
-    "message": "validation failed",
-    "request_id": "req_abc123def456",
-    "details": [
-      {"field": "index", "message": "index is required and must be non-empty"}
-    ]
-  }
-}
-```
-
-#### DELETE /api/v1/indices/:name/documents/:id
-
-指定インデックスから特定ドキュメントを削除する。
-
-**レスポンス（200 OK）**
-
-```json
-{
-  "success": true,
-  "message": "document product-001 deleted from index k1s0-products"
+  ]
 }
 ```
 
@@ -264,12 +212,23 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 ```json
 {
-  "error": {
-    "code": "SYS_SEARCH_DOCUMENT_NOT_FOUND",
-    "message": "document not found: product-001",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
+  "error": "index not found: k1s0-products"
+}
+```
+
+#### DELETE /api/v1/search/index/:index_name/:id
+
+指定インデックスから特定ドキュメントを削除する。
+
+**レスポンス（204 No Content）**
+
+レスポンスボディなし。
+
+**レスポンス（404 Not Found）**
+
+```json
+{
+  "error": "document not found: product-001"
 }
 ```
 
@@ -397,13 +356,13 @@ infrastructure（OpenSearch クライアント・Kafka Producer/Consumer・moka 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
 | domain/entity | `SearchIndex`, `SearchDocument`, `SearchQuery`, `SearchResult` | エンティティ定義 |
-| domain/repository | `SearchIndexRepository`, `SearchDocumentRepository` | リポジトリトレイト |
+| domain/repository | `SearchRepository`（単一トレイト） | リポジトリトレイト（`create_index`, `find_index`, `list_indices`, `index_document`, `search`, `delete_document`） |
 | domain/service | `SearchDomainService` | 検索クエリ構築・ファセット集計ロジック |
-| usecase | `CreateIndexUsecase`, `DeleteIndexUsecase`, `ListIndicesUsecase`, `IndexDocumentUsecase`, `UpdateDocumentUsecase`, `DeleteDocumentUsecase`, `SearchUsecase` | ユースケース |
-| adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic）, Kafka Consumer ハンドラー | プロトコル変換 |
+| usecase | `CreateIndexUseCase`, `ListIndicesUseCase`, `IndexDocumentUseCase`, `SearchUseCase`, `DeleteDocumentUseCase` | ユースケース |
+| adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
-| infrastructure/persistence | `OpenSearchIndexRepository`, `OpenSearchDocumentRepository` | OpenSearch リポジトリ実装 |
-| infrastructure/cache | `SearchCacheService` | moka キャッシュ実装（インデックスステータスキャッシュ） |
+| infrastructure/persistence | `OpenSearchRepository` | OpenSearch リポジトリ実装 |
+| infrastructure/cache | `SearchCacheService` | moka キャッシュ実装 |
 | infrastructure/messaging | `SearchIndexKafkaConsumer` | Kafka Consumer（非同期インデックス要求） |
 
 ### ドメインモデル
@@ -412,10 +371,9 @@ infrastructure（OpenSearch クライアント・Kafka Producer/Consumer・moka 
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
+| `id` | Uuid | インデックス ID（自動生成） |
 | `name` | String | インデックス名（例: `k1s0-products`） |
-| `doc_count` | u64 | 登録ドキュメント数 |
-| `size_bytes` | u64 | インデックスサイズ（バイト） |
-| `status` | String | インデックス状態（green / yellow / red） |
+| `mapping` | serde_json::Value | マッピング定義（任意の JSON） |
 | `created_at` | DateTime\<Utc\> | 作成日時 |
 
 #### SearchDocument
@@ -423,19 +381,27 @@ infrastructure（OpenSearch クライアント・Kafka Producer/Consumer・moka 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `id` | String | ドキュメント ID |
-| `index` | String | 所属インデックス名 |
-| `document` | serde_json::Value | ドキュメント本体（任意の JSON） |
+| `index_name` | String | 所属インデックス名 |
+| `content` | serde_json::Value | ドキュメント本体（任意の JSON） |
+| `indexed_at` | DateTime\<Utc\> | インデックス登録日時 |
 
 #### SearchQuery
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `index` | String | 検索対象インデックス名 |
+| `index_name` | String | 検索対象インデックス名 |
 | `query` | String | 全文検索キーワード |
+| `from` | u32 | オフセット（スキップ件数、デフォルト 0） |
+| `size` | u32 | 取得件数（デフォルト 10） |
 | `filters` | HashMap\<String, String\> | フィールドフィルタ |
 | `facets` | Vec\<String\> | ファセット集計対象フィールド |
-| `page` | u32 | ページ番号 |
-| `page_size` | u32 | 1 ページあたりの件数 |
+
+#### SearchResult
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `total` | u64 | ヒット件数 |
+| `hits` | Vec\<SearchDocument\> | 検索結果ドキュメント一覧 |
 
 ### 依存関係図
 
@@ -444,57 +410,38 @@ infrastructure（OpenSearch クライアント・Kafka Producer/Consumer・moka 
                     │                    adapter 層                    │
                     │  ┌──────────────────────────────────────────┐   │
                     │  │ REST Handler (search_handler.rs)         │   │
-                    │  │  healthz / readyz / metrics              │   │
-                    │  │  create_index / delete_index             │   │
-                    │  │  list_indices                            │   │
-                    │  │  index_document / update_document        │   │
-                    │  │  delete_document / search                │   │
+                    │  │  healthz / readyz                        │   │
+                    │  │  create_index / list_indices             │   │
+                    │  │  index_document                          │   │
+                    │  │  delete_document_from_index / search     │   │
                     │  ├──────────────────────────────────────────┤   │
                     │  │ gRPC Handler (search_grpc.rs)            │   │
                     │  │  IndexDocument / Search / DeleteDocument │   │
-                    │  ├──────────────────────────────────────────┤   │
-                    │  │ Kafka Consumer (index_consumer.rs)       │   │
-                    │  │  k1s0.system.search.index.requested.v1   │   │
                     │  └──────────────────────┬───────────────────┘   │
                     └─────────────────────────┼───────────────────────┘
                                               │
                     ┌─────────────────────────▼───────────────────────┐
                     │                   usecase 層                    │
-                    │  CreateIndexUsecase / DeleteIndexUsecase /      │
-                    │  ListIndicesUsecase / IndexDocumentUsecase /    │
-                    │  UpdateDocumentUsecase / DeleteDocumentUsecase  │
-                    │  SearchUsecase                                  │
+                    │  CreateIndexUseCase / ListIndicesUseCase /      │
+                    │  IndexDocumentUseCase / SearchUseCase /         │
+                    │  DeleteDocumentUseCase                          │
                     └─────────────────────────┬───────────────────────┘
                                               │
               ┌───────────────────────────────┼───────────────────────┐
               │                               │                       │
     ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
     │  domain/entity  │              │ domain/repository          │   │
-    │  SearchIndex,   │              │ SearchIndexRepository      │   │
-    │  SearchDocument,│              │ SearchDocumentRepository   │   │
-    │  SearchQuery,   │              │ (trait)                    │   │
-    │  SearchResult   │              └──────────┬─────────────────┘   │
+    │  SearchIndex,   │              │ SearchRepository           │   │
+    │  SearchDocument,│              │ (単一トレイト)              │   │
+    │  SearchQuery,   │              └──────────┬─────────────────┘   │
+    │  SearchResult   │                         │                     │
     └────────────────┘                         │                     │
-              │                                │                     │
-              │  ┌────────────────┐            │                     │
-              └──▶ domain/service │            │                     │
-                 │ SearchDomain   │            │                     │
-                 │ Service        │            │                     │
-                 └────────────────┘            │                     │
                     ┌──────────────────────────┼─────────────────────┘
                     │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
-                    │  │ Kafka        │  │ OpenSearchIndex        │  │
-                    │  │ Consumer     │  │ Repository             │  │
-                    │  └──────────────┘  ├────────────────────────┤  │
-                    │  ┌──────────────┐  │ OpenSearchDocument     │  │
-                    │  │ moka Cache   │  │ Repository             │  │
-                    │  │ Service      │  └────────────────────────┘  │
-                    │  └──────────────┘  ┌────────────────────────┐  │
-                    │  ┌──────────────┐  │ OpenSearch             │  │
-                    │  │ Config       │  │ Config                 │  │
-                    │  │ Loader       │  └────────────────────────┘  │
-                    │  └──────────────┘                              │
+                    │  │ Config       │  │ OpenSearch             │  │
+                    │  │ Loader       │  │ Repository             │  │
+                    │  └──────────────┘  └────────────────────────┘  │
                     └────────────────────────────────────────────────┘
 ```
 
