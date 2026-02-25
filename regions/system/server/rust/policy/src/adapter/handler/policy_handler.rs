@@ -120,8 +120,10 @@ pub async fn delete_policy(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.policy_repo.delete(&id).await {
-        Ok(true) => (
+    use crate::usecase::delete_policy::DeletePolicyError;
+
+    match state.delete_policy_uc.execute(&id).await {
+        Ok(()) => (
             StatusCode::OK,
             Json(serde_json::json!({
                 "success": true,
@@ -129,15 +131,15 @@ pub async fn delete_policy(
             })),
         )
             .into_response(),
-        Ok(false) => {
+        Err(DeletePolicyError::NotFound(_)) => {
             let err = ErrorResponse::new(
                 "SYS_POLICY_NOT_FOUND",
                 &format!("policy not found: {}", id),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
-        Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_DELETE_FAILED", &e.to_string());
+        Err(DeletePolicyError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_POLICY_DELETE_FAILED", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

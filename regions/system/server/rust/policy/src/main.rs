@@ -107,6 +107,7 @@ async fn main() -> anyhow::Result<()> {
     let create_policy_uc = Arc::new(usecase::CreatePolicyUseCase::new(policy_repo.clone()));
     let get_policy_uc = Arc::new(usecase::GetPolicyUseCase::new(policy_repo.clone()));
     let update_policy_uc = Arc::new(usecase::UpdatePolicyUseCase::new(policy_repo.clone()));
+    let delete_policy_uc = Arc::new(usecase::DeletePolicyUseCase::new(policy_repo.clone()));
     let evaluate_policy_uc = Arc::new(usecase::EvaluatePolicyUseCase::new(policy_repo.clone()));
     let create_bundle_uc = Arc::new(usecase::CreateBundleUseCase::new(bundle_repo.clone()));
     let list_bundles_uc = Arc::new(usecase::ListBundlesUseCase::new(bundle_repo));
@@ -121,6 +122,7 @@ async fn main() -> anyhow::Result<()> {
         create_policy_uc,
         get_policy_uc,
         update_policy_uc,
+        delete_policy_uc,
         evaluate_policy_uc,
         create_bundle_uc,
         list_bundles_uc,

@@ -11,8 +11,8 @@ use axum::Router;
 
 use crate::domain::repository::PolicyRepository;
 use crate::usecase::{
-    CreateBundleUseCase, CreatePolicyUseCase, EvaluatePolicyUseCase, GetPolicyUseCase,
-    ListBundlesUseCase, UpdatePolicyUseCase,
+    CreateBundleUseCase, CreatePolicyUseCase, DeletePolicyUseCase, EvaluatePolicyUseCase,
+    GetPolicyUseCase, ListBundlesUseCase, UpdatePolicyUseCase,
 };
 
 /// Shared application state for REST handlers.
@@ -22,6 +22,7 @@ pub struct AppState {
     pub create_policy_uc: Arc<CreatePolicyUseCase>,
     pub get_policy_uc: Arc<GetPolicyUseCase>,
     pub update_policy_uc: Arc<UpdatePolicyUseCase>,
+    pub delete_policy_uc: Arc<DeletePolicyUseCase>,
     pub evaluate_policy_uc: Arc<EvaluatePolicyUseCase>,
     pub create_bundle_uc: Arc<CreateBundleUseCase>,
     pub list_bundles_uc: Arc<ListBundlesUseCase>,

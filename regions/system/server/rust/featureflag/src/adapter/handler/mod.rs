@@ -10,7 +10,7 @@ use axum::routing::{delete, get, post, put};
 use axum::Router;
 
 use crate::domain::repository::FeatureFlagRepository;
-use crate::usecase::{CreateFlagUseCase, EvaluateFlagUseCase, GetFlagUseCase, UpdateFlagUseCase};
+use crate::usecase::{CreateFlagUseCase, DeleteFlagUseCase, EvaluateFlagUseCase, GetFlagUseCase, UpdateFlagUseCase};
 
 /// Shared application state for REST handlers.
 #[derive(Clone)]
@@ -20,6 +20,7 @@ pub struct AppState {
     pub get_flag_uc: Arc<GetFlagUseCase>,
     pub create_flag_uc: Arc<CreateFlagUseCase>,
     pub update_flag_uc: Arc<UpdateFlagUseCase>,
+    pub delete_flag_uc: Arc<DeleteFlagUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 }
 

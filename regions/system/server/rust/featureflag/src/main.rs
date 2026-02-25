@@ -142,6 +142,7 @@ async fn main() -> anyhow::Result<()> {
     let get_flag_uc = Arc::new(usecase::GetFlagUseCase::new(flag_repo.clone()));
     let create_flag_uc = Arc::new(usecase::CreateFlagUseCase::new(flag_repo.clone()));
     let update_flag_uc = Arc::new(usecase::UpdateFlagUseCase::new(flag_repo.clone()));
+    let delete_flag_uc = Arc::new(usecase::DeleteFlagUseCase::new(flag_repo.clone()));
 
     let grpc_svc = Arc::new(FeatureFlagGrpcService::new(
         evaluate_flag_uc.clone(),
@@ -161,6 +162,7 @@ async fn main() -> anyhow::Result<()> {
         get_flag_uc,
         create_flag_uc,
         update_flag_uc,
+        delete_flag_uc,
         metrics,
     };
 

@@ -122,7 +122,7 @@ async fn main() -> anyhow::Result<()> {
         stream_repo.clone(),
         snapshot_repo.clone(),
     ));
-    let _delete_stream_uc = Arc::new(usecase::DeleteStreamUseCase::new(
+    let delete_stream_uc = Arc::new(usecase::DeleteStreamUseCase::new(
         stream_repo.clone(),
         event_repo.clone(),
         snapshot_repo.clone(),
@@ -152,6 +152,7 @@ async fn main() -> anyhow::Result<()> {
         read_events_uc,
         create_snapshot_uc,
         get_latest_snapshot_uc,
+        delete_stream_uc,
         stream_repo,
         event_repo,
         event_publisher,
