@@ -21,7 +21,6 @@ describe('TestPage', () => {
     render(<TestPage />);
     expect(screen.getByText('Unit')).toBeInTheDocument();
     expect(screen.getByText('Integration')).toBeInTheDocument();
-    expect(screen.getByText('E2e')).toBeInTheDocument();
     expect(screen.getByText('All')).toBeInTheDocument();
   });
 
@@ -29,7 +28,7 @@ describe('TestPage', () => {
     const user = userEvent.setup();
     render(<TestPage />);
     // Radix RadioGroup.Item renders as role="radio" button; labels are not connected via htmlFor
-    const allRadio = screen.getAllByRole('radio')[3]; // Unit/Integration/E2e/All
+    const allRadio = screen.getAllByRole('radio')[2]; // Unit/Integration/All
     await user.click(allRadio);
     expect(screen.queryByText('テスト対象')).not.toBeInTheDocument();
   });
@@ -42,18 +41,18 @@ describe('TestPage', () => {
     });
   });
 
-  it('should reload targets when switching from Unit to E2e', async () => {
+  it('should reload targets when switching from Unit to Integration', async () => {
     const user = userEvent.setup();
     mockInvoke
       .mockResolvedValueOnce(['regions/system/server/rust/auth'])
-      .mockResolvedValueOnce(['e2e/tests/system_api']);
+      .mockResolvedValueOnce(['regions/system/library/go/auth']);
     render(<TestPage />);
     await waitFor(() => screen.getByText('regions/system/server/rust/auth'));
 
-    const e2eRadio = screen.getAllByRole('radio')[2]; // Unit/Integration/E2e/All
-    await user.click(e2eRadio);
+    const integrationRadio = screen.getAllByRole('radio')[1]; // Unit/Integration/All
+    await user.click(integrationRadio);
     await waitFor(() => {
-      expect(screen.getByText('e2e/tests/system_api')).toBeInTheDocument();
+      expect(screen.getByText('regions/system/library/go/auth')).toBeInTheDocument();
     });
   });
 
@@ -67,7 +66,7 @@ describe('TestPage', () => {
   it('should enable the run button for All kind without selecting targets', async () => {
     const user = userEvent.setup();
     render(<TestPage />);
-    const allRadio = screen.getAllByRole('radio')[3]; // Unit/Integration/E2e/All
+    const allRadio = screen.getAllByRole('radio')[2]; // Unit/Integration/All
     await user.click(allRadio);
     expect(screen.getByTestId('btn-test')).not.toBeDisabled();
   });

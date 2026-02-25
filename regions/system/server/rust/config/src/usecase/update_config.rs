@@ -374,7 +374,7 @@ mod tests {
     async fn test_new_with_kafka_sets_producer() {
         // new_with_kafka() で作成した UseCase は kafka_producer が Some
         // KafkaProducer はブローカー接続が必要なため、Option<Arc<KafkaProducer>> の
-        // Some 性チェックのみ行う（実際のKafka接続はE2Eテストで確認）
+        // Some 性チェックのみ行う（実際のKafka接続は統合テストで確認）
         let mock = MockConfigRepository::new();
         // KafkaConfig を直接構築してテスト（接続は行わない）
         // ここでは型検証のみ: new_with_kafka のシグネチャが正しいことを確認する
@@ -453,7 +453,7 @@ mod tests {
             assert!(uc.kafka_producer.is_some());
             assert!(uc.watch_sender.is_some());
         };
-        // 型チェックのみ（実際のKafka接続はE2Eテストで確認）
+        // 型チェックのみ（実際のKafka接続は統合テストで確認）
     }
 
     #[tokio::test]

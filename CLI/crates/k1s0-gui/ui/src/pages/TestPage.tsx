@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   executeTestWithProgress,
   scanTestableTargets,
-  scanE2eSuites,
   type TestKind,
   type ProgressEvent,
 } from '../lib/tauri-commands';
@@ -26,11 +25,7 @@ export default function TestPage() {
       setTargets([]);
       return;
     }
-    if (kind === 'E2e') {
-      scanE2eSuites('.').then(setTargets).catch(() => {});
-    } else {
-      scanTestableTargets('.').then(setTargets).catch(() => {});
-    }
+    scanTestableTargets('.').then(setTargets).catch(() => {});
   }, [kind]);
 
   const toggleTarget = (t: string) => {
@@ -68,7 +63,7 @@ export default function TestPage() {
       <div className="mb-4">
         <h2 className="font-semibold mb-3 text-white/90">テスト種別</h2>
         <RadioGroup.Root value={kind} onValueChange={(v) => setKind(v as TestKind)}>
-          {(['Unit', 'Integration', 'E2e', 'All'] as TestKind[]).map((k) => (
+          {(['Unit', 'Integration', 'All'] as TestKind[]).map((k) => (
             <div key={k} className="flex items-center gap-2 mb-1">
               <RadioGroup.Item value={k}>
                 <RadioGroup.Indicator />
