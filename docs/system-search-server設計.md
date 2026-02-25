@@ -43,12 +43,10 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 [認証認可設計.md](認証認可設計.md) の RBAC モデルに基づき、以下の方針で実装する。
 
-> **注意**: OpenSearch 統合は Phase 2（将来対応予定）。現在の Phase 1 実装ではインメモリ検索インデックス（`InMemorySearchRepository`）を使用する（開発・テスト用途）。Phase 2 で `SearchRepository` トレイトの OpenSearch 実装に切り替え予定。
-
 | 項目 | 設計 |
 | --- | --- |
 | 実装言語 | Rust |
-| 検索エンジン | Phase 1: インメモリインデックス（開発用）。Phase 2: OpenSearch（opensearch-rs クライアント経由でアクセス） |
+| 検索エンジン | OpenSearch（opensearch-rs クライアント経由でアクセス） |
 | 非同期インデックス | Kafka トピック `k1s0.system.search.index.requested.v1` を Consumer し非同期にインデックス登録 |
 | 同期インデックス | REST POST `/api/v1/search/index` により即座にインデックス登録（`index_name` はリクエストボディで指定） |
 | キャッシュ | インデックス一覧・ドキュメント数等のステータスを moka で TTL 30 秒キャッシュ |
@@ -73,8 +71,6 @@ system tier の全文検索サーバーは以下の機能を提供する。
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
-
-> **Phase 2 追加予定エンドポイント**: DELETE `/api/v1/search/indices/:name`（インデックス削除）、PUT `/api/v1/search/indices/:name/documents/:id`（ドキュメント更新）
 
 #### POST /api/v1/indices
 
