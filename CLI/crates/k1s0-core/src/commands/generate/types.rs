@@ -74,7 +74,6 @@ pub enum Language {
     Rust,
     TypeScript,
     Dart,
-    Python,
 }
 
 impl Language {
@@ -84,7 +83,6 @@ impl Language {
             Language::Rust => "Rust",
             Language::TypeScript => "TypeScript",
             Language::Dart => "Dart",
-            Language::Python => "Python",
         }
     }
 
@@ -94,7 +92,6 @@ impl Language {
             Language::Rust => "rust",
             Language::TypeScript => "typescript",
             Language::Dart => "dart",
-            Language::Python => "python",
         }
     }
 }
@@ -286,7 +283,6 @@ mod tests {
         assert_eq!(Language::Rust.as_str(), "Rust");
         assert_eq!(Language::TypeScript.as_str(), "TypeScript");
         assert_eq!(Language::Dart.as_str(), "Dart");
-        assert_eq!(Language::Python.as_str(), "Python");
     }
 
     #[test]
@@ -295,7 +291,6 @@ mod tests {
         assert_eq!(Language::Rust.dir_name(), "rust");
         assert_eq!(Language::TypeScript.dir_name(), "typescript");
         assert_eq!(Language::Dart.dir_name(), "dart");
-        assert_eq!(Language::Python.dir_name(), "python");
     }
 
     #[test]

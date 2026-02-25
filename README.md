@@ -7,7 +7,6 @@
   <img src="https://img.shields.io/badge/Go-1.23-00ADD8?logo=go" alt="Go">
   <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" alt="React">
   <img src="https://img.shields.io/badge/Flutter-3.24-02569B?logo=flutter" alt="Flutter">
-  <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python" alt="Python 3.12">
   <img src="https://img.shields.io/badge/Kubernetes-ready-326CE5?logo=kubernetes" alt="Kubernetes">
   <img src="https://img.shields.io/badge/OpenTelemetry-built--in-7B68EE" alt="OpenTelemetry">
 </p>
@@ -119,8 +118,7 @@ regions/
 | モバイル・クロスプラットフォーム | **Flutter 3.24** (Riverpod, go_router, freezed)   |
 | デスクトップGUI                  | **Tauri 2** + React                               |
 | CLI                              | **Rust** (dialoguer, Tera テンプレートエンジン)   |
-| システムライブラリ               | **Go / Rust / TypeScript / Dart / Python**（5言語） |
-| E2E テスト                       | **Python 3.12** (pytest, testcontainers)          |
+| システムライブラリ               | **Go / Rust / TypeScript / Dart**（4言語） |
 
 ### API・通信
 
@@ -171,8 +169,6 @@ regions/
 - Rust 1.82+
 - Docker & Docker Compose
 - Go 1.23+（Go サーバー開発時）
-- uv（Python ライブラリ開発時）
-
 ### インストールと起動
 
 ```bash
@@ -236,7 +232,6 @@ k1s0/
 │   ├── messaging/            Kafka・Schema Registry
 │   ├── observability/        監視・アラート設定
 │   └── ansible/              プロビジョニング
-├── e2e/                    E2E テスト（Python + pytest）
 ├── scripts/                ユーティリティスクリプト
 ├── docs/                   設計ドキュメント（100+ ファイル）
 ├── .github/workflows/      CI/CD パイプライン（20 ワークフロー）
@@ -374,17 +369,6 @@ cargo test --lib
 # Go テスト
 go test ./...
 
-# Python ライブラリテスト
-cd regions/system/library/python && uv run pytest
-
-# E2E テスト（全テスト）
-cd e2e && pytest
-
-# E2E テスト（カテゴリ指定）
-cd e2e && pytest -m "auth"        # 認証テスト
-cd e2e && pytest -m "compliance"  # ドキュメント準拠テスト
-cd e2e && pytest -m "health"      # ヘルスチェックテスト
-
 # テストカバレッジ
 scripts/coverage.sh
 ```
@@ -398,9 +382,4 @@ cargo fmt --check
 
 # Go
 golangci-lint run ./...
-
-# Python
-cd regions/system/library/python
-uv run ruff check .
-uv run ruff format --check .
 ```

@@ -25,9 +25,6 @@
       "version": "22"
     },
 {% endif %}
-    "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.12"
-    },
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
       "helm": "3.16",
@@ -52,8 +49,6 @@
         "Dart-Code.dart-code",
         "Dart-Code.flutter",
 {% endif %}
-        "ms-python.python",
-        "charliermarsh.ruff",
         "ms-azuretools.vscode-docker",
         "redhat.vscode-yaml",
         "42Crunch.vscode-openapi",
@@ -80,10 +75,7 @@
         }{% endif %}{% if language == "dart" or framework == "flutter" %},
         "[dart]": {
           "editor.defaultFormatter": "Dart-Code.dart-code"
-        }{% endif %},
-        "[python]": {
-          "editor.defaultFormatter": "charliermarsh.ruff"
-        }
+        }{% endif %}
       }
     }
   },

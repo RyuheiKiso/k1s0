@@ -7,7 +7,6 @@ Tier アーキテクチャの詳細は [tier-architecture.md](tier-architecture.
 
 - CI/CD は **GitHub Actions** で一元管理する
 - PR 時に CI（lint → test → build）、マージ時に CD（image push → deploy）を実行する
-- 言語別マトリクスビルドで Rust / TypeScript / Dart / Python に対応する
 - 環境別デプロイ: dev 自動 / staging 自動 / prod 手動承認
 - セキュリティスキャン（Trivy・依存関係チェック）を全パイプラインに組み込む
 
@@ -55,7 +54,6 @@ jobs:
       rust: ${{ steps.filter.outputs.rust }}
       ts: ${{ steps.filter.outputs.ts }}
       dart: ${{ steps.filter.outputs.dart }}
-      python: ${{ steps.filter.outputs.python }}
       helm: ${{ steps.filter.outputs.helm }}
     steps:
       - uses: actions/checkout@v4
@@ -72,8 +70,6 @@ jobs:
             dart:
               - 'regions/**/flutter/**'
               - 'regions/**/dart/**'
-            python:
-              - 'e2e/**'
             helm:
               - 'infra/helm/**'
 
@@ -114,19 +110,11 @@ jobs:
       - run: dart analyze
       - run: dart format --set-exit-if-changed .
 
-  lint-python:
     needs: detect-changes
-    if: needs.detect-changes.outputs.python == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - run: pip install ruff mypy
-      - run: ruff check .
-      - run: ruff format --check .
-      - run: mypy e2e/
 
   test-rust:
     needs: lint-rust
@@ -157,16 +145,10 @@ jobs:
           flutter-version: "3.24.0"              # devcontainer設計.md と同期
       - run: flutter test
 
-  test-python:
-    needs: lint-python
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - run: pip install -r e2e/requirements.txt
-      - run: pytest e2e/ --tb=short
 
   helm-lint:
     needs: detect-changes
@@ -633,7 +615,6 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 | Rust   | `~/.cargo`, `target/`        | `actions/cache`           |
 | Node   | `node_modules/`              | `actions/setup-node` 内蔵 |
 | Dart   | `~/.pub-cache`               | `actions/cache`           |
-| Python | `~/.cache/pip`               | `actions/setup-python` 内蔵 |
 | Docker | Docker layer cache           | `cache-from: type=gha`   |
 
 ---

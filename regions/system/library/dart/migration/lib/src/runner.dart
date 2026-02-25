@@ -60,6 +60,8 @@ class InMemoryMigrationRunner implements MigrationRunner {
 
     for (var i = 0; i < steps; i++) {
       if (_applied.isEmpty) break;
+      final last = _applied.last;
+      if (!_downMigrations.containsKey(last.version)) break;
       _applied.removeLast();
       count++;
     }

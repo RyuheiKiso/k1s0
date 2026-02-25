@@ -48,9 +48,3 @@ repos:
         language: system
         files: '\.dart$'
 
-      - id: python-lint
-        name: Python Lint
-        entry: ruff check
-        language: system
-        files: '\.py$'
-

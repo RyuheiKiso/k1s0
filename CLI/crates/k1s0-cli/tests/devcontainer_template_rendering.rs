@@ -203,10 +203,6 @@ fn test_devcontainer_common_features() {
 
     let content = read_output(&tmp, "devcontainer.json");
     assert!(
-        content.contains("ghcr.io/devcontainers/features/python:1"),
-        "Python feature missing in devcontainer.json"
-    );
-    assert!(
         content.contains("ghcr.io/devcontainers/features/docker-in-docker:2"),
         "Docker-in-Docker feature missing in devcontainer.json"
     );

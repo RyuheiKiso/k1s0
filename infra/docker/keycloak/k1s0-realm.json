@@ -293,62 +293,6 @@
           }
         }
       ]
-    },
-    {
-      "clientId": "k1s0-e2e-test",
-      "name": "k1s0 E2E Test Client (dev only)",
-      "description": "E2E/integration test client with direct access grants enabled. Dev environment only.",
-      "enabled": true,
-      "publicClient": false,
-      "directAccessGrantsEnabled": true,
-      "standardFlowEnabled": false,
-      "implicitFlowEnabled": false,
-      "serviceAccountsEnabled": false,
-      "protocol": "openid-connect",
-      "secret": "dev-e2e-test-secret",
-      "defaultClientScopes": [
-        "openid",
-        "profile",
-        "email"
-      ],
-      "protocolMappers": [
-        {
-          "name": "tier-access-mapper",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-hardcoded-claim-mapper",
-          "config": {
-            "claim.name": "tier_access",
-            "claim.value": "[\"system\", \"business\", \"service\"]",
-            "jsonType.label": "JSON",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "userinfo.token.claim": "true"
-          }
-        },
-        {
-          "name": "realm-roles-mapper",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-realm-role-mapper",
-          "config": {
-            "claim.name": "realm_access.roles",
-            "jsonType.label": "String",
-            "multivalued": "true",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "userinfo.token.claim": "true"
-          }
-        },
-        {
-          "name": "audience-k1s0-api",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.custom.audience": "k1s0-api",
-            "access.token.claim": "true",
-            "id.token.claim": "false"
-          }
-        }
-      ]
     }
   ],
   "clientScopes": [

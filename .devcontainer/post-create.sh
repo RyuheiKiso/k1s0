@@ -23,13 +23,6 @@ echo 'export PATH="/opt/flutter/bin:$PATH"' >> ~/.bashrc
 flutter precache --web
 flutter config --no-analytics
 
-# Python（E2E テスト）
-pip install -r e2e/requirements.txt
-
-# Pre-commit フック
-pip install pre-commit
-pre-commit install
-
 # protobuf コンパイラ
 sudo apt-get update && sudo apt-get install -y protobuf-compiler
 

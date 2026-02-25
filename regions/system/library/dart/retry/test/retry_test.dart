@@ -106,6 +106,7 @@ void main() {
     });
 
     test('RetryError contains attempt count and last error', () async {
+      RetryError? caught;
       try {
         await withRetry(
           const RetryConfig(maxAttempts: 2, jitter: false, initialDelayMs: 1),
@@ -113,12 +114,13 @@ void main() {
             throw Exception('boom');
           },
         );
-        fail('should have thrown');
       } on RetryError catch (e) {
-        expect(e.attempts, equals(2));
-        expect(e.lastError.toString(), contains('boom'));
-        expect(e.toString(), contains('exhausted 2 retries'));
+        caught = e;
       }
+      expect(caught, isNotNull);
+      expect(caught.attempts, equals(2));
+      expect(caught.lastError.toString(), contains('boom'));
+      expect(caught.toString(), contains('exhausted 2 retries'));
     });
   });
 

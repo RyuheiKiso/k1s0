@@ -9,7 +9,7 @@ export type Framework = 'React' | 'Flutter';
 export type ApiStyle = 'Rest' | 'Grpc' | 'GraphQL';
 export type Rdbms = 'PostgreSQL' | 'MySQL' | 'SQLite';
 export type BuildMode = 'Development' | 'Production';
-export type TestKind = 'Unit' | 'Integration' | 'E2e' | 'All';
+export type TestKind = 'Unit' | 'Integration' | 'All';
 export type Environment = 'Dev' | 'Staging' | 'Prod';
 
 export interface DbInfo {
@@ -103,10 +103,6 @@ export async function scanDeployableTargets(baseDir: string): Promise<string[]> 
 
 export async function scanTestableTargets(baseDir: string): Promise<string[]> {
   return invoke<string[]>('scan_testable_targets', { baseDir });
-}
-
-export async function scanE2eSuites(baseDir: string): Promise<string[]> {
-  return invoke<string[]>('scan_e2e_suites', { baseDir });
 }
 
 export async function scanPlacements(tier: Tier, baseDir: string): Promise<string[]> {

@@ -25,15 +25,6 @@
 **/.vs/
 **/*.tsbuildinfo
 
-# Python caches
-__pycache__/
-.pytest_cache/
-**/.venv/
-**/*.pyc
-**/*.pyo
-**/*.egg-info/
-**/.ruff_cache/
-**/.mypy_cache/
 
 # IDE / Editor
 .idea/

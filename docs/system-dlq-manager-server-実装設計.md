@@ -591,11 +591,11 @@ CREATE TRIGGER trg_dlq_messages_updated_at
 
 ### インテグレーションテスト
 
-`tests/` ディレクトリに配置。InMemory リポジトリを使用した REST API の E2E テスト。
+`tests/` ディレクトリに配置。InMemory リポジトリを使用した REST API の統合テスト。
 
 | テストファイル | 要件 | 内容 |
 |-------------|------|------|
-| `integration_test.rs` | InMemory | REST API の E2E テスト（11 テストケース） |
+| `integration_test.rs` | InMemory | REST API の統合テスト（11 テストケース） |
 
 テスト一覧:
 

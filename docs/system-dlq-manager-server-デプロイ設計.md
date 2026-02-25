@@ -105,10 +105,6 @@ ENTRYPOINT ["/k1s0-dlq-manager"]
 | `test_delete_message_returns_ok` | メッセージ削除成功 |
 | `test_retry_all_returns_retried_count` | 一括リトライの件数返却 |
 
-### E2E テスト
-
-`e2e/` ディレクトリの Python + pytest による E2E テストで DLQ Manager の REST API を検証する。docker-compose 環境（PostgreSQL + Kafka）を使用。
-
 ---
 
 ## CI/CD パイプライン

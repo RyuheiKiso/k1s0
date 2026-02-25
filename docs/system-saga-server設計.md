@@ -882,7 +882,7 @@ regions/system/library/rust/saga/
 
 | テストファイル | 要件 | 内容 |
 | --- | --- | --- |
-| `integration_test.rs` | InMemory | REST API の E2E テスト |
+| `integration_test.rs` | InMemory | REST API の統合テスト |
 | `workflow_engine_test.rs` | モック | ワークフロー実行パス |
 | `postgres_repository_test.rs` | PostgreSQL | DB 操作の検証 |
 | `kafka_integration_test.rs` | Kafka | イベント発行の検証 |

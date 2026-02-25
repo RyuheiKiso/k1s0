@@ -97,9 +97,6 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
       "version": "22"
     },
 {% endif %}
-    "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.12"
-    },
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
       "helm": "3.16",
@@ -124,8 +121,6 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
         "Dart-Code.dart-code",
         "Dart-Code.flutter",
 {% endif %}
-        "ms-python.python",
-        "charliermarsh.ruff",
         "ms-azuretools.vscode-docker",
         "redhat.vscode-yaml",
         "42Crunch.vscode-openapi",
@@ -152,10 +147,7 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
         }{% endif %}{% if language == "dart" or framework == "flutter" %},
         "[dart]": {
           "editor.defaultFormatter": "Dart-Code.dart-code"
-        
-        "[python]": {
-          "editor.defaultFormatter": "charliermarsh.ruff"
-        }
+        }{% endif %}
       }
     }
   },
@@ -205,7 +197,6 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
 | Rust                  | `ghcr.io/devcontainers/features/rust:1`          | 1.82       |
 | TypeScript / React    | `ghcr.io/devcontainers/features/node:1`          | 22         |
 | Dart / Flutter        | `ghcr.io/devcontainers/features/node:1`          | 22         |
-| 共通 (Python)         | `ghcr.io/devcontainers/features/python:1`        | 3.12       |
 | 共通 (Docker)         | `ghcr.io/devcontainers/features/docker-in-docker:2` | ---     |
 | 共通 (Helm)           | `ghcr.io/devcontainers/features/kubectl-helm-minikube:1` | 3.16 |
 
@@ -217,7 +208,7 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
 | Rust                  | `rust-lang.rust-analyzer`                    |
 | TypeScript / React    | `dbaeumer.vscode-eslint`, `esbenp.prettier-vscode` |
 | Dart / Flutter        | `Dart-Code.dart-code`, `Dart-Code.flutter`   |
-| 共通                  | `ms-python.python`, `charliermarsh.ruff`, `ms-azuretools.vscode-docker`, `redhat.vscode-yaml`, `42Crunch.vscode-openapi`, `zxh404.vscode-proto3`, `GraphQL.vscode-graphql`, `eamodio.gitlens` |
+| 共通                  | `ms-azuretools.vscode-docker`, `redhat.vscode-yaml`, `42Crunch.vscode-openapi`, `zxh404.vscode-proto3`, `GraphQL.vscode-graphql`, `eamodio.gitlens` |
 
 ### forwardPorts の条件別選択
 
@@ -314,14 +305,6 @@ flutter precache --web
 flutter config --no-analytics
 {% endif %}
 
-
-# Python（E2E テスト）
-pip install -r e2e/requirements.txt
-
-# Pre-commit フック
-pip install pre-commit
-pre-commit install
-
 {% if language == "go" %}
 # protobuf コンパイラ
 sudo apt-get update && sudo apt-get install -y protobuf-compiler
@@ -342,7 +325,6 @@ echo "Dev Container setup complete for {{ service_name }}."
 | Go                    | goimports, golangci-lint, protoc-gen-go, protoc-gen-go-grpc, oapi-codegen, protobuf-compiler, buf |
 | Rust                  | clippy, rustfmt                                                                   |
 | Dart / Flutter        | Flutter SDK 3.24.0, flutter precache, flutter config                              |
-| 共通                  | pip install e2e/requirements.txt, pre-commit                                      |
 
 ---
 
@@ -397,7 +379,7 @@ CLI の対話フローで選択されたオプションに応じて、Dev Contai
 **`.devcontainer/post-create.sh`**:
 - Go ツール（goimports, golangci-lint, protoc-gen-go 等）
 - protobuf-compiler + buf
-- Python E2E + pre-commit
+- pre-commit
 
 ### Rust gRPC サーバー（DB なし・Kafka あり）の場合
 
@@ -427,7 +409,7 @@ CLI の対話フローで選択されたオプションに応じて、Dev Contai
 
 **`.devcontainer/post-create.sh`**:
 - Rust コンポーネント（clippy, rustfmt）
-- Python E2E + pre-commit
+- pre-commit
 
 ### React クライアントの場合
 
@@ -456,7 +438,7 @@ CLI の対話フローで選択されたオプションに応じて、Dev Contai
 - depends_on: なし
 
 **`.devcontainer/post-create.sh`**:
-- Python E2E + pre-commit
+- pre-commit
 
 ### Flutter クライアントの場合
 
@@ -486,7 +468,7 @@ CLI の対話フローで選択されたオプションに応じて、Dev Contai
 
 **`.devcontainer/post-create.sh`**:
 - Flutter SDK 3.24.0 インストール
-- Python E2E + pre-commit
+- pre-commit
 
 ---
 

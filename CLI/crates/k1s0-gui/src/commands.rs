@@ -74,12 +74,6 @@ pub fn scan_testable_targets(base_dir: String) -> Vec<String> {
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub fn scan_e2e_suites(base_dir: String) -> Vec<String> {
-    test_cmd::scan_e2e_suites_at(Path::new(&base_dir))
-}
-
-#[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
 pub fn validate_name(name: String) -> Result<(), String> {
     k1s0_core::validate_name(&name)
 }
@@ -175,13 +169,6 @@ mod tests {
         let tmp = tempfile::TempDir::new().unwrap();
         let targets = scan_testable_targets(tmp.path().to_string_lossy().to_string());
         assert!(targets.is_empty());
-    }
-
-    #[test]
-    fn test_scan_e2e_suites_empty() {
-        let tmp = tempfile::TempDir::new().unwrap();
-        let suites = scan_e2e_suites(tmp.path().to_string_lossy().to_string());
-        assert!(suites.is_empty());
     }
 
     #[test]
