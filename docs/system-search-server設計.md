@@ -357,7 +357,7 @@ infrastructure（OpenSearch クライアント・Kafka Producer/Consumer・moka 
 | --- | --- | --- |
 | domain/entity | `SearchIndex`, `SearchDocument`, `SearchQuery`, `SearchResult` | エンティティ定義 |
 | domain/repository | `SearchRepository`（単一トレイト） | リポジトリトレイト（`create_index`, `find_index`, `list_indices`, `index_document`, `search`, `delete_document`） |
-| domain/service | `SearchDomainService` | 検索クエリ構築・ファセット集計ロジック（Phase 2） |
+| domain/service | `SearchDomainService` | 検索クエリ構築・ファセット集計ロジック |
 | usecase | `CreateIndexUseCase`, `ListIndicesUseCase`, `IndexDocumentUseCase`, `SearchUseCase`, `DeleteDocumentUseCase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
