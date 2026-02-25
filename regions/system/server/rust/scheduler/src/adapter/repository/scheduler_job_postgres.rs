@@ -31,6 +31,10 @@ struct SchedulerJobRow {
     payload: serde_json::Value,
     enabled: bool,
     max_retries: i32,
+    description: Option<String>,
+    timezone: String,
+    target_type: String,
+    target: Option<String>,
     last_run_at: Option<DateTime<Utc>>,
     next_run_at: Option<DateTime<Utc>>,
     created_at: DateTime<Utc>,
@@ -47,7 +51,11 @@ impl From<SchedulerJobRow> for SchedulerJob {
         SchedulerJob {
             id: row.id,
             name: row.name,
+            description: row.description,
             cron_expression: row.cron_expression,
+            timezone: row.timezone,
+            target_type: row.target_type,
+            target: row.target,
             payload: row.payload,
             status,
             next_run_at: row.next_run_at,
@@ -63,6 +71,7 @@ impl SchedulerJobRepository for SchedulerJobPostgresRepository {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<SchedulerJob>> {
         let row: Option<SchedulerJobRow> = sqlx::query_as(
             "SELECT id, name, cron_expression, job_type, payload, enabled, max_retries, \
+                    description, timezone, target_type, target, \
                     last_run_at, next_run_at, created_at, updated_at \
              FROM scheduler.scheduler_jobs WHERE id = $1",
         )
@@ -75,6 +84,7 @@ impl SchedulerJobRepository for SchedulerJobPostgresRepository {
     async fn find_all(&self) -> anyhow::Result<Vec<SchedulerJob>> {
         let rows: Vec<SchedulerJobRow> = sqlx::query_as(
             "SELECT id, name, cron_expression, job_type, payload, enabled, max_retries, \
+                    description, timezone, target_type, target, \
                     last_run_at, next_run_at, created_at, updated_at \
              FROM scheduler.scheduler_jobs ORDER BY created_at DESC",
         )
@@ -87,14 +97,19 @@ impl SchedulerJobRepository for SchedulerJobPostgresRepository {
         let enabled = job.status == "active";
         sqlx::query(
             "INSERT INTO scheduler.scheduler_jobs \
-             (id, name, cron_expression, payload, enabled, last_run_at, next_run_at, created_at, updated_at) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+             (id, name, cron_expression, payload, enabled, description, timezone, target_type, target, \
+              last_run_at, next_run_at, created_at, updated_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
         )
         .bind(job.id)
         .bind(&job.name)
         .bind(&job.cron_expression)
         .bind(&job.payload)
         .bind(enabled)
+        .bind(&job.description)
+        .bind(&job.timezone)
+        .bind(&job.target_type)
+        .bind(&job.target)
         .bind(job.last_run_at)
         .bind(job.next_run_at)
         .bind(job.created_at)
@@ -109,7 +124,8 @@ impl SchedulerJobRepository for SchedulerJobPostgresRepository {
         sqlx::query(
             "UPDATE scheduler.scheduler_jobs \
              SET name = $2, cron_expression = $3, payload = $4, enabled = $5, \
-                 last_run_at = $6, next_run_at = $7, updated_at = $8 \
+                 description = $6, timezone = $7, target_type = $8, target = $9, \
+                 last_run_at = $10, next_run_at = $11, updated_at = $12 \
              WHERE id = $1",
         )
         .bind(job.id)
@@ -117,6 +133,10 @@ impl SchedulerJobRepository for SchedulerJobPostgresRepository {
         .bind(&job.cron_expression)
         .bind(&job.payload)
         .bind(enabled)
+        .bind(&job.description)
+        .bind(&job.timezone)
+        .bind(&job.target_type)
+        .bind(&job.target)
         .bind(job.last_run_at)
         .bind(job.next_run_at)
         .bind(job.updated_at)
@@ -136,6 +156,7 @@ impl SchedulerJobRepository for SchedulerJobPostgresRepository {
     async fn find_active_jobs(&self) -> anyhow::Result<Vec<SchedulerJob>> {
         let rows: Vec<SchedulerJobRow> = sqlx::query_as(
             "SELECT id, name, cron_expression, job_type, payload, enabled, max_retries, \
+                    description, timezone, target_type, target, \
                     last_run_at, next_run_at, created_at, updated_at \
              FROM scheduler.scheduler_jobs \
              WHERE enabled = true \
@@ -161,6 +182,10 @@ mod tests {
             payload: serde_json::json!({"key": "value"}),
             enabled: true,
             max_retries: 3,
+            description: None,
+            timezone: "UTC".to_string(),
+            target_type: "kafka".to_string(),
+            target: None,
             last_run_at: None,
             next_run_at: None,
             created_at: Utc::now(),
@@ -169,6 +194,8 @@ mod tests {
         let entity: SchedulerJob = row.into();
         assert_eq!(entity.status, "active");
         assert_eq!(entity.name, "test-job");
+        assert_eq!(entity.timezone, "UTC");
+        assert_eq!(entity.target_type, "kafka");
     }
 
     #[test]
@@ -181,6 +208,10 @@ mod tests {
             payload: serde_json::json!({}),
             enabled: false,
             max_retries: 1,
+            description: Some("a paused job".to_string()),
+            timezone: "Asia/Tokyo".to_string(),
+            target_type: "http".to_string(),
+            target: Some("https://example.com/hook".to_string()),
             last_run_at: Some(Utc::now()),
             next_run_at: Some(Utc::now()),
             created_at: Utc::now(),
@@ -190,6 +221,13 @@ mod tests {
         assert_eq!(entity.status, "paused");
         assert!(entity.last_run_at.is_some());
         assert!(entity.next_run_at.is_some());
+        assert_eq!(entity.description.as_deref(), Some("a paused job"));
+        assert_eq!(entity.timezone, "Asia/Tokyo");
+        assert_eq!(entity.target_type, "http");
+        assert_eq!(
+            entity.target.as_deref(),
+            Some("https://example.com/hook")
+        );
     }
 
     #[test]

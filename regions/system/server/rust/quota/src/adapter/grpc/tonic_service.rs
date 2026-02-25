@@ -266,7 +266,7 @@ mod tests {
             Arc::new(UpdateQuotaPolicyUseCase::new(policy_repo.clone())),
             Arc::new(DeleteQuotaPolicyUseCase::new(policy_repo.clone())),
             Arc::new(GetQuotaUsageUseCase::new(policy_repo.clone(), usage_repo.clone())),
-            Arc::new(IncrementQuotaUsageUseCase::new(policy_repo, usage_repo)),
+            Arc::new(IncrementQuotaUsageUseCase::new_without_publisher(policy_repo, usage_repo)),
         ));
         QuotaServiceTonic::new(grpc_svc)
     }

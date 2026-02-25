@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use uuid::Uuid;
 
-use crate::domain::entity::{Algorithm, RateLimitRule};
+use crate::domain::entity::RateLimitRule;
 use crate::domain::repository::RateLimitRepository;
 
 /// UpdateRuleError はルール更新に関するエラー。
@@ -24,11 +24,10 @@ pub enum UpdateRuleError {
 /// UpdateRuleInput はルール更新の入力。
 pub struct UpdateRuleInput {
     pub id: String,
-    pub name: String,
-    pub key: String,
+    pub scope: String,
+    pub identifier_pattern: String,
     pub limit: i64,
-    pub window_secs: i64,
-    pub algorithm: String,
+    pub window_seconds: i64,
     pub enabled: bool,
 }
 
@@ -43,22 +42,19 @@ impl UpdateRuleUseCase {
     }
 
     pub async fn execute(&self, input: &UpdateRuleInput) -> Result<RateLimitRule, UpdateRuleError> {
-        if input.name.is_empty() {
-            return Err(UpdateRuleError::Validation("name is required".to_string()));
+        if input.scope.is_empty() {
+            return Err(UpdateRuleError::Validation("scope is required".to_string()));
         }
         if input.limit <= 0 {
             return Err(UpdateRuleError::Validation(
                 "limit must be positive".to_string(),
             ));
         }
-        if input.window_secs <= 0 {
+        if input.window_seconds <= 0 {
             return Err(UpdateRuleError::Validation(
-                "window_secs must be positive".to_string(),
+                "window_seconds must be positive".to_string(),
             ));
         }
-
-        let algorithm = Algorithm::from_str(&input.algorithm)
-            .map_err(|e| UpdateRuleError::InvalidAlgorithm(e))?;
 
         let id = Uuid::parse_str(&input.id)
             .map_err(|_| UpdateRuleError::NotFound(input.id.clone()))?;
@@ -69,11 +65,10 @@ impl UpdateRuleUseCase {
             .await
             .map_err(|e| UpdateRuleError::NotFound(e.to_string()))?;
 
-        rule.name = input.name.clone();
-        rule.key = input.key.clone();
+        rule.scope = input.scope.clone();
+        rule.identifier_pattern = input.identifier_pattern.clone();
         rule.limit = input.limit;
-        rule.window_secs = input.window_secs;
-        rule.algorithm = algorithm;
+        rule.window_seconds = input.window_seconds;
         rule.enabled = input.enabled;
         rule.updated_at = chrono::Utc::now();
 
@@ -89,13 +84,14 @@ impl UpdateRuleUseCase {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::entity::Algorithm;
     use crate::domain::repository::rate_limit_repository::MockRateLimitRepository;
 
     #[tokio::test]
     async fn test_update_rule_success() {
         let mut repo = MockRateLimitRepository::new();
         let rule = RateLimitRule::new(
-            "api-global".to_string(),
+            "service".to_string(),
             "global".to_string(),
             100,
             60,
@@ -111,20 +107,19 @@ mod tests {
         let uc = UpdateRuleUseCase::new(Arc::new(repo));
         let input = UpdateRuleInput {
             id: rule_id.to_string(),
-            name: "updated-rule".to_string(),
-            key: "updated-key".to_string(),
+            scope: "user".to_string(),
+            identifier_pattern: "updated-pattern".to_string(),
             limit: 200,
-            window_secs: 120,
-            algorithm: "fixed_window".to_string(),
+            window_seconds: 120,
             enabled: false,
         };
 
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
         let updated = result.unwrap();
-        assert_eq!(updated.name, "updated-rule");
+        assert_eq!(updated.scope, "user");
         assert_eq!(updated.limit, 200);
-        assert_eq!(updated.algorithm, Algorithm::FixedWindow);
+        assert_eq!(updated.window_seconds, 120);
         assert!(!updated.enabled);
     }
 
@@ -137,11 +132,10 @@ mod tests {
         let uc = UpdateRuleUseCase::new(Arc::new(repo));
         let input = UpdateRuleInput {
             id: Uuid::new_v4().to_string(),
-            name: "test".to_string(),
-            key: "test".to_string(),
+            scope: "service".to_string(),
+            identifier_pattern: "test".to_string(),
             limit: 100,
-            window_secs: 60,
-            algorithm: "token_bucket".to_string(),
+            window_seconds: 60,
             enabled: true,
         };
 
@@ -151,24 +145,20 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_update_rule_invalid_algorithm() {
+    async fn test_update_rule_empty_scope() {
         let repo = MockRateLimitRepository::new();
         let uc = UpdateRuleUseCase::new(Arc::new(repo));
         let input = UpdateRuleInput {
             id: Uuid::new_v4().to_string(),
-            name: "test".to_string(),
-            key: "test".to_string(),
+            scope: "".to_string(),
+            identifier_pattern: "test".to_string(),
             limit: 100,
-            window_secs: 60,
-            algorithm: "bad_algo".to_string(),
+            window_seconds: 60,
             enabled: true,
         };
 
         let result = uc.execute(&input).await;
         assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            UpdateRuleError::InvalidAlgorithm(_)
-        ));
+        assert!(matches!(result.unwrap_err(), UpdateRuleError::Validation(_)));
     }
 }

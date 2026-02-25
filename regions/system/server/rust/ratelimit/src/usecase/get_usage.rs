@@ -2,8 +2,7 @@ use std::sync::Arc;
 
 use uuid::Uuid;
 
-use crate::domain::entity::{RateLimitDecision, RateLimitRule};
-use crate::domain::repository::{RateLimitRepository, RateLimitStateStore};
+use crate::domain::repository::RateLimitRepository;
 
 /// GetUsageError はレートリミット使用状況取得に関するエラー。
 #[derive(Debug, thiserror::Error)]
@@ -24,7 +23,7 @@ pub struct UsageInfo {
     pub rule_id: String,
     pub rule_name: String,
     pub limit: i64,
-    pub window_secs: i64,
+    pub window_seconds: i64,
     pub algorithm: String,
     pub enabled: bool,
 }
@@ -51,9 +50,9 @@ impl GetUsageUseCase {
 
         Ok(UsageInfo {
             rule_id: rule.id.to_string(),
-            rule_name: rule.name,
+            rule_name: rule.scope.clone(),
             limit: rule.limit,
-            window_secs: rule.window_secs,
+            window_seconds: rule.window_seconds,
             algorithm: rule.algorithm.as_str().to_string(),
             enabled: rule.enabled,
         })
@@ -69,7 +68,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_usage_success() {
         let rule = RateLimitRule::new(
-            "api-global".to_string(),
+            "service".to_string(),
             "global".to_string(),
             100,
             60,
@@ -87,7 +86,7 @@ mod tests {
         assert!(result.is_ok());
 
         let info = result.unwrap();
-        assert_eq!(info.rule_name, "api-global");
+        assert_eq!(info.rule_name, "service");
         assert_eq!(info.limit, 100);
     }
 

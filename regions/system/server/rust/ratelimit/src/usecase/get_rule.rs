@@ -51,7 +51,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_rule_success() {
         let rule = RateLimitRule::new(
-            "api-global".to_string(),
+            "service".to_string(),
             "global".to_string(),
             100,
             60,
@@ -70,7 +70,7 @@ mod tests {
         assert!(result.is_ok());
         let found = result.unwrap();
         assert_eq!(found.id, rule_id);
-        assert_eq!(found.name, "api-global");
+        assert_eq!(found.scope, "service");
     }
 
     #[tokio::test]

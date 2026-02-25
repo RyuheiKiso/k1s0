@@ -116,7 +116,7 @@ async fn main() -> anyhow::Result<()> {
     // Use cases
     let check_uc = Arc::new(usecase::CheckRateLimitUseCase::new(
         rule_repo.clone(),
-        state_store,
+        state_store.clone(),
     ));
     let create_uc = Arc::new(usecase::CreateRuleUseCase::new(rule_repo.clone()));
     let get_uc = Arc::new(usecase::GetRuleUseCase::new(rule_repo.clone()));
@@ -124,6 +124,7 @@ async fn main() -> anyhow::Result<()> {
     let update_uc = Arc::new(usecase::UpdateRuleUseCase::new(rule_repo.clone()));
     let delete_uc = Arc::new(usecase::DeleteRuleUseCase::new(rule_repo.clone()));
     let get_usage_uc = Arc::new(usecase::GetUsageUseCase::new(rule_repo));
+    let reset_uc = Arc::new(usecase::ResetRateLimitUseCase::new(state_store));
 
     // AppState (REST handler 用)
     let state = AppState::new(
@@ -134,6 +135,7 @@ async fn main() -> anyhow::Result<()> {
         update_uc,
         delete_uc,
         get_usage_uc,
+        reset_uc,
         db_pool,
     );
 
@@ -223,7 +225,15 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
         name: &str,
     ) -> anyhow::Result<Option<domain::entity::RateLimitRule>> {
         let rules = self.rules.read().await;
-        Ok(rules.iter().find(|r| r.name == name).cloned())
+        Ok(rules.iter().find(|r| r.scope == name).cloned())
+    }
+
+    async fn find_by_scope(
+        &self,
+        scope: &str,
+    ) -> anyhow::Result<Vec<domain::entity::RateLimitRule>> {
+        let rules = self.rules.read().await;
+        Ok(rules.iter().filter(|r| r.scope == scope).cloned().collect())
     }
 
     async fn find_all(&self) -> anyhow::Result<Vec<domain::entity::RateLimitRule>> {
@@ -244,6 +254,11 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
         let len_before = rules.len();
         rules.retain(|r| r.id != *id);
         Ok(rules.len() < len_before)
+    }
+
+    async fn reset_state(&self, _key: &str) -> anyhow::Result<()> {
+        // インメモリ実装ではRedis状態のリセットは行わない
+        Ok(())
     }
 }
 
@@ -294,5 +309,10 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
             limit - 1,
             now + window_secs,
         ))
+    }
+
+    async fn reset(&self, _key: &str) -> anyhow::Result<()> {
+        // インメモリ実装ではリセットは何もしない
+        Ok(())
     }
 }

@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::entity::{Algorithm, RateLimitDecision};
 use crate::domain::repository::{RateLimitRepository, RateLimitStateStore};
 
@@ -14,8 +12,8 @@ pub enum CheckRateLimitError {
     #[error("rule disabled: {0}")]
     RuleDisabled(String),
 
-    #[error("invalid rule_id: {0}")]
-    InvalidRuleId(String),
+    #[error("validation error: {0}")]
+    ValidationError(String),
 
     #[error("internal error: {0}")]
     Internal(String),
@@ -40,39 +38,54 @@ impl CheckRateLimitUseCase {
 
     pub async fn execute(
         &self,
-        rule_id: &str,
-        subject: &str,
+        scope: &str,
+        identifier: &str,
+        window_secs: i64,
     ) -> Result<RateLimitDecision, CheckRateLimitError> {
-        let id = Uuid::parse_str(rule_id)
-            .map_err(|_| CheckRateLimitError::InvalidRuleId(rule_id.to_string()))?;
-
-        let rule = self
-            .rule_repo
-            .find_by_id(&id)
-            .await
-            .map_err(|e| CheckRateLimitError::RuleNotFound(e.to_string()))?;
-
-        if !rule.enabled {
-            return Err(CheckRateLimitError::RuleDisabled(rule.name.clone()));
+        if scope.is_empty() {
+            return Err(CheckRateLimitError::ValidationError("scope is required".to_string()));
+        }
+        if identifier.is_empty() {
+            return Err(CheckRateLimitError::ValidationError("identifier is required".to_string()));
         }
 
-        // Redis キー: ratelimit:{rule_key}:{subject}
-        let redis_key = format!("ratelimit:{}:{}", rule.key, subject);
+        // scopeでルールを検索し、最初のenabledなルールを使用
+        let rules = self
+            .rule_repo
+            .find_by_scope(scope)
+            .await
+            .map_err(|e| CheckRateLimitError::Internal(e.to_string()))?;
 
-        let decision = match rule.algorithm {
+        let (limit, effective_window) = rules
+            .iter()
+            .find(|r| r.enabled)
+            .map(|r| (r.limit, r.window_seconds))
+            .unwrap_or((100, if window_secs > 0 { window_secs } else { 60 }));
+
+        // Redis キー: ratelimit:{scope}:{identifier}
+        let redis_key = format!("ratelimit:{}:{}", scope, identifier);
+
+        // マッチするルールがある場合はそのアルゴリズムを使用、なければトークンバケット
+        let algorithm = rules
+            .iter()
+            .find(|r| r.enabled)
+            .map(|r| r.algorithm.clone())
+            .unwrap_or(Algorithm::TokenBucket);
+
+        let decision = match algorithm {
             Algorithm::TokenBucket => {
                 self.state_store
-                    .check_token_bucket(&redis_key, rule.limit, rule.window_secs)
+                    .check_token_bucket(&redis_key, limit, effective_window)
                     .await
             }
             Algorithm::FixedWindow => {
                 self.state_store
-                    .check_fixed_window(&redis_key, rule.limit, rule.window_secs)
+                    .check_fixed_window(&redis_key, limit, effective_window)
                     .await
             }
             Algorithm::SlidingWindow => {
                 self.state_store
-                    .check_sliding_window(&redis_key, rule.limit, rule.window_secs)
+                    .check_sliding_window(&redis_key, limit, effective_window)
                     .await
             }
         }
@@ -85,14 +98,14 @@ impl CheckRateLimitUseCase {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::RateLimitRule;
+    use crate::domain::entity::{Algorithm, RateLimitDecision, RateLimitRule};
     use crate::domain::repository::rate_limit_repository::{
         MockRateLimitRepository, MockRateLimitStateStore,
     };
 
     fn make_rule() -> RateLimitRule {
         RateLimitRule::new(
-            "api-global".to_string(),
+            "service".to_string(),
             "global".to_string(),
             100,
             60,
@@ -103,12 +116,11 @@ mod tests {
     #[tokio::test]
     async fn test_check_rate_limit_allowed() {
         let rule = make_rule();
-        let rule_id = rule.id;
 
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
-        repo.expect_find_by_id()
-            .returning(move |_| Ok(return_rule.clone()));
+        repo.expect_find_by_scope()
+            .returning(move |_| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -116,7 +128,7 @@ mod tests {
             .returning(|_, _, _| Ok(RateLimitDecision::allowed(99, 1700000060)));
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
-        let result = uc.execute(&rule_id.to_string(), "user-123").await;
+        let result = uc.execute("service", "user-123", 60).await;
 
         assert!(result.is_ok());
         let decision = result.unwrap();
@@ -127,12 +139,11 @@ mod tests {
     #[tokio::test]
     async fn test_check_rate_limit_denied() {
         let rule = make_rule();
-        let rule_id = rule.id;
 
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
-        repo.expect_find_by_id()
-            .returning(move |_| Ok(return_rule.clone()));
+        repo.expect_find_by_scope()
+            .returning(move |_| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -146,7 +157,7 @@ mod tests {
             });
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
-        let result = uc.execute(&rule_id.to_string(), "user-123").await;
+        let result = uc.execute("service", "user-123", 60).await;
 
         assert!(result.is_ok());
         let decision = result.unwrap();
@@ -156,70 +167,45 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_check_rate_limit_rule_not_found() {
+    async fn test_check_rate_limit_no_rule_uses_default() {
         let mut repo = MockRateLimitRepository::new();
-        repo.expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("not found")));
+        repo.expect_find_by_scope()
+            .returning(|_| Ok(vec![]));
 
-        let state_store = MockRateLimitStateStore::new();
+        let mut state_store = MockRateLimitStateStore::new();
+        state_store
+            .expect_check_token_bucket()
+            .returning(|_, _, _| Ok(RateLimitDecision::allowed(99, 1700000060)));
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
-        let result = uc
-            .execute("550e8400-e29b-41d4-a716-446655440000", "user-123")
-            .await;
+        let result = uc.execute("user", "user-123", 60).await;
 
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), CheckRateLimitError::RuleNotFound(_)));
+        assert!(result.is_ok());
+        let decision = result.unwrap();
+        assert!(decision.allowed);
     }
 
     #[tokio::test]
-    async fn test_check_rate_limit_invalid_uuid() {
+    async fn test_check_rate_limit_empty_scope_error() {
         let repo = MockRateLimitRepository::new();
         let state_store = MockRateLimitStateStore::new();
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
-        let result = uc.execute("not-a-uuid", "user-123").await;
+        let result = uc.execute("", "user-123", 60).await;
 
         assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            CheckRateLimitError::InvalidRuleId(_)
-        ));
-    }
-
-    #[tokio::test]
-    async fn test_check_rate_limit_rule_disabled() {
-        let mut rule = make_rule();
-        rule.enabled = false;
-        let rule_id = rule.id;
-
-        let mut repo = MockRateLimitRepository::new();
-        let return_rule = rule.clone();
-        repo.expect_find_by_id()
-            .returning(move |_| Ok(return_rule.clone()));
-
-        let state_store = MockRateLimitStateStore::new();
-
-        let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
-        let result = uc.execute(&rule_id.to_string(), "user-123").await;
-
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            CheckRateLimitError::RuleDisabled(_)
-        ));
+        assert!(matches!(result.unwrap_err(), CheckRateLimitError::ValidationError(_)));
     }
 
     #[tokio::test]
     async fn test_check_rate_limit_fixed_window() {
         let mut rule = make_rule();
         rule.algorithm = Algorithm::FixedWindow;
-        let rule_id = rule.id;
 
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
-        repo.expect_find_by_id()
-            .returning(move |_| Ok(return_rule.clone()));
+        repo.expect_find_by_scope()
+            .returning(move |_| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -227,7 +213,7 @@ mod tests {
             .returning(|_, _, _| Ok(RateLimitDecision::allowed(50, 1700000060)));
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
-        let result = uc.execute(&rule_id.to_string(), "user-123").await;
+        let result = uc.execute("service", "user-123", 60).await;
 
         assert!(result.is_ok());
         assert!(result.unwrap().allowed);
@@ -237,12 +223,11 @@ mod tests {
     async fn test_check_rate_limit_sliding_window() {
         let mut rule = make_rule();
         rule.algorithm = Algorithm::SlidingWindow;
-        let rule_id = rule.id;
 
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
-        repo.expect_find_by_id()
-            .returning(move |_| Ok(return_rule.clone()));
+        repo.expect_find_by_scope()
+            .returning(move |_| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -250,7 +235,7 @@ mod tests {
             .returning(|_, _, _| Ok(RateLimitDecision::allowed(75, 1700000060)));
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
-        let result = uc.execute(&rule_id.to_string(), "user-123").await;
+        let result = uc.execute("service", "user-123", 60).await;
 
         assert!(result.is_ok());
         assert!(result.unwrap().allowed);

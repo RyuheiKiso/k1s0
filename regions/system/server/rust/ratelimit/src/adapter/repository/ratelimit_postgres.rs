@@ -27,10 +27,10 @@ impl RateLimitRepository for RateLimitPostgresRepository {
             "#,
         )
         .bind(rule.id)
-        .bind(&rule.name)
-        .bind(&rule.key)
+        .bind(&rule.scope)
+        .bind(&rule.identifier_pattern)
         .bind(rule.limit)
-        .bind(rule.window_secs)
+        .bind(rule.window_seconds)
         .bind(rule.algorithm.as_str())
         .bind(rule.enabled)
         .bind(rule.created_at)
@@ -74,6 +74,22 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         }
     }
 
+    async fn find_by_scope(&self, scope: &str) -> anyhow::Result<Vec<RateLimitRule>> {
+        let rows = sqlx::query_as::<_, RuleRow>(
+            r#"
+            SELECT id, name, key, limit_count, window_secs, algorithm, enabled, created_at, updated_at
+            FROM ratelimit.rate_limit_rules
+            WHERE name = $1
+            ORDER BY created_at DESC
+            "#,
+        )
+        .bind(scope)
+        .fetch_all(&self.pool)
+        .await?;
+
+        rows.into_iter().map(|r| r.into_rule()).collect()
+    }
+
     async fn find_all(&self) -> anyhow::Result<Vec<RateLimitRule>> {
         let rows = sqlx::query_as::<_, RuleRow>(
             r#"
@@ -96,10 +112,10 @@ impl RateLimitRepository for RateLimitPostgresRepository {
             WHERE id = $8
             "#,
         )
-        .bind(&rule.name)
-        .bind(&rule.key)
+        .bind(&rule.scope)
+        .bind(&rule.identifier_pattern)
         .bind(rule.limit)
-        .bind(rule.window_secs)
+        .bind(rule.window_seconds)
         .bind(rule.algorithm.as_str())
         .bind(rule.enabled)
         .bind(rule.updated_at)
@@ -120,15 +136,23 @@ impl RateLimitRepository for RateLimitPostgresRepository {
 
         Ok(result.rows_affected() > 0)
     }
+
+    async fn reset_state(&self, _key: &str) -> anyhow::Result<()> {
+        // PostgreSQL リポジトリではRedis状態のリセットは行わない（state_storeが担当）
+        Ok(())
+    }
 }
 
 #[derive(sqlx::FromRow)]
 struct RuleRow {
     id: Uuid,
-    name: String,
-    key: String,
+    #[sqlx(rename = "name")]
+    scope: String,
+    #[sqlx(rename = "key")]
+    identifier_pattern: String,
     limit_count: i64,
-    window_secs: i64,
+    #[sqlx(rename = "window_secs")]
+    window_seconds: i64,
     algorithm: String,
     enabled: bool,
     created_at: chrono::DateTime<chrono::Utc>,
@@ -142,10 +166,10 @@ impl RuleRow {
 
         Ok(RateLimitRule {
             id: self.id,
-            name: self.name,
-            key: self.key,
+            scope: self.scope,
+            identifier_pattern: self.identifier_pattern,
             limit: self.limit_count,
-            window_secs: self.window_secs,
+            window_seconds: self.window_seconds,
             algorithm,
             enabled: self.enabled,
             created_at: self.created_at,

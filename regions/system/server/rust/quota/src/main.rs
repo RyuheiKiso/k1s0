@@ -80,7 +80,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // --- Kafka event publisher initialization ---
-    let _event_publisher: Arc<dyn infrastructure::kafka_producer::QuotaEventPublisher> =
+    let event_publisher: Arc<dyn infrastructure::kafka_producer::QuotaEventPublisher> =
         if let Some(ref kafka_cfg) = cfg.kafka {
             match infrastructure::kafka_producer::KafkaQuotaProducer::new(
                 &kafka_cfg.brokers.join(","),
@@ -121,6 +121,7 @@ async fn main() -> anyhow::Result<()> {
     let increment_usage_uc = Arc::new(usecase::IncrementQuotaUsageUseCase::new(
         policy_repo.clone(),
         usage_repo.clone(),
+        event_publisher,
     ));
     let reset_usage_uc = Arc::new(usecase::ResetQuotaUsageUseCase::new(
         policy_repo,

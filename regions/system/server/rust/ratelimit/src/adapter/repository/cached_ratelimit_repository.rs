@@ -102,6 +102,10 @@ impl RateLimitRepository for CachedRateLimitRepository {
         Ok(result)
     }
 
+    async fn find_by_scope(&self, scope: &str) -> anyhow::Result<Vec<RateLimitRule>> {
+        self.inner.find_by_scope(scope).await
+    }
+
     async fn find_all(&self) -> anyhow::Result<Vec<RateLimitRule>> {
         self.inner.find_all().await
     }
@@ -119,6 +123,10 @@ impl RateLimitRepository for CachedRateLimitRepository {
         }
         Ok(deleted)
     }
+
+    async fn reset_state(&self, key: &str) -> anyhow::Result<()> {
+        self.inner.reset_state(key).await
+    }
 }
 
 #[cfg(test)]
@@ -128,13 +136,13 @@ mod tests {
     use crate::domain::repository::rate_limit_repository::MockRateLimitRepository;
     use chrono::Utc;
 
-    fn make_rule(name: &str) -> RateLimitRule {
+    fn make_rule(scope: &str) -> RateLimitRule {
         RateLimitRule {
             id: Uuid::new_v4(),
-            name: name.to_string(),
-            key: format!("{}-key", name),
+            scope: scope.to_string(),
+            identifier_pattern: format!("{}-pattern", scope),
             limit: 100,
-            window_secs: 60,
+            window_seconds: 60,
             algorithm: Algorithm::TokenBucket,
             enabled: true,
             created_at: Utc::now(),
@@ -153,14 +161,14 @@ mod tests {
         mock.expect_find_by_name().never();
 
         let cache = make_cache();
-        let rule = make_rule("api-global");
+        let rule = make_rule("service");
         cache.insert(&rule).await;
 
         let repo = CachedRateLimitRepository::new(Arc::new(mock), cache);
-        let result = repo.find_by_name("api-global").await.unwrap();
+        let result = repo.find_by_name("service").await.unwrap();
 
         assert!(result.is_some());
-        assert_eq!(result.unwrap().name, "api-global");
+        assert_eq!(result.unwrap().scope, "service");
     }
 
     /// キャッシュヒット時はDBアクセスをスキップして即返却する（find_by_id）。
@@ -170,7 +178,7 @@ mod tests {
         mock.expect_find_by_id().never();
 
         let cache = make_cache();
-        let rule = make_rule("api-global");
+        let rule = make_rule("service");
         let id = rule.id;
         cache.insert(&rule).await;
 
@@ -178,36 +186,36 @@ mod tests {
         let result = repo.find_by_id(&id).await.unwrap();
 
         assert_eq!(result.id, id);
-        assert_eq!(result.name, "api-global");
+        assert_eq!(result.scope, "service");
     }
 
     /// キャッシュミス時はDBから取得してキャッシュに格納する（find_by_name）。
     #[tokio::test]
     async fn test_find_by_name_cache_miss_then_store() {
-        let rule = make_rule("api-global");
+        let rule = make_rule("service");
         let rule_clone = rule.clone();
 
         let mut mock = MockRateLimitRepository::new();
         mock.expect_find_by_name()
-            .withf(|name| name == "api-global")
+            .withf(|name| name == "service")
             .once()
             .returning(move |_| Ok(Some(rule_clone.clone())));
 
         let cache = make_cache();
         let repo = CachedRateLimitRepository::new(Arc::new(mock), cache.clone());
 
-        let result = repo.find_by_name("api-global").await.unwrap();
+        let result = repo.find_by_name("service").await.unwrap();
         assert!(result.is_some());
 
         // キャッシュに格納されていることを確認
-        let cached = cache.get_by_name("api-global").await;
+        let cached = cache.get_by_name("service").await;
         assert!(cached.is_some());
     }
 
     /// create 後にキャッシュに格納される。
     #[tokio::test]
     async fn test_create_populates_cache() {
-        let rule = make_rule("api-global");
+        let rule = make_rule("service");
         let rule_clone = rule.clone();
 
         let mut mock = MockRateLimitRepository::new();
@@ -219,10 +227,10 @@ mod tests {
         let repo = CachedRateLimitRepository::new(Arc::new(mock), cache.clone());
 
         let created = repo.create(&rule).await.unwrap();
-        assert_eq!(created.name, "api-global");
+        assert_eq!(created.scope, "service");
 
         // キャッシュに格納されていることを確認
-        let cached = cache.get_by_name("api-global").await;
+        let cached = cache.get_by_name("service").await;
         assert!(cached.is_some());
     }
 }

@@ -2,14 +2,14 @@ pub mod ratelimit_handler;
 
 use std::sync::Arc;
 
-use axum::routing::{delete, get, post, put};
+use axum::routing::{get, post};
 use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::usecase::{
     CheckRateLimitUseCase, CreateRuleUseCase, DeleteRuleUseCase, GetRuleUseCase, GetUsageUseCase,
-    ListRulesUseCase, UpdateRuleUseCase,
+    ListRulesUseCase, ResetRateLimitUseCase, UpdateRuleUseCase,
 };
 
 /// AppState はアプリケーション全体の共有状態を表す。
@@ -22,6 +22,7 @@ pub struct AppState {
     pub update_uc: Arc<UpdateRuleUseCase>,
     pub delete_uc: Arc<DeleteRuleUseCase>,
     pub get_usage_uc: Arc<GetUsageUseCase>,
+    pub reset_uc: Arc<ResetRateLimitUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub db_pool: Option<sqlx::PgPool>,
 }
@@ -35,6 +36,7 @@ impl AppState {
         update_uc: Arc<UpdateRuleUseCase>,
         delete_uc: Arc<DeleteRuleUseCase>,
         get_usage_uc: Arc<GetUsageUseCase>,
+        reset_uc: Arc<ResetRateLimitUseCase>,
         db_pool: Option<sqlx::PgPool>,
     ) -> Self {
         Self {
@@ -45,6 +47,7 @@ impl AppState {
             update_uc,
             delete_uc,
             get_usage_uc,
+            reset_uc,
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new(
                 "k1s0-ratelimit-server",
             )),
@@ -60,6 +63,7 @@ impl AppState {
         ratelimit_handler::readyz,
         ratelimit_handler::metrics,
         ratelimit_handler::check_rate_limit,
+        ratelimit_handler::reset_rate_limit,
         ratelimit_handler::create_rule,
         ratelimit_handler::get_rule,
         ratelimit_handler::list_rules,
@@ -70,6 +74,7 @@ impl AppState {
     components(schemas(
         ratelimit_handler::CheckRateLimitRequest,
         ratelimit_handler::CheckRateLimitResponse,
+        ratelimit_handler::ResetRateLimitRequest,
         ratelimit_handler::CreateRuleRequest,
         ratelimit_handler::UpdateRuleRequest,
         ratelimit_handler::RuleResponse,
@@ -86,6 +91,10 @@ pub fn router(state: AppState) -> Router {
         .route(
             "/api/v1/ratelimit/check",
             post(ratelimit_handler::check_rate_limit),
+        )
+        .route(
+            "/api/v1/ratelimit/reset",
+            post(ratelimit_handler::reset_rate_limit),
         )
         .route(
             "/api/v1/ratelimit/rules",

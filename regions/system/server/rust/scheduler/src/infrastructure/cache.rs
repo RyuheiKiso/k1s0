@@ -152,7 +152,11 @@ mod tests {
         let job_v1 = Arc::new(SchedulerJob {
             id: Uuid::new_v4(),
             name: "overwrite-job".to_string(),
+            description: None,
             cron_expression: "* * * * *".to_string(),
+            timezone: "UTC".to_string(),
+            target_type: "kafka".to_string(),
+            target: None,
             payload: serde_json::json!({"version": 1}),
             status: "active".to_string(),
             next_run_at: None,
@@ -164,7 +168,11 @@ mod tests {
         let job_v2 = Arc::new(SchedulerJob {
             id: job_v1.id,
             name: "overwrite-job".to_string(),
+            description: None,
             cron_expression: "0 12 * * *".to_string(),
+            timezone: "UTC".to_string(),
+            target_type: "kafka".to_string(),
+            target: None,
             payload: serde_json::json!({"version": 2}),
             status: "active".to_string(),
             next_run_at: None,

@@ -9,7 +9,11 @@ use crate::domain::repository::SchedulerJobRepository;
 pub struct UpdateJobInput {
     pub id: Uuid,
     pub name: String,
+    pub description: Option<String>,
     pub cron_expression: String,
+    pub timezone: String,
+    pub target_type: String,
+    pub target: Option<String>,
     pub payload: serde_json::Value,
 }
 
@@ -47,7 +51,11 @@ impl UpdateJobUseCase {
             .ok_or(UpdateJobError::NotFound(input.id))?;
 
         job.name = input.name.clone();
+        job.description = input.description.clone();
         job.cron_expression = input.cron_expression.clone();
+        job.timezone = input.timezone.clone();
+        job.target_type = input.target_type.clone();
+        job.target = input.target.clone();
         job.payload = input.payload.clone();
         job.updated_at = chrono::Utc::now();
 
@@ -85,7 +93,11 @@ mod tests {
         let input = UpdateJobInput {
             id: job_id,
             name: "updated-job".to_string(),
+            description: None,
             cron_expression: "0 12 * * *".to_string(),
+            timezone: "UTC".to_string(),
+            target_type: "kafka".to_string(),
+            target: None,
             payload: serde_json::json!({"task": "updated"}),
         };
         let result = uc.execute(&input).await;
@@ -106,7 +118,11 @@ mod tests {
         let input = UpdateJobInput {
             id: missing_id,
             name: "test".to_string(),
+            description: None,
             cron_expression: "* * * * *".to_string(),
+            timezone: "UTC".to_string(),
+            target_type: "kafka".to_string(),
+            target: None,
             payload: serde_json::json!({}),
         };
         let result = uc.execute(&input).await;
@@ -126,7 +142,11 @@ mod tests {
         let input = UpdateJobInput {
             id: Uuid::new_v4(),
             name: "test".to_string(),
+            description: None,
             cron_expression: "bad".to_string(),
+            timezone: "UTC".to_string(),
+            target_type: "kafka".to_string(),
+            target: None,
             payload: serde_json::json!({}),
         };
         let result = uc.execute(&input).await;

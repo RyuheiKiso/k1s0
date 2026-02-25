@@ -1,23 +1,44 @@
 use async_trait::async_trait;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// QuotaExceededEvent はクォータ超過時に Kafka へ発行するイベント。
-#[derive(Debug, Clone, Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuotaExceededEvent {
+    pub event_type: String, // "QUOTA_EXCEEDED"
     pub quota_id: String,
-    pub policy_name: String,
     pub subject_type: String,
     pub subject_id: String,
+    pub period: String,
     pub limit: u64,
-    pub current_usage: u64,
+    pub used: u64,
     pub exceeded_at: String, // ISO 8601
+    pub reset_at: String,
 }
 
-/// QuotaEventPublisher はクォータ超過イベント配信のためのトレイト。
+/// QuotaThresholdReachedEvent はクォータ閾値到達時に Kafka へ発行するイベント。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QuotaThresholdReachedEvent {
+    pub event_type: String, // "QUOTA_THRESHOLD_REACHED"
+    pub quota_id: String,
+    pub subject_type: String,
+    pub subject_id: String,
+    pub period: String,
+    pub limit: u64,
+    pub used: u64,
+    pub usage_percent: f64,
+    pub alert_threshold_percent: u8,
+    pub reached_at: String, // ISO 8601
+}
+
+/// QuotaEventPublisher はクォータイベント配信のためのトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait QuotaEventPublisher: Send + Sync {
     async fn publish_quota_exceeded(&self, event: &QuotaExceededEvent) -> anyhow::Result<()>;
+    async fn publish_threshold_reached(
+        &self,
+        event: &QuotaThresholdReachedEvent,
+    ) -> anyhow::Result<()>;
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -31,6 +52,14 @@ impl QuotaEventPublisher for NoopQuotaEventPublisher {
         Ok(())
     }
 
+    async fn publish_threshold_reached(
+        &self,
+        _event: &QuotaThresholdReachedEvent,
+    ) -> anyhow::Result<()> {
+        tracing::debug!("NoopQuotaEventPublisher: quota threshold reached event discarded");
+        Ok(())
+    }
+
     async fn close(&self) -> anyhow::Result<()> {
         Ok(())
     }
@@ -39,7 +68,8 @@ impl QuotaEventPublisher for NoopQuotaEventPublisher {
 /// KafkaQuotaProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
 pub struct KafkaQuotaProducer {
     producer: rdkafka::producer::FutureProducer,
-    topic: String,
+    topic_exceeded: String,
+    topic_threshold: String,
     metrics: Option<std::sync::Arc<k1s0_telemetry::metrics::Metrics>>,
 }
 
@@ -48,7 +78,7 @@ impl KafkaQuotaProducer {
     pub fn new(
         brokers: &str,
         security_protocol: &str,
-        topic: &str,
+        topic_exceeded: &str,
     ) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -62,7 +92,8 @@ impl KafkaQuotaProducer {
 
         Ok(Self {
             producer,
-            topic: topic.to_string(),
+            topic_exceeded: topic_exceeded.to_string(),
+            topic_threshold: "k1s0.system.quota.threshold.reached.v1".to_string(),
             metrics: None,
         })
     }
@@ -86,7 +117,7 @@ impl QuotaEventPublisher for KafkaQuotaProducer {
         let payload = serde_json::to_vec(event)?;
         let key = format!("{}:{}", event.subject_type, event.subject_id);
 
-        let record = FutureRecord::to(&self.topic)
+        let record = FutureRecord::to(&self.topic_exceeded)
             .key(&key)
             .payload(&payload);
 
@@ -98,7 +129,35 @@ impl QuotaEventPublisher for KafkaQuotaProducer {
             })?;
 
         if let Some(ref m) = self.metrics {
-            m.record_kafka_message_produced(&self.topic);
+            m.record_kafka_message_produced(&self.topic_exceeded);
+        }
+
+        Ok(())
+    }
+
+    async fn publish_threshold_reached(
+        &self,
+        event: &QuotaThresholdReachedEvent,
+    ) -> anyhow::Result<()> {
+        use rdkafka::producer::FutureRecord;
+        use std::time::Duration;
+
+        let payload = serde_json::to_vec(event)?;
+        let key = format!("{}:{}", event.subject_type, event.subject_id);
+
+        let record = FutureRecord::to(&self.topic_threshold)
+            .key(&key)
+            .payload(&payload);
+
+        self.producer
+            .send(record, Duration::from_secs(5))
+            .await
+            .map_err(|(err, _)| {
+                anyhow::anyhow!("failed to publish quota threshold reached event: {}", err)
+            })?;
+
+        if let Some(ref m) = self.metrics {
+            m.record_kafka_message_produced(&self.topic_threshold);
         }
 
         Ok(())
@@ -150,27 +209,57 @@ mod tests {
             Ok(())
         }
 
+        async fn publish_threshold_reached(
+            &self,
+            event: &QuotaThresholdReachedEvent,
+        ) -> anyhow::Result<()> {
+            if self.should_fail {
+                return Err(anyhow::anyhow!("broker connection refused"));
+            }
+            let payload = serde_json::to_vec(event)?;
+            let key = format!("{}:{}", event.subject_type, event.subject_id);
+            self.messages.lock().unwrap().push((key, payload));
+            Ok(())
+        }
+
         async fn close(&self) -> anyhow::Result<()> {
             Ok(())
         }
     }
 
-    fn make_test_event() -> QuotaExceededEvent {
+    fn make_exceeded_event() -> QuotaExceededEvent {
         QuotaExceededEvent {
+            event_type: "QUOTA_EXCEEDED".to_string(),
             quota_id: "quota_abc123".to_string(),
-            policy_name: "api-rate-limit".to_string(),
             subject_type: "tenant".to_string(),
             subject_id: "tenant-xyz".to_string(),
+            period: "daily".to_string(),
             limit: 10000,
-            current_usage: 10001,
+            used: 10001,
             exceeded_at: "2026-02-25T00:00:00Z".to_string(),
+            reset_at: "".to_string(),
+        }
+    }
+
+    fn make_threshold_event() -> QuotaThresholdReachedEvent {
+        QuotaThresholdReachedEvent {
+            event_type: "QUOTA_THRESHOLD_REACHED".to_string(),
+            quota_id: "quota_abc123".to_string(),
+            subject_type: "tenant".to_string(),
+            subject_id: "tenant-xyz".to_string(),
+            period: "daily".to_string(),
+            limit: 10000,
+            used: 8000,
+            usage_percent: 80.0,
+            alert_threshold_percent: 80,
+            reached_at: "2026-02-25T00:00:00Z".to_string(),
         }
     }
 
     #[tokio::test]
-    async fn test_publish_serialization() {
+    async fn test_publish_exceeded_serialization() {
         let producer = InMemoryProducer::new();
-        let event = make_test_event();
+        let event = make_exceeded_event();
 
         let result = producer.publish_quota_exceeded(&event).await;
         assert!(result.is_ok());
@@ -180,16 +269,35 @@ mod tests {
 
         let deserialized: QuotaExceededEvent = serde_json::from_slice(&messages[0].1).unwrap();
         assert_eq!(deserialized.quota_id, "quota_abc123");
-        assert_eq!(deserialized.policy_name, "api-rate-limit");
+        assert_eq!(deserialized.event_type, "QUOTA_EXCEEDED");
         assert_eq!(deserialized.subject_type, "tenant");
         assert_eq!(deserialized.limit, 10000);
-        assert_eq!(deserialized.current_usage, 10001);
+        assert_eq!(deserialized.used, 10001);
+    }
+
+    #[tokio::test]
+    async fn test_publish_threshold_serialization() {
+        let producer = InMemoryProducer::new();
+        let event = make_threshold_event();
+
+        let result = producer.publish_threshold_reached(&event).await;
+        assert!(result.is_ok());
+
+        let messages = producer.messages.lock().unwrap();
+        assert_eq!(messages.len(), 1);
+
+        let deserialized: QuotaThresholdReachedEvent =
+            serde_json::from_slice(&messages[0].1).unwrap();
+        assert_eq!(deserialized.quota_id, "quota_abc123");
+        assert_eq!(deserialized.event_type, "QUOTA_THRESHOLD_REACHED");
+        assert_eq!(deserialized.alert_threshold_percent, 80);
+        assert!((deserialized.usage_percent - 80.0).abs() < f64::EPSILON);
     }
 
     #[tokio::test]
     async fn test_publish_key_format() {
         let producer = InMemoryProducer::new();
-        let event = make_test_event();
+        let event = make_exceeded_event();
 
         producer.publish_quota_exceeded(&event).await.unwrap();
 
@@ -200,7 +308,7 @@ mod tests {
     #[tokio::test]
     async fn test_publish_connection_error() {
         let producer = InMemoryProducer::with_error();
-        let event = make_test_event();
+        let event = make_exceeded_event();
 
         let result = producer.publish_quota_exceeded(&event).await;
         assert!(result.is_err());
@@ -213,9 +321,17 @@ mod tests {
     #[tokio::test]
     async fn test_noop_publisher() {
         let publisher = NoopQuotaEventPublisher;
-        let event = make_test_event();
+        let exceeded_event = make_exceeded_event();
+        let threshold_event = make_threshold_event();
 
-        assert!(publisher.publish_quota_exceeded(&event).await.is_ok());
+        assert!(publisher
+            .publish_quota_exceeded(&exceeded_event)
+            .await
+            .is_ok());
+        assert!(publisher
+            .publish_threshold_reached(&threshold_event)
+            .await
+            .is_ok());
         assert!(publisher.close().await.is_ok());
     }
 
@@ -230,30 +346,49 @@ mod tests {
     async fn test_mock_quota_event_publisher() {
         let mut mock = MockQuotaEventPublisher::new();
         mock.expect_publish_quota_exceeded().returning(|_| Ok(()));
+        mock.expect_publish_threshold_reached()
+            .returning(|_| Ok(()));
         mock.expect_close().returning(|| Ok(()));
 
-        let event = make_test_event();
-        assert!(mock.publish_quota_exceeded(&event).await.is_ok());
+        let exceeded_event = make_exceeded_event();
+        let threshold_event = make_threshold_event();
+        assert!(mock.publish_quota_exceeded(&exceeded_event).await.is_ok());
+        assert!(mock
+            .publish_threshold_reached(&threshold_event)
+            .await
+            .is_ok());
         assert!(mock.close().await.is_ok());
     }
 
     #[test]
     fn test_quota_exceeded_event_serialization() {
-        let event = make_test_event();
+        let event = make_exceeded_event();
         let json = serde_json::to_value(&event).unwrap();
 
+        assert_eq!(json["event_type"], "QUOTA_EXCEEDED");
         assert_eq!(json["quota_id"], "quota_abc123");
-        assert_eq!(json["policy_name"], "api-rate-limit");
         assert_eq!(json["subject_type"], "tenant");
         assert_eq!(json["subject_id"], "tenant-xyz");
+        assert_eq!(json["period"], "daily");
         assert_eq!(json["limit"], 10000);
-        assert_eq!(json["current_usage"], 10001);
+        assert_eq!(json["used"], 10001);
         assert_eq!(json["exceeded_at"], "2026-02-25T00:00:00Z");
     }
 
     #[test]
+    fn test_quota_threshold_event_serialization() {
+        let event = make_threshold_event();
+        let json = serde_json::to_value(&event).unwrap();
+
+        assert_eq!(json["event_type"], "QUOTA_THRESHOLD_REACHED");
+        assert_eq!(json["quota_id"], "quota_abc123");
+        assert_eq!(json["alert_threshold_percent"], 80);
+        assert_eq!(json["usage_percent"], 80.0);
+    }
+
+    #[test]
     fn test_quota_exceeded_event_debug_format() {
-        let event = make_test_event();
+        let event = make_exceeded_event();
         let debug_str = format!("{:?}", event);
         assert!(debug_str.contains("QuotaExceededEvent"));
         assert!(debug_str.contains("quota_abc123"));

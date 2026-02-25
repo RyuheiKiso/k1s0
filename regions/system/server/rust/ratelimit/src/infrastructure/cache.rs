@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use crate::domain::entity::RateLimitRule;
 
-/// キャッシュキーはルール名（name）。
+/// キャッシュキーはルールのscope（name相当）。
 pub struct RuleCache {
     inner: Cache<String, Arc<RateLimitRule>>,
 }
@@ -25,7 +25,7 @@ impl RuleCache {
         Self { inner }
     }
 
-    /// name に対応するルールを取得する。
+    /// scope（name相当）に対応するルールを取得する。
     /// キャッシュミスの場合は None を返す。
     pub async fn get_by_name(&self, name: &str) -> Option<Arc<RateLimitRule>> {
         self.inner.get(name).await
@@ -38,18 +38,18 @@ impl RuleCache {
         self.inner.get(&key).await
     }
 
-    /// ルールをキャッシュに追加する（name と id の両方のキーで格納）。
+    /// ルールをキャッシュに追加する（scope と id の両方のキーで格納）。
     pub async fn insert(&self, rule: &RateLimitRule) {
         let arc_rule = Arc::new(rule.clone());
         self.inner
-            .insert(rule.name.clone(), arc_rule.clone())
+            .insert(rule.scope.clone(), arc_rule.clone())
             .await;
         self.inner
             .insert(format!("id:{}", rule.id), arc_rule)
             .await;
     }
 
-    /// 特定の name のルールをキャッシュから削除する。
+    /// 特定の scope のルールをキャッシュから削除する。
     pub async fn invalidate_by_name(&self, name: &str) {
         self.inner.invalidate(name).await;
     }
@@ -68,13 +68,13 @@ mod tests {
     use chrono::Utc;
     use uuid::Uuid;
 
-    fn make_rule(name: &str) -> RateLimitRule {
+    fn make_rule(scope: &str) -> RateLimitRule {
         RateLimitRule {
             id: Uuid::new_v4(),
-            name: name.to_string(),
-            key: format!("{}-key", name),
+            scope: scope.to_string(),
+            identifier_pattern: format!("{}-pattern", scope),
             limit: 100,
-            window_secs: 60,
+            window_seconds: 60,
             algorithm: Algorithm::TokenBucket,
             enabled: true,
             created_at: Utc::now(),
@@ -85,19 +85,19 @@ mod tests {
     #[tokio::test]
     async fn test_insert_and_get_by_name() {
         let cache = RuleCache::new(100, 60);
-        let rule = make_rule("api-global");
+        let rule = make_rule("service");
 
         cache.insert(&rule).await;
 
-        let result = cache.get_by_name("api-global").await;
+        let result = cache.get_by_name("service").await;
         assert!(result.is_some());
-        assert_eq!(result.unwrap().name, "api-global");
+        assert_eq!(result.unwrap().scope, "service");
     }
 
     #[tokio::test]
     async fn test_insert_and_get_by_id() {
         let cache = RuleCache::new(100, 60);
-        let rule = make_rule("api-global");
+        let rule = make_rule("service");
         let id = rule.id;
 
         cache.insert(&rule).await;
@@ -118,19 +118,19 @@ mod tests {
     #[tokio::test]
     async fn test_invalidate_by_name() {
         let cache = RuleCache::new(100, 60);
-        let rule = make_rule("api-global");
+        let rule = make_rule("service");
         cache.insert(&rule).await;
 
-        cache.invalidate_by_name("api-global").await;
+        cache.invalidate_by_name("service").await;
 
-        assert!(cache.get_by_name("api-global").await.is_none());
+        assert!(cache.get_by_name("service").await.is_none());
         // id キーはまだ残っている（個別に invalidate する必要がある）
     }
 
     #[tokio::test]
     async fn test_invalidate_by_id() {
         let cache = RuleCache::new(100, 60);
-        let rule = make_rule("api-global");
+        let rule = make_rule("service");
         let id = rule.id;
         cache.insert(&rule).await;
 
@@ -142,27 +142,27 @@ mod tests {
     #[tokio::test]
     async fn test_invalidate_does_not_affect_other_rules() {
         let cache = RuleCache::new(100, 60);
-        let rule1 = make_rule("api-global");
-        let rule2 = make_rule("api-user");
+        let rule1 = make_rule("service");
+        let rule2 = make_rule("user");
         cache.insert(&rule1).await;
         cache.insert(&rule2).await;
 
-        cache.invalidate_by_name("api-global").await;
+        cache.invalidate_by_name("service").await;
 
-        assert!(cache.get_by_name("api-global").await.is_none());
-        assert!(cache.get_by_name("api-user").await.is_some());
+        assert!(cache.get_by_name("service").await.is_none());
+        assert!(cache.get_by_name("user").await.is_some());
     }
 
     #[tokio::test]
     async fn test_ttl_expiry() {
         let cache = RuleCache::new(100, 1);
-        let rule = make_rule("api-global");
+        let rule = make_rule("service");
         cache.insert(&rule).await;
 
-        assert!(cache.get_by_name("api-global").await.is_some());
+        assert!(cache.get_by_name("service").await.is_some());
 
         tokio::time::sleep(Duration::from_millis(1200)).await;
 
-        assert!(cache.get_by_name("api-global").await.is_none());
+        assert!(cache.get_by_name("service").await.is_none());
     }
 }

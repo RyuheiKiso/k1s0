@@ -6,7 +6,11 @@ use uuid::Uuid;
 pub struct SchedulerJob {
     pub id: Uuid,
     pub name: String,
+    pub description: Option<String>,
     pub cron_expression: String,
+    pub timezone: String,
+    pub target_type: String,
+    pub target: Option<String>,
     pub payload: serde_json::Value,
     pub status: String,
     pub next_run_at: Option<DateTime<Utc>>,
@@ -21,7 +25,11 @@ impl SchedulerJob {
         Self {
             id: Uuid::new_v4(),
             name,
+            description: None,
             cron_expression,
+            timezone: "UTC".to_string(),
+            target_type: "kafka".to_string(),
+            target: None,
             payload,
             status: "active".to_string(),
             next_run_at: None,

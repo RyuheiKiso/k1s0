@@ -6,7 +6,11 @@ use crate::domain::repository::SchedulerJobRepository;
 #[derive(Debug, Clone)]
 pub struct CreateJobInput {
     pub name: String,
+    pub description: Option<String>,
     pub cron_expression: String,
+    pub timezone: String,
+    pub target_type: String,
+    pub target: Option<String>,
     pub payload: serde_json::Value,
 }
 
@@ -33,11 +37,15 @@ impl CreateJobUseCase {
             return Err(CreateJobError::InvalidCron(input.cron_expression.clone()));
         }
 
-        let job = SchedulerJob::new(
+        let mut job = SchedulerJob::new(
             input.name.clone(),
             input.cron_expression.clone(),
             input.payload.clone(),
         );
+        job.description = input.description.clone();
+        job.timezone = input.timezone.clone();
+        job.target_type = input.target_type.clone();
+        job.target = input.target.clone();
 
         self.repo
             .create(&job)
@@ -61,7 +69,11 @@ mod tests {
         let uc = CreateJobUseCase::new(Arc::new(mock));
         let input = CreateJobInput {
             name: "daily-backup".to_string(),
+            description: None,
             cron_expression: "0 2 * * *".to_string(),
+            timezone: "UTC".to_string(),
+            target_type: "kafka".to_string(),
+            target: None,
             payload: serde_json::json!({"task": "backup"}),
         };
         let result = uc.execute(&input).await;
@@ -79,7 +91,11 @@ mod tests {
         let uc = CreateJobUseCase::new(Arc::new(mock));
         let input = CreateJobInput {
             name: "bad-job".to_string(),
+            description: None,
             cron_expression: "bad".to_string(),
+            timezone: "UTC".to_string(),
+            target_type: "kafka".to_string(),
+            target: None,
             payload: serde_json::json!({}),
         };
         let result = uc.execute(&input).await;
