@@ -361,9 +361,9 @@ infrastructure（OpenSearch クライアント・Kafka Producer/Consumer・moka 
 | usecase | `CreateIndexUseCase`, `ListIndicesUseCase`, `IndexDocumentUseCase`, `SearchUseCase`, `DeleteDocumentUseCase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
-| infrastructure/persistence | Phase 1: `InMemorySearchRepository`（開発用）。Phase 2: OpenSearch リポジトリ実装 | 検索リポジトリ実装 |
-| infrastructure/cache | `SearchCacheService` | moka キャッシュ実装（Phase 2） |
-| infrastructure/messaging | `SearchIndexKafkaConsumer` | Kafka Consumer（非同期インデックス要求、Phase 2） |
+| infrastructure/persistence | `OpenSearchRepository` | OpenSearch リポジトリ実装 |
+| infrastructure/cache | `SearchCacheService` | moka キャッシュ実装 |
+| infrastructure/messaging | `SearchIndexKafkaConsumer` | Kafka Consumer（非同期インデックス要求） |
 
 ### ドメインモデル
 
@@ -439,12 +439,9 @@ infrastructure（OpenSearch クライアント・Kafka Producer/Consumer・moka 
                     ┌──────────────────────────┼─────────────────────┘
                     │             infrastructure 層  │
                     │  ┌──────────────┐  ┌─────▼──────────────────┐  │
-                    │  │ Config       │  │ InMemorySearch         │  │
-                    │  │ Loader       │  │ Repository (Phase 1)   │  │
-                    │  └──────────────┘  ├────────────────────────┤  │
-                    │                    │ OpenSearch Repository   │  │
-                    │                    │ (Phase 2 予定)          │  │
-                    │                    └────────────────────────┘  │
+                    │  │ Config       │  │ OpenSearch             │  │
+                    │  │ Loader       │  │ Repository             │  │
+                    │  └──────────────┘  └────────────────────────┘  │
                     └────────────────────────────────────────────────┘
 ```
 
