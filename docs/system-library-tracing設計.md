@@ -200,54 +200,6 @@ void injectContext(Map<String, String> headers, TraceContext ctx, [Baggage? bagg
 ({TraceContext? context, Baggage baggage}) extractContext(Map<String, String> headers);
 ```
 
-## C# 実装
-
-**配置先**: `regions/system/library/csharp/tracing/`
-
-```
-tracing/
-├── src/
-│   └── K1s0.Tracing/
-│       ├── K1s0.Tracing.csproj
-│       ├── TraceContext.cs       # TraceContext record
-│       ├── Baggage.cs            # Baggage クラス
-│       └── Propagation.cs        # InjectContext, ExtractContext
-├── tests/
-│   └── K1s0.Tracing.Tests/
-│       ├── K1s0.Tracing.Tests.csproj
-│       └── TracingTests.cs
-```
-
-**依存関係**: なし（標準ライブラリのみ）
-
-**名前空間**: `K1s0.Tracing`
-
-**主要 API**:
-
-```csharp
-namespace K1s0.Tracing;
-
-public record TraceContext(string TraceId, string ParentId, byte Flags)
-{
-    public string ToTraceparent();
-    public static TraceContext? FromTraceparent(string s);
-}
-
-public class Baggage
-{
-    public void Set(string key, string value);
-    public string? Get(string key);
-    public string ToHeader();
-    public static Baggage FromHeader(string s);
-}
-
-public static class Propagation
-{
-    public static void InjectContext(IDictionary<string, string> headers, TraceContext ctx, Baggage? baggage = null);
-    public static (TraceContext? Context, Baggage Baggage) ExtractContext(IDictionary<string, string> headers);
-}
-```
-
 ## Python 実装
 
 **配置先**: `regions/system/library/python/tracing/`

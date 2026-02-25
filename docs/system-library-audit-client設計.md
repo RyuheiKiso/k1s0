@@ -207,54 +207,6 @@ export class BufferedAuditClient implements AuditClient {
 
 **カバレッジ目標**: 90%以上
 
-## C# 実装
-
-**配置先**: `regions/system/library/csharp/audit-client/`
-
-```
-audit-client/
-├── K1s0.System.AuditClient.csproj
-├── IAuditClient.cs
-├── BufferedAuditClient.cs
-├── AuditEvent.cs
-├── tests/
-│   ├── K1s0.System.AuditClient.Tests.csproj
-│   └── BufferedAuditClientTests.cs
-```
-
-**名前空間**: `K1s0.System.AuditClient`
-
-**主要 API**:
-
-```csharp
-namespace K1s0.System.AuditClient;
-
-public record AuditEvent(
-    string Id,
-    string TenantId,
-    string ActorId,
-    string Action,
-    string ResourceType,
-    string ResourceId,
-    DateTimeOffset Timestamp);
-
-public interface IAuditClient
-{
-    Task RecordAsync(AuditEvent @event, CancellationToken ct = default);
-    Task<IReadOnlyList<AuditEvent>> FlushAsync(CancellationToken ct = default);
-}
-
-public sealed class BufferedAuditClient : IAuditClient
-{
-    public Task RecordAsync(AuditEvent @event, CancellationToken ct = default);
-    public Task<IReadOnlyList<AuditEvent>> FlushAsync(CancellationToken ct = default);
-}
-```
-
-**カバレッジ目標**: 90%以上
-
----
-
 ## テスト戦略
 
 ### ユニットテスト

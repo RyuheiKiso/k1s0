@@ -220,69 +220,6 @@ print('status: ${response.statusCode}');
 
 **カバレッジ目標**: 90%以上
 
-## C# 実装
-
-**配置先**: `regions/system/library/csharp/webhook-client/`
-
-```
-webhook-client/
-├── IWebhookClient.cs       # Webhook 配信インターフェース
-├── WebhookPayload.cs       # イベント種別・タイムスタンプ・データ
-├── WebhookSignature.cs     # HMAC-SHA256 署名生成・検証
-├── K1s0.System.WebhookClient.csproj
-├── tests/
-│   ├── WebhookClient.Tests.csproj
-│   ├── Unit/
-│   │   ├── WebhookSignatureTests.cs
-│   │   └── WebhookPayloadTests.cs
-│   └── Integration/
-│       └── WebhookClientTests.cs
-├── .editorconfig
-└── README.md
-```
-
-**NuGet 依存関係**:
-
-| パッケージ | 用途 |
-|-----------|------|
-| Polly 8.4 | 指数バックオフリトライポリシー |
-
-**名前空間**: `K1s0.System.WebhookClient`
-
-**主要クラス・インターフェース**:
-
-| 型 | 種別 | 説明 |
-|---|------|------|
-| `IWebhookClient` | interface | Webhook 配信インターフェース |
-| `WebhookPayload` | record | イベント種別・タイムスタンプ・データ |
-| `WebhookSignature` | static class | HMAC-SHA256 署名生成・検証 |
-
-**主要 API**:
-
-```csharp
-namespace K1s0.System.WebhookClient;
-
-public interface IWebhookClient
-{
-    Task<int> SendAsync(string url, WebhookPayload payload, CancellationToken ct = default);
-}
-
-public record WebhookPayload(
-    string EventType,
-    string Timestamp,
-    Dictionary<string, object> Data);
-
-public static class WebhookSignature
-{
-    public static string Generate(string secret, byte[] body);
-    public static bool Verify(string secret, byte[] body, string signature);
-}
-```
-
-**カバレッジ目標**: 90%以上
-
----
-
 ## Python 実装
 
 **配置先**: `regions/system/library/python/webhook-client/`

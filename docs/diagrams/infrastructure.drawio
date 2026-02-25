@@ -428,7 +428,7 @@
         <mxCell id="acct-db" value="&lt;b&gt;accounting-db&lt;/b&gt;&lt;br&gt;PostgreSQL 17&lt;br&gt;(StatefulSet)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=10;size=10;" vertex="1" parent="1">
           <mxGeometry x="260" y="1305" width="130" height="80" as="geometry"/>
         </mxCell>
-        <mxCell id="acct-lib" value="&lt;b&gt;共通ライブラリ&lt;/b&gt;&lt;br&gt;Rust/Go/TS/Dart/C#/Python&lt;br&gt;auth, config, telemetry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8eaf6;strokeColor=#3949ab;fontSize=9;" vertex="1" parent="1">
+        <mxCell id="acct-lib" value="&lt;b&gt;共通ライブラリ&lt;/b&gt;&lt;br&gt;Rust/Go/TS/Dart/Python&lt;br&gt;auth, config, telemetry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8eaf6;strokeColor=#3949ab;fontSize=9;" vertex="1" parent="1">
           <mxGeometry x="420" y="1315" width="220" height="55" as="geometry"/>
         </mxCell>
         <mxCell id="future-ns-fa" value="Namespace: k1s0-fa (将来拡張)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#0d47a1;fontSize=10;dashed=1;dashPattern=5 3;fontStyle=2;" vertex="1" parent="1">

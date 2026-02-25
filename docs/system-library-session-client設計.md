@@ -258,67 +258,6 @@ export class InMemorySessionClient implements SessionClient {
 
 **カバレッジ目標**: 90%以上
 
-## C# 実装
-
-**配置先**: `regions/system/library/csharp/session-client/`
-
-```
-session-client/
-├── src/
-│   └── K1s0.SessionClient/
-│       ├── K1s0.SessionClient.csproj
-│       ├── ISessionClient.cs
-│       ├── InMemorySessionClient.cs
-│       └── Session.cs
-├── tests/
-│   └── K1s0.SessionClient.Tests/
-│       ├── K1s0.SessionClient.Tests.csproj
-│       └── SessionClientTests.cs
-```
-
-**名前空間**: `K1s0.SessionClient`
-
-**主要 API**:
-
-```csharp
-namespace K1s0.SessionClient;
-
-public record Session(
-    string Id,
-    string UserId,
-    string Token,
-    DateTimeOffset ExpiresAt,
-    DateTimeOffset CreatedAt,
-    bool Revoked,
-    IReadOnlyDictionary<string, string> Metadata);
-
-public record CreateSessionRequest(
-    string UserId,
-    long TtlSeconds,
-    IReadOnlyDictionary<string, string>? Metadata = null);
-
-public record RefreshSessionRequest(string Id, long TtlSeconds);
-
-public interface ISessionClient
-{
-    Task<Session> CreateAsync(CreateSessionRequest req, CancellationToken ct = default);
-    Task<Session?> GetAsync(string id, CancellationToken ct = default);
-    Task<Session> RefreshAsync(RefreshSessionRequest req, CancellationToken ct = default);
-    Task RevokeAsync(string id, CancellationToken ct = default);
-    Task<IReadOnlyList<Session>> ListUserSessionsAsync(string userId, CancellationToken ct = default);
-    Task<int> RevokeAllAsync(string userId, CancellationToken ct = default);
-}
-
-public sealed class InMemorySessionClient : ISessionClient
-{
-    // 全メソッド実装
-}
-```
-
-**カバレッジ目標**: 90%以上
-
----
-
 ## テスト戦略
 
 ### ユニットテスト（Rust）

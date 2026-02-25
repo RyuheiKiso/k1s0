@@ -2,7 +2,7 @@
 
 ## 概要
 
-DB スキーマ移行ライブラリ。sqlx Migrator（Rust）/ goose（Go）/ node-pg-migrate（TypeScript）/ sqflite_migration（Dart）/ FluentMigrator（C#）/ Alembic（Python）の各言語標準ツールに共通インターフェースを被せ、マイグレーションファイルの命名規則・ディレクトリ構成・ロールバック・状態管理を標準化する。
+DB スキーマ移行ライブラリ。sqlx Migrator（Rust）/ goose（Go）/ node-pg-migrate（TypeScript）/ sqflite_migration（Dart）/ Alembic（Python）の各言語標準ツールに共通インターフェースを被せ、マイグレーションファイルの命名規則・ディレクトリ構成・ロールバック・状態管理を標準化する。
 
 テスト用インメモリマイグレーション（SQLite サポート）により、CI 環境での高速なスキーマ検証を可能にする。マイグレーション状態の確認（適用済み/未適用）と down migration（ロールバック）を全言語で統一 API として提供する。
 
@@ -305,90 +305,6 @@ class MigrationStatus {
 ```
 
 **カバレッジ目標**: 85%以上
-
-## C# 実装
-
-**配置先**: `regions/system/library/csharp/migration/`
-
-```
-migration/
-├── src/
-│   ├── Migration.csproj
-│   ├── IMigrationRunner.cs         # マイグレーション実行インターフェース
-│   ├── FluentMigrationRunner.cs    # FluentMigrator 実装
-│   ├── MigrationConfig.cs          # ディレクトリ・DB URL・テーブル名設定
-│   ├── MigrationReport.cs          # 実行結果（適用数・所要時間・エラー）
-│   ├── MigrationStatus.cs          # バージョン・名前・適用日時・チェックサム
-│   ├── PendingMigration.cs         # 未適用マイグレーション情報
-│   └── MigrationException.cs       # 公開例外型
-├── tests/
-│   ├── Migration.Tests.csproj
-│   ├── Unit/
-│   │   └── MigrationConfigTests.cs
-│   └── Integration/
-│       └── FluentMigrationRunnerTests.cs
-├── .editorconfig
-└── README.md
-```
-
-**NuGet 依存関係**:
-
-| パッケージ | 用途 |
-|-----------|------|
-| FluentMigrator 6.2 | SQL マイグレーション管理 |
-| FluentMigrator.Runner.Postgres 6.2 | PostgreSQL ランナー |
-| FluentMigrator.Runner.SQLite 6.2 | SQLite ランナー（テスト用） |
-| Npgsql 8.0 | PostgreSQL ドライバー |
-
-**名前空間**: `K1s0.System.Migration`
-
-**主要クラス・インターフェース**:
-
-| 型 | 種別 | 説明 |
-|---|------|------|
-| `IMigrationRunner` | interface | マイグレーション実行の抽象インターフェース |
-| `FluentMigrationRunner` | class | FluentMigrator 実装 |
-| `MigrationConfig` | record | ディレクトリ・DB URL・テーブル名設定 |
-| `MigrationReport` | record | 適用数・所要時間・エラー情報 |
-| `MigrationStatus` | record | バージョン・名前・適用日時・チェックサム |
-| `PendingMigration` | record | 未適用マイグレーションの情報 |
-| `MigrationException` | class | migration ライブラリの公開例外型 |
-
-**主要 API**:
-
-```csharp
-namespace K1s0.System.Migration;
-
-public interface IMigrationRunner
-{
-    Task<MigrationReport> RunUpAsync(CancellationToken ct = default);
-    Task<MigrationReport> RunDownAsync(int steps, CancellationToken ct = default);
-    Task<IReadOnlyList<MigrationStatus>> StatusAsync(CancellationToken ct = default);
-    Task<IReadOnlyList<PendingMigration>> PendingAsync(CancellationToken ct = default);
-}
-
-public record MigrationConfig(
-    string MigrationsDir,
-    string DatabaseUrl,
-    string TableName = "_migrations");
-
-public record MigrationReport(
-    int AppliedCount,
-    TimeSpan Elapsed,
-    IReadOnlyList<Exception> Errors);
-
-public record MigrationStatus(
-    string Version,
-    string Name,
-    DateTimeOffset? AppliedAt,
-    string Checksum);
-
-public record PendingMigration(string Version, string Name);
-```
-
-**カバレッジ目標**: 85%以上
-
----
 
 ## Python 実装
 

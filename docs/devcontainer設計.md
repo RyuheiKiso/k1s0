@@ -31,9 +31,6 @@ k1s0 の開発環境を Dev Container で統一し、環境構築の手間をゼ
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.12"
     },
-    "ghcr.io/devcontainers/features/dotnet:2": {
-      "version": "latest"
-    },
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
       "helm": "3.16",
@@ -56,9 +53,6 @@ k1s0 の開発環境を Dev Container で統一し、環境構築の手間をゼ
         "Dart-Code.flutter",
         // Tauri
         "tauri-apps.tauri-vscode",
-        // C#
-        "ms-dotnettools.csharp",
-        "ms-dotnettools.csdevkit",
         // Python
         "ms-python.python",
         "charliermarsh.ruff",

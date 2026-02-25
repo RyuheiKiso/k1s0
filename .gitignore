@@ -53,11 +53,6 @@ docker-compose.override.yaml
 **/charts/*.tar.gz
 **/Chart.lock
 
-# C# / .NET
-**/obj/
-**/bin/
-**/*.user
-**/.vs/
 
 # Tasks (session-specific planning notes)
 tasks/*

@@ -231,64 +231,6 @@ export class InMemoryNotificationClient implements NotificationClient {
 
 **カバレッジ目標**: 90%以上
 
-## C# 実装
-
-**配置先**: `regions/system/library/csharp/notification-client/`
-
-```
-notification-client/
-├── K1s0.System.NotificationClient.csproj
-├── INotificationClient.cs
-├── InMemoryNotificationClient.cs
-├── NotificationTypes.cs
-├── tests/
-│   ├── K1s0.System.NotificationClient.Tests.csproj
-│   └── InMemoryNotificationClientTests.cs
-```
-
-**名前空間**: `K1s0.System.NotificationClient`
-
-**主要 API**:
-
-```csharp
-namespace K1s0.System.NotificationClient;
-
-public enum NotificationChannel
-{
-    Email,
-    Sms,
-    Push,
-    Webhook,
-}
-
-public record NotificationRequest(
-    string Id,
-    NotificationChannel Channel,
-    string Recipient,
-    string? Subject,
-    string Body);
-
-public record NotificationResponse(
-    string Id,
-    string Status,
-    string? MessageId);
-
-public interface INotificationClient
-{
-    Task<NotificationResponse> SendAsync(NotificationRequest request, CancellationToken ct = default);
-}
-
-public class InMemoryNotificationClient : INotificationClient
-{
-    public IReadOnlyList<NotificationRequest> Sent { get; }
-    public Task<NotificationResponse> SendAsync(NotificationRequest request, CancellationToken ct = default);
-}
-```
-
-**カバレッジ目標**: 90%以上
-
----
-
 ## テスト戦略
 
 ### ユニットテスト（Rust）

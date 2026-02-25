@@ -239,64 +239,6 @@ export class InMemoryGraphQlClient implements GraphQlClient {
 
 **カバレッジ目標**: 90%以上
 
-## C# 実装
-
-**配置先**: `regions/system/library/csharp/graphql-client/`
-
-```
-graphql-client/
-├── src/
-│   └── K1s0.GraphQlClient/
-│       ├── K1s0.GraphQlClient.csproj
-│       ├── IGraphQlClient.cs
-│       ├── InMemoryGraphQlClient.cs
-│       └── GraphQlQuery.cs
-├── tests/
-│   └── K1s0.GraphQlClient.Tests/
-│       ├── K1s0.GraphQlClient.Tests.csproj
-│       └── GraphQlClientTests.cs
-```
-
-**名前空間**: `K1s0.GraphQlClient`
-
-**主要 API**:
-
-```csharp
-namespace K1s0.GraphQlClient;
-
-public record GraphQlQuery(
-    string Query,
-    Dictionary<string, object>? Variables = null,
-    string? OperationName = null);
-
-public record GraphQlError(
-    string Message,
-    IReadOnlyList<ErrorLocation>? Locations = null,
-    IReadOnlyList<object>? Path = null);
-
-public record ErrorLocation(int Line, int Column);
-
-public record GraphQlResponse<T>(T? Data, IReadOnlyList<GraphQlError>? Errors = null)
-{
-    public bool HasErrors => Errors is { Count: > 0 };
-}
-
-public interface IGraphQlClient
-{
-    Task<GraphQlResponse<T>> ExecuteAsync<T>(GraphQlQuery query, CancellationToken cancellationToken = default);
-    Task<GraphQlResponse<T>> ExecuteMutationAsync<T>(GraphQlQuery mutation, CancellationToken cancellationToken = default);
-}
-
-public sealed class InMemoryGraphQlClient : IGraphQlClient
-{
-    // テスト用実装
-}
-```
-
-**カバレッジ目標**: 90%以上
-
----
-
 ## テスト戦略
 
 ### ユニットテスト（Rust）
