@@ -377,7 +377,7 @@ infrastructure（Vault Client・DB・Kafka・キャッシュ）
 
 ## 設定ファイル
 
-### config.yaml（Phase 1）
+### config.yaml
 
 ```yaml
 app:
