@@ -33,6 +33,7 @@ pub fn router(state: AppState) -> Router {
             "/api/v1/secrets/:key/rotate",
             post(vault_handler::rotate_secret),
         )
+        .route("/api/v1/audit/logs", get(vault_handler::list_audit_logs))
         .with_state(state)
 }
 

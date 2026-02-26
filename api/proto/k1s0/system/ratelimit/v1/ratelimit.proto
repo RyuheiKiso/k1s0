@@ -16,6 +16,10 @@ service RateLimitService {
   rpc CreateRule(CreateRuleRequest) returns (CreateRuleResponse);
   // GetRule はルールIDでルール情報を取得する。
   rpc GetRule(GetRuleRequest) returns (GetRuleResponse);
+  // GetUsage はレートリミットの使用状況を取得する。
+  rpc GetUsage(GetUsageRequest) returns (GetUsageResponse);
+  // ResetLimit はレートリミットの状態をリセットする。
+  rpc ResetLimit(ResetLimitRequest) returns (ResetLimitResponse);
 }
 
 message CheckRateLimitRequest {
@@ -59,4 +63,26 @@ message RateLimitRule {
   string algorithm = 6;
   bool enabled = 7;
   google.protobuf.Timestamp created_at = 8;
+}
+
+message GetUsageRequest {
+  string rule_id = 1;
+}
+
+message GetUsageResponse {
+  string rule_id = 1;
+  string rule_name = 2;
+  int64 limit = 3;
+  int64 window_secs = 4;
+  string algorithm = 5;
+  bool enabled = 6;
+}
+
+message ResetLimitRequest {
+  string scope = 1;
+  string identifier = 2;
+}
+
+message ResetLimitResponse {
+  bool success = 1;
 }

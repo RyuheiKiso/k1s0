@@ -9,8 +9,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::usecase::delete_secret::{DeleteSecretError, DeleteSecretInput};
 use crate::usecase::get_secret::{GetSecretError, GetSecretInput};
+use crate::usecase::list_audit_logs::ListAuditLogsInput;
 use crate::usecase::set_secret::{SetSecretError, SetSecretInput};
-use crate::usecase::{DeleteSecretUseCase, GetSecretUseCase, ListSecretsUseCase, SetSecretUseCase};
+use crate::usecase::{DeleteSecretUseCase, GetSecretUseCase, ListAuditLogsUseCase, ListSecretsUseCase, SetSecretUseCase};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -18,9 +19,23 @@ pub struct AppState {
     pub set_secret_uc: Arc<SetSecretUseCase>,
     pub delete_secret_uc: Arc<DeleteSecretUseCase>,
     pub list_secrets_uc: Arc<ListSecretsUseCase>,
+    pub list_audit_logs_uc: Arc<ListAuditLogsUseCase>,
     pub db_pool: Option<sqlx::PgPool>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 }
+
+// --- Query DTOs ---
+
+#[derive(Debug, Deserialize)]
+pub struct AuditLogQuery {
+    #[serde(default = "default_audit_offset")]
+    pub offset: u32,
+    #[serde(default = "default_audit_limit")]
+    pub limit: u32,
+}
+
+fn default_audit_offset() -> u32 { 0 }
+fn default_audit_limit() -> u32 { 20 }
 
 // --- Request / Response DTOs ---
 
@@ -220,6 +235,51 @@ pub async fn get_secret_metadata(
         Err(GetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+    }
+}
+
+/// GET /api/v1/audit/logs
+pub async fn list_audit_logs(
+    State(state): State<AppState>,
+    axum::extract::Query(query): axum::extract::Query<AuditLogQuery>,
+) -> impl IntoResponse {
+    match state
+        .list_audit_logs_uc
+        .execute(&ListAuditLogsInput {
+            offset: query.offset,
+            limit: query.limit,
+        })
+        .await
+    {
+        Ok(logs) => {
+            let entries: Vec<serde_json::Value> = logs
+                .into_iter()
+                .map(|log| {
+                    let action = match &log.action {
+                        crate::domain::entity::access_log::AccessAction::Read => "read",
+                        crate::domain::entity::access_log::AccessAction::Write => "write",
+                        crate::domain::entity::access_log::AccessAction::Delete => "delete",
+                        crate::domain::entity::access_log::AccessAction::List => "list",
+                    };
+                    serde_json::json!({
+                        "id": log.id.to_string(),
+                        "key_path": log.path,
+                        "action": action,
+                        "actor_id": log.subject,
+                        "ip_address": log.ip_address,
+                        "success": log.success,
+                        "error_msg": log.error_msg,
+                        "created_at": log.created_at.to_rfc3339(),
+                    })
+                })
+                .collect();
+            (StatusCode::OK, Json(serde_json::json!({ "logs": entries }))).into_response()
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": e.to_string()})),
         )
             .into_response(),
     }

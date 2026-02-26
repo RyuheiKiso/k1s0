@@ -134,13 +134,19 @@ async fn main() -> anyhow::Result<()> {
         list_uc,
         update_uc,
         delete_uc,
-        get_usage_uc,
-        reset_uc,
+        get_usage_uc.clone(),
+        reset_uc.clone(),
         db_pool,
     );
 
     // gRPC service
-    let grpc_svc = Arc::new(RateLimitGrpcService::new(check_uc, create_uc, get_uc));
+    let grpc_svc = Arc::new(RateLimitGrpcService::new(
+        check_uc,
+        create_uc,
+        get_uc,
+        get_usage_uc,
+        reset_uc,
+    ));
 
     use proto::k1s0::system::ratelimit::v1::rate_limit_service_server::RateLimitServiceServer;
     let tonic_svc = adapter::grpc::RateLimitServiceTonic::new(grpc_svc);

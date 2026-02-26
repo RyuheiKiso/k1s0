@@ -12,11 +12,14 @@ use crate::proto::k1s0::system::ratelimit::v1::{
     CheckRateLimitResponse as ProtoCheckRateLimitResponse,
     CreateRuleRequest as ProtoCreateRuleRequest, CreateRuleResponse as ProtoCreateRuleResponse,
     GetRuleRequest as ProtoGetRuleRequest, GetRuleResponse as ProtoGetRuleResponse,
+    GetUsageRequest as ProtoGetUsageRequest, GetUsageResponse as ProtoGetUsageResponse,
     RateLimitRule as ProtoRateLimitRule,
+    ResetLimitRequest as ProtoResetLimitRequest, ResetLimitResponse as ProtoResetLimitResponse,
 };
 
 use super::ratelimit_grpc::{
-    CheckRateLimitRequest, CreateRuleRequest, GetRuleRequest, GrpcError, RateLimitGrpcService,
+    CheckRateLimitRequest, CreateRuleRequest, GetRuleRequest, GetUsageRequest, GrpcError,
+    RateLimitGrpcService, ResetLimitRequest,
 };
 
 // --- GrpcError -> tonic::Status 変換 ---
@@ -140,6 +143,52 @@ impl RateLimitService for RateLimitServiceTonic {
 
         Ok(Response::new(ProtoGetRuleResponse {
             rule: Some(proto_rule),
+        }))
+    }
+
+    async fn get_usage(
+        &self,
+        request: Request<ProtoGetUsageRequest>,
+    ) -> Result<Response<ProtoGetUsageResponse>, Status> {
+        let inner = request.into_inner();
+        let req = GetUsageRequest {
+            rule_id: inner.rule_id,
+        };
+
+        let resp = self
+            .inner
+            .get_usage(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoGetUsageResponse {
+            rule_id: resp.rule_id,
+            rule_name: resp.rule_name,
+            limit: resp.limit,
+            window_secs: resp.window_secs,
+            algorithm: resp.algorithm,
+            enabled: resp.enabled,
+        }))
+    }
+
+    async fn reset_limit(
+        &self,
+        request: Request<ProtoResetLimitRequest>,
+    ) -> Result<Response<ProtoResetLimitResponse>, Status> {
+        let inner = request.into_inner();
+        let req = ResetLimitRequest {
+            scope: inner.scope,
+            identifier: inner.identifier,
+        };
+
+        let resp = self
+            .inner
+            .reset_limit(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoResetLimitResponse {
+            success: resp.success,
         }))
     }
 }
