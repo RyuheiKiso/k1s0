@@ -3,10 +3,12 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::domain::repository::PolicyRepository;
+use crate::infrastructure::opa_client::OpaClient;
 
 #[derive(Debug, Clone)]
 pub struct EvaluatePolicyInput {
-    pub policy_id: Uuid,
+    pub policy_id: Option<Uuid>,
+    pub package_path: String,
     pub input: serde_json::Value,
 }
 
@@ -27,23 +29,59 @@ pub enum EvaluatePolicyError {
 
 pub struct EvaluatePolicyUseCase {
     repo: Arc<dyn PolicyRepository>,
+    opa_client: Option<Arc<OpaClient>>,
 }
 
 impl EvaluatePolicyUseCase {
-    pub fn new(repo: Arc<dyn PolicyRepository>) -> Self {
-        Self { repo }
+    pub fn new(repo: Arc<dyn PolicyRepository>, opa_client: Option<Arc<OpaClient>>) -> Self {
+        Self { repo, opa_client }
     }
 
     pub async fn execute(
         &self,
         input: &EvaluatePolicyInput,
     ) -> Result<EvaluatePolicyOutput, EvaluatePolicyError> {
+        // OPA client available: evaluate via OPA HTTP API
+        if let Some(ref opa) = self.opa_client {
+            return match opa.evaluate(&input.package_path, &input.input).await {
+                Ok(allowed) => {
+                    let reason = if allowed {
+                        "OPA evaluation: allowed"
+                    } else {
+                        "OPA evaluation: denied"
+                    };
+                    Ok(EvaluatePolicyOutput {
+                        allowed,
+                        reason: Some(reason.to_string()),
+                    })
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        error = %e,
+                        package_path = %input.package_path,
+                        "OPA evaluation failed, deny by default"
+                    );
+                    Ok(EvaluatePolicyOutput {
+                        allowed: false,
+                        reason: Some(format!("OPA evaluation error: {}", e)),
+                    })
+                }
+            };
+        }
+
+        // Fallback: use policy.enabled flag from repository
+        let policy_id = input.policy_id.ok_or_else(|| {
+            EvaluatePolicyError::Internal(
+                "no OPA client configured and no policy_id provided".to_string(),
+            )
+        })?;
+
         let policy = self
             .repo
-            .find_by_id(&input.policy_id)
+            .find_by_id(&policy_id)
             .await
             .map_err(|e| EvaluatePolicyError::Internal(e.to_string()))?
-            .ok_or(EvaluatePolicyError::NotFound(input.policy_id))?;
+            .ok_or(EvaluatePolicyError::NotFound(policy_id))?;
 
         if policy.enabled {
             Ok(EvaluatePolicyOutput {
@@ -85,9 +123,10 @@ mod tests {
                 }))
             });
 
-        let uc = EvaluatePolicyUseCase::new(Arc::new(mock));
+        let uc = EvaluatePolicyUseCase::new(Arc::new(mock), None);
         let input = EvaluatePolicyInput {
-            policy_id: id,
+            policy_id: Some(id),
+            package_path: String::new(),
             input: serde_json::json!({"action": "read"}),
         };
         let result = uc.execute(&input).await;
@@ -118,9 +157,10 @@ mod tests {
                 }))
             });
 
-        let uc = EvaluatePolicyUseCase::new(Arc::new(mock));
+        let uc = EvaluatePolicyUseCase::new(Arc::new(mock), None);
         let input = EvaluatePolicyInput {
-            policy_id: id,
+            policy_id: Some(id),
+            package_path: String::new(),
             input: serde_json::json!({"action": "write"}),
         };
         let result = uc.execute(&input).await;
@@ -136,9 +176,10 @@ mod tests {
         let mut mock = MockPolicyRepository::new();
         mock.expect_find_by_id().returning(|_| Ok(None));
 
-        let uc = EvaluatePolicyUseCase::new(Arc::new(mock));
+        let uc = EvaluatePolicyUseCase::new(Arc::new(mock), None);
         let input = EvaluatePolicyInput {
-            policy_id: id,
+            policy_id: Some(id),
+            package_path: String::new(),
             input: serde_json::json!({}),
         };
         let result = uc.execute(&input).await;

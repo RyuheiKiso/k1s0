@@ -81,15 +81,24 @@ impl PolicyGrpcService {
                 .map_err(|e| GrpcError::InvalidArgument(format!("invalid input_json: {}", e)))?
         };
 
-        // EvaluatePolicyUseCase requires a policy_id (UUID).
-        // The proto uses package_path as the lookup key.
-        // Since there is no find_by_package_path in the repository,
-        // we return Unimplemented until a proper OPA integration is added.
-        let _ = input_json;
-        let _ = &self.evaluate_policy_uc;
-        Err(GrpcError::Unimplemented(
-            "evaluate_policy requires OPA integration; not yet implemented".to_string(),
-        ))
+        let uc_input = crate::usecase::evaluate_policy::EvaluatePolicyInput {
+            policy_id: None,
+            package_path: req.package_path.clone(),
+            input: input_json,
+        };
+
+        let output = self
+            .evaluate_policy_uc
+            .execute(&uc_input)
+            .await
+            .map_err(|e| GrpcError::Internal(e.to_string()))?;
+
+        Ok(EvaluatePolicyResponse {
+            allowed: output.allowed,
+            package_path: req.package_path,
+            decision_id: uuid::Uuid::new_v4().to_string(),
+            cached: false,
+        })
     }
 
     pub async fn get_policy(
@@ -126,7 +135,7 @@ mod tests {
     fn make_service(mock: MockPolicyRepository) -> PolicyGrpcService {
         let repo = Arc::new(mock);
         PolicyGrpcService::new(
-            Arc::new(EvaluatePolicyUseCase::new(repo.clone())),
+            Arc::new(EvaluatePolicyUseCase::new(repo.clone(), None)),
             Arc::new(GetPolicyUseCase::new(repo)),
         )
     }
@@ -192,7 +201,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_evaluate_policy_unimplemented() {
+    async fn test_evaluate_policy_no_opa_no_policy_id() {
         let mock = MockPolicyRepository::new();
         let svc = make_service(mock);
         let req = EvaluatePolicyRequest {
@@ -203,7 +212,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.unwrap_err() {
-            GrpcError::Unimplemented(_) => {}
+            GrpcError::Internal(msg) => {
+                assert!(msg.contains("no OPA client configured"));
+            }
             e => unreachable!("unexpected error: {:?}", e),
         }
     }

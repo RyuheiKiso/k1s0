@@ -42,7 +42,32 @@ async fn main() -> anyhow::Result<()> {
         "starting quota server"
     );
 
-    // --- Repository initialization: PostgreSQL or InMemory fallback ---
+    // --- Repository initialization: Redis → PostgreSQL → InMemory fallback ---
+
+    // Redis ConnectionManager (usage_repo 用、policy_repo は常にDB/InMemory)
+    let redis_conn: Option<redis::aio::ConnectionManager> = if let Some(ref redis_cfg) = cfg.redis
+    {
+        info!(url = %redis_cfg.url, "connecting to Redis for usage counters");
+        match redis::Client::open(redis_cfg.url.as_str()) {
+            Ok(client) => match redis::aio::ConnectionManager::new(client).await {
+                Ok(cm) => {
+                    info!("Redis connection established for usage counters");
+                    Some(cm)
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "failed to connect to Redis, will fall back");
+                    None
+                }
+            },
+            Err(e) => {
+                tracing::warn!(error = %e, "invalid Redis URL, will fall back");
+                None
+            }
+        }
+    } else {
+        None
+    };
+
     let (policy_repo, usage_repo): (
         Arc<dyn QuotaPolicyRepository>,
         Arc<dyn QuotaUsageRepository>,
@@ -55,9 +80,24 @@ async fn main() -> anyhow::Result<()> {
                 let policy_repo = Arc::new(
                     adapter::repository::QuotaPolicyPostgresRepository::new(pool.clone()),
                 );
-                let usage_repo = Arc::new(
-                    adapter::repository::QuotaUsagePostgresRepository::new(pool),
-                );
+                // usage_repo: Redis が使えればRedis、なければPostgreSQL
+                let usage_repo: Arc<dyn QuotaUsageRepository> =
+                    if let Some(ref cm) = redis_conn {
+                        let prefix = cfg
+                            .redis
+                            .as_ref()
+                            .map(|r| r.key_prefix.clone())
+                            .unwrap_or_else(|| "quota:".to_string());
+                        info!("using Redis for usage counters (prefix={})", prefix);
+                        Arc::new(infrastructure::redis_store::RedisQuotaUsageRepository::new(
+                            cm.clone(),
+                            prefix,
+                        ))
+                    } else {
+                        Arc::new(
+                            adapter::repository::QuotaUsagePostgresRepository::new(pool),
+                        )
+                    };
                 (policy_repo, usage_repo)
             }
             Err(e) => {
@@ -65,17 +105,46 @@ async fn main() -> anyhow::Result<()> {
                     error = %e,
                     "failed to connect to PostgreSQL, falling back to InMemory"
                 );
+                // usage_repo: Redis が使えればRedis、なければInMemory
+                let usage_repo: Arc<dyn QuotaUsageRepository> =
+                    if let Some(ref cm) = redis_conn {
+                        let prefix = cfg
+                            .redis
+                            .as_ref()
+                            .map(|r| r.key_prefix.clone())
+                            .unwrap_or_else(|| "quota:".to_string());
+                        Arc::new(infrastructure::redis_store::RedisQuotaUsageRepository::new(
+                            cm.clone(),
+                            prefix,
+                        ))
+                    } else {
+                        Arc::new(InMemoryQuotaUsageRepository::new())
+                    };
                 (
                     Arc::new(InMemoryQuotaPolicyRepository::new()) as Arc<dyn QuotaPolicyRepository>,
-                    Arc::new(InMemoryQuotaUsageRepository::new()) as Arc<dyn QuotaUsageRepository>,
+                    usage_repo,
                 )
             }
         }
     } else {
         info!("no database config found, using InMemory repositories");
+        // usage_repo: Redis が使えればRedis、なければInMemory
+        let usage_repo: Arc<dyn QuotaUsageRepository> = if let Some(ref cm) = redis_conn {
+            let prefix = cfg
+                .redis
+                .as_ref()
+                .map(|r| r.key_prefix.clone())
+                .unwrap_or_else(|| "quota:".to_string());
+            Arc::new(infrastructure::redis_store::RedisQuotaUsageRepository::new(
+                cm.clone(),
+                prefix,
+            ))
+        } else {
+            Arc::new(InMemoryQuotaUsageRepository::new())
+        };
         (
             Arc::new(InMemoryQuotaPolicyRepository::new()) as Arc<dyn QuotaPolicyRepository>,
-            Arc::new(InMemoryQuotaUsageRepository::new()) as Arc<dyn QuotaUsageRepository>,
+            usage_repo,
         )
     };
 

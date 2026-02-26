@@ -35,6 +35,7 @@ utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "8", features = ["axum"] }
 rdkafka = { version = "0.37", features = ["cmake-build"] }
 moka = { version = "0.12", features = ["future"] }
+opensearch = "2.2"
 
 [build-dependencies]
 tonic-build = "0.12"
