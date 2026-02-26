@@ -1,11 +1,14 @@
 module github.com/k1s0-platform/system-library-go-auth
 
-go 1.23.0
+go 1.24.0
+
+toolchain go1.24.1
 
 require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/lestrrat-go/jwx/v2 v2.1.3
 	github.com/stretchr/testify v1.10.0
+	google.golang.org/grpc v1.79.1
 )
 
 require (
@@ -38,10 +41,11 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	golang.org/x/arch v0.8.0 // indirect
-	golang.org/x/crypto v0.29.0 // indirect
-	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sys v0.27.0 // indirect
-	golang.org/x/text v0.20.0 // indirect
-	google.golang.org/protobuf v1.34.1 // indirect
+	golang.org/x/crypto v0.46.0 // indirect
+	golang.org/x/net v0.48.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/text v0.32.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
+	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
