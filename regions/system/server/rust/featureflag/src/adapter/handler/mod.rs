@@ -34,7 +34,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/v1/flags", post(flag_handler::create_flag))
         .route("/api/v1/flags/:key", get(flag_handler::get_flag))
         .route("/api/v1/flags/:key", put(flag_handler::update_flag))
-        .route("/api/v1/flags/:id", delete(flag_handler::delete_flag))
+        .route("/api/v1/flags/:key", delete(flag_handler::delete_flag))
         .route(
             "/api/v1/flags/:key/evaluate",
             post(flag_handler::evaluate_flag),

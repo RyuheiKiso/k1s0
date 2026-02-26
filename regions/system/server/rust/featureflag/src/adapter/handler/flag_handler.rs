@@ -5,7 +5,6 @@ use axum::{
     Json,
 };
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use super::AppState;
 use crate::domain::entity::feature_flag::FlagVariant;
@@ -109,21 +108,35 @@ pub async fn update_flag(
     }
 }
 
-/// DELETE /api/v1/flags/:id
+/// DELETE /api/v1/flags/:key
 pub async fn delete_flag(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(key): Path<String>,
 ) -> impl IntoResponse {
     use crate::usecase::delete_flag::DeleteFlagError;
 
-    match state.delete_flag_uc.execute(&id).await {
+    let flag = match state.get_flag_uc.execute(&key).await {
+        Ok(f) => f,
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("not found") {
+                let err = ErrorResponse::new("SYS_FF_NOT_FOUND", &msg);
+                return (StatusCode::NOT_FOUND, Json(err)).into_response();
+            } else {
+                let err = ErrorResponse::new("SYS_FF_DELETE_FAILED", &msg);
+                return (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response();
+            }
+        }
+    };
+
+    match state.delete_flag_uc.execute(&flag.id).await {
         Ok(()) => (
             StatusCode::OK,
-            Json(serde_json::json!({"success": true, "message": format!("flag {} deleted", id)})),
+            Json(serde_json::json!({"success": true, "message": format!("flag {} deleted", key)})),
         )
             .into_response(),
         Err(DeleteFlagError::NotFound(_)) => {
-            let err = ErrorResponse::new("SYS_FF_NOT_FOUND", &format!("flag not found: {}", id));
+            let err = ErrorResponse::new("SYS_FF_NOT_FOUND", &format!("flag not found: {}", key));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeleteFlagError::Internal(msg)) => {
