@@ -156,6 +156,7 @@ async fn main() -> anyhow::Result<()> {
         audit_repo.clone(),
     ));
     let list_secrets_uc = Arc::new(usecase::ListSecretsUseCase::new(secret_store));
+    let list_audit_logs_uc = Arc::new(usecase::ListAuditLogsUseCase::new(audit_repo));
 
     // gRPC service
     let vault_grpc_svc = Arc::new(VaultGrpcService::new(
@@ -176,6 +177,7 @@ async fn main() -> anyhow::Result<()> {
         set_secret_uc,
         delete_secret_uc,
         list_secrets_uc,
+        list_audit_logs_uc,
         db_pool,
         metrics,
     };
@@ -305,5 +307,13 @@ impl domain::repository::AccessLogRepository for NoopAccessLogRepository {
         _log: &domain::entity::access_log::SecretAccessLog,
     ) -> anyhow::Result<()> {
         Ok(())
+    }
+
+    async fn list(
+        &self,
+        _offset: u32,
+        _limit: u32,
+    ) -> anyhow::Result<Vec<domain::entity::access_log::SecretAccessLog>> {
+        Ok(vec![])
     }
 }

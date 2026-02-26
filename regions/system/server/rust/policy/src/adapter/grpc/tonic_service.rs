@@ -111,7 +111,7 @@ mod tests {
     fn make_tonic_service(mock: MockPolicyRepository) -> PolicyServiceTonic {
         let repo = Arc::new(mock);
         let grpc_svc = Arc::new(PolicyGrpcService::new(
-            Arc::new(EvaluatePolicyUseCase::new(repo.clone())),
+            Arc::new(EvaluatePolicyUseCase::new(repo.clone(), None)),
             Arc::new(GetPolicyUseCase::new(repo)),
         ));
         PolicyServiceTonic::new(grpc_svc)
@@ -178,7 +178,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_policy_service_tonic_evaluate_policy_unimplemented() {
+    async fn test_policy_service_tonic_evaluate_policy_no_opa_no_policy_id() {
         let mock = MockPolicyRepository::new();
         let tonic_svc = make_tonic_service(mock);
 
@@ -190,6 +190,6 @@ mod tests {
 
         assert!(result.is_err());
         let status = result.unwrap_err();
-        assert_eq!(status.code(), tonic::Code::Unimplemented);
+        assert_eq!(status.code(), tonic::Code::Internal);
     }
 }

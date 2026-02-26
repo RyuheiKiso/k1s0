@@ -152,7 +152,8 @@ pub async fn evaluate_policy(
     Json(req): Json<EvaluatePolicyRequest>,
 ) -> impl IntoResponse {
     let input = EvaluatePolicyInput {
-        policy_id: id,
+        policy_id: Some(id),
+        package_path: String::new(),
         input: req.input,
     };
 

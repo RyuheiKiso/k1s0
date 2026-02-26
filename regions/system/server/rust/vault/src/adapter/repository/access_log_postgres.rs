@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 
 use crate::domain::entity::access_log::{AccessAction, SecretAccessLog};
 use crate::domain::repository::AccessLogRepository;
@@ -29,6 +29,15 @@ impl AccessAction {
     }
 }
 
+fn action_from_str(s: &str) -> AccessAction {
+    match s {
+        "write" => AccessAction::Write,
+        "delete" => AccessAction::Delete,
+        "list" => AccessAction::List,
+        _ => AccessAction::Read,
+    }
+}
+
 #[async_trait]
 impl AccessLogRepository for AccessLogPostgresRepository {
     async fn record(&self, log: &SecretAccessLog) -> anyhow::Result<()> {
@@ -49,6 +58,40 @@ impl AccessLogRepository for AccessLogPostgresRepository {
         .await?;
 
         Ok(())
+    }
+
+    async fn list(&self, offset: u32, limit: u32) -> anyhow::Result<Vec<SecretAccessLog>> {
+        let rows = sqlx::query(
+            "SELECT id, key_path, action, actor_id, ip_address, success, error_msg, created_at \
+             FROM vault.access_logs \
+             ORDER BY created_at DESC \
+             LIMIT $1 OFFSET $2",
+        )
+        .bind(limit as i64)
+        .bind(offset as i64)
+        .fetch_all(self.pool.as_ref())
+        .await?;
+
+        let logs = rows
+            .into_iter()
+            .map(|row| {
+                let actor_id: String = row.get("actor_id");
+                SecretAccessLog {
+                    id: row.get("id"),
+                    path: row.get("key_path"),
+                    action: action_from_str(row.get("action")),
+                    subject: if actor_id.is_empty() { None } else { Some(actor_id) },
+                    tenant_id: None,
+                    ip_address: row.get("ip_address"),
+                    trace_id: None,
+                    success: row.get("success"),
+                    error_msg: row.get("error_msg"),
+                    created_at: row.get("created_at"),
+                }
+            })
+            .collect();
+
+        Ok(logs)
     }
 }
 

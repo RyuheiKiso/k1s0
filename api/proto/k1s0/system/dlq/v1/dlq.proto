@@ -4,7 +4,7 @@ package k1s0.system.dlq.v1;
 
 option go_package = "github.com/k1s0/api/gen/go/k1s0/system/dlq/v1;dlqv1";
 
-import "k1s0/system/common/v1/common.proto";
+import "k1s0/system/common/v1/types.proto";
 
 /// DlqService は DLQ メッセージ管理サービス。
 service DlqService {

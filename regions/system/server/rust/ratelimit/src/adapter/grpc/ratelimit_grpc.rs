@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::usecase::{CheckRateLimitUseCase, CreateRuleUseCase, GetRuleUseCase};
+use crate::usecase::{CheckRateLimitUseCase, CreateRuleUseCase, GetRuleUseCase, GetUsageUseCase, ResetRateLimitUseCase, ResetRateLimitInput};
 use crate::usecase::create_rule::CreateRuleInput;
 
 /// GrpcError は gRPC エラー型。
@@ -53,6 +53,30 @@ pub struct GetRuleResponse {
     pub rule: RuleResponse,
 }
 
+pub struct GetUsageRequest {
+    pub rule_id: String,
+}
+
+#[derive(Debug)]
+pub struct GetUsageResponse {
+    pub rule_id: String,
+    pub rule_name: String,
+    pub limit: i64,
+    pub window_secs: i64,
+    pub algorithm: String,
+    pub enabled: bool,
+}
+
+pub struct ResetLimitRequest {
+    pub scope: String,
+    pub identifier: String,
+}
+
+#[derive(Debug)]
+pub struct ResetLimitResponse {
+    pub success: bool,
+}
+
 #[derive(Debug)]
 pub struct RuleResponse {
     pub id: String,
@@ -76,6 +100,8 @@ pub struct RateLimitGrpcService {
     check_uc: Arc<CheckRateLimitUseCase>,
     create_uc: Arc<CreateRuleUseCase>,
     get_uc: Arc<GetRuleUseCase>,
+    usage_uc: Arc<GetUsageUseCase>,
+    reset_uc: Arc<ResetRateLimitUseCase>,
 }
 
 impl RateLimitGrpcService {
@@ -83,11 +109,15 @@ impl RateLimitGrpcService {
         check_uc: Arc<CheckRateLimitUseCase>,
         create_uc: Arc<CreateRuleUseCase>,
         get_uc: Arc<GetRuleUseCase>,
+        usage_uc: Arc<GetUsageUseCase>,
+        reset_uc: Arc<ResetRateLimitUseCase>,
     ) -> Self {
         Self {
             check_uc,
             create_uc,
             get_uc,
+            usage_uc,
+            reset_uc,
         }
     }
 
@@ -207,6 +237,47 @@ impl RateLimitGrpcService {
             },
         })
     }
+
+    pub async fn get_usage(&self, req: GetUsageRequest) -> Result<GetUsageResponse, GrpcError> {
+        if req.rule_id.is_empty() {
+            return Err(GrpcError::InvalidArgument("rule_id is required".to_string()));
+        }
+
+        let info = self.usage_uc.execute(&req.rule_id).await.map_err(|e| match e {
+            crate::usecase::get_usage::GetUsageError::NotFound(msg) => GrpcError::NotFound(msg),
+            crate::usecase::get_usage::GetUsageError::InvalidRuleId(msg) => {
+                GrpcError::InvalidArgument(msg)
+            }
+            crate::usecase::get_usage::GetUsageError::Internal(msg) => GrpcError::Internal(msg),
+        })?;
+
+        Ok(GetUsageResponse {
+            rule_id: info.rule_id,
+            rule_name: info.rule_name,
+            limit: info.limit,
+            window_secs: info.window_seconds,
+            algorithm: info.algorithm,
+            enabled: info.enabled,
+        })
+    }
+
+    pub async fn reset_limit(&self, req: ResetLimitRequest) -> Result<ResetLimitResponse, GrpcError> {
+        let input = ResetRateLimitInput {
+            scope: req.scope,
+            identifier: req.identifier,
+        };
+
+        self.reset_uc.execute(&input).await.map_err(|e| match e {
+            crate::usecase::reset_rate_limit::ResetRateLimitError::ValidationError(msg) => {
+                GrpcError::InvalidArgument(msg)
+            }
+            crate::usecase::reset_rate_limit::ResetRateLimitError::Internal(msg) => {
+                GrpcError::Internal(msg)
+            }
+        })?;
+
+        Ok(ResetLimitResponse { success: true })
+    }
 }
 
 #[cfg(test)]
@@ -216,6 +287,16 @@ mod tests {
     use crate::domain::repository::rate_limit_repository::{
         MockRateLimitRepository, MockRateLimitStateStore,
     };
+
+    fn make_service_with(
+        check_uc: Arc<CheckRateLimitUseCase>,
+        create_uc: Arc<CreateRuleUseCase>,
+        get_uc: Arc<GetRuleUseCase>,
+    ) -> RateLimitGrpcService {
+        let usage_uc = Arc::new(GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new())));
+        let reset_uc = Arc::new(ResetRateLimitUseCase::new(Arc::new(MockRateLimitStateStore::new())));
+        RateLimitGrpcService::new(check_uc, create_uc, get_uc, usage_uc, reset_uc)
+    }
 
     fn make_rule() -> RateLimitRule {
         RateLimitRule::new(
@@ -248,7 +329,7 @@ mod tests {
         let create_uc = Arc::new(CreateRuleUseCase::new(Arc::new(MockRateLimitRepository::new())));
         let get_uc = Arc::new(GetRuleUseCase::new(Arc::new(MockRateLimitRepository::new())));
 
-        let svc = RateLimitGrpcService::new(check_uc, create_uc, get_uc);
+        let svc = make_service_with(check_uc, create_uc, get_uc);
         let result = svc
             .check_rate_limit(CheckRateLimitRequest {
                 rule_id: "service".to_string(),
@@ -264,7 +345,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_grpc_check_rate_limit_empty_rule_id() {
-        let svc = RateLimitGrpcService::new(
+        let svc = make_service_with(
             Arc::new(CheckRateLimitUseCase::new(
                 Arc::new(MockRateLimitRepository::new()),
                 Arc::new(MockRateLimitStateStore::new()),
@@ -286,7 +367,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_grpc_get_rule_empty_id() {
-        let svc = RateLimitGrpcService::new(
+        let svc = make_service_with(
             Arc::new(CheckRateLimitUseCase::new(
                 Arc::new(MockRateLimitRepository::new()),
                 Arc::new(MockRateLimitStateStore::new()),

@@ -14,7 +14,7 @@ mod proto;
 mod usecase;
 
 use adapter::grpc::SearchGrpcService;
-use adapter::repository::SearchPostgresRepository;
+use adapter::repository::{SearchOpenSearchRepository, SearchPostgresRepository};
 use domain::entity::search_index::{SearchDocument, SearchIndex, SearchQuery, SearchResult};
 use domain::repository::SearchRepository;
 use infrastructure::cache::IndexCache;
@@ -47,8 +47,17 @@ async fn main() -> anyhow::Result<()> {
         "starting search server"
     );
 
-    // --- Repository: PostgreSQL or InMemory fallback ---
-    let search_repo: Arc<dyn SearchRepository> = {
+    // --- Repository: OpenSearch → PostgreSQL → InMemory fallback ---
+    let search_repo: Arc<dyn SearchRepository> = if let Some(ref os_cfg) = cfg.opensearch {
+        info!(url = %os_cfg.url, prefix = %os_cfg.index_prefix, "connecting to OpenSearch for search repository");
+        let repo = SearchOpenSearchRepository::new(
+            &os_cfg.url,
+            &os_cfg.username,
+            &os_cfg.password,
+            &os_cfg.index_prefix,
+        )?;
+        Arc::new(repo)
+    } else {
         let db_url = std::env::var("DATABASE_URL").ok();
         if let Some(url) = db_url {
             info!("connecting to PostgreSQL for search repository");

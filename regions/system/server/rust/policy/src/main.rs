@@ -26,6 +26,7 @@ use infrastructure::config::Config;
 use infrastructure::kafka_producer::{
     KafkaPolicyProducer, NoopPolicyEventPublisher, PolicyEventPublisher,
 };
+use infrastructure::opa_client::OpaClient;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -104,11 +105,20 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(NoopPolicyEventPublisher)
     };
 
+    // OPA client
+    let opa_client: Option<Arc<OpaClient>> = if let Some(ref opa_cfg) = cfg.opa {
+        info!(url = %opa_cfg.url, timeout_ms = %opa_cfg.timeout_ms, "initializing OPA client");
+        Some(Arc::new(OpaClient::new(opa_cfg)?))
+    } else {
+        info!("no OPA configured, using policy.enabled fallback");
+        None
+    };
+
     let create_policy_uc = Arc::new(usecase::CreatePolicyUseCase::new(policy_repo.clone()));
     let get_policy_uc = Arc::new(usecase::GetPolicyUseCase::new(policy_repo.clone()));
     let update_policy_uc = Arc::new(usecase::UpdatePolicyUseCase::new(policy_repo.clone()));
     let delete_policy_uc = Arc::new(usecase::DeletePolicyUseCase::new(policy_repo.clone()));
-    let evaluate_policy_uc = Arc::new(usecase::EvaluatePolicyUseCase::new(policy_repo.clone()));
+    let evaluate_policy_uc = Arc::new(usecase::EvaluatePolicyUseCase::new(policy_repo.clone(), opa_client));
     let create_bundle_uc = Arc::new(usecase::CreateBundleUseCase::new(bundle_repo.clone()));
     let list_bundles_uc = Arc::new(usecase::ListBundlesUseCase::new(bundle_repo));
 

@@ -64,6 +64,38 @@ pub struct RateLimitRule {
     #[prost(message, optional, tag = "8")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetUsageRequest {
+    #[prost(string, tag = "1")]
+    pub rule_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetUsageResponse {
+    #[prost(string, tag = "1")]
+    pub rule_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub rule_name: ::prost::alloc::string::String,
+    #[prost(int64, tag = "3")]
+    pub limit: i64,
+    #[prost(int64, tag = "4")]
+    pub window_secs: i64,
+    #[prost(string, tag = "5")]
+    pub algorithm: ::prost::alloc::string::String,
+    #[prost(bool, tag = "6")]
+    pub enabled: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResetLimitRequest {
+    #[prost(string, tag = "1")]
+    pub scope: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub identifier: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ResetLimitResponse {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+}
 /// Generated server implementations.
 pub mod rate_limit_service_server {
     #![allow(
@@ -98,6 +130,22 @@ pub mod rate_limit_service_server {
             &self,
             request: tonic::Request<super::GetRuleRequest>,
         ) -> std::result::Result<tonic::Response<super::GetRuleResponse>, tonic::Status>;
+        /// GetUsage はレートリミットの使用状況を取得する。
+        async fn get_usage(
+            &self,
+            request: tonic::Request<super::GetUsageRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetUsageResponse>,
+            tonic::Status,
+        >;
+        /// ResetLimit はレートリミットの状態をリセットする。
+        async fn reset_limit(
+            &self,
+            request: tonic::Request<super::ResetLimitRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ResetLimitResponse>,
+            tonic::Status,
+        >;
     }
     /// RateLimitService は API レート制限サービス。
     /// スライディングウィンドウ・トークンバケット等のアルゴリズムをサポートする。
@@ -298,6 +346,96 @@ pub mod rate_limit_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetRuleSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.ratelimit.v1.RateLimitService/GetUsage" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetUsageSvc<T: RateLimitService>(pub Arc<T>);
+                    impl<
+                        T: RateLimitService,
+                    > tonic::server::UnaryService<super::GetUsageRequest>
+                    for GetUsageSvc<T> {
+                        type Response = super::GetUsageResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetUsageRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RateLimitService>::get_usage(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetUsageSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.ratelimit.v1.RateLimitService/ResetLimit" => {
+                    #[allow(non_camel_case_types)]
+                    struct ResetLimitSvc<T: RateLimitService>(pub Arc<T>);
+                    impl<
+                        T: RateLimitService,
+                    > tonic::server::UnaryService<super::ResetLimitRequest>
+                    for ResetLimitSvc<T> {
+                        type Response = super::ResetLimitResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ResetLimitRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RateLimitService>::reset_limit(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ResetLimitSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
