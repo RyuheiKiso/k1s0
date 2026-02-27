@@ -28,6 +28,7 @@ pub async fn send_notification(
         recipient: req.recipient,
         subject: req.subject,
         body: req.body,
+        template_variables: req.template_variables,
     };
 
     match state.send_notification_uc.execute(&input).await {
@@ -468,6 +469,7 @@ pub struct SendNotificationRequest {
     pub recipient: String,
     pub subject: Option<String>,
     pub body: String,
+    pub template_variables: Option<std::collections::HashMap<String, String>>,
 }
 
 #[derive(Debug, Deserialize)]

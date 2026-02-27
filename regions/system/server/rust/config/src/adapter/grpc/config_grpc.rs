@@ -110,6 +110,7 @@ pub struct UpdateConfigResponse {
 pub struct DeleteConfigRequest {
     pub namespace: String,
     pub key: String,
+    pub deleted_by: String,
 }
 
 #[derive(Debug, Clone)]
@@ -336,9 +337,15 @@ impl ConfigGrpcService {
             ));
         }
 
+        let deleted_by = if req.deleted_by.is_empty() {
+            "grpc-user"
+        } else {
+            &req.deleted_by
+        };
+
         match self
             .delete_config_uc
-            .execute(&req.namespace, &req.key)
+            .execute(&req.namespace, &req.key, deleted_by)
             .await
         {
             Ok(()) => Ok(DeleteConfigResponse { success: true }),
@@ -693,11 +700,14 @@ mod tests {
         };
         let expected_version = updated_entry.version;
 
+        mock.expect_find_by_namespace_and_key()
+            .returning(|_, _| Ok(Some(make_test_entry())));
         mock.expect_update()
             .withf(|ns, key, _, ver, _, _| {
                 ns == "system.auth.database" && key == "max_connections" && *ver == 3
             })
             .returning(move |_, _, _, _, _, _| Ok(updated_entry.clone()));
+        mock.expect_record_change_log().returning(|_| Ok(()));
 
         let svc = make_config_service(mock);
 
@@ -744,15 +754,20 @@ mod tests {
     #[tokio::test]
     async fn test_delete_config_success() {
         let mut mock = MockConfigRepository::new();
+        let entry = make_test_entry();
+        mock.expect_find_by_namespace_and_key()
+            .returning(move |_, _| Ok(Some(entry.clone())));
         mock.expect_delete()
             .withf(|ns, key| ns == "system.auth.database" && key == "max_connections")
             .returning(|_, _| Ok(true));
+        mock.expect_record_change_log().returning(|_| Ok(()));
 
         let svc = make_config_service(mock);
 
         let req = DeleteConfigRequest {
             namespace: "system.auth.database".to_string(),
             key: "max_connections".to_string(),
+            deleted_by: "admin@example.com".to_string(),
         };
         let resp = svc.delete_config(req).await.unwrap();
 
@@ -762,6 +777,8 @@ mod tests {
     #[tokio::test]
     async fn test_delete_config_not_found() {
         let mut mock = MockConfigRepository::new();
+        mock.expect_find_by_namespace_and_key()
+            .returning(|_, _| Ok(None));
         mock.expect_delete().returning(|_, _| Ok(false));
 
         let svc = make_config_service(mock);
@@ -769,6 +786,7 @@ mod tests {
         let req = DeleteConfigRequest {
             namespace: "nonexistent".to_string(),
             key: "missing".to_string(),
+            deleted_by: "admin@example.com".to_string(),
         };
         let result = svc.delete_config(req).await;
 

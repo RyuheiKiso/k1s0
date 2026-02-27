@@ -132,27 +132,36 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
+    // --- WatchConfig (broadcast channel) ---
+    let (_watch_uc, watch_tx) = usecase::WatchConfigUseCase::new();
+    info!("watch config broadcast channel initialized");
+
     // --- gRPC Service ---
     let get_config_uc = Arc::new(usecase::GetConfigUseCase::new(config_repo.clone()));
     let list_configs_uc = Arc::new(usecase::ListConfigsUseCase::new(config_repo.clone()));
     let get_service_config_uc =
         Arc::new(usecase::GetServiceConfigUseCase::new(config_repo.clone()));
     let update_config_uc_grpc = if let Some(ref producer) = kafka_producer {
-        Arc::new(usecase::UpdateConfigUseCase::new_with_kafka(
+        Arc::new(usecase::UpdateConfigUseCase::new_with_kafka_and_watch(
             config_repo.clone(),
             producer.clone(),
+            watch_tx.clone(),
         ))
     } else {
-        Arc::new(usecase::UpdateConfigUseCase::new(config_repo.clone()))
+        Arc::new(usecase::UpdateConfigUseCase::new_with_watch(
+            config_repo.clone(),
+            watch_tx.clone(),
+        ))
     };
     let delete_config_uc = Arc::new(usecase::DeleteConfigUseCase::new(config_repo.clone()));
 
-    let config_grpc_svc = Arc::new(ConfigGrpcService::new(
+    let config_grpc_svc = Arc::new(ConfigGrpcService::new_with_watch(
         get_config_uc,
         list_configs_uc,
         get_service_config_uc,
         update_config_uc_grpc,
         delete_config_uc,
+        watch_tx.clone(),
     ));
 
     // tonic ラッパー
@@ -180,12 +189,16 @@ async fn main() -> anyhow::Result<()> {
         get_config_uc: std::sync::Arc::new(usecase::GetConfigUseCase::new(config_repo.clone())),
         list_configs_uc: std::sync::Arc::new(usecase::ListConfigsUseCase::new(config_repo.clone())),
         update_config_uc: if let Some(ref producer) = kafka_producer {
-            std::sync::Arc::new(usecase::UpdateConfigUseCase::new_with_kafka(
+            std::sync::Arc::new(usecase::UpdateConfigUseCase::new_with_kafka_and_watch(
                 config_repo.clone(),
                 producer.clone(),
+                watch_tx.clone(),
             ))
         } else {
-            std::sync::Arc::new(usecase::UpdateConfigUseCase::new(config_repo.clone()))
+            std::sync::Arc::new(usecase::UpdateConfigUseCase::new_with_watch(
+                config_repo.clone(),
+                watch_tx.clone(),
+            ))
         },
         delete_config_uc: std::sync::Arc::new(usecase::DeleteConfigUseCase::new(
             config_repo.clone(),

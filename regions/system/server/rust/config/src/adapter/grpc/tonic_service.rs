@@ -177,6 +177,7 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         let hand_req = DeleteConfigRequest {
             namespace: req.namespace,
             key: req.key,
+            deleted_by: req.deleted_by,
         };
         let resp = self.inner.delete_config(hand_req).await?;
         Ok(Response::new(pb::DeleteConfigResponse {

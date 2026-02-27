@@ -37,6 +37,7 @@ rdkafka = { version = "0.37", features = ["cmake-build"] }
 moka = { version = "0.12", features = ["future"] }
 aes-gcm = "0.10"
 hex = "0.4"
+vaultrs = "0.7"
 
 [build-dependencies]
 tonic-build = "0.12"

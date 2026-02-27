@@ -96,11 +96,18 @@ impl NotificationGrpcService {
 
         let body = req.body.unwrap_or_default();
 
+        let template_variables = if req.variables.is_empty() {
+            None
+        } else {
+            Some(req.variables)
+        };
+
         let input = SendNotificationInput {
             channel_id,
             recipient: req.recipient,
             subject: req.subject,
             body,
+            template_variables,
         };
 
         match self.send_notification_uc.execute(&input).await {

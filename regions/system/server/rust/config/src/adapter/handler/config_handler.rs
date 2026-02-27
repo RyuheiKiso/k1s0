@@ -193,9 +193,18 @@ pub async fn update_config(
 )]
 pub async fn delete_config(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path((namespace, key)): Path<(String, String)>,
 ) -> impl IntoResponse {
-    match state.delete_config_uc.execute(&namespace, &key).await {
+    let deleted_by = claims
+        .and_then(|Extension(c)| c.preferred_username.clone())
+        .unwrap_or_else(|| "api-user".to_string());
+
+    match state
+        .delete_config_uc
+        .execute(&namespace, &key, &deleted_by)
+        .await
+    {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => e.into_response(),
     }
@@ -424,6 +433,8 @@ mod tests {
     #[tokio::test]
     async fn test_update_config_success() {
         let mut mock = MockConfigRepository::new();
+        mock.expect_find_by_namespace_and_key()
+            .returning(|_, _| Ok(Some(make_test_entry())));
         mock.expect_update()
             .returning(|ns, key, value, _, desc, updated_by| {
                 Ok(ConfigEntry {
@@ -439,6 +450,7 @@ mod tests {
                     updated_at: Utc::now(),
                 })
             });
+        mock.expect_record_change_log().returning(|_| Ok(()));
 
         let state = make_app_state(mock);
         let app = router(state);
@@ -466,6 +478,8 @@ mod tests {
     #[tokio::test]
     async fn test_update_config_version_conflict() {
         let mut mock = MockConfigRepository::new();
+        mock.expect_find_by_namespace_and_key()
+            .returning(|_, _| Ok(Some(make_test_entry())));
         mock.expect_update()
             .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("version conflict: current=4")));
 
@@ -492,9 +506,13 @@ mod tests {
     #[tokio::test]
     async fn test_delete_config_success() {
         let mut mock = MockConfigRepository::new();
+        let entry = make_test_entry();
+        mock.expect_find_by_namespace_and_key()
+            .returning(move |_, _| Ok(Some(entry.clone())));
         mock.expect_delete()
             .withf(|ns, key| ns == "system.auth.database" && key == "max_connections")
             .returning(|_, _| Ok(true));
+        mock.expect_record_change_log().returning(|_| Ok(()));
 
         let state = make_app_state(mock);
         let app = router(state);
@@ -512,6 +530,8 @@ mod tests {
     #[tokio::test]
     async fn test_delete_config_not_found() {
         let mut mock = MockConfigRepository::new();
+        mock.expect_find_by_namespace_and_key()
+            .returning(|_, _| Ok(None));
         mock.expect_delete().returning(|_, _| Ok(false));
 
         let state = make_app_state(mock);
