@@ -90,6 +90,7 @@ impl UpdateConfigUseCase {
     /// 設定値を更新する（楽観的排他制御付き）。
     /// 更新成功後、Kafka プロデューサーが設定されていれば変更イベントを発行する。
     /// Kafka への通知はベストエフォートであり、失敗してもエラーにしない。
+    /// 監査ログも記録する（ベストエフォート）。
     pub async fn execute(
         &self,
         input: &UpdateConfigInput,
@@ -103,6 +104,14 @@ impl UpdateConfigUseCase {
         if input.key.is_empty() {
             return Err(UpdateConfigError::Validation("key is required".to_string()));
         }
+
+        // 旧値を取得（監査ログ用）
+        let old_entry = self
+            .config_repo
+            .find_by_namespace_and_key(&input.namespace, &input.key)
+            .await
+            .ok()
+            .flatten();
 
         let updated_entry = self
             .config_repo
@@ -128,6 +137,29 @@ impl UpdateConfigUseCase {
                     UpdateConfigError::Internal(msg)
                 }
             })?;
+
+        // 監査ログ記録（ベストエフォート）
+        let change_log = crate::domain::entity::config_change_log::ConfigChangeLog::new(
+            crate::domain::entity::config_change_log::CreateChangeLogRequest {
+                config_entry_id: updated_entry.id,
+                namespace: updated_entry.namespace.clone(),
+                key: updated_entry.key.clone(),
+                old_value: old_entry.as_ref().map(|e| e.value_json.clone()),
+                new_value: Some(updated_entry.value_json.clone()),
+                old_version: old_entry.as_ref().map_or(0, |e| e.version),
+                new_version: updated_entry.version,
+                change_type: "UPDATED".to_string(),
+                changed_by: updated_entry.updated_by.clone(),
+            },
+        );
+        if let Err(e) = self.config_repo.record_change_log(&change_log).await {
+            tracing::warn!(
+                namespace = %updated_entry.namespace,
+                key = %updated_entry.key,
+                error = %e,
+                "failed to record config change log (best-effort)"
+            );
+        }
 
         // Kafka 変更通知（ベストエフォート）
         if let Some(producer) = &self.kafka_producer {
@@ -212,17 +244,35 @@ mod tests {
         }
     }
 
+    fn make_old_entry() -> ConfigEntry {
+        ConfigEntry {
+            id: Uuid::new_v4(),
+            namespace: "system.auth.database".to_string(),
+            key: "max_connections".to_string(),
+            value_json: serde_json::json!(25),
+            version: 3,
+            description: Some("認証サーバーの DB 最大接続数".to_string()),
+            created_by: "admin@example.com".to_string(),
+            updated_by: "admin@example.com".to_string(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
     #[tokio::test]
     async fn test_update_config_success() {
         let mut mock = MockConfigRepository::new();
         let updated = make_updated_entry();
         let expected = updated.clone();
 
+        mock.expect_find_by_namespace_and_key()
+            .returning(|_, _| Ok(Some(make_old_entry())));
         mock.expect_update()
             .withf(|ns, key, _, ver, _, _| {
                 ns == "system.auth.database" && key == "max_connections" && *ver == 3
             })
             .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+        mock.expect_record_change_log().returning(|_| Ok(()));
 
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
         let result = uc.execute(&make_update_input()).await;
@@ -237,6 +287,8 @@ mod tests {
     #[tokio::test]
     async fn test_update_config_not_found() {
         let mut mock = MockConfigRepository::new();
+        mock.expect_find_by_namespace_and_key()
+            .returning(|_, _| Ok(None));
         mock.expect_update()
             .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("config not found")));
 
@@ -256,6 +308,8 @@ mod tests {
     #[tokio::test]
     async fn test_update_config_version_conflict() {
         let mut mock = MockConfigRepository::new();
+        mock.expect_find_by_namespace_and_key()
+            .returning(|_, _| Ok(Some(make_old_entry())));
         mock.expect_update()
             .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("version conflict: current=4")));
 
@@ -275,6 +329,8 @@ mod tests {
     #[tokio::test]
     async fn test_update_config_internal_error() {
         let mut mock = MockConfigRepository::new();
+        mock.expect_find_by_namespace_and_key()
+            .returning(|_, _| Ok(None));
         mock.expect_update()
             .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("connection refused")));
 
@@ -354,8 +410,11 @@ mod tests {
         // kafka_producer が None のとき Kafka 通知なしで成功する
         let mut mock = MockConfigRepository::new();
         let updated = make_updated_entry();
+        mock.expect_find_by_namespace_and_key()
+            .returning(|_, _| Ok(Some(make_old_entry())));
         mock.expect_update()
             .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+        mock.expect_record_change_log().returning(|_| Ok(()));
 
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
         let result = uc.execute(&make_update_input()).await;
@@ -406,8 +465,11 @@ mod tests {
         // 更新成功後に broadcast watch イベントが送信されることを確認する
         let mut mock = MockConfigRepository::new();
         let updated = make_updated_entry();
+        mock.expect_find_by_namespace_and_key()
+            .returning(|_, _| Ok(Some(make_old_entry())));
         mock.expect_update()
             .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+        mock.expect_record_change_log().returning(|_| Ok(()));
 
         let (tx, mut rx) = tokio::sync::broadcast::channel::<ConfigChangeEvent>(16);
         let uc = UpdateConfigUseCase::new_with_watch(Arc::new(mock), tx);
@@ -427,6 +489,8 @@ mod tests {
     async fn test_update_config_watch_not_sent_on_failure() {
         // 更新失敗時は watch イベントが送信されないことを確認する
         let mut mock = MockConfigRepository::new();
+        mock.expect_find_by_namespace_and_key()
+            .returning(|_, _| Ok(None));
         mock.expect_update()
             .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("config not found")));
 
@@ -461,13 +525,62 @@ mod tests {
         // watch_sender が None でも更新は成功する（後方互換性）
         let mut mock = MockConfigRepository::new();
         let updated = make_updated_entry();
+        mock.expect_find_by_namespace_and_key()
+            .returning(|_, _| Ok(Some(make_old_entry())));
         mock.expect_update()
             .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+        mock.expect_record_change_log().returning(|_| Ok(()));
 
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
         assert!(uc.watch_sender.is_none());
 
         let result = uc.execute(&make_update_input()).await;
+        assert!(result.is_ok());
+    }
+
+    // --- 監査ログ関連テスト ---
+
+    #[tokio::test]
+    async fn test_update_config_records_change_log() {
+        let mut mock = MockConfigRepository::new();
+        let old = make_old_entry();
+        let updated = make_updated_entry();
+        mock.expect_find_by_namespace_and_key()
+            .returning(move |_, _| Ok(Some(old.clone())));
+        mock.expect_update()
+            .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+        mock.expect_record_change_log()
+            .withf(|log| {
+                log.change_type == "UPDATED"
+                    && log.namespace == "system.auth.database"
+                    && log.key == "max_connections"
+                    && log.old_value == Some(serde_json::json!(25))
+                    && log.new_value == Some(serde_json::json!(50))
+                    && log.old_version == 3
+                    && log.new_version == 4
+                    && log.changed_by == "operator@example.com"
+            })
+            .returning(|_| Ok(()));
+
+        let uc = UpdateConfigUseCase::new(Arc::new(mock));
+        let result = uc.execute(&make_update_input()).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_update_config_change_log_failure_is_best_effort() {
+        let mut mock = MockConfigRepository::new();
+        mock.expect_find_by_namespace_and_key()
+            .returning(|_, _| Ok(Some(make_old_entry())));
+        let updated = make_updated_entry();
+        mock.expect_update()
+            .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+        mock.expect_record_change_log()
+            .returning(|_| Err(anyhow::anyhow!("db error")));
+
+        let uc = UpdateConfigUseCase::new(Arc::new(mock));
+        let result = uc.execute(&make_update_input()).await;
+        // 監査ログ失敗しても更新自体は成功する
         assert!(result.is_ok());
     }
 }

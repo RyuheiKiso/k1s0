@@ -23,7 +23,9 @@ use domain::entity::notification_template::NotificationTemplate;
 use domain::repository::NotificationChannelRepository;
 use domain::repository::NotificationLogRepository;
 use domain::repository::NotificationTemplateRepository;
+use domain::service::DeliveryClient;
 use infrastructure::config::Config;
+use infrastructure::delivery::{EmailDeliveryClient, SlackDeliveryClient, WebhookDeliveryClient};
 use infrastructure::kafka_producer::{
     KafkaNotificationProducer, NoopNotificationEventPublisher, NotificationEventPublisher,
 };
@@ -93,8 +95,63 @@ async fn main() -> anyhow::Result<()> {
     let get_channel_uc = Arc::new(usecase::GetChannelUseCase::new(channel_repo.clone()));
     let update_channel_uc = Arc::new(usecase::UpdateChannelUseCase::new(channel_repo.clone()));
     let delete_channel_uc = Arc::new(usecase::DeleteChannelUseCase::new(channel_repo.clone()));
-    let send_notification_uc =
-        Arc::new(usecase::SendNotificationUseCase::new(channel_repo.clone(), log_repo.clone()));
+
+    // --- Delivery client wiring ---
+    let mut delivery_clients: HashMap<String, Arc<dyn DeliveryClient>> = HashMap::new();
+
+    if let (Ok(smtp_host), Ok(smtp_user), Ok(smtp_pass)) = (
+        std::env::var("SMTP_HOST"),
+        std::env::var("SMTP_USERNAME"),
+        std::env::var("SMTP_PASSWORD"),
+    ) {
+        let smtp_port: u16 = std::env::var("SMTP_PORT")
+            .unwrap_or_else(|_| "587".to_string())
+            .parse()
+            .unwrap_or(587);
+        let from_address = std::env::var("SMTP_FROM")
+            .unwrap_or_else(|_| "noreply@k1s0.dev".to_string());
+        match EmailDeliveryClient::new(&smtp_host, smtp_port, &smtp_user, &smtp_pass, &from_address) {
+            Ok(client) => {
+                info!("Email delivery client initialized (SMTP: {}:{})", smtp_host, smtp_port);
+                delivery_clients.insert("email".to_string(), Arc::new(client));
+            }
+            Err(e) => {
+                tracing::warn!("Failed to initialize email delivery client: {}", e);
+            }
+        }
+    } else {
+        info!("SMTP not configured, skipping email delivery client");
+    }
+
+    if let Ok(slack_webhook_url) = std::env::var("SLACK_WEBHOOK_URL") {
+        info!("Slack delivery client initialized");
+        delivery_clients.insert(
+            "slack".to_string(),
+            Arc::new(SlackDeliveryClient::new(slack_webhook_url)),
+        );
+    } else {
+        info!("SLACK_WEBHOOK_URL not configured, skipping Slack delivery client");
+    }
+
+    if let Ok(webhook_url) = std::env::var("WEBHOOK_URL") {
+        info!("Webhook delivery client initialized");
+        delivery_clients.insert(
+            "webhook".to_string(),
+            Arc::new(WebhookDeliveryClient::new(webhook_url, None)),
+        );
+    } else {
+        info!("WEBHOOK_URL not configured, skipping webhook delivery client");
+    }
+
+    let send_notification_uc = if delivery_clients.is_empty() {
+        Arc::new(usecase::SendNotificationUseCase::new(channel_repo.clone(), log_repo.clone()))
+    } else {
+        Arc::new(usecase::SendNotificationUseCase::with_delivery_clients(
+            channel_repo.clone(),
+            log_repo.clone(),
+            delivery_clients,
+        ))
+    };
     let retry_notification_uc =
         Arc::new(usecase::RetryNotificationUseCase::new(log_repo.clone(), channel_repo));
     let create_template_uc = Arc::new(usecase::CreateTemplateUseCase::new(template_repo.clone()));

@@ -88,10 +88,12 @@ pub async fn list_schemas(
                     "created_at": s.created_at,
                     "updated_at": s.updated_at,
                 })).collect::<Vec<_>>(),
-                "total_count": output.total_count,
-                "page": output.page,
-                "page_size": output.page_size,
-                "has_next": output.has_next,
+                "pagination": {
+                    "total_count": output.total_count,
+                    "page": output.page,
+                    "page_size": output.page_size,
+                    "has_next": output.has_next,
+                },
             })),
         )
             .into_response(),
@@ -179,19 +181,20 @@ pub async fn list_versions(
         Ok(output) => (
             StatusCode::OK,
             Json(serde_json::json!({
+                "name": input.name,
                 "versions": output.versions.iter().map(|v| serde_json::json!({
-                    "name": v.name,
                     "version": v.version,
-                    "schema_type": v.schema_type.to_string(),
                     "content_hash": v.content_hash,
                     "breaking_changes": v.breaking_changes,
                     "registered_by": v.registered_by,
                     "created_at": v.created_at,
                 })).collect::<Vec<_>>(),
-                "total_count": output.total_count,
-                "page": output.page,
-                "page_size": output.page_size,
-                "has_next": output.has_next,
+                "pagination": {
+                    "total_count": output.total_count,
+                    "page": output.page,
+                    "page_size": output.page_size,
+                    "has_next": output.has_next,
+                },
             })),
         )
             .into_response(),

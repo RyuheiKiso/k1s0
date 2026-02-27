@@ -10,8 +10,8 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 | 機能 | 説明 |
 | --- | --- |
 | フラグ定義管理 | フィーチャーフラグの作成・更新・削除・一覧取得 |
-| フラグ評価 | ユーザー・サービス・環境に基づくフラグの評価（有効/無効判定） |
-| ロールアウト制御 | パーセンテージロールアウト・ユーザーセグメント・環境別制御 |
+| フラグ評価 | ユーザー・テナント・属性に基づくフラグの評価（有効/無効 + バリアント選択） |
+| バリアント/ルール制御 | バリアント（重み付き値）とルール（属性マッチング → バリアント選択）による柔軟な制御 |
 | 変更通知 | フラグ変更時に Kafka `k1s0.system.featureflag.changed.v1` で全サービスに通知 |
 | 変更監査ログ | フラグ変更を PostgreSQL に記録し、変更前後の値を保存 |
 
@@ -49,7 +49,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 | 実装言語 | Rust |
 | フラグ評価方式 | サーバー側評価。クライアントは gRPC/REST でフラグ値を問い合わせる |
 | キャッシュ | moka で評価結果を TTL 60 秒キャッシュ。Kafka 通知受信時にキャッシュ無効化 |
-| ロールアウト | パーセンテージ（0-100）・ユーザーリスト・環境名（development/staging/production）の AND 条件 |
+| バリアント/ルール | バリアント（name/value/weight）による値の定義、ルール（attribute/operator/value → variant）による条件分岐 |
 | DB | PostgreSQL の `featureflag` スキーマ |
 | Kafka | オプション。未設定時は変更通知なし（REST/gRPC API は動作する） |
 | 監査ログ | フラグの作成・更新・削除時に変更前後の値を PostgreSQL に記録 |
@@ -76,16 +76,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 
 #### GET /api/v1/flags
 
-フラグ一覧をページネーション付きで取得する。`environment` クエリパラメータで環境別にフィルタリングできる。
-
-**クエリパラメータ**
-
-| パラメータ | 型 | 必須 | デフォルト | 説明 |
-| --- | --- | --- | --- | --- |
-| `environment` | string | No | - | 環境名でフィルタ（development/staging/production） |
-| `enabled_only` | bool | No | false | 有効なフラグのみ取得 |
-| `page` | int | No | 1 | ページ番号 |
-| `page_size` | int | No | 20 | 1 ページあたりの件数 |
+フラグ一覧を取得する。リポジトリの `find_all()` で全件取得する。
 
 **レスポンス（200 OK）**
 
@@ -93,23 +84,18 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 {
   "flags": [
     {
-      "key": "enable-new-checkout",
-      "name": "新チェックアウトフロー",
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "flag_key": "enable-new-checkout",
       "description": "新しいチェックアウトフローを有効化する",
       "enabled": true,
-      "rollout_percentage": 50,
-      "target_environments": ["development", "staging"],
-      "target_user_ids": ["user-001", "user-002"],
-      "created_at": "2026-02-20T10:00:00.000+00:00",
-      "updated_at": "2026-02-20T12:30:00.000+00:00"
+      "variants": [
+        { "name": "on", "value": "true", "weight": 80 },
+        { "name": "off", "value": "false", "weight": 20 }
+      ],
+      "created_at": "2026-02-20T10:00:00+00:00",
+      "updated_at": "2026-02-20T12:30:00+00:00"
     }
-  ],
-  "pagination": {
-    "total_count": 25,
-    "page": 1,
-    "page_size": 20,
-    "has_next": true
-  }
+  ]
 }
 ```
 
@@ -121,15 +107,16 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 
 ```json
 {
-  "key": "enable-new-checkout",
-  "name": "新チェックアウトフロー",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "flag_key": "enable-new-checkout",
   "description": "新しいチェックアウトフローを有効化する",
   "enabled": true,
-  "rollout_percentage": 50,
-  "target_environments": ["development", "staging"],
-  "target_user_ids": ["user-001", "user-002"],
-  "created_at": "2026-02-20T10:00:00.000+00:00",
-  "updated_at": "2026-02-20T12:30:00.000+00:00"
+  "variants": [
+    { "name": "on", "value": "true", "weight": 80 },
+    { "name": "off", "value": "false", "weight": 20 }
+  ],
+  "created_at": "2026-02-20T10:00:00+00:00",
+  "updated_at": "2026-02-20T12:30:00+00:00"
 }
 ```
 
@@ -148,35 +135,36 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 
 #### POST /api/v1/flags
 
-新しいフィーチャーフラグを作成する。フラグキーはシステム全体で一意でなければならない。作成時に監査ログを記録し、Kafka が設定されていれば変更通知を送信する。
+新しいフィーチャーフラグを作成する。フラグキーはシステム全体で一意でなければならない。
 
 **リクエスト**
 
 ```json
 {
-  "key": "enable-new-checkout",
-  "name": "新チェックアウトフロー",
+  "flag_key": "enable-new-checkout",
   "description": "新しいチェックアウトフローを有効化する",
   "enabled": false,
-  "rollout_percentage": 0,
-  "target_environments": ["development"],
-  "target_user_ids": []
+  "variants": [
+    { "name": "on", "value": "true", "weight": 100 }
+  ]
 }
 ```
+
+`variants` は省略可能（省略時は空リスト）。
 
 **レスポンス（201 Created）**
 
 ```json
 {
-  "key": "enable-new-checkout",
-  "name": "新チェックアウトフロー",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "flag_key": "enable-new-checkout",
   "description": "新しいチェックアウトフローを有効化する",
   "enabled": false,
-  "rollout_percentage": 0,
-  "target_environments": ["development"],
-  "target_user_ids": [],
-  "created_at": "2026-02-20T10:00:00.000+00:00",
-  "updated_at": "2026-02-20T10:00:00.000+00:00"
+  "variants": [
+    { "name": "on", "value": "true", "weight": 100 }
+  ],
+  "created_at": "2026-02-20T10:00:00+00:00",
+  "updated_at": "2026-02-20T10:00:00+00:00"
 }
 ```
 
@@ -186,59 +174,39 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 {
   "error": {
     "code": "SYS_FF_ALREADY_EXISTS",
-    "message": "feature flag already exists: enable-new-checkout",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
-
-**レスポンス（400 Bad Request）**
-
-```json
-{
-  "error": {
-    "code": "SYS_FF_VALIDATION_ERROR",
-    "message": "validation failed",
-    "request_id": "req_abc123def456",
-    "details": [
-      {"field": "key", "message": "key is required and must be non-empty"},
-      {"field": "rollout_percentage", "message": "must be between 0 and 100"}
-    ]
+    "message": "flag already exists: enable-new-checkout"
   }
 }
 ```
 
 #### PUT /api/v1/flags/:key
 
-既存のフィーチャーフラグを更新する。更新時に変更前後の値を監査ログに記録し、Kafka が設定されていれば変更通知を送信する。キャッシュは即座に無効化される。
+既存のフィーチャーフラグを更新する。`enabled` と `description` のみ更新可能（部分更新）。
 
 **リクエスト**
 
 ```json
 {
-  "name": "新チェックアウトフロー",
-  "description": "新しいチェックアウトフローを有効化する（v2）",
   "enabled": true,
-  "rollout_percentage": 50,
-  "target_environments": ["development", "staging"],
-  "target_user_ids": ["user-001", "user-002"]
+  "description": "新しいチェックアウトフローを有効化する（v2）"
 }
 ```
+
+全フィールド省略可能（省略時は変更なし）。
 
 **レスポンス（200 OK）**
 
 ```json
 {
-  "key": "enable-new-checkout",
-  "name": "新チェックアウトフロー",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "flag_key": "enable-new-checkout",
   "description": "新しいチェックアウトフローを有効化する（v2）",
   "enabled": true,
-  "rollout_percentage": 50,
-  "target_environments": ["development", "staging"],
-  "target_user_ids": ["user-001", "user-002"],
-  "created_at": "2026-02-20T10:00:00.000+00:00",
-  "updated_at": "2026-02-20T12:30:00.000+00:00"
+  "variants": [
+    { "name": "on", "value": "true", "weight": 100 }
+  ],
+  "created_at": "2026-02-20T10:00:00+00:00",
+  "updated_at": "2026-02-20T12:30:00+00:00"
 }
 ```
 
@@ -248,23 +216,21 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 {
   "error": {
     "code": "SYS_FF_NOT_FOUND",
-    "message": "feature flag not found: enable-new-checkout",
-    "request_id": "req_abc123def456",
-    "details": []
+    "message": "flag not found: enable-new-checkout"
   }
 }
 ```
 
 #### DELETE /api/v1/flags/:key
 
-フィーチャーフラグを削除する。削除時に監査ログを記録し、Kafka が設定されていれば変更通知を送信する。
+フィーチャーフラグを削除する。まず `GET` でフラグを取得し、存在確認後に ID で削除する。
 
 **レスポンス（200 OK）**
 
 ```json
 {
   "success": true,
-  "message": "feature flag enable-new-checkout deleted"
+  "message": "flag enable-new-checkout deleted"
 }
 ```
 
@@ -274,33 +240,38 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 {
   "error": {
     "code": "SYS_FF_NOT_FOUND",
-    "message": "feature flag not found: enable-new-checkout",
-    "request_id": "req_abc123def456",
-    "details": []
+    "message": "flag not found: enable-new-checkout"
   }
 }
 ```
 
 #### POST /api/v1/flags/:key/evaluate
 
-フラグを評価し、指定されたコンテキスト（環境・ユーザー・サービス）に基づいて有効/無効を判定する。内部サービス用のエンドポイントであり、認証は不要。
+フラグを評価し、指定されたコンテキスト（ユーザー・テナント・属性）に基づいて有効/無効とバリアントを判定する。内部サービス用のエンドポイントであり、認証は不要。
 
 **リクエスト**
 
 ```json
 {
-  "environment": "production",
   "user_id": "user-001",
-  "service_name": "order-service"
+  "tenant_id": "tenant-abc",
+  "attributes": {
+    "environment": "production",
+    "region": "ap-northeast-1"
+  }
 }
 ```
+
+全フィールド省略可能。`attributes` 省略時は空マップ。
 
 **レスポンス（200 OK -- フラグ有効）**
 
 ```json
 {
+  "flag_key": "enable-new-checkout",
   "enabled": true,
-  "reason": "user_id in target_user_ids"
+  "variant": "on",
+  "reason": "flag is enabled"
 }
 ```
 
@@ -308,8 +279,10 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 
 ```json
 {
+  "flag_key": "enable-new-checkout",
   "enabled": false,
-  "reason": "environment not in target_environments"
+  "variant": null,
+  "reason": "flag is disabled"
 }
 ```
 
@@ -319,9 +292,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 {
   "error": {
     "code": "SYS_FF_NOT_FOUND",
-    "message": "feature flag not found: enable-new-checkout",
-    "request_id": "req_abc123def456",
-    "details": []
+    "message": "flag not found: enable-new-checkout"
   }
 }
 ```
@@ -337,51 +308,62 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 
 ### gRPC サービス定義
 
+`api/proto/k1s0/system/featureflag/v1/featureflag.proto` に定義。
+
 ```protobuf
 syntax = "proto3";
 package k1s0.system.featureflag.v1;
 
+import "k1s0/system/common/v1/types.proto";
+
 service FeatureFlagService {
   rpc EvaluateFlag(EvaluateFlagRequest) returns (EvaluateFlagResponse);
   rpc GetFlag(GetFlagRequest) returns (GetFlagResponse);
-  rpc ListFlags(ListFlagsRequest) returns (ListFlagsResponse);
+  rpc CreateFlag(CreateFlagRequest) returns (CreateFlagResponse);
   rpc UpdateFlag(UpdateFlagRequest) returns (UpdateFlagResponse);
 }
 
 message EvaluateFlagRequest {
-  string key = 1;
-  string environment = 2;
-  optional string user_id = 3;
-  optional string service_name = 4;
+  string flag_key = 1;
+  EvaluationContext context = 2;
 }
 
 message EvaluateFlagResponse {
-  bool enabled = 1;
-  string reason = 2;
+  string flag_key = 1;
+  bool enabled = 2;
+  string variant = 3;
+  string reason = 4;
+}
+
+message EvaluationContext {
+  string user_id = 1;
+  string tenant_id = 2;
+  map<string, string> attributes = 3;
 }
 
 message GetFlagRequest {
-  string key = 1;
+  string flag_key = 1;
 }
 
 message GetFlagResponse {
   FeatureFlag flag = 1;
 }
 
-message ListFlagsRequest {
-  string environment = 1;
-  bool enabled_only = 2;
+message CreateFlagRequest {
+  string flag_key = 1;
+  string description = 2;
+  bool enabled = 3;
+  repeated FlagVariant variants = 4;
 }
 
-message ListFlagsResponse {
-  repeated FeatureFlag flags = 1;
+message CreateFlagResponse {
+  FeatureFlag flag = 1;
 }
 
 message UpdateFlagRequest {
-  string key = 1;
+  string flag_key = 1;
   bool enabled = 2;
-  optional uint32 rollout_percentage = 3;
-  repeated string target_environments = 4;
+  string description = 3;
 }
 
 message UpdateFlagResponse {
@@ -389,15 +371,19 @@ message UpdateFlagResponse {
 }
 
 message FeatureFlag {
-  string key = 1;
-  string name = 2;
+  string id = 1;
+  string flag_key = 2;
   string description = 3;
   bool enabled = 4;
-  uint32 rollout_percentage = 5;
-  repeated string target_environments = 6;
-  repeated string target_user_ids = 7;
-  string created_at = 8;
-  string updated_at = 9;
+  repeated FlagVariant variants = 5;
+  k1s0.system.common.v1.Timestamp created_at = 6;
+  k1s0.system.common.v1.Timestamp updated_at = 7;
+}
+
+message FlagVariant {
+  string name = 1;
+  string value = 2;
+  int32 weight = 3;
 }
 ```
 
@@ -407,17 +393,18 @@ message FeatureFlag {
 
 ### 評価フロー
 
-フラグ評価は以下の順序で判定される。すべての条件を AND で評価する。
+フラグ評価は以下の順序で判定される。
 
 ```
-1. フラグが存在するか確認（未存在: NOT_FOUND）
-2. フラグが enabled=false の場合 → 無効（reason: "flag is disabled"）
-3. 環境チェック: target_environments が空でなく、指定環境が含まれない場合 → 無効
-4. ユーザーチェック: target_user_ids が空でなく、指定ユーザーが含まれる場合 → 有効（ホワイトリスト）
-5. ロールアウト判定: rollout_percentage に基づくハッシュ判定
-   - hash(flag_key + user_id) % 100 < rollout_percentage → 有効
-   - user_id 未指定時は rollout_percentage > 0 なら有効
+1. フラグが存在するか確認（未存在: FlagNotFound エラー）
+2. フラグが enabled=false の場合
+   → EvaluationResult { enabled: false, variant: None, reason: "flag is disabled" }
+3. フラグが enabled=true の場合
+   → variants の先頭バリアントを選択
+   → EvaluationResult { enabled: true, variant: Some(variants[0].name), reason: "flag is enabled" }
 ```
+
+現在の実装では、ルール（FlagRule）による属性マッチング評価は未実装。ドメインモデルに `rules: Vec<FlagRule>` フィールドは定義済みであり、将来的にルールベースの条件分岐評価を追加予定。
 
 ### キャッシュ戦略
 
@@ -447,11 +434,13 @@ message FeatureFlag {
   "actor_user_id": "admin-001",
   "before": {
     "enabled": false,
-    "rollout_percentage": 0
+    "variants": []
   },
   "after": {
     "enabled": true,
-    "rollout_percentage": 50
+    "variants": [
+      { "name": "on", "value": "true", "weight": 100 }
+    ]
   }
 }
 ```
@@ -568,7 +557,7 @@ infrastructure（DB接続・Kafka Producer・moka キャッシュ・設定ロー
                     │  │  evaluate_flag                           │   │
                     │  ├──────────────────────────────────────────┤   │
                     │  │ gRPC Handler (flag_grpc.rs)              │   │
-                    │  │  EvaluateFlag / GetFlag / ListFlags      │   │
+                    │  │  EvaluateFlag / GetFlag / CreateFlag     │   │
                     │  │  UpdateFlag                              │   │
                     │  └──────────────────────┬───────────────────┘   │
                     └─────────────────────────┼───────────────────────┘

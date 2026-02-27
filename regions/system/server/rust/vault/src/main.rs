@@ -99,12 +99,25 @@ async fn main() -> anyhow::Result<()> {
     // TODO: Wire cache as a decorator around SecretStore in a future phase
     let _secret_cache = Arc::new(infrastructure::cache::SecretCache::new(10_000, 2880));
 
-    // Secret store + audit repository (PG or InMemory)
+    // Secret store + audit repository (Vault KV v2 / PG / InMemory)
+    let vault_addr = std::env::var("VAULT_ADDR").ok();
+    let vault_token = std::env::var("VAULT_TOKEN").ok();
+
     let (secret_store, audit_repo, db_pool): (
         Arc<dyn SecretStore>,
         Arc<dyn AccessLogRepository>,
         Option<sqlx::PgPool>,
-    ) = if let Some(ref db_config) = cfg.database {
+    ) = if let (Some(addr), Some(token)) = (vault_addr, vault_token) {
+        info!(vault_addr = %addr, "connecting to HashiCorp Vault KV v2");
+        let vault_client = adapter::gateway::VaultKvClient::new(&addr, &token)?;
+        let vault_client = Arc::new(vault_client);
+        let store: Arc<dyn SecretStore> = Arc::new(
+            adapter::repository::vault_secret_store::VaultSecretStore::new(vault_client),
+        );
+        let audit: Arc<dyn AccessLogRepository> = Arc::new(NoopAccessLogRepository);
+        info!("HashiCorp Vault backend ready");
+        (store, audit, None)
+    } else if let Some(ref db_config) = cfg.database {
         info!("connecting to PostgreSQL for vault storage");
         let pool = sqlx::PgPool::connect(&db_config.connection_url()).await?;
         let pool = Arc::new(pool);
