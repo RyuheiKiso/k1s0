@@ -146,8 +146,25 @@ async fn main() -> anyhow::Result<()> {
         "k1s0-event-store-server",
     ));
 
+    // Token verifier (JWKS verifier if auth configured)
+    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for event-store");
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &auth_cfg.jwks_url,
+            &auth_cfg.issuer,
+            &auth_cfg.audience,
+            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+        ));
+        Some(adapter::middleware::auth::EventStoreAuthState {
+            verifier: jwks_verifier,
+        })
+    } else {
+        info!("no auth configured, event-store running without authentication");
+        None
+    };
+
     // REST AppState
-    let state = AppState {
+    let mut state = AppState {
         append_events_uc,
         read_events_uc,
         create_snapshot_uc,
@@ -156,19 +173,26 @@ async fn main() -> anyhow::Result<()> {
         stream_repo,
         event_repo,
         event_publisher,
-        metrics,
+        metrics: metrics.clone(),
+        auth_state: None,
     };
+    if let Some(auth_st) = auth_state {
+        state = state.with_auth(auth_st);
+    }
 
     // tonic wrapper
     use proto::k1s0::system::eventstore::v1::event_store_service_server::EventStoreServiceServer;
     let event_store_tonic = adapter::grpc::EventStoreServiceTonic::new(grpc_svc);
 
     // Router
-    let app = handler::router(state);
+    let app = handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
+    let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(EventStoreServiceServer::new(event_store_tonic))
             .serve(grpc_addr)
             .await

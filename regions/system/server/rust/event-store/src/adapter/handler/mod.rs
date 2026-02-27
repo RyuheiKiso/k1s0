@@ -12,6 +12,8 @@ use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+use crate::adapter::middleware::auth::{auth_middleware, EventStoreAuthState};
+use crate::adapter::middleware::rbac::require_permission;
 use crate::domain::repository::{EventRepository, EventStreamRepository};
 use crate::infrastructure::kafka::EventPublisher;
 use crate::usecase::{
@@ -31,6 +33,14 @@ pub struct AppState {
     pub event_repo: Arc<dyn EventRepository>,
     pub event_publisher: Arc<dyn EventPublisher>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    pub auth_state: Option<EventStoreAuthState>,
+}
+
+impl AppState {
+    pub fn with_auth(mut self, auth_state: EventStoreAuthState) -> Self {
+        self.auth_state = Some(auth_state);
+        self
+    }
 }
 
 #[derive(OpenApi)]
@@ -62,30 +72,90 @@ struct ApiDoc;
 
 /// REST API ルーターを構築する。
 pub fn router(state: AppState) -> Router {
-    Router::new()
-        // Health / Readiness / Metrics
+    // 認証不要のエンドポイント
+    let public_routes = Router::new()
         .route("/healthz", get(health::healthz))
         .route("/readyz", get(health::readyz))
-        .route("/metrics", get(metrics_handler))
-        // Events
-        .route(
-            "/api/v1/events",
-            post(event_handler::append_events).get(event_handler::list_events),
-        )
-        .route(
-            "/api/v1/events/:stream_id",
-            get(event_handler::read_events),
-        )
-        // Streams
-        .route("/api/v1/streams", get(event_handler::list_streams))
-        .route(
-            "/api/v1/streams/:stream_id",
-            delete(event_handler::delete_stream),
-        )
-        .route(
-            "/api/v1/streams/:stream_id/snapshot",
-            get(event_handler::get_snapshot).post(event_handler::create_snapshot),
-        )
+        .route("/metrics", get(metrics_handler));
+
+    // 認証が設定されている場合は RBAC 付きルーティング、そうでなければオープンアクセス
+    let api_routes = if let Some(ref auth_state) = state.auth_state {
+        // GET -> events/read
+        let read_routes = Router::new()
+            .route(
+                "/api/v1/events",
+                get(event_handler::list_events),
+            )
+            .route(
+                "/api/v1/events/:stream_id",
+                get(event_handler::read_events),
+            )
+            .route("/api/v1/streams", get(event_handler::list_streams))
+            .route(
+                "/api/v1/streams/:stream_id/snapshot",
+                get(event_handler::get_snapshot),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "events", "read",
+            )));
+
+        // POST events/snapshot -> events/write
+        let write_routes = Router::new()
+            .route(
+                "/api/v1/events",
+                post(event_handler::append_events),
+            )
+            .route(
+                "/api/v1/streams/:stream_id/snapshot",
+                post(event_handler::create_snapshot),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "events", "write",
+            )));
+
+        // DELETE stream -> events/admin
+        let admin_routes = Router::new()
+            .route(
+                "/api/v1/streams/:stream_id",
+                delete(event_handler::delete_stream),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "events", "admin",
+            )));
+
+        // 認証ミドルウェアを全 API ルートに適用
+        Router::new()
+            .merge(read_routes)
+            .merge(write_routes)
+            .merge(admin_routes)
+            .layer(axum::middleware::from_fn_with_state(
+                auth_state.clone(),
+                auth_middleware,
+            ))
+    } else {
+        // 認証なし（dev モード / テスト）: 従来どおり
+        Router::new()
+            .route(
+                "/api/v1/events",
+                post(event_handler::append_events).get(event_handler::list_events),
+            )
+            .route(
+                "/api/v1/events/:stream_id",
+                get(event_handler::read_events),
+            )
+            .route("/api/v1/streams", get(event_handler::list_streams))
+            .route(
+                "/api/v1/streams/:stream_id",
+                delete(event_handler::delete_stream),
+            )
+            .route(
+                "/api/v1/streams/:stream_id/snapshot",
+                get(event_handler::get_snapshot).post(event_handler::create_snapshot),
+            )
+    };
+
+    public_routes
+        .merge(api_routes)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(state)
 }

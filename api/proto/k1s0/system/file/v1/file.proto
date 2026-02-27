@@ -1,0 +1,79 @@
+syntax = "proto3";
+package k1s0.system.file.v1;
+
+service FileService {
+  rpc GetFileMetadata(GetFileMetadataRequest) returns (FileMetadataResponse);
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
+  rpc GenerateUploadUrl(GenerateUploadUrlRequest) returns (GenerateUploadUrlResponse);
+  rpc CompleteUpload(CompleteUploadRequest) returns (CompleteUploadResponse);
+  rpc GenerateDownloadUrl(GenerateDownloadUrlRequest) returns (GenerateDownloadUrlResponse);
+  rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
+}
+
+message FileMetadata {
+  string id = 1;
+  string filename = 2;
+  string content_type = 3;
+  int64 size = 4;
+  string tenant_id = 5;
+  string uploaded_by = 6;
+  string status = 7;
+  string created_at = 8;
+  string updated_at = 9;
+  map<string, string> tags = 10;
+}
+
+message GetFileMetadataRequest {
+  string id = 1;
+}
+
+message FileMetadataResponse {
+  FileMetadata metadata = 1;
+}
+
+message ListFilesRequest {
+  string tenant_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListFilesResponse {
+  repeated FileMetadata files = 1;
+  int32 total = 2;
+}
+
+message GenerateUploadUrlRequest {
+  string filename = 1;
+  string content_type = 2;
+  string tenant_id = 3;
+  string uploaded_by = 4;
+  map<string, string> tags = 5;
+}
+
+message GenerateUploadUrlResponse {
+  string file_id = 1;
+  string upload_url = 2;
+}
+
+message CompleteUploadRequest {
+  string file_id = 1;
+  int64 size = 2;
+}
+
+message CompleteUploadResponse {
+  FileMetadata metadata = 1;
+}
+
+message GenerateDownloadUrlRequest {
+  string id = 1;
+}
+
+message GenerateDownloadUrlResponse {
+  string download_url = 1;
+}
+
+message DeleteFileRequest {
+  string id = 1;
+}
+
+message DeleteFileResponse {}

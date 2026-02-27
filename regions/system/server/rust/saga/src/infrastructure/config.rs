@@ -18,6 +18,22 @@ pub struct Config {
     pub services: HashMap<String, ServiceEndpoint>,
     #[serde(default)]
     pub saga: SagaConfig,
+    #[serde(default)]
+    pub auth: Option<AuthConfig>,
+}
+
+/// AuthConfig は JWT 認証設定を表す。
+#[derive(Debug, Clone, Deserialize)]
+pub struct AuthConfig {
+    pub jwks_url: String,
+    pub issuer: String,
+    pub audience: String,
+    #[serde(default = "default_jwks_cache_ttl")]
+    pub jwks_cache_ttl_secs: u64,
+}
+
+fn default_jwks_cache_ttl() -> u64 {
+    300
 }
 
 /// AppConfig はアプリケーション設定。

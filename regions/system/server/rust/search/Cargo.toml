@@ -31,6 +31,7 @@ async-trait = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
+k1s0-auth = { path = "../../../library/rust/auth" }
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "8", features = ["axum"] }
 rdkafka = { version = "0.37", features = ["cmake-build"] }

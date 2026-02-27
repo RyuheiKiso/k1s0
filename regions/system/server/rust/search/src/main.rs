@@ -103,6 +103,29 @@ async fn main() -> anyhow::Result<()> {
     let delete_document_uc = Arc::new(usecase::DeleteDocumentUseCase::new(search_repo.clone()));
     let list_indices_uc = Arc::new(usecase::ListIndicesUseCase::new(search_repo));
 
+    // --- Kafka consumer (optional, background task) ---
+    if let Some(ref kafka_cfg) = cfg.kafka {
+        match infrastructure::kafka_consumer::SearchKafkaConsumer::new(
+            kafka_cfg,
+            index_document_uc.clone(),
+        ) {
+            Ok(consumer) => {
+                let consumer = consumer.with_metrics(
+                    Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-search-server")),
+                );
+                info!("kafka consumer initialized, starting background ingestion");
+                tokio::spawn(async move {
+                    if let Err(e) = consumer.run().await {
+                        tracing::error!(error = %e, "kafka consumer stopped with error");
+                    }
+                });
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "failed to create kafka consumer");
+            }
+        }
+    }
+
     let grpc_svc = Arc::new(SearchGrpcService::new(
         index_document_uc.clone(),
         search_uc.clone(),
@@ -114,40 +137,119 @@ async fn main() -> anyhow::Result<()> {
         "k1s0-search-server",
     ));
 
-    let handler_state = adapter::handler::search_handler::AppState {
+    // Token verifier (JWKS verifier if auth configured)
+    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for search-server");
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &auth_cfg.jwks_url,
+            &auth_cfg.issuer,
+            &auth_cfg.audience,
+            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+        ));
+        Some(adapter::middleware::auth::SearchAuthState {
+            verifier: jwks_verifier,
+        })
+    } else {
+        info!("no auth configured, search-server running without authentication");
+        None
+    };
+
+    let mut handler_state = adapter::handler::search_handler::AppState {
         search_uc,
         index_document_uc,
         delete_document_uc,
         create_index_uc,
         list_indices_uc,
-        metrics,
+        metrics: metrics.clone(),
+        auth_state: None,
     };
+    if let Some(auth_st) = auth_state {
+        handler_state = handler_state.with_auth(auth_st);
+    }
 
-    let app = axum::Router::new()
+    let public_routes = axum::Router::new()
         .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
         .route("/readyz", axum::routing::get(adapter::handler::health::readyz))
-        .route("/metrics", axum::routing::get(metrics_handler))
-        .route(
-            "/api/v1/search",
-            axum::routing::post(adapter::handler::search_handler::search),
-        )
-        .route(
-            "/api/v1/search/index",
-            axum::routing::post(adapter::handler::search_handler::index_document),
-        )
-        .route(
-            "/api/v1/search/index/:index_name/:id",
-            axum::routing::delete(adapter::handler::search_handler::delete_document_from_index),
-        )
-        .route(
-            "/api/v1/search/indices",
-            axum::routing::post(adapter::handler::search_handler::create_index),
-        )
-        .route(
-            "/api/v1/search/indices",
-            axum::routing::get(adapter::handler::search_handler::list_indices),
-        )
-        .with_state(handler_state);
+        .route("/metrics", axum::routing::get(metrics_handler));
+
+    let api_routes = if let Some(ref auth_st) = handler_state.auth_state {
+        use adapter::middleware::auth::auth_middleware;
+        use adapter::middleware::rbac::require_permission;
+
+        // GET indices -> search/read
+        let read_routes = axum::Router::new()
+            .route(
+                "/api/v1/search/indices",
+                axum::routing::get(adapter::handler::search_handler::list_indices),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "search", "read",
+            )));
+
+        // POST search/index -> search/write
+        let write_routes = axum::Router::new()
+            .route(
+                "/api/v1/search",
+                axum::routing::post(adapter::handler::search_handler::search),
+            )
+            .route(
+                "/api/v1/search/index",
+                axum::routing::post(adapter::handler::search_handler::index_document),
+            )
+            .route(
+                "/api/v1/search/indices",
+                axum::routing::post(adapter::handler::search_handler::create_index),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "search", "write",
+            )));
+
+        // DELETE doc -> search/admin
+        let admin_routes = axum::Router::new()
+            .route(
+                "/api/v1/search/index/:index_name/:id",
+                axum::routing::delete(adapter::handler::search_handler::delete_document_from_index),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "search", "admin",
+            )));
+
+        axum::Router::new()
+            .merge(read_routes)
+            .merge(write_routes)
+            .merge(admin_routes)
+            .layer(axum::middleware::from_fn_with_state(
+                auth_st.clone(),
+                auth_middleware,
+            ))
+    } else {
+        axum::Router::new()
+            .route(
+                "/api/v1/search",
+                axum::routing::post(adapter::handler::search_handler::search),
+            )
+            .route(
+                "/api/v1/search/index",
+                axum::routing::post(adapter::handler::search_handler::index_document),
+            )
+            .route(
+                "/api/v1/search/index/:index_name/:id",
+                axum::routing::delete(adapter::handler::search_handler::delete_document_from_index),
+            )
+            .route(
+                "/api/v1/search/indices",
+                axum::routing::post(adapter::handler::search_handler::create_index),
+            )
+            .route(
+                "/api/v1/search/indices",
+                axum::routing::get(adapter::handler::search_handler::list_indices),
+            )
+    };
+
+    let app = public_routes
+        .merge(api_routes)
+        .with_state(handler_state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
     use proto::k1s0::system::search::v1::search_service_server::SearchServiceServer;
@@ -157,8 +259,10 @@ async fn main() -> anyhow::Result<()> {
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
     info!("gRPC server starting on {}", grpc_addr);
 
+    let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(SearchServiceServer::new(search_tonic))
             .serve(grpc_addr)
             .await

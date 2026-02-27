@@ -8,7 +8,7 @@ pub mod register_workflow;
 pub mod start_saga;
 
 pub use cancel_saga::{CancelSagaError, CancelSagaUseCase};
-pub use execute_saga::ExecuteSagaUseCase;
+pub use execute_saga::{CompensateSagaError, ExecuteSagaUseCase};
 pub use get_saga::GetSagaUseCase;
 pub use list_sagas::ListSagasUseCase;
 pub use list_workflows::ListWorkflowsUseCase;

@@ -1,5 +1,19 @@
 use serde::Deserialize;
 
+/// AuthConfig は JWT 認証設定を表す。
+#[derive(Debug, Clone, Deserialize)]
+pub struct AuthConfig {
+    pub jwks_url: String,
+    pub issuer: String,
+    pub audience: String,
+    #[serde(default = "default_jwks_cache_ttl_secs")]
+    pub jwks_cache_ttl_secs: u64,
+}
+
+fn default_jwks_cache_ttl_secs() -> u64 {
+    3600
+}
+
 /// Application configuration for scheduler server.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
@@ -11,6 +25,8 @@ pub struct Config {
     pub kafka: Option<KafkaConfig>,
     #[serde(default)]
     pub scheduler: SchedulerConfig,
+    #[serde(default)]
+    pub auth: Option<AuthConfig>,
 }
 
 impl Config {

@@ -8,7 +8,7 @@ use super::error::SagaError;
 use super::AppState;
 use crate::domain::entity::saga_state::SagaStatus;
 use crate::domain::repository::saga_repository::SagaListParams;
-use crate::usecase::CancelSagaError;
+use crate::usecase::{CancelSagaError, CompensateSagaError};
 
 // --- Request / Response DTOs ---
 
@@ -120,6 +120,13 @@ pub struct ListWorkflowsResponse {
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct CancelSagaResponse {
     pub success: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct CompensateSagaResponse {
+    pub saga_id: String,
+    pub status: String,
     pub message: String,
 }
 
@@ -335,6 +342,42 @@ pub async fn cancel_saga(
     Ok(Json(CancelSagaResponse {
         success: true,
         message: format!("saga {} cancelled", saga_id),
+    }))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/sagas/{saga_id}/compensate",
+    params(("saga_id" = String, Path, description = "Saga ID")),
+    responses(
+        (status = 200, description = "Compensation triggered", body = CompensateSagaResponse),
+        (status = 404, description = "Saga not found"),
+        (status = 409, description = "Already terminal"),
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn compensate_saga(
+    State(state): State<AppState>,
+    Path(saga_id): Path<String>,
+) -> Result<Json<CompensateSagaResponse>, SagaError> {
+    let id = Uuid::parse_str(&saga_id)
+        .map_err(|_| SagaError::Validation(format!("invalid saga_id: {}", saga_id)))?;
+
+    let updated = state
+        .execute_saga_uc
+        .trigger_compensate(id)
+        .await
+        .map_err(|e| match e {
+            CompensateSagaError::NotFound(_) => SagaError::NotFound(e.to_string()),
+            CompensateSagaError::AlreadyTerminal(_) => SagaError::Conflict(e.to_string()),
+            CompensateSagaError::WorkflowNotFound(_) => SagaError::NotFound(e.to_string()),
+            CompensateSagaError::Internal(_) => SagaError::Internal(e.to_string()),
+        })?;
+
+    Ok(Json(CompensateSagaResponse {
+        saga_id: updated.saga_id.to_string(),
+        status: updated.status.to_string(),
+        message: format!("saga {} compensation completed", saga_id),
     }))
 }
 

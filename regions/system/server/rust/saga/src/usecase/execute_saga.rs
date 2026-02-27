@@ -10,11 +10,25 @@ use crate::domain::repository::SagaRepository;
 use crate::infrastructure::grpc_caller::GrpcStepCaller;
 use crate::infrastructure::kafka_producer::SagaEventPublisher;
 
+/// CompensateSagaError は補償トリガー操作のエラーを型安全に表現する。
+#[derive(Debug, thiserror::Error)]
+pub enum CompensateSagaError {
+    #[error("saga not found: {0}")]
+    NotFound(Uuid),
+    #[error("saga is already in terminal state: {0}")]
+    AlreadyTerminal(String),
+    #[error("workflow not found: {0}")]
+    WorkflowNotFound(String),
+    #[error("{0}")]
+    Internal(#[from] anyhow::Error),
+}
+
 /// ExecuteSagaUseCase はSagaの実行・補償ロジックを担う。
 pub struct ExecuteSagaUseCase {
     saga_repo: Arc<dyn SagaRepository>,
     caller: Arc<dyn GrpcStepCaller>,
     publisher: Option<Arc<dyn SagaEventPublisher>>,
+    workflow_repo: Option<Arc<dyn crate::domain::repository::WorkflowRepository>>,
 }
 
 impl ExecuteSagaUseCase {
@@ -27,7 +41,14 @@ impl ExecuteSagaUseCase {
             saga_repo,
             caller,
             publisher,
+            workflow_repo: None,
         }
+    }
+
+    /// WorkflowRepository を設定する。
+    pub fn with_workflow_repo(mut self, repo: Arc<dyn crate::domain::repository::WorkflowRepository>) -> Self {
+        self.workflow_repo = Some(repo);
+        self
     }
 
     /// Sagaを実行する。ステータスに応じてforward_executeまたはcompensateを実行する。
@@ -57,6 +78,49 @@ impl ExecuteSagaUseCase {
         }
 
         Ok(())
+    }
+
+    /// 外部から補償処理をトリガーする。
+    /// Sagaを読み込み、Compensating状態に遷移させ、補償ステップを実行する。
+    pub async fn trigger_compensate(&self, saga_id: Uuid) -> Result<SagaState, CompensateSagaError> {
+        let workflow_repo = self.workflow_repo.as_ref()
+            .ok_or_else(|| CompensateSagaError::Internal(anyhow::anyhow!("workflow_repo not configured")))?;
+
+        let mut saga = self
+            .saga_repo
+            .find_by_id(saga_id)
+            .await
+            .map_err(CompensateSagaError::Internal)?
+            .ok_or(CompensateSagaError::NotFound(saga_id))?;
+
+        if saga.is_terminal() {
+            return Err(CompensateSagaError::AlreadyTerminal(saga.status.to_string()));
+        }
+
+        let workflow = workflow_repo
+            .get(&saga.workflow_name)
+            .await
+            .map_err(CompensateSagaError::Internal)?
+            .ok_or_else(|| CompensateSagaError::WorkflowNotFound(saga.workflow_name.clone()))?;
+
+        saga.start_compensation("manual compensate triggered".to_string());
+        self.saga_repo
+            .update_status(saga.saga_id, &saga.status, saga.error_message.clone())
+            .await
+            .map_err(CompensateSagaError::Internal)?;
+
+        self.publish_event(&saga, "SAGA_COMPENSATING").await;
+        self.compensate(&mut saga, &workflow).await.map_err(CompensateSagaError::Internal)?;
+
+        // Re-fetch to return latest state
+        let updated = self
+            .saga_repo
+            .find_by_id(saga_id)
+            .await
+            .map_err(CompensateSagaError::Internal)?
+            .ok_or(CompensateSagaError::NotFound(saga_id))?;
+
+        Ok(updated)
     }
 
     /// 前方実行：current_stepから最終ステップまで順次実行する。

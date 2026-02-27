@@ -8,6 +8,8 @@ pub struct Config {
     #[serde(default)]
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
+    pub auth: Option<AuthConfig>,
+    #[serde(default)]
     pub opa: Option<OpaConfig>,
     #[serde(default)]
     pub kafka: Option<KafkaConfig>,
@@ -105,6 +107,20 @@ impl DatabaseConfig {
             self.user, self.password, self.host, self.port, self.name, self.ssl_mode
         )
     }
+}
+
+/// AuthConfig は JWT 認証の設定を表す。
+#[derive(Debug, Clone, Deserialize)]
+pub struct AuthConfig {
+    pub jwks_url: String,
+    pub issuer: String,
+    pub audience: String,
+    #[serde(default = "default_jwks_cache_ttl_secs")]
+    pub jwks_cache_ttl_secs: u64,
+}
+
+fn default_jwks_cache_ttl_secs() -> u64 {
+    3600
 }
 
 /// OpaConfig は OPA（Open Policy Agent）接続の設定を表す。

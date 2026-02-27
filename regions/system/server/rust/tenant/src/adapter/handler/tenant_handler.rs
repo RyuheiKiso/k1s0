@@ -7,10 +7,12 @@ use axum::Json;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::adapter::middleware::auth::TenantAuthState;
 use crate::usecase::{
-    ActivateTenantError, ActivateTenantUseCase, CreateTenantError, CreateTenantInput,
-    CreateTenantUseCase, DeleteTenantError, DeleteTenantUseCase, GetTenantError, GetTenantUseCase,
-    ListMembersError, ListMembersUseCase, ListTenantsError, ListTenantsUseCase,
+    ActivateTenantError, ActivateTenantUseCase, AddMemberError, AddMemberInput, AddMemberUseCase,
+    CreateTenantError, CreateTenantInput, CreateTenantUseCase, DeleteTenantError,
+    DeleteTenantUseCase, GetTenantError, GetTenantUseCase, ListMembersError, ListMembersUseCase,
+    ListTenantsError, ListTenantsUseCase, RemoveMemberError, RemoveMemberUseCase,
     SuspendTenantError, SuspendTenantUseCase, UpdateTenantError, UpdateTenantInput,
     UpdateTenantUseCase,
 };
@@ -25,7 +27,17 @@ pub struct AppState {
     pub suspend_tenant_uc: Arc<SuspendTenantUseCase>,
     pub activate_tenant_uc: Arc<ActivateTenantUseCase>,
     pub list_members_uc: Arc<ListMembersUseCase>,
+    pub add_member_uc: Arc<AddMemberUseCase>,
+    pub remove_member_uc: Arc<RemoveMemberUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    pub auth_state: Option<TenantAuthState>,
+}
+
+impl AppState {
+    pub fn with_auth(mut self, auth_state: TenantAuthState) -> Self {
+        self.auth_state = Some(auth_state);
+        self
+    }
 }
 
 // --- Request / Response DTOs ---
@@ -61,6 +73,12 @@ pub struct MemberResponse {
     pub user_id: String,
     pub role: String,
     pub joined_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AddMemberRequest {
+    pub user_id: String,
+    pub role: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -440,6 +458,110 @@ pub async fn list_members(
         )
             .into_response(),
         Err(ListMembersError::Internal(msg)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+    }
+}
+
+/// POST /api/v1/tenants/:id/members
+pub async fn add_member(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(req): Json<AddMemberRequest>,
+) -> impl IntoResponse {
+    let tenant_id = match Uuid::parse_str(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": format!("invalid tenant id: {}", id)})),
+            )
+                .into_response()
+        }
+    };
+
+    let user_id = match Uuid::parse_str(&req.user_id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": format!("invalid user id: {}", req.user_id)})),
+            )
+                .into_response()
+        }
+    };
+
+    let input = AddMemberInput {
+        tenant_id,
+        user_id,
+        role: req.role,
+    };
+
+    match state.add_member_uc.execute(input).await {
+        Ok(member) => {
+            let resp = MemberResponse {
+                id: member.id.to_string(),
+                tenant_id: member.tenant_id.to_string(),
+                user_id: member.user_id.to_string(),
+                role: member.role,
+                joined_at: member.joined_at.to_rfc3339(),
+            };
+            (
+                StatusCode::CREATED,
+                Json(serde_json::to_value(resp).unwrap()),
+            )
+                .into_response()
+        }
+        Err(AddMemberError::AlreadyMember) => (
+            StatusCode::CONFLICT,
+            Json(serde_json::json!({"error": "member already exists"})),
+        )
+            .into_response(),
+        Err(AddMemberError::Internal(msg)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": msg})),
+        )
+            .into_response(),
+    }
+}
+
+/// DELETE /api/v1/tenants/:tenant_id/members/:user_id
+pub async fn remove_member(
+    State(state): State<AppState>,
+    Path((tenant_id, user_id)): Path<(String, String)>,
+) -> impl IntoResponse {
+    let tenant_uuid = match Uuid::parse_str(&tenant_id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": format!("invalid tenant id: {}", tenant_id)})),
+            )
+                .into_response()
+        }
+    };
+
+    let user_uuid = match Uuid::parse_str(&user_id) {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": format!("invalid user id: {}", user_id)})),
+            )
+                .into_response()
+        }
+    };
+
+    match state.remove_member_uc.execute(tenant_uuid, user_uuid).await {
+        Ok(_) => StatusCode::NO_CONTENT.into_response(),
+        Err(RemoveMemberError::NotFound) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "member not found"})),
+        )
+            .into_response(),
+        Err(RemoveMemberError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({"error": msg})),
         )

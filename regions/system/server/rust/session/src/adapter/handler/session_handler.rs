@@ -6,6 +6,7 @@ use axum::response::IntoResponse;
 use axum::Json;
 
 use crate::error::SessionError;
+use crate::adapter::middleware::auth::SessionAuthState;
 use crate::usecase::create_session::{CreateSessionInput, CreateSessionUseCase};
 use crate::usecase::get_session::{GetSessionInput, GetSessionUseCase};
 use crate::usecase::list_user_sessions::{ListUserSessionsInput, ListUserSessionsUseCase};
@@ -22,6 +23,14 @@ pub struct AppState {
     pub list_uc: Arc<ListUserSessionsUseCase>,
     pub revoke_all_uc: Arc<RevokeAllSessionsUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    pub auth_state: Option<SessionAuthState>,
+}
+
+impl AppState {
+    pub fn with_auth(mut self, auth_state: SessionAuthState) -> Self {
+        self.auth_state = Some(auth_state);
+        self
+    }
 }
 
 fn error_response(err: SessionError) -> (StatusCode, Json<serde_json::Value>) {

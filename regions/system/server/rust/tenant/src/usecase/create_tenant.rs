@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::Tenant;
 use crate::domain::repository::TenantRepository;
+use crate::infrastructure::saga_client::{NoopSagaClient, SagaClient};
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateTenantError {
@@ -21,11 +22,20 @@ pub struct CreateTenantInput {
 
 pub struct CreateTenantUseCase {
     tenant_repo: Arc<dyn TenantRepository>,
+    saga_client: Arc<dyn SagaClient>,
 }
 
 impl CreateTenantUseCase {
     pub fn new(tenant_repo: Arc<dyn TenantRepository>) -> Self {
-        Self { tenant_repo }
+        Self {
+            tenant_repo,
+            saga_client: Arc::new(NoopSagaClient),
+        }
+    }
+
+    pub fn with_saga_client(mut self, saga_client: Arc<dyn SagaClient>) -> Self {
+        self.saga_client = saga_client;
+        self
     }
 
     pub async fn execute(&self, input: CreateTenantInput) -> Result<Tenant, CreateTenantError> {
@@ -45,6 +55,19 @@ impl CreateTenantUseCase {
             .create(&tenant)
             .await
             .map_err(|e| CreateTenantError::Internal(e.to_string()))?;
+
+        // Start provisioning saga (failure is non-fatal)
+        if let Err(e) = self
+            .saga_client
+            .start_provisioning_saga(&tenant.id.to_string(), &tenant.name)
+            .await
+        {
+            tracing::warn!(
+                tenant_id = %tenant.id,
+                error = %e,
+                "failed to start provisioning saga, tenant created but saga not triggered"
+            );
+        }
 
         Ok(tenant)
     }

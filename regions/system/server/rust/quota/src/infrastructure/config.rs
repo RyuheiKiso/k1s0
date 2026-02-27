@@ -132,6 +132,14 @@ fn default_security_protocol() -> String {
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     pub jwks_url: String,
+    pub issuer: String,
+    pub audience: String,
+    #[serde(default = "default_jwks_cache_ttl_secs")]
+    pub jwks_cache_ttl_secs: u64,
+}
+
+fn default_jwks_cache_ttl_secs() -> u64 {
+    3600
 }
 
 /// QuotaConfig はクォータ管理固有の設定を表す。

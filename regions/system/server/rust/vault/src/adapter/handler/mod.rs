@@ -9,31 +9,100 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::Router;
 
+use crate::adapter::middleware::auth::auth_middleware;
+use crate::adapter::middleware::rbac::require_permission;
+
 /// REST API router.
 pub fn router(state: AppState) -> Router {
-    Router::new()
+    // 認証不要のエンドポイント
+    let public_routes = Router::new()
         .route("/healthz", get(health::healthz))
         .route("/readyz", get(health::readyz))
-        .route("/metrics", get(metrics_handler))
-        .route(
-            "/api/v1/secrets",
-            get(vault_handler::list_secrets).post(vault_handler::create_secret),
-        )
-        .route(
-            "/api/v1/secrets/:key",
-            get(vault_handler::get_secret)
-                .put(vault_handler::update_secret)
-                .delete(vault_handler::delete_secret),
-        )
-        .route(
-            "/api/v1/secrets/:key/metadata",
-            get(vault_handler::get_secret_metadata),
-        )
-        .route(
-            "/api/v1/secrets/:key/rotate",
-            post(vault_handler::rotate_secret),
-        )
-        .route("/api/v1/audit/logs", get(vault_handler::list_audit_logs))
+        .route("/metrics", get(metrics_handler));
+
+    // 認証が設定されている場合は RBAC 付きルーティング
+    let api_routes = if let Some(ref auth_state) = state.auth_state {
+        // GET/metadata/audit -> secrets/read
+        let read_routes = Router::new()
+            .route(
+                "/api/v1/secrets",
+                get(vault_handler::list_secrets),
+            )
+            .route(
+                "/api/v1/secrets/:key",
+                get(vault_handler::get_secret),
+            )
+            .route(
+                "/api/v1/secrets/:key/metadata",
+                get(vault_handler::get_secret_metadata),
+            )
+            .route("/api/v1/audit/logs", get(vault_handler::list_audit_logs))
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "secrets", "read",
+            )));
+
+        // POST/PUT/rotate -> secrets/write
+        let write_routes = Router::new()
+            .route(
+                "/api/v1/secrets",
+                post(vault_handler::create_secret),
+            )
+            .route(
+                "/api/v1/secrets/:key",
+                axum::routing::put(vault_handler::update_secret),
+            )
+            .route(
+                "/api/v1/secrets/:key/rotate",
+                post(vault_handler::rotate_secret),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "secrets", "write",
+            )));
+
+        // DELETE -> secrets/admin
+        let admin_routes = Router::new()
+            .route(
+                "/api/v1/secrets/:key",
+                axum::routing::delete(vault_handler::delete_secret),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "secrets", "admin",
+            )));
+
+        Router::new()
+            .merge(read_routes)
+            .merge(write_routes)
+            .merge(admin_routes)
+            .layer(axum::middleware::from_fn_with_state(
+                auth_state.clone(),
+                auth_middleware,
+            ))
+    } else {
+        // 認証なし（dev モード / テスト）
+        Router::new()
+            .route(
+                "/api/v1/secrets",
+                get(vault_handler::list_secrets).post(vault_handler::create_secret),
+            )
+            .route(
+                "/api/v1/secrets/:key",
+                get(vault_handler::get_secret)
+                    .put(vault_handler::update_secret)
+                    .delete(vault_handler::delete_secret),
+            )
+            .route(
+                "/api/v1/secrets/:key/metadata",
+                get(vault_handler::get_secret_metadata),
+            )
+            .route(
+                "/api/v1/secrets/:key/rotate",
+                post(vault_handler::rotate_secret),
+            )
+            .route("/api/v1/audit/logs", get(vault_handler::list_audit_logs))
+    };
+
+    public_routes
+        .merge(api_routes)
         .with_state(state)
 }
 

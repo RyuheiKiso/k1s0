@@ -127,7 +127,24 @@ async fn main() -> anyhow::Result<()> {
         get_policy_uc.clone(),
     ));
 
-    let state = adapter::handler::AppState {
+    // Token verifier (JWKS verifier if auth configured)
+    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for policy-server");
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &auth_cfg.jwks_url,
+            &auth_cfg.issuer,
+            &auth_cfg.audience,
+            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+        ));
+        Some(adapter::middleware::auth::PolicyAuthState {
+            verifier: jwks_verifier,
+        })
+    } else {
+        info!("no auth configured, policy-server running without authentication");
+        None
+    };
+
+    let mut state = adapter::handler::AppState {
         policy_repo,
         create_policy_uc,
         get_policy_uc,
@@ -136,10 +153,15 @@ async fn main() -> anyhow::Result<()> {
         evaluate_policy_uc,
         create_bundle_uc,
         list_bundles_uc,
-        metrics,
+        metrics: metrics.clone(),
+        auth_state: None,
     };
+    if let Some(auth_st) = auth_state {
+        state = state.with_auth(auth_st);
+    }
 
-    let app = adapter::handler::router(state);
+    let app = adapter::handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
     use proto::k1s0::system::policy::v1::policy_service_server::PolicyServiceServer;
@@ -149,8 +171,10 @@ async fn main() -> anyhow::Result<()> {
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
     info!("gRPC server starting on {}", grpc_addr);
 
+    let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(PolicyServiceServer::new(policy_tonic))
             .serve(grpc_addr)
             .await

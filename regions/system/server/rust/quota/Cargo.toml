@@ -27,12 +27,14 @@ async-trait = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
+k1s0-auth = { path = "../../../library/rust/auth" }
 tonic = "0.12"
 prost = "0.13"
 prost-types = "0.13"
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "migrate"] }
 rdkafka = { version = "0.36", features = ["cmake-build"] }
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
+croner = "2"
 
 [dev-dependencies]
 mockall = "0.13"

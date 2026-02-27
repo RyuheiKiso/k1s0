@@ -126,8 +126,25 @@ async fn main() -> anyhow::Result<()> {
     let get_usage_uc = Arc::new(usecase::GetUsageUseCase::new(rule_repo));
     let reset_uc = Arc::new(usecase::ResetRateLimitUseCase::new(state_store));
 
+    // Token verifier (JWKS verifier if auth configured)
+    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for ratelimit-server");
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &auth_cfg.jwks_url,
+            &auth_cfg.issuer,
+            &auth_cfg.audience,
+            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+        ));
+        Some(adapter::middleware::auth::RatelimitAuthState {
+            verifier: jwks_verifier,
+        })
+    } else {
+        info!("no auth configured, ratelimit-server running without authentication");
+        None
+    };
+
     // AppState (REST handler 用)
-    let state = AppState::new(
+    let mut state = AppState::new(
         check_uc.clone(),
         create_uc.clone(),
         get_uc.clone(),
@@ -138,6 +155,9 @@ async fn main() -> anyhow::Result<()> {
         reset_uc.clone(),
         db_pool,
     );
+    if let Some(auth_st) = auth_state {
+        state = state.with_auth(auth_st);
+    }
 
     // gRPC service
     let grpc_svc = Arc::new(RateLimitGrpcService::new(

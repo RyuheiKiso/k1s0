@@ -30,6 +30,7 @@ tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 rdkafka = { version = "0.36", features = ["cmake-build"] }
 k1s0-dlq = { path = "../../../library/rust/dlq" }
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["axum-layer"] }
+k1s0-auth = { path = "../../../library/rust/auth" }
 
 # Server common (error codes)
 k1s0-server-common = { path = "../../../library/rust/server-common", features = ["axum"] }

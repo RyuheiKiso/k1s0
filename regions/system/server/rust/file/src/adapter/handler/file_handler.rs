@@ -202,6 +202,42 @@ pub async fn complete_upload(
     }
 }
 
+/// GET /api/v1/files/:id/download-url - Generate download URL
+pub async fn download_url(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let input = GenerateDownloadUrlInput {
+        file_id: id,
+        expires_in_seconds: 3600,
+    };
+
+    match state.generate_download_url_uc.execute(&input).await {
+        Ok(output) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "file_id": output.file_id,
+                "download_url": output.download_url,
+                "expires_in_seconds": output.expires_in_seconds
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("not found") {
+                let err = ErrorResponse::new("SYS_FILE_NOT_FOUND", &msg);
+                (StatusCode::NOT_FOUND, Json(err)).into_response()
+            } else if msg.contains("not available") {
+                let err = ErrorResponse::new("SYS_FILE_NOT_AVAILABLE", &msg);
+                (StatusCode::BAD_REQUEST, Json(err)).into_response()
+            } else {
+                let err = ErrorResponse::new("SYS_FILE_DOWNLOAD_URL_FAILED", &msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+            }
+        }
+    }
+}
+
 /// PUT /api/v1/files/:id/tags
 pub async fn update_file_tags(
     State(state): State<AppState>,

@@ -212,7 +212,35 @@ async fn main() -> anyhow::Result<()> {
         "k1s0-quota-server",
     ));
 
-    let state = adapter::handler::AppState {
+    // Quota usage auto-reset cron
+    {
+        let daily_cron = cfg.quota.reset_schedule.daily.clone();
+        let monthly_cron = cfg.quota.reset_schedule.monthly.clone();
+        let cron_reset_uc = reset_usage_uc.clone();
+        let cron_list_uc = list_policies_uc.clone();
+        tokio::spawn(async move {
+            run_reset_cron(daily_cron, monthly_cron, cron_reset_uc, cron_list_uc).await;
+        });
+    }
+
+    // Token verifier (JWKS verifier if auth configured)
+    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for quota-server");
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &auth_cfg.jwks_url,
+            &auth_cfg.issuer,
+            &auth_cfg.audience,
+            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+        ));
+        Some(adapter::middleware::auth::QuotaAuthState {
+            verifier: jwks_verifier,
+        })
+    } else {
+        info!("no auth configured, quota-server running without authentication");
+        None
+    };
+
+    let mut state = adapter::handler::AppState {
         create_policy_uc,
         get_policy_uc,
         list_policies_uc,
@@ -221,10 +249,15 @@ async fn main() -> anyhow::Result<()> {
         get_usage_uc,
         increment_usage_uc,
         reset_usage_uc,
-        metrics,
+        metrics: metrics.clone(),
+        auth_state: None,
     };
+    if let Some(auth_st) = auth_state {
+        state = state.with_auth(auth_st);
+    }
 
-    let app = adapter::handler::router(state);
+    let app = adapter::handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
     use proto::k1s0::system::quota::v1::quota_service_server::QuotaServiceServer;
@@ -234,8 +267,10 @@ async fn main() -> anyhow::Result<()> {
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
     info!("gRPC server starting on {}", grpc_addr);
 
+    let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(QuotaServiceServer::new(quota_tonic))
             .serve(grpc_addr)
             .await
@@ -263,6 +298,133 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+// --- Cron-based quota usage reset ---
+
+async fn run_reset_cron(
+    daily_expr: String,
+    monthly_expr: String,
+    reset_uc: Arc<usecase::ResetQuotaUsageUseCase>,
+    list_uc: Arc<usecase::ListQuotaPoliciesUseCase>,
+) {
+    use std::str::FromStr;
+
+    let schedules: Vec<(&str, croner::Cron)> = [
+        ("daily", daily_expr.as_str()),
+        ("monthly", monthly_expr.as_str()),
+    ]
+    .into_iter()
+    .filter_map(|(label, expr)| match croner::Cron::from_str(expr) {
+        Ok(cron) => {
+            info!(schedule = label, expression = expr, "cron schedule registered");
+            Some((label, cron))
+        }
+        Err(e) => {
+            tracing::error!(
+                schedule = label,
+                expression = expr,
+                error = %e,
+                "failed to parse cron expression, skipping"
+            );
+            None
+        }
+    })
+    .collect();
+
+    if schedules.is_empty() {
+        tracing::warn!("no valid cron schedules, reset cron task exiting");
+        return;
+    }
+
+    loop {
+        let now = chrono::Utc::now();
+        let mut next_fire: Option<(chrono::DateTime<chrono::Utc>, &str)> = None;
+
+        for (label, cron) in &schedules {
+            if let Ok(next) = cron.find_next_occurrence(&now, false) {
+                if next_fire.is_none() || next < next_fire.unwrap().0 {
+                    next_fire = Some((next, label));
+                }
+            }
+        }
+
+        let (fire_at, label) = match next_fire {
+            Some(v) => v,
+            None => {
+                tracing::error!("no next cron occurrence found, reset cron task exiting");
+                return;
+            }
+        };
+
+        let wait = (fire_at - chrono::Utc::now())
+            .to_std()
+            .unwrap_or(std::time::Duration::from_secs(1));
+
+        info!(
+            schedule = label,
+            next_run = %fire_at,
+            wait_secs = wait.as_secs(),
+            "sleeping until next reset"
+        );
+
+        tokio::time::sleep(wait).await;
+
+        info!(schedule = label, "running quota usage reset");
+        reset_all_policies(&reset_uc, &list_uc, label).await;
+    }
+}
+
+async fn reset_all_policies(
+    reset_uc: &usecase::ResetQuotaUsageUseCase,
+    list_uc: &usecase::ListQuotaPoliciesUseCase,
+    schedule_label: &str,
+) {
+    let mut page = 1u32;
+    let page_size = 100u32;
+    let mut total_reset = 0u64;
+
+    loop {
+        let input = usecase::list_quota_policies::ListQuotaPoliciesInput { page, page_size };
+        match list_uc.execute(&input).await {
+            Ok(output) => {
+                for policy in &output.quotas {
+                    let reset_input = usecase::reset_quota_usage::ResetQuotaUsageInput {
+                        quota_id: policy.id.clone(),
+                        reason: format!("scheduled {} reset", schedule_label),
+                        reset_by: "system-cron".to_string(),
+                    };
+                    if let Err(e) = reset_uc.execute(&reset_input).await {
+                        tracing::warn!(
+                            quota_id = %policy.id,
+                            error = %e,
+                            "failed to reset quota usage"
+                        );
+                    } else {
+                        total_reset += 1;
+                    }
+                }
+                if !output.has_next {
+                    break;
+                }
+                page += 1;
+            }
+            Err(e) => {
+                tracing::error!(
+                    page = page,
+                    error = %e,
+                    "failed to list policies for reset, aborting this cycle"
+                );
+                break;
+            }
+        }
+    }
+
+    info!(
+        schedule = schedule_label,
+        total_reset = total_reset,
+        "quota usage reset cycle completed"
+    );
 }
 
 // --- InMemory Repositories ---
