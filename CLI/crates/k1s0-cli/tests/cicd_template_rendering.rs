@@ -3,7 +3,7 @@
 /// CLI/templates/cicd/ テンプレートファイルを使用し、
 /// テンプレートエンジンでレンダリングした結果が仕様書と一致することを検証する。
 ///
-/// 仕様書: docs/テンプレート仕様-CICD.md
+/// 仕様書: docs/templates/infrastructure/CICD.md
 /// ディレクトリ構成（フラット）:
 ///   CLI/templates/cicd/
 ///     ├── ci.yaml.tera

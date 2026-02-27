@@ -2,7 +2,7 @@
 ///
 /// 実際の CLI/templates/server/{go,rust}/ テンプレートファイルを使用し、
 /// テンプレートエンジンでレンダリングした結果が仕様書
-/// (docs/テンプレート仕様-サーバー.md) と一致することを検証する。
+/// (docs/templates/server/サーバー.md) と一致することを検証する。
 use std::fs;
 use std::path::Path;
 
