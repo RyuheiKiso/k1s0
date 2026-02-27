@@ -1,64 +1,15 @@
 use std::sync::Arc;
 
 use crate::domain::entity::audit_log::{AuditLog, CreateAuditLogRequest};
+use crate::proto::k1s0::system::auth::v1::{
+    AuditLog as ProtoAuditLog, RecordAuditLogRequest, RecordAuditLogResponse,
+    SearchAuditLogsRequest, SearchAuditLogsResponse,
+};
+use crate::proto::k1s0::system::common::v1::{PaginationResult, Timestamp};
 use crate::usecase::record_audit_log::{RecordAuditLogError, RecordAuditLogUseCase};
 use crate::usecase::search_audit_logs::{SearchAuditLogsQueryParams, SearchAuditLogsUseCase};
 
-use super::auth_grpc::{GrpcError, PbPagination, PbPaginationResult, PbTimestamp};
-
-// --- gRPC Request/Response Types ---
-
-#[derive(Debug, Clone)]
-pub struct RecordAuditLogGrpcRequest {
-    pub event_type: String,
-    pub user_id: String,
-    pub ip_address: String,
-    pub user_agent: String,
-    pub resource: String,
-    pub resource_id: String,
-    pub action: String,
-    pub result: String,
-    pub detail: Option<serde_json::Value>,
-    pub trace_id: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct RecordAuditLogGrpcResponse {
-    pub id: String,
-    pub created_at: Option<PbTimestamp>,
-}
-
-#[derive(Debug, Clone)]
-pub struct SearchAuditLogsGrpcRequest {
-    pub pagination: Option<PbPagination>,
-    pub user_id: String,
-    pub event_type: String,
-    pub from: Option<PbTimestamp>,
-    pub to: Option<PbTimestamp>,
-    pub result: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct SearchAuditLogsGrpcResponse {
-    pub logs: Vec<PbAuditLog>,
-    pub pagination: Option<PbPaginationResult>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PbAuditLog {
-    pub id: String,
-    pub event_type: String,
-    pub user_id: String,
-    pub ip_address: String,
-    pub user_agent: String,
-    pub resource: String,
-    pub resource_id: String,
-    pub action: String,
-    pub result: String,
-    pub detail: Option<serde_json::Value>,
-    pub trace_id: String,
-    pub created_at: Option<PbTimestamp>,
-}
+use super::auth_grpc::GrpcError;
 
 // --- AuditGrpcService ---
 
@@ -81,13 +32,15 @@ impl AuditGrpcService {
     /// 監査ログエントリを記録する。
     pub async fn record_audit_log(
         &self,
-        req: RecordAuditLogGrpcRequest,
-    ) -> Result<RecordAuditLogGrpcResponse, GrpcError> {
+        req: RecordAuditLogRequest,
+    ) -> Result<RecordAuditLogResponse, GrpcError> {
         if req.event_type.is_empty() {
             return Err(GrpcError::InvalidArgument(
                 "event_type is required".to_string(),
             ));
         }
+
+        let detail = req.detail.map(prost_struct_to_json);
 
         let create_req = CreateAuditLogRequest {
             event_type: req.event_type,
@@ -102,7 +55,7 @@ impl AuditGrpcService {
             },
             action: req.action,
             result: req.result,
-            detail: req.detail,
+            detail,
             trace_id: if req.trace_id.is_empty() {
                 None
             } else {
@@ -111,9 +64,9 @@ impl AuditGrpcService {
         };
 
         match self.record_audit_log_uc.execute(create_req).await {
-            Ok(response) => Ok(RecordAuditLogGrpcResponse {
+            Ok(response) => Ok(RecordAuditLogResponse {
                 id: response.id.to_string(),
-                created_at: Some(PbTimestamp {
+                created_at: Some(Timestamp {
                     seconds: response.created_at.timestamp(),
                     nanos: response.created_at.timestamp_subsec_nanos() as i32,
                 }),
@@ -126,8 +79,8 @@ impl AuditGrpcService {
     /// 監査ログを検索する。
     pub async fn search_audit_logs(
         &self,
-        req: SearchAuditLogsGrpcRequest,
-    ) -> Result<SearchAuditLogsGrpcResponse, GrpcError> {
+        req: SearchAuditLogsRequest,
+    ) -> Result<SearchAuditLogsResponse, GrpcError> {
         let page = req.pagination.as_ref().map(|p| p.page);
         let page_size = req.pagination.as_ref().map(|p| p.page_size);
 
@@ -167,13 +120,13 @@ impl AuditGrpcService {
 
         match self.search_audit_logs_uc.execute(&query).await {
             Ok(result) => {
-                let pb_logs: Vec<PbAuditLog> =
-                    result.logs.iter().map(domain_audit_log_to_pb).collect();
+                let proto_logs: Vec<ProtoAuditLog> =
+                    result.logs.iter().map(domain_audit_log_to_proto).collect();
 
-                Ok(SearchAuditLogsGrpcResponse {
-                    logs: pb_logs,
-                    pagination: Some(PbPaginationResult {
-                        total_count: result.pagination.total_count,
+                Ok(SearchAuditLogsResponse {
+                    logs: proto_logs,
+                    pagination: Some(PaginationResult {
+                        total_count: result.pagination.total_count as i32,
                         page: result.pagination.page,
                         page_size: result.pagination.page_size,
                         has_next: result.pagination.has_next,
@@ -185,8 +138,8 @@ impl AuditGrpcService {
     }
 }
 
-fn domain_audit_log_to_pb(log: &AuditLog) -> PbAuditLog {
-    PbAuditLog {
+fn domain_audit_log_to_proto(log: &AuditLog) -> ProtoAuditLog {
+    ProtoAuditLog {
         id: log.id.to_string(),
         event_type: log.event_type.clone(),
         user_id: log.user_id.clone(),
@@ -196,12 +149,38 @@ fn domain_audit_log_to_pb(log: &AuditLog) -> PbAuditLog {
         resource_id: log.resource_id.clone().unwrap_or_default(),
         action: log.action.clone(),
         result: log.result.clone(),
-        detail: log.detail.clone(),
+        detail: None, // serde_json::Value -> prost_types::Struct conversion omitted
         trace_id: log.trace_id.clone().unwrap_or_default(),
-        created_at: Some(PbTimestamp {
+        created_at: Some(Timestamp {
             seconds: log.created_at.timestamp(),
             nanos: log.created_at.timestamp_subsec_nanos() as i32,
         }),
+    }
+}
+
+/// prost_types::Struct を serde_json::Value に変換するヘルパー。
+fn prost_struct_to_json(s: prost_types::Struct) -> serde_json::Value {
+    let obj: serde_json::Map<String, serde_json::Value> = s
+        .fields
+        .into_iter()
+        .map(|(k, v)| (k, prost_value_to_json(v)))
+        .collect();
+    serde_json::Value::Object(obj)
+}
+
+fn prost_value_to_json(v: prost_types::Value) -> serde_json::Value {
+    match v.kind {
+        None => serde_json::Value::Null,
+        Some(prost_types::value::Kind::NullValue(_)) => serde_json::Value::Null,
+        Some(prost_types::value::Kind::BoolValue(b)) => serde_json::Value::Bool(b),
+        Some(prost_types::value::Kind::NumberValue(n)) => serde_json::Value::Number(
+            serde_json::Number::from_f64(n).unwrap_or(serde_json::Number::from(0)),
+        ),
+        Some(prost_types::value::Kind::StringValue(s)) => serde_json::Value::String(s),
+        Some(prost_types::value::Kind::StructValue(s)) => prost_struct_to_json(s),
+        Some(prost_types::value::Kind::ListValue(l)) => {
+            serde_json::Value::Array(l.values.into_iter().map(prost_value_to_json).collect())
+        }
     }
 }
 
@@ -209,6 +188,7 @@ fn domain_audit_log_to_pb(log: &AuditLog) -> PbAuditLog {
 mod tests {
     use super::*;
     use crate::domain::repository::audit_log_repository::MockAuditLogRepository;
+    use crate::proto::k1s0::system::common::v1::Pagination as ProtoPagination;
 
     fn make_audit_service(mock_repo: MockAuditLogRepository) -> AuditGrpcService {
         let repo = Arc::new(mock_repo);
@@ -224,7 +204,7 @@ mod tests {
 
         let svc = make_audit_service(mock_repo);
 
-        let req = RecordAuditLogGrpcRequest {
+        let req = RecordAuditLogRequest {
             event_type: "LOGIN_SUCCESS".to_string(),
             user_id: "user-uuid-1234".to_string(),
             ip_address: "192.168.1.100".to_string(),
@@ -233,7 +213,7 @@ mod tests {
             resource_id: String::new(),
             action: "POST".to_string(),
             result: "SUCCESS".to_string(),
-            detail: Some(serde_json::json!({"client_id": "react-spa"})),
+            detail: None,
             trace_id: "trace-001".to_string(),
         };
 
@@ -247,7 +227,7 @@ mod tests {
         let mock_repo = MockAuditLogRepository::new();
         let svc = make_audit_service(mock_repo);
 
-        let req = RecordAuditLogGrpcRequest {
+        let req = RecordAuditLogRequest {
             event_type: String::new(),
             user_id: "user-uuid-1234".to_string(),
             ip_address: String::new(),
@@ -283,8 +263,8 @@ mod tests {
 
         let svc = make_audit_service(mock_repo);
 
-        let req = SearchAuditLogsGrpcRequest {
-            pagination: Some(PbPagination {
+        let req = SearchAuditLogsRequest {
+            pagination: Some(ProtoPagination {
                 page: 1,
                 page_size: 50,
             }),
@@ -311,8 +291,8 @@ mod tests {
 
         let svc = make_audit_service(mock_repo);
 
-        let req = SearchAuditLogsGrpcRequest {
-            pagination: Some(PbPagination {
+        let req = SearchAuditLogsRequest {
+            pagination: Some(ProtoPagination {
                 page: 1,
                 page_size: 50,
             }),

@@ -13,6 +13,7 @@ mod usecase;
 
 use adapter::grpc::{AuditGrpcService, AuthGrpcService};
 use adapter::handler::{self, AppState};
+use adapter::repository::api_key_postgres::ApiKeyPostgresRepository;
 use adapter::repository::audit_log_postgres::AuditLogPostgresRepository;
 use adapter::repository::cached_user_repository::CachedUserRepository;
 use adapter::repository::user_postgres::UserPostgresRepository;
@@ -276,6 +277,17 @@ async fn main() -> anyhow::Result<()> {
             Arc::new(InMemoryAuditLogRepository::new())
         };
 
+    // API key repository (PostgreSQL or in-memory)
+    let api_key_repo: Arc<dyn domain::repository::ApiKeyRepository> =
+        if let Some(ref pool) = db_pool {
+            Arc::new(ApiKeyPostgresRepository::with_metrics(
+                pool.clone(),
+                metrics.clone(),
+            ))
+        } else {
+            Arc::new(InMemoryApiKeyRepository::new())
+        };
+
     // Kafka producer (conditional on audit.kafka_enabled)
     let kafka_publisher: Option<Arc<dyn infrastructure::kafka_producer::AuditEventPublisher>> =
         if cfg.audit.kafka_enabled {
@@ -320,6 +332,7 @@ async fn main() -> anyhow::Result<()> {
         token_verifier,
         user_repo,
         audit_repo,
+        api_key_repo,
         cfg.auth.jwt.issuer,
         cfg.auth.jwt.audience,
         db_pool.clone(),
@@ -425,6 +438,75 @@ impl domain::repository::UserRepository for StubUserRepository {
 
     async fn get_roles(&self, user_id: &str) -> anyhow::Result<domain::entity::user::UserRoles> {
         anyhow::bail!("stub user repository: user not found: {}", user_id)
+    }
+}
+
+/// InMemoryApiKeyRepository は開発用のインメモリ API キーリポジトリ。
+struct InMemoryApiKeyRepository {
+    keys: tokio::sync::RwLock<Vec<domain::entity::api_key::ApiKey>>,
+}
+
+impl InMemoryApiKeyRepository {
+    fn new() -> Self {
+        Self {
+            keys: tokio::sync::RwLock::new(Vec::new()),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl domain::repository::ApiKeyRepository for InMemoryApiKeyRepository {
+    async fn create(&self, api_key: &domain::entity::api_key::ApiKey) -> anyhow::Result<()> {
+        self.keys.write().await.push(api_key.clone());
+        Ok(())
+    }
+
+    async fn find_by_id(
+        &self,
+        id: uuid::Uuid,
+    ) -> anyhow::Result<Option<domain::entity::api_key::ApiKey>> {
+        let keys = self.keys.read().await;
+        Ok(keys.iter().find(|k| k.id == id).cloned())
+    }
+
+    async fn find_by_prefix(
+        &self,
+        prefix: &str,
+    ) -> anyhow::Result<Option<domain::entity::api_key::ApiKey>> {
+        let keys = self.keys.read().await;
+        Ok(keys.iter().find(|k| k.prefix == prefix).cloned())
+    }
+
+    async fn list_by_tenant(
+        &self,
+        tenant_id: &str,
+    ) -> anyhow::Result<Vec<domain::entity::api_key::ApiKey>> {
+        let keys = self.keys.read().await;
+        Ok(keys
+            .iter()
+            .filter(|k| k.tenant_id == tenant_id)
+            .cloned()
+            .collect())
+    }
+
+    async fn revoke(&self, id: uuid::Uuid) -> anyhow::Result<()> {
+        let mut keys = self.keys.write().await;
+        if let Some(key) = keys.iter_mut().find(|k| k.id == id) {
+            key.revoked = true;
+            Ok(())
+        } else {
+            anyhow::bail!("api key not found: {}", id)
+        }
+    }
+
+    async fn delete(&self, id: uuid::Uuid) -> anyhow::Result<()> {
+        let mut keys = self.keys.write().await;
+        let len_before = keys.len();
+        keys.retain(|k| k.id != id);
+        if keys.len() == len_before {
+            anyhow::bail!("api key not found: {}", id)
+        }
+        Ok(())
     }
 }
 

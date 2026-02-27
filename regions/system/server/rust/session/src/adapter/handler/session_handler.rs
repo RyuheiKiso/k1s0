@@ -39,6 +39,7 @@ fn error_response(err: SessionError) -> (StatusCode, Json<serde_json::Value>) {
         SessionError::Expired(_) => (StatusCode::GONE, err.to_string()),
         SessionError::Revoked(_) => (StatusCode::CONFLICT, err.to_string()),
         SessionError::InvalidInput(_) => (StatusCode::BAD_REQUEST, err.to_string()),
+        SessionError::TooManySessions(_) => (StatusCode::TOO_MANY_REQUESTS, err.to_string()),
         SessionError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
     };
     (status, Json(serde_json::json!({"error": message})))

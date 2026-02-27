@@ -3,7 +3,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::domain::entity::scheduler_execution::SchedulerExecution;
-use crate::domain::repository::SchedulerJobRepository;
+use crate::domain::repository::{SchedulerExecutionRepository, SchedulerJobRepository};
 use crate::infrastructure::kafka_producer::SchedulerEventPublisher;
 
 #[derive(Debug, thiserror::Error)]
@@ -20,24 +20,31 @@ pub enum TriggerJobError {
 
 pub struct TriggerJobUseCase {
     repo: Arc<dyn SchedulerJobRepository>,
+    execution_repo: Arc<dyn SchedulerExecutionRepository>,
     event_publisher: Arc<dyn SchedulerEventPublisher>,
 }
 
 impl TriggerJobUseCase {
-    pub fn new(repo: Arc<dyn SchedulerJobRepository>) -> Self {
+    pub fn new(
+        repo: Arc<dyn SchedulerJobRepository>,
+        execution_repo: Arc<dyn SchedulerExecutionRepository>,
+    ) -> Self {
         use crate::infrastructure::kafka_producer::NoopSchedulerEventPublisher;
         Self {
             repo,
+            execution_repo,
             event_publisher: Arc::new(NoopSchedulerEventPublisher),
         }
     }
 
     pub fn with_publisher(
         repo: Arc<dyn SchedulerJobRepository>,
+        execution_repo: Arc<dyn SchedulerExecutionRepository>,
         event_publisher: Arc<dyn SchedulerEventPublisher>,
     ) -> Self {
         Self {
             repo,
+            execution_repo,
             event_publisher,
         }
     }
@@ -56,6 +63,12 @@ impl TriggerJobUseCase {
 
         let execution = SchedulerExecution::new(job.id);
 
+        // 実行記録を保存
+        self.execution_repo
+            .create(&execution)
+            .await
+            .map_err(|e| TriggerJobError::Internal(e.to_string()))?;
+
         job.last_run_at = Some(chrono::Utc::now());
         job.updated_at = chrono::Utc::now();
 
@@ -69,6 +82,12 @@ impl TriggerJobUseCase {
             .publish_job_executed(&job, &execution)
             .await;
 
+        // 実行完了のステータスを更新
+        let _ = self
+            .execution_repo
+            .update_status(&execution.id, "completed".to_string(), None)
+            .await;
+
         Ok(execution)
     }
 }
@@ -77,11 +96,13 @@ impl TriggerJobUseCase {
 mod tests {
     use super::*;
     use crate::domain::entity::scheduler_job::SchedulerJob;
+    use crate::domain::repository::scheduler_execution_repository::MockSchedulerExecutionRepository;
     use crate::domain::repository::scheduler_job_repository::MockSchedulerJobRepository;
 
     #[tokio::test]
     async fn success() {
-        let mut mock = MockSchedulerJobRepository::new();
+        let mut mock_job = MockSchedulerJobRepository::new();
+        let mut mock_exec = MockSchedulerExecutionRepository::new();
         let job = SchedulerJob::new(
             "trigger-test".to_string(),
             "* * * * *".to_string(),
@@ -90,12 +111,18 @@ mod tests {
         let job_id = job.id;
         let return_job = job.clone();
 
-        mock.expect_find_by_id()
+        mock_job
+            .expect_find_by_id()
             .withf(move |id| *id == job_id)
             .returning(move |_| Ok(Some(return_job.clone())));
-        mock.expect_update().returning(|_| Ok(()));
+        mock_job.expect_update().returning(|_| Ok(()));
 
-        let uc = TriggerJobUseCase::new(Arc::new(mock));
+        mock_exec.expect_create().returning(|_| Ok(()));
+        mock_exec
+            .expect_update_status()
+            .returning(|_, _, _| Ok(()));
+
+        let uc = TriggerJobUseCase::new(Arc::new(mock_job), Arc::new(mock_exec));
         let result = uc.execute(&job_id).await;
         assert!(result.is_ok());
 
@@ -106,7 +133,8 @@ mod tests {
 
     #[tokio::test]
     async fn not_active() {
-        let mut mock = MockSchedulerJobRepository::new();
+        let mut mock_job = MockSchedulerJobRepository::new();
+        let mock_exec = MockSchedulerExecutionRepository::new();
         let mut job = SchedulerJob::new(
             "paused-job".to_string(),
             "* * * * *".to_string(),
@@ -116,11 +144,12 @@ mod tests {
         let job_id = job.id;
         let return_job = job.clone();
 
-        mock.expect_find_by_id()
+        mock_job
+            .expect_find_by_id()
             .withf(move |id| *id == job_id)
             .returning(move |_| Ok(Some(return_job.clone())));
 
-        let uc = TriggerJobUseCase::new(Arc::new(mock));
+        let uc = TriggerJobUseCase::new(Arc::new(mock_job), Arc::new(mock_exec));
         let result = uc.execute(&job_id).await;
         assert!(result.is_err());
 

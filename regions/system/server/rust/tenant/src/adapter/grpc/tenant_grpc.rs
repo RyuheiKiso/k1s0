@@ -318,13 +318,16 @@ fn domain_tenant_to_pb(t: &Tenant) -> PbTenant {
         display_name: t.display_name.clone(),
         status: t.status.as_str().to_string(),
         plan: t.plan.clone(),
-        realm_name: String::new(),
+        realm_name: t.keycloak_realm.clone().unwrap_or_default(),
         owner_id: String::new(),
         created_at: Some(PbTimestamp {
             seconds: t.created_at.timestamp(),
             nanos: t.created_at.timestamp_subsec_nanos() as i32,
         }),
-        updated_at: None,
+        updated_at: Some(PbTimestamp {
+            seconds: t.updated_at.timestamp(),
+            nanos: t.updated_at.timestamp_subsec_nanos() as i32,
+        }),
     }
 }
 
@@ -377,7 +380,11 @@ mod tests {
                 display_name: "ACME Corporation".to_string(),
                 status: TenantStatus::Active,
                 plan: "pro".to_string(),
+                settings: serde_json::json!({}),
+                keycloak_realm: None,
+                db_schema: None,
                 created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             }))
         });
         tenant_mock.expect_list().returning(|_, _| {

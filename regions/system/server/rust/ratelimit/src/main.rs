@@ -123,7 +123,7 @@ async fn main() -> anyhow::Result<()> {
     let list_uc = Arc::new(usecase::ListRulesUseCase::new(rule_repo.clone()));
     let update_uc = Arc::new(usecase::UpdateRuleUseCase::new(rule_repo.clone()));
     let delete_uc = Arc::new(usecase::DeleteRuleUseCase::new(rule_repo.clone()));
-    let get_usage_uc = Arc::new(usecase::GetUsageUseCase::new(rule_repo));
+    let get_usage_uc = Arc::new(usecase::GetUsageUseCase::with_state_store(rule_repo, state_store.clone()));
     let reset_uc = Arc::new(usecase::ResetRateLimitUseCase::new(state_store));
 
     // Token verifier (JWKS verifier if auth configured)
@@ -340,5 +340,9 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
     async fn reset(&self, _key: &str) -> anyhow::Result<()> {
         // インメモリ実装ではリセットは何もしない
         Ok(())
+    }
+
+    async fn get_usage(&self, _key: &str, _limit: i64, _window_secs: i64) -> anyhow::Result<Option<domain::repository::UsageSnapshot>> {
+        Ok(None)
     }
 }

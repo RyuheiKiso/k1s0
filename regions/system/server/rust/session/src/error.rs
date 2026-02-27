@@ -10,6 +10,8 @@ pub enum SessionError {
     Revoked(String),
     #[error("invalid input: {0}")]
     InvalidInput(String),
+    #[error("too many sessions for user: {0}")]
+    TooManySessions(String),
     #[error("internal error: {0}")]
     Internal(String),
 }

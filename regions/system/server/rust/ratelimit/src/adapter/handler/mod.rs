@@ -101,6 +101,12 @@ pub fn router(state: AppState) -> Router {
         .route("/readyz", get(ratelimit_handler::readyz))
         .route("/metrics", get(ratelimit_handler::metrics));
 
+    // Public API routes (no auth required)
+    let public_api_routes = Router::new().route(
+        "/api/v1/ratelimit/check",
+        post(ratelimit_handler::check_rate_limit),
+    );
+
     let api_routes = if let Some(ref auth_state) = state.auth_state {
         // GET rules/usage -> ratelimit/read
         let read_routes = Router::new()
@@ -120,12 +126,8 @@ pub fn router(state: AppState) -> Router {
                 "ratelimit", "read",
             )));
 
-        // POST check/rules -> ratelimit/write
+        // POST rules/PUT rules -> ratelimit/write
         let write_routes = Router::new()
-            .route(
-                "/api/v1/ratelimit/check",
-                post(ratelimit_handler::check_rate_limit),
-            )
             .route(
                 "/api/v1/ratelimit/rules",
                 post(ratelimit_handler::create_rule),
@@ -152,14 +154,17 @@ pub fn router(state: AppState) -> Router {
                 "ratelimit", "admin",
             )));
 
-        Router::new()
-            .merge(read_routes)
-            .merge(write_routes)
-            .merge(admin_routes)
-            .layer(axum::middleware::from_fn_with_state(
-                auth_state.clone(),
-                auth_middleware,
-            ))
+        public_api_routes
+            .merge(
+                Router::new()
+                    .merge(read_routes)
+                    .merge(write_routes)
+                    .merge(admin_routes)
+                    .layer(axum::middleware::from_fn_with_state(
+                        auth_state.clone(),
+                        auth_middleware,
+                    )),
+            )
     } else {
         Router::new()
             .route(

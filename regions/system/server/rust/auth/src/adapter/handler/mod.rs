@@ -1,3 +1,4 @@
+pub mod api_key_handler;
 pub mod audit_handler;
 pub mod auth_handler;
 pub mod navigation_handler;
@@ -6,7 +7,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::middleware;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post};
 use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -16,8 +17,9 @@ use crate::adapter::middleware::rbac::make_rbac_middleware;
 use crate::domain::repository::{AuditLogRepository, UserRepository};
 use crate::infrastructure::TokenVerifier;
 use crate::usecase::{
-    CheckPermissionUseCase, GetUserRolesUseCase, GetUserUseCase, ListUsersUseCase,
-    RecordAuditLogUseCase, SearchAuditLogsUseCase, ValidateTokenUseCase,
+    CheckPermissionUseCase, CreateApiKeyUseCase, GetApiKeyUseCase, GetUserRolesUseCase,
+    GetUserUseCase, ListApiKeysUseCase, ListUsersUseCase, RecordAuditLogUseCase,
+    RevokeApiKeyUseCase, SearchAuditLogsUseCase, ValidateTokenUseCase,
 };
 
 /// AppState はアプリケーション全体の共有状態を表す。
@@ -30,6 +32,10 @@ pub struct AppState {
     pub record_audit_log_uc: Arc<RecordAuditLogUseCase>,
     pub search_audit_logs_uc: Arc<SearchAuditLogsUseCase>,
     pub check_permission_uc: Arc<CheckPermissionUseCase>,
+    pub create_api_key_uc: Arc<CreateApiKeyUseCase>,
+    pub get_api_key_uc: Arc<GetApiKeyUseCase>,
+    pub list_api_keys_uc: Arc<ListApiKeysUseCase>,
+    pub revoke_api_key_uc: Arc<RevokeApiKeyUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub db_pool: Option<sqlx::PgPool>,
     pub keycloak_url: Option<String>,
@@ -41,6 +47,7 @@ impl AppState {
         token_verifier: Arc<dyn TokenVerifier>,
         user_repo: Arc<dyn UserRepository>,
         audit_repo: Arc<dyn AuditLogRepository>,
+        api_key_repo: Arc<dyn crate::domain::repository::ApiKeyRepository>,
         expected_issuer: String,
         expected_audience: String,
         db_pool: Option<sqlx::PgPool>,
@@ -58,6 +65,10 @@ impl AppState {
             record_audit_log_uc: Arc::new(RecordAuditLogUseCase::new(audit_repo.clone())),
             search_audit_logs_uc: Arc::new(SearchAuditLogsUseCase::new(audit_repo)),
             check_permission_uc: Arc::new(CheckPermissionUseCase::new()),
+            create_api_key_uc: Arc::new(CreateApiKeyUseCase::new(api_key_repo.clone())),
+            get_api_key_uc: Arc::new(GetApiKeyUseCase::new(api_key_repo.clone())),
+            list_api_keys_uc: Arc::new(ListApiKeysUseCase::new(api_key_repo.clone())),
+            revoke_api_key_uc: Arc::new(RevokeApiKeyUseCase::new(api_key_repo)),
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server")),
             db_pool,
             keycloak_url,
@@ -143,12 +154,34 @@ pub fn router(state: AppState) -> Router {
             make_rbac_middleware("audit_logs", "write"),
         ));
 
+    // API key endpoints: require "api_keys" permission
+    let api_key_write_routes = Router::new()
+        .route("/api/v1/api-keys", post(api_key_handler::create_api_key))
+        .route(
+            "/api/v1/api-keys/:id/revoke",
+            delete(api_key_handler::revoke_api_key),
+        )
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            make_rbac_middleware("api_keys", "write"),
+        ));
+
+    let api_key_read_routes = Router::new()
+        .route("/api/v1/api-keys", get(api_key_handler::list_api_keys))
+        .route("/api/v1/api-keys/:id", get(api_key_handler::get_api_key))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            make_rbac_middleware("api_keys", "read"),
+        ));
+
     // Protected routes share auth_middleware for Bearer token validation
     let protected = Router::new()
         .merge(user_routes)
         .merge(permission_routes)
         .merge(audit_read_routes)
         .merge(audit_write_routes)
+        .merge(api_key_read_routes)
+        .merge(api_key_write_routes)
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::api_registration::SchemaDiff;
 use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
+use crate::domain::service::api_registry_service::ApiRegistryDomainService;
 
 #[derive(Debug, Clone)]
 pub struct GetDiffInput {
@@ -34,6 +35,7 @@ pub enum GetDiffError {
 pub struct GetDiffUseCase {
     schema_repo: Arc<dyn ApiSchemaRepository>,
     version_repo: Arc<dyn ApiSchemaVersionRepository>,
+    domain_service: ApiRegistryDomainService,
 }
 
 impl GetDiffUseCase {
@@ -44,6 +46,7 @@ impl GetDiffUseCase {
         Self {
             schema_repo,
             version_repo,
+            domain_service: ApiRegistryDomainService::new(),
         }
     }
 
@@ -66,7 +69,7 @@ impl GetDiffUseCase {
             ));
         }
 
-        let _from = self
+        let from_ver = self
             .version_repo
             .find_by_name_and_version(&input.name, from_version)
             .await
@@ -76,7 +79,7 @@ impl GetDiffUseCase {
                 version: from_version,
             })?;
 
-        let _to = self
+        let to_ver = self
             .version_repo
             .find_by_name_and_version(&input.name, to_version)
             .await
@@ -86,18 +89,23 @@ impl GetDiffUseCase {
                 version: to_version,
             })?;
 
-        // In a full implementation, this would compute a structured diff between _from.content and _to.content.
-        let diff = SchemaDiff {
-            added: Vec::new(),
-            modified: Vec::new(),
-            removed: Vec::new(),
-        };
+        let diff = self.domain_service.compute_diff(
+            &from_ver.schema_type,
+            &from_ver.content,
+            &to_ver.content,
+        );
+
+        let compat = self.domain_service.check_compatibility(
+            &from_ver.schema_type,
+            &from_ver.content,
+            &to_ver.content,
+        );
 
         Ok(GetDiffOutput {
             name: input.name.clone(),
             from_version,
             to_version,
-            breaking_changes: false,
+            breaking_changes: !compat.compatible,
             diff,
         })
     }
@@ -149,6 +157,49 @@ mod tests {
         assert_eq!(output.name, "test-api");
         assert_eq!(output.from_version, 2);
         assert_eq!(output.to_version, 3);
+    }
+
+    #[tokio::test]
+    async fn diff_with_breaking_changes() {
+        let mut schema_mock = MockApiSchemaRepository::new();
+        schema_mock.expect_find_by_name().returning(|_| {
+            let mut schema = ApiSchema::new(
+                "test-api".to_string(),
+                "Test API".to_string(),
+                SchemaType::OpenApi,
+            );
+            schema.latest_version = 3;
+            Ok(Some(schema))
+        });
+
+        let mut version_mock = MockApiSchemaVersionRepository::new();
+        version_mock
+            .expect_find_by_name_and_version()
+            .returning(|name, ver| {
+                let content = if ver == 2 {
+                    "openapi: 3.0.3\npaths:\n  /api/v1/users:\n    get:\n      summary: Users\n  /api/v1/orders:\n    get:\n      summary: Orders\n".to_string()
+                } else {
+                    "openapi: 3.0.3\npaths:\n  /api/v1/users:\n    get:\n      summary: Users updated\n".to_string()
+                };
+                Ok(Some(ApiSchemaVersion::new(
+                    name.to_string(),
+                    ver,
+                    SchemaType::OpenApi,
+                    content,
+                    "user-001".to_string(),
+                )))
+            });
+
+        let uc = GetDiffUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
+        let input = GetDiffInput {
+            name: "test-api".to_string(),
+            from_version: Some(2),
+            to_version: Some(3),
+        };
+        let result = uc.execute(&input).await;
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.breaking_changes);
     }
 
     #[tokio::test]

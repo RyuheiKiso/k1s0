@@ -8,6 +8,8 @@ use crate::domain::entity::session::Session;
 use crate::domain::repository::SessionRepository;
 use crate::error::SessionError;
 
+const MAX_SESSIONS_PER_USER: usize = 10;
+
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct CreateSessionInput {
     pub user_id: String,
@@ -44,6 +46,12 @@ impl CreateSessionUseCase {
             )));
         }
 
+        let existing = self.repo.find_by_user_id(&input.user_id).await?;
+        let valid_count = existing.iter().filter(|s| s.is_valid()).count();
+        if valid_count >= MAX_SESSIONS_PER_USER {
+            return Err(SessionError::TooManySessions(input.user_id.clone()));
+        }
+
         let now = Utc::now();
         let session = Session {
             id: Uuid::new_v4().to_string(),
@@ -72,6 +80,7 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut mock = MockSessionRepository::new();
+        mock.expect_find_by_user_id().returning(|_| Ok(vec![]));
         mock.expect_save().returning(|_| Ok(()));
 
         let uc = CreateSessionUseCase::new(Arc::new(mock), 3600, 86400);
@@ -91,6 +100,7 @@ mod tests {
     #[tokio::test]
     async fn default_ttl() {
         let mut mock = MockSessionRepository::new();
+        mock.expect_find_by_user_id().returning(|_| Ok(vec![]));
         mock.expect_save().returning(|_| Ok(()));
 
         let uc = CreateSessionUseCase::new(Arc::new(mock), 3600, 86400);
@@ -119,6 +129,7 @@ mod tests {
     #[tokio::test]
     async fn repo_error() {
         let mut mock = MockSessionRepository::new();
+        mock.expect_find_by_user_id().returning(|_| Ok(vec![]));
         mock.expect_save()
             .returning(|_| Err(SessionError::Internal("db error".to_string())));
 
@@ -130,5 +141,33 @@ mod tests {
         };
         let result = uc.execute(&input).await;
         assert!(matches!(result, Err(SessionError::Internal(_))));
+    }
+
+    #[tokio::test]
+    async fn too_many_sessions() {
+        let mut mock = MockSessionRepository::new();
+        mock.expect_find_by_user_id().returning(|_| {
+            let sessions: Vec<Session> = (0..10)
+                .map(|i| Session {
+                    id: format!("sess-{}", i),
+                    user_id: "user-busy".to_string(),
+                    token: format!("tok-{}", i),
+                    expires_at: Utc::now() + Duration::hours(1),
+                    created_at: Utc::now(),
+                    revoked: false,
+                    metadata: HashMap::new(),
+                })
+                .collect();
+            Ok(sessions)
+        });
+
+        let uc = CreateSessionUseCase::new(Arc::new(mock), 3600, 86400);
+        let input = CreateSessionInput {
+            user_id: "user-busy".to_string(),
+            ttl_seconds: Some(3600),
+            metadata: None,
+        };
+        let result = uc.execute(&input).await;
+        assert!(matches!(result, Err(SessionError::TooManySessions(_))));
     }
 }

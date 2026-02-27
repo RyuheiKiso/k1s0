@@ -314,10 +314,12 @@ mod tests {
         user_repo: MockUserRepository,
         audit_repo: MockAuditLogRepository,
     ) -> AppState {
+        use crate::domain::repository::api_key_repository::MockApiKeyRepository;
         AppState::new(
             Arc::new(token_verifier),
             Arc::new(user_repo),
             Arc::new(audit_repo),
+            Arc::new(MockApiKeyRepository::new()),
             "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
             "k1s0-api".to_string(),
             None,

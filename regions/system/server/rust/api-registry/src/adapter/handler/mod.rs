@@ -45,17 +45,17 @@ pub fn router(state: AppState) -> Router {
         // GET -> schemas/read
         let read_routes = Router::new()
             .route("/api/v1/schemas", get(schema_handler::list_schemas))
-            .route("/api/v1/schemas/{name}", get(schema_handler::get_schema))
+            .route("/api/v1/schemas/:name", get(schema_handler::get_schema))
             .route(
-                "/api/v1/schemas/{name}/versions",
+                "/api/v1/schemas/:name/versions",
                 get(schema_handler::list_versions),
             )
             .route(
-                "/api/v1/schemas/{name}/versions/{version}",
+                "/api/v1/schemas/:name/versions/:version",
                 get(schema_handler::get_schema_version),
             )
             .route(
-                "/api/v1/schemas/{name}/diff",
+                "/api/v1/schemas/:name/diff",
                 get(schema_handler::get_diff),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -66,11 +66,11 @@ pub fn router(state: AppState) -> Router {
         let write_routes = Router::new()
             .route("/api/v1/schemas", post(schema_handler::register_schema))
             .route(
-                "/api/v1/schemas/{name}/versions",
+                "/api/v1/schemas/:name/versions",
                 post(schema_handler::register_version),
             )
             .route(
-                "/api/v1/schemas/{name}/compatibility",
+                "/api/v1/schemas/:name/compatibility",
                 post(schema_handler::check_compatibility),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -80,7 +80,7 @@ pub fn router(state: AppState) -> Router {
         // DELETE -> schemas/admin
         let admin_routes = Router::new()
             .route(
-                "/api/v1/schemas/{name}/versions/{version}",
+                "/api/v1/schemas/:name/versions/:version",
                 delete(schema_handler::delete_version),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -104,29 +104,29 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/schemas",
                 post(schema_handler::register_schema),
             )
-            .route("/api/v1/schemas/{name}", get(schema_handler::get_schema))
+            .route("/api/v1/schemas/:name", get(schema_handler::get_schema))
             .route(
-                "/api/v1/schemas/{name}/versions",
+                "/api/v1/schemas/:name/versions",
                 get(schema_handler::list_versions),
             )
             .route(
-                "/api/v1/schemas/{name}/versions",
+                "/api/v1/schemas/:name/versions",
                 post(schema_handler::register_version),
             )
             .route(
-                "/api/v1/schemas/{name}/versions/{version}",
+                "/api/v1/schemas/:name/versions/:version",
                 get(schema_handler::get_schema_version),
             )
             .route(
-                "/api/v1/schemas/{name}/versions/{version}",
+                "/api/v1/schemas/:name/versions/:version",
                 delete(schema_handler::delete_version),
             )
             .route(
-                "/api/v1/schemas/{name}/compatibility",
+                "/api/v1/schemas/:name/compatibility",
                 post(schema_handler::check_compatibility),
             )
             .route(
-                "/api/v1/schemas/{name}/diff",
+                "/api/v1/schemas/:name/diff",
                 get(schema_handler::get_diff),
             )
     };

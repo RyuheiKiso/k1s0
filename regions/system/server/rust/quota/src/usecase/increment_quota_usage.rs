@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::domain::entity::quota::IncrementResult;
-use crate::domain::repository::{QuotaPolicyRepository, QuotaUsageRepository};
+use crate::domain::repository::{CheckAndIncrementResult, QuotaPolicyRepository, QuotaUsageRepository};
 use crate::infrastructure::kafka_producer::{
     QuotaEventPublisher, QuotaExceededEvent, QuotaThresholdReachedEvent,
 };
@@ -65,6 +65,7 @@ impl IncrementQuotaUsageUseCase {
         &self,
         input: &IncrementQuotaUsageInput,
     ) -> Result<IncrementResult, IncrementQuotaUsageError> {
+        // 1. ポリシーを取得してリミットを確認
         let policy = self
             .policy_repo
             .find_by_id(&input.quota_id)
@@ -72,51 +73,15 @@ impl IncrementQuotaUsageUseCase {
             .map_err(|e| IncrementQuotaUsageError::Internal(e.to_string()))?
             .ok_or_else(|| IncrementQuotaUsageError::NotFound(input.quota_id.clone()))?;
 
-        let new_used = self
+        // 2. アトミックに check-and-increment を実行
+        let CheckAndIncrementResult { used, allowed } = self
             .usage_repo
-            .increment(&input.quota_id, input.amount)
+            .check_and_increment(&input.quota_id, input.amount, policy.limit)
             .await
             .map_err(|e| IncrementQuotaUsageError::Internal(e.to_string()))?;
 
-        let exceeded = new_used > policy.limit;
-        let remaining = if new_used >= policy.limit {
-            0
-        } else {
-            policy.limit - new_used
-        };
-        let usage_percent = if policy.limit == 0 {
-            100.0
-        } else {
-            (new_used as f64 / policy.limit as f64) * 100.0
-        };
-
-        // 閾値到達チェック（超過前の使用量で判定）
-        if !exceeded {
-            if let Some(threshold) = policy.alert_threshold_percent {
-                let prev_percent = if policy.limit == 0 {
-                    100.0
-                } else {
-                    ((new_used.saturating_sub(input.amount)) as f64 / policy.limit as f64) * 100.0
-                };
-                if usage_percent >= threshold as f64 && prev_percent < threshold as f64 {
-                    let event = QuotaThresholdReachedEvent {
-                        event_type: "QUOTA_THRESHOLD_REACHED".to_string(),
-                        quota_id: policy.id.clone(),
-                        subject_type: policy.subject_type.as_str().to_string(),
-                        subject_id: policy.subject_id.clone(),
-                        period: policy.period.as_str().to_string(),
-                        limit: policy.limit,
-                        used: new_used,
-                        usage_percent,
-                        alert_threshold_percent: threshold,
-                        reached_at: chrono::Utc::now().to_rfc3339(),
-                    };
-                    let _ = self.event_publisher.publish_threshold_reached(&event).await;
-                }
-            }
-        }
-
-        if exceeded {
+        // 3. 許可されなかった場合は超過エラー
+        if !allowed {
             let event = QuotaExceededEvent {
                 event_type: "QUOTA_EXCEEDED".to_string(),
                 quota_id: policy.id.clone(),
@@ -124,7 +89,7 @@ impl IncrementQuotaUsageUseCase {
                 subject_id: policy.subject_id.clone(),
                 period: policy.period.as_str().to_string(),
                 limit: policy.limit,
-                used: new_used,
+                used,
                 exceeded_at: chrono::Utc::now().to_rfc3339(),
                 reset_at: "".to_string(),
             };
@@ -133,15 +98,51 @@ impl IncrementQuotaUsageUseCase {
             return Err(IncrementQuotaUsageError::Exceeded {
                 quota_id: policy.id,
                 subject_id: policy.subject_id,
-                used: new_used,
+                used,
                 limit: policy.limit,
                 period: policy.period.as_str().to_string(),
             });
         }
 
+        // 4. 使用率を計算
+        let remaining = if used >= policy.limit {
+            0
+        } else {
+            policy.limit - used
+        };
+        let usage_percent = if policy.limit == 0 {
+            100.0
+        } else {
+            (used as f64 / policy.limit as f64) * 100.0
+        };
+
+        // 5. 閾値到達チェック（増分前の使用量で判定）
+        if let Some(threshold) = policy.alert_threshold_percent {
+            let prev_percent = if policy.limit == 0 {
+                100.0
+            } else {
+                ((used.saturating_sub(input.amount)) as f64 / policy.limit as f64) * 100.0
+            };
+            if usage_percent >= threshold as f64 && prev_percent < threshold as f64 {
+                let event = QuotaThresholdReachedEvent {
+                    event_type: "QUOTA_THRESHOLD_REACHED".to_string(),
+                    quota_id: policy.id.clone(),
+                    subject_type: policy.subject_type.as_str().to_string(),
+                    subject_id: policy.subject_id.clone(),
+                    period: policy.period.as_str().to_string(),
+                    limit: policy.limit,
+                    used,
+                    usage_percent,
+                    alert_threshold_percent: threshold,
+                    reached_at: chrono::Utc::now().to_rfc3339(),
+                };
+                let _ = self.event_publisher.publish_threshold_reached(&event).await;
+            }
+        }
+
         Ok(IncrementResult {
             quota_id: policy.id,
-            used: new_used,
+            used,
             remaining,
             usage_percent,
             exceeded: false,
@@ -185,8 +186,13 @@ mod tests {
             .returning(move |_| Ok(Some(return_policy.clone())));
 
         usage_mock
-            .expect_increment()
-            .returning(|_, _| Ok(7524));
+            .expect_check_and_increment()
+            .returning(|_, _, _| {
+                Ok(CheckAndIncrementResult {
+                    used: 7524,
+                    allowed: true,
+                })
+            });
 
         let uc = IncrementQuotaUsageUseCase::new_without_publisher(
             Arc::new(policy_mock),
@@ -221,8 +227,13 @@ mod tests {
             .returning(move |_| Ok(Some(return_policy.clone())));
 
         usage_mock
-            .expect_increment()
-            .returning(|_, _| Ok(10001));
+            .expect_check_and_increment()
+            .returning(|_, _, _| {
+                Ok(CheckAndIncrementResult {
+                    used: 10000,
+                    allowed: false,
+                })
+            });
 
         let uc = IncrementQuotaUsageUseCase::new_without_publisher(
             Arc::new(policy_mock),
@@ -239,7 +250,7 @@ mod tests {
             IncrementQuotaUsageError::Exceeded {
                 used, limit, ..
             } => {
-                assert_eq!(used, 10001);
+                assert_eq!(used, 10000);
                 assert_eq!(limit, 10000);
             }
             e => unreachable!("unexpected error: {:?}", e),

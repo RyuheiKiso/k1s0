@@ -1,3 +1,4 @@
+pub mod api_key;
 pub mod audit_log;
 pub mod claims;
 pub mod navigation;

@@ -457,6 +457,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_increment_quota_usage_success() {
+        use crate::domain::repository::quota_repository::CheckAndIncrementResult;
+
         let mut policy_mock = MockQuotaPolicyRepository::new();
         let mut usage_mock = MockQuotaUsageRepository::new();
         let policy = sample_policy();
@@ -466,7 +468,14 @@ mod tests {
             .expect_find_by_id()
             .withf(move |id| id == policy_id)
             .returning(move |_| Ok(Some(return_policy.clone())));
-        usage_mock.expect_increment().returning(|_, _| Ok(100));
+        usage_mock
+            .expect_check_and_increment()
+            .returning(|_, _, _| {
+                Ok(CheckAndIncrementResult {
+                    used: 100,
+                    allowed: true,
+                })
+            });
 
         let tonic_svc = make_tonic_service(policy_mock, usage_mock);
         let req = Request::new(ProtoIncrementQuotaUsageRequest {

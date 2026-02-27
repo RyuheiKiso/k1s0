@@ -65,15 +65,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_navigation_success() {
-        let state = AppState::new(
-            Arc::new(MockTokenVerifier::new()),
-            Arc::new(MockUserRepository::new()),
-            Arc::new(MockAuditLogRepository::new()),
-            "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
-            "k1s0-api".to_string(),
-            None,
-            None,
-        );
+        let state = {
+            use crate::domain::repository::api_key_repository::MockApiKeyRepository;
+            AppState::new(
+                Arc::new(MockTokenVerifier::new()),
+                Arc::new(MockUserRepository::new()),
+                Arc::new(MockAuditLogRepository::new()),
+                Arc::new(MockApiKeyRepository::new()),
+                "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
+                "k1s0-api".to_string(),
+                None,
+                None,
+            )
+        };
 
         // テスト用のnavigation.yamlパスを設定
         let mut state = state;
@@ -102,15 +106,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_navigation_file_not_found() {
-        let state = AppState::new(
-            Arc::new(MockTokenVerifier::new()),
-            Arc::new(MockUserRepository::new()),
-            Arc::new(MockAuditLogRepository::new()),
-            "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
-            "k1s0-api".to_string(),
-            None,
-            None,
-        );
+        let state = {
+            use crate::domain::repository::api_key_repository::MockApiKeyRepository;
+            AppState::new(
+                Arc::new(MockTokenVerifier::new()),
+                Arc::new(MockUserRepository::new()),
+                Arc::new(MockAuditLogRepository::new()),
+                Arc::new(MockApiKeyRepository::new()),
+                "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
+                "k1s0-api".to_string(),
+                None,
+                None,
+            )
+        };
 
         let mut state = state;
         state.navigation_config_path = Some(PathBuf::from("/nonexistent/navigation.yaml"));

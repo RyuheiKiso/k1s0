@@ -46,7 +46,11 @@ pub struct Tenant {
     pub display_name: String,
     pub status: TenantStatus,
     pub plan: String,
+    pub settings: serde_json::Value,
+    pub keycloak_realm: Option<String>,
+    pub db_schema: Option<String>,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl Tenant {
@@ -57,7 +61,11 @@ impl Tenant {
             display_name,
             status: TenantStatus::Provisioning,
             plan,
+            settings: serde_json::json!({}),
+            keycloak_realm: None,
+            db_schema: None,
             created_at: Utc::now(),
+            updated_at: Utc::now(),
         }
     }
 

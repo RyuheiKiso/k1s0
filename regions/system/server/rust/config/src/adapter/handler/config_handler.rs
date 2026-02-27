@@ -34,7 +34,7 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         "not_configured"
     };
 
-    let all_ok = db_ok;
+    let all_ok = db_ok && (!state.kafka_configured || kafka_status == "ok");
     let status = if all_ok { "ready" } else { "not_ready" };
     let code = if all_ok {
         StatusCode::OK
@@ -261,7 +261,11 @@ mod tests {
     }
 
     fn make_app_state(mock: MockConfigRepository) -> AppState {
-        AppState::new(Arc::new(mock), Arc::new(MockConfigSchemaRepository::new()))
+        let mut schema_mock = MockConfigSchemaRepository::new();
+        schema_mock
+            .expect_find_by_namespace()
+            .returning(|_| Ok(None));
+        AppState::new(Arc::new(mock), Arc::new(schema_mock))
     }
 
     #[tokio::test]

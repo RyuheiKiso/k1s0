@@ -174,15 +174,19 @@ mod tests {
         use std::sync::Arc;
         use tower::ServiceExt;
 
-        let state = AppState::new(
-            Arc::new(MockTokenVerifier::new()),
-            Arc::new(MockUserRepository::new()),
-            Arc::new(MockAuditLogRepository::new()),
-            "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
-            "k1s0-api".to_string(),
-            None,
-            None,
-        );
+        let state = {
+            use crate::domain::repository::api_key_repository::MockApiKeyRepository;
+            AppState::new(
+                Arc::new(MockTokenVerifier::new()),
+                Arc::new(MockUserRepository::new()),
+                Arc::new(MockAuditLogRepository::new()),
+                Arc::new(MockApiKeyRepository::new()),
+                "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
+                "k1s0-api".to_string(),
+                None,
+                None,
+            )
+        };
 
         let app = Router::new()
             .route("/protected", get(|| async { "ok" }))
@@ -215,15 +219,19 @@ mod tests {
         use std::sync::Arc;
         use tower::ServiceExt;
 
-        let state = AppState::new(
-            Arc::new(MockTokenVerifier::new()),
-            Arc::new(MockUserRepository::new()),
-            Arc::new(MockAuditLogRepository::new()),
-            "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
-            "k1s0-api".to_string(),
-            None,
-            None,
-        );
+        let state = {
+            use crate::domain::repository::api_key_repository::MockApiKeyRepository;
+            AppState::new(
+                Arc::new(MockTokenVerifier::new()),
+                Arc::new(MockUserRepository::new()),
+                Arc::new(MockAuditLogRepository::new()),
+                Arc::new(MockApiKeyRepository::new()),
+                "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
+                "k1s0-api".to_string(),
+                None,
+                None,
+            )
+        };
 
         let app = Router::new()
             .route("/protected", get(|| async { "ok" }))
@@ -250,15 +258,19 @@ mod tests {
         use std::sync::Arc;
         use tower::ServiceExt;
 
-        let state = AppState::new(
-            Arc::new(MockTokenVerifier::new()),
-            Arc::new(MockUserRepository::new()),
-            Arc::new(MockAuditLogRepository::new()),
-            "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
-            "k1s0-api".to_string(),
-            None,
-            None,
-        );
+        let state = {
+            use crate::domain::repository::api_key_repository::MockApiKeyRepository;
+            AppState::new(
+                Arc::new(MockTokenVerifier::new()),
+                Arc::new(MockUserRepository::new()),
+                Arc::new(MockAuditLogRepository::new()),
+                Arc::new(MockApiKeyRepository::new()),
+                "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
+                "k1s0-api".to_string(),
+                None,
+                None,
+            )
+        };
 
         let app = Router::new()
             .route("/protected", get(|| async { "ok" }))
@@ -291,15 +303,19 @@ mod tests {
         use std::sync::Arc;
         use tower::ServiceExt;
 
-        let state = AppState::new(
-            Arc::new(MockTokenVerifier::new()),
-            Arc::new(MockUserRepository::new()),
-            Arc::new(MockAuditLogRepository::new()),
-            "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
-            "k1s0-api".to_string(),
-            None,
-            None,
-        );
+        let state = {
+            use crate::domain::repository::api_key_repository::MockApiKeyRepository;
+            AppState::new(
+                Arc::new(MockTokenVerifier::new()),
+                Arc::new(MockUserRepository::new()),
+                Arc::new(MockAuditLogRepository::new()),
+                Arc::new(MockApiKeyRepository::new()),
+                "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
+                "k1s0-api".to_string(),
+                None,
+                None,
+            )
+        };
 
         let state_clone = state.clone();
         let app = Router::new()
@@ -337,15 +353,19 @@ mod tests {
         use std::sync::Arc;
         use tower::ServiceExt;
 
-        let state = AppState::new(
-            Arc::new(MockTokenVerifier::new()),
-            Arc::new(MockUserRepository::new()),
-            Arc::new(MockAuditLogRepository::new()),
-            "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
-            "k1s0-api".to_string(),
-            None,
-            None,
-        );
+        let state = {
+            use crate::domain::repository::api_key_repository::MockApiKeyRepository;
+            AppState::new(
+                Arc::new(MockTokenVerifier::new()),
+                Arc::new(MockUserRepository::new()),
+                Arc::new(MockAuditLogRepository::new()),
+                Arc::new(MockApiKeyRepository::new()),
+                "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
+                "k1s0-api".to_string(),
+                None,
+                None,
+            )
+        };
 
         let state_clone = state.clone();
         let app = Router::new()

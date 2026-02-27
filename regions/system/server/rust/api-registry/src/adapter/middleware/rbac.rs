@@ -229,7 +229,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_operator_admin_denied() {
         let app = Router::new().route(
-            "/api/v1/schemas/{name}/versions/{version}",
+            "/api/v1/schemas/:name/versions/:version",
             delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
                 require_permission("schemas", "admin"),
             )),
@@ -249,7 +249,7 @@ mod tests {
     #[tokio::test]
     async fn test_rbac_sys_admin_delete_allowed() {
         let app = Router::new().route(
-            "/api/v1/schemas/{name}/versions/{version}",
+            "/api/v1/schemas/:name/versions/:version",
             delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
                 require_permission("schemas", "admin"),
             )),

@@ -38,12 +38,35 @@ impl SchedulerJob {
             updated_at: now,
         }
     }
+
+    /// cron 式から次回実行時刻を計算する。
+    pub fn next_run_at(&self) -> Option<DateTime<Utc>> {
+        let cron_6field = to_6field_cron(&self.cron_expression);
+        cron::Schedule::from_str(&cron_6field)
+            .ok()?
+            .upcoming(Utc)
+            .next()
+    }
 }
 
-pub fn validate_cron(expr: &str) -> bool {
+/// 5フィールド crontab 形式を cron クレートの6フィールド形式に変換する。
+/// 既に6/7フィールドの場合はそのまま返す。
+fn to_6field_cron(expr: &str) -> String {
     let parts: Vec<&str> = expr.split_whitespace().collect();
-    parts.len() == 5
+    if parts.len() == 5 {
+        format!("0 {}", expr)
+    } else {
+        expr.to_string()
+    }
 }
+
+/// cron 式を検証する。cron クレートでパース可能かどうかで判定する。
+pub fn validate_cron(expr: &str) -> bool {
+    let cron_6field = to_6field_cron(expr);
+    cron::Schedule::from_str(&cron_6field).is_ok()
+}
+
+use std::str::FromStr;
 
 #[cfg(test)]
 mod tests {
@@ -59,7 +82,16 @@ mod tests {
     #[test]
     fn invalid_cron() {
         assert!(!validate_cron("* * *"));
-        assert!(!validate_cron("* * * * * *"));
         assert!(!validate_cron(""));
+    }
+
+    #[test]
+    fn next_run_at_returns_some() {
+        let job = SchedulerJob::new(
+            "test".to_string(),
+            "* * * * *".to_string(),
+            serde_json::json!({}),
+        );
+        assert!(job.next_run_at().is_some());
     }
 }

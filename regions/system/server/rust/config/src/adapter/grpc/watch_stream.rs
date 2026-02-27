@@ -5,9 +5,9 @@ use crate::usecase::watch_config::ConfigChangeEvent;
 /// WatchConfigRequest はクライアントから config 変更監視リクエストを表す。
 #[derive(Debug, Clone)]
 pub struct WatchConfigRequest {
-    /// 監視対象の namespace プレフィックス。
-    /// 空文字列の場合はすべての namespace の変更を受け取る。
-    pub namespace: String,
+    /// 監視対象の namespace プレフィックス一覧。
+    /// 空の場合はすべての namespace の変更を受け取る。
+    pub namespaces: Vec<String>,
 }
 
 /// ConfigChangeNotification は gRPC ストリーミングレスポンスとして返す変更通知。
@@ -24,13 +24,13 @@ pub struct ConfigChangeNotification {
 /// namespace フィルタを適用しながら次の変更通知を非同期で返す。
 pub struct WatchConfigStreamHandler {
     receiver: broadcast::Receiver<ConfigChangeEvent>,
-    namespace_filter: Option<String>,
+    namespace_filters: Vec<String>,
 }
 
 impl std::fmt::Debug for WatchConfigStreamHandler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("WatchConfigStreamHandler")
-            .field("namespace_filter", &self.namespace_filter)
+            .field("namespace_filters", &self.namespace_filters)
             .finish()
     }
 }
@@ -39,15 +39,15 @@ impl WatchConfigStreamHandler {
     /// 新しいハンドラを生成する。
     ///
     /// - `receiver`: `WatchConfigUseCase::subscribe()` で得た Receiver。
-    /// - `namespace_filter`: `Some(prefix)` を指定すると、そのプレフィックスに
-    ///   一致する namespace の変更通知のみを返す。`None` の場合は全通知を返す。
+    /// - `namespace_filters`: プレフィックス一覧を指定すると、いずれかのプレフィックスに
+    ///   一致する namespace の変更通知のみを返す。空の場合は全通知を返す。
     pub fn new(
         receiver: broadcast::Receiver<ConfigChangeEvent>,
-        namespace_filter: Option<String>,
+        namespace_filters: Vec<String>,
     ) -> Self {
         Self {
             receiver,
-            namespace_filter,
+            namespace_filters,
         }
     }
 
@@ -60,10 +60,13 @@ impl WatchConfigStreamHandler {
         loop {
             match self.receiver.recv().await {
                 Ok(event) => {
-                    if let Some(ref ns_prefix) = self.namespace_filter {
-                        if !event.namespace.starts_with(ns_prefix.as_str()) {
-                            continue;
-                        }
+                    if !self.namespace_filters.is_empty()
+                        && !self
+                            .namespace_filters
+                            .iter()
+                            .any(|prefix| event.namespace.starts_with(prefix.as_str()))
+                    {
+                        continue;
                     }
                     return Some(ConfigChangeNotification {
                         namespace: event.namespace,
@@ -105,7 +108,7 @@ mod tests {
     async fn test_next_returns_notification() {
         let (uc, _tx) = WatchConfigUseCase::new();
         let rx = uc.subscribe();
-        let mut handler = WatchConfigStreamHandler::new(rx, None);
+        let mut handler = WatchConfigStreamHandler::new(rx, vec![]);
 
         uc.notify(make_event("system.auth", "timeout", 1));
 
@@ -120,7 +123,8 @@ mod tests {
     async fn test_namespace_filter_passes_matching() {
         let (uc, _tx) = WatchConfigUseCase::new();
         let rx = uc.subscribe();
-        let mut handler = WatchConfigStreamHandler::new(rx, Some("system.auth".to_string()));
+        let mut handler =
+            WatchConfigStreamHandler::new(rx, vec!["system.auth".to_string()]);
 
         uc.notify(make_event("system.auth.database", "max_connections", 3));
 
@@ -133,7 +137,8 @@ mod tests {
     async fn test_namespace_filter_skips_non_matching_and_returns_next() {
         let (uc, _tx) = WatchConfigUseCase::new();
         let rx = uc.subscribe();
-        let mut handler = WatchConfigStreamHandler::new(rx, Some("system.auth".to_string()));
+        let mut handler =
+            WatchConfigStreamHandler::new(rx, vec!["system.auth".to_string()]);
 
         // 最初の通知はフィルタ対象外（スキップされる）
         uc.notify(make_event("business.billing", "rate", 1));
@@ -149,7 +154,7 @@ mod tests {
     async fn test_no_filter_receives_all_namespaces() {
         let (uc, _tx) = WatchConfigUseCase::new();
         let rx = uc.subscribe();
-        let mut handler = WatchConfigStreamHandler::new(rx, None);
+        let mut handler = WatchConfigStreamHandler::new(rx, vec![]);
 
         uc.notify(make_event("business.billing", "rate", 10));
 
@@ -161,7 +166,7 @@ mod tests {
     #[tokio::test]
     async fn test_closed_channel_returns_none() {
         let (tx, rx) = broadcast::channel::<ConfigChangeEvent>(4);
-        let mut handler = WatchConfigStreamHandler::new(rx, None);
+        let mut handler = WatchConfigStreamHandler::new(rx, vec![]);
 
         // 送信側を drop してチャンネルを閉じる
         drop(tx);
@@ -174,7 +179,7 @@ mod tests {
     async fn test_lagged_receiver_continues_after_lag() {
         // キャパシティ 1 にして lag を発生させ、次のメッセージを正常受信できることを確認
         let (tx, rx) = broadcast::channel::<ConfigChangeEvent>(1);
-        let mut handler = WatchConfigStreamHandler::new(rx, None);
+        let mut handler = WatchConfigStreamHandler::new(rx, vec![]);
 
         // 2 件送信して lag を発生させる
         let _ = tx.send(make_event("system.x", "k", 1));
@@ -190,7 +195,7 @@ mod tests {
     async fn test_value_json_serialized_to_string() {
         let (uc, _tx) = WatchConfigUseCase::new();
         let rx = uc.subscribe();
-        let mut handler = WatchConfigStreamHandler::new(rx, None);
+        let mut handler = WatchConfigStreamHandler::new(rx, vec![]);
 
         let event = ConfigChangeEvent {
             namespace: "system.test".to_string(),
@@ -205,5 +210,24 @@ mod tests {
         // value_json は JSON 文字列として格納される
         assert!(notif.value_json.contains("localhost"));
         assert!(notif.value_json.contains("5432"));
+    }
+
+    #[tokio::test]
+    async fn test_multiple_namespace_filters() {
+        let (uc, _tx) = WatchConfigUseCase::new();
+        let rx = uc.subscribe();
+        let mut handler = WatchConfigStreamHandler::new(
+            rx,
+            vec!["system.auth".to_string(), "business.billing".to_string()],
+        );
+
+        // フィルタ対象外（スキップ）
+        uc.notify(make_event("system.config", "key", 1));
+        // system.auth にマッチ
+        uc.notify(make_event("system.auth.jwt", "issuer", 2));
+
+        let notif = handler.next().await.unwrap();
+        assert_eq!(notif.namespace, "system.auth.jwt");
+        assert_eq!(notif.version, 2);
     }
 }

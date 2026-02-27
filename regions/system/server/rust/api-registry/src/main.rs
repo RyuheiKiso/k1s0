@@ -94,13 +94,20 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(NoopSchemaEventPublisher)
     };
 
+    // Schema validator factory
+    let validator_factory: Arc<dyn k1s0_api_registry_server::infrastructure::validator::SchemaValidatorFactory> =
+        Arc::new(k1s0_api_registry_server::infrastructure::validator::DefaultSchemaValidatorFactory);
+
     // Use cases
     let list_schemas_uc = Arc::new(usecase::ListSchemasUseCase::new(schema_repo.clone()));
-    let register_schema_uc = Arc::new(usecase::RegisterSchemaUseCase::with_publisher(
-        schema_repo.clone(),
-        version_repo.clone(),
-        publisher.clone(),
-    ));
+    let register_schema_uc = Arc::new(
+        usecase::RegisterSchemaUseCase::with_publisher(
+            schema_repo.clone(),
+            version_repo.clone(),
+            publisher.clone(),
+        )
+        .with_validator(validator_factory.clone()),
+    );
     let get_schema_uc = Arc::new(usecase::GetSchemaUseCase::new(
         schema_repo.clone(),
         version_repo.clone(),
@@ -109,11 +116,14 @@ async fn main() -> anyhow::Result<()> {
         schema_repo.clone(),
         version_repo.clone(),
     ));
-    let register_version_uc = Arc::new(usecase::RegisterVersionUseCase::with_publisher(
-        schema_repo.clone(),
-        version_repo.clone(),
-        publisher.clone(),
-    ));
+    let register_version_uc = Arc::new(
+        usecase::RegisterVersionUseCase::with_publisher(
+            schema_repo.clone(),
+            version_repo.clone(),
+            publisher.clone(),
+        )
+        .with_validator(validator_factory.clone()),
+    );
     let get_schema_version_uc = Arc::new(usecase::GetSchemaVersionUseCase::new(
         version_repo.clone(),
     ));

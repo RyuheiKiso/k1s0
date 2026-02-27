@@ -1,0 +1,2 @@
+ALTER TABLE tenant.tenants ADD COLUMN IF NOT EXISTS keycloak_realm VARCHAR(255);
+ALTER TABLE tenant.tenants ADD COLUMN IF NOT EXISTS db_schema VARCHAR(255);

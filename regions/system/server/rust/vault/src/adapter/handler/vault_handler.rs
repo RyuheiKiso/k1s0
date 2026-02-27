@@ -8,6 +8,7 @@ use axum::Json;
 use serde::{Deserialize, Serialize};
 
 use crate::adapter::middleware::auth::VaultAuthState;
+use crate::adapter::middleware::spiffe::SpiffeAuthState;
 use crate::usecase::delete_secret::{DeleteSecretError, DeleteSecretInput};
 use crate::usecase::get_secret::{GetSecretError, GetSecretInput};
 use crate::usecase::list_audit_logs::ListAuditLogsInput;
@@ -24,11 +25,17 @@ pub struct AppState {
     pub db_pool: Option<sqlx::PgPool>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<VaultAuthState>,
+    pub spiffe_state: Option<SpiffeAuthState>,
 }
 
 impl AppState {
     pub fn with_auth(mut self, auth_state: VaultAuthState) -> Self {
         self.auth_state = Some(auth_state);
+        self
+    }
+
+    pub fn with_spiffe(mut self, spiffe_state: SpiffeAuthState) -> Self {
+        self.spiffe_state = Some(spiffe_state);
         self
     }
 }

@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
-use crate::domain::entity::api_registration::{ApiSchemaVersion, SchemaType};
+use crate::domain::entity::api_registration::{ApiSchemaVersion, BreakingChange, SchemaType};
 use crate::domain::repository::ApiSchemaVersionRepository;
 
 pub struct VersionPostgresRepository {
@@ -25,12 +25,17 @@ struct ApiSchemaVersionRow {
     content: String,
     content_hash: String,
     breaking_changes: bool,
+    breaking_change_details: Option<serde_json::Value>,
     registered_by: String,
     created_at: DateTime<Utc>,
 }
 
 impl From<ApiSchemaVersionRow> for ApiSchemaVersion {
     fn from(r: ApiSchemaVersionRow) -> Self {
+        let breaking_change_details: Vec<BreakingChange> = r
+            .breaking_change_details
+            .and_then(|v| serde_json::from_value(v).ok())
+            .unwrap_or_default();
         ApiSchemaVersion {
             name: r.name,
             version: r.version as u32,
@@ -38,7 +43,7 @@ impl From<ApiSchemaVersionRow> for ApiSchemaVersion {
             content: r.content,
             content_hash: r.content_hash,
             breaking_changes: r.breaking_changes,
-            breaking_change_details: vec![],
+            breaking_change_details,
             registered_by: r.registered_by,
             created_at: r.created_at,
         }
@@ -53,7 +58,7 @@ impl ApiSchemaVersionRepository for VersionPostgresRepository {
         version: u32,
     ) -> anyhow::Result<Option<ApiSchemaVersion>> {
         let row: Option<ApiSchemaVersionRow> = sqlx::query_as(
-            "SELECT name, version, schema_type, content, content_hash, breaking_changes, registered_by, created_at \
+            "SELECT name, version, schema_type, content, content_hash, breaking_changes, breaking_change_details, registered_by, created_at \
              FROM apiregistry.api_schema_versions WHERE name = $1 AND version = $2",
         )
         .bind(name)
@@ -65,7 +70,7 @@ impl ApiSchemaVersionRepository for VersionPostgresRepository {
 
     async fn find_latest_by_name(&self, name: &str) -> anyhow::Result<Option<ApiSchemaVersion>> {
         let row: Option<ApiSchemaVersionRow> = sqlx::query_as(
-            "SELECT name, version, schema_type, content, content_hash, breaking_changes, registered_by, created_at \
+            "SELECT name, version, schema_type, content, content_hash, breaking_changes, breaking_change_details, registered_by, created_at \
              FROM apiregistry.api_schema_versions WHERE name = $1 ORDER BY version DESC LIMIT 1",
         )
         .bind(name)
@@ -83,7 +88,7 @@ impl ApiSchemaVersionRepository for VersionPostgresRepository {
         let offset = (page.saturating_sub(1) * page_size) as i64;
         let limit = page_size as i64;
         let rows: Vec<ApiSchemaVersionRow> = sqlx::query_as(
-            "SELECT name, version, schema_type, content, content_hash, breaking_changes, registered_by, created_at \
+            "SELECT name, version, schema_type, content, content_hash, breaking_changes, breaking_change_details, registered_by, created_at \
              FROM apiregistry.api_schema_versions WHERE name = $1 ORDER BY version DESC LIMIT $2 OFFSET $3",
         )
         .bind(name)
@@ -101,10 +106,12 @@ impl ApiSchemaVersionRepository for VersionPostgresRepository {
     }
 
     async fn create(&self, version: &ApiSchemaVersion) -> anyhow::Result<()> {
+        let breaking_change_details_json = serde_json::to_value(&version.breaking_change_details)
+            .unwrap_or(serde_json::Value::Array(vec![]));
         sqlx::query(
             "INSERT INTO apiregistry.api_schema_versions \
-             (name, version, schema_type, content, content_hash, breaking_changes, registered_by, created_at) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+             (name, version, schema_type, content, content_hash, breaking_changes, breaking_change_details, registered_by, created_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         )
         .bind(&version.name)
         .bind(version.version as i32)
@@ -112,6 +119,7 @@ impl ApiSchemaVersionRepository for VersionPostgresRepository {
         .bind(&version.content)
         .bind(&version.content_hash)
         .bind(version.breaking_changes)
+        .bind(&breaking_change_details_json)
         .bind(&version.registered_by)
         .bind(version.created_at)
         .execute(self.pool.as_ref())

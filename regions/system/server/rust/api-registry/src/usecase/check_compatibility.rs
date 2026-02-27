@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use crate::domain::entity::api_registration::{BreakingChange, ChangeDetail, CompatibilityResult};
+use crate::domain::entity::api_registration::CompatibilityResult;
 use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
+use crate::domain::service::api_registry_service::ApiRegistryDomainService;
 
 #[derive(Debug, Clone)]
 pub struct CheckCompatibilityInput {
@@ -30,6 +31,7 @@ pub enum CheckCompatibilityError {
 pub struct CheckCompatibilityUseCase {
     schema_repo: Arc<dyn ApiSchemaRepository>,
     version_repo: Arc<dyn ApiSchemaVersionRepository>,
+    domain_service: ApiRegistryDomainService,
 }
 
 impl CheckCompatibilityUseCase {
@@ -40,6 +42,7 @@ impl CheckCompatibilityUseCase {
         Self {
             schema_repo,
             version_repo,
+            domain_service: ApiRegistryDomainService::new(),
         }
     }
 
@@ -56,7 +59,7 @@ impl CheckCompatibilityUseCase {
 
         let base_version_num = input.base_version.unwrap_or(schema.latest_version);
 
-        let _base = self
+        let base = self
             .version_repo
             .find_by_name_and_version(&input.name, base_version_num)
             .await
@@ -66,13 +69,11 @@ impl CheckCompatibilityUseCase {
                 version: base_version_num,
             })?;
 
-        // In a full implementation, this would compare _base.content with input.content
-        // to detect breaking and non-breaking changes.
-        let result = CompatibilityResult {
-            compatible: true,
-            breaking_changes: Vec::<BreakingChange>::new(),
-            non_breaking_changes: Vec::<ChangeDetail>::new(),
-        };
+        let result = self.domain_service.check_compatibility(
+            &base.schema_type,
+            &base.content,
+            &input.content,
+        );
 
         Ok(CheckCompatibilityOutput {
             name: input.name.clone(),
@@ -126,6 +127,44 @@ mod tests {
         assert_eq!(output.name, "test-api");
         assert_eq!(output.base_version, 1);
         assert!(output.result.compatible);
+    }
+
+    #[tokio::test]
+    async fn breaking_change_detected() {
+        let mut schema_mock = MockApiSchemaRepository::new();
+        schema_mock.expect_find_by_name().returning(|_| {
+            Ok(Some(ApiSchema::new(
+                "test-api".to_string(),
+                "Test API".to_string(),
+                SchemaType::OpenApi,
+            )))
+        });
+
+        let mut version_mock = MockApiSchemaVersionRepository::new();
+        version_mock
+            .expect_find_by_name_and_version()
+            .returning(|_, _| {
+                Ok(Some(ApiSchemaVersion::new(
+                    "test-api".to_string(),
+                    1,
+                    SchemaType::OpenApi,
+                    "openapi: 3.0.3\npaths:\n  /api/v1/users:\n    get:\n      summary: Users\n  /api/v1/orders:\n    get:\n      summary: Orders\n".to_string(),
+                    "user-001".to_string(),
+                )))
+            });
+
+        let uc = CheckCompatibilityUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
+        let input = CheckCompatibilityInput {
+            name: "test-api".to_string(),
+            content: "openapi: 3.0.3\npaths:\n  /api/v1/users:\n    get:\n      summary: Users\n".to_string(),
+            base_version: None,
+        };
+        let result = uc.execute(&input).await;
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(!output.result.compatible);
+        assert!(!output.result.breaking_changes.is_empty());
+        assert_eq!(output.result.breaking_changes[0].change_type, "path_removed");
     }
 
     #[tokio::test]

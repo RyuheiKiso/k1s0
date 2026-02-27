@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::domain::entity::config_entry::ConfigEntry;
-use crate::domain::repository::ConfigRepository;
+use crate::domain::repository::{ConfigRepository, ConfigSchemaRepository};
 use crate::infrastructure::kafka_producer::{ConfigChangedEvent, KafkaProducer};
 use crate::usecase::watch_config::ConfigChangeEvent;
 
@@ -16,6 +16,9 @@ pub enum UpdateConfigError {
 
     #[error("validation error: {0}")]
     Validation(String),
+
+    #[error("schema validation error: {0}")]
+    SchemaValidation(String),
 
     #[error("internal error: {0}")]
     Internal(String),
@@ -35,6 +38,7 @@ pub struct UpdateConfigInput {
 /// UpdateConfigUseCase は設定値更新ユースケース。
 pub struct UpdateConfigUseCase {
     config_repo: Arc<dyn ConfigRepository>,
+    config_schema_repo: Option<Arc<dyn ConfigSchemaRepository>>,
     kafka_producer: Option<Arc<KafkaProducer>>,
     watch_sender: Option<tokio::sync::broadcast::Sender<ConfigChangeEvent>>,
 }
@@ -44,6 +48,20 @@ impl UpdateConfigUseCase {
     pub fn new(config_repo: Arc<dyn ConfigRepository>) -> Self {
         Self {
             config_repo,
+            config_schema_repo: None,
+            kafka_producer: None,
+            watch_sender: None,
+        }
+    }
+
+    /// スキーマリポジトリ付きのコンストラクタ。
+    pub fn new_with_schema(
+        config_repo: Arc<dyn ConfigRepository>,
+        config_schema_repo: Arc<dyn ConfigSchemaRepository>,
+    ) -> Self {
+        Self {
+            config_repo,
+            config_schema_repo: Some(config_schema_repo),
             kafka_producer: None,
             watch_sender: None,
         }
@@ -56,6 +74,7 @@ impl UpdateConfigUseCase {
     ) -> Self {
         Self {
             config_repo,
+            config_schema_repo: None,
             kafka_producer: Some(kafka_producer),
             watch_sender: None,
         }
@@ -69,6 +88,7 @@ impl UpdateConfigUseCase {
     ) -> Self {
         Self {
             config_repo,
+            config_schema_repo: None,
             kafka_producer: None,
             watch_sender: Some(watch_sender),
         }
@@ -82,9 +102,16 @@ impl UpdateConfigUseCase {
     ) -> Self {
         Self {
             config_repo,
+            config_schema_repo: None,
             kafka_producer: Some(kafka_producer),
             watch_sender: Some(watch_sender),
         }
+    }
+
+    /// スキーマリポジトリを設定する（ビルダーパターン）。
+    pub fn with_schema_repo(mut self, schema_repo: Arc<dyn ConfigSchemaRepository>) -> Self {
+        self.config_schema_repo = Some(schema_repo);
+        self
     }
 
     /// 設定値を更新する（楽観的排他制御付き）。
@@ -103,6 +130,17 @@ impl UpdateConfigUseCase {
         }
         if input.key.is_empty() {
             return Err(UpdateConfigError::Validation("key is required".to_string()));
+        }
+
+        // スキーマ検証（設定済みの場合のみ）
+        if let Some(ref schema_repo) = self.config_schema_repo {
+            if let Ok(Some(schema)) = schema_repo.find_by_namespace(&input.namespace).await {
+                validate_value_against_schema(
+                    &input.key,
+                    &input.value,
+                    &schema.schema_json,
+                )?;
+            }
         }
 
         // 旧値を取得（監査ログ用）
@@ -196,6 +234,62 @@ impl UpdateConfigUseCase {
 
         Ok(updated_entry)
     }
+}
+
+/// スキーマ定義に基づいて value を検証する。
+///
+/// schema_json は以下の構造を期待する:
+/// ```json
+/// {
+///   "categories": [{
+///     "id": "...",
+///     "fields": [{
+///       "key": "max_connections",
+///       "type": "integer" | "string" | "boolean" | "number"
+///     }]
+///   }]
+/// }
+/// ```
+fn validate_value_against_schema(
+    key: &str,
+    value: &serde_json::Value,
+    schema_json: &serde_json::Value,
+) -> Result<(), UpdateConfigError> {
+    let categories = match schema_json.get("categories").and_then(|c| c.as_array()) {
+        Some(cats) => cats,
+        None => return Ok(()), // スキーマに categories がなければスキップ
+    };
+
+    for category in categories {
+        let fields = match category.get("fields").and_then(|f| f.as_array()) {
+            Some(f) => f,
+            None => continue,
+        };
+        for field in fields {
+            let field_key = field.get("key").and_then(|k| k.as_str()).unwrap_or("");
+            if field_key != key {
+                continue;
+            }
+            let field_type = field.get("type").and_then(|t| t.as_str()).unwrap_or("");
+            let type_ok = match field_type {
+                "integer" => value.is_i64() || value.is_u64(),
+                "number" => value.is_number(),
+                "string" => value.is_string(),
+                "boolean" => value.is_boolean(),
+                _ => true, // 不明な型はスキップ
+            };
+            if !type_ok {
+                return Err(UpdateConfigError::SchemaValidation(format!(
+                    "field '{}' expected type '{}', got {:?}",
+                    key, field_type, value
+                )));
+            }
+            return Ok(());
+        }
+    }
+
+    // スキーマにフィールド定義がない場合はパス
+    Ok(())
 }
 
 /// エラーメッセージから current version を取得するヘルパー。

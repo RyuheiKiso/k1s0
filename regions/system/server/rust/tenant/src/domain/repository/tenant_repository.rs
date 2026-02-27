@@ -32,7 +32,11 @@ mod tests {
                     display_name: "ACME".to_string(),
                     status: TenantStatus::Active,
                     plan: "professional".to_string(),
+                    settings: serde_json::json!({}),
+                    keycloak_realm: None,
+                    db_schema: None,
                     created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
                 }))
             });
 

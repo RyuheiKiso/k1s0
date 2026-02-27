@@ -68,7 +68,11 @@ mod tests {
                     display_name: "ACME Corporation".to_string(),
                     status: TenantStatus::Active,
                     plan: Plan::Free.as_str().to_string(),
+                    settings: serde_json::json!({}),
+                    keycloak_realm: None,
+                    db_schema: None,
                     created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
                 }))
             });
         mock.expect_update().returning(|_| Ok(()));
@@ -106,7 +110,11 @@ mod tests {
                     display_name: "ACME Corporation".to_string(),
                     status: TenantStatus::Deleted,
                     plan: Plan::Free.as_str().to_string(),
+                    settings: serde_json::json!({}),
+                    keycloak_realm: None,
+                    db_schema: None,
                     created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
                 }))
             });
 

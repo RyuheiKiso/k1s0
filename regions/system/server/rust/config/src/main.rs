@@ -142,16 +142,22 @@ async fn main() -> anyhow::Result<()> {
     let get_service_config_uc =
         Arc::new(usecase::GetServiceConfigUseCase::new(config_repo.clone()));
     let update_config_uc_grpc = if let Some(ref producer) = kafka_producer {
-        Arc::new(usecase::UpdateConfigUseCase::new_with_kafka_and_watch(
-            config_repo.clone(),
-            producer.clone(),
-            watch_tx.clone(),
-        ))
+        Arc::new(
+            usecase::UpdateConfigUseCase::new_with_kafka_and_watch(
+                config_repo.clone(),
+                producer.clone(),
+                watch_tx.clone(),
+            )
+            .with_schema_repo(schema_repo.clone()),
+        )
     } else {
-        Arc::new(usecase::UpdateConfigUseCase::new_with_watch(
-            config_repo.clone(),
-            watch_tx.clone(),
-        ))
+        Arc::new(
+            usecase::UpdateConfigUseCase::new_with_watch(
+                config_repo.clone(),
+                watch_tx.clone(),
+            )
+            .with_schema_repo(schema_repo.clone()),
+        )
     };
     let delete_config_uc = Arc::new(usecase::DeleteConfigUseCase::new(config_repo.clone()));
 
@@ -189,16 +195,22 @@ async fn main() -> anyhow::Result<()> {
         get_config_uc: std::sync::Arc::new(usecase::GetConfigUseCase::new(config_repo.clone())),
         list_configs_uc: std::sync::Arc::new(usecase::ListConfigsUseCase::new(config_repo.clone())),
         update_config_uc: if let Some(ref producer) = kafka_producer {
-            std::sync::Arc::new(usecase::UpdateConfigUseCase::new_with_kafka_and_watch(
-                config_repo.clone(),
-                producer.clone(),
-                watch_tx.clone(),
-            ))
+            std::sync::Arc::new(
+                usecase::UpdateConfigUseCase::new_with_kafka_and_watch(
+                    config_repo.clone(),
+                    producer.clone(),
+                    watch_tx.clone(),
+                )
+                .with_schema_repo(schema_repo.clone()),
+            )
         } else {
-            std::sync::Arc::new(usecase::UpdateConfigUseCase::new_with_watch(
-                config_repo.clone(),
-                watch_tx.clone(),
-            ))
+            std::sync::Arc::new(
+                usecase::UpdateConfigUseCase::new_with_watch(
+                    config_repo.clone(),
+                    watch_tx.clone(),
+                )
+                .with_schema_repo(schema_repo.clone()),
+            )
         },
         delete_config_uc: std::sync::Arc::new(usecase::DeleteConfigUseCase::new(
             config_repo.clone(),
@@ -472,6 +484,17 @@ impl domain::repository::ConfigSchemaRepository for InMemoryConfigSchemaReposito
         Ok(schemas
             .iter()
             .find(|s| s.service_name == service_name)
+            .cloned())
+    }
+
+    async fn find_by_namespace(
+        &self,
+        namespace: &str,
+    ) -> anyhow::Result<Option<ConfigSchema>> {
+        let schemas = self.schemas.read().await;
+        Ok(schemas
+            .iter()
+            .find(|s| namespace.starts_with(&s.namespace_prefix))
             .cloned())
     }
 

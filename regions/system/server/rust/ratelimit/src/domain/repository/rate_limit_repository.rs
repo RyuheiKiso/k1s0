@@ -32,6 +32,14 @@ pub trait RateLimitRepository: Send + Sync {
     async fn reset_state(&self, key: &str) -> anyhow::Result<()>;
 }
 
+/// UsageSnapshot はレートリミットの現在の使用状況スナップショット。
+#[derive(Debug, Clone)]
+pub struct UsageSnapshot {
+    pub used: i64,
+    pub remaining: i64,
+    pub reset_at: i64,
+}
+
 /// RateLimitStateStore はレートリミット状態の管理を担当する（Redis）。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -62,4 +70,7 @@ pub trait RateLimitStateStore: Send + Sync {
 
     /// レートリミット状態をリセットする。
     async fn reset(&self, key: &str) -> anyhow::Result<()>;
+
+    /// 指定キーの現在の使用状況を取得する。
+    async fn get_usage(&self, key: &str, limit: i64, window_secs: i64) -> anyhow::Result<Option<UsageSnapshot>>;
 }

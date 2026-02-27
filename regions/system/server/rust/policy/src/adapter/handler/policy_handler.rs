@@ -243,6 +243,9 @@ pub struct CreatePolicyRequest {
     pub name: String,
     pub description: String,
     pub rego_content: String,
+    #[serde(default)]
+    pub package_path: String,
+    pub bundle_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -290,6 +293,8 @@ pub struct PolicyResponse {
     pub name: String,
     pub description: String,
     pub rego_content: String,
+    pub package_path: String,
+    pub bundle_id: Option<String>,
     pub version: u32,
     pub enabled: bool,
     pub created_at: String,
@@ -303,6 +308,8 @@ impl From<crate::domain::entity::policy::Policy> for PolicyResponse {
             name: p.name,
             description: p.description,
             rego_content: p.rego_content,
+            package_path: p.package_path,
+            bundle_id: p.bundle_id,
             version: p.version,
             enabled: p.enabled,
             created_at: p.created_at.to_rfc3339(),
