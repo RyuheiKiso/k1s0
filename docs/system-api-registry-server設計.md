@@ -355,14 +355,9 @@ system tier の API スキーマレジストリサーバーは以下の機能を
 
 指定バージョンを削除する。最新バージョン（バージョン数 = 1）は削除できない。
 
-**レスポンス（200 OK）**
+**レスポンス（204 No Content）**
 
-```json
-{
-  "success": true,
-  "message": "schema version k1s0-tenant-api@1 deleted"
-}
-```
+レスポンスボディなし。
 
 **レスポンス（409 Conflict）**
 

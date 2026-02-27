@@ -109,10 +109,12 @@ mod tests {
     }
 
     fn make_app_state(audit_repo: MockAuditLogRepository) -> AppState {
+        use crate::domain::repository::api_key_repository::MockApiKeyRepository;
         AppState::new(
             Arc::new(make_valid_token_verifier()),
             Arc::new(MockUserRepository::new()),
             Arc::new(audit_repo),
+            Arc::new(MockApiKeyRepository::new()),
             "test-issuer".to_string(),
             "test-audience".to_string(),
             None,

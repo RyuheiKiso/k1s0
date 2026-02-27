@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::api_registration::{ApiSchema, ApiSchemaVersion, SchemaType};
 use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
 use crate::infrastructure::kafka::{NoopSchemaEventPublisher, SchemaEventPublisher, SchemaUpdatedEvent};
+use crate::infrastructure::validator::SchemaValidatorFactory;
 
 #[derive(Debug, Clone)]
 pub struct RegisterSchemaInput {
@@ -17,6 +18,8 @@ pub struct RegisterSchemaInput {
 pub enum RegisterSchemaError {
     #[error("schema already exists: {0}")]
     AlreadyExists(String),
+    #[error("validation error: {0}")]
+    Validation(String),
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -25,6 +28,7 @@ pub struct RegisterSchemaUseCase {
     schema_repo: Arc<dyn ApiSchemaRepository>,
     version_repo: Arc<dyn ApiSchemaVersionRepository>,
     publisher: Arc<dyn SchemaEventPublisher>,
+    validator_factory: Option<Arc<dyn SchemaValidatorFactory>>,
 }
 
 impl RegisterSchemaUseCase {
@@ -36,6 +40,7 @@ impl RegisterSchemaUseCase {
             schema_repo,
             version_repo,
             publisher: Arc::new(NoopSchemaEventPublisher),
+            validator_factory: None,
         }
     }
 
@@ -48,7 +53,13 @@ impl RegisterSchemaUseCase {
             schema_repo,
             version_repo,
             publisher,
+            validator_factory: None,
         }
+    }
+
+    pub fn with_validator(mut self, factory: Arc<dyn SchemaValidatorFactory>) -> Self {
+        self.validator_factory = Some(factory);
+        self
     }
 
     pub async fn execute(
@@ -63,6 +74,24 @@ impl RegisterSchemaUseCase {
 
         if existing.is_some() {
             return Err(RegisterSchemaError::AlreadyExists(input.name.clone()));
+        }
+
+        // Schema validation
+        if let Some(ref factory) = self.validator_factory {
+            if let Some(validator) = factory.create(&input.schema_type.to_string()) {
+                let errors = validator
+                    .validate(&input.content)
+                    .await
+                    .map_err(|e| RegisterSchemaError::Internal(e.to_string()))?;
+                if !errors.is_empty() {
+                    let msg = errors
+                        .iter()
+                        .map(|e| e.message.as_str())
+                        .collect::<Vec<_>>()
+                        .join("; ");
+                    return Err(RegisterSchemaError::Validation(msg));
+                }
+            }
         }
 
         let schema = ApiSchema::new(

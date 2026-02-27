@@ -3,6 +3,8 @@
 
 use std::sync::Arc;
 
+use chrono::{DateTime, Utc};
+
 use crate::usecase::get_schema::{GetSchemaError, GetSchemaUseCase};
 use crate::usecase::get_schema_version::{GetSchemaVersionError, GetSchemaVersionUseCase};
 use crate::usecase::check_compatibility::{CheckCompatibilityError, CheckCompatibilityInput, CheckCompatibilityUseCase};
@@ -21,6 +23,8 @@ pub struct GetSchemaResponse {
     pub schema_type: String,
     pub latest_version: u32,
     pub version_count: u32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +42,7 @@ pub struct GetSchemaVersionResponse {
     pub content_hash: String,
     pub breaking_changes: bool,
     pub registered_by: String,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone)]
@@ -98,6 +103,8 @@ impl ApiRegistryGrpcService {
             schema_type: output.schema.schema_type.to_string(),
             latest_version: output.schema.latest_version,
             version_count: output.schema.version_count,
+            created_at: output.schema.created_at,
+            updated_at: output.schema.updated_at,
         })
     }
 
@@ -121,6 +128,7 @@ impl ApiRegistryGrpcService {
             content_hash: output.content_hash,
             breaking_changes: output.breaking_changes,
             registered_by: output.registered_by,
+            created_at: output.created_at,
         })
     }
 

@@ -3,151 +3,17 @@ use std::sync::Arc;
 
 use crate::domain::entity::claims::Claims;
 use crate::domain::entity::user::User;
+use crate::proto::k1s0::system::auth::v1::{
+    self as proto_auth, CheckPermissionRequest, CheckPermissionResponse, ClientRoles,
+    GetUserRequest, GetUserResponse, GetUserRolesRequest, GetUserRolesResponse, ListUsersRequest,
+    ListUsersResponse, RealmAccess, Role as ProtoRole, RoleList, StringList, TokenClaims,
+    ValidateTokenRequest, ValidateTokenResponse,
+};
+use crate::proto::k1s0::system::common::v1::{PaginationResult, Timestamp};
 use crate::usecase::get_user::{GetUserError, GetUserUseCase};
 use crate::usecase::get_user_roles::{GetUserRolesError, GetUserRolesUseCase};
 use crate::usecase::list_users::{ListUsersParams, ListUsersUseCase};
 use crate::usecase::validate_token::ValidateTokenUseCase;
-
-// proto 生成コードが未生成のため、proto 定義に準じた型を手動定義する。
-// tonic build 後に生成コードの型に置き換える。
-
-// --- gRPC Request/Response Types ---
-
-#[derive(Debug, Clone)]
-pub struct ValidateTokenRequest {
-    pub token: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct ValidateTokenResponse {
-    pub valid: bool,
-    pub claims: Option<PbTokenClaims>,
-    pub error_message: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct PbTokenClaims {
-    pub sub: String,
-    pub iss: String,
-    pub aud: String,
-    pub exp: i64,
-    pub iat: i64,
-    pub jti: String,
-    pub preferred_username: String,
-    pub email: String,
-    pub realm_access: Option<PbRealmAccess>,
-    pub resource_access: HashMap<String, PbClientRoles>,
-    pub tier_access: Vec<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PbRealmAccess {
-    pub roles: Vec<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PbClientRoles {
-    pub roles: Vec<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct GetUserRequest {
-    pub user_id: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct GetUserResponse {
-    pub user: Option<PbUser>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PbUser {
-    pub id: String,
-    pub username: String,
-    pub email: String,
-    pub first_name: String,
-    pub last_name: String,
-    pub enabled: bool,
-    pub email_verified: bool,
-    pub created_at: Option<PbTimestamp>,
-    pub attributes: HashMap<String, PbStringList>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PbStringList {
-    pub values: Vec<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PbTimestamp {
-    pub seconds: i64,
-    pub nanos: i32,
-}
-
-#[derive(Debug, Clone)]
-pub struct ListUsersRequest {
-    pub pagination: Option<PbPagination>,
-    pub search: String,
-    pub enabled: Option<bool>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PbPagination {
-    pub page: i32,
-    pub page_size: i32,
-}
-
-#[derive(Debug, Clone)]
-pub struct PbPaginationResult {
-    pub total_count: i64,
-    pub page: i32,
-    pub page_size: i32,
-    pub has_next: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct ListUsersResponse {
-    pub users: Vec<PbUser>,
-    pub pagination: Option<PbPaginationResult>,
-}
-
-#[derive(Debug, Clone)]
-pub struct GetUserRolesRequest {
-    pub user_id: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct GetUserRolesResponse {
-    pub user_id: String,
-    pub realm_roles: Vec<PbRole>,
-    pub client_roles: HashMap<String, PbRoleList>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PbRole {
-    pub id: String,
-    pub name: String,
-    pub description: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct PbRoleList {
-    pub roles: Vec<PbRole>,
-}
-
-#[derive(Debug, Clone)]
-pub struct CheckPermissionRequest {
-    pub user_id: String,
-    pub permission: String,
-    pub resource: String,
-    pub roles: Vec<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct CheckPermissionResponse {
-    pub allowed: bool,
-    pub reason: String,
-}
 
 // --- gRPC Error ---
 
@@ -198,7 +64,7 @@ impl AuthGrpcService {
         match self.validate_token_uc.execute(&req.token).await {
             Ok(claims) => Ok(ValidateTokenResponse {
                 valid: true,
-                claims: Some(domain_claims_to_pb(&claims)),
+                claims: Some(domain_claims_to_proto(&claims)),
                 error_message: String::new(),
             }),
             Err(e) => Ok(ValidateTokenResponse {
@@ -213,7 +79,7 @@ impl AuthGrpcService {
     pub async fn get_user(&self, req: GetUserRequest) -> Result<GetUserResponse, GrpcError> {
         match self.get_user_uc.execute(&req.user_id).await {
             Ok(user) => Ok(GetUserResponse {
-                user: Some(domain_user_to_pb(&user)),
+                user: Some(domain_user_to_proto(&user)),
             }),
             Err(GetUserError::NotFound(id)) => {
                 Err(GrpcError::NotFound(format!("user not found: {}", id)))
@@ -237,12 +103,13 @@ impl AuthGrpcService {
 
         match self.list_users_uc.execute(&params).await {
             Ok(result) => {
-                let pb_users: Vec<PbUser> = result.users.iter().map(domain_user_to_pb).collect();
+                let proto_users: Vec<proto_auth::User> =
+                    result.users.iter().map(domain_user_to_proto).collect();
 
                 Ok(ListUsersResponse {
-                    users: pb_users,
-                    pagination: Some(PbPaginationResult {
-                        total_count: result.pagination.total_count,
+                    users: proto_users,
+                    pagination: Some(PaginationResult {
+                        total_count: result.pagination.total_count as i32,
                         page: result.pagination.page,
                         page_size: result.pagination.page_size,
                         has_next: result.pagination.has_next,
@@ -260,33 +127,34 @@ impl AuthGrpcService {
     ) -> Result<GetUserRolesResponse, GrpcError> {
         match self.get_user_roles_uc.execute(&req.user_id).await {
             Ok(user_roles) => {
-                let pb_realm_roles: Vec<PbRole> = user_roles
+                let proto_realm_roles: Vec<ProtoRole> = user_roles
                     .realm_roles
                     .iter()
-                    .map(|r| PbRole {
+                    .map(|r| ProtoRole {
                         id: r.id.clone(),
                         name: r.name.clone(),
                         description: r.description.clone(),
                     })
                     .collect();
 
-                let mut pb_client_roles = HashMap::new();
+                let mut proto_client_roles = HashMap::new();
                 for (client_id, roles) in &user_roles.client_roles {
-                    let pb_roles: Vec<PbRole> = roles
+                    let pb_roles: Vec<ProtoRole> = roles
                         .iter()
-                        .map(|r| PbRole {
+                        .map(|r| ProtoRole {
                             id: r.id.clone(),
                             name: r.name.clone(),
                             description: r.description.clone(),
                         })
                         .collect();
-                    pb_client_roles.insert(client_id.clone(), PbRoleList { roles: pb_roles });
+                    proto_client_roles
+                        .insert(client_id.clone(), RoleList { roles: pb_roles });
                 }
 
                 Ok(GetUserRolesResponse {
                     user_id: req.user_id,
-                    realm_roles: pb_realm_roles,
-                    client_roles: pb_client_roles,
+                    realm_roles: proto_realm_roles,
+                    client_roles: proto_client_roles,
                 })
             }
             Err(GetUserRolesError::NotFound(id)) => {
@@ -342,18 +210,18 @@ fn check_role_permission(roles: &[String], permission: &str, _resource: &str) ->
 
 // --- 変換ヘルパー ---
 
-fn domain_claims_to_pb(c: &Claims) -> PbTokenClaims {
+fn domain_claims_to_proto(c: &Claims) -> TokenClaims {
     let mut resource_access = HashMap::new();
     for (k, v) in &c.resource_access {
         resource_access.insert(
             k.clone(),
-            PbClientRoles {
+            ClientRoles {
                 roles: v.roles.clone(),
             },
         );
     }
 
-    PbTokenClaims {
+    TokenClaims {
         sub: c.sub.clone(),
         iss: c.iss.clone(),
         aud: c.aud.clone(),
@@ -362,7 +230,7 @@ fn domain_claims_to_pb(c: &Claims) -> PbTokenClaims {
         jti: c.jti.clone(),
         preferred_username: c.preferred_username.clone(),
         email: c.email.clone(),
-        realm_access: Some(PbRealmAccess {
+        realm_access: Some(RealmAccess {
             roles: c.realm_access.roles.clone(),
         }),
         resource_access,
@@ -370,13 +238,13 @@ fn domain_claims_to_pb(c: &Claims) -> PbTokenClaims {
     }
 }
 
-fn domain_user_to_pb(u: &User) -> PbUser {
+fn domain_user_to_proto(u: &User) -> proto_auth::User {
     let mut attributes = HashMap::new();
     for (k, v) in &u.attributes {
-        attributes.insert(k.clone(), PbStringList { values: v.clone() });
+        attributes.insert(k.clone(), StringList { values: v.clone() });
     }
 
-    PbUser {
+    proto_auth::User {
         id: u.id.clone(),
         username: u.username.clone(),
         email: u.email.clone(),
@@ -384,7 +252,7 @@ fn domain_user_to_pb(u: &User) -> PbUser {
         last_name: u.last_name.clone(),
         enabled: u.enabled,
         email_verified: u.email_verified,
-        created_at: Some(PbTimestamp {
+        created_at: Some(Timestamp {
             seconds: u.created_at.timestamp(),
             nanos: u.created_at.timestamp_subsec_nanos() as i32,
         }),
@@ -395,8 +263,10 @@ fn domain_user_to_pb(u: &User) -> PbUser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::claims::RealmAccess;
-    use crate::domain::entity::user::{Pagination, Role, UserListResult, UserRoles};
+    use crate::domain::entity::claims::RealmAccess as DomainRealmAccess;
+    use crate::domain::entity::user::{
+        Pagination, Role, UserListResult, UserRoles,
+    };
     use crate::domain::repository::user_repository::MockUserRepository;
     use crate::infrastructure::MockTokenVerifier;
     use std::collections::HashMap;
@@ -414,7 +284,7 @@ mod tests {
             scope: "openid profile email".to_string(),
             preferred_username: "taro.yamada".to_string(),
             email: "taro.yamada@example.com".to_string(),
-            realm_access: RealmAccess {
+            realm_access: DomainRealmAccess {
                 roles: vec!["user".to_string(), "sys_auditor".to_string()],
             },
             resource_access: HashMap::new(),
@@ -458,10 +328,10 @@ mod tests {
         let resp = svc.validate_token(req).await.unwrap();
 
         assert!(resp.valid);
-        let pb_claims = resp.claims.unwrap();
-        assert_eq!(pb_claims.sub, "user-uuid-1234");
-        assert_eq!(pb_claims.preferred_username, "taro.yamada");
-        assert_eq!(pb_claims.email, "taro.yamada@example.com");
+        let proto_claims = resp.claims.unwrap();
+        assert_eq!(proto_claims.sub, "user-uuid-1234");
+        assert_eq!(proto_claims.preferred_username, "taro.yamada");
+        assert_eq!(proto_claims.email, "taro.yamada@example.com");
     }
 
     #[tokio::test]
@@ -584,6 +454,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_users_with_pagination() {
+        use crate::proto::k1s0::system::common::v1::Pagination as ProtoPagination;
+
         let mock_verifier = MockTokenVerifier::new();
         let mut mock_user_repo = MockUserRepository::new();
 
@@ -618,7 +490,7 @@ mod tests {
         let svc = make_auth_service(mock_verifier, mock_user_repo);
 
         let req = ListUsersRequest {
-            pagination: Some(PbPagination {
+            pagination: Some(ProtoPagination {
                 page: 2,
                 page_size: 10,
             }),

@@ -42,7 +42,10 @@ impl AppState {
         Self {
             get_config_uc: Arc::new(GetConfigUseCase::new(config_repo.clone())),
             list_configs_uc: Arc::new(ListConfigsUseCase::new(config_repo.clone())),
-            update_config_uc: Arc::new(UpdateConfigUseCase::new(config_repo.clone())),
+            update_config_uc: Arc::new(
+                UpdateConfigUseCase::new(config_repo.clone())
+                    .with_schema_repo(schema_repo.clone()),
+            ),
             delete_config_uc: Arc::new(DeleteConfigUseCase::new(config_repo.clone())),
             get_service_config_uc: Arc::new(GetServiceConfigUseCase::new(config_repo.clone())),
             get_config_schema_uc: Arc::new(GetConfigSchemaUseCase::new(schema_repo.clone())),

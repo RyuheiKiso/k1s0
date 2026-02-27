@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use crate::domain::entity::api_registration::{ApiSchemaVersion, BreakingChange};
 use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
+use crate::domain::service::api_registry_service::ApiRegistryDomainService;
 use crate::infrastructure::kafka::{NoopSchemaEventPublisher, SchemaEventPublisher, SchemaUpdatedEvent};
+use crate::infrastructure::validator::SchemaValidatorFactory;
 
 #[derive(Debug, Clone)]
 pub struct RegisterVersionInput {
@@ -15,6 +17,8 @@ pub struct RegisterVersionInput {
 pub enum RegisterVersionError {
     #[error("schema not found: {0}")]
     NotFound(String),
+    #[error("validation error: {0}")]
+    Validation(String),
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -23,6 +27,8 @@ pub struct RegisterVersionUseCase {
     schema_repo: Arc<dyn ApiSchemaRepository>,
     version_repo: Arc<dyn ApiSchemaVersionRepository>,
     publisher: Arc<dyn SchemaEventPublisher>,
+    validator_factory: Option<Arc<dyn SchemaValidatorFactory>>,
+    domain_service: ApiRegistryDomainService,
 }
 
 impl RegisterVersionUseCase {
@@ -34,6 +40,8 @@ impl RegisterVersionUseCase {
             schema_repo,
             version_repo,
             publisher: Arc::new(NoopSchemaEventPublisher),
+            validator_factory: None,
+            domain_service: ApiRegistryDomainService::new(),
         }
     }
 
@@ -46,7 +54,14 @@ impl RegisterVersionUseCase {
             schema_repo,
             version_repo,
             publisher,
+            validator_factory: None,
+            domain_service: ApiRegistryDomainService::new(),
         }
+    }
+
+    pub fn with_validator(mut self, factory: Arc<dyn SchemaValidatorFactory>) -> Self {
+        self.validator_factory = Some(factory);
+        self
     }
 
     pub async fn execute(
@@ -60,17 +75,42 @@ impl RegisterVersionUseCase {
             .map_err(|e| RegisterVersionError::Internal(e.to_string()))?
             .ok_or_else(|| RegisterVersionError::NotFound(input.name.clone()))?;
 
+        // Schema validation
+        if let Some(ref factory) = self.validator_factory {
+            if let Some(validator) = factory.create(&schema.schema_type.to_string()) {
+                let errors = validator
+                    .validate(&input.content)
+                    .await
+                    .map_err(|e| RegisterVersionError::Internal(e.to_string()))?;
+                if !errors.is_empty() {
+                    let msg = errors
+                        .iter()
+                        .map(|e| e.message.as_str())
+                        .collect::<Vec<_>>()
+                        .join("; ");
+                    return Err(RegisterVersionError::Validation(msg));
+                }
+            }
+        }
+
         let new_version_num = schema.latest_version + 1;
 
-        let _previous = self
+        let previous = self
             .version_repo
             .find_latest_by_name(&input.name)
             .await
             .map_err(|e| RegisterVersionError::Internal(e.to_string()))?;
 
-        // In a full implementation, breaking change detection would compare _previous with new content.
-        // For now, create a version with no breaking changes detected.
-        let breaking_changes: Vec<BreakingChange> = Vec::new();
+        let breaking_changes: Vec<BreakingChange> = if let Some(ref prev) = previous {
+            let result = self.domain_service.check_compatibility(
+                &schema.schema_type,
+                &prev.content,
+                &input.content,
+            );
+            result.breaking_changes
+        } else {
+            Vec::new()
+        };
         let has_breaking = !breaking_changes.is_empty();
 
         let version = ApiSchemaVersion::new(

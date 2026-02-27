@@ -621,11 +621,12 @@ moka を使用したインメモリキャッシュで RBAC 判定結果をキャ
 | `port` | int | `8080` | REST API ポート |
 | `grpc_port` | int | `50051` | gRPC ポート |
 
-### auth
+### auth.jwks
 
-| フィールド | 型 | 説明 |
-| --- | --- | --- |
-| `jwks_url` | string | JWKS エンドポイント URL（例: `http://auth-server:8080/.well-known/jwks.json`）。Keycloak URL から自動導出せず、明示的に指定する |
+| フィールド | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `url` | string | - | JWKS エンドポイント URL（例: `http://auth-server:8080/.well-known/jwks.json`）。Keycloak URL から自動導出せず、明示的に指定する |
+| `cache_ttl_secs` | int | `3600` | JWKS キャッシュ TTL（秒） |
 
 ### auth.jwt
 

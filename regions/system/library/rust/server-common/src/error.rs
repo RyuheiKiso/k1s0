@@ -423,6 +423,10 @@ pub mod api_registry {
         ErrorCode::new("SYS_APIREG_UNAUTHORIZED")
     }
 
+    pub fn schema_invalid() -> ErrorCode {
+        ErrorCode::new("SYS_APIREG_SCHEMA_INVALID")
+    }
+
     pub fn internal_error() -> ErrorCode {
         ErrorCode::new("SYS_APIREG_INTERNAL")
     }

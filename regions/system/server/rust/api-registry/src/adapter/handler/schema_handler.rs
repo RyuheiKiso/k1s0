@@ -128,6 +128,9 @@ pub async fn register_schema(
         Err(RegisterSchemaError::AlreadyExists(_)) => {
             ApiError::conflict("Schema already exists").into_response()
         }
+        Err(RegisterSchemaError::Validation(msg)) => {
+            ApiError::unprocessable_entity(msg).into_response()
+        }
         Err(RegisterSchemaError::Internal(msg)) => ApiError::internal(msg).into_response(),
     }
 }
@@ -230,6 +233,9 @@ pub async fn register_version(
             .into_response(),
         Err(RegisterVersionError::NotFound(_)) => {
             ApiError::not_found("Schema not found").into_response()
+        }
+        Err(RegisterVersionError::Validation(msg)) => {
+            ApiError::unprocessable_entity(msg).into_response()
         }
         Err(RegisterVersionError::Internal(msg)) => ApiError::internal(msg).into_response(),
     }

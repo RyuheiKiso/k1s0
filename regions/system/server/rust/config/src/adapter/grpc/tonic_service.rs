@@ -228,9 +228,8 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         request: Request<pb::WatchConfigRequest>,
     ) -> Result<Response<Self::WatchConfigStream>, Status> {
         let req = request.into_inner();
-        let namespace_filter = req.namespaces.first().cloned().unwrap_or_default();
         let hand_req = WatchConfigRequest {
-            namespace: namespace_filter,
+            namespaces: req.namespaces,
         };
         let mut handler = self.inner.watch_config(hand_req).map_err(Status::from)?;
 
@@ -441,7 +440,7 @@ mod tests {
         let tonic_svc = ConfigServiceTonic::new(config_svc);
 
         let req = Request::new(WatchConfigRequest {
-            namespace: "system.auth".to_string(),
+            namespaces: vec!["system.auth".to_string()],
         });
         let result = tonic_svc.watch_config(req);
 
@@ -480,7 +479,7 @@ mod tests {
         let tonic_svc = ConfigServiceTonic::new(config_svc);
 
         let req = Request::new(WatchConfigRequest {
-            namespace: "system.auth".to_string(),
+            namespaces: vec!["system.auth".to_string()],
         });
         let result = tonic_svc.watch_config(req);
 

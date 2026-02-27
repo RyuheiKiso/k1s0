@@ -1,0 +1,30 @@
+replicaCount: 2
+
+image:
+  repository: k1s0/auth-server
+  pullPolicy: IfNotPresent
+  tag: ""
+
+service:
+  type: ClusterIP
+  httpPort: 8080
+  grpcPort: 50051
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+env:
+  ENVIRONMENT: production
+  RUST_LOG: info
+  CONFIG_PATH: /etc/auth-server/config.yaml
+
+configMap:
+  name: auth-server-config
+
+nameOverride: ""
+fullnameOverride: ""

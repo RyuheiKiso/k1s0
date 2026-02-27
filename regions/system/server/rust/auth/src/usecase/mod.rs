@@ -1,15 +1,25 @@
 pub mod check_permission;
+pub mod create_api_key;
+pub mod get_api_key;
 pub mod get_user;
 pub mod get_user_roles;
+pub mod list_api_keys;
 pub mod list_users;
 pub mod record_audit_log;
+pub mod revoke_api_key;
 pub mod search_audit_logs;
+pub mod validate_api_key;
 pub mod validate_token;
 
 pub use check_permission::CheckPermissionUseCase;
+pub use create_api_key::CreateApiKeyUseCase;
+pub use get_api_key::GetApiKeyUseCase;
 pub use get_user::GetUserUseCase;
 pub use get_user_roles::{GetUserRolesError, GetUserRolesUseCase};
+pub use list_api_keys::ListApiKeysUseCase;
 pub use list_users::ListUsersUseCase;
 pub use record_audit_log::RecordAuditLogUseCase;
+pub use revoke_api_key::RevokeApiKeyUseCase;
 pub use search_audit_logs::SearchAuditLogsUseCase;
+pub use validate_api_key::ValidateApiKeyUseCase;
 pub use validate_token::ValidateTokenUseCase;

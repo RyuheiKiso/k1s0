@@ -77,6 +77,11 @@ impl IntoResponse for UpdateConfigError {
                     ErrorResponse::new(codes::config::validation_failed().as_str(), &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             }
+            UpdateConfigError::SchemaValidation(msg) => {
+                let err =
+                    ErrorResponse::new(codes::config::validation_failed().as_str(), &msg);
+                (StatusCode::BAD_REQUEST, Json(err)).into_response()
+            }
             UpdateConfigError::Internal(msg) => {
                 let err = ErrorResponse::new(codes::config::internal_error().as_str(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()

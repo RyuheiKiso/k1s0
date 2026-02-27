@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 
+use chrono::{DateTime, Utc};
 use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::apiregistry::v1::{
@@ -32,6 +33,15 @@ impl From<GrpcError> for Status {
     }
 }
 
+// --- chrono -> prost_types::Timestamp conversion ---
+
+fn to_proto_timestamp(dt: &DateTime<Utc>) -> Option<prost_types::Timestamp> {
+    Some(prost_types::Timestamp {
+        seconds: dt.timestamp(),
+        nanos: dt.timestamp_subsec_nanos() as i32,
+    })
+}
+
 // --- tonic wrapper ---
 
 pub struct ApiRegistryServiceTonic {
@@ -55,13 +65,13 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
         let resp = self.inner.get_schema(req).await.map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoGetSchemaResponse {
             schema: Some(ApiSchemaProto {
-                name: resp.name,
+                name: resp.name.clone(),
                 description: resp.description,
                 schema_type: resp.schema_type,
                 latest_version: resp.latest_version,
                 version_count: resp.version_count,
-                created_at: None,
-                updated_at: None,
+                created_at: to_proto_timestamp(&resp.created_at),
+                updated_at: to_proto_timestamp(&resp.updated_at),
             }),
             latest_content: String::new(),
         }))
@@ -79,14 +89,14 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
         let resp = self.inner.get_schema_version(req).await.map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoGetSchemaVersionResponse {
             version: Some(ApiSchemaVersionProto {
-                name: resp.name,
+                name: resp.name.clone(),
                 version: resp.version,
                 schema_type: resp.schema_type,
                 content: resp.content,
                 content_hash: resp.content_hash,
                 breaking_changes: resp.breaking_changes,
                 registered_by: resp.registered_by,
-                created_at: None,
+                created_at: to_proto_timestamp(&resp.created_at),
             }),
         }))
     }

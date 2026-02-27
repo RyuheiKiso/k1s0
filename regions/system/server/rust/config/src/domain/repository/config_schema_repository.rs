@@ -9,6 +9,10 @@ pub trait ConfigSchemaRepository: Send + Sync {
     /// service_name で設定スキーマを取得する。
     async fn find_by_service_name(&self, service_name: &str) -> anyhow::Result<Option<ConfigSchema>>;
 
+    /// namespace プレフィックスに一致するスキーマを取得する。
+    /// 指定された namespace がスキーマの namespace_prefix で始まるものを返す。
+    async fn find_by_namespace(&self, namespace: &str) -> anyhow::Result<Option<ConfigSchema>>;
+
     /// 全ての設定スキーマを一覧取得する。
     async fn list_all(&self) -> anyhow::Result<Vec<ConfigSchema>>;
 

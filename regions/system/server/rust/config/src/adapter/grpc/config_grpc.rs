@@ -316,6 +316,9 @@ impl ConfigGrpcService {
                 ns, key
             ))),
             Err(UpdateConfigError::Validation(msg)) => Err(GrpcError::InvalidArgument(msg)),
+            Err(UpdateConfigError::SchemaValidation(msg)) => {
+                Err(GrpcError::InvalidArgument(msg))
+            }
             Err(UpdateConfigError::VersionConflict { expected, current }) => {
                 Err(GrpcError::InvalidArgument(format!(
                     "version conflict: expected={}, current={}",
@@ -371,12 +374,12 @@ impl ConfigGrpcService {
         match &self.watch_sender {
             Some(sender) => {
                 let receiver = sender.subscribe();
-                let namespace_filter = if req.namespace.is_empty() {
-                    None
-                } else {
-                    Some(req.namespace)
-                };
-                Ok(WatchConfigStreamHandler::new(receiver, namespace_filter))
+                let namespace_filters: Vec<String> = req
+                    .namespaces
+                    .into_iter()
+                    .filter(|ns| !ns.is_empty())
+                    .collect();
+                Ok(WatchConfigStreamHandler::new(receiver, namespace_filters))
             }
             None => Err(GrpcError::Internal(
                 "watch_config is not enabled on this server".to_string(),
@@ -832,7 +835,7 @@ mod tests {
         let svc = make_config_service(mock);
 
         let req = WatchConfigRequest {
-            namespace: "system.auth".to_string(),
+            namespaces: vec!["system.auth".to_string()],
         };
         let result = svc.watch_config(req);
 
@@ -849,7 +852,7 @@ mod tests {
         let (svc, _tx) = make_config_service_with_watch(mock);
 
         let req = WatchConfigRequest {
-            namespace: "system.auth".to_string(),
+            namespaces: vec!["system.auth".to_string()],
         };
         let result = svc.watch_config(req);
 
@@ -862,7 +865,7 @@ mod tests {
         let (svc, tx) = make_config_service_with_watch(mock);
 
         let req = WatchConfigRequest {
-            namespace: "system.auth".to_string(),
+            namespaces: vec!["system.auth".to_string()],
         };
         let mut handler = svc.watch_config(req).unwrap();
 
@@ -888,7 +891,7 @@ mod tests {
         let (svc, tx) = make_config_service_with_watch(mock);
 
         let req = WatchConfigRequest {
-            namespace: String::new(), // 空 = フィルタなし
+            namespaces: vec![], // 空 = フィルタなし
         };
         let mut handler = svc.watch_config(req).unwrap();
 
