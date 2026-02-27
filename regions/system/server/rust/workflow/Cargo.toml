@@ -30,6 +30,7 @@ tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "migrate"] }
 rdkafka = { version = "0.36", features = ["cmake-build"] }
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
+k1s0-auth = { path = "../../../library/rust/auth" }
 
 [build-dependencies]
 tonic-build = "0.12"
@@ -38,3 +39,4 @@ tonic-build = "0.12"
 mockall = "0.13"
 tokio-test = "0.4"
 axum-test = "16"
+tower = { version = "0.5", features = ["util"] }

@@ -118,11 +118,14 @@ async fn main() -> anyhow::Result<()> {
         };
 
     // Use cases
-    let execute_saga_uc = Arc::new(usecase::ExecuteSagaUseCase::new(
-        saga_repo.clone(),
-        grpc_caller.clone(),
-        publisher,
-    ));
+    let execute_saga_uc = Arc::new(
+        usecase::ExecuteSagaUseCase::new(
+            saga_repo.clone(),
+            grpc_caller.clone(),
+            publisher,
+        )
+        .with_workflow_repo(workflow_repo.clone() as Arc<dyn domain::repository::WorkflowRepository>),
+    );
 
     let start_saga_uc = Arc::new(usecase::StartSagaUseCase::new(
         saga_repo.clone(),
@@ -151,16 +154,38 @@ async fn main() -> anyhow::Result<()> {
         info!(count = recovered, "sagas recovered at startup");
     }
 
+    // Token verifier (JWKS verifier if auth configured)
+    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for saga-server");
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &auth_cfg.jwks_url,
+            &auth_cfg.issuer,
+            &auth_cfg.audience,
+            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+        ));
+        Some(adapter::middleware::auth::SagaAuthState {
+            verifier: jwks_verifier,
+        })
+    } else {
+        info!("no auth configured, saga-server running without authentication");
+        None
+    };
+
     // AppState (REST handler用)
-    let state = AppState {
+    let mut state = AppState {
         start_saga_uc,
         get_saga_uc,
         list_sagas_uc,
         cancel_saga_uc,
+        execute_saga_uc: execute_saga_uc.clone(),
         register_workflow_uc,
         list_workflows_uc,
         metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-saga-server")),
+        auth_state: None,
     };
+    if let Some(auth_st) = auth_state {
+        state = state.with_auth(auth_st);
+    }
 
     // gRPC service
     let saga_grpc_svc = Arc::new(SagaGrpcService::new(

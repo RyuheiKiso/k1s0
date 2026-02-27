@@ -27,8 +27,25 @@ async-trait = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
+k1s0-auth = { path = "../../../library/rust/auth" }
+
+# gRPC
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+
+# S3
+aws-sdk-s3 = "1"
+aws-config = "1"
+
+# Kafka
+rdkafka = { version = "0.36", features = ["cmake-build"] }
+
+[build-dependencies]
+tonic-build = "0.12"
 
 [dev-dependencies]
 mockall = "0.13"
 tokio-test = "0.4"
 axum-test = "16"
+tower = { version = "0.5", features = ["util"] }

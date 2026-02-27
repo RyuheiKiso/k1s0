@@ -132,15 +132,36 @@ async fn main() -> anyhow::Result<()> {
     ));
     let dlq_tonic = DlqServiceTonic::new(dlq_grpc_service);
 
+    // Token verifier (JWKS verifier if auth configured)
+    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for dlq-manager");
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &auth_cfg.jwks_url,
+            &auth_cfg.issuer,
+            &auth_cfg.audience,
+            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+        ));
+        Some(adapter::middleware::auth::DlqAuthState {
+            verifier: jwks_verifier,
+        })
+    } else {
+        info!("no auth configured, dlq-manager running without authentication");
+        None
+    };
+
     // AppState
-    let state = AppState {
+    let mut state = AppState {
         list_messages_uc,
         get_message_uc,
         retry_message_uc,
         delete_message_uc,
         retry_all_uc,
         metrics: metrics.clone(),
+        auth_state: None,
     };
+    if let Some(auth_st) = auth_state {
+        state = state.with_auth(auth_st);
+    }
 
     // Router
     let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics));

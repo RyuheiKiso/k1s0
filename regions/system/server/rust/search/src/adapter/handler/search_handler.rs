@@ -14,6 +14,8 @@ use crate::usecase::{
     SearchUseCase,
 };
 
+use crate::adapter::middleware::auth::SearchAuthState;
+
 #[derive(Clone)]
 pub struct AppState {
     pub search_uc: Arc<SearchUseCase>,
@@ -22,6 +24,14 @@ pub struct AppState {
     pub create_index_uc: Arc<CreateIndexUseCase>,
     pub list_indices_uc: Arc<ListIndicesUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    pub auth_state: Option<SearchAuthState>,
+}
+
+impl AppState {
+    pub fn with_auth(mut self, auth_state: SearchAuthState) -> Self {
+        self.auth_state = Some(auth_state);
+        self
+    }
 }
 
 // --- Request / Response DTOs ---

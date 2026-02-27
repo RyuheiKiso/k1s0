@@ -19,6 +19,7 @@ use crate::usecase::list_tasks::{ListTasksError, ListTasksInput};
 use crate::usecase::approve_task::{ApproveTaskError, ApproveTaskInput};
 use crate::usecase::reject_task::{RejectTaskError, RejectTaskInput};
 use crate::usecase::reassign_task::{ReassignTaskError, ReassignTaskInput};
+use crate::adapter::middleware::auth::WorkflowAuthState;
 use crate::usecase::{
     ApproveTaskUseCase, CancelInstanceUseCase, CreateWorkflowUseCase, DeleteWorkflowUseCase,
     GetInstanceUseCase, GetWorkflowUseCase, ListInstancesUseCase, ListTasksUseCase,
@@ -42,6 +43,14 @@ pub struct AppState {
     pub reject_task_uc: Arc<RejectTaskUseCase>,
     pub reassign_task_uc: Arc<ReassignTaskUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    pub auth_state: Option<WorkflowAuthState>,
+}
+
+impl AppState {
+    pub fn with_auth(mut self, auth_state: WorkflowAuthState) -> Self {
+        self.auth_state = Some(auth_state);
+        self
+    }
 }
 
 // --- Request / Response DTOs ---

@@ -9,6 +9,8 @@ use axum::response::IntoResponse;
 use axum::routing::{delete, get, post, put};
 use axum::Router;
 
+use crate::adapter::middleware::auth::{auth_middleware, NotificationAuthState};
+use crate::adapter::middleware::rbac::require_permission;
 use crate::domain::repository::NotificationLogRepository;
 use crate::usecase::{
     CreateChannelUseCase, CreateTemplateUseCase, DeleteChannelUseCase, DeleteTemplateUseCase,
@@ -34,73 +36,165 @@ pub struct AppState {
     pub update_template_uc: Arc<UpdateTemplateUseCase>,
     pub delete_template_uc: Arc<DeleteTemplateUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    pub auth_state: Option<NotificationAuthState>,
+}
+
+impl AppState {
+    pub fn with_auth(mut self, auth_state: NotificationAuthState) -> Self {
+        self.auth_state = Some(auth_state);
+        self
+    }
 }
 
 /// Build the REST API router.
 pub fn router(state: AppState) -> Router {
-    Router::new()
+    let public_routes = Router::new()
         .route("/healthz", get(health::healthz))
         .route("/readyz", get(health::readyz))
-        .route("/metrics", get(metrics_handler))
-        // Notifications
-        .route(
-            "/api/v1/notifications",
-            post(notification_handler::send_notification),
-        )
-        .route(
-            "/api/v1/notifications",
-            get(notification_handler::list_notifications),
-        )
-        .route(
-            "/api/v1/notifications/:id",
-            get(notification_handler::get_notification),
-        )
-        .route(
-            "/api/v1/notifications/:id/retry",
-            post(notification_handler::retry_notification),
-        )
-        // Channels
-        .route(
-            "/api/v1/channels",
-            post(notification_handler::create_channel),
-        )
-        .route(
-            "/api/v1/channels",
-            get(notification_handler::list_channels),
-        )
-        .route(
-            "/api/v1/channels/:id",
-            get(notification_handler::get_channel),
-        )
-        .route(
-            "/api/v1/channels/:id",
-            put(notification_handler::update_channel),
-        )
-        .route(
-            "/api/v1/channels/:id",
-            delete(notification_handler::delete_channel),
-        )
-        // Templates
-        .route(
-            "/api/v1/templates",
-            post(notification_handler::create_template),
-        )
-        .route(
-            "/api/v1/templates",
-            get(notification_handler::list_templates),
-        )
-        .route(
-            "/api/v1/templates/:id",
-            get(notification_handler::get_template),
-        )
-        .route(
-            "/api/v1/templates/:id",
-            put(notification_handler::update_template),
-        )
-        .route(
-            "/api/v1/templates/:id",
-            delete(notification_handler::delete_template),
-        )
+        .route("/metrics", get(metrics_handler));
+
+    let api_routes = if let Some(ref auth_state) = state.auth_state {
+        // GET -> notifications/read
+        let read_routes = Router::new()
+            .route(
+                "/api/v1/notifications",
+                get(notification_handler::list_notifications),
+            )
+            .route(
+                "/api/v1/notifications/:id",
+                get(notification_handler::get_notification),
+            )
+            .route(
+                "/api/v1/channels",
+                get(notification_handler::list_channels),
+            )
+            .route(
+                "/api/v1/channels/:id",
+                get(notification_handler::get_channel),
+            )
+            .route(
+                "/api/v1/templates",
+                get(notification_handler::list_templates),
+            )
+            .route(
+                "/api/v1/templates/:id",
+                get(notification_handler::get_template),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "notifications", "read",
+            )));
+
+        // POST/PUT/retry/DELETE -> notifications/write
+        let write_routes = Router::new()
+            .route(
+                "/api/v1/notifications",
+                post(notification_handler::send_notification),
+            )
+            .route(
+                "/api/v1/notifications/:id/retry",
+                post(notification_handler::retry_notification),
+            )
+            .route(
+                "/api/v1/channels",
+                post(notification_handler::create_channel),
+            )
+            .route(
+                "/api/v1/channels/:id",
+                put(notification_handler::update_channel),
+            )
+            .route(
+                "/api/v1/channels/:id",
+                delete(notification_handler::delete_channel),
+            )
+            .route(
+                "/api/v1/templates",
+                post(notification_handler::create_template),
+            )
+            .route(
+                "/api/v1/templates/:id",
+                put(notification_handler::update_template),
+            )
+            .route(
+                "/api/v1/templates/:id",
+                delete(notification_handler::delete_template),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "notifications", "write",
+            )));
+
+        Router::new()
+            .merge(read_routes)
+            .merge(write_routes)
+            .layer(axum::middleware::from_fn_with_state(
+                auth_state.clone(),
+                auth_middleware,
+            ))
+    } else {
+        Router::new()
+            // Notifications
+            .route(
+                "/api/v1/notifications",
+                post(notification_handler::send_notification),
+            )
+            .route(
+                "/api/v1/notifications",
+                get(notification_handler::list_notifications),
+            )
+            .route(
+                "/api/v1/notifications/:id",
+                get(notification_handler::get_notification),
+            )
+            .route(
+                "/api/v1/notifications/:id/retry",
+                post(notification_handler::retry_notification),
+            )
+            // Channels
+            .route(
+                "/api/v1/channels",
+                post(notification_handler::create_channel),
+            )
+            .route(
+                "/api/v1/channels",
+                get(notification_handler::list_channels),
+            )
+            .route(
+                "/api/v1/channels/:id",
+                get(notification_handler::get_channel),
+            )
+            .route(
+                "/api/v1/channels/:id",
+                put(notification_handler::update_channel),
+            )
+            .route(
+                "/api/v1/channels/:id",
+                delete(notification_handler::delete_channel),
+            )
+            // Templates
+            .route(
+                "/api/v1/templates",
+                post(notification_handler::create_template),
+            )
+            .route(
+                "/api/v1/templates",
+                get(notification_handler::list_templates),
+            )
+            .route(
+                "/api/v1/templates/:id",
+                get(notification_handler::get_template),
+            )
+            .route(
+                "/api/v1/templates/:id",
+                put(notification_handler::update_template),
+            )
+            .route(
+                "/api/v1/templates/:id",
+                delete(notification_handler::delete_template),
+            )
+    };
+
+    Router::new()
+        .merge(public_routes)
+        .merge(api_routes)
         .with_state(state)
 }
 

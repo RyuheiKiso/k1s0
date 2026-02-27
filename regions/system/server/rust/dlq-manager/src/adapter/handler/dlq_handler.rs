@@ -282,6 +282,7 @@ mod tests {
             delete_message_uc: Arc::new(DeleteMessageUseCase::new(repo.clone())),
             retry_all_uc: Arc::new(RetryAllUseCase::new(repo, None)),
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-dlq-manager")),
+            auth_state: None,
         }
     }
 

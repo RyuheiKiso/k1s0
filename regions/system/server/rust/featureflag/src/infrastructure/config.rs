@@ -8,6 +8,8 @@ pub struct Config {
     #[serde(default)]
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
+    pub auth: Option<AuthConfig>,
+    #[serde(default)]
     pub kafka: Option<KafkaConfig>,
     #[serde(default)]
     pub cache: CacheConfig,
@@ -134,6 +136,20 @@ impl Default for CacheConfig {
             ttl_seconds: default_ttl_seconds(),
         }
     }
+}
+
+/// AuthConfig は JWT 認証の設定を表す。
+#[derive(Debug, Clone, Deserialize)]
+pub struct AuthConfig {
+    pub jwks_url: String,
+    pub issuer: String,
+    pub audience: String,
+    #[serde(default = "default_jwks_cache_ttl_secs")]
+    pub jwks_cache_ttl_secs: u64,
+}
+
+fn default_jwks_cache_ttl_secs() -> u64 {
+    3600
 }
 
 fn default_max_entries() -> u64 {

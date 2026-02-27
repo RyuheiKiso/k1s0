@@ -13,6 +13,20 @@ fn default_redis_url() -> String {
     "redis://127.0.0.1:6379".to_string()
 }
 
+/// AuthConfig は JWT 認証設定を表す。
+#[derive(Debug, Clone, Deserialize)]
+pub struct AuthConfig {
+    pub jwks_url: String,
+    pub issuer: String,
+    pub audience: String,
+    #[serde(default = "default_jwks_cache_ttl_secs")]
+    pub jwks_cache_ttl_secs: u64,
+}
+
+fn default_jwks_cache_ttl_secs() -> u64 {
+    3600
+}
+
 /// Application configuration.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
@@ -22,6 +36,8 @@ pub struct Config {
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
     pub redis: Option<RedisConfig>,
+    #[serde(default)]
+    pub auth: Option<AuthConfig>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

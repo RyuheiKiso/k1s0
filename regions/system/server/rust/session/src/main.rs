@@ -87,13 +87,17 @@ impl SessionRepository for InMemorySessionRepository {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive("info".parse().unwrap()),
-        )
-        .json()
-        .init();
+    // Telemetry
+    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
+        service_name: "k1s0-session-server".to_string(),
+        version: "0.1.0".to_string(),
+        tier: "system".to_string(),
+        environment: std::env::var("ENVIRONMENT").unwrap_or_else(|_| "dev".to_string()),
+        trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
+        sample_rate: 1.0,
+        log_level: "info".to_string(),
+    };
+    k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
@@ -153,6 +157,29 @@ async fn main() -> anyhow::Result<()> {
     let list_uc = Arc::new(usecase::ListUserSessionsUseCase::new(repo.clone()));
     let revoke_all_uc = Arc::new(usecase::RevokeAllSessionsUseCase::new(repo));
 
+    // --- Kafka consumer (optional, background task) ---
+    if let Some(ref kafka_cfg) = cfg.kafka {
+        match infrastructure::kafka_consumer::SessionKafkaConsumer::new(
+            kafka_cfg,
+            revoke_all_uc.clone(),
+        ) {
+            Ok(consumer) => {
+                let consumer = consumer.with_metrics(
+                    Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-session-server")),
+                );
+                info!("kafka consumer initialized, starting background ingestion");
+                tokio::spawn(async move {
+                    if let Err(e) = consumer.run().await {
+                        tracing::error!(error = %e, "kafka consumer stopped with error");
+                    }
+                });
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "failed to create kafka consumer");
+            }
+        }
+    }
+
     let grpc_svc = Arc::new(SessionGrpcService::new(
         create_uc.clone(),
         get_uc.clone(),
@@ -179,39 +206,125 @@ async fn main() -> anyhow::Result<()> {
     let _metadata_repo = metadata_repo;
     let _event_publisher = event_publisher;
 
-    let state = adapter::handler::session_handler::AppState {
+    // Token verifier (JWKS verifier if auth configured)
+    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for session-server");
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &auth_cfg.jwks_url,
+            &auth_cfg.issuer,
+            &auth_cfg.audience,
+            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+        ));
+        Some(adapter::middleware::auth::SessionAuthState {
+            verifier: jwks_verifier,
+        })
+    } else {
+        info!("no auth configured, session-server running without authentication");
+        None
+    };
+
+    let mut state = adapter::handler::session_handler::AppState {
         create_uc,
         get_uc,
         refresh_uc,
         revoke_uc,
         list_uc,
         revoke_all_uc,
-        metrics,
+        metrics: metrics.clone(),
+        auth_state: None,
     };
+    if let Some(auth_st) = auth_state {
+        state = state.with_auth(auth_st);
+    }
 
-    let app = axum::Router::new()
+    // 認証不要のエンドポイント
+    let public_routes = axum::Router::new()
         .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
         .route("/readyz", axum::routing::get(adapter::handler::health::readyz))
-        .route("/metrics", axum::routing::get(metrics_handler))
-        .route(
-            "/api/v1/sessions",
-            axum::routing::post(adapter::handler::session_handler::create_session),
-        )
-        .route(
-            "/api/v1/sessions/:id",
-            axum::routing::get(adapter::handler::session_handler::get_session)
-                .delete(adapter::handler::session_handler::revoke_session),
-        )
-        .route(
-            "/api/v1/sessions/:id/refresh",
-            axum::routing::post(adapter::handler::session_handler::refresh_session),
-        )
-        .route(
-            "/api/v1/users/:user_id/sessions",
-            axum::routing::get(adapter::handler::session_handler::list_user_sessions)
-                .delete(adapter::handler::session_handler::revoke_all_sessions),
-        )
-        .with_state(state);
+        .route("/metrics", axum::routing::get(metrics_handler));
+
+    // 認証が設定されている場合は RBAC 付きルーティング
+    use adapter::middleware::auth::auth_middleware;
+    use adapter::middleware::rbac::require_permission;
+
+    let api_routes = if let Some(ref auth_st) = state.auth_state {
+        // GET -> sessions/read
+        let read_routes = axum::Router::new()
+            .route(
+                "/api/v1/sessions/:id",
+                axum::routing::get(adapter::handler::session_handler::get_session),
+            )
+            .route(
+                "/api/v1/users/:user_id/sessions",
+                axum::routing::get(adapter::handler::session_handler::list_user_sessions),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "sessions", "read",
+            )));
+
+        // POST/refresh -> sessions/write
+        let write_routes = axum::Router::new()
+            .route(
+                "/api/v1/sessions",
+                axum::routing::post(adapter::handler::session_handler::create_session),
+            )
+            .route(
+                "/api/v1/sessions/:id/refresh",
+                axum::routing::post(adapter::handler::session_handler::refresh_session),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "sessions", "write",
+            )));
+
+        // DELETE -> sessions/admin
+        let admin_routes = axum::Router::new()
+            .route(
+                "/api/v1/sessions/:id",
+                axum::routing::delete(adapter::handler::session_handler::revoke_session),
+            )
+            .route(
+                "/api/v1/users/:user_id/sessions",
+                axum::routing::delete(adapter::handler::session_handler::revoke_all_sessions),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "sessions", "admin",
+            )));
+
+        axum::Router::new()
+            .merge(read_routes)
+            .merge(write_routes)
+            .merge(admin_routes)
+            .layer(axum::middleware::from_fn_with_state(
+                auth_st.clone(),
+                auth_middleware,
+            ))
+    } else {
+        // 認証なし（dev モード / テスト）
+        axum::Router::new()
+            .route(
+                "/api/v1/sessions",
+                axum::routing::post(adapter::handler::session_handler::create_session),
+            )
+            .route(
+                "/api/v1/sessions/:id",
+                axum::routing::get(adapter::handler::session_handler::get_session)
+                    .delete(adapter::handler::session_handler::revoke_session),
+            )
+            .route(
+                "/api/v1/sessions/:id/refresh",
+                axum::routing::post(adapter::handler::session_handler::refresh_session),
+            )
+            .route(
+                "/api/v1/users/:user_id/sessions",
+                axum::routing::get(adapter::handler::session_handler::list_user_sessions)
+                    .delete(adapter::handler::session_handler::revoke_all_sessions),
+            )
+    };
+
+    let app = public_routes
+        .merge(api_routes)
+        .with_state(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC service
     use proto::k1s0::system::session::v1::session_service_server::SessionServiceServer;
@@ -221,8 +334,10 @@ async fn main() -> anyhow::Result<()> {
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], 9090).into();
     info!("gRPC server starting on {}", grpc_addr);
 
+    let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(SessionServiceServer::new(session_tonic))
             .serve(grpc_addr)
             .await

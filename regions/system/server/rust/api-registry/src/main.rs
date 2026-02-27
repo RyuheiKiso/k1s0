@@ -136,8 +136,25 @@ async fn main() -> anyhow::Result<()> {
         "k1s0-api-registry-server",
     ));
 
+    // Token verifier (JWKS verifier if auth configured)
+    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for api-registry");
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &auth_cfg.jwks_url,
+            &auth_cfg.issuer,
+            &auth_cfg.audience,
+            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+        ));
+        Some(k1s0_api_registry_server::adapter::middleware::auth::ApiRegistryAuthState {
+            verifier: jwks_verifier,
+        })
+    } else {
+        info!("no auth configured, api-registry running without authentication");
+        None
+    };
+
     // REST app state
-    let state = adapter::handler::AppState {
+    let mut state = adapter::handler::AppState {
         list_schemas_uc,
         register_schema_uc,
         get_schema_uc: get_schema_uc.clone(),
@@ -148,7 +165,11 @@ async fn main() -> anyhow::Result<()> {
         check_compatibility_uc: check_compatibility_uc.clone(),
         get_diff_uc,
         metrics: metrics.clone(),
+        auth_state: None,
     };
+    if let Some(auth_st) = auth_state {
+        state = state.with_auth(auth_st);
+    }
 
     let app = adapter::handler::router(state)
         .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
@@ -166,8 +187,10 @@ async fn main() -> anyhow::Result<()> {
     let grpc_addr: SocketAddr = format!("0.0.0.0:{}", grpc_port).parse()?;
     info!("gRPC server starting on {}", grpc_addr);
 
+    let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(ApiRegistryServiceServer::new(tonic_svc))
             .serve(grpc_addr)
             .await

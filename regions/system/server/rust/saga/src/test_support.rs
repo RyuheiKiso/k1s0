@@ -192,16 +192,19 @@ pub fn make_test_app_state(
     let grpc_caller: Arc<dyn GrpcStepCaller> = Arc::new(NoOpGrpcCaller);
     let publisher: Option<Arc<dyn SagaEventPublisher>> = None;
 
-    let execute_saga_uc = Arc::new(crate::usecase::ExecuteSagaUseCase::new(
-        saga_repo.clone(),
-        grpc_caller,
-        publisher,
-    ));
+    let execute_saga_uc = Arc::new(
+        crate::usecase::ExecuteSagaUseCase::new(
+            saga_repo.clone(),
+            grpc_caller,
+            publisher,
+        )
+        .with_workflow_repo(workflow_repo.clone()),
+    );
 
     let start_saga_uc = Arc::new(crate::usecase::StartSagaUseCase::new(
         saga_repo.clone(),
         workflow_repo.clone(),
-        execute_saga_uc,
+        execute_saga_uc.clone(),
     ));
     let get_saga_uc = Arc::new(crate::usecase::GetSagaUseCase::new(saga_repo.clone()));
     let list_sagas_uc = Arc::new(crate::usecase::ListSagasUseCase::new(saga_repo.clone()));
@@ -216,8 +219,10 @@ pub fn make_test_app_state(
         get_saga_uc,
         list_sagas_uc,
         cancel_saga_uc,
+        execute_saga_uc,
         register_workflow_uc,
         list_workflows_uc,
         metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("test")),
+        auth_state: None,
     }
 }

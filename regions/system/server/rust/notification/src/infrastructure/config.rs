@@ -8,6 +8,8 @@ pub struct Config {
     #[serde(default)]
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
+    pub auth: Option<AuthConfig>,
+    #[serde(default)]
     pub kafka: Option<KafkaConfig>,
     #[serde(default)]
     pub notification: NotificationConfig,
@@ -125,6 +127,20 @@ fn default_security_protocol() -> String {
 
 fn default_consumer_group() -> String {
     "notification-server-consumer".to_string()
+}
+
+/// AuthConfig は JWT 認証の設定を表す。
+#[derive(Debug, Clone, Deserialize)]
+pub struct AuthConfig {
+    pub jwks_url: String,
+    pub issuer: String,
+    pub audience: String,
+    #[serde(default = "default_jwks_cache_ttl_secs")]
+    pub jwks_cache_ttl_secs: u64,
+}
+
+fn default_jwks_cache_ttl_secs() -> u64 {
+    3600
 }
 
 /// NotificationConfig は通知サービス固有の設定を表す。

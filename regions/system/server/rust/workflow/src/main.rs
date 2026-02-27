@@ -128,7 +128,24 @@ async fn main() -> anyhow::Result<()> {
         "k1s0-workflow-server",
     ));
 
-    let handler_state = adapter::handler::AppState {
+    // Token verifier (JWKS verifier if auth configured)
+    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for workflow-server");
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &auth_cfg.jwks_url,
+            &auth_cfg.issuer,
+            &auth_cfg.audience,
+            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+        ));
+        Some(adapter::middleware::auth::WorkflowAuthState {
+            verifier: jwks_verifier,
+        })
+    } else {
+        info!("no auth configured, workflow-server running without authentication");
+        None
+    };
+
+    let mut handler_state = adapter::handler::AppState {
         create_workflow_uc: create_wf_uc,
         update_workflow_uc: update_wf_uc,
         delete_workflow_uc: delete_wf_uc,
@@ -142,10 +159,15 @@ async fn main() -> anyhow::Result<()> {
         approve_task_uc,
         reject_task_uc,
         reassign_task_uc,
-        metrics,
+        metrics: metrics.clone(),
+        auth_state: None,
     };
+    if let Some(auth_st) = auth_state {
+        handler_state = handler_state.with_auth(auth_st);
+    }
 
-    let app = adapter::handler::router(handler_state);
+    let app = adapter::handler::router(handler_state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
     info!("REST server starting on {}", rest_addr);
@@ -158,8 +180,10 @@ async fn main() -> anyhow::Result<()> {
     let grpc_addr: SocketAddr = "0.0.0.0:9090".parse()?;
     info!("gRPC server starting on {}", grpc_addr);
 
+    let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(WorkflowServiceServer::new(workflow_tonic))
             .serve(grpc_addr)
             .await

@@ -50,6 +50,9 @@ tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 # Telemetry library
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
 
+# Auth library
+k1s0-auth = { path = "../../../library/rust/auth" }
+
 [features]
 db-tests = []
 

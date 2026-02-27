@@ -160,6 +160,29 @@ async fn main() -> anyhow::Result<()> {
     let update_template_uc = Arc::new(usecase::UpdateTemplateUseCase::new(template_repo.clone()));
     let delete_template_uc = Arc::new(usecase::DeleteTemplateUseCase::new(template_repo));
 
+    // --- Kafka consumer (optional, background task) ---
+    if let Some(ref kafka_cfg) = cfg.kafka {
+        match infrastructure::kafka_consumer::NotificationKafkaConsumer::new(
+            kafka_cfg,
+            send_notification_uc.clone(),
+        ) {
+            Ok(consumer) => {
+                let consumer = consumer.with_metrics(
+                    Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-notification-server")),
+                );
+                info!("kafka consumer initialized, starting background ingestion");
+                tokio::spawn(async move {
+                    if let Err(e) = consumer.run().await {
+                        tracing::error!(error = %e, "kafka consumer stopped with error");
+                    }
+                });
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "failed to create kafka consumer");
+            }
+        }
+    }
+
     let grpc_svc = Arc::new(NotificationGrpcService::new(
         send_notification_uc.clone(),
         log_repo.clone(),
@@ -177,7 +200,24 @@ async fn main() -> anyhow::Result<()> {
         "k1s0-notification-server",
     ));
 
-    let state = adapter::handler::AppState {
+    // Token verifier (JWKS verifier if auth configured)
+    let auth_state = if let Some(ref auth_cfg) = cfg.auth {
+        info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for notification-server");
+        let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
+            &auth_cfg.jwks_url,
+            &auth_cfg.issuer,
+            &auth_cfg.audience,
+            std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+        ));
+        Some(adapter::middleware::auth::NotificationAuthState {
+            verifier: jwks_verifier,
+        })
+    } else {
+        info!("no auth configured, notification-server running without authentication");
+        None
+    };
+
+    let mut state = adapter::handler::AppState {
         send_notification_uc,
         retry_notification_uc,
         log_repo,
@@ -191,14 +231,21 @@ async fn main() -> anyhow::Result<()> {
         get_template_uc,
         update_template_uc,
         delete_template_uc,
-        metrics,
+        metrics: metrics.clone(),
+        auth_state: None,
     };
+    if let Some(auth_st) = auth_state {
+        state = state.with_auth(auth_st);
+    }
 
-    let app = adapter::handler::router(state);
+    let app = adapter::handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
+    let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(NotificationServiceServer::new(notification_tonic))
             .serve(grpc_addr)
             .await
