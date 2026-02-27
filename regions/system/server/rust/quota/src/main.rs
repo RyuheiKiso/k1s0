@@ -15,7 +15,7 @@ mod usecase;
 
 use adapter::grpc::QuotaGrpcService;
 use domain::entity::quota::QuotaPolicy;
-use domain::repository::{QuotaPolicyRepository, QuotaUsageRepository};
+use domain::repository::{CheckAndIncrementResult, QuotaPolicyRepository, QuotaUsageRepository};
 use infrastructure::config::Config;
 
 #[tokio::main]
@@ -505,5 +505,27 @@ impl QuotaUsageRepository for InMemoryQuotaUsageRepository {
         let mut counters = self.counters.write().await;
         counters.insert(quota_id.to_string(), 0);
         Ok(())
+    }
+
+    async fn check_and_increment(
+        &self,
+        quota_id: &str,
+        amount: u64,
+        limit: u64,
+    ) -> anyhow::Result<CheckAndIncrementResult> {
+        let mut counters = self.counters.write().await;
+        let current = counters.entry(quota_id.to_string()).or_insert(0);
+        if *current + amount > limit {
+            Ok(CheckAndIncrementResult {
+                used: *current,
+                allowed: false,
+            })
+        } else {
+            *current += amount;
+            Ok(CheckAndIncrementResult {
+                used: *current,
+                allowed: true,
+            })
+        }
     }
 }

@@ -14,11 +14,14 @@ mod proto;
 mod usecase;
 
 use adapter::grpc::SchedulerGrpcService;
+use adapter::repository::scheduler_execution_postgres::SchedulerExecutionPostgresRepository;
 use adapter::repository::scheduler_job_postgres::SchedulerJobPostgresRepository;
+use domain::entity::scheduler_execution::SchedulerExecution;
 use domain::entity::scheduler_job::SchedulerJob;
-use domain::repository::SchedulerJobRepository;
+use domain::repository::{SchedulerExecutionRepository, SchedulerJobRepository};
 use infrastructure::cache::JobCache;
 use infrastructure::config::Config;
+use infrastructure::cron_engine::CronSchedulerEngine;
 use infrastructure::kafka_producer::{
     KafkaSchedulerProducer, NoopSchedulerEventPublisher, SchedulerEventPublisher,
 };
@@ -48,13 +51,29 @@ async fn main() -> anyhow::Result<()> {
     );
 
     // --- Repository: PostgreSQL or InMemory fallback ---
-    let job_repo: Arc<dyn SchedulerJobRepository> = if let Some(ref db_cfg) = cfg.database {
+    let (job_repo, execution_repo, distributed_lock): (
+        Arc<dyn SchedulerJobRepository>,
+        Arc<dyn SchedulerExecutionRepository>,
+        Arc<dyn k1s0_distributed_lock::DistributedLock>,
+    ) = if let Some(ref db_cfg) = cfg.database {
         info!("connecting to PostgreSQL: {}:{}/{}", db_cfg.host, db_cfg.port, db_cfg.name);
-        let pool = infrastructure::database::connect(db_cfg).await?;
-        Arc::new(SchedulerJobPostgresRepository::new(Arc::new(pool)))
+        let pool = Arc::new(infrastructure::database::connect(db_cfg).await?);
+        let pg_lock = k1s0_distributed_lock::PostgresDistributedLock::new(
+            pool.as_ref().clone(),
+        )
+        .with_prefix("scheduler");
+        (
+            Arc::new(SchedulerJobPostgresRepository::new(pool.clone())),
+            Arc::new(SchedulerExecutionPostgresRepository::new(pool)),
+            Arc::new(pg_lock),
+        )
     } else {
         info!("no database configured, using in-memory repository");
-        Arc::new(InMemorySchedulerJobRepository::new())
+        (
+            Arc::new(InMemorySchedulerJobRepository::new()),
+            Arc::new(InMemorySchedulerExecutionRepository::new()),
+            Arc::new(k1s0_distributed_lock::InMemoryDistributedLock::new()),
+        )
     };
 
     // --- Kafka: real or Noop fallback ---
@@ -77,12 +96,16 @@ async fn main() -> anyhow::Result<()> {
     let delete_job_uc = Arc::new(usecase::DeleteJobUseCase::new(job_repo.clone()));
     let trigger_job_uc = Arc::new(usecase::TriggerJobUseCase::with_publisher(
         job_repo.clone(),
+        execution_repo.clone(),
         event_publisher.clone(),
     ));
     let pause_job_uc = Arc::new(usecase::PauseJobUseCase::new(job_repo.clone()));
     let resume_job_uc = Arc::new(usecase::ResumeJobUseCase::new(job_repo.clone()));
     let update_job_uc = Arc::new(usecase::UpdateJobUseCase::new(job_repo.clone()));
-    let list_executions_uc = Arc::new(usecase::ListExecutionsUseCase::new(job_repo.clone()));
+    let list_executions_uc = Arc::new(usecase::ListExecutionsUseCase::new(
+        job_repo.clone(),
+        execution_repo.clone(),
+    ));
 
     let grpc_svc = Arc::new(SchedulerGrpcService::new(trigger_job_uc.clone()));
 
@@ -128,6 +151,15 @@ async fn main() -> anyhow::Result<()> {
     let app = adapter::handler::router(state)
         .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
+    // --- Cron Scheduler Engine ---
+    let cron_engine = CronSchedulerEngine::new(
+        job_repo.clone(),
+        execution_repo.clone(),
+        distributed_lock,
+    );
+    let _cron_handle = cron_engine.start();
+    info!("cron scheduler engine started");
+
     // gRPC server
     use proto::k1s0::system::scheduler::v1::scheduler_service_server::SchedulerServiceServer;
 
@@ -166,7 +198,10 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    // Graceful shutdown: close Kafka producer
+    // Graceful shutdown
+    cron_engine.stop();
+    info!("cron scheduler engine stopped");
+
     if let Err(e) = event_publisher.close().await {
         tracing::warn!("failed to close event publisher: {}", e);
     }
@@ -175,6 +210,56 @@ async fn main() -> anyhow::Result<()> {
 }
 
 // --- InMemory Repository (fallback) ---
+
+struct InMemorySchedulerExecutionRepository {
+    executions: tokio::sync::RwLock<HashMap<Uuid, SchedulerExecution>>,
+}
+
+impl InMemorySchedulerExecutionRepository {
+    fn new() -> Self {
+        Self {
+            executions: tokio::sync::RwLock::new(HashMap::new()),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl SchedulerExecutionRepository for InMemorySchedulerExecutionRepository {
+    async fn create(&self, execution: &SchedulerExecution) -> anyhow::Result<()> {
+        let mut execs = self.executions.write().await;
+        execs.insert(execution.id, execution.clone());
+        Ok(())
+    }
+
+    async fn find_by_job_id(&self, job_id: &Uuid) -> anyhow::Result<Vec<SchedulerExecution>> {
+        let execs = self.executions.read().await;
+        Ok(execs
+            .values()
+            .filter(|e| e.job_id == *job_id)
+            .cloned()
+            .collect())
+    }
+
+    async fn update_status(
+        &self,
+        id: &Uuid,
+        status: String,
+        error_message: Option<String>,
+    ) -> anyhow::Result<()> {
+        let mut execs = self.executions.write().await;
+        if let Some(exec) = execs.get_mut(id) {
+            exec.status = status;
+            exec.error_message = error_message;
+            exec.completed_at = Some(chrono::Utc::now());
+        }
+        Ok(())
+    }
+
+    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<SchedulerExecution>> {
+        let execs = self.executions.read().await;
+        Ok(execs.get(id).cloned())
+    }
+}
 
 struct InMemorySchedulerJobRepository {
     jobs: tokio::sync::RwLock<HashMap<Uuid, SchedulerJob>>,

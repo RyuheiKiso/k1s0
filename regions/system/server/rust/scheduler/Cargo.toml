@@ -36,6 +36,9 @@ utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "8", features = ["axum"] }
 rdkafka = { version = "0.36", features = ["cmake-build"] }
 moka = { version = "0.12", features = ["future"] }
+cron = "0.15"
+tokio-util = { version = "0.7", features = ["rt"] }
+k1s0-distributed-lock = { path = "../../../library/rust/distributed-lock", features = ["postgres"] }
 
 [build-dependencies]
 tonic-build = "0.12"

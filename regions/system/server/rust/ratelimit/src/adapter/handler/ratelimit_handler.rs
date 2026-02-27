@@ -343,6 +343,12 @@ pub struct UsageResponse {
     pub window_seconds: i64,
     pub algorithm: String,
     pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub used: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remaining: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reset_at: Option<i64>,
 }
 
 #[utoipa::path(
@@ -498,6 +504,9 @@ pub async fn get_usage(
                 window_seconds: info.window_seconds,
                 algorithm: info.algorithm,
                 enabled: info.enabled,
+                used: info.used,
+                remaining: info.remaining,
+                reset_at: info.reset_at,
             }),
         )
             .into_response(),

@@ -25,7 +25,11 @@ struct TenantRow {
     display_name: String,
     status: String,
     plan: String,
+    settings: serde_json::Value,
+    keycloak_realm: Option<String>,
+    db_schema: Option<String>,
     created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 fn status_from_str(s: &str) -> TenantStatus {
@@ -45,7 +49,11 @@ impl From<TenantRow> for Tenant {
             display_name: r.display_name,
             status: status_from_str(&r.status),
             plan: r.plan,
+            settings: r.settings,
+            keycloak_realm: r.keycloak_realm,
+            db_schema: r.db_schema,
             created_at: r.created_at,
+            updated_at: r.updated_at,
         }
     }
 }
@@ -54,7 +62,7 @@ impl From<TenantRow> for Tenant {
 impl TenantRepository for TenantPostgresRepository {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Tenant>> {
         let row: Option<TenantRow> = sqlx::query_as(
-            "SELECT id, name, display_name, status, plan, created_at \
+            "SELECT id, name, display_name, status, plan, settings, keycloak_realm, db_schema, created_at, updated_at \
              FROM tenant.tenants WHERE id = $1",
         )
         .bind(id)
@@ -65,7 +73,7 @@ impl TenantRepository for TenantPostgresRepository {
 
     async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<Tenant>> {
         let row: Option<TenantRow> = sqlx::query_as(
-            "SELECT id, name, display_name, status, plan, created_at \
+            "SELECT id, name, display_name, status, plan, settings, keycloak_realm, db_schema, created_at, updated_at \
              FROM tenant.tenants WHERE name = $1",
         )
         .bind(name)
@@ -79,7 +87,7 @@ impl TenantRepository for TenantPostgresRepository {
         let limit = page_size as i64;
 
         let rows: Vec<TenantRow> = sqlx::query_as(
-            "SELECT id, name, display_name, status, plan, created_at \
+            "SELECT id, name, display_name, status, plan, settings, keycloak_realm, db_schema, created_at, updated_at \
              FROM tenant.tenants ORDER BY created_at DESC LIMIT $1 OFFSET $2",
         )
         .bind(limit)
@@ -96,15 +104,19 @@ impl TenantRepository for TenantPostgresRepository {
 
     async fn create(&self, tenant: &Tenant) -> anyhow::Result<()> {
         sqlx::query(
-            "INSERT INTO tenant.tenants (id, name, display_name, status, plan, created_at) \
-             VALUES ($1, $2, $3, $4, $5, $6)",
+            "INSERT INTO tenant.tenants (id, name, display_name, status, plan, settings, keycloak_realm, db_schema, created_at, updated_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         )
         .bind(tenant.id)
         .bind(&tenant.name)
         .bind(&tenant.display_name)
         .bind(tenant.status.as_str())
         .bind(&tenant.plan)
+        .bind(&tenant.settings)
+        .bind(&tenant.keycloak_realm)
+        .bind(&tenant.db_schema)
         .bind(tenant.created_at)
+        .bind(tenant.updated_at)
         .execute(self.pool.as_ref())
         .await?;
         Ok(())
@@ -113,13 +125,16 @@ impl TenantRepository for TenantPostgresRepository {
     async fn update(&self, tenant: &Tenant) -> anyhow::Result<()> {
         sqlx::query(
             "UPDATE tenant.tenants \
-             SET display_name = $2, status = $3, plan = $4 \
+             SET display_name = $2, status = $3, plan = $4, settings = $5, keycloak_realm = $6, db_schema = $7 \
              WHERE id = $1",
         )
         .bind(tenant.id)
         .bind(&tenant.display_name)
         .bind(tenant.status.as_str())
         .bind(&tenant.plan)
+        .bind(&tenant.settings)
+        .bind(&tenant.keycloak_realm)
+        .bind(&tenant.db_schema)
         .execute(self.pool.as_ref())
         .await?;
         Ok(())
@@ -163,11 +178,17 @@ mod tests {
             display_name: "ACME Corporation".to_string(),
             status: "active".to_string(),
             plan: "professional".to_string(),
+            settings: serde_json::json!({}),
+            keycloak_realm: Some("acme".to_string()),
+            db_schema: None,
             created_at: Utc::now(),
+            updated_at: Utc::now(),
         };
         let tenant: Tenant = row.into();
         assert_eq!(tenant.name, "acme-corp");
         assert_eq!(tenant.status, TenantStatus::Active);
         assert_eq!(tenant.plan, "professional");
+        assert_eq!(tenant.keycloak_realm, Some("acme".to_string()));
+        assert_eq!(tenant.db_schema, None);
     }
 }

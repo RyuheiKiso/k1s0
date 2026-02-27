@@ -361,6 +361,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_session_success() {
         let mut mock = MockSessionRepository::new();
+        mock.expect_find_by_user_id().returning(|_| Ok(vec![]));
         mock.expect_save().returning(|_| Ok(()));
 
         let svc = make_service(mock);

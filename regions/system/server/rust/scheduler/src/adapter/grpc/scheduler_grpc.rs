@@ -99,16 +99,22 @@ impl SchedulerGrpcService {
 mod tests {
     use super::*;
     use crate::domain::entity::scheduler_job::SchedulerJob;
+    use crate::domain::repository::scheduler_execution_repository::MockSchedulerExecutionRepository;
     use crate::domain::repository::scheduler_job_repository::MockSchedulerJobRepository;
 
-    fn make_service(mock: MockSchedulerJobRepository) -> SchedulerGrpcService {
-        let repo = Arc::new(mock);
-        SchedulerGrpcService::new(Arc::new(TriggerJobUseCase::new(repo)))
+    fn make_service(
+        mock_job: MockSchedulerJobRepository,
+        mock_exec: MockSchedulerExecutionRepository,
+    ) -> SchedulerGrpcService {
+        let repo = Arc::new(mock_job);
+        let exec_repo = Arc::new(mock_exec);
+        SchedulerGrpcService::new(Arc::new(TriggerJobUseCase::new(repo, exec_repo)))
     }
 
     #[tokio::test]
     async fn test_trigger_job_success() {
-        let mut mock = MockSchedulerJobRepository::new();
+        let mut mock_job = MockSchedulerJobRepository::new();
+        let mut mock_exec = MockSchedulerExecutionRepository::new();
         let job = SchedulerJob::new(
             "test-job".to_string(),
             "* * * * *".to_string(),
@@ -117,12 +123,18 @@ mod tests {
         let job_id = job.id;
         let return_job = job.clone();
 
-        mock.expect_find_by_id()
+        mock_job
+            .expect_find_by_id()
             .withf(move |id| *id == job_id)
             .returning(move |_| Ok(Some(return_job.clone())));
-        mock.expect_update().returning(|_| Ok(()));
+        mock_job.expect_update().returning(|_| Ok(()));
 
-        let svc = make_service(mock);
+        mock_exec.expect_create().returning(|_| Ok(()));
+        mock_exec
+            .expect_update_status()
+            .returning(|_, _, _| Ok(()));
+
+        let svc = make_service(mock_job, mock_exec);
         let req = TriggerJobRequest {
             job_id: job_id.to_string(),
         };
@@ -134,10 +146,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_trigger_job_not_found() {
-        let mut mock = MockSchedulerJobRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        let mut mock_job = MockSchedulerJobRepository::new();
+        let mock_exec = MockSchedulerExecutionRepository::new();
+        mock_job.expect_find_by_id().returning(|_| Ok(None));
 
-        let svc = make_service(mock);
+        let svc = make_service(mock_job, mock_exec);
         let req = TriggerJobRequest {
             job_id: uuid::Uuid::new_v4().to_string(),
         };
@@ -152,8 +165,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_trigger_job_invalid_id() {
-        let mock = MockSchedulerJobRepository::new();
-        let svc = make_service(mock);
+        let mock_job = MockSchedulerJobRepository::new();
+        let mock_exec = MockSchedulerExecutionRepository::new();
+        let svc = make_service(mock_job, mock_exec);
         let req = TriggerJobRequest {
             job_id: "not-a-uuid".to_string(),
         };
@@ -168,8 +182,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_job_execution_unimplemented() {
-        let mock = MockSchedulerJobRepository::new();
-        let svc = make_service(mock);
+        let mock_job = MockSchedulerJobRepository::new();
+        let mock_exec = MockSchedulerExecutionRepository::new();
+        let svc = make_service(mock_job, mock_exec);
         let req = GetJobExecutionRequest {
             execution_id: "exec-001".to_string(),
         };

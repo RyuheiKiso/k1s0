@@ -11,6 +11,7 @@ use axum::Router;
 
 use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::require_permission;
+use crate::adapter::middleware::spiffe::spiffe_auth_middleware;
 
 /// REST API router.
 pub fn router(state: AppState) -> Router {
@@ -69,11 +70,24 @@ pub fn router(state: AppState) -> Router {
                 "secrets", "admin",
             )));
 
-        Router::new()
+        let merged = Router::new()
             .merge(read_routes)
             .merge(write_routes)
-            .merge(admin_routes)
-            .layer(axum::middleware::from_fn_with_state(
+            .merge(admin_routes);
+
+        // SPIFFE ミドルウェアを RBAC の後、auth の前に適用
+        // axum のレイヤー順序: 最後に追加 = リクエスト時に最初に実行
+        // 実行順: auth → SPIFFE → RBAC → handler
+        let merged = if let Some(ref spiffe_state) = state.spiffe_state {
+            merged.layer(axum::middleware::from_fn_with_state(
+                spiffe_state.clone(),
+                spiffe_auth_middleware,
+            ))
+        } else {
+            merged
+        };
+
+        merged.layer(axum::middleware::from_fn_with_state(
                 auth_state.clone(),
                 auth_middleware,
             ))

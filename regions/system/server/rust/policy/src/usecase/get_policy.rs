@@ -46,6 +46,8 @@ mod tests {
                     name: "test-policy".to_string(),
                     description: "Test".to_string(),
                     rego_content: "package test".to_string(),
+                    package_path: String::new(),
+                    bundle_id: None,
                     version: 1,
                     enabled: true,
                     created_at: chrono::Utc::now(),

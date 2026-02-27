@@ -3,7 +3,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::domain::entity::scheduler_execution::SchedulerExecution;
-use crate::domain::repository::SchedulerJobRepository;
+use crate::domain::repository::{SchedulerExecutionRepository, SchedulerJobRepository};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ListExecutionsError {
@@ -16,11 +16,18 @@ pub enum ListExecutionsError {
 
 pub struct ListExecutionsUseCase {
     repo: Arc<dyn SchedulerJobRepository>,
+    execution_repo: Arc<dyn SchedulerExecutionRepository>,
 }
 
 impl ListExecutionsUseCase {
-    pub fn new(repo: Arc<dyn SchedulerJobRepository>) -> Self {
-        Self { repo }
+    pub fn new(
+        repo: Arc<dyn SchedulerJobRepository>,
+        execution_repo: Arc<dyn SchedulerExecutionRepository>,
+    ) -> Self {
+        Self {
+            repo,
+            execution_repo,
+        }
     }
 
     pub async fn execute(
@@ -35,9 +42,10 @@ impl ListExecutionsUseCase {
             .map_err(|e| ListExecutionsError::Internal(e.to_string()))?
             .ok_or(ListExecutionsError::NotFound(*job_id))?;
 
-        // In-memory: return empty list for now. Real implementation would
-        // query an execution repository.
-        Ok(vec![])
+        self.execution_repo
+            .find_by_job_id(job_id)
+            .await
+            .map_err(|e| ListExecutionsError::Internal(e.to_string()))
     }
 }
 
@@ -45,11 +53,13 @@ impl ListExecutionsUseCase {
 mod tests {
     use super::*;
     use crate::domain::entity::scheduler_job::SchedulerJob;
+    use crate::domain::repository::scheduler_execution_repository::MockSchedulerExecutionRepository;
     use crate::domain::repository::scheduler_job_repository::MockSchedulerJobRepository;
 
     #[tokio::test]
     async fn success() {
-        let mut mock = MockSchedulerJobRepository::new();
+        let mut mock_job = MockSchedulerJobRepository::new();
+        let mut mock_exec = MockSchedulerExecutionRepository::new();
         let job = SchedulerJob::new(
             "test-job".to_string(),
             "* * * * *".to_string(),
@@ -58,11 +68,16 @@ mod tests {
         let job_id = job.id;
         let return_job = job.clone();
 
-        mock.expect_find_by_id()
+        mock_job
+            .expect_find_by_id()
             .withf(move |id| *id == job_id)
             .returning(move |_| Ok(Some(return_job.clone())));
 
-        let uc = ListExecutionsUseCase::new(Arc::new(mock));
+        mock_exec
+            .expect_find_by_job_id()
+            .returning(|_| Ok(vec![]));
+
+        let uc = ListExecutionsUseCase::new(Arc::new(mock_job), Arc::new(mock_exec));
         let result = uc.execute(&job_id).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
@@ -70,11 +85,12 @@ mod tests {
 
     #[tokio::test]
     async fn not_found() {
-        let mut mock = MockSchedulerJobRepository::new();
+        let mut mock_job = MockSchedulerJobRepository::new();
+        let mock_exec = MockSchedulerExecutionRepository::new();
         let missing_id = Uuid::new_v4();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock_job.expect_find_by_id().returning(|_| Ok(None));
 
-        let uc = ListExecutionsUseCase::new(Arc::new(mock));
+        let uc = ListExecutionsUseCase::new(Arc::new(mock_job), Arc::new(mock_exec));
         let result = uc.execute(&missing_id).await;
         assert!(result.is_err());
 

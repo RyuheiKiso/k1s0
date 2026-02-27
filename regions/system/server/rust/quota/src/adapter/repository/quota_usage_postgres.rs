@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use sqlx::PgPool;
 
+use crate::domain::repository::quota_repository::CheckAndIncrementResult;
 use crate::domain::repository::QuotaUsageRepository;
 
 pub struct QuotaUsagePostgresRepository {
@@ -71,5 +72,43 @@ impl QuotaUsageRepository for QuotaUsagePostgresRepository {
         .await?;
 
         Ok(())
+    }
+
+    async fn check_and_increment(
+        &self,
+        quota_id: &str,
+        amount: u64,
+        limit: u64,
+    ) -> anyhow::Result<CheckAndIncrementResult> {
+        let uuid = uuid::Uuid::parse_str(quota_id)
+            .map_err(|e| anyhow::anyhow!("invalid UUID: {}", e))?;
+
+        // アトミックに current_usage + amount <= limit の場合のみ UPDATE する
+        let row: Option<(i64,)> = sqlx::query_as(
+            "UPDATE quota.quota_usage \
+             SET current_usage = current_usage + $2, last_incremented_at = NOW() \
+             WHERE policy_id = $1 AND current_usage + $2 <= $3 \
+             RETURNING current_usage",
+        )
+        .bind(uuid)
+        .bind(amount as i64)
+        .bind(limit as i64)
+        .fetch_optional(self.pool.as_ref())
+        .await?;
+
+        match row {
+            Some((new_usage,)) => Ok(CheckAndIncrementResult {
+                used: new_usage as u64,
+                allowed: true,
+            }),
+            None => {
+                // UPDATE が 0 行 → リミット超過。現在の使用量を取得して返す
+                let current = self.get_usage(quota_id).await?.unwrap_or(0);
+                Ok(CheckAndIncrementResult {
+                    used: current,
+                    allowed: false,
+                })
+            }
+        }
     }
 }

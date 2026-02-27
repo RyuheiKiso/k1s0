@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use redis::aio::ConnectionManager;
 
+use crate::domain::repository::quota_repository::CheckAndIncrementResult;
 use crate::domain::repository::QuotaUsageRepository;
 
 /// RedisQuotaUsageRepository は Redis ベースのクォータ使用量リポジトリ。
@@ -53,6 +54,42 @@ impl QuotaUsageRepository for RedisQuotaUsageRepository {
             .query_async::<()>(&mut conn)
             .await?;
         Ok(())
+    }
+
+    async fn check_and_increment(
+        &self,
+        quota_id: &str,
+        amount: u64,
+        limit: u64,
+    ) -> anyhow::Result<CheckAndIncrementResult> {
+        let key = self.make_key(quota_id);
+        let mut conn = self.conn.clone();
+
+        let script = redis::Script::new(
+            r#"
+            local key = KEYS[1]
+            local amount = tonumber(ARGV[1])
+            local limit = tonumber(ARGV[2])
+            local current = tonumber(redis.call('GET', key) or '0')
+            if current + amount > limit then
+              return {current, 0}
+            end
+            local new_val = redis.call('INCRBY', key, amount)
+            return {new_val, 1}
+            "#,
+        );
+
+        let (used, allowed): (u64, u64) = script
+            .key(&key)
+            .arg(amount)
+            .arg(limit)
+            .invoke_async(&mut conn)
+            .await?;
+
+        Ok(CheckAndIncrementResult {
+            used,
+            allowed: allowed == 1,
+        })
     }
 }
 

@@ -216,6 +216,11 @@ async fn main() -> anyhow::Result<()> {
         None
     };
 
+    // SPIFFE access policies (empty = permissive mode; loaded from DB in production)
+    let spiffe_state = adapter::middleware::spiffe::SpiffeAuthState {
+        policies: Arc::new(vec![]),
+    };
+
     // AppState (REST)
     let mut state = AppState {
         get_secret_uc,
@@ -226,6 +231,7 @@ async fn main() -> anyhow::Result<()> {
         db_pool,
         metrics: metrics.clone(),
         auth_state: None,
+        spiffe_state: Some(spiffe_state),
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);

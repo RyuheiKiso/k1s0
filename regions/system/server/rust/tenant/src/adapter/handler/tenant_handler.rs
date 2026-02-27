@@ -57,7 +57,11 @@ pub struct TenantResponse {
     pub display_name: String,
     pub status: String,
     pub plan: String,
+    pub settings: serde_json::Value,
+    pub keycloak_realm: Option<String>,
+    pub db_schema: Option<String>,
     pub created_at: String,
+    pub updated_at: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -130,7 +134,11 @@ pub async fn list_tenants(
                         display_name: t.display_name,
                         status: t.status.as_str().to_string(),
                         plan: t.plan,
+                        settings: t.settings,
+                        keycloak_realm: t.keycloak_realm,
+                        db_schema: t.db_schema,
                         created_at: t.created_at.to_rfc3339(),
+                        updated_at: t.updated_at.to_rfc3339(),
                     })
                     .collect(),
                 total_count: total,
@@ -170,7 +178,11 @@ pub async fn get_tenant(
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
                 plan: t.plan,
+                settings: t.settings,
+                keycloak_realm: t.keycloak_realm,
+                db_schema: t.db_schema,
                 created_at: t.created_at.to_rfc3339(),
+                updated_at: t.updated_at.to_rfc3339(),
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
@@ -210,7 +222,11 @@ pub async fn create_tenant(
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
                 plan: t.plan,
+                settings: t.settings,
+                keycloak_realm: t.keycloak_realm,
+                db_schema: t.db_schema,
                 created_at: t.created_at.to_rfc3339(),
+                updated_at: t.updated_at.to_rfc3339(),
             };
             (
                 StatusCode::CREATED,
@@ -262,7 +278,11 @@ pub async fn update_tenant(
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
                 plan: t.plan,
+                settings: t.settings,
+                keycloak_realm: t.keycloak_realm,
+                db_schema: t.db_schema,
                 created_at: t.created_at.to_rfc3339(),
+                updated_at: t.updated_at.to_rfc3339(),
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
@@ -308,7 +328,11 @@ pub async fn delete_tenant(
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
                 plan: t.plan,
+                settings: t.settings,
+                keycloak_realm: t.keycloak_realm,
+                db_schema: t.db_schema,
                 created_at: t.created_at.to_rfc3339(),
+                updated_at: t.updated_at.to_rfc3339(),
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
@@ -354,7 +378,11 @@ pub async fn suspend_tenant(
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
                 plan: t.plan,
+                settings: t.settings,
+                keycloak_realm: t.keycloak_realm,
+                db_schema: t.db_schema,
                 created_at: t.created_at.to_rfc3339(),
+                updated_at: t.updated_at.to_rfc3339(),
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
@@ -400,7 +428,11 @@ pub async fn activate_tenant(
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
                 plan: t.plan,
+                settings: t.settings,
+                keycloak_realm: t.keycloak_realm,
+                db_schema: t.db_schema,
                 created_at: t.created_at.to_rfc3339(),
+                updated_at: t.updated_at.to_rfc3339(),
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }

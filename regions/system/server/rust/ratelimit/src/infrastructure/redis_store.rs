@@ -3,7 +3,7 @@ use redis::aio::ConnectionManager;
 use redis::Script;
 
 use crate::domain::entity::RateLimitDecision;
-use crate::domain::repository::RateLimitStateStore;
+use crate::domain::repository::{RateLimitStateStore, UsageSnapshot};
 
 /// TOKEN_BUCKET_SCRIPT は Redis Lua スクリプトでアトミックなトークンバケットを実装する。
 ///
@@ -240,5 +240,35 @@ impl RateLimitStateStore for RedisRateLimitStore {
             .query_async::<()>(&mut conn)
             .await?;
         Ok(())
+    }
+
+    async fn get_usage(&self, key: &str, limit: i64, window_secs: i64) -> anyhow::Result<Option<UsageSnapshot>> {
+        let mut conn = self.conn.clone();
+        let result: Vec<Option<String>> = redis::cmd("HMGET")
+            .arg(key)
+            .arg("tokens")
+            .arg("last_refill")
+            .query_async(&mut conn)
+            .await?;
+
+        let tokens = match result.first().and_then(|v| v.as_ref()) {
+            Some(t) => t.parse::<f64>().unwrap_or(limit as f64),
+            None => return Ok(None),
+        };
+        let last_refill = result
+            .get(1)
+            .and_then(|v| v.as_ref())
+            .and_then(|v| v.parse::<i64>().ok())
+            .unwrap_or_else(|| chrono::Utc::now().timestamp());
+
+        let remaining = tokens.floor() as i64;
+        let used = limit - remaining;
+        let reset_at = last_refill + window_secs;
+
+        Ok(Some(UsageSnapshot {
+            used,
+            remaining,
+            reset_at,
+        }))
     }
 }
