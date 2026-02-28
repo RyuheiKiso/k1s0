@@ -89,7 +89,7 @@ ingressController:
 postgresql:
   enabled: false    # 外部 PostgreSQL を使用
 
-replicaCount: 2
+replicaCount: 2                   # ベース値（staging デフォルト。dev/prod は環境別 values で上書き）
 
 resources:
   requests:
