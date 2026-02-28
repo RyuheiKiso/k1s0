@@ -68,7 +68,7 @@ impl KafkaProducer {
             .publish
             .first()
             .cloned()
-            .unwrap_or_else(|| "k1s0.system.saga.events.v1".to_string());
+            .unwrap_or_else(|| "k1s0.system.saga.state_changed.v1".to_string());
 
         let mut client_config = ClientConfig::new();
         client_config.set("bootstrap.servers", config.brokers.join(","));
@@ -190,7 +190,7 @@ consumer_group: "saga-server.default"
 security_protocol: "PLAINTEXT"
 topics:
   publish:
-    - "k1s0.system.saga.events.v1"
+    - "k1s0.system.saga.state_changed.v1"
   subscribe: []
 "#;
         let config: KafkaConfig = serde_yaml::from_str(yaml).unwrap();

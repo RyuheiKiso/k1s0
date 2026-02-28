@@ -473,7 +473,7 @@ regions/system/server/rust/saga/
 
 ## Kafka イベント
 
-Saga の状態遷移時に以下のイベントを Kafka トピック `k1s0.system.saga.events.v1` に発行する。
+Saga の状態遷移時に以下のイベントを Kafka トピック `k1s0.system.saga.state_changed.v1` に発行する。
 
 | イベント | 発行タイミング |
 | --- | --- |
@@ -957,7 +957,7 @@ kafka:
   security_protocol: "PLAINTEXT"
   topics:
     publish:
-      - "k1s0.system.saga.events.v1"
+      - "k1s0.system.saga.state_changed.v1"
     subscribe: []
 
 services:

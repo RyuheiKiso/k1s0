@@ -506,7 +506,7 @@
         <mxCell id="schema-reg" value="&lt;b&gt;Schema Registry&lt;/b&gt;&lt;br&gt;(Confluent)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#f57f17;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1120" y="955" width="140" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="kafka-topics-note" value="&lt;b&gt;Topics:&lt;/b&gt;&lt;br&gt;k1s0.system.auth.audit.v1&lt;br&gt;k1s0.system.config.changed.v1&lt;br&gt;k1s0.system.notification.send.v1&lt;br&gt;k1s0.business.accounting.entry.v1&lt;br&gt;k1s0.service.order.created.v1&lt;br&gt;*.dlq (Dead Letter Queue)" style="text;html=1;fontSize=8;align=left;fillColor=#fffde7;strokeColor=#f9a825;rounded=1;" vertex="1" parent="1">
+        <mxCell id="kafka-topics-note" value="&lt;b&gt;Topics:&lt;/b&gt;&lt;br&gt;k1s0.system.auth.audit.v1&lt;br&gt;k1s0.system.config.changed.v1&lt;br&gt;k1s0.system.notification.requested.v1&lt;br&gt;k1s0.business.accounting.entry.v1&lt;br&gt;k1s0.service.order.created.v1&lt;br&gt;*.dlq (Dead Letter Queue)" style="text;html=1;fontSize=8;align=left;fillColor=#fffde7;strokeColor=#f9a825;rounded=1;" vertex="1" parent="1">
           <mxGeometry x="1290" y="980" width="220" height="90" as="geometry"/>
         </mxCell>
 
