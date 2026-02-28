@@ -57,11 +57,13 @@ Kong テンプレートで使用する変数を以下に示す。変数の定義
 
 ### Tier 別レート制限
 
-| Tier       | rate (requests/sec) | burst  |
-| ---------- | ------------------- | ------ |
-| `system`   | 1000                | 2000   |
-| `business` | 500                 | 1000   |
-| `service`  | 200                 | 500    |
+[APIゲートウェイ設計](../../architecture/api/APIゲートウェイ設計.md) および [REST-API設計](../../architecture/api/REST-API設計.md) のTier 別デフォルト値に準拠する。
+
+| Tier       | minute | second |
+| ---------- | ------ | ------ |
+| `system`   | 3000   | 100    |
+| `business` | 1000   | 40     |
+| `service`  | 500    | 20     |
 
 ---
 
@@ -75,6 +77,9 @@ kind: KongIngress
 metadata:
   name: {{ service_name }}
   namespace: {{ namespace }}
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
 proxy:
   protocol: http
   path: /
@@ -89,7 +94,10 @@ metadata:
   namespace: {{ namespace }}
   annotations:
     konghq.com/override: {{ service_name }}
-    konghq.com/strip-path: "true"
+    konghq.com/strip-path: "false"
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
 {% if api_styles is containing("grpc") %}
     konghq.com/protocols: "http,https,grpc,grpcs"
 {% else %}
@@ -129,14 +137,14 @@ spec:
 - `KongIngress` でプロキシのタイムアウト設定を定義する
 - REST/GraphQL 使用時は `/api/{{ service_name_snake }}` パスでルーティングする
 - gRPC 使用時は `/{{ service_name_snake }}.` パスプレフィクスで gRPC サービスにルーティングする
-- `konghq.com/strip-path: "true"` でパスプレフィクスを除去してバックエンドに転送する
+- `konghq.com/strip-path: "false"` でバックエンドにバージョン付きパスをそのまま転送する（[REST-API設計](../../architecture/api/REST-API設計.md) の Kong ルーティング連携参照）
 - gRPC 使用時は `konghq.com/protocols` に `grpc,grpcs` を追加する
 
 ---
 
 ## Kong Plugins テンプレート（kong-plugins.yaml.tera）
 
-レート制限、認証、ロギングの3種類のプラグインを定義する。
+レート制限、CORS、JWT 認証の3種類のプラグインを定義する。設定値は [APIゲートウェイ設計](../../architecture/api/APIゲートウェイ設計.md) のプラグイン一覧と整合する。
 
 ```tera
 # Rate Limiting Plugin
@@ -145,63 +153,85 @@ kind: KongPlugin
 metadata:
   name: {{ service_name }}-rate-limit
   namespace: {{ namespace }}
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
 plugin: rate-limiting
 config:
 {% if tier == "system" %}
-  second: 1000
-  policy: redis
-  fault_tolerant: true
-  hide_client_headers: false
+  minute: 3000
+  second: 100
 {% elif tier == "business" %}
-  second: 500
-  policy: redis
-  fault_tolerant: true
-  hide_client_headers: false
-{% elif tier == "service" %}
-  second: 200
-  policy: redis
-  fault_tolerant: true
-  hide_client_headers: false
+  minute: 1000
+  second: 40
+{% else %}
+  minute: 500
+  second: 20
 {% endif %}
+  policy: redis
+  redis_host: redis.k1s0-system.svc.cluster.local
+  redis_port: 6379
+  redis_database: 1
+  fault_tolerant: true
+  hide_client_headers: false
 ---
-# Authentication Plugin
+# CORS Plugin
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
-  name: {{ service_name }}-auth
+  name: {{ service_name }}-cors
   namespace: {{ namespace }}
-plugin: openid-connect
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
+plugin: cors
 config:
-  issuer: https://keycloak.{{ namespace }}/realms/k1s0
-  client_id: {{ service_name_snake }}
-  scopes:
-    - openid
-  auth_methods:
-    - bearer
-{% if api_styles is containing("rest") or api_styles is containing("graphql") %}
-    - session
-{% endif %}
+  origins:
+    - "https://*.k1s0.internal.example.com"
+  methods:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+    - OPTIONS
+  headers:
+    - Authorization
+    - Content-Type
+    - X-Request-ID
+  exposed_headers:
+    - X-RateLimit-Limit
+    - X-RateLimit-Remaining
+    - X-RateLimit-Reset
+  credentials: true
+  max_age: 3600
 ---
-# Logging Plugin
+# JWT Plugin
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
-  name: {{ service_name }}-logging
+  name: {{ service_name }}-jwt
   namespace: {{ namespace }}
-plugin: http-log
+  labels:
+    app: {{ service_name }}
+    tier: {{ tier }}
+plugin: jwt
 config:
-  http_endpoint: http://otel-collector.{{ namespace }}:4318/v1/logs
-  method: POST
-  content_type: application/json
-  flush_timeout: 2
-  retry_count: 3
+  uri_param_names: []
+  cookie_names: []
+  key_claim_name: kid
+  claims_to_verify:
+    - exp
+  maximum_expiration: 900
+  header_names:
+    - Authorization
 ```
 
 ### ポイント
 
-- **Rate Limiting**: Tier 別のレート制限を Redis ポリシーで適用する。`fault_tolerant: true` でRedis 障害時もリクエストを許可する
-- **Authentication**: OpenID Connect プラグインで Keycloak と連携する。REST/GraphQL の場合はセッション認証も許可する
-- **Logging**: HTTP Log プラグインで OpenTelemetry Collector にアクセスログを転送する
+- **Rate Limiting**: Tier 別のレート制限（minute + second）を Redis ポリシーで適用する。`fault_tolerant: true` で Redis 障害時もリクエストを許可する。制限値は [REST-API設計](../../architecture/api/REST-API設計.md) の Tier 別デフォルト値に準拠する
+- **CORS**: ワイルドカードオリジン `*.k1s0.internal.example.com` で全サブドメインを許可する。`exposed_headers` でレート制限ヘッダーをクライアントに公開する
+- **JWT**: `key_claim_name: kid`（Key ID）で JWT 署名鍵を特定する。`maximum_expiration: 900`（15分）で Access Token のライフタイムを制限する
 
 ---
 
@@ -212,7 +242,7 @@ CLI の対話フローで選択されたオプションに応じて、生成さ�
 | 条件                    | 選択肢                              | 生成への影響                                              |
 | ----------------------- | ----------------------------------- | --------------------------------------------------------- |
 | Tier (`tier`)           | `system` / `business` / `service`   | Rate Limiting のレート制限値                               |
-| API 方式 (`api_styles`) | `rest` / `graphql` を含む           | HTTP ルートを生成、セッション認証を許可                   |
+| API 方式 (`api_styles`) | `rest` / `graphql` を含む           | HTTP ルートを生成                                         |
 | API 方式 (`api_styles`) | `grpc` を含む                       | gRPC ルートを追加、プロトコルに grpc/grpcs を追加         |
 | kind (`kind`)           | `server` / `bff` 以外              | Kong リソースを生成しない                                 |
 
@@ -237,7 +267,7 @@ CLI の対話フローで選択されたオプションに応じて、生成さ�
 
 生成されるファイル:
 - `infra/kong/auth-service/kong-service.yaml` -- REST + gRPC ルート、grpc/grpcs プロトコル
-- `infra/kong/auth-service/kong-plugins.yaml` -- rate=1000/sec、OpenID Connect、HTTP Log
+- `infra/kong/auth-service/kong-plugins.yaml` -- rate=3000/min + 100/sec、CORS、JWT
 
 ### service Tier の REST サーバーの場合
 
@@ -255,7 +285,7 @@ CLI の対話フローで選択されたオプションに応じて、生成さ�
 
 生成されるファイル:
 - `infra/kong/order-server/kong-service.yaml` -- REST ルートのみ
-- `infra/kong/order-server/kong-plugins.yaml` -- rate=200/sec、OpenID Connect（session 認証含む）、HTTP Log
+- `infra/kong/order-server/kong-plugins.yaml` -- rate=500/min + 20/sec、CORS、JWT
 
 ---
 
