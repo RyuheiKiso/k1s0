@@ -33,4 +33,4 @@ groups:
           severity: warning
           tier: system
         annotations:
-          summary: "System Tier P99 latency > 500ms"
+          summary: "System Tier P99 latency > 500ms (SLO target: P99 < 200ms)"

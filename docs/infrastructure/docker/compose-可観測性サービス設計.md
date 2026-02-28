@@ -14,29 +14,71 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+rule_files:
+  - /etc/prometheus/recording_rules.yaml
+  - /etc/prometheus/alerting_rules.yaml
+
 scrape_configs:
-  - job_name: "auth-server"
+  # Prometheus 自身
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # auth-server (Rust)
+  - job_name: auth-server-rust
     static_configs:
       - targets: ["auth-rust:8080"]
+        labels:
+          service: auth-server
+          tier: system
+          lang: rust
     metrics_path: /metrics
-    scrape_interval: 15s
 
-  - job_name: "config-server"
+  # config-server (Rust)
+  - job_name: config-server-rust
     static_configs:
       - targets: ["config-rust:8080"]
+        labels:
+          service: config-server
+          tier: system
+          lang: rust
     metrics_path: /metrics
-    scrape_interval: 15s
 
-  - job_name: "kong"
+  # saga-server (Rust)
+  - job_name: saga-server-rust
+    static_configs:
+      - targets: ["saga-rust:8080"]
+        labels:
+          service: saga-server
+          tier: system
+          lang: rust
+    metrics_path: /metrics
+
+  # dlq-manager (Rust)
+  - job_name: dlq-manager-rust
+    static_configs:
+      - targets: ["dlq-manager-rust:8080"]
+        labels:
+          service: dlq-manager
+          tier: system
+          lang: rust
+    metrics_path: /metrics
+
+  # bff-proxy (Rust)
+  - job_name: bff-proxy-rust
+    static_configs:
+      - targets: ["bff-proxy-rust:8080"]
+        labels:
+          service: bff-proxy
+          tier: system
+          lang: rust
+    metrics_path: /metrics
+
+  # Kong API Gateway
+  - job_name: kong
     static_configs:
       - targets: ["kong:8001"]
     metrics_path: /metrics
-    scrape_interval: 15s
-
-  - job_name: "kafka"
-    static_configs:
-      - targets: ["kafka:9092"]
-    scrape_interval: 30s
 ```
 
 ### Grafana 自動プロビジョニング
@@ -60,10 +102,17 @@ datasources:
     access: proxy
     url: http://loki:3100
     editable: false
+    jsonData:
+      derivedFields:
+        - datasourceUid: jaeger
+          matcherRegex: '"trace_id":"([a-f0-9]+)"'
+          name: TraceID
+          url: '$${__value.raw}'
 
   - name: Jaeger
     type: jaeger
     access: proxy
+    uid: jaeger
     url: http://jaeger:16686
     editable: false
 ```
