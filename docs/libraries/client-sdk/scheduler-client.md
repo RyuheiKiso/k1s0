@@ -4,6 +4,8 @@
 
 system-scheduler-server（ポート 8093）へのジョブスケジューリングクライアントライブラリ。ジョブの登録（cron 式または one-shot・インターバル）・キャンセル・一時停止・再開・実行状態と実行履歴の取得・ジョブ実行完了イベントの購読（Kafka トピック `k1s0.system.scheduler.job_completed.v1`）を統一インターフェースで提供する。全 Tier のサービスから共通利用し、定期バッチ・遅延実行・一時停止が必要なあらゆる非同期処理のスケジューリング基盤となる。
 
+> **ポート注記**: ポート `8093` は Docker Compose 環境でのホスト側ポートである。本番環境では Kubernetes Service 経由（`scheduler-server:8080`）で接続する。
+
 **配置先**: `regions/system/library/rust/scheduler-client/`
 
 ## 公開 API

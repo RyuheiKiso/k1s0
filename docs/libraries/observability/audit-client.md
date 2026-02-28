@@ -137,13 +137,14 @@ let events = client.flush().await?;
 
 ```go
 type AuditEvent struct {
-    ID           string    `json:"id"`
-    TenantID     string    `json:"tenant_id"`
-    ActorID      string    `json:"actor_id"`
-    Action       string    `json:"action"`
-    ResourceType string    `json:"resource_type"`
-    ResourceID   string    `json:"resource_id"`
-    Timestamp    time.Time `json:"timestamp"`
+    ID           string                 `json:"id"`
+    TenantID     string                 `json:"tenant_id"`
+    ActorID      string                 `json:"actor_id"`
+    Action       string                 `json:"action"`
+    ResourceType string                 `json:"resource_type"`
+    ResourceID   string                 `json:"resource_id"`
+    Metadata     map[string]interface{} `json:"metadata"`
+    Timestamp    time.Time              `json:"timestamp"`
 }
 
 type AuditClient interface {
@@ -169,6 +170,7 @@ export interface AuditEvent {
   action: string;
   resourceType: string;
   resourceId: string;
+  metadata?: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -180,6 +182,48 @@ export interface AuditClient {
 export class BufferedAuditClient implements AuditClient {
   async record(event: AuditEvent): Promise<void>;
   async flush(): Promise<AuditEvent[]>;
+}
+```
+
+**カバレッジ目標**: 90%以上
+
+## Dart 実装
+
+**配置先**: `regions/system/library/dart/audit_client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**主要 API**:
+
+```dart
+class AuditEvent {
+  final String id;
+  final String tenantId;
+  final String actorId;
+  final String action;
+  final String resourceType;
+  final String resourceId;
+  final Map<String, dynamic>? metadata;
+  final DateTime timestamp;
+
+  AuditEvent({
+    required this.tenantId,
+    required this.actorId,
+    required this.action,
+    required this.resourceType,
+    required this.resourceId,
+    this.metadata,
+  });
+}
+
+abstract class AuditClient {
+  Future<void> record(AuditEvent event);
+  Future<List<AuditEvent>> flush();
+}
+
+class BufferedAuditClient implements AuditClient {
+  @override
+  Future<void> record(AuditEvent event);
+  @override
+  Future<List<AuditEvent>> flush();
 }
 ```
 

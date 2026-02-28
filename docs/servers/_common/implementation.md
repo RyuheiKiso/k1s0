@@ -1,5 +1,7 @@
 # system-server 実装設計
 
+> **注記**: 本ドキュメントは auth-server の実装仕様を含む。共通パターンは [Rust共通実装.md](Rust共通実装.md) を参照。
+
 system-server（認証サーバー）の Rust 実装仕様。概要・API 定義・アーキテクチャは [system-server.md](../auth/server.md) を参照。
 
 ---
@@ -155,9 +157,8 @@ pub struct User {
     pub id: String,
     pub username: String,
     pub email: String,
-    pub first_name: String,
-    pub last_name: String,
-    pub enabled: bool,
+    pub display_name: String,
+    pub status: String, // active / suspended / deleted
     pub email_verified: bool,
     pub created_at: DateTime<Utc>,
     #[serde(default)]

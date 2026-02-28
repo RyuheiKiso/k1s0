@@ -386,17 +386,17 @@ graphql:
   max_complexity: 1000
 
 auth:
-  jwks_url: "http://auth-server.k1s0-system.svc.cluster.local/jwks"
+  jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
 
 backends:
   tenant:
-    address: "http://tenant-server.k1s0-system.svc.cluster.local:9090"
+    address: "http://tenant-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
   featureflag:
-    address: "http://featureflag-server.k1s0-system.svc.cluster.local:9090"
+    address: "http://featureflag-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
   config:
-    address: "http://config-server.k1s0-system.svc.cluster.local:9090"
+    address: "http://config-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
 ```
 

@@ -89,11 +89,11 @@ infra/helm/
 
 ## System Tier Chart 一覧
 
-system 層には以下の 6 つの Chart が存在する。全て `k1s0-common` Library Chart に依存し、`labels.tier: system` を設定する。
+system tier には以下の 6 つの Chart が存在する。全て `k1s0-common` Library Chart に依存し、`labels.tier: system` を設定する。
 
 | Chart | 説明 | 言語 | gRPC | Kafka | Redis | Vault secrets |
 | --- | --- | --- | --- | --- | --- | --- |
-| auth | 認証・認可（JWT 検証、ユーザー管理） | Rust | 50051 | - | - | DB パスワード |
+| auth | 認証・認可（JWT 検証、ユーザー管理） | Rust | 50051 | ✓ | - | DB パスワード |
 | config | 構成管理（サービス設定の集中管理） | Rust | 50051 | - | - | DB パスワード |
 | saga | Saga オーケストレータ（分散トランザクション） | Rust | 50051 | 有効 | - | DB パスワード |
 | dlq-manager | Dead Letter Queue 管理（失敗メッセージの再処理） | Rust | - | 有効 | - | DB パスワード |
@@ -113,14 +113,14 @@ system 層には以下の 6 つの Chart が存在する。全て `k1s0-common` 
 | bff-proxy | `infra/helm/services/system/bff-proxy/Chart.yaml` | `infra/helm/services/system/bff-proxy/values.yaml` |
 | kong | `infra/helm/services/system/kong/Chart.yaml` | `infra/helm/services/system/kong/values.yaml` |
 
-全 Chart は `k1s0-common` Library Chart に依存し、`appVersion: "0.1.0"`（kong は `"3.7.0"`）。
+全 Chart は `k1s0-common` Library Chart に依存し、`appVersion: "0.1.0"`（kong は `"3.8.0"`）。
 
 ### 各 Chart の values.yaml 重要フィールド差分
 
 | フィールド | auth | config | saga | dlq-manager | bff-proxy | kong |
 |-----------|------|--------|------|-------------|-----------|------|
 | `container.grpcPort` | 50051 | 50051 | 50051 | null | - | - |
-| `kafka.enabled` | false | false | true | true | - | - |
+| `kafka.enabled` | true | false | true | true | - | - |
 | `redis.enabled` | false | false | false | false | true | - |
 | `autoscaling.maxReplicas` | 5 | 5 | 5 | 5 | 10 | - |
 | `resources.requests.cpu` | 250m | 250m | 250m | 250m | 100m | 500m |
@@ -191,7 +191,7 @@ Kong は公式 Helm Chart のカスタム values を使用する。詳細は [AP
 
 ```yaml
 image:
-  tag: "3.7"
+  tag: "3.8"
 env:
   database: postgres
 proxy:
@@ -221,8 +221,8 @@ dependencies:
 ```
 
 > **注**: `repository` の相対パスは Chart.yaml の配置場所に応じて変わる。
-> - system / service 層（`services/{tier}/{service}/`）: `file://../../../charts/k1s0-common`
-> - business 層（`services/business/{domain}/{service}/`）: `file://../../../../charts/k1s0-common`
+> - system / service tier（`services/{tier}/{service}/`）: `file://../../../charts/k1s0-common`
+> - business tier（`services/business/{domain}/{service}/`）: `file://../../../../charts/k1s0-common`
 
 ## values.yaml 設計
 
@@ -315,6 +315,8 @@ containerSecurityContext:
     drop: ["ALL"]
 
 # config.yaml のマウント
+# 本番（Kubernetes）: /etc/app に ConfigMap をマウント
+# 開発（Docker Compose）: /app/config にボリュームマウント（compose-システムサービス設計.md 参照）
 config:
   mountPath: /etc/app
   data: {}                             # ConfigMap として作成
@@ -529,7 +531,7 @@ Library Chart（k1s0-common）はセマンティックバージョニング（Se
 - 各サービスの `Chart.yaml` では `dependencies[].version` にチルダ範囲指定（`~1.x.x`）を推奨する
 
 ```yaml
-# 各サービスの Chart.yaml での依存指定例（system / service 層の場合）
+# 各サービスの Chart.yaml での依存指定例（system / service tier の場合）
 dependencies:
   - name: k1s0-common
     version: "~1.2.0"    # 1.2.x の PATCH アップデートを自動追従

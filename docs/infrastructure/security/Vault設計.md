@@ -126,7 +126,7 @@ Pod にシークレットをファイルとして注入する際のマウント�
 各 Tier のサービスがアクセスできる Vault パスを制限する。
 
 ```hcl
-# policy/system.hcl --- system 層のポリシー
+# policy/system.hcl --- system tier のポリシー
 path "secret/data/k1s0/system/*" {
   capabilities = ["read", "list"]
 }
@@ -137,7 +137,7 @@ path "pki/issue/system" {
   capabilities = ["create", "update"]
 }
 
-# policy/business.hcl --- business 層のポリシー
+# policy/business.hcl --- business tier のポリシー
 path "secret/data/k1s0/business/*" {
   capabilities = ["read", "list"]
 }
@@ -149,7 +149,7 @@ path "secret/data/k1s0/system/kafka/sasl" {
   capabilities = ["read"]
 }
 
-# policy/service.hcl --- service 層のポリシー
+# policy/service.hcl --- service tier のポリシー
 path "secret/data/k1s0/service/*" {
   capabilities = ["read", "list"]
 }
@@ -176,7 +176,7 @@ resource "vault_kubernetes_auth_backend_config" "k8s" {
   kubernetes_ca_cert = file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 }
 
-# system 層のロール
+# system tier のロール
 resource "vault_kubernetes_auth_backend_role" "system" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "system"
@@ -186,7 +186,7 @@ resource "vault_kubernetes_auth_backend_role" "system" {
   token_ttl                        = 3600
 }
 
-# business 層のロール
+# business tier のロール
 resource "vault_kubernetes_auth_backend_role" "business" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "business"
@@ -196,7 +196,7 @@ resource "vault_kubernetes_auth_backend_role" "business" {
   token_ttl                        = 3600
 }
 
-# service 層のロール
+# service tier のロール
 resource "vault_kubernetes_auth_backend_role" "service" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "service"

@@ -325,7 +325,7 @@ spec:
   action: ALLOW
   rules:
 {% if tier == "system" %}
-    # system 層: business・service・同一 Tier からのアクセスを許可
+    # system tier: business・service・同一 Tier からのアクセスを許可
     - from:
         - source:
             namespaces: ["k1s0-business", "k1s0-service"]
@@ -333,7 +333,7 @@ spec:
         - source:
             namespaces: ["k1s0-system"]
 {% elif tier == "business" %}
-    # business 層: service・同一 Tier からのアクセスを許可
+    # business tier: service・同一 Tier からのアクセスを許可
     - from:
         - source:
             namespaces: ["k1s0-service"]
@@ -341,7 +341,7 @@ spec:
         - source:
             namespaces: ["k1s0-business"]
 {% elif tier == "service" %}
-    # service 層: ingress・同一 Tier からのアクセスを許可
+    # service tier: ingress・同一 Tier からのアクセスを許可
     - from:
         - source:
             namespaces: ["ingress"]
@@ -410,7 +410,7 @@ CLI の対話フローで選択されたオプションに応じて、生成さ�
   "kind": "server",
   "api_styles": ["grpc"],
   "server_port": 80,
-  "grpc_port": 9090
+  "grpc_port": 50051
 }
 ```
 
@@ -451,7 +451,7 @@ CLI の対話フローで選択されたオプションに応じて、生成さ�
   "kind": "bff",
   "api_styles": ["rest", "grpc"],
   "server_port": 80,
-  "grpc_port": 9090
+  "grpc_port": 50051
 }
 ```
 

@@ -40,7 +40,7 @@ system tier の全文検索サーバーは以下の機能を提供する。
 | 同期インデックス | REST POST `/api/v1/search/index` により即座にインデックス登録（`index_name` はリクエストボディで指定） |
 | キャッシュ | インデックス一覧・ドキュメント数等のステータスを moka で TTL 30 秒キャッシュ |
 | 認可 | インデックス管理は `sys_admin`、ドキュメント操作は `sys_operator`、検索・参照は `sys_auditor` |
-| ポート | ホスト側 8094（内部 8080）、gRPC 9090 |
+| ポート | ホスト側 8094（内部 8080）、gRPC 50051 |
 
 ---
 
@@ -52,8 +52,8 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| POST | `/api/v1/search/indices` | インデックス作成 | `sys_admin` のみ |
-| GET | `/api/v1/search/indices` | インデックス一覧取得 | `sys_auditor` 以上 |
+| POST | `/api/v1/indices` | インデックス作成 | `sys_admin` のみ |
+| GET | `/api/v1/indices` | インデックス一覧取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/search/index` | ドキュメント登録（`index_name` はリクエストボディで指定） | `sys_operator` 以上 |
 | DELETE | `/api/v1/search/index/:index_name/:id` | ドキュメント削除 | `sys_operator` 以上 |
 | POST | `/api/v1/search` | 全文検索 | `sys_auditor` 以上 |
@@ -95,7 +95,12 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 ```json
 {
-  "error": "index already exists: k1s0-products"
+  "error": {
+    "code": "SYS_SEARCH_INDEX_ALREADY_EXISTS",
+    "message": "index already exists: k1s0-products",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
 }
 ```
 
@@ -151,7 +156,12 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 ```json
 {
-  "error": "index not found: k1s0-products"
+  "error": {
+    "code": "SYS_SEARCH_INDEX_NOT_FOUND",
+    "message": "index not found: k1s0-products",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
 }
 ```
 
@@ -201,7 +211,12 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 ```json
 {
-  "error": "index not found: k1s0-products"
+  "error": {
+    "code": "SYS_SEARCH_INDEX_NOT_FOUND",
+    "message": "index not found: k1s0-products",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
 }
 ```
 
@@ -213,7 +228,12 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 ```json
 {
-  "error": "document not found: product-001"
+  "error": {
+    "code": "SYS_SEARCH_DOCUMENT_NOT_FOUND",
+    "message": "document not found: product-001",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
 }
 ```
 
@@ -437,7 +457,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
-  grpc_port: 9090
+  grpc_port: 50051
 
 opensearch:
   url: "https://opensearch.k1s0-system.svc.cluster.local:9200"
@@ -470,12 +490,12 @@ replicaCount: 2
 
 container:
   port: 8080
-  grpcPort: 9090
+  grpcPort: 50051
 
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 9090
+  grpcPort: 50051
 
 autoscaling:
   enabled: true

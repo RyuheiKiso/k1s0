@@ -39,7 +39,7 @@ system tier のワークフローオーケストレーションサーバーは�
 | DB | PostgreSQL の `workflow` スキーマ（workflow_definitions, workflow_instances, workflow_tasks テーブル） |
 | Kafka | プロデューサー（`k1s0.system.workflow.state_changed.v1`） |
 | 認証 | JWTによる認可。管理系エンドポイントは `sys_operator` / `sys_admin` ロールが必要 |
-| ポート | ホスト側 8100（内部 8080）、gRPC 9090 |
+| ポート | ホスト側 8100（内部 8080）、gRPC 50051 |
 
 ---
 
@@ -56,7 +56,7 @@ system tier のワークフローオーケストレーションサーバーは�
 | GET | `/api/v1/workflows/:id` | ワークフロー定義取得 | `sys_auditor` 以上 |
 | PUT | `/api/v1/workflows/:id` | ワークフロー定義更新 | `sys_operator` 以上 |
 | DELETE | `/api/v1/workflows/:id` | ワークフロー定義削除 | `sys_admin` のみ |
-| POST | `/api/v1/workflows/:id/execute` | インスタンス起動（実行開始） | `sys_operator` 以上 |
+| POST | `/api/v1/workflows/:id/instances` | インスタンス起動（実行開始） | `sys_operator` 以上 |
 | GET | `/api/v1/workflows/:id/status` | ワークフロー実行ステータス取得 | `sys_auditor` 以上 |
 | GET | `/api/v1/instances` | インスタンス一覧取得 | `sys_auditor` 以上 |
 | GET | `/api/v1/instances/:id` | インスタンス取得 | `sys_auditor` 以上 |
@@ -903,7 +903,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
-  grpc_port: 9090
+  grpc_port: 50051
 
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
@@ -944,12 +944,12 @@ replicaCount: 2
 
 container:
   port: 8080
-  grpcPort: 9090
+  grpcPort: 50051
 
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 9090
+  grpcPort: 50051
 
 autoscaling:
   enabled: true

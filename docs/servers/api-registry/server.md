@@ -453,7 +453,7 @@ CREATE INDEX idx_api_schema_versions_content_hash ON apiregistry.api_schema_vers
 | DB | PostgreSQL の `apiregistry` スキーマ（api_schemas, api_schema_versions テーブル） |
 | Kafka | プロデューサー（`k1s0.system.apiregistry.schema_updated.v1`） |
 | 認証 | JWTによる認可。管理系エンドポイントは `sys_operator` / `sys_admin` ロールが必要 |
-| ポート | 8101（REST）/ 9090（gRPC） |
+| ポート | 8080（REST）/ 50051（gRPC） |
 
 ---
 
@@ -904,7 +904,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
-  grpc_port: 9090
+  grpc_port: 50051
 
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
@@ -948,12 +948,12 @@ replicaCount: 2
 
 container:
   port: 8080
-  grpcPort: 9090
+  grpcPort: 50051
 
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 9090
+  grpcPort: 50051
 
 autoscaling:
   enabled: true

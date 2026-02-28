@@ -13,8 +13,8 @@ retry・circuit-breaker・bulkhead・timeout を統合した複合回復力パ�
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
 | `ResiliencyPolicy` | 構造体 | retry・circuit-breaker・bulkhead・timeout の統合設定 |
-| `RetryConfig` | 構造体 | 最大試行回数・指数バックオフ・リトライ対象エラー設定 |
-| `CircuitBreakerConfig` | 構造体 | 失敗閾値・復旧タイムアウト・HalfOpen 試行数 |
+| `RetryConfig` | 構造体 | 最大試行回数・指数バックオフ・リトライ対象エラー設定（正規定義: [retry.md](retry.md)） |
+| `CircuitBreakerConfig` | 構造体 | 失敗閾値・復旧タイムアウト・HalfOpen 試行数（正規定義: [circuit-breaker.md](circuit-breaker.md)） |
 | `BulkheadConfig` | 構造体 | 最大同時実行数・待機タイムアウト |
 | `ResiliencyDecorator` | 構造体 | ポリシーを適用した関数実行器 |
 | `ResiliencyMetrics` | 構造体 | OpenTelemetry メトリクス（回復力イベント全種別） |
@@ -110,19 +110,11 @@ let reloadable_policy = ResiliencyPolicy::from_featureflag("payment-service-poli
 **主要インターフェース**:
 
 ```go
-type RetryConfig struct {
-    MaxAttempts int
-    BaseDelay   time.Duration
-    MaxDelay    time.Duration
-    Jitter      bool
-    RetryableErrors []string
-}
+// RetryConfig の正規定義は retry.md を参照。
+// import: k1s0-retry パッケージの RetryConfig を使用する。
 
-type CircuitBreakerConfig struct {
-    FailureThreshold int
-    RecoveryTimeout  time.Duration
-    HalfOpenMaxCalls int
-}
+// CircuitBreakerConfig の正規定義は circuit-breaker.md を参照。
+// import: k1s0-circuit-breaker パッケージの CircuitBreakerConfig を使用する。
 
 type BulkheadConfig struct {
     MaxConcurrentCalls int
@@ -152,19 +144,11 @@ func Execute[T any](ctx context.Context, d *ResiliencyDecorator, fn func() (T, e
 **主要 API**:
 
 ```typescript
-export interface RetryConfig {
-  maxAttempts: number;
-  baseDelayMs: number;
-  maxDelayMs: number;
-  jitter?: boolean;
-  retryableErrors?: string[];
-}
+// RetryConfig の正規定義は retry.md を参照。
+// import { RetryConfig } from 'k1s0-retry';
 
-export interface CircuitBreakerConfig {
-  failureThreshold: number;
-  recoveryTimeoutMs: number;
-  halfOpenMaxCalls?: number;
-}
+// CircuitBreakerConfig の正規定義は circuit-breaker.md を参照。
+// import { CircuitBreakerConfig } from 'k1s0-circuit-breaker';
 
 export interface BulkheadConfig {
   maxConcurrentCalls: number;
@@ -209,19 +193,11 @@ dependencies:
 **主要インターフェース**:
 
 ```dart
-class RetryConfig {
-  final int maxAttempts;
-  final Duration baseDelay;
-  final Duration maxDelay;
-  final bool jitter;
-  final List<String> retryableErrors;
-}
+// RetryConfig の正規定義は retry.md を参照。
+// import 'package:k1s0_retry/retry.dart' show RetryConfig;
 
-class CircuitBreakerConfig {
-  final int failureThreshold;
-  final Duration recoveryTimeout;
-  final int halfOpenMaxCalls;
-}
+// CircuitBreakerConfig の正規定義は circuit-breaker.md を参照。
+// import 'package:k1s0_circuit_breaker/circuit_breaker.dart' show CircuitBreakerConfig;
 
 class BulkheadConfig {
   final int maxConcurrentCalls;

@@ -62,7 +62,7 @@ system tier の設定管理サーバーは以下の機能を提供する。
   "key": "max_connections",
   "value": 25,
   "version": 3,
-  "description": "認証サーバーの DB 最大接続数",
+  "description": "auth-server の DB 最大接続数",
   "updated_by": "admin@example.com",
   "updated_at": "2026-02-15T14:30:00Z"
 }
@@ -103,7 +103,7 @@ namespace 内の全設定値をページネーション付きで取得する。
       "key": "max_connections",
       "value": 25,
       "version": 3,
-      "description": "認証サーバーの DB 最大接続数",
+      "description": "auth-server の DB 最大接続数",
       "updated_by": "admin@example.com",
       "updated_at": "2026-02-15T14:30:00Z"
     },
@@ -136,7 +136,7 @@ namespace 内の全設定値をページネーション付きで取得する。
 {
   "value": 50,
   "version": 3,
-  "description": "認証サーバーの DB 最大接続数（増設）"
+  "description": "auth-server の DB 最大接続数（増設）"
 }
 ```
 
@@ -154,7 +154,7 @@ namespace 内の全設定値をページネーション付きで取得する。
   "key": "max_connections",
   "value": 50,
   "version": 4,
-  "description": "認証サーバーの DB 最大接続数（増設）",
+  "description": "auth-server の DB 最大接続数（増設）",
   "updated_by": "operator@example.com",
   "updated_at": "2026-02-17T10:30:00Z"
 }
@@ -508,6 +508,6 @@ message ConfigChangeEvent {
 
 > 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
 
-- [system-server.md](../auth/server.md) -- 認証サーバー設計（同 tier の参考実装）
+- [system-server.md](../auth/server.md) -- auth-server 設計（同 tier の参考実装）
 - [APIゲートウェイ設計.md](../../architecture/api/APIゲートウェイ設計.md) -- Kong 構成管理
 - [サービスメッシュ設計.md](../../infrastructure/service-mesh/サービスメッシュ設計.md) -- Istio 設計・mTLS

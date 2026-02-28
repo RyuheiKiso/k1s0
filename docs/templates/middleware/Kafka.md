@@ -216,8 +216,8 @@ CLI の対話フローで選択されたオプションに応じて、生成さ�
 ```
 
 生成されるファイル:
-- `infra/kafka/auth-service/kafka-topic.yaml` -- トピック `k1s0.system.auth.events.v1`、パーティション6、レプリカ3、min.insync.replicas=2
-- `infra/kafka/auth-service/schema-registry-subject.yaml` -- Subject `k1s0.system.auth.events.v1-value`、互換性 BACKWARD
+- `infra/kafka/auth-service/kafka-topic.yaml` -- トピック `k1s0.system.auth.audit.v1`、パーティション6、レプリカ3、min.insync.replicas=2
+- `infra/kafka/auth-service/schema-registry-subject.yaml` -- Subject `k1s0.system.auth.audit.v1-value`、互換性 BACKWARD
 
 ### service Tier の Kafka 有効サーバー（dev 環境）の場合
 

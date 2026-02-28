@@ -50,7 +50,7 @@
 | DB | PostgreSQL 17 の `master_maintenance` スキーマ |
 | Kafka | プロデューサー（`k1s0.system.mastermaintenance.data_changed.v1`） |
 | 認証 | JWT による認可。テーブル単位の RBAC で `sys_operator` / `sys_admin` ロールが必要 |
-| ポート | 8110（REST）/ 9090（gRPC） |
+| ポート | 8110（REST）/ 50051（gRPC） |
 
 ---
 
@@ -911,7 +911,7 @@ regions/system/server/rust/master-maintenance/
 
 | カテゴリ | フィールド | 説明 |
 | --- | --- | --- |
-| server | `rest_port` / `grpc_port` / `environment` | REST 8110 / gRPC 9090 |
+| server | `rest_port` / `grpc_port` / `environment` | REST 8110 / gRPC 50051 |
 | database | `host` / `port` / `name` / `schema` / `max_connections` | PostgreSQL `master_maintenance` スキーマ |
 | kafka | `brokers` / `topic` | `k1s0.system.mastermaintenance.data_changed.v1` |
 | auth | `jwks_url` / `issuer` / `audience` | JWT 認証設定 |
@@ -941,7 +941,7 @@ master-maintenance-server:
     dockerfile: Dockerfile
   ports:
     - "8110:8110"
-    - "9098:9090"
+    - "9098:50051"
   environment:
     - DATABASE_URL=postgresql://k1s0:k1s0@postgres:5432/k1s0
     - KAFKA_BROKERS=kafka:9092

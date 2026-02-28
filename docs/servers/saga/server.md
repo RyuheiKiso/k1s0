@@ -57,8 +57,8 @@ system tier の Saga Orchestrator は以下の機能を提供する。
 | GET | `/api/v1/sagas/:saga_id` | Saga 詳細取得（ステップログ含む） | `sys_auditor` 以上 |
 | POST | `/api/v1/sagas/:saga_id/cancel` | Saga キャンセル | `sys_operator` 以上 |
 | POST | `/api/v1/sagas/:saga_id/compensate` | Saga キャンセル（`/cancel` のエイリアス） | `sys_operator` 以上 |
-| POST | `/api/v1/workflows` | ワークフロー登録 | `sys_operator` 以上 |
-| GET | `/api/v1/workflows` | ワークフロー一覧取得 | `sys_auditor` 以上 |
+| POST | `/api/v1/sagas/workflows` | ワークフロー登録 | `sys_operator` 以上 |
+| GET | `/api/v1/sagas/workflows` | ワークフロー一覧取得 | `sys_auditor` 以上 |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |
@@ -105,7 +105,7 @@ Saga の詳細情報とステップログを取得する。
 
 実行中の Saga をキャンセルする。終端状態（COMPLETED / FAILED / CANCELLED）の Saga はキャンセルできない。
 
-#### POST /api/v1/workflows
+#### POST /api/v1/sagas/workflows
 
 YAML 形式のワークフロー定義を登録する。
 
@@ -115,7 +115,7 @@ YAML 形式のワークフロー定義を登録する。
 | --- | --- | --- | --- |
 | `workflow_yaml` | string | Yes | YAML 形式のワークフロー定義文字列 |
 
-#### GET /api/v1/workflows
+#### GET /api/v1/sagas/workflows
 
 登録済みワークフロー定義の一覧を取得する。
 
@@ -706,7 +706,7 @@ regions/system/library/rust/saga/
 }
 ```
 
-### POST /api/v1/workflows
+### POST /api/v1/sagas/workflows
 
 **リクエスト例**
 
@@ -736,7 +736,7 @@ steps:
 }
 ```
 
-### GET /api/v1/workflows
+### GET /api/v1/sagas/workflows
 
 **レスポンス（200 OK）**
 

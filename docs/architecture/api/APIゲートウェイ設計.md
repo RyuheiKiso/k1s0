@@ -37,7 +37,7 @@ Browser → [HttpOnly Cookie] → Nginx Ingress Controller → Kong → BFF Prox
 | 項目             | 設定                                          |
 | ---------------- | --------------------------------------------- |
 | 動作モード       | DB-backed（PostgreSQL）                       |
-| データベース     | PostgreSQL 17（Kong 3.7 は PostgreSQL 15+ 対応） |
+| データベース     | PostgreSQL 17（Kong 3.8 は PostgreSQL 15+ 対応） |
 | 接続先           | `postgres.k1s0-system.svc.cluster.local:5432` |
 | データベース名   | `kong`                                        |
 | レプリカ構成     | 読み取りレプリカなし（Admin API 経由の管理のみ） |
@@ -50,7 +50,7 @@ Kong は公式 Helm Chart（`kong/kong`）でデプロイする。
 # infra/helm/services/system/kong/values.yaml
 image:
   repository: kong
-  tag: "3.7"
+  tag: "3.8"
 
 env:
   database: postgres
@@ -329,6 +329,8 @@ services:
 
 plugins:
   # グローバルプラグイン
+  # グローバルレート制限: service Tier のデフォルト値。
+  # system Tier および business Tier のサービスには、個別のルート/サービスレベルで上書き設定する。
   - name: rate-limiting
     config:
       minute: 500
@@ -355,6 +357,32 @@ plugins:
     config:
       per_consumer: true
       status_code_metrics: true
+```
+
+### Tier 別レート制限オーバーライド例
+
+グローバルレート制限（`minute: 500`）は service Tier のデフォルト値である。system Tier および business Tier のサービスには、ルート/サービスレベルで個別に上書き設定する。
+
+```yaml
+# system Tier のオーバーライド例（auth-server）
+services:
+  - name: auth-v1
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000            # system Tier: 高スループット要件
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+
+# business Tier のオーバーライド例（accounting）
+services:
+  - name: accounting-v1
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 800             # business Tier: 中程度のスループット
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
 ```
 
 ---
@@ -493,7 +521,7 @@ jobs:
   - 証明書の CN にはメンバーの識別子を含め、誰がアクセスしたかを特定可能にする
 - **監査ログ記録**: Admin API への全リクエストを監査ログとして記録
   - 記録項目: タイムスタンプ、操作者（証明書 CN）、HTTPメソッド、エンドポイント、リクエストボディ、レスポンスコード
-  - ログは Loki に送信し、90 日間保持
+  - ログは Loki に送信し、1 年間保持（`retention_period: 8760h`、監査ログ保持ポリシーに準拠）
   - 設定変更操作（POST / PUT / PATCH / DELETE）は Microsoft Teams の `infra-audit` チャンネルにもリアルタイム通知
 
 ---

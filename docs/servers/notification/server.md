@@ -1,6 +1,6 @@
 # system-notification-server 設計
 
-system tier の通知管理サーバー設計を定義する。メール・Slack・Webhook への通知配信を一元管理する。Kafka トピック `k1s0.system.notification.requested.v1` をトリガーに非同期配信を行い、配信結果を PostgreSQL に記録する。
+system tier の通知管理サーバー設計を定義する。メール・Slack・Webhook・SMS・Push への通知配信を一元管理する。Kafka トピック `k1s0.system.notification.requested.v1` をトリガーに非同期配信を行い、配信結果を PostgreSQL に記録する。
 Rust での実装を定義する。
 
 ## 概要
@@ -9,7 +9,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 
 | 機能 | 説明 |
 | --- | --- |
-| 通知チャネル管理 | Email / Slack / Webhook の接続設定 CRUD |
+| 通知チャネル管理 | Email / Slack / Webhook / SMS / Push の接続設定 CRUD |
 | 通知テンプレート管理 | テンプレートの作成・更新・削除・一覧取得 |
 | 通知送信 | REST による即時送信 / Kafka `k1s0.system.notification.requested.v1` 経由の非同期送信 |
 | 配信履歴管理 | 配信状態・エラー内容を PostgreSQL に記録し一覧・詳細取得を提供 |
@@ -59,7 +59,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | GET | `/api/v1/templates/:id` | テンプレート詳細取得 | `sys_auditor` 以上 |
 | PUT | `/api/v1/templates/:id` | テンプレート更新 | `sys_operator` 以上 |
 | DELETE | `/api/v1/templates/:id` | テンプレート削除 | `sys_admin` のみ |
-| POST | `/api/v1/notifications` | 即時通知送信 | `sys_operator` 以上 |
+| POST | `/api/v1/notifications/send` | 即時通知送信 | `sys_operator` 以上 |
 | GET | `/api/v1/notifications` | 配信履歴一覧 | `sys_auditor` 以上 |
 | GET | `/api/v1/notifications/:id` | 配信履歴詳細 | `sys_auditor` 以上 |
 | POST | `/api/v1/notifications/:id/retry` | 通知再送 | `sys_operator` 以上 |
@@ -75,7 +75,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 
 | パラメータ | 型 | 必須 | デフォルト | 説明 |
 | --- | --- | --- | --- | --- |
-| `channel_type` | string | No | - | チャネル種別でフィルタ（email/slack/webhook） |
+| `channel_type` | string | No | - | チャネル種別でフィルタ（email/slack/webhook/sms/push） |
 | `enabled_only` | bool | No | false | 有効なチャネルのみ取得 |
 | `page` | int | No | 1 | ページ番号 |
 | `page_size` | int | No | 20 | 1 ページあたりの件数 |
@@ -110,7 +110,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 
 #### POST /api/v1/channels
 
-新しい通知チャネルを作成する。`channel_type` は `email` / `slack` / `webhook` のいずれかを指定する。
+新しい通知チャネルを作成する。`channel_type` は `email` / `slack` / `webhook` / `sms` / `push` のいずれかを指定する。
 
 **リクエスト**
 
@@ -156,7 +156,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
     "message": "validation failed",
     "request_id": "req_abc123def456",
     "details": [
-      {"field": "channel_type", "message": "must be one of: email, slack, webhook"},
+      {"field": "channel_type", "message": "must be one of: email, slack, webhook, sms, push"},
       {"field": "config.smtp_host", "message": "smtp_host is required for email channel"}
     ]
   }
@@ -389,7 +389,7 @@ message NotificationLog {
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
 | infrastructure/persistence | `NotificationChannelPostgresRepository`, `NotificationTemplatePostgresRepository`, `NotificationLogPostgresRepository` | PostgreSQL リポジトリ実装 |
 | infrastructure/messaging | `NotificationKafkaConsumer`, `NotificationDeliveredKafkaProducer` | Kafka コンシューマー・プロデューサー |
-| infrastructure/delivery | `EmailDeliveryClient`, `SlackDeliveryClient`, `WebhookDeliveryClient` | 外部通知配信クライアント |
+| infrastructure/delivery | `EmailDeliveryClient`, `SlackDeliveryClient`, `WebhookDeliveryClient`, `SmsDeliveryClient`, `PushDeliveryClient` | 外部通知配信クライアント |
 
 ### ドメインモデル
 
@@ -399,7 +399,7 @@ message NotificationLog {
 | --- | --- | --- |
 | `id` | String | チャネルの一意識別子 |
 | `name` | String | チャネルの表示名 |
-| `channel_type` | String | チャネル種別（email / slack / webhook） |
+| `channel_type` | String | チャネル種別（email / slack / webhook / sms / push） |
 | `enabled` | bool | チャネルの有効/無効 |
 | `config` | JSON | チャネル固有の接続設定（SMTP設定等） |
 | `created_at` | DateTime\<Utc\> | 作成日時 |
@@ -490,8 +490,8 @@ message NotificationLog {
                     │  │ Producer     │  └────────────────────────┘  │
                     │  └──────────────┘  ┌────────────────────────┐  │
                     │  ┌──────────────┐  │ Email / Slack /        │  │
-                    │  │ Config       │  │ Webhook Delivery       │  │
-                    │  │ Loader       │  │ Client                 │  │
+                    │  │ Config       │  │ Webhook / SMS /        │  │
+                    │  │ Loader       │  │ Push Delivery Client   │  │
                     │  └──────────────┘  └────────────────────────┘  │
                     └────────────────────────────────────────────────┘
 ```

@@ -6,7 +6,7 @@ docker-compose における auth-server・config-server・System プロファイ
 
 ## System プロファイル サービス定義
 
-system 層のアプリケーションサーバーは `docker-compose.override.yaml` で管理する。以下に各サービスの詳細設定を示す。
+system tier のアプリケーションサーバーは `docker-compose.override.yaml` で管理する。以下に各サービスの詳細設定を示す。
 
 ### auth-server（Rust 版）
 
@@ -14,7 +14,7 @@ system 層のアプリケーションサーバーは `docker-compose.override.ya
 | --- | --- |
 | サービス名 | `auth-rust` |
 | ビルドコンテキスト | `./regions/system/server/rust/auth` |
-| Dockerfile | マルチステージビルド（`rust:1.82-bookworm` → `gcr.io/distroless/cc-debian12:nonroot`） |
+| Dockerfile | マルチステージビルド（`rust:1.88-bookworm` → `gcr.io/distroless/cc-debian12:nonroot`） |
 | プロファイル | `system` |
 | ポート | REST `8083:8080` / gRPC `50052:50051` |
 | 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（started） |
@@ -54,7 +54,7 @@ auth-rust:
 | --- | --- |
 | サービス名 | `config-rust` |
 | ビルドコンテキスト | `./regions/system/server/rust/config` |
-| Dockerfile | マルチステージビルド（`rust:1.82-bookworm` → `gcr.io/distroless/cc-debian12:nonroot`） |
+| Dockerfile | マルチステージビルド（`rust:1.88-bookworm` → `gcr.io/distroless/cc-debian12:nonroot`） |
 | プロファイル | `system` |
 | ポート | REST `8084:8080` / gRPC `50054:50051` |
 | 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（started） |
@@ -94,7 +94,7 @@ config-rust:
 | --- | --- |
 | サービス名 | `saga-rust` |
 | ビルドコンテキスト | `./regions/system/server/rust/saga` |
-| Dockerfile | マルチステージビルド（`rust:1.82-bookworm` → `gcr.io/distroless/cc-debian12:nonroot`） |
+| Dockerfile | マルチステージビルド（`rust:1.88-bookworm` → `gcr.io/distroless/cc-debian12:nonroot`） |
 | プロファイル | `system` |
 | ポート | REST `8085:8080` / gRPC `50055:50051` |
 | 依存サービス | `postgres`（healthy）, `kafka`（healthy）, `keycloak`（started） |
@@ -136,7 +136,7 @@ DLQ（Dead Letter Queue）メッセージの管理・再処理を担う REST API
 | --- | --- |
 | サービス名 | `dlq-manager` |
 | ビルドコンテキスト | `./regions/system/server/rust/dlq-manager` |
-| Dockerfile | マルチステージビルド（`rust:1.82-bookworm` → `gcr.io/distroless/cc-debian12:nonroot`） |
+| Dockerfile | マルチステージビルド（`rust:1.88-bookworm` → `gcr.io/distroless/cc-debian12:nonroot`） |
 | プロファイル | `system` |
 | ポート | REST `8086:8080`（gRPC なし） |
 | 依存サービス | `postgres`（healthy）, `kafka`（healthy） |
@@ -197,7 +197,7 @@ dlq-manager:
 # 必要なサービスのコメントを解除して起動してください。
 
 services:
-  # --- system 層 ---
+  # --- system tier ---
   # ポート割り当て:
   #   auth-rust:   REST 8083, gRPC 50052
   #   config-rust: REST 8084, gRPC 50054
@@ -301,7 +301,7 @@ services:
   #     timeout: 5s
   #     retries: 5
 
-  # --- service 層 ---
+  # --- service tier ---
   # order-server:
   #   build:
   #     context: ./regions/service/order/server/rust
@@ -529,7 +529,7 @@ plugins:
 ```dockerfile
 # regions/system/server/rust/auth/Dockerfile
 # Build stage
-FROM rust:1.82-bookworm AS builder
+FROM rust:1.88-bookworm AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler cmake build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -549,7 +549,7 @@ ENTRYPOINT ["/k1s0-auth-server"]
 
 | 項目 | 設定 |
 | --- | --- |
-| ビルドイメージ | `rust:1.82-bookworm` |
+| ビルドイメージ | `rust:1.88-bookworm` |
 | ランタイムイメージ | `gcr.io/distroless/cc-debian12:nonroot`（C/C++ ランタイム含む） |
 | 追加パッケージ | `protobuf-compiler`（tonic-build）, `cmake` + `build-essential`（rdkafka） |
 | 依存キャッシュ | ダミー `main.rs` で依存クレートを先にビルド |
@@ -584,7 +584,7 @@ healthcheck:
 - [docker-compose設計.md](docker-compose設計.md) -- 基本方針・プロファイル設計
 - [docker-compose-インフラサービス設計.md](compose-インフラサービス設計.md) -- PostgreSQL・Keycloak・Kafka・Redis・Kong の詳細設定
 - [docker-compose-可観測性サービス設計.md](compose-可観測性サービス設計.md) -- Prometheus・Grafana・Loki・Jaeger の詳細設定
-- [system-server.md](../../servers/auth/server.md) -- 認証サーバー設計
+- [system-server.md](../../servers/auth/server.md) -- auth-server 設計
 - [system-config-server.md](../../servers/config/server.md) -- 設定管理サーバー設計
 - [system-saga-server.md](../../servers/saga/server.md) -- Saga オーケストレーションサーバー設計
 - [system-dlq-manager-server.md](../../servers/dlq-manager/server.md) -- DLQ 管理サーバー設計

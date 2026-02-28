@@ -75,9 +75,9 @@ Docker Compose テンプレートで使用する変数を以下に示す。変�
 | ------------- | ---------------------------------------- |
 | infra         | PostgreSQL, MySQL, Redis, Kafka, Keycloak 等 |
 | observability | Jaeger, Prometheus, Grafana, Loki        |
-| system        | system 層のサーバー・DB                  |
-| business      | business 層のサーバー・クライアント・DB  |
-| service       | service 層のサーバー・クライアント・DB   |
+| system        | system tier のサーバー・DB                  |
+| business      | business tier のサーバー・クライアント・DB  |
+| service       | service tier のサーバー・クライアント・DB   |
 
 ### テンプレート内容
 
@@ -352,7 +352,7 @@ services:
   # --- {{ tier }} 層 ---
   # {{ service_name }}:
   #   build:
-  #     context: ./regions/{{ tier }}/server/rust/{{ service_name }}
+  #     context: {% if tier == "system" %}./regions/system/server/rust/{{ service_name }}{% else %}./regions/{{ tier }}/{{ service_name }}/server/rust{% endif %}
   #     dockerfile: Dockerfile
   #   profiles: [{{ tier }}]
   #   ports:
@@ -371,7 +371,7 @@ services:
   #       condition: service_healthy
 {% endif %}
   #   volumes:
-  #     - ./regions/{{ tier }}/server/rust/{{ service_name }}/config:/app/config
+  #     - {% if tier == "system" %}./regions/system/server/rust/{{ service_name }}{% else %}./regions/{{ tier }}/{{ service_name }}/server/rust{% endif %}/config:/app/config
 ```
 
 ### 設計ポイント
@@ -379,7 +379,7 @@ services:
 | 項目             | 設定                                                                      |
 | ---------------- | ------------------------------------------------------------------------- |
 | プロファイル     | `tier` 変数に基づき `system` / `business` / `service` を設定             |
-| ビルドコンテキスト | `tier` から `regions/{tier}/server/rust/{service_name}` のパスを導出     |
+| ビルドコンテキスト | `tier` から導出。system: `regions/system/server/rust/{service_name}`、business/service: `regions/{tier}/{service_name}/server/rust` |
 | ポートマッピング | `server_port` でホスト側ポートを指定（コンテナ側は常に 8080）            |
 | 依存関係         | `has_database` + `database_type` で DB への依存を設定                     |
 | Kafka 依存       | `has_kafka == true` の場合に Kafka への依存を追加                         |

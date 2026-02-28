@@ -366,7 +366,7 @@ vault:
       mountPath: "/vault/secrets/db-password"
 {% endif %}
 {% if has_kafka %}
-    - path: "secret/data/k1s0/{{ tier }}/{{ service_name }}/kafka"
+    - path: "secret/data/k1s0/system/kafka/sasl"
       key: "password"
       mountPath: "/vault/secrets/kafka-password"
 {% endif %}
@@ -933,7 +933,7 @@ BFF は通常のサーバーと同じ Helm Chart テンプレートを使用す�
 | 項目 | 通常サーバー | BFF |
 |---|---|---|
 | 配置パス | `infra/helm/services/{tier}/{service_name}/` | `infra/helm/services/service/{service_name}-bff/` |
-| Vault シークレット | DB/Kafka/Redis パスを含む | 空配列（`[]`） |
+| Vault シークレット | DB/Kafka/Redis パスを含む | OIDC + Redis セッション |
 | upstream 設定 | なし | `config.data` に upstream URL を含む |
 | gRPC ポート | `api_styles` による | `null`（GraphQL over HTTP のみ） |
 | DB 関連設定 | `has_database` による | 常になし |
@@ -953,10 +953,16 @@ service:
   port: 80
   grpcPort: null
 
-# DB / Kafka / Redis は不使用
+# BFF は OIDC / Redis セッション用に Vault を使用
 vault:
-  enabled: false          # BFF は Vault 不要
-  secrets: []
+  enabled: true
+  secrets:
+    - path: "secret/data/k1s0/service/{{ service_name }}-bff/oidc"
+      key: "client_secret"
+      mountPath: "/vault/secrets/oidc-client-secret"
+    - path: "secret/data/k1s0/service/{{ service_name }}-bff/redis"
+      key: "password"
+      mountPath: "/vault/secrets/redis-session-password"
 
 kafka:
   enabled: false

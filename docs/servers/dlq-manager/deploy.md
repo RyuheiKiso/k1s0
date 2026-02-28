@@ -69,12 +69,12 @@ app:
 
 server:
   host: "0.0.0.0"
-  port: 8084          # docker-compose 内部ポート（ホスト: 8086 → コンテナ: 8080）
+  port: 8080          # docker-compose 内部ポート（ホスト: 8086 → コンテナ: 8080）
 
 database:
   host: postgres
   port: 5432
-  name: dlq_db
+  name: k1s0_system
   user: dev
   password: dev
   ssl_mode: disable
@@ -219,7 +219,7 @@ DLQ Manager は REST API のみを提供し、gRPC エンドポイントは持�
 | --- | --- |
 | `server.port` | 8080 |
 | `database.host` | `postgres.k1s0-system.svc.cluster.local` |
-| `database.name` | `k1s0_dlq` |
+| `database.name` | `k1s0_system` |
 | `database.ssl_mode` | `disable` |
 | `kafka.brokers` | `kafka-0.messaging.svc.cluster.local:9092` |
 | `kafka.consumer_group` | `dlq-manager.default` |

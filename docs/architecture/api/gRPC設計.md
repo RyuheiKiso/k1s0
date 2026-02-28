@@ -23,15 +23,7 @@ k1s0.{tier}.{domain}.v{major}
 
 ### proto ファイル配置
 
-proto ファイルは以下の2つのレベルで管理する。
-
-#### プロジェクトルートの共有定義
-
-| パス | 用途 |
-| --- | --- |
-| `api/proto/k1s0/system/common/v1/` | 共有プロトコル定義（共通の message 型、共通の enum、Pagination 等） |
-| `api/proto/k1s0/event/` | イベント定義（メッセージング設計.md 参照） |
-| `api/proto/buf.yaml` | buf 設定（lint・breaking change 検出） |
+全 proto ファイルは `api/proto/` に集約して配置する（詳細は [proto設計.md](proto設計.md) を参照）。
 
 #### 配置ルールまとめ
 
@@ -39,33 +31,29 @@ proto ファイルは以下の2つのレベルで管理する。
 | --- | --- | --- |
 | 複数サービスで共有する message 型・enum | `api/proto/k1s0/system/common/v1/` | Pagination, Timestamp, Money |
 | イベント定義（Kafka メッセージスキーマ） | `api/proto/k1s0/event/{tier}/{domain}/v1/` | OrderCreatedEvent, LoginEvent |
-| サービス固有の gRPC サービス定義 | `{サービス}/api/proto/` | OrderService, LedgerService |
-| サービス固有の Request/Response 型 | `{サービス}/api/proto/` | CreateOrderRequest |
+| サービス固有の gRPC サービス定義 | `api/proto/k1s0/{tier}/{domain}/v1/` | OrderService, LedgerService |
+| サービス固有の Request/Response 型 | `api/proto/k1s0/{tier}/{domain}/v1/` | CreateOrderRequest |
 
 #### ディレクトリ構成
 
 ```
-# プロジェクトルート（共有定義）
 api/proto/
 ├── k1s0/
 │   ├── event/                     # イベント定義（メッセージング設計.md 参照）
 │   │   ├── system/
 │   │   ├── business/
 │   │   └── service/
-│   └── system/
-│       └── common/
-│           └── v1/
-│               ├── types.proto            # Pagination, Timestamp 等の共通型
-│               └── event_metadata.proto   # イベントメタデータ
-└── buf.yaml                       # buf 設定
-
-# サービス内（固有定義）
-{サービス}/api/proto/
-├── k1s0/
 │   ├── system/
-│   │   └── auth/
+│   │   ├── common/
+│   │   │   └── v1/
+│   │   │       ├── types.proto            # Pagination, Timestamp 等の共通型
+│   │   │       └── event_metadata.proto   # イベントメタデータ
+│   │   ├── auth/
+│   │   │   └── v1/
+│   │   │       └── auth.proto
+│   │   └── {service}/
 │   │       └── v1/
-│   │           └── auth.proto
+│   │           └── {service}.proto
 │   ├── business/
 │   │   └── accounting/
 │   │       └── v1/
@@ -74,7 +62,9 @@ api/proto/
 │       └── order/
 │           └── v1/
 │               └── order.proto
-└── buf.yaml
+├── buf.yaml                       # buf 設定
+├── buf.gen.yaml                   # コード生成設定
+└── buf.lock                       # 依存ロック
 ```
 
 ### 共通型定義

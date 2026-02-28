@@ -4,6 +4,8 @@
 
 system-tenant-server（ポート 8089）へのテナント情報取得クライアントライブラリ。テナント情報の取得・TTL 付きキャッシュ・テナントコンテキストの伝播（リクエストヘッダー `X-Tenant-ID` 管理）・テナント存在確認とアクティブ状態チェック・テナント設定値の取得を統一インターフェースで提供する。全 Tier のサービスからマルチテナント制御を共通利用するための基盤ライブラリである。
 
+> **ポート注記**: ポート `8089` は Docker Compose 環境でのホスト側ポートである。本番環境では Kubernetes Service 経由（`tenant-server:8080`）で接続する。
+
 **配置先**: `regions/system/library/rust/tenant-client/`
 
 ## 公開 API

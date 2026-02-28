@@ -131,23 +131,10 @@ export class RetryError extends Error {
   constructor(public readonly attempts: number, public readonly lastError: Error);
 }
 
-export interface CircuitBreakerConfig {
-  failureThreshold: number;
-  successThreshold: number;
-  timeoutMs: number;
-}
-
-export const defaultCircuitBreakerConfig: CircuitBreakerConfig;
-
-export type CircuitBreakerState = 'closed' | 'open' | 'half-open';
-
-export class CircuitBreaker {
-  constructor(config?: Partial<CircuitBreakerConfig>);
-  getState(): CircuitBreakerState;
-  isOpen(): boolean;
-  recordSuccess(): void;
-  recordFailure(): void;
-}
+// CircuitBreakerConfig・CircuitBreakerState・CircuitBreaker の定義は
+// circuit-breaker.md を参照。retry ライブラリからは circuit-breaker を
+// 依存として利用する。
+// See: ../resilience/circuit-breaker.md
 ```
 
 **カバレッジ目標**: 90%以上
@@ -177,21 +164,10 @@ class RetryError implements Exception {
   final Object lastError;
 }
 
-enum CircuitBreakerState { closed, open, halfOpen }
-
-class CircuitBreakerConfig {
-  final int failureThreshold;
-  final int successThreshold;
-  final int timeoutMs;
-}
-
-class CircuitBreaker {
-  CircuitBreaker({CircuitBreakerConfig? config});
-  CircuitBreakerState get state;
-  bool get isOpen;
-  void recordSuccess();
-  void recordFailure();
-}
+// CircuitBreakerState・CircuitBreakerConfig・CircuitBreaker の定義は
+// circuit-breaker.md を参照。retry ライブラリからは circuit-breaker を
+// 依存として利用する。
+// See: ../resilience/circuit-breaker.md
 ```
 
 **カバレッジ目標**: 90%以上

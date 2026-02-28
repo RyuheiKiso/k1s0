@@ -193,7 +193,15 @@ kafka-init:
     - |
       echo "Creating Kafka topics..."
       kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.auth.audit.v1 --partitions 6 --replication-factor 1
+      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.auth.permission_denied.v1 --partitions 6 --replication-factor 1
       kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.config.changed.v1 --partitions 3 --replication-factor 1
+      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.apiregistry.schema_updated.v1 --partitions 3 --replication-factor 1
+      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.featureflag.changed.v1 --partitions 3 --replication-factor 1
+      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.file.uploaded.v1 --partitions 3 --replication-factor 1
+      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.file.deleted.v1 --partitions 3 --replication-factor 1
+      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.vault.secret_rotated.v1 --partitions 3 --replication-factor 1
+      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.notification.requested.v1 --partitions 3 --replication-factor 1
+      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.quota.exceeded.v1 --partitions 3 --replication-factor 1
       kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.service.order.created.v1 --partitions 3 --replication-factor 1
       kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.service.order.updated.v1 --partitions 3 --replication-factor 1
       echo "Kafka topics created."
@@ -273,7 +281,15 @@ Keycloak は `start-dev --import-realm` オプションで起動し、`/opt/keyc
 | トピック | パーティション数 | 用途 |
 | --- | --- | --- |
 | `k1s0.system.auth.audit.v1` | 6 | 認証監査ログ |
+| `k1s0.system.auth.permission_denied.v1` | 6 | パーミッション拒否イベント |
 | `k1s0.system.config.changed.v1` | 3 | 設定変更通知 |
+| `k1s0.system.apiregistry.schema_updated.v1` | 3 | API スキーマ更新通知 |
+| `k1s0.system.featureflag.changed.v1` | 3 | フィーチャーフラグ変更通知 |
+| `k1s0.system.file.uploaded.v1` | 3 | ファイルアップロード通知 |
+| `k1s0.system.file.deleted.v1` | 3 | ファイル削除通知 |
+| `k1s0.system.vault.secret_rotated.v1` | 3 | シークレットローテーション通知 |
+| `k1s0.system.notification.requested.v1` | 3 | 通知リクエスト |
+| `k1s0.system.quota.exceeded.v1` | 3 | クォータ超過通知 |
 | `k1s0.service.order.created.v1` | 3 | 注文作成イベント |
 | `k1s0.service.order.updated.v1` | 3 | 注文更新イベント |
 

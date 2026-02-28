@@ -14,7 +14,7 @@ system tier の Vault Server は以下の機能を提供する。
 | シークレット削除 | パス指定でシークレットを削除する |
 | HashiCorp Vault 連携 | KV v2 / Dynamic Secrets 連携 |
 | シークレットローテーション | 自動・手動によるシークレットローテーション |
-| Kafka 通知 | `k1s0.system.vault.rotated.v1` トピックでローテーション通知を配信 |
+| Kafka 通知 | `k1s0.system.vault.secret_rotated.v1` トピックでローテーション通知を配信 |
 | アクセス監査ログ | シークレットアクセスの監査ログを PostgreSQL に記録 |
 | ヘルスモニタリング | ヘルスチェック・レディネスチェック・Prometheus メトリクス |
 
@@ -118,7 +118,12 @@ system tier の Vault Server は以下の機能を提供する。
 
 ```json
 {
-  "error": "secret not found: app/db/password"
+  "error": {
+    "code": "SYS_VAULT_NOT_FOUND",
+    "message": "secret not found: app/db/password",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
 }
 ```
 

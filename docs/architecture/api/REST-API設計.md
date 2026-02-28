@@ -56,7 +56,7 @@ D-007 エラーレスポンス、D-008 バージョニング、D-012 レート�
 | 404             | リソースが見つからない             | `SVC_ORDER_NOT_FOUND`           |
 | 409             | 競合（楽観ロック等）               | `SVC_ORDER_VERSION_CONFLICT`    |
 | 422             | ビジネスルール違反                 | `BIZ_ACCT_LEDGER_CLOSED`       |
-| 429             | レート制限超過                     | `SYS_RATE_LIMIT_EXCEEDED`      |
+| 429             | レート制限超過                     | `SYS_RATE_EXCEEDED`      |
 | 500             | 内部サーバーエラー                 | `SYS_INTERNAL_ERROR`           |
 | 503             | サービス利用不可                   | `SYS_SERVICE_UNAVAILABLE`      |
 
@@ -394,7 +394,7 @@ X-RateLimit-Reset: 1710000000
 ```json
 {
   "error": {
-    "code": "SYS_RATE_LIMIT_EXCEEDED",
+    "code": "SYS_RATE_EXCEEDED",
     "message": "レート制限を超過しました。しばらく待ってから再試行してください",
     "request_id": "req_xyz789",
     "details": [

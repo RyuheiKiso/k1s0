@@ -376,7 +376,7 @@ upstream:
 
 ```dockerfile
 # === Build Stage ===
-FROM golang:1.22-bookworm AS builder
+FROM golang:1.23-bookworm AS builder
 
 WORKDIR /app
 COPY go.mod go.sum ./
@@ -460,7 +460,7 @@ bff/rust/
 
 | ファイル | テンプレート | 説明 |
 |---|---|---|
-| `src/main.rs` | `src/main.rs.tera` | axum + async-graphql server |
+| `src/main.rs` | `src/main.rs.tera` | axum + async-graphql サーバー |
 | `src/handler/mod.rs` | `src/handler/mod.rs.tera` | handler モジュール定義 |
 | `src/handler/graphql.rs` | `src/handler/graphql.rs.tera` | async-graphql Schema、QueryRoot/MutationRoot |
 | `src/client/mod.rs` | `src/client/mod.rs.tera` | client モジュール定義 |
@@ -473,24 +473,24 @@ bff/rust/
 
 ### src/main.rs
 
-`src/main.rs.tera` — エントリポイント。actix-web を使用。
+`src/main.rs.tera` — エントリポイント。axum を使用。
 
 ```rust
-use actix_web::{web, App, HttpServer, HttpResponse};
+use axum::{routing::get, routing::post, Router};
+use std::net::SocketAddr;
 
 mod handler;
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
+#[tokio::main]
+async fn main() {
     println!("{{ service_name }}-bff starting on :8080");
-    HttpServer::new(|| {
-        App::new()
-            .route("/healthz", web::get().to(HttpResponse::Ok))
-            .configure(handler::graphql::configure)
-    })
-    .bind("0.0.0.0:8080")?
-    .run()
-    .await
+    let app = Router::new()
+        .route("/healthz", get(|| async { "OK" }))
+        .merge(handler::graphql::router());
+
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 ```
 
@@ -507,14 +507,14 @@ pub mod graphql;
 `src/handler/graphql.rs.tera` — async-graphql Schema、QueryRoot/MutationRoot の定義。
 
 ```rust
-use actix_web::{web, HttpResponse};
+use axum::{routing::post, Json, Router};
 
-pub fn configure(cfg: &mut web::ServiceConfig) {
-    cfg.route("/query", web::post().to(graphql_handler));
+pub fn router() -> Router {
+    Router::new().route("/query", post(graphql_handler))
 }
 
-async fn graphql_handler() -> HttpResponse {
-    HttpResponse::Ok().json(serde_json::json!({"data": null}))
+async fn graphql_handler() -> Json<serde_json::Value> {
+    Json(serde_json::json!({"data": null}))
 }
 ```
 
@@ -630,32 +630,38 @@ impl UpstreamClient {
 
 #[cfg(test)]
 mod tests {
-    #[actix_web::test]
+    use axum::{routing::get, Router};
+    use axum::body::Body;
+    use http::Request;
+    use tower::ServiceExt;
+
+    #[tokio::test]
     async fn test_healthz() {
-        use actix_web::{test, web, App, HttpResponse};
+        let app = Router::new()
+            .route("/healthz", get(|| async { "OK" }));
 
-        let app = test::init_service(
-            App::new()
-                .route("/healthz", web::get().to(HttpResponse::Ok))
-        ).await;
-
-        let req = test::TestRequest::get().uri("/healthz").to_request();
-        let resp = test::call_service(&app, req).await;
+        let resp = app
+            .oneshot(Request::builder().uri("/healthz").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
 
         assert!(resp.status().is_success());
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_query_endpoint() {
-        use actix_web::{test, App};
+        let app = {{ service_name_snake }}_bff::handler::graphql::router();
 
-        let app = test::init_service(
-            App::new()
-                .configure({{ service_name_snake }}_bff::handler::graphql::configure)
-        ).await;
-
-        let req = test::TestRequest::post().uri("/query").to_request();
-        let resp = test::call_service(&app, req).await;
+        let resp = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/query")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
 
         assert!(resp.status().is_success());
     }
@@ -673,17 +679,18 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-actix-web = "4"
+axum = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 async-graphql = "7"
-async-graphql-actix-web = "7"
+async-graphql-axum = "7"
 reqwest = { version = "0.12", features = ["json"] }
 anyhow = "1"
 tokio = { version = "1", features = ["full"] }
 
 [dev-dependencies]
-actix-rt = "2"
+http = "1"
+tower = { version = "0.5", features = ["util"] }
 ```
 
 ### config/config.yaml
@@ -705,7 +712,7 @@ upstream:
 
 ```dockerfile
 # === Build Stage ===
-FROM rust:1.82-bookworm AS builder
+FROM rust:1.88-bookworm AS builder
 
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./

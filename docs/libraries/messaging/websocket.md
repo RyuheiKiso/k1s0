@@ -336,5 +336,5 @@ async fn test_notification_service_subscribes_on_connect() {
 - [system-library-概要](../_common/概要.md) — ライブラリ一覧・テスト方針
 - [system-library-graphql-client設計](../client-sdk/graphql-client.md) — GraphQL クライアント（サブスクリプション接続管理の上位ラッパー）
 - [system-library-notification-client設計](notification-client.md) — 通知クライアント（WebSocket 経由のリアルタイム通知受信）
-- [system-notification-server設計](../../servers/notification/server.md) — 通知サーバー設計
+- [system-notification-server設計](../../servers/notification/server.md) — notification-server 設計
 - [メッセージング設計.md](../../architecture/messaging/メッセージング設計.md) — メッセージング設計

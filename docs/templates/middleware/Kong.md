@@ -231,7 +231,7 @@ CLI の対話フローで選択されたオプションに応じて、生成さ�
   "namespace": "k1s0-system",
   "api_styles": ["rest", "grpc"],
   "server_port": 80,
-  "grpc_port": 9090
+  "grpc_port": 50051
 }
 ```
 

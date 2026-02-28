@@ -140,6 +140,6 @@ observability:
 
 ## 関連ドキュメント
 
-- [system-server.md](../auth/server.md) -- 認証サーバー設計（参考実装）
+- [system-server.md](../auth/server.md) -- auth-server 設計（参考実装）
 - [system-server-deploy.md](deploy.md) -- Dockerfile・Helm・テスト方針
 - [テンプレート仕様-サーバー-Rust](../../templates/server/サーバー-Rust.md) -- Rust テンプレート詳細

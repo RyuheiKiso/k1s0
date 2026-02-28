@@ -122,7 +122,7 @@ server:
   name: {{ service_name }}
   port: {{ server_port | default(value=8080) }}
 {% if api_styles is containing("grpc") %}
-  grpc_port: {{ grpc_port | default(value=9090) }}
+  grpc_port: {{ grpc_port | default(value=50051) }}
 {% endif %}
 
 logging:
@@ -187,7 +187,7 @@ server:
   name: {{ service_name }}
   port: {{ server_port | default(value=8080) }}
 {% if api_styles is containing("grpc") %}
-  grpc_port: {{ grpc_port | default(value=9090) }}
+  grpc_port: {{ grpc_port | default(value=50051) }}
 {% endif %}
 
 logging:
@@ -253,7 +253,7 @@ server:
   name: {{ service_name }}
   port: {{ server_port | default(value=8080) }}
 {% if api_styles is containing("grpc") %}
-  grpc_port: {{ grpc_port | default(value=9090) }}
+  grpc_port: {{ grpc_port | default(value=50051) }}
 {% endif %}
 
 logging:
@@ -268,7 +268,7 @@ tracing:
 
 {% if has_database %}
 database:
-  host: vault://secret/data/{{ namespace }}/{{ service_name_snake }}/db#host
+  host: vault://secret/data/k1s0/{{ tier }}/{{ service_name }}/db#host
 {% if database_type == "postgres" %}
   port: 5432
   driver: postgres
@@ -277,8 +277,8 @@ database:
   driver: mysql
 {% endif %}
   name: {{ service_name_snake }}
-  user: vault://secret/data/{{ namespace }}/{{ service_name_snake }}/db#user
-  password: vault://secret/data/{{ namespace }}/{{ service_name_snake }}/db#password
+  user: vault://secret/data/k1s0/{{ tier }}/{{ service_name }}/db#user
+  password: vault://secret/data/k1s0/{{ tier }}/{{ service_name }}/db#password
   ssl_mode: verify-full
   max_connections: 50
   idle_timeout: 120s
@@ -287,14 +287,14 @@ database:
 {% if has_kafka %}
 kafka:
   brokers:
-    - vault://secret/data/{{ namespace }}/{{ service_name_snake }}/kafka#brokers
+    - vault://secret/data/k1s0/{{ tier }}/{{ service_name }}/kafka#brokers
   security_protocol: SASL_SSL
   consumer_group: {{ service_name_snake }}
 {% endif %}
 
 {% if has_redis %}
 redis:
-  host: vault://secret/data/{{ namespace }}/{{ service_name_snake }}/redis#host
+  host: vault://secret/data/k1s0/{{ tier }}/{{ service_name }}/redis#host
   port: 6379
   tls: true
   db: 0

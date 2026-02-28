@@ -54,7 +54,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
 | GET | `/api/v1/files` | ファイル一覧取得 | `sys_auditor` 以上 |
-| POST | `/api/v1/files` | ファイルアップロード（プリサインドURL発行） | `sys_operator` 以上 |
+| POST | `/api/v1/files/upload-url` | ファイルアップロード（プリサインドURL発行） | `sys_operator` 以上 |
 | GET | `/api/v1/files/:id` | ファイルメタデータ取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/files/:id/complete` | アップロード完了通知 | `sys_operator` 以上 |
 | DELETE | `/api/v1/files/:id` | ファイル削除 | `sys_operator` 以上 |
@@ -512,7 +512,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
-  grpc_port: 9090
+  grpc_port: 50051
 
 database:
   url: "postgresql://app:@postgres.k1s0-system.svc.cluster.local:5432/k1s0_system"
@@ -555,12 +555,12 @@ replicaCount: 2
 
 container:
   port: 8080
-  grpcPort: 9090
+  grpcPort: 50051
 
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 9090
+  grpcPort: 50051
 
 autoscaling:
   enabled: true

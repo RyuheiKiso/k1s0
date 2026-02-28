@@ -2,7 +2,7 @@
 
 ## 概要
 
-汎用通知送信クライアントライブラリ。チャネル種別（Email/SMS/Push/Webhook）・受信者・件名・本文を統一インターフェースで扱い、`NotificationRequest` / `NotificationResponse` を通じて通知を送信する。全 Tier のサービスから共通利用する。
+汎用通知送信クライアントライブラリ。チャネル種別（Email/SMS/Push/Slack/Webhook）・受信者・件名・本文を統一インターフェースで扱い、`NotificationRequest` / `NotificationResponse` を通じて通知を送信する。全 Tier のサービスから共通利用する。
 
 **配置先**: `regions/system/library/rust/notification-client/`
 
@@ -13,7 +13,7 @@
 | `NotificationClient` | トレイト | 通知送信インターフェース（send・send_batch） |
 | `NotificationRequest` | 構造体 | id・channel・recipient・subject（任意）・body・metadata（任意） |
 | `NotificationResponse` | 構造体 | id・status・message_id（任意） |
-| `NotificationChannel` | enum | `Email`・`Sms`・`Push`・`Webhook` |
+| `NotificationChannel` | enum | `Email`・`Sms`・`Push`・`Slack`・`Webhook` |
 | `NotificationClientError` | enum | `SendError`・`BatchError`・`InvalidChannel`・`Internal` |
 
 ## Rust 実装
@@ -60,6 +60,7 @@ pub enum NotificationChannel {
     Email,
     Sms,
     Push,
+    Slack,
     Webhook,
 }
 
@@ -146,9 +147,11 @@ tracing::info!(id = %response.id, status = %response.status, "通知送信完了
 type Channel string
 
 const (
-    ChannelEmail Channel = "email"
-    ChannelSMS   Channel = "sms"
-    ChannelPush  Channel = "push"
+    ChannelEmail   Channel = "email"
+    ChannelSMS     Channel = "sms"
+    ChannelPush    Channel = "push"
+    ChannelSlack   Channel = "slack"
+    ChannelWebhook Channel = "webhook"
 )
 
 type NotificationRequest struct {
@@ -181,7 +184,7 @@ func (c *InMemoryClient) SentRequests() []NotificationRequest
 **主要 API**:
 
 ```typescript
-export type NotificationChannel = 'email' | 'sms' | 'push' | 'webhook';
+export type NotificationChannel = 'email' | 'sms' | 'push' | 'slack' | 'webhook';
 
 export interface NotificationRequest {
   id: string;
@@ -204,6 +207,54 @@ export interface NotificationClient {
 export class InMemoryNotificationClient implements NotificationClient {
   async send(request: NotificationRequest): Promise<NotificationResponse>;
   getSent(): NotificationRequest[];
+}
+```
+
+**カバレッジ目標**: 90%以上
+
+## Dart 実装
+
+**配置先**: `regions/system/library/dart/notification_client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**主要 API**:
+
+```dart
+enum NotificationChannel { email, sms, push, slack, webhook }
+
+class NotificationRequest {
+  final String id;
+  final NotificationChannel channel;
+  final String recipient;
+  final String? subject;
+  final String body;
+  final Map<String, dynamic>? metadata;
+
+  NotificationRequest({
+    required this.channel,
+    required this.recipient,
+    required this.body,
+    this.subject,
+    this.metadata,
+  });
+}
+
+class NotificationResponse {
+  final String id;
+  final String status;
+  final String? messageId;
+}
+
+abstract class NotificationClient {
+  Future<NotificationResponse> send(NotificationRequest request);
+  Future<List<NotificationResponse>> sendBatch(List<NotificationRequest> requests);
+}
+
+class InMemoryNotificationClient implements NotificationClient {
+  final List<NotificationRequest> sent = [];
+  @override
+  Future<NotificationResponse> send(NotificationRequest request);
+  @override
+  Future<List<NotificationResponse>> sendBatch(List<NotificationRequest> requests);
 }
 ```
 

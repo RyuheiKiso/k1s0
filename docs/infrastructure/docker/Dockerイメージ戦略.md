@@ -13,7 +13,8 @@ k1s0 プロジェクトにおける Docker イメージのビルド・管理方�
 
 | 言語 / FW   | ビルドステージ               | ランタイムステージ                        |
 | ----------- | ---------------------------- | ----------------------------------------- |
-| Rust        | `rust:1.82-bookworm`         | `gcr.io/distroless/cc-debian12`           |
+| Rust        | `rust:1.88-bookworm`         | `gcr.io/distroless/cc-debian12`           |
+| Go BFF      | `golang:1.23-alpine`         | `gcr.io/distroless/static-debian12`       |
 | React       | `node:22-bookworm` (ビルド)  | `nginx:1.27-alpine`（静的配信）           |
 | Flutter Web | `ghcr.io/cirruslabs/flutter:3.24.0` (ビルド) | `nginx:1.27-alpine`（静的配信）  |
 
@@ -23,7 +24,7 @@ k1s0 プロジェクトにおける Docker イメージのビルド・管理方�
 
 ```dockerfile
 # ---- Build ----
-FROM rust:1.82-bookworm AS build
+FROM rust:1.88-bookworm AS build
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release && rm -rf src
@@ -35,6 +36,25 @@ FROM gcr.io/distroless/cc-debian12
 COPY --from=build /src/target/release/app /app
 # config.yaml は Kubernetes 環境では ConfigMap としてマウントされる（helm設計.md 参照）
 # ローカル実行時は -v オプションで config/ をマウントすること
+USER nonroot:nonroot
+EXPOSE 8080 50051
+ENTRYPOINT ["/app"]
+```
+
+### Go BFF サーバー
+
+```dockerfile
+# ---- Build ----
+FROM golang:1.23-alpine AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -o /app .
+
+# ---- Runtime ----
+FROM gcr.io/distroless/static-debian12
+COPY --from=build /app /app
 USER nonroot:nonroot
 EXPOSE 8080
 ENTRYPOINT ["/app"]
@@ -121,9 +141,9 @@ harbor.internal.example.com/{プロジェクト}/{サービス名}:{タグ}
 
 | プロジェクト    | 対象                            |
 | --------------- | ------------------------------- |
-| k1s0-system     | system 層のサーバー             |
-| k1s0-business   | business 層のサーバー・クライアント（`{領域名}-{サービス名}`） |
-| k1s0-service    | service 層のサーバー・クライアント |
+| k1s0-system     | system tier のサーバー             |
+| k1s0-business   | business tier のサーバー・クライアント（`{領域名}-{サービス名}`） |
+| k1s0-service    | service tier のサーバー・クライアント |
 | k1s0-infra      | カスタムインフライメージ        |
 
 ## セキュリティ

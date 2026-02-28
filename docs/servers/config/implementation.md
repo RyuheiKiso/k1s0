@@ -104,6 +104,7 @@ moka = { version = "0.12", features = ["future"] }
 | `config_server.cache` | `max_entries` | int | `10000` | キャッシュの最大エントリ数 |
 | `config_server.cache` | `refresh_on_miss` | bool | `true` | キャッシュミス時にバックグラウンドリフレッシュ |
 | `config_server.audit` | `kafka_enabled` | bool | `true` | Kafka への非同期配信を有効化 |
+| `config_server.audit` | `kafka_topic` | string | `"k1s0.system.config.changed.v1"` | 設定変更イベントの配信先 Kafka トピック |
 | `config_server.audit` | `retention_days` | int | `365` | DB 内の保持日数 |
 | `config_server.namespace` | `allowed_tiers` | string[] | `["system","business","service"]` | 許可される Tier |
 | `config_server.namespace` | `max_depth` | int | `4` | namespace の最大階層数 |
@@ -786,6 +787,7 @@ config_server:
   # 監査ログ
   audit:
     kafka_enabled: true       # Kafka への非同期配信を有効化
+    kafka_topic: "k1s0.system.config.changed.v1"  # 設定変更イベントの配信先トピック
     retention_days: 365       # DB 内の保持日数
   # namespace バリデーション
   namespace:
