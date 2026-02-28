@@ -21,6 +21,8 @@ type EventMetadata struct {
 	Timestamp time.Time
 	// Source はイベント送信元サービス名。
 	Source string
+	// SchemaVersion はスキーマバージョン。
+	SchemaVersion int32
 }
 
 // NewEventMetadata は新しい EventMetadata を生成する。
@@ -31,6 +33,7 @@ func NewEventMetadata(eventType, correlationId, source string) EventMetadata {
 		CorrelationId: correlationId,
 		Timestamp:     time.Now().UTC(),
 		Source:        source,
+		SchemaVersion: 1,
 	}
 }
 
@@ -40,6 +43,8 @@ type EventEnvelope struct {
 	Metadata EventMetadata
 	// Topic は送信先 Kafka トピック名。
 	Topic string
+	// Key はパーティションキー（例: user_id）。
+	Key string
 	// Payload はイベントのペイロード（任意の型）。
 	Payload interface{}
 	// Headers は Kafka メッセージヘッダー（省略可能）。

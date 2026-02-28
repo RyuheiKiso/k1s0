@@ -7,6 +7,18 @@ on:
     paths:
       - 'infra/kong/**'
 
+# prod デフォルト値。sync-dev / sync-staging はジョブレベルで上書きする。
+env:
+  KONG_RATE_SYSTEM_MINUTE: "3000"
+  KONG_RATE_SYSTEM_SECOND: "100"
+  KONG_RATE_BUSINESS_MINUTE: "1000"
+  KONG_RATE_BUSINESS_SECOND: "40"
+  KONG_RATE_SERVICE_MINUTE: "500"
+  KONG_RATE_SERVICE_SECOND: "20"
+  KONG_RATE_REDIS_POLICY: "redis"
+  KONG_CORS_ORIGINS: "https://*.k1s0.internal.example.com"
+  KONG_KEYCLOAK_ISSUER: "https://auth.k1s0.internal.example.com/realms/k1s0"
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -16,8 +28,10 @@ jobs:
         run: |
           curl -sL https://github.com/Kong/deck/releases/latest/download/deck_linux_amd64.tar.gz | tar xz
           sudo mv deck /usr/local/bin/
+      - name: Resolve environment variables
+        run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Validate config
-        run: deck validate -s infra/kong/kong.yaml
+        run: deck validate -s /tmp/kong-resolved.yaml
 
   # NOTE: 各環境の CI/CD ランナーはそれぞれのクラスタ内で動作する。
   # そのため Kong Admin API のサービス名（kong-admin.k1s0-system.svc.cluster.local:8001）は
@@ -30,33 +44,63 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install decK
+        run: |
+          curl -sL https://github.com/Kong/deck/releases/latest/download/deck_linux_amd64.tar.gz | tar xz
+          sudo mv deck /usr/local/bin/
+      - name: Resolve environment variables
+        run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Show diff
         run: |
-          deck diff -s infra/kong/kong.yaml \
+          deck diff -s /tmp/kong-resolved.yaml \
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
 
   sync-dev:
     needs: diff
     runs-on: [self-hosted, dev]
     environment: dev
+    env:
+      KONG_RATE_SYSTEM_MINUTE: "30000"
+      KONG_RATE_SYSTEM_SECOND: "1000"
+      KONG_RATE_BUSINESS_MINUTE: "10000"
+      KONG_RATE_BUSINESS_SECOND: "400"
+      KONG_RATE_SERVICE_MINUTE: "5000"
+      KONG_RATE_SERVICE_SECOND: "200"
+      KONG_RATE_REDIS_POLICY: "local"
+      KONG_CORS_ORIGINS: "http://localhost:3000"
+      KONG_KEYCLOAK_ISSUER: "http://keycloak.k1s0-system.svc.cluster.local:8080/realms/k1s0"
     steps:
       - uses: actions/checkout@v4
+      - name: Resolve environment variables
+        run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Sync to dev
         run: |
           # dev クラスタ内のランナーで実行
-          deck sync -s infra/kong/kong.yaml \
+          deck sync -s /tmp/kong-resolved.yaml \
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
 
   sync-staging:
     needs: sync-dev
     runs-on: [self-hosted, staging]
     environment: staging
+    env:
+      KONG_RATE_SYSTEM_MINUTE: "6000"
+      KONG_RATE_SYSTEM_SECOND: "200"
+      KONG_RATE_BUSINESS_MINUTE: "2000"
+      KONG_RATE_BUSINESS_SECOND: "80"
+      KONG_RATE_SERVICE_MINUTE: "1000"
+      KONG_RATE_SERVICE_SECOND: "40"
+      KONG_RATE_REDIS_POLICY: "redis"
+      KONG_CORS_ORIGINS: "https://*.staging.k1s0.internal.example.com"
+      KONG_KEYCLOAK_ISSUER: "https://auth.staging.k1s0.internal.example.com/realms/k1s0"
     steps:
       - uses: actions/checkout@v4
+      - name: Resolve environment variables
+        run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Sync to staging
         run: |
           # staging クラスタ内のランナーで実行
-          deck sync -s infra/kong/kong.yaml \
+          deck sync -s /tmp/kong-resolved.yaml \
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
 
   sync-prod:
@@ -64,10 +108,13 @@ jobs:
     runs-on: [self-hosted, prod]
     environment:
       name: prod
+    # env: ワークフローレベルの prod デフォルト値を継承
     steps:
       - uses: actions/checkout@v4
+      - name: Resolve environment variables
+        run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Sync to prod
         run: |
           # prod クラスタ内のランナーで実行
-          deck sync -s infra/kong/kong.yaml \
+          deck sync -s /tmp/kong-resolved.yaml \
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001

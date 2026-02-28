@@ -12,7 +12,10 @@ use axum::{
 };
 
 use crate::adapter::middleware::auth_middleware::{AuthMiddlewareLayer, Claims};
-use crate::domain::model::{ConfigEntry, FeatureFlag, Tenant, TenantConnection, TenantStatus};
+use crate::domain::model::{
+    ConfigEntry, CreateTenantPayload, FeatureFlag, SetFeatureFlagPayload, Tenant,
+    TenantConnection, TenantStatus, UpdateTenantPayload, UserError,
+};
 use crate::infra::auth::JwksVerifier;
 use crate::infra::config::GraphQLConfig;
 use crate::infra::grpc::FeatureFlagGrpcClient;
@@ -65,11 +68,13 @@ impl QueryRoot {
     async fn tenants(
         &self,
         _ctx: &Context<'_>,
-        #[graphql(default = 1)] page: i32,
-        #[graphql(default = 20)] page_size: i32,
+        first: Option<i32>,
+        after: Option<String>,
+        last: Option<i32>,
+        before: Option<String>,
     ) -> FieldResult<TenantConnection> {
         self.tenant_query
-            .list_tenants(page, page_size)
+            .list_tenants(first, after, last, before)
             .await
             .map_err(|e| async_graphql::Error::new(e.to_string()))
     }
@@ -121,13 +126,13 @@ impl MutationRoot {
         &self,
         ctx: &Context<'_>,
         input: CreateTenantInput,
-    ) -> FieldResult<Tenant> {
+    ) -> FieldResult<CreateTenantPayload> {
         let claims = ctx.data::<Claims>().ok();
         let owner_user_id = claims.map(|c| c.sub.as_str()).unwrap_or("unknown");
-        self.tenant_mutation
+        Ok(self
+            .tenant_mutation
             .create_tenant(&input.name, owner_user_id)
-            .await
-            .map_err(|e| async_graphql::Error::new(e.to_string()))
+            .await)
     }
 
     async fn update_tenant(
@@ -135,20 +140,20 @@ impl MutationRoot {
         _ctx: &Context<'_>,
         id: async_graphql::ID,
         input: UpdateTenantInput,
-    ) -> FieldResult<Tenant> {
+    ) -> FieldResult<UpdateTenantPayload> {
         let status_str = input.status.map(|s| match s {
             TenantStatus::Active => "ACTIVE".to_string(),
             TenantStatus::Suspended => "SUSPENDED".to_string(),
             TenantStatus::Deleted => "DELETED".to_string(),
         });
-        self.tenant_mutation
+        Ok(self
+            .tenant_mutation
             .update_tenant(
                 id.as_str(),
                 input.name.as_deref(),
                 status_str.as_deref(),
             )
-            .await
-            .map_err(|e| async_graphql::Error::new(e.to_string()))
+            .await)
     }
 
     async fn set_feature_flag(
@@ -156,8 +161,9 @@ impl MutationRoot {
         _ctx: &Context<'_>,
         key: String,
         input: SetFeatureFlagInput,
-    ) -> FieldResult<FeatureFlag> {
-        self.feature_flag_client
+    ) -> FieldResult<SetFeatureFlagPayload> {
+        match self
+            .feature_flag_client
             .set_flag(
                 &key,
                 input.enabled,
@@ -165,7 +171,19 @@ impl MutationRoot {
                 input.target_environments,
             )
             .await
-            .map_err(|e| async_graphql::Error::new(e.to_string()))
+        {
+            Ok(flag) => Ok(SetFeatureFlagPayload {
+                feature_flag: Some(flag),
+                errors: vec![],
+            }),
+            Err(e) => Ok(SetFeatureFlagPayload {
+                feature_flag: None,
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
+            }),
+        }
     }
 }
 
@@ -213,6 +231,7 @@ pub type AppSchema = Schema<QueryRoot, MutationRoot, SubscriptionRoot>;
 pub struct AppState {
     pub schema: AppSchema,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    pub query_timeout: std::time::Duration,
 }
 
 pub fn router(
@@ -247,9 +266,13 @@ pub fn router(
 
     let schema = builder.finish();
 
+    let query_timeout =
+        std::time::Duration::from_secs(graphql_cfg.query_timeout_seconds as u64);
+
     let app_state = AppState {
         schema: schema.clone(),
         metrics,
+        query_timeout,
     };
 
     let graphql_post = post(graphql_handler).layer(AuthMiddlewareLayer::new(jwks_verifier));
@@ -277,9 +300,22 @@ async fn graphql_handler(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
     req: GraphQLRequest,
-) -> GraphQLResponse {
+) -> impl IntoResponse {
     let request = req.into_inner().data(claims);
-    state.schema.execute(request).await.into()
+    match tokio::time::timeout(state.query_timeout, state.schema.execute(request)).await {
+        Ok(resp) => GraphQLResponse::from(resp).into_response(),
+        Err(_) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "data": null,
+                "errors": [{
+                    "message": "query execution timed out",
+                    "extensions": { "code": "TIMEOUT" }
+                }]
+            })),
+        )
+            .into_response(),
+    }
 }
 
 async fn graphql_playground() -> impl IntoResponse {

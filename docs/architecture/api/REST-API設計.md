@@ -91,7 +91,7 @@ D-007 エラーレスポンス、D-008 バージョニング、D-012 レート�
 #### Go 実装
 
 ```go
-// internal/adapter/handler/error.go
+// error.go — Go サーバーのエラーハンドリング例
 
 type APIError struct {
     Code      string          `json:"code"`
@@ -126,43 +126,90 @@ func WriteError(w http.ResponseWriter, r *http.Request, status int, code, messag
 
 #### Rust 実装
 
+k1s0 では `k1s0-server-common` クレートで統一エラー型を提供する。各サーバーはこの共通型を使用する。
+
 ```rust
-// src/adapter/handler/error.rs
+// regions/system/library/rust/server-common/src/error.rs
 
 use serde::Serialize;
 
-#[derive(Serialize)]
-pub struct ApiError {
-    pub code: String,
-    pub message: String,
-    pub request_id: String,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub details: Vec<ErrorDetail>,
-}
+/// エラーコード（SYS_{SERVICE}_{ERROR} パターン）
+#[derive(Debug, Clone, Serialize)]
+pub struct ErrorCode(String);
 
-#[derive(Serialize)]
+/// バリデーションエラー等の詳細情報
+#[derive(Debug, Clone, Serialize)]
 pub struct ErrorDetail {
     pub field: String,
     pub reason: String,
     pub message: String,
 }
 
-#[derive(Serialize)]
-pub struct ErrorResponse {
-    pub error: ApiError,
+/// エラーレスポンスのペイロード
+#[derive(Debug, Clone, Serialize)]
+pub struct ErrorBody {
+    pub code: ErrorCode,
+    pub message: String,
+    pub request_id: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub details: Vec<ErrorDetail>,
 }
 
-impl axum::response::IntoResponse for ErrorResponse {
+/// `{ "error": { ... } }` エンベロープ
+#[derive(Debug, Clone, Serialize)]
+pub struct ErrorResponse {
+    pub error: ErrorBody,
+}
+
+/// HTTP ステータスコードへのマッピング
+#[derive(Debug, thiserror::Error)]
+pub enum ServiceError {
+    #[error("{message}")] NotFound { code: ErrorCode, message: String },
+    #[error("{message}")] BadRequest { code: ErrorCode, message: String, details: Vec<ErrorDetail> },
+    #[error("{message}")] Unauthorized { code: ErrorCode, message: String },
+    #[error("{message}")] Forbidden { code: ErrorCode, message: String },
+    #[error("{message}")] Conflict { code: ErrorCode, message: String, details: Vec<ErrorDetail> },
+    #[error("{message}")] UnprocessableEntity { code: ErrorCode, message: String, details: Vec<ErrorDetail> },
+    #[error("{message}")] TooManyRequests { code: ErrorCode, message: String },
+    #[error("{message}")] Internal { code: ErrorCode, message: String },
+    #[error("{message}")] ServiceUnavailable { code: ErrorCode, message: String },
+}
+
+// axum feature 有効時に IntoResponse を実装
+impl axum::response::IntoResponse for ServiceError {
     fn into_response(self) -> axum::response::Response {
-        let status = match self.error.code.as_str() {
-            c if c.ends_with("NOT_FOUND") => StatusCode::NOT_FOUND,
-            c if c.ends_with("VALIDATION_FAILED") => StatusCode::BAD_REQUEST,
-            c if c.ends_with("FORBIDDEN") => StatusCode::FORBIDDEN,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        let status = match &self {
+            ServiceError::NotFound { .. } => StatusCode::NOT_FOUND,
+            ServiceError::BadRequest { .. } => StatusCode::BAD_REQUEST,
+            ServiceError::Unauthorized { .. } => StatusCode::UNAUTHORIZED,
+            ServiceError::Forbidden { .. } => StatusCode::FORBIDDEN,
+            ServiceError::Conflict { .. } => StatusCode::CONFLICT,
+            ServiceError::UnprocessableEntity { .. } => StatusCode::UNPROCESSABLE_ENTITY,
+            ServiceError::TooManyRequests { .. } => StatusCode::TOO_MANY_REQUESTS,
+            ServiceError::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            ServiceError::ServiceUnavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
         };
-        (status, axum::Json(self)).into_response()
+        (status, axum::Json(self.to_error_response())).into_response()
     }
 }
+```
+
+使用例:
+
+```rust
+use k1s0_server_common::{ErrorResponse, ServiceError, ErrorDetail};
+use k1s0_server_common::error as codes;
+
+// 単純なエラーレスポンス
+let err = ErrorResponse::new(codes::auth::token_expired(), "トークンが期限切れです");
+(StatusCode::UNAUTHORIZED, Json(err)).into_response()
+
+// バリデーションエラー
+let details = vec![
+    ErrorDetail::new("quantity", "must_be_positive", "数量は1以上を指定してください"),
+];
+let err = ServiceError::bad_request_with_details("ORDER", "バリデーションエラー", details);
+err.into_response()
 ```
 
 ---

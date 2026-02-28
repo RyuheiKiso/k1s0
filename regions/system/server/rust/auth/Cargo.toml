@@ -62,7 +62,7 @@ k1s0-auth = { path = "../../../library/rust/auth" }
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
 
 # Server common (error codes)
-k1s0-server-common = { path = "../../../library/rust/server-common", features = ["axum"] }
+k1s0-server-common = { path = "../../../library/rust/server-common", features = ["axum", "utoipa"] }
 
 # OpenAPI
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }

@@ -40,6 +40,18 @@ GraphQL は **BFF（Backend for Frontend）としてオプション採用** す�
 | レポート画面 | 売上、在庫推移、顧客分析など | 複数サービスの分析データを統合表示する |
 | ユーザープロフィール画面 | ユーザー情報、注文履歴、通知など | ユーザーに紐づく複数サービスのデータを表示する |
 
+### System Tier GraphQL ゲートウェイ
+
+System Tier では、基盤サービス（テナント・設定・フィーチャーフラグ等）の集約レイヤーとして GraphQL ゲートウェイを配置する。Service Tier の BFF とは異なり、system tier の共通サービスを統一的に集約する役割を持つ。
+
+| 項目 | 説明 |
+| --- | --- |
+| 配置パス | `regions/system/server/rust/graphql-gateway/` |
+| 役割 | system tier の複数 gRPC バックエンドを単一 GraphQL スキーマに集約 |
+| 対象サービス | テナント管理、フィーチャーフラグ、設定管理 |
+| 実装言語 | Rust（async-graphql v7 + axum） |
+| 詳細設計 | [graphql-gateway設計.md](../../servers/graphql-gateway/server.md) |
+
 ### REST vs GraphQL 使い分け基準（D-089）
 
 原則: REST がデフォルト、GraphQL は条件を満たす場合のみ採用。

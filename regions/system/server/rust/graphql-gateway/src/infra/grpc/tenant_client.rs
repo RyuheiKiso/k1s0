@@ -3,8 +3,15 @@ use std::time::Duration;
 use tonic::transport::Channel;
 use tracing::instrument;
 
-use crate::domain::model::{Tenant, TenantConnection, TenantStatus};
+use crate::domain::model::{Tenant, TenantStatus};
 use crate::infra::config::BackendConfig;
+
+/// gRPC レスポンスの中間表現。GraphQL の TenantConnection に変換前の生データ。
+pub struct TenantPage {
+    pub nodes: Vec<Tenant>,
+    pub total_count: i32,
+    pub has_next: bool,
+}
 
 pub mod proto {
     pub mod k1s0 {
@@ -73,7 +80,7 @@ impl TenantGrpcClient {
         &self,
         page: i32,
         page_size: i32,
-    ) -> anyhow::Result<TenantConnection> {
+    ) -> anyhow::Result<TenantPage> {
         let request = tonic::Request::new(proto::k1s0::system::tenant::v1::ListTenantsRequest {
             pagination: Some(proto::k1s0::system::common::v1::Pagination { page, page_size }),
         });
@@ -106,7 +113,7 @@ impl TenantGrpcClient {
             .map(|p| (p.total_count as i32, p.has_next))
             .unwrap_or((0, false));
 
-        Ok(TenantConnection {
+        Ok(TenantPage {
             nodes,
             total_count,
             has_next,

@@ -1,6 +1,18 @@
 # Kong Declarative Configuration (decK)
 # This is the authoritative configuration file synced by CI/CD.
 # Split files in plugins/ and services/ are kept as reference documentation.
+#
+# Environment variables (resolved by envsubst in CI/CD pipeline):
+#   KONG_RATE_SYSTEM_MINUTE / KONG_RATE_SYSTEM_SECOND   - system Tier rate limit
+#   KONG_RATE_BUSINESS_MINUTE / KONG_RATE_BUSINESS_SECOND - business Tier rate limit
+#   KONG_RATE_SERVICE_MINUTE / KONG_RATE_SERVICE_SECOND   - service Tier rate limit (also global default)
+#   KONG_RATE_REDIS_POLICY - Redis policy (redis | local)
+#   KONG_CORS_ORIGINS     - CORS allowed origins (comma-separated, quoted)
+#   KONG_KEYCLOAK_ISSUER  - Keycloak realm issuer URL (JWT consumer key)
+# Default values (prod): system=3000/100, business=1000/40, service=500/20, policy=redis
+#   CORS: "https://*.k1s0.internal.example.com"
+#   Keycloak: "https://auth.k1s0.internal.example.com/realms/k1s0"
+# See: docs/architecture/api/APIゲートウェイ設計.md（環境別構成セクション）
 _format_version: "3.0"
 
 services:
@@ -12,9 +24,9 @@ services:
     plugins:
       - name: rate-limiting
         config:
-          minute: 3000
-          second: 100
-          policy: redis
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
@@ -33,7 +45,7 @@ services:
           - name: rate-limiting
             config:
               minute: 30                  # ブルートフォース防止（REST-API設計.md 参照）
-              policy: redis
+              policy: ${KONG_RATE_REDIS_POLICY}
               redis_host: redis.k1s0-system.svc.cluster.local
 
   - name: config-v1
@@ -41,9 +53,9 @@ services:
     plugins:
       - name: rate-limiting
         config:
-          minute: 3000
-          second: 100
-          policy: redis
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
@@ -60,9 +72,9 @@ services:
     plugins:
       - name: rate-limiting
         config:
-          minute: 3000
-          second: 100
-          policy: redis
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
@@ -90,9 +102,9 @@ services:
     plugins:
       - name: rate-limiting
         config:
-          minute: 3000
-          second: 100
-          policy: redis
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
@@ -119,9 +131,9 @@ services:
     plugins:
       - name: rate-limiting
         config:
-          minute: 3000
-          second: 100
-          policy: redis
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
@@ -145,9 +157,9 @@ services:
     plugins:
       - name: rate-limiting
         config:
-          minute: 1000
-          second: 40
-          policy: redis
+          minute: ${KONG_RATE_BUSINESS_MINUTE}
+          second: ${KONG_RATE_BUSINESS_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
@@ -164,9 +176,9 @@ services:
     plugins:
       - name: rate-limiting
         config:
-          minute: 1000
-          second: 40
-          policy: redis
+          minute: ${KONG_RATE_BUSINESS_MINUTE}
+          second: ${KONG_RATE_BUSINESS_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
@@ -186,9 +198,9 @@ services:
     plugins:
       - name: rate-limiting
         config:
-          minute: 500
-          second: 20
-          policy: redis
+          minute: ${KONG_RATE_SERVICE_MINUTE}
+          second: ${KONG_RATE_SERVICE_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
@@ -205,9 +217,9 @@ services:
     plugins:
       - name: rate-limiting
         config:
-          minute: 500
-          second: 20
-          policy: redis
+          minute: ${KONG_RATE_SERVICE_MINUTE}
+          second: ${KONG_RATE_SERVICE_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
@@ -226,9 +238,9 @@ plugins:
   # Rate Limiting - グローバルデフォルト (service Tier: 500 req/min)
   - name: rate-limiting
     config:
-      minute: 500                    # デフォルト（service Tier）
-      second: 20                     # 秒あたりの上限（バースト制御）
-      policy: redis                  # Redis で共有状態を管理
+      minute: ${KONG_RATE_SERVICE_MINUTE}   # デフォルト（service Tier）
+      second: ${KONG_RATE_SERVICE_SECOND}   # 秒あたりの上限（バースト制御）
+      policy: ${KONG_RATE_REDIS_POLICY}     # Redis で共有状態を管理
       redis_host: redis.k1s0-system.svc.cluster.local
       redis_port: 6379
       redis_database: 1
@@ -251,7 +263,7 @@ plugins:
   - name: cors
     config:
       origins:
-        - "https://*.k1s0.internal.example.com"
+        - "${KONG_CORS_ORIGINS}"
       methods:
         - GET
         - POST
@@ -278,7 +290,12 @@ plugins:
           local jwt = kong.ctx.shared.authenticated_jwt_token
           if jwt then
             kong.service.request.set_header("X-User-Id", jwt.claims.sub)
-            kong.service.request.set_header("X-User-Roles", table.concat(jwt.claims.realm_access.roles, ","))
+            local roles = ""
+            local ra = jwt.claims.realm_access
+            if ra and ra.roles then
+              roles = table.concat(ra.roles, ",")
+            end
+            kong.service.request.set_header("X-User-Roles", roles)
             kong.service.request.set_header("X-User-Email", jwt.claims.email or "")
           end
 
@@ -321,4 +338,4 @@ consumers:
   - username: keycloak
     jwt_secrets:
       - algorithm: RS256
-        key: "https://auth.k1s0.internal.example.com/realms/k1s0"
+        key: "${KONG_KEYCLOAK_ISSUER}"

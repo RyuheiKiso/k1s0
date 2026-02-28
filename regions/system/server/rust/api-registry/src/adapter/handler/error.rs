@@ -67,7 +67,10 @@ pub fn service_error_to_response(err: ServiceError) -> (StatusCode, Json<serde_j
         ServiceError::Unauthorized { .. } => StatusCode::UNAUTHORIZED,
         ServiceError::Forbidden { .. } => StatusCode::FORBIDDEN,
         ServiceError::Conflict { .. } => StatusCode::CONFLICT,
+        ServiceError::UnprocessableEntity { .. } => StatusCode::UNPROCESSABLE_ENTITY,
+        ServiceError::TooManyRequests { .. } => StatusCode::TOO_MANY_REQUESTS,
         ServiceError::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+        ServiceError::ServiceUnavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
     };
     let body = err.to_error_response();
     (status, Json(serde_json::to_value(&body).unwrap()))

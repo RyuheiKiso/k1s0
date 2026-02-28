@@ -53,6 +53,9 @@ k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"]
 # Auth library
 k1s0-auth = { path = "../../../library/rust/auth" }
 
+# Server common (structured error codes)
+k1s0-server-common = { path = "../../../library/rust/server-common", features = ["axum"] }
+
 [features]
 db-tests = []
 

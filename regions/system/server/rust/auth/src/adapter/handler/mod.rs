@@ -12,6 +12,8 @@ use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+pub use k1s0_server_common::{ErrorBody, ErrorResponse};
+
 use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::make_rbac_middleware;
 use crate::domain::repository::{AuditLogRepository, UserRepository};
@@ -215,29 +217,5 @@ pub fn router(state: AppState) -> Router {
         .with_state(state)
 }
 
-/// ErrorResponse は統一エラーレスポンス。
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
-pub struct ErrorResponse {
-    pub error: ErrorBody,
-}
-
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
-pub struct ErrorBody {
-    pub code: String,
-    pub message: String,
-    pub request_id: String,
-    pub details: Vec<String>,
-}
-
-impl ErrorResponse {
-    pub fn new(code: &str, message: &str) -> Self {
-        Self {
-            error: ErrorBody {
-                code: code.to_string(),
-                message: message.to_string(),
-                request_id: uuid::Uuid::new_v4().to_string(),
-                details: vec![],
-            },
-        }
-    }
-}
+// ErrorResponse / ErrorBody は k1s0-server-common から re-export。
+// REST-API設計.md D-007 の統一 JSON スキーマに従う。

@@ -91,6 +91,86 @@ services:
           policy: local
 
   # ============================================================
+  # Master Service
+  # ============================================================
+  - name: master-v1
+    url: http://master-rust:8080
+    routes:
+      - name: master-route
+        paths:
+          - /api/v1/master
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 2000
+          policy: local
+
+  # ============================================================
+  # Accounting Ledger Service (business Tier)
+  # ============================================================
+  - name: accounting-ledger-v1
+    url: http://ledger-rust:8080
+    routes:
+      - name: ledger-route
+        paths:
+          - /api/v1/accounting/ledger
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Accounts Service (business Tier)
+  # ============================================================
+  - name: accounts-v1
+    url: http://accounts-rust:8080
+    routes:
+      - name: accounts-route
+        paths:
+          - /api/v1/accounts
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Order Service (service Tier)
+  # ============================================================
+  - name: order-v1
+    url: http://order-rust:8080
+    routes:
+      - name: order-route
+        paths:
+          - /api/v1/orders
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Dashboard Service (service Tier)
+  # ============================================================
+  - name: dashboard-v1
+    url: http://dashboard-rust:8080
+    routes:
+      - name: dashboard-route
+        paths:
+          - /api/v1/dashboard
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
   # Health Endpoints (no auth required)
   # ============================================================
   - name: auth-health
@@ -187,6 +267,23 @@ plugins:
       maximum_expiration: 900           # 15分（Access Token のライフタイム）
       header_names:
         - Authorization
+
+  # Post Function - JWT Claims をバックエンドへのリクエストヘッダーに転送
+  - name: post-function
+    config:
+      header_filter:
+        - |
+          local jwt = kong.ctx.shared.authenticated_jwt_token
+          if jwt then
+            kong.service.request.set_header("X-User-Id", jwt.claims.sub)
+            local roles = ""
+            local ra = jwt.claims.realm_access
+            if ra and ra.roles then
+              roles = table.concat(ra.roles, ",")
+            end
+            kong.service.request.set_header("X-User-Roles", roles)
+            kong.service.request.set_header("X-User-Email", jwt.claims.email or "")
+          end
 
   - name: prometheus
     config:

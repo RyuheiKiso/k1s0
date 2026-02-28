@@ -18,6 +18,8 @@ use serde::Serialize;
 /// Error codes follow the `SYS_{SERVICE}_{ERROR}` naming convention.
 /// Services define their own codes using these constants or custom strings.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "utoipa", schema(value_type = String, example = "SYS_AUTH_TOKEN_EXPIRED"))]
 pub struct ErrorCode(String);
 
 impl ErrorCode {
@@ -58,6 +60,27 @@ impl ErrorCode {
         Self(format!("SYS_{}_CONFLICT", service.to_uppercase()))
     }
 
+    /// Create a standard "unprocessable entity" error code for a service.
+    pub fn unprocessable(service: &str) -> Self {
+        Self(format!(
+            "SYS_{}_BUSINESS_RULE_VIOLATION",
+            service.to_uppercase()
+        ))
+    }
+
+    /// Create a standard "rate exceeded" error code for a service.
+    pub fn rate_exceeded(service: &str) -> Self {
+        Self(format!("SYS_{}_RATE_EXCEEDED", service.to_uppercase()))
+    }
+
+    /// Create a standard "service unavailable" error code for a service.
+    pub fn service_unavailable(service: &str) -> Self {
+        Self(format!(
+            "SYS_{}_SERVICE_UNAVAILABLE",
+            service.to_uppercase()
+        ))
+    }
+
     /// Return the error code string.
     pub fn as_str(&self) -> &str {
         &self.0
@@ -92,16 +115,26 @@ impl From<String> for ErrorCode {
 }
 
 /// ErrorDetail provides additional context for an error field.
+///
+/// Follows the REST-API設計.md D-007 specification:
+/// `{ "field": "quantity", "reason": "must_be_positive", "message": "..." }`
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct ErrorDetail {
     pub field: String,
+    pub reason: String,
     pub message: String,
 }
 
 impl ErrorDetail {
-    pub fn new(field: impl Into<String>, message: impl Into<String>) -> Self {
+    pub fn new(
+        field: impl Into<String>,
+        reason: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
         Self {
             field: field.into(),
+            reason: reason.into(),
             message: message.into(),
         }
     }
@@ -109,6 +142,7 @@ impl ErrorDetail {
 
 /// ErrorBody is the structured error payload.
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct ErrorBody {
     pub code: ErrorCode,
     pub message: String,
@@ -119,6 +153,7 @@ pub struct ErrorBody {
 
 /// ErrorResponse wraps ErrorBody in an `{ "error": ... }` envelope.
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct ErrorResponse {
     pub error: ErrorBody,
 }
@@ -196,9 +231,31 @@ pub enum ServiceError {
         details: Vec<ErrorDetail>,
     },
 
+    /// 422 Unprocessable Entity (business rule violation)
+    #[error("{message}")]
+    UnprocessableEntity {
+        code: ErrorCode,
+        message: String,
+        details: Vec<ErrorDetail>,
+    },
+
+    /// 429 Too Many Requests (rate limit exceeded)
+    #[error("{message}")]
+    TooManyRequests {
+        code: ErrorCode,
+        message: String,
+    },
+
     /// 500 Internal Server Error
     #[error("{message}")]
     Internal {
+        code: ErrorCode,
+        message: String,
+    },
+
+    /// 503 Service Unavailable
+    #[error("{message}")]
+    ServiceUnavailable {
         code: ErrorCode,
         message: String,
     },
@@ -260,10 +317,35 @@ impl ServiceError {
         }
     }
 
+    /// Create an UnprocessableEntity error for a service (business rule violation).
+    pub fn unprocessable_entity(service: &str, message: impl Into<String>) -> Self {
+        Self::UnprocessableEntity {
+            code: ErrorCode::unprocessable(service),
+            message: message.into(),
+            details: vec![],
+        }
+    }
+
+    /// Create a TooManyRequests error for a service (rate limit exceeded).
+    pub fn too_many_requests(service: &str, message: impl Into<String>) -> Self {
+        Self::TooManyRequests {
+            code: ErrorCode::rate_exceeded(service),
+            message: message.into(),
+        }
+    }
+
     /// Create an Internal error for a service.
     pub fn internal(service: &str, message: impl Into<String>) -> Self {
         Self::Internal {
             code: ErrorCode::internal(service),
+            message: message.into(),
+        }
+    }
+
+    /// Create a ServiceUnavailable error for a service.
+    pub fn service_unavailable(service: &str, message: impl Into<String>) -> Self {
+        Self::ServiceUnavailable {
+            code: ErrorCode::service_unavailable(service),
             message: message.into(),
         }
     }
@@ -274,7 +356,9 @@ impl ServiceError {
             ServiceError::NotFound { code, message }
             | ServiceError::Unauthorized { code, message }
             | ServiceError::Forbidden { code, message }
-            | ServiceError::Internal { code, message } => {
+            | ServiceError::TooManyRequests { code, message }
+            | ServiceError::Internal { code, message }
+            | ServiceError::ServiceUnavailable { code, message } => {
                 ErrorResponse::new(code.clone(), message.clone())
             }
             ServiceError::BadRequest {
@@ -283,6 +367,11 @@ impl ServiceError {
                 details,
             }
             | ServiceError::Conflict {
+                code,
+                message,
+                details,
+            }
+            | ServiceError::UnprocessableEntity {
                 code,
                 message,
                 details,
@@ -302,7 +391,14 @@ impl axum::response::IntoResponse for ServiceError {
             ServiceError::Unauthorized { .. } => axum::http::StatusCode::UNAUTHORIZED,
             ServiceError::Forbidden { .. } => axum::http::StatusCode::FORBIDDEN,
             ServiceError::Conflict { .. } => axum::http::StatusCode::CONFLICT,
+            ServiceError::UnprocessableEntity { .. } => {
+                axum::http::StatusCode::UNPROCESSABLE_ENTITY
+            }
+            ServiceError::TooManyRequests { .. } => axum::http::StatusCode::TOO_MANY_REQUESTS,
             ServiceError::Internal { .. } => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            ServiceError::ServiceUnavailable { .. } => {
+                axum::http::StatusCode::SERVICE_UNAVAILABLE
+            }
         };
 
         let body = self.to_error_response();
@@ -403,6 +499,68 @@ pub mod dlq {
     }
 }
 
+/// Well-known error codes for the Tenant service.
+pub mod tenant {
+    use super::ErrorCode;
+
+    pub fn not_found() -> ErrorCode {
+        ErrorCode::new("SYS_TENANT_NOT_FOUND")
+    }
+
+    pub fn name_conflict() -> ErrorCode {
+        ErrorCode::new("SYS_TENANT_NAME_CONFLICT")
+    }
+
+    pub fn invalid_status() -> ErrorCode {
+        ErrorCode::new("SYS_TENANT_INVALID_STATUS")
+    }
+
+    pub fn invalid_input() -> ErrorCode {
+        ErrorCode::new("SYS_TENANT_INVALID_INPUT")
+    }
+
+    pub fn member_conflict() -> ErrorCode {
+        ErrorCode::new("SYS_TENANT_MEMBER_CONFLICT")
+    }
+
+    pub fn member_not_found() -> ErrorCode {
+        ErrorCode::new("SYS_TENANT_MEMBER_NOT_FOUND")
+    }
+
+    pub fn internal_error() -> ErrorCode {
+        ErrorCode::new("SYS_TENANT_INTERNAL_ERROR")
+    }
+}
+
+/// Well-known error codes for the Session service.
+pub mod session {
+    use super::ErrorCode;
+
+    pub fn not_found() -> ErrorCode {
+        ErrorCode::new("SYS_SESSION_NOT_FOUND")
+    }
+
+    pub fn expired() -> ErrorCode {
+        ErrorCode::new("SYS_SESSION_EXPIRED")
+    }
+
+    pub fn revoked() -> ErrorCode {
+        ErrorCode::new("SYS_SESSION_REVOKED")
+    }
+
+    pub fn invalid_input() -> ErrorCode {
+        ErrorCode::new("SYS_SESSION_INVALID_INPUT")
+    }
+
+    pub fn too_many_sessions() -> ErrorCode {
+        ErrorCode::new("SYS_SESSION_TOO_MANY")
+    }
+
+    pub fn internal_error() -> ErrorCode {
+        ErrorCode::new("SYS_SESSION_INTERNAL_ERROR")
+    }
+}
+
 /// Well-known error codes for the API Registry service.
 pub mod api_registry {
     use super::ErrorCode;
@@ -466,8 +624,8 @@ mod tests {
     #[test]
     fn test_error_response_with_details() {
         let details = vec![
-            ErrorDetail::new("namespace", "must not be empty"),
-            ErrorDetail::new("key", "invalid format"),
+            ErrorDetail::new("namespace", "required", "must not be empty"),
+            ErrorDetail::new("key", "invalid_format", "invalid format"),
         ];
         let resp = ErrorResponse::with_details(
             "SYS_CONFIG_VALIDATION_FAILED",
@@ -476,6 +634,7 @@ mod tests {
         );
         assert_eq!(resp.error.details.len(), 2);
         assert_eq!(resp.error.details[0].field, "namespace");
+        assert_eq!(resp.error.details[0].reason, "required");
     }
 
     #[test]
@@ -487,12 +646,13 @@ mod tests {
 
     #[test]
     fn test_service_error_bad_request_with_details() {
-        let details = vec![ErrorDetail::new("page", "must be >= 1")];
+        let details = vec![ErrorDetail::new("page", "must_be_positive", "must be >= 1")];
         let err =
             ServiceError::bad_request_with_details("CONFIG", "validation failed", details);
         let resp = err.to_error_response();
         assert_eq!(resp.error.code.as_str(), "SYS_CONFIG_VALIDATION_FAILED");
         assert_eq!(resp.error.details.len(), 1);
+        assert_eq!(resp.error.details[0].reason, "must_be_positive");
     }
 
     #[test]
@@ -542,10 +702,58 @@ mod tests {
 
     #[test]
     fn test_error_response_with_details_serialization() {
-        let details = vec![ErrorDetail::new("field1", "error1")];
+        let details = vec![ErrorDetail::new("field1", "invalid", "error1")];
         let resp =
             ErrorResponse::with_details("SYS_CONFIG_VALIDATION_FAILED", "validation", details);
         let json = serde_json::to_value(&resp).unwrap();
         assert_eq!(json["error"]["details"][0]["field"], "field1");
+        assert_eq!(json["error"]["details"][0]["reason"], "invalid");
+        assert_eq!(json["error"]["details"][0]["message"], "error1");
+    }
+
+    #[test]
+    fn test_new_service_error_variants() {
+        let err = ServiceError::unprocessable_entity("ACCT", "ledger is closed");
+        let resp = err.to_error_response();
+        assert_eq!(
+            resp.error.code.as_str(),
+            "SYS_ACCT_BUSINESS_RULE_VIOLATION"
+        );
+
+        let err = ServiceError::too_many_requests("RATE", "rate limit exceeded");
+        let resp = err.to_error_response();
+        assert_eq!(resp.error.code.as_str(), "SYS_RATE_RATE_EXCEEDED");
+
+        let err = ServiceError::service_unavailable("AUTH", "service unavailable");
+        let resp = err.to_error_response();
+        assert_eq!(
+            resp.error.code.as_str(),
+            "SYS_AUTH_SERVICE_UNAVAILABLE"
+        );
+    }
+
+    #[test]
+    fn test_well_known_tenant_codes() {
+        assert_eq!(
+            tenant::not_found().as_str(),
+            "SYS_TENANT_NOT_FOUND"
+        );
+        assert_eq!(
+            tenant::name_conflict().as_str(),
+            "SYS_TENANT_NAME_CONFLICT"
+        );
+    }
+
+    #[test]
+    fn test_well_known_session_codes() {
+        assert_eq!(
+            session::not_found().as_str(),
+            "SYS_SESSION_NOT_FOUND"
+        );
+        assert_eq!(session::expired().as_str(), "SYS_SESSION_EXPIRED");
+        assert_eq!(
+            session::too_many_sessions().as_str(),
+            "SYS_SESSION_TOO_MANY"
+        );
     }
 }

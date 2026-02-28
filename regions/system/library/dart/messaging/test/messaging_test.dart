@@ -34,6 +34,11 @@ void main() {
       expect(meta.timestamp.isUtc, isTrue);
     });
 
+    test('create defaults schemaVersion to 1', () {
+      final meta = EventMetadata.create('event', 'svc');
+      expect(meta.schemaVersion, equals(1));
+    });
+
     test('create sets eventType and source', () {
       final meta = EventMetadata.create('user.created', 'auth-service');
       expect(meta.eventType, equals('user.created'));
@@ -46,10 +51,12 @@ void main() {
       final meta = EventMetadata.create('event.v1', 'service');
       final envelope = EventEnvelope(
         topic: 'k1s0.system.user.created.v1',
+        key: 'user-1',
         payload: {'id': '123'},
         metadata: meta,
       );
       expect(envelope.topic, equals('k1s0.system.user.created.v1'));
+      expect(envelope.key, equals('user-1'));
       expect(envelope.payload, equals({'id': '123'}));
     });
   });
@@ -59,6 +66,7 @@ void main() {
       final producer = NoOpEventProducer();
       final envelope = EventEnvelope(
         topic: 'test-topic',
+        key: 'test-key',
         payload: 'data',
         metadata: EventMetadata.create('event', 'svc'),
       );
@@ -72,6 +80,7 @@ void main() {
       for (var i = 0; i < 3; i++) {
         await producer.publish(EventEnvelope(
           topic: 'topic',
+          key: 'key-$i',
           payload: i,
           metadata: EventMetadata.create('event', 'svc'),
         ));

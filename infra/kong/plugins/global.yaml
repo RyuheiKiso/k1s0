@@ -1,5 +1,6 @@
-# Global Kong Plugins
-# These plugins are applied to all services and routes.
+# Global Kong Plugins (参照ドキュメント)
+# NOTE: このファイルは prod デフォルト値を示す参照用ドキュメントです。
+# 実際の設定は infra/kong/kong.yaml を参照してください（環境変数で動的に解決されます）。
 
 plugins:
   # Rate Limiting - グローバルデフォルト (service Tier: 500 req/min)
@@ -70,6 +71,11 @@ plugins:
           local jwt = kong.ctx.shared.authenticated_jwt_token
           if jwt then
             kong.service.request.set_header("X-User-Id", jwt.claims.sub)
-            kong.service.request.set_header("X-User-Roles", table.concat(jwt.claims.realm_access.roles, ","))
+            local roles = ""
+            local ra = jwt.claims.realm_access
+            if ra and ra.roles then
+              roles = table.concat(ra.roles, ",")
+            end
+            kong.service.request.set_header("X-User-Roles", roles)
             kong.service.request.set_header("X-User-Email", jwt.claims.email or "")
           end

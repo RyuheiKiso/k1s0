@@ -5,6 +5,9 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 
+use k1s0_server_common::error as codes;
+use k1s0_server_common::ErrorResponse;
+
 use crate::error::SessionError;
 use crate::adapter::middleware::auth::SessionAuthState;
 use crate::usecase::create_session::{CreateSessionInput, CreateSessionUseCase};
@@ -34,15 +37,40 @@ impl AppState {
 }
 
 fn error_response(err: SessionError) -> (StatusCode, Json<serde_json::Value>) {
-    let (status, message) = match &err {
-        SessionError::NotFound(_) => (StatusCode::NOT_FOUND, err.to_string()),
-        SessionError::Expired(_) => (StatusCode::GONE, err.to_string()),
-        SessionError::Revoked(_) => (StatusCode::CONFLICT, err.to_string()),
-        SessionError::InvalidInput(_) => (StatusCode::BAD_REQUEST, err.to_string()),
-        SessionError::TooManySessions(_) => (StatusCode::TOO_MANY_REQUESTS, err.to_string()),
-        SessionError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
+    let (status, code, message) = match &err {
+        SessionError::NotFound(_) => (
+            StatusCode::NOT_FOUND,
+            codes::session::not_found(),
+            err.to_string(),
+        ),
+        SessionError::Expired(_) => (
+            StatusCode::GONE,
+            codes::session::expired(),
+            err.to_string(),
+        ),
+        SessionError::Revoked(_) => (
+            StatusCode::CONFLICT,
+            codes::session::revoked(),
+            err.to_string(),
+        ),
+        SessionError::InvalidInput(_) => (
+            StatusCode::BAD_REQUEST,
+            codes::session::invalid_input(),
+            err.to_string(),
+        ),
+        SessionError::TooManySessions(_) => (
+            StatusCode::TOO_MANY_REQUESTS,
+            codes::session::too_many_sessions(),
+            err.to_string(),
+        ),
+        SessionError::Internal(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            codes::session::internal_error(),
+            err.to_string(),
+        ),
     };
-    (status, Json(serde_json::json!({"error": message})))
+    let resp = ErrorResponse::new(code, message);
+    (status, Json(serde_json::to_value(&resp).unwrap()))
 }
 
 pub async fn create_session(

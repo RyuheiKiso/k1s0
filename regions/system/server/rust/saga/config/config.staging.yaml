@@ -19,7 +19,7 @@ kafka:
     ca_cert_path: "/etc/kafka/certs/ca.crt"
   topics:
     publish:
-      - "k1s0.system.saga.events.v1"
+      - "k1s0.system.saga.state_changed.v1"
     subscribe: []
 
 services:

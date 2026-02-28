@@ -22,12 +22,15 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 
 | API 種別 | プロトコル | 用途 | 例 |
 | --- | --- | --- | --- |
-| 認証 API | REST | OAuth 2.0 フローに基づくトークン発行・検証 | `/api/v1/auth/token`, `/api/v1/auth/refresh` |
+| 認証 API | REST | OAuth 2.0 フローに基づくトークン発行・検証 | `/api/v1/auth/login`, `/api/v1/auth/refresh` |
 | 認証 API | gRPC | サービス間のトークン検証（高速な内部呼び出し） | `AuthService.ValidateToken` |
 | config API | REST | 設定値の取得・更新 | `/api/v1/config/:namespace/:key` |
 | config API | gRPC | サービス間の設定値参照 | `ConfigService.GetConfig` |
 | 共通マスタ API | REST | マスタデータの CRUD（外部向け） | `/api/v1/master/{resource}` |
 | 共通マスタ API | gRPC | マスタデータ参照（サービス間） | `MasterService.GetMaster` |
+| Saga/Workflow API | REST | Saga・ワークフローの管理 | `/api/v1/sagas`, `/api/v1/workflows` |
+| Saga/Workflow API | gRPC | サービス間の Saga 連携 | `SagaService.CreateSaga` |
+| DLQ Manager API | REST | Dead Letter Queue の管理・リトライ | `/api/v1/dlq` |
 
 ### business Tier
 
@@ -35,7 +38,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 
 | API 種別 | プロトコル | 用途 | 例 |
 | --- | --- | --- | --- |
-| ドメイン CRUD API | REST | ドメインエンティティの作成・参照・更新・削除 | `/api/v1/ledger/entries`, `/api/v1/accounts` |
+| ドメイン CRUD API | REST | ドメインエンティティの作成・参照・更新・削除 | `/api/v1/accounting/ledger`, `/api/v1/accounts` |
 | ドメインイベント配信 | gRPC Stream | ドメインイベントのリアルタイム配信（サーバーストリーミング） | `LedgerService.StreamLedgerEvents` |
 | ドメイン操作 API | gRPC | サービス間のドメイン操作呼び出し | `AccountingService.CloseLedger` |
 
@@ -68,7 +71,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 ## 関連ドキュメント
 
 - [tier-architecture.md](../../architecture/overview/tier-architecture.md) -- Tier アーキテクチャの詳細
-- [config.md](../../cli/config/config設計.md) -- config.yaml スキーマと環境別管理
+- [config設計.md](../../cli/config/config設計.md) -- config.yaml スキーマと環境別管理
 - [kubernetes設計.md](../../infrastructure/kubernetes/kubernetes設計.md) -- Namespace・NetworkPolicy 設計
 - [helm設計.md](../../infrastructure/kubernetes/helm設計.md) -- Helm Chart と values 設計
 - [認証認可設計.md](../auth/認証認可設計.md) -- 認証・認可・Kong 認証フロー

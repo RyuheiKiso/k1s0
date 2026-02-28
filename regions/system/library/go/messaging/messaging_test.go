@@ -16,6 +16,7 @@ func TestNewEventMetadata(t *testing.T) {
 	assert.Equal(t, "user.created.v1", meta.EventType)
 	assert.Equal(t, "corr-123", meta.CorrelationId)
 	assert.Equal(t, "auth-service", meta.Source)
+	assert.Equal(t, int32(1), meta.SchemaVersion)
 	assert.False(t, meta.Timestamp.IsZero())
 }
 

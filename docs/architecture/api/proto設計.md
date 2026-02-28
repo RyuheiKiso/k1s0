@@ -19,7 +19,7 @@ REST API ではスキーマの逸脱が起きやすく、複数言語間での�
 
 ### バージョニング戦略の設計意図
 
-proto パッケージは [API設計.md](./API設計.md) D-009 の命名規則に従い、メジャーバージョンをパッケージ名に含める。
+proto パッケージは [gRPC設計.md](./gRPC設計.md) D-009 の命名規則に従い、メジャーバージョンをパッケージ名に含める。
 
 ```
 k1s0.{tier}.{domain}.v{major}
@@ -91,8 +91,14 @@ api/proto/
         │   └── v1/search.proto           # SearchService
         ├── session/
         │   └── v1/session.proto          # SessionService
-        └── workflow/
-            └── v1/workflow.proto         # WorkflowService
+        ├── workflow/
+        │   └── v1/workflow.proto         # WorkflowService
+        ├── dlq/
+        │   └── v1/dlq.proto             # DlqService
+        ├── quota/
+        │   └── v1/quota.proto           # QuotaService
+        └── file/
+            └── v1/file.proto            # FileService
 ```
 
 ### Kafka イベント定義
@@ -696,26 +702,18 @@ service SagaService {
 フィーチャーフラグの評価・管理機能を提供するサービス定義。
 
 ```protobuf
-// regions/system/proto/v1/featureflag.proto
+// api/proto/k1s0/system/featureflag/v1/featureflag.proto
 syntax = "proto3";
 package k1s0.system.featureflag.v1;
 
 option go_package = "github.com/k1s0-platform/system-proto-go/featureflag/v1;featureflagv1";
 
-import "google/protobuf/timestamp.proto";
-import "v1/common.proto";
+import "k1s0/system/common/v1/types.proto";
 
 service FeatureFlagService {
-  // フラグ評価（ユーザーコンテキストに応じた判定）
   rpc EvaluateFlag(EvaluateFlagRequest) returns (EvaluateFlagResponse);
-
-  // フラグ定義取得
   rpc GetFlag(GetFlagRequest) returns (GetFlagResponse);
-
-  // フラグ定義作成
   rpc CreateFlag(CreateFlagRequest) returns (CreateFlagResponse);
-
-  // フラグ定義更新
   rpc UpdateFlag(UpdateFlagRequest) returns (UpdateFlagResponse);
 }
 
@@ -772,8 +770,8 @@ message FeatureFlag {
   string description = 3;
   bool enabled = 4;
   repeated FlagVariant variants = 5;
-  google.protobuf.Timestamp created_at = 6;
-  google.protobuf.Timestamp updated_at = 7;
+  k1s0.system.common.v1.Timestamp created_at = 6;
+  k1s0.system.common.v1.Timestamp updated_at = 7;
 }
 
 message FlagVariant {
@@ -801,24 +799,26 @@ message FlagVariant {
 API リクエストのレートリミット判定・ルール管理を提供するサービス定義。
 
 ```protobuf
-// regions/system/proto/v1/ratelimit.proto
+// api/proto/k1s0/system/ratelimit/v1/ratelimit.proto
 syntax = "proto3";
 package k1s0.system.ratelimit.v1;
 
 option go_package = "github.com/k1s0-platform/system-proto-go/ratelimit/v1;ratelimitv1";
 
 import "google/protobuf/timestamp.proto";
-import "v1/common.proto";
+import "k1s0/system/common/v1/types.proto";
 
 service RateLimitService {
   // レートリミット判定
   rpc CheckRateLimit(CheckRateLimitRequest) returns (CheckRateLimitResponse);
-
   // ルール作成
   rpc CreateRule(CreateRuleRequest) returns (CreateRuleResponse);
-
   // ルール取得
   rpc GetRule(GetRuleRequest) returns (GetRuleResponse);
+  // 使用状況取得
+  rpc GetUsage(GetUsageRequest) returns (GetUsageResponse);
+  // レートリミットリセット
+  rpc ResetLimit(ResetLimitRequest) returns (ResetLimitResponse);
 }
 
 message CheckRateLimitRequest {
@@ -863,6 +863,28 @@ message RateLimitRule {
   bool enabled = 7;
   google.protobuf.Timestamp created_at = 8;
 }
+
+message GetUsageRequest {
+  string rule_id = 1;
+}
+
+message GetUsageResponse {
+  string rule_id = 1;
+  string rule_name = 2;
+  int64 limit = 3;
+  int64 window_secs = 4;
+  string algorithm = 5;
+  bool enabled = 6;
+}
+
+message ResetLimitRequest {
+  string scope = 1;
+  string identifier = 2;
+}
+
+message ResetLimitResponse {
+  bool success = 1;
+}
 ```
 
 ### RPC と既存ハンドラーの対応
@@ -872,6 +894,8 @@ message RateLimitRule {
 | `RateLimitService.CheckRateLimit` | ルール ID + サブジェクトでレートリミット判定（残り回数・リセット時刻を返却） |
 | `RateLimitService.CreateRule` | レートリミットルールの作成（アルゴリズム・ウィンドウサイズ指定） |
 | `RateLimitService.GetRule` | ルール ID でルール定義取得 |
+| `RateLimitService.GetUsage` | レートリミットの使用状況を取得 |
+| `RateLimitService.ResetLimit` | レートリミットの状態をリセット |
 
 ---
 
@@ -882,14 +906,14 @@ message RateLimitRule {
 マルチテナント環境でのテナント管理・メンバー管理・プロビジョニング機能を提供するサービス定義。
 
 ```protobuf
-// regions/system/proto/v1/tenant.proto
+// api/proto/k1s0/system/tenant/v1/tenant.proto
 syntax = "proto3";
 package k1s0.system.tenant.v1;
 
 option go_package = "github.com/k1s0-platform/system-proto-go/tenant/v1;tenantv1";
 
 import "google/protobuf/timestamp.proto";
-import "v1/common.proto";
+import "k1s0/system/common/v1/types.proto";
 
 service TenantService {
   // テナント作成
@@ -1014,26 +1038,18 @@ message ProvisioningJob {
 シークレット管理（取得・設定・削除・一覧）を提供するサービス定義。
 
 ```protobuf
-// regions/system/proto/v1/vault.proto
+// api/proto/k1s0/system/vault/v1/vault.proto
 syntax = "proto3";
 package k1s0.system.vault.v1;
 
 option go_package = "github.com/k1s0-platform/system-proto-go/vault/v1;vaultv1";
 
-import "google/protobuf/timestamp.proto";
-import "v1/common.proto";
+import "k1s0/system/common/v1/types.proto";
 
 service VaultService {
-  // シークレット取得
   rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
-
-  // シークレット設定
   rpc SetSecret(SetSecretRequest) returns (SetSecretResponse);
-
-  // シークレット削除
   rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse);
-
-  // シークレット一覧取得
   rpc ListSecrets(ListSecretsRequest) returns (ListSecretsResponse);
 }
 
@@ -1045,7 +1061,7 @@ message GetSecretRequest {
 message GetSecretResponse {
   map<string, string> data = 1;
   int64 version = 2;
-  google.protobuf.Timestamp created_at = 3;
+  k1s0.system.common.v1.Timestamp created_at = 3;
 }
 
 message SetSecretRequest {
@@ -1055,7 +1071,7 @@ message SetSecretRequest {
 
 message SetSecretResponse {
   int64 version = 1;
-  google.protobuf.Timestamp created_at = 2;
+  k1s0.system.common.v1.Timestamp created_at = 2;
 }
 
 message DeleteSecretRequest {
@@ -1332,6 +1348,423 @@ service WorkflowService {
 | `WorkflowService.GetInstance` | インスタンス ID でワークフロー実行状態・ステップ履歴を取得 |
 | `WorkflowService.ApproveTask` | 人間タスクを承認（コメント付き） |
 | `WorkflowService.RejectTask` | 人間タスクを却下（コメント付き） |
+
+---
+
+## API レジストリサービス定義（api_registry.proto）
+
+パッケージ: `k1s0.system.apiregistry.v1`
+
+API スキーマの取得・バージョン管理・互換性チェックを提供するサービス。
+
+```protobuf
+// api/proto/k1s0/system/apiregistry/v1/api_registry.proto
+syntax = "proto3";
+package k1s0.system.apiregistry.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/apiregistry/v1;apiregistryv1";
+
+import "google/protobuf/timestamp.proto";
+
+service ApiRegistryService {
+  rpc GetSchema(GetSchemaRequest) returns (GetSchemaResponse);
+  rpc GetSchemaVersion(GetSchemaVersionRequest) returns (GetSchemaVersionResponse);
+  rpc CheckCompatibility(CheckCompatibilityRequest) returns (CheckCompatibilityResponse);
+}
+
+message GetSchemaRequest {
+  string name = 1;
+}
+
+message GetSchemaResponse {
+  ApiSchemaProto schema = 1;
+  string latest_content = 2;
+}
+
+message GetSchemaVersionRequest {
+  string name = 1;
+  uint32 version = 2;
+}
+
+message GetSchemaVersionResponse {
+  ApiSchemaVersionProto version = 1;
+}
+
+message CheckCompatibilityRequest {
+  string name = 1;
+  string content = 2;
+  optional uint32 base_version = 3;
+}
+
+message CheckCompatibilityResponse {
+  string name = 1;
+  uint32 base_version = 2;
+  CompatibilityResultProto result = 3;
+}
+
+message ApiSchemaProto {
+  string name = 1;
+  string description = 2;
+  string schema_type = 3;
+  uint32 latest_version = 4;
+  uint32 version_count = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message ApiSchemaVersionProto {
+  string name = 1;
+  uint32 version = 2;
+  string schema_type = 3;
+  string content = 4;
+  string content_hash = 5;
+  bool breaking_changes = 6;
+  string registered_by = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message CompatibilityResultProto {
+  bool compatible = 1;
+  repeated string breaking_changes = 2;
+  repeated string non_breaking_changes = 3;
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `ApiRegistryService.GetSchema` | スキーマ名で最新スキーマ情報を取得 |
+| `ApiRegistryService.GetSchemaVersion` | スキーマ名 + バージョン番号で特定バージョンを取得 |
+| `ApiRegistryService.CheckCompatibility` | スキーマ内容の互換性チェック（破壊的変更検出） |
+
+---
+
+## DLQ サービス定義（dlq.proto）
+
+パッケージ: `k1s0.system.dlq.v1`
+
+Dead Letter Queue メッセージの管理・リトライ機能を提供するサービス。
+
+```protobuf
+// api/proto/k1s0/system/dlq/v1/dlq.proto
+syntax = "proto3";
+package k1s0.system.dlq.v1;
+
+option go_package = "github.com/k1s0/api/gen/go/k1s0/system/dlq/v1;dlqv1";
+
+import "k1s0/system/common/v1/types.proto";
+
+service DlqService {
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+  rpc RetryMessage(RetryMessageRequest) returns (RetryMessageResponse);
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+  rpc RetryAll(RetryAllRequest) returns (RetryAllResponse);
+}
+
+message DlqMessage {
+  string id = 1;
+  string original_topic = 2;
+  string error_message = 3;
+  int32 retry_count = 4;
+  int32 max_retries = 5;
+  string payload_json = 6;
+  string status = 7;
+  k1s0.system.common.v1.Timestamp created_at = 8;
+  k1s0.system.common.v1.Timestamp updated_at = 9;
+  optional k1s0.system.common.v1.Timestamp last_retry_at = 10;
+}
+
+message ListMessagesRequest {
+  string topic = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListMessagesResponse {
+  repeated DlqMessage messages = 1;
+  int64 total = 2;
+}
+
+message GetMessageRequest {
+  string id = 1;
+}
+
+message GetMessageResponse {
+  DlqMessage message = 1;
+}
+
+message RetryMessageRequest {
+  string id = 1;
+}
+
+message RetryMessageResponse {
+  DlqMessage message = 1;
+}
+
+message DeleteMessageRequest {
+  string id = 1;
+}
+
+message DeleteMessageResponse {
+  string id = 1;
+}
+
+message RetryAllRequest {
+  string topic = 1;
+}
+
+message RetryAllResponse {
+  int32 retried_count = 1;
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `DlqService.ListMessages` | トピック指定で DLQ メッセージ一覧取得（ページネーション付き） |
+| `DlqService.GetMessage` | メッセージ ID で DLQ メッセージ取得 |
+| `DlqService.RetryMessage` | メッセージ ID で個別リトライ |
+| `DlqService.DeleteMessage` | メッセージ ID で DLQ メッセージ削除 |
+| `DlqService.RetryAll` | トピック内の全 DLQ メッセージを一括リトライ |
+
+---
+
+## クォータサービス定義（quota.proto）
+
+パッケージ: `k1s0.system.quota.v1`
+
+API クォータポリシーの管理・使用量追跡機能を提供するサービス。
+
+```protobuf
+// api/proto/k1s0/system/quota/v1/quota.proto
+syntax = "proto3";
+package k1s0.system.quota.v1;
+
+option go_package = "github.com/k1s0/api/gen/go/k1s0/system/quota/v1;quotav1";
+
+service QuotaService {
+  rpc CreateQuotaPolicy(CreateQuotaPolicyRequest) returns (CreateQuotaPolicyResponse);
+  rpc GetQuotaPolicy(GetQuotaPolicyRequest) returns (GetQuotaPolicyResponse);
+  rpc ListQuotaPolicies(ListQuotaPoliciesRequest) returns (ListQuotaPoliciesResponse);
+  rpc UpdateQuotaPolicy(UpdateQuotaPolicyRequest) returns (UpdateQuotaPolicyResponse);
+  rpc DeleteQuotaPolicy(DeleteQuotaPolicyRequest) returns (DeleteQuotaPolicyResponse);
+  rpc GetQuotaUsage(GetQuotaUsageRequest) returns (GetQuotaUsageResponse);
+  rpc IncrementQuotaUsage(IncrementQuotaUsageRequest) returns (IncrementQuotaUsageResponse);
+}
+
+message QuotaPolicy {
+  string id = 1;
+  string name = 2;
+  string subject_type = 3;
+  string subject_id = 4;
+  uint64 limit = 5;
+  string period = 6;
+  bool enabled = 7;
+  optional uint32 alert_threshold_percent = 8;
+}
+
+message QuotaUsage {
+  string quota_id = 1;
+  string subject_type = 2;
+  string subject_id = 3;
+  string period = 4;
+  uint64 limit = 5;
+  uint64 used = 6;
+  uint64 remaining = 7;
+  double usage_percent = 8;
+  bool exceeded = 9;
+}
+
+message CreateQuotaPolicyRequest {
+  string name = 1;
+  string subject_type = 2;
+  string subject_id = 3;
+  uint64 limit = 4;
+  string period = 5;
+  bool enabled = 6;
+  optional uint32 alert_threshold_percent = 7;
+}
+
+message CreateQuotaPolicyResponse {
+  QuotaPolicy policy = 1;
+}
+
+message GetQuotaPolicyRequest {
+  string id = 1;
+}
+
+message GetQuotaPolicyResponse {
+  QuotaPolicy policy = 1;
+}
+
+message ListQuotaPoliciesRequest {
+  uint32 page = 1;
+  uint32 page_size = 2;
+}
+
+message ListQuotaPoliciesResponse {
+  repeated QuotaPolicy policies = 1;
+  uint64 total = 2;
+}
+
+message UpdateQuotaPolicyRequest {
+  string id = 1;
+  optional bool enabled = 2;
+  optional uint64 limit = 3;
+}
+
+message UpdateQuotaPolicyResponse {
+  QuotaPolicy policy = 1;
+}
+
+message DeleteQuotaPolicyRequest {
+  string id = 1;
+}
+
+message DeleteQuotaPolicyResponse {
+  string id = 1;
+  bool deleted = 2;
+}
+
+message GetQuotaUsageRequest {
+  string quota_id = 1;
+}
+
+message GetQuotaUsageResponse {
+  QuotaUsage usage = 1;
+}
+
+message IncrementQuotaUsageRequest {
+  string quota_id = 1;
+  uint64 amount = 2;
+}
+
+message IncrementQuotaUsageResponse {
+  string quota_id = 1;
+  uint64 used = 2;
+  uint64 remaining = 3;
+  double usage_percent = 4;
+  bool exceeded = 5;
+  bool allowed = 6;
+}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `QuotaService.CreateQuotaPolicy` | クォータポリシーの新規作成（制限値・期間・アラート閾値指定） |
+| `QuotaService.GetQuotaPolicy` | ポリシー ID でクォータポリシー取得 |
+| `QuotaService.ListQuotaPolicies` | ページネーション付きクォータポリシー一覧取得 |
+| `QuotaService.UpdateQuotaPolicy` | クォータポリシーの更新（有効/無効切替・制限値変更） |
+| `QuotaService.DeleteQuotaPolicy` | クォータポリシーの削除 |
+| `QuotaService.GetQuotaUsage` | クォータ使用状況の取得（使用量・残量・超過判定） |
+| `QuotaService.IncrementQuotaUsage` | クォータ使用量のインクリメント（超過チェック付き） |
+
+---
+
+## ファイルサービス定義（file.proto）
+
+パッケージ: `k1s0.system.file.v1`
+
+ファイルメタデータ管理・署名付き URL によるアップロード/ダウンロードを提供するサービス。
+
+```protobuf
+// api/proto/k1s0/system/file/v1/file.proto
+syntax = "proto3";
+package k1s0.system.file.v1;
+
+service FileService {
+  rpc GetFileMetadata(GetFileMetadataRequest) returns (FileMetadataResponse);
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
+  rpc GenerateUploadUrl(GenerateUploadUrlRequest) returns (GenerateUploadUrlResponse);
+  rpc CompleteUpload(CompleteUploadRequest) returns (CompleteUploadResponse);
+  rpc GenerateDownloadUrl(GenerateDownloadUrlRequest) returns (GenerateDownloadUrlResponse);
+  rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
+}
+
+message FileMetadata {
+  string id = 1;
+  string filename = 2;
+  string content_type = 3;
+  int64 size = 4;
+  string tenant_id = 5;
+  string uploaded_by = 6;
+  string status = 7;
+  string created_at = 8;
+  string updated_at = 9;
+  map<string, string> tags = 10;
+}
+
+message GetFileMetadataRequest {
+  string id = 1;
+}
+
+message FileMetadataResponse {
+  FileMetadata metadata = 1;
+}
+
+message ListFilesRequest {
+  string tenant_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListFilesResponse {
+  repeated FileMetadata files = 1;
+  int32 total = 2;
+}
+
+message GenerateUploadUrlRequest {
+  string filename = 1;
+  string content_type = 2;
+  string tenant_id = 3;
+  string uploaded_by = 4;
+  map<string, string> tags = 5;
+}
+
+message GenerateUploadUrlResponse {
+  string file_id = 1;
+  string upload_url = 2;
+}
+
+message CompleteUploadRequest {
+  string file_id = 1;
+  int64 size = 2;
+}
+
+message CompleteUploadResponse {
+  FileMetadata metadata = 1;
+}
+
+message GenerateDownloadUrlRequest {
+  string id = 1;
+}
+
+message GenerateDownloadUrlResponse {
+  string download_url = 1;
+}
+
+message DeleteFileRequest {
+  string id = 1;
+}
+
+message DeleteFileResponse {}
+```
+
+### RPC と既存ハンドラーの対応
+
+| RPC | 説明 |
+| --- | --- |
+| `FileService.GetFileMetadata` | ファイル ID でメタデータ取得 |
+| `FileService.ListFiles` | テナント ID 指定でファイル一覧取得（ページネーション付き） |
+| `FileService.GenerateUploadUrl` | 署名付きアップロード URL の生成 |
+| `FileService.CompleteUpload` | アップロード完了通知（メタデータ確定） |
+| `FileService.GenerateDownloadUrl` | 署名付きダウンロード URL の生成 |
+| `FileService.DeleteFile` | ファイルの削除 |
 
 ---
 
@@ -1618,7 +2051,6 @@ message ConfigChangedEvent {
 | `TokenValidationEvent` | `k1s0.system.auth.audit.v1` | `user_id` | auth-server |
 | `PermissionCheckEvent` | `k1s0.system.auth.audit.v1` | `user_id` | auth-server |
 | `AuditLogRecordedEvent` | `k1s0.system.auth.audit.v1` | `user_id` | auth-server |
-| `PermissionDeniedEvent` | `k1s0.system.auth.permission_denied.v1` | `user_id` | auth-server |
 | `ConfigChangedEvent` | `k1s0.system.config.changed.v1` | `namespace` | config-server |
 
 ---
@@ -1674,8 +2106,8 @@ buf breaking api/proto --against '.git#branch=main'
 ## 関連ドキュメント
 
 - [API設計.md](./API設計.md) -- gRPC サービス定義パターン (D-009)・gRPC バージョニング (D-010)
-- [system-server.md](../../servers/auth/server.md) -- auth-server の gRPC サービス定義
-- [system-config-server.md](../../servers/config/server.md) -- config-server の gRPC サービス定義
+- [auth-server 設計書](../../servers/auth/server.md) -- auth-server の gRPC サービス定義
+- [config-server 設計書](../../servers/config/server.md) -- config-server の gRPC サービス定義
 - [認証認可設計.md](../auth/認証認可設計.md) -- JWT Claims 構造・RBAC ロール定義
 - [メッセージング設計.md](../../architecture/messaging/メッセージング設計.md) -- Kafka トピック・イベントスキーマ
 - [テンプレート仕様-APIスキーマ.md](../../templates/data/APIスキーマ.md) -- proto テンプレート生成仕様
