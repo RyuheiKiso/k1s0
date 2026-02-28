@@ -182,7 +182,7 @@ metrics:
   path: /metrics
 serviceMonitor:
   enabled: true
-  interval: 30s
+  interval: 15s
 ```
 
 ### Kong 固有の設定
@@ -425,6 +425,7 @@ config:
       observability:
         log:
           level: info
+          format: json
         trace:
           sample_rate: 0.5
 ```
@@ -470,6 +471,7 @@ config:
       observability:
         log:
           level: warn
+          format: json
         trace:
           sample_rate: 0.1
 ```

@@ -73,7 +73,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, rate(grpc_server_handling_seconds_bucket{grpc_service=~\"$service\"}[5m]))",
+          "expr": "histogram_quantile(0.99, sum(rate(grpc_server_handling_seconds_bucket{grpc_service=~\"$service\"}[5m])) by (le))",
           "legendFormat": "{{grpc_service}}.{{grpc_method}}",
           "refId": "A"
         }
@@ -90,7 +90,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, rate(db_query_duration_seconds_bucket{service=~\"$service\"}[5m]))",
+          "expr": "histogram_quantile(0.99, sum(rate(db_query_duration_seconds_bucket{service=~\"$service\"}[5m])) by (le))",
           "legendFormat": "{{query_name}} ({{table}})",
           "refId": "A"
         }

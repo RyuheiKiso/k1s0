@@ -192,9 +192,8 @@ services:
 
   # ============================================================
   # 可観測性
-  # NOTE: ローカル開発環境では Promtail を省略している。
-  # Kubernetes 環境では Promtail（DaemonSet）がログを収集し Loki に転送するが、
-  # ローカルでは各コンテナの stdout を直接 docker compose logs で確認する。
+  # NOTE: ローカル開発環境では Promtail を省略し、docker compose logs で直接確認する。
+  # Kubernetes 環境では Promtail を DaemonSet としてデプロイする。
   # ============================================================
   jaeger:
     image: jaegertracing/all-in-one:1.62
@@ -211,6 +210,8 @@ services:
     profiles: [observability]
     volumes:
       - ./infra/docker/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
+      - ./infra/docker/prometheus/recording_rules.yaml:/etc/prometheus/recording_rules.yaml
+      - ./infra/docker/prometheus/alerting_rules.yaml:/etc/prometheus/alerting_rules.yaml
       - prometheus-data:/prometheus
     ports:
       - "9090:9090"
@@ -218,9 +219,11 @@ services:
   loki:
     image: grafana/loki:3.3
     profiles: [observability]
+    command: -config.file=/etc/loki/loki-config.yaml
     ports:
       - "3100:3100"
     volumes:
+      - ./infra/docker/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
       - loki-data:/loki
 
   grafana:

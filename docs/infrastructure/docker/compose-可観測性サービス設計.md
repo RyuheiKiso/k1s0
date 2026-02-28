@@ -64,14 +64,14 @@ scrape_configs:
           lang: rust
     metrics_path: /metrics
 
-  # bff-proxy (Rust)
-  - job_name: bff-proxy-rust
+  # bff-proxy (Go)
+  - job_name: bff-proxy-go
     static_configs:
-      - targets: ["bff-proxy-rust:8080"]
+      - targets: ["bff-proxy:8080"]
         labels:
           service: bff-proxy
           tier: system
-          lang: rust
+          lang: go
     metrics_path: /metrics
 
   # Kong API Gateway
@@ -130,6 +130,7 @@ providers:
     type: file
     disableDeletion: false
     editable: true
+    updateIntervalSeconds: 30
     options:
       path: /var/lib/grafana/dashboards
       foldersFromFilesStructure: false
@@ -139,6 +140,7 @@ providers:
 
 ```yaml
 # ローカル開発用（シングルインスタンス）
+# 設定ファイル: infra/docker/loki/loki-config.yaml をマウント
 # Kubernetes 環境では Promtail（DaemonSet）がログを収集し Loki に転送するが、
 # ローカルでは各コンテナの stdout を直接 docker compose logs で確認する。
 # Loki はダッシュボード経由でのログ検索用途で提供する。
