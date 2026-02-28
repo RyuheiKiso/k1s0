@@ -22,22 +22,3 @@ spec:
         perTryTimeout: 3s
         retryOn: "5xx,reset,connect-failure,retriable-4xx"
         retryRemoteLocalities: true
----
-# system Tier のデフォルト VirtualService
-apiVersion: networking.istio.io/v1
-kind: VirtualService
-metadata:
-  name: default-system
-  namespace: k1s0-system
-spec:
-  hosts:
-    - "*.k1s0-system.svc.cluster.local"
-  http:
-    - route:
-        - destination:
-            host: "*.k1s0-system.svc.cluster.local"
-      timeout: 5s
-      retries:
-        attempts: 3
-        perTryTimeout: 2s
-        retryOn: "5xx,reset,connect-failure"

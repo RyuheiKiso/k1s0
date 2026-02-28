@@ -382,7 +382,7 @@ docker compose --profile infra --profile observability --profile system down -v
 - ボリューム名はサービス名に対応させ、`docker compose down -v` で一括削除できるようにする
 - アプリケーションサーバーの設定ファイルはボリュームマウントで提供し、イメージの再ビルドなしに設定変更を反映できるようにする
 - Kafka トピックの自動作成には `kafka-init` コンテナを使用し、ブローカー起動後に一度だけ実行する
-- Kong はローカル開発環境では DB-less モード（declarative config）を使用し、本番環境との差異を最小限にしつつ開発効率を優先する。設定ファイルは `./infra/docker/kong/kong.yaml` をマウントする（`./infra/kong/kong.dev.yaml` ではない）
+- Kong はローカル開発環境では DB-less モード（declarative config）を使用し、本番環境との差異を最小限にしつつ開発効率を優先する。設定ファイルは `./infra/kong/kong.dev.yaml` をマウントする（`/etc/kong/kong.yaml` にマップ）
 - Kong ローカル開発用の設定には以下の4プラグインを使用する: `cors`（開発元オリジン許可）、`rate-limiting`（グローバル 5000 req/min、local policy）、`jwt`（Keycloak JWKS 連携、RS256、有効期限 900s）、`prometheus`（per_consumer メトリクス収集）
 
 ## 詳細設計ドキュメント

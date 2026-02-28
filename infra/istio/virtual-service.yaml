@@ -4,7 +4,7 @@
 # 各 VirtualService のデフォルト設定と代表的なパターンを統合して定義する。
 #
 # 詳細な個別設定は以下のファイルを参照:
-#   - virtualservices/default.yaml   基本ルーティング + system Tier デフォルト
+#   - virtualservices/default.yaml   基本ルーティング（order-server の例）
 #   - virtualservices/canary.yaml    カナリアリリース + ヘッダーベースルーティング
 #   - virtualservices/mirror.yaml    トラフィックミラーリング
 #   - fault-injection/delay.yaml     レイテンシ注入（staging 環境テスト用）
