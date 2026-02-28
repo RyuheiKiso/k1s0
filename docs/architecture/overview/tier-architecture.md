@@ -7,7 +7,7 @@ k1s0 のリポジトリは **system → business → service** の3階層（Tier
 
 ## 階層の概要
 
-<img src="diagrams/tier-overview.svg" width="1000" />
+<img src="../../diagrams/tier-overview.svg" width="1000" />
 
 ## 各階層の役割
 
@@ -38,7 +38,7 @@ k1s0 のリポジトリは **system → business → service** の3階層（Tier
 
 | 種別     | 役割                                        |
 | -------- | ------------------------------------------- |
-| server   | 業務サービスの実装（Rust）                  |
+| server   | 業務サービスの実装（Rust / Go BFF）          |
 | client   | ユーザー向けクライアント（React / Flutter） |
 | database | サービス固有のデータストア                  |
 
@@ -76,7 +76,7 @@ k1s0 のリポジトリは **system → business → service** の3階層（Tier
 
 system server が提供する共通機能を、business server が利用する構成。
 
-<img src="diagrams/server-dependency.svg" width="1000" />
+<img src="../../diagrams/server-dependency.svg" width="1000" />
 
 **依存の具体例：**
 
@@ -92,7 +92,7 @@ system server が提供する共通機能を、business server が利用する�
 service client が business client の共通UIコンポーネントと system client SDK を利用する構成。
 system/client は UI を持たない共通 SDK として、認証・API クライアント・共通 Widget を提供する。
 
-<img src="diagrams/client-dependency.svg" width="1000" />
+<img src="../../diagrams/client-dependency.svg" width="1000" />
 
 **依存の具体例：**
 
@@ -134,7 +134,12 @@ system/client は UI を持たない共通 SDK として、認証・API クラ�
 regions/
 ├── system/
 │   ├── server/
-│   │   └── rust/
+│   │   ├── rust/
+│   │   │   └── {サービス名}/
+│   │   │       └── （Rust サーバー構成）
+│   │   └── go/
+│   │       └── bff-proxy/             # BFF Proxy（Go 実装）
+│   │           └── （Go サーバー構成）
 │   ├── client/
 │   │   ├── flutter/               # 共通 Flutter SDK（system_client パッケージ）
 │   │   └── react/                 # 共通 React SDK（system-client パッケージ）
@@ -160,7 +165,13 @@ regions/
 └── service/
     └── {サービス名}/          # 例: order, inventory
         ├── server/
-        │   └── rust/
+        │   ├── rust/
+        │   │   ├── （Rust サーバー構成）
+        │   │   └── bff/               # GraphQL BFF（オプション）
+        │   │       └── （Rust BFF 構成）
+        │   └── go/
+        │       └── bff/               # BFF（Go 実装、オプション）
+        │           └── （Go BFF 構成）
         ├── client/
         │   ├── react/
         │   └── flutter/
