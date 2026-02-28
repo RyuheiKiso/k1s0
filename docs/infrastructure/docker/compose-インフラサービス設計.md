@@ -237,7 +237,7 @@ infra/docker/
 │   │   ├── datasources/
 │   │   │   └── datasources.yaml   # データソース自動設定
 │   │   └── dashboards/
-│   │       └── dashboards.yaml    # ダッシュボードプロビジョニング
+│   │       └── dashboard.yml      # ダッシュボードプロビジョニング
 │   └── dashboards/
 │       └── (JSON ダッシュボードファイル)
 └── kong/

@@ -71,7 +71,7 @@ datasources:
 #### ダッシュボードプロビジョニング
 
 ```yaml
-# infra/docker/grafana/provisioning/dashboards/dashboards.yaml
+# infra/docker/grafana/provisioning/dashboards/dashboard.yml
 apiVersion: 1
 
 providers:
