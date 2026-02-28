@@ -18,6 +18,8 @@ jobs:
       KONG_RATE_SERVICE_MINUTE: "500"
       KONG_RATE_SERVICE_SECOND: "20"
       KONG_RATE_REDIS_POLICY: "redis"
+      KONG_CORS_ORIGINS: "https://*.k1s0.internal.example.com"
+      KONG_KEYCLOAK_ISSUER: "https://auth.k1s0.internal.example.com/realms/k1s0"
     steps:
       - uses: actions/checkout@v4
       - name: Install decK
@@ -46,6 +48,8 @@ jobs:
       KONG_RATE_SERVICE_MINUTE: "500"
       KONG_RATE_SERVICE_SECOND: "20"
       KONG_RATE_REDIS_POLICY: "redis"
+      KONG_CORS_ORIGINS: "https://*.k1s0.internal.example.com"
+      KONG_KEYCLOAK_ISSUER: "https://auth.k1s0.internal.example.com/realms/k1s0"
     steps:
       - uses: actions/checkout@v4
       - name: Resolve environment variables
@@ -67,6 +71,8 @@ jobs:
       KONG_RATE_SERVICE_MINUTE: "5000"
       KONG_RATE_SERVICE_SECOND: "200"
       KONG_RATE_REDIS_POLICY: "local"
+      KONG_CORS_ORIGINS: "http://localhost:3000"
+      KONG_KEYCLOAK_ISSUER: "http://keycloak.k1s0-system.svc.cluster.local:8080/realms/k1s0"
     steps:
       - uses: actions/checkout@v4
       - name: Resolve environment variables
@@ -89,6 +95,8 @@ jobs:
       KONG_RATE_SERVICE_MINUTE: "1000"
       KONG_RATE_SERVICE_SECOND: "40"
       KONG_RATE_REDIS_POLICY: "redis"
+      KONG_CORS_ORIGINS: "https://*.staging.k1s0.internal.example.com"
+      KONG_KEYCLOAK_ISSUER: "https://auth.staging.k1s0.internal.example.com/realms/k1s0"
     steps:
       - uses: actions/checkout@v4
       - name: Resolve environment variables
@@ -112,6 +120,8 @@ jobs:
       KONG_RATE_SERVICE_MINUTE: "500"
       KONG_RATE_SERVICE_SECOND: "20"
       KONG_RATE_REDIS_POLICY: "redis"
+      KONG_CORS_ORIGINS: "https://*.k1s0.internal.example.com"
+      KONG_KEYCLOAK_ISSUER: "https://auth.k1s0.internal.example.com/realms/k1s0"
     steps:
       - uses: actions/checkout@v4
       - name: Resolve environment variables

@@ -303,8 +303,11 @@ Kong の設定を YAML ファイルで宣言的に管理し、Git でバージ�
 
 ```yaml
 # infra/kong/kong.yaml
-# NOTE: 実ファイルではレート制限値に環境変数プレースホルダー（${KONG_RATE_...}）を使用し、
+# NOTE: 実ファイルでは以下の環境変数プレースホルダーを使用し、
 # CI/CD パイプラインで envsubst により環境別の値に置換する。
+#   ${KONG_RATE_*}         - レート制限値
+#   ${KONG_CORS_ORIGINS}   - CORS 許可オリジン
+#   ${KONG_KEYCLOAK_ISSUER} - Keycloak Issuer URL
 # 以下は prod 環境のデフォルト値で記載している。
 _format_version: "3.0"
 
@@ -680,14 +683,26 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    env:
+      KONG_RATE_SYSTEM_MINUTE: "3000"
+      KONG_RATE_SYSTEM_SECOND: "100"
+      KONG_RATE_BUSINESS_MINUTE: "1000"
+      KONG_RATE_BUSINESS_SECOND: "40"
+      KONG_RATE_SERVICE_MINUTE: "500"
+      KONG_RATE_SERVICE_SECOND: "20"
+      KONG_RATE_REDIS_POLICY: "redis"
+      KONG_CORS_ORIGINS: "https://*.k1s0.internal.example.com"
+      KONG_KEYCLOAK_ISSUER: "https://auth.k1s0.internal.example.com/realms/k1s0"
     steps:
       - uses: actions/checkout@v4
       - name: Install decK
         run: |
           curl -sL https://github.com/Kong/deck/releases/latest/download/deck_linux_amd64.tar.gz | tar xz
           sudo mv deck /usr/local/bin/
+      - name: Resolve environment variables
+        run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Validate config
-        run: deck validate -s infra/kong/kong.yaml
+        run: deck validate -s /tmp/kong-resolved.yaml
 
   # NOTE: 各環境の CI/CD ランナーはそれぞれのクラスタ内で動作する。
   # そのため Kong Admin API のサービス名（kong-admin.k1s0-system.svc.cluster.local:8001）は
@@ -698,35 +713,71 @@ jobs:
   diff:
     needs: validate
     runs-on: ubuntu-latest
+    env:
+      KONG_RATE_SYSTEM_MINUTE: "3000"
+      KONG_RATE_SYSTEM_SECOND: "100"
+      KONG_RATE_BUSINESS_MINUTE: "1000"
+      KONG_RATE_BUSINESS_SECOND: "40"
+      KONG_RATE_SERVICE_MINUTE: "500"
+      KONG_RATE_SERVICE_SECOND: "20"
+      KONG_RATE_REDIS_POLICY: "redis"
+      KONG_CORS_ORIGINS: "https://*.k1s0.internal.example.com"
+      KONG_KEYCLOAK_ISSUER: "https://auth.k1s0.internal.example.com/realms/k1s0"
     steps:
       - uses: actions/checkout@v4
+      - name: Resolve environment variables
+        run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Show diff
         run: |
-          deck diff -s infra/kong/kong.yaml \
+          deck diff -s /tmp/kong-resolved.yaml \
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
 
   sync-dev:
     needs: diff
     runs-on: [self-hosted, dev]
     environment: dev
+    env:
+      KONG_RATE_SYSTEM_MINUTE: "30000"
+      KONG_RATE_SYSTEM_SECOND: "1000"
+      KONG_RATE_BUSINESS_MINUTE: "10000"
+      KONG_RATE_BUSINESS_SECOND: "400"
+      KONG_RATE_SERVICE_MINUTE: "5000"
+      KONG_RATE_SERVICE_SECOND: "200"
+      KONG_RATE_REDIS_POLICY: "local"
+      KONG_CORS_ORIGINS: "http://localhost:3000"
+      KONG_KEYCLOAK_ISSUER: "http://keycloak.k1s0-system.svc.cluster.local:8080/realms/k1s0"
     steps:
       - uses: actions/checkout@v4
+      - name: Resolve environment variables
+        run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Sync to dev
         run: |
           # dev クラスタ内のランナーで実行
-          deck sync -s infra/kong/kong.yaml \
+          deck sync -s /tmp/kong-resolved.yaml \
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
 
   sync-staging:
     needs: sync-dev
     runs-on: [self-hosted, staging]
     environment: staging
+    env:
+      KONG_RATE_SYSTEM_MINUTE: "6000"
+      KONG_RATE_SYSTEM_SECOND: "200"
+      KONG_RATE_BUSINESS_MINUTE: "2000"
+      KONG_RATE_BUSINESS_SECOND: "80"
+      KONG_RATE_SERVICE_MINUTE: "1000"
+      KONG_RATE_SERVICE_SECOND: "40"
+      KONG_RATE_REDIS_POLICY: "redis"
+      KONG_CORS_ORIGINS: "https://*.staging.k1s0.internal.example.com"
+      KONG_KEYCLOAK_ISSUER: "https://auth.staging.k1s0.internal.example.com/realms/k1s0"
     steps:
       - uses: actions/checkout@v4
+      - name: Resolve environment variables
+        run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Sync to staging
         run: |
           # staging クラスタ内のランナーで実行
-          deck sync -s infra/kong/kong.yaml \
+          deck sync -s /tmp/kong-resolved.yaml \
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
 
   sync-prod:
@@ -734,12 +785,24 @@ jobs:
     runs-on: [self-hosted, prod]
     environment:
       name: prod
+    env:
+      KONG_RATE_SYSTEM_MINUTE: "3000"
+      KONG_RATE_SYSTEM_SECOND: "100"
+      KONG_RATE_BUSINESS_MINUTE: "1000"
+      KONG_RATE_BUSINESS_SECOND: "40"
+      KONG_RATE_SERVICE_MINUTE: "500"
+      KONG_RATE_SERVICE_SECOND: "20"
+      KONG_RATE_REDIS_POLICY: "redis"
+      KONG_CORS_ORIGINS: "https://*.k1s0.internal.example.com"
+      KONG_KEYCLOAK_ISSUER: "https://auth.k1s0.internal.example.com/realms/k1s0"
     steps:
       - uses: actions/checkout@v4
+      - name: Resolve environment variables
+        run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Sync to prod
         run: |
           # prod クラスタ内のランナーで実行
-          deck sync -s infra/kong/kong.yaml \
+          deck sync -s /tmp/kong-resolved.yaml \
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
 ```
 

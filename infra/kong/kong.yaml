@@ -7,7 +7,11 @@
 #   KONG_RATE_BUSINESS_MINUTE / KONG_RATE_BUSINESS_SECOND - business Tier rate limit
 #   KONG_RATE_SERVICE_MINUTE / KONG_RATE_SERVICE_SECOND   - service Tier rate limit (also global default)
 #   KONG_RATE_REDIS_POLICY - Redis policy (redis | local)
+#   KONG_CORS_ORIGINS     - CORS allowed origins (comma-separated, quoted)
+#   KONG_KEYCLOAK_ISSUER  - Keycloak realm issuer URL (JWT consumer key)
 # Default values (prod): system=3000/100, business=1000/40, service=500/20, policy=redis
+#   CORS: "https://*.k1s0.internal.example.com"
+#   Keycloak: "https://auth.k1s0.internal.example.com/realms/k1s0"
 # See: docs/architecture/api/APIゲートウェイ設計.md（環境別構成セクション）
 _format_version: "3.0"
 
@@ -259,7 +263,7 @@ plugins:
   - name: cors
     config:
       origins:
-        - "https://*.k1s0.internal.example.com"
+        - "${KONG_CORS_ORIGINS}"
       methods:
         - GET
         - POST
@@ -329,4 +333,4 @@ consumers:
   - username: keycloak
     jwt_secrets:
       - algorithm: RS256
-        key: "https://auth.k1s0.internal.example.com/realms/k1s0"
+        key: "${KONG_KEYCLOAK_ISSUER}"
