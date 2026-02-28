@@ -132,7 +132,7 @@ resources:
 | jwt                  | グローバル | JWT 認証                      |
 | cors                 | グローバル | CORS 制御                     |
 | request-transformer  | サービス別 | リクエストヘッダー変換        |
-| response-transformer | サービス別 | レスポンスヘッダー付与        |
+| response-transformer | グローバル | レスポンスセキュリティヘッダー付与 |
 | prometheus           | グローバル | メトリクス収集                |
 | file-log             | グローバル | アクセスログ出力              |
 | ip-restriction       | サービス別 | IP 制限（Admin API 保護等）   |
@@ -186,6 +186,42 @@ plugins:
 > - staging: `["https://*.staging.k1s0.internal.example.com"]`
 > - prod: `["https://*.k1s0.internal.example.com"]`
 
+#### Response Transformer プラグイン
+
+```yaml
+plugins:
+  - name: response-transformer
+    config:
+      add:
+        headers:
+          - X-Content-Type-Options:nosniff
+          - X-Frame-Options:DENY
+          - Strict-Transport-Security:max-age=31536000; includeSubDomains
+```
+
+#### File Log プラグイン
+
+```yaml
+plugins:
+  - name: file-log
+    config:
+      path: /dev/stdout
+      reopen: false
+```
+
+#### IP Restriction プラグイン
+
+Admin API（port 8001）への IP 制限は Kubernetes NetworkPolicy と Istio PeerAuthentication で実装する。Proxy 経由で管理系エンドポイントを公開する場合は、サービスレベルで `ip-restriction` プラグインを適用する。
+
+```yaml
+# サービス別適用例（staging/prod 環境）
+plugins:
+  - name: ip-restriction
+    config:
+      allow:
+        - 10.0.0.0/8                    # 社内ネットワーク
+```
+
 #### Prometheus プラグイン
 
 ```yaml
@@ -202,7 +238,8 @@ plugins:
 
 ```
 infra/kong/
-├── kong.yaml          # メイン設定ファイル（decK）
+├── kong.yaml          # メイン設定ファイル（decK sync 対象）
+├── kong.dev.yaml      # ローカル開発用（DB-less モード、docker-compose 向け）
 ├── plugins/
 │   ├── global.yaml    # グローバルプラグイン
 │   └── auth.yaml      # 認証プラグイン
@@ -302,6 +339,10 @@ services:
         strip_path: false
         methods: [GET, POST]
     plugins:
+      - name: jwt
+        config:
+          secret_is_base64: false
+          key_claim_name: sub           # サービス間認証（JWT subject ベース）
       - name: request-transformer
         config:
           add:
@@ -317,6 +358,10 @@ services:
         strip_path: false
         methods: [GET, POST, DELETE]
     plugins:
+      - name: jwt
+        config:
+          secret_is_base64: false
+          key_claim_name: sub           # サービス間認証（JWT subject ベース）
       - name: request-transformer
         config:
           add:
@@ -339,6 +384,7 @@ plugins:
   - name: rate-limiting
     config:
       minute: 500
+      second: 20                     # 秒あたりの上限（バースト制御）
       policy: redis
       redis_host: redis.k1s0-system.svc.cluster.local
       redis_port: 6379
@@ -363,6 +409,36 @@ plugins:
     config:
       per_consumer: true
       status_code_metrics: true
+
+  - name: file-log
+    config:
+      path: /dev/stdout
+      reopen: false
+
+  - name: response-transformer
+    config:
+      add:
+        headers:
+          - X-Content-Type-Options:nosniff
+          - X-Frame-Options:DENY
+          - Strict-Transport-Security:max-age=31536000; includeSubDomains
+
+  - name: post-function
+    config:
+      header_filter:
+        - |
+          local jwt = kong.ctx.shared.authenticated_jwt_token
+          if jwt then
+            kong.service.request.set_header("X-User-Id", jwt.claims.sub)
+            kong.service.request.set_header("X-User-Roles", table.concat(jwt.claims.realm_access.roles, ","))
+            kong.service.request.set_header("X-User-Email", jwt.claims.email or "")
+          end
+
+consumers:
+  - username: keycloak
+    jwt_secrets:
+      - algorithm: RS256
+        key: "https://auth.k1s0.internal.example.com/realms/k1s0"
 ```
 
 ### Tier 別レート制限オーバーライド例
