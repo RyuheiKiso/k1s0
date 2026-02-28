@@ -23,6 +23,7 @@ infra/helm/
 │           ├── _pdb.tpl
 │           ├── _configmap.tpl
 │           ├── _ingress.tpl
+│           ├── _vault-annotations.tpl
 │           └── _helpers.tpl
 └── services/
     ├── system/
@@ -61,6 +62,13 @@ infra/helm/
     │   │   ├── values-staging.yaml
     │   │   ├── values-prod.yaml
     │   │   └── templates/
+    │   ├── graphql-gateway/         # GraphQL Gateway（Go, HTTP）
+    │   │   ├── Chart.yaml
+    │   │   ├── values.yaml
+    │   │   ├── values-dev.yaml
+    │   │   ├── values-staging.yaml
+    │   │   ├── values-prod.yaml
+    │   │   └── templates/
     │   └── kong/                    # Kong API Gateway
     │       ├── Chart.yaml
     │       ├── values.yaml
@@ -89,7 +97,7 @@ infra/helm/
 
 ## System Tier Chart 一覧
 
-system tier には以下の 6 つの Chart が存在する。全て `k1s0-common` Library Chart に依存し、`labels.tier: system` を設定する。
+system tier には以下の 7 つの Chart が存在する。全て `k1s0-common` Library Chart に依存し、`labels.tier: system` を設定する。
 
 | Chart | 説明 | 言語 | gRPC | Kafka | Redis | Vault secrets |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -98,6 +106,7 @@ system tier には以下の 6 つの Chart が存在する。全て `k1s0-common
 | saga | Saga オーケストレータ（分散トランザクション） | Rust | 50051 | 有効 | - | DB パスワード |
 | dlq-manager | Dead Letter Queue 管理（失敗メッセージの再処理） | Rust | - | 有効 | - | DB パスワード |
 | bff-proxy | BFF プロキシ（OIDC 認証、セッション管理、リバースプロキシ） | Go | - | - | 有効 | OIDC client secret, Redis パスワード |
+| graphql-gateway | GraphQL Gateway（フェデレーション、クエリルーティング） | Go | - | - | - | JWKS 署名鍵 |
 | kong | API Gateway（DB-backed PostgreSQL モード） | - | - | - | - | DB パスワード（SecretKeyRef） |
 
 ### 実ファイル配置
@@ -111,21 +120,22 @@ system tier には以下の 6 つの Chart が存在する。全て `k1s0-common
 | saga | `infra/helm/services/system/saga/Chart.yaml` | `infra/helm/services/system/saga/values.yaml` |
 | dlq-manager | `infra/helm/services/system/dlq-manager/Chart.yaml` | `infra/helm/services/system/dlq-manager/values.yaml` |
 | bff-proxy | `infra/helm/services/system/bff-proxy/Chart.yaml` | `infra/helm/services/system/bff-proxy/values.yaml` |
+| graphql-gateway | `infra/helm/services/system/graphql-gateway/Chart.yaml` | `infra/helm/services/system/graphql-gateway/values.yaml` |
 | kong | `infra/helm/services/system/kong/Chart.yaml` | `infra/helm/services/system/kong/values.yaml` |
 
 全 Chart は `k1s0-common` Library Chart に依存し、`appVersion: "0.1.0"`（kong は `"3.8.0"`）。
 
 ### 各 Chart の values.yaml 重要フィールド差分
 
-| フィールド | auth | config | saga | dlq-manager | bff-proxy | kong |
-|-----------|------|--------|------|-------------|-----------|------|
-| `container.grpcPort` | 50051 | 50051 | 50051 | null | - | - |
-| `kafka.enabled` | true | false | true | true | - | - |
-| `redis.enabled` | false | false | false | false | true | - |
-| `autoscaling.maxReplicas` | 5 | 5 | 5 | 5 | 10 | - |
-| `resources.requests.cpu` | 250m | 250m | 250m | 250m | 100m | 500m |
-| `resources.requests.memory` | 256Mi | 256Mi | 256Mi | 256Mi | 128Mi | 512Mi |
-| `vault.secrets` | DB | DB | DB | DB | OIDC + Redis | SecretKeyRef |
+| フィールド | auth | config | saga | dlq-manager | bff-proxy | graphql-gateway | kong |
+|-----------|------|--------|------|-------------|-----------|-----------------|------|
+| `container.grpcPort` | 50051 | 50051 | 50051 | null | - | null | - |
+| `kafka.enabled` | true | false | true | true | - | false | - |
+| `redis.enabled` | false | false | false | false | true | false | - |
+| `autoscaling.maxReplicas` | 5 | 5 | 5 | 5 | 10 | 5 | - |
+| `resources.requests.cpu` | 250m | 250m | 250m | 250m | 100m | 250m | 500m |
+| `resources.requests.memory` | 256Mi | 256Mi | 256Mi | 256Mi | 128Mi | 256Mi | 512Mi |
+| `vault.secrets` | DB | DB | DB | DB | OIDC + Redis | JWKS 署名鍵 | SecretKeyRef |
 
 ### 共通設定（auth / config / saga / dlq-manager）
 
@@ -182,7 +192,35 @@ metrics:
   path: /metrics
 serviceMonitor:
   enabled: true
-  interval: 15s
+  interval: 30s
+```
+
+### graphql-gateway 固有の設定
+
+graphql-gateway は Go 製の GraphQL Federation Gateway で、複数のサブグラフをフェデレーションし、クエリをルーティングする。
+
+```yaml
+container:
+  port: 8080
+  grpcPort: null               # HTTP のみ
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+autoscaling:
+  maxReplicas: 5
+vault:
+  secrets:
+    - path: "secret/data/k1s0/system/graphql-gateway/auth"
+      key: "jwks-signing-key"
+      mountPath: "/vault/secrets/jwks-key"
+kafka:
+  enabled: false
+redis:
+  enabled: false
 ```
 
 ### Kong 固有の設定
@@ -292,6 +330,19 @@ autoscaling:
   maxReplicas: 5                # kubernetes設計.md の staging 設定と同じ値を採用
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60    # スパイク時の過剰スケールアップを抑制
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300   # トラフィック減少後の急なスケールダウンを防止
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
 
 # PodDisruptionBudget
 pdb:

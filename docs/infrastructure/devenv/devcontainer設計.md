@@ -23,7 +23,7 @@ k1s0 の開発環境を Dev Container で統一し、環境構築の手間をゼ
       "version": "1.23"
     },
     "ghcr.io/devcontainers/features/rust:1": {
-      "version": "1.82"  // Dockerイメージ戦略.md の rust:1.82-bookworm と同期
+      "version": "1.88"  // Dockerイメージ戦略.md の rust:1.88-bookworm と同期
     },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "22"  // CI/CD でも Node 22 に合わせる（CI-CD設計.md 参照）

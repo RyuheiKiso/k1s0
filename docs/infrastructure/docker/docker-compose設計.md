@@ -257,9 +257,46 @@ networks:
     name: k1s0-network
 ```
 
+## Vault 初期化スクリプト
+
+ローカル開発用の Vault 初期化スクリプト（`infra/docker/vault/init-vault.sh`）が実装済みである。`docker compose --profile infra up -d` で Vault が起動した後に手動実行する。
+
+```bash
+# Vault 起動後に実行（プロジェクトルートから）
+bash infra/docker/vault/init-vault.sh
+```
+
+スクリプトは以下を自動設定する:
+
+| 設定内容 | シークレットパス |
+| --- | --- |
+| Database 共通設定 | `secret/k1s0/system/database` |
+| Auth Server DB / API キー | `secret/k1s0/system/auth-server/*` |
+| Config Server DB / API キー | `secret/k1s0/system/config-server/*` |
+| Saga Server DB | `secret/k1s0/system/saga-server/database` |
+| DLQ Manager DB | `secret/k1s0/system/dlq-manager/database` |
+| Kafka SASL | `secret/k1s0/system/kafka/sasl` |
+| Keycloak クライアントシークレット | `secret/k1s0/system/keycloak` |
+
+> **注記**: Vault はローカル開発環境では dev モード（`VAULT_DEV_ROOT_TOKEN_ID: dev-token`）で起動する。KV v2 シークレットエンジンは `secret/` パスにデフォルトで有効化されている。
+
 ## DB 初期化スクリプト
 
 PostgreSQL の `docker-entrypoint-initdb.d` に配置し、Tier ごとのデータベースを自動作成する。データベースは認証用とアプリケーション用（Tier 別）に分離する。詳細なスキーマ定義は [docker-compose-インフラサービス設計.md](compose-インフラサービス設計.md) の「PostgreSQL 初期化」セクションを参照。
+
+初期化スクリプトは `infra/docker/init-db/` 配下の9ファイルで構成される。
+
+| ファイル | 内容 |
+| --- | --- |
+| `01-create-databases.sql` | 全12データベース作成 |
+| `02-auth-schema.sql` | auth-server スキーマ |
+| `03-config-schema.sql` | config-server スキーマ |
+| `04-saga-schema.sql` | saga-server スキーマ |
+| `05-dlq-schema.sql` | dlq-manager スキーマ |
+| `06-featureflag-schema.sql` | featureflag-server スキーマ |
+| `07-ratelimit-schema.sql` | ratelimit-server スキーマ |
+| `08-tenant-schema.sql` | tenant-server スキーマ |
+| `09-vault-schema.sql` | vault スキーマ |
 
 ```sql
 -- infra/docker/init-db/01-create-databases.sql
@@ -274,6 +311,15 @@ CREATE DATABASE kong;
 CREATE DATABASE k1s0_system;
 CREATE DATABASE k1s0_business;
 CREATE DATABASE k1s0_service;
+
+-- サービス個別DB
+CREATE DATABASE auth_db;
+CREATE DATABASE config_db;
+CREATE DATABASE dlq_db;
+CREATE DATABASE featureflag_db;
+CREATE DATABASE ratelimit_db;
+CREATE DATABASE tenant_db;
+CREATE DATABASE vault_db;
 ```
 
 ## プロファイル組み合わせ表
@@ -284,7 +330,7 @@ CREATE DATABASE k1s0_service;
 | --- | --- | --- |
 | `infra` | PostgreSQL, MySQL, Redis, Redis-session, Kafka, Kafka-UI, Schema Registry, Keycloak, Vault, kafka-init | 共通インフラ |
 | `observability` | Jaeger, Prometheus, Loki, Grafana | 監視・可視化 |
-| `system` | auth-rust, config-rust | system tier サーバー |
+| `system` | auth-rust, config-rust, saga-rust, dlq-manager | system tier サーバー |
 | `business` | (将来追加) | business tier サーバー |
 | `service` | order-server (将来追加) | service tier サーバー |
 
@@ -336,7 +382,8 @@ docker compose --profile infra --profile observability --profile system down -v
 - ボリューム名はサービス名に対応させ、`docker compose down -v` で一括削除できるようにする
 - アプリケーションサーバーの設定ファイルはボリュームマウントで提供し、イメージの再ビルドなしに設定変更を反映できるようにする
 - Kafka トピックの自動作成には `kafka-init` コンテナを使用し、ブローカー起動後に一度だけ実行する
-- Kong はローカル開発環境では DB-less モード（declarative config）を使用し、本番環境との差異を最小限にしつつ開発効率を優先する
+- Kong はローカル開発環境では DB-less モード（declarative config）を使用し、本番環境との差異を最小限にしつつ開発効率を優先する。設定ファイルは `./infra/docker/kong/kong.yaml` をマウントする（`./infra/kong/kong.dev.yaml` ではない）
+- Kong ローカル開発用の設定には以下の4プラグインを使用する: `cors`（開発元オリジン許可）、`rate-limiting`（グローバル 5000 req/min、local policy）、`jwt`（Keycloak JWKS 連携、RS256、有効期限 900s）、`prometheus`（per_consumer メトリクス収集）
 
 ## 詳細設計ドキュメント
 

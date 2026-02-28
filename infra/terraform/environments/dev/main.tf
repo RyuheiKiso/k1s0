@@ -112,6 +112,43 @@ module "vault" {
   ldap_bind_password = var.ldap_bind_password
 }
 
+# --- Vault Database (Dynamic Credential Generation) ---
+module "vault_database" {
+  source               = "../../modules/vault-database"
+  postgres_host        = var.postgres_host
+  postgres_port        = var.postgres_port
+  postgres_ssl_mode    = var.postgres_ssl_mode
+  credential_ttl       = var.vault_db_credential_ttl
+  credential_max_ttl   = var.vault_db_credential_max_ttl
+
+  depends_on = [module.vault, module.database]
+}
+
+# --- Vault PKI (Internal CA / TLS Certificate Issuance) ---
+module "vault_pki" {
+  source                = "../../modules/vault-pki"
+  system_cert_max_ttl   = var.vault_pki_system_cert_max_ttl
+  business_cert_max_ttl = var.vault_pki_business_cert_max_ttl
+  service_cert_max_ttl  = var.vault_pki_service_cert_max_ttl
+
+  depends_on = [module.vault]
+}
+
+# --- Consul Backup (State Snapshot CronJob) ---
+module "consul_backup" {
+  source                    = "../../modules/consul-backup"
+  namespace                 = var.consul_backup_namespace
+  schedule                  = var.consul_backup_schedule
+  consul_version            = var.consul_version
+  consul_http_addr          = var.consul_http_addr
+  consul_token_secret_name  = var.consul_token_secret_name
+  backup_bucket             = var.backup_bucket
+  backup_pvc_name           = var.consul_backup_pvc_name
+  retention_count           = var.consul_backup_retention_count
+
+  depends_on = [module.kubernetes_base]
+}
+
 # --- Keycloak (Identity Provider) ---
 module "keycloak" {
   source       = "../../modules/keycloak"

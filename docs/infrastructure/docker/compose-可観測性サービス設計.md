@@ -55,9 +55,9 @@ scrape_configs:
     metrics_path: /metrics
 
   # dlq-manager (Rust)
-  - job_name: dlq-manager-rust
+  - job_name: dlq-manager
     static_configs:
-      - targets: ["dlq-manager-rust:8080"]
+      - targets: ["dlq-manager:8080"]
         labels:
           service: dlq-manager
           tier: system
@@ -145,6 +145,38 @@ providers:
 # ローカルでは各コンテナの stdout を直接 docker compose logs で確認する。
 # Loki はダッシュボード経由でのログ検索用途で提供する。
 ```
+
+### Promtail 設定
+
+```yaml
+# infra/docker/promtail/promtail-config.yaml をマウント
+# 役割: ログ収集エージェント
+#   - Docker SD（Service Discovery）でコンテナを自動検出
+#   - JSON ログをパースしてラベル付け
+#   - 収集したログを Loki へフォワーディング
+```
+
+```yaml
+# docker-compose における Promtail サービス定義例
+services:
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - ./infra/docker/promtail/promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/config.yaml
+    depends_on:
+      - loki
+```
+
+| 項目 | 設定 |
+| --- | --- |
+| イメージ | `grafana/promtail:latest` |
+| 設定ファイル | `./infra/docker/promtail/promtail-config.yaml` |
+| ログ収集方式 | Docker SD（コンテナ自動検出） |
+| ログ形式 | JSON パース |
+| 転送先 | `loki:3100` |
 
 ### Jaeger 設定
 

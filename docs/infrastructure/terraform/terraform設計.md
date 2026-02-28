@@ -45,14 +45,21 @@ infra/terraform/
 └── modules/
     ├── kubernetes-base/         # Namespace, RBAC, NetworkPolicy
     ├── kubernetes-storage/      # StorageClass, PV
-    ├── observability/           # Prometheus, Grafana, Jaeger, Loki
-    ├── messaging/               # Kafka クラスタ
+    ├── observability/           # Prometheus, Grafana, Jaeger, Loki, OTel Collector
+    ├── messaging/               # Strimzi Operator + Kafka CRD
     ├── database/                # PostgreSQL, MySQL（Helm 経由）
-    ├── vault/                   # Vault 設定
+    ├── vault/                   # Vault 基本設定（KV v2・DB・PKI エンジン、Kubernetes Auth）
+    ├── vault-database/          # Vault Database シークレットエンジン専用
+    ├── vault-pki/               # Vault PKI / Internal CA 専用
+    ├── consul-backup/           # Consul State バックアップ CronJob
     ├── harbor/                  # Harbor プロジェクト設定
     ├── keycloak/                # Keycloak Realm プロビジョニング
     └── service-mesh/            # Istio 設定
 ```
+
+### 環境への統合方針
+
+`vault-database`・`vault-pki`・`consul-backup` の 3 モジュールは、すべての環境（dev / staging / prod）の `environments/<env>/main.tf` から呼び出す。独立したワークスペースとして別管理するのではなく、既存モジュール（`vault`、`database` 等）と同一の apply コンテキストで管理することで、依存関係の明確化と運用の一貫性を確保する。
 
 ## State 管理
 
@@ -207,7 +214,7 @@ resource "kubernetes_storage_class" "ceph_block_fast" {
 
 ### observability
 
-Helm Provider 経由で可観測性スタックをデプロイする。
+Helm Provider 経由で可観測性スタックをデプロイする。主要リソースは `prometheus`（kube-prometheus-stack）、`loki`（loki-stack）、`jaeger`、`otel_collector`（opentelemetry-collector）の 4 つの `helm_release` で構成される。`otel_collector` は Jaeger デプロイ後に `depends_on` で順序制御される。
 
 ```hcl
 # modules/observability/main.tf
@@ -240,6 +247,70 @@ resource "helm_release" "jaeger" {
   version    = var.jaeger_version
 
   values = [file("${path.module}/values/jaeger.yaml")]
+}
+
+resource "helm_release" "otel_collector" {
+  name       = "otel-collector"
+  namespace  = "observability"
+  repository = "https://open-telemetry.github.io/opentelemetry-helm-charts"
+  chart      = "opentelemetry-collector"
+  version    = var.otel_collector_version
+
+  values = [file("${path.module}/values/otel-collector.yaml")]
+
+  depends_on = [helm_release.jaeger]
+}
+```
+
+### messaging
+
+Strimzi Operator を Helm Chart 経由でデプロイし、Kafka クラスタを Strimzi CRD（`Kafka` カスタムリソース）として管理する。Strimzi Operator がクラスタのライフサイクルを監視・制御する。
+
+主要リソース:
+- `helm_release.strimzi_operator`: Strimzi Kafka Operator の Helm デプロイ（`strimzi.io/charts/` リポジトリ）
+- `kubernetes_manifest.kafka_cluster`: `kafka.strimzi.io/v1beta2` の `Kafka` CRD でクラスタ定義（`k1s0-kafka`）
+
+`kubernetes_manifest.kafka_cluster` は `depends_on` で `helm_release.strimzi_operator` の後にデプロイされる。
+
+```hcl
+# modules/messaging/main.tf
+
+resource "helm_release" "strimzi_operator" {
+  name       = "strimzi-kafka-operator"
+  namespace  = "messaging"
+  repository = "https://strimzi.io/charts/"
+  chart      = "strimzi-kafka-operator"
+  version    = var.strimzi_operator_version
+
+  create_namespace = true
+}
+
+resource "kubernetes_manifest" "kafka_cluster" {
+  manifest = {
+    apiVersion = "kafka.strimzi.io/v1beta2"
+    kind       = "Kafka"
+    metadata = {
+      name      = "k1s0-kafka"
+      namespace = "messaging"
+    }
+    spec = {
+      kafka = {
+        version  = "3.6.1"
+        replicas = var.kafka_broker_replicas
+        # ...（listeners, config, storage, resources）
+      }
+      zookeeper = {
+        replicas = var.zookeeper_replicas
+        # ...（storage, resources）
+      }
+      entityOperator = {
+        topicOperator = {}
+        userOperator  = {}
+      }
+    }
+  }
+
+  depends_on = [helm_release.strimzi_operator]
 }
 ```
 
@@ -639,6 +710,212 @@ resource "keycloak_role" "realm_roles" {
 
   realm_id = keycloak_realm.k1s0.id
   name     = each.key
+}
+```
+
+### vault
+
+Vault の基本設定を管理する。シークレットエンジンのマウント、監査ログ設定、Kubernetes 認証バックエンドを一括でプロビジョニングする。
+
+主要リソース:
+- `vault_mount.kv`: KV v2 シークレットエンジン（パス: `secret`）— API キー・設定値等の静的シークレット管理
+- `vault_mount.database`: Database シークレットエンジン（パス: `database`）— 動的データベース認証情報生成
+- `vault_mount.pki`: PKI シークレットエンジン（パス: `pki`）— 内部 TLS 証明書発行（max lease: 10 年）
+- `vault_audit.file`: ファイル監査ログ（`/vault/logs/audit.log`、シークレット値はマスク）
+- `vault_auth_backend.kubernetes`: Kubernetes 認証メソッド（Pod ベースのアクセス制御）
+- `vault_kubernetes_auth_backend_role.system/business/service`: 各 Tier の Namespace にバインドされた認証ロール（TTL: 1 時間）
+
+```hcl
+# modules/vault/main.tf
+
+resource "vault_mount" "kv" {
+  path        = "secret"
+  type        = "kv-v2"
+  description = "KV v2 secret engine for static secrets"
+}
+
+resource "vault_mount" "database" {
+  path        = "database"
+  type        = "database"
+  description = "Database secret engine for dynamic credential generation"
+}
+
+resource "vault_mount" "pki" {
+  path                  = "pki"
+  type                  = "pki"
+  description           = "PKI secret engine for internal TLS certificates"
+  max_lease_ttl_seconds = 315360000  # 10 years
+}
+
+resource "vault_audit" "file" {
+  type = "file"
+  options = {
+    file_path = "/vault/logs/audit.log"
+    log_raw   = "false"
+  }
+}
+
+resource "vault_auth_backend" "kubernetes" {
+  type = "kubernetes"
+  path = "kubernetes"
+}
+
+resource "vault_kubernetes_auth_backend_role" "system" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "system"
+  bound_service_account_names      = ["*"]
+  bound_service_account_namespaces = ["k1s0-system"]
+  token_ttl                        = 3600
+  token_policies                   = ["system-read"]
+}
+
+resource "vault_kubernetes_auth_backend_role" "business" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "business"
+  bound_service_account_names      = ["*"]
+  bound_service_account_namespaces = ["k1s0-business"]
+  token_ttl                        = 3600
+  token_policies                   = ["business-read"]
+}
+
+resource "vault_kubernetes_auth_backend_role" "service" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "service"
+  bound_service_account_names      = ["*"]
+  bound_service_account_namespaces = ["k1s0-service"]
+  token_ttl                        = 3600
+  token_policies                   = ["service-read"]
+}
+```
+
+### vault-database
+
+Vault Database シークレットエンジンの詳細設定を専用モジュールとして管理する。各サービスの PostgreSQL 動的認証情報ロールを定義する。
+
+主要リソース:
+- `vault_mount.database`: Database エンジンのマウント（パス: `database`）
+- `vault_database_secret_backend_connection.postgres`: PostgreSQL 接続設定（`k1s0-postgres`）
+- `vault_database_secret_backend_role.*_rw / *_ro`: 各サービス（`auth-server`, `config-server`, `saga-server`, `dlq-manager`）の読み書き・読み取り専用ロール
+
+各ロールは `CREATE ROLE` 文でスキーマ別の権限（例: `GRANT ALL ON ALL TABLES IN SCHEMA auth`）を付与し、TTL による認証情報の自動失効を管理する。environments/main.tf から呼び出す。
+
+```hcl
+# modules/vault-database/main.tf（抜粋）
+
+resource "vault_mount" "database" {
+  path        = "database"
+  type        = "database"
+  description = "Database secret engine for dynamic credential generation"
+}
+
+resource "vault_database_secret_backend_connection" "postgres" {
+  backend       = vault_mount.database.path
+  name          = "k1s0-postgres"
+  allowed_roles = ["auth-server-rw", "auth-server-ro", "config-server-rw", "config-server-ro",
+                   "saga-server-rw", "saga-server-ro", "dlq-manager-rw", "dlq-manager-ro"]
+
+  postgresql {
+    connection_url = "postgresql://{{username}}:{{password}}@${var.postgres_host}:${var.postgres_port}/postgres?sslmode=${var.postgres_ssl_mode}"
+  }
+}
+
+resource "vault_database_secret_backend_role" "auth_server_rw" {
+  backend             = vault_mount.database.path
+  name                = "auth-server-rw"
+  db_name             = vault_database_secret_backend_connection.postgres.name
+  creation_statements = [
+    "CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}';",
+    "GRANT ALL ON ALL TABLES IN SCHEMA auth TO \"{{name}}\";",
+    "GRANT USAGE ON SCHEMA auth TO \"{{name}}\";"
+  ]
+  default_ttl = var.credential_ttl
+  max_ttl     = var.credential_max_ttl
+}
+# ...（auth-server-ro, config-server-rw/ro, saga-server-rw/ro, dlq-manager-rw/ro も同様に定義）
+```
+
+### vault-pki
+
+Vault PKI シークレットエンジンを専用モジュールとして管理する。Root CA・Intermediate CA の構成と、Tier 別の証明書発行ポリシー（ロール）を定義する。
+
+主要リソース:
+- `vault_mount.pki`: Root CA マウント（パス: `pki`、max lease: 10 年）
+- `vault_pki_secret_backend_root_cert.root`: 自己署名 Root CA（`k1s0 Internal CA`、RSA 4096）
+- `vault_mount.pki_int`: Intermediate CA マウント（パス: `pki_int`、max lease: 5 年）
+- `vault_pki_secret_backend_intermediate_cert_request.intermediate`: 中間 CA CSR 生成
+- `vault_pki_secret_backend_root_sign_intermediate.intermediate`: Root CA による中間 CA 署名
+- `vault_pki_secret_backend_intermediate_set_signed.intermediate`: 署名済み証明書の設定
+- `vault_pki_secret_backend_role.system/business/service`: Tier 別証明書発行ポリシー（各 `svc.cluster.local` ドメインのサブドメインを許可、RSA 2048）
+
+environments/main.tf から呼び出す。
+
+```hcl
+# modules/vault-pki/main.tf（抜粋）
+
+resource "vault_mount" "pki" {
+  path                      = "pki"
+  type                      = "pki"
+  description               = "PKI secret engine for internal TLS certificates"
+  default_lease_ttl_seconds = 86400      # 24 hours
+  max_lease_ttl_seconds     = 315360000  # 10 years
+}
+
+resource "vault_pki_secret_backend_root_cert" "root" {
+  backend     = vault_mount.pki.path
+  type        = "internal"
+  common_name = "k1s0 Internal CA"
+  ttl         = "315360000"
+  key_type    = "rsa"
+  key_bits    = 4096
+}
+
+resource "vault_pki_secret_backend_role" "system" {
+  backend          = vault_mount.pki_int.path
+  name             = "system"
+  allowed_domains  = ["k1s0-system.svc.cluster.local"]
+  allow_subdomains = true
+  max_ttl          = var.system_cert_max_ttl
+  key_type         = "rsa"
+  key_bits         = 2048
+}
+# ...（business, service ロールも同様に定義）
+```
+
+### consul-backup
+
+Consul State のスナップショットを毎日取得し Ceph オブジェクトストレージに保存する CronJob を管理する専用モジュール。
+
+主要リソース:
+- `kubernetes_cron_job_v1.consul_backup`: `consul snapshot save` を実行する CronJob（スケジュールは `var.schedule` で設定）
+
+動作:
+1. `consul snapshot save` でスナップショットを PVC に保存
+2. `s3cmd put` で `s3://${var.backup_bucket}/consul/` にアップロード
+3. ローカルの古いスナップショットを削除（`var.retention_count` 世代保持、デフォルト 7）
+
+`CONSUL_HTTP_TOKEN` は `var.consul_token_secret_name` が参照する Kubernetes Secret から注入する。environments/main.tf から呼び出す。
+
+```hcl
+# modules/consul-backup/main.tf（抜粋）
+
+resource "kubernetes_cron_job_v1" "consul_backup" {
+  metadata {
+    name      = "consul-backup"
+    namespace = var.namespace
+    labels = {
+      "app.kubernetes.io/name"      = "consul-backup"
+      "app.kubernetes.io/component" = "backup"
+      "app.kubernetes.io/part-of"   = "k1s0"
+    }
+  }
+
+  spec {
+    schedule                      = var.schedule
+    successful_jobs_history_limit = var.retention_count
+    failed_jobs_history_limit     = 3
+    concurrency_policy            = "Forbid"
+    # ...（job_template: consul snapshot save → s3cmd put）
+  }
 }
 ```
 
