@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 use crate::config::FileClientConfig;
@@ -131,6 +132,212 @@ impl FileClient for InMemoryFileClient {
         files.insert(dst.to_string(), copied);
         Ok(())
     }
+}
+
+// ---------------------------------------------------------------------------
+// ServerFileClient — file-server 経由の HTTP 実装
+// ---------------------------------------------------------------------------
+
+/// file-server への HTTP リクエスト用内部 DTO
+#[derive(Debug, Serialize, Deserialize)]
+struct GenerateUrlRequest {
+    path: String,
+    content_type: Option<String>,
+    expires_in_secs: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct GenerateUrlResponse {
+    url: String,
+    method: String,
+    expires_at: chrono::DateTime<chrono::Utc>,
+    headers: std::collections::HashMap<String, String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct CopyRequest {
+    src: String,
+    dst: String,
+}
+
+/// file-server へ HTTP で委譲する `FileClient` 実装。
+pub struct ServerFileClient {
+    http: reqwest::Client,
+    base_url: String,
+}
+
+impl ServerFileClient {
+    /// 新しい `ServerFileClient` を生成する。
+    ///
+    /// `config.server_url` が未設定の場合は `FileClientError::InvalidConfig` を返す。
+    pub fn new(config: FileClientConfig) -> Result<Self, FileClientError> {
+        let base_url = config
+            .server_url
+            .ok_or_else(|| FileClientError::InvalidConfig("server_url が設定されていません".into()))?;
+
+        let http = reqwest::Client::builder()
+            .timeout(config.timeout)
+            .build()
+            .map_err(|e| FileClientError::Internal(e.to_string()))?;
+
+        Ok(Self { http, base_url })
+    }
+
+    fn url(&self, path: &str) -> String {
+        format!("{}{}", self.base_url, path)
+    }
+
+    async fn check_status(resp: reqwest::Response) -> Result<reqwest::Response, FileClientError> {
+        let status = resp.status();
+        if status.is_success() {
+            return Ok(resp);
+        }
+        let body = resp.text().await.unwrap_or_default();
+        match status.as_u16() {
+            401 | 403 => Err(FileClientError::Unauthorized(body)),
+            404 => Err(FileClientError::NotFound(body)),
+            _ => Err(FileClientError::Internal(format!("HTTP {}: {}", status, body))),
+        }
+    }
+}
+
+#[async_trait]
+impl FileClient for ServerFileClient {
+    async fn generate_upload_url(
+        &self,
+        path: &str,
+        content_type: &str,
+        expires_in: Duration,
+    ) -> Result<PresignedUrl, FileClientError> {
+        let body = GenerateUrlRequest {
+            path: path.to_string(),
+            content_type: Some(content_type.to_string()),
+            expires_in_secs: expires_in.as_secs(),
+        };
+        let resp = self
+            .http
+            .post(self.url("/api/v1/files/upload-url"))
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| FileClientError::ConnectionError(e.to_string()))?;
+        let resp = Self::check_status(resp).await?;
+        let data: GenerateUrlResponse = resp
+            .json()
+            .await
+            .map_err(|e| FileClientError::Internal(e.to_string()))?;
+        Ok(PresignedUrl {
+            url: data.url,
+            method: data.method,
+            expires_at: data.expires_at,
+            headers: data.headers,
+        })
+    }
+
+    async fn generate_download_url(
+        &self,
+        path: &str,
+        expires_in: Duration,
+    ) -> Result<PresignedUrl, FileClientError> {
+        let body = GenerateUrlRequest {
+            path: path.to_string(),
+            content_type: None,
+            expires_in_secs: expires_in.as_secs(),
+        };
+        let resp = self
+            .http
+            .post(self.url("/api/v1/files/download-url"))
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| FileClientError::ConnectionError(e.to_string()))?;
+        let resp = Self::check_status(resp).await?;
+        let data: GenerateUrlResponse = resp
+            .json()
+            .await
+            .map_err(|e| FileClientError::Internal(e.to_string()))?;
+        Ok(PresignedUrl {
+            url: data.url,
+            method: data.method,
+            expires_at: data.expires_at,
+            headers: data.headers,
+        })
+    }
+
+    async fn delete(&self, path: &str) -> Result<(), FileClientError> {
+        let encoded = urlencoding_simple(path);
+        let resp = self
+            .http
+            .delete(self.url(&format!("/api/v1/files/{}", encoded)))
+            .send()
+            .await
+            .map_err(|e| FileClientError::ConnectionError(e.to_string()))?;
+        Self::check_status(resp).await?;
+        Ok(())
+    }
+
+    async fn get_metadata(&self, path: &str) -> Result<FileMetadata, FileClientError> {
+        let encoded = urlencoding_simple(path);
+        let resp = self
+            .http
+            .get(self.url(&format!("/api/v1/files/{}/metadata", encoded)))
+            .send()
+            .await
+            .map_err(|e| FileClientError::ConnectionError(e.to_string()))?;
+        let resp = Self::check_status(resp).await?;
+        resp.json::<FileMetadata>()
+            .await
+            .map_err(|e| FileClientError::Internal(e.to_string()))
+    }
+
+    async fn list(&self, prefix: &str) -> Result<Vec<FileMetadata>, FileClientError> {
+        let resp = self
+            .http
+            .get(self.url("/api/v1/files"))
+            .query(&[("prefix", prefix)])
+            .send()
+            .await
+            .map_err(|e| FileClientError::ConnectionError(e.to_string()))?;
+        let resp = Self::check_status(resp).await?;
+        resp.json::<Vec<FileMetadata>>()
+            .await
+            .map_err(|e| FileClientError::Internal(e.to_string()))
+    }
+
+    async fn copy(&self, src: &str, dst: &str) -> Result<(), FileClientError> {
+        let body = CopyRequest {
+            src: src.to_string(),
+            dst: dst.to_string(),
+        };
+        let resp = self
+            .http
+            .post(self.url("/api/v1/files/copy"))
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| FileClientError::ConnectionError(e.to_string()))?;
+        Self::check_status(resp).await?;
+        Ok(())
+    }
+}
+
+/// パス区切り `/` を保持しつつ各セグメントをパーセントエンコードする簡易実装。
+/// 外部クレートを追加せずに `reqwest` の URL ビルダーに渡すための補助関数。
+fn urlencoding_simple(path: &str) -> String {
+    path.split('/')
+        .map(|seg| {
+            seg.bytes()
+                .flat_map(|b| {
+                    if b.is_ascii_alphanumeric() || b == b'-' || b == b'_' || b == b'.' || b == b'~' {
+                        vec![b as char]
+                    } else {
+                        format!("%{:02X}", b).chars().collect::<Vec<_>>()
+                    }
+                })
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("/")
 }
 
 #[cfg(test)]

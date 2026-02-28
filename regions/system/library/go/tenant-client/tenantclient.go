@@ -123,3 +123,38 @@ func (c *InMemoryTenantClient) GetSettings(ctx context.Context, tenantID string)
 	}
 	return TenantSettings{Values: t.Settings}, nil
 }
+
+// GrpcTenantClient は gRPC 経由で tenant-server に接続するクライアント。
+type GrpcTenantClient struct {
+	serverAddr string
+	config     TenantClientConfig
+}
+
+// NewGrpcTenantClient は新しい GrpcTenantClient を生成する。
+// addr には "host:port" 形式のサーバーアドレスを指定する（例: "tenant-server:8080"）。
+func NewGrpcTenantClient(addr string, config TenantClientConfig) (*GrpcTenantClient, error) {
+	return &GrpcTenantClient{
+		serverAddr: addr,
+		config:     config,
+	}, nil
+}
+
+// GetTenant は指定したテナント ID のテナント情報を返す。
+func (c *GrpcTenantClient) GetTenant(_ context.Context, tenantID string) (Tenant, error) {
+	return Tenant{}, fmt.Errorf("gRPC client not yet connected: GetTenant(%s)", tenantID)
+}
+
+// ListTenants はフィルター条件に合うテナント一覧を返す。
+func (c *GrpcTenantClient) ListTenants(_ context.Context, _ TenantFilter) ([]Tenant, error) {
+	return nil, fmt.Errorf("gRPC client not yet connected: ListTenants")
+}
+
+// IsActive は指定したテナントがアクティブかどうかを返す。
+func (c *GrpcTenantClient) IsActive(_ context.Context, tenantID string) (bool, error) {
+	return false, fmt.Errorf("gRPC client not yet connected: IsActive(%s)", tenantID)
+}
+
+// GetSettings は指定したテナントの設定値を返す。
+func (c *GrpcTenantClient) GetSettings(_ context.Context, tenantID string) (TenantSettings, error) {
+	return TenantSettings{}, fmt.Errorf("gRPC client not yet connected: GetSettings(%s)", tenantID)
+}

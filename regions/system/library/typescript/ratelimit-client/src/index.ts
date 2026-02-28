@@ -100,3 +100,27 @@ export class InMemoryRateLimitClient implements RateLimitClient {
     return this.counters.get(key) ?? 0;
   }
 }
+
+export class GrpcRateLimitClient implements RateLimitClient {
+  private readonly serverUrl: string;
+
+  constructor(serverUrl: string) {
+    this.serverUrl = serverUrl;
+  }
+
+  async check(_key: string, _cost: number): Promise<RateLimitStatus> {
+    throw new RateLimitError('gRPC client not yet connected', 'SERVER_ERROR');
+  }
+
+  async consume(_key: string, _cost: number): Promise<RateLimitResult> {
+    throw new RateLimitError('gRPC client not yet connected', 'SERVER_ERROR');
+  }
+
+  async getLimit(_key: string): Promise<RateLimitPolicy> {
+    throw new RateLimitError('gRPC client not yet connected', 'SERVER_ERROR');
+  }
+
+  async close(): Promise<void> {
+    // 接続クリーンアップ用プレースホルダー
+  }
+}

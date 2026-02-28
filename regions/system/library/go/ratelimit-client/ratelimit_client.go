@@ -139,3 +139,31 @@ func (c *InMemoryClient) UsedCount(key string) uint32 {
 	defer c.mu.Unlock()
 	return c.counters[key]
 }
+
+// GrpcRateLimitClient は gRPC 経由で ratelimit-server に接続するクライアント。
+type GrpcRateLimitClient struct {
+	serverAddr string
+}
+
+// NewGrpcRateLimitClient は新しい GrpcRateLimitClient を生成する。
+// addr には "host:port" 形式のサーバーアドレスを指定する（例: "ratelimit-server:8080"）。
+func NewGrpcRateLimitClient(addr string) (*GrpcRateLimitClient, error) {
+	return &GrpcRateLimitClient{
+		serverAddr: addr,
+	}, nil
+}
+
+// Check はレート制限をチェックする。
+func (c *GrpcRateLimitClient) Check(_ context.Context, _ string, _ uint32) (RateLimitStatus, error) {
+	return RateLimitStatus{}, fmt.Errorf("gRPC client not yet connected")
+}
+
+// Consume は使用量を消費する。
+func (c *GrpcRateLimitClient) Consume(_ context.Context, _ string, _ uint32) (RateLimitResult, error) {
+	return RateLimitResult{}, fmt.Errorf("gRPC client not yet connected")
+}
+
+// GetLimit はキーに対する制限ポリシーを取得する。
+func (c *GrpcRateLimitClient) GetLimit(_ context.Context, _ string) (RateLimitPolicy, error) {
+	return RateLimitPolicy{}, fmt.Errorf("gRPC client not yet connected")
+}

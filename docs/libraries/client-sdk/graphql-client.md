@@ -198,7 +198,7 @@ export interface GraphQlError {
 }
 
 export interface GraphQlResponse<T = unknown> {
-  data?: T;
+  data?: T;           // オプショナル（GraphQL 仕様上、エラー時は省略可能）
   errors?: GraphQlError[];
 }
 
@@ -212,6 +212,138 @@ export class InMemoryGraphQlClient implements GraphQlClient {
   async execute<T = unknown>(query: GraphQlQuery): Promise<GraphQlResponse<T>>;
   async executeMutation<T = unknown>(mutation: GraphQlQuery): Promise<GraphQlResponse<T>>;
 }
+```
+
+**カバレッジ目標**: 90%以上
+
+## Dart 実装
+
+**配置先**: `regions/system/library/dart/graphql-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**モジュール構成**:
+
+```
+graphql-client/
+├── lib/
+│   ├── graphql_client.dart       # 公開 API（再エクスポート）
+│   └── src/
+│       ├── graphql_client.dart   # GraphQlClient abstract class・InMemoryGraphQlClient
+│       └── graphql_query.dart    # GraphQlQuery・GraphQlResponse・GraphQlError・ErrorLocation
+└── pubspec.yaml
+```
+
+**データモデル**:
+
+```dart
+class GraphQlQuery {
+  final String query;
+  final Map<String, dynamic>? variables;
+  final String? operationName;
+
+  const GraphQlQuery({
+    required String query,
+    Map<String, dynamic>? variables,
+    String? operationName,
+  });
+}
+
+class GraphQlError {
+  final String message;
+  final List<ErrorLocation>? locations;
+  final List<dynamic>? path;
+
+  const GraphQlError({
+    required String message,
+    List<ErrorLocation>? locations,
+    List<dynamic>? path,
+  });
+}
+
+class ErrorLocation {
+  final int line;
+  final int column;
+
+  const ErrorLocation(int line, int column);
+}
+
+class GraphQlResponse<T> {
+  final T? data;
+  final List<GraphQlError>? errors;
+
+  const GraphQlResponse({T? data, List<GraphQlError>? errors});
+
+  bool get hasErrors => errors != null && errors!.isNotEmpty;
+}
+```
+
+**クライアントインターフェース**:
+
+```dart
+abstract class GraphQlClient {
+  // Dart はジェネリクスの実行時型消去の都合上、fromJson 引数でデシリアライザを明示的に渡す設計
+  // （Go/Rust/TypeScript では fromJson 引数は不要）
+  Future<GraphQlResponse<T>> execute<T>(
+    GraphQlQuery query,
+    T Function(Map<String, dynamic>) fromJson,
+  );
+
+  Future<GraphQlResponse<T>> executeMutation<T>(
+    GraphQlQuery mutation,
+    T Function(Map<String, dynamic>) fromJson,
+  );
+}
+
+class InMemoryGraphQlClient implements GraphQlClient {
+  // response 型は Map<String, dynamic> に限定（他言語の any/unknown より厳格な型安全設計）
+  void setResponse(String operationName, Map<String, dynamic> response);
+
+  @override
+  Future<GraphQlResponse<T>> execute<T>(
+    GraphQlQuery query,
+    T Function(Map<String, dynamic>) fromJson,
+  );
+
+  @override
+  Future<GraphQlResponse<T>> executeMutation<T>(
+    GraphQlQuery mutation,
+    T Function(Map<String, dynamic>) fromJson,
+  );
+}
+```
+
+> **他言語との設計差異**: Dart の `execute` / `executeMutation` は `fromJson` 引数を必須とする。これは Dart のジェネリクスが実行時に型情報を消去するため、`T` への自動デシリアライズが不可能であることに起因する。Go/Rust/TypeScript では実行時リフレクション・トレイト境界・型推論によって `fromJson` 引数が不要。
+
+> **`setResponse` の型**: Dart の `setResponse` は `response` 引数を `Map<String, dynamic>` として受け取る（Go/TypeScript の `any`/`unknown` より型が限定される）。これは Dart の型安全性に合わせた意図的な設計。
+
+**使用例**:
+
+```dart
+import 'package:k1s0_graphql_client/graphql_client.dart';
+
+final client = InMemoryGraphQlClient();
+client.setResponse('GetUsers', {
+  'data': {
+    'users': [{'id': '1', 'name': 'Alice'}],
+  },
+});
+
+final query = GraphQlQuery(query: '{ users { id name } }', operationName: 'GetUsers');
+final response = await client.execute(
+  query,
+  (json) => User.fromJson(json),
+);
+assert(response.data != null);
+assert(!response.hasErrors);
+
+// ミューテーションの実行
+final mutation = GraphQlQuery(
+  query: 'mutation { createUser }',
+  operationName: 'CreateUser',
+);
+final result = await client.executeMutation(
+  mutation,
+  (json) => User.fromJson(json),
+);
 ```
 
 **カバレッジ目標**: 90%以上

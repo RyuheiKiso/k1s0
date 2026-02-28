@@ -77,3 +77,39 @@ class InMemoryRateLimitClient implements RateLimitClient {
     return _counters[key] ?? 0;
   }
 }
+
+/// gRPC 経由で ratelimit-server に接続するクライアント。
+/// [serverAddress] には "host:port" 形式のアドレスを指定する（例: "ratelimit-server:8080"）。
+class GrpcRateLimitClient implements RateLimitClient {
+  final String serverAddress;
+
+  GrpcRateLimitClient(this.serverAddress);
+
+  @override
+  Future<RateLimitStatus> check(String key, int cost) async {
+    throw RateLimitError(
+      'gRPC client not yet connected',
+      code: 'SERVER_ERROR',
+    );
+  }
+
+  @override
+  Future<RateLimitResult> consume(String key, int cost) async {
+    throw RateLimitError(
+      'gRPC client not yet connected',
+      code: 'SERVER_ERROR',
+    );
+  }
+
+  @override
+  Future<RateLimitPolicy> getLimit(String key) async {
+    throw RateLimitError(
+      'gRPC client not yet connected',
+      code: 'SERVER_ERROR',
+    );
+  }
+
+  Future<void> close() async {
+    // 接続クリーンアップ用プレースホルダー
+  }
+}

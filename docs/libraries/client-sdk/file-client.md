@@ -16,6 +16,7 @@ file-server が存在する場合は file-server 経由で操作を委譲し、�
 | `S3FileClient` | 構造体 | AWS S3 / GCS / Ceph 直接実装（aws-sdk-s3 使用） |
 | `ServerFileClient` | 構造体 | file-server 経由実装（HTTP クライアント使用） |
 | `MockFileClient` | 構造体 | テスト用モック（feature = "mock" で有効） |
+| `InMemoryFileClient` | 構造体 | テスト用インメモリ実装（現在の主実装） |
 | `FileClientConfig` | 構造体 | バックエンド設定・エンドポイント・認証情報 |
 | `FileMetadata` | 構造体 | ファイルパス・サイズ・コンテンツタイプ・ETag・更新日時・タグ |
 | `PresignedUrl` | 構造体 | プリサインドURL・HTTPメソッド・有効期限・追加ヘッダー |
@@ -74,7 +75,26 @@ file-client/
 └── Cargo.toml
 ```
 
-**使用例**:
+**FileClientConfig フィールド**:
+
+```rust
+pub struct FileClientConfig {
+    pub server_url: Option<String>,
+    pub s3_endpoint: Option<String>,
+    pub bucket: Option<String>,
+    pub region: Option<String>,
+    pub timeout: Duration,   // Option ではなくデフォルト値あり
+}
+
+impl FileClientConfig {
+    /// file-server 経由モード用コンフィグを生成する
+    pub fn server_mode(server_url: impl Into<String>) -> Self;
+    /// タイムアウトを設定する（ビルダーパターン）
+    pub fn with_timeout(self, timeout: Duration) -> Self;
+}
+```
+
+**使用例（ServerFileClient — 将来実装予定）**:
 
 ```rust
 use k1s0_file_client::{FileClient, FileClientConfig, ServerFileClient};
@@ -116,6 +136,50 @@ client.copy("uploads/image.png", "archive/image.png").await.unwrap();
 client.delete("uploads/image.png").await.unwrap();
 ```
 
+**InMemoryFileClient（テスト用実装 — 現在の主実装）**:
+
+`InMemoryFileClient` はプロセスメモリ上でファイルを管理するテスト用実装。`ServerFileClient` / `S3FileClient` の実装が完了するまでの主実装としても機能する。
+
+```rust
+use k1s0_file_client::{FileClient, FileClientConfig, InMemoryFileClient};
+use std::time::Duration;
+
+let config = FileClientConfig::server_mode("http://file-server:8080");
+let client = InMemoryFileClient::new(config);
+
+// アップロード URL 生成（インメモリ上でメタデータを記録）
+let upload_url = client
+    .generate_upload_url("uploads/image.png", "image/png", Duration::from_secs(3600))
+    .await
+    .unwrap();
+
+// テスト補助 API: 格納済みファイル一覧を取得（テストコードのみで使用）
+let stored = client.stored_files().await;
+assert_eq!(stored.len(), 1);
+```
+
+公開メソッド:
+- `InMemoryFileClient::new(config: FileClientConfig) -> Self`
+- `InMemoryFileClient::stored_files(&self) -> Vec<FileMetadata>` （テスト補助用、`async`）
+
+**MockFileClient（feature = "mock" 有効時）**:
+
+`feature = "mock"` を有効にすると `mockall` により `FileClient` トレイトの全メソッドがモック化された `MockFileClient` が利用可能になる。
+
+```toml
+# Cargo.toml（テスト依存）
+[dev-dependencies]
+k1s0-file-client = { path = "...", features = ["mock"] }
+```
+
+```rust
+use k1s0_file_client::MockFileClient;
+
+let mut mock = MockFileClient::new();
+mock.expect_get_metadata()
+    .returning(|path| Ok(FileMetadata { path: path.to_string(), ..Default::default() }));
+```
+
 ## Go 実装
 
 **配置先**: `regions/system/library/go/file-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
@@ -152,6 +216,33 @@ type PresignedURL struct {
 
 func NewServerFileClient(serverURL string, opts ...Option) FileClient
 func NewS3FileClient(cfg aws.Config, bucket string, opts ...Option) FileClient
+```
+
+**InMemoryFileClient（テスト用実装 — 現在の主実装）**:
+
+`InMemoryFileClient` はプロセスメモリ上でファイルを管理するテスト用実装。`NewServerFileClient` / `NewS3FileClient` の実装が完了するまでの主実装としても機能する。
+
+```go
+// コンストラクタ
+func NewInMemoryFileClient() *InMemoryFileClient
+
+// テスト補助 API: 格納済みファイル一覧を取得（テストコードのみで使用）
+func (c *InMemoryFileClient) StoredFiles() []*FileMetadata
+```
+
+使用例:
+
+```go
+client := fileclient.NewInMemoryFileClient()
+
+url, err := client.GenerateUploadURL(ctx, "uploads/image.png", "image/png", time.Hour)
+if err != nil {
+    log.Fatal(err)
+}
+
+// テストアサーション
+stored := client.StoredFiles()
+assert.Len(t, stored, 1)
 ```
 
 ## TypeScript 実装
@@ -211,6 +302,36 @@ export class FileClientError extends Error {
 }
 ```
 
+**InMemoryFileClient（テスト用実装 — 現在の主実装）**:
+
+`InMemoryFileClient` はプロセスメモリ上でファイルを管理するテスト用実装。`ServerFileClient` の実装が完了するまでの主実装としても機能する。
+
+```typescript
+export class InMemoryFileClient implements FileClient {
+  generateUploadUrl(path: string, contentType: string, expiresInMs: number): Promise<PresignedUrl>;
+  generateDownloadUrl(path: string, expiresInMs: number): Promise<PresignedUrl>;
+  delete(path: string): Promise<void>;
+  getMetadata(path: string): Promise<FileMetadata>;
+  list(prefix: string): Promise<FileMetadata[]>;
+  copy(src: string, dst: string): Promise<void>;
+  /** テスト補助 API: 格納済みファイル一覧を取得（テストコードのみで使用） */
+  getStoredFiles(): FileMetadata[];
+}
+```
+
+使用例:
+
+```typescript
+import { InMemoryFileClient } from 'k1s0-file-client';
+
+const client = new InMemoryFileClient();
+await client.generateUploadUrl('uploads/image.png', 'image/png', 3600_000);
+
+// テストアサーション
+const stored = client.getStoredFiles();
+expect(stored).toHaveLength(1);
+```
+
 **カバレッジ目標**: 85%以上
 
 ## Dart 実装
@@ -250,6 +371,56 @@ class FileMetadata {
   final DateTime lastModified;
   final Map<String, String> tags;
 }
+
+class PresignedUrl {
+  final String url;
+  final String method;   // 'PUT' または 'GET'
+  final DateTime expiresAt;
+  final Map<String, String> headers;
+}
+
+class FileClientError implements Exception {
+  final String message;
+  final String code;
+  // TypeScript と異なり cause フィールドは存在しない
+  @override
+  String toString() => 'FileClientError($code): $message';
+}
+```
+
+**InMemoryFileClient（テスト用実装 — 現在の主実装）**:
+
+`InMemoryFileClient` はプロセスメモリ上でファイルを管理するテスト用実装。
+
+```dart
+class InMemoryFileClient implements FileClient {
+  @override
+  Future<PresignedUrl> generateUploadUrl(String path, String contentType, Duration expiresIn);
+  @override
+  Future<PresignedUrl> generateDownloadUrl(String path, Duration expiresIn);
+  @override
+  Future<void> delete(String path);
+  @override
+  Future<FileMetadata> getMetadata(String path);
+  @override
+  Future<List<FileMetadata>> list(String prefix);
+  @override
+  Future<void> copy(String src, String dst);
+  /// テスト補助 API: 格納済みファイル一覧を取得（テストコードのみで使用）
+  List<FileMetadata> get storedFiles;
+}
+```
+
+使用例:
+
+```dart
+import 'package:file_client/file_client.dart';
+
+final client = InMemoryFileClient();
+await client.generateUploadUrl('uploads/image.png', 'image/png', Duration(hours: 1));
+
+// テストアサーション
+expect(client.storedFiles, hasLength(1));
 ```
 
 **カバレッジ目標**: 85%以上

@@ -88,3 +88,31 @@ export class InMemoryTenantClient implements TenantClient {
     return createTenantSettings(tenant.settings);
   }
 }
+
+export class GrpcTenantClient implements TenantClient {
+  private readonly config: TenantClientConfig;
+
+  constructor(config: TenantClientConfig) {
+    this.config = config;
+  }
+
+  async getTenant(_tenantId: string): Promise<Tenant> {
+    throw new TenantError('gRPC client not yet connected', 'SERVER_ERROR');
+  }
+
+  async listTenants(_filter?: TenantFilter): Promise<Tenant[]> {
+    throw new TenantError('gRPC client not yet connected', 'SERVER_ERROR');
+  }
+
+  async isActive(_tenantId: string): Promise<boolean> {
+    throw new TenantError('gRPC client not yet connected', 'SERVER_ERROR');
+  }
+
+  async getSettings(_tenantId: string): Promise<TenantSettings> {
+    throw new TenantError('gRPC client not yet connected', 'SERVER_ERROR');
+  }
+
+  async close(): Promise<void> {
+    // 接続クリーンアップ用プレースホルダー
+  }
+}
