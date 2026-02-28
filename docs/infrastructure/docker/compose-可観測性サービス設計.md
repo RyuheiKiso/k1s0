@@ -124,9 +124,9 @@ datasources:
 apiVersion: 1
 
 providers:
-  - name: "k1s0"
+  - name: k1s0
     orgId: 1
-    folder: "k1s0"
+    folder: k1s0
     type: file
     disableDeletion: false
     editable: true
