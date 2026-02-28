@@ -181,6 +181,11 @@ plugins:
       credentials: true
 ```
 
+> **環境別 CORS origins**: 上記は prod 環境用の設定。環境別 values ファイルで origins を上書きする。
+> - dev: `["http://localhost:3000", "http://localhost:5173"]`
+> - staging: `["https://*.staging.k1s0.internal.example.com"]`
+> - prod: `["https://*.k1s0.internal.example.com"]`
+
 #### Prometheus プラグイン
 
 ```yaml
