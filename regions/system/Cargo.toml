@@ -29,7 +29,7 @@ members = [
     "library/rust/config",
     "library/rust/correlation",
     "library/rust/distributed-lock",
-    "library/rust/dlq",
+    "library/rust/dlq-client",
     "library/rust/encryption",
     "library/rust/event-bus",
     "library/rust/eventstore",

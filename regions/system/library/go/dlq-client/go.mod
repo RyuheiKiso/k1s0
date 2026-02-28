@@ -1,4 +1,4 @@
-module github.com/k1s0-platform/system-library-go-dlq
+module github.com/k1s0-platform/system-library-go-dlq-client
 
 go 1.23.0
 
