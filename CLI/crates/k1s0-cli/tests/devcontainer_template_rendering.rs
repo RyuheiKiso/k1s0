@@ -2,7 +2,7 @@
 ///
 /// CLI/templates/devcontainer/ テンプレートファイルを使用し、
 /// テンプレートエンジンでレンダリングした結果が仕様書
-/// (docs/テンプレート仕様-devcontainer.md) と一致することを検証する。
+/// (docs/templates/infrastructure/devcontainer.md) と一致することを検証する。
 use std::fs;
 use std::path::Path;
 
