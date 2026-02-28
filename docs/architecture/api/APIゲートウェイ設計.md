@@ -346,6 +346,7 @@ plugins:
       key_claim_name: kid
       claims_to_verify:
         - exp
+      maximum_expiration: 900     # 15分（Access Token のライフタイム）
 
   - name: cors
     config:
@@ -370,17 +371,19 @@ services:
     plugins:
       - name: rate-limiting
         config:
-          minute: 1000            # system Tier: 高スループット要件
+          minute: 3000            # system Tier: 高スループット要件（REST-API設計.md 参照）
+          second: 100             # 秒あたりの上限（バースト制御）
           policy: redis
           redis_host: redis.k1s0-system.svc.cluster.local
 
-# business Tier のオーバーライド例（accounting）
+# business Tier のオーバーライド例（accounting-ledger）
 services:
-  - name: accounting-v1
+  - name: accounting-ledger-v1
     plugins:
       - name: rate-limiting
         config:
-          minute: 800             # business Tier: 中程度のスループット
+          minute: 1000            # business Tier: 中程度のスループット（REST-API設計.md 参照）
+          second: 40              # 秒あたりの上限（バースト制御）
           policy: redis
           redis_host: redis.k1s0-system.svc.cluster.local
 ```
