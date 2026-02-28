@@ -303,12 +303,28 @@ Kong の設定を YAML ファイルで宣言的に管理し、Git でバージ�
 
 ```yaml
 # infra/kong/kong.yaml
+# NOTE: 実ファイルではレート制限値に環境変数プレースホルダー（${KONG_RATE_...}）を使用し、
+# CI/CD パイプラインで envsubst により環境別の値に置換する。
+# 以下は prod 環境のデフォルト値で記載している。
 _format_version: "3.0"
 
 services:
-  # system Tier
+  # ============================================================
+  # system Tier (rate-limiting: 3000/min, 100/sec)
+  # ============================================================
   - name: auth-v1
     url: http://auth-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 3000
+          second: 100
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
     routes:
       - name: auth-v1-route
         paths:
@@ -321,9 +337,47 @@ services:
         plugins:
           - name: rate-limiting
             config:
-              minute: 30                  # ブルートフォース防止（API設計.md 参照）
+              minute: 30                  # ブルートフォース防止（REST-API設計.md 参照）
               policy: redis
               redis_host: redis.k1s0-system.svc.cluster.local
+
+  - name: config-v1
+    url: http://config-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 3000
+          second: 100
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
+    routes:
+      - name: config-v1-route
+        paths:
+          - /api/v1/config
+        strip_path: false
+
+  - name: master-v1
+    url: http://master-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 3000
+          second: 100
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
+    routes:
+      - name: master-v1-route
+        paths:
+          - /api/v1/master
+        strip_path: false
 
   - name: saga-v1
     url: http://saga-server.k1s0-system.svc.cluster.local:80
@@ -339,6 +393,16 @@ services:
         strip_path: false
         methods: [GET, POST]
     plugins:
+      - name: rate-limiting
+        config:
+          minute: 3000
+          second: 100
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
       - name: jwt
         config:
           secret_is_base64: false
@@ -358,6 +422,16 @@ services:
         strip_path: false
         methods: [GET, POST, DELETE]
     plugins:
+      - name: rate-limiting
+        config:
+          minute: 3000
+          second: 100
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
       - name: jwt
         config:
           secret_is_base64: false
@@ -368,61 +442,140 @@ services:
             headers:
               - X-Service-Name:dlq-manager
 
-  # service Tier
+  # ============================================================
+  # business Tier (rate-limiting: 1000/min, 40/sec)
+  # ============================================================
+  - name: accounting-ledger-v1
+    url: http://ledger-server.k1s0-business.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          second: 40
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
+    routes:
+      - name: ledger-v1-route
+        paths:
+          - /api/v1/accounting/ledger
+        strip_path: false
+
+  - name: accounts-v1
+    url: http://accounts-server.k1s0-business.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          second: 40
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
+    routes:
+      - name: accounts-v1-route
+        paths:
+          - /api/v1/accounts
+        strip_path: false
+
+  # ============================================================
+  # service Tier (rate-limiting: 500/min, 20/sec = global default)
+  # ============================================================
   - name: order-v1
     url: http://order-server.k1s0-service.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 500
+          second: 20
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
     routes:
       - name: order-v1-route
         paths:
           - /api/v1/orders
         strip_path: false
 
+  - name: dashboard-v1
+    url: http://dashboard-server.k1s0-service.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 500
+          second: 20
+          policy: redis
+          redis_host: redis.k1s0-system.svc.cluster.local
+          redis_port: 6379
+          redis_database: 1
+          fault_tolerant: true
+          hide_client_headers: false
+    routes:
+      - name: dashboard-v1-route
+        paths:
+          - /api/v1/dashboard
+        strip_path: false
+
+# ============================================================
+# Global Plugins
+# ============================================================
 plugins:
-  # グローバルプラグイン
-  # グローバルレート制限: service Tier のデフォルト値。
-  # system Tier および business Tier のサービスには、個別のルート/サービスレベルで上書き設定する。
+  # Rate Limiting - グローバルデフォルト (service Tier: 500 req/min)
   - name: rate-limiting
     config:
-      minute: 500
+      minute: 500                    # デフォルト（service Tier）
       second: 20                     # 秒あたりの上限（バースト制御）
-      policy: redis
+      policy: redis                  # Redis で共有状態を管理
       redis_host: redis.k1s0-system.svc.cluster.local
       redis_port: 6379
       redis_database: 1
-      fault_tolerant: true
-      hide_client_headers: false
+      fault_tolerant: true           # Redis 障害時は制限なしで通過
+      hide_client_headers: false     # X-RateLimit-* ヘッダーを返却
 
+  # JWT - Keycloak JWKS 連携
   - name: jwt
     config:
+      uri_param_names: []
+      cookie_names: []
       key_claim_name: kid
       claims_to_verify:
         - exp
-      maximum_expiration: 900     # 15分（Access Token のライフタイム）
+      maximum_expiration: 900           # 15分（Access Token のライフタイム）
+      header_names:
+        - Authorization
 
+  # CORS - クロスオリジンリソース共有
   - name: cors
     config:
       origins:
         - "https://*.k1s0.internal.example.com"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Authorization
+        - Content-Type
+        - X-Request-ID
+      exposed_headers:
+        - X-RateLimit-Limit
+        - X-RateLimit-Remaining
+        - X-RateLimit-Reset
       credentials: true
+      max_age: 3600
 
-  - name: prometheus
-    config:
-      per_consumer: true
-      status_code_metrics: true
-
-  - name: file-log
-    config:
-      path: /dev/stdout
-      reopen: false
-
-  - name: response-transformer
-    config:
-      add:
-        headers:
-          - X-Content-Type-Options:nosniff
-          - X-Frame-Options:DENY
-          - Strict-Transport-Security:max-age=31536000; includeSubDomains
-
+  # Post Function - JWT Claims をバックエンドへのリクエストヘッダーに転送
   - name: post-function
     config:
       header_filter:
@@ -434,6 +587,41 @@ plugins:
             kong.service.request.set_header("X-User-Email", jwt.claims.email or "")
           end
 
+  # Prometheus - メトリクス収集
+  - name: prometheus
+    config:
+      per_consumer: true
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true
+
+  # File Log - アクセスログ出力
+  - name: file-log
+    config:
+      path: /dev/stdout
+      reopen: false
+
+  # Response Transformer - レスポンスセキュリティヘッダー付与
+  - name: response-transformer
+    config:
+      add:
+        headers:
+          - X-Content-Type-Options:nosniff
+          - X-Frame-Options:DENY
+          - Strict-Transport-Security:max-age=31536000; includeSubDomains
+
+  # IP Restriction - Admin API 保護（サービス別に適用）
+  # NOTE: Admin API (port 8001) への IP 制限は Kubernetes NetworkPolicy と
+  # Istio PeerAuthentication で実装する。以下は Proxy 経由で管理系エンドポイントを
+  # 公開する場合のテンプレート。環境別の許可 IP は Helm values で管理する。
+  # - name: ip-restriction
+  #   config:
+  #     allow:
+  #       - 10.0.0.0/8
+
+# ============================================================
+# Consumers - Keycloak JWKS 連携
+# ============================================================
 consumers:
   - username: keycloak
     jwt_secrets:

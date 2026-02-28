@@ -26,7 +26,7 @@ services:
         plugins:
           - name: rate-limiting
             config:
-              minute: 30                  # ブルートフォース防止（API設計.md 参照）
+              minute: 30                  # ブルートフォース防止（REST-API設計.md 参照）
               policy: redis
               redis_host: redis.k1s0-system.svc.cluster.local
 
