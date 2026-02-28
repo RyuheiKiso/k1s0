@@ -32,6 +32,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
 k1s0-auth = { path = "../../../library/rust/auth" }
+k1s0-server-common = { path = "../../../library/rust/server-common", features = ["axum", "utoipa"] }
 rdkafka = { version = "0.36", features = ["cmake-build"] }
 reqwest = { version = "0.12", features = ["json"] }
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }

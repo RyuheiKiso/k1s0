@@ -52,7 +52,7 @@ system tier の GraphQL BFF ゲートウェイ。複数 gRPC バックエンド�
 | --- | --- | --- | --- |
 | POST | `/graphql` | GraphQL クエリ / ミューテーション | JWT 必須 |
 | GET | `/graphql` | GraphQL Playground（development のみ） | 不要 |
-| POST | `/graphql/ws` | WebSocket サブスクリプション | JWT 必須 |
+| GET | `/graphql/ws` | WebSocket サブスクリプション（Upgrade） | JWT 必須 |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
@@ -166,16 +166,16 @@ JWT が無効または欠落している場合は HTTP 401 を返す（GraphQL �
 
 type Query {
   tenant(id: ID!): Tenant
-  tenants(page: Int, pageSize: Int): TenantConnection!
+  tenants(first: Int, after: String, last: Int, before: String): TenantConnection!
   featureFlag(key: String!): FeatureFlag
   featureFlags(environment: String): [FeatureFlag!]!
   config(key: String!): ConfigEntry
 }
 
 type Mutation {
-  createTenant(input: CreateTenantInput!): Tenant!
-  updateTenant(id: ID!, input: UpdateTenantInput!): Tenant!
-  setFeatureFlag(key: String!, input: SetFeatureFlagInput!): FeatureFlag!
+  createTenant(input: CreateTenantInput!): CreateTenantPayload!
+  updateTenant(id: ID!, input: UpdateTenantInput!): UpdateTenantPayload!
+  setFeatureFlag(key: String!, input: SetFeatureFlagInput!): SetFeatureFlagPayload!
 }
 
 type Subscription {
@@ -213,9 +213,41 @@ type ConfigEntry {
 }
 
 type TenantConnection {
-  nodes: [Tenant!]!
+  edges: [TenantEdge!]!
+  pageInfo: PageInfo!
   totalCount: Int!
-  hasNext: Boolean!
+}
+
+type TenantEdge {
+  node: Tenant!
+  cursor: String!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type CreateTenantPayload {
+  tenant: Tenant
+  errors: [UserError!]!
+}
+
+type UpdateTenantPayload {
+  tenant: Tenant
+  errors: [UserError!]!
+}
+
+type SetFeatureFlagPayload {
+  featureFlag: FeatureFlag
+  errors: [UserError!]!
+}
+
+type UserError {
+  field: [String!]
+  message: String!
 }
 
 input CreateTenantInput {
@@ -345,6 +377,7 @@ input SetFeatureFlagInput {
 | `playground` | bool | `false` | GraphQL Playground 有効化（development のみ推奨） |
 | `max_depth` | int | `10` | クエリネスト深度の上限 |
 | `max_complexity` | int | `1000` | クエリ複雑度の上限 |
+| `query_timeout_seconds` | int | `30` | クエリ実行タイムアウト（秒） |
 
 ### auth
 
@@ -384,6 +417,7 @@ graphql:
   playground: false
   max_depth: 10
   max_complexity: 1000
+  query_timeout_seconds: 30
 
 auth:
   jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"

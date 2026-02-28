@@ -59,6 +59,9 @@ pub struct GraphQLConfig {
     /// クエリ複雑度の上限
     #[serde(default = "default_max_complexity")]
     pub max_complexity: u32,
+    /// クエリ実行タイムアウト（秒）
+    #[serde(default = "default_query_timeout_seconds")]
+    pub query_timeout_seconds: u32,
 }
 
 fn default_max_depth() -> u32 {
@@ -69,6 +72,10 @@ fn default_max_complexity() -> u32 {
     1000
 }
 
+fn default_query_timeout_seconds() -> u32 {
+    30
+}
+
 impl Default for GraphQLConfig {
     fn default() -> Self {
         Self {
@@ -76,6 +83,7 @@ impl Default for GraphQLConfig {
             playground: false,
             max_depth: default_max_depth(),
             max_complexity: default_max_complexity(),
+            query_timeout_seconds: default_query_timeout_seconds(),
         }
     }
 }

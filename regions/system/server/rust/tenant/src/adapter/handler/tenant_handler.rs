@@ -7,6 +7,9 @@ use axum::Json;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use k1s0_server_common::error as codes;
+use k1s0_server_common::ErrorResponse;
+
 use crate::adapter::middleware::auth::TenantAuthState;
 use crate::usecase::{
     ActivateTenantError, ActivateTenantUseCase, AddMemberError, AddMemberInput, AddMemberUseCase,
@@ -16,6 +19,26 @@ use crate::usecase::{
     SuspendTenantError, SuspendTenantUseCase, UpdateTenantError, UpdateTenantInput,
     UpdateTenantUseCase,
 };
+
+fn not_found_response(msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    let err = ErrorResponse::new(codes::tenant::not_found(), msg);
+    (StatusCode::NOT_FOUND, Json(serde_json::to_value(&err).unwrap()))
+}
+
+fn bad_request_response(code: k1s0_server_common::ErrorCode, msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    let err = ErrorResponse::new(code, msg);
+    (StatusCode::BAD_REQUEST, Json(serde_json::to_value(&err).unwrap()))
+}
+
+fn conflict_response(code: k1s0_server_common::ErrorCode, msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    let err = ErrorResponse::new(code, msg);
+    (StatusCode::CONFLICT, Json(serde_json::to_value(&err).unwrap()))
+}
+
+fn internal_response(msg: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    let err = ErrorResponse::new(codes::tenant::internal_error(), msg);
+    (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::to_value(&err).unwrap()))
+}
 
 #[derive(Clone)]
 pub struct AppState {
@@ -149,7 +172,7 @@ pub async fn list_tenants(
         }
         Err(ListTenantsError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            internal_response(msg),
         )
             .into_response(),
     }
@@ -162,9 +185,9 @@ pub async fn get_tenant(
     let tenant_id = match Uuid::parse_str(&id) {
         Ok(id) => id,
         Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": format!("invalid tenant id: {}", id)})),
+            return bad_request_response(
+                codes::tenant::invalid_input(),
+                format!("invalid tenant id: {}", id),
             )
                 .into_response()
         }
@@ -186,16 +209,10 @@ pub async fn get_tenant(
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
-        Err(GetTenantError::NotFound(_)) => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("tenant not found: {}", id)})),
-        )
-            .into_response(),
-        Err(GetTenantError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
-        )
-            .into_response(),
+        Err(GetTenantError::NotFound(_)) => {
+            not_found_response(format!("tenant not found: {}", id)).into_response()
+        }
+        Err(GetTenantError::Internal(msg)) => internal_response(msg).into_response(),
     }
 }
 
@@ -234,16 +251,14 @@ pub async fn create_tenant(
             )
                 .into_response()
         }
-        Err(CreateTenantError::NameConflict(name)) => (
-            StatusCode::CONFLICT,
-            Json(serde_json::json!({"error": format!("tenant name already exists: {}", name)})),
-        )
-            .into_response(),
-        Err(CreateTenantError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
-        )
-            .into_response(),
+        Err(CreateTenantError::NameConflict(name)) => {
+            conflict_response(
+                codes::tenant::name_conflict(),
+                format!("tenant name already exists: {}", name),
+            )
+            .into_response()
+        }
+        Err(CreateTenantError::Internal(msg)) => internal_response(msg).into_response(),
     }
 }
 
@@ -256,9 +271,9 @@ pub async fn update_tenant(
     let tenant_id = match Uuid::parse_str(&id) {
         Ok(id) => id,
         Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": format!("invalid tenant id: {}", id)})),
+            return bad_request_response(
+                codes::tenant::invalid_input(),
+                format!("invalid tenant id: {}", id),
             )
                 .into_response()
         }
@@ -286,21 +301,13 @@ pub async fn update_tenant(
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
-        Err(UpdateTenantError::NotFound(_)) => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("tenant not found: {}", id)})),
-        )
-            .into_response(),
-        Err(UpdateTenantError::InvalidStatus(msg)) => (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({"error": msg})),
-        )
-            .into_response(),
-        Err(UpdateTenantError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
-        )
-            .into_response(),
+        Err(UpdateTenantError::NotFound(_)) => {
+            not_found_response(format!("tenant not found: {}", id)).into_response()
+        }
+        Err(UpdateTenantError::InvalidStatus(msg)) => {
+            bad_request_response(codes::tenant::invalid_status(), msg).into_response()
+        }
+        Err(UpdateTenantError::Internal(msg)) => internal_response(msg).into_response(),
     }
 }
 
@@ -312,9 +319,9 @@ pub async fn delete_tenant(
     let tenant_id = match Uuid::parse_str(&id) {
         Ok(id) => id,
         Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": format!("invalid tenant id: {}", id)})),
+            return bad_request_response(
+                codes::tenant::invalid_input(),
+                format!("invalid tenant id: {}", id),
             )
                 .into_response()
         }
@@ -336,21 +343,13 @@ pub async fn delete_tenant(
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
-        Err(DeleteTenantError::NotFound(_)) => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("tenant not found: {}", id)})),
-        )
-            .into_response(),
-        Err(DeleteTenantError::InvalidStatus(msg)) => (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({"error": msg})),
-        )
-            .into_response(),
-        Err(DeleteTenantError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
-        )
-            .into_response(),
+        Err(DeleteTenantError::NotFound(_)) => {
+            not_found_response(format!("tenant not found: {}", id)).into_response()
+        }
+        Err(DeleteTenantError::InvalidStatus(msg)) => {
+            bad_request_response(codes::tenant::invalid_status(), msg).into_response()
+        }
+        Err(DeleteTenantError::Internal(msg)) => internal_response(msg).into_response(),
     }
 }
 
@@ -362,9 +361,9 @@ pub async fn suspend_tenant(
     let tenant_id = match Uuid::parse_str(&id) {
         Ok(id) => id,
         Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": format!("invalid tenant id: {}", id)})),
+            return bad_request_response(
+                codes::tenant::invalid_input(),
+                format!("invalid tenant id: {}", id),
             )
                 .into_response()
         }
@@ -386,21 +385,13 @@ pub async fn suspend_tenant(
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
-        Err(SuspendTenantError::NotFound(_)) => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("tenant not found: {}", id)})),
-        )
-            .into_response(),
-        Err(SuspendTenantError::InvalidStatus(msg)) => (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({"error": msg})),
-        )
-            .into_response(),
-        Err(SuspendTenantError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
-        )
-            .into_response(),
+        Err(SuspendTenantError::NotFound(_)) => {
+            not_found_response(format!("tenant not found: {}", id)).into_response()
+        }
+        Err(SuspendTenantError::InvalidStatus(msg)) => {
+            bad_request_response(codes::tenant::invalid_status(), msg).into_response()
+        }
+        Err(SuspendTenantError::Internal(msg)) => internal_response(msg).into_response(),
     }
 }
 
@@ -412,9 +403,9 @@ pub async fn activate_tenant(
     let tenant_id = match Uuid::parse_str(&id) {
         Ok(id) => id,
         Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": format!("invalid tenant id: {}", id)})),
+            return bad_request_response(
+                codes::tenant::invalid_input(),
+                format!("invalid tenant id: {}", id),
             )
                 .into_response()
         }
@@ -436,21 +427,13 @@ pub async fn activate_tenant(
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
-        Err(ActivateTenantError::NotFound(_)) => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("tenant not found: {}", id)})),
-        )
-            .into_response(),
-        Err(ActivateTenantError::InvalidStatus(msg)) => (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({"error": msg})),
-        )
-            .into_response(),
-        Err(ActivateTenantError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
-        )
-            .into_response(),
+        Err(ActivateTenantError::NotFound(_)) => {
+            not_found_response(format!("tenant not found: {}", id)).into_response()
+        }
+        Err(ActivateTenantError::InvalidStatus(msg)) => {
+            bad_request_response(codes::tenant::invalid_status(), msg).into_response()
+        }
+        Err(ActivateTenantError::Internal(msg)) => internal_response(msg).into_response(),
     }
 }
 
@@ -462,9 +445,9 @@ pub async fn list_members(
     let tenant_id = match Uuid::parse_str(&id) {
         Ok(id) => id,
         Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": format!("invalid tenant id: {}", id)})),
+            return bad_request_response(
+                codes::tenant::invalid_input(),
+                format!("invalid tenant id: {}", id),
             )
                 .into_response()
         }
@@ -484,16 +467,10 @@ pub async fn list_members(
                 .collect();
             (StatusCode::OK, Json(serde_json::json!({"members": resp}))).into_response()
         }
-        Err(ListMembersError::NotFound(_)) => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("tenant not found: {}", id)})),
-        )
-            .into_response(),
-        Err(ListMembersError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
-        )
-            .into_response(),
+        Err(ListMembersError::NotFound(_)) => {
+            not_found_response(format!("tenant not found: {}", id)).into_response()
+        }
+        Err(ListMembersError::Internal(msg)) => internal_response(msg).into_response(),
     }
 }
 
@@ -506,9 +483,9 @@ pub async fn add_member(
     let tenant_id = match Uuid::parse_str(&id) {
         Ok(id) => id,
         Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": format!("invalid tenant id: {}", id)})),
+            return bad_request_response(
+                codes::tenant::invalid_input(),
+                format!("invalid tenant id: {}", id),
             )
                 .into_response()
         }
@@ -517,9 +494,9 @@ pub async fn add_member(
     let user_id = match Uuid::parse_str(&req.user_id) {
         Ok(id) => id,
         Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": format!("invalid user id: {}", req.user_id)})),
+            return bad_request_response(
+                codes::tenant::invalid_input(),
+                format!("invalid user id: {}", req.user_id),
             )
                 .into_response()
         }
@@ -546,16 +523,14 @@ pub async fn add_member(
             )
                 .into_response()
         }
-        Err(AddMemberError::AlreadyMember) => (
-            StatusCode::CONFLICT,
-            Json(serde_json::json!({"error": "member already exists"})),
-        )
-            .into_response(),
-        Err(AddMemberError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
-        )
-            .into_response(),
+        Err(AddMemberError::AlreadyMember) => {
+            conflict_response(
+                codes::tenant::member_conflict(),
+                "member already exists",
+            )
+            .into_response()
+        }
+        Err(AddMemberError::Internal(msg)) => internal_response(msg).into_response(),
     }
 }
 
@@ -567,9 +542,9 @@ pub async fn remove_member(
     let tenant_uuid = match Uuid::parse_str(&tenant_id) {
         Ok(id) => id,
         Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": format!("invalid tenant id: {}", tenant_id)})),
+            return bad_request_response(
+                codes::tenant::invalid_input(),
+                format!("invalid tenant id: {}", tenant_id),
             )
                 .into_response()
         }
@@ -578,9 +553,9 @@ pub async fn remove_member(
     let user_uuid = match Uuid::parse_str(&user_id) {
         Ok(id) => id,
         Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": format!("invalid user id: {}", user_id)})),
+            return bad_request_response(
+                codes::tenant::invalid_input(),
+                format!("invalid user id: {}", user_id),
             )
                 .into_response()
         }
@@ -588,15 +563,9 @@ pub async fn remove_member(
 
     match state.remove_member_uc.execute(tenant_uuid, user_uuid).await {
         Ok(_) => StatusCode::NO_CONTENT.into_response(),
-        Err(RemoveMemberError::NotFound) => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "member not found"})),
-        )
-            .into_response(),
-        Err(RemoveMemberError::Internal(msg)) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
-        )
-            .into_response(),
+        Err(RemoveMemberError::NotFound) => {
+            not_found_response("member not found").into_response()
+        }
+        Err(RemoveMemberError::Internal(msg)) => internal_response(msg).into_response(),
     }
 }

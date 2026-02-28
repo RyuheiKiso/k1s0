@@ -15,7 +15,7 @@ User ──(has)──▶ Role ──(grants)──▶ Permission ──(on)─�
 ```
 
 - **Role**: ユーザーに割り当てる役割
-- **Permission**: 操作の種類（`read`, `create`, `update`, `delete`, `admin`）
+- **Permission**: 操作の種類（`read`, `write`, `delete`, `admin`）
 - **Resource**: 操作対象のリソース（`orders`, `ledger`, `users`）
 
 ### Tier 別ロール定義
@@ -50,29 +50,29 @@ User ──(has)──▶ Role ──(grants)──▶ Permission ──(on)─�
 
 | ロール           | users | auth_config | audit_logs | api_gateway | vault_secrets | monitoring |
 | ---------------- | ----- | ----------- | ---------- | ----------- | ------------- | ---------- |
-| `sys_admin`      | CRUD  | CRUD        | R          | CRUD        | CRUD          | CRUD       |
-| `sys_operator`   | R     | RU          | R          | R           | R             | RU         |
+| `sys_admin`      | RWD   | RWD         | R          | RWD         | RWD           | RWD        |
+| `sys_operator`   | R     | RW          | R          | R           | R             | RW         |
 | `sys_auditor`    | R     | R           | R          | R           | ---           | R          |
 
 #### business Tier パーミッションマトリクス（例: accounting 領域）
 
 | ロール                      | ledger | journal_entries | reports | master_data | approvals |
 | --------------------------- | ------ | --------------- | ------- | ----------- | --------- |
-| `biz_accounting_admin`      | CRUD   | CRUD            | CRUD    | CRUD        | CRUD      |
-| `biz_accounting_manager`    | RU     | CRU             | CR      | RU          | CRU       |
+| `biz_accounting_admin`      | RWD    | RWD             | RWD     | RWD         | RWD       |
+| `biz_accounting_manager`    | RW     | RW              | RW      | RW          | RW        |
 | `biz_accounting_viewer`     | R      | R               | R       | R           | R         |
 
 #### service Tier パーミッションマトリクス（例: order サービス）
 
 | ロール                | orders | order_items | shipments | payments |
 | --------------------- | ------ | ----------- | --------- | -------- |
-| `svc_order_admin`     | CRUD   | CRUD        | CRUD      | CRUD     |
-| `svc_order_user`      | CRU    | CRU         | R         | CR       |
+| `svc_order_admin`     | RWD    | RWD         | RWD       | RWD      |
+| `svc_order_user`      | RW     | RW          | R         | RW       |
 | `svc_order_viewer`    | R      | R           | R         | R        |
 
-**凡例**: C = Create, R = Read, U = Update, D = Delete, --- = アクセス不可
+**凡例**: R = Read, W = Write, D = Delete, --- = アクセス不可
 
-> **Permission モデルとの対応**: Permission モデルの操作種別（`read`, `create`, `update`, `delete`, `admin`）は、マトリクス表記の R, C, U, D にそれぞれ対応する。`admin` は全操作（CRUD）を含む上位権限を意味する。
+> **Permission モデルとの対応**: Permission モデルの操作種別は `read`, `write`, `delete`, `admin` の4種。`write` は作成・更新操作を含む。`admin` は全操作（RWD）を含む上位権限を意味する。
 
 #### パーミッション解決ルール
 
@@ -204,12 +204,12 @@ func RequirePermission(permission, resource string) func(http.Handler) http.Hand
             userID := r.Header.Get("X-User-Id")
 
             if userID == "" {
-                WriteError(w, r, http.StatusUnauthorized, "SYS_AUTH_UNAUTHENTICATED", "認証が必要です")
+                WriteError(w, r, http.StatusUnauthorized, "SYS_AUTH_MISSING_TOKEN", "認証が必要です")
                 return
             }
 
             if !hasPermission(roles, permission, resource) {
-                WriteError(w, r, http.StatusForbidden, "SYS_AUTH_FORBIDDEN", "この操作を実行する権限がありません")
+                WriteError(w, r, http.StatusForbidden, "SYS_AUTH_PERMISSION_DENIED", "この操作を実行する権限がありません")
                 return
             }
 
@@ -222,9 +222,9 @@ func RequirePermission(permission, resource string) func(http.Handler) http.Hand
 mux.Handle("GET /api/v1/orders",
     RequirePermission("read", "orders")(orderHandler.List))
 mux.Handle("POST /api/v1/orders",
-    RequirePermission("create", "orders")(orderHandler.Create))
+    RequirePermission("write", "orders")(orderHandler.Create))
 mux.Handle("PUT /api/v1/orders/{id}",
-    RequirePermission("update", "orders")(orderHandler.Update))
+    RequirePermission("write", "orders")(orderHandler.Update))
 mux.Handle("DELETE /api/v1/orders/{id}",
     RequirePermission("delete", "orders")(orderHandler.Delete))
 ```

@@ -12,6 +12,7 @@ graphql:
   playground: false
   max_depth: 10
   max_complexity: 1000
+  query_timeout_seconds: 30
 
 auth:
   jwks_url: "http://auth-server.k1s0-system.svc.cluster.local/jwks"

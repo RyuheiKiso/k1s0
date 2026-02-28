@@ -199,9 +199,23 @@ impl From<String> for TenantStatus {
 
 #[derive(Debug, Clone, SimpleObject)]
 pub struct TenantConnection {
-    pub nodes: Vec<Tenant>,
+    pub edges: Vec<TenantEdge>,
+    pub page_info: PageInfo,
     pub total_count: i32,
-    pub has_next: bool,
+}
+
+#[derive(Debug, Clone, SimpleObject)]
+pub struct TenantEdge {
+    pub node: Tenant,
+    pub cursor: String,
+}
+
+#[derive(Debug, Clone, SimpleObject)]
+pub struct PageInfo {
+    pub has_next_page: bool,
+    pub has_previous_page: bool,
+    pub start_cursor: Option<String>,
+    pub end_cursor: Option<String>,
 }
 ```
 
@@ -230,6 +244,38 @@ pub struct ConfigEntry {
     pub key: String,
     pub value: String,
     pub updated_at: String,
+}
+```
+
+### src/domain/model/payload.rs
+
+```rust
+use async_graphql::SimpleObject;
+
+use crate::domain::model::{FeatureFlag, Tenant};
+
+#[derive(Debug, Clone, SimpleObject)]
+pub struct CreateTenantPayload {
+    pub tenant: Option<Tenant>,
+    pub errors: Vec<UserError>,
+}
+
+#[derive(Debug, Clone, SimpleObject)]
+pub struct UpdateTenantPayload {
+    pub tenant: Option<Tenant>,
+    pub errors: Vec<UserError>,
+}
+
+#[derive(Debug, Clone, SimpleObject)]
+pub struct SetFeatureFlagPayload {
+    pub feature_flag: Option<FeatureFlag>,
+    pub errors: Vec<UserError>,
+}
+
+#[derive(Debug, Clone, SimpleObject)]
+pub struct UserError {
+    pub field: Option<Vec<String>>,
+    pub message: String,
 }
 ```
 
@@ -340,10 +386,12 @@ impl TenantQueryResolver {
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn list_tenants(
         &self,
-        page: i32,
-        page_size: i32,
+        first: Option<i32>,
+        after: Option<String>,
+        last: Option<i32>,
+        before: Option<String>,
     ) -> anyhow::Result<TenantConnection> {
-        self.client.list_tenants(page, page_size).await
+        self.client.list_tenants(first, after, last, before).await
     }
 }
 ```
@@ -437,8 +485,20 @@ impl TenantMutationResolver {
         &self,
         name: &str,
         owner_user_id: &str,
-    ) -> anyhow::Result<Tenant> {
-        self.client.create_tenant(name, owner_user_id).await
+    ) -> anyhow::Result<CreateTenantPayload> {
+        match self.client.create_tenant(name, owner_user_id).await {
+            Ok(tenant) => Ok(CreateTenantPayload {
+                tenant: Some(tenant),
+                errors: vec![],
+            }),
+            Err(e) => Ok(CreateTenantPayload {
+                tenant: None,
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
+            }),
+        }
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
@@ -447,8 +507,20 @@ impl TenantMutationResolver {
         id: &str,
         name: Option<&str>,
         status: Option<&str>,
-    ) -> anyhow::Result<Tenant> {
-        self.client.update_tenant(id, name, status).await
+    ) -> anyhow::Result<UpdateTenantPayload> {
+        match self.client.update_tenant(id, name, status).await {
+            Ok(tenant) => Ok(UpdateTenantPayload {
+                tenant: Some(tenant),
+                errors: vec![],
+            }),
+            Err(e) => Ok(UpdateTenantPayload {
+                tenant: None,
+                errors: vec![UserError {
+                    field: None,
+                    message: e.to_string(),
+                }],
+            }),
+        }
     }
 }
 ```
@@ -541,6 +613,8 @@ pub fn router(
     .limit_complexity(graphql_cfg.max_complexity as usize)
     .finish();
 
+    let query_timeout = std::time::Duration::from_secs(graphql_cfg.query_timeout_seconds as u64);
+
     let mut router = Router::new()
         .route("/healthz", get(healthz))
         .route("/readyz", get(readyz))
@@ -564,12 +638,25 @@ pub fn router(
 }
 
 async fn graphql_handler(
-    State(schema): State<AppSchema>,
+    State((schema, timeout)): State<(AppSchema, std::time::Duration)>,
     Extension(claims): Extension<Claims>,
     req: GraphQLRequest,
-) -> GraphQLResponse {
+) -> impl IntoResponse {
     let request = req.into_inner().data(claims);
-    schema.execute(request).await.into()
+    match tokio::time::timeout(timeout, schema.execute(request)).await {
+        Ok(resp) => GraphQLResponse::from(resp).into_response(),
+        Err(_) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "data": null,
+                "errors": [{
+                    "message": "query execution timed out",
+                    "extensions": { "code": "TIMEOUT" }
+                }]
+            })),
+        )
+            .into_response(),
+    }
 }
 
 async fn graphql_ws_handler(
@@ -756,6 +843,8 @@ pub struct GraphQLConfig {
     pub max_depth: u32,
     /// クエリ複雑度の上限
     pub max_complexity: u32,
+    /// クエリ実行タイムアウト（秒）
+    pub query_timeout_seconds: u32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -905,6 +994,7 @@ graphql:
   playground: false
   max_depth: 10
   max_complexity: 1000
+  query_timeout_seconds: 30
 
 auth:
   jwks_url: "http://auth-server.k1s0-system.svc.cluster.local/jwks"

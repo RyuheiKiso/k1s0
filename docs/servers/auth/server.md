@@ -55,6 +55,10 @@ system tier の認証・認可・監査基盤サーバー。REST/gRPC でトー�
 | POST | `/api/v1/auth/permissions/check` | 権限チェック | `auth_config` | `read` |
 | GET | `/api/v1/audit/logs` | 監査ログ検索 | `audit_logs` | `read` |
 | POST | `/api/v1/audit/logs` | 監査ログ記録 | `audit_logs` | `write` |
+| POST | `/api/v1/api-keys` | API キー作成 | `api_keys` | `write` |
+| GET | `/api/v1/api-keys` | API キー一覧取得 | `api_keys` | `read` |
+| GET | `/api/v1/api-keys/:id` | API キー取得 | `api_keys` | `read` |
+| DELETE | `/api/v1/api-keys/:id/revoke` | API キー無効化 | `api_keys` | `write` |
 
 #### POST /api/v1/auth/token/validate
 
@@ -129,8 +133,9 @@ RFC 7662 準拠のトークンイントロスペクション。トークンが�
 | `users[].id` | string | ユーザー ID |
 | `users[].username` | string | ユーザー名 |
 | `users[].email` | string | メールアドレス |
-| `users[].display_name` | string | 表示名 |
-| `users[].status` | string | ステータス（`active` / `suspended` / `deleted`） |
+| `users[].first_name` | string | 名 |
+| `users[].last_name` | string | 姓 |
+| `users[].enabled` | bool | 有効フラグ |
 | `users[].email_verified` | bool | メール検証済みフラグ |
 | `users[].created_at` | string | 作成日時（RFC 3339） |
 | `users[].attributes` | object | 追加属性 |
@@ -168,7 +173,7 @@ RFC 7662 準拠のトークンイントロスペクション。トークンが�
 | フィールド | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
 | `roles` | string[] | Yes | 判定対象のロールリスト |
-| `permission` | string | Yes | 必要な権限（`read` / `write` / `admin`） |
+| `permission` | string | Yes | 必要な権限（`read` / `write` / `delete` / `admin`） |
 | `resource` | string | Yes | 対象リソース |
 
 **レスポンスフィールド（200 OK）**
@@ -238,6 +243,94 @@ RFC 7662 準拠のトークンイントロスペクション。トークンが�
 | `id` | string | 監査ログ ID（UUID） |
 | `created_at` | string | 作成日時（RFC 3339） |
 
+#### GET /api/v1/navigation
+
+クライアント向けナビゲーション設定を返却する。
+
+**レスポンスフィールド（200 OK）**
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `version` | int | ナビゲーション設定バージョン |
+| `guards[]` | object[] | ナビゲーションガード定義 |
+| `guards[].id` | string | ガード ID |
+| `guards[].type` | string | ガード種別 |
+| `guards[].redirect_to` | string | リダイレクト先 |
+| `guards[].roles` | string[] | 必要ロール |
+| `routes[]` | object[] | ルート定義 |
+| `routes[].id` | string | ルート ID |
+| `routes[].path` | string | パス |
+| `routes[].component_id` | string? | コンポーネント ID |
+| `routes[].guards` | string[] | 適用ガード |
+| `routes[].children` | object[] | 子ルート |
+
+**エラーレスポンス（500）**: `SYS_NAV_CONFIG_READ_ERROR` / `SYS_NAV_CONFIG_PARSE_ERROR`
+
+#### POST /api/v1/api-keys
+
+API キーを作成する。作成時のみ `raw_key`（平文キー）が返却される。
+
+**リクエストフィールド**
+
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `tenant_id` | string | Yes | テナント ID |
+| `name` | string | Yes | API キー名 |
+| `scopes` | string[] | Yes | API キーのスコープ |
+| `expires_at` | string | No | 有効期限（RFC 3339） |
+
+**レスポンスフィールド（201 Created）**
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `id` | string | API キー ID（UUID） |
+| `name` | string | API キー名 |
+| `prefix` | string | API キーのプレフィックス（表示用） |
+| `raw_key` | string | API キー平文（作成時のみ返却） |
+| `scopes` | string[] | スコープ |
+| `expires_at` | string? | 有効期限 |
+| `created_at` | string | 作成日時（RFC 3339） |
+
+#### GET /api/v1/api-keys
+
+テナントに紐づく API キー一覧を取得する。
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `tenant_id` | string | Yes | テナント ID |
+
+**レスポンスフィールド（200 OK）**
+
+`ApiKeySummary[]` の配列:
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `id` | string | API キー ID（UUID） |
+| `name` | string | API キー名 |
+| `prefix` | string | API キーのプレフィックス |
+| `scopes` | string[] | スコープ |
+| `expires_at` | string? | 有効期限 |
+| `revoked` | bool | 無効化済みフラグ |
+| `created_at` | string | 作成日時（RFC 3339） |
+
+#### GET /api/v1/api-keys/:id
+
+指定された ID の API キー情報を取得する。レスポンスフィールドは `ApiKeySummary` と同一。
+
+**エラーレスポンス（404）**: `SYS_AUTH_API_KEY_NOT_FOUND`
+
+#### DELETE /api/v1/api-keys/:id/revoke
+
+指定された API キーを無効化する。
+
+**レスポンス**: 204 No Content
+
+**エラーレスポンス（404）**: `SYS_AUTH_API_KEY_NOT_FOUND`
+
+> **注**: API Key 管理は REST API のみ提供する。gRPC（Proto）での API Key RPC は定義しない。
+
 #### GET /healthz
 
 **レスポンス**: `{ "status": "ok" }`（200 OK）
@@ -303,6 +396,8 @@ service AuditService {
 | GetUserRoles | `GetUserRolesRequest { user_id }` | `GetUserRolesResponse { user_id, realm_roles, client_roles }` | ユーザーロール取得。未発見時は `NOT_FOUND` |
 | CheckPermission | `CheckPermissionRequest { user_id, permission, resource, roles }` | `CheckPermissionResponse { allowed, reason }` | 権限判定。拒否時は `reason` に理由 |
 
+> **注**: REST API の `/api/v1/auth/permissions/check` はロールベースの純粋な権限チェックのため `user_id` フィールドを持たない。gRPC の `CheckPermission` はサービス間通信でユーザー特定が必要なため `user_id` を含む。
+
 #### AuditService RPC 詳細
 
 | RPC | リクエスト | レスポンス | 説明 |
@@ -331,11 +426,12 @@ message User {
   string id = 1;
   string username = 2;
   string email = 3;
-  string display_name = 4;
-  string status = 5;          // "active", "suspended", "deleted"
-  bool email_verified = 6;
-  google.protobuf.Timestamp created_at = 7;
-  map<string, StringList> attributes = 8;
+  string first_name = 4;
+  string last_name = 5;
+  bool enabled = 6;
+  bool email_verified = 7;
+  k1s0.system.common.v1.Timestamp created_at = 8;
+  map<string, StringList> attributes = 9;
 }
 
 message AuditLog {
@@ -360,11 +456,11 @@ message AuditLog {
 
 ### ロール階層
 
-| ロール | read | write | admin |
-| --- | --- | --- | --- |
-| `sys_admin` | Yes | Yes | Yes |
-| `sys_operator` | Yes | Yes | No |
-| `sys_auditor` | Yes | No | No |
+| ロール | read | write | delete | admin |
+| --- | --- | --- | --- | --- |
+| `sys_admin` | Yes | Yes | Yes | Yes |
+| `sys_operator` | Yes | Yes | No | No |
+| `sys_auditor` | Yes | No | No | No |
 
 `sys_admin` は全権限を持つ。`sys_operator` は read/write、`sys_auditor` は read のみ。
 
@@ -376,6 +472,9 @@ message AuditLog {
 | `/api/v1/auth/permissions/check` | `auth_config` | `read` |
 | `GET /api/v1/audit/logs` | `audit_logs` | `read` |
 | `POST /api/v1/audit/logs` | `audit_logs` | `write` |
+| `POST /api/v1/api-keys` | `api_keys` | `write` |
+| `GET /api/v1/api-keys/**` | `api_keys` | `read` |
+| `DELETE /api/v1/api-keys/:id/revoke` | `api_keys` | `write` |
 
 ---
 
@@ -404,7 +503,7 @@ message AuditLog {
 | フィールド | 型 | デフォルト | 説明 |
 | --- | --- | --- | --- |
 | `url` | string | - | JWKS エンドポイント URL（例: `http://auth-server:8080/.well-known/jwks.json`）。Keycloak URL から自動導出せず、明示的に指定する |
-| `cache_ttl_secs` | int | `3600` | JWKS キャッシュ TTL（秒） |
+| `cache_ttl_secs` | int | `600` | JWKS キャッシュ TTL（秒）。[JWT設計.md](../../architecture/auth/JWT設計.md) の JWKS キャッシュ TTL 10 分と整合 |
 
 ### auth.jwt
 
@@ -652,8 +751,9 @@ RFC 7662 準拠のトークンイントロスペクション。トークンが�
       "id": "user-uuid-1234",
       "username": "taro.yamada",
       "email": "taro.yamada@example.com",
-      "display_name": "Taro Yamada",
-      "status": "active",
+      "first_name": "Taro",
+      "last_name": "Yamada",
+      "enabled": true,
       "email_verified": true,
       "created_at": "2026-01-15T09:00:00Z",
       "attributes": {}
@@ -677,8 +777,9 @@ RFC 7662 準拠のトークンイントロスペクション。トークンが�
   "id": "user-uuid-1234",
   "username": "taro.yamada",
   "email": "taro.yamada@example.com",
-  "display_name": "Taro Yamada",
-  "status": "active",
+  "first_name": "Taro",
+  "last_name": "Yamada",
+  "enabled": true,
   "email_verified": true,
   "created_at": "2026-01-15T09:00:00Z",
   "attributes": {}
