@@ -113,6 +113,30 @@ export async function validateName(name: string): Promise<void> {
   return invoke<void>('validate_name', { name });
 }
 
+export type GenerateTarget = 'typescript' | 'dart';
+
+export async function executeValidateConfigSchema(path: string): Promise<number> {
+  return invoke<number>('execute_validate_config_schema', { path });
+}
+
+export async function executeValidateNavigation(path: string): Promise<number> {
+  return invoke<number>('execute_validate_navigation', { path });
+}
+
+export async function executeGenerateConfigTypes(
+  schemaPath: string,
+  target: GenerateTarget,
+): Promise<string> {
+  return invoke<string>('execute_generate_config_types', { schemaPath, target });
+}
+
+export async function executeGenerateNavigationTypes(
+  navPath: string,
+  target: GenerateTarget,
+): Promise<string> {
+  return invoke<string>('execute_generate_navigation_types', { navPath, target });
+}
+
 // Progress event types matching k1s0-core ProgressEvent (tagged enum)
 
 export type ProgressEvent =

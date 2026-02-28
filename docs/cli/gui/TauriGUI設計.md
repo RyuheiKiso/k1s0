@@ -34,36 +34,43 @@ k1s0 CLI の機能を GUI で提供するデスクトップアプリケーショ
 
 ```
 CLI/
-├── Cargo.toml              # workspace メンバー定義
+├── Cargo.toml              # workspace メンバー定義（k1s0-core, k1s0-cli, k1s0-gui）
 ├── crates/
-│   └── k1s0-core/          # 共有ライブラリクレート
-│       ├── Cargo.toml
-│       └── src/
-│           ├── lib.rs
-│           ├── commands/    # init, generate, build, test, deploy
-│           ├── config/
-│           └── template/    # Tera テンプレート処理
-├── src/                     # CLI バイナリ
-│   ├── main.rs              # dialoguer による対話 UI
-│   └── ...
-├── gui/                     # Tauri GUI アプリケーション
-│   ├── src-tauri/
-│   │   ├── Cargo.toml       # k1s0-core を依存に持つ
-│   │   ├── src/
-│   │   │   ├── main.rs      # Tauri エントリーポイント
-│   │   │   └── commands.rs  # #[tauri::command] 定義
-│   │   └── tauri.conf.json
-│   ├── src/                 # React フロントエンド
-│   │   ├── App.tsx
-│   │   ├── pages/
-│   │   │   ├── Init.tsx         # プロジェクト初期化
-│   │   │   ├── Generate.tsx     # ひな形生成ウィザード
-│   │   │   ├── Build.tsx        # ビルド
-│   │   │   ├── Test.tsx         # テスト実行
-│   │   │   └── Deploy.tsx       # デプロイ
-│   │   └── components/
-│   ├── package.json
-│   └── tsconfig.json
+│   ├── k1s0-core/          # 共有ライブラリクレート
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── commands/   # init, generate, build, test_cmd, deploy, validate
+│   │       ├── config/
+│   │       ├── template/   # Tera テンプレート処理
+│   │       ├── validation.rs
+│   │       └── progress/   # ProgressEvent 型定義
+│   ├── k1s0-cli/           # CLI バイナリ（dialoguer TUI）
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       └── main.rs     # dialoguer による対話 UI
+│   └── k1s0-gui/           # Tauri GUI アプリケーション
+│       ├── Cargo.toml       # k1s0-core を依存に持つ
+│       ├── tauri.conf.json
+│       ├── src/
+│       │   ├── main.rs      # Tauri エントリーポイント
+│       │   ├── lib.rs       # Tauri アプリ実行エンジン
+│       │   └── commands.rs  # #[tauri::command] 定義
+│       └── ui/              # React フロントエンド
+│           ├── src/
+│           │   ├── App.tsx
+│           │   ├── router.tsx
+│           │   ├── pages/
+│           │   │   ├── InitPage.tsx         # プロジェクト初期化
+│           │   │   ├── GeneratePage.tsx     # ひな形生成ウィザード
+│           │   │   ├── ConfigTypesPage.tsx  # 設定スキーマ型生成
+│           │   │   ├── NavigationTypesPage.tsx # ナビゲーション型生成
+│           │   │   ├── ValidatePage.tsx     # バリデーション
+│           │   │   ├── BuildPage.tsx        # ビルド
+│           │   │   ├── TestPage.tsx         # テスト実行
+│           │   │   └── DeployPage.tsx       # デプロイ
+│           │   └── components/
+│           └── package.json
 └── templates/               # 既存テンプレート（CLI・GUI 共有）
 ```
 
@@ -71,15 +78,18 @@ CLI/
 
 `k1s0-core` クレートは以下の責務を持つ。CLI と GUI の両方から利用される。
 
-| モジュール       | 責務                                                                 |
-| ---------------- | -------------------------------------------------------------------- |
-| `commands::init` | プロジェクト初期化（Git 初期化、sparse-checkout、ディレクトリ生成）   |
-| `commands::generate` | ひな形生成（種別・Tier・言語の組み合わせに応じたテンプレート展開） |
-| `commands::build` | ビルド実行                                                          |
-| `commands::test_cmd` | テスト実行                                                       |
-| `commands::deploy` | デプロイ実行（Docker ビルド・プッシュ・Cosign 署名・Helm デプロイ） |
-| `config`         | CLI 設定の読み込み                                                   |
-| `template`       | Tera テンプレート処理（コンテキスト生成・フィルタ）                  |
+| モジュール           | 責務                                                                 |
+| -------------------- | -------------------------------------------------------------------- |
+| `commands::init`     | プロジェクト初期化（Git 初期化、sparse-checkout、ディレクトリ生成）   |
+| `commands::generate` | ひな形生成（種別・Tier・言語の組み合わせに応じたテンプレート展開）    |
+| `commands::build`    | ビルド実行                                                           |
+| `commands::test_cmd` | テスト実行                                                           |
+| `commands::deploy`   | デプロイ実行（Docker ビルド・プッシュ・Cosign 署名・Helm デプロイ）  |
+| `commands::validate` | 設定スキーマ・ナビゲーション定義の整合性バリデーション               |
+| `config`             | CLI 設定の読み込み                                                   |
+| `template`           | Tera テンプレート処理（コンテキスト生成・フィルタ）                  |
+| `validation`         | 名前形式バリデーション（`validate_name`）                            |
+| `progress`           | 進捗イベント型定義（`ProgressEvent`）                                |
 
 ### CLI と GUI の関係
 
@@ -111,13 +121,16 @@ GUI は [CLIフロー](../flow/CLIフロー.md) と同等の操作をウィザ�
 
 CLI のメインメニューに対応するダッシュボード画面を提供する。
 
-| CLI メニュー項目   | GUI 対応                   |
-| ------------------ | -------------------------- |
-| プロジェクト初期化 | Init ページ               |
-| ひな形生成         | Generate ウィザード       |
-| ビルド             | Build ページ              |
-| テスト実行         | Test ページ               |
-| デプロイ           | Deploy ページ             |
+| CLI メニュー項目     | GUI 対応                        |
+| -------------------- | ------------------------------- |
+| プロジェクト初期化   | Init ページ                     |
+| ひな形生成           | Generate ウィザード              |
+| 設定スキーマ型生成   | ConfigTypes ページ              |
+| ナビゲーション型生成 | NavigationTypes ページ          |
+| バリデーション       | Validate ページ                 |
+| ビルド               | Build ページ                    |
+| テスト実行           | Test ページ                     |
+| デプロイ             | Deploy ページ                   |
 
 ### ひな形生成ウィザード
 
@@ -142,7 +155,30 @@ CLI の対話ステップ（ステップ 1〜5 + 確認）をステッパー UI 
 
 ### 進捗表示
 
-ビルド・テスト・デプロイの実行中は、CLI のテキスト出力に代わりプログレスバーとログビューアーで進捗を表示する。Tauri のイベントシステム（`emit` / `listen`）を使用して、Rust バックエンドからフロントエンドにリアルタイムで進捗を通知する。
+ビルド・テスト・デプロイの実行中は、CLI のテキスト出力に代わりプログレスバーとログビューアーで進捗を表示する。Tauri v2 の `Channel<ProgressEvent>` API を使用して、Rust バックエンドからフロントエンドにリアルタイムで進捗を通知する。
+
+`ProgressEvent` の種別:
+
+| バリアント     | フィールド                        | 内容                     |
+| -------------- | --------------------------------- | ------------------------ |
+| `StepStarted`  | `step`, `total`, `message`        | ステップ開始             |
+| `StepCompleted`| `step`, `total`, `message`        | ステップ完了             |
+| `Log`          | `message`                         | ログ出力                 |
+| `Warning`      | `message`                         | 警告                     |
+| `Error`        | `message`                         | エラー                   |
+| `Finished`     | `success: bool`, `message`        | 処理完了（成否を含む）   |
+
+### 設定スキーマ型生成（ConfigTypes ページ）
+
+`config-schema.yaml` のパスと生成ターゲット（TypeScript / Dart）を選択し、型定義ファイルの内容をプレビュー表示する。[config-editor設計](../config/config-editor設計.md) の `k1s0 generate config-types` に対応する。
+
+### ナビゲーション型生成（NavigationTypes ページ）
+
+`navigation.yaml` のパスと生成ターゲット（TypeScript / Dart）を選択し、ルート型定義ファイルの内容をプレビュー表示する。[navigation設計](../config/navigation設計.md) の `k1s0 generate navigation` に対応する。
+
+### バリデーション（Validate ページ）
+
+検証対象（設定スキーマ / ナビゲーション定義）とファイルパスを選択して整合性を検証する。エラー件数と結果を表示する。CLI の `k1s0 validate` に対応する。
 
 ## Tier アーキテクチャとの関係
 
