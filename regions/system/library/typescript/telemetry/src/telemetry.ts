@@ -12,6 +12,7 @@ export interface TelemetryConfig {
   traceEndpoint?: string;
   sampleRate?: number;
   logLevel: string;
+  logFormat?: string;
 }
 
 let sdk: NodeSDK | undefined;

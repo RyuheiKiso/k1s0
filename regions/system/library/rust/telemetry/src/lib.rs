@@ -28,6 +28,8 @@ pub struct TelemetryConfig {
     pub trace_endpoint: Option<String>,
     pub sample_rate: f64,
     pub log_level: String,
+    /// ログ出力フォーマット。"text" の場合はプレーンテキスト、それ以外は JSON。
+    pub log_format: String,
 }
 
 /// init_telemetry は OpenTelemetry TracerProvider と tracing-subscriber を初期化する。
@@ -56,18 +58,31 @@ pub fn init_telemetry(cfg: &TelemetryConfig) -> Result<(), Box<dyn std::error::E
     };
 
     let filter = EnvFilter::new(&cfg.log_level);
-    let fmt_layer = fmt::layer()
-        .json()
-        .with_target(true)
-        .with_span_events(FmtSpan::CLOSE);
+    let registry = tracing_subscriber::registry().with(filter);
 
-    let subscriber = tracing_subscriber::registry().with(filter).with(fmt_layer);
-
-    if let Some(t) = tracer {
-        let telemetry_layer = tracing_opentelemetry::layer().with_tracer(t);
-        subscriber.with(telemetry_layer).init();
+    if cfg.log_format == "text" {
+        let fmt_layer = fmt::layer()
+            .with_target(true)
+            .with_span_events(FmtSpan::CLOSE);
+        let subscriber = registry.with(fmt_layer);
+        if let Some(t) = tracer {
+            let telemetry_layer = tracing_opentelemetry::layer().with_tracer(t);
+            subscriber.with(telemetry_layer).init();
+        } else {
+            subscriber.init();
+        }
     } else {
-        subscriber.init();
+        let fmt_layer = fmt::layer()
+            .json()
+            .with_target(true)
+            .with_span_events(FmtSpan::CLOSE);
+        let subscriber = registry.with(fmt_layer);
+        if let Some(t) = tracer {
+            let telemetry_layer = tracing_opentelemetry::layer().with_tracer(t);
+            subscriber.with(telemetry_layer).init();
+        } else {
+            subscriber.init();
+        }
     }
 
     Ok(())

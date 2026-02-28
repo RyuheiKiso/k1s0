@@ -139,6 +139,7 @@ async fn main() -> anyhow::Result<()> {
         trace_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
         sample_rate: 1.0,
         log_level: "info".to_string(),
+        log_format: "json".to_string(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg).expect("failed to init telemetry");
 

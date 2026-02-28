@@ -10,6 +10,7 @@ class TelemetryConfig {
   final String? traceEndpoint;
   final double sampleRate;
   final String logLevel;
+  final String logFormat;
 
   TelemetryConfig({
     required this.serviceName,
@@ -19,6 +20,7 @@ class TelemetryConfig {
     this.traceEndpoint,
     this.sampleRate = 1.0,
     this.logLevel = 'info',
+    this.logFormat = 'json',
   });
 }
 
@@ -27,19 +29,29 @@ class TelemetryConfig {
 void initTelemetry(TelemetryConfig cfg) {
   Logger.root.level = _parseLevel(cfg.logLevel);
   Logger.root.onRecord.listen((record) {
-    final entry = {
-      'timestamp': record.time.toUtc().toIso8601String(),
-      'level': record.level.name.toLowerCase(),
-      'message': record.message,
-      'service': cfg.serviceName,
-      'version': cfg.version,
-      'tier': cfg.tier,
-      'environment': cfg.environment,
-      'logger': record.loggerName,
-    };
-    if (record.error != null) entry['error'] = record.error.toString();
-    // ignore: avoid_print
-    print(jsonEncode(entry));
+    if (cfg.logFormat == 'text') {
+      // ignore: avoid_print
+      print(
+          '${record.time} [${record.level.name}] ${record.loggerName}: ${record.message}');
+      if (record.error != null) {
+        // ignore: avoid_print
+        print('  Error: ${record.error}');
+      }
+    } else {
+      final entry = {
+        'timestamp': record.time.toUtc().toIso8601String(),
+        'level': record.level.name.toLowerCase(),
+        'message': record.message,
+        'service': cfg.serviceName,
+        'version': cfg.version,
+        'tier': cfg.tier,
+        'environment': cfg.environment,
+        'logger': record.loggerName,
+      };
+      if (record.error != null) entry['error'] = record.error.toString();
+      // ignore: avoid_print
+      print(jsonEncode(entry));
+    }
   });
 }
 
