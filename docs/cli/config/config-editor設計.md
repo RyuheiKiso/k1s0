@@ -244,10 +244,11 @@ rpc UpsertConfigSchema(UpsertConfigSchemaRequest) returns (UpsertConfigSchemaRes
 
 ## config server エンドポイント拡張
 
-既存の `regions/system/server/rust/config/` に 2 エンドポイントを追加する。
+既存の `regions/system/server/rust/config/` に以下のエンドポイントを実装する。
 
 | Method | Path | Description | 認可 |
 | ------ | ---- | ----------- | ---- |
+| GET | `/api/v1/config-schema` | スキーマ一覧取得 | `sys_auditor` 以上 |
 | GET | `/api/v1/config-schema/:service_name` | スキーマ取得 | `sys_auditor` 以上 |
 | PUT | `/api/v1/config-schema/:service_name` | スキーマ登録・更新 | `sys_admin` のみ |
 
@@ -279,6 +280,30 @@ rpc UpsertConfigSchema(UpsertConfigSchemaRequest) returns (UpsertConfigSchemaRes
   ]
 }
 ```
+
+### PUT /api/v1/config-schema/:service_name リクエスト例
+
+`service_name` はパスパラメータで指定する。リクエストボディは以下の形式。
+`updated_by` は JWT クレームから自動取得するため、リクエストボディには不要。
+
+```json
+{
+  "namespace_prefix": "service.order",
+  "schema_json": {
+    "categories": [
+      {
+        "id": "database",
+        "label": "データベース",
+        "icon": "storage",
+        "namespaces": ["service.order.database"],
+        "fields": [...]
+      }
+    ]
+  }
+}
+```
+
+> **注意**: gRPC の `UpsertConfigSchemaRequest` とは異なるフィールド構成。REST では `service_name` をパスパラメータで渡し、`updated_by` はトークンから自動取得する。
 
 ---
 

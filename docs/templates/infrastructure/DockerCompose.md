@@ -247,9 +247,8 @@ services:
 
   # ============================================================
   # 可観測性
-  # NOTE: ローカル開発環境では Promtail を省略している。
-  # Kubernetes 環境では Promtail（DaemonSet）がログを収集し Loki に転送するが、
-  # ローカルでは各コンテナの stdout を直接 docker compose logs で確認する。
+  # NOTE: ローカル開発環境では Promtail を省略し、docker compose logs で直接確認する。
+  # Kubernetes 環境では Promtail を DaemonSet としてデプロイする。
   # ============================================================
   jaeger:
     image: jaegertracing/all-in-one:1.62

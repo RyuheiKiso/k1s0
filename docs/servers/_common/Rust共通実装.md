@@ -87,14 +87,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```
 1. Config::load("config/config.yaml")
-2. init_logger(&cfg.app.environment)
-3. init_tracer(&cfg.app.name)
-4. persistence::connect(&cfg.database) + sqlx::migrate!
-5. KafkaProducer::new(&cfg.kafka)  ※Kafka 使用時
-6. DI（サービス固有のユースケース・リポジトリ注入）
-7. REST サーバー起動（axum::Router + axum::serve）
-8. gRPC サーバー起動（tonic::transport::Server）
-9. graceful_shutdown（SIGTERM/SIGINT 待機）
+2. init_telemetry(&telemetry_cfg)   # ログ + トレーサー一括初期化
+3. persistence::connect(&cfg.database) + sqlx::migrate!
+4. KafkaProducer::new(&cfg.kafka)  ※Kafka 使用時
+5. DI（サービス固有のユースケース・リポジトリ注入）
+6. REST サーバー起動（axum::Router + axum::serve）
+7. gRPC サーバー起動（tonic::transport::Server）
+8. graceful_shutdown（SIGTERM/SIGINT 待機）
 ```
 
 ---
@@ -133,6 +132,7 @@ kafka:
 observability:
   otlp_endpoint: "http://otel-collector.observability:4317"
   log_level: "info"
+  log_format: "json"
   metrics_enabled: true
 ```
 

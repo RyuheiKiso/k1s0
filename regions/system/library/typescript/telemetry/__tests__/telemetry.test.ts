@@ -17,6 +17,12 @@ vi.mock('@opentelemetry/exporter-trace-otlp-grpc', () => ({
   OTLPTraceExporter: vi.fn().mockImplementation(() => ({})),
 }));
 
+vi.mock('@opentelemetry/api', () => ({
+  trace: {
+    getActiveSpan: vi.fn().mockReturnValue(undefined),
+  },
+}));
+
 vi.mock('pino', () => {
   const mockLogger = {
     info: vi.fn(),
@@ -88,15 +94,18 @@ describe('telemetry', () => {
       };
 
       const logger = createLogger(cfg);
-      expect(pino).toHaveBeenCalledWith({
-        level: 'debug',
-        base: {
-          service: 'test-service',
-          version: '1.0.0',
-          tier: 'system',
-          environment: 'dev',
-        },
-      });
+      expect(pino).toHaveBeenCalledWith(
+        expect.objectContaining({
+          level: 'debug',
+          base: {
+            service: 'test-service',
+            version: '1.0.0',
+            tier: 'system',
+            environment: 'dev',
+          },
+          mixin: expect.any(Function),
+        }),
+      );
       expect(logger).toBeDefined();
     });
 

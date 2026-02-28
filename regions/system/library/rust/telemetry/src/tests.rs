@@ -14,6 +14,7 @@ mod tests {
             trace_endpoint: None,
             sample_rate: 1.0,
             log_level: "debug".to_string(),
+            log_format: "json".to_string(),
         };
 
         assert_eq!(cfg.service_name, "test-service");
@@ -23,6 +24,7 @@ mod tests {
         assert!(cfg.trace_endpoint.is_none());
         assert_eq!(cfg.sample_rate, 1.0);
         assert_eq!(cfg.log_level, "debug");
+        assert_eq!(cfg.log_format, "json");
     }
 
     #[test]
@@ -35,6 +37,7 @@ mod tests {
             trace_endpoint: Some("otel-collector:4317".to_string()),
             sample_rate: 0.1,
             log_level: "warn".to_string(),
+            log_format: "text".to_string(),
         };
 
         assert_eq!(cfg.service_name, "order-server");

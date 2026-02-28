@@ -10,11 +10,11 @@ D-108: SLO/SLA 定義。SLI、SLO、SLA、エラーバジェット運用を定�
 
 ### SLI（Service Level Indicators）
 
-| SLI          | 定義                                                    | 計測方法                                    |
-| ------------ | ------------------------------------------------------- | ------------------------------------------- |
-| 可用性       | 正常レスポンス数 / 全リクエスト数                       | `http_requests_total{status!~"5.."} / total` |
-| レイテンシ   | P99 レスポンスタイム                                    | `histogram_quantile(0.99, ...)`             |
-| エラーレート | 5xx レスポンス率                                        | `rate(http_requests_total{status=~"5.."})`  |
+| SLI          | 定義                                                    | 計測方法（HTTP）                            | 計測方法（gRPC）                             |
+| ------------ | ------------------------------------------------------- | ------------------------------------------- | -------------------------------------------- |
+| 可用性       | 正常レスポンス数 / 全リクエスト数                       | `http_requests_total{status!~"5.."} / total` | `grpc_server_handled_total{grpc_code="OK"} / total` |
+| レイテンシ   | P99 レスポンスタイム                                    | `histogram_quantile(0.99, http_request_duration_seconds_bucket)` | `histogram_quantile(0.99, grpc_server_handling_seconds_bucket)` |
+| エラーレート | 5xx / 非 OK レスポンス率                                | `rate(http_requests_total{status=~"5.."})`  | `rate(grpc_server_handled_total{grpc_code!="OK"})` |
 
 ### SLO（Service Level Objectives）
 
@@ -74,6 +74,66 @@ D-108: SLO/SLA 定義。SLI、SLO、SLA、エラーバジェット運用を定�
 | 25% - 50%      | 注意。リリース頻度を下げ、信頼性改善に注力      |
 | < 25%          | 警告。新機能リリースを凍結し、信頼性改善に専念  |
 | 0%             | リリース凍結。ポストモーテム実施                |
+
+#### バーンレートアラート
+
+エラーバジェットの消費速度（バーンレート）に基づいてアラートを発火する。Google SRE の Multi-window, Multi-burn-rate アプローチを採用し、短期的な急激劣化と長期的な緩やかな劣化の両方を検知する。
+
+> **バーンレートとは**: エラーバジェットの消費速度の倍率。バーンレート 1x はちょうど 30 日でバジェットを使い切る速度。14.4x は約 2 日で使い切る速度を意味する。
+
+| アラート名 | バーンレート閾値 | 長時間窓 | 短時間窓 | severity | 対応速度 |
+| --- | --- | --- | --- | --- | --- |
+| SLOBurnRateCritical | 14.4x | 1h | 5m | critical | 即時対応（ページ） |
+| SLOBurnRateWarning | 6x | 6h | 30m | warning | 計画対応（チケット） |
+
+##### PromQL 式
+
+```yaml
+# system Tier (SLO 99.95%, error_budget = 0.0005)
+- alert: SLOBurnRateCritical
+  expr: |
+    (
+      (1 - (sum(rate(http_requests_total{namespace="k1s0-system", status!~"5.."}[1h])) by (service)
+       / sum(rate(http_requests_total{namespace="k1s0-system"}[1h])) by (service)))
+      / 0.0005
+    ) > 14.4
+    and
+    (
+      (1 - (sum(rate(http_requests_total{namespace="k1s0-system", status!~"5.."}[5m])) by (service)
+       / sum(rate(http_requests_total{namespace="k1s0-system"}[5m])) by (service)))
+      / 0.0005
+    ) > 14.4
+  for: 2m
+  labels:
+    severity: critical
+    tier: system
+  annotations:
+    summary: "System Tier SLO burn rate critical: {{ $labels.service }}"
+    description: "エラーバジェットの消費速度が 14.4 倍を超えています。約 2 日でバジェットを使い切ります。"
+
+- alert: SLOBurnRateWarning
+  expr: |
+    (
+      (1 - (sum(rate(http_requests_total{namespace="k1s0-system", status!~"5.."}[6h])) by (service)
+       / sum(rate(http_requests_total{namespace="k1s0-system"}[6h])) by (service)))
+      / 0.0005
+    ) > 6
+    and
+    (
+      (1 - (sum(rate(http_requests_total{namespace="k1s0-system", status!~"5.."}[30m])) by (service)
+       / sum(rate(http_requests_total{namespace="k1s0-system"}[30m])) by (service)))
+      / 0.0005
+    ) > 6
+  for: 5m
+  labels:
+    severity: warning
+    tier: system
+
+# business / service Tier (SLO 99.9%, error_budget = 0.001)
+# 同構造で error_budget を 0.001 に変更し、namespace を k1s0-business|k1s0-service に変更
+```
+
+アラートルールのファイル配置は `infra/observability/prometheus/alerts/slo-burn-rate-alerts.yaml` とする。ローカル開発環境では Prometheus UI でバーンレートを確認する。
 
 #### Prometheus Recording Rule
 

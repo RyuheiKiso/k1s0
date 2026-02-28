@@ -116,6 +116,22 @@ func TestNewLogger_ErrorLevel(t *testing.T) {
 	assert.False(t, logger.Enabled(context.Background(), slog.LevelWarn))
 }
 
+func TestNewLogger_TextFormat(t *testing.T) {
+	cfg := TelemetryConfig{
+		ServiceName: "test-service",
+		Version:     "1.0.0",
+		Tier:        "system",
+		Environment: "dev",
+		LogLevel:    "info",
+		LogFormat:   "text",
+	}
+
+	logger := NewLogger(cfg)
+	require.NotNil(t, logger)
+	assert.True(t, logger.Enabled(context.Background(), slog.LevelInfo))
+	assert.False(t, logger.Enabled(context.Background(), slog.LevelDebug))
+}
+
 func TestLogWithTrace_WithoutSpan(t *testing.T) {
 	cfg := TelemetryConfig{
 		ServiceName: "test-service",

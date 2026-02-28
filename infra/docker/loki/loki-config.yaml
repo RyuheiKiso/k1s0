@@ -27,6 +27,7 @@ schema_config:
 
 limits_config:
   retention_period: 168h  # 7日（ローカル開発用）
+  # staging: 720h (30日), prod: 2160h (90日) -- 詳細はログ設計.md の「ログ保持期間ポリシー」参照
 
 storage_config:
   filesystem:

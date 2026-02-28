@@ -10,6 +10,9 @@ use dialoguer::{theme::ColorfulTheme, Select};
 const MENU_ITEMS: &[&str] = &[
     "プロジェクト初期化",
     "ひな形生成",
+    "設定スキーマ型生成",
+    "ナビゲーション型生成",
+    "バリデーション",
     "ビルド",
     "テスト実行",
     "デプロイ",
@@ -86,21 +89,36 @@ fn show_main_menu(_cli_config: &config::CliConfig) -> Result<bool> {
                     }
                 }
                 2 => {
+                    if let Err(e) = commands::generate_config_types::run() {
+                        eprintln!("設定スキーマ型生成エラー: {e}");
+                    }
+                }
+                3 => {
+                    if let Err(e) = commands::generate_navigation::run() {
+                        eprintln!("ナビゲーション型生成エラー: {e}");
+                    }
+                }
+                4 => {
+                    if let Err(e) = commands::validate::run() {
+                        eprintln!("バリデーションエラー: {e}");
+                    }
+                }
+                5 => {
                     if let Err(e) = commands::build::run() {
                         eprintln!("ビルドエラー: {e}");
                     }
                 }
-                3 => {
+                6 => {
                     if let Err(e) = commands::test_cmd::run() {
                         eprintln!("テスト実行エラー: {e}");
                     }
                 }
-                4 => {
+                7 => {
                     if let Err(e) = commands::deploy::run() {
                         eprintln!("デプロイエラー: {e}");
                     }
                 }
-                5 => return Ok(true),
+                8 => return Ok(true),
                 _ => unreachable!(),
             }
             Ok(false)

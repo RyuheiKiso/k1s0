@@ -15,11 +15,11 @@ spec:
         - alert: config_server_high_error_rate
           expr: |
             (
-              sum(rate(http_requests_total{service="config-server", code=~"5.."}[5m]))
+              sum(rate(http_requests_total{service="config-server", status=~"5.."}[5m]))
               /
               sum(rate(http_requests_total{service="config-server"}[5m]))
             ) > 0.01
-          for: 1m
+          for: 5m
           labels:
             severity: critical
             service: config-server
@@ -36,7 +36,7 @@ spec:
             ) > 0.5
           for: 5m
           labels:
-            severity: critical
+            severity: warning
             service: config-server
             tier: system
           annotations:

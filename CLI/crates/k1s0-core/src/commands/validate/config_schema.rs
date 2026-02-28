@@ -40,14 +40,14 @@ pub fn validate_config_schema(path: &str) -> Result<usize, Box<dyn std::error::E
     let content = fs::read_to_string(path)?;
     println!("Checking config-schema.yaml...");
 
-    // 1. YAML パース確認
+    // 1. スキーマバリデーション（YAML パース）
     let schema: ConfigSchemaYaml = match serde_yaml::from_str(&content) {
         Ok(s) => {
-            println!("  \u{2705} YAML パース OK");
+            println!("  \u{2705} スキーマバリデーション OK");
             s
         }
         Err(e) => {
-            println!("  \u{274c} YAML パースエラー: {e}");
+            println!("  \u{274c} スキーマバリデーションエラー: {e}");
             return Ok(1);
         }
     };

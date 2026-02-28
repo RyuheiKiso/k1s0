@@ -109,7 +109,12 @@ func NewLogger(cfg TelemetryConfig) *slog.Logger {
         level = slog.LevelError
     }
 
-    handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+    var handler slog.Handler
+    if cfg.LogFormat == "text" {
+        handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+    } else {
+        handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+    }
     return slog.New(handler).With(
         slog.String("service", cfg.ServiceName),
         slog.String("version", cfg.Version),
@@ -169,7 +174,7 @@ tracing-opentelemetry = "0.28"
 use opentelemetry::global;
 use opentelemetry_otlp::SpanExporter;
 use opentelemetry_sdk::{trace as sdktrace, Resource};
-use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use tracing_subscriber::{fmt, fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 pub struct TelemetryConfig {
     pub service_name: String,
@@ -179,6 +184,7 @@ pub struct TelemetryConfig {
     pub trace_endpoint: Option<String>,
     pub sample_rate: f64,
     pub log_level: String,
+    pub log_format: String,
 }
 
 pub fn init_telemetry(cfg: &TelemetryConfig) -> Result<(), Box<dyn std::error::Error>> {
@@ -198,7 +204,11 @@ pub fn init_telemetry(cfg: &TelemetryConfig) -> Result<(), Box<dyn std::error::E
     }
 
     let filter = EnvFilter::new(&cfg.log_level);
-    let fmt_layer = fmt::layer().json().with_target(true);
+    let fmt_layer = if cfg.log_format == "text" {
+        fmt::layer().with_target(true).with_span_events(FmtSpan::CLOSE).boxed()
+    } else {
+        fmt::layer().json().with_target(true).with_span_events(FmtSpan::CLOSE).boxed()
+    };
     let telemetry_layer = cfg.trace_endpoint.as_ref().map(|_| {
         tracing_opentelemetry::layer().with_tracer(global::tracer("k1s0"))
     });
@@ -249,6 +259,7 @@ pub fn shutdown() {
 ```typescript
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
+import { trace } from '@opentelemetry/api';
 import pino from 'pino';
 
 export interface TelemetryConfig {
@@ -259,6 +270,7 @@ export interface TelemetryConfig {
   traceEndpoint?: string;
   sampleRate?: number;
   logLevel: string;
+  logFormat?: string;
 }
 
 let sdk: NodeSDK | undefined;
@@ -279,7 +291,7 @@ export function shutdown(): Promise<void> {
 }
 
 export function createLogger(cfg: TelemetryConfig): pino.Logger {
-  return pino({
+  const options: pino.LoggerOptions = {
     level: cfg.logLevel,
     base: {
       service: cfg.serviceName,
@@ -287,7 +299,27 @@ export function createLogger(cfg: TelemetryConfig): pino.Logger {
       tier: cfg.tier,
       environment: cfg.environment,
     },
-  });
+    mixin() {
+      const span = trace.getActiveSpan();
+      if (span) {
+        const ctx = span.spanContext();
+        return { trace_id: ctx.traceId, span_id: ctx.spanId };
+      }
+      return {};
+    },
+  };
+
+  if (cfg.logFormat === 'text') {
+    return pino({
+      ...options,
+      transport: {
+        target: 'pino-pretty',
+        options: { colorize: true },
+      },
+    });
+  }
+
+  return pino(options);
 }
 ```
 
@@ -323,6 +355,7 @@ class TelemetryConfig {
   final String? traceEndpoint;
   final double sampleRate;
   final String logLevel;
+  final String logFormat;
 
   TelemetryConfig({
     required this.serviceName,
@@ -332,24 +365,35 @@ class TelemetryConfig {
     this.traceEndpoint,
     this.sampleRate = 1.0,
     this.logLevel = 'info',
+    this.logFormat = 'json',
   });
 }
 
 void initTelemetry(TelemetryConfig cfg) {
   Logger.root.level = _parseLevel(cfg.logLevel);
   Logger.root.onRecord.listen((record) {
-    final entry = {
-      'timestamp': record.time.toUtc().toIso8601String(),
-      'level': record.level.name.toLowerCase(),
-      'message': record.message,
-      'service': cfg.serviceName,
-      'version': cfg.version,
-      'tier': cfg.tier,
-      'environment': cfg.environment,
-      'logger': record.loggerName,
-    };
-    if (record.error != null) entry['error'] = record.error.toString();
-    print(jsonEncode(entry));
+    if (cfg.logFormat == 'text') {
+      final buf = StringBuffer()
+        ..write('${record.time.toUtc().toIso8601String()} ')
+        ..write('[${record.level.name}] ')
+        ..write('${record.loggerName}: ')
+        ..write(record.message);
+      if (record.error != null) buf.write(' error=${record.error}');
+      print(buf.toString());
+    } else {
+      final entry = {
+        'timestamp': record.time.toUtc().toIso8601String(),
+        'level': record.level.name.toLowerCase(),
+        'message': record.message,
+        'service': cfg.serviceName,
+        'version': cfg.version,
+        'tier': cfg.tier,
+        'environment': cfg.environment,
+        'logger': record.loggerName,
+      };
+      if (record.error != null) entry['error'] = record.error.toString();
+      print(jsonEncode(entry));
+    }
   });
 }
 

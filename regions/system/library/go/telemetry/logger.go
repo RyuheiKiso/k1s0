@@ -23,7 +23,12 @@ func NewLogger(cfg TelemetryConfig) *slog.Logger {
 		level = slog.LevelError
 	}
 
-	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+	var handler slog.Handler
+	if cfg.LogFormat == "text" {
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+	} else {
+		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+	}
 	return slog.New(handler).With(
 		slog.String("service", cfg.ServiceName),
 		slog.String("version", cfg.Version),

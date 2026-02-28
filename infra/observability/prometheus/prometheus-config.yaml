@@ -7,6 +7,7 @@ rule_files:
   - /etc/prometheus/rules/system-tier-alerts.yaml
   - /etc/prometheus/rules/business-service-tier-alerts.yaml
   - /etc/prometheus/rules/slo-recording-rules.yaml
+  - /etc/prometheus/rules/slo-burn-rate-alerts.yaml
 
 alerting:
   alertmanagers:

@@ -15,11 +15,11 @@ spec:
         - alert: auth_server_high_error_rate
           expr: |
             (
-              sum(rate(http_requests_total{service="auth-server", code=~"5.."}[5m]))
+              sum(rate(http_requests_total{service="auth-server", status=~"5.."}[5m]))
               /
               sum(rate(http_requests_total{service="auth-server"}[5m]))
             ) > 0.01
-          for: 1m
+          for: 5m
           labels:
             severity: critical
             service: auth-server
@@ -36,7 +36,7 @@ spec:
             ) > 0.5
           for: 5m
           labels:
-            severity: critical
+            severity: warning
             service: auth-server
             tier: system
           annotations:
