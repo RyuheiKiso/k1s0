@@ -34,7 +34,7 @@ CREATE DATABASE k1s0_service;
 
 \c k1s0_system;
 
--- 監査ログテーブル（auth スキーマ。詳細は system-database設計.md 参照）
+-- 監査ログテーブル（auth スキーマ。詳細は system-database.md 参照）
 -- ローカル開発では sqlx-cli のマイグレーションで auth.audit_logs が作成される
 -- 以下は参照用の簡略版スキーマ
 CREATE TABLE IF NOT EXISTS audit_logs (
@@ -285,5 +285,5 @@ Keycloak は `start-dev --import-realm` オプションで起動し、`/opt/keyc
 - [docker-compose-システムサービス設計.md](compose-システムサービス設計.md) -- auth-server・config-server・System プロファイル
 - [docker-compose-可観測性サービス設計.md](compose-可観測性サービス設計.md) -- Prometheus・Grafana・Loki・Jaeger の詳細設定
 - [メッセージング設計.md](../../architecture/messaging/メッセージング設計.md) -- Kafka トピック設計
-- [認証認可設計.md](../../auth/design/認証認可設計.md) -- Keycloak 設定
-- [config設計.md](../../cli/config/config設計.md) -- config.yaml スキーマ
+- [認証認可設計.md](../../architecture/auth/認証認可設計.md) -- Keycloak 設定
+- [config.md](../../cli/config/config設計.md) -- config.yaml スキーマ

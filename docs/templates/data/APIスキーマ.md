@@ -2,9 +2,9 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **API スキーマ定義** テンプレートの仕様を定義する。OpenAPI（REST API）、Protocol Buffers（gRPC）、GraphQL の3種類のスキーマテンプレートを提供し、`api_styles` の選択に応じてサーバーテンプレート内に自動生成する。
+k1s0 CLI ひな形生成のAPIスキーマテンプレート仕様。OpenAPI（REST API）、Protocol Buffers（gRPC）、GraphQL の3種類のスキーマテンプレートを提供し、`api_styles` の選択に応じてサーバーテンプレート内に自動生成する。
 
-API 設計の全体像は [API設計](../../api/gateway/API設計.md) を参照。
+API 設計の全体像は [API設計](../../architecture/api/API設計.md) を参照。
 
 ## 生成対象
 
@@ -12,9 +12,6 @@ API 設計の全体像は [API設計](../../api/gateway/API設計.md) を参照�
 | ---------- | ------- | ----- | ------- |
 | `server`   | 条件付き | 条件付き | 条件付き |
 | `bff`      | 条件付き | 条件付き | 条件付き |
-| `client`   | 生成しない | 生成しない | 生成しない |
-| `library`  | 生成しない | 生成しない | 生成しない |
-| `database` | 生成しない | 生成しない | 生成しない |
 
 - `api_styles` に `rest` が含まれる場合に OpenAPI を生成する
 - `api_styles` に `grpc` が含まれる場合に Proto を生成する
@@ -446,10 +443,10 @@ CLI の対話フローで選択されたオプションに応じて、生成さ�
 
 ## 関連ドキュメント
 
-- [API設計](../../api/gateway/API設計.md) -- API 設計の全体方針
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) -- テンプレート変数・条件分岐・フィルタの仕様
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
+- [API設計](../../architecture/api/API設計.md) -- API 設計の全体方針
 - [テンプレート仕様-サーバー](../server/サーバー.md) -- サーバーテンプレート仕様
 - [テンプレート仕様-BFF](../client/BFF.md) -- BFF テンプレート仕様
 - [テンプレート仕様-Kong](../middleware/Kong.md) -- Kong テンプレート仕様（API ルーティング連携）
 - [テンプレート仕様-Keycloak](../middleware/Keycloak.md) -- Keycloak テンプレート仕様（認証連携）
-- [コーディング規約](../../architecture/conventions/コーディング規約.md) -- コーディング規約

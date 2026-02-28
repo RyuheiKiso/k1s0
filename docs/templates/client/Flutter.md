@@ -12,18 +12,18 @@ k1s0 CLI の `ひな形生成 → client → flutter` で使用するテンプ�
 
 ### 配置制約
 
-- **system/client は共通 SDK として配置** — `system/client/flutter/system_client` は UI を持たない共有ライブラリパッケージであり、直接ユーザーに公開する画面アプリではない（[system-client設計](../../system-servers/common/client設計.md) 参照）
+- **system/client は共通 SDK として配置** — `system/client/flutter/system_client` は UI を持たない共有ライブラリパッケージであり、直接ユーザーに公開する画面アプリではない（[system-client設計](../../servers/_common/client.md) 参照）
 - エンドユーザー向けのアプリ（画面）は **business** および **service** Tier のみに配置する
 
 ### 認証方式
 
-クライアントは BFF（Backend for Frontend）経由の **HttpOnly Cookie** 方式で認証を行う（[認証認可設計](../../auth/design/認証認可設計.md) D-013 参照）。テンプレートの API クライアント設定は Cookie ベースの認証に対応する。
+クライアントは BFF（Backend for Frontend）経由の **HttpOnly Cookie** 方式で認証を行う（[認証認可設計](../../architecture/auth/認証認可設計.md) D-013 参照）。テンプレートの API クライアント設定は Cookie ベースの認証に対応する。
 
 ## 参照マップ
 
 | テンプレートファイル                        | 参照ドキュメント                                  | 該当セクション                               |
 | ------------------------------------------- | ------------------------------------------------- | -------------------------------------------- |
-| `dio_client.dart`                           | [認証認可設計](../../auth/design/認証認可設計.md)                    | D-013 BFF + HttpOnly Cookie                  |
+| `dio_client.dart`                           | [認証認可設計](../../architecture/auth/認証認可設計.md)                    | D-013 BFF + HttpOnly Cookie                  |
 | `Dockerfile`                                | [Dockerイメージ戦略](../../infrastructure/docker/Dockerイメージ戦略.md)        | ベースイメージ一覧・マルチステージビルド      |
 | `nginx.conf`                                | [Dockerイメージ戦略](../../infrastructure/docker/Dockerイメージ戦略.md)        | Flutter クライアント                         |
 | `analysis_options.yaml`                     | [コーディング規約](../../architecture/conventions/コーディング規約.md)            | Dart ツール・設定                            |
@@ -538,13 +538,11 @@ class {{ service_name_pascal }}ListNotifier extends AsyncNotifier<List<{{ servic
 
 ## 関連ドキュメント
 
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
 - [テンプレート仕様-React](React.md) --- React テンプレート
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) --- 変数置換・条件分岐・フィルタの仕様
 - [テンプレート仕様-サーバー](../server/サーバー.md) --- サーバーテンプレート
 - [テンプレート仕様-ライブラリ](../codegen/ライブラリ.md) --- ライブラリテンプレート
 - [テンプレート仕様-データベース](../data/データベース.md) --- データベーステンプレート
-- [CLIフロー](../../cli/flow/CLIフロー.md) --- CLI の対話フローと操作手順
-- [ディレクトリ構成図](../../architecture/overview/ディレクトリ構成図.md) --- 生成先ディレクトリ構成
 - [Dockerイメージ戦略](../../infrastructure/docker/Dockerイメージ戦略.md) --- Docker ビルド戦略
-- [認証認可設計](../../auth/design/認証認可設計.md) --- BFF + Cookie 認証
-- [コーディング規約](../../architecture/conventions/コーディング規約.md) --- Linter・テストツール
+- [認証認可設計](../../architecture/auth/認証認可設計.md) --- BFF + Cookie 認証

@@ -590,7 +590,7 @@ OpenAPI 定義（`api/openapi/`）の変更時に、バリデーションとク�
 - **コード生成**: `oapi-codegen` による Go サーバーコードの生成と差分チェック
 - **SDK 自動生成**: `openapi-generator-cli` による TypeScript / Dart クライアント SDK の生成
 
-詳細な CI ジョブ定義は [API設計.md](../../api/gateway/API設計.md) を参照。
+詳細な CI ジョブ定義は [API設計.md](../../architecture/api/API設計.md) を参照。
 
 ### Helm デプロイ連携
 
@@ -625,11 +625,11 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 - [Dockerイメージ戦略.md](../docker/Dockerイメージ戦略.md) — イメージビルド・タグ・レジストリ
 - [helm設計.md](../kubernetes/helm設計.md) — Helm Chart と values 設計
 - [kubernetes設計.md](../kubernetes/kubernetes設計.md) — Namespace・NetworkPolicy 設計
-- [API設計.md](../../api/gateway/API設計.md) — REST API・gRPC・GraphQL 設計
-- [可観測性設計.md](../../observability/overview/可観測性設計.md) — 監視・ログ・トレース設計
-- [config設計.md](../../cli/config/config設計.md) — config.yaml スキーマ・環境別管理
-- [認証認可設計.md](../../auth/design/認証認可設計.md) — 認証・認可・シークレット管理
+- [API設計.md](../../architecture/api/API設計.md) — REST API・gRPC・GraphQL 設計
+- [可観測性設計.md](../../architecture/observability/可観測性設計.md) — 監視・ログ・トレース設計
+- [config.md](../../cli/config/config設計.md) — config.yaml スキーマ・環境別管理
+- [認証認可設計.md](../../architecture/auth/認証認可設計.md) — 認証・認可・シークレット管理
 - [devcontainer設計.md](../devenv/devcontainer設計.md) — Dev Container 設定
-- [APIゲートウェイ設計.md](../../api/gateway/APIゲートウェイ設計.md) — Kong 構成管理
+- [APIゲートウェイ設計.md](../../architecture/api/APIゲートウェイ設計.md) — Kong 構成管理
 - [メッセージング設計.md](../../architecture/messaging/メッセージング設計.md) — Kafka・Proto スキーマ CI
 - [コーディング規約.md](../../architecture/conventions/コーディング規約.md) — Linter・Formatter・命名規則

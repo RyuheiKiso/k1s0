@@ -2,7 +2,7 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **Docker Compose ファイル** のテンプレート仕様を定義する。ローカル開発環境で使用するインフラサービス（DB・Redis・Kafka 等）の `docker-compose.yaml` と、アプリケーションサービスの `docker-compose.override.yaml.example` を、サービスの構成に応じて自動生成する。
+k1s0 CLI ひな形生成のDocker Composeテンプレート仕様。ローカル開発環境で使用するインフラサービス（DB・Redis・Kafka 等）の `docker-compose.yaml` と、アプリケーションサービスの `docker-compose.override.yaml.example` を、サービスの構成に応じて自動生成する。
 
 Docker Compose 設計の全体像は [docker-compose設計](../../infrastructure/docker/docker-compose設計.md) を参照。
 
@@ -12,9 +12,6 @@ Docker Compose 設計の全体像は [docker-compose設計](../../infrastructure
 | ---------- | ------------------- | ------------------------------------ |
 | `server`   | 生成する            | 生成する                             |
 | `bff`      | 生成する            | 生成する                             |
-| `client`   | 生成しない          | 生成しない                           |
-| `library`  | 生成しない          | 生成しない                           |
-| `database` | 生成しない          | 生成しない                           |
 
 - **docker-compose.yaml**: インフラサービス（DB・Redis・Kafka・Keycloak・Vault）と可観測性サービス（Jaeger・Prometheus・Grafana・Loki）を定義する。サービスの依存インフラに応じて条件付きで含めるサービスが変わる。
 - **docker-compose.override.yaml.example**: アプリケーションサービスのテンプレートを定義する。開発者がコピーして `docker-compose.override.yaml` を作成する。
@@ -471,13 +468,12 @@ docker compose --profile infra down -v
 
 ## 関連ドキュメント
 
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
 - [docker-compose設計](../../infrastructure/docker/docker-compose設計.md) --- Docker Compose の全体設計・プロファイル・サービス定義
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) --- テンプレート変数・条件分岐・フィルタの仕様
-- [テンプレート仕様-サーバー](../server/サーバー.md) --- サーバーテンプレート仕様
-- [テンプレート仕様-BFF](../client/BFF.md) --- BFF テンプレート仕様
 - [テンプレート仕様-Helm](Helm.md) --- Helm Chart テンプレート仕様
 - [テンプレート仕様-CICD](CICD.md) --- CI/CD テンプレート仕様
 - [config設計](../../cli/config/config設計.md) --- config.yaml / config.dev.yaml の設計
 - [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md) --- 開発コンテナの設定
-- [可観測性設計](../../observability/overview/可観測性設計.md) --- Jaeger・Prometheus・Grafana・Loki の設計
+- [可観測性設計](../../architecture/observability/可観測性設計.md) --- Jaeger・Prometheus・Grafana・Loki の設計
 - [メッセージング設計](../../architecture/messaging/メッセージング設計.md) --- Kafka の設計

@@ -21,7 +21,7 @@ redis クレートのラッパーとして以下のメソッドを提供する:
 
 ## config/config.yaml
 
-`config/config.yaml.tera` — [config設計.md](../../cli/config/config設計.md) 準拠のアプリケーション設定ファイル。
+`config/config.yaml.tera` — [config.md](../../cli/config/config設計.md) 準拠のアプリケーション設定ファイル。
 
 ```yaml
 app:
@@ -76,7 +76,7 @@ observability:
 
 ## api/openapi/openapi.yaml
 
-`api/openapi/openapi.yaml.tera` — {% if api_styles is containing("rest") %} に該当。OpenAPI 3.0 定義。[API設計.md](../../api/gateway/API設計.md) D-123 utoipa に準拠する。
+`api/openapi/openapi.yaml.tera` — {% if api_styles is containing("rest") %} に該当。OpenAPI 3.0 定義。[API設計.md](../../architecture/api/API設計.md) D-123 utoipa に準拠する。
 
 ```yaml
 {% if api_styles is containing("rest") %}
@@ -195,7 +195,7 @@ components:
 
 ## api/proto/service.proto
 
-`api/proto/service.proto.tera` — {% if api_styles is containing("grpc") %} に該当。[API設計.md](../../api/gateway/API設計.md) D-009 gRPC 定義パターンに従う。
+`api/proto/service.proto.tera` — {% if api_styles is containing("grpc") %} に該当。[API設計.md](../../architecture/api/API設計.md) D-009 gRPC 定義パターンに従う。
 
 ```proto
 {% if api_styles is containing("grpc") %}
@@ -1042,7 +1042,7 @@ impl KafkaConsumer {
 
 ## src/infra/config.rs
 
-`src/infra/config.rs.tera` — [config設計.md](../../cli/config/config設計.md) 準拠の設定ローダー。
+`src/infra/config.rs.tera` — [config.md](../../cli/config/config設計.md) 準拠の設定ローダー。
 
 ```rust
 use serde::Deserialize;
@@ -1410,21 +1410,21 @@ async fn test_graphql_schema_creation() {
 
 | テンプレートファイル        | 参照ドキュメント                               | 該当セクション                                |
 | --------------------------- | ---------------------------------------------- | --------------------------------------------- |
-| config/config.yaml          | [config設計.md](../../cli/config/config設計.md)                 | YAML スキーマ定義                             |
-| adapter/handler (REST)      | [API設計.md](../../api/gateway/API設計.md)                       | D-007 エラーレスポンス、D-008 バージョニング  |
-| adapter/handler (gRPC)      | [API設計.md](../../api/gateway/API設計.md)                       | D-009 gRPC 定義パターン、D-010 バージョニング |
-| adapter/handler (GraphQL)   | [API設計.md](../../api/gateway/API設計.md)                       | D-011 GraphQL 設計、D-124 実装技術選定        |
-| api/openapi/                | [API設計.md](../../api/gateway/API設計.md)                       | D-123 oapi-codegen / utoipa                   |
+| config/config.yaml          | [config.md](../../cli/config/config設計.md)                 | YAML スキーマ定義                             |
+| adapter/handler (REST)      | [API設計.md](../../architecture/api/API設計.md)                       | D-007 エラーレスポンス、D-008 バージョニング  |
+| adapter/handler (gRPC)      | [API設計.md](../../architecture/api/API設計.md)                       | D-009 gRPC 定義パターン、D-010 バージョニング |
+| adapter/handler (GraphQL)   | [API設計.md](../../architecture/api/API設計.md)                       | D-011 GraphQL 設計、D-124 実装技術選定        |
+| api/openapi/                | [API設計.md](../../architecture/api/API設計.md)                       | D-123 oapi-codegen / utoipa                   |
 | Dockerfile                  | [Dockerイメージ戦略.md](../../infrastructure/docker/Dockerイメージ戦略.md) | ベースイメージ・マルチステージビルド          |
 | infra/messaging             | [メッセージング設計.md](../../architecture/messaging/メッセージング設計.md) | D-119 Kafka トピック、D-120 イベント駆動      |
-| OTel 初期化                 | [可観測性設計.md](../../observability/overview/可観測性設計.md)             | D-110 分散トレーシング                        |
-| 構造化ログ (tracing)        | [可観測性設計.md](../../observability/overview/可観測性設計.md)             | D-109 構造化ログ                              |
+| OTel 初期化                 | [可観測性設計.md](../../architecture/observability/可観測性設計.md)             | D-110 分散トレーシング                        |
+| 構造化ログ (tracing)        | [可観測性設計.md](../../architecture/observability/可観測性設計.md)             | D-109 構造化ログ                              |
 | domain/repository           | [コーディング規約.md](../../architecture/conventions/コーディング規約.md)     | モック生成（mockall）                         |
-| buf.yaml                    | [API設計.md](../../api/gateway/API設計.md)                       | D-009 gRPC 定義、buf lint                    |
-| build.rs（Rust gRPC）       | [API設計.md](../../api/gateway/API設計.md)                       | D-009 tonic-build によるコード生成           |
+| buf.yaml                    | [API設計.md](../../architecture/api/API設計.md)                       | D-009 gRPC 定義、buf lint                    |
+| build.rs（Rust gRPC）       | [API設計.md](../../architecture/api/API設計.md)                       | D-009 tonic-build によるコード生成           |
 | テストファイル（*_test.rs） | [コーディング規約.md](../../architecture/conventions/コーディング規約.md)     | テストツール（mockall）                       |
 | README.md                   | ---                                              | プロジェクト概要・セットアップ手順           |
-| BFF テンプレート            | [API設計.md](../../api/gateway/API設計.md)                       | D-011 GraphQL 設計、BFF パターン             |
+| BFF テンプレート            | [API設計.md](../../architecture/api/API設計.md)                       | D-011 GraphQL 設計、BFF パターン             |
 
 ## BFF (Backend for Frontend) テンプレート
 
@@ -1522,15 +1522,15 @@ async fn create_order(
 
 ## 関連ドキュメント
 
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
 - [テンプレート仕様-サーバー](サーバー.md) --- 概要・条件付き生成表・Tier別配置パス
 - [テンプレート仕様-サーバー-可観測性](サーバー-可観測性.md) --- 可観測性テンプレート
 - [テンプレート仕様-サーバー-認証](サーバー-認証.md) --- 認証認可Middleware テンプレート
 - [テンプレート仕様-サーバー-gRPC](サーバー-gRPC.md) --- gRPC Health Check・GraphQL Subscription
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) --- 変数置換・条件分岐の仕様
-- [API設計](../../api/gateway/API設計.md) --- REST / gRPC / GraphQL 設計
+- [API設計](../../architecture/api/API設計.md) --- REST / gRPC / GraphQL 設計
 - [config設計](../../cli/config/config設計.md) --- config.yaml スキーマと環境別管理
-- [可観測性設計](../../observability/overview/可観測性設計.md) --- 監視・トレーシング設計
-- [認証認可設計](../../auth/design/認証認可設計.md) --- 認証・認可・シークレット管理
+- [可観測性設計](../../architecture/observability/可観測性設計.md) --- 監視・トレーシング設計
+- [認証認可設計](../../architecture/auth/認証認可設計.md) --- 認証・認可・シークレット管理
 - [Dockerイメージ戦略](../../infrastructure/docker/Dockerイメージ戦略.md) --- Docker ビルド戦略
 - [メッセージング設計](../../architecture/messaging/メッセージング設計.md) --- Kafka トピック・イベント駆動設計
-- [コーディング規約](../../architecture/conventions/コーディング規約.md) --- Linter・Formatter・テストツール

@@ -2,7 +2,7 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **Kafka メッセージング** リソースのテンプレート仕様を定義する。Strimzi KafkaTopic CRD（トピック定義）と Schema Registry Subject ConfigMap（スキーマ互換性設定）を、サービスの `tier` と `environment` に応じて自動生成する。
+k1s0 CLI ひな形生成のKafkaテンプレート仕様。Strimzi KafkaTopic CRD（トピック定義）と Schema Registry Subject ConfigMap（スキーマ互換性設定）を、サービスの `tier` と `environment` に応じて自動生成する。
 
 メッセージング設計の全体像は [メッセージング設計](../../architecture/messaging/メッセージング設計.md) を参照。
 
@@ -12,9 +12,6 @@
 | ---------- | ---------- | ----------------------- |
 | `server`   | 条件付き   | 条件付き                |
 | `bff`      | 条件付き   | 条件付き                |
-| `client`   | 生成しない | 生成しない              |
-| `library`  | 生成しない | 生成しない              |
-| `database` | 生成しない | 生成しない              |
 
 > server/bff で `has_kafka == true` の場合のみ生成する。
 
@@ -261,8 +258,9 @@ CLI の対話フローで選択されたオプションに応じて、生成さ�
 
 ## 関連ドキュメント
 
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
 - [メッセージング設計](../../architecture/messaging/メッセージング設計.md) -- Kafka トピック設計・イベント駆動アーキテクチャの全体設計
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) -- テンプレート変数・条件分岐・フィルタの仕様
 - [config設計](../../cli/config/config設計.md) -- config.yaml スキーマ（kafka セクション）
 - [テンプレート仕様-サーバー](../server/サーバー.md) -- サーバーテンプレート（Kafka Producer/Consumer 連携）
 - [テンプレート仕様-Helm](../infrastructure/Helm.md) -- Helm テンプレート仕様

@@ -1,6 +1,6 @@
 # docker-compose 可観測性サービス設計
 
-docker-compose における Prometheus・Grafana・Loki・Jaeger の詳細設定を定義する。基本方針・プロファイル設計は [docker-compose設計.md](docker-compose設計.md) を参照。設計の全体像は [可観測性設計](../../observability/overview/可観測性設計.md) を参照。
+docker-compose における Prometheus・Grafana・Loki・Jaeger の詳細設定を定義する。基本方針・プロファイル設計は [docker-compose設計.md](docker-compose設計.md) を参照。設計の全体像は [可観測性設計](../../architecture/observability/可観測性設計.md) を参照。
 
 ---
 
@@ -117,4 +117,4 @@ providers:
 - [docker-compose設計.md](docker-compose設計.md) -- 基本方針・プロファイル設計
 - [docker-compose-システムサービス設計.md](compose-システムサービス設計.md) -- auth-server・config-server・System プロファイル
 - [docker-compose-インフラサービス設計.md](compose-インフラサービス設計.md) -- PostgreSQL・Keycloak・Kafka・Redis・Kong の詳細設定
-- [可観測性設計.md](../../observability/overview/可観測性設計.md) -- OpenTelemetry・Prometheus・構造化ログ
+- [可観測性設計.md](../../architecture/observability/可観測性設計.md) -- OpenTelemetry・Prometheus・構造化ログ

@@ -2,7 +2,7 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **環境別 config** のテンプレート仕様を定義する。server/bff の `config.yaml.tera` に加え、環境別オーバーライド（`config.dev.yaml.tera`、`config.staging.yaml.tera`、`config.prod.yaml.tera`）を定義し、開発・ステージング・本番環境に応じた設定を自動生成する。
+k1s0 CLI ひな形生成の環境別Configテンプレート仕様。server/bff の `config.yaml.tera` に加え、環境別オーバーライド（`config.dev.yaml.tera`、`config.staging.yaml.tera`、`config.prod.yaml.tera`）を定義し、開発・ステージング・本番環境に応じた設定を自動生成する。
 
 config 設計の全体像は [config設計](../../cli/config/config設計.md) を参照。
 
@@ -352,8 +352,9 @@ CLI の対話フローで選択されたオプションに応じて、生成さ�
 
 ## 関連ドキュメント
 
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
 - [config設計](../../cli/config/config設計.md) -- config の全体設計・スキーマ定義
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) -- テンプレート変数・条件分岐・フィルタの仕様
 - [テンプレート仕様-サーバー](../server/サーバー.md) -- サーバーテンプレート仕様
 - [テンプレート仕様-BFF](../client/BFF.md) -- BFF テンプレート仕様
 - [テンプレート仕様-Dockerfile](../infrastructure/Dockerfile.md) -- Dockerfile テンプレート仕様

@@ -2,9 +2,9 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **Keycloak クライアント登録** のテンプレート仕様を定義する。サービス単位の Keycloak クライアント設定（clientId、redirectUris、webOrigins、bearerOnly、publicClient 等）を、サービスの `tier` と `kind` に応じて自動生成する。
+k1s0 CLI ひな形生成のKeycloakテンプレート仕様。サービス単位の Keycloak クライアント設定（clientId、redirectUris、webOrigins、bearerOnly、publicClient 等）を、サービスの `tier` と `kind` に応じて自動生成する。
 
-認証認可設計の全体像は [認証認可設計](../../auth/design/認証認可設計.md) を参照。
+認証認可設計の全体像は [認証認可設計](../../architecture/auth/認証認可設計.md) を参照。
 
 ## 生成対象
 
@@ -13,8 +13,6 @@
 | `server`   | 生成する        |
 | `bff`      | 生成する        |
 | `client`   | 生成する        |
-| `library`  | 生成しない      |
-| `database` | 生成しない      |
 
 - **server**: Bearer-only クライアント（トークン検証のみ）
 - **bff**: Confidential クライアント（Authorization Code Flow）
@@ -212,10 +210,8 @@ CLI の対話フローで選択されたオプションに応じて、生成さ�
 
 ## 関連ドキュメント
 
-- [認証認可設計](../../auth/design/認証認可設計.md) -- 認証・認可の全体設計
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) -- テンプレート変数・条件分岐・フィルタの仕様
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
+- [認証認可設計](../../architecture/auth/認証認可設計.md) -- 認証・認可の全体設計
 - [テンプレート仕様-Kong](Kong.md) -- Kong テンプレート仕様（認証プラグイン連携）
 - [テンプレート仕様-ServiceMesh](ServiceMesh.md) -- ServiceMesh テンプレート仕様（AuthorizationPolicy 連携）
-- [テンプレート仕様-サーバー](../server/サーバー.md) -- サーバーテンプレート仕様
-- [テンプレート仕様-BFF](../client/BFF.md) -- BFF テンプレート仕様
-- [テンプレート仕様-クライアント](../client/クライアント.md) -- クライアントテンプレート仕様

@@ -388,7 +388,7 @@ observability:
 
 ローカル開発環境では Kong を DB-less モード（declarative config）で起動する。本番環境（DB-backed モード）とは異なり、設定ファイルを直接マウントする簡易構成とする。
 
-> **注記**: 本番環境では Kong は DB-backed モード（PostgreSQL）で運用し、decK で宣言的に管理する。詳細は [APIゲートウェイ設計](../../api/gateway/APIゲートウェイ設計.md) を参照。
+> **注記**: 本番環境では Kong は DB-backed モード（PostgreSQL）で運用し、decK で宣言的に管理する。詳細は [APIゲートウェイ設計](../../architecture/api/APIゲートウェイ設計.md) を参照。
 
 ### docker-compose.yaml での定義
 
@@ -584,9 +584,9 @@ healthcheck:
 - [docker-compose設計.md](docker-compose設計.md) -- 基本方針・プロファイル設計
 - [docker-compose-インフラサービス設計.md](compose-インフラサービス設計.md) -- PostgreSQL・Keycloak・Kafka・Redis・Kong の詳細設定
 - [docker-compose-可観測性サービス設計.md](compose-可観測性サービス設計.md) -- Prometheus・Grafana・Loki・Jaeger の詳細設定
-- [system-server設計.md](system-server設計.md) -- 認証サーバー設計
-- [system-config-server設計.md](../../system-servers/config/server設計.md) -- 設定管理サーバー設計
-- [system-saga-server設計.md](../../system-servers/saga/server設計.md) -- Saga オーケストレーションサーバー設計
-- [system-dlq-manager-server設計.md](../../system-servers/dlq-manager/server設計.md) -- DLQ 管理サーバー設計
-- [APIゲートウェイ設計.md](../../api/gateway/APIゲートウェイ設計.md) -- Kong 構成管理
+- [system-server.md](../../servers/auth/server.md) -- 認証サーバー設計
+- [system-config-server.md](../../servers/config/server.md) -- 設定管理サーバー設計
+- [system-saga-server.md](../../servers/saga/server.md) -- Saga オーケストレーションサーバー設計
+- [system-dlq-manager-server.md](../../servers/dlq-manager/server.md) -- DLQ 管理サーバー設計
+- [APIゲートウェイ設計.md](../../architecture/api/APIゲートウェイ設計.md) -- Kong 構成管理
 - [Dockerイメージ戦略.md](Dockerイメージ戦略.md) -- マルチステージビルド・ベースイメージ

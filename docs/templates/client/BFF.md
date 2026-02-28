@@ -2,7 +2,7 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で BFF（Backend for Frontend）を選択した際に生成される **全ファイルのスケルトンコード** を定義する。対象言語は **Go (gqlgen)** と **Rust (async-graphql)** の2つ。
+k1s0 CLI ひな形生成の BFF テンプレート仕様。対象言語は **Go (gqlgen)** と **Rust (async-graphql)** の2つ。
 
 BFF はフロントエンドクライアントに特化した API ゲートウェイパターンであり、上流の各マイクロサービスを集約し、GraphQL エンドポイントとしてフロントエンドに提供する。
 
@@ -966,10 +966,10 @@ impl SubscriptionRoot {
 
 ## 関連ドキュメント
 
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
 - [テンプレート仕様-サーバー](../server/サーバー.md) --- サーバーテンプレート（BFF の親サーバー、GraphQL Subscription 含む）
-- [API設計](../../api/gateway/API設計.md) --- D-011 GraphQL 設計、BFF パターン
-- [認証認可設計](../../auth/design/認証認可設計.md) --- D-013 BFF + HttpOnly Cookie 認証
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) --- 変数置換・条件分岐の仕様
+- [API設計](../../architecture/api/API設計.md) --- D-011 GraphQL 設計、BFF パターン
+- [認証認可設計](../../architecture/auth/認証認可設計.md) --- D-013 BFF + HttpOnly Cookie 認証
 - [テンプレート仕様-Helm](../infrastructure/Helm.md) --- BFF 用 Helm Chart
-- [CLIフロー](../../cli/flow/CLIフロー.md) --- BFF 生成の対話フロー
 - [テンプレート仕様-レンダリングテスト](../testing/レンダリングテスト.md) --- BFF スナップショットテスト

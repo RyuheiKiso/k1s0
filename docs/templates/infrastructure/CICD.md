@@ -2,7 +2,7 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **GitHub Actions ワークフローファイル** のテンプレート仕様を定義する。CI（継続的インテグレーション）と Deploy（継続的デプロイ）の2種類のワークフローを、サービスの `kind` と `language` に応じて自動生成する。
+k1s0 CLI ひな形生成のCI/CDテンプレート仕様。CI（継続的インテグレーション）と Deploy（継続的デプロイ）の2種類のワークフローを、サービスの `kind` と `language` に応じて自動生成する。
 
 CI/CD 設計の全体像は [CI-CD設計](../../infrastructure/cicd/CI-CD設計.md) を参照。
 
@@ -12,9 +12,9 @@ CI/CD 設計の全体像は [CI-CD設計](../../infrastructure/cicd/CI-CD設計.
 | ---------- | --------------- | ------------------- |
 | `server`   | 生成する        | 生成する            |
 | `bff`      | 生成する        | 生成する            |
-| `client`   | 生成する        | 生成しない          |
-| `library`  | 生成する        | 生成しない          |
-| `database` | 生成する        | 生成しない          |
+| `client`   | 生成する        | ---                 |
+| `library`  | 生成する        | ---                 |
+| `database` | 生成する        | ---                 |
 
 - **CI**: 全 kind で生成する。lint → test → build → security scan のパイプラインを構成する。
 - **Deploy**: `server` および `bff` kind で生成する。Docker イメージのビルド・プッシュと Helm による環境別デプロイを構成する。
@@ -852,8 +852,9 @@ CLI の対話フローで選択されたオプションに応じて、ワーク�
 
 ## 関連ドキュメント
 
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
 - [CI-CD設計](../../infrastructure/cicd/CI-CD設計.md) — CI/CD パイプラインの全体設計
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) — テンプレート変数・条件分岐・フィルタの仕様
 - [テンプレート仕様-サーバー](../server/サーバー.md) — サーバーテンプレート仕様
 - [テンプレート仕様-BFF](../client/BFF.md) — BFF テンプレート仕様
 - [テンプレート仕様-クライアント](../client/クライアント.md) — クライアントテンプレート仕様
@@ -862,4 +863,3 @@ CLI の対話フローで選択されたオプションに応じて、ワーク�
 - [Dockerイメージ戦略](../../infrastructure/docker/Dockerイメージ戦略.md) — Docker ビルド・タグ・レジストリ
 - [helm設計](../../infrastructure/kubernetes/helm設計.md) — Helm Chart と values 設計
 - [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md) — 言語バージョンの同期元
-- [コーディング規約](../../architecture/conventions/コーディング規約.md) — Linter・Formatter 設定

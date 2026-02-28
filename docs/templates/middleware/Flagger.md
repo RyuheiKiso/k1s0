@@ -2,7 +2,7 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **Flagger カナリアリリースリソース** のテンプレート仕様を定義する。Flagger の Canary CRD（カナリアデプロイ制御）と MetricTemplate（カスタムメトリクス定義）を、サービスの `tier` に応じて自動生成する。
+k1s0 CLI ひな形生成のFlaggerテンプレート仕様。Flagger の Canary CRD（カナリアデプロイ制御）と MetricTemplate（カスタムメトリクス定義）を、サービスの `tier` に応じて自動生成する。
 
 カナリアリリースの段階的ロールアウト設計は [サービスメッシュ設計](../../infrastructure/service-mesh/サービスメッシュ設計.md) を、CI/CD パイプラインとの連携は [CI-CD設計](../../infrastructure/cicd/CI-CD設計.md) を参照。
 
@@ -12,9 +12,6 @@
 | ---------- | ------ | -------------- |
 | `server`   | 生成する | 生成する     |
 | `bff`      | 生成する | 生成する     |
-| `client`   | 生成しない | 生成しない |
-| `library`  | 生成しない | 生成しない |
-| `database` | 生成しない | 生成しない |
 
 ## 配置パス
 
@@ -274,11 +271,12 @@ CLI の対話フローで選択されたオプションに応じて、生成さ�
 
 ## 関連ドキュメント
 
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
 - [サービスメッシュ設計](../../infrastructure/service-mesh/サービスメッシュ設計.md) -- カナリアリリースの段階的ロールアウト設計・Flagger Canary リソース定義
 - [CI-CD設計](../../infrastructure/cicd/CI-CD設計.md) -- CI/CD パイプラインとデプロイ戦略
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) -- テンプレート変数・条件分岐・フィルタの仕様
 - [テンプレート仕様-ServiceMesh](ServiceMesh.md) -- ServiceMesh テンプレート仕様（VirtualService・DestinationRule のカナリアサブセット）
 - [テンプレート仕様-Observability](../observability/Observability.md) -- Observability テンプレート仕様（Prometheus メトリクス連携）
 - [テンプレート仕様-Helm](../infrastructure/Helm.md) -- Helm テンプレート仕様
 - [テンプレート仕様-CICD](../infrastructure/CICD.md) -- CI/CD テンプレート仕様
-- [可観測性設計](../../observability/overview/可観測性設計.md) -- Prometheus メトリクス収集・アラート設計
+- [可観測性設計](../../architecture/observability/可観測性設計.md) -- Prometheus メトリクス収集・アラート設計

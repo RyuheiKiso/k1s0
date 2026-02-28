@@ -683,10 +683,10 @@ regions/service/
 
 ## 関連ドキュメント
 
-- [system-config-server設計](../../system-servers/config/server設計.md)
+- [system-config-server設計](../../servers/config/server.md)
 - [navigation設計](navigation設計.md)
-- [system-client設計](../../system-servers/common/client設計.md)
-- [proto設計](../../api/protocols/proto設計.md)
+- [system-client設計](../../servers/_common/client.md)
+- [proto設計](../../architecture/api/proto設計.md)
 - [CLIフロー](../flow/CLIフロー.md)
-- [RBAC設計](../../auth/mechanisms/RBAC設計.md)
+- [RBAC設計](../../architecture/auth/RBAC設計.md)
 - [tier-architecture](../../architecture/overview/tier-architecture.md)

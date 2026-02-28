@@ -2,9 +2,9 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **Observability（可観測性）** リソースのテンプレート仕様を定義する。Prometheus の ServiceMonitor（メトリクス収集定義）と PrometheusRule（アラート定義）を、サービスの `tier` に応じて自動生成する。
+k1s0 CLI ひな形生成の Observability テンプレート仕様。Prometheus の ServiceMonitor（メトリクス収集定義）と PrometheusRule（アラート定義）を、サービスの `tier` に応じて自動生成する。
 
-可観測性設計の全体像は [可観測性設計](../../observability/overview/可観測性設計.md) を参照。
+可観測性設計の全体像は [可観測性設計](../../architecture/observability/可観測性設計.md) を参照。
 
 ## 生成対象
 
@@ -12,9 +12,6 @@
 | ---------- | -------------- | ----------------------- |
 | `server`   | 生成する       | 生成する                |
 | `bff`      | 生成する       | 生成する                |
-| `client`   | 生成しない     | 生成しない              |
-| `library`  | 生成しない     | 生成しない              |
-| `database` | 生成しない     | 生成しない              |
 
 ## 配置パス
 
@@ -286,8 +283,9 @@ CLI の対話フローで選択されたオプションに応じて、生成さ�
 
 ## 関連ドキュメント
 
-- [可観測性設計](../../observability/overview/可観測性設計.md) -- 可観測性の全体設計（メトリクス・ログ・トレース）
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) -- テンプレート変数・条件分岐・フィルタの仕様
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
+- [可観測性設計](../../architecture/observability/可観測性設計.md) -- 可観測性の全体設計（メトリクス・ログ・トレース）
 - [テンプレート仕様-ServiceMesh](../middleware/ServiceMesh.md) -- ServiceMesh テンプレート仕様
 - [テンプレート仕様-Helm](../infrastructure/Helm.md) -- Helm テンプレート仕様
 - [テンプレート仕様-Config](../data/Config.md) -- Config テンプレート仕様（トレース設定連携）

@@ -187,7 +187,7 @@ serviceMonitor:
 
 ### Kong 固有の設定
 
-Kong は公式 Helm Chart のカスタム values を使用する。詳細は [APIゲートウェイ設計](../../api/gateway/APIゲートウェイ設計.md) を参照。
+Kong は公式 Helm Chart のカスタム values を使用する。詳細は [APIゲートウェイ設計](../../architecture/api/APIゲートウェイ設計.md) を参照。
 
 ```yaml
 image:
@@ -249,7 +249,7 @@ replicaCount: 2
 # コンテナ設定
 container:
   port: 8080
-  grpcPort: null                       # gRPC 無効。gRPC 有効時は 50051 を設定（config設計.md の grpc.port デフォルト値と一致）
+  grpcPort: null                       # gRPC 無効。gRPC 有効時は 50051 を設定（config.md の grpc.port デフォルト値と一致）
   command: []
   args: []
 
@@ -690,12 +690,12 @@ spec:
 - [kubernetes設計](kubernetes設計.md)
 - [config設計](../../cli/config/config設計.md)
 - [Dockerイメージ戦略](../docker/Dockerイメージ戦略.md)
-- [認証認可設計](../../auth/design/認証認可設計.md)
+- [認証認可設計](../../architecture/auth/認証認可設計.md)
 - [サービスメッシュ設計](../service-mesh/サービスメッシュ設計.md)
 - [terraform設計](../terraform/terraform設計.md)
-- [APIゲートウェイ設計](../../api/gateway/APIゲートウェイ設計.md)
-- [API設計](../../api/gateway/API設計.md)
+- [APIゲートウェイ設計](../../architecture/api/APIゲートウェイ設計.md)
+- [API設計](../../architecture/api/API設計.md)
 - [メッセージング設計](../../architecture/messaging/メッセージング設計.md)
 - [インフラ設計](../overview/インフラ設計.md)
-- [可観測性設計](../../observability/overview/可観測性設計.md)
+- [可観測性設計](../../architecture/observability/可観測性設計.md)
 - [CI-CD設計](../cicd/CI-CD設計.md)

@@ -2,7 +2,7 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **Terraform 環境ファイル** のテンプレート仕様を定義する。オンプレミス環境における Kubernetes リソースの宣言的管理に必要なファイル群（main.tf, variables.tf, terraform.tfvars, backend.tf, outputs.tf）を、環境（dev / staging / prod）ごとに自動生成する。
+k1s0 CLI ひな形生成のTerraformテンプレート仕様。オンプレミス環境における Kubernetes リソースの宣言的管理に必要なファイル群（main.tf, variables.tf, terraform.tfvars, backend.tf, outputs.tf）を、環境（dev / staging / prod）ごとに自動生成する。
 
 Terraform の全体設計は [terraform設計](../../infrastructure/terraform/terraform設計.md) を参照。
 
@@ -904,12 +904,13 @@ infra/terraform/environments/prod/
 
 ## 関連ドキュメント
 
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
 - [terraform設計](../../infrastructure/terraform/terraform設計.md) --- Terraform のモジュール設計・管理対象・運用ルール
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) --- テンプレート変数・条件分岐・フィルタの仕様
 - [テンプレート仕様-Helm](Helm.md) --- Helm Chart テンプレート仕様
 - [テンプレート仕様-CICD](CICD.md) --- CI/CD ワークフローテンプレート仕様
 - [kubernetes設計](../../infrastructure/kubernetes/kubernetes設計.md) --- Kubernetes クラスタ設計
-- [可観測性設計](../../observability/overview/可観測性設計.md) --- Prometheus / Grafana / Jaeger / Loki の設計
+- [可観測性設計](../../architecture/observability/可観測性設計.md) --- Prometheus / Grafana / Jaeger / Loki の設計
 - [サービスメッシュ設計](../../infrastructure/service-mesh/サービスメッシュ設計.md) --- Istio / Kiali / Flagger の設計
-- [認証認可設計](../../auth/design/認証認可設計.md) --- Vault シークレット管理
+- [認証認可設計](../../architecture/auth/認証認可設計.md) --- Vault シークレット管理
 - [インフラ設計](../../infrastructure/overview/インフラ設計.md) --- オンプレミスインフラの全体設計

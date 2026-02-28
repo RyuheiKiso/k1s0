@@ -222,6 +222,6 @@ docker buildx build \
 - [helm設計](../kubernetes/helm設計.md)
 - [devcontainer設計](../devenv/devcontainer設計.md)
 - [インフラ設計](../overview/インフラ設計.md)
-- [API設計](../../api/gateway/API設計.md)
+- [API設計](../../architecture/api/API設計.md)
 - [テンプレート仕様-サーバー](../../templates/server/サーバー.md) — サーバー Dockerfile テンプレート
 - [テンプレート仕様-クライアント](../../templates/client/クライアント.md) — クライアント Dockerfile テンプレート

@@ -353,7 +353,7 @@ modules/database/
 └── backup.tf        # バックアップ CronJob 定義
 ```
 
-- PostgreSQL: Bitnami Helm Chart を使用する（dev/staging: `postgresql` Chart、prod: `postgresql-ha` Chart で HA 構成。Kong 用 PostgreSQL HA の詳細は [APIゲートウェイ設計.md](../../api/gateway/APIゲートウェイ設計.md) を参照）
+- PostgreSQL: Bitnami Helm Chart を使用する（dev/staging: `postgresql` Chart、prod: `postgresql-ha` Chart で HA 構成。Kong 用 PostgreSQL HA の詳細は [APIゲートウェイ設計.md](../../architecture/api/APIゲートウェイ設計.md) を参照）
 - MySQL: Bitnami `mysql` Helm Chart を使用する
 - バックアップ: CronJob で `pg_dump` / `mysqldump` を実行し、Ceph オブジェクトストレージに保存する
 - 環境別設定: `variables.tf` で prod / staging / dev の構成（レプリカ数、ストレージサイズ等）を切り替える
@@ -745,6 +745,6 @@ Terraform と Ansible はインフラ構築の異なるレイヤーを担当す�
 - [helm設計](../kubernetes/helm設計.md)
 - [インフラ設計](../overview/インフラ設計.md)
 - [サービスメッシュ設計](../service-mesh/サービスメッシュ設計.md)
-- [可観測性設計](../../observability/overview/可観測性設計.md)
-- [認証認可設計](../../auth/design/認証認可設計.md)
-- [APIゲートウェイ設計](../../api/gateway/APIゲートウェイ設計.md)
+- [可観測性設計](../../architecture/observability/可観測性設計.md)
+- [認証認可設計](../../architecture/auth/認証認可設計.md)
+- [APIゲートウェイ設計](../../architecture/api/APIゲートウェイ設計.md)

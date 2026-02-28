@@ -139,10 +139,12 @@ async fn graphql_handler(
 
 ## 関連ドキュメント
 
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
 - [テンプレート仕様-サーバー](サーバー.md) --- 概要・条件付き生成表・Tier別配置パス
 - [テンプレート仕様-サーバー-Rust](サーバー-Rust.md) --- Rust テンプレート詳細
 - [テンプレート仕様-サーバー-可観測性](サーバー-可観測性.md) --- 可観測性テンプレート
 - [テンプレート仕様-サーバー-認証](サーバー-認証.md) --- 認証認可Middleware テンプレート
 - [テンプレート仕様-Helm](../infrastructure/Helm.md) --- Helm Chart テンプレート（gRPC ヘルスチェック設定含む）
 - [テンプレート仕様-BFF](../client/BFF.md) --- BFF テンプレート
-- [API設計](../../api/gateway/API設計.md) --- REST / gRPC / GraphQL 設計
+- [API設計](../../architecture/api/API設計.md) --- REST / gRPC / GraphQL 設計

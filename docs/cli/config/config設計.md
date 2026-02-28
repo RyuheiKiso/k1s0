@@ -335,7 +335,7 @@ observability:
 | Kafka SASL パスワード  | Vault           | 空文字で定義                          |
 
 Vault Agent Injector が Pod 起動時にシークレットをファイルとして注入し、アプリケーションが起動時に読み込む。
-各シークレットの具体的な Vault パスとキー名は [認証認可設計.md](../../auth/design/認証認可設計.md) の「シークレットパス体系」を参照。
+各シークレットの具体的な Vault パスとキー名は [認証認可設計.md](../../architecture/auth/認証認可設計.md) の「シークレットパス体系」を参照。
 
 ## Vault ブートストラップ
 
@@ -617,12 +617,12 @@ impl Config {
 ## 関連ドキュメント
 
 - [helm設計](../../infrastructure/kubernetes/helm設計.md)
-- [認証認可設計](../../auth/design/認証認可設計.md)
-- [可観測性設計](../../observability/overview/可観測性設計.md)
+- [認証認可設計](../../architecture/auth/認証認可設計.md)
+- [可観測性設計](../../architecture/observability/可観測性設計.md)
 - [docker-compose設計](../../infrastructure/docker/docker-compose設計.md)
 - [メッセージング設計](../../architecture/messaging/メッセージング設計.md)
-- [API設計](../../api/gateway/API設計.md)
+- [API設計](../../architecture/api/API設計.md)
 - [CLIフロー](../flow/CLIフロー.md)
 - [CI-CD設計](../../infrastructure/cicd/CI-CD設計.md)
 - [テンプレート仕様-サーバー](../../templates/server/サーバー.md) — config.yaml テンプレートの詳細
-- [system-config-server設計](../../system-servers/config/server設計.md)
+- [system-config-server設計](../../servers/config/server.md)

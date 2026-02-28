@@ -12,19 +12,19 @@ k1s0 CLI の `ひな形生成 → client → react` で使用するテンプレ�
 
 ### 配置制約
 
-- **system/client は共通 SDK として配置** — `system/client/react/system-client` は UI を持たない共有ライブラリパッケージであり、直接ユーザーに公開する画面アプリではない（[system-client設計](../../system-servers/common/client設計.md) 参照）
+- **system/client は共通 SDK として配置** — `system/client/react/system-client` は UI を持たない共有ライブラリパッケージであり、直接ユーザーに公開する画面アプリではない（[system-client設計](../../servers/_common/client.md) 参照）
 - エンドユーザー向けのアプリ（画面）は **business** および **service** Tier のみに配置する
 
 ### 認証方式
 
-クライアントは BFF（Backend for Frontend）経由の **HttpOnly Cookie** 方式で認証を行う（[認証認可設計](../../auth/design/認証認可設計.md) D-013 参照）。テンプレートの API クライアント設定は `withCredentials: true` を前提とする。
+クライアントは BFF（Backend for Frontend）経由の **HttpOnly Cookie** 方式で認証を行う（[認証認可設計](../../architecture/auth/認証認可設計.md) D-013 参照）。テンプレートの API クライアント設定は `withCredentials: true` を前提とする。
 
 ## 参照マップ
 
 | テンプレートファイル                        | 参照ドキュメント                                  | 該当セクション                               |
 | ------------------------------------------- | ------------------------------------------------- | -------------------------------------------- |
-| `api-client.ts`                             | [認証認可設計](../../auth/design/認証認可設計.md)                    | D-013 BFF + HttpOnly Cookie                  |
-| `api-client.ts`（CSRF トークン）            | [認証認可設計](../../auth/design/認証認可設計.md)                    | CSRF 対策                                    |
+| `api-client.ts`                             | [認証認可設計](../../architecture/auth/認証認可設計.md)                    | D-013 BFF + HttpOnly Cookie                  |
+| `api-client.ts`（CSRF トークン）            | [認証認可設計](../../architecture/auth/認証認可設計.md)                    | CSRF 対策                                    |
 | `Dockerfile`                                | [Dockerイメージ戦略](../../infrastructure/docker/Dockerイメージ戦略.md)        | ベースイメージ一覧・マルチステージビルド      |
 | `nginx.conf`                                | [Dockerイメージ戦略](../../infrastructure/docker/Dockerイメージ戦略.md)        | React クライアント                           |
 | `vitest.config.ts` / `msw-setup.ts`         | [コーディング規約](../../architecture/conventions/コーディング規約.md)            | テストツール一覧（TypeScript）               |
@@ -325,7 +325,7 @@ export function App() {
 
 `CLI/templates/client/react/src/lib/api-client.ts.tera`
 
-BFF + HttpOnly Cookie 認証に対応した axios インスタンス。トークンは BFF がサーバーサイドで管理するため、クライアントから直接扱わない（[認証認可設計](../../auth/design/認証認可設計.md) D-013 参照）。
+BFF + HttpOnly Cookie 認証に対応した axios インスタンス。トークンは BFF がサーバーサイドで管理するため、クライアントから直接扱わない（[認証認可設計](../../architecture/auth/認証認可設計.md) D-013 参照）。
 
 ```typescript
 import axios from 'axios';
@@ -617,13 +617,11 @@ npm run build
 
 ## 関連ドキュメント
 
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
 - [テンプレート仕様-Flutter](Flutter.md) --- Flutter テンプレート
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) --- 変数置換・条件分岐・フィルタの仕様
 - [テンプレート仕様-サーバー](../server/サーバー.md) --- サーバーテンプレート
 - [テンプレート仕様-ライブラリ](../codegen/ライブラリ.md) --- ライブラリテンプレート
 - [テンプレート仕様-データベース](../data/データベース.md) --- データベーステンプレート
-- [CLIフロー](../../cli/flow/CLIフロー.md) --- CLI の対話フローと操作手順
-- [ディレクトリ構成図](../../architecture/overview/ディレクトリ構成図.md) --- 生成先ディレクトリ構成
 - [Dockerイメージ戦略](../../infrastructure/docker/Dockerイメージ戦略.md) --- Docker ビルド戦略
-- [認証認可設計](../../auth/design/認証認可設計.md) --- BFF + Cookie 認証
-- [コーディング規約](../../architecture/conventions/コーディング規約.md) --- Linter・テストツール
+- [認証認可設計](../../architecture/auth/認証認可設計.md) --- BFF + Cookie 認証

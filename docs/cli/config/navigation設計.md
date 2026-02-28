@@ -502,9 +502,9 @@ regions/system/
 ## 関連ドキュメント
 
 - [tier-architecture](../../architecture/overview/tier-architecture.md)
-- [system-client設計](../../system-servers/common/client設計.md)
-- [proto設計](../../api/protocols/proto設計.md)
-- [認証認可設計](../../auth/design/認証認可設計.md)
+- [system-client設計](../../servers/_common/client.md)
+- [proto設計](../../architecture/api/proto設計.md)
+- [認証認可設計](../../architecture/auth/認証認可設計.md)
 - [CLIフロー](../flow/CLIフロー.md)
 - [テンプレート仕様-React](../../templates/client/React.md)
 - [テンプレート仕様-Flutter](../../templates/client/Flutter.md)

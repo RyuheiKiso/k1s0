@@ -2,7 +2,7 @@
 
 D-006: Vault 戦略。認証方式、シークレットエンジン、パス体系、監査ログを定義する。
 
-元ドキュメント: [認証認可設計.md](../../auth/design/認証認可設計.md)
+元ドキュメント: [認証認可設計.md](../../architecture/auth/認証認可設計.md)
 
 ---
 
@@ -299,8 +299,8 @@ spec:
 
 ## 関連ドキュメント
 
-- [認証認可設計.md](../../auth/design/認証認可設計.md) -- 基本方針・技術スタック
-- [認証設計.md](../../auth/design/認証設計.md) -- OAuth 2.0 / OIDC 実装
-- [RBAC設計.md](../../auth/mechanisms/RBAC設計.md) -- RBAC 設計
+- [認証認可設計.md](../../architecture/auth/認証認可設計.md) -- 基本方針・技術スタック
+- [認証設計.md](../../architecture/auth/認証設計.md) -- OAuth 2.0 / OIDC 実装
+- [RBAC設計.md](../../architecture/auth/RBAC設計.md) -- RBAC 設計
 - [helm設計.md](../kubernetes/helm設計.md) -- Helm Chart・Vault Agent Injector
 - [terraform設計.md](../terraform/terraform設計.md) -- Terraform モジュール

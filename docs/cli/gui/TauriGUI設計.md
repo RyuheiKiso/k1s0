@@ -158,11 +158,11 @@ GUI の導入に伴うテンプレート変数（[テンプレートエンジン
 
 ## 認証方式
 
-GUI アプリケーション自体の認証（k1s0 の操作に必要な認証）は、CLI と同様に **Device Authorization Grant** フローを使用する（[認証認可設計](../../auth/design/認証認可設計.md) 参照）。ただし、Tauri の WebView を利用した **Authorization Code + PKCE** フローへの変更も検討可能である。
+GUI アプリケーション自体の認証（k1s0 の操作に必要な認証）は、CLI と同様に **Device Authorization Grant** フローを使用する（[認証認可設計](../../architecture/auth/認証認可設計.md) 参照）。ただし、Tauri の WebView を利用した **Authorization Code + PKCE** フローへの変更も検討可能である。
 
 | 方式                         | 適用対象     | 説明                                           |
 | ---------------------------- | ------------ | ---------------------------------------------- |
-| Device Authorization Grant   | CLI          | ブラウザで認証コードを入力（[認証認可設計](../../auth/design/認証認可設計.md) 準拠） |
+| Device Authorization Grant   | CLI          | ブラウザで認証コードを入力（[認証認可設計](../../architecture/auth/認証認可設計.md) 準拠） |
 | Authorization Code + PKCE    | GUI（候補）  | Tauri の WebView 内でリダイレクトベースの認証   |
 
 ## Flutter クライアントとの棲み分け
@@ -196,5 +196,5 @@ CI/CD パイプライン（GitHub Actions）でクロスプラットフォーム
 - [tier-architecture](../../architecture/overview/tier-architecture.md) — 3 階層アーキテクチャ
 - [テンプレートエンジン仕様](../../templates/engine/テンプレートエンジン仕様.md) — Tera テンプレート変数・導出ルール
 - [テンプレート仕様-クライアント](../../templates/client/クライアント.md) — React / Flutter クライアントテンプレート
-- [認証認可設計](../../auth/design/認証認可設計.md) — OAuth2 / OIDC フロー
+- [認証認可設計](../../architecture/auth/認証認可設計.md) — OAuth2 / OIDC フロー
 - [CI-CD設計](../../infrastructure/cicd/CI-CD設計.md) — GitHub Actions パイプライン

@@ -2,7 +2,7 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **Dev Container 設定ファイル** のテンプレート仕様を定義する。サービスの `language`、`framework`、および依存インフラ（DB / Kafka / Redis）に応じて、VS Code Dev Container の設定ファイルを自動生成する。
+k1s0 CLI ひな形生成のDev Containerテンプレート仕様。サービスの `language`、`framework`、および依存インフラ（DB / Kafka / Redis）に応じて、VS Code Dev Container の設定ファイルを自動生成する。
 
 Dev Container の全体設計は [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md) を参照。
 
@@ -490,14 +490,10 @@ Dev Container テンプレートで使用する言語・ツールのバージョ
 
 ## 関連ドキュメント
 
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
 - [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md) --- Dev Container の全体設計
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) --- テンプレート変数・条件分岐・フィルタの仕様
-- [テンプレート仕様-サーバー](../server/サーバー.md) --- サーバーテンプレート仕様
-- [テンプレート仕様-BFF](../client/BFF.md) --- BFF テンプレート仕様
-- [テンプレート仕様-クライアント](../client/クライアント.md) --- クライアントテンプレート仕様
-- [テンプレート仕様-ライブラリ](../codegen/ライブラリ.md) --- ライブラリテンプレート仕様
 - [テンプレート仕様-CICD](CICD.md) --- CI/CD テンプレート仕様
 - [テンプレート仕様-Helm](Helm.md) --- Helm テンプレート仕様
 - [docker-compose設計](../../infrastructure/docker/docker-compose設計.md) --- Docker Compose 設計
 - [Dockerイメージ戦略](../../infrastructure/docker/Dockerイメージ戦略.md) --- Docker ビルド・タグ・レジストリ
-- [コーディング規約](../../architecture/conventions/コーディング規約.md) --- Linter・Formatter 設定

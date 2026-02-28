@@ -2,9 +2,9 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **Kong API Gateway** のテンプレート仕様を定義する。サービス単位の Kong Service/Route 定義およびプラグイン設定（レート制限、認証、ロギング）を、サービスの `tier` と `api_styles` に応じて自動生成する。
+k1s0 CLI ひな形生成のKongテンプレート仕様。サービス単位の Kong Service/Route 定義およびプラグイン設定（レート制限、認証、ロギング）を、サービスの `tier` と `api_styles` に応じて自動生成する。
 
-API ゲートウェイ設計の全体像は [APIゲートウェイ設計](../../api/gateway/APIゲートウェイ設計.md) を参照。
+API ゲートウェイ設計の全体像は [APIゲートウェイ設計](../../architecture/api/APIゲートウェイ設計.md) を参照。
 
 ## 生成対象
 
@@ -12,9 +12,6 @@ API ゲートウェイ設計の全体像は [APIゲートウェイ設計](../../
 | ---------- | ------------ | ------------ |
 | `server`   | 生成する     | 生成する     |
 | `bff`      | 生成する     | 生成する     |
-| `client`   | 生成しない   | 生成しない   |
-| `library`  | 生成しない   | 生成しない   |
-| `database` | 生成しない   | 生成しない   |
 
 ## 配置パス
 
@@ -264,9 +261,10 @@ CLI の対話フローで選択されたオプションに応じて、生成さ�
 
 ## 関連ドキュメント
 
-- [APIゲートウェイ設計](../../api/gateway/APIゲートウェイ設計.md) -- Kong API Gateway の全体設計
-- [認証認可設計](../../auth/design/認証認可設計.md) -- 認証・認可の詳細設計
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) -- テンプレート変数・条件分岐・フィルタの仕様
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
+- [APIゲートウェイ設計](../../architecture/api/APIゲートウェイ設計.md) -- Kong API Gateway の全体設計
+- [認証認可設計](../../architecture/auth/認証認可設計.md) -- 認証・認可の詳細設計
 - [テンプレート仕様-Keycloak](Keycloak.md) -- Keycloak テンプレート仕様
 - [テンプレート仕様-ServiceMesh](ServiceMesh.md) -- ServiceMesh テンプレート仕様
 - [テンプレート仕様-Helm](../infrastructure/Helm.md) -- Helm テンプレート仕様

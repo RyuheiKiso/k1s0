@@ -430,7 +430,7 @@ service の場合、ステップ 3 で入力したサービス名をアプリ名
 - Go: `usecase_test.go`、`handler_test.go`、`repository_test.go`（DB 有効時）
 - Rust: `tests/integration_test.rs`
 
-> **注記**: service Tierのサーバーで GraphQL（API 方式選択）を選択した場合、通常のサーバー構成に加えて `server/{言語}/bff/` ディレクトリに GraphQL BFF のひな形が生成される。BFF の詳細な内部構成は [API設計.md](../../api/gateway/API設計.md) の「BFF ディレクトリ構成」を参照。
+> **注記**: service Tierのサーバーで GraphQL（API 方式選択）を選択した場合、通常のサーバー構成に加えて `server/{言語}/bff/` ディレクトリに GraphQL BFF のひな形が生成される。BFF の詳細な内部構成は [API設計.md](../../architecture/api/API設計.md) の「BFF ディレクトリ構成」を参照。
 
 #### GraphQL BFF 生成フロー（service Tier 限定）
 
@@ -797,7 +797,7 @@ prod 環境でのデプロイ失敗時は、ロールバックの選択肢を表
 ## 関連ドキュメント
 
 - [ディレクトリ構成図](../../architecture/overview/ディレクトリ構成図.md)
-- [API設計](../../api/gateway/API設計.md)
+- [API設計](../../architecture/api/API設計.md)
 - [tier-architecture](../../architecture/overview/tier-architecture.md)
 - [config設計](../config/config設計.md)
 - [コンセプト](../../architecture/overview/コンセプト.md)

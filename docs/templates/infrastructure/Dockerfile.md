@@ -2,7 +2,7 @@
 
 ## 概要
 
-本ドキュメントは、k1s0 CLI の「ひな形生成」機能で生成される **Dockerfile** テンプレートの仕様を定義する。server/rust、bff/go、bff/rust、client/react、client/flutter の5種類の Dockerfile テンプレートを提供し、各言語・フレームワークに最適化されたマルチステージビルドを自動生成する。
+k1s0 CLI ひな形生成のDockerfileテンプレート仕様。server/rust、bff/go、bff/rust、client/react、client/flutter の5種類の Dockerfile テンプレートを提供し、各言語・フレームワークに最適化されたマルチステージビルドを自動生成する。
 
 Docker イメージ戦略の全体像は [Dockerイメージ戦略](../../infrastructure/docker/Dockerイメージ戦略.md) を参照。
 
@@ -253,11 +253,9 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ## 関連ドキュメント
 
+> 共通参照は [テンプレートエンジン仕様.md](../engine/テンプレートエンジン仕様.md) を参照。
+
 - [Dockerイメージ戦略](../../infrastructure/docker/Dockerイメージ戦略.md) -- Docker イメージの設計方針・ベースイメージ選定
-- [テンプレートエンジン仕様](../engine/テンプレートエンジン仕様.md) -- テンプレート変数・条件分岐・フィルタの仕様
-- [テンプレート仕様-サーバー](../server/サーバー.md) -- サーバーテンプレート仕様
-- [テンプレート仕様-BFF](../client/BFF.md) -- BFF テンプレート仕様
-- [テンプレート仕様-クライアント](../client/クライアント.md) -- クライアントテンプレート仕様
 - [テンプレート仕様-DockerCompose](DockerCompose.md) -- Docker Compose テンプレート仕様
 - [テンプレート仕様-CICD](CICD.md) -- CI/CD テンプレート仕様
 - [テンプレート仕様-Config](../data/Config.md) -- Config テンプレート仕様
