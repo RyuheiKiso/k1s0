@@ -1,58 +1,58 @@
 apiVersion: configuration.konghq.com/v1
 kind: KongIngress
 metadata:
-  name: {{ service_name }}-ingress
+  name: {{ service_name }}
   namespace: {{ namespace }}
   labels:
     app: {{ service_name }}
     tier: {{ tier }}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ service_name }}-kong
-  namespace: {{ namespace }}
-  annotations:
-    konghq.com/override: {{ service_name }}-ingress
-  labels:
-    app: {{ service_name }}
-    tier: {{ tier }}
-spec:
-  ports:
-    - name: http
-      port: {{ server_port }}
-      targetPort: {{ server_port }}
-      protocol: TCP
-{% if api_styles is containing("grpc") %}
-    - name: grpc
-      port: {{ grpc_port }}
-      targetPort: {{ grpc_port }}
-      protocol: TCP
-{% endif %}
-  selector:
-    app: {{ service_name }}
+proxy:
+  protocol: http
+  path: /
+  connect_timeout: 10000
+  write_timeout: 60000
+  read_timeout: 60000
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ service_name }}-route
+  name: {{ service_name }}
   namespace: {{ namespace }}
   annotations:
-    konghq.com/strip-path: "true"
-    konghq.com/protocols: "https"
+    konghq.com/override: {{ service_name }}
+    konghq.com/strip-path: "false"
+{% if api_styles is containing("grpc") %}
+    konghq.com/protocols: "http,https,grpc,grpcs"
+{% else %}
+    konghq.com/protocols: "http,https"
+{% endif %}
   labels:
     app: {{ service_name }}
     tier: {{ tier }}
 spec:
   ingressClassName: kong
   rules:
-    - host: api.k1s0.internal.example.com
+{% if api_styles is containing("rest") or api_styles is containing("graphql") %}
+    - host: {{ service_name }}.{{ namespace }}.svc.cluster.local
       http:
         paths:
-          - path: /{{ service_name }}
+          - path: /api/{{ service_name_snake }}
             pathType: Prefix
             backend:
               service:
-                name: {{ service_name }}-kong
+                name: {{ service_name }}
                 port:
                   number: {{ server_port }}
+{% endif %}
+{% if api_styles is containing("grpc") %}
+    - host: {{ service_name }}.{{ namespace }}.svc.cluster.local
+      http:
+        paths:
+          - path: /{{ service_name_snake }}.
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ service_name }}
+                port:
+                  number: {{ grpc_port }}
+{% endif %}

@@ -1,3 +1,4 @@
+# Rate Limiting Plugin
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
@@ -6,22 +7,26 @@ metadata:
   labels:
     app: {{ service_name }}
     tier: {{ tier }}
+plugin: rate-limiting
 config:
 {% if tier == "system" %}
-  minute: 120
-  hour: 3600
+  minute: 3000
+  second: 100
 {% elif tier == "business" %}
-  minute: 60
-  hour: 1800
+  minute: 1000
+  second: 40
 {% else %}
-  minute: 30
-  hour: 900
+  minute: 500
+  second: 20
 {% endif %}
   policy: redis
   redis_host: redis.k1s0-system.svc.cluster.local
   redis_port: 6379
-plugin: rate-limiting
+  redis_database: 1
+  fault_tolerant: true
+  hide_client_headers: false
 ---
+# CORS Plugin
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
@@ -30,22 +35,29 @@ metadata:
   labels:
     app: {{ service_name }}
     tier: {{ tier }}
+plugin: cors
 config:
   origins:
-    - "https://app.k1s0.internal.example.com"
+    - "https://*.k1s0.internal.example.com"
   methods:
     - GET
     - POST
     - PUT
+    - PATCH
     - DELETE
     - OPTIONS
   headers:
     - Authorization
     - Content-Type
+    - X-Request-ID
+  exposed_headers:
+    - X-RateLimit-Limit
+    - X-RateLimit-Remaining
+    - X-RateLimit-Reset
   credentials: true
   max_age: 3600
-plugin: cors
 ---
+# JWT Plugin
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
@@ -54,10 +66,13 @@ metadata:
   labels:
     app: {{ service_name }}
     tier: {{ tier }}
+plugin: jwt
 config:
-  uri_param_names:
-    - jwt
+  uri_param_names: []
+  cookie_names: []
+  key_claim_name: kid
   claims_to_verify:
     - exp
-  key_claim_name: iss
-plugin: jwt
+  maximum_expiration: 900
+  header_names:
+    - Authorization

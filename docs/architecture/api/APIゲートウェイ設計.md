@@ -89,7 +89,7 @@ ingressController:
 postgresql:
   enabled: false    # 外部 PostgreSQL を使用
 
-replicaCount: 2
+replicaCount: 2                   # ベース値（staging デフォルト。dev/prod は環境別 values で上書き）
 
 resources:
   requests:
@@ -180,6 +180,11 @@ plugins:
       max_age: 3600
       credentials: true
 ```
+
+> **環境別 CORS origins**: 上記は prod 環境用の設定。環境別 values ファイルで origins を上書きする。
+> - dev: `["http://localhost:3000", "http://localhost:5173"]`
+> - staging: `["https://*.staging.k1s0.internal.example.com"]`
+> - prod: `["https://*.k1s0.internal.example.com"]`
 
 #### Prometheus プラグイン
 
@@ -346,6 +351,7 @@ plugins:
       key_claim_name: kid
       claims_to_verify:
         - exp
+      maximum_expiration: 900     # 15分（Access Token のライフタイム）
 
   - name: cors
     config:
@@ -361,7 +367,13 @@ plugins:
 
 ### Tier 別レート制限オーバーライド例
 
-グローバルレート制限（`minute: 500`）は service Tier のデフォルト値である。system Tier および business Tier のサービスには、ルート/サービスレベルで個別に上書き設定する。
+グローバルレート制限（`minute: 500`）は service Tier のデフォルト値である。system Tier および business Tier のサービスには、ルート/サービスレベルで個別に上書き設定する。Tier 別デフォルト値の詳細は [REST-API設計.md](REST-API設計.md) の「Tier 別デフォルト値」を参照。
+
+| Tier     | minute | second | 説明                               |
+| -------- | ------ | ------ | ---------------------------------- |
+| system   | 3000   | 100    | 内部基盤サービス（高頻度呼び出し） |
+| business | 1000   | 40     | 領域共通サービス                   |
+| service  | 500    | 20     | 個別業務サービス（グローバルデフォルト） |
 
 ```yaml
 # system Tier のオーバーライド例（auth-server）
@@ -370,17 +382,19 @@ services:
     plugins:
       - name: rate-limiting
         config:
-          minute: 1000            # system Tier: 高スループット要件
+          minute: 3000            # system Tier: 高スループット要件（REST-API設計.md 参照）
+          second: 100             # 秒あたりの上限（バースト制御）
           policy: redis
           redis_host: redis.k1s0-system.svc.cluster.local
 
-# business Tier のオーバーライド例（accounting）
+# business Tier のオーバーライド例（accounting-ledger）
 services:
-  - name: accounting-v1
+  - name: accounting-ledger-v1
     plugins:
       - name: rate-limiting
         config:
-          minute: 800             # business Tier: 中程度のスループット
+          minute: 1000            # business Tier: 中程度のスループット（REST-API設計.md 参照）
+          second: 40              # 秒あたりの上限（バースト制御）
           policy: redis
           redis_host: redis.k1s0-system.svc.cluster.local
 ```

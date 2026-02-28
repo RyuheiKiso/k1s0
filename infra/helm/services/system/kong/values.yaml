@@ -1,11 +1,11 @@
 # Kong Helm Chart Base Values
 # Chart: kong/kong
-# Kong version: 3.7
+# Kong version: 3.8
 # Mode: DB-backed (PostgreSQL)
 
 image:
   repository: kong
-  tag: "3.7"
+  tag: "3.8"
 
 env:
   database: postgres
