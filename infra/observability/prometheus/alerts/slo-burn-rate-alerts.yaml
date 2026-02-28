@@ -1,0 +1,86 @@
+groups:
+  - name: slo-burn-rate-alerts
+    rules:
+      # system Tier (SLO 99.95%, error_budget = 0.0005)
+      - alert: SLOBurnRateCritical
+        expr: |
+          (
+            (1 - (sum(rate(http_requests_total{namespace="k1s0-system", status!~"5.."}[1h])) by (service)
+             / sum(rate(http_requests_total{namespace="k1s0-system"}[1h])) by (service)))
+            / 0.0005
+          ) > 14.4
+          and
+          (
+            (1 - (sum(rate(http_requests_total{namespace="k1s0-system", status!~"5.."}[5m])) by (service)
+             / sum(rate(http_requests_total{namespace="k1s0-system"}[5m])) by (service)))
+            / 0.0005
+          ) > 14.4
+        for: 2m
+        labels:
+          severity: critical
+          tier: system
+        annotations:
+          summary: "System Tier SLO burn rate critical: {{ $labels.service }}"
+          description: "エラーバジェットの消費速度が 14.4 倍を超えています。約 2 日でバジェットを使い切ります。"
+
+      - alert: SLOBurnRateWarning
+        expr: |
+          (
+            (1 - (sum(rate(http_requests_total{namespace="k1s0-system", status!~"5.."}[6h])) by (service)
+             / sum(rate(http_requests_total{namespace="k1s0-system"}[6h])) by (service)))
+            / 0.0005
+          ) > 6
+          and
+          (
+            (1 - (sum(rate(http_requests_total{namespace="k1s0-system", status!~"5.."}[30m])) by (service)
+             / sum(rate(http_requests_total{namespace="k1s0-system"}[30m])) by (service)))
+            / 0.0005
+          ) > 6
+        for: 5m
+        labels:
+          severity: warning
+          tier: system
+        annotations:
+          summary: "System Tier SLO burn rate warning: {{ $labels.service }}"
+          description: "エラーバジェットの消費速度が 6 倍を超えています。約 5 日でバジェットを使い切ります。"
+
+      # business / service Tier (SLO 99.9%, error_budget = 0.001)
+      - alert: SLOBurnRateCritical
+        expr: |
+          (
+            (1 - (sum(rate(http_requests_total{namespace=~"k1s0-business|k1s0-service", status!~"5.."}[1h])) by (service)
+             / sum(rate(http_requests_total{namespace=~"k1s0-business|k1s0-service"}[1h])) by (service)))
+            / 0.001
+          ) > 14.4
+          and
+          (
+            (1 - (sum(rate(http_requests_total{namespace=~"k1s0-business|k1s0-service", status!~"5.."}[5m])) by (service)
+             / sum(rate(http_requests_total{namespace=~"k1s0-business|k1s0-service"}[5m])) by (service)))
+            / 0.001
+          ) > 14.4
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.service }} SLO burn rate critical"
+          description: "エラーバジェットの消費速度が 14.4 倍を超えています。約 2 日でバジェットを使い切ります。"
+
+      - alert: SLOBurnRateWarning
+        expr: |
+          (
+            (1 - (sum(rate(http_requests_total{namespace=~"k1s0-business|k1s0-service", status!~"5.."}[6h])) by (service)
+             / sum(rate(http_requests_total{namespace=~"k1s0-business|k1s0-service"}[6h])) by (service)))
+            / 0.001
+          ) > 6
+          and
+          (
+            (1 - (sum(rate(http_requests_total{namespace=~"k1s0-business|k1s0-service", status!~"5.."}[30m])) by (service)
+             / sum(rate(http_requests_total{namespace=~"k1s0-business|k1s0-service"}[30m])) by (service)))
+            / 0.001
+          ) > 6
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.service }} SLO burn rate warning"
+          description: "エラーバジェットの消費速度が 6 倍を超えています。約 5 日でバジェットを使い切ります。"

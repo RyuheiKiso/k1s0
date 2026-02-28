@@ -42,3 +42,25 @@ groups:
           histogram_quantile(0.99,
             sum(rate(grpc_server_handling_seconds_bucket[5m])) by (service, grpc_service, le)
           )
+
+  - name: slo-recording-rules
+    rules:
+      - record: slo:availability:ratio
+        expr: |
+          sum(rate(http_requests_total{status!~"5.."}[30d])) by (namespace, service)
+          / sum(rate(http_requests_total[30d])) by (namespace, service)
+
+      - record: slo:error_budget:remaining
+        expr: |
+          1 - (
+            (1 - slo:availability:ratio)
+            / (1 - (
+              label_replace(
+                vector(0.9995) and on() (kube_namespace_labels{namespace="k1s0-system"})
+                or vector(0.999),
+                "namespace", "$1", "namespace", "(.*)"
+              )
+            ))
+          )
+        # system Tier: 可用性目標 99.95% (0.9995)
+        # business / service Tier: 可用性目標 99.9% (0.999)
