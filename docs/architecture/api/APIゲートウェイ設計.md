@@ -362,7 +362,13 @@ plugins:
 
 ### Tier 別レート制限オーバーライド例
 
-グローバルレート制限（`minute: 500`）は service Tier のデフォルト値である。system Tier および business Tier のサービスには、ルート/サービスレベルで個別に上書き設定する。
+グローバルレート制限（`minute: 500`）は service Tier のデフォルト値である。system Tier および business Tier のサービスには、ルート/サービスレベルで個別に上書き設定する。Tier 別デフォルト値の詳細は [REST-API設計.md](REST-API設計.md) の「Tier 別デフォルト値」を参照。
+
+| Tier     | minute | second | 説明                               |
+| -------- | ------ | ------ | ---------------------------------- |
+| system   | 3000   | 100    | 内部基盤サービス（高頻度呼び出し） |
+| business | 1000   | 40     | 領域共通サービス                   |
+| service  | 500    | 20     | 個別業務サービス（グローバルデフォルト） |
 
 ```yaml
 # system Tier のオーバーライド例（auth-server）
