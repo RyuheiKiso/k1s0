@@ -370,7 +370,7 @@ app:
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
   port: 5432
-  name: "dlq_db"
+  name: "k1s0_system"
   user: "app"
   password: ""
   ssl_mode: "disable"

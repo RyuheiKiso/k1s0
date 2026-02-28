@@ -13,7 +13,7 @@
 | `FeatureFlagClient` | トレイト | フラグ評価の抽象インターフェース |
 | `GrpcFeatureFlagClient` | 構造体 | featureflag-server への gRPC 実装（moka キャッシュ + Kafka 更新） |
 | `MockFeatureFlagClient` | 構造体 | テスト用モック（feature = "mock" で有効） |
-| `FlagEvaluationContext` | 構造体 | 評価コンテキスト（environment, user_id, service_name） |
+| `FlagEvaluationContext` | 構造体 | 評価コンテキスト（environment, user_id, tenant_id, service_name, variant） |
 | `FeatureFlag` | 構造体 | フラグ定義（key, enabled, rollout_percentage, target_environments） |
 | `FeatureFlagConfig` | 構造体 | gRPC エンドポイント・キャッシュ TTL・Kafka 設定 |
 | `FeatureFlagError` | enum | gRPC エラー・フラグ未定義エラー等 |
@@ -77,7 +77,9 @@ let client = GrpcFeatureFlagClient::new(config).await.unwrap();
 // フラグ評価
 let ctx = FlagEvaluationContext::new("production")
     .with_user_id("user-uuid-1234")
-    .with_service_name("order-service");
+    .with_tenant_id("TENANT-001")
+    .with_service_name("order-service")
+    .with_variant("variant-a");
 
 let enabled = client.evaluate("new-checkout-flow", &ctx).await.unwrap();
 

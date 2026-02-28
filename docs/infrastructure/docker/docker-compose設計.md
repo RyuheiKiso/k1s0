@@ -16,9 +16,9 @@
 | ------------- | ---------------------------------------- |
 | infra         | PostgreSQL, MySQL, Redis, Kafka, Keycloak 等 |
 | observability | Jaeger, Prometheus, Grafana, Loki        |
-| system        | system 層のサーバー・DB                  |
-| business      | business 層のサーバー・クライアント・DB  |
-| service       | service 層のサーバー・クライアント・DB   |
+| system        | system tier のサーバー・DB                  |
+| business      | business tier のサーバー・クライアント・DB  |
+| service       | service tier のサーバー・クライアント・DB   |
 
 ### 使用例
 
@@ -94,7 +94,7 @@ services:
   # ローカルと staging/prod でセキュリティプロトコルが異なるため、
   # 接続設定は必ず config.yaml 経由で環境ごとに切り替えること。
   kafka:
-    image: confluentinc/cp-kafka:7.7.1
+    image: bitnami/kafka:3.8
     profiles: [infra]
     environment:
       KAFKA_CFG_NODE_ID: 0
@@ -281,9 +281,9 @@ CREATE DATABASE k1s0_service;
 | --- | --- | --- |
 | `infra` | PostgreSQL, MySQL, Redis, Redis-session, Kafka, Kafka-UI, Schema Registry, Keycloak, Vault, kafka-init | 共通インフラ |
 | `observability` | Jaeger, Prometheus, Loki, Grafana | 監視・可視化 |
-| `system` | auth-rust, config-rust | system 層サーバー |
-| `business` | (将来追加) | business 層サーバー |
-| `service` | order-server (将来追加) | service 層サーバー |
+| `system` | auth-rust, config-rust | system tier サーバー |
+| `business` | (将来追加) | business tier サーバー |
+| `service` | order-server (将来追加) | service tier サーバー |
 
 ### 起動コマンド一覧
 
@@ -294,10 +294,10 @@ docker compose --profile infra up -d
 # インフラ + 可観測性
 docker compose --profile infra --profile observability up -d
 
-# インフラ + system 層サーバー
+# インフラ + system tier サーバー
 docker compose --profile infra --profile system up -d
 
-# インフラ + 可観測性 + system 層
+# インフラ + 可観測性 + system tier
 docker compose --profile infra --profile observability --profile system up -d
 
 # インフラ + 可観測性 + 全アプリケーション

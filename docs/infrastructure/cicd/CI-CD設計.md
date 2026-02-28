@@ -52,6 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       rust: ${{ steps.filter.outputs.rust }}
+      go: ${{ steps.filter.outputs.go }}
       ts: ${{ steps.filter.outputs.ts }}
       dart: ${{ steps.filter.outputs.dart }}
       helm: ${{ steps.filter.outputs.helm }}
@@ -64,6 +65,8 @@ jobs:
             rust:
               - 'regions/**/rust/**'
               - 'CLI/**'
+            go:
+              - 'regions/**/go/**'
             ts:
               - 'regions/**/react/**'
               - 'regions/**/ts/**'
@@ -79,11 +82,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.82       # Dockerイメージ戦略.md / devcontainer設計.md と同期
+      - uses: dtolnay/rust-toolchain@1.88       # Dockerイメージ戦略.md / devcontainer設計.md と同期
         with:
           components: clippy, rustfmt
       - run: cargo fmt --all -- --check
       - run: cargo clippy --all-targets -- -D warnings
+
+  lint-go:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - run: go vet ./...
+      - run: golangci-lint run
 
   lint-ts:
     needs: detect-changes
@@ -121,8 +136,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.82       # Dockerイメージ戦略.md / devcontainer設計.md と同期
+      - uses: dtolnay/rust-toolchain@1.88       # Dockerイメージ戦略.md / devcontainer設計.md と同期
       - run: cargo test --all
+
+  test-go:
+    needs: lint-go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - run: go test ./...
 
   test-ts:
     needs: lint-ts
@@ -169,6 +194,7 @@ jobs:
   build:
     needs:
       - test-rust
+      - test-go
       - test-ts
       - test-dart
     if: always() && !contains(needs.*.result, 'failure')

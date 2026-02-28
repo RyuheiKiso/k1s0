@@ -36,7 +36,7 @@ system tier のイベントソーシングサーバーは以下の機能を提�
 | Kafka 転送 | イベント追記後、バックグラウンドタスクが Kafka へ非同期転送（at-least-once 保証） |
 | スナップショット | スナップショット取得後、そのバージョン以降のイベントのみ適用することで状態再構築を高速化 |
 | 認可 | 参照は `sys_auditor`、追記・スナップショット作成は `sys_operator`、ストリーム削除は `sys_admin` |
-| ポート | ホスト側 8099（内部 8080）、gRPC 9090 |
+| ポート | ホスト側 8099（内部 8080）、gRPC 50051 |
 
 ---
 
@@ -686,7 +686,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
-  grpc_port: 9090
+  grpc_port: 50051
 
 database:
   url: "postgresql://app:@postgres.k1s0-system.svc.cluster.local:5432/k1s0_system"
@@ -726,12 +726,12 @@ replicaCount: 2
 
 container:
   port: 8080
-  grpcPort: 9090
+  grpcPort: 50051
 
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 9090
+  grpcPort: 50051
 
 autoscaling:
   enabled: true

@@ -15,7 +15,7 @@ User ──(has)──▶ Role ──(grants)──▶ Permission ──(on)─�
 ```
 
 - **Role**: ユーザーに割り当てる役割
-- **Permission**: 操作の種類（`read`, `write`, `delete`, `admin`）
+- **Permission**: 操作の種類（`read`, `create`, `update`, `delete`, `admin`）
 - **Resource**: 操作対象のリソース（`orders`, `ledger`, `users`）
 
 ### Tier 別ロール定義
@@ -71,6 +71,8 @@ User ──(has)──▶ Role ──(grants)──▶ Permission ──(on)─�
 | `svc_order_viewer`    | R      | R           | R         | R        |
 
 **凡例**: C = Create, R = Read, U = Update, D = Delete, --- = アクセス不可
+
+> **Permission モデルとの対応**: Permission モデルの操作種別（`read`, `create`, `update`, `delete`, `admin`）は、マトリクス表記の R, C, U, D にそれぞれ対応する。`admin` は全操作（CRUD）を含む上位権限を意味する。
 
 #### パーミッション解決ルール
 
@@ -220,7 +222,9 @@ func RequirePermission(permission, resource string) func(http.Handler) http.Hand
 mux.Handle("GET /api/v1/orders",
     RequirePermission("read", "orders")(orderHandler.List))
 mux.Handle("POST /api/v1/orders",
-    RequirePermission("write", "orders")(orderHandler.Create))
+    RequirePermission("create", "orders")(orderHandler.Create))
+mux.Handle("PUT /api/v1/orders/{id}",
+    RequirePermission("update", "orders")(orderHandler.Update))
 mux.Handle("DELETE /api/v1/orders/{id}",
     RequirePermission("delete", "orders")(orderHandler.Delete))
 ```

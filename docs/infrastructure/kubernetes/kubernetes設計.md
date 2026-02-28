@@ -13,9 +13,9 @@
 
 | Namespace         | 対象                                | Tier     |
 | ----------------- | ----------------------------------- | -------- |
-| `k1s0-system`     | system 層のサーバー・DB・Schema Registry・Kong API Gateway・Keycloak・Vault・Redis・Redis Session（BFF用） | system   |
-| `k1s0-business`   | business 層のサーバー・クライアント・DB | business |
-| `k1s0-service`    | service 層のサーバー・クライアント・DB | service  |
+| `k1s0-system`     | system tier のサーバー・DB・Schema Registry・Kong API Gateway・Keycloak・Vault・Redis・Redis Session（BFF用） | system   |
+| `k1s0-business`   | business tier のサーバー・クライアント・DB | business |
+| `k1s0-service`    | service tier のサーバー・クライアント・DB | service  |
 | `observability`   | Prometheus, Grafana, Jaeger, Loki   | infra    |
 | `messaging`       | Kafka クラスタ                      | infra    |
 | `ingress`         | Nginx Ingress Controller            | infra    |
@@ -81,7 +81,7 @@ spec:
 ---
 # k1s0-service: Ingress および同一 Namespace からのインバウンドを許可
 # 注意: この NetworkPolicy は L3/L4 レベルで同一 Namespace（tier: service）内の
-# 通信を許可しているが、tier-architecture.md で定義されている「service 層の BFF 間の
+# 通信を許可しているが、tier-architecture.md で定義されている「service tier の BFF 間の
 # 通信は原則禁止」ルールは Istio AuthorizationPolicy（L7）で制御する。
 # BFF 間の直接通信の禁止については認証認可設計.md の AuthorizationPolicy を参照。
 apiVersion: networking.k8s.io/v1

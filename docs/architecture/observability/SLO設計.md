@@ -77,30 +77,7 @@ D-108: SLO/SLA 定義。SLI、SLO、SLA、エラーバジェット運用を定�
 
 #### Prometheus Recording Rule
 
-```yaml
-groups:
-  - name: slo-recording-rules
-    rules:
-      - record: slo:availability:ratio
-        expr: |
-          sum(rate(http_requests_total{status!~"5.."}[30d])) by (namespace, service)
-          / sum(rate(http_requests_total[30d])) by (namespace, service)
-
-      - record: slo:error_budget:remaining
-        expr: |
-          1 - (
-            (1 - slo:availability:ratio)
-            / (1 - (
-              label_replace(
-                vector(0.9995) and on() (kube_namespace_labels{namespace="k1s0-system"})
-                or vector(0.999),
-                "namespace", "$1", "namespace", "(.*)"
-              )
-            ))
-          )
-        # system Tier: 可用性目標 99.95%（0.9995）
-        # business / service Tier: 可用性目標 99.9%（0.999）
-```
+Recording Rules の定義は [可観測性設計.md](./可観測性設計.md) の「Recording Rules」セクションを参照。SLO 関連の Recording Rules（`slo:availability:ratio`、`slo:error_budget:remaining`）は、RED メトリクスの Recording Rules と合わせて `infra/docker/prometheus/recording_rules.yaml` で一元管理する。
 
 ---
 

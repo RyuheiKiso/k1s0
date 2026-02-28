@@ -264,6 +264,16 @@ enum QuotaPeriod { hourly, daily, monthly, custom }
 | 統合テスト | wiremock による quota-server レスポンスシミュレーション | wiremock |
 | プロパティテスト | 任意クォータ ID・使用量での check/increment ラウンドトリップ | proptest |
 
+## 通知連携
+
+クォータ超過時の通知フローは以下の設計に基づく。
+
+1. **quota-server** がクォータ超過を検知すると `k1s0.system.quota.exceeded.v1` トピックにイベントを発行する
+2. **notification-server** は `k1s0.system.notification.requested.v1` トピックを購読して通知を送信する
+3. この 2 つのトピック間には変換レイヤーが必要である。quota-server が発行する `k1s0.system.quota.exceeded.v1` イベントを `k1s0.system.notification.requested.v1` 形式に変換して再発行するコンシューマー（またはサーバー側のイベントハンドラー）を設ける
+
+> **注意**: quota-client 自体は通知送信の責務を持たない。クォータ超過イベントの発行は quota-server 側の責務であり、通知への変換はサーバー間連携で行う。
+
 ## 関連ドキュメント
 
 - [system-library-概要](../_common/概要.md) — ライブラリ一覧・テスト方針

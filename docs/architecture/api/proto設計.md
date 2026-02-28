@@ -1618,6 +1618,7 @@ message ConfigChangedEvent {
 | `TokenValidationEvent` | `k1s0.system.auth.audit.v1` | `user_id` | auth-server |
 | `PermissionCheckEvent` | `k1s0.system.auth.audit.v1` | `user_id` | auth-server |
 | `AuditLogRecordedEvent` | `k1s0.system.auth.audit.v1` | `user_id` | auth-server |
+| `PermissionDeniedEvent` | `k1s0.system.auth.permission_denied.v1` | `user_id` | auth-server |
 | `ConfigChangedEvent` | `k1s0.system.config.changed.v1` | `namespace` | config-server |
 
 ---

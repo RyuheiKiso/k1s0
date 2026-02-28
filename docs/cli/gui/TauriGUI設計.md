@@ -149,8 +149,8 @@ CLI の対話ステップ（ステップ 1〜5 + 確認）をステッパー UI 
 Tauri GUI アプリケーション自体は k1s0 の Tier（system / business / service）には属さない。GUI は **開発ツール** であり、Tier 内にデプロイされるアプリケーションとは異なる位置づけである。
 
 - GUI が生成するひな形は、[tier-architecture](../../architecture/overview/tier-architecture.md) の規則に従って `regions/` 配下に配置される
-- Tier 別の配置制約（例: system 層に client を配置しない）は [CLIフロー](../flow/CLIフロー.md) のロジックと共有される `k1s0-core` によって強制される
-- GUI のフロントエンド（React）は service 層のクライアントテンプレートとは独立しており、[テンプレート仕様-クライアント](../../templates/client/クライアント.md) の対象外である
+- Tier 別の配置制約（例: system tier に client を配置しない）は [CLIフロー](../flow/CLIフロー.md) のロジックと共有される `k1s0-core` によって強制される
+- GUI のフロントエンド（React）は service tier のクライアントテンプレートとは独立しており、[テンプレート仕様-クライアント](../../templates/client/クライアント.md) の対象外である
 
 ## テンプレート変数への影響
 

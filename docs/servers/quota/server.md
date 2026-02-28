@@ -499,7 +499,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
-  grpc_port: 9090
+  grpc_port: 50051
 
 database:
   url: "postgresql://app:@postgres.k1s0-system.svc.cluster.local:5432/k1s0_system"
@@ -543,12 +543,12 @@ replicaCount: 2
 
 container:
   port: 8080
-  grpcPort: 9090
+  grpcPort: 50051
 
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 9090
+  grpcPort: 50051
 
 autoscaling:
   enabled: true
@@ -600,4 +600,4 @@ vault:
 - [RBAC設計.md](../../architecture/auth/RBAC設計.md) -- RBAC ロールモデル
 - [system-server.md](../auth/server.md) -- system tier サーバー一覧
 - [system-server-implementation.md](../_common/implementation.md) -- system tier 実装設計
-- [system-notification-server.md](../notification/server.md) -- 通知サーバー（超過時の通知連携）
+- [system-notification-server.md](../notification/server.md) -- notification-server（超過時の通知連携）

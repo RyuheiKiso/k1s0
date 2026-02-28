@@ -138,7 +138,7 @@ routes:
 
 ## system server エンドポイント
 
-`regions/system/server/rust/` の認証サーバーに Navigation エンドポイントを追加する。
+`regions/system/server/rust/` の auth-server に Navigation エンドポイントを追加する。
 
 ```
 GET /api/v1/navigation

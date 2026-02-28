@@ -218,6 +218,15 @@ class MessagingError implements Exception {
 
 **カバレッジ目標**: 85%以上
 
+## 設計ノート: EventConsumer の言語間 API パターン差異
+
+Rust の `EventConsumer` は pull 型（`receive()` + `commit()`）を採用しているのに対し、Go/TypeScript/Dart は push 型（`subscribe(topic, handler)` コールバック）を採用している。これは言語特性に基づく意図的な設計差異である。
+
+- **Rust**: 所有権モデルにより、メッセージのライフタイムを明示的に制御する必要がある。`receive()` で所有権を取得し、処理完了後に `commit()` で消費を確定する pull 型が自然にフィットする。
+- **Go/TypeScript/Dart**: GC を持つ言語ではコールバックベースの push 型がイディオマティックであり、`subscribe(topic, handler)` パターンが開発者にとって直感的である。
+
+両パターンとも at-least-once セマンティクスを保証し、メッセージ処理の信頼性は同等である。
+
 ## 関連ドキュメント
 
 - [system-library-概要](../_common/概要.md) — ライブラリ一覧・テスト方針

@@ -1,5 +1,7 @@
 # system-server デプロイ設計
 
+> **注記**: 本ドキュメントは auth-server のデプロイ仕様を含む。共通パターンは [Rust共通実装.md](Rust共通実装.md) を参照。
+
 system-server（認証サーバー）の DB マイグレーション・テスト・Dockerfile・Helm values を定義する。概要・API 定義・アーキテクチャは [system-server.md](../auth/server.md) を参照。
 
 ---

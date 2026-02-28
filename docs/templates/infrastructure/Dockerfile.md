@@ -65,7 +65,7 @@ Rust サーバー用のマルチステージビルド Dockerfile。
 
 ```tera
 # Build stage
-FROM rust:1.82 AS builder
+FROM rust:1.88-bookworm AS builder
 
 WORKDIR /app
 
@@ -87,7 +87,7 @@ ENTRYPOINT ["/{{ service_name }}"]
 
 ### ポイント
 
-- `rust:1.82` をビルドステージのベースイメージとして使用する
+- `rust:1.88-bookworm` をビルドステージのベースイメージとして使用する
 - ダミーの `main.rs` で事前に依存関係をビルドし、キャッシュを活用する
 - `--release` フラグで最適化ビルドを行う
 - ランタイムは `distroless/cc-debian12:nonroot` を使用する（Rust バイナリは `libc` が必要なため `cc` バリアントを使用）
@@ -136,7 +136,7 @@ Rust BFF 用のマルチステージビルド Dockerfile。
 
 ```tera
 # Build stage
-FROM rust:1.82 AS builder
+FROM rust:1.88-bookworm AS builder
 
 WORKDIR /app
 
@@ -158,7 +158,7 @@ ENTRYPOINT ["/{{ service_name }}"]
 
 ### ポイント
 
-- `rust:1.82` をビルドステージのベースイメージとして使用する
+- `rust:1.88-bookworm` をビルドステージのベースイメージとして使用する
 - ダミーの `main.rs` で依存関係を事前ビルドし、キャッシュを活用する
 - ランタイムは `distroless/cc-debian12:nonroot` を使用する
 - server/rust と同様の構成だが、ビルドターゲットが BFF 用に異なる
@@ -171,7 +171,7 @@ React クライアント用のマルチステージビルド Dockerfile。
 
 ```tera
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:22-bookworm AS builder
 
 WORKDIR /app
 
@@ -194,7 +194,7 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ### ポイント
 
-- `node:20-alpine` をビルドステージのベースイメージとして使用する
+- `node:22-bookworm` をビルドステージのベースイメージとして使用する
 - `npm ci` で再現性のある依存関係インストールを行う
 - ビルド成果物を `nginx:1.27-alpine` のドキュメントルートにコピーする
 - カスタム `nginx.conf` で SPA のルーティング（fallback）を設定する
@@ -207,7 +207,7 @@ Flutter クライアント用のマルチステージビルド Dockerfile。
 
 ```tera
 # Build stage
-FROM ghcr.io/cirruslabs/flutter:stable AS builder
+FROM ghcr.io/cirruslabs/flutter:3.24.0 AS builder
 
 WORKDIR /app
 
@@ -230,7 +230,7 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ### ポイント
 
-- `ghcr.io/cirruslabs/flutter:stable` をビルドステージのベースイメージとして使用する
+- `ghcr.io/cirruslabs/flutter:3.24.0` をビルドステージのベースイメージとして使用する
 - `flutter pub get` で依存関係を先にダウンロードし、キャッシュを活用する
 - `flutter build web --release` で最適化された Web ビルドを行う
 - ランタイムは React と同様に `nginx:1.27-alpine` を使用する
@@ -243,11 +243,11 @@ CMD ["nginx", "-g", "daemon off;"]
 
 | kind/lang        | ベースイメージ                    | ランタイムイメージ                     | 概算サイズ |
 | ---------------- | --------------------------------- | -------------------------------------- | ---------- |
-| server/rust      | rust:1.82                         | distroless/cc-debian12:nonroot         | ~15MB      |
-| bff/go           | golang:1.22-alpine                | distroless/static-debian12:nonroot     | ~10MB      |
-| bff/rust         | rust:1.82                         | distroless/cc-debian12:nonroot         | ~15MB      |
-| client/react     | node:20-alpine                    | nginx:1.27-alpine                      | ~25MB      |
-| client/flutter   | cirruslabs/flutter:stable         | nginx:1.27-alpine                      | ~25MB      |
+| server/rust      | rust:1.88-bookworm                         | distroless/cc-debian12:nonroot         | ~15MB      |
+| bff/go           | golang:1.23-alpine                | distroless/static-debian12:nonroot     | ~10MB      |
+| bff/rust         | rust:1.88-bookworm                         | distroless/cc-debian12:nonroot         | ~15MB      |
+| client/react     | node:22-bookworm                    | nginx:1.27-alpine                      | ~25MB      |
+| client/flutter   | cirruslabs/flutter:3.24.0         | nginx:1.27-alpine                      | ~25MB      |
 
 ---
 

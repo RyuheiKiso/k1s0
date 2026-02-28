@@ -502,7 +502,7 @@ server:
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
   port: 5432
-  name: "k1s0_dlq"
+  name: "k1s0_system"
   user: "app"
   password: ""
   ssl_mode: "disable"
@@ -533,12 +533,10 @@ replicaCount: 2
 
 container:
   port: 8080
-  grpcPort: 9090
 
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 9090
 
 autoscaling:
   enabled: true
