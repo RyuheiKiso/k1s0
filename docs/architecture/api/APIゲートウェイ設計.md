@@ -10,13 +10,6 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 > 2. CI/CD パイプラインの各環境ステージ（dev / staging / prod）で、環境固有のドメイン値を `KONG_CORS_ORIGINS` 等の変数から設定する
 > 3. decK の設定ファイルにはプレースホルダーを残し、`deck sync` 実行前に `envsubst` 等で置換する
 
-## 基本方針
-
-- API ゲートウェイは **Kong** を採用し、**DB-backed モード**（PostgreSQL）で運用する
-- 管理は **Admin API** 経由で行い、decK で設定を宣言的に管理する
-- CI/CD パイプラインから decK を実行し、設定変更をコードレビュー可能にする
-- 認証・レート制限・ログ等の横断的関心事は Kong プラグインで一元管理する
-
 ---
 
 ## D-117: Kong 構成管理
@@ -33,7 +26,7 @@ Client → Nginx Ingress Controller (TLS終端) → Kong Proxy → Istio Sidecar
 
 #### BFF Proxy 経由のトラフィックフロー
 
-SPA（React）からのアクセスは BFF Proxy を経由し、HttpOnly Cookie とBearer Token の変換を行う（詳細は [認証認可設計](../auth/認証認可設計.md) の「SPA トークン保存方式」参照）。
+SPA（React）からのアクセスは BFF Proxy を経由し、HttpOnly Cookie と Bearer Token を変換する（詳細は [認証認可設計](../auth/認証認可設計.md) の「SPA トークン保存方式」参照）。
 
 ```
 Browser → [HttpOnly Cookie] → Nginx Ingress Controller → Kong → BFF Proxy → [Bearer Token] → Istio Sidecar (mTLS) → Backend Services
@@ -48,11 +41,6 @@ Browser → [HttpOnly Cookie] → Nginx Ingress Controller → Kong → BFF Prox
 | 接続先           | `postgres.k1s0-system.svc.cluster.local:5432` |
 | データベース名   | `kong`                                        |
 | レプリカ構成     | 読み取りレプリカなし（Admin API 経由の管理のみ） |
-
-DB-backed モードの利点:
-- Admin API による動的な設定変更が可能
-- 複数 Kong インスタンス間で設定を自動共有
-- decK によるバージョン管理・CI/CD 連携が容易
 
 ### Helm デプロイ
 
@@ -136,23 +124,6 @@ resources:
     memory: 4Gi
 ```
 
-### Admin API による管理
-
-Kong の設定は Admin API を通じて管理する。直接の Admin API 呼び出しは運用時のデバッグに限定し、通常の設定変更は decK 経由で行う。
-
-```bash
-# Service の作成例
-curl -X POST http://kong-admin:8001/services \
-  -d name=order-v1 \
-  -d url=http://order-server.k1s0-service.svc.cluster.local:80
-
-# Route の作成例
-curl -X POST http://kong-admin:8001/services/order-v1/routes \
-  -d name=order-v1-route \
-  -d 'paths[]=/api/v1/orders' \
-  -d strip_path=false
-```
-
 ### プラグイン一覧と設定
 
 | プラグイン           | 適用範囲   | 目的                          |
@@ -222,11 +193,7 @@ plugins:
       bandwidth_metrics: true
 ```
 
-### decK による宣言的設定管理
-
-Kong の設定を YAML ファイルで宣言的に管理し、Git でバージョン管理する。
-
-#### ディレクトリ構成
+### decK ディレクトリ構成
 
 ```
 infra/kong/
@@ -240,7 +207,57 @@ infra/kong/
     └── service.yaml   # service Tier のサービス定義
 ```
 
-#### kong.yaml の例
+### 環境別構成
+
+| 項目               | dev              | staging          | prod             |
+| ------------------ | ---------------- | ---------------- | ---------------- |
+| Kong レプリカ      | 1                | 2                | 3                |
+| PostgreSQL         | シングルノード | 2ノード（Primary 1 + Replica 1） | 3ノード HA 構成（Bitnami PostgreSQL HA Chart: Primary 1 + Replica 2） |
+| Rate Limiting 倍率 | x10              | x2               | x1               |
+| Admin API アクセス | Basic認証 + 開発用トークン | IP制限 + mTLS（運用チーム） | IP制限 + mTLS + 監査ログ（インフラチーム個人証明書） |
+| decK 自動 sync     | 自動             | 自動             | 手動承認         |
+
+---
+
+## 基本方針
+
+- API ゲートウェイは **Kong** を採用し、**DB-backed モード**（PostgreSQL）で運用する
+- 管理は **Admin API** 経由で行い、decK で設定を宣言的に管理する
+- CI/CD パイプラインから decK を実行し、設定変更をコードレビュー可能にする
+- 認証・レート制限・ログ等の横断的関心事は Kong プラグインで一元管理する
+
+### DB-backed モードの利点
+
+- Admin API による動的な設定変更が可能
+- 複数 Kong インスタンス間で設定を自動共有
+- decK によるバージョン管理・CI/CD 連携が容易
+
+---
+
+## Admin API による管理
+
+Kong の設定は Admin API を通じて管理する。直接の Admin API 呼び出しは運用時のデバッグに限定し、通常の設定変更は decK 経由で行う。
+
+```bash
+# Service の作成例
+curl -X POST http://kong-admin:8001/services \
+  -d name=order-v1 \
+  -d url=http://order-server.k1s0-service.svc.cluster.local:80
+
+# Route の作成例
+curl -X POST http://kong-admin:8001/services/order-v1/routes \
+  -d name=order-v1-route \
+  -d 'paths[]=/api/v1/orders' \
+  -d strip_path=false
+```
+
+---
+
+## decK による宣言的設定管理
+
+Kong の設定を YAML ファイルで宣言的に管理し、Git でバージョン管理する。
+
+### kong.yaml の例
 
 ```yaml
 # infra/kong/kong.yaml
@@ -340,7 +357,9 @@ plugins:
       status_code_metrics: true
 ```
 
-### CI/CD 連携（decK）
+---
+
+## CI/CD 連携（decK）
 
 ```yaml
 # .github/workflows/kong-sync.yaml
@@ -418,19 +437,11 @@ jobs:
             --kong-addr http://kong-admin.k1s0-system.svc.cluster.local:8001
 ```
 
-### 環境別構成
+---
 
-| 項目               | dev              | staging          | prod             |
-| ------------------ | ---------------- | ---------------- | ---------------- |
-| Kong レプリカ      | 1                | 2                | 3                |
-| PostgreSQL         | シングルノード | 2ノード（Primary 1 + Replica 1） | 3ノード HA 構成（Bitnami PostgreSQL HA Chart: Primary 1 + Replica 2） |
-| Rate Limiting 倍率 | x10              | x2               | x1               |
-| Admin API アクセス | Basic認証 + 開発用トークン | IP制限 + mTLS（運用チーム） | IP制限 + mTLS + 監査ログ（インフラチーム個人証明書） |
-| decK 自動 sync     | 自動             | 自動             | 手動承認         |
+## PostgreSQL HA 構成詳細
 
-#### PostgreSQL HA 構成詳細
-
-**prod 環境（3ノード構成）:**
+### prod 環境（3ノード構成）
 
 - Primary 1 ノード + Replica 2 ノードの合計 3 ノード構成
 - **Bitnami PostgreSQL HA Chart** によるストリーミングレプリケーションとフェイルオーバー管理
@@ -442,37 +453,39 @@ jobs:
 - Kong からの接続は Kubernetes Service 経由でルーティング
 - PostgreSQL のデプロイは [terraform設計.md](../../infrastructure/terraform/terraform設計.md) の `modules/database/` で管理する
 
-**staging 環境（2ノード構成）:**
+### staging 環境（2ノード構成）
 
 - Primary 1 ノード + Replica 1 ノードの合計 2 ノード構成
 - **非同期レプリケーション**を採用（パフォーマンス優先）
   - `synchronous_commit = off`
 - フェイルオーバーのテスト用途を兼ねる
 
-**dev 環境（シングルノード）:**
+### dev 環境（シングルノード）
 
 - PostgreSQL シングルノード構成
 - レプリケーションなし
 - 開発・テスト用途のため可用性要件は設けない
 
-#### Admin API アクセス制御
+---
+
+## Admin API アクセス制御
 
 環境ごとに異なるアクセス制御を適用し、セキュリティレベルを段階的に強化する。
 
-**dev 環境:**
+### dev 環境
 
 - **Basic 認証** + 開発用トークンによるアクセス制御
 - 開発者全員がアクセス可能
 - 開発用トークンは `kong-admin-dev-token` Secret で管理
 
-**staging 環境:**
+### staging 環境
 
 - **IP 制限**: 管理ネットワーク（`10.0.0.0/8` 等の社内ネットワーク）からのアクセスのみ許可
 - **mTLS**: クライアント証明書による相互認証を必須とする
   - 運用チーム用のクライアント証明書を発行し、Kong Admin API への接続時に提示
 - Kong の `ip-restriction` プラグインと Istio の PeerAuthentication を組み合わせて適用
 
-**prod 環境:**
+### prod 環境
 
 - **IP 制限**: 管理ネットワークからのアクセスのみ許可（staging と同様）
 - **mTLS**: インフラチームメンバー個人に発行されたクライアント証明書による認証

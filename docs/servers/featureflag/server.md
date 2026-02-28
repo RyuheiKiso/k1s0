@@ -1,7 +1,6 @@
 # system-featureflag-server 設計
 
-system tier のフィーチャーフラグサーバー設計を定義する。全サービスに動的な機能制御を提供し、フラグ定義を PostgreSQL で管理する。フラグ変更時は Kafka トピック `k1s0.system.featureflag.changed.v1` で全サービスに通知する。
-Rust での実装を定義する。
+動的な機能制御を提供するフィーチャーフラグサーバー。バリアント/ルール制御・Kafka 変更通知対応。
 
 ## 概要
 
@@ -67,8 +66,6 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 
 フラグ一覧を取得する。リポジトリの `find_all()` で全件取得する。
 
-**レスポンス（200 OK）**
-
 ```json
 {
   "flags": [
@@ -124,7 +121,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 
 #### POST /api/v1/flags
 
-新しいフィーチャーフラグを作成する。フラグキーはシステム全体で一意でなければならない。
+新しいフィーチャーフラグを作成する。フラグキーはシステム全体で一意でなければならない。`variants` は省略可能（省略時は空リスト）。
 
 **リクエスト**
 
@@ -138,8 +135,6 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
   ]
 }
 ```
-
-`variants` は省略可能（省略時は空リスト）。
 
 **レスポンス（201 Created）**
 
@@ -170,7 +165,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 
 #### PUT /api/v1/flags/:key
 
-既存のフィーチャーフラグを更新する。`enabled` と `description` のみ更新可能（部分更新）。
+既存のフィーチャーフラグを更新する。`enabled` と `description` のみ更新可能（部分更新）。全フィールド省略可能（省略時は変更なし）。
 
 **リクエスト**
 
@@ -180,8 +175,6 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
   "description": "新しいチェックアウトフローを有効化する（v2）"
 }
 ```
-
-全フィールド省略可能（省略時は変更なし）。
 
 **レスポンス（200 OK）**
 
@@ -236,7 +229,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 
 #### POST /api/v1/flags/:key/evaluate
 
-フラグを評価し、指定されたコンテキスト（ユーザー・テナント・属性）に基づいて有効/無効とバリアントを判定する。内部サービス用のエンドポイントであり、認証は不要。
+フラグを評価し、指定されたコンテキスト（ユーザー・テナント・属性）に基づいて有効/無効とバリアントを判定する。内部サービス用のエンドポイントであり、認証は不要。全フィールド省略可能。`attributes` 省略時は空マップ。
 
 **リクエスト**
 
@@ -250,8 +243,6 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
   }
 }
 ```
-
-全フィールド省略可能。`attributes` 省略時は空マップ。
 
 **レスポンス（200 OK -- フラグ有効）**
 
@@ -413,7 +404,14 @@ message FlagVariant {
 
 フラグの作成・更新・削除時に以下のメッセージを Kafka トピック `k1s0.system.featureflag.changed.v1` に送信する。
 
-**メッセージフォーマット**
+| 設定項目 | 値 |
+| --- | --- |
+| トピック | `k1s0.system.featureflag.changed.v1` |
+| acks | `all` |
+| message.timeout.ms | `5000` |
+| キー | フラグキー（例: `enable-new-checkout`） |
+
+### Kafka メッセージ例
 
 ```json
 {
@@ -433,13 +431,6 @@ message FlagVariant {
   }
 }
 ```
-
-| 設定項目 | 値 |
-| --- | --- |
-| トピック | `k1s0.system.featureflag.changed.v1` |
-| acks | `all` |
-| message.timeout.ms | `5000` |
-| キー | フラグキー（例: `enable-new-checkout`） |
 
 ---
 
@@ -523,7 +514,9 @@ message FlagVariant {
 | `trace_id` | String | OpenTelemetry トレース ID |
 | `created_at` | DateTime\<Utc\> | 記録日時 |
 
-### 依存関係図
+---
+
+## 依存関係図
 
 ```
                     ┌─────────────────────────────────────────────────┐
@@ -581,7 +574,7 @@ message FlagVariant {
 
 ---
 
-## 設定ファイル
+## 設定ファイル例
 
 ### config.yaml（本番）
 
@@ -618,13 +611,7 @@ cache:
   ttl_seconds: 60
 ```
 
----
-
-## デプロイ
-
 ### Helm values
-
-[helm設計.md](../../infrastructure/kubernetes/helm設計.md) のサーバー用 Helm Chart を使用する。featureflag 固有の values は以下の通り。
 
 ```yaml
 # values-featureflag.yaml（infra/helm/services/system/featureflag/values.yaml）
@@ -662,6 +649,10 @@ vault:
       key: "password"
       mountPath: "/vault/secrets/db-password"
 ```
+
+---
+
+## デプロイ
 
 ### Vault シークレットパス
 

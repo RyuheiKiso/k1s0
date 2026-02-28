@@ -1,6 +1,6 @@
 # system-event-store-server 設計
 
-system tier の CQRS パターン向けイベントソーシングサーバー設計を定義する。k1s0-eventstore ライブラリをサービス化し、Append-only イベントストリームの REST/gRPC API を提供する。スナップショット管理・イベントリプレイをサポートし、永続化されたイベントを Kafka トピック `k1s0.system.eventstore.event.published.v1` へ転送する。Rust での実装を定義する。
+system tier の CQRS パターン向けイベントソーシングサーバー。k1s0-eventstore ライブラリをサービス化し、Append-only イベントストリームの REST/gRPC API を提供する。Rust で実装する。
 
 ## 概要
 
@@ -54,90 +54,27 @@ system tier のイベントソーシングサーバーは以下の機能を提�
 | GET | `/api/v1/streams` | ストリーム一覧取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/streams/:stream_id/snapshot` | スナップショット作成 | `sys_operator` 以上 |
 | GET | `/api/v1/streams/:stream_id/snapshot` | 最新スナップショット取得 | `sys_auditor` 以上 |
+| DELETE | `/api/v1/streams/:stream_id` | ストリーム削除（監査・テスト用途に限定） | `sys_admin` のみ |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 
 #### POST /api/v1/events
 
-イベントをストリームに追記する。`stream_id` はリクエストボディで指定する。`expected_version` を指定することで楽観的ロックを実現する。`expected_version` が `-1` の場合はストリームが存在しないことを期待する（新規ストリーム作成）。
+イベントをストリームに追記する。`expected_version` を指定することで楽観的ロックを実現する。`expected_version` が `-1` の場合はストリームが存在しないことを期待する（新規ストリーム作成）。
 
-**リクエスト**
+**リクエストフィールド**
 
-```json
-{
-  "events": [
-    {
-      "event_type": "OrderPlaced",
-      "payload": {
-        "order_id": "order-001",
-        "tenant_id": "tenant-abc",
-        "items": [
-          {"product_id": "prod-001", "quantity": 2, "unit_price": 1500}
-        ],
-        "total_amount": 3000
-      },
-      "metadata": {
-        "actor_id": "user-001",
-        "correlation_id": "corr_01JABCDEF1234567890",
-        "causation_id": null
-      }
-    }
-  ],
-  "expected_version": 0
-}
-```
-
-**レスポンス（201 Created）**
-
-```json
-{
-  "stream_id": "order-order-001",
-  "events": [
-    {
-      "stream_id": "order-order-001",
-      "sequence": 1,
-      "event_type": "OrderPlaced",
-      "version": 1,
-      "payload": {
-        "order_id": "order-001",
-        "tenant_id": "tenant-abc",
-        "items": [
-          {"product_id": "prod-001", "quantity": 2, "unit_price": 1500}
-        ],
-        "total_amount": 3000
-      },
-      "metadata": {
-        "actor_id": "user-001",
-        "correlation_id": "corr_01JABCDEF1234567890",
-        "causation_id": null
-      },
-      "occurred_at": "2026-02-23T10:00:00.000+00:00",
-      "stored_at": "2026-02-23T10:00:00.012+00:00"
-    }
-  ],
-  "current_version": 1
-}
-```
-
-**レスポンス（409 Conflict）**
-
-```json
-{
-  "error": {
-    "code": "SYS_EVSTORE_VERSION_CONFLICT",
-    "message": "version conflict for stream order-order-001: expected 0, actual 3",
-    "request_id": "req_abc123def456",
-    "details": [
-      {"field": "expected_version", "message": "0"},
-      {"field": "actual_version", "message": "3"}
-    ]
-  }
-}
-```
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `events` | array | Yes | 追記するイベントの配列 |
+| `events[].event_type` | string | Yes | ドメインイベント種別 |
+| `events[].payload` | object | Yes | イベントペイロード |
+| `events[].metadata` | object | No | メタデータ（actor_id, correlation_id, causation_id） |
+| `expected_version` | int | Yes | 楽観的ロック用バージョン（-1 = 新規ストリーム） |
 
 #### GET /api/v1/events/:stream_id
 
-ストリームのイベント一覧をページネーション付きで取得する。`from_version` / `to_version` でバージョン範囲を絞り込める。
+ストリームのイベント一覧をページネーション付きで取得する。
 
 **クエリパラメータ**
 
@@ -149,200 +86,33 @@ system tier のイベントソーシングサーバーは以下の機能を提�
 | `page` | int | No | 1 | ページ番号 |
 | `page_size` | int | No | 50 | 1 ページあたりの件数（最大 200） |
 
-**レスポンス（200 OK）**
-
-```json
-{
-  "stream_id": "order-order-001",
-  "events": [
-    {
-      "stream_id": "order-order-001",
-      "sequence": 1,
-      "event_type": "OrderPlaced",
-      "version": 1,
-      "payload": {
-        "order_id": "order-001",
-        "tenant_id": "tenant-abc",
-        "total_amount": 3000
-      },
-      "metadata": {
-        "actor_id": "user-001",
-        "correlation_id": "corr_01JABCDEF1234567890",
-        "causation_id": null
-      },
-      "occurred_at": "2026-02-23T10:00:00.000+00:00",
-      "stored_at": "2026-02-23T10:00:00.012+00:00"
-    },
-    {
-      "stream_id": "order-order-001",
-      "sequence": 2,
-      "event_type": "OrderShipped",
-      "version": 2,
-      "payload": {
-        "order_id": "order-001",
-        "tracking_number": "TRK-12345"
-      },
-      "metadata": {
-        "actor_id": "user-002",
-        "correlation_id": "corr_02JABCDEF1234567890",
-        "causation_id": "corr_01JABCDEF1234567890"
-      },
-      "occurred_at": "2026-02-23T14:00:00.000+00:00",
-      "stored_at": "2026-02-23T14:00:00.008+00:00"
-    }
-  ],
-  "current_version": 2,
-  "pagination": {
-    "total_count": 2,
-    "page": 1,
-    "page_size": 50,
-    "has_next": false
-  }
-}
-```
-
-**レスポンス（404 Not Found）**
-
-```json
-{
-  "error": {
-    "code": "SYS_EVSTORE_STREAM_NOT_FOUND",
-    "message": "stream not found: order-order-999",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
-
 #### GET /api/v1/events
 
 全ストリームのイベントを一覧取得する。ページネーション付き。
-
-**レスポンス（200 OK）**
-
-```json
-{
-  "events": [
-    {
-      "stream_id": "order-order-001",
-      "sequence": 1,
-      "event_type": "OrderPlaced",
-      "version": 1,
-      "payload": { "..." : "..." },
-      "metadata": { "..." : "..." },
-      "occurred_at": "2026-02-23T10:00:00.000+00:00",
-      "stored_at": "2026-02-23T10:00:00.012+00:00"
-    }
-  ],
-  "pagination": {
-    "total_count": 100,
-    "page": 1,
-    "page_size": 50,
-    "has_next": true
-  }
-}
-```
 
 #### GET /api/v1/streams
 
 登録済みストリームの一覧を取得する。
 
-**レスポンス（200 OK）**
-
-```json
-{
-  "streams": [
-    {
-      "id": "order-order-001",
-      "aggregate_type": "Order",
-      "current_version": 2,
-      "created_at": "2026-02-23T10:00:00.000+00:00",
-      "updated_at": "2026-02-23T14:00:00.000+00:00"
-    }
-  ]
-}
-```
-
 #### POST /api/v1/streams/:stream_id/snapshot
 
-集約の現在状態をスナップショットとして保存する。`snapshot_version` には状態が対応するイベントのバージョンを指定する。
+集約の現在状態をスナップショットとして保存する。
 
-**リクエスト**
+**リクエストフィールド**
 
-```json
-{
-  "snapshot_version": 2,
-  "aggregate_type": "Order",
-  "state": {
-    "order_id": "order-001",
-    "status": "shipped",
-    "tenant_id": "tenant-abc",
-    "total_amount": 3000,
-    "tracking_number": "TRK-12345"
-  }
-}
-```
-
-**レスポンス（201 Created）**
-
-```json
-{
-  "id": "snap_01JABCDEF1234567890",
-  "stream_id": "order-order-001",
-  "snapshot_version": 2,
-  "aggregate_type": "Order",
-  "created_at": "2026-02-23T15:00:00.000+00:00"
-}
-```
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `snapshot_version` | int | Yes | 対応するイベントのバージョン番号 |
+| `aggregate_type` | string | Yes | 集約の種別 |
+| `state` | object | Yes | 集約の状態（JSON） |
 
 #### GET /api/v1/streams/:stream_id/snapshot
 
 ストリームの最新スナップショットを取得する。スナップショットが存在しない場合は `404` を返す。
 
-**レスポンス（200 OK）**
-
-```json
-{
-  "id": "snap_01JABCDEF1234567890",
-  "stream_id": "order-order-001",
-  "snapshot_version": 2,
-  "aggregate_type": "Order",
-  "state": {
-    "order_id": "order-001",
-    "status": "shipped",
-    "tenant_id": "tenant-abc",
-    "total_amount": 3000,
-    "tracking_number": "TRK-12345"
-  },
-  "created_at": "2026-02-23T15:00:00.000+00:00"
-}
-```
-
-**レスポンス（404 Not Found）**
-
-```json
-{
-  "error": {
-    "code": "SYS_EVSTORE_SNAPSHOT_NOT_FOUND",
-    "message": "no snapshot found for stream: order-order-001",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
-
 #### DELETE /api/v1/streams/:stream_id
 
 ストリームとそれに紐づく全イベント・スナップショットを削除する。`sys_admin` のみ実行可能。イベントソーシングでは原則として使用しない（監査・テスト用途に限定する）。
-
-**レスポンス（200 OK）**
-
-```json
-{
-  "success": true,
-  "message": "stream order-order-001 and all related data deleted"
-}
-```
 
 ### エラーコード
 
@@ -468,32 +238,6 @@ message Snapshot {
 
 ### イベント公開トピック
 
-イベント追記後、バックグラウンドタスクが `k1s0.system.eventstore.event.published.v1` トピックへ非同期転送する。プロジェクション更新やリードモデル構築のためのダウンストリームサービスがこのトピックを Consumer する。
-
-**メッセージフォーマット**
-
-```json
-{
-  "event_type": "EVENT_PUBLISHED",
-  "stream_id": "order-order-001",
-  "sequence": 1,
-  "domain_event_type": "OrderPlaced",
-  "version": 1,
-  "payload": {
-    "order_id": "order-001",
-    "tenant_id": "tenant-abc",
-    "total_amount": 3000
-  },
-  "metadata": {
-    "actor_id": "user-001",
-    "correlation_id": "corr_01JABCDEF1234567890",
-    "causation_id": null
-  },
-  "occurred_at": "2026-02-23T10:00:00.000+00:00",
-  "stored_at": "2026-02-23T10:00:00.012+00:00"
-}
-```
-
 | 設定項目 | 値 |
 | --- | --- |
 | トピック | `k1s0.system.eventstore.event.published.v1` |
@@ -563,16 +307,8 @@ message Snapshot {
                     │                    adapter 層                    │
                     │  ┌──────────────────────────────────────────┐   │
                     │  │ REST Handler (event_store_handler.rs)    │   │
-                    │  │  healthz / readyz / metrics              │   │
-                    │  │  append_events / read_events /           │   │
-                    │  │  read_event_by_sequence /                │   │
-                    │  │  create_snapshot / get_latest_snapshot / │   │
-                    │  │  delete_stream                           │   │
                     │  ├──────────────────────────────────────────┤   │
                     │  │ gRPC Handler (event_store_grpc.rs)       │   │
-                    │  │  AppendEvents / ReadEvents /             │   │
-                    │  │  ReadEventBySequence /                   │   │
-                    │  │  CreateSnapshot / GetLatestSnapshot      │   │
                     │  └──────────────────────┬───────────────────┘   │
                     └─────────────────────────┼───────────────────────┘
                                               │
@@ -616,6 +352,410 @@ message Snapshot {
 
 ### DB スキーマ設計
 
+| テーブル | 用途 | 特記事項 |
+| --- | --- | --- |
+| `event_store.event_streams` | ストリーム管理 | PK: `id (TEXT)`, current_version で楽観的ロック |
+| `event_store.events` | イベント保存 | Append-only（UPDATE/DELETE 禁止）、UNIQUE(stream_id, version)、sequence は IDENTITY |
+| `event_store.snapshots` | スナップショット | PK: `id (TEXT)`, INDEX(stream_id, snapshot_version DESC) |
+
+---
+
+## デプロイ
+
+### Vault シークレットパス
+
+| シークレット | パス |
+| --- | --- |
+| DB パスワード | `secret/data/k1s0/system/event-store/database` |
+| Kafka SASL | `secret/data/k1s0/system/kafka/sasl` |
+
+---
+
+## 詳細設計ドキュメント
+
+- [system-event-store-server-implementation.md](../_common/implementation.md) -- 実装設計の詳細
+- [system-event-store-server-deploy.md](../_common/deploy.md) -- デプロイ設計の詳細
+
+---
+
+## API リクエスト・レスポンス例
+
+### POST /api/v1/events
+
+**リクエスト例**
+
+```json
+{
+  "events": [
+    {
+      "event_type": "OrderPlaced",
+      "payload": {
+        "order_id": "order-001",
+        "tenant_id": "tenant-abc",
+        "items": [
+          {"product_id": "prod-001", "quantity": 2, "unit_price": 1500}
+        ],
+        "total_amount": 3000
+      },
+      "metadata": {
+        "actor_id": "user-001",
+        "correlation_id": "corr_01JABCDEF1234567890",
+        "causation_id": null
+      }
+    }
+  ],
+  "expected_version": 0
+}
+```
+
+**レスポンス（201 Created）**
+
+```json
+{
+  "stream_id": "order-order-001",
+  "events": [
+    {
+      "stream_id": "order-order-001",
+      "sequence": 1,
+      "event_type": "OrderPlaced",
+      "version": 1,
+      "payload": {
+        "order_id": "order-001",
+        "tenant_id": "tenant-abc",
+        "items": [
+          {"product_id": "prod-001", "quantity": 2, "unit_price": 1500}
+        ],
+        "total_amount": 3000
+      },
+      "metadata": {
+        "actor_id": "user-001",
+        "correlation_id": "corr_01JABCDEF1234567890",
+        "causation_id": null
+      },
+      "occurred_at": "2026-02-23T10:00:00.000+00:00",
+      "stored_at": "2026-02-23T10:00:00.012+00:00"
+    }
+  ],
+  "current_version": 1
+}
+```
+
+**レスポンス（409 Conflict）**
+
+```json
+{
+  "error": {
+    "code": "SYS_EVSTORE_VERSION_CONFLICT",
+    "message": "version conflict for stream order-order-001: expected 0, actual 3",
+    "request_id": "req_abc123def456",
+    "details": [
+      {"field": "expected_version", "message": "0"},
+      {"field": "actual_version", "message": "3"}
+    ]
+  }
+}
+```
+
+### GET /api/v1/events/:stream_id
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "stream_id": "order-order-001",
+  "events": [
+    {
+      "stream_id": "order-order-001",
+      "sequence": 1,
+      "event_type": "OrderPlaced",
+      "version": 1,
+      "payload": {
+        "order_id": "order-001",
+        "tenant_id": "tenant-abc",
+        "total_amount": 3000
+      },
+      "metadata": {
+        "actor_id": "user-001",
+        "correlation_id": "corr_01JABCDEF1234567890",
+        "causation_id": null
+      },
+      "occurred_at": "2026-02-23T10:00:00.000+00:00",
+      "stored_at": "2026-02-23T10:00:00.012+00:00"
+    },
+    {
+      "stream_id": "order-order-001",
+      "sequence": 2,
+      "event_type": "OrderShipped",
+      "version": 2,
+      "payload": {
+        "order_id": "order-001",
+        "tracking_number": "TRK-12345"
+      },
+      "metadata": {
+        "actor_id": "user-002",
+        "correlation_id": "corr_02JABCDEF1234567890",
+        "causation_id": "corr_01JABCDEF1234567890"
+      },
+      "occurred_at": "2026-02-23T14:00:00.000+00:00",
+      "stored_at": "2026-02-23T14:00:00.008+00:00"
+    }
+  ],
+  "current_version": 2,
+  "pagination": {
+    "total_count": 2,
+    "page": 1,
+    "page_size": 50,
+    "has_next": false
+  }
+}
+```
+
+**レスポンス（404 Not Found）**
+
+```json
+{
+  "error": {
+    "code": "SYS_EVSTORE_STREAM_NOT_FOUND",
+    "message": "stream not found: order-order-999",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
+}
+```
+
+### GET /api/v1/events
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "events": [
+    {
+      "stream_id": "order-order-001",
+      "sequence": 1,
+      "event_type": "OrderPlaced",
+      "version": 1,
+      "payload": { "..." : "..." },
+      "metadata": { "..." : "..." },
+      "occurred_at": "2026-02-23T10:00:00.000+00:00",
+      "stored_at": "2026-02-23T10:00:00.012+00:00"
+    }
+  ],
+  "pagination": {
+    "total_count": 100,
+    "page": 1,
+    "page_size": 50,
+    "has_next": true
+  }
+}
+```
+
+### GET /api/v1/streams
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "streams": [
+    {
+      "id": "order-order-001",
+      "aggregate_type": "Order",
+      "current_version": 2,
+      "created_at": "2026-02-23T10:00:00.000+00:00",
+      "updated_at": "2026-02-23T14:00:00.000+00:00"
+    }
+  ]
+}
+```
+
+### POST /api/v1/streams/:stream_id/snapshot
+
+**リクエスト例**
+
+```json
+{
+  "snapshot_version": 2,
+  "aggregate_type": "Order",
+  "state": {
+    "order_id": "order-001",
+    "status": "shipped",
+    "tenant_id": "tenant-abc",
+    "total_amount": 3000,
+    "tracking_number": "TRK-12345"
+  }
+}
+```
+
+**レスポンス（201 Created）**
+
+```json
+{
+  "id": "snap_01JABCDEF1234567890",
+  "stream_id": "order-order-001",
+  "snapshot_version": 2,
+  "aggregate_type": "Order",
+  "created_at": "2026-02-23T15:00:00.000+00:00"
+}
+```
+
+### GET /api/v1/streams/:stream_id/snapshot
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "id": "snap_01JABCDEF1234567890",
+  "stream_id": "order-order-001",
+  "snapshot_version": 2,
+  "aggregate_type": "Order",
+  "state": {
+    "order_id": "order-001",
+    "status": "shipped",
+    "tenant_id": "tenant-abc",
+    "total_amount": 3000,
+    "tracking_number": "TRK-12345"
+  },
+  "created_at": "2026-02-23T15:00:00.000+00:00"
+}
+```
+
+**レスポンス（404 Not Found）**
+
+```json
+{
+  "error": {
+    "code": "SYS_EVSTORE_SNAPSHOT_NOT_FOUND",
+    "message": "no snapshot found for stream: order-order-001",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
+}
+```
+
+### DELETE /api/v1/streams/:stream_id
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "success": true,
+  "message": "stream order-order-001 and all related data deleted"
+}
+```
+
+---
+
+## Kafka メッセージフォーマット
+
+イベント追記後、バックグラウンドタスクが `k1s0.system.eventstore.event.published.v1` トピックへ非同期転送する。
+
+```json
+{
+  "event_type": "EVENT_PUBLISHED",
+  "stream_id": "order-order-001",
+  "sequence": 1,
+  "domain_event_type": "OrderPlaced",
+  "version": 1,
+  "payload": {
+    "order_id": "order-001",
+    "tenant_id": "tenant-abc",
+    "total_amount": 3000
+  },
+  "metadata": {
+    "actor_id": "user-001",
+    "correlation_id": "corr_01JABCDEF1234567890",
+    "causation_id": null
+  },
+  "occurred_at": "2026-02-23T10:00:00.000+00:00",
+  "stored_at": "2026-02-23T10:00:00.012+00:00"
+}
+```
+
+---
+
+## 設定ファイル例
+
+### config.yaml（本番）
+
+```yaml
+app:
+  name: "event-store"
+  version: "0.1.0"
+  environment: "production"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  grpc_port: 9090
+
+database:
+  url: "postgresql://app:@postgres.k1s0-system.svc.cluster.local:5432/k1s0_system"
+  schema: "event_store"
+  max_connections: 20
+  min_connections: 5
+  connect_timeout_seconds: 5
+
+kafka:
+  brokers:
+    - "kafka-0.messaging.svc.cluster.local:9092"
+  security_protocol: "PLAINTEXT"
+  topic_published: "k1s0.system.eventstore.event.published.v1"
+  producer_acks: "all"
+  producer_retries: 3
+
+auth:
+  jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
+
+event_store:
+  max_events_per_append: 100
+  max_page_size: 200
+```
+
+---
+
+## Helm values 例
+
+```yaml
+# values-event-store.yaml（infra/helm/services/system/event-store/values.yaml）
+image:
+  registry: harbor.internal.example.com
+  repository: k1s0-system/event-store
+  tag: ""
+
+replicaCount: 2
+
+container:
+  port: 8080
+  grpcPort: 9090
+
+service:
+  type: ClusterIP
+  port: 80
+  grpcPort: 9090
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+
+kafka:
+  enabled: true
+  brokers: []
+
+vault:
+  enabled: true
+  role: "system"
+  secrets:
+    - path: "secret/data/k1s0/system/event-store/database"
+      key: "password"
+      mountPath: "/vault/secrets/database-password"
+```
+
+---
+
+## DB スキーマ DDL
+
 ```sql
 -- event_store スキーマ
 CREATE SCHEMA IF NOT EXISTS event_store;
@@ -656,107 +796,6 @@ CREATE TABLE event_store.snapshots (
 
 CREATE INDEX idx_snapshots_stream_id ON event_store.snapshots (stream_id, snapshot_version DESC);
 ```
-
----
-
-## 設定ファイル
-
-### config.yaml（本番）
-
-```yaml
-app:
-  name: "event-store"
-  version: "0.1.0"
-  environment: "production"
-
-server:
-  host: "0.0.0.0"
-  port: 8080
-  grpc_port: 9090
-
-database:
-  url: "postgresql://app:@postgres.k1s0-system.svc.cluster.local:5432/k1s0_system"
-  schema: "event_store"
-  max_connections: 20
-  min_connections: 5
-  connect_timeout_seconds: 5
-
-kafka:
-  brokers:
-    - "kafka-0.messaging.svc.cluster.local:9092"
-  security_protocol: "PLAINTEXT"
-  topic_published: "k1s0.system.eventstore.event.published.v1"
-  producer_acks: "all"
-  producer_retries: 3
-
-auth:
-  jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
-
-event_store:
-  max_events_per_append: 100
-  max_page_size: 200
-```
-
----
-
-## デプロイ
-
-### Helm values
-
-[helm設計.md](../../infrastructure/kubernetes/helm設計.md) のサーバー用 Helm Chart を使用する。event-store 固有の values は以下の通り。
-
-```yaml
-# values-event-store.yaml（infra/helm/services/system/event-store/values.yaml）
-image:
-  registry: harbor.internal.example.com
-  repository: k1s0-system/event-store
-  tag: ""
-
-replicaCount: 2
-
-container:
-  port: 8080
-  grpcPort: 9090
-
-service:
-  type: ClusterIP
-  port: 80
-  grpcPort: 9090
-
-autoscaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 8
-  targetCPUUtilizationPercentage: 70
-
-kafka:
-  enabled: true
-  brokers: []
-
-vault:
-  enabled: true
-  role: "system"
-  secrets:
-    - path: "secret/data/k1s0/system/event-store/database"
-      key: "password"
-      mountPath: "/vault/secrets/database-password"
-```
-
-### Vault シークレットパス
-
-| シークレット | パス |
-| --- | --- |
-| DB パスワード | `secret/data/k1s0/system/event-store/database` |
-| Kafka SASL | `secret/data/k1s0/system/kafka/sasl` |
-
----
-
-## 詳細設計ドキュメント
-
-- [system-event-store-server-implementation.md](../_common/implementation.md) -- 実装設計の詳細
-- [system-event-store-server-deploy.md](../_common/deploy.md) -- デプロイ設計の詳細
-
----
 
 ## 関連ドキュメント
 

@@ -53,7 +53,39 @@ ENTRYPOINT ["/k1s0-dlq-manager"]
 | 公開ポート | 8080（REST API のみ、gRPC なし） |
 | 実行ユーザー | `nonroot:nonroot`（セキュリティベストプラクティス） |
 
-> **注意**: `.dockerignore` で `**/target/` を除外すること（ビルドコンテキストの肥大化防止）。
+---
+
+## 設定ファイル例
+
+### config.docker.yaml
+
+Docker 環境用の設定ファイル。`regions/system/server/rust/dlq-manager/config/config.docker.yaml` に配置。
+
+```yaml
+app:
+  name: "dlq-manager"
+  version: "0.1.0"
+  environment: "dev"
+
+server:
+  host: "0.0.0.0"
+  port: 8084          # docker-compose 内部ポート（ホスト: 8086 → コンテナ: 8080）
+
+database:
+  host: postgres
+  port: 5432
+  name: dlq_db
+  user: dev
+  password: dev
+  ssl_mode: disable
+
+kafka:
+  brokers:
+    - "kafka:9092"
+  consumer_group: "dlq-manager.docker"
+  dlq_topic_pattern: "*.dlq.v1"
+  security_protocol: "PLAINTEXT"
+```
 
 ---
 
@@ -71,7 +103,7 @@ ENTRYPOINT ["/k1s0-dlq-manager"]
 | infrastructure/kafka | 単体テスト（モック） | `mockall` |
 | infrastructure/persistence | 統合テスト（DB） | `testcontainers` |
 
-### ユニットテスト一覧（48 テスト）
+### ユニットテスト（48 テスト）
 
 | テスト対象 | テスト数 | 内容 |
 | --- | --- | --- |
@@ -129,7 +161,7 @@ detect-changes → lint-rust → test-rust → build-rust → security-scan
 
 ### CD（`.github/workflows/dlq-manager-deploy.yaml`）
 
-main ブランチへの push 時に `regions/system/server/rust/dlq-manager/**` の変更を検出してトリガーする。
+main ブランチへの push 時にトリガー。
 
 ```
 build-and-push → deploy-dev → deploy-staging → deploy-prod（手動承認）
@@ -151,50 +183,6 @@ build-and-push → deploy-dev → deploy-staging → deploy-prod（手動承認�
 | latest | `latest` |
 
 **レジストリ**: `harbor.internal.example.com/k1s0-system/dlq-manager`
-
----
-
-## 設定ファイル（config.docker.yaml）
-
-Docker 環境用の設定ファイル。`regions/system/server/rust/dlq-manager/config/config.docker.yaml` に配置。
-
-```yaml
-app:
-  name: "dlq-manager"
-  version: "0.1.0"
-  environment: "dev"
-
-server:
-  host: "0.0.0.0"
-  port: 8084          # docker-compose 内部ポート（ホスト: 8086 → コンテナ: 8080）
-
-database:
-  host: postgres
-  port: 5432
-  name: dlq_db
-  user: dev
-  password: dev
-  ssl_mode: disable
-
-kafka:
-  brokers:
-    - "kafka:9092"
-  consumer_group: "dlq-manager.docker"
-  dlq_topic_pattern: "*.dlq.v1"
-  security_protocol: "PLAINTEXT"
-```
-
-### 本番設定（config.yaml）
-
-| 項目 | 値 |
-| --- | --- |
-| `server.port` | 8080 |
-| `database.host` | `postgres.k1s0-system.svc.cluster.local` |
-| `database.name` | `k1s0_dlq` |
-| `database.ssl_mode` | `disable` |
-| `kafka.brokers` | `kafka-0.messaging.svc.cluster.local:9092` |
-| `kafka.consumer_group` | `dlq-manager.default` |
-| `kafka.security_protocol` | `PLAINTEXT` |
 
 ---
 
@@ -225,56 +213,17 @@ DLQ Manager は REST API のみを提供し、gRPC エンドポイントは持�
 | PostgreSQL | DLQ メッセージの永続化 | No（未設定時は InMemory リポジトリで動作） |
 | Kafka | DLQ トピック購読・元トピックへの再発行 | No（未設定時は REST API のみ動作、再処理時は再発行をスキップ） |
 
-### PostgreSQL
+### 本番設定
 
-- DB 名: `dlq_db`（docker）/ `k1s0_dlq`（本番）
-- 接続設定: `database` セクションで指定
-- マイグレーション: DLQ スキーマの `dlq_messages` テーブル
-
-### Kafka
-
-- ブローカー: `kafka:9092`（docker）/ `kafka-0.messaging.svc.cluster.local:9092`（本番）
-- コンシューマーグループ: `dlq-manager.docker`（docker）/ `dlq-manager.default`（本番）
-- DLQ トピックパターン: `*.dlq.v1`
-- セキュリティプロトコル: `PLAINTEXT`
-
----
-
-## ヘルスチェック
-
-### Kubernetes Probes
-
-```yaml
-# Liveness Probe
-livenessProbe:
-  httpGet:
-    path: /healthz
-    port: 8080
-  initialDelaySeconds: 10
-  periodSeconds: 15
-  failureThreshold: 3
-
-# Readiness Probe
-readinessProbe:
-  httpGet:
-    path: /readyz
-    port: 8080
-  initialDelaySeconds: 5
-  periodSeconds: 5
-  failureThreshold: 3
-```
-
-### docker-compose 環境
-
-distroless コンテナには curl/sh が含まれないため、`CMD-SHELL` によるヘルスチェックは使用不可。ホスト側から `curl` で確認する。
-
-```bash
-# ヘルスチェック
-curl -f http://localhost:8086/healthz
-
-# レディネスチェック
-curl -f http://localhost:8086/readyz
-```
+| 項目 | 値 |
+| --- | --- |
+| `server.port` | 8080 |
+| `database.host` | `postgres.k1s0-system.svc.cluster.local` |
+| `database.name` | `k1s0_dlq` |
+| `database.ssl_mode` | `disable` |
+| `kafka.brokers` | `kafka-0.messaging.svc.cluster.local:9092` |
+| `kafka.consumer_group` | `dlq-manager.default` |
+| `kafka.security_protocol` | `PLAINTEXT` |
 
 ---
 
@@ -303,6 +252,13 @@ infra/helm/services/system/dlq-manager/
     service.yaml
     serviceaccount.yaml
 ```
+
+### Vault シークレットパス
+
+| シークレット | パス |
+| --- | --- |
+| DB パスワード | `secret/data/k1s0/system/dlq-manager/database` |
+| Kafka SASL | `secret/data/k1s0/system/kafka/sasl` |
 
 ### Helm values（デフォルト）
 
@@ -382,14 +338,9 @@ vault:
   enabled: false
 ```
 
-### Vault シークレットパス
+---
 
-| シークレット | パス |
-| --- | --- |
-| DB パスワード | `secret/data/k1s0/system/dlq-manager/database` |
-| Kafka SASL | `secret/data/k1s0/system/kafka/sasl` |
-
-### セキュリティ設定
+## セキュリティ設定
 
 ```yaml
 podSecurityContext:
@@ -408,8 +359,6 @@ containerSecurityContext:
 
 ## Kong ルーティング
 
-[認証認可設計.md](../../architecture/auth/認証認可設計.md) の Kong ルーティング設計に従い、DLQ Manager を Kong に登録する。
-
 ```yaml
 services:
   - name: dlq-manager-v1
@@ -424,6 +373,42 @@ services:
         config:
           minute: 3000
           policy: redis
+```
+
+---
+
+## Kubernetes Probes
+
+```yaml
+# Liveness Probe
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 15
+  failureThreshold: 3
+
+# Readiness Probe
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  failureThreshold: 3
+```
+
+### docker-compose 環境
+
+distroless コンテナには curl/sh が含まれないため、`CMD-SHELL` によるヘルスチェックは使用不可。ホスト側から `curl` で確認する。
+
+```bash
+# ヘルスチェック
+curl -f http://localhost:8086/healthz
+
+# レディネスチェック
+curl -f http://localhost:8086/readyz
 ```
 
 ---

@@ -1,6 +1,6 @@
 # system-config-server デプロイ設計
 
-system-config-server のキャッシュ戦略・DB マイグレーション・テスト・Dockerfile・Helm values を定義する。概要・API 定義・アーキテクチャは [system-config-server.md](server.md) を参照。
+system-config-server のキャッシュ戦略・テスト方針・Dockerfile・Helm values を定義する。概要・API 定義・アーキテクチャは [system-config-server.md](server.md) を参照。
 
 ---
 
@@ -73,70 +73,6 @@ impl ConfigCache {
 
 設定値と変更ログの2テーブルを PostgreSQL（config-db）に格納する。詳細なスキーマ定義と全マイグレーションファイルは [system-config-database.md](database.md) 参照。
 
-```sql
--- migrations/002_create_config_entries.up.sql
-
-CREATE TABLE IF NOT EXISTS config.config_entries (
-    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    namespace   VARCHAR(255) NOT NULL,
-    key         VARCHAR(255) NOT NULL,
-    value_json  JSONB        NOT NULL DEFAULT '{}',
-    version     INT          NOT NULL DEFAULT 1,
-    description TEXT,
-    created_by  VARCHAR(255) NOT NULL,
-    updated_by  VARCHAR(255) NOT NULL,
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-
-    CONSTRAINT uq_config_entries_namespace_key UNIQUE (namespace, key)
-);
-
--- インデックス
-CREATE INDEX IF NOT EXISTS idx_config_entries_namespace
-    ON config.config_entries (namespace);
-CREATE INDEX IF NOT EXISTS idx_config_entries_namespace_key
-    ON config.config_entries (namespace, key);
-CREATE INDEX IF NOT EXISTS idx_config_entries_created_at
-    ON config.config_entries (created_at);
-
--- updated_at トリガー
-CREATE TRIGGER trigger_config_entries_update_updated_at
-    BEFORE UPDATE ON config.config_entries
-    FOR EACH ROW
-    EXECUTE FUNCTION config.update_updated_at();
-```
-
-```sql
--- migrations/003_create_config_change_logs.up.sql
-
-CREATE TABLE IF NOT EXISTS config.config_change_logs (
-    id               UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    config_entry_id  UUID         REFERENCES config.config_entries(id) ON DELETE SET NULL,
-    namespace        VARCHAR(255) NOT NULL,
-    key              VARCHAR(255) NOT NULL,
-    change_type      VARCHAR(20)  NOT NULL,
-    old_value_json   JSONB,
-    new_value_json   JSONB,
-    changed_by       VARCHAR(255) NOT NULL,
-    trace_id         VARCHAR(64),
-    created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-
-    CONSTRAINT chk_config_change_logs_change_type
-        CHECK (change_type IN ('CREATED', 'UPDATED', 'DELETED'))
-);
-
--- インデックス
-CREATE INDEX IF NOT EXISTS idx_config_change_logs_config_entry_id
-    ON config.config_change_logs (config_entry_id);
-CREATE INDEX IF NOT EXISTS idx_config_change_logs_namespace_key
-    ON config.config_change_logs (namespace, key);
-CREATE INDEX IF NOT EXISTS idx_config_change_logs_change_type_created_at
-    ON config.config_change_logs (change_type, created_at);
-CREATE INDEX IF NOT EXISTS idx_config_change_logs_trace_id
-    ON config.config_change_logs (trace_id)
-    WHERE trace_id IS NOT NULL;
-```
-
 > **注意**: 実装済みの config_change_logs テーブルはドキュメント初期設計から以下の変更を反映済み:
 > - `config.` スキーマプレフィックスを使用（スキーマなしではない）
 > - カラム名: `old_value` -> `old_value_json`, `new_value` -> `new_value_json`（JSONB であることを明示）
@@ -159,7 +95,9 @@ CREATE INDEX IF NOT EXISTS idx_config_change_logs_trace_id
 | infrastructure/persistence | 統合テスト（DB） | `testcontainers` |
 | infrastructure/cache | 単体テスト | `tokio::test` |
 
-### Rust テスト例
+### テスト例
+
+#### Rust ユースケーステスト（mockall）
 
 ```rust
 // src/usecase/get_config.rs
@@ -233,9 +171,7 @@ mod tests {
 }
 ```
 
-### testcontainers による DB 統合テスト
-
-#### Rust
+#### testcontainers による DB 統合テスト（Rust）
 
 ```rust
 // src/infrastructure/persistence/config_repository_test.rs
@@ -312,9 +248,20 @@ mod tests {
 
 ## デプロイ
 
-### Dockerfile
+### Dockerfile 構成
 
-[Dockerイメージ戦略.md](../../infrastructure/docker/Dockerイメージ戦略.md) のテンプレートに従う。ビルドコンテキストは `regions/system`（ライブラリ依存解決のため）。
+| 項目 | 詳細 |
+| --- | --- |
+| ビルドステージ | `rust:1.88-bookworm`（マルチステージビルド） |
+| ランタイムステージ | `gcr.io/distroless/cc-debian12:nonroot`（最小イメージ） |
+| 追加パッケージ | `protobuf-compiler`（proto 生成）、`cmake` + `build-essential`（rdkafka ビルド） |
+| libz コピー | distroless には zlib が含まれないため、ビルドステージから手動コピー |
+| ビルドコマンド | `cargo build --release -p k1s0-config-server`（ワークスペースから特定パッケージを指定） |
+| ビルドコンテキスト | `regions/system`（`COPY . .` でシステム全体のライブラリ依存を含める） |
+| 公開ポート | 8080（REST API）、50051（gRPC） |
+| 実行ユーザー | `nonroot:nonroot`（セキュリティベストプラクティス） |
+
+### Dockerfile
 
 ```dockerfile
 # Build stage
@@ -348,20 +295,9 @@ EXPOSE 8080 50051
 ENTRYPOINT ["/k1s0-config-server"]
 ```
 
-### Dockerfile 構成のポイント
+---
 
-| 項目 | 詳細 |
-| --- | --- |
-| ビルドステージ | `rust:1.88-bookworm`（マルチステージビルド） |
-| ランタイムステージ | `gcr.io/distroless/cc-debian12:nonroot`（最小イメージ） |
-| 追加パッケージ | `protobuf-compiler`（proto 生成）、`cmake` + `build-essential`（rdkafka ビルド） |
-| libz コピー | distroless には zlib が含まれないため、ビルドステージから手動コピー |
-| ビルドコマンド | `cargo build --release -p k1s0-config-server`（ワークスペースから特定パッケージを指定） |
-| ビルドコンテキスト | `regions/system`（`COPY . .` でシステム全体のライブラリ依存を含める） |
-| 公開ポート | 8080（REST API）、50051（gRPC） |
-| 実行ユーザー | `nonroot:nonroot`（セキュリティベストプラクティス） |
-
-### Helm values
+## Helm values
 
 [helm設計.md](../../infrastructure/kubernetes/helm設計.md) のサーバー用 Helm Chart を使用する。設定管理サーバー固有の values は以下の通り。
 
@@ -420,7 +356,9 @@ configMap:
   mountPath: /etc/app/config.yaml
 ```
 
-### Kong ルーティング
+---
+
+## Kong ルーティング
 
 [認証認可設計.md](../../architecture/auth/認証認可設計.md) の Kong ルーティング設計に従い、設定管理サーバーを Kong に登録する。
 

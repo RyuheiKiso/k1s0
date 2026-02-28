@@ -1,6 +1,6 @@
 # system-workflow-server 設計
 
-system tier の人間タスク・承認フロー込みのワークフローオーケストレーションサーバー設計を定義する。BPMN 的なワークフロー定義を管理し、担当者割当・期日・承認/却下を含む人手プロセスを制御する。ワークフロー状態変化は Kafka トピック `k1s0.system.workflow.state_changed.v1` で発行し、タスク期日超過を scheduler-server で監視、notification-server で通知する。Rust での実装を定義する。
+人間タスク・承認フロー込みのワークフローオーケストレーションサーバー。
 
 ## 概要
 
@@ -81,196 +81,17 @@ system tier のワークフローオーケストレーションサーバーは�
 | `page` | int | No | 1 | ページ番号 |
 | `page_size` | int | No | 20 | 1 ページあたりの件数 |
 
-**レスポンス（200 OK）**
-
-```json
-{
-  "workflows": [
-    {
-      "id": "wf_01JABCDEF1234567890",
-      "name": "purchase-approval",
-      "description": "購買申請承認フロー",
-      "version": 2,
-      "enabled": true,
-      "step_count": 3,
-      "created_at": "2026-02-20T10:00:00.000+00:00",
-      "updated_at": "2026-02-20T12:30:00.000+00:00"
-    }
-  ],
-  "pagination": {
-    "total_count": 5,
-    "page": 1,
-    "page_size": 20,
-    "has_next": false
-  }
-}
-```
-
 #### POST /api/v1/workflows
 
 新しいワークフロー定義を作成する。`steps` はステップ定義の配列で、各ステップは `type: human_task` または `type: automated` を指定する。
-
-**リクエスト**
-
-```json
-{
-  "name": "purchase-approval",
-  "description": "購買申請承認フロー",
-  "enabled": true,
-  "steps": [
-    {
-      "step_id": "step-1",
-      "name": "部門長承認",
-      "type": "human_task",
-      "assignee_role": "dept_manager",
-      "timeout_hours": 48,
-      "on_approve": "step-2",
-      "on_reject": "end"
-    },
-    {
-      "step_id": "step-2",
-      "name": "経理部承認",
-      "type": "human_task",
-      "assignee_role": "finance_approver",
-      "timeout_hours": 72,
-      "on_approve": "end",
-      "on_reject": "step-1"
-    }
-  ]
-}
-```
-
-**レスポンス（201 Created）**
-
-```json
-{
-  "id": "wf_01JABCDEF1234567890",
-  "name": "purchase-approval",
-  "description": "購買申請承認フロー",
-  "version": 1,
-  "enabled": true,
-  "steps": [
-    {
-      "step_id": "step-1",
-      "name": "部門長承認",
-      "type": "human_task",
-      "assignee_role": "dept_manager",
-      "timeout_hours": 48,
-      "on_approve": "step-2",
-      "on_reject": "end"
-    },
-    {
-      "step_id": "step-2",
-      "name": "経理部承認",
-      "type": "human_task",
-      "assignee_role": "finance_approver",
-      "timeout_hours": 72,
-      "on_approve": "end",
-      "on_reject": "step-1"
-    }
-  ],
-  "created_at": "2026-02-20T10:00:00.000+00:00",
-  "updated_at": "2026-02-20T10:00:00.000+00:00"
-}
-```
-
-**レスポンス（400 Bad Request）**
-
-```json
-{
-  "error": {
-    "code": "SYS_WORKFLOW_VALIDATION_ERROR",
-    "message": "validation failed",
-    "request_id": "req_abc123def456",
-    "details": [
-      {"field": "steps[0].on_approve", "message": "referenced step_id 'step-2' does not exist"},
-      {"field": "name", "message": "name is required and must be non-empty"}
-    ]
-  }
-}
-```
 
 #### GET /api/v1/workflows/:id
 
 ID 指定でワークフロー定義の詳細（ステップ定義を含む）を取得する。
 
-**レスポンス（200 OK）**
-
-```json
-{
-  "id": "wf_01JABCDEF1234567890",
-  "name": "purchase-approval",
-  "description": "購買申請承認フロー",
-  "version": 2,
-  "enabled": true,
-  "steps": [
-    {
-      "step_id": "step-1",
-      "name": "部門長承認",
-      "type": "human_task",
-      "assignee_role": "dept_manager",
-      "timeout_hours": 48,
-      "on_approve": "step-2",
-      "on_reject": "end"
-    }
-  ],
-  "created_at": "2026-02-20T10:00:00.000+00:00",
-  "updated_at": "2026-02-20T12:30:00.000+00:00"
-}
-```
-
-**レスポンス（404 Not Found）**
-
-```json
-{
-  "error": {
-    "code": "SYS_WORKFLOW_NOT_FOUND",
-    "message": "workflow definition not found: wf_01JABCDEF1234567890",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
-
 #### POST /api/v1/workflows/:id/instances
 
 指定したワークフロー定義からインスタンスを起動する。起動後すぐに最初のステップのタスクが生成される。
-
-**リクエスト**
-
-```json
-{
-  "title": "PC購入申請（田中太郎）",
-  "initiator_id": "user-001",
-  "context": {
-    "item": "ノートPC",
-    "amount": 150000,
-    "requester": "tanaka@example.com"
-  }
-}
-```
-
-**レスポンス（201 Created）**
-
-```json
-{
-  "id": "inst_01JABCDEF1234567890",
-  "workflow_id": "wf_01JABCDEF1234567890",
-  "workflow_name": "purchase-approval",
-  "title": "PC購入申請（田中太郎）",
-  "initiator_id": "user-001",
-  "current_step_id": "step-1",
-  "status": "running",
-  "context": {
-    "item": "ノートPC",
-    "amount": 150000,
-    "requester": "tanaka@example.com"
-  },
-  "started_at": "2026-02-20T10:00:00.000+00:00",
-  "completed_at": null,
-  "created_at": "2026-02-20T10:00:00.000+00:00"
-}
-```
 
 #### GET /api/v1/instances
 
@@ -286,67 +107,9 @@ ID 指定でワークフロー定義の詳細（ステップ定義を含む）�
 | `page` | int | No | 1 | ページ番号 |
 | `page_size` | int | No | 20 | 1 ページあたりの件数 |
 
-**レスポンス（200 OK）**
-
-```json
-{
-  "instances": [
-    {
-      "id": "inst_01JABCDEF1234567890",
-      "workflow_id": "wf_01JABCDEF1234567890",
-      "workflow_name": "purchase-approval",
-      "title": "PC購入申請（田中太郎）",
-      "initiator_id": "user-001",
-      "current_step_id": "step-1",
-      "status": "running",
-      "started_at": "2026-02-20T10:00:00.000+00:00",
-      "completed_at": null,
-      "created_at": "2026-02-20T10:00:00.000+00:00"
-    }
-  ],
-  "pagination": {
-    "total_count": 50,
-    "page": 1,
-    "page_size": 20,
-    "has_next": true
-  }
-}
-```
-
 #### POST /api/v1/instances/:id/cancel
 
 実行中のインスタンスをキャンセルする。`completed` / `cancelled` 済みのインスタンスには適用できない。
-
-**リクエスト**
-
-```json
-{
-  "reason": "申請内容に誤りがあったため取り消し"
-}
-```
-
-**レスポンス（200 OK）**
-
-```json
-{
-  "id": "inst_01JABCDEF1234567890",
-  "status": "cancelled",
-  "cancelled_at": "2026-02-20T15:00:00.000+00:00"
-}
-```
-
-**レスポンス（409 Conflict）**
-
-```json
-{
-  "error": {
-    "code": "SYS_WORKFLOW_INVALID_STATUS",
-    "message": "cannot cancel an already completed instance: inst_01JABCDEF1234567890",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
 
 #### GET /api/v1/tasks
 
@@ -363,133 +126,17 @@ ID 指定でワークフロー定義の詳細（ステップ定義を含む）�
 | `page` | int | No | 1 | ページ番号 |
 | `page_size` | int | No | 20 | 1 ページあたりの件数 |
 
-**レスポンス（200 OK）**
-
-```json
-{
-  "tasks": [
-    {
-      "id": "task_01JABCDEF1234567890",
-      "instance_id": "inst_01JABCDEF1234567890",
-      "step_id": "step-1",
-      "step_name": "部門長承認",
-      "assignee_id": "user-002",
-      "status": "assigned",
-      "due_at": "2026-02-22T10:00:00.000+00:00",
-      "is_overdue": false,
-      "created_at": "2026-02-20T10:00:00.000+00:00",
-      "updated_at": "2026-02-20T10:00:00.000+00:00"
-    }
-  ],
-  "pagination": {
-    "total_count": 10,
-    "page": 1,
-    "page_size": 20,
-    "has_next": false
-  }
-}
-```
-
 #### POST /api/v1/tasks/:id/approve
 
 タスクを承認する。承認後は次のステップへ遷移し、次タスクが生成される。最終ステップの承認ではインスタンスが `completed` になる。
-
-**リクエスト**
-
-```json
-{
-  "comment": "内容を確認しました。承認します。",
-  "actor_id": "user-002"
-}
-```
-
-**レスポンス（200 OK）**
-
-```json
-{
-  "task_id": "task_01JABCDEF1234567890",
-  "status": "approved",
-  "next_task_id": "task_01JABCDEF9876543210",
-  "instance_status": "running",
-  "decided_at": "2026-02-20T14:00:00.000+00:00"
-}
-```
-
-**レスポンス（404 Not Found）**
-
-```json
-{
-  "error": {
-    "code": "SYS_WORKFLOW_TASK_NOT_FOUND",
-    "message": "workflow task not found: task_01JABCDEF1234567890",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
 
 #### POST /api/v1/tasks/:id/reject
 
 タスクを却下する。`on_reject` の設定に基づいて前のステップへ差し戻すか、インスタンスを `failed` で終了する。
 
-**リクエスト**
-
-```json
-{
-  "comment": "金額が予算上限を超過しているため却下します。",
-  "actor_id": "user-002"
-}
-```
-
-**レスポンス（200 OK）**
-
-```json
-{
-  "task_id": "task_01JABCDEF1234567890",
-  "status": "rejected",
-  "next_task_id": null,
-  "instance_status": "failed",
-  "decided_at": "2026-02-20T14:00:00.000+00:00"
-}
-```
-
 #### POST /api/v1/tasks/:id/reassign
 
 タスクの担当者を変更する。`status` が `pending` または `assigned` のタスクのみ再割当可能。
-
-**リクエスト**
-
-```json
-{
-  "new_assignee_id": "user-003",
-  "reason": "担当者変更のため",
-  "actor_id": "user-002"
-}
-```
-
-**レスポンス（200 OK）**
-
-```json
-{
-  "task_id": "task_01JABCDEF1234567890",
-  "previous_assignee_id": "user-002",
-  "new_assignee_id": "user-003",
-  "reassigned_at": "2026-02-20T13:00:00.000+00:00"
-}
-```
-
-**レスポンス（409 Conflict）**
-
-```json
-{
-  "error": {
-    "code": "SYS_WORKFLOW_INVALID_STATUS",
-    "message": "cannot reassign a task with status 'approved': task_01JABCDEF1234567890",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
 
 ### エラーコード
 
@@ -585,40 +232,7 @@ message RejectTaskResponse {
 
 ### ワークフロー状態変化通知
 
-ワークフローインスタンスまたはタスクの状態変化時に以下のメッセージを Kafka トピック `k1s0.system.workflow.state_changed.v1` に送信する。
-
-**メッセージフォーマット（インスタンス状態変化）**
-
-```json
-{
-  "event_type": "INSTANCE_STATE_CHANGED",
-  "instance_id": "inst_01JABCDEF1234567890",
-  "workflow_id": "wf_01JABCDEF1234567890",
-  "workflow_name": "purchase-approval",
-  "previous_status": "running",
-  "current_status": "completed",
-  "current_step_id": null,
-  "timestamp": "2026-02-20T15:00:00.000+00:00",
-  "actor_id": "user-002"
-}
-```
-
-**メッセージフォーマット（タスク状態変化）**
-
-```json
-{
-  "event_type": "TASK_STATE_CHANGED",
-  "task_id": "task_01JABCDEF1234567890",
-  "instance_id": "inst_01JABCDEF1234567890",
-  "step_id": "step-1",
-  "step_name": "部門長承認",
-  "previous_status": "assigned",
-  "current_status": "approved",
-  "assignee_id": "user-002",
-  "timestamp": "2026-02-20T14:00:00.000+00:00",
-  "actor_id": "user-002"
-}
-```
+ワークフローインスタンスまたはタスクの状態変化時にメッセージを送信する。イベントタイプは `INSTANCE_STATE_CHANGED` と `TASK_STATE_CHANGED` の 2 種類。
 
 | 設定項目 | 値 |
 | --- | --- |
@@ -629,21 +243,7 @@ message RejectTaskResponse {
 
 ### scheduler-server 連携
 
-タスク期日超過の監視は scheduler-server に以下のジョブを登録して行う。
-
-```json
-{
-  "name": "workflow-task-due-checker",
-  "description": "ワークフロータスク期日超過チェック（15分ごと）",
-  "cron_expression": "*/15 * * * *",
-  "timezone": "UTC",
-  "target_type": "http",
-  "target": "http://workflow.k1s0-system.svc.cluster.local:8080/internal/tasks/check-overdue",
-  "payload": {}
-}
-```
-
-期日超過タスクが検出された場合は notification-server の Kafka トピック `k1s0.system.notification.requested.v1` へメッセージを送信する。
+タスク期日超過の監視は scheduler-server にジョブを登録して行う（15分ごとに `http://workflow.k1s0-system.svc.cluster.local:8080/internal/tasks/check-overdue` を呼び出し）。期日超過タスクが検出された場合は notification-server の Kafka トピック `k1s0.system.notification.requested.v1` へメッセージを送信する。
 
 ---
 
@@ -723,7 +323,509 @@ message RejectTaskResponse {
 | `created_at` | DateTime\<Utc\> | 作成日時 |
 | `updated_at` | DateTime\<Utc\> | 更新日時 |
 
-### 依存関係図
+---
+
+## DB スキーマ
+
+PostgreSQL の `workflow` スキーマに以下のテーブルを配置する。
+
+```sql
+CREATE SCHEMA IF NOT EXISTS workflow;
+
+CREATE TABLE workflow.workflow_definitions (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL DEFAULT '',
+    version     INTEGER NOT NULL DEFAULT 1,
+    enabled     BOOLEAN NOT NULL DEFAULT true,
+    steps_json  JSONB NOT NULL DEFAULT '[]',
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE workflow.workflow_instances (
+    id              TEXT PRIMARY KEY,
+    workflow_id     TEXT NOT NULL REFERENCES workflow.workflow_definitions(id),
+    workflow_name   TEXT NOT NULL,
+    title           TEXT NOT NULL,
+    initiator_id    TEXT NOT NULL,
+    current_step_id TEXT,
+    status          TEXT NOT NULL DEFAULT 'pending',
+    context_json    JSONB NOT NULL DEFAULT '{}',
+    started_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at    TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_workflow_instances_workflow_id ON workflow.workflow_instances(workflow_id);
+CREATE INDEX idx_workflow_instances_initiator_id ON workflow.workflow_instances(initiator_id);
+CREATE INDEX idx_workflow_instances_status ON workflow.workflow_instances(status);
+
+CREATE TABLE workflow.workflow_tasks (
+    id           TEXT PRIMARY KEY,
+    instance_id  TEXT NOT NULL REFERENCES workflow.workflow_instances(id) ON DELETE CASCADE,
+    step_id      TEXT NOT NULL,
+    step_name    TEXT NOT NULL,
+    assignee_id  TEXT,
+    status       TEXT NOT NULL DEFAULT 'pending',
+    due_at       TIMESTAMPTZ,
+    comment      TEXT,
+    actor_id     TEXT,
+    decided_at   TIMESTAMPTZ,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_workflow_tasks_instance_id ON workflow.workflow_tasks(instance_id);
+CREATE INDEX idx_workflow_tasks_assignee_id ON workflow.workflow_tasks(assignee_id);
+CREATE INDEX idx_workflow_tasks_status ON workflow.workflow_tasks(status);
+CREATE INDEX idx_workflow_tasks_due_at ON workflow.workflow_tasks(due_at)
+    WHERE status IN ('pending', 'assigned');
+```
+
+---
+
+## デプロイ
+
+### Vault シークレットパス
+
+| シークレット | パス |
+| --- | --- |
+| DB パスワード | `secret/data/k1s0/system/workflow/database` |
+| Kafka SASL | `secret/data/k1s0/system/kafka/sasl` |
+
+---
+
+## 詳細設計ドキュメント
+
+- [system-workflow-server-implementation.md](../_common/implementation.md) -- 実装設計の詳細
+- [system-workflow-server-deploy.md](../_common/deploy.md) -- デプロイ設計の詳細
+
+---
+
+## API リクエスト・レスポンス例
+
+### GET /api/v1/workflows -- レスポンス例
+
+```json
+{
+  "workflows": [
+    {
+      "id": "wf_01JABCDEF1234567890",
+      "name": "purchase-approval",
+      "description": "購買申請承認フロー",
+      "version": 2,
+      "enabled": true,
+      "step_count": 3,
+      "created_at": "2026-02-20T10:00:00.000+00:00",
+      "updated_at": "2026-02-20T12:30:00.000+00:00"
+    }
+  ],
+  "pagination": {
+    "total_count": 5,
+    "page": 1,
+    "page_size": 20,
+    "has_next": false
+  }
+}
+```
+
+### POST /api/v1/workflows -- リクエスト・レスポンス例
+
+**リクエスト**
+
+```json
+{
+  "name": "purchase-approval",
+  "description": "購買申請承認フロー",
+  "enabled": true,
+  "steps": [
+    {
+      "step_id": "step-1",
+      "name": "部門長承認",
+      "type": "human_task",
+      "assignee_role": "dept_manager",
+      "timeout_hours": 48,
+      "on_approve": "step-2",
+      "on_reject": "end"
+    },
+    {
+      "step_id": "step-2",
+      "name": "経理部承認",
+      "type": "human_task",
+      "assignee_role": "finance_approver",
+      "timeout_hours": 72,
+      "on_approve": "end",
+      "on_reject": "step-1"
+    }
+  ]
+}
+```
+
+**レスポンス（201 Created）**
+
+```json
+{
+  "id": "wf_01JABCDEF1234567890",
+  "name": "purchase-approval",
+  "description": "購買申請承認フロー",
+  "version": 1,
+  "enabled": true,
+  "steps": [
+    {
+      "step_id": "step-1",
+      "name": "部門長承認",
+      "type": "human_task",
+      "assignee_role": "dept_manager",
+      "timeout_hours": 48,
+      "on_approve": "step-2",
+      "on_reject": "end"
+    },
+    {
+      "step_id": "step-2",
+      "name": "経理部承認",
+      "type": "human_task",
+      "assignee_role": "finance_approver",
+      "timeout_hours": 72,
+      "on_approve": "end",
+      "on_reject": "step-1"
+    }
+  ],
+  "created_at": "2026-02-20T10:00:00.000+00:00",
+  "updated_at": "2026-02-20T10:00:00.000+00:00"
+}
+```
+
+**レスポンス（400 Bad Request）**
+
+```json
+{
+  "error": {
+    "code": "SYS_WORKFLOW_VALIDATION_ERROR",
+    "message": "validation failed",
+    "request_id": "req_abc123def456",
+    "details": [
+      {"field": "steps[0].on_approve", "message": "referenced step_id 'step-2' does not exist"},
+      {"field": "name", "message": "name is required and must be non-empty"}
+    ]
+  }
+}
+```
+
+### GET /api/v1/workflows/:id -- レスポンス例
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "id": "wf_01JABCDEF1234567890",
+  "name": "purchase-approval",
+  "description": "購買申請承認フロー",
+  "version": 2,
+  "enabled": true,
+  "steps": [
+    {
+      "step_id": "step-1",
+      "name": "部門長承認",
+      "type": "human_task",
+      "assignee_role": "dept_manager",
+      "timeout_hours": 48,
+      "on_approve": "step-2",
+      "on_reject": "end"
+    }
+  ],
+  "created_at": "2026-02-20T10:00:00.000+00:00",
+  "updated_at": "2026-02-20T12:30:00.000+00:00"
+}
+```
+
+**レスポンス（404 Not Found）**
+
+```json
+{
+  "error": {
+    "code": "SYS_WORKFLOW_NOT_FOUND",
+    "message": "workflow definition not found: wf_01JABCDEF1234567890",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
+}
+```
+
+### POST /api/v1/workflows/:id/instances -- リクエスト・レスポンス例
+
+**リクエスト**
+
+```json
+{
+  "title": "PC購入申請（田中太郎）",
+  "initiator_id": "user-001",
+  "context": {
+    "item": "ノートPC",
+    "amount": 150000,
+    "requester": "tanaka@example.com"
+  }
+}
+```
+
+**レスポンス（201 Created）**
+
+```json
+{
+  "id": "inst_01JABCDEF1234567890",
+  "workflow_id": "wf_01JABCDEF1234567890",
+  "workflow_name": "purchase-approval",
+  "title": "PC購入申請（田中太郎）",
+  "initiator_id": "user-001",
+  "current_step_id": "step-1",
+  "status": "running",
+  "context": {
+    "item": "ノートPC",
+    "amount": 150000,
+    "requester": "tanaka@example.com"
+  },
+  "started_at": "2026-02-20T10:00:00.000+00:00",
+  "completed_at": null,
+  "created_at": "2026-02-20T10:00:00.000+00:00"
+}
+```
+
+### GET /api/v1/instances -- レスポンス例
+
+```json
+{
+  "instances": [
+    {
+      "id": "inst_01JABCDEF1234567890",
+      "workflow_id": "wf_01JABCDEF1234567890",
+      "workflow_name": "purchase-approval",
+      "title": "PC購入申請（田中太郎）",
+      "initiator_id": "user-001",
+      "current_step_id": "step-1",
+      "status": "running",
+      "started_at": "2026-02-20T10:00:00.000+00:00",
+      "completed_at": null,
+      "created_at": "2026-02-20T10:00:00.000+00:00"
+    }
+  ],
+  "pagination": {
+    "total_count": 50,
+    "page": 1,
+    "page_size": 20,
+    "has_next": true
+  }
+}
+```
+
+### POST /api/v1/instances/:id/cancel -- リクエスト・レスポンス例
+
+**リクエスト**
+
+```json
+{
+  "reason": "申請内容に誤りがあったため取り消し"
+}
+```
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "id": "inst_01JABCDEF1234567890",
+  "status": "cancelled",
+  "cancelled_at": "2026-02-20T15:00:00.000+00:00"
+}
+```
+
+**レスポンス（409 Conflict）**
+
+```json
+{
+  "error": {
+    "code": "SYS_WORKFLOW_INVALID_STATUS",
+    "message": "cannot cancel an already completed instance: inst_01JABCDEF1234567890",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
+}
+```
+
+### GET /api/v1/tasks -- レスポンス例
+
+```json
+{
+  "tasks": [
+    {
+      "id": "task_01JABCDEF1234567890",
+      "instance_id": "inst_01JABCDEF1234567890",
+      "step_id": "step-1",
+      "step_name": "部門長承認",
+      "assignee_id": "user-002",
+      "status": "assigned",
+      "due_at": "2026-02-22T10:00:00.000+00:00",
+      "is_overdue": false,
+      "created_at": "2026-02-20T10:00:00.000+00:00",
+      "updated_at": "2026-02-20T10:00:00.000+00:00"
+    }
+  ],
+  "pagination": {
+    "total_count": 10,
+    "page": 1,
+    "page_size": 20,
+    "has_next": false
+  }
+}
+```
+
+### POST /api/v1/tasks/:id/approve -- リクエスト・レスポンス例
+
+**リクエスト**
+
+```json
+{
+  "comment": "内容を確認しました。承認します。",
+  "actor_id": "user-002"
+}
+```
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "task_id": "task_01JABCDEF1234567890",
+  "status": "approved",
+  "next_task_id": "task_01JABCDEF9876543210",
+  "instance_status": "running",
+  "decided_at": "2026-02-20T14:00:00.000+00:00"
+}
+```
+
+**レスポンス（404 Not Found）**
+
+```json
+{
+  "error": {
+    "code": "SYS_WORKFLOW_TASK_NOT_FOUND",
+    "message": "workflow task not found: task_01JABCDEF1234567890",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
+}
+```
+
+### POST /api/v1/tasks/:id/reject -- リクエスト・レスポンス例
+
+**リクエスト**
+
+```json
+{
+  "comment": "金額が予算上限を超過しているため却下します。",
+  "actor_id": "user-002"
+}
+```
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "task_id": "task_01JABCDEF1234567890",
+  "status": "rejected",
+  "next_task_id": null,
+  "instance_status": "failed",
+  "decided_at": "2026-02-20T14:00:00.000+00:00"
+}
+```
+
+### POST /api/v1/tasks/:id/reassign -- リクエスト・レスポンス例
+
+**リクエスト**
+
+```json
+{
+  "new_assignee_id": "user-003",
+  "reason": "担当者変更のため",
+  "actor_id": "user-002"
+}
+```
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "task_id": "task_01JABCDEF1234567890",
+  "previous_assignee_id": "user-002",
+  "new_assignee_id": "user-003",
+  "reassigned_at": "2026-02-20T13:00:00.000+00:00"
+}
+```
+
+**レスポンス（409 Conflict）**
+
+```json
+{
+  "error": {
+    "code": "SYS_WORKFLOW_INVALID_STATUS",
+    "message": "cannot reassign a task with status 'approved': task_01JABCDEF1234567890",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
+}
+```
+
+---
+
+## Kafka メッセージ例
+
+### インスタンス状態変化メッセージ
+
+```json
+{
+  "event_type": "INSTANCE_STATE_CHANGED",
+  "instance_id": "inst_01JABCDEF1234567890",
+  "workflow_id": "wf_01JABCDEF1234567890",
+  "workflow_name": "purchase-approval",
+  "previous_status": "running",
+  "current_status": "completed",
+  "current_step_id": null,
+  "timestamp": "2026-02-20T15:00:00.000+00:00",
+  "actor_id": "user-002"
+}
+```
+
+### タスク状態変化メッセージ
+
+```json
+{
+  "event_type": "TASK_STATE_CHANGED",
+  "task_id": "task_01JABCDEF1234567890",
+  "instance_id": "inst_01JABCDEF1234567890",
+  "step_id": "step-1",
+  "step_name": "部門長承認",
+  "previous_status": "assigned",
+  "current_status": "approved",
+  "assignee_id": "user-002",
+  "timestamp": "2026-02-20T14:00:00.000+00:00",
+  "actor_id": "user-002"
+}
+```
+
+### scheduler-server 連携ジョブ定義
+
+```json
+{
+  "name": "workflow-task-due-checker",
+  "description": "ワークフロータスク期日超過チェック（15分ごと）",
+  "cron_expression": "*/15 * * * *",
+  "timezone": "UTC",
+  "target_type": "http",
+  "target": "http://workflow.k1s0-system.svc.cluster.local:8080/internal/tasks/check-overdue",
+  "payload": {}
+}
+```
+
+---
+
+## 依存関係図
 
 ```
                     ┌─────────────────────────────────────────────────┐
@@ -788,67 +890,7 @@ message RejectTaskResponse {
 
 ---
 
-## DB スキーマ
-
-PostgreSQL の `workflow` スキーマに以下のテーブルを配置する。
-
-```sql
-CREATE SCHEMA IF NOT EXISTS workflow;
-
-CREATE TABLE workflow.workflow_definitions (
-    id          TEXT PRIMARY KEY,
-    name        TEXT NOT NULL UNIQUE,
-    description TEXT NOT NULL DEFAULT '',
-    version     INTEGER NOT NULL DEFAULT 1,
-    enabled     BOOLEAN NOT NULL DEFAULT true,
-    steps_json  JSONB NOT NULL DEFAULT '[]',
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE workflow.workflow_instances (
-    id              TEXT PRIMARY KEY,
-    workflow_id     TEXT NOT NULL REFERENCES workflow.workflow_definitions(id),
-    workflow_name   TEXT NOT NULL,
-    title           TEXT NOT NULL,
-    initiator_id    TEXT NOT NULL,
-    current_step_id TEXT,
-    status          TEXT NOT NULL DEFAULT 'pending',
-    context_json    JSONB NOT NULL DEFAULT '{}',
-    started_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    completed_at    TIMESTAMPTZ,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_workflow_instances_workflow_id ON workflow.workflow_instances(workflow_id);
-CREATE INDEX idx_workflow_instances_initiator_id ON workflow.workflow_instances(initiator_id);
-CREATE INDEX idx_workflow_instances_status ON workflow.workflow_instances(status);
-
-CREATE TABLE workflow.workflow_tasks (
-    id           TEXT PRIMARY KEY,
-    instance_id  TEXT NOT NULL REFERENCES workflow.workflow_instances(id) ON DELETE CASCADE,
-    step_id      TEXT NOT NULL,
-    step_name    TEXT NOT NULL,
-    assignee_id  TEXT,
-    status       TEXT NOT NULL DEFAULT 'pending',
-    due_at       TIMESTAMPTZ,
-    comment      TEXT,
-    actor_id     TEXT,
-    decided_at   TIMESTAMPTZ,
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_workflow_tasks_instance_id ON workflow.workflow_tasks(instance_id);
-CREATE INDEX idx_workflow_tasks_assignee_id ON workflow.workflow_tasks(assignee_id);
-CREATE INDEX idx_workflow_tasks_status ON workflow.workflow_tasks(status);
-CREATE INDEX idx_workflow_tasks_due_at ON workflow.workflow_tasks(due_at)
-    WHERE status IN ('pending', 'assigned');
-```
-
----
-
-## 設定ファイル
+## 設定ファイル例
 
 ### config.yaml（本番）
 
@@ -889,13 +931,7 @@ overdue_check:
   timezone: "UTC"
 ```
 
----
-
-## デプロイ
-
 ### Helm values
-
-[helm設計.md](../../infrastructure/kubernetes/helm設計.md) のサーバー用 Helm Chart を使用する。workflow 固有の values は以下の通り。
 
 ```yaml
 # values-workflow.yaml（infra/helm/services/system/workflow/values.yaml）
@@ -933,22 +969,6 @@ vault:
       key: "password"
       mountPath: "/vault/secrets/db-password"
 ```
-
-### Vault シークレットパス
-
-| シークレット | パス |
-| --- | --- |
-| DB パスワード | `secret/data/k1s0/system/workflow/database` |
-| Kafka SASL | `secret/data/k1s0/system/kafka/sasl` |
-
----
-
-## 詳細設計ドキュメント
-
-- [system-workflow-server-implementation.md](../_common/implementation.md) -- 実装設計の詳細
-- [system-workflow-server-deploy.md](../_common/deploy.md) -- デプロイ設計の詳細
-
----
 
 ## 関連ドキュメント
 

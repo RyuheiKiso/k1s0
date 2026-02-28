@@ -94,23 +94,6 @@ tower = { version = "0.5", features = ["util"] }
 
 ### DlqMessage エンティティ
 
-```rust
-// src/domain/entity/dlq_message.rs
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DlqMessage {
-    pub id: Uuid,
-    pub original_topic: String,
-    pub error_message: String,
-    pub retry_count: i32,
-    pub max_retries: i32,
-    pub payload: serde_json::Value,
-    pub status: DlqStatus,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub last_retry_at: Option<DateTime<Utc>>,
-}
-```
-
 | フィールド | 型 | 説明 |
 |---------|---|-----|
 | `id` | `Uuid` | DLQ メッセージの一意識別子（v4 自動生成） |
@@ -136,18 +119,6 @@ pub struct DlqMessage {
 
 ### DlqStatus 列挙型
 
-```rust
-// src/domain/entity/dlq_message.rs
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum DlqStatus {
-    Pending,
-    Retrying,
-    Resolved,
-    Dead,
-}
-```
-
 | ステータス | 説明 | 終端 |
 |-----------|-----|------|
 | `Pending` | Kafka から取り込まれた初期状態 | No |
@@ -155,27 +126,11 @@ pub enum DlqStatus {
 | `Resolved` | 再処理が成功し、元トピックに再発行済み | Yes |
 | `Dead` | 処理不能状態 | Yes |
 
-`Display` トレイトで SCREAMING_SNAKE_CASE 文字列に変換する。`from_str_value` で文字列からの逆変換を提供する。
-
 ---
 
 ## リポジトリトレイト
 
 ### DlqMessageRepository
-
-```rust
-// src/domain/repository/dlq_message_repository.rs
-#[cfg_attr(test, mockall::automock)]
-#[async_trait]
-pub trait DlqMessageRepository: Send + Sync {
-    async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<DlqMessage>>;
-    async fn find_by_topic(&self, topic: &str, page: i32, page_size: i32) -> anyhow::Result<(Vec<DlqMessage>, i64)>;
-    async fn create(&self, message: &DlqMessage) -> anyhow::Result<()>;
-    async fn update(&self, message: &DlqMessage) -> anyhow::Result<()>;
-    async fn delete(&self, id: Uuid) -> anyhow::Result<()>;
-    async fn count_by_topic(&self, topic: &str) -> anyhow::Result<i64>;
-}
-```
 
 | メソッド | 説明 |
 |---------|-----|
@@ -197,39 +152,6 @@ pub trait DlqMessageRepository: Send + Sync {
 | `RetryMessageUseCase` | メッセージの再処理を行う。Kafka プロデューサーがある場合は元トピックに再発行し RESOLVED に遷移する。リトライ不可の場合はエラー |
 | `DeleteMessageUseCase` | DLQ メッセージを削除する |
 | `RetryAllUseCase` | トピック内の全リトライ可能メッセージを 100 件ずつ取得し、順次再処理する。成功件数を返す |
-
-### RetryMessageUseCase の処理フロー
-
-```
-1. find_by_id でメッセージを取得（未存在時エラー）
-2. is_retryable() を検証（不可時エラー）
-3. mark_retrying() でステータス遷移
-4. Kafka publisher がある場合:
-   a. publish_to_topic で元トピックに再発行
-   b. 成功 → mark_resolved()
-   c. 失敗 → RETRYING のまま（ログ出力）
-5. Kafka publisher がない場合:
-   a. mark_resolved()（Kafka なしでも処理完了扱い）
-6. update でリポジトリを更新
-7. 更新後のメッセージを返却
-```
-
-### RetryAllUseCase の処理フロー
-
-```
-1. page=1, page_size=100 で開始
-2. find_by_topic でメッセージを取得
-3. 空なら終了
-4. 各メッセージに対して:
-   a. is_retryable() が false ならスキップ
-   b. mark_retrying()
-   c. Kafka publisher がある場合は再発行（成功→mark_resolved()、失敗→RETRYING維持）
-   d. Kafka publisher がない場合は mark_resolved()
-   e. update でリポジトリを更新
-   f. retried カウントをインクリメント
-5. page をインクリメントして 2. に戻る
-6. 合計 retried 件数を返却
-```
 
 ---
 
@@ -271,6 +193,172 @@ pub trait DlqMessageRepository: Send + Sync {
 
 ### DlqError
 
+| バリアント | HTTP Status | エラーコード |
+|-----------|-------------|------------|
+| `NotFound` | 404 | `SYS_DLQ_NOT_FOUND` |
+| `Validation` | 400 | `SYS_DLQ_VALIDATION_ERROR` |
+| `Conflict` | 409 | `SYS_DLQ_CONFLICT` |
+| `Internal` | 500 | `SYS_DLQ_INTERNAL_ERROR` |
+
+---
+
+## インフラストラクチャ
+
+### Config
+
+| 設定ブロック | 主要フィールド | 説明 |
+|------------|-------------|-----|
+| `app` | `name`, `version`(default: "0.1.0"), `environment`(default: "dev") | アプリケーション識別情報 |
+| `server` | `host`(default: "0.0.0.0"), `port`(default: 8080) | HTTP サーバー |
+| `database` | `host`, `port`, `name`, `user`, `password`, `ssl_mode`, `max_open_conns` | PostgreSQL 接続（Optional） |
+| `kafka` | `brokers`, `consumer_group`, `security_protocol`, `dlq_topic_pattern` | Kafka 接続（Optional） |
+
+### DlqKafkaConsumer
+
+| メソッド | 説明 |
+|---------|-----|
+| `new(config, repo)` | Kafka コンシューマーを作成し、`dlq_topic_pattern` を購読する |
+| `run()` | メッセージ取り込みループを開始する。受信メッセージから DlqMessage を作成し、リポジトリに永続化する |
+
+コンシューマー設定:
+- `auto.offset.reset`: `earliest`
+- `enable.auto.commit`: `true`
+
+### DlqEventPublisher / DlqKafkaProducer
+
+| メソッド | 説明 |
+|---------|-----|
+| `new(config)` | rdkafka `FutureProducer` を作成する。acks=all, message.timeout.ms=5000 |
+| `publish_to_topic(topic, payload)` | JSON シリアライズしたペイロードを指定トピックに発行する。UUID v4 をキーとして使用 |
+
+### DlqPostgresRepository
+
+SQL クエリ:
+- `find_by_id`: `SELECT ... FROM dlq.messages WHERE id = $1`
+- `find_by_topic`: `SELECT COUNT(*) ...` + `SELECT ... FROM dlq.messages WHERE original_topic = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+- `create`: `INSERT INTO dlq.messages (...) VALUES (...)`
+- `update`: `UPDATE dlq.messages SET ... WHERE id = $1`
+- `delete`: `DELETE FROM dlq.messages WHERE id = $1`
+- `count_by_topic`: `SELECT COUNT(*) FROM dlq.messages WHERE original_topic = $1`
+
+### データベース設計
+
+マイグレーションファイルは `regions/system/database/dlq-db/migrations/` に格納する。データベースは `dlq` スキーマに配置する。
+
+#### dlq_messages テーブル
+
+| カラム | 型 | 制約 | 説明 |
+| --- | --- | --- | --- |
+| `id` | UUID | PK, DEFAULT gen_random_uuid() | メッセージ ID |
+| `original_topic` | VARCHAR(255) | NOT NULL | 元のトピック名 |
+| `error_message` | TEXT | NOT NULL | 処理失敗時のエラーメッセージ |
+| `retry_count` | INT | NOT NULL, DEFAULT 0 | 現在のリトライ回数 |
+| `max_retries` | INT | NOT NULL, DEFAULT 3 | 最大リトライ回数 |
+| `payload` | JSONB | - | メッセージペイロード |
+| `status` | VARCHAR(50) | NOT NULL, DEFAULT 'PENDING', CHECK制約 | ステータス |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 作成日時 |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 更新日時（トリガー自動更新） |
+| `last_retry_at` | TIMESTAMPTZ | - | 最終リトライ日時 |
+
+**CHECK 制約:** `status` IN (`'PENDING'`, `'RETRYING'`, `'RESOLVED'`, `'DEAD'`)
+
+**インデックス:**
+- `idx_dlq_messages_original_topic` -- original_topic
+- `idx_dlq_messages_status` -- status
+- `idx_dlq_messages_created_at` -- created_at
+
+---
+
+## テスト構成
+
+### ユニットテスト
+
+| テスト対象 | テスト数 | 内容 |
+|----------|--------|------|
+| `domain/entity/dlq_message` | 13 | 新規作成、ステータス遷移、リトライ判定、Display/from_str、UUID 一意性 |
+| `infrastructure/config` | 4 | 設定デシリアライズ、デフォルト値、DB 設定あり、Kafka 設定あり |
+| `infrastructure/database` | 2 | 接続 URL 生成、設定デシリアライズ |
+| `infrastructure/kafka/mod` | 2 | KafkaConfig デシリアライズ、デフォルト値 |
+| `infrastructure/kafka/producer` | 2 | MockDlqEventPublisher 正常系、エラー系 |
+| `usecase/list_messages` | 4 | 空一覧、結果あり、ページネーション、リポジトリエラー伝播 |
+| `usecase/get_message` | 2 | 取得成功、未存在エラー |
+| `usecase/retry_message` | 4 | 正常リトライ（publisher なし）、未存在エラー、リトライ不可（DEAD）、リトライ上限超過 |
+| `usecase/delete_message` | 2 | 正常削除、エラー |
+| `usecase/retry_all` | 3 | 空トピック、メッセージあり、非リトライ対象スキップ |
+| `adapter/handler/dlq_handler` | 10 | healthz、readyz、一覧取得、詳細取得（成功/404/400）、削除（2件）、リトライ 404、一括リトライ |
+| **合計** | **48** | |
+
+### インテグレーションテスト
+
+`tests/` ディレクトリに配置。InMemory リポジトリを使用した REST API の統合テスト。
+
+| テストファイル | 要件 | 内容 |
+|-------------|------|------|
+| `integration_test.rs` | InMemory | REST API の統合テスト（15 テストケース） |
+
+---
+
+## ドメインモデル実装コード
+
+### DlqMessage エンティティ
+
+```rust
+// src/domain/entity/dlq_message.rs
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DlqMessage {
+    pub id: Uuid,
+    pub original_topic: String,
+    pub error_message: String,
+    pub retry_count: i32,
+    pub max_retries: i32,
+    pub payload: serde_json::Value,
+    pub status: DlqStatus,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub last_retry_at: Option<DateTime<Utc>>,
+}
+```
+
+### DlqStatus 列挙型
+
+```rust
+// src/domain/entity/dlq_message.rs
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum DlqStatus {
+    Pending,
+    Retrying,
+    Resolved,
+    Dead,
+}
+```
+
+`Display` トレイトで SCREAMING_SNAKE_CASE 文字列に変換する。`from_str_value` で文字列からの逆変換を提供する。
+
+---
+
+## リポジトリトレイト実装コード
+
+### DlqMessageRepository
+
+```rust
+// src/domain/repository/dlq_message_repository.rs
+#[cfg_attr(test, mockall::automock)]
+#[async_trait]
+pub trait DlqMessageRepository: Send + Sync {
+    async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<DlqMessage>>;
+    async fn find_by_topic(&self, topic: &str, page: i32, page_size: i32) -> anyhow::Result<(Vec<DlqMessage>, i64)>;
+    async fn create(&self, message: &DlqMessage) -> anyhow::Result<()>;
+    async fn update(&self, message: &DlqMessage) -> anyhow::Result<()>;
+    async fn delete(&self, id: Uuid) -> anyhow::Result<()>;
+    async fn count_by_topic(&self, topic: &str) -> anyhow::Result<i64>;
+}
+```
+
+---
+
+## DlqError 実装コード
+
 ```rust
 // src/adapter/handler/error.rs
 #[derive(Debug, thiserror::Error)]
@@ -286,18 +374,11 @@ pub enum DlqError {
 }
 ```
 
-| バリアント | HTTP Status | エラーコード |
-|-----------|-------------|------------|
-| `NotFound` | 404 | `SYS_DLQ_NOT_FOUND` |
-| `Validation` | 400 | `SYS_DLQ_VALIDATION_ERROR` |
-| `Conflict` | 409 | `SYS_DLQ_CONFLICT` |
-| `Internal` | 500 | `SYS_DLQ_INTERNAL_ERROR` |
-
 `IntoResponse` トレイトを実装し、`ErrorResponse` 構造体（`code`, `message`, `request_id`, `details`）で統一エラーレスポンスを返す。
 
 ---
 
-## インフラストラクチャ
+## インフラストラクチャ実装コード
 
 ### Config
 
@@ -311,13 +392,6 @@ pub struct Config {
     pub kafka: Option<KafkaConfig>,          // オプショナル（Kafka 未設定時はイベント非発行）
 }
 ```
-
-| 設定ブロック | 主要フィールド | 説明 |
-|------------|-------------|-----|
-| `app` | `name`, `version`(default: "0.1.0"), `environment`(default: "dev") | アプリケーション識別情報 |
-| `server` | `host`(default: "0.0.0.0"), `port`(default: 8080) | HTTP サーバー |
-| `database` | `host`, `port`, `name`, `user`, `password`, `ssl_mode`, `max_open_conns` | PostgreSQL 接続（Optional） |
-| `kafka` | `brokers`, `consumer_group`, `security_protocol`, `dlq_topic_pattern` | Kafka 接続（Optional） |
 
 ### DatabaseConfig
 
@@ -362,15 +436,6 @@ pub struct DlqKafkaConsumer {
 }
 ```
 
-| メソッド | 説明 |
-|---------|-----|
-| `new(config, repo)` | Kafka コンシューマーを作成し、`dlq_topic_pattern` を購読する |
-| `run()` | メッセージ取り込みループを開始する。受信メッセージから DlqMessage を作成し、リポジトリに永続化する |
-
-コンシューマー設定:
-- `auto.offset.reset`: `earliest`
-- `enable.auto.commit`: `true`
-
 ### DlqEventPublisher / DlqKafkaProducer
 
 ```rust
@@ -386,11 +451,6 @@ pub struct DlqKafkaProducer {
 }
 ```
 
-| メソッド | 説明 |
-|---------|-----|
-| `new(config)` | rdkafka `FutureProducer` を作成する。acks=all, message.timeout.ms=5000 |
-| `publish_to_topic(topic, payload)` | JSON シリアライズしたペイロードを指定トピックに発行する。UUID v4 をキーとして使用 |
-
 ### DlqPostgresRepository
 
 ```rust
@@ -402,104 +462,41 @@ pub struct DlqPostgresRepository {
 
 PostgreSQL の `dlq.messages` テーブルに対する CRUD を提供する。`DlqMessageRow` 構造体で `sqlx::FromRow` を使い行マッピングを行い、`TryFrom<DlqMessageRow>` で `DlqMessage` に変換する。
 
-SQL クエリ:
-- `find_by_id`: `SELECT ... FROM dlq.messages WHERE id = $1`
-- `find_by_topic`: `SELECT COUNT(*) ...` + `SELECT ... FROM dlq.messages WHERE original_topic = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`
-- `create`: `INSERT INTO dlq.messages (...) VALUES (...)`
-- `update`: `UPDATE dlq.messages SET ... WHERE id = $1`
-- `delete`: `DELETE FROM dlq.messages WHERE id = $1`
-- `count_by_topic`: `SELECT COUNT(*) FROM dlq.messages WHERE original_topic = $1`
-
 ---
 
-## データベース設計
+## ユースケース処理フロー
 
-### マイグレーション
+### RetryMessageUseCase
 
-マイグレーションファイルは `regions/system/database/dlq-db/migrations/` に格納する。
-
-### スキーマ
-
-データベースは `dlq` スキーマに配置する。
-
-#### dlq_messages テーブル
-
-| カラム | 型 | 制約 | 説明 |
-| --- | --- | --- | --- |
-| `id` | UUID | PK, DEFAULT gen_random_uuid() | メッセージ ID |
-| `original_topic` | VARCHAR(255) | NOT NULL | 元のトピック名 |
-| `error_message` | TEXT | NOT NULL | 処理失敗時のエラーメッセージ |
-| `retry_count` | INT | NOT NULL, DEFAULT 0 | 現在のリトライ回数 |
-| `max_retries` | INT | NOT NULL, DEFAULT 3 | 最大リトライ回数 |
-| `payload` | JSONB | - | メッセージペイロード |
-| `status` | VARCHAR(50) | NOT NULL, DEFAULT 'PENDING', CHECK制約 | ステータス |
-| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 作成日時 |
-| `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 更新日時（トリガー自動更新） |
-| `last_retry_at` | TIMESTAMPTZ | - | 最終リトライ日時 |
-
-**CHECK 制約:**
-- `status` IN (`'PENDING'`, `'RETRYING'`, `'RESOLVED'`, `'DEAD'`)
-
-**インデックス:**
-- `idx_dlq_messages_original_topic` -- original_topic
-- `idx_dlq_messages_status` -- status
-- `idx_dlq_messages_created_at` -- created_at
-
-### 自動 updated_at 更新トリガー
-
-```sql
-CREATE OR REPLACE FUNCTION dlq.update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_dlq_messages_updated_at
-    BEFORE UPDATE ON dlq.dlq_messages
-    FOR EACH ROW
-    EXECUTE FUNCTION dlq.update_updated_at_column();
+```
+1. find_by_id でメッセージを取得（未存在時エラー）
+2. is_retryable() を検証（不可時エラー）
+3. mark_retrying() でステータス遷移
+4. Kafka publisher がある場合:
+   a. publish_to_topic で元トピックに再発行
+   b. 成功 → mark_resolved()
+   c. 失敗 → RETRYING のまま（ログ出力）
+5. Kafka publisher がない場合:
+   a. mark_resolved()（Kafka なしでも処理完了扱い）
+6. update でリポジトリを更新
+7. 更新後のメッセージを返却
 ```
 
-### マイグレーション SQL
+### RetryAllUseCase
 
-```sql
--- 001_create_schema.sql
-CREATE SCHEMA IF NOT EXISTS dlq;
-
--- 002_create_dlq_messages.sql
-CREATE TABLE dlq.dlq_messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    original_topic VARCHAR(255) NOT NULL,
-    error_message TEXT NOT NULL,
-    retry_count INT NOT NULL DEFAULT 0,
-    max_retries INT NOT NULL DEFAULT 3,
-    payload JSONB,
-    status VARCHAR(50) NOT NULL DEFAULT 'PENDING'
-        CHECK (status IN ('PENDING', 'RETRYING', 'RESOLVED', 'DEAD')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    last_retry_at TIMESTAMPTZ
-);
-
-CREATE INDEX idx_dlq_messages_original_topic ON dlq.dlq_messages (original_topic);
-CREATE INDEX idx_dlq_messages_status ON dlq.dlq_messages (status);
-CREATE INDEX idx_dlq_messages_created_at ON dlq.dlq_messages (created_at);
-
--- 003_create_updated_at_trigger.sql
-CREATE OR REPLACE FUNCTION dlq.update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_dlq_messages_updated_at
-    BEFORE UPDATE ON dlq.dlq_messages
-    FOR EACH ROW
-    EXECUTE FUNCTION dlq.update_updated_at_column();
+```
+1. page=1, page_size=100 で開始
+2. find_by_topic でメッセージを取得
+3. 空なら終了
+4. 各メッセージに対して:
+   a. is_retryable() が false ならスキップ
+   b. mark_retrying()
+   c. Kafka publisher がある場合は再発行（成功→mark_resolved()、失敗→RETRYING維持）
+   d. Kafka publisher がない場合は mark_resolved()
+   e. update でリポジトリを更新
+   f. retried カウントをインクリメント
+5. page をインクリメントして 2. に戻る
+6. 合計 retried 件数を返却
 ```
 
 ---
@@ -536,59 +533,6 @@ CREATE TRIGGER trg_dlq_messages_updated_at
 - **Kafka コンシューマーオプショナル**: Kafka 未設定時やコンシューマー作成失敗時は DLQ メッセージの自動取り込みが無効になる（ログで警告出力）
 - **REST のみ**: Saga サーバーと異なり gRPC サービスは提供しない。REST API のみで動作する
 - **ルーティング順序**: `/api/v1/dlq/messages/:id` を `/api/v1/dlq/:topic` より先に定義し、`messages` が `:topic` パラメータとして誤マッチしないようにする
-
----
-
-## テスト構成
-
-### ユニットテスト
-
-各モジュール内の `#[cfg(test)]` ブロックで実装。mockall を使用してリポジトリ・Kafka パブリッシャーをモック化する。
-
-| テスト対象 | テスト数 | 内容 |
-|----------|--------|------|
-| `domain/entity/dlq_message` | 13 | 新規作成、ステータス遷移（mark_retrying/resolved/dead）、リトライ判定（is_retryable）、Display/from_str、UUID 一意性 |
-| `infrastructure/config` | 4 | 設定デシリアライズ、デフォルト値、DB 設定あり、Kafka 設定あり |
-| `infrastructure/database` | 2 | 接続 URL 生成、設定デシリアライズ |
-| `infrastructure/kafka/mod` | 2 | KafkaConfig デシリアライズ、デフォルト値 |
-| `infrastructure/kafka/producer` | 2 | MockDlqEventPublisher 正常系、エラー系 |
-| `usecase/list_messages` | 4 | 空一覧、結果あり、ページネーション、リポジトリエラー伝播 |
-| `usecase/get_message` | 2 | 取得成功、未存在エラー |
-| `usecase/retry_message` | 4 | 正常リトライ（publisher なし）、未存在エラー、リトライ不可（DEAD）、リトライ上限超過 |
-| `usecase/delete_message` | 2 | 正常削除、エラー |
-| `usecase/retry_all` | 3 | 空トピック、メッセージあり、非リトライ対象スキップ |
-| `adapter/handler/dlq_handler` | 10 | healthz、readyz、一覧取得、詳細取得（成功/404/400）、削除（2件）、リトライ 404、一括リトライ |
-| **合計** | **48** | |
-
-### インテグレーションテスト
-
-`tests/` ディレクトリに配置。InMemory リポジトリを使用した REST API の統合テスト。
-
-| テストファイル | 要件 | 内容 |
-|-------------|------|------|
-| `integration_test.rs` | InMemory | REST API の統合テスト（11 テストケース） |
-
-テスト一覧:
-
-| テスト名 | 内容 |
-|---------|------|
-| `test_healthz_returns_ok` | ヘルスチェック正常応答 |
-| `test_readyz_returns_ok` | レディネスチェック正常応答 |
-| `test_list_messages_empty_topic` | 空トピックで total_count=0 |
-| `test_list_messages_returns_stored_message` | 格納済みメッセージの取得 |
-| `test_get_message_returns_404_when_not_found` | 未存在メッセージで 404 |
-| `test_get_message_returns_message` | メッセージ詳細の正常取得 |
-| `test_get_message_returns_400_for_invalid_id` | 不正 UUID で 400 |
-| `test_retry_message_returns_404_when_not_found` | 未存在メッセージのリトライで 404 |
-| `test_retry_message_resolves_pending_message` | PENDING メッセージが RESOLVED になる |
-| `test_delete_message_returns_ok` | メッセージ削除成功 |
-| `test_retry_all_returns_retried_count` | 一括リトライで retried 件数を返す |
-| `test_retry_with_publisher_calls_publish_to_original_topic` | リトライ時に元トピックへ Kafka メッセージが発行される（SpyPublisher） |
-| `test_retry_with_failing_publisher_keeps_retrying_status` | パブリッシュ失敗時はステータスが RETRYING のまま維持される |
-| `test_retry_all_with_successful_publisher_resolves_all_messages` | retry-all で全 PENDING メッセージが RESOLVED になる |
-| `test_retry_exhausted_message_returns_conflict` | retry_count=max_retries のメッセージは 409 CONFLICT を返す |
-
----
 
 ## 関連ドキュメント
 

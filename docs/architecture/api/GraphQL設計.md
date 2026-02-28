@@ -8,19 +8,23 @@ D-011 GraphQL 設計、D-124 実装技術選定を定義する。
 
 ## D-011: GraphQL 設計
 
-### 採用方針
-
-GraphQL は **BFF（Backend for Frontend）としてオプション採用** する。すべてのサービスに GraphQL を導入するのではなく、複数の REST / gRPC エンドポイントを集約して単一のクエリでクライアントに提供する必要がある場合に採用する。
+GraphQL は BFF（Backend for Frontend）として、複数サービスの集約が必要な場合にオプション採用する。
 
 ```
 Client → Nginx Ingress Controller → Kong → (Istio Sidecar) → GraphQL BFF → gRPC (mTLS) → Backend Services
 ```
 
+### 採用方針
+
+GraphQL は **BFF（Backend for Frontend）としてオプション採用** する。すべてのサービスに GraphQL を導入するのではなく、複数の REST / gRPC エンドポイントを集約して単一のクエリでクライアントに提供する必要がある場合に採用する。
+
+#### 導入フェーズ
+
+- **初期フェーズでは GraphQL BFF を採用しない**。REST API で十分に対応可能な段階では REST を使用する
+- フロントエンドの複雑性が増し、導入条件を満たした段階で GraphQL BFF の導入を検討する
+- 導入判断はフロントエンドチームとバックエンドチームの合意のもとで行う
+
 ### GraphQL BFF 導入基準
-
-#### 導入条件
-
-GraphQL BFF は以下の条件を満たす場合に導入を検討する。
 
 | 条件 | 説明 |
 | --- | --- |
@@ -28,15 +32,7 @@ GraphQL BFF は以下の条件を満たす場合に導入を検討する。
 | フィールド差異 | クライアント種別（Web / Mobile）によって必要なフィールドが大きく異なる場合 |
 | レスポンス最適化 | モバイル向けにレスポンスサイズの最小化が必要な場合 |
 
-#### 導入フェーズ
-
-- **初期フェーズでは GraphQL BFF を採用しない**。REST API で十分に対応可能な段階では REST を使用する
-- フロントエンドの複雑性が増し、上記の導入条件を満たした段階で GraphQL BFF の導入を検討する
-- 導入判断はフロントエンドチームとバックエンドチームの合意のもとで行う
-
-#### 導入対象候補
-
-以下のような集約表示が必要な画面が GraphQL BFF の導入対象候補となる。
+### 導入対象候補
 
 | 画面 | 集約対象サービス例 | 理由 |
 | --- | --- | --- |
@@ -46,7 +42,7 @@ GraphQL BFF は以下の条件を満たす場合に導入を検討する。
 
 ### REST vs GraphQL 使い分け基準（D-089）
 
-#### 原則: REST がデフォルト、GraphQL は条件を満たす場合のみ採用
+原則: REST がデフォルト、GraphQL は条件を満たす場合のみ採用。
 
 | 条件                                                             | REST | GraphQL |
 | ---------------------------------------------------------------- | ---- | ------- |
@@ -59,7 +55,7 @@ GraphQL BFF は以下の条件を満たす場合に導入を検討する。
 | ファイルアップロード・ダウンロード                               | o    |         |
 | WebSocket によるリアルタイム更新（Subscription）が必要           |      | o       |
 
-#### 判断フロー
+### REST vs GraphQL 判断フロー（D-089）
 
 ```
 1. そのエンドポイントは単一サービスのデータだけで完結するか？
@@ -75,15 +71,13 @@ GraphQL BFF は以下の条件を満たす場合に導入を検討する。
    → No: REST を使用
 ```
 
-#### GraphQL を採用してはならないケース
+### GraphQL を採用してはならないケース
 
 - **サービス間通信**: バックエンド間は gRPC を使用する。GraphQL はクライアント向け BFF 専用
 - **単純な CRUD API**: REST で十分な場合に GraphQL を採用すると、不要な複雑性が増す
 - **認証エンドポイント**: OAuth 2.0 の標準フローに従い REST で実装する
 
 ### クエリ制限
-
-GraphQL の柔軟性に起因するパフォーマンスリスクを制御するため、以下の制限を設ける。
 
 | 項目           | 制限値 | 説明                                   |
 | -------------- | ------ | -------------------------------------- |
@@ -119,9 +113,9 @@ type PageInfo {
 }
 ```
 
-### スキーマ進化によるバージョニング不要方針
+### スキーマ進化によるバージョニング
 
-GraphQL ではスキーマの進化的な変更（Evolutionary Schema Design）により、明示的なバージョニングを行わない。
+明示的なバージョニングを行わず、スキーマの進化的な変更で対応する。
 
 | 変更種別           | 方法                                     |
 | ------------------ | ---------------------------------------- |
@@ -129,6 +123,8 @@ GraphQL ではスキーマの進化的な変更（Evolutionary Schema Design）�
 | フィールド非推奨化 | `@deprecated(reason: "...")` を付与      |
 | フィールド削除     | 非推奨化から 6 か月後に削除              |
 | 型の追加           | そのまま追加                             |
+
+GraphQL ではスキーマの進化的な変更（Evolutionary Schema Design）により、明示的なバージョニングを行わない。
 
 ```graphql
 type Order {
@@ -198,18 +194,12 @@ type UserError {
 
 ### 技術選定
 
-GraphQL BFF の実装には Go と Rust の両方に対応する。
-
 | 言語 | ライブラリ      | 方式             | 特徴                         |
 | ---- | --------------- | ---------------- | ---------------------------- |
 | Go   | gqlgen          | コード生成ベース | スキーマファースト、型安全   |
 | Rust | async-graphql   | マクロベース     | 高パフォーマンス、型安全     |
 
-### Go: gqlgen（コード生成ベース）
-
-スキーマファースト開発で、GraphQL スキーマから Go のリゾルバーインターフェースを生成する。
-
-#### gqlgen 設定
+### gqlgen 設定
 
 ```yaml
 # gqlgen.yml
@@ -227,7 +217,50 @@ resolver:
   package: graphql
 ```
 
-#### リゾルバー実装例
+### BFF ディレクトリ構成
+
+```
+regions/service/{サービス名}/
+└── server/
+    ├── go/
+    │   └── bff/                        # Go BFF
+    │       ├── cmd/
+    │       │   └── main.go
+    │       ├── internal/
+    │       │   ├── adapter/
+    │       │   │   └── graphql/
+    │       │   │       ├── generated.go     # gqlgen 生成コード
+    │       │   │       ├── models_gen.go    # gqlgen 生成モデル
+    │       │   │       ├── resolver.go      # リゾルバー（手動実装）
+    │       │   │       └── order.resolvers.go
+    │       │   └── infra/
+    │       │       └── grpc/               # バックエンド gRPC クライアント
+    │       ├── api/
+    │       │   └── graphql/
+    │       │       └── schema.graphql      # スキーマ定義
+    │       ├── gqlgen.yml
+    │       └── go.mod
+    └── rust/
+        └── bff/                        # Rust BFF
+            ├── src/
+            │   ├── main.rs
+            │   ├── adapter/
+            │   │   └── graphql/
+            │   │       ├── schema.rs       # スキーマ + リゾルバー
+            │   │       └── types.rs        # GraphQL 型定義
+            │   └── infra/
+            │       └── grpc/               # バックエンド gRPC クライアント
+            ├── api/
+            │   └── graphql/
+            │       └── schema.graphql      # スキーマ定義（参照用）
+            └── Cargo.toml
+```
+
+---
+
+## Go: gqlgen リゾルバー実装例
+
+スキーマファースト開発で、GraphQL スキーマから Go のリゾルバーインターフェースを生成する。
 
 ```go
 // internal/adapter/graphql/resolver.go
@@ -261,7 +294,7 @@ func (r *queryResolver) Orders(ctx context.Context, first *int, after *string) (
 }
 ```
 
-### Rust: async-graphql（マクロベース）
+## Rust: async-graphql リゾルバー実装例
 
 Rust マクロでスキーマとリゾルバーを同時に定義する。
 
@@ -332,48 +365,7 @@ pub struct Order {
 }
 ```
 
-### BFF ディレクトリ構成
-
-GraphQL BFF サーバーは regions 内に配置する。
-
-```
-regions/service/{サービス名}/
-└── server/
-    ├── go/
-    │   └── bff/                        # Go BFF
-    │       ├── cmd/
-    │       │   └── main.go
-    │       ├── internal/
-    │       │   ├── adapter/
-    │       │   │   └── graphql/
-    │       │   │       ├── generated.go     # gqlgen 生成コード
-    │       │   │       ├── models_gen.go    # gqlgen 生成モデル
-    │       │   │       ├── resolver.go      # リゾルバー（手動実装）
-    │       │   │       └── order.resolvers.go
-    │       │   └── infra/
-    │       │       └── grpc/               # バックエンド gRPC クライアント
-    │       ├── api/
-    │       │   └── graphql/
-    │       │       └── schema.graphql      # スキーマ定義
-    │       ├── gqlgen.yml
-    │       └── go.mod
-    └── rust/
-        └── bff/                        # Rust BFF
-            ├── src/
-            │   ├── main.rs
-            │   ├── adapter/
-            │   │   └── graphql/
-            │   │       ├── schema.rs       # スキーマ + リゾルバー
-            │   │       └── types.rs        # GraphQL 型定義
-            │   └── infra/
-            │       └── grpc/               # バックエンド gRPC クライアント
-            ├── api/
-            │   └── graphql/
-            │       └── schema.graphql      # スキーマ定義（参照用）
-            └── Cargo.toml
-```
-
-### スキーマファースト開発フロー
+## スキーマファースト開発フロー
 
 ```
 1. schema.graphql を定義・更新

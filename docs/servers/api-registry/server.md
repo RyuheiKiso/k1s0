@@ -1,10 +1,8 @@
 # system-api-registry-server 設計
 
-system tier の OpenAPI/Protobuf スキーマ集中管理サーバー設計を定義する。REST/gRPC スキーマの登録・バージョン管理・破壊的変更検出・差分表示を提供する。スキーマ更新時は Kafka トピック `k1s0.system.apiregistry.schema_updated.v1` で通知する。Rust での実装を定義する。
+system tier の OpenAPI/Protobuf スキーマ集中管理サーバー。スキーマの登録・バージョン管理・破壊的変更検出・差分表示を提供する。Rust 実装。
 
 ## 概要
-
-system tier の API スキーマレジストリサーバーは以下の機能を提供する。
 
 | 機能 | 説明 |
 | --- | --- |
@@ -25,25 +23,6 @@ system tier の API スキーマレジストリサーバーは以下の機能を
 ### 配置パス
 
 配置: `regions/system/server/rust/api-registry/`（[Tier別配置パス参照](../../templates/server/サーバー.md#tier-別配置パス)）
-
----
-
-## 設計方針
-
-[認証認可設計.md](../../architecture/auth/認証認可設計.md) の RBAC モデルに基づき、以下の方針で実装する。
-
-| 項目 | 設計 |
-| --- | --- |
-| 実装言語 | Rust |
-| スキーマ種別 | `openapi`（OpenAPI 3.x YAML/JSON）と `protobuf`（.proto ファイル）の 2 種類をサポート |
-| バリデーション | 登録時に subprocess 経由で openapi-spec-validator（OpenAPI）または buf lint（Protobuf）を実行し検証エラーを返す |
-| 破壊的変更検出 | 新バージョン登録時に前バージョンとの比較を行い、フィールド削除・型変更・必須化・パス削除等の変更を検出する |
-| 差分表示 | バージョン間の差分を `added` / `modified` / `removed` に分類した構造化 JSON で提供する |
-| kafka-schemaregistry との対比 | kafka-schemaregistry ライブラリは Kafka Avro スキーマ向け。当サーバーは REST/gRPC スキーマのレジストリとして機能する |
-| DB | PostgreSQL の `apiregistry` スキーマ（api_schemas, api_schema_versions テーブル） |
-| Kafka | プロデューサー（`k1s0.system.apiregistry.schema_updated.v1`） |
-| 認証 | JWTによる認可。管理系エンドポイントは `sys_operator` / `sys_admin` ロールが必要 |
-| ポート | 8101（REST）/ 9090（gRPC） |
 
 ---
 
@@ -70,7 +49,7 @@ system tier の API スキーマレジストリサーバーは以下の機能を
 
 #### GET /api/v1/schemas
 
-登録済みスキーマ一覧をページネーション付きで取得する。`schema_type` でフィルタリングできる。
+登録済みスキーマ一覧をページネーション付きで取得する。
 
 **クエリパラメータ**
 
@@ -80,327 +59,156 @@ system tier の API スキーマレジストリサーバーは以下の機能を
 | `page` | int | No | 1 | ページ番号 |
 | `page_size` | int | No | 20 | 1 ページあたりの件数 |
 
-**レスポンス（200 OK）**
+**レスポンスフィールド（200 OK）**
 
-```json
-{
-  "schemas": [
-    {
-      "name": "k1s0-tenant-api",
-      "description": "テナント管理 API スキーマ",
-      "schema_type": "openapi",
-      "latest_version": 3,
-      "version_count": 3,
-      "created_at": "2026-02-10T10:00:00.000+00:00",
-      "updated_at": "2026-02-20T12:30:00.000+00:00"
-    },
-    {
-      "name": "k1s0-notification-proto",
-      "description": "通知サービス Protobuf スキーマ",
-      "schema_type": "protobuf",
-      "latest_version": 1,
-      "version_count": 1,
-      "created_at": "2026-02-15T10:00:00.000+00:00",
-      "updated_at": "2026-02-15T10:00:00.000+00:00"
-    }
-  ],
-  "pagination": {
-    "total_count": 12,
-    "page": 1,
-    "page_size": 20,
-    "has_next": false
-  }
-}
-```
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `schemas[].name` | string | スキーマ名 |
+| `schemas[].description` | string | スキーマの説明 |
+| `schemas[].schema_type` | string | スキーマ種別（`openapi` / `protobuf`） |
+| `schemas[].latest_version` | int | 最新バージョン番号 |
+| `schemas[].version_count` | int | 登録バージョン数 |
+| `schemas[].created_at` | string | 初回登録日時 |
+| `schemas[].updated_at` | string | 最終更新日時 |
+| `pagination` | object | ページネーション（total_count, page, page_size, has_next） |
 
 #### POST /api/v1/schemas
 
-スキーマを新規登録する。初回バージョン（version 1）が作成される。登録時にバリデーション（openapi-spec-validator または buf lint）を実行し、エラーがある場合は 422 を返す。
+スキーマを新規登録する。初回バージョン（version 1）が作成される。登録時にバリデーションを実行し、エラーがある場合は 422 を返す。
 
-**リクエスト（OpenAPI）**
+**リクエストフィールド**
 
-```json
-{
-  "name": "k1s0-tenant-api",
-  "description": "テナント管理 API スキーマ",
-  "schema_type": "openapi",
-  "content": "openapi: 3.0.3\ninfo:\n  title: Tenant API\n  version: 1.0.0\npaths:\n  /api/v1/tenants:\n    get:\n      summary: テナント一覧\n      responses:\n        '200':\n          description: OK\n"
-}
-```
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `name` | string | Yes | スキーマ名 |
+| `description` | string | Yes | スキーマの説明 |
+| `schema_type` | string | Yes | スキーマ種別（`openapi` / `protobuf`） |
+| `content` | string | Yes | スキーマ本文（YAML/JSON/proto） |
 
-**リクエスト（Protobuf）**
+**レスポンスフィールド（201 Created）**
 
-```json
-{
-  "name": "k1s0-notification-proto",
-  "description": "通知サービス Protobuf スキーマ",
-  "schema_type": "protobuf",
-  "content": "syntax = \"proto3\";\npackage k1s0.system.notification.v1;\n\nservice NotificationService {\n  rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);\n}\n\nmessage SendNotificationRequest {\n  string channel_id = 1;\n  string recipient = 2;\n}\n\nmessage SendNotificationResponse {\n  string notification_id = 1;\n  string status = 2;\n}\n"
-}
-```
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `name` | string | スキーマ名 |
+| `description` | string | スキーマの説明 |
+| `schema_type` | string | スキーマ種別 |
+| `version` | int | バージョン番号（1） |
+| `content_hash` | string | コンテンツの SHA-256 ハッシュ |
+| `created_at` | string | 登録日時 |
 
-**レスポンス（201 Created）**
-
-```json
-{
-  "name": "k1s0-tenant-api",
-  "description": "テナント管理 API スキーマ",
-  "schema_type": "openapi",
-  "version": 1,
-  "content_hash": "sha256:a1b2c3d4e5f6...",
-  "created_at": "2026-02-20T10:00:00.000+00:00"
-}
-```
-
-**レスポンス（422 Unprocessable Entity）**
-
-```json
-{
-  "error": {
-    "code": "SYS_APIREG_SCHEMA_INVALID",
-    "message": "schema validation failed",
-    "request_id": "req_abc123def456",
-    "details": [
-      {"field": "content", "message": "[line 5] info.version is required"},
-      {"field": "content", "message": "[line 12] response schema must have a type"}
-    ]
-  }
-}
-```
+**エラーレスポンス（422）**: `SYS_APIREG_SCHEMA_INVALID`（details にバリデーションエラー一覧）
 
 #### GET /api/v1/schemas/:name
 
-指定スキーマの最新バージョンのコンテンツと全バージョンの概要を取得する。
+指定スキーマの最新バージョンのコンテンツを取得する。
 
-**レスポンス（200 OK）**
+**レスポンスフィールド（200 OK）**
 
-```json
-{
-  "name": "k1s0-tenant-api",
-  "description": "テナント管理 API スキーマ",
-  "schema_type": "openapi",
-  "latest_version": 3,
-  "content": "openapi: 3.0.3\ninfo:\n  title: Tenant API\n  version: 3.0.0\n...",
-  "content_hash": "sha256:f6e5d4c3b2a1...",
-  "created_at": "2026-02-10T10:00:00.000+00:00",
-  "updated_at": "2026-02-20T12:30:00.000+00:00"
-}
-```
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `name` | string | スキーマ名 |
+| `description` | string | スキーマの説明 |
+| `schema_type` | string | スキーマ種別 |
+| `latest_version` | int | 最新バージョン番号 |
+| `content` | string | 最新バージョンのスキーマ本文 |
+| `content_hash` | string | コンテンツの SHA-256 ハッシュ |
+| `created_at` | string | 初回登録日時 |
+| `updated_at` | string | 最終更新日時 |
 
-**レスポンス（404 Not Found）**
-
-```json
-{
-  "error": {
-    "code": "SYS_APIREG_SCHEMA_NOT_FOUND",
-    "message": "schema not found: k1s0-tenant-api",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
+**エラーレスポンス（404）**: `SYS_APIREG_SCHEMA_NOT_FOUND`
 
 #### GET /api/v1/schemas/:name/versions
 
 指定スキーマの全バージョン一覧をページネーション付きで取得する。
 
-**レスポンス（200 OK）**
+**レスポンスフィールド（200 OK）**
 
-```json
-{
-  "name": "k1s0-tenant-api",
-  "versions": [
-    {
-      "version": 3,
-      "content_hash": "sha256:f6e5d4c3b2a1...",
-      "breaking_changes": false,
-      "registered_by": "user-001",
-      "created_at": "2026-02-20T12:30:00.000+00:00"
-    },
-    {
-      "version": 2,
-      "content_hash": "sha256:e5d4c3b2a1f6...",
-      "breaking_changes": false,
-      "registered_by": "user-001",
-      "created_at": "2026-02-15T10:00:00.000+00:00"
-    },
-    {
-      "version": 1,
-      "content_hash": "sha256:a1b2c3d4e5f6...",
-      "breaking_changes": false,
-      "registered_by": "user-001",
-      "created_at": "2026-02-10T10:00:00.000+00:00"
-    }
-  ],
-  "pagination": {
-    "total_count": 3,
-    "page": 1,
-    "page_size": 20,
-    "has_next": false
-  }
-}
-```
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `name` | string | スキーマ名 |
+| `versions[].version` | int | バージョン番号 |
+| `versions[].content_hash` | string | コンテンツハッシュ |
+| `versions[].breaking_changes` | bool | 破壊的変更フラグ |
+| `versions[].registered_by` | string | 登録者ユーザー ID |
+| `versions[].created_at` | string | 登録日時 |
+| `pagination` | object | ページネーション |
 
 #### GET /api/v1/schemas/:name/versions/:version
 
 指定バージョンのスキーマコンテンツを取得する。
 
-**レスポンス（200 OK）**
+**レスポンスフィールド（200 OK）**
 
-```json
-{
-  "name": "k1s0-tenant-api",
-  "version": 2,
-  "schema_type": "openapi",
-  "content": "openapi: 3.0.3\ninfo:\n  title: Tenant API\n  version: 2.0.0\n...",
-  "content_hash": "sha256:e5d4c3b2a1f6...",
-  "breaking_changes": false,
-  "registered_by": "user-001",
-  "created_at": "2026-02-15T10:00:00.000+00:00"
-}
-```
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `name` | string | スキーマ名 |
+| `version` | int | バージョン番号 |
+| `schema_type` | string | スキーマ種別 |
+| `content` | string | スキーマ本文 |
+| `content_hash` | string | コンテンツハッシュ |
+| `breaking_changes` | bool | 破壊的変更フラグ |
+| `registered_by` | string | 登録者 |
+| `created_at` | string | 登録日時 |
 
-**レスポンス（404 Not Found）**
-
-```json
-{
-  "error": {
-    "code": "SYS_APIREG_VERSION_NOT_FOUND",
-    "message": "schema version not found: k1s0-tenant-api@2",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
+**エラーレスポンス（404）**: `SYS_APIREG_VERSION_NOT_FOUND`
 
 #### POST /api/v1/schemas/:name/versions
 
 既存スキーマに新バージョンを登録する。登録前に互換性チェックを自動実行し、破壊的変更が検出された場合はフラグを立てる（登録はそのまま行う）。
 
-**リクエスト**
+**リクエストフィールド**
 
-```json
-{
-  "content": "openapi: 3.0.3\ninfo:\n  title: Tenant API\n  version: 3.0.0\npaths:\n  /api/v1/tenants:\n    get:\n      summary: テナント一覧\n      ...\n",
-  "registered_by": "user-001"
-}
-```
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `content` | string | Yes | スキーマ本文 |
+| `registered_by` | string | Yes | 登録者ユーザー ID |
 
-**レスポンス（201 Created）**
+**レスポンスフィールド（201 Created）**
 
-```json
-{
-  "name": "k1s0-tenant-api",
-  "version": 3,
-  "content_hash": "sha256:f6e5d4c3b2a1...",
-  "breaking_changes": false,
-  "breaking_change_details": [],
-  "registered_by": "user-001",
-  "created_at": "2026-02-20T12:30:00.000+00:00"
-}
-```
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `name` | string | スキーマ名 |
+| `version` | int | バージョン番号 |
+| `content_hash` | string | コンテンツハッシュ |
+| `breaking_changes` | bool | 破壊的変更フラグ |
+| `breaking_change_details` | BreakingChange[] | 破壊的変更の詳細リスト |
+| `registered_by` | string | 登録者 |
+| `created_at` | string | 登録日時 |
 
-**レスポンス（201 Created -- 破壊的変更あり）**
-
-```json
-{
-  "name": "k1s0-tenant-api",
-  "version": 3,
-  "content_hash": "sha256:f6e5d4c3b2a1...",
-  "breaking_changes": true,
-  "breaking_change_details": [
-    {
-      "change_type": "field_removed",
-      "path": "/api/v1/tenants GET response.properties.legacy_id",
-      "description": "フィールド 'legacy_id' が削除されました"
-    },
-    {
-      "change_type": "type_changed",
-      "path": "/api/v1/tenants/{id} GET response.properties.created_at",
-      "description": "'created_at' の型が string から integer に変更されました"
-    }
-  ],
-  "registered_by": "user-001",
-  "created_at": "2026-02-20T12:30:00.000+00:00"
-}
-```
-
-**レスポンス（422 Unprocessable Entity）**
-
-```json
-{
-  "error": {
-    "code": "SYS_APIREG_SCHEMA_INVALID",
-    "message": "schema validation failed",
-    "request_id": "req_abc123def456",
-    "details": [
-      {"field": "content", "message": "[line 8] path must start with '/'"}
-    ]
-  }
-}
-```
+**エラーレスポンス（422）**: `SYS_APIREG_SCHEMA_INVALID`
 
 #### DELETE /api/v1/schemas/:name/versions/:version
 
 指定バージョンを削除する。最新バージョン（バージョン数 = 1）は削除できない。
 
-**レスポンス（204 No Content）**
+**レスポンス**: 204 No Content
 
-レスポンスボディなし。
-
-**レスポンス（409 Conflict）**
-
-```json
-{
-  "error": {
-    "code": "SYS_APIREG_CANNOT_DELETE_LATEST",
-    "message": "cannot delete the only remaining version of schema: k1s0-tenant-api",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
+**エラーレスポンス（409）**: `SYS_APIREG_CANNOT_DELETE_LATEST`
 
 #### POST /api/v1/schemas/:name/compatibility
 
-指定スキーマに対して入力コンテンツの互換性チェックのみを実行する（登録しない）。`base_version` を省略した場合は最新バージョンと比較する。
+指定スキーマに対して入力コンテンツの互換性チェックのみを実行する（登録しない）。
 
-**リクエスト**
+**リクエストフィールド**
 
-```json
-{
-  "content": "openapi: 3.0.3\ninfo:\n  title: Tenant API\n  version: 4.0.0\n...",
-  "base_version": 3
-}
-```
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `content` | string | Yes | 検証対象のスキーマ本文 |
+| `base_version` | int | No | 比較対象バージョン（省略時は最新） |
 
-**レスポンス（200 OK）**
+**レスポンスフィールド（200 OK）**
 
-```json
-{
-  "name": "k1s0-tenant-api",
-  "base_version": 3,
-  "compatible": false,
-  "breaking_changes": [
-    {
-      "change_type": "field_removed",
-      "path": "/api/v1/tenants GET response.properties.name",
-      "description": "フィールド 'name' が削除されました"
-    }
-  ],
-  "non_breaking_changes": [
-    {
-      "change_type": "field_added",
-      "path": "/api/v1/tenants GET response.properties.display_name",
-      "description": "フィールド 'display_name' が追加されました"
-    }
-  ]
-}
-```
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `name` | string | スキーマ名 |
+| `base_version` | int | 比較対象バージョン |
+| `compatible` | bool | 後方互換性フラグ |
+| `breaking_changes` | BreakingChange[] | 破壊的変更のリスト |
+| `non_breaking_changes` | ChangeDetail[] | 非破壊的変更のリスト |
 
 #### GET /api/v1/schemas/:name/diff
 
-2 つのバージョン間の差分を取得する。`from` と `to` クエリパラメータでバージョンを指定する。
+2 つのバージョン間の差分を取得する。
 
 **クエリパラメータ**
 
@@ -409,48 +217,19 @@ system tier の API スキーマレジストリサーバーは以下の機能を
 | `from` | int | No | `latest - 1` | 比較元バージョン |
 | `to` | int | No | `latest` | 比較先バージョン |
 
-**レスポンス（200 OK）**
+**レスポンスフィールド（200 OK）**
 
-```json
-{
-  "name": "k1s0-tenant-api",
-  "from_version": 2,
-  "to_version": 3,
-  "breaking_changes": false,
-  "diff": {
-    "added": [
-      {
-        "path": "/api/v1/tenants GET response.properties.display_name",
-        "type": "object",
-        "description": "新フィールド: display_name（表示名）"
-      }
-    ],
-    "modified": [
-      {
-        "path": "/api/v1/tenants GET summary",
-        "before": "テナント一覧",
-        "after": "テナント一覧取得"
-      }
-    ],
-    "removed": []
-  }
-}
-```
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `name` | string | スキーマ名 |
+| `from_version` | int | 比較元バージョン |
+| `to_version` | int | 比較先バージョン |
+| `breaking_changes` | bool | 破壊的変更フラグ |
+| `diff.added` | ChangeDetail[] | 追加された要素 |
+| `diff.modified` | ChangeDetail[] | 変更された要素 |
+| `diff.removed` | ChangeDetail[] | 削除された要素 |
 
-**レスポンス（400 Bad Request）**
-
-```json
-{
-  "error": {
-    "code": "SYS_APIREG_VALIDATION_ERROR",
-    "message": "validation failed",
-    "request_id": "req_abc123def456",
-    "details": [
-      {"field": "from", "message": "'from' version must be less than 'to' version"}
-    ]
-  }
-}
-```
+**エラーレスポンス（400）**: `SYS_APIREG_VALIDATION_ERROR`
 
 ### エラーコード
 
@@ -543,35 +322,7 @@ message CompatibilityResultProto {
 
 ### スキーマ更新通知
 
-スキーマの新規登録・新バージョン登録・バージョン削除時に以下のメッセージを Kafka トピック `k1s0.system.apiregistry.schema_updated.v1` に送信する。
-
-**メッセージフォーマット（新バージョン登録）**
-
-```json
-{
-  "event_type": "SCHEMA_VERSION_REGISTERED",
-  "schema_name": "k1s0-tenant-api",
-  "schema_type": "openapi",
-  "version": 3,
-  "content_hash": "sha256:f6e5d4c3b2a1...",
-  "breaking_changes": false,
-  "registered_by": "user-001",
-  "timestamp": "2026-02-20T12:30:00.000+00:00"
-}
-```
-
-**メッセージフォーマット（バージョン削除）**
-
-```json
-{
-  "event_type": "SCHEMA_VERSION_DELETED",
-  "schema_name": "k1s0-tenant-api",
-  "schema_type": "openapi",
-  "version": 1,
-  "deleted_by": "user-001",
-  "timestamp": "2026-02-20T15:00:00.000+00:00"
-}
-```
+スキーマの新規登録・新バージョン登録・バージョン削除時に Kafka トピック `k1s0.system.apiregistry.schema_updated.v1` にメッセージを送信する。
 
 | 設定項目 | 値 |
 | --- | --- |
@@ -579,6 +330,10 @@ message CompatibilityResultProto {
 | acks | `all` |
 | message.timeout.ms | `5000` |
 | キー | スキーマ名（例: `k1s0-tenant-api`） |
+
+**イベント種別**:
+- `SCHEMA_VERSION_REGISTERED` -- 新バージョン登録
+- `SCHEMA_VERSION_DELETED` -- バージョン削除
 
 ---
 
@@ -647,7 +402,429 @@ message CompatibilityResultProto {
 | `method_removed` | HTTPメソッドの削除（GET/POST等） |
 | `enum_value_removed` | enum 値の削除 |
 
-### 依存関係図
+---
+
+## DB スキーマ
+
+PostgreSQL の `apiregistry` スキーマに以下のテーブルを配置する。
+
+```sql
+CREATE SCHEMA IF NOT EXISTS apiregistry;
+
+CREATE TABLE apiregistry.api_schemas (
+    name         TEXT PRIMARY KEY,
+    description  TEXT NOT NULL DEFAULT '',
+    schema_type  TEXT NOT NULL CHECK (schema_type IN ('openapi', 'protobuf')),
+    latest_version INTEGER NOT NULL DEFAULT 1,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE apiregistry.api_schema_versions (
+    name                    TEXT NOT NULL REFERENCES apiregistry.api_schemas(name) ON DELETE CASCADE,
+    version                 INTEGER NOT NULL,
+    content                 TEXT NOT NULL,
+    content_hash            TEXT NOT NULL,
+    breaking_changes        BOOLEAN NOT NULL DEFAULT false,
+    breaking_change_details JSONB NOT NULL DEFAULT '[]',
+    registered_by           TEXT NOT NULL,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (name, version)
+);
+
+CREATE INDEX idx_api_schema_versions_name ON apiregistry.api_schema_versions(name);
+CREATE INDEX idx_api_schema_versions_content_hash ON apiregistry.api_schema_versions(content_hash);
+```
+
+---
+
+## 設計方針
+
+[認証認可設計.md](../../architecture/auth/認証認可設計.md) の RBAC モデルに基づき、以下の方針で実装する。
+
+| 項目 | 設計 |
+| --- | --- |
+| 実装言語 | Rust |
+| スキーマ種別 | `openapi`（OpenAPI 3.x YAML/JSON）と `protobuf`（.proto ファイル）の 2 種類をサポート |
+| バリデーション | 登録時に subprocess 経由で openapi-spec-validator（OpenAPI）または buf lint（Protobuf）を実行し検証エラーを返す |
+| 破壊的変更検出 | 新バージョン登録時に前バージョンとの比較を行い、フィールド削除・型変更・必須化・パス削除等の変更を検出する |
+| 差分表示 | バージョン間の差分を `added` / `modified` / `removed` に分類した構造化 JSON で提供する |
+| kafka-schemaregistry との対比 | kafka-schemaregistry ライブラリは Kafka Avro スキーマ向け。当サーバーは REST/gRPC スキーマのレジストリとして機能する |
+| DB | PostgreSQL の `apiregistry` スキーマ（api_schemas, api_schema_versions テーブル） |
+| Kafka | プロデューサー（`k1s0.system.apiregistry.schema_updated.v1`） |
+| 認証 | JWTによる認可。管理系エンドポイントは `sys_operator` / `sys_admin` ロールが必要 |
+| ポート | 8101（REST）/ 9090（gRPC） |
+
+---
+
+## API リクエスト・レスポンス例
+
+### GET /api/v1/schemas
+
+```json
+{
+  "schemas": [
+    {
+      "name": "k1s0-tenant-api",
+      "description": "テナント管理 API スキーマ",
+      "schema_type": "openapi",
+      "latest_version": 3,
+      "version_count": 3,
+      "created_at": "2026-02-10T10:00:00.000+00:00",
+      "updated_at": "2026-02-20T12:30:00.000+00:00"
+    },
+    {
+      "name": "k1s0-notification-proto",
+      "description": "通知サービス Protobuf スキーマ",
+      "schema_type": "protobuf",
+      "latest_version": 1,
+      "version_count": 1,
+      "created_at": "2026-02-15T10:00:00.000+00:00",
+      "updated_at": "2026-02-15T10:00:00.000+00:00"
+    }
+  ],
+  "pagination": {
+    "total_count": 12,
+    "page": 1,
+    "page_size": 20,
+    "has_next": false
+  }
+}
+```
+
+### POST /api/v1/schemas
+
+**リクエスト（OpenAPI）**
+
+```json
+{
+  "name": "k1s0-tenant-api",
+  "description": "テナント管理 API スキーマ",
+  "schema_type": "openapi",
+  "content": "openapi: 3.0.3
+info:
+  title: Tenant API
+  version: 1.0.0
+paths:
+  /api/v1/tenants:
+    get:
+      summary: テナント一覧
+      responses:
+        '200':
+          description: OK
+"
+}
+```
+
+**リクエスト（Protobuf）**
+
+```json
+{
+  "name": "k1s0-notification-proto",
+  "description": "通知サービス Protobuf スキーマ",
+  "schema_type": "protobuf",
+  "content": "syntax = \"proto3\";
+package k1s0.system.notification.v1;
+
+service NotificationService {
+  rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
+}
+
+message SendNotificationRequest {
+  string channel_id = 1;
+  string recipient = 2;
+}
+
+message SendNotificationResponse {
+  string notification_id = 1;
+  string status = 2;
+}
+"
+}
+```
+
+**レスポンス（201 Created）**
+
+```json
+{
+  "name": "k1s0-tenant-api",
+  "description": "テナント管理 API スキーマ",
+  "schema_type": "openapi",
+  "version": 1,
+  "content_hash": "sha256:a1b2c3d4e5f6...",
+  "created_at": "2026-02-20T10:00:00.000+00:00"
+}
+```
+
+**レスポンス（422 Unprocessable Entity）**
+
+```json
+{
+  "error": {
+    "code": "SYS_APIREG_SCHEMA_INVALID",
+    "message": "schema validation failed",
+    "request_id": "req_abc123def456",
+    "details": [
+      {"field": "content", "message": "[line 5] info.version is required"},
+      {"field": "content", "message": "[line 12] response schema must have a type"}
+    ]
+  }
+}
+```
+
+### GET /api/v1/schemas/:name
+
+```json
+{
+  "name": "k1s0-tenant-api",
+  "description": "テナント管理 API スキーマ",
+  "schema_type": "openapi",
+  "latest_version": 3,
+  "content": "openapi: 3.0.3
+info:
+  title: Tenant API
+  version: 3.0.0
+...",
+  "content_hash": "sha256:f6e5d4c3b2a1...",
+  "created_at": "2026-02-10T10:00:00.000+00:00",
+  "updated_at": "2026-02-20T12:30:00.000+00:00"
+}
+```
+
+### GET /api/v1/schemas/:name/versions
+
+```json
+{
+  "name": "k1s0-tenant-api",
+  "versions": [
+    {
+      "version": 3,
+      "content_hash": "sha256:f6e5d4c3b2a1...",
+      "breaking_changes": false,
+      "registered_by": "user-001",
+      "created_at": "2026-02-20T12:30:00.000+00:00"
+    },
+    {
+      "version": 2,
+      "content_hash": "sha256:e5d4c3b2a1f6...",
+      "breaking_changes": false,
+      "registered_by": "user-001",
+      "created_at": "2026-02-15T10:00:00.000+00:00"
+    },
+    {
+      "version": 1,
+      "content_hash": "sha256:a1b2c3d4e5f6...",
+      "breaking_changes": false,
+      "registered_by": "user-001",
+      "created_at": "2026-02-10T10:00:00.000+00:00"
+    }
+  ],
+  "pagination": {
+    "total_count": 3,
+    "page": 1,
+    "page_size": 20,
+    "has_next": false
+  }
+}
+```
+
+### GET /api/v1/schemas/:name/versions/:version
+
+```json
+{
+  "name": "k1s0-tenant-api",
+  "version": 2,
+  "schema_type": "openapi",
+  "content": "openapi: 3.0.3
+info:
+  title: Tenant API
+  version: 2.0.0
+...",
+  "content_hash": "sha256:e5d4c3b2a1f6...",
+  "breaking_changes": false,
+  "registered_by": "user-001",
+  "created_at": "2026-02-15T10:00:00.000+00:00"
+}
+```
+
+### POST /api/v1/schemas/:name/versions
+
+**リクエスト**
+
+```json
+{
+  "content": "openapi: 3.0.3
+info:
+  title: Tenant API
+  version: 3.0.0
+paths:
+  /api/v1/tenants:
+    get:
+      summary: テナント一覧
+      ...
+",
+  "registered_by": "user-001"
+}
+```
+
+**レスポンス（201 Created）**
+
+```json
+{
+  "name": "k1s0-tenant-api",
+  "version": 3,
+  "content_hash": "sha256:f6e5d4c3b2a1...",
+  "breaking_changes": false,
+  "breaking_change_details": [],
+  "registered_by": "user-001",
+  "created_at": "2026-02-20T12:30:00.000+00:00"
+}
+```
+
+**レスポンス（201 Created -- 破壊的変更あり）**
+
+```json
+{
+  "name": "k1s0-tenant-api",
+  "version": 3,
+  "content_hash": "sha256:f6e5d4c3b2a1...",
+  "breaking_changes": true,
+  "breaking_change_details": [
+    {
+      "change_type": "field_removed",
+      "path": "/api/v1/tenants GET response.properties.legacy_id",
+      "description": "フィールド 'legacy_id' が削除されました"
+    },
+    {
+      "change_type": "type_changed",
+      "path": "/api/v1/tenants/{id} GET response.properties.created_at",
+      "description": "'created_at' の型が string から integer に変更されました"
+    }
+  ],
+  "registered_by": "user-001",
+  "created_at": "2026-02-20T12:30:00.000+00:00"
+}
+```
+
+### DELETE /api/v1/schemas/:name/versions/:version
+
+**レスポンス（409 Conflict）**
+
+```json
+{
+  "error": {
+    "code": "SYS_APIREG_CANNOT_DELETE_LATEST",
+    "message": "cannot delete the only remaining version of schema: k1s0-tenant-api",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
+}
+```
+
+### POST /api/v1/schemas/:name/compatibility
+
+**リクエスト**
+
+```json
+{
+  "content": "openapi: 3.0.3
+info:
+  title: Tenant API
+  version: 4.0.0
+...",
+  "base_version": 3
+}
+```
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "name": "k1s0-tenant-api",
+  "base_version": 3,
+  "compatible": false,
+  "breaking_changes": [
+    {
+      "change_type": "field_removed",
+      "path": "/api/v1/tenants GET response.properties.name",
+      "description": "フィールド 'name' が削除されました"
+    }
+  ],
+  "non_breaking_changes": [
+    {
+      "change_type": "field_added",
+      "path": "/api/v1/tenants GET response.properties.display_name",
+      "description": "フィールド 'display_name' が追加されました"
+    }
+  ]
+}
+```
+
+### GET /api/v1/schemas/:name/diff
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "name": "k1s0-tenant-api",
+  "from_version": 2,
+  "to_version": 3,
+  "breaking_changes": false,
+  "diff": {
+    "added": [
+      {
+        "path": "/api/v1/tenants GET response.properties.display_name",
+        "type": "object",
+        "description": "新フィールド: display_name（表示名）"
+      }
+    ],
+    "modified": [
+      {
+        "path": "/api/v1/tenants GET summary",
+        "before": "テナント一覧",
+        "after": "テナント一覧取得"
+      }
+    ],
+    "removed": []
+  }
+}
+```
+
+---
+
+## Kafka メッセージフォーマット
+
+### 新バージョン登録
+
+```json
+{
+  "event_type": "SCHEMA_VERSION_REGISTERED",
+  "schema_name": "k1s0-tenant-api",
+  "schema_type": "openapi",
+  "version": 3,
+  "content_hash": "sha256:f6e5d4c3b2a1...",
+  "breaking_changes": false,
+  "registered_by": "user-001",
+  "timestamp": "2026-02-20T12:30:00.000+00:00"
+}
+```
+
+### バージョン削除
+
+```json
+{
+  "event_type": "SCHEMA_VERSION_DELETED",
+  "schema_name": "k1s0-tenant-api",
+  "schema_type": "openapi",
+  "version": 1,
+  "deleted_by": "user-001",
+  "timestamp": "2026-02-20T15:00:00.000+00:00"
+}
+```
+
+---
+
+## 依存関係図
 
 ```
                     ┌─────────────────────────────────────────────────┐
@@ -714,41 +891,7 @@ message CompatibilityResultProto {
 
 ---
 
-## DB スキーマ
-
-PostgreSQL の `apiregistry` スキーマに以下のテーブルを配置する。
-
-```sql
-CREATE SCHEMA IF NOT EXISTS apiregistry;
-
-CREATE TABLE apiregistry.api_schemas (
-    name         TEXT PRIMARY KEY,
-    description  TEXT NOT NULL DEFAULT '',
-    schema_type  TEXT NOT NULL CHECK (schema_type IN ('openapi', 'protobuf')),
-    latest_version INTEGER NOT NULL DEFAULT 1,
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE apiregistry.api_schema_versions (
-    name                    TEXT NOT NULL REFERENCES apiregistry.api_schemas(name) ON DELETE CASCADE,
-    version                 INTEGER NOT NULL,
-    content                 TEXT NOT NULL,
-    content_hash            TEXT NOT NULL,
-    breaking_changes        BOOLEAN NOT NULL DEFAULT false,
-    breaking_change_details JSONB NOT NULL DEFAULT '[]',
-    registered_by           TEXT NOT NULL,
-    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (name, version)
-);
-
-CREATE INDEX idx_api_schema_versions_name ON apiregistry.api_schema_versions(name);
-CREATE INDEX idx_api_schema_versions_content_hash ON apiregistry.api_schema_versions(content_hash);
-```
-
----
-
-## 設定ファイル
+## 設定ファイル例
 
 ### config.yaml（本番）
 
@@ -837,10 +980,6 @@ vault:
 | --- | --- |
 | DB パスワード | `secret/data/k1s0/system/api-registry/database` |
 | Kafka SASL | `secret/data/k1s0/system/kafka/sasl` |
-
----
-
----
 
 ## 関連ドキュメント
 

@@ -5,7 +5,7 @@ system Tier の Saga オーケストレーターデータベース（saga-db）�
 
 ## 概要
 
-saga-db は system Tier に属する PostgreSQL 17 データベースであり、分散トランザクション（Saga）の状態管理を担う。Saga Orchestrator サーバーが各ステップの進行状況・補償トランザクションの実行状態・エラー情報を永続化し、サーバー再起動時のリカバリを可能にする。
+saga-db は system Tier に属する PostgreSQL 17 データベースであり、分散トランザクション（Saga）の状態管理を担う。
 
 [tier-architecture.md](../../architecture/overview/tier-architecture.md) の設計原則に従い、saga-db へのアクセスは **system Tier のサーバーからのみ** 許可する。
 
@@ -67,8 +67,6 @@ saga-db は system Tier に属する PostgreSQL 17 データベースであり�
 
 ### saga_states テーブル
 
-Saga の実行状態を管理する。各 Saga は一意の ID を持ち、ワークフロー名・現在のステップ・全体のステータスを追跡する。
-
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | Saga の一意識別子 |
@@ -94,14 +92,12 @@ Saga の実行状態を管理する。各 Saga は一意の ID を持ち、ワ�
 | `CANCELLED` | ユーザーによるキャンセル（終端状態） |
 
 **インデックス:**
-- `idx_saga_states_workflow_name` — workflow_name
-- `idx_saga_states_status` — status（リカバリ対象の未完了 Saga 検索に使用）
-- `idx_saga_states_correlation_id` — correlation_id（WHERE IS NOT NULL、部分インデックス）
-- `idx_saga_states_created_at` — created_at
+- `idx_saga_states_workflow_name` -- workflow_name
+- `idx_saga_states_status` -- status（リカバリ対象の未完了 Saga 検索に使用）
+- `idx_saga_states_correlation_id` -- correlation_id（WHERE IS NOT NULL、部分インデックス）
+- `idx_saga_states_created_at` -- created_at
 
 ### saga_step_logs テーブル
-
-各 Saga のステップ実行ログを記録する。EXECUTE（正常実行）と COMPENSATE（補償実行）の両方が記録される。
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
@@ -134,7 +130,7 @@ Saga の実行状態を管理する。各 Saga は一意の ID を持ち、ワ�
 | `SKIPPED` | 補償メソッド未定義等によりスキップ |
 
 **インデックス:**
-- `idx_saga_step_logs_saga_id_step_index` — (saga_id, step_index)（複合インデックス）
+- `idx_saga_step_logs_saga_id_step_index` -- (saga_id, step_index)（複合インデックス）
 
 ---
 
@@ -158,7 +154,9 @@ migrations/
 └── 005_add_updated_at_trigger.down.sql
 ```
 
-### 001_create_schema.up.sql
+### マイグレーション SQL
+
+#### 001_create_schema.up.sql
 
 ```sql
 -- saga-db: スキーマ・拡張機能・共通関数の作成 (PostgreSQL 17)
@@ -179,7 +177,7 @@ END;
 $$ LANGUAGE plpgsql;
 ```
 
-### 001_create_schema.down.sql
+#### 001_create_schema.down.sql
 
 ```sql
 DROP FUNCTION IF EXISTS saga.update_updated_at();
@@ -187,7 +185,7 @@ DROP SCHEMA IF EXISTS saga CASCADE;
 DROP EXTENSION IF EXISTS "pgcrypto";
 ```
 
-### 002_create_saga_states.up.sql
+#### 002_create_saga_states.up.sql
 
 ```sql
 -- saga-db: saga_states テーブル作成
@@ -220,14 +218,14 @@ CREATE TRIGGER update_saga_states_updated_at
     EXECUTE FUNCTION saga.update_updated_at();
 ```
 
-### 002_create_saga_states.down.sql
+#### 002_create_saga_states.down.sql
 
 ```sql
 DROP TRIGGER IF EXISTS update_saga_states_updated_at ON saga.saga_states;
 DROP TABLE IF EXISTS saga.saga_states;
 ```
 
-### 003_create_saga_step_logs.up.sql
+#### 003_create_saga_step_logs.up.sql
 
 ```sql
 -- saga-db: saga_step_logs テーブル作成
@@ -253,13 +251,13 @@ CREATE TABLE IF NOT EXISTS saga.saga_step_logs (
 CREATE INDEX IF NOT EXISTS idx_saga_step_logs_saga_id_step_index ON saga.saga_step_logs (saga_id, step_index);
 ```
 
-### 003_create_saga_step_logs.down.sql
+#### 003_create_saga_step_logs.down.sql
 
 ```sql
 DROP TABLE IF EXISTS saga.saga_step_logs;
 ```
 
-### 004_add_indexes.up.sql
+#### 004_add_indexes.up.sql
 
 ```sql
 -- saga-db: saga_states および saga_step_logs への追加インデックス
@@ -281,7 +279,7 @@ CREATE INDEX IF NOT EXISTS idx_saga_step_logs_started_at
     ON saga.saga_step_logs (started_at);
 ```
 
-### 004_add_indexes.down.sql
+#### 004_add_indexes.down.sql
 
 ```sql
 DROP INDEX IF EXISTS saga.idx_saga_step_logs_step_name;
@@ -290,7 +288,7 @@ DROP INDEX IF EXISTS saga.idx_saga_step_logs_action;
 DROP INDEX IF EXISTS saga.idx_saga_step_logs_started_at;
 ```
 
-### 005_add_updated_at_trigger.up.sql
+#### 005_add_updated_at_trigger.up.sql
 
 ```sql
 -- saga-db: saga_step_logs の updated_at 関連拡張
@@ -308,7 +306,7 @@ CREATE TRIGGER trigger_saga_step_logs_update_updated_at
     EXECUTE FUNCTION saga.update_updated_at();
 ```
 
-### 005_add_updated_at_trigger.down.sql
+#### 005_add_updated_at_trigger.down.sql
 
 ```sql
 DROP TRIGGER IF EXISTS trigger_saga_step_logs_update_updated_at ON saga.saga_step_logs;
@@ -333,42 +331,11 @@ ALTER TABLE saga.saga_step_logs DROP COLUMN IF EXISTS updated_at;
 | saga_step_logs | idx_saga_step_logs_action | action | B-tree | アクション種別でのフィルタリング |
 | saga_step_logs | idx_saga_step_logs_started_at | started_at | B-tree | 開始時刻での範囲検索 |
 
-### 設計方針
+### インデックス設計方針
 
 - **リカバリクエリの最適化**: 起動時リカバリでは `status IN ('STARTED', 'RUNNING', 'COMPENSATING')` の条件で未完了 Saga を検索する。`idx_saga_states_status` インデックスによりフルスキャンを回避する
 - **部分インデックス**: `correlation_id` は NULL が多いため部分インデックスを使用し、インデックスサイズを削減する
 - **複合インデックス**: ステップログは `saga_id` + `step_index` の複合インデックスにより、特定 Saga のログを順序付きで効率的に取得できる
-
----
-
-## トランザクション設計
-
-### ステップログの原子的記録
-
-Saga 状態の更新とステップログの挿入は単一のデータベーストランザクションで実行し、状態の一貫性を保証する。
-
-```sql
--- SagaPostgresRepository::update_with_step_log の実装パターン
-BEGIN;
-  UPDATE saga.saga_states
-  SET current_step = $2,
-      status = $3,
-      error_message = $4,
-      updated_at = NOW()
-  WHERE id = $1;
-
-  INSERT INTO saga.saga_step_logs (
-    id, saga_id, step_index, step_name, action, status,
-    request_payload, response_payload, error_message,
-    started_at, completed_at
-  ) VALUES ($5, $1, $6, $7, $8, $9, $10, $11, $12, $13, $14);
-COMMIT;
-```
-
-この原子性により、以下を保証する:
-- ステップログが記録されているなら、saga_states も一貫した状態にある
-- サーバー障害時も中途半端な状態が残らない
-- 起動時リカバリで確実に未完了 Saga を検出できる
 
 ---
 
@@ -428,11 +395,63 @@ WHERE
 
 ---
 
+## トランザクション設計の背景
+
+`SagaPostgresRepository::update_with_step_log` の実装パターン:
+
+```sql
+BEGIN;
+  UPDATE saga.saga_states
+  SET current_step = $2,
+      status = $3,
+      error_message = $4,
+      updated_at = NOW()
+  WHERE id = $1;
+
+  INSERT INTO saga.saga_step_logs (
+    id, saga_id, step_index, step_name, action, status,
+    request_payload, response_payload, error_message,
+    started_at, completed_at
+  ) VALUES ($5, $1, $6, $7, $8, $9, $10, $11, $12, $13, $14);
+COMMIT;
+```
+
+この原子性により、以下を保証する:
+- ステップログが記録されているなら、saga_states も一貫した状態にある
+- サーバー障害時も中途半端な状態が残らない
+- 起動時リカバリで確実に未完了 Saga を検出できる
+
+---
+
 ## 接続設定
 
-[config設計](../../cli/config/config設計.md) の database セクションに従い、saga-db への接続を以下のように設定する。
+[config設計](../../cli/config/config設計.md) の database セクションに従い、saga-db への接続を設定する。
 
-### config.yaml（saga サーバー用）
+### 環境別設定
+
+| 環境 | host | ssl_mode | max_open_conns | max_idle_conns |
+|------|------|----------|----------------|----------------|
+| dev | localhost (docker-compose) | disable | 10 | 3 |
+| staging | postgres.k1s0-system.svc.cluster.local | require | 25 | 5 |
+| prod | postgres.k1s0-system.svc.cluster.local | verify-full | 50 | 10 |
+
+### Vault によるクレデンシャル管理
+
+[認証認可設計](../../architecture/auth/認証認可設計.md) D-006 のシークレットパス体系に従う。
+
+| 用途 | Vault パス | 説明 |
+|------|-----------|------|
+| 静的パスワード | `secret/data/k1s0/system/saga/database` | キー: `password` |
+| 動的クレデンシャル（読み書き） | `database/creds/system-saga-rw` | Vault Database エンジンで自動生成（TTL: 24時間） |
+| 動的クレデンシャル（読み取り専用） | `database/creds/system-saga-ro` | Vault Database エンジンで自動生成（TTL: 24時間） |
+
+### docker-compose（ローカル開発）
+
+[docker-compose設計](../../infrastructure/docker/docker-compose設計.md) の共通 PostgreSQL インスタンスに `k1s0_system` データベースを使用する。saga-db と auth-db は同一の `k1s0_system` データベース内の異なるスキーマ（`saga` / `auth`）として共存する。
+
+### 接続設定例
+
+#### config.yaml（saga サーバー用）
 
 ```yaml
 # config/config.yaml — saga サーバー
@@ -453,28 +472,6 @@ database:
   max_idle_conns: 5
   conn_max_lifetime: "5m"
 ```
-
-### 環境別設定
-
-| 環境 | host | ssl_mode | max_open_conns | max_idle_conns |
-|------|------|----------|----------------|----------------|
-| dev | localhost (docker-compose) | disable | 10 | 3 |
-| staging | postgres.k1s0-system.svc.cluster.local | require | 25 | 5 |
-| prod | postgres.k1s0-system.svc.cluster.local | verify-full | 50 | 10 |
-
-### Vault によるクレデンシャル管理
-
-[認証認可設計](../../architecture/auth/認証認可設計.md) D-006 のシークレットパス体系に従い、以下の Vault パスから DB クレデンシャルを取得する。
-
-| 用途 | Vault パス | 説明 |
-|------|-----------|------|
-| 静的パスワード | `secret/data/k1s0/system/saga/database` | キー: `password` |
-| 動的クレデンシャル（読み書き） | `database/creds/system-saga-rw` | Vault Database エンジンで自動生成（TTL: 24時間） |
-| 動的クレデンシャル（読み取り専用） | `database/creds/system-saga-ro` | Vault Database エンジンで自動生成（TTL: 24時間） |
-
-### docker-compose（ローカル開発）
-
-[docker-compose設計](../../infrastructure/docker/docker-compose設計.md) の共通 PostgreSQL インスタンスに `k1s0_system` データベースを使用する。saga-db と auth-db は同一の `k1s0_system` データベース内の異なるスキーマ（`saga` / `auth`）として共存する。
 
 ---
 
@@ -507,11 +504,11 @@ pg_dump -h postgres.k1s0-system.svc.cluster.local -U app -d k1s0_system \
 
 ## 関連ドキュメント
 
-- [system-saga-server設計](server.md) — Saga Orchestrator サーバー設計（API・アーキテクチャ・実装）
-- [tier-architecture](../../architecture/overview/tier-architecture.md) — Tier アーキテクチャ・データベースアクセスルール
-- [メッセージング設計](../../architecture/messaging/メッセージング設計.md) — Saga パターンの基本方針
-- [config設計](../../cli/config/config設計.md) — config.yaml スキーマ（database セクション）
-- [テンプレート仕様-データベース](../../templates/data/データベース.md) — マイグレーション命名規則・テンプレート
-- [docker-compose設計](../../infrastructure/docker/docker-compose設計.md) — ローカル開発用 PostgreSQL
-- [kubernetes設計](../../infrastructure/kubernetes/kubernetes設計.md) — Namespace・PVC 設計
-- [helm設計](../../infrastructure/kubernetes/helm設計.md) — PostgreSQL Helm Chart・Vault Agent Injector
+- [system-saga-server設計](server.md) -- Saga Orchestrator サーバー設計（API・アーキテクチャ・実装）
+- [tier-architecture](../../architecture/overview/tier-architecture.md) -- Tier アーキテクチャ・データベースアクセスルール
+- [メッセージング設計](../../architecture/messaging/メッセージング設計.md) -- Saga パターンの基本方針
+- [config設計](../../cli/config/config設計.md) -- config.yaml スキーマ（database セクション）
+- [テンプレート仕様-データベース](../../templates/data/データベース.md) -- マイグレーション命名規則・テンプレート
+- [docker-compose設計](../../infrastructure/docker/docker-compose設計.md) -- ローカル開発用 PostgreSQL
+- [kubernetes設計](../../infrastructure/kubernetes/kubernetes設計.md) -- Namespace・PVC 設計
+- [helm設計](../../infrastructure/kubernetes/helm設計.md) -- PostgreSQL Helm Chart・Vault Agent Injector

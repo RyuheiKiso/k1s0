@@ -1,6 +1,6 @@
 # system-file-server 設計
 
-system tier のファイルストレージ抽象化サーバー設計を定義する。S3/GCS/Ceph 互換ストレージを統一 API で抽象化し、ファイルメタデータ管理・プリサインドURL発行・テナント分離アクセス制御を提供する。ファイルアップロード完了時に Kafka トピック `k1s0.system.file.uploaded.v1` でイベントを発行する。Rust での実装を定義する。
+S3 互換ストレージを統一 API で抽象化するファイルサーバー。メタデータ管理・プリサインドURL・テナント分離を提供。
 
 ## 概要
 
@@ -79,7 +79,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 | `page` | int | No | 1 | ページ番号 |
 | `page_size` | int | No | 20 | 1 ページあたりの件数 |
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -114,7 +114,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 
 アップロード用のプリサインドURLを発行する。クライアントはこの URL に対して直接 HTTP PUT でファイルをアップロードする。アップロード完了後、`/api/v1/files/:id/complete` を呼び出してサーバーに完了を通知する。
 
-**リクエスト**
+**リクエスト例**
 
 ```json
 {
@@ -130,7 +130,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 }
 ```
 
-**レスポンス（201 Created）**
+**レスポンス例（201 Created）**
 
 ```json
 {
@@ -145,7 +145,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 }
 ```
 
-**レスポンス（400 Bad Request）**
+**レスポンス例（400 Bad Request）**
 
 ```json
 {
@@ -165,7 +165,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 
 ファイルのメタデータを取得する。ストレージへの直接アクセスは行わない。
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -187,7 +187,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 }
 ```
 
-**レスポンス（404 Not Found）**
+**レスポンス例（404 Not Found）**
 
 ```json
 {
@@ -210,7 +210,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 | --- | --- | --- | --- | --- |
 | `expires_in_seconds` | int | No | 3600 | URLの有効期限（秒）。最大 86400 |
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -224,7 +224,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 
 ファイルのタグを更新する。既存タグは上書きされる（全置換）。
 
-**リクエスト**
+**リクエスト例**
 
 ```json
 {
@@ -236,7 +236,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 }
 ```
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -254,7 +254,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 
 ファイルをメタデータとストレージの両方から削除する。
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -356,7 +356,13 @@ message FileMetadata {
 
 クライアントが `/api/v1/files/:id/complete` を呼び出した時点で、`k1s0.system.file.uploaded.v1` トピックへ発行する。ダウンストリームのサービスはこのイベントを Consumer してファイル処理（ウイルススキャン・サムネイル生成等）を実施できる。
 
-**メッセージフォーマット**
+| 設定項目 | 値 |
+| --- | --- |
+| トピック | `k1s0.system.file.uploaded.v1` |
+| キー | file_id |
+| パーティション戦略 | tenant_id によるハッシュ分散 |
+
+**メッセージ例**
 
 ```json
 {
@@ -376,17 +382,11 @@ message FileMetadata {
 }
 ```
 
-| 設定項目 | 値 |
-| --- | --- |
-| トピック | `k1s0.system.file.uploaded.v1` |
-| キー | file_id |
-| パーティション戦略 | tenant_id によるハッシュ分散 |
-
 ### ファイル削除イベント
 
 ファイル削除時に `k1s0.system.file.deleted.v1` トピックへ発行する。
 
-**メッセージフォーマット**
+**メッセージ例**
 
 ```json
 {
@@ -438,7 +438,9 @@ message FileMetadata {
 | `created_at` | DateTime\<Utc\> | 作成日時 |
 | `updated_at` | DateTime\<Utc\> | 更新日時 |
 
-### 依存関係図
+---
+
+## 依存関係図
 
 ```
                     ┌─────────────────────────────────────────────────┐
@@ -497,7 +499,7 @@ message FileMetadata {
 
 ---
 
-## 設定ファイル
+## 設定ファイル例
 
 ### config.yaml（本番）
 
@@ -540,13 +542,7 @@ auth:
   jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
 ```
 
----
-
-## デプロイ
-
 ### Helm values
-
-[helm設計.md](../../infrastructure/kubernetes/helm設計.md) のサーバー用 Helm Chart を使用する。file 固有の values は以下の通り。
 
 ```yaml
 # values-file.yaml（infra/helm/services/system/file/values.yaml）
@@ -587,6 +583,10 @@ vault:
       key: "secret_access_key"
       mountPath: "/vault/secrets/storage-secret-key"
 ```
+
+---
+
+## デプロイ
 
 ### Vault シークレットパス
 

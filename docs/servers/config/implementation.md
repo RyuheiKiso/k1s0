@@ -1,6 +1,6 @@
 # system-config-server 実装設計
 
-system-config-server の Rust 実装詳細を定義する。概要・API 定義・アーキテクチャは [system-config-server.md](server.md) を参照。
+system-config-server の Rust 実装構成を定義する。概要・API 定義・アーキテクチャは [system-config-server.md](server.md) を参照。
 
 ---
 
@@ -94,7 +94,23 @@ moka = { version = "0.12", features = ["future"] }
 
 > build.rs パターンは [Rust共通実装.md](../_common/Rust共通実装.md#共通buildrs) を参照。proto パス: `api/proto/k1s0/system/config/v1/config.proto`
 
-### src/main.rs
+---
+
+## config.yaml サービス固有設定
+
+| セクション | フィールド | 型 | デフォルト | 説明 |
+|-----------|-----------|-----|-----------|------|
+| `config_server.cache` | `ttl` | string | `"60s"` | キャッシュの TTL |
+| `config_server.cache` | `max_entries` | int | `10000` | キャッシュの最大エントリ数 |
+| `config_server.cache` | `refresh_on_miss` | bool | `true` | キャッシュミス時にバックグラウンドリフレッシュ |
+| `config_server.audit` | `kafka_enabled` | bool | `true` | Kafka への非同期配信を有効化 |
+| `config_server.audit` | `retention_days` | int | `365` | DB 内の保持日数 |
+| `config_server.namespace` | `allowed_tiers` | string[] | `["system","business","service"]` | 許可される Tier |
+| `config_server.namespace` | `max_depth` | int | `4` | namespace の最大階層数 |
+
+---
+
+## src/main.rs サービス固有の DI
 
 > 起動シーケンスは [Rust共通実装.md](../_common/Rust共通実装.md#共通mainrs) を参照。以下はサービス固有の DI:
 
@@ -140,7 +156,9 @@ moka = { version = "0.12", features = ["future"] }
     };
 ```
 
-### ドメインモデル（Rust）
+---
+
+## ドメインモデル実装（Rust）
 
 ```rust
 // src/domain/entity/config_entry.rs
@@ -188,7 +206,9 @@ pub struct ConfigChangeLog {
 }
 ```
 
-### リポジトリトレイト（Rust）
+---
+
+## リポジトリトレイト実装（Rust）
 
 ```rust
 // src/domain/repository/config_repository.rs
@@ -248,7 +268,11 @@ pub trait ConfigChangeLogRepository: Send + Sync {
 }
 ```
 
-### ユースケース（Rust）
+---
+
+## ユースケース実装（Rust）
+
+### GetConfigUseCase
 
 ```rust
 // src/usecase/get_config.rs
@@ -297,6 +321,8 @@ impl GetConfigUseCase {
     }
 }
 ```
+
+### UpdateConfigUseCase
 
 ```rust
 // src/usecase/update_config.rs
@@ -410,7 +436,9 @@ pub struct UpdateConfigInput {
 }
 ```
 
-### REST ハンドラー（Rust）
+---
+
+## REST ハンドラー実装（Rust）
 
 ```rust
 // src/adapter/handler/rest_handler.rs
@@ -610,7 +638,9 @@ async fn update_config_schema(
 // ... 他のハンドラーも同様のパターンで実装
 ```
 
-### gRPC ハンドラー（Rust）
+---
+
+## gRPC ハンドラー実装（Rust）
 
 ```rust
 // src/adapter/handler/grpc_handler.rs
@@ -741,9 +771,7 @@ impl ConfigService for ConfigServiceImpl {
 
 ---
 
-## config.yaml
-
-[config.md](../../cli/config/config設計.md) のスキーマを拡張した設定管理サーバー固有の設定。
+## config.yaml サービス固有セクション
 
 > 共通セクション（app/server/database/kafka/observability）は [Rust共通実装.md](../_common/Rust共通実装.md#共通configyaml) を参照。サービス固有セクション:
 
@@ -768,9 +796,7 @@ config_server:
     max_depth: 4              # namespace の最大階層数
 ```
 
-### 設定の読み込み実装
-
-#### Go
+### 設定の読み込み実装（Go）
 
 ```go
 // internal/infra/config/config.go
@@ -843,7 +869,7 @@ func (c *Config) Validate() error {
 }
 ```
 
-#### Rust
+### 設定の読み込み実装（Rust）
 
 ```rust
 // src/infrastructure/config/mod.rs
@@ -926,9 +952,7 @@ impl Config {
 
 ---
 
-## テスト構成（config-server）
-
-### WatchConfig gRPC Stream テスト
+## WatchConfig gRPC Stream テスト
 
 `regions/system/server/rust/config/tests/grpc_stream_test.rs` に外部インテグレーションテストを実装する。
 
@@ -957,6 +981,15 @@ impl Config {
 `change_type` の値: `CREATED`（新規作成）/ `UPDATED`（更新）/ `DELETED`（削除）
 
 ---
+
+## 関連ドキュメント
+
+- [system-config-server.md](server.md) -- 概要・API 定義・アーキテクチャ
+- [system-config-server-implementation.md](implementation.md) -- ディレクトリ構成・Cargo.toml
+- [system-config-server-deploy.md](deploy.md) -- キャッシュ戦略・DB マイグレーション・テスト・Dockerfile・Helm values
+- [config.md](../../cli/config/config設計.md) -- config.yaml スキーマと環境別管理
+- [テンプレート仕様-サーバー.md](../../templates/server/サーバー.md) -- サーバーテンプレート・クリーンアーキテクチャ
+- [コーディング規約.md](../../architecture/conventions/コーディング規約.md) -- Linter・Formatter・命名規則
 
 ## 関連ドキュメント
 

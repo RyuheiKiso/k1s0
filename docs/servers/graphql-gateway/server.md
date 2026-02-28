@@ -1,10 +1,8 @@
 # system-graphql-gateway 設計
 
-system tier の GraphQL BFF ゲートウェイ設計を定義する。複数の gRPC バックエンドサービスを単一の GraphQL スキーマに集約する。Apollo Federation 仕様に準拠し、クライアント（React / Flutter）から必要なフィールドのみ取得できるようにする。Rust（async-graphql）での実装を定義する。
+system tier の GraphQL BFF ゲートウェイ。複数 gRPC バックエンドを単一 GraphQL スキーマに集約する。Rust（async-graphql）実装。
 
 ## 概要
-
-system tier の GraphQL ゲートウェイは以下の機能を提供する。
 
 | 機能 | 説明 |
 | --- | --- |
@@ -61,9 +59,19 @@ system tier の GraphQL ゲートウェイは以下の機能を提供する。
 
 #### POST /graphql
 
-GraphQL クエリおよびミューテーションを受け付ける。リクエストボディは `application/json` 形式の GraphQL リクエストとする。
+GraphQL クエリおよびミューテーションを受け付ける。リクエストボディは `application/json` 形式。
 
-**リクエスト**
+**リクエストフィールド**
+
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `query` | string | Yes | GraphQL クエリ文字列 |
+| `variables` | object | No | クエリ変数 |
+| `operationName` | string | No | 実行するオペレーション名 |
+
+**エラーレスポンス**: GraphQL 仕様に従い HTTP 200 で `errors` フィールドを返却。JWT 欠落・無効時のみ HTTP 401。
+
+**リクエスト例**
 
 ```json
 {
@@ -74,7 +82,7 @@ GraphQL クエリおよびミューテーションを受け付ける。リクエ
 }
 ```
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -89,7 +97,7 @@ GraphQL クエリおよびミューテーションを受け付ける。リクエ
 }
 ```
 
-**レスポンス（200 OK -- エラー）**
+**レスポンス例（200 OK -- エラー）**
 
 GraphQL 仕様に従い、エラー時も HTTP 200 を返し `errors` フィールドにエラー情報を含める。
 
@@ -110,7 +118,7 @@ GraphQL 仕様に従い、エラー時も HTTP 200 を返し `errors` フィー�
 }
 ```
 
-**レスポンス（401 Unauthorized）**
+**レスポンス例（401 Unauthorized）**
 
 JWT が無効または欠落している場合は HTTP 401 を返す（GraphQL レスポンスではなく HTTP エラー）。
 
@@ -126,7 +134,7 @@ JWT が無効または欠落している場合は HTTP 401 を返す（GraphQL �
 
 #### POST /graphql/ws（WebSocket サブスクリプション）
 
-`graphql-ws` プロトコルを使用した WebSocket サブスクリプション。クライアントは接続確立後に `connection_init` メッセージで JWT を送信する。
+`graphql-ws` プロトコルを使用。接続時に `connection_init` メッセージで JWT を送信する。
 
 **接続メッセージ（クライアント送信）**
 
@@ -276,7 +284,9 @@ input SetFeatureFlagInput {
 | `FeatureFlagLoader` | フラグキーリスト | FeatureFlagService.ListFlags |
 | `ConfigLoader` | 設定キーリスト | ConfigService.BatchGetConfigs |
 
-### 依存関係図
+---
+
+## 依存関係図
 
 ```
                     ┌─────────────────────────────────────────────────┐
@@ -325,7 +335,37 @@ input SetFeatureFlagInput {
 
 ---
 
-## 設定ファイル
+## 設定フィールド
+
+### graphql
+
+| フィールド | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `introspection` | bool | `false` | スキーマイントロスペクション有効化（development のみ推奨） |
+| `playground` | bool | `false` | GraphQL Playground 有効化（development のみ推奨） |
+| `max_depth` | int | `10` | クエリネスト深度の上限 |
+| `max_complexity` | int | `1000` | クエリ複雑度の上限 |
+
+### auth
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `jwks_url` | string | JWKS エンドポイント URL |
+
+### backends
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `tenant.address` | string | テナントサービス gRPC エンドポイント |
+| `tenant.timeout_ms` | int | リクエストタイムアウト（ミリ秒） |
+| `featureflag.address` | string | フィーチャーフラグサービス gRPC エンドポイント |
+| `featureflag.timeout_ms` | int | リクエストタイムアウト（ミリ秒） |
+| `config.address` | string | 設定サービス gRPC エンドポイント |
+| `config.timeout_ms` | int | リクエストタイムアウト（ミリ秒） |
+
+---
+
+## 設定ファイル例
 
 ### config.yaml（本番）
 
@@ -360,13 +400,7 @@ backends:
     timeout_ms: 3000
 ```
 
----
-
-## デプロイ
-
 ### Helm values
-
-[helm設計.md](../../infrastructure/kubernetes/helm設計.md) のサーバー用 Helm Chart を使用する。graphql-gateway 固有の values は以下の通り。
 
 ```yaml
 # values-graphql-gateway.yaml（infra/helm/services/system/graphql-gateway/values.yaml）
@@ -393,6 +427,16 @@ autoscaling:
 vault:
   enabled: false
 ```
+
+---
+
+## デプロイ
+
+ポート構成:
+
+| プロトコル | ポート | 説明 |
+| --- | --- | --- |
+| REST / GraphQL (HTTP) | 8080 | GraphQL API + Playground |
 
 ---
 

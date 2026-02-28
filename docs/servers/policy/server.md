@@ -1,6 +1,6 @@
 # system-policy-server 設計
 
-system tier のポリシー評価サーバー設計を定義する。OPA（Open Policy Agent）と連携し、動的 RBAC・アクセス制御ポリシーの評価を提供する。Rego ポリシーを PostgreSQL で管理し、変更時は Kafka `k1s0.system.policy.updated.v1` で通知する。Rust での実装を定義する。
+OPA 連携の動的ポリシー評価サーバー。Rego ポリシー管理・バンドル管理・評価キャッシュを提供。
 
 ## 概要
 
@@ -79,7 +79,7 @@ system tier のポリシー評価サーバーは以下の機能を提供する�
 | `page` | int | No | 1 | ページ番号 |
 | `page_size` | int | No | 20 | 1 ページあたりの件数 |
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -110,7 +110,7 @@ system tier のポリシー評価サーバーは以下の機能を提供する�
 
 ID 指定でポリシーの詳細を取得する。
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -127,7 +127,7 @@ ID 指定でポリシーの詳細を取得する。
 }
 ```
 
-**レスポンス（404 Not Found）**
+**レスポンス例（404 Not Found）**
 
 ```json
 {
@@ -144,7 +144,7 @@ ID 指定でポリシーの詳細を取得する。
 
 新しい Rego ポリシーを作成する。作成時に OPA への同期も行い、Kafka 変更通知を送信する。
 
-**リクエスト**
+**リクエスト例**
 
 ```json
 {
@@ -157,7 +157,7 @@ ID 指定でポリシーの詳細を取得する。
 }
 ```
 
-**レスポンス（201 Created）**
+**レスポンス例（201 Created）**
 
 ```json
 {
@@ -174,7 +174,7 @@ ID 指定でポリシーの詳細を取得する。
 }
 ```
 
-**レスポンス（400 Bad Request）**
+**レスポンス例（400 Bad Request）**
 
 ```json
 {
@@ -194,7 +194,7 @@ ID 指定でポリシーの詳細を取得する。
 
 既存のポリシーを更新する。更新時にバージョンを自動インクリメントし、OPA への同期、Kafka 変更通知を行う。キャッシュは即座に無効化される。
 
-**リクエスト**
+**リクエスト例**
 
 ```json
 {
@@ -204,7 +204,7 @@ ID 指定でポリシーの詳細を取得する。
 }
 ```
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -225,7 +225,7 @@ ID 指定でポリシーの詳細を取得する。
 
 ポリシーを削除する。削除時に OPA からもポリシーを削除し、Kafka 変更通知を送信する。
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -234,7 +234,7 @@ ID 指定でポリシーの詳細を取得する。
 }
 ```
 
-**レスポンス（404 Not Found）**
+**レスポンス例（404 Not Found）**
 
 ```json
 {
@@ -251,7 +251,7 @@ ID 指定でポリシーの詳細を取得する。
 
 指定ポリシーに対して入力データを評価し、allow/deny を返す。評価結果は moka キャッシュに TTL 30 秒で保存される。
 
-**リクエスト**
+**リクエスト例**
 
 ```json
 {
@@ -265,7 +265,7 @@ ID 指定でポリシーの詳細を取得する。
 }
 ```
 
-**レスポンス（200 OK -- 許可）**
+**レスポンス例（200 OK -- 許可）**
 
 ```json
 {
@@ -276,7 +276,7 @@ ID 指定でポリシーの詳細を取得する。
 }
 ```
 
-**レスポンス（200 OK -- 拒否）**
+**レスポンス例（200 OK -- 拒否）**
 
 ```json
 {
@@ -287,7 +287,7 @@ ID 指定でポリシーの詳細を取得する。
 }
 ```
 
-**レスポンス（404 Not Found）**
+**レスポンス例（404 Not Found）**
 
 ```json
 {
@@ -304,7 +304,7 @@ ID 指定でポリシーの詳細を取得する。
 
 登録済みバンドルの一覧を取得する。
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -387,7 +387,14 @@ message Policy {
 
 ポリシーの作成・更新・削除時に以下のメッセージを Kafka トピック `k1s0.system.policy.updated.v1` に送信する。
 
-**メッセージフォーマット**
+| 設定項目 | 値 |
+| --- | --- |
+| トピック | `k1s0.system.policy.updated.v1` |
+| acks | `all` |
+| message.timeout.ms | `5000` |
+| キー | ポリシー ID（例: `policy-001`） |
+
+**メッセージ例**
 
 ```json
 {
@@ -400,13 +407,6 @@ message Policy {
   "actor_user_id": "admin-001"
 }
 ```
-
-| 設定項目 | 値 |
-| --- | --- |
-| トピック | `k1s0.system.policy.updated.v1` |
-| acks | `all` |
-| message.timeout.ms | `5000` |
-| キー | ポリシー ID（例: `policy-001`） |
 
 ---
 
@@ -479,7 +479,44 @@ message Policy {
 | 最大エントリ数 | 50,000 |
 | 無効化トリガー | ポリシー更新・削除時に該当 package_path のエントリを即座に無効化 + Kafka 通知受信時 |
 
-### 依存関係図
+---
+
+## DB スキーマ
+
+PostgreSQL の `policy` スキーマに以下のテーブルを配置する。
+
+```sql
+CREATE SCHEMA IF NOT EXISTS policy;
+
+CREATE TABLE policy.policy_bundles (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name        TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL DEFAULT '',
+    enabled     BOOLEAN NOT NULL DEFAULT true,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE policy.policies (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name         TEXT NOT NULL UNIQUE,
+    description  TEXT NOT NULL DEFAULT '',
+    package_path TEXT NOT NULL UNIQUE,
+    rego_content TEXT NOT NULL,
+    bundle_id    UUID REFERENCES policy.policy_bundles(id) ON DELETE SET NULL,
+    enabled      BOOLEAN NOT NULL DEFAULT true,
+    version      INTEGER NOT NULL DEFAULT 1,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_policies_bundle_id ON policy.policies(bundle_id);
+CREATE INDEX idx_policies_package_path ON policy.policies(package_path);
+```
+
+---
+
+## 依存関係図
 
 ```
                     ┌─────────────────────────────────────────────────┐
@@ -538,42 +575,7 @@ message Policy {
 
 ---
 
-## DB スキーマ
-
-PostgreSQL の `policy` スキーマに以下のテーブルを配置する。
-
-```sql
-CREATE SCHEMA IF NOT EXISTS policy;
-
-CREATE TABLE policy.policy_bundles (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name        TEXT NOT NULL UNIQUE,
-    description TEXT NOT NULL DEFAULT '',
-    enabled     BOOLEAN NOT NULL DEFAULT true,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE policy.policies (
-    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name         TEXT NOT NULL UNIQUE,
-    description  TEXT NOT NULL DEFAULT '',
-    package_path TEXT NOT NULL UNIQUE,
-    rego_content TEXT NOT NULL,
-    bundle_id    UUID REFERENCES policy.policy_bundles(id) ON DELETE SET NULL,
-    enabled      BOOLEAN NOT NULL DEFAULT true,
-    version      INTEGER NOT NULL DEFAULT 1,
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_policies_bundle_id ON policy.policies(bundle_id);
-CREATE INDEX idx_policies_package_path ON policy.policies(package_path);
-```
-
----
-
-## 設定ファイル
+## 設定ファイル例
 
 ### config.yaml（本番）
 
@@ -614,13 +616,7 @@ cache:
   ttl_seconds: 30
 ```
 
----
-
-## デプロイ
-
 ### Helm values
-
-[helm設計.md](../../infrastructure/kubernetes/helm設計.md) のサーバー用 Helm Chart を使用する。policy 固有の values は以下の通り。
 
 ```yaml
 # values-policy.yaml（infra/helm/services/system/policy/values.yaml）
@@ -658,6 +654,10 @@ vault:
       key: "password"
       mountPath: "/vault/secrets/db-password"
 ```
+
+---
+
+## デプロイ
 
 ### Vault シークレットパス
 

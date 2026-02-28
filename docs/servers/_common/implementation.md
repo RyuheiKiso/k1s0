@@ -1,6 +1,6 @@
 # system-server 実装設計
 
-system-server（認証サーバー）の Rust 実装詳細を定義する。概要・API 定義・アーキテクチャは [system-server.md](../auth/server.md) を参照。
+system-server（認証サーバー）の Rust 実装仕様。概要・API 定義・アーキテクチャは [system-server.md](../auth/server.md) を参照。
 
 ---
 
@@ -102,7 +102,9 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 
 ### src/main.rs
 
-> 起動シーケンスは [Rust共通実装.md](../_common/Rust共通実装.md#共通mainrs) を参照。以下はサービス固有の DI:
+> 起動シーケンスは [Rust共通実装.md](../_common/Rust共通実装.md#共通mainrs) を参照。
+
+共通起動シーケンスの後に、認証サーバー固有の依存注入を行う。
 
 ```rust
     // --- DI ---
@@ -236,7 +238,25 @@ pub trait AuditLogRepository: Send + Sync {
 }
 ```
 
-### ユースケース（Rust）
+### ユースケース構造体（Rust）
+
+```rust
+// src/usecase/validate_token.rs
+pub struct ValidateTokenUseCase {
+    verifier: Arc<JwksVerifier>,
+    jwt_config: JwtConfig,
+}
+
+impl ValidateTokenUseCase {
+    pub fn new(verifier: Arc<JwksVerifier>, jwt_config: JwtConfig) -> Self {
+        Self { verifier, jwt_config }
+    }
+
+    pub async fn execute(&self, token: &str) -> Result<TokenClaims, AuthError>;
+}
+```
+
+issuer・audience の追加検証を含むトークン検証の実装例:
 
 ```rust
 // src/usecase/validate_token.rs
@@ -274,7 +294,22 @@ impl ValidateTokenUseCase {
 }
 ```
 
-### REST ハンドラー（Rust）
+### REST ルーティング（Rust）
+
+| パス | メソッド | 認可 | ハンドラー |
+|------|---------|------|-----------|
+| `/healthz` | GET | なし | `healthz` |
+| `/readyz` | GET | なし | `readyz` |
+| `/metrics` | GET | なし | `metrics` |
+| `/api/v1/auth/token/validate` | POST | なし | `validate_token` |
+| `/api/v1/auth/token/introspect` | POST | `read:auth_config` | `introspect_token` |
+| `/api/v1/users` | GET | `read:users` | `list_users` |
+| `/api/v1/users/:id` | GET | `read:users` | `get_user` |
+| `/api/v1/users/:id/roles` | GET | `read:users` | `get_user_roles` |
+| `/api/v1/audit/logs` | POST | `write:audit_logs` | `record_audit_log` |
+| `/api/v1/audit/logs` | GET | `read:audit_logs` | `search_audit_logs` |
+
+ルーティング定義とハンドラー実装の全体像。各ハンドラーはユースケースを呼び出し、`ErrorResponse` でエラーを変換する。
 
 ```rust
 // src/adapter/handler/rest_handler.rs
@@ -390,7 +425,20 @@ async fn get_user(
 // ... 他のハンドラーも同様のパターンで実装
 ```
 
-### gRPC ハンドラー（Rust）
+### gRPC サービス定義（Rust）
+
+```rust
+// src/adapter/handler/grpc_handler.rs
+pub struct AuthServiceImpl {
+    validate_token_uc: Arc<ValidateTokenUseCase>,
+    get_user_uc: Arc<GetUserUseCase>,
+    list_users_uc: Arc<ListUsersUseCase>,
+    get_user_roles_uc: Arc<GetUserRolesUseCase>,
+    check_permission_uc: Arc<CheckPermissionUseCase>,
+}
+```
+
+tonic を使った gRPC サービス実装。各 RPC メソッドはユースケースに委譲する。
 
 ```rust
 // src/adapter/handler/grpc_handler.rs
@@ -494,7 +542,21 @@ impl AuthService for AuthServiceImpl {
 }
 ```
 
-### Keycloak クライアント（Rust）
+### Keycloak クライアント定義（Rust）
+
+```rust
+// src/adapter/gateway/keycloak_client.rs
+pub struct KeycloakClient {
+    base_url: String,
+    realm: String,
+    client_id: String,
+    client_secret: String,
+    http_client: reqwest::Client,
+    admin_token: Arc<RwLock<Option<CachedToken>>>,
+}
+```
+
+Admin API トークンのキャッシュ付き取得と、ユーザー情報取得の実装:
 
 ```rust
 // src/adapter/gateway/keycloak_client.rs
@@ -586,9 +648,7 @@ impl KeycloakClient {
 
 ## config.yaml
 
-[config.md](../../cli/config/config設計.md) のスキーマを拡張した認証サーバー固有の設定。
-
-> 共通セクション（app/server/database/kafka/observability）は [Rust共通実装.md](../_common/Rust共通実装.md#共通configyaml) を参照。サービス固有セクション:
+認証サーバー固有の設定セクション。共通セクション（app/server/database/kafka/observability）は [Rust共通実装.md](../_common/Rust共通実装.md#共通configyaml) を参照。
 
 ```yaml
 auth:
@@ -620,13 +680,10 @@ auth_server:
     token_cache_ttl: "5m"    # Admin API トークンのキャッシュ TTL
 ```
 
-### 設定の読み込み実装
+### 設定構造体
 
 ```rust
 // src/infrastructure/config/mod.rs
-use serde::Deserialize;
-use std::fs;
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub app: AppConfig,
@@ -671,7 +728,12 @@ pub struct AuditServerConfig {
 pub struct KeycloakAdminConfig {
     pub token_cache_ttl: String,
 }
+```
 
+`Config::load()` で YAML ファイルを読み込み、`validate()` で必須フィールドを検証する。
+
+```rust
+// src/infrastructure/config/mod.rs（実装部分）
 impl Config {
     pub fn load(path: &str) -> anyhow::Result<Self> {
         let content = fs::read_to_string(path)?;

@@ -46,8 +46,6 @@ User ──(has)──▶ Role ──(grants)──▶ Permission ──(on)─�
 
 ### パーミッションマトリクス（D-005）
 
-以下に Tier ごとのロール x リソース x パーミッションの具体的なマトリクスを定義する。
-
 #### system Tier パーミッションマトリクス
 
 | ロール           | users | auth_config | audit_logs | api_gateway | vault_secrets | monitoring |
@@ -84,11 +82,14 @@ User ──(has)──▶ Role ──(grants)──▶ Permission ──(on)─�
 
 #### `tier_access` Claim の検証
 
-`tier_access` Claim はユーザーがアクセス可能な Tier の一覧を定義する。二重検証により防御を多層化する。
+二重検証により防御を多層化する。
+
+| 検証レイヤー           | 実装箇所                | 目的                             |
+| ---------------------- | ----------------------- | -------------------------------- |
+| Mesh レベル            | Istio AuthorizationPolicy | インフラレベルでの一次防御       |
+| アプリケーションレベル | 各サービスのミドルウェア  | アプリケーションレベルでの二次防御 |
 
 **Mesh レベル検証（Istio AuthorizationPolicy）**
-
-Istio の AuthorizationPolicy で JWT Claims の `tier_access` を検証し、Mesh レベルで不正アクセスを遮断する。
 
 ```yaml
 apiVersion: security.istio.io/v1
@@ -106,18 +107,11 @@ spec:
 
 **アプリケーションレベル検証（ミドルウェア）**
 
-各サービスのミドルウェアでも `tier_access` を二重検証する。Istio の検証をバイパスされた場合の防御層として機能する。
-
 検証ロジック:
 1. JWT の `tier_access` 配列を取得する
 2. リクエスト先サービスが所属する Tier を特定する（サービス設定で定義）
 3. サービスの Tier が `tier_access` 配列に含まれるかチェックする
 4. 含まれていない場合は `403 Forbidden` を返却する
-
-| 検証レイヤー           | 実装箇所                | 目的                             |
-| ---------------------- | ----------------------- | -------------------------------- |
-| Mesh レベル            | Istio AuthorizationPolicy | インフラレベルでの一次防御       |
-| アプリケーションレベル | 各サービスのミドルウェア  | アプリケーションレベルでの二次防御 |
 
 #### 新規サービス追加時のルール
 
@@ -131,7 +125,7 @@ spec:
 
 ### `has_permission` パーミッション解決ロジック
 
-パーミッション解決は **JWT Claims ベースの静的解決** を基本とし、DB ルックアップを不要とすることで低レイテンシの認可判定を実現する。
+JWT Claims ベースの静的解決によりDB ルックアップ不要で低レイテンシの認可判定を実現する。
 
 #### 解決フロー
 
@@ -152,11 +146,45 @@ spec:
 | 更新方式           | TTL 満了後のリクエスト時にバックグラウンドで再フェッチ |
 | フォールバック     | キャッシュ更新失敗時は既存キャッシュを継続使用         |
 
+### ミドルウェアシグネチャ
+
+**Go**
+
+```go
+func RequirePermission(permission, resource string) func(http.Handler) http.Handler
+```
+
+**Rust**
+
+```rust
+pub async fn require_permission(
+    permission: &str,
+    resource: &str,
+    req: Request,
+    next: Next,
+) -> Result<Response, ErrorResponse>
+```
+
+---
+
+## パーミッション解決の設計背景
+
+パーミッション解決は **JWT Claims ベースの静的解決** を基本とし、DB ルックアップを不要とすることで低レイテンシの認可判定を実現する。
+
 - **インメモリ判定**: パーミッション判定は毎回 DB ルックアップを行わず、メモリ上のロール → パーミッション変換テーブルで即座に解決する
 - **JWT Claims 信頼**: Kong で JWT 署名検証済みであることを前提とし、Claims 内のロール情報を信頼する
 - **Keycloak Admin API**: 起動時および 5 分間隔で `GET /admin/realms/k1s0/roles` と各ロールのコンポジットロール情報を取得し、変換テーブルを構築する
 
-### Go ミドルウェア実装例
+## `tier_access` Claim の設計背景
+
+`tier_access` Claim はユーザーがアクセス可能な Tier の一覧を定義する。二重検証により防御を多層化する。
+
+- **Mesh レベル（Istio AuthorizationPolicy）**: Istio の AuthorizationPolicy で JWT Claims の `tier_access` を検証し、Mesh レベルで不正アクセスを遮断する
+- **アプリケーションレベル（ミドルウェア）**: 各サービスのミドルウェアでも `tier_access` を二重検証する。Istio の検証をバイパスされた場合の防御層として機能する
+
+---
+
+## Go ミドルウェア実装例
 
 ```go
 // internal/adapter/middleware/rbac.go
@@ -197,7 +225,7 @@ mux.Handle("DELETE /api/v1/orders/{id}",
     RequirePermission("delete", "orders")(orderHandler.Delete))
 ```
 
-### Rust ミドルウェア実装例
+## Rust ミドルウェア実装例
 
 ```rust
 // src/adapter/middleware/rbac.rs

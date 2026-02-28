@@ -1,10 +1,8 @@
 # system-master-maintenance-server 設計
 
-system tier のメタデータ駆動型マスタメンテナンスサーバー設計を定義する。tier2(business)/tier3(service) の開発者がアプリ・サービスごとにマスタメンテナンス画面を個別構築する必要をなくし、テーブル定義・カラム定義・整合性ルールをマスタデータとして登録するだけで、エンドユーザー向け CRUD 画面を自動生成する。Rust バックエンド + React フロントエンドでの実装を定義する。
+メタデータ駆動型マスタメンテナンスサーバー。テーブル定義・カラム定義・整合性ルール登録のみで CRUD 画面を自動生成する。
 
 ## 概要
-
-system tier のマスタメンテナンスサーバーは以下の機能を提供する。
 
 | 機能 | 説明 |
 | --- | --- |
@@ -14,29 +12,6 @@ system tier のマスタメンテナンスサーバーは以下の機能を提�
 | 監査証跡 | 全変更を before/after JSONB 形式で自動記録 |
 | 一括操作 | CSV/Excel によるインポート・エクスポート |
 | テーブル単位 RBAC | テーブル・カラム単位のアクセス制御 |
-
-### 設計思想：メタデータ駆動アーキテクチャ
-
-本システムは **Metadata-Driven Architecture** を採用する。すべての画面・フォーム・バリデーション・ビジネスルールをメタデータ（テーブルデータ）として定義し、ランタイムエンジンが動的に解釈・実行する。
-
-**従来のアプローチとの比較：**
-
-| 項目 | 従来（テーブルごとに個別実装） | 本システム（メタデータ駆動） |
-| --- | --- | --- |
-| 新規テーブル追加 | API・画面・バリデーションを個別開発 | メタデータ登録のみ（コード変更なし） |
-| 整合性ルール変更 | コード修正 → テスト → デプロイ | ルールテーブルを UPDATE（即時反映） |
-| 開発コスト | テーブル数に比例して増加 | 一定（メタデータ登録コストのみ） |
-| 一貫性 | 開発者による差異が発生 | 全テーブルで統一された UX |
-
-### 取り入れた最新事例・技術
-
-| 技術 / 事例 | 活用箇所 | 参照 |
-| --- | --- | --- |
-| **Refine** (React meta-framework) | フロントエンド CRUD UI 自動生成 | [refine.dev](https://refine.dev/) |
-| **ZEN Engine** (gorules.io) | Rust ネイティブ ビジネスルールエンジン | [gorules.io](https://gorules.io/) |
-| **JSON Schema** | 動的フォーム定義の標準フォーマット | [json-schema.org](https://json-schema.org/) |
-| **Evolutility** | モデル駆動 CRUD ビューの設計パターン | [GitHub](https://github.com/evoluteur/evolutility-ui-react) |
-| **Rules Engine Pattern** | ルール自体をテーブルで管理するパターン | [Medium](https://medium.com/@herihermawan/the-ultimate-multifunctional-database-table-design-rules-engine-pattern-d55460f048c4) |
 
 ### 技術スタック
 
@@ -930,7 +905,81 @@ regions/system/server/rust/master-maintenance/
 └── README.md
 ```
 
-### 動的 SQL 生成の安全性
+---
+
+## 設定フィールド
+
+| カテゴリ | フィールド | 説明 |
+| --- | --- | --- |
+| server | `rest_port` / `grpc_port` / `environment` | REST 8110 / gRPC 9090 |
+| database | `host` / `port` / `name` / `schema` / `max_connections` | PostgreSQL `master_maintenance` スキーマ |
+| kafka | `brokers` / `topic` | `k1s0.system.mastermaintenance.data_changed.v1` |
+| auth | `jwks_url` / `issuer` / `audience` | JWT 認証設定 |
+| rule_engine | `max_rules_per_table` / `evaluation_timeout_ms` / `cache_ttl_seconds` | ルールエンジン設定 |
+| import | `max_file_size_mb` / `max_rows_per_import` / `batch_size` | インポート制限 |
+
+---
+
+## デプロイ
+
+[system-server-deploy.md](../_common/deploy.md) に従い Helm Chart でデプロイする。
+
+| パラメータ | 値 |
+| --- | --- |
+| replicas | 2 |
+| resources.requests.cpu / memory | 200m / 256Mi |
+| resources.limits.cpu / memory | 500m / 512Mi |
+| readinessProbe.path | /readyz |
+| livenessProbe.path | /healthz |
+
+### Docker Compose (開発環境)
+
+```yaml
+master-maintenance-server:
+  build:
+    context: ./regions/system/server/rust/master-maintenance
+    dockerfile: Dockerfile
+  ports:
+    - "8110:8110"
+    - "9098:9090"
+  environment:
+    - DATABASE_URL=postgresql://k1s0:k1s0@postgres:5432/k1s0
+    - KAFKA_BROKERS=kafka:9092
+    - AUTH_JWKS_URL=http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs
+  depends_on:
+    - postgres
+    - kafka
+    - keycloak
+```
+
+---
+
+## 設計思想：メタデータ駆動アーキテクチャ
+
+本システムは **Metadata-Driven Architecture** を採用する。すべての画面・フォーム・バリデーション・ビジネスルールをメタデータ（テーブルデータ）として定義し、ランタイムエンジンが動的に解釈・実行する。
+
+**従来のアプローチとの比較：**
+
+| 項目 | 従来（テーブルごとに個別実装） | 本システム（メタデータ駆動） |
+| --- | --- | --- |
+| 新規テーブル追加 | API・画面・バリデーションを個別開発 | メタデータ登録のみ（コード変更なし） |
+| 整合性ルール変更 | コード修正 → テスト → デプロイ | ルールテーブルを UPDATE（即時反映） |
+| 開発コスト | テーブル数に比例して増加 | 一定（メタデータ登録コストのみ） |
+| 一貫性 | 開発者による差異が発生 | 全テーブルで統一された UX |
+
+### 取り入れた最新事例・技術
+
+| 技術 / 事例 | 活用箇所 | 参照 |
+| --- | --- | --- |
+| **Refine** (React meta-framework) | フロントエンド CRUD UI 自動生成 | refine.dev |
+| **ZEN Engine** (gorules.io) | Rust ネイティブ ビジネスルールエンジン | gorules.io |
+| **JSON Schema** | 動的フォーム定義の標準フォーマット | json-schema.org |
+| **Evolutility** | モデル駆動 CRUD ビューの設計パターン | GitHub |
+| **Rules Engine Pattern** | ルール自体をテーブルで管理するパターン | Medium |
+
+---
+
+## 動的 SQL 生成の安全性
 
 メタデータから SQL を動的に生成する際、**SQL インジェクション防止**のために以下の制約を適用する。
 
@@ -1016,7 +1065,9 @@ impl DynamicQueryBuilder {
 }
 ```
 
-### Cargo.toml
+---
+
+## Cargo.toml
 
 ```toml
 [package]
@@ -1103,72 +1154,6 @@ tower = { version = "0.5", features = ["util"] }
 ### コンポーネント構成
 
 <img src="diagrams/master-maintenance-react-components.svg" width="1400" />
-
-### ディレクトリ構成
-
-```
-regions/system/client/react/master-maintenance/
-├── src/
-│   ├── App.tsx                          # Refine Provider 設定
-│   ├── main.tsx                         # エントリポイント
-│   ├── providers/
-│   │   ├── auth-provider.ts             # Keycloak/JWT 認証
-│   │   ├── data-provider.ts             # GraphQL DataProvider
-│   │   └── access-control-provider.ts   # テーブル単位 RBAC
-│   ├── pages/
-│   │   ├── tables/
-│   │   │   └── TableListPage.tsx        # テーブル一覧
-│   │   ├── records/
-│   │   │   ├── RecordListPage.tsx       # レコード一覧（動的 DataGrid）
-│   │   │   ├── RecordFormPage.tsx       # レコード作成/編集（動的フォーム）
-│   │   │   └── RecordDetailPage.tsx     # レコード詳細
-│   │   ├── consistency/
-│   │   │   └── ConsistencyDashboardPage.tsx  # 整合性チェックダッシュボード
-│   │   ├── import-export/
-│   │   │   └── ImportExportPage.tsx     # インポート・エクスポート
-│   │   └── audit/
-│   │       └── AuditLogPage.tsx         # 変更履歴
-│   ├── components/
-│   │   ├── dynamic-grid/
-│   │   │   ├── DynamicDataGrid.tsx      # メタデータ駆動 DataGrid
-│   │   │   ├── FilterBar.tsx            # 動的フィルタ
-│   │   │   ├── SortableColumns.tsx      # ソート可能カラム
-│   │   │   └── InlineEdit.tsx           # インラインエディット
-│   │   ├── dynamic-form/
-│   │   │   ├── DynamicForm.tsx          # メタデータ駆動フォーム
-│   │   │   ├── FieldRenderer.tsx        # カラム型→フォームコンポーネント解決
-│   │   │   ├── SelectWithLookup.tsx     # FK ルックアップ付き Select
-│   │   │   ├── JSONEditor.tsx           # JSONB エディタ
-│   │   │   └── ValidationDisplay.tsx    # ルール結果表示
-│   │   ├── relationship/
-│   │   │   ├── RelationshipNavigator.tsx
-│   │   │   ├── RelatedRecordPanel.tsx
-│   │   │   └── RelationshipGraph.tsx
-│   │   ├── consistency/
-│   │   │   ├── RuleEditor.tsx           # ルール作成/編集
-│   │   │   ├── RuleExecutor.tsx         # ルール手動実行
-│   │   │   └── ResultViewer.tsx         # チェック結果表示
-│   │   └── bulk/
-│   │       ├── CSVImporter.tsx          # CSV アップロード + プレビュー
-│   │       ├── ExcelExporter.tsx        # Excel エクスポート
-│   │       └── BatchEditor.tsx          # バッチ編集
-│   ├── hooks/
-│   │   ├── useTableMetadata.ts          # テーブル/カラム定義取得
-│   │   ├── useConsistencyRules.ts       # ルール取得・評価
-│   │   ├── useDynamicCRUD.ts            # 汎用 CRUD 操作
-│   │   └── useFieldRenderer.ts          # フィールド型解決
-│   ├── utils/
-│   │   ├── schema-generator.ts          # JSON Schema → Ant Design Form 変換
-│   │   └── filter-builder.ts            # フィルタクエリ構築
-│   └── types/
-│       ├── table.ts                     # テーブル定義型
-│       ├── column.ts                    # カラム定義型
-│       └── rule.ts                      # ルール型
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── Dockerfile
-```
 
 ### 動的フォーム生成の仕組み
 
@@ -1457,13 +1442,11 @@ curl -X POST http://localhost:8110/api/v1/rules \
   }'
 ```
 
-→ **以上で完了**。React 画面でエンドユーザーが部門マスタの CRUD 操作を開始できる。
+以上で完了。React 画面でエンドユーザーが部門マスタの CRUD 操作を開始できる。
 
 ### 整合性ルール定義パターン集
 
 #### パターン 1: クロステーブル参照整合性
-
-「社員テーブルの department_id が部門テーブルに存在すること」
 
 ```json
 {
@@ -1482,8 +1465,6 @@ curl -X POST http://localhost:8110/api/v1/rules \
 ```
 
 #### パターン 2: 範囲チェック
-
-「単価は 0 以上 999,999 以下」
 
 ```json
 {
@@ -1508,8 +1489,6 @@ curl -X POST http://localhost:8110/api/v1/rules \
 
 #### パターン 3: 条件付きユニーク
 
-「同一部門内で役職名がユニーク」
-
 ```json
 {
   "name": "unique_position_per_dept",
@@ -1532,8 +1511,6 @@ curl -X POST http://localhost:8110/api/v1/rules \
 ```
 
 #### パターン 4: ZEN Engine カスタムルール
-
-「売上目標に対する人員配置の妥当性チェック」
 
 ```json
 {
@@ -1572,87 +1549,3 @@ curl -X POST http://localhost:8110/api/v1/rules \
   }
 }
 ```
-
----
-
-## 設定ファイル
-
-### config.yaml
-
-```yaml
-server:
-  rest_port: 8110
-  grpc_port: 9090
-  environment: development
-
-database:
-  host: localhost
-  port: 5432
-  name: k1s0
-  schema: master_maintenance
-  username: ${DB_USERNAME}
-  password: ${DB_PASSWORD}
-  max_connections: 20
-  min_connections: 5
-
-kafka:
-  brokers:
-    - localhost:9092
-  topic: k1s0.system.mastermaintenance.data_changed.v1
-  producer:
-    acks: all
-    retries: 3
-
-auth:
-  jwks_url: http://localhost:8080/realms/k1s0/protocol/openid-connect/certs
-  issuer: http://localhost:8080/realms/k1s0
-  audience: k1s0-api
-
-rule_engine:
-  max_rules_per_table: 100
-  evaluation_timeout_ms: 5000
-  cache_ttl_seconds: 300
-
-import:
-  max_file_size_mb: 50
-  max_rows_per_import: 100000
-  batch_size: 1000
-```
-
----
-
-## デプロイ
-
-### Docker Compose (開発環境)
-
-```yaml
-master-maintenance-server:
-  build:
-    context: ./regions/system/server/rust/master-maintenance
-    dockerfile: Dockerfile
-  ports:
-    - "8110:8110"
-    - "9098:9090"
-  environment:
-    - DATABASE_URL=postgresql://k1s0:k1s0@postgres:5432/k1s0
-    - KAFKA_BROKERS=kafka:9092
-    - AUTH_JWKS_URL=http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs
-  depends_on:
-    - postgres
-    - kafka
-    - keycloak
-```
-
-### Kubernetes (本番環境)
-
-[system-server-deploy.md](../_common/deploy.md) に従い、以下の Helm Values を使用する。
-
-| パラメータ | 値 |
-| --- | --- |
-| replicas | 2 |
-| resources.requests.cpu | 200m |
-| resources.requests.memory | 256Mi |
-| resources.limits.cpu | 500m |
-| resources.limits.memory | 512Mi |
-| readinessProbe.path | /readyz |
-| livenessProbe.path | /healthz |

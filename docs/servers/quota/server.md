@@ -1,6 +1,6 @@
 # system-quota-server 設計
 
-system tier のAPIクォータ管理サーバー設計を定義する。テナント・ユーザー・APIキーごとの日次/月次クォータを管理し、Redis を活用した低レイテンシな使用量照会と超過検知を提供する。Kafka トピック `k1s0.system.quota.exceeded.v1` で超過イベントを発行する。Rust での実装を定義する。
+テナント・ユーザー・APIキーごとの日次/月次クォータ管理サーバー。Redis 低レイテンシカウンター・超過検知を提供。
 
 ## 概要
 
@@ -80,7 +80,7 @@ system tier のAPIクォータ管理サーバーは以下の機能を提供す�
 | `page` | int | No | 1 | ページ番号 |
 | `page_size` | int | No | 20 | 1 ページあたりの件数 |
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -110,7 +110,7 @@ system tier のAPIクォータ管理サーバーは以下の機能を提供す�
 
 新しいクォータポリシーを作成する。`subject_type` は `tenant` / `user` / `api_key` のいずれかを指定する。`period` は `daily` / `monthly` のいずれかを指定する。
 
-**リクエスト**
+**リクエスト例**
 
 ```json
 {
@@ -124,7 +124,7 @@ system tier のAPIクォータ管理サーバーは以下の機能を提供す�
 }
 ```
 
-**レスポンス（201 Created）**
+**レスポンス例（201 Created）**
 
 ```json
 {
@@ -141,7 +141,7 @@ system tier のAPIクォータ管理サーバーは以下の機能を提供す�
 }
 ```
 
-**レスポンス（400 Bad Request）**
+**レスポンス例（400 Bad Request）**
 
 ```json
 {
@@ -161,7 +161,7 @@ system tier のAPIクォータ管理サーバーは以下の機能を提供す�
 
 指定クォータポリシーの現在の使用量を照会する。Redis から低レイテンシで取得し、残量・使用率を返す。
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -181,7 +181,7 @@ system tier のAPIクォータ管理サーバーは以下の機能を提供す�
 }
 ```
 
-**レスポンス（404 Not Found）**
+**レスポンス例（404 Not Found）**
 
 ```json
 {
@@ -198,7 +198,7 @@ system tier のAPIクォータ管理サーバーは以下の機能を提供す�
 
 使用量をアトミックに加算する。加算後に超過判定を行い、閾値超過時は Kafka イベントを発行する。
 
-**リクエスト**
+**リクエスト例**
 
 ```json
 {
@@ -207,7 +207,7 @@ system tier のAPIクォータ管理サーバーは以下の機能を提供す�
 }
 ```
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -220,7 +220,7 @@ system tier のAPIクォータ管理サーバーは以下の機能を提供す�
 }
 ```
 
-**レスポンス（429 Too Many Requests）**
+**レスポンス例（429 Too Many Requests）**
 
 ```json
 {
@@ -240,7 +240,7 @@ system tier のAPIクォータ管理サーバーは以下の機能を提供す�
 
 使用量を手動でリセットする。`sys_admin` のみ実行可能。リセット理由の記録が必須。
 
-**リクエスト**
+**リクエスト例**
 
 ```json
 {
@@ -248,7 +248,7 @@ system tier のAPIクォータ管理サーバーは以下の機能を提供す�
 }
 ```
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -329,7 +329,13 @@ message QuotaUsage {
 
 クォータ超過を検知した際に `k1s0.system.quota.exceeded.v1` トピックへ発行する。notification-server はこのイベントを Consumer して管理者への通知を行う。
 
-**メッセージフォーマット**
+| 設定項目 | 値 |
+| --- | --- |
+| トピック | `k1s0.system.quota.exceeded.v1` |
+| キー | quota_id |
+| パーティション戦略 | subject_id によるハッシュ分散 |
+
+**メッセージ例**
 
 ```json
 {
@@ -345,17 +351,11 @@ message QuotaUsage {
 }
 ```
 
-| 設定項目 | 値 |
-| --- | --- |
-| トピック | `k1s0.system.quota.exceeded.v1` |
-| キー | quota_id |
-| パーティション戦略 | subject_id によるハッシュ分散 |
-
 ### アラート閾値通知イベント
 
-使用率が `alert_threshold_percent` に達した時点でも通知イベントを発行する（超過前の早期警告）。
+使用率が `alert_threshold_percent` に達した時点でも通知イベントを発行する（超過前の早期警告）。トピック: `k1s0.system.quota.threshold.reached.v1`。
 
-**メッセージフォーマット**
+**メッセージ例**
 
 ```json
 {
@@ -426,7 +426,9 @@ message QuotaUsage {
 | `period_end` | DateTime\<Utc\> | 集計期間の終了日時 |
 | `reset_at` | DateTime\<Utc\> | 次回リセット日時 |
 
-### 依存関係図
+---
+
+## 依存関係図
 
 ```
                     ┌─────────────────────────────────────────────────┐
@@ -484,7 +486,7 @@ message QuotaUsage {
 
 ---
 
-## 設定ファイル
+## 設定ファイル例
 
 ### config.yaml（本番）
 
@@ -528,13 +530,7 @@ quota:
     monthly: "0 0 1 * *"
 ```
 
----
-
-## デプロイ
-
 ### Helm values
-
-[helm設計.md](../../infrastructure/kubernetes/helm設計.md) のサーバー用 Helm Chart を使用する。quota 固有の values は以下の通り。
 
 ```yaml
 # values-quota.yaml（infra/helm/services/system/quota/values.yaml）
@@ -575,6 +571,10 @@ vault:
       key: "password"
       mountPath: "/vault/secrets/redis-password"
 ```
+
+---
+
+## デプロイ
 
 ### Vault シークレットパス
 

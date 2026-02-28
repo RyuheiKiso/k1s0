@@ -121,23 +121,6 @@ saga-server では proto ファイル未存在時や protoc 未インストー�
 
 ### SagaState エンティティ
 
-```rust
-// src/domain/entity/saga_state.rs
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SagaState {
-    pub saga_id: Uuid,
-    pub workflow_name: String,
-    pub current_step: i32,
-    pub status: SagaStatus,
-    pub payload: serde_json::Value,
-    pub correlation_id: Option<String>,
-    pub initiated_by: Option<String>,
-    pub error_message: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-```
-
 | フィールド | 型 | 説明 |
 |---------|---|-----|
 | `saga_id` | `Uuid` | Saga の一意識別子（v4 自動生成） |
@@ -163,7 +146,37 @@ pub struct SagaState {
 | `cancel()` | status を CANCELLED に遷移（終端状態） |
 | `is_terminal()` | COMPLETED / FAILED / CANCELLED かどうかを返す |
 
+**実装コード:**
+
+```rust
+// src/domain/entity/saga_state.rs
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SagaState {
+    pub saga_id: Uuid,
+    pub workflow_name: String,
+    pub current_step: i32,
+    pub status: SagaStatus,
+    pub payload: serde_json::Value,
+    pub correlation_id: Option<String>,
+    pub initiated_by: Option<String>,
+    pub error_message: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+```
+
 ### SagaStatus 列挙型
+
+| ステータス | 説明 | 終端 |
+|-----------|-----|------|
+| `Started` | Saga 作成直後の初期状態 | No |
+| `Running` | ステップ実行中 | No |
+| `Completed` | 全ステップ正常完了 | Yes |
+| `Compensating` | ステップ失敗により補償処理実行中 | No |
+| `Failed` | 補償処理完了後の失敗状態 | Yes |
+| `Cancelled` | ユーザーキャンセル | Yes |
+
+**実装コード:**
 
 ```rust
 // src/domain/entity/saga_state.rs
@@ -179,36 +192,9 @@ pub enum SagaStatus {
 }
 ```
 
-| ステータス | 説明 | 終端 |
-|-----------|-----|------|
-| `Started` | Saga 作成直後の初期状態 | No |
-| `Running` | ステップ実行中 | No |
-| `Completed` | 全ステップ正常完了 | Yes |
-| `Compensating` | ステップ失敗により補償処理実行中 | No |
-| `Failed` | 補償処理完了後の失敗状態 | Yes |
-| `Cancelled` | ユーザーキャンセル | Yes |
-
 `Display` トレイトで SCREAMING_SNAKE_CASE 文字列に変換する。`from_str_value` で文字列からの逆変換を提供する。
 
 ### SagaStepLog エンティティ
-
-```rust
-// src/domain/entity/saga_step_log.rs
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SagaStepLog {
-    pub id: Uuid,
-    pub saga_id: Uuid,
-    pub step_index: i32,
-    pub step_name: String,
-    pub action: StepAction,
-    pub status: StepStatus,
-    pub request_payload: Option<serde_json::Value>,
-    pub response_payload: Option<serde_json::Value>,
-    pub error_message: Option<String>,
-    pub started_at: DateTime<Utc>,
-    pub completed_at: Option<DateTime<Utc>>,
-}
-```
 
 | フィールド | 型 | 説明 |
 |---------|---|-----|
@@ -234,6 +220,26 @@ pub struct SagaStepLog {
 | `mark_failed(error)` | status=FAILED、error_message / completed_at を設定 |
 | `mark_timeout()` | status=TIMEOUT、error_message="step timed out" を設定 |
 
+**実装コード:**
+
+```rust
+// src/domain/entity/saga_step_log.rs
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SagaStepLog {
+    pub id: Uuid,
+    pub saga_id: Uuid,
+    pub step_index: i32,
+    pub step_name: String,
+    pub action: StepAction,
+    pub status: StepStatus,
+    pub request_payload: Option<serde_json::Value>,
+    pub response_payload: Option<serde_json::Value>,
+    pub error_message: Option<String>,
+    pub started_at: DateTime<Utc>,
+    pub completed_at: Option<DateTime<Utc>>,
+}
+```
+
 **StepAction 列挙型:**
 
 | 値 | 説明 |
@@ -251,6 +257,22 @@ pub struct SagaStepLog {
 | `Skipped` | スキップ（補償メソッド未定義時等） |
 
 ### WorkflowDefinition / WorkflowStep
+
+**WorkflowDefinition メソッド:**
+
+| メソッド | 説明 |
+|---------|-----|
+| `from_yaml(content)` | YAML 文字列からワークフロー定義を解析・検証 |
+| `validate()` | name 非空・steps 1件以上・各 step の name/service/method 非空を検証 |
+| `timeout_duration(step_idx)` | 指定ステップのタイムアウト `Duration` を返す |
+
+**RetryConfig メソッド:**
+
+| メソッド | 説明 |
+|---------|-----|
+| `delay_for_attempt(attempt)` | `initial_interval_ms * 2^attempt` でバックオフ遅延を計算 |
+
+**実装コード:**
 
 ```rust
 // src/domain/entity/workflow.rs
@@ -278,25 +300,33 @@ pub struct RetryConfig {
 }
 ```
 
-**WorkflowDefinition メソッド:**
-
-| メソッド | 説明 |
-|---------|-----|
-| `from_yaml(content)` | YAML 文字列からワークフロー定義を解析・検証 |
-| `validate()` | name 非空・steps 1件以上・各 step の name/service/method 非空を検証 |
-| `timeout_duration(step_idx)` | 指定ステップのタイムアウト `Duration` を返す |
-
-**RetryConfig メソッド:**
-
-| メソッド | 説明 |
-|---------|-----|
-| `delay_for_attempt(attempt)` | `initial_interval_ms * 2^attempt` でバックオフ遅延を計算 |
-
 ---
 
 ## リポジトリトレイト
 
 ### SagaRepository
+
+`SagaListParams` はフィルタリング用のパラメータ構造体:
+
+| フィールド | 型 | 説明 |
+|---------|---|-----|
+| `workflow_name` | `Option<String>` | ワークフロー名フィルタ |
+| `status` | `Option<SagaStatus>` | ステータスフィルタ |
+| `correlation_id` | `Option<String>` | 相関 ID フィルタ |
+| `page` | `i32` | ページ番号 |
+| `page_size` | `i32` | 1 ページあたりの件数 |
+
+| メソッド | 説明 |
+|---------|-----|
+| `create(state)` | SagaState を新規作成する |
+| `update_with_step_log(state, log)` | Saga 状態とステップログを原子的に更新する |
+| `update_status(saga_id, status, error_message)` | ステータスのみ更新する |
+| `find_by_id(saga_id)` | ID で SagaState を取得する |
+| `find_step_logs(saga_id)` | Saga に紐づくステップログを取得する |
+| `list(params)` | フィルタ・ページネーション付き一覧取得 |
+| `find_incomplete()` | 未完了 Saga を検索する（リカバリ用） |
+
+**トレイト定義コード:**
 
 ```rust
 // src/domain/repository/saga_repository.rs
@@ -313,17 +343,15 @@ pub trait SagaRepository: Send + Sync {
 }
 ```
 
-`SagaListParams` はフィルタリング用のパラメータ構造体:
-
-| フィールド | 型 | 説明 |
-|---------|---|-----|
-| `workflow_name` | `Option<String>` | ワークフロー名フィルタ |
-| `status` | `Option<SagaStatus>` | ステータスフィルタ |
-| `correlation_id` | `Option<String>` | 相関 ID フィルタ |
-| `page` | `i32` | ページ番号 |
-| `page_size` | `i32` | 1 ページあたりの件数 |
-
 ### WorkflowRepository
+
+| メソッド | 説明 |
+|---------|-----|
+| `register(workflow)` | ワークフロー定義を登録する |
+| `get(name)` | 名前でワークフローを取得する |
+| `list()` | 全ワークフロー一覧を取得する |
+
+**トレイト定義コード:**
 
 ```rust
 // src/domain/repository/workflow_repository.rs
@@ -393,6 +421,15 @@ pub trait WorkflowRepository: Send + Sync {
 
 ### SagaError
 
+| バリアント | HTTP Status | エラーコード |
+|-----------|-------------|------------|
+| `NotFound` | 404 | `SYS_SAGA_NOT_FOUND` |
+| `Validation` | 400 | `SYS_SAGA_VALIDATION_ERROR` |
+| `Conflict` | 409 | `SYS_SAGA_CONFLICT` |
+| `Internal` | 500 | `SYS_SAGA_INTERNAL_ERROR` |
+
+**実装コード:**
+
 ```rust
 // src/adapter/handler/error.rs
 #[derive(Debug, thiserror::Error)]
@@ -408,13 +445,6 @@ pub enum SagaError {
 }
 ```
 
-| バリアント | HTTP Status | エラーコード |
-|-----------|-------------|------------|
-| `NotFound` | 404 | `SYS_SAGA_NOT_FOUND` |
-| `Validation` | 400 | `SYS_SAGA_VALIDATION_ERROR` |
-| `Conflict` | 409 | `SYS_SAGA_CONFLICT` |
-| `Internal` | 500 | `SYS_SAGA_INTERNAL_ERROR` |
-
 `IntoResponse` トレイトを実装し、`ErrorResponse` 構造体（`code`, `message`, `request_id`, `details`）で統一エラーレスポンスを返す。
 
 ---
@@ -423,8 +453,8 @@ pub enum SagaError {
 
 `build.rs` で `api/proto/k1s0/system/saga/v1/saga.proto` を tonic-build でコンパイルする。proto ファイルが存在しない場合やprotoc が利用不可の場合はスキップし、手動型定義で代替する。
 
-- `adapter/grpc/saga_grpc.rs` — `SagaGrpcService` 構造体がユースケースを受け取り gRPC リクエストを処理する
-- `adapter/grpc/tonic_service.rs` — `SagaServiceTonic` ラッパーで tonic サーバーに登録する
+- `adapter/grpc/saga_grpc.rs` -- `SagaGrpcService` 構造体がユースケースを受け取り gRPC リクエストを処理する
+- `adapter/grpc/tonic_service.rs` -- `SagaServiceTonic` ラッパーで tonic サーバーに登録する
 
 gRPC ポートは 50051 を使用する（REST の 8080 と並行起動）。
 
@@ -433,6 +463,17 @@ gRPC ポートは 50051 を使用する（REST の 8080 と並行起動）。
 ## インフラストラクチャ
 
 ### Config
+
+| 設定ブロック | 主要フィールド | 説明 |
+|------------|-------------|-----|
+| `app` | `name`, `version`, `environment` | アプリケーション識別情報 |
+| `server` | `host`(default: "0.0.0.0"), `port`(default: 8080) | HTTP サーバー |
+| `database` | `host`, `port`, `name`, `user`, `password`, `ssl_mode`, `max_open_conns` | PostgreSQL 接続（Optional） |
+| `kafka` | `brokers`, `consumer_group`, `security_protocol`, `sasl`, `topics` | Kafka 接続（Optional） |
+| `services` | `{service-name: {host, port}}` | gRPC サービスエンドポイント |
+| `saga` | `max_concurrent`(default: 100), `workflow_dir`(default: "workflows") | Saga 固有設定 |
+
+**実装コード:**
 
 ```rust
 // src/infrastructure/config.rs
@@ -447,18 +488,9 @@ pub struct Config {
 }
 ```
 
-| 設定ブロック | 主要フィールド | 説明 |
-|------------|-------------|-----|
-| `app` | `name`, `version`, `environment` | アプリケーション識別情報 |
-| `server` | `host`(default: "0.0.0.0"), `port`(default: 8080) | HTTP サーバー |
-| `database` | `host`, `port`, `name`, `user`, `password`, `ssl_mode`, `max_open_conns` | PostgreSQL 接続（Optional） |
-| `kafka` | `brokers`, `consumer_group`, `security_protocol`, `sasl`, `topics` | Kafka 接続（Optional） |
-| `services` | `{service-name: {host, port}}` | gRPC サービスエンドポイント |
-| `saga` | `max_concurrent`(default: 100), `workflow_dir`(default: "workflows") | Saga 固有設定 |
+### config.yaml サービス固有セクション例
 
-### config.yaml（本番設定）
-
-> 共通セクション（app/server/database/kafka）は [Rust共通実装.md](../_common/Rust共通実装.md#共通configyaml) を参照。サービス固有セクション:
+> 共通セクション（app/server/database/kafka）は [Rust共通実装.md](../_common/Rust共通実装.md#共通configyaml) を参照。
 
 ```yaml
 services:
@@ -499,18 +531,18 @@ pub struct DatabaseConfig {
 
 ### WorkflowLoader
 
+| メソッド | 説明 |
+|---------|-----|
+| `new(workflow_dir)` | ワークフローディレクトリを指定してローダーを作成 |
+| `load_all()` | ディレクトリ内の全 `.yaml` / `.yml` ファイルを読み込み、`WorkflowDefinition` リストを返す。ディレクトリ未存在時は空リストを返す（エラーにしない）。無効な YAML はスキップしてログ出力する |
+| `load_file(path)` | 指定ファイルを読み込み、`WorkflowDefinition` を返す |
+
 ```rust
 // src/infrastructure/workflow_loader.rs
 pub struct WorkflowLoader {
     workflow_dir: PathBuf,
 }
 ```
-
-| メソッド | 説明 |
-|---------|-----|
-| `new(workflow_dir)` | ワークフローディレクトリを指定してローダーを作成 |
-| `load_all()` | ディレクトリ内の全 `.yaml` / `.yml` ファイルを読み込み、`WorkflowDefinition` リストを返す。ディレクトリ未存在時は空リストを返す（エラーにしない）。無効な YAML はスキップしてログ出力する |
-| `load_file(path)` | 指定ファイルを読み込み、`WorkflowDefinition` を返す |
 
 ### ServiceRegistry
 
@@ -539,6 +571,12 @@ pub struct TonicGrpcCaller {
 
 ### KafkaProducer（SagaEventPublisher 実装）
 
+| メソッド | 説明 |
+|---------|-----|
+| `new(config)` | rdkafka `FutureProducer` を作成。SASL 認証設定にも対応 |
+| `publish_saga_event(saga_id, event_type, payload)` | イベントを JSON シリアライズして Kafka トピックに発行。saga_id をキーとして使用 |
+| `close()` | プロデューサーをフラッシュして終了 |
+
 ```rust
 // src/infrastructure/kafka_producer.rs
 pub struct KafkaProducer {
@@ -547,13 +585,7 @@ pub struct KafkaProducer {
 }
 ```
 
-| メソッド | 説明 |
-|---------|-----|
-| `new(config)` | rdkafka `FutureProducer` を作成。SASL 認証設定にも対応 |
-| `publish_saga_event(saga_id, event_type, payload)` | イベントを JSON シリアライズして Kafka トピックに発行。saga_id をキーとして使用 |
-| `close()` | プロデューサーをフラッシュして終了 |
-
-Saga の状態遷移時に以下のイベントを `k1s0.system.saga.events.v1` トピックに発行する:
+Kafka イベント一覧:
 
 | イベント | 発行タイミング |
 |---------|-------------|
@@ -586,16 +618,6 @@ Saga の状態遷移時に以下のイベントを `k1s0.system.saga.events.v1` 
 
 ---
 
-## 特記事項
-
-- **RecoverSagasUseCase**: 起動時に `find_incomplete()` で STARTED / RUNNING / COMPENSATING 状態の Saga を自動検出し、`ExecuteSagaUseCase` で再開する。リカバリされた件数をログに出力する
-- **YAMLワークフローローダー**: `WorkflowLoader` が `workflows/` ディレクトリから `.yaml` / `.yml` ファイルを読み込み、`InMemoryWorkflowRepository` に登録する。無効な YAML ファイルはスキップして他のファイルのロードを継続する
-- **gRPCステップ実行レジストリ**: `ServiceRegistry` が `config.yaml` の `services` セクションからサービス名→エンドポイントの静的マッピングを提供する。`TonicGrpcCaller` がチャネルプーリング付きで動的 gRPC 呼び出しを行う
-- **InMemoryリポジトリ**: `DATABASE_URL` 未設定時のdev/test用に `main.rs` に `InMemorySagaRepository` を実装済み。`RwLock<Vec<SagaState>>` と `RwLock<Vec<SagaStepLog>>` で状態を管理する
-- **Kafka オプショナル**: Kafka 未設定時やプロデューサー作成失敗時もサーバーは起動する（イベントは発行されない）
-
----
-
 ## テスト構成
 
 ### ユニットテスト
@@ -624,13 +646,23 @@ Saga の状態遷移時に以下のイベントを `k1s0.system.saga.events.v1` 
 | `postgres_repository_test.rs` | PostgreSQL | DB 操作の検証（`#[ignore]`） |
 | `kafka_integration_test.rs` | Kafka | イベント発行の検証（`#[ignore]`） |
 
-`integration_test.rs` の補償フロー関連テストケース:
+### 統合テスト補償フローテストケース
 
 | テスト名 | 内容 |
 |---------|------|
 | `test_get_compensating_saga_returns_compensating_status` | COMPENSATING 状態の Saga を取得すると status=COMPENSATING が返る |
 | `test_get_failed_saga_returns_error_message` | FAILED 状態の Saga には error_message が含まれる |
 | `test_get_saga_step_logs_include_compensate_action` | 補償後のステップログに EXECUTE と COMPENSATE の両アクションが記録される |
+
+---
+
+## 特記事項
+
+- **RecoverSagasUseCase**: 起動時に `find_incomplete()` で STARTED / RUNNING / COMPENSATING 状態の Saga を自動検出し、`ExecuteSagaUseCase` で再開する。リカバリされた件数をログに出力する
+- **YAMLワークフローローダー**: `WorkflowLoader` が `workflows/` ディレクトリから `.yaml` / `.yml` ファイルを読み込み、`InMemoryWorkflowRepository` に登録する。無効な YAML ファイルはスキップして他のファイルのロードを継続する
+- **gRPCステップ実行レジストリ**: `ServiceRegistry` が `config.yaml` の `services` セクションからサービス名→エンドポイントの静的マッピングを提供する。`TonicGrpcCaller` がチャネルプーリング付きで動的 gRPC 呼び出しを行う
+- **InMemoryリポジトリ**: `DATABASE_URL` 未設定時のdev/test用に `main.rs` に `InMemorySagaRepository` を実装済み。`RwLock<Vec<SagaState>>` と `RwLock<Vec<SagaStepLog>>` で状態を管理する
+- **Kafka オプショナル**: Kafka 未設定時やプロデューサー作成失敗時もサーバーは起動する（イベントは発行されない）
 
 ---
 

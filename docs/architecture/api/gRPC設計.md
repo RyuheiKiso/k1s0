@@ -10,8 +10,6 @@ D-009 サービス定義パターン、D-010 バージョニングを定義す�
 
 ### proto パッケージ命名
 
-gRPC の proto ファイルは以下の命名規則に従う。
-
 ```
 k1s0.{tier}.{domain}.v{major}
 ```
@@ -29,19 +27,11 @@ proto ファイルは以下の2つのレベルで管理する。
 
 #### プロジェクトルートの共有定義
 
-プロジェクトルート `api/proto/` には、サービス間で共有されるプロトコル定義を配置する。
-
 | パス | 用途 |
 | --- | --- |
 | `api/proto/k1s0/system/common/v1/` | 共有プロトコル定義（共通の message 型、共通の enum、Pagination 等） |
 | `api/proto/k1s0/event/` | イベント定義（メッセージング設計.md 参照） |
 | `api/proto/buf.yaml` | buf 設定（lint・breaking change 検出） |
-
-各サービスは共有定義を import して参照する。
-
-#### サービス内の固有定義
-
-各サービス内の `api/proto/` には、そのサービス固有の gRPC サービス定義を配置する。サービス固有の Request / Response メッセージ型やサービス定義はここに格納し、他サービスからは直接参照しない。
 
 #### 配置ルールまとめ
 
@@ -88,8 +78,6 @@ api/proto/
 ```
 
 ### 共通型定義
-
-全 Tier で共有する型を `k1s0.system.common.v1` に定義する。
 
 ```protobuf
 // k1s0/system/common/v1/types.proto
@@ -174,56 +162,6 @@ message ListOrdersResponse {
 | `INTERNAL`            | 内部エラー                         | 500       |
 | `UNAVAILABLE`         | サービス利用不可                   | 503       |
 
-### Go Interceptor 実装例
-
-```go
-// internal/infra/grpc/interceptor.go
-
-func UnaryErrorInterceptor() grpc.UnaryServerInterceptor {
-    return func(
-        ctx context.Context,
-        req interface{},
-        info *grpc.UnaryServerInfo,
-        handler grpc.UnaryHandler,
-    ) (interface{}, error) {
-        resp, err := handler(ctx, req)
-        if err != nil {
-            // ドメインエラーを gRPC ステータスに変換
-            if domainErr, ok := err.(*domain.Error); ok {
-                st := status.New(mapToGRPCCode(domainErr.Code), domainErr.Message)
-                st, _ = st.WithDetails(&errdetails.ErrorInfo{
-                    Reason: domainErr.Code,
-                    Domain: "k1s0",
-                })
-                return nil, st.Err()
-            }
-            return nil, status.Error(codes.Internal, "internal error")
-        }
-        return resp, nil
-    }
-}
-```
-
-### Rust Interceptor 実装例
-
-```rust
-// src/infra/grpc/interceptor.rs
-
-use tonic::{Request, Status};
-
-pub fn auth_interceptor(req: Request<()>) -> Result<Request<()>, Status> {
-    let token = req.metadata().get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .ok_or_else(|| Status::unauthenticated("missing authorization token"))?;
-
-    // JWT 検証ロジック
-    validate_token(token)
-        .map_err(|e| Status::unauthenticated(format!("invalid token: {}", e)))?;
-
-    Ok(req)
-}
-```
-
 ### Buf による管理
 
 proto ファイルの lint・破壊的変更検出には [Buf](https://buf.build/) を使用する。
@@ -261,11 +199,13 @@ plugins:
 
 ### パッケージレベルバージョニング
 
-gRPC のバージョニングは **proto パッケージ名にメジャーバージョンを含める** 方式を採用する。
-
 ```
 k1s0.service.order.v1  →  k1s0.service.order.v2
 ```
+
+### パッケージレベルバージョニングの背景
+
+gRPC のバージョニングは **proto パッケージ名にメジャーバージョンを含める** 方式を採用する。
 
 バージョンアップ時は新しいパッケージディレクトリを作成し、旧バージョンと並行運用する。
 
@@ -278,8 +218,6 @@ api/proto/k1s0/service/order/
 ```
 
 ### 後方互換性ルール
-
-proto ファイルの変更時は以下のルールに従う。
 
 #### 後方互換（バージョンアップ不要）
 
@@ -297,8 +235,6 @@ proto ファイルの変更時は以下のルールに従う。
 
 ### buf breaking による CI 検出
 
-CI パイプラインで `buf breaking` を実行し、意図しない破壊的変更を検出する。
-
 ```yaml
 # .github/workflows/ci.yaml（proto 関連の抜粋）
 jobs:
@@ -313,7 +249,57 @@ jobs:
         run: buf breaking api/proto --against '.git#branch=main'
 ```
 
-破壊的変更が検出された場合は CI が失敗し、意図的な変更であれば新しいバージョンパッケージとして作成する。
+---
+
+## Go Interceptor 実装例
+
+```go
+// internal/infra/grpc/interceptor.go
+
+func UnaryErrorInterceptor() grpc.UnaryServerInterceptor {
+    return func(
+        ctx context.Context,
+        req interface{},
+        info *grpc.UnaryServerInfo,
+        handler grpc.UnaryHandler,
+    ) (interface{}, error) {
+        resp, err := handler(ctx, req)
+        if err != nil {
+            // ドメインエラーを gRPC ステータスに変換
+            if domainErr, ok := err.(*domain.Error); ok {
+                st := status.New(mapToGRPCCode(domainErr.Code), domainErr.Message)
+                st, _ = st.WithDetails(&errdetails.ErrorInfo{
+                    Reason: domainErr.Code,
+                    Domain: "k1s0",
+                })
+                return nil, st.Err()
+            }
+            return nil, status.Error(codes.Internal, "internal error")
+        }
+        return resp, nil
+    }
+}
+```
+
+## Rust Interceptor 実装例
+
+```rust
+// src/infra/grpc/interceptor.rs
+
+use tonic::{Request, Status};
+
+pub fn auth_interceptor(req: Request<()>) -> Result<Request<()>, Status> {
+    let token = req.metadata().get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| Status::unauthenticated("missing authorization token"))?;
+
+    // JWT 検証ロジック
+    validate_token(token)
+        .map_err(|e| Status::unauthenticated(format!("invalid token: {}", e)))?;
+
+    Ok(req)
+}
+```
 
 ---
 

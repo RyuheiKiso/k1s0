@@ -41,7 +41,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_resource
     ON auth.audit_logs (resource, resource_id) WHERE resource IS NOT NULL;
 ```
 
-> **注意**: パーティショニングテーブルの PRIMARY KEY は `(id, created_at)` の複合キーである。PostgreSQL のパーティショニングではパーティションキー（`created_at`）を PRIMARY KEY に含める必要がある。また `user_id` は `TEXT` 型（FK なし）、`ip_address` は `TEXT` 型（INET ではなく IPv4/IPv6 文字列を柔軟に格納）。
+> **注意**: パーティショニングテーブルの PRIMARY KEY は `(id, created_at)` の複合キー。PostgreSQL のパーティショニングではパーティションキー（`created_at`）を PRIMARY KEY に含める必要がある。`user_id` は `TEXT` 型（FK なし）、`ip_address` は `TEXT` 型（INET ではなく IPv4/IPv6 文字列を柔軟に格納）。
 
 ---
 
@@ -58,7 +58,9 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_resource
 | infrastructure/persistence | 統合テスト（DB） | `testcontainers` |
 | infrastructure/auth | 単体テスト | `tokio::test` |
 
-### テスト例
+### ユースケース単体テスト（mockall）
+
+`ValidateTokenUseCase` の成功・失敗パターンをモックで検証する。
 
 ```rust
 // src/usecase/validate_token.rs
@@ -126,6 +128,8 @@ mod tests {
 ```
 
 ### testcontainers による DB 統合テスト
+
+`AuditLogRepositoryImpl` の create / search を実 PostgreSQL で検証する。
 
 ```rust
 // src/infrastructure/persistence/audit_log_repository_test.rs

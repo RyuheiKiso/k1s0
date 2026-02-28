@@ -1,6 +1,6 @@
 # system-search-server 設計
 
-system tier の全文検索サーバー設計を定義する。OpenSearch と連携し、全 Tier のサービスからインデックス書き込み・全文検索クエリを集約する。Kafka トピック `k1s0.system.search.index.requested.v1` でインデックス要求を受け付ける。Rust での実装を定義する。
+OpenSearch 連携の全文検索サーバー。インデックス管理・全文検索クエリ・Kafka 非同期インデックスを提供。
 
 ## 概要
 
@@ -65,7 +65,7 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 新しいインデックスを作成する。`mapping` フィールドで任意の JSON マッピング定義を指定可能（省略時はデフォルト空オブジェクト）。
 
-**リクエスト**
+**リクエスト例**
 
 ```json
 {
@@ -80,7 +80,7 @@ system tier の全文検索サーバーは以下の機能を提供する。
 }
 ```
 
-**レスポンス（201 Created）**
+**レスポンス例（201 Created）**
 
 ```json
 {
@@ -91,7 +91,7 @@ system tier の全文検索サーバーは以下の機能を提供する。
 }
 ```
 
-**レスポンス（409 Conflict）**
+**レスポンス例（409 Conflict）**
 
 ```json
 {
@@ -103,7 +103,7 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 登録済みインデックスの一覧を取得する。
 
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -122,7 +122,7 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 ドキュメントをインデックスに登録する。`index_name` はリクエストボディで指定する。
 
-**リクエスト**
+**リクエスト例**
 
 ```json
 {
@@ -137,7 +137,7 @@ system tier の全文検索サーバーは以下の機能を提供する。
 }
 ```
 
-**レスポンス（201 Created）**
+**レスポンス例（201 Created）**
 
 ```json
 {
@@ -147,7 +147,7 @@ system tier の全文検索サーバーは以下の機能を提供する。
 }
 ```
 
-**レスポンス（404 Not Found）**
+**レスポンス例（404 Not Found）**
 
 ```json
 {
@@ -159,7 +159,14 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 指定されたクエリで全文検索を実行する。`index_name` でインデックスを指定し、`from` / `size` でページネーション制御する。
 
-**リクエスト**
+| フィールド | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `index_name` | String | （必須） | 検索対象インデックス名 |
+| `query` | String | （必須） | 検索キーワード |
+| `from` | u32 | 0 | オフセット（スキップ件数） |
+| `size` | u32 | 10 | 取得件数 |
+
+**リクエスト例**
 
 ```json
 {
@@ -170,14 +177,7 @@ system tier の全文検索サーバーは以下の機能を提供する。
 }
 ```
 
-| フィールド | 型 | デフォルト | 説明 |
-| --- | --- | --- | --- |
-| `index_name` | String | （必須） | 検索対象インデックス名 |
-| `query` | String | （必須） | 検索キーワード |
-| `from` | u32 | 0 | オフセット（スキップ件数） |
-| `size` | u32 | 10 | 取得件数 |
-
-**レスポンス（200 OK）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -197,7 +197,7 @@ system tier の全文検索サーバーは以下の機能を提供する。
 }
 ```
 
-**レスポンス（404 Not Found）**
+**レスポンス例（404 Not Found）**
 
 ```json
 {
@@ -207,13 +207,9 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 #### DELETE /api/v1/search/index/:index_name/:id
 
-指定インデックスから特定ドキュメントを削除する。
+指定インデックスから特定ドキュメントを削除する。成功時は 204 No Content（レスポンスボディなし）。
 
-**レスポンス（204 No Content）**
-
-レスポンスボディなし。
-
-**レスポンス（404 Not Found）**
+**レスポンス例（404 Not Found）**
 
 ```json
 {
@@ -297,7 +293,15 @@ message DeleteDocumentResponse {
 
 Kafka トピック `k1s0.system.search.index.requested.v1` を Consumer し、以下のフォーマットのメッセージを非同期でインデックス登録する。
 
-**メッセージフォーマット**
+| 設定項目 | 値 |
+| --- | --- |
+| トピック | `k1s0.system.search.index.requested.v1` |
+| Consumer グループ | `search-server-consumer` |
+| auto.offset.reset | `earliest` |
+| max.poll.records | `100` |
+| キー | インデックス名（例: `k1s0-products`） |
+
+**メッセージ例**
 
 ```json
 {
@@ -315,14 +319,6 @@ Kafka トピック `k1s0.system.search.index.requested.v1` を Consumer し、�
   "actor_service": "product-service"
 }
 ```
-
-| 設定項目 | 値 |
-| --- | --- |
-| トピック | `k1s0.system.search.index.requested.v1` |
-| Consumer グループ | `search-server-consumer` |
-| auto.offset.reset | `earliest` |
-| max.poll.records | `100` |
-| キー | インデックス名（例: `k1s0-products`） |
 
 ---
 
@@ -382,7 +378,9 @@ Kafka トピック `k1s0.system.search.index.requested.v1` を Consumer し、�
 | `total` | u64 | ヒット件数 |
 | `hits` | Vec\<SearchDocument\> | 検索結果ドキュメント一覧 |
 
-### 依存関係図
+---
+
+## 依存関係図
 
 ```
                     ┌─────────────────────────────────────────────────┐
@@ -426,7 +424,7 @@ Kafka トピック `k1s0.system.search.index.requested.v1` を Consumer し、�
 
 ---
 
-## 設定ファイル
+## 設定ファイル例
 
 ### config.yaml（本番）
 
@@ -459,13 +457,7 @@ cache:
   ttl_seconds: 30
 ```
 
----
-
-## デプロイ
-
 ### Helm values
-
-[helm設計.md](../../infrastructure/kubernetes/helm設計.md) のサーバー用 Helm Chart を使用する。search 固有の values は以下の通り。
 
 ```yaml
 # values-search.yaml（infra/helm/services/system/search/values.yaml）
@@ -503,6 +495,10 @@ vault:
       key: "password"
       mountPath: "/vault/secrets/opensearch-password"
 ```
+
+---
+
+## デプロイ
 
 ### Vault シークレットパス
 

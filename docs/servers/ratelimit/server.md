@@ -1,7 +1,6 @@
 # system-ratelimit-server 設計
 
-system tier のレートリミットサーバー設計を定義する。Redis トークンバケット実装により、サービス単位・ユーザー単位・エンドポイント単位のレート制限判定を提供する。API ゲートウェイ（Kong）と協調して動作し、内部サービス間の呼び出し保護にも利用する。
-Rust での実装を定義する。
+Redis トークンバケットによるレート制限判定サーバー。Kong 連携・内部サービス間保護を提供。
 
 ## 概要
 
@@ -416,6 +415,14 @@ message ResetLimitResponse {
 
 ## トークンバケット実装
 
+### キー設計
+
+| スコープ | キーフォーマット | 例 |
+| --- | --- | --- |
+| service | `ratelimit:service:{service_name}:{window}` | `ratelimit:service:order-service:60` |
+| user | `ratelimit:user:{user_id}:{window}` | `ratelimit:user:user-001:60` |
+| endpoint | `ratelimit:endpoint:{path}:{window}` | `ratelimit:endpoint:/api/v1/orders:60` |
+
 ### Redis Lua スクリプト
 
 レート制限判定はアトミック性を保証するため、Redis Lua スクリプトで実装する。
@@ -461,13 +468,15 @@ else
 end
 ```
 
-### キー設計
+### ルールマッチングフロー
 
-| スコープ | キーフォーマット | 例 |
-| --- | --- | --- |
-| service | `ratelimit:service:{service_name}:{window}` | `ratelimit:service:order-service:60` |
-| user | `ratelimit:user:{user_id}:{window}` | `ratelimit:user:user-001:60` |
-| endpoint | `ratelimit:endpoint:{path}:{window}` | `ratelimit:endpoint:/api/v1/orders:60` |
+リクエストに対するルール検索は以下の優先順位で行う。
+
+```
+1. scope + identifier の完全一致ルール
+2. scope + ワイルドカード（*）ルール
+3. ルールなし → デフォルトルール（設定ファイルで定義）
+```
 
 ### フェイルオープン動作
 
@@ -535,15 +544,39 @@ Redis が利用不能な場合のフォールバック動作。
 
 ### ルールマッチング
 
-リクエストに対するルール検索は以下の優先順位で行う。
+リクエストに対するルール検索の優先順位: (1) scope + identifier 完全一致 → (2) scope + ワイルドカード(`*`) → (3) デフォルトルール。
+
+---
+
+## Kong 連携
+
+### レスポンスヘッダー
+
+Kong プラグインは ratelimit-server のレスポンスに基づいて以下のヘッダーを付与する。
+
+| ヘッダー | 値 | 説明 |
+| --- | --- | --- |
+| `X-RateLimit-Limit` | `100` | ウィンドウあたりの最大リクエスト数 |
+| `X-RateLimit-Remaining` | `95` | 残余リクエスト数 |
+| `X-RateLimit-Reset` | `1740052260` | リセット時刻（Unix timestamp） |
+| `Retry-After` | `45` | 429 レスポンス時のみ、リトライまでの秒数 |
+
+### Kong プラグイン連携フロー
+
+API ゲートウェイ（Kong）のカスタムプラグインから gRPC で `CheckRateLimit` を呼び出すことで、リクエストのレート制限を実現する。
 
 ```
-1. scope + identifier の完全一致ルール
-2. scope + ワイルドカード（*）ルール
-3. ルールなし → デフォルトルール（設定ファイルで定義）
+1. クライアントが Kong にリクエスト送信
+2. Kong のレート制限プラグインが ratelimit-server に gRPC 呼び出し
+3. ratelimit-server が Redis でトークンバケットをチェック
+4. CheckRateLimitResponse を Kong に返却
+5. allowed=true: Kong がリクエストを上流サービスに転送
+   allowed=false: Kong が 429 Too Many Requests を返却
 ```
 
-### 依存関係図
+---
+
+## 依存関係図
 
 ```
                     ┌─────────────────────────────────────────────────┐
@@ -600,35 +633,7 @@ Redis が利用不能な場合のフォールバック動作。
 
 ---
 
-## Kong 連携
-
-### Kong プラグイン連携フロー
-
-API ゲートウェイ（Kong）のカスタムプラグインから gRPC で `CheckRateLimit` を呼び出すことで、リクエストのレート制限を実現する。
-
-```
-1. クライアントが Kong にリクエスト送信
-2. Kong のレート制限プラグインが ratelimit-server に gRPC 呼び出し
-3. ratelimit-server が Redis でトークンバケットをチェック
-4. CheckRateLimitResponse を Kong に返却
-5. allowed=true: Kong がリクエストを上流サービスに転送
-   allowed=false: Kong が 429 Too Many Requests を返却
-```
-
-### レスポンスヘッダー
-
-Kong プラグインは ratelimit-server のレスポンスに基づいて以下のヘッダーを付与する。
-
-| ヘッダー | 値 | 説明 |
-| --- | --- | --- |
-| `X-RateLimit-Limit` | `100` | ウィンドウあたりの最大リクエスト数 |
-| `X-RateLimit-Remaining` | `95` | 残余リクエスト数 |
-| `X-RateLimit-Reset` | `1740052260` | リセット時刻（Unix timestamp） |
-| `Retry-After` | `45` | 429 レスポンス時のみ、リトライまでの秒数 |
-
----
-
-## 設定ファイル
+## 設定ファイル例
 
 ### config.yaml（本番）
 
@@ -665,13 +670,7 @@ ratelimit:
   default_window_seconds: 60
 ```
 
----
-
-## デプロイ
-
 ### Helm values
-
-[helm設計.md](../../infrastructure/kubernetes/helm設計.md) のサーバー用 Helm Chart を使用する。ratelimit 固有の values は以下の通り。
 
 ```yaml
 # values-ratelimit.yaml（infra/helm/services/system/ratelimit/values.yaml）
@@ -712,6 +711,10 @@ vault:
       key: "password"
       mountPath: "/vault/secrets/redis-password"
 ```
+
+---
+
+## デプロイ
 
 ### Vault シークレットパス
 
