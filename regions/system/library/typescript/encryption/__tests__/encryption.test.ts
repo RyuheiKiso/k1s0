@@ -5,6 +5,9 @@ import {
   decrypt,
   hashPassword,
   verifyPassword,
+  generateRsaKeyPair,
+  rsaEncrypt,
+  rsaDecrypt,
 } from '../src/index.js';
 
 describe('generateKey', () => {
@@ -59,5 +62,22 @@ describe('hashPassword / verifyPassword', () => {
     const h1 = await hashPassword('test');
     const h2 = await hashPassword('test');
     expect(h1).not.toBe(h2);
+  });
+});
+
+describe('RSA encryption', () => {
+  it('暗号化と復号が可逆である', () => {
+    const { publicKey, privateKey } = generateRsaKeyPair();
+    const plaintext = Buffer.from('hello RSA-OAEP');
+    const ciphertext = rsaEncrypt(publicKey, plaintext);
+    const decrypted = rsaDecrypt(privateKey, ciphertext);
+    expect(decrypted.toString()).toBe('hello RSA-OAEP');
+  });
+
+  it('異なるキーでは復号に失敗する', () => {
+    const { publicKey } = generateRsaKeyPair();
+    const { privateKey: wrongPriv } = generateRsaKeyPair();
+    const ciphertext = rsaEncrypt(publicKey, Buffer.from('secret'));
+    expect(() => rsaDecrypt(wrongPriv, ciphertext)).toThrow();
   });
 });

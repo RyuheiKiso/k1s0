@@ -8,4 +8,10 @@ pub enum EncryptionError {
     DecryptFailed(String),
     #[error("hash failed: {0}")]
     HashFailed(String),
+    #[error("RSA key generation failed: {0}")]
+    RsaKeyGenerationFailed(String),
+    #[error("RSA encrypt failed: {0}")]
+    RsaEncryptFailed(String),
+    #[error("RSA decrypt failed: {0}")]
+    RsaDecryptFailed(String),
 }

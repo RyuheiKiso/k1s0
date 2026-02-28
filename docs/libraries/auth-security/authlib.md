@@ -6,7 +6,7 @@
 
 | 関数 | シグネチャ | 説明 |
 |------|-----------|------|
-| NewJWKSVerifier | `(jwksURL, cacheTTL) -> Verifier` | JWKS 検証器を生成 |
+| NewJWKSVerifier | `(jwksURL, issuer, audience, cacheTTL) -> Verifier` | JWKS 検証器を生成 |
 | VerifyToken | `(tokenString) -> Claims, Error` | JWT トークンを検証 |
 | CheckPermission | `(claims, resource, action) -> bool` | RBAC 権限チェック |
 | AuthMiddleware | `(verifier) -> Middleware` | HTTP/gRPC 認証ミドルウェア |
@@ -15,8 +15,9 @@
 
 | 関数 | シグネチャ | 説明 |
 |------|-----------|------|
-| createAuthClient | `(config) -> AuthClient` | OAuth2 PKCE クライアント生成 |
-| login | `() -> TokenSet` | 認証フロー開始 |
+| new AuthClient | `(options: AuthClientOptions) -> AuthClient` | OAuth2 PKCE クライアント生成（`AuthClientOptions` は `config`, `tokenStore?`, `fetch?` 等を含む） |
+| login | `() -> void` | 認証フロー開始（認可サーバーへリダイレクト） |
+| handleCallback | `(code, state) -> TokenSet` | 認可コードを受け取りトークンを取得 |
 | logout | `() -> void` | ログアウト |
 | getAccessToken | `() -> string` | アクセストークン取得（自動リフレッシュ） |
 | isAuthenticated | `() -> bool` | 認証状態確認 |
@@ -702,6 +703,32 @@ class AuthError implements Exception {
   String toString() => 'AuthError: $message';
 }
 ```
+
+## デバイスフロー API（全言語）
+
+CLI ツール等のブラウザを持たないクライアント向けに OAuth2 Device Authorization Grant Flow を提供する。
+
+| 型・関数 | シグネチャ | 説明 |
+|---------|-----------|------|
+| DeviceAuthClient | `constructor(deviceEndpoint, tokenEndpoint)` | デバイスフロークライアント生成 |
+| DeviceCodeResponse | `{ deviceCode, userCode, verificationUri, expiresIn, interval }` | デバイスコードレスポンス |
+| TokenResult | `{ accessToken, refreshToken, tokenType, expiresIn }` | トークン取得結果 |
+| DeviceFlowError | エラー型（ExpiredToken, AccessDenied 等） | デバイスフローエラー |
+| requestDeviceCode | `(clientId, scope?) -> DeviceCodeResponse` | デバイスコードを要求 |
+| pollToken | `(clientId, deviceCode, interval) -> TokenResult` | トークンをポーリング取得 |
+| deviceFlow | `(clientId, scope?, onUserCode) -> TokenResult` | デバイスフロー完全実行 |
+
+## クライアント補助 API（TypeScript / Dart）
+
+PKCE フローと TokenStore の実装詳細。
+
+| 型・関数 | 説明 |
+|---------|------|
+| TokenStore | トークン永続化インターフェース（`getTokenSet`, `setTokenSet`, `clearTokenSet`, `getState`, `setState` 等） |
+| MemoryTokenStore | メモリ内 TokenStore 実装（テスト・SPA 向け） |
+| LocalStorageTokenStore | localStorage ベースの TokenStore 実装（TypeScript） |
+| generateCodeVerifier | PKCE コードベリファイア生成 |
+| generateCodeChallenge | PKCE コードチャレンジ生成（SHA-256 ハッシュ） |
 
 ## 関連ドキュメント
 
