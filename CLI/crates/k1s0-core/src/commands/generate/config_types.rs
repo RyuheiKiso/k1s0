@@ -9,22 +9,20 @@ pub fn generate_typescript_types(schema: &ConfigSchemaYaml) -> String {
          // k1s0 generate config-types で再生成できます。\n\n",
     );
 
-    // ConfigKeys const
+    // ConfigKeys const — カテゴリ別 nested オブジェクト
     out.push_str("export const ConfigKeys = {\n");
     for cat in &schema.categories {
+        let cat_const = cat.id.to_uppercase().replace('-', "_");
+        out.push_str(&format!("  {cat_const}: {{\n"));
         for field in &cat.fields {
-            let const_name = field.key.to_uppercase();
-            // namespace は先頭のものを使用
-            let ns = cat.namespaces.first().map_or("", String::as_str);
-            out.push_str(&format!(
-                "  {const_name}: \"{ns}.{}\",\n",
-                field.key
-            ));
+            let field_const = field.key.to_uppercase().replace('-', "_");
+            out.push_str(&format!("    {field_const}: '{}',\n", field.key));
         }
+        out.push_str("  },\n");
     }
     out.push_str("} as const;\n\n");
 
-    // ConfigValues type
+    // ConfigValues type — '{category_id}.{field_key}': type
     out.push_str("export type ConfigValues = {\n");
     for cat in &schema.categories {
         for field in &cat.fields {
@@ -46,11 +44,7 @@ pub fn generate_typescript_types(schema: &ConfigSchemaYaml) -> String {
                 "array" => "unknown[]".to_string(),
                 other => other.to_string(),
             };
-            let ns = cat.namespaces.first().map_or("", String::as_str);
-            out.push_str(&format!(
-                "  \"{ns}.{}\": {ts_type};\n",
-                field.key
-            ));
+            out.push_str(&format!("  '{}.{}': {ts_type};\n", cat.id, field.key));
         }
     }
     out.push_str("};\n");
@@ -67,24 +61,56 @@ pub fn generate_dart_types(schema: &ConfigSchemaYaml) -> String {
          // k1s0 generate config-types で再生成できます。\n\n",
     );
 
-    // enum ConfigKey
-    out.push_str("enum ConfigKey {\n");
     for cat in &schema.categories {
+        let cat_pascal = to_pascal_case(&cat.id);
+
+        // カテゴリ別 enum
+        out.push_str(&format!("enum {cat_pascal}ConfigKey {{\n"));
+        for (i, field) in cat.fields.iter().enumerate() {
+            let camel = to_camel_case(&field.key);
+            if i < cat.fields.len() - 1 {
+                out.push_str(&format!("  {camel},\n"));
+            } else {
+                out.push_str(&format!("  {camel};\n"));
+            }
+        }
+        out.push_str(&format!("\n  String get key => switch (this) {{\n"));
         for field in &cat.fields {
-            let ns = cat.namespaces.first().map_or("", String::as_str);
+            let camel = to_camel_case(&field.key);
             out.push_str(&format!(
-                "  {}('{}'),\n",
-                to_camel_case(&field.key),
-                format!("{ns}.{}", field.key)
+                "    {cat_pascal}ConfigKey.{camel} => '{}',\n",
+                field.key
             ));
         }
+        out.push_str("  };\n");
+        out.push_str("}\n\n");
+
+        // enum 型フィールドの値 enum
+        for field in &cat.fields {
+            if field.field_type.as_deref() == Some("enum") {
+                if let Some(ref opts) = field.options {
+                    let enum_name = to_pascal_case(&field.key);
+                    let values: Vec<String> = opts.iter().map(|o| to_camel_case(o)).collect();
+                    out.push_str(&format!("enum {enum_name} {{ {} }}\n\n", values.join(", ")));
+                }
+            }
+        }
     }
-    out.push_str("  ;\n\n");
-    out.push_str("  const ConfigKey(this.key);\n");
-    out.push_str("  final String key;\n");
-    out.push_str("}\n");
 
     out
+}
+
+fn to_pascal_case(snake: &str) -> String {
+    snake
+        .split('_')
+        .map(|w| {
+            let mut c = w.chars();
+            match c.next() {
+                None => String::new(),
+                Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+            }
+        })
+        .collect()
 }
 
 /// config server にスキーマを push する (同期バージョン)
@@ -195,13 +221,16 @@ mod tests {
     fn test_generate_typescript_types() {
         let schema = sample_schema();
         let ts = generate_typescript_types(&schema);
+        // ConfigKeys はカテゴリ別 nested 構造
         assert!(ts.contains("export const ConfigKeys"));
-        assert!(ts.contains("ENABLE_FEATURE"));
-        assert!(ts.contains("MAX_CONNECTIONS"));
-        assert!(ts.contains("LOG_LEVEL"));
+        assert!(ts.contains("GENERAL: {"));
+        assert!(ts.contains("    ENABLE_FEATURE: 'enable_feature'"));
+        assert!(ts.contains("    MAX_CONNECTIONS: 'max_connections'"));
+        assert!(ts.contains("    LOG_LEVEL: 'log_level'"));
+        // ConfigValues は '{category_id}.{field_key}' 形式
         assert!(ts.contains("export type ConfigValues"));
-        assert!(ts.contains("boolean"));
-        assert!(ts.contains("number"));
+        assert!(ts.contains("'general.enable_feature': boolean"));
+        assert!(ts.contains("'general.max_connections': number"));
         assert!(ts.contains("\"debug\" | \"info\" | \"warn\" | \"error\""));
     }
 
@@ -209,11 +238,19 @@ mod tests {
     fn test_generate_dart_types() {
         let schema = sample_schema();
         let dart = generate_dart_types(&schema);
-        assert!(dart.contains("enum ConfigKey"));
-        assert!(dart.contains("enableFeature"));
-        assert!(dart.contains("maxConnections"));
-        assert!(dart.contains("logLevel"));
-        assert!(dart.contains("final String key"));
+        // カテゴリ別 enum
+        assert!(dart.contains("enum GeneralConfigKey {"));
+        assert!(dart.contains("  enableFeature,"));
+        assert!(dart.contains("  maxConnections,"));
+        assert!(dart.contains("  logLevel;"));
+        // String get key
+        assert!(dart.contains("String get key => switch (this) {"));
+        assert!(dart.contains("GeneralConfigKey.enableFeature => 'enable_feature'"));
+        assert!(dart.contains("GeneralConfigKey.maxConnections => 'max_connections'"));
+        assert!(dart.contains("GeneralConfigKey.logLevel => 'log_level'"));
+        // 値 enum (enum 型フィールド)
+        assert!(dart.contains("enum LogLevel {"));
+        assert!(dart.contains("debug, info, warn, error"));
     }
 
     #[test]

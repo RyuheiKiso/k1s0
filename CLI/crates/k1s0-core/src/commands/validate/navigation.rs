@@ -47,14 +47,14 @@ pub fn validate_navigation(path: &str) -> Result<usize, Box<dyn std::error::Erro
     let content = fs::read_to_string(path)?;
     println!("Checking navigation.yaml...");
 
-    // 1. YAML パース確認
+    // 1. スキーマバリデーション（YAML パース）
     let nav: NavigationYaml = match serde_yaml::from_str(&content) {
         Ok(n) => {
-            println!("  \u{2705} YAML パース OK");
+            println!("  \u{2705} スキーマバリデーション OK");
             n
         }
         Err(e) => {
-            println!("  \u{274c} YAML パースエラー: {e}");
+            println!("  \u{274c} スキーマバリデーションエラー: {e}");
             return Ok(1);
         }
     };
