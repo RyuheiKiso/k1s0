@@ -7,19 +7,21 @@ on:
     paths:
       - 'infra/kong/**'
 
+# prod デフォルト値。sync-dev / sync-staging はジョブレベルで上書きする。
+env:
+  KONG_RATE_SYSTEM_MINUTE: "3000"
+  KONG_RATE_SYSTEM_SECOND: "100"
+  KONG_RATE_BUSINESS_MINUTE: "1000"
+  KONG_RATE_BUSINESS_SECOND: "40"
+  KONG_RATE_SERVICE_MINUTE: "500"
+  KONG_RATE_SERVICE_SECOND: "20"
+  KONG_RATE_REDIS_POLICY: "redis"
+  KONG_CORS_ORIGINS: "https://*.k1s0.internal.example.com"
+  KONG_KEYCLOAK_ISSUER: "https://auth.k1s0.internal.example.com/realms/k1s0"
+
 jobs:
   validate:
     runs-on: ubuntu-latest
-    env:
-      KONG_RATE_SYSTEM_MINUTE: "3000"
-      KONG_RATE_SYSTEM_SECOND: "100"
-      KONG_RATE_BUSINESS_MINUTE: "1000"
-      KONG_RATE_BUSINESS_SECOND: "40"
-      KONG_RATE_SERVICE_MINUTE: "500"
-      KONG_RATE_SERVICE_SECOND: "20"
-      KONG_RATE_REDIS_POLICY: "redis"
-      KONG_CORS_ORIGINS: "https://*.k1s0.internal.example.com"
-      KONG_KEYCLOAK_ISSUER: "https://auth.k1s0.internal.example.com/realms/k1s0"
     steps:
       - uses: actions/checkout@v4
       - name: Install decK
@@ -40,18 +42,12 @@ jobs:
   diff:
     needs: validate
     runs-on: ubuntu-latest
-    env:
-      KONG_RATE_SYSTEM_MINUTE: "3000"
-      KONG_RATE_SYSTEM_SECOND: "100"
-      KONG_RATE_BUSINESS_MINUTE: "1000"
-      KONG_RATE_BUSINESS_SECOND: "40"
-      KONG_RATE_SERVICE_MINUTE: "500"
-      KONG_RATE_SERVICE_SECOND: "20"
-      KONG_RATE_REDIS_POLICY: "redis"
-      KONG_CORS_ORIGINS: "https://*.k1s0.internal.example.com"
-      KONG_KEYCLOAK_ISSUER: "https://auth.k1s0.internal.example.com/realms/k1s0"
     steps:
       - uses: actions/checkout@v4
+      - name: Install decK
+        run: |
+          curl -sL https://github.com/Kong/deck/releases/latest/download/deck_linux_amd64.tar.gz | tar xz
+          sudo mv deck /usr/local/bin/
       - name: Resolve environment variables
         run: envsubst < infra/kong/kong.yaml > /tmp/kong-resolved.yaml
       - name: Show diff
@@ -112,16 +108,7 @@ jobs:
     runs-on: [self-hosted, prod]
     environment:
       name: prod
-    env:
-      KONG_RATE_SYSTEM_MINUTE: "3000"
-      KONG_RATE_SYSTEM_SECOND: "100"
-      KONG_RATE_BUSINESS_MINUTE: "1000"
-      KONG_RATE_BUSINESS_SECOND: "40"
-      KONG_RATE_SERVICE_MINUTE: "500"
-      KONG_RATE_SERVICE_SECOND: "20"
-      KONG_RATE_REDIS_POLICY: "redis"
-      KONG_CORS_ORIGINS: "https://*.k1s0.internal.example.com"
-      KONG_KEYCLOAK_ISSUER: "https://auth.k1s0.internal.example.com/realms/k1s0"
+    # env: ワークフローレベルの prod デフォルト値を継承
     steps:
       - uses: actions/checkout@v4
       - name: Resolve environment variables

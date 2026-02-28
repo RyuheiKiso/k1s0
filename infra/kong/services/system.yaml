@@ -1,4 +1,6 @@
-# system Tier のサービス定義
+# system Tier のサービス定義 (参照ドキュメント)
+# NOTE: このファイルは prod デフォルト値を示す参照用ドキュメントです。
+# 実際の設定は infra/kong/kong.yaml を参照してください（環境変数で動的に解決されます）。
 # Tier別レート制限: system=3000/min（グローバル500/minをサービスレベルで上書き）
 services:
   - name: auth-v1
