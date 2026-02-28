@@ -37,6 +37,11 @@ describe('createEventMetadata', () => {
     expect(meta.source).toBe('auth-service');
   });
 
+  it('defaults schemaVersion to 1', () => {
+    const meta = createEventMetadata('user.created.v1', 'auth-service');
+    expect(meta.schemaVersion).toBe(1);
+  });
+
   it('generates unique eventIds', () => {
     const meta1 = createEventMetadata('event.v1', 'svc');
     const meta2 = createEventMetadata('event.v1', 'svc');
@@ -48,10 +53,12 @@ describe('EventEnvelope', () => {
   it('can be constructed correctly', () => {
     const envelope: EventEnvelope = {
       topic: 'k1s0.system.user.created.v1',
+      key: 'user-1',
       payload: { key: 'value' },
       metadata: createEventMetadata('user.created.v1', 'auth-service', 'corr-1'),
     };
     expect(envelope.topic).toBe('k1s0.system.user.created.v1');
+    expect(envelope.key).toBe('user-1');
     expect(envelope.payload).toEqual({ key: 'value' });
     expect(envelope.metadata.eventType).toBe('user.created.v1');
   });
@@ -62,6 +69,7 @@ describe('NoOpEventProducer', () => {
     const producer = new NoOpEventProducer();
     const event: EventEnvelope = {
       topic: 'k1s0.system.test.event.v1',
+      key: 'test-key',
       payload: 'test-payload',
       metadata: createEventMetadata('test.v1', 'svc', 'corr-1'),
     };

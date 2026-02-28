@@ -8,6 +8,7 @@ export interface EventMetadata {
   traceId: string;
   timestamp: string;
   source: string;
+  schemaVersion: number;
 }
 
 /** 新しい EventMetadata を生成する。 */
@@ -24,12 +25,14 @@ export function createEventMetadata(
     traceId: traceId ?? uuidv4(),
     timestamp: new Date().toISOString(),
     source,
+    schemaVersion: 1,
   };
 }
 
 /** イベントのエンベロープ（メタデータ + ペイロード）。 */
 export interface EventEnvelope {
   topic: string;
+  key: string;
   payload: unknown;
   metadata: EventMetadata;
 }
