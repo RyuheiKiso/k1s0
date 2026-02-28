@@ -1,7 +1,8 @@
 # system-saga-server 設計
 
-system tier の Saga Orchestrator 設計を定義する。分散トランザクションのオーケストレーション方式（5 ステップ以上のワークフロー）を担い、YAML ベースのワークフロー定義に基づいてサービス間の gRPC 呼び出し・補償トランザクション・状態管理を提供する。
-Rust での実装を定義する。
+> **ガイド**: 設計背景・実装例は [server.guide.md](./server.guide.md) を参照。
+
+system tier の Saga Orchestrator 設計を定義する。YAML ベースのワークフロー定義に基づく分散トランザクションオーケストレーション（5 ステップ以上）を担い、Rust で実装する。
 
 ## 概要
 
@@ -68,23 +69,7 @@ system tier の Saga Orchestrator は以下の機能を提供する。
 
 指定されたワークフローで新しい Saga を開始する。Saga は非同期で実行され、即座に saga_id が返却される。
 
-**リクエスト**
-
-```json
-{
-  "workflow_name": "order-fulfillment",
-  "payload": {
-    "order_id": "ord-12345",
-    "customer_id": "cust-67890",
-    "items": [
-      {"product_id": "prod-001", "quantity": 2}
-    ],
-    "total_amount": 5000
-  },
-  "correlation_id": "req-abc-123",
-  "initiated_by": "order-service"
-}
-```
+**リクエストフィールド**
 
 | フィールド | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
@@ -93,27 +78,14 @@ system tier の Saga Orchestrator は以下の機能を提供する。
 | `correlation_id` | string | No | 業務相関 ID（トレーサビリティ用） |
 | `initiated_by` | string | No | 呼び出し元のサービス名 |
 
-**レスポンス（201 Created）**
+**レスポンスフィールド（201 Created）**
 
-```json
-{
-  "saga_id": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "STARTED"
-}
-```
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `saga_id` | string (UUID) | 作成された Saga の ID |
+| `status` | string | 初期ステータス（`STARTED`） |
 
-**レスポンス（400 Bad Request）**
-
-```json
-{
-  "error": {
-    "code": "SYS_SAGA_VALIDATION_ERROR",
-    "message": "workflow_name is required",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
+> JSON 例は [server.guide.md](./server.guide.md#post-apiv1sagas) を参照。
 
 #### GET /api/v1/sagas
 
@@ -129,159 +101,37 @@ Saga の一覧をページネーション付きで取得する。
 | `status` | string | No | - | ステータスでフィルタ（`STARTED`, `RUNNING`, `COMPLETED`, `COMPENSATING`, `FAILED`, `CANCELLED`） |
 | `correlation_id` | string | No | - | 業務相関 ID でフィルタ |
 
-**レスポンス（200 OK）**
-
-```json
-{
-  "sagas": [
-    {
-      "saga_id": "550e8400-e29b-41d4-a716-446655440000",
-      "workflow_name": "order-fulfillment",
-      "current_step": 3,
-      "status": "COMPLETED",
-      "payload": {"order_id": "ord-12345"},
-      "correlation_id": "req-abc-123",
-      "initiated_by": "order-service",
-      "error_message": null,
-      "created_at": "2026-02-20T10:30:00.000Z",
-      "updated_at": "2026-02-20T10:30:05.123Z"
-    }
-  ],
-  "pagination": {
-    "total_count": 150,
-    "page": 1,
-    "page_size": 20,
-    "has_next": true
-  }
-}
-```
+> JSON 例は [server.guide.md](./server.guide.md#get-apiv1sagas) を参照。
 
 #### GET /api/v1/sagas/:saga_id
 
 Saga の詳細情報とステップログを取得する。
 
-**レスポンス（200 OK）**
-
-```json
-{
-  "saga": {
-    "saga_id": "550e8400-e29b-41d4-a716-446655440000",
-    "workflow_name": "order-fulfillment",
-    "current_step": 3,
-    "status": "COMPLETED",
-    "payload": {"order_id": "ord-12345"},
-    "correlation_id": "req-abc-123",
-    "initiated_by": "order-service",
-    "error_message": null,
-    "created_at": "2026-02-20T10:30:00.000Z",
-    "updated_at": "2026-02-20T10:30:05.123Z"
-  },
-  "step_logs": [
-    {
-      "id": "660e8400-e29b-41d4-a716-446655440001",
-      "step_index": 0,
-      "step_name": "reserve-inventory",
-      "action": "EXECUTE",
-      "status": "SUCCESS",
-      "request_payload": {"order_id": "ord-12345"},
-      "response_payload": {"reservation_id": "res-001"},
-      "error_message": null,
-      "started_at": "2026-02-20T10:30:00.100Z",
-      "completed_at": "2026-02-20T10:30:01.200Z"
-    },
-    {
-      "id": "660e8400-e29b-41d4-a716-446655440002",
-      "step_index": 1,
-      "step_name": "process-payment",
-      "action": "EXECUTE",
-      "status": "SUCCESS",
-      "request_payload": {"order_id": "ord-12345"},
-      "response_payload": {"transaction_id": "txn-001"},
-      "error_message": null,
-      "started_at": "2026-02-20T10:30:01.300Z",
-      "completed_at": "2026-02-20T10:30:03.500Z"
-    }
-  ]
-}
-```
-
-**レスポンス（404 Not Found）**
-
-```json
-{
-  "error": {
-    "code": "SYS_SAGA_NOT_FOUND",
-    "message": "saga not found: invalid-uuid",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
+> JSON 例は [server.guide.md](./server.guide.md#get-apiv1sagassaga_id) を参照。
 
 #### POST /api/v1/sagas/:saga_id/cancel
 
 実行中の Saga をキャンセルする。終端状態（COMPLETED / FAILED / CANCELLED）の Saga はキャンセルできない。
 
-**レスポンス（200 OK）**
-
-```json
-{
-  "success": true,
-  "message": "saga 550e8400-e29b-41d4-a716-446655440000 cancelled"
-}
-```
-
-**レスポンス（409 Conflict）**
-
-```json
-{
-  "error": {
-    "code": "SYS_SAGA_CONFLICT",
-    "message": "saga is already in terminal state",
-    "request_id": "req_abc123def456",
-    "details": []
-  }
-}
-```
+> JSON 例は [server.guide.md](./server.guide.md#post-apiv1sagassaga_idcancel) を参照。
 
 #### POST /api/v1/workflows
 
 YAML 形式のワークフロー定義を登録する。
 
-**リクエスト**
+**リクエストフィールド**
 
-```json
-{
-  "workflow_yaml": "name: order-fulfillment\nsteps:\n  - name: reserve-inventory\n    service: inventory-service\n    method: InventoryService.Reserve\n    compensate: InventoryService.Release\n    timeout_secs: 30\n    retry:\n      max_attempts: 3\n      backoff: exponential\n      initial_interval_ms: 1000\n"
-}
-```
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `workflow_yaml` | string | Yes | YAML 形式のワークフロー定義文字列 |
 
-**レスポンス（201 Created）**
-
-```json
-{
-  "name": "order-fulfillment",
-  "step_count": 3
-}
-```
+> JSON 例は [server.guide.md](./server.guide.md#post-apiv1workflows) を参照。
 
 #### GET /api/v1/workflows
 
 登録済みワークフロー定義の一覧を取得する。
 
-**レスポンス（200 OK）**
-
-```json
-{
-  "workflows": [
-    {
-      "name": "order-fulfillment",
-      "step_count": 3,
-      "step_names": ["reserve-inventory", "process-payment", "arrange-shipping"]
-    }
-  ]
-}
-```
+> JSON 例は [server.guide.md](./server.guide.md#get-apiv1workflows) を参照。
 
 ### エラーコード
 
@@ -380,75 +230,11 @@ message WorkflowSummary {
               └────────────────────▶ CANCELLED (終端) ◀─────┘
 ```
 
-### 実行フロー
-
-#### 正常系（全ステップ成功）
-
-```
-1. StartSaga API 呼び出し
-2. SagaState 作成 (status=STARTED)
-3. tokio::spawn で非同期実行開始
-4. status → RUNNING
-5. Step 0: gRPC 呼び出し → 成功 → step_log 記録
-6. Step 1: gRPC 呼び出し → 成功 → step_log 記録
-7. Step N: gRPC 呼び出し → 成功 → step_log 記録
-8. status → COMPLETED
-9. Kafka イベント発行: SAGA_COMPLETED
-```
-
-#### 異常系（ステップ失敗 → 補償）
-
-```
-1. StartSaga API 呼び出し
-2. SagaState 作成 (status=STARTED)
-3. tokio::spawn で非同期実行開始
-4. status → RUNNING
-5. Step 0: gRPC 呼び出し → 成功
-6. Step 1: gRPC 呼び出し → 成功
-7. Step 2: gRPC 呼び出し → 失敗（リトライ上限到達）
-8. status → COMPENSATING
-9. Kafka イベント発行: SAGA_COMPENSATING
-10. Compensate Step 1: compensate メソッド呼び出し → 成功/失敗（best-effort）
-11. Compensate Step 0: compensate メソッド呼び出し → 成功/失敗（best-effort）
-12. status → FAILED
-13. Kafka イベント発行: SAGA_FAILED
-```
+> 実行フローの詳細は [server.guide.md](./server.guide.md#実行フロー) を参照。
 
 ---
 
 ## ワークフロー定義
-
-### YAML フォーマット
-
-```yaml
-name: order-fulfillment
-steps:
-  - name: reserve-inventory
-    service: inventory-service
-    method: InventoryService.Reserve
-    compensate: InventoryService.Release
-    timeout_secs: 30
-    retry:
-      max_attempts: 3
-      backoff: exponential
-      initial_interval_ms: 1000
-
-  - name: process-payment
-    service: payment-service
-    method: PaymentService.Charge
-    compensate: PaymentService.Refund
-    timeout_secs: 60
-    retry:
-      max_attempts: 2
-      backoff: exponential
-      initial_interval_ms: 2000
-
-  - name: arrange-shipping
-    service: shipping-service
-    method: ShippingService.CreateShipment
-    compensate: ShippingService.CancelShipment
-    timeout_secs: 30
-```
 
 ### フィールド定義
 
@@ -465,13 +251,11 @@ steps:
 | `steps[].retry.backoff` | string | No | exponential | バックオフ方式 |
 | `steps[].retry.initial_interval_ms` | int | No | 1000 | 初回リトライ間隔（ミリ秒） |
 
+> YAML 定義例は [server.guide.md](./server.guide.md#ワークフロー-yaml-定義例) を参照。
+
 ### リトライ・バックオフ計算
 
-Exponential backoff の遅延は以下の式で計算する:
-
-```
-delay_ms = initial_interval_ms * 2^attempt
-```
+Exponential backoff の遅延: `delay_ms = initial_interval_ms * 2^attempt`
 
 | リトライ回数 | initial_interval_ms=1000 の場合 |
 | --- | --- |
@@ -503,10 +287,10 @@ delay_ms = initial_interval_ms * 2^attempt
 | `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 更新日時（トリガー自動更新） |
 
 **インデックス:**
-- `idx_saga_states_workflow_name` — workflow_name
-- `idx_saga_states_status` — status
-- `idx_saga_states_correlation_id` — correlation_id（WHERE IS NOT NULL）
-- `idx_saga_states_created_at` — created_at
+- `idx_saga_states_workflow_name` -- workflow_name
+- `idx_saga_states_status` -- status
+- `idx_saga_states_correlation_id` -- correlation_id（WHERE IS NOT NULL）
+- `idx_saga_states_created_at` -- created_at
 
 #### saga_step_logs テーブル
 
@@ -525,18 +309,7 @@ delay_ms = initial_interval_ms * 2^attempt
 | `completed_at` | TIMESTAMPTZ | - | 完了日時 |
 
 **インデックス:**
-- `idx_saga_step_logs_saga_id_step_index` — (saga_id, step_index)
-
-### トランザクション設計
-
-`update_with_step_log` メソッドでは、Saga 状態の更新とステップログの挿入を単一のデータベーストランザクションで実行する。
-
-```
-BEGIN;
-  UPDATE saga.saga_states SET current_step=$2, status=$3, ... WHERE id=$1;
-  INSERT INTO saga.saga_step_logs (id, saga_id, step_index, ...) VALUES (...);
-COMMIT;
-```
+- `idx_saga_step_logs_saga_id_step_index` -- (saga_id, step_index)
 
 ---
 
@@ -577,13 +350,13 @@ COMMIT;
 | `updated_at` | DateTime\<Utc\> | 更新日時 |
 
 **メソッド:**
-- `new()` — 初期状態（STARTED）で作成
-- `advance_step()` — ステップを進める（status=RUNNING）
-- `complete()` — 正常完了（status=COMPLETED）
-- `start_compensation(error)` — 補償開始（status=COMPENSATING）
-- `fail(error)` — 失敗確定（status=FAILED）
-- `cancel()` — キャンセル（status=CANCELLED）
-- `is_terminal()` — 終端状態かどうか
+- `new()` -- 初期状態（STARTED）で作成
+- `advance_step()` -- ステップを進める（status=RUNNING）
+- `complete()` -- 正常完了（status=COMPLETED）
+- `start_compensation(error)` -- 補償開始（status=COMPENSATING）
+- `fail(error)` -- 失敗確定（status=FAILED）
+- `cancel()` -- キャンセル（status=CANCELLED）
+- `is_terminal()` -- 終端状態かどうか
 
 #### SagaStepLog
 
@@ -607,51 +380,6 @@ COMMIT;
 | --- | --- | --- |
 | `name` | string | ワークフロー名 |
 | `steps` | Vec\<WorkflowStep\> | ステップ定義の配列 |
-
-### 依存関係図
-
-```
-                    ┌─────────────────────────────────────────────────────┐
-                    │                    adapter 層                       │
-                    │  ┌──────────────┐  ┌──────────────┐  ┌──────────┐ │
-                    │  │ REST Handler │  │ gRPC Handler │  │Repository│ │
-                    │  └──────┬───────┘  └──────┬───────┘  └─────┬────┘ │
-                    │         │                  │                │      │
-                    └─────────┼──────────────────┼────────────────┼──────┘
-                              │                  │                │
-                    ┌─────────▼──────────────────▼────────────────│──────┐
-                    │                   usecase 層                │      │
-                    │  StartSaga / ExecuteSaga / GetSaga /        │      │
-                    │  ListSagas / CancelSaga /                   │      │
-                    │  RegisterWorkflow / ListWorkflows /         │      │
-                    │  RecoverSagas                               │      │
-                    └─────────┬──────────────────────────────────┘──────┘
-                              │
-              ┌───────────────┼───────────────────────┐
-              │               │                       │
-    ┌─────────▼──────┐  ┌────▼───────────┐  ┌───────▼─────────────┐
-    │  domain/entity  │  │ domain/        │  │ domain/repository   │
-    │  SagaState,     │  │ (no domain     │  │ SagaRepository      │
-    │  SagaStepLog,   │  │  service)      │  │ WorkflowRepository  │
-    │  Workflow        │  │               │  │ (trait)              │
-    └────────────────┘  └────────────────┘  └──────────┬──────────┘
-                                                       │
-                    ┌──────────────────────────────────┼──────────────┐
-                    │             infrastructure 層         │              │
-                    │  ┌──────────────┐  ┌─────────────▼──────────┐  │
-                    │  │ ServiceReg + │  │ PostgreSQL Repository  │  │
-                    │  │ GrpcCaller   │  │ InMemoryWorkflowRepo   │  │
-                    │  └──────────────┘  └────────────────────────┘  │
-                    │  ┌──────────────┐  ┌────────────────────────┐  │
-                    │  │ Config       │  │ Kafka Producer         │  │
-                    │  │ Loader       │  │ (saga events)          │  │
-                    │  └──────────────┘  └────────────────────────┘  │
-                    └────────────────────────────────────────────────┘
-```
-
----
-
-## Rust 実装 (regions/system/server/rust/saga/)
 
 ### ディレクトリ構成
 
@@ -718,71 +446,50 @@ regions/system/server/rust/saga/
 └── Cargo.lock
 ```
 
-### Cargo.toml 主要依存
+### 依存関係図
 
-```toml
-[package]
-name = "k1s0-saga-server"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-# Web フレームワーク
-axum = { version = "0.7", features = ["macros"] }
-tokio = { version = "1", features = ["full"] }
-tower = "0.5"
-tower-http = { version = "0.6", features = ["trace", "cors"] }
-
-# gRPC
-tonic = "0.12"
-prost = "0.13"
-prost-types = "0.13"
-
-# シリアライゼーション
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-serde_yaml = "0.9"
-
-# DB
-sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono", "json"] }
-
-# Kafka
-rdkafka = { version = "0.36", features = ["cmake-build"] }
-
-# 共通
-uuid = { version = "1", features = ["v4", "serde"] }
-chrono = { version = "0.4", features = ["serde"] }
-anyhow = "1"
-thiserror = "2"
-async-trait = "0.1"
-tracing = "0.1"
-
-# 内部ライブラリ
-k1s0-auth = { path = "../../library/rust/auth" }
-k1s0-telemetry = { path = "../../library/rust/telemetry" }
-
-[dev-dependencies]
-mockall = "0.13"
-tokio-test = "0.4"
+```
+                    ┌─────────────────────────────────────────────────────┐
+                    │                    adapter 層                       │
+                    │  ┌──────────────┐  ┌──────────────┐  ┌──────────┐ │
+                    │  │ REST Handler │  │ gRPC Handler │  │Repository│ │
+                    │  └──────┬───────┘  └──────┬───────┘  └─────┬────┘ │
+                    │         │                  │                │      │
+                    └─────────┼──────────────────┼────────────────┼──────┘
+                              │                  │                │
+                    ┌─────────▼──────────────────▼────────────────│──────┐
+                    │                   usecase 層                │      │
+                    │  StartSaga / ExecuteSaga / GetSaga /        │      │
+                    │  ListSagas / CancelSaga /                   │      │
+                    │  RegisterWorkflow / ListWorkflows /         │      │
+                    │  RecoverSagas                               │      │
+                    └─────────┬──────────────────────────────────┘──────┘
+                              │
+              ┌───────────────┼───────────────────────┐
+              │               │                       │
+    ┌─────────▼──────┐  ┌────▼───────────┐  ┌───────▼─────────────┐
+    │  domain/entity  │  │ domain/        │  │ domain/repository   │
+    │  SagaState,     │  │ (no domain     │  │ SagaRepository      │
+    │  SagaStepLog,   │  │  service)      │  │ WorkflowRepository  │
+    │  Workflow        │  │               │  │ (trait)              │
+    └────────────────┘  └────────────────┘  └──────────┬──────────┘
+                                                       │
+                    ┌──────────────────────────────────┼──────────────┐
+                    │             infrastructure 層         │              │
+                    │  ┌──────────────┐  ┌─────────────▼──────────┐  │
+                    │  │ ServiceReg + │  │ PostgreSQL Repository  │  │
+                    │  │ GrpcCaller   │  │ InMemoryWorkflowRepo   │  │
+                    │  └──────────────┘  └────────────────────────┘  │
+                    │  ┌──────────────┐  ┌────────────────────────┐  │
+                    │  │ Config       │  │ Kafka Producer         │  │
+                    │  │ Loader       │  │ (saga events)          │  │
+                    │  └──────────────┘  └────────────────────────┘  │
+                    └────────────────────────────────────────────────┘
 ```
 
-### サービスレジストリと gRPC 呼び出し
+---
 
-`config.yaml` の `services` セクションでサービスのエンドポイントを静的に定義し、`ServiceRegistry` が名前解決を行う。
-
-```yaml
-services:
-  inventory-service:
-    host: "inventory.k1s0-business.svc.cluster.local"
-    port: 50051
-  payment-service:
-    host: "payment.k1s0-business.svc.cluster.local"
-    port: 50051
-```
-
-`TonicGrpcCaller` は `ServiceRegistry` から取得したエンドポイントに対して tonic の gRPC チャネルを作成し、ワークフローステップの `method` フィールド（`ServiceName.MethodName` 形式）を gRPC パスに変換して動的に呼び出す。チャネルは `RwLock<HashMap<String, Channel>>` で接続プールとして管理する。
-
-### Kafka イベント
+## Kafka イベント
 
 Saga の状態遷移時に以下のイベントを Kafka トピック `k1s0.system.saga.events.v1` に発行する。
 
@@ -792,24 +499,6 @@ Saga の状態遷移時に以下のイベントを Kafka トピック `k1s0.syst
 | `SAGA_COMPLETED` | 全ステップ正常完了時 |
 | `SAGA_COMPENSATING` | 補償処理開始時 |
 | `SAGA_FAILED` | 補償処理完了（Saga 失敗確定）時 |
-
-### Bootstrap（main.rs）
-
-起動シーケンスは auth-server パターンに従う:
-
-```
-1. k1s0-telemetry 初期化
-2. config.yaml ロード
-3. PostgreSQL 接続プール作成（オプショナル）
-4. SagaRepository 構築（Postgres or InMemory）
-5. InMemoryWorkflowRepository 構築 + workflows/ ディレクトリからロード
-6. ServiceRegistry + TonicGrpcCaller 構築
-7. KafkaProducer 構築（オプショナル）
-8. ユースケース群を構築（Arc でラップ）
-9. RecoverSagasUseCase 実行（起動時リカバリ）
-10. AppState 構築
-11. REST サーバー（axum）+ gRPC サーバー（tonic）を tokio::select! で並行起動
-```
 
 ---
 
@@ -867,101 +556,7 @@ regions/system/library/rust/saga/
 
 ---
 
-## 設定ファイル
-
-### config.yaml（本番）
-
-```yaml
-app:
-  name: "saga-server"
-  version: "0.1.0"
-  environment: "production"
-
-server:
-  host: "0.0.0.0"
-  port: 8080
-
-database:
-  host: "postgres.k1s0-system.svc.cluster.local"
-  port: 5432
-  name: "k1s0_system"
-  user: "app"
-  password: ""
-  ssl_mode: "disable"
-  max_open_conns: 25
-  max_idle_conns: 5
-  conn_max_lifetime: "5m"
-
-kafka:
-  brokers:
-    - "kafka-0.messaging.svc.cluster.local:9092"
-  consumer_group: "saga-server.default"
-  security_protocol: "PLAINTEXT"
-  topics:
-    publish:
-      - "k1s0.system.saga.events.v1"
-    subscribe: []
-
-services:
-  inventory-service:
-    host: "inventory.k1s0-business.svc.cluster.local"
-    port: 50051
-  payment-service:
-    host: "payment.k1s0-business.svc.cluster.local"
-    port: 50051
-  shipping-service:
-    host: "shipping.k1s0-business.svc.cluster.local"
-    port: 50051
-
-saga:
-  max_concurrent: 100
-  workflow_dir: "workflows"
-```
-
----
-
 ## デプロイ
-
-### Helm values
-
-[helm設計.md](../../infrastructure/kubernetes/helm設計.md) のサーバー用 Helm Chart を使用する。saga-server 固有の values は以下の通り。
-
-```yaml
-# values-saga.yaml（infra/helm/services/system/saga/values.yaml）
-image:
-  registry: harbor.internal.example.com
-  repository: k1s0-system/saga
-  tag: ""
-
-replicaCount: 2
-
-container:
-  port: 8080
-  grpcPort: 50051
-
-service:
-  type: ClusterIP
-  port: 80
-  grpcPort: 50051
-
-autoscaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 5
-  targetCPUUtilizationPercentage: 70
-
-kafka:
-  enabled: true
-  brokers: []
-
-vault:
-  enabled: true
-  role: "system"
-  secrets:
-    - path: "secret/data/k1s0/system/saga/database"
-      key: "password"
-      mountPath: "/vault/secrets/db-password"
-```
 
 ### Vault シークレットパス
 
@@ -969,6 +564,8 @@ vault:
 | --- | --- |
 | DB パスワード | `secret/data/k1s0/system/saga/database` |
 | Kafka SASL | `secret/data/k1s0/system/kafka/sasl` |
+
+> Helm values・config.yaml の例は [server.guide.md](./server.guide.md#設定ファイル例) を参照。
 
 ---
 
