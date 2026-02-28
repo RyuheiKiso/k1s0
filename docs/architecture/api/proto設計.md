@@ -1,28 +1,12 @@
 # Proto 設計
 
-k1s0 における Protobuf / gRPC のサービス定義・共通型・Kafka イベントスキーマ・コード生成パイプラインを定義する。
-API 設計の全体像は [API設計.md](./API設計.md) D-009 / D-010 を参照。
+Protobuf / gRPC のサービス定義・共通型・Kafka イベントスキーマ・コード生成パイプラインの仕様。
+
+> **ガイド**: 設計背景・選定理由は [proto設計.guide.md](./proto設計.guide.md) を参照。
 
 ## 概要
 
-### 採用目的
-
-| 目的 | 説明 |
-| --- | --- |
-| サービス間高速通信 | HTTP/2 ベースのバイナリプロトコルにより、REST API 比で低レイテンシ・高スループットを実現する |
-| 型安全なインターフェース | Protobuf スキーマから Go / Rust / TypeScript のコードを自動生成し、型不一致を防止する |
-| スキーマ進化の管理 | buf による lint・破壊的変更検出で、安全なスキーマ進化を保証する |
-| Kafka イベントスキーマの統一 | メッセージング基盤のイベント型も Protobuf で定義し、Schema Registry で互換性を管理する |
-
-### バージョニング戦略
-
-proto パッケージは [API設計.md](./API設計.md) D-009 の命名規則に従い、メジャーバージョンをパッケージ名に含める。
-
-```
-k1s0.{tier}.{domain}.v{major}
-```
-
-初期バージョンは `v1` とし、後方互換性を破壊する変更が必要な場合のみ `v2` パッケージを新設する。
+パッケージ命名: `k1s0.{tier}.{domain}.v{major}`（初期 `v1`）
 
 ### 言語サポート
 
@@ -1384,23 +1368,7 @@ plugins:
 
 #### Rust (tonic-build) — サーバーごとのローカルコード生成
 
-Rust サーバーは `buf.gen.yaml` とは別に、各サービスの `build.rs` で `tonic-build` を用いてローカルコード生成する。
-proto ファイルはすべて `api/proto/k1s0/system/` を参照する（`regions/system/proto/` は廃止済み）。
-
-```rust
-// build.rs（例: auth サーバー）
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tonic_build::configure()
-        .build_server(true)
-        .build_client(false)
-        .out_dir("src/proto")
-        .compile_protos(
-            &["../../../../../api/proto/k1s0/system/auth/v1/auth.proto"],
-            &["../../../../../api/proto"],  // api/proto を include パスとして指定
-        )?;
-    Ok(())
-}
-```
+Rust サーバーは各サービスの `build.rs` で `tonic-build` によりローカルコード生成する。詳細は [proto設計.guide.md](./proto設計.guide.md) を参照。
 
 ---
 
@@ -1608,52 +1576,31 @@ message ConfigChangedEvent {
 
 ## バージョニング・後方互換性ルール
 
+詳細な設計指針は [proto設計.guide.md](./proto設計.guide.md) を参照。
+
 ### 後方互換（バージョンアップ不要）
 
 | 変更種別 | 説明 |
 | --- | --- |
-| フィールド追加 | 新しいフィールド番号で追加。既存のデシリアライズに影響なし |
-| 新規 RPC メソッド追加 | サービス定義に新メソッドを追加。既存クライアントは影響なし |
+| フィールド追加 | 新しいフィールド番号で追加 |
+| 新規 RPC メソッド追加 | 既存クライアントは影響なし |
 | 新規 enum 値追加 | 既存の enum に新しい値を追加 |
-| フィールド名変更 | ワイヤーフォーマットは番号ベースのため互換性維持 |
+| フィールド名変更 | ワイヤーフォーマットは番号ベース |
 
 ### 後方互換性を破壊する変更（メジャーバージョンアップ）
 
 | 変更種別 | 説明 |
 | --- | --- |
-| フィールドの削除・番号変更 | 既存のデシリアライズが失敗する |
-| フィールドの型変更 | ワイヤーフォーマットが変わる |
+| フィールドの削除・番号変更 | デシリアライズ失敗 |
+| フィールドの型変更 | ワイヤーフォーマット変更 |
 | RPC メソッドのシグネチャ変更 | リクエスト/レスポンス型の変更 |
 | メッセージ名の変更 | JSON マッピング・リフレクションに影響 |
-
-### 削除時のフィールド番号予約
-
-フィールドを削除する場合は `reserved` で番号を予約し、再利用を防止する。
-
-```protobuf
-message Example {
-  reserved 2, 5;
-  reserved "old_field_name";
-  string id = 1;
-  string name = 3;
-}
-```
-
-### buf breaking による自動検証
-
-CI パイプラインで `buf breaking` を実行し、意図しない破壊的変更を検出する。
-
-```bash
-# main ブランチとの比較
-buf breaking api/proto --against '.git#branch=main'
-```
-
-破壊的変更が検出された場合は CI が失敗する。意図的な変更であれば新しいバージョンパッケージ（`v2`）として作成する。
 
 ---
 
 ## 関連ドキュメント
 
+- [proto設計.guide.md](./proto設計.guide.md) -- 設計背景・選定理由・後方互換性の詳細指針
 - [API設計.md](./API設計.md) -- gRPC サービス定義パターン (D-009)・gRPC バージョニング (D-010)
 - [system-server.md](../../servers/auth/server.md) -- auth-server の gRPC サービス定義
 - [system-config-server.md](../../servers/config/server.md) -- config-server の gRPC サービス定義

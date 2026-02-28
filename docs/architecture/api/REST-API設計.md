@@ -1,6 +1,8 @@
 # REST API 設計
 
-D-007 エラーレスポンス、D-008 バージョニング、D-012 レート制限、D-123 OpenAPI コード自動生成を定義する。
+D-007 エラーレスポンス、D-008 バージョニング、D-012 レート制限、D-123 OpenAPI コード自動生成の仕様。
+
+> **ガイド**: 実装例・選定理由・設計背景は [REST-API設計.guide.md](./REST-API設計.guide.md) を参照。
 
 元ドキュメント: [API設計.md](./API設計.md)
 
@@ -86,82 +88,7 @@ D-007 エラーレスポンス、D-008 バージョニング、D-012 レート�
 }
 ```
 
-### Go 実装例
-
-```go
-// internal/adapter/handler/error.go
-
-type APIError struct {
-    Code      string          `json:"code"`
-    Message   string          `json:"message"`
-    RequestID string          `json:"request_id"`
-    Details   []ErrorDetail   `json:"details,omitempty"`
-}
-
-type ErrorDetail struct {
-    Field   string `json:"field"`
-    Reason  string `json:"reason"`
-    Message string `json:"message"`
-}
-
-type ErrorResponse struct {
-    Error APIError `json:"error"`
-}
-
-func WriteError(w http.ResponseWriter, r *http.Request, status int, code, message string) {
-    resp := ErrorResponse{
-        Error: APIError{
-            Code:      code,
-            Message:   message,
-            RequestID: middleware.GetRequestID(r.Context()),
-        },
-    }
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(status)
-    json.NewEncoder(w).Encode(resp)
-}
-```
-
-### Rust 実装例
-
-```rust
-// src/adapter/handler/error.rs
-
-use serde::Serialize;
-
-#[derive(Serialize)]
-pub struct ApiError {
-    pub code: String,
-    pub message: String,
-    pub request_id: String,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub details: Vec<ErrorDetail>,
-}
-
-#[derive(Serialize)]
-pub struct ErrorDetail {
-    pub field: String,
-    pub reason: String,
-    pub message: String,
-}
-
-#[derive(Serialize)]
-pub struct ErrorResponse {
-    pub error: ApiError,
-}
-
-impl axum::response::IntoResponse for ErrorResponse {
-    fn into_response(self) -> axum::response::Response {
-        let status = match self.error.code.as_str() {
-            c if c.ends_with("NOT_FOUND") => StatusCode::NOT_FOUND,
-            c if c.ends_with("VALIDATION_FAILED") => StatusCode::BAD_REQUEST,
-            c if c.ends_with("FORBIDDEN") => StatusCode::FORBIDDEN,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        };
-        (status, axum::Json(self)).into_response()
-    }
-}
-```
+Go / Rust の実装例は [REST-API設計.guide.md](./REST-API設計.guide.md) を参照。
 
 ---
 
@@ -169,11 +96,8 @@ impl axum::response::IntoResponse for ErrorResponse {
 
 ### URL パス方式
 
-REST API のバージョニングは **URL パス方式** を採用する。
-
 ```
-https://api.k1s0.internal.example.com/api/v1/orders
-https://api.k1s0.internal.example.com/api/v2/orders
+/api/v{major}/...
 ```
 
 ### バージョニングルール
@@ -201,31 +125,11 @@ https://api.k1s0.internal.example.com/api/v2/orders
 
 ### Kong ルーティング連携
 
-Kong API Gateway で URL パスに基づいてバージョン別のルーティングを行う。
-
-```yaml
-# Kong Service / Route 設定
-services:
-  - name: order-v1
-    url: http://order-server.k1s0-service.svc.cluster.local:80
-    routes:
-      - name: order-v1-route
-        paths:
-          - /api/v1/orders
-        strip_path: false
-
-  - name: order-v2
-    url: http://order-server-v2.k1s0-service.svc.cluster.local:80
-    routes:
-      - name: order-v2-route
-        paths:
-          - /api/v2/orders
-        strip_path: false
-```
+Kong の Service / Route でバージョン別ルーティング。設計背景は [REST-API設計.guide.md](./REST-API設計.guide.md) を参照。
 
 ### 非推奨レスポンスヘッダー
 
-旧バージョンのエンドポイントには Kong プラグインで非推奨ヘッダーを付与する。
+旧バージョンのエンドポイントには非推奨ヘッダーを付与する。
 
 ```
 Deprecation: true
@@ -239,7 +143,7 @@ Link: <https://api.k1s0.internal.example.com/api/v2/orders>; rel="successor-vers
 
 ### Kong 一元管理
 
-レート制限は **Kong API Gateway の Rate Limiting プラグイン** で一元管理する。個別サービスでのレート制限実装は行わない。
+Kong Rate Limiting プラグインで一元管理。個別サービス実装は不要。選定理由は [REST-API設計.guide.md](./REST-API設計.guide.md) を参照。
 
 ### Tier 別デフォルト値
 
@@ -299,8 +203,6 @@ services:
 
 ### Redis 共有状態
 
-レート制限のカウンターは Redis で共有し、Kong の複数インスタンス間で一貫性を保つ。
-
 | 設定項目         | 値                                            |
 | ---------------- | --------------------------------------------- |
 | Redis ホスト     | `redis.k1s0-system.svc.cluster.local`         |
@@ -309,8 +211,6 @@ services:
 | フォールトトレラント | `true`（Redis 障害時は制限を一時停止）    |
 
 ### バースト制御
-
-短時間のスパイクを許容するため、バースト制御を設定する。
 
 ```yaml
 plugins:
@@ -328,8 +228,6 @@ plugins:
 | service  | 500          | 20                       |
 
 ### 環境別倍率
-
-開発環境ではテスト容易性のため制限を緩和する。
 
 | 環境    | 倍率 | system     | business   | service    |
 | ------- | ---- | ---------- | ---------- | ---------- |
@@ -370,10 +268,6 @@ X-RateLimit-Reset: 1710000000
 
 ## D-123: OpenAPI コード自動生成
 
-### 基本方針
-
-OpenAPI 定義からサーバー・クライアントコードを自動生成し、API 定義と実装の一貫性を保証する。
-
 ### ツール選定
 
 | 言語 / 用途          | ツール              | 方式                  |
@@ -381,159 +275,7 @@ OpenAPI 定義からサーバー・クライアントコードを自動生成し
 | Rust サーバー        | utoipa              | Rust コード → OpenAPI |
 | クライアント SDK     | openapi-generator   | OpenAPI → 各言語 SDK  |
 
-### Rust: utoipa
-
-Rust ではコードファースト方式を採用し、utoipa マクロから OpenAPI ドキュメントを生成する。
-
-```rust
-// src/adapter/handler/order.rs
-use utoipa::ToSchema;
-
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct CreateOrderInput {
-    /// 商品 ID
-    pub product_id: String,
-    /// 注文数量
-    #[schema(minimum = 1)]
-    pub quantity: i32,
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct Order {
-    pub id: String,
-    pub product_id: String,
-    pub quantity: i32,
-    pub status: OrderStatus,
-}
-
-#[utoipa::path(
-    post,
-    path = "/api/v1/orders",
-    request_body = CreateOrderInput,
-    responses(
-        (status = 201, description = "Order created", body = Order),
-        (status = 400, description = "Validation error", body = ErrorResponse),
-    ),
-    tag = "orders"
-)]
-async fn create_order(
-    State(state): State<AppState>,
-    Json(input): Json<CreateOrderInput>,
-) -> Result<Json<Order>, AppError> {
-    // ...
-}
-```
-
-```rust
-// src/main.rs
-use utoipa::OpenApi;
-
-#[derive(OpenApi)]
-#[openapi(
-    paths(handler::create_order, handler::get_order, handler::list_orders),
-    components(schemas(CreateOrderInput, Order, OrderStatus, ErrorResponse))
-)]
-struct ApiDoc;
-
-// /openapi.json エンドポイントで OpenAPI ドキュメントを提供
-```
-
-### クライアント SDK: openapi-generator
-
-OpenAPI 定義から各言語のクライアント SDK を生成する。
-
-```bash
-# TypeScript クライアント生成
-openapi-generator-cli generate \
-  -i api/openapi/openapi.yaml \
-  -g typescript-axios \
-  -o gen/ts-client \
-  --additional-properties=supportsES6=true
-
-# Dart クライアント生成
-openapi-generator-cli generate \
-  -i api/openapi/openapi.yaml \
-  -g dart \
-  -o gen/dart-client
-```
-
-#### 生成先ディレクトリ
-
-```
-{サービス名}/
-├── api/
-│   └── openapi/
-│       └── openapi.yaml
-└── gen/
-    ├── ts-client/           # TypeScript SDK（React 用）
-    └── dart-client/         # Dart SDK（Flutter 用）
-```
-
-#### クライアント SDK 配布方式
-
-| 言語 | 生成先 | 配布方式 | 詳細 |
-| --- | --- | --- | --- |
-| TypeScript | `gen/ts-client/` | npm private registry | Harbor 内の npm レジストリで配布。`@k1s0/` スコープで公開する |
-| Dart | `gen/dart-client/` | Git submodule / パス参照 | Flutter プロジェクトから Git submodule または `pubspec.yaml` のパス参照で依存する |
-
-##### TypeScript SDK の配布設定
-
-```json
-// gen/ts-client/package.json
-{
-  "name": "@k1s0/order-client",
-  "version": "1.0.0",
-  "publishConfig": {
-    "registry": "https://harbor.internal.example.com/npm/"
-  }
-}
-```
-
-##### Dart SDK の依存設定
-
-```yaml
-# Flutter プロジェクトの pubspec.yaml
-dependencies:
-  order_client:
-    path: ../../gen/dart-client    # パス参照の場合
-    # または Git submodule 経由
-    # git:
-    #   url: https://git.internal.example.com/k1s0/order-client-dart.git
-    #   ref: v1.0.0
-```
-
-#### SDK 自動再生成（CI/CD 連携）
-
-OpenAPI 定義または proto 定義の変更時に、CI/CD パイプラインでクライアント SDK を自動再生成する。
-
-```yaml
-# .github/workflows/ci.yaml（SDK 再生成の抜粋）
-jobs:
-  sdk-generate:
-    runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.changed_files, 'api/openapi/') || contains(github.event.pull_request.changed_files, 'api/proto/')
-    steps:
-      - uses: actions/checkout@v4
-      - name: Generate TypeScript SDK
-        run: |
-          openapi-generator-cli generate \
-            -i api/openapi/openapi.yaml \
-            -g typescript-axios \
-            -o gen/ts-client \
-            --additional-properties=supportsES6=true
-      - name: Generate Dart SDK
-        run: |
-          openapi-generator-cli generate \
-            -i api/openapi/openapi.yaml \
-            -g dart \
-            -o gen/dart-client
-      - name: Publish TypeScript SDK
-        run: |
-          cd gen/ts-client
-          npm publish --registry https://harbor.internal.example.com/npm/
-      - name: Verify no diff
-        run: git diff --exit-code gen/
-```
+実装例・選定理由・SDK 配布設定は [REST-API設計.guide.md](./REST-API設計.guide.md) を参照。
 
 ### CI 連携
 
@@ -553,6 +295,7 @@ jobs:
 
 ## 関連ドキュメント
 
+- [REST-API設計.guide.md](./REST-API設計.guide.md) -- 実装例・選定理由・設計背景
 - [API設計.md](./API設計.md) -- 基本方針・Tier 別 API 種別パターン
 - [gRPC設計.md](gRPC設計.md) -- gRPC サービス定義・バージョニング
 - [GraphQL設計.md](GraphQL設計.md) -- GraphQL 設計・実装技術選定
