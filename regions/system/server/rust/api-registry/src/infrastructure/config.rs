@@ -47,7 +47,7 @@ fn default_port() -> u16 {
     8101
 }
 fn default_grpc_port() -> u16 {
-    9090
+    50051
 }
 
 #[derive(Debug, Clone, Deserialize)]

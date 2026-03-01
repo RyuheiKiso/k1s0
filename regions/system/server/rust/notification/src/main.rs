@@ -189,7 +189,8 @@ async fn main() -> anyhow::Result<()> {
         log_repo.clone(),
     ));
 
-    let grpc_addr: std::net::SocketAddr = "0.0.0.0:9090".parse()?;
+    let grpc_addr: std::net::SocketAddr =
+        format!("{}:{}", cfg.server.host, cfg.server.grpc_port).parse()?;
     info!("gRPC server starting on {}", grpc_addr);
 
     // tonic wrapper
