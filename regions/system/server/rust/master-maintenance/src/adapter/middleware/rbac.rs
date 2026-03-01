@@ -28,7 +28,7 @@ async fn rbac_check(
 
     let roles = claims.realm_roles();
 
-    if !check_system_permission(&roles, action) {
+    if !check_system_permission(roles, action) {
         return Err(AppError::forbidden(
             "SYS_AUTH_PERMISSION_DENIED",
             &format!("Insufficient permissions for action: {}", action),

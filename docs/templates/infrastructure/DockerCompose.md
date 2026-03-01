@@ -146,7 +146,7 @@ services:
   # NOTE: ローカル開発では PLAINTEXT を使用（開発効率優先）。
   # staging/prod では SASL_SSL を使用し、Strimzi Operator が証明書管理を行う。
   kafka:
-    image: confluentinc/cp-kafka:7.7.1
+    image: apache/kafka:3.8.0
     profiles: [infra]
     environment:
       KAFKA_NODE_ID: 1
@@ -166,7 +166,7 @@ services:
     volumes:
       - kafka-data:/var/lib/kafka
     healthcheck:
-      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      test: ["CMD-SHELL", "bash -lc 'kafka-broker-api-versions.sh --bootstrap-server localhost:9092'"]
       interval: 10s
       timeout: 5s
       retries: 5

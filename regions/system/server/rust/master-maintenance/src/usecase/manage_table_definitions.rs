@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use uuid::Uuid;
 use crate::domain::entity::table_definition::{TableDefinition, CreateTableDefinition, UpdateTableDefinition};
 use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
 use crate::domain::repository::column_definition_repository::ColumnDefinitionRepository;
@@ -23,6 +24,10 @@ impl ManageTableDefinitionsUseCase {
 
     pub async fn get_table(&self, name: &str) -> anyhow::Result<Option<TableDefinition>> {
         self.table_repo.find_by_name(name).await
+    }
+
+    pub async fn get_table_by_id(&self, id: Uuid) -> anyhow::Result<Option<TableDefinition>> {
+        self.table_repo.find_by_id(id).await
     }
 
     pub async fn create_table(&self, input: &CreateTableDefinition, created_by: &str) -> anyhow::Result<TableDefinition> {

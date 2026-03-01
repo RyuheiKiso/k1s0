@@ -626,7 +626,7 @@ OpenAPI 定義（`api/openapi/`）の変更時に、バリデーションとク�
 
 PR 時に `regions/system/server/rust/**` 配下の変更を検知し、実インフラ（PostgreSQL・Kafka）を使った統合テストを実行する。
 
-- **サービスコンテナ**: `postgres:17`（ヘルスチェック付き）+ `confluentinc/cp-kafka:7.7.1`（KRaft モード）
+- **サービスコンテナ**: `postgres:17`（ヘルスチェック付き）+ `apache/kafka:3.8.0`（KRaft モード）
 - **DB 初期化**: `infra/docker/init-db/*.sql` を順次適用
 - **対象サービス**: auth-server / config-server / saga-server / dlq-manager（各サービスで `cargo test --all -- --ignored`）
 - **スキーマ分離**: 各サービスは専用の PostgreSQL スキーマ（auth / config / saga / dlq）を使用
@@ -662,12 +662,19 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       kafka:
-        image: confluentinc/cp-kafka:7.7.1
+        image: apache/kafka:3.8.0
         env:
           KAFKA_NODE_ID: 1
           KAFKA_PROCESS_ROLES: broker,controller
+          KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
           KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
           KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+          CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
         ports:
           - 9092:9092
     steps:

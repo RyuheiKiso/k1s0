@@ -24,6 +24,9 @@ pub struct AppState {
     pub manage_rules_uc: Arc<usecase::manage_rules::ManageRulesUseCase>,
     pub check_consistency_uc: Arc<usecase::check_consistency::CheckConsistencyUseCase>,
     pub get_audit_logs_uc: Arc<usecase::get_audit_logs::GetAuditLogsUseCase>,
+    pub manage_relationships_uc: Arc<usecase::manage_relationships::ManageRelationshipsUseCase>,
+    pub manage_display_configs_uc: Arc<usecase::manage_display_configs::ManageDisplayConfigsUseCase>,
+    pub import_export_uc: Arc<usecase::import_export::ImportExportUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<MasterMaintenanceAuthState>,
 }

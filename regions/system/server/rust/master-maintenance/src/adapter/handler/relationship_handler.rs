@@ -7,36 +7,53 @@ use crate::adapter::handler::AppState;
 use crate::adapter::handler::error::AppError;
 
 pub async fn list_relationships(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    todo!("list_relationships")
+    let relationships = state.manage_relationships_uc.list_relationships().await?;
+    Ok(Json(serde_json::to_value(relationships).unwrap()))
 }
 
 pub async fn create_relationship(
-    State(_state): State<AppState>,
-    Json(_input): Json<serde_json::Value>,
+    State(state): State<AppState>,
+    Json(input): Json<serde_json::Value>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
-    todo!("create_relationship")
+    let relationship = state
+        .manage_relationships_uc
+        .create_relationship(&input, "system")
+        .await?;
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::to_value(relationship).unwrap()),
+    ))
 }
 
 pub async fn update_relationship(
-    State(_state): State<AppState>,
-    Path(_id): Path<uuid::Uuid>,
-    Json(_input): Json<serde_json::Value>,
+    State(state): State<AppState>,
+    Path(id): Path<uuid::Uuid>,
+    Json(input): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    todo!("update_relationship")
+    let relationship = state
+        .manage_relationships_uc
+        .update_relationship(id, &input)
+        .await?;
+    Ok(Json(serde_json::to_value(relationship).unwrap()))
 }
 
 pub async fn delete_relationship(
-    State(_state): State<AppState>,
-    Path(_id): Path<uuid::Uuid>,
+    State(state): State<AppState>,
+    Path(id): Path<uuid::Uuid>,
 ) -> Result<StatusCode, AppError> {
-    todo!("delete_relationship")
+    state.manage_relationships_uc.delete_relationship(id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn get_related_records(
-    State(_state): State<AppState>,
-    Path((_name, _id)): Path<(String, String)>,
+    State(state): State<AppState>,
+    Path((name, id)): Path<(String, String)>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    todo!("get_related_records")
+    let related = state
+        .manage_relationships_uc
+        .get_related_records(&name, &id)
+        .await?;
+    Ok(Json(related))
 }

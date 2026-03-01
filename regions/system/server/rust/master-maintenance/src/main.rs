@@ -103,6 +103,36 @@ async fn main() -> anyhow::Result<()> {
         unimplemented!()
     };
 
+    let relationship_repo: Arc<
+        dyn domain::repository::table_relationship_repository::TableRelationshipRepository,
+    > = if let Some(ref pool) = db_pool {
+        Arc::new(
+            infrastructure::persistence::table_relationship_repo_impl::TableRelationshipPostgresRepository::new(pool.clone()),
+        )
+    } else {
+        unimplemented!()
+    };
+
+    let display_config_repo: Arc<
+        dyn domain::repository::display_config_repository::DisplayConfigRepository,
+    > = if let Some(ref pool) = db_pool {
+        Arc::new(
+            infrastructure::persistence::display_config_repo_impl::DisplayConfigPostgresRepository::new(pool.clone()),
+        )
+    } else {
+        unimplemented!()
+    };
+
+    let import_job_repo: Arc<
+        dyn domain::repository::import_job_repository::ImportJobRepository,
+    > = if let Some(ref pool) = db_pool {
+        Arc::new(
+            infrastructure::persistence::import_job_repo_impl::ImportJobPostgresRepository::new(pool.clone()),
+        )
+    } else {
+        unimplemented!()
+    };
+
     // 6. Kafka Producer (optional)
     let _kafka_producer = if let Some(ref kafka_cfg) = cfg.kafka {
         match infrastructure::messaging::kafka_producer::MasterMaintenanceKafkaProducer::new(
@@ -161,6 +191,26 @@ async fn main() -> anyhow::Result<()> {
     let get_audit_logs_uc = Arc::new(usecase::get_audit_logs::GetAuditLogsUseCase::new(
         change_log_repo.clone(),
     ));
+    let manage_relationships_uc = Arc::new(
+        usecase::manage_relationships::ManageRelationshipsUseCase::new(
+            table_repo.clone(),
+            relationship_repo.clone(),
+            record_repo.clone(),
+            column_repo.clone(),
+        ),
+    );
+    let manage_display_configs_uc = Arc::new(
+        usecase::manage_display_configs::ManageDisplayConfigsUseCase::new(
+            table_repo.clone(),
+            display_config_repo.clone(),
+        ),
+    );
+    let import_export_uc = Arc::new(usecase::import_export::ImportExportUseCase::new(
+        table_repo.clone(),
+        column_repo.clone(),
+        record_repo.clone(),
+        import_job_repo.clone(),
+    ));
 
     // 9. Auth
     let auth_state = if let Some(ref auth_cfg) = cfg.auth {
@@ -183,6 +233,9 @@ async fn main() -> anyhow::Result<()> {
         manage_rules_uc,
         check_consistency_uc,
         get_audit_logs_uc,
+        manage_relationships_uc,
+        manage_display_configs_uc,
+        import_export_uc,
         metrics: metrics.clone(),
         auth_state: auth_state.clone(),
     };

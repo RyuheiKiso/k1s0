@@ -6,6 +6,12 @@ use crate::domain::service::rule_engine_service::RuleEngineService;
 
 pub struct ZenEngineAdapter;
 
+impl Default for ZenEngineAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ZenEngineAdapter {
     pub fn new() -> Self {
         Self
