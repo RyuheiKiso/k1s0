@@ -560,3 +560,4 @@ echo "COMPOSE_PROJECT_NAME=$(whoami)" >> .env
 - [APIゲートウェイ設計](../../architecture/api/APIゲートウェイ設計.md)
 - [Dockerイメージ戦略](Dockerイメージ戦略.md)
 - [テンプレート仕様-DockerCompose](../../templates/infrastructure/DockerCompose.md)
+- [共用開発サーバー設計](../devenv/共用開発サーバー設計.md)
