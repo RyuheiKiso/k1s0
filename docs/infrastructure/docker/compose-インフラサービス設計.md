@@ -417,29 +417,18 @@ Keycloak は `start-dev --import-realm` で起動し、realm 設定を自動イ�
 
 ```yaml
 kafka-init:
-  image: bitnami/kafka:3.8
+  image: apache/kafka:3.8.0
   profiles: [infra]
   depends_on:
     kafka:
       condition: service_healthy
-  entrypoint: ["/bin/bash", "-c"]
-  command:
-    - |
-      echo "Creating Kafka topics..."
-      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.auth.audit.v1 --partitions 6 --replication-factor 1
-      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.auth.permission_denied.v1 --partitions 6 --replication-factor 1
-      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.config.changed.v1 --partitions 6 --replication-factor 1
-      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.apiregistry.schema_updated.v1 --partitions 6 --replication-factor 1
-      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.featureflag.changed.v1 --partitions 6 --replication-factor 1
-      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.file.uploaded.v1 --partitions 6 --replication-factor 1
-      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.file.deleted.v1 --partitions 6 --replication-factor 1
-      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.vault.secret_rotated.v1 --partitions 6 --replication-factor 1
-      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.notification.requested.v1 --partitions 6 --replication-factor 1
-      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.quota.exceeded.v1 --partitions 6 --replication-factor 1
-      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.system.saga.state_changed.v1 --partitions 6 --replication-factor 1
-      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.service.order.created.v1 --partitions 3 --replication-factor 1
-      kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic k1s0.service.order.updated.v1 --partitions 3 --replication-factor 1
-      echo "Kafka topics created."
+  environment:
+    KAFKA_BOOTSTRAP_SERVER: kafka:9092
+    KAFKA_REPLICATION_FACTOR: "1"
+    PATH: "/opt/kafka/bin:/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  volumes:
+    - ./infra/messaging/kafka/create-topics.sh:/scripts/create-topics.sh:ro
+  entrypoint: ["/bin/bash", "/scripts/create-topics.sh"]
   restart: "no"
 ```
 

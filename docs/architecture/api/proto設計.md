@@ -97,8 +97,10 @@ api/proto/
         │   └── v1/dlq.proto             # DlqService
         ├── quota/
         │   └── v1/quota.proto           # QuotaService
-        └── file/
-            └── v1/file.proto            # FileService
+        ├── file/
+        │   └── v1/file.proto            # FileService
+        └── mastermaintenance/
+            └── v1/master_maintenance.proto  # MasterMaintenanceService
 ```
 
 ### Kafka イベント定義

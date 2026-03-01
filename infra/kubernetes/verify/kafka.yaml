@@ -20,7 +20,7 @@ spec:
       enableServiceLinks: false
       containers:
         - name: kafka
-          image: confluentinc/cp-kafka:7.7.1
+          image: apache/kafka:3.8.0
           env:
             - name: KAFKA_NODE_ID
               value: "1"

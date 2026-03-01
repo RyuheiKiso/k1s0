@@ -30,6 +30,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | 共通マスタ API | gRPC | マスタデータ参照（サービス間） | `MasterService.GetMaster` |
 | Saga/Workflow API | REST | Saga・ワークフローの管理 | `/api/v1/sagas`, `/api/v1/workflows` |
 | Saga/Workflow API | gRPC | サービス間の Saga 連携 | `SagaService.CreateSaga` |
+| GraphQL Gateway | GraphQL | 複数バックエンドのデータ集約（導入基準を満たす場合） | `query { ... }` |
 | DLQ Manager API | REST | Dead Letter Queue の管理・リトライ | `/api/v1/dlq` |
 
 ### business Tier

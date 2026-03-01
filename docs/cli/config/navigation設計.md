@@ -24,7 +24,7 @@ React・Flutter のいずれのフレームワークでも同一の `navigation.
 
 ## アーキテクチャ全体像
 
-<img src="diagrams/navigation-architecture.svg" width="900" />
+<img src="../../diagrams/navigation-architecture.svg" width="900" />
 
 ---
 
@@ -155,7 +155,7 @@ Content-Type: application/json
 
 ### サーバー側の処理フロー
 
-<img src="diagrams/navigation-server-flow.svg" width="600" />
+<img src="../../diagrams/navigation-server-flow.svg" width="600" />
 
 ---
 

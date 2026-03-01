@@ -56,7 +56,7 @@
 
 ## アーキテクチャ全体図
 
-<img src="diagrams/master-maintenance-architecture.svg" width="1200" />
+<img src="../../diagrams/master-maintenance-architecture.svg" width="1200" />
 
 ### レイヤー構成
 
@@ -70,7 +70,7 @@
 
 ## メタデータ駆動フロー
 
-<img src="diagrams/master-maintenance-metadata-flow.svg" width="1400" />
+<img src="../../diagrams/master-maintenance-metadata-flow.svg" width="1400" />
 
 ### 開発者のオンボーディングワークフロー
 
@@ -117,7 +117,7 @@
 
 ### ER 図
 
-<img src="diagrams/master-maintenance-er.svg" width="1400" />
+<img src="../../diagrams/master-maintenance-er.svg" width="1400" />
 
 ### スキーマ: `master_maintenance`
 
@@ -204,7 +204,7 @@ CREATE TABLE master_maintenance.table_relationships (
     display_name        VARCHAR(255),
     is_cascade_delete   BOOLEAN NOT NULL DEFAULT false,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT chk_relationship_type CHECK (relationship_type IN ('one_to_one', 'one_to_many', 'many_to_many'))
+    CONSTRAINT chk_relationship_type CHECK (relationship_type IN ('one_to_one', 'one_to_many', 'many_to_one', 'many_to_many'))
 );
 
 CREATE INDEX idx_relationships_source ON master_maintenance.table_relationships(source_table_id);
@@ -356,7 +356,7 @@ CREATE INDEX idx_import_jobs_status ON master_maintenance.import_jobs(status);
 
 ## 整合性チェックエンジン
 
-<img src="diagrams/master-maintenance-rule-engine.svg" width="1200" />
+<img src="../../diagrams/master-maintenance-rule-engine.svg" width="1200" />
 
 ### ルールの種類
 
@@ -490,7 +490,7 @@ pub async fn evaluate_custom_rule(
 
 ### CRUD 操作シーケンス
 
-<img src="diagrams/master-maintenance-crud-sequence.svg" width="1400" />
+<img src="../../diagrams/master-maintenance-crud-sequence.svg" width="1400" />
 
 ### REST API エンドポイント
 
@@ -592,6 +592,16 @@ pub async fn evaluate_custom_rule(
 | GET | `/api/v1/tables/{name}/export` | CSV/Excel エクスポート | `sys_auditor` 以上 |
 | GET | `/api/v1/import-jobs/{id}` | インポートジョブ状態取得 | `sys_auditor` 以上 |
 
+#### 表示設定管理
+
+| Method | Path | Description | 認可 |
+| --- | --- | --- | --- |
+| GET | `/api/v1/tables/{name}/display-configs` | 表示設定一覧 | `sys_auditor` 以上 |
+| POST | `/api/v1/tables/{name}/display-configs` | 表示設定作成 | `sys_operator` 以上 |
+| GET | `/api/v1/tables/{name}/display-configs/{id}` | 表示設定取得 | `sys_auditor` 以上 |
+| PUT | `/api/v1/tables/{name}/display-configs/{id}` | 表示設定更新 | `sys_operator` 以上 |
+| DELETE | `/api/v1/tables/{name}/display-configs/{id}` | 表示設定削除 | `sys_admin` のみ |
+
 #### 監査ログ
 
 | Method | Path | Description | 認可 |
@@ -607,6 +617,22 @@ pub async fn evaluate_custom_rule(
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
 
+#### エラーコード
+
+| コード | HTTP Status | Description |
+| --- | --- | --- |
+| `SYS_MM_TABLE_NOT_FOUND` | 404 | 指定されたテーブル定義が見つからない |
+| `SYS_MM_COLUMN_NOT_FOUND` | 404 | 指定されたカラム定義が見つからない |
+| `SYS_MM_RECORD_NOT_FOUND` | 404 | 指定されたレコードが見つからない |
+| `SYS_MM_RULE_NOT_FOUND` | 404 | 指定された整合性ルールが見つからない |
+| `SYS_MM_VALIDATION_FAILED` | 400 | 整合性チェックに失敗 |
+| `SYS_MM_DUPLICATE_TABLE` | 409 | テーブル名が重複 |
+| `SYS_MM_DUPLICATE_COLUMN` | 409 | カラム名が重複 |
+| `SYS_MM_PERMISSION_DENIED` | 403 | 操作権限がない |
+| `SYS_MM_IMPORT_FAILED` | 400 | インポート処理に失敗 |
+| `SYS_MM_INVALID_RULE` | 400 | ルール定義が不正 |
+| `SYS_MM_SQL_BUILD_ERROR` | 500 | 動的SQL生成に失敗 |
+
 ### gRPC サービス定義
 
 `api/proto/k1s0/system/mastermaintenance/v1/master_maintenance.proto`
@@ -616,8 +642,11 @@ syntax = "proto3";
 
 package k1s0.system.mastermaintenance.v1;
 
+option go_package = "github.com/k1s0/api/gen/go/k1s0/system/mastermaintenance/v1;mastermaintenancev1";
+
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
+import "k1s0/system/common/v1/types.proto";
 
 service MasterMaintenanceService {
   // テーブル定義
@@ -682,13 +711,12 @@ message TableRelationship {
 message ListTableDefinitionsRequest {
   string category = 1;
   bool active_only = 2;
-  int32 page = 3;
-  int32 page_size = 4;
+  k1s0.system.common.v1.Pagination pagination = 3;
 }
 
 message ListTableDefinitionsResponse {
   repeated TableDefinitionResponse tables = 1;
-  int32 total = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message GetRecordRequest {
@@ -703,16 +731,15 @@ message RecordResponse {
 
 message ListRecordsRequest {
   string table_name = 1;
-  int32 page = 2;
-  int32 page_size = 3;
-  string sort = 4;
-  string filter = 5;
-  string search = 6;
+  k1s0.system.common.v1.Pagination pagination = 2;
+  string sort = 3;
+  string filter = 4;
+  string search = 5;
 }
 
 message ListRecordsResponse {
   repeated google.protobuf.Struct records = 1;
-  int32 total = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message CreateRecordRequest {
@@ -884,15 +911,24 @@ regions/system/server/rust/master-maintenance/
 │           ├── mod.rs
 │           └── kafka_producer.rs
 ├── migrations/
-│   ├── 001_create_schema.sql
-│   ├── 002_create_table_definitions.sql
-│   ├── 003_create_column_definitions.sql
-│   ├── 004_create_table_relationships.sql
-│   ├── 005_create_consistency_rules.sql
-│   ├── 006_create_rule_conditions.sql
-│   ├── 007_create_display_configs.sql
-│   ├── 008_create_change_logs.sql
-│   └── 009_create_import_jobs.sql
+│   ├── 001_create_schema.up.sql
+│   ├── 001_create_schema.down.sql
+│   ├── 002_create_table_definitions.up.sql
+│   ├── 002_create_table_definitions.down.sql
+│   ├── 003_create_column_definitions.up.sql
+│   ├── 003_create_column_definitions.down.sql
+│   ├── 004_create_table_relationships.up.sql
+│   ├── 004_create_table_relationships.down.sql
+│   ├── 005_create_consistency_rules.up.sql
+│   ├── 005_create_consistency_rules.down.sql
+│   ├── 006_create_rule_conditions.up.sql
+│   ├── 006_create_rule_conditions.down.sql
+│   ├── 007_create_display_configs.up.sql
+│   ├── 007_create_display_configs.down.sql
+│   ├── 008_create_change_logs.up.sql
+│   ├── 008_create_change_logs.down.sql
+│   ├── 009_create_import_jobs.up.sql
+│   └── 009_create_import_jobs.down.sql
 ├── config/
 │   ├── config.yaml
 │   ├── config.dev.yaml
@@ -911,7 +947,7 @@ regions/system/server/rust/master-maintenance/
 
 | カテゴリ | フィールド | 説明 |
 | --- | --- | --- |
-| server | `rest_port` / `grpc_port` / `environment` | REST 8110 / gRPC 50051 |
+| server | `port` / `grpc_port` / `environment` | REST 8110 / gRPC 50051 |
 | database | `host` / `port` / `name` / `schema` / `max_connections` | PostgreSQL `master_maintenance` スキーマ |
 | kafka | `brokers` / `topic` | `k1s0.system.mastermaintenance.data_changed.v1` |
 | auth | `jwks_url` / `issuer` / `audience` | JWT 認証設定 |
@@ -937,8 +973,8 @@ regions/system/server/rust/master-maintenance/
 ```yaml
 master-maintenance-server:
   build:
-    context: ./regions/system/server/rust/master-maintenance
-    dockerfile: Dockerfile
+    context: ./regions/system
+    dockerfile: server/rust/master-maintenance/Dockerfile
   ports:
     - "8110:8110"
     - "9098:50051"
@@ -1117,6 +1153,16 @@ calamine = "0.26"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 
+# Observability (共通テンプレート準拠)
+opentelemetry = "0.27"
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic"] }
+tracing-opentelemetry = "0.28"
+prometheus = "0.13"
+
+# Validation
+validator = { version = "0.18", features = ["derive"] }
+
 # Telemetry library
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
 
@@ -1145,6 +1191,7 @@ db-tests = []
 mockall = "0.13"
 tokio-test = "0.4"
 tower = { version = "0.5", features = ["util"] }
+testcontainers = "0.23"
 ```
 
 ---
@@ -1153,7 +1200,7 @@ tower = { version = "0.5", features = ["util"] }
 
 ### コンポーネント構成
 
-<img src="diagrams/master-maintenance-react-components.svg" width="1400" />
+<img src="../../diagrams/master-maintenance-react-components.svg" width="1400" />
 
 ### 動的フォーム生成の仕組み
 
