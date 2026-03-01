@@ -343,6 +343,7 @@ func (c *GrpcSearchClient) BulkIndex(ctx context.Context, index string, docs []I
 func (c *GrpcSearchClient) Search(ctx context.Context, index string, query SearchQuery) (SearchResult, error)
 func (c *GrpcSearchClient) DeleteDocument(ctx context.Context, index, id string) error
 func (c *GrpcSearchClient) CreateIndex(ctx context.Context, name string, mapping IndexMapping) error
+func (c *GrpcSearchClient) Close()
 ```
 
 **使用例**:
@@ -629,6 +630,17 @@ class InMemorySearchClient implements SearchClient {
   Future<SearchResult<Map<String, dynamic>>> search(String index, SearchQuery query);
   Future<void> deleteDocument(String index, String id);
   int documentCount(String index);
+}
+
+// GrpcSearchClient（gRPC実装）
+class GrpcSearchClient implements SearchClient {
+  GrpcSearchClient(String serverUrl);
+  Future<IndexResult> indexDocument(String index, IndexDocument doc);
+  Future<BulkResult> bulkIndex(String index, List<IndexDocument> docs);
+  Future<SearchResult<Map<String, dynamic>>> search(String index, SearchQuery query);
+  Future<void> deleteDocument(String index, String id);
+  Future<void> createIndex(String name, IndexMapping mapping);
+  Future<void> close();
 }
 ```
 

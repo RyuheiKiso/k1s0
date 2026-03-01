@@ -38,6 +38,24 @@ func (e *QuotaClientError) Error() string {
 	return fmt.Sprintf("quota-client error [%s]: %s", e.Code, e.Message)
 }
 
+// QuotaNotFoundError はクォータ ID が見つからない場合のエラー。
+type QuotaNotFoundError struct {
+	QuotaID string
+}
+
+func (e *QuotaNotFoundError) Error() string {
+	return fmt.Sprintf("quota not found: %s", e.QuotaID)
+}
+
+// QuotaConnectionError は quota-server への接続失敗エラー。
+type QuotaConnectionError struct {
+	Message string
+}
+
+func (e *QuotaConnectionError) Error() string {
+	return fmt.Sprintf("quota connection error: %s", e.Message)
+}
+
 // HttpQuotaClient は quota-server への HTTP クライアント実装。
 type HttpQuotaClient struct {
 	httpClient *http.Client
@@ -72,12 +90,12 @@ func (c *HttpQuotaClient) Check(ctx context.Context, quotaID string, amount uint
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, &QuotaClientError{Code: "CONNECTION_ERROR", Message: err.Error()}
+		return nil, &QuotaConnectionError{Message: err.Error()}
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &QuotaClientError{Code: "NOT_FOUND", Message: fmt.Sprintf("quota not found: %s", quotaID)}
+		return nil, &QuotaNotFoundError{QuotaID: quotaID}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, &QuotaClientError{Code: "INVALID_RESPONSE", Message: fmt.Sprintf("unexpected status: %d", resp.StatusCode)}
@@ -106,12 +124,12 @@ func (c *HttpQuotaClient) Increment(ctx context.Context, quotaID string, amount 
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, &QuotaClientError{Code: "CONNECTION_ERROR", Message: err.Error()}
+		return nil, &QuotaConnectionError{Message: err.Error()}
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &QuotaClientError{Code: "NOT_FOUND", Message: fmt.Sprintf("quota not found: %s", quotaID)}
+		return nil, &QuotaNotFoundError{QuotaID: quotaID}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, &QuotaClientError{Code: "INVALID_RESPONSE", Message: fmt.Sprintf("unexpected status: %d", resp.StatusCode)}
@@ -135,12 +153,12 @@ func (c *HttpQuotaClient) GetUsage(ctx context.Context, quotaID string) (*QuotaU
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, &QuotaClientError{Code: "CONNECTION_ERROR", Message: err.Error()}
+		return nil, &QuotaConnectionError{Message: err.Error()}
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &QuotaClientError{Code: "NOT_FOUND", Message: fmt.Sprintf("quota not found: %s", quotaID)}
+		return nil, &QuotaNotFoundError{QuotaID: quotaID}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, &QuotaClientError{Code: "INVALID_RESPONSE", Message: fmt.Sprintf("unexpected status: %d", resp.StatusCode)}
@@ -164,12 +182,12 @@ func (c *HttpQuotaClient) GetPolicy(ctx context.Context, quotaID string) (*Quota
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, &QuotaClientError{Code: "CONNECTION_ERROR", Message: err.Error()}
+		return nil, &QuotaConnectionError{Message: err.Error()}
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &QuotaClientError{Code: "NOT_FOUND", Message: fmt.Sprintf("quota not found: %s", quotaID)}
+		return nil, &QuotaNotFoundError{QuotaID: quotaID}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, &QuotaClientError{Code: "INVALID_RESPONSE", Message: fmt.Sprintf("unexpected status: %d", resp.StatusCode)}

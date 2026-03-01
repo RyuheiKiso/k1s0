@@ -265,7 +265,7 @@ export class GrpcRateLimitClient implements RateLimitClient {
 export class RateLimitError extends Error {
   constructor(
     message: string,
-    public readonly code: 'LIMIT_EXCEEDED' | 'KEY_NOT_FOUND' | 'SERVER_ERROR' | 'TIMEOUT',
+    public readonly code: 'LIMIT_EXCEEDED' | 'KEY_NOT_FOUND' | 'SERVER_ERROR' | 'TIMEOUT' | 'UNKNOWN',
     public readonly retryAfterSecs?: number
   );
 }

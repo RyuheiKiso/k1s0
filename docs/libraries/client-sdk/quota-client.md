@@ -143,6 +143,31 @@ const (
 
 func NewInMemoryQuotaClient() *InMemoryQuotaClient
 func NewCachedQuotaClient(inner QuotaClient, policyTTL time.Duration) *CachedQuotaClient
+func NewQuotaClientConfig(baseURL string) QuotaClientConfig
+func NewHttpQuotaClient(baseURL string, config QuotaClientConfig) *HttpQuotaClient
+```
+
+**使用例（HttpQuotaClient）**:
+
+```go
+config := NewQuotaClientConfig("http://quota-server:8080")
+client := NewHttpQuotaClient("http://quota-server:8080", config)
+
+// check before execute パターン
+status, err := client.Check(ctx, "storage:tenant-123", 1024*1024)
+if err != nil {
+    return err
+}
+if !status.Allowed {
+    return fmt.Errorf("quota exceeded")
+}
+
+// 操作実行後に使用量を記録
+usage, err := client.Increment(ctx, "storage:tenant-123", 1024*1024)
+if err != nil {
+    return err
+}
+fmt.Printf("使用済み: %d / %d\n", usage.Used, usage.Limit)
 ```
 
 ## TypeScript 実装
@@ -189,7 +214,14 @@ export interface QuotaClientConfig {
   policyCacheTtlMs?: number;
 }
 
-// HTTP クライアントは未実装。代わりに InMemoryQuotaClient を使用する。
+export class HttpQuotaClient implements QuotaClient {
+  constructor(config: QuotaClientConfig);
+  check(quotaId: string, amount: number): Promise<QuotaStatus>;
+  increment(quotaId: string, amount: number): Promise<QuotaUsage>;
+  getUsage(quotaId: string): Promise<QuotaUsage>;
+  getPolicy(quotaId: string): Promise<QuotaPolicy>;
+}
+
 export class InMemoryQuotaClient implements QuotaClient {
   setPolicy(quotaId: string, policy: QuotaPolicy): void;
   check(quotaId: string, amount: number): Promise<QuotaStatus>;

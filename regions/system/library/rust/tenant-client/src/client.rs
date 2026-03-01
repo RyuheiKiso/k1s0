@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use serde::Deserialize;
 
 use crate::config::TenantClientConfig;
 use crate::error::TenantError;
@@ -82,6 +83,162 @@ impl TenantClient for InMemoryTenantClient {
     async fn get_settings(&self, tenant_id: &str) -> Result<TenantSettings, TenantError> {
         let tenant = self.get_tenant(tenant_id).await?;
         Ok(TenantSettings::new(tenant.settings))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// GrpcTenantClient — tenant-server 経由の HTTP 実装
+// ---------------------------------------------------------------------------
+
+/// tenant-server から返却される JSON レスポンスの内部 DTO。
+#[derive(Debug, Deserialize)]
+struct TenantResponse {
+    id: String,
+    name: String,
+    status: TenantStatus,
+    plan: String,
+    settings: std::collections::HashMap<String, String>,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl From<TenantResponse> for Tenant {
+    fn from(r: TenantResponse) -> Self {
+        Tenant {
+            id: r.id,
+            name: r.name,
+            status: r.status,
+            plan: r.plan,
+            settings: r.settings,
+            created_at: r.created_at,
+        }
+    }
+}
+
+/// `TenantSettings` 取得専用レスポンス DTO。
+#[derive(Debug, Deserialize)]
+struct TenantSettingsResponse {
+    values: std::collections::HashMap<String, String>,
+}
+
+/// tenant-server へ HTTP で委譲する `TenantClient` 実装。
+///
+/// 名称は将来的な gRPC 移行を見越した `GrpcTenantClient` だが、
+/// 現時点では REST/HTTP で実装されている。
+pub struct GrpcTenantClient {
+    http: reqwest::Client,
+    base_url: String,
+}
+
+impl GrpcTenantClient {
+    /// 新しい `GrpcTenantClient` を生成する。
+    pub fn new(config: TenantClientConfig) -> Result<Self, TenantError> {
+        let http = reqwest::Client::builder()
+            .timeout(config.cache_ttl)
+            .build()
+            .map_err(|e| TenantError::ServerError(e.to_string()))?;
+
+        Ok(Self {
+            http,
+            base_url: config.server_url,
+        })
+    }
+
+    fn url(&self, path: &str) -> String {
+        format!("{}{}", self.base_url, path)
+    }
+
+    /// HTTP レスポンスのステータスを確認し、エラーを `TenantError` に変換する。
+    async fn check_response(
+        resp: reqwest::Response,
+        tenant_id: &str,
+    ) -> Result<reqwest::Response, TenantError> {
+        let status = resp.status();
+        if status.is_success() {
+            return Ok(resp);
+        }
+        let body = resp.text().await.unwrap_or_default();
+        match status.as_u16() {
+            404 => Err(TenantError::NotFound(tenant_id.to_string())),
+            _ => Err(TenantError::ServerError(format!(
+                "HTTP {}: {}",
+                status, body
+            ))),
+        }
+    }
+
+    /// `reqwest::Error` を `TenantError` へ変換するヘルパー。
+    fn map_request_error(e: reqwest::Error) -> TenantError {
+        if e.is_timeout() {
+            TenantError::Timeout(e.to_string())
+        } else {
+            TenantError::ServerError(e.to_string())
+        }
+    }
+}
+
+#[async_trait]
+impl TenantClient for GrpcTenantClient {
+    async fn get_tenant(&self, tenant_id: &str) -> Result<Tenant, TenantError> {
+        let resp = self
+            .http
+            .get(self.url(&format!("/api/v1/tenants/{}", tenant_id)))
+            .send()
+            .await
+            .map_err(Self::map_request_error)?;
+        let resp = Self::check_response(resp, tenant_id).await?;
+        let data: TenantResponse = resp
+            .json()
+            .await
+            .map_err(|e| TenantError::ServerError(e.to_string()))?;
+        Ok(data.into())
+    }
+
+    async fn list_tenants(&self, filter: TenantFilter) -> Result<Vec<Tenant>, TenantError> {
+        let mut query: Vec<(&str, String)> = Vec::new();
+        if let Some(ref status) = filter.status {
+            let s = serde_json::to_value(status)
+                .ok()
+                .and_then(|v| v.as_str().map(|s| s.to_string()))
+                .unwrap_or_default();
+            query.push(("status", s));
+        }
+        if let Some(ref plan) = filter.plan {
+            query.push(("plan", plan.clone()));
+        }
+
+        let resp = self
+            .http
+            .get(self.url("/api/v1/tenants"))
+            .query(&query)
+            .send()
+            .await
+            .map_err(Self::map_request_error)?;
+        let resp = Self::check_response(resp, "").await?;
+        let data: Vec<TenantResponse> = resp
+            .json()
+            .await
+            .map_err(|e| TenantError::ServerError(e.to_string()))?;
+        Ok(data.into_iter().map(Into::into).collect())
+    }
+
+    async fn is_active(&self, tenant_id: &str) -> Result<bool, TenantError> {
+        let tenant = self.get_tenant(tenant_id).await?;
+        Ok(tenant.status == TenantStatus::Active)
+    }
+
+    async fn get_settings(&self, tenant_id: &str) -> Result<TenantSettings, TenantError> {
+        let resp = self
+            .http
+            .get(self.url(&format!("/api/v1/tenants/{}/settings", tenant_id)))
+            .send()
+            .await
+            .map_err(Self::map_request_error)?;
+        let resp = Self::check_response(resp, tenant_id).await?;
+        let data: TenantSettingsResponse = resp
+            .json()
+            .await
+            .map_err(|e| TenantError::ServerError(e.to_string()))?;
+        Ok(TenantSettings::new(data.values))
     }
 }
 

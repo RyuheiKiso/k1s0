@@ -213,18 +213,28 @@ type TenantClientConfig struct {
 
 type GrpcTenantClient struct{ /* ... */ }
 
-func NewGrpcTenantClient(config TenantClientConfig) (*GrpcTenantClient, error)
+func NewGrpcTenantClient(addr string, config TenantClientConfig) (*GrpcTenantClient, error)
 func (c *GrpcTenantClient) GetTenant(ctx context.Context, tenantID string) (Tenant, error)
 func (c *GrpcTenantClient) ListTenants(ctx context.Context, filter TenantFilter) ([]Tenant, error)
 func (c *GrpcTenantClient) IsActive(ctx context.Context, tenantID string) (bool, error)
 func (c *GrpcTenantClient) GetSettings(ctx context.Context, tenantID string) (TenantSettings, error)
+
+type InMemoryTenantClient struct{ /* ... */ }
+
+func NewInMemoryTenantClient() *InMemoryTenantClient
+func NewInMemoryTenantClientWithTenants(tenants []Tenant) *InMemoryTenantClient
+func (c *InMemoryTenantClient) AddTenant(t Tenant)
+func (c *InMemoryTenantClient) GetTenant(ctx context.Context, tenantID string) (Tenant, error)
+func (c *InMemoryTenantClient) ListTenants(ctx context.Context, filter TenantFilter) ([]Tenant, error)
+func (c *InMemoryTenantClient) IsActive(ctx context.Context, tenantID string) (bool, error)
+func (c *InMemoryTenantClient) GetSettings(ctx context.Context, tenantID string) (TenantSettings, error)
 ```
 
 **使用例**:
 
 ```go
 config := TenantClientConfig{
-    ServerURL: "ratelimit-server:8080",
+    ServerURL: "tenant-server:8080",
     CacheTTL:  5 * time.Minute,
 }
 client, err := NewGrpcTenantClient(config)
@@ -289,6 +299,14 @@ export class GrpcTenantClient implements TenantClient {
   isActive(tenantId: string): Promise<boolean>;
   getSettings(tenantId: string): Promise<TenantSettings>;
   close(): Promise<void>;
+}
+
+export class InMemoryTenantClient implements TenantClient {
+  addTenant(tenant: Tenant): void;
+  getTenant(tenantId: string): Promise<Tenant>;
+  listTenants(filter?: TenantFilter): Promise<Tenant[]>;
+  isActive(tenantId: string): Promise<boolean>;
+  getSettings(tenantId: string): Promise<TenantSettings>;
 }
 
 export class TenantError extends Error {
@@ -368,9 +386,19 @@ abstract class TenantClient {
   Future<TenantSettings> getSettings(String tenantId);
 }
 
-// gRPC 実装（実装予定）
+// gRPC 実装
 class GrpcTenantClient implements TenantClient {
   GrpcTenantClient(TenantClientConfig config);
+  Future<Tenant> getTenant(String tenantId);
+  Future<List<Tenant>> listTenants(TenantFilter filter);
+  Future<bool> isActive(String tenantId);
+  Future<TenantSettings> getSettings(String tenantId);
+  Future<void> close();
+}
+
+// インメモリ実装（テスト用）
+class InMemoryTenantClient implements TenantClient {
+  void addTenant(Tenant tenant);
   Future<Tenant> getTenant(String tenantId);
   Future<List<Tenant>> listTenants(TenantFilter filter);
   Future<bool> isActive(String tenantId);

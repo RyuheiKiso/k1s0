@@ -12,6 +12,8 @@ type Filter struct {
 	Field    string      `json:"field"`
 	Operator string      `json:"operator"` // "eq", "lt", "gt", "range", "in"
 	Value    interface{} `json:"value"`
+	// ValueTo は "range" オペレーター使用時の上限値（オプション）。
+	ValueTo  interface{} `json:"value_to,omitempty"`
 }
 
 // FacetBucket はファセット集計バケット。
