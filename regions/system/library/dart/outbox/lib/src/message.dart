@@ -2,96 +2,99 @@ import 'package:uuid/uuid.dart';
 
 const _uuid = Uuid();
 
-enum OutboxStatus { pending, processing, delivered, failed }
+enum OutboxStatus { pending, processing, delivered, failed, deadLetter }
 
 class OutboxMessage {
   final String id;
   final String topic;
-  final String eventType;
+  final String partitionKey;
   final String payload;
-  final OutboxStatus status;
-  final int retryCount;
-  final DateTime scheduledAt;
+  OutboxStatus status;
+  int retryCount;
+  int maxRetries;
+  String? lastError;
   final DateTime createdAt;
-  final DateTime updatedAt;
-  final String correlationId;
+  DateTime processAfter;
 
-  const OutboxMessage({
+  OutboxMessage({
     required this.id,
     required this.topic,
-    required this.eventType,
+    required this.partitionKey,
     required this.payload,
     required this.status,
     required this.retryCount,
-    required this.scheduledAt,
+    required this.maxRetries,
+    this.lastError,
     required this.createdAt,
-    required this.updatedAt,
-    required this.correlationId,
+    required this.processAfter,
   });
 
-  OutboxMessage copyWith({
-    String? id,
-    String? topic,
-    String? eventType,
-    String? payload,
-    OutboxStatus? status,
-    int? retryCount,
-    DateTime? scheduledAt,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    String? correlationId,
-  }) {
-    return OutboxMessage(
-      id: id ?? this.id,
-      topic: topic ?? this.topic,
-      eventType: eventType ?? this.eventType,
-      payload: payload ?? this.payload,
-      status: status ?? this.status,
-      retryCount: retryCount ?? this.retryCount,
-      scheduledAt: scheduledAt ?? this.scheduledAt,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      correlationId: correlationId ?? this.correlationId,
-    );
+  /// メッセージを処理中状態に遷移する。
+  void markProcessing() {
+    status = OutboxStatus.processing;
+  }
+
+  /// メッセージを配信完了状態に遷移する。
+  void markDelivered() {
+    status = OutboxStatus.delivered;
+  }
+
+  /// メッセージを失敗状態に遷移し、リトライ回数をインクリメントする。
+  void markFailed(String error) {
+    retryCount += 1;
+    lastError = error;
+    if (retryCount >= maxRetries) {
+      status = OutboxStatus.deadLetter;
+    } else {
+      status = OutboxStatus.failed;
+      // Exponential backoff: 2^retryCount 秒後に再処理
+      final delaySecs = 1 << retryCount; // 2^retryCount
+      processAfter = DateTime.now().toUtc().add(Duration(seconds: delaySecs));
+    }
+  }
+
+  /// メッセージが処理可能かどうか判定する。
+  bool get isProcessable {
+    return (status == OutboxStatus.pending || status == OutboxStatus.failed) &&
+        !processAfter.isAfter(DateTime.now().toUtc());
   }
 }
 
+/// 新しい OutboxMessage を生成する。
 OutboxMessage createOutboxMessage(
   String topic,
-  String eventType,
+  String partitionKey,
   String payload,
-  String correlationId,
 ) {
   final now = DateTime.now().toUtc();
   return OutboxMessage(
     id: _uuid.v4(),
     topic: topic,
-    eventType: eventType,
+    partitionKey: partitionKey,
     payload: payload,
     status: OutboxStatus.pending,
     retryCount: 0,
-    scheduledAt: now,
+    maxRetries: 3,
+    lastError: null,
     createdAt: now,
-    updatedAt: now,
-    correlationId: correlationId,
+    processAfter: now,
   );
 }
 
-DateTime nextScheduledAt(int retryCount) {
-  var delayMinutes = 1 << retryCount;
-  if (delayMinutes > 60) delayMinutes = 60;
-  return DateTime.now().toUtc().add(Duration(minutes: delayMinutes));
-}
-
+/// 現在のステータスから目的のステータスへ遷移可能かを返す。
 bool canTransitionTo(OutboxStatus from, OutboxStatus to) {
   switch (from) {
     case OutboxStatus.pending:
       return to == OutboxStatus.processing;
     case OutboxStatus.processing:
-      return to == OutboxStatus.delivered || to == OutboxStatus.failed;
+      return to == OutboxStatus.delivered ||
+          to == OutboxStatus.failed ||
+          to == OutboxStatus.deadLetter;
     case OutboxStatus.failed:
-      return to == OutboxStatus.pending;
+      return to == OutboxStatus.processing;
     case OutboxStatus.delivered:
+      return false;
+    case OutboxStatus.deadLetter:
       return false;
   }
 }

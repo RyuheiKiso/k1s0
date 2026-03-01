@@ -3,7 +3,9 @@ pub mod error;
 pub mod payload;
 pub mod signature;
 
-pub use client::WebhookClient;
+pub use client::{
+    HttpWebhookClient, WebhookClient, WebhookConfig, IDEMPOTENCY_KEY_HEADER, SIGNATURE_HEADER,
+};
 pub use error::WebhookError;
 pub use payload::WebhookPayload;
 pub use signature::{generate_signature, verify_signature};

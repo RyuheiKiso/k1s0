@@ -19,7 +19,7 @@ Kafka イベント発行・購読の抽象化ライブラリ。`EventProducer` �
 | `ConsumerConfig` | 構造体 | グループID・トピックリスト・オートコミット・セッションタイムアウト設定 |
 | `ConsumedMessage` | 構造体 | 受信メッセージ（トピック・パーティション・オフセット・キー(`Option<Vec<u8>>`)・ペイロード） |
 | `EventConsumer` | トレイト | イベント購読インターフェース（`async fn receive` + `async fn commit`） |
-| `MessagingError` | enum | ProducerError・ConsumerError・SerializationError・DeserializationError・ConnectionError・TimeoutError |
+| `MessagingError` | enum | ProducerError・ConsumerError・SerializationError・DeserializationError・ConnectionError・TimeoutError・PublishError・ConsumeError・CommitError |
 
 ## Rust 実装
 
@@ -134,10 +134,12 @@ export interface EventMetadata {
   traceId: string;
   timestamp: string;
   source: string;
+  schemaVersion: string;
 }
 
 export interface EventEnvelope {
   topic: string;
+  key?: string;
   payload: unknown;
   metadata: EventMetadata;
 }
@@ -184,12 +186,14 @@ class EventMetadata {
   final String traceId;
   final DateTime timestamp;
   final String source;
+  final String schemaVersion;
 
   factory EventMetadata.create(String eventType, String source, {String? correlationId, String? traceId});
 }
 
 class EventEnvelope {
   final String topic;
+  final String? key;
   final Object payload;
   final EventMetadata metadata;
 }
@@ -226,6 +230,17 @@ Rust の `EventConsumer` は pull 型（`receive()` + `commit()`）を採用し�
 - **Go/TypeScript/Dart**: GC を持つ言語ではコールバックベースの push 型がイディオマティックであり、`subscribe(topic, handler)` パターンが開発者にとって直感的である。
 
 両パターンとも at-least-once セマンティクスを保証し、メッセージ処理の信頼性は同等である。
+
+## 設計ノート: EventEnvelope の metadata フィールドに関する言語差異
+
+Rust の `EventEnvelope` は `metadata` フィールドを持たず、メタデータは JSON シリアライズ時にバイト列ペイロード（`Vec<u8>`）に含める設計である。一方、Go/TypeScript/Dart の `EventEnvelope` は `metadata` フィールドを直接保持し、構造体レベルでメタデータにアクセスできる。
+
+- **Rust**: `EventEnvelope { topic, key, payload: Vec<u8>, headers }` — メタデータはペイロードの一部として扱う
+- **Go/TypeScript/Dart**: `EventEnvelope { topic, payload, metadata: EventMetadata }` — メタデータを独立フィールドとして保持
+
+## 設計ノート: trace_id / correlation_id の型差異
+
+Rust の `EventMetadata` では `trace_id` と `correlation_id` は `Option<String>`（未設定可）であるのに対し、Go/TypeScript/Dart では必須フィールドとして定義されている（ファクトリメソッドで UUID 自動生成またはデフォルト値が設定される）。
 
 ## 関連ドキュメント
 

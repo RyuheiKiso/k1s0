@@ -57,3 +57,29 @@ func TestSend_Push(t *testing.T) {
 	assert.Equal(t, "sent", resp.Status)
 	assert.Equal(t, notificationclient.ChannelPush, c.SentRequests()[0].Channel)
 }
+
+func TestSend_Slack(t *testing.T) {
+	c := notificationclient.NewInMemoryClient()
+	resp, err := c.Send(context.Background(), notificationclient.NotificationRequest{
+		ID:        "n-4",
+		Channel:   notificationclient.ChannelSlack,
+		Recipient: "#general",
+		Body:      "slack notification",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "sent", resp.Status)
+	assert.Equal(t, notificationclient.ChannelSlack, c.SentRequests()[0].Channel)
+}
+
+func TestSend_Webhook(t *testing.T) {
+	c := notificationclient.NewInMemoryClient()
+	resp, err := c.Send(context.Background(), notificationclient.NotificationRequest{
+		ID:        "n-5",
+		Channel:   notificationclient.ChannelWebhook,
+		Recipient: "https://example.com/webhook",
+		Body:      "webhook payload",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "sent", resp.Status)
+	assert.Equal(t, notificationclient.ChannelWebhook, c.SentRequests()[0].Channel)
+}

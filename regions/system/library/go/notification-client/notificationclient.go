@@ -9,9 +9,11 @@ import (
 type Channel string
 
 const (
-	ChannelEmail Channel = "email"
-	ChannelSMS   Channel = "sms"
-	ChannelPush  Channel = "push"
+	ChannelEmail   Channel = "email"
+	ChannelSMS     Channel = "sms"
+	ChannelPush    Channel = "push"
+	ChannelSlack   Channel = "slack"
+	ChannelWebhook Channel = "webhook"
 )
 
 // NotificationRequest は通知リクエスト。

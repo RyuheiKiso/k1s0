@@ -13,7 +13,7 @@ Kafka 接続設定・管理・ヘルスチェックライブラリ。`KafkaConfi
 | `KafkaConfig` | 構造体 | ブローカーアドレス・セキュリティプロトコル・コンシューマーグループ・タイムアウト・メッセージサイズ設定 |
 | `KafkaConfigBuilder` | 構造体 | `KafkaConfig` のビルダー |
 | `KafkaHealthChecker` | 構造体 | Kafka クラスター設定妥当性確認・ヘルスチェック |
-| `KafkaHealthStatus` | enum | ヘルス状態（`Healthy` / `Unhealthy(String)`） |
+| `KafkaHealthStatus` | enum / 構造体 | ヘルス状態。Rust は enum（`Healthy` / `Unhealthy(String)`）、Go/TypeScript/Dart は構造体（`healthy: bool`, `message: String`, `brokerCount: int` フィールド） |
 | `TopicConfig` | 構造体 | トピック名・パーティション数・レプリケーションファクター・保持期間の設定 |
 | `TopicPartitionInfo` | 構造体 | トピックのパーティション情報（リーダー・レプリカ・ISR） |
 | `KafkaError` | enum | 接続失敗・トピック未検出・パーティション・設定・タイムアウトエラー型 |
@@ -91,6 +91,8 @@ let topic = TopicConfig {
 assert!(topic.validate_name());
 ```
 
+**SASL フィールドに関する注記**: Go/TypeScript/Dart の `KafkaConfig` は `saslMechanism`・`saslUsername`・`saslPassword` フィールドを保持するが、Rust の `KafkaConfig` は現時点でこれらのフィールドを持たない（`security_protocol` のみ対応）。SASL 認証が必要な場合は rdkafka の設定で別途指定する想定。
+
 ## Go 実装
 
 **配置先**: `regions/system/library/go/kafka/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
@@ -159,6 +161,56 @@ export class KafkaError extends Error {
 ## Dart 実装
 
 **配置先**: `regions/system/library/dart/kafka/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**依存関係**: `lints: ^4.0.0` (dev)（Kafka クライアントライブラリ不要、設定・検証のみ）
+
+**主要 API**:
+
+```dart
+class KafkaConfig {
+  final List<String> bootstrapServers;
+  final String? securityProtocol;
+  final String? saslMechanism;
+  final String? saslUsername;
+  final String? saslPassword;
+
+  String bootstrapServersString();
+  bool usesTLS();
+  void validate();
+}
+
+class TopicConfig {
+  final String name;
+  final int? partitions;
+  final int? replicationFactor;
+  final int? retentionMs;
+
+  void validateName();
+  String tier();
+}
+
+class KafkaHealthStatus {
+  final bool healthy;
+  final String message;
+  final int brokerCount;
+}
+
+abstract class KafkaHealthChecker {
+  Future<KafkaHealthStatus> healthCheck();
+}
+
+class NoOpKafkaHealthChecker implements KafkaHealthChecker {
+  final KafkaHealthStatus status;
+  final Exception? error;
+
+  Future<KafkaHealthStatus> healthCheck();
+}
+
+class KafkaError implements Exception {
+  final String message;
+  final Object? cause;
+}
+```
 
 **カバレッジ目標**: 80%以上
 

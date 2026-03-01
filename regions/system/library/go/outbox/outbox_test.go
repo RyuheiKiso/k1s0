@@ -2,6 +2,7 @@ package outbox_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -16,28 +17,23 @@ import (
 type mockStore struct {
 	messages      []outbox.OutboxMessage
 	savedMessages []outbox.OutboxMessage
-	statusUpdates []statusUpdate
+	updatedMsgs   []outbox.OutboxMessage
 	saveErr       error
 	getErr        error
 	updateErr     error
+	deleteCount   int64
+	deleteErr     error
 }
 
-type statusUpdate struct {
-	id          string
-	status      outbox.OutboxStatus
-	retryCount  int
-	scheduledAt time.Time
-}
-
-func (m *mockStore) SaveMessage(ctx context.Context, msg outbox.OutboxMessage) error {
+func (m *mockStore) Save(ctx context.Context, msg *outbox.OutboxMessage) error {
 	if m.saveErr != nil {
 		return m.saveErr
 	}
-	m.savedMessages = append(m.savedMessages, msg)
+	m.savedMessages = append(m.savedMessages, *msg)
 	return nil
 }
 
-func (m *mockStore) GetPendingMessages(ctx context.Context, limit int) ([]outbox.OutboxMessage, error) {
+func (m *mockStore) FetchPending(ctx context.Context, limit int) ([]outbox.OutboxMessage, error) {
 	if m.getErr != nil {
 		return nil, m.getErr
 	}
@@ -47,22 +43,19 @@ func (m *mockStore) GetPendingMessages(ctx context.Context, limit int) ([]outbox
 	return m.messages, nil
 }
 
-func (m *mockStore) UpdateStatus(ctx context.Context, id string, status outbox.OutboxStatus) error {
+func (m *mockStore) Update(ctx context.Context, msg *outbox.OutboxMessage) error {
 	if m.updateErr != nil {
 		return m.updateErr
 	}
-	m.statusUpdates = append(m.statusUpdates, statusUpdate{id: id, status: status})
+	m.updatedMsgs = append(m.updatedMsgs, *msg)
 	return nil
 }
 
-func (m *mockStore) UpdateStatusWithRetry(ctx context.Context, id string, status outbox.OutboxStatus, retryCount int, scheduledAt time.Time) error {
-	if m.updateErr != nil {
-		return m.updateErr
+func (m *mockStore) DeleteDelivered(ctx context.Context, olderThanDays int) (int64, error) {
+	if m.deleteErr != nil {
+		return 0, m.deleteErr
 	}
-	m.statusUpdates = append(m.statusUpdates, statusUpdate{
-		id: id, status: status, retryCount: retryCount, scheduledAt: scheduledAt,
-	})
-	return nil
+	return m.deleteCount, nil
 }
 
 type mockPublisher struct {
@@ -70,70 +63,197 @@ type mockPublisher struct {
 	err       error
 }
 
-func (m *mockPublisher) Publish(ctx context.Context, msg outbox.OutboxMessage) error {
+func (m *mockPublisher) Publish(ctx context.Context, msg *outbox.OutboxMessage) error {
 	if m.err != nil {
 		return m.err
 	}
-	m.published = append(m.published, msg)
+	m.published = append(m.published, *msg)
 	return nil
 }
 
-// --- テスト ---
+// --- OutboxMessage テスト ---
 
 func TestNewOutboxMessage(t *testing.T) {
-	msg := outbox.NewOutboxMessage("k1s0.system.user.created.v1", "user.created.v1", `{"id":"1"}`, "corr-123")
+	payload := json.RawMessage(`{"order_id":"ord-001"}`)
+	msg := outbox.NewOutboxMessage("k1s0.service.order.created.v1", "ord-001", payload)
 	assert.NotEmpty(t, msg.ID)
-	assert.Equal(t, "k1s0.system.user.created.v1", msg.Topic)
-	assert.Equal(t, "user.created.v1", msg.EventType)
+	assert.Equal(t, "k1s0.service.order.created.v1", msg.Topic)
+	assert.Equal(t, "ord-001", msg.PartitionKey)
 	assert.Equal(t, outbox.OutboxStatusPending, msg.Status)
 	assert.Equal(t, 0, msg.RetryCount)
-	assert.Equal(t, "corr-123", msg.CorrelationId)
+	assert.Equal(t, 3, msg.MaxRetries)
+	assert.Empty(t, msg.LastError)
 	assert.False(t, msg.CreatedAt.IsZero())
+	assert.True(t, msg.IsProcessable())
 }
 
 func TestNewOutboxMessage_UniqueIds(t *testing.T) {
-	msg1 := outbox.NewOutboxMessage("topic", "event.v1", `{}`, "corr-1")
-	msg2 := outbox.NewOutboxMessage("topic", "event.v1", `{}`, "corr-1")
+	payload := json.RawMessage(`{}`)
+	msg1 := outbox.NewOutboxMessage("topic", "key", payload)
+	msg2 := outbox.NewOutboxMessage("topic", "key", payload)
 	assert.NotEqual(t, msg1.ID, msg2.ID)
 }
 
-func TestNextScheduledAt(t *testing.T) {
-	tests := []struct {
-		retryCount int
-		minDelay   time.Duration
-		maxDelay   time.Duration
-	}{
-		{0, 1 * time.Minute, 2 * time.Minute},   // 2^0 = 1 分
-		{1, 2 * time.Minute, 3 * time.Minute},   // 2^1 = 2 分
-		{2, 4 * time.Minute, 5 * time.Minute},   // 2^2 = 4 分
-		{3, 8 * time.Minute, 9 * time.Minute},   // 2^3 = 8 分
-		{6, 60 * time.Minute, 61 * time.Minute}, // 64 → 60 分上限
-		{7, 60 * time.Minute, 61 * time.Minute}, // 128 → 60 分上限
-	}
-	for _, tt := range tests {
-		scheduled := outbox.NextScheduledAt(tt.retryCount)
-		delay := time.Until(scheduled)
-		assert.GreaterOrEqual(t, delay, tt.minDelay-time.Second, "retry %d: delay too short", tt.retryCount)
-		assert.LessOrEqual(t, delay, tt.maxDelay, "retry %d: delay too long", tt.retryCount)
-	}
+func TestNewOutboxMessage_TimestampIsUTC(t *testing.T) {
+	payload := json.RawMessage(`{}`)
+	msg := outbox.NewOutboxMessage("topic", "key", payload)
+	assert.Equal(t, time.UTC, msg.CreatedAt.Location())
+	assert.Equal(t, time.UTC, msg.ProcessAfter.Location())
 }
 
-func TestOutboxStatus_CanTransitionTo(t *testing.T) {
-	// 有効な遷移
-	assert.True(t, outbox.OutboxStatusPending.CanTransitionTo(outbox.OutboxStatusProcessing))
-	assert.True(t, outbox.OutboxStatusProcessing.CanTransitionTo(outbox.OutboxStatusDelivered))
-	assert.True(t, outbox.OutboxStatusProcessing.CanTransitionTo(outbox.OutboxStatusFailed))
-	assert.True(t, outbox.OutboxStatusFailed.CanTransitionTo(outbox.OutboxStatusPending))
-
-	// 無効な遷移
-	assert.False(t, outbox.OutboxStatusDelivered.CanTransitionTo(outbox.OutboxStatusPending))
-	assert.False(t, outbox.OutboxStatusDelivered.CanTransitionTo(outbox.OutboxStatusFailed))
-	assert.False(t, outbox.OutboxStatusPending.CanTransitionTo(outbox.OutboxStatusDelivered))
-	assert.False(t, outbox.OutboxStatusPending.CanTransitionTo(outbox.OutboxStatusFailed))
+func TestOutboxMessage_MarkDelivered(t *testing.T) {
+	payload := json.RawMessage(`{}`)
+	msg := outbox.NewOutboxMessage("test.topic", "key", payload)
+	msg.MarkDelivered()
+	assert.Equal(t, outbox.OutboxStatusDelivered, msg.Status)
+	assert.False(t, msg.IsProcessable())
 }
+
+func TestOutboxMessage_MarkFailed_IncrementsRetry(t *testing.T) {
+	payload := json.RawMessage(`{}`)
+	msg := outbox.NewOutboxMessage("test.topic", "key", payload)
+	msg.MarkFailed("kafka error")
+	assert.Equal(t, 1, msg.RetryCount)
+	assert.Equal(t, outbox.OutboxStatusFailed, msg.Status)
+	assert.Equal(t, "kafka error", msg.LastError)
+}
+
+func TestOutboxMessage_MarkFailed_DeadLetterOnMaxRetries(t *testing.T) {
+	payload := json.RawMessage(`{}`)
+	msg := outbox.NewOutboxMessage("test.topic", "key", payload)
+	msg.MaxRetries = 3
+	msg.MarkFailed("error 1")
+	msg.MarkFailed("error 2")
+	msg.MarkFailed("error 3")
+	assert.Equal(t, outbox.OutboxStatusDeadLetter, msg.Status)
+	assert.Equal(t, 3, msg.RetryCount)
+}
+
+func TestOutboxMessage_MarkFailed_BackoffInSeconds(t *testing.T) {
+	payload := json.RawMessage(`{}`)
+	msg := outbox.NewOutboxMessage("test.topic", "key", payload)
+	msg.MaxRetries = 10 // 高めに設定して DeadLetter にならないようにする
+	before := time.Now().UTC()
+	msg.MarkFailed("error")
+	// retry_count=1 なので 2^1 = 2秒のバックオフ
+	assert.True(t, msg.ProcessAfter.After(before), "ProcessAfter should be in the future")
+	// 最大でも 2秒 + 少しの余裕
+	assert.True(t, msg.ProcessAfter.Before(before.Add(5*time.Second)), "backoff should be in seconds, not minutes")
+}
+
+func TestOutboxMessage_IsProcessable(t *testing.T) {
+	payload := json.RawMessage(`{}`)
+
+	// Pending + ProcessAfter in the past → processable
+	msg := outbox.NewOutboxMessage("test.topic", "key", payload)
+	assert.True(t, msg.IsProcessable())
+
+	// Processing → not processable
+	msg2 := outbox.NewOutboxMessage("test.topic", "key", payload)
+	msg2.MarkProcessing()
+	assert.False(t, msg2.IsProcessable())
+
+	// Delivered → not processable
+	msg3 := outbox.NewOutboxMessage("test.topic", "key", payload)
+	msg3.MarkDelivered()
+	assert.False(t, msg3.IsProcessable())
+
+	// DeadLetter → not processable
+	msg4 := outbox.NewOutboxMessage("test.topic", "key", payload)
+	msg4.MaxRetries = 1
+	msg4.MarkFailed("error")
+	assert.Equal(t, outbox.OutboxStatusDeadLetter, msg4.Status)
+	assert.False(t, msg4.IsProcessable())
+}
+
+// --- OutboxStatus テスト ---
+
+func TestOutboxStatus_Constants(t *testing.T) {
+	assert.Equal(t, outbox.OutboxStatus("PENDING"), outbox.OutboxStatusPending)
+	assert.Equal(t, outbox.OutboxStatus("PROCESSING"), outbox.OutboxStatusProcessing)
+	assert.Equal(t, outbox.OutboxStatus("DELIVERED"), outbox.OutboxStatusDelivered)
+	assert.Equal(t, outbox.OutboxStatus("FAILED"), outbox.OutboxStatusFailed)
+	assert.Equal(t, outbox.OutboxStatus("DEAD_LETTER"), outbox.OutboxStatusDeadLetter)
+}
+
+// --- OutboxError テスト ---
+
+func TestOutboxError_StoreError(t *testing.T) {
+	cause := errors.New("connection refused")
+	err := outbox.NewStoreError("save failed", cause)
+	assert.Contains(t, err.Error(), "store error")
+	assert.Contains(t, err.Error(), "save failed")
+	assert.Contains(t, err.Error(), "connection refused")
+	assert.ErrorIs(t, err, cause)
+}
+
+func TestOutboxError_PublishError(t *testing.T) {
+	cause := errors.New("kafka unavailable")
+	err := outbox.NewPublishError("publish failed", cause)
+	assert.Contains(t, err.Error(), "publish error")
+	assert.Contains(t, err.Error(), "publish failed")
+	assert.ErrorIs(t, err, cause)
+}
+
+func TestOutboxError_SerializationError(t *testing.T) {
+	cause := errors.New("invalid json")
+	err := outbox.NewSerializationError("marshal failed", cause)
+	assert.Contains(t, err.Error(), "serialization error")
+	assert.Contains(t, err.Error(), "marshal failed")
+	assert.ErrorIs(t, err, cause)
+}
+
+func TestOutboxError_NotFound(t *testing.T) {
+	err := outbox.NewNotFoundError("msg-123")
+	assert.Contains(t, err.Error(), "message not found")
+	assert.Contains(t, err.Error(), "msg-123")
+}
+
+// --- OutboxStore テスト ---
+
+func TestMockStore_Save(t *testing.T) {
+	store := &mockStore{}
+	payload := json.RawMessage(`{}`)
+	msg := outbox.NewOutboxMessage("test.topic", "key", payload)
+	err := store.Save(context.Background(), &msg)
+	require.NoError(t, err)
+	require.Len(t, store.savedMessages, 1)
+}
+
+func TestMockStore_FetchPending(t *testing.T) {
+	payload := json.RawMessage(`{}`)
+	msg := outbox.NewOutboxMessage("test.topic", "key", payload)
+	store := &mockStore{messages: []outbox.OutboxMessage{msg}}
+
+	result, err := store.FetchPending(context.Background(), 10)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	assert.Equal(t, outbox.OutboxStatusPending, result[0].Status)
+}
+
+func TestMockStore_Update(t *testing.T) {
+	store := &mockStore{}
+	payload := json.RawMessage(`{}`)
+	msg := outbox.NewOutboxMessage("test.topic", "key", payload)
+	msg.MarkDelivered()
+	err := store.Update(context.Background(), &msg)
+	require.NoError(t, err)
+	require.Len(t, store.updatedMsgs, 1)
+	assert.Equal(t, outbox.OutboxStatusDelivered, store.updatedMsgs[0].Status)
+}
+
+func TestMockStore_DeleteDelivered(t *testing.T) {
+	store := &mockStore{deleteCount: 5}
+	count, err := store.DeleteDelivered(context.Background(), 30)
+	require.NoError(t, err)
+	assert.Equal(t, int64(5), count)
+}
+
+// --- OutboxProcessor テスト ---
 
 func TestProcessBatch_Success(t *testing.T) {
-	msg := outbox.NewOutboxMessage("topic", "event.v1", `{"key":"value"}`, "corr-1")
+	payload := json.RawMessage(`{"key":"value"}`)
+	msg := outbox.NewOutboxMessage("topic", "key-1", payload)
 	store := &mockStore{messages: []outbox.OutboxMessage{msg}}
 	publisher := &mockPublisher{}
 
@@ -146,14 +266,15 @@ func TestProcessBatch_Success(t *testing.T) {
 	require.Len(t, publisher.published, 1)
 	assert.Equal(t, msg.Topic, publisher.published[0].Topic)
 
-	// ステータスが Processing → Delivered に更新されていることを確認
-	require.Len(t, store.statusUpdates, 2)
-	assert.Equal(t, outbox.OutboxStatusProcessing, store.statusUpdates[0].status)
-	assert.Equal(t, outbox.OutboxStatusDelivered, store.statusUpdates[1].status)
+	// Processing → Delivered の 2 回更新されていることを確認
+	require.Len(t, store.updatedMsgs, 2)
+	assert.Equal(t, outbox.OutboxStatusProcessing, store.updatedMsgs[0].Status)
+	assert.Equal(t, outbox.OutboxStatusDelivered, store.updatedMsgs[1].Status)
 }
 
 func TestProcessBatch_PublishFails(t *testing.T) {
-	msg := outbox.NewOutboxMessage("topic", "event.v1", `{}`, "corr-1")
+	payload := json.RawMessage(`{}`)
+	msg := outbox.NewOutboxMessage("topic", "key-1", payload)
 	store := &mockStore{messages: []outbox.OutboxMessage{msg}}
 	publisher := &mockPublisher{err: errors.New("kafka unavailable")}
 
@@ -163,10 +284,11 @@ func TestProcessBatch_PublishFails(t *testing.T) {
 	assert.Equal(t, 0, count)
 
 	// Processing → Failed に更新されていることを確認
-	require.Len(t, store.statusUpdates, 2)
-	assert.Equal(t, outbox.OutboxStatusProcessing, store.statusUpdates[0].status)
-	assert.Equal(t, outbox.OutboxStatusFailed, store.statusUpdates[1].status)
-	assert.Equal(t, 1, store.statusUpdates[1].retryCount)
+	require.Len(t, store.updatedMsgs, 2)
+	assert.Equal(t, outbox.OutboxStatusProcessing, store.updatedMsgs[0].Status)
+	assert.Equal(t, outbox.OutboxStatusFailed, store.updatedMsgs[1].Status)
+	assert.Equal(t, 1, store.updatedMsgs[1].RetryCount)
+	assert.Equal(t, "kafka unavailable", store.updatedMsgs[1].LastError)
 }
 
 func TestProcessBatch_StoreError(t *testing.T) {
@@ -189,9 +311,10 @@ func TestProcessBatch_Empty(t *testing.T) {
 }
 
 func TestProcessBatch_RespectsBatchSize(t *testing.T) {
+	payload := json.RawMessage(`{}`)
 	messages := make([]outbox.OutboxMessage, 5)
 	for i := range messages {
-		messages[i] = outbox.NewOutboxMessage("topic", "event.v1", `{}`, "corr-1")
+		messages[i] = outbox.NewOutboxMessage("topic", "key", payload)
 	}
 	store := &mockStore{messages: messages}
 	publisher := &mockPublisher{}
@@ -202,32 +325,11 @@ func TestProcessBatch_RespectsBatchSize(t *testing.T) {
 	assert.Equal(t, 3, count) // 3 件のみ処理
 }
 
-func TestOutboxStoreError(t *testing.T) {
-	cause := errors.New("connection failed")
-	err := &outbox.OutboxStoreError{Op: "SaveMessage", Err: cause}
-	assert.Contains(t, err.Error(), "SaveMessage")
-	assert.ErrorIs(t, err, cause)
-}
-
-func TestNewOutboxMessage_TimestampIsUTC(t *testing.T) {
-	msg := outbox.NewOutboxMessage("topic", "event.v1", `{}`, "corr-1")
-	assert.Equal(t, time.UTC, msg.CreatedAt.Location())
-	assert.Equal(t, time.UTC, msg.UpdatedAt.Location())
-	assert.Equal(t, time.UTC, msg.ScheduledAt.Location())
-}
-
-func TestOutboxStatus_Constants(t *testing.T) {
-	assert.Equal(t, outbox.OutboxStatus("PENDING"), outbox.OutboxStatusPending)
-	assert.Equal(t, outbox.OutboxStatus("PROCESSING"), outbox.OutboxStatusProcessing)
-	assert.Equal(t, outbox.OutboxStatus("DELIVERED"), outbox.OutboxStatusDelivered)
-	assert.Equal(t, outbox.OutboxStatus("FAILED"), outbox.OutboxStatusFailed)
-}
-
 func TestProcessBatch_MultipleMessages(t *testing.T) {
 	msgs := []outbox.OutboxMessage{
-		outbox.NewOutboxMessage("topic", "event.v1", `{"n":1}`, "corr-1"),
-		outbox.NewOutboxMessage("topic", "event.v1", `{"n":2}`, "corr-2"),
-		outbox.NewOutboxMessage("topic", "event.v1", `{"n":3}`, "corr-3"),
+		outbox.NewOutboxMessage("topic", "key-1", json.RawMessage(`{"n":1}`)),
+		outbox.NewOutboxMessage("topic", "key-2", json.RawMessage(`{"n":2}`)),
+		outbox.NewOutboxMessage("topic", "key-3", json.RawMessage(`{"n":3}`)),
 	}
 	store := &mockStore{messages: msgs}
 	publisher := &mockPublisher{}
@@ -238,24 +340,22 @@ func TestProcessBatch_MultipleMessages(t *testing.T) {
 	assert.Equal(t, 3, count)
 	assert.Len(t, publisher.published, 3)
 	// 各メッセージが Processing → Delivered の 2 回ずつ更新される
-	assert.Len(t, store.statusUpdates, 6)
+	assert.Len(t, store.updatedMsgs, 6)
 }
 
 func TestProcessBatch_PartialSuccess(t *testing.T) {
 	// 2 件のメッセージのうち 2 件目が失敗するケース
 	msgs := []outbox.OutboxMessage{
-		outbox.NewOutboxMessage("topic", "event.v1", `{"n":1}`, "corr-1"),
-		outbox.NewOutboxMessage("topic", "event.v1", `{"n":2}`, "corr-2"),
+		outbox.NewOutboxMessage("topic", "key-1", json.RawMessage(`{"n":1}`)),
+		outbox.NewOutboxMessage("topic", "key-2", json.RawMessage(`{"n":2}`)),
 	}
 	store := &mockStore{messages: msgs}
-	var published []outbox.OutboxMessage
 	callCount := 0
-	pub := &mockPublisherFunc{fn: func(ctx context.Context, msg outbox.OutboxMessage) error {
+	pub := &mockPublisherFunc{fn: func(ctx context.Context, msg *outbox.OutboxMessage) error {
 		callCount++
 		if callCount == 2 {
 			return errors.New("second message failed")
 		}
-		published = append(published, msg)
 		return nil
 	}}
 
@@ -263,22 +363,22 @@ func TestProcessBatch_PartialSuccess(t *testing.T) {
 	count, err := processor.ProcessBatch(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, 1, count) // 1 件のみ成功
-	assert.Len(t, published, 1)
 }
 
 type mockPublisherFunc struct {
-	fn func(ctx context.Context, msg outbox.OutboxMessage) error
+	fn func(ctx context.Context, msg *outbox.OutboxMessage) error
 }
 
-func (m *mockPublisherFunc) Publish(ctx context.Context, msg outbox.OutboxMessage) error {
+func (m *mockPublisherFunc) Publish(ctx context.Context, msg *outbox.OutboxMessage) error {
 	return m.fn(ctx, msg)
 }
 
 func TestOutboxProcessor_DefaultBatchSize(t *testing.T) {
 	// batchSize = 0 の場合はデフォルト 100 が使われる
+	payload := json.RawMessage(`{}`)
 	msgs := make([]outbox.OutboxMessage, 5)
 	for i := range msgs {
-		msgs[i] = outbox.NewOutboxMessage("topic", "event.v1", `{}`, "corr")
+		msgs[i] = outbox.NewOutboxMessage("topic", "key", payload)
 	}
 	store := &mockStore{messages: msgs}
 	publisher := &mockPublisher{}

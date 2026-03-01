@@ -1,4 +1,4 @@
-enum NotificationChannel { email, sms, push, webhook }
+enum NotificationChannel { email, sms, push, slack, webhook }
 
 class NotificationRequest {
   final String id;

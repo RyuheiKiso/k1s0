@@ -157,3 +157,170 @@ func TestTopicConfig_Tier_InvalidName(t *testing.T) {
 	tc := &kafka.TopicConfig{Name: "invalid-name"}
 	assert.Equal(t, "", tc.Tier())
 }
+
+// --- KafkaConfig 追加フィールド Tests ---
+
+func TestKafkaConfig_ConsumerGroup(t *testing.T) {
+	cfg := &kafka.KafkaConfig{
+		BootstrapServers: []string{"broker1:9092"},
+		ConsumerGroup:    "my-consumer-group",
+	}
+	assert.Equal(t, "my-consumer-group", cfg.ConsumerGroup)
+	assert.NoError(t, cfg.Validate())
+}
+
+func TestKafkaConfig_EffectiveConnectionTimeoutMs_Default(t *testing.T) {
+	cfg := &kafka.KafkaConfig{
+		BootstrapServers: []string{"broker1:9092"},
+	}
+	assert.Equal(t, kafka.DefaultConnectionTimeoutMs, cfg.EffectiveConnectionTimeoutMs())
+}
+
+func TestKafkaConfig_EffectiveConnectionTimeoutMs_Custom(t *testing.T) {
+	cfg := &kafka.KafkaConfig{
+		BootstrapServers:    []string{"broker1:9092"},
+		ConnectionTimeoutMs: 10000,
+	}
+	assert.Equal(t, 10000, cfg.EffectiveConnectionTimeoutMs())
+}
+
+func TestKafkaConfig_EffectiveRequestTimeoutMs_Default(t *testing.T) {
+	cfg := &kafka.KafkaConfig{
+		BootstrapServers: []string{"broker1:9092"},
+	}
+	assert.Equal(t, kafka.DefaultRequestTimeoutMs, cfg.EffectiveRequestTimeoutMs())
+}
+
+func TestKafkaConfig_EffectiveRequestTimeoutMs_Custom(t *testing.T) {
+	cfg := &kafka.KafkaConfig{
+		BootstrapServers: []string{"broker1:9092"},
+		RequestTimeoutMs: 60000,
+	}
+	assert.Equal(t, 60000, cfg.EffectiveRequestTimeoutMs())
+}
+
+func TestKafkaConfig_EffectiveMaxMessageBytes_Default(t *testing.T) {
+	cfg := &kafka.KafkaConfig{
+		BootstrapServers: []string{"broker1:9092"},
+	}
+	assert.Equal(t, kafka.DefaultMaxMessageBytes, cfg.EffectiveMaxMessageBytes())
+}
+
+func TestKafkaConfig_EffectiveMaxMessageBytes_Custom(t *testing.T) {
+	cfg := &kafka.KafkaConfig{
+		BootstrapServers: []string{"broker1:9092"},
+		MaxMessageBytes:  2000000,
+	}
+	assert.Equal(t, 2000000, cfg.EffectiveMaxMessageBytes())
+}
+
+func TestKafkaConfig_Validate_NegativeConnectionTimeout(t *testing.T) {
+	cfg := &kafka.KafkaConfig{
+		BootstrapServers:    []string{"broker1:9092"},
+		ConnectionTimeoutMs: -1,
+	}
+	assert.Error(t, cfg.Validate())
+}
+
+func TestKafkaConfig_Validate_NegativeRequestTimeout(t *testing.T) {
+	cfg := &kafka.KafkaConfig{
+		BootstrapServers: []string{"broker1:9092"},
+		RequestTimeoutMs: -1,
+	}
+	assert.Error(t, cfg.Validate())
+}
+
+func TestKafkaConfig_Validate_NegativeMaxMessageBytes(t *testing.T) {
+	cfg := &kafka.KafkaConfig{
+		BootstrapServers: []string{"broker1:9092"},
+		MaxMessageBytes:  -1,
+	}
+	assert.Error(t, cfg.Validate())
+}
+
+func TestKafkaConfig_AllFields(t *testing.T) {
+	cfg := &kafka.KafkaConfig{
+		BootstrapServers:    []string{"broker1:9092", "broker2:9092"},
+		SecurityProtocol:    "SASL_SSL",
+		SASLMechanism:       "SCRAM-SHA-256",
+		SASLUsername:         "user",
+		SASLPassword:         "pass",
+		ConsumerGroup:       "test-group",
+		ConnectionTimeoutMs: 10000,
+		RequestTimeoutMs:    60000,
+		MaxMessageBytes:     2000000,
+	}
+	assert.NoError(t, cfg.Validate())
+	assert.True(t, cfg.UsesTLS())
+	assert.Equal(t, "broker1:9092,broker2:9092", cfg.BootstrapServersString())
+	assert.Equal(t, 10000, cfg.EffectiveConnectionTimeoutMs())
+	assert.Equal(t, 60000, cfg.EffectiveRequestTimeoutMs())
+	assert.Equal(t, 2000000, cfg.EffectiveMaxMessageBytes())
+}
+
+// --- KafkaError Tests ---
+
+func TestKafkaError_ErrorWithWrappedError(t *testing.T) {
+	cause := errors.New("connection refused")
+	err := &kafka.KafkaError{
+		Op:      "connect",
+		Message: "failed to connect to broker",
+		Err:     cause,
+	}
+	assert.Contains(t, err.Error(), "connect")
+	assert.Contains(t, err.Error(), "failed to connect to broker")
+	assert.Contains(t, err.Error(), "connection refused")
+}
+
+func TestKafkaError_ErrorWithoutWrappedError(t *testing.T) {
+	err := &kafka.KafkaError{
+		Op:      "publish",
+		Message: "topic not found",
+	}
+	assert.Equal(t, "publish: topic not found", err.Error())
+}
+
+func TestKafkaError_Unwrap(t *testing.T) {
+	cause := errors.New("timeout")
+	err := &kafka.KafkaError{
+		Op:      "subscribe",
+		Message: "subscription failed",
+		Err:     cause,
+	}
+	assert.ErrorIs(t, err, cause)
+}
+
+func TestKafkaError_UnwrapNil(t *testing.T) {
+	err := &kafka.KafkaError{
+		Op:      "subscribe",
+		Message: "subscription failed",
+	}
+	assert.Nil(t, err.Unwrap())
+}
+
+// --- TopicPartitionInfo Tests ---
+
+func TestTopicPartitionInfo_Fields(t *testing.T) {
+	info := &kafka.TopicPartitionInfo{
+		Topic:     "k1s0.system.auth.login.v1",
+		Partition: 0,
+		Leader:    1,
+		Replicas:  []int32{1, 2, 3},
+		ISR:       []int32{1, 2},
+	}
+	assert.Equal(t, "k1s0.system.auth.login.v1", info.Topic)
+	assert.Equal(t, int32(0), info.Partition)
+	assert.Equal(t, int32(1), info.Leader)
+	assert.Equal(t, []int32{1, 2, 3}, info.Replicas)
+	assert.Equal(t, []int32{1, 2}, info.ISR)
+}
+
+func TestTopicPartitionInfo_EmptyReplicas(t *testing.T) {
+	info := &kafka.TopicPartitionInfo{
+		Topic:     "k1s0.system.auth.login.v1",
+		Partition: 0,
+		Leader:    1,
+	}
+	assert.Nil(t, info.Replicas)
+	assert.Nil(t, info.ISR)
+}

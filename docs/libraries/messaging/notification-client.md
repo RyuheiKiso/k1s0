@@ -155,11 +155,12 @@ const (
 )
 
 type NotificationRequest struct {
-    ID        string  `json:"id"`
-    Channel   Channel `json:"channel"`
-    Recipient string  `json:"recipient"`
-    Subject   string  `json:"subject,omitempty"`
-    Body      string  `json:"body"`
+    ID        string                 `json:"id"`
+    Channel   Channel                `json:"channel"`
+    Recipient string                 `json:"recipient"`
+    Subject   string                 `json:"subject,omitempty"`
+    Body      string                 `json:"body"`
+    Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 type NotificationResponse struct {
@@ -177,6 +178,8 @@ func NewInMemoryClient() *InMemoryClient
 func (c *InMemoryClient) SentRequests() []NotificationRequest
 ```
 
+> **注**: Go 実装には `SendBatch` メソッドがない（Rust / Dart のみ `send_batch` を提供）。TypeScript も同様に `send` のみ。一括送信が必要な場合はループで `Send` を呼び出す。
+
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/notification-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
@@ -192,6 +195,7 @@ export interface NotificationRequest {
   recipient: string;
   subject?: string;
   body: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface NotificationResponse {

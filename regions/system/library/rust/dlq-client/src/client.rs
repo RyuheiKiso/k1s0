@@ -1,6 +1,6 @@
-use anyhow::Result;
 use reqwest::Client;
 
+use crate::error::DlqError;
 use crate::types::{DlqMessage, ListDlqMessagesResponse, RetryDlqMessageResponse};
 
 /// DlqClient は DLQ 管理サーバーへの HTTP REST クライアント。
@@ -28,62 +28,61 @@ impl DlqClient {
         topic: &str,
         page: u32,
         page_size: u32,
-    ) -> Result<ListDlqMessagesResponse> {
+    ) -> Result<ListDlqMessagesResponse, DlqError> {
         let url = format!(
             "{}/api/v1/dlq/{}?page={}&page_size={}",
             self.endpoint, topic, page, page_size
         );
 
-        let resp = self
-            .http_client
-            .get(&url)
-            .send()
-            .await
-            .map_err(|e| anyhow::anyhow!("dlq HTTP request failed: {}", e))?;
+        let resp = self.http_client.get(&url).send().await?;
 
         if !resp.status().is_success() {
             let status = resp.status().as_u16();
             let body = resp.text().await.unwrap_or_default();
-            anyhow::bail!("dlq server returned {}: {}", status, body);
+            return Err(DlqError::Api {
+                status,
+                message: body,
+            });
         }
 
         let result: ListDlqMessagesResponse = resp
             .json()
             .await
-            .map_err(|e| anyhow::anyhow!("failed to parse dlq response: {}", e))?;
+            .map_err(|e| DlqError::Deserialize(e.to_string()))?;
 
         Ok(result)
     }
 
     /// DLQ メッセージの詳細を取得する。
     /// GET /api/v1/dlq/messages/:id
-    pub async fn get_message(&self, message_id: &str) -> Result<DlqMessage> {
+    pub async fn get_message(&self, message_id: &str) -> Result<DlqMessage, DlqError> {
         let url = format!("{}/api/v1/dlq/messages/{}", self.endpoint, message_id);
 
-        let resp = self
-            .http_client
-            .get(&url)
-            .send()
-            .await
-            .map_err(|e| anyhow::anyhow!("dlq HTTP request failed: {}", e))?;
+        let resp = self.http_client.get(&url).send().await?;
 
         if !resp.status().is_success() {
             let status = resp.status().as_u16();
             let body = resp.text().await.unwrap_or_default();
-            anyhow::bail!("dlq server returned {}: {}", status, body);
+            return Err(DlqError::Api {
+                status,
+                message: body,
+            });
         }
 
         let result: DlqMessage = resp
             .json()
             .await
-            .map_err(|e| anyhow::anyhow!("failed to parse dlq response: {}", e))?;
+            .map_err(|e| DlqError::Deserialize(e.to_string()))?;
 
         Ok(result)
     }
 
     /// DLQ メッセージを再処理する。
     /// POST /api/v1/dlq/messages/:id/retry
-    pub async fn retry_message(&self, message_id: &str) -> Result<RetryDlqMessageResponse> {
+    pub async fn retry_message(
+        &self,
+        message_id: &str,
+    ) -> Result<RetryDlqMessageResponse, DlqError> {
         let url = format!("{}/api/v1/dlq/messages/{}/retry", self.endpoint, message_id);
 
         let resp = self
@@ -91,39 +90,39 @@ impl DlqClient {
             .post(&url)
             .json(&serde_json::json!({}))
             .send()
-            .await
-            .map_err(|e| anyhow::anyhow!("dlq HTTP request failed: {}", e))?;
+            .await?;
 
         if !resp.status().is_success() {
             let status = resp.status().as_u16();
             let body = resp.text().await.unwrap_or_default();
-            anyhow::bail!("dlq server returned {}: {}", status, body);
+            return Err(DlqError::Api {
+                status,
+                message: body,
+            });
         }
 
         let result: RetryDlqMessageResponse = resp
             .json()
             .await
-            .map_err(|e| anyhow::anyhow!("failed to parse dlq response: {}", e))?;
+            .map_err(|e| DlqError::Deserialize(e.to_string()))?;
 
         Ok(result)
     }
 
     /// DLQ メッセージを削除する。
     /// DELETE /api/v1/dlq/messages/:id
-    pub async fn delete_message(&self, message_id: &str) -> Result<()> {
+    pub async fn delete_message(&self, message_id: &str) -> Result<(), DlqError> {
         let url = format!("{}/api/v1/dlq/messages/{}", self.endpoint, message_id);
 
-        let resp = self
-            .http_client
-            .delete(&url)
-            .send()
-            .await
-            .map_err(|e| anyhow::anyhow!("dlq HTTP request failed: {}", e))?;
+        let resp = self.http_client.delete(&url).send().await?;
 
         if !resp.status().is_success() {
             let status = resp.status().as_u16();
             let body = resp.text().await.unwrap_or_default();
-            anyhow::bail!("dlq server returned {}: {}", status, body);
+            return Err(DlqError::Api {
+                status,
+                message: body,
+            });
         }
 
         Ok(())
@@ -131,7 +130,7 @@ impl DlqClient {
 
     /// トピック内全メッセージを一括再処理する。
     /// POST /api/v1/dlq/:topic/retry-all
-    pub async fn retry_all(&self, topic: &str) -> Result<()> {
+    pub async fn retry_all(&self, topic: &str) -> Result<(), DlqError> {
         let url = format!("{}/api/v1/dlq/{}/retry-all", self.endpoint, topic);
 
         let resp = self
@@ -139,13 +138,15 @@ impl DlqClient {
             .post(&url)
             .json(&serde_json::json!({}))
             .send()
-            .await
-            .map_err(|e| anyhow::anyhow!("dlq HTTP request failed: {}", e))?;
+            .await?;
 
         if !resp.status().is_success() {
             let status = resp.status().as_u16();
             let body = resp.text().await.unwrap_or_default();
-            anyhow::bail!("dlq server returned {}: {}", status, body);
+            return Err(DlqError::Api {
+                status,
+                message: body,
+            });
         }
 
         Ok(())

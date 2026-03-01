@@ -41,10 +41,10 @@ describe('InMemoryNotificationClient', () => {
 
   it('全チャネル型を受け入れる', async () => {
     const client = new InMemoryNotificationClient();
-    for (const ch of ['email', 'sms', 'push', 'webhook'] as const) {
+    for (const ch of ['email', 'sms', 'push', 'slack', 'webhook'] as const) {
       const resp = await client.send(makeRequest({ id: `n-${ch}`, channel: ch }));
       expect(resp.status).toBe('sent');
     }
-    expect(client.getSent()).toHaveLength(4);
+    expect(client.getSent()).toHaveLength(5);
   });
 });

@@ -1,17 +1,14 @@
 import 'message.dart';
 
+/// アウトボックスメッセージの永続化インターフェース。
 abstract class OutboxStore {
-  Future<void> saveMessage(OutboxMessage msg);
-  Future<List<OutboxMessage>> getPendingMessages(int limit);
-  Future<void> updateStatus(String id, OutboxStatus status);
-  Future<void> updateStatusWithRetry(
-    String id,
-    OutboxStatus status,
-    int retryCount,
-    DateTime scheduledAt,
-  );
+  Future<void> save(OutboxMessage msg);
+  Future<List<OutboxMessage>> fetchPending(int limit);
+  Future<void> update(OutboxMessage msg);
+  Future<int> deleteDelivered(int olderThanDays);
 }
 
+/// メッセージを外部に送信するインターフェース。
 abstract class OutboxPublisher {
   Future<void> publish(OutboxMessage msg);
 }

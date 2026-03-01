@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 
-export type NotificationChannel = 'email' | 'sms' | 'push' | 'webhook';
+export type NotificationChannel = 'email' | 'sms' | 'push' | 'slack' | 'webhook';
 
 export interface NotificationRequest {
   id: string;

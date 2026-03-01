@@ -10,11 +10,13 @@
 
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `OutboxMessage` | 構造体 | アウトボックスに保存するメッセージ（トピック・ペイロード・ステータス・リトライ回数） |
-| `OutboxStatus` | enum | メッセージのステータス（`Pending`・`Published`・`Failed`） |
-| `OutboxStore` | トレイト | アウトボックスメッセージの永続化抽象（`save`・`fetch_pending`・`mark_published`） |
-| `OutboxProcessor` | 構造体 | `OutboxStore` から未発行メッセージを取得し発行するポーリングプロセッサ |
-| `OutboxError` | enum | 保存・取得・発行エラー型 |
+| `OutboxMessage` | 構造体 | アウトボックスに保存するメッセージ（トピック・partition_key・ペイロード・ステータス・リトライ回数・max_retries・last_error・process_after） |
+| `OutboxStatus` | enum | メッセージのステータス（`Pending`・`Processing`・`Delivered`・`Failed`・`DeadLetter`） |
+| `OutboxStore` | トレイト | アウトボックスメッセージの永続化抽象（`save`・`fetch_pending`・`update`・`delete_delivered`） |
+| `OutboxPublisher` | トレイト | アウトボックスメッセージの発行インターフェース（`publish`） |
+| `OutboxProcessor` | 構造体 | `OutboxStore` から未発行メッセージを取得し `OutboxPublisher` 経由で発行するバッチプロセッサ（`batch_size` 指定） |
+| `OutboxError` | enum | StoreError・PublishError・SerializationError・NotFound エラー型 |
+| `PostgresOutboxStore` | 構造体 | PostgreSQL を使った `OutboxStore` 実装（feature = "postgres" で有効） |
 
 ## Rust 実装
 
@@ -26,6 +28,9 @@ name = "k1s0-outbox"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+postgres = ["sqlx"]
+
 [dependencies]
 async-trait = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
@@ -35,6 +40,7 @@ thiserror = "2"
 tokio = { version = "1", features = ["sync", "time"] }
 tracing = "0.1"
 uuid = { version = "1", features = ["v4", "serde"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -48,17 +54,19 @@ mockall = "0.13"
 ```
 outbox/
 ├── src/
-│   ├── lib.rs          # 公開 API（再エクスポート）
-│   ├── error.rs        # OutboxError
-│   ├── message.rs      # OutboxMessage・OutboxStatus（指数バックオフ計算含む）
-│   ├── processor.rs    # OutboxProcessor（ポーリングループ・リトライ制御）
-│   └── store.rs        # OutboxStore トレイト・OutboxPublisher トレイト
+│   ├── lib.rs              # 公開 API（再エクスポート）
+│   ├── error.rs            # OutboxError（StoreError・PublishError・SerializationError・NotFound）
+│   ├── message.rs          # OutboxMessage・OutboxStatus（指数バックオフ計算含む）
+│   ├── processor.rs        # OutboxProcessor（バッチ処理・リトライ制御）
+│   ├── store.rs            # OutboxStore トレイト・OutboxPublisher トレイト
+│   └── postgres_store.rs   # PostgresOutboxStore（feature = "postgres"）
 └── Cargo.toml
 ```
 
 **使用例**:
 
 ```rust
+use std::sync::Arc;
 use k1s0_outbox::{OutboxMessage, OutboxProcessor, OutboxStore};
 
 // ドメインイベント保存とメッセージ発行を同一トランザクションで実行
@@ -67,14 +75,33 @@ async fn create_user_with_event<S: OutboxStore>(
     user_id: &str,
 ) -> Result<(), k1s0_outbox::OutboxError> {
     let payload = serde_json::json!({ "user_id": user_id });
-    let msg = OutboxMessage::new("k1s0.system.auth.user-created.v1", payload);
+    let msg = OutboxMessage::new(
+        "k1s0.system.auth.user-created.v1",
+        user_id,   // partition_key
+        payload,
+    );
     // DB トランザクション内で保存（Saga の一部として）
     store.save(&msg).await
 }
 
-// バックグラウンドで未発行メッセージをポーリング発行
-let processor = OutboxProcessor::new(store, publisher, /* poll_interval */ Duration::from_secs(5));
-processor.run().await;
+// バッチプロセッサで未発行メッセージを処理
+let processor = OutboxProcessor::new(
+    Arc::new(store),
+    Arc::new(publisher),
+    /* batch_size */ 10,
+);
+let processed = processor.process_batch().await?;
+```
+
+**PostgreSQL ストア**（feature = "postgres"）:
+
+```rust
+use k1s0_outbox::PostgresOutboxStore;
+use sqlx::PgPool;
+
+let pool = PgPool::connect("postgres://...").await?;
+let store = PostgresOutboxStore::new(pool);
+// OutboxStore トレイトの全メソッド（save, fetch_pending, update, delete_delivered）を実装
 ```
 
 ## Go 実装
@@ -82,6 +109,8 @@ processor.run().await;
 **配置先**: `regions/system/library/go/outbox/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
 **依存関係**: `github.com/google/uuid v1.6.0`, `github.com/stretchr/testify v1.10.0`
+
+> **注記**: 今後 Rust 実装（OutboxStatus の 5 状態・partition_key・max_retries・last_error・process_after フィールド等）に合わせて統一予定。
 
 **主要インターフェース**:
 
@@ -100,6 +129,8 @@ type OutboxPublisher interface {
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/outbox/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+> **注記**: 今後 Rust 実装（OutboxStatus の 5 状態・partition_key・max_retries・last_error・process_after フィールド等）に合わせて統一予定。
 
 **主要 API**:
 
@@ -150,6 +181,57 @@ export class OutboxError extends Error {
 ## Dart 実装
 
 **配置先**: `regions/system/library/dart/outbox/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+> **注記**: 今後 Rust 実装（OutboxStatus の 5 状態・partition_key・max_retries・last_error・process_after フィールド等）に合わせて統一予定。
+
+**依存関係**: `uuid: ^4.4.0`, `lints: ^4.0.0` (dev)
+
+**主要 API**:
+
+```dart
+enum OutboxStatus { pending, processing, delivered, failed }
+
+class OutboxMessage {
+  final String id;
+  final String topic;
+  final String eventType;
+  final String payload;
+  final OutboxStatus status;
+  final int retryCount;
+  final DateTime scheduledAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final String correlationId;
+
+  OutboxMessage copyWith({...});
+}
+
+OutboxMessage createOutboxMessage(String topic, String eventType, String payload, String correlationId);
+DateTime nextScheduledAt(int retryCount);
+bool canTransitionTo(OutboxStatus from, OutboxStatus to);
+
+abstract class OutboxStore {
+  Future<void> saveMessage(OutboxMessage msg);
+  Future<List<OutboxMessage>> getPendingMessages(int limit);
+  Future<void> updateStatus(String id, OutboxStatus status);
+  Future<void> updateStatusWithRetry(String id, OutboxStatus status, int retryCount, DateTime scheduledAt);
+}
+
+abstract class OutboxPublisher {
+  Future<void> publish(OutboxMessage msg);
+}
+
+class OutboxProcessor {
+  OutboxProcessor(OutboxStore store, OutboxPublisher publisher, {int batchSize = 100});
+  Future<int> processBatch();
+  Future<void> run(Duration interval, {Future<void>? stopSignal});
+}
+
+class OutboxError implements Exception {
+  final String op;
+  final Object? cause;
+}
+```
 
 **カバレッジ目標**: 85%以上
 

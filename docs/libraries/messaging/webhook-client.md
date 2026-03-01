@@ -30,20 +30,22 @@ name = "k1s0-webhook-client"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+mock = ["mockall"]
+
 [dependencies]
-reqwest = { version = "0.12", features = ["json"] }
-hmac = "0.12"
-sha2 = "0.10"
+async-trait = "0.1"
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time", "macros"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["time"] }
-thiserror = "2"
-tracing = "0.1"
-uuid = { version = "1", features = ["v4"] }
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+mockall = { version = "0.13", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-wiremock = "0.6"
 ```
 
 **依存追加**: `k1s0-webhook-client = { path = "../../system/library/rust/webhook-client" }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）
@@ -110,6 +112,7 @@ func NewHTTPWebhookClient(secret string) *HTTPWebhookClient
 func (c *HTTPWebhookClient) Send(ctx context.Context, url string, payload *WebhookPayload) (int, error)
 
 // HMAC-SHA256 署名生成
+// 注: Go 実装は現在 `X-Webhook-Signature` を使用。`X-K1s0-Signature` に統一予定
 func GenerateSignature(secret string, body []byte) string
 
 // 署名検証
@@ -146,15 +149,50 @@ export function verifySignature(secret: string, body: string, signature: string)
 
 ## Dart 実装
 
-**配置先**: `regions/system/library/dart/webhook-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+**配置先**: `regions/system/library/dart/webhook_client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+> **注**: Dart のパッケージ命名慣習によりディレクトリ名はアンダースコア `webhook_client/` を使用（他言語はハイフン `webhook-client/`）。
 
 **pubspec.yaml 主要依存**:
 
 ```yaml
 dependencies:
-  http: ^1.3.0
-  crypto: ^3.0.6
-  uuid: ^4.5.1
+  crypto: ^3.0.0
+```
+
+**主要 API**:
+
+```dart
+import 'package:k1s0_webhook_client/webhook_client.dart';
+
+// WebhookPayload — イベント種別・タイムスタンプ・データ
+class WebhookPayload {
+  final String eventType;
+  final String timestamp;
+  final Map<String, dynamic> data;
+
+  const WebhookPayload({
+    required this.eventType,
+    required this.timestamp,
+    required this.data,
+  });
+}
+
+// WebhookClient — 送信インターフェース（他言語と統一の send(url, payload) パターン）
+abstract class WebhookClient {
+  Future<int> send(String url, WebhookPayload payload);
+}
+
+// InMemoryWebhookClient — テスト用スタブ
+class InMemoryWebhookClient implements WebhookClient {
+  List<(String, WebhookPayload)> get sent;
+  @override
+  Future<int> send(String url, WebhookPayload payload);
+}
+
+// HMAC-SHA256 署名生成・検証
+String generateSignature(String secret, String body);
+bool verifySignature(String secret, String body, String signature);
 ```
 
 **使用例**:
@@ -162,21 +200,18 @@ dependencies:
 ```dart
 import 'package:k1s0_webhook_client/webhook_client.dart';
 
-final config = WebhookConfig(
-  endpointUrl: 'https://example.com/webhooks',
-  secret: 'my-hmac-secret',
-  maxRetries: 3,
-);
-
-final client = WebhookClient(config);
-
 final payload = WebhookPayload(
   eventType: 'order.created',
+  timestamp: DateTime.now().toIso8601String(),
   data: {'order_id': 'ord_123', 'amount': 4900},
 );
 
-final response = await client.deliver(payload);
-print('status: ${response.statusCode}');
+final statusCode = await client.send('https://example.com/webhooks', payload);
+print('status: $statusCode');
+
+// 署名生成・検証
+final sig = generateSignature('my-hmac-secret', '{"event_type":"order.created"}');
+final isValid = verifySignature('my-hmac-secret', '{"event_type":"order.created"}', sig);
 ```
 
 **カバレッジ目標**: 90%以上
@@ -184,8 +219,8 @@ print('status: ${response.statusCode}');
 ## テスト戦略
 
 **ユニットテスト** (`#[cfg(test)]`):
-- `WebhookSignature::sign` の出力を既知の HMAC-SHA256 ハッシュと照合
-- `WebhookSignature::verify` で正しいシークレット・不正なシークレット両方を検証
+- `generate_signature` の出力を既知の HMAC-SHA256 ハッシュと照合
+- `verify_signature` で正しいシークレット・不正なシークレット両方を検証
 - `WebhookPayload` に `idempotency_key` が自動付与されることを確認
 - リトライ回数が `max_retries` を超えた場合に `MaxRetriesExceeded` エラーが返ることを確認
 
@@ -204,14 +239,14 @@ mod tests {
     fn test_signature_sign_verify() {
         let secret = "test-secret";
         let body = b"payload body";
-        let sig = WebhookSignature::sign(secret, body);
-        assert!(WebhookSignature::verify(secret, body, &sig).unwrap());
+        let sig = generate_signature(secret, body);
+        assert!(verify_signature(secret, body, &sig));
     }
 
     #[test]
     fn test_signature_invalid_secret_fails() {
-        let sig = WebhookSignature::sign("correct-secret", b"body");
-        let result = WebhookSignature::verify("wrong-secret", b"body", &sig).unwrap();
+        let sig = generate_signature("correct-secret", b"body");
+        let result = verify_signature("wrong-secret", b"body", &sig);
         assert!(!result);
     }
 

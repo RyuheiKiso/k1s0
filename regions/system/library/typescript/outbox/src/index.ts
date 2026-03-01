@@ -1,51 +1,74 @@
 import { v4 as uuidv4 } from 'uuid';
 
 /** アウトボックスメッセージのステータス。 */
-export type OutboxStatus = 'PENDING' | 'PROCESSING' | 'DELIVERED' | 'FAILED';
+export type OutboxStatus = 'PENDING' | 'PROCESSING' | 'DELIVERED' | 'FAILED' | 'DEAD_LETTER';
+
+/** アウトボックス操作のエラーコード。 */
+export type OutboxErrorCode = 'STORE_ERROR' | 'PUBLISH_ERROR' | 'SERIALIZATION_ERROR' | 'NOT_FOUND';
 
 /** アウトボックスパターンで管理するメッセージ。 */
 export interface OutboxMessage {
   id: string;
   topic: string;
-  eventType: string;
+  partitionKey: string;
   payload: string;
   status: OutboxStatus;
   retryCount: number;
-  scheduledAt: Date;
+  maxRetries: number;
+  lastError: string | null;
   createdAt: Date;
-  updatedAt: Date;
-  correlationId: string;
+  processAfter: Date;
 }
 
 /** 新しい OutboxMessage を生成する。 */
 export function createOutboxMessage(
   topic: string,
-  eventType: string,
+  partitionKey: string,
   payload: string,
-  correlationId: string,
 ): OutboxMessage {
   const now = new Date();
   return {
     id: uuidv4(),
     topic,
-    eventType,
+    partitionKey,
     payload,
     status: 'PENDING',
     retryCount: 0,
-    scheduledAt: now,
+    maxRetries: 3,
+    lastError: null,
     createdAt: now,
-    updatedAt: now,
-    correlationId,
+    processAfter: now,
   };
 }
 
-/** 次回処理予定時刻を指数バックオフで計算する。min(2^retryCount, 60) 分後。 */
-export function nextScheduledAt(retryCount: number): Date {
-  let delayMinutes = 1 << retryCount; // 2^retryCount
-  if (delayMinutes > 60) {
-    delayMinutes = 60;
+/** メッセージを処理中状態に遷移する。 */
+export function markProcessing(msg: OutboxMessage): void {
+  msg.status = 'PROCESSING';
+}
+
+/** メッセージを配信完了状態に遷移する。 */
+export function markDelivered(msg: OutboxMessage): void {
+  msg.status = 'DELIVERED';
+}
+
+/** メッセージを失敗状態に遷移し、リトライ回数をインクリメントする。 */
+export function markFailed(msg: OutboxMessage, error: string): void {
+  msg.retryCount += 1;
+  msg.lastError = error;
+  if (msg.retryCount >= msg.maxRetries) {
+    msg.status = 'DEAD_LETTER';
+  } else {
+    msg.status = 'FAILED';
+    // Exponential backoff: 2^retryCount 秒後に再処理
+    const delaySecs = Math.pow(2, msg.retryCount);
+    msg.processAfter = new Date(Date.now() + delaySecs * 1000);
   }
-  return new Date(Date.now() + delayMinutes * 60 * 1000);
+}
+
+/** メッセージが処理可能かどうか判定する。 */
+export function isProcessable(msg: OutboxMessage): boolean {
+  return (msg.status === 'PENDING' || msg.status === 'FAILED')
+    && msg.processAfter <= new Date();
 }
 
 /** 現在のステータスから目的のステータスへ遷移可能かを返す。 */
@@ -54,20 +77,22 @@ export function canTransitionTo(from: OutboxStatus, to: OutboxStatus): boolean {
     case 'PENDING':
       return to === 'PROCESSING';
     case 'PROCESSING':
-      return to === 'DELIVERED' || to === 'FAILED';
+      return to === 'DELIVERED' || to === 'FAILED' || to === 'DEAD_LETTER';
     case 'FAILED':
-      return to === 'PENDING';
+      return to === 'PROCESSING';
     case 'DELIVERED':
+      return false;
+    case 'DEAD_LETTER':
       return false;
   }
 }
 
 /** アウトボックスメッセージの永続化インターフェース。 */
 export interface OutboxStore {
-  saveMessage(msg: OutboxMessage): Promise<void>;
-  getPendingMessages(limit: number): Promise<OutboxMessage[]>;
-  updateStatus(id: string, status: OutboxStatus): Promise<void>;
-  updateStatusWithRetry(id: string, status: OutboxStatus, retryCount: number, scheduledAt: Date): Promise<void>;
+  save(msg: OutboxMessage): Promise<void>;
+  fetchPending(limit: number): Promise<OutboxMessage[]>;
+  update(msg: OutboxMessage): Promise<void>;
+  deleteDelivered(olderThanDays: number): Promise<number>;
 }
 
 /** メッセージを外部に送信するインターフェース。 */
@@ -89,20 +114,22 @@ export class OutboxProcessor {
 
   /** 保留中のメッセージを一括処理する。 */
   async processBatch(): Promise<number> {
-    const messages = await this.store.getPendingMessages(this.batchSize);
+    const messages = await this.store.fetchPending(this.batchSize);
 
     let processed = 0;
     for (const msg of messages) {
-      await this.store.updateStatus(msg.id, 'PROCESSING');
+      markProcessing(msg);
+      await this.store.update(msg);
 
       try {
         await this.publisher.publish(msg);
-        await this.store.updateStatus(msg.id, 'DELIVERED');
+        markDelivered(msg);
+        await this.store.update(msg);
         processed++;
-      } catch {
-        const retryCount = msg.retryCount + 1;
-        const scheduledAt = nextScheduledAt(retryCount);
-        await this.store.updateStatusWithRetry(msg.id, 'FAILED', retryCount, scheduledAt);
+      } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        markFailed(msg, errorMessage);
+        await this.store.update(msg);
       }
     }
     return processed;
@@ -126,10 +153,10 @@ export class OutboxProcessor {
 /** アウトボックス操作のエラー。 */
 export class OutboxError extends Error {
   constructor(
-    public readonly op: string,
-    cause?: Error,
+    public readonly code: OutboxErrorCode,
+    message?: string,
   ) {
-    super(cause ? `outbox ${op}: ${cause.message}` : `outbox ${op}`);
+    super(message ? `outbox ${code}: ${message}` : `outbox ${code}`);
     this.name = 'OutboxError';
   }
 }
