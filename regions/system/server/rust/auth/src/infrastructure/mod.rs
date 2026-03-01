@@ -1,5 +1,6 @@
 pub mod database;
 pub mod jwks_adapter;
+pub mod jwks_provider;
 pub mod kafka_producer;
 pub mod keycloak_client;
 pub mod permission_cache;

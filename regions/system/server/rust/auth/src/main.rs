@@ -96,7 +96,7 @@ struct JwksConfig {
 }
 
 fn default_cache_ttl_secs() -> u64 {
-    3600
+    600
 }
 
 /// Permission cache configuration.
@@ -236,6 +236,21 @@ async fn main() -> anyhow::Result<()> {
         .as_ref()
         .map(|kc| format!("{}/realms/{}", kc.base_url, kc.realm));
 
+    // JWKS proxy provider (Keycloak certs -> auth-server /jwks)
+    let jwks_provider = cfg.keycloak.as_ref().map(|kc| {
+        let url = format!(
+            "{}/realms/{}/protocol/openid-connect/certs",
+            kc.base_url, kc.realm
+        );
+        let ttl_secs = cfg
+            .auth
+            .jwks
+            .as_ref()
+            .map(|j| j.cache_ttl_secs)
+            .unwrap_or(default_cache_ttl_secs());
+        infrastructure::jwks_provider::JwksProvider::new(url, std::time::Duration::from_secs(ttl_secs))
+    });
+
     // Metrics (shared across layers and repositories)
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server"));
 
@@ -338,6 +353,7 @@ async fn main() -> anyhow::Result<()> {
         cfg.auth.jwt.audience,
         db_pool.clone(),
         keycloak_health_url,
+        jwks_provider,
     );
 
     let auth_grpc_svc = Arc::new(AuthGrpcService::new(

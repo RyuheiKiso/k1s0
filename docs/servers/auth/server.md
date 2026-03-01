@@ -506,7 +506,7 @@ message AuditLog {
 
 | フィールド | 型 | デフォルト | 説明 |
 | --- | --- | --- | --- |
-| `url` | string | - | JWKS エンドポイント URL（例: `http://auth-server:8080/.well-known/jwks.json`）。Keycloak URL から自動導出せず、明示的に指定する |
+| `url` | string | - | JWKS エンドポイント URL（例: `http://auth-server:8080/jwks`）。互換として `/.well-known/jwks.json` も利用可能。Keycloak URL から自動導出せず、明示的に指定する |
 | `cache_ttl_secs` | int | `600` | JWKS キャッシュ TTL（秒）。[JWT設計.md](../../architecture/auth/JWT設計.md) の JWKS キャッシュ TTL 10 分と整合 |
 
 ### auth.jwt

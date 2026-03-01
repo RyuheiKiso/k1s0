@@ -10,9 +10,16 @@ D-002: JWT 公開鍵ローテーション。JWKS 方式、Go/Rust 実装を定�
 
 ### JWKS エンドポイント方式
 
-JWT の公開鍵配布には **JWKS（JSON Web Key Set）エンドポイント方式** を採用する。各サービスは Keycloak の JWKS エンドポイントから公開鍵を動的に取得する。
+JWT の公開鍵配布には **JWKS（JSON Web Key Set）エンドポイント方式** を採用する。
+
+- 公開鍵の最終ソースは Keycloak の JWKS
+- 各サービスは原則として auth-server が提供する JWKS エンドポイント（Keycloak JWKS のプロキシ/キャッシュ）から取得する
 
 ```
+# 推奨（内部サービス）
+JWKS URL: http://auth-server.k1s0-system.svc.cluster.local/jwks
+
+# 上流（Keycloak）
 JWKS URL: https://auth.k1s0.internal.example.com/realms/k1s0/protocol/openid-connect/certs
 ```
 
@@ -23,7 +30,7 @@ JWKS URL: https://auth.k1s0.internal.example.com/realms/k1s0/protocol/openid-con
 | アルゴリズム         | RS256（RSA 2048-bit）                  |
 | ローテーション周期   | 90 日                                  |
 | オーバーラップ期間   | 14 日（新旧鍵の並行運用）             |
-| JWKS キャッシュ TTL  | 10 分                                  |
+| JWKS キャッシュ TTL  | 推奨 10 分（実値はサービス設定）        |
 
 ### ローテーションフロー
 
