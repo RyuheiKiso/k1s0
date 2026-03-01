@@ -91,8 +91,7 @@ system tier の Vault Server は以下の機能を提供する。
 ```json
 {
   "path": "app/db/password",
-  "version": 1,
-  "created_at": "2026-02-23T10:00:00.000+00:00"
+  "version": 1
 }
 ```
 
@@ -105,12 +104,13 @@ system tier の Vault Server は以下の機能を提供する。
 ```json
 {
   "path": "app/db/password",
+  "current_version": 1,
   "data": {
     "username": "db_admin",
     "password": "s3cret-v4lue"
   },
-  "version": 1,
-  "created_at": "2026-02-23T10:00:00.000+00:00"
+  "created_at": "2026-02-23T10:00:00.000+00:00",
+  "updated_at": "2026-02-23T10:00:00.000+00:00"
 }
 ```
 
@@ -147,8 +147,7 @@ system tier の Vault Server は以下の機能を提供する。
 ```json
 {
   "path": "app/db/password",
-  "version": 2,
-  "updated_at": "2026-02-23T12:00:00.000+00:00"
+  "version": 2
 }
 ```
 
@@ -160,7 +159,102 @@ system tier の Vault Server は以下の機能を提供する。
 
 レスポンスボディなし。
 
+#### GET /api/v1/secrets
 
+シークレットのパス一覧を返す。
+
+**クエリパラメータ**
+
+| パラメータ | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `prefix` | string | `""` | パスプレフィックスでフィルタ |
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "secrets": ["app/db/password", "app/api/key"]
+}
+```
+
+#### GET /api/v1/secrets/:key/metadata
+
+指定パスのシークレットのメタデータのみを返す（シークレット値は含まない）。
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "path": "app/db/password",
+  "current_version": 3,
+  "version_count": 3,
+  "created_at": "2026-02-23T10:00:00.000+00:00",
+  "updated_at": "2026-02-23T12:00:00.000+00:00"
+}
+```
+
+**レスポンス（404 Not Found）**
+
+```json
+{
+  "error": "secret not found: app/db/password"
+}
+```
+
+#### POST /api/v1/secrets/:key/rotate
+
+指定パスのシークレットをローテーションする。新しいシークレットデータをボディに渡すと、バージョンがインクリメントされる。
+
+**リクエスト**
+
+```json
+{
+  "username": "db_admin",
+  "password": "rotated-s3cret-v4lue"
+}
+```
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "path": "app/db/password",
+  "new_version": 2,
+  "rotated": true
+}
+```
+
+#### GET /api/v1/audit/logs
+
+シークレットアクセスの監査ログ一覧を返す。
+
+**クエリパラメータ**
+
+| パラメータ | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `offset` | u32 | `0` | ページオフセット |
+| `limit` | u32 | `20` | 取得件数上限 |
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "logs": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "key_path": "app/db/password",
+      "action": "read",
+      "actor_id": "spiffe://cluster.local/ns/default/sa/app",
+      "ip_address": "10.0.0.1",
+      "success": true,
+      "error_msg": null,
+      "created_at": "2026-02-23T10:00:00.000+00:00"
+    }
+  ]
+}
+```
+
+アクション種別: `read` / `write` / `delete` / `list`
 
 ### エラーコード
 
@@ -255,7 +349,7 @@ moka を使用した TTL ベースのインメモリキャッシュにより、V
 | --- | --- | --- |
 | domain/entity | `Secret`, `SecretVersion`, `SecretValue`, `SecretAccessLog` | エンティティ定義 |
 | domain/repository | `SecretStore`（trait）, `AccessLogRepository`（trait） | リポジトリトレイト |
-| usecase | `GetSecretUseCase`, `SetSecretUseCase`, `DeleteSecretUseCase`, `ListSecretsUseCase` | ユースケース |
+| usecase | `GetSecretUseCase`, `SetSecretUseCase`, `DeleteSecretUseCase`, `ListSecretsUseCase`, `ListAuditLogsUseCase` | ユースケース |
 | adapter/handler | `vault_handler.rs`（REST）, `health.rs` | axum REST ハンドラー |
 | adapter/grpc | `VaultGrpcService`, `VaultServiceTonic` | tonic gRPC ハンドラー |
 | adapter/gateway | `VaultClient` | HashiCorp Vault クライアント（vaultrs 経由） |

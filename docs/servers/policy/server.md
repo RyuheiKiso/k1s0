@@ -27,6 +27,10 @@ system tier のポリシー評価サーバーは以下の機能を提供する�
 
 配置: `regions/system/server/rust/policy/`（[Tier別配置パス参照](../../templates/server/サーバー.md#tier-別配置パス)）
 
+### gRPC ポート
+
+proto ファイルおよびサーバー実装のデフォルト: **9090**（config.yaml で上書き可能）
+
 ---
 
 ## 設計方針
@@ -38,11 +42,11 @@ system tier のポリシー評価サーバーは以下の機能を提供する�
 | 実装言語 | Rust |
 | ポリシーエンジン | OPA（Open Policy Agent）。opa-client クレート経由で OPA HTTP API を呼び出す |
 | ポリシー言語 | Rego。ポリシー本文は PostgreSQL の `policy.policies` テーブルで管理 |
-| 評価フロー | REST/gRPC リクエスト → Rust サーバー → OPA HTTP API（/v1/data/{package}） → 評価結果返却 |
+| 評価フロー | REST/gRPC リクエスト → Rust サーバー → OPA HTTP API（/v1/data/{package_path}） → 評価結果返却。OPA 未設定時は policy.enabled フラグでフォールバック評価 |
 | キャッシュ | moka で評価結果を TTL 30 秒キャッシュ。Kafka 通知受信時にキャッシュ無効化 |
 | DB スキーマ | PostgreSQL の `policy` スキーマ（policies, policy_bundles テーブル） |
 | Kafka | ポリシー変更時に `k1s0.system.policy.updated.v1` トピックへ変更通知を送信 |
-| ポート | ホスト側 8096（内部 8080）、gRPC 50051 |
+| ポート | ホスト側 8096（内部 8080）、gRPC 9090 |
 
 ---
 
@@ -68,16 +72,7 @@ system tier のポリシー評価サーバーは以下の機能を提供する�
 
 #### GET /api/v1/policies
 
-登録済みポリシーの一覧をページネーション付きで取得する。`bundle_id` クエリパラメータでバンドル別にフィルタリングできる。
-
-**クエリパラメータ**
-
-| パラメータ | 型 | 必須 | デフォルト | 説明 |
-| --- | --- | --- | --- | --- |
-| `bundle_id` | string | No | - | バンドル ID でフィルタ |
-| `enabled_only` | bool | No | false | 有効なポリシーのみ取得 |
-| `page` | int | No | 1 | ページ番号 |
-| `page_size` | int | No | 20 | 1 ページあたりの件数 |
+登録済みポリシーの全一覧を取得する。
 
 **レスポンス例（200 OK）**
 
@@ -96,15 +91,11 @@ system tier のポリシー評価サーバーは以下の機能を提供する�
       "created_at": "2026-02-20T10:00:00.000+00:00",
       "updated_at": "2026-02-20T12:30:00.000+00:00"
     }
-  ],
-  "pagination": {
-    "total_count": 12,
-    "page": 1,
-    "page_size": 20,
-    "has_next": false
-  }
+  ]
 }
 ```
+
+> 現在の実装ではページネーションは未実装。全件返却となる。`bundle_id`/`enabled_only` クエリフィルタも未実装。
 
 #### GET /api/v1/policies/:id
 
@@ -150,12 +141,13 @@ ID 指定でポリシーの詳細を取得する。
 {
   "name": "k1s0-tenant-access",
   "description": "テナントへのアクセス制御ポリシー",
-  "package_path": "k1s0.system.tenant",
   "rego_content": "package k1s0.system.tenant\n\ndefault allow = false\n\nallow {\n  input.role == \"sys_admin\"\n}",
-  "bundle_id": "bundle-001",
-  "enabled": true
+  "package_path": "k1s0.system.tenant",
+  "bundle_id": "bundle-001"
 }
 ```
+
+> `package_path` は省略可能。`bundle_id` は省略可能。`enabled` はデフォルト `true`（リクエストに含める必要なし）。
 
 **レスポンス例（201 Created）**
 
@@ -255,7 +247,6 @@ ID 指定でポリシーの詳細を取得する。
 
 ```json
 {
-  "package_path": "k1s0.system.tenant",
   "input": {
     "role": "sys_operator",
     "action": "read",
@@ -265,14 +256,14 @@ ID 指定でポリシーの詳細を取得する。
 }
 ```
 
+> ポリシー ID は URL パス（`:id`）で指定する。`package_path` はサーバー内でポリシーから自動解決される。
+
 **レスポンス例（200 OK -- 許可）**
 
 ```json
 {
   "allowed": true,
-  "package_path": "k1s0.system.tenant",
-  "decision_id": "dec_xyz789abc123",
-  "cached": false
+  "reason": "OPA evaluation: allowed"
 }
 ```
 
@@ -281,9 +272,7 @@ ID 指定でポリシーの詳細を取得する。
 ```json
 {
   "allowed": false,
-  "package_path": "k1s0.system.tenant",
-  "decision_id": "dec_xyz789abc124",
-  "cached": true
+  "reason": "OPA evaluation: denied"
 }
 ```
 
@@ -312,14 +301,47 @@ ID 指定でポリシーの詳細を取得する。
     {
       "id": "bundle-001",
       "name": "k1s0-system-policies",
-      "description": "system tier の標準アクセス制御ポリシー群",
-      "policy_count": 5,
-      "enabled": true,
+      "policy_ids": ["policy-001", "policy-002", "policy-003"],
       "created_at": "2026-02-20T10:00:00.000+00:00",
       "updated_at": "2026-02-20T12:30:00.000+00:00"
     }
-  ],
-  "total_count": 1
+  ]
+}
+```
+
+#### POST /api/v1/bundles
+
+複数のポリシーをグループ化したバンドルを作成する。
+
+**リクエスト例**
+
+```json
+{
+  "name": "k1s0-system-policies",
+  "policy_ids": ["policy-001", "policy-002", "policy-003"]
+}
+```
+
+**レスポンス例（201 Created）**
+
+```json
+{
+  "id": "bundle-001",
+  "name": "k1s0-system-policies",
+  "policy_ids": ["policy-001", "policy-002", "policy-003"],
+  "created_at": "2026-02-20T10:00:00.000+00:00",
+  "updated_at": "2026-02-20T10:00:00.000+00:00"
+}
+```
+
+**レスポンス例（400 Bad Request）**
+
+```json
+{
+  "error": {
+    "code": "SYS_POLICY_INVALID_ID",
+    "message": "invalid policy_id format"
+  }
 }
 ```
 
@@ -336,9 +358,13 @@ ID 指定でポリシーの詳細を取得する。
 
 ### gRPC サービス定義
 
+gRPC ポート: **9090**
+
 ```protobuf
 syntax = "proto3";
 package k1s0.system.policy.v1;
+
+import "k1s0/system/common/v1/types.proto";
 
 service PolicyService {
   rpc EvaluatePolicy(EvaluatePolicyRequest) returns (EvaluatePolicyResponse);
@@ -374,8 +400,8 @@ message Policy {
   string bundle_id = 6;
   bool enabled = 7;
   uint32 version = 8;
-  string created_at = 9;
-  string updated_at = 10;
+  k1s0.system.common.v1.Timestamp created_at = 9;
+  k1s0.system.common.v1.Timestamp updated_at = 10;
 }
 ```
 
@@ -421,7 +447,7 @@ message Policy {
 | domain/entity | `Policy`, `PolicyBundle`, `PolicyEvaluation` | エンティティ定義 |
 | domain/repository | `PolicyRepository`, `PolicyBundleRepository` | リポジトリトレイト |
 | domain/service | `PolicyDomainService` | Rego 構文バリデーション・評価結果キャッシュキー生成 |
-| usecase | `GetPolicyUsecase`, `ListPoliciesUsecase`, `CreatePolicyUsecase`, `UpdatePolicyUsecase`, `DeletePolicyUsecase`, `EvaluatePolicyUsecase`, `ListBundlesUsecase` | ユースケース |
+| usecase | `GetPolicyUseCase`, `CreatePolicyUseCase`, `UpdatePolicyUseCase`, `DeletePolicyUseCase`, `EvaluatePolicyUseCase`, `CreateBundleUseCase`, `ListBundlesUseCase` | ユースケース（list_policies は repository 直呼び出し） |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
 | infrastructure/persistence | `PolicyPostgresRepository`, `PolicyBundlePostgresRepository` | PostgreSQL リポジトリ実装 |
@@ -452,9 +478,7 @@ message Policy {
 | --- | --- | --- |
 | `id` | UUID | バンドルの一意識別子 |
 | `name` | String | バンドル名（例: `k1s0-system-policies`） |
-| `description` | String | バンドルの説明 |
-| `policy_count` | u32 | 所属ポリシー数 |
-| `enabled` | bool | バンドルの有効/無効 |
+| `policy_ids` | Vec\<UUID\> | 所属ポリシー ID 一覧 |
 | `created_at` | DateTime\<Utc\> | 作成日時 |
 | `updated_at` | DateTime\<Utc\> | 更新日時 |
 
@@ -526,20 +550,20 @@ CREATE INDEX idx_policies_package_path ON policy.policies(package_path);
                     │  │  healthz / readyz / metrics              │   │
                     │  │  list_policies / get_policy              │   │
                     │  │  create_policy / update_policy           │   │
-                    │  │  delete_policy / evaluate                │   │
-                    │  │  list_bundles                            │   │
+                    │  │  delete_policy / evaluate_policy         │   │
+                    │  │  list_bundles / create_bundle            │   │
                     │  ├──────────────────────────────────────────┤   │
-                    │  │ gRPC Handler (policy_grpc.rs)            │   │
+                    │  │ gRPC Handler (tonic_service.rs)          │   │
                     │  │  EvaluatePolicy / GetPolicy              │   │
                     │  └──────────────────────┬───────────────────┘   │
                     └─────────────────────────┼───────────────────────┘
                                               │
                     ┌─────────────────────────▼───────────────────────┐
                     │                   usecase 層                    │
-                    │  GetPolicyUsecase / ListPoliciesUsecase /       │
-                    │  CreatePolicyUsecase / UpdatePolicyUsecase /    │
-                    │  DeletePolicyUsecase / EvaluatePolicyUsecase /  │
-                    │  ListBundlesUsecase                             │
+                    │  GetPolicyUseCase / CreatePolicyUseCase /       │
+                    │  UpdatePolicyUseCase / DeletePolicyUseCase /    │
+                    │  EvaluatePolicyUseCase / CreateBundleUseCase /  │
+                    │  ListBundlesUseCase                             │
                     └─────────────────────────┬───────────────────────┘
                                               │
               ┌───────────────────────────────┼───────────────────────┐
@@ -588,7 +612,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
-  grpc_port: 50051
+  grpc_port: 9090
 
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
@@ -629,12 +653,12 @@ replicaCount: 2
 
 container:
   port: 8080
-  grpcPort: 50051
+  grpcPort: 9090
 
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 50051
+  grpcPort: 9090
 
 autoscaling:
   enabled: true

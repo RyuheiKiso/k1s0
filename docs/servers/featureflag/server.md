@@ -57,7 +57,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 | POST | `/api/v1/flags` | フラグ作成 | `sys_operator` 以上 |
 | PUT | `/api/v1/flags/:key` | フラグ更新 | `sys_operator` 以上 |
 | DELETE | `/api/v1/flags/:key` | フラグ削除 | `sys_admin` のみ |
-| POST | `/api/v1/flags/:key/evaluate` | フラグ評価 | 不要（内部サービス用） |
+| POST | `/api/v1/flags/:key/evaluate` | フラグ評価 | 認証有効時は `flags/write` 権限、無効時は不要（内部サービス用） |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
@@ -112,9 +112,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 {
   "error": {
     "code": "SYS_FF_NOT_FOUND",
-    "message": "feature flag not found: enable-new-checkout",
-    "request_id": "req_abc123def456",
-    "details": []
+    "message": "feature flag not found: enable-new-checkout"
   }
 }
 ```
@@ -158,16 +156,14 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 {
   "error": {
     "code": "SYS_FF_ALREADY_EXISTS",
-    "message": "flag already exists: enable-new-checkout",
-    "request_id": "req_abc123def456",
-    "details": []
+    "message": "flag already exists: enable-new-checkout"
   }
 }
 ```
 
 #### PUT /api/v1/flags/:key
 
-既存のフィーチャーフラグを更新する。`enabled` と `description` のみ更新可能（部分更新）。全フィールド省略可能（省略時は変更なし）。
+既存のフィーチャーフラグを更新する。`enabled` と `description` のみ更新可能。REST API では部分更新（省略フィールドは変更なし）。gRPC では `UpdateFlagRequest` の `enabled` は proto3 の bool 型のためデフォルト `false` と省略が区別できず、常に指定した値が適用される。
 
 **リクエスト**
 
@@ -231,7 +227,7 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 
 #### POST /api/v1/flags/:key/evaluate
 
-フラグを評価し、指定されたコンテキスト（ユーザー・テナント・属性）に基づいて有効/無効とバリアントを判定する。内部サービス用のエンドポイントであり、認証は不要。全フィールド省略可能。`attributes` 省略時は空マップ。
+フラグを評価し、指定されたコンテキスト（ユーザー・テナント・属性）に基づいて有効/無効とバリアントを判定する。内部サービス用のエンドポイント。認証ミドルウェアが有効な場合は `flags/write` 権限が必要、無効な場合は認証不要。全フィールド省略可能。`attributes` 省略時は空マップ。
 
 **リクエスト**
 
@@ -285,8 +281,12 @@ system tier のフィーチャーフラグサーバーは以下の機能を提�
 | --- | --- | --- |
 | `SYS_FF_NOT_FOUND` | 404 | 指定されたフラグが見つからない |
 | `SYS_FF_ALREADY_EXISTS` | 409 | 同一キーのフラグが既に存在する |
-| `SYS_FF_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー |
-| `SYS_FF_INTERNAL_ERROR` | 500 | 内部エラー |
+| `SYS_FF_LIST_FAILED` | 500 | フラグ一覧取得の内部エラー |
+| `SYS_FF_GET_FAILED` | 500 | フラグ取得の内部エラー |
+| `SYS_FF_CREATE_FAILED` | 500 | フラグ作成の内部エラー |
+| `SYS_FF_UPDATE_FAILED` | 500 | フラグ更新の内部エラー |
+| `SYS_FF_DELETE_FAILED` | 500 | フラグ削除の内部エラー |
+| `SYS_FF_EVALUATE_FAILED` | 500 | フラグ評価の内部エラー |
 
 ### gRPC サービス定義
 
@@ -342,6 +342,7 @@ message CreateFlagResponse {
   FeatureFlag flag = 1;
 }
 
+// enabled/description は両方必ず送信すること（bool のデフォルト false は「無効化」として解釈される）
 message UpdateFlagRequest {
   string flag_key = 1;
   bool enabled = 2;
@@ -352,6 +353,7 @@ message UpdateFlagResponse {
   FeatureFlag flag = 1;
 }
 
+// rules フィールドは proto に含まれない（将来追加予定。現在はドメインエンティティのみに存在）
 message FeatureFlag {
   string id = 1;
   string flag_key = 2;

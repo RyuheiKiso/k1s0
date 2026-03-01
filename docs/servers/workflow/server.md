@@ -39,7 +39,7 @@ system tier のワークフローオーケストレーションサーバーは�
 | DB | PostgreSQL の `workflow` スキーマ（workflow_definitions, workflow_instances, workflow_tasks テーブル） |
 | Kafka | プロデューサー（`k1s0.system.workflow.state_changed.v1`） |
 | 認証 | JWTによる認可。管理系エンドポイントは `sys_operator` / `sys_admin` ロールが必要 |
-| ポート | ホスト側 8100（内部 8080）、gRPC 50051 |
+| ポート | ホスト側 8100（内部 8080）、gRPC 9090 |
 
 ---
 
@@ -56,7 +56,7 @@ system tier のワークフローオーケストレーションサーバーは�
 | GET | `/api/v1/workflows/:id` | ワークフロー定義取得 | `sys_auditor` 以上 |
 | PUT | `/api/v1/workflows/:id` | ワークフロー定義更新 | `sys_operator` 以上 |
 | DELETE | `/api/v1/workflows/:id` | ワークフロー定義削除 | `sys_admin` のみ |
-| POST | `/api/v1/workflows/:id/instances` | インスタンス起動（実行開始） | `sys_operator` 以上 |
+| POST | `/api/v1/workflows/:id/execute` | インスタンス起動（実行開始） | `sys_operator` 以上 |
 | GET | `/api/v1/workflows/:id/status` | ワークフロー実行ステータス取得 | `sys_auditor` 以上 |
 | GET | `/api/v1/instances` | インスタンス一覧取得 | `sys_auditor` 以上 |
 | GET | `/api/v1/instances/:id` | インスタンス取得 | `sys_auditor` 以上 |
@@ -89,7 +89,7 @@ system tier のワークフローオーケストレーションサーバーは�
 
 ID 指定でワークフロー定義の詳細（ステップ定義を含む）を取得する。
 
-#### POST /api/v1/workflows/:id/instances
+#### POST /api/v1/workflows/:id/execute
 
 指定したワークフロー定義からインスタンスを起動する。起動後すぐに最初のステップのタスクが生成される。
 
@@ -552,7 +552,7 @@ CREATE INDEX idx_workflow_tasks_due_at ON workflow.workflow_tasks(due_at)
 }
 ```
 
-### POST /api/v1/workflows/:id/instances -- リクエスト・レスポンス例
+### POST /api/v1/workflows/:id/execute -- リクエスト・レスポンス例
 
 **リクエスト**
 
@@ -836,7 +836,7 @@ CREATE INDEX idx_workflow_tasks_due_at ON workflow.workflow_tasks(due_at)
                     │  │  list_workflows / create_workflow        │   │
                     │  │  get_workflow / update_workflow          │   │
                     │  │  delete_workflow                         │   │
-                    │  │  start_instance / list_instances         │   │
+                    │  │  execute_workflow / list_instances        │   │
                     │  │  get_instance / cancel_instance          │   │
                     │  │  list_tasks / approve_task               │   │
                     │  │  reject_task / reassign_task             │   │
@@ -903,7 +903,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
-  grpc_port: 50051
+  grpc_port: 9090
 
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
@@ -944,12 +944,12 @@ replicaCount: 2
 
 container:
   port: 8080
-  grpcPort: 50051
+  grpcPort: 9090
 
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 50051
+  grpcPort: 9090
 
 autoscaling:
   enabled: true

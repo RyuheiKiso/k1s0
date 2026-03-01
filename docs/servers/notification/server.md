@@ -11,7 +11,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | --- | --- |
 | 通知チャネル管理 | Email / Slack / Webhook / SMS / Push の接続設定 CRUD |
 | 通知テンプレート管理 | テンプレートの作成・更新・削除・一覧取得 |
-| 通知送信 | REST による即時送信 / Kafka `k1s0.system.notification.requested.v1` 経由の非同期送信 |
+| 通知送信 | REST `POST /api/v1/notifications` による即時送信 / Kafka `k1s0.system.notification.requested.v1` 経由の非同期送信 |
 | 配信履歴管理 | 配信状態・エラー内容を PostgreSQL に記録し一覧・詳細取得を提供 |
 | リトライ管理 | 配信失敗時の自動リトライ（指数バックオフ）と手動再送 API |
 
@@ -32,7 +32,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | 項目 | 設計 |
 | --- | --- |
 | 実装言語 | Rust |
-| 通知配信方式 | Kafka コンシューマーで `k1s0.system.notification.requested.v1` を受信し非同期配信。REST `/send` エンドポイントでの即時配信も提供 |
+| 通知配信方式 | Kafka コンシューマーで `k1s0.system.notification.requested.v1` を受信し非同期配信。REST `POST /api/v1/notifications` での即時配信も提供 |
 | リトライ | 失敗時に指数バックオフ（初回 1 秒、最大 5 回、上限 60 秒）で自動リトライ |
 | DB | PostgreSQL の `notification` スキーマ（notification_channels, notification_templates, notification_logs テーブル） |
 | Kafka | コンシューマー（`k1s0.system.notification.requested.v1`）+ プロデューサー（`k1s0.system.notification.delivered.v1`） |
@@ -45,7 +45,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 
 ### REST API エンドポイント
 
-全エンドポイントは [API設計.md](../../architecture/api/API設計.md) D-007 の統一エラーレスポンスに従う。エラーコードのプレフィックスは `SYS_NOTIFY_` とする。
+全エンドポイントは [API設計.md](../../architecture/api/API設計.md) D-007 の統一エラーレスポンスに従う。エラーコードのプレフィックスは `SYS_NOTIF_` とする。
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
@@ -59,7 +59,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | GET | `/api/v1/templates/:id` | テンプレート詳細取得 | `sys_auditor` 以上 |
 | PUT | `/api/v1/templates/:id` | テンプレート更新 | `sys_operator` 以上 |
 | DELETE | `/api/v1/templates/:id` | テンプレート削除 | `sys_admin` のみ |
-| POST | `/api/v1/notifications/send` | 即時通知送信 | `sys_operator` 以上 |
+| POST | `/api/v1/notifications` | 即時通知送信 | `sys_operator` 以上 |
 | GET | `/api/v1/notifications` | 配信履歴一覧 | `sys_auditor` 以上 |
 | GET | `/api/v1/notifications/:id` | 配信履歴詳細 | `sys_auditor` 以上 |
 | POST | `/api/v1/notifications/:id/retry` | 通知再送 | `sys_operator` 以上 |
@@ -152,18 +152,13 @@ system tier の通知管理サーバーは以下の機能を提供する。
 ```json
 {
   "error": {
-    "code": "SYS_NOTIFY_VALIDATION_ERROR",
-    "message": "validation failed",
-    "request_id": "req_abc123def456",
-    "details": [
-      {"field": "channel_type", "message": "must be one of: email, slack, webhook, sms, push"},
-      {"field": "config.smtp_host", "message": "smtp_host is required for email channel"}
-    ]
+    "code": "SYS_NOTIF_VALIDATION_ERROR",
+    "message": "validation failed"
   }
 }
 ```
 
-#### POST /api/v1/notifications/send
+#### POST /api/v1/notifications
 
 指定チャネルへ即時通知を送信する。`template_id` を指定した場合はテンプレートを使用し、`body` を直接指定した場合はそのまま送信する。
 
@@ -172,23 +167,22 @@ system tier の通知管理サーバーは以下の機能を提供する。
 ```json
 {
   "channel_id": "ch_01JABCDEF1234567890",
-  "template_id": "tpl_01JABCDEF1234567890",
-  "variables": {
+  "recipient": "tanaka@example.com",
+  "subject": "ログイン通知",
+  "body": "田中 太郎 様、ログインを検知しました。",
+  "template_variables": {
     "user_name": "田中 太郎",
     "event_type": "ログイン"
-  },
-  "recipient": "tanaka@example.com"
+  }
 }
 ```
 
-**レスポンス（202 Accepted）**
+**レスポンス（201 Created）**
 
 ```json
 {
-  "notification_id": "notif_01JABCDEF1234567890",
-  "status": "queued",
-  "channel_id": "ch_01JABCDEF1234567890",
-  "created_at": "2026-02-20T12:30:00.000+00:00"
+  "log_id": "notif_01JABCDEF1234567890",
+  "status": "sent"
 }
 ```
 
@@ -197,28 +191,21 @@ system tier の通知管理サーバーは以下の機能を提供する。
 ```json
 {
   "error": {
-    "code": "SYS_NOTIFY_CHANNEL_NOT_FOUND",
-    "message": "notification channel not found: ch_01JABCDEF1234567890",
-    "request_id": "req_abc123def456",
-    "details": []
+    "code": "SYS_NOTIF_CHANNEL_NOT_FOUND",
+    "message": "notification channel not found: ch_01JABCDEF1234567890"
   }
 }
 ```
 
 #### GET /api/v1/notifications
 
-配信履歴一覧をページネーション付きで取得する。
+配信履歴一覧を取得する。`channel_id` クエリパラメータでフィルタリングできる。
 
 **クエリパラメータ**
 
 | パラメータ | 型 | 必須 | デフォルト | 説明 |
 | --- | --- | --- | --- | --- |
-| `status` | string | No | - | 配信状態でフィルタ（queued/sent/failed） |
 | `channel_id` | string | No | - | チャネル ID でフィルタ |
-| `from` | string | No | - | 開始日時（RFC3339） |
-| `to` | string | No | - | 終了日時（RFC3339） |
-| `page` | int | No | 1 | ページ番号 |
-| `page_size` | int | No | 20 | 1 ページあたりの件数 |
 
 **レスポンス（200 OK）**
 
@@ -228,20 +215,13 @@ system tier の通知管理サーバーは以下の機能を提供する。
     {
       "id": "notif_01JABCDEF1234567890",
       "channel_id": "ch_01JABCDEF1234567890",
-      "channel_type": "email",
       "recipient": "tanaka@example.com",
       "status": "sent",
       "retry_count": 0,
       "sent_at": "2026-02-20T12:30:05.000+00:00",
       "created_at": "2026-02-20T12:30:00.000+00:00"
     }
-  ],
-  "pagination": {
-    "total_count": 100,
-    "page": 1,
-    "page_size": 20,
-    "has_next": true
-  }
+  ]
 }
 ```
 
@@ -273,10 +253,8 @@ system tier の通知管理サーバーは以下の機能を提供する。
 ```json
 {
   "error": {
-    "code": "SYS_NOTIFY_NOT_FOUND",
-    "message": "notification not found: notif_01JABCDEF1234567890",
-    "request_id": "req_abc123def456",
-    "details": []
+    "code": "SYS_NOTIF_NOT_FOUND",
+    "message": "notification not found: notif_01JABCDEF1234567890"
   }
 }
 ```
@@ -285,13 +263,24 @@ system tier の通知管理サーバーは以下の機能を提供する。
 
 失敗した通知を手動で再送する。`status` が `failed` の通知にのみ適用できる。
 
-**レスポンス（202 Accepted）**
+**レスポンス（200 OK）**
 
 ```json
 {
-  "notification_id": "notif_01JABCDEF1234567890",
-  "status": "queued",
-  "retry_count": 1
+  "log_id": "notif_01JABCDEF1234567890",
+  "status": "sent",
+  "message": "notification retried successfully"
+}
+```
+
+**レスポンス（404 Not Found）**
+
+```json
+{
+  "error": {
+    "code": "SYS_NOTIF_NOT_FOUND",
+    "message": "notification not found: notif_01JABCDEF1234567890"
+  }
 }
 ```
 
@@ -300,10 +289,8 @@ system tier の通知管理サーバーは以下の機能を提供する。
 ```json
 {
   "error": {
-    "code": "SYS_NOTIFY_INVALID_STATUS",
-    "message": "notification is not in failed status: notif_01JABCDEF1234567890",
-    "request_id": "req_abc123def456",
-    "details": []
+    "code": "SYS_NOTIF_ALREADY_SENT",
+    "message": "notification already sent: notif_01JABCDEF1234567890"
   }
 }
 ```
@@ -312,14 +299,15 @@ system tier の通知管理サーバーは以下の機能を提供する。
 
 | コード | HTTP Status | 説明 |
 | --- | --- | --- |
-| `SYS_NOTIFY_NOT_FOUND` | 404 | 指定された通知履歴が見つからない |
-| `SYS_NOTIFY_CHANNEL_NOT_FOUND` | 404 | 指定されたチャネルが見つからない |
-| `SYS_NOTIFY_TEMPLATE_NOT_FOUND` | 404 | 指定されたテンプレートが見つからない |
-| `SYS_NOTIFY_ALREADY_EXISTS` | 409 | 同一名のチャネルが既に存在する |
-| `SYS_NOTIFY_INVALID_STATUS` | 409 | 操作に対して通知のステータスが不正 |
-| `SYS_NOTIFY_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー |
-| `SYS_NOTIFY_DELIVERY_ERROR` | 502 | 外部サービスへの配信エラー |
-| `SYS_NOTIFY_INTERNAL_ERROR` | 500 | 内部エラー |
+| `SYS_NOTIF_NOT_FOUND` | 404 | 指定された通知履歴が見つからない |
+| `SYS_NOTIF_CHANNEL_NOT_FOUND` | 404 | 指定されたチャネルが見つからない |
+| `SYS_NOTIF_TEMPLATE_NOT_FOUND` | 404 | 指定されたテンプレートが見つからない |
+| `SYS_NOTIF_ALREADY_EXISTS` | 409 | 同一名のチャネルが既に存在する |
+| `SYS_NOTIF_ALREADY_SENT` | 409 | 通知はすでに送信済み（再送不可） |
+| `SYS_NOTIF_INVALID_ID` | 400 | 無効な UUID フォーマット |
+| `SYS_NOTIF_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー |
+| `SYS_NOTIF_DELIVERY_ERROR` | 502 | 外部サービスへの配信エラー |
+| `SYS_NOTIF_INTERNAL_ERROR` | 500 | 内部エラー |
 
 ### gRPC サービス定義
 
@@ -445,7 +433,7 @@ message NotificationLog {
                     │  │  update_channel / delete_channel         │   │
                     │  │  list_templates / create_template /      │   │
                     │  │  update_template / delete_template       │   │
-                    │  │  send_notification / list_notifications  │   │
+                    │  │  send_notification (POST /api/v1/notifications) │   │
                     │  │  get_notification / retry_notification   │   │
                     │  ├──────────────────────────────────────────┤   │
                     │  │ gRPC Handler (notification_grpc.rs)      │   │
