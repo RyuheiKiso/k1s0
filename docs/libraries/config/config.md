@@ -6,13 +6,25 @@
 
 | 関数 | シグネチャ | 説明 |
 |------|-----------|------|
-| Load | `(basePath, envPath?) -> Config` | YAML を読み込み Config を返す |
+| Load | `(basePath, envPath?) -> (Config, Error?)` | YAML を読み込み Config を返す |
 | Validate | `(config) -> Error?` | 設定値のバリデーション |
 | MergeVaultSecrets | `(config, secrets) -> Config` | Vault シークレットで上書き |
 
 ## Go 実装
 
 **配置先**: `regions/system/library/go/config/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**ファイル構成**:
+
+```
+config/
+├── config.go       # Config 構造体 + Load + Validate
+├── config_test.go   # ユニットテスト
+├── merge.go         # mergeFromFile + deepMerge（非公開）
+├── vault.go         # MergeVaultSecrets
+├── vault_test.go    # Vault テスト
+└── go.mod
+```
 
 **依存関係**:
 
@@ -266,6 +278,8 @@ func TestMergeVaultSecrets(t *testing.T) {
 }
 ```
 
+> 上記は主要テストの抜粋。全テストはソースコード (`config_test.go`, `vault_test.go`) を参照。
+
 ## Rust 実装
 
 **配置先**: `regions/system/library/rust/config/`
@@ -273,14 +287,12 @@ func TestMergeVaultSecrets(t *testing.T) {
 ```
 config/
 ├── src/
-│   ├── lib.rs         # 公開 API
+│   ├── lib.rs         # 公開 API（load, validate, ConfigError）
 │   ├── types.rs       # Config 構造体
-│   ├── loader.rs      # YAML 読み込み・マージ
-│   ├── validate.rs    # バリデーション
-│   └── vault.rs       # Vault シークレットオーバーライド
-├── tests/
-│   └── integration/
-│       └── config_test.rs
+│   ├── merge.rs       # YAML ディープマージ
+│   ├── vault.rs       # Vault シークレットオーバーライド
+│   ├── tests.rs       # ユニットテスト
+│   └── vault_test.rs  # Vault テスト
 └── Cargo.toml
 ```
 
@@ -616,6 +628,8 @@ auth:
 }
 ```
 
+> 上記は主要テストの抜粋。全テストはソースコード (`tests.rs`, `vault_test.rs`) を参照。
+
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/config/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
@@ -650,7 +664,7 @@ auth:
 **主要コード**:
 
 ```typescript
-// src/types.ts
+// src/config.ts
 import { z } from 'zod';
 
 export const AppConfigSchema = z.object({
@@ -762,11 +776,11 @@ export type AuthConfig = z.infer<typeof AuthConfigSchema>;
 ```
 
 ```typescript
-// src/loader.ts
+// src/merge.ts
 import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 import deepmerge from 'deepmerge';
-import { ConfigSchema, type Config } from './types';
+import { ConfigSchema, type Config } from './config';
 
 export function load(basePath: string, envPath?: string): Config {
   const baseContent = readFileSync(basePath, 'utf-8');
@@ -785,6 +799,7 @@ export function validate(config: Config): void {
   ConfigSchema.parse(config);
 }
 
+// src/vault.ts
 export function mergeVaultSecrets(
   config: Config,
   secrets: Record<string, string>,
@@ -814,8 +829,9 @@ export function mergeVaultSecrets(
 
 ```typescript
 // src/index.ts
-export { load, validate, mergeVaultSecrets } from './loader';
-export { ConfigSchema, type Config, type AppConfig, type ServerConfig, type DatabaseConfig, type AuthConfig } from './types';
+export { load, validate } from './merge';
+export { mergeVaultSecrets } from './vault';
+export { ConfigSchema, GrpcConfigSchema, type Config, type AppConfig, type ServerConfig, type DatabaseConfig, type AuthConfig } from './config';
 ```
 
 **テスト例**:
@@ -876,6 +892,23 @@ auth:
 
 **配置先**: `regions/system/library/dart/config/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
+**ファイル構成**:
+
+```
+config/
+├── lib/
+│   ├── config.dart       # バレルエクスポート
+│   └── src/
+│       ├── types.dart    # Config クラス定義
+│       ├── loader.dart   # loadConfig + validateConfig
+│       ├── merge.dart    # yamlToMap + deepMerge
+│       └── vault.dart    # mergeVaultSecrets
+├── test/
+│   ├── config_test.dart  # ユニットテスト
+│   └── vault_test.dart   # Vault テスト
+└── pubspec.yaml
+```
+
 **pubspec.yaml**:
 
 ```yaml
@@ -888,6 +921,7 @@ dependencies:
   json_annotation: ^4.9.0
 dev_dependencies:
   test: ^1.25.0
+  lints: ^5.0.0
   json_serializable: ^6.8.0
   build_runner: ^2.4.0
 ```
@@ -979,8 +1013,11 @@ class DatabaseConfig {
   final String user;
   String password;
   final String? sslMode;
+  final int? maxOpenConns;
+  final int? maxIdleConns;
+  final String? connMaxLifetime;
 
-  DatabaseConfig({required this.host, required this.port, required this.name, required this.user, required this.password, this.sslMode});
+  DatabaseConfig({required this.host, required this.port, required this.name, required this.user, required this.password, this.sslMode, this.maxOpenConns, this.maxIdleConns, this.connMaxLifetime});
 
   factory DatabaseConfig.fromYaml(Map<String, dynamic> yaml) {
     return DatabaseConfig(
@@ -990,6 +1027,9 @@ class DatabaseConfig {
       user: yaml['user'] as String,
       password: yaml['password'] as String? ?? '',
       sslMode: yaml['ssl_mode'] as String?,
+      maxOpenConns: yaml['max_open_conns'] as int?,
+      maxIdleConns: yaml['max_idle_conns'] as int?,
+      connMaxLifetime: yaml['conn_max_lifetime'] as String?,
     );
   }
 }
@@ -1009,14 +1049,60 @@ class KafkaConfig {
   final List<String> brokers;
   final String consumerGroup;
   final String securityProtocol;
+  final KafkaSaslConfig? sasl;
+  final KafkaTlsConfig? tls;
+  final KafkaTopics? topics;
 
-  KafkaConfig({required this.brokers, required this.consumerGroup, required this.securityProtocol});
+  KafkaConfig({required this.brokers, required this.consumerGroup, required this.securityProtocol, this.sasl, this.tls, this.topics});
 
   factory KafkaConfig.fromYaml(Map<String, dynamic> yaml) {
     return KafkaConfig(
       brokers: (yaml['brokers'] as List).cast<String>(),
       consumerGroup: yaml['consumer_group'] as String,
       securityProtocol: yaml['security_protocol'] as String,
+      sasl: yaml['sasl'] != null ? KafkaSaslConfig.fromYaml(yaml['sasl'] as Map<String, dynamic>) : null,
+      tls: yaml['tls'] != null ? KafkaTlsConfig.fromYaml(yaml['tls'] as Map<String, dynamic>) : null,
+      topics: yaml['topics'] != null ? KafkaTopics.fromYaml(yaml['topics'] as Map<String, dynamic>) : null,
+    );
+  }
+}
+
+class KafkaSaslConfig {
+  final String mechanism;
+  String username;
+  String password;
+
+  KafkaSaslConfig({required this.mechanism, required this.username, required this.password});
+
+  factory KafkaSaslConfig.fromYaml(Map<String, dynamic> yaml) {
+    return KafkaSaslConfig(
+      mechanism: yaml['mechanism'] as String,
+      username: yaml['username'] as String? ?? '',
+      password: yaml['password'] as String? ?? '',
+    );
+  }
+}
+
+class KafkaTlsConfig {
+  final String? caCertPath;
+
+  KafkaTlsConfig({this.caCertPath});
+
+  factory KafkaTlsConfig.fromYaml(Map<String, dynamic> yaml) {
+    return KafkaTlsConfig(caCertPath: yaml['ca_cert_path'] as String?);
+  }
+}
+
+class KafkaTopics {
+  final List<String> publish;
+  final List<String> subscribe;
+
+  KafkaTopics({required this.publish, required this.subscribe});
+
+  factory KafkaTopics.fromYaml(Map<String, dynamic> yaml) {
+    return KafkaTopics(
+      publish: (yaml['publish'] as List?)?.cast<String>() ?? [],
+      subscribe: (yaml['subscribe'] as List?)?.cast<String>() ?? [],
     );
   }
 }
@@ -1025,11 +1111,13 @@ class RedisConfig {
   final String host;
   final int port;
   String? password;
+  final int? db;
+  final int? poolSize;
 
-  RedisConfig({required this.host, required this.port, this.password});
+  RedisConfig({required this.host, required this.port, this.password, this.db, this.poolSize});
 
   factory RedisConfig.fromYaml(Map<String, dynamic> yaml) {
-    return RedisConfig(host: yaml['host'] as String, port: yaml['port'] as int, password: yaml['password'] as String?);
+    return RedisConfig(host: yaml['host'] as String, port: yaml['port'] as int, password: yaml['password'] as String?, db: yaml['db'] as int?, poolSize: yaml['pool_size'] as int?);
   }
 }
 
@@ -1120,8 +1208,9 @@ class OidcConfig {
   final String redirectUri;
   final List<String> scopes;
   final String jwksUri;
+  final String? jwksCacheTtl;
 
-  OidcConfig({required this.discoveryUrl, required this.clientId, this.clientSecret, required this.redirectUri, required this.scopes, required this.jwksUri});
+  OidcConfig({required this.discoveryUrl, required this.clientId, this.clientSecret, required this.redirectUri, required this.scopes, required this.jwksUri, this.jwksCacheTtl});
 
   factory OidcConfig.fromYaml(Map<String, dynamic> yaml) {
     return OidcConfig(
@@ -1131,6 +1220,7 @@ class OidcConfig {
       redirectUri: yaml['redirect_uri'] as String,
       scopes: (yaml['scopes'] as List).cast<String>(),
       jwksUri: yaml['jwks_uri'] as String,
+      jwksCacheTtl: yaml['jwks_cache_ttl'] as String?,
     );
   }
 }
