@@ -64,8 +64,7 @@ scheduler-client/
 │   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
 │   ├── client.rs       # SchedulerClient トレイト
 │   ├── grpc.rs         # GrpcSchedulerClient
-│   ├── job.rs          # Job・JobRequest・JobFilter・JobExecution・JobStatus・Schedule
-│   ├── event.rs        # JobCompletedEvent・Kafka コンシューマー
+│   ├── job.rs          # Job・JobRequest・JobFilter・JobExecution・JobStatus・Schedule・JobCompletedEvent
 │   └── error.rs        # SchedulerError
 └── Cargo.toml
 ```

@@ -10,13 +10,25 @@ abstract class GraphQlClient {
     GraphQlQuery mutation,
     T Function(Map<String, dynamic>) fromJson,
   );
+
+  Stream<GraphQlResponse<T>> subscribe<T>(
+    GraphQlQuery subscription,
+    T Function(Map<String, dynamic>) fromJson,
+  );
 }
 
 class InMemoryGraphQlClient implements GraphQlClient {
-  final _responses = <String, Map<String, dynamic>>{};
+  final Map<String, Map<String, dynamic>> _responses = {};
+  final Map<String, List<Map<String, dynamic>>> _subscriptionEvents = {};
 
-  void setResponse(String operationName, Map<String, dynamic> response) =>
-      _responses[operationName] = response;
+  void setResponse(String operationName, Map<String, dynamic> response) {
+    _responses[operationName] = response;
+  }
+
+  void setSubscriptionEvents(
+      String operationName, List<Map<String, dynamic>> events) {
+    _subscriptionEvents[operationName] = events;
+  }
 
   @override
   Future<GraphQlResponse<T>> execute<T>(
@@ -32,6 +44,18 @@ class InMemoryGraphQlClient implements GraphQlClient {
     T Function(Map<String, dynamic>) fromJson,
   ) async {
     return _resolve(mutation, fromJson);
+  }
+
+  @override
+  Stream<GraphQlResponse<T>> subscribe<T>(
+    GraphQlQuery subscription,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
+    final key = subscription.operationName ?? subscription.query;
+    final events = _subscriptionEvents[key] ?? [];
+    return Stream.fromIterable(
+      events.map((e) => GraphQlResponse(data: fromJson(e))),
+    );
   }
 
   GraphQlResponse<T> _resolve<T>(

@@ -10,7 +10,7 @@ GraphQL クライアントライブラリ。GraphQL クエリ・ミューテー�
 
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `GraphQlClient` | トレイト | クエリ・ミューテーション実行インターフェース（execute・executeMutation） |
+| `GraphQlClient` | トレイト | クエリ・ミューテーション・サブスクリプション実行インターフェース（execute・executeMutation・subscribe） |
 | `InMemoryGraphQlClient` | 構造体 | テスト用インメモリ実装（レスポンス登録→実行） |
 | `GraphQlQuery` | 構造体 | クエリ文字列・変数（任意）・オペレーション名（任意） |
 | `GraphQlResponse<T>` | 構造体 | data（任意）・errors（任意） |
@@ -104,6 +104,11 @@ pub trait GraphQlClient: Send + Sync {
         &self,
         mutation: GraphQlQuery,
     ) -> Result<GraphQlResponse<T>, ClientError>;
+
+    async fn subscribe<T: DeserializeOwned + Send>(
+        &self,
+        subscription: GraphQlQuery,
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<GraphQlResponse<T>, ClientError>> + Send>>, ClientError>;
 }
 ```
 
@@ -137,6 +142,20 @@ assert!(response.data.is_some());
 let mutation = GraphQlQuery::new("mutation { createUser }")
     .operation_name("CreateUser");
 let result: GraphQlResponse<serde_json::Value> = client.execute_mutation(mutation).await?;
+
+client.register_subscription_events(
+    "OnUserCreated",
+    vec![
+        serde_json::json!({"userCreated": {"id": "1", "name": "Alice"}}),
+        serde_json::json!({"userCreated": {"id": "2", "name": "Bob"}}),
+    ],
+).await;
+let subscription = GraphQlQuery::new("subscription { userCreated { id name } }")
+    .operation_name("OnUserCreated");
+let mut stream = client.subscribe::<serde_json::Value>(subscription).await.unwrap();
+while let Some(event) = stream.next().await {
+    println!("{:?}", event);
+}
 ```
 
 ## Go 実装
@@ -171,11 +190,14 @@ type GraphQlResponse[T any] struct {
 type GraphQlClient interface {
     Execute(ctx context.Context, query GraphQlQuery, result any) (*GraphQlResponse[any], error)
     ExecuteMutation(ctx context.Context, mutation GraphQlQuery, result any) (*GraphQlResponse[any], error)
+    Subscribe(ctx context.Context, subscription GraphQlQuery) (<-chan *GraphQlResponse[any], error)
 }
 
 type InMemoryGraphQlClient struct{ /* ... */ }
 func NewInMemoryGraphQlClient() *InMemoryGraphQlClient
 func (c *InMemoryGraphQlClient) SetResponse(operationName string, response any)
+func (c *InMemoryGraphQlClient) SetSubscriptionEvents(operationName string, events []any)
+func (c *InMemoryGraphQlClient) Subscribe(ctx context.Context, subscription GraphQlQuery) (<-chan *GraphQlResponse[any], error)
 ```
 
 ## TypeScript 実装
@@ -205,12 +227,15 @@ export interface GraphQlResponse<T = unknown> {
 export interface GraphQlClient {
   execute<T = unknown>(query: GraphQlQuery): Promise<GraphQlResponse<T>>;
   executeMutation<T = unknown>(mutation: GraphQlQuery): Promise<GraphQlResponse<T>>;
+  subscribe<T = unknown>(subscription: GraphQlQuery): AsyncIterable<GraphQlResponse<T>>;
 }
 
 export class InMemoryGraphQlClient implements GraphQlClient {
   setResponse(operationName: string, response: unknown): void;
+  setSubscriptionEvents(operationName: string, events: unknown[]): void;
   async execute<T = unknown>(query: GraphQlQuery): Promise<GraphQlResponse<T>>;
   async executeMutation<T = unknown>(mutation: GraphQlQuery): Promise<GraphQlResponse<T>>;
+  async *subscribe<T = unknown>(subscription: GraphQlQuery): AsyncIterable<GraphQlResponse<T>>;
 }
 ```
 
@@ -218,7 +243,7 @@ export class InMemoryGraphQlClient implements GraphQlClient {
 
 ## Dart 実装
 
-**配置先**: `regions/system/library/dart/graphql-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+**配置先**: `regions/system/library/dart/graphql_client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
 **モジュール構成**:
 
@@ -291,11 +316,17 @@ abstract class GraphQlClient {
     GraphQlQuery mutation,
     T Function(Map<String, dynamic>) fromJson,
   );
+
+  Stream<GraphQlResponse<T>> subscribe<T>(
+    GraphQlQuery subscription,
+    T Function(Map<String, dynamic>) fromJson,
+  );
 }
 
 class InMemoryGraphQlClient implements GraphQlClient {
   // response 型は Map<String, dynamic> に限定（他言語の any/unknown より厳格な型安全設計）
   void setResponse(String operationName, Map<String, dynamic> response);
+  void setSubscriptionEvents(String operationName, List<Map<String, dynamic>> events);
 
   @override
   Future<GraphQlResponse<T>> execute<T>(
@@ -306,6 +337,12 @@ class InMemoryGraphQlClient implements GraphQlClient {
   @override
   Future<GraphQlResponse<T>> executeMutation<T>(
     GraphQlQuery mutation,
+    T Function(Map<String, dynamic>) fromJson,
+  );
+
+  @override
+  Stream<GraphQlResponse<T>> subscribe<T>(
+    GraphQlQuery subscription,
     T Function(Map<String, dynamic>) fromJson,
   );
 }

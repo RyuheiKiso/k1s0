@@ -215,7 +215,7 @@ type PresignedURL struct {
 }
 
 func NewServerFileClient(serverURL string, opts ...Option) FileClient
-func NewS3FileClient(cfg aws.Config, bucket string, opts ...Option) FileClient
+func NewS3FileClient(endpoint, bucket, region string, opts ...Option) FileClient
 ```
 
 **InMemoryFileClient（テスト用実装 — 現在の主実装）**:

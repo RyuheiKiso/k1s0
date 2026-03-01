@@ -6,7 +6,10 @@ pub mod tenant;
 pub use client::{GrpcTenantClient, InMemoryTenantClient, TenantClient};
 pub use config::TenantClientConfig;
 pub use error::TenantError;
-pub use tenant::{Tenant, TenantFilter, TenantSettings, TenantStatus};
+pub use tenant::{
+    CreateTenantRequest, ProvisioningStatus, Tenant, TenantFilter, TenantMember, TenantSettings,
+    TenantStatus,
+};
 
 #[cfg(feature = "mock")]
 pub use client::MockTenantClient;

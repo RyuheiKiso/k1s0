@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::pin::Pin;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
+use tokio_stream::Stream;
 
 use crate::error::ClientError;
 use crate::query::{GraphQlQuery, GraphQlResponse};
@@ -21,22 +23,41 @@ pub trait GraphQlClient: Send + Sync {
         &self,
         mutation: GraphQlQuery,
     ) -> Result<GraphQlResponse<T>, ClientError>;
+
+    async fn subscribe<T: DeserializeOwned + Send>(
+        &self,
+        subscription: GraphQlQuery,
+    ) -> Result<
+        Pin<Box<dyn Stream<Item = Result<GraphQlResponse<T>, ClientError>> + Send>>,
+        ClientError,
+    >;
 }
 
 pub struct InMemoryGraphQlClient {
     pub responses: Arc<tokio::sync::RwLock<HashMap<String, serde_json::Value>>>,
+    subscriptions: Arc<tokio::sync::Mutex<HashMap<String, Vec<serde_json::Value>>>>,
 }
 
 impl InMemoryGraphQlClient {
     pub fn new() -> Self {
         Self {
             responses: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            subscriptions: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         }
     }
 
     pub async fn register_response(&self, query: &str, response: serde_json::Value) {
         let mut responses = self.responses.write().await;
         responses.insert(query.to_string(), response);
+    }
+
+    pub async fn register_subscription_events(
+        &self,
+        operation_name: &str,
+        events: Vec<serde_json::Value>,
+    ) {
+        let mut subs = self.subscriptions.lock().await;
+        subs.insert(operation_name.to_string(), events);
     }
 }
 
@@ -74,6 +95,33 @@ impl GraphQlClient for InMemoryGraphQlClient {
         mutation: GraphQlQuery,
     ) -> Result<GraphQlResponse<T>, ClientError> {
         self.execute(mutation).await
+    }
+
+    async fn subscribe<T: DeserializeOwned + Send>(
+        &self,
+        subscription: GraphQlQuery,
+    ) -> Result<
+        Pin<Box<dyn Stream<Item = Result<GraphQlResponse<T>, ClientError>> + Send>>,
+        ClientError,
+    > {
+        let key = subscription
+            .operation_name
+            .as_deref()
+            .unwrap_or(&subscription.query)
+            .to_string();
+        let subs = self.subscriptions.lock().await;
+        let events = subs.get(&key).cloned().unwrap_or_default();
+        let stream =
+            tokio_stream::iter(events.into_iter().map(|data| {
+                match serde_json::from_value::<T>(data.clone()) {
+                    Ok(typed) => Ok(GraphQlResponse {
+                        data: Some(typed),
+                        errors: None,
+                    }),
+                    Err(e) => Err(ClientError::DeserializationError(e.to_string())),
+                }
+            }));
+        Ok(Box::pin(stream))
     }
 }
 
@@ -140,5 +188,31 @@ mod tests {
     fn test_default() {
         let client = InMemoryGraphQlClient::default();
         assert!(Arc::strong_count(&client.responses) == 1);
+    }
+
+    #[tokio::test]
+    async fn test_inmemory_subscribe() {
+        use tokio_stream::StreamExt;
+        let client = InMemoryGraphQlClient::new();
+        client
+            .register_subscription_events(
+                "OnUserCreated",
+                vec![
+                    serde_json::json!({"id": "1"}),
+                    serde_json::json!({"id": "2"}),
+                ],
+            )
+            .await;
+
+        let subscription = GraphQlQuery::new("subscription { userCreated { id } }")
+            .operation_name("OnUserCreated");
+        let mut stream = client
+            .subscribe::<serde_json::Value>(subscription)
+            .await
+            .unwrap();
+        let event1 = stream.next().await.unwrap().unwrap();
+        assert!(event1.data.is_some());
+        let event2 = stream.next().await.unwrap().unwrap();
+        assert!(event2.data.is_some());
     }
 }

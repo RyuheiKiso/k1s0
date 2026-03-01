@@ -32,3 +32,30 @@ class TenantSettings {
 
   String? get(String key) => values[key];
 }
+
+/// テナント作成リクエスト
+class CreateTenantRequest {
+  const CreateTenantRequest({
+    required this.name,
+    required this.plan,
+    this.adminUserId,
+  });
+  final String name;
+  final String plan;
+  final String? adminUserId;
+}
+
+/// テナントメンバー情報
+class TenantMember {
+  const TenantMember({
+    required this.userId,
+    required this.role,
+    required this.joinedAt,
+  });
+  final String userId;
+  final String role;
+  final DateTime joinedAt;
+}
+
+/// プロビジョニング状態
+enum ProvisioningStatus { pending, inProgress, completed, failed }

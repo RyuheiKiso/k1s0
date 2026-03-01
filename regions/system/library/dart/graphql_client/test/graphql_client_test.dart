@@ -138,5 +138,23 @@ void main() {
       expect(result.errors!.first.message, equals('Unauthorized'));
       expect(result.data, isNull);
     });
+
+    test('subscribe emits registered events', () async {
+      client.setSubscriptionEvents('OnUserCreated', [
+        {'id': '1', 'name': 'Alice'},
+        {'id': '2', 'name': 'Bob'},
+      ]);
+
+      const subscription = GraphQlQuery(
+        query: 'subscription { userCreated { id name } }',
+        operationName: 'OnUserCreated',
+      );
+
+      final results =
+          await client.subscribe(subscription, (json) => json).toList();
+      expect(results, hasLength(2));
+      expect(results[0].data, isNotNull);
+      expect(results[1].data, isNotNull);
+    });
   });
 }

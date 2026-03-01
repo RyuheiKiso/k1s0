@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { InMemoryTenantClient, TenantError } from '../src/index.js';
 import type { Tenant } from '../src/index.js';
 
-function makeTenant(id: string, status: 'active' | 'suspended' | 'deleted' = 'active', plan = 'basic'): Tenant {
+function makeTenant(
+  id: string,
+  status: 'active' | 'suspended' | 'deleted' = 'active',
+  plan = 'basic',
+): Tenant {
   return {
     id,
     name: `Tenant ${id}`,
@@ -80,5 +84,33 @@ describe('InMemoryTenantClient', () => {
     client.addTenant(makeTenant('T-001'));
     const tenant = await client.getTenant('T-001');
     expect(tenant.id).toBe('T-001');
+  });
+
+  it('createTenant creates a new active tenant', async () => {
+    const client = new InMemoryTenantClient();
+    const tenant = await client.createTenant({ name: 'Test Corp', plan: 'enterprise' });
+    expect(tenant.name).toBe('Test Corp');
+    expect(tenant.status).toBe('active');
+    expect(tenant.plan).toBe('enterprise');
+  });
+
+  it('addMember and listMembers work correctly', async () => {
+    const client = new InMemoryTenantClient();
+    const tenant = await client.createTenant({ name: 'T1', plan: 'pro' });
+    await client.addMember(tenant.id, 'user-1', 'admin');
+    await client.addMember(tenant.id, 'user-2', 'member');
+    const members = await client.listMembers(tenant.id);
+    expect(members).toHaveLength(2);
+    await client.removeMember(tenant.id, 'user-1');
+    const updated = await client.listMembers(tenant.id);
+    expect(updated).toHaveLength(1);
+    expect(updated[0].userId).toBe('user-2');
+  });
+
+  it('getProvisioningStatus returns pending after creation', async () => {
+    const client = new InMemoryTenantClient();
+    const tenant = await client.createTenant({ name: 'T2', plan: 'starter' });
+    const status = await client.getProvisioningStatus(tenant.id);
+    expect(status).toBe('pending');
   });
 });

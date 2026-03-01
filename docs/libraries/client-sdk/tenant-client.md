@@ -21,6 +21,9 @@ system-tenant-server（ポート 8089）へのテナント情報取得クライ�
 | `TenantSettings` | 構造体 | テナント固有設定値（`values: HashMap<String, String>` フィールドを持つ構造体）|
 | `TenantClientConfig` | 構造体 | サーバー URL・キャッシュ TTL・最大キャッシュサイズ |
 | `TenantError` | enum | `NotFound`・`Suspended`・`ServerError`・`Timeout` |
+| `CreateTenantRequest` | 構造体 | テナント作成リクエスト（名称・プラン・管理者ユーザー ID）|
+| `TenantMember` | 構造体 | テナントメンバー（ユーザー ID・ロール・参加日時）|
+| `ProvisioningStatus` | enum | `Pending`・`InProgress`・`Completed`・`Failed(String)` |
 
 ## Rust 実装
 
@@ -75,6 +78,11 @@ pub trait TenantClient: Send + Sync {
     async fn list_tenants(&self, filter: TenantFilter) -> Result<Vec<Tenant>, TenantError>;
     async fn is_active(&self, tenant_id: &str) -> Result<bool, TenantError>;
     async fn get_settings(&self, tenant_id: &str) -> Result<TenantSettings, TenantError>;
+    async fn create_tenant(&self, req: CreateTenantRequest) -> Result<Tenant, TenantError>;
+    async fn add_member(&self, tenant_id: &str, user_id: &str, role: &str) -> Result<TenantMember, TenantError>;
+    async fn remove_member(&self, tenant_id: &str, user_id: &str) -> Result<(), TenantError>;
+    async fn list_members(&self, tenant_id: &str) -> Result<Vec<TenantMember>, TenantError>;
+    async fn get_provisioning_status(&self, tenant_id: &str) -> Result<ProvisioningStatus, TenantError>;
 }
 
 // 型定義
@@ -107,6 +115,25 @@ pub struct TenantSettings {
 impl TenantSettings {
     pub fn new(values: HashMap<String, String>) -> Self
     pub fn get(&self, key: &str) -> Option<&str>
+}
+
+pub struct CreateTenantRequest {
+    pub name: String,
+    pub plan: String,
+    pub admin_user_id: Option<String>,
+}
+
+pub struct TenantMember {
+    pub user_id: String,
+    pub role: String,
+    pub joined_at: DateTime<Utc>,
+}
+
+pub enum ProvisioningStatus {
+    Pending,
+    InProgress,
+    Completed,
+    Failed(String),
 }
 
 pub struct TenantClientConfig {
@@ -175,6 +202,11 @@ type TenantClient interface {
     ListTenants(ctx context.Context, filter TenantFilter) ([]Tenant, error)
     IsActive(ctx context.Context, tenantID string) (bool, error)
     GetSettings(ctx context.Context, tenantID string) (TenantSettings, error)
+    CreateTenant(ctx context.Context, req CreateTenantRequest) (Tenant, error)
+    AddMember(ctx context.Context, tenantID, userID, role string) (TenantMember, error)
+    RemoveMember(ctx context.Context, tenantID, userID string) error
+    ListMembers(ctx context.Context, tenantID string) ([]TenantMember, error)
+    GetProvisioningStatus(ctx context.Context, tenantID string) (ProvisioningStatus, error)
 }
 
 type TenantStatus string
@@ -204,6 +236,27 @@ type TenantSettings struct {
 }
 
 func (s TenantSettings) Get(key string) (string, bool)
+
+type CreateTenantRequest struct {
+    Name        string `json:"name"`
+    Plan        string `json:"plan"`
+    AdminUserID string `json:"admin_user_id,omitempty"`
+}
+
+type TenantMember struct {
+    UserID   string    `json:"user_id"`
+    Role     string    `json:"role"`
+    JoinedAt time.Time `json:"joined_at"`
+}
+
+type ProvisioningStatus string
+
+const (
+    ProvisioningStatusPending    ProvisioningStatus = "pending"
+    ProvisioningStatusInProgress ProvisioningStatus = "in_progress"
+    ProvisioningStatusCompleted  ProvisioningStatus = "completed"
+    ProvisioningStatusFailed     ProvisioningStatus = "failed"
+)
 
 type TenantClientConfig struct {
     ServerURL        string
@@ -237,7 +290,7 @@ config := TenantClientConfig{
     ServerURL: "tenant-server:8080",
     CacheTTL:  5 * time.Minute,
 }
-client, err := NewGrpcTenantClient(config)
+client, err := NewGrpcTenantClient("tenant-server:8080", config)
 if err != nil {
     log.Fatal(err)
 }
@@ -285,11 +338,30 @@ export interface TenantClientConfig {
   cacheMaxCapacity?: number;
 }
 
+export interface CreateTenantRequest {
+  name: string;
+  plan: string;
+  adminUserId?: string;
+}
+
+export interface TenantMember {
+  userId: string;
+  role: string;
+  joinedAt: Date;
+}
+
+export type ProvisioningStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
+
 export interface TenantClient {
   getTenant(tenantId: string): Promise<Tenant>;
   listTenants(filter?: TenantFilter): Promise<Tenant[]>;
   isActive(tenantId: string): Promise<boolean>;
   getSettings(tenantId: string): Promise<TenantSettings>;
+  createTenant(req: CreateTenantRequest): Promise<Tenant>;
+  addMember(tenantId: string, userId: string, role: string): Promise<TenantMember>;
+  removeMember(tenantId: string, userId: string): Promise<void>;
+  listMembers(tenantId: string): Promise<TenantMember[]>;
+  getProvisioningStatus(tenantId: string): Promise<ProvisioningStatus>;
 }
 
 export class GrpcTenantClient implements TenantClient {
@@ -376,12 +448,41 @@ class TenantSettings {
   String? get(String key)
 }
 
+class CreateTenantRequest {
+  const CreateTenantRequest({
+    required this.name,
+    required this.plan,
+    this.adminUserId,
+  });
+  final String name;
+  final String plan;
+  final String? adminUserId;
+}
+
+class TenantMember {
+  const TenantMember({
+    required this.userId,
+    required this.role,
+    required this.joinedAt,
+  });
+  final String userId;
+  final String role;
+  final DateTime joinedAt;
+}
+
+enum ProvisioningStatus { pending, inProgress, completed, failed }
+
 // クライアントインターフェース
 abstract class TenantClient {
   Future<Tenant> getTenant(String tenantId);
   Future<List<Tenant>> listTenants(TenantFilter filter);
   Future<bool> isActive(String tenantId);
   Future<TenantSettings> getSettings(String tenantId);
+  Future<Tenant> createTenant(CreateTenantRequest req);
+  Future<TenantMember> addMember(String tenantId, String userId, String role);
+  Future<void> removeMember(String tenantId, String userId);
+  Future<List<TenantMember>> listMembers(String tenantId);
+  Future<ProvisioningStatus> getProvisioningStatus(String tenantId);
 }
 
 // gRPC 実装

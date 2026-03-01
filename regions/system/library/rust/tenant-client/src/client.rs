@@ -1,10 +1,16 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use moka::future::Cache;
 use serde::Deserialize;
 
 use crate::config::TenantClientConfig;
 use crate::error::TenantError;
-use crate::tenant::{Tenant, TenantFilter, TenantSettings, TenantStatus};
+use crate::tenant::{
+    CreateTenantRequest, ProvisioningStatus, Tenant, TenantFilter, TenantMember, TenantSettings,
+    TenantStatus,
+};
 
 #[async_trait]
 #[cfg_attr(feature = "mock", mockall::automock)]
@@ -13,27 +19,50 @@ pub trait TenantClient: Send + Sync {
     async fn list_tenants(&self, filter: TenantFilter) -> Result<Vec<Tenant>, TenantError>;
     async fn is_active(&self, tenant_id: &str) -> Result<bool, TenantError>;
     async fn get_settings(&self, tenant_id: &str) -> Result<TenantSettings, TenantError>;
+    async fn create_tenant(&self, req: CreateTenantRequest) -> Result<Tenant, TenantError>;
+    async fn add_member(
+        &self,
+        tenant_id: &str,
+        user_id: &str,
+        role: &str,
+    ) -> Result<TenantMember, TenantError>;
+    async fn remove_member(&self, tenant_id: &str, user_id: &str) -> Result<(), TenantError>;
+    async fn list_members(&self, tenant_id: &str) -> Result<Vec<TenantMember>, TenantError>;
+    async fn get_provisioning_status(
+        &self,
+        tenant_id: &str,
+    ) -> Result<ProvisioningStatus, TenantError>;
 }
 
 pub struct InMemoryTenantClient {
-    tenants: std::sync::RwLock<Vec<Tenant>>,
+    tenants: Arc<std::sync::Mutex<HashMap<String, Tenant>>>,
+    members: Arc<tokio::sync::Mutex<HashMap<String, Vec<TenantMember>>>>,
+    provisioning: Arc<tokio::sync::Mutex<HashMap<String, ProvisioningStatus>>>,
 }
 
 impl InMemoryTenantClient {
     pub fn new() -> Self {
         Self {
-            tenants: std::sync::RwLock::new(Vec::new()),
+            tenants: Arc::new(std::sync::Mutex::new(HashMap::new())),
+            members: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+            provisioning: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         }
     }
 
     pub fn with_tenants(tenants: Vec<Tenant>) -> Self {
+        let map: HashMap<String, Tenant> = tenants.into_iter().map(|t| (t.id.clone(), t)).collect();
         Self {
-            tenants: std::sync::RwLock::new(tenants),
+            tenants: Arc::new(std::sync::Mutex::new(map)),
+            members: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+            provisioning: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         }
     }
 
     pub fn add_tenant(&self, tenant: Tenant) {
-        self.tenants.write().unwrap().push(tenant);
+        self.tenants
+            .lock()
+            .unwrap()
+            .insert(tenant.id.clone(), tenant);
     }
 }
 
@@ -46,18 +75,17 @@ impl Default for InMemoryTenantClient {
 #[async_trait]
 impl TenantClient for InMemoryTenantClient {
     async fn get_tenant(&self, tenant_id: &str) -> Result<Tenant, TenantError> {
-        let tenants = self.tenants.read().unwrap();
+        let tenants = self.tenants.lock().unwrap();
         tenants
-            .iter()
-            .find(|t| t.id == tenant_id)
+            .get(tenant_id)
             .cloned()
             .ok_or_else(|| TenantError::NotFound(tenant_id.to_string()))
     }
 
     async fn list_tenants(&self, filter: TenantFilter) -> Result<Vec<Tenant>, TenantError> {
-        let tenants = self.tenants.read().unwrap();
+        let tenants = self.tenants.lock().unwrap();
         let result: Vec<Tenant> = tenants
-            .iter()
+            .values()
             .filter(|t| {
                 if let Some(status) = &filter.status {
                     if t.status != *status {
@@ -84,6 +112,74 @@ impl TenantClient for InMemoryTenantClient {
     async fn get_settings(&self, tenant_id: &str) -> Result<TenantSettings, TenantError> {
         let tenant = self.get_tenant(tenant_id).await?;
         Ok(TenantSettings::new(tenant.settings))
+    }
+
+    async fn create_tenant(&self, req: CreateTenantRequest) -> Result<Tenant, TenantError> {
+        let tenant = Tenant {
+            id: uuid::Uuid::new_v4().to_string(),
+            name: req.name,
+            status: TenantStatus::Active,
+            plan: req.plan,
+            settings: HashMap::new(),
+            created_at: chrono::Utc::now(),
+        };
+        {
+            let mut tenants = self.tenants.lock().unwrap();
+            tenants.insert(tenant.id.clone(), tenant.clone());
+        }
+        // Set provisioning status to Pending
+        let mut prov = self.provisioning.lock().await;
+        prov.insert(tenant.id.clone(), ProvisioningStatus::Pending);
+        Ok(tenant)
+    }
+
+    async fn add_member(
+        &self,
+        tenant_id: &str,
+        user_id: &str,
+        role: &str,
+    ) -> Result<TenantMember, TenantError> {
+        // Verify tenant exists
+        {
+            let tenants = self.tenants.lock().unwrap();
+            if !tenants.contains_key(tenant_id) {
+                return Err(TenantError::NotFound(tenant_id.to_string()));
+            }
+        }
+        let member = TenantMember {
+            user_id: user_id.to_string(),
+            role: role.to_string(),
+            joined_at: chrono::Utc::now(),
+        };
+        let mut members = self.members.lock().await;
+        members
+            .entry(tenant_id.to_string())
+            .or_default()
+            .push(member.clone());
+        Ok(member)
+    }
+
+    async fn remove_member(&self, tenant_id: &str, user_id: &str) -> Result<(), TenantError> {
+        let mut members = self.members.lock().await;
+        if let Some(list) = members.get_mut(tenant_id) {
+            list.retain(|m| m.user_id != user_id);
+        }
+        Ok(())
+    }
+
+    async fn list_members(&self, tenant_id: &str) -> Result<Vec<TenantMember>, TenantError> {
+        let members = self.members.lock().await;
+        Ok(members.get(tenant_id).cloned().unwrap_or_default())
+    }
+
+    async fn get_provisioning_status(
+        &self,
+        tenant_id: &str,
+    ) -> Result<ProvisioningStatus, TenantError> {
+        let prov = self.provisioning.lock().await;
+        prov.get(tenant_id)
+            .cloned()
+            .ok_or_else(|| TenantError::NotFound(tenant_id.to_string()))
     }
 }
 
@@ -210,7 +306,9 @@ impl TenantClient for GrpcTenantClient {
             .await
             .map_err(|e| TenantError::ServerError(e.to_string()))?;
         let tenant: Tenant = data.into();
-        self.tenant_cache.insert(tenant_id.to_string(), tenant.clone()).await;
+        self.tenant_cache
+            .insert(tenant_id.to_string(), tenant.clone())
+            .await;
         Ok(tenant)
     }
 
@@ -264,8 +362,38 @@ impl TenantClient for GrpcTenantClient {
             .await
             .map_err(|e| TenantError::ServerError(e.to_string()))?;
         let settings = TenantSettings::new(data.values);
-        self.settings_cache.insert(tenant_id.to_string(), settings.clone()).await;
+        self.settings_cache
+            .insert(tenant_id.to_string(), settings.clone())
+            .await;
         Ok(settings)
+    }
+
+    async fn create_tenant(&self, _req: CreateTenantRequest) -> Result<Tenant, TenantError> {
+        unimplemented!("GrpcTenantClient::create_tenant")
+    }
+
+    async fn add_member(
+        &self,
+        _tenant_id: &str,
+        _user_id: &str,
+        _role: &str,
+    ) -> Result<TenantMember, TenantError> {
+        unimplemented!("GrpcTenantClient::add_member")
+    }
+
+    async fn remove_member(&self, _tenant_id: &str, _user_id: &str) -> Result<(), TenantError> {
+        unimplemented!("GrpcTenantClient::remove_member")
+    }
+
+    async fn list_members(&self, _tenant_id: &str) -> Result<Vec<TenantMember>, TenantError> {
+        unimplemented!("GrpcTenantClient::list_members")
+    }
+
+    async fn get_provisioning_status(
+        &self,
+        _tenant_id: &str,
+    ) -> Result<ProvisioningStatus, TenantError> {
+        unimplemented!("GrpcTenantClient::get_provisioning_status")
     }
 }
 
@@ -385,5 +513,67 @@ mod tests {
         assert_eq!(config.server_url, "http://localhost:8080");
         assert_eq!(config.cache_ttl, Duration::from_secs(60));
         assert_eq!(config.cache_max_capacity, 500);
+    }
+
+    #[tokio::test]
+    async fn test_create_tenant() {
+        let client = InMemoryTenantClient::new();
+        let tenant = client
+            .create_tenant(CreateTenantRequest {
+                name: "New Tenant".to_string(),
+                plan: "starter".to_string(),
+                admin_user_id: None,
+            })
+            .await
+            .unwrap();
+        assert_eq!(tenant.name, "New Tenant");
+        assert_eq!(tenant.plan, "starter");
+        assert!(matches!(tenant.status, TenantStatus::Active));
+    }
+
+    #[tokio::test]
+    async fn test_member_management() {
+        let client = InMemoryTenantClient::new();
+        let tenant = client
+            .create_tenant(CreateTenantRequest {
+                name: "T1".to_string(),
+                plan: "pro".to_string(),
+                admin_user_id: None,
+            })
+            .await
+            .unwrap();
+
+        client
+            .add_member(&tenant.id, "user-1", "admin")
+            .await
+            .unwrap();
+        client
+            .add_member(&tenant.id, "user-2", "member")
+            .await
+            .unwrap();
+
+        let members = client.list_members(&tenant.id).await.unwrap();
+        assert_eq!(members.len(), 2);
+
+        client.remove_member(&tenant.id, "user-1").await.unwrap();
+        let members = client.list_members(&tenant.id).await.unwrap();
+        assert_eq!(members.len(), 1);
+        assert_eq!(members[0].user_id, "user-2");
+    }
+
+    #[tokio::test]
+    async fn test_provisioning_status() {
+        let client = InMemoryTenantClient::new();
+        let tenant = client
+            .create_tenant(CreateTenantRequest {
+                name: "T2".to_string(),
+                plan: "enterprise".to_string(),
+                admin_user_id: None,
+            })
+            .await
+            .unwrap();
+
+        let status = client.get_provisioning_status(&tenant.id).await.unwrap();
+        assert!(matches!(status, ProvisioningStatus::Pending));
     }
 }

@@ -54,8 +54,8 @@ void main() {
     });
 
     test('アクティブテナントをチェックできる', () async {
-      final client =
-          InMemoryTenantClient([makeTenant('T-001', status: TenantStatus.active)]);
+      final client = InMemoryTenantClient(
+          [makeTenant('T-001', status: TenantStatus.active)]);
       expect(await client.isActive('T-001'), isTrue);
     });
 
@@ -77,6 +77,43 @@ void main() {
       client.addTenant(makeTenant('T-001'));
       final tenant = await client.getTenant('T-001');
       expect(tenant.id, equals('T-001'));
+    });
+
+    test('createTenant creates active tenant', () async {
+      final client = InMemoryTenantClient();
+      final tenant = await client.createTenant(
+        const CreateTenantRequest(name: 'Test Corp', plan: 'enterprise'),
+      );
+      expect(tenant.name, equals('Test Corp'));
+      expect(tenant.status, equals(TenantStatus.active));
+      expect(tenant.plan, equals('enterprise'));
+    });
+
+    test('addMember and listMembers work correctly', () async {
+      final client = InMemoryTenantClient();
+      final tenant = await client.createTenant(
+        const CreateTenantRequest(name: 'T1', plan: 'pro'),
+      );
+
+      await client.addMember(tenant.id, 'user-1', 'admin');
+      await client.addMember(tenant.id, 'user-2', 'member');
+
+      final members = await client.listMembers(tenant.id);
+      expect(members, hasLength(2));
+
+      await client.removeMember(tenant.id, 'user-1');
+      final updated = await client.listMembers(tenant.id);
+      expect(updated, hasLength(1));
+      expect(updated.first.userId, equals('user-2'));
+    });
+
+    test('getProvisioningStatus returns pending after creation', () async {
+      final client = InMemoryTenantClient();
+      final tenant = await client.createTenant(
+        const CreateTenantRequest(name: 'T2', plan: 'starter'),
+      );
+      final status = await client.getProvisioningStatus(tenant.id);
+      expect(status, equals(ProvisioningStatus.pending));
     });
   });
 

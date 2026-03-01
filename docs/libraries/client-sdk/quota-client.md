@@ -142,6 +142,7 @@ const (
 )
 
 func NewInMemoryQuotaClient() *InMemoryQuotaClient
+func (c *InMemoryQuotaClient) SetPolicy(quotaID string, policy *QuotaPolicy)
 func NewCachedQuotaClient(inner QuotaClient, policyTTL time.Duration) *CachedQuotaClient
 func NewQuotaClientConfig(baseURL string) QuotaClientConfig
 func NewHttpQuotaClient(baseURL string, config QuotaClientConfig) *HttpQuotaClient

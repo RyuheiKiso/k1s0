@@ -105,3 +105,43 @@ func TestTenantSettings_Get(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "val", v)
 }
+
+func TestInMemoryTenantClient_CreateTenant(t *testing.T) {
+	client := tenantclient.NewInMemoryTenantClient()
+	tenant, err := client.CreateTenant(context.Background(), tenantclient.CreateTenantRequest{
+		Name: "Test Corp",
+		Plan: "enterprise",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "Test Corp", tenant.Name)
+	assert.Equal(t, tenantclient.TenantStatusActive, tenant.Status)
+}
+
+func TestInMemoryTenantClient_MemberManagement(t *testing.T) {
+	client := tenantclient.NewInMemoryTenantClient()
+	tenant, _ := client.CreateTenant(context.Background(), tenantclient.CreateTenantRequest{Name: "T1", Plan: "pro"})
+
+	_, err := client.AddMember(context.Background(), tenant.ID, "user-1", "admin")
+	assert.NoError(t, err)
+	_, err = client.AddMember(context.Background(), tenant.ID, "user-2", "member")
+	assert.NoError(t, err)
+
+	members, err := client.ListMembers(context.Background(), tenant.ID)
+	assert.NoError(t, err)
+	assert.Len(t, members, 2)
+
+	err = client.RemoveMember(context.Background(), tenant.ID, "user-1")
+	assert.NoError(t, err)
+	members, _ = client.ListMembers(context.Background(), tenant.ID)
+	assert.Len(t, members, 1)
+	assert.Equal(t, "user-2", members[0].UserID)
+}
+
+func TestInMemoryTenantClient_ProvisioningStatus(t *testing.T) {
+	client := tenantclient.NewInMemoryTenantClient()
+	tenant, _ := client.CreateTenant(context.Background(), tenantclient.CreateTenantRequest{Name: "T2", Plan: "starter"})
+
+	status, err := client.GetProvisioningStatus(context.Background(), tenant.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, tenantclient.ProvisioningStatusPending, status)
+}
