@@ -475,7 +475,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
 
         let results = self
             .check_consistency_uc
-            .check_all_rules(&req.table_name)
+            .check_rules(&req.table_name, &req.rule_ids)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
@@ -492,8 +492,8 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         let proto_results: Vec<ConsistencyResult> = results
             .iter()
             .map(|r| ConsistencyResult {
-                rule_id: String::new(),
-                rule_name: String::new(),
+                rule_id: r.rule_id.clone(),
+                rule_name: r.rule_name.clone(),
                 severity: r.severity.clone(),
                 passed: r.passed,
                 message: r.message.clone().unwrap_or_default(),

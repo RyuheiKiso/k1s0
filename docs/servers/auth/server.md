@@ -41,6 +41,8 @@ system tier の認証・認可・監査基盤サーバー。REST/gRPC でトー�
 | GET | `/healthz` | ヘルスチェック |
 | GET | `/readyz` | レディネスチェック（DB・Keycloak 接続確認） |
 | GET | `/metrics` | Prometheus メトリクス |
+| GET | `/jwks` | JWKS（JSON Web Key Set）公開鍵セット取得 |
+| GET | `/.well-known/jwks.json` | JWKS 取得（RFC 7517 準拠の Well-Known パス） |
 | POST | `/api/v1/auth/token/validate` | JWT トークン検証 |
 | POST | `/api/v1/auth/token/introspect` | トークンイントロスペクション（RFC 7662） |
 | GET | `/api/v1/navigation` | ナビゲーション設定取得 |
@@ -348,6 +350,18 @@ PostgreSQL と Keycloak への接続を確認する。
 | `status` | string | `ready` / `not ready` |
 | `checks.database` | string | DB 接続状態 |
 | `checks.keycloak` | string | Keycloak 接続状態 |
+
+#### GET /jwks, GET /.well-known/jwks.json
+
+Keycloak の JWKS をプロキシ・キャッシュして提供する公開エンドポイント。両パスは同一ハンドラーで処理される。他サービスは Keycloak に直接アクセスせず、このエンドポイントから JWKS を取得する（[JWT設計.md](../../architecture/auth/JWT設計.md) 参照）。
+
+**レスポンスフィールド（200 OK）**
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `keys` | object[] | JWK（JSON Web Key）の配列（RFC 7517 準拠） |
+
+**エラーレスポンス（503）**: `SYS_AUTH_JWKS_UNAVAILABLE`（JWKS プロバイダー未設定）/ `SYS_AUTH_JWKS_FETCH_FAILED`（上流 JWKS 取得失敗）
 
 ### gRPC サービス定義
 
@@ -950,6 +964,38 @@ RFC 7662 準拠のトークンイントロスペクション。トークンが�
   "checks": {
     "database": "ok",
     "keycloak": "error"
+  }
+}
+```
+
+### GET /jwks
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "keys": [
+    {
+      "kid": "key-id-1234",
+      "kty": "RSA",
+      "alg": "RS256",
+      "use": "sig",
+      "n": "0vx7agoebGcQSuu...",
+      "e": "AQAB"
+    }
+  ]
+}
+```
+
+**レスポンス（503 Service Unavailable）**
+
+```json
+{
+  "error": {
+    "code": "SYS_AUTH_JWKS_FETCH_FAILED",
+    "message": "Failed to fetch JWKS",
+    "request_id": "req_abc123def456",
+    "details": []
   }
 }
 ```
