@@ -195,9 +195,49 @@ services:
 
 ---
 
+## 軽量モード（ローカル PC 向け）
+
+ローカル PC のリソースが限られている場合、OTel スタック（Jaeger・Prometheus・Grafana・Loki）を共用開発サーバーに寄せ、ローカルでは起動しない運用パターンを推奨する。
+
+### 構成
+
+```
+[ローカル PC]                          [共用開発サーバー]
+  docker compose --profile infra        docker compose --profile observability
+  ├── postgres, kafka, redis            ├── jaeger (4317, 16686)
+  ├── keycloak, vault                   ├── prometheus (9090)
+  └── auth-rust, config-rust, ...       ├── loki (3100)
+      │                                 └── grafana (3200)
+      │
+      └── OTEL_EXPORTER_OTLP_ENDPOINT=http://<shared-server>:4317
+```
+
+### アプリケーション設定
+
+ローカルのサーバーから共用サーバーの Jaeger にトレースを送信するには、`config.dev.yaml` の OTel エンドポイントを変更する。
+
+```yaml
+# config.dev.yaml（ローカル PC）
+otel:
+  endpoint: "http://<shared-server-ip>:4317"   # 共用サーバーの Jaeger
+```
+
+### 使い分け
+
+| 環境 | infra プロファイル | observability プロファイル | OTel エンドポイント |
+| --- | --- | --- | --- |
+| ローカル PC（フル） | ローカル | ローカル | `http://jaeger:4317` |
+| ローカル PC（軽量） | ローカル | **起動しない** | `http://<shared-server>:4317` |
+| 共用サーバー | サーバー | サーバー | `http://jaeger:4317` |
+
+詳細は [共用開発サーバー設計](../devenv/共用開発サーバー設計.md) を参照。
+
+---
+
 ## 関連ドキュメント
 
 - [docker-compose設計.md](docker-compose設計.md) -- 基本方針・プロファイル設計
 - [docker-compose-システムサービス設計.md](compose-システムサービス設計.md) -- auth-server・config-server・System プロファイル
 - [docker-compose-インフラサービス設計.md](compose-インフラサービス設計.md) -- PostgreSQL・Keycloak・Kafka・Redis・Kong の詳細設定
 - [可観測性設計.md](../../architecture/observability/可観測性設計.md) -- OpenTelemetry・Prometheus・構造化ログ
+- [共用開発サーバー設計](../devenv/共用開発サーバー設計.md)

@@ -49,7 +49,7 @@ services:
       POSTGRES_USER: dev
       POSTGRES_PASSWORD: dev
     ports:
-      - "5432:5432"
+      - "${PG_HOST_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./infra/docker/init-db:/docker-entrypoint-initdb.d
@@ -67,7 +67,7 @@ services:
       MYSQL_USER: dev
       MYSQL_PASSWORD: dev
     ports:
-      - "3306:3306"
+      - "${MYSQL_HOST_PORT:-3306}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
@@ -80,7 +80,7 @@ services:
     image: redis:7
     profiles: [infra]
     ports:
-      - "6379:6379"
+      - "${REDIS_HOST_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -110,7 +110,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     ports:
-      - "9092:9092"
+      - "${KAFKA_HOST_PORT:-9092}:9092"
     volumes:
       - kafka-data:/var/lib/kafka
     healthcheck:
@@ -127,7 +127,7 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
     ports:
-      - "8090:8080"
+      - "${KAFKA_UI_HOST_PORT:-8090}:8080"
     depends_on:
       kafka:
         condition: service_healthy
@@ -143,7 +143,7 @@ services:
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
       SCHEMA_REGISTRY_SCHEMA_REGISTRY_LEADER_CONNECT_TIMEOUT_MS: 120000
     ports:
-      - "8081:8081"
+      - "${SCHEMA_REGISTRY_HOST_PORT:-8081}:8081"
     depends_on:
       kafka:
         condition: service_healthy
@@ -167,7 +167,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: dev
     command: start-dev --import-realm
     ports:
-      - "8180:8080"
+      - "${KEYCLOAK_HOST_PORT:-8180}:8080"
     volumes:
       - ./infra/docker/keycloak:/opt/keycloak/data/import    # realm k1s0 の初期設定。config.dev.yaml の auth.jwt.issuer（realms/k1s0）と一致させること
     depends_on:
@@ -178,7 +178,7 @@ services:
     image: redis:7
     profiles: [infra]
     ports:
-      - "6380:6379"
+      - "${REDIS_SESSION_HOST_PORT:-6380}:6379"
     volumes:
       - redis-session-data:/data
     healthcheck:
@@ -195,7 +195,7 @@ services:
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: dev-token
     ports:
-      - "8200:8200"
+      - "${VAULT_HOST_PORT:-8200}:8200"
 
   # ============================================================
   # 可観測性
@@ -208,9 +208,9 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
-      - "16686:16686"   # UI
-      - "4317:4317"     # OTLP gRPC
-      - "4318:4318"     # OTLP HTTP
+      - "${JAEGER_UI_HOST_PORT:-16686}:16686"   # UI
+      - "${JAEGER_OTLP_GRPC_HOST_PORT:-4317}:4317"     # OTLP gRPC
+      - "${JAEGER_OTLP_HTTP_HOST_PORT:-4318}:4318"     # OTLP HTTP
 
   prometheus:
     image: prom/prometheus:v2.55
@@ -221,14 +221,14 @@ services:
       - ./infra/docker/prometheus/alerting_rules.yaml:/etc/prometheus/alerting_rules.yaml
       - prometheus-data:/prometheus
     ports:
-      - "9090:9090"
+      - "${PROMETHEUS_HOST_PORT:-9090}:9090"
 
   loki:
     image: grafana/loki:3.3
     profiles: [observability]
     command: -config.file=/etc/loki/loki-config.yaml
     ports:
-      - "3100:3100"
+      - "${LOKI_HOST_PORT:-3100}:3100"
     volumes:
       - ./infra/docker/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
       - loki-data:/loki
@@ -239,7 +239,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: dev
     ports:
-      - "3200:3000"   # ホストポート 3200 を使用（3000 はフロントエンド開発サーバー等とのポート競合を回避するため）
+      - "${GRAFANA_HOST_PORT:-3200}:3000"   # ホストポート 3200 を使用（3000 はフロントエンド開発サーバー等とのポート競合を回避するため）
     volumes:
       - grafana-data:/var/lib/grafana
       - ./infra/docker/grafana/provisioning:/etc/grafana/provisioning
@@ -261,7 +261,7 @@ volumes:
 
 networks:
   default:
-    name: k1s0-network
+    name: ${COMPOSE_NETWORK_NAME:-k1s0-network}
 ```
 
 ## Kafka 接続設定（config.yaml 例）
@@ -436,6 +436,107 @@ docker compose --profile infra --profile observability --profile system down -v
 - Kong はローカル開発環境では DB-less モード（declarative config）を使用し、本番環境との差異を最小限にしつつ開発効率を優先する。設定ファイルは `./infra/kong/kong.dev.yaml` をマウントする（`/etc/kong/kong.yaml` にマップ）
 - Kong ローカル開発用の設定には以下の4プラグインを使用する: `cors`（開発元オリジン許可）、`rate-limiting`（グローバル 5000 req/min、local policy）、`jwt`（Keycloak JWKS 連携、RS256、有効期限 900s）、`prometheus`（per_consumer メトリクス収集）
 
+## 共用開発サーバー対応
+
+ローカル PC にリソース集約型サービスを起動する容量がない場合、共用開発サーバーを活用できる。VS Code Remote SSH + `COMPOSE_PROJECT_NAME` による Compose Project 分離を推奨方式とする。
+
+詳細は [共用開発サーバー設計](../devenv/共用開発サーバー設計.md) を参照。
+
+## .env 戦略
+
+| ファイル | git 管理 | 用途 |
+| --- | --- | --- |
+| `.env.example` | 対象 | 環境変数テンプレート。デフォルト値のリファレンス |
+| `.env` | 除外 | 開発者個人の設定。`.env.example` をコピーして使用 |
+| `docker-compose.override.yaml` | 除外 | service 層サーバー等の追加定義 |
+
+`.env` が存在しない場合、`docker-compose.yaml` 内の `${VAR:-default}` 記法によりデフォルト値が適用される。そのため、既存のローカル開発ワークフローには影響しない（後方互換）。
+
+```bash
+# 初回セットアップ
+cp .env.example .env
+
+# 共用サーバーの場合はユーザー名を設定
+echo "COMPOSE_PROJECT_NAME=$(whoami)" >> .env
+```
+
+## COMPOSE_PROJECT_NAME による分離
+
+`COMPOSE_PROJECT_NAME` を設定すると、Docker Compose は以下のリソースに自動的にプレフィックスを付与する。
+
+| リソース | デフォルト | COMPOSE_PROJECT_NAME=alice |
+| --- | --- | --- |
+| コンテナ名 | `k1s0-postgres-1` | `alice-postgres-1` |
+| ボリューム名 | `k1s0_postgres-data` | `alice_postgres-data` |
+| ネットワーク名 | `k1s0-network` | `alice_default` |
+
+これにより、共用サーバー上で複数開発者が同時に `docker compose up` しても、リソースが完全に分離される。
+
+## ポート環境変数一覧
+
+全ホストポートは `${VAR:-default}` 形式で環境変数化されており、`.env` で変更可能。
+
+### インフラサービス
+
+| 環境変数 | デフォルト | サービス | 説明 |
+| --- | --- | --- | --- |
+| `PG_HOST_PORT` | 5432 | postgres | PostgreSQL |
+| `MYSQL_HOST_PORT` | 3306 | mysql | MySQL |
+| `REDIS_HOST_PORT` | 6379 | redis | Redis |
+| `REDIS_SESSION_HOST_PORT` | 6380 | redis-session | Redis（BFF セッション用） |
+| `KAFKA_HOST_PORT` | 9092 | kafka | Kafka ブローカー |
+| `KAFKA_UI_HOST_PORT` | 8090 | kafka-ui | Kafka UI |
+| `SCHEMA_REGISTRY_HOST_PORT` | 8081 | schema-registry | Schema Registry |
+| `KEYCLOAK_HOST_PORT` | 8180 | keycloak | Keycloak |
+| `KEYCLOAK_MGMT_HOST_PORT` | 9000 | keycloak | Keycloak 管理（ヘルスチェック） |
+| `VAULT_HOST_PORT` | 8200 | vault | HashiCorp Vault |
+
+### API Gateway
+
+| 環境変数 | デフォルト | サービス | 説明 |
+| --- | --- | --- | --- |
+| `KONG_PROXY_HOST_PORT` | 8000 | kong | Kong Proxy |
+| `KONG_ADMIN_HOST_PORT` | 8001 | kong | Kong Admin API |
+
+### System サービス
+
+| 環境変数 | デフォルト | サービス | 説明 |
+| --- | --- | --- | --- |
+| `BFF_PROXY_HOST_PORT` | 8082 | bff-proxy | BFF Proxy（REST） |
+| `AUTH_REST_HOST_PORT` | 8083 | auth-rust | Auth Server（REST） |
+| `AUTH_GRPC_HOST_PORT` | 50052 | auth-rust | Auth Server（gRPC） |
+| `CONFIG_REST_HOST_PORT` | 8084 | config-rust | Config Server（REST） |
+| `CONFIG_GRPC_HOST_PORT` | 50054 | config-rust | Config Server（gRPC） |
+| `SAGA_REST_HOST_PORT` | 8085 | saga-rust | Saga Server（REST） |
+| `SAGA_GRPC_HOST_PORT` | 50055 | saga-rust | Saga Server（gRPC） |
+| `DLQ_REST_HOST_PORT` | 8086 | dlq-manager | DLQ Manager（REST） |
+| `FEATUREFLAG_REST_HOST_PORT` | 8087 | featureflag-rust | Feature Flag（REST） |
+| `FEATUREFLAG_GRPC_HOST_PORT` | 50056 | featureflag-rust | Feature Flag（gRPC） |
+| `RATELIMIT_REST_HOST_PORT` | 8088 | ratelimit-rust | Rate Limit（REST） |
+| `RATELIMIT_GRPC_HOST_PORT` | 50057 | ratelimit-rust | Rate Limit（gRPC） |
+| `TENANT_REST_HOST_PORT` | 8089 | tenant-rust | Tenant Server（REST） |
+| `TENANT_GRPC_HOST_PORT` | 50058 | tenant-rust | Tenant Server（gRPC） |
+| `VAULT_SVC_REST_HOST_PORT` | 8091 | vault-rust | Vault Service（REST） |
+| `VAULT_SVC_GRPC_HOST_PORT` | 50059 | vault-rust | Vault Service（gRPC） |
+| `GRAPHQL_GW_HOST_PORT` | 8092 | graphql-gateway-rust | GraphQL Gateway |
+
+### 可観測性サービス
+
+| 環境変数 | デフォルト | サービス | 説明 |
+| --- | --- | --- | --- |
+| `JAEGER_UI_HOST_PORT` | 16686 | jaeger | Jaeger UI |
+| `JAEGER_OTLP_GRPC_HOST_PORT` | 4317 | jaeger | OTLP gRPC |
+| `JAEGER_OTLP_HTTP_HOST_PORT` | 4318 | jaeger | OTLP HTTP |
+| `PROMETHEUS_HOST_PORT` | 9090 | prometheus | Prometheus |
+| `LOKI_HOST_PORT` | 3100 | loki | Loki |
+| `GRAFANA_HOST_PORT` | 3200 | grafana | Grafana |
+
+### ネットワーク
+
+| 環境変数 | デフォルト | 説明 |
+| --- | --- | --- |
+| `COMPOSE_NETWORK_NAME` | k1s0-network | Docker ネットワーク名 |
+
 ## 詳細設計ドキュメント
 
 各サービスの詳細設定は以下の分割ドキュメントを参照。
@@ -443,6 +544,7 @@ docker compose --profile infra --profile observability --profile system down -v
 - [docker-compose-システムサービス設計.md](compose-システムサービス設計.md) -- auth-server・config-server・System プロファイルの詳細設定・Kong ローカル設定
 - [docker-compose-インフラサービス設計.md](compose-インフラサービス設計.md) -- PostgreSQL・Keycloak・Kafka・Redis の詳細設定・初期化スクリプト
 - [docker-compose-可観測性サービス設計.md](compose-可観測性サービス設計.md) -- Prometheus・Grafana・Loki・Jaeger の詳細設定
+- [.env.example](../../../.env.example) -- ポート環境変数テンプレート
 
 ## 関連ドキュメント
 
@@ -458,3 +560,4 @@ docker compose --profile infra --profile observability --profile system down -v
 - [APIゲートウェイ設計](../../architecture/api/APIゲートウェイ設計.md)
 - [Dockerイメージ戦略](Dockerイメージ戦略.md)
 - [テンプレート仕様-DockerCompose](../../templates/infrastructure/DockerCompose.md)
+- [共用開発サーバー設計](../devenv/共用開発サーバー設計.md)

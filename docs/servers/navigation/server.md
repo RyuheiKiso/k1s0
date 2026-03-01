@@ -161,7 +161,7 @@ GetNavigationRequest {
 | 項目 | 状態 |
 | --- | --- |
 | Proto 定義 | 完了（`api/proto/k1s0/system/navigation/v1/navigation.proto`） |
-| サーバー実装 | 未実装 |
+| サーバー実装 | 完了（`regions/system/server/rust/navigation/`） |
 | クライアント生成コード | 未生成 |
 
 ---
