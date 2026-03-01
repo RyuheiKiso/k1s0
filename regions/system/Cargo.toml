@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    # Servers (19)
+    # Servers (20)
     "server/rust/api-registry",
     "server/rust/auth",
     "server/rust/config",
@@ -11,6 +11,7 @@ members = [
     "server/rust/featureflag",
     "server/rust/file",
     "server/rust/graphql-gateway",
+    "server/rust/navigation",
     "server/rust/notification",
     "server/rust/policy",
     "server/rust/quota",
