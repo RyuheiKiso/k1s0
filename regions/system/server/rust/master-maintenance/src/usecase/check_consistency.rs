@@ -38,11 +38,13 @@ impl CheckConsistencyUseCase {
         let columns = self.column_repo.find_by_table_id(table.id).await?;
         let (records, _) = self.record_repo.find_all(&table, &columns, 1, 10000, None, None, None).await?;
 
+        let rule_id_str = rule.id.to_string();
+        let rule_name_str = rule.name.clone();
         let mut results = Vec::new();
         for record in &records {
             let result = self.rule_engine.evaluate_rule(&rule, record).await?;
             if !result.passed {
-                results.push(result);
+                results.push(result.with_rule_info(rule_id_str.clone(), rule_name_str.clone()));
             }
         }
 
@@ -54,6 +56,11 @@ impl CheckConsistencyUseCase {
     }
 
     pub async fn check_all_rules(&self, table_name: &str) -> anyhow::Result<Vec<RuleResult>> {
+        self.check_rules(table_name, &[]).await
+    }
+
+    /// 整合性チェックを実行する。`rule_ids` が空でなければ指定ルールのみ、空なら全ルールを対象とする。
+    pub async fn check_rules(&self, table_name: &str, rule_ids: &[String]) -> anyhow::Result<Vec<RuleResult>> {
         let table = self.table_repo.find_by_name(table_name).await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
 
@@ -66,10 +73,16 @@ impl CheckConsistencyUseCase {
             if !rule.is_active {
                 continue;
             }
+            // rule_ids が指定されている場合、対象ルールのみフィルタリング
+            if !rule_ids.is_empty() && !rule_ids.iter().any(|id| id == &rule.id.to_string()) {
+                continue;
+            }
+            let rule_id_str = rule.id.to_string();
+            let rule_name_str = rule.name.clone();
             for record in &records {
                 let result = self.rule_engine.evaluate_rule(rule, record).await?;
                 if !result.passed {
-                    all_results.push(result);
+                    all_results.push(result.with_rule_info(rule_id_str.clone(), rule_name_str.clone()));
                 }
             }
         }

@@ -628,9 +628,11 @@ pub async fn evaluate_custom_rule(
 | `SYS_MM_VALIDATION_FAILED` | 400 | 整合性チェックに失敗 |
 | `SYS_MM_DUPLICATE_TABLE` | 409 | テーブル名が重複 |
 | `SYS_MM_DUPLICATE_COLUMN` | 409 | カラム名が重複 |
-| `SYS_MM_PERMISSION_DENIED` | 403 | 操作権限がない |
+| `SYS_AUTH_PERMISSION_DENIED` | 403 | 操作権限がない |
 | `SYS_MM_IMPORT_FAILED` | 400 | インポート処理に失敗 |
 | `SYS_MM_INVALID_RULE` | 400 | ルール定義が不正 |
+| `SYS_MM_DISPLAY_CONFIG_NOT_FOUND` | 404 | 表示設定が見つからない |
+| `SYS_MM_IMPORT_JOB_NOT_FOUND` | 404 | インポートジョブが見つからない |
 | `SYS_MM_SQL_BUILD_ERROR` | 500 | 動的SQL生成に失敗 |
 
 ### gRPC サービス定義
@@ -642,9 +644,8 @@ syntax = "proto3";
 
 package k1s0.system.mastermaintenance.v1;
 
-option go_package = "github.com/k1s0/api/gen/go/k1s0/system/mastermaintenance/v1;mastermaintenancev1";
+option go_package = "github.com/k1s0-platform/system-proto-go/mastermaintenance/v1;mastermaintenancev1";
 
-import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 import "k1s0/system/common/v1/types.proto";
 
