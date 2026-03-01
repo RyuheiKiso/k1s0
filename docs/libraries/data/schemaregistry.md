@@ -17,8 +17,16 @@ Confluent Schema Registry クライアントライブラリ。`SchemaRegistryCli
 | `get_latest_schema(subject)` | サブジェクトの最新スキーマを取得 |
 | `get_schema_version(subject, version)` | サブジェクトの特定バージョンのスキーマを取得 |
 | `list_subjects()` | 全サブジェクト名を取得 |
-| `check_compatibility(subject, schema)` | スキーマの互換性を確認 |
+| `check_compatibility(subject, schema)` | スキーマの互換性を確認（※ Rust のみ第 3 引数 `schema_type` が必要） |
 | `health_check()` | Schema Registry への疎通確認 |
+
+> **`check_compatibility` の言語差異**: Rust 実装では `check_compatibility(subject, schema, schema_type: SchemaType)` の 3 引数を取る（Confluent API がスキーマ型を必要とするため）。Go/TypeScript/Dart は 2 引数（`subject`, `schema`）のみ。
+
+> **`subject_name` の言語差異**:
+> - **Rust**: `SchemaRegistryConfig::subject_name(topic)` -- 静的メソッド、`{topic}-value` サフィックス固定（`key` 指定不可）
+> - **Go**: `(c *SchemaRegistryConfig) SubjectName(topic, keyOrValue)` -- インスタンスメソッド、`key`/`value` を指定可能
+> - **TypeScript**: `subjectName(topic, keyOrValue: 'key' | 'value')` -- フリー関数、`key`/`value` を指定可能
+> - **Dart**: `SchemaRegistryConfig.subjectName(topic, keyOrValue)` -- 静的メソッド、`key`/`value` を指定可能
 
 Rust 追加 API（Rust のみ）:
 
@@ -34,11 +42,11 @@ Rust 公開型:
 | `SchemaRegistryClient` | トレイト | スキーマ登録・取得・互換性確認の抽象インターフェース |
 | `HttpSchemaRegistryClient` | 構造体 | HTTP ベースの Schema Registry クライアント実装 |
 | `MockSchemaRegistryClient` | 構造体 | テスト用モック（feature = "mock" で有効） |
-| `SchemaRegistryConfig` | 構造体 | Registry URL・互換性モード設定 |
+| `SchemaRegistryConfig` | 構造体 | Registry URL・互換性モード・タイムアウト設定（`url`, `compatibility`, `timeout_secs: u64`（デフォルト 30 秒））。※ Rust は `username`/`password` フィールドを持たない（他 3 言語は対応済み） |
 | `CompatibilityMode` | enum | スキーマ互換性モード（7 variants: `Backward`・`BackwardTransitive`・`Forward`・`ForwardTransitive`・`Full`・`FullTransitive`・`None`） |
 | `RegisteredSchema` | 構造体 | 登録済みスキーマ（ID・バージョン・スキーマ文字列） |
 | `SchemaType` | enum | スキーマ形式（`Avro`・`Json`・`Protobuf`） |
-| `SchemaRegistryError` | enum | 登録・取得・互換性エラー型 |
+| `SchemaRegistryError` | enum | 登録・取得・互換性エラー型（6 variants: `Http(reqwest::Error)`, `SchemaNotFound { subject, version }`, `CompatibilityViolation { subject, reason }`, `InvalidSchema(String)`, `Serialization(serde_json::Error)`, `Unavailable(String)`） |
 
 ## Rust 実装
 
@@ -130,6 +138,65 @@ type SchemaRegistryClient interface {
 
 > Go 実装: `CheckCompatibility` はスキーマ型引数なし（schema のみ）。`list_versions`・`delete_subject` は Rust のみ。
 
+**公開型**:
+
+```go
+// 接続設定
+type SchemaRegistryConfig struct {
+    URL      string // Schema Registry のベース URL
+    Username string // 基本認証のユーザー名（省略可能）
+    Password string // 基本認証のパスワード（省略可能）
+}
+
+// SubjectName はトピック名からサブジェクト名を生成する（インスタンスメソッド）。
+// Confluent の命名規則: <topic>-value または <topic>-key
+func (c *SchemaRegistryConfig) SubjectName(topic, keyOrValue string) string
+
+// Validate は設定を検証する。
+func (c *SchemaRegistryConfig) Validate() error
+```
+
+> Go の `SubjectName` はインスタンスメソッドだが、config の値は参照しない。他言語では静的メソッド/フリー関数として実装されている。
+
+```go
+// 登録済みスキーマ
+type RegisteredSchema struct {
+    ID         int    `json:"id"`
+    Subject    string `json:"subject"`
+    Version    int    `json:"version"`
+    Schema     string `json:"schema"`
+    SchemaType string `json:"schemaType"`
+}
+```
+
+**コンストラクタ**:
+
+```go
+// NewClient は新しい SchemaRegistryClient を生成する。
+func NewClient(config *SchemaRegistryConfig) (SchemaRegistryClient, error)
+
+// NewClientWithHTTPClient はカスタム http.Client を使う SchemaRegistryClient を生成する（テスト用）。
+func NewClientWithHTTPClient(config *SchemaRegistryConfig, httpClient *http.Client) (SchemaRegistryClient, error)
+```
+
+**エラー型**:
+
+```go
+// NotFoundError はスキーマが見つからない場合のエラー。
+type NotFoundError struct {
+    Resource string
+}
+
+// IsNotFound は err が NotFoundError かどうかを返す。
+func IsNotFound(err error) bool
+
+// SchemaRegistryError は Schema Registry API のエラー。
+type SchemaRegistryError struct {
+    StatusCode int
+    Message    string
+}
+```
+
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/schemaregistry/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
@@ -137,12 +204,15 @@ type SchemaRegistryClient interface {
 **主要 API**:
 
 ```typescript
+/** スキーマ形式。 */
+export type SchemaType = 'AVRO' | 'JSON' | 'PROTOBUF';
+
 export interface RegisteredSchema {
   id: number;
   subject: string;
   version: number;
   schema: string;
-  schemaType: string;
+  schemaType: SchemaType | string;
 }
 
 export interface SchemaRegistryConfig {
@@ -173,6 +243,13 @@ export class SchemaRegistryError extends Error {
   statusCode: number;
   constructor(statusCode: number, message: string);
 }
+
+export function validateSchemaRegistryConfig(config: SchemaRegistryConfig): void;
+
+export class HttpSchemaRegistryClient implements SchemaRegistryClient {
+  constructor(config: SchemaRegistryConfig);
+  // ... SchemaRegistryClient の全メソッドを実装
+}
 ```
 
 **カバレッジ目標**: 85%以上
@@ -199,6 +276,52 @@ class HttpSchemaRegistryClient implements SchemaRegistryClient {
   // ... 上記メソッドすべてを実装
 }
 ```
+
+**公開型**:
+
+```dart
+/// スキーマ形式。
+enum SchemaType {
+  avro, json, protobuf;
+  String toJson();
+  static SchemaType fromString(String value);
+}
+
+/// 登録済みスキーマ。
+class RegisteredSchema {
+  final int id;
+  final String subject;
+  final int version;
+  final String schema;
+  final String schemaType;
+  factory RegisteredSchema.fromJson(Map<String, dynamic> json);
+}
+
+/// 接続設定。
+class SchemaRegistryConfig {
+  final String url;       // required
+  final String? username; // 基本認証のユーザー名（省略可能）
+  final String? password; // 基本認証のパスワード（省略可能）
+  static String subjectName(String topic, String keyOrValue);
+  void validate(); // URL 空チェック（失敗時 SchemaRegistryError(0, ...) を throw）
+}
+
+/// スキーマが見つからない場合のエラー。
+class NotFoundError implements Exception {
+  final String resource;
+}
+
+/// Schema Registry API のエラー。
+class SchemaRegistryError implements Exception {
+  final int statusCode;
+  final String message;
+}
+
+/// err が NotFoundError かどうかを返す。
+bool isNotFound(Object? err);
+```
+
+> Dart の `validate()` はバリデーションエラー時に `SchemaRegistryError(0, ...)` を throw する（ステータスコード 0 はバリデーションエラーを表す）。
 
 **カバレッジ目標**: 85%以上
 

@@ -24,6 +24,8 @@ Rust 公開型:
 |-------------|------|------|
 | `EventStore` | トレイト | イベント永続化・読み込みの抽象インターフェース |
 | `InMemoryEventStore` | 構造体 | テスト用インメモリ実装 |
+| `InMemorySnapshotStore` | 構造体 | テスト用インメモリスナップショット実装 |
+| `PostgresEventStore` | 構造体 | PostgreSQL バックエンド実装（feature = "postgres" で有効） |
 | `MockEventStore` | 構造体 | テスト用モック（feature = "mock" で有効） |
 | `EventEnvelope` | 構造体 | イベント本体 + メタデータ（stream_id・version・event_type・payload・metadata・**recorded_at**） |
 | `StreamId` | 構造体 | ストリーム識別子（単純な文字列ラッパー） |
@@ -68,11 +70,16 @@ tokio = { version = "1", features = ["full"] }
 ```
 eventstore/
 ├── src/
-│   ├── lib.rs              # 公開 API（再エクスポート）・使用例ドキュメント
-│   ├── store.rs            # EventStore トレイト・InMemoryEventStore・MockEventStore
-│   ├── envelope.rs         # EventEnvelope・StreamId
-│   ├── snapshot.rs         # Snapshot・SnapshotStore トレイト
-│   └── error.rs            # EventStoreError
+│   ├── lib.rs          # 公開 API（再エクスポート）
+│   ├── store.rs        # EventStore トレイト・MockEventStore
+│   ├── envelope.rs     # EventEnvelope
+│   ├── stream.rs       # StreamId
+│   ├── memory.rs       # InMemoryEventStore・InMemorySnapshotStore
+│   ├── postgres.rs     # PostgresEventStore（feature = "postgres"）
+│   ├── snapshot.rs     # Snapshot・SnapshotStore トレイト
+│   └── error.rs        # EventStoreError
+├── tests/
+│   └── eventstore_test.rs
 └── Cargo.toml
 ```
 
@@ -107,7 +114,7 @@ let delta = store.load_from(&stream_id, 2).await.unwrap();
 
 **配置先**: `regions/system/library/go/eventstore/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: 標準ライブラリのみ（InMemory 実装）。PostgreSQL バックエンドは Phase 2 で追加予定。
+**依存関係**: `github.com/lib/pq`（PostgreSQL ドライバー）。InMemory 実装は標準ライブラリのみ。
 
 **主要インターフェース**:
 
@@ -150,6 +157,27 @@ type SnapshotStore interface {
     SaveSnapshot(ctx context.Context, snapshot *Snapshot) error
     LoadSnapshot(ctx context.Context, streamID StreamId) (*Snapshot, error)
 }
+
+// エラー型
+type EventStoreError struct {
+    Code    string
+    Message string
+}
+
+func (e *EventStoreError) Error() string
+func NewVersionConflictError(expected, actual uint64) *EventStoreError
+func NewStreamNotFoundError(streamID string) *EventStoreError
+
+// InMemory 実装
+func NewInMemoryEventStore() *InMemoryEventStore    // implements EventStore
+func NewInMemorySnapshotStore() *InMemorySnapshotStore  // implements SnapshotStore
+
+// PostgreSQL 実装
+func NewPostgresEventStore(databaseURL string) (*PostgresEventStore, error)
+func NewPostgresEventStoreFromDB(db *sql.DB) *PostgresEventStore
+func (s *PostgresEventStore) Migrate(ctx context.Context) error  // イベントテーブル作成
+func (s *PostgresEventStore) Close() error                       // DB 接続クローズ
+// PostgresEventStore implements EventStore
 ```
 
 ## TypeScript 実装
@@ -197,9 +225,18 @@ export class VersionConflictError extends Error {
 
 export class InMemoryEventStore implements EventStore { ... }
 export class InMemorySnapshotStore implements SnapshotStore { ... }
-```
 
-> PostgreSQL バックエンドは Phase 2 で追加予定。
+// PostgreSQL 実装（pg パッケージ使用）
+export class PostgresEventStore implements EventStore {
+  constructor(pool: Pool);
+  async migrate(): Promise<void>;  // イベントテーブル作成
+}
+
+export class PostgresSnapshotStore implements SnapshotStore {
+  constructor(pool: Pool);
+  async migrate(): Promise<void>;  // スナップショットテーブル作成
+}
+```
 
 **カバレッジ目標**: 85%以上
 
@@ -232,10 +269,44 @@ class EventEnvelope {
   final DateTime recordedAt;
 }
 
-class InMemoryEventStore implements EventStore { ... }
-```
+class NewEvent {
+  final String streamId;
+  final String eventType;
+  final Object? payload;
+  final Object? metadata;
+}
 
-> PostgreSQL バックエンドは Phase 2 で追加予定。
+class VersionConflictError implements Exception {
+  final int expected;
+  final int actual;
+}
+
+class Snapshot {
+  final String streamId;
+  final int version;
+  final Object? state;
+  final DateTime createdAt;
+}
+
+abstract class SnapshotStore {
+  Future<void> saveSnapshot(Snapshot snapshot);
+  Future<Snapshot?> loadSnapshot(String streamId);
+}
+
+class InMemoryEventStore implements EventStore { ... }
+class InMemorySnapshotStore implements SnapshotStore { ... }
+
+// PostgreSQL 実装（postgres パッケージ使用）
+class PostgresEventStore implements EventStore {
+  PostgresEventStore(Connection conn);
+  Future<void> migrate();  // イベントテーブル作成
+}
+
+class PostgresSnapshotStore implements SnapshotStore {
+  PostgresSnapshotStore(Connection conn);
+  Future<void> migrate();  // スナップショットテーブル作成
+}
+```
 
 **カバレッジ目標**: 85%以上
 

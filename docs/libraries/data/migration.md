@@ -19,7 +19,7 @@ DB スキーマ移行ライブラリ。sqlx Migrator（Rust）/ goose（Go）/ n
 | `MigrationStatus` | 構造体 | バージョン・名前・適用日時・チェックサム |
 | `PendingMigration` | 構造体 | 未適用マイグレーションのバージョン・名前 |
 | `MigrationFile` | 構造体 | マイグレーションファイルの解析・チェックサム計算 |
-| `MigrationError` | enum | `ConnectionFailed`・`MigrationFailed`・`ChecksumMismatch`・`DirectoryNotFound` |
+| `MigrationError` | enum | `ConnectionFailed`・`MigrationFailed`・`ChecksumMismatch`・`DirectoryNotFound`・`ParseError`・`Io` |
 
 ユーティリティ関数:
 
@@ -27,8 +27,16 @@ DB スキーマ移行ライブラリ。sqlx Migrator（Rust）/ goose（Go）/ n
 |-----|------|
 | `MigrationFile::parse_filename(filename)` | ファイル名からバージョン・名前・方向を解析 |
 | `MigrationFile::checksum(content)` | SQL コンテンツの SHA-256 チェックサムを計算 |
+| `InMemoryMigrationRunner::from_migrations(config, up_sqls, down_sqls)` | マイグレーション SQL を直接渡してランナーを構築（テスト用途） |
 
-> `SqlxMigrationRunner`（PostgreSQL 直接実行）は Phase 2 で追加予定。
+PostgreSQL 直接実行ランナー（全4言語実装済み）:
+
+| 型名 | 言語 | 説明 |
+|------|------|------|
+| `SqlxMigrationRunner` | Rust | sqlx + PgPool による PostgreSQL 実行（`feature = "postgres"`） |
+| `PostgresMigrationRunner` | Go | `database/sql` + `lib/pq` による PostgreSQL 実行 |
+| `PgMigrationRunner` | TypeScript | `pg` Pool による PostgreSQL 実行 |
+| `PostgresMigrationRunner` | Dart | `postgres` パッケージの Connection による PostgreSQL 実行 |
 
 ## Rust 実装
 
@@ -42,6 +50,7 @@ edition = "2021"
 
 [features]
 sqlite = ["sqlx/sqlite"]
+postgres = ["sqlx/postgres"]
 cli = ["clap"]
 
 [dependencies]
@@ -68,6 +77,7 @@ migration/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
 │   ├── runner.rs       # MigrationRunner トレイト・InMemoryMigrationRunner
+│   ├── sqlx_runner.rs  # SqlxMigrationRunner（PostgreSQL 実行、#[cfg(feature = "postgres")]）
 │   ├── config.rs       # MigrationConfig（ディレクトリ・DB URL・テーブル名）
 │   ├── model.rs        # MigrationReport・MigrationStatus・PendingMigration・MigrationFile・parse_filename・checksum
 │   └── error.rs        # MigrationError
@@ -99,7 +109,14 @@ use std::path::PathBuf;
 let config = MigrationConfig::new(PathBuf::from("./migrations"), "postgres://...".to_string());
 
 // ディスク上のマイグレーションファイルを読み込んで実行
-let runner = InMemoryMigrationRunner::new(config).unwrap();
+let runner = InMemoryMigrationRunner::new(config.clone()).unwrap();
+
+// または、マイグレーション SQL を直接渡して構築（テスト用途に便利）
+let runner = InMemoryMigrationRunner::from_migrations(
+    config,
+    vec![("20240101000001".into(), "create_users".into(), "CREATE TABLE users (id INT);".into())],
+    vec![("20240101000001".into(), "create_users".into(), "DROP TABLE users;".into())],
+);
 
 // up マイグレーション（全件適用）
 let report = runner.run_up().await.unwrap();
@@ -129,7 +146,7 @@ println!("Rolled back {} migrations", report.applied_count);
 
 **配置先**: `regions/system/library/go/migration/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: `github.com/stretchr/testify v1.11.1`（goose 不使用）
+**依存関係**: `github.com/lib/pq v1.11.2`、`github.com/stretchr/testify v1.11.1`（goose 不使用）
 
 **主要インターフェース**:
 
@@ -166,12 +183,22 @@ type PendingMigration struct {
     Name    string
 }
 
+func NewMigrationConfig(migrationsDir, databaseURL string) MigrationConfig
 func NewInMemoryRunner(cfg MigrationConfig) (*InMemoryMigrationRunner, error)
+func NewInMemoryRunnerFromMigrations(cfg MigrationConfig, ups, downs []struct{ Version, Name, Content string }) *InMemoryMigrationRunner
+func NewPostgresMigrationRunner(db *sql.DB, config MigrationConfig) (*PostgresMigrationRunner, error)
+type MigrationDirection int
+
+const (
+	DirectionUp   MigrationDirection = iota
+	DirectionDown
+)
+
 func ParseFilename(filename string) (version, name string, direction MigrationDirection, ok bool)
 func Checksum(content string) string
 ```
 
-> Go 実装の主要な実装は `InMemoryMigrationRunner`。`PostgresRunner` は Phase 2 で追加予定。
+`PostgresMigrationRunner` は `MigrationRunner` インターフェースを実装し、PostgreSQL に対してトランザクション付きでマイグレーションを実行する。`_migrations` テーブルを自動作成し、適用済みバージョンを管理する。
 
 ## TypeScript 実装
 
@@ -229,7 +256,18 @@ export function checksum(content: string): string;
 export class MigrationError extends Error {
   constructor(message: string, public readonly cause?: Error);
 }
+
+export class PgMigrationRunner implements MigrationRunner {
+  constructor(pool: Pool, config: MigrationConfig);
+  runUp(): Promise<MigrationReport>;
+  runDown(steps: number): Promise<MigrationReport>;
+  status(): Promise<MigrationStatus[]>;
+  pending(): Promise<PendingMigration[]>;
+  close(): Promise<void>;
+}
 ```
+
+`PgMigrationRunner` は `pg` パッケージの `Pool` を使用して PostgreSQL に対してトランザクション付きでマイグレーションを実行する。`close()` メソッドで接続プールを終了できる。
 
 **カバレッジ目標**: 85%以上
 
@@ -241,9 +279,10 @@ export class MigrationError extends Error {
 
 ```yaml
 dependencies:
-  sqflite_common_ffi: ^2.3.4
+  crypto: ^3.0.3
   path: ^1.9.0
   meta: ^1.14.0
+  postgres: ^3.1.0
 ```
 
 **主要インターフェース**:
@@ -274,7 +313,32 @@ class MigrationStatus {
   final DateTime? appliedAt;
   final String checksum;
 }
+
+class MigrationFile {
+  static ({String version, String name, MigrationDirection direction})?
+      parseFilename(String filename);
+  static String computeChecksum(String content);  // SHA-256
+}
+
+class PostgresMigrationRunner implements MigrationRunner {
+  PostgresMigrationRunner({
+    required Connection connection,
+    required MigrationConfig config,
+    required List<({String version, String name, String content})> ups,
+    required List<({String version, String name, String content})> downs,
+  });
+}
+
+class MigrationError implements Exception {
+  MigrationError(String message, {String? code, Object? cause});
+  factory MigrationError.connectionFailed(String message, {Object? cause});
+  factory MigrationError.migrationFailed(String version, String message, {Object? cause});
+  factory MigrationError.checksumMismatch(String version, String expected, String actual);
+  factory MigrationError.directoryNotFound(String path);
+}
 ```
+
+`PostgresMigrationRunner` は `postgres` パッケージの `Connection` を使用して PostgreSQL に対してマイグレーションを実行する。`MigrationFile.computeChecksum()` は Dart の命名規則に従い `checksum` ではなく `computeChecksum` を使用する。
 
 **カバレッジ目標**: 85%以上
 

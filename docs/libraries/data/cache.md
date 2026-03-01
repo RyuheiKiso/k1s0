@@ -2,7 +2,7 @@
 
 ## 概要
 
-キャッシュ抽象化ライブラリ。`CacheClient` トレイト（インターフェース）により `get`/`set`/`delete`/`exists` の統一インターフェースを提供する。InMemory（テスト用）・Redis（本番用）の 2 バックエンドをサポートする。
+キャッシュ抽象化ライブラリ。`CacheClient` トレイト（インターフェース）により `get`/`set`/`delete`/`exists` の統一インターフェースを提供する。全 4 言語で InMemory（テスト用）バックエンドをサポートし、Go・Rust では Redis（本番用）バックエンドもサポートする。
 
 **配置先**: `regions/system/library/rust/cache/`
 
@@ -18,11 +18,11 @@
 | `exists(key)` | `bool` | キーが存在するか確認 |
 | `setNX(key, value, ttl)` | `bool` | キーが存在しない場合のみセット |
 
-Rust 追加 API:
+Go・Rust 追加 API:
 
 | メソッド | 説明 |
 |---------|------|
-| `expire(key, ttl)` | キーの TTL を更新（Rust・Go のみ） |
+| `expire(key, ttl)` | キーの TTL を更新（Go・Rust のみ） |
 
 Rust 公開型:
 
@@ -122,6 +122,16 @@ type CacheError struct {
     Code    string
     Message string
 }
+
+// InMemoryCacheClient: テスト用インメモリ実装
+func NewInMemoryCacheClient() *InMemoryCacheClient
+
+// RedisCacheClient: Redis バックエンド実装
+type RedisCacheOption func(*RedisCacheClient)
+
+func WithKeyPrefix(prefix string) RedisCacheOption
+func NewRedisCacheClient(client redis.Cmdable, opts ...RedisCacheOption) *RedisCacheClient
+func NewRedisCacheClientFromURL(url string, opts ...RedisCacheOption) (*RedisCacheClient, error)
 ```
 
 ## TypeScript 実装
@@ -152,7 +162,9 @@ export class InMemoryCacheClient implements CacheClient {
 }
 ```
 
-**カバレッジ目標**: 90%以上
+> **注**: TypeScript では `RedisCacheClient` は未実装。`InMemoryCacheClient` のみ提供。
+
+**カバレッジ目標**: 85%以上
 
 ## Dart 実装
 
@@ -172,9 +184,22 @@ abstract class CacheClient {
 class InMemoryCacheClient implements CacheClient {
   // ... 上記メソッドすべてを実装
 }
+
+class CacheEntry<T> {
+  final T value;
+  final DateTime expiresAt;
+  bool get isExpired;
+}
+
+class CacheError implements Exception {
+  final String message;
+  final String code;
+}
 ```
 
-**カバレッジ目標**: 90%以上
+> **注**: Dart では `RedisCacheClient` は未実装。`InMemoryCacheClient` のみ提供。
+
+**カバレッジ目標**: 85%以上
 
 ## 関連ドキュメント
 

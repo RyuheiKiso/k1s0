@@ -18,7 +18,14 @@
 | `encode_cursor(sort_key, id)` | 関数 | sort_key と id を結合して Base64 エンコード |
 | `decode_cursor(cursor)` | 関数 | カーソルを (sort_key, id) のタプルに復元 |
 | `validate_per_page(per_page)` | 関数 | per_page が 1〜100 であることを検証（範囲外はエラー） |
+| `default_page_request()` | 関数 | デフォルト値（page: 1, per_page: 20）の PageRequest を返す |
+| `offset()` | メソッド | ページネーションのオフセット値を返す（`(page - 1) * per_page`） |
+| `has_next(total)` | メソッド | 次のページが存在するかを返す（`page * per_page < total`） |
 | `PaginationError` | enum | `InvalidCursor`・`InvalidPerPage` |
+
+> **注意: Base64 エンコーディング方式の差異**
+>
+> Dart 実装のみ `base64Url`（URL-safe Base64）を使用しており、他の3言語（Rust: `base64::STANDARD`、Go: `base64.StdEncoding`、TypeScript: `btoa`）は標準 Base64 を使用している。そのため、**Dart で生成したカーソルを他言語でデコードする場合（またはその逆）は互換性がない可能性がある**。言語間でカーソルを受け渡す場合は、この差異に注意すること。
 
 ## Rust 実装
 
@@ -91,6 +98,11 @@ type PageRequest struct {
     PerPage uint32
 }
 
+func NewPageRequest(page, perPage uint32) PageRequest
+func DefaultPageRequest() PageRequest                  // page: 1, perPage: 20
+func (r PageRequest) Offset() uint64                   // (Page-1) * PerPage
+func (r PageRequest) HasNext(total uint64) bool        // Page * PerPage < total
+
 type PageResponse[T any] struct {
     Items      []T
     Total      uint64
@@ -99,9 +111,28 @@ type PageResponse[T any] struct {
     TotalPages uint32
 }
 
+// 注意: Go では PageResponse に Meta() メソッドは存在しない。
+// 各フィールド（Total, Page, PerPage, TotalPages）へ直接アクセスして使用する。
 func NewPageResponse[T any](items []T, total uint64, req PageRequest) PageResponse[T]
-func ValidatePerPage(perPage uint32) error
 
+type PaginationMeta struct {
+    Total      uint64
+    Page       uint32
+    PerPage    uint32
+    TotalPages uint32
+}
+
+type CursorRequest struct {
+    Cursor *string
+    Limit  uint32
+}
+
+type CursorMeta struct {
+    NextCursor *string
+    HasMore    bool
+}
+
+func ValidatePerPage(perPage uint32) error
 func EncodeCursor(sortKey, id string) string
 func DecodeCursor(cursor string) (sortKey string, id string, err error)
 ```
@@ -126,6 +157,13 @@ export interface PageResponse<T> {
   totalPages: number;
 }
 
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  perPage: number;
+  totalPages: number;
+}
+
 export interface CursorRequest {
   cursor?: string;
   limit: number;
@@ -136,8 +174,17 @@ export interface CursorMeta {
   hasMore: boolean;
 }
 
+export class PerPageValidationError extends Error {
+  constructor(value: number);
+}
+
+// 注意: TypeScript では PageResponse に meta() 関数は存在しない。
+// PageResponse の各フィールド（total, page, perPage, totalPages）へ直接アクセスして使用する。
 export function createPageResponse<T>(items: T[], total: number, req: PageRequest): PageResponse<T>;
 export function validatePerPage(perPage: number): number;  // 範囲外は PerPageValidationError をスロー
+export function defaultPageRequest(): PageRequest;         // page: 1, perPage: 20
+export function pageOffset(req: PageRequest): number;      // (page - 1) * perPage
+export function hasNextPage(req: PageRequest, total: number): boolean;  // page * perPage < total
 
 export function encodeCursor(sortKey: string, id: string): string;
 export function decodeCursor(cursor: string): { sortKey: string; id: string };
