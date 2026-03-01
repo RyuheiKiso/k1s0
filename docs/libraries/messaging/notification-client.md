@@ -15,6 +15,7 @@
 | `NotificationResponse` | 構造体 | id・status・message_id（任意） |
 | `NotificationChannel` | enum | `Email`・`Sms`・`Push`・`Slack`・`Webhook` |
 | `NotificationClientError` | enum | `SendError`・`BatchError`・`InvalidChannel`・`Internal` |
+| `MockNotificationClient` | 構造体 | テスト用モック（Rust feature="mock"、mockall 自動生成） |
 
 ## Rust 実装
 
@@ -263,6 +264,16 @@ class InMemoryNotificationClient implements NotificationClient {
 ```
 
 **カバレッジ目標**: 90%以上
+
+## 設計ノート: 言語間差異
+
+### `NotificationClientError`
+
+カスタムエラー型 `NotificationClientError`（`SendError`・`BatchError`・`InvalidChannel`・`Internal`）は **Rust のみ** で提供される。Go は標準の `error` インターフェース、TypeScript は標準の `Error`、Dart は標準の `Exception` を使用する。
+
+### `send_batch`
+
+一括送信メソッド `send_batch` は **Rust と Dart のみ** で提供される。Go / TypeScript で一括送信が必要な場合はループで `send` を呼び出す。
 
 ## テスト戦略
 

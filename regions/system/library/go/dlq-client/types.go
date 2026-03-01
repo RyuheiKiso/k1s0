@@ -22,6 +22,7 @@ type DlqMessage struct {
 	Payload       any        `json:"payload"`
 	Status        DlqStatus  `json:"status"`
 	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     *time.Time `json:"updated_at,omitempty"`
 	LastRetryAt   *time.Time `json:"last_retry_at"`
 }
 

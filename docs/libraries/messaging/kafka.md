@@ -12,11 +12,15 @@ Kafka 接続設定・管理・ヘルスチェックライブラリ。`KafkaConfi
 |-------------|------|------|
 | `KafkaConfig` | 構造体 | ブローカーアドレス・セキュリティプロトコル・コンシューマーグループ・タイムアウト・メッセージサイズ設定 |
 | `KafkaConfigBuilder` | 構造体 | `KafkaConfig` のビルダー |
-| `KafkaHealthChecker` | 構造体 | Kafka クラスター設定妥当性確認・ヘルスチェック |
+| `KafkaHealthChecker` | 構造体（Rust）/ インターフェース（Go/TS）/ 抽象クラス（Dart） | Kafka クラスター設定妥当性確認・ヘルスチェック |
 | `KafkaHealthStatus` | enum / 構造体 | ヘルス状態。Rust は enum（`Healthy` / `Unhealthy(String)`）、Go/TypeScript/Dart は構造体（`healthy: bool`, `message: String`, `brokerCount: int` フィールド） |
 | `TopicConfig` | 構造体 | トピック名・パーティション数・レプリケーションファクター・保持期間の設定 |
-| `TopicPartitionInfo` | 構造体 | トピックのパーティション情報（リーダー・レプリカ・ISR） |
+| `TopicPartitionInfo` | 構造体 | トピックのパーティション情報（リーダー・レプリカ・ISR）。Rust/Go のみ実装 [^1] |
 | `KafkaError` | enum | 接続失敗・トピック未検出・パーティション・設定・タイムアウトエラー型 |
+| `NoOpKafkaHealthChecker` | 構造体 / クラス | テスト用 no-op ヘルスチェッカー。Go/TS/Dart に存在 [^2] |
+
+[^1]: TS/Dart は現時点で設定・検証のみのスコープであり、`TopicPartitionInfo` は未実装。
+[^2]: Rust の `KafkaHealthChecker` は具象 struct であるためテスト時に直接利用可能であり、`NoOpKafkaHealthChecker` は不要。Go/TS/Dart では `KafkaHealthChecker` がインターフェース / 抽象クラスであるため、テスト用の no-op 実装を提供している。
 
 ## Rust 実装
 
@@ -102,9 +106,74 @@ assert!(topic.validate_name());
 **主要型**:
 
 ```go
-type KafkaConfig struct { ... }
-type TopicConfig struct { ... }
-type KafkaHealthChecker interface { ... }
+// --- デフォルト値定数 ---
+const (
+    DefaultConnectionTimeoutMs = 5000    // 接続タイムアウト（ミリ秒）
+    DefaultRequestTimeoutMs    = 30000   // リクエストタイムアウト（ミリ秒）
+    DefaultMaxMessageBytes     = 1000000 // 最大メッセージサイズ（バイト）
+)
+
+// --- KafkaConfig ---
+type KafkaConfig struct {
+    BootstrapServers    []string  // ブローカーアドレスリスト
+    SecurityProtocol    string    // PLAINTEXT, SSL, SASL_PLAINTEXT, SASL_SSL
+    SASLMechanism       string    // PLAIN, SCRAM-SHA-256, SCRAM-SHA-512
+    SASLUsername         string
+    SASLPassword         string
+    ConsumerGroup       string    // コンシューマーグループ ID
+    ConnectionTimeoutMs int       // 0 の場合はデフォルト値を使用
+    RequestTimeoutMs    int       // 0 の場合はデフォルト値を使用
+    MaxMessageBytes     int       // 0 の場合はデフォルト値を使用
+}
+
+func (c *KafkaConfig) BootstrapServersString() string
+func (c *KafkaConfig) UsesTLS() bool
+func (c *KafkaConfig) Validate() error
+func (c *KafkaConfig) EffectiveConnectionTimeoutMs() int  // 0 の場合はデフォルト値を返す
+func (c *KafkaConfig) EffectiveRequestTimeoutMs() int     // 0 の場合はデフォルト値を返す
+func (c *KafkaConfig) EffectiveMaxMessageBytes() int      // 0 の場合はデフォルト値を返す
+
+// --- TopicConfig ---
+type TopicConfig struct {
+    Name              string
+    Partitions        int
+    ReplicationFactor int
+    RetentionMs       int64
+}
+
+func (t *TopicConfig) ValidateName() error  // エラー返却（Rust は bool 返却）
+func (t *TopicConfig) Tier() string
+
+// --- TopicPartitionInfo ---
+type TopicPartitionInfo struct {
+    Topic     string
+    Partition int32
+    Leader    int32
+    Replicas  []int32
+    ISR       []int32
+}
+
+// --- Health Check ---
+type KafkaHealthChecker interface {
+    HealthCheck(ctx context.Context) (*KafkaHealthStatus, error)
+}
+
+type NoOpKafkaHealthChecker struct {
+    Status *KafkaHealthStatus
+    Err    error
+}
+
+func (n *NoOpKafkaHealthChecker) HealthCheck(ctx context.Context) (*KafkaHealthStatus, error)
+
+// --- KafkaError ---
+type KafkaError struct {
+    Op      string  // エラーが発生した操作名
+    Message string
+    Err     error   // 原因エラー
+}
+
+func (e *KafkaError) Error() string
+func (e *KafkaError) Unwrap() error
 ```
 
 ## TypeScript 実装
@@ -152,7 +221,7 @@ export class NoOpKafkaHealthChecker implements KafkaHealthChecker {
 }
 
 export class KafkaError extends Error {
-  constructor(message: string, cause?: Error);
+  constructor(message: string);
 }
 ```
 

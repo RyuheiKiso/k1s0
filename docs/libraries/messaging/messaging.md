@@ -2,7 +2,7 @@
 
 ## 概要
 
-Kafka イベント発行・購読の抽象化ライブラリ。`EventProducer` トレイトと `NoOpEventProducer`（テスト用）実装、`EventMetadata`、`EventEnvelope` を提供する。具体的な Kafka クライアント実装は依存せず、トレイト境界でモック差し替えが可能。
+Kafka イベント発行・購読の抽象化ライブラリ。`EventProducer` トレイトと `NoOpEventProducer`（テスト用）実装、`EventMetadata`、`EventEnvelope` を提供する。具体的な Kafka クライアント実装として `KafkaEventProducer`/`KafkaEventConsumer`（feature = "kafka"）を含む。トレイト境界でモック差し替えが可能。
 
 **配置先**: `regions/system/library/rust/messaging/`
 
@@ -20,6 +20,9 @@ Kafka イベント発行・購読の抽象化ライブラリ。`EventProducer` �
 | `ConsumedMessage` | 構造体 | 受信メッセージ（トピック・パーティション・オフセット・キー(`Option<Vec<u8>>`)・ペイロード） |
 | `EventConsumer` | トレイト | イベント購読インターフェース（`async fn receive` + `async fn commit`） |
 | `MessagingError` | enum | ProducerError・ConsumerError・SerializationError・DeserializationError・ConnectionError・TimeoutError・PublishError・ConsumeError・CommitError |
+| `KafkaEventProducer` | 構造体 | rdkafka `FutureProducer` ベースの `EventProducer` 実装（feature = "kafka" で有効） |
+| `KafkaEventConsumer` | 構造体 | rdkafka `StreamConsumer` ベースの `EventConsumer` 実装（feature = "kafka" で有効） |
+| `EventHandler` | 型エイリアス | イベント処理ハンドラー（Go/TS/Dart のみ。Go: `func(ctx, event) error`、TS: `(event) => Promise<void>`、Dart: `Future<void> Function(event)`） |
 
 ## Rust 実装
 
@@ -33,6 +36,7 @@ edition = "2021"
 
 [features]
 mock = ["mockall"]
+kafka = ["rdkafka"]
 
 [dependencies]
 async-trait = "0.1"
@@ -44,6 +48,8 @@ tracing = "0.1"
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 mockall = { version = "0.13", optional = true }
+rdkafka = { version = "0.36", features = ["cmake-build"], optional = true }
+futures = "0.3"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -57,12 +63,14 @@ mockall = "0.13"
 ```
 messaging/
 ├── src/
-│   ├── lib.rs          # 公開 API（再エクスポート）
-│   ├── config.rs       # MessagingConfig・ConsumerConfig
-│   ├── consumer.rs     # EventConsumer トレイト
-│   ├── error.rs        # MessagingError
-│   ├── event.rs        # EventEnvelope・EventMetadata
-│   └── producer.rs     # EventProducer トレイト・MockEventProducer
+│   ├── lib.rs              # 公開 API（再エクスポート）
+│   ├── config.rs           # MessagingConfig・ConsumerConfig
+│   ├── consumer.rs         # EventConsumer トレイト・ConsumedMessage
+│   ├── error.rs            # MessagingError
+│   ├── event.rs            # EventEnvelope・EventMetadata
+│   ├── producer.rs         # EventProducer トレイト・NoOpEventProducer・MockEventProducer（automock 自動生成）
+│   ├── kafka_producer.rs   # KafkaEventProducer（feature = "kafka"）
+│   └── kafka_consumer.rs   # KafkaEventConsumer（feature = "kafka"）
 └── Cargo.toml
 ```
 
@@ -98,6 +106,28 @@ async fn consume_events<C: k1s0_messaging::EventConsumer>(consumer: &C) {
 }
 ```
 
+**Kafka 実装**（feature = "kafka"）:
+
+```rust
+use k1s0_messaging::KafkaEventProducer;
+
+// KafkaEventProducer: rdkafka FutureProducer ベース
+let producer = KafkaEventProducer::new("localhost:9092")?;
+// または MessagingConfig から生成
+let producer = KafkaEventProducer::with_config(&messaging_config)?;
+
+use k1s0_messaging::KafkaEventConsumer;
+
+// KafkaEventConsumer: rdkafka StreamConsumer ベース
+let consumer = KafkaEventConsumer::new(
+    "localhost:9092",  // brokers
+    "my-group",        // group_id
+    &["topic-a", "topic-b"],  // topics
+)?;
+```
+
+> **注記**: `ConsumedMessage` は `consumer.rs` で `pub struct` として定義されているが、`lib.rs` のトップレベル再エクスポートに含まれていない。`k1s0_messaging::consumer::ConsumedMessage` としてアクセス可能。
+
 ## Go 実装
 
 **配置先**: `regions/system/library/go/messaging/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
@@ -107,6 +137,10 @@ async fn consume_events<C: k1s0_messaging::EventConsumer>(consumer: &C) {
 **主要インターフェース**:
 
 ```go
+func NewEventMetadata(eventType, correlationId, source string) EventMetadata
+
+type EventHandler func(ctx context.Context, event EventEnvelope) error
+
 type EventProducer interface {
     Publish(ctx context.Context, event EventEnvelope) error
     Close() error
@@ -116,6 +150,14 @@ type EventConsumer interface {
     Subscribe(ctx context.Context, topic string, handler EventHandler) error
     Close() error
 }
+
+// テスト用 NoOp 実装（イベント記録あり）
+type NoOpEventProducer struct {
+    Published []EventEnvelope  // 送信されたイベントのリスト
+    Err       error            // Publish 時に返すエラー（nil ならエラーなし）
+}
+func (n *NoOpEventProducer) IsClosed() bool
+func (n *NoOpEventProducer) PublishedCount() int
 ```
 
 ## TypeScript 実装
@@ -134,12 +176,19 @@ export interface EventMetadata {
   traceId: string;
   timestamp: string;
   source: string;
-  schemaVersion: string;
+  schemaVersion: number;
 }
+
+export function createEventMetadata(
+  eventType: string,
+  source: string,
+  correlationId?: string,
+  traceId?: string,
+): EventMetadata;
 
 export interface EventEnvelope {
   topic: string;
-  key?: string;
+  key: string;
   payload: unknown;
   metadata: EventMetadata;
 }
@@ -186,14 +235,14 @@ class EventMetadata {
   final String traceId;
   final DateTime timestamp;
   final String source;
-  final String schemaVersion;
+  final int schemaVersion;
 
   factory EventMetadata.create(String eventType, String source, {String? correlationId, String? traceId});
 }
 
 class EventEnvelope {
   final String topic;
-  final String? key;
+  final String key;
   final Object payload;
   final EventMetadata metadata;
 }
@@ -241,6 +290,43 @@ Rust の `EventEnvelope` は `metadata` フィールドを持たず、メタデ�
 ## 設計ノート: trace_id / correlation_id の型差異
 
 Rust の `EventMetadata` では `trace_id` と `correlation_id` は `Option<String>`（未設定可）であるのに対し、Go/TypeScript/Dart では必須フィールドとして定義されている（ファクトリメソッドで UUID 自動生成またはデフォルト値が設定される）。
+
+## 設計ノート: publish_batch の言語差異
+
+Rust の `EventProducer` トレイトは `publish` と `publish_batch` の 2 メソッドを持つ。Go/TypeScript/Dart は単一メッセージ `publish` のみ提供し、バッチ処理が必要な場合は呼び出し側でループする。
+
+- **Rust**: `async fn publish(envelope)` + `async fn publish_batch(envelopes: Vec<EventEnvelope>)`
+- **Go/TypeScript/Dart**: `publish(event)` のみ
+
+## 設計ノート: EventHandler の言語差異
+
+`EventHandler` は Go/TypeScript/Dart の push 型 `EventConsumer.subscribe` で使用されるコールバック型。Rust は pull 型のため `EventHandler` を持たない。
+
+- **Go**: `type EventHandler func(ctx context.Context, event EventEnvelope) error` -- `error` を返す（Go のエラーハンドリング慣習）
+- **TypeScript**: `type EventHandler = (event: EventEnvelope) => Promise<void>` -- 例外ベースのため `void` 戻り値
+- **Dart**: `typedef EventHandler = Future<void> Function(EventEnvelope event)` -- 例外ベースのため `void` 戻り値
+
+## 設計ノート: NewEventMetadata / createEventMetadata のシグネチャ差異
+
+Go の `NewEventMetadata` は `correlationId` が必須の第2引数であるのに対し、TS/Dart では optional パラメータである。Rust はビルダーパターン（`.with_correlation_id()`）を採用する。
+
+- **Rust**: `EventMetadata::new(event_type, source)` + `.with_correlation_id(id)` + `.with_trace_id(id)`
+- **Go**: `NewEventMetadata(eventType, correlationId, source)` -- `correlationId` が必須の第2引数
+- **TypeScript**: `createEventMetadata(eventType, source, correlationId?, traceId?)` -- optional
+- **Dart**: `EventMetadata.create(eventType, source, {correlationId?, traceId?})` -- named optional
+
+## 設計ノート: NoOpEventProducer の振る舞い差異
+
+- **Rust**: `NoOpEventProducer` は unit struct であり、イベントを記録しない真の NoOp（常に `Ok(())` を返す）
+- **Go**: `NoOpEventProducer` は `Published []EventEnvelope` にイベントを記録するテスト支援実装。`Err` フィールドでエラー注入も可能。`IsClosed()`, `PublishedCount()` ヘルパーメソッドを提供
+- **TypeScript**: `NoOpEventProducer` は `published: EventEnvelope[]` にイベントを記録
+- **Dart**: `NoOpEventProducer` は `published: List<EventEnvelope>` にイベントを記録
+
+## 設計ノート: EventEnvelope.headers の型差異
+
+- **Rust**: `headers: Vec<(String, Vec<u8>)>` -- バイナリ値対応のタプルベクター
+- **Go**: `Headers map[string]string` -- 文字列のみ
+- **TypeScript/Dart**: `headers` フィールドなし
 
 ## 関連ドキュメント
 

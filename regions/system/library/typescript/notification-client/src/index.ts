@@ -8,6 +8,7 @@ export interface NotificationRequest {
   recipient: string;
   subject?: string;
   body: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface NotificationResponse {

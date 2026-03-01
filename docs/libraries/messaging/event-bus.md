@@ -10,12 +10,18 @@
 
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `EventBus` | 構造体 | インプロセスイベントバス（tokio::broadcast ベース）|
+| `EventBus` | 構造体 | インプロセスイベントバス（DDD パターン対応、設定・タイムアウト管理付き）|
 | `DomainEvent` | トレイト | ドメインイベントインターフェース（event_type・aggregate_id・occurred_at）|
-| `EventHandler` | トレイト | イベントハンドラーインターフェース |
-| `EventSubscription` | 構造体 | サブスクリプション管理（Drop で自動解除）|
+| `EventHandler` | トレイト | レガシーイベントハンドラー（Rust: non-generic、`Event` 型固定。Go/TS/Dart: generic） |
+| `DomainEventHandler<T>` | トレイト | ジェネリックなドメインイベントハンドラー（Rust のみ。EventBus とは直接統合されていない） |
+| `EventSubscription` | 構造体 | サブスクリプション管理（Rust: Drop で自動解除）|
 | `EventBusConfig` | 構造体 | チャネルバッファサイズ・ハンドラータイムアウト設定 |
 | `EventBusError` | enum | `PublishFailed`・`HandlerFailed`・`ChannelClosed` |
+| `Event` | 構造体 | 基本イベント構造体（`DomainEvent` 実装、レガシー互換）。全言語に存在 |
+| `InMemoryEventBus` | 構造体 | レガシーイベントバス（後方互換性のため維持）。全言語に存在 |
+| `MockEventHandler` | 構造体 | テスト用モックハンドラー（Rust のみ、`feature = "mock"`） |
+
+> **設計ノート**: Rust の `EventHandler` は non-generic で `Event` 型を固定的に受け取る（`fn handle(&self, event: Event)`）。ジェネリック版は `DomainEventHandler<T: DomainEvent>` として分離されているが、`EventBus` の `subscribe` は `Arc<dyn EventHandler>` を受け取るため、`DomainEventHandler` は EventBus と直接統合されていない。Go/TS/Dart の `EventHandler` はジェネリック（`EventHandler[T]` / `EventHandler<T>`）で、各言語の `EventBus` と直接連携する。
 
 ## Rust 実装
 
@@ -27,15 +33,18 @@ name = "k1s0-event-bus"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+mock = ["mockall"]
+
 [dependencies]
 async-trait = "0.1"
-tokio = { version = "1", features = ["sync"] }
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time", "macros"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-thiserror = "2"
-tracing = "0.1"
+uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1", features = ["v4"] }
+mockall = { version = "0.13", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -60,33 +69,19 @@ event-bus/
 **使用例**:
 
 ```rust
-use k1s0_event_bus::{DomainEvent, EventBus, EventBusConfig, EventHandler};
+use k1s0_event_bus::{EventBus, EventBusConfig, EventHandler, Event, EventBusError};
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
-// ドメインイベント定義
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct OrderCreated {
-    order_id: String,
-    user_id: String,
-    total_amount: i64,
-    occurred_at: DateTime<Utc>,
-}
-
-impl DomainEvent for OrderCreated {
-    fn event_type(&self) -> &str { "order.created" }
-    fn aggregate_id(&self) -> &str { &self.order_id }
-    fn occurred_at(&self) -> DateTime<Utc> { self.occurred_at }
-}
-
-// イベントハンドラー定義
-struct NotificationHandler;
+// EventHandler 実装（non-generic、Event 型固定）
+struct OrderCreatedHandler;
 
 #[async_trait]
-impl EventHandler<OrderCreated> for NotificationHandler {
-    async fn handle(&self, event: &OrderCreated) -> Result<(), k1s0_event_bus::EventBusError> {
-        tracing::info!(order_id = %event.order_id, "注文作成通知を送信");
+impl EventHandler for OrderCreatedHandler {
+    fn event_type(&self) -> &str { "order.created" }
+
+    async fn handle(&self, event: Event) -> Result<(), EventBusError> {
+        println!("注文作成通知: aggregate_id={}", event.aggregate_id);
         Ok(())
     }
 }
@@ -98,28 +93,31 @@ let config = EventBusConfig::new()
 
 let bus = EventBus::new(config);
 
-// ハンドラー登録（EventSubscription が Drop されると自動解除）
-let _subscription = bus.subscribe(NotificationHandler).await;
+// ハンドラー登録（Arc<dyn EventHandler> を渡す。EventSubscription が Drop されると自動解除）
+let _subscription = bus.subscribe(Arc::new(OrderCreatedHandler)).await;
 
-// イベント発行
-let event = OrderCreated {
-    order_id: "ORD-001".to_string(),
-    user_id: "USR-123".to_string(),
-    total_amount: 10000,
-    occurred_at: Utc::now(),
-};
+// イベント発行（Event 構造体を使用）
+let event = Event::with_aggregate_id(
+    "order.created".to_string(),
+    "ORD-001".to_string(),
+    serde_json::json!({"user_id": "USR-123", "total_amount": 10000}),
+);
 bus.publish(event).await?;
 ```
+
+> **デフォルトタイムアウトの言語間差異**: Rust のデフォルトハンドラータイムアウトは 30 秒、TS/Dart は 5 秒（5000ms）。
 
 ## Go 実装
 
 **配置先**: `regions/system/library/go/event-bus/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: `github.com/google/uuid v1.6`, `github.com/stretchr/testify v1.10.0`
+**依存関係**: `github.com/stretchr/testify v1.11.1`
 
 **主要インターフェース**:
 
 ```go
+// --- DDD ドメインイベント ---
+
 type DomainEvent interface {
     EventType() string
     AggregateID() string
@@ -130,21 +128,76 @@ type EventHandler[T DomainEvent] interface {
     Handle(ctx context.Context, event T) error
 }
 
+// EventHandlerFunc はハンドラー関数を EventHandler インターフェースに変換するアダプター。
+type EventHandlerFunc[T DomainEvent] func(ctx context.Context, event T) error
+
+func (f EventHandlerFunc[T]) Handle(ctx context.Context, event T) error
+
+// --- EventBusError ---
+
+type ErrorKind int
+
+const (
+    PublishFailed ErrorKind = iota
+    HandlerFailed
+    ChannelClosed
+)
+
+type EventBusError struct {
+    Kind    ErrorKind
+    Message string
+    Err     error
+}
+
+func (e *EventBusError) Error() string
+func (e *EventBusError) Unwrap() error
+
+// --- EventBusConfig ---
+
+type EventBusConfig struct {
+    BufferSize     int
+    HandlerTimeout time.Duration
+}
+
+func DefaultEventBusConfig() EventBusConfig
+
+// --- EventBus (DDD パターン) ---
+
 type EventBus struct { /* ... */ }
 
 func NewEventBus(config EventBusConfig) *EventBus
 
+// Subscribe はワイルドカード登録（"*" にマッチ）し、型アサーションでフィルタリングする。
 func Subscribe[T DomainEvent](bus *EventBus, handler EventHandler[T]) *EventSubscription
+
+// SubscribeType は指定したイベントタイプにハンドラーを登録する。
+func SubscribeType[T DomainEvent](bus *EventBus, eventType string, handler EventHandler[T]) *EventSubscription
 
 func Publish[T DomainEvent](ctx context.Context, bus *EventBus, event T) error
 
 type EventSubscription struct { /* ... */ }
 func (s *EventSubscription) Unsubscribe()
 
-type EventBusConfig struct {
-    BufferSize     int
-    HandlerTimeout time.Duration
+// --- レガシー API（後方互換性のため維持） ---
+
+type Event struct {
+    ID        string         `json:"id"`
+    EventType string         `json:"event_type"`
+    Payload   map[string]any `json:"payload"`
+    Timestamp time.Time      `json:"timestamp"`
 }
+
+type Handler func(ctx context.Context, event Event) error
+
+type LegacyEventBus interface {
+    Subscribe(eventType string, handler Handler)
+    Publish(ctx context.Context, event Event) error
+    Unsubscribe(eventType string)
+}
+
+type InMemoryBus struct { /* ... */ }
+
+func New() *InMemoryBus
 ```
 
 ## TypeScript 実装
@@ -160,7 +213,14 @@ export interface DomainEvent {
   readonly occurredAt: Date;
 }
 
-export interface EventHandler<T extends DomainEvent> {
+// レガシー互換の Event インターフェース
+export interface Event extends DomainEvent {
+  id: string;
+  payload: Record<string, unknown>;
+  timestamp: string;
+}
+
+export interface EventHandler<T extends DomainEvent = DomainEvent> {
   handle(event: T): Promise<void>;
 }
 
@@ -174,6 +234,13 @@ export interface EventBusConfig {
   handlerTimeoutMs?: number;
 }
 
+export type EventBusErrorCode = 'PUBLISH_FAILED' | 'HANDLER_FAILED' | 'CHANNEL_CLOSED';
+
+export class EventBusError extends Error {
+  public readonly code: EventBusErrorCode;
+  constructor(message: string, code: EventBusErrorCode);
+}
+
 export class EventBus {
   constructor(config?: EventBusConfig);
   publish<T extends DomainEvent>(event: T): Promise<void>;
@@ -181,13 +248,15 @@ export class EventBus {
     eventType: string,
     handler: EventHandler<T>
   ): EventSubscription;
+  close(): void;
 }
 
-export class EventBusError extends Error {
-  constructor(
-    message: string,
-    public readonly code: 'PUBLISH_FAILED' | 'HANDLER_FAILED' | 'CHANNEL_CLOSED'
-  );
+// レガシー互換の InMemoryEventBus
+export class InMemoryEventBus {
+  constructor(config?: EventBusConfig);
+  subscribe(eventType: string, handler: (event: Event) => Promise<void>): void;
+  unsubscribe(eventType: string): void;
+  publish(event: Event): Promise<void>;
 }
 ```
 
@@ -195,7 +264,87 @@ export class EventBusError extends Error {
 
 ## Dart 実装
 
-**配置先**: `regions/system/library/dart/event-bus/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+**配置先**: `regions/system/library/dart/event_bus/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+> **注**: Dart のパッケージ命名慣習によりディレクトリ名はアンダースコア `event_bus/` を使用（他言語はハイフン `event-bus/`）。
+
+**主要 API**:
+
+```dart
+// DomainEvent - ドメインイベントの基底クラス
+abstract class DomainEvent {
+  String get eventType;
+  String get aggregateId;
+  DateTime get occurredAt;
+}
+
+// Event - レガシー互換のイベントクラス（DomainEvent を実装）
+class Event implements DomainEvent {
+  final String id;
+  final String eventType;
+  final String aggregateId;
+  final DateTime occurredAt;
+  final Map<String, dynamic> payload;
+  final DateTime timestamp;
+
+  const Event({
+    required this.id,
+    required this.eventType,
+    required this.payload,
+    required this.timestamp,
+    this.aggregateId = '',
+    DateTime? occurredAt,
+  });
+}
+
+// EventHandler - 型付きイベントハンドラー
+abstract class EventHandler<T extends DomainEvent> {
+  Future<void> handle(T event);
+}
+
+// EventBusConfig
+class EventBusConfig {
+  final int bufferSize;       // デフォルト: 1024
+  final int handlerTimeoutMs; // デフォルト: 5000
+  const EventBusConfig({this.bufferSize = 1024, this.handlerTimeoutMs = 5000});
+}
+
+// EventBusErrorCode
+enum EventBusErrorCode { publishFailed, handlerFailed, channelClosed }
+
+// EventBusError
+class EventBusError implements Exception {
+  final String message;
+  final EventBusErrorCode code;
+  const EventBusError(this.message, this.code);
+}
+
+// EventSubscription
+class EventSubscription {
+  final String eventType;
+  bool get isActive;
+  void unsubscribe();
+}
+
+// EventBus - DDD パターン対応イベントバス
+class EventBus {
+  EventBus([EventBusConfig? config]);
+  Future<void> publish<T extends DomainEvent>(T event);
+  EventSubscription subscribe<T extends DomainEvent>(
+    String eventType,
+    EventHandler<T> handler,
+  );
+  void close();
+}
+
+// InMemoryEventBus - レガシー互換（関数ベース API）
+class InMemoryEventBus {
+  InMemoryEventBus([EventBusConfig? config]);
+  void subscribe(String eventType, Future<void> Function(Event) handler);
+  void unsubscribe(String eventType);
+  Future<void> publish(Event event);
+}
+```
 
 **カバレッジ目標**: 90%以上
 
@@ -207,56 +356,57 @@ export class EventBusError extends Error {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::Utc;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
-    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-    struct TestEvent {
-        id: String,
-        occurred_at: chrono::DateTime<Utc>,
+    struct TestHandler {
+        event_type: String,
+        call_count: Arc<AtomicUsize>,
     }
 
-    impl DomainEvent for TestEvent {
-        fn event_type(&self) -> &str { "test.event" }
-        fn aggregate_id(&self) -> &str { &self.id }
-        fn occurred_at(&self) -> chrono::DateTime<Utc> { self.occurred_at }
+    #[async_trait::async_trait]
+    impl EventHandler for TestHandler {
+        fn event_type(&self) -> &str { &self.event_type }
+        async fn handle(&self, _event: Event) -> Result<(), EventBusError> {
+            self.call_count.fetch_add(1, Ordering::SeqCst);
+            Ok(())
+        }
     }
 
     #[tokio::test]
     async fn test_publish_and_subscribe() {
         let bus = EventBus::new(EventBusConfig::default());
-        let received = Arc::new(tokio::sync::Mutex::new(vec![]));
+        let count = Arc::new(AtomicUsize::new(0));
+        let handler = TestHandler {
+            event_type: "order.created".to_string(),
+            call_count: count.clone(),
+        };
 
-        let received_clone = received.clone();
-        let _sub = bus.subscribe(move |event: TestEvent| {
-            let r = received_clone.clone();
-            async move {
-                r.lock().await.push(event.id.clone());
-                Ok(())
-            }
-        }).await;
+        let _sub = bus.subscribe(Arc::new(handler)).await;
 
-        bus.publish(TestEvent { id: "evt-1".into(), occurred_at: Utc::now() }).await.unwrap();
-        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
-        assert_eq!(received.lock().await.len(), 1);
+        let event = Event::new("order.created".to_string(), serde_json::json!({}));
+        bus.publish(event).await.unwrap();
+        assert_eq!(count.load(Ordering::SeqCst), 1);
     }
 
     #[tokio::test]
     async fn test_subscription_drop_unsubscribes() {
         let bus = EventBus::new(EventBusConfig::default());
-        let counter = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let counter_clone = counter.clone();
+        let count = Arc::new(AtomicUsize::new(0));
+        let handler = TestHandler {
+            event_type: "order.created".to_string(),
+            call_count: count.clone(),
+        };
 
         {
-            let _sub = bus.subscribe(move |_: TestEvent| {
-                counter_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                async { Ok(()) }
-            }).await;
-            bus.publish(TestEvent { id: "evt-1".into(), occurred_at: Utc::now() }).await.unwrap();
-        } // _sub が Drop → 自動解除
+            let _sub = bus.subscribe(Arc::new(handler)).await;
+            // _sub がスコープを抜けると Drop で自動解除
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-        bus.publish(TestEvent { id: "evt-2".into(), occurred_at: Utc::now() }).await.unwrap();
-        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
-        assert_eq!(counter.load(std::sync::atomic::Ordering::SeqCst), 1);
+        let event = Event::new("order.created".to_string(), serde_json::json!({}));
+        bus.publish(event).await.unwrap();
+        assert_eq!(count.load(Ordering::SeqCst), 0);
     }
 }
 ```

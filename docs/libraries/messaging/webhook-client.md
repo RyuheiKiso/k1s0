@@ -14,11 +14,21 @@ HMAC-SHA256 署名付きの HTTP POST 配信、指数バックオフリトライ
 
 | 型・関数 | 種別 | 説明 |
 |---------|------|------|
-| `WebhookClient` | トレイト | Webhook 配信インターフェース（`send`・`send_with_signature`） |
+| `WebhookClient` | トレイト | Webhook 配信インターフェース |
+| `HttpWebhookClient` | 構造体 | HTTP ベースの WebhookClient 実装（リトライ・べき等性対応）。全言語に存在 |
+| `WebhookConfig` | 構造体 | リトライ設定（max_retries、initial_backoff_ms、max_backoff_ms） |
 | `WebhookPayload` | 構造体 | イベント種別・タイムスタンプ・データ |
 | `generate_signature` | 関数 | HMAC-SHA256 署名生成 |
 | `verify_signature` | 関数 | HMAC-SHA256 署名検証 |
-| `WebhookError` | enum | Webhook 送信エラー |
+| `WebhookError` | enum | Webhook 送信エラー（5バリアント: RequestFailed, SerializationError, SignatureError, Internal, MaxRetriesExceeded） |
+| `WebhookErrorCode` | 型 | エラーコード（TS: type union、Dart: enum）。`SEND_FAILED`、`MAX_RETRIES_EXCEEDED` |
+| `MaxRetriesExceededError` | 構造体 | リトライ上限到達エラー（Go のみ。Rust は WebhookError::MaxRetriesExceeded バリアント） |
+| `InMemoryWebhookClient` | クラス | テスト用スタブ（TS/Dart のみ） |
+| `MockWebhookClient` | 構造体 | テスト用モック（Rust のみ、`feature = "mock"`） |
+
+> **設計ノート: 署名パターンの言語間差異**
+> - **Rust**: `WebhookClient` トレイトは `send` と `send_with_signature` の 2 メソッドを提供。secret は `send_with_signature` の呼び出し時に引数で渡す。
+> - **Go/TS/Dart**: `WebhookClient` インターフェースは `send` メソッドのみ提供。secret はコンストラクタ（Go: `NewHTTPWebhookClient(secret)`、TS: `new HttpWebhookClient({secret})`、Dart: `HttpWebhookClient(secret: ...)`）で注入し、secret が設定されている場合は `send` 時に自動的に署名を付与する。
 
 ## Rust 実装
 
@@ -42,10 +52,15 @@ serde_json = "1"
 hmac = "0.12"
 sha2 = "0.10"
 hex = "0.4"
+uuid = { version = "1", features = ["v4"] }
+rand = "0.8"
+tracing = "0.1"
+reqwest = { version = "0.12", features = ["json"], default-features = false }
 mockall = { version = "0.13", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
+wiremock = "0.6"
 ```
 
 **依存追加**: `k1s0-webhook-client = { path = "../../system/library/rust/webhook-client" }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）
@@ -87,35 +102,56 @@ let is_valid = verify_signature("my-hmac-secret", body_bytes, &sig);
 
 **配置先**: `regions/system/library/go/webhook-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: 標準ライブラリの `crypto/hmac`・`net/http` を使用
+**依存関係**: 標準ライブラリの `crypto/hmac`・`crypto/sha256`・`net/http` を使用
 
 **主要インターフェース**:
 
 ```go
+const SignatureHeader = "X-K1s0-Signature"
+const IdempotencyKeyHeader = "Idempotency-Key"
+
 type WebhookPayload struct {
     EventType string         `json:"event_type"`
     Timestamp string         `json:"timestamp"`
     Data      map[string]any `json:"data"`
 }
 
+// WebhookConfig はリトライ設定。
+type WebhookConfig struct {
+    MaxRetries       int  // デフォルト: 3
+    InitialBackoffMs int  // デフォルト: 100
+    MaxBackoffMs     int  // デフォルト: 10000
+}
+
+func DefaultWebhookConfig() WebhookConfig
+
+// MaxRetriesExceededError はリトライ上限到達エラー。
+type MaxRetriesExceededError struct {
+    Attempts       int
+    LastStatusCode int
+}
+
+func (e *MaxRetriesExceededError) Error() string
+
+// WebhookClient インターフェース（send メソッドのみ。secret はコンストラクタで注入）
 type WebhookClient interface {
     Send(ctx context.Context, url string, payload *WebhookPayload) (int, error)
 }
 
+// HTTPWebhookClient は HTTP ベースの実装（secret 設定時に自動署名）。
 type HTTPWebhookClient struct {
     Secret     string
+    Config     WebhookConfig
     HTTPClient *http.Client
 }
 
 func NewHTTPWebhookClient(secret string) *HTTPWebhookClient
+func NewHTTPWebhookClientWithConfig(secret string, config WebhookConfig) *HTTPWebhookClient
 
 func (c *HTTPWebhookClient) Send(ctx context.Context, url string, payload *WebhookPayload) (int, error)
 
-// HMAC-SHA256 署名生成
-// 注: Go 実装は現在 `X-Webhook-Signature` を使用。`X-K1s0-Signature` に統一予定
+// HMAC-SHA256 署名生成・検証
 func GenerateSignature(secret string, body []byte) string
-
-// 署名検証
 func VerifySignature(secret string, body []byte, sig string) bool
 ```
 
@@ -132,12 +168,33 @@ export interface WebhookPayload {
   data: Record<string, unknown>;
 }
 
+export interface WebhookConfig {
+  maxRetries?: number;       // デフォルト: 3
+  initialBackoffMs?: number; // デフォルト: 1000
+  maxBackoffMs?: number;     // デフォルト: 30000
+  secret?: string;           // 設定時に send で自動署名
+}
+
+export type WebhookErrorCode = 'SEND_FAILED' | 'MAX_RETRIES_EXCEEDED';
+
+export class WebhookError extends Error {
+  readonly code: WebhookErrorCode;
+  constructor(message: string, code: WebhookErrorCode);
+}
+
 export interface WebhookClient {
   send(url: string, payload: WebhookPayload): Promise<number>;
 }
 
+// HTTP ベースの実装（secret 設定時に自動署名、リトライ・べき等性対応）
+export class HttpWebhookClient implements WebhookClient {
+  constructor(config?: WebhookConfig & { secret?: string }, fetchFn?: typeof fetch);
+  send(url: string, payload: WebhookPayload): Promise<number>;
+}
+
+// テスト用スタブ
 export class InMemoryWebhookClient implements WebhookClient {
-  async send(url: string, payload: WebhookPayload): Promise<number>;
+  send(url: string, payload: WebhookPayload): Promise<number>;
   getSent(): Array<{ url: string; payload: WebhookPayload }>;
 }
 
@@ -158,6 +215,7 @@ export function verifySignature(secret: string, body: string, signature: string)
 ```yaml
 dependencies:
   crypto: ^3.0.0
+  http: ^1.0.0
 ```
 
 **主要 API**:
@@ -178,8 +236,37 @@ class WebhookPayload {
   });
 }
 
-// WebhookClient — 送信インターフェース（他言語と統一の send(url, payload) パターン）
+// WebhookConfig — リトライ設定
+class WebhookConfig {
+  final int maxRetries;       // デフォルト: 3
+  final int initialBackoffMs; // デフォルト: 1000
+  final int maxBackoffMs;     // デフォルト: 30000
+  const WebhookConfig({...});
+}
+
+// WebhookErrorCode
+enum WebhookErrorCode { sendFailed, maxRetriesExceeded }
+
+// WebhookError
+class WebhookError implements Exception {
+  final String message;
+  final WebhookErrorCode code;
+  const WebhookError(this.message, this.code);
+}
+
+// WebhookClient — 送信インターフェース（send メソッドのみ）
 abstract class WebhookClient {
+  Future<int> send(String url, WebhookPayload payload);
+}
+
+// HttpWebhookClient — HTTP ベースの実装（secret 設定時に自動署名、リトライ・べき等性対応）
+class HttpWebhookClient implements WebhookClient {
+  HttpWebhookClient({
+    String? secret,
+    WebhookConfig config = const WebhookConfig(),
+    http.Client? httpClient,
+  });
+  @override
   Future<int> send(String url, WebhookPayload payload);
 }
 
@@ -199,6 +286,12 @@ bool verifySignature(String secret, String body, String signature);
 
 ```dart
 import 'package:k1s0_webhook_client/webhook_client.dart';
+
+// HttpWebhookClient（署名付き、リトライ対応）
+final client = HttpWebhookClient(
+  secret: 'my-hmac-secret',
+  config: const WebhookConfig(maxRetries: 5),
+);
 
 final payload = WebhookPayload(
   eventType: 'order.created',
@@ -234,6 +327,8 @@ final isValid = verifySignature('my-hmac-secret', '{"event_type":"order.created"
 #[cfg(test)]
 mod tests {
     use super::*;
+    use wiremock::{MockServer, Mock, ResponseTemplate};
+    use wiremock::matchers::{method, header_exists};
 
     #[test]
     fn test_signature_sign_verify() {
@@ -251,25 +346,49 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_deliver_success() {
-        use wiremock::{MockServer, Mock, ResponseTemplate};
-        use wiremock::matchers::{method, path, header_exists};
-
+    async fn test_send_with_signature_success() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/webhooks"))
             .and(header_exists("X-K1s0-Signature"))
             .and(header_exists("Idempotency-Key"))
             .respond_with(ResponseTemplate::new(200))
             .mount(&server)
             .await;
 
-        let config = WebhookConfig::new(format!("{}/webhooks", server.uri()))
-            .with_secret("secret");
-        let client = WebhookClient::new(config);
-        let payload = WebhookPayload::new("test.event", serde_json::json!({}));
-        let resp = client.deliver(payload).await.unwrap();
-        assert_eq!(resp.status_code, 200);
+        let client = HttpWebhookClient::new();
+        let payload = WebhookPayload {
+            event_type: "test.event".to_string(),
+            timestamp: "2026-01-01T00:00:00Z".to_string(),
+            data: serde_json::json!({}),
+        };
+        let status = client
+            .send_with_signature(&server.uri(), &payload, "secret")
+            .await
+            .unwrap();
+        assert_eq!(status, 200);
+    }
+
+    #[tokio::test]
+    async fn test_max_retries_exceeded() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .respond_with(ResponseTemplate::new(500))
+            .mount(&server)
+            .await;
+
+        let config = WebhookConfig {
+            max_retries: 2,
+            initial_backoff_ms: 10,
+            max_backoff_ms: 100,
+        };
+        let client = HttpWebhookClient::with_config(config);
+        let payload = WebhookPayload {
+            event_type: "test.event".to_string(),
+            timestamp: "2026-01-01T00:00:00Z".to_string(),
+            data: serde_json::json!({}),
+        };
+        let result = client.send(&server.uri(), &payload).await;
+        assert!(matches!(result, Err(WebhookError::MaxRetriesExceeded { .. })));
     }
 }
 ```

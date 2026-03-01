@@ -28,6 +28,7 @@ class DlqMessage {
   final dynamic payload;
   final DlqStatus status;
   final String createdAt;
+  final String? updatedAt;
   final String? lastRetryAt;
 
   const DlqMessage({
@@ -39,6 +40,7 @@ class DlqMessage {
     required this.payload,
     required this.status,
     required this.createdAt,
+    this.updatedAt,
     this.lastRetryAt,
   });
 
@@ -51,6 +53,7 @@ class DlqMessage {
         payload: json['payload'],
         status: DlqStatus.fromString(json['status'] as String),
         createdAt: json['created_at'] as String,
+        updatedAt: json['updated_at'] as String?,
         lastRetryAt: json['last_retry_at'] as String?,
       );
 }

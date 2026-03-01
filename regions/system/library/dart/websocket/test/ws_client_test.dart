@@ -70,6 +70,15 @@ void main() {
       expect(client.state, equals(ConnectionState.disconnected));
     });
 
+    test('connect throws when already connected', () async {
+      await client.connect();
+      expect(() => client.connect(), throwsStateError);
+    });
+
+    test('disconnect throws when not connected', () async {
+      expect(() => client.disconnect(), throwsStateError);
+    });
+
     test('send stores messages', () async {
       await client.connect();
       const msg = WsMessage(type: MessageType.text, payload: 'test');
@@ -84,17 +93,24 @@ void main() {
     });
 
     test('receive returns injected messages', () async {
+      await client.connect();
       const msg = WsMessage(type: MessageType.text, payload: 'incoming');
       client.injectMessage(msg);
       final received = await client.receive();
       expect(received.textPayload, equals('incoming'));
     });
 
+    test('receive throws when not connected', () async {
+      expect(() => client.receive(), throwsStateError);
+    });
+
     test('receive throws when queue is empty', () async {
+      await client.connect();
       expect(() => client.receive(), throwsStateError);
     });
 
     test('receive returns messages in order', () async {
+      await client.connect();
       client.injectMessage(const WsMessage(type: MessageType.text, payload: 'first'));
       client.injectMessage(const WsMessage(type: MessageType.text, payload: 'second'));
       final first = await client.receive();

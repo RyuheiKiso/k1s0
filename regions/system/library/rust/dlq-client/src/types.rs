@@ -33,6 +33,7 @@ pub struct DlqMessage {
     pub payload: serde_json::Value,
     pub status: DlqStatus,
     pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
     pub last_retry_at: Option<DateTime<Utc>>,
 }
 

@@ -11,6 +11,7 @@ export interface DlqMessage {
   payload: unknown;
   status: DlqStatus;
   createdAt: string;
+  updatedAt: string | null;
   lastRetryAt: string | null;
 }
 

@@ -10,13 +10,17 @@
 
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `OutboxMessage` | 構造体 | アウトボックスに保存するメッセージ（トピック・partition_key・ペイロード・ステータス・リトライ回数・max_retries・last_error・process_after） |
+| `OutboxMessage` | 構造体 | アウトボックスに保存するメッセージ（`id`・`topic`・`partition_key`・`payload`・`status`・`retry_count`・`max_retries`・`last_error`・`created_at`・`process_after`） |
 | `OutboxStatus` | enum | メッセージのステータス（`Pending`・`Processing`・`Delivered`・`Failed`・`DeadLetter`） |
 | `OutboxStore` | トレイト | アウトボックスメッセージの永続化抽象（`save`・`fetch_pending`・`update`・`delete_delivered`） |
 | `OutboxPublisher` | トレイト | アウトボックスメッセージの発行インターフェース（`publish`） |
-| `OutboxProcessor` | 構造体 | `OutboxStore` から未発行メッセージを取得し `OutboxPublisher` 経由で発行するバッチプロセッサ（`batch_size` 指定） |
+| `OutboxProcessor` | 構造体 | `OutboxStore` から未発行メッセージを取得し `OutboxPublisher` 経由で発行するバッチプロセッサ（`batch_size` 指定、デフォルト 100） |
 | `OutboxError` | enum | StoreError・PublishError・SerializationError・NotFound エラー型 |
 | `PostgresOutboxStore` | 構造体 | PostgreSQL を使った `OutboxStore` 実装（feature = "postgres" で有効） |
+| `OutboxMessage::new` / `createOutboxMessage` / `NewOutboxMessage` | ファクトリ | 新しい OutboxMessage を生成する（Rust: `OutboxMessage::new(topic, partition_key, payload)`、Go: `NewOutboxMessage(topic, partitionKey, payload)`、TS/Dart: `createOutboxMessage(topic, partitionKey, payload)`） |
+| `mark_processing` / `mark_delivered` / `mark_failed` | メソッド | ステータス遷移メソッド。Rust/Go/Dart は OutboxMessage のメソッド、TS のみ外部関数（`markProcessing(msg)` 等） |
+| `is_processable` | メソッド | メッセージが処理可能か判定（Pending/Failed かつ process_after 到来済み）。Dart は getter（`isProcessable`） |
+| `canTransitionTo` | 関数 | ステータス遷移の妥当性チェック（TS/Dart のみ。Go/Rust は未実装） |
 
 ## Rust 実装
 
@@ -57,8 +61,8 @@ outbox/
 │   ├── lib.rs              # 公開 API（再エクスポート）
 │   ├── error.rs            # OutboxError（StoreError・PublishError・SerializationError・NotFound）
 │   ├── message.rs          # OutboxMessage・OutboxStatus（指数バックオフ計算含む）
-│   ├── processor.rs        # OutboxProcessor（バッチ処理・リトライ制御）
-│   ├── store.rs            # OutboxStore トレイト・OutboxPublisher トレイト
+│   ├── processor.rs        # OutboxPublisher トレイト・OutboxProcessor（バッチ処理・リトライ制御）
+│   ├── store.rs            # OutboxStore トレイト
 │   └── postgres_store.rs   # PostgresOutboxStore（feature = "postgres"）
 └── Cargo.toml
 ```
@@ -110,55 +114,83 @@ let store = PostgresOutboxStore::new(pool);
 
 **依存関係**: `github.com/google/uuid v1.6.0`, `github.com/stretchr/testify v1.10.0`
 
-> **注記**: 今後 Rust 実装（OutboxStatus の 5 状態・partition_key・max_retries・last_error・process_after フィールド等）に合わせて統一予定。
-
 **主要インターフェース**:
 
 ```go
+type OutboxStatus string // "PENDING" | "PROCESSING" | "DELIVERED" | "FAILED" | "DEAD_LETTER"
+
+type OutboxMessage struct {
+    ID           string
+    Topic        string
+    PartitionKey string
+    Payload      json.RawMessage
+    Status       OutboxStatus
+    RetryCount   int
+    MaxRetries   int
+    LastError    string
+    CreatedAt    time.Time
+    ProcessAfter time.Time
+}
+
+func NewOutboxMessage(topic, partitionKey string, payload json.RawMessage) OutboxMessage
+func (m *OutboxMessage) MarkProcessing()
+func (m *OutboxMessage) MarkDelivered()
+func (m *OutboxMessage) MarkFailed(errMsg string)
+func (m *OutboxMessage) IsProcessable() bool
+
 type OutboxStore interface {
-    SaveMessage(ctx context.Context, msg OutboxMessage) error
-    GetPendingMessages(ctx context.Context, limit int) ([]OutboxMessage, error)
-    UpdateStatus(ctx context.Context, id string, status OutboxStatus) error
+    Save(ctx context.Context, msg *OutboxMessage) error
+    FetchPending(ctx context.Context, limit int) ([]OutboxMessage, error)
+    Update(ctx context.Context, msg *OutboxMessage) error
+    DeleteDelivered(ctx context.Context, olderThanDays int) (int64, error)
 }
 
 type OutboxPublisher interface {
-    Publish(ctx context.Context, msg OutboxMessage) error
+    Publish(ctx context.Context, msg *OutboxMessage) error
 }
+
+type OutboxProcessor struct { /* store, publisher, batchSize */ }
+func NewOutboxProcessor(store OutboxStore, publisher OutboxPublisher, batchSize int) *OutboxProcessor
+func (p *OutboxProcessor) ProcessBatch(ctx context.Context) (int, error)
+func (p *OutboxProcessor) Run(ctx context.Context, interval time.Duration)
 ```
 
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/outbox/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-> **注記**: 今後 Rust 実装（OutboxStatus の 5 状態・partition_key・max_retries・last_error・process_after フィールド等）に合わせて統一予定。
-
 **主要 API**:
 
 ```typescript
-export type OutboxStatus = 'PENDING' | 'PROCESSING' | 'DELIVERED' | 'FAILED';
+export type OutboxStatus = 'PENDING' | 'PROCESSING' | 'DELIVERED' | 'FAILED' | 'DEAD_LETTER';
+
+export type OutboxErrorCode = 'STORE_ERROR' | 'PUBLISH_ERROR' | 'SERIALIZATION_ERROR' | 'NOT_FOUND';
 
 export interface OutboxMessage {
   id: string;
   topic: string;
-  eventType: string;
+  partitionKey: string;
   payload: string;
   status: OutboxStatus;
   retryCount: number;
-  scheduledAt: Date;
+  maxRetries: number;
+  lastError: string | null;
   createdAt: Date;
-  updatedAt: Date;
-  correlationId: string;
+  processAfter: Date;
 }
 
-export function createOutboxMessage(topic: string, eventType: string, payload: string, correlationId: string): OutboxMessage;
-export function nextScheduledAt(retryCount: number): Date;
+export function createOutboxMessage(topic: string, partitionKey: string, payload: string): OutboxMessage;
+export function markProcessing(msg: OutboxMessage): void;
+export function markDelivered(msg: OutboxMessage): void;
+export function markFailed(msg: OutboxMessage, error: string): void;
+export function isProcessable(msg: OutboxMessage): boolean;
 export function canTransitionTo(from: OutboxStatus, to: OutboxStatus): boolean;
 
 export interface OutboxStore {
-  saveMessage(msg: OutboxMessage): Promise<void>;
-  getPendingMessages(limit: number): Promise<OutboxMessage[]>;
-  updateStatus(id: string, status: OutboxStatus): Promise<void>;
-  updateStatusWithRetry(id: string, status: OutboxStatus, retryCount: number, scheduledAt: Date): Promise<void>;
+  save(msg: OutboxMessage): Promise<void>;
+  fetchPending(limit: number): Promise<OutboxMessage[]>;
+  update(msg: OutboxMessage): Promise<void>;
+  deleteDelivered(olderThanDays: number): Promise<number>;
 }
 
 export interface OutboxPublisher {
@@ -166,13 +198,13 @@ export interface OutboxPublisher {
 }
 
 export class OutboxProcessor {
-  constructor(store: OutboxStore, publisher: OutboxPublisher, batchSize?: number);
+  constructor(store: OutboxStore, publisher: OutboxPublisher, batchSize?: number); // デフォルト: 100
   processBatch(): Promise<number>;
   run(intervalMs: number, signal?: AbortSignal): Promise<void>;
 }
 
 export class OutboxError extends Error {
-  constructor(op: string, cause?: Error);
+  constructor(code: OutboxErrorCode, message?: string);
 }
 ```
 
@@ -182,39 +214,41 @@ export class OutboxError extends Error {
 
 **配置先**: `regions/system/library/dart/outbox/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-> **注記**: 今後 Rust 実装（OutboxStatus の 5 状態・partition_key・max_retries・last_error・process_after フィールド等）に合わせて統一予定。
-
 **依存関係**: `uuid: ^4.4.0`, `lints: ^4.0.0` (dev)
 
 **主要 API**:
 
 ```dart
-enum OutboxStatus { pending, processing, delivered, failed }
+enum OutboxStatus { pending, processing, delivered, failed, deadLetter }
+
+enum OutboxErrorCode { storeError, publishError, serializationError, notFound }
 
 class OutboxMessage {
   final String id;
   final String topic;
-  final String eventType;
+  final String partitionKey;
   final String payload;
-  final OutboxStatus status;
-  final int retryCount;
-  final DateTime scheduledAt;
+  OutboxStatus status;
+  int retryCount;
+  int maxRetries;
+  String? lastError;
   final DateTime createdAt;
-  final DateTime updatedAt;
-  final String correlationId;
+  DateTime processAfter;
 
-  OutboxMessage copyWith({...});
+  void markProcessing();
+  void markDelivered();
+  void markFailed(String error);
+  bool get isProcessable;
 }
 
-OutboxMessage createOutboxMessage(String topic, String eventType, String payload, String correlationId);
-DateTime nextScheduledAt(int retryCount);
+OutboxMessage createOutboxMessage(String topic, String partitionKey, String payload);
 bool canTransitionTo(OutboxStatus from, OutboxStatus to);
 
 abstract class OutboxStore {
-  Future<void> saveMessage(OutboxMessage msg);
-  Future<List<OutboxMessage>> getPendingMessages(int limit);
-  Future<void> updateStatus(String id, OutboxStatus status);
-  Future<void> updateStatusWithRetry(String id, OutboxStatus status, int retryCount, DateTime scheduledAt);
+  Future<void> save(OutboxMessage msg);
+  Future<List<OutboxMessage>> fetchPending(int limit);
+  Future<void> update(OutboxMessage msg);
+  Future<int> deleteDelivered(int olderThanDays);
 }
 
 abstract class OutboxPublisher {
@@ -228,12 +262,31 @@ class OutboxProcessor {
 }
 
 class OutboxError implements Exception {
-  final String op;
+  final OutboxErrorCode code;
+  final String? message;
   final Object? cause;
 }
 ```
 
 **カバレッジ目標**: 85%以上
+
+## 設計ノート: OutboxProcessor の run() メソッドに関する言語差異
+
+Rust の `OutboxProcessor` は `process_batch()` のみ提供し、`run()` メソッドは持たない。呼び出し側が `tokio::spawn` + `loop` + `tokio::time::sleep` で定期実行を制御する設計である。Go/TypeScript/Dart は `run()` メソッドで定期実行をサポートする。
+
+- **Rust**: `process_batch()` のみ。定期実行は呼び出し側の責務
+- **Go**: `ProcessBatch(ctx)` + `Run(ctx, interval)`
+- **TypeScript**: `processBatch()` + `run(intervalMs, signal?)`
+- **Dart**: `processBatch()` + `run(interval, {stopSignal?})`
+
+## 設計ノート: OutboxError の言語間パターン差異
+
+エラーの種類（StoreError・PublishError・SerializationError・NotFound）は全4言語で統一されているが、表現パターンは言語特性に合わせて異なる。
+
+- **Rust**: `enum OutboxError { StoreError(String), PublishError(String), SerializationError(String), NotFound(String) }`
+- **Go**: `struct OutboxError { Kind OutboxErrorKind, Message string, Err error }` + `OutboxErrorKind` iota enum + ヘルパーコンストラクタ（`NewStoreError`, `NewPublishError` 等）
+- **TypeScript**: `class OutboxError extends Error { code: OutboxErrorCode }` + `type OutboxErrorCode = 'STORE_ERROR' | 'PUBLISH_ERROR' | 'SERIALIZATION_ERROR' | 'NOT_FOUND'`
+- **Dart**: `class OutboxError implements Exception { code: OutboxErrorCode, message: String?, cause: Object? }` + `enum OutboxErrorCode { storeError, publishError, serializationError, notFound }`
 
 ## 関連ドキュメント
 
