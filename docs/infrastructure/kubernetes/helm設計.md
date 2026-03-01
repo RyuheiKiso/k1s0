@@ -106,7 +106,7 @@ system tier には以下の 7 つの Chart が存在する。全て `k1s0-common
 | saga | Saga オーケストレータ（分散トランザクション） | Rust | 50051 | 有効 | - | DB パスワード |
 | dlq-manager | Dead Letter Queue 管理（失敗メッセージの再処理） | Rust | - | 有効 | - | DB パスワード |
 | bff-proxy | BFF プロキシ（OIDC 認証、セッション管理、リバースプロキシ） | Go | - | - | 有効 | OIDC client secret, Redis パスワード |
-| graphql-gateway | GraphQL Gateway（フェデレーション、クエリルーティング） | Go | - | - | - | JWKS 署名鍵 |
+| graphql-gateway | GraphQL Gateway（フェデレーション、クエリルーティング） | Rust | - | - | - | JWKS 署名鍵 |
 | kong | API Gateway（DB-backed PostgreSQL モード） | - | - | - | - | DB パスワード（SecretKeyRef） |
 
 ### 実ファイル配置
