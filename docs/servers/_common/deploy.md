@@ -162,15 +162,15 @@ mod tests {
 
         let log = AuditLog {
             id: uuid::Uuid::new_v4(),
-            user_id: Some(uuid::Uuid::new_v4()),
             event_type: "LOGIN_SUCCESS".to_string(),
-            action: "POST".to_string(),
-            resource: Some("/api/v1/auth/token".to_string()),
+            user_id: "test-user".to_string(),
+            ip_address: "127.0.0.1".to_string(),
+            user_agent: String::new(),
+            resource: "/api/v1/auth/token".to_string(),
             resource_id: None,
+            action: "POST".to_string(),
             result: "SUCCESS".to_string(),
             detail: None,
-            ip_address: Some("127.0.0.1".to_string()),
-            user_agent: Some(String::new()),
             trace_id: None,
             created_at: chrono::Utc::now(),
         };

@@ -90,7 +90,7 @@ regions/system/server/rust/auth/
 
 ### Cargo.toml
 
-> 共通依存は [Rust共通実装.md](../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
+> 共通依存は [Rust共通実装.md](Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
 
 ```toml
 # JWT
@@ -100,11 +100,11 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 
 ### build.rs
 
-> build.rs パターンは [Rust共通実装.md](../_common/Rust共通実装.md#共通buildrs) を参照。proto パス: `api/proto/k1s0/system/auth/v1/auth.proto`
+> build.rs パターンは [Rust共通実装.md](Rust共通実装.md#共通buildrs) を参照。proto パス: `api/proto/k1s0/system/auth/v1/auth.proto`
 
 ### src/main.rs
 
-> 起動シーケンスは [Rust共通実装.md](../_common/Rust共通実装.md#共通mainrs) を参照。
+> 起動シーケンスは [Rust共通実装.md](Rust共通実装.md#共通mainrs) を参照。
 
 共通起動シーケンスの後に、認証サーバー固有の依存注入を行う。
 
@@ -191,19 +191,19 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct AuditLog {
     pub id: Uuid,
-    pub user_id: Option<Uuid>,
     pub event_type: String,
-    pub action: String,
-    pub resource: Option<String>,
+    pub user_id: String,               // TEXT（DB の user_id TEXT に対応）
+    pub ip_address: String,            // NOT NULL
+    pub user_agent: String,            // NOT NULL
+    pub resource: String,              // NOT NULL
     pub resource_id: Option<String>,
+    pub action: String,
     pub result: String,
-    #[sqlx(json)]
+    #[serde(default)]
     pub detail: Option<serde_json::Value>,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
     pub trace_id: Option<String>,
     pub created_at: DateTime<Utc>,
 }
@@ -303,12 +303,18 @@ impl ValidateTokenUseCase {
 | `/readyz` | GET | なし | `readyz` |
 | `/metrics` | GET | なし | `metrics` |
 | `/api/v1/auth/token/validate` | POST | なし | `validate_token` |
-| `/api/v1/auth/token/introspect` | POST | `read:auth_config` | `introspect_token` |
+| `/api/v1/auth/token/introspect` | POST | なし（RFC 7662） | `introspect_token` |
+| `/api/v1/navigation` | GET | なし | `get_navigation` |
 | `/api/v1/users` | GET | `read:users` | `list_users` |
 | `/api/v1/users/:id` | GET | `read:users` | `get_user` |
 | `/api/v1/users/:id/roles` | GET | `read:users` | `get_user_roles` |
+| `/api/v1/auth/permissions/check` | POST | `read:auth_config` | `check_permission` |
 | `/api/v1/audit/logs` | POST | `write:audit_logs` | `record_audit_log` |
 | `/api/v1/audit/logs` | GET | `read:audit_logs` | `search_audit_logs` |
+| `/api/v1/api-keys` | POST | `write:api_keys` | `create_api_key` |
+| `/api/v1/api-keys` | GET | `read:api_keys` | `list_api_keys` |
+| `/api/v1/api-keys/:id` | GET | `read:api_keys` | `get_api_key` |
+| `/api/v1/api-keys/:id/revoke` | DELETE | `write:api_keys` | `revoke_api_key` |
 
 ルーティング定義とハンドラー実装の全体像。各ハンドラーはユースケースを呼び出し、`ErrorResponse` でエラーを変換する。
 
@@ -649,7 +655,7 @@ impl KeycloakClient {
 
 ## config.yaml
 
-認証サーバー固有の設定セクション。共通セクション（app/server/database/kafka/observability）は [Rust共通実装.md](../_common/Rust共通実装.md#共通configyaml) を参照。
+認証サーバー固有の設定セクション。共通セクション（app/server/database/kafka/observability）は [Rust共通実装.md](Rust共通実装.md#共通configyaml) を参照。
 
 ```yaml
 auth:
