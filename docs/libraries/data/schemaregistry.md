@@ -8,13 +8,34 @@ Confluent Schema Registry クライアントライブラリ。`SchemaRegistryCli
 
 ## 公開 API
 
+最小共通 API（全 4 言語）:
+
+| メソッド | 説明 |
+|---------|------|
+| `register_schema(subject, schema, schema_type)` | スキーマを登録し、スキーマ ID を返す |
+| `get_schema_by_id(id)` | スキーマ ID でスキーマを取得 |
+| `get_latest_schema(subject)` | サブジェクトの最新スキーマを取得 |
+| `get_schema_version(subject, version)` | サブジェクトの特定バージョンのスキーマを取得 |
+| `list_subjects()` | 全サブジェクト名を取得 |
+| `check_compatibility(subject, schema)` | スキーマの互換性を確認 |
+| `health_check()` | Schema Registry への疎通確認 |
+
+Rust 追加 API（Rust のみ）:
+
+| メソッド | 説明 |
+|---------|------|
+| `list_versions(subject)` | サブジェクトの全バージョン番号を取得 |
+| `delete_subject(subject)` | サブジェクトを削除し、削除バージョン番号のリストを返す |
+
+Rust 公開型:
+
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
 | `SchemaRegistryClient` | トレイト | スキーマ登録・取得・互換性確認の抽象インターフェース |
 | `HttpSchemaRegistryClient` | 構造体 | HTTP ベースの Schema Registry クライアント実装 |
 | `MockSchemaRegistryClient` | 構造体 | テスト用モック（feature = "mock" で有効） |
-| `SchemaRegistryConfig` | 構造体 | Registry URL・認証情報・互換性モード設定 |
-| `CompatibilityMode` | enum | スキーマ互換性モード（`Backward`・`Forward`・`Full`・`None`） |
+| `SchemaRegistryConfig` | 構造体 | Registry URL・互換性モード設定 |
+| `CompatibilityMode` | enum | スキーマ互換性モード（7 variants: `Backward`・`BackwardTransitive`・`Forward`・`ForwardTransitive`・`Full`・`FullTransitive`・`None`） |
 | `RegisteredSchema` | 構造体 | 登録済みスキーマ（ID・バージョン・スキーマ文字列） |
 | `SchemaType` | enum | スキーマ形式（`Avro`・`Json`・`Protobuf`） |
 | `SchemaRegistryError` | enum | 登録・取得・互換性エラー型 |
@@ -100,11 +121,14 @@ type SchemaRegistryClient interface {
     RegisterSchema(ctx context.Context, subject, schema, schemaType string) (int, error)
     GetSchemaByID(ctx context.Context, id int) (*RegisteredSchema, error)
     GetLatestSchema(ctx context.Context, subject string) (*RegisteredSchema, error)
+    GetSchemaVersion(ctx context.Context, subject string, version int) (*RegisteredSchema, error)
     ListSubjects(ctx context.Context) ([]string, error)
     CheckCompatibility(ctx context.Context, subject, schema string) (bool, error)
     HealthCheck(ctx context.Context) error
 }
 ```
+
+> Go 実装: `CheckCompatibility` はスキーマ型引数なし（schema のみ）。`list_versions`・`delete_subject` は Rust のみ。
 
 ## TypeScript 実装
 
@@ -156,6 +180,25 @@ export class SchemaRegistryError extends Error {
 ## Dart 実装
 
 **配置先**: `regions/system/library/dart/schemaregistry/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**主要インターフェース**:
+
+```dart
+abstract class SchemaRegistryClient {
+  Future<int> registerSchema(String subject, String schema, String schemaType);
+  Future<RegisteredSchema> getSchemaById(int id);
+  Future<RegisteredSchema> getLatestSchema(String subject);
+  Future<RegisteredSchema> getSchemaVersion(String subject, int version);
+  Future<List<String>> listSubjects();
+  Future<bool> checkCompatibility(String subject, String schema);
+  Future<void> healthCheck();
+}
+
+class HttpSchemaRegistryClient implements SchemaRegistryClient {
+  HttpSchemaRegistryClient(SchemaRegistryConfig config, {http.Client? httpClient});
+  // ... 上記メソッドすべてを実装
+}
+```
 
 **カバレッジ目標**: 85%以上
 
