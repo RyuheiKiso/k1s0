@@ -5,6 +5,9 @@ import {
   decodeCursor,
   validatePerPage,
   PerPageValidationError,
+  defaultPageRequest,
+  pageOffset,
+  hasNextPage,
 } from '../src/index.js';
 import type { CursorRequest, CursorMeta, PaginationMeta } from '../src/index.js';
 
@@ -87,5 +90,45 @@ describe('PaginationMeta type', () => {
     const meta: PaginationMeta = { total: 100, page: 2, perPage: 10, totalPages: 10 };
     expect(meta.total).toBe(100);
     expect(meta.totalPages).toBe(10);
+  });
+});
+
+describe('defaultPageRequest', () => {
+  it('page=1, perPage=20を返す', () => {
+    const req = defaultPageRequest();
+    expect(req.page).toBe(1);
+    expect(req.perPage).toBe(20);
+  });
+});
+
+describe('pageOffset', () => {
+  it('page=1のオフセットは0', () => {
+    expect(pageOffset({ page: 1, perPage: 20 })).toBe(0);
+  });
+
+  it('page=2のオフセットはperPage', () => {
+    expect(pageOffset({ page: 2, perPage: 20 })).toBe(20);
+  });
+
+  it('page=3, perPage=10のオフセットは20', () => {
+    expect(pageOffset({ page: 3, perPage: 10 })).toBe(20);
+  });
+});
+
+describe('hasNextPage', () => {
+  it('次のページがある場合trueを返す', () => {
+    expect(hasNextPage({ page: 1, perPage: 10 }, 15)).toBe(true);
+  });
+
+  it('最後のページの場合falseを返す', () => {
+    expect(hasNextPage({ page: 2, perPage: 10 }, 20)).toBe(false);
+  });
+
+  it('最後のページを超えた場合falseを返す', () => {
+    expect(hasNextPage({ page: 3, perPage: 10 }, 20)).toBe(false);
+  });
+
+  it('ちょうど次のページがある境界値', () => {
+    expect(hasNextPage({ page: 1, perPage: 10 }, 11)).toBe(true);
   });
 });

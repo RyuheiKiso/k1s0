@@ -7,7 +7,7 @@ const MAX_PER_PAGE: u32 = 100;
 
 /// Validate that per_page is between 1 and 100.
 pub fn validate_per_page(per_page: u32) -> Result<u32, PaginationError> {
-    if per_page < MIN_PER_PAGE || per_page > MAX_PER_PAGE {
+    if !(MIN_PER_PAGE..=MAX_PER_PAGE).contains(&per_page) {
         return Err(PaginationError::InvalidPerPage {
             value: per_page,
             min: MIN_PER_PAGE,
@@ -21,6 +21,25 @@ pub fn validate_per_page(per_page: u32) -> Result<u32, PaginationError> {
 pub struct PageRequest {
     pub page: u32,
     pub per_page: u32,
+}
+
+impl Default for PageRequest {
+    fn default() -> Self {
+        Self {
+            page: 1,
+            per_page: 20,
+        }
+    }
+}
+
+impl PageRequest {
+    pub fn offset(&self) -> u64 {
+        (self.page as u64 - 1) * self.per_page as u64
+    }
+
+    pub fn has_next(&self, total: u64) -> bool {
+        (self.page as u64) * (self.per_page as u64) < total
+    }
 }
 
 /// Offset pagination metadata.
@@ -140,5 +159,55 @@ mod tests {
         };
         assert_eq!(meta.total, 100);
         assert_eq!(meta.total_pages, 10);
+    }
+
+    #[test]
+    fn test_page_request_default() {
+        let req = PageRequest::default();
+        assert_eq!(req.page, 1);
+        assert_eq!(req.per_page, 20);
+    }
+
+    #[test]
+    fn test_page_request_offset_first_page() {
+        let req = PageRequest { page: 1, per_page: 20 };
+        assert_eq!(req.offset(), 0);
+    }
+
+    #[test]
+    fn test_page_request_offset_second_page() {
+        let req = PageRequest { page: 2, per_page: 20 };
+        assert_eq!(req.offset(), 20);
+    }
+
+    #[test]
+    fn test_page_request_offset_third_page() {
+        let req = PageRequest { page: 3, per_page: 10 };
+        assert_eq!(req.offset(), 20);
+    }
+
+    #[test]
+    fn test_has_next_true() {
+        let req = PageRequest { page: 1, per_page: 10 };
+        assert!(req.has_next(25));
+    }
+
+    #[test]
+    fn test_has_next_false_exact() {
+        let req = PageRequest { page: 2, per_page: 10 };
+        // page 2 * per_page 10 = 20, total = 20 → no next
+        assert!(!req.has_next(20));
+    }
+
+    #[test]
+    fn test_has_next_false_last_page() {
+        let req = PageRequest { page: 3, per_page: 10 };
+        assert!(!req.has_next(25));
+    }
+
+    #[test]
+    fn test_has_next_more_items_remaining() {
+        let req = PageRequest { page: 2, per_page: 10 };
+        assert!(req.has_next(25));
     }
 }

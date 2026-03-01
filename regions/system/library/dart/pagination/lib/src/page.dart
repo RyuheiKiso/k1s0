@@ -22,6 +22,12 @@ class PageRequest {
   final int perPage;
 
   const PageRequest({required this.page, required this.perPage});
+
+  factory PageRequest.defaultRequest() => const PageRequest(page: 1, perPage: 20);
+
+  int get offset => (page - 1) * perPage;
+
+  bool hasNext(int total) => page * perPage < total;
 }
 
 class PaginationMeta {

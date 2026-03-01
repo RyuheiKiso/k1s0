@@ -8,7 +8,12 @@
     "build": "tsc",
     "test": "vitest run"
   },
+  "dependencies": {
+    "ioredis": "^5.3.0",
+    "pg": "^8.11.0"
+  },
   "devDependencies": {
+    "@types/pg": "^8.11.0",
     "vitest": "^2.0.0",
     "typescript": "^5.0.0"
   }

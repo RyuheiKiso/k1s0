@@ -1,3 +1,5 @@
+export { PgMigrationRunner } from './pg-runner.js';
+
 import { createHash } from 'node:crypto';
 
 export interface MigrationStatus {

@@ -2,15 +2,35 @@
 
 ## 概要
 
-Redis 分散キャッシュ抽象化ライブラリ。`CacheClient` トレイトにより `get`/`set`/`delete`/`exists`/`set_nx`/`expire` の統一インターフェースを提供する。Redis Cluster・Sentinel・スタンドアロンをサポート。
+キャッシュ抽象化ライブラリ。`CacheClient` トレイト（インターフェース）により `get`/`set`/`delete`/`exists` の統一インターフェースを提供する。InMemory（テスト用）・Redis（本番用）の 2 バックエンドをサポートする。
 
 **配置先**: `regions/system/library/rust/cache/`
 
 ## 公開 API
 
+最小共通 API（全 4 言語）:
+
+| メソッド | 戻り値 | 説明 |
+|---------|--------|------|
+| `get(key)` | `Option<String>` | キーの値を取得。存在しない場合 null/nil/None |
+| `set(key, value, ttl?)` | `void` | 値を格納。TTL 省略時は無期限 |
+| `delete(key)` | `bool` | キーを削除。削除できた場合 true |
+| `exists(key)` | `bool` | キーが存在するか確認 |
+| `setNX(key, value, ttl)` | `bool` | キーが存在しない場合のみセット |
+
+Rust 追加 API:
+
+| メソッド | 説明 |
+|---------|------|
+| `expire(key, ttl)` | キーの TTL を更新（Rust・Go のみ） |
+
+Rust 公開型:
+
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `CacheClient` | トレイト | キャッシュ操作の抽象インターフェース（`get`/`set`/`delete`/`exists`/`set_nx`/`expire`） |
+| `CacheClient` | トレイト | キャッシュ操作の抽象インターフェース |
+| `InMemoryCacheClient` | 構造体 | テスト用インメモリ実装 |
+| `RedisCacheClient` | 構造体 | Redis バックエンド実装（feature = "redis" で有効） |
 | `CacheEntry` | 構造体 | キャッシュエントリ（value・expires_at） |
 | `LockGuard` | 構造体 | ロックガード（key・lock_value） |
 | `MockCacheClient` | 構造体 | テスト用モック（feature = "mock" で有効） |
@@ -28,22 +48,22 @@ edition = "2021"
 
 [features]
 mock = ["mockall"]
+redis = ["dep:redis"]
 
 [dependencies]
 async-trait = "0.1"
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time", "macros"] }
+tracing = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-thiserror = "2"
-tokio = { version = "1", features = ["sync", "time"] }
-tracing = "0.1"
-deadpool-redis = { version = "0.18", features = ["cluster", "sentinel"] }
-redis = { version = "0.27", features = ["tokio-comp", "cluster-async"] }
 uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
 mockall = { version = "0.13", optional = true }
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-testcontainers = "0.23"
 ```
 
 **依存追加**: `k1s0-cache = { path = "../../system/library/rust/cache" }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）
@@ -55,6 +75,8 @@ cache/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）
 │   ├── client.rs       # CacheClient トレイト・CacheEntry・LockGuard・MockCacheClient
+│   ├── memory.rs       # InMemoryCacheClient
+│   ├── redis.rs        # RedisCacheClient（feature = "redis" で有効）
 │   └── error.rs        # CacheError
 └── Cargo.toml
 ```
@@ -82,7 +104,7 @@ client.expire("user:123", Duration::from_secs(900)).await?;
 
 **配置先**: `regions/system/library/go/cache/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: なし（標準ライブラリのみ）
+**依存関係**: `github.com/redis/go-redis/v9`
 
 **主要インターフェース**:
 
@@ -135,6 +157,22 @@ export class InMemoryCacheClient implements CacheClient {
 ## Dart 実装
 
 **配置先**: `regions/system/library/dart/cache/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**主要インターフェース**:
+
+```dart
+abstract class CacheClient {
+  Future<String?> get(String key);
+  Future<void> set(String key, String value, {int? ttlMs});
+  Future<bool> delete(String key);
+  Future<bool> exists(String key);
+  Future<bool> setNX(String key, String value, int ttlMs);
+}
+
+class InMemoryCacheClient implements CacheClient {
+  // ... 上記メソッドすべてを実装
+}
+```
 
 **カバレッジ目標**: 90%以上
 

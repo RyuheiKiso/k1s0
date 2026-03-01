@@ -9,6 +9,36 @@ void main() {
       expect(req.page, equals(1));
       expect(req.perPage, equals(10));
     });
+
+    test('defaultRequest returns page=1, perPage=20', () {
+      final req = PageRequest.defaultRequest();
+      expect(req.page, equals(1));
+      expect(req.perPage, equals(20));
+    });
+
+    test('offset is (page-1) * perPage', () {
+      const req1 = PageRequest(page: 1, perPage: 10);
+      expect(req1.offset, equals(0));
+
+      const req2 = PageRequest(page: 3, perPage: 10);
+      expect(req2.offset, equals(20));
+
+      const req3 = PageRequest(page: 2, perPage: 25);
+      expect(req3.offset, equals(25));
+    });
+
+    test('hasNext returns true when more pages exist', () {
+      const req = PageRequest(page: 1, perPage: 10);
+      expect(req.hasNext(25), isTrue);
+      expect(req.hasNext(10), isFalse);
+      expect(req.hasNext(11), isTrue);
+    });
+
+    test('hasNext returns false on last page', () {
+      const req = PageRequest(page: 3, perPage: 10);
+      expect(req.hasNext(30), isFalse);
+      expect(req.hasNext(31), isTrue);
+    });
   });
 
   group('PageResponse', () {

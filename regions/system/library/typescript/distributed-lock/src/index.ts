@@ -1,3 +1,6 @@
+export { PostgresDistributedLock } from './postgres-lock.js';
+export { RedisDistributedLock } from './redis-lock.js';
+
 import { randomBytes } from 'crypto';
 
 export interface LockGuard {

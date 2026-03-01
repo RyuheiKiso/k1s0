@@ -98,6 +98,9 @@ export class InMemoryEventStore implements EventStore {
   }
 }
 
+export { PostgresEventStore } from './postgres-store.js';
+export { PostgresSnapshotStore } from './postgres-snapshot.js';
+
 export class InMemorySnapshotStore implements SnapshotStore {
   private snapshots = new Map<string, Snapshot>();
 

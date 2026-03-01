@@ -89,3 +89,33 @@ func TestPaginationMeta_Fields(t *testing.T) {
 	assert.Equal(t, uint64(100), meta.Total)
 	assert.Equal(t, uint32(10), meta.TotalPages)
 }
+
+func TestNewPageRequest(t *testing.T) {
+	req := pagination.NewPageRequest(3, 50)
+	assert.Equal(t, uint32(3), req.Page)
+	assert.Equal(t, uint32(50), req.PerPage)
+}
+
+func TestDefaultPageRequest(t *testing.T) {
+	req := pagination.DefaultPageRequest()
+	assert.Equal(t, uint32(1), req.Page)
+	assert.Equal(t, uint32(20), req.PerPage)
+}
+
+func TestPageRequest_Offset(t *testing.T) {
+	assert.Equal(t, uint64(0), pagination.NewPageRequest(1, 20).Offset())
+	assert.Equal(t, uint64(20), pagination.NewPageRequest(2, 20).Offset())
+	assert.Equal(t, uint64(40), pagination.NewPageRequest(3, 20).Offset())
+	assert.Equal(t, uint64(0), pagination.DefaultPageRequest().Offset())
+}
+
+func TestPageRequest_HasNext(t *testing.T) {
+	req := pagination.NewPageRequest(1, 10)
+	assert.True(t, req.HasNext(11))
+	assert.False(t, req.HasNext(10))
+	assert.False(t, req.HasNext(5))
+
+	req2 := pagination.NewPageRequest(2, 10)
+	assert.True(t, req2.HasNext(21))
+	assert.False(t, req2.HasNext(20))
+}

@@ -48,6 +48,26 @@ type CursorMeta struct {
 	HasMore    bool
 }
 
+// NewPageRequest は PageRequest を生成する。
+func NewPageRequest(page, perPage uint32) PageRequest {
+	return PageRequest{Page: page, PerPage: perPage}
+}
+
+// DefaultPageRequest はデフォルト値 (page: 1, perPage: 20) の PageRequest を返す。
+func DefaultPageRequest() PageRequest {
+	return PageRequest{Page: 1, PerPage: 20}
+}
+
+// Offset はページネーションのオフセット値を返す。
+func (r PageRequest) Offset() uint64 {
+	return uint64(r.Page-1) * uint64(r.PerPage)
+}
+
+// HasNext は次のページが存在するかを返す。
+func (r PageRequest) HasNext(total uint64) bool {
+	return uint64(r.Page)*uint64(r.PerPage) < total
+}
+
 // ValidatePerPage は per_page が 1〜100 の範囲であることを検証する。
 func ValidatePerPage(perPage uint32) error {
 	if perPage < MinPerPage || perPage > MaxPerPage {

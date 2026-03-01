@@ -13,12 +13,22 @@ DB スキーマ移行ライブラリ。sqlx Migrator（Rust）/ goose（Go）/ n
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
 | `MigrationRunner` | トレイト | マイグレーション実行の抽象インターフェース |
-| `SqlxMigrationRunner` | 構造体 | sqlx Migrator 実装（PostgreSQL・SQLite 対応） |
+| `InMemoryMigrationRunner` | 構造体 | インメモリ実装（テスト・検証用） |
 | `MigrationConfig` | 構造体 | マイグレーションディレクトリ・DB URL・テーブル名設定 |
 | `MigrationReport` | 構造体 | 適用済みマイグレーション数・所要時間・エラー情報 |
 | `MigrationStatus` | 構造体 | バージョン・名前・適用日時・チェックサム |
 | `PendingMigration` | 構造体 | 未適用マイグレーションのバージョン・名前 |
+| `MigrationFile` | 構造体 | マイグレーションファイルの解析・チェックサム計算 |
 | `MigrationError` | enum | `ConnectionFailed`・`MigrationFailed`・`ChecksumMismatch`・`DirectoryNotFound` |
+
+ユーティリティ関数:
+
+| 関数 | 説明 |
+|-----|------|
+| `MigrationFile::parse_filename(filename)` | ファイル名からバージョン・名前・方向を解析 |
+| `MigrationFile::checksum(content)` | SQL コンテンツの SHA-256 チェックサムを計算 |
+
+> `SqlxMigrationRunner`（PostgreSQL 直接実行）は Phase 2 で追加予定。
 
 ## Rust 実装
 
@@ -47,8 +57,6 @@ clap = { version = "4", features = ["derive"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-testcontainers = "0.23"
-testcontainers-modules = { version = "0.11", features = ["postgres"] }
 ```
 
 **依存追加**: `k1s0-migration = { path = "../../system/library/rust/migration" }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）
@@ -59,9 +67,9 @@ testcontainers-modules = { version = "0.11", features = ["postgres"] }
 migration/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
-│   ├── runner.rs       # MigrationRunner トレイト・SqlxMigrationRunner
+│   ├── runner.rs       # MigrationRunner トレイト・InMemoryMigrationRunner
 │   ├── config.rs       # MigrationConfig（ディレクトリ・DB URL・テーブル名）
-│   ├── model.rs        # MigrationReport・MigrationStatus・PendingMigration
+│   ├── model.rs        # MigrationReport・MigrationStatus・PendingMigration・MigrationFile・parse_filename・checksum
 │   └── error.rs        # MigrationError
 └── Cargo.toml
 ```
@@ -85,16 +93,13 @@ migrations/
 **使用例**:
 
 ```rust
-use k1s0_migration::{MigrationRunner, SqlxMigrationRunner, MigrationConfig};
+use k1s0_migration::{MigrationRunner, InMemoryMigrationRunner, MigrationConfig};
 use std::path::PathBuf;
 
-let config = MigrationConfig {
-    migrations_dir: PathBuf::from("./migrations"),
-    database_url: std::env::var("DATABASE_URL").unwrap(),
-    table_name: "_migrations".to_string(),
-};
+let config = MigrationConfig::new(PathBuf::from("./migrations"), "postgres://...".to_string());
 
-let runner = SqlxMigrationRunner::new(config).await.unwrap();
+// ディスク上のマイグレーションファイルを読み込んで実行
+let runner = InMemoryMigrationRunner::new(config).unwrap();
 
 // up マイグレーション（全件適用）
 let report = runner.run_up().await.unwrap();
@@ -124,7 +129,7 @@ println!("Rolled back {} migrations", report.applied_count);
 
 **配置先**: `regions/system/library/go/migration/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: `github.com/pressly/goose/v3 v3.24.0`, `github.com/stretchr/testify v1.10.0`
+**依存関係**: `github.com/stretchr/testify v1.11.1`（goose 不使用）
 
 **主要インターフェース**:
 
@@ -150,19 +155,23 @@ type MigrationReport struct {
 }
 
 type MigrationStatus struct {
-    Version   int64
+    Version   string
     Name      string
     AppliedAt *time.Time
     Checksum  string
 }
 
 type PendingMigration struct {
-    Version int64
+    Version string
     Name    string
 }
 
-func NewGooseMigrationRunner(cfg MigrationConfig) (MigrationRunner, error)
+func NewInMemoryRunner(cfg MigrationConfig) (*InMemoryMigrationRunner, error)
+func ParseFilename(filename string) (version, name string, direction MigrationDirection, ok bool)
+func Checksum(content string) string
 ```
+
+> Go 実装の主要な実装は `InMemoryMigrationRunner`。`PostgresRunner` は Phase 2 で追加予定。
 
 ## TypeScript 実装
 
@@ -202,14 +211,20 @@ export interface MigrationRunner {
   pending(): Promise<PendingMigration[]>;
 }
 
-export class PgMigrationRunner implements MigrationRunner {
-  constructor(config: MigrationConfig);
+export class InMemoryMigrationRunner implements MigrationRunner {
+  constructor(
+    config: MigrationConfig,
+    ups: Array<{version: string, name: string, content: string}>,
+    downs: Array<{version: string, name: string, content: string}>,
+  );
   runUp(): Promise<MigrationReport>;
   runDown(steps: number): Promise<MigrationReport>;
   status(): Promise<MigrationStatus[]>;
   pending(): Promise<PendingMigration[]>;
-  close(): Promise<void>;
 }
+
+export function parseFilename(filename: string): ParsedMigration | null;
+export function checksum(content: string): string;
 
 export class MigrationError extends Error {
   constructor(message: string, public readonly cause?: Error);
