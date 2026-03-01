@@ -13,7 +13,7 @@ system-scheduler-server（ポート 8093）へのジョブスケジューリン�
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
 | `SchedulerClient` | トレイト（`src/client.rs`） | ジョブスケジューリング操作インターフェース |
-| `GrpcSchedulerClient` | 構造体 | gRPC 経由の scheduler-server 接続実装 |
+| `GrpcSchedulerClient` | 構造体 | scheduler-server への接続実装（**内部実装は HTTP REST**。クラス名は後方互換のため維持）|
 | `Job` | 構造体 | ジョブ情報（ID・名称・スケジュール・状態・ペイロード）|
 | `JobRequest` | 構造体 | ジョブ登録リクエスト（名称・スケジュール・ペイロード・最大リトライ・タイムアウト）|
 | `JobFilter` | 構造体 | ジョブ一覧取得フィルター（状態・名称プレフィックス）|
@@ -22,6 +22,8 @@ system-scheduler-server（ポート 8093）へのジョブスケジューリン�
 | `JobStatus` | enum | `Pending`・`Running`・`Completed`・`Failed`・`Paused`・`Cancelled` |
 | `JobCompletedEvent` | 構造体 | Kafka から購読するジョブ完了イベント |
 | `SchedulerError` | enum | `JobNotFound(String)`・`InvalidSchedule(String)`・`ServerError(String)`・`Timeout` |
+
+> **設計上の注意**: `update_job` / `delete_job` はサポートしない。ジョブの変更が必要な場合は既存ジョブを `cancel_job` でキャンセルし、新たなジョブを `create_job` で登録する設計とする。
 
 ## Rust 実装
 
@@ -63,7 +65,7 @@ scheduler-client/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
 │   ├── client.rs       # SchedulerClient トレイト
-│   ├── grpc.rs         # GrpcSchedulerClient
+│   ├── grpc.rs         # GrpcSchedulerClient（HTTP REST 実装）
 │   ├── job.rs          # Job・JobRequest・JobFilter・JobExecution・JobStatus・Schedule・JobCompletedEvent
 │   └── error.rs        # SchedulerError
 └── Cargo.toml
@@ -71,7 +73,7 @@ scheduler-client/
 
 **使用例**:
 
-> **注記（Rust実装）**: `GrpcSchedulerClient` は現在未実装（構造体が存在しない）。現時点では `InMemorySchedulerClient` のみ利用可能。要実装。
+> **注記（Rust実装）**: `GrpcSchedulerClient` は内部実装が HTTP REST クライアント（`reqwest`）である。クラス名は後方互換のため `Grpc` のままとしている。
 
 ```rust
 use k1s0_scheduler_client::{
@@ -139,11 +141,61 @@ for exec in &executions {
 }
 ```
 
+## 言語横断注記
+
+### フィールド名の命名規則
+
+各言語の慣習に従い、フィールド名は以下のように変換される。
+
+| 概念名（snake_case） | Rust (snake_case) | Go (PascalCase) | TypeScript (camelCase) | Dart (camelCase) |
+|---|---|---|---|---|
+| `max_retries` | `max_retries` | `MaxRetries` | `maxRetries` | `maxRetries` |
+| `timeout_secs` | `timeout_secs` | `TimeoutSecs` | `timeoutSecs` | `timeoutSecs` |
+| `job_id` | `job_id` | `JobID` | `jobId` | `jobId` |
+| `started_at` | `started_at` | `StartedAt` | `startedAt` | `startedAt` |
+| `finished_at` | `finished_at` | `FinishedAt` | `finishedAt` | `finishedAt` |
+| `created_at` | `created_at` | `CreatedAt` | `createdAt` | `createdAt` |
+| `next_run_at` | `next_run_at` | `NextRunAt` | `nextRunAt` | `nextRunAt` |
+
+### エラーコード命名規則対応表
+
+| 概念 | Rust (enum variant) | TypeScript (string literal) | Dart (code フィールド値) | Go |
+|---|---|---|---|---|
+| ジョブ未検出 | `JobNotFound(String)` | `'JOB_NOT_FOUND'` | `'JOB_NOT_FOUND'` | 標準 `error` 型（専用型なし） |
+| 無効スケジュール | `InvalidSchedule(String)` | `'INVALID_SCHEDULE'` | `'INVALID_SCHEDULE'` | 標準 `error` 型（専用型なし） |
+| サーバーエラー | `ServerError(String)` | `'SERVER_ERROR'` | `'SERVER_ERROR'` | 標準 `error` 型（専用型なし） |
+| タイムアウト | `Timeout` | `'TIMEOUT'` | `'TIMEOUT'` | 標準 `error` 型（専用型なし） |
+
+> **Go のエラー**: Go 実装では専用の `SchedulerError` 型は提供されない。全メソッドは標準 `error` インターフェースを返す。エラー種別の判定が必要な場合はエラーメッセージ文字列を参照すること。
+
+### テスト用補助メソッド（InMemoryClient）
+
+`SchedulerClient` インターフェース外のテスト用ヘルパーとして、各言語の `InMemoryClient` に以下のメソッドが提供される。
+
+| 言語 | メソッド | 戻り値 | 説明 |
+|---|---|---|---|
+| Go | `Jobs()` | `map[string]Job` | 登録済みジョブの全件取得 |
+| TypeScript | `getAll()` | `Job[]` | 登録済みジョブの全件取得 |
+| Dart | `jobs` (getter) | `Map<String, Job>` | 登録済みジョブの全件取得 |
+
+> **注意**: 上記ヘルパーは `SchedulerClient` インターフェースに含まれないため、テストコード以外では使用しないこと。
+
+### close() メソッド（GrpcSchedulerClient）
+
+HTTP クライアントのリソースを解放するメソッド。言語による差異は以下のとおり。
+
+| 言語 | メソッド | 備考 |
+|---|---|---|
+| TypeScript | `close(): Promise<void>` | HTTP コネクションを解放する |
+| Dart | `close(): Future<void>` | HTTP クライアントを解放する |
+| Go | なし | GC によって自動管理される |
+| Rust | なし | `Drop` トレイトによって自動解放される |
+
 ## Go 実装
 
 **配置先**: `regions/system/library/go/scheduler-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: `google.golang.org/grpc v1.70`, `github.com/segmentio/kafka-go v0.4`, `github.com/stretchr/testify v1.10.0`
+**依存関係**: `github.com/segmentio/kafka-go v0.4`, `github.com/stretchr/testify v1.10.0`
 
 **主要インターフェース**:
 
@@ -173,6 +225,8 @@ type JobRequest struct {
     TimeoutSecs uint64
 }
 
+// JobStatus は string 型の定数として定義される（他言語の enum とは異なる）。
+// 実際の値は小文字（"pending", "running" など）。
 type JobStatus string
 
 const (
@@ -230,7 +284,8 @@ func (c *InMemoryClient) ListJobs(ctx context.Context, filter JobFilter) ([]Job,
 func (c *InMemoryClient) GetExecutions(ctx context.Context, jobID string) ([]JobExecution, error)
 func (c *InMemoryClient) Jobs() map[string]Job // テスト用ヘルパー（SchedulerClient インターフェース外）
 
-// 注記: 名称はGrpcだが現状はHTTP REST実装。将来gRPCに移行予定。
+// GrpcSchedulerClient は HTTP REST で scheduler-server に接続する実装。
+// クラス名は後方互換のため Grpc のままとしている。
 type GrpcSchedulerClient struct{ /* ... */ }
 
 func NewGrpcSchedulerClient(addr string) (*GrpcSchedulerClient, error)
@@ -326,7 +381,8 @@ export interface SchedulerClient {
   pauseJob(jobId: string): Promise<void>;
   resumeJob(jobId: string): Promise<void>;
   getJob(jobId: string): Promise<Job>;
-  listJobs(filter: JobFilter): Promise<Job[]>;
+  // TypeScript のみ filter はオプショナル（省略時は全件取得）。Go/Rust/Dart は必須引数。
+  listJobs(filter?: JobFilter): Promise<Job[]>;
   getExecutions(jobId: string): Promise<JobExecution[]>;
 }
 
@@ -336,13 +392,12 @@ export class InMemorySchedulerClient implements SchedulerClient {
   pauseJob(jobId: string): Promise<void>;
   resumeJob(jobId: string): Promise<void>;
   getJob(jobId: string): Promise<Job>;
-  listJobs(filter: JobFilter): Promise<Job[]>;
+  listJobs(filter?: JobFilter): Promise<Job[]>;
   getExecutions(jobId: string): Promise<JobExecution[]>;
   getAll(): Job[]; // テスト用ヘルパー（SchedulerClient インターフェース外）
 }
 
-> **注記**: 現状HTTP REST実装。将来gRPCに移行予定。
-
+// GrpcSchedulerClient は内部実装が HTTP REST（fetch）。クラス名は後方互換のため維持。
 export class GrpcSchedulerClient implements SchedulerClient {
   constructor(serverUrl: string);
   createJob(req: JobRequest): Promise<Job>;
@@ -350,9 +405,9 @@ export class GrpcSchedulerClient implements SchedulerClient {
   pauseJob(jobId: string): Promise<void>;
   resumeJob(jobId: string): Promise<void>;
   getJob(jobId: string): Promise<Job>;
-  listJobs(filter: JobFilter): Promise<Job[]>;
+  listJobs(filter?: JobFilter): Promise<Job[]>;
   getExecutions(jobId: string): Promise<JobExecution[]>;
-  close(): Promise<void>;
+  close(): Promise<void>; // HTTP クライアントのリソースを解放する（TypeScript/Dart のみ）
 }
 
 export class SchedulerError extends Error {
@@ -373,9 +428,10 @@ export class SchedulerError extends Error {
 
 ```yaml
 dependencies:
-  grpc: ^4.0.0
-  protobuf: ^3.1.0
+  http: ^1.2.0
 ```
+
+> **注記（Dart実装）**: `GrpcSchedulerClient` は内部実装が HTTP REST（`http` パッケージ）である。クラス名は後方互換のため維持。
 
 **主要 API**:
 
@@ -385,6 +441,9 @@ dependencies:
 enum JobStatus { pending, running, completed, failed, paused, cancelled }
 
 /// Schedule: sealed class（パターンマッチ対応）
+/// Dart では variant クラス名にサフィックス `Schedule` を付加する
+/// （CronSchedule / OneShotSchedule / IntervalSchedule）。
+/// 他言語（Rust: Cron/OneShot/Interval、TypeScript: cron/one_shot/interval）とは名称が異なる。
 sealed class Schedule {
   factory Schedule.cron(String expression) = CronSchedule;
   factory Schedule.oneShot(DateTime runAt) = OneShotSchedule;
@@ -480,9 +539,7 @@ class InMemorySchedulerClient implements SchedulerClient {
   Map<String, Job> get jobs; // テスト用ヘルパー（SchedulerClient インターフェース外）
 }
 
-// gRPC 接続実装
-> **注記**: 現状HTTP REST実装。将来gRPCに移行予定。
-
+// GrpcSchedulerClient は内部実装が HTTP REST (http パッケージ)。クラス名は後方互換のため維持。
 class GrpcSchedulerClient implements SchedulerClient {
   GrpcSchedulerClient(String serverAddress);
   Future<Job> createJob(JobRequest request);
@@ -492,7 +549,7 @@ class GrpcSchedulerClient implements SchedulerClient {
   Future<Job> getJob(String jobId);
   Future<List<Job>> listJobs(JobFilter filter);
   Future<List<JobExecution>> getExecutions(String jobId);
-  Future<void> close();
+  Future<void> close(); // HTTP クライアントのリソースを解放する（TypeScript/Dart のみ）
 }
 ```
 

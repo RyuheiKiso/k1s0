@@ -24,6 +24,10 @@ system-tenant-server（ポート 8089）へのテナント情報取得クライ�
 | `CreateTenantRequest` | 構造体 | テナント作成リクエスト（名称・プラン・管理者ユーザー ID）|
 | `TenantMember` | 構造体 | テナントメンバー（ユーザー ID・ロール・参加日時）|
 | `ProvisioningStatus` | enum | `Pending`・`InProgress`・`Completed`・`Failed(String)` |
+| `HttpTenantClient::close` | メソッド | HTTP クライアントのリソース解放（TypeScript・Dart のみ実装。Go・Rust は GC/Drop で自動解放のため不要）|
+| `InMemoryTenantClient::new` | コンストラクタ | テスト用インメモリ実装の生成（全4言語で実装済み）|
+| `InMemoryTenantClient::with_tenants` | ファクトリ | 初期テナント一覧を指定して生成（全4言語で実装済み）|
+| `InMemoryTenantClient::add_tenant` | メソッド | テナントをインメモリストアへ追加（全4言語で実装済み）|
 
 ## Rust 実装
 
@@ -153,6 +157,19 @@ pub struct HttpTenantClient { /* ... */ }
 
 impl HttpTenantClient {
     pub fn new(config: TenantClientConfig) -> Result<Self, TenantError>
+    // TypeScript / Dart: close() でリソースを明示解放する
+    // Go / Rust: GC / Drop による自動解放のため close 相当メソッドは不要
+}
+
+// TenantClient トレイトの全メソッドを実装
+
+// テスト用インメモリ実装
+pub struct InMemoryTenantClient { /* ... */ }
+
+impl InMemoryTenantClient {
+    pub fn new() -> Self
+    pub fn with_tenants(tenants: Vec<Tenant>) -> Self
+    pub fn add_tenant(&self, tenant: Tenant)
 }
 
 // TenantClient トレイトの全メソッドを実装
@@ -226,6 +243,12 @@ const (
     TenantStatusDeleted   TenantStatus = "deleted"
 )
 
+// NOTE: TenantStatus の言語別表現
+//   Rust:       PascalCase enum  — Active / Suspended / Deleted
+//   Go:         小文字文字列      — "active" / "suspended" / "deleted"
+//   TypeScript: 小文字文字列      — 'active' | 'suspended' | 'deleted'
+//   Dart:       lowerCamelCase enum — TenantStatus.active / .suspended / .deleted
+
 type Tenant struct {
     ID        string            `json:"id"`
     Name      string            `json:"name"`
@@ -235,6 +258,10 @@ type Tenant struct {
     CreatedAt time.Time         `json:"created_at"`
 }
 
+// NOTE: Go には TenantFilter / TenantSettings / TenantClientConfig のビルダーメソッドは存在しない。
+// struct リテラルで直接初期化する（例: TenantFilter{Status: &status}）。
+// Rust はビルダーメソッド（TenantFilter::new().status(...)）を提供する。
+// TypeScript / Dart はオブジェクト / named parameters で初期化する。
 type TenantFilter struct {
     Status *TenantStatus
     Plan   *string
@@ -244,12 +271,14 @@ type TenantSettings struct {
     Values map[string]string
 }
 
+// NOTE: Go の Get は Go 慣用の (value string, ok bool) 2値返却。
+// Rust は Option<&str>、TypeScript は string | undefined、Dart は String? を返す。
 func (s TenantSettings) Get(key string) (string, bool)
 
 type CreateTenantRequest struct {
     Name        string `json:"name"`
     Plan        string `json:"plan"`
-    AdminUserID string `json:"admin_user_id,omitempty"`
+    AdminUserID string `json:"admin_user_id,omitempty"` // NOTE: Go は非ポインタ文字列（空文字でオプショナル扱い）。Rust は Option<String>、TypeScript は string?、Dart は String?
 }
 
 type TenantMember struct {
@@ -267,15 +296,22 @@ const (
     ProvisioningStatusFailed     ProvisioningStatus = "failed"
 )
 
+// NOTE: ProvisioningStatus.Failed の失敗理由文字列は Rust のみサポート（`Failed(String)`）。
+// Go / TypeScript / Dart では failed 時の理由は別途エラーメッセージ等で取得する。
+
 type TenantClientConfig struct {
     ServerURL        string
     CacheTTL         time.Duration
-    CacheMaxCapacity int
+    CacheMaxCapacity int // NOTE: Go は int（符号付き）。Rust / Doc は u64（符号なし64bit）、Dart は int（符号付き）
 }
 
 type HttpTenantClient struct{ /* ... */ }
 
+// NOTE: Go の NewHttpTenantClient は addr（URL 文字列）と config の2引数を受け取る。
+// Rust / TypeScript / Dart は config オブジェクト1つのみ（serverUrl は config 内に含まれる）。
+// さらに Go には httpClient をカスタマイズできる NewHttpTenantClientWithHTTPClient もある。
 func NewHttpTenantClient(addr string, config TenantClientConfig) (*HttpTenantClient, error)
+func NewHttpTenantClientWithHTTPClient(addr string, config TenantClientConfig, httpClient *http.Client) (*HttpTenantClient, error)
 func (c *HttpTenantClient) GetTenant(ctx context.Context, tenantID string) (Tenant, error)
 func (c *HttpTenantClient) ListTenants(ctx context.Context, filter TenantFilter) ([]Tenant, error)
 func (c *HttpTenantClient) IsActive(ctx context.Context, tenantID string) (bool, error)
@@ -353,7 +389,7 @@ export interface TenantSettings {
 
 export interface TenantClientConfig {
   serverUrl: string;
-  cacheTtlMs?: number;
+  cacheTtlMs?: number;  // NOTE: TypeScript のみ Duration ではなくミリ秒を表す number 型（フィールド名に Ms サフィックスあり）。Go / Rust / Dart は Duration 型
   cacheMaxCapacity?: number;
 }
 
@@ -398,6 +434,7 @@ export class HttpTenantClient implements TenantClient {
 }
 
 export class InMemoryTenantClient implements TenantClient {
+  constructor(tenants?: Tenant[]);
   addTenant(tenant: Tenant): void;
   getTenant(tenantId: string): Promise<Tenant>;
   listTenants(filter?: TenantFilter): Promise<Tenant[]>;
@@ -416,6 +453,14 @@ export class TenantError extends Error {
     public readonly code: 'NOT_FOUND' | 'SUSPENDED' | 'SERVER_ERROR' | 'TIMEOUT'
   );
 }
+
+// NOTE: TenantError コード命名規則の言語別対応表
+// | 概念          | Rust                       | Go (標準 error) | TypeScript              | Dart                          |
+// |---------------|----------------------------|-----------------|-------------------------|-------------------------------|
+// | 未発見        | TenantError::NotFound(_)   | errors.New(...) | code: 'NOT_FOUND'       | TenantErrorCode.notFound      |
+// | 停止中        | TenantError::Suspended(_)  | errors.New(...) | code: 'SUSPENDED'       | TenantErrorCode.suspended     |
+// | サーバーエラー | TenantError::ServerError(_)| errors.New(...) | code: 'SERVER_ERROR'    | TenantErrorCode.serverError   |
+// | タイムアウト  | TenantError::Timeout(_)    | errors.New(...) | code: 'TIMEOUT'         | TenantErrorCode.timeout       |
 ```
 
 **カバレッジ目標**: 90%以上
@@ -531,6 +576,7 @@ class HttpTenantClient implements TenantClient {
 
 // インメモリ実装（テスト用）
 class InMemoryTenantClient implements TenantClient {
+  InMemoryTenantClient([List<Tenant>? tenants]);
   void addTenant(Tenant tenant);
   Future<Tenant> getTenant(String tenantId);
   Future<List<Tenant>> listTenants(TenantFilter filter);

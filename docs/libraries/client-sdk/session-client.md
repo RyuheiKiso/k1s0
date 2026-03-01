@@ -125,6 +125,8 @@ pub struct RefreshSessionRequest {
 }
 ```
 
+> **注記（metadata の必須/任意）**: Rust の `CreateSessionRequest.metadata` は `HashMap<String, String>`（`Option` でないため必須フィールド）。空のメタデータを渡す場合は `HashMap::new()` を明示的に指定する必要がある。Go・TypeScript・Dart では省略可能（任意フィールド）。
+
 **トレイト**:
 
 ```rust
@@ -138,6 +140,10 @@ pub trait SessionClient: Send + Sync {
     async fn revoke_all(&self, user_id: &str) -> Result<u32, SessionError>;
 }
 ```
+
+> **注記（async）**: Rust では全トレイトメソッドが `async fn` として定義されており、`#[async_trait]` マクロを通じて非同期実装となる。呼び出し側は `.await` が必要。
+
+> **注記（revoke_all の戻り値型）**: `revoke_all` の戻り値は Rust のみ `u32`（符号なし 32 ビット整数）。失効数が負にならないことを型で保証するための設計。Go は `int`、TypeScript は `number`、Dart は `int`（符号付き整数）を返す。
 
 **`InMemorySessionClient` コンストラクタ**:
 
@@ -277,6 +283,8 @@ Go の実装はエラー型を定義せず、インラインエラーを返す�
 
 **注意**: `Get` でセッションが存在しない場合は `nil` セッションではなくエラーを返す。Rust の `Result<Option<Session>, SessionError>` と異なり、Go の `(*Session, error)` では not-found はエラーとして通知する（`*Session` が nil になるケースではなく、必ず error が non-nil になる）。
 
+> **注記（Expired・Revoked 状態）**: Go の `InMemorySessionClient` は期限切れ（`ExpiresAt` 超過）や失効済み（`Revoked == true`）のセッションに対して `Get`/`Refresh` で追加チェックを行わず、データをそのまま返す。Rust では `SessionError::Expired` / `SessionError::Revoked` が明示的なエラーバリアントとして存在するが、Go の InMemory 実装にはこれに相当するエラー返却はない。本番実装（HTTP クライアント）ではサーバー側がこれらの状態を検証してエラーを返す想定。
+
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/session-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
@@ -318,6 +326,14 @@ export class InMemorySessionClient implements SessionClient {
   // 全メソッド実装
 }
 ```
+
+**`InMemorySessionClient` コンストラクタ**:
+
+```typescript
+const client = new InMemorySessionClient();
+```
+
+引数なしのデフォルトコンストラクタで生成する。内部的に `Map<string, Session>` をセッションストアとして保持する。
 
 **エラー仕様**:
 

@@ -2,7 +2,7 @@
 
 ## 概要
 
-system-ratelimit-server（ポート 8080）へのレート制限クライアントライブラリ。レート制限の事前確認（check before execute パターン）・使用量消費の記録・制限超過時の待機時間返却・テナントや API キーごとの制限照会を統一インターフェースで提供する。全 Tier のサービスから共通利用し、API ゲートウェイ・バックエンドサービス両方で一貫したレート制限を実現する。
+system-ratelimit-server（ポート 8080）へのレート制限クライアントライブラリ。レート制限の事前確認（check before execute パターン）・使用量消費の記録・制限超過時の待機時間返却・テナントや API キーごとの制限照会を統一インターフェースで提供する。全 Tier のサービスから共通利用し、API ゲートウェイ・バックエンドサービス両方で一貫したレート制限を実現する。サーバーとの通信は HTTP REST プロトコルを使用する。
 
 **配置先**: `regions/system/library/rust/ratelimit-client/`
 
@@ -11,11 +11,24 @@ system-ratelimit-server（ポート 8080）へのレート制限クライアン�
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
 | `RateLimitClient` | トレイト | レート制限操作インターフェース |
-| `GrpcRateLimitClient` | 構造体 | gRPC 経由の ratelimit-server 接続実装 |
+| `GrpcRateLimitClient` | 構造体 | HTTP REST 経由の ratelimit-server 接続実装（名称は互換性のため維持。将来 gRPC 移行予定）|
+| `InMemoryRateLimitClient` | 構造体 | テスト用インメモリ実装 |
 | `RateLimitStatus` | 構造体 | 許可フラグ・残余カウント・リセット時刻・再試行待機秒数 |
 | `RateLimitResult` | 構造体 | 消費後の残余カウント・リセット時刻 |
 | `RateLimitPolicy` | 構造体 | キーに紐づく制限設定（キー・上限・ウィンドウ・アルゴリズム）|
-| `RateLimitError` | enum | `LimitExceeded`・`KeyNotFound`・`ServerError`・`Timeout` |
+| `RateLimitError` | enum | `LimitExceeded`・`KeyNotFound`・`ServerError`・`Timeout`（言語別表記は後述）|
+
+### エラーコード言語別対応表
+
+| 概念 | Rust (enum variant) | Go (Code string) | TypeScript (string literal) | Dart (code string) |
+|------|---------------------|------------------|-----------------------------|--------------------|
+| 制限超過 | `LimitExceeded` | `"LIMIT_EXCEEDED"` | `'LIMIT_EXCEEDED'` | `'LIMIT_EXCEEDED'` |
+| キー未検出 | `KeyNotFound` | `"KEY_NOT_FOUND"` | `'KEY_NOT_FOUND'` | `'KEY_NOT_FOUND'` |
+| サーバーエラー | `ServerError` | `"SERVER_ERROR"` | `'SERVER_ERROR'` | `'SERVER_ERROR'` |
+| タイムアウト | `Timeout` | `"TIMEOUT"` | `'TIMEOUT'` | `'TIMEOUT'` |
+| 不明 | — | — | `'UNKNOWN'` | — |
+
+> **注記**: Rust は `thiserror` による enum variant（PascalCase）。Go は struct の `Code` フィールドに文字列定数（SCREAMING\_SNAKE\_CASE）。TypeScript/Dart は string literal union（SCREAMING\_SNAKE\_CASE）。
 
 ## Rust 実装
 
@@ -53,7 +66,8 @@ ratelimit-client/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
 │   ├── client.rs       # RateLimitClient トレイト
-│   ├── grpc.rs         # GrpcRateLimitClient
+│   ├── grpc.rs         # GrpcRateLimitClient（HTTP REST 実装）
+│   ├── in_memory.rs    # InMemoryRateLimitClient（テスト用インメモリ実装）
 │   ├── types.rs        # RateLimitStatus・RateLimitResult・RateLimitPolicy
 │   └── error.rs        # RateLimitError
 └── Cargo.toml
@@ -81,7 +95,15 @@ pub struct RateLimitResult {
     pub reset_at: DateTime<Utc>,
 }
 
-> **注記（Rust実装）**: `GrpcRateLimitClient` は現在 `feature=grpc` フラグ付きで定義されているが、gRPC 接続は未実装（`ServerError` を返すスタブ）。要実装。
+> **注記（Rust実装）**: `GrpcRateLimitClient` は `feature=grpc` フラグ付きで定義されており、reqwest による HTTP REST 実装となっている（gRPC プロトコルではない）。
+
+pub struct InMemoryRateLimitClient { /* ... */ }
+
+impl InMemoryRateLimitClient {
+    pub fn new() -> Self;
+    pub async fn set_policy(&self, key: impl Into<String>, policy: RateLimitPolicy);
+    pub async fn used_count(&self, key: &str) -> u32;
+}
 
 #[cfg(feature = "grpc")]
 pub struct GrpcRateLimitClient { /* ... */ }
@@ -167,9 +189,11 @@ func (c *InMemoryClient) GetLimit(ctx context.Context, key string) (RateLimitPol
 func (c *InMemoryClient) UsedCount(key string) uint32
 
 // 注記: 名称はGrpcだが現状はHTTP REST実装。将来gRPCに移行予定。
+// Go の全メソッドは第1引数に ctx context.Context を受け取る。
 type GrpcRateLimitClient struct{ /* ... */ }
 
 func NewGrpcRateLimitClient(addr string) (*GrpcRateLimitClient, error)
+// NewGrpcRateLimitClientWithHTTPClient はテスト・モック用コンストラクタ。カスタム http.Client を注入できる（Goのみ）。
 func NewGrpcRateLimitClientWithHTTPClient(addr string, httpClient *http.Client) (*GrpcRateLimitClient, error)
 func (c *GrpcRateLimitClient) Check(ctx context.Context, key string, cost uint32) (RateLimitStatus, error)
 func (c *GrpcRateLimitClient) Consume(ctx context.Context, key string, cost uint32) (RateLimitResult, error)
@@ -265,6 +289,7 @@ export class GrpcRateLimitClient implements RateLimitClient {
   check(key: string, cost: number): Promise<RateLimitStatus>;
   consume(key: string, cost: number): Promise<RateLimitResult>;
   getLimit(key: string): Promise<RateLimitPolicy>;
+  // close() は TypeScript/Dart のみ必要（非同期リソース明示解放）。Go/Rust は GC/Drop で自動解放のため不要。
   close(): Promise<void>;
 }
 

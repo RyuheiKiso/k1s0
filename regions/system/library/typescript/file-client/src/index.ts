@@ -214,6 +214,66 @@ export class ServerFileClient implements FileClient {
 }
 
 // ---------------------------------------------------------------------------
+// MockFileClient — テスト用モック実装
+// ---------------------------------------------------------------------------
+
+/**
+ * MockFileClient は FileClient インターフェースを実装したテスト用モッククラス。
+ *
+ * jest.fn() を使って各メソッドをオーバーライドすることで、テストコード内で
+ * スタブ応答の注入・呼び出し検証が可能。
+ *
+ * @example
+ * ```typescript
+ * const mock = new MockFileClient();
+ * mock.getMetadata = jest.fn().mockResolvedValue({ path: 'a.png', ... });
+ * expect(mock.getMetadata).toHaveBeenCalledWith('a.png');
+ * ```
+ */
+export class MockFileClient implements FileClient {
+  async generateUploadUrl(path: string, contentType: string, expiresInMs: number): Promise<PresignedUrl> {
+    return {
+      url: `https://mock.example.com/upload/${path}`,
+      method: 'PUT',
+      expiresAt: new Date(Date.now() + expiresInMs),
+      headers: {},
+    };
+  }
+
+  async generateDownloadUrl(path: string, expiresInMs: number): Promise<PresignedUrl> {
+    return {
+      url: `https://mock.example.com/download/${path}`,
+      method: 'GET',
+      expiresAt: new Date(Date.now() + expiresInMs),
+      headers: {},
+    };
+  }
+
+  async delete(_path: string): Promise<void> {
+    // デフォルト実装は no-op（jest.fn() で上書き可能）
+  }
+
+  async getMetadata(path: string): Promise<FileMetadata> {
+    return {
+      path,
+      sizeBytes: 0,
+      contentType: 'application/octet-stream',
+      etag: '',
+      lastModified: new Date(),
+      tags: {},
+    };
+  }
+
+  async list(_prefix: string): Promise<FileMetadata[]> {
+    return [];
+  }
+
+  async copy(_src: string, _dst: string): Promise<void> {
+    // デフォルト実装は no-op（jest.fn() で上書き可能）
+  }
+}
+
+// ---------------------------------------------------------------------------
 // S3FileClient — AWS S3 / GCS / Ceph 直接実装
 // ---------------------------------------------------------------------------
 
