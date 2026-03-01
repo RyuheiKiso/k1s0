@@ -47,8 +47,10 @@ k1s0.{tier}.{domain}.v{major}
 
 ### gRPC サービス定義（canonical 位置）
 
-全サービスの proto ファイルは `api/proto/k1s0/system/` に集約して配置する。
-各サービスは `{service}/v1/{service}.proto` のディレクトリ構造に従う。
+全サービスの proto ファイルは `api/proto/k1s0/` 配下に Tier 別ディレクトリで配置する。
+gRPC サービス定義は、提供する API の Tier に合わせて `api/proto/k1s0/{tier}/{domain}/v{major}/` に配置する。
+
+> **注記**: 現状のリポジトリでは system tier の gRPC が中心のため `api/proto/k1s0/system/` が主に存在する。business/service tier の gRPC を追加する場合は対応する Tier 配下を増設する。
 
 ```
 api/proto/
@@ -56,51 +58,57 @@ api/proto/
 ├── buf.gen.yaml                          # コード生成設定（Go / TypeScript / Rust）
 ├── buf.lock                              # 依存ロック
 └── k1s0/
-    └── system/
-        ├── common/
-        │   └── v1/
-        │       ├── types.proto           # Pagination, PaginationResult, Timestamp
-        │       └── event_metadata.proto  # EventMetadata（Kafka イベント共通ヘッダー）
-        ├── auth/
-        │   └── v1/auth.proto             # AuthService / AuditService
-        ├── config/
-        │   └── v1/config.proto           # ConfigService（WatchConfig streaming 含む）
-        ├── saga/
-        │   └── v1/saga.proto             # SagaService
-        ├── featureflag/
-        │   └── v1/featureflag.proto      # FeatureFlagService
-        ├── ratelimit/
-        │   └── v1/ratelimit.proto        # RateLimitService
-        ├── tenant/
-        │   └── v1/tenant.proto           # TenantService
-        ├── vault/
-        │   └── v1/vault.proto            # VaultService
-        ├── apiregistry/
-        │   └── v1/api_registry.proto     # ApiRegistryService
-        ├── eventstore/
-        │   └── v1/event_store.proto      # EventStoreService
-        ├── navigation/
-        │   └── v1/navigation.proto       # NavigationService
-        ├── notification/
-        │   └── v1/notification.proto     # NotificationService
-        ├── policy/
-        │   └── v1/policy.proto           # PolicyService
-        ├── scheduler/
-        │   └── v1/scheduler.proto        # SchedulerService
-        ├── search/
-        │   └── v1/search.proto           # SearchService
-        ├── session/
-        │   └── v1/session.proto          # SessionService
-        ├── workflow/
-        │   └── v1/workflow.proto         # WorkflowService
-        ├── dlq/
-        │   └── v1/dlq.proto             # DlqService
-        ├── quota/
-        │   └── v1/quota.proto           # QuotaService
-        ├── file/
-        │   └── v1/file.proto            # FileService
-        └── mastermaintenance/
-            └── v1/master_maintenance.proto  # MasterMaintenanceService
+  ├── system/
+  │   ├── common/
+  │   │   └── v1/
+  │   │       ├── types.proto           # Pagination, PaginationResult, Timestamp
+  │   │       └── event_metadata.proto  # EventMetadata（Kafka イベント共通ヘッダー）
+  │   ├── auth/
+  │   │   └── v1/auth.proto             # AuthService / AuditService
+  │   ├── config/
+  │   │   └── v1/config.proto           # ConfigService（WatchConfig streaming 含む）
+  │   ├── saga/
+  │   │   └── v1/saga.proto             # SagaService
+  │   ├── featureflag/
+  │   │   └── v1/featureflag.proto      # FeatureFlagService
+  │   ├── ratelimit/
+  │   │   └── v1/ratelimit.proto        # RateLimitService
+  │   ├── tenant/
+  │   │   └── v1/tenant.proto           # TenantService
+  │   ├── vault/
+  │   │   └── v1/vault.proto            # VaultService
+  │   ├── apiregistry/
+  │   │   └── v1/api_registry.proto     # ApiRegistryService
+  │   ├── eventstore/
+  │   │   └── v1/event_store.proto      # EventStoreService
+  │   ├── navigation/
+  │   │   └── v1/navigation.proto       # NavigationService
+  │   ├── notification/
+  │   │   └── v1/notification.proto     # NotificationService
+  │   ├── policy/
+  │   │   └── v1/policy.proto           # PolicyService
+  │   ├── scheduler/
+  │   │   └── v1/scheduler.proto        # SchedulerService
+  │   ├── search/
+  │   │   └── v1/search.proto           # SearchService
+  │   ├── session/
+  │   │   └── v1/session.proto          # SessionService
+  │   ├── workflow/
+  │   │   └── v1/workflow.proto         # WorkflowService
+  │   ├── dlq/
+  │   │   └── v1/dlq.proto             # DlqService
+  │   ├── quota/
+  │   │   └── v1/quota.proto           # QuotaService
+  │   ├── file/
+  │   │   └── v1/file.proto            # FileService
+  │   └── mastermaintenance/
+  │       └── v1/master_maintenance.proto  # MasterMaintenanceService
+  ├── business/
+  │   └── {domain}/
+  │       └── v1/{domain}.proto
+  └── service/
+    └── {domain}/
+      └── v1/{domain}.proto
 ```
 
 ### Kafka イベント定義
@@ -178,7 +186,7 @@ message EventMetadata {
   int64 timestamp = 4;        // Unix timestamp (ms)
   string trace_id = 5;        // 分散トレース ID
   string correlation_id = 6;  // 業務相関 ID
-  int32 schema_version = 7;   // スキーマバージョン
+  int32 schema_version = 7;   // スキーマのメジャーバージョン（Kafka topic 末尾の vN / event proto の vN と同期）
 }
 ```
 
@@ -1836,7 +1844,7 @@ Rust サーバーは `buf.gen.yaml` による一括生成とは別に、各サ�
 - **サーバー専用オプション**: `build_server(true)` + `build_client(false)` により、サーバー側に不要なクライアントコードを除外できる
 - **proto パスの柔軟性**: `compile_protos` で参照先を指定できるため、`api/proto/` の共有 proto を直接参照可能
 
-proto ファイルはすべて `api/proto/k1s0/system/` を参照する（`regions/system/proto/` は廃止済み）。
+proto ファイルはすべて `api/proto/k1s0/` を参照する（`regions/system/proto/` は廃止済み）。
 
 ```rust
 // build.rs（例: auth サーバー）
