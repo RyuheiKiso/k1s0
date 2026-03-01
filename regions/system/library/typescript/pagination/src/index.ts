@@ -64,7 +64,8 @@ export function createPageResponse<T>(
 const CURSOR_SEPARATOR = "|";
 
 export function encodeCursor(sortKey: string, id: string): string {
-  return btoa(`${sortKey}${CURSOR_SEPARATOR}${id}`);
+  const base64 = btoa(`${sortKey}${CURSOR_SEPARATOR}${id}`);
+  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 export function defaultPageRequest(): PageRequest {
@@ -80,7 +81,11 @@ export function hasNextPage(req: PageRequest, total: number): boolean {
 }
 
 export function decodeCursor(cursor: string): { sortKey: string; id: string } {
-  const decoded = atob(cursor);
+  const normalized = cursor
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .padEnd(Math.ceil(cursor.length / 4) * 4, "=");
+  const decoded = atob(normalized);
   const idx = decoded.indexOf(CURSOR_SEPARATOR);
   if (idx < 0) {
     throw new Error("invalid cursor: missing separator");

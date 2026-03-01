@@ -97,12 +97,18 @@ const cursorSeparator = "|"
 // EncodeCursor は sort_key と id を結合して Base64 エンコードする。
 func EncodeCursor(sortKey, id string) string {
 	combined := sortKey + cursorSeparator + id
-	return base64.StdEncoding.EncodeToString([]byte(combined))
+	return base64.RawURLEncoding.EncodeToString([]byte(combined))
 }
 
 // DecodeCursor は Base64 エンコードされたカーソルをデコードし (sortKey, id) を返す。
 func DecodeCursor(cursor string) (sortKey string, id string, err error) {
-	b, err := base64.StdEncoding.DecodeString(cursor)
+	b, err := base64.RawURLEncoding.DecodeString(cursor)
+	if err != nil {
+		b, err = base64.URLEncoding.DecodeString(cursor)
+	}
+	if err != nil {
+		b, err = base64.StdEncoding.DecodeString(cursor)
+	}
 	if err != nil {
 		return "", "", errors.New("無効なカーソルです")
 	}

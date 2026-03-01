@@ -23,9 +23,11 @@
 | `has_next(total)` | メソッド | 次のページが存在するかを返す（`page * per_page < total`） |
 | `PaginationError` | enum | `InvalidCursor`・`InvalidPerPage` |
 
-> **注意: Base64 エンコーディング方式の差異**
+> **注意: カーソルの Base64 仕様（統一方針）**
 >
-> Dart 実装のみ `base64Url`（URL-safe Base64）を使用しており、他の3言語（Rust: `base64::STANDARD`、Go: `base64.StdEncoding`、TypeScript: `btoa`）は標準 Base64 を使用している。そのため、**Dart で生成したカーソルを他言語でデコードする場合（またはその逆）は互換性がない可能性がある**。言語間でカーソルを受け渡す場合は、この差異に注意すること。
+> Cursor は URL で安全に扱えるよう、全言語で **base64url（URL-safe Base64, no padding）** を標準とする（`+`/`/` を使わず、`-`/`_` を使用し、末尾の `=` は付与しない）。
+>
+> 互換性のため、各言語の decode は **base64url（padding有無両方）と旧仕様の標準 Base64**を受け付ける。
 
 ## Rust 実装
 

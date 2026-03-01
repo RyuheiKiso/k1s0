@@ -24,6 +24,12 @@ Client → Nginx Ingress Controller (TLS終端) → Kong Proxy → Istio Sidecar
                           PostgreSQL (kong-db)
 ```
 
+#### 本ドキュメントにおける呼称
+
+- **BFF Proxy**: system tier の共通基盤。Cookie セッション（HttpOnly）と Bearer Token の変換・token refresh・サーバーサイドセッション管理を担う
+- **GraphQL BFF**: service tier のオプション採用（画面要件により導入）。複数サービスの REST/gRPC を GraphQL で集約する BFF
+- **GraphQL Gateway**: system tier の集約レイヤー。system tier の複数 gRPC バックエンドを GraphQL で統一的に集約する
+
 #### BFF Proxy 経由のトラフィックフロー
 
 SPA（React）からのアクセスは BFF Proxy を経由し、HttpOnly Cookie と Bearer Token を変換する（詳細は [認証認可設計](../auth/認証認可設計.md) の「SPA トークン保存方式」参照）。

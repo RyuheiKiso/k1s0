@@ -350,7 +350,7 @@ services:
       - name: cors
         config:
           origins:
-            - "https://*.k1s0.example.com"
+            - "https://*.k1s0.internal.example.com"
           methods:
             - POST
             - GET

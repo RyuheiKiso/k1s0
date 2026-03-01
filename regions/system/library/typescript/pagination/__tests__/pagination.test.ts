@@ -43,13 +43,15 @@ describe('encodeCursor / decodeCursor', () => {
     expect(decoded.id).toBe(id);
   });
 
-  it('base64文字列を返す', () => {
+  it('base64url文字列（no padding）を返す', () => {
     const cursor = encodeCursor('key', 'test-id');
-    expect(cursor).toBe(btoa('key|test-id'));
+    const expected = btoa('key|test-id').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    expect(cursor).toBe(expected);
   });
 
   it('セパレータがないカーソルはエラーになる', () => {
-    expect(() => decodeCursor(btoa('noseparator'))).toThrow('missing separator');
+    const legacy = btoa('noseparator');
+    expect(() => decodeCursor(legacy)).toThrow('missing separator');
   });
 });
 
