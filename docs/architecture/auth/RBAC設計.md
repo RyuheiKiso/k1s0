@@ -174,7 +174,7 @@ pub async fn require_permission(
 パーミッション解決は **JWT Claims ベースの静的解決** を基本とし、DB ルックアップを不要とすることで低レイテンシの認可判定を実現する。
 
 - **インメモリ判定**: パーミッション判定は毎回 DB ルックアップを行わず、メモリ上のロール → パーミッション変換テーブルで即座に解決する
-- **JWT Claims 信頼**: Kong で JWT 署名検証済みであることを前提とし、Claims 内のロール情報を信頼する
+- **JWT Claims 信頼**: Kong でも JWT 検証を行うが、各サービス側でも署名検証した JWT Claims を信頼し、Claims 内のロール情報を利用する
 - **Keycloak Admin API**: 起動時および 5 分間隔で `GET /admin/realms/k1s0/roles` と各ロールのコンポジットロール情報を取得し、変換テーブルを構築する
 
 ## `tier_access` Claim の設計背景
@@ -199,14 +199,14 @@ type RBACMiddleware struct {
 func RequirePermission(permission, resource string) func(http.Handler) http.Handler {
     return func(next http.Handler) http.Handler {
         return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-            // Kong から転送されたヘッダーからロール情報を取得
-            roles := strings.Split(r.Header.Get("X-User-Roles"), ",")
-            userID := r.Header.Get("X-User-Id")
-
-            if userID == "" {
+            // 前段の認証ミドルウェアで JWT を検証し、Claims を Context に格納済みであることを前提とする
+            claims, ok := GetClaims(r.Context())
+            if !ok {
                 WriteError(w, r, http.StatusUnauthorized, "SYS_AUTH_MISSING_TOKEN", "認証が必要です")
                 return
             }
+
+            roles := claims.RealmAccess.Roles
 
             if !hasPermission(roles, permission, resource) {
                 WriteError(w, r, http.StatusForbidden, "SYS_AUTH_PERMISSION_DENIED", "この操作を実行する権限がありません")
@@ -235,6 +235,7 @@ mux.Handle("DELETE /api/v1/orders/{id}",
 // src/adapter/middleware/rbac.rs
 
 use axum::{extract::Request, middleware::Next, response::Response};
+use k1s0_auth::Claims;
 
 pub async fn require_permission(
     permission: &str,
@@ -242,19 +243,16 @@ pub async fn require_permission(
     req: Request,
     next: Next,
 ) -> Result<Response, ErrorResponse> {
-    let user_id = req.headers()
-        .get("X-User-Id")
-        .and_then(|v| v.to_str().ok())
+    // 前段の認証ミドルウェアで JWT を検証し、Claims を Request extensions に格納済みであることを前提とする
+    let claims = req
+        .extensions()
+        .get::<Claims>()
+        .cloned()
         .ok_or_else(|| ErrorResponse::unauthenticated("認証が必要です"))?;
 
-    let roles: Vec<&str> = req.headers()
-        .get("X-User-Roles")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("")
-        .split(',')
-        .collect();
+    let roles = claims.realm_roles();
 
-    if !has_permission(&roles, permission, resource) {
+    if !has_permission(roles, permission, resource) {
         return Err(ErrorResponse::forbidden("この操作を実行する権限がありません"));
     }
 

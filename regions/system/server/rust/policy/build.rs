@@ -1,29 +1,20 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-    let manifest_path = std::path::PathBuf::from(&manifest_dir);
+    let policy_proto = "../../../../../api/proto/k1s0/system/policy/v1/policy.proto";
+    let proto_include = "../../../../../api/proto";
 
-    let policy_proto = manifest_path
-        .join("../../../../../api/proto/k1s0/system/policy/v1/policy.proto")
-        .canonicalize();
-    let proto_include = manifest_path
-        .join("../../../../../api/proto")
-        .canonicalize();
-
-    let (policy_proto, proto_include) = match (policy_proto, proto_include) {
-        (Ok(p), Ok(i)) => (p, i),
-        _ => {
-            println!("cargo:warning=Proto file not found, skipping tonic codegen");
-            return Ok(());
-        }
-    };
-
-    let out_dir = manifest_path.join("src/proto");
+    if !std::path::Path::new(policy_proto).exists() {
+        println!(
+            "cargo:warning=Proto file not found, skipping tonic codegen: {}",
+            policy_proto
+        );
+        return Ok(());
+    }
 
     match tonic_build::configure()
         .build_server(true)
         .build_client(false)
-        .out_dir(&out_dir)
-        .compile_protos(&[&policy_proto], &[&proto_include])
+        .out_dir("src/proto")
+        .compile_protos(&[policy_proto], &[proto_include])
     {
         Ok(()) => {
             println!("cargo:warning=tonic-build succeeded for policy proto");

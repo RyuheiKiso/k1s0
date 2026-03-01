@@ -9,7 +9,7 @@ use k1s0_auth_server::adapter::handler::{router, AppState};
 use k1s0_auth_server::domain::entity::audit_log::{AuditLog, AuditLogSearchParams};
 use k1s0_auth_server::domain::entity::claims::{Claims, RealmAccess};
 use k1s0_auth_server::domain::entity::user::{Pagination, Role, User, UserListResult, UserRoles};
-use k1s0_auth_server::domain::repository::{AuditLogRepository, UserRepository};
+use k1s0_auth_server::domain::repository::{ApiKeyRepository, AuditLogRepository, UserRepository};
 use k1s0_auth_server::infrastructure::TokenVerifier;
 
 // --- Test doubles ---
@@ -38,6 +38,35 @@ impl TokenVerifier for TestTokenVerifier {
         } else {
             anyhow::bail!("token verification failed")
         }
+    }
+}
+
+struct TestApiKeyRepository;
+
+#[async_trait::async_trait]
+impl ApiKeyRepository for TestApiKeyRepository {
+    async fn create(&self, _api_key: &k1s0_auth_server::domain::entity::api_key::ApiKey) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn find_by_id(&self, _id: uuid::Uuid) -> anyhow::Result<Option<k1s0_auth_server::domain::entity::api_key::ApiKey>> {
+        Ok(None)
+    }
+
+    async fn find_by_prefix(&self, _prefix: &str) -> anyhow::Result<Option<k1s0_auth_server::domain::entity::api_key::ApiKey>> {
+        Ok(None)
+    }
+
+    async fn list_by_tenant(&self, _tenant_id: &str) -> anyhow::Result<Vec<k1s0_auth_server::domain::entity::api_key::ApiKey>> {
+        Ok(vec![])
+    }
+
+    async fn revoke(&self, _id: uuid::Uuid) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn delete(&self, _id: uuid::Uuid) -> anyhow::Result<()> {
+        Ok(())
     }
 }
 
@@ -154,8 +183,10 @@ fn make_test_app(token_success: bool) -> axum::Router {
         }),
         Arc::new(TestUserRepository),
         Arc::new(TestAuditLogRepository::new()),
+        Arc::new(TestApiKeyRepository),
         "test-issuer".to_string(),
         "test-audience".to_string(),
+        None,
         None,
         None,
     );
@@ -323,8 +354,10 @@ async fn test_audit_log_record_and_search_flow() {
         }),
         Arc::new(TestUserRepository),
         Arc::new(TestAuditLogRepository::new()),
+        Arc::new(TestApiKeyRepository),
         "test-issuer".to_string(),
         "test-audience".to_string(),
+        None,
         None,
         None,
     );

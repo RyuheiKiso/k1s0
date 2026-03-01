@@ -862,7 +862,7 @@ pub struct BackendsConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct BackendConfig {
-    /// gRPC エンドポイント（例: "http://tenant-server.k1s0-system.svc.cluster.local:9090"）
+    /// gRPC エンドポイント（例: "http://tenant-server.k1s0-system.svc.cluster.local:50051"）
     pub address: String,
     /// リクエストタイムアウト（ミリ秒）
     pub timeout_ms: u64,
@@ -1001,13 +1001,13 @@ auth:
 
 backends:
   tenant:
-    address: "http://tenant-server.k1s0-system.svc.cluster.local:9090"
+        address: "http://tenant-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
   featureflag:
-    address: "http://featureflag-server.k1s0-system.svc.cluster.local:9090"
+        address: "http://featureflag-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
   config:
-    address: "http://config-server.k1s0-system.svc.cluster.local:9090"
+        address: "http://config-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
 ```
 

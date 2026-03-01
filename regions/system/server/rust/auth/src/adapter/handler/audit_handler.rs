@@ -119,6 +119,7 @@ mod tests {
             "test-audience".to_string(),
             None,
             None,
+            None,
         )
     }
 

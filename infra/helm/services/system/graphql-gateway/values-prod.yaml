@@ -36,13 +36,13 @@ config:
         max_complexity: 500
       backends:
         tenant:
-          address: "http://tenant.k1s0-system.svc.cluster.local:9090"
+          address: "http://tenant.k1s0-system.svc.cluster.local:50051"
           timeout_ms: 2000
         featureflag:
-          address: "http://featureflag.k1s0-system.svc.cluster.local:9090"
+          address: "http://featureflag.k1s0-system.svc.cluster.local:50051"
           timeout_ms: 2000
         config:
-          address: "http://config.k1s0-system.svc.cluster.local:9090"
+          address: "http://config.k1s0-system.svc.cluster.local:50051"
           timeout_ms: 2000
       observability:
         log:

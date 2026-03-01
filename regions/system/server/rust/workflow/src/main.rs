@@ -178,7 +178,7 @@ async fn main() -> anyhow::Result<()> {
 
     let workflow_tonic = adapter::grpc::WorkflowServiceTonic::new(grpc_svc);
 
-    let grpc_addr: SocketAddr = "0.0.0.0:9090".parse()?;
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;

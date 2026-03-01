@@ -295,13 +295,13 @@ data:
 
     backends:
       tenant:
-        address: "http://tenant-server.k1s0-system.svc.cluster.local:9090"
+        address: "http://tenant-server.k1s0-system.svc.cluster.local:50051"
         timeout_ms: 3000
       featureflag:
-        address: "http://featureflag-server.k1s0-system.svc.cluster.local:9090"
+        address: "http://featureflag-server.k1s0-system.svc.cluster.local:50051"
         timeout_ms: 3000
       config:
-        address: "http://config-server.k1s0-system.svc.cluster.local:9090"
+        address: "http://config-server.k1s0-system.svc.cluster.local:50051"
         timeout_ms: 3000
 
     observability:

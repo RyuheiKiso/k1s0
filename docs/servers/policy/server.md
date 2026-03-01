@@ -29,7 +29,7 @@ system tier のポリシー評価サーバーは以下の機能を提供する�
 
 ### gRPC ポート
 
-proto ファイルおよびサーバー実装のデフォルト: **9090**（config.yaml で上書き可能）
+proto ファイルおよびサーバー実装のデフォルト: **50051**（config.yaml で上書き可能）
 
 ---
 
@@ -46,7 +46,7 @@ proto ファイルおよびサーバー実装のデフォルト: **9090**（conf
 | キャッシュ | moka で評価結果を TTL 30 秒キャッシュ。Kafka 通知受信時にキャッシュ無効化 |
 | DB スキーマ | PostgreSQL の `policy` スキーマ（policies, policy_bundles テーブル） |
 | Kafka | ポリシー変更時に `k1s0.system.policy.updated.v1` トピックへ変更通知を送信 |
-| ポート | ホスト側 8096（内部 8080）、gRPC 9090 |
+| ポート | ホスト側 8096（内部 8080）、gRPC 50051 |
 
 ---
 
@@ -358,7 +358,8 @@ ID 指定でポリシーの詳細を取得する。
 
 ### gRPC サービス定義
 
-gRPC ポート: **9090**
+gRPC ポート: **50051**
+
 
 ```protobuf
 syntax = "proto3";
@@ -612,7 +613,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
-  grpc_port: 9090
+  grpc_port: 50051
 
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
@@ -653,12 +654,12 @@ replicaCount: 2
 
 container:
   port: 8080
-  grpcPort: 9090
+  grpcPort: 50051
 
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 9090
+  grpcPort: 50051
 
 autoscaling:
   enabled: true

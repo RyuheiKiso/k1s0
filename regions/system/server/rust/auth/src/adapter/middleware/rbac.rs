@@ -185,6 +185,7 @@ mod tests {
                 "k1s0-api".to_string(),
                 None,
                 None,
+                None,
             )
         };
 
@@ -230,6 +231,7 @@ mod tests {
                 "k1s0-api".to_string(),
                 None,
                 None,
+                None,
             )
         };
 
@@ -267,6 +269,7 @@ mod tests {
                 Arc::new(MockApiKeyRepository::new()),
                 "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
                 "k1s0-api".to_string(),
+                None,
                 None,
                 None,
             )
@@ -312,6 +315,7 @@ mod tests {
                 Arc::new(MockApiKeyRepository::new()),
                 "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
                 "k1s0-api".to_string(),
+                None,
                 None,
                 None,
             )
@@ -362,6 +366,7 @@ mod tests {
                 Arc::new(MockApiKeyRepository::new()),
                 "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
                 "k1s0-api".to_string(),
+                None,
                 None,
                 None,
             )

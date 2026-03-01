@@ -324,6 +324,7 @@ mod tests {
             "k1s0-api".to_string(),
             None,
             None,
+            None,
         )
     }
 
