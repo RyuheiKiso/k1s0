@@ -8,18 +8,18 @@
 
 ## 公開 API（全言語共通契約）
 
-| 型・関数 | 説明 |
-|---------|------|
-| `TraceContext` | W3C TraceContext（traceId・parentId・flags） |
-| `TraceContext.toTraceparent()` | `traceparent` ヘッダー文字列を生成 |
-| `TraceContext.fromTraceparent(s)` | `traceparent` ヘッダー文字列をパース |
-| `Baggage` | W3C Baggage（key-value エントリの集合） |
-| `Baggage.set(key, value)` | エントリを設定 |
-| `Baggage.get(key)` | エントリを取得 |
-| `Baggage.toHeader()` | `baggage` ヘッダー文字列を生成 |
-| `Baggage.fromHeader(s)` | `baggage` ヘッダー文字列をパース |
-| `injectContext(headers, ctx, baggage?)` | headers に `traceparent` と `baggage` を注入 |
-| `extractContext(headers)` | headers から `TraceContext` と `Baggage` を抽出 |
+| 型・関数 | 説明 | 備考 |
+|---------|------|------|
+| `TraceContext` | W3C TraceContext（traceId・parentId・flags） | |
+| `toTraceparent(ctx)` / `ctx.toTraceparent()` | `traceparent` ヘッダー文字列を生成 | Go/Rust/Dart: メソッド、TypeScript: スタンドアロン関数 `toTraceparent(ctx)` |
+| `fromTraceparent(s)` | `traceparent` ヘッダー文字列をパース | Rust/Dart: `TraceContext` の関連関数/static メソッド、Go/TypeScript: スタンドアロン関数 |
+| `Baggage` | W3C Baggage（key-value エントリの集合） | |
+| `Baggage.set(key, value)` | エントリを設定 | |
+| `Baggage.get(key)` | エントリを取得 | |
+| `Baggage.toHeader()` | `baggage` ヘッダー文字列を生成 | |
+| `Baggage.fromHeader(s)` | `baggage` ヘッダー文字列をパース | |
+| `injectContext(headers, ctx, baggage?)` | headers に `traceparent` と `baggage` を注入 | Go のみ第1引数に `context.Context` を取る（4引数） |
+| `extractContext(headers)` | headers から `TraceContext` と `Baggage` を抽出 | |
 
 ## Go 実装
 
@@ -85,29 +85,63 @@ impl TraceContext {
     pub fn from_traceparent(s: &str) -> Option<TraceContext>;
 }
 
+// propagation.rs -- traceparent のみの inject/extract（baggage を扱わない軽量版）
+// パラメータ順序が lib.rs 版と異なる点に注意。
+pub fn inject_context(ctx: &TraceContext, headers: &mut HashMap<String, String>);
+pub fn extract_context(headers: &HashMap<String, String>) -> Option<TraceContext>;
+
 // baggage.rs
+#[derive(Debug, Clone, Default)]
 pub struct Baggage(HashMap<String, String>);
 
 impl Baggage {
-    pub fn new() -> Self;
+    pub fn new() -> Self;           // Baggage::default() も利用可能
     pub fn set(&mut self, key: impl Into<String>, value: impl Into<String>);
     pub fn get(&self, key: &str) -> Option<&str>;
-    pub fn to_header(&self) -> String;
+    pub fn to_header(&self) -> String;   // エントリをキー昇順でソートして出力（他言語は挿入/反復順）
     pub fn from_header(s: &str) -> Self;
     pub fn is_empty(&self) -> bool;
     pub fn len(&self) -> usize;
 }
 
-// lib.rs
+// lib.rs -- traceparent + baggage を扱うフル版の inject/extract
+// propagation.rs 版との違い: baggage サポートあり、パラメータ順序が (headers, ctx, baggage)
 pub fn inject_context(headers: &mut HashMap<String, String>, ctx: &TraceContext, baggage: Option<&Baggage>);
 pub fn extract_context(headers: &HashMap<String, String>) -> (Option<TraceContext>, Baggage);
 
 // span.rs（簡易スパン管理）
-pub struct SpanHandle { pub name: String, pub trace_id: String, pub span_id: String, pub attributes: HashMap<String, String>, pub events: Vec<SpanEvent> }
+pub struct SpanEvent {
+    pub name: String,
+    pub attributes: HashMap<String, String>,
+}
+
+pub struct SpanHandle {
+    pub name: String,
+    pub trace_id: String,
+    pub span_id: String,
+    pub attributes: HashMap<String, String>,
+    pub events: Vec<SpanEvent>,
+}
+
+impl SpanHandle {
+    pub fn new(name: &str) -> Self;  // trace_id, span_id は空文字列で初期化
+}
+
 pub fn start_span(name: &str) -> SpanHandle;
 pub fn end_span(handle: SpanHandle);
 pub fn add_event(handle: &mut SpanHandle, name: &str, attributes: HashMap<String, String>);
 ```
+
+**inject/extract の2系統について**:
+
+| 関数パス | シグネチャ | 用途 |
+|---------|-----------|------|
+| `tracing::inject_context` (lib.rs) | `(headers, ctx, baggage?)` | traceparent + baggage を注入 |
+| `tracing::propagation::inject_context` | `(ctx, headers)` | traceparent のみを注入（軽量版） |
+| `tracing::extract_context` (lib.rs) | `(headers) -> (Option<TraceContext>, Baggage)` | traceparent + baggage を抽出 |
+| `tracing::propagation::extract_context` | `(headers) -> Option<TraceContext>` | traceparent のみを抽出（軽量版） |
+
+`lib.rs` 版は `pub use` で crate ルートに再エクスポートされるため、通常は `tracing::inject_context` / `tracing::extract_context` を使用する。baggage が不要な場合は `tracing::propagation::inject_context` / `tracing::propagation::extract_context` を直接利用できる。
 
 ## TypeScript 実装
 
@@ -159,6 +193,7 @@ class TraceContext {
 class Baggage {
   void set(String key, String value);
   String? get(String key);
+  Map<String, String> get entries;  // 全エントリの読み取り専用マップ（Map.unmodifiable）
   String toHeader();
   static Baggage fromHeader(String s);
 }

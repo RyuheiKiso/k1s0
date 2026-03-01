@@ -1,5 +1,15 @@
 import 'event.dart';
 
+enum AuditErrorKind { serializationError, sendError, internal }
+
+class AuditError implements Exception {
+  final AuditErrorKind kind;
+  final String message;
+  AuditError(this.kind, this.message);
+  @override
+  String toString() => 'AuditError($kind): $message';
+}
+
 abstract class AuditClient {
   Future<void> record(AuditEvent event);
   Future<List<AuditEvent>> flush();

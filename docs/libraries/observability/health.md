@@ -4,24 +4,62 @@
 
 ## 概要
 
-PostgreSQL・Redis・Kafka・外部 HTTP エンドポイントへの依存チェックを統一 API で提供する。axum ルーターへの組み込みと、OpenTelemetry メトリクス連携をサポートする。各チェッカーは `HealthCheck` トレイトを実装し、`HealthChecker` に登録することで `/healthz`（死活確認）と `/readyz`（トラフィック受け入れ可否）の 2 エンドポイントを自動生成する。
+PostgreSQL・Redis・Kafka・外部 HTTP エンドポイントへの依存チェックを統一 API で提供する。各チェッカーは `HealthCheck` インターフェースを実装し、チェッカーに登録することで `/healthz`（死活確認）と `/readyz`（トラフィック受け入れ可否）の 2 エンドポイント用レスポンスを生成する。ライブラリはトランスポート非依存であり、HTTP フレームワーク（axum, Express 等）への組み込みは利用側サーバーの責務となる。
 
-sqlx・deadpool-redis・rdkafka はオプショナル feature として切り替え可能にし、不要な依存を持ち込まない設計とする。`HealthStatus` は `Healthy`・`Degraded`・`Unhealthy` の 3 段階で障害の重大度を表現する。
+sqlx・deadpool-redis・rdkafka はオプショナル feature として切り替え可能にし、不要な依存を持ち込まない設計とする。`HealthStatus` は `Healthy`・`Degraded`・`Unhealthy` の 3 段階を定義する。ただし、現在の実装ではいずれの言語でも `Degraded` を自動生成するロジックは存在しない（カスタムチェッカーで利用者が明示的に返すことは可能）。
 
-**配置先**: `regions/system/library/rust/health/`
+**配置先**:
+
+| 言語 | パス |
+|------|------|
+| Go | `regions/system/library/go/health/` |
+| Rust | `regions/system/library/rust/health/` |
+| TypeScript | `regions/system/library/typescript/health/` |
+| Dart | `regions/system/library/dart/health/` |
+
+## ヘルスチェック実装の言語別対応状況
+
+| チェックタイプ | Go | Rust | TypeScript | Dart |
+|--------------|-----|------|-----------|------|
+| HTTP | Yes | Yes (feature: `http`) | Yes | Yes |
+| PostgreSQL | Yes | Yes (feature: `postgres`) | -- | -- |
+| Redis | Yes | Yes (feature: `redis`) | -- | -- |
+| Kafka | -- | Yes (feature: `kafka`) | -- | -- |
 
 ## 公開 API
 
+### 共通型（全言語）
+
+| 型・インターフェース | 種別 | 説明 |
+|-------------------|------|------|
+| `HealthStatus` | enum/type | `Healthy`・`Degraded`・`Unhealthy` |
+| `CheckResult` | 構造体 | `status` + `message`（成功時 null/None/"OK"、失敗時エラー文字列） |
+| `HealthResponse` | 構造体 | `status` + `checks` マップ + `timestamp` |
+| `HealthCheck` | インターフェース/トレイト | `name` + `check()` メソッド（成功: void/Ok、失敗: throw/Err） |
+| `HttpHealthCheck` | 構造体/クラス | 外部 HTTP エンドポイントの GET 確認 |
+
+### Rust 固有
+
 | 型・トレイト | 種別 | 説明 |
 |------------|------|------|
-| `HealthChecker` | 構造体 | 複数チェッカーを集約し healthz/readyz レスポンスを生成 |
-| `HealthCheck` | トレイト | 個別ヘルスチェック実装インターフェース |
+| `HealthChecker` | トレイト | `add_check(&mut self, check: Box<dyn HealthCheck>)` |
+| `CompositeHealthChecker` | 構造体 | `HealthChecker` トレイトの具象実装。複数チェッカーを集約し healthz/readyz レスポンスを生成 |
+| `HealthError` | enum | `CheckFailed(String)`・`Timeout(String)` |
+| `HealthzResponse` | 構造体 | `status: String`（常に `"ok"`） |
+| `PostgresHealthCheck` | 構造体 (feature: `postgres`) | PostgreSQL 接続確認 |
+| `RedisHealthCheck` | 構造体 (feature: `redis`) | Redis PING 確認 |
+| `KafkaHealthCheck` | 構造体 (feature: `kafka`) | Kafka ブローカー接続確認 |
+
+### Go 固有
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `Checker` | 構造体 | チェッカーオーケストレータ |
+| `HttpHealthCheckOption` | 関数型 | `HttpHealthCheck` の設定オプション |
 | `PostgresHealthCheck` | 構造体 | PostgreSQL 接続確認 |
+| `PostgresHealthCheckOption` | 関数型 | `PostgresHealthCheck` の設定オプション |
 | `RedisHealthCheck` | 構造体 | Redis PING 確認 |
-| `KafkaHealthCheck` | 構造体 | Kafka ブローカー接続確認 |
-| `HttpHealthCheck` | 構造体 | 外部 HTTP エンドポイントの GET 確認 |
-| `HealthStatus` | enum | `Healthy`・`Degraded`・`Unhealthy` |
-| `HealthResponse` | 構造体 | status + checks マップ（axum JSON レスポンス） |
+| `RedisHealthCheckOption` | 関数型 | `RedisHealthCheck` の設定オプション |
 
 ## Rust 実装
 
@@ -34,25 +72,27 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+default = []
 postgres = ["sqlx"]
 redis = ["deadpool-redis"]
 http = ["reqwest"]
+kafka = ["rdkafka"]
+mock = ["mockall"]
+full = ["postgres", "redis", "http", "kafka"]
 
 [dependencies]
 async-trait = "0.1"
-axum = "0.7"
-tokio = { version = "1", features = ["sync", "time"] }
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time", "macros"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-sqlx = { version = "0.8", features = ["postgres", "runtime-tokio"], optional = true }
+mockall = { version = "0.13", optional = true }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"], optional = true }
 deadpool-redis = { version = "0.18", optional = true }
-reqwest = { version = "0.12", optional = true }
-tracing = "0.1"
+reqwest = { version = "0.12", features = ["json"], optional = true }
+rdkafka = { version = "0.36", features = ["cmake-build"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-testcontainers = "0.23"
-wiremock = "0.6"
 ```
 
 **依存追加**: `k1s0-health = { path = "../../system/library/rust/health", features = ["postgres", "redis"] }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）
@@ -62,54 +102,113 @@ wiremock = "0.6"
 ```
 health/
 ├── src/
-│   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
-│   ├── checker.rs      # HealthChecker
+│   ├── lib.rs          # 公開 API（再エクスポート）
+│   ├── checker.rs      # HealthCheck トレイト, HealthChecker トレイト, CompositeHealthChecker
+│   ├── error.rs        # HealthError enum
 │   ├── checks/
-│   │   ├── mod.rs
-│   │   ├── postgres.rs
-│   │   ├── redis.rs
-│   │   ├── kafka.rs
-│   │   └── http.rs
-│   └── response.rs     # HealthStatus・HealthResponse
+│   │   ├── mod.rs      # feature-gated サブモジュール宣言
+│   │   ├── http.rs     # HttpHealthCheck (feature: http)
+│   │   ├── postgres.rs # PostgresHealthCheck (feature: postgres)
+│   │   ├── redis.rs    # RedisHealthCheck (feature: redis)
+│   │   └── kafka.rs    # KafkaHealthCheck (feature: kafka)
+│   └── response.rs     # HealthStatus・CheckResult・HealthResponse・HealthzResponse
 └── Cargo.toml
 ```
 
 **使用例**:
 
 ```rust
-use axum::{routing::get, Router, Json};
-use k1s0_health::{HealthChecker, PostgresHealthCheck, RedisHealthCheck};
+use std::sync::Arc;
+use k1s0_health::{
+    CompositeHealthChecker, PostgresHealthCheck, RedisHealthCheck,
+};
 
-// HealthChecker の構築
-let health_checker = HealthChecker::new()
-    .add_check("database", PostgresHealthCheck::new(pool.clone()))
-    .add_check("redis", RedisHealthCheck::new(redis_client.clone()));
+// CompositeHealthChecker の構築（mut が必要）
+let mut checker = CompositeHealthChecker::new();
+checker.add_check(Box::new(PostgresHealthCheck::new("database", pool.clone())));
+checker.add_check(Box::new(RedisHealthCheck::new("redis", redis_pool.clone())));
 
-let health_checker = Arc::new(health_checker);
+let checker = Arc::new(checker);
 
-// axum ルーターへの組み込み
-let app = Router::new()
-    .route("/healthz", get(|| async { Json(json!({"status": "ok"})) }))
-    .route("/readyz", get(move || {
-        let checker = health_checker.clone();
-        async move { checker.readyz().await }
-    }));
+// サーバー側で /healthz, /readyz ハンドラに組み込む（フレームワーク非依存）
+// healthz: checker.healthz() -> HealthzResponse { status: "ok" }
+// readyz:  checker.readyz().await -> HealthResponse
+```
 
-// /readyz レスポンス例:
-// {
-//   "status": "Healthy",
-//   "checks": {
-//     "database": { "status": "Healthy", "duration_ms": 3 },
-//     "redis":    { "status": "Healthy", "duration_ms": 1 }
-//   }
-// }
+**レスポンス例** (`readyz`):
+
+```json
+{
+  "status": "Healthy",
+  "checks": {
+    "database": { "status": "Healthy", "message": null },
+    "redis":    { "status": "Healthy", "message": null }
+  },
+  "timestamp": "1709312400"
+}
+```
+
+**主要 API**:
+
+```rust
+// HealthCheck トレイト -- 個別チェック実装インターフェース
+#[async_trait]
+pub trait HealthCheck: Send + Sync {
+    fn name(&self) -> &str;
+    async fn check(&self) -> Result<(), HealthError>;
+}
+
+// HealthChecker トレイト
+pub trait HealthChecker: Send + Sync {
+    fn add_check(&mut self, check: Box<dyn HealthCheck>);
+}
+
+// CompositeHealthChecker -- 複数チェッカーの集約
+impl CompositeHealthChecker {
+    pub fn new() -> Self;
+    pub fn add_check(&mut self, check: Box<dyn HealthCheck>);
+    pub async fn run_all(&self) -> HealthResponse;
+    pub async fn readyz(&self) -> HealthResponse;   // run_all のエイリアス
+    pub fn healthz(&self) -> HealthzResponse;        // 常に { status: "ok" }
+}
+
+// HealthError
+pub enum HealthError {
+    CheckFailed(String),
+    Timeout(String),
+}
+
+// HttpHealthCheck (feature = "http")
+impl HttpHealthCheck {
+    pub fn new(name: impl Into<String>, url: impl Into<String>) -> Self;
+    pub fn with_timeout_ms(mut self, timeout_ms: u64) -> Self;  // デフォルト 5000ms
+}
+
+// PostgresHealthCheck (feature = "postgres")
+impl PostgresHealthCheck {
+    pub fn new(name: impl Into<String>, pool: PgPool) -> Self;
+}
+
+// RedisHealthCheck (feature = "redis")
+impl RedisHealthCheck {
+    pub fn new(name: impl Into<String>, pool: deadpool_redis::Pool) -> Self;
+}
+
+// KafkaHealthCheck (feature = "kafka")
+impl KafkaHealthCheck {
+    pub fn new(name: impl Into<String>, brokers: Vec<String>) -> Self;
+    pub fn with_timeout_ms(mut self, timeout_ms: u64) -> Self;  // デフォルト 5000ms
+}
+
+// mock feature 有効時
+pub use MockHealthCheck;  // mockall 自動生成
 ```
 
 ## Go 実装
 
 **配置先**: `regions/system/library/go/health/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: なし（標準ライブラリのみ）
+**依存関係**: `github.com/redis/go-redis/v9`（`RedisHealthCheck` 使用時）。HTTP・PostgreSQL チェックは標準ライブラリのみ。
 
 **主要インターフェース**:
 
@@ -124,7 +223,7 @@ const (
 
 type CheckResult struct {
     Status  Status
-    Message string
+    Message string  // 成功時 "OK"、失敗時 err.Error()
 }
 
 type HealthResponse struct {
@@ -138,49 +237,118 @@ type HealthCheck interface {
     Check(ctx context.Context) error
 }
 
+// Checker -- オーケストレータ
 type Checker struct{}
 
 func NewChecker() *Checker
 func (c *Checker) Add(check HealthCheck)
 func (c *Checker) RunAll(ctx context.Context) HealthResponse
-func (c *Checker) Readyz(ctx context.Context) HealthResponse
-func (c *Checker) Healthz() map[string]string
+func (c *Checker) Readyz(ctx context.Context) HealthResponse  // RunAll のエイリアス
+func (c *Checker) Healthz() map[string]string                 // {"status": "ok"}
+```
+
+**チェック実装の構築**:
+
+```go
+// HttpHealthCheck -- HTTP GET による外部ヘルスチェック
+type HttpHealthCheckOption func(*HttpHealthCheck)
+
+func NewHttpHealthCheck(url string, opts ...HttpHealthCheckOption) *HttpHealthCheck
+func WithTimeout(d time.Duration) HttpHealthCheckOption    // デフォルト 5s
+func WithName(name string) HttpHealthCheckOption           // デフォルト "http"
+
+// PostgresHealthCheck -- PostgreSQL ping チェック
+type PostgresHealthCheckOption func(*PostgresHealthCheck)
+
+func NewPostgresHealthCheck(db *sql.DB, opts ...PostgresHealthCheckOption) *PostgresHealthCheck
+func WithPostgresTimeout(d time.Duration) PostgresHealthCheckOption   // デフォルト 5s
+func WithPostgresName(name string) PostgresHealthCheckOption          // デフォルト "postgres"
+
+// RedisHealthCheck -- Redis PING チェック（要 github.com/redis/go-redis/v9）
+type RedisHealthCheckOption func(*RedisHealthCheck)
+
+func NewRedisHealthCheck(client redis.Cmdable, opts ...RedisHealthCheckOption) *RedisHealthCheck
+func WithRedisTimeout(d time.Duration) RedisHealthCheckOption         // デフォルト 5s
+func WithRedisName(name string) RedisHealthCheckOption                // デフォルト "redis"
+```
+
+**使用例**:
+
+```go
+checker := health.NewChecker()
+checker.Add(health.NewHttpHealthCheck("https://api.example.com/healthz", health.WithName("api-gateway")))
+checker.Add(health.NewPostgresHealthCheck(db, health.WithPostgresName("main-db")))
+checker.Add(health.NewRedisHealthCheck(redisClient, health.WithRedisName("cache")))
+
+// /readyz ハンドラ
+resp := checker.Readyz(ctx)
+
+// /healthz ハンドラ
+liveness := checker.Healthz() // {"status": "ok"}
 ```
 
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/health/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
+**依存関係**: なし（native `fetch` API を使用）
+
 **主要 API**:
 
 ```typescript
-export type HealthStatus = 'Healthy' | 'Degraded' | 'Unhealthy';
+export type HealthStatus = 'healthy' | 'degraded' | 'unhealthy';
 
-export interface HealthCheckResult {
+export interface CheckResult {
   status: HealthStatus;
-  durationMs: number;
-  error?: string;
+  message?: string;
 }
 
 export interface HealthResponse {
   status: HealthStatus;
-  checks: Record<string, HealthCheckResult>;
+  checks: Record<string, CheckResult>;
+  timestamp: string;  // ISO 8601 文字列
 }
 
 export interface HealthCheck {
-  check(): Promise<HealthStatus>;
+  name: string;
+  check(): Promise<void>;  // 成功: resolve、失敗: throw
+}
+
+export interface HttpHealthCheckOptions {
+  url: string;
+  timeoutMs?: number;  // デフォルト 5000
+  name?: string;       // デフォルト "http"
 }
 
 export class HealthChecker {
-  addCheck(name: string, check: HealthCheck): this;
-  readyz(): Promise<HealthResponse>;
-  healthz(): Promise<{ status: 'ok' }>;
+  add(check: HealthCheck): void;
+  async runAll(): Promise<HealthResponse>;
+  async readyz(): Promise<HealthResponse>;     // runAll のエイリアス
+  async healthz(): Promise<{ status: 'ok' }>;
 }
 
 export class HttpHealthCheck implements HealthCheck {
-  constructor(url: string, timeoutMs?: number);
-  check(): Promise<HealthStatus>;
+  readonly name: string;
+  constructor(options: HttpHealthCheckOptions);
+  check(): Promise<void>;
 }
+```
+
+**使用例**:
+
+```typescript
+import { HealthChecker, HttpHealthCheck } from '@k1s0/health';
+
+const checker = new HealthChecker();
+checker.add(new HttpHealthCheck({ url: 'https://api.example.com/healthz', name: 'api-gateway' }));
+
+// /readyz ハンドラ
+const response = await checker.readyz();
+// { status: 'healthy', checks: { 'api-gateway': { status: 'healthy' } }, timestamp: '2026-03-01T...' }
+
+// /healthz ハンドラ
+const liveness = await checker.healthz();
+// { status: 'ok' }
 ```
 
 **カバレッジ目標**: 90%以上
@@ -189,12 +357,7 @@ export class HttpHealthCheck implements HealthCheck {
 
 **配置先**: `regions/system/library/dart/health/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**pubspec.yaml 主要依存**:
-
-```yaml
-dependencies:
-  http: ^1.3.0
-```
+**依存関係**: なし（`dart:io` `HttpClient` を使用）
 
 **使用例**:
 
@@ -202,26 +365,54 @@ dependencies:
 import 'package:k1s0_health/health.dart';
 
 final checker = HealthChecker()
-  ..addCheck(HttpHealthCheck(name: 'api-gateway', url: 'https://api.example.com/healthz'));
+  ..add(HttpHealthCheck(name: 'api-gateway', url: 'https://api.example.com/healthz'));
 
 final response = await checker.readyz();
 print(response.status); // HealthStatus.healthy
+```
+
+**主要 API**:
+
+```dart
+enum HealthStatus { healthy, degraded, unhealthy }
+
+class CheckResult {
+  final HealthStatus status;
+  final String? message;
+  const CheckResult({required this.status, this.message});
+}
+
+class HealthResponse {
+  final HealthStatus status;
+  final Map<String, CheckResult> checks;
+  final DateTime timestamp;
+}
+
+abstract class HealthCheck {
+  String get name;
+  Future<void> check();  // 成功: return、失敗: throw
+}
+
+class HealthChecker {
+  void add(HealthCheck check);
+  Future<HealthResponse> runAll();
+  Future<HealthResponse> readyz();        // runAll のエイリアス
+  Map<String, String> healthz();          // {'status': 'ok'}（同期）
+}
+
+class HttpHealthCheck implements HealthCheck {
+  HttpHealthCheck({required String url, Duration timeout, String? name});
+  // name デフォルト: 'http'、timeout デフォルト: Duration(seconds: 5)
+}
 ```
 
 **カバレッジ目標**: 90%以上
 
 ## テスト戦略
 
-**ユニットテスト** (`#[cfg(test)]`):
-- `InMemory` スタブを `HealthCheck` トレイト実装として用意し、`Healthy`・`Degraded`・`Unhealthy` 各状態を返すモックで `HealthChecker` の集約ロジックを検証
-- 全チェッカーが `Healthy` → レスポンス `status` が `Healthy` になることを確認
-- 1 つでも `Unhealthy` → レスポンス `status` が `Unhealthy` になることを確認
-- タイムアウト超過時に `Degraded` を返すことを確認
+### Rust ユニットテスト (`cargo test --lib`)
 
-**統合テスト** (testcontainers):
-- `PostgresHealthCheck`: testcontainers で PostgreSQL コンテナを起動し実接続確認
-- `RedisHealthCheck`: testcontainers で Redis コンテナを起動し PING 確認
-- `HttpHealthCheck`: wiremock でモックサーバーを起動し 200・503 各応答を確認
+`HealthCheck` トレイト実装のスタブを用意し、`CompositeHealthChecker` の集約ロジックを検証する。
 
 ```rust
 #[cfg(test)]
@@ -233,34 +424,90 @@ mod tests {
 
     #[async_trait]
     impl HealthCheck for AlwaysHealthy {
-        async fn check(&self) -> HealthStatus { HealthStatus::Healthy }
         fn name(&self) -> &str { "always-healthy" }
+        async fn check(&self) -> Result<(), HealthError> { Ok(()) }
     }
 
     #[async_trait]
     impl HealthCheck for AlwaysUnhealthy {
-        async fn check(&self) -> HealthStatus { HealthStatus::Unhealthy }
         fn name(&self) -> &str { "always-unhealthy" }
+        async fn check(&self) -> Result<(), HealthError> {
+            Err(HealthError::CheckFailed("down".to_string()))
+        }
     }
 
     #[tokio::test]
     async fn test_all_healthy() {
-        let checker = HealthChecker::new()
-            .add_check("svc", AlwaysHealthy);
+        let mut checker = CompositeHealthChecker::new();
+        checker.add_check(Box::new(AlwaysHealthy));
         let resp = checker.readyz().await;
         assert_eq!(resp.status, HealthStatus::Healthy);
     }
 
     #[tokio::test]
     async fn test_one_unhealthy_degrades_overall() {
-        let checker = HealthChecker::new()
-            .add_check("ok", AlwaysHealthy)
-            .add_check("bad", AlwaysUnhealthy);
+        let mut checker = CompositeHealthChecker::new();
+        checker.add_check(Box::new(AlwaysHealthy));
+        checker.add_check(Box::new(AlwaysUnhealthy));
         let resp = checker.readyz().await;
         assert_eq!(resp.status, HealthStatus::Unhealthy);
     }
 }
 ```
+
+### Go ユニットテスト (`go test ./...`)
+
+```go
+type alwaysHealthy struct{}
+func (a alwaysHealthy) Name() string                        { return "always-healthy" }
+func (a alwaysHealthy) Check(ctx context.Context) error     { return nil }
+
+type alwaysUnhealthy struct{}
+func (a alwaysUnhealthy) Name() string                      { return "always-unhealthy" }
+func (a alwaysUnhealthy) Check(ctx context.Context) error   { return fmt.Errorf("down") }
+
+func TestAllHealthy(t *testing.T) {
+    c := health.NewChecker()
+    c.Add(alwaysHealthy{})
+    resp := c.RunAll(context.Background())
+    assert.Equal(t, health.StatusHealthy, resp.Status)
+}
+```
+
+### TypeScript ユニットテスト (vitest)
+
+```typescript
+const healthy: HealthCheck = { name: 'ok', check: async () => {} };
+const unhealthy: HealthCheck = { name: 'bad', check: async () => { throw new Error('down'); } };
+
+const checker = new HealthChecker();
+checker.add(healthy);
+const resp = await checker.readyz();
+expect(resp.status).toBe('healthy');
+```
+
+### Dart ユニットテスト (test)
+
+```dart
+class AlwaysHealthy implements HealthCheck {
+  @override String get name => 'ok';
+  @override Future<void> check() async {}
+}
+
+final checker = HealthChecker()..add(AlwaysHealthy());
+final resp = await checker.readyz();
+expect(resp.status, equals(HealthStatus.healthy));
+```
+
+### 検証すべきケース（全言語共通）
+
+- 全チェッカーが正常 -> レスポンス `status` が `Healthy`/`healthy` になること
+- 1 つでも異常 -> レスポンス `status` が `Unhealthy`/`unhealthy` になること
+- チェッカー未登録 -> レスポンス `status` が `Healthy`/`healthy`（空マップ）
+- `readyz` が `runAll` と同等の結果を返すこと
+- `healthz` が常に `{"status": "ok"}` を返すこと
+
+> **注**: `Degraded` ステータスは全言語で定義されているが、現在のチェッカー実装ではいずれも自動的に `Degraded` を返すロジックを持たない。カスタム `HealthCheck` 実装で明示的に使用することは可能。
 
 ## 関連ドキュメント
 

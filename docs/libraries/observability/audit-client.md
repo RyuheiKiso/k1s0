@@ -13,7 +13,7 @@
 | `AuditClient` | トレイト | 監査ログ記録・フラッシュインターフェース |
 | `BufferedAuditClient` | 構造体 | メモリバッファリング実装（record→flush で一括取得） |
 | `AuditEvent` | 構造体 | id・tenant_id・actor_id・action・resource_type・resource_id・metadata・timestamp |
-| `AuditError` | enum | `SerializationError`・`SendError`・`Internal` |
+| `AuditError` | enum/class | `SerializationError`・`SendError`・`Internal`（全4言語で実装） |
 
 ## Rust 実装
 
@@ -152,8 +152,8 @@ type AuditClient interface {
     Flush(ctx context.Context) ([]AuditEvent, error)
 }
 
-type BufferedClient struct{ /* ... */ }
-func NewBufferedClient() *BufferedClient
+type BufferedAuditClient struct{ /* ... */ }
+func NewBufferedAuditClient() *BufferedAuditClient
 ```
 
 ## TypeScript 実装

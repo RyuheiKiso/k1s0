@@ -55,6 +55,12 @@ void initTelemetry(TelemetryConfig cfg) {
   });
 }
 
+/// shutdown は Logger.root のリスナーをクリアする。
+/// Go の Provider.Shutdown / Rust の shutdown に対応する。
+void shutdown() {
+  Logger.root.clearListeners();
+}
+
 /// _parseLevel はログレベル文字列を logging パッケージの Level に変換する。
 Level _parseLevel(String level) {
   switch (level) {

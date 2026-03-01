@@ -5,7 +5,19 @@ export interface AuditEvent {
   action: string;
   resourceType: string;
   resourceId: string;
+  metadata?: Record<string, unknown>;
   timestamp: string;
+}
+
+export type AuditErrorKind = 'SerializationError' | 'SendError' | 'Internal';
+
+export class AuditError extends Error {
+  readonly kind: AuditErrorKind;
+  constructor(kind: AuditErrorKind, message: string) {
+    super(message);
+    this.name = 'AuditError';
+    this.kind = kind;
+  }
 }
 
 export interface AuditClient {
