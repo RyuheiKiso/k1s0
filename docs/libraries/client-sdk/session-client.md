@@ -435,7 +435,7 @@ Dart の実装はエラー型を定義せず、標準の `StateError` をスロ�
 ```yaml
 dependencies:
   k1s0_session_client:
-    path: ../../system/library/dart/session-client
+    path: ../../system/library/dart/session_client
 ```
 
 ## テスト戦略

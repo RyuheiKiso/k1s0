@@ -13,7 +13,7 @@ file-server が存在する場合は file-server 経由で操作を委譲し、�
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
 | `FileClient` | トレイト | ファイルストレージ操作の抽象インターフェース |
-| `S3FileClient` | 構造体 | AWS S3 / GCS / Ceph 直接実装（aws-sdk-s3 使用） |
+| `S3FileClient` | 構造体 | AWS S3 / GCS / Ceph 直接実装（aws-sdk-s3 使用）— **未実装**（feature="direct-mode" は定義あるが実装なし） |
 | `ServerFileClient` | 構造体 | file-server 経由実装（HTTP クライアント使用） |
 | `MockFileClient` | 構造体 | テスト用モック（feature = "mock" で有効） |
 | `InMemoryFileClient` | 構造体 | テスト用インメモリ実装（現在の主実装） |
@@ -410,6 +410,8 @@ class InMemoryFileClient implements FileClient {
   List<FileMetadata> get storedFiles;
 }
 ```
+
+**注記**: DartにはS3FileClientの実装は存在しない（`aws_s3_api` 依存は定義されているが未実装）。直接S3連携が必要な場合は Go / TypeScript 実装を使用すること。
 
 使用例:
 

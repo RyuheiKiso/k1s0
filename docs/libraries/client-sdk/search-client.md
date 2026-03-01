@@ -334,7 +334,7 @@ func (c *InMemorySearchClient) Search(ctx context.Context, index string, query S
 func (c *InMemorySearchClient) DeleteDocument(ctx context.Context, index, id string) error
 func (c *InMemorySearchClient) DocumentCount(index string) int
 
-// GrpcSearchClient（gRPC実装、将来実装予定）
+// GrpcSearchClient（gRPC実装）
 type GrpcSearchClient struct{ /* ... */ }
 
 func NewGrpcSearchClient(addr string) (*GrpcSearchClient, error)
@@ -456,7 +456,7 @@ export class InMemorySearchClient implements SearchClient {
   documentCount(index: string): number;
 }
 
-// GrpcSearchClient（gRPC実装、将来実装予定）
+// GrpcSearchClient（gRPC実装）
 export class GrpcSearchClient implements SearchClient {
   constructor(serverUrl: string);
   indexDocument(index: string, doc: IndexDocument): Promise<IndexResult>;

@@ -13,7 +13,7 @@ system-tenant-server（ポート 8089）へのテナント情報取得クライ�
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
 | `TenantClient` | トレイト | テナント操作インターフェース |
-| `GrpcTenantClient` | 構造体 | tenant-server HTTP 接続実装（TTL 付きキャッシュ内蔵）|
+| `HttpTenantClient` | 構造体 | tenant-server HTTP 接続実装（TTL 付きキャッシュ内蔵）|
 | `InMemoryTenantClient` | 構造体 | テスト用インメモリ実装 |
 | `Tenant` | 構造体 | テナント情報（ID・名称・ステータス・プラン・設定・作成日時）|
 | `TenantStatus` | enum | `Active`・`Suspended`・`Deleted` |
@@ -61,7 +61,7 @@ tokio = { version = "1", features = ["full"] }
 tenant-client/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
-│   ├── client.rs       # TenantClient トレイト・InMemoryTenantClient・GrpcTenantClient（TTL キャッシュ内蔵）
+│   ├── client.rs       # TenantClient トレイト・InMemoryTenantClient・HttpTenantClient（TTL キャッシュ内蔵）
 │   ├── tenant.rs       # Tenant・TenantStatus・TenantSettings・TenantFilter
 │   ├── config.rs       # TenantClientConfig
 │   └── error.rs        # TenantError
@@ -147,13 +147,25 @@ impl TenantClientConfig {
     pub fn cache_ttl(self, ttl: Duration) -> Self
     pub fn cache_max_capacity(self, capacity: u64) -> Self
 }
+
+// HTTP 接続実装
+pub struct HttpTenantClient { /* ... */ }
+
+impl HttpTenantClient {
+    pub async fn new(config: TenantClientConfig) -> Result<Self, TenantError>
+}
+
+// TenantClient トレイトの実装（部分実装 — 以下の5メソッドは unimplemented!() スタブ）
+// 未実装: create_tenant, add_member, remove_member, list_members, get_provisioning_status
 ```
+
+> **注記（Rust実装）**: `HttpTenantClient` は現在 `get_tenant`・`list_tenants`・`is_active`・`get_settings` のみ実装済み。残り5メソッド（`create_tenant`・`add_member`・`remove_member`・`list_members`・`get_provisioning_status`）は `unimplemented!()` スタブ。要実装。
 
 **使用例**:
 
 ```rust
 use k1s0_tenant_client::{
-    GrpcTenantClient, TenantClient, TenantClientConfig, TenantFilter, TenantStatus,
+    HttpTenantClient, TenantClient, TenantClientConfig, TenantFilter, TenantStatus,
 };
 use std::time::Duration;
 
@@ -162,7 +174,7 @@ let config = TenantClientConfig::new("http://tenant-server:8080")
     .cache_ttl(Duration::from_secs(300))
     .cache_max_capacity(1000);
 
-let client = GrpcTenantClient::new(config).await?;
+let client = HttpTenantClient::new(config).await?;
 
 // テナント情報の取得（キャッシュヒット時はサーバーへの呼び出しをスキップ）
 let tenant = client.get_tenant("TENANT-001").await?;
@@ -264,13 +276,18 @@ type TenantClientConfig struct {
     CacheMaxCapacity int
 }
 
-type GrpcTenantClient struct{ /* ... */ }
+type HttpTenantClient struct{ /* ... */ }
 
-func NewGrpcTenantClient(addr string, config TenantClientConfig) (*GrpcTenantClient, error)
-func (c *GrpcTenantClient) GetTenant(ctx context.Context, tenantID string) (Tenant, error)
-func (c *GrpcTenantClient) ListTenants(ctx context.Context, filter TenantFilter) ([]Tenant, error)
-func (c *GrpcTenantClient) IsActive(ctx context.Context, tenantID string) (bool, error)
-func (c *GrpcTenantClient) GetSettings(ctx context.Context, tenantID string) (TenantSettings, error)
+func NewHttpTenantClient(addr string, config TenantClientConfig) (*HttpTenantClient, error)
+func (c *HttpTenantClient) GetTenant(ctx context.Context, tenantID string) (Tenant, error)
+func (c *HttpTenantClient) ListTenants(ctx context.Context, filter TenantFilter) ([]Tenant, error)
+func (c *HttpTenantClient) IsActive(ctx context.Context, tenantID string) (bool, error)
+func (c *HttpTenantClient) GetSettings(ctx context.Context, tenantID string) (TenantSettings, error)
+func (c *HttpTenantClient) CreateTenant(ctx context.Context, req CreateTenantRequest) (Tenant, error)
+func (c *HttpTenantClient) AddMember(ctx context.Context, tenantID, userID, role string) (TenantMember, error)
+func (c *HttpTenantClient) RemoveMember(ctx context.Context, tenantID, userID string) error
+func (c *HttpTenantClient) ListMembers(ctx context.Context, tenantID string) ([]TenantMember, error)
+func (c *HttpTenantClient) GetProvisioningStatus(ctx context.Context, tenantID string) (ProvisioningStatus, error)
 
 type InMemoryTenantClient struct{ /* ... */ }
 
@@ -281,6 +298,11 @@ func (c *InMemoryTenantClient) GetTenant(ctx context.Context, tenantID string) (
 func (c *InMemoryTenantClient) ListTenants(ctx context.Context, filter TenantFilter) ([]Tenant, error)
 func (c *InMemoryTenantClient) IsActive(ctx context.Context, tenantID string) (bool, error)
 func (c *InMemoryTenantClient) GetSettings(ctx context.Context, tenantID string) (TenantSettings, error)
+func (c *InMemoryTenantClient) CreateTenant(ctx context.Context, req CreateTenantRequest) (Tenant, error)
+func (c *InMemoryTenantClient) AddMember(ctx context.Context, tenantID, userID, role string) (TenantMember, error)
+func (c *InMemoryTenantClient) RemoveMember(ctx context.Context, tenantID, userID string) error
+func (c *InMemoryTenantClient) ListMembers(ctx context.Context, tenantID string) ([]TenantMember, error)
+func (c *InMemoryTenantClient) GetProvisioningStatus(ctx context.Context, tenantID string) (ProvisioningStatus, error)
 ```
 
 **使用例**:
@@ -290,7 +312,7 @@ config := TenantClientConfig{
     ServerURL: "tenant-server:8080",
     CacheTTL:  5 * time.Minute,
 }
-client, err := NewGrpcTenantClient("tenant-server:8080", config)
+client, err := NewHttpTenantClient("tenant-server:8080", config)
 if err != nil {
     log.Fatal(err)
 }
@@ -364,12 +386,17 @@ export interface TenantClient {
   getProvisioningStatus(tenantId: string): Promise<ProvisioningStatus>;
 }
 
-export class GrpcTenantClient implements TenantClient {
+export class HttpTenantClient implements TenantClient {
   constructor(config: TenantClientConfig);
   getTenant(tenantId: string): Promise<Tenant>;
   listTenants(filter?: TenantFilter): Promise<Tenant[]>;
   isActive(tenantId: string): Promise<boolean>;
   getSettings(tenantId: string): Promise<TenantSettings>;
+  createTenant(req: CreateTenantRequest): Promise<Tenant>;
+  addMember(tenantId: string, userId: string, role: string): Promise<TenantMember>;
+  removeMember(tenantId: string, userId: string): Promise<void>;
+  listMembers(tenantId: string): Promise<TenantMember[]>;
+  getProvisioningStatus(tenantId: string): Promise<ProvisioningStatus>;
   close(): Promise<void>;
 }
 
@@ -379,6 +406,11 @@ export class InMemoryTenantClient implements TenantClient {
   listTenants(filter?: TenantFilter): Promise<Tenant[]>;
   isActive(tenantId: string): Promise<boolean>;
   getSettings(tenantId: string): Promise<TenantSettings>;
+  createTenant(req: CreateTenantRequest): Promise<Tenant>;
+  addMember(tenantId: string, userId: string, role: string): Promise<TenantMember>;
+  removeMember(tenantId: string, userId: string): Promise<void>;
+  listMembers(tenantId: string): Promise<TenantMember[]>;
+  getProvisioningStatus(tenantId: string): Promise<ProvisioningStatus>;
 }
 
 export class TenantError extends Error {
@@ -485,13 +517,18 @@ abstract class TenantClient {
   Future<ProvisioningStatus> getProvisioningStatus(String tenantId);
 }
 
-// gRPC 実装
-class GrpcTenantClient implements TenantClient {
-  GrpcTenantClient(TenantClientConfig config);
+// HTTP 接続実装
+class HttpTenantClient implements TenantClient {
+  HttpTenantClient(TenantClientConfig config);
   Future<Tenant> getTenant(String tenantId);
   Future<List<Tenant>> listTenants(TenantFilter filter);
   Future<bool> isActive(String tenantId);
   Future<TenantSettings> getSettings(String tenantId);
+  Future<Tenant> createTenant(CreateTenantRequest req);
+  Future<TenantMember> addMember(String tenantId, String userId, String role);
+  Future<void> removeMember(String tenantId, String userId);
+  Future<List<TenantMember>> listMembers(String tenantId);
+  Future<ProvisioningStatus> getProvisioningStatus(String tenantId);
   Future<void> close();
 }
 
@@ -502,6 +539,11 @@ class InMemoryTenantClient implements TenantClient {
   Future<List<Tenant>> listTenants(TenantFilter filter);
   Future<bool> isActive(String tenantId);
   Future<TenantSettings> getSettings(String tenantId);
+  Future<Tenant> createTenant(CreateTenantRequest req);
+  Future<TenantMember> addMember(String tenantId, String userId, String role);
+  Future<void> removeMember(String tenantId, String userId);
+  Future<List<TenantMember>> listMembers(String tenantId);
+  Future<ProvisioningStatus> getProvisioningStatus(String tenantId);
 }
 
 // エラー型
@@ -525,7 +567,7 @@ final config = TenantClientConfig(
   cacheTtl: Duration(minutes: 5),
   cacheMaxCapacity: 1000,
 );
-final client = GrpcTenantClient(config);
+final client = HttpTenantClient(config);
 
 // テナント一覧の取得（アクティブのみ）
 final tenants = await client.listTenants(

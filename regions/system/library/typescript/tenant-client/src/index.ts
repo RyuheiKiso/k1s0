@@ -155,7 +155,7 @@ export class InMemoryTenantClient implements TenantClient {
   }
 }
 
-export class GrpcTenantClient implements TenantClient {
+export class HttpTenantClient implements TenantClient {
   private readonly config: TenantClientConfig;
 
   constructor(config: TenantClientConfig) {

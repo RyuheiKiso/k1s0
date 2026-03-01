@@ -114,10 +114,10 @@ class InMemoryTenantClient implements TenantClient {
 /// gRPC 経由で tenant-server に接続するクライアント。
 /// [config] の [TenantClientConfig.serverUrl] には "host:port" 形式のアドレスを指定する
 /// （例: "tenant-server:8080"）。
-class GrpcTenantClient implements TenantClient {
+class HttpTenantClient implements TenantClient {
   final TenantClientConfig config;
 
-  GrpcTenantClient(this.config);
+  HttpTenantClient(this.config);
 
   @override
   Future<Tenant> getTenant(String tenantId) async {

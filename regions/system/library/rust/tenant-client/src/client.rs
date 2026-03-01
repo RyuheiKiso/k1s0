@@ -184,7 +184,7 @@ impl TenantClient for InMemoryTenantClient {
 }
 
 // ---------------------------------------------------------------------------
-// GrpcTenantClient — tenant-server 経由の HTTP 実装
+// HttpTenantClient — tenant-server 経由の HTTP 実装
 // ---------------------------------------------------------------------------
 
 /// tenant-server から返却される JSON レスポンスの内部 DTO。
@@ -219,17 +219,17 @@ struct TenantSettingsResponse {
 
 /// tenant-server へ HTTP で委譲する `TenantClient` 実装。TTL 付きキャッシュを内蔵する。
 ///
-/// 名称は将来的な gRPC 移行を見越した `GrpcTenantClient` だが、
+/// 名称は将来的な gRPC 移行を見越した `HttpTenantClient` だが、
 /// 現時点では REST/HTTP で実装されている。
-pub struct GrpcTenantClient {
+pub struct HttpTenantClient {
     http: reqwest::Client,
     base_url: String,
     tenant_cache: Cache<String, Tenant>,
     settings_cache: Cache<String, TenantSettings>,
 }
 
-impl GrpcTenantClient {
-    /// 新しい `GrpcTenantClient` を生成する。
+impl HttpTenantClient {
+    /// 新しい `HttpTenantClient` を生成する。
     pub fn new(config: TenantClientConfig) -> Result<Self, TenantError> {
         let http = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
@@ -288,7 +288,7 @@ impl GrpcTenantClient {
 }
 
 #[async_trait]
-impl TenantClient for GrpcTenantClient {
+impl TenantClient for HttpTenantClient {
     async fn get_tenant(&self, tenant_id: &str) -> Result<Tenant, TenantError> {
         if let Some(cached) = self.tenant_cache.get(tenant_id).await {
             return Ok(cached);
@@ -369,7 +369,7 @@ impl TenantClient for GrpcTenantClient {
     }
 
     async fn create_tenant(&self, _req: CreateTenantRequest) -> Result<Tenant, TenantError> {
-        unimplemented!("GrpcTenantClient::create_tenant")
+        unimplemented!("HttpTenantClient::create_tenant")
     }
 
     async fn add_member(
@@ -378,22 +378,22 @@ impl TenantClient for GrpcTenantClient {
         _user_id: &str,
         _role: &str,
     ) -> Result<TenantMember, TenantError> {
-        unimplemented!("GrpcTenantClient::add_member")
+        unimplemented!("HttpTenantClient::add_member")
     }
 
     async fn remove_member(&self, _tenant_id: &str, _user_id: &str) -> Result<(), TenantError> {
-        unimplemented!("GrpcTenantClient::remove_member")
+        unimplemented!("HttpTenantClient::remove_member")
     }
 
     async fn list_members(&self, _tenant_id: &str) -> Result<Vec<TenantMember>, TenantError> {
-        unimplemented!("GrpcTenantClient::list_members")
+        unimplemented!("HttpTenantClient::list_members")
     }
 
     async fn get_provisioning_status(
         &self,
         _tenant_id: &str,
     ) -> Result<ProvisioningStatus, TenantError> {
-        unimplemented!("GrpcTenantClient::get_provisioning_status")
+        unimplemented!("HttpTenantClient::get_provisioning_status")
     }
 }
 

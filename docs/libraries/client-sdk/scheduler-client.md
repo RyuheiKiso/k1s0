@@ -323,7 +323,7 @@ export interface SchedulerClient {
   pauseJob(jobId: string): Promise<void>;
   resumeJob(jobId: string): Promise<void>;
   getJob(jobId: string): Promise<Job>;
-  listJobs(filter?: JobFilter): Promise<Job[]>;
+  listJobs(filter: JobFilter): Promise<Job[]>;
   getExecutions(jobId: string): Promise<JobExecution[]>;
 }
 
@@ -333,7 +333,7 @@ export class InMemorySchedulerClient implements SchedulerClient {
   pauseJob(jobId: string): Promise<void>;
   resumeJob(jobId: string): Promise<void>;
   getJob(jobId: string): Promise<Job>;
-  listJobs(filter?: JobFilter): Promise<Job[]>;
+  listJobs(filter: JobFilter): Promise<Job[]>;
   getExecutions(jobId: string): Promise<JobExecution[]>;
   getAll(): Job[]; // テスト用ヘルパー（SchedulerClient インターフェース外）
 }
@@ -345,7 +345,7 @@ export class GrpcSchedulerClient implements SchedulerClient {
   pauseJob(jobId: string): Promise<void>;
   resumeJob(jobId: string): Promise<void>;
   getJob(jobId: string): Promise<Job>;
-  listJobs(filter?: JobFilter): Promise<Job[]>;
+  listJobs(filter: JobFilter): Promise<Job[]>;
   getExecutions(jobId: string): Promise<JobExecution[]>;
   close(): Promise<void>;
 }
@@ -473,6 +473,19 @@ class InMemorySchedulerClient implements SchedulerClient {
   Future<List<Job>> listJobs(JobFilter filter);
   Future<List<JobExecution>> getExecutions(String jobId);
   Map<String, Job> get jobs; // テスト用ヘルパー（SchedulerClient インターフェース外）
+}
+
+// gRPC 接続実装
+class GrpcSchedulerClient implements SchedulerClient {
+  GrpcSchedulerClient(String serverAddress);
+  Future<Job> createJob(JobRequest request);
+  Future<void> cancelJob(String jobId);
+  Future<void> pauseJob(String jobId);
+  Future<void> resumeJob(String jobId);
+  Future<Job> getJob(String jobId);
+  Future<List<Job>> listJobs(JobFilter filter);
+  Future<List<JobExecution>> getExecutions(String jobId);
+  Future<void> close();
 }
 ```
 

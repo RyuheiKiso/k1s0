@@ -303,6 +303,15 @@ class InMemoryRateLimitClient implements RateLimitClient {
   int getUsedCount(String key);
 }
 
+// gRPC 接続実装
+class GrpcRateLimitClient implements RateLimitClient {
+  GrpcRateLimitClient(String serverAddress, {http.Client? httpClient});
+  Future<RateLimitStatus> check(String key, int cost);
+  Future<RateLimitResult> consume(String key, int cost);
+  Future<RateLimitPolicy> getLimit(String key);
+  Future<void> close();
+}
+
 // 型定義
 class RateLimitStatus {
   final bool allowed;

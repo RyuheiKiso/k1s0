@@ -224,62 +224,62 @@ func (c *InMemoryTenantClient) GetProvisioningStatus(_ context.Context, tenantID
 	return status, nil
 }
 
-// GrpcTenantClient は gRPC 経由で tenant-server に接続するクライアント。
-type GrpcTenantClient struct {
+// HttpTenantClient は gRPC 経由で tenant-server に接続するクライアント。
+type HttpTenantClient struct {
 	serverAddr string
 	config     TenantClientConfig
 }
 
-// NewGrpcTenantClient は新しい GrpcTenantClient を生成する。
+// NewHttpTenantClient は新しい HttpTenantClient を生成する。
 // addr には "host:port" 形式のサーバーアドレスを指定する（例: "tenant-server:8080"）。
-func NewGrpcTenantClient(addr string, config TenantClientConfig) (*GrpcTenantClient, error) {
-	return &GrpcTenantClient{
+func NewHttpTenantClient(addr string, config TenantClientConfig) (*HttpTenantClient, error) {
+	return &HttpTenantClient{
 		serverAddr: addr,
 		config:     config,
 	}, nil
 }
 
 // GetTenant は指定したテナント ID のテナント情報を返す。
-func (c *GrpcTenantClient) GetTenant(_ context.Context, tenantID string) (Tenant, error) {
+func (c *HttpTenantClient) GetTenant(_ context.Context, tenantID string) (Tenant, error) {
 	return Tenant{}, fmt.Errorf("gRPC client not yet connected: GetTenant(%s)", tenantID)
 }
 
 // ListTenants はフィルター条件に合うテナント一覧を返す。
-func (c *GrpcTenantClient) ListTenants(_ context.Context, _ TenantFilter) ([]Tenant, error) {
+func (c *HttpTenantClient) ListTenants(_ context.Context, _ TenantFilter) ([]Tenant, error) {
 	return nil, fmt.Errorf("gRPC client not yet connected: ListTenants")
 }
 
 // IsActive は指定したテナントがアクティブかどうかを返す。
-func (c *GrpcTenantClient) IsActive(_ context.Context, tenantID string) (bool, error) {
+func (c *HttpTenantClient) IsActive(_ context.Context, tenantID string) (bool, error) {
 	return false, fmt.Errorf("gRPC client not yet connected: IsActive(%s)", tenantID)
 }
 
 // GetSettings は指定したテナントの設定値を返す。
-func (c *GrpcTenantClient) GetSettings(_ context.Context, tenantID string) (TenantSettings, error) {
+func (c *HttpTenantClient) GetSettings(_ context.Context, tenantID string) (TenantSettings, error) {
 	return TenantSettings{}, fmt.Errorf("gRPC client not yet connected: GetSettings(%s)", tenantID)
 }
 
 // CreateTenant は gRPC 経由でテナントを作成する（未実装）。
-func (c *GrpcTenantClient) CreateTenant(_ context.Context, _ CreateTenantRequest) (Tenant, error) {
+func (c *HttpTenantClient) CreateTenant(_ context.Context, _ CreateTenantRequest) (Tenant, error) {
 	panic("not yet implemented")
 }
 
 // AddMember は gRPC 経由でメンバーを追加する（未実装）。
-func (c *GrpcTenantClient) AddMember(_ context.Context, _, _, _ string) (TenantMember, error) {
+func (c *HttpTenantClient) AddMember(_ context.Context, _, _, _ string) (TenantMember, error) {
 	panic("not yet implemented")
 }
 
 // RemoveMember は gRPC 経由でメンバーを削除する（未実装）。
-func (c *GrpcTenantClient) RemoveMember(_ context.Context, _, _ string) error {
+func (c *HttpTenantClient) RemoveMember(_ context.Context, _, _ string) error {
 	panic("not yet implemented")
 }
 
 // ListMembers は gRPC 経由でメンバー一覧を返す（未実装）。
-func (c *GrpcTenantClient) ListMembers(_ context.Context, _ string) ([]TenantMember, error) {
+func (c *HttpTenantClient) ListMembers(_ context.Context, _ string) ([]TenantMember, error) {
 	panic("not yet implemented")
 }
 
 // GetProvisioningStatus は gRPC 経由でプロビジョニング状態を返す（未実装）。
-func (c *GrpcTenantClient) GetProvisioningStatus(_ context.Context, _ string) (ProvisioningStatus, error) {
+func (c *HttpTenantClient) GetProvisioningStatus(_ context.Context, _ string) (ProvisioningStatus, error) {
 	panic("not yet implemented")
 }
