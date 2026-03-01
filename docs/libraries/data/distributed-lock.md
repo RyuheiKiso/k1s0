@@ -47,6 +47,16 @@ Rust 公開型:
 | `LockError` | enum | `AlreadyLocked`・`LockNotFound`・`TokenMismatch`・`Internal` |
 | `MockDistributedLock` | 構造体 | テスト用モック（feature = "mock" で有効） |
 
+Go 固有:
+
+| 型・変数 | 種別 | 説明 |
+|---------|------|------|
+| `ErrAlreadyLocked` | error 変数 | ロックが既に取得されている場合のエラー |
+| `ErrTokenMismatch` | error 変数 | トークン不一致によるリリース失敗エラー |
+| `ErrLockNotFound` | error 変数 | 指定キーのロックが存在しない場合のエラー |
+| `RedisLockOption` | 関数型 | `RedisLock` の設定オプション |
+| `WithLockPrefix` | オプション関数 | Redis キーのプレフィックス設定 |
+
 ## Rust 実装
 
 **Cargo.toml**:

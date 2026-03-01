@@ -24,12 +24,35 @@ Client → Nginx Ingress Controller (TLS終端) → Kong Proxy → Istio Sidecar
                           PostgreSQL (kong-db)
 ```
 
+#### 本ドキュメントにおける呼称
+
+- **BFF Proxy**: system tier の共通基盤。Cookie セッション（HttpOnly）と Bearer Token の変換・token refresh・サーバーサイドセッション管理を担う
+- **GraphQL BFF**: service tier のオプション採用（画面要件により導入）。複数サービスの REST/gRPC を GraphQL で集約する BFF
+- **GraphQL Gateway**: system tier の集約レイヤー。system tier の複数 gRPC バックエンドを GraphQL で統一的に集約する
+
 #### BFF Proxy 経由のトラフィックフロー
 
 SPA（React）からのアクセスは BFF Proxy を経由し、HttpOnly Cookie と Bearer Token を変換する（詳細は [認証認可設計](../auth/認証認可設計.md) の「SPA トークン保存方式」参照）。
 
 ```
 Browser → [HttpOnly Cookie] → Nginx Ingress Controller → Kong → BFF Proxy → [Bearer Token] → Istio Sidecar (mTLS) → Backend Services
+```
+
+#### REST / GraphQL の代表トラフィックフロー（統合図）
+
+SPA（React）からのアクセスは **必ず BFF Proxy を経由**し、トークンをブラウザに保持せずに Cookie セッションで認証状態を維持する。GraphQL を採用する場合も同様に、BFF Proxy が Cookie → Bearer の変換を担い、GraphQL BFF / GraphQL Gateway はデータ集約に集中する。
+
+```
+Browser
+  │ (HttpOnly Cookie)
+  ▼
+Nginx Ingress Controller (TLS)
+  ▼
+Kong
+  ▼
+BFF Proxy  (Cookie ⇄ Bearer / token refresh / session in Redis)
+  ├─ REST:  Backend Services (REST/gRPC)  ※Istio Sidecar (mTLS)
+  └─ GraphQL: GraphQL BFF / GraphQL Gateway → gRPC (mTLS) → Backend Services
 ```
 
 ### DB-backed モード

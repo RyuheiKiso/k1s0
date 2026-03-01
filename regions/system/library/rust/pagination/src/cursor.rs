@@ -1,4 +1,7 @@
-use base64::{engine::general_purpose::STANDARD, Engine};
+use base64::{
+    engine::general_purpose::{STANDARD, URL_SAFE, URL_SAFE_NO_PAD},
+    Engine,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::error::PaginationError;
@@ -22,13 +25,15 @@ const SEPARATOR: char = '|';
 /// Encode a sort key and id into a base64 cursor string.
 pub fn encode_cursor(sort_key: &str, id: &str) -> String {
     let combined = format!("{}{}{}", sort_key, SEPARATOR, id);
-    STANDARD.encode(combined.as_bytes())
+    URL_SAFE_NO_PAD.encode(combined.as_bytes())
 }
 
 /// Decode a base64 cursor string into (sort_key, id).
 pub fn decode_cursor(cursor: &str) -> Result<(String, String), PaginationError> {
-    let bytes = STANDARD
+    let bytes = URL_SAFE_NO_PAD
         .decode(cursor)
+        .or_else(|_| URL_SAFE.decode(cursor))
+        .or_else(|_| STANDARD.decode(cursor))
         .map_err(|e| PaginationError::InvalidCursor(e.to_string()))?;
     let combined =
         String::from_utf8(bytes).map_err(|e| PaginationError::InvalidCursor(e.to_string()))?;

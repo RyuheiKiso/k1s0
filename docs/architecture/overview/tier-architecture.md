@@ -5,6 +5,18 @@ k1s0 のリポジトリは **system → business → service** の3階層（Tier
 
 > **用語の定義**: アーキテクチャ上の階層概念を「**Tier**」と呼ぶ。コードベースのディレクトリ名は歴史的経緯により `regions/` を使用しているが、同じ概念を指す。ドキュメント内では「Tier」で統一する。
 
+## Tier ↔ regions ↔ Kubernetes Namespace
+
+Tier（論理階層）、リポジトリ上の配置（`regions/`）、Kubernetes の Namespace（実行環境）を混同しやすいため、対応表をここに固定する。
+
+| 概念 | Tier | regions 配置 | Kubernetes Namespace | 用途 |
+| --- | --- | --- | --- | --- |
+| 共通基盤 | system | `regions/system/` | `k1s0-system` | 認証、設定、API ゲートウェイ等の共通基盤 |
+| 領域共通 | business | `regions/business/{領域名}/` | `k1s0-business` | 業務領域内で共通利用する基盤 |
+| 個別サービス | service | `regions/service/{サービス名}/` | `k1s0-service` | 実際にデプロイされる業務サービス |
+
+Tier とは別に、クラスタ基盤用の Namespace も存在する（例: `ingress` / `observability` / `messaging` / `service-mesh`）。これらは Tier ではなく、インフラ/運用コンポーネントの配置先として扱う。
+
 ## 階層の概要
 
 <img src="../../diagrams/tier-overview.svg" width="1000" />

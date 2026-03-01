@@ -10,8 +10,18 @@ D-011 GraphQL 設計、D-124 実装技術選定を定義する。
 
 GraphQL は BFF（Backend for Frontend）として、複数サービスの集約が必要な場合にオプション採用する。
 
+本ドキュメントにおける呼称は以下の通り。
+
+- **BFF Proxy**: system tier の共通基盤。Cookie ⇄ Bearer 変換・token refresh・セッション管理を担う
+- **GraphQL BFF**: service tier のオプション採用。複数サービスの REST/gRPC を GraphQL で集約する BFF
+- **GraphQL Gateway**: system tier の集約レイヤー。system tier の複数 gRPC バックエンドを GraphQL で集約する
+
+外部（ブラウザ/SPA）からのアクセスは **BFF Proxy 経由**を前提とし、Cookie セッション（HttpOnly）で認証状態を維持する。GraphQL BFF / GraphQL ゲートウェイはデータ集約に集中し、トークンの取り回し（Cookie ⇄ Bearer 変換、必要に応じた token refresh）は BFF Proxy が担う。
+
+代表トラフィックフローは [APIゲートウェイ設計.md](./APIゲートウェイ設計.md) の「REST / GraphQL の代表トラフィックフロー（統合図）」を参照。
+
 ```
-Client → Nginx Ingress Controller → Kong → (Istio Sidecar) → GraphQL BFF → gRPC (mTLS) → Backend Services
+Client → Nginx Ingress Controller → Kong → BFF Proxy → GraphQL BFF → gRPC (mTLS) → Backend Services
 ```
 
 ### 採用方針

@@ -129,7 +129,7 @@ impl Default for BackendsConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct BackendConfig {
-    /// gRPC エンドポイント（例: "http://tenant-server.k1s0-system.svc.cluster.local:9090"）
+    /// gRPC エンドポイント（例: "http://tenant-server.k1s0-system.svc.cluster.local:50051"）
     #[serde(default = "default_backend_address")]
     pub address: String,
     /// リクエストタイムアウト（ミリ秒）
@@ -138,7 +138,7 @@ pub struct BackendConfig {
 }
 
 fn default_backend_address() -> String {
-    "http://localhost:9090".to_string()
+    "http://localhost:50051".to_string()
 }
 
 fn default_timeout_ms() -> u64 {

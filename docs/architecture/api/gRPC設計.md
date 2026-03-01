@@ -31,10 +31,10 @@ k1s0.{tier}.{domain}.v{major}
 | --- | --- | --- |
 | 複数サービスで共有する message 型・enum | `api/proto/k1s0/system/common/v1/` | Pagination, Timestamp, Money |
 | イベント定義（Kafka メッセージスキーマ） | `api/proto/k1s0/event/{tier}/{domain}/v1/` | OrderCreatedEvent, LoginEvent |
-| サービス固有の gRPC サービス定義 | `api/proto/k1s0/system/{domain}/v1/` | AuthService, SagaService |
-| サービス固有の Request/Response 型 | `api/proto/k1s0/system/{domain}/v1/` | CreateOrderRequest |
+| サービス固有の gRPC サービス定義 | `api/proto/k1s0/{tier}/{domain}/v1/` | AuthService, SagaService |
+| サービス固有の Request/Response 型 | `api/proto/k1s0/{tier}/{domain}/v1/` | CreateOrderRequest |
 
-> **注記**: gRPC サービス定義は Tier に関わらず `api/proto/k1s0/system/` に集約して配置する。詳細なディレクトリ構成は [proto設計.md](proto設計.md) を参照。
+> **注記**: gRPC の `tier` は、API を提供するサービスの Tier と一致させる（`system` / `business` / `service`）。現状のリポジトリでは system tier の gRPC が中心のため `api/proto/k1s0/system/` が主に存在する。
 
 #### ディレクトリ構成
 
@@ -45,17 +45,25 @@ api/proto/
 │   │   ├── system/
 │   │   ├── business/
 │   │   └── service/
-│   └── system/                    # 全サービスの proto を集約（proto設計.md 参照）
-│       ├── common/
-│       │   └── v1/
-│       │       ├── types.proto            # Pagination, Timestamp 等の共通型
-│       │       └── event_metadata.proto   # イベントメタデータ
-│       ├── auth/
-│       │   └── v1/
-│       │       └── auth.proto
-│       └── {service}/
+│   ├── system/                    # system tier の gRPC サービス定義
+│   │   ├── common/
+│   │   │   └── v1/
+│   │   │       ├── types.proto            # Pagination, Timestamp 等の共通型
+│   │   │       └── event_metadata.proto   # イベントメタデータ
+│   │   ├── auth/
+│   │   │   └── v1/
+│   │   │       └── auth.proto
+│   │   └── {domain}/
+│   │       └── v1/
+│   │           └── {domain}.proto
+│   ├── business/                  # business tier の gRPC サービス定義（必要に応じて追加）
+│   │   └── {domain}/
+│   │       └── v1/
+│   │           └── {domain}.proto
+│   └── service/                   # service tier の gRPC サービス定義（必要に応じて追加）
+│       └── {domain}/
 │           └── v1/
-│               └── {service}.proto
+│               └── {domain}.proto
 ├── buf.yaml                       # buf 設定
 ├── buf.gen.yaml                   # コード生成設定
 └── buf.lock                       # 依存ロック
@@ -89,7 +97,7 @@ message Timestamp {
 ### サービス定義例
 
 ```protobuf
-// k1s0/service/order/v1/order.proto
+// api/proto/k1s0/service/order/v1/order.proto
 syntax = "proto3";
 package k1s0.service.order.v1;
 

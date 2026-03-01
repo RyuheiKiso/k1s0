@@ -1,6 +1,7 @@
 pub mod api_key_handler;
 pub mod audit_handler;
 pub mod auth_handler;
+pub mod jwks_handler;
 pub mod navigation_handler;
 
 use std::path::PathBuf;
@@ -41,6 +42,7 @@ pub struct AppState {
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub db_pool: Option<sqlx::PgPool>,
     pub keycloak_url: Option<String>,
+    pub jwks_provider: Option<crate::infrastructure::jwks_provider::JwksProvider>,
     pub navigation_config_path: Option<PathBuf>,
 }
 
@@ -54,6 +56,7 @@ impl AppState {
         expected_audience: String,
         db_pool: Option<sqlx::PgPool>,
         keycloak_url: Option<String>,
+        jwks_provider: Option<crate::infrastructure::jwks_provider::JwksProvider>,
     ) -> Self {
         Self {
             validate_token_uc: Arc::new(ValidateTokenUseCase::new(
@@ -74,6 +77,7 @@ impl AppState {
             metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server")),
             db_pool,
             keycloak_url,
+            jwks_provider,
             navigation_config_path: None,
         }
     }
@@ -85,6 +89,7 @@ impl AppState {
         auth_handler::healthz,
         auth_handler::readyz,
         auth_handler::metrics,
+        jwks_handler::jwks,
         auth_handler::validate_token,
         auth_handler::introspect_token,
         auth_handler::get_user,
@@ -195,6 +200,9 @@ pub fn router(state: AppState) -> Router {
         .route("/healthz", get(auth_handler::healthz))
         .route("/readyz", get(auth_handler::readyz))
         .route("/metrics", get(auth_handler::metrics))
+        // JWKS endpoint (public)
+        .route("/jwks", get(jwks_handler::jwks))
+        .route("/.well-known/jwks.json", get(jwks_handler::jwks))
         // Token validate/introspect are public (RFC 7662)
         .route(
             "/api/v1/auth/token/validate",

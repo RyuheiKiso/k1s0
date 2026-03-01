@@ -84,7 +84,7 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
 {% endif %}
 {% if language == "rust" %}
     "ghcr.io/devcontainers/features/rust:1": {
-      "version": "1.82"
+      "version": "1.88"
     },
 {% endif %}
 {% if language == "typescript" or framework == "react" %}
@@ -194,7 +194,7 @@ Dev Container テンプレートで使用する変数を以下に示す。変数
 | 言語 / フレームワーク | feature                                          | バージョン |
 | --------------------- | ------------------------------------------------ | ---------- |
 | Go                    | `ghcr.io/devcontainers/features/go:1`            | 1.23       |
-| Rust                  | `ghcr.io/devcontainers/features/rust:1`          | 1.82       |
+| Rust                  | `ghcr.io/devcontainers/features/rust:1`          | 1.88       |
 | TypeScript / React    | `ghcr.io/devcontainers/features/node:1`          | 22         |
 | Dart / Flutter        | `ghcr.io/devcontainers/features/node:1`          | 22         |
 | 共通 (Docker)         | `ghcr.io/devcontainers/features/docker-in-docker:2` | ---     |
@@ -399,7 +399,7 @@ CLI の対話フローで選択されたオプションに応じて、Dev Contai
 生成されるファイル:
 
 **`.devcontainer/devcontainer.json`**:
-- features: Rust 1.82 + Python 3.12 + Docker-in-Docker + kubectl/Helm
+- features: Rust 1.88 + Python 3.12 + Docker-in-Docker + kubectl/Helm
 - extensions: `rust-lang.rust-analyzer` + 共通拡張機能
 - settings: Rust 固有設定（rust-analyzer formatter）
 - forwardPorts: 8080, 50051, 9092, 8081, 8090, 16686, 4317, 4318, 3100, 9090, 3200, 8200, 8180
@@ -479,7 +479,7 @@ Dev Container テンプレートで使用する言語・ツールのバージョ
 | 言語/ツール | バージョン | 同期先                                                                |
 | ----------- | ---------- | --------------------------------------------------------------------- |
 | Go          | 1.23       | [CI-CD設計](../../infrastructure/cicd/CI-CD設計.md), [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md)    |
-| Rust        | 1.82       | [Dockerイメージ戦略](../../infrastructure/docker/Dockerイメージ戦略.md), [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md) |
+| Rust        | 1.88       | [Dockerイメージ戦略](../../infrastructure/docker/Dockerイメージ戦略.md), [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md) |
 | Node.js     | 22         | [CI-CD設計](../../infrastructure/cicd/CI-CD設計.md), [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md)    |
 | Python      | 3.12       | [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md)                               |
 | Flutter     | 3.24.0     | [CI-CD設計](../../infrastructure/cicd/CI-CD設計.md), [devcontainer設計](../../infrastructure/devenv/devcontainer設計.md)    |

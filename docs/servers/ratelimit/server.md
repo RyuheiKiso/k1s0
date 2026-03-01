@@ -48,7 +48,7 @@ system tier のレートリミットサーバーは以下の機能を提供す�
 
 ### REST API エンドポイント
 
-全エンドポイントは [API設計.md](../../architecture/api/API設計.md) D-007 の統一エラーレスポンスに従う。エラーコードのプレフィックスは `SYS_RATE_` とする。
+全エンドポイントは [API設計.md](../../architecture/api/API設計.md) D-007 の統一エラーレスポンスに従う。エラーコードのプレフィックスは `SYS_RATELIMIT_` とする。
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
@@ -107,7 +107,7 @@ system tier のレートリミットサーバーは以下の機能を提供す�
 ```json
 {
   "error": {
-    "code": "SYS_RATE_VALIDATION_ERROR",
+    "code": "SYS_RATELIMIT_VALIDATION_ERROR",
     "message": "validation failed",
     "request_id": "req_abc123def456",
     "details": [
@@ -119,23 +119,41 @@ system tier のレートリミットサーバーは以下の機能を提供す�
 
 #### GET /api/v1/ratelimit/usage
 
-指定されたスコープ・識別子の現在の使用量を照会する。
+指定されたルール ID のルール情報および使用状況を照会する。
 
 **クエリパラメータ**
 
 | パラメータ | 型 | 必須 | デフォルト | 説明 |
 | --- | --- | --- | --- | --- |
-| `scope` | string | Yes | - | スコープ（service/user/endpoint） |
-| `identifier` | string | Yes | - | 識別子（サービス名/ユーザー ID/エンドポイントパス） |
+| `rule_id` | string | Yes | - | ルール ID（UUID） |
 
 **レスポンス（200 OK）**
 
 ```json
 {
-  "used": 42,
+  "rule_id": "550e8400-e29b-41d4-a716-446655440000",
+  "rule_name": "user-global",
   "limit": 100,
+  "window_seconds": 60,
+  "algorithm": "token_bucket",
+  "enabled": true,
+  "used": 42,
   "remaining": 58,
   "reset_at": 1740052260
+}
+```
+
+フィールド `used`, `remaining`, `reset_at` は Redis 状態が存在する場合のみ含まれる（省略可）。
+
+**レスポンス（400 Bad Request）**
+
+```json
+{
+  "error": {
+    "code": "SYS_RATELIMIT_VALIDATION_ERROR",
+    "message": "rule_id is required",
+    "request_id": "req_abc123def456"
+  }
 }
 ```
 
@@ -144,10 +162,9 @@ system tier のレートリミットサーバーは以下の機能を提供す�
 ```json
 {
   "error": {
-    "code": "SYS_RATE_NOT_FOUND",
-    "message": "no rate limit state found for user:user-001",
-    "request_id": "req_abc123def456",
-    "details": []
+    "code": "SYS_RATELIMIT_RULE_NOT_FOUND",
+    "message": "rule not found: 550e8400-e29b-41d4-a716-446655440000",
+    "request_id": "req_abc123def456"
   }
 }
 ```
@@ -236,7 +253,7 @@ system tier のレートリミットサーバーは以下の機能を提供す�
 ```json
 {
   "error": {
-    "code": "SYS_RATE_VALIDATION_ERROR",
+    "code": "SYS_RATELIMIT_VALIDATION_ERROR",
     "message": "validation failed",
     "request_id": "req_abc123def456",
     "details": [
@@ -283,10 +300,9 @@ system tier のレートリミットサーバーは以下の機能を提供す�
 ```json
 {
   "error": {
-    "code": "SYS_RATE_NOT_FOUND",
-    "message": "rate limit rule not found: 550e8400-e29b-41d4-a716-446655440000",
-    "request_id": "req_abc123def456",
-    "details": []
+    "code": "SYS_RATELIMIT_RULE_NOT_FOUND",
+    "message": "rule not found: 550e8400-e29b-41d4-a716-446655440000",
+    "request_id": "req_abc123def456"
   }
 }
 ```
@@ -295,24 +311,18 @@ system tier のレートリミットサーバーは以下の機能を提供す�
 
 レートリミットルールを削除する。
 
-**レスポンス（200 OK）**
+**レスポンス（204 No Content）**
 
-```json
-{
-  "success": true,
-  "message": "rate limit rule 550e8400-e29b-41d4-a716-446655440000 deleted"
-}
-```
+ボディなし。削除成功時は 204 を返す。
 
 **レスポンス（404 Not Found）**
 
 ```json
 {
   "error": {
-    "code": "SYS_RATE_NOT_FOUND",
-    "message": "rate limit rule not found: 550e8400-e29b-41d4-a716-446655440000",
-    "request_id": "req_abc123def456",
-    "details": []
+    "code": "SYS_RATELIMIT_RULE_NOT_FOUND",
+    "message": "rule not found: 550e8400-e29b-41d4-a716-446655440000",
+    "request_id": "req_abc123def456"
   }
 }
 ```
@@ -344,7 +354,7 @@ system tier のレートリミットサーバーは以下の機能を提供す�
 ```json
 {
   "error": {
-    "code": "SYS_RATE_VALIDATION_ERROR",
+    "code": "SYS_RATELIMIT_VALIDATION_ERROR",
     "message": "validation failed",
     "request_id": "req_abc123def456",
     "details": [
@@ -358,10 +368,11 @@ system tier のレートリミットサーバーは以下の機能を提供す�
 
 | コード | HTTP Status | 説明 |
 | --- | --- | --- |
-| `SYS_RATE_NOT_FOUND` | 404 | 指定されたルールまたは状態が見つからない |
-| `SYS_RATE_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー |
-| `SYS_RATE_REDIS_ERROR` | 503 | Redis 接続エラー（フェイルオープン設定時は 200 で通過） |
-| `SYS_RATE_INTERNAL_ERROR` | 500 | 内部エラー |
+| `SYS_RATELIMIT_RULE_NOT_FOUND` | 404 | 指定されたルールが見つからない |
+| `SYS_RATELIMIT_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー |
+| `SYS_RATELIMIT_RULE_EXISTS` | 409 | ルールがすでに存在する |
+| `SYS_RATELIMIT_ERROR` | 400 | レート制限チェックの汎用エラー |
+| `SYS_RATELIMIT_INTERNAL_ERROR` | 500 | 内部エラー |
 
 ### gRPC サービス定義
 
@@ -369,36 +380,70 @@ system tier のレートリミットサーバーは以下の機能を提供す�
 syntax = "proto3";
 package k1s0.system.ratelimit.v1;
 
+import "google/protobuf/timestamp.proto";
+
 service RateLimitService {
   rpc CheckRateLimit(CheckRateLimitRequest) returns (CheckRateLimitResponse);
+  rpc CreateRule(CreateRuleRequest) returns (CreateRuleResponse);
+  rpc GetRule(GetRuleRequest) returns (GetRuleResponse);
   rpc GetUsage(GetUsageRequest) returns (GetUsageResponse);
   rpc ResetLimit(ResetLimitRequest) returns (ResetLimitResponse);
 }
 
 message CheckRateLimitRequest {
-  string scope = 1;
-  string identifier = 2;
-  optional string window = 3;
+  string rule_id = 1;
+  string subject = 2;
 }
 
 message CheckRateLimitResponse {
   bool allowed = 1;
-  uint32 remaining = 2;
-  uint64 reset_at = 3;
-  uint32 limit = 4;
-  string reason = 5;
+  int64 remaining = 2;
+  int64 reset_at = 3;
+  string reason = 4;
+}
+
+message CreateRuleRequest {
+  string name = 1;
+  string key = 2;
+  int64 limit = 3;
+  int64 window_secs = 4;
+  string algorithm = 5;
+}
+
+message CreateRuleResponse {
+  RateLimitRule rule = 1;
+}
+
+message GetRuleRequest {
+  string rule_id = 1;
+}
+
+message GetRuleResponse {
+  RateLimitRule rule = 1;
+}
+
+message RateLimitRule {
+  string id = 1;
+  string name = 2;
+  string key = 3;
+  int64 limit = 4;
+  int64 window_secs = 5;
+  string algorithm = 6;
+  bool enabled = 7;
+  google.protobuf.Timestamp created_at = 8;
 }
 
 message GetUsageRequest {
-  string scope = 1;
-  string identifier = 2;
+  string rule_id = 1;
 }
 
 message GetUsageResponse {
-  uint32 used = 1;
-  uint32 limit = 2;
-  uint32 remaining = 3;
-  uint64 reset_at = 4;
+  string rule_id = 1;
+  string rule_name = 2;
+  int64 limit = 3;
+  int64 window_secs = 4;
+  string algorithm = 5;
+  bool enabled = 6;
 }
 
 message ResetLimitRequest {
@@ -590,8 +635,8 @@ API ゲートウェイ（Kong）のカスタムプラグインから gRPC で `C
                     │  │  reset_limit                             │   │
                     │  ├──────────────────────────────────────────┤   │
                     │  │ gRPC Handler (ratelimit_grpc.rs)         │   │
-                    │  │  CheckRateLimit / GetUsage               │   │
-                    │  │  ResetLimit                              │   │
+                    │  │  CheckRateLimit / CreateRule             │   │
+                    │  │  GetRule / GetUsage / ResetLimit         │   │
                     │  └──────────────────────┬───────────────────┘   │
                     └─────────────────────────┼───────────────────────┘
                                               │

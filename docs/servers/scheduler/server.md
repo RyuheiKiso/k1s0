@@ -189,13 +189,10 @@ ID 指定でジョブの詳細を取得する。
 ```json
 {
   "error": {
-    "code": "SYS_SCHED_VALIDATION_ERROR",
-    "message": "validation failed",
+    "code": "SYS_SCHED_INVALID_CRON",
+    "message": "invalid cron expression: <expr>",
     "request_id": "req_abc123def456",
-    "details": [
-      {"field": "cron_expression", "message": "invalid cron expression"},
-      {"field": "timezone", "message": "unknown timezone: Invalid/Zone"}
-    ]
+    "details": []
   }
 }
 ```
@@ -244,24 +241,24 @@ ID 指定でジョブの詳細を取得する。
 
 #### DELETE /api/v1/jobs/:id
 
-ジョブを削除する。実行中のジョブは削除できない。
+ジョブを削除する。
 
 **レスポンス例（200 OK）**
 
 ```json
 {
   "success": true,
-  "message": "scheduler job job_01JABCDEF1234567890 deleted"
+  "message": "job job_01JABCDEF1234567890 deleted"
 }
 ```
 
-**レスポンス例（409 Conflict）**
+**レスポンス例（404 Not Found）**
 
 ```json
 {
   "error": {
-    "code": "SYS_SCHED_JOB_RUNNING",
-    "message": "cannot delete a running job: job_01JABCDEF1234567890",
+    "code": "SYS_SCHED_NOT_FOUND",
+    "message": "job not found: job_01JABCDEF1234567890",
     "request_id": "req_abc123def456",
     "details": []
   }
@@ -272,7 +269,7 @@ ID 指定でジョブの詳細を取得する。
 
 ジョブをスケジュールに関係なく即時実行する。分散ロックを取得し重複実行を防止する。
 
-**レスポンス例（202 Accepted）**
+**レスポンス例（200 OK）**
 
 ```json
 {
@@ -288,8 +285,8 @@ ID 指定でジョブの詳細を取得する。
 ```json
 {
   "error": {
-    "code": "SYS_SCHED_JOB_RUNNING",
-    "message": "job is already running: job_01JABCDEF1234567890",
+    "code": "SYS_SCHED_NOT_ACTIVE",
+    "message": "job is not active: job_01JABCDEF1234567890",
     "request_id": "req_abc123def456",
     "details": []
   }
@@ -341,9 +338,9 @@ ID 指定でジョブの詳細を取得する。
 | --- | --- | --- |
 | `SYS_SCHED_NOT_FOUND` | 404 | 指定されたジョブが見つからない |
 | `SYS_SCHED_ALREADY_EXISTS` | 409 | 同一名のジョブが既に存在する |
-| `SYS_SCHED_JOB_RUNNING` | 409 | ジョブが実行中のため操作できない |
+| `SYS_SCHED_NOT_ACTIVE` | 409 | ジョブがアクティブでないため実行できない |
 | `SYS_SCHED_INVALID_STATUS` | 409 | 操作に対してジョブのステータスが不正 |
-| `SYS_SCHED_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー |
+| `SYS_SCHED_INVALID_CRON` | 400 | cron 式が不正 |
 | `SYS_SCHED_INTERNAL_ERROR` | 500 | 内部エラー |
 
 ### gRPC サービス定義
@@ -352,8 +349,11 @@ ID 指定でジョブの詳細を取得する。
 syntax = "proto3";
 package k1s0.system.scheduler.v1;
 
+import "k1s0/system/common/v1/types.proto";
+
 service SchedulerService {
   rpc TriggerJob(TriggerJobRequest) returns (TriggerJobResponse);
+  // GetJobExecution は現在 Unimplemented を返す（TODO: 実行リポジトリ実装後に完成）
   rpc GetJobExecution(GetJobExecutionRequest) returns (GetJobExecutionResponse);
 }
 
@@ -364,8 +364,10 @@ message TriggerJobRequest {
 message TriggerJobResponse {
   string execution_id = 1;
   string job_id = 2;
+  // 実行状態（running / succeeded / failed）
   string status = 3;
-  string triggered_at = 4;
+  // 現在 null 固定（TODO: triggered_at を返すよう実装予定）
+  k1s0.system.common.v1.Timestamp triggered_at = 4;
 }
 
 message GetJobExecutionRequest {
@@ -379,10 +381,13 @@ message GetJobExecutionResponse {
 message JobExecution {
   string id = 1;
   string job_id = 2;
+  // 実行状態（running / succeeded / failed）
   string status = 3;
+  // 実行トリガー（scheduler / manual）
   string triggered_by = 4;
-  string started_at = 5;
-  optional string finished_at = 6;
+  k1s0.system.common.v1.Timestamp started_at = 5;
+  optional k1s0.system.common.v1.Timestamp finished_at = 6;
+  // 実行時間（ミリ秒）
   optional uint64 duration_ms = 7;
   optional string error_message = 8;
 }

@@ -85,6 +85,8 @@ JWT トークンを検証し、有効であれば Claims を返却する。
 | `claims.email` | string | メールアドレス |
 | `claims.scope` | string | スコープ |
 | `claims.realm_access.roles` | string[] | ロールリスト |
+| `claims.resource_access` | map\<string, object\> | クライアント別ロール（`{ roles: string[] }`） |
+| `claims.tier_access` | string[] | アクセス可能 Tier |
 
 **エラーレスポンス（401）**: `SYS_AUTH_TOKEN_INVALID`
 
@@ -105,7 +107,7 @@ RFC 7662 準拠のトークンイントロスペクション。トークンが�
 | --- | --- | --- |
 | `active` | bool | トークンの有効性 |
 | `sub` | string | ユーザー ID |
-| `client_id` | string | クライアント ID |
+| `client_id` | string | クライアント ID（JWT の `azp` クレームから取得） |
 | `username` | string | ユーザー名 |
 | `token_type` | string | トークン種別（`Bearer`） |
 | `exp` | int64 | 有効期限 |
@@ -398,6 +400,8 @@ service AuditService {
 
 > **注**: REST API の `/api/v1/auth/permissions/check` はロールベースの純粋な権限チェックのため `user_id` フィールドを持たない。gRPC の `CheckPermission` はサービス間通信でユーザー特定が必要なため `user_id` を含む。
 
+> **注**: REST API の `ValidateToken` レスポンスの `claims` には `scope`, `resource_access`, `tier_access` フィールドが含まれる。gRPC の `ValidateTokenResponse.TokenClaims` では `scope` フィールドは定義されておらず、gRPC 経由では `scope` は返却されない。
+
 #### AuditService RPC 詳細
 
 | RPC | リクエスト | レスポンス | 説明 |
@@ -502,7 +506,7 @@ message AuditLog {
 
 | フィールド | 型 | デフォルト | 説明 |
 | --- | --- | --- | --- |
-| `url` | string | - | JWKS エンドポイント URL（例: `http://auth-server:8080/.well-known/jwks.json`）。Keycloak URL から自動導出せず、明示的に指定する |
+| `url` | string | - | JWKS エンドポイント URL（例: `http://auth-server:8080/jwks`）。互換として `/.well-known/jwks.json` も利用可能。Keycloak URL から自動導出せず、明示的に指定する |
 | `cache_ttl_secs` | int | `600` | JWKS キャッシュ TTL（秒）。[JWT設計.md](../../architecture/auth/JWT設計.md) の JWKS キャッシュ TTL 10 分と整合 |
 
 ### auth.jwt
@@ -683,7 +687,13 @@ JWT トークンを検証し、有効であれば Claims を返却する。
     "scope": "openid profile email",
     "realm_access": {
       "roles": ["sys_auditor"]
-    }
+    },
+    "resource_access": {
+      "react-spa": {
+        "roles": ["read"]
+      }
+    },
+    "tier_access": ["system"]
   }
 }
 ```

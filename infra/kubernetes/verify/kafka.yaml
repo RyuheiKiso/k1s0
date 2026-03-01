@@ -16,11 +16,11 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
-      # k8sサービス環境変数(KAFKA_PORT等)がConfluentの設定と衝突するため無効化
+      # k8sサービス環境変数(KAFKA_PORT等)がKafka設定と衝突しうるため無効化
       enableServiceLinks: false
       containers:
         - name: kafka
-          image: confluentinc/cp-kafka:7.7.1
+          image: apache/kafka:3.8.0
           env:
             - name: KAFKA_NODE_ID
               value: "1"
@@ -57,7 +57,7 @@ spec:
               command:
                 - bash
                 - -c
-                - "kafka-broker-api-versions --bootstrap-server localhost:9092"
+                - "bash -lc 'kafka-broker-api-versions.sh --bootstrap-server localhost:9092'"
             initialDelaySeconds: 20
             periodSeconds: 10
             failureThreshold: 10

@@ -277,31 +277,24 @@ syntax = "proto3";
 package k1s0.system.quota.v1;
 
 service QuotaService {
-  rpc CheckAndIncrement(CheckAndIncrementRequest) returns (CheckAndIncrementResponse);
-  rpc GetUsage(GetUsageRequest) returns (GetUsageResponse);
+  rpc CreateQuotaPolicy(CreateQuotaPolicyRequest) returns (CreateQuotaPolicyResponse);
+  rpc GetQuotaPolicy(GetQuotaPolicyRequest) returns (GetQuotaPolicyResponse);
+  rpc ListQuotaPolicies(ListQuotaPoliciesRequest) returns (ListQuotaPoliciesResponse);
+  rpc UpdateQuotaPolicy(UpdateQuotaPolicyRequest) returns (UpdateQuotaPolicyResponse);
+  rpc DeleteQuotaPolicy(DeleteQuotaPolicyRequest) returns (DeleteQuotaPolicyResponse);
+  rpc GetQuotaUsage(GetQuotaUsageRequest) returns (GetQuotaUsageResponse);
+  rpc IncrementQuotaUsage(IncrementQuotaUsageRequest) returns (IncrementQuotaUsageResponse);
 }
 
-message CheckAndIncrementRequest {
-  string quota_id = 1;
-  uint64 amount = 2;
-  string request_id = 3;
-}
-
-message CheckAndIncrementResponse {
-  string quota_id = 1;
-  uint64 used = 2;
-  uint64 remaining = 3;
-  double usage_percent = 4;
-  bool exceeded = 5;
-  bool allowed = 6;
-}
-
-message GetUsageRequest {
-  string quota_id = 1;
-}
-
-message GetUsageResponse {
-  QuotaUsage usage = 1;
+message QuotaPolicy {
+  string id = 1;
+  string name = 2;
+  string subject_type = 3;
+  string subject_id = 4;
+  uint64 limit = 5;
+  string period = 6;
+  bool enabled = 7;
+  optional uint32 alert_threshold_percent = 8;
 }
 
 message QuotaUsage {
@@ -314,10 +307,79 @@ message QuotaUsage {
   uint64 remaining = 7;
   double usage_percent = 8;
   bool exceeded = 9;
-  string period_start = 10;
-  string period_end = 11;
-  string reset_at = 12;
-  string retrieved_at = 13;
+}
+
+message CreateQuotaPolicyRequest {
+  string name = 1;
+  string subject_type = 2;
+  string subject_id = 3;
+  uint64 limit = 4;
+  string period = 5;
+  bool enabled = 6;
+  optional uint32 alert_threshold_percent = 7;
+}
+
+message CreateQuotaPolicyResponse {
+  QuotaPolicy policy = 1;
+}
+
+message GetQuotaPolicyRequest {
+  string id = 1;
+}
+
+message GetQuotaPolicyResponse {
+  QuotaPolicy policy = 1;
+}
+
+message ListQuotaPoliciesRequest {
+  uint32 page = 1;
+  uint32 page_size = 2;
+}
+
+message ListQuotaPoliciesResponse {
+  repeated QuotaPolicy policies = 1;
+  uint64 total = 2;
+}
+
+message UpdateQuotaPolicyRequest {
+  string id = 1;
+  optional bool enabled = 2;
+  optional uint64 limit = 3;
+}
+
+message UpdateQuotaPolicyResponse {
+  QuotaPolicy policy = 1;
+}
+
+message DeleteQuotaPolicyRequest {
+  string id = 1;
+}
+
+message DeleteQuotaPolicyResponse {
+  string id = 1;
+  bool deleted = 2;
+}
+
+message GetQuotaUsageRequest {
+  string quota_id = 1;
+}
+
+message GetQuotaUsageResponse {
+  QuotaUsage usage = 1;
+}
+
+message IncrementQuotaUsageRequest {
+  string quota_id = 1;
+  uint64 amount = 2;
+}
+
+message IncrementQuotaUsageResponse {
+  string quota_id = 1;
+  uint64 used = 2;
+  uint64 remaining = 3;
+  double usage_percent = 4;
+  bool exceeded = 5;
+  bool allowed = 6;
 }
 ```
 
@@ -440,8 +502,11 @@ message QuotaUsage {
                     │  │  get_quota / update_quota / delete_quota │   │
                     │  │  get_usage / increment_usage / reset     │   │
                     │  ├──────────────────────────────────────────┤   │
-                    │  │ gRPC Handler (quota_grpc.rs)             │   │
-                    │  │  CheckAndIncrement / GetUsage            │   │
+                    │  │ gRPC Handler (tonic_service.rs)          │   │
+                    │  │  CreateQuotaPolicy / GetQuotaPolicy /    │   │
+                    │  │  ListQuotaPolicies / UpdateQuotaPolicy / │   │
+                    │  │  DeleteQuotaPolicy / GetQuotaUsage /     │   │
+                    │  │  IncrementQuotaUsage                     │   │
                     │  └──────────────────────┬───────────────────┘   │
                     └─────────────────────────┼───────────────────────┘
                                               │

@@ -54,7 +54,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
 | GET | `/api/v1/files` | ファイル一覧取得 | `sys_auditor` 以上 |
-| POST | `/api/v1/files/upload-url` | ファイルアップロード（プリサインドURL発行） | `sys_operator` 以上 |
+| POST | `/api/v1/files` | ファイルアップロード開始（プリサインドURL発行） | `sys_operator` 以上 |
 | GET | `/api/v1/files/:id` | ファイルメタデータ取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/files/:id/complete` | アップロード完了通知 | `sys_operator` 以上 |
 | DELETE | `/api/v1/files/:id` | ファイル削除 | `sys_operator` 以上 |
@@ -110,7 +110,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 }
 ```
 
-#### POST /api/v1/files/upload-url
+#### POST /api/v1/files
 
 アップロード用のプリサインドURLを発行する。クライアントはこの URL に対して直接 HTTP PUT でファイルをアップロードする。アップロード完了後、`/api/v1/files/:id/complete` を呼び出してサーバーに完了を通知する。
 
@@ -122,6 +122,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
   "size_bytes": 2097152,
   "mime_type": "application/pdf",
   "tenant_id": "tenant-abc",
+  "owner_id": "user-001",
   "tags": {
     "category": "report",
     "year": "2026"
@@ -136,12 +137,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 {
   "file_id": "file_01JABCDEF1234567890",
   "upload_url": "https://storage.example.com/k1s0-files/tenant-abc/reports/report-2026-02.pdf?X-Amz-Signature=...",
-  "upload_method": "PUT",
-  "expires_at": "2026-02-20T11:00:00.000+00:00",
-  "required_headers": {
-    "Content-Type": "application/pdf",
-    "Content-Length": "2097152"
-  }
+  "expires_in_seconds": 3600
 }
 ```
 
@@ -150,40 +146,38 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 ```json
 {
   "error": {
-    "code": "SYS_FILE_VALIDATION_ERROR",
-    "message": "validation failed",
-    "request_id": "req_abc123def456",
-    "details": [
-      {"field": "size_bytes", "message": "size_bytes must be greater than 0"},
-      {"field": "mime_type", "message": "mime_type is required"}
-    ]
+    "code": "SYS_FILE_VALIDATION",
+    "message": "validation failed"
   }
 }
 ```
 
 #### GET /api/v1/files/:id
 
-ファイルのメタデータを取得する。ストレージへの直接アクセスは行わない。
+ファイルのメタデータを取得する。ファイルが `available` 状態の場合はダウンロード URL も合わせて返す。
 
 **レスポンス例（200 OK）**
 
 ```json
 {
-  "id": "file_01JABCDEF1234567890",
-  "name": "report-2026-02.pdf",
-  "size_bytes": 2097152,
-  "mime_type": "application/pdf",
-  "tenant_id": "tenant-abc",
-  "owner_id": "user-001",
-  "tags": {
-    "category": "report",
-    "year": "2026"
+  "file": {
+    "id": "file_01JABCDEF1234567890",
+    "name": "report-2026-02.pdf",
+    "size_bytes": 2097152,
+    "mime_type": "application/pdf",
+    "tenant_id": "tenant-abc",
+    "owner_id": "user-001",
+    "tags": {
+      "category": "report",
+      "year": "2026"
+    },
+    "storage_key": "tenant-abc/reports/report-2026-02.pdf",
+    "checksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "status": "available",
+    "created_at": "2026-02-20T10:00:00.000+00:00",
+    "updated_at": "2026-02-20T10:05:00.000+00:00"
   },
-  "storage_key": "tenant-abc/reports/report-2026-02.pdf",
-  "checksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "status": "available",
-  "created_at": "2026-02-20T10:00:00.000+00:00",
-  "updated_at": "2026-02-20T10:05:00.000+00:00"
+  "download_url": "https://storage.example.com/k1s0-files/tenant-abc/reports/report-2026-02.pdf?X-Amz-Signature=..."
 }
 ```
 
@@ -193,9 +187,55 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 {
   "error": {
     "code": "SYS_FILE_NOT_FOUND",
-    "message": "file not found: file_01JABCDEF1234567890",
-    "request_id": "req_abc123def456",
-    "details": []
+    "message": "file not found: file_01JABCDEF1234567890"
+  }
+}
+```
+
+#### POST /api/v1/files/:id/complete
+
+クライアントがストレージへの直接アップロード完了後に呼び出す。サーバーはファイルの状態を `pending` から `available` に更新し、Kafka イベントを発行する。
+
+**リクエスト例**
+
+```json
+{
+  "checksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
+```
+
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `checksum_sha256` | string | No | アップロード後のファイルチェックサム（任意） |
+
+**レスポンス例（200 OK）**
+
+```json
+{
+  "file_id": "file_01JABCDEF1234567890",
+  "status": "available",
+  "message": "upload completed"
+}
+```
+
+**レスポンス例（404 Not Found）**
+
+```json
+{
+  "error": {
+    "code": "SYS_FILE_NOT_FOUND",
+    "message": "file not found: file_01JABCDEF1234567890"
+  }
+}
+```
+
+**レスポンス例（409 Conflict）**
+
+```json
+{
+  "error": {
+    "code": "SYS_FILE_ALREADY_COMPLETED",
+    "message": "already completed"
   }
 }
 ```
@@ -216,7 +256,7 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 {
   "file_id": "file_01JABCDEF1234567890",
   "download_url": "https://storage.example.com/k1s0-files/tenant-abc/reports/report-2026-02.pdf?X-Amz-Signature=...",
-  "expires_at": "2026-02-20T11:00:00.000+00:00"
+  "expires_in_seconds": 3600
 }
 ```
 
@@ -240,13 +280,13 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 
 ```json
 {
-  "id": "file_01JABCDEF1234567890",
+  "file_id": "file_01JABCDEF1234567890",
   "tags": {
     "category": "report",
     "year": "2026",
     "reviewed": "true"
   },
-  "updated_at": "2026-02-23T15:00:00.000+00:00"
+  "message": "tags updated"
 }
 ```
 
@@ -268,13 +308,19 @@ system tier のファイルストレージ抽象化サーバーは以下の機�
 | コード | HTTP Status | 説明 |
 | --- | --- | --- |
 | `SYS_FILE_NOT_FOUND` | 404 | 指定されたファイルが見つからない |
-| `SYS_FILE_ALREADY_EXISTS` | 409 | 同一パスのファイルが既に存在する |
-| `SYS_FILE_UPLOAD_PENDING` | 409 | アップロードがまだ完了していない |
-| `SYS_FILE_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー |
+| `SYS_FILE_ALREADY_COMPLETED` | 409 | アップロードが既に完了済み |
+| `SYS_FILE_VALIDATION` | 400 | リクエストのバリデーションエラー |
+| `SYS_FILE_NOT_AVAILABLE` | 400 | ファイルが利用可能状態でない（ダウンロードURL発行時） |
 | `SYS_FILE_ACCESS_DENIED` | 403 | 別テナントのファイルへのアクセス拒否 |
 | `SYS_FILE_STORAGE_ERROR` | 502 | ストレージバックエンドへの接続・操作エラー |
 | `SYS_FILE_SIZE_EXCEEDED` | 413 | ファイルサイズ上限超過 |
-| `SYS_FILE_INTERNAL_ERROR` | 500 | 内部エラー |
+| `SYS_FILE_UPLOAD_FAILED` | 500 | アップロードURL発行エラー |
+| `SYS_FILE_GET_FAILED` | 500 | メタデータ取得エラー |
+| `SYS_FILE_LIST_FAILED` | 500 | ファイル一覧取得エラー |
+| `SYS_FILE_DELETE_FAILED` | 500 | ファイル削除エラー |
+| `SYS_FILE_COMPLETE_FAILED` | 500 | アップロード完了処理エラー |
+| `SYS_FILE_DOWNLOAD_URL_FAILED` | 500 | ダウンロードURL発行エラー |
+| `SYS_FILE_TAGS_UPDATE_FAILED` | 500 | タグ更新エラー |
 
 ### gRPC サービス定義
 
@@ -283,69 +329,81 @@ syntax = "proto3";
 package k1s0.system.file.v1;
 
 service FileService {
-  rpc GetFileMetadata(GetFileMetadataRequest) returns (GetFileMetadataResponse);
+  rpc GetFileMetadata(GetFileMetadataRequest) returns (FileMetadataResponse);
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
   rpc GenerateUploadUrl(GenerateUploadUrlRequest) returns (GenerateUploadUrlResponse);
+  rpc CompleteUpload(CompleteUploadRequest) returns (CompleteUploadResponse);
   rpc GenerateDownloadUrl(GenerateDownloadUrlRequest) returns (GenerateDownloadUrlResponse);
   rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
 }
 
-message GetFileMetadataRequest {
-  string file_id = 1;
+message FileMetadata {
+  string id = 1;
+  string filename = 2;
+  string content_type = 3;
+  int64 size = 4;
+  string tenant_id = 5;
+  string uploaded_by = 6;
+  string status = 7;
+  string created_at = 8;
+  string updated_at = 9;
+  map<string, string> tags = 10;
 }
 
-message GetFileMetadataResponse {
-  FileMetadata file = 1;
+message GetFileMetadataRequest {
+  string id = 1;
+}
+
+message FileMetadataResponse {
+  FileMetadata metadata = 1;
+}
+
+message ListFilesRequest {
+  string tenant_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListFilesResponse {
+  repeated FileMetadata files = 1;
+  int32 total = 2;
 }
 
 message GenerateUploadUrlRequest {
-  string name = 1;
-  uint64 size_bytes = 2;
-  string mime_type = 3;
-  string tenant_id = 4;
+  string filename = 1;
+  string content_type = 2;
+  string tenant_id = 3;
+  string uploaded_by = 4;
   map<string, string> tags = 5;
-  uint32 expires_in_seconds = 6;
 }
 
 message GenerateUploadUrlResponse {
   string file_id = 1;
   string upload_url = 2;
-  string expires_at = 3;
+}
+
+message CompleteUploadRequest {
+  string file_id = 1;
+  int64 size = 2;
+}
+
+message CompleteUploadResponse {
+  FileMetadata metadata = 1;
 }
 
 message GenerateDownloadUrlRequest {
-  string file_id = 1;
-  uint32 expires_in_seconds = 2;
+  string id = 1;
 }
 
 message GenerateDownloadUrlResponse {
-  string file_id = 1;
-  string download_url = 2;
-  string expires_at = 3;
+  string download_url = 1;
 }
 
 message DeleteFileRequest {
-  string file_id = 1;
-}
-
-message DeleteFileResponse {
-  bool success = 1;
-  string message = 2;
-}
-
-message FileMetadata {
   string id = 1;
-  string name = 2;
-  uint64 size_bytes = 3;
-  string mime_type = 4;
-  string tenant_id = 5;
-  string owner_id = 6;
-  map<string, string> tags = 7;
-  string storage_key = 8;
-  optional string checksum_sha256 = 9;
-  string status = 10;
-  string created_at = 11;
-  string updated_at = 12;
 }
+
+message DeleteFileResponse {}
 ```
 
 ---
@@ -454,7 +512,8 @@ message FileMetadata {
                     │  │  update_tags                             │   │
                     │  ├──────────────────────────────────────────┤   │
                     │  │ gRPC Handler (file_grpc.rs)              │   │
-                    │  │  GetFileMetadata / GenerateUploadUrl /   │   │
+                    │  │  GetFileMetadata / ListFiles /           │   │
+                    │  │  GenerateUploadUrl / CompleteUpload /    │   │
                     │  │  GenerateDownloadUrl / DeleteFile        │   │
                     │  └──────────────────────┬───────────────────┘   │
                     └─────────────────────────┼───────────────────────┘

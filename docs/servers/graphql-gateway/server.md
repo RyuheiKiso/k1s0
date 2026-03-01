@@ -420,7 +420,7 @@ graphql:
   query_timeout_seconds: 30
 
 auth:
-  jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
+  jwks_url: "http://auth-server.k1s0-system.svc.cluster.local/jwks"
 
 backends:
   tenant:

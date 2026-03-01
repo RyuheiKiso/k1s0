@@ -84,15 +84,15 @@ system tier の OpenAPI/Protobuf スキーマ集中管理サーバー。スキ�
 | `description` | string | Yes | スキーマの説明 |
 | `schema_type` | string | Yes | スキーマ種別（`openapi` / `protobuf`） |
 | `content` | string | Yes | スキーマ本文（YAML/JSON/proto） |
+| `registered_by` | string | No | 登録者ユーザー ID（省略時は `anonymous`） |
 
 **レスポンスフィールド（201 Created）**
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `name` | string | スキーマ名 |
-| `description` | string | スキーマの説明 |
-| `schema_type` | string | スキーマ種別 |
 | `version` | int | バージョン番号（1） |
+| `schema_type` | string | スキーマ種別 |
 | `content_hash` | string | コンテンツの SHA-256 ハッシュ |
 | `created_at` | string | 登録日時 |
 
@@ -110,7 +110,8 @@ system tier の OpenAPI/Protobuf スキーマ集中管理サーバー。スキ�
 | `description` | string | スキーマの説明 |
 | `schema_type` | string | スキーマ種別 |
 | `latest_version` | int | 最新バージョン番号 |
-| `content` | string | 最新バージョンのスキーマ本文 |
+| `version_count` | int | 登録バージョン数 |
+| `latest_content` | string | 最新バージョンのスキーマ本文 |
 | `content_hash` | string | コンテンツの SHA-256 ハッシュ |
 | `created_at` | string | 初回登録日時 |
 | `updated_at` | string | 最終更新日時 |
@@ -161,7 +162,7 @@ system tier の OpenAPI/Protobuf スキーマ集中管理サーバー。スキ�
 | フィールド | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
 | `content` | string | Yes | スキーマ本文 |
-| `registered_by` | string | Yes | 登録者ユーザー ID |
+| `registered_by` | string | No | 登録者ユーザー ID（省略時は `anonymous`） |
 
 **レスポンスフィールド（201 Created）**
 
@@ -171,8 +172,6 @@ system tier の OpenAPI/Protobuf スキーマ集中管理サーバー。スキ�
 | `version` | int | バージョン番号 |
 | `content_hash` | string | コンテンツハッシュ |
 | `breaking_changes` | bool | 破壊的変更フラグ |
-| `breaking_change_details` | BreakingChange[] | 破壊的変更の詳細リスト |
-| `registered_by` | string | 登録者 |
 | `created_at` | string | 登録日時 |
 
 **エラーレスポンス（422）**: `SYS_APIREG_SCHEMA_INVALID`
@@ -183,7 +182,7 @@ system tier の OpenAPI/Protobuf スキーマ集中管理サーバー。スキ�
 
 **レスポンス**: 204 No Content
 
-**エラーレスポンス（409）**: `SYS_APIREG_CANNOT_DELETE_LATEST`
+**エラーレスポンス（400）**: `SYS_APIREG_CANNOT_DELETE_LATEST`
 
 #### POST /api/v1/schemas/:name/compatibility
 
@@ -238,7 +237,7 @@ system tier の OpenAPI/Protobuf スキーマ集中管理サーバー。スキ�
 | `SYS_APIREG_SCHEMA_NOT_FOUND` | 404 | 指定されたスキーマが見つからない |
 | `SYS_APIREG_VERSION_NOT_FOUND` | 404 | 指定されたバージョンが見つからない |
 | `SYS_APIREG_ALREADY_EXISTS` | 409 | 同一名のスキーマが既に存在する |
-| `SYS_APIREG_CANNOT_DELETE_LATEST` | 409 | 唯一の残存バージョンは削除できない |
+| `SYS_APIREG_CANNOT_DELETE_LATEST` | 400 | 唯一の残存バージョンは削除できない |
 | `SYS_APIREG_SCHEMA_INVALID` | 422 | スキーマのバリデーションエラー（openapi-spec-validator / buf lint） |
 | `SYS_APIREG_VALIDATION_ERROR` | 400 | リクエストパラメータのバリデーションエラー |
 | `SYS_APIREG_VALIDATOR_ERROR` | 502 | 外部バリデーター（openapi-spec-validator / buf）の実行エラー |
@@ -548,9 +547,8 @@ message SendNotificationResponse {
 ```json
 {
   "name": "k1s0-tenant-api",
-  "description": "テナント管理 API スキーマ",
-  "schema_type": "openapi",
   "version": 1,
+  "schema_type": "openapi",
   "content_hash": "sha256:a1b2c3d4e5f6...",
   "created_at": "2026-02-20T10:00:00.000+00:00"
 }
@@ -580,11 +578,8 @@ message SendNotificationResponse {
   "description": "テナント管理 API スキーマ",
   "schema_type": "openapi",
   "latest_version": 3,
-  "content": "openapi: 3.0.3
-info:
-  title: Tenant API
-  version: 3.0.0
-...",
+  "version_count": 3,
+  "latest_content": "openapi: 3.0.3\ninfo:\n  title: Tenant API\n  version: 3.0.0\n...",
   "content_hash": "sha256:f6e5d4c3b2a1...",
   "created_at": "2026-02-10T10:00:00.000+00:00",
   "updated_at": "2026-02-20T12:30:00.000+00:00"
@@ -675,8 +670,6 @@ paths:
   "version": 3,
   "content_hash": "sha256:f6e5d4c3b2a1...",
   "breaking_changes": false,
-  "breaking_change_details": [],
-  "registered_by": "user-001",
   "created_at": "2026-02-20T12:30:00.000+00:00"
 }
 ```
@@ -689,26 +682,13 @@ paths:
   "version": 3,
   "content_hash": "sha256:f6e5d4c3b2a1...",
   "breaking_changes": true,
-  "breaking_change_details": [
-    {
-      "change_type": "field_removed",
-      "path": "/api/v1/tenants GET response.properties.legacy_id",
-      "description": "フィールド 'legacy_id' が削除されました"
-    },
-    {
-      "change_type": "type_changed",
-      "path": "/api/v1/tenants/{id} GET response.properties.created_at",
-      "description": "'created_at' の型が string から integer に変更されました"
-    }
-  ],
-  "registered_by": "user-001",
   "created_at": "2026-02-20T12:30:00.000+00:00"
 }
 ```
 
 ### DELETE /api/v1/schemas/:name/versions/:version
 
-**レスポンス（409 Conflict）**
+**レスポンス（400 Bad Request）**
 
 ```json
 {

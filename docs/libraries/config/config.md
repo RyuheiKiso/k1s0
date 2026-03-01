@@ -4,11 +4,33 @@
 
 ## 公開 API（全言語共通契約）
 
+### コア関数
+
 | 関数 | シグネチャ | 説明 |
 |------|-----------|------|
-| Load | `(basePath, envPath?) -> (Config, Error?)` | YAML を読み込み Config を返す |
-| Validate | `(config) -> Error?` | 設定値のバリデーション |
-| MergeVaultSecrets | `(config, secrets) -> Config` | Vault シークレットで上書き |
+| `Load` / `load` | `(basePath, envPath?) -> (Config, Error?)` | YAML を読み込み Config を返す |
+| `Validate` / `validate` | `(config) -> Error?` | 設定値のバリデーション |
+| `MergeVaultSecrets` / `merge_vault_secrets` | `(config, secrets) -> Config` | Vault シークレットで上書き |
+
+### 設定スキーマ型（全言語エクスポート）
+
+各言語の実装は以下の設定構造体/クラスをエクスポートする（スキーマの詳細は [config設計.md](../../cli/config/config設計.md) を参照）。
+
+| 型 | 説明 |
+|----|------|
+| `Config` | トップレベル設定（App / Server / GRPC / Database / Kafka / Redis / Observability / Auth を包含） |
+| `AppConfig` | アプリケーション基本設定（name, version, env 等） |
+| `ServerConfig` | HTTP サーバー設定（host, port, timeout 等） |
+| `DatabaseConfig` | DB 接続設定（host, port, name, user, password 等） |
+| `KafkaConfig` | Kafka 接続設定（brokers, SASL, TLS 等） |
+| `RedisConfig` | Redis 接続設定（host, port, db 等） |
+| `ObservabilityConfig` | オブザーバビリティ設定（tracing, metrics, log level 等） |
+| `AuthConfig` | 認証設定（JWKS URL, issuer, audience 等） |
+
+> **言語別注記**:
+> - **TypeScript**: 各型に対応する [Zod](https://github.com/colinhacks/zod) スキーマ（`ConfigSchema`, `AppConfigSchema` 等）も export される。スキーマを使った実行時バリデーションが可能。
+> - **Go**: `GRPCConfig`, `JWTConfig`, `OIDCConfig`, `KafkaSASLConfig`, `KafkaTLSConfig`, `KafkaTopics`, `LogConfig`, `TraceConfig`, `MetricsConfig` 等の詳細サブ型もエクスポートされる。
+> - **Rust**: `ConfigError` enum がエクスポートされ、設定ロード失敗の詳細エラー情報を提供する。
 
 ## Go 実装
 

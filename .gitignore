@@ -48,3 +48,5 @@ docker-compose.override.yaml
 
 # Tasks (session-specific planning notes)
 tasks/*
+docs/報告書.md
+報告書.md

@@ -52,8 +52,8 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| POST | `/api/v1/indices` | インデックス作成 | `sys_admin` のみ |
-| GET | `/api/v1/indices` | インデックス一覧取得 | `sys_auditor` 以上 |
+| POST | `/api/v1/search/indices` | インデックス作成 | `sys_admin` のみ |
+| GET | `/api/v1/search/indices` | インデックス一覧取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/search/index` | ドキュメント登録（`index_name` はリクエストボディで指定） | `sys_operator` 以上 |
 | DELETE | `/api/v1/search/index/:index_name/:id` | ドキュメント削除 | `sys_operator` 以上 |
 | POST | `/api/v1/search` | 全文検索 | `sys_auditor` 以上 |
@@ -61,7 +61,7 @@ system tier の全文検索サーバーは以下の機能を提供する。
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
 
-#### POST /api/v1/indices
+#### POST /api/v1/search/indices
 
 新しいインデックスを作成する。`mapping` フィールドで任意の JSON マッピング定義を指定可能（省略時はデフォルト空オブジェクト）。
 
@@ -104,7 +104,7 @@ system tier の全文検索サーバーは以下の機能を提供する。
 }
 ```
 
-#### GET /api/v1/indices
+#### GET /api/v1/search/indices
 
 登録済みインデックスの一覧を取得する。
 

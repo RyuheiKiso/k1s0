@@ -6,6 +6,7 @@ members = [
     "server/rust/auth",
     "server/rust/config",
     "server/rust/dlq-manager",
+    "server/rust/master-maintenance",
     "server/rust/event-store",
     "server/rust/featureflag",
     "server/rust/file",

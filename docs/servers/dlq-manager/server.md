@@ -86,6 +86,16 @@ DLQ メッセージを削除する。
 
 指定トピック内の全リトライ可能メッセージを一括再処理する。DEAD / RESOLVED ステータスやリトライ上限到達メッセージはスキップされる。ページネーション（100 件ずつ）でメッセージを取得し、順次処理する。
 
+### RBAC 権限マッピング
+
+認証が有効な場合、各エンドポイントには以下の RBAC 権限が必要。
+
+| 権限 | 対象エンドポイント |
+| --- | --- |
+| `dlq/read` | GET `/api/v1/dlq/:topic`, GET `/api/v1/dlq/messages/:id` |
+| `dlq/write` | POST `/api/v1/dlq/messages/:id/retry` |
+| `dlq/admin` | DELETE `/api/v1/dlq/messages/:id`, POST `/api/v1/dlq/:topic/retry-all` |
+
 ### エラーコード
 
 | コード | HTTP Status | 説明 |
@@ -317,7 +327,7 @@ DLQ Manager は Kafka コンシューマーをバックグラウンドタスク�
 
 | テストファイル | 要件 | 内容 |
 | --- | --- | --- |
-| `integration_test.rs` | InMemory | REST API の統合テスト（12 テストケース） |
+| `integration_test.rs` | InMemory | REST API の統合テスト（15 テストケース） |
 
 ---
 
@@ -572,6 +582,10 @@ vault:
 - `test_retry_message_resolves_pending_message` -- PENDING メッセージのリトライ成功
 - `test_delete_message_returns_ok` -- メッセージ削除成功
 - `test_retry_all_returns_retried_count` -- 一括リトライの件数返却
+- `test_retry_with_publisher_calls_publish_to_original_topic` -- リトライ時に Kafka Publisher が元トピックへ発行されること
+- `test_retry_with_failing_publisher_keeps_retrying_status` -- Publisher 失敗時はメッセージが RETRYING 状態を保つこと
+- `test_retry_all_with_successful_publisher_resolves_all_messages` -- retry-all で Publisher が全 PENDING メッセージを発行し RESOLVED になること
+- `test_retry_exhausted_message_returns_conflict` -- max_retries 到達メッセージへのリトライで 409 Conflict を返すこと
 
 ## 関連ドキュメント
 

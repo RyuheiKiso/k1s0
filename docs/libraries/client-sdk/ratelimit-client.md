@@ -26,7 +26,7 @@ system-ratelimit-server（ポート 8080）へのレート制限クライアン�
 | キー未検出 | `KeyNotFound` | `"KEY_NOT_FOUND"` | `'KEY_NOT_FOUND'` | `'KEY_NOT_FOUND'` |
 | サーバーエラー | `ServerError` | `"SERVER_ERROR"` | `'SERVER_ERROR'` | `'SERVER_ERROR'` |
 | タイムアウト | `Timeout` | `"TIMEOUT"` | `'TIMEOUT'` | `'TIMEOUT'` |
-| 不明 | — | — | `'UNKNOWN'` | — |
+| 不明 | — | — | — | — |
 
 > **注記**: Rust は `thiserror` による enum variant（PascalCase）。Go は struct の `Code` フィールドに文字列定数（SCREAMING\_SNAKE\_CASE）。TypeScript/Dart は string literal union（SCREAMING\_SNAKE\_CASE）。
 

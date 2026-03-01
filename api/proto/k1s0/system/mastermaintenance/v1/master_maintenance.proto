@@ -1,0 +1,180 @@
+// k1s0 マスタメンテナンスサービス gRPC 定義。
+// メタデータ駆動型 CRUD・整合性チェック・JSON Schema 生成を提供する。
+// gRPC ポート: 50051
+syntax = "proto3";
+
+package k1s0.system.mastermaintenance.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/mastermaintenance/v1;mastermaintenancev1";
+
+import "google/protobuf/struct.proto";
+import "k1s0/system/common/v1/types.proto";
+
+service MasterMaintenanceService {
+  // テーブル定義
+  rpc GetTableDefinition(GetTableDefinitionRequest) returns (TableDefinitionResponse);
+  rpc ListTableDefinitions(ListTableDefinitionsRequest) returns (ListTableDefinitionsResponse);
+
+  // データ CRUD
+  rpc GetRecord(GetRecordRequest) returns (RecordResponse);
+  rpc ListRecords(ListRecordsRequest) returns (ListRecordsResponse);
+  rpc CreateRecord(CreateRecordRequest) returns (RecordResponse);
+  rpc UpdateRecord(UpdateRecordRequest) returns (RecordResponse);
+  rpc DeleteRecord(DeleteRecordRequest) returns (DeleteRecordResponse);
+
+  // 整合性チェック
+  rpc CheckConsistency(CheckConsistencyRequest) returns (CheckConsistencyResponse);
+
+  // JSON Schema
+  rpc GetTableSchema(GetTableSchemaRequest) returns (TableSchemaResponse);
+}
+
+// テーブル定義取得リクエスト
+message GetTableDefinitionRequest {
+  string table_name = 1;
+}
+
+// テーブル定義レスポンス
+message TableDefinitionResponse {
+  string id = 1;
+  string name = 2;
+  string schema_name = 3;
+  string display_name = 4;
+  string description = 5;
+  bool allow_create = 6;
+  bool allow_update = 7;
+  bool allow_delete = 8;
+  repeated ColumnDefinition columns = 9;
+  repeated TableRelationship relationships = 10;
+}
+
+// カラム定義
+message ColumnDefinition {
+  string column_name = 1;
+  string display_name = 2;
+  string data_type = 3;
+  bool is_primary_key = 4;
+  bool is_nullable = 5;
+  bool is_searchable = 6;
+  bool is_sortable = 7;
+  bool is_filterable = 8;
+  bool is_visible_in_list = 9;
+  bool is_visible_in_form = 10;
+  bool is_readonly = 11;
+  string input_type = 12;
+  int32 display_order = 13;
+}
+
+// テーブル間関係
+message TableRelationship {
+  string source_column = 1;
+  string target_table = 2;
+  string target_column = 3;
+  string relationship_type = 4;
+  string display_name = 5;
+}
+
+// テーブル定義一覧リクエスト
+message ListTableDefinitionsRequest {
+  string category = 1;
+  bool active_only = 2;
+  k1s0.system.common.v1.Pagination pagination = 3;
+}
+
+// テーブル定義一覧レスポンス
+message ListTableDefinitionsResponse {
+  repeated TableDefinitionResponse tables = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+// レコード取得リクエスト
+message GetRecordRequest {
+  string table_name = 1;
+  string record_id = 2;
+}
+
+// レコードレスポンス
+message RecordResponse {
+  google.protobuf.Struct data = 1;
+  repeated ValidationWarning warnings = 2;
+}
+
+// レコード一覧リクエスト
+message ListRecordsRequest {
+  string table_name = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+  string sort = 3;
+  string filter = 4;
+  string search = 5;
+}
+
+// レコード一覧レスポンス
+message ListRecordsResponse {
+  repeated google.protobuf.Struct records = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+// レコード作成リクエスト
+message CreateRecordRequest {
+  string table_name = 1;
+  google.protobuf.Struct data = 2;
+}
+
+// レコード更新リクエスト
+message UpdateRecordRequest {
+  string table_name = 1;
+  string record_id = 2;
+  google.protobuf.Struct data = 3;
+}
+
+// レコード削除リクエスト
+message DeleteRecordRequest {
+  string table_name = 1;
+  string record_id = 2;
+}
+
+// レコード削除レスポンス
+message DeleteRecordResponse {
+  bool success = 1;
+}
+
+// 整合性チェックリクエスト
+message CheckConsistencyRequest {
+  string table_name = 1;
+  repeated string rule_ids = 2;
+}
+
+// 整合性チェックレスポンス
+message CheckConsistencyResponse {
+  repeated ConsistencyResult results = 1;
+  int32 total_checked = 2;
+  int32 error_count = 3;
+  int32 warning_count = 4;
+}
+
+// 整合性チェック結果
+message ConsistencyResult {
+  string rule_id = 1;
+  string rule_name = 2;
+  string severity = 3;
+  bool passed = 4;
+  string message = 5;
+  repeated string affected_record_ids = 6;
+}
+
+// バリデーション警告
+message ValidationWarning {
+  string rule_name = 1;
+  string message = 2;
+  string severity = 3;
+}
+
+// テーブルスキーマ取得リクエスト
+message GetTableSchemaRequest {
+  string table_name = 1;
+}
+
+// テーブルスキーマレスポンス
+message TableSchemaResponse {
+  string json_schema = 1;
+}

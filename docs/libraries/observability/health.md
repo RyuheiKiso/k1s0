@@ -56,10 +56,29 @@ sqlx・deadpool-redis・rdkafka はオプショナル feature として切り替
 |---|------|------|
 | `Checker` | 構造体 | チェッカーオーケストレータ |
 | `HttpHealthCheckOption` | 関数型 | `HttpHealthCheck` の設定オプション |
+| `WithTimeout` | オプション関数 | HTTP チェックのタイムアウト設定 |
+| `WithName` | オプション関数 | HTTP チェックの名前設定 |
 | `PostgresHealthCheck` | 構造体 | PostgreSQL 接続確認 |
 | `PostgresHealthCheckOption` | 関数型 | `PostgresHealthCheck` の設定オプション |
+| `WithPostgresTimeout` | オプション関数 | PostgreSQL チェックのタイムアウト設定 |
+| `WithPostgresName` | オプション関数 | PostgreSQL チェックの名前設定 |
 | `RedisHealthCheck` | 構造体 | Redis PING 確認 |
 | `RedisHealthCheckOption` | 関数型 | `RedisHealthCheck` の設定オプション |
+| `WithRedisTimeout` | オプション関数 | Redis チェックのタイムアウト設定 |
+| `WithRedisName` | オプション関数 | Redis チェックの名前設定 |
+
+### TypeScript 固有
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `HealthChecker` | クラス | チェッカーオーケストレータ（Rust の `CompositeHealthChecker` 相当） |
+| `HttpHealthCheckOptions` | type | `HttpHealthCheck` の設定オプション（`timeout?`, `name?` 等） |
+
+### Rust 固有（追記）
+
+| 型 | 種別 | 説明 |
+|---|------|------|
+| `MockHealthCheck` | 構造体（feature: `mock`） | テスト用モックヘルスチェッカー（`mockall::automock` による自動生成） |
 
 ## Rust 実装
 

@@ -56,7 +56,7 @@ system tier のセッション管理サーバーは以下の機能を提供す�
 | --- | --- | --- | --- |
 | POST | `/api/v1/sessions` | セッション作成 | JWTトークン必須（ユーザー本人） |
 | GET | `/api/v1/sessions/:id` | セッション取得 | JWTトークン必須 |
-| PUT | `/api/v1/sessions/:session_id/refresh` | セッション更新（TTL延長） | JWTトークン必須 |
+| POST | `/api/v1/sessions/:session_id/refresh` | セッション更新（TTL延長） | JWTトークン必須 |
 | DELETE | `/api/v1/sessions/:id` | セッション失効 | JWTトークン必須 |
 | GET | `/api/v1/users/:user_id/sessions` | ユーザーのセッション一覧 | `sys_auditor` 以上 |
 | DELETE | `/api/v1/users/:user_id/sessions` | ユーザーの全セッション失効 | `sys_operator` 以上 |
@@ -73,23 +73,33 @@ system tier のセッション管理サーバーは以下の機能を提供す�
 ```json
 {
   "user_id": "usr_01JABCDEF1234567890",
-  "device_id": "device_abc123",
-  "device_name": "MacBook Pro",
-  "device_type": "desktop",
-  "user_agent": "Mozilla/5.0 ...",
-  "ip_address": "192.168.1.1"
+  "ttl_seconds": 3600,
+  "metadata": {
+    "device_id": "device_abc123",
+    "device_name": "MacBook Pro",
+    "device_type": "desktop",
+    "user_agent": "Mozilla/5.0 ...",
+    "ip_address": "192.168.1.1"
+  }
 }
 ```
+
+> `ttl_seconds` は省略可能（デフォルト: 3600秒）。デバイス情報は `metadata` マップで渡す。
 
 **レスポンス（201 Created）**
 
 ```json
 {
-  "session_id": "sess_01JABCDEF1234567890",
+  "id": "sess_01JABCDEF1234567890",
   "user_id": "usr_01JABCDEF1234567890",
-  "device_id": "device_abc123",
+  "token": "tok_01JABCDEF1234567890",
   "expires_at": "2026-02-23T11:00:00.000+00:00",
-  "created_at": "2026-02-23T10:00:00.000+00:00"
+  "created_at": "2026-02-23T10:00:00.000+00:00",
+  "revoked": false,
+  "metadata": {
+    "device_id": "device_abc123",
+    "device_name": "MacBook Pro"
+  }
 }
 ```
 
@@ -142,9 +152,19 @@ system tier のセッション管理サーバーは以下の機能を提供す�
 }
 ```
 
-#### PUT /api/v1/sessions/:session_id/refresh
+#### POST /api/v1/sessions/:session_id/refresh
 
-指定セッションの TTL をデフォルト値（3600 秒）だけ延長する（スライディング有効期限）。
+指定セッションの TTL を延長する（スライディング有効期限）。
+
+**リクエスト（オプション）**
+
+リクエストボディは省略可能。省略時はデフォルト TTL（3600 秒）を使用する。
+
+```json
+{
+  "ttl_seconds": 7200
+}
+```
 
 **レスポンス（200 OK）**
 
@@ -245,7 +265,7 @@ system tier のセッション管理サーバーは以下の機能を提供す�
 | `SYS_SESSION_NOT_FOUND` | 404 | 指定されたセッションが見つからない |
 | `SYS_SESSION_EXPIRED` | 410 | セッションが有効期限切れ |
 | `SYS_SESSION_ALREADY_REVOKED` | 409 | セッションは既に失効済み |
-| `SYS_SESSION_MAX_DEVICES_EXCEEDED` | 422 | 最大デバイス数を超過 |
+| `SYS_SESSION_MAX_DEVICES_EXCEEDED` | 429 | 最大デバイス数を超過 |
 | `SYS_SESSION_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー |
 | `SYS_SESSION_UNAUTHORIZED` | 401 | 認証エラー |
 | `SYS_SESSION_FORBIDDEN` | 403 | 権限エラー（他ユーザーのセッション操作） |
@@ -331,10 +351,12 @@ message Session {
   string device_id = 3;
   optional string device_name = 4;
   optional string device_type = 5;
-  optional string ip_address = 6;
-  string expires_at = 7;
-  string created_at = 8;
-  string last_accessed_at = 9;
+  optional string user_agent = 6;
+  optional string ip_address = 7;
+  string status = 8;
+  string expires_at = 9;
+  string created_at = 10;
+  optional string last_accessed_at = 11;
 }
 ```
 

@@ -27,11 +27,11 @@ config:
         playground: true
       backends:
         tenant:
-          address: "http://tenant.k1s0-system.svc.cluster.local:9090"
+          address: "http://tenant.k1s0-system.svc.cluster.local:50051"
         featureflag:
-          address: "http://featureflag.k1s0-system.svc.cluster.local:9090"
+          address: "http://featureflag.k1s0-system.svc.cluster.local:50051"
         config:
-          address: "http://config.k1s0-system.svc.cluster.local:9090"
+          address: "http://config.k1s0-system.svc.cluster.local:50051"
       observability:
         log:
           level: debug

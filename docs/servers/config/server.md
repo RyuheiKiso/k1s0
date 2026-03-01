@@ -43,9 +43,8 @@ system tier の設定管理サーバーは以下の機能を提供する。
 | DELETE | `/api/v1/config/:namespace/:key` | 設定値削除 | `sys_admin` |
 | GET | `/api/v1/config/services/:service_name` | サービス向け設定一括取得 | Bearer token required |
 | GET | `/api/v1/config-schema` | 設定スキーマ一覧 | `sys_auditor` 以上 |
-| POST | `/api/v1/config-schema` | 設定スキーマ作成 | `sys_operator` 以上 |
-| GET | `/api/v1/config-schema/:name` | 設定スキーマ取得 | `sys_auditor` 以上 |
-| PUT | `/api/v1/config-schema/:name` | 設定スキーマ更新 | `sys_operator` 以上 |
+| GET | `/api/v1/config-schema/:service_name` | 設定スキーマ取得 | `sys_auditor` 以上 |
+| PUT | `/api/v1/config-schema/:service_name` | 設定スキーマ作成・更新（Upsert） | `sys_admin` |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |
@@ -324,11 +323,23 @@ service ConfigService {
   // namespace 内の設定値一覧取得
   rpc ListConfigs(ListConfigsRequest) returns (ListConfigsResponse);
 
+  // 設定値更新
+  rpc UpdateConfig(UpdateConfigRequest) returns (UpdateConfigResponse);
+
+  // 設定値削除
+  rpc DeleteConfig(DeleteConfigRequest) returns (DeleteConfigResponse);
+
   // サービス向け設定一括取得
   rpc GetServiceConfig(GetServiceConfigRequest) returns (GetServiceConfigResponse);
 
   // 設定変更の監視（Server-Side Streaming）
-  rpc WatchConfig(WatchConfigRequest) returns (stream ConfigChangeEvent);
+  rpc WatchConfig(WatchConfigRequest) returns (stream WatchConfigResponse);
+
+  // 設定スキーマ取得
+  rpc GetConfigSchema(GetConfigSchemaRequest) returns (GetConfigSchemaResponse);
+
+  // 設定スキーマ作成・更新
+  rpc UpsertConfigSchema(UpsertConfigSchemaRequest) returns (UpsertConfigSchemaResponse);
 }
 
 // --- Get Config ---
@@ -368,6 +379,33 @@ message ListConfigsResponse {
   k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
+// --- Update Config ---
+
+message UpdateConfigRequest {
+  string namespace = 1;
+  string key = 2;
+  bytes value = 3;             // JSON エンコード済みの値
+  int32 version = 4;           // 楽観的排他制御用（現在のバージョン番号）
+  string description = 5;
+  string updated_by = 6;
+}
+
+message UpdateConfigResponse {
+  ConfigEntry entry = 1;
+}
+
+// --- Delete Config ---
+
+message DeleteConfigRequest {
+  string namespace = 1;
+  string key = 2;
+  string deleted_by = 3;
+}
+
+message DeleteConfigResponse {
+  bool success = 1;
+}
+
 // --- Service Config ---
 
 message GetServiceConfigRequest {
@@ -385,7 +423,7 @@ message WatchConfigRequest {
   repeated string namespaces = 1;  // 監視対象の namespace 一覧（空の場合は全件）
 }
 
-message ConfigChangeEvent {
+message WatchConfigResponse {
   string namespace = 1;
   string key = 2;
   bytes old_value = 3;         // 変更前の値（JSON エンコード済み）
@@ -395,6 +433,64 @@ message ConfigChangeEvent {
   string changed_by = 7;
   string change_type = 8;      // "CREATED", "UPDATED", "DELETED"
   k1s0.system.common.v1.Timestamp changed_at = 9;
+}
+
+// --- Config Schema ---
+
+message GetConfigSchemaRequest {
+  string service_name = 1;
+}
+
+message GetConfigSchemaResponse {
+  ConfigEditorSchema schema = 1;
+}
+
+message UpsertConfigSchemaRequest {
+  ConfigEditorSchema schema = 1;
+  string updated_by = 2;
+}
+
+message UpsertConfigSchemaResponse {
+  ConfigEditorSchema schema = 1;
+}
+
+message ConfigEditorSchema {
+  string service = 1;
+  string namespace_prefix = 2;
+  repeated ConfigCategorySchema categories = 3;
+  k1s0.system.common.v1.Timestamp updated_at = 4;
+}
+
+message ConfigCategorySchema {
+  string id = 1;
+  string label = 2;
+  string icon = 3;
+  repeated string namespaces = 4;
+  repeated ConfigFieldSchema fields = 5;
+}
+
+message ConfigFieldSchema {
+  string key = 1;
+  string label = 2;
+  string description = 3;
+  ConfigFieldType type = 4;
+  int64 min = 5;
+  int64 max = 6;
+  repeated string options = 7;
+  string pattern = 8;
+  string unit = 9;
+  bytes default_value = 10;
+}
+
+enum ConfigFieldType {
+  CONFIG_FIELD_TYPE_UNSPECIFIED = 0;
+  CONFIG_FIELD_TYPE_STRING      = 1;
+  CONFIG_FIELD_TYPE_INTEGER     = 2;
+  CONFIG_FIELD_TYPE_FLOAT       = 3;
+  CONFIG_FIELD_TYPE_BOOLEAN     = 4;
+  CONFIG_FIELD_TYPE_ENUM        = 5;
+  CONFIG_FIELD_TYPE_OBJECT      = 6;
+  CONFIG_FIELD_TYPE_ARRAY       = 7;
 }
 ```
 

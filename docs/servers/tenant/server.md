@@ -31,13 +31,13 @@ system tier の Tenant Server は以下の機能を提供する。
 
 | 項目 | 設計 |
 | --- | --- |
-| テナント識別子 | UUID v4 + スラッグ（例: `acme-corp`）の 2 つの識別子を持つ。スラッグは一意制約 |
-| Keycloak 連携 | テナント作成時に Keycloak Admin API で realm を自動作成。realm 名は `k1s0-{tenant_slug}` |
+| テナント識別子 | UUID v4 + name（例: `acme-corp`）の 2 つの識別子を持つ。name は一意制約 |
+| Keycloak 連携 | テナント作成時に Keycloak Admin API で realm を自動作成。realm 名は `k1s0-{tenant_name}` |
 | DB 分離戦略 | PostgreSQL スキーマ分離（テナントごとに `tenant_{tenant_id}` スキーマ）。共有 DB クラスター |
-| ステータス遷移 | PENDING -> ACTIVE -> SUSPENDED -> DELETED |
+| ステータス遷移 | provisioning -> active -> suspended -> deleted |
 | プロビジョニング | Saga パターンで実装（Keycloak realm 作成 -> DB スキーマ作成 -> 初期設定投入 -> アクティベーション） |
 | Kafka オプショナル | Kafka 未設定時もテナント管理は動作する。イベント配信のみスキップ |
-| RBAC | `sys_admin`（全権限）/ `sys_operator`（作成・更新・削除）/ `sys_auditor`（読み取り専用） |
+| RBAC | `tenants/admin`（停止・削除・メンバー削除）/ `tenants/write`（作成・更新・メンバー追加）/ `tenants/read`（読み取り専用） |
 
 ---
 
@@ -49,57 +49,56 @@ system tier の Tenant Server は以下の機能を提供する。
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| POST | `/api/v1/tenants` | テナント作成 | `sys_admin` のみ |
-| GET | `/api/v1/tenants` | テナント一覧 | `sys_auditor` 以上 |
-| GET | `/api/v1/tenants/:id` | テナント詳細 | `sys_auditor` 以上 |
-| PUT | `/api/v1/tenants/:id` | テナント更新 | `sys_operator` 以上 |
-| POST | `/api/v1/tenants/:id/suspend` | テナント停止 | `sys_admin` のみ |
-| POST | `/api/v1/tenants/:id/activate` | テナント再開 | `sys_admin` のみ |
-| DELETE | `/api/v1/tenants/:id` | テナント削除 | `sys_admin` のみ |
-| GET | `/api/v1/tenants/:id/members` | テナントメンバー一覧 | `sys_auditor` 以上 |
-| POST | `/api/v1/tenants/:id/members` | テナントメンバー追加 | `sys_operator` 以上 |
-| DELETE | `/api/v1/tenants/:id/members/:user_id` | テナントメンバー削除 | `sys_operator` 以上 |
+| POST | `/api/v1/tenants` | テナント作成 | `tenants/write` |
+| GET | `/api/v1/tenants` | テナント一覧 | `tenants/read` |
+| GET | `/api/v1/tenants/:id` | テナント詳細 | `tenants/read` |
+| PUT | `/api/v1/tenants/:id` | テナント更新 | `tenants/write` |
+| POST | `/api/v1/tenants/:id/suspend` | テナント停止 | `tenants/admin` |
+| POST | `/api/v1/tenants/:id/activate` | テナント再開 | `tenants/admin` |
+| DELETE | `/api/v1/tenants/:id` | テナント削除 | `tenants/admin` |
+| GET | `/api/v1/tenants/:id/members` | テナントメンバー一覧 | `tenants/read` |
+| POST | `/api/v1/tenants/:id/members` | テナントメンバー追加 | `tenants/write` |
+| DELETE | `/api/v1/tenants/:id/members/:user_id` | テナントメンバー削除 | `tenants/admin` |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
 
 #### POST /api/v1/tenants
 
-テナントを作成する。Saga パターンで Keycloak realm 作成・DB スキーマ作成・初期設定投入を実行し、成功時にステータスを ACTIVE に遷移する。
+テナントを作成する。Saga パターンで Keycloak realm 作成・DB スキーマ作成・初期設定投入を実行し、成功時にステータスを `active` に遷移する。
 
 **リクエスト**
 
 ```json
 {
-  "slug": "acme-corp",
+  "name": "acme-corp",
   "display_name": "Acme Corporation",
   "plan": "enterprise",
-  "metadata": {
-    "region": "ap-northeast-1",
-    "contact_email": "admin@acme.example.com"
-  }
+  "owner_id": "660e8400-e29b-41d4-a716-446655440001"
 }
 ```
+
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `name` | string | Yes | テナント名（URL フレンドリー、一意制約） |
+| `display_name` | string | Yes | テナント表示名 |
+| `plan` | string | Yes | 契約プラン（`free` / `starter` / `professional` / `enterprise`） |
+| `owner_id` | string (UUID) | No | オーナーユーザー ID |
 
 **レスポンス（201 Created）**
 
 ```json
 {
-  "tenant": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "slug": "acme-corp",
-    "display_name": "Acme Corporation",
-    "status": "PENDING",
-    "plan": "enterprise",
-    "keycloak_realm": "k1s0-acme-corp",
-    "db_schema": "tenant_550e8400e29b41d4a716446655440000",
-    "metadata": {
-      "region": "ap-northeast-1",
-      "contact_email": "admin@acme.example.com"
-    },
-    "created_at": "2026-02-23T10:00:00.000+00:00",
-    "updated_at": "2026-02-23T10:00:00.000+00:00"
-  }
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "acme-corp",
+  "display_name": "Acme Corporation",
+  "status": "provisioning",
+  "plan": "enterprise",
+  "settings": {},
+  "keycloak_realm": "k1s0-acme-corp",
+  "db_schema": "tenant_550e8400e29b41d4a716446655440000",
+  "created_at": "2026-02-23T10:00:00.000+00:00",
+  "updated_at": "2026-02-23T10:00:00.000+00:00"
 }
 ```
 
@@ -109,7 +108,7 @@ system tier の Tenant Server は以下の機能を提供する。
 {
   "error": {
     "code": "SYS_TENANT_VALIDATION_ERROR",
-    "message": "slug must be 3-63 characters, lowercase alphanumeric with hyphens",
+    "message": "invalid tenant id: ...",
     "request_id": "req_abc123def456",
     "details": []
   }
@@ -121,8 +120,8 @@ system tier の Tenant Server は以下の機能を提供する。
 ```json
 {
   "error": {
-    "code": "SYS_TENANT_SLUG_CONFLICT",
-    "message": "tenant with slug 'acme-corp' already exists",
+    "code": "SYS_TENANT_NAME_CONFLICT",
+    "message": "tenant name already exists: acme-corp",
     "request_id": "req_abc123def456",
     "details": []
   }
@@ -139,7 +138,6 @@ system tier の Tenant Server は以下の機能を提供する。
 | --- | --- | --- | --- | --- |
 | `page` | int | No | 1 | ページ番号 |
 | `page_size` | int | No | 20 | 1 ページあたりの件数 |
-| `status` | string | No | - | ステータスフィルタ（PENDING / ACTIVE / SUSPENDED / DELETED） |
 
 **レスポンス（200 OK）**
 
@@ -148,26 +146,20 @@ system tier の Tenant Server は以下の機能を提供する。
   "tenants": [
     {
       "id": "550e8400-e29b-41d4-a716-446655440000",
-      "slug": "acme-corp",
+      "name": "acme-corp",
       "display_name": "Acme Corporation",
-      "status": "ACTIVE",
+      "status": "active",
       "plan": "enterprise",
+      "settings": {},
       "keycloak_realm": "k1s0-acme-corp",
       "db_schema": "tenant_550e8400e29b41d4a716446655440000",
-      "metadata": {
-        "region": "ap-northeast-1",
-        "contact_email": "admin@acme.example.com"
-      },
       "created_at": "2026-02-23T10:00:00.000+00:00",
       "updated_at": "2026-02-23T10:00:00.000+00:00"
     }
   ],
-  "pagination": {
-    "total_count": 42,
-    "page": 1,
-    "page_size": 20,
-    "has_next": true
-  }
+  "total_count": 42,
+  "page": 1,
+  "page_size": 20
 }
 ```
 
@@ -179,21 +171,16 @@ ID 指定でテナントの詳細を取得する。
 
 ```json
 {
-  "tenant": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "slug": "acme-corp",
-    "display_name": "Acme Corporation",
-    "status": "ACTIVE",
-    "plan": "enterprise",
-    "keycloak_realm": "k1s0-acme-corp",
-    "db_schema": "tenant_550e8400e29b41d4a716446655440000",
-    "metadata": {
-      "region": "ap-northeast-1",
-      "contact_email": "admin@acme.example.com"
-    },
-    "created_at": "2026-02-23T10:00:00.000+00:00",
-    "updated_at": "2026-02-23T10:00:00.000+00:00"
-  }
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "acme-corp",
+  "display_name": "Acme Corporation",
+  "status": "active",
+  "plan": "enterprise",
+  "settings": {},
+  "keycloak_realm": "k1s0-acme-corp",
+  "db_schema": "tenant_550e8400e29b41d4a716446655440000",
+  "created_at": "2026-02-23T10:00:00.000+00:00",
+  "updated_at": "2026-02-23T10:00:00.000+00:00"
 }
 ```
 
@@ -212,83 +199,69 @@ ID 指定でテナントの詳細を取得する。
 
 #### PUT /api/v1/tenants/:id
 
-テナント情報を更新する。更新可能フィールドは `display_name` と `metadata` のみ。
+テナント情報を更新する。更新可能フィールドは `display_name` と `plan`。
 
 **リクエスト**
 
 ```json
 {
   "display_name": "Acme Corp International",
-  "metadata": {
-    "region": "ap-northeast-1",
-    "contact_email": "global-admin@acme.example.com"
-  }
+  "plan": "enterprise"
 }
 ```
+
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `display_name` | string | Yes | テナント表示名 |
+| `plan` | string | Yes | 契約プラン（`free` / `starter` / `professional` / `enterprise`） |
 
 **レスポンス（200 OK）**
 
 ```json
 {
-  "tenant": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "slug": "acme-corp",
-    "display_name": "Acme Corp International",
-    "status": "ACTIVE",
-    "plan": "enterprise",
-    "keycloak_realm": "k1s0-acme-corp",
-    "db_schema": "tenant_550e8400e29b41d4a716446655440000",
-    "metadata": {
-      "region": "ap-northeast-1",
-      "contact_email": "global-admin@acme.example.com"
-    },
-    "created_at": "2026-02-23T10:00:00.000+00:00",
-    "updated_at": "2026-02-23T11:00:00.000+00:00"
-  }
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "acme-corp",
+  "display_name": "Acme Corp International",
+  "status": "active",
+  "plan": "enterprise",
+  "settings": {},
+  "keycloak_realm": "k1s0-acme-corp",
+  "db_schema": "tenant_550e8400e29b41d4a716446655440000",
+  "created_at": "2026-02-23T10:00:00.000+00:00",
+  "updated_at": "2026-02-23T11:00:00.000+00:00"
 }
 ```
 
 #### POST /api/v1/tenants/:id/suspend
 
-テナントを一時停止する。ACTIVE ステータスのテナントのみ停止可能。停止理由を記録し、Kafka でイベントを配信する。
+テナントを一時停止する。`active` ステータスのテナントのみ停止可能。Kafka でイベントを配信する。
 
-**リクエスト**
-
-```json
-{
-  "reason": "Payment overdue for 30 days"
-}
-```
+リクエストボディは不要。
 
 **レスポンス（200 OK）**
 
 ```json
 {
-  "tenant": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "slug": "acme-corp",
-    "display_name": "Acme Corporation",
-    "status": "SUSPENDED",
-    "plan": "enterprise",
-    "keycloak_realm": "k1s0-acme-corp",
-    "db_schema": "tenant_550e8400e29b41d4a716446655440000",
-    "metadata": {
-      "region": "ap-northeast-1",
-      "contact_email": "admin@acme.example.com"
-    },
-    "created_at": "2026-02-23T10:00:00.000+00:00",
-    "updated_at": "2026-02-23T12:00:00.000+00:00"
-  }
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "acme-corp",
+  "display_name": "Acme Corporation",
+  "status": "suspended",
+  "plan": "enterprise",
+  "settings": {},
+  "keycloak_realm": "k1s0-acme-corp",
+  "db_schema": "tenant_550e8400e29b41d4a716446655440000",
+  "created_at": "2026-02-23T10:00:00.000+00:00",
+  "updated_at": "2026-02-23T12:00:00.000+00:00"
 }
 ```
 
-**レスポンス（409 Conflict）**
+**レスポンス（400 Bad Request）**
 
 ```json
 {
   "error": {
-    "code": "SYS_TENANT_INVALID_STATUS_TRANSITION",
-    "message": "cannot suspend tenant: current status is PENDING",
+    "code": "SYS_TENANT_INVALID_STATUS",
+    "message": "invalid status transition",
     "request_id": "req_abc123def456",
     "details": []
   }
@@ -297,27 +270,24 @@ ID 指定でテナントの詳細を取得する。
 
 #### POST /api/v1/tenants/:id/activate
 
-一時停止中のテナントを再開する。SUSPENDED ステータスのテナントのみ再開可能。
+一時停止中のテナントを再開する。`suspended` ステータスのテナントのみ再開可能。
+
+リクエストボディは不要。
 
 **レスポンス（200 OK）**
 
 ```json
 {
-  "tenant": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "slug": "acme-corp",
-    "display_name": "Acme Corporation",
-    "status": "ACTIVE",
-    "plan": "enterprise",
-    "keycloak_realm": "k1s0-acme-corp",
-    "db_schema": "tenant_550e8400e29b41d4a716446655440000",
-    "metadata": {
-      "region": "ap-northeast-1",
-      "contact_email": "admin@acme.example.com"
-    },
-    "created_at": "2026-02-23T10:00:00.000+00:00",
-    "updated_at": "2026-02-23T13:00:00.000+00:00"
-  }
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "acme-corp",
+  "display_name": "Acme Corporation",
+  "status": "active",
+  "plan": "enterprise",
+  "settings": {},
+  "keycloak_realm": "k1s0-acme-corp",
+  "db_schema": "tenant_550e8400e29b41d4a716446655440000",
+  "created_at": "2026-02-23T10:00:00.000+00:00",
+  "updated_at": "2026-02-23T13:00:00.000+00:00"
 }
 ```
 
@@ -329,8 +299,16 @@ ID 指定でテナントの詳細を取得する。
 
 ```json
 {
-  "success": true,
-  "message": "tenant 550e8400-e29b-41d4-a716-446655440000 marked as deleted"
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "acme-corp",
+  "display_name": "Acme Corporation",
+  "status": "deleted",
+  "plan": "enterprise",
+  "settings": {},
+  "keycloak_realm": "k1s0-acme-corp",
+  "db_schema": "tenant_550e8400e29b41d4a716446655440000",
+  "created_at": "2026-02-23T10:00:00.000+00:00",
+  "updated_at": "2026-02-23T14:00:00.000+00:00"
 }
 ```
 
@@ -344,12 +322,14 @@ ID 指定でテナントの詳細を取得する。
 {
   "members": [
     {
+      "id": "990e8400-e29b-41d4-a716-446655440010",
       "user_id": "660e8400-e29b-41d4-a716-446655440001",
       "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
       "role": "admin",
       "joined_at": "2026-02-23T10:05:00.000+00:00"
     },
     {
+      "id": "aa0e8400-e29b-41d4-a716-446655440011",
       "user_id": "770e8400-e29b-41d4-a716-446655440002",
       "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
       "role": "member",
@@ -372,16 +352,20 @@ ID 指定でテナントの詳細を取得する。
 }
 ```
 
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `user_id` | string (UUID) | Yes | 追加するユーザーの ID |
+| `role` | string | Yes | テナント内でのロール（`owner` / `admin` / `member` / `viewer`） |
+
 **レスポンス（201 Created）**
 
 ```json
 {
-  "member": {
-    "user_id": "880e8400-e29b-41d4-a716-446655440003",
-    "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
-    "role": "member",
-    "joined_at": "2026-02-23T14:00:00.000+00:00"
-  }
+  "id": "bb0e8400-e29b-41d4-a716-446655440012",
+  "user_id": "880e8400-e29b-41d4-a716-446655440003",
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "role": "member",
+  "joined_at": "2026-02-23T14:00:00.000+00:00"
 }
 ```
 
@@ -390,8 +374,8 @@ ID 指定でテナントの詳細を取得する。
 ```json
 {
   "error": {
-    "code": "SYS_TENANT_MEMBER_ALREADY_EXISTS",
-    "message": "user 880e8400-e29b-41d4-a716-446655440003 is already a member of tenant 550e8400-e29b-41d4-a716-446655440000",
+    "code": "SYS_TENANT_MEMBER_CONFLICT",
+    "message": "member already exists",
     "request_id": "req_abc123def456",
     "details": []
   }
@@ -402,48 +386,49 @@ ID 指定でテナントの詳細を取得する。
 
 テナントからメンバーを削除する。Keycloak realm からもユーザーを削除する。
 
-**レスポンス（200 OK）**
+**レスポンス（204 No Content）**
 
-```json
-{
-  "success": true,
-  "message": "member 880e8400-e29b-41d4-a716-446655440003 removed from tenant 550e8400-e29b-41d4-a716-446655440000"
-}
-```
+レスポンスボディなし。
 
 ### エラーコード
 
 | コード | HTTP Status | 説明 |
 | --- | --- | --- |
 | `SYS_TENANT_NOT_FOUND` | 404 | 指定されたテナントが見つからない |
-| `SYS_TENANT_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー（不正なスラッグ、必須フィールド未入力等） |
-| `SYS_TENANT_SLUG_CONFLICT` | 409 | スラッグが既に使用されている |
-| `SYS_TENANT_INVALID_STATUS_TRANSITION` | 409 | 許可されていないステータス遷移（例: PENDING -> SUSPENDED） |
-| `SYS_TENANT_MEMBER_ALREADY_EXISTS` | 409 | ユーザーが既にテナントメンバーである |
+| `SYS_TENANT_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー（不正な ID フォーマット等） |
+| `SYS_TENANT_NAME_CONFLICT` | 409 | テナント名が既に使用されている |
+| `SYS_TENANT_INVALID_STATUS` | 400 | 許可されていないステータス遷移 |
+| `SYS_TENANT_MEMBER_CONFLICT` | 409 | ユーザーが既にテナントメンバーである |
 | `SYS_TENANT_MEMBER_NOT_FOUND` | 404 | 指定されたテナントメンバーが見つからない |
-| `SYS_TENANT_PROVISIONING_FAILED` | 500 | プロビジョニング処理（Keycloak/DB/設定）が失敗 |
 | `SYS_TENANT_INTERNAL_ERROR` | 500 | 内部エラー |
 
 ### gRPC サービス定義
+
+カノニカル定義ファイル: `api/proto/k1s0/system/tenant/v1/tenant.proto`
+
+> **注意**: gRPC の RPC セットは REST エンドポイントと対称ではない。`GetProvisioningStatus` は gRPC 専用（REST エンドポイントなし）。`UpdateTenant`・`SuspendTenant`・`ActivateTenant`・`DeleteTenant` は REST のみ（gRPC では未定義）。
 
 ```protobuf
 syntax = "proto3";
 package k1s0.system.tenant.v1;
 
+import "google/protobuf/timestamp.proto";
+import "k1s0/system/common/v1/types.proto";
+
 service TenantService {
   rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
   rpc GetTenant(GetTenantRequest) returns (GetTenantResponse);
   rpc ListTenants(ListTenantsRequest) returns (ListTenantsResponse);
-  rpc UpdateTenant(UpdateTenantRequest) returns (UpdateTenantResponse);
-  rpc SuspendTenant(SuspendTenantRequest) returns (SuspendTenantResponse);
-  rpc GetTenantMembers(GetTenantMembersRequest) returns (GetTenantMembersResponse);
+  rpc AddMember(AddMemberRequest) returns (AddMemberResponse);
+  rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
+  rpc GetProvisioningStatus(GetProvisioningStatusRequest) returns (GetProvisioningStatusResponse);
 }
 
 message CreateTenantRequest {
-  string slug = 1;
+  string name = 1;
   string display_name = 2;
-  string plan = 3;
-  map<string, string> metadata = 4;
+  string owner_user_id = 3;
+  string plan = 4;
 }
 
 message CreateTenantResponse {
@@ -459,59 +444,66 @@ message GetTenantResponse {
 }
 
 message ListTenantsRequest {
-  int32 page = 1;
-  int32 page_size = 2;
-  string status = 3;
+  k1s0.system.common.v1.Pagination pagination = 1;
 }
 
 message ListTenantsResponse {
   repeated Tenant tenants = 1;
-  int32 total_count = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
-message UpdateTenantRequest {
+message AddMemberRequest {
   string tenant_id = 1;
-  optional string display_name = 2;
-  map<string, string> metadata = 3;
+  string user_id = 2;
+  string role = 3;
 }
 
-message UpdateTenantResponse {
-  Tenant tenant = 1;
+message AddMemberResponse {
+  TenantMember member = 1;
 }
 
-message SuspendTenantRequest {
+message RemoveMemberRequest {
   string tenant_id = 1;
-  string reason = 2;
+  string user_id = 2;
 }
 
-message SuspendTenantResponse {
-  Tenant tenant = 1;
+message RemoveMemberResponse {
+  bool success = 1;
 }
 
-message GetTenantMembersRequest {
-  string tenant_id = 1;
+message GetProvisioningStatusRequest {
+  string job_id = 1;
 }
 
-message GetTenantMembersResponse {
-  repeated TenantMember members = 1;
+message GetProvisioningStatusResponse {
+  ProvisioningJob job = 1;
 }
 
 message Tenant {
   string id = 1;
-  string slug = 2;
+  string name = 2;
   string display_name = 3;
   string status = 4;
   string plan = 5;
-  map<string, string> metadata = 6;
-  string created_at = 7;
-  string updated_at = 8;
+  google.protobuf.Timestamp created_at = 6;
 }
 
 message TenantMember {
-  string user_id = 1;
+  string id = 1;
   string tenant_id = 2;
-  string role = 3;
-  string joined_at = 4;
+  string user_id = 3;
+  string role = 4;
+  google.protobuf.Timestamp joined_at = 5;
+}
+
+message ProvisioningJob {
+  string id = 1;
+  string tenant_id = 2;
+  string status = 3;
+  string current_step = 4;
+  string error_message = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
 }
 ```
 
@@ -521,25 +513,27 @@ message TenantMember {
 
 ### ステータス一覧
 
-| ステータス | 説明 |
+| ステータス値 | 説明 |
 | --- | --- |
-| `PENDING` | テナント作成直後。プロビジョニング処理中 |
-| `ACTIVE` | プロビジョニング完了。正常稼働中 |
-| `SUSPENDED` | 一時停止中。テナントリソースへのアクセスが制限される |
-| `DELETED` | 論理削除済み。一定期間後に物理削除 |
+| `provisioning` | テナント作成直後。プロビジョニング処理中 |
+| `active` | プロビジョニング完了。正常稼働中 |
+| `suspended` | 一時停止中。テナントリソースへのアクセスが制限される |
+| `deleted` | 論理削除済み。一定期間後に物理削除 |
+
+ステータス値は小文字の文字列として返される。
 
 ### 状態遷移図
 
 ```
-  PENDING ──▶ ACTIVE ──▶ SUSPENDED
-    │            │            │
-    │            │            │ activate
-    │            │            ▼
-    │            │        ACTIVE (復帰)
-    │            │
-    │            └──▶ DELETED (終端)
-    │
-    └──▶ DELETED (プロビジョニング失敗時のロールバック後)
+  provisioning ──▶ active ──▶ suspended
+       │              │            │
+       │              │            │ activate
+       │              │            ▼
+       │              │        active (復帰)
+       │              │
+       │              └──▶ deleted (終端)
+       │
+       └──▶ deleted (プロビジョニング失敗時のロールバック後)
 ```
 
 ### プロビジョニング Saga ステップ
@@ -556,8 +550,8 @@ Step 2: PostgreSQL スキーマ作成
 Step 3: 初期設定投入（config サーバー連携）
   補償: 設定削除
     │
-Step 4: テナントステータスを ACTIVE に遷移
-  補償: テナントステータスを DELETED に遷移
+Step 4: テナントステータスを active に遷移
+  補償: テナントステータスを deleted に遷移
 ```
 
 ---
@@ -572,8 +566,8 @@ Step 4: テナントステータスを ACTIVE に遷移
 | --- | --- | --- |
 | domain/entity | `Tenant`, `TenantMember`, `TenantProvisioningJob`, `TenantStatus` | エンティティ定義・状態遷移 |
 | domain/repository | `TenantRepository`, `TenantMemberRepository` | リポジトリトレイト |
-| domain/service | `TenantDomainService` | スラッグ重複チェック、ステータス遷移バリデーション |
-| usecase | `CreateTenantUsecase`, `GetTenantUsecase`, `ListTenantsUsecase`, `UpdateTenantUsecase`, `SuspendTenantUsecase`, `ActivateTenantUsecase`, `DeleteTenantUsecase`, `AddMemberUsecase`, `RemoveMemberUsecase` | ユースケース |
+| domain/service | `TenantDomainService` | テナント名重複チェック、ステータス遷移バリデーション |
+| usecase | `CreateTenantUseCase`, `GetTenantUseCase`, `ListTenantsUseCase`, `UpdateTenantUseCase`, `SuspendTenantUseCase`, `ActivateTenantUseCase`, `DeleteTenantUseCase`, `ListMembersUseCase`, `AddMemberUseCase`, `RemoveMemberUseCase`, `GetProvisioningStatusUseCase` | ユースケース |
 | adapter/handler | REST ハンドラー, gRPC ハンドラー | プロトコル変換（axum / tonic） |
 | adapter/gateway | `KeycloakAdminClient` | Keycloak Admin API クライアント（realm 管理） |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
@@ -587,13 +581,13 @@ Step 4: テナントステータスを ACTIVE に遷移
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `id` | UUID | テナントの一意識別子 |
-| `slug` | String | テナントスラッグ（URL フレンドリー、一意制約） |
+| `name` | String | テナント名（URL フレンドリー、一意制約） |
 | `display_name` | String | テナント表示名 |
-| `status` | TenantStatus | テナントステータス（PENDING / ACTIVE / SUSPENDED / DELETED） |
-| `plan` | String | 契約プラン |
-| `keycloak_realm` | String | Keycloak realm 名（`k1s0-{slug}`） |
-| `db_schema` | String | PostgreSQL スキーマ名（`tenant_{id}`） |
-| `metadata` | Map\<String, String\> | テナント固有のメタデータ |
+| `status` | TenantStatus | テナントステータス（`provisioning` / `active` / `suspended` / `deleted`） |
+| `plan` | String | 契約プラン（`free` / `starter` / `professional` / `enterprise`） |
+| `settings` | JSON | テナント固有の設定値（JSON オブジェクト） |
+| `keycloak_realm` | Option\<String\> | Keycloak realm 名（`k1s0-{name}`） |
+| `db_schema` | Option\<String\> | PostgreSQL スキーマ名（`tenant_{id}`） |
 | `created_at` | DateTime\<Utc\> | 作成日時 |
 | `updated_at` | DateTime\<Utc\> | 更新日時 |
 
@@ -601,22 +595,23 @@ Step 4: テナントステータスを ACTIVE に遷移
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
+| `id` | UUID | メンバーレコードの一意識別子 |
 | `user_id` | UUID | ユーザーの一意識別子 |
 | `tenant_id` | UUID | テナントの一意識別子 |
-| `role` | String | テナント内でのロール（admin / member） |
+| `role` | String | テナント内でのロール（`owner` / `admin` / `member` / `viewer`） |
 | `joined_at` | DateTime\<Utc\> | テナント参加日時 |
 
-#### TenantProvisioningJob
+#### ProvisioningJob
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `id` | UUID | ジョブの一意識別子 |
 | `tenant_id` | UUID | 対象テナントの一意識別子 |
-| `status` | String | ジョブステータス（RUNNING / COMPLETED / FAILED / ROLLED_BACK） |
-| `steps` | JSON | 各ステップの実行状態 |
-| `error` | Option\<String\> | エラーメッセージ（失敗時） |
+| `status` | ProvisioningStatus | ジョブステータス（`pending` / `running` / `completed` / `failed`） |
+| `current_step` | Option\<String\> | 現在実行中のステップ名 |
+| `error_message` | Option\<String\> | エラーメッセージ（失敗時） |
 | `created_at` | DateTime\<Utc\> | ジョブ開始日時 |
-| `completed_at` | Option\<DateTime\<Utc\>\> | ジョブ完了日時 |
+| `updated_at` | DateTime\<Utc\> | 最終更新日時 |
 
 ### 依存関係図
 
@@ -641,11 +636,12 @@ Step 4: テナントステータスを ACTIVE に遷移
                                               │
                     ┌─────────────────────────▼───────────────────────┐
                     │                   usecase 層                    │
-                    │  CreateTenantUsecase / GetTenantUsecase /       │
-                    │  ListTenantsUsecase / UpdateTenantUsecase /     │
-                    │  SuspendTenantUsecase / ActivateTenantUsecase / │
-                    │  DeleteTenantUsecase / AddMemberUsecase /       │
-                    │  RemoveMemberUsecase                            │
+                    │  CreateTenantUseCase / GetTenantUseCase /       │
+                    │  ListTenantsUseCase / UpdateTenantUseCase /     │
+                    │  SuspendTenantUseCase / ActivateTenantUseCase / │
+                    │  DeleteTenantUseCase / ListMembersUseCase /     │
+                    │  AddMemberUseCase / RemoveMemberUseCase /       │
+                    │  GetProvisioningStatusUseCase                   │
                     └─────────────────────────┬───────────────────────┘
                                               │
               ┌───────────────────────────────┼───────────────────────┐
