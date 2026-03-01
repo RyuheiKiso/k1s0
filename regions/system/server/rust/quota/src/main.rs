@@ -265,7 +265,7 @@ async fn main() -> anyhow::Result<()> {
 
     let quota_tonic = adapter::grpc::QuotaServiceTonic::new(grpc_svc);
 
-    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;

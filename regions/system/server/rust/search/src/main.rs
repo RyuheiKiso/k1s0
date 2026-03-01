@@ -257,7 +257,7 @@ async fn main() -> anyhow::Result<()> {
 
     let search_tonic = adapter::grpc::SearchServiceTonic::new(grpc_svc);
 
-    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;

@@ -75,7 +75,7 @@ fn default_port() -> u16 {
 }
 
 fn default_grpc_port() -> u16 {
-    9090
+    50051
 }
 
 /// DatabaseConfig は PostgreSQL データベース接続の設定を表す。
