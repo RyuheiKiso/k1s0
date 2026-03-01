@@ -436,6 +436,107 @@ docker compose --profile infra --profile observability --profile system down -v
 - Kong はローカル開発環境では DB-less モード（declarative config）を使用し、本番環境との差異を最小限にしつつ開発効率を優先する。設定ファイルは `./infra/kong/kong.dev.yaml` をマウントする（`/etc/kong/kong.yaml` にマップ）
 - Kong ローカル開発用の設定には以下の4プラグインを使用する: `cors`（開発元オリジン許可）、`rate-limiting`（グローバル 5000 req/min、local policy）、`jwt`（Keycloak JWKS 連携、RS256、有効期限 900s）、`prometheus`（per_consumer メトリクス収集）
 
+## 共用開発サーバー対応
+
+ローカル PC にリソース集約型サービスを起動する容量がない場合、共用開発サーバーを活用できる。VS Code Remote SSH + `COMPOSE_PROJECT_NAME` による Compose Project 分離を推奨方式とする。
+
+詳細は [共用開発サーバー設計](../devenv/共用開発サーバー設計.md) を参照。
+
+## .env 戦略
+
+| ファイル | git 管理 | 用途 |
+| --- | --- | --- |
+| `.env.example` | 対象 | 環境変数テンプレート。デフォルト値のリファレンス |
+| `.env` | 除外 | 開発者個人の設定。`.env.example` をコピーして使用 |
+| `docker-compose.override.yaml` | 除外 | service 層サーバー等の追加定義 |
+
+`.env` が存在しない場合、`docker-compose.yaml` 内の `${VAR:-default}` 記法によりデフォルト値が適用される。そのため、既存のローカル開発ワークフローには影響しない（後方互換）。
+
+```bash
+# 初回セットアップ
+cp .env.example .env
+
+# 共用サーバーの場合はユーザー名を設定
+echo "COMPOSE_PROJECT_NAME=$(whoami)" >> .env
+```
+
+## COMPOSE_PROJECT_NAME による分離
+
+`COMPOSE_PROJECT_NAME` を設定すると、Docker Compose は以下のリソースに自動的にプレフィックスを付与する。
+
+| リソース | デフォルト | COMPOSE_PROJECT_NAME=alice |
+| --- | --- | --- |
+| コンテナ名 | `k1s0-postgres-1` | `alice-postgres-1` |
+| ボリューム名 | `k1s0_postgres-data` | `alice_postgres-data` |
+| ネットワーク名 | `k1s0-network` | `alice_default` |
+
+これにより、共用サーバー上で複数開発者が同時に `docker compose up` しても、リソースが完全に分離される。
+
+## ポート環境変数一覧
+
+全ホストポートは `${VAR:-default}` 形式で環境変数化されており、`.env` で変更可能。
+
+### インフラサービス
+
+| 環境変数 | デフォルト | サービス | 説明 |
+| --- | --- | --- | --- |
+| `PG_HOST_PORT` | 5432 | postgres | PostgreSQL |
+| `MYSQL_HOST_PORT` | 3306 | mysql | MySQL |
+| `REDIS_HOST_PORT` | 6379 | redis | Redis |
+| `REDIS_SESSION_HOST_PORT` | 6380 | redis-session | Redis（BFF セッション用） |
+| `KAFKA_HOST_PORT` | 9092 | kafka | Kafka ブローカー |
+| `KAFKA_UI_HOST_PORT` | 8090 | kafka-ui | Kafka UI |
+| `SCHEMA_REGISTRY_HOST_PORT` | 8081 | schema-registry | Schema Registry |
+| `KEYCLOAK_HOST_PORT` | 8180 | keycloak | Keycloak |
+| `KEYCLOAK_MGMT_HOST_PORT` | 9000 | keycloak | Keycloak 管理（ヘルスチェック） |
+| `VAULT_HOST_PORT` | 8200 | vault | HashiCorp Vault |
+
+### API Gateway
+
+| 環境変数 | デフォルト | サービス | 説明 |
+| --- | --- | --- | --- |
+| `KONG_PROXY_HOST_PORT` | 8000 | kong | Kong Proxy |
+| `KONG_ADMIN_HOST_PORT` | 8001 | kong | Kong Admin API |
+
+### System サービス
+
+| 環境変数 | デフォルト | サービス | 説明 |
+| --- | --- | --- | --- |
+| `BFF_PROXY_HOST_PORT` | 8082 | bff-proxy | BFF Proxy（REST） |
+| `AUTH_REST_HOST_PORT` | 8083 | auth-rust | Auth Server（REST） |
+| `AUTH_GRPC_HOST_PORT` | 50052 | auth-rust | Auth Server（gRPC） |
+| `CONFIG_REST_HOST_PORT` | 8084 | config-rust | Config Server（REST） |
+| `CONFIG_GRPC_HOST_PORT` | 50054 | config-rust | Config Server（gRPC） |
+| `SAGA_REST_HOST_PORT` | 8085 | saga-rust | Saga Server（REST） |
+| `SAGA_GRPC_HOST_PORT` | 50055 | saga-rust | Saga Server（gRPC） |
+| `DLQ_REST_HOST_PORT` | 8086 | dlq-manager | DLQ Manager（REST） |
+| `FEATUREFLAG_REST_HOST_PORT` | 8087 | featureflag-rust | Feature Flag（REST） |
+| `FEATUREFLAG_GRPC_HOST_PORT` | 50056 | featureflag-rust | Feature Flag（gRPC） |
+| `RATELIMIT_REST_HOST_PORT` | 8088 | ratelimit-rust | Rate Limit（REST） |
+| `RATELIMIT_GRPC_HOST_PORT` | 50057 | ratelimit-rust | Rate Limit（gRPC） |
+| `TENANT_REST_HOST_PORT` | 8089 | tenant-rust | Tenant Server（REST） |
+| `TENANT_GRPC_HOST_PORT` | 50058 | tenant-rust | Tenant Server（gRPC） |
+| `VAULT_SVC_REST_HOST_PORT` | 8091 | vault-rust | Vault Service（REST） |
+| `VAULT_SVC_GRPC_HOST_PORT` | 50059 | vault-rust | Vault Service（gRPC） |
+| `GRAPHQL_GW_HOST_PORT` | 8092 | graphql-gateway-rust | GraphQL Gateway |
+
+### 可観測性サービス
+
+| 環境変数 | デフォルト | サービス | 説明 |
+| --- | --- | --- | --- |
+| `JAEGER_UI_HOST_PORT` | 16686 | jaeger | Jaeger UI |
+| `JAEGER_OTLP_GRPC_HOST_PORT` | 4317 | jaeger | OTLP gRPC |
+| `JAEGER_OTLP_HTTP_HOST_PORT` | 4318 | jaeger | OTLP HTTP |
+| `PROMETHEUS_HOST_PORT` | 9090 | prometheus | Prometheus |
+| `LOKI_HOST_PORT` | 3100 | loki | Loki |
+| `GRAFANA_HOST_PORT` | 3200 | grafana | Grafana |
+
+### ネットワーク
+
+| 環境変数 | デフォルト | 説明 |
+| --- | --- | --- |
+| `COMPOSE_NETWORK_NAME` | k1s0-network | Docker ネットワーク名 |
+
 ## 詳細設計ドキュメント
 
 各サービスの詳細設定は以下の分割ドキュメントを参照。
@@ -443,6 +544,7 @@ docker compose --profile infra --profile observability --profile system down -v
 - [docker-compose-システムサービス設計.md](compose-システムサービス設計.md) -- auth-server・config-server・System プロファイルの詳細設定・Kong ローカル設定
 - [docker-compose-インフラサービス設計.md](compose-インフラサービス設計.md) -- PostgreSQL・Keycloak・Kafka・Redis の詳細設定・初期化スクリプト
 - [docker-compose-可観測性サービス設計.md](compose-可観測性サービス設計.md) -- Prometheus・Grafana・Loki・Jaeger の詳細設定
+- [.env.example](../../../.env.example) -- ポート環境変数テンプレート
 
 ## 関連ドキュメント
 
