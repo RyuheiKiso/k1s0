@@ -12,9 +12,20 @@
 |---------|------|------|
 | `PageRequest` | 構造体 | page・per_page |
 | `PageResponse<T>` | 構造体 | items・total・page・per_page・total_pages |
-| `encode_cursor` | 関数 | ID を Base64 エンコード |
-| `decode_cursor` | 関数 | カーソル文字列を復元（単一文字列） |
-| `PaginationError` | enum | `InvalidCursor` |
+| `PaginationMeta` | 構造体 | オフセットページネーションのメタデータ（total・page・per_page・total_pages） |
+| `CursorRequest` | 構造体 | カーソルベースのリクエスト（cursor?・limit） |
+| `CursorMeta` | 構造体 | カーソルベースのレスポンスメタ（next_cursor?・has_more） |
+| `encode_cursor(sort_key, id)` | 関数 | sort_key と id を結合して Base64 エンコード |
+| `decode_cursor(cursor)` | 関数 | カーソルを (sort_key, id) のタプルに復元 |
+| `validate_per_page(per_page)` | 関数 | per_page が 1〜100 であることを検証（範囲外はエラー） |
+| `default_page_request()` | 関数 | デフォルト値（page: 1, per_page: 20）の PageRequest を返す |
+| `offset()` | メソッド | ページネーションのオフセット値を返す（`(page - 1) * per_page`） |
+| `has_next(total)` | メソッド | 次のページが存在するかを返す（`page * per_page < total`） |
+| `PaginationError` | enum | `InvalidCursor`・`InvalidPerPage` |
+
+> **注意: Base64 エンコーディング方式の差異**
+>
+> Dart 実装のみ `base64Url`（URL-safe Base64）を使用しており、他の3言語（Rust: `base64::STANDARD`、Go: `base64.StdEncoding`、TypeScript: `btoa`）は標準 Base64 を使用している。そのため、**Dart で生成したカーソルを他言語でデコードする場合（またはその逆）は互換性がない可能性がある**。言語間でカーソルを受け渡す場合は、この差異に注意すること。
 
 ## Rust 実装
 
@@ -53,7 +64,10 @@ pagination/
 **使用例**:
 
 ```rust
-use k1s0_pagination::{PageRequest, PageResponse, encode_cursor, decode_cursor};
+use k1s0_pagination::{PageRequest, PageResponse, encode_cursor, decode_cursor, validate_per_page};
+
+// per_page バリデーション（1〜100 の範囲）
+validate_per_page(20)?;
 
 // オフセットベースページネーション
 let req = PageRequest { page: 2, per_page: 20 };
@@ -63,10 +77,11 @@ let total = db.count_users().await?;
 
 let response: PageResponse<User> = PageResponse::new(users, total, &req);
 // response.total_pages は自動計算
+let meta = response.meta(); // PaginationMeta
 
-// カーソルベースページネーション
-let cursor = encode_cursor("last-record-id");
-let decoded_id = decode_cursor(&cursor)?;
+// カーソルベースページネーション（sort_key + id の 2 引数）
+let cursor = encode_cursor("2024-01-15T10:30:00Z", "some-record-id");
+let (sort_key, id) = decode_cursor(&cursor)?;
 ```
 
 ## Go 実装
@@ -83,6 +98,11 @@ type PageRequest struct {
     PerPage uint32
 }
 
+func NewPageRequest(page, perPage uint32) PageRequest
+func DefaultPageRequest() PageRequest                  // page: 1, perPage: 20
+func (r PageRequest) Offset() uint64                   // (Page-1) * PerPage
+func (r PageRequest) HasNext(total uint64) bool        // Page * PerPage < total
+
 type PageResponse[T any] struct {
     Items      []T
     Total      uint64
@@ -91,10 +111,30 @@ type PageResponse[T any] struct {
     TotalPages uint32
 }
 
+// 注意: Go では PageResponse に Meta() メソッドは存在しない。
+// 各フィールド（Total, Page, PerPage, TotalPages）へ直接アクセスして使用する。
 func NewPageResponse[T any](items []T, total uint64, req PageRequest) PageResponse[T]
 
-func EncodeCursor(id string) string
-func DecodeCursor(cursor string) (string, error)
+type PaginationMeta struct {
+    Total      uint64
+    Page       uint32
+    PerPage    uint32
+    TotalPages uint32
+}
+
+type CursorRequest struct {
+    Cursor *string
+    Limit  uint32
+}
+
+type CursorMeta struct {
+    NextCursor *string
+    HasMore    bool
+}
+
+func ValidatePerPage(perPage uint32) error
+func EncodeCursor(sortKey, id string) string
+func DecodeCursor(cursor string) (sortKey string, id string, err error)
 ```
 
 ## TypeScript 実装
@@ -117,10 +157,37 @@ export interface PageResponse<T> {
   totalPages: number;
 }
 
-export function createPageResponse<T>(items: T[], total: number, req: PageRequest): PageResponse<T>;
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  perPage: number;
+  totalPages: number;
+}
 
-export function encodeCursor(id: string): string;
-export function decodeCursor(cursor: string): string;
+export interface CursorRequest {
+  cursor?: string;
+  limit: number;
+}
+
+export interface CursorMeta {
+  nextCursor?: string;
+  hasMore: boolean;
+}
+
+export class PerPageValidationError extends Error {
+  constructor(value: number);
+}
+
+// 注意: TypeScript では PageResponse に meta() 関数は存在しない。
+// PageResponse の各フィールド（total, page, perPage, totalPages）へ直接アクセスして使用する。
+export function createPageResponse<T>(items: T[], total: number, req: PageRequest): PageResponse<T>;
+export function validatePerPage(perPage: number): number;  // 範囲外は PerPageValidationError をスロー
+export function defaultPageRequest(): PageRequest;         // page: 1, perPage: 20
+export function pageOffset(req: PageRequest): number;      // (page - 1) * perPage
+export function hasNextPage(req: PageRequest, total: number): boolean;  // page * perPage < total
+
+export function encodeCursor(sortKey: string, id: string): string;
+export function decodeCursor(cursor: string): { sortKey: string; id: string };
 ```
 
 **カバレッジ目標**: 90%以上
@@ -128,6 +195,51 @@ export function decodeCursor(cursor: string): string;
 ## Dart 実装
 
 **配置先**: `regions/system/library/dart/pagination/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**主要 API**:
+
+```dart
+class PageRequest {
+  final int page;
+  final int perPage;
+
+  factory PageRequest.defaultRequest() => PageRequest(page: 1, perPage: 20);
+  int get offset => (page - 1) * perPage;
+  bool hasNext(int total) => page * perPage < total;
+}
+
+class PaginationMeta {
+  final int total;
+  final int page;
+  final int perPage;
+  final int totalPages;
+}
+
+class PageResponse<T> {
+  final List<T> items;
+  final int total;
+  final int page;
+  final int perPage;
+  final int totalPages;
+
+  factory PageResponse.create(List<T> items, int total, PageRequest req);
+  PaginationMeta get meta;
+}
+
+class CursorRequest {
+  final String? cursor;
+  final int limit;
+}
+
+class CursorMeta {
+  final String? nextCursor;
+  final bool hasMore;
+}
+
+int validatePerPage(int perPage);  // 範囲外は PerPageValidationException をスロー
+String encodeCursor(String sortKey, String id);
+({String sortKey, String id}) decodeCursor(String cursor);
+```
 
 **カバレッジ目標**: 90%以上
 
@@ -141,29 +253,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_page_request_defaults() {
-        let req = PageRequest::default();
-        assert_eq!(req.page, 1);
-        assert_eq!(req.page_size, 20);
-        assert_eq!(req.offset(), 0);
-    }
-
-    #[test]
-    fn test_page_request_offset() {
-        let req = PageRequest::new().page(3).page_size(20);
-        assert_eq!(req.offset(), 40);
-    }
-
-    #[test]
-    fn test_has_next_true() {
-        let req = PageRequest::new().page(1).page_size(10);
-        assert!(req.has_next(25));  // 25 > 1 * 10
-    }
-
-    #[test]
-    fn test_has_next_false() {
-        let req = PageRequest::new().page(3).page_size(10);
-        assert!(!req.has_next(25)); // 25 == 3 * 10 - but 3*10=30 > 25, so false
+    fn test_page_response_new() {
+        let req = PageRequest { page: 0, per_page: 10 };
+        let response = PageResponse::new(vec![1, 2, 3], 25, &req);
+        assert_eq!(response.total, 25);
+        assert_eq!(response.total_pages, 3);
     }
 
     #[test]
@@ -183,48 +277,14 @@ mod tests {
     }
 
     #[test]
-    fn test_page_size_clamp() {
-        let req = PageRequest::new().page_size(999); // 最大 200 にクランプ
-        assert_eq!(req.page_size, 200);
+    fn test_validate_per_page_valid() {
+        assert!(validate_per_page(1).is_ok());
+        assert!(validate_per_page(100).is_ok());
     }
-}
-```
 
-### 統合テスト
-
-- 実際のデータベース（testcontainers + PostgreSQL）に対してページネーションクエリを実行し、レスポンス形式が D-007 仕様に準拠していることを確認
-- カーソルの encode/decode ラウンドトリップ + 次ページ取得の連続フローを検証
-- ページ境界値（最終ページ・has_next=false）の正確な判定を確認
-
-### モックテスト
-
-```rust
-use async_trait::async_trait;
-
-struct MockUserRepository {
-    users: Vec<User>,
-}
-
-#[async_trait]
-impl Paginator<User> for MockUserRepository {
-    async fn paginate(
-        &self,
-        req: &PageRequest,
-    ) -> Result<PaginatedResponse<User>, PaginationError> {
-        let total_count = self.users.len() as i64;
-        let items = self.users
-            .iter()
-            .skip(req.offset() as usize)
-            .take(req.page_size as usize)
-            .cloned()
-            .collect();
-
-        Ok(PaginatedResponse::new(items).meta(PaginationMeta {
-            total_count,
-            page: req.page,
-            page_size: req.page_size,
-            has_next: req.has_next(total_count),
-        }))
+    #[test]
+    fn test_validate_per_page_over_max() {
+        assert!(validate_per_page(101).is_err()); // 最大 100、超過はバリデーションエラー
     }
 }
 ```

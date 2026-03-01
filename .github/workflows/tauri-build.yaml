@@ -1,13 +1,13 @@
 # .github/workflows/tauri-build.yaml
 # CI pipeline for Tauri GUI application
-# Triggered on PR with changes in CLI/gui paths
+# Triggered on PR with changes in CLI/crates/k1s0-gui paths
 name: tauri-build
 
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'CLI/gui/**'
+      - 'CLI/crates/k1s0-gui/**'
 
 concurrency:
   group: ci-${{ github.ref }}-tauri
@@ -22,11 +22,11 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
-        working-directory: CLI/gui
+        working-directory: CLI/crates/k1s0-gui
       - run: npx eslint .
-        working-directory: CLI/gui
+        working-directory: CLI/crates/k1s0-gui
       - run: npx tsc --noEmit
-        working-directory: CLI/gui
+        working-directory: CLI/crates/k1s0-gui
 
   build:
     needs: lint
@@ -64,18 +64,18 @@ jobs:
             patchelf
 
       - run: npm ci
-        working-directory: CLI/gui
+        working-directory: CLI/crates/k1s0-gui
 
       - name: Build Tauri application
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: CLI/gui
+          projectPath: CLI/crates/k1s0-gui
           args: --target ${{ matrix.target }}
 
       - uses: actions/upload-artifact@v4
         with:
           name: tauri-${{ matrix.platform }}
           path: |
-            CLI/gui/src-tauri/target/${{ matrix.target }}/release/bundle/**
+            CLI/crates/k1s0-gui/src-tauri/target/${{ matrix.target }}/release/bundle/**

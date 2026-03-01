@@ -260,3 +260,96 @@ variable "keycloak_url" {
   type        = string
   default     = "https://keycloak.k1s0-system.svc.cluster.local:8443"
 }
+
+# --- Vault Database ---
+variable "postgres_host" {
+  description = "PostgreSQL server hostname for Vault database engine"
+  type        = string
+  default     = "postgres.k1s0-system.svc.cluster.local"
+}
+
+variable "postgres_port" {
+  description = "PostgreSQL server port"
+  type        = number
+  default     = 5432
+}
+
+variable "postgres_ssl_mode" {
+  description = "PostgreSQL SSL mode (disable, require, verify-full)"
+  type        = string
+  default     = "verify-full"
+}
+
+variable "vault_db_credential_ttl" {
+  description = "Default TTL for dynamic database credentials (seconds)"
+  type        = number
+  default     = 86400
+}
+
+variable "vault_db_credential_max_ttl" {
+  description = "Maximum TTL for dynamic database credentials (seconds)"
+  type        = number
+  default     = 172800
+}
+
+# --- Vault PKI ---
+variable "vault_pki_system_cert_max_ttl" {
+  description = "Maximum TTL for system tier TLS certificates (seconds)"
+  type        = string
+  default     = "2592000"
+}
+
+variable "vault_pki_business_cert_max_ttl" {
+  description = "Maximum TTL for business tier TLS certificates (seconds)"
+  type        = string
+  default     = "2592000"
+}
+
+variable "vault_pki_service_cert_max_ttl" {
+  description = "Maximum TTL for service tier TLS certificates (seconds)"
+  type        = string
+  default     = "2592000"
+}
+
+# --- Consul Backup ---
+variable "consul_backup_namespace" {
+  description = "Kubernetes namespace for the Consul backup CronJob"
+  type        = string
+  default     = "k1s0-system"
+}
+
+variable "consul_backup_schedule" {
+  description = "Cron schedule for Consul state snapshot"
+  type        = string
+  default     = "0 0 * * *"
+}
+
+variable "consul_version" {
+  description = "Consul image version for backup job"
+  type        = string
+  default     = "1.17"
+}
+
+variable "consul_http_addr" {
+  description = "Consul HTTP address for snapshot API"
+  type        = string
+  default     = "http://consul-server:8500"
+}
+
+variable "consul_token_secret_name" {
+  description = "Kubernetes Secret name containing the Consul ACL token"
+  type        = string
+  default     = "consul-acl-token"
+}
+
+variable "consul_backup_pvc_name" {
+  description = "PersistentVolumeClaim name for local Consul backup storage"
+  type        = string
+  default     = "consul-backup-pvc"
+}
+
+variable "consul_backup_retention_count" {
+  description = "Number of Consul backup snapshots to retain"
+  type        = number
+  default     = 30
+}

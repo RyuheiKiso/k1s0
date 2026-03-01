@@ -2,27 +2,36 @@
 
 ## 概要
 
-イベントソーシング向けイベント永続化・再生基盤ライブラリ。`EventStore` トレイトにより Append-only なイベントストリームへの `append`（追記）・`load`（読み込み）・`replay`（再生）を提供する。スナップショット対応で大量イベントの再生コストを抑制する。楽観的ロックによる競合制御を内包し、PostgreSQL をバックエンドとする。
+イベントソーシング向けイベント永続化基盤ライブラリ。`EventStore` トレイトにより Append-only なイベントストリームへの `append`（追記）・`load`（読み込み）・`load_from`（バージョン指定読み込み）を提供する。スナップショット対応で大量イベントの再生コストを抑制する。楽観的ロック（`expected_version`）による競合制御を内包する。
 
 **配置先**: `regions/system/library/rust/eventstore/`
 
 ## 公開 API
 
+最小共通 API（全 4 言語）:
+
+| メソッド | 戻り値 | 説明 |
+|---------|--------|------|
+| `append(stream_id, events, expected_version?)` | `version: u64/uint64/number/int` | イベント追記。バージョン競合時はエラー |
+| `load(stream_id)` | `Vec<EventEnvelope>` | ストリームの全イベント取得 |
+| `load_from(stream_id, from_version)` | `Vec<EventEnvelope>` | 指定バージョン以降のイベント取得 |
+| `exists(stream_id)` | `bool` | ストリームが存在するか確認 |
+| `current_version(stream_id)` | `u64/uint64/number/int` | 現在のバージョン取得 |
+
+Rust 公開型:
+
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `EventStore` | トレイト | イベント永続化・読み込み・再生の抽象インターフェース |
-| `PostgresEventStore` | 構造体 | PostgreSQL バックエンド実装 |
+| `EventStore` | トレイト | イベント永続化・読み込みの抽象インターフェース |
 | `InMemoryEventStore` | 構造体 | テスト用インメモリ実装 |
+| `InMemorySnapshotStore` | 構造体 | テスト用インメモリスナップショット実装 |
+| `PostgresEventStore` | 構造体 | PostgreSQL バックエンド実装（feature = "postgres" で有効） |
 | `MockEventStore` | 構造体 | テスト用モック（feature = "mock" で有効） |
-| `EventEnvelope` | 構造体 | イベント本体 + メタデータ（stream_id・version・event_type・payload・metadata・occurred_at） |
-| `StreamId` | 構造体 | ストリーム識別子（aggregate_type + aggregate_id） |
-| `EventVersion` | 構造体 | ストリームバージョン（楽観的ロック用） |
-| `Snapshot` | 構造体 | 集約状態のスナップショット（stream_id・version・state_payload・taken_at） |
+| `EventEnvelope` | 構造体 | イベント本体 + メタデータ（stream_id・version・event_type・payload・metadata・**recorded_at**） |
+| `StreamId` | 構造体 | ストリーム識別子（単純な文字列ラッパー） |
+| `Snapshot` | 構造体 | 集約状態のスナップショット（stream_id・version・state・created_at） |
 | `SnapshotStore` | トレイト | スナップショット保存・読み込みの抽象インターフェース |
-| `PostgresSnapshotStore` | 構造体 | PostgreSQL スナップショットストア実装 |
-| `EventStoreConfig` | 構造体 | データベース URL・スキーマ・スナップショット間隔設定 |
 | `EventStoreError` | enum | バージョン競合・デシリアライゼーションエラー等 |
-| `ConcurrencyError` | 構造体 | 楽観的ロック競合（expected_version と actual_version を保持） |
 
 ## Rust 実装
 
@@ -36,23 +45,22 @@ edition = "2021"
 
 [features]
 mock = ["mockall"]
-postgres = ["sqlx"]
+postgres = ["dep:sqlx"]
 
 [dependencies]
 async-trait = "0.1"
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "macros"] }
+tracing = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-thiserror = "2"
-tokio = { version = "1", features = ["sync", "time"] }
-tracing = "0.1"
-uuid = { version = "1", features = ["v4"] }
+uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
-sqlx = { version = "0.8", features = ["runtime-tokio-native-tls", "postgres", "uuid", "chrono", "json"], optional = true }
 mockall = { version = "0.13", optional = true }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "json"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-testcontainers-modules = { version = "0.11", features = ["postgres"] }
 ```
 
 **依存追加**: `k1s0-eventstore = { path = "../../system/library/rust/eventstore", features = ["postgres"] }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）
@@ -62,71 +70,51 @@ testcontainers-modules = { version = "0.11", features = ["postgres"] }
 ```
 eventstore/
 ├── src/
-│   ├── lib.rs              # 公開 API（再エクスポート）・使用例ドキュメント
-│   ├── store.rs            # EventStore トレイト・PostgresEventStore・InMemoryEventStore・MockEventStore
-│   ├── envelope.rs         # EventEnvelope・StreamId・EventVersion
-│   ├── snapshot.rs         # Snapshot・SnapshotStore トレイト・PostgresSnapshotStore
-│   ├── config.rs           # EventStoreConfig
-│   └── error.rs            # EventStoreError・ConcurrencyError
+│   ├── lib.rs          # 公開 API（再エクスポート）
+│   ├── store.rs        # EventStore トレイト・MockEventStore
+│   ├── envelope.rs     # EventEnvelope
+│   ├── stream.rs       # StreamId
+│   ├── memory.rs       # InMemoryEventStore・InMemorySnapshotStore
+│   ├── postgres.rs     # PostgresEventStore（feature = "postgres"）
+│   ├── snapshot.rs     # Snapshot・SnapshotStore トレイト
+│   └── error.rs        # EventStoreError
+├── tests/
+│   └── eventstore_test.rs
 └── Cargo.toml
 ```
 
 **使用例**:
 
 ```rust
-use k1s0_eventstore::{
-    EventStore, EventEnvelope, EventStoreConfig, PostgresEventStore,
-    SnapshotStore, PostgresSnapshotStore, StreamId,
-};
-use serde::{Deserialize, Serialize};
+use k1s0_eventstore::{EventStore, EventEnvelope, InMemoryEventStore, StreamId};
 
-#[derive(Debug, Serialize, Deserialize)]
-enum OrderEvent {
-    OrderPlaced { order_id: String, total: f64 },
-    ItemAdded { item_id: String, quantity: u32 },
-    OrderShipped { tracking_number: String },
-}
+let store = InMemoryEventStore::default();
+let stream_id = StreamId::new("order-uuid-1234");
 
-let config = EventStoreConfig::new("postgres://localhost/k1s0")
-    .with_schema("eventstore")
-    .with_snapshot_interval(50); // 50 イベントごとにスナップショット
-
-let store = PostgresEventStore::new(config.clone()).await.unwrap();
-let snapshot_store = PostgresSnapshotStore::new(config).await.unwrap();
-
-let stream_id = StreamId::new("order", "order-uuid-1234");
-
-// イベント追記（楽観的ロック: 現在バージョンが 2 であることを期待）
+// イベント追記（楽観的ロック: 現在バージョンが 0 であることを期待）
 let events = vec![
     EventEnvelope::new(
         &stream_id,
-        "OrderShipped",
-        &OrderEvent::OrderShipped {
-            tracking_number: "TRACK-001".to_string(),
-        },
-    ).unwrap(),
+        1,
+        "OrderPlaced",
+        serde_json::json!({"order_id": "order-uuid-1234", "total": 100.0}),
+    ),
 ];
-store.append(&stream_id, events, Some(2)).await.unwrap();
+let version = store.append(&stream_id, events, Some(0)).await.unwrap();
+// version == 1
 
-// イベント読み込み（バージョン 0 から全件）
-let envelopes = store.load(&stream_id, 0, None).await.unwrap();
+// 全イベント読み込み
+let envelopes = store.load(&stream_id).await.unwrap();
 
-// スナップショット保存
-let state = reconstruct_order_state(&envelopes);
-snapshot_store.save(&stream_id, 3, &state).await.unwrap();
-
-// スナップショットから再生（最新スナップショット以降のイベントのみロード）
-if let Some(snap) = snapshot_store.load_latest(&stream_id).await.unwrap() {
-    let delta = store.load(&stream_id, snap.version + 1, None).await.unwrap();
-    // snap.state_payload から状態を復元し、delta を適用
-}
+// バージョン 2 以降のみ読み込み
+let delta = store.load_from(&stream_id, 2).await.unwrap();
 ```
 
 ## Go 実装
 
 **配置先**: `regions/system/library/go/eventstore/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: `github.com/jackc/pgx/v5 v5.7.2`
+**依存関係**: `github.com/lib/pq`（PostgreSQL ドライバー）。InMemory 実装は標準ライブラリのみ。
 
 **主要インターフェース**:
 
@@ -169,6 +157,27 @@ type SnapshotStore interface {
     SaveSnapshot(ctx context.Context, snapshot *Snapshot) error
     LoadSnapshot(ctx context.Context, streamID StreamId) (*Snapshot, error)
 }
+
+// エラー型
+type EventStoreError struct {
+    Code    string
+    Message string
+}
+
+func (e *EventStoreError) Error() string
+func NewVersionConflictError(expected, actual uint64) *EventStoreError
+func NewStreamNotFoundError(streamID string) *EventStoreError
+
+// InMemory 実装
+func NewInMemoryEventStore() *InMemoryEventStore    // implements EventStore
+func NewInMemorySnapshotStore() *InMemorySnapshotStore  // implements SnapshotStore
+
+// PostgreSQL 実装
+func NewPostgresEventStore(databaseURL string) (*PostgresEventStore, error)
+func NewPostgresEventStoreFromDB(db *sql.DB) *PostgresEventStore
+func (s *PostgresEventStore) Migrate(ctx context.Context) error  // イベントテーブル作成
+func (s *PostgresEventStore) Close() error                       // DB 接続クローズ
+// PostgresEventStore implements EventStore
 ```
 
 ## TypeScript 実装
@@ -178,44 +187,54 @@ type SnapshotStore interface {
 **主要 API**:
 
 ```typescript
-export interface StreamId {
-  aggregateType: string;
-  aggregateId: string;
-}
+export type StreamId = string;
 
-export interface EventEnvelope<T = unknown> {
-  id: string;
-  streamId: StreamId;
+export interface EventEnvelope {
+  eventId: string;
+  streamId: string;
   version: number;
   eventType: string;
-  payload: T;
-  metadata: Record<string, unknown>;
-  occurredAt: string;
+  payload: unknown;
+  metadata?: unknown;
+  recordedAt: Date;
 }
 
-export interface Snapshot<S = unknown> {
-  streamId: StreamId;
+export interface Snapshot {
+  streamId: string;
   version: number;
-  state: S;
-  takenAt: string;
+  state: unknown;
+  createdAt: Date;
 }
 
 export interface EventStore {
-  append(streamId: StreamId, events: Omit<EventEnvelope, 'id' | 'version' | 'occurredAt'>[], expectedVersion?: number): Promise<void>;
-  load(streamId: StreamId, fromVersion?: number, toVersion?: number): Promise<EventEnvelope[]>;
+  append(streamId: StreamId, events: Omit<EventEnvelope, 'eventId' | 'version' | 'recordedAt'>[], expectedVersion?: number): Promise<number>;
+  load(streamId: StreamId): Promise<EventEnvelope[]>;
+  loadFrom(streamId: StreamId, fromVersion: number): Promise<EventEnvelope[]>;
   exists(streamId: StreamId): Promise<boolean>;
+  currentVersion(streamId: StreamId): Promise<number>;
 }
 
 export interface SnapshotStore {
-  save<S>(streamId: StreamId, version: number, state: S): Promise<void>;
-  loadLatest<S>(streamId: StreamId): Promise<Snapshot<S> | null>;
+  saveSnapshot(snapshot: Snapshot): Promise<void>;
+  loadSnapshot(streamId: StreamId): Promise<Snapshot | null>;
 }
 
-export class ConcurrencyError extends Error {
-  constructor(
-    public readonly expectedVersion: number,
-    public readonly actualVersion: number
-  ) { super(`Concurrency conflict: expected ${expectedVersion}, got ${actualVersion}`); }
+export class VersionConflictError extends Error {
+  constructor(public readonly expected: number, public readonly actual: number);
+}
+
+export class InMemoryEventStore implements EventStore { ... }
+export class InMemorySnapshotStore implements SnapshotStore { ... }
+
+// PostgreSQL 実装（pg パッケージ使用）
+export class PostgresEventStore implements EventStore {
+  constructor(pool: Pool);
+  async migrate(): Promise<void>;  // イベントテーブル作成
+}
+
+export class PostgresSnapshotStore implements SnapshotStore {
+  constructor(pool: Pool);
+  async migrate(): Promise<void>;  // スナップショットテーブル作成
 }
 ```
 
@@ -224,6 +243,70 @@ export class ConcurrencyError extends Error {
 ## Dart 実装
 
 **配置先**: `regions/system/library/dart/eventstore/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**主要インターフェース**:
+
+```dart
+abstract class EventStore {
+  Future<int> append(
+    String streamId,
+    List<NewEvent> events, {
+    int? expectedVersion,
+  });
+  Future<List<EventEnvelope>> load(String streamId);
+  Future<List<EventEnvelope>> loadFrom(String streamId, int fromVersion);
+  Future<bool> exists(String streamId);
+  Future<int> currentVersion(String streamId);
+}
+
+class EventEnvelope {
+  final String eventId;
+  final String streamId;
+  final int version;
+  final String eventType;
+  final Object? payload;
+  final Object? metadata;
+  final DateTime recordedAt;
+}
+
+class NewEvent {
+  final String streamId;
+  final String eventType;
+  final Object? payload;
+  final Object? metadata;
+}
+
+class VersionConflictError implements Exception {
+  final int expected;
+  final int actual;
+}
+
+class Snapshot {
+  final String streamId;
+  final int version;
+  final Object? state;
+  final DateTime createdAt;
+}
+
+abstract class SnapshotStore {
+  Future<void> saveSnapshot(Snapshot snapshot);
+  Future<Snapshot?> loadSnapshot(String streamId);
+}
+
+class InMemoryEventStore implements EventStore { ... }
+class InMemorySnapshotStore implements SnapshotStore { ... }
+
+// PostgreSQL 実装（postgres パッケージ使用）
+class PostgresEventStore implements EventStore {
+  PostgresEventStore(Connection conn);
+  Future<void> migrate();  // イベントテーブル作成
+}
+
+class PostgresSnapshotStore implements SnapshotStore {
+  PostgresSnapshotStore(Connection conn);
+  Future<void> migrate();  // スナップショットテーブル作成
+}
+```
 
 **カバレッジ目標**: 85%以上
 

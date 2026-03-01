@@ -12,17 +12,18 @@ system-search-server（ポート 8094）へのドキュメント検索クライ�
 
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `SearchClient` | トレイト | 検索・インデックス操作インターフェース |
-| `GrpcSearchClient` | 構造体 | gRPC 経由の search-server 接続実装 |
+| `SearchClient` | トレイト/インターフェース | 検索・インデックス操作インターフェース |
+| `GrpcSearchClient` | クラス/構造体 | HTTP REST 経由の search-server 接続実装（現状 HTTP REST、将来 gRPC 予定）。**TypeScript・Dart のみ実装あり。Go・Rust には存在しない。** |
+| `InMemorySearchClient` | クラス/構造体 | テスト・開発環境用インメモリ実装。全言語で実装あり（Rust は `#[cfg(test)]` 内非公開）。 |
 | `SearchQuery` | 構造体 | クエリ文字列・フィルター・ファセット・ページネーション |
-| `SearchResult<T>` | 構造体 | ヒット件数・ヒット一覧・ファセット集計・処理時間 |
+| `SearchResult<T>` | 構造体 | ヒット件数・ヒット一覧・ファセット集計・処理時間。**Go のみ非ジェネリック版（`SearchResult`）。** |
 | `IndexDocument` | 構造体 | ドキュメント ID・フィールドマップ |
 | `IndexResult` | 構造体 | インデックス済みドキュメント ID・バージョン |
 | `BulkResult` | 構造体 | 成功件数・失敗件数・失敗詳細リスト |
 | `IndexMapping` | 構造体 | フィールド定義マップ（フィールド名・型・インデックス設定）|
-| `Filter` | 構造体 | フィールド・演算子・値 |
+| `Filter` | 構造体 | フィールド・演算子・値。`operator` は `eq`/`lt`/`gt`/`range`/`in`（`in` は TypeScript で先行実装） |
 | `FacetBucket` | 構造体 | バケット値・ドキュメント件数 |
-| `SearchError` | enum | `IndexNotFound`・`InvalidQuery`・`ServerError`・`Timeout` |
+| `SearchError` | enum/クラス | `IndexNotFound`・`InvalidQuery`・`ServerError`・`Timeout`。**Dart は `SearchErrorCode` enum + `SearchError` クラスの2型構成。** |
 
 ## Rust 実装
 
@@ -66,25 +67,137 @@ search-client/
 └── Cargo.toml
 ```
 
+**主要 API**:
+
+```rust
+// --- client.rs ---
+
+#[async_trait]
+pub trait SearchClient: Send + Sync {
+    async fn index_document(&self, index: &str, doc: IndexDocument) -> Result<IndexResult, SearchError>;
+    async fn bulk_index(&self, index: &str, docs: Vec<IndexDocument>) -> Result<BulkResult, SearchError>;
+    async fn search(&self, index: &str, query: SearchQuery) -> Result<SearchResult<serde_json::Value>, SearchError>;
+    async fn delete_document(&self, index: &str, id: &str) -> Result<(), SearchError>;
+    async fn create_index(&self, name: &str, mapping: IndexMapping) -> Result<(), SearchError>;
+}
+
+// GrpcSearchClient（gRPC実装、feature = "grpc" 有効時）
+// Rust には GrpcSearchClient の本実装なし（TypeScript/Dart のみ実装あり）。
+// pub struct GrpcSearchClient { /* ... */ }
+// impl GrpcSearchClient {
+//     pub async fn new(addr: &str) -> Result<GrpcSearchClient, SearchError>
+// }
+
+// 注記（Rust実装）: InMemorySearchClient は現在 #[cfg(test)] モジュール内に非公開で存在する。
+// テスト外での使用はできない。他言語と同様に公開化が必要（feature = "mock" 等での公開化を推奨）。
+
+// --- document.rs ---
+
+pub struct IndexDocument {
+    pub id: String,
+    pub fields: HashMap<String, serde_json::Value>,
+}
+impl IndexDocument {
+    pub fn new(id: impl Into<String>) -> Self;
+    pub fn field(mut self, name: impl Into<String>, value: serde_json::Value) -> Self;
+}
+
+pub struct IndexResult {
+    pub id: String,
+    pub version: i64,
+}
+
+pub struct BulkFailure {
+    pub id: String,
+    pub error: String,
+}
+
+pub struct BulkResult {
+    pub success_count: usize,
+    pub failed_count: usize,
+    pub failures: Vec<BulkFailure>,
+}
+
+pub struct FieldMapping {
+    pub field_type: String,
+    pub indexed: bool,
+}
+
+pub struct IndexMapping {
+    pub fields: HashMap<String, FieldMapping>,
+}
+impl IndexMapping {
+    pub fn new() -> Self;
+    pub fn field(mut self, name: impl Into<String>, field_type: impl Into<String>) -> Self;
+}
+
+// --- query.rs ---
+
+pub struct Filter {
+    pub field: String,
+    pub operator: String,
+    pub value: serde_json::Value,
+    pub value_to: Option<serde_json::Value>,
+}
+impl Filter {
+    pub fn eq(field: impl Into<String>, value: impl Into<serde_json::Value>) -> Self;
+    pub fn lt(field: impl Into<String>, value: impl Into<serde_json::Value>) -> Self;
+    pub fn gt(field: impl Into<String>, value: impl Into<serde_json::Value>) -> Self;
+    pub fn range(field: impl Into<String>, from: impl Into<serde_json::Value>, to: impl Into<serde_json::Value>) -> Self;
+}
+
+pub struct FacetBucket {
+    pub value: String,
+    pub count: u64,
+}
+
+pub struct SearchQuery {
+    pub query: String,
+    pub filters: Vec<Filter>,
+    pub facets: Vec<String>,
+    pub page: u32,
+    pub size: u32,
+}
+impl SearchQuery {
+    pub fn new(query: impl Into<String>) -> Self;
+    pub fn filter(mut self, filter: Filter) -> Self;
+    pub fn facet(mut self, facet: impl Into<String>) -> Self;
+    pub fn page(mut self, page: u32) -> Self;
+    pub fn size(mut self, size: u32) -> Self;
+}
+
+pub struct SearchResult<T> {
+    pub hits: Vec<T>,
+    pub total: u64,
+    pub facets: HashMap<String, Vec<FacetBucket>>,
+    pub took_ms: u64,
+}
+
+// --- error.rs ---
+
+#[derive(Debug, thiserror::Error)]
+pub enum SearchError {
+    #[error("インデックスが見つかりません: {0}")]
+    IndexNotFound(String),
+    #[error("無効なクエリ: {0}")]
+    InvalidQuery(String),
+    #[error("サーバーエラー: {0}")]
+    ServerError(String),
+    #[error("タイムアウト")]
+    Timeout,
+}
+```
+
 **使用例**:
 
 ```rust
 use k1s0_search_client::{
-    Filter, GrpcSearchClient, IndexDocument, IndexMapping, SearchClient, SearchQuery,
+    Filter, IndexDocument, IndexMapping, MockSearchClient, SearchClient, SearchQuery,
 };
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Product {
-    id: String,
-    name: String,
-    price: u64,
-    category: String,
-}
-
-// クライアントの構築
-let client = GrpcSearchClient::new("http://search-server:8080").await?;
+// MockSearchClient でテスト（feature = "mock"）
+// または独自実装の SearchClient トレイト実装を使用
 
 // インデックスの作成
 let mapping = IndexMapping::new()
@@ -118,19 +231,20 @@ tracing::info!(
 // 全文検索（ファセット・フィルター付き）
 let query = SearchQuery::new("Rust プログラミング")
     .filter(Filter::eq("category", "books"))
-    .filter(Filter::range("price", 1000, 5000))
+    .filter(Filter::range("price", json!(1000), json!(5000)))
     .facet("category")
     .page(0)
     .size(20);
 
-let search_result = client.search::<Product>("products", query).await?;
+// search は SearchResult<serde_json::Value> を返す
+let search_result = client.search("products", query).await?;
 tracing::info!(
     total = search_result.total,
     took_ms = search_result.took_ms,
     "検索完了"
 );
 for hit in &search_result.hits {
-    println!("{}: {}", hit.id, hit.name);
+    println!("{}", hit["id"]);
 }
 
 // ドキュメントの削除
@@ -141,7 +255,7 @@ client.delete_document("products", "prod-001").await?;
 
 **配置先**: `regions/system/library/go/search-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: `google.golang.org/grpc v1.70`, `github.com/stretchr/testify v1.10.0`
+**依存関係**: `github.com/stretchr/testify v1.10.0`
 
 **主要インターフェース**:
 
@@ -164,10 +278,13 @@ type SearchQuery struct {
 
 type Filter struct {
     Field    string
-    Operator string // "eq", "lt", "gt", "range"
+    Operator string // "eq", "lt", "gt", "range" は実装済み。"in" 演算子は要確認・要実装。
     Value    interface{}
 }
 
+// SearchResult は Go では非ジェネリック型（Hits は []map[string]interface{} 固定）。
+// 他言語: Rust/TypeScript/Dart は SearchResult<T> ジェネリック版。
+// Go 1.18+ ではジェネリクス対応 (SearchResult[T any]) が可能だが現状は非ジェネリック実装。
 type SearchResult struct {
     Hits    []map[string]interface{}
     Total   uint64
@@ -190,27 +307,69 @@ type IndexResult struct {
     Version int64
 }
 
+type BulkFailure struct {
+    ID    string
+    Error string
+}
+
 type BulkResult struct {
     SuccessCount int
     FailedCount  int
     Failures     []BulkFailure
 }
 
+type FieldMapping struct {
+    FieldType string
+    Indexed   bool
+}
+
+type IndexMapping struct {
+    Fields map[string]FieldMapping
+}
+
+// IndexMapping ビルダー
+// IndexMapping.field の命名は言語ごとに異なる:
+//   Rust: IndexMapping::field()  Go: WithField()  Dart: withField()  TypeScript: オブジェクトリテラル直接構築
+func NewIndexMapping() IndexMapping
+func (m IndexMapping) WithField(name, fieldType string) IndexMapping
+
+// InMemorySearchClient（テスト用インメモリ実装）
+type InMemorySearchClient struct{ /* ... */ }
+
+func NewInMemorySearchClient() *InMemorySearchClient
+func (c *InMemorySearchClient) CreateIndex(ctx context.Context, name string, mapping IndexMapping) error
+func (c *InMemorySearchClient) IndexDocument(ctx context.Context, index string, doc IndexDocument) (IndexResult, error)
+func (c *InMemorySearchClient) BulkIndex(ctx context.Context, index string, docs []IndexDocument) (BulkResult, error)
+func (c *InMemorySearchClient) Search(ctx context.Context, index string, query SearchQuery) (SearchResult, error)
+func (c *InMemorySearchClient) DeleteDocument(ctx context.Context, index, id string) error
+func (c *InMemorySearchClient) DocumentCount(index string) int
+
+// GrpcSearchClient（gRPC実装）
+// 注記: 名称はGrpcだが現状はHTTP REST実装。将来gRPCに移行予定。
 type GrpcSearchClient struct{ /* ... */ }
 
 func NewGrpcSearchClient(addr string) (*GrpcSearchClient, error)
+func NewGrpcSearchClientWithHTTPClient(addr string, httpClient *http.Client) (*GrpcSearchClient, error)
 func (c *GrpcSearchClient) IndexDocument(ctx context.Context, index string, doc IndexDocument) (IndexResult, error)
 func (c *GrpcSearchClient) BulkIndex(ctx context.Context, index string, docs []IndexDocument) (BulkResult, error)
 func (c *GrpcSearchClient) Search(ctx context.Context, index string, query SearchQuery) (SearchResult, error)
 func (c *GrpcSearchClient) DeleteDocument(ctx context.Context, index, id string) error
 func (c *GrpcSearchClient) CreateIndex(ctx context.Context, name string, mapping IndexMapping) error
+func (c *GrpcSearchClient) Close()
 ```
 
 **使用例**:
 
 ```go
-client, err := NewGrpcSearchClient("search-server:8080")
-if err != nil {
+// InMemorySearchClient（テスト・開発環境）
+client := NewInMemorySearchClient()
+
+mapping := NewIndexMapping().
+    WithField("name", "text").
+    WithField("price", "integer").
+    WithField("category", "keyword")
+
+if err := client.CreateIndex(ctx, "products", mapping); err != nil {
     log.Fatal(err)
 }
 
@@ -238,6 +397,7 @@ export interface Filter {
   field: string;
   operator: 'eq' | 'lt' | 'gt' | 'range' | 'in';
   value: unknown;
+  valueTo?: unknown;
 }
 
 export interface FacetBucket {
@@ -270,14 +430,26 @@ export interface IndexResult {
   version: number;
 }
 
+export interface BulkFailure {
+  id: string;
+  error: string;
+}
+
 export interface BulkResult {
   successCount: number;
   failedCount: number;
-  failures: Array<{ id: string; error: string }>;
+  failures: BulkFailure[];
+}
+
+// FieldMapping.type フィールド名は TypeScript のみ `type`。
+// 他言語: Rust: `field_type`, Go: `FieldType`, Dart: `fieldType`
+export interface FieldMapping {
+  type: string;  // 他言語は field_type / FieldType / fieldType
+  indexed?: boolean;
 }
 
 export interface IndexMapping {
-  fields: Record<string, { type: string; indexed?: boolean }>;
+  fields: Record<string, FieldMapping>;
 }
 
 export interface SearchClient {
@@ -288,6 +460,19 @@ export interface SearchClient {
   createIndex(name: string, mapping: IndexMapping): Promise<void>;
 }
 
+// InMemorySearchClient（テスト・開発環境用インメモリ実装）
+export class InMemorySearchClient implements SearchClient {
+  constructor();  // new InMemorySearchClient()
+  createIndex(name: string, mapping: IndexMapping): Promise<void>;
+  indexDocument(index: string, doc: IndexDocument): Promise<IndexResult>;
+  bulkIndex(index: string, docs: IndexDocument[]): Promise<BulkResult>;
+  search<T = Record<string, unknown>>(index: string, query: SearchQuery): Promise<SearchResult<T>>;
+  deleteDocument(index: string, id: string): Promise<void>;
+  documentCount(index: string): number;  // テスト用ヘルパー
+}
+
+// GrpcSearchClient（HTTP REST 実装、将来 gRPC 移行予定）
+// TypeScript・Dart のみ実装あり。Go・Rust には存在しない。
 export class GrpcSearchClient implements SearchClient {
   constructor(serverUrl: string);
   indexDocument(index: string, doc: IndexDocument): Promise<IndexResult>;
@@ -315,9 +500,168 @@ export class SearchError extends Error {
 **pubspec.yaml 主要依存**:
 
 ```yaml
-dependencies:
-  grpc: ^4.0.0
-  protobuf: ^3.1.0
+dependencies: {}
+```
+
+**モジュール構成**:
+
+```
+search_client/
+├── lib/
+│   ├── search_client.dart      # 公開 API（再エクスポート）
+│   └── src/
+│       ├── client.dart         # SearchClient 抽象クラス・InMemorySearchClient
+│       ├── document.dart       # IndexDocument・IndexResult・BulkResult・BulkFailure・FieldMapping・IndexMapping
+│       ├── query.dart          # SearchQuery・Filter・FacetBucket・SearchResult
+│       └── error.dart          # SearchErrorCode・SearchError
+└── pubspec.yaml
+```
+
+**主要 API**:
+
+```dart
+// --- document.dart ---
+
+class IndexDocument {
+  final String id;
+  final Map<String, dynamic> fields;
+  const IndexDocument({required String id, required Map<String, dynamic> fields});
+}
+
+class IndexResult {
+  final String id;
+  final int version;
+  const IndexResult({required String id, required int version});
+}
+
+class BulkFailure {
+  final String id;
+  final String error;
+  const BulkFailure({required String id, required String error});
+}
+
+class BulkResult {
+  final int successCount;
+  final int failedCount;
+  final List<BulkFailure> failures;
+  const BulkResult({
+    required int successCount,
+    required int failedCount,
+    required List<BulkFailure> failures,
+  });
+}
+
+class FieldMapping {
+  final String fieldType;
+  final bool indexed;
+  const FieldMapping({required String fieldType, bool indexed = true});
+}
+
+class IndexMapping {
+  final Map<String, FieldMapping> fields;
+  IndexMapping({Map<String, FieldMapping>? fields});
+  IndexMapping withField(String name, String fieldType);
+}
+
+// --- query.dart ---
+
+class Filter {
+  final String field;
+  final String operator;
+  final dynamic value;
+  final dynamic valueTo;
+  const Filter({required String field, required String operator, required dynamic value, dynamic valueTo});
+
+  factory Filter.eq(String field, dynamic value);
+  factory Filter.lt(String field, dynamic value);
+  factory Filter.gt(String field, dynamic value);
+  factory Filter.range(String field, dynamic from, dynamic to);
+}
+
+class FacetBucket {
+  final String value;
+  final int count;
+  const FacetBucket({required String value, required int count});
+}
+
+class SearchQuery {
+  final String query;
+  final List<Filter> filters;
+  final List<String> facets;
+  final int page;
+  final int size;
+  const SearchQuery({
+    required String query,
+    List<Filter> filters = const [],
+    List<String> facets = const [],
+    int page = 0,
+    int size = 20,
+  });
+}
+
+class SearchResult<T> {
+  final List<T> hits;
+  final int total;
+  final Map<String, List<FacetBucket>> facets;
+  final int tookMs;
+  const SearchResult({
+    required List<T> hits,
+    required int total,
+    required Map<String, List<FacetBucket>> facets,
+    required int tookMs,
+  });
+}
+
+// --- error.dart ---
+// Dart のエラー型は SearchErrorCode enum + SearchError クラスの2型構成。
+// 他言語: Rust は SearchError enum 単独、TypeScript は SearchError クラス+code フィールド、Go は error インターフェース。
+
+enum SearchErrorCode {
+  indexNotFound,
+  invalidQuery,
+  serverError,
+  timeout,
+}
+
+class SearchError implements Exception {
+  final String message;
+  final SearchErrorCode code;
+  const SearchError(String message, SearchErrorCode code);
+  String toString();
+}
+
+// --- client.dart ---
+
+abstract class SearchClient {
+  Future<IndexResult> indexDocument(String index, IndexDocument doc);
+  Future<BulkResult> bulkIndex(String index, List<IndexDocument> docs);
+  Future<SearchResult<Map<String, dynamic>>> search(String index, SearchQuery query);
+  Future<void> deleteDocument(String index, String id);
+  Future<void> createIndex(String name, IndexMapping mapping);
+}
+
+// InMemorySearchClient（テスト・開発環境用インメモリ実装）
+class InMemorySearchClient implements SearchClient {
+  InMemorySearchClient();  // コンストラクタ
+  Future<void> createIndex(String name, IndexMapping mapping);
+  Future<IndexResult> indexDocument(String index, IndexDocument doc);
+  Future<BulkResult> bulkIndex(String index, List<IndexDocument> docs);
+  Future<SearchResult<Map<String, dynamic>>> search(String index, SearchQuery query);
+  Future<void> deleteDocument(String index, String id);
+  int documentCount(String index);  // テスト用ヘルパー
+}
+
+// GrpcSearchClient（HTTP REST 実装、将来 gRPC 移行予定）
+// TypeScript・Dart のみ実装あり。Go・Rust には存在しない。
+class GrpcSearchClient implements SearchClient {
+  GrpcSearchClient(String serverUrl);
+  Future<IndexResult> indexDocument(String index, IndexDocument doc);
+  Future<BulkResult> bulkIndex(String index, List<IndexDocument> docs);
+  Future<SearchResult<Map<String, dynamic>>> search(String index, SearchQuery query);
+  Future<void> deleteDocument(String index, String id);
+  Future<void> createIndex(String name, IndexMapping mapping);
+  Future<void> close();
+}
 ```
 
 **使用例**:
@@ -325,7 +669,15 @@ dependencies:
 ```dart
 import 'package:k1s0_search_client/search_client.dart';
 
-final client = GrpcSearchClient('search-server:8080');
+// InMemorySearchClient（テスト・開発環境）
+final client = InMemorySearchClient();
+
+// インデックスの作成
+final mapping = IndexMapping()
+    .withField('name', 'text')
+    .withField('price', 'integer')
+    .withField('category', 'keyword');
+await client.createIndex('products', mapping);
 
 // ドキュメントのインデックス登録
 final doc = IndexDocument(
@@ -335,16 +687,30 @@ final doc = IndexDocument(
 final result = await client.indexDocument('products', doc);
 print('インデックス済み: ${result.id} v${result.version}');
 
-// 検索
+// バルクインデックス
+final docs = [
+  IndexDocument(id: 'prod-002', fields: {'name': 'Go 言語仕様', 'price': 4200, 'category': 'books'}),
+  IndexDocument(id: 'prod-003', fields: {'name': 'TypeScript 実践', 'price': 3500, 'category': 'books'}),
+];
+final bulkResult = await client.bulkIndex('products', docs);
+print('成功: ${bulkResult.successCount}, 失敗: ${bulkResult.failedCount}');
+
+// 全文検索（フィルター・ファセット付き）
 final query = SearchQuery(
   query: 'Rust プログラミング',
-  filters: [Filter(field: 'category', operator: 'eq', value: 'books')],
+  filters: [
+    Filter.eq('category', 'books'),
+    Filter.range('price', 1000, 5000),
+  ],
   facets: ['category'],
   page: 0,
   size: 20,
 );
 final searchResult = await client.search('products', query);
 print('総件数: ${searchResult.total}, 処理時間: ${searchResult.tookMs}ms');
+
+// ドキュメントの削除
+await client.deleteDocument('products', 'prod-001');
 ```
 
 **カバレッジ目標**: 90%以上
@@ -408,7 +774,7 @@ mock! {
     impl SearchClient for TestSearchClient {
         async fn index_document(&self, index: &str, doc: IndexDocument) -> Result<IndexResult, SearchError>;
         async fn bulk_index(&self, index: &str, docs: Vec<IndexDocument>) -> Result<BulkResult, SearchError>;
-        async fn search<T: serde::de::DeserializeOwned + Send + 'static>(&self, index: &str, query: SearchQuery) -> Result<SearchResult<T>, SearchError>;
+        async fn search(&self, index: &str, query: SearchQuery) -> Result<SearchResult<serde_json::Value>, SearchError>;
         async fn delete_document(&self, index: &str, id: &str) -> Result<(), SearchError>;
         async fn create_index(&self, name: &str, mapping: IndexMapping) -> Result<(), SearchError>;
     }
@@ -428,6 +794,60 @@ async fn test_product_service_indexes_on_create() {
 ```
 
 **カバレッジ目標**: 90%以上
+
+---
+
+## 言語別実装差異まとめ
+
+### ビルダーパターン対応
+
+各言語での `IndexDocument`・`SearchQuery`・`IndexMapping` の構築方法は以下の通り異なる。
+
+| 構築対象 | Rust | Go | TypeScript | Dart |
+|---------|------|----|------------|------|
+| `IndexDocument` | `IndexDocument::new(id).field(k, v)` メソッドチェーン | 構造体リテラル直接構築 | オブジェクトリテラル `{ id, fields }` | コンストラクタ `IndexDocument(id: ..., fields: ...)` |
+| `SearchQuery` | `SearchQuery::new(q).filter(f).facet(f).page(n).size(n)` メソッドチェーン | 構造体リテラル `SearchQuery{Query: ..., Filters: ...}` | オブジェクトリテラル `{ query, filters, ... }` | コンストラクタ `SearchQuery(query: ..., filters: [...])` |
+| `IndexMapping` | `IndexMapping::new().field(name, type)` メソッドチェーン | `NewIndexMapping().WithField(name, type)` | オブジェクトリテラル `{ fields: { name: { type } } }` | `IndexMapping().withField(name, type)` |
+
+### `IndexMapping.field` メソッド名対応
+
+| 言語 | コンストラクタ | フィールド追加メソッド |
+|------|----------------|----------------------|
+| Rust | `IndexMapping::new()` | `.field(name, field_type)` |
+| Go | `NewIndexMapping()` | `.WithField(name, fieldType)` |
+| TypeScript | オブジェクトリテラル | フィールドをキーとして直接記述 |
+| Dart | `IndexMapping()` | `.withField(name, fieldType)` |
+
+### `InMemorySearchClient` コンストラクタ
+
+| 言語 | コンストラクタ | 備考 |
+|------|----------------|------|
+| Rust | `InMemorySearchClient::new()` | `#[cfg(test)]` 内非公開。テスト外利用不可 |
+| Go | `NewInMemorySearchClient()` | 公開コンストラクタ |
+| TypeScript | `new InMemorySearchClient()` | 公開クラス |
+| Dart | `InMemorySearchClient()` | 公開クラス |
+
+### `documentCount` ヘルパー
+
+テスト・デバッグ用にインデックス内のドキュメント件数を返すメソッド。Go・TypeScript・Dart に実装あり。Rust は未実装（`#[cfg(test)]` 内の `InMemorySearchClient` 自体が非公開）。
+
+| 言語 | シグネチャ |
+|------|-----------|
+| Go | `(c *InMemorySearchClient) DocumentCount(index string) int` |
+| TypeScript | `documentCount(index: string): number` |
+| Dart | `int documentCount(String index)` |
+| Rust | 未実装（`feature = "mock"` 等での公開化を推奨） |
+
+### `GrpcSearchClient` 言語別実装状況
+
+現状は HTTP REST 実装（将来 gRPC 移行予定）。
+
+| 言語 | 実装状況 | コンストラクタ |
+|------|---------|----------------|
+| TypeScript | あり | `new GrpcSearchClient(serverUrl: string)` |
+| Dart | あり | `GrpcSearchClient(String serverUrl)` |
+| Go | なし | — |
+| Rust | なし（feature = "grpc" で `GrpcSearchClient` stub あり） | — |
 
 ---
 

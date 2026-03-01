@@ -151,6 +151,20 @@ fn to_camel_case(snake: &str) -> String {
     result
 }
 
+/// ファイルパスから TypeScript ルート定義を生成する
+pub fn generate_typescript_routes_from_file(path: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let content = std::fs::read_to_string(path)?;
+    let nav: NavigationYaml = serde_yaml::from_str(&content)?;
+    Ok(generate_typescript_routes(&nav))
+}
+
+/// ファイルパスから Dart ルート定義を生成する
+pub fn generate_dart_routes_from_file(path: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let content = std::fs::read_to_string(path)?;
+    let nav: NavigationYaml = serde_yaml::from_str(&content)?;
+    Ok(generate_dart_routes(&nav))
+}
+
 // ============================================================================
 // テスト
 // ============================================================================

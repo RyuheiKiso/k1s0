@@ -29,9 +29,13 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | config CI         | `config-ci.yaml`  | PR 時 (`regions/system/server/rust/config/**`) | config-server 専用 CI |
 | saga CI           | `saga-ci.yaml`    | PR 時 (`regions/system/server/rust/saga/**`) | saga-server 専用 CI |
 | dlq-manager CI    | `dlq-manager-ci.yaml` | PR 時 (`regions/system/server/rust/dlq-manager/**`) | dlq-manager 専用 lint → test → build |
+| bff-proxy CI      | `bff-proxy-ci.yaml` | PR 時 (`regions/system/server/go/bff-proxy/**`) | bff-proxy 専用 lint → test → build（Go） |
+| Integration Test  | `integration-test.yaml` | PR 時 (`regions/system/server/rust/**`) | postgres:17 + kafka:7.7.1 起動、4サービス統合テスト |
 | auth Deploy       | `auth-deploy.yaml` | main マージ時 (`regions/system/server/rust/auth/**`) | auth-server 専用デプロイ |
 | config Deploy     | `config-deploy.yaml` | main マージ時 (`regions/system/server/rust/config/**`) | config-server 専用デプロイ |
+| saga Deploy       | `saga-deploy.yaml` | main マージ時 (`regions/system/server/rust/saga/**`) | saga-server 専用デプロイ（dev→staging→prod）|
 | dlq-manager Deploy | `dlq-manager-deploy.yaml` | main マージ時 (`regions/system/server/rust/dlq-manager/**`) | dlq-manager 専用デプロイ（dev→staging→prod）|
+| bff-proxy Deploy  | `bff-proxy-deploy.yaml` | main マージ時 (`regions/system/server/go/bff-proxy/**`) | bff-proxy 専用デプロイ（dev→staging→prod）|
 
 ### CI ワークフロー（ci.yaml）
 
@@ -617,6 +621,72 @@ OpenAPI 定義（`api/openapi/`）の変更時に、バリデーションとク�
 - **SDK 自動生成**: `openapi-generator-cli` による TypeScript / Dart クライアント SDK の生成
 
 詳細な CI ジョブ定義は [API設計.md](../../architecture/api/API設計.md) を参照。
+
+### 統合テストワークフロー（integration-test.yaml）
+
+PR 時に `regions/system/server/rust/**` 配下の変更を検知し、実インフラ（PostgreSQL・Kafka）を使った統合テストを実行する。
+
+- **サービスコンテナ**: `postgres:17`（ヘルスチェック付き）+ `confluentinc/cp-kafka:7.7.1`（KRaft モード）
+- **DB 初期化**: `infra/docker/init-db/*.sql` を順次適用
+- **対象サービス**: auth-server / config-server / saga-server / dlq-manager（各サービスで `cargo test --all -- --ignored`）
+- **スキーマ分離**: 各サービスは専用の PostgreSQL スキーマ（auth / config / saga / dlq）を使用
+
+```yaml
+# .github/workflows/integration-test.yaml
+name: Integration Test
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'regions/system/server/rust/**'
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: dev
+          POSTGRES_PASSWORD: dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dev"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      kafka:
+        image: confluentinc/cp-kafka:7.7.1
+        env:
+          KAFKA_NODE_ID: 1
+          KAFKA_PROCESS_ROLES: broker,controller
+          KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+        ports:
+          - 9092:9092
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88
+      - name: Initialize database schemas
+        run: |
+          for sql in infra/docker/init-db/*.sql; do
+            psql -h localhost -U dev -d postgres -f "$sql"
+          done
+      - name: Run integration tests (auth-server)
+        run: cd regions/system/server/rust/auth && cargo test --all -- --ignored
+      - name: Run integration tests (config-server)
+        run: cd regions/system/server/rust/config && cargo test --all -- --ignored
+      - name: Run integration tests (saga-server)
+        run: cd regions/system/server/rust/saga && cargo test --all -- --ignored
+      - name: Run integration tests (dlq-manager)
+        run: cd regions/system/server/rust/dlq-manager && cargo test --all -- --ignored
+```
 
 ### Helm デプロイ連携
 

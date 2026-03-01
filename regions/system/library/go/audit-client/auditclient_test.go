@@ -23,7 +23,7 @@ func newEvent(id, action string) auditclient.AuditEvent {
 }
 
 func TestRecord_And_Flush(t *testing.T) {
-	c := auditclient.NewBufferedClient()
+	c := auditclient.NewBufferedAuditClient()
 	ctx := context.Background()
 
 	err := c.Record(ctx, newEvent("1", "create"))
@@ -39,7 +39,7 @@ func TestRecord_And_Flush(t *testing.T) {
 }
 
 func TestFlush_ClearsBuffer(t *testing.T) {
-	c := auditclient.NewBufferedClient()
+	c := auditclient.NewBufferedAuditClient()
 	ctx := context.Background()
 
 	_ = c.Record(ctx, newEvent("1", "create"))
@@ -51,14 +51,14 @@ func TestFlush_ClearsBuffer(t *testing.T) {
 }
 
 func TestFlush_EmptyBuffer(t *testing.T) {
-	c := auditclient.NewBufferedClient()
+	c := auditclient.NewBufferedAuditClient()
 	events, err := c.Flush(context.Background())
 	require.NoError(t, err)
 	assert.Empty(t, events)
 }
 
 func TestRecord_PreservesFields(t *testing.T) {
-	c := auditclient.NewBufferedClient()
+	c := auditclient.NewBufferedAuditClient()
 	ctx := context.Background()
 	event := auditclient.AuditEvent{
 		ID:           "evt-1",
@@ -67,6 +67,7 @@ func TestRecord_PreservesFields(t *testing.T) {
 		Action:       "delete",
 		ResourceType: "file",
 		ResourceID:   "f-1",
+		Metadata:     map[string]interface{}{"key": "value"},
 		Timestamp:    time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
 	_ = c.Record(ctx, event)

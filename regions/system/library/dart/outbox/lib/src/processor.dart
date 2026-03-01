@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'store.dart';
 import 'message.dart';
-import 'error.dart';
 
+/// アウトボックスメッセージを定期的に処理する。
 class OutboxProcessor {
   final OutboxStore store;
   final OutboxPublisher publisher;
@@ -12,39 +12,31 @@ class OutboxProcessor {
   OutboxProcessor(this.store, this.publisher, {int batchSize = 100})
       : batchSize = batchSize <= 0 ? 100 : batchSize;
 
+  /// 保留中のメッセージを一括処理する。
   Future<int> processBatch() async {
-    final List<OutboxMessage> messages;
-    try {
-      messages = await store.getPendingMessages(batchSize);
-    } on Exception catch (e) {
-      throw OutboxError('GetPendingMessages', cause: e);
-    }
-
+    final messages = await store.fetchPending(batchSize);
     if (messages.isEmpty) return 0;
 
     var processed = 0;
     for (final msg in messages) {
-      await store.updateStatus(msg.id, OutboxStatus.processing);
+      msg.markProcessing();
+      await store.update(msg);
 
       try {
         await publisher.publish(msg);
-        await store.updateStatus(msg.id, OutboxStatus.delivered);
+        msg.markDelivered();
+        await store.update(msg);
         processed++;
-      } on Exception catch (_) {
-        final nextRetry = msg.retryCount + 1;
-        final scheduledAt = nextScheduledAt(nextRetry);
-        await store.updateStatusWithRetry(
-          msg.id,
-          OutboxStatus.failed,
-          nextRetry,
-          scheduledAt,
-        );
+      } on Exception catch (e) {
+        msg.markFailed(e.toString());
+        await store.update(msg);
       }
     }
 
     return processed;
   }
 
+  /// interval 間隔でバッチ処理を継続実行する。stopSignal でキャンセル可能。
   Future<void> run(Duration interval, {Future<void>? stopSignal}) async {
     var stopped = false;
     stopSignal?.then((_) => stopped = true);

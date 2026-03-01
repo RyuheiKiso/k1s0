@@ -50,6 +50,20 @@ void main() {
     });
   });
 
+  group('slack channel', () {
+    test('sends via slack channel', () async {
+      final req = NotificationRequest(
+        id: 'n-slack',
+        channel: NotificationChannel.slack,
+        recipient: '#general',
+        body: 'Slack notification',
+      );
+      final resp = await client.send(req);
+      expect(resp.status, equals('sent'));
+      expect(client.sent.first.channel, equals(NotificationChannel.slack));
+    });
+  });
+
   group('NotificationResponse', () {
     test('stores all fields', () {
       const resp = NotificationResponse(

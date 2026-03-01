@@ -1,50 +1,46 @@
 import 'package:test/test.dart';
 import 'package:k1s0_outbox/outbox.dart';
 
-class StatusUpdate {
-  final String id;
-  final OutboxStatus status;
-  final int? retryCount;
-  final DateTime? scheduledAt;
-
-  StatusUpdate(this.id, this.status, {this.retryCount, this.scheduledAt});
-}
-
 class MockStore implements OutboxStore {
   List<OutboxMessage> messages = [];
   List<OutboxMessage> savedMessages = [];
-  List<StatusUpdate> statusUpdates = [];
-  Exception? getError;
+  List<OutboxMessage> updatedMessages = [];
+  int deletedCount = 0;
+  Exception? fetchError;
   Exception? updateError;
 
   @override
-  Future<void> saveMessage(OutboxMessage msg) async {
+  Future<void> save(OutboxMessage msg) async {
     savedMessages.add(msg);
   }
 
   @override
-  Future<List<OutboxMessage>> getPendingMessages(int limit) async {
-    if (getError != null) throw getError!;
+  Future<List<OutboxMessage>> fetchPending(int limit) async {
+    if (fetchError != null) throw fetchError!;
     return messages.take(limit).toList();
   }
 
   @override
-  Future<void> updateStatus(String id, OutboxStatus status) async {
+  Future<void> update(OutboxMessage msg) async {
     if (updateError != null) throw updateError!;
-    statusUpdates.add(StatusUpdate(id, status));
+    // Store a snapshot of current state
+    updatedMessages.add(OutboxMessage(
+      id: msg.id,
+      topic: msg.topic,
+      partitionKey: msg.partitionKey,
+      payload: msg.payload,
+      status: msg.status,
+      retryCount: msg.retryCount,
+      maxRetries: msg.maxRetries,
+      lastError: msg.lastError,
+      createdAt: msg.createdAt,
+      processAfter: msg.processAfter,
+    ));
   }
 
   @override
-  Future<void> updateStatusWithRetry(
-    String id,
-    OutboxStatus status,
-    int retryCount,
-    DateTime scheduledAt,
-  ) async {
-    statusUpdates.add(
-      StatusUpdate(id, status,
-          retryCount: retryCount, scheduledAt: scheduledAt),
-    );
+  Future<int> deleteDelivered(int olderThanDays) async {
+    return deletedCount;
   }
 }
 
@@ -62,104 +58,130 @@ class MockPublisher implements OutboxPublisher {
 OutboxMessage _createTestMessage({
   String id = 'test-id',
   String topic = 'test-topic',
-  String eventType = 'test.event',
+  String partitionKey = 'test-key',
   String payload = '{"key":"value"}',
   OutboxStatus status = OutboxStatus.pending,
   int retryCount = 0,
-  String correlationId = 'corr-123',
+  int maxRetries = 3,
 }) {
   final now = DateTime.now().toUtc();
   return OutboxMessage(
     id: id,
     topic: topic,
-    eventType: eventType,
+    partitionKey: partitionKey,
     payload: payload,
     status: status,
     retryCount: retryCount,
-    scheduledAt: now,
+    maxRetries: maxRetries,
+    lastError: null,
     createdAt: now,
-    updatedAt: now,
-    correlationId: correlationId,
+    processAfter: now,
   );
 }
 
 void main() {
   group('createOutboxMessage', () {
     test('creates message with correct fields', () {
-      final msg = createOutboxMessage(
-          'test-topic', 'user.created', '{"id":"1"}', 'corr-123');
+      final msg = createOutboxMessage('test-topic', 'test-key', '{"id":"1"}');
       expect(msg.topic, equals('test-topic'));
-      expect(msg.eventType, equals('user.created'));
+      expect(msg.partitionKey, equals('test-key'));
       expect(msg.payload, equals('{"id":"1"}'));
-      expect(msg.correlationId, equals('corr-123'));
       expect(msg.status, equals(OutboxStatus.pending));
       expect(msg.retryCount, equals(0));
+      expect(msg.maxRetries, equals(3));
+      expect(msg.lastError, isNull);
       expect(msg.createdAt.isUtc, isTrue);
-      expect(msg.updatedAt.isUtc, isTrue);
-      expect(msg.scheduledAt.isUtc, isTrue);
+      expect(msg.processAfter.isUtc, isTrue);
     });
 
     test('generates unique IDs', () {
-      final msg1 = createOutboxMessage('t', 'e', 'p', 'c');
-      final msg2 = createOutboxMessage('t', 'e', 'p', 'c');
+      final msg1 = createOutboxMessage('t', 'k', 'p');
+      final msg2 = createOutboxMessage('t', 'k', 'p');
       expect(msg1.id, isNot(equals(msg2.id)));
     });
   });
 
-  group('nextScheduledAt', () {
-    test('retryCount 0 returns ~1 minute delay', () {
-      final before = DateTime.now().toUtc();
-      final scheduled = nextScheduledAt(0);
-      final expectedMin = before.add(const Duration(minutes: 1));
-      expect(scheduled.isAfter(expectedMin) || scheduled == expectedMin,
-          isTrue);
+  group('markProcessing', () {
+    test('sets status to processing', () {
+      final msg = createOutboxMessage('topic', 'key', '{}');
+      msg.markProcessing();
+      expect(msg.status, equals(OutboxStatus.processing));
+    });
+  });
+
+  group('markDelivered', () {
+    test('sets status to delivered', () {
+      final msg = createOutboxMessage('topic', 'key', '{}');
+      msg.markProcessing();
+      msg.markDelivered();
+      expect(msg.status, equals(OutboxStatus.delivered));
+      expect(msg.isProcessable, isFalse);
+    });
+  });
+
+  group('markFailed', () {
+    test('increments retryCount and sets failed status', () {
+      final msg = createOutboxMessage('topic', 'key', '{}');
+      msg.markFailed('kafka error');
+      expect(msg.retryCount, equals(1));
+      expect(msg.status, equals(OutboxStatus.failed));
+      expect(msg.lastError, equals('kafka error'));
     });
 
-    test('retryCount 1 returns ~2 minutes delay', () {
-      final before = DateTime.now().toUtc();
-      final scheduled = nextScheduledAt(1);
-      final expectedMin = before.add(const Duration(minutes: 2));
-      expect(scheduled.isAfter(expectedMin) || scheduled == expectedMin,
-          isTrue);
+    test('sets deadLetter on max retries', () {
+      final msg = createOutboxMessage('topic', 'key', '{}');
+      msg.maxRetries = 3;
+      msg.markFailed('error 1');
+      msg.markFailed('error 2');
+      msg.markFailed('error 3');
+      expect(msg.status, equals(OutboxStatus.deadLetter));
+      expect(msg.retryCount, equals(3));
     });
 
-    test('retryCount 2 returns ~4 minutes delay', () {
+    test('uses exponential backoff in seconds', () {
+      final msg = createOutboxMessage('topic', 'key', '{}');
       final before = DateTime.now().toUtc();
-      final scheduled = nextScheduledAt(2);
-      final expectedMin = before.add(const Duration(minutes: 4));
-      expect(scheduled.isAfter(expectedMin) || scheduled == expectedMin,
-          isTrue);
+      msg.markFailed('error');
+      // retryCount is now 1, so delay = 2^1 = 2 seconds
+      final expectedMin = before.add(const Duration(seconds: 2));
+      expect(
+        msg.processAfter.isAfter(expectedMin) ||
+            msg.processAfter.isAtSameMomentAs(expectedMin) ||
+            msg.processAfter
+                .difference(expectedMin)
+                .inMilliseconds
+                .abs() < 100,
+        isTrue,
+      );
+    });
+  });
+
+  group('isProcessable', () {
+    test('returns true for pending with processAfter in past', () {
+      final msg = createOutboxMessage('topic', 'key', '{}');
+      expect(msg.isProcessable, isTrue);
     });
 
-    test('retryCount 3 returns ~8 minutes delay', () {
-      final before = DateTime.now().toUtc();
-      final scheduled = nextScheduledAt(3);
-      final expectedMin = before.add(const Duration(minutes: 8));
-      expect(scheduled.isAfter(expectedMin) || scheduled == expectedMin,
-          isTrue);
+    test('returns true for failed with processAfter in past', () {
+      final msg = _createTestMessage(status: OutboxStatus.failed);
+      msg.processAfter = DateTime.now().toUtc().subtract(const Duration(seconds: 1));
+      expect(msg.isProcessable, isTrue);
     });
 
-    test('retryCount 6 caps at 60 minutes', () {
-      final before = DateTime.now().toUtc();
-      final scheduled = nextScheduledAt(6);
-      final expectedMin = before.add(const Duration(minutes: 60));
-      // 2^6 = 64, but capped at 60
-      expect(scheduled.isAfter(expectedMin) || scheduled == expectedMin,
-          isTrue);
-      final expectedMax =
-          before.add(const Duration(minutes: 61));
-      expect(scheduled.isBefore(expectedMax), isTrue);
+    test('returns false for delivered', () {
+      final msg = _createTestMessage(status: OutboxStatus.delivered);
+      expect(msg.isProcessable, isFalse);
     });
 
-    test('retryCount 7 caps at 60 minutes', () {
-      final before = DateTime.now().toUtc();
-      final scheduled = nextScheduledAt(7);
-      final expectedMin = before.add(const Duration(minutes: 60));
-      expect(scheduled.isAfter(expectedMin) || scheduled == expectedMin,
-          isTrue);
-      final expectedMax =
-          before.add(const Duration(minutes: 61));
-      expect(scheduled.isBefore(expectedMax), isTrue);
+    test('returns false for deadLetter', () {
+      final msg = _createTestMessage(status: OutboxStatus.deadLetter);
+      expect(msg.isProcessable, isFalse);
+    });
+
+    test('returns false when processAfter is in the future', () {
+      final msg = createOutboxMessage('topic', 'key', '{}');
+      msg.processAfter = DateTime.now().toUtc().add(const Duration(minutes: 1));
+      expect(msg.isProcessable, isFalse);
     });
   });
 
@@ -193,21 +215,22 @@ void main() {
           isTrue);
     });
 
+    test('processing -> deadLetter is valid', () {
+      expect(
+          canTransitionTo(OutboxStatus.processing, OutboxStatus.deadLetter),
+          isTrue);
+    });
+
     test('processing -> pending is invalid', () {
       expect(
           canTransitionTo(OutboxStatus.processing, OutboxStatus.pending),
           isFalse);
     });
 
-    test('failed -> pending is valid', () {
-      expect(canTransitionTo(OutboxStatus.failed, OutboxStatus.pending),
-          isTrue);
-    });
-
-    test('failed -> processing is invalid', () {
+    test('failed -> processing is valid', () {
       expect(
           canTransitionTo(OutboxStatus.failed, OutboxStatus.processing),
-          isFalse);
+          isTrue);
     });
 
     test('failed -> delivered is invalid', () {
@@ -233,6 +256,12 @@ void main() {
           canTransitionTo(OutboxStatus.delivered, OutboxStatus.failed),
           isFalse);
     });
+
+    test('deadLetter -> pending is invalid', () {
+      expect(
+          canTransitionTo(OutboxStatus.deadLetter, OutboxStatus.pending),
+          isFalse);
+    });
   });
 
   group('OutboxProcessor', () {
@@ -256,15 +285,15 @@ void main() {
       expect(publisher.published, hasLength(2));
 
       // Verify status updates: processing, delivered for each message
-      expect(store.statusUpdates, hasLength(4));
-      expect(store.statusUpdates[0].id, equals('msg-1'));
-      expect(store.statusUpdates[0].status, equals(OutboxStatus.processing));
-      expect(store.statusUpdates[1].id, equals('msg-1'));
-      expect(store.statusUpdates[1].status, equals(OutboxStatus.delivered));
-      expect(store.statusUpdates[2].id, equals('msg-2'));
-      expect(store.statusUpdates[2].status, equals(OutboxStatus.processing));
-      expect(store.statusUpdates[3].id, equals('msg-2'));
-      expect(store.statusUpdates[3].status, equals(OutboxStatus.delivered));
+      expect(store.updatedMessages, hasLength(4));
+      expect(store.updatedMessages[0].id, equals('msg-1'));
+      expect(store.updatedMessages[0].status, equals(OutboxStatus.processing));
+      expect(store.updatedMessages[1].id, equals('msg-1'));
+      expect(store.updatedMessages[1].status, equals(OutboxStatus.delivered));
+      expect(store.updatedMessages[2].id, equals('msg-2'));
+      expect(store.updatedMessages[2].status, equals(OutboxStatus.processing));
+      expect(store.updatedMessages[3].id, equals('msg-2'));
+      expect(store.updatedMessages[3].status, equals(OutboxStatus.delivered));
     });
 
     test('processBatch marks failed on publish error', () async {
@@ -276,21 +305,35 @@ void main() {
       final count = await processor.processBatch();
 
       expect(count, equals(0));
-      // processing, then failed via updateStatusWithRetry
-      expect(store.statusUpdates, hasLength(2));
-      expect(store.statusUpdates[0].status, equals(OutboxStatus.processing));
-      expect(store.statusUpdates[1].status, equals(OutboxStatus.failed));
-      expect(store.statusUpdates[1].retryCount, equals(1));
+      // processing, then failed
+      expect(store.updatedMessages, hasLength(2));
+      expect(store.updatedMessages[0].status, equals(OutboxStatus.processing));
+      expect(store.updatedMessages[1].status, equals(OutboxStatus.failed));
+      expect(store.updatedMessages[1].retryCount, equals(1));
+      expect(store.updatedMessages[1].lastError, isNotNull);
     });
 
-    test('processBatch throws on store getPendingMessages error', () async {
-      store.getError = Exception('db connection failed');
+    test('processBatch marks deadLetter after max retries', () async {
+      final msg = _createTestMessage(id: 'msg-dead', maxRetries: 1);
+      store.messages = [msg];
+      publisher.error = Exception('always fail');
+
+      final processor = OutboxProcessor(store, publisher);
+      final count = await processor.processBatch();
+
+      expect(count, equals(0));
+      expect(store.updatedMessages, hasLength(2));
+      expect(store.updatedMessages[1].status, equals(OutboxStatus.deadLetter));
+      expect(store.updatedMessages[1].retryCount, equals(1));
+    });
+
+    test('processBatch throws on store fetchPending error', () async {
+      store.fetchError = Exception('db connection failed');
 
       final processor = OutboxProcessor(store, publisher);
       expect(
         () => processor.processBatch(),
-        throwsA(isA<OutboxError>()
-            .having((e) => e.op, 'op', equals('GetPendingMessages'))),
+        throwsA(isA<Exception>()),
       );
     });
 
@@ -328,17 +371,49 @@ void main() {
     });
   });
 
+  group('OutboxStore interface', () {
+    test('save stores message', () async {
+      final store = MockStore();
+      final msg = createOutboxMessage('topic', 'key', '{}');
+      await store.save(msg);
+      expect(store.savedMessages, hasLength(1));
+    });
+
+    test('deleteDelivered returns count', () async {
+      final store = MockStore();
+      store.deletedCount = 5;
+      final count = await store.deleteDelivered(30);
+      expect(count, equals(5));
+    });
+  });
+
   group('OutboxError', () {
-    test('toString includes op', () {
-      const err = OutboxError('ProcessBatch');
-      expect(err.toString(), contains('ProcessBatch'));
+    test('toString includes code', () {
+      const err = OutboxError(OutboxErrorCode.storeError);
+      expect(err.toString(), contains('storeError'));
+    });
+
+    test('toString includes message', () {
+      const err =
+          OutboxError(OutboxErrorCode.publishError, message: 'kafka down');
+      expect(err.toString(), contains('publishError'));
+      expect(err.toString(), contains('kafka down'));
     });
 
     test('toString includes cause', () {
       final cause = Exception('db error');
-      final err = OutboxError('ProcessBatch', cause: cause);
-      expect(err.toString(), contains('ProcessBatch'));
+      final err = OutboxError(OutboxErrorCode.storeError,
+          message: 'connection failed', cause: cause);
+      expect(err.toString(), contains('storeError'));
+      expect(err.toString(), contains('connection failed'));
       expect(err.toString(), contains('db error'));
+    });
+
+    test('supports all error codes', () {
+      for (final code in OutboxErrorCode.values) {
+        final err = OutboxError(code, message: 'test');
+        expect(err.code, equals(code));
+      }
     });
   });
 }

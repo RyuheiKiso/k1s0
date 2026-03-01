@@ -2,9 +2,13 @@ use std::path::Path;
 
 use k1s0_core::commands::build::{self as build_cmd, BuildConfig};
 use k1s0_core::commands::deploy::{self as deploy_cmd, DeployConfig};
+use k1s0_core::commands::generate::config_types as config_types_cmd;
+use k1s0_core::commands::generate::navigation as nav_gen_cmd;
 use k1s0_core::commands::generate::{self as gen_cmd, GenerateConfig};
 use k1s0_core::commands::init::{self as init_cmd, InitConfig};
 use k1s0_core::commands::test_cmd::{self as test_cmd, TestConfig};
+use k1s0_core::commands::validate::config_schema as config_schema_validate;
+use k1s0_core::commands::validate::navigation as nav_validate;
 use k1s0_core::config::CliConfig;
 use k1s0_core::progress::ProgressEvent;
 use tauri::ipc::Channel;
@@ -76,6 +80,42 @@ pub fn scan_testable_targets(base_dir: String) -> Vec<String> {
 #[allow(clippy::needless_pass_by_value)]
 pub fn validate_name(name: String) -> Result<(), String> {
     k1s0_core::validate_name(&name)
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_validate_config_schema(path: String) -> Result<usize, String> {
+    config_schema_validate::validate_config_schema(&path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_validate_navigation(path: String) -> Result<usize, String> {
+    nav_validate::validate_navigation(&path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_generate_config_types(schema_path: String, target: String) -> Result<String, String> {
+    match target.as_str() {
+        "typescript" => config_types_cmd::generate_typescript_types_from_file(&schema_path)
+            .map_err(|e| e.to_string()),
+        "dart" => config_types_cmd::generate_dart_types_from_file(&schema_path)
+            .map_err(|e| e.to_string()),
+        _ => Err(format!("Unknown target: {target}")),
+    }
+}
+
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn execute_generate_navigation_types(nav_path: String, target: String) -> Result<String, String> {
+    match target.as_str() {
+        "typescript" => nav_gen_cmd::generate_typescript_routes_from_file(&nav_path)
+            .map_err(|e| e.to_string()),
+        "dart" => nav_gen_cmd::generate_dart_routes_from_file(&nav_path)
+            .map_err(|e| e.to_string()),
+        _ => Err(format!("Unknown target: {target}")),
+    }
 }
 
 #[tauri::command]

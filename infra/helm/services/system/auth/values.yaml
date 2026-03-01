@@ -99,7 +99,7 @@ labels:
   tier: system
 
 kafka:
-  enabled: false
+  enabled: true
   brokers: []
 
 redis:

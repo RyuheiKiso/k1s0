@@ -11,7 +11,7 @@ path "database/creds/system-*" {
   capabilities = ["read"]
 }
 
-# PKI - system tier certificate issuance
-path "pki/issue/system" {
+# PKI - system tier certificate issuance (Intermediate CA)
+path "pki_int/issue/system" {
   capabilities = ["create", "update"]
 }

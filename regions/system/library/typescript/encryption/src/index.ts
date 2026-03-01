@@ -1,4 +1,12 @@
-import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  randomBytes,
+  generateKeyPairSync,
+  publicEncrypt,
+  privateDecrypt,
+  constants,
+} from 'crypto';
 import argon2 from 'argon2';
 
 export function generateKey(): Buffer {
@@ -36,4 +44,27 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return argon2.verify(hash, password);
+}
+
+export function generateRsaKeyPair(): { publicKey: string; privateKey: string } {
+  const { publicKey, privateKey } = generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  });
+  return { publicKey, privateKey };
+}
+
+export function rsaEncrypt(publicKeyPem: string, plaintext: Buffer): Buffer {
+  return publicEncrypt(
+    { key: publicKeyPem, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' },
+    plaintext,
+  );
+}
+
+export function rsaDecrypt(privateKeyPem: string, ciphertext: Buffer): Buffer {
+  return privateDecrypt(
+    { key: privateKeyPem, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' },
+    ciphertext,
+  );
 }

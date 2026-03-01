@@ -142,3 +142,139 @@ export class InMemorySearchClient implements SearchClient {
     return this.indexes.get(index)?.length ?? 0;
   }
 }
+
+// HTTP レスポンスのボディ型
+interface IndexResultResponse {
+  id: string;
+  version: number;
+}
+
+interface BulkResultResponse {
+  successCount: number;
+  failedCount: number;
+  failures: BulkFailure[];
+}
+
+interface SearchResultResponse<T> {
+  hits: T[];
+  total: number;
+  facets: Record<string, FacetBucket[]>;
+  tookMs: number;
+}
+
+/**
+ * GrpcSearchClient は search-server への HTTP クライアント実装。
+ * HTTP/JSON API 経由で search-server と通信する。
+ */
+export class GrpcSearchClient implements SearchClient {
+  private readonly baseUrl: string;
+
+  constructor(serverUrl: string) {
+    const url = serverUrl.startsWith('http://') || serverUrl.startsWith('https://')
+      ? serverUrl
+      : `http://${serverUrl}`;
+    this.baseUrl = url.replace(/\/$/, '');
+  }
+
+  async createIndex(name: string, mapping: IndexMapping): Promise<void> {
+    const resp = await fetch(`${this.baseUrl}/api/v1/indexes/${encodeURIComponent(name)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, mapping }),
+    });
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw this.parseError('create_index', resp.status, text);
+    }
+  }
+
+  async indexDocument(index: string, doc: IndexDocument): Promise<IndexResult> {
+    const resp = await fetch(
+      `${this.baseUrl}/api/v1/indexes/${encodeURIComponent(index)}/documents`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(doc),
+      },
+    );
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw this.parseError('index_document', resp.status, text);
+    }
+    const data = (await resp.json()) as IndexResultResponse;
+    return { id: data.id, version: data.version };
+  }
+
+  async bulkIndex(index: string, docs: IndexDocument[]): Promise<BulkResult> {
+    const resp = await fetch(
+      `${this.baseUrl}/api/v1/indexes/${encodeURIComponent(index)}/documents/_bulk`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documents: docs }),
+      },
+    );
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw this.parseError('bulk_index', resp.status, text);
+    }
+    const data = (await resp.json()) as BulkResultResponse;
+    return {
+      successCount: data.successCount,
+      failedCount: data.failedCount,
+      failures: data.failures ?? [],
+    };
+  }
+
+  async search<T = Record<string, unknown>>(
+    index: string,
+    query: SearchQuery,
+  ): Promise<SearchResult<T>> {
+    const resp = await fetch(
+      `${this.baseUrl}/api/v1/indexes/${encodeURIComponent(index)}/_search`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(query),
+      },
+    );
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw this.parseError('search', resp.status, text);
+    }
+    const data = (await resp.json()) as SearchResultResponse<T>;
+    return {
+      hits: data.hits,
+      total: data.total,
+      facets: data.facets ?? {},
+      tookMs: data.tookMs,
+    };
+  }
+
+  async deleteDocument(index: string, id: string): Promise<void> {
+    const resp = await fetch(
+      `${this.baseUrl}/api/v1/indexes/${encodeURIComponent(index)}/documents/${encodeURIComponent(id)}`,
+      { method: 'DELETE' },
+    );
+    if (!resp.ok && resp.status !== 204) {
+      const text = await resp.text();
+      throw this.parseError('delete_document', resp.status, text);
+    }
+  }
+
+  /** gRPC チャネル相当のリソースを解放する（HTTP 実装では no-op）。 */
+  async close(): Promise<void> {}
+
+  private parseError(op: string, status: number, body: string): SearchError {
+    if (status === 404) {
+      return new SearchError(`${op}: index not found: ${body}`, 'INDEX_NOT_FOUND');
+    }
+    if (status === 400) {
+      return new SearchError(`${op}: invalid query: ${body}`, 'INVALID_QUERY');
+    }
+    if (status === 408 || status === 504) {
+      return new SearchError(`${op}: timeout`, 'TIMEOUT');
+    }
+    return new SearchError(`${op}: server error (status=${status}): ${body}`, 'SERVER_ERROR');
+  }
+}

@@ -2,7 +2,7 @@
 
 ## 概要
 
-system-ratelimit-server（ポート 8080）へのレート制限クライアントライブラリ。レート制限の事前確認（check before execute パターン）・使用量消費の記録・制限超過時の待機時間返却・テナントや API キーごとの制限照会を統一インターフェースで提供する。全 Tier のサービスから共通利用し、API ゲートウェイ・バックエンドサービス両方で一貫したレート制限を実現する。
+system-ratelimit-server（ポート 8080）へのレート制限クライアントライブラリ。レート制限の事前確認（check before execute パターン）・使用量消費の記録・制限超過時の待機時間返却・テナントや API キーごとの制限照会を統一インターフェースで提供する。全 Tier のサービスから共通利用し、API ゲートウェイ・バックエンドサービス両方で一貫したレート制限を実現する。サーバーとの通信は HTTP REST プロトコルを使用する。
 
 **配置先**: `regions/system/library/rust/ratelimit-client/`
 
@@ -11,11 +11,24 @@ system-ratelimit-server（ポート 8080）へのレート制限クライアン�
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
 | `RateLimitClient` | トレイト | レート制限操作インターフェース |
-| `GrpcRateLimitClient` | 構造体 | gRPC 経由の ratelimit-server 接続実装 |
+| `GrpcRateLimitClient` | 構造体 | HTTP REST 経由の ratelimit-server 接続実装（名称は互換性のため維持。将来 gRPC 移行予定）|
+| `InMemoryRateLimitClient` | 構造体 | テスト用インメモリ実装 |
 | `RateLimitStatus` | 構造体 | 許可フラグ・残余カウント・リセット時刻・再試行待機秒数 |
 | `RateLimitResult` | 構造体 | 消費後の残余カウント・リセット時刻 |
-| `RateLimitPolicy` | 構造体 | キーに紐づく制限設定（上限・ウィンドウ・アルゴリズム）|
-| `RateLimitError` | enum | `LimitExceeded`・`KeyNotFound`・`ServerError`・`Timeout` |
+| `RateLimitPolicy` | 構造体 | キーに紐づく制限設定（キー・上限・ウィンドウ・アルゴリズム）|
+| `RateLimitError` | enum | `LimitExceeded`・`KeyNotFound`・`ServerError`・`Timeout`（言語別表記は後述）|
+
+### エラーコード言語別対応表
+
+| 概念 | Rust (enum variant) | Go (Code string) | TypeScript (string literal) | Dart (code string) |
+|------|---------------------|------------------|-----------------------------|--------------------|
+| 制限超過 | `LimitExceeded` | `"LIMIT_EXCEEDED"` | `'LIMIT_EXCEEDED'` | `'LIMIT_EXCEEDED'` |
+| キー未検出 | `KeyNotFound` | `"KEY_NOT_FOUND"` | `'KEY_NOT_FOUND'` | `'KEY_NOT_FOUND'` |
+| サーバーエラー | `ServerError` | `"SERVER_ERROR"` | `'SERVER_ERROR'` | `'SERVER_ERROR'` |
+| タイムアウト | `Timeout` | `"TIMEOUT"` | `'TIMEOUT'` | `'TIMEOUT'` |
+| 不明 | — | — | `'UNKNOWN'` | — |
+
+> **注記**: Rust は `thiserror` による enum variant（PascalCase）。Go は struct の `Code` フィールドに文字列定数（SCREAMING\_SNAKE\_CASE）。TypeScript/Dart は string literal union（SCREAMING\_SNAKE\_CASE）。
 
 ## Rust 実装
 
@@ -28,7 +41,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-grpc = ["tonic"]
+grpc = ["reqwest"]
 
 [dependencies]
 async-trait = "0.1"
@@ -37,7 +50,7 @@ serde_json = "1"
 thiserror = "2"
 tracing = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
-tonic = { version = "0.12", optional = true }
+reqwest = { version = "0.12", features = ["json"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -53,10 +66,52 @@ ratelimit-client/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
 │   ├── client.rs       # RateLimitClient トレイト
-│   ├── grpc.rs         # GrpcRateLimitClient
+│   ├── grpc.rs         # GrpcRateLimitClient（HTTP REST 実装）
+│   ├── in_memory.rs    # InMemoryRateLimitClient（テスト用インメモリ実装）
 │   ├── types.rs        # RateLimitStatus・RateLimitResult・RateLimitPolicy
 │   └── error.rs        # RateLimitError
 └── Cargo.toml
+```
+
+**主要型定義**:
+
+```rust
+pub struct RateLimitPolicy {
+    pub key: String,
+    pub limit: u32,
+    pub window_secs: u64,
+    pub algorithm: String,
+}
+
+pub struct RateLimitStatus {
+    pub allowed: bool,
+    pub remaining: u32,
+    pub reset_at: DateTime<Utc>,
+    pub retry_after_secs: Option<u64>,
+}
+
+pub struct RateLimitResult {
+    pub remaining: u32,
+    pub reset_at: DateTime<Utc>,
+}
+
+> **注記（Rust実装）**: `GrpcRateLimitClient` は `feature=grpc` フラグ付きで定義されており、reqwest による HTTP REST 実装となっている（gRPC プロトコルではない）。
+
+pub struct InMemoryRateLimitClient { /* ... */ }
+
+impl InMemoryRateLimitClient {
+    pub fn new() -> Self;
+    pub async fn set_policy(&self, key: impl Into<String>, policy: RateLimitPolicy);
+    pub async fn used_count(&self, key: &str) -> u32;
+}
+
+#[cfg(feature = "grpc")]
+pub struct GrpcRateLimitClient { /* ... */ }
+
+#[cfg(feature = "grpc")]
+impl GrpcRateLimitClient {
+    pub async fn new(server_url: impl Into<String>) -> Result<Self, RateLimitError>;
+}
 ```
 
 **使用例**:
@@ -94,7 +149,7 @@ tracing::info!(
 
 **配置先**: `regions/system/library/go/ratelimit-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: `google.golang.org/grpc v1.70`, `github.com/stretchr/testify v1.10.0`
+**依存関係**: `github.com/stretchr/testify v1.11.1`
 
 **主要インターフェース**:
 
@@ -124,15 +179,52 @@ type RateLimitPolicy struct {
     Algorithm  string
 }
 
+type InMemoryClient struct{ /* ... */ }
+
+func NewInMemoryClient() *InMemoryClient
+func (c *InMemoryClient) SetPolicy(key string, policy RateLimitPolicy)
+func (c *InMemoryClient) Check(ctx context.Context, key string, cost uint32) (RateLimitStatus, error)
+func (c *InMemoryClient) Consume(ctx context.Context, key string, cost uint32) (RateLimitResult, error)
+func (c *InMemoryClient) GetLimit(ctx context.Context, key string) (RateLimitPolicy, error)
+func (c *InMemoryClient) UsedCount(key string) uint32
+
+// 注記: 名称はGrpcだが現状はHTTP REST実装。将来gRPCに移行予定。
+// Go の全メソッドは第1引数に ctx context.Context を受け取る。
 type GrpcRateLimitClient struct{ /* ... */ }
 
 func NewGrpcRateLimitClient(addr string) (*GrpcRateLimitClient, error)
+// NewGrpcRateLimitClientWithHTTPClient はテスト・モック用コンストラクタ。カスタム http.Client を注入できる（Goのみ）。
+func NewGrpcRateLimitClientWithHTTPClient(addr string, httpClient *http.Client) (*GrpcRateLimitClient, error)
 func (c *GrpcRateLimitClient) Check(ctx context.Context, key string, cost uint32) (RateLimitStatus, error)
 func (c *GrpcRateLimitClient) Consume(ctx context.Context, key string, cost uint32) (RateLimitResult, error)
 func (c *GrpcRateLimitClient) GetLimit(ctx context.Context, key string) (RateLimitPolicy, error)
 ```
 
-**使用例**:
+**使用例（InMemoryClient）**:
+
+```go
+client := NewInMemoryClient()
+client.SetPolicy("tenant:TENANT-001", RateLimitPolicy{
+    Key:        "tenant:TENANT-001",
+    Limit:      100,
+    WindowSecs: 60,
+    Algorithm:  "token_bucket",
+})
+
+key := "tenant:TENANT-001:api:/v1/orders"
+status, err := client.Check(ctx, key, 1)
+if err != nil {
+    return err
+}
+if !status.Allowed {
+    return fmt.Errorf("rate limit exceeded, retry after %d seconds", *status.RetryAfterSecs)
+}
+
+used := client.UsedCount(key)
+fmt.Printf("使用済みカウント: %d\n", used)
+```
+
+**使用例（GrpcRateLimitClient）**:
 
 ```go
 client, err := NewGrpcRateLimitClient("ratelimit-server:8080")
@@ -182,18 +274,29 @@ export interface RateLimitPolicy {
   algorithm: 'token_bucket' | 'sliding_window' | 'fixed_window';
 }
 
+export class InMemoryRateLimitClient implements RateLimitClient {
+  setPolicy(key: string, policy: RateLimitPolicy): void;
+  check(key: string, cost: number): Promise<RateLimitStatus>;
+  consume(key: string, cost: number): Promise<RateLimitResult>;
+  getLimit(key: string): Promise<RateLimitPolicy>;
+  getUsedCount(key: string): number;
+}
+
+> **注記**: `GrpcRateLimitClient` は現状HTTP REST実装。将来gRPCに移行予定。
+
 export class GrpcRateLimitClient implements RateLimitClient {
   constructor(serverUrl: string);
   check(key: string, cost: number): Promise<RateLimitStatus>;
   consume(key: string, cost: number): Promise<RateLimitResult>;
   getLimit(key: string): Promise<RateLimitPolicy>;
+  // close() は TypeScript/Dart のみ必要（非同期リソース明示解放）。Go/Rust は GC/Drop で自動解放のため不要。
   close(): Promise<void>;
 }
 
 export class RateLimitError extends Error {
   constructor(
     message: string,
-    public readonly code: 'LIMIT_EXCEEDED' | 'KEY_NOT_FOUND' | 'SERVER_ERROR' | 'TIMEOUT',
+    public readonly code: 'LIMIT_EXCEEDED' | 'KEY_NOT_FOUND' | 'SERVER_ERROR' | 'TIMEOUT' | 'UNKNOWN',
     public readonly retryAfterSecs?: number
   );
 }
@@ -209,11 +312,98 @@ export class RateLimitError extends Error {
 
 ```yaml
 dependencies:
-  grpc: ^4.0.0
-  protobuf: ^3.1.0
+  http: ^1.2.0
 ```
 
-**使用例**:
+**主要 API**:
+
+```dart
+// 抽象クラス（インターフェース）
+abstract class RateLimitClient {
+  Future<RateLimitStatus> check(String key, int cost);
+  Future<RateLimitResult> consume(String key, int cost);
+  Future<RateLimitPolicy> getLimit(String key);
+}
+
+// インメモリ実装
+class InMemoryRateLimitClient implements RateLimitClient {
+  void setPolicy(String key, RateLimitPolicy policy);
+  Future<RateLimitStatus> check(String key, int cost);
+  Future<RateLimitResult> consume(String key, int cost);
+  Future<RateLimitPolicy> getLimit(String key);
+  int getUsedCount(String key);
+}
+
+// gRPC 接続実装
+> **注記**: `GrpcRateLimitClient` は現状HTTP REST実装。将来gRPCに移行予定。
+
+class GrpcRateLimitClient implements RateLimitClient {
+  GrpcRateLimitClient(String serverAddress, {http.Client? httpClient});
+  Future<RateLimitStatus> check(String key, int cost);
+  Future<RateLimitResult> consume(String key, int cost);
+  Future<RateLimitPolicy> getLimit(String key);
+  Future<void> close();
+}
+
+// 型定義
+class RateLimitStatus {
+  final bool allowed;
+  final int remaining;
+  final DateTime resetAt;
+  final int? retryAfterSecs;
+}
+
+class RateLimitResult {
+  final int remaining;
+  final DateTime resetAt;
+}
+
+class RateLimitPolicy {
+  final String key;
+  final int limit;
+  final int windowSecs;
+  final String algorithm;
+}
+
+// エラー型
+class RateLimitError implements Exception {
+  final String message;
+  final String code; // 'LIMIT_EXCEEDED' | 'KEY_NOT_FOUND' | 'SERVER_ERROR' | 'TIMEOUT' | 'UNKNOWN'
+  final int? retryAfterSecs;
+  String toString(); // 'RateLimitError($code): $message'
+}
+```
+
+**使用例（InMemoryRateLimitClient）**:
+
+```dart
+import 'package:k1s0_ratelimit_client/ratelimit_client.dart';
+
+final client = InMemoryRateLimitClient();
+client.setPolicy('tenant:TENANT-001', RateLimitPolicy(
+  key: 'tenant:TENANT-001',
+  limit: 100,
+  windowSecs: 60,
+  algorithm: 'token_bucket',
+));
+
+final key = 'tenant:TENANT-001:api:/v1/orders';
+final status = await client.check(key, 1);
+
+if (!status.allowed) {
+  final retryAfter = status.retryAfterSecs ?? 60;
+  throw RateLimitError('Rate limit exceeded. Retry after ${retryAfter}s',
+      code: 'LIMIT_EXCEEDED', retryAfterSecs: retryAfter);
+}
+
+final result = await client.consume(key, 1);
+print('残余: ${result.remaining}');
+
+final used = client.getUsedCount(key);
+print('使用済みカウント: $used');
+```
+
+**使用例（GrpcRateLimitClient）**:
 
 ```dart
 import 'package:k1s0_ratelimit_client/ratelimit_client.dart';
@@ -228,7 +418,7 @@ if (!status.allowed) {
   throw RateLimitError('Rate limit exceeded. Retry after ${retryAfter}s');
 }
 
-await client.consume(key, 1);
+final result = await client.consume(key, 1);
 ```
 
 **カバレッジ目標**: 90%以上

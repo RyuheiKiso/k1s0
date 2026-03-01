@@ -2,22 +2,50 @@
 
 ## 概要
 
-PostgreSQL advisory lock と Redis を使った分散ロック実装ライブラリ。`DistributedLock` トレイトにより `acquire`/`release`/`try_acquire` の統一インターフェースを提供する。RAII ガード（`LockGuard`）による自動解放と TTL 付きロックをサポート。
+分散ロック実装ライブラリ。`DistributedLock` トレイト（インターフェース）により `acquire`/`release`/`is_locked` の統一インターフェースを提供する。`LockGuard`（key・token）による安全な解放と TTL 付きロックをサポート。
 
-バックエンドを `DistributedLock` トレイトで抽象化しているため、PostgreSQL と Redis を用途に応じて切り替え可能。TTL 超過時の自動失効と、リトライ付き `acquire` でのスピンロック回避を実現する。
+InMemory（テスト用）・Redis（本番用）・PostgreSQL（advisory lock）の 3 バックエンドをサポート。TTL 超過時の自動失効を実現する。
+
+**バックエンド実装状況**:
+
+| バックエンド | Rust | Go | TypeScript | Dart |
+|------------|------|-----|-----------|------|
+| InMemory | `InMemoryDistributedLock` | `InMemoryLock` | `InMemoryLock` | `InMemoryDistributedLock` |
+| Redis | `RedisDistributedLock` | `RedisLock` | `RedisDistributedLock` | `RedisDistributedLock` |
+| PostgreSQL | `PostgresDistributedLock` | 未実装 | `PostgresDistributedLock` | `PostgresDistributedLock` |
 
 **配置先**: `regions/system/library/rust/distributed-lock/`
 
 ## 公開 API
 
+最小共通 API（全 4 言語）:
+
+| メソッド | 戻り値 | 説明 |
+|---------|--------|------|
+| `acquire(key, ttl)` | `LockGuard` | ロック取得。取得できない場合はエラー（`AlreadyLocked`） |
+| `release(guard)` | `void` | ロック解放。トークン不一致の場合はエラー |
+| `is_locked(key)` | `bool` | ロックが保持されているか確認 |
+
+`extend` メソッド対応状況:
+
+| 言語 | InMemory | Redis | PostgreSQL |
+|------|---------|-------|-----------|
+| Rust | あり（トレイト必須） | あり | あり（no-op） |
+| Go | なし | あり（独自メソッド） | N/A |
+| TypeScript | なし | あり | なし |
+| Dart | なし | なし | なし |
+
+Rust 公開型:
+
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `DistributedLock` | トレイト | ロック操作の抽象インターフェース |
-| `PostgresDistributedLock` | 構造体 | PostgreSQL advisory lock 実装（sqlx 使用） |
-| `RedisDistributedLock` | 構造体 | Redis SET NX PX 実装（deadpool-redis 使用） |
-| `LockGuard` | 構造体 | RAII ガード（Drop で自動解放） |
-| `LockConfig` | 構造体 | TTL・リトライ間隔・最大リトライ回数設定 |
-| `LockError` | enum | `AlreadyLocked`・`Timeout`・`BackendError` |
+| `DistributedLock` | トレイト | ロック操作の抽象インターフェース（`acquire`/`release`/`extend`/`is_locked`） |
+| `InMemoryDistributedLock` | 構造体 | テスト用インメモリ実装 |
+| `RedisDistributedLock` | 構造体 | Redis SET NX PX 実装（feature = "redis" で有効） |
+| `PostgresDistributedLock` | 構造体 | PostgreSQL advisory lock 実装（feature = "postgres" で有効） |
+| `LockGuard` | 構造体 | ロックガード（key・token） |
+| `LockError` | enum | `AlreadyLocked`・`LockNotFound`・`TokenMismatch`・`Internal` |
+| `MockDistributedLock` | 構造体 | テスト用モック（feature = "mock" で有効） |
 
 ## Rust 実装
 
@@ -30,21 +58,21 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-postgres = ["sqlx"]
-redis = ["deadpool-redis"]
+mock = ["mockall"]
+postgres = ["dep:sqlx"]
+redis = ["dep:redis"]
 
 [dependencies]
 async-trait = "0.1"
 thiserror = "2"
-tokio = { version = "1", features = ["sync", "time"] }
-tracing = "0.1"
+tokio = { version = "1", features = ["sync", "time", "macros"] }
 uuid = { version = "1", features = ["v4"] }
-sqlx = { version = "0.8", features = ["postgres", "runtime-tokio"], optional = true }
-deadpool-redis = { version = "0.18", optional = true }
+mockall = { version = "0.13", optional = true }
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres"], optional = true }
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager", "script"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-testcontainers = "0.23"
 ```
 
 **依存追加**: `k1s0-distributed-lock = { path = "../../system/library/rust/distributed-lock", features = ["postgres"] }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）
@@ -54,48 +82,39 @@ testcontainers = "0.23"
 ```
 distributed-lock/
 ├── src/
-│   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
+│   ├── lib.rs          # 公開 API（再エクスポート）
 │   ├── lock.rs         # DistributedLock トレイト・LockGuard
-│   ├── postgres.rs     # PostgresDistributedLock
-│   ├── redis.rs        # RedisDistributedLock
-│   ├── config.rs       # LockConfig
-│   └── error.rs        # LockError
+│   ├── memory.rs       # InMemoryDistributedLock
+│   ├── error.rs        # LockError
+│   ├── redis.rs        # RedisDistributedLock（feature = "redis"）
+│   └── postgres.rs     # PostgresDistributedLock（feature = "postgres"）
 └── Cargo.toml
 ```
 
 **使用例**:
 
 ```rust
-use k1s0_distributed_lock::{PostgresDistributedLock, LockConfig, DistributedLock};
+use k1s0_distributed_lock::{DistributedLock, InMemoryDistributedLock, LockError};
 use std::time::Duration;
 
-// PostgreSQL advisory lock
-let config = LockConfig::new()
-    .ttl(Duration::from_secs(30))
-    .retry_interval(Duration::from_millis(100))
-    .max_retries(10);
+let lock = InMemoryDistributedLock::new();
 
-let lock = PostgresDistributedLock::new(pool.clone(), config);
-
-// ロック取得（RAII ガード）
-let guard = lock.acquire("order:process:456").await?;
+// ロック取得
+let guard = lock.acquire("order:process:456", Duration::from_secs(30)).await?;
 // クリティカルセクションの処理
 process_order(order_id).await?;
-// guard がスコープ外に出ると自動解放
+// ロック解放
+lock.release(guard).await?;
 
-// try_acquire でノンブロッキング取得
-match lock.try_acquire("order:process:789").await {
-    Ok(guard) => process_order_with_guard(guard).await?,
-    Err(LockError::AlreadyLocked) => return Err(anyhow!("order already being processed")),
-    Err(e) => return Err(e.into()),
-}
+// ロック確認
+let is_locked = lock.is_locked("order:process:456").await?;
 ```
 
 ## Go 実装
 
 **配置先**: `regions/system/library/go/distributed-lock/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: なし（標準ライブラリのみ）
+**依存関係**: `github.com/redis/go-redis/v9`
 
 **主要インターフェース**:
 
@@ -118,7 +137,22 @@ type DistributedLock interface {
 type InMemoryLock struct{}
 
 func NewInMemoryLock() *InMemoryLock
+
+// --- Redis バックエンド ---
+
+type RedisLock struct{}
+
+type RedisLockOption func(*RedisLock)
+
+func NewRedisLock(client redis.Cmdable, opts ...RedisLockOption) *RedisLock
+func NewRedisLockFromURL(url string, opts ...RedisLockOption) (*RedisLock, error)
+func WithLockPrefix(prefix string) RedisLockOption
+
+// RedisLock 追加メソッド（DistributedLock interface 外）
+func (l *RedisLock) Extend(ctx context.Context, guard *LockGuard, ttl time.Duration) error
 ```
+
+> Go の PostgreSQL バックエンドは未実装。
 
 ## TypeScript 実装
 
@@ -130,47 +164,88 @@ func NewInMemoryLock() *InMemoryLock
 export interface LockGuard {
   key: string;
   token: string;
-  release(): Promise<void>;
-}
-
-export interface LockConfig {
-  ttlMs: number;
-  retryIntervalMs?: number;
-  maxRetries?: number;
-}
-
-export interface DistributedLock {
-  acquire(key: string): Promise<LockGuard>;
-  tryAcquire(key: string): Promise<LockGuard | null>;
-}
-
-export class PostgresDistributedLock implements DistributedLock {
-  constructor(pool: Pool, config: LockConfig);
-  acquire(key: string): Promise<LockGuard>;
-  tryAcquire(key: string): Promise<LockGuard | null>;
-}
-
-export class RedisDistributedLock implements DistributedLock {
-  constructor(client: Redis, config: LockConfig);
-  acquire(key: string): Promise<LockGuard>;
-  tryAcquire(key: string): Promise<LockGuard | null>;
 }
 
 export class LockError extends Error {
-  constructor(
-    message: string,
-    public readonly kind: 'already_locked' | 'timeout' | 'backend_error'
-  );
+  constructor(message: string, public code: string);
+}
+
+export class InMemoryLock {
+  async acquire(key: string, ttlMs: number): Promise<LockGuard>;
+  async release(guard: LockGuard): Promise<void>;
+  async isLocked(key: string): Promise<boolean>;
+}
+
+// --- PostgreSQL バックエンド ---
+
+export class PostgresDistributedLock {
+  constructor(pool: Pool, keyPrefix?: string); // default: 'lock'
+  async acquire(key: string, ttlMs: number): Promise<LockGuard>;
+  async release(guard: LockGuard): Promise<void>;
+  async isLocked(key: string): Promise<boolean>;
+}
+
+// --- Redis バックエンド ---
+
+export class RedisDistributedLock {
+  constructor(redis: Redis, keyPrefix?: string); // default: 'lock'
+  async acquire(key: string, ttlMs: number): Promise<LockGuard>;
+  async release(guard: LockGuard): Promise<void>;
+  async extend(guard: LockGuard, ttlMs: number): Promise<void>;
+  async isLocked(key: string): Promise<boolean>;
 }
 ```
 
-**カバレッジ目標**: 90%以上
+**依存関係**: `ioredis ^5.3.0`, `pg ^8.11.0`
+
+**カバレッジ目標**: 85%以上
 
 ## Dart 実装
 
-**配置先**: `regions/system/library/dart/distributed-lock/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+**配置先**: `regions/system/library/dart/distributed_lock/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**カバレッジ目標**: 90%以上
+**主要インターフェース**:
+
+```dart
+class LockGuard {
+  final String key;
+  final String token;
+  const LockGuard({required this.key, required this.token});
+}
+
+class LockException implements Exception {
+  final String message;
+  const LockException(this.message);
+}
+
+abstract class DistributedLock {
+  Future<LockGuard> acquire(String key, Duration ttl);
+  Future<void> release(LockGuard guard);
+  Future<bool> isLocked(String key);
+}
+
+class InMemoryDistributedLock implements DistributedLock {
+  // ... 上記メソッドすべてを実装
+}
+
+// --- PostgreSQL バックエンド ---
+
+class PostgresDistributedLock implements DistributedLock {
+  PostgresDistributedLock(Connection conn);
+  // acquire / release / isLocked を実装
+}
+
+// --- Redis バックエンド ---
+
+class RedisDistributedLock implements DistributedLock {
+  RedisDistributedLock(Command client);
+  // acquire / release / isLocked を実装
+}
+```
+
+**依存関係**: `postgres: ^3.1.0`, `redis: ^4.0.0`
+
+**カバレッジ目標**: 85%以上
 
 ## テスト戦略
 

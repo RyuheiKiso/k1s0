@@ -1,11 +1,14 @@
 import * as NavigationMenu from '@radix-ui/react-navigation-menu';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 
-type Page = 'init' | 'generate' | 'build' | 'test' | 'deploy';
+type Page = 'init' | 'generate' | 'config-types' | 'navigation-types' | 'validate' | 'build' | 'test' | 'deploy';
 
 const menuItems: { page: Page; path: string; label: string; icon: string }[] = [
   { page: 'init', path: '/', label: 'プロジェクト初期化', icon: '⚡' },
   { page: 'generate', path: '/generate', label: 'ひな形生成', icon: '🔧' },
+  { page: 'config-types', path: '/config-types', label: '設定スキーマ型生成', icon: '⚙️' },
+  { page: 'navigation-types', path: '/navigation-types', label: 'ナビゲーション型生成', icon: '🗺️' },
+  { page: 'validate', path: '/validate', label: 'バリデーション', icon: '✅' },
   { page: 'build', path: '/build', label: 'ビルド', icon: '📦' },
   { page: 'test', path: '/test', label: 'テスト実行', icon: '🧪' },
   { page: 'deploy', path: '/deploy', label: 'デプロイ', icon: '🚀' },

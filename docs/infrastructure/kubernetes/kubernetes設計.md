@@ -11,17 +11,17 @@
 
 ## Namespace 設計
 
-| Namespace         | 対象                                | Tier     |
-| ----------------- | ----------------------------------- | -------- |
-| `k1s0-system`     | system tier のサーバー・DB・Schema Registry・Kong API Gateway・Keycloak・Vault・Redis・Redis Session（BFF用） | system   |
-| `k1s0-business`   | business tier のサーバー・クライアント・DB | business |
-| `k1s0-service`    | service tier のサーバー・クライアント・DB | service  |
-| `observability`   | Prometheus, Grafana, Jaeger, Loki   | infra    |
-| `messaging`       | Kafka クラスタ                      | infra    |
-| `ingress`         | Nginx Ingress Controller            | infra    |
-| `service-mesh`    | Istio Control Plane, Flagger        | infra    |
-| `cert-manager`    | 証明書管理                          | infra    |
-| `harbor`          | コンテナレジストリ（同一クラスタの場合） | infra |
+| Namespace         | 対象                                | Tier     | `tier` ラベル値 |
+| ----------------- | ----------------------------------- | -------- | --------------- |
+| `k1s0-system`     | system tier のサーバー・DB・Schema Registry・Kong API Gateway・Keycloak・Vault・Redis・Redis Session（BFF用） | system   | `system`  |
+| `k1s0-business`   | business tier のサーバー・クライアント・DB | business | `business` |
+| `k1s0-service`    | service tier のサーバー・クライアント・DB | service  | `service`  |
+| `observability`   | Prometheus, Grafana, Jaeger, Loki   | infra    | `infra`    |
+| `messaging`       | Kafka クラスタ                      | infra    | `infra`    |
+| `ingress`         | Nginx Ingress Controller            | infra    | `infra`    |
+| `service-mesh`    | Istio Control Plane, Flagger        | infra    | `infra`    |
+| `cert-manager`    | 証明書管理                          | infra    | `infra`    |
+| `harbor`          | コンテナレジストリ（同一クラスタの場合） | infra  | `infra`    |
 
 ## NetworkPolicy
 
@@ -182,6 +182,8 @@ spec:
 
 各 Namespace にデフォルトのリソースリミットを設定する。
 
+> **注記**: LimitRange の実定義は `infra/kubernetes/limit-ranges/default-limits.yaml` に一元管理している。各 Namespace YAML（`namespaces/`）には重複定義を含めない。
+
 ```yaml
 apiVersion: v1
 kind: LimitRange
@@ -202,6 +204,8 @@ spec:
 ### ResourceQuota
 
 Namespace 単位でリソースの上限を設定する。
+
+> **注記**: ResourceQuota の実定義は `infra/kubernetes/resource-quotas/namespace-quotas.yaml` に一元管理している。各 Namespace YAML（`namespaces/`）には重複定義を含めない。
 
 | Namespace       | requests.cpu | requests.memory | limits.cpu | limits.memory | pods  |
 | --------------- | ------------ | --------------- | ---------- | ------------- | ----- |
@@ -326,6 +330,33 @@ spec:
       app: order-server
 ```
 
+## バックアップ
+
+各コンポーネントのバックアップは CronJob として `k1s0-system` Namespace で実行する。実装ファイルは `infra/kubernetes/backup/` に格納されている。
+
+| CronJob 名          | 対象               | スケジュール         | 保持期間 | 実装ファイル                      |
+| ------------------- | ------------------ | -------------------- | -------- | --------------------------------- |
+| `ceph-rbd-snapshot` | Ceph RBD スナップショット | 毎日 01:00 UTC  | 14 日    | `backup/ceph-backup-config.yaml`  |
+| `etcd-backup`       | etcd スナップショット     | 毎日 02:00 UTC  | 30 日    | `backup/etcd-backup-cronjob.yaml` |
+| `postgres-backup`   | PostgreSQL 全 DB   | 毎日 03:00 UTC       | 30 日    | `backup/postgres-backup-cronjob.yaml` |
+| `vault-backup`      | Vault Raft スナップショット | 毎日 01:00 UTC | 30 日    | `backup/vault-backup-cronjob.yaml` |
+| `harbor-backup`     | Harbor DB          | 毎週日曜 04:00 UTC   | 90 日    | `backup/harbor-backup-cronjob.yaml` |
+
+全 CronJob は以下の共通設定を持つ。
+
+- `concurrencyPolicy: Forbid`（多重実行禁止）
+- `successfulJobsHistoryLimit: 3` / `failedJobsHistoryLimit: 3`
+- `serviceAccountName: backup-operator`
+- バックアップデータは PVC `backup-pvc` にマウントして保存（Ceph バックアップを除く）
+
+### PostgreSQL バックアップ対象 DB
+
+| DB 名         | 用途                          |
+| ------------- | ----------------------------- |
+| `k1s0_system` | 汎用システム DB               |
+| `config_db`   | 設定サーバー DB               |
+| `dlq_db`      | Dead Letter Queue DB          |
+
 ## RBAC
 
 | Role                  | 権限                                          | 対象ユーザー      |
@@ -334,6 +365,27 @@ spec:
 | k1s0-operator         | リソースの作成・更新・削除を含む運用操作      | 運用チーム        |
 | k1s0-developer        | Deployment, Pod, Service の参照・ログ閲覧     | 開発者            |
 | readonly              | 全リソースの参照のみ                          | 運用監視          |
+
+### ServiceAccount
+
+各 Tier Namespace に対応する ServiceAccount を配置する（`infra/kubernetes/rbac/service-accounts.yaml`）。
+
+| ServiceAccount 名   | Namespace       | `tier` ラベル値 |
+| ------------------- | --------------- | --------------- |
+| `k1s0-system-sa`    | `k1s0-system`   | `system`        |
+| `k1s0-business-sa`  | `k1s0-business` | `business`      |
+| `k1s0-service-sa`   | `k1s0-service`  | `service`       |
+
+### ClusterRoleBinding
+
+`infra/kubernetes/rbac/role-bindings.yaml` に以下 4 件の ClusterRoleBinding が定義されている。
+
+| ClusterRoleBinding 名  | 対象 ClusterRole  | 対象グループ       |
+| ---------------------- | ----------------- | ------------------ |
+| `k1s0-admin-binding`   | `k1s0-admin`      | `k1s0-admin`       |
+| `k1s0-operator-binding`| `k1s0-operator`   | `k1s0-operator`    |
+| `k1s0-developer-binding` | `k1s0-developer` | `k1s0-developer`  |
+| `readonly-binding`     | `readonly`        | `readonly`         |
 
 ### ClusterRole 定義
 
@@ -436,6 +488,80 @@ spec:
                 port:
                   number: 3000
 ```
+
+## cert-manager
+
+TLS 証明書の自動発行・更新を cert-manager で管理する。実装ファイルは `infra/kubernetes/cert-manager/cluster-issuer.yaml`。
+
+### ClusterIssuer / Certificate 構成
+
+3 ステップのブートストラップ構成で内部 CA を構築する。
+
+| リソース種別  | 名前                    | 用途                                           |
+| ------------- | ----------------------- | ---------------------------------------------- |
+| `ClusterIssuer` | `selfsigned-bootstrap` | 自己署名 CA 証明書を生成するためのブートストラップ Issuer |
+| `Certificate`   | `k1s0-ca`              | 内部 CA 証明書（有効期間 10 年、1 年前に自動更新） |
+| `ClusterIssuer` | `internal-ca`          | `k1s0-ca` をバックエンドとする内部 CA Issuer    |
+
+```yaml
+# Step 1: セルフサインのブートストラップ Issuer
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-bootstrap
+spec:
+  selfSigned: {}
+---
+# Step 2: 内部 CA 証明書（10 年有効、1 年前に自動更新）
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: k1s0-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: k1s0-internal-ca
+  secretName: k1s0-ca-secret
+  duration: 87600h        # 10 years
+  renewBefore: 8760h      # Renew 1 year before expiry
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned-bootstrap
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+# Step 3: k1s0-ca をバックエンドとする内部 CA Issuer
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: internal-ca
+spec:
+  ca:
+    secretName: k1s0-ca-secret
+```
+
+Ingress リソースでは `cert-manager.io/cluster-issuer: "internal-ca"` アノテーションを指定することで、TLS 証明書が自動発行される（Ingress 設計セクション参照）。
+
+## verify/ 配下の検証用リソース
+
+`infra/kubernetes/verify/` には CI/CD 統合テスト用の一時的なリソース定義を格納する。
+
+> **注記**: これらのリソースはローカル Kubernetes 環境（kind 等）での動作検証および CI/CD パイプラインの統合テストを目的とした設定である。本番環境には適用しない。
+
+| ファイル名           | 用途                                              |
+| -------------------- | ------------------------------------------------- |
+| `auth-values.yaml`   | auth-server（Rust）の検証用 Helm オーバーライド値 |
+| `config-values.yaml` | config-server（Rust）の検証用 Helm オーバーライド値 |
+| `postgres.yaml`      | 検証用 PostgreSQL StatefulSet・ConfigMap・Service |
+| `keycloak.yaml`      | 検証用 Keycloak Deployment・ConfigMap・Service    |
+| `kafka.yaml`         | 検証用 Kafka StatefulSet・Service（KRaft モード） |
+
+各 values ファイルの共通設定:
+- `image.pullPolicy: Never`（ローカルビルドイメージを使用）
+- `autoscaling.enabled: false` / `pdb.enabled: false`（スケール機能無効）
+- `vault.enabled: false`（Vault 連携無効）
 
 ## StorageClass
 

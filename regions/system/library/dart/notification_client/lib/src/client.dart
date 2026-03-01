@@ -2,6 +2,7 @@ import 'notification.dart';
 
 abstract class NotificationClient {
   Future<NotificationResponse> send(NotificationRequest request);
+  Future<List<NotificationResponse>> sendBatch(List<NotificationRequest> requests);
 }
 
 class InMemoryNotificationClient implements NotificationClient {
@@ -13,5 +14,15 @@ class InMemoryNotificationClient implements NotificationClient {
   Future<NotificationResponse> send(NotificationRequest request) async {
     _sent.add(request);
     return NotificationResponse(id: request.id, status: 'sent');
+  }
+
+  @override
+  Future<List<NotificationResponse>> sendBatch(
+      List<NotificationRequest> requests) async {
+    final responses = <NotificationResponse>[];
+    for (final request in requests) {
+      responses.add(await send(request));
+    }
+    return responses;
   }
 }

@@ -5,6 +5,7 @@ edition = "2021"
 
 [features]
 sqlite = ["sqlx/sqlite"]
+postgres = ["sqlx/postgres"]
 cli = ["clap"]
 
 [dependencies]

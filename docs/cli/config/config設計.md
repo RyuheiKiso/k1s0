@@ -419,6 +419,7 @@ vault write auth/kubernetes/role/k1s0-system-auth \
 
 ```go
 // internal/infra/config/config.go
+// バリデーションタグの詳細は docs/libraries/config/config.md を参照
 type Config struct {
     App           AppConfig           `yaml:"app"`
     Server        ServerConfig        `yaml:"server"`
@@ -426,6 +427,7 @@ type Config struct {
     Database      *DatabaseConfig     `yaml:"database,omitempty"`
     Kafka         *KafkaConfig        `yaml:"kafka,omitempty"`
     Redis         *RedisConfig        `yaml:"redis,omitempty"`
+    RedisSession  *RedisConfig         `yaml:"redis_session,omitempty"`
     Observability ObservabilityConfig `yaml:"observability"`
     Auth          AuthConfig          `yaml:"auth"`
 }
@@ -475,7 +477,7 @@ type OIDCConfig struct {
     JWKSCacheTTL string   `yaml:"jwks_cache_ttl"`
 }
 
-func Load(basePath, envPath string) (*Config, error) {
+func Load(basePath string, envPath ...string) (*Config, error) {
     // 1. basePath を読み込み
     // 2. envPath で上書き
     // 3. Vault シークレットで上書き
@@ -494,6 +496,7 @@ pub struct Config {
     pub database: Option<DatabaseConfig>,
     pub kafka: Option<KafkaConfig>,
     pub redis: Option<RedisConfig>,
+    pub redis_session: Option<RedisConfig>,
     pub observability: ObservabilityConfig,
     pub auth: AuthConfig,
 }
@@ -543,7 +546,7 @@ pub struct JwtConfig {
 pub struct OidcConfig {
     pub discovery_url: String,
     pub client_id: String,
-    pub client_secret: String,
+    pub client_secret: Option<String>,
     pub redirect_uri: String,
     pub scopes: Vec<String>,
     pub jwks_uri: String,

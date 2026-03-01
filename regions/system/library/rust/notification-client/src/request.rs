@@ -6,6 +6,7 @@ pub enum NotificationChannel {
     Email,
     Sms,
     Push,
+    Slack,
     Webhook,
 }
 

@@ -87,3 +87,73 @@ export class InMemoryVaultClient implements VaultClient {
     // InMemory implementation yields nothing
   }
 }
+
+export class HttpVaultClient implements VaultClient {
+  private readonly config: VaultClientConfig;
+  private readonly cache = new Map<string, { secret: Secret; fetchedAt: number }>();
+
+  constructor(config: VaultClientConfig) {
+    this.config = config;
+  }
+
+  private isCacheValid(fetchedAt: number): boolean {
+    const ttl = this.config.cacheTtlMs ?? 600_000;
+    return Date.now() - fetchedAt < ttl;
+  }
+
+  async getSecret(path: string): Promise<Secret> {
+    const cached = this.cache.get(path);
+    if (cached && this.isCacheValid(cached.fetchedAt)) {
+      return cached.secret;
+    }
+
+    const url = `${this.config.serverUrl}/api/v1/secrets/${path}`;
+    const resp = await fetch(url);
+
+    if (resp.status === 404) throw new VaultError(path, 'NOT_FOUND');
+    if (resp.status === 403 || resp.status === 401)
+      throw new VaultError(path, 'PERMISSION_DENIED');
+    if (!resp.ok) throw new VaultError(`HTTP ${resp.status}`, 'SERVER_ERROR');
+
+    const body = await resp.json();
+    const secret: Secret = {
+      path: body.path,
+      data: body.data,
+      version: body.version,
+      createdAt: new Date(body.created_at),
+    };
+    this.cache.set(path, { secret, fetchedAt: Date.now() });
+    return secret;
+  }
+
+  async getSecretValue(path: string, key: string): Promise<string> {
+    const secret = await this.getSecret(path);
+    const value = secret.data[key];
+    if (value === undefined) throw new VaultError(`${path}/${key}`, 'NOT_FOUND');
+    return value;
+  }
+
+  async listSecrets(pathPrefix: string): Promise<string[]> {
+    const url = `${this.config.serverUrl}/api/v1/secrets?prefix=${encodeURIComponent(pathPrefix)}`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new VaultError(`HTTP ${resp.status}`, 'SERVER_ERROR');
+    return resp.json();
+  }
+
+  async *watchSecret(path: string): AsyncIterable<SecretRotatedEvent> {
+    const ttl = this.config.cacheTtlMs ?? 600_000;
+    let lastVersion: number | undefined;
+    while (true) {
+      await new Promise<void>((resolve) => setTimeout(resolve, ttl));
+      try {
+        const secret = await this.getSecret(path);
+        if (lastVersion !== undefined && secret.version !== lastVersion) {
+          yield { path, version: secret.version };
+        }
+        lastVersion = secret.version;
+      } catch {
+        // skip errors during polling
+      }
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { InMemoryGraphQlClient } from '../src/index.js';
+import type { GraphQlQuery, GraphQlResponse } from '../src/index.js';
 
 describe('InMemoryGraphQlClient', () => {
   it('execute でセットした応答が返る', async () => {
@@ -51,5 +52,25 @@ describe('InMemoryGraphQlClient', () => {
       operationName: 'Op',
     });
     expect(resp.data).toBe('second');
+  });
+
+  it('subscribe emits registered events', async () => {
+    const client = new InMemoryGraphQlClient();
+    client.setSubscriptionEvents('OnUserCreated', [
+      { userCreated: { id: '1', name: 'Alice' } },
+      { userCreated: { id: '2', name: 'Bob' } },
+    ]);
+
+    const subscription: GraphQlQuery = {
+      query: 'subscription { userCreated { id name } }',
+      operationName: 'OnUserCreated',
+    };
+
+    const results: GraphQlResponse<unknown>[] = [];
+    for await (const event of client.subscribe(subscription)) {
+      results.push(event);
+    }
+    expect(results).toHaveLength(2);
+    expect(results[0].data).toBeDefined();
   });
 });

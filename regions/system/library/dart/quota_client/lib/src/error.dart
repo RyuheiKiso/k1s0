@@ -18,3 +18,7 @@ class QuotaNotFoundError extends QuotaClientError {
   final String quotaId;
   QuotaNotFoundError(this.quotaId) : super('Quota not found: $quotaId');
 }
+
+class QuotaConnectionError extends QuotaClientError {
+  QuotaConnectionError(String message) : super('Connection error: $message');
+}

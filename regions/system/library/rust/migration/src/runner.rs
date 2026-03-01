@@ -19,7 +19,7 @@ pub trait MigrationRunner: Send + Sync {
 
 #[derive(Debug)]
 pub struct InMemoryMigrationRunner {
-    config: MigrationConfig,
+    _config: MigrationConfig,
     up_migrations: BTreeMap<String, (String, String)>,
     down_migrations: BTreeMap<String, (String, String)>,
     applied: tokio::sync::Mutex<Vec<MigrationStatus>>,
@@ -38,7 +38,7 @@ impl InMemoryMigrationRunner {
         let mut down_migrations = BTreeMap::new();
 
         let mut entries: Vec<_> = std::fs::read_dir(dir)
-            .map_err(|e| MigrationError::Io(e))?
+            .map_err(MigrationError::Io)?
             .filter_map(|e| e.ok())
             .collect();
         entries.sort_by_key(|e| e.file_name());
@@ -59,7 +59,7 @@ impl InMemoryMigrationRunner {
         }
 
         Ok(Self {
-            config,
+            _config: config,
             up_migrations,
             down_migrations,
             applied: tokio::sync::Mutex::new(Vec::new()),
@@ -82,7 +82,7 @@ impl InMemoryMigrationRunner {
         }
 
         Self {
-            config,
+            _config: config,
             up_migrations,
             down_migrations,
             applied: tokio::sync::Mutex::new(Vec::new()),

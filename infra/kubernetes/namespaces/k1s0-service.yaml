@@ -6,32 +6,3 @@ metadata:
     tier: service
     app.kubernetes.io/part-of: k1s0
     app.kubernetes.io/managed-by: helm
----
-apiVersion: v1
-kind: LimitRange
-metadata:
-  name: default-limits
-  namespace: k1s0-service
-spec:
-  limits:
-    - default:
-        cpu: "1"
-        memory: 1Gi
-      defaultRequest:
-        cpu: 250m
-        memory: 256Mi
-      type: Container
----
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: namespace-quota
-  namespace: k1s0-service
-spec:
-  hard:
-    requests.cpu: "8"
-    requests.memory: 16Gi
-    limits.cpu: "16"
-    limits.memory: 32Gi
-    pods: "50"
-    persistentvolumeclaims: "20"

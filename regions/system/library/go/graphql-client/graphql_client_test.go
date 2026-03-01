@@ -70,3 +70,26 @@ func TestSetResponse_Overwrite(t *testing.T) {
 	data := *resp.Data
 	assert.Equal(t, "second", data)
 }
+
+func TestInMemoryGraphQlClient_Subscribe(t *testing.T) {
+	client := graphqlclient.NewInMemoryGraphQlClient()
+	events := []any{
+		map[string]any{"id": "1", "name": "Alice"},
+		map[string]any{"id": "2", "name": "Bob"},
+	}
+	client.SetSubscriptionEvents("OnUserCreated", events)
+
+	subscription := graphqlclient.GraphQlQuery{
+		Query:         "subscription { userCreated { id name } }",
+		OperationName: "OnUserCreated",
+	}
+	ch, err := client.Subscribe(context.Background(), subscription)
+	assert.NoError(t, err)
+
+	count := 0
+	for resp := range ch {
+		assert.NotNil(t, resp.Data)
+		count++
+	}
+	assert.Equal(t, 2, count)
+}

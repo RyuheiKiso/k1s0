@@ -15,6 +15,7 @@
 | `NotificationResponse` | 構造体 | id・status・message_id（任意） |
 | `NotificationChannel` | enum | `Email`・`Sms`・`Push`・`Slack`・`Webhook` |
 | `NotificationClientError` | enum | `SendError`・`BatchError`・`InvalidChannel`・`Internal` |
+| `MockNotificationClient` | 構造体 | テスト用モック（Rust feature="mock"、mockall 自動生成） |
 
 ## Rust 実装
 
@@ -155,11 +156,12 @@ const (
 )
 
 type NotificationRequest struct {
-    ID        string  `json:"id"`
-    Channel   Channel `json:"channel"`
-    Recipient string  `json:"recipient"`
-    Subject   string  `json:"subject,omitempty"`
-    Body      string  `json:"body"`
+    ID        string                 `json:"id"`
+    Channel   Channel                `json:"channel"`
+    Recipient string                 `json:"recipient"`
+    Subject   string                 `json:"subject,omitempty"`
+    Body      string                 `json:"body"`
+    Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 type NotificationResponse struct {
@@ -177,6 +179,8 @@ func NewInMemoryClient() *InMemoryClient
 func (c *InMemoryClient) SentRequests() []NotificationRequest
 ```
 
+> **注**: Go 実装には `SendBatch` メソッドがない（Rust / Dart のみ `send_batch` を提供）。TypeScript も同様に `send` のみ。一括送信が必要な場合はループで `Send` を呼び出す。
+
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/notification-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
@@ -192,6 +196,7 @@ export interface NotificationRequest {
   recipient: string;
   subject?: string;
   body: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface NotificationResponse {
@@ -259,6 +264,16 @@ class InMemoryNotificationClient implements NotificationClient {
 ```
 
 **カバレッジ目標**: 90%以上
+
+## 設計ノート: 言語間差異
+
+### `NotificationClientError`
+
+カスタムエラー型 `NotificationClientError`（`SendError`・`BatchError`・`InvalidChannel`・`Internal`）は **Rust のみ** で提供される。Go は標準の `error` インターフェース、TypeScript は標準の `Error`、Dart は標準の `Exception` を使用する。
+
+### `send_batch`
+
+一括送信メソッド `send_batch` は **Rust と Dart のみ** で提供される。Go / TypeScript で一括送信が必要な場合はループで `send` を呼び出す。
 
 ## テスト戦略
 

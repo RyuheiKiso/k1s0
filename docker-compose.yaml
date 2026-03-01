@@ -275,7 +275,7 @@ services:
       timeout: 5s
       retries: 5
 
-  dlq-manager-rust:
+  dlq-manager:
     build:
       context: ./regions/system
       dockerfile: ./server/rust/dlq-manager/Dockerfile

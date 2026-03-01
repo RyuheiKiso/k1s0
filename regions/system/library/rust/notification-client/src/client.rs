@@ -58,4 +58,39 @@ mod tests {
         assert_eq!(result.status, "sent");
         assert_eq!(result.message_id, Some("msg-123".to_string()));
     }
+
+    #[tokio::test]
+    async fn test_mock_send_slack() {
+        let mut mock = MockNotificationClient::new();
+        let expected_id = Uuid::new_v4();
+        let expected_response = NotificationResponse {
+            id: expected_id,
+            status: "sent".to_string(),
+            message_id: Some("msg-slack-1".to_string()),
+        };
+        let resp_clone = expected_response.clone();
+
+        mock.expect_send()
+            .times(1)
+            .returning(move |_req| {
+                Box::pin({
+                    let resp = NotificationResponse {
+                        id: resp_clone.id,
+                        status: resp_clone.status.clone(),
+                        message_id: resp_clone.message_id.clone(),
+                    };
+                    async move { Ok(resp) }
+                })
+            });
+
+        let request = NotificationRequest::new(
+            NotificationChannel::Slack,
+            "#general",
+            "Slack notification",
+        );
+
+        let result = mock.send(request).await.unwrap();
+        assert_eq!(result.id, expected_id);
+        assert_eq!(result.status, "sent");
+    }
 }

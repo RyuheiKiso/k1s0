@@ -9,6 +9,20 @@ import (
 // パターン: k1s0.(system|business|service).<domain>.<event>.v<version>
 var topicNameRegex = regexp.MustCompile(`^k1s0\.(system|business|service)\.[a-z0-9-]+\.[a-z0-9-]+\.v[0-9]+$`)
 
+// TopicPartitionInfo はトピックのパーティション情報を表す。
+type TopicPartitionInfo struct {
+	// Topic はトピック名。
+	Topic string
+	// Partition はパーティション番号。
+	Partition int32
+	// Leader はリーダーブローカーの ID。
+	Leader int32
+	// Replicas はレプリカが配置されているブローカー ID のリスト。
+	Replicas []int32
+	// ISR (In-Sync Replicas) は同期しているレプリカのブローカー ID のリスト。
+	ISR []int32
+}
+
 // TopicConfig は Kafka トピック設定。
 type TopicConfig struct {
 	// Name はトピック名。

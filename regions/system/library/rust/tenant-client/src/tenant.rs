@@ -57,3 +57,25 @@ impl TenantSettings {
         self.values.get(key).map(|v| v.as_str())
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateTenantRequest {
+    pub name: String,
+    pub plan: String,
+    pub admin_user_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TenantMember {
+    pub user_id: String,
+    pub role: String,
+    pub joined_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ProvisioningStatus {
+    Pending,
+    InProgress,
+    Completed,
+    Failed(String),
+}

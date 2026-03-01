@@ -28,12 +28,18 @@ class InMemoryWsClient implements WsClient {
 
   @override
   Future<void> connect() async {
+    if (_state == ConnectionState.connected) {
+      throw StateError('Already connected');
+    }
     _state = ConnectionState.connecting;
     _state = ConnectionState.connected;
   }
 
   @override
   Future<void> disconnect() async {
+    if (_state == ConnectionState.disconnected) {
+      throw StateError('Not connected');
+    }
     _state = ConnectionState.closing;
     _state = ConnectionState.disconnected;
   }
@@ -48,6 +54,9 @@ class InMemoryWsClient implements WsClient {
 
   @override
   Future<WsMessage> receive() async {
+    if (_state != ConnectionState.connected) {
+      throw StateError('Not connected');
+    }
     if (_receiveQueue.isEmpty) {
       throw StateError('No messages in receive queue');
     }

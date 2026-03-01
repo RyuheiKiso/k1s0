@@ -2,7 +2,11 @@ package vaultclient
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"sync"
 	"time"
 )
@@ -118,5 +122,164 @@ func (c *InMemoryVaultClient) ListSecrets(_ context.Context, pathPrefix string) 
 // WatchSecret はシークレットのローテーション通知チャンネルを返す。
 func (c *InMemoryVaultClient) WatchSecret(_ context.Context, _ string) (<-chan SecretRotatedEvent, error) {
 	ch := make(chan SecretRotatedEvent, 16)
+	return ch, nil
+}
+
+// httpSecretResponse は vault-server のレスポンス形式。
+type httpSecretResponse struct {
+	Path      string            `json:"path"`
+	Data      map[string]string `json:"data"`
+	Version   int64             `json:"version"`
+	CreatedAt time.Time         `json:"created_at"`
+}
+
+// httpCacheEntry はキャッシュエントリ。
+type httpCacheEntry struct {
+	secret    Secret
+	fetchedAt time.Time
+}
+
+// HttpVaultClient は vault-server の REST API をHTTPで呼び出すクライアント。
+type HttpVaultClient struct {
+	config     VaultClientConfig
+	httpClient *http.Client
+	mu         sync.Mutex
+	cache      map[string]httpCacheEntry
+}
+
+// NewHttpVaultClient は新しい HttpVaultClient を生成する。
+func NewHttpVaultClient(config VaultClientConfig) *HttpVaultClient {
+	return &HttpVaultClient{
+		config:     config,
+		httpClient: &http.Client{Timeout: 30 * time.Second},
+		cache:      make(map[string]httpCacheEntry),
+	}
+}
+
+// GetSecret はシークレットを取得する。キャッシュがあればそれを返す。
+func (c *HttpVaultClient) GetSecret(ctx context.Context, path string) (Secret, error) {
+	c.mu.Lock()
+	if entry, ok := c.cache[path]; ok {
+		ttl := c.config.CacheTTL
+		if ttl == 0 {
+			ttl = 600 * time.Second
+		}
+		if time.Since(entry.fetchedAt) < ttl {
+			c.mu.Unlock()
+			return entry.secret, nil
+		}
+	}
+	c.mu.Unlock()
+
+	reqURL := fmt.Sprintf("%s/api/v1/secrets/%s", c.config.ServerURL, path)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return Secret{}, &VaultError{Code: "SERVER_ERROR", Message: err.Error()}
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return Secret{}, &VaultError{Code: "SERVER_ERROR", Message: err.Error()}
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		var body httpSecretResponse
+		if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+			return Secret{}, &VaultError{Code: "SERVER_ERROR", Message: err.Error()}
+		}
+		secret := Secret{
+			Path:      body.Path,
+			Data:      body.Data,
+			Version:   body.Version,
+			CreatedAt: body.CreatedAt,
+		}
+		c.mu.Lock()
+		c.cache[path] = httpCacheEntry{secret: secret, fetchedAt: time.Now()}
+		c.mu.Unlock()
+		return secret, nil
+	case http.StatusNotFound:
+		return Secret{}, NewNotFoundError(path)
+	case http.StatusForbidden, http.StatusUnauthorized:
+		return Secret{}, NewPermissionDeniedError(path)
+	default:
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return Secret{}, &VaultError{Code: "SERVER_ERROR", Message: fmt.Sprintf("status %d: %s", resp.StatusCode, bodyBytes)}
+	}
+}
+
+// GetSecretValue は指定キーの値を取得する。
+func (c *HttpVaultClient) GetSecretValue(ctx context.Context, path, key string) (string, error) {
+	s, err := c.GetSecret(ctx, path)
+	if err != nil {
+		return "", err
+	}
+	v, ok := s.Data[key]
+	if !ok {
+		return "", NewNotFoundError(fmt.Sprintf("%s/%s", path, key))
+	}
+	return v, nil
+}
+
+// ListSecrets はプレフィックスに一致するパス一覧を返す。
+func (c *HttpVaultClient) ListSecrets(ctx context.Context, pathPrefix string) ([]string, error) {
+	reqURL := fmt.Sprintf("%s/api/v1/secrets?prefix=%s", c.config.ServerURL, url.QueryEscape(pathPrefix))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return nil, &VaultError{Code: "SERVER_ERROR", Message: err.Error()}
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, &VaultError{Code: "SERVER_ERROR", Message: err.Error()}
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, &VaultError{Code: "SERVER_ERROR", Message: fmt.Sprintf("list_secrets failed: %d", resp.StatusCode)}
+	}
+
+	var paths []string
+	if err := json.NewDecoder(resp.Body).Decode(&paths); err != nil {
+		return nil, &VaultError{Code: "SERVER_ERROR", Message: err.Error()}
+	}
+	return paths, nil
+}
+
+// WatchSecret はシークレットのローテーション通知チャンネルを返す。
+func (c *HttpVaultClient) WatchSecret(ctx context.Context, path string) (<-chan SecretRotatedEvent, error) {
+	ch := make(chan SecretRotatedEvent, 16)
+	ttl := c.config.CacheTTL
+	if ttl == 0 {
+		ttl = 600 * time.Second
+	}
+
+	go func() {
+		defer close(ch)
+		var lastVersion int64 = -1
+		ticker := time.NewTicker(ttl)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				secret, err := c.GetSecret(ctx, path)
+				if err != nil {
+					continue
+				}
+				if lastVersion >= 0 && secret.Version != lastVersion {
+					select {
+					case ch <- SecretRotatedEvent{Path: path, Version: secret.Version}:
+					case <-ctx.Done():
+						return
+					}
+				}
+				lastVersion = secret.Version
+			}
+		}
+	}()
+
 	return ch, nil
 }

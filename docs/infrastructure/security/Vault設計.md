@@ -8,6 +8,13 @@ D-006: Vault 戦略。認証方式、シークレットエンジン、パス体�
 
 ## D-006: Vault 戦略
 
+### バージョン
+
+| 環境 | イメージ |
+| ---- | -------- |
+| ローカル開発 | `hashicorp/vault:1.17` |
+| Kubernetes（本番） | Helm Chart 経由で Vault Operator をデプロイ（バージョンは `terraform設計.md` 参照） |
+
 ### 認証方式
 
 | 認証方式         | 用途                                    |
@@ -22,7 +29,7 @@ D-006: Vault 戦略。認証方式、シークレットエンジン、パス体�
 | ----------- | ------------------ | --------------------------------------------- |
 | KV v2       | `secret/`          | 静的シークレット（API キー、設定値等）        |
 | Database    | `database/`        | データベースクレデンシャルの動的生成           |
-| PKI         | `pki/`             | 内部 TLS 証明書の発行                         |
+| PKI         | `pki_int/`         | 内部 TLS 証明書の発行（Intermediate CA）      |
 
 ### シークレットパス体系
 
@@ -38,7 +45,7 @@ secret/data/k1s0/{tier}/{service}/{secret-type}
 | --------------- | ----------------------------------- | ------------------------------- |
 | `k1s0`          | プロジェクトプレフィックス（固定）  | ---                             |
 | `tier`          | Tier 名                             | `system`, `business`, `service` |
-| `service`       | サービス名（ハイフン区切り）        | `auth`, `order`, `bff`          |
+| `service`       | サービス名（ハイフン区切り）        | `auth-server`, `order`, `bff-proxy` |
 | `secret-type`   | シークレットの種別                  | `database`, `api-key`, `oidc`, `redis` |
 
 #### Database シークレットエンジン命名規則
@@ -56,8 +63,10 @@ database/creds/{tier}-{service}-{permission}
 #### PKI 証明書パス命名規則
 
 ```
-pki/issue/{tier}
+pki_int/issue/{tier}
 ```
+
+Root CA（`pki/`）は直接利用しない。Intermediate CA（`pki_int/`）経由で証明書を発行すること。
 
 #### シークレットパス一覧
 
@@ -65,12 +74,19 @@ pki/issue/{tier}
 
 **system Tier**
 
-- `secret/data/k1s0/system/auth/oidc` --- Keycloak OIDC Client Secret（キー: `client_secret`）
-- `secret/data/k1s0/system/auth/database` --- 認証サービス DB パスワード（キー: `password`）
-- `secret/data/k1s0/system/bff/redis` --- BFF セッション Redis AUTH パスワード（キー: `password`）
-- `secret/data/k1s0/system/bff/oidc` --- BFF OIDC Client Secret（キー: `client_secret`）
-- `database/creds/system-auth-rw` --- 認証サービス DB 動的クレデンシャル（読み書き）
-- `database/creds/system-auth-ro` --- 認証サービス DB 動的クレデンシャル（読み取り専用）
+- `secret/data/k1s0/system/auth-server/*` --- auth-server サービス固有シークレット（API キー、DB パスワード等）
+- `secret/data/k1s0/system/config-server/*` --- config-server サービス固有シークレット
+- `secret/data/k1s0/system/dlq-manager/*` --- dlq-manager サービス固有シークレット
+- `secret/data/k1s0/system/saga-server/*` --- saga-server サービス固有シークレット
+- `secret/data/k1s0/system/bff-proxy/*` --- bff-proxy サービス固有シークレット
+- `secret/data/k1s0/system/redis/*` --- BFF セッション Redis AUTH パスワード（キー: `password`）
+- `secret/data/k1s0/system/keycloak/bff-proxy` --- BFF OIDC Client Secret（キー: `client_secret`）
+- `secret/data/k1s0/system/keycloak/*` --- Keycloak 統合シークレット（キー: `client_secret`）
+- `secret/data/k1s0/system/database` --- 共有 DB 静的クレデンシャル（キー: `password`）
+- `database/creds/auth-server-rw` --- auth-server DB 動的クレデンシャル（読み書き）
+- `database/creds/auth-server-ro` --- auth-server DB 動的クレデンシャル（読み取り専用）
+- `database/creds/config-server-rw` --- config-server DB 動的クレデンシャル（読み書き）
+- `database/creds/config-server-ro` --- config-server DB 動的クレデンシャル（読み取り専用）
 
 **business Tier**
 
@@ -123,17 +139,139 @@ Pod にシークレットをファイルとして注入する際のマウント�
 
 ### Tier 別アクセスポリシー
 
-各 Tier のサービスがアクセスできる Vault パスを制限する。
+ポリシーは **2階層構造** で管理する。Bootstrap 用の Tier ポリシー（Tier 全体へのワイルドカードアクセス）と、サービス固有のポリシー（最小権限）を組み合わせる。Kubernetes Auth ロールでは両者を `token_policies` に列挙する（例: `["k1s0-system", "auth-server"]`）。
+
+#### Bootstrap 用 Tier ポリシー（`infra/vault/policies/k1s0-system.hcl`）
+
+Tier 内の全シークレットへの読み取りアクセスを提供する。初期セットアップおよび Terraform Bootstrap 用途。
 
 ```hcl
-# policy/system.hcl --- system tier のポリシー
+# k1s0-system.hcl --- system tier 全体の Bootstrap ポリシー
+path "secret/data/k1s0/system/*" {
+  capabilities = ["read"]
+}
+
+path "secret/metadata/k1s0/system/*" {
+  capabilities = ["read", "list"]
+}
+```
+
+#### サービス固有ポリシー（`infra/vault/policies/{service}.hcl`）
+
+各サービスが必要とするパスのみにアクセスを限定する最小権限ポリシー。以下は実装済みの4サービス分。
+
+```hcl
+# auth-server.hcl --- auth-server 固有ポリシー
+path "secret/data/k1s0/system/auth-server/*" {
+  capabilities = ["read"]
+}
+path "secret/metadata/k1s0/system/auth-server/*" {
+  capabilities = ["read", "list"]
+}
+path "secret/data/k1s0/system/database" {
+  capabilities = ["read"]
+}
+path "database/creds/auth-server-rw" {
+  capabilities = ["read"]
+}
+path "database/creds/auth-server-ro" {
+  capabilities = ["read"]
+}
+path "pki_int/issue/system" {
+  capabilities = ["create", "update"]
+}
+path "secret/data/k1s0/system/kafka/*" {
+  capabilities = ["read"]
+}
+path "secret/data/k1s0/system/keycloak/*" {
+  capabilities = ["read"]
+}
+
+# config-server.hcl --- config-server 固有ポリシー
+path "secret/data/k1s0/system/config-server/*" {
+  capabilities = ["read"]
+}
+path "secret/metadata/k1s0/system/config-server/*" {
+  capabilities = ["read", "list"]
+}
+path "secret/data/k1s0/system/database" {
+  capabilities = ["read"]
+}
+path "database/creds/config-server-rw" {
+  capabilities = ["read"]
+}
+path "database/creds/config-server-ro" {
+  capabilities = ["read"]
+}
+path "pki_int/issue/system" {
+  capabilities = ["create", "update"]
+}
+path "secret/data/k1s0/system/kafka/*" {
+  capabilities = ["read"]
+}
+
+# dlq-manager.hcl --- dlq-manager 固有ポリシー
+path "secret/data/k1s0/system/dlq-manager/*" {
+  capabilities = ["read"]
+}
+path "secret/metadata/k1s0/system/dlq-manager/*" {
+  capabilities = ["read", "list"]
+}
+path "secret/data/k1s0/system/database" {
+  capabilities = ["read"]
+}
+path "secret/data/k1s0/system/kafka/*" {
+  capabilities = ["read"]
+}
+
+# saga-server.hcl --- saga-server 固有ポリシー
+path "secret/data/k1s0/system/saga-server/*" {
+  capabilities = ["read"]
+}
+path "secret/metadata/k1s0/system/saga-server/*" {
+  capabilities = ["read", "list"]
+}
+path "secret/data/k1s0/system/database" {
+  capabilities = ["read"]
+}
+path "secret/data/k1s0/system/kafka/*" {
+  capabilities = ["read"]
+}
+
+# bff-proxy.hcl --- bff-proxy 固有ポリシー
+path "secret/data/k1s0/system/bff-proxy/*" {
+  capabilities = ["read"]
+}
+path "secret/metadata/k1s0/system/bff-proxy/*" {
+  capabilities = ["read", "list"]
+}
+path "secret/data/k1s0/system/redis/*" {
+  capabilities = ["read"]
+}
+path "secret/data/k1s0/system/keycloak/bff-proxy" {
+  capabilities = ["read"]
+}
+path "pki_int/issue/system" {
+  capabilities = ["create", "update"]
+}
+path "secret/data/k1s0/system/service-auth/*" {
+  capabilities = ["read"]
+}
+```
+
+#### Terraform Bootstrap ポリシー（`infra/terraform/modules/vault/policies/`）
+
+Terraform で管理する Tier レベルのポリシー。サービス固有ポリシー（`infra/vault/policies/`）と役割が異なることに注意。
+
+```hcl
+# policy/system.hcl --- system tier のポリシー（Terraform 管理）
 path "secret/data/k1s0/system/*" {
   capabilities = ["read", "list"]
 }
 path "database/creds/system-*" {
   capabilities = ["read"]
 }
-path "pki/issue/system" {
+path "pki_int/issue/system" {
   capabilities = ["create", "update"]
 }
 
@@ -164,50 +302,74 @@ path "secret/data/k1s0/system/kafka/sasl" {
 
 ### Kubernetes Auth 設定
 
-```hcl
-# Kubernetes Auth Backend の設定
-resource "vault_auth_backend" "kubernetes" {
-  type = "kubernetes"
-}
+Kubernetes Auth ロールはサービス固有の ServiceAccount を指定する（ワイルドカード SA は使用しない）。各ロールは Bootstrap 用 Tier ポリシーとサービス固有ポリシーの2つを付与する。
 
-resource "vault_kubernetes_auth_backend_config" "k8s" {
-  backend            = vault_auth_backend.kubernetes.path
-  kubernetes_host    = "https://kubernetes.default.svc"
-  kubernetes_ca_cert = file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
-}
+実装済みロール（`infra/vault/auth/` 配下）:
 
-# system tier のロール
-resource "vault_kubernetes_auth_backend_role" "system" {
-  backend                          = vault_auth_backend.kubernetes.path
-  role_name                        = "system"
-  bound_service_account_names      = ["*"]
-  bound_service_account_namespaces = ["k1s0-system"]
-  token_policies                   = ["system"]
-  token_ttl                        = 3600
-}
+| ロール名        | ServiceAccount  | Namespace    | token_policies                    |
+| --------------- | --------------- | ------------ | --------------------------------- |
+| `auth-server`   | `auth-server`   | `k1s0-system` | `["k1s0-system", "auth-server"]`  |
+| `config-server` | `config-server` | `k1s0-system` | `["k1s0-system", "config-server"]` |
+| `dlq-manager`   | `dlq-manager`   | `k1s0-system` | `["k1s0-system", "dlq-manager"]`  |
+| `saga-server`   | `saga-server`   | `k1s0-system` | `["k1s0-system", "saga-server"]`  |
 
-# business tier のロール
-resource "vault_kubernetes_auth_backend_role" "business" {
-  backend                          = vault_auth_backend.kubernetes.path
-  role_name                        = "business"
-  bound_service_account_names      = ["*"]
-  bound_service_account_namespaces = ["k1s0-business"]
-  token_policies                   = ["business"]
-  token_ttl                        = 3600
-}
+> **注意**: `bff-proxy` の Kubernetes Auth YAML（`infra/vault/auth/k1s0-system-bff.yaml`）は未作成。bff-proxy を Vault 対応にする際は同様の ConfigMap を追加する必要がある。
 
-# service tier のロール
-resource "vault_kubernetes_auth_backend_role" "service" {
-  backend                          = vault_auth_backend.kubernetes.path
-  role_name                        = "service"
-  bound_service_account_names      = ["*"]
-  bound_service_account_namespaces = ["k1s0-service"]
-  token_policies                   = ["service"]
-  token_ttl                        = 3600
+各ロールの設定例（`infra/vault/auth/k1s0-system-auth.yaml` より）:
+
+```json
+{
+  "role_name": "auth-server",
+  "bound_service_account_names": ["auth-server"],
+  "bound_service_account_namespaces": ["k1s0-system"],
+  "token_policies": ["k1s0-system", "auth-server"],
+  "token_ttl": "3600",
+  "token_max_ttl": "86400"
 }
 ```
 
-上記の Terraform 設定は [terraform設計.md](../terraform/terraform設計.md) の `modules/vault/` に配置する。
+### SecretProviderClass
+
+Secrets Store CSI Driver 経由でシークレットを Pod にマウントする設定。`infra/vault/secret-provider-class/` に実装済み。
+
+#### 実装済み SecretProviderClass 一覧
+
+**auth-server**（`auth-secrets.yaml`）
+
+| objectName           | secretPath                                        | secretKey  |
+| -------------------- | ------------------------------------------------- | ---------- |
+| `api-key`            | `secret/data/k1s0/system/auth-server/api-key`    | `key`      |
+| `db-password`        | `secret/data/k1s0/system/auth-server/database`   | `password` |
+| `kafka-sasl-username`| `secret/data/k1s0/system/kafka/sasl`             | `username` |
+| `kafka-sasl-password`| `secret/data/k1s0/system/kafka/sasl`             | `password` |
+
+**config-server**（`config-secrets.yaml`）
+
+| objectName    | secretPath                                          | secretKey  |
+| ------------- | --------------------------------------------------- | ---------- |
+| `api-key`     | `secret/data/k1s0/system/config-server/api-key`    | `key`      |
+| `db-password` | `secret/data/k1s0/system/config-server/database`   | `password` |
+
+**dlq-manager**（`dlq-manager-secrets.yaml`）
+
+| objectName           | secretPath                                         | secretKey  |
+| -------------------- | -------------------------------------------------- | ---------- |
+| `db-password`        | `secret/data/k1s0/system/dlq-manager/database`    | `password` |
+| `kafka-sasl-username`| `secret/data/k1s0/system/kafka/sasl`              | `username` |
+| `kafka-sasl-password`| `secret/data/k1s0/system/kafka/sasl`              | `password` |
+
+**saga-server**（`saga-secrets.yaml`）
+
+| objectName           | secretPath                                        | secretKey  |
+| -------------------- | ------------------------------------------------- | ---------- |
+| `db-password`        | `secret/data/k1s0/system/saga-server/database`   | `password` |
+| `kafka-sasl-username`| `secret/data/k1s0/system/kafka/sasl`             | `username` |
+| `kafka-sasl-password`| `secret/data/k1s0/system/kafka/sasl`             | `password` |
+
+各 SPC の共通設定:
+- `vaultAddress`: `http://vault.vault.svc.cluster.local:8200`
+- `roleName`: サービス名（例: `auth-server`）
+- `namespace`: `k1s0-system`
 
 ### Database シークレットエンジン
 

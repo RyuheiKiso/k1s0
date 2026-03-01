@@ -25,6 +25,27 @@ CREATE DATABASE kong;
 CREATE DATABASE k1s0_system;
 CREATE DATABASE k1s0_business;
 CREATE DATABASE k1s0_service;
+
+-- auth-server 用DB
+CREATE DATABASE auth_db;
+
+-- config-server 用DB
+CREATE DATABASE config_db;
+
+-- dlq-manager 用DB
+CREATE DATABASE dlq_db;
+
+-- featureflag-server 用DB
+CREATE DATABASE featureflag_db;
+
+-- ratelimit-server 用DB
+CREATE DATABASE ratelimit_db;
+
+-- tenant-server 用DB
+CREATE DATABASE tenant_db;
+
+-- vault-server 用DB
+CREATE DATABASE vault_db;
 ```
 
 #### auth-server 用スキーマ
@@ -99,12 +120,225 @@ CREATE INDEX idx_config_audit_namespace ON config_audit_logs(namespace);
 CREATE INDEX idx_config_audit_changed_at ON config_audit_logs(changed_at);
 ```
 
+#### saga-server 用スキーマ
+
+```sql
+-- infra/docker/init-db/04-saga-schema.sql
+
+\connect k1s0_system;
+
+CREATE SCHEMA IF NOT EXISTS saga;
+
+-- saga_states: Saga ワークフローの状態管理
+CREATE TABLE saga.saga_states (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workflow_name VARCHAR(255) NOT NULL,
+    current_step INT NOT NULL DEFAULT 0,
+    status VARCHAR(50) NOT NULL DEFAULT 'STARTED',
+    payload JSONB,
+    correlation_id VARCHAR(255),
+    initiated_by VARCHAR(255),
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- saga_step_logs: 各ステップの実行ログ
+CREATE TABLE saga.saga_step_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    saga_id UUID NOT NULL REFERENCES saga.saga_states(id),
+    step_index INT NOT NULL,
+    step_name VARCHAR(255) NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    request_payload JSONB,
+    response_payload JSONB,
+    error_message TEXT,
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
+);
+```
+
+#### dlq-manager 用スキーマ
+
+```sql
+-- infra/docker/init-db/05-dlq-schema.sql
+
+\connect dlq_db;
+
+CREATE SCHEMA IF NOT EXISTS dlq;
+
+-- dlq_messages: Dead Letter Queue メッセージ管理
+CREATE TABLE IF NOT EXISTS dlq.dlq_messages (
+    id              UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    original_topic  VARCHAR(255) NOT NULL,
+    error_message   TEXT         NOT NULL,
+    retry_count     INT          NOT NULL DEFAULT 0,
+    max_retries     INT          NOT NULL DEFAULT 3,
+    payload         JSONB,
+    status          VARCHAR(50)  NOT NULL DEFAULT 'PENDING',
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    last_retry_at   TIMESTAMPTZ,
+    CONSTRAINT chk_dlq_messages_status CHECK (status IN ('PENDING', 'RETRYING', 'RESOLVED', 'DEAD'))
+);
+
+-- dlq_messages_archive: アーカイブテーブル（30日経過した RESOLVED/DEAD メッセージを保管）
+CREATE TABLE IF NOT EXISTS dlq.dlq_messages_archive (LIKE dlq.dlq_messages INCLUDING ALL);
+```
+
+#### featureflag-server 用スキーマ
+
+```sql
+-- infra/docker/init-db/06-featureflag-schema.sql
+
+\c featureflag_db;
+
+CREATE SCHEMA IF NOT EXISTS featureflag;
+
+-- feature_flags: フィーチャーフラグ定義
+CREATE TABLE IF NOT EXISTS featureflag.feature_flags (
+    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    flag_key    VARCHAR(255) UNIQUE NOT NULL,
+    description TEXT,
+    enabled     BOOLEAN      NOT NULL DEFAULT false,
+    variants    JSONB        NOT NULL DEFAULT '[]',
+    rules       JSONB        NOT NULL DEFAULT '[]',
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+-- flag_evaluations: フラグ評価ログ
+CREATE TABLE IF NOT EXISTS featureflag.flag_evaluations (
+    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    flag_id     UUID         NOT NULL REFERENCES featureflag.feature_flags(id) ON DELETE CASCADE,
+    user_id     VARCHAR(255),
+    tenant_id   VARCHAR(255),
+    result      BOOLEAN      NOT NULL,
+    variant     VARCHAR(255),
+    reason      VARCHAR(255),
+    context     JSONB,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+-- flag_audit_logs: フラグ変更監査ログ
+CREATE TABLE IF NOT EXISTS featureflag.flag_audit_logs (
+    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    flag_id     UUID         REFERENCES featureflag.feature_flags(id) ON DELETE SET NULL,
+    flag_key    VARCHAR(255) NOT NULL,
+    action      VARCHAR(100) NOT NULL,
+    changed_by  VARCHAR(255),
+    old_value   JSONB,
+    new_value   JSONB,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+```
+
+#### ratelimit-server 用スキーマ
+
+```sql
+-- infra/docker/init-db/07-ratelimit-schema.sql
+
+\c ratelimit_db;
+
+CREATE SCHEMA IF NOT EXISTS ratelimit;
+
+-- rate_limit_rules: レートリミットルール定義
+CREATE TABLE IF NOT EXISTS ratelimit.rate_limit_rules (
+    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    name        VARCHAR(255) UNIQUE NOT NULL,
+    key         VARCHAR(255) NOT NULL,
+    limit_count BIGINT       NOT NULL,
+    window_secs BIGINT       NOT NULL,
+    algorithm   VARCHAR(50)  NOT NULL DEFAULT 'token_bucket',
+    enabled     BOOLEAN      NOT NULL DEFAULT true,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_rate_limit_rules_algorithm CHECK (algorithm IN ('token_bucket', 'fixed_window', 'sliding_window'))
+);
+```
+
+#### tenant-server 用スキーマ
+
+```sql
+-- infra/docker/init-db/08-tenant-schema.sql
+
+\c tenant_db;
+
+CREATE SCHEMA IF NOT EXISTS tenant;
+
+-- tenants: テナント管理
+CREATE TABLE IF NOT EXISTS tenant.tenants (
+    id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    name         VARCHAR(255) UNIQUE NOT NULL,
+    display_name VARCHAR(255) NOT NULL,
+    status       VARCHAR(50)  NOT NULL DEFAULT 'provisioning',
+    plan         VARCHAR(100) NOT NULL DEFAULT 'free',
+    realm_name   VARCHAR(255),
+    owner_id     UUID,
+    metadata     JSONB        NOT NULL DEFAULT '{}',
+    created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_tenants_status CHECK (status IN ('provisioning', 'active', 'suspended', 'deleted'))
+);
+
+-- tenant_members: テナントメンバー
+CREATE TABLE IF NOT EXISTS tenant.tenant_members (
+    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id   UUID         NOT NULL REFERENCES tenant.tenants(id) ON DELETE CASCADE,
+    user_id     UUID         NOT NULL,
+    role        VARCHAR(100) NOT NULL DEFAULT 'member',
+    joined_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_tenant_members_tenant_user UNIQUE (tenant_id, user_id)
+);
+
+-- tenant_provisioning_jobs: テナントプロビジョニングジョブ
+CREATE TABLE IF NOT EXISTS tenant.tenant_provisioning_jobs (
+    id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id     UUID         NOT NULL REFERENCES tenant.tenants(id) ON DELETE CASCADE,
+    status        VARCHAR(50)  NOT NULL DEFAULT 'pending',
+    current_step  VARCHAR(255),
+    error_message TEXT,
+    metadata      JSONB        NOT NULL DEFAULT '{}',
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_provisioning_status CHECK (status IN ('pending', 'running', 'completed', 'failed'))
+);
+```
+
+#### vault-server 用スキーマ
+
+```sql
+-- infra/docker/init-db/09-vault-schema.sql
+
+\c vault_db;
+
+CREATE SCHEMA IF NOT EXISTS vault;
+
+-- secret_access_logs: シークレットアクセスログ
+CREATE TABLE IF NOT EXISTS vault.secret_access_logs (
+    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    path        VARCHAR(1024) NOT NULL,
+    action      VARCHAR(50)  NOT NULL,
+    subject     VARCHAR(255),
+    tenant_id   VARCHAR(255),
+    ip_address  INET,
+    user_agent  TEXT,
+    trace_id    VARCHAR(64),
+    success     BOOLEAN      NOT NULL DEFAULT true,
+    error_msg   TEXT,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_vault_access_action CHECK (action IN ('read', 'write', 'delete', 'list'))
+);
+```
+
 ### Keycloak 初期設定
 
 Keycloak は `start-dev --import-realm` で起動し、realm 設定を自動インポートする。
 
 | 項目 | 設定 |
 | --- | --- |
+| イメージ | `quay.io/keycloak/keycloak:26.0` |
 | Realm 名 | `k1s0` |
 | Admin ユーザー | `admin` / `dev` |
 | DB | PostgreSQL（`keycloak` データベース） |
@@ -227,7 +461,13 @@ infra/docker/
 ├── init-db/
 │   ├── 01-create-databases.sql    # データベース作成
 │   ├── 02-auth-schema.sql         # auth-server 用スキーマ
-│   └── 03-config-schema.sql       # config-server 用スキーマ
+│   ├── 03-config-schema.sql       # config-server 用スキーマ
+│   ├── 04-saga-schema.sql         # saga-server 用スキーマ
+│   ├── 05-dlq-schema.sql          # dlq-manager 用スキーマ
+│   ├── 06-featureflag-schema.sql  # featureflag-server 用スキーマ
+│   ├── 07-ratelimit-schema.sql    # ratelimit-server 用スキーマ
+│   ├── 08-tenant-schema.sql       # tenant-server 用スキーマ
+│   └── 09-vault-schema.sql        # vault-server 用スキーマ
 ├── keycloak/
 │   └── k1s0-realm.json            # Keycloak realm 初期設定
 ├── prometheus/
@@ -241,8 +481,7 @@ infra/docker/
 │   └── dashboards/
 │       └── (JSON ダッシュボードファイル)
 └── kong/
-    ├── kong.yaml                  # Kong 本番用 decK 設定
-    └── kong.dev.yaml              # Kong ローカル開発用 declarative config
+    └── kong.yaml                  # Kong ローカル開発用 declarative config
 ```
 
 ### 初期化順序
@@ -258,9 +497,15 @@ PostgreSQL の公式 Docker イメージは、初回起動時に `/docker-entryp
 
 | ファイル | 実行順 | 内容 |
 | --- | --- | --- |
-| `01-create-databases.sql` | 1 | データベース作成（keycloak, kong, k1s0_system, k1s0_business, k1s0_service） + 個別DB作成（auth_db, config_db, dlq_db） |
+| `01-create-databases.sql` | 1 | データベース作成（keycloak, kong, k1s0_system, k1s0_business, k1s0_service） + 個別DB作成（auth_db, config_db, dlq_db, featureflag_db, ratelimit_db, tenant_db, vault_db）計12件 |
 | `02-auth-schema.sql` | 2 | 監査ログテーブル作成（k1s0_system DB） |
 | `03-config-schema.sql` | 3 | 設定値テーブル・設定変更監査ログテーブル作成（k1s0_system DB） |
+| `04-saga-schema.sql` | 4 | Saga ステートマシンテーブル作成（k1s0_system DB、saga スキーマ） |
+| `05-dlq-schema.sql` | 5 | DLQ メッセージ・アーカイブテーブル作成（dlq_db、dlq スキーマ） |
+| `06-featureflag-schema.sql` | 6 | フィーチャーフラグ・評価ログ・監査ログテーブル作成（featureflag_db、featureflag スキーマ） |
+| `07-ratelimit-schema.sql` | 7 | レートリミットルールテーブル作成（ratelimit_db、ratelimit スキーマ） |
+| `08-tenant-schema.sql` | 8 | テナント・メンバー・プロビジョニングジョブテーブル作成（tenant_db、tenant スキーマ） |
+| `09-vault-schema.sql` | 9 | シークレットアクセスログテーブル作成（vault_db、vault スキーマ） |
 
 > **注記**: 初期化スクリプトはデータボリュームが空の場合のみ実行される。既存データがある場合はスキップされるため、スキーマ変更時は `docker compose down -v` でボリュームを削除してから再起動すること。
 

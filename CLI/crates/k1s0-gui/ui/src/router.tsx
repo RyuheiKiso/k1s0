@@ -2,6 +2,9 @@ import { createRouter, createRootRoute, createRoute } from '@tanstack/react-rout
 import Layout from './components/Layout';
 import InitPage from './pages/InitPage';
 import GeneratePage from './pages/GeneratePage';
+import ConfigTypesPage from './pages/ConfigTypesPage';
+import NavigationTypesPage from './pages/NavigationTypesPage';
+import ValidatePage from './pages/ValidatePage';
 import BuildPage from './pages/BuildPage';
 import TestPage from './pages/TestPage';
 import DeployPage from './pages/DeployPage';
@@ -20,6 +23,24 @@ const generateRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/generate',
   component: GeneratePage,
+});
+
+const configTypesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/config-types',
+  component: ConfigTypesPage,
+});
+
+const navigationTypesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/navigation-types',
+  component: NavigationTypesPage,
+});
+
+const validateRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/validate',
+  component: ValidatePage,
 });
 
 const buildRoute = createRoute({
@@ -43,6 +64,9 @@ const deployRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   initRoute,
   generateRoute,
+  configTypesRoute,
+  navigationTypesRoute,
+  validateRoute,
   buildRoute,
   testRoute,
   deployRoute,

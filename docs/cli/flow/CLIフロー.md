@@ -19,6 +19,9 @@ $ k1s0
 ? 操作を選択してください
 > プロジェクト初期化
   ひな形生成
+  設定スキーマ型生成
+  ナビゲーション型生成
+  バリデーション
   ビルド
   テスト実行
   デプロイ
@@ -773,6 +776,95 @@ prod 環境でのデプロイ失敗時は、ロールバックの選択肢を表
 ```
 
 「はい」を選択した場合、`helm rollback {service_name} -n k1s0-{tier}` を実行する。
+
+---
+
+## 設定スキーマ型生成
+
+`config-schema.yaml` から TypeScript および Dart の型定義ファイルを生成する。
+
+```
+[1] config-schema.yaml のパスを入力してください: config/config-schema.yaml
+
+[2] 生成ターゲットを選択してください
+    > TypeScript
+      Dart
+      両方
+
+[3] 生成先ディレクトリを入力してください: src/config/__generated__/
+
+--- 確認 ---
+スキーマ:   config/config-schema.yaml
+ターゲット: TypeScript
+生成先:     src/config/__generated__/config-types.ts
+> はい
+  いいえ（前のステップに戻る）
+  キャンセル（メインメニューに戻る）
+```
+
+生成に成功すると対象ファイルパスを表示し、メインメニューに戻る。
+
+---
+
+## ナビゲーション型生成
+
+`navigation.yaml` から TypeScript および Dart のルート型定義ファイルを生成する。
+
+```
+[1] navigation.yaml のパスを入力してください: config/navigation.yaml
+
+[2] 生成ターゲットを選択してください
+    > TypeScript
+      Dart
+      両方
+
+[3] 生成先ディレクトリを入力してください: src/navigation/__generated__/
+
+--- 確認 ---
+ナビゲーション: config/navigation.yaml
+ターゲット:     TypeScript
+生成先:         src/navigation/__generated__/route-types.ts
+> はい
+  いいえ（前のステップに戻る）
+  キャンセル（メインメニューに戻る）
+```
+
+生成に成功すると対象ファイルパスを表示し、メインメニューに戻る。
+
+---
+
+## バリデーション
+
+設定スキーマまたはナビゲーション定義の整合性を検証する。
+
+```
+? バリデーション対象を選択してください
+> 設定スキーマ (config-schema.yaml)
+  ナビゲーション定義 (navigation.yaml)
+  キャンセル（メインメニューに戻る）
+```
+
+**設定スキーマの場合:**
+```
+[1] config-schema.yaml のパスを入力してください: config/config-schema.yaml
+```
+
+**ナビゲーション定義の場合:**
+```
+[1] navigation.yaml のパスを入力してください: config/navigation.yaml
+```
+
+検証結果を表示してメインメニューに戻る。エラーがない場合:
+```
+✓ バリデーション完了: エラーなし
+```
+
+エラーがある場合、各エラーの詳細とエラー件数を表示する:
+```
+✗ バリデーション完了: 3 件のエラー
+  - category 'general' の field 'port' に type が未指定
+  - ...
+```
 
 ---
 

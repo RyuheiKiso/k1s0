@@ -10,13 +10,13 @@
 
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `ServiceAuthClient` | トレイト | トークン取得・検証の抽象インターフェース |
+| `ServiceAuthClient` | トレイト | トークン取得・検証の抽象インターフェース（`get_token`, `get_cached_token`, `verify_token`, `validate_spiffe_id`）|
 | `HttpServiceAuthClient` | 構造体 | OAuth2 Client Credentials フローの HTTP 実装 |
 | `MockServiceAuthClient` | 構造体 | テスト用モック（feature = "mock" で有効） |
 | `ServiceClaims` | 構造体 | サービストークンのクレーム（`sub`・`iss`・`scope` 等） |
 | `ServiceAuthConfig` | 構造体 | トークンエンドポイント・クライアント ID/シークレット・JWKS URI |
 | `ServiceToken` | 構造体 | アクセストークン + 有効期限（キャッシュ・自動更新対応） |
-| `SpiffeId` | 構造体 | SPIFFE URI のパース・検証（`spiffe://<trust-domain>/ns/<ns>/sa/<sa>`） |
+| `SpiffeId` | 構造体 | SPIFFE URI のパース・検証（`spiffe://<trust-domain>/ns/<ns>/sa/<sa>`）。`parse(uri)`, `to_uri()`, `allows_tier_access(tier)` メソッドあり |
 | `ServiceAuthError` | enum | トークン取得・検証・SPIFFE エラー型 |
 
 ## Rust 実装
@@ -162,6 +162,63 @@ export interface ServiceAuthClient {
 ## Dart 実装
 
 **配置先**: `regions/system/library/dart/serviceauth/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**主要 API**:
+
+```dart
+class ServiceClaims {
+  final String sub;
+  final String iss;
+  final String? scope;
+  final int? exp;
+}
+
+class SpiffeId {
+  final String trustDomain;
+  final String namespace;
+  final String serviceAccount;
+  final String uri;
+}
+
+SpiffeId parseSpiffeId(String uri);
+SpiffeId validateSpiffeId(String uri, String expectedNamespace);
+
+class ServiceToken {
+  final String accessToken;
+  final String tokenType;
+  final DateTime expiresAt;
+  final String? scope;
+}
+
+bool isExpired(ServiceToken token);
+bool shouldRefresh(ServiceToken token);
+String bearerHeader(ServiceToken token);
+
+class ServiceAuthConfig {
+  final String tokenEndpoint;
+  final String clientId;
+  final String clientSecret;
+  const ServiceAuthConfig({required tokenEndpoint, required clientId, required clientSecret});
+}
+
+abstract class ServiceAuthClient {
+  Future<ServiceToken> getToken();
+  Future<String> getCachedToken();
+  SpiffeId validateSpiffeIdCheck(String uri, String expectedNamespace);
+}
+
+class HttpServiceAuthClient implements ServiceAuthClient {
+  HttpServiceAuthClient(ServiceAuthConfig config, {http.Client? httpClient});
+  Future<ServiceToken> getToken();
+  Future<String> getCachedToken();
+  SpiffeId validateSpiffeIdCheck(String uri, String expectedNamespace);
+}
+
+class ServiceAuthError implements Exception {
+  final String message;
+  final Object? cause;
+}
+```
 
 **カバレッジ目標**: 90%以上
 

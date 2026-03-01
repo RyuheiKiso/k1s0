@@ -4,8 +4,12 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/subtle"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -155,4 +159,59 @@ func splitArgon2Hash(encoded string) *argon2Params {
 		salt:        salt,
 		hash:        hash,
 	}
+}
+
+// GenerateRSAKeyPair は2048ビットのRSAキーペアをPEM形式で生成する。
+func GenerateRSAKeyPair() (publicKeyPEM string, privateKeyPEM string, err error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return "", "", fmt.Errorf("RSA key generation failed: %w", err)
+	}
+
+	privDER := x509.MarshalPKCS1PrivateKey(privateKey)
+	privPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: privDER,
+	})
+
+	pubDER, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+	if err != nil {
+		return "", "", fmt.Errorf("RSA public key marshal failed: %w", err)
+	}
+	pubPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: pubDER,
+	})
+
+	return string(pubPEM), string(privPEM), nil
+}
+
+// RSAEncrypt はRSA-OAEP-SHA256で暗号化する。
+func RSAEncrypt(publicKeyPEM string, plaintext []byte) ([]byte, error) {
+	block, _ := pem.Decode([]byte(publicKeyPEM))
+	if block == nil {
+		return nil, errors.New("failed to decode public key PEM")
+	}
+	pubInterface, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key: %w", err)
+	}
+	pub, ok := pubInterface.(*rsa.PublicKey)
+	if !ok {
+		return nil, errors.New("not an RSA public key")
+	}
+	return rsa.EncryptOAEP(sha256.New(), rand.Reader, pub, plaintext, nil)
+}
+
+// RSADecrypt はRSA-OAEP-SHA256で復号する。
+func RSADecrypt(privateKeyPEM string, ciphertext []byte) ([]byte, error) {
+	block, _ := pem.Decode([]byte(privateKeyPEM))
+	if block == nil {
+		return nil, errors.New("failed to decode private key PEM")
+	}
+	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse private key: %w", err)
+	}
+	return rsa.DecryptOAEP(sha256.New(), rand.Reader, priv, ciphertext, nil)
 }

@@ -6,8 +6,8 @@ Kafka のデッドレタートピック（`*.dlq`）に送られた処理失敗�
 DLQ メッセージの一覧取得・詳細取得・再処理・削除・一括再処理を提供する。
 
 **配置先**:
-- `regions/system/library/go/dlq/`
-- `regions/system/library/rust/dlq/`
+- `regions/system/library/go/dlq-client/`
+- `regions/system/library/rust/dlq-client/`
 - `regions/system/library/typescript/dlq-client/`
 - `regions/system/library/dart/dlq_client/`
 
@@ -21,7 +21,7 @@ DLQ メッセージの一覧取得・詳細取得・再処理・削除・一括�
 | `ListDlqMessagesRequest` | 構造体/インターフェース | 一覧取得リクエスト（topic・page・page_size） |
 | `ListDlqMessagesResponse` | 構造体/インターフェース | 一覧取得レスポンス（messages・total・page） |
 | `RetryDlqMessageResponse` | 構造体/インターフェース | 再処理レスポンス（message_id・status） |
-| `DlqError` | 構造体/クラス | DLQ クライアントエラー型 |
+| `DlqError`（Dart: `DlqException`） | 構造体/クラス | DLQ クライアントエラー型 |
 
 ## クライアントメソッド
 
@@ -45,6 +45,7 @@ DlqMessage {
   payload: JSON
   status: DlqStatus
   created_at: datetime
+  updated_at: datetime (nullable)
   last_retry_at: datetime (nullable)
 }
 
@@ -70,7 +71,7 @@ RetryDlqMessageResponse {
 
 ## Go 実装
 
-**配置先**: `regions/system/library/go/dlq/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+**配置先**: `regions/system/library/go/dlq-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
 **主要型**:
 
@@ -99,7 +100,7 @@ func (c *DlqClient) RetryAll(ctx context.Context, topic string) error
 
 ## Rust 実装
 
-**配置先**: `regions/system/library/rust/dlq/`
+**配置先**: `regions/system/library/rust/dlq-client/`
 
 ```
 dlq/
@@ -144,6 +145,7 @@ export interface DlqMessage {
   payload: unknown;
   status: DlqStatus;
   createdAt: string;
+  updatedAt: string | null;
   lastRetryAt: string | null;
 }
 
@@ -160,6 +162,65 @@ export class DlqClient {
 ## Dart 実装
 
 **配置先**: `regions/system/library/dart/dlq_client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**主要 API**:
+
+```dart
+enum DlqStatus { pending, retrying, resolved, dead }
+
+class DlqMessage {
+  final String id;
+  final String originalTopic;
+  final String errorMessage;
+  final int retryCount;
+  final int maxRetries;
+  final dynamic payload;
+  final DlqStatus status;
+  final String createdAt;
+  final String? updatedAt;
+  final String? lastRetryAt;
+
+  factory DlqMessage.fromJson(Map<String, dynamic> json);
+}
+
+class ListDlqMessagesResponse {
+  final List<DlqMessage> messages;
+  final int total;
+  final int page;
+
+  factory ListDlqMessagesResponse.fromJson(Map<String, dynamic> json);
+}
+
+class RetryDlqMessageResponse {
+  final String messageId;
+  final DlqStatus status;
+
+  factory RetryDlqMessageResponse.fromJson(Map<String, dynamic> json);
+}
+
+class DlqException implements Exception {
+  final String message;
+  final int? statusCode;
+}
+
+class DlqClient {
+  DlqClient(String endpoint, {http.Client? httpClient});
+  Future<ListDlqMessagesResponse> listMessages(String topic, int page, int pageSize);
+  Future<DlqMessage> getMessage(String messageId);
+  Future<RetryDlqMessageResponse> retryMessage(String messageId);
+  Future<void> deleteMessage(String messageId);
+  Future<void> retryAll(String topic);
+}
+```
+
+## Proto との整合性ノート
+
+Proto 定義 (`api/proto/k1s0/system/dlq/v1/dlq.proto`) との差異:
+- Proto の `payload_json` (string) は REST 実装では `payload` (JSON object) として扱う
+- Proto の `RetryMessageResponse` は `DlqMessage` 全体を返すが、REST クライアントは `message_id` + `status` のみ
+- Proto の `RetryAllResponse` に `retried_count` フィールドがあるが、REST クライアントでは使用しない
+- Proto の `ListMessagesResponse` には `page` フィールドがないが、REST レスポンスには `page` を含める（ページネーション慣例）
+- Proto の `DeleteMessageResponse` は削除された `id` を返すが、REST クライアントは void を返す
 
 ## 関連ドキュメント
 

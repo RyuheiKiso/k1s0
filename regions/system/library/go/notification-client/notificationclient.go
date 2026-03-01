@@ -9,18 +9,21 @@ import (
 type Channel string
 
 const (
-	ChannelEmail Channel = "email"
-	ChannelSMS   Channel = "sms"
-	ChannelPush  Channel = "push"
+	ChannelEmail   Channel = "email"
+	ChannelSMS     Channel = "sms"
+	ChannelPush    Channel = "push"
+	ChannelSlack   Channel = "slack"
+	ChannelWebhook Channel = "webhook"
 )
 
 // NotificationRequest は通知リクエスト。
 type NotificationRequest struct {
-	ID        string  `json:"id"`
-	Channel   Channel `json:"channel"`
-	Recipient string  `json:"recipient"`
-	Subject   string  `json:"subject,omitempty"`
-	Body      string  `json:"body"`
+	ID        string                 `json:"id"`
+	Channel   Channel                `json:"channel"`
+	Recipient string                 `json:"recipient"`
+	Subject   string                 `json:"subject,omitempty"`
+	Body      string                 `json:"body"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // NotificationResponse は通知レスポンス。

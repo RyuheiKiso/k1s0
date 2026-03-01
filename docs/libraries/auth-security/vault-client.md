@@ -4,19 +4,21 @@
 
 system-vault-server（ポート 8090）へのシークレット取得・管理クライアントライブラリ。シークレット値の取得・メモリ内 TTL 付きキャッシュ・動的クレデンシャルのリース管理（自動更新）・シークレット更新の検知（Kafka トピック `k1s0.system.vault.secret_rotated.v1` のポーリングまたは購読）・複数シークレットの一括取得を提供する。全 Tier のサービスがシークレット管理を安全かつ効率的に行うための基盤ライブラリである。
 
+> **実装状況**: 全言語で `InMemoryVaultClient`（テスト・スタブ用）と `HttpVaultClient`（vault-server REST API クライアント）が実装済み。
+
 **配置先**: `regions/system/library/rust/vault-client/`
 
 ## 公開 API
 
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
-| `VaultClient` | トレイト | シークレット操作インターフェース |
-| `GrpcVaultClient` | 構造体 | gRPC 経由の vault-server 接続実装（TTL キャッシュ・ウォッチャー内蔵）|
+| `VaultClient` | トレイト | シークレット操作インターフェース（`get_secret`, `get_secret_value`, `list_secrets`, `watch_secret`）。`watch_secret` の戻り型は言語別に異なる（Rust: `Receiver<SecretRotatedEvent>`, Go: `<-chan SecretRotatedEvent`, TS: `AsyncIterable`, Dart: `Stream`）|
+| `HttpVaultClient` | 構造体 | HTTP/REST 経由の vault-server 接続実装（TTL キャッシュ・ポーリングウォッチャー内蔵）|
 | `Secret` | 構造体 | パス・データマップ・バージョン・作成日時 |
-| `SecretWatcher` | 構造体 | シークレット更新通知の受信ハンドル（`Stream<SecretRotatedEvent>`）|
 | `SecretRotatedEvent` | 構造体 | ローテーション通知（パス・新バージョン）|
-| `VaultClientConfig` | 構造体 | サーバー URL・キャッシュ TTL・最大キャッシュサイズ・Kafka ブローカー |
+| `VaultClientConfig` | 構造体 | サーバー URL・キャッシュ TTL・最大キャッシュサイズ |
 | `VaultError` | enum | `NotFound`・`PermissionDenied`・`ServerError`・`Timeout`・`LeaseExpired` |
+| `MockVaultClient` | 構造体 | テスト用モック（feature = "mock" で有効、mockall 自動生成）|
 
 ## Rust 実装
 
@@ -58,9 +60,9 @@ mockall = "0.13"
 vault-client/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
-│   ├── client.rs       # VaultClient トレイト
-│   ├── grpc.rs         # GrpcVaultClient（TTL キャッシュ・ウォッチャー内蔵）
-│   ├── secret.rs       # Secret・SecretWatcher・SecretRotatedEvent
+│   ├── client.rs       # VaultClient トレイト・InMemoryVaultClient
+│   ├── http.rs         # HttpVaultClient（HTTP/REST 実装）
+│   ├── secret.rs       # Secret・SecretRotatedEvent
 │   ├── config.rs       # VaultClientConfig
 │   └── error.rs        # VaultError
 └── Cargo.toml
@@ -69,7 +71,7 @@ vault-client/
 **使用例**:
 
 ```rust
-use k1s0_vault_client::{GrpcVaultClient, VaultClient, VaultClientConfig};
+use k1s0_vault_client::{HttpVaultClient, VaultClient, VaultClientConfig};
 use std::time::Duration;
 
 // クライアントの構築（TTL 10 分・最大 500 件キャッシュ）
@@ -77,7 +79,7 @@ let config = VaultClientConfig::new("http://vault-server:8080")
     .cache_ttl(Duration::from_secs(600))
     .cache_max_capacity(500);
 
-let client = GrpcVaultClient::new(config).await?;
+let client = HttpVaultClient::new(config);
 
 // シークレット全体の取得（キャッシュ優先）
 let secret = client.get_secret("system/database/primary").await?;
@@ -110,7 +112,7 @@ tokio::spawn(async move {
 
 **配置先**: `regions/system/library/go/vault-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: `google.golang.org/grpc v1.70`, `github.com/segmentio/kafka-go v0.4`, `github.com/stretchr/testify v1.10.0`
+**依存関係**: 標準 `net/http`（追加依存なし）
 
 **主要インターフェース**:
 
@@ -138,16 +140,15 @@ type VaultClientConfig struct {
     ServerURL        string
     CacheTTL         time.Duration
     CacheMaxCapacity int
-    KafkaBrokers     string
 }
 
-type GrpcVaultClient struct{ /* ... */ }
+type HttpVaultClient struct{ /* ... */ }
 
-func NewGrpcVaultClient(config VaultClientConfig) (*GrpcVaultClient, error)
-func (c *GrpcVaultClient) GetSecret(ctx context.Context, path string) (Secret, error)
-func (c *GrpcVaultClient) GetSecretValue(ctx context.Context, path, key string) (string, error)
-func (c *GrpcVaultClient) ListSecrets(ctx context.Context, pathPrefix string) ([]string, error)
-func (c *GrpcVaultClient) WatchSecret(ctx context.Context, path string) (<-chan SecretRotatedEvent, error)
+func NewHttpVaultClient(config VaultClientConfig) *HttpVaultClient
+func (c *HttpVaultClient) GetSecret(ctx context.Context, path string) (Secret, error)
+func (c *HttpVaultClient) GetSecretValue(ctx context.Context, path, key string) (string, error)
+func (c *HttpVaultClient) ListSecrets(ctx context.Context, pathPrefix string) ([]string, error)
+func (c *HttpVaultClient) WatchSecret(ctx context.Context, path string) (<-chan SecretRotatedEvent, error)
 ```
 
 **使用例**:
@@ -157,7 +158,7 @@ config := VaultClientConfig{
     ServerURL: "http://vault-server:8080",
     CacheTTL:  10 * time.Minute,
 }
-client, err := NewGrpcVaultClient(config)
+client := NewHttpVaultClient(config)
 if err != nil {
     log.Fatal(err)
 }
@@ -192,7 +193,6 @@ export interface VaultClientConfig {
   serverUrl: string;
   cacheTtlMs?: number;
   cacheMaxCapacity?: number;
-  kafkaBrokers?: string;
 }
 
 export interface VaultClient {
@@ -202,13 +202,12 @@ export interface VaultClient {
   watchSecret(path: string): AsyncIterable<SecretRotatedEvent>;
 }
 
-export class GrpcVaultClient implements VaultClient {
+export class HttpVaultClient implements VaultClient {
   constructor(config: VaultClientConfig);
   getSecret(path: string): Promise<Secret>;
   getSecretValue(path: string, key: string): Promise<string>;
   listSecrets(pathPrefix: string): Promise<string[]>;
   watchSecret(path: string): AsyncIterable<SecretRotatedEvent>;
-  close(): Promise<void>;
 }
 
 export class VaultError extends Error {
@@ -229,8 +228,7 @@ export class VaultError extends Error {
 
 ```yaml
 dependencies:
-  grpc: ^4.0.0
-  protobuf: ^3.1.0
+  http: ^1.2.0
 ```
 
 **使用例**:
@@ -242,7 +240,7 @@ final config = VaultClientConfig(
   serverUrl: 'http://vault-server:8080',
   cacheTtl: Duration(minutes: 10),
 );
-final client = GrpcVaultClient(config);
+final client = HttpVaultClient(config);
 
 // DB パスワードの取得
 final dbPassword = await client.getSecretValue(
@@ -317,7 +315,7 @@ mock! {
         async fn get_secret(&self, path: &str) -> Result<Secret, VaultError>;
         async fn get_secret_value(&self, path: &str, key: &str) -> Result<String, VaultError>;
         async fn list_secrets(&self, path_prefix: &str) -> Result<Vec<String>, VaultError>;
-        async fn watch_secret(&self, path: &str) -> Result<SecretWatcher, VaultError>;
+        async fn watch_secret(&self, path: &str) -> Result<tokio::sync::mpsc::Receiver<SecretRotatedEvent>, VaultError>;
     }
 }
 

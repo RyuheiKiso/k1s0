@@ -1,3 +1,5 @@
+import 'package:uuid/uuid.dart';
+
 class AuditEvent {
   final String id;
   final String tenantId;
@@ -5,15 +7,18 @@ class AuditEvent {
   final String action;
   final String resourceType;
   final String resourceId;
+  final Map<String, dynamic>? metadata;
   final DateTime timestamp;
 
-  const AuditEvent({
-    required this.id,
+  AuditEvent({
+    String? id,
     required this.tenantId,
     required this.actorId,
     required this.action,
     required this.resourceType,
     required this.resourceId,
-    required this.timestamp,
-  });
+    this.metadata,
+    DateTime? timestamp,
+  })  : id = id ?? const Uuid().v4(),
+        timestamp = timestamp ?? DateTime.now();
 }

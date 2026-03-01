@@ -78,7 +78,7 @@ services:
   # DLQ Manager Service
   # ============================================================
   - name: dlq-manager-v1
-    url: http://dlq-manager-rust:8080
+    url: http://dlq-manager:8080
     routes:
       - name: dlq-route
         paths:
@@ -210,7 +210,7 @@ services:
             enabled: false
 
   - name: dlq-manager-health
-    url: http://dlq-manager-rust:8080
+    url: http://dlq-manager:8080
     routes:
       - name: dlq-manager-health-check
         paths:

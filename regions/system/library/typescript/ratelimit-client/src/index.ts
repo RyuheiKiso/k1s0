@@ -100,3 +100,121 @@ export class InMemoryRateLimitClient implements RateLimitClient {
     return this.counters.get(key) ?? 0;
   }
 }
+
+export class GrpcRateLimitClient implements RateLimitClient {
+  private readonly serverUrl: string;
+
+  constructor(serverUrl: string) {
+    this.serverUrl = serverUrl.replace(/\/$/, '');
+  }
+
+  async check(key: string, cost: number): Promise<RateLimitStatus> {
+    let response: Response;
+    try {
+      response = await fetch(`${this.serverUrl}/api/v1/ratelimit/${key}/check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cost }),
+      });
+    } catch (e) {
+      const isAbort = e instanceof Error && e.name === 'AbortError';
+      throw new RateLimitError(
+        isAbort ? 'Request timed out' : 'Network error',
+        'TIMEOUT',
+      );
+    }
+
+    if (response.status === 429) {
+      const body = await response.json().catch(() => ({}));
+      throw new RateLimitError(
+        'Rate limit exceeded',
+        'LIMIT_EXCEEDED',
+        body.retry_after_secs,
+      );
+    }
+    if (response.status === 404) {
+      throw new RateLimitError(`Key not found: ${key}`, 'KEY_NOT_FOUND');
+    }
+    if (!response.ok) {
+      throw new RateLimitError(`Server error: ${response.status}`, 'SERVER_ERROR');
+    }
+
+    const body = await response.json();
+    return {
+      allowed: body.allowed,
+      remaining: body.remaining,
+      resetAt: new Date(body.reset_at),
+      retryAfterSecs: body.retry_after_secs,
+    };
+  }
+
+  async consume(key: string, cost: number): Promise<RateLimitResult> {
+    let response: Response;
+    try {
+      response = await fetch(`${this.serverUrl}/api/v1/ratelimit/${key}/consume`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cost }),
+      });
+    } catch (e) {
+      const isAbort = e instanceof Error && e.name === 'AbortError';
+      throw new RateLimitError(
+        isAbort ? 'Request timed out' : 'Network error',
+        'TIMEOUT',
+      );
+    }
+
+    if (response.status === 429) {
+      const body = await response.json().catch(() => ({}));
+      throw new RateLimitError(
+        'Rate limit exceeded',
+        'LIMIT_EXCEEDED',
+        body.retry_after_secs,
+      );
+    }
+    if (response.status === 404) {
+      throw new RateLimitError(`Key not found: ${key}`, 'KEY_NOT_FOUND');
+    }
+    if (!response.ok) {
+      throw new RateLimitError(`Server error: ${response.status}`, 'SERVER_ERROR');
+    }
+
+    const body = await response.json();
+    return {
+      remaining: body.remaining,
+      resetAt: new Date(body.reset_at),
+    };
+  }
+
+  async getLimit(key: string): Promise<RateLimitPolicy> {
+    let response: Response;
+    try {
+      response = await fetch(`${this.serverUrl}/api/v1/ratelimit/${key}/policy`);
+    } catch (e) {
+      const isAbort = e instanceof Error && e.name === 'AbortError';
+      throw new RateLimitError(
+        isAbort ? 'Request timed out' : 'Network error',
+        'TIMEOUT',
+      );
+    }
+
+    if (response.status === 404) {
+      throw new RateLimitError(`Key not found: ${key}`, 'KEY_NOT_FOUND');
+    }
+    if (!response.ok) {
+      throw new RateLimitError(`Server error: ${response.status}`, 'SERVER_ERROR');
+    }
+
+    const body = await response.json();
+    return {
+      key: body.key,
+      limit: body.limit,
+      windowSecs: body.window_secs,
+      algorithm: body.algorithm,
+    };
+  }
+
+  async close(): Promise<void> {
+    // no-op (HTTP client has no persistent connection)
+  }
+}

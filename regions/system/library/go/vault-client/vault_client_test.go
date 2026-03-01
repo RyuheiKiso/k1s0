@@ -2,6 +2,9 @@ package vaultclient_test
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -103,4 +106,134 @@ func TestSecret_Fields(t *testing.T) {
 	assert.Equal(t, "test/path", s.Path)
 	assert.Equal(t, int64(1), s.Version)
 	assert.Equal(t, "admin", s.Data["username"])
+}
+
+// --- HttpVaultClient tests ---
+
+func TestHttpVaultClientGetSecret(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/secrets/system/db" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"path":       "system/db",
+				"data":       map[string]string{"password": "s3cr3t"},
+				"version":    1,
+				"created_at": time.Now().Format(time.RFC3339),
+			})
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	client := vaultclient.NewHttpVaultClient(vaultclient.VaultClientConfig{ServerURL: server.URL})
+	secret, err := client.GetSecret(context.Background(), "system/db")
+	require.NoError(t, err)
+	assert.Equal(t, "system/db", secret.Path)
+	assert.Equal(t, "s3cr3t", secret.Data["password"])
+	assert.Equal(t, int64(1), secret.Version)
+}
+
+func TestHttpVaultClientNotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	client := vaultclient.NewHttpVaultClient(vaultclient.VaultClientConfig{ServerURL: server.URL})
+	_, err := client.GetSecret(context.Background(), "missing")
+	require.Error(t, err)
+	var vErr *vaultclient.VaultError
+	require.ErrorAs(t, err, &vErr)
+	assert.Equal(t, "NOT_FOUND", vErr.Code)
+}
+
+func TestHttpVaultClientPermissionDenied(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	client := vaultclient.NewHttpVaultClient(vaultclient.VaultClientConfig{ServerURL: server.URL})
+	_, err := client.GetSecret(context.Background(), "secret/path")
+	require.Error(t, err)
+	var vErr *vaultclient.VaultError
+	require.ErrorAs(t, err, &vErr)
+	assert.Equal(t, "PERMISSION_DENIED", vErr.Code)
+}
+
+func TestHttpVaultClientGetSecretValue(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"path":       "system/db",
+			"data":       map[string]string{"password": "s3cr3t", "username": "admin"},
+			"version":    1,
+			"created_at": time.Now().Format(time.RFC3339),
+		})
+	}))
+	defer server.Close()
+
+	client := vaultclient.NewHttpVaultClient(vaultclient.VaultClientConfig{ServerURL: server.URL})
+	val, err := client.GetSecretValue(context.Background(), "system/db", "password")
+	require.NoError(t, err)
+	assert.Equal(t, "s3cr3t", val)
+
+	_, err = client.GetSecretValue(context.Background(), "system/db", "missing_key")
+	require.Error(t, err)
+}
+
+func TestHttpVaultClientListSecrets(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/secrets" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode([]string{"system/db", "system/api"})
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	client := vaultclient.NewHttpVaultClient(vaultclient.VaultClientConfig{ServerURL: server.URL})
+	paths, err := client.ListSecrets(context.Background(), "system/")
+	require.NoError(t, err)
+	assert.Len(t, paths, 2)
+	assert.Contains(t, paths, "system/db")
+	assert.Contains(t, paths, "system/api")
+}
+
+func TestHttpVaultClientCache(t *testing.T) {
+	callCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"path":       "system/db",
+			"data":       map[string]string{"password": "s3cr3t"},
+			"version":    1,
+			"created_at": time.Now().Format(time.RFC3339),
+		})
+	}))
+	defer server.Close()
+
+	client := vaultclient.NewHttpVaultClient(vaultclient.VaultClientConfig{
+		ServerURL: server.URL,
+		CacheTTL:  10 * time.Minute,
+	})
+
+	_, err := client.GetSecret(context.Background(), "system/db")
+	require.NoError(t, err)
+	_, err = client.GetSecret(context.Background(), "system/db")
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, callCount, "second call should use cache")
+}
+
+func TestHttpVaultClientWatchSecret(t *testing.T) {
+	client := vaultclient.NewHttpVaultClient(vaultclient.VaultClientConfig{ServerURL: "http://localhost:0"})
+	ctx, cancel := context.WithCancel(context.Background())
+	ch, err := client.WatchSecret(ctx, "system/db")
+	require.NoError(t, err)
+	assert.NotNil(t, ch)
+	cancel()
 }

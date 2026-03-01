@@ -125,6 +125,10 @@ pub fn run() {
             commands::execute_test_with_progress,
             commands::execute_build_with_progress,
             commands::execute_deploy_with_progress,
+            commands::execute_validate_config_schema,
+            commands::execute_validate_navigation,
+            commands::execute_generate_config_types,
+            commands::execute_generate_navigation_types,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

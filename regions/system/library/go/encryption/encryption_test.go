@@ -73,3 +73,48 @@ func TestEncrypt_EmptyPlaintext(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, decrypted)
 }
+
+func TestRSARoundtrip(t *testing.T) {
+	pub, priv, err := encryption.GenerateRSAKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	plaintext := []byte("hello RSA-OAEP")
+	ciphertext, err := encryption.RSAEncrypt(pub, plaintext)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decrypted, err := encryption.RSADecrypt(priv, ciphertext)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(decrypted) != string(plaintext) {
+		t.Errorf("got %s, want %s", decrypted, plaintext)
+	}
+}
+
+func TestRSAWrongKeyFails(t *testing.T) {
+	pub, _, err := encryption.GenerateRSAKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, priv2, err := encryption.GenerateRSAKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ciphertext, err := encryption.RSAEncrypt(pub, []byte("secret"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = encryption.RSADecrypt(priv2, ciphertext)
+	if err == nil {
+		t.Error("expected error with wrong key")
+	}
+}
+
+func TestRSAEncryptInvalidPEM(t *testing.T) {
+	_, err := encryption.RSAEncrypt("not-valid-pem", []byte("data"))
+	if err == nil {
+		t.Error("expected error with invalid PEM")
+	}
+}

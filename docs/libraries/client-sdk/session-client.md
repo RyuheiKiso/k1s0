@@ -2,20 +2,63 @@
 
 ## 概要
 
-セッション管理クライアントライブラリ。セッション作成・取得・更新・失効・ユーザーセッション一覧取得・全セッション失効を統一インターフェースで提供する。セッションはトークンベースで管理し、任意のメタデータ（key-value）を付与可能。全 Tier のサービスから共通利用し、JWT 認証と組み合わせてセッション状態の確認・管理を行う。
+system-session-server（ポート 8102）へのセッション管理クライアントライブラリ。セッション作成・取得・更新・失効・ユーザーセッション一覧取得・全セッション失効を統一インターフェースで提供する。セッションはトークンベースで管理し、任意のメタデータ（key-value）を付与可能。全 Tier のサービスから共通利用し、JWT 認証と組み合わせてセッション状態の確認・管理を行う。
 
-**配置先**: `regions/system/library/rust/session-client/`
+**配置先**: `regions/system/library/{rust,go,typescript,dart}/session-client/`
 
 ## 公開 API
+
+### Rust
 
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
 | `SessionClient` | トレイト | セッション CRUD・ユーザーセッション管理インターフェース |
 | `InMemorySessionClient` | 構造体 | メモリ内セッション管理実装（テスト・開発用） |
+| `MockSessionClient` | 構造体 | `feature = "mock"` 時のみ有効、mockall による自動生成モック |
 | `Session` | 構造体 | id・user_id・token・expires_at・created_at・revoked・metadata |
 | `CreateSessionRequest` | 構造体 | user_id・ttl_seconds・metadata |
 | `RefreshSessionRequest` | 構造体 | id・ttl_seconds |
 | `SessionError` | enum | `NotFound`・`Expired`・`Revoked`・`Connection`・`Internal` |
+
+### Go
+
+| 型 | 種別 | 説明 |
+|----|------|------|
+| `SessionClient` | interface | セッション CRUD・ユーザーセッション管理インターフェース |
+| `InMemorySessionClient` | struct | メモリ内セッション管理実装（テスト・開発用） |
+| `Session` | struct | ID・UserID・Token・ExpiresAt・CreatedAt・Revoked・Metadata |
+| `CreateSessionRequest` | struct | UserID・TTLSeconds・Metadata |
+| `RefreshSessionRequest` | struct | ID・TTLSeconds |
+
+### TypeScript
+
+| 型 | 種別 | 説明 |
+|----|------|------|
+| `SessionClient` | interface | セッション CRUD・ユーザーセッション管理インターフェース |
+| `InMemorySessionClient` | class | メモリ内セッション管理実装（テスト・開発用） |
+| `Session` | interface | id・userId・token・expiresAt・createdAt・revoked・metadata |
+| `CreateSessionRequest` | interface | userId・ttlSeconds・metadata |
+| `RefreshSessionRequest` | interface | id・ttlSeconds |
+
+### Dart
+
+| 型 | 種別 | 説明 |
+|----|------|------|
+| `SessionClient` | abstract class | セッション CRUD・ユーザーセッション管理インターフェース |
+| `InMemorySessionClient` | class | メモリ内セッション管理実装（テスト・開発用） |
+| `Session` | class | id・userId・token・expiresAt・createdAt・revoked・metadata |
+| `CreateSessionRequest` | class | userId・ttlSeconds・metadata |
+| `RefreshSessionRequest` | class | id・ttlSeconds |
+
+## Counts
+
+| 言語 | 公開関数/メソッド | 公開型 | エラー型/定数 |
+|------|-----------------|--------|-------------|
+| Rust | 8 | 6 | 5 |
+| Go | 7 | 5 | 1 |
+| TypeScript | 6 | 5 | 2 |
+| Dart | 10 | 5 | 1 |
+| **合計** | **31** | **21** | **9** |
 
 ## Rust 実装
 
@@ -82,6 +125,8 @@ pub struct RefreshSessionRequest {
 }
 ```
 
+> **注記（metadata の必須/任意）**: Rust の `CreateSessionRequest.metadata` は `HashMap<String, String>`（`Option` でないため必須フィールド）。空のメタデータを渡す場合は `HashMap::new()` を明示的に指定する必要がある。Go・TypeScript・Dart では省略可能（任意フィールド）。
+
 **トレイト**:
 
 ```rust
@@ -96,14 +141,49 @@ pub trait SessionClient: Send + Sync {
 }
 ```
 
+> **注記（async）**: Rust では全トレイトメソッドが `async fn` として定義されており、`#[async_trait]` マクロを通じて非同期実装となる。呼び出し側は `.await` が必要。
+
+> **注記（revoke_all の戻り値型）**: `revoke_all` の戻り値は Rust のみ `u32`（符号なし 32 ビット整数）。失効数が負にならないことを型で保証するための設計。Go は `int`、TypeScript は `number`、Dart は `int`（符号付き整数）を返す。
+
+**`InMemorySessionClient` コンストラクタ**:
+
+```rust
+impl InMemorySessionClient {
+    pub fn new() -> Self { /* ... */ }
+}
+
+impl Default for InMemorySessionClient {
+    fn default() -> Self { Self::new() }
+}
+```
+
+`InMemorySessionClient::new()` と `Default::default()` は等価。`Default` 実装により `InMemorySessionClient::default()` でも生成可能。
+
+**`MockSessionClient`** (`feature = "mock"` 時のみ):
+
+```rust
+// Cargo.toml で feature = "mock" を有効にすると MockSessionClient が生成される
+// [features]
+// mock = ["mockall"]
+use k1s0_session_client::MockSessionClient;
+```
+
+mockall の `#[automock]` により `SessionClient` トレイトのモック実装が自動生成される。テスト時に依存性注入用として使用する。
+
 **エラー型**:
 
 ```rust
+#[derive(Debug, thiserror::Error)]
 pub enum SessionError {
+    #[error("session not found: {0}")]
     NotFound(String),
+    #[error("session expired")]
     Expired,
+    #[error("session revoked")]
     Revoked,
+    #[error("connection error: {0}")]
     Connection(String),
+    #[error("internal error: {0}")]
     Internal(String),
 }
 ```
@@ -191,6 +271,20 @@ type InMemorySessionClient struct{ /* ... */ }
 func NewInMemorySessionClient() *InMemorySessionClient
 ```
 
+**エラー仕様**:
+
+Go の実装はエラー型を定義せず、インラインエラーを返す。
+
+| 発生箇所 | 条件 | 返却値 |
+|----------|------|--------|
+| `Get` | セッションが存在しない | `fmt.Errorf("session not found: %s", id)` |
+| `Refresh` | セッションが存在しない | `fmt.Errorf("session not found: %s", id)` |
+| `Revoke` | セッションが存在しない | `fmt.Errorf("session not found: %s", id)` |
+
+**注意**: `Get` でセッションが存在しない場合は `nil` セッションではなくエラーを返す。Rust の `Result<Option<Session>, SessionError>` と異なり、Go の `(*Session, error)` では not-found はエラーとして通知する（`*Session` が nil になるケースではなく、必ず error が non-nil になる）。
+
+> **注記（Expired・Revoked 状態）**: Go の `InMemorySessionClient` は期限切れ（`ExpiresAt` 超過）や失効済み（`Revoked == true`）のセッションに対して `Get`/`Refresh` で追加チェックを行わず、データをそのまま返す。Rust では `SessionError::Expired` / `SessionError::Revoked` が明示的なエラーバリアントとして存在するが、Go の InMemory 実装にはこれに相当するエラー返却はない。本番実装（HTTP クライアント）ではサーバー側がこれらの状態を検証してエラーを返す想定。
+
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/session-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
@@ -233,7 +327,132 @@ export class InMemorySessionClient implements SessionClient {
 }
 ```
 
+**`InMemorySessionClient` コンストラクタ**:
+
+```typescript
+const client = new InMemorySessionClient();
+```
+
+引数なしのデフォルトコンストラクタで生成する。内部的に `Map<string, Session>` をセッションストアとして保持する。
+
+**エラー仕様**:
+
+TypeScript の実装はエラー型を定義せず、標準の `Error` をスローする。
+
+| 発生箇所 | 条件 | スローされる値 |
+|----------|------|--------------|
+| `refresh` | セッションが存在しない | `new Error(\`Session not found: ${req.id}\`)` |
+| `revoke` | セッションが存在しない | `new Error(\`Session not found: ${id}\`)` |
+
+**注意**: `get` でセッションが存在しない場合は `null` を返す（エラーではない）。`refresh`・`revoke` は存在しない id が渡された場合にエラーをスローする。
+
 **カバレッジ目標**: 90%以上
+
+## Dart 実装
+
+**配置先**: `regions/system/library/dart/session_client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
+
+**モジュール構成**:
+
+```
+session-client/
+├── lib/
+│   └── src/
+│       ├── session.dart         # Session・CreateSessionRequest・RefreshSessionRequest
+│       └── session_client.dart  # SessionClient (abstract)・InMemorySessionClient
+└── pubspec.yaml
+```
+
+**主要 API**:
+
+```dart
+// lib/src/session.dart
+
+class Session {
+  final String id;
+  final String userId;
+  final String token;
+  final DateTime expiresAt;
+  final DateTime createdAt;
+  final bool revoked;
+  final Map<String, String> metadata;
+
+  const Session({
+    required this.id,
+    required this.userId,
+    required this.token,
+    required this.expiresAt,
+    required this.createdAt,
+    this.revoked = false,
+    this.metadata = const {},
+  });
+
+  Session copyWith({
+    String? id,
+    String? userId,
+    String? token,
+    DateTime? expiresAt,
+    DateTime? createdAt,
+    bool? revoked,
+    Map<String, String>? metadata,
+  });
+}
+
+class CreateSessionRequest {
+  final String userId;
+  final int ttlSeconds;
+  final Map<String, String>? metadata;
+
+  const CreateSessionRequest({
+    required this.userId,
+    required this.ttlSeconds,
+    this.metadata,
+  });
+}
+
+class RefreshSessionRequest {
+  final String id;
+  final int ttlSeconds;
+
+  const RefreshSessionRequest({
+    required this.id,
+    required this.ttlSeconds,
+  });
+}
+
+// lib/src/session_client.dart
+
+abstract class SessionClient {
+  Future<Session> create(CreateSessionRequest req);
+  Future<Session?> get(String id);
+  Future<Session> refresh(RefreshSessionRequest req);
+  Future<void> revoke(String id);
+  Future<List<Session>> listUserSessions(String userId);
+  Future<int> revokeAll(String userId);
+}
+
+class InMemorySessionClient implements SessionClient {
+  // 全メソッド実装
+}
+```
+
+**エラー仕様**:
+
+Dart の実装はエラー型を定義せず、標準の `StateError` をスローする。
+
+| 発生箇所 | 条件 | スローされる値 |
+|----------|------|--------------|
+| `refresh` | セッションが存在しない | `StateError('Session not found: ${req.id}')` |
+
+**注意**: `get` でセッションが存在しない場合は `null` を返す（エラーではなく `Future<Session?>`）。Dart の `Session.copyWith` は他言語に対応するメソッドがない Dart 固有の API である。
+
+**依存追加** (`pubspec.yaml`):
+
+```yaml
+dependencies:
+  k1s0_session_client:
+    path: ../../system/library/dart/session_client
+```
 
 ## テスト戦略
 

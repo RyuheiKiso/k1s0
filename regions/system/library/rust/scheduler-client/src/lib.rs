@@ -2,14 +2,18 @@ pub mod client;
 pub mod error;
 pub mod job;
 
+#[cfg(feature = "grpc")]
+pub mod grpc;
+
 pub use client::SchedulerClient;
 pub use error::SchedulerError;
-pub use job::{
-    Job, JobCompletedEvent, JobExecution, JobFilter, JobRequest, JobStatus, Schedule,
-};
+pub use job::{Job, JobCompletedEvent, JobExecution, JobFilter, JobRequest, JobStatus, Schedule};
 
 #[cfg(feature = "mock")]
 pub use client::MockSchedulerClient;
+
+#[cfg(feature = "grpc")]
+pub use grpc::GrpcSchedulerClient;
 
 #[cfg(test)]
 mod tests {

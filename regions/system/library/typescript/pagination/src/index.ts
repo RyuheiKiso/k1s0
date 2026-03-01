@@ -67,6 +67,18 @@ export function encodeCursor(sortKey: string, id: string): string {
   return btoa(`${sortKey}${CURSOR_SEPARATOR}${id}`);
 }
 
+export function defaultPageRequest(): PageRequest {
+  return { page: 1, perPage: 20 };
+}
+
+export function pageOffset(req: PageRequest): number {
+  return (req.page - 1) * req.perPage;
+}
+
+export function hasNextPage(req: PageRequest, total: number): boolean {
+  return req.page * req.perPage < total;
+}
+
 export function decodeCursor(cursor: string): { sortKey: string; id: string } {
   const decoded = atob(cursor);
   const idx = decoded.indexOf(CURSOR_SEPARATOR);

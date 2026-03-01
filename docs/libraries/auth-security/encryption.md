@@ -14,15 +14,15 @@ zeroize クレートによりメモリ上の秘密鍵・平文データを確実
 
 | 型・関数 | 種別 | 説明 |
 |---------|------|------|
-| `AesGcmCipher` | 構造体 | AES-256-GCM 暗号化・復号化 |
-| `RsaCipher` | 構造体 | RSA-OAEP 暗号化・復号化（公開鍵/秘密鍵）|
-| `Hasher` | トレイト | ハッシュ化インターフェース |
-| `Argon2Hasher` | 構造体 | Argon2id ハッシュ化（パスワード保管用）|
-| `encrypt` | 関数 | AES-GCM で平文を暗号化し Base64 返却 |
-| `decrypt` | 関数 | Base64 暗号文を AES-GCM で復号 |
-| `hash_password` | 関数 | Argon2id でパスワードハッシュ化 |
+| `generate_aes_key` | 関数 | 32バイトの AES-256 キーをランダム生成 |
+| `aes_encrypt` | 関数 | AES-256-GCM で平文を暗号化し Base64 返却（Rust: `aes_encrypt(key: &[u8; 32], plaintext: &[u8])`）|
+| `aes_decrypt` | 関数 | Base64 暗号文を AES-256-GCM で復号（Rust: `aes_decrypt(key: &[u8; 32], ciphertext: &str)`）|
+| `hash_password` | 関数 | Argon2id でパスワードをハッシュ化 |
 | `verify_password` | 関数 | パスワードとハッシュ値を検証 |
-| `EncryptionError` | enum | `InvalidKey`・`DecryptionFailed`・`HashingFailed` |
+| `EncryptionError` | enum | `EncryptFailed(String)`・`DecryptFailed(String)`・`HashFailed(String)`・`RsaKeyGenerationFailed(String)`・`RsaEncryptFailed(String)`・`RsaDecryptFailed(String)` |
+| `generate_rsa_key_pair` | 関数 | 2048bit RSA キーペアを PEM 形式で生成（戻り値: `(public_pem, private_pem)`）|
+| `rsa_encrypt` | 関数 | RSA-OAEP-SHA256 で平文を暗号化（引数: `public_key_pem, plaintext`）|
+| `rsa_decrypt` | 関数 | RSA-OAEP-SHA256 で暗号文を復号（引数: `private_key_pem, ciphertext`）|
 
 ## Rust 実装
 
@@ -55,9 +55,9 @@ tokio = { version = "1", features = ["full"] }
 encryption/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
-│   ├── aes.rs          # AesGcmCipher
-│   ├── rsa.rs          # RsaCipher
-│   ├── hash.rs         # Hasher・Argon2Hasher
+│   ├── aes.rs          # generate_aes_key・aes_encrypt・aes_decrypt
+│   ├── rsa.rs          # RsaCipher（TODO: 未実装）
+│   ├── hash.rs         # hash_password・verify_password（Argon2id）
 │   └── error.rs        # EncryptionError
 └── Cargo.toml
 ```
@@ -65,25 +65,30 @@ encryption/
 **使用例**:
 
 ```rust
-use k1s0_encryption::{AesGcmCipher, Argon2Hasher, Hasher, encrypt, decrypt, hash_password, verify_password};
+use k1s0_encryption::{
+    aes_encrypt, aes_decrypt, generate_aes_key,
+    generate_rsa_key_pair, rsa_encrypt, rsa_decrypt,
+    hash_password, verify_password,
+};
 
 // AES-256-GCM 対称暗号化
-let key_bytes = [0u8; 32]; // Vault から取得したキー
-let cipher = AesGcmCipher::new(&key_bytes).unwrap();
+let key: [u8; 32] = generate_aes_key(); // Vault から取得したキーを使用する場合は [u8;32] に変換
 
 let plaintext = b"sensitive data";
-let ciphertext_b64 = cipher.encrypt(plaintext).unwrap();
-let decrypted = cipher.decrypt(&ciphertext_b64).unwrap();
+let ciphertext_b64 = aes_encrypt(&key, plaintext).unwrap();
+let decrypted = aes_decrypt(&key, &ciphertext_b64).unwrap();
 assert_eq!(decrypted, plaintext);
-
-// 便利関数による暗号化
-let encrypted = encrypt(&key_bytes, "my secret value").unwrap();
-let original = decrypt(&key_bytes, &encrypted).unwrap();
 
 // Argon2id パスワードハッシュ化
 let hash = hash_password("user-password").unwrap();
 let valid = verify_password("user-password", &hash).unwrap();
 assert!(valid);
+
+// RSA-OAEP 非対称暗号化（2048bit、PEM形式）
+let (pub_pem, priv_pem) = generate_rsa_key_pair().unwrap();
+let ciphertext = rsa_encrypt(&pub_pem, b"sensitive data").unwrap();
+let decrypted = rsa_decrypt(&priv_pem, &ciphertext).unwrap();
+assert_eq!(decrypted, b"sensitive data");
 ```
 
 ## Go 実装
@@ -118,30 +123,21 @@ func VerifyPassword(password, encodedHash string) error
 **主要 API**:
 
 ```typescript
-export interface Cipher {
-  encrypt(plaintext: Uint8Array | string): Promise<string>;
-  decrypt(ciphertext: string): Promise<Uint8Array>;
-}
+// 関数ベース API
+export function generateKey(): Buffer;
 
-export interface Hasher {
-  hash(password: string): Promise<string>;
-  verify(password: string, hash: string): Promise<boolean>;
-}
+// AES-256-GCM 対称暗号化（同期）
+export function encrypt(key: Buffer, plaintext: string): string;
+export function decrypt(key: Buffer, ciphertext: string): string;
 
-export class AesGcmCipher implements Cipher {
-  constructor(key: Uint8Array);
-  encrypt(plaintext: Uint8Array | string): Promise<string>;
-  decrypt(ciphertext: string): Promise<Uint8Array>;
-}
-
-export class RsaCipher implements Cipher {
-  static fromPem(publicKeyPem: string, privateKeyPem?: string): RsaCipher;
-  encrypt(plaintext: Uint8Array | string): Promise<string>;
-  decrypt(ciphertext: string): Promise<Uint8Array>;
-}
-
+// Argon2id パスワードハッシュ化（非同期）
 export async function hashPassword(password: string): Promise<string>;
 export async function verifyPassword(password: string, hash: string): Promise<boolean>;
+
+// RSA-OAEP-SHA256 非対称暗号化（2048bit、PEM形式）
+export function generateRsaKeyPair(): { publicKey: string; privateKey: string };
+export function rsaEncrypt(publicKeyPem: string, plaintext: Buffer): Buffer;
+export function rsaDecrypt(privateKeyPem: string, ciphertext: Buffer): Buffer;
 ```
 
 **カバレッジ目標**: 90%以上
@@ -165,10 +161,8 @@ import 'package:k1s0_encryption/encryption.dart';
 
 // AES-256-GCM 暗号化
 final key = Uint8List(32); // Vault から取得したキー
-final cipher = AesGcmCipher(key);
-
-final ciphertext = await cipher.encrypt(utf8.encode('sensitive data'));
-final decrypted = await cipher.decrypt(ciphertext);
+final ciphertext = encrypt(key, 'sensitive data');
+final decrypted = decrypt(key, ciphertext);
 
 // パスワードハッシュ化
 final hash = await hashPassword('user-password');
@@ -181,14 +175,14 @@ final valid = await verifyPassword('user-password', hash);
 
 **ユニットテスト** (`#[cfg(test)]`):
 - 既知平文・暗号文ペアによる暗号化・復号化の正確性検証
-- 改ざんされた暗号文の復号失敗（`DecryptionFailed` エラー）を確認
-- 不正なキー長（31バイト・33バイト）での `InvalidKey` エラーを確認
+- 改ざんされた暗号文の復号失敗（`DecryptFailed` エラー）を確認
+- 不正な入力での `EncryptFailed` エラーを確認
 - `verify_password` で誤ったパスワードが `false` を返すことを確認
 
 **統合テスト**:
 - Vault サーバー（wiremock または testcontainers）との連携テスト
 - ラウンドトリップ（暗号化→復号化）テスト
-- RSA 公開鍵/秘密鍵ペア生成と暗号化・復号化のエンドツーエンドテスト
+- （RSA テストは RsaCipher 実装後に追加予定）
 
 **プロパティテスト**:
 - proptest クレートによる任意バイト列の暗号化・復号化ラウンドトリップ検証
@@ -201,21 +195,19 @@ mod tests {
     #[test]
     fn test_aes_gcm_roundtrip() {
         let key = [0u8; 32];
-        let cipher = AesGcmCipher::new(&key).unwrap();
         let plaintext = b"hello, encryption";
-        let ciphertext = cipher.encrypt(plaintext).unwrap();
-        let decrypted = cipher.decrypt(&ciphertext).unwrap();
+        let ciphertext = aes_encrypt(&key, plaintext).unwrap();
+        let decrypted = aes_decrypt(&key, &ciphertext).unwrap();
         assert_eq!(decrypted, plaintext);
     }
 
     #[test]
     fn test_tampered_ciphertext_fails() {
         let key = [0u8; 32];
-        let cipher = AesGcmCipher::new(&key).unwrap();
-        let mut ciphertext = cipher.encrypt(b"data").unwrap();
+        let mut ciphertext = aes_encrypt(&key, b"data").unwrap();
         ciphertext.push('X');
-        let result = cipher.decrypt(&ciphertext);
-        assert!(matches!(result, Err(EncryptionError::DecryptionFailed)));
+        let result = aes_decrypt(&key, &ciphertext);
+        assert!(matches!(result, Err(EncryptionError::DecryptFailed(_))));
     }
 
     #[test]

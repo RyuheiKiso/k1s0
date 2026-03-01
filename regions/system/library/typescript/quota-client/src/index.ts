@@ -141,3 +141,101 @@ export class CachedQuotaClient implements QuotaClient {
     return policy;
   }
 }
+
+export class QuotaNotFoundError extends Error {
+  constructor(public readonly quotaId: string) {
+    super(`Quota not found: ${quotaId}`);
+    this.name = 'QuotaNotFoundError';
+  }
+}
+
+export class QuotaConnectionError extends Error {
+  constructor(message: string) {
+    super(`Quota connection error: ${message}`);
+    this.name = 'QuotaConnectionError';
+  }
+}
+
+/**
+ * HttpQuotaClient は quota-server への HTTP クライアント実装。
+ * Fetch API を使用して quota-server と通信する。
+ */
+export class HttpQuotaClient implements QuotaClient {
+  private readonly serverUrl: string;
+  private readonly timeoutMs: number;
+
+  constructor(config: QuotaClientConfig) {
+    this.serverUrl = config.serverUrl.replace(/\/$/, '');
+    this.timeoutMs = config.timeoutMs ?? 5000;
+  }
+
+  private async request<T>(
+    method: string,
+    path: string,
+    quotaId: string,
+    body?: unknown,
+  ): Promise<T> {
+    const url = `${this.serverUrl}${path}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method,
+        headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new QuotaConnectionError(message);
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (response.status === 404) {
+      throw new QuotaNotFoundError(quotaId);
+    }
+    if (!response.ok) {
+      throw new QuotaConnectionError(`Unexpected status: ${response.status}`);
+    }
+
+    const json = await response.json() as T;
+    return json;
+  }
+
+  async check(quotaId: string, amount: number): Promise<QuotaStatus> {
+    return this.request<QuotaStatus>(
+      'POST',
+      `/api/v1/quotas/${encodeURIComponent(quotaId)}/check`,
+      quotaId,
+      { amount },
+    );
+  }
+
+  async increment(quotaId: string, amount: number): Promise<QuotaUsage> {
+    return this.request<QuotaUsage>(
+      'POST',
+      `/api/v1/quotas/${encodeURIComponent(quotaId)}/increment`,
+      quotaId,
+      { amount },
+    );
+  }
+
+  async getUsage(quotaId: string): Promise<QuotaUsage> {
+    return this.request<QuotaUsage>(
+      'GET',
+      `/api/v1/quotas/${encodeURIComponent(quotaId)}/usage`,
+      quotaId,
+    );
+  }
+
+  async getPolicy(quotaId: string): Promise<QuotaPolicy> {
+    return this.request<QuotaPolicy>(
+      'GET',
+      `/api/v1/quotas/${encodeURIComponent(quotaId)}/policy`,
+      quotaId,
+    );
+  }
+}
