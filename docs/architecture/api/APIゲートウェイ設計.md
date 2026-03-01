@@ -32,6 +32,23 @@ SPA（React）からのアクセスは BFF Proxy を経由し、HttpOnly Cookie 
 Browser → [HttpOnly Cookie] → Nginx Ingress Controller → Kong → BFF Proxy → [Bearer Token] → Istio Sidecar (mTLS) → Backend Services
 ```
 
+#### REST / GraphQL の代表トラフィックフロー（統合図）
+
+SPA（React）からのアクセスは **必ず BFF Proxy を経由**し、トークンをブラウザに保持せずに Cookie セッションで認証状態を維持する。GraphQL を採用する場合も同様に、BFF Proxy が Cookie → Bearer の変換を担い、GraphQL BFF / GraphQL Gateway はデータ集約に集中する。
+
+```
+Browser
+  │ (HttpOnly Cookie)
+  ▼
+Nginx Ingress Controller (TLS)
+  ▼
+Kong
+  ▼
+BFF Proxy  (Cookie ⇄ Bearer / token refresh / session in Redis)
+  ├─ REST:  Backend Services (REST/gRPC)  ※Istio Sidecar (mTLS)
+  └─ GraphQL: GraphQL BFF / GraphQL Gateway → gRPC (mTLS) → Backend Services
+```
+
 ### DB-backed モード
 
 | 項目             | 設定                                          |

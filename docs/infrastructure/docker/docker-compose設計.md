@@ -264,6 +264,50 @@ networks:
     name: k1s0-network
 ```
 
+## Kafka 接続設定（config.yaml 例）
+
+ローカル開発（docker-compose）では Kafka は `PLAINTEXT` を使用する。一方で staging/prod（Kubernetes）では `SASL_SSL` を使用するため、アプリケーションの Kafka 接続設定は **必ず config.yaml で環境ごとに切り替える**。
+
+### dev（docker-compose / PLAINTEXT）
+
+```yaml
+kafka:
+  brokers:
+    - "kafka:9092"
+  security_protocol: "PLAINTEXT"
+  consumer_group: "{service-name}.dev"
+  topics:
+    publish:
+      - "k1s0.system.config.changed.v1"
+    subscribe:
+      - "k1s0.system.config.changed.v1"
+```
+
+### staging/prod（Kubernetes / SASL_SSL）
+
+```yaml
+kafka:
+  brokers:
+    - "kafka-0.messaging.svc.cluster.local:9093"
+    - "kafka-1.messaging.svc.cluster.local:9093"
+    - "kafka-2.messaging.svc.cluster.local:9093"
+  security_protocol: "SASL_SSL"
+  consumer_group: "{service-name}.default"
+  sasl:
+    mechanism: "SCRAM-SHA-512"
+    username: "${KAFKA_SASL_USERNAME}"  # Vault 等から注入
+    password: "${KAFKA_SASL_PASSWORD}"  # Vault 等から注入
+  tls:
+    ca_cert_path: "/etc/kafka/certs/ca.crt"  # Strimzi が発行する CA 証明書
+  topics:
+    publish:
+      - "k1s0.system.config.changed.v1"
+    subscribe:
+      - "k1s0.system.config.changed.v1"
+```
+
+詳細なフィールド定義・命名規則は [config設計](../../cli/config/config設計.md) と [メッセージング設計](../../architecture/messaging/メッセージング設計.md) を参照。
+
 ## Vault 初期化スクリプト
 
 ローカル開発用の Vault 初期化スクリプト（`infra/docker/vault/init-vault.sh`）が実装済みである。`docker compose --profile infra up -d` で Vault が起動した後に手動実行する。
