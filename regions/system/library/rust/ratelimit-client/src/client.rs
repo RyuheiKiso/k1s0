@@ -119,9 +119,7 @@ mod tests {
         let mut mock = MockRateLimitClient::new();
         mock.expect_get_limit().once().returning(|key| {
             let key = key.to_string();
-            Box::pin(async move {
-                Err(RateLimitError::KeyNotFound { key })
-            })
+            Box::pin(async move { Err(RateLimitError::KeyNotFound { key }) })
         });
 
         let result = mock.get_limit("unknown-key").await;

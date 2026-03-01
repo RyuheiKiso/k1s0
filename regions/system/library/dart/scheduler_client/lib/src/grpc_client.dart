@@ -210,7 +210,7 @@ class GrpcSchedulerClient implements SchedulerClient {
   }
 
   /// 接続を閉じてリソースを解放する。
-  void close() {
+  Future<void> close() async {
     _http.close();
   }
 }

@@ -86,6 +86,8 @@ pub trait SearchClient: Send + Sync {
 //     pub async fn new(addr: &str) -> Result<GrpcSearchClient, SearchError>
 // }
 
+> **注記（Rust実装）**: `InMemorySearchClient` は現在 `#[cfg(test)]` モジュール内に非公開で存在する。テスト外での使用はできない。他言語と同様に公開化が必要（`feature = "mock"` 等での公開化を推奨）。
+
 // --- document.rs ---
 
 pub struct IndexDocument {
@@ -273,7 +275,7 @@ type SearchQuery struct {
 
 type Filter struct {
     Field    string
-    Operator string // "eq", "lt", "gt", "range"
+    Operator string // "eq", "lt", "gt", "range" は実装済み。"in" 演算子は要確認・要実装。
     Value    interface{}
 }
 
@@ -335,9 +337,11 @@ func (c *InMemorySearchClient) DeleteDocument(ctx context.Context, index, id str
 func (c *InMemorySearchClient) DocumentCount(index string) int
 
 // GrpcSearchClient（gRPC実装）
+// 注記: 名称はGrpcだが現状はHTTP REST実装。将来gRPCに移行予定。
 type GrpcSearchClient struct{ /* ... */ }
 
 func NewGrpcSearchClient(addr string) (*GrpcSearchClient, error)
+func NewGrpcSearchClientWithHTTPClient(addr string, httpClient *http.Client) (*GrpcSearchClient, error)
 func (c *GrpcSearchClient) IndexDocument(ctx context.Context, index string, doc IndexDocument) (IndexResult, error)
 func (c *GrpcSearchClient) BulkIndex(ctx context.Context, index string, docs []IndexDocument) (BulkResult, error)
 func (c *GrpcSearchClient) Search(ctx context.Context, index string, query SearchQuery) (SearchResult, error)
@@ -434,6 +438,8 @@ export interface FieldMapping {
   indexed?: boolean;
 }
 
+> **注記**: TypeScript の `FieldMapping.type` フィールド名は他言語（Rust: `field_type`, Go: `FieldType`, Dart: `fieldType`）と異なる。TypeScript では `type` が使用される。
+
 export interface IndexMapping {
   fields: Record<string, FieldMapping>;
 }
@@ -457,6 +463,8 @@ export class InMemorySearchClient implements SearchClient {
 }
 
 // GrpcSearchClient（gRPC実装）
+> **注記**: 現状HTTP REST実装。将来gRPCに移行予定。
+
 export class GrpcSearchClient implements SearchClient {
   constructor(serverUrl: string);
   indexDocument(index: string, doc: IndexDocument): Promise<IndexResult>;
@@ -633,6 +641,8 @@ class InMemorySearchClient implements SearchClient {
 }
 
 // GrpcSearchClient（gRPC実装）
+> **注記**: 現状HTTP REST実装。将来gRPCに移行予定。
+
 class GrpcSearchClient implements SearchClient {
   GrpcSearchClient(String serverUrl);
   Future<IndexResult> indexDocument(String index, IndexDocument doc);

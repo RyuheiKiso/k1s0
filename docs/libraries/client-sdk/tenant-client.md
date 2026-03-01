@@ -152,14 +152,11 @@ impl TenantClientConfig {
 pub struct HttpTenantClient { /* ... */ }
 
 impl HttpTenantClient {
-    pub async fn new(config: TenantClientConfig) -> Result<Self, TenantError>
+    pub fn new(config: TenantClientConfig) -> Result<Self, TenantError>
 }
 
-// TenantClient トレイトの実装（部分実装 — 以下の5メソッドは unimplemented!() スタブ）
-// 未実装: create_tenant, add_member, remove_member, list_members, get_provisioning_status
+// TenantClient トレイトの全メソッドを実装
 ```
-
-> **注記（Rust実装）**: `HttpTenantClient` は現在 `get_tenant`・`list_tenants`・`is_active`・`get_settings` のみ実装済み。残り5メソッド（`create_tenant`・`add_member`・`remove_member`・`list_members`・`get_provisioning_status`）は `unimplemented!()` スタブ。要実装。
 
 **使用例**:
 

@@ -242,6 +242,14 @@ export class CachedQuotaClient implements QuotaClient {
 export class QuotaExceededError extends Error {
   constructor(public readonly quotaId: string, public readonly remaining: number);
 }
+
+export class QuotaNotFoundError extends Error {
+  constructor(public readonly quotaId: string);
+}
+
+export class QuotaConnectionError extends Error {
+  constructor(message: string);
+}
 ```
 
 **カバレッジ目標**: 85%以上

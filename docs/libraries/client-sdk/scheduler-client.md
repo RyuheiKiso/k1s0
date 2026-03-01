@@ -71,6 +71,8 @@ scheduler-client/
 
 **使用例**:
 
+> **注記（Rust実装）**: `GrpcSchedulerClient` は現在未実装（構造体が存在しない）。現時点では `InMemorySchedulerClient` のみ利用可能。要実装。
+
 ```rust
 use k1s0_scheduler_client::{
     GrpcSchedulerClient, JobFilter, JobRequest, JobStatus, Schedule, SchedulerClient,
@@ -228,6 +230,7 @@ func (c *InMemoryClient) ListJobs(ctx context.Context, filter JobFilter) ([]Job,
 func (c *InMemoryClient) GetExecutions(ctx context.Context, jobID string) ([]JobExecution, error)
 func (c *InMemoryClient) Jobs() map[string]Job // テスト用ヘルパー（SchedulerClient インターフェース外）
 
+// 注記: 名称はGrpcだが現状はHTTP REST実装。将来gRPCに移行予定。
 type GrpcSchedulerClient struct{ /* ... */ }
 
 func NewGrpcSchedulerClient(addr string) (*GrpcSchedulerClient, error)
@@ -337,6 +340,8 @@ export class InMemorySchedulerClient implements SchedulerClient {
   getExecutions(jobId: string): Promise<JobExecution[]>;
   getAll(): Job[]; // テスト用ヘルパー（SchedulerClient インターフェース外）
 }
+
+> **注記**: 現状HTTP REST実装。将来gRPCに移行予定。
 
 export class GrpcSchedulerClient implements SchedulerClient {
   constructor(serverUrl: string);
@@ -476,6 +481,8 @@ class InMemorySchedulerClient implements SchedulerClient {
 }
 
 // gRPC 接続実装
+> **注記**: 現状HTTP REST実装。将来gRPCに移行予定。
+
 class GrpcSchedulerClient implements SchedulerClient {
   GrpcSchedulerClient(String serverAddress);
   Future<Job> createJob(JobRequest request);

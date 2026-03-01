@@ -81,6 +81,8 @@ pub struct RateLimitResult {
     pub reset_at: DateTime<Utc>,
 }
 
+> **注記（Rust実装）**: `GrpcRateLimitClient` は現在 `feature=grpc` フラグ付きで定義されているが、gRPC 接続は未実装（`ServerError` を返すスタブ）。要実装。
+
 #[cfg(feature = "grpc")]
 pub struct GrpcRateLimitClient { /* ... */ }
 
@@ -164,9 +166,11 @@ func (c *InMemoryClient) Consume(ctx context.Context, key string, cost uint32) (
 func (c *InMemoryClient) GetLimit(ctx context.Context, key string) (RateLimitPolicy, error)
 func (c *InMemoryClient) UsedCount(key string) uint32
 
+// 注記: 名称はGrpcだが現状はHTTP REST実装。将来gRPCに移行予定。
 type GrpcRateLimitClient struct{ /* ... */ }
 
 func NewGrpcRateLimitClient(addr string) (*GrpcRateLimitClient, error)
+func NewGrpcRateLimitClientWithHTTPClient(addr string, httpClient *http.Client) (*GrpcRateLimitClient, error)
 func (c *GrpcRateLimitClient) Check(ctx context.Context, key string, cost uint32) (RateLimitStatus, error)
 func (c *GrpcRateLimitClient) Consume(ctx context.Context, key string, cost uint32) (RateLimitResult, error)
 func (c *GrpcRateLimitClient) GetLimit(ctx context.Context, key string) (RateLimitPolicy, error)
@@ -254,6 +258,8 @@ export class InMemoryRateLimitClient implements RateLimitClient {
   getUsedCount(key: string): number;
 }
 
+> **注記**: `GrpcRateLimitClient` は現状HTTP REST実装。将来gRPCに移行予定。
+
 export class GrpcRateLimitClient implements RateLimitClient {
   constructor(serverUrl: string);
   check(key: string, cost: number): Promise<RateLimitStatus>;
@@ -304,6 +310,8 @@ class InMemoryRateLimitClient implements RateLimitClient {
 }
 
 // gRPC 接続実装
+> **注記**: `GrpcRateLimitClient` は現状HTTP REST実装。将来gRPCに移行予定。
+
 class GrpcRateLimitClient implements RateLimitClient {
   GrpcRateLimitClient(String serverAddress, {http.Client? httpClient});
   Future<RateLimitStatus> check(String key, int cost);

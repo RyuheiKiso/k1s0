@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use moka::future::Cache;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::config::TenantClientConfig;
 use crate::error::TenantError;
@@ -217,6 +217,67 @@ struct TenantSettingsResponse {
     values: std::collections::HashMap<String, String>,
 }
 
+/// POST /api/v1/tenants のリクエストボディ。
+#[derive(Debug, Serialize)]
+struct CreateTenantBody<'a> {
+    name: &'a str,
+    plan: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    admin_user_id: Option<&'a str>,
+}
+
+/// POST /api/v1/tenants のレスポンス DTO。
+#[derive(Debug, Deserialize)]
+struct CreateTenantResponse {
+    tenant: TenantResponse,
+}
+
+/// メンバー情報レスポンス DTO。
+#[derive(Debug, Deserialize)]
+struct MemberResponse {
+    user_id: String,
+    role: String,
+    joined_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl From<MemberResponse> for TenantMember {
+    fn from(r: MemberResponse) -> Self {
+        TenantMember {
+            user_id: r.user_id,
+            role: r.role,
+            joined_at: r.joined_at,
+        }
+    }
+}
+
+/// POST /api/v1/tenants/{tenant_id}/members のレスポンス DTO。
+#[derive(Debug, Deserialize)]
+struct MemberWrapperResponse {
+    member: MemberResponse,
+}
+
+/// GET /api/v1/tenants/{tenant_id}/members のレスポンス DTO。
+#[derive(Debug, Deserialize)]
+struct MembersResponse {
+    members: Vec<MemberResponse>,
+}
+
+/// GET /api/v1/tenants/{tenant_id}/provisioning-status のレスポンス DTO。
+#[derive(Debug, Deserialize)]
+struct ProvisioningStatusResponse {
+    status: String,
+}
+
+/// "pending" / "in_progress" / "completed" / "failed" 文字列から `ProvisioningStatus` へ変換。
+fn parse_provisioning_status(s: &str) -> ProvisioningStatus {
+    match s {
+        "pending" => ProvisioningStatus::Pending,
+        "in_progress" => ProvisioningStatus::InProgress,
+        "completed" => ProvisioningStatus::Completed,
+        other => ProvisioningStatus::Failed(other.to_string()),
+    }
+}
+
 /// tenant-server へ HTTP で委譲する `TenantClient` 実装。TTL 付きキャッシュを内蔵する。
 ///
 /// 名称は将来的な gRPC 移行を見越した `HttpTenantClient` だが、
@@ -368,32 +429,100 @@ impl TenantClient for HttpTenantClient {
         Ok(settings)
     }
 
-    async fn create_tenant(&self, _req: CreateTenantRequest) -> Result<Tenant, TenantError> {
-        unimplemented!("HttpTenantClient::create_tenant")
+    async fn create_tenant(&self, req: CreateTenantRequest) -> Result<Tenant, TenantError> {
+        let body = CreateTenantBody {
+            name: &req.name,
+            plan: &req.plan,
+            admin_user_id: req.admin_user_id.as_deref(),
+        };
+        let resp = self
+            .http
+            .post(self.url("/api/v1/tenants"))
+            .json(&body)
+            .send()
+            .await
+            .map_err(Self::map_request_error)?;
+        let resp = Self::check_response(resp, "").await?;
+        let data: CreateTenantResponse = resp
+            .json()
+            .await
+            .map_err(|e| TenantError::ServerError(e.to_string()))?;
+        Ok(data.tenant.into())
     }
 
     async fn add_member(
         &self,
-        _tenant_id: &str,
-        _user_id: &str,
-        _role: &str,
+        tenant_id: &str,
+        user_id: &str,
+        role: &str,
     ) -> Result<TenantMember, TenantError> {
-        unimplemented!("HttpTenantClient::add_member")
+        let body = serde_json::json!({ "user_id": user_id, "role": role });
+        let resp = self
+            .http
+            .post(self.url(&format!("/api/v1/tenants/{}/members", tenant_id)))
+            .json(&body)
+            .send()
+            .await
+            .map_err(Self::map_request_error)?;
+        let resp = Self::check_response(resp, tenant_id).await?;
+        let data: MemberWrapperResponse = resp
+            .json()
+            .await
+            .map_err(|e| TenantError::ServerError(e.to_string()))?;
+        Ok(data.member.into())
     }
 
-    async fn remove_member(&self, _tenant_id: &str, _user_id: &str) -> Result<(), TenantError> {
-        unimplemented!("HttpTenantClient::remove_member")
+    async fn remove_member(&self, tenant_id: &str, user_id: &str) -> Result<(), TenantError> {
+        let resp = self
+            .http
+            .delete(self.url(&format!(
+                "/api/v1/tenants/{}/members/{}",
+                tenant_id, user_id
+            )))
+            .send()
+            .await
+            .map_err(Self::map_request_error)?;
+        Self::check_response(resp, tenant_id).await?;
+        Ok(())
     }
 
-    async fn list_members(&self, _tenant_id: &str) -> Result<Vec<TenantMember>, TenantError> {
-        unimplemented!("HttpTenantClient::list_members")
+    async fn list_members(&self, tenant_id: &str) -> Result<Vec<TenantMember>, TenantError> {
+        let resp = self
+            .http
+            .get(self.url(&format!("/api/v1/tenants/{}/members", tenant_id)))
+            .send()
+            .await
+            .map_err(Self::map_request_error)?;
+        let resp = Self::check_response(resp, tenant_id).await?;
+        let data: MembersResponse = resp
+            .json()
+            .await
+            .map_err(|e| TenantError::ServerError(e.to_string()))?;
+        Ok(data.members.into_iter().map(Into::into).collect())
     }
 
     async fn get_provisioning_status(
         &self,
-        _tenant_id: &str,
+        tenant_id: &str,
     ) -> Result<ProvisioningStatus, TenantError> {
-        unimplemented!("HttpTenantClient::get_provisioning_status")
+        let resp = self
+            .http
+            .get(self.url(&format!(
+                "/api/v1/tenants/{}/provisioning-status",
+                tenant_id
+            )))
+            .send()
+            .await
+            .map_err(Self::map_request_error)?;
+        if resp.status().as_u16() == 404 {
+            return Ok(ProvisioningStatus::Completed);
+        }
+        let resp = Self::check_response(resp, tenant_id).await?;
+        let data: ProvisioningStatusResponse = resp
+            .json()
+            .await
+            .map_err(|e| TenantError::ServerError(e.to_string()))?;
+        Ok(parse_provisioning_status(&data.status))
     }
 }
 

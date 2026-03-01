@@ -30,114 +30,120 @@ pub trait SearchClient: Send + Sync {
     async fn create_index(&self, name: &str, mapping: IndexMapping) -> Result<(), SearchError>;
 }
 
+use std::collections::HashMap;
+
+pub struct InMemorySearchClient {
+    documents: tokio::sync::Mutex<HashMap<String, Vec<IndexDocument>>>,
+}
+
+impl InMemorySearchClient {
+    pub fn new() -> Self {
+        Self {
+            documents: tokio::sync::Mutex::new(HashMap::new()),
+        }
+    }
+}
+
+impl Default for InMemorySearchClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl SearchClient for InMemorySearchClient {
+    async fn index_document(
+        &self,
+        index: &str,
+        doc: IndexDocument,
+    ) -> Result<IndexResult, SearchError> {
+        let mut docs = self.documents.lock().await;
+        let entry = docs.entry(index.to_string()).or_default();
+        let version = entry.len() as i64 + 1;
+        let id = doc.id.clone();
+        entry.push(doc);
+        Ok(IndexResult { id, version })
+    }
+
+    async fn bulk_index(
+        &self,
+        index: &str,
+        docs: Vec<IndexDocument>,
+    ) -> Result<BulkResult, SearchError> {
+        let mut store = self.documents.lock().await;
+        let entry = store.entry(index.to_string()).or_default();
+        let count = docs.len();
+        entry.extend(docs);
+        Ok(BulkResult {
+            success_count: count,
+            failed_count: 0,
+            failures: Vec::new(),
+        })
+    }
+
+    async fn search(
+        &self,
+        index: &str,
+        query: SearchQuery,
+    ) -> Result<SearchResult<serde_json::Value>, SearchError> {
+        let docs = self.documents.lock().await;
+        let entry = docs
+            .get(index)
+            .ok_or_else(|| SearchError::IndexNotFound(index.to_string()))?;
+        let hits: Vec<serde_json::Value> = entry
+            .iter()
+            .filter(|doc| {
+                if query.query.is_empty() {
+                    return true;
+                }
+                doc.fields.values().any(|v| {
+                    v.as_str()
+                        .map(|s| s.contains(&query.query))
+                        .unwrap_or(false)
+                })
+            })
+            .skip(query.page as usize * query.size as usize)
+            .take(query.size as usize)
+            .map(|doc| serde_json::to_value(doc).unwrap())
+            .collect();
+        let total = hits.len() as u64;
+        let mut facets = HashMap::new();
+        for facet_field in &query.facets {
+            facets.insert(
+                facet_field.clone(),
+                vec![crate::query::FacetBucket {
+                    value: "default".to_string(),
+                    count: total,
+                }],
+            );
+        }
+        Ok(SearchResult {
+            hits,
+            total,
+            facets,
+            took_ms: 1,
+        })
+    }
+
+    async fn delete_document(&self, index: &str, id: &str) -> Result<(), SearchError> {
+        let mut docs = self.documents.lock().await;
+        if let Some(entry) = docs.get_mut(index) {
+            entry.retain(|doc| doc.id != id);
+        }
+        Ok(())
+    }
+
+    async fn create_index(&self, name: &str, _mapping: IndexMapping) -> Result<(), SearchError> {
+        let mut docs = self.documents.lock().await;
+        docs.entry(name.to_string()).or_default();
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::document::BulkFailure;
-    use crate::query::FacetBucket;
-    use std::collections::HashMap;
-
-    struct InMemorySearchClient {
-        documents: tokio::sync::Mutex<HashMap<String, Vec<IndexDocument>>>,
-    }
-
-    impl InMemorySearchClient {
-        fn new() -> Self {
-            Self {
-                documents: tokio::sync::Mutex::new(HashMap::new()),
-            }
-        }
-    }
-
-    #[async_trait]
-    impl SearchClient for InMemorySearchClient {
-        async fn index_document(
-            &self,
-            index: &str,
-            doc: IndexDocument,
-        ) -> Result<IndexResult, SearchError> {
-            let mut docs = self.documents.lock().await;
-            let entry = docs.entry(index.to_string()).or_default();
-            let version = entry.len() as i64 + 1;
-            let id = doc.id.clone();
-            entry.push(doc);
-            Ok(IndexResult { id, version })
-        }
-
-        async fn bulk_index(
-            &self,
-            index: &str,
-            docs: Vec<IndexDocument>,
-        ) -> Result<BulkResult, SearchError> {
-            let mut store = self.documents.lock().await;
-            let entry = store.entry(index.to_string()).or_default();
-            let count = docs.len();
-            entry.extend(docs);
-            Ok(BulkResult {
-                success_count: count,
-                failed_count: 0,
-                failures: Vec::new(),
-            })
-        }
-
-        async fn search(
-            &self,
-            index: &str,
-            query: SearchQuery,
-        ) -> Result<SearchResult<serde_json::Value>, SearchError> {
-            let docs = self.documents.lock().await;
-            let entry = docs.get(index).ok_or_else(|| {
-                SearchError::IndexNotFound(index.to_string())
-            })?;
-            let hits: Vec<serde_json::Value> = entry
-                .iter()
-                .filter(|doc| {
-                    if query.query.is_empty() {
-                        return true;
-                    }
-                    doc.fields.values().any(|v| {
-                        v.as_str()
-                            .map(|s| s.contains(&query.query))
-                            .unwrap_or(false)
-                    })
-                })
-                .skip(query.page as usize * query.size as usize)
-                .take(query.size as usize)
-                .map(|doc| serde_json::to_value(doc).unwrap())
-                .collect();
-            let total = hits.len() as u64;
-            let mut facets = HashMap::new();
-            for facet_field in &query.facets {
-                facets.insert(
-                    facet_field.clone(),
-                    vec![FacetBucket {
-                        value: "default".to_string(),
-                        count: total,
-                    }],
-                );
-            }
-            Ok(SearchResult {
-                hits,
-                total,
-                facets,
-                took_ms: 1,
-            })
-        }
-
-        async fn delete_document(&self, index: &str, id: &str) -> Result<(), SearchError> {
-            let mut docs = self.documents.lock().await;
-            if let Some(entry) = docs.get_mut(index) {
-                entry.retain(|doc| doc.id != id);
-            }
-            Ok(())
-        }
-
-        async fn create_index(&self, name: &str, _mapping: IndexMapping) -> Result<(), SearchError> {
-            let mut docs = self.documents.lock().await;
-            docs.entry(name.to_string()).or_default();
-            Ok(())
-        }
-    }
 
     #[tokio::test]
     async fn test_index_and_search() {
@@ -185,11 +191,13 @@ mod tests {
             .create_index("products", IndexMapping::new())
             .await
             .unwrap();
-        let doc = IndexDocument::new("prod-001")
-            .field("name", serde_json::json!("Test"));
+        let doc = IndexDocument::new("prod-001").field("name", serde_json::json!("Test"));
         client.index_document("products", doc).await.unwrap();
 
-        client.delete_document("products", "prod-001").await.unwrap();
+        client
+            .delete_document("products", "prod-001")
+            .await
+            .unwrap();
 
         let query = SearchQuery::new("").page(0).size(10);
         let result = client.search("products", query).await.unwrap();
