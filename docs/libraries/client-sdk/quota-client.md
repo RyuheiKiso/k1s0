@@ -420,7 +420,7 @@ class QuotaExceededError extends QuotaClientError {
   final String quotaId;
   final int remaining;
   QuotaExceededError(this.quotaId, this.remaining)
-      : super('Quota exceeded for $quotaId');
+      : super('Quota exceeded: $quotaId, remaining=$remaining');
 }
 
 class QuotaNotFoundError extends QuotaClientError {

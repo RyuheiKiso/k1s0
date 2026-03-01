@@ -41,7 +41,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-grpc = ["tonic"]
+grpc = ["reqwest"]
 
 [dependencies]
 async-trait = "0.1"
@@ -50,7 +50,7 @@ serde_json = "1"
 thiserror = "2"
 tracing = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
-tonic = { version = "0.12", optional = true }
+reqwest = { version = "0.12", features = ["json"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }

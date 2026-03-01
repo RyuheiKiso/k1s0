@@ -296,8 +296,8 @@ assert.Len(t, stored, 1)
 ```go
 mock := fileclient.NewMockFileClient()
 
-// スタブ応答を設定
-mock.On("GetMetadata", "uploads/image.png").Return(&fileclient.FileMetadata{
+// スタブ応答を設定（第2引数以降が戻り値）
+mock.On("GetMetadata", &fileclient.FileMetadata{
     Path:        "uploads/image.png",
     ContentType: "image/png",
 }, nil)
