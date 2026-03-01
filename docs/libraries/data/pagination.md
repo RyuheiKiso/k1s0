@@ -202,6 +202,10 @@ export function decodeCursor(cursor: string): { sortKey: string; id: string };
 class PageRequest {
   final int page;
   final int perPage;
+
+  factory PageRequest.defaultRequest() => PageRequest(page: 1, perPage: 20);
+  int get offset => (page - 1) * perPage;
+  bool hasNext(int total) => page * perPage < total;
 }
 
 class PaginationMeta {

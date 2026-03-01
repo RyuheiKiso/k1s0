@@ -111,6 +111,9 @@ let config = MigrationConfig::new(PathBuf::from("./migrations"), "postgres://...
 // ディスク上のマイグレーションファイルを読み込んで実行
 let runner = InMemoryMigrationRunner::new(config.clone()).unwrap();
 
+// PostgreSQL Runner（feature = "postgres" 有効時）
+let pg_runner = SqlxMigrationRunner::new(pool, config.clone()).await.unwrap();
+
 // または、マイグレーション SQL を直接渡して構築（テスト用途に便利）
 let runner = InMemoryMigrationRunner::from_migrations(
     config,

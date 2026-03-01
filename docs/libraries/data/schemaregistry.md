@@ -46,7 +46,7 @@ Rust 公開型:
 | `CompatibilityMode` | enum | スキーマ互換性モード（7 variants: `Backward`・`BackwardTransitive`・`Forward`・`ForwardTransitive`・`Full`・`FullTransitive`・`None`） |
 | `RegisteredSchema` | 構造体 | 登録済みスキーマ（ID・バージョン・スキーマ文字列） |
 | `SchemaType` | enum | スキーマ形式（`Avro`・`Json`・`Protobuf`） |
-| `SchemaRegistryError` | enum | 登録・取得・互換性エラー型（6 variants: `Http(reqwest::Error)`, `SchemaNotFound { subject, version }`, `CompatibilityViolation { subject, reason }`, `InvalidSchema(String)`, `Serialization(serde_json::Error)`, `Unavailable(String)`） |
+| `SchemaRegistryError` | enum | 登録・取得・互換性エラー型（6 variants: `Http(reqwest::Error)`, `SchemaNotFound { subject: String, version: Option<i32> }`, `CompatibilityViolation { subject, reason }`, `InvalidSchema(String)`, `Serialization(serde_json::Error)`, `Unavailable(String)`） |
 
 ## Rust 実装
 
