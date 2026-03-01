@@ -1,4 +1,9 @@
 # docker-compose.yaml
+#
+# ポート環境変数: 全ホストポートは ${VAR:-default} 形式で外部から変更可能。
+# .env.example を .env にコピーして設定する。.env がない場合はデフォルト値が使われる。
+# 共用開発サーバーでは COMPOSE_PROJECT_NAME でコンテナ・ボリューム・ネットワークを分離する。
+# 詳細: docs/infrastructure/devenv/共用開発サーバー設計.md
 
 services:
   # ============================================================
@@ -11,7 +16,7 @@ services:
       POSTGRES_USER: dev
       POSTGRES_PASSWORD: dev
     ports:
-      - "5432:5432"
+      - "${PG_HOST_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./infra/docker/init-db:/docker-entrypoint-initdb.d
@@ -29,7 +34,7 @@ services:
       MYSQL_USER: dev
       MYSQL_PASSWORD: dev
     ports:
-      - "3306:3306"
+      - "${MYSQL_HOST_PORT:-3306}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
@@ -42,7 +47,7 @@ services:
     image: redis:7
     profiles: [infra]
     ports:
-      - "6379:6379"
+      - "${REDIS_HOST_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -72,7 +77,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     ports:
-      - "9092:9092"
+      - "${KAFKA_HOST_PORT:-9092}:9092"
     volumes:
       - kafka-data:/var/lib/kafka
     healthcheck:
@@ -89,7 +94,7 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
     ports:
-      - "8090:8080"
+      - "${KAFKA_UI_HOST_PORT:-8090}:8080"
     depends_on:
       kafka:
         condition: service_healthy
@@ -105,7 +110,7 @@ services:
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
       SCHEMA_REGISTRY_SCHEMA_REGISTRY_LEADER_CONNECT_TIMEOUT_MS: 120000
     ports:
-      - "8081:8081"
+      - "${SCHEMA_REGISTRY_HOST_PORT:-8081}:8081"
     depends_on:
       kafka:
         condition: service_healthy
@@ -130,8 +135,8 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: dev
     command: start-dev --import-realm
     ports:
-      - "8180:8080"
-      - "9000:9000"
+      - "${KEYCLOAK_HOST_PORT:-8180}:8080"
+      - "${KEYCLOAK_MGMT_HOST_PORT:-9000}:9000"
     volumes:
       - ./infra/docker/keycloak:/opt/keycloak/data/import    # realm k1s0 の初期設定。config.dev.yaml の auth.jwt.issuer（realms/k1s0）と一致させること
     depends_on:
@@ -148,7 +153,7 @@ services:
     image: redis:7
     profiles: [infra]
     ports:
-      - "6380:6379"
+      - "${REDIS_SESSION_HOST_PORT:-6380}:6379"
     volumes:
       - redis-session-data:/data
     healthcheck:
@@ -165,7 +170,7 @@ services:
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: dev-token
     ports:
-      - "8200:8200"
+      - "${VAULT_HOST_PORT:-8200}:8200"
 
   # ============================================================
   # API Gateway
@@ -186,8 +191,8 @@ services:
     volumes:
       - ./infra/kong/kong.dev.yaml:/etc/kong/kong.yaml:ro
     ports:
-      - "8000:8000"    # Proxy
-      - "8001:8001"    # Admin API
+      - "${KONG_PROXY_HOST_PORT:-8000}:8000"    # Proxy
+      - "${KONG_ADMIN_HOST_PORT:-8001}:8001"    # Admin API
     healthcheck:
       test: ["CMD", "kong", "health"]
       interval: 10s
@@ -203,8 +208,8 @@ services:
       dockerfile: ./server/rust/auth/Dockerfile
     profiles: [system]
     ports:
-      - "8083:8080"
-      - "50052:50051"
+      - "${AUTH_REST_HOST_PORT:-8083}:8080"
+      - "${AUTH_GRPC_HOST_PORT:-50052}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -229,8 +234,8 @@ services:
       dockerfile: ./server/rust/config/Dockerfile
     profiles: [system]
     ports:
-      - "8084:8080"
-      - "50054:50051"
+      - "${CONFIG_REST_HOST_PORT:-8084}:8080"
+      - "${CONFIG_GRPC_HOST_PORT:-50054}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -255,8 +260,8 @@ services:
       dockerfile: ./server/rust/saga/Dockerfile
     profiles: [system]
     ports:
-      - "8085:8080"
-      - "50055:50051"
+      - "${SAGA_REST_HOST_PORT:-8085}:8080"
+      - "${SAGA_GRPC_HOST_PORT:-50055}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -281,7 +286,7 @@ services:
       dockerfile: ./server/rust/dlq-manager/Dockerfile
     profiles: [system]
     ports:
-      - "8086:8080"
+      - "${DLQ_REST_HOST_PORT:-8086}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -304,8 +309,8 @@ services:
       dockerfile: ./server/rust/featureflag/Dockerfile
     profiles: [system]
     ports:
-      - "8087:8080"
-      - "50056:50051"
+      - "${FEATUREFLAG_REST_HOST_PORT:-8087}:8080"
+      - "${FEATUREFLAG_GRPC_HOST_PORT:-50056}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -326,8 +331,8 @@ services:
       dockerfile: ./server/rust/ratelimit/Dockerfile
     profiles: [system]
     ports:
-      - "8088:8080"
-      - "50057:50051"
+      - "${RATELIMIT_REST_HOST_PORT:-8088}:8080"
+      - "${RATELIMIT_GRPC_HOST_PORT:-50057}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -350,8 +355,8 @@ services:
       dockerfile: ./server/rust/tenant/Dockerfile
     profiles: [system]
     ports:
-      - "8089:8080"
-      - "50058:50051"
+      - "${TENANT_REST_HOST_PORT:-8089}:8080"
+      - "${TENANT_GRPC_HOST_PORT:-50058}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -374,8 +379,8 @@ services:
       dockerfile: ./server/rust/vault/Dockerfile
     profiles: [system]
     ports:
-      - "8091:8080"
-      - "50059:50051"
+      - "${VAULT_SVC_REST_HOST_PORT:-8091}:8080"
+      - "${VAULT_SVC_GRPC_HOST_PORT:-50059}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -398,7 +403,7 @@ services:
       dockerfile: ./server/rust/graphql-gateway/Dockerfile
     profiles: [system]
     ports:
-      - "8092:8080"
+      - "${GRAPHQL_GW_HOST_PORT:-8092}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -425,7 +430,7 @@ services:
       dockerfile: Dockerfile
     profiles: [system]
     ports:
-      - "8082:8080"
+      - "${BFF_PROXY_HOST_PORT:-8082}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -467,9 +472,9 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
-      - "16686:16686"   # UI
-      - "4317:4317"     # OTLP gRPC
-      - "4318:4318"     # OTLP HTTP
+      - "${JAEGER_UI_HOST_PORT:-16686}:16686"          # UI
+      - "${JAEGER_OTLP_GRPC_HOST_PORT:-4317}:4317"    # OTLP gRPC
+      - "${JAEGER_OTLP_HTTP_HOST_PORT:-4318}:4318"    # OTLP HTTP
 
   prometheus:
     image: prom/prometheus:v2.55
@@ -480,7 +485,7 @@ services:
       - ./infra/docker/prometheus/alerting_rules.yaml:/etc/prometheus/alerting_rules.yaml:ro
       - prometheus-data:/prometheus
     ports:
-      - "9090:9090"
+      - "${PROMETHEUS_HOST_PORT:-9090}:9090"
 
   loki:
     image: grafana/loki:3.3
@@ -490,7 +495,7 @@ services:
       - loki-data:/loki
     command: -config.file=/etc/loki/loki-config.yaml
     ports:
-      - "3100:3100"
+      - "${LOKI_HOST_PORT:-3100}:3100"
 
   promtail:
     image: grafana/promtail:2.9.0
@@ -508,7 +513,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: dev
     ports:
-      - "3200:3000"   # ホストポート 3200 を使用（3000 はフロントエンド開発サーバー等とのポート競合を回避するため）
+      - "${GRAFANA_HOST_PORT:-3200}:3000"   # ホストポート 3200 を使用（3000 はフロントエンド開発サーバー等とのポート競合を回避するため）
     volumes:
       - grafana-data:/var/lib/grafana
       - ./infra/docker/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -530,4 +535,4 @@ volumes:
 
 networks:
   default:
-    name: k1s0-network
+    name: ${COMPOSE_NETWORK_NAME:-k1s0-network}

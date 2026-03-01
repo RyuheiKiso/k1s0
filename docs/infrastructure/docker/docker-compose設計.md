@@ -49,7 +49,7 @@ services:
       POSTGRES_USER: dev
       POSTGRES_PASSWORD: dev
     ports:
-      - "5432:5432"
+      - "${PG_HOST_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./infra/docker/init-db:/docker-entrypoint-initdb.d
@@ -67,7 +67,7 @@ services:
       MYSQL_USER: dev
       MYSQL_PASSWORD: dev
     ports:
-      - "3306:3306"
+      - "${MYSQL_HOST_PORT:-3306}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
@@ -80,7 +80,7 @@ services:
     image: redis:7
     profiles: [infra]
     ports:
-      - "6379:6379"
+      - "${REDIS_HOST_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -110,7 +110,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     ports:
-      - "9092:9092"
+      - "${KAFKA_HOST_PORT:-9092}:9092"
     volumes:
       - kafka-data:/var/lib/kafka
     healthcheck:
@@ -127,7 +127,7 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
     ports:
-      - "8090:8080"
+      - "${KAFKA_UI_HOST_PORT:-8090}:8080"
     depends_on:
       kafka:
         condition: service_healthy
@@ -143,7 +143,7 @@ services:
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
       SCHEMA_REGISTRY_SCHEMA_REGISTRY_LEADER_CONNECT_TIMEOUT_MS: 120000
     ports:
-      - "8081:8081"
+      - "${SCHEMA_REGISTRY_HOST_PORT:-8081}:8081"
     depends_on:
       kafka:
         condition: service_healthy
@@ -167,7 +167,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: dev
     command: start-dev --import-realm
     ports:
-      - "8180:8080"
+      - "${KEYCLOAK_HOST_PORT:-8180}:8080"
     volumes:
       - ./infra/docker/keycloak:/opt/keycloak/data/import    # realm k1s0 の初期設定。config.dev.yaml の auth.jwt.issuer（realms/k1s0）と一致させること
     depends_on:
@@ -178,7 +178,7 @@ services:
     image: redis:7
     profiles: [infra]
     ports:
-      - "6380:6379"
+      - "${REDIS_SESSION_HOST_PORT:-6380}:6379"
     volumes:
       - redis-session-data:/data
     healthcheck:
@@ -195,7 +195,7 @@ services:
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: dev-token
     ports:
-      - "8200:8200"
+      - "${VAULT_HOST_PORT:-8200}:8200"
 
   # ============================================================
   # 可観測性
@@ -208,9 +208,9 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
-      - "16686:16686"   # UI
-      - "4317:4317"     # OTLP gRPC
-      - "4318:4318"     # OTLP HTTP
+      - "${JAEGER_UI_HOST_PORT:-16686}:16686"   # UI
+      - "${JAEGER_OTLP_GRPC_HOST_PORT:-4317}:4317"     # OTLP gRPC
+      - "${JAEGER_OTLP_HTTP_HOST_PORT:-4318}:4318"     # OTLP HTTP
 
   prometheus:
     image: prom/prometheus:v2.55
@@ -221,14 +221,14 @@ services:
       - ./infra/docker/prometheus/alerting_rules.yaml:/etc/prometheus/alerting_rules.yaml
       - prometheus-data:/prometheus
     ports:
-      - "9090:9090"
+      - "${PROMETHEUS_HOST_PORT:-9090}:9090"
 
   loki:
     image: grafana/loki:3.3
     profiles: [observability]
     command: -config.file=/etc/loki/loki-config.yaml
     ports:
-      - "3100:3100"
+      - "${LOKI_HOST_PORT:-3100}:3100"
     volumes:
       - ./infra/docker/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
       - loki-data:/loki
@@ -239,7 +239,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: dev
     ports:
-      - "3200:3000"   # ホストポート 3200 を使用（3000 はフロントエンド開発サーバー等とのポート競合を回避するため）
+      - "${GRAFANA_HOST_PORT:-3200}:3000"   # ホストポート 3200 を使用（3000 はフロントエンド開発サーバー等とのポート競合を回避するため）
     volumes:
       - grafana-data:/var/lib/grafana
       - ./infra/docker/grafana/provisioning:/etc/grafana/provisioning
@@ -261,7 +261,7 @@ volumes:
 
 networks:
   default:
-    name: k1s0-network
+    name: ${COMPOSE_NETWORK_NAME:-k1s0-network}
 ```
 
 ## Kafka 接続設定（config.yaml 例）

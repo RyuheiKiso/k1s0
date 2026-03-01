@@ -30,3 +30,16 @@ services:
   # --- API Gateway ---
   # NOTE: Kong は docker-compose.yaml 本体に定義済み（infra プロファイル）。
   # ここでは環境変数やポートのオーバーライドが必要な場合のみ定義する。
+
+  # --- 共用開発サーバー利用時の設定例 ---
+  # 共用サーバーで複数開発者が利用する場合:
+  #   1. cp .env.example .env
+  #   2. COMPOSE_PROJECT_NAME にユーザー名を設定
+  #   3. 必要に応じてポート変数を変更
+  #
+  # 例: .env
+  #   COMPOSE_PROJECT_NAME=alice
+  #   AUTH_REST_HOST_PORT=18083
+  #   AUTH_GRPC_HOST_PORT=60052
+  #
+  # 詳細: docs/infrastructure/devenv/共用開発サーバー設計.md
