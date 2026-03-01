@@ -6,9 +6,42 @@
 
 各 system tier サーバー（notification・ratelimit・tenant・scheduler 等）の実際の依存を排除し、単体テスト・統合テストを高速かつ安定して実行できる環境を構築する。
 
-**配置先**: `regions/system/library/rust/test-helper/`
+**配置先**:
+
+| 言語 | パス |
+|------|------|
+| Go | `regions/system/library/go/test-helper/` |
+| Rust | `regions/system/library/rust/test-helper/` |
+| TypeScript | `regions/system/library/typescript/test-helper/` |
+| Dart | `regions/system/library/dart/test_helper/` |
 
 ## 公開 API
+
+### 言語別対応状況
+
+| 機能 | Rust | Go | TypeScript | Dart |
+|------|------|-----|-----------|------|
+| TestContainerBuilder（DB/Kafka/Keycloak コンテナ） | ✓ (feature: containers) | ✓ | — | — |
+| JwtTestHelper | ✓ (feature: jwt) | ✓ | ✓ | ✓ |
+| MockServerBuilder | ✓ (feature: mock-server) | ✓ | ✓ | ✓ |
+| FixtureBuilder | ✓ (feature: fixtures) | ✓ | ✓ | ✓ |
+| AssertionHelper | ✓ | ✓ | ✓ | ✓ |
+| MockServer | ✓ (feature: mock-server) | ✓ | ✓ | ✓ |
+
+> **注記**: Testcontainers 統合（TestContainerBuilder）は Rust と Go のみ提供。TypeScript/Dart では Docker コンテナの直接制御は行わず、モックサーバーと JWT ヘルパーに特化した構成。
+
+### 全言語共通 API
+
+| 型・トレイト | 種別 | 説明 |
+|-------------|------|------|
+| `JwtTestHelper` | クラス/構造体 | テスト用 JWT トークン生成（HS256） |
+| `TestClaims` | 構造体/interface | テスト用 JWT クレーム（sub・roles・tenant_id 等） |
+| `MockServerBuilder` | 構造体/クラス | system tier 各サーバーの HTTP モック構築 |
+| `MockServer` | 構造体/クラス | モックサーバー（レスポンス設定・検証） |
+| `FixtureBuilder` | トレイト/クラス | テスト用エンティティ生成・ランダム値注入 |
+| `AssertionHelper` | 構造体/クラス | JSON 部分一致・イベントアサーション等 |
+
+### Rust / Go 専用 API（コンテナ統合）
 
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
@@ -17,12 +50,6 @@
 | `RedisContainer` | 構造体 | Redis コンテナ（接続 URL 提供） |
 | `KafkaContainer` | 構造体 | Kafka コンテナ（ブローカー URL 提供） |
 | `KeycloakContainer` | 構造体 | Keycloak コンテナ（認証 URL・レルム設定） |
-| `JwtTestHelper` | 構造体 | テスト用 JWT トークン生成（HS256/RS256） |
-| `TestClaims` | 構造体 | テスト用 JWT クレーム（sub・roles・tenant_id 等） |
-| `MockServerBuilder` | 構造体 | system tier 各サーバーの HTTP モック構築 |
-| `MockServer` | 構造体 | wiremock ベースのモックサーバー（レスポンス設定・検証） |
-| `FixtureBuilder` | トレイト | テスト用エンティティ生成・ランダム値注入 |
-| `AssertionHelper` | 構造体 | JSON 部分一致・イベントアサーション等 |
 
 ## Rust 実装
 

@@ -18,6 +18,8 @@ GraphQL クライアントライブラリ。GraphQL クエリ・ミューテー�
 | `ErrorLocation` | 構造体 | line・column |
 | `ClientError` | enum | `RequestError`・`DeserializationError`・`GraphQlError`・`NotFound` |
 
+> **注記 — `GraphQlHttpClient` の実装状況**: ドキュメント内の「本番用クライアントの初期化例」では `GraphQlHttpClient` を使用しているが、現在このクラスは TypeScript の `index.ts` から export されていない（Rust のみ使用例に記載）。本番用 HTTP クライアントは今後の実装予定であり、各言語の index.ts からの export は未提供。テスト用途には `InMemoryGraphQlClient` を使用すること。
+
 ### 命名規則の言語別対応
 
 ドキュメント中のメソッド名は Rust/snake_case で統一表記しているが、各言語の慣習に従う。

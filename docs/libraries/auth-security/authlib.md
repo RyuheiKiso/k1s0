@@ -4,12 +4,34 @@
 
 ## サーバー用 API（Go / Rust）
 
+### JWKSVerifier / トークン検証
+
+| 関数・型 | シグネチャ | 説明 |
+|---------|-----------|------|
+| `NewJWKSVerifier` / `JwksVerifier::new` | `(jwksURL, issuer, audience, cacheTTL) -> Verifier` | JWKS 検証器を生成 |
+| `VerifyToken` / `verify_token` | `(tokenString) -> (Claims, Error)` | JWT トークンを検証 |
+| `Claims` | struct | JWT クレーム（sub, iss, aud, realm_access, resource_access, tier_access 等） |
+| `AuthError` | enum | `TokenExpired` / `InvalidToken` / `JwksFetchFailed` / `PermissionDenied` |
+
+### RBAC チェック関数
+
 | 関数 | シグネチャ | 説明 |
 |------|-----------|------|
-| NewJWKSVerifier | `(jwksURL, issuer, audience, cacheTTL) -> Verifier` | JWKS 検証器を生成 |
-| VerifyToken | `(tokenString) -> Claims, Error` | JWT トークンを検証 |
-| CheckPermission | `(claims, resource, action) -> bool` | RBAC 権限チェック |
-| AuthMiddleware | `(verifier) -> Middleware` | HTTP/gRPC 認証ミドルウェア |
+| `HasRole` / `has_role` | `(claims, role) -> bool` | レルムロール保有チェック |
+| `HasResourceRole` / `has_resource_role` | `(claims, resource, role) -> bool` | リソースロール保有チェック |
+| `HasPermission` / `has_permission` | `(claims, resource, action) -> bool` | リソース × アクション権限チェック |
+| `HasTierAccess` / `has_tier_access` | `(claims, tier) -> bool` | tier_access チェック |
+
+### ミドルウェア（HTTP / gRPC 認証ハンドラ）
+
+| 関数 | シグネチャ | 説明 |
+|------|-----------|------|
+| `AuthMiddleware` / `require_role` | `(verifier) -> Middleware` | JWT 検証 + Claims 注入ミドルウェア |
+| `RequireRole` / `require_role` | `(role) -> Middleware` | ロール必須ミドルウェア |
+| `RequirePermission` / `require_permission` | `(resource, action) -> Middleware` | RBAC 権限必須ミドルウェア |
+| `RequireTierAccess` / `require_tier_access` | `(tier) -> Middleware` | Tier アクセス必須ミドルウェア |
+| `GetClaims` / `get_claims` | `(ctx) -> Claims?` | コンテキストから Claims を取得 |
+| `GetClaimsFromContext` | `(ctx) -> Claims?` | Go のみ: gin.Context から Claims を取得 |
 
 ## クライアント用 API（TypeScript / Dart）
 
