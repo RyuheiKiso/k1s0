@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use moka::future::Cache;
 use serde::Deserialize;
 
 use crate::config::TenantClientConfig;
@@ -120,26 +121,40 @@ struct TenantSettingsResponse {
     values: std::collections::HashMap<String, String>,
 }
 
-/// tenant-server へ HTTP で委譲する `TenantClient` 実装。
+/// tenant-server へ HTTP で委譲する `TenantClient` 実装。TTL 付きキャッシュを内蔵する。
 ///
 /// 名称は将来的な gRPC 移行を見越した `GrpcTenantClient` だが、
 /// 現時点では REST/HTTP で実装されている。
 pub struct GrpcTenantClient {
     http: reqwest::Client,
     base_url: String,
+    tenant_cache: Cache<String, Tenant>,
+    settings_cache: Cache<String, TenantSettings>,
 }
 
 impl GrpcTenantClient {
     /// 新しい `GrpcTenantClient` を生成する。
     pub fn new(config: TenantClientConfig) -> Result<Self, TenantError> {
         let http = reqwest::Client::builder()
-            .timeout(config.cache_ttl)
+            .timeout(std::time::Duration::from_secs(30))
             .build()
             .map_err(|e| TenantError::ServerError(e.to_string()))?;
+
+        let tenant_cache = Cache::builder()
+            .max_capacity(config.cache_max_capacity)
+            .time_to_live(config.cache_ttl)
+            .build();
+
+        let settings_cache = Cache::builder()
+            .max_capacity(config.cache_max_capacity)
+            .time_to_live(config.cache_ttl)
+            .build();
 
         Ok(Self {
             http,
             base_url: config.server_url,
+            tenant_cache,
+            settings_cache,
         })
     }
 
@@ -179,6 +194,10 @@ impl GrpcTenantClient {
 #[async_trait]
 impl TenantClient for GrpcTenantClient {
     async fn get_tenant(&self, tenant_id: &str) -> Result<Tenant, TenantError> {
+        if let Some(cached) = self.tenant_cache.get(tenant_id).await {
+            return Ok(cached);
+        }
+
         let resp = self
             .http
             .get(self.url(&format!("/api/v1/tenants/{}", tenant_id)))
@@ -190,7 +209,9 @@ impl TenantClient for GrpcTenantClient {
             .json()
             .await
             .map_err(|e| TenantError::ServerError(e.to_string()))?;
-        Ok(data.into())
+        let tenant: Tenant = data.into();
+        self.tenant_cache.insert(tenant_id.to_string(), tenant.clone()).await;
+        Ok(tenant)
     }
 
     async fn list_tenants(&self, filter: TenantFilter) -> Result<Vec<Tenant>, TenantError> {
@@ -227,6 +248,10 @@ impl TenantClient for GrpcTenantClient {
     }
 
     async fn get_settings(&self, tenant_id: &str) -> Result<TenantSettings, TenantError> {
+        if let Some(cached) = self.settings_cache.get(tenant_id).await {
+            return Ok(cached);
+        }
+
         let resp = self
             .http
             .get(self.url(&format!("/api/v1/tenants/{}/settings", tenant_id)))
@@ -238,7 +263,9 @@ impl TenantClient for GrpcTenantClient {
             .json()
             .await
             .map_err(|e| TenantError::ServerError(e.to_string()))?;
-        Ok(TenantSettings::new(data.values))
+        let settings = TenantSettings::new(data.values);
+        self.settings_cache.insert(tenant_id.to_string(), settings.clone()).await;
+        Ok(settings)
     }
 }
 

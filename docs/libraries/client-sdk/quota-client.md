@@ -105,7 +105,7 @@ println!("Period: {:?}, Limit: {}", policy.period, policy.limit);
 
 **配置先**: `regions/system/library/go/quota-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: `github.com/stretchr/testify v1.10.0`
+**依存関係**: `github.com/stretchr/testify v1.11.1`
 
 **主要インターフェース**:
 

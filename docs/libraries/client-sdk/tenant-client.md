@@ -13,7 +13,8 @@ system-tenant-server（ポート 8089）へのテナント情報取得クライ�
 | 型・トレイト | 種別 | 説明 |
 |-------------|------|------|
 | `TenantClient` | トレイト | テナント操作インターフェース |
-| `GrpcTenantClient` | 構造体 | gRPC 経由の tenant-server 接続実装（TTL 付きキャッシュ内蔵）|
+| `GrpcTenantClient` | 構造体 | tenant-server HTTP 接続実装（TTL 付きキャッシュ内蔵）|
+| `InMemoryTenantClient` | 構造体 | テスト用インメモリ実装 |
 | `Tenant` | 構造体 | テナント情報（ID・名称・ステータス・プラン・設定・作成日時）|
 | `TenantStatus` | enum | `Active`・`Suspended`・`Deleted` |
 | `TenantFilter` | 構造体 | テナント一覧取得フィルター（ステータス・プラン）|
@@ -32,21 +33,21 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-grpc = ["tonic"]
+mock = ["mockall"]
 
 [dependencies]
 async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
-tracing = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
+reqwest = { version = "0.12", features = ["json"] }
 moka = { version = "0.12", features = ["future"] }
-tonic = { version = "0.12", optional = true }
+tokio = { version = "1", features = ["rt", "time"] }
+mockall = { version = "0.13", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-mockall = "0.13"
 ```
 
 **依存追加**: `k1s0-tenant-client = { path = "../../system/library/rust/tenant-client" }`（[追加方法参照](../_common/共通実装パターン.md#cargo依存追加)）
@@ -57,8 +58,7 @@ mockall = "0.13"
 tenant-client/
 ├── src/
 │   ├── lib.rs          # 公開 API（再エクスポート）・使用例ドキュメント
-│   ├── client.rs       # TenantClient トレイト
-│   ├── grpc.rs         # GrpcTenantClient（TTL キャッシュ内蔵）
+│   ├── client.rs       # TenantClient トレイト・InMemoryTenantClient・GrpcTenantClient（TTL キャッシュ内蔵）
 │   ├── tenant.rs       # Tenant・TenantStatus・TenantSettings・TenantFilter
 │   ├── config.rs       # TenantClientConfig
 │   └── error.rs        # TenantError
@@ -165,7 +165,7 @@ tracing::info!(count = tenants.len(), "アクティブテナント一覧取得")
 
 **配置先**: `regions/system/library/go/tenant-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: `google.golang.org/grpc v1.70`, `github.com/stretchr/testify v1.10.0`
+**依存関係**: `github.com/stretchr/testify v1.11.1`
 
 **主要インターフェース**:
 
@@ -326,9 +326,7 @@ export class TenantError extends Error {
 **pubspec.yaml 主要依存**:
 
 ```yaml
-dependencies:
-  grpc: ^4.0.0
-  protobuf: ^3.1.0
+dependencies: {}
 ```
 
 **主要 API**:

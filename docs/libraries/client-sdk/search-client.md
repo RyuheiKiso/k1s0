@@ -250,7 +250,7 @@ client.delete_document("products", "prod-001").await?;
 
 **配置先**: `regions/system/library/go/search-client/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
-**依存関係**: `google.golang.org/grpc v1.70`, `github.com/stretchr/testify v1.10.0`
+**依存関係**: `github.com/stretchr/testify v1.10.0`
 
 **主要インターフェース**:
 
