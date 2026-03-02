@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import 'types.dart';
+import 'types.dart' as types;
 import 'token.dart';
 import 'config.dart';
 import 'error.dart';
@@ -10,7 +10,7 @@ import 'error.dart';
 abstract class ServiceAuthClient {
   Future<ServiceToken> getToken();
   Future<String> getCachedToken();
-  SpiffeId validateSpiffeIdCheck(String uri, String expectedNamespace);
+  types.SpiffeId validateSpiffeId(String uri, String expectedNamespace);
 }
 
 class HttpServiceAuthClient implements ServiceAuthClient {
@@ -61,7 +61,7 @@ class HttpServiceAuthClient implements ServiceAuthClient {
   }
 
   @override
-  SpiffeId validateSpiffeIdCheck(String uri, String expectedNamespace) {
-    return validateSpiffeId(uri, expectedNamespace);
+  types.SpiffeId validateSpiffeId(String uri, String expectedNamespace) {
+    return types.validateSpiffeId(uri, expectedNamespace);
   }
 }

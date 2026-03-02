@@ -13,6 +13,7 @@ service QuotaService {
   rpc DeleteQuotaPolicy(DeleteQuotaPolicyRequest) returns (DeleteQuotaPolicyResponse);
   rpc GetQuotaUsage(GetQuotaUsageRequest) returns (GetQuotaUsageResponse);
   rpc IncrementQuotaUsage(IncrementQuotaUsageRequest) returns (IncrementQuotaUsageResponse);
+  rpc ResetQuotaUsage(ResetQuotaUsageRequest) returns (ResetQuotaUsageResponse);
 }
 
 message QuotaPolicy {
@@ -74,6 +75,11 @@ message UpdateQuotaPolicyRequest {
   string id = 1;
   optional bool enabled = 2;
   optional uint64 limit = 3;
+  optional string name = 4;
+  optional string subject_type = 5;
+  optional string subject_id = 6;
+  optional string period = 7;
+  optional uint32 alert_threshold_percent = 8;
 }
 
 message UpdateQuotaPolicyResponse {
@@ -109,4 +115,13 @@ message IncrementQuotaUsageResponse {
   double usage_percent = 4;
   bool exceeded = 5;
   bool allowed = 6;
+}
+
+message ResetQuotaUsageRequest {
+  string quota_id = 1;
+  string reason = 2;
+}
+
+message ResetQuotaUsageResponse {
+  QuotaUsage usage = 1;
 }

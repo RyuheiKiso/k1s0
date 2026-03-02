@@ -1,5 +1,5 @@
 import { vi, describe, it, expect } from 'vitest';
-import { InMemoryCacheClient } from '../src/index.js';
+import { InMemoryCacheClient, RedisCacheClient } from '../src/index.js';
 
 describe('InMemoryCacheClient', () => {
   it('set/getで値を保存・取得できる', async () => {
@@ -74,5 +74,32 @@ describe('InMemoryCacheClient', () => {
     expect(await cache.setNX('key1', 'value2', 5000)).toBe(true);
     expect(await cache.get('key1')).toBe('value2');
     vi.useRealTimers();
+  });
+});
+
+describe('RedisCacheClient', () => {
+  it('prefixes keys and delegates to redis client', async () => {
+    const redis = {
+      get: vi.fn().mockResolvedValue('value1'),
+      set: vi.fn().mockResolvedValue('OK'),
+      del: vi.fn().mockResolvedValue(1),
+      exists: vi.fn().mockResolvedValue(1),
+    };
+
+    const cache = RedisCacheClient.fromClient(redis, 'app');
+    await cache.set('key1', 'value1', 1000);
+    await cache.get('key1');
+    const deleted = await cache.delete('key1');
+    const exists = await cache.exists('key1');
+    const setNx = await cache.setNX('key1', 'value2', 1000);
+
+    expect(redis.set).toHaveBeenCalledWith('app:key1', 'value1', 'PX', 1000);
+    expect(redis.get).toHaveBeenCalledWith('app:key1');
+    expect(redis.del).toHaveBeenCalledWith('app:key1');
+    expect(redis.exists).toHaveBeenCalledWith('app:key1');
+    expect(redis.set).toHaveBeenCalledWith('app:key1', 'value2', 'PX', 1000, 'NX');
+    expect(deleted).toBe(true);
+    expect(exists).toBe(true);
+    expect(setNx).toBe(true);
   });
 });

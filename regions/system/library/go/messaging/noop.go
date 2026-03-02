@@ -22,6 +22,16 @@ func (n *NoOpEventProducer) Publish(ctx context.Context, event EventEnvelope) er
 	return nil
 }
 
+// PublishBatch は複数イベントを順次 Publish する。
+func (n *NoOpEventProducer) PublishBatch(ctx context.Context, events []EventEnvelope) error {
+	for _, event := range events {
+		if err := n.Publish(ctx, event); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Close はプロデューサーをクローズ済みにする。
 func (n *NoOpEventProducer) Close() error {
 	n.closed = true

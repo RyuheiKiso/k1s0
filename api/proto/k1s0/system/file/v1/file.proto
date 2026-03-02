@@ -1,12 +1,15 @@
 syntax = "proto3";
 package k1s0.system.file.v1;
 
+option go_package = "github.com/k1s0-platform/system-proto-go/file/v1;filev1";
+
 service FileService {
   rpc GetFileMetadata(GetFileMetadataRequest) returns (FileMetadataResponse);
   rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
   rpc GenerateUploadUrl(GenerateUploadUrlRequest) returns (GenerateUploadUrlResponse);
   rpc CompleteUpload(CompleteUploadRequest) returns (CompleteUploadResponse);
   rpc GenerateDownloadUrl(GenerateDownloadUrlRequest) returns (GenerateDownloadUrlResponse);
+  rpc UpdateFileTags(UpdateFileTagsRequest) returns (UpdateFileTagsResponse);
   rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
 }
 
@@ -21,6 +24,7 @@ message FileMetadata {
   string created_at = 8;
   string updated_at = 9;
   map<string, string> tags = 10;
+  string storage_key = 11;
 }
 
 message GetFileMetadataRequest {
@@ -39,7 +43,7 @@ message ListFilesRequest {
 
 message ListFilesResponse {
   repeated FileMetadata files = 1;
-  int32 total = 2;
+  uint64 total = 2;
 }
 
 message GenerateUploadUrlRequest {
@@ -48,6 +52,7 @@ message GenerateUploadUrlRequest {
   string tenant_id = 3;
   string uploaded_by = 4;
   map<string, string> tags = 5;
+  optional int32 expires_in_seconds = 6;
 }
 
 message GenerateUploadUrlResponse {
@@ -57,7 +62,7 @@ message GenerateUploadUrlResponse {
 
 message CompleteUploadRequest {
   string file_id = 1;
-  int64 size = 2;
+  optional string checksum_sha256 = 3;
 }
 
 message CompleteUploadResponse {
@@ -70,6 +75,15 @@ message GenerateDownloadUrlRequest {
 
 message GenerateDownloadUrlResponse {
   string download_url = 1;
+}
+
+message UpdateFileTagsRequest {
+  string id = 1;
+  map<string, string> tags = 2;
+}
+
+message UpdateFileTagsResponse {
+  FileMetadata metadata = 1;
 }
 
 message DeleteFileRequest {

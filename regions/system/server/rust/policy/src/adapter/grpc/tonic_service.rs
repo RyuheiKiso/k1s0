@@ -52,7 +52,7 @@ impl PolicyService for PolicyServiceTonic {
     ) -> Result<Response<ProtoEvaluatePolicyResponse>, Status> {
         let inner = request.into_inner();
         let req = EvaluatePolicyRequest {
-            package_path: inner.package_path,
+            policy_id: inner.policy_id,
             input_json: inner.input_json,
         };
         let resp = self
@@ -87,7 +87,7 @@ impl PolicyService for PolicyServiceTonic {
             description: resp.description,
             package_path: resp.package_path,
             rego_content: resp.rego_content,
-            bundle_id: String::new(),
+            bundle_id: resp.bundle_id.unwrap_or_default(),
             enabled: resp.enabled,
             version: resp.version,
             created_at: None,
@@ -179,17 +179,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_policy_service_tonic_evaluate_policy_no_opa_no_policy_id() {
-        let mock = MockPolicyRepository::new();
+        let mut mock = MockPolicyRepository::new();
+        mock.expect_find_by_id().returning(|_| Ok(None));
         let tonic_svc = make_tonic_service(mock);
 
         let req = Request::new(ProtoEvaluatePolicyRequest {
-            package_path: "k1s0.system.tenant".to_string(),
+            policy_id: uuid::Uuid::new_v4().to_string(),
             input_json: b"{}".to_vec(),
         });
         let result = tonic_svc.evaluate_policy(req).await;
 
         assert!(result.is_err());
         let status = result.unwrap_err();
-        assert_eq!(status.code(), tonic::Code::Internal);
+        assert_eq!(status.code(), tonic::Code::NotFound);
     }
 }

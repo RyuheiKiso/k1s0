@@ -24,13 +24,13 @@ class EventMetadata {
   factory EventMetadata.create(
     String eventType,
     String source, {
-    String? correlationId,
+    required String correlationId,
     String? traceId,
   }) {
     return EventMetadata(
       eventId: _uuid.v4(),
       eventType: eventType,
-      correlationId: correlationId ?? _uuid.v4(),
+      correlationId: correlationId,
       traceId: traceId ?? _uuid.v4(),
       timestamp: DateTime.now().toUtc(),
       source: source,

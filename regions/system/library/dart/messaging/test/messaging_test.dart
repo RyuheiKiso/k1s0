@@ -4,7 +4,11 @@ import 'package:k1s0_messaging/messaging.dart';
 void main() {
   group('EventMetadata', () {
     test('create generates UUID eventId', () {
-      final meta = EventMetadata.create('user.created', 'auth-service');
+      final meta = EventMetadata.create(
+        'user.created',
+        'auth-service',
+        correlationId: 'corr-100',
+      );
       expect(meta.eventId, isNotEmpty);
       final uuidRegex = RegExp(
           r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
@@ -19,28 +23,32 @@ void main() {
 
     test('create uses provided traceId', () {
       final meta =
-          EventMetadata.create('event', 'svc', traceId: 'trace-123');
+          EventMetadata.create('event', 'svc', correlationId: 'corr-124', traceId: 'trace-123');
       expect(meta.traceId, equals('trace-123'));
     });
 
-    test('create auto-generates correlationId and traceId', () {
-      final meta = EventMetadata.create('event', 'svc');
-      expect(meta.correlationId, isNotEmpty);
+    test('create auto-generates traceId', () {
+      final meta = EventMetadata.create('event', 'svc', correlationId: 'corr-125');
+      expect(meta.correlationId, equals('corr-125'));
       expect(meta.traceId, isNotEmpty);
     });
 
     test('create sets timestamp to UTC', () {
-      final meta = EventMetadata.create('event', 'svc');
+      final meta = EventMetadata.create('event', 'svc', correlationId: 'corr-126');
       expect(meta.timestamp.isUtc, isTrue);
     });
 
     test('create defaults schemaVersion to 1', () {
-      final meta = EventMetadata.create('event', 'svc');
+      final meta = EventMetadata.create('event', 'svc', correlationId: 'corr-127');
       expect(meta.schemaVersion, equals(1));
     });
 
     test('create sets eventType and source', () {
-      final meta = EventMetadata.create('user.created', 'auth-service');
+      final meta = EventMetadata.create(
+        'user.created',
+        'auth-service',
+        correlationId: 'corr-128',
+      );
       expect(meta.eventType, equals('user.created'));
       expect(meta.source, equals('auth-service'));
     });
@@ -48,7 +56,7 @@ void main() {
 
   group('EventEnvelope', () {
     test('can be created with required fields', () {
-      final meta = EventMetadata.create('event.v1', 'service');
+      final meta = EventMetadata.create('event.v1', 'service', correlationId: 'corr-129');
       final envelope = EventEnvelope(
         topic: 'k1s0.system.user.created.v1',
         key: 'user-1',
@@ -68,7 +76,7 @@ void main() {
         topic: 'test-topic',
         key: 'test-key',
         payload: 'data',
-        metadata: EventMetadata.create('event', 'svc'),
+        metadata: EventMetadata.create('event', 'svc', correlationId: 'corr-130'),
       );
       await producer.publish(envelope);
       expect(producer.published, hasLength(1));
@@ -82,10 +90,29 @@ void main() {
           topic: 'topic',
           key: 'key-$i',
           payload: i,
-          metadata: EventMetadata.create('event', 'svc'),
+          metadata: EventMetadata.create('event', 'svc', correlationId: 'corr-b-$i'),
         ));
       }
       expect(producer.published, hasLength(3));
+    });
+
+    test('publishBatch adds multiple events', () async {
+      final producer = NoOpEventProducer();
+      await producer.publishBatch([
+        EventEnvelope(
+          topic: 'topic',
+          key: 'k1',
+          payload: 1,
+          metadata: EventMetadata.create('event', 'svc', correlationId: 'corr-b1'),
+        ),
+        EventEnvelope(
+          topic: 'topic',
+          key: 'k2',
+          payload: 2,
+          metadata: EventMetadata.create('event', 'svc', correlationId: 'corr-b2'),
+        ),
+      ]);
+      expect(producer.published, hasLength(2));
     });
 
     test('close completes without error', () async {

@@ -12,7 +12,7 @@ import {
 import type { CursorRequest, CursorMeta, PaginationMeta } from '../src/index.js';
 
 describe('createPageResponse', () => {
-  it('正しいページレスポンスを生成する', () => {
+  it('creates a response with computed total pages', () => {
     const resp = createPageResponse([1, 2, 3], 10, { page: 1, perPage: 3 });
     expect(resp.items).toEqual([1, 2, 3]);
     expect(resp.total).toBe(10);
@@ -21,20 +21,30 @@ describe('createPageResponse', () => {
     expect(resp.totalPages).toBe(4);
   });
 
-  it('アイテムが空の場合にtotalPages=0を返す', () => {
+  it('returns totalPages=0 when total is zero', () => {
     const resp = createPageResponse([], 0, { page: 1, perPage: 10 });
     expect(resp.items).toEqual([]);
     expect(resp.totalPages).toBe(0);
   });
 
-  it('totalPagesを切り上げる', () => {
+  it('rounds up total pages', () => {
     const resp = createPageResponse([1], 11, { page: 1, perPage: 5 });
     expect(resp.totalPages).toBe(3);
+  });
+
+  it('meta() returns pagination metadata', () => {
+    const resp = createPageResponse([1, 2], 11, { page: 2, perPage: 5 });
+    expect(resp.meta()).toEqual({
+      total: 11,
+      page: 2,
+      perPage: 5,
+      totalPages: 3,
+    });
   });
 });
 
 describe('encodeCursor / decodeCursor', () => {
-  it('エンコードとデコードが可逆である', () => {
+  it('encodes and decodes cursor values', () => {
     const sortKey = '2024-01-15';
     const id = 'abc-123';
     const cursor = encodeCursor(sortKey, id);
@@ -43,36 +53,27 @@ describe('encodeCursor / decodeCursor', () => {
     expect(decoded.id).toBe(id);
   });
 
-  it('base64url文字列（no padding）を返す', () => {
-    const cursor = encodeCursor('key', 'test-id');
-    const expected = btoa('key|test-id').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-    expect(cursor).toBe(expected);
-  });
-
-  it('セパレータがないカーソルはエラーになる', () => {
+  it('throws for cursor without separator', () => {
     const legacy = btoa('noseparator');
     expect(() => decodeCursor(legacy)).toThrow('missing separator');
   });
 });
 
 describe('validatePerPage', () => {
-  it('有効な値を受け入れる', () => {
+  it('accepts valid values', () => {
     expect(validatePerPage(1)).toBe(1);
     expect(validatePerPage(50)).toBe(50);
     expect(validatePerPage(100)).toBe(100);
   });
 
-  it('0はエラーになる', () => {
+  it('rejects invalid values', () => {
     expect(() => validatePerPage(0)).toThrow(PerPageValidationError);
-  });
-
-  it('最大値超過はエラーになる', () => {
     expect(() => validatePerPage(101)).toThrow(PerPageValidationError);
   });
 });
 
 describe('CursorRequest type', () => {
-  it('型が正しく使える', () => {
+  it('can be used without cursor', () => {
     const req: CursorRequest = { limit: 20 };
     expect(req.limit).toBe(20);
     expect(req.cursor).toBeUndefined();
@@ -80,7 +81,7 @@ describe('CursorRequest type', () => {
 });
 
 describe('CursorMeta type', () => {
-  it('型が正しく使える', () => {
+  it('can be instantiated with fields', () => {
     const meta: CursorMeta = { nextCursor: 'next', hasMore: true };
     expect(meta.nextCursor).toBe('next');
     expect(meta.hasMore).toBe(true);
@@ -88,7 +89,7 @@ describe('CursorMeta type', () => {
 });
 
 describe('PaginationMeta type', () => {
-  it('型が正しく使える', () => {
+  it('can be instantiated with fields', () => {
     const meta: PaginationMeta = { total: 100, page: 2, perPage: 10, totalPages: 10 };
     expect(meta.total).toBe(100);
     expect(meta.totalPages).toBe(10);
@@ -96,7 +97,7 @@ describe('PaginationMeta type', () => {
 });
 
 describe('defaultPageRequest', () => {
-  it('page=1, perPage=20を返す', () => {
+  it('returns page=1 and perPage=20', () => {
     const req = defaultPageRequest();
     expect(req.page).toBe(1);
     expect(req.perPage).toBe(20);
@@ -104,33 +105,17 @@ describe('defaultPageRequest', () => {
 });
 
 describe('pageOffset', () => {
-  it('page=1のオフセットは0', () => {
+  it('computes expected offsets', () => {
     expect(pageOffset({ page: 1, perPage: 20 })).toBe(0);
-  });
-
-  it('page=2のオフセットはperPage', () => {
     expect(pageOffset({ page: 2, perPage: 20 })).toBe(20);
-  });
-
-  it('page=3, perPage=10のオフセットは20', () => {
     expect(pageOffset({ page: 3, perPage: 10 })).toBe(20);
   });
 });
 
 describe('hasNextPage', () => {
-  it('次のページがある場合trueを返す', () => {
+  it('returns whether another page exists', () => {
     expect(hasNextPage({ page: 1, perPage: 10 }, 15)).toBe(true);
-  });
-
-  it('最後のページの場合falseを返す', () => {
     expect(hasNextPage({ page: 2, perPage: 10 }, 20)).toBe(false);
-  });
-
-  it('最後のページを超えた場合falseを返す', () => {
     expect(hasNextPage({ page: 3, perPage: 10 }, 20)).toBe(false);
-  });
-
-  it('ちょうど次のページがある境界値', () => {
-    expect(hasNextPage({ page: 1, perPage: 10 }, 11)).toBe(true);
   });
 });

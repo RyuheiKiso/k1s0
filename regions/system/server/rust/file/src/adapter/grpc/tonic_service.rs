@@ -7,7 +7,7 @@ use crate::proto::k1s0::system::file::v1::{
     DeleteFileRequest, DeleteFileResponse, FileMetadata as ProtoFileMetadata,
     FileMetadataResponse, GenerateDownloadUrlRequest, GenerateDownloadUrlResponse,
     GenerateUploadUrlRequest, GenerateUploadUrlResponse, GetFileMetadataRequest,
-    ListFilesRequest, ListFilesResponse,
+    ListFilesRequest, ListFilesResponse, UpdateFileTagsRequest, UpdateFileTagsResponse,
 };
 
 use super::file_grpc::FileGrpcService;
@@ -34,6 +34,7 @@ fn domain_to_proto(file: &crate::domain::entity::file::FileMetadata) -> ProtoFil
         created_at: file.created_at.to_rfc3339(),
         updated_at: file.updated_at.to_rfc3339(),
         tags: file.tags.clone(),
+        storage_key: file.storage_key.clone(),
     }
 }
 
@@ -66,7 +67,7 @@ impl FileService for FileServiceTonic {
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(ListFilesResponse {
             files: files.iter().map(domain_to_proto).collect(),
-            total: total as i32,
+            total,
         }))
     }
 
@@ -83,6 +84,7 @@ impl FileService for FileServiceTonic {
                 inner.tenant_id,
                 inner.uploaded_by,
                 inner.tags,
+                inner.expires_in_seconds,
             )
             .await
             .map_err(Into::<Status>::into)?;
@@ -99,7 +101,7 @@ impl FileService for FileServiceTonic {
         let inner = request.into_inner();
         let file = self
             .inner
-            .complete_upload(inner.file_id)
+            .complete_upload(inner.file_id, inner.checksum_sha256)
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(CompleteUploadResponse {
@@ -130,5 +132,20 @@ impl FileService for FileServiceTonic {
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(DeleteFileResponse {}))
+    }
+
+    async fn update_file_tags(
+        &self,
+        request: Request<UpdateFileTagsRequest>,
+    ) -> Result<Response<UpdateFileTagsResponse>, Status> {
+        let inner = request.into_inner();
+        let file = self
+            .inner
+            .update_file_tags(inner.id, inner.tags)
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(UpdateFileTagsResponse {
+            metadata: Some(domain_to_proto(&file)),
+        }))
     }
 }

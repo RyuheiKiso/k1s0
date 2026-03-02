@@ -6,7 +6,7 @@ pub struct SendNotificationRequest {
     #[prost(string, optional, tag = "2")]
     pub template_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(map = "string, string", tag = "3")]
-    pub variables: ::std::collections::HashMap<
+    pub template_variables: ::std::collections::HashMap<
         ::prost::alloc::string::String,
         ::prost::alloc::string::String,
     >,
@@ -63,6 +63,182 @@ pub struct NotificationLog {
     #[prost(string, tag = "12")]
     pub created_at: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Channel {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub channel_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub config_json: ::prost::alloc::string::String,
+    #[prost(bool, tag = "5")]
+    pub enabled: bool,
+    #[prost(string, tag = "6")]
+    pub created_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub updated_at: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListChannelsRequest {
+    #[prost(string, optional, tag = "1")]
+    pub channel_type: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, tag = "2")]
+    pub enabled_only: bool,
+    #[prost(uint32, tag = "3")]
+    pub page: u32,
+    #[prost(uint32, tag = "4")]
+    pub page_size: u32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListChannelsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub channels: ::prost::alloc::vec::Vec<Channel>,
+    #[prost(uint64, tag = "2")]
+    pub total: u64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateChannelRequest {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub channel_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub config_json: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub enabled: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateChannelResponse {
+    #[prost(message, optional, tag = "1")]
+    pub channel: ::core::option::Option<Channel>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetChannelRequest {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetChannelResponse {
+    #[prost(message, optional, tag = "1")]
+    pub channel: ::core::option::Option<Channel>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateChannelRequest {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "2")]
+    pub name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, optional, tag = "3")]
+    pub enabled: ::core::option::Option<bool>,
+    #[prost(string, optional, tag = "4")]
+    pub config_json: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateChannelResponse {
+    #[prost(message, optional, tag = "1")]
+    pub channel: ::core::option::Option<Channel>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteChannelRequest {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteChannelResponse {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+    #[prost(string, tag = "2")]
+    pub message: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Template {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub channel_type: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "4")]
+    pub subject_template: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, tag = "5")]
+    pub body_template: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub created_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub updated_at: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListTemplatesRequest {
+    #[prost(string, optional, tag = "1")]
+    pub channel_type: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(uint32, tag = "2")]
+    pub page: u32,
+    #[prost(uint32, tag = "3")]
+    pub page_size: u32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListTemplatesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub templates: ::prost::alloc::vec::Vec<Template>,
+    #[prost(uint64, tag = "2")]
+    pub total: u64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateTemplateRequest {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub channel_type: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "3")]
+    pub subject_template: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, tag = "4")]
+    pub body_template: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateTemplateResponse {
+    #[prost(message, optional, tag = "1")]
+    pub template: ::core::option::Option<Template>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetTemplateRequest {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetTemplateResponse {
+    #[prost(message, optional, tag = "1")]
+    pub template: ::core::option::Option<Template>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateTemplateRequest {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "2")]
+    pub name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "3")]
+    pub subject_template: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "4")]
+    pub body_template: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateTemplateResponse {
+    #[prost(message, optional, tag = "1")]
+    pub template: ::core::option::Option<Template>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteTemplateRequest {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteTemplateResponse {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+    #[prost(string, tag = "2")]
+    pub message: ::prost::alloc::string::String,
+}
 /// Generated server implementations.
 pub mod notification_service_server {
     #![allow(
@@ -88,6 +264,76 @@ pub mod notification_service_server {
             request: tonic::Request<super::GetNotificationRequest>,
         ) -> std::result::Result<
             tonic::Response<super::GetNotificationResponse>,
+            tonic::Status,
+        >;
+        async fn list_channels(
+            &self,
+            request: tonic::Request<super::ListChannelsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListChannelsResponse>,
+            tonic::Status,
+        >;
+        async fn create_channel(
+            &self,
+            request: tonic::Request<super::CreateChannelRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CreateChannelResponse>,
+            tonic::Status,
+        >;
+        async fn get_channel(
+            &self,
+            request: tonic::Request<super::GetChannelRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetChannelResponse>,
+            tonic::Status,
+        >;
+        async fn update_channel(
+            &self,
+            request: tonic::Request<super::UpdateChannelRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateChannelResponse>,
+            tonic::Status,
+        >;
+        async fn delete_channel(
+            &self,
+            request: tonic::Request<super::DeleteChannelRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteChannelResponse>,
+            tonic::Status,
+        >;
+        async fn list_templates(
+            &self,
+            request: tonic::Request<super::ListTemplatesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListTemplatesResponse>,
+            tonic::Status,
+        >;
+        async fn create_template(
+            &self,
+            request: tonic::Request<super::CreateTemplateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CreateTemplateResponse>,
+            tonic::Status,
+        >;
+        async fn get_template(
+            &self,
+            request: tonic::Request<super::GetTemplateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetTemplateResponse>,
+            tonic::Status,
+        >;
+        async fn update_template(
+            &self,
+            request: tonic::Request<super::UpdateTemplateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateTemplateResponse>,
+            tonic::Status,
+        >;
+        async fn delete_template(
+            &self,
+            request: tonic::Request<super::DeleteTemplateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteTemplateResponse>,
             tonic::Status,
         >;
     }
@@ -250,6 +496,466 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetNotificationSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.notification.v1.NotificationService/ListChannels" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListChannelsSvc<T: NotificationService>(pub Arc<T>);
+                    impl<
+                        T: NotificationService,
+                    > tonic::server::UnaryService<super::ListChannelsRequest>
+                    for ListChannelsSvc<T> {
+                        type Response = super::ListChannelsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListChannelsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as NotificationService>::list_channels(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListChannelsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.notification.v1.NotificationService/CreateChannel" => {
+                    #[allow(non_camel_case_types)]
+                    struct CreateChannelSvc<T: NotificationService>(pub Arc<T>);
+                    impl<
+                        T: NotificationService,
+                    > tonic::server::UnaryService<super::CreateChannelRequest>
+                    for CreateChannelSvc<T> {
+                        type Response = super::CreateChannelResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CreateChannelRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as NotificationService>::create_channel(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CreateChannelSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.notification.v1.NotificationService/GetChannel" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetChannelSvc<T: NotificationService>(pub Arc<T>);
+                    impl<
+                        T: NotificationService,
+                    > tonic::server::UnaryService<super::GetChannelRequest>
+                    for GetChannelSvc<T> {
+                        type Response = super::GetChannelResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetChannelRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as NotificationService>::get_channel(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetChannelSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.notification.v1.NotificationService/UpdateChannel" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateChannelSvc<T: NotificationService>(pub Arc<T>);
+                    impl<
+                        T: NotificationService,
+                    > tonic::server::UnaryService<super::UpdateChannelRequest>
+                    for UpdateChannelSvc<T> {
+                        type Response = super::UpdateChannelResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpdateChannelRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as NotificationService>::update_channel(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UpdateChannelSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.notification.v1.NotificationService/DeleteChannel" => {
+                    #[allow(non_camel_case_types)]
+                    struct DeleteChannelSvc<T: NotificationService>(pub Arc<T>);
+                    impl<
+                        T: NotificationService,
+                    > tonic::server::UnaryService<super::DeleteChannelRequest>
+                    for DeleteChannelSvc<T> {
+                        type Response = super::DeleteChannelResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DeleteChannelRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as NotificationService>::delete_channel(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = DeleteChannelSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.notification.v1.NotificationService/ListTemplates" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListTemplatesSvc<T: NotificationService>(pub Arc<T>);
+                    impl<
+                        T: NotificationService,
+                    > tonic::server::UnaryService<super::ListTemplatesRequest>
+                    for ListTemplatesSvc<T> {
+                        type Response = super::ListTemplatesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListTemplatesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as NotificationService>::list_templates(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListTemplatesSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.notification.v1.NotificationService/CreateTemplate" => {
+                    #[allow(non_camel_case_types)]
+                    struct CreateTemplateSvc<T: NotificationService>(pub Arc<T>);
+                    impl<
+                        T: NotificationService,
+                    > tonic::server::UnaryService<super::CreateTemplateRequest>
+                    for CreateTemplateSvc<T> {
+                        type Response = super::CreateTemplateResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CreateTemplateRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as NotificationService>::create_template(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CreateTemplateSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.notification.v1.NotificationService/GetTemplate" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetTemplateSvc<T: NotificationService>(pub Arc<T>);
+                    impl<
+                        T: NotificationService,
+                    > tonic::server::UnaryService<super::GetTemplateRequest>
+                    for GetTemplateSvc<T> {
+                        type Response = super::GetTemplateResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetTemplateRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as NotificationService>::get_template(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetTemplateSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.notification.v1.NotificationService/UpdateTemplate" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateTemplateSvc<T: NotificationService>(pub Arc<T>);
+                    impl<
+                        T: NotificationService,
+                    > tonic::server::UnaryService<super::UpdateTemplateRequest>
+                    for UpdateTemplateSvc<T> {
+                        type Response = super::UpdateTemplateResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpdateTemplateRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as NotificationService>::update_template(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UpdateTemplateSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.notification.v1.NotificationService/DeleteTemplate" => {
+                    #[allow(non_camel_case_types)]
+                    struct DeleteTemplateSvc<T: NotificationService>(pub Arc<T>);
+                    impl<
+                        T: NotificationService,
+                    > tonic::server::UnaryService<super::DeleteTemplateRequest>
+                    for DeleteTemplateSvc<T> {
+                        type Response = super::DeleteTemplateResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DeleteTemplateRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as NotificationService>::delete_template(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = DeleteTemplateSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

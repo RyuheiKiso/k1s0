@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::usecase::{
     CreateQuotaPolicyUseCase, DeleteQuotaPolicyUseCase, GetQuotaPolicyUseCase,
-    GetQuotaUsageUseCase, IncrementQuotaUsageUseCase, ListQuotaPoliciesUseCase,
+    GetQuotaUsageUseCase, IncrementQuotaUsageUseCase, ListQuotaPoliciesUseCase, ResetQuotaUsageUseCase,
     UpdateQuotaPolicyUseCase,
 };
 use crate::usecase::create_quota_policy::{CreateQuotaPolicyError, CreateQuotaPolicyInput};
@@ -13,6 +13,7 @@ use crate::usecase::get_quota_policy::GetQuotaPolicyError;
 use crate::usecase::get_quota_usage::GetQuotaUsageError;
 use crate::usecase::increment_quota_usage::{IncrementQuotaUsageError, IncrementQuotaUsageInput};
 use crate::usecase::list_quota_policies::ListQuotaPoliciesInput;
+use crate::usecase::reset_quota_usage::{ResetQuotaUsageError, ResetQuotaUsageInput};
 use crate::usecase::update_quota_policy::{UpdateQuotaPolicyError, UpdateQuotaPolicyInput};
 use crate::domain::entity::quota::{QuotaPolicy, QuotaUsage, IncrementResult};
 
@@ -88,6 +89,16 @@ impl From<IncrementQuotaUsageError> for GrpcError {
     }
 }
 
+impl From<ResetQuotaUsageError> for GrpcError {
+    fn from(e: ResetQuotaUsageError) -> Self {
+        match e {
+            ResetQuotaUsageError::NotFound(msg) => GrpcError::NotFound(msg),
+            ResetQuotaUsageError::Validation(msg) => GrpcError::InvalidArgument(msg),
+            ResetQuotaUsageError::Internal(msg) => GrpcError::Internal(msg),
+        }
+    }
+}
+
 /// CreatePolicyRequest は CreateQuotaPolicy gRPC リクエストの内部表現。
 pub struct CreatePolicyRequest {
     pub name: String,
@@ -102,8 +113,13 @@ pub struct CreatePolicyRequest {
 /// UpdatePolicyRequest は UpdateQuotaPolicy gRPC リクエストの内部表現（部分更新）。
 pub struct UpdatePolicyRequest {
     pub id: String,
+    pub name: Option<String>,
+    pub subject_type: Option<String>,
+    pub subject_id: Option<String>,
     pub enabled: Option<bool>,
     pub limit: Option<u64>,
+    pub period: Option<String>,
+    pub alert_threshold_percent: Option<u8>,
 }
 
 /// ListPoliciesRequest は ListQuotaPolicies gRPC リクエストの内部表現。
@@ -127,6 +143,7 @@ pub struct QuotaGrpcService {
     pub delete_policy_uc: Arc<DeleteQuotaPolicyUseCase>,
     pub get_usage_uc: Arc<GetQuotaUsageUseCase>,
     pub increment_usage_uc: Arc<IncrementQuotaUsageUseCase>,
+    pub reset_usage_uc: Arc<ResetQuotaUsageUseCase>,
 }
 
 impl QuotaGrpcService {
@@ -138,6 +155,7 @@ impl QuotaGrpcService {
         delete_policy_uc: Arc<DeleteQuotaPolicyUseCase>,
         get_usage_uc: Arc<GetQuotaUsageUseCase>,
         increment_usage_uc: Arc<IncrementQuotaUsageUseCase>,
+        reset_usage_uc: Arc<ResetQuotaUsageUseCase>,
     ) -> Self {
         Self {
             create_policy_uc,
@@ -147,6 +165,7 @@ impl QuotaGrpcService {
             delete_policy_uc,
             get_usage_uc,
             increment_usage_uc,
+            reset_usage_uc,
         }
     }
 
@@ -205,18 +224,25 @@ impl QuotaGrpcService {
             .await
             .map_err(GrpcError::from)?;
 
-        let new_enabled = req.enabled.unwrap_or(current.enabled);
-        let new_limit = req.limit.unwrap_or(current.limit);
+        let current_name = current.name.clone();
+        let current_subject_type = current.subject_type.as_str().to_string();
+        let current_subject_id = current.subject_id.clone();
+        let current_limit = current.limit;
+        let current_period = current.period.as_str().to_string();
+        let current_enabled = current.enabled;
+        let current_alert_threshold_percent = current.alert_threshold_percent;
 
         let input = UpdateQuotaPolicyInput {
             id: req.id,
-            name: current.name,
-            subject_type: current.subject_type.as_str().to_string(),
-            subject_id: current.subject_id,
-            limit: new_limit,
-            period: current.period.as_str().to_string(),
-            enabled: new_enabled,
-            alert_threshold_percent: current.alert_threshold_percent,
+            name: req.name.unwrap_or(current_name),
+            subject_type: req.subject_type.unwrap_or(current_subject_type),
+            subject_id: req.subject_id.unwrap_or(current_subject_id),
+            limit: req.limit.unwrap_or(current_limit),
+            period: req.period.unwrap_or(current_period),
+            enabled: req.enabled.unwrap_or(current_enabled),
+            alert_threshold_percent: req
+                .alert_threshold_percent
+                .or(current_alert_threshold_percent),
         };
         self.update_policy_uc
             .execute(&input)
@@ -248,6 +274,23 @@ impl QuotaGrpcService {
             .execute(&input)
             .await
             .map_err(GrpcError::from)
+    }
+
+    pub async fn reset_usage(
+        &self,
+        quota_id: String,
+        reason: String,
+    ) -> Result<QuotaUsage, GrpcError> {
+        let input = ResetQuotaUsageInput {
+            quota_id: quota_id.clone(),
+            reason,
+            reset_by: "grpc".to_string(),
+        };
+        self.reset_usage_uc
+            .execute(&input)
+            .await
+            .map_err(GrpcError::from)?;
+        self.get_usage(&quota_id).await
     }
 }
 

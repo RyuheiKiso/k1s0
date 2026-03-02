@@ -15,13 +15,13 @@ export interface EventMetadata {
 export function createEventMetadata(
   eventType: string,
   source: string,
-  correlationId?: string,
+  correlationId: string,
   traceId?: string,
 ): EventMetadata {
   return {
     eventId: uuidv4(),
     eventType,
-    correlationId: correlationId ?? uuidv4(),
+    correlationId,
     traceId: traceId ?? uuidv4(),
     timestamp: new Date().toISOString(),
     source,
@@ -43,6 +43,7 @@ export type EventHandler = (event: EventEnvelope) => Promise<void>;
 /** イベントを送信するインターフェース。 */
 export interface EventProducer {
   publish(event: EventEnvelope): Promise<void>;
+  publishBatch(events: EventEnvelope[]): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -58,6 +59,10 @@ export class NoOpEventProducer implements EventProducer {
 
   async publish(event: EventEnvelope): Promise<void> {
     this.published.push(event);
+  }
+
+  async publishBatch(events: EventEnvelope[]): Promise<void> {
+    this.published.push(...events);
   }
 
   async close(): Promise<void> {

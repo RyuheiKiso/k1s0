@@ -9,12 +9,22 @@ option go_package = "github.com/k1s0-platform/system-proto-go/notification/v1;no
 service NotificationService {
   rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
   rpc GetNotification(GetNotificationRequest) returns (GetNotificationResponse);
+  rpc ListChannels(ListChannelsRequest) returns (ListChannelsResponse);
+  rpc CreateChannel(CreateChannelRequest) returns (CreateChannelResponse);
+  rpc GetChannel(GetChannelRequest) returns (GetChannelResponse);
+  rpc UpdateChannel(UpdateChannelRequest) returns (UpdateChannelResponse);
+  rpc DeleteChannel(DeleteChannelRequest) returns (DeleteChannelResponse);
+  rpc ListTemplates(ListTemplatesRequest) returns (ListTemplatesResponse);
+  rpc CreateTemplate(CreateTemplateRequest) returns (CreateTemplateResponse);
+  rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse);
+  rpc UpdateTemplate(UpdateTemplateRequest) returns (UpdateTemplateResponse);
+  rpc DeleteTemplate(DeleteTemplateRequest) returns (DeleteTemplateResponse);
 }
 
 message SendNotificationRequest {
   string channel_id = 1;
   optional string template_id = 2;
-  map<string, string> variables = 3;
+  map<string, string> template_variables = 3;
   string recipient = 4;
   optional string subject = 5;
   optional string body = 6;
@@ -47,4 +57,125 @@ message NotificationLog {
   optional string error_message = 10;
   optional string sent_at = 11;
   string created_at = 12;
+}
+
+message Channel {
+  string id = 1;
+  string name = 2;
+  string channel_type = 3;
+  string config_json = 4;
+  bool enabled = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message ListChannelsRequest {
+  optional string channel_type = 1;
+  bool enabled_only = 2;
+  uint32 page = 3;
+  uint32 page_size = 4;
+}
+
+message ListChannelsResponse {
+  repeated Channel channels = 1;
+  uint64 total = 2;
+}
+
+message CreateChannelRequest {
+  string name = 1;
+  string channel_type = 2;
+  string config_json = 3;
+  bool enabled = 4;
+}
+
+message CreateChannelResponse {
+  Channel channel = 1;
+}
+
+message GetChannelRequest {
+  string id = 1;
+}
+
+message GetChannelResponse {
+  Channel channel = 1;
+}
+
+message UpdateChannelRequest {
+  string id = 1;
+  optional string name = 2;
+  optional bool enabled = 3;
+  optional string config_json = 4;
+}
+
+message UpdateChannelResponse {
+  Channel channel = 1;
+}
+
+message DeleteChannelRequest {
+  string id = 1;
+}
+
+message DeleteChannelResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message Template {
+  string id = 1;
+  string name = 2;
+  string channel_type = 3;
+  optional string subject_template = 4;
+  string body_template = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message ListTemplatesRequest {
+  optional string channel_type = 1;
+  uint32 page = 2;
+  uint32 page_size = 3;
+}
+
+message ListTemplatesResponse {
+  repeated Template templates = 1;
+  uint64 total = 2;
+}
+
+message CreateTemplateRequest {
+  string name = 1;
+  string channel_type = 2;
+  optional string subject_template = 3;
+  string body_template = 4;
+}
+
+message CreateTemplateResponse {
+  Template template = 1;
+}
+
+message GetTemplateRequest {
+  string id = 1;
+}
+
+message GetTemplateResponse {
+  Template template = 1;
+}
+
+message UpdateTemplateRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string subject_template = 3;
+  optional string body_template = 4;
+}
+
+message UpdateTemplateResponse {
+  Template template = 1;
+}
+
+message DeleteTemplateRequest {
+  string id = 1;
+}
+
+message DeleteTemplateResponse {
+  bool success = 1;
+  string message = 2;
 }

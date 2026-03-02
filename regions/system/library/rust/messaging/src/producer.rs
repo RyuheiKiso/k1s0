@@ -32,6 +32,7 @@ impl EventProducer for NoOpEventProducer {
 mod tests {
     use super::*;
     use crate::event::EventEnvelope;
+    use std::collections::HashMap;
 
     #[tokio::test]
     async fn test_noop_producer_publish() {
@@ -41,6 +42,7 @@ mod tests {
             key: "key-1".to_string(),
             payload: b"test payload".to_vec(),
             headers: vec![],
+            metadata: HashMap::new(),
         };
         let result = producer.publish(envelope).await;
         assert!(result.is_ok());
@@ -55,12 +57,14 @@ mod tests {
                 key: "key-1".to_string(),
                 payload: b"payload 1".to_vec(),
                 headers: vec![],
+                metadata: HashMap::new(),
             },
             EventEnvelope {
                 topic: "test.topic".to_string(),
                 key: "key-2".to_string(),
                 payload: b"payload 2".to_vec(),
                 headers: vec![],
+                metadata: HashMap::new(),
             },
         ];
         let result = producer.publish_batch(envelopes).await;

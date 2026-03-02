@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::AppState;
+use crate::usecase::send_notification::SendNotificationError;
 use crate::usecase::send_notification::SendNotificationInput;
 
 /// POST /api/v1/notifications - Send a notification
@@ -23,11 +24,23 @@ pub async fn send_notification(
         }
     };
 
+    let template_id = match req.template_id {
+        Some(template_id) => match Uuid::parse_str(&template_id) {
+            Ok(id) => Some(id),
+            Err(_) => {
+                let err = ErrorResponse::new("SYS_NOTIF_INVALID_ID", "invalid template_id format");
+                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+            }
+        },
+        None => None,
+    };
+
     let input = SendNotificationInput {
         channel_id,
+        template_id,
         recipient: req.recipient,
         subject: req.subject,
-        body: req.body,
+        body: req.body.unwrap_or_default(),
         template_variables: req.template_variables,
     };
 
@@ -36,22 +49,35 @@ pub async fn send_notification(
             StatusCode::CREATED,
             Json(serde_json::json!({
                 "notification_id": output.log_id.to_string(),
-                "status": output.status
+                "status": output.status,
+                "created_at": output.created_at.to_rfc3339()
             })),
         )
             .into_response(),
+        Err(SendNotificationError::ChannelNotFound(id)) => {
+            let err = ErrorResponse::new(
+                "SYS_NOTIF_CHANNEL_NOT_FOUND",
+                &format!("channel not found: {}", id),
+            );
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(SendNotificationError::TemplateNotFound(id)) => {
+            let err = ErrorResponse::new(
+                "SYS_NOTIF_TEMPLATE_NOT_FOUND",
+                &format!("template not found: {}", id),
+            );
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(SendNotificationError::ChannelDisabled(id)) => {
+            let err = ErrorResponse::new(
+                "SYS_NOTIF_CHANNEL_DISABLED",
+                &format!("channel disabled: {}", id),
+            );
+            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+        }
         Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_NOTIF_CHANNEL_NOT_FOUND", &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
-            } else if msg.contains("disabled") {
-                let err = ErrorResponse::new("SYS_NOTIF_CHANNEL_DISABLED", &msg);
-                (StatusCode::BAD_REQUEST, Json(err)).into_response()
-            } else {
-                let err = ErrorResponse::new("SYS_NOTIF_SEND_FAILED", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-            }
+            let err = ErrorResponse::new("SYS_NOTIF_SEND_FAILED", &e.to_string());
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }
@@ -516,9 +542,10 @@ pub async fn delete_template(
 #[derive(Debug, Deserialize)]
 pub struct SendNotificationRequest {
     pub channel_id: String,
+    pub template_id: Option<String>,
     pub recipient: String,
     pub subject: Option<String>,
-    pub body: String,
+    pub body: Option<String>,
     pub template_variables: Option<std::collections::HashMap<String, String>>,
 }
 

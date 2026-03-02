@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use chrono::{DateTime, Utc};
 use handlebars::Handlebars;
 use uuid::Uuid;
 
 use crate::domain::entity::notification_log::NotificationLog;
 use crate::domain::repository::NotificationChannelRepository;
 use crate::domain::repository::NotificationLogRepository;
+use crate::domain::repository::NotificationTemplateRepository;
 use crate::domain::service::DeliveryClient;
 #[cfg(test)]
 use crate::domain::service::DeliveryError;
@@ -14,6 +16,7 @@ use crate::domain::service::DeliveryError;
 #[derive(Debug, Clone)]
 pub struct SendNotificationInput {
     pub channel_id: Uuid,
+    pub template_id: Option<Uuid>,
     pub recipient: String,
     pub subject: Option<String>,
     pub body: String,
@@ -24,6 +27,7 @@ pub struct SendNotificationInput {
 pub struct SendNotificationOutput {
     pub log_id: Uuid,
     pub status: String,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -33,6 +37,9 @@ pub enum SendNotificationError {
 
     #[error("channel disabled: {0}")]
     ChannelDisabled(Uuid),
+
+    #[error("template not found: {0}")]
+    TemplateNotFound(Uuid),
 
     #[error("no delivery client for channel type: {0}")]
     NoDeliveryClient(String),
@@ -50,6 +57,7 @@ pub enum SendNotificationError {
 pub struct SendNotificationUseCase {
     channel_repo: Arc<dyn NotificationChannelRepository>,
     log_repo: Arc<dyn NotificationLogRepository>,
+    template_repo: Option<Arc<dyn NotificationTemplateRepository>>,
     delivery_clients: HashMap<String, Arc<dyn DeliveryClient>>,
 }
 
@@ -61,6 +69,20 @@ impl SendNotificationUseCase {
         Self {
             channel_repo,
             log_repo,
+            template_repo: None,
+            delivery_clients: HashMap::new(),
+        }
+    }
+
+    pub fn with_template_repo(
+        channel_repo: Arc<dyn NotificationChannelRepository>,
+        log_repo: Arc<dyn NotificationLogRepository>,
+        template_repo: Arc<dyn NotificationTemplateRepository>,
+    ) -> Self {
+        Self {
+            channel_repo,
+            log_repo,
+            template_repo: Some(template_repo),
             delivery_clients: HashMap::new(),
         }
     }
@@ -73,6 +95,21 @@ impl SendNotificationUseCase {
         Self {
             channel_repo,
             log_repo,
+            template_repo: None,
+            delivery_clients,
+        }
+    }
+
+    pub fn with_delivery_clients_and_template_repo(
+        channel_repo: Arc<dyn NotificationChannelRepository>,
+        log_repo: Arc<dyn NotificationLogRepository>,
+        template_repo: Arc<dyn NotificationTemplateRepository>,
+        delivery_clients: HashMap<String, Arc<dyn DeliveryClient>>,
+    ) -> Self {
+        Self {
+            channel_repo,
+            log_repo,
+            template_repo: Some(template_repo),
             delivery_clients,
         }
     }
@@ -98,16 +135,31 @@ impl SendNotificationUseCase {
             return Err(SendNotificationError::ChannelDisabled(input.channel_id));
         }
 
-        // Render templates with variables if provided
+        let (resolved_template_id, base_subject, base_body) = if let Some(template_id) = input.template_id {
+            let repo = self
+                .template_repo
+                .as_ref()
+                .ok_or_else(|| SendNotificationError::Internal("template repository is not configured".to_string()))?;
+            let template = repo
+                .find_by_id(&template_id)
+                .await
+                .map_err(|e| SendNotificationError::Internal(e.to_string()))?
+                .ok_or(SendNotificationError::TemplateNotFound(template_id))?;
+            (Some(template_id), template.subject_template, template.body_template)
+        } else {
+            (None, input.subject.clone(), input.body.clone())
+        };
+
+        // Render templates with variables if provided.
         let (subject, body) = if let Some(ref vars) = input.template_variables {
-            let rendered_subject = match &input.subject {
+            let rendered_subject = match &base_subject {
                 Some(s) => Some(Self::render_template(s, vars)?),
                 None => None,
             };
-            let rendered_body = Self::render_template(&input.body, vars)?;
+            let rendered_body = Self::render_template(&base_body, vars)?;
             (rendered_subject, rendered_body)
         } else {
-            (input.subject.clone(), input.body.clone())
+            (base_subject, base_body)
         };
 
         let mut log = NotificationLog::new(
@@ -116,6 +168,7 @@ impl SendNotificationUseCase {
             subject.clone(),
             body.clone(),
         );
+        log.template_id = resolved_template_id;
 
         // Attempt delivery if a client is available for this channel type
         if let Some(client) = self.delivery_clients.get(&channel.channel_type) {
@@ -151,6 +204,7 @@ impl SendNotificationUseCase {
         Ok(SendNotificationOutput {
             log_id: log.id,
             status: log.status,
+            created_at: log.created_at,
         })
     }
 }
@@ -187,6 +241,7 @@ mod tests {
         let uc = SendNotificationUseCase::new(Arc::new(channel_mock), Arc::new(log_mock));
         let input = SendNotificationInput {
             channel_id,
+            template_id: None,
             recipient: "user@example.com".to_string(),
             subject: Some("Hello".to_string()),
             body: "Test notification".to_string(),
@@ -212,6 +267,7 @@ mod tests {
         let uc = SendNotificationUseCase::new(Arc::new(channel_mock), Arc::new(log_mock));
         let input = SendNotificationInput {
             channel_id: missing_id,
+            template_id: None,
             recipient: "user@example.com".to_string(),
             subject: None,
             body: "Test".to_string(),
@@ -248,6 +304,7 @@ mod tests {
         let uc = SendNotificationUseCase::new(Arc::new(channel_mock), Arc::new(log_mock));
         let input = SendNotificationInput {
             channel_id,
+            template_id: None,
             recipient: "user@example.com".to_string(),
             subject: None,
             body: "Test".to_string(),
@@ -296,6 +353,7 @@ mod tests {
         );
         let input = SendNotificationInput {
             channel_id,
+            template_id: None,
             recipient: "user@example.com".to_string(),
             subject: Some("Hello".to_string()),
             body: "Test".to_string(),
@@ -347,6 +405,7 @@ mod tests {
         );
         let input = SendNotificationInput {
             channel_id,
+            template_id: None,
             recipient: "#general".to_string(),
             subject: None,
             body: "Test".to_string(),
@@ -394,6 +453,7 @@ mod tests {
         );
         let input = SendNotificationInput {
             channel_id,
+            template_id: None,
             recipient: "+1234567890".to_string(),
             subject: None,
             body: "Test".to_string(),
@@ -449,6 +509,7 @@ mod tests {
 
         let input = SendNotificationInput {
             channel_id,
+            template_id: None,
             recipient: "alice@example.com".to_string(),
             subject: Some("Order {{order_id}} Confirmation".to_string()),
             body: "Hello {{name}}, your order {{order_id}} is ready.".to_string(),

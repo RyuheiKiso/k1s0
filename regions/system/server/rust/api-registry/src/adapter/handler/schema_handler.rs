@@ -147,6 +147,11 @@ pub async fn get_schema(
                 .as_ref()
                 .map(|v| v.content.as_str())
                 .unwrap_or("");
+            let latest_content_hash = output
+                .latest_content
+                .as_ref()
+                .map(|v| v.content_hash.as_str())
+                .unwrap_or("");
             (
                 StatusCode::OK,
                 Json(serde_json::json!({
@@ -156,6 +161,7 @@ pub async fn get_schema(
                     "latest_version": output.schema.latest_version,
                     "version_count": output.schema.version_count,
                     "latest_content": latest_content,
+                    "content_hash": latest_content_hash,
                     "created_at": output.schema.created_at,
                     "updated_at": output.schema.updated_at,
                 })),

@@ -20,11 +20,11 @@ pub async fn upload_file(
     Json(req): Json<UploadFileRequest>,
 ) -> impl IntoResponse {
     let input = GenerateUploadUrlInput {
-        name: req.name,
+        name: req.filename,
         size_bytes: req.size_bytes,
-        mime_type: req.mime_type,
+        mime_type: req.content_type,
         tenant_id: req.tenant_id,
-        owner_id: req.owner_id,
+        owner_id: req.uploaded_by,
         tags: req.tags.unwrap_or_default(),
         expires_in_seconds: req.expires_in_seconds.unwrap_or(3600),
     };
@@ -82,7 +82,7 @@ pub async fn get_file(
             (
                 StatusCode::OK,
                 Json(serde_json::json!({
-                    "file": file,
+                    "file": file_to_rest_detail(&file),
                     "download_url": download_url
                 })),
             )
@@ -119,7 +119,7 @@ pub async fn list_files(
         Ok(output) => (
             StatusCode::OK,
             Json(serde_json::json!({
-                "files": output.files,
+                "files": output.files.iter().map(file_to_rest_summary).collect::<Vec<_>>(),
                 "total_count": output.total_count,
                 "page": output.page,
                 "page_size": output.page_size,
@@ -276,13 +276,50 @@ pub async fn update_file_tags(
 
 // --- Request / Response types ---
 
+fn file_to_rest_summary(file: &crate::domain::entity::file::FileMetadata) -> serde_json::Value {
+    serde_json::json!({
+        "id": &file.id,
+        "filename": &file.name,
+        "size": file.size_bytes,
+        "content_type": &file.mime_type,
+        "tenant_id": &file.tenant_id,
+        "uploaded_by": &file.owner_id,
+        "tags": &file.tags,
+        "storage_key": &file.storage_key,
+        "status": &file.status,
+        "created_at": file.created_at.to_rfc3339(),
+        "updated_at": file.updated_at.to_rfc3339()
+    })
+}
+
+fn file_to_rest_detail(file: &crate::domain::entity::file::FileMetadata) -> serde_json::Value {
+    serde_json::json!({
+        "id": &file.id,
+        "filename": &file.name,
+        "size": file.size_bytes,
+        "content_type": &file.mime_type,
+        "tenant_id": &file.tenant_id,
+        "uploaded_by": &file.owner_id,
+        "tags": &file.tags,
+        "storage_key": &file.storage_key,
+        "checksum_sha256": &file.checksum_sha256,
+        "status": &file.status,
+        "created_at": file.created_at.to_rfc3339(),
+        "updated_at": file.updated_at.to_rfc3339()
+    })
+}
+
 #[derive(Debug, Deserialize)]
 pub struct UploadFileRequest {
-    pub name: String,
+    #[serde(alias = "name")]
+    pub filename: String,
+    #[serde(alias = "size")]
     pub size_bytes: u64,
-    pub mime_type: String,
+    #[serde(alias = "mime_type")]
+    pub content_type: String,
     pub tenant_id: String,
-    pub owner_id: String,
+    #[serde(alias = "owner_id")]
+    pub uploaded_by: String,
     pub tags: Option<HashMap<String, String>>,
     pub expires_in_seconds: Option<u32>,
 }
@@ -300,7 +337,9 @@ pub struct UpdateFileTagsRequest {
 #[derive(Debug, Deserialize)]
 pub struct ListFilesParams {
     pub tenant_id: Option<String>,
+    #[serde(alias = "uploaded_by")]
     pub owner_id: Option<String>,
+    #[serde(alias = "content_type")]
     pub mime_type: Option<String>,
     pub page: Option<u32>,
     pub page_size: Option<u32>,

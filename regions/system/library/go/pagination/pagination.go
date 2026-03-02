@@ -92,6 +92,16 @@ func NewPageResponse[T any](items []T, total uint64, req PageRequest) PageRespon
 	}
 }
 
+// Meta は PageResponse からページネーションメタデータを抽出する。
+func (r PageResponse[T]) Meta() PaginationMeta {
+	return PaginationMeta{
+		Total:      r.Total,
+		Page:       r.Page,
+		PerPage:    r.PerPage,
+		TotalPages: r.TotalPages,
+	}
+}
+
 const cursorSeparator = "|"
 
 // EncodeCursor は sort_key と id を結合して Base64 エンコードする。

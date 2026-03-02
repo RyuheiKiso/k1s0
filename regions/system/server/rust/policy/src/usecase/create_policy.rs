@@ -8,6 +8,8 @@ pub struct CreatePolicyInput {
     pub name: String,
     pub description: String,
     pub rego_content: String,
+    pub package_path: String,
+    pub bundle_id: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -39,11 +41,13 @@ impl CreatePolicyUseCase {
             return Err(CreatePolicyError::AlreadyExists(input.name.clone()));
         }
 
-        let policy = Policy::new(
+        let mut policy = Policy::new(
             input.name.clone(),
             input.description.clone(),
             input.rego_content.clone(),
         );
+        policy.package_path = input.package_path.clone();
+        policy.bundle_id = input.bundle_id.clone();
 
         self.repo
             .create(&policy)
@@ -72,12 +76,16 @@ mod tests {
             name: "allow-read".to_string(),
             description: "Allow read access".to_string(),
             rego_content: "package authz\ndefault allow = true".to_string(),
+            package_path: "k1s0.system.authz".to_string(),
+            bundle_id: Some("bundle-1".to_string()),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
 
         let policy = result.unwrap();
         assert_eq!(policy.name, "allow-read");
+        assert_eq!(policy.package_path, "k1s0.system.authz");
+        assert_eq!(policy.bundle_id.as_deref(), Some("bundle-1"));
         assert_eq!(policy.version, 1);
         assert!(policy.enabled);
     }
@@ -94,6 +102,8 @@ mod tests {
             name: "existing-policy".to_string(),
             description: "Existing".to_string(),
             rego_content: "package authz".to_string(),
+            package_path: "k1s0.system.authz".to_string(),
+            bundle_id: None,
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

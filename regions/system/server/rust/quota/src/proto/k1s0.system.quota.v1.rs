@@ -93,6 +93,16 @@ pub struct UpdateQuotaPolicyRequest {
     pub enabled: ::core::option::Option<bool>,
     #[prost(uint64, optional, tag = "3")]
     pub limit: ::core::option::Option<u64>,
+    #[prost(string, optional, tag = "4")]
+    pub name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "5")]
+    pub subject_type: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "6")]
+    pub subject_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "7")]
+    pub period: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(uint32, optional, tag = "8")]
+    pub alert_threshold_percent: ::core::option::Option<u32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateQuotaPolicyResponse {
@@ -142,6 +152,18 @@ pub struct IncrementQuotaUsageResponse {
     pub exceeded: bool,
     #[prost(bool, tag = "6")]
     pub allowed: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResetQuotaUsageRequest {
+    #[prost(string, tag = "1")]
+    pub quota_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResetQuotaUsageResponse {
+    #[prost(message, optional, tag = "1")]
+    pub usage: ::core::option::Option<QuotaUsage>,
 }
 /// Generated server implementations.
 pub mod quota_service_server {
@@ -203,6 +225,13 @@ pub mod quota_service_server {
             request: tonic::Request<super::IncrementQuotaUsageRequest>,
         ) -> std::result::Result<
             tonic::Response<super::IncrementQuotaUsageResponse>,
+            tonic::Status,
+        >;
+        async fn reset_quota_usage(
+            &self,
+            request: tonic::Request<super::ResetQuotaUsageRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ResetQuotaUsageResponse>,
             tonic::Status,
         >;
     }
@@ -588,6 +617,52 @@ pub mod quota_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = IncrementQuotaUsageSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.quota.v1.QuotaService/ResetQuotaUsage" => {
+                    #[allow(non_camel_case_types)]
+                    struct ResetQuotaUsageSvc<T: QuotaService>(pub Arc<T>);
+                    impl<
+                        T: QuotaService,
+                    > tonic::server::UnaryService<super::ResetQuotaUsageRequest>
+                    for ResetQuotaUsageSvc<T> {
+                        type Response = super::ResetQuotaUsageResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ResetQuotaUsageRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as QuotaService>::reset_quota_usage(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ResetQuotaUsageSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

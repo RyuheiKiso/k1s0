@@ -16,6 +16,8 @@ pub struct EvaluatePolicyInput {
 pub struct EvaluatePolicyOutput {
     pub allowed: bool,
     pub reason: Option<String>,
+    pub decision_id: String,
+    pub cached: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -41,9 +43,36 @@ impl EvaluatePolicyUseCase {
         &self,
         input: &EvaluatePolicyInput,
     ) -> Result<EvaluatePolicyOutput, EvaluatePolicyError> {
+        // Resolve policy first when a policy_id is provided, so both OPA and fallback paths
+        // can consistently use the stored package path.
+        let resolved_policy = if let Some(policy_id) = input.policy_id {
+            Some(
+                self.repo
+                    .find_by_id(&policy_id)
+                    .await
+                    .map_err(|e| EvaluatePolicyError::Internal(e.to_string()))?
+                    .ok_or(EvaluatePolicyError::NotFound(policy_id))?,
+            )
+        } else {
+            None
+        };
+
+        // When policy_id is provided, always prioritize the package path resolved
+        // from the policy record to avoid caller-supplied path drift.
+        let resolved_package_path = resolved_policy
+            .as_ref()
+            .map(|p| p.package_path.clone())
+            .unwrap_or_else(|| input.package_path.clone());
+
         // OPA client available: evaluate via OPA HTTP API
         if let Some(ref opa) = self.opa_client {
-            return match opa.evaluate(&input.package_path, &input.input).await {
+            if resolved_package_path.is_empty() {
+                return Err(EvaluatePolicyError::Internal(
+                    "package_path could not be resolved from policy_id".to_string(),
+                ));
+            }
+
+            return match opa.evaluate(&resolved_package_path, &input.input).await {
                 Ok(allowed) => {
                     let reason = if allowed {
                         "OPA evaluation: allowed"
@@ -53,45 +82,46 @@ impl EvaluatePolicyUseCase {
                     Ok(EvaluatePolicyOutput {
                         allowed,
                         reason: Some(reason.to_string()),
+                        decision_id: Uuid::new_v4().to_string(),
+                        cached: false,
                     })
                 }
                 Err(e) => {
                     tracing::warn!(
                         error = %e,
-                        package_path = %input.package_path,
+                        package_path = %resolved_package_path,
                         "OPA evaluation failed, deny by default"
                     );
                     Ok(EvaluatePolicyOutput {
                         allowed: false,
                         reason: Some(format!("OPA evaluation error: {}", e)),
+                        decision_id: Uuid::new_v4().to_string(),
+                        cached: false,
                     })
                 }
             };
         }
 
         // Fallback: use policy.enabled flag from repository
-        let policy_id = input.policy_id.ok_or_else(|| {
+        let policy = resolved_policy.ok_or_else(|| {
             EvaluatePolicyError::Internal(
                 "no OPA client configured and no policy_id provided".to_string(),
             )
         })?;
 
-        let policy = self
-            .repo
-            .find_by_id(&policy_id)
-            .await
-            .map_err(|e| EvaluatePolicyError::Internal(e.to_string()))?
-            .ok_or(EvaluatePolicyError::NotFound(policy_id))?;
-
         if policy.enabled {
             Ok(EvaluatePolicyOutput {
                 allowed: true,
                 reason: Some("policy is enabled".to_string()),
+                decision_id: Uuid::new_v4().to_string(),
+                cached: false,
             })
         } else {
             Ok(EvaluatePolicyOutput {
                 allowed: false,
                 reason: Some("policy is disabled".to_string()),
+                decision_id: Uuid::new_v4().to_string(),
+                cached: false,
             })
         }
     }

@@ -9,6 +9,7 @@ export interface PageResponse<T> {
   page: number;
   perPage: number;
   totalPages: number;
+  meta(): PaginationMeta;
 }
 
 export interface PaginationMeta {
@@ -52,12 +53,19 @@ export function createPageResponse<T>(
   total: number,
   req: PageRequest,
 ): PageResponse<T> {
+  const totalPages = Math.ceil(total / req.perPage);
   return {
     items,
     total,
     page: req.page,
     perPage: req.perPage,
-    totalPages: Math.ceil(total / req.perPage),
+    totalPages,
+    meta: () => ({
+      total,
+      page: req.page,
+      perPage: req.perPage,
+      totalPages,
+    }),
   };
 }
 

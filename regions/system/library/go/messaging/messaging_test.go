@@ -50,6 +50,23 @@ func TestNoOpEventProducer_Publish_Multiple(t *testing.T) {
 	assert.Equal(t, 3, producer.PublishedCount())
 }
 
+func TestNoOpEventProducer_PublishBatch(t *testing.T) {
+	producer := &messaging.NoOpEventProducer{}
+	events := []messaging.EventEnvelope{
+		{
+			Metadata: messaging.NewEventMetadata("test.v1", "corr-1", "svc"),
+			Topic:    "k1s0.system.test.event.v1",
+		},
+		{
+			Metadata: messaging.NewEventMetadata("test.v1", "corr-2", "svc"),
+			Topic:    "k1s0.system.test.event.v1",
+		},
+	}
+	err := producer.PublishBatch(context.Background(), events)
+	require.NoError(t, err)
+	assert.Equal(t, 2, producer.PublishedCount())
+}
+
 func TestNoOpEventProducer_Publish_WithError(t *testing.T) {
 	expectedErr := errors.New("publish failed")
 	producer := &messaging.NoOpEventProducer{Err: expectedErr}

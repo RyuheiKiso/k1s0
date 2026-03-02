@@ -373,7 +373,7 @@ service PolicyService {
 }
 
 message EvaluatePolicyRequest {
-  string package_path = 1;
+  string policy_id = 1;
   bytes input_json = 2;
 }
 
@@ -405,6 +405,8 @@ message Policy {
   k1s0.system.common.v1.Timestamp updated_at = 10;
 }
 ```
+
+> `EvaluatePolicyRequest.policy_id` から `package_path` はサーバー内で自動解決される。
 
 ---
 
