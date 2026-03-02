@@ -24,6 +24,8 @@ pub struct FileMetadata {
         ::prost::alloc::string::String,
         ::prost::alloc::string::String,
     >,
+    #[prost(string, tag = "11")]
+    pub storage_key: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetFileMetadataRequest {
@@ -48,8 +50,8 @@ pub struct ListFilesRequest {
 pub struct ListFilesResponse {
     #[prost(message, repeated, tag = "1")]
     pub files: ::prost::alloc::vec::Vec<FileMetadata>,
-    #[prost(int32, tag = "2")]
-    pub total: i32,
+    #[prost(uint64, tag = "2")]
+    pub total: u64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerateUploadUrlRequest {
@@ -80,8 +82,6 @@ pub struct GenerateUploadUrlResponse {
 pub struct CompleteUploadRequest {
     #[prost(string, tag = "1")]
     pub file_id: ::prost::alloc::string::String,
-    #[prost(int64, tag = "2")]
-    pub size: i64,
     #[prost(string, optional, tag = "3")]
     pub checksum_sha256: ::core::option::Option<::prost::alloc::string::String>,
 }

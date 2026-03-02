@@ -213,7 +213,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_evaluate_policy_no_opa_no_policy_id() {
-        let mock = MockPolicyRepository::new();
+        let mut mock = MockPolicyRepository::new();
+        mock.expect_find_by_id().returning(|_| Ok(None));
         let svc = make_service(mock);
         let req = EvaluatePolicyRequest {
             policy_id: uuid::Uuid::new_v4().to_string(),
@@ -223,9 +224,7 @@ mod tests {
 
         assert!(result.is_err());
         match result.unwrap_err() {
-            GrpcError::Internal(msg) => {
-                assert!(msg.contains("no OPA client configured"));
-            }
+            GrpcError::NotFound(msg) => assert!(msg.contains("policy not found")),
             e => unreachable!("unexpected error: {:?}", e),
         }
     }

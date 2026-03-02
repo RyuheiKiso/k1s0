@@ -71,7 +71,7 @@ event := messaging.EventEnvelope{
 ### metadata 生成 API の `correlationId` 必須性
 
 - Go: `NewEventMetadata(eventType, correlationId, source)` で必須
-- TypeScript: `createEventMetadata(eventType, source, correlationId, traceId?)` で必須
+- TypeScript: `createEventMetadata(eventType, source, correlationId, traceId)` で必須（`traceId` も必須）
 - Dart: `EventMetadata.create(eventType, source, {required correlationId, traceId?})` で必須
 - Rust: `EventMetadata::new(...).with_correlation_id(...)` のビルダーパターン（任意）
 

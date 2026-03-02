@@ -7,10 +7,13 @@ use crate::usecase::send_notification::{SendNotificationInput, SendNotificationU
 #[derive(Debug, serde::Deserialize)]
 pub struct NotificationRequestEvent {
     pub channel_id: String,
+    #[serde(default)]
+    pub template_id: Option<String>,
     pub recipient: String,
     #[serde(default)]
     pub subject: Option<String>,
-    pub body: String,
+    #[serde(default)]
+    pub body: Option<String>,
     #[serde(default)]
     pub template_variables: Option<std::collections::HashMap<String, String>>,
 }
@@ -101,11 +104,23 @@ impl NotificationKafkaConsumer {
                         }
                     };
 
+                    let template_id = match event.template_id {
+                        Some(id) => match id.parse::<uuid::Uuid>() {
+                            Ok(parsed) => Some(parsed),
+                            Err(e) => {
+                                tracing::error!(error = %e, template_id = %id, "invalid template_id");
+                                continue;
+                            }
+                        },
+                        None => None,
+                    };
+
                     let input = SendNotificationInput {
                         channel_id,
+                        template_id,
                         recipient: event.recipient,
                         subject: event.subject,
-                        body: event.body,
+                        body: event.body.unwrap_or_default(),
                         template_variables: event.template_variables,
                     };
 

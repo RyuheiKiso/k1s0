@@ -24,6 +24,7 @@ message FileMetadata {
   string created_at = 8;
   string updated_at = 9;
   map<string, string> tags = 10;
+  string storage_key = 11;
 }
 
 message GetFileMetadataRequest {
@@ -42,7 +43,7 @@ message ListFilesRequest {
 
 message ListFilesResponse {
   repeated FileMetadata files = 1;
-  int32 total = 2;
+  uint64 total = 2;
 }
 
 message GenerateUploadUrlRequest {
@@ -61,7 +62,6 @@ message GenerateUploadUrlResponse {
 
 message CompleteUploadRequest {
   string file_id = 1;
-  int64 size = 2;
   optional string checksum_sha256 = 3;
 }
 

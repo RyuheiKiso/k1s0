@@ -90,21 +90,13 @@ system tier の通知管理サーバーは以下の機能を提供する。
       "name": "本番メール通知",
       "channel_type": "email",
       "enabled": true,
-      "config": {
-        "smtp_host": "smtp.example.com",
-        "smtp_port": 587,
-        "from_address": "noreply@example.com"
-      },
-      "created_at": "2026-02-20T10:00:00.000+00:00",
-      "updated_at": "2026-02-20T12:30:00.000+00:00"
+      "created_at": "2026-02-20T10:00:00.000+00:00"
     }
   ],
-  "pagination": {
-    "total_count": 5,
-    "page": 1,
-    "page_size": 20,
-    "has_next": false
-  }
+  "total_count": 5,
+  "page": 1,
+  "page_size": 20,
+  "has_next": false
 }
 ```
 
@@ -356,6 +348,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 ```json
 {
   "channel_id": "ch_01JABCDEF1234567890",
+  "template_id": "tpl_01JABCDEF1234567890",
   "recipient": "tanaka@example.com",
   "subject": "ログイン通知",
   "body": "田中 太郎 様、ログインを検知しました。",
@@ -371,7 +364,8 @@ system tier の通知管理サーバーは以下の機能を提供する。
 ```json
 {
   "notification_id": "notif_01JABCDEF1234567890",
-  "status": "sent"
+  "status": "sent",
+  "created_at": "2026-02-20T12:30:00.000+00:00"
 }
 ```
 
@@ -410,7 +404,11 @@ system tier の通知管理サーバーは以下の機能を提供する。
       "sent_at": "2026-02-20T12:30:05.000+00:00",
       "created_at": "2026-02-20T12:30:00.000+00:00"
     }
-  ]
+  ],
+  "total_count": 12,
+  "page": 1,
+  "page_size": 20,
+  "has_next": false
 }
 ```
 
@@ -488,15 +486,26 @@ system tier の通知管理サーバーは以下の機能を提供する。
 
 | コード | HTTP Status | 説明 |
 | --- | --- | --- |
+| `SYS_NOTIF_INVALID_ID` | 400 | 無効な UUID フォーマット |
+| `SYS_NOTIF_CHANNEL_DISABLED` | 400 | 対象チャネルが無効化されている |
 | `SYS_NOTIF_NOT_FOUND` | 404 | 指定された通知履歴が見つからない |
 | `SYS_NOTIF_CHANNEL_NOT_FOUND` | 404 | 指定されたチャネルが見つからない |
 | `SYS_NOTIF_TEMPLATE_NOT_FOUND` | 404 | 指定されたテンプレートが見つからない |
-| `SYS_NOTIF_ALREADY_EXISTS` | 409 | 同一名のチャネルが既に存在する |
 | `SYS_NOTIF_ALREADY_SENT` | 409 | 通知はすでに送信済み（再送不可） |
-| `SYS_NOTIF_INVALID_ID` | 400 | 無効な UUID フォーマット |
-| `SYS_NOTIF_VALIDATION_ERROR` | 400 | リクエストのバリデーションエラー |
-| `SYS_NOTIF_DELIVERY_ERROR` | 502 | 外部サービスへの配信エラー |
-| `SYS_NOTIF_INTERNAL_ERROR` | 500 | 内部エラー |
+| `SYS_NOTIF_SEND_FAILED` | 500 | 通知送信処理に失敗 |
+| `SYS_NOTIF_LIST_FAILED` | 500 | 通知一覧取得処理に失敗 |
+| `SYS_NOTIF_GET_FAILED` | 500 | 通知取得処理に失敗 |
+| `SYS_NOTIF_RETRY_FAILED` | 500 | 通知再送処理に失敗 |
+| `SYS_NOTIF_CHANNEL_CREATE_FAILED` | 500 | チャネル作成処理に失敗 |
+| `SYS_NOTIF_CHANNEL_LIST_FAILED` | 500 | チャネル一覧取得処理に失敗 |
+| `SYS_NOTIF_CHANNEL_GET_FAILED` | 500 | チャネル取得処理に失敗 |
+| `SYS_NOTIF_CHANNEL_UPDATE_FAILED` | 500 | チャネル更新処理に失敗 |
+| `SYS_NOTIF_CHANNEL_DELETE_FAILED` | 500 | チャネル削除処理に失敗 |
+| `SYS_NOTIF_TEMPLATE_CREATE_FAILED` | 500 | テンプレート作成処理に失敗 |
+| `SYS_NOTIF_TEMPLATE_LIST_FAILED` | 500 | テンプレート一覧取得処理に失敗 |
+| `SYS_NOTIF_TEMPLATE_GET_FAILED` | 500 | テンプレート取得処理に失敗 |
+| `SYS_NOTIF_TEMPLATE_UPDATE_FAILED` | 500 | テンプレート更新処理に失敗 |
+| `SYS_NOTIF_TEMPLATE_DELETE_FAILED` | 500 | テンプレート削除処理に失敗 |
 
 ### gRPC サービス定義
 
@@ -507,6 +516,16 @@ package k1s0.system.notification.v1;
 service NotificationService {
   rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
   rpc GetNotification(GetNotificationRequest) returns (GetNotificationResponse);
+  rpc ListChannels(ListChannelsRequest) returns (ListChannelsResponse);
+  rpc CreateChannel(CreateChannelRequest) returns (CreateChannelResponse);
+  rpc GetChannel(GetChannelRequest) returns (GetChannelResponse);
+  rpc UpdateChannel(UpdateChannelRequest) returns (UpdateChannelResponse);
+  rpc DeleteChannel(DeleteChannelRequest) returns (DeleteChannelResponse);
+  rpc ListTemplates(ListTemplatesRequest) returns (ListTemplatesResponse);
+  rpc CreateTemplate(CreateTemplateRequest) returns (CreateTemplateResponse);
+  rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse);
+  rpc UpdateTemplate(UpdateTemplateRequest) returns (UpdateTemplateResponse);
+  rpc DeleteTemplate(DeleteTemplateRequest) returns (DeleteTemplateResponse);
 }
 
 message SendNotificationRequest {
@@ -545,6 +564,127 @@ message NotificationLog {
   optional string error_message = 10;
   optional string sent_at = 11;
   string created_at = 12;
+}
+
+message Channel {
+  string id = 1;
+  string name = 2;
+  string channel_type = 3;
+  string config_json = 4;
+  bool enabled = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message ListChannelsRequest {
+  optional string channel_type = 1;
+  bool enabled_only = 2;
+  uint32 page = 3;
+  uint32 page_size = 4;
+}
+
+message ListChannelsResponse {
+  repeated Channel channels = 1;
+  uint64 total = 2;
+}
+
+message CreateChannelRequest {
+  string name = 1;
+  string channel_type = 2;
+  string config_json = 3;
+  bool enabled = 4;
+}
+
+message CreateChannelResponse {
+  Channel channel = 1;
+}
+
+message GetChannelRequest {
+  string id = 1;
+}
+
+message GetChannelResponse {
+  Channel channel = 1;
+}
+
+message UpdateChannelRequest {
+  string id = 1;
+  optional string name = 2;
+  optional bool enabled = 3;
+  optional string config_json = 4;
+}
+
+message UpdateChannelResponse {
+  Channel channel = 1;
+}
+
+message DeleteChannelRequest {
+  string id = 1;
+}
+
+message DeleteChannelResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message Template {
+  string id = 1;
+  string name = 2;
+  string channel_type = 3;
+  optional string subject_template = 4;
+  string body_template = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message ListTemplatesRequest {
+  optional string channel_type = 1;
+  uint32 page = 2;
+  uint32 page_size = 3;
+}
+
+message ListTemplatesResponse {
+  repeated Template templates = 1;
+  uint64 total = 2;
+}
+
+message CreateTemplateRequest {
+  string name = 1;
+  string channel_type = 2;
+  optional string subject_template = 3;
+  string body_template = 4;
+}
+
+message CreateTemplateResponse {
+  Template template = 1;
+}
+
+message GetTemplateRequest {
+  string id = 1;
+}
+
+message GetTemplateResponse {
+  Template template = 1;
+}
+
+message UpdateTemplateRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string subject_template = 3;
+  optional string body_template = 4;
+}
+
+message UpdateTemplateResponse {
+  Template template = 1;
+}
+
+message DeleteTemplateRequest {
+  string id = 1;
+}
+
+message DeleteTemplateResponse {
+  bool success = 1;
+  string message = 2;
 }
 ```
 
@@ -626,7 +766,9 @@ message NotificationLog {
                     │  │  get_notification / retry_notification   │   │
                     │  ├──────────────────────────────────────────┤   │
                     │  │ gRPC Handler (notification_grpc.rs)      │   │
-                    │  │  SendNotification / GetNotification      │   │
+                    │  │  Send/GetNotification                    │   │
+                    │  │  List/Create/Get/Update/DeleteChannel    │   │
+                    │  │  List/Create/Get/Update/DeleteTemplate   │   │
                     │  ├──────────────────────────────────────────┤   │
                     │  │ Kafka Consumer (notification_consumer.rs)│   │
                     │  │  k1s0.system.notification.requested.v1   │   │

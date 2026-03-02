@@ -113,8 +113,13 @@ pub struct CreatePolicyRequest {
 /// UpdatePolicyRequest は UpdateQuotaPolicy gRPC リクエストの内部表現（部分更新）。
 pub struct UpdatePolicyRequest {
     pub id: String,
+    pub name: Option<String>,
+    pub subject_type: Option<String>,
+    pub subject_id: Option<String>,
     pub enabled: Option<bool>,
     pub limit: Option<u64>,
+    pub period: Option<String>,
+    pub alert_threshold_percent: Option<u8>,
 }
 
 /// ListPoliciesRequest は ListQuotaPolicies gRPC リクエストの内部表現。
@@ -219,18 +224,25 @@ impl QuotaGrpcService {
             .await
             .map_err(GrpcError::from)?;
 
-        let new_enabled = req.enabled.unwrap_or(current.enabled);
-        let new_limit = req.limit.unwrap_or(current.limit);
+        let current_name = current.name.clone();
+        let current_subject_type = current.subject_type.as_str().to_string();
+        let current_subject_id = current.subject_id.clone();
+        let current_limit = current.limit;
+        let current_period = current.period.as_str().to_string();
+        let current_enabled = current.enabled;
+        let current_alert_threshold_percent = current.alert_threshold_percent;
 
         let input = UpdateQuotaPolicyInput {
             id: req.id,
-            name: current.name,
-            subject_type: current.subject_type.as_str().to_string(),
-            subject_id: current.subject_id,
-            limit: new_limit,
-            period: current.period.as_str().to_string(),
-            enabled: new_enabled,
-            alert_threshold_percent: current.alert_threshold_percent,
+            name: req.name.unwrap_or(current_name),
+            subject_type: req.subject_type.unwrap_or(current_subject_type),
+            subject_id: req.subject_id.unwrap_or(current_subject_id),
+            limit: req.limit.unwrap_or(current_limit),
+            period: req.period.unwrap_or(current_period),
+            enabled: req.enabled.unwrap_or(current_enabled),
+            alert_threshold_percent: req
+                .alert_threshold_percent
+                .or(current_alert_threshold_percent),
         };
         self.update_policy_uc
             .execute(&input)

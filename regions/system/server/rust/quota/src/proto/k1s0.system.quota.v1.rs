@@ -93,6 +93,16 @@ pub struct UpdateQuotaPolicyRequest {
     pub enabled: ::core::option::Option<bool>,
     #[prost(uint64, optional, tag = "3")]
     pub limit: ::core::option::Option<u64>,
+    #[prost(string, optional, tag = "4")]
+    pub name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "5")]
+    pub subject_type: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "6")]
+    pub subject_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "7")]
+    pub period: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(uint32, optional, tag = "8")]
+    pub alert_threshold_percent: ::core::option::Option<u32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateQuotaPolicyResponse {

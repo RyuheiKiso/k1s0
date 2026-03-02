@@ -159,10 +159,23 @@ impl QuotaService for QuotaServiceTonic {
         request: Request<ProtoUpdateQuotaPolicyRequest>,
     ) -> Result<Response<ProtoUpdateQuotaPolicyResponse>, Status> {
         let inner = request.into_inner();
+        let alert_threshold_percent = inner
+            .alert_threshold_percent
+            .map(|v| {
+                u8::try_from(v).map_err(|_| {
+                    Status::invalid_argument("alert_threshold_percent must be <= 255")
+                })
+            })
+            .transpose()?;
         let req = UpdatePolicyRequest {
             id: inner.id,
+            name: inner.name,
+            subject_type: inner.subject_type,
+            subject_id: inner.subject_id,
             enabled: inner.enabled,
             limit: inner.limit,
+            period: inner.period,
+            alert_threshold_percent,
         };
         let policy = self
             .inner

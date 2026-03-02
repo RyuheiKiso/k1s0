@@ -310,6 +310,13 @@ impl NotificationGrpcService {
         let channel_id = Uuid::parse_str(&req.channel_id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid channel_id: {}", req.channel_id)))?;
 
+        let template_id = req
+            .template_id
+            .as_deref()
+            .map(Uuid::parse_str)
+            .transpose()
+            .map_err(|_| GrpcError::InvalidArgument("invalid template_id".to_string()))?;
+
         let body = req.body.unwrap_or_default();
 
         let template_variables = if req.template_variables.is_empty() {
@@ -320,6 +327,7 @@ impl NotificationGrpcService {
 
         let input = SendNotificationInput {
             channel_id,
+            template_id,
             recipient: req.recipient,
             subject: req.subject,
             body,
@@ -330,10 +338,13 @@ impl NotificationGrpcService {
             Ok(output) => Ok(SendNotificationResponse {
                 notification_id: output.log_id.to_string(),
                 status: output.status,
-                created_at: chrono::Utc::now().to_rfc3339(),
+                created_at: output.created_at.to_rfc3339(),
             }),
             Err(SendNotificationError::ChannelNotFound(id)) => {
                 Err(GrpcError::NotFound(format!("channel not found: {}", id)))
+            }
+            Err(SendNotificationError::TemplateNotFound(id)) => {
+                Err(GrpcError::NotFound(format!("template not found: {}", id)))
             }
             Err(SendNotificationError::ChannelDisabled(id)) => {
                 Err(GrpcError::ChannelDisabled(format!("channel disabled: {}", id)))

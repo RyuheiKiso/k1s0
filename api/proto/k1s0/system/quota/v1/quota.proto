@@ -75,6 +75,11 @@ message UpdateQuotaPolicyRequest {
   string id = 1;
   optional bool enabled = 2;
   optional uint64 limit = 3;
+  optional string name = 4;
+  optional string subject_type = 5;
+  optional string subject_id = 6;
+  optional string period = 7;
+  optional uint32 alert_threshold_percent = 8;
 }
 
 message UpdateQuotaPolicyResponse {

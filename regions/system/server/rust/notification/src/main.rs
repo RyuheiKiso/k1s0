@@ -145,11 +145,16 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let send_notification_uc = if delivery_clients.is_empty() {
-        Arc::new(usecase::SendNotificationUseCase::new(channel_repo.clone(), log_repo.clone()))
-    } else {
-        Arc::new(usecase::SendNotificationUseCase::with_delivery_clients(
+        Arc::new(usecase::SendNotificationUseCase::with_template_repo(
             channel_repo.clone(),
             log_repo.clone(),
+            template_repo.clone(),
+        ))
+    } else {
+        Arc::new(usecase::SendNotificationUseCase::with_delivery_clients_and_template_repo(
+            channel_repo.clone(),
+            log_repo.clone(),
+            template_repo.clone(),
             delivery_clients,
         ))
     };

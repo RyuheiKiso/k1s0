@@ -34,6 +34,7 @@ fn domain_to_proto(file: &crate::domain::entity::file::FileMetadata) -> ProtoFil
         created_at: file.created_at.to_rfc3339(),
         updated_at: file.updated_at.to_rfc3339(),
         tags: file.tags.clone(),
+        storage_key: file.storage_key.clone(),
     }
 }
 
@@ -66,7 +67,7 @@ impl FileService for FileServiceTonic {
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(ListFilesResponse {
             files: files.iter().map(domain_to_proto).collect(),
-            total: total as i32,
+            total,
         }))
     }
 

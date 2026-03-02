@@ -179,7 +179,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_policy_service_tonic_evaluate_policy_no_opa_no_policy_id() {
-        let mock = MockPolicyRepository::new();
+        let mut mock = MockPolicyRepository::new();
+        mock.expect_find_by_id().returning(|_| Ok(None));
         let tonic_svc = make_tonic_service(mock);
 
         let req = Request::new(ProtoEvaluatePolicyRequest {
@@ -190,6 +191,6 @@ mod tests {
 
         assert!(result.is_err());
         let status = result.unwrap_err();
-        assert_eq!(status.code(), tonic::Code::Internal);
+        assert_eq!(status.code(), tonic::Code::NotFound);
     }
 }
