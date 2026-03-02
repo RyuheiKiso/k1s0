@@ -1,6 +1,9 @@
 # authlib ライブラリ設計
 
 > 詳細な認証設計は [認証認可設計.md](../../architecture/auth/認証認可設計.md) を参照。
+>
+> 実装上の命名は `auth` で統一している（例: `regions/system/library/rust/auth/` の crate `k1s0-auth`）。
+> 本ドキュメント名 `authlib` は歴史的な名称であり、Rust は独立した `authlib` クレートを持たず `auth` に統合される。
 
 ## サーバー用 API（Go / Rust）
 

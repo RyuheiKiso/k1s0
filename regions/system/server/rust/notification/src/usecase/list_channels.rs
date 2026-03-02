@@ -24,6 +24,19 @@ impl ListChannelsUseCase {
             .await
             .map_err(|e| ListChannelsError::Internal(e.to_string()))
     }
+
+    pub async fn execute_paginated(
+        &self,
+        page: u32,
+        page_size: u32,
+        channel_type: Option<String>,
+        enabled_only: bool,
+    ) -> Result<(Vec<NotificationChannel>, u64), ListChannelsError> {
+        self.repo
+            .find_all_paginated(page, page_size, channel_type, enabled_only)
+            .await
+            .map_err(|e| ListChannelsError::Internal(e.to_string()))
+    }
 }
 
 #[cfg(test)]

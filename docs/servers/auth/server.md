@@ -90,6 +90,13 @@ JWT トークンを検証し、有効であれば Claims を返却する。
 | `claims.resource_access` | map\<string, object\> | クライアント別ロール（`{ roles: string[] }`） |
 | `claims.tier_access` | string[] | アクセス可能 Tier |
 
+**認証ミドルウェアにおける `tier_access` 検証仕様**
+
+- `auth_middleware` は Bearer トークン検証後、Claims をリクエストコンテキストに格納する
+- Tier 境界のあるエンドポイントでは `require_tier_access("<tier>")` を適用する
+- `tier_access` 判定は大文字小文字を区別せず照合する（例: `system` と `System` は同値）
+- 必要 Tier を満たさない場合は `403` を返し、エラーコードは `SYS_AUTH_TIER_FORBIDDEN`
+
 **エラーレスポンス（401）**: `SYS_AUTH_TOKEN_INVALID`
 
 #### POST /api/v1/auth/token/introspect
@@ -413,6 +420,15 @@ service AuditService {
 | CheckPermission | `CheckPermissionRequest { user_id, permission, resource, roles }` | `CheckPermissionResponse { allowed, reason }` | 権限判定。拒否時は `reason` に理由 |
 
 > **注**: REST API の `/api/v1/auth/permissions/check` はロールベースの純粋な権限チェックのため `user_id` フィールドを持たない。gRPC の `CheckPermission` はサービス間通信でユーザー特定が必要なため `user_id` を含む。
+
+```protobuf
+message CheckPermissionRequest {
+  string user_id = 1;
+  string permission = 2;
+  string resource = 3;
+  repeated string roles = 4;
+}
+```
 
 > **注**: REST API の `ValidateToken` レスポンスの `claims` には `scope`, `resource_access`, `tier_access` フィールドが含まれる。gRPC の `ValidateTokenResponse.TokenClaims` では `scope` フィールドは定義されておらず、gRPC 経由では `scope` は返却されない。
 

@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "System-tier shared client SDK for authentication, API client, routing guard, and common components.",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "main": "./dist/system-client.umd.js",
   "module": "./dist/system-client.js",
   "types": "./dist/index.d.ts",

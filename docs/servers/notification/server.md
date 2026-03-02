@@ -158,6 +158,195 @@ system tier の通知管理サーバーは以下の機能を提供する。
 }
 ```
 
+#### GET /api/v1/channels/:id
+
+指定したチャネル ID の詳細を取得する。
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "id": "ch_01JABCDEF1234567890",
+  "name": "本番メール通知",
+  "channel_type": "email",
+  "enabled": true,
+  "config": {
+    "smtp_host": "smtp.example.com",
+    "smtp_port": 587,
+    "from_address": "noreply@example.com"
+  },
+  "created_at": "2026-02-20T10:00:00.000+00:00",
+  "updated_at": "2026-02-20T12:30:00.000+00:00"
+}
+```
+
+**レスポンス（404 Not Found）**
+
+```json
+{
+  "error": {
+    "code": "SYS_NOTIF_CHANNEL_NOT_FOUND",
+    "message": "notification channel not found: ch_01JABCDEF1234567890"
+  }
+}
+```
+
+#### PUT /api/v1/channels/:id
+
+指定したチャネルを更新する。`name` / `enabled` / `config` の部分更新に対応する。
+
+**リクエスト**
+
+```json
+{
+  "name": "本番メール通知（Primary）",
+  "enabled": true,
+  "config": {
+    "smtp_host": "smtp.example.com",
+    "smtp_port": 587,
+    "from_address": "noreply@example.com"
+  }
+}
+```
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "id": "ch_01JABCDEF1234567890",
+  "name": "本番メール通知（Primary）",
+  "channel_type": "email",
+  "enabled": true,
+  "updated_at": "2026-02-20T13:00:00.000+00:00"
+}
+```
+
+#### DELETE /api/v1/channels/:id
+
+指定したチャネルを削除する。
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "success": true,
+  "message": "channel ch_01JABCDEF1234567890 deleted"
+}
+```
+
+#### GET /api/v1/templates
+
+テンプレート一覧をページネーション付きで取得する。`channel_type` でフィルタ可能。
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 必須 | デフォルト | 説明 |
+| --- | --- | --- | --- | --- |
+| `channel_type` | string | No | - | チャネル種別でフィルタ（email/slack/webhook/sms/push） |
+| `page` | int | No | 1 | ページ番号 |
+| `page_size` | int | No | 20 | 1 ページあたりの件数 |
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "templates": [
+    {
+      "id": "tpl_01JABCDEF1234567890",
+      "name": "login-notification",
+      "channel_type": "email",
+      "created_at": "2026-02-20T10:00:00.000+00:00"
+    }
+  ],
+  "total_count": 8,
+  "page": 1,
+  "page_size": 20,
+  "has_next": false
+}
+```
+
+#### POST /api/v1/templates
+
+新しい通知テンプレートを作成する。
+
+**リクエスト**
+
+```json
+{
+  "name": "login-notification",
+  "channel_type": "email",
+  "subject_template": "ログイン通知",
+  "body_template": "{{user_name}} 様、{{event_type}} を検知しました。"
+}
+```
+
+**レスポンス（201 Created）**
+
+```json
+{
+  "id": "tpl_01JABCDEF1234567890",
+  "name": "login-notification",
+  "channel_type": "email",
+  "created_at": "2026-02-20T10:00:00.000+00:00"
+}
+```
+
+#### GET /api/v1/templates/:id
+
+指定したテンプレートの詳細を取得する。
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "id": "tpl_01JABCDEF1234567890",
+  "name": "login-notification",
+  "channel_type": "email",
+  "subject_template": "ログイン通知",
+  "body_template": "{{user_name}} 様、{{event_type}} を検知しました。",
+  "created_at": "2026-02-20T10:00:00.000+00:00",
+  "updated_at": "2026-02-20T12:30:00.000+00:00"
+}
+```
+
+#### PUT /api/v1/templates/:id
+
+指定したテンプレートを更新する。`name` / `subject_template` / `body_template` の部分更新に対応する。
+
+**リクエスト**
+
+```json
+{
+  "name": "login-notification-v2",
+  "subject_template": "ログイン通知（更新）",
+  "body_template": "{{user_name}} 様、{{event_type}} が発生しました。"
+}
+```
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "id": "tpl_01JABCDEF1234567890",
+  "name": "login-notification-v2",
+  "channel_type": "email",
+  "updated_at": "2026-02-20T13:00:00.000+00:00"
+}
+```
+
+#### DELETE /api/v1/templates/:id
+
+指定したテンプレートを削除する。
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "success": true,
+  "message": "template tpl_01JABCDEF1234567890 deleted"
+}
+```
+
 #### POST /api/v1/notifications
 
 指定チャネルへ即時通知を送信する。`template_id` を指定した場合はテンプレートを使用し、`body` を直接指定した場合はそのまま送信する。
@@ -181,7 +370,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 
 ```json
 {
-  "log_id": "notif_01JABCDEF1234567890",
+  "notification_id": "notif_01JABCDEF1234567890",
   "status": "sent"
 }
 ```
@@ -267,7 +456,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 
 ```json
 {
-  "log_id": "notif_01JABCDEF1234567890",
+  "notification_id": "notif_01JABCDEF1234567890",
   "status": "sent",
   "message": "notification retried successfully"
 }
@@ -323,7 +512,7 @@ service NotificationService {
 message SendNotificationRequest {
   string channel_id = 1;
   optional string template_id = 2;
-  map<string, string> variables = 3;
+  map<string, string> template_variables = 3;
   string recipient = 4;
   optional string subject = 5;
   optional string body = 6;

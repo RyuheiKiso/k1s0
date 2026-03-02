@@ -353,7 +353,8 @@ import "k1s0/system/common/v1/types.proto";
 
 service SchedulerService {
   rpc TriggerJob(TriggerJobRequest) returns (TriggerJobResponse);
-  // GetJobExecution は現在 Unimplemented を返す（TODO: 実行リポジトリ実装後に完成）
+  // 現行実装では UNIMPLEMENTED を返す。
+  // 実行履歴の参照は REST の GET /api/v1/jobs/:id/executions を利用する。
   rpc GetJobExecution(GetJobExecutionRequest) returns (GetJobExecutionResponse);
 }
 
@@ -366,7 +367,8 @@ message TriggerJobResponse {
   string job_id = 2;
   // 実行状態（running / succeeded / failed）
   string status = 3;
-  // 現在 null 固定（TODO: triggered_at を返すよう実装予定）
+  // 現行実装では未返却（null）。
+  // 実行開始時刻は実行履歴 API（GET /api/v1/jobs/:id/executions）から取得する。
   k1s0.system.common.v1.Timestamp triggered_at = 4;
 }
 

@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -35,7 +35,7 @@ pub async fn send_notification(
         Ok(output) => (
             StatusCode::CREATED,
             Json(serde_json::json!({
-                "log_id": output.log_id.to_string(),
+                "notification_id": output.log_id.to_string(),
                 "status": output.status
             })),
         )
@@ -56,37 +56,50 @@ pub async fn send_notification(
     }
 }
 
-/// GET /api/v1/notifications - List notification logs (by channel_id query param)
+/// GET /api/v1/notifications - List notification logs with pagination
 pub async fn list_notifications(
     State(state): State<AppState>,
-    axum::extract::Query(params): axum::extract::Query<ListNotificationsParams>,
+    Query(params): Query<ListNotificationsParams>,
 ) -> impl IntoResponse {
-    if let Some(channel_id_str) = params.channel_id {
-        let channel_id = match Uuid::parse_str(&channel_id_str) {
-            Ok(id) => id,
+    let page = params.page.unwrap_or(1);
+    let page_size = params.page_size.unwrap_or(20);
+
+    let channel_id = match params.channel_id {
+        Some(ref s) => match Uuid::parse_str(s) {
+            Ok(id) => Some(id),
             Err(_) => {
                 let err = ErrorResponse::new("SYS_NOTIF_INVALID_ID", "invalid channel_id format");
                 return (StatusCode::BAD_REQUEST, Json(serde_json::to_value(err).unwrap()))
                     .into_response();
             }
-        };
+        },
+        None => None,
+    };
 
-        match state.log_repo.find_by_channel_id(&channel_id).await {
-            Ok(logs) => (StatusCode::OK, Json(serde_json::json!({ "notifications": logs })))
-                .into_response(),
-            Err(e) => {
-                let err = ErrorResponse::new("SYS_NOTIF_LIST_FAILED", &e.to_string());
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::to_value(err).unwrap()))
-                    .into_response()
-            }
+    match state
+        .log_repo
+        .find_all_paginated(page, page_size, channel_id, params.status)
+        .await
+    {
+        Ok((logs, total_count)) => {
+            let has_next = (page as u64 * page_size as u64) < total_count;
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "notifications": logs,
+                    "total_count": total_count,
+                    "page": page,
+                    "page_size": page_size,
+                    "has_next": has_next
+                })),
+            )
+                .into_response()
         }
-    } else {
-        // No filter -- return empty for now (no find_all on log repo)
-        (
-            StatusCode::OK,
-            Json(serde_json::json!({ "notifications": [], "message": "provide channel_id query parameter to filter" })),
-        )
-            .into_response()
+        Err(e) => {
+            let err = ErrorResponse::new("SYS_NOTIF_LIST_FAILED", &e.to_string());
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::to_value(err).unwrap()))
+                .into_response()
+        }
     }
 }
 
@@ -126,7 +139,7 @@ pub async fn retry_notification(
         Ok(log) => (
             StatusCode::OK,
             Json(serde_json::json!({
-                "log_id": log.id.to_string(),
+                "notification_id": log.id.to_string(),
                 "status": log.status,
                 "message": "notification retried successfully"
             })),
@@ -169,8 +182,10 @@ pub async fn create_channel(
                 "id": channel.id.to_string(),
                 "name": channel.name,
                 "channel_type": channel.channel_type,
+                "config": channel.config,
                 "enabled": channel.enabled,
-                "created_at": channel.created_at.to_rfc3339()
+                "created_at": channel.created_at.to_rfc3339(),
+                "updated_at": channel.updated_at.to_rfc3339()
             })),
         )
             .into_response(),
@@ -182,9 +197,20 @@ pub async fn create_channel(
 }
 
 /// GET /api/v1/channels
-pub async fn list_channels(State(state): State<AppState>) -> impl IntoResponse {
-    match state.list_channels_uc.execute().await {
-        Ok(channels) => {
+pub async fn list_channels(
+    State(state): State<AppState>,
+    Query(params): Query<ListChannelsParams>,
+) -> impl IntoResponse {
+    let page = params.page.unwrap_or(1);
+    let page_size = params.page_size.unwrap_or(20);
+    let enabled_only = params.enabled_only.unwrap_or(false);
+
+    match state
+        .list_channels_uc
+        .execute_paginated(page, page_size, params.channel_type, enabled_only)
+        .await
+    {
+        Ok((channels, total_count)) => {
             let items: Vec<serde_json::Value> = channels
                 .into_iter()
                 .map(|ch| {
@@ -197,9 +223,16 @@ pub async fn list_channels(State(state): State<AppState>) -> impl IntoResponse {
                     })
                 })
                 .collect();
+            let has_next = (page as u64 * page_size as u64) < total_count;
             (
                 StatusCode::OK,
-                Json(serde_json::json!({ "channels": items })),
+                Json(serde_json::json!({
+                    "channels": items,
+                    "total_count": total_count,
+                    "page": page,
+                    "page_size": page_size,
+                    "has_next": has_next
+                })),
             )
                 .into_response()
         }
@@ -339,9 +372,19 @@ pub async fn create_template(
 }
 
 /// GET /api/v1/templates
-pub async fn list_templates(State(state): State<AppState>) -> impl IntoResponse {
-    match state.list_templates_uc.execute().await {
-        Ok(templates) => {
+pub async fn list_templates(
+    State(state): State<AppState>,
+    Query(params): Query<ListTemplatesParams>,
+) -> impl IntoResponse {
+    let page = params.page.unwrap_or(1);
+    let page_size = params.page_size.unwrap_or(20);
+
+    match state
+        .list_templates_uc
+        .execute_paginated(page, page_size, params.channel_type)
+        .await
+    {
+        Ok((templates, total_count)) => {
             let items: Vec<serde_json::Value> = templates
                 .into_iter()
                 .map(|t| {
@@ -353,9 +396,16 @@ pub async fn list_templates(State(state): State<AppState>) -> impl IntoResponse 
                     })
                 })
                 .collect();
+            let has_next = (page as u64 * page_size as u64) < total_count;
             (
                 StatusCode::OK,
-                Json(serde_json::json!({ "templates": items })),
+                Json(serde_json::json!({
+                    "templates": items,
+                    "total_count": total_count,
+                    "page": page,
+                    "page_size": page_size,
+                    "has_next": has_next
+                })),
             )
                 .into_response()
         }
@@ -475,6 +525,24 @@ pub struct SendNotificationRequest {
 #[derive(Debug, Deserialize)]
 pub struct ListNotificationsParams {
     pub channel_id: Option<String>,
+    pub status: Option<String>,
+    pub page: Option<u32>,
+    pub page_size: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ListChannelsParams {
+    pub channel_type: Option<String>,
+    pub enabled_only: Option<bool>,
+    pub page: Option<u32>,
+    pub page_size: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ListTemplatesParams {
+    pub channel_type: Option<String>,
+    pub page: Option<u32>,
+    pub page_size: Option<u32>,
 }
 
 #[derive(Debug, Deserialize)]

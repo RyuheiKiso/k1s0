@@ -67,6 +67,9 @@ members = [
     "library/rust/websocket",
 ]
 
+[workspace.package]
+rust-version = "1.88"
+
 [profile.dev]
 debug = 1
 

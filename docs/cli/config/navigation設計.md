@@ -132,7 +132,7 @@ routes:
 | Flutter: NavigationInterpreter | 実装済み |
 | React: NavigationInterpreter | 実装済み |
 | navigation.yaml 仕様 | 定義済み |
-| CLI route-types/component-registry 生成 | 未実装 |
+| CLI route-types/component-registry 生成 | 未実装（仕様定義済み） |
 
 ---
 
@@ -482,11 +482,11 @@ regions/system/
 | 1 | system server に `GET /api/v1/navigation` を追加 | 高 | 実装済み |
 | 2 | React `NavigationInterpreter` + Local-first モード | 高 | 実装済み |
 | 3 | Flutter `NavigationInterpreter` + Local-first モード | 高 | 実装済み |
-| 4 | CLI `generate navigation` コマンド（route-types 生成） | 高 | 未実装 |
-| 5 | CLI `validate navigation` コマンド | 中 | 未実装 |
-| 6 | JSON Schema 生成（IDE 補完用） | 中 | 未実装 |
-| 7 | Navigation DevTools（React / Flutter） | 中 | 未実装 |
-| 9 | ユーザーロール別ナビゲーションフィルタリング | 低 | 未実装 |
+| 4 | CLI `generate navigation` コマンド（route-types 生成） | 高 | 未実装（仕様定義済み） |
+| 5 | CLI `validate navigation` コマンド | 中 | 未実装（仕様定義済み） |
+| 6 | JSON Schema 生成（IDE 補完用） | 中 | 未実装（仕様定義済み） |
+| 7 | Navigation DevTools（React / Flutter） | 中 | 未実装（仕様定義済み） |
+| 8 | ユーザーロール別ナビゲーションフィルタリング | 低 | 未実装（要件整理中） |
 
 ---
 
