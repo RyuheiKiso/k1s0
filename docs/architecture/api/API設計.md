@@ -32,6 +32,8 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | Saga/Workflow API | gRPC | サービス間の Saga 連携 | `SagaService.CreateSaga` |
 | GraphQL Gateway | GraphQL | 複数バックエンドのデータ集約（導入基準を満たす場合） | `query { ... }` |
 | DLQ Manager API | REST | Dead Letter Queue の管理・リトライ | `/api/v1/dlq` |
+| Notification API | REST | 通知送信・履歴・チャネル/テンプレート管理 | `/api/v1/notifications`, `/api/v1/channels`, `/api/v1/templates` |
+| Notification API | gRPC | サービス間の通知送信・参照 | `NotificationService.SendNotification`, `NotificationService.GetNotification` |
 
 ### business Tier
 

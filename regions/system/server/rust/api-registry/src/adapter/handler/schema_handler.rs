@@ -282,7 +282,7 @@ pub async fn delete_version(
             ApiError::not_found("Schema version not found").into_response()
         }
         Err(DeleteVersionError::CannotDeleteLatest(_)) => {
-            ApiError::bad_request("Cannot delete the only remaining version").into_response()
+            ApiError::conflict("Cannot delete the only remaining version").into_response()
         }
         Err(DeleteVersionError::Internal(msg)) => ApiError::internal(msg).into_response(),
     }

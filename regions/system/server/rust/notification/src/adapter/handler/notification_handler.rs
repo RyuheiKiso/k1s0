@@ -35,7 +35,7 @@ pub async fn send_notification(
         Ok(output) => (
             StatusCode::CREATED,
             Json(serde_json::json!({
-                "log_id": output.log_id.to_string(),
+                "notification_id": output.log_id.to_string(),
                 "status": output.status
             })),
         )
@@ -139,7 +139,7 @@ pub async fn retry_notification(
         Ok(log) => (
             StatusCode::OK,
             Json(serde_json::json!({
-                "log_id": log.id.to_string(),
+                "notification_id": log.id.to_string(),
                 "status": log.status,
                 "message": "notification retried successfully"
             })),
