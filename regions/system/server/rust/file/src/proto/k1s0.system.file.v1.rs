@@ -66,6 +66,8 @@ pub struct GenerateUploadUrlRequest {
         ::prost::alloc::string::String,
         ::prost::alloc::string::String,
     >,
+    #[prost(int32, optional, tag = "6")]
+    pub expires_in_seconds: ::core::option::Option<i32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerateUploadUrlResponse {
@@ -80,6 +82,8 @@ pub struct CompleteUploadRequest {
     pub file_id: ::prost::alloc::string::String,
     #[prost(int64, tag = "2")]
     pub size: i64,
+    #[prost(string, optional, tag = "3")]
+    pub checksum_sha256: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CompleteUploadResponse {
@@ -95,6 +99,21 @@ pub struct GenerateDownloadUrlRequest {
 pub struct GenerateDownloadUrlResponse {
     #[prost(string, tag = "1")]
     pub download_url: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateFileTagsRequest {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "2")]
+    pub tags: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateFileTagsResponse {
+    #[prost(message, optional, tag = "1")]
+    pub metadata: ::core::option::Option<FileMetadata>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteFileRequest {
@@ -149,6 +168,13 @@ pub mod file_service_server {
             request: tonic::Request<super::GenerateDownloadUrlRequest>,
         ) -> std::result::Result<
             tonic::Response<super::GenerateDownloadUrlResponse>,
+            tonic::Status,
+        >;
+        async fn update_file_tags(
+            &self,
+            request: tonic::Request<super::UpdateFileTagsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateFileTagsResponse>,
             tonic::Status,
         >;
         async fn delete_file(
@@ -447,6 +473,51 @@ pub mod file_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GenerateDownloadUrlSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.file.v1.FileService/UpdateFileTags" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateFileTagsSvc<T: FileService>(pub Arc<T>);
+                    impl<
+                        T: FileService,
+                    > tonic::server::UnaryService<super::UpdateFileTagsRequest>
+                    for UpdateFileTagsSvc<T> {
+                        type Response = super::UpdateFileTagsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpdateFileTagsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as FileService>::update_file_tags(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UpdateFileTagsSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

@@ -184,10 +184,20 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    let grpc_svc = Arc::new(NotificationGrpcService::new(
+    let grpc_svc = Arc::new(NotificationGrpcService::with_management(
         send_notification_uc.clone(),
         log_repo.clone(),
-        channel_repo,
+        channel_repo.clone(),
+        create_channel_uc.clone(),
+        list_channels_uc.clone(),
+        get_channel_uc.clone(),
+        update_channel_uc.clone(),
+        delete_channel_uc.clone(),
+        create_template_uc.clone(),
+        list_templates_uc.clone(),
+        get_template_uc.clone(),
+        update_template_uc.clone(),
+        delete_template_uc.clone(),
     ));
 
     let grpc_addr: std::net::SocketAddr =

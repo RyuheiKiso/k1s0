@@ -160,9 +160,25 @@ export class InMemoryCacheClient implements CacheClient {
   exists(key: string): Promise<boolean>;
   setNX(key: string, value: string, ttlMs: number): Promise<boolean>;
 }
+
+export class RedisCacheClient implements CacheClient {
+  static fromUrl(url: string, keyPrefix?: string): Promise<RedisCacheClient>;
+  static fromClient(redis: unknown, keyPrefix?: string): RedisCacheClient;
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string, ttlMs?: number): Promise<void>;
+  delete(key: string): Promise<boolean>;
+  exists(key: string): Promise<boolean>;
+  setNX(key: string, value: string, ttlMs: number): Promise<boolean>;
+}
 ```
 
-> **注**: TypeScript では `RedisCacheClient` は未実装。`InMemoryCacheClient` のみ提供。
+```typescript
+const cache = await RedisCacheClient.fromUrl("redis://localhost:6379", "app");
+await cache.set("user:1", JSON.stringify(user), 60_000);
+
+const cache2 = RedisCacheClient.fromClient(redisClient, "app");
+const value = await cache2.get("user:1");
+```
 
 **カバレッジ目標**: 85%以上
 
@@ -185,6 +201,16 @@ class InMemoryCacheClient implements CacheClient {
   // ... 上記メソッドすべてを実装
 }
 
+class RedisCacheClient implements CacheClient {
+  RedisCacheClient(Command command, {String keyPrefix = ''});
+  static Future<RedisCacheClient> connect(
+    String host,
+    int port, {
+    String keyPrefix = '',
+    int? db,
+  });
+}
+
 class CacheEntry<T> {
   final T value;
   final DateTime expiresAt;
@@ -197,7 +223,15 @@ class CacheError implements Exception {
 }
 ```
 
-> **注**: Dart では `RedisCacheClient` は未実装。`InMemoryCacheClient` のみ提供。
+```dart
+final cache = await RedisCacheClient.connect(
+  '127.0.0.1',
+  6379,
+  keyPrefix: 'app',
+  db: 0,
+);
+await cache.set('user:1', jsonEncode(user), ttlMs: 60000);
+```
 
 **カバレッジ目標**: 85%以上
 

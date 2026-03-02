@@ -8,16 +8,36 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::notification::v1::{
-    notification_service_server::NotificationService,
+    notification_service_server::NotificationService, Channel as ProtoChannel,
+    CreateChannelRequest as ProtoCreateChannelRequest,
+    CreateChannelResponse as ProtoCreateChannelResponse,
+    CreateTemplateRequest as ProtoCreateTemplateRequest,
+    CreateTemplateResponse as ProtoCreateTemplateResponse,
+    DeleteChannelRequest as ProtoDeleteChannelRequest,
+    DeleteChannelResponse as ProtoDeleteChannelResponse,
+    DeleteTemplateRequest as ProtoDeleteTemplateRequest,
+    DeleteTemplateResponse as ProtoDeleteTemplateResponse,
+    GetChannelRequest as ProtoGetChannelRequest, GetChannelResponse as ProtoGetChannelResponse,
     GetNotificationRequest as ProtoGetNotificationRequest,
     GetNotificationResponse as ProtoGetNotificationResponse,
-    NotificationLog as ProtoNotificationLog,
+    GetTemplateRequest as ProtoGetTemplateRequest, GetTemplateResponse as ProtoGetTemplateResponse,
+    ListChannelsRequest as ProtoListChannelsRequest,
+    ListChannelsResponse as ProtoListChannelsResponse,
+    ListTemplatesRequest as ProtoListTemplatesRequest,
+    ListTemplatesResponse as ProtoListTemplatesResponse, NotificationLog as ProtoNotificationLog,
     SendNotificationRequest as ProtoSendNotificationRequest,
-    SendNotificationResponse as ProtoSendNotificationResponse,
+    SendNotificationResponse as ProtoSendNotificationResponse, Template as ProtoTemplate,
+    UpdateChannelRequest as ProtoUpdateChannelRequest,
+    UpdateChannelResponse as ProtoUpdateChannelResponse,
+    UpdateTemplateRequest as ProtoUpdateTemplateRequest,
+    UpdateTemplateResponse as ProtoUpdateTemplateResponse,
 };
 
 use super::notification_grpc::{
-    GetNotificationRequest, GrpcError, NotificationGrpcService, SendNotificationRequest,
+    CreateChannelRequest, CreateTemplateRequest, DeleteChannelRequest, DeleteTemplateRequest,
+    GetChannelRequest, GetNotificationRequest, GetTemplateRequest, GrpcError, ListChannelsRequest,
+    ListTemplatesRequest, NotificationGrpcService, SendNotificationRequest, UpdateChannelRequest,
+    UpdateTemplateRequest,
 };
 
 // --- GrpcError -> tonic::Status 変換 ---
@@ -30,6 +50,30 @@ impl From<GrpcError> for Status {
             GrpcError::ChannelDisabled(msg) => Status::failed_precondition(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
         }
+    }
+}
+
+fn channel_to_proto(ch: &super::notification_grpc::PbChannel) -> ProtoChannel {
+    ProtoChannel {
+        id: ch.id.clone(),
+        name: ch.name.clone(),
+        channel_type: ch.channel_type.clone(),
+        config_json: ch.config_json.clone(),
+        enabled: ch.enabled,
+        created_at: ch.created_at.clone(),
+        updated_at: ch.updated_at.clone(),
+    }
+}
+
+fn template_to_proto(t: &super::notification_grpc::PbTemplate) -> ProtoTemplate {
+    ProtoTemplate {
+        id: t.id.clone(),
+        name: t.name.clone(),
+        channel_type: t.channel_type.clone(),
+        subject_template: t.subject_template.clone(),
+        body_template: t.body_template.clone(),
+        created_at: t.created_at.clone(),
+        updated_at: t.updated_at.clone(),
     }
 }
 
@@ -103,6 +147,203 @@ impl NotificationService for NotificationServiceTonic {
                 sent_at: n.sent_at,
                 created_at: n.created_at,
             }),
+        }))
+    }
+
+    async fn list_channels(
+        &self,
+        request: Request<ProtoListChannelsRequest>,
+    ) -> Result<Response<ProtoListChannelsResponse>, Status> {
+        let inner = request.into_inner();
+        let req = ListChannelsRequest {
+            channel_type: inner.channel_type,
+            enabled_only: inner.enabled_only,
+            page: inner.page,
+            page_size: inner.page_size,
+        };
+        let resp = self
+            .inner
+            .list_channels(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoListChannelsResponse {
+            channels: resp.channels.iter().map(channel_to_proto).collect(),
+            total: resp.total,
+        }))
+    }
+
+    async fn create_channel(
+        &self,
+        request: Request<ProtoCreateChannelRequest>,
+    ) -> Result<Response<ProtoCreateChannelResponse>, Status> {
+        let inner = request.into_inner();
+        let req = CreateChannelRequest {
+            name: inner.name,
+            channel_type: inner.channel_type,
+            config_json: if inner.config_json.is_empty() {
+                None
+            } else {
+                Some(inner.config_json)
+            },
+            enabled: inner.enabled,
+        };
+        let resp = self
+            .inner
+            .create_channel(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoCreateChannelResponse {
+            channel: Some(channel_to_proto(&resp.channel)),
+        }))
+    }
+
+    async fn get_channel(
+        &self,
+        request: Request<ProtoGetChannelRequest>,
+    ) -> Result<Response<ProtoGetChannelResponse>, Status> {
+        let inner = request.into_inner();
+        let req = GetChannelRequest { id: inner.id };
+        let resp = self
+            .inner
+            .get_channel(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoGetChannelResponse {
+            channel: Some(channel_to_proto(&resp.channel)),
+        }))
+    }
+
+    async fn update_channel(
+        &self,
+        request: Request<ProtoUpdateChannelRequest>,
+    ) -> Result<Response<ProtoUpdateChannelResponse>, Status> {
+        let inner = request.into_inner();
+        let req = UpdateChannelRequest {
+            id: inner.id,
+            name: inner.name,
+            enabled: inner.enabled,
+            config_json: inner.config_json,
+        };
+        let resp = self
+            .inner
+            .update_channel(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoUpdateChannelResponse {
+            channel: Some(channel_to_proto(&resp.channel)),
+        }))
+    }
+
+    async fn delete_channel(
+        &self,
+        request: Request<ProtoDeleteChannelRequest>,
+    ) -> Result<Response<ProtoDeleteChannelResponse>, Status> {
+        let inner = request.into_inner();
+        let req = DeleteChannelRequest { id: inner.id };
+        let resp = self
+            .inner
+            .delete_channel(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoDeleteChannelResponse {
+            success: resp.success,
+            message: resp.message,
+        }))
+    }
+
+    async fn list_templates(
+        &self,
+        request: Request<ProtoListTemplatesRequest>,
+    ) -> Result<Response<ProtoListTemplatesResponse>, Status> {
+        let inner = request.into_inner();
+        let req = ListTemplatesRequest {
+            channel_type: inner.channel_type,
+            page: inner.page,
+            page_size: inner.page_size,
+        };
+        let resp = self
+            .inner
+            .list_templates(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoListTemplatesResponse {
+            templates: resp.templates.iter().map(template_to_proto).collect(),
+            total: resp.total,
+        }))
+    }
+
+    async fn create_template(
+        &self,
+        request: Request<ProtoCreateTemplateRequest>,
+    ) -> Result<Response<ProtoCreateTemplateResponse>, Status> {
+        let inner = request.into_inner();
+        let req = CreateTemplateRequest {
+            name: inner.name,
+            channel_type: inner.channel_type,
+            subject_template: inner.subject_template,
+            body_template: inner.body_template,
+        };
+        let resp = self
+            .inner
+            .create_template(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoCreateTemplateResponse {
+            template: Some(template_to_proto(&resp.template)),
+        }))
+    }
+
+    async fn get_template(
+        &self,
+        request: Request<ProtoGetTemplateRequest>,
+    ) -> Result<Response<ProtoGetTemplateResponse>, Status> {
+        let inner = request.into_inner();
+        let req = GetTemplateRequest { id: inner.id };
+        let resp = self
+            .inner
+            .get_template(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoGetTemplateResponse {
+            template: Some(template_to_proto(&resp.template)),
+        }))
+    }
+
+    async fn update_template(
+        &self,
+        request: Request<ProtoUpdateTemplateRequest>,
+    ) -> Result<Response<ProtoUpdateTemplateResponse>, Status> {
+        let inner = request.into_inner();
+        let req = UpdateTemplateRequest {
+            id: inner.id,
+            name: inner.name,
+            subject_template: inner.subject_template,
+            body_template: inner.body_template,
+        };
+        let resp = self
+            .inner
+            .update_template(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoUpdateTemplateResponse {
+            template: Some(template_to_proto(&resp.template)),
+        }))
+    }
+
+    async fn delete_template(
+        &self,
+        request: Request<ProtoDeleteTemplateRequest>,
+    ) -> Result<Response<ProtoDeleteTemplateResponse>, Status> {
+        let inner = request.into_inner();
+        let req = DeleteTemplateRequest { id: inner.id };
+        let resp = self
+            .inner
+            .delete_template(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoDeleteTemplateResponse {
+            success: resp.success,
+            message: resp.message,
         }))
     }
 }

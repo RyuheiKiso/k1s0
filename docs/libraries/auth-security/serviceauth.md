@@ -204,14 +204,14 @@ class ServiceAuthConfig {
 abstract class ServiceAuthClient {
   Future<ServiceToken> getToken();
   Future<String> getCachedToken();
-  SpiffeId validateSpiffeIdCheck(String uri, String expectedNamespace);
+  SpiffeId validateSpiffeId(String uri, String expectedNamespace);
 }
 
 class HttpServiceAuthClient implements ServiceAuthClient {
   HttpServiceAuthClient(ServiceAuthConfig config, {http.Client? httpClient});
   Future<ServiceToken> getToken();
   Future<String> getCachedToken();
-  SpiffeId validateSpiffeIdCheck(String uri, String expectedNamespace);
+  SpiffeId validateSpiffeId(String uri, String expectedNamespace);
 }
 
 class ServiceAuthError implements Exception {

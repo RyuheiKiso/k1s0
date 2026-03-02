@@ -113,9 +113,8 @@ type PageResponse[T any] struct {
     TotalPages uint32
 }
 
-// 注意: Go では PageResponse に Meta() メソッドは存在しない。
-// 各フィールド（Total, Page, PerPage, TotalPages）へ直接アクセスして使用する。
 func NewPageResponse[T any](items []T, total uint64, req PageRequest) PageResponse[T]
+func (r PageResponse[T]) Meta() PaginationMeta
 
 type PaginationMeta struct {
     Total      uint64
@@ -139,6 +138,12 @@ func EncodeCursor(sortKey, id string) string
 func DecodeCursor(cursor string) (sortKey string, id string, err error)
 ```
 
+```go
+resp := NewPageResponse(users, total, req)
+meta := resp.Meta()
+fmt.Printf("page=%d/%d\n", meta.Page, meta.TotalPages)
+```
+
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/pagination/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
@@ -157,6 +162,7 @@ export interface PageResponse<T> {
   page: number;
   perPage: number;
   totalPages: number;
+  meta(): PaginationMeta;
 }
 
 export interface PaginationMeta {
@@ -180,8 +186,6 @@ export class PerPageValidationError extends Error {
   constructor(value: number);
 }
 
-// 注意: TypeScript では PageResponse に meta() 関数は存在しない。
-// PageResponse の各フィールド（total, page, perPage, totalPages）へ直接アクセスして使用する。
 export function createPageResponse<T>(items: T[], total: number, req: PageRequest): PageResponse<T>;
 export function validatePerPage(perPage: number): number;  // 範囲外は PerPageValidationError をスロー
 export function defaultPageRequest(): PageRequest;         // page: 1, perPage: 20
@@ -190,6 +194,12 @@ export function hasNextPage(req: PageRequest, total: number): boolean;  // page 
 
 export function encodeCursor(sortKey: string, id: string): string;
 export function decodeCursor(cursor: string): { sortKey: string; id: string };
+```
+
+```typescript
+const resp = createPageResponse(items, total, { page: 2, perPage: 20 });
+const meta = resp.meta();
+console.log(meta.page, meta.totalPages);
 ```
 
 **カバレッジ目標**: 90%以上

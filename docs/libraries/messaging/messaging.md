@@ -17,7 +17,7 @@ Kafka ベースのイベント送受信を共通化するライブラリ。
 | API | 目的 |
 | --- | --- |
 | `EventMetadata` | イベント ID、種別、相関 ID、トレース ID、発行時刻、発行元を保持 |
-| `EventEnvelope` | `topic` / `key` / `payload` とメタデータを保持 |
+| `EventEnvelope` | `topic` / `key` / `payload` / `headers` とメタデータを保持 |
 | `EventProducer.publish` | 単一イベントを発行 |
 | `EventProducer.publishBatch` | 複数イベントをバッチ発行 |
 | `EventConsumer` | イベント受信（言語ごとに pull/push モデルが異なる） |
@@ -50,6 +50,23 @@ use k1s0_messaging::consumer::ConsumedMessage;
 - Go / TypeScript / Dart: `EventEnvelope` は `EventMetadata` を持つ
 
 実装上の構造は異なるが、任意メタデータをエンベロープ単位で保持できる点は共通。
+
+### Go `EventEnvelope` の `Headers`
+
+Go 実装の `EventEnvelope` には `Headers map[string]string` フィールドがあり、Kafka メッセージヘッダーを付与できる。
+
+```go
+event := messaging.EventEnvelope{
+    Metadata: messaging.NewEventMetadata("user.created.v1", "corr-123", "user-service"),
+    Topic:    "k1s0.system.user.created.v1",
+    Key:      "user-123",
+    Payload:  map[string]any{"id": "user-123"},
+    Headers: map[string]string{
+        "x-tenant-id": "tenant-abc",
+        "x-trace-id":  "trace-123",
+    },
+}
+```
 
 ### metadata 生成 API の `correlationId` 必須性
 
