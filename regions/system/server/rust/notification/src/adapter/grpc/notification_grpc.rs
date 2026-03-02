@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use uuid::Uuid;
 
+use crate::domain::repository::NotificationChannelRepository;
 use crate::domain::repository::NotificationLogRepository;
 use crate::usecase::send_notification::{
     SendNotificationError, SendNotificationInput, SendNotificationUseCase,
@@ -74,16 +75,19 @@ pub enum GrpcError {
 pub struct NotificationGrpcService {
     send_notification_uc: Arc<SendNotificationUseCase>,
     log_repo: Arc<dyn NotificationLogRepository>,
+    channel_repo: Arc<dyn NotificationChannelRepository>,
 }
 
 impl NotificationGrpcService {
     pub fn new(
         send_notification_uc: Arc<SendNotificationUseCase>,
         log_repo: Arc<dyn NotificationLogRepository>,
+        channel_repo: Arc<dyn NotificationChannelRepository>,
     ) -> Self {
         Self {
             send_notification_uc,
             log_repo,
+            channel_repo,
         }
     }
 
@@ -141,11 +145,21 @@ impl NotificationGrpcService {
             .map_err(|e| GrpcError::Internal(e.to_string()))?
             .ok_or_else(|| GrpcError::NotFound(format!("notification not found: {}", id)))?;
 
+        let channel_type = match self
+            .channel_repo
+            .find_by_id(&log.channel_id)
+            .await
+            .map_err(|e| GrpcError::Internal(e.to_string()))?
+        {
+            Some(ch) => ch.channel_type,
+            None => String::new(),
+        };
+
         Ok(GetNotificationResponse {
             notification: PbNotificationLog {
                 id: log.id.to_string(),
                 channel_id: log.channel_id.to_string(),
-                channel_type: String::new(),
+                channel_type,
                 template_id: log.template_id.map(|id| id.to_string()),
                 recipient: log.recipient,
                 subject: log.subject,
@@ -190,12 +204,15 @@ mod tests {
 
         let log_repo_for_svc: Arc<dyn NotificationLogRepository> =
             Arc::new(MockNotificationLogRepository::new());
+        let channel_repo_for_svc: Arc<dyn NotificationChannelRepository> =
+            Arc::new(MockNotificationChannelRepository::new());
         let svc = NotificationGrpcService::new(
             Arc::new(SendNotificationUseCase::new(
                 Arc::new(channel_mock),
                 Arc::new(log_mock),
             )),
             log_repo_for_svc,
+            channel_repo_for_svc,
         );
 
         let req = SendNotificationRequest {
@@ -217,6 +234,8 @@ mod tests {
         let log_mock = MockNotificationLogRepository::new();
         let log_repo: Arc<dyn NotificationLogRepository> =
             Arc::new(MockNotificationLogRepository::new());
+        let channel_repo: Arc<dyn NotificationChannelRepository> =
+            Arc::new(MockNotificationChannelRepository::new());
 
         let svc = NotificationGrpcService::new(
             Arc::new(SendNotificationUseCase::new(
@@ -224,6 +243,7 @@ mod tests {
                 Arc::new(log_mock),
             )),
             log_repo,
+            channel_repo,
         );
 
         let req = SendNotificationRequest {
@@ -248,6 +268,8 @@ mod tests {
         let log_mock = MockNotificationLogRepository::new();
         let log_repo: Arc<dyn NotificationLogRepository> =
             Arc::new(MockNotificationLogRepository::new());
+        let channel_repo: Arc<dyn NotificationChannelRepository> =
+            Arc::new(MockNotificationChannelRepository::new());
 
         channel_mock
             .expect_find_by_id()
@@ -260,6 +282,7 @@ mod tests {
                 Arc::new(log_mock),
             )),
             log_repo,
+            channel_repo,
         );
 
         let req = SendNotificationRequest {
@@ -291,6 +314,7 @@ mod tests {
             "Body".to_string(),
         );
         let log_id = log.id;
+        let channel_id = log.channel_id;
         let return_log = log.clone();
 
         log_mock_for_repo
@@ -298,12 +322,26 @@ mod tests {
             .withf(move |id| *id == log_id)
             .returning(move |_| Ok(Some(return_log.clone())));
 
+        let mut channel_mock_for_repo = MockNotificationChannelRepository::new();
+        channel_mock_for_repo
+            .expect_find_by_id()
+            .withf(move |id| *id == channel_id)
+            .returning(|_| {
+                Ok(Some(NotificationChannel::new(
+                    "test".to_string(),
+                    "email".to_string(),
+                    serde_json::json!({}),
+                    true,
+                )))
+            });
+
         let svc = NotificationGrpcService::new(
             Arc::new(SendNotificationUseCase::new(
                 Arc::new(channel_mock),
                 Arc::new(log_mock_for_uc),
             )),
             Arc::new(log_mock_for_repo),
+            Arc::new(channel_mock_for_repo),
         );
 
         let req = GetNotificationRequest {
@@ -324,12 +362,15 @@ mod tests {
             .expect_find_by_id()
             .returning(|_| Ok(None));
 
+        let channel_mock_for_repo = MockNotificationChannelRepository::new();
+
         let svc = NotificationGrpcService::new(
             Arc::new(SendNotificationUseCase::new(
                 Arc::new(channel_mock),
                 Arc::new(log_mock_for_uc),
             )),
             Arc::new(log_mock_for_repo),
+            Arc::new(channel_mock_for_repo),
         );
 
         let req = GetNotificationRequest {

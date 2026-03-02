@@ -231,6 +231,36 @@ impl PolicyRepository for InMemoryPolicyRepository {
         Ok(policies.values().cloned().collect())
     }
 
+    async fn find_all_paginated(
+        &self,
+        page: u32,
+        page_size: u32,
+        bundle_id: Option<String>,
+        enabled_only: bool,
+    ) -> anyhow::Result<(Vec<Policy>, u64)> {
+        let policies = self.policies.read().await;
+        let mut filtered: Vec<Policy> = policies
+            .values()
+            .filter(|p| {
+                if enabled_only && !p.enabled {
+                    return false;
+                }
+                if let Some(ref bid) = bundle_id {
+                    if p.bundle_id.as_deref() != Some(bid.as_str()) {
+                        return false;
+                    }
+                }
+                true
+            })
+            .cloned()
+            .collect();
+        filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        let total = filtered.len() as u64;
+        let start = ((page.saturating_sub(1)) * page_size) as usize;
+        let items: Vec<Policy> = filtered.into_iter().skip(start).take(page_size as usize).collect();
+        Ok((items, total))
+    }
+
     async fn create(&self, policy: &Policy) -> anyhow::Result<()> {
         let mut policies = self.policies.write().await;
         policies.insert(policy.id, policy.clone());

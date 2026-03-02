@@ -8,6 +8,13 @@ use crate::domain::entity::notification_log::NotificationLog;
 pub trait NotificationLogRepository: Send + Sync {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<NotificationLog>>;
     async fn find_by_channel_id(&self, channel_id: &Uuid) -> anyhow::Result<Vec<NotificationLog>>;
+    async fn find_all_paginated(
+        &self,
+        page: u32,
+        page_size: u32,
+        channel_id: Option<Uuid>,
+        status: Option<String>,
+    ) -> anyhow::Result<(Vec<NotificationLog>, u64)>;
     async fn create(&self, log: &NotificationLog) -> anyhow::Result<()>;
     async fn update(&self, log: &NotificationLog) -> anyhow::Result<()>;
 }

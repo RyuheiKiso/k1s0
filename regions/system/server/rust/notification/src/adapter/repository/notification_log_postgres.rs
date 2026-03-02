@@ -85,6 +85,68 @@ impl NotificationLogRepository for NotificationLogPostgresRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
+    async fn find_all_paginated(
+        &self,
+        page: u32,
+        page_size: u32,
+        channel_id: Option<Uuid>,
+        status: Option<String>,
+    ) -> anyhow::Result<(Vec<NotificationLog>, u64)> {
+        let offset = (page.saturating_sub(1) * page_size) as i64;
+        let limit = page_size as i64;
+
+        let mut conditions = Vec::new();
+        let mut bind_index = 1u32;
+
+        if channel_id.is_some() {
+            conditions.push(format!("channel_id = ${}", bind_index));
+            bind_index += 1;
+        }
+        if status.is_some() {
+            conditions.push(format!("status = ${}", bind_index));
+            bind_index += 1;
+        }
+
+        let where_clause = if conditions.is_empty() {
+            String::new()
+        } else {
+            format!("WHERE {}", conditions.join(" AND "))
+        };
+
+        let count_query = format!(
+            "SELECT COUNT(*) FROM notification.notification_logs {}",
+            where_clause
+        );
+        let data_query = format!(
+            "SELECT id, channel_id, template_id, recipient, subject, body, status, error_message, created_at, updated_at \
+             FROM notification.notification_logs {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
+            where_clause, bind_index, bind_index + 1
+        );
+
+        let mut count_q = sqlx::query_scalar::<_, i64>(&count_query);
+        if let Some(ref v) = channel_id {
+            count_q = count_q.bind(v);
+        }
+        if let Some(ref v) = status {
+            count_q = count_q.bind(v);
+        }
+        let total_count = count_q.fetch_one(self.pool.as_ref()).await?;
+
+        let mut data_q = sqlx::query_as::<_, NotificationLogRow>(&data_query);
+        if let Some(ref v) = channel_id {
+            data_q = data_q.bind(v);
+        }
+        if let Some(ref v) = status {
+            data_q = data_q.bind(v);
+        }
+        data_q = data_q.bind(limit);
+        data_q = data_q.bind(offset);
+
+        let rows: Vec<NotificationLogRow> = data_q.fetch_all(self.pool.as_ref()).await?;
+
+        Ok((rows.into_iter().map(Into::into).collect(), total_count as u64))
+    }
+
     async fn create(&self, log: &NotificationLog) -> anyhow::Result<()> {
         sqlx::query(
             "INSERT INTO notification.notification_logs \

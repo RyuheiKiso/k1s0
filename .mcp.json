@@ -1,3 +1,9 @@
 {
-  "mcpServers": {}
+  "mcpServers": {
+    "codex": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@openai/codex", "mcp-server"]
+    }
+  }
 }

@@ -154,7 +154,7 @@ async fn main() -> anyhow::Result<()> {
         ))
     };
     let retry_notification_uc =
-        Arc::new(usecase::RetryNotificationUseCase::new(log_repo.clone(), channel_repo));
+        Arc::new(usecase::RetryNotificationUseCase::new(log_repo.clone(), channel_repo.clone()));
     let create_template_uc = Arc::new(usecase::CreateTemplateUseCase::new(template_repo.clone()));
     let list_templates_uc = Arc::new(usecase::ListTemplatesUseCase::new(template_repo.clone()));
     let get_template_uc = Arc::new(usecase::GetTemplateUseCase::new(template_repo.clone()));
@@ -187,6 +187,7 @@ async fn main() -> anyhow::Result<()> {
     let grpc_svc = Arc::new(NotificationGrpcService::new(
         send_notification_uc.clone(),
         log_repo.clone(),
+        channel_repo,
     ));
 
     let grpc_addr: std::net::SocketAddr =
@@ -304,6 +305,36 @@ impl NotificationChannelRepository for InMemoryNotificationChannelRepository {
         Ok(channels.values().cloned().collect())
     }
 
+    async fn find_all_paginated(
+        &self,
+        page: u32,
+        page_size: u32,
+        channel_type: Option<String>,
+        enabled_only: bool,
+    ) -> anyhow::Result<(Vec<NotificationChannel>, u64)> {
+        let channels = self.channels.read().await;
+        let mut filtered: Vec<NotificationChannel> = channels
+            .values()
+            .filter(|ch| {
+                if enabled_only && !ch.enabled {
+                    return false;
+                }
+                if let Some(ref ct) = channel_type {
+                    if ch.channel_type != *ct {
+                        return false;
+                    }
+                }
+                true
+            })
+            .cloned()
+            .collect();
+        filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        let total = filtered.len() as u64;
+        let start = ((page.saturating_sub(1)) * page_size) as usize;
+        let items: Vec<NotificationChannel> = filtered.into_iter().skip(start).take(page_size as usize).collect();
+        Ok((items, total))
+    }
+
     async fn create(&self, channel: &NotificationChannel) -> anyhow::Result<()> {
         let mut channels = self.channels.write().await;
         channels.insert(channel.id, channel.clone());
@@ -344,6 +375,32 @@ impl NotificationTemplateRepository for InMemoryNotificationTemplateRepository {
     async fn find_all(&self) -> anyhow::Result<Vec<NotificationTemplate>> {
         let templates = self.templates.read().await;
         Ok(templates.values().cloned().collect())
+    }
+
+    async fn find_all_paginated(
+        &self,
+        page: u32,
+        page_size: u32,
+        channel_type: Option<String>,
+    ) -> anyhow::Result<(Vec<NotificationTemplate>, u64)> {
+        let templates = self.templates.read().await;
+        let mut filtered: Vec<NotificationTemplate> = templates
+            .values()
+            .filter(|t| {
+                if let Some(ref ct) = channel_type {
+                    if t.channel_type != *ct {
+                        return false;
+                    }
+                }
+                true
+            })
+            .cloned()
+            .collect();
+        filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        let total = filtered.len() as u64;
+        let start = ((page.saturating_sub(1)) * page_size) as usize;
+        let items: Vec<NotificationTemplate> = filtered.into_iter().skip(start).take(page_size as usize).collect();
+        Ok((items, total))
     }
 
     async fn create(&self, template: &NotificationTemplate) -> anyhow::Result<()> {
@@ -390,6 +447,38 @@ impl NotificationLogRepository for InMemoryNotificationLogRepository {
             .filter(|l| l.channel_id == *channel_id)
             .cloned()
             .collect())
+    }
+
+    async fn find_all_paginated(
+        &self,
+        page: u32,
+        page_size: u32,
+        channel_id: Option<Uuid>,
+        status: Option<String>,
+    ) -> anyhow::Result<(Vec<NotificationLog>, u64)> {
+        let logs = self.logs.read().await;
+        let mut filtered: Vec<NotificationLog> = logs
+            .values()
+            .filter(|l| {
+                if let Some(ref cid) = channel_id {
+                    if l.channel_id != *cid {
+                        return false;
+                    }
+                }
+                if let Some(ref s) = status {
+                    if l.status != *s {
+                        return false;
+                    }
+                }
+                true
+            })
+            .cloned()
+            .collect();
+        filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        let total = filtered.len() as u64;
+        let start = ((page.saturating_sub(1)) * page_size) as usize;
+        let items: Vec<NotificationLog> = filtered.into_iter().skip(start).take(page_size as usize).collect();
+        Ok((items, total))
     }
 
     async fn create(&self, log: &NotificationLog) -> anyhow::Result<()> {

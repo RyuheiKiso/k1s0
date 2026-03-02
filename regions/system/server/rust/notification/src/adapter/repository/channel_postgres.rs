@@ -66,6 +66,61 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
+    async fn find_all_paginated(
+        &self,
+        page: u32,
+        page_size: u32,
+        channel_type: Option<String>,
+        enabled_only: bool,
+    ) -> anyhow::Result<(Vec<NotificationChannel>, u64)> {
+        let offset = (page.saturating_sub(1) * page_size) as i64;
+        let limit = page_size as i64;
+
+        let mut conditions = Vec::new();
+        let mut bind_index = 1u32;
+
+        if channel_type.is_some() {
+            conditions.push(format!("channel_type = ${}", bind_index));
+            bind_index += 1;
+        }
+        if enabled_only {
+            conditions.push("enabled = true".to_string());
+        }
+
+        let where_clause = if conditions.is_empty() {
+            String::new()
+        } else {
+            format!("WHERE {}", conditions.join(" AND "))
+        };
+
+        let count_query = format!(
+            "SELECT COUNT(*) FROM notification.channels {}",
+            where_clause
+        );
+        let data_query = format!(
+            "SELECT id, name, channel_type, config, enabled, created_at, updated_at \
+             FROM notification.channels {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
+            where_clause, bind_index, bind_index + 1
+        );
+
+        let mut count_q = sqlx::query_scalar::<_, i64>(&count_query);
+        if let Some(ref v) = channel_type {
+            count_q = count_q.bind(v);
+        }
+        let total_count = count_q.fetch_one(self.pool.as_ref()).await?;
+
+        let mut data_q = sqlx::query_as::<_, ChannelRow>(&data_query);
+        if let Some(ref v) = channel_type {
+            data_q = data_q.bind(v);
+        }
+        data_q = data_q.bind(limit);
+        data_q = data_q.bind(offset);
+
+        let rows: Vec<ChannelRow> = data_q.fetch_all(self.pool.as_ref()).await?;
+
+        Ok((rows.into_iter().map(Into::into).collect(), total_count as u64))
+    }
+
     async fn create(&self, channel: &NotificationChannel) -> anyhow::Result<()> {
         sqlx::query(
             "INSERT INTO notification.channels \

@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -13,14 +13,32 @@ use crate::usecase::evaluate_policy::EvaluatePolicyInput;
 use crate::usecase::update_policy::UpdatePolicyInput;
 
 /// GET /api/v1/policies
-pub async fn list_policies(State(state): State<AppState>) -> impl IntoResponse {
-    match state.policy_repo.find_all().await {
-        Ok(policies) => {
+pub async fn list_policies(
+    State(state): State<AppState>,
+    Query(params): Query<ListPoliciesParams>,
+) -> impl IntoResponse {
+    let page = params.page.unwrap_or(1);
+    let page_size = params.page_size.unwrap_or(20);
+    let enabled_only = params.enabled_only.unwrap_or(false);
+
+    match state
+        .policy_repo
+        .find_all_paginated(page, page_size, params.bundle_id, enabled_only)
+        .await
+    {
+        Ok((policies, total_count)) => {
             let items: Vec<PolicyResponse> =
                 policies.into_iter().map(PolicyResponse::from).collect();
+            let has_next = (page as u64 * page_size as u64) < total_count;
             (
                 StatusCode::OK,
-                Json(serde_json::json!({ "policies": items })),
+                Json(serde_json::json!({
+                    "policies": items,
+                    "total_count": total_count,
+                    "page": page,
+                    "page_size": page_size,
+                    "has_next": has_next
+                })),
             )
                 .into_response()
         }
@@ -237,6 +255,14 @@ pub async fn create_bundle(
 }
 
 // --- Request / Response types ---
+
+#[derive(Debug, Deserialize)]
+pub struct ListPoliciesParams {
+    pub page: Option<u32>,
+    pub page_size: Option<u32>,
+    pub bundle_id: Option<String>,
+    pub enabled_only: Option<bool>,
+}
 
 #[derive(Debug, Deserialize)]
 pub struct CreatePolicyRequest {

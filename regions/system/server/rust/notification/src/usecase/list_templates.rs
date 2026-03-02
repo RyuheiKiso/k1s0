@@ -24,6 +24,18 @@ impl ListTemplatesUseCase {
             .await
             .map_err(|e| ListTemplatesError::Internal(e.to_string()))
     }
+
+    pub async fn execute_paginated(
+        &self,
+        page: u32,
+        page_size: u32,
+        channel_type: Option<String>,
+    ) -> Result<(Vec<NotificationTemplate>, u64), ListTemplatesError> {
+        self.repo
+            .find_all_paginated(page, page_size, channel_type)
+            .await
+            .map_err(|e| ListTemplatesError::Internal(e.to_string()))
+    }
 }
 
 #[cfg(test)]

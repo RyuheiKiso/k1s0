@@ -41,6 +41,18 @@ impl PolicyRepository for CachedPolicyRepository {
         self.delegate.find_all().await
     }
 
+    async fn find_all_paginated(
+        &self,
+        page: u32,
+        page_size: u32,
+        bundle_id: Option<String>,
+        enabled_only: bool,
+    ) -> anyhow::Result<(Vec<Policy>, u64)> {
+        self.delegate
+            .find_all_paginated(page, page_size, bundle_id, enabled_only)
+            .await
+    }
+
     async fn create(&self, policy: &Policy) -> anyhow::Result<()> {
         self.delegate.create(policy).await?;
         // 作成したポリシーをキャッシュに追加
