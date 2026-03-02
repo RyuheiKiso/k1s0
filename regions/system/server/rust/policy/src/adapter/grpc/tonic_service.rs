@@ -52,7 +52,7 @@ impl PolicyService for PolicyServiceTonic {
     ) -> Result<Response<ProtoEvaluatePolicyResponse>, Status> {
         let inner = request.into_inner();
         let req = EvaluatePolicyRequest {
-            package_path: inner.package_path,
+            policy_id: inner.policy_id,
             input_json: inner.input_json,
         };
         let resp = self
@@ -87,7 +87,7 @@ impl PolicyService for PolicyServiceTonic {
             description: resp.description,
             package_path: resp.package_path,
             rego_content: resp.rego_content,
-            bundle_id: String::new(),
+            bundle_id: resp.bundle_id.unwrap_or_default(),
             enabled: resp.enabled,
             version: resp.version,
             created_at: None,
@@ -183,7 +183,7 @@ mod tests {
         let tonic_svc = make_tonic_service(mock);
 
         let req = Request::new(ProtoEvaluatePolicyRequest {
-            package_path: "k1s0.system.tenant".to_string(),
+            policy_id: uuid::Uuid::new_v4().to_string(),
             input_json: b"{}".to_vec(),
         });
         let result = tonic_svc.evaluate_policy(req).await;

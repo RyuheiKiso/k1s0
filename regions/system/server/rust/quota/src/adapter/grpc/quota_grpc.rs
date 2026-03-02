@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::usecase::{
     CreateQuotaPolicyUseCase, DeleteQuotaPolicyUseCase, GetQuotaPolicyUseCase,
-    GetQuotaUsageUseCase, IncrementQuotaUsageUseCase, ListQuotaPoliciesUseCase,
+    GetQuotaUsageUseCase, IncrementQuotaUsageUseCase, ListQuotaPoliciesUseCase, ResetQuotaUsageUseCase,
     UpdateQuotaPolicyUseCase,
 };
 use crate::usecase::create_quota_policy::{CreateQuotaPolicyError, CreateQuotaPolicyInput};
@@ -13,6 +13,7 @@ use crate::usecase::get_quota_policy::GetQuotaPolicyError;
 use crate::usecase::get_quota_usage::GetQuotaUsageError;
 use crate::usecase::increment_quota_usage::{IncrementQuotaUsageError, IncrementQuotaUsageInput};
 use crate::usecase::list_quota_policies::ListQuotaPoliciesInput;
+use crate::usecase::reset_quota_usage::{ResetQuotaUsageError, ResetQuotaUsageInput};
 use crate::usecase::update_quota_policy::{UpdateQuotaPolicyError, UpdateQuotaPolicyInput};
 use crate::domain::entity::quota::{QuotaPolicy, QuotaUsage, IncrementResult};
 
@@ -88,6 +89,16 @@ impl From<IncrementQuotaUsageError> for GrpcError {
     }
 }
 
+impl From<ResetQuotaUsageError> for GrpcError {
+    fn from(e: ResetQuotaUsageError) -> Self {
+        match e {
+            ResetQuotaUsageError::NotFound(msg) => GrpcError::NotFound(msg),
+            ResetQuotaUsageError::Validation(msg) => GrpcError::InvalidArgument(msg),
+            ResetQuotaUsageError::Internal(msg) => GrpcError::Internal(msg),
+        }
+    }
+}
+
 /// CreatePolicyRequest は CreateQuotaPolicy gRPC リクエストの内部表現。
 pub struct CreatePolicyRequest {
     pub name: String,
@@ -127,6 +138,7 @@ pub struct QuotaGrpcService {
     pub delete_policy_uc: Arc<DeleteQuotaPolicyUseCase>,
     pub get_usage_uc: Arc<GetQuotaUsageUseCase>,
     pub increment_usage_uc: Arc<IncrementQuotaUsageUseCase>,
+    pub reset_usage_uc: Arc<ResetQuotaUsageUseCase>,
 }
 
 impl QuotaGrpcService {
@@ -138,6 +150,7 @@ impl QuotaGrpcService {
         delete_policy_uc: Arc<DeleteQuotaPolicyUseCase>,
         get_usage_uc: Arc<GetQuotaUsageUseCase>,
         increment_usage_uc: Arc<IncrementQuotaUsageUseCase>,
+        reset_usage_uc: Arc<ResetQuotaUsageUseCase>,
     ) -> Self {
         Self {
             create_policy_uc,
@@ -147,6 +160,7 @@ impl QuotaGrpcService {
             delete_policy_uc,
             get_usage_uc,
             increment_usage_uc,
+            reset_usage_uc,
         }
     }
 
@@ -248,6 +262,23 @@ impl QuotaGrpcService {
             .execute(&input)
             .await
             .map_err(GrpcError::from)
+    }
+
+    pub async fn reset_usage(
+        &self,
+        quota_id: String,
+        reason: String,
+    ) -> Result<QuotaUsage, GrpcError> {
+        let input = ResetQuotaUsageInput {
+            quota_id: quota_id.clone(),
+            reason,
+            reset_by: "grpc".to_string(),
+        };
+        self.reset_usage_uc
+            .execute(&input)
+            .await
+            .map_err(GrpcError::from)?;
+        self.get_usage(&quota_id).await
     }
 }
 

@@ -43,9 +43,38 @@ impl EvaluatePolicyUseCase {
         &self,
         input: &EvaluatePolicyInput,
     ) -> Result<EvaluatePolicyOutput, EvaluatePolicyError> {
+        // Resolve policy first when a policy_id is provided, so both OPA and fallback paths
+        // can consistently use the stored package path.
+        let resolved_policy = if let Some(policy_id) = input.policy_id {
+            Some(
+                self.repo
+                    .find_by_id(&policy_id)
+                    .await
+                    .map_err(|e| EvaluatePolicyError::Internal(e.to_string()))?
+                    .ok_or(EvaluatePolicyError::NotFound(policy_id))?,
+            )
+        } else {
+            None
+        };
+
+        let resolved_package_path = if !input.package_path.is_empty() {
+            input.package_path.clone()
+        } else {
+            resolved_policy
+                .as_ref()
+                .map(|p| p.package_path.clone())
+                .unwrap_or_default()
+        };
+
         // OPA client available: evaluate via OPA HTTP API
         if let Some(ref opa) = self.opa_client {
-            return match opa.evaluate(&input.package_path, &input.input).await {
+            if resolved_package_path.is_empty() {
+                return Err(EvaluatePolicyError::Internal(
+                    "package_path could not be resolved from policy_id".to_string(),
+                ));
+            }
+
+            return match opa.evaluate(&resolved_package_path, &input.input).await {
                 Ok(allowed) => {
                     let reason = if allowed {
                         "OPA evaluation: allowed"
@@ -62,7 +91,7 @@ impl EvaluatePolicyUseCase {
                 Err(e) => {
                     tracing::warn!(
                         error = %e,
-                        package_path = %input.package_path,
+                        package_path = %resolved_package_path,
                         "OPA evaluation failed, deny by default"
                     );
                     Ok(EvaluatePolicyOutput {
@@ -76,18 +105,11 @@ impl EvaluatePolicyUseCase {
         }
 
         // Fallback: use policy.enabled flag from repository
-        let policy_id = input.policy_id.ok_or_else(|| {
+        let policy = resolved_policy.ok_or_else(|| {
             EvaluatePolicyError::Internal(
                 "no OPA client configured and no policy_id provided".to_string(),
             )
         })?;
-
-        let policy = self
-            .repo
-            .find_by_id(&policy_id)
-            .await
-            .map_err(|e| EvaluatePolicyError::Internal(e.to_string()))?
-            .ok_or(EvaluatePolicyError::NotFound(policy_id))?;
 
         if policy.enabled {
             Ok(EvaluatePolicyOutput {

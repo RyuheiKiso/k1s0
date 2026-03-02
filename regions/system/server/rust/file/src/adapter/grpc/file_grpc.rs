@@ -6,6 +6,7 @@ use crate::usecase::generate_download_url::{GenerateDownloadUrlInput, GenerateDo
 use crate::usecase::generate_upload_url::{GenerateUploadUrlInput, GenerateUploadUrlUseCase};
 use crate::usecase::get_file_metadata::{GetFileMetadataInput, GetFileMetadataUseCase};
 use crate::usecase::list_files::{ListFilesInput, ListFilesUseCase};
+use crate::usecase::update_file_tags::{UpdateFileTagsInput, UpdateFileTagsUseCase};
 
 #[derive(Debug, thiserror::Error)]
 pub enum GrpcError {
@@ -37,6 +38,7 @@ pub struct FileGrpcService {
     complete_upload_uc: Arc<CompleteUploadUseCase>,
     generate_download_url_uc: Arc<GenerateDownloadUrlUseCase>,
     delete_file_uc: Arc<DeleteFileUseCase>,
+    update_file_tags_uc: Arc<UpdateFileTagsUseCase>,
 }
 
 impl FileGrpcService {
@@ -47,6 +49,7 @@ impl FileGrpcService {
         complete_upload_uc: Arc<CompleteUploadUseCase>,
         generate_download_url_uc: Arc<GenerateDownloadUrlUseCase>,
         delete_file_uc: Arc<DeleteFileUseCase>,
+        update_file_tags_uc: Arc<UpdateFileTagsUseCase>,
     ) -> Self {
         Self {
             get_file_metadata_uc,
@@ -55,6 +58,7 @@ impl FileGrpcService {
             complete_upload_uc,
             generate_download_url_uc,
             delete_file_uc,
+            update_file_tags_uc,
         }
     }
 
@@ -100,10 +104,14 @@ impl FileGrpcService {
         tenant_id: String,
         uploaded_by: String,
         tags: std::collections::HashMap<String, String>,
+        expires_in_seconds: Option<i32>,
     ) -> Result<(String, String), GrpcError> {
         if filename.is_empty() {
             return Err(GrpcError::InvalidArgument("filename is required".to_string()));
         }
+        let expires_in_seconds = expires_in_seconds
+            .unwrap_or(3600)
+            .clamp(1, i32::MAX) as u32;
         let input = GenerateUploadUrlInput {
             name: filename,
             size_bytes: 0,
@@ -111,7 +119,7 @@ impl FileGrpcService {
             tenant_id,
             owner_id: uploaded_by,
             tags,
-            expires_in_seconds: 3600,
+            expires_in_seconds,
         };
         let output = self.generate_upload_url_uc.execute(&input).await.map_err(|e| {
             let msg = e.to_string();
@@ -127,13 +135,14 @@ impl FileGrpcService {
     pub async fn complete_upload(
         &self,
         file_id: String,
+        checksum_sha256: Option<String>,
     ) -> Result<crate::domain::entity::file::FileMetadata, GrpcError> {
         if file_id.is_empty() {
             return Err(GrpcError::InvalidArgument("file_id is required".to_string()));
         }
         let input = CompleteUploadInput {
             file_id,
-            checksum_sha256: None,
+            checksum_sha256,
         };
         self.complete_upload_uc.execute(&input).await.map_err(|e| {
             let msg = e.to_string();
@@ -182,6 +191,25 @@ impl FileGrpcService {
             }
         })?;
         Ok(())
+    }
+
+    pub async fn update_file_tags(
+        &self,
+        id: String,
+        tags: std::collections::HashMap<String, String>,
+    ) -> Result<crate::domain::entity::file::FileMetadata, GrpcError> {
+        if id.is_empty() {
+            return Err(GrpcError::InvalidArgument("id is required".to_string()));
+        }
+        let input = UpdateFileTagsInput { file_id: id, tags };
+        self.update_file_tags_uc.execute(&input).await.map_err(|e| {
+            let msg = e.to_string();
+            if msg.contains("not found") {
+                GrpcError::NotFound(msg)
+            } else {
+                GrpcError::Internal(msg)
+            }
+        })
     }
 }
 

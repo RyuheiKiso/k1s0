@@ -82,6 +82,8 @@ pub async fn create_policy(
         name: req.name,
         description: req.description,
         rego_content: req.rego_content,
+        package_path: req.package_path,
+        bundle_id: req.bundle_id,
     };
 
     match state.create_policy_uc.execute(&input).await {

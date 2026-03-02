@@ -9,6 +9,7 @@ service FileService {
   rpc GenerateUploadUrl(GenerateUploadUrlRequest) returns (GenerateUploadUrlResponse);
   rpc CompleteUpload(CompleteUploadRequest) returns (CompleteUploadResponse);
   rpc GenerateDownloadUrl(GenerateDownloadUrlRequest) returns (GenerateDownloadUrlResponse);
+  rpc UpdateFileTags(UpdateFileTagsRequest) returns (UpdateFileTagsResponse);
   rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
 }
 
@@ -50,6 +51,7 @@ message GenerateUploadUrlRequest {
   string tenant_id = 3;
   string uploaded_by = 4;
   map<string, string> tags = 5;
+  optional int32 expires_in_seconds = 6;
 }
 
 message GenerateUploadUrlResponse {
@@ -60,6 +62,7 @@ message GenerateUploadUrlResponse {
 message CompleteUploadRequest {
   string file_id = 1;
   int64 size = 2;
+  optional string checksum_sha256 = 3;
 }
 
 message CompleteUploadResponse {
@@ -72,6 +75,15 @@ message GenerateDownloadUrlRequest {
 
 message GenerateDownloadUrlResponse {
   string download_url = 1;
+}
+
+message UpdateFileTagsRequest {
+  string id = 1;
+  map<string, string> tags = 2;
+}
+
+message UpdateFileTagsResponse {
+  FileMetadata metadata = 1;
 }
 
 message DeleteFileRequest {

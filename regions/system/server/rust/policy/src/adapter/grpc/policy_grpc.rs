@@ -1,13 +1,14 @@
 use std::sync::Arc;
+use uuid::Uuid;
 
-use crate::usecase::evaluate_policy::EvaluatePolicyUseCase;
+use crate::usecase::evaluate_policy::{EvaluatePolicyError, EvaluatePolicyUseCase};
 use crate::usecase::get_policy::{GetPolicyError, GetPolicyUseCase};
 
 // --- gRPC Request/Response Types ---
 
 #[derive(Debug, Clone)]
 pub struct EvaluatePolicyRequest {
-    pub package_path: String,
+    pub policy_id: String,
     pub input_json: Vec<u8>,
 }
 
@@ -30,6 +31,7 @@ pub struct GetPolicyResponse {
     pub name: String,
     pub description: String,
     pub package_path: String,
+    pub bundle_id: Option<String>,
     pub rego_content: String,
     pub enabled: bool,
     pub version: u32,
@@ -74,6 +76,9 @@ impl PolicyGrpcService {
         &self,
         req: EvaluatePolicyRequest,
     ) -> Result<EvaluatePolicyResponse, GrpcError> {
+        let policy_id = Uuid::parse_str(&req.policy_id)
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid policy id: {}", req.policy_id)))?;
+
         let input_json: serde_json::Value = if req.input_json.is_empty() {
             serde_json::json!({})
         } else {
@@ -82,8 +87,8 @@ impl PolicyGrpcService {
         };
 
         let uc_input = crate::usecase::evaluate_policy::EvaluatePolicyInput {
-            policy_id: None,
-            package_path: req.package_path.clone(),
+            policy_id: Some(policy_id),
+            package_path: String::new(),
             input: input_json,
         };
 
@@ -91,11 +96,16 @@ impl PolicyGrpcService {
             .evaluate_policy_uc
             .execute(&uc_input)
             .await
-            .map_err(|e| GrpcError::Internal(e.to_string()))?;
+            .map_err(|e| match e {
+                EvaluatePolicyError::NotFound(id) => {
+                    GrpcError::NotFound(format!("policy not found: {}", id))
+                }
+                EvaluatePolicyError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
 
         Ok(EvaluatePolicyResponse {
             allowed: output.allowed,
-            package_path: req.package_path,
+            package_path: String::new(),
             decision_id: output.decision_id,
             cached: output.cached,
         })
@@ -115,7 +125,8 @@ impl PolicyGrpcService {
                 id: policy.id.to_string(),
                 name: policy.name,
                 description: policy.description,
-                package_path: String::new(),
+                package_path: policy.package_path,
+                bundle_id: policy.bundle_id,
                 rego_content: policy.rego_content,
                 enabled: policy.enabled,
                 version: policy.version,
@@ -205,7 +216,7 @@ mod tests {
         let mock = MockPolicyRepository::new();
         let svc = make_service(mock);
         let req = EvaluatePolicyRequest {
-            package_path: "k1s0.system.tenant".to_string(),
+            policy_id: uuid::Uuid::new_v4().to_string(),
             input_json: b"{}".to_vec(),
         };
         let result = svc.evaluate_policy(req).await;

@@ -15,8 +15,8 @@ service PolicyService {
 }
 
 message EvaluatePolicyRequest {
-  // 評価対象 Rego パッケージパス（例: k1s0.system.tenant）
-  string package_path = 1;
+  // 評価対象 Policy ID
+  string policy_id = 1;
   // 評価入力データ（JSON バイト列）
   bytes input_json = 2;
 }

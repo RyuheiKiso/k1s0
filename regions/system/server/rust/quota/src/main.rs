@@ -206,6 +206,7 @@ async fn main() -> anyhow::Result<()> {
         delete_policy_uc.clone(),
         get_usage_uc.clone(),
         increment_usage_uc.clone(),
+        reset_usage_uc.clone(),
     ));
 
     // Metrics

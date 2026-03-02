@@ -139,7 +139,7 @@ async fn main() -> anyhow::Result<()> {
         get_file_metadata_uc: get_file_metadata_uc.clone(),
         generate_download_url_uc: generate_download_url_uc.clone(),
         delete_file_uc: delete_file_uc.clone(),
-        update_file_tags_uc,
+        update_file_tags_uc: update_file_tags_uc.clone(),
         metrics: metrics.clone(),
         auth_state: None,
     };
@@ -158,6 +158,7 @@ async fn main() -> anyhow::Result<()> {
         complete_upload_uc,
         generate_download_url_uc,
         delete_file_uc,
+        update_file_tags_uc,
     ));
     let tonic_svc = adapter::grpc::FileServiceTonic::new(grpc_svc);
 

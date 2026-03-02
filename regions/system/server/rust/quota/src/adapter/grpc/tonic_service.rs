@@ -22,6 +22,8 @@ use crate::proto::k1s0::system::quota::v1::{
     ListQuotaPoliciesRequest as ProtoListQuotaPoliciesRequest,
     ListQuotaPoliciesResponse as ProtoListQuotaPoliciesResponse,
     QuotaPolicy as ProtoQuotaPolicy, QuotaUsage as ProtoQuotaUsage,
+    ResetQuotaUsageRequest as ProtoResetQuotaUsageRequest,
+    ResetQuotaUsageResponse as ProtoResetQuotaUsageResponse,
     UpdateQuotaPolicyRequest as ProtoUpdateQuotaPolicyRequest,
     UpdateQuotaPolicyResponse as ProtoUpdateQuotaPolicyResponse,
 };
@@ -226,6 +228,22 @@ impl QuotaService for QuotaServiceTonic {
             allowed: result.allowed,
         }))
     }
+
+    async fn reset_quota_usage(
+        &self,
+        request: Request<ProtoResetQuotaUsageRequest>,
+    ) -> Result<Response<ProtoResetQuotaUsageResponse>, Status> {
+        let inner = request.into_inner();
+        let usage = self
+            .inner
+            .reset_usage(inner.quota_id, inner.reason)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoResetQuotaUsageResponse {
+            usage: Some(usage_to_proto(&usage)),
+        }))
+    }
 }
 
 #[cfg(test)]
@@ -237,7 +255,7 @@ mod tests {
     };
     use crate::usecase::{
         CreateQuotaPolicyUseCase, DeleteQuotaPolicyUseCase, GetQuotaPolicyUseCase,
-        GetQuotaUsageUseCase, IncrementQuotaUsageUseCase, ListQuotaPoliciesUseCase,
+        GetQuotaUsageUseCase, IncrementQuotaUsageUseCase, ListQuotaPoliciesUseCase, ResetQuotaUsageUseCase,
         UpdateQuotaPolicyUseCase,
     };
 
@@ -266,7 +284,11 @@ mod tests {
             Arc::new(UpdateQuotaPolicyUseCase::new(policy_repo.clone())),
             Arc::new(DeleteQuotaPolicyUseCase::new(policy_repo.clone())),
             Arc::new(GetQuotaUsageUseCase::new(policy_repo.clone(), usage_repo.clone())),
-            Arc::new(IncrementQuotaUsageUseCase::new_without_publisher(policy_repo, usage_repo)),
+            Arc::new(IncrementQuotaUsageUseCase::new_without_publisher(
+                policy_repo.clone(),
+                usage_repo.clone(),
+            )),
+            Arc::new(ResetQuotaUsageUseCase::new(policy_repo, usage_repo)),
         ));
         QuotaServiceTonic::new(grpc_svc)
     }
