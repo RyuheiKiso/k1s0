@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 /// EventMetadata は全 Kafka イベントに付与する共通メタデータ。
@@ -58,6 +59,7 @@ pub struct EventEnvelope {
     pub payload: Vec<u8>,
     /// メッセージのヘッダー（オプション）
     pub headers: Vec<(String, Vec<u8>)>,
+    pub metadata: HashMap<String, String>,
 }
 
 impl EventEnvelope {
@@ -72,6 +74,7 @@ impl EventEnvelope {
             key: key.into(),
             payload: serde_json::to_vec(payload)?,
             headers: Vec::new(),
+            metadata: HashMap::new(),
         })
     }
 }
@@ -111,6 +114,7 @@ mod tests {
         assert_eq!(envelope.topic, "k1s0.system.auth.login.v1");
         assert_eq!(envelope.key, "user-1");
         assert!(!envelope.payload.is_empty());
+        assert!(envelope.metadata.is_empty());
     }
 
     #[test]

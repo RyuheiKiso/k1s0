@@ -10,7 +10,7 @@ use crate::proto::k1s0::system::apiregistry::v1::{
     api_registry_service_server::ApiRegistryService,
     ApiSchemaProto, ApiSchemaVersionProto, CheckCompatibilityRequest as ProtoCheckCompatibilityRequest,
     CheckCompatibilityResponse as ProtoCheckCompatibilityResponse,
-    CompatibilityResultProto, GetSchemaRequest as ProtoGetSchemaRequest,
+    ChangeDetail as ProtoChangeDetail, CompatibilityResultProto, GetSchemaRequest as ProtoGetSchemaRequest,
     GetSchemaResponse as ProtoGetSchemaResponse,
     GetSchemaVersionRequest as ProtoGetSchemaVersionRequest,
     GetSchemaVersionResponse as ProtoGetSchemaVersionResponse,
@@ -118,8 +118,16 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
             base_version: resp.base_version,
             result: Some(CompatibilityResultProto {
                 compatible: resp.compatible,
-                breaking_changes: Vec::new(),
-                non_breaking_changes: Vec::new(),
+                breaking_changes: resp.breaking_changes.into_iter().map(|c| ProtoChangeDetail {
+                    change_type: c.change_type,
+                    path: c.path,
+                    description: c.description,
+                }).collect(),
+                non_breaking_changes: resp.non_breaking_changes.into_iter().map(|c| ProtoChangeDetail {
+                    change_type: c.change_type,
+                    path: c.path,
+                    description: c.description,
+                }).collect(),
             }),
         }))
     }

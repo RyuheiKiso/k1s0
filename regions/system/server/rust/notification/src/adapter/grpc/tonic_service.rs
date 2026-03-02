@@ -55,7 +55,7 @@ impl NotificationService for NotificationServiceTonic {
         let req = SendNotificationRequest {
             channel_id: inner.channel_id,
             template_id: inner.template_id,
-            variables: inner.variables,
+            template_variables: inner.template_variables,
             recipient: inner.recipient,
             subject: inner.subject,
             body: inner.body,

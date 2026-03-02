@@ -78,13 +78,22 @@ pub struct ApiSchemaVersionProto {
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangeDetail {
+    #[prost(string, tag = "1")]
+    pub change_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub path: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CompatibilityResultProto {
     #[prost(bool, tag = "1")]
     pub compatible: bool,
-    #[prost(string, repeated, tag = "2")]
-    pub breaking_changes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "3")]
-    pub non_breaking_changes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "2")]
+    pub breaking_changes: ::prost::alloc::vec::Vec<ChangeDetail>,
+    #[prost(message, repeated, tag = "3")]
+    pub non_breaking_changes: ::prost::alloc::vec::Vec<ChangeDetail>,
 }
 /// Generated server implementations.
 pub mod api_registry_service_server {

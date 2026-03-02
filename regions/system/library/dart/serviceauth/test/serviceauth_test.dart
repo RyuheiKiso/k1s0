@@ -242,7 +242,7 @@ void main() {
     });
   });
 
-  group('HttpServiceAuthClient.validateSpiffeIdCheck', () {
+  group('HttpServiceAuthClient.validateSpiffeId', () {
     test('works correctly', () {
       final client = HttpServiceAuthClient(
         const ServiceAuthConfig(
@@ -253,7 +253,7 @@ void main() {
         httpClient: mockClient,
       );
 
-      final spiffe = client.validateSpiffeIdCheck(
+      final spiffe = client.validateSpiffeId(
           'spiffe://k1s0.internal/ns/system/sa/auth-service', 'system');
       expect(spiffe.namespace, equals('system'));
     });

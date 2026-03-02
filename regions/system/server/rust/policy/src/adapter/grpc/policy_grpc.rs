@@ -96,8 +96,8 @@ impl PolicyGrpcService {
         Ok(EvaluatePolicyResponse {
             allowed: output.allowed,
             package_path: req.package_path,
-            decision_id: uuid::Uuid::new_v4().to_string(),
-            cached: false,
+            decision_id: output.decision_id,
+            cached: output.cached,
         })
     }
 

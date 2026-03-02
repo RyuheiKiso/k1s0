@@ -14,7 +14,7 @@ service NotificationService {
 message SendNotificationRequest {
   string channel_id = 1;
   optional string template_id = 2;
-  map<string, string> variables = 3;
+  map<string, string> template_variables = 3;
   string recipient = 4;
   optional string subject = 5;
   optional string body = 6;

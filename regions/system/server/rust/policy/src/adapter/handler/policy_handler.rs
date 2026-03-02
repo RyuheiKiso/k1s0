@@ -180,7 +180,9 @@ pub async fn evaluate_policy(
             StatusCode::OK,
             Json(serde_json::json!({
                 "allowed": output.allowed,
-                "reason": output.reason
+                "reason": output.reason,
+                "decision_id": output.decision_id,
+                "cached": output.cached
             })),
         )
             .into_response(),

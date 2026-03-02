@@ -29,10 +29,12 @@ pub async fn list_quotas(
             StatusCode::OK,
             Json(serde_json::json!({
                 "quotas": output.quotas,
-                "total_count": output.total_count,
-                "page": output.page,
-                "page_size": output.page_size,
-                "has_next": output.has_next
+                "pagination": {
+                    "total_count": output.total_count,
+                    "page": output.page,
+                    "page_size": output.page_size,
+                    "has_next": output.has_next
+                }
             })),
         )
             .into_response(),
@@ -85,7 +87,7 @@ pub async fn create_quota(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("validation") {
-                let err = ErrorResponse::new("SYS_QUOTA_VALIDATION", &msg);
+                let err = ErrorResponse::new("SYS_QUOTA_VALIDATION_ERROR", &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             } else {
                 let err = ErrorResponse::new("SYS_QUOTA_CREATE_FAILED", &msg);
@@ -120,7 +122,7 @@ pub async fn update_quota(
                 let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else if msg.contains("validation") {
-                let err = ErrorResponse::new("SYS_QUOTA_VALIDATION", &msg);
+                let err = ErrorResponse::new("SYS_QUOTA_VALIDATION_ERROR", &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             } else {
                 let err = ErrorResponse::new("SYS_QUOTA_UPDATE_FAILED", &msg);
@@ -270,7 +272,7 @@ pub async fn reset_usage(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(ResetQuotaUsageError::Validation(msg)) => {
-            let err = ErrorResponse::new("SYS_QUOTA_VALIDATION", &msg);
+            let err = ErrorResponse::new("SYS_QUOTA_VALIDATION_ERROR", &msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(ResetQuotaUsageError::Internal(msg)) => {

@@ -16,6 +16,8 @@ pub struct EvaluatePolicyInput {
 pub struct EvaluatePolicyOutput {
     pub allowed: bool,
     pub reason: Option<String>,
+    pub decision_id: String,
+    pub cached: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -53,6 +55,8 @@ impl EvaluatePolicyUseCase {
                     Ok(EvaluatePolicyOutput {
                         allowed,
                         reason: Some(reason.to_string()),
+                        decision_id: Uuid::new_v4().to_string(),
+                        cached: false,
                     })
                 }
                 Err(e) => {
@@ -64,6 +68,8 @@ impl EvaluatePolicyUseCase {
                     Ok(EvaluatePolicyOutput {
                         allowed: false,
                         reason: Some(format!("OPA evaluation error: {}", e)),
+                        decision_id: Uuid::new_v4().to_string(),
+                        cached: false,
                     })
                 }
             };
@@ -87,11 +93,15 @@ impl EvaluatePolicyUseCase {
             Ok(EvaluatePolicyOutput {
                 allowed: true,
                 reason: Some("policy is enabled".to_string()),
+                decision_id: Uuid::new_v4().to_string(),
+                cached: false,
             })
         } else {
             Ok(EvaluatePolicyOutput {
                 allowed: false,
                 reason: Some("policy is disabled".to_string()),
+                decision_id: Uuid::new_v4().to_string(),
+                cached: false,
             })
         }
     }

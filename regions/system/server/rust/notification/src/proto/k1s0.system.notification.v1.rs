@@ -6,7 +6,7 @@ pub struct SendNotificationRequest {
     #[prost(string, optional, tag = "2")]
     pub template_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(map = "string, string", tag = "3")]
-    pub variables: ::std::collections::HashMap<
+    pub template_variables: ::std::collections::HashMap<
         ::prost::alloc::string::String,
         ::prost::alloc::string::String,
     >,

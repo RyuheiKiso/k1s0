@@ -30,6 +30,15 @@ func TestNewPageResponse_ZeroPerPage(t *testing.T) {
 	assert.Equal(t, uint32(1), resp.PerPage)
 }
 
+func TestPageResponse_Meta(t *testing.T) {
+	resp := pagination.NewPageResponse([]int{1, 2, 3}, 25, pagination.PageRequest{Page: 2, PerPage: 10})
+	meta := resp.Meta()
+	assert.Equal(t, uint64(25), meta.Total)
+	assert.Equal(t, uint32(2), meta.Page)
+	assert.Equal(t, uint32(10), meta.PerPage)
+	assert.Equal(t, uint32(3), meta.TotalPages)
+}
+
 func TestCursor_RoundTrip(t *testing.T) {
 	sortKey := "2024-01-15"
 	id := "abc-123-def"

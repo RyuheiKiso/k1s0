@@ -12,5 +12,8 @@
   "devDependencies": {
     "vitest": "^2.0.0",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "ioredis": "^5.7.0"
   }
 }

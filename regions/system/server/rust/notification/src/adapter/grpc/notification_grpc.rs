@@ -14,7 +14,7 @@ use crate::usecase::send_notification::{
 pub struct SendNotificationRequest {
     pub channel_id: String,
     pub template_id: Option<String>,
-    pub variables: std::collections::HashMap<String, String>,
+    pub template_variables: std::collections::HashMap<String, String>,
     pub recipient: String,
     pub subject: Option<String>,
     pub body: Option<String>,
@@ -100,10 +100,10 @@ impl NotificationGrpcService {
 
         let body = req.body.unwrap_or_default();
 
-        let template_variables = if req.variables.is_empty() {
+        let template_variables = if req.template_variables.is_empty() {
             None
         } else {
-            Some(req.variables)
+            Some(req.template_variables)
         };
 
         let input = SendNotificationInput {
@@ -218,7 +218,7 @@ mod tests {
         let req = SendNotificationRequest {
             channel_id: channel_id.to_string(),
             template_id: None,
-            variables: std::collections::HashMap::new(),
+            template_variables: std::collections::HashMap::new(),
             recipient: "user@example.com".to_string(),
             subject: Some("Hello".to_string()),
             body: Some("Test message".to_string()),
@@ -249,7 +249,7 @@ mod tests {
         let req = SendNotificationRequest {
             channel_id: "not-a-uuid".to_string(),
             template_id: None,
-            variables: std::collections::HashMap::new(),
+            template_variables: std::collections::HashMap::new(),
             recipient: "user@example.com".to_string(),
             subject: None,
             body: Some("Test".to_string()),
@@ -288,7 +288,7 @@ mod tests {
         let req = SendNotificationRequest {
             channel_id: missing_id.to_string(),
             template_id: None,
-            variables: std::collections::HashMap::new(),
+            template_variables: std::collections::HashMap::new(),
             recipient: "user@example.com".to_string(),
             subject: None,
             body: Some("Test".to_string()),

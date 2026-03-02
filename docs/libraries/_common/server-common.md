@@ -14,6 +14,17 @@ Rust サーバー向けの内部共有ライブラリ。`SYS_{SERVICE}_{ERROR}` 
 
 **配置先**: `regions/system/library/rust/server-common/`
 
+## 言語サポート
+
+`k1s0-server-common` は **Rust 専用** のライブラリ。  
+Go / TypeScript / Dart には同名ライブラリは提供しない。
+
+他言語では以下で代替する。
+
+- エラーコード規約: `SYS_{SERVICE}_{ERROR}` を各言語実装で共通運用
+- エラーレスポンス形状: 各サービスのハンドラー層で `{ "error": { ... } }` を統一
+- OpenAPI/スキーマ連携: 各言語の標準ツールチェーン（Go: swag/chi, TS: zod/openapi, Dart: json_serializable など）で個別実装
+
 ## 公開 API
 
 ### 主要型

@@ -56,7 +56,15 @@ pub struct CheckCompatibilityRequest {
 pub struct CheckCompatibilityResponse {
     pub compatible: bool,
     pub base_version: u32,
-    pub breaking_change_count: usize,
+    pub breaking_changes: Vec<ChangeDetail>,
+    pub non_breaking_changes: Vec<ChangeDetail>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ChangeDetail {
+    pub change_type: String,
+    pub path: String,
+    pub description: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -156,7 +164,26 @@ impl ApiRegistryGrpcService {
         Ok(CheckCompatibilityResponse {
             compatible: output.result.compatible,
             base_version: output.base_version,
-            breaking_change_count: output.result.breaking_changes.len(),
+            breaking_changes: output
+                .result
+                .breaking_changes
+                .into_iter()
+                .map(|c| ChangeDetail {
+                    change_type: c.change_type,
+                    path: c.path,
+                    description: c.description,
+                })
+                .collect(),
+            non_breaking_changes: output
+                .result
+                .non_breaking_changes
+                .into_iter()
+                .map(|c| ChangeDetail {
+                    change_type: c.change_type,
+                    path: c.path,
+                    description: c.description,
+                })
+                .collect(),
         })
     }
 }
