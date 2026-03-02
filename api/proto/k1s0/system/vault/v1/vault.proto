@@ -17,7 +17,7 @@ service VaultService {
 
 message GetSecretRequest {
   string path = 1;
-  string version = 2;
+  int64 version = 2;
 }
 
 message GetSecretResponse {

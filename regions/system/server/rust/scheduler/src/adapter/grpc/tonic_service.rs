@@ -17,6 +17,13 @@ use super::scheduler_grpc::{
     GetJobExecutionRequest, GrpcError, SchedulerGrpcService, TriggerJobRequest,
 };
 
+fn to_proto_timestamp(dt: chrono::DateTime<chrono::Utc>) -> crate::proto::k1s0::system::common::v1::Timestamp {
+    crate::proto::k1s0::system::common::v1::Timestamp {
+        seconds: dt.timestamp(),
+        nanos: dt.timestamp_subsec_nanos() as i32,
+    }
+}
+
 // --- GrpcError -> tonic::Status 変換 ---
 
 impl From<GrpcError> for Status {
@@ -63,7 +70,7 @@ impl SchedulerService for SchedulerServiceTonic {
             execution_id: resp.execution_id,
             job_id: resp.job_id,
             status: resp.status,
-            triggered_at: None,
+            triggered_at: Some(to_proto_timestamp(resp.triggered_at)),
         }))
     }
 
@@ -86,10 +93,10 @@ impl SchedulerService for SchedulerServiceTonic {
             job_id: resp.job_id,
             status: resp.status,
             triggered_by: resp.triggered_by,
-            started_at: None,
-            finished_at: None,
-            duration_ms: None,
-            error_message: None,
+            started_at: Some(to_proto_timestamp(resp.started_at)),
+            finished_at: resp.finished_at.map(to_proto_timestamp),
+            duration_ms: resp.duration_ms,
+            error_message: resp.error_message,
         };
 
         Ok(Response::new(ProtoGetJobExecutionResponse {
@@ -113,7 +120,8 @@ mod tests {
         let repo = Arc::new(mock_job);
         let exec_repo = Arc::new(mock_exec);
         let grpc_svc = Arc::new(SchedulerGrpcService::new(
-            Arc::new(TriggerJobUseCase::new(repo, exec_repo)),
+            Arc::new(TriggerJobUseCase::new(repo, exec_repo.clone())),
+            exec_repo,
         ));
         SchedulerServiceTonic::new(grpc_svc)
     }
@@ -185,18 +193,29 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_scheduler_service_tonic_get_job_execution_unimplemented() {
+    async fn test_scheduler_service_tonic_get_job_execution() {
         let mock_job = MockSchedulerJobRepository::new();
-        let mock_exec = MockSchedulerExecutionRepository::new();
+        let mut mock_exec = MockSchedulerExecutionRepository::new();
+        let execution_id = uuid::Uuid::new_v4();
+        mock_exec.expect_find_by_id().returning(move |_| {
+            Ok(Some(crate::domain::entity::scheduler_execution::SchedulerExecution {
+                id: execution_id,
+                job_id: uuid::Uuid::new_v4(),
+                status: "running".to_string(),
+                started_at: chrono::Utc::now(),
+                completed_at: None,
+                error_message: None,
+            }))
+        });
         let tonic_svc = make_tonic_service(mock_job, mock_exec);
 
         let req = Request::new(ProtoGetJobExecutionRequest {
-            execution_id: "exec-001".to_string(),
+            execution_id: execution_id.to_string(),
         });
-        let result = tonic_svc.get_job_execution(req).await;
+        let result = tonic_svc.get_job_execution(req).await.unwrap();
 
-        assert!(result.is_err());
-        let status = result.unwrap_err();
-        assert_eq!(status.code(), tonic::Code::Unimplemented);
+        let execution = result.into_inner().execution.unwrap();
+        assert_eq!(execution.id, execution_id.to_string());
+        assert!(execution.started_at.is_some());
     }
 }

@@ -25,6 +25,7 @@ pub struct GetSchemaResponse {
     pub version_count: u32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub latest_content: String,
 }
 
 #[derive(Debug, Clone)]
@@ -41,6 +42,7 @@ pub struct GetSchemaVersionResponse {
     pub content: String,
     pub content_hash: String,
     pub breaking_changes: bool,
+    pub breaking_change_details: Vec<ChangeDetail>,
     pub registered_by: String,
     pub created_at: DateTime<Utc>,
 }
@@ -113,6 +115,10 @@ impl ApiRegistryGrpcService {
             version_count: output.schema.version_count,
             created_at: output.schema.created_at,
             updated_at: output.schema.updated_at,
+            latest_content: output
+                .latest_content
+                .map(|v| v.content)
+                .unwrap_or_default(),
         })
     }
 
@@ -135,6 +141,15 @@ impl ApiRegistryGrpcService {
             content: output.content,
             content_hash: output.content_hash,
             breaking_changes: output.breaking_changes,
+            breaking_change_details: output
+                .breaking_change_details
+                .into_iter()
+                .map(|c| ChangeDetail {
+                    change_type: c.change_type,
+                    path: c.path,
+                    description: c.description,
+                })
+                .collect(),
             registered_by: output.registered_by,
             created_at: output.created_at,
         })

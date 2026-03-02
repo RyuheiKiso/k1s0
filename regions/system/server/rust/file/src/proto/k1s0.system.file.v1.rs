@@ -70,6 +70,8 @@ pub struct GenerateUploadUrlRequest {
     >,
     #[prost(int32, optional, tag = "6")]
     pub expires_in_seconds: ::core::option::Option<i32>,
+    #[prost(int64, tag = "7")]
+    pub size_bytes: i64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerateUploadUrlResponse {

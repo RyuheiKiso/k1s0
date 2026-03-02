@@ -33,10 +33,13 @@ pub struct GetFlagRequest {
 
 #[derive(Debug, Clone)]
 pub struct GetFlagResponse {
+    pub id: String,
     pub flag_key: String,
     pub description: String,
     pub enabled: bool,
     pub variants: Vec<PbFlagVariant>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Clone)]
@@ -56,9 +59,13 @@ pub struct CreateFlagRequest {
 
 #[derive(Debug, Clone)]
 pub struct CreateFlagResponse {
+    pub id: String,
     pub flag_key: String,
     pub description: String,
     pub enabled: bool,
+    pub variants: Vec<PbFlagVariant>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Clone)]
@@ -70,9 +77,13 @@ pub struct UpdateFlagRequest {
 
 #[derive(Debug, Clone)]
 pub struct UpdateFlagResponse {
+    pub id: String,
     pub flag_key: String,
     pub description: String,
     pub enabled: bool,
+    pub variants: Vec<PbFlagVariant>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 // --- gRPC Error ---
@@ -154,6 +165,7 @@ impl FeatureFlagGrpcService {
     pub async fn get_flag(&self, req: GetFlagRequest) -> Result<GetFlagResponse, GrpcError> {
         match self.get_flag_uc.execute(&req.flag_key).await {
             Ok(flag) => Ok(GetFlagResponse {
+                id: flag.id.to_string(),
                 flag_key: flag.flag_key,
                 description: flag.description,
                 enabled: flag.enabled,
@@ -166,6 +178,8 @@ impl FeatureFlagGrpcService {
                         weight: v.weight,
                     })
                     .collect(),
+                created_at: flag.created_at,
+                updated_at: flag.updated_at,
             }),
             Err(GetFlagError::NotFound(key)) => {
                 Err(GrpcError::NotFound(format!("flag not found: {}", key)))
@@ -195,9 +209,21 @@ impl FeatureFlagGrpcService {
 
         match self.create_flag_uc.execute(&input).await {
             Ok(flag) => Ok(CreateFlagResponse {
+                id: flag.id.to_string(),
                 flag_key: flag.flag_key,
                 description: flag.description,
                 enabled: flag.enabled,
+                variants: flag
+                    .variants
+                    .iter()
+                    .map(|v| PbFlagVariant {
+                        name: v.name.clone(),
+                        value: v.value.clone(),
+                        weight: v.weight,
+                    })
+                    .collect(),
+                created_at: flag.created_at,
+                updated_at: flag.updated_at,
             }),
             Err(CreateFlagError::AlreadyExists(key)) => {
                 Err(GrpcError::AlreadyExists(format!("flag already exists: {}", key)))
@@ -218,9 +244,21 @@ impl FeatureFlagGrpcService {
 
         match self.update_flag_uc.execute(&input).await {
             Ok(flag) => Ok(UpdateFlagResponse {
+                id: flag.id.to_string(),
                 flag_key: flag.flag_key,
                 description: flag.description,
                 enabled: flag.enabled,
+                variants: flag
+                    .variants
+                    .iter()
+                    .map(|v| PbFlagVariant {
+                        name: v.name.clone(),
+                        value: v.value.clone(),
+                        weight: v.weight,
+                    })
+                    .collect(),
+                created_at: flag.created_at,
+                updated_at: flag.updated_at,
             }),
             Err(UpdateFlagError::NotFound(key)) => {
                 Err(GrpcError::NotFound(format!("flag not found: {}", key)))

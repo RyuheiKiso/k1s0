@@ -142,6 +142,19 @@ ID 指定でジョブの詳細を取得する。
 }
 ```
 
+**レスポンス例（409 Conflict）**
+
+```json
+{
+  "error": {
+    "code": "SYS_SCHED_JOB_RUNNING",
+    "message": "job is currently running: job_01JABCDEF1234567890",
+    "request_id": "req_abc123def456",
+    "details": []
+  }
+}
+```
+
 #### POST /api/v1/jobs
 
 新しいスケジューラージョブを作成する。`target_type` は `kafka` または `http` を指定する。作成後すぐにスケジューリングが開始される。
@@ -339,6 +352,7 @@ ID 指定でジョブの詳細を取得する。
 | `SYS_SCHED_NOT_FOUND` | 404 | 指定されたジョブが見つからない |
 | `SYS_SCHED_ALREADY_EXISTS` | 409 | 同一名のジョブが既に存在する |
 | `SYS_SCHED_NOT_ACTIVE` | 409 | ジョブがアクティブでないため実行できない |
+| `SYS_SCHED_JOB_RUNNING` | 409 | 実行中のジョブは削除できない |
 | `SYS_SCHED_INVALID_STATUS` | 409 | 操作に対してジョブのステータスが不正 |
 | `SYS_SCHED_INVALID_CRON` | 400 | cron 式が不正 |
 | `SYS_SCHED_INTERNAL_ERROR` | 500 | 内部エラー |
@@ -353,8 +367,6 @@ import "k1s0/system/common/v1/types.proto";
 
 service SchedulerService {
   rpc TriggerJob(TriggerJobRequest) returns (TriggerJobResponse);
-  // 現行実装では UNIMPLEMENTED を返す。
-  // 実行履歴の参照は REST の GET /api/v1/jobs/:id/executions を利用する。
   rpc GetJobExecution(GetJobExecutionRequest) returns (GetJobExecutionResponse);
 }
 
@@ -367,8 +379,6 @@ message TriggerJobResponse {
   string job_id = 2;
   // 実行状態（running / succeeded / failed）
   string status = 3;
-  // 現行実装では未返却（null）。
-  // 実行開始時刻は実行履歴 API（GET /api/v1/jobs/:id/executions）から取得する。
   k1s0.system.common.v1.Timestamp triggered_at = 4;
 }
 

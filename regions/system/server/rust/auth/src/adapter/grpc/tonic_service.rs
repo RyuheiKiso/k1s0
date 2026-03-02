@@ -155,6 +155,7 @@ mod tests {
     use crate::infrastructure::MockTokenVerifier;
     use crate::usecase::get_user::GetUserUseCase;
     use crate::usecase::get_user_roles::GetUserRolesUseCase;
+    use crate::usecase::check_permission::CheckPermissionUseCase;
     use crate::usecase::list_users::ListUsersUseCase;
     use crate::usecase::validate_token::ValidateTokenUseCase;
     use std::collections::HashMap;
@@ -224,12 +225,14 @@ mod tests {
         let get_user_uc = Arc::new(GetUserUseCase::new(user_repo.clone()));
         let get_user_roles_uc = Arc::new(GetUserRolesUseCase::new(user_repo.clone()));
         let list_users_uc = Arc::new(ListUsersUseCase::new(user_repo));
+        let check_permission_uc = Arc::new(CheckPermissionUseCase::new());
 
         let auth_svc = Arc::new(AuthGrpcService::new(
             validate_uc,
             get_user_uc,
             get_user_roles_uc,
             list_users_uc,
+            check_permission_uc,
         ));
         let tonic_svc = AuthServiceTonic::new(auth_svc);
 
@@ -257,12 +260,14 @@ mod tests {
         let get_user_uc = Arc::new(GetUserUseCase::new(user_repo.clone()));
         let get_user_roles_uc = Arc::new(GetUserRolesUseCase::new(user_repo.clone()));
         let list_users_uc = Arc::new(ListUsersUseCase::new(user_repo));
+        let check_permission_uc = Arc::new(CheckPermissionUseCase::new());
 
         let auth_svc = Arc::new(AuthGrpcService::new(
             validate_uc,
             get_user_uc,
             get_user_roles_uc,
             list_users_uc,
+            check_permission_uc,
         ));
         let tonic_svc = AuthServiceTonic::new(auth_svc);
 

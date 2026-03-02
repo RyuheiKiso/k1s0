@@ -55,6 +55,9 @@ pub struct TokenClaims {
     /// アクセス可能 Tier
     #[prost(string, repeated, tag = "11")]
     pub tier_access: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// OAuth2 scope（スペース区切り）
+    #[prost(string, tag = "12")]
+    pub scope: ::prost::alloc::string::String,
 }
 /// RealmAccess はグローバルロール一覧。
 #[derive(Clone, PartialEq, ::prost::Message)]

@@ -263,7 +263,9 @@ ID 指定でポリシーの詳細を取得する。
 ```json
 {
   "allowed": true,
-  "reason": "OPA evaluation: allowed"
+  "reason": "OPA evaluation: allowed",
+  "decision_id": "dec_01JABCDEFG1234567890",
+  "cached": false
 }
 ```
 
@@ -272,7 +274,9 @@ ID 指定でポリシーの詳細を取得する。
 ```json
 {
   "allowed": false,
-  "reason": "OPA evaluation: denied"
+  "reason": "OPA evaluation: denied",
+  "decision_id": "dec_01JABCDEFG1234567891",
+  "cached": true
 }
 ```
 

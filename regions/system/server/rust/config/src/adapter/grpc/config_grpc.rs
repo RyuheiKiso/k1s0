@@ -3,8 +3,10 @@ use std::sync::Arc;
 use crate::domain::entity::config_entry::ConfigEntry;
 use crate::usecase::delete_config::{DeleteConfigError, DeleteConfigUseCase};
 use crate::usecase::get_config::{GetConfigError, GetConfigUseCase};
+use crate::usecase::get_config_schema::{GetConfigSchemaError, GetConfigSchemaUseCase};
 use crate::usecase::get_service_config::{GetServiceConfigError, GetServiceConfigUseCase};
 use crate::usecase::list_configs::{ListConfigsError, ListConfigsParams, ListConfigsUseCase};
+use crate::usecase::upsert_config_schema::{UpsertConfigSchemaInput, UpsertConfigSchemaUseCase};
 use crate::usecase::update_config::{UpdateConfigError, UpdateConfigInput, UpdateConfigUseCase};
 use crate::usecase::watch_config::ConfigChangeEvent;
 
@@ -118,6 +120,58 @@ pub struct DeleteConfigResponse {
     pub success: bool,
 }
 
+#[derive(Debug, Clone)]
+pub struct GetConfigSchemaRequest {
+    pub service_name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct GetConfigSchemaResponse {
+    pub schema: Option<PbConfigEditorSchema>,
+}
+
+#[derive(Debug, Clone)]
+pub struct UpsertConfigSchemaRequest {
+    pub schema: Option<PbConfigEditorSchema>,
+    pub updated_by: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct UpsertConfigSchemaResponse {
+    pub schema: Option<PbConfigEditorSchema>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PbConfigEditorSchema {
+    pub service: String,
+    pub namespace_prefix: String,
+    pub categories: Vec<PbConfigCategorySchema>,
+    pub updated_at: Option<PbTimestamp>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PbConfigCategorySchema {
+    pub id: String,
+    pub label: String,
+    pub icon: String,
+    pub namespaces: Vec<String>,
+    pub fields: Vec<PbConfigFieldSchema>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PbConfigFieldSchema {
+    pub key: String,
+    pub label: String,
+    pub description: String,
+    pub field_type: i32,
+    pub min: i64,
+    pub max: i64,
+    pub options: Vec<String>,
+    pub pattern: String,
+    pub unit: String,
+    pub default_value: Vec<u8>,
+}
+
 // --- gRPC Error ---
 
 #[derive(Debug, thiserror::Error)]
@@ -140,6 +194,8 @@ pub struct ConfigGrpcService {
     get_service_config_uc: Arc<GetServiceConfigUseCase>,
     update_config_uc: Arc<UpdateConfigUseCase>,
     delete_config_uc: Arc<DeleteConfigUseCase>,
+    get_config_schema_uc: Option<Arc<GetConfigSchemaUseCase>>,
+    upsert_config_schema_uc: Option<Arc<UpsertConfigSchemaUseCase>>,
     /// broadcast channel sender for config-watch streaming.
     /// None の場合は watch_config() 呼び出し時に Unavailable エラーを返す。
     watch_sender: Option<tokio::sync::broadcast::Sender<ConfigChangeEvent>>,
@@ -160,6 +216,8 @@ impl ConfigGrpcService {
             get_service_config_uc,
             update_config_uc,
             delete_config_uc,
+            get_config_schema_uc: None,
+            upsert_config_schema_uc: None,
             watch_sender: None,
         }
     }
@@ -180,8 +238,20 @@ impl ConfigGrpcService {
             get_service_config_uc,
             update_config_uc,
             delete_config_uc,
+            get_config_schema_uc: None,
+            upsert_config_schema_uc: None,
             watch_sender: Some(watch_sender),
         }
+    }
+
+    pub fn with_schema_usecases(
+        mut self,
+        get_config_schema_uc: Arc<GetConfigSchemaUseCase>,
+        upsert_config_schema_uc: Arc<UpsertConfigSchemaUseCase>,
+    ) -> Self {
+        self.get_config_schema_uc = Some(get_config_schema_uc);
+        self.upsert_config_schema_uc = Some(upsert_config_schema_uc);
+        self
     }
 
     /// 設定値取得。
@@ -360,6 +430,75 @@ impl ConfigGrpcService {
         }
     }
 
+    pub async fn get_config_schema(
+        &self,
+        req: GetConfigSchemaRequest,
+    ) -> Result<GetConfigSchemaResponse, GrpcError> {
+        let uc = self.get_config_schema_uc.as_ref().ok_or_else(|| {
+            GrpcError::Internal("get_config_schema usecase is not configured".to_string())
+        })?;
+        if req.service_name.is_empty() {
+            return Err(GrpcError::InvalidArgument(
+                "service_name is required".to_string(),
+            ));
+        }
+
+        match uc.execute(&req.service_name).await {
+            Ok(schema) => Ok(GetConfigSchemaResponse {
+                schema: Some(domain_schema_to_pb(&schema)),
+            }),
+            Err(GetConfigSchemaError::NotFound(service_name)) => {
+                Err(GrpcError::NotFound(format!(
+                    "config schema not found: {}",
+                    service_name
+                )))
+            }
+            Err(GetConfigSchemaError::Internal(msg)) => Err(GrpcError::Internal(msg)),
+        }
+    }
+
+    pub async fn upsert_config_schema(
+        &self,
+        req: UpsertConfigSchemaRequest,
+    ) -> Result<UpsertConfigSchemaResponse, GrpcError> {
+        let uc = self.upsert_config_schema_uc.as_ref().ok_or_else(|| {
+            GrpcError::Internal("upsert_config_schema usecase is not configured".to_string())
+        })?;
+        let Some(schema) = req.schema else {
+            return Err(GrpcError::InvalidArgument("schema is required".to_string()));
+        };
+        if schema.service.is_empty() {
+            return Err(GrpcError::InvalidArgument(
+                "schema.service is required".to_string(),
+            ));
+        }
+        if schema.namespace_prefix.is_empty() {
+            return Err(GrpcError::InvalidArgument(
+                "schema.namespace_prefix is required".to_string(),
+            ));
+        }
+
+        let schema_json = pb_schema_to_json(&schema);
+        let input = UpsertConfigSchemaInput {
+            service_name: schema.service,
+            namespace_prefix: schema.namespace_prefix,
+            schema_json,
+            updated_by: if req.updated_by.is_empty() {
+                "grpc-user".to_string()
+            } else {
+                req.updated_by
+            },
+        };
+
+        let updated = uc
+            .execute(&input)
+            .await
+            .map_err(|e| GrpcError::Internal(e.to_string()))?;
+        Ok(UpsertConfigSchemaResponse {
+            schema: Some(domain_schema_to_pb(&updated)),
+        })
+    }
+
     /// 設定変更監視ストリームハンドラを生成する。
     ///
     /// watch 機能が有効（watch_sender が Some）の場合は `WatchConfigStreamHandler` を返す。
@@ -409,6 +548,153 @@ fn domain_config_to_pb(e: &ConfigEntry) -> PbConfigEntry {
             nanos: e.updated_at.timestamp_subsec_nanos() as i32,
         }),
     }
+}
+
+fn domain_schema_to_pb(
+    schema: &crate::domain::entity::config_schema::ConfigSchema,
+) -> PbConfigEditorSchema {
+    let categories = schema
+        .schema_json
+        .get("categories")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .map(|cat| PbConfigCategorySchema {
+                    id: cat
+                        .get("id")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default()
+                        .to_string(),
+                    label: cat
+                        .get("label")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default()
+                        .to_string(),
+                    icon: cat
+                        .get("icon")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default()
+                        .to_string(),
+                    namespaces: cat
+                        .get("namespaces")
+                        .and_then(|v| v.as_array())
+                        .map(|values| {
+                            values
+                                .iter()
+                                .filter_map(|s| s.as_str().map(ToString::to_string))
+                                .collect()
+                        })
+                        .unwrap_or_default(),
+                    fields: cat
+                        .get("fields")
+                        .and_then(|v| v.as_array())
+                        .map(|fields| fields.iter().map(json_field_to_pb).collect())
+                        .unwrap_or_default(),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    PbConfigEditorSchema {
+        service: schema.service_name.clone(),
+        namespace_prefix: schema.namespace_prefix.clone(),
+        categories,
+        updated_at: Some(PbTimestamp {
+            seconds: schema.updated_at.timestamp(),
+            nanos: schema.updated_at.timestamp_subsec_nanos() as i32,
+        }),
+    }
+}
+
+fn json_field_to_pb(field: &serde_json::Value) -> PbConfigFieldSchema {
+    let default_value = field
+        .get("default_value")
+        .map(|v| serde_json::to_vec(v).unwrap_or_default())
+        .unwrap_or_default();
+    PbConfigFieldSchema {
+        key: field
+            .get("key")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        label: field
+            .get("label")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        description: field
+            .get("description")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        field_type: field
+            .get("type")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0) as i32,
+        min: field.get("min").and_then(|v| v.as_i64()).unwrap_or(0),
+        max: field.get("max").and_then(|v| v.as_i64()).unwrap_or(0),
+        options: field
+            .get("options")
+            .and_then(|v| v.as_array())
+            .map(|values| {
+                values
+                    .iter()
+                    .filter_map(|s| s.as_str().map(ToString::to_string))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        pattern: field
+            .get("pattern")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        unit: field
+            .get("unit")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        default_value,
+    }
+}
+
+fn pb_schema_to_json(schema: &PbConfigEditorSchema) -> serde_json::Value {
+    let categories: Vec<serde_json::Value> = schema
+        .categories
+        .iter()
+        .map(|cat| {
+            let fields: Vec<serde_json::Value> = cat
+                .fields
+                .iter()
+                .map(|field| {
+                    let default_value = serde_json::from_slice::<serde_json::Value>(
+                        &field.default_value,
+                    )
+                    .unwrap_or(serde_json::Value::Null);
+                    serde_json::json!({
+                        "key": field.key,
+                        "label": field.label,
+                        "description": field.description,
+                        "type": field.field_type,
+                        "min": field.min,
+                        "max": field.max,
+                        "options": field.options,
+                        "pattern": field.pattern,
+                        "unit": field.unit,
+                        "default_value": default_value
+                    })
+                })
+                .collect();
+
+            serde_json::json!({
+                "id": cat.id,
+                "label": cat.label,
+                "icon": cat.icon,
+                "namespaces": cat.namespaces,
+                "fields": fields
+            })
+        })
+        .collect();
+    serde_json::json!({ "categories": categories })
 }
 
 #[cfg(test)]

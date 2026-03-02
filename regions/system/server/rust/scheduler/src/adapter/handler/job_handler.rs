@@ -115,6 +115,13 @@ pub async fn delete_job(
                 ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
+        Err(DeleteJobError::JobRunning(_)) => {
+            let err = ErrorResponse::new(
+                "SYS_SCHED_JOB_RUNNING",
+                &format!("job is currently running: {}", id),
+            );
+            (StatusCode::CONFLICT, Json(err)).into_response()
+        }
         Err(DeleteJobError::Internal(msg)) => {
             let err = ErrorResponse::new("SYS_SCHED_DELETE_FAILED", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()

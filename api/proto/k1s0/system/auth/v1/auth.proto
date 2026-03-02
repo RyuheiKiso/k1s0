@@ -77,6 +77,8 @@ message TokenClaims {
   map<string, ClientRoles> resource_access = 10;
   // アクセス可能 Tier
   repeated string tier_access = 11;
+  // OAuth2 scope（スペース区切り）
+  string scope = 12;
 }
 
 // RealmAccess はグローバルロール一覧。

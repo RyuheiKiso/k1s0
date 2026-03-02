@@ -11,7 +11,7 @@ use super::{AppState, ErrorResponse};
 use crate::domain::entity::api_key::CreateApiKeyRequest;
 
 /// POST /api/v1/api-keys のリクエストボディ。
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateApiKeyHttpRequest {
     pub tenant_id: String,
     pub name: String,
@@ -21,11 +21,21 @@ pub struct CreateApiKeyHttpRequest {
 }
 
 /// GET /api/v1/api-keys のクエリパラメータ。
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
 pub struct ListApiKeysQuery {
     pub tenant_id: String,
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/api-keys",
+    request_body = CreateApiKeyHttpRequest,
+    responses(
+        (status = 201, description = "API key created"),
+        (status = 400, description = "Validation error"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn create_api_key(
     State(state): State<AppState>,
     Json(req): Json<CreateApiKeyHttpRequest>,
@@ -54,6 +64,18 @@ pub async fn create_api_key(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/api-keys/{id}",
+    params(
+        ("id" = String, Path, description = "API key ID")
+    ),
+    responses(
+        (status = 200, description = "API key found"),
+        (status = 404, description = "API key not found"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn get_api_key(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
@@ -78,6 +100,16 @@ pub async fn get_api_key(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/api-keys",
+    params(ListApiKeysQuery),
+    responses(
+        (status = 200, description = "API key list"),
+        (status = 400, description = "Validation error"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn list_api_keys(
     State(state): State<AppState>,
     Query(query): Query<ListApiKeysQuery>,
@@ -95,6 +127,18 @@ pub async fn list_api_keys(
     }
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/v1/api-keys/{id}/revoke",
+    params(
+        ("id" = String, Path, description = "API key ID")
+    ),
+    responses(
+        (status = 204, description = "API key revoked"),
+        (status = 404, description = "API key not found"),
+    ),
+    security(("bearer_auth" = []))
+)]
 pub async fn revoke_api_key(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,

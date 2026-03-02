@@ -53,6 +53,7 @@ message GenerateUploadUrlRequest {
   string uploaded_by = 4;
   map<string, string> tags = 5;
   optional int32 expires_in_seconds = 6;
+  int64 size_bytes = 7;
 }
 
 message GenerateUploadUrlResponse {

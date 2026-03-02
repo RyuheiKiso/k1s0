@@ -10,8 +10,11 @@ use tonic::{Request, Response, Status};
 
 use super::config_grpc::{
     ConfigGrpcService, DeleteConfigRequest, DeleteConfigResponse, GetConfigRequest,
-    GetConfigResponse, GetServiceConfigRequest, GetServiceConfigResponse, GrpcError,
-    ListConfigsRequest, ListConfigsResponse, UpdateConfigRequest, UpdateConfigResponse,
+    GetConfigResponse, GetConfigSchemaRequest, GetConfigSchemaResponse, GetServiceConfigRequest,
+    GetServiceConfigResponse, GrpcError, ListConfigsRequest, ListConfigsResponse,
+    PbConfigCategorySchema, PbConfigEditorSchema, PbConfigFieldSchema, PbTimestamp,
+    UpdateConfigRequest, UpdateConfigResponse, UpsertConfigSchemaRequest,
+    UpsertConfigSchemaResponse,
 };
 use super::watch_stream::{WatchConfigRequest, WatchConfigStreamHandler};
 
@@ -204,20 +207,31 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
 
     async fn get_config_schema(
         &self,
-        _request: Request<pb::GetConfigSchemaRequest>,
+        request: Request<pb::GetConfigSchemaRequest>,
     ) -> Result<Response<pb::GetConfigSchemaResponse>, Status> {
-        Err(Status::unimplemented(
-            "get_config_schema is not yet implemented via gRPC; use REST API",
-        ))
+        let req = request.into_inner();
+        let hand_req = GetConfigSchemaRequest {
+            service_name: req.service_name,
+        };
+        let resp: GetConfigSchemaResponse = self.inner.get_config_schema(hand_req).await?;
+        Ok(Response::new(pb::GetConfigSchemaResponse {
+            schema: resp.schema.as_ref().map(hand_schema_to_proto),
+        }))
     }
 
     async fn upsert_config_schema(
         &self,
-        _request: Request<pb::UpsertConfigSchemaRequest>,
+        request: Request<pb::UpsertConfigSchemaRequest>,
     ) -> Result<Response<pb::UpsertConfigSchemaResponse>, Status> {
-        Err(Status::unimplemented(
-            "upsert_config_schema is not yet implemented via gRPC; use REST API",
-        ))
+        let req = request.into_inner();
+        let hand_req = UpsertConfigSchemaRequest {
+            schema: req.schema.map(proto_schema_to_hand),
+            updated_by: req.updated_by,
+        };
+        let resp: UpsertConfigSchemaResponse = self.inner.upsert_config_schema(hand_req).await?;
+        Ok(Response::new(pb::UpsertConfigSchemaResponse {
+            schema: resp.schema.as_ref().map(hand_schema_to_proto),
+        }))
     }
 
     type WatchConfigStream =
@@ -283,6 +297,88 @@ fn hand_pb_to_proto_entry(e: &super::config_grpc::PbConfigEntry) -> pb::ConfigEn
                 nanos: t.nanos,
             }
         }),
+    }
+}
+
+fn hand_timestamp_to_proto(t: &PbTimestamp) -> crate::proto::k1s0::system::common::v1::Timestamp {
+    crate::proto::k1s0::system::common::v1::Timestamp {
+        seconds: t.seconds,
+        nanos: t.nanos,
+    }
+}
+
+fn proto_timestamp_to_hand(t: &crate::proto::k1s0::system::common::v1::Timestamp) -> PbTimestamp {
+    PbTimestamp {
+        seconds: t.seconds,
+        nanos: t.nanos,
+    }
+}
+
+fn hand_schema_to_proto(schema: &PbConfigEditorSchema) -> pb::ConfigEditorSchema {
+    pb::ConfigEditorSchema {
+        service: schema.service.clone(),
+        namespace_prefix: schema.namespace_prefix.clone(),
+        categories: schema
+            .categories
+            .iter()
+            .map(|cat| pb::ConfigCategorySchema {
+                id: cat.id.clone(),
+                label: cat.label.clone(),
+                icon: cat.icon.clone(),
+                namespaces: cat.namespaces.clone(),
+                fields: cat
+                    .fields
+                    .iter()
+                    .map(|field| pb::ConfigFieldSchema {
+                        key: field.key.clone(),
+                        label: field.label.clone(),
+                        description: field.description.clone(),
+                        r#type: field.field_type,
+                        min: field.min,
+                        max: field.max,
+                        options: field.options.clone(),
+                        pattern: field.pattern.clone(),
+                        unit: field.unit.clone(),
+                        default_value: field.default_value.clone(),
+                    })
+                    .collect(),
+            })
+            .collect(),
+        updated_at: schema.updated_at.as_ref().map(hand_timestamp_to_proto),
+    }
+}
+
+fn proto_schema_to_hand(schema: pb::ConfigEditorSchema) -> PbConfigEditorSchema {
+    PbConfigEditorSchema {
+        service: schema.service,
+        namespace_prefix: schema.namespace_prefix,
+        categories: schema
+            .categories
+            .into_iter()
+            .map(|cat| PbConfigCategorySchema {
+                id: cat.id,
+                label: cat.label,
+                icon: cat.icon,
+                namespaces: cat.namespaces,
+                fields: cat
+                    .fields
+                    .into_iter()
+                    .map(|field| PbConfigFieldSchema {
+                        key: field.key,
+                        label: field.label,
+                        description: field.description,
+                        field_type: field.r#type,
+                        min: field.min,
+                        max: field.max,
+                        options: field.options,
+                        pattern: field.pattern,
+                        unit: field.unit,
+                        default_value: field.default_value,
+                    })
+                    .collect(),
+            })
+            .collect(),
+        updated_at: schema.updated_at.as_ref().map(proto_timestamp_to_hand),
     }
 }
 

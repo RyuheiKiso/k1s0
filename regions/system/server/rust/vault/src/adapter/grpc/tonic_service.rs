@@ -53,15 +53,10 @@ impl VaultService for VaultServiceTonic {
         request: Request<ProtoGetSecretRequest>,
     ) -> Result<Response<ProtoGetSecretResponse>, Status> {
         let inner = request.into_inner();
-        let version = if inner.version.is_empty() {
-            None
+        let version = if inner.version > 0 {
+            Some(inner.version)
         } else {
-            Some(
-                inner
-                    .version
-                    .parse::<i64>()
-                    .map_err(|e| Status::invalid_argument(format!("invalid version: {}", e)))?,
-            )
+            None
         };
         let req = GetSecretRequest {
             path: inner.path,

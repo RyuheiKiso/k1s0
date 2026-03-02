@@ -110,7 +110,10 @@ pub async fn list_files(
         tenant_id: params.tenant_id,
         owner_id: params.owner_id,
         mime_type: params.mime_type,
-        tag: None,
+        tag: params
+            .tag
+            .as_deref()
+            .and_then(parse_tag_query),
         page: params.page.unwrap_or(1),
         page_size: params.page_size.unwrap_or(20),
     };
@@ -341,8 +344,22 @@ pub struct ListFilesParams {
     pub owner_id: Option<String>,
     #[serde(alias = "content_type")]
     pub mime_type: Option<String>,
+    pub tag: Option<String>,
     pub page: Option<u32>,
     pub page_size: Option<u32>,
+}
+
+fn parse_tag_query(raw: &str) -> Option<(String, String)> {
+    let (key, value) = raw
+        .split_once(':')
+        .or_else(|| raw.split_once('='))?;
+    let key = key.trim();
+    let value = value.trim();
+    if key.is_empty() || value.is_empty() {
+        None
+    } else {
+        Some((key.to_string(), value.to_string()))
+    }
 }
 
 #[derive(Debug, Serialize)]

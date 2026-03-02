@@ -73,7 +73,7 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
                 created_at: to_proto_timestamp(&resp.created_at),
                 updated_at: to_proto_timestamp(&resp.updated_at),
             }),
-            latest_content: String::new(),
+            latest_content: resp.latest_content,
         }))
     }
 
@@ -95,6 +95,15 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
                 content: resp.content,
                 content_hash: resp.content_hash,
                 breaking_changes: resp.breaking_changes,
+                breaking_change_details: resp
+                    .breaking_change_details
+                    .into_iter()
+                    .map(|c| ProtoChangeDetail {
+                        change_type: c.change_type,
+                        path: c.path,
+                        description: c.description,
+                    })
+                    .collect(),
                 registered_by: resp.registered_by,
                 created_at: to_proto_timestamp(&resp.created_at),
             }),

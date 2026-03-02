@@ -22,6 +22,15 @@ use super::featureflag_grpc::{
     PbFlagVariant, UpdateFlagRequest,
 };
 
+fn to_proto_timestamp(
+    dt: chrono::DateTime<chrono::Utc>,
+) -> crate::proto::k1s0::system::common::v1::Timestamp {
+    crate::proto::k1s0::system::common::v1::Timestamp {
+        seconds: dt.timestamp(),
+        nanos: dt.timestamp_subsec_nanos() as i32,
+    }
+}
+
 // --- GrpcError -> tonic::Status 変換 ---
 
 impl From<GrpcError> for Status {
@@ -91,7 +100,7 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
 
         Ok(Response::new(ProtoGetFlagResponse {
             flag: Some(ProtoFeatureFlag {
-                id: String::new(),
+                id: resp.id,
                 flag_key: resp.flag_key,
                 description: resp.description,
                 enabled: resp.enabled,
@@ -104,8 +113,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
                         weight: v.weight,
                     })
                     .collect(),
-                created_at: None,
-                updated_at: None,
+                created_at: Some(to_proto_timestamp(resp.created_at)),
+                updated_at: Some(to_proto_timestamp(resp.updated_at)),
             }),
         }))
     }
@@ -137,13 +146,21 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
 
         Ok(Response::new(ProtoCreateFlagResponse {
             flag: Some(ProtoFeatureFlag {
-                id: String::new(),
+                id: resp.id,
                 flag_key: resp.flag_key,
                 description: resp.description,
                 enabled: resp.enabled,
-                variants: vec![],
-                created_at: None,
-                updated_at: None,
+                variants: resp
+                    .variants
+                    .into_iter()
+                    .map(|v| ProtoFlagVariant {
+                        name: v.name,
+                        value: v.value,
+                        weight: v.weight,
+                    })
+                    .collect(),
+                created_at: Some(to_proto_timestamp(resp.created_at)),
+                updated_at: Some(to_proto_timestamp(resp.updated_at)),
             }),
         }))
     }
@@ -170,13 +187,21 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
 
         Ok(Response::new(ProtoUpdateFlagResponse {
             flag: Some(ProtoFeatureFlag {
-                id: String::new(),
+                id: resp.id,
                 flag_key: resp.flag_key,
                 description: resp.description,
                 enabled: resp.enabled,
-                variants: vec![],
-                created_at: None,
-                updated_at: None,
+                variants: resp
+                    .variants
+                    .into_iter()
+                    .map(|v| ProtoFlagVariant {
+                        name: v.name,
+                        value: v.value,
+                        weight: v.weight,
+                    })
+                    .collect(),
+                created_at: Some(to_proto_timestamp(resp.created_at)),
+                updated_at: Some(to_proto_timestamp(resp.updated_at)),
             }),
         }))
     }

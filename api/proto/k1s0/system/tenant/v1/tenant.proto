@@ -16,6 +16,14 @@ service TenantService {
   rpc GetTenant(GetTenantRequest) returns (GetTenantResponse);
   // ListTenants は全テナントの一覧をページネーション付きで返す。
   rpc ListTenants(ListTenantsRequest) returns (ListTenantsResponse);
+  // UpdateTenant はテナント情報を更新する。
+  rpc UpdateTenant(UpdateTenantRequest) returns (UpdateTenantResponse);
+  // SuspendTenant はアクティブなテナントを停止する。
+  rpc SuspendTenant(SuspendTenantRequest) returns (SuspendTenantResponse);
+  // ActivateTenant は停止中のテナントを再開する。
+  rpc ActivateTenant(ActivateTenantRequest) returns (ActivateTenantResponse);
+  // DeleteTenant はテナントを論理削除する。
+  rpc DeleteTenant(DeleteTenantRequest) returns (DeleteTenantResponse);
   // AddMember はテナントにメンバーを追加する。
   rpc AddMember(AddMemberRequest) returns (AddMemberResponse);
   // RemoveMember はテナントからメンバーを削除する。
@@ -50,6 +58,40 @@ message ListTenantsRequest {
 message ListTenantsResponse {
   repeated Tenant tenants = 1;
   k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message UpdateTenantRequest {
+  string tenant_id = 1;
+  string display_name = 2;
+  string plan = 3;
+}
+
+message UpdateTenantResponse {
+  Tenant tenant = 1;
+}
+
+message SuspendTenantRequest {
+  string tenant_id = 1;
+}
+
+message SuspendTenantResponse {
+  Tenant tenant = 1;
+}
+
+message ActivateTenantRequest {
+  string tenant_id = 1;
+}
+
+message ActivateTenantResponse {
+  Tenant tenant = 1;
+}
+
+message DeleteTenantRequest {
+  string tenant_id = 1;
+}
+
+message DeleteTenantResponse {
+  Tenant tenant = 1;
 }
 
 message AddMemberRequest {

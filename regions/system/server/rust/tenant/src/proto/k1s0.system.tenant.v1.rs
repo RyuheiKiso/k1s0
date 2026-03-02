@@ -38,6 +38,50 @@ pub struct ListTenantsResponse {
     pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateTenantRequest {
+    #[prost(string, tag = "1")]
+    pub tenant_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub plan: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateTenantResponse {
+    #[prost(message, optional, tag = "1")]
+    pub tenant: ::core::option::Option<Tenant>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SuspendTenantRequest {
+    #[prost(string, tag = "1")]
+    pub tenant_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SuspendTenantResponse {
+    #[prost(message, optional, tag = "1")]
+    pub tenant: ::core::option::Option<Tenant>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ActivateTenantRequest {
+    #[prost(string, tag = "1")]
+    pub tenant_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ActivateTenantResponse {
+    #[prost(message, optional, tag = "1")]
+    pub tenant: ::core::option::Option<Tenant>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteTenantRequest {
+    #[prost(string, tag = "1")]
+    pub tenant_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteTenantResponse {
+    #[prost(message, optional, tag = "1")]
+    pub tenant: ::core::option::Option<Tenant>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AddMemberRequest {
     #[prost(string, tag = "1")]
     pub tenant_id: ::prost::alloc::string::String,
@@ -153,6 +197,38 @@ pub mod tenant_service_server {
             request: tonic::Request<super::ListTenantsRequest>,
         ) -> std::result::Result<
             tonic::Response<super::ListTenantsResponse>,
+            tonic::Status,
+        >;
+        /// UpdateTenant はテナント情報を更新する。
+        async fn update_tenant(
+            &self,
+            request: tonic::Request<super::UpdateTenantRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateTenantResponse>,
+            tonic::Status,
+        >;
+        /// SuspendTenant はアクティブなテナントを停止する。
+        async fn suspend_tenant(
+            &self,
+            request: tonic::Request<super::SuspendTenantRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SuspendTenantResponse>,
+            tonic::Status,
+        >;
+        /// ActivateTenant は停止中のテナントを再開する。
+        async fn activate_tenant(
+            &self,
+            request: tonic::Request<super::ActivateTenantRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ActivateTenantResponse>,
+            tonic::Status,
+        >;
+        /// DeleteTenant はテナントを論理削除する。
+        async fn delete_tenant(
+            &self,
+            request: tonic::Request<super::DeleteTenantRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteTenantResponse>,
             tonic::Status,
         >;
         /// AddMember はテナントにメンバーを追加する。
@@ -378,6 +454,186 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListTenantsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.tenant.v1.TenantService/UpdateTenant" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateTenantSvc<T: TenantService>(pub Arc<T>);
+                    impl<
+                        T: TenantService,
+                    > tonic::server::UnaryService<super::UpdateTenantRequest>
+                    for UpdateTenantSvc<T> {
+                        type Response = super::UpdateTenantResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpdateTenantRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as TenantService>::update_tenant(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UpdateTenantSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.tenant.v1.TenantService/SuspendTenant" => {
+                    #[allow(non_camel_case_types)]
+                    struct SuspendTenantSvc<T: TenantService>(pub Arc<T>);
+                    impl<
+                        T: TenantService,
+                    > tonic::server::UnaryService<super::SuspendTenantRequest>
+                    for SuspendTenantSvc<T> {
+                        type Response = super::SuspendTenantResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SuspendTenantRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as TenantService>::suspend_tenant(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = SuspendTenantSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.tenant.v1.TenantService/ActivateTenant" => {
+                    #[allow(non_camel_case_types)]
+                    struct ActivateTenantSvc<T: TenantService>(pub Arc<T>);
+                    impl<
+                        T: TenantService,
+                    > tonic::server::UnaryService<super::ActivateTenantRequest>
+                    for ActivateTenantSvc<T> {
+                        type Response = super::ActivateTenantResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ActivateTenantRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as TenantService>::activate_tenant(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ActivateTenantSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.tenant.v1.TenantService/DeleteTenant" => {
+                    #[allow(non_camel_case_types)]
+                    struct DeleteTenantSvc<T: TenantService>(pub Arc<T>);
+                    impl<
+                        T: TenantService,
+                    > tonic::server::UnaryService<super::DeleteTenantRequest>
+                    for DeleteTenantSvc<T> {
+                        type Response = super::DeleteTenantResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DeleteTenantRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as TenantService>::delete_tenant(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = DeleteTenantSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

@@ -76,6 +76,8 @@ pub struct ApiSchemaVersionProto {
     pub registered_by: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "8")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, repeated, tag = "9")]
+    pub breaking_change_details: ::prost::alloc::vec::Vec<ChangeDetail>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ChangeDetail {

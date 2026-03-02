@@ -225,25 +225,44 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
     async fn find_all(
         &self,
         tenant_id: Option<String>,
-        _owner_id: Option<String>,
-        _mime_type: Option<String>,
-        _tag: Option<(String, String)>,
-        _page: u32,
-        _page_size: u32,
+        owner_id: Option<String>,
+        mime_type: Option<String>,
+        tag: Option<(String, String)>,
+        page: u32,
+        page_size: u32,
     ) -> anyhow::Result<(Vec<FileMetadata>, u64)> {
         let files = self.files.read().await;
-        let filtered: Vec<FileMetadata> = files
+        let mut filtered: Vec<FileMetadata> = files
             .values()
             .filter(|f| {
                 if let Some(ref tid) = tenant_id {
-                    f.tenant_id == *tid
-                } else {
-                    true
+                    if f.tenant_id != *tid {
+                        return false;
+                    }
                 }
+                if let Some(ref oid) = owner_id {
+                    if f.owner_id != *oid {
+                        return false;
+                    }
+                }
+                if let Some(ref mime) = mime_type {
+                    if !f.mime_type.starts_with(mime) {
+                        return false;
+                    }
+                }
+                if let Some((ref key, ref value)) = tag {
+                    match f.tags.get(key) {
+                        Some(v) if v == value => {}
+                        _ => return false,
+                    }
+                }
+                true
             })
             .cloned()
             .collect();
         let total = filtered.len() as u64;
+        let start = page.saturating_sub(1) as usize * page_size as usize;
+        filtered = filtered.into_iter().skip(start).take(page_size as usize).collect();
         Ok((filtered, total))
     }
 

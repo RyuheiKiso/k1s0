@@ -161,15 +161,21 @@ async fn main() -> anyhow::Result<()> {
         )
     };
     let delete_config_uc = Arc::new(usecase::DeleteConfigUseCase::new(config_repo.clone()));
+    let get_config_schema_uc = Arc::new(usecase::GetConfigSchemaUseCase::new(schema_repo.clone()));
+    let upsert_config_schema_uc =
+        Arc::new(usecase::UpsertConfigSchemaUseCase::new(schema_repo.clone()));
 
-    let config_grpc_svc = Arc::new(ConfigGrpcService::new_with_watch(
-        get_config_uc,
-        list_configs_uc,
-        get_service_config_uc,
-        update_config_uc_grpc,
-        delete_config_uc,
-        watch_tx.clone(),
-    ));
+    let config_grpc_svc = Arc::new(
+        ConfigGrpcService::new_with_watch(
+            get_config_uc,
+            list_configs_uc,
+            get_service_config_uc,
+            update_config_uc_grpc,
+            delete_config_uc,
+            watch_tx.clone(),
+        )
+        .with_schema_usecases(get_config_schema_uc, upsert_config_schema_uc),
+    );
 
     // tonic ラッパー
     let config_tonic = adapter::grpc::ConfigServiceTonic::new(config_grpc_svc);

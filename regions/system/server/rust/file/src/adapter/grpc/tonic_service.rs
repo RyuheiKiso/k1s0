@@ -85,6 +85,7 @@ impl FileService for FileServiceTonic {
                 inner.uploaded_by,
                 inner.tags,
                 inner.expires_in_seconds,
+                inner.size_bytes,
             )
             .await
             .map_err(Into::<Status>::into)?;
