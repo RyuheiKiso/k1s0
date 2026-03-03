@@ -55,6 +55,9 @@ pub struct TokenClaims {
     /// アクセス可能 Tier
     #[prost(string, repeated, tag = "11")]
     pub tier_access: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// OAuth2 scope（スペース区切り）
+    #[prost(string, tag = "12")]
+    pub scope: ::prost::alloc::string::String,
 }
 /// RealmAccess はグローバルロール一覧。
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -172,8 +175,8 @@ pub struct RoleList {
 /// CheckPermissionRequest はパーミッション確認リクエスト。
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckPermissionRequest {
-    #[prost(string, tag = "1")]
-    pub user_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "1")]
+    pub user_id: ::core::option::Option<::prost::alloc::string::String>,
     /// read, write, delete, admin
     #[prost(string, tag = "2")]
     pub permission: ::prost::alloc::string::String,

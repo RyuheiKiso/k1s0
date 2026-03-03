@@ -10,17 +10,28 @@ use tonic::{Request, Response, Status};
 use crate::proto::k1s0::system::featureflag::v1::{
     feature_flag_service_server::FeatureFlagService,
     CreateFlagRequest as ProtoCreateFlagRequest, CreateFlagResponse as ProtoCreateFlagResponse,
+    DeleteFlagRequest as ProtoDeleteFlagRequest, DeleteFlagResponse as ProtoDeleteFlagResponse,
     EvaluateFlagRequest as ProtoEvaluateFlagRequest,
     EvaluateFlagResponse as ProtoEvaluateFlagResponse, FeatureFlag as ProtoFeatureFlag,
-    FlagVariant as ProtoFlagVariant, GetFlagRequest as ProtoGetFlagRequest,
-    GetFlagResponse as ProtoGetFlagResponse, UpdateFlagRequest as ProtoUpdateFlagRequest,
-    UpdateFlagResponse as ProtoUpdateFlagResponse,
+    FlagRule as ProtoFlagRule, FlagVariant as ProtoFlagVariant,
+    GetFlagRequest as ProtoGetFlagRequest, GetFlagResponse as ProtoGetFlagResponse,
+    ListFlagsRequest as ProtoListFlagsRequest, ListFlagsResponse as ProtoListFlagsResponse,
+    UpdateFlagRequest as ProtoUpdateFlagRequest, UpdateFlagResponse as ProtoUpdateFlagResponse,
 };
 
 use super::featureflag_grpc::{
-    CreateFlagRequest, EvaluateFlagRequest, FeatureFlagGrpcService, GetFlagRequest, GrpcError,
-    PbFlagVariant, UpdateFlagRequest,
+    CreateFlagRequest, DeleteFlagRequest, EvaluateFlagRequest, FeatureFlagGrpcService,
+    GetFlagRequest, GrpcError, ListFlagsRequest, PbFlagVariant, UpdateFlagRequest,
 };
+
+fn to_proto_timestamp(
+    dt: chrono::DateTime<chrono::Utc>,
+) -> crate::proto::k1s0::system::common::v1::Timestamp {
+    crate::proto::k1s0::system::common::v1::Timestamp {
+        seconds: dt.timestamp(),
+        nanos: dt.timestamp_subsec_nanos() as i32,
+    }
+}
 
 // --- GrpcError -> tonic::Status 変換 ---
 
@@ -91,7 +102,7 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
 
         Ok(Response::new(ProtoGetFlagResponse {
             flag: Some(ProtoFeatureFlag {
-                id: String::new(),
+                id: resp.id,
                 flag_key: resp.flag_key,
                 description: resp.description,
                 enabled: resp.enabled,
@@ -104,9 +115,64 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
                         weight: v.weight,
                     })
                     .collect(),
-                created_at: None,
-                updated_at: None,
+                rules: resp
+                    .rules
+                    .into_iter()
+                    .map(|r| ProtoFlagRule {
+                        attribute: r.attribute,
+                        operator: r.operator,
+                        value: r.value,
+                        variant: r.variant,
+                    })
+                    .collect(),
+                created_at: Some(to_proto_timestamp(resp.created_at)),
+                updated_at: Some(to_proto_timestamp(resp.updated_at)),
             }),
+        }))
+    }
+
+    async fn list_flags(
+        &self,
+        _request: Request<ProtoListFlagsRequest>,
+    ) -> Result<Response<ProtoListFlagsResponse>, Status> {
+        let resp = self
+            .inner
+            .list_flags(ListFlagsRequest {})
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoListFlagsResponse {
+            flags: resp
+                .flags
+                .into_iter()
+                .map(|flag| ProtoFeatureFlag {
+                    id: flag.id,
+                    flag_key: flag.flag_key,
+                    description: flag.description,
+                    enabled: flag.enabled,
+                    variants: flag
+                        .variants
+                        .into_iter()
+                        .map(|v| ProtoFlagVariant {
+                            name: v.name,
+                            value: v.value,
+                            weight: v.weight,
+                        })
+                        .collect(),
+                    rules: flag
+                        .rules
+                        .into_iter()
+                        .map(|r| ProtoFlagRule {
+                            attribute: r.attribute,
+                            operator: r.operator,
+                            value: r.value,
+                            variant: r.variant,
+                        })
+                        .collect(),
+                    created_at: Some(to_proto_timestamp(flag.created_at)),
+                    updated_at: Some(to_proto_timestamp(flag.updated_at)),
+                })
+                .collect(),
         }))
     }
 
@@ -137,13 +203,31 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
 
         Ok(Response::new(ProtoCreateFlagResponse {
             flag: Some(ProtoFeatureFlag {
-                id: String::new(),
+                id: resp.id,
                 flag_key: resp.flag_key,
                 description: resp.description,
                 enabled: resp.enabled,
-                variants: vec![],
-                created_at: None,
-                updated_at: None,
+                variants: resp
+                    .variants
+                    .into_iter()
+                    .map(|v| ProtoFlagVariant {
+                        name: v.name,
+                        value: v.value,
+                        weight: v.weight,
+                    })
+                    .collect(),
+                rules: resp
+                    .rules
+                    .into_iter()
+                    .map(|r| ProtoFlagRule {
+                        attribute: r.attribute,
+                        operator: r.operator,
+                        value: r.value,
+                        variant: r.variant,
+                    })
+                    .collect(),
+                created_at: Some(to_proto_timestamp(resp.created_at)),
+                updated_at: Some(to_proto_timestamp(resp.updated_at)),
             }),
         }))
     }
@@ -155,12 +239,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
         let inner = request.into_inner();
         let req = UpdateFlagRequest {
             flag_key: inner.flag_key,
-            enabled: if inner.enabled { Some(true) } else { Some(false) },
-            description: if inner.description.is_empty() {
-                None
-            } else {
-                Some(inner.description)
-            },
+            enabled: inner.enabled,
+            description: inner.description.filter(|v| !v.is_empty()),
         };
         let resp = self
             .inner
@@ -170,14 +250,51 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
 
         Ok(Response::new(ProtoUpdateFlagResponse {
             flag: Some(ProtoFeatureFlag {
-                id: String::new(),
+                id: resp.id,
                 flag_key: resp.flag_key,
                 description: resp.description,
                 enabled: resp.enabled,
-                variants: vec![],
-                created_at: None,
-                updated_at: None,
+                variants: resp
+                    .variants
+                    .into_iter()
+                    .map(|v| ProtoFlagVariant {
+                        name: v.name,
+                        value: v.value,
+                        weight: v.weight,
+                    })
+                    .collect(),
+                rules: resp
+                    .rules
+                    .into_iter()
+                    .map(|r| ProtoFlagRule {
+                        attribute: r.attribute,
+                        operator: r.operator,
+                        value: r.value,
+                        variant: r.variant,
+                    })
+                    .collect(),
+                created_at: Some(to_proto_timestamp(resp.created_at)),
+                updated_at: Some(to_proto_timestamp(resp.updated_at)),
             }),
+        }))
+    }
+
+    async fn delete_flag(
+        &self,
+        request: Request<ProtoDeleteFlagRequest>,
+    ) -> Result<Response<ProtoDeleteFlagResponse>, Status> {
+        let inner = request.into_inner();
+        let resp = self
+            .inner
+            .delete_flag(DeleteFlagRequest {
+                flag_key: inner.flag_key,
+            })
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoDeleteFlagResponse {
+            success: resp.success,
+            message: resp.message,
         }))
     }
 }

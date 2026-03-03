@@ -11,8 +11,10 @@ import "k1s0/system/common/v1/types.proto";
 service FeatureFlagService {
   rpc EvaluateFlag(EvaluateFlagRequest) returns (EvaluateFlagResponse);
   rpc GetFlag(GetFlagRequest) returns (GetFlagResponse);
+  rpc ListFlags(ListFlagsRequest) returns (ListFlagsResponse);
   rpc CreateFlag(CreateFlagRequest) returns (CreateFlagResponse);
   rpc UpdateFlag(UpdateFlagRequest) returns (UpdateFlagResponse);
+  rpc DeleteFlag(DeleteFlagRequest) returns (DeleteFlagResponse);
 }
 
 message EvaluateFlagRequest {
@@ -23,7 +25,7 @@ message EvaluateFlagRequest {
 message EvaluateFlagResponse {
   string flag_key = 1;
   bool enabled = 2;
-  string variant = 3;
+  optional string variant = 3;
   string reason = 4;
 }
 
@@ -41,6 +43,12 @@ message GetFlagResponse {
   FeatureFlag flag = 1;
 }
 
+message ListFlagsRequest {}
+
+message ListFlagsResponse {
+  repeated FeatureFlag flags = 1;
+}
+
 message CreateFlagRequest {
   string flag_key = 1;
   string description = 2;
@@ -54,12 +62,21 @@ message CreateFlagResponse {
 
 message UpdateFlagRequest {
   string flag_key = 1;
-  bool enabled = 2;
-  string description = 3;
+  optional bool enabled = 2;
+  optional string description = 3;
 }
 
 message UpdateFlagResponse {
   FeatureFlag flag = 1;
+}
+
+message DeleteFlagRequest {
+  string flag_key = 1;
+}
+
+message DeleteFlagResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 message FeatureFlag {
@@ -70,10 +87,18 @@ message FeatureFlag {
   repeated FlagVariant variants = 5;
   k1s0.system.common.v1.Timestamp created_at = 6;
   k1s0.system.common.v1.Timestamp updated_at = 7;
+  repeated FlagRule rules = 8;
 }
 
 message FlagVariant {
   string name = 1;
   string value = 2;
   int32 weight = 3;
+}
+
+message FlagRule {
+  string attribute = 1;
+  string operator = 2;
+  string value = 3;
+  string variant = 4;
 }

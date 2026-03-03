@@ -194,6 +194,7 @@ async fn main() -> anyhow::Result<()> {
         state.get_saga_uc.clone(),
         state.list_sagas_uc.clone(),
         state.cancel_saga_uc.clone(),
+        state.execute_saga_uc.clone(),
         state.register_workflow_uc.clone(),
         state.list_workflows_uc.clone(),
     ));

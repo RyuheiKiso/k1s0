@@ -10,7 +10,7 @@ option java_package = "io.k1s0.system.navigation.v1";
 // NavigationService はクライアントアプリのルーティング設定を提供する。
 service NavigationService {
   // ナビゲーション設定取得
-  rpc GetNavigation(GetNavigationRequest) returns (NavigationResponse);
+  rpc GetNavigation(GetNavigationRequest) returns (GetNavigationResponse);
 }
 
 // GetNavigationRequest はナビゲーション設定取得リクエスト。
@@ -19,8 +19,8 @@ message GetNavigationRequest {
   string bearer_token = 1;
 }
 
-// NavigationResponse はナビゲーション設定取得レスポンス。
-message NavigationResponse {
+// GetNavigationResponse はナビゲーション設定取得レスポンス。
+message GetNavigationResponse {
   repeated Route routes = 1;
   repeated Guard guards = 2;
 }

@@ -193,6 +193,7 @@ async fn main() -> anyhow::Result<()> {
         set_secret_uc.clone(),
         delete_secret_uc.clone(),
         list_secrets_uc.clone(),
+        list_audit_logs_uc.clone(),
     ));
 
     // Metrics

@@ -27,7 +27,7 @@ message DlqMessage {
   string error_message = 3;
   int32 retry_count = 4;
   int32 max_retries = 5;
-  string payload_json = 6;
+  string payload = 6;
   string status = 7;
   k1s0.system.common.v1.Timestamp created_at = 8;
   k1s0.system.common.v1.Timestamp updated_at = 9;
@@ -44,7 +44,7 @@ message ListMessagesRequest {
 /// ListMessagesResponse は一覧取得レスポンス。
 message ListMessagesResponse {
   repeated DlqMessage messages = 1;
-  int64 total = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 /// GetMessageRequest はメッセージ取得リクエスト。

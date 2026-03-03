@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::collections::HashMap;
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -75,12 +76,39 @@ fn error_response(err: SessionError) -> (StatusCode, Json<serde_json::Value>) {
 
 pub async fn create_session(
     State(state): State<AppState>,
-    Json(input): Json<CreateSessionInput>,
+    Json(input): Json<CreateSessionHttpRequest>,
 ) -> impl IntoResponse {
-    match state.create_uc.execute(&input).await {
+    let mut metadata = input.metadata.unwrap_or_default();
+    if let Some(device_id) = input.device_id.filter(|v| !v.is_empty()) {
+        metadata.insert("device_id".to_string(), device_id);
+    }
+    if let Some(device_name) = input.device_name.filter(|v| !v.is_empty()) {
+        metadata.insert("device_name".to_string(), device_name);
+    }
+
+    let uc_input = CreateSessionInput {
+        user_id: input.user_id,
+        ttl_seconds: input.ttl_seconds,
+        metadata: if metadata.is_empty() {
+            None
+        } else {
+            Some(metadata)
+        },
+    };
+
+    match state.create_uc.execute(&uc_input).await {
         Ok(output) => (StatusCode::CREATED, Json(serde_json::to_value(output).unwrap())).into_response(),
         Err(e) => error_response(e).into_response(),
     }
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct CreateSessionHttpRequest {
+    pub user_id: String,
+    pub ttl_seconds: Option<i64>,
+    pub metadata: Option<HashMap<String, String>>,
+    pub device_id: Option<String>,
+    pub device_name: Option<String>,
 }
 
 pub async fn get_session(

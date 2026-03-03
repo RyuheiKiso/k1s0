@@ -269,7 +269,8 @@ system tier の Vault Server は以下の機能を提供する。
 
 ### gRPC サービス定義
 
-`api/proto/k1s0/system/vault/v1/vault.proto` に定義。4 つの RPC（GetSecret / SetSecret / DeleteSecret / ListSecrets）を提供する。
+`api/proto/k1s0/system/vault/v1/vault.proto` に定義。Get/Set/Delete/List に加えて、
+ローテーション・メタデータ取得・監査ログ取得の RPC を提供する。
 
 ```protobuf
 syntax = "proto3";
@@ -280,13 +281,16 @@ import "k1s0/system/common/v1/types.proto";
 service VaultService {
   rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
   rpc SetSecret(SetSecretRequest) returns (SetSecretResponse);
+  rpc RotateSecret(RotateSecretRequest) returns (RotateSecretResponse);
   rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse);
+  rpc GetSecretMetadata(GetSecretMetadataRequest) returns (GetSecretMetadataResponse);
   rpc ListSecrets(ListSecretsRequest) returns (ListSecretsResponse);
+  rpc ListAuditLogs(ListAuditLogsRequest) returns (ListAuditLogsResponse);
 }
 
 message GetSecretRequest {
   string path = 1;
-  string version = 2;
+  int64 version = 2;
 }
 
 message GetSecretResponse {
@@ -523,3 +527,13 @@ vault:
 - [Vault設計.md](../../infrastructure/security/Vault設計.md) -- HashiCorp Vault 全体設計
 - [サービス間認証設計.md](../../architecture/auth/サービス間認証設計.md) -- SPIFFE/SPIRE によるサービス間認証
 - [REST-API設計.md](../../architecture/api/REST-API設計.md) -- D-007 統一エラーレスポンス
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `GetSecret`, `SetSecret`, `RotateSecret`, `DeleteSecret`
+- `GetSecretMetadata`, `ListSecrets`, `ListAuditLogs`
+
+### Message/Field Corrections
+- Canonical messages include `RotateSecretRequest/Response`, `GetSecretMetadataRequest/Response`, `ListAuditLogsRequest/Response`, `AuditLogEntry`.
+- `GetSecretResponse.updated_at` is present.

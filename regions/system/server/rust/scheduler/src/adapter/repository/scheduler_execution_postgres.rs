@@ -26,6 +26,7 @@ struct SchedulerExecutionRow {
     id: Uuid,
     job_id: Uuid,
     status: String,
+    triggered_by: String,
     started_at: DateTime<Utc>,
     completed_at: Option<DateTime<Utc>>,
     error_message: Option<String>,
@@ -37,6 +38,7 @@ impl From<SchedulerExecutionRow> for SchedulerExecution {
             id: row.id,
             job_id: row.job_id,
             status: row.status,
+            triggered_by: row.triggered_by,
             started_at: row.started_at,
             completed_at: row.completed_at,
             error_message: row.error_message,
@@ -65,7 +67,7 @@ impl SchedulerExecutionRepository for SchedulerExecutionPostgresRepository {
 
     async fn find_by_job_id(&self, job_id: &Uuid) -> anyhow::Result<Vec<SchedulerExecution>> {
         let rows: Vec<SchedulerExecutionRow> = sqlx::query_as(
-            "SELECT id, job_id, status, started_at, completed_at, error_message \
+            "SELECT id, job_id, status, 'scheduler' AS triggered_by, started_at, completed_at, error_message \
              FROM scheduler.job_executions \
              WHERE job_id = $1 \
              ORDER BY started_at DESC",
@@ -98,7 +100,7 @@ impl SchedulerExecutionRepository for SchedulerExecutionPostgresRepository {
 
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<SchedulerExecution>> {
         let row: Option<SchedulerExecutionRow> = sqlx::query_as(
-            "SELECT id, job_id, status, started_at, completed_at, error_message \
+            "SELECT id, job_id, status, 'scheduler' AS triggered_by, started_at, completed_at, error_message \
              FROM scheduler.job_executions WHERE id = $1",
         )
         .bind(id)
@@ -119,6 +121,7 @@ mod tests {
             id: Uuid::new_v4(),
             job_id: Uuid::new_v4(),
             status: "running".to_string(),
+            triggered_by: "scheduler".to_string(),
             started_at: now,
             completed_at: None,
             error_message: None,
@@ -136,6 +139,7 @@ mod tests {
             id: Uuid::new_v4(),
             job_id: Uuid::new_v4(),
             status: "failed".to_string(),
+            triggered_by: "scheduler".to_string(),
             started_at: now,
             completed_at: Some(now),
             error_message: Some("timeout".to_string()),

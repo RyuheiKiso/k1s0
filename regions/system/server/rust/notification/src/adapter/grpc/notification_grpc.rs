@@ -12,6 +12,9 @@ use crate::usecase::get_channel::GetChannelUseCase;
 use crate::usecase::get_template::GetTemplateUseCase;
 use crate::usecase::list_channels::ListChannelsUseCase;
 use crate::usecase::list_templates::ListTemplatesUseCase;
+use crate::usecase::retry_notification::{
+    RetryNotificationError, RetryNotificationInput, RetryNotificationUseCase,
+};
 use crate::usecase::send_notification::{
     SendNotificationError, SendNotificationInput, SendNotificationUseCase,
 };
@@ -64,6 +67,33 @@ pub struct GetNotificationResponse {
 }
 
 #[derive(Debug, Clone)]
+pub struct RetryNotificationRequest {
+    pub notification_id: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct RetryNotificationResponse {
+    pub notification: PbNotificationLog,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListNotificationsRequest {
+    pub channel_id: Option<String>,
+    pub status: Option<String>,
+    pub page: u32,
+    pub page_size: u32,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListNotificationsResponse {
+    pub notifications: Vec<PbNotificationLog>,
+    pub total: u64,
+    pub page: u32,
+    pub page_size: u32,
+    pub has_next: bool,
+}
+
+#[derive(Debug, Clone)]
 pub struct PbChannel {
     pub id: String,
     pub name: String,
@@ -86,6 +116,9 @@ pub struct ListChannelsRequest {
 pub struct ListChannelsResponse {
     pub channels: Vec<PbChannel>,
     pub total: u64,
+    pub page: u32,
+    pub page_size: u32,
+    pub has_next: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -157,6 +190,9 @@ pub struct ListTemplatesRequest {
 pub struct ListTemplatesResponse {
     pub templates: Vec<PbTemplate>,
     pub total: u64,
+    pub page: u32,
+    pub page_size: u32,
+    pub has_next: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -216,6 +252,9 @@ pub enum GrpcError {
     #[error("invalid argument: {0}")]
     InvalidArgument(String),
 
+    #[error("failed precondition: {0}")]
+    FailedPrecondition(String),
+
     #[error("channel disabled: {0}")]
     ChannelDisabled(String),
 
@@ -227,6 +266,7 @@ pub enum GrpcError {
 
 pub struct NotificationGrpcService {
     send_notification_uc: Arc<SendNotificationUseCase>,
+    retry_notification_uc: Option<Arc<RetryNotificationUseCase>>,
     log_repo: Arc<dyn NotificationLogRepository>,
     channel_repo: Arc<dyn NotificationChannelRepository>,
     create_channel_uc: Option<Arc<CreateChannelUseCase>>,
@@ -249,6 +289,7 @@ impl NotificationGrpcService {
     ) -> Self {
         Self {
             send_notification_uc,
+            retry_notification_uc: None,
             log_repo,
             channel_repo,
             create_channel_uc: None,
@@ -267,6 +308,7 @@ impl NotificationGrpcService {
     #[allow(clippy::too_many_arguments)]
     pub fn with_management(
         send_notification_uc: Arc<SendNotificationUseCase>,
+        retry_notification_uc: Arc<RetryNotificationUseCase>,
         log_repo: Arc<dyn NotificationLogRepository>,
         channel_repo: Arc<dyn NotificationChannelRepository>,
         create_channel_uc: Arc<CreateChannelUseCase>,
@@ -282,6 +324,7 @@ impl NotificationGrpcService {
     ) -> Self {
         Self {
             send_notification_uc,
+            retry_notification_uc: Some(retry_notification_uc),
             log_repo,
             channel_repo,
             create_channel_uc: Some(create_channel_uc),
@@ -379,20 +422,89 @@ impl NotificationGrpcService {
         };
 
         Ok(GetNotificationResponse {
-            notification: PbNotificationLog {
-                id: log.id.to_string(),
-                channel_id: log.channel_id.to_string(),
-                channel_type,
-                template_id: log.template_id.map(|id| id.to_string()),
-                recipient: log.recipient,
-                subject: log.subject,
-                body: log.body,
-                status: log.status,
-                retry_count: 0,
-                error_message: log.error_message,
-                sent_at: log.sent_at.map(|t| t.to_rfc3339()),
-                created_at: log.created_at.to_rfc3339(),
-            },
+            notification: log_to_pb(log, channel_type),
+        })
+    }
+
+    pub async fn retry_notification(
+        &self,
+        req: RetryNotificationRequest,
+    ) -> Result<RetryNotificationResponse, GrpcError> {
+        let uc = Self::require(&self.retry_notification_uc, "retry_notification")?;
+        let id = Uuid::parse_str(&req.notification_id).map_err(|_| {
+            GrpcError::InvalidArgument(format!("invalid notification_id: {}", req.notification_id))
+        })?;
+
+        let log = uc
+            .execute(&RetryNotificationInput {
+                notification_id: id,
+            })
+            .await
+            .map_err(|e| match e {
+                RetryNotificationError::NotFound(id) => {
+                    GrpcError::NotFound(format!("notification not found: {}", id))
+                }
+                RetryNotificationError::AlreadySent(id) => {
+                    GrpcError::FailedPrecondition(format!("notification already sent: {}", id))
+                }
+                RetryNotificationError::ChannelNotFound(id) => {
+                    GrpcError::NotFound(format!("channel not found: {}", id))
+                }
+                RetryNotificationError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
+
+        let channel_type = self
+            .channel_repo
+            .find_by_id(&log.channel_id)
+            .await
+            .map_err(|e| GrpcError::Internal(e.to_string()))?
+            .map(|ch| ch.channel_type)
+            .unwrap_or_default();
+
+        Ok(RetryNotificationResponse {
+            notification: log_to_pb(log, channel_type),
+        })
+    }
+
+    pub async fn list_notifications(
+        &self,
+        req: ListNotificationsRequest,
+    ) -> Result<ListNotificationsResponse, GrpcError> {
+        let page = if req.page == 0 { 1 } else { req.page };
+        let page_size = if req.page_size == 0 { 20 } else { req.page_size };
+
+        let channel_id = req
+            .channel_id
+            .as_deref()
+            .map(Uuid::parse_str)
+            .transpose()
+            .map_err(|_| GrpcError::InvalidArgument("invalid channel_id".to_string()))?;
+
+        let (logs, total) = self
+            .log_repo
+            .find_all_paginated(page, page_size, channel_id, req.status)
+            .await
+            .map_err(|e| GrpcError::Internal(e.to_string()))?;
+
+        let mut notifications = Vec::with_capacity(logs.len());
+        for log in logs {
+            let channel_type = self
+                .channel_repo
+                .find_by_id(&log.channel_id)
+                .await
+                .map_err(|e| GrpcError::Internal(e.to_string()))?
+                .map(|ch| ch.channel_type)
+                .unwrap_or_default();
+            notifications.push(log_to_pb(log, channel_type));
+        }
+
+        let has_next = (page as u64 * page_size as u64) < total;
+        Ok(ListNotificationsResponse {
+            notifications,
+            total,
+            page,
+            page_size,
+            has_next,
         })
     }
 
@@ -410,6 +522,9 @@ impl NotificationGrpcService {
         Ok(ListChannelsResponse {
             channels: channels.iter().map(channel_to_pb).collect(),
             total,
+            page,
+            page_size,
+            has_next: (page as u64 * page_size as u64) < total,
         })
     }
 
@@ -526,6 +641,9 @@ impl NotificationGrpcService {
         Ok(ListTemplatesResponse {
             templates: templates.iter().map(template_to_pb).collect(),
             total,
+            page,
+            page_size,
+            has_next: (page as u64 * page_size as u64) < total,
         })
     }
 
@@ -638,6 +756,23 @@ fn template_to_pb(template: &crate::domain::entity::notification_template::Notif
         body_template: template.body_template.clone(),
         created_at: template.created_at.to_rfc3339(),
         updated_at: template.updated_at.to_rfc3339(),
+    }
+}
+
+fn log_to_pb(log: crate::domain::entity::notification_log::NotificationLog, channel_type: String) -> PbNotificationLog {
+    PbNotificationLog {
+        id: log.id.to_string(),
+        channel_id: log.channel_id.to_string(),
+        channel_type,
+        template_id: log.template_id.map(|id| id.to_string()),
+        recipient: log.recipient,
+        subject: log.subject,
+        body: log.body,
+        status: log.status,
+        retry_count: log.retry_count,
+        error_message: log.error_message,
+        sent_at: log.sent_at.map(|t| t.to_rfc3339()),
+        created_at: log.created_at.to_rfc3339(),
     }
 }
 

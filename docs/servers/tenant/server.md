@@ -406,7 +406,7 @@ ID 指定でテナントの詳細を取得する。
 
 カノニカル定義ファイル: `api/proto/k1s0/system/tenant/v1/tenant.proto`
 
-> **注意**: gRPC の RPC セットは REST エンドポイントと対称ではない。`GetProvisioningStatus` は gRPC 専用（REST エンドポイントなし）。`UpdateTenant`・`SuspendTenant`・`ActivateTenant`・`DeleteTenant` は REST のみ（gRPC では未定義）。
+> **注意**: `GetProvisioningStatus` は gRPC 専用（REST エンドポイントなし）。
 
 ```protobuf
 syntax = "proto3";
@@ -419,6 +419,10 @@ service TenantService {
   rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
   rpc GetTenant(GetTenantRequest) returns (GetTenantResponse);
   rpc ListTenants(ListTenantsRequest) returns (ListTenantsResponse);
+  rpc UpdateTenant(UpdateTenantRequest) returns (UpdateTenantResponse);
+  rpc SuspendTenant(SuspendTenantRequest) returns (SuspendTenantResponse);
+  rpc ActivateTenant(ActivateTenantRequest) returns (ActivateTenantResponse);
+  rpc DeleteTenant(DeleteTenantRequest) returns (DeleteTenantResponse);
   rpc AddMember(AddMemberRequest) returns (AddMemberResponse);
   rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
   rpc GetProvisioningStatus(GetProvisioningStatusRequest) returns (GetProvisioningStatusResponse);
@@ -450,6 +454,40 @@ message ListTenantsRequest {
 message ListTenantsResponse {
   repeated Tenant tenants = 1;
   k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message UpdateTenantRequest {
+  string tenant_id = 1;
+  string display_name = 2;
+  string plan = 3;
+}
+
+message UpdateTenantResponse {
+  Tenant tenant = 1;
+}
+
+message SuspendTenantRequest {
+  string tenant_id = 1;
+}
+
+message SuspendTenantResponse {
+  Tenant tenant = 1;
+}
+
+message ActivateTenantRequest {
+  string tenant_id = 1;
+}
+
+message ActivateTenantResponse {
+  Tenant tenant = 1;
+}
+
+message DeleteTenantRequest {
+  string tenant_id = 1;
+}
+
+message DeleteTenantResponse {
+  Tenant tenant = 1;
 }
 
 message AddMemberRequest {
@@ -784,3 +822,14 @@ vault:
 
 - [system-saga-server.md](../saga/server.md) -- Saga パターンによるプロビジョニング
 - [REST-API設計.md](../../architecture/api/REST-API設計.md) -- D-007 統一エラーレスポンス
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `CreateTenant`, `GetTenant`, `ListTenants`, `UpdateTenant`, `SuspendTenant`, `ActivateTenant`, `DeleteTenant`
+- `AddMember`, `ListMembers`, `RemoveMember`, `GetProvisioningStatus`
+
+### Message/Field Corrections
+- `Tenant` includes `owner_id(7)`, `settings(8)`, `db_schema(9)`, `updated_at(10)`, `keycloak_realm(11)`.
+- `ListMembersRequest` and `ListMembersResponse` are canonical gRPC messages.
+- Tenant timestamp fields use `k1s0.system.common.v1.Timestamp`.

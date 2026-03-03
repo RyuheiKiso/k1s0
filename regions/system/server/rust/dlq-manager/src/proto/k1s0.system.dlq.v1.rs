@@ -13,7 +13,7 @@ pub struct DlqMessage {
     #[prost(int32, tag = "5")]
     pub max_retries: i32,
     #[prost(string, tag = "6")]
-    pub payload_json: ::prost::alloc::string::String,
+    pub payload: ::prost::alloc::string::String,
     /// ステータス（PENDING / RETRYING / RESOLVED / DEAD）
     #[prost(string, tag = "7")]
     pub status: ::prost::alloc::string::String,
@@ -39,8 +39,8 @@ pub struct ListMessagesRequest {
 pub struct ListMessagesResponse {
     #[prost(message, repeated, tag = "1")]
     pub messages: ::prost::alloc::vec::Vec<DlqMessage>,
-    #[prost(int64, tag = "2")]
-    pub total: i64,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
 }
 /// GetMessageRequest はメッセージ取得リクエスト。
 #[derive(Clone, PartialEq, ::prost::Message)]

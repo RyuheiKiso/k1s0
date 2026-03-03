@@ -10,6 +10,7 @@ use crate::infrastructure::kafka_producer::{
 pub struct IncrementQuotaUsageInput {
     pub quota_id: String,
     pub amount: u64,
+    pub request_id: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -201,6 +202,7 @@ mod tests {
         let input = IncrementQuotaUsageInput {
             quota_id: policy.id.clone(),
             amount: 1,
+            request_id: None,
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -242,6 +244,7 @@ mod tests {
         let input = IncrementQuotaUsageInput {
             quota_id: policy.id.clone(),
             amount: 1,
+            request_id: None,
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
@@ -273,6 +276,7 @@ mod tests {
         let input = IncrementQuotaUsageInput {
             quota_id: "nonexistent".to_string(),
             amount: 1,
+            request_id: None,
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
@@ -298,6 +302,7 @@ mod tests {
         let input = IncrementQuotaUsageInput {
             quota_id: "some-id".to_string(),
             amount: 1,
+            request_id: None,
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

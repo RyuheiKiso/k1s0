@@ -191,17 +191,15 @@ system tier の全文検索サーバーは以下の機能を提供する。
 
 ```json
 {
-  "total": 1,
+  "total_count": 1,
+  "page": 1,
+  "page_size": 20,
+  "has_next": false,
   "hits": [
     {
       "id": "product-001",
-      "index_name": "k1s0-products",
-      "content": {
-        "title": "高性能ノートPC",
-        "description": "最新世代プロセッサー搭載の高性能ノートパソコン",
-        "tenant_id": "tenant-abc"
-      },
-      "indexed_at": "2026-02-20T10:00:00.000+00:00"
+      "score": 1.0,
+      "document_json": "eyJ0aXRsZSI6IumrmOaAp+iDveODjuODvOODiFBDIiwiZGVzY3JpcHRpb24iOiLmnIDmlrDkuJbnlK/jg5fjg63jgrvjg4PjgrXjg7zmkq3ouInjga7pq5jmgKfjg47jg7zjg4jjg5Hjgr3jgrPjg7PjgafjgZkiLCJ0ZW5hbnRfaWQiOiJ0ZW5hbnQtYWJjIn0="
     }
   ]
 }
@@ -542,3 +540,12 @@ vault:
 
 - [RBAC設計.md](../../architecture/auth/RBAC設計.md) -- RBAC ロールモデル
 - [system-server.md](../auth/server.md) -- system tier サーバー一覧
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `CreateIndex`, `ListIndices`, `IndexDocument`, `Search`, `DeleteDocument`
+
+### Message/Field Corrections
+- `SearchIndex`, `CreateIndexRequest`, `CreateIndexResponse`, `ListIndicesRequest`, `ListIndicesResponse` are canonical messages.
+- `SearchResponse` pagination is `k1s0.system.common.v1.PaginationResult`.

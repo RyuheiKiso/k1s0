@@ -31,6 +31,8 @@ pub struct Route {
     pub guards: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transition: Option<TransitionType>,
+    #[serde(default = "default_transition_duration_ms")]
+    pub transition_duration_ms: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub redirect_to: Option<String>,
     #[serde(default)]
@@ -74,6 +76,10 @@ pub enum ParamType {
     Uuid,
 }
 
+const fn default_transition_duration_ms() -> u32 {
+    300
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -112,6 +118,7 @@ routes:
         assert_eq!(config.guards[1].roles, vec!["admin"]);
         assert_eq!(config.routes.len(), 3);
         assert_eq!(config.routes[2].transition, Some(TransitionType::Fade));
+        assert_eq!(config.routes[2].transition_duration_ms, 300);
     }
 
     #[test]

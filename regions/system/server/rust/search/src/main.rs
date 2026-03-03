@@ -128,6 +128,8 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let grpc_svc = Arc::new(SearchGrpcService::new(
+        create_index_uc.clone(),
+        list_indices_uc.clone(),
         index_document_uc.clone(),
         search_uc.clone(),
         delete_document_uc.clone(),

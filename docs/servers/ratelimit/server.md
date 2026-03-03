@@ -386,13 +386,17 @@ service RateLimitService {
   rpc CheckRateLimit(CheckRateLimitRequest) returns (CheckRateLimitResponse);
   rpc CreateRule(CreateRuleRequest) returns (CreateRuleResponse);
   rpc GetRule(GetRuleRequest) returns (GetRuleResponse);
+  rpc UpdateRule(UpdateRuleRequest) returns (UpdateRuleResponse);
+  rpc DeleteRule(DeleteRuleRequest) returns (DeleteRuleResponse);
+  rpc ListRules(ListRulesRequest) returns (ListRulesResponse);
   rpc GetUsage(GetUsageRequest) returns (GetUsageResponse);
   rpc ResetLimit(ResetLimitRequest) returns (ResetLimitResponse);
 }
 
 message CheckRateLimitRequest {
-  string rule_id = 1;
-  string subject = 2;
+  string scope = 1;
+  string identifier = 2;
+  int64 window = 3;
 }
 
 message CheckRateLimitResponse {
@@ -403,11 +407,11 @@ message CheckRateLimitResponse {
 }
 
 message CreateRuleRequest {
-  string name = 1;
-  string key = 2;
+  string scope = 1;
+  string identifier_pattern = 2;
   int64 limit = 3;
-  int64 window_secs = 4;
-  string algorithm = 5;
+  int64 window_seconds = 4;
+  bool enabled = 5;
 }
 
 message CreateRuleResponse {
@@ -422,15 +426,43 @@ message GetRuleResponse {
   RateLimitRule rule = 1;
 }
 
+message UpdateRuleRequest {
+  string rule_id = 1;
+  string scope = 2;
+  string identifier_pattern = 3;
+  int64 limit = 4;
+  int64 window_seconds = 5;
+  bool enabled = 6;
+}
+
+message UpdateRuleResponse {
+  RateLimitRule rule = 1;
+}
+
+message DeleteRuleRequest {
+  string rule_id = 1;
+}
+
+message DeleteRuleResponse {
+  bool success = 1;
+}
+
+message ListRulesRequest {}
+
+message ListRulesResponse {
+  repeated RateLimitRule rules = 1;
+}
+
 message RateLimitRule {
   string id = 1;
-  string name = 2;
-  string key = 3;
+  string scope = 2;
+  string identifier_pattern = 3;
   int64 limit = 4;
-  int64 window_secs = 5;
+  int64 window_seconds = 5;
   string algorithm = 6;
   bool enabled = 7;
   google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
 }
 
 message GetUsageRequest {
@@ -444,6 +476,9 @@ message GetUsageResponse {
   int64 window_secs = 4;
   string algorithm = 5;
   bool enabled = 6;
+  optional int64 used = 7;
+  optional int64 remaining = 8;
+  optional int64 reset_at = 9;
 }
 
 message ResetLimitRequest {
@@ -782,3 +817,13 @@ vault:
 > 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [APIゲートウェイ設計.md](../../architecture/api/APIゲートウェイ設計.md) -- Kong API ゲートウェイ設計
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `CheckRateLimit`, `CreateRule`, `GetRule`, `UpdateRule`, `DeleteRule`, `ListRules`, `GetUsage`, `ResetLimit`
+
+### Message/Field Corrections
+- `ListRulesRequest` supports `scope`, `enabled_only`, `page`, `page_size`.
+- `CheckRateLimitResponse.limit` is present.
+- `GetUsageResponse.window_seconds` is canonical field name.

@@ -74,7 +74,7 @@ async fn main() -> anyhow::Result<()> {
         };
 
     // Kafka publisher
-    let _publisher: Arc<dyn FileEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
+    let publisher: Arc<dyn FileEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
         match FileKafkaProducer::new(kafka_cfg) {
             Ok(p) => {
                 info!("Kafka file event publisher enabled");
@@ -97,7 +97,10 @@ async fn main() -> anyhow::Result<()> {
         storage_repo.clone(),
     ));
     let complete_upload_uc =
-        Arc::new(usecase::CompleteUploadUseCase::new(metadata_repo.clone()));
+        Arc::new(usecase::CompleteUploadUseCase::new(
+            metadata_repo.clone(),
+            publisher.clone(),
+        ));
     let get_file_metadata_uc =
         Arc::new(usecase::GetFileMetadataUseCase::new(metadata_repo.clone()));
     let generate_download_url_uc = Arc::new(usecase::GenerateDownloadUrlUseCase::new(
@@ -107,6 +110,7 @@ async fn main() -> anyhow::Result<()> {
     let delete_file_uc = Arc::new(usecase::DeleteFileUseCase::new(
         metadata_repo.clone(),
         storage_repo.clone(),
+        publisher.clone(),
     ));
     let update_file_tags_uc =
         Arc::new(usecase::UpdateFileTagsUseCase::new(metadata_repo.clone()));
@@ -225,25 +229,44 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
     async fn find_all(
         &self,
         tenant_id: Option<String>,
-        _owner_id: Option<String>,
-        _mime_type: Option<String>,
-        _tag: Option<(String, String)>,
-        _page: u32,
-        _page_size: u32,
+        owner_id: Option<String>,
+        mime_type: Option<String>,
+        tag: Option<(String, String)>,
+        page: u32,
+        page_size: u32,
     ) -> anyhow::Result<(Vec<FileMetadata>, u64)> {
         let files = self.files.read().await;
-        let filtered: Vec<FileMetadata> = files
+        let mut filtered: Vec<FileMetadata> = files
             .values()
             .filter(|f| {
                 if let Some(ref tid) = tenant_id {
-                    f.tenant_id == *tid
-                } else {
-                    true
+                    if f.tenant_id != *tid {
+                        return false;
+                    }
                 }
+                if let Some(ref oid) = owner_id {
+                    if f.owner_id != *oid {
+                        return false;
+                    }
+                }
+                if let Some(ref mime) = mime_type {
+                    if !f.mime_type.starts_with(mime) {
+                        return false;
+                    }
+                }
+                if let Some((ref key, ref value)) = tag {
+                    match f.tags.get(key) {
+                        Some(v) if v == value => {}
+                        _ => return false,
+                    }
+                }
+                true
             })
             .cloned()
             .collect();
         let total = filtered.len() as u64;
+        let start = page.saturating_sub(1) as usize * page_size as usize;
+        filtered = filtered.into_iter().skip(start).take(page_size as usize).collect();
         Ok((filtered, total))
     }
 

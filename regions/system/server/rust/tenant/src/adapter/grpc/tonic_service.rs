@@ -9,22 +9,31 @@ use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::tenant::v1::{
     tenant_service_server::TenantService,
+    ActivateTenantRequest as ProtoActivateTenantRequest,
+    ActivateTenantResponse as ProtoActivateTenantResponse,
     AddMemberRequest as ProtoAddMemberRequest, AddMemberResponse as ProtoAddMemberResponse,
     CreateTenantRequest as ProtoCreateTenantRequest,
     CreateTenantResponse as ProtoCreateTenantResponse,
+    DeleteTenantRequest as ProtoDeleteTenantRequest,
+    DeleteTenantResponse as ProtoDeleteTenantResponse,
     GetProvisioningStatusRequest as ProtoGetProvisioningStatusRequest,
     GetProvisioningStatusResponse as ProtoGetProvisioningStatusResponse,
     GetTenantRequest as ProtoGetTenantRequest, GetTenantResponse as ProtoGetTenantResponse,
     ListTenantsRequest as ProtoListTenantsRequest,
     ListTenantsResponse as ProtoListTenantsResponse, ProvisioningJob as ProtoProvisioningJob,
+    ListMembersRequest as ProtoListMembersRequest, ListMembersResponse as ProtoListMembersResponse,
     RemoveMemberRequest as ProtoRemoveMemberRequest,
     RemoveMemberResponse as ProtoRemoveMemberResponse, Tenant as ProtoTenant,
-    TenantMember as ProtoTenantMember,
+    TenantMember as ProtoTenantMember, SuspendTenantRequest as ProtoSuspendTenantRequest,
+    SuspendTenantResponse as ProtoSuspendTenantResponse,
+    UpdateTenantRequest as ProtoUpdateTenantRequest,
+    UpdateTenantResponse as ProtoUpdateTenantResponse,
 };
 
 use super::tenant_grpc::{
-    AddMemberRequest, CreateTenantRequest, GetProvisioningStatusRequest, GetTenantRequest,
-    GrpcError, ListTenantsRequest, RemoveMemberRequest, TenantGrpcService,
+    ActivateTenantRequest, AddMemberRequest, CreateTenantRequest, DeleteTenantRequest,
+    GetProvisioningStatusRequest, GetTenantRequest, GrpcError, ListMembersRequest,
+    ListTenantsRequest, RemoveMemberRequest, SuspendTenantRequest, TenantGrpcService, UpdateTenantRequest,
 };
 
 // --- GrpcError -> tonic::Status 変換 ---
@@ -44,8 +53,8 @@ impl From<GrpcError> for Status {
 
 fn pb_timestamp_to_proto(
     ts: &super::tenant_grpc::PbTimestamp,
-) -> ::prost_types::Timestamp {
-    ::prost_types::Timestamp {
+) -> crate::proto::k1s0::system::common::v1::Timestamp {
+    crate::proto::k1s0::system::common::v1::Timestamp {
         seconds: ts.seconds,
         nanos: ts.nanos,
     }
@@ -58,7 +67,12 @@ fn pb_tenant_to_proto(t: &super::tenant_grpc::PbTenant) -> ProtoTenant {
         display_name: t.display_name.clone(),
         status: t.status.clone(),
         plan: t.plan.clone(),
+        owner_id: t.owner_id.clone(),
+        settings: t.settings.clone(),
+        db_schema: t.db_schema.clone(),
+        keycloak_realm: t.keycloak_realm.clone(),
         created_at: t.created_at.as_ref().map(pb_timestamp_to_proto),
+        updated_at: t.updated_at.as_ref().map(pb_timestamp_to_proto),
     }
 }
 
@@ -161,11 +175,89 @@ impl TenantService for TenantServiceTonic {
             pagination: Some(
                 crate::proto::k1s0::system::common::v1::PaginationResult {
                     total_count: resp.total_count as i32,
-                    page: 0,
-                    page_size: 0,
-                    has_next: false,
+                    page: resp.page,
+                    page_size: resp.page_size,
+                    has_next: resp.has_next,
                 },
             ),
+        }))
+    }
+
+    async fn update_tenant(
+        &self,
+        request: Request<ProtoUpdateTenantRequest>,
+    ) -> Result<Response<ProtoUpdateTenantResponse>, Status> {
+        let inner = request.into_inner();
+        let req = UpdateTenantRequest {
+            tenant_id: inner.tenant_id,
+            display_name: inner.display_name,
+            plan: inner.plan,
+        };
+        let resp = self
+            .inner
+            .update_tenant(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoUpdateTenantResponse {
+            tenant: resp.tenant.as_ref().map(pb_tenant_to_proto),
+        }))
+    }
+
+    async fn suspend_tenant(
+        &self,
+        request: Request<ProtoSuspendTenantRequest>,
+    ) -> Result<Response<ProtoSuspendTenantResponse>, Status> {
+        let inner = request.into_inner();
+        let req = SuspendTenantRequest {
+            tenant_id: inner.tenant_id,
+        };
+        let resp = self
+            .inner
+            .suspend_tenant(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoSuspendTenantResponse {
+            tenant: resp.tenant.as_ref().map(pb_tenant_to_proto),
+        }))
+    }
+
+    async fn activate_tenant(
+        &self,
+        request: Request<ProtoActivateTenantRequest>,
+    ) -> Result<Response<ProtoActivateTenantResponse>, Status> {
+        let inner = request.into_inner();
+        let req = ActivateTenantRequest {
+            tenant_id: inner.tenant_id,
+        };
+        let resp = self
+            .inner
+            .activate_tenant(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoActivateTenantResponse {
+            tenant: resp.tenant.as_ref().map(pb_tenant_to_proto),
+        }))
+    }
+
+    async fn delete_tenant(
+        &self,
+        request: Request<ProtoDeleteTenantRequest>,
+    ) -> Result<Response<ProtoDeleteTenantResponse>, Status> {
+        let inner = request.into_inner();
+        let req = DeleteTenantRequest {
+            tenant_id: inner.tenant_id,
+        };
+        let resp = self
+            .inner
+            .delete_tenant(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoDeleteTenantResponse {
+            tenant: resp.tenant.as_ref().map(pb_tenant_to_proto),
         }))
     }
 
@@ -187,6 +279,24 @@ impl TenantService for TenantServiceTonic {
 
         Ok(Response::new(ProtoAddMemberResponse {
             member: resp.member.as_ref().map(pb_member_to_proto),
+        }))
+    }
+
+    async fn list_members(
+        &self,
+        request: Request<ProtoListMembersRequest>,
+    ) -> Result<Response<ProtoListMembersResponse>, Status> {
+        let req = ListMembersRequest {
+            tenant_id: request.into_inner().tenant_id,
+        };
+        let resp = self
+            .inner
+            .list_members(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoListMembersResponse {
+            members: resp.members.iter().map(pb_member_to_proto).collect(),
         }))
     }
 

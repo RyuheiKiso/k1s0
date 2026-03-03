@@ -22,6 +22,9 @@ pub async fn list_quotas(
     let input = ListQuotaPoliciesInput {
         page: params.page.unwrap_or(1),
         page_size: params.page_size.unwrap_or(20),
+        subject_type: None,
+        subject_id: None,
+        enabled_only: None,
     };
 
     match state.list_policies_uc.execute(&input).await {
@@ -229,6 +232,7 @@ pub async fn increment_usage(
     let input = IncrementQuotaUsageInput {
         quota_id: id,
         amount: req.amount,
+        request_id: req.request_id,
     };
 
     match state.increment_usage_uc.execute(&input).await {
@@ -285,6 +289,7 @@ pub async fn reset_usage(
 #[derive(Debug, Deserialize)]
 pub struct IncrementUsageRequest {
     pub amount: u64,
+    pub request_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -6,9 +6,9 @@ pub struct GetNavigationRequest {
     #[prost(string, tag = "1")]
     pub bearer_token: ::prost::alloc::string::String,
 }
-/// NavigationResponse はナビゲーション設定取得レスポンス。
+/// GetNavigationResponse はナビゲーション設定取得レスポンス。
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NavigationResponse {
+pub struct GetNavigationResponse {
     #[prost(message, repeated, tag = "1")]
     pub routes: ::prost::alloc::vec::Vec<Route>,
     #[prost(message, repeated, tag = "2")]
@@ -179,7 +179,7 @@ pub mod navigation_service_server {
             &self,
             request: tonic::Request<super::GetNavigationRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::NavigationResponse>,
+            tonic::Response<super::GetNavigationResponse>,
             tonic::Status,
         >;
     }
@@ -267,7 +267,7 @@ pub mod navigation_service_server {
                         T: NavigationService,
                     > tonic::server::UnaryService<super::GetNavigationRequest>
                     for GetNavigationSvc<T> {
-                        type Response = super::NavigationResponse;
+                        type Response = super::GetNavigationResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,

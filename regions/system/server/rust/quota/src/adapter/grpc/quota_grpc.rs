@@ -22,6 +22,7 @@ use crate::domain::entity::quota::{QuotaPolicy, QuotaUsage, IncrementResult};
 pub enum GrpcError {
     NotFound(String),
     InvalidArgument(String),
+    ResourceExhausted(String),
     Internal(String),
 }
 
@@ -80,7 +81,7 @@ impl From<IncrementQuotaUsageError> for GrpcError {
                 used,
                 limit,
                 ..
-            } => GrpcError::InvalidArgument(format!(
+            } => GrpcError::ResourceExhausted(format!(
                 "quota exceeded for {}: {}/{}",
                 quota_id, used, limit
             )),
@@ -126,6 +127,9 @@ pub struct UpdatePolicyRequest {
 pub struct ListPoliciesRequest {
     pub page: u32,
     pub page_size: u32,
+    pub subject_type: Option<String>,
+    pub subject_id: Option<String>,
+    pub enabled_only: Option<bool>,
 }
 
 /// ListPoliciesResult は ListQuotaPolicies の結果。
@@ -202,6 +206,9 @@ impl QuotaGrpcService {
         let input = ListQuotaPoliciesInput {
             page: req.page,
             page_size: req.page_size,
+            subject_type: req.subject_type,
+            subject_id: req.subject_id,
+            enabled_only: req.enabled_only,
         };
         let output = self
             .list_policies_uc
@@ -264,12 +271,21 @@ impl QuotaGrpcService {
             .map_err(GrpcError::from)
     }
 
+    pub async fn check_quota(&self, quota_id: &str) -> Result<QuotaUsage, GrpcError> {
+        self.get_usage(quota_id).await
+    }
+
     pub async fn increment_usage(
         &self,
         quota_id: String,
         amount: u64,
+        request_id: Option<String>,
     ) -> Result<IncrementResult, GrpcError> {
-        let input = IncrementQuotaUsageInput { quota_id, amount };
+        let input = IncrementQuotaUsageInput {
+            quota_id,
+            amount,
+            request_id,
+        };
         self.increment_usage_uc
             .execute(&input)
             .await
@@ -280,11 +296,12 @@ impl QuotaGrpcService {
         &self,
         quota_id: String,
         reason: String,
+        reset_by: String,
     ) -> Result<QuotaUsage, GrpcError> {
         let input = ResetQuotaUsageInput {
             quota_id: quota_id.clone(),
             reason,
-            reset_by: "grpc".to_string(),
+            reset_by,
         };
         self.reset_usage_uc
             .execute(&input)
@@ -302,10 +319,12 @@ mod tests {
     fn test_grpc_error_variants() {
         let e1 = GrpcError::NotFound("test".to_string());
         let e2 = GrpcError::InvalidArgument("test".to_string());
-        let e3 = GrpcError::Internal("test".to_string());
+        let e3 = GrpcError::ResourceExhausted("test".to_string());
+        let e4 = GrpcError::Internal("test".to_string());
         assert!(matches!(e1, GrpcError::NotFound(_)));
         assert!(matches!(e2, GrpcError::InvalidArgument(_)));
-        assert!(matches!(e3, GrpcError::Internal(_)));
+        assert!(matches!(e3, GrpcError::ResourceExhausted(_)));
+        assert!(matches!(e4, GrpcError::Internal(_)));
     }
 
     #[test]
@@ -350,6 +369,6 @@ mod tests {
             period: "daily".to_string(),
         };
         let grpc: GrpcError = e.into();
-        assert!(matches!(grpc, GrpcError::InvalidArgument(_)));
+        assert!(matches!(grpc, GrpcError::ResourceExhausted(_)));
     }
 }

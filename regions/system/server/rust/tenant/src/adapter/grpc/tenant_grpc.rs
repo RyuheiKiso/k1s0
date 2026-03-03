@@ -2,8 +2,11 @@ use std::sync::Arc;
 
 use crate::domain::entity::{ProvisioningJob, Tenant, TenantMember};
 use crate::usecase::{
-    AddMemberInput, AddMemberUseCase, CreateTenantInput, CreateTenantUseCase,
-    GetProvisioningStatusUseCase, GetTenantUseCase, ListTenantsUseCase, RemoveMemberUseCase,
+    ActivateTenantError, ActivateTenantUseCase, AddMemberInput, AddMemberUseCase,
+    CreateTenantInput, CreateTenantUseCase, DeleteTenantError, DeleteTenantUseCase,
+    GetProvisioningStatusUseCase, GetTenantUseCase, ListMembersError, ListMembersUseCase,
+    ListTenantsUseCase, RemoveMemberUseCase, SuspendTenantError, SuspendTenantUseCase,
+    UpdateTenantError, UpdateTenantInput, UpdateTenantUseCase,
 };
 
 // --- gRPC Request/Response Types (proto equivalent) ---
@@ -21,8 +24,10 @@ pub struct PbTenant {
     pub display_name: String,
     pub status: String,
     pub plan: String,
-    pub realm_name: String,
+    pub keycloak_realm: String,
     pub owner_id: String,
+    pub settings: String,
+    pub db_schema: String,
     pub created_at: Option<PbTimestamp>,
     pub updated_at: Option<PbTimestamp>,
 }
@@ -80,6 +85,9 @@ pub struct ListTenantsRequest {
 pub struct ListTenantsResponse {
     pub tenants: Vec<PbTenant>,
     pub total_count: i64,
+    pub page: i32,
+    pub page_size: i32,
+    pub has_next: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -92,6 +100,16 @@ pub struct AddMemberRequest {
 #[derive(Debug, Clone)]
 pub struct AddMemberResponse {
     pub member: Option<PbTenantMember>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListMembersRequest {
+    pub tenant_id: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListMembersResponse {
+    pub members: Vec<PbTenantMember>,
 }
 
 #[derive(Debug, Clone)]
@@ -115,6 +133,48 @@ pub struct GetProvisioningStatusResponse {
     pub job: Option<PbProvisioningJob>,
 }
 
+#[derive(Debug, Clone)]
+pub struct UpdateTenantRequest {
+    pub tenant_id: String,
+    pub display_name: String,
+    pub plan: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct UpdateTenantResponse {
+    pub tenant: Option<PbTenant>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SuspendTenantRequest {
+    pub tenant_id: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct SuspendTenantResponse {
+    pub tenant: Option<PbTenant>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ActivateTenantRequest {
+    pub tenant_id: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ActivateTenantResponse {
+    pub tenant: Option<PbTenant>,
+}
+
+#[derive(Debug, Clone)]
+pub struct DeleteTenantRequest {
+    pub tenant_id: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct DeleteTenantResponse {
+    pub tenant: Option<PbTenant>,
+}
+
 // --- gRPC Error ---
 
 #[derive(Debug, thiserror::Error)]
@@ -135,7 +195,12 @@ pub struct TenantGrpcService {
     create_tenant_uc: Arc<CreateTenantUseCase>,
     get_tenant_uc: Arc<GetTenantUseCase>,
     list_tenants_uc: Arc<ListTenantsUseCase>,
+    update_tenant_uc: Arc<UpdateTenantUseCase>,
+    suspend_tenant_uc: Arc<SuspendTenantUseCase>,
+    activate_tenant_uc: Arc<ActivateTenantUseCase>,
+    delete_tenant_uc: Arc<DeleteTenantUseCase>,
     add_member_uc: Arc<AddMemberUseCase>,
+    list_members_uc: Arc<ListMembersUseCase>,
     remove_member_uc: Arc<RemoveMemberUseCase>,
     get_provisioning_status_uc: Arc<GetProvisioningStatusUseCase>,
 }
@@ -145,7 +210,12 @@ impl TenantGrpcService {
         create_tenant_uc: Arc<CreateTenantUseCase>,
         get_tenant_uc: Arc<GetTenantUseCase>,
         list_tenants_uc: Arc<ListTenantsUseCase>,
+        update_tenant_uc: Arc<UpdateTenantUseCase>,
+        suspend_tenant_uc: Arc<SuspendTenantUseCase>,
+        activate_tenant_uc: Arc<ActivateTenantUseCase>,
+        delete_tenant_uc: Arc<DeleteTenantUseCase>,
         add_member_uc: Arc<AddMemberUseCase>,
+        list_members_uc: Arc<ListMembersUseCase>,
         remove_member_uc: Arc<RemoveMemberUseCase>,
         get_provisioning_status_uc: Arc<GetProvisioningStatusUseCase>,
     ) -> Self {
@@ -153,7 +223,12 @@ impl TenantGrpcService {
             create_tenant_uc,
             get_tenant_uc,
             list_tenants_uc,
+            update_tenant_uc,
+            suspend_tenant_uc,
+            activate_tenant_uc,
+            delete_tenant_uc,
             add_member_uc,
+            list_members_uc,
             remove_member_uc,
             get_provisioning_status_uc,
         }
@@ -220,12 +295,94 @@ impl TenantGrpcService {
             Ok((tenants, total_count)) => {
                 let pb_tenants: Vec<PbTenant> =
                     tenants.iter().map(domain_tenant_to_pb).collect();
+                let has_next = (page as i64 * page_size as i64) < total_count;
                 Ok(ListTenantsResponse {
                     tenants: pb_tenants,
                     total_count,
+                    page,
+                    page_size,
+                    has_next,
                 })
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
+        }
+    }
+
+    pub async fn update_tenant(
+        &self,
+        req: UpdateTenantRequest,
+    ) -> Result<UpdateTenantResponse, GrpcError> {
+        let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+        let input = UpdateTenantInput {
+            id: tenant_id,
+            display_name: req.display_name,
+            plan: req.plan,
+        };
+
+        match self.update_tenant_uc.execute(input).await {
+            Ok(tenant) => Ok(UpdateTenantResponse {
+                tenant: Some(domain_tenant_to_pb(&tenant)),
+            }),
+            Err(UpdateTenantError::NotFound(id)) => {
+                Err(GrpcError::NotFound(format!("tenant not found: {}", id)))
+            }
+            Err(UpdateTenantError::InvalidStatus(msg)) => Err(GrpcError::InvalidArgument(msg)),
+            Err(UpdateTenantError::Internal(msg)) => Err(GrpcError::Internal(msg)),
+        }
+    }
+
+    pub async fn suspend_tenant(
+        &self,
+        req: SuspendTenantRequest,
+    ) -> Result<SuspendTenantResponse, GrpcError> {
+        let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+        match self.suspend_tenant_uc.execute(tenant_id).await {
+            Ok(tenant) => Ok(SuspendTenantResponse {
+                tenant: Some(domain_tenant_to_pb(&tenant)),
+            }),
+            Err(SuspendTenantError::NotFound(id)) => {
+                Err(GrpcError::NotFound(format!("tenant not found: {}", id)))
+            }
+            Err(SuspendTenantError::InvalidStatus(msg)) => Err(GrpcError::InvalidArgument(msg)),
+            Err(SuspendTenantError::Internal(msg)) => Err(GrpcError::Internal(msg)),
+        }
+    }
+
+    pub async fn activate_tenant(
+        &self,
+        req: ActivateTenantRequest,
+    ) -> Result<ActivateTenantResponse, GrpcError> {
+        let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+        match self.activate_tenant_uc.execute(tenant_id).await {
+            Ok(tenant) => Ok(ActivateTenantResponse {
+                tenant: Some(domain_tenant_to_pb(&tenant)),
+            }),
+            Err(ActivateTenantError::NotFound(id)) => {
+                Err(GrpcError::NotFound(format!("tenant not found: {}", id)))
+            }
+            Err(ActivateTenantError::InvalidStatus(msg)) => Err(GrpcError::InvalidArgument(msg)),
+            Err(ActivateTenantError::Internal(msg)) => Err(GrpcError::Internal(msg)),
+        }
+    }
+
+    pub async fn delete_tenant(
+        &self,
+        req: DeleteTenantRequest,
+    ) -> Result<DeleteTenantResponse, GrpcError> {
+        let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+        match self.delete_tenant_uc.execute(tenant_id).await {
+            Ok(tenant) => Ok(DeleteTenantResponse {
+                tenant: Some(domain_tenant_to_pb(&tenant)),
+            }),
+            Err(DeleteTenantError::NotFound(id)) => {
+                Err(GrpcError::NotFound(format!("tenant not found: {}", id)))
+            }
+            Err(DeleteTenantError::InvalidStatus(msg)) => Err(GrpcError::InvalidArgument(msg)),
+            Err(DeleteTenantError::Internal(msg)) => Err(GrpcError::Internal(msg)),
         }
     }
 
@@ -253,6 +410,24 @@ impl TenantGrpcService {
                 Err(GrpcError::AlreadyExists("member already exists".to_string()))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
+        }
+    }
+
+    pub async fn list_members(
+        &self,
+        req: ListMembersRequest,
+    ) -> Result<ListMembersResponse, GrpcError> {
+        let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+
+        match self.list_members_uc.execute(tenant_id).await {
+            Ok(members) => Ok(ListMembersResponse {
+                members: members.iter().map(domain_member_to_pb).collect(),
+            }),
+            Err(ListMembersError::NotFound(id)) => {
+                Err(GrpcError::NotFound(format!("tenant not found: {}", id)))
+            }
+            Err(ListMembersError::Internal(msg)) => Err(GrpcError::Internal(msg)),
         }
     }
 
@@ -312,14 +487,22 @@ fn validate_role(s: &str) -> Result<(), GrpcError> {
 // --- Conversion helpers ---
 
 fn domain_tenant_to_pb(t: &Tenant) -> PbTenant {
+    let owner_id = t
+        .settings
+        .get("owner_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or_default()
+        .to_string();
     PbTenant {
         id: t.id.to_string(),
         name: t.name.clone(),
         display_name: t.display_name.clone(),
         status: t.status.as_str().to_string(),
         plan: t.plan.clone(),
-        realm_name: t.keycloak_realm.clone().unwrap_or_default(),
-        owner_id: String::new(),
+        keycloak_realm: t.keycloak_realm.clone().unwrap_or_default(),
+        owner_id,
+        settings: t.settings.to_string(),
+        db_schema: t.db_schema.clone().unwrap_or_default(),
         created_at: Some(PbTimestamp {
             seconds: t.created_at.timestamp(),
             nanos: t.created_at.timestamp_subsec_nanos() as i32,
@@ -427,8 +610,13 @@ mod tests {
         TenantGrpcService::new(
             Arc::new(CreateTenantUseCase::new(tenant_repo.clone())),
             Arc::new(GetTenantUseCase::new(tenant_repo.clone())),
-            Arc::new(ListTenantsUseCase::new(tenant_repo)),
+            Arc::new(ListTenantsUseCase::new(tenant_repo.clone())),
+            Arc::new(UpdateTenantUseCase::new(tenant_repo.clone())),
+            Arc::new(SuspendTenantUseCase::new(tenant_repo.clone())),
+            Arc::new(ActivateTenantUseCase::new(tenant_repo.clone())),
+            Arc::new(DeleteTenantUseCase::new(tenant_repo)),
             Arc::new(AddMemberUseCase::new(member_repo.clone())),
+            Arc::new(ListMembersUseCase::new(member_repo.clone())),
             Arc::new(RemoveMemberUseCase::new(member_repo.clone())),
             Arc::new(GetProvisioningStatusUseCase::new(member_repo)),
         )
@@ -481,6 +669,8 @@ mod tests {
         let resp = svc.list_tenants(req).await.unwrap();
         assert_eq!(resp.tenants.len(), 1);
         assert_eq!(resp.total_count, 1);
+        assert_eq!(resp.page, 1);
+        assert_eq!(resp.page_size, 10);
     }
 
     #[tokio::test]

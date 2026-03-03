@@ -37,6 +37,34 @@ pub struct GetNotificationResponse {
     pub notification: ::core::option::Option<NotificationLog>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RetryNotificationRequest {
+    #[prost(string, tag = "1")]
+    pub notification_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RetryNotificationResponse {
+    #[prost(message, optional, tag = "1")]
+    pub notification: ::core::option::Option<NotificationLog>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListNotificationsRequest {
+    #[prost(string, optional, tag = "1")]
+    pub channel_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "2")]
+    pub status: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(uint32, tag = "3")]
+    pub page: u32,
+    #[prost(uint32, tag = "4")]
+    pub page_size: u32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListNotificationsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub notifications: ::prost::alloc::vec::Vec<NotificationLog>,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NotificationLog {
     #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
@@ -95,8 +123,8 @@ pub struct ListChannelsRequest {
 pub struct ListChannelsResponse {
     #[prost(message, repeated, tag = "1")]
     pub channels: ::prost::alloc::vec::Vec<Channel>,
-    #[prost(uint64, tag = "2")]
-    pub total: u64,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateChannelRequest {
@@ -182,8 +210,8 @@ pub struct ListTemplatesRequest {
 pub struct ListTemplatesResponse {
     #[prost(message, repeated, tag = "1")]
     pub templates: ::prost::alloc::vec::Vec<Template>,
-    #[prost(uint64, tag = "2")]
-    pub total: u64,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateTemplateRequest {
@@ -264,6 +292,20 @@ pub mod notification_service_server {
             request: tonic::Request<super::GetNotificationRequest>,
         ) -> std::result::Result<
             tonic::Response<super::GetNotificationResponse>,
+            tonic::Status,
+        >;
+        async fn retry_notification(
+            &self,
+            request: tonic::Request<super::RetryNotificationRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RetryNotificationResponse>,
+            tonic::Status,
+        >;
+        async fn list_notifications(
+            &self,
+            request: tonic::Request<super::ListNotificationsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListNotificationsResponse>,
             tonic::Status,
         >;
         async fn list_channels(
@@ -496,6 +538,104 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetNotificationSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.notification.v1.NotificationService/RetryNotification" => {
+                    #[allow(non_camel_case_types)]
+                    struct RetryNotificationSvc<T: NotificationService>(pub Arc<T>);
+                    impl<
+                        T: NotificationService,
+                    > tonic::server::UnaryService<super::RetryNotificationRequest>
+                    for RetryNotificationSvc<T> {
+                        type Response = super::RetryNotificationResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::RetryNotificationRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as NotificationService>::retry_notification(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = RetryNotificationSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.notification.v1.NotificationService/ListNotifications" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListNotificationsSvc<T: NotificationService>(pub Arc<T>);
+                    impl<
+                        T: NotificationService,
+                    > tonic::server::UnaryService<super::ListNotificationsRequest>
+                    for ListNotificationsSvc<T> {
+                        type Response = super::ListNotificationsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListNotificationsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as NotificationService>::list_notifications(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListNotificationsSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

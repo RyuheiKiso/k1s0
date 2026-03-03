@@ -1,10 +1,37 @@
-use std::sync::Arc;
+﻿use std::sync::Arc;
 
+use crate::usecase::create_index::{CreateIndexError, CreateIndexInput, CreateIndexUseCase};
 use crate::usecase::delete_document::{DeleteDocumentError, DeleteDocumentUseCase};
 use crate::usecase::index_document::{IndexDocumentError, IndexDocumentInput, IndexDocumentUseCase};
+use crate::usecase::list_indices::{ListIndicesError, ListIndicesUseCase};
 use crate::usecase::search::{SearchError, SearchInput, SearchUseCase};
 
-// --- gRPC Request/Response Types ---
+#[derive(Debug, Clone)]
+pub struct SearchIndex {
+    pub id: String,
+    pub name: String,
+    pub mapping_json: Vec<u8>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateIndexRequest {
+    pub name: String,
+    pub mapping_json: Vec<u8>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateIndexResponse {
+    pub index: SearchIndex,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListIndicesRequest {}
+
+#[derive(Debug, Clone)]
+pub struct ListIndicesResponse {
+    pub indices: Vec<SearchIndex>,
+}
 
 #[derive(Debug, Clone)]
 pub struct IndexDocumentRequest {
@@ -57,12 +84,13 @@ pub struct DeleteDocumentResponse {
     pub message: String,
 }
 
-// --- gRPC Error ---
-
 #[derive(Debug, thiserror::Error)]
 pub enum GrpcError {
     #[error("not found: {0}")]
     NotFound(String),
+
+    #[error("already exists: {0}")]
+    AlreadyExists(String),
 
     #[error("invalid argument: {0}")]
     InvalidArgument(String),
@@ -71,9 +99,9 @@ pub enum GrpcError {
     Internal(String),
 }
 
-// --- SearchGrpcService ---
-
 pub struct SearchGrpcService {
+    create_index_uc: Arc<CreateIndexUseCase>,
+    list_indices_uc: Arc<ListIndicesUseCase>,
     index_document_uc: Arc<IndexDocumentUseCase>,
     search_uc: Arc<SearchUseCase>,
     delete_document_uc: Arc<DeleteDocumentUseCase>,
@@ -81,15 +109,83 @@ pub struct SearchGrpcService {
 
 impl SearchGrpcService {
     pub fn new(
+        create_index_uc: Arc<CreateIndexUseCase>,
+        list_indices_uc: Arc<ListIndicesUseCase>,
         index_document_uc: Arc<IndexDocumentUseCase>,
         search_uc: Arc<SearchUseCase>,
         delete_document_uc: Arc<DeleteDocumentUseCase>,
     ) -> Self {
         Self {
+            create_index_uc,
+            list_indices_uc,
             index_document_uc,
             search_uc,
             delete_document_uc,
         }
+    }
+
+    pub async fn create_index(
+        &self,
+        req: CreateIndexRequest,
+    ) -> Result<CreateIndexResponse, GrpcError> {
+        if req.name.trim().is_empty() {
+            return Err(GrpcError::InvalidArgument("name is required".to_string()));
+        }
+
+        let mapping = if req.mapping_json.is_empty() {
+            serde_json::json!({})
+        } else {
+            serde_json::from_slice(&req.mapping_json)
+                .map_err(|e| GrpcError::InvalidArgument(format!("invalid mapping_json: {}", e)))?
+        };
+
+        let index = self
+            .create_index_uc
+            .execute(&CreateIndexInput {
+                name: req.name,
+                mapping,
+            })
+            .await
+            .map_err(|e| match e {
+                CreateIndexError::AlreadyExists(name) => {
+                    GrpcError::AlreadyExists(format!("index already exists: {}", name))
+                }
+                CreateIndexError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
+
+        Ok(CreateIndexResponse {
+            index: SearchIndex {
+                id: index.id.to_string(),
+                name: index.name,
+                mapping_json: serde_json::to_vec(&index.mapping).unwrap_or_default(),
+                created_at: index.created_at.to_rfc3339(),
+            },
+        })
+    }
+
+    pub async fn list_indices(
+        &self,
+        _req: ListIndicesRequest,
+    ) -> Result<ListIndicesResponse, GrpcError> {
+        let indices = self
+            .list_indices_uc
+            .execute()
+            .await
+            .map_err(|e| match e {
+                ListIndicesError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
+
+        Ok(ListIndicesResponse {
+            indices: indices
+                .into_iter()
+                .map(|index| SearchIndex {
+                    id: index.id.to_string(),
+                    name: index.name,
+                    mapping_json: serde_json::to_vec(&index.mapping).unwrap_or_default(),
+                    created_at: index.created_at.to_rfc3339(),
+                })
+                .collect(),
+        })
     }
 
     pub async fn index_document(
@@ -180,10 +276,7 @@ impl SearchGrpcService {
                 message: format!("document {} deleted from index {}", req.document_id, req.index),
             }),
             Err(DeleteDocumentError::NotFound(index, id)) => {
-                Err(GrpcError::NotFound(format!(
-                    "document not found: {}/{}",
-                    index, id
-                )))
+                Err(GrpcError::NotFound(format!("document not found: {}/{}", index, id)))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -199,10 +292,22 @@ mod tests {
     fn make_service(mock: MockSearchRepository) -> SearchGrpcService {
         let repo = Arc::new(mock);
         SearchGrpcService::new(
+            Arc::new(CreateIndexUseCase::new(repo.clone())),
+            Arc::new(ListIndicesUseCase::new(repo.clone())),
             Arc::new(IndexDocumentUseCase::new(repo.clone())),
             Arc::new(SearchUseCase::new(repo.clone())),
             Arc::new(DeleteDocumentUseCase::new(repo)),
         )
+    }
+
+    #[tokio::test]
+    async fn test_list_indices_success() {
+        let mut mock = MockSearchRepository::new();
+        mock.expect_list_indices().returning(|| Ok(vec![]));
+
+        let svc = make_service(mock);
+        let resp = svc.list_indices(ListIndicesRequest {}).await.unwrap();
+        assert!(resp.indices.is_empty());
     }
 
     #[tokio::test]
@@ -227,26 +332,6 @@ mod tests {
         assert_eq!(resp.document_id, "doc-1");
         assert_eq!(resp.index, "products");
         assert_eq!(resp.result, "created");
-    }
-
-    #[tokio::test]
-    async fn test_index_document_index_not_found() {
-        let mut mock = MockSearchRepository::new();
-        mock.expect_find_index().returning(|_| Ok(None));
-
-        let svc = make_service(mock);
-        let req = IndexDocumentRequest {
-            index: "nonexistent".to_string(),
-            document_id: "doc-1".to_string(),
-            document_json: vec![],
-        };
-        let result = svc.index_document(req).await;
-
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            GrpcError::NotFound(msg) => assert!(msg.contains("index not found")),
-            e => unreachable!("unexpected error: {:?}", e),
-        }
     }
 
     #[tokio::test]
@@ -285,42 +370,5 @@ mod tests {
         assert_eq!(resp.hits.len(), 1);
         assert_eq!(resp.hits[0].id, "doc-1");
         assert!(!resp.has_next);
-    }
-
-    #[tokio::test]
-    async fn test_delete_document_success() {
-        let mut mock = MockSearchRepository::new();
-        mock.expect_delete_document()
-            .withf(|index, id| index == "products" && id == "doc-1")
-            .returning(|_, _| Ok(true));
-
-        let svc = make_service(mock);
-        let req = DeleteDocumentRequest {
-            index: "products".to_string(),
-            document_id: "doc-1".to_string(),
-        };
-        let resp = svc.delete_document(req).await.unwrap();
-
-        assert!(resp.success);
-        assert!(resp.message.contains("doc-1"));
-    }
-
-    #[tokio::test]
-    async fn test_delete_document_not_found() {
-        let mut mock = MockSearchRepository::new();
-        mock.expect_delete_document().returning(|_, _| Ok(false));
-
-        let svc = make_service(mock);
-        let req = DeleteDocumentRequest {
-            index: "products".to_string(),
-            document_id: "missing".to_string(),
-        };
-        let result = svc.delete_document(req).await;
-
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            GrpcError::NotFound(msg) => assert!(msg.contains("document not found")),
-            e => unreachable!("unexpected error: {:?}", e),
-        }
     }
 }

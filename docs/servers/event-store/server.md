@@ -147,11 +147,30 @@ syntax = "proto3";
 package k1s0.system.eventstore.v1;
 
 service EventStoreService {
+  rpc ListStreams(ListStreamsRequest) returns (ListStreamsResponse);
   rpc AppendEvents(AppendEventsRequest) returns (AppendEventsResponse);
   rpc ReadEvents(ReadEventsRequest) returns (ReadEventsResponse);
   rpc ReadEventBySequence(ReadEventBySequenceRequest) returns (ReadEventBySequenceResponse);
   rpc CreateSnapshot(CreateSnapshotRequest) returns (CreateSnapshotResponse);
   rpc GetLatestSnapshot(GetLatestSnapshotRequest) returns (GetLatestSnapshotResponse);
+  rpc DeleteStream(DeleteStreamRequest) returns (DeleteStreamResponse);
+}
+
+message ListStreamsRequest {
+  k1s0.system.common.v1.Pagination pagination = 1;
+}
+
+message ListStreamsResponse {
+  repeated StreamInfo streams = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message StreamInfo {
+  string id = 1;
+  string aggregate_type = 2;
+  int64 current_version = 3;
+  string created_at = 4;
+  string updated_at = 5;
 }
 
 message AppendEventsRequest {
@@ -178,8 +197,7 @@ message ReadEventsResponse {
   string stream_id = 1;
   repeated StoredEvent events = 2;
   int64 current_version = 3;
-  uint64 total_count = 4;
-  bool has_next = 5;
+  k1s0.system.common.v1.PaginationResult pagination = 4;
 }
 
 message ReadEventBySequenceRequest {
@@ -211,6 +229,15 @@ message GetLatestSnapshotRequest {
 
 message GetLatestSnapshotResponse {
   Snapshot snapshot = 1;
+}
+
+message DeleteStreamRequest {
+  string stream_id = 1;
+}
+
+message DeleteStreamResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 message EventData {

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
@@ -48,6 +48,11 @@ pub struct AuditLogQuery {
     pub offset: u32,
     #[serde(default = "default_audit_limit")]
     pub limit: u32,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct SecretVersionQuery {
+    pub version: Option<i64>,
 }
 
 fn default_audit_offset() -> u32 { 0 }
@@ -117,10 +122,11 @@ pub async fn create_secret(
 pub async fn get_secret(
     State(state): State<AppState>,
     Path(key): Path<String>,
+    Query(query): Query<SecretVersionQuery>,
 ) -> impl IntoResponse {
     let input = GetSecretInput {
         path: key.clone(),
-        version: None,
+        version: query.version,
     };
 
     match state.get_secret_uc.execute(&input).await {
@@ -141,7 +147,12 @@ pub async fn get_secret(
         }
         Err(GetSecretError::NotFound(path)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("secret not found: {}", path)})),
+            Json(serde_json::json!({
+                "error": {
+                    "code": "SYS_VAULT_NOT_FOUND",
+                    "message": format!("secret not found: {}", path)
+                }
+            })),
         )
             .into_response(),
         Err(GetSecretError::Internal(msg)) => (
@@ -193,7 +204,12 @@ pub async fn delete_secret(
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(DeleteSecretError::NotFound(path)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("secret not found: {}", path)})),
+            Json(serde_json::json!({
+                "error": {
+                    "code": "SYS_VAULT_NOT_FOUND",
+                    "message": format!("secret not found: {}", path)
+                }
+            })),
         )
             .into_response(),
         Err(DeleteSecretError::Internal(msg)) => (
@@ -245,7 +261,12 @@ pub async fn get_secret_metadata(
         }
         Err(GetSecretError::NotFound(path)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("secret not found: {}", path)})),
+            Json(serde_json::json!({
+                "error": {
+                    "code": "SYS_VAULT_NOT_FOUND",
+                    "message": format!("secret not found: {}", path)
+                }
+            })),
         )
             .into_response(),
         Err(GetSecretError::Internal(msg)) => (

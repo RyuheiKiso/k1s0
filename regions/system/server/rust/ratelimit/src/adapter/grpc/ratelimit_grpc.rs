@@ -1,13 +1,20 @@
-use std::sync::Arc;
+﻿use std::sync::Arc;
 
-use crate::usecase::{CheckRateLimitUseCase, CreateRuleUseCase, GetRuleUseCase, GetUsageUseCase, ResetRateLimitUseCase, ResetRateLimitInput};
 use crate::usecase::create_rule::CreateRuleInput;
+use crate::usecase::update_rule::UpdateRuleInput;
+use crate::usecase::{
+    CheckRateLimitUseCase, CreateRuleUseCase, DeleteRuleUseCase, GetRuleUseCase,
+    GetUsageUseCase, ListRulesUseCase, ResetRateLimitInput, ResetRateLimitUseCase,
+    UpdateRuleUseCase,
+};
 
-/// GrpcError は gRPC エラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum GrpcError {
     #[error("not found: {0}")]
     NotFound(String),
+
+    #[error("already exists: {0}")]
+    AlreadyExists(String),
 
     #[error("invalid argument: {0}")]
     InvalidArgument(String),
@@ -16,27 +23,27 @@ pub enum GrpcError {
     Internal(String),
 }
 
-// --- gRPC リクエスト/レスポンス型 ---
-
 pub struct CheckRateLimitRequest {
-    pub rule_id: String,
-    pub subject: String,
+    pub scope: String,
+    pub identifier: String,
+    pub window: i64,
 }
 
 #[derive(Debug)]
 pub struct CheckRateLimitResponse {
     pub allowed: bool,
+    pub limit: i64,
     pub remaining: i64,
     pub reset_at: i64,
     pub reason: String,
 }
 
 pub struct CreateRuleRequest {
-    pub name: String,
-    pub key: String,
+    pub scope: String,
+    pub identifier_pattern: String,
     pub limit: i64,
-    pub window_secs: i64,
-    pub algorithm: String,
+    pub window_seconds: i64,
+    pub enabled: bool,
 }
 
 #[derive(Debug)]
@@ -62,9 +69,47 @@ pub struct GetUsageResponse {
     pub rule_id: String,
     pub rule_name: String,
     pub limit: i64,
-    pub window_secs: i64,
+    pub window_seconds: i64,
     pub algorithm: String,
     pub enabled: bool,
+    pub used: Option<i64>,
+    pub remaining: Option<i64>,
+    pub reset_at: Option<i64>,
+}
+
+pub struct UpdateRuleRequest {
+    pub rule_id: String,
+    pub scope: String,
+    pub identifier_pattern: String,
+    pub limit: i64,
+    pub window_seconds: i64,
+    pub enabled: bool,
+}
+
+#[derive(Debug)]
+pub struct UpdateRuleResponse {
+    pub rule: RuleResponse,
+}
+
+pub struct DeleteRuleRequest {
+    pub rule_id: String,
+}
+
+#[derive(Debug)]
+pub struct DeleteRuleResponse {
+    pub success: bool,
+}
+
+pub struct ListRulesRequest {
+    pub scope: String,
+    pub enabled_only: Option<bool>,
+    pub page: u32,
+    pub page_size: u32,
+}
+
+#[derive(Debug)]
+pub struct ListRulesResponse {
+    pub rules: Vec<RuleResponse>,
 }
 
 pub struct ResetLimitRequest {
@@ -80,13 +125,14 @@ pub struct ResetLimitResponse {
 #[derive(Debug)]
 pub struct RuleResponse {
     pub id: String,
-    pub name: String,
-    pub key: String,
+    pub scope: String,
+    pub identifier_pattern: String,
     pub limit: i64,
-    pub window_secs: i64,
+    pub window_seconds: i64,
     pub algorithm: String,
     pub enabled: bool,
     pub created_at: Option<PbTimestamp>,
+    pub updated_at: Option<PbTimestamp>,
 }
 
 #[derive(Debug)]
@@ -95,11 +141,13 @@ pub struct PbTimestamp {
     pub nanos: i32,
 }
 
-/// RateLimitGrpcService は gRPC サービスの実装。
 pub struct RateLimitGrpcService {
     check_uc: Arc<CheckRateLimitUseCase>,
     create_uc: Arc<CreateRuleUseCase>,
     get_uc: Arc<GetRuleUseCase>,
+    update_uc: Arc<UpdateRuleUseCase>,
+    delete_uc: Arc<DeleteRuleUseCase>,
+    list_uc: Arc<ListRulesUseCase>,
     usage_uc: Arc<GetUsageUseCase>,
     reset_uc: Arc<ResetRateLimitUseCase>,
 }
@@ -109,6 +157,9 @@ impl RateLimitGrpcService {
         check_uc: Arc<CheckRateLimitUseCase>,
         create_uc: Arc<CreateRuleUseCase>,
         get_uc: Arc<GetRuleUseCase>,
+        update_uc: Arc<UpdateRuleUseCase>,
+        delete_uc: Arc<DeleteRuleUseCase>,
+        list_uc: Arc<ListRulesUseCase>,
         usage_uc: Arc<GetUsageUseCase>,
         reset_uc: Arc<ResetRateLimitUseCase>,
     ) -> Self {
@@ -116,6 +167,9 @@ impl RateLimitGrpcService {
             check_uc,
             create_uc,
             get_uc,
+            update_uc,
+            delete_uc,
+            list_uc,
             usage_uc,
             reset_uc,
         }
@@ -125,17 +179,17 @@ impl RateLimitGrpcService {
         &self,
         req: CheckRateLimitRequest,
     ) -> Result<CheckRateLimitResponse, GrpcError> {
-        if req.rule_id.is_empty() {
-            return Err(GrpcError::InvalidArgument("rule_id is required".to_string()));
+        if req.scope.is_empty() {
+            return Err(GrpcError::InvalidArgument("scope is required".to_string()));
         }
-        if req.subject.is_empty() {
-            return Err(GrpcError::InvalidArgument("subject is required".to_string()));
+        if req.identifier.is_empty() {
+            return Err(GrpcError::InvalidArgument("identifier is required".to_string()));
         }
 
-        // gRPC は rule_id/subject を scope/identifier として扱う（後方互換）
+        let window = if req.window > 0 { req.window } else { 60 };
         let decision = self
             .check_uc
-            .execute(&req.rule_id, &req.subject, 60)
+            .execute(&req.scope, &req.identifier, window)
             .await
             .map_err(|e| match e {
                 crate::usecase::check_rate_limit::CheckRateLimitError::RuleNotFound(msg) => {
@@ -154,6 +208,7 @@ impl RateLimitGrpcService {
 
         Ok(CheckRateLimitResponse {
             allowed: decision.allowed,
+            limit: decision.limit,
             remaining: decision.remaining,
             reset_at: decision.reset_at,
             reason: decision.reason,
@@ -165,16 +220,16 @@ impl RateLimitGrpcService {
         req: CreateRuleRequest,
     ) -> Result<CreateRuleResponse, GrpcError> {
         let input = CreateRuleInput {
-            scope: req.name,
-            identifier_pattern: req.key,
+            scope: req.scope,
+            identifier_pattern: req.identifier_pattern,
             limit: req.limit,
-            window_seconds: req.window_secs,
-            enabled: true,
+            window_seconds: req.window_seconds,
+            enabled: req.enabled,
         };
 
         let rule = self.create_uc.execute(&input).await.map_err(|e| match e {
             crate::usecase::create_rule::CreateRuleError::AlreadyExists(msg) => {
-                GrpcError::InvalidArgument(format!("rule already exists: {}", msg))
+                GrpcError::AlreadyExists(format!("rule already exists: {}", msg))
             }
             crate::usecase::create_rule::CreateRuleError::InvalidAlgorithm(msg) => {
                 GrpcError::InvalidArgument(msg)
@@ -187,21 +242,23 @@ impl RateLimitGrpcService {
             }
         })?;
 
-        let ts = PbTimestamp {
-            seconds: rule.created_at.timestamp(),
-            nanos: rule.created_at.timestamp_subsec_nanos() as i32,
-        };
-
         Ok(CreateRuleResponse {
             rule: RuleResponse {
                 id: rule.id.to_string(),
-                name: rule.scope,
-                key: rule.identifier_pattern,
+                scope: rule.scope,
+                identifier_pattern: rule.identifier_pattern,
                 limit: rule.limit,
-                window_secs: rule.window_seconds,
+                window_seconds: rule.window_seconds,
                 algorithm: rule.algorithm.as_str().to_string(),
                 enabled: rule.enabled,
-                created_at: Some(ts),
+                created_at: Some(PbTimestamp {
+                    seconds: rule.created_at.timestamp(),
+                    nanos: rule.created_at.timestamp_subsec_nanos() as i32,
+                }),
+                updated_at: Some(PbTimestamp {
+                    seconds: rule.updated_at.timestamp(),
+                    nanos: rule.updated_at.timestamp_subsec_nanos() as i32,
+                }),
             },
         })
     }
@@ -219,21 +276,23 @@ impl RateLimitGrpcService {
             crate::usecase::get_rule::GetRuleError::Internal(msg) => GrpcError::Internal(msg),
         })?;
 
-        let ts = PbTimestamp {
-            seconds: rule.created_at.timestamp(),
-            nanos: rule.created_at.timestamp_subsec_nanos() as i32,
-        };
-
         Ok(GetRuleResponse {
             rule: RuleResponse {
                 id: rule.id.to_string(),
-                name: rule.scope,
-                key: rule.identifier_pattern,
+                scope: rule.scope,
+                identifier_pattern: rule.identifier_pattern,
                 limit: rule.limit,
-                window_secs: rule.window_seconds,
+                window_seconds: rule.window_seconds,
                 algorithm: rule.algorithm.as_str().to_string(),
                 enabled: rule.enabled,
-                created_at: Some(ts),
+                created_at: Some(PbTimestamp {
+                    seconds: rule.created_at.timestamp(),
+                    nanos: rule.created_at.timestamp_subsec_nanos() as i32,
+                }),
+                updated_at: Some(PbTimestamp {
+                    seconds: rule.updated_at.timestamp(),
+                    nanos: rule.updated_at.timestamp_subsec_nanos() as i32,
+                }),
             },
         })
     }
@@ -255,9 +314,120 @@ impl RateLimitGrpcService {
             rule_id: info.rule_id,
             rule_name: info.rule_name,
             limit: info.limit,
-            window_secs: info.window_seconds,
+            window_seconds: info.window_seconds,
             algorithm: info.algorithm,
             enabled: info.enabled,
+            used: info.used,
+            remaining: info.remaining,
+            reset_at: info.reset_at,
+        })
+    }
+
+    pub async fn update_rule(
+        &self,
+        req: UpdateRuleRequest,
+    ) -> Result<UpdateRuleResponse, GrpcError> {
+        let input = UpdateRuleInput {
+            id: req.rule_id,
+            scope: req.scope,
+            identifier_pattern: req.identifier_pattern,
+            limit: req.limit,
+            window_seconds: req.window_seconds,
+            enabled: req.enabled,
+        };
+
+        let rule = self.update_uc.execute(&input).await.map_err(|e| match e {
+            crate::usecase::update_rule::UpdateRuleError::NotFound(msg) => GrpcError::NotFound(msg),
+            crate::usecase::update_rule::UpdateRuleError::Validation(msg) => {
+                GrpcError::InvalidArgument(msg)
+            }
+            crate::usecase::update_rule::UpdateRuleError::InvalidAlgorithm(msg) => {
+                GrpcError::InvalidArgument(msg)
+            }
+            crate::usecase::update_rule::UpdateRuleError::Internal(msg) => GrpcError::Internal(msg),
+        })?;
+
+        Ok(UpdateRuleResponse {
+            rule: RuleResponse {
+                id: rule.id.to_string(),
+                scope: rule.scope,
+                identifier_pattern: rule.identifier_pattern,
+                limit: rule.limit,
+                window_seconds: rule.window_seconds,
+                algorithm: rule.algorithm.as_str().to_string(),
+                enabled: rule.enabled,
+                created_at: Some(PbTimestamp {
+                    seconds: rule.created_at.timestamp(),
+                    nanos: rule.created_at.timestamp_subsec_nanos() as i32,
+                }),
+                updated_at: Some(PbTimestamp {
+                    seconds: rule.updated_at.timestamp(),
+                    nanos: rule.updated_at.timestamp_subsec_nanos() as i32,
+                }),
+            },
+        })
+    }
+
+    pub async fn delete_rule(
+        &self,
+        req: DeleteRuleRequest,
+    ) -> Result<DeleteRuleResponse, GrpcError> {
+        self.delete_uc.execute(&req.rule_id).await.map_err(|e| match e {
+            crate::usecase::delete_rule::DeleteRuleError::NotFound(msg) => GrpcError::NotFound(msg),
+            crate::usecase::delete_rule::DeleteRuleError::InvalidRuleId(msg) => {
+                GrpcError::InvalidArgument(msg)
+            }
+            crate::usecase::delete_rule::DeleteRuleError::Internal(msg) => GrpcError::Internal(msg),
+        })?;
+
+        Ok(DeleteRuleResponse { success: true })
+    }
+
+    pub async fn list_rules(
+        &self,
+        req: ListRulesRequest,
+    ) -> Result<ListRulesResponse, GrpcError> {
+        let mut rules = self.list_uc.execute().await.map_err(|e| match e {
+            crate::usecase::list_rules::ListRulesError::Internal(msg) => GrpcError::Internal(msg),
+        })?;
+        if !req.scope.is_empty() {
+            rules.retain(|r| r.scope == req.scope);
+        }
+        if let Some(enabled_only) = req.enabled_only {
+            if enabled_only {
+                rules.retain(|r| r.enabled);
+            }
+        }
+        let page = if req.page == 0 { 1 } else { req.page as usize };
+        let page_size = if req.page_size == 0 {
+            20
+        } else {
+            req.page_size as usize
+        };
+        let start = (page - 1) * page_size;
+        let rules: Vec<_> = rules.into_iter().skip(start).take(page_size).collect();
+
+        Ok(ListRulesResponse {
+            rules: rules
+                .into_iter()
+                .map(|rule| RuleResponse {
+                    id: rule.id.to_string(),
+                    scope: rule.scope,
+                    identifier_pattern: rule.identifier_pattern,
+                    limit: rule.limit,
+                    window_seconds: rule.window_seconds,
+                    algorithm: rule.algorithm.as_str().to_string(),
+                    enabled: rule.enabled,
+                    created_at: Some(PbTimestamp {
+                        seconds: rule.created_at.timestamp(),
+                        nanos: rule.created_at.timestamp_subsec_nanos() as i32,
+                    }),
+                    updated_at: Some(PbTimestamp {
+                        seconds: rule.updated_at.timestamp(),
+                        nanos: rule.updated_at.timestamp_subsec_nanos() as i32,
+                    }),
+                })
+                .collect(),
         })
     }
 
@@ -293,9 +463,22 @@ mod tests {
         create_uc: Arc<CreateRuleUseCase>,
         get_uc: Arc<GetRuleUseCase>,
     ) -> RateLimitGrpcService {
-        let usage_uc = Arc::new(GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new())));
+        let usage_uc =
+            Arc::new(GetUsageUseCase::new(Arc::new(MockRateLimitRepository::new())));
+        let update_uc = Arc::new(UpdateRuleUseCase::new(Arc::new(MockRateLimitRepository::new())));
+        let delete_uc = Arc::new(DeleteRuleUseCase::new(Arc::new(MockRateLimitRepository::new())));
+        let list_uc = Arc::new(ListRulesUseCase::new(Arc::new(MockRateLimitRepository::new())));
         let reset_uc = Arc::new(ResetRateLimitUseCase::new(Arc::new(MockRateLimitStateStore::new())));
-        RateLimitGrpcService::new(check_uc, create_uc, get_uc, usage_uc, reset_uc)
+        RateLimitGrpcService::new(
+            check_uc,
+            create_uc,
+            get_uc,
+            update_uc,
+            delete_uc,
+            list_uc,
+            usage_uc,
+            reset_uc,
+        )
     }
 
     fn make_rule() -> RateLimitRule {
@@ -332,8 +515,9 @@ mod tests {
         let svc = make_service_with(check_uc, create_uc, get_uc);
         let result = svc
             .check_rate_limit(CheckRateLimitRequest {
-                rule_id: "service".to_string(),
-                subject: "user-123".to_string(),
+                scope: "service".to_string(),
+                identifier: "user-123".to_string(),
+                window: 60,
             })
             .await;
 
@@ -344,7 +528,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_grpc_check_rate_limit_empty_rule_id() {
+    async fn test_grpc_check_rate_limit_empty_scope() {
         let svc = make_service_with(
             Arc::new(CheckRateLimitUseCase::new(
                 Arc::new(MockRateLimitRepository::new()),
@@ -356,29 +540,9 @@ mod tests {
 
         let result = svc
             .check_rate_limit(CheckRateLimitRequest {
-                rule_id: "".to_string(),
-                subject: "user-123".to_string(),
-            })
-            .await;
-
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), GrpcError::InvalidArgument(_)));
-    }
-
-    #[tokio::test]
-    async fn test_grpc_get_rule_empty_id() {
-        let svc = make_service_with(
-            Arc::new(CheckRateLimitUseCase::new(
-                Arc::new(MockRateLimitRepository::new()),
-                Arc::new(MockRateLimitStateStore::new()),
-            )),
-            Arc::new(CreateRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-            Arc::new(GetRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
-        );
-
-        let result = svc
-            .get_rule(GetRuleRequest {
-                rule_id: "".to_string(),
+                scope: "".to_string(),
+                identifier: "user-123".to_string(),
+                window: 60,
             })
             .await;
 

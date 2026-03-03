@@ -372,6 +372,7 @@ service QuotaService {
   rpc UpdateQuotaPolicy(UpdateQuotaPolicyRequest) returns (UpdateQuotaPolicyResponse);
   rpc DeleteQuotaPolicy(DeleteQuotaPolicyRequest) returns (DeleteQuotaPolicyResponse);
   rpc GetQuotaUsage(GetQuotaUsageRequest) returns (GetQuotaUsageResponse);
+  rpc CheckQuota(CheckQuotaRequest) returns (CheckQuotaResponse);
   rpc IncrementQuotaUsage(IncrementQuotaUsageRequest) returns (IncrementQuotaUsageResponse);
   rpc ResetQuotaUsage(ResetQuotaUsageRequest) returns (ResetQuotaUsageResponse);
 }
@@ -460,6 +461,14 @@ message GetQuotaUsageRequest {
 }
 
 message GetQuotaUsageResponse {
+  QuotaUsage usage = 1;
+}
+
+message CheckQuotaRequest {
+  string quota_id = 1;
+}
+
+message CheckQuotaResponse {
   QuotaUsage usage = 1;
 }
 
@@ -770,3 +779,15 @@ vault:
 - [system-server.md](../auth/server.md) -- system tier サーバー一覧
 - [system-server-implementation.md](../_common/implementation.md) -- system tier 実装設計
 - [system-notification-server.md](../notification/server.md) -- notification-server（超過時の通知連携）
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `CreateQuotaPolicy`, `GetQuotaPolicy`, `ListQuotaPolicies`, `UpdateQuotaPolicy`, `DeleteQuotaPolicy`
+- `GetQuotaUsage`, `CheckQuota`, `IncrementQuotaUsage`, `ResetQuotaUsage`
+
+### Message/Field Corrections
+- `ListQuotaPoliciesRequest` supports `subject_type`, `subject_id`, `enabled_only`.
+- `QuotaUsage` includes `period_start`, `period_end`, `reset_at` as Timestamp fields.
+- `QuotaPolicy` includes `created_at` and `updated_at`.
+- `IncrementQuotaUsageRequest.request_id` and `ResetQuotaUsageRequest.reset_by` are available.

@@ -72,7 +72,7 @@ impl CheckRateLimitUseCase {
             .map(|r| r.algorithm.clone())
             .unwrap_or(Algorithm::TokenBucket);
 
-        let decision = match algorithm {
+        let mut decision = match algorithm {
             Algorithm::TokenBucket => {
                 self.state_store
                     .check_token_bucket(&redis_key, limit, effective_window)
@@ -90,6 +90,7 @@ impl CheckRateLimitUseCase {
             }
         }
         .map_err(|e| CheckRateLimitError::Internal(e.to_string()))?;
+        decision.limit = limit;
 
         Ok(decision)
     }

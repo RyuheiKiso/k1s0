@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::domain::repository::{FileMetadataRepository, FileStorageRepository};
+use crate::infrastructure::kafka_producer::FileEventPublisher;
 
 #[derive(Debug, Clone)]
 pub struct DeleteFileInput {
@@ -25,16 +26,19 @@ pub enum DeleteFileError {
 pub struct DeleteFileUseCase {
     metadata_repo: Arc<dyn FileMetadataRepository>,
     storage_repo: Arc<dyn FileStorageRepository>,
+    event_publisher: Arc<dyn FileEventPublisher>,
 }
 
 impl DeleteFileUseCase {
     pub fn new(
         metadata_repo: Arc<dyn FileMetadataRepository>,
         storage_repo: Arc<dyn FileStorageRepository>,
+        event_publisher: Arc<dyn FileEventPublisher>,
     ) -> Self {
         Self {
             metadata_repo,
             storage_repo,
+            event_publisher,
         }
     }
 
@@ -59,6 +63,21 @@ impl DeleteFileUseCase {
             .await
             .map_err(|e| DeleteFileError::Internal(e.to_string()))?;
 
+        let payload = serde_json::json!({
+            "file_id": file.id,
+            "tenant_id": file.tenant_id,
+            "owner_id": file.owner_id,
+            "storage_key": file.storage_key,
+            "deleted_at": chrono::Utc::now().to_rfc3339(),
+        });
+        if let Err(e) = self
+            .event_publisher
+            .publish("file.deleted", &payload)
+            .await
+        {
+            tracing::warn!(error = %e, "failed to publish file.deleted event");
+        }
+
         Ok(DeleteFileOutput {
             success: true,
             message: format!("file {} deleted", input.file_id),
@@ -73,6 +92,7 @@ mod tests {
     use crate::domain::repository::file_repository::{
         MockFileMetadataRepository, MockFileStorageRepository,
     };
+    use crate::infrastructure::kafka_producer::MockFileEventPublisher;
     use std::collections::HashMap;
 
     fn sample_file() -> FileMetadata {
@@ -107,8 +127,14 @@ mod tests {
             .expect_delete()
             .withf(|id| id == "file_001")
             .returning(|_| Ok(true));
+        let mut event_publisher = MockFileEventPublisher::new();
+        event_publisher.expect_publish().returning(|_, _| Ok(()));
 
-        let uc = DeleteFileUseCase::new(Arc::new(metadata_mock), Arc::new(storage_mock));
+        let uc = DeleteFileUseCase::new(
+            Arc::new(metadata_mock),
+            Arc::new(storage_mock),
+            Arc::new(event_publisher),
+        );
         let input = DeleteFileInput {
             file_id: "file_001".to_string(),
         };
@@ -128,8 +154,13 @@ mod tests {
         metadata_mock
             .expect_find_by_id()
             .returning(|_| Ok(None));
+        let event_publisher = MockFileEventPublisher::new();
 
-        let uc = DeleteFileUseCase::new(Arc::new(metadata_mock), Arc::new(storage_mock));
+        let uc = DeleteFileUseCase::new(
+            Arc::new(metadata_mock),
+            Arc::new(storage_mock),
+            Arc::new(event_publisher),
+        );
         let input = DeleteFileInput {
             file_id: "missing".to_string(),
         };
@@ -156,8 +187,13 @@ mod tests {
         storage_mock
             .expect_delete_object()
             .returning(|_| Err(anyhow::anyhow!("storage error")));
+        let event_publisher = MockFileEventPublisher::new();
 
-        let uc = DeleteFileUseCase::new(Arc::new(metadata_mock), Arc::new(storage_mock));
+        let uc = DeleteFileUseCase::new(
+            Arc::new(metadata_mock),
+            Arc::new(storage_mock),
+            Arc::new(event_publisher),
+        );
         let input = DeleteFileInput {
             file_id: "file_001".to_string(),
         };

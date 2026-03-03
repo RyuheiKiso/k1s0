@@ -26,6 +26,8 @@ pub struct FileMetadata {
     >,
     #[prost(string, tag = "11")]
     pub storage_key: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "12")]
+    pub checksum_sha256: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetFileMetadataRequest {
@@ -33,7 +35,7 @@ pub struct GetFileMetadataRequest {
     pub id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FileMetadataResponse {
+pub struct GetFileMetadataResponse {
     #[prost(message, optional, tag = "1")]
     pub metadata: ::core::option::Option<FileMetadata>,
 }
@@ -50,8 +52,8 @@ pub struct ListFilesRequest {
 pub struct ListFilesResponse {
     #[prost(message, repeated, tag = "1")]
     pub files: ::prost::alloc::vec::Vec<FileMetadata>,
-    #[prost(uint64, tag = "2")]
-    pub total: u64,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerateUploadUrlRequest {
@@ -68,8 +70,10 @@ pub struct GenerateUploadUrlRequest {
         ::prost::alloc::string::String,
         ::prost::alloc::string::String,
     >,
-    #[prost(int32, optional, tag = "6")]
-    pub expires_in_seconds: ::core::option::Option<i32>,
+    #[prost(uint32, optional, tag = "6")]
+    pub expires_in_seconds: ::core::option::Option<u32>,
+    #[prost(int64, tag = "7")]
+    pub size_bytes: i64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerateUploadUrlResponse {
@@ -77,6 +81,8 @@ pub struct GenerateUploadUrlResponse {
     pub file_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub upload_url: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "3")]
+    pub expires_in_seconds: u32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CompleteUploadRequest {
@@ -139,7 +145,7 @@ pub mod file_service_server {
             &self,
             request: tonic::Request<super::GetFileMetadataRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::FileMetadataResponse>,
+            tonic::Response<super::GetFileMetadataResponse>,
             tonic::Status,
         >;
         async fn list_files(
@@ -268,7 +274,7 @@ pub mod file_service_server {
                         T: FileService,
                     > tonic::server::UnaryService<super::GetFileMetadataRequest>
                     for GetFileMetadataSvc<T> {
-                        type Response = super::FileMetadataResponse;
+                        type Response = super::GetFileMetadataResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,

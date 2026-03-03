@@ -336,6 +336,9 @@ async fn main() -> anyhow::Result<()> {
     let get_user_uc = Arc::new(usecase::GetUserUseCase::new(user_repo.clone()));
     let get_user_roles_uc = Arc::new(usecase::GetUserRolesUseCase::new(user_repo.clone()));
     let list_users_uc = Arc::new(usecase::ListUsersUseCase::new(user_repo.clone()));
+    let check_permission_uc = Arc::new(usecase::CheckPermissionUseCase::with_user_repo(
+        user_repo.clone(),
+    ));
     let record_audit_log_uc = Arc::new(if let Some(ref publisher) = kafka_publisher {
         usecase::RecordAuditLogUseCase::with_publisher(audit_repo.clone(), publisher.clone())
     } else {
@@ -361,6 +364,7 @@ async fn main() -> anyhow::Result<()> {
         get_user_uc,
         get_user_roles_uc,
         list_users_uc,
+        check_permission_uc,
     ));
     let audit_grpc_svc = Arc::new(AuditGrpcService::new(
         record_audit_log_uc,

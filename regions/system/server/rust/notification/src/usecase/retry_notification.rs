@@ -66,6 +66,7 @@ impl RetryNotificationUseCase {
 
         // Mark as retried/sent
         log.status = "sent".to_string();
+        log.retry_count = log.retry_count.saturating_add(1);
         log.sent_at = Some(chrono::Utc::now());
         log.error_message = None;
 

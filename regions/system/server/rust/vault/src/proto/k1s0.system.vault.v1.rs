@@ -3,8 +3,8 @@
 pub struct GetSecretRequest {
     #[prost(string, tag = "1")]
     pub path: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub version: ::prost::alloc::string::String,
+    #[prost(int64, tag = "2")]
+    pub version: i64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSecretResponse {
@@ -17,6 +17,8 @@ pub struct GetSecretResponse {
     pub version: i64,
     #[prost(message, optional, tag = "3")]
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, optional, tag = "4")]
+    pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SetSecretRequest {
@@ -36,6 +38,25 @@ pub struct SetSecretResponse {
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RotateSecretRequest {
+    #[prost(string, tag = "1")]
+    pub path: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "2")]
+    pub data: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RotateSecretResponse {
+    #[prost(string, tag = "1")]
+    pub path: ::prost::alloc::string::String,
+    #[prost(int64, tag = "2")]
+    pub new_version: i64,
+    #[prost(bool, tag = "3")]
+    pub rotated: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteSecretRequest {
     #[prost(string, tag = "1")]
     pub path: ::prost::alloc::string::String,
@@ -48,6 +69,24 @@ pub struct DeleteSecretResponse {
     pub success: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetSecretMetadataRequest {
+    #[prost(string, tag = "1")]
+    pub path: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetSecretMetadataResponse {
+    #[prost(string, tag = "1")]
+    pub path: ::prost::alloc::string::String,
+    #[prost(int64, tag = "2")]
+    pub current_version: i64,
+    #[prost(int32, tag = "3")]
+    pub version_count: i32,
+    #[prost(message, optional, tag = "4")]
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, optional, tag = "5")]
+    pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSecretsRequest {
     #[prost(string, tag = "1")]
     pub path_prefix: ::prost::alloc::string::String,
@@ -56,6 +95,37 @@ pub struct ListSecretsRequest {
 pub struct ListSecretsResponse {
     #[prost(string, repeated, tag = "1")]
     pub keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ListAuditLogsRequest {
+    #[prost(int32, tag = "1")]
+    pub offset: i32,
+    #[prost(int32, tag = "2")]
+    pub limit: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListAuditLogsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub logs: ::prost::alloc::vec::Vec<AuditLogEntry>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AuditLogEntry {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub key_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub action: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub actor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub ip_address: ::prost::alloc::string::String,
+    #[prost(bool, tag = "6")]
+    pub success: bool,
+    #[prost(string, optional, tag = "7")]
+    pub error_msg: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "8")]
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 /// Generated server implementations.
 pub mod vault_service_server {
@@ -84,6 +154,13 @@ pub mod vault_service_server {
             tonic::Response<super::SetSecretResponse>,
             tonic::Status,
         >;
+        async fn rotate_secret(
+            &self,
+            request: tonic::Request<super::RotateSecretRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RotateSecretResponse>,
+            tonic::Status,
+        >;
         async fn delete_secret(
             &self,
             request: tonic::Request<super::DeleteSecretRequest>,
@@ -91,11 +168,25 @@ pub mod vault_service_server {
             tonic::Response<super::DeleteSecretResponse>,
             tonic::Status,
         >;
+        async fn get_secret_metadata(
+            &self,
+            request: tonic::Request<super::GetSecretMetadataRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetSecretMetadataResponse>,
+            tonic::Status,
+        >;
         async fn list_secrets(
             &self,
             request: tonic::Request<super::ListSecretsRequest>,
         ) -> std::result::Result<
             tonic::Response<super::ListSecretsResponse>,
+            tonic::Status,
+        >;
+        async fn list_audit_logs(
+            &self,
+            request: tonic::Request<super::ListAuditLogsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListAuditLogsResponse>,
             tonic::Status,
         >;
     }
@@ -265,6 +356,51 @@ pub mod vault_service_server {
                     };
                     Box::pin(fut)
                 }
+                "/k1s0.system.vault.v1.VaultService/RotateSecret" => {
+                    #[allow(non_camel_case_types)]
+                    struct RotateSecretSvc<T: VaultService>(pub Arc<T>);
+                    impl<
+                        T: VaultService,
+                    > tonic::server::UnaryService<super::RotateSecretRequest>
+                    for RotateSecretSvc<T> {
+                        type Response = super::RotateSecretResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::RotateSecretRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as VaultService>::rotate_secret(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = RotateSecretSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/k1s0.system.vault.v1.VaultService/DeleteSecret" => {
                     #[allow(non_camel_case_types)]
                     struct DeleteSecretSvc<T: VaultService>(pub Arc<T>);
@@ -310,6 +446,52 @@ pub mod vault_service_server {
                     };
                     Box::pin(fut)
                 }
+                "/k1s0.system.vault.v1.VaultService/GetSecretMetadata" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetSecretMetadataSvc<T: VaultService>(pub Arc<T>);
+                    impl<
+                        T: VaultService,
+                    > tonic::server::UnaryService<super::GetSecretMetadataRequest>
+                    for GetSecretMetadataSvc<T> {
+                        type Response = super::GetSecretMetadataResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetSecretMetadataRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as VaultService>::get_secret_metadata(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetSecretMetadataSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/k1s0.system.vault.v1.VaultService/ListSecrets" => {
                     #[allow(non_camel_case_types)]
                     struct ListSecretsSvc<T: VaultService>(pub Arc<T>);
@@ -340,6 +522,51 @@ pub mod vault_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListSecretsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.vault.v1.VaultService/ListAuditLogs" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListAuditLogsSvc<T: VaultService>(pub Arc<T>);
+                    impl<
+                        T: VaultService,
+                    > tonic::server::UnaryService<super::ListAuditLogsRequest>
+                    for ListAuditLogsSvc<T> {
+                        type Response = super::ListAuditLogsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListAuditLogsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as VaultService>::list_audit_logs(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListAuditLogsSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

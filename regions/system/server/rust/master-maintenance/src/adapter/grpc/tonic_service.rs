@@ -4,13 +4,8 @@ use tonic::{Request, Response, Status};
 
 use crate::adapter::grpc::master_maintenance_grpc::MasterMaintenanceGrpcService;
 use crate::proto::k1s0::system::mastermaintenance::v1::{
-    master_maintenance_service_server::MasterMaintenanceService, CheckConsistencyRequest,
-    CheckConsistencyResponse, ColumnDefinition as ProtoColumnDefinition, ConsistencyResult,
-    CreateRecordRequest, DeleteRecordRequest, DeleteRecordResponse, GetRecordRequest,
-    GetTableDefinitionRequest, GetTableSchemaRequest, ListRecordsRequest, ListRecordsResponse,
-    ListTableDefinitionsRequest, ListTableDefinitionsResponse, RecordResponse,
-    TableDefinitionResponse, TableRelationship as ProtoTableRelationship, TableSchemaResponse,
-    UpdateRecordRequest,
+    master_maintenance_service_server::MasterMaintenanceService,
+    ColumnDefinition as ProtoColumnDefinition, TableRelationship as ProtoTableRelationship, *,
 };
 use crate::proto::k1s0::system::common::v1::PaginationResult;
 
@@ -119,6 +114,9 @@ fn domain_relationship_to_proto(
         target_column: rel.target_column.clone(),
         relationship_type: rel.relationship_type.to_string(),
         display_name: rel.display_name.clone().unwrap_or_default(),
+        id: rel.id.to_string(),
+        is_cascade_delete: rel.is_cascade_delete,
+        created_at: rel.created_at.to_rfc3339(),
     }
 }
 
@@ -126,8 +124,8 @@ fn domain_table_to_proto(
     table: &crate::domain::entity::table_definition::TableDefinition,
     columns: Vec<ProtoColumnDefinition>,
     relationships: Vec<ProtoTableRelationship>,
-) -> TableDefinitionResponse {
-    TableDefinitionResponse {
+) -> GetTableDefinitionResponse {
+    GetTableDefinitionResponse {
         id: table.id.to_string(),
         name: table.name.clone(),
         schema_name: table.schema_name.clone(),
@@ -145,10 +143,75 @@ fn domain_table_to_proto(
 
 #[tonic::async_trait]
 impl MasterMaintenanceService for MasterMaintenanceGrpcService {
+    async fn create_table_definition(
+        &self,
+        request: Request<CreateTableDefinitionRequest>,
+    ) -> Result<Response<CreateTableDefinitionResponse>, Status> {
+        let req = request.into_inner();
+        let data = req
+            .data
+            .ok_or_else(|| Status::invalid_argument("data is required"))?;
+        let input: crate::domain::entity::table_definition::CreateTableDefinition =
+            serde_json::from_value(struct_to_json(&data))
+                .map_err(|e| Status::invalid_argument(format!("invalid data: {}", e)))?;
+
+        let table = self
+            .manage_tables_uc
+            .create_table(&input, "grpc-user")
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        Ok(Response::new(CreateTableDefinitionResponse {
+            table: Some(domain_table_to_proto(&table, Vec::new(), Vec::new())),
+        }))
+    }
+
+    async fn update_table_definition(
+        &self,
+        request: Request<UpdateTableDefinitionRequest>,
+    ) -> Result<Response<UpdateTableDefinitionResponse>, Status> {
+        let req = request.into_inner();
+        if req.table_name.is_empty() {
+            return Err(Status::invalid_argument("table_name is required"));
+        }
+        let data = req
+            .data
+            .ok_or_else(|| Status::invalid_argument("data is required"))?;
+        let input: crate::domain::entity::table_definition::UpdateTableDefinition =
+            serde_json::from_value(struct_to_json(&data))
+                .map_err(|e| Status::invalid_argument(format!("invalid data: {}", e)))?;
+
+        let table = self
+            .manage_tables_uc
+            .update_table(&req.table_name, &input)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        Ok(Response::new(UpdateTableDefinitionResponse {
+            table: Some(domain_table_to_proto(&table, Vec::new(), Vec::new())),
+        }))
+    }
+
+    async fn delete_table_definition(
+        &self,
+        request: Request<DeleteTableDefinitionRequest>,
+    ) -> Result<Response<DeleteTableDefinitionResponse>, Status> {
+        let req = request.into_inner();
+        if req.table_name.is_empty() {
+            return Err(Status::invalid_argument("table_name is required"));
+        }
+        self.manage_tables_uc
+            .delete_table(&req.table_name)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        Ok(Response::new(DeleteTableDefinitionResponse { success: true }))
+    }
+
     async fn get_table_definition(
         &self,
         request: Request<GetTableDefinitionRequest>,
-    ) -> Result<Response<TableDefinitionResponse>, Status> {
+    ) -> Result<Response<GetTableDefinitionResponse>, Status> {
         let req = request.into_inner();
         if req.table_name.is_empty() {
             return Err(Status::invalid_argument("table_name is required"));
@@ -283,7 +346,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
     async fn get_record(
         &self,
         request: Request<GetRecordRequest>,
-    ) -> Result<Response<RecordResponse>, Status> {
+    ) -> Result<Response<GetRecordResponse>, Status> {
         let req = request.into_inner();
         if req.table_name.is_empty() {
             return Err(Status::invalid_argument("table_name is required"));
@@ -304,7 +367,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 ))
             })?;
 
-        Ok(Response::new(RecordResponse {
+        Ok(Response::new(GetRecordResponse {
             data: json_to_struct(&record),
             warnings: vec![],
         }))
@@ -378,7 +441,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
     async fn create_record(
         &self,
         request: Request<CreateRecordRequest>,
-    ) -> Result<Response<RecordResponse>, Status> {
+    ) -> Result<Response<CreateRecordResponse>, Status> {
         let req = request.into_inner();
         if req.table_name.is_empty() {
             return Err(Status::invalid_argument("table_name is required"));
@@ -403,7 +466,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        Ok(Response::new(RecordResponse {
+        Ok(Response::new(CreateRecordResponse {
             data: json_to_struct(&record),
             warnings: vec![],
         }))
@@ -412,7 +475,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
     async fn update_record(
         &self,
         request: Request<UpdateRecordRequest>,
-    ) -> Result<Response<RecordResponse>, Status> {
+    ) -> Result<Response<UpdateRecordResponse>, Status> {
         let req = request.into_inner();
         if req.table_name.is_empty() {
             return Err(Status::invalid_argument("table_name is required"));
@@ -438,7 +501,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        Ok(Response::new(RecordResponse {
+        Ok(Response::new(UpdateRecordResponse {
             data: json_to_struct(&record),
             warnings: vec![],
         }))
@@ -512,7 +575,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
     async fn get_table_schema(
         &self,
         request: Request<GetTableSchemaRequest>,
-    ) -> Result<Response<TableSchemaResponse>, Status> {
+    ) -> Result<Response<GetTableSchemaResponse>, Status> {
         let req = request.into_inner();
         if req.table_name.is_empty() {
             return Err(Status::invalid_argument("table_name is required"));
@@ -534,7 +597,458 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         let json_schema =
             serde_json::to_string(&schema).map_err(|e| Status::internal(e.to_string()))?;
 
-        Ok(Response::new(TableSchemaResponse { json_schema }))
+        Ok(Response::new(GetTableSchemaResponse { json_schema }))
+    }
+
+    async fn list_columns(
+        &self,
+        request: Request<ListColumnsRequest>,
+    ) -> Result<Response<ListColumnsResponse>, Status> {
+        let req = request.into_inner();
+        if req.table_name.is_empty() {
+            return Err(Status::invalid_argument("table_name is required"));
+        }
+        let cols = self
+            .manage_columns_uc
+            .list_columns(&req.table_name)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(ListColumnsResponse {
+            columns: cols.iter().map(domain_column_to_proto).collect(),
+        }))
+    }
+
+    async fn create_columns(
+        &self,
+        request: Request<CreateColumnsRequest>,
+    ) -> Result<Response<CreateColumnsResponse>, Status> {
+        let req = request.into_inner();
+        if req.table_name.is_empty() {
+            return Err(Status::invalid_argument("table_name is required"));
+        }
+        let columns_json: Vec<serde_json::Value> = req
+            .columns
+            .iter()
+            .map(struct_to_json)
+            .collect();
+        let payload = serde_json::json!({ "columns": columns_json });
+        let cols = self
+            .manage_columns_uc
+            .create_columns(&req.table_name, &payload)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(CreateColumnsResponse {
+            columns: cols.iter().map(domain_column_to_proto).collect(),
+        }))
+    }
+
+    async fn update_column(
+        &self,
+        request: Request<UpdateColumnRequest>,
+    ) -> Result<Response<UpdateColumnResponse>, Status> {
+        let req = request.into_inner();
+        if req.table_name.is_empty() {
+            return Err(Status::invalid_argument("table_name is required"));
+        }
+        if req.column_name.is_empty() {
+            return Err(Status::invalid_argument("column_name is required"));
+        }
+        let data = req
+            .data
+            .as_ref()
+            .ok_or_else(|| Status::invalid_argument("data is required"))?;
+        let updated = self
+            .manage_columns_uc
+            .update_column(&req.table_name, &req.column_name, &struct_to_json(data))
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(UpdateColumnResponse {
+            column: Some(domain_column_to_proto(&updated)),
+        }))
+    }
+
+    async fn delete_column(
+        &self,
+        request: Request<DeleteColumnRequest>,
+    ) -> Result<Response<DeleteColumnResponse>, Status> {
+        let req = request.into_inner();
+        if req.table_name.is_empty() {
+            return Err(Status::invalid_argument("table_name is required"));
+        }
+        if req.column_name.is_empty() {
+            return Err(Status::invalid_argument("column_name is required"));
+        }
+        self.manage_columns_uc
+            .delete_column(&req.table_name, &req.column_name)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(DeleteColumnResponse { success: true }))
+    }
+
+    async fn list_relationships(
+        &self,
+        _request: Request<ListRelationshipsRequest>,
+    ) -> Result<Response<ListRelationshipsResponse>, Status> {
+        let rels = self
+            .manage_relationships_uc
+            .list_relationships()
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        let mut proto = Vec::new();
+        for rel in &rels {
+            let target_name = self
+                .manage_tables_uc
+                .get_table_by_id(rel.target_table_id)
+                .await
+                .ok()
+                .flatten()
+                .map(|t| t.name)
+                .unwrap_or_else(|| rel.target_table_id.to_string());
+            proto.push(domain_relationship_to_proto(rel, &target_name));
+        }
+        Ok(Response::new(ListRelationshipsResponse { relationships: proto }))
+    }
+
+    async fn create_relationship(
+        &self,
+        request: Request<CreateRelationshipRequest>,
+    ) -> Result<Response<CreateRelationshipResponse>, Status> {
+        let req = request.into_inner();
+        let data = req
+            .data
+            .as_ref()
+            .ok_or_else(|| Status::invalid_argument("data is required"))?;
+        let rel = self
+            .manage_relationships_uc
+            .create_relationship(&struct_to_json(data), "grpc-user")
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        let target_name = self
+            .manage_tables_uc
+            .get_table_by_id(rel.target_table_id)
+            .await
+            .ok()
+            .flatten()
+            .map(|t| t.name)
+            .unwrap_or_else(|| rel.target_table_id.to_string());
+        Ok(Response::new(CreateRelationshipResponse {
+            relationship: Some(domain_relationship_to_proto(&rel, &target_name)),
+        }))
+    }
+
+    async fn update_relationship(
+        &self,
+        request: Request<UpdateRelationshipRequest>,
+    ) -> Result<Response<UpdateRelationshipResponse>, Status> {
+        let req = request.into_inner();
+        let id = uuid::Uuid::parse_str(&req.relationship_id)
+            .map_err(|_| Status::invalid_argument("invalid relationship_id"))?;
+        let data = req
+            .data
+            .as_ref()
+            .ok_or_else(|| Status::invalid_argument("data is required"))?;
+        let rel = self
+            .manage_relationships_uc
+            .update_relationship(id, &struct_to_json(data))
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        let target_name = self
+            .manage_tables_uc
+            .get_table_by_id(rel.target_table_id)
+            .await
+            .ok()
+            .flatten()
+            .map(|t| t.name)
+            .unwrap_or_else(|| rel.target_table_id.to_string());
+        Ok(Response::new(UpdateRelationshipResponse {
+            relationship: Some(domain_relationship_to_proto(&rel, &target_name)),
+        }))
+    }
+
+    async fn delete_relationship(
+        &self,
+        request: Request<DeleteRelationshipRequest>,
+    ) -> Result<Response<DeleteRelationshipResponse>, Status> {
+        let req = request.into_inner();
+        let id = uuid::Uuid::parse_str(&req.relationship_id)
+            .map_err(|_| Status::invalid_argument("invalid relationship_id"))?;
+        self.manage_relationships_uc
+            .delete_relationship(id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(DeleteRelationshipResponse { success: true }))
+    }
+
+    async fn import_records(
+        &self,
+        request: Request<ImportRecordsRequest>,
+    ) -> Result<Response<ImportRecordsResponse>, Status> {
+        let req = request.into_inner();
+        if req.table_name.is_empty() {
+            return Err(Status::invalid_argument("table_name is required"));
+        }
+        let data = req
+            .data
+            .as_ref()
+            .ok_or_else(|| Status::invalid_argument("data is required"))?;
+        let job = self
+            .import_export_uc
+            .import_records(&req.table_name, &struct_to_json(data), "grpc-user")
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(ImportRecordsResponse {
+            import_job: Some(domain_import_job_to_proto(job)),
+        }))
+    }
+
+    async fn export_records(
+        &self,
+        request: Request<ExportRecordsRequest>,
+    ) -> Result<Response<ExportRecordsResponse>, Status> {
+        let req = request.into_inner();
+        if req.table_name.is_empty() {
+            return Err(Status::invalid_argument("table_name is required"));
+        }
+        let value = self
+            .import_export_uc
+            .export_records(&req.table_name)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        let data = json_to_struct(&value).unwrap_or_else(|| {
+            let mut fields = BTreeMap::new();
+            fields.insert("value".to_string(), json_value_to_prost(&value));
+            prost_types::Struct { fields }
+        });
+        Ok(Response::new(ExportRecordsResponse { data: Some(data) }))
+    }
+
+    async fn get_import_job(
+        &self,
+        request: Request<GetImportJobRequest>,
+    ) -> Result<Response<GetImportJobResponse>, Status> {
+        let req = request.into_inner();
+        let id = uuid::Uuid::parse_str(&req.import_job_id)
+            .map_err(|_| Status::invalid_argument("invalid import_job_id"))?;
+        let job = self
+            .import_export_uc
+            .get_import_job(id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?
+            .ok_or_else(|| Status::not_found("import job not found"))?;
+        Ok(Response::new(GetImportJobResponse {
+            import_job: Some(domain_import_job_to_proto(job)),
+        }))
+    }
+
+    async fn list_display_configs(
+        &self,
+        request: Request<ListDisplayConfigsRequest>,
+    ) -> Result<Response<ListDisplayConfigsResponse>, Status> {
+        let req = request.into_inner();
+        if req.table_name.is_empty() {
+            return Err(Status::invalid_argument("table_name is required"));
+        }
+        let list = self
+            .manage_display_configs_uc
+            .list_display_configs(&req.table_name)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(ListDisplayConfigsResponse {
+            display_configs: list.into_iter().map(domain_display_config_to_proto).collect(),
+        }))
+    }
+
+    async fn get_display_config(
+        &self,
+        request: Request<GetDisplayConfigRequest>,
+    ) -> Result<Response<GetDisplayConfigResponse>, Status> {
+        let req = request.into_inner();
+        let id = uuid::Uuid::parse_str(&req.display_config_id)
+            .map_err(|_| Status::invalid_argument("invalid display_config_id"))?;
+        let cfg = self
+            .manage_display_configs_uc
+            .get_display_config(id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?
+            .ok_or_else(|| Status::not_found("display config not found"))?;
+        Ok(Response::new(GetDisplayConfigResponse {
+            display_config: Some(domain_display_config_to_proto(cfg)),
+        }))
+    }
+
+    async fn create_display_config(
+        &self,
+        request: Request<CreateDisplayConfigRequest>,
+    ) -> Result<Response<CreateDisplayConfigResponse>, Status> {
+        let req = request.into_inner();
+        if req.table_name.is_empty() {
+            return Err(Status::invalid_argument("table_name is required"));
+        }
+        let data = req
+            .data
+            .as_ref()
+            .ok_or_else(|| Status::invalid_argument("data is required"))?;
+        let cfg = self
+            .manage_display_configs_uc
+            .create_display_config(&req.table_name, &struct_to_json(data), "grpc-user")
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(CreateDisplayConfigResponse {
+            display_config: Some(domain_display_config_to_proto(cfg)),
+        }))
+    }
+
+    async fn update_display_config(
+        &self,
+        request: Request<UpdateDisplayConfigRequest>,
+    ) -> Result<Response<UpdateDisplayConfigResponse>, Status> {
+        let req = request.into_inner();
+        let id = uuid::Uuid::parse_str(&req.display_config_id)
+            .map_err(|_| Status::invalid_argument("invalid display_config_id"))?;
+        let data = req
+            .data
+            .as_ref()
+            .ok_or_else(|| Status::invalid_argument("data is required"))?;
+        let cfg = self
+            .manage_display_configs_uc
+            .update_display_config(id, &struct_to_json(data))
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(UpdateDisplayConfigResponse {
+            display_config: Some(domain_display_config_to_proto(cfg)),
+        }))
+    }
+
+    async fn delete_display_config(
+        &self,
+        request: Request<DeleteDisplayConfigRequest>,
+    ) -> Result<Response<DeleteDisplayConfigResponse>, Status> {
+        let req = request.into_inner();
+        let id = uuid::Uuid::parse_str(&req.display_config_id)
+            .map_err(|_| Status::invalid_argument("invalid display_config_id"))?;
+        self.manage_display_configs_uc
+            .delete_display_config(id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(DeleteDisplayConfigResponse { success: true }))
+    }
+
+    async fn list_table_audit_logs(
+        &self,
+        request: Request<ListTableAuditLogsRequest>,
+    ) -> Result<Response<ListTableAuditLogsResponse>, Status> {
+        let req = request.into_inner();
+        if req.table_name.is_empty() {
+            return Err(Status::invalid_argument("table_name is required"));
+        }
+        let p = req
+            .pagination
+            .unwrap_or(crate::proto::k1s0::system::common::v1::Pagination {
+                page: 1,
+                page_size: 20,
+            });
+        let (logs, total) = self
+            .get_audit_logs_uc
+            .get_table_logs(&req.table_name, p.page, p.page_size)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(ListTableAuditLogsResponse {
+            logs: logs.into_iter().map(domain_audit_log_to_proto).collect(),
+            pagination: Some(PaginationResult {
+                total_count: total as i32,
+                page: p.page,
+                page_size: p.page_size,
+                has_next: (p.page as i64 * p.page_size as i64) < total,
+            }),
+        }))
+    }
+
+    async fn list_record_audit_logs(
+        &self,
+        request: Request<ListRecordAuditLogsRequest>,
+    ) -> Result<Response<ListRecordAuditLogsResponse>, Status> {
+        let req = request.into_inner();
+        if req.table_name.is_empty() {
+            return Err(Status::invalid_argument("table_name is required"));
+        }
+        if req.record_id.is_empty() {
+            return Err(Status::invalid_argument("record_id is required"));
+        }
+        let p = req
+            .pagination
+            .unwrap_or(crate::proto::k1s0::system::common::v1::Pagination {
+                page: 1,
+                page_size: 20,
+            });
+        let (logs, total) = self
+            .get_audit_logs_uc
+            .get_record_logs(&req.table_name, &req.record_id, p.page, p.page_size)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(ListRecordAuditLogsResponse {
+            logs: logs.into_iter().map(domain_audit_log_to_proto).collect(),
+            pagination: Some(PaginationResult {
+                total_count: total as i32,
+                page: p.page,
+                page_size: p.page_size,
+                has_next: (p.page as i64 * p.page_size as i64) < total,
+            }),
+        }))
+    }
+}
+
+fn json_to_string(value: &serde_json::Value) -> String {
+    serde_json::to_string(value).unwrap_or_else(|_| "{}".to_string())
+}
+
+fn domain_display_config_to_proto(
+    cfg: crate::domain::entity::display_config::DisplayConfig,
+) -> DisplayConfig {
+    DisplayConfig {
+        id: cfg.id.to_string(),
+        table_id: cfg.table_id.to_string(),
+        config_type: cfg.config_type,
+        config_json: json_to_string(&cfg.config_json),
+        is_default: cfg.is_default,
+        created_by: cfg.created_by,
+        created_at: cfg.created_at.to_rfc3339(),
+        updated_at: cfg.updated_at.to_rfc3339(),
+    }
+}
+
+fn domain_import_job_to_proto(job: crate::domain::entity::import_job::ImportJob) -> ImportJob {
+    ImportJob {
+        id: job.id.to_string(),
+        table_id: job.table_id.to_string(),
+        file_name: job.file_name,
+        status: job.status,
+        total_rows: job.total_rows,
+        processed_rows: job.processed_rows,
+        error_rows: job.error_rows,
+        error_details_json: job
+            .error_details
+            .as_ref()
+            .map(json_to_string)
+            .unwrap_or_default(),
+        started_by: job.started_by,
+        started_at: job.started_at.to_rfc3339(),
+        completed_at: job.completed_at.map(|v| v.to_rfc3339()),
+    }
+}
+
+fn domain_audit_log_to_proto(log: crate::domain::entity::change_log::ChangeLog) -> AuditLogEntry {
+    AuditLogEntry {
+        id: log.id.to_string(),
+        target_table: log.target_table,
+        target_record_id: log.target_record_id,
+        operation: log.operation,
+        before_data_json: log.before_data.as_ref().map(json_to_string).unwrap_or_default(),
+        after_data_json: log.after_data.as_ref().map(json_to_string).unwrap_or_default(),
+        changed_columns: log.changed_columns.unwrap_or_default(),
+        changed_by: log.changed_by,
+        change_reason: log.change_reason.unwrap_or_default(),
+        trace_id: log.trace_id.unwrap_or_default(),
+        created_at: log.created_at.to_rfc3339(),
     }
 }
 

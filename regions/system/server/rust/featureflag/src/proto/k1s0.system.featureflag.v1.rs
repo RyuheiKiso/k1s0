@@ -12,8 +12,8 @@ pub struct EvaluateFlagResponse {
     pub flag_key: ::prost::alloc::string::String,
     #[prost(bool, tag = "2")]
     pub enabled: bool,
-    #[prost(string, tag = "3")]
-    pub variant: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "3")]
+    pub variant: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, tag = "4")]
     pub reason: ::prost::alloc::string::String,
 }
@@ -39,6 +39,13 @@ pub struct GetFlagResponse {
     #[prost(message, optional, tag = "1")]
     pub flag: ::core::option::Option<FeatureFlag>,
 }
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ListFlagsRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListFlagsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub flags: ::prost::alloc::vec::Vec<FeatureFlag>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateFlagRequest {
     #[prost(string, tag = "1")]
@@ -59,15 +66,27 @@ pub struct CreateFlagResponse {
 pub struct UpdateFlagRequest {
     #[prost(string, tag = "1")]
     pub flag_key: ::prost::alloc::string::String,
-    #[prost(bool, tag = "2")]
-    pub enabled: bool,
-    #[prost(string, tag = "3")]
-    pub description: ::prost::alloc::string::String,
+    #[prost(bool, optional, tag = "2")]
+    pub enabled: ::core::option::Option<bool>,
+    #[prost(string, optional, tag = "3")]
+    pub description: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateFlagResponse {
     #[prost(message, optional, tag = "1")]
     pub flag: ::core::option::Option<FeatureFlag>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteFlagRequest {
+    #[prost(string, tag = "1")]
+    pub flag_key: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteFlagResponse {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+    #[prost(string, tag = "2")]
+    pub message: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FeatureFlag {
@@ -85,6 +104,8 @@ pub struct FeatureFlag {
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "7")]
     pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, repeated, tag = "8")]
+    pub rules: ::prost::alloc::vec::Vec<FlagRule>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FlagVariant {
@@ -94,6 +115,17 @@ pub struct FlagVariant {
     pub value: ::prost::alloc::string::String,
     #[prost(int32, tag = "3")]
     pub weight: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FlagRule {
+    #[prost(string, tag = "1")]
+    pub attribute: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub operator: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub value: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub variant: ::prost::alloc::string::String,
 }
 /// Generated server implementations.
 pub mod feature_flag_service_server {
@@ -119,6 +151,13 @@ pub mod feature_flag_service_server {
             &self,
             request: tonic::Request<super::GetFlagRequest>,
         ) -> std::result::Result<tonic::Response<super::GetFlagResponse>, tonic::Status>;
+        async fn list_flags(
+            &self,
+            request: tonic::Request<super::ListFlagsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListFlagsResponse>,
+            tonic::Status,
+        >;
         async fn create_flag(
             &self,
             request: tonic::Request<super::CreateFlagRequest>,
@@ -131,6 +170,13 @@ pub mod feature_flag_service_server {
             request: tonic::Request<super::UpdateFlagRequest>,
         ) -> std::result::Result<
             tonic::Response<super::UpdateFlagResponse>,
+            tonic::Status,
+        >;
+        async fn delete_flag(
+            &self,
+            request: tonic::Request<super::DeleteFlagRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteFlagResponse>,
             tonic::Status,
         >;
     }
@@ -301,6 +347,51 @@ pub mod feature_flag_service_server {
                     };
                     Box::pin(fut)
                 }
+                "/k1s0.system.featureflag.v1.FeatureFlagService/ListFlags" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListFlagsSvc<T: FeatureFlagService>(pub Arc<T>);
+                    impl<
+                        T: FeatureFlagService,
+                    > tonic::server::UnaryService<super::ListFlagsRequest>
+                    for ListFlagsSvc<T> {
+                        type Response = super::ListFlagsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListFlagsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as FeatureFlagService>::list_flags(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListFlagsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/k1s0.system.featureflag.v1.FeatureFlagService/CreateFlag" => {
                     #[allow(non_camel_case_types)]
                     struct CreateFlagSvc<T: FeatureFlagService>(pub Arc<T>);
@@ -378,6 +469,52 @@ pub mod feature_flag_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateFlagSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.featureflag.v1.FeatureFlagService/DeleteFlag" => {
+                    #[allow(non_camel_case_types)]
+                    struct DeleteFlagSvc<T: FeatureFlagService>(pub Arc<T>);
+                    impl<
+                        T: FeatureFlagService,
+                    > tonic::server::UnaryService<super::DeleteFlagRequest>
+                    for DeleteFlagSvc<T> {
+                        type Response = super::DeleteFlagResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DeleteFlagRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as FeatureFlagService>::delete_flag(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = DeleteFlagSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

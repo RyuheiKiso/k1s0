@@ -387,7 +387,13 @@ async fn reset_all_policies(
     let mut total_reset = 0u64;
 
     loop {
-        let input = usecase::list_quota_policies::ListQuotaPoliciesInput { page, page_size };
+        let input = usecase::list_quota_policies::ListQuotaPoliciesInput {
+            page,
+            page_size,
+            subject_type: None,
+            subject_id: None,
+            enabled_only: None,
+        };
         match list_uc.execute(&input).await {
             Ok(output) => {
                 for policy in &output.quotas {

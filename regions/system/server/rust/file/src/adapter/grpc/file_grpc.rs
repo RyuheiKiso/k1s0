@@ -104,17 +104,21 @@ impl FileGrpcService {
         tenant_id: String,
         uploaded_by: String,
         tags: std::collections::HashMap<String, String>,
-        expires_in_seconds: Option<i32>,
-    ) -> Result<(String, String), GrpcError> {
+        expires_in_seconds: Option<u32>,
+        size_bytes: i64,
+    ) -> Result<(String, String, u32), GrpcError> {
         if filename.is_empty() {
             return Err(GrpcError::InvalidArgument("filename is required".to_string()));
         }
-        let expires_in_seconds = expires_in_seconds
-            .unwrap_or(3600)
-            .clamp(1, i32::MAX) as u32;
+        let expires_in_seconds = expires_in_seconds.unwrap_or(3600).max(1);
+        if size_bytes <= 0 {
+            return Err(GrpcError::InvalidArgument(
+                "size_bytes must be greater than zero".to_string(),
+            ));
+        }
         let input = GenerateUploadUrlInput {
             name: filename,
-            size_bytes: 0,
+            size_bytes: size_bytes as u64,
             mime_type: content_type,
             tenant_id,
             owner_id: uploaded_by,
@@ -129,7 +133,7 @@ impl FileGrpcService {
                 GrpcError::Internal(msg)
             }
         })?;
-        Ok((output.file_id, output.upload_url))
+        Ok((output.file_id, output.upload_url, output.expires_in_seconds))
     }
 
     pub async fn complete_upload(

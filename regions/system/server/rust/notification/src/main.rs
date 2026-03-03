@@ -191,6 +191,7 @@ async fn main() -> anyhow::Result<()> {
 
     let grpc_svc = Arc::new(NotificationGrpcService::with_management(
         send_notification_uc.clone(),
+        retry_notification_uc.clone(),
         log_repo.clone(),
         channel_repo.clone(),
         create_channel_uc.clone(),

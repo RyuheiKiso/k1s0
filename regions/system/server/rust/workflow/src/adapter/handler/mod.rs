@@ -82,8 +82,8 @@ pub fn router(state: AppState) -> Router {
                 "workflows", "write",
             )));
 
-        // DELETE/cancel -> workflows/admin
-        let admin_routes = Router::new()
+        // DELETE/cancel -> workflows/write
+        let write_delete_routes = Router::new()
             .route(
                 "/api/v1/workflows/:id",
                 delete(workflow_handler::delete_workflow),
@@ -93,13 +93,13 @@ pub fn router(state: AppState) -> Router {
                 post(workflow_handler::cancel_instance),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "workflows", "admin",
+                "workflows", "write",
             )));
 
         Router::new()
             .merge(read_routes)
             .merge(write_routes)
-            .merge(admin_routes)
+            .merge(write_delete_routes)
             .layer(axum::middleware::from_fn_with_state(
                 auth_state.clone(),
                 auth_middleware,

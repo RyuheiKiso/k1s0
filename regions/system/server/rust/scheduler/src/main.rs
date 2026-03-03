@@ -94,7 +94,10 @@ async fn main() -> anyhow::Result<()> {
     let list_jobs_uc = Arc::new(usecase::ListJobsUseCase::new(job_repo.clone()));
     let create_job_uc = Arc::new(usecase::CreateJobUseCase::new(job_repo.clone()));
     let get_job_uc = Arc::new(usecase::GetJobUseCase::new(job_repo.clone()));
-    let delete_job_uc = Arc::new(usecase::DeleteJobUseCase::new(job_repo.clone()));
+    let delete_job_uc = Arc::new(usecase::DeleteJobUseCase::new(
+        job_repo.clone(),
+        execution_repo.clone(),
+    ));
     let trigger_job_uc = Arc::new(usecase::TriggerJobUseCase::with_publisher(
         job_repo.clone(),
         execution_repo.clone(),
@@ -108,7 +111,18 @@ async fn main() -> anyhow::Result<()> {
         execution_repo.clone(),
     ));
 
-    let grpc_svc = Arc::new(SchedulerGrpcService::new(trigger_job_uc.clone()));
+    let grpc_svc = Arc::new(SchedulerGrpcService::new(
+        create_job_uc.clone(),
+        get_job_uc.clone(),
+        list_jobs_uc.clone(),
+        update_job_uc.clone(),
+        delete_job_uc.clone(),
+        pause_job_uc.clone(),
+        resume_job_uc.clone(),
+        trigger_job_uc.clone(),
+        list_executions_uc.clone(),
+        execution_repo.clone(),
+    ));
 
     // Metrics
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(

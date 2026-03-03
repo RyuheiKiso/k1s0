@@ -18,6 +18,7 @@ pub struct CreateSessionRequest {
     pub device_type: Option<String>,
     pub user_agent: Option<String>,
     pub ip_address: Option<String>,
+    pub ttl_seconds: Option<u32>,
 }
 
 #[derive(Debug, Clone)]
@@ -27,6 +28,7 @@ pub struct CreateSessionResponse {
     pub device_id: String,
     pub expires_at: String,
     pub created_at: String,
+    pub token: String,
 }
 
 #[derive(Debug, Clone)]
@@ -168,7 +170,7 @@ impl SessionGrpcService {
 
         let input = CreateSessionInput {
             user_id: req.user_id,
-            ttl_seconds: Some(self.default_ttl),
+            ttl_seconds: req.ttl_seconds.map(|ttl| ttl as i64).or(Some(self.default_ttl)),
             metadata: Some(metadata),
         };
 
@@ -179,6 +181,7 @@ impl SessionGrpcService {
                 device_id: req.device_id,
                 expires_at: output.session.expires_at.to_rfc3339(),
                 created_at: output.session.created_at.to_rfc3339(),
+                token: output.session.token,
             }),
             Err(SessionError::InvalidInput(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
@@ -216,7 +219,7 @@ impl SessionGrpcService {
                         status: status.to_string(),
                         expires_at: s.expires_at.to_rfc3339(),
                         created_at: s.created_at.to_rfc3339(),
-                        last_accessed_at: None,
+                        last_accessed_at: s.metadata.get("last_accessed_at").cloned(),
                     },
                 })
             }
@@ -310,7 +313,7 @@ impl SessionGrpcService {
                             status: status.to_string(),
                             expires_at: s.expires_at.to_rfc3339(),
                             created_at: s.created_at.to_rfc3339(),
-                            last_accessed_at: None,
+                            last_accessed_at: s.metadata.get("last_accessed_at").cloned(),
                         }
                     })
                     .collect();
@@ -372,12 +375,14 @@ mod tests {
             device_type: Some("mobile".to_string()),
             user_agent: None,
             ip_address: Some("127.0.0.1".to_string()),
+            ttl_seconds: None,
         };
         let resp = svc.create_session(req).await.unwrap();
 
         assert_eq!(resp.user_id, "user-1");
         assert!(!resp.session_id.is_empty());
         assert!(!resp.expires_at.is_empty());
+        assert!(!resp.token.is_empty());
     }
 
     #[tokio::test]

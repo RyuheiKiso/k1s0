@@ -95,7 +95,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 }
 ```
 
-> 現在の実装ではページネーションは未実装。全件返却となる。`bundle_id`/`enabled_only` クエリフィルタも未実装。
+> 現在の実装ではページネーションと `bundle_id`/`enabled_only` クエリフィルタに対応している。`page`/`page_size` で取得件数を制御する。
 
 #### GET /api/v1/policies/:id
 
@@ -263,7 +263,9 @@ ID 指定でポリシーの詳細を取得する。
 ```json
 {
   "allowed": true,
-  "reason": "OPA evaluation: allowed"
+  "reason": "OPA evaluation: allowed",
+  "decision_id": "dec_01JABCDEFG1234567890",
+  "cached": false
 }
 ```
 
@@ -272,7 +274,9 @@ ID 指定でポリシーの詳細を取得する。
 ```json
 {
   "allowed": false,
-  "reason": "OPA evaluation: denied"
+  "reason": "OPA evaluation: denied",
+  "decision_id": "dec_01JABCDEFG1234567891",
+  "cached": true
 }
 ```
 
@@ -370,6 +374,12 @@ import "k1s0/system/common/v1/types.proto";
 service PolicyService {
   rpc EvaluatePolicy(EvaluatePolicyRequest) returns (EvaluatePolicyResponse);
   rpc GetPolicy(GetPolicyRequest) returns (GetPolicyResponse);
+  rpc ListPolicies(ListPoliciesRequest) returns (ListPoliciesResponse);
+  rpc CreatePolicy(CreatePolicyRequest) returns (CreatePolicyResponse);
+  rpc UpdatePolicy(UpdatePolicyRequest) returns (UpdatePolicyResponse);
+  rpc DeletePolicy(DeletePolicyRequest) returns (DeletePolicyResponse);
+  rpc CreateBundle(CreateBundleRequest) returns (CreateBundleResponse);
+  rpc ListBundles(ListBundlesRequest) returns (ListBundlesResponse);
 }
 
 message EvaluatePolicyRequest {
@@ -708,3 +718,14 @@ vault:
 
 - [RBAC設計.md](../../architecture/auth/RBAC設計.md) -- RBAC ロールモデル
 - [system-server.md](../auth/server.md) -- system tier サーバー一覧
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `EvaluatePolicy`, `GetPolicy`, `ListPolicies`, `CreatePolicy`, `UpdatePolicy`, `DeletePolicy`
+- `CreateBundle`, `ListBundles`
+
+### Message/Field Corrections
+- Canonical list/create message pairs are `ListPoliciesRequest/Response` and `CreatePolicyRequest/Response`.
+- `ListPoliciesRequest.bundle_id` is `optional string`.
+- `CreatePolicyRequest.bundle_id` is `optional string`.

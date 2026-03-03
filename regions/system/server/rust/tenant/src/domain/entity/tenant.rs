@@ -54,14 +54,18 @@ pub struct Tenant {
 }
 
 impl Tenant {
-    pub fn new(name: String, display_name: String, plan: String, _owner_id: Option<Uuid>) -> Self {
+    pub fn new(name: String, display_name: String, plan: String, owner_id: Option<Uuid>) -> Self {
+        let mut settings = serde_json::json!({});
+        if let Some(owner_id) = owner_id {
+            settings["owner_id"] = serde_json::Value::String(owner_id.to_string());
+        }
         Self {
             id: Uuid::new_v4(),
             name,
             display_name,
             status: TenantStatus::Provisioning,
             plan,
-            settings: serde_json::json!({}),
+            settings,
             keycloak_realm: None,
             db_schema: None,
             created_at: Utc::now(),

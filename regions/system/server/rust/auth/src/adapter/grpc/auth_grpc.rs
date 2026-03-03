@@ -12,6 +12,7 @@ use crate::proto::k1s0::system::auth::v1::{
 use crate::proto::k1s0::system::common::v1::{PaginationResult, Timestamp};
 use crate::usecase::get_user::{GetUserError, GetUserUseCase};
 use crate::usecase::get_user_roles::{GetUserRolesError, GetUserRolesUseCase};
+use crate::usecase::check_permission::{CheckPermissionInput, CheckPermissionUseCase};
 use crate::usecase::list_users::{ListUsersParams, ListUsersUseCase};
 use crate::usecase::validate_token::ValidateTokenUseCase;
 
@@ -39,6 +40,7 @@ pub struct AuthGrpcService {
     get_user_uc: Arc<GetUserUseCase>,
     get_user_roles_uc: Arc<GetUserRolesUseCase>,
     list_users_uc: Arc<ListUsersUseCase>,
+    check_permission_uc: Arc<CheckPermissionUseCase>,
 }
 
 impl AuthGrpcService {
@@ -47,12 +49,14 @@ impl AuthGrpcService {
         get_user_uc: Arc<GetUserUseCase>,
         get_user_roles_uc: Arc<GetUserRolesUseCase>,
         list_users_uc: Arc<ListUsersUseCase>,
+        check_permission_uc: Arc<CheckPermissionUseCase>,
     ) -> Self {
         Self {
             validate_token_uc,
             get_user_uc,
             get_user_roles_uc,
             list_users_uc,
+            check_permission_uc,
         }
     }
 
@@ -169,43 +173,25 @@ impl AuthGrpcService {
         &self,
         req: CheckPermissionRequest,
     ) -> Result<CheckPermissionResponse, GrpcError> {
-        let allowed = check_role_permission(&req.roles, &req.permission, &req.resource);
-        if allowed {
-            Ok(CheckPermissionResponse {
-                allowed: true,
-                reason: String::new(),
-            })
-        } else {
-            Ok(CheckPermissionResponse {
-                allowed: false,
-                reason: format!(
-                    "insufficient permissions: role(s) {:?} do not grant '{}' on '{}'",
-                    req.roles, req.permission, req.resource
-                ),
-            })
-        }
-    }
-}
-
-/// ロールベースのアクセス制御ロジック。
-fn check_role_permission(roles: &[String], permission: &str, _resource: &str) -> bool {
-    for role in roles {
-        match role.as_str() {
-            "sys_admin" => return true,
-            "sys_operator" => {
-                if permission == "read" || permission == "write" {
-                    return true;
+        let input = CheckPermissionInput {
+            user_id: req.user_id.and_then(|id| {
+                let trimmed = id.trim();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(trimmed.to_string())
                 }
-            }
-            "sys_auditor" => {
-                if permission == "read" {
-                    return true;
-                }
-            }
-            _ => {}
-        }
+            }),
+            roles: req.roles,
+            permission: req.permission,
+            resource: req.resource,
+        };
+        let result = self.check_permission_uc.execute(&input).await;
+        Ok(CheckPermissionResponse {
+            allowed: result.allowed,
+            reason: result.reason,
+        })
     }
-    false
 }
 
 // --- 変換ヘルパー ---
@@ -235,6 +221,7 @@ fn domain_claims_to_proto(c: &Claims) -> TokenClaims {
         }),
         resource_access,
         tier_access: c.tier_access.clone(),
+        scope: c.scope.clone(),
     }
 }
 
@@ -296,6 +283,7 @@ mod tests {
         verifier: MockTokenVerifier,
         user_repo: MockUserRepository,
     ) -> AuthGrpcService {
+        use crate::usecase::check_permission::CheckPermissionUseCase;
         use crate::usecase::get_user_roles::GetUserRolesUseCase;
         let validate_uc = Arc::new(ValidateTokenUseCase::new(
             Arc::new(verifier),
@@ -305,9 +293,16 @@ mod tests {
         let user_repo = Arc::new(user_repo);
         let get_user_uc = Arc::new(GetUserUseCase::new(user_repo.clone()));
         let get_user_roles_uc = Arc::new(GetUserRolesUseCase::new(user_repo.clone()));
-        let list_users_uc = Arc::new(ListUsersUseCase::new(user_repo));
+        let list_users_uc = Arc::new(ListUsersUseCase::new(user_repo.clone()));
+        let check_permission_uc = Arc::new(CheckPermissionUseCase::with_user_repo(user_repo.clone()));
 
-        AuthGrpcService::new(validate_uc, get_user_uc, get_user_roles_uc, list_users_uc)
+        AuthGrpcService::new(
+            validate_uc,
+            get_user_uc,
+            get_user_roles_uc,
+            list_users_uc,
+            check_permission_uc,
+        )
     }
 
     #[tokio::test]
@@ -332,6 +327,7 @@ mod tests {
         assert_eq!(proto_claims.sub, "user-uuid-1234");
         assert_eq!(proto_claims.preferred_username, "taro.yamada");
         assert_eq!(proto_claims.email, "taro.yamada@example.com");
+        assert_eq!(proto_claims.scope, "openid profile email");
     }
 
     #[tokio::test]
@@ -579,7 +575,7 @@ mod tests {
         let svc = make_auth_service(mock_verifier, mock_user_repo);
 
         let req = CheckPermissionRequest {
-            user_id: "user-uuid-1234".to_string(),
+            user_id: None,
             permission: "admin".to_string(),
             resource: "users".to_string(),
             roles: vec!["sys_admin".to_string()],
@@ -597,7 +593,7 @@ mod tests {
         let svc = make_auth_service(mock_verifier, mock_user_repo);
 
         let req = CheckPermissionRequest {
-            user_id: "user-uuid-1234".to_string(),
+            user_id: None,
             permission: "admin".to_string(),
             resource: "users".to_string(),
             roles: vec!["user".to_string()],
@@ -606,5 +602,36 @@ mod tests {
 
         assert!(!resp.allowed);
         assert!(resp.reason.contains("insufficient permissions"));
+    }
+
+    #[tokio::test]
+    async fn test_check_permission_uses_user_id_roles() {
+        let mock_verifier = MockTokenVerifier::new();
+        let mut mock_user_repo = MockUserRepository::new();
+        mock_user_repo
+            .expect_get_roles()
+            .withf(|id| id == "user-uuid-1234")
+            .returning(|id| {
+                Ok(UserRoles {
+                    user_id: id.to_string(),
+                    realm_roles: vec![Role {
+                        id: "role-1".to_string(),
+                        name: "sys_admin".to_string(),
+                        description: String::new(),
+                    }],
+                    client_roles: HashMap::new(),
+                })
+            });
+        let svc = make_auth_service(mock_verifier, mock_user_repo);
+
+        let req = CheckPermissionRequest {
+            user_id: Some("user-uuid-1234".to_string()),
+            permission: "admin".to_string(),
+            resource: "users".to_string(),
+            roles: vec!["user".to_string()],
+        };
+        let resp = svc.check_permission(req).await.unwrap();
+
+        assert!(resp.allowed);
     }
 }

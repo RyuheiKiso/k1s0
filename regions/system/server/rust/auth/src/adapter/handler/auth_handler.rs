@@ -221,6 +221,8 @@ pub async fn list_users(
 /// POST /api/v1/auth/permissions/check のリクエストボディ。
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CheckPermissionRequest {
+    #[serde(default)]
+    pub user_id: Option<String>,
     pub roles: Vec<String>,
     pub permission: String,
     pub resource: String,
@@ -240,11 +242,12 @@ pub async fn check_permission(
     Json(req): Json<CheckPermissionRequest>,
 ) -> impl IntoResponse {
     let input = crate::usecase::check_permission::CheckPermissionInput {
+        user_id: req.user_id,
         roles: req.roles,
         permission: req.permission,
         resource: req.resource,
     };
-    let output = state.check_permission_uc.execute(&input);
+    let output = state.check_permission_uc.execute(&input).await;
     (StatusCode::OK, Json(output)).into_response()
 }
 

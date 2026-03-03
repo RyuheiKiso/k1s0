@@ -1,48 +1,42 @@
-/// AuthDomainService は RBAC 判定のドメインロジックを提供する。
-/// check_permission.rs の inline RBAC ロジックをドメインサービスとして整理したもの。
-pub struct AuthDomainService;
+﻿pub struct AuthDomainService;
 
 impl AuthDomainService {
-    /// ロール一覧・リソース・アクションからパーミッションを確認する。
-    ///
-    /// - sys_admin   : 全アクションを許可
-    /// - sys_operator: "read" / "write" を許可
-    /// - sys_auditor : "read" のみ許可
-    /// - その他      : 拒否
+    /// Role x resource x action RBAC check.
     pub fn check_permission(roles: &[String], resource: &str, action: &str) -> bool {
-        for role in roles {
-            match role.as_str() {
-                "sys_admin" => return true,
-                "sys_operator" => {
-                    if action == "read" || action == "write" {
-                        return true;
-                    }
-                }
-                "sys_auditor" => {
-                    if action == "read" {
-                        return true;
-                    }
-                }
-                _ => {}
-            }
-        }
-        let _ = resource; // 将来的にリソースごとの細かい制御に使用する
-        false
+        let resource = resource.to_ascii_lowercase();
+        let action = action.to_ascii_lowercase();
+
+        roles
+            .iter()
+            .any(|role| Self::role_allows(role, &resource, &action))
     }
 
-    /// 指定されたロールが sys_admin 権限を持つかを判定する。
+    fn role_allows(role: &str, resource: &str, action: &str) -> bool {
+        match role {
+            "sys_admin" => matches!(action, "read" | "write" | "delete" | "admin"),
+            "sys_operator" => match resource {
+                "users" | "auth_config" => action == "read",
+                "audit_logs" | "api_keys" => action == "read" || action == "write",
+                _ => false,
+            },
+            "sys_auditor" => match resource {
+                "users" | "auth_config" | "audit_logs" | "api_keys" => action == "read",
+                _ => false,
+            },
+            _ => false,
+        }
+    }
+
     pub fn is_admin(roles: &[String]) -> bool {
         roles.iter().any(|r| r == "sys_admin")
     }
 
-    /// 指定されたロールが sys_operator 以上の権限を持つかを判定する。
     pub fn is_operator_or_above(roles: &[String]) -> bool {
         roles
             .iter()
             .any(|r| r == "sys_admin" || r == "sys_operator")
     }
 
-    /// 指定されたロールが sys_auditor 以上の権限を持つかを判定する。
     pub fn is_auditor_or_above(roles: &[String]) -> bool {
         roles
             .iter()
@@ -57,8 +51,6 @@ mod tests {
     fn roles(names: &[&str]) -> Vec<String> {
         names.iter().map(|s| s.to_string()).collect()
     }
-
-    // --- check_permission tests ---
 
     #[test]
     fn test_sys_admin_read_allowed() {
@@ -109,7 +101,7 @@ mod tests {
     fn test_sys_operator_write_allowed() {
         assert!(AuthDomainService::check_permission(
             &roles(&["sys_operator"]),
-            "config",
+            "audit_logs",
             "write"
         ));
     }
@@ -118,7 +110,7 @@ mod tests {
     fn test_sys_operator_delete_denied() {
         assert!(!AuthDomainService::check_permission(
             &roles(&["sys_operator"]),
-            "users",
+            "api_keys",
             "delete"
         ));
     }
@@ -145,7 +137,7 @@ mod tests {
     fn test_sys_auditor_write_denied() {
         assert!(!AuthDomainService::check_permission(
             &roles(&["sys_auditor"]),
-            "audit_logs",
+            "api_keys",
             "write"
         ));
     }
@@ -169,6 +161,15 @@ mod tests {
     }
 
     #[test]
+    fn test_unknown_resource_denied() {
+        assert!(!AuthDomainService::check_permission(
+            &roles(&["sys_operator"]),
+            "unknown",
+            "read"
+        ));
+    }
+
+    #[test]
     fn test_empty_roles_denied() {
         assert!(!AuthDomainService::check_permission(
             &roles(&[]),
@@ -179,15 +180,12 @@ mod tests {
 
     #[test]
     fn test_multiple_roles_admin_wins() {
-        // sys_auditor + sys_admin → admin を持つので delete も許可
         assert!(AuthDomainService::check_permission(
             &roles(&["sys_auditor", "sys_admin"]),
             "users",
             "delete"
         ));
     }
-
-    // --- is_admin tests ---
 
     #[test]
     fn test_is_admin_true() {
@@ -198,8 +196,6 @@ mod tests {
     fn test_is_admin_false_for_operator() {
         assert!(!AuthDomainService::is_admin(&roles(&["sys_operator"])));
     }
-
-    // --- is_operator_or_above tests ---
 
     #[test]
     fn test_is_operator_or_above_admin() {
@@ -221,8 +217,6 @@ mod tests {
             "sys_auditor"
         ])));
     }
-
-    // --- is_auditor_or_above tests ---
 
     #[test]
     fn test_is_auditor_or_above_admin() {

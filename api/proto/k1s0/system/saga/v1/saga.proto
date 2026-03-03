@@ -22,6 +22,9 @@ service SagaService {
   // Saga キャンセル
   rpc CancelSaga(CancelSagaRequest) returns (CancelSagaResponse);
 
+  // Saga 補償実行
+  rpc CompensateSaga(CompensateSagaRequest) returns (CompensateSagaResponse);
+
   // ワークフロー登録（YAML 文字列）
   rpc RegisterWorkflow(RegisterWorkflowRequest) returns (RegisterWorkflowResponse);
 
@@ -76,7 +79,7 @@ message SagaStepLogProto {
   // エラーメッセージ（失敗時）
   string error_message = 9;
   k1s0.system.common.v1.Timestamp started_at = 10;
-  k1s0.system.common.v1.Timestamp completed_at = 11;
+  optional k1s0.system.common.v1.Timestamp completed_at = 11;
 }
 
 // WorkflowSummary はワークフローの概要情報。
@@ -162,6 +165,18 @@ message CancelSagaRequest {
 message CancelSagaResponse {
   bool success = 1;
   string message = 2;
+}
+
+// CompensateSagaRequest は Saga 補償実行リクエスト。
+message CompensateSagaRequest {
+  string saga_id = 1;
+}
+
+// CompensateSagaResponse は Saga 補償実行レスポンス。
+message CompensateSagaResponse {
+  bool success = 1;
+  string status = 2;
+  string message = 3;
 }
 
 // ============================================================

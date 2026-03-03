@@ -5,7 +5,8 @@ use std::sync::Arc;
 use crate::domain::entity::saga_state::SagaStatus;
 use crate::domain::repository::saga_repository::SagaListParams;
 use crate::usecase::{
-    CancelSagaUseCase, GetSagaUseCase, ListSagasUseCase, ListWorkflowsUseCase,
+    CancelSagaUseCase, CompensateSagaError, ExecuteSagaUseCase, GetSagaUseCase,
+    ListSagasUseCase, ListWorkflowsUseCase,
     RegisterWorkflowUseCase, StartSagaUseCase,
 };
 
@@ -70,6 +71,20 @@ pub struct CancelSagaRequest {
 #[derive(Debug)]
 pub struct CancelSagaResponse {
     pub success: bool,
+    pub message: String,
+}
+
+/// CompensateSagaRequest は Saga 補償実行リクエスト。
+#[derive(Debug)]
+pub struct CompensateSagaRequest {
+    pub saga_id: String,
+}
+
+/// CompensateSagaResponse は Saga 補償実行レスポンス。
+#[derive(Debug)]
+pub struct CompensateSagaResponse {
+    pub success: bool,
+    pub status: String,
     pub message: String,
 }
 
@@ -142,6 +157,7 @@ pub struct SagaStepLogProto {
 pub enum GrpcError {
     NotFound(String),
     InvalidArgument(String),
+    FailedPrecondition(String),
     Internal(String),
 }
 
@@ -153,6 +169,7 @@ pub struct SagaGrpcService {
     pub get_saga_uc: Arc<GetSagaUseCase>,
     pub list_sagas_uc: Arc<ListSagasUseCase>,
     pub cancel_saga_uc: Arc<CancelSagaUseCase>,
+    pub execute_saga_uc: Arc<ExecuteSagaUseCase>,
     pub register_workflow_uc: Arc<RegisterWorkflowUseCase>,
     pub list_workflows_uc: Arc<ListWorkflowsUseCase>,
 }
@@ -163,6 +180,7 @@ impl SagaGrpcService {
         get_saga_uc: Arc<GetSagaUseCase>,
         list_sagas_uc: Arc<ListSagasUseCase>,
         cancel_saga_uc: Arc<CancelSagaUseCase>,
+        execute_saga_uc: Arc<ExecuteSagaUseCase>,
         register_workflow_uc: Arc<RegisterWorkflowUseCase>,
         list_workflows_uc: Arc<ListWorkflowsUseCase>,
     ) -> Self {
@@ -171,6 +189,7 @@ impl SagaGrpcService {
             get_saga_uc,
             list_sagas_uc,
             cancel_saga_uc,
+            execute_saga_uc,
             register_workflow_uc,
             list_workflows_uc,
         }
@@ -346,7 +365,7 @@ impl SagaGrpcService {
             if msg.contains("not found") {
                 GrpcError::NotFound(msg)
             } else if msg.contains("terminal") {
-                GrpcError::InvalidArgument(msg)
+                GrpcError::FailedPrecondition(msg)
             } else {
                 GrpcError::Internal(format!("failed to cancel saga: {}", msg))
             }
@@ -355,6 +374,38 @@ impl SagaGrpcService {
         Ok(CancelSagaResponse {
             success: true,
             message: format!("saga {} cancelled successfully", req.saga_id),
+        })
+    }
+
+    /// Saga補償実行。
+    pub async fn compensate_saga(
+        &self,
+        req: CompensateSagaRequest,
+    ) -> Result<CompensateSagaResponse, GrpcError> {
+        let id = uuid::Uuid::parse_str(&req.saga_id)
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid saga_id: {}", req.saga_id)))?;
+
+        let state = self
+            .execute_saga_uc
+            .trigger_compensate(id)
+            .await
+            .map_err(|e| match e {
+                CompensateSagaError::NotFound(saga_id) => {
+                    GrpcError::NotFound(format!("saga not found: {}", saga_id))
+                }
+                CompensateSagaError::AlreadyTerminal(status) => {
+                    GrpcError::FailedPrecondition(format!("saga is already terminal: {}", status))
+                }
+                CompensateSagaError::WorkflowNotFound(name) => {
+                    GrpcError::NotFound(format!("workflow not found: {}", name))
+                }
+                CompensateSagaError::Internal(err) => GrpcError::Internal(err.to_string()),
+            })?;
+
+        Ok(CompensateSagaResponse {
+            success: true,
+            status: state.status.to_string(),
+            message: format!("saga {} compensation triggered", req.saga_id),
         })
     }
 

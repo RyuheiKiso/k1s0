@@ -71,6 +71,7 @@ impl RateLimitRule {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RateLimitDecision {
     pub allowed: bool,
+    pub limit: i64,
     pub remaining: i64,
     pub reset_at: i64,
     pub reason: String,
@@ -80,6 +81,7 @@ impl RateLimitDecision {
     pub fn allowed(remaining: i64, reset_at: i64) -> Self {
         Self {
             allowed: true,
+            limit: 0,
             remaining,
             reset_at,
             reason: String::new(),
@@ -89,6 +91,7 @@ impl RateLimitDecision {
     pub fn denied(remaining: i64, reset_at: i64, reason: String) -> Self {
         Self {
             allowed: false,
+            limit: 0,
             remaining,
             reset_at,
             reason,

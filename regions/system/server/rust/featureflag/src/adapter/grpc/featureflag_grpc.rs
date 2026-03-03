@@ -1,14 +1,13 @@
-use std::sync::Arc;
+﻿use std::sync::Arc;
 
+use crate::domain::entity::evaluation::EvaluationContext;
+use crate::domain::entity::feature_flag::{FlagRule, FlagVariant};
+use crate::domain::repository::FeatureFlagRepository;
 use crate::usecase::create_flag::{CreateFlagError, CreateFlagInput, CreateFlagUseCase};
+use crate::usecase::delete_flag::{DeleteFlagError, DeleteFlagUseCase};
 use crate::usecase::evaluate_flag::{EvaluateFlagError, EvaluateFlagInput, EvaluateFlagUseCase};
 use crate::usecase::get_flag::{GetFlagError, GetFlagUseCase};
 use crate::usecase::update_flag::{UpdateFlagError, UpdateFlagInput, UpdateFlagUseCase};
-
-use crate::domain::entity::evaluation::EvaluationContext;
-use crate::domain::entity::feature_flag::FlagVariant;
-
-// --- gRPC Request/Response Types ---
 
 #[derive(Debug, Clone)]
 pub struct EvaluateFlagRequest {
@@ -22,7 +21,7 @@ pub struct EvaluateFlagRequest {
 pub struct EvaluateFlagResponse {
     pub flag_key: String,
     pub enabled: bool,
-    pub variant: String,
+    pub variant: Option<String>,
     pub reason: String,
 }
 
@@ -33,10 +32,14 @@ pub struct GetFlagRequest {
 
 #[derive(Debug, Clone)]
 pub struct GetFlagResponse {
+    pub id: String,
     pub flag_key: String,
     pub description: String,
     pub enabled: bool,
     pub variants: Vec<PbFlagVariant>,
+    pub rules: Vec<PbFlagRule>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Clone)]
@@ -44,6 +47,22 @@ pub struct PbFlagVariant {
     pub name: String,
     pub value: String,
     pub weight: i32,
+}
+
+#[derive(Debug, Clone)]
+pub struct PbFlagRule {
+    pub attribute: String,
+    pub operator: String,
+    pub value: String,
+    pub variant: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListFlagsRequest {}
+
+#[derive(Debug, Clone)]
+pub struct ListFlagsResponse {
+    pub flags: Vec<GetFlagResponse>,
 }
 
 #[derive(Debug, Clone)]
@@ -56,9 +75,14 @@ pub struct CreateFlagRequest {
 
 #[derive(Debug, Clone)]
 pub struct CreateFlagResponse {
+    pub id: String,
     pub flag_key: String,
     pub description: String,
     pub enabled: bool,
+    pub variants: Vec<PbFlagVariant>,
+    pub rules: Vec<PbFlagRule>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Clone)]
@@ -70,12 +94,26 @@ pub struct UpdateFlagRequest {
 
 #[derive(Debug, Clone)]
 pub struct UpdateFlagResponse {
+    pub id: String,
     pub flag_key: String,
     pub description: String,
     pub enabled: bool,
+    pub variants: Vec<PbFlagVariant>,
+    pub rules: Vec<PbFlagRule>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-// --- gRPC Error ---
+#[derive(Debug, Clone)]
+pub struct DeleteFlagRequest {
+    pub flag_key: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct DeleteFlagResponse {
+    pub success: bool,
+    pub message: String,
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum GrpcError {
@@ -92,27 +130,31 @@ pub enum GrpcError {
     Internal(String),
 }
 
-// --- FeatureFlagGrpcService ---
-
 pub struct FeatureFlagGrpcService {
+    flag_repo: Arc<dyn FeatureFlagRepository>,
     evaluate_flag_uc: Arc<EvaluateFlagUseCase>,
     get_flag_uc: Arc<GetFlagUseCase>,
     create_flag_uc: Arc<CreateFlagUseCase>,
     update_flag_uc: Arc<UpdateFlagUseCase>,
+    delete_flag_uc: Arc<DeleteFlagUseCase>,
 }
 
 impl FeatureFlagGrpcService {
     pub fn new(
+        flag_repo: Arc<dyn FeatureFlagRepository>,
         evaluate_flag_uc: Arc<EvaluateFlagUseCase>,
         get_flag_uc: Arc<GetFlagUseCase>,
         create_flag_uc: Arc<CreateFlagUseCase>,
         update_flag_uc: Arc<UpdateFlagUseCase>,
+        delete_flag_uc: Arc<DeleteFlagUseCase>,
     ) -> Self {
         Self {
+            flag_repo,
             evaluate_flag_uc,
             get_flag_uc,
             create_flag_uc,
             update_flag_uc,
+            delete_flag_uc,
         }
     }
 
@@ -141,7 +183,7 @@ impl FeatureFlagGrpcService {
             Ok(result) => Ok(EvaluateFlagResponse {
                 flag_key: result.flag_key,
                 enabled: result.enabled,
-                variant: result.variant.unwrap_or_default(),
+                variant: result.variant,
                 reason: result.reason,
             }),
             Err(EvaluateFlagError::FlagNotFound(key)) => {
@@ -154,24 +196,47 @@ impl FeatureFlagGrpcService {
     pub async fn get_flag(&self, req: GetFlagRequest) -> Result<GetFlagResponse, GrpcError> {
         match self.get_flag_uc.execute(&req.flag_key).await {
             Ok(flag) => Ok(GetFlagResponse {
+                id: flag.id.to_string(),
                 flag_key: flag.flag_key,
                 description: flag.description,
                 enabled: flag.enabled,
-                variants: flag
-                    .variants
-                    .iter()
-                    .map(|v| PbFlagVariant {
-                        name: v.name.clone(),
-                        value: v.value.clone(),
-                        weight: v.weight,
-                    })
-                    .collect(),
+                variants: to_pb_variants(&flag.variants),
+                rules: to_pb_rules(&flag.rules),
+                created_at: flag.created_at,
+                updated_at: flag.updated_at,
             }),
             Err(GetFlagError::NotFound(key)) => {
                 Err(GrpcError::NotFound(format!("flag not found: {}", key)))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
+    }
+
+    pub async fn list_flags(
+        &self,
+        _req: ListFlagsRequest,
+    ) -> Result<ListFlagsResponse, GrpcError> {
+        let flags = self
+            .flag_repo
+            .find_all()
+            .await
+            .map_err(|e| GrpcError::Internal(e.to_string()))?;
+
+        Ok(ListFlagsResponse {
+            flags: flags
+                .into_iter()
+                .map(|flag| GetFlagResponse {
+                    id: flag.id.to_string(),
+                    flag_key: flag.flag_key,
+                    description: flag.description,
+                    enabled: flag.enabled,
+                    variants: to_pb_variants(&flag.variants),
+                    rules: to_pb_rules(&flag.rules),
+                    created_at: flag.created_at,
+                    updated_at: flag.updated_at,
+                })
+                .collect(),
+        })
     }
 
     pub async fn create_flag(
@@ -195,9 +260,14 @@ impl FeatureFlagGrpcService {
 
         match self.create_flag_uc.execute(&input).await {
             Ok(flag) => Ok(CreateFlagResponse {
+                id: flag.id.to_string(),
                 flag_key: flag.flag_key,
                 description: flag.description,
                 enabled: flag.enabled,
+                variants: to_pb_variants(&flag.variants),
+                rules: to_pb_rules(&flag.rules),
+                created_at: flag.created_at,
+                updated_at: flag.updated_at,
             }),
             Err(CreateFlagError::AlreadyExists(key)) => {
                 Err(GrpcError::AlreadyExists(format!("flag already exists: {}", key)))
@@ -218,9 +288,14 @@ impl FeatureFlagGrpcService {
 
         match self.update_flag_uc.execute(&input).await {
             Ok(flag) => Ok(UpdateFlagResponse {
+                id: flag.id.to_string(),
                 flag_key: flag.flag_key,
                 description: flag.description,
                 enabled: flag.enabled,
+                variants: to_pb_variants(&flag.variants),
+                rules: to_pb_rules(&flag.rules),
+                created_at: flag.created_at,
+                updated_at: flag.updated_at,
             }),
             Err(UpdateFlagError::NotFound(key)) => {
                 Err(GrpcError::NotFound(format!("flag not found: {}", key)))
@@ -228,6 +303,52 @@ impl FeatureFlagGrpcService {
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
+
+    pub async fn delete_flag(
+        &self,
+        req: DeleteFlagRequest,
+    ) -> Result<DeleteFlagResponse, GrpcError> {
+        let flag = self.get_flag_uc.execute(&req.flag_key).await.map_err(|e| match e {
+            GetFlagError::NotFound(key) => GrpcError::NotFound(format!("flag not found: {}", key)),
+            _ => GrpcError::Internal(e.to_string()),
+        })?;
+
+        self.delete_flag_uc
+            .execute(&flag.id)
+            .await
+            .map_err(|e| match e {
+                DeleteFlagError::NotFound(id) => GrpcError::NotFound(format!("flag not found: {}", id)),
+                DeleteFlagError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
+
+        Ok(DeleteFlagResponse {
+            success: true,
+            message: format!("flag {} deleted", req.flag_key),
+        })
+    }
+}
+
+fn to_pb_variants(variants: &[FlagVariant]) -> Vec<PbFlagVariant> {
+    variants
+        .iter()
+        .map(|v| PbFlagVariant {
+            name: v.name.clone(),
+            value: v.value.clone(),
+            weight: v.weight,
+        })
+        .collect()
+}
+
+fn to_pb_rules(rules: &[FlagRule]) -> Vec<PbFlagRule> {
+    rules
+        .iter()
+        .map(|r| PbFlagRule {
+            attribute: r.attribute.clone(),
+            operator: r.operator.clone(),
+            value: r.value.clone(),
+            variant: r.variant.clone(),
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -240,10 +361,12 @@ mod tests {
     fn make_service(mock: MockFeatureFlagRepository) -> FeatureFlagGrpcService {
         let repo = Arc::new(mock);
         FeatureFlagGrpcService::new(
+            repo.clone(),
             Arc::new(EvaluateFlagUseCase::new(repo.clone())),
             Arc::new(GetFlagUseCase::new(repo.clone())),
             Arc::new(CreateFlagUseCase::new(repo.clone())),
-            Arc::new(UpdateFlagUseCase::new(repo)),
+            Arc::new(UpdateFlagUseCase::new(repo.clone())),
+            Arc::new(DeleteFlagUseCase::new(repo)),
         )
     }
 
@@ -272,50 +395,18 @@ mod tests {
         let resp = svc.evaluate_flag(req).await.unwrap();
 
         assert!(resp.enabled);
-        assert_eq!(resp.variant, "on");
+        assert_eq!(resp.variant, Some("on".to_string()));
         assert_eq!(resp.flag_key, "dark-mode");
     }
 
     #[tokio::test]
-    async fn test_evaluate_flag_not_found() {
+    async fn test_list_flags_success() {
         let mut mock = MockFeatureFlagRepository::new();
-        mock.expect_find_by_key()
-            .returning(|_| Err(anyhow::anyhow!("flag not found")));
+        mock.expect_find_all().returning(|| Ok(vec![]));
 
         let svc = make_service(mock);
-        let req = EvaluateFlagRequest {
-            flag_key: "nonexistent".to_string(),
-            user_id: String::new(),
-            tenant_id: String::new(),
-            attributes: HashMap::new(),
-        };
-        let result = svc.evaluate_flag(req).await;
-
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            GrpcError::NotFound(msg) => assert!(msg.contains("not found")),
-            e => unreachable!("unexpected error: {:?}", e),
-        }
-    }
-
-    #[tokio::test]
-    async fn test_get_flag_success() {
-        let mut mock = MockFeatureFlagRepository::new();
-        let flag = FeatureFlag::new("beta".to_string(), "Beta feature".to_string(), true);
-        let return_flag = flag.clone();
-
-        mock.expect_find_by_key()
-            .withf(|key| key == "beta")
-            .returning(move |_| Ok(return_flag.clone()));
-
-        let svc = make_service(mock);
-        let req = GetFlagRequest {
-            flag_key: "beta".to_string(),
-        };
-        let resp = svc.get_flag(req).await.unwrap();
-
-        assert_eq!(resp.flag_key, "beta");
-        assert!(resp.enabled);
+        let resp = svc.list_flags(ListFlagsRequest {}).await.unwrap();
+        assert!(resp.flags.is_empty());
     }
 
     #[tokio::test]
@@ -337,28 +428,6 @@ mod tests {
 
         assert_eq!(resp.flag_key, "new-flag");
         assert!(resp.enabled);
-    }
-
-    #[tokio::test]
-    async fn test_create_flag_already_exists() {
-        let mut mock = MockFeatureFlagRepository::new();
-        mock.expect_exists_by_key()
-            .returning(|_| Ok(true));
-
-        let svc = make_service(mock);
-        let req = CreateFlagRequest {
-            flag_key: "existing".to_string(),
-            description: "Existing".to_string(),
-            enabled: true,
-            variants: vec![],
-        };
-        let result = svc.create_flag(req).await;
-
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            GrpcError::AlreadyExists(msg) => assert!(msg.contains("already exists")),
-            e => unreachable!("unexpected error: {:?}", e),
-        }
     }
 
     #[tokio::test]

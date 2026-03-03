@@ -227,28 +227,64 @@ async fn main() -> anyhow::Result<()> {
 
     // 10. AppState + Router
     let state = AppState {
-        manage_tables_uc,
-        manage_columns_uc,
-        crud_records_uc,
+        manage_tables_uc: manage_tables_uc.clone(),
+        manage_columns_uc: manage_columns_uc.clone(),
+        crud_records_uc: crud_records_uc.clone(),
         manage_rules_uc,
-        check_consistency_uc,
-        get_audit_logs_uc,
-        manage_relationships_uc,
-        manage_display_configs_uc,
-        import_export_uc,
+        check_consistency_uc: check_consistency_uc.clone(),
+        get_audit_logs_uc: get_audit_logs_uc.clone(),
+        manage_relationships_uc: manage_relationships_uc.clone(),
+        manage_display_configs_uc: manage_display_configs_uc.clone(),
+        import_export_uc: import_export_uc.clone(),
         metrics: metrics.clone(),
         auth_state: auth_state.clone(),
     };
     let app = handler::router(state);
 
     // 11. gRPC Service
-    // TODO: Initialize gRPC service with tonic
+    use k1s0_master_maintenance_server::proto::k1s0::system::mastermaintenance::v1::master_maintenance_service_server::MasterMaintenanceServiceServer;
+    let grpc_service = adapter::grpc::master_maintenance_grpc::MasterMaintenanceGrpcService::new(
+        manage_tables_uc,
+        manage_columns_uc,
+        crud_records_uc,
+        check_consistency_uc,
+        get_audit_logs_uc,
+        manage_relationships_uc,
+        manage_display_configs_uc,
+        import_export_uc,
+        column_repo,
+        relationship_repo,
+    );
+    let grpc_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.grpc_port).parse()?;
+    info!("gRPC server listening on {}", grpc_addr);
+    let grpc_metrics = metrics.clone();
+    let grpc_future = async move {
+        tonic::transport::Server::builder()
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
+            .add_service(MasterMaintenanceServiceServer::new(grpc_service))
+            .serve(grpc_addr)
+            .await
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+    };
 
     // 12. Start REST server
     let rest_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.port).parse()?;
     info!("REST server listening on {}", rest_addr);
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
-    axum::serve(listener, app).await?;
+    let rest_future = axum::serve(listener, app);
+
+    tokio::select! {
+        result = rest_future => {
+            if let Err(e) = result {
+                tracing::error!("REST server error: {}", e);
+            }
+        }
+        result = grpc_future => {
+            if let Err(e) = result {
+                tracing::error!("gRPC server error: {}", e);
+            }
+        }
+    }
 
     Ok(())
 }
