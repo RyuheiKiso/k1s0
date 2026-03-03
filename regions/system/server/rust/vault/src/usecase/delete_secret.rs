@@ -39,19 +39,12 @@ impl DeleteSecretUseCase {
     }
 
     pub async fn execute(&self, input: &DeleteSecretInput) -> Result<(), DeleteSecretError> {
-        let result = self
-            .store
-            .delete(&input.path, input.versions.clone())
-            .await;
+        let result = self.store.delete(&input.path, input.versions.clone()).await;
 
         match &result {
             Ok(()) => {
-                let log = SecretAccessLog::new(
-                    input.path.clone(),
-                    AccessAction::Delete,
-                    None,
-                    true,
-                );
+                let log =
+                    SecretAccessLog::new(input.path.clone(), AccessAction::Delete, None, true);
                 let _ = self.audit.record(&log).await;
                 let _ = self
                     .event_publisher
@@ -66,12 +59,8 @@ impl DeleteSecretUseCase {
                     .await;
             }
             Err(e) => {
-                let mut log = SecretAccessLog::new(
-                    input.path.clone(),
-                    AccessAction::Delete,
-                    None,
-                    false,
-                );
+                let mut log =
+                    SecretAccessLog::new(input.path.clone(), AccessAction::Delete, None, false);
                 log.error_msg = Some(e.to_string());
                 let _ = self.audit.record(&log).await;
                 let _ = self

@@ -64,6 +64,8 @@ message UpdateFlagRequest {
   string flag_key = 1;
   optional bool enabled = 2;
   optional string description = 3;
+  repeated FlagVariant variants = 4;
+  repeated FlagRule rules = 5;
 }
 
 message UpdateFlagResponse {

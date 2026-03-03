@@ -9,6 +9,7 @@ use axum::{
 use crate::adapter::handler::AppState;
 use crate::domain::entity::claims::Claims;
 use crate::domain::service::AuthDomainService;
+use crate::infrastructure::permission_cache::PermissionCache;
 
 /// rbac_middleware は Request extension の Claims からロールを取得し、
 /// AuthDomainService を使って指定リソース・アクションのパーミッションを確認する axum ミドルウェア。
@@ -28,13 +29,14 @@ pub fn make_rbac_middleware(
     Next,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
        + Clone {
-    move |_state: State<AppState>, req: Request<axum::body::Body>, next: Next| {
-        Box::pin(rbac_check(req, next, resource, action))
+    move |State(state): State<AppState>, req: Request<axum::body::Body>, next: Next| {
+        Box::pin(rbac_check(state, req, next, resource, action))
     }
 }
 
 /// Core RBAC check logic. Called from make_rbac_middleware.
 pub async fn rbac_check(
+    state: AppState,
     req: Request<axum::body::Body>,
     next: Next,
     resource: &str,
@@ -57,8 +59,39 @@ pub async fn rbac_check(
     };
 
     let roles: Vec<String> = claims.realm_access.roles.clone();
+    let mut sorted_roles = roles.clone();
+    sorted_roles.sort();
+    let cache_key = PermissionCache::make_key(
+        &format!("{}:{}", claims.sub, sorted_roles.join(",")),
+        resource,
+        action,
+    );
+    if let Some(allowed) = state.permission_cache.get(&cache_key).await {
+        return if allowed {
+            next.run(req).await
+        } else {
+            (
+                StatusCode::FORBIDDEN,
+                Json(serde_json::json!({
+                    "error": {
+                        "code": "SYS_AUTH_PERMISSION_DENIED",
+                        "message": format!(
+                            "Insufficient permissions: action '{}' on resource '{}' is not allowed for the current roles.",
+                            action, resource
+                        )
+                    }
+                })),
+            )
+                .into_response()
+        };
+    }
 
-    if AuthDomainService::check_permission(&roles, resource, action) {
+    let allowed = AuthDomainService::check_permission(&roles, resource, action);
+    if state.permission_cache_refresh_on_miss {
+        state.permission_cache.insert(cache_key, allowed).await;
+    }
+
+    if allowed {
         next.run(req).await
     } else {
         (
@@ -327,8 +360,8 @@ mod tests {
                 "/api/v1/users/:id",
                 delete(|| async { StatusCode::NO_CONTENT }).layer(middleware::from_fn_with_state(
                     state_clone,
-                    |_s: State<AppState>, req: Request<Body>, next: Next| {
-                        rbac_check(req, next, "users", "delete")
+                    |State(s): State<AppState>, req: Request<Body>, next: Next| {
+                        rbac_check(s, req, next, "users", "delete")
                     },
                 )),
             )
@@ -378,8 +411,8 @@ mod tests {
                 "/api/v1/users/:id",
                 delete(|| async { StatusCode::NO_CONTENT }).layer(middleware::from_fn_with_state(
                     state_clone,
-                    |_s: State<AppState>, req: Request<Body>, next: Next| {
-                        rbac_check(req, next, "users", "delete")
+                    |State(s): State<AppState>, req: Request<Body>, next: Next| {
+                        rbac_check(s, req, next, "users", "delete")
                     },
                 )),
             )

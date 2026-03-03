@@ -1,8 +1,17 @@
-# system-navigation-server 設計
+﻿# system-navigation-server 設計
 
 クライアントアプリのルーティング・ガード設定を提供するナビゲーション管理サービス。gRPC で認証済みユーザーのロールに応じたルート定義とルートガードを返す。
 
 ## 概要
+
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | navigation/read |
+| sys_operator 以上 | navigation/write |
+| sys_admin のみ | navigation/admin |
+
 
 | 機能 | 説明 |
 | --- | --- |
@@ -80,7 +89,7 @@ service NavigationService {
 | --- | --- | --- | --- |
 | `id` | string | 1 | ルート一意識別子 |
 | `path` | string | 2 | URL パス（例: `/dashboard`, `/users/:id`） |
-| `component_id` | string | 3 | フロントエンドコンポーネント識別子 |
+| `component_id` | optional string | 3 | フロントエンドコンポーネント識別子（省略可） |
 | `guard_ids` | repeated string | 4 | 適用するガード ID のリスト |
 | `children` | repeated Route | 5 | 子ルート（再帰的） |
 | `transition` | TransitionConfig | 6 | ページ遷移アニメーション設定 |
@@ -109,6 +118,9 @@ service NavigationService {
 | --- | --- | --- | --- |
 | `type` | TransitionType | 1 | アニメーション種別 |
 | `duration_ms` | uint32 | 2 | アニメーション時間（ミリ秒） |
+
+> ドメインモデルでは `guards` を解決済み構造として保持し、proto では `guard_ids` で参照する。
+> また `TransitionConfig` はドメイン側でフラット構造に正規化して扱う。
 
 ---
 
@@ -186,3 +198,4 @@ GetNavigationRequest {
 - [認証認可設計.md](../../architecture/auth/認証認可設計.md) -- JWT・ロールモデル
 - [RBAC設計.md](../../architecture/auth/RBAC設計.md) -- ロールベースアクセス制御
 - [system-auth/server.md](../auth/server.md) -- 認証サーバー（トークン発行元）
+

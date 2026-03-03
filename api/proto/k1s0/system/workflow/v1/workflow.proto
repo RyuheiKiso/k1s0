@@ -114,6 +114,11 @@ message StartInstanceResponse {
   string status = 2;
   optional string current_step_id = 3;
   k1s0.system.common.v1.Timestamp started_at = 4;
+  string workflow_id = 5;
+  string workflow_name = 6;
+  string title = 7;
+  string initiator_id = 8;
+  bytes context_json = 9;
 }
 
 message GetInstanceRequest {
@@ -198,6 +203,7 @@ message WorkflowInstance {
   bytes context_json = 8;
   k1s0.system.common.v1.Timestamp started_at = 9;
   optional k1s0.system.common.v1.Timestamp completed_at = 10;
+  optional k1s0.system.common.v1.Timestamp created_at = 11;
 }
 
 message ApproveTaskRequest {

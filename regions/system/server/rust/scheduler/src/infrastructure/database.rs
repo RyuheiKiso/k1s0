@@ -29,6 +29,8 @@ mod tests {
             max_idle_conns: 5,
             conn_max_lifetime: "5m".to_string(),
         };
-        assert!(cfg.connection_url().starts_with("postgres://app:pass@localhost"));
+        assert!(cfg
+            .connection_url()
+            .starts_with("postgres://app:pass@localhost"));
     }
 }

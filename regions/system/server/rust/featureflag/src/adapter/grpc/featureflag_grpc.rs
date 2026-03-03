@@ -2,11 +2,11 @@
 
 use crate::domain::entity::evaluation::EvaluationContext;
 use crate::domain::entity::feature_flag::{FlagRule, FlagVariant};
-use crate::domain::repository::FeatureFlagRepository;
 use crate::usecase::create_flag::{CreateFlagError, CreateFlagInput, CreateFlagUseCase};
 use crate::usecase::delete_flag::{DeleteFlagError, DeleteFlagUseCase};
 use crate::usecase::evaluate_flag::{EvaluateFlagError, EvaluateFlagInput, EvaluateFlagUseCase};
 use crate::usecase::get_flag::{GetFlagError, GetFlagUseCase};
+use crate::usecase::list_flags::{ListFlagsError, ListFlagsUseCase};
 use crate::usecase::update_flag::{UpdateFlagError, UpdateFlagInput, UpdateFlagUseCase};
 
 #[derive(Debug, Clone)]
@@ -90,6 +90,8 @@ pub struct UpdateFlagRequest {
     pub flag_key: String,
     pub enabled: Option<bool>,
     pub description: Option<String>,
+    pub variants: Vec<PbFlagVariant>,
+    pub rules: Vec<PbFlagRule>,
 }
 
 #[derive(Debug, Clone)]
@@ -131,7 +133,7 @@ pub enum GrpcError {
 }
 
 pub struct FeatureFlagGrpcService {
-    flag_repo: Arc<dyn FeatureFlagRepository>,
+    list_flags_uc: Arc<ListFlagsUseCase>,
     evaluate_flag_uc: Arc<EvaluateFlagUseCase>,
     get_flag_uc: Arc<GetFlagUseCase>,
     create_flag_uc: Arc<CreateFlagUseCase>,
@@ -141,7 +143,7 @@ pub struct FeatureFlagGrpcService {
 
 impl FeatureFlagGrpcService {
     pub fn new(
-        flag_repo: Arc<dyn FeatureFlagRepository>,
+        list_flags_uc: Arc<ListFlagsUseCase>,
         evaluate_flag_uc: Arc<EvaluateFlagUseCase>,
         get_flag_uc: Arc<GetFlagUseCase>,
         create_flag_uc: Arc<CreateFlagUseCase>,
@@ -149,7 +151,7 @@ impl FeatureFlagGrpcService {
         delete_flag_uc: Arc<DeleteFlagUseCase>,
     ) -> Self {
         Self {
-            flag_repo,
+            list_flags_uc,
             evaluate_flag_uc,
             get_flag_uc,
             create_flag_uc,
@@ -216,11 +218,9 @@ impl FeatureFlagGrpcService {
         &self,
         _req: ListFlagsRequest,
     ) -> Result<ListFlagsResponse, GrpcError> {
-        let flags = self
-            .flag_repo
-            .find_all()
-            .await
-            .map_err(|e| GrpcError::Internal(e.to_string()))?;
+        let flags = self.list_flags_uc.execute().await.map_err(|e| match e {
+            ListFlagsError::Internal(msg) => GrpcError::Internal(msg),
+        })?;
 
         Ok(ListFlagsResponse {
             flags: flags
@@ -284,6 +284,35 @@ impl FeatureFlagGrpcService {
             flag_key: req.flag_key,
             enabled: req.enabled,
             description: req.description,
+            variants: if req.variants.is_empty() {
+                None
+            } else {
+                Some(
+                    req.variants
+                        .into_iter()
+                        .map(|v| FlagVariant {
+                            name: v.name,
+                            value: v.value,
+                            weight: v.weight,
+                        })
+                        .collect(),
+                )
+            },
+            rules: if req.rules.is_empty() {
+                None
+            } else {
+                Some(
+                    req.rules
+                        .into_iter()
+                        .map(|r| FlagRule {
+                            attribute: r.attribute,
+                            operator: r.operator,
+                            value: r.value,
+                            variant: r.variant,
+                        })
+                        .collect(),
+                )
+            },
         };
 
         match self.update_flag_uc.execute(&input).await {
@@ -362,7 +391,7 @@ mod tests {
     fn make_service(mock: MockFeatureFlagRepository) -> FeatureFlagGrpcService {
         let repo = Arc::new(mock);
         FeatureFlagGrpcService::new(
-            repo.clone(),
+            Arc::new(ListFlagsUseCase::new(repo.clone())),
             Arc::new(EvaluateFlagUseCase::new(repo.clone())),
             Arc::new(GetFlagUseCase::new(repo.clone())),
             Arc::new(CreateFlagUseCase::new(
@@ -453,6 +482,8 @@ mod tests {
             flag_key: "dark-mode".to_string(),
             enabled: Some(false),
             description: None,
+            variants: vec![],
+            rules: vec![],
         };
         let resp = svc.update_flag(req).await.unwrap();
 

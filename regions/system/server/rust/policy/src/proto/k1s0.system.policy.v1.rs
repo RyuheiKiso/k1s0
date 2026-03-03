@@ -101,6 +101,10 @@ pub struct CreateBundleRequest {
     pub name: ::prost::alloc::string::String,
     #[prost(string, repeated, tag = "2")]
     pub policy_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "3")]
+    pub description: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, optional, tag = "4")]
+    pub enabled: ::core::option::Option<bool>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateBundleResponse {
@@ -113,6 +117,16 @@ pub struct ListBundlesRequest {}
 pub struct ListBundlesResponse {
     #[prost(message, repeated, tag = "1")]
     pub bundles: ::prost::alloc::vec::Vec<PolicyBundle>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetBundleRequest {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetBundleResponse {
+    #[prost(message, optional, tag = "1")]
+    pub bundle: ::core::option::Option<PolicyBundle>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Policy {
@@ -149,6 +163,10 @@ pub struct PolicyBundle {
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "5")]
     pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(string, tag = "6")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(bool, tag = "7")]
+    pub enabled: bool,
 }
 /// Generated server implementations.
 pub mod policy_service_server {
@@ -217,6 +235,13 @@ pub mod policy_service_server {
             request: tonic::Request<super::ListBundlesRequest>,
         ) -> std::result::Result<
             tonic::Response<super::ListBundlesResponse>,
+            tonic::Status,
+        >;
+        async fn get_bundle(
+            &self,
+            request: tonic::Request<super::GetBundleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetBundleResponse>,
             tonic::Status,
         >;
     }
@@ -641,6 +666,51 @@ pub mod policy_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListBundlesSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.policy.v1.PolicyService/GetBundle" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetBundleSvc<T: PolicyService>(pub Arc<T>);
+                    impl<
+                        T: PolicyService,
+                    > tonic::server::UnaryService<super::GetBundleRequest>
+                    for GetBundleSvc<T> {
+                        type Response = super::GetBundleResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetBundleRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as PolicyService>::get_bundle(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetBundleSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

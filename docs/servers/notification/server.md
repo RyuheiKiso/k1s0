@@ -1,9 +1,18 @@
-# system-notification-server 設計
+﻿# system-notification-server 設計
 
 system tier の通知管理サーバー設計を定義する。メール・Slack・Webhook・SMS・Push への通知配信を一元管理する。Kafka トピック `k1s0.system.notification.requested.v1` をトリガーに非同期配信を行い、配信結果を PostgreSQL に記録する。
 Rust での実装を定義する。
 
 ## 概要
+
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | notifications/read |
+| sys_operator 以上 | notifications/write |
+| sys_admin のみ | notifications/admin |
+
 
 system tier の通知管理サーバーは以下の機能を提供する。
 
@@ -35,9 +44,9 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | 通知配信方式 | Kafka コンシューマーで `k1s0.system.notification.requested.v1` を受信し非同期配信。REST `POST /api/v1/notifications` での即時配信も提供 |
 | リトライ | 失敗時に指数バックオフ（初回 1 秒、最大 5 回、上限 60 秒）で自動リトライ |
 | DB | PostgreSQL の `notification` スキーマ（notification_channels, notification_templates, notification_logs テーブル） |
-| Kafka | コンシューマー（`k1s0.system.notification.requested.v1`）+ プロデューサー（`k1s0.system.notification.delivered.v1`） |
+| Kafka | コンシューマー（`k1s0.system.notification.requested.v1`）+ プロデューサー（`k1s0.system.notification.sent.v1`） |
 | テンプレートエンジン | Handlebars 形式のテンプレートを DB 管理し、送信時にプレースホルダーを置換 |
-| 認証 | JWTによる認可。管理系エンドポイントは `sys_operator` / `sys_admin` ロールが必要 |
+| 認証 | JWTによる認可。管理系エンドポイントは `notifications/read`, `notifications/write`, `notifications/admin` を使用 |
 
 ---
 
@@ -45,7 +54,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 
 ### REST API エンドポイント
 
-全エンドポイントは [API設計.md](../../architecture/api/API設計.md) D-007 の統一エラーレスポンスに従う。エラーコードのプレフィックスは `SYS_NOTIF_` とする。
+全エンドポイントは [API設計.md](../../architecture/api/API設計.md) D-007 の統一エラーレスポンスに従う。エラーコードのプレフィックスは `SYS_NOTIFY_` とする。
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
@@ -66,6 +75,8 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
+
+> **権限表記**: 実装はロールを `resource/action` にマッピングして評価する。`sys_admin -> admin`, `sys_operator -> write`, `sys_auditor -> read`。
 
 #### GET /api/v1/channels
 
@@ -144,7 +155,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 ```json
 {
   "error": {
-    "code": "SYS_NOTIF_VALIDATION_ERROR",
+    "code": "SYS_NOTIFY_VALIDATION_ERROR",
     "message": "validation failed"
   }
 }
@@ -177,7 +188,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 ```json
 {
   "error": {
-    "code": "SYS_NOTIF_CHANNEL_NOT_FOUND",
+    "code": "SYS_NOTIFY_CHANNEL_NOT_FOUND",
     "message": "notification channel not found: ch_01JABCDEF1234567890"
   }
 }
@@ -374,7 +385,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 ```json
 {
   "error": {
-    "code": "SYS_NOTIF_CHANNEL_NOT_FOUND",
+    "code": "SYS_NOTIFY_CHANNEL_NOT_FOUND",
     "message": "notification channel not found: ch_01JABCDEF1234567890"
   }
 }
@@ -389,6 +400,9 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | パラメータ | 型 | 必須 | デフォルト | 説明 |
 | --- | --- | --- | --- | --- |
 | `channel_id` | string | No | - | チャネル ID でフィルタ |
+| `status` | string | No | - | ステータスでフィルタ（`queued`, `sent`, `failed` など） |
+| `page` | int | No | `1` | ページ番号 |
+| `page_size` | int | No | `20` | 1ページ件数 |
 
 **レスポンス（200 OK）**
 
@@ -442,7 +456,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 ```json
 {
   "error": {
-    "code": "SYS_NOTIF_NOT_FOUND",
+    "code": "SYS_NOTIFY_NOT_FOUND",
     "message": "notification not found: notif_01JABCDEF1234567890"
   }
 }
@@ -467,7 +481,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 ```json
 {
   "error": {
-    "code": "SYS_NOTIF_NOT_FOUND",
+    "code": "SYS_NOTIFY_NOT_FOUND",
     "message": "notification not found: notif_01JABCDEF1234567890"
   }
 }
@@ -478,7 +492,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 ```json
 {
   "error": {
-    "code": "SYS_NOTIF_ALREADY_SENT",
+    "code": "SYS_NOTIFY_ALREADY_SENT",
     "message": "notification already sent: notif_01JABCDEF1234567890"
   }
 }
@@ -488,36 +502,39 @@ system tier の通知管理サーバーは以下の機能を提供する。
 
 | コード | HTTP Status | 説明 |
 | --- | --- | --- |
-| `SYS_NOTIF_INVALID_ID` | 400 | 無効な UUID フォーマット |
-| `SYS_NOTIF_CHANNEL_DISABLED` | 400 | 対象チャネルが無効化されている |
-| `SYS_NOTIF_NOT_FOUND` | 404 | 指定された通知履歴が見つからない |
-| `SYS_NOTIF_CHANNEL_NOT_FOUND` | 404 | 指定されたチャネルが見つからない |
-| `SYS_NOTIF_TEMPLATE_NOT_FOUND` | 404 | 指定されたテンプレートが見つからない |
-| `SYS_NOTIF_ALREADY_SENT` | 409 | 通知はすでに送信済み（再送不可） |
-| `SYS_NOTIF_SEND_FAILED` | 500 | 通知送信処理に失敗 |
-| `SYS_NOTIF_LIST_FAILED` | 500 | 通知一覧取得処理に失敗 |
-| `SYS_NOTIF_GET_FAILED` | 500 | 通知取得処理に失敗 |
-| `SYS_NOTIF_RETRY_FAILED` | 500 | 通知再送処理に失敗 |
-| `SYS_NOTIF_CHANNEL_CREATE_FAILED` | 500 | チャネル作成処理に失敗 |
-| `SYS_NOTIF_CHANNEL_LIST_FAILED` | 500 | チャネル一覧取得処理に失敗 |
-| `SYS_NOTIF_CHANNEL_GET_FAILED` | 500 | チャネル取得処理に失敗 |
-| `SYS_NOTIF_CHANNEL_UPDATE_FAILED` | 500 | チャネル更新処理に失敗 |
-| `SYS_NOTIF_CHANNEL_DELETE_FAILED` | 500 | チャネル削除処理に失敗 |
-| `SYS_NOTIF_TEMPLATE_CREATE_FAILED` | 500 | テンプレート作成処理に失敗 |
-| `SYS_NOTIF_TEMPLATE_LIST_FAILED` | 500 | テンプレート一覧取得処理に失敗 |
-| `SYS_NOTIF_TEMPLATE_GET_FAILED` | 500 | テンプレート取得処理に失敗 |
-| `SYS_NOTIF_TEMPLATE_UPDATE_FAILED` | 500 | テンプレート更新処理に失敗 |
-| `SYS_NOTIF_TEMPLATE_DELETE_FAILED` | 500 | テンプレート削除処理に失敗 |
+| `SYS_NOTIFY_INVALID_ID` | 400 | 無効な UUID フォーマット |
+| `SYS_NOTIFY_CHANNEL_DISABLED` | 400 | 対象チャネルが無効化されている |
+| `SYS_NOTIFY_NOT_FOUND` | 404 | 指定された通知履歴が見つからない |
+| `SYS_NOTIFY_CHANNEL_NOT_FOUND` | 404 | 指定されたチャネルが見つからない |
+| `SYS_NOTIFY_TEMPLATE_NOT_FOUND` | 404 | 指定されたテンプレートが見つからない |
+| `SYS_NOTIFY_ALREADY_SENT` | 409 | 通知はすでに送信済み（再送不可） |
+| `SYS_NOTIFY_SEND_FAILED` | 500 | 通知送信処理に失敗 |
+| `SYS_NOTIFY_LIST_FAILED` | 500 | 通知一覧取得処理に失敗 |
+| `SYS_NOTIFY_GET_FAILED` | 500 | 通知取得処理に失敗 |
+| `SYS_NOTIFY_RETRY_FAILED` | 500 | 通知再送処理に失敗 |
+| `SYS_NOTIFY_CHANNEL_CREATE_FAILED` | 500 | チャネル作成処理に失敗 |
+| `SYS_NOTIFY_CHANNEL_LIST_FAILED` | 500 | チャネル一覧取得処理に失敗 |
+| `SYS_NOTIFY_CHANNEL_GET_FAILED` | 500 | チャネル取得処理に失敗 |
+| `SYS_NOTIFY_CHANNEL_UPDATE_FAILED` | 500 | チャネル更新処理に失敗 |
+| `SYS_NOTIFY_CHANNEL_DELETE_FAILED` | 500 | チャネル削除処理に失敗 |
+| `SYS_NOTIFY_TEMPLATE_CREATE_FAILED` | 500 | テンプレート作成処理に失敗 |
+| `SYS_NOTIFY_TEMPLATE_LIST_FAILED` | 500 | テンプレート一覧取得処理に失敗 |
+| `SYS_NOTIFY_TEMPLATE_GET_FAILED` | 500 | テンプレート取得処理に失敗 |
+| `SYS_NOTIFY_TEMPLATE_UPDATE_FAILED` | 500 | テンプレート更新処理に失敗 |
+| `SYS_NOTIFY_TEMPLATE_DELETE_FAILED` | 500 | テンプレート削除処理に失敗 |
 
 ### gRPC サービス定義
 
 ```protobuf
 syntax = "proto3";
 package k1s0.system.notification.v1;
+import "k1s0/system/common/v1/types.proto";
 
 service NotificationService {
   rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
   rpc GetNotification(GetNotificationRequest) returns (GetNotificationResponse);
+  rpc RetryNotification(RetryNotificationRequest) returns (RetryNotificationResponse);
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse);
   rpc ListChannels(ListChannelsRequest) returns (ListChannelsResponse);
   rpc CreateChannel(CreateChannelRequest) returns (CreateChannelResponse);
   rpc GetChannel(GetChannelRequest) returns (GetChannelResponse);
@@ -551,6 +568,26 @@ message GetNotificationRequest {
 
 message GetNotificationResponse {
   NotificationLog notification = 1;
+}
+
+message RetryNotificationRequest {
+  string notification_id = 1;
+}
+
+message RetryNotificationResponse {
+  NotificationLog notification = 1;
+}
+
+message ListNotificationsRequest {
+  optional string channel_id = 1;
+  optional string status = 2;
+  uint32 page = 3;
+  uint32 page_size = 4;
+}
+
+message ListNotificationsResponse {
+  repeated NotificationLog notifications = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message NotificationLog {
@@ -587,7 +624,7 @@ message ListChannelsRequest {
 
 message ListChannelsResponse {
   repeated Channel channels = 1;
-  uint64 total = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message CreateChannelRequest {
@@ -647,7 +684,7 @@ message ListTemplatesRequest {
 
 message ListTemplatesResponse {
   repeated Template templates = 1;
-  uint64 total = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message CreateTemplateRequest {
@@ -841,3 +878,6 @@ message DeleteTemplateResponse {
 
 ### Optional UseCase Parameters
 - Notification create/retry behavior supports optional parameters used by current Rust usecase signatures.
+
+
+

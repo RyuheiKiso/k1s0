@@ -52,4 +52,3 @@ impl SecretStore for CachedSecretStore {
         self.inner.exists(path).await
     }
 }
-

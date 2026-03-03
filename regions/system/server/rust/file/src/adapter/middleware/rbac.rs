@@ -14,8 +14,7 @@ use k1s0_auth::Claims;
 ///
 /// file サーバーの RBAC マッピング:
 /// - GET              -> files/read
-/// - POST/complete/tags -> files/write
-/// - DELETE           -> files/admin
+/// - POST/complete/tags/delete -> files/write
 pub fn require_permission(
     resource: &'static str,
     action: &'static str,

@@ -1,0 +1,79 @@
+use std::sync::Arc;
+
+use uuid::Uuid;
+
+use crate::domain::entity::policy_bundle::PolicyBundle;
+use crate::domain::repository::PolicyBundleRepository;
+
+#[derive(Debug, thiserror::Error)]
+pub enum GetBundleError {
+    #[error("bundle not found: {0}")]
+    NotFound(String),
+
+    #[error("internal error: {0}")]
+    Internal(String),
+}
+
+pub struct GetBundleUseCase {
+    repo: Arc<dyn PolicyBundleRepository>,
+}
+
+impl GetBundleUseCase {
+    pub fn new(repo: Arc<dyn PolicyBundleRepository>) -> Self {
+        Self { repo }
+    }
+
+    pub async fn execute(&self, id: &Uuid) -> Result<PolicyBundle, GetBundleError> {
+        self.repo
+            .find_by_id(id)
+            .await
+            .map_err(|e| GetBundleError::Internal(e.to_string()))?
+            .ok_or_else(|| GetBundleError::NotFound(id.to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entity::policy_bundle::PolicyBundle;
+    use crate::domain::repository::bundle_repository::MockPolicyBundleRepository;
+    use chrono::Utc;
+
+    fn make_bundle(id: Uuid) -> PolicyBundle {
+        PolicyBundle {
+            id,
+            name: "bundle-1".to_string(),
+            description: Some("desc".to_string()),
+            enabled: true,
+            policy_ids: vec![],
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    #[tokio::test]
+    async fn success() {
+        let id = Uuid::new_v4();
+        let bundle = make_bundle(id);
+
+        let mut mock = MockPolicyBundleRepository::new();
+        mock.expect_find_by_id()
+            .withf(move |given| *given == id)
+            .returning(move |_| Ok(Some(bundle.clone())));
+
+        let uc = GetBundleUseCase::new(Arc::new(mock));
+        let result = uc.execute(&id).await.unwrap();
+        assert_eq!(result.id, id);
+    }
+
+    #[tokio::test]
+    async fn not_found() {
+        let id = Uuid::new_v4();
+        let mut mock = MockPolicyBundleRepository::new();
+        mock.expect_find_by_id().returning(|_| Ok(None));
+
+        let uc = GetBundleUseCase::new(Arc::new(mock));
+        let result = uc.execute(&id).await;
+        assert!(matches!(result, Err(GetBundleError::NotFound(_))));
+    }
+}

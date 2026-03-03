@@ -209,6 +209,7 @@ pub struct CreateRuleRequest {
     pub identifier_pattern: String,
     pub limit: i64,
     pub window_seconds: i64,
+    pub algorithm: Option<String>,
     pub enabled: bool,
 }
 
@@ -220,6 +221,7 @@ pub struct RuleResponse {
     pub identifier_pattern: String,
     pub limit: u32,
     pub window_seconds: u32,
+    pub algorithm: String,
     pub enabled: bool,
     pub created_at: String,
     pub updated_at: String,
@@ -267,6 +269,7 @@ pub async fn create_rule(
         identifier_pattern: req.identifier_pattern,
         limit,
         window_seconds,
+        algorithm: req.algorithm,
         enabled: req.enabled,
     };
 
@@ -279,6 +282,7 @@ pub async fn create_rule(
                 identifier_pattern: rule.identifier_pattern,
                 limit: rule.limit,
                 window_seconds: rule.window_seconds,
+                algorithm: rule.algorithm.as_str().to_string(),
                 enabled: rule.enabled,
                 created_at: rule.created_at.to_rfc3339(),
                 updated_at: rule.updated_at.to_rfc3339(),
@@ -324,6 +328,7 @@ pub async fn get_rule(
                 identifier_pattern: rule.identifier_pattern,
                 limit: rule.limit,
                 window_seconds: rule.window_seconds,
+                algorithm: rule.algorithm.as_str().to_string(),
                 enabled: rule.enabled,
                 created_at: rule.created_at.to_rfc3339(),
                 updated_at: rule.updated_at.to_rfc3339(),
@@ -347,6 +352,7 @@ pub struct UpdateRuleRequest {
     pub identifier_pattern: String,
     pub limit: i64,
     pub window_seconds: i64,
+    pub algorithm: Option<String>,
     pub enabled: bool,
 }
 
@@ -389,27 +395,19 @@ pub async fn list_rules(
     State(state): State<AppState>,
     axum::extract::Query(query): axum::extract::Query<ListRulesQuery>,
 ) -> impl IntoResponse {
-    match state.list_uc.execute().await {
-        Ok(mut rules) => {
-            if let Some(ref scope) = query.scope {
-                rules.retain(|r| &r.scope == scope);
-            }
-            if query.enabled_only.unwrap_or(false) {
-                rules.retain(|r| r.enabled);
-            }
-
-            let page_size = query.page_size.unwrap_or(20).max(1) as usize;
-            let page = query.page.unwrap_or(1).max(1) as usize;
-            let total = rules.len();
-            let start = (page - 1) * page_size;
-            let paged_rules: Vec<_> = rules.into_iter().skip(start).take(page_size).collect();
-            let total_pages = if total == 0 {
-                0
-            } else {
-                ((total as f64) / (page_size as f64)).ceil() as usize
-            };
-
-            let resp: Vec<RuleResponse> = paged_rules
+    match state
+        .list_uc
+        .execute(&crate::usecase::list_rules::ListRulesInput {
+            page: query.page.unwrap_or(1).max(1),
+            page_size: query.page_size.unwrap_or(20).max(1),
+            scope: query.scope.clone(),
+            enabled_only: query.enabled_only.unwrap_or(false),
+        })
+        .await
+    {
+        Ok(output) => {
+            let resp: Vec<RuleResponse> = output
+                .rules
                 .into_iter()
                 .map(|r| RuleResponse {
                     id: r.id.to_string(),
@@ -417,6 +415,7 @@ pub async fn list_rules(
                     identifier_pattern: r.identifier_pattern,
                     limit: r.limit,
                     window_seconds: r.window_seconds,
+                    algorithm: r.algorithm.as_str().to_string(),
                     enabled: r.enabled,
                     created_at: r.created_at.to_rfc3339(),
                     updated_at: r.updated_at.to_rfc3339(),
@@ -427,10 +426,10 @@ pub async fn list_rules(
                 Json(serde_json::json!({
                     "rules": resp,
                     "pagination": {
-                        "page": page,
-                        "page_size": page_size,
-                        "total": total,
-                        "total_pages": total_pages
+                        "total_count": output.total_count,
+                        "page": output.page,
+                        "page_size": output.page_size,
+                        "has_next": output.has_next
                     }
                 })),
             )
@@ -480,6 +479,7 @@ pub async fn update_rule(
         identifier_pattern: req.identifier_pattern,
         limit,
         window_seconds,
+        algorithm: req.algorithm,
         enabled: req.enabled,
     };
 
@@ -492,6 +492,7 @@ pub async fn update_rule(
                 identifier_pattern: rule.identifier_pattern,
                 limit: rule.limit,
                 window_seconds: rule.window_seconds,
+                algorithm: rule.algorithm.as_str().to_string(),
                 enabled: rule.enabled,
                 created_at: rule.created_at.to_rfc3339(),
                 updated_at: rule.updated_at.to_rfc3339(),

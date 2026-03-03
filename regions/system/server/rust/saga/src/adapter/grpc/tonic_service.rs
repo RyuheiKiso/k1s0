@@ -3,6 +3,7 @@
 //! proto 生成コード (`src/proto/`) の SagaService トレイトを実装する。
 //! 各メソッドで proto 型 ↔ 手動型の変換を行い、既存の SagaGrpcService に委譲する。
 
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
@@ -12,12 +13,12 @@ use crate::proto::k1s0::system::common::v1::{
 };
 use crate::proto::k1s0::system::saga::v1::{
     saga_service_server::SagaService, CancelSagaRequest as ProtoCancelSagaRequest,
-    CancelSagaResponse as ProtoCancelSagaResponse, GetSagaRequest as ProtoGetSagaRequest,
+    CancelSagaResponse as ProtoCancelSagaResponse,
+    CompensateSagaRequest as ProtoCompensateSagaRequest,
+    CompensateSagaResponse as ProtoCompensateSagaResponse, GetSagaRequest as ProtoGetSagaRequest,
     GetSagaResponse as ProtoGetSagaResponse, ListSagasRequest as ProtoListSagasRequest,
     ListSagasResponse as ProtoListSagasResponse, ListWorkflowsRequest as ProtoListWorkflowsRequest,
     ListWorkflowsResponse as ProtoListWorkflowsResponse,
-    CompensateSagaRequest as ProtoCompensateSagaRequest,
-    CompensateSagaResponse as ProtoCompensateSagaResponse,
     RegisterWorkflowRequest as ProtoRegisterWorkflowRequest,
     RegisterWorkflowResponse as ProtoRegisterWorkflowResponse, SagaStateProto as ProtoSagaState,
     SagaStepLogProto as ProtoSagaStepLog, StartSagaRequest as ProtoStartSagaRequest,
@@ -54,6 +55,77 @@ fn rfc3339_to_proto_timestamp(s: &str) -> Option<ProtoTimestamp> {
         })
 }
 
+fn json_to_prost_value(value: &serde_json::Value) -> prost_types::Value {
+    let kind = match value {
+        serde_json::Value::Null => prost_types::value::Kind::NullValue(0),
+        serde_json::Value::Bool(v) => prost_types::value::Kind::BoolValue(*v),
+        serde_json::Value::Number(v) => {
+            prost_types::value::Kind::NumberValue(v.as_f64().unwrap_or(0.0))
+        }
+        serde_json::Value::String(v) => prost_types::value::Kind::StringValue(v.clone()),
+        serde_json::Value::Array(values) => {
+            let values = values.iter().map(json_to_prost_value).collect();
+            prost_types::value::Kind::ListValue(prost_types::ListValue { values })
+        }
+        serde_json::Value::Object(map) => {
+            let fields = map
+                .iter()
+                .map(|(k, v)| (k.clone(), json_to_prost_value(v)))
+                .collect();
+            prost_types::value::Kind::StructValue(prost_types::Struct { fields })
+        }
+    };
+    prost_types::Value { kind: Some(kind) }
+}
+
+fn json_to_prost_struct(value: &serde_json::Value) -> prost_types::Struct {
+    match value {
+        serde_json::Value::Object(map) => {
+            let fields: BTreeMap<String, prost_types::Value> = map
+                .iter()
+                .map(|(k, v)| (k.clone(), json_to_prost_value(v)))
+                .collect();
+            prost_types::Struct { fields }
+        }
+        _ => {
+            let mut fields = BTreeMap::new();
+            fields.insert("value".to_string(), json_to_prost_value(value));
+            prost_types::Struct { fields }
+        }
+    }
+}
+
+fn prost_value_to_json(value: &prost_types::Value) -> serde_json::Value {
+    match &value.kind {
+        Some(prost_types::value::Kind::NullValue(_)) => serde_json::Value::Null,
+        Some(prost_types::value::Kind::BoolValue(v)) => serde_json::Value::Bool(*v),
+        Some(prost_types::value::Kind::NumberValue(v)) => serde_json::json!(*v),
+        Some(prost_types::value::Kind::StringValue(v)) => serde_json::Value::String(v.clone()),
+        Some(prost_types::value::Kind::ListValue(list)) => {
+            serde_json::Value::Array(list.values.iter().map(prost_value_to_json).collect())
+        }
+        Some(prost_types::value::Kind::StructValue(v)) => prost_struct_to_json(v),
+        None => serde_json::Value::Null,
+    }
+}
+
+fn prost_struct_to_json(value: &prost_types::Struct) -> serde_json::Value {
+    let map: serde_json::Map<String, serde_json::Value> = value
+        .fields
+        .iter()
+        .map(|(k, v)| (k.clone(), prost_value_to_json(v)))
+        .collect();
+    serde_json::Value::Object(map)
+}
+
+fn json_bytes_to_prost_struct(bytes: &[u8]) -> Option<prost_types::Struct> {
+    if bytes.is_empty() {
+        return None;
+    }
+    let value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+    Some(json_to_prost_struct(&value))
+}
+
 // --- SagaService tonic ラッパー ---
 
 /// SagaServiceTonic は tonic の SagaService として SagaGrpcService をラップする。
@@ -79,9 +151,16 @@ impl SagaService for SagaServiceTonic {
         request: Request<ProtoStartSagaRequest>,
     ) -> Result<Response<ProtoStartSagaResponse>, Status> {
         let inner = request.into_inner();
+        let payload = inner
+            .payload
+            .as_ref()
+            .map(prost_struct_to_json)
+            .unwrap_or_else(|| serde_json::json!({}));
+        let payload = serde_json::to_vec(&payload)
+            .map_err(|e| Status::invalid_argument(format!("invalid payload: {}", e)))?;
         let req = StartSagaRequest {
             workflow_name: inner.workflow_name,
-            payload: inner.payload,
+            payload,
             correlation_id: inner.correlation_id,
             initiated_by: inner.initiated_by,
         };
@@ -114,7 +193,7 @@ impl SagaService for SagaServiceTonic {
             workflow_name: resp.saga.workflow_name,
             current_step: resp.saga.current_step,
             status: resp.saga.status,
-            payload: resp.saga.payload,
+            payload: json_bytes_to_prost_struct(&resp.saga.payload),
             correlation_id: resp.saga.correlation_id,
             initiated_by: resp.saga.initiated_by,
             error_message: if resp.saga.error_message.is_empty() {
@@ -136,8 +215,8 @@ impl SagaService for SagaServiceTonic {
                 step_name: log.step_name,
                 action: log.action,
                 status: log.status,
-                request_payload: log.request_payload,
-                response_payload: log.response_payload,
+                request_payload: json_bytes_to_prost_struct(&log.request_payload),
+                response_payload: json_bytes_to_prost_struct(&log.response_payload),
                 error_message: log.error_message,
                 started_at: rfc3339_to_proto_timestamp(&log.started_at),
                 completed_at: if log.completed_at.is_empty() {
@@ -184,7 +263,7 @@ impl SagaService for SagaServiceTonic {
                 workflow_name: saga.workflow_name,
                 current_step: saga.current_step,
                 status: saga.status,
-                payload: saga.payload,
+                payload: json_bytes_to_prost_struct(&saga.payload),
                 correlation_id: saga.correlation_id,
                 initiated_by: saga.initiated_by,
                 error_message: if saga.error_message.is_empty() {
@@ -198,7 +277,7 @@ impl SagaService for SagaServiceTonic {
             .collect();
 
         let proto_pagination = Some(ProtoPaginationResult {
-            total_count: resp.total_count as i32,
+            total_count: resp.total_count,
             page: resp.page,
             page_size: resp.page_size,
             has_next: resp.has_next,
@@ -244,6 +323,7 @@ impl SagaService for SagaServiceTonic {
             success: resp.success,
             status: resp.status,
             message: resp.message,
+            saga_id: resp.saga_id,
         }))
     }
 
@@ -429,7 +509,9 @@ steps:
 
         let req = Request::new(ProtoStartSagaRequest {
             workflow_name: "test-workflow".to_string(),
-            payload: serde_json::to_vec(&serde_json::json!({"order_id": "123"})).unwrap(),
+            payload: Some(json_to_prost_struct(
+                &serde_json::json!({"order_id": "123"}),
+            )),
             correlation_id: "corr-001".to_string(),
             initiated_by: "user-1".to_string(),
         });
@@ -462,9 +544,9 @@ steps:
                 page: 1,
                 page_size: 20,
             }),
-            workflow_name: "".to_string(),
-            status: "".to_string(),
-            correlation_id: "".to_string(),
+            workflow_name: None,
+            status: None,
+            correlation_id: None,
         });
 
         let resp = svc.list_sagas(req).await.unwrap();

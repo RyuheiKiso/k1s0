@@ -103,10 +103,6 @@ pub fn router(state: AppState) -> Router {
                 put(notification_handler::update_channel),
             )
             .route(
-                "/api/v1/channels/:id",
-                delete(notification_handler::delete_channel),
-            )
-            .route(
                 "/api/v1/templates",
                 post(notification_handler::create_template),
             )
@@ -114,17 +110,28 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/templates/:id",
                 put(notification_handler::update_template),
             )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "notifications", "write",
+            )));
+
+        // DELETE -> notifications/admin
+        let admin_routes = Router::new()
+            .route(
+                "/api/v1/channels/:id",
+                delete(notification_handler::delete_channel),
+            )
             .route(
                 "/api/v1/templates/:id",
                 delete(notification_handler::delete_template),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "notifications", "write",
+                "notifications", "admin",
             )));
 
         Router::new()
             .merge(read_routes)
             .merge(write_routes)
+            .merge(admin_routes)
             .layer(axum::middleware::from_fn_with_state(
                 auth_state.clone(),
                 auth_middleware,

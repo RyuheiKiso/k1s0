@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 use crate::proto::k1s0::system::quota::v1::{
     quota_service_server::QuotaService,
     CheckQuotaRequest as ProtoCheckQuotaRequest, CheckQuotaResponse as ProtoCheckQuotaResponse,
@@ -169,7 +170,12 @@ impl QuotaService for QuotaServiceTonic {
 
         Ok(Response::new(ProtoListQuotaPoliciesResponse {
             policies: proto_policies,
-            total: result.total,
+            pagination: Some(ProtoPaginationResult {
+                total_count: result.pagination.total_count,
+                page: result.pagination.page,
+                page_size: result.pagination.page_size,
+                has_next: result.pagination.has_next,
+            }),
         }))
     }
 
@@ -468,7 +474,8 @@ mod tests {
         let resp = tonic_svc.list_quota_policies(req).await.unwrap();
         let inner = resp.into_inner();
         assert_eq!(inner.policies.len(), 1);
-        assert_eq!(inner.total, 1);
+        let pagination = inner.pagination.expect("pagination");
+        assert_eq!(pagination.total_count, 1);
     }
 
     #[tokio::test]

@@ -139,6 +139,7 @@ async fn main() -> anyhow::Result<()> {
         };
 
     // Use cases
+    let list_flags_uc = Arc::new(usecase::ListFlagsUseCase::new(flag_repo.clone()));
     let evaluate_flag_uc = Arc::new(usecase::EvaluateFlagUseCase::new(flag_repo.clone()));
     let get_flag_uc = Arc::new(usecase::GetFlagUseCase::new(flag_repo.clone()));
     let create_flag_uc = Arc::new(usecase::CreateFlagUseCase::new(
@@ -152,7 +153,7 @@ async fn main() -> anyhow::Result<()> {
     let delete_flag_uc = Arc::new(usecase::DeleteFlagUseCase::new(flag_repo.clone()));
 
     let grpc_svc = Arc::new(FeatureFlagGrpcService::new(
-        flag_repo.clone(),
+        list_flags_uc.clone(),
         evaluate_flag_uc.clone(),
         get_flag_uc.clone(),
         create_flag_uc.clone(),
@@ -184,6 +185,8 @@ async fn main() -> anyhow::Result<()> {
     // AppState for REST handlers
     let mut state = adapter::handler::AppState {
         flag_repo: flag_repo.clone(),
+        event_publisher: kafka_producer,
+        list_flags_uc,
         evaluate_flag_uc,
         get_flag_uc,
         create_flag_uc,

@@ -88,7 +88,7 @@ impl SagaRepository for InMemorySagaRepository {
             .collect())
     }
 
-    async fn list(&self, params: &SagaListParams) -> anyhow::Result<(Vec<SagaState>, i64)> {
+    async fn list(&self, params: &SagaListParams) -> anyhow::Result<(Vec<SagaState>, i32)> {
         let states = self.states.read().await;
         let filtered: Vec<_> = states
             .iter()
@@ -113,7 +113,7 @@ impl SagaRepository for InMemorySagaRepository {
             .cloned()
             .collect();
 
-        let total = filtered.len() as i64;
+        let total = filtered.len() as i32;
         let page = params.page.max(1);
         let page_size = params.page_size.max(1);
         let offset = ((page - 1) * page_size) as usize;
@@ -193,12 +193,8 @@ pub fn make_test_app_state(
     let publisher: Option<Arc<dyn SagaEventPublisher>> = None;
 
     let execute_saga_uc = Arc::new(
-        crate::usecase::ExecuteSagaUseCase::new(
-            saga_repo.clone(),
-            grpc_caller,
-            publisher,
-        )
-        .with_workflow_repo(workflow_repo.clone()),
+        crate::usecase::ExecuteSagaUseCase::new(saga_repo.clone(), grpc_caller, publisher)
+            .with_workflow_repo(workflow_repo.clone()),
     );
 
     let start_saga_uc = Arc::new(crate::usecase::StartSagaUseCase::new(

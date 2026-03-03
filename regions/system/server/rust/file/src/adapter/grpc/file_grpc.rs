@@ -62,38 +62,53 @@ impl FileGrpcService {
         }
     }
 
-    pub async fn get_file_metadata(&self, id: String) -> Result<crate::domain::entity::file::FileMetadata, GrpcError> {
+    pub async fn get_file_metadata(
+        &self,
+        id: String,
+    ) -> Result<crate::domain::entity::file::FileMetadata, GrpcError> {
         if id.is_empty() {
             return Err(GrpcError::InvalidArgument("id is required".to_string()));
         }
         let input = GetFileMetadataInput { file_id: id };
-        self.get_file_metadata_uc.execute(&input).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                GrpcError::NotFound(msg)
-            } else {
-                GrpcError::Internal(msg)
-            }
-        })
+        self.get_file_metadata_uc
+            .execute(&input)
+            .await
+            .map_err(|e| {
+                let msg = e.to_string();
+                if msg.contains("not found") {
+                    GrpcError::NotFound(msg)
+                } else {
+                    GrpcError::Internal(msg)
+                }
+            })
     }
 
     pub async fn list_files(
         &self,
         tenant_id: String,
+        uploaded_by: Option<String>,
+        mime_type: Option<String>,
+        tag: Option<String>,
         page: u32,
         page_size: u32,
     ) -> Result<(Vec<crate::domain::entity::file::FileMetadata>, u64), GrpcError> {
         let input = ListFilesInput {
-            tenant_id: if tenant_id.is_empty() { None } else { Some(tenant_id) },
-            owner_id: None,
-            mime_type: None,
-            tag: None,
+            tenant_id: if tenant_id.is_empty() {
+                None
+            } else {
+                Some(tenant_id)
+            },
+            owner_id: uploaded_by.filter(|v| !v.is_empty()),
+            mime_type: mime_type.filter(|v| !v.is_empty()),
+            tag: tag.as_deref().and_then(parse_tag_filter),
             page: if page == 0 { 1 } else { page },
             page_size: if page_size == 0 { 20 } else { page_size },
         };
-        let output = self.list_files_uc.execute(&input).await.map_err(|e| {
-            GrpcError::Internal(e.to_string())
-        })?;
+        let output = self
+            .list_files_uc
+            .execute(&input)
+            .await
+            .map_err(|e| GrpcError::Internal(e.to_string()))?;
         Ok((output.files, output.total_count))
     }
 
@@ -108,7 +123,9 @@ impl FileGrpcService {
         size_bytes: i64,
     ) -> Result<(String, String, u32), GrpcError> {
         if filename.is_empty() {
-            return Err(GrpcError::InvalidArgument("filename is required".to_string()));
+            return Err(GrpcError::InvalidArgument(
+                "filename is required".to_string(),
+            ));
         }
         let expires_in_seconds = expires_in_seconds.unwrap_or(3600).max(1);
         if size_bytes <= 0 {
@@ -125,14 +142,18 @@ impl FileGrpcService {
             tags,
             expires_in_seconds,
         };
-        let output = self.generate_upload_url_uc.execute(&input).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("validation") {
-                GrpcError::InvalidArgument(msg)
-            } else {
-                GrpcError::Internal(msg)
-            }
-        })?;
+        let output = self
+            .generate_upload_url_uc
+            .execute(&input)
+            .await
+            .map_err(|e| {
+                let msg = e.to_string();
+                if msg.contains("validation") {
+                    GrpcError::InvalidArgument(msg)
+                } else {
+                    GrpcError::Internal(msg)
+                }
+            })?;
         Ok((output.file_id, output.upload_url, output.expires_in_seconds))
     }
 
@@ -142,7 +163,9 @@ impl FileGrpcService {
         checksum_sha256: Option<String>,
     ) -> Result<crate::domain::entity::file::FileMetadata, GrpcError> {
         if file_id.is_empty() {
-            return Err(GrpcError::InvalidArgument("file_id is required".to_string()));
+            return Err(GrpcError::InvalidArgument(
+                "file_id is required".to_string(),
+            ));
         }
         let input = CompleteUploadInput {
             file_id,
@@ -169,16 +192,20 @@ impl FileGrpcService {
             file_id: id,
             expires_in_seconds,
         };
-        let output = self.generate_download_url_uc.execute(&input).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                GrpcError::NotFound(msg)
-            } else if msg.contains("not available") {
-                GrpcError::InvalidArgument(msg)
-            } else {
-                GrpcError::Internal(msg)
-            }
-        })?;
+        let output = self
+            .generate_download_url_uc
+            .execute(&input)
+            .await
+            .map_err(|e| {
+                let msg = e.to_string();
+                if msg.contains("not found") {
+                    GrpcError::NotFound(msg)
+                } else if msg.contains("not available") {
+                    GrpcError::InvalidArgument(msg)
+                } else {
+                    GrpcError::Internal(msg)
+                }
+            })?;
         Ok((output.download_url, output.expires_in_seconds))
     }
 
@@ -215,6 +242,17 @@ impl FileGrpcService {
                 GrpcError::Internal(msg)
             }
         })
+    }
+}
+
+fn parse_tag_filter(raw: &str) -> Option<(String, String)> {
+    let (key, value) = raw.split_once(':').or_else(|| raw.split_once('='))?;
+    let key = key.trim();
+    let value = value.trim();
+    if key.is_empty() || value.is_empty() {
+        None
+    } else {
+        Some((key.to_string(), value.to_string()))
     }
 }
 

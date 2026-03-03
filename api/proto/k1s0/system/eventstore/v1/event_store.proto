@@ -39,6 +39,7 @@ message AppendEventsRequest {
   string stream_id = 1;
   repeated EventData events = 2;
   int64 expected_version = 3;
+  string aggregate_type = 4;
 }
 
 message AppendEventsResponse {
@@ -53,6 +54,7 @@ message ReadEventsRequest {
   optional int64 to_version = 3;
   uint32 page = 4;
   uint32 page_size = 5;
+  optional string event_type = 6;
 }
 
 message ReadEventsResponse {

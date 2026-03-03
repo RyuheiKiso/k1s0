@@ -15,7 +15,10 @@ pub struct RevokeSessionUseCase {
 }
 
 impl RevokeSessionUseCase {
-    pub fn new(repo: Arc<dyn SessionRepository>, event_publisher: Arc<dyn SessionEventPublisher>) -> Self {
+    pub fn new(
+        repo: Arc<dyn SessionRepository>,
+        event_publisher: Arc<dyn SessionEventPublisher>,
+    ) -> Self {
         Self {
             repo,
             event_publisher,
@@ -53,9 +56,15 @@ mod tests {
         Session {
             id: "sess-1".to_string(),
             user_id: "user-1".to_string(),
+            device_id: "device-1".to_string(),
+            device_name: Some("device".to_string()),
+            device_type: Some("desktop".to_string()),
+            user_agent: Some("ua".to_string()),
+            ip_address: Some("127.0.0.1".to_string()),
             token: "tok-1".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
+            last_accessed_at: None,
             revoked: false,
             metadata: HashMap::new(),
         }

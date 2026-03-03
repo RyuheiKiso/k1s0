@@ -126,9 +126,8 @@ async fn main() -> anyhow::Result<()> {
         info!(vault_addr = %addr, "connecting to HashiCorp Vault KV v2");
         let vault_client = adapter::gateway::VaultKvClient::new(&addr, &token)?;
         let vault_client = Arc::new(vault_client);
-        let store: Arc<dyn SecretStore> = Arc::new(
-            adapter::repository::vault_secret_store::VaultSecretStore::new(vault_client),
-        );
+        let store: Arc<dyn SecretStore> =
+            Arc::new(adapter::repository::vault_secret_store::VaultSecretStore::new(vault_client));
         let audit: Arc<dyn AccessLogRepository> = Arc::new(NoopAccessLogRepository);
         info!("HashiCorp Vault backend ready");
         (store, audit, None)
@@ -187,6 +186,10 @@ async fn main() -> anyhow::Result<()> {
         audit_repo.clone(),
         event_publisher.clone(),
     ));
+    let rotate_secret_uc = Arc::new(usecase::RotateSecretUseCase::new(
+        get_secret_uc.clone(),
+        set_secret_uc.clone(),
+    ));
     let delete_secret_uc = Arc::new(usecase::DeleteSecretUseCase::new(
         secret_store.clone(),
         audit_repo.clone(),
@@ -199,15 +202,14 @@ async fn main() -> anyhow::Result<()> {
     let vault_grpc_svc = Arc::new(VaultGrpcService::new(
         get_secret_uc.clone(),
         set_secret_uc.clone(),
+        rotate_secret_uc.clone(),
         delete_secret_uc.clone(),
         list_secrets_uc.clone(),
         list_audit_logs_uc.clone(),
     ));
 
     // Metrics
-    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
-        "k1s0-vault-server",
-    ));
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-vault-server"));
 
     // Token verifier (JWKS verifier if auth configured)
     let auth_state = if let Some(ref auth_cfg) = cfg.auth {
@@ -235,6 +237,7 @@ async fn main() -> anyhow::Result<()> {
     let mut state = AppState {
         get_secret_uc,
         set_secret_uc,
+        rotate_secret_uc,
         delete_secret_uc,
         list_secrets_uc,
         list_audit_logs_uc,
@@ -248,8 +251,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // REST Router
-    let app = handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC tonic service
     use proto::k1s0::system::vault::v1::vault_service_server::VaultServiceServer;

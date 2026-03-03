@@ -57,12 +57,13 @@ async fn main() -> anyhow::Result<()> {
         Arc<dyn SchedulerExecutionRepository>,
         Arc<dyn k1s0_distributed_lock::DistributedLock>,
     ) = if let Some(ref db_cfg) = cfg.database {
-        info!("connecting to PostgreSQL: {}:{}/{}", db_cfg.host, db_cfg.port, db_cfg.name);
+        info!(
+            "connecting to PostgreSQL: {}:{}/{}",
+            db_cfg.host, db_cfg.port, db_cfg.name
+        );
         let pool = Arc::new(infrastructure::database::connect(db_cfg).await?);
-        let pg_lock = k1s0_distributed_lock::PostgresDistributedLock::new(
-            pool.as_ref().clone(),
-        )
-        .with_prefix("scheduler");
+        let pg_lock = k1s0_distributed_lock::PostgresDistributedLock::new(pool.as_ref().clone())
+            .with_prefix("scheduler");
         (
             Arc::new(SchedulerJobPostgresRepository::new(pool.clone())),
             Arc::new(SchedulerExecutionPostgresRepository::new(pool)),
@@ -163,15 +164,12 @@ async fn main() -> anyhow::Result<()> {
         state = state.with_auth(auth_st);
     }
 
-    let app = adapter::handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app =
+        adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // --- Cron Scheduler Engine ---
-    let cron_engine = CronSchedulerEngine::new(
-        job_repo.clone(),
-        execution_repo.clone(),
-        distributed_lock,
-    );
+    let cron_engine =
+        CronSchedulerEngine::new(job_repo.clone(), execution_repo.clone(), distributed_lock);
     let _cron_handle = cron_engine.start();
     info!("cron scheduler engine started");
 

@@ -15,8 +15,8 @@ pub struct Job {
     pub target_type: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
     pub target: ::prost::alloc::string::String,
-    #[prost(bytes = "vec", tag = "8")]
-    pub payload: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "8")]
+    pub payload: ::core::option::Option<::prost_types::Struct>,
     #[prost(string, tag = "9")]
     pub status: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "10")]
@@ -42,8 +42,8 @@ pub struct CreateJobRequest {
     pub target_type: ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
     pub target: ::prost::alloc::string::String,
-    #[prost(bytes = "vec", tag = "7")]
-    pub payload: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "7")]
+    pub payload: ::core::option::Option<::prost_types::Struct>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateJobResponse {
@@ -90,8 +90,8 @@ pub struct UpdateJobRequest {
     pub target_type: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
     pub target: ::prost::alloc::string::String,
-    #[prost(bytes = "vec", tag = "8")]
-    pub payload: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "8")]
+    pub payload: ::core::option::Option<::prost_types::Struct>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateJobResponse {

@@ -224,10 +224,7 @@ mod tests {
         assert_eq!(entity.description.as_deref(), Some("a paused job"));
         assert_eq!(entity.timezone, "Asia/Tokyo");
         assert_eq!(entity.target_type, "http");
-        assert_eq!(
-            entity.target.as_deref(),
-            Some("https://example.com/hook")
-        );
+        assert_eq!(entity.target.as_deref(), Some("https://example.com/hook"));
     }
 
     #[test]

@@ -70,6 +70,10 @@ pub struct UpdateFlagRequest {
     pub enabled: ::core::option::Option<bool>,
     #[prost(string, optional, tag = "3")]
     pub description: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "4")]
+    pub variants: ::prost::alloc::vec::Vec<FlagVariant>,
+    #[prost(message, repeated, tag = "5")]
+    pub rules: ::prost::alloc::vec::Vec<FlagRule>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateFlagResponse {

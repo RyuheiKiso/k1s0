@@ -39,13 +39,14 @@ impl From<GrpcError> for Status {
 
 fn domain_to_proto(msg: crate::domain::entity::DlqMessage) -> ProtoDlqMessage {
     use crate::proto::k1s0::system::common::v1::Timestamp;
+    let payload = serde_json::to_vec(&msg.payload).unwrap_or_default();
     ProtoDlqMessage {
         id: msg.id.to_string(),
         original_topic: msg.original_topic,
         error_message: msg.error_message,
         retry_count: msg.retry_count,
         max_retries: msg.max_retries,
-        payload: msg.payload.to_string(),
+        payload,
         status: msg.status.to_string(),
         created_at: Some(Timestamp {
             seconds: msg.created_at.timestamp(),
@@ -162,6 +163,7 @@ impl DlqService for DlqServiceTonic {
 
         Ok(Response::new(ProtoRetryAllResponse {
             retried_count: retried_count as i32,
+            message: format!("{} messages retried in topic {}", retried_count, inner.topic),
         }))
     }
 }

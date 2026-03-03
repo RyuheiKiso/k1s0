@@ -19,6 +19,8 @@ pub struct GetSecretResponse {
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "4")]
     pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(string, tag = "5")]
+    pub path: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SetSecretRequest {
@@ -30,12 +32,14 @@ pub struct SetSecretRequest {
         ::prost::alloc::string::String,
     >,
 }
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SetSecretResponse {
     #[prost(int64, tag = "1")]
     pub version: i64,
     #[prost(message, optional, tag = "2")]
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(string, tag = "3")]
+    pub path: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RotateSecretRequest {
@@ -89,7 +93,7 @@ pub struct GetSecretMetadataResponse {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSecretsRequest {
     #[prost(string, tag = "1")]
-    pub path_prefix: ::prost::alloc::string::String,
+    pub prefix: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSecretsResponse {

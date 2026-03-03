@@ -144,7 +144,7 @@ impl SagaRepository for SagaPostgresRepository {
         rows.into_iter().map(|r| r.try_into()).collect()
     }
 
-    async fn list(&self, params: &SagaListParams) -> anyhow::Result<(Vec<SagaState>, i64)> {
+    async fn list(&self, params: &SagaListParams) -> anyhow::Result<(Vec<SagaState>, i32)> {
         // Dynamic WHERE clause construction (following audit_log_postgres.rs pattern)
         let mut conditions = Vec::new();
         let mut bind_idx = 1u32;
@@ -170,11 +170,11 @@ impl SagaRepository for SagaPostgresRepository {
 
         // Count query
         let count_sql = format!(
-            "SELECT COUNT(*) as count FROM saga.saga_states {}",
+            "SELECT COUNT(*)::int4 as count FROM saga.saga_states {}",
             where_clause
         );
 
-        let mut count_query = sqlx::query_scalar::<_, i64>(&count_sql);
+        let mut count_query = sqlx::query_scalar::<_, i32>(&count_sql);
         if let Some(ref wn) = params.workflow_name {
             count_query = count_query.bind(wn);
         }

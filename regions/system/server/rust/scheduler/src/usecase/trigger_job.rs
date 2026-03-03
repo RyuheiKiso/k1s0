@@ -118,9 +118,7 @@ mod tests {
         mock_job.expect_update().returning(|_| Ok(()));
 
         mock_exec.expect_create().returning(|_| Ok(()));
-        mock_exec
-            .expect_update_status()
-            .returning(|_, _, _| Ok(()));
+        mock_exec.expect_update_status().returning(|_, _, _| Ok(()));
 
         let uc = TriggerJobUseCase::new(Arc::new(mock_job), Arc::new(mock_exec));
         let result = uc.execute(&job_id).await;

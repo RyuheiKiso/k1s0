@@ -9,11 +9,9 @@ use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::common::v1::Timestamp as ProtoTimestamp;
 use crate::proto::k1s0::system::session::v1::{
-    session_service_server::SessionService,
-    CreateSessionRequest as ProtoCreateSessionRequest,
+    session_service_server::SessionService, CreateSessionRequest as ProtoCreateSessionRequest,
     CreateSessionResponse as ProtoCreateSessionResponse,
-    GetSessionRequest as ProtoGetSessionRequest,
-    GetSessionResponse as ProtoGetSessionResponse,
+    GetSessionRequest as ProtoGetSessionRequest, GetSessionResponse as ProtoGetSessionResponse,
     ListUserSessionsRequest as ProtoListUserSessionsRequest,
     ListUserSessionsResponse as ProtoListUserSessionsResponse,
     RefreshSessionRequest as ProtoRefreshSessionRequest,
@@ -21,8 +19,7 @@ use crate::proto::k1s0::system::session::v1::{
     RevokeAllSessionsRequest as ProtoRevokeAllSessionsRequest,
     RevokeAllSessionsResponse as ProtoRevokeAllSessionsResponse,
     RevokeSessionRequest as ProtoRevokeSessionRequest,
-    RevokeSessionResponse as ProtoRevokeSessionResponse,
-    Session as ProtoSession,
+    RevokeSessionResponse as ProtoRevokeSessionResponse, Session as ProtoSession,
 };
 
 use super::session_grpc::{
@@ -69,6 +66,14 @@ impl SessionService for SessionServiceTonic {
             user_agent: inner.user_agent,
             ip_address: inner.ip_address,
             ttl_seconds: inner.ttl_seconds,
+            max_devices: inner
+                .max_devices
+                .and_then(|v| if v > 0 { u32::try_from(v).ok() } else { None }),
+            metadata: if inner.metadata.is_empty() {
+                None
+            } else {
+                Some(inner.metadata)
+            },
         };
         let resp = self
             .inner
@@ -83,6 +88,12 @@ impl SessionService for SessionServiceTonic {
             expires_at: parse_rfc3339_to_proto_timestamp(&resp.expires_at),
             created_at: parse_rfc3339_to_proto_timestamp(&resp.created_at),
             token: resp.token,
+            metadata: resp.metadata,
+            device_name: resp.device_name,
+            device_type: resp.device_type,
+            user_agent: resp.user_agent,
+            ip_address: resp.ip_address,
+            status: resp.status,
         }))
     }
 
@@ -122,6 +133,20 @@ impl SessionService for SessionServiceTonic {
         Ok(Response::new(ProtoRefreshSessionResponse {
             session_id: resp.session_id,
             expires_at: parse_rfc3339_to_proto_timestamp(&resp.expires_at),
+            user_id: resp.user_id,
+            token: resp.token,
+            device_id: resp.device_id,
+            device_name: resp.device_name,
+            device_type: resp.device_type,
+            user_agent: resp.user_agent,
+            ip_address: resp.ip_address,
+            metadata: resp.metadata,
+            created_at: parse_rfc3339_to_proto_timestamp(&resp.created_at),
+            last_accessed_at: resp
+                .last_accessed_at
+                .as_ref()
+                .and_then(|v| parse_rfc3339_to_proto_timestamp(v)),
+            status: resp.status,
         }))
     }
 
@@ -195,6 +220,7 @@ fn pb_session_to_proto(s: &super::session_grpc::PbSession) -> ProtoSession {
         user_agent: s.user_agent.clone(),
         ip_address: s.ip_address.clone(),
         status: s.status.clone(),
+        token: s.token.clone(),
         expires_at: parse_rfc3339_to_proto_timestamp(&s.expires_at),
         created_at: parse_rfc3339_to_proto_timestamp(&s.created_at),
         last_accessed_at: s
@@ -205,10 +231,12 @@ fn pb_session_to_proto(s: &super::session_grpc::PbSession) -> ProtoSession {
 }
 
 fn parse_rfc3339_to_proto_timestamp(v: &str) -> Option<ProtoTimestamp> {
-    chrono::DateTime::parse_from_rfc3339(v).ok().map(|dt| ProtoTimestamp {
-        seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
-    })
+    chrono::DateTime::parse_from_rfc3339(v)
+        .ok()
+        .map(|dt| ProtoTimestamp {
+            seconds: dt.timestamp(),
+            nanos: dt.timestamp_subsec_nanos() as i32,
+        })
 }
 
 #[cfg(test)]

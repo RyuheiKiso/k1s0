@@ -4,8 +4,10 @@
     response::IntoResponse,
     Json,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
+use k1s0_server_common::error as codes;
+use k1s0_server_common::ErrorResponse;
 
 use super::AppState;
 use crate::usecase::delete_file::DeleteFileInput;
@@ -40,18 +42,18 @@ pub async fn upload_file(
         )
             .into_response(),
         Err(crate::usecase::generate_upload_url::GenerateUploadUrlError::Validation(msg)) => {
-            let err = ErrorResponse::new("SYS_FILE_VALIDATION_ERROR", &msg);
+            let err = ErrorResponse::new(codes::file::validation(), &msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(crate::usecase::generate_upload_url::GenerateUploadUrlError::SizeExceeded { actual, max }) => {
             let err = ErrorResponse::new(
-                "SYS_FILE_SIZE_EXCEEDED",
+                codes::file::size_exceeded(),
                 &format!("file size exceeds limit: {} > {}", actual, max),
             );
             (StatusCode::PAYLOAD_TOO_LARGE, Json(err)).into_response()
         }
         Err(crate::usecase::generate_upload_url::GenerateUploadUrlError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_FILE_INTERNAL_ERROR", &msg);
+            let err = ErrorResponse::new(codes::file::upload_failed(), &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -74,7 +76,8 @@ pub async fn get_file(
                     &file.tenant_id,
                     request_tenant_id,
                 ) {
-                    let err = ErrorResponse::new("SYS_FILE_ACCESS_DENIED", "access denied for tenant");
+                    let err =
+                        ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
                     return (StatusCode::FORBIDDEN, Json(err)).into_response();
                 }
             }
@@ -106,10 +109,10 @@ pub async fn get_file(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_FILE_NOT_FOUND", &msg);
+                let err = ErrorResponse::new(codes::file::not_found(), &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_FILE_INTERNAL_ERROR", &msg);
+                let err = ErrorResponse::new(codes::file::get_failed(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -146,7 +149,7 @@ pub async fn list_files(
         )
             .into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_FILE_INTERNAL_ERROR", &e.to_string());
+            let err = ErrorResponse::new(codes::file::list_failed(), e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -156,47 +159,50 @@ pub async fn list_files(
 pub async fn delete_file(
     State(state): State<AppState>,
     headers: HeaderMap,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
-        match state
-            .get_file_metadata_uc
-            .execute(&GetFileMetadataInput {
-                file_id: id.clone(),
-            })
-            .await
-        {
-            Ok(file) => {
-                if !crate::domain::service::FileDomainService::can_access_tenant_resource(
-                    &file.tenant_id,
-                    request_tenant_id,
-                ) {
-                    let err = ErrorResponse::new("SYS_FILE_ACCESS_DENIED", "access denied for tenant");
-                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
-                }
+    if let Ok(file) = state
+        .get_file_metadata_uc
+        .execute(&GetFileMetadataInput {
+            file_id: id.clone(),
+        })
+        .await
+    {
+        if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+            if !crate::domain::service::FileDomainService::can_access_tenant_resource(
+                &file.tenant_id,
+                request_tenant_id,
+            ) {
+                let err =
+                    ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
+                return (StatusCode::FORBIDDEN, Json(err)).into_response();
             }
-            Err(_) => {}
+        }
+
+        if let Some(axum::extract::Extension(claims)) = claims {
+            let is_admin = claims.realm_roles().iter().any(|role| role == "sys_admin");
+            if !is_admin && file.owner_id != claims.sub {
+                let err = ErrorResponse::new(
+                    codes::file::access_denied(),
+                    "only the file owner or sys_admin can delete this file",
+                );
+                return (StatusCode::FORBIDDEN, Json(err)).into_response();
+            }
         }
     }
 
     let input = DeleteFileInput { file_id: id };
 
     match state.delete_file_uc.execute(&input).await {
-        Ok(output) => (
-            StatusCode::OK,
-            Json(serde_json::json!({
-                "success": output.success,
-                "message": output.message
-            })),
-        )
-            .into_response(),
+        Ok(_) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_FILE_NOT_FOUND", &msg);
+                let err = ErrorResponse::new(codes::file::not_found(), &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_FILE_INTERNAL_ERROR", &msg);
+                let err = ErrorResponse::new(codes::file::delete_failed(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -225,7 +231,8 @@ pub async fn complete_upload(
                     &file.tenant_id,
                     request_tenant_id,
                 ) {
-                    let err = ErrorResponse::new("SYS_FILE_ACCESS_DENIED", "access denied for tenant");
+                    let err =
+                        ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
                     return (StatusCode::FORBIDDEN, Json(err)).into_response();
                 }
             }
@@ -241,23 +248,19 @@ pub async fn complete_upload(
     match state.complete_upload_uc.execute(&input).await {
         Ok(file) => (
             StatusCode::OK,
-            Json(serde_json::json!({
-                "file_id": file.id,
-                "status": file.status,
-                "message": "upload completed"
-            })),
+            Json(file_to_rest_detail(&file)),
         )
             .into_response(),
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_FILE_NOT_FOUND", &msg);
+                let err = ErrorResponse::new(codes::file::not_found(), &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else if msg.contains("already completed") {
-                let err = ErrorResponse::new("SYS_FILE_ALREADY_COMPLETED", &msg);
+                let err = ErrorResponse::new(codes::file::already_completed(), &msg);
                 (StatusCode::CONFLICT, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_FILE_INTERNAL_ERROR", &msg);
+                let err = ErrorResponse::new(codes::file::complete_failed(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -283,7 +286,8 @@ pub async fn download_url(
                     &file.tenant_id,
                     request_tenant_id,
                 ) {
-                    let err = ErrorResponse::new("SYS_FILE_ACCESS_DENIED", "access denied for tenant");
+                    let err =
+                        ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
                     return (StatusCode::FORBIDDEN, Json(err)).into_response();
                 }
             }
@@ -309,13 +313,13 @@ pub async fn download_url(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_FILE_NOT_FOUND", &msg);
+                let err = ErrorResponse::new(codes::file::not_found(), &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else if msg.contains("not available") {
-                let err = ErrorResponse::new("SYS_FILE_NOT_AVAILABLE", &msg);
+                let err = ErrorResponse::new(codes::file::not_available(), &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_FILE_INTERNAL_ERROR", &msg);
+                let err = ErrorResponse::new(codes::file::download_url_failed(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -344,7 +348,8 @@ pub async fn update_file_tags(
                     &file.tenant_id,
                     request_tenant_id,
                 ) {
-                    let err = ErrorResponse::new("SYS_FILE_ACCESS_DENIED", "access denied for tenant");
+                    let err =
+                        ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
                     return (StatusCode::FORBIDDEN, Json(err)).into_response();
                 }
             }
@@ -370,10 +375,10 @@ pub async fn update_file_tags(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_FILE_NOT_FOUND", &msg);
+                let err = ErrorResponse::new(codes::file::not_found(), &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_FILE_INTERNAL_ERROR", &msg);
+                let err = ErrorResponse::new(codes::file::tags_update_failed(), &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -386,7 +391,7 @@ fn file_to_rest_summary(file: &crate::domain::entity::file::FileMetadata) -> ser
     serde_json::json!({
         "id": &file.id,
         "filename": &file.name,
-        "size": file.size_bytes,
+        "size_bytes": file.size_bytes,
         "content_type": &file.mime_type,
         "tenant_id": &file.tenant_id,
         "uploaded_by": &file.owner_id,
@@ -402,7 +407,7 @@ fn file_to_rest_detail(file: &crate::domain::entity::file::FileMetadata) -> serd
     serde_json::json!({
         "id": &file.id,
         "filename": &file.name,
-        "size": file.size_bytes,
+        "size_bytes": file.size_bytes,
         "content_type": &file.mime_type,
         "tenant_id": &file.tenant_id,
         "uploaded_by": &file.owner_id,
@@ -467,31 +472,5 @@ fn parse_tag_query(raw: &str) -> Option<(String, String)> {
 
 fn tenant_id_from_headers(headers: &HeaderMap) -> Option<&str> {
     headers.get("x-tenant-id").and_then(|h| h.to_str().ok())
-}
-
-#[derive(Debug, Serialize)]
-pub struct ErrorResponse {
-    pub error: ErrorBody,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ErrorBody {
-    pub code: String,
-    pub message: String,
-    pub request_id: String,
-    pub details: Vec<String>,
-}
-
-impl ErrorResponse {
-    pub fn new(code: &str, message: &str) -> Self {
-        Self {
-            error: ErrorBody {
-                code: code.to_string(),
-                message: message.to_string(),
-                request_id: uuid::Uuid::new_v4().to_string(),
-                details: vec![],
-            },
-        }
-    }
 }
 

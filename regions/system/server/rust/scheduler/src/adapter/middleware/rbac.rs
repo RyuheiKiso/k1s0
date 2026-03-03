@@ -12,9 +12,9 @@ use k1s0_auth::Claims;
 /// require_permission は resource/action ベースのアクセス制御ミドルウェアファクトリ。
 ///
 /// scheduler-server の RBAC マッピング:
-/// - GET -> jobs/read
-/// - POST/PUT/trigger/pause/resume -> jobs/write
-/// - DELETE -> jobs/admin
+/// - GET -> scheduler/read
+/// - POST/PUT/trigger/pause/resume -> scheduler/write
+/// - DELETE -> scheduler/admin
 pub fn require_permission(
     resource: &'static str,
     action: &'static str,
@@ -130,7 +130,7 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/jobs",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "jobs", "read",
+                "scheduler", "read",
             ))),
         );
 
@@ -154,7 +154,7 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/jobs",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "jobs", "read",
+                "scheduler", "read",
             ))),
         );
 
@@ -170,7 +170,7 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/jobs",
             put(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "jobs", "write",
+                "scheduler", "write",
             ))),
         );
 
@@ -186,7 +186,7 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/jobs",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "jobs", "read",
+                "scheduler", "read",
             ))),
         );
 
@@ -202,7 +202,7 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/jobs",
             put(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "jobs", "write",
+                "scheduler", "write",
             ))),
         );
 
@@ -224,7 +224,7 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/jobs/:id",
             delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
-                require_permission("jobs", "admin"),
+                require_permission("scheduler", "admin"),
             )),
         );
 
@@ -240,7 +240,7 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/jobs/:id",
             delete(|| async { StatusCode::NO_CONTENT }).route_layer(axum::middleware::from_fn(
-                require_permission("jobs", "admin"),
+                require_permission("scheduler", "admin"),
             )),
         );
 
@@ -256,7 +256,7 @@ mod tests {
         let app = Router::new().route(
             "/api/v1/jobs",
             get(|| async { "ok" }).route_layer(axum::middleware::from_fn(require_permission(
-                "jobs", "read",
+                "scheduler", "read",
             ))),
         );
 

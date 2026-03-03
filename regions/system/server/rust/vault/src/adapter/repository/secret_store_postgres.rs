@@ -93,9 +93,7 @@ impl SecretStore for SecretStorePostgresRepository {
         // 各バージョンを復号化して SecretVersion に変換
         let mut versions = Vec::with_capacity(version_rows.len());
         for row in &version_rows {
-            let plaintext = self
-                .master_key
-                .decrypt(&row.encrypted_data, &row.nonce)?;
+            let plaintext = self.master_key.decrypt(&row.encrypted_data, &row.nonce)?;
             let data: HashMap<String, String> = serde_json::from_slice(&plaintext)?;
             versions.push(SecretVersion {
                 version: row.version as i64,
@@ -131,13 +129,11 @@ impl SecretStore for SecretStorePostgresRepository {
 
         let (secret_id, new_version) = if let Some((id, current)) = row {
             let new_ver = current + 1;
-            sqlx::query(
-                "UPDATE vault.secrets SET current_version = $2 WHERE id = $1",
-            )
-            .bind(id)
-            .bind(new_ver)
-            .execute(&mut *tx)
-            .await?;
+            sqlx::query("UPDATE vault.secrets SET current_version = $2 WHERE id = $1")
+                .bind(id)
+                .bind(new_ver)
+                .execute(&mut *tx)
+                .await?;
             (id, new_ver)
         } else {
             let id: (uuid::Uuid,) = sqlx::query_as(
@@ -173,8 +169,8 @@ impl SecretStore for SecretStorePostgresRepository {
                 .fetch_optional(self.pool.as_ref())
                 .await?;
 
-        let (secret_id,) = secret_row
-            .ok_or_else(|| anyhow::anyhow!("secret not found: {}", path))?;
+        let (secret_id,) =
+            secret_row.ok_or_else(|| anyhow::anyhow!("secret not found: {}", path))?;
 
         if versions.is_empty() {
             // 全バージョン削除 → CASCADE で secret_versions も削除される

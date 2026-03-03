@@ -1,262 +1,261 @@
-﻿# system-api-registry-server 險ｭ險・
+﻿# system-api-registry-server 設計
 
-system tier 縺ｮ OpenAPI/Protobuf 繧ｹ繧ｭ繝ｼ繝樣寔荳ｭ邂｡逅・し繝ｼ繝舌・縲ゅせ繧ｭ繝ｼ繝槭・逋ｻ骭ｲ繝ｻ繝舌・繧ｸ繝ｧ繝ｳ邂｡逅・・遐ｴ螢顔噪螟画峩讀懷・繝ｻ蟾ｮ蛻・｡ｨ遉ｺ繧呈署萓帙☆繧九３ust 螳溯｣・・
+system tier の OpenAPI/Protobuf スキーマ集中管理サーバー。スキーマの登録・バージョン管理・破壊的変更検出・差分表示を提供する。Rust 実装。
 
-## 讎りｦ・
+## 概要
 
-| 讖溯・ | 隱ｬ譏・|
+| 機能 | 説明 |
 | --- | --- |
-| 繧ｹ繧ｭ繝ｼ繝樒匳骭ｲ繝ｻ繝舌・繧ｸ繝ｧ繝ｳ邂｡逅・| OpenAPI 3.x / Protobuf 繧ｹ繧ｭ繝ｼ繝槭・逋ｻ骭ｲ繝ｻ繝舌・繧ｸ繝ｧ繝ｳ螻･豁ｴ邂｡逅・|
-| 繝舌Μ繝・・繧ｷ繝ｧ繝ｳ | OpenAPI Validator / buf lint 縺ｫ繧医ｋ逋ｻ骭ｲ譎ゅせ繧ｭ繝ｼ繝樊､懆ｨｼ |
-| 遐ｴ螢顔噪螟画峩讀懷・ | 繝輔ぅ繝ｼ繝ｫ繝牙炎髯､繝ｻ蝙句､画峩繝ｻ蠢・亥喧遲峨・蠕梧婿莠呈鋤諤ｧ遐ｴ螢翫ｒ閾ｪ蜍墓､懷・ |
-| 蟾ｮ蛻・｡ｨ遉ｺ | 繝舌・繧ｸ繝ｧ繝ｳ髢薙・繧ｹ繧ｭ繝ｼ繝槫ｷｮ蛻・ｒ讒矩蛹・JSON 縺ｧ蜿門ｾ・|
-| 繧ｹ繧ｭ繝ｼ繝樊峩譁ｰ騾夂衍 | 繧ｹ繧ｭ繝ｼ繝樒匳骭ｲ繝ｻ譖ｴ譁ｰ譎ゅ↓ Kafka `k1s0.system.apiregistry.schema_updated.v1` 繧堤匱陦・|
+| スキーマ登録・バージョン管理 | OpenAPI 3.x / Protobuf スキーマの登録・バージョン履歴管理 |
+| バリデーション | OpenAPI Validator / buf lint による登録時スキーマ検証 |
+| 破壊的変更検出 | フィールド削除・型変更・必須化等の後方互換性破壊を自動検出 |
+| 差分表示 | バージョン間のスキーマ差分を構造化 JSON で取得 |
+| スキーマ更新通知 | スキーマ登録・更新時に Kafka `k1s0.system.apiregistry.schema_updated.v1` を発行 |
 
-### 謚陦薙せ繧ｿ繝・け
+### 技術スタック
 
-> 蜈ｱ騾壽橿陦薙せ繧ｿ繝・け縺ｯ [繝・Φ繝励Ξ繝ｼ繝井ｻ墓ｧ・繧ｵ繝ｼ繝舌・.md](../../templates/server/繧ｵ繝ｼ繝舌・.md#蜈ｱ騾壽橿陦薙せ繧ｿ繝・け) 繧貞盾辣ｧ縲・
+> 共通技術スタックは [テンプレート仕様-サーバー.md](../../templates/server/サーバー.md#共通技術スタック) を参照。
 
-| 繧ｳ繝ｳ繝昴・繝阪Φ繝・| Rust |
+| コンポーネント | Rust |
 | --- | --- |
-| 繧ｹ繧ｭ繝ｼ繝樊､懆ｨｼ | openapi-spec-validator・・ubprocess 蜻ｼ縺ｳ蜃ｺ縺暦ｼ・ buf lint・・ubprocess 蜻ｼ縺ｳ蜃ｺ縺暦ｼ・|
+| スキーマ検証 | openapi-spec-validator（subprocess 呼び出し）/ buf lint（subprocess 呼び出し） |
 
-### 驟咲ｽｮ繝代せ
+### 配置パス
 
-驟咲ｽｮ: `regions/system/server/rust/api-registry/`・・Tier蛻･驟咲ｽｮ繝代せ蜿ら・](../../templates/server/繧ｵ繝ｼ繝舌・.md#tier-蛻･驟咲ｽｮ繝代せ)・・
+配置: `regions/system/server/rust/api-registry/`（[Tier別配置パス参照](../../templates/server/サーバー.md#tier-別配置パス)）
 
 ---
 
-## API 螳夂ｾｩ
+## API 定義
 
-### REST API 繧ｨ繝ｳ繝峨・繧､繝ｳ繝・
+### REST API エンドポイント
 
-蜈ｨ繧ｨ繝ｳ繝峨・繧､繝ｳ繝医・ [API險ｭ險・md](../../architecture/api/API險ｭ險・md) D-007 縺ｮ邨ｱ荳繧ｨ繝ｩ繝ｼ繝ｬ繧ｹ繝昴Φ繧ｹ縺ｫ蠕薙≧縲ゅお繝ｩ繝ｼ繧ｳ繝ｼ繝峨・繝励Ξ繝輔ぅ繝・け繧ｹ縺ｯ `SYS_APIREG_` 縺ｨ縺吶ｋ縲・
+全エンドポイントは [API設計.md](../../architecture/api/API設計.md) D-007 の統一エラーレスポンスに従う。エラーコードのプレフィックスは `SYS_APIREG_` とする。
 
-| Method | Path | Description | 隱榊庄 |
+| Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| GET | `/api/v1/schemas` | 繧ｹ繧ｭ繝ｼ繝樔ｸ隕ｧ蜿門ｾ・| `sys_auditor` 莉･荳・|
-| POST | `/api/v1/schemas` | 繧ｹ繧ｭ繝ｼ繝樒匳骭ｲ・亥・蝗槭ヰ繝ｼ繧ｸ繝ｧ繝ｳ・・| `sys_operator` 莉･荳・|
-| GET | `/api/v1/schemas/:name` | 繧ｹ繧ｭ繝ｼ繝槫叙蠕暦ｼ域怙譁ｰ繝舌・繧ｸ繝ｧ繝ｳ・・| `sys_auditor` 莉･荳・|
-| GET | `/api/v1/schemas/:name/versions` | 繝舌・繧ｸ繝ｧ繝ｳ荳隕ｧ蜿門ｾ・| `sys_auditor` 莉･荳・|
-| GET | `/api/v1/schemas/:name/versions/:version` | 迚ｹ螳壹ヰ繝ｼ繧ｸ繝ｧ繝ｳ蜿門ｾ・| `sys_auditor` 莉･荳・|
-| POST | `/api/v1/schemas/:name/versions` | 譁ｰ繝舌・繧ｸ繝ｧ繝ｳ逋ｻ骭ｲ | `sys_operator` 莉･荳・|
-| DELETE | `/api/v1/schemas/:name/versions/:version` | 繝舌・繧ｸ繝ｧ繝ｳ蜑企勁 | `sys_admin` 縺ｮ縺ｿ |
-| POST | `/api/v1/schemas/:name/compatibility` | 莠呈鋤諤ｧ繝√ぉ繝・け・育ｴ螢顔噪螟画峩讀懷・・・| `sys_operator` 莉･荳・|
-| GET | `/api/v1/schemas/:name/diff` | 繝舌・繧ｸ繝ｧ繝ｳ髢灘ｷｮ蛻・叙蠕・| `sys_auditor` 莉･荳・|
-| GET | `/healthz` | 繝倥Ν繧ｹ繝√ぉ繝・け | 荳崎ｦ・|
-| GET | `/readyz` | 繝ｬ繝・ぅ繝阪せ繝√ぉ繝・け | 荳崎ｦ・|
-| GET | `/metrics` | Prometheus 繝｡繝医Μ繧ｯ繧ｹ | 荳崎ｦ・|
+| GET | `/api/v1/schemas` | スキーマ一覧取得 | `sys_auditor` 以上 |
+| POST | `/api/v1/schemas` | スキーマ登録（初回バージョン） | `sys_operator` 以上 |
+| GET | `/api/v1/schemas/:name` | スキーマ取得（最新バージョン） | `sys_auditor` 以上 |
+| GET | `/api/v1/schemas/:name/versions` | バージョン一覧取得 | `sys_auditor` 以上 |
+| GET | `/api/v1/schemas/:name/versions/:version` | 特定バージョン取得 | `sys_auditor` 以上 |
+| POST | `/api/v1/schemas/:name/versions` | 新バージョン登録 | `sys_operator` 以上 |
+| DELETE | `/api/v1/schemas/:name/versions/:version` | バージョン削除 | `sys_admin` のみ |
+| POST | `/api/v1/schemas/:name/compatibility` | 互換性チェック（破壊的変更検出） | `sys_operator` 以上 |
+| GET | `/api/v1/schemas/:name/diff` | バージョン間差分取得 | `sys_auditor` 以上 |
+| GET | `/healthz` | ヘルスチェック | 不要 |
+| GET | `/readyz` | レディネスチェック | 不要 |
+| GET | `/metrics` | Prometheus メトリクス | 不要 |
 
 #### GET /api/v1/schemas
 
-逋ｻ骭ｲ貂医∩繧ｹ繧ｭ繝ｼ繝樔ｸ隕ｧ繧偵・繝ｼ繧ｸ繝阪・繧ｷ繝ｧ繝ｳ莉倥″縺ｧ蜿門ｾ励☆繧九・
+登録済みスキーマ一覧をページネーション付きで取得する。
 
-**繧ｯ繧ｨ繝ｪ繝代Λ繝｡繝ｼ繧ｿ**
+**クエリパラメータ**
 
-| 繝代Λ繝｡繝ｼ繧ｿ | 蝙・| 蠢・・| 繝・ヵ繧ｩ繝ｫ繝・| 隱ｬ譏・|
+| パラメータ | 型 | 必須 | デフォルト | 説明 |
 | --- | --- | --- | --- | --- |
-| `schema_type` | string | No | - | 繧ｹ繧ｭ繝ｼ繝樒ｨｮ蛻･縺ｧ繝輔ぅ繝ｫ繧ｿ・・penapi/protobuf・・|
-| `page` | int | No | 1 | 繝壹・繧ｸ逡ｪ蜿ｷ |
-| `page_size` | int | No | 20 | 1 繝壹・繧ｸ縺ゅ◆繧翫・莉ｶ謨ｰ |
+| `schema_type` | string | No | - | スキーマ種別でフィルタ（openapi/protobuf） |
+| `page` | int | No | 1 | ページ番号 |
+| `page_size` | int | No | 20 | 1 ページあたりの件数 |
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ繝輔ぅ繝ｼ繝ｫ繝会ｼ・00 OK・・*
+**レスポンスフィールド（200 OK）**
 
-| 繝輔ぅ繝ｼ繝ｫ繝・| 蝙・| 隱ｬ譏・|
+| フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `schemas[].name` | string | 繧ｹ繧ｭ繝ｼ繝槫錐 |
-| `schemas[].description` | string | 繧ｹ繧ｭ繝ｼ繝槭・隱ｬ譏・|
-| `schemas[].schema_type` | string | 繧ｹ繧ｭ繝ｼ繝樒ｨｮ蛻･・・openapi` / `protobuf`・・|
-| `schemas[].latest_version` | int | 譛譁ｰ繝舌・繧ｸ繝ｧ繝ｳ逡ｪ蜿ｷ |
-| `schemas[].version_count` | int | 逋ｻ骭ｲ繝舌・繧ｸ繝ｧ繝ｳ謨ｰ |
-| `schemas[].created_at` | string | 蛻晏屓逋ｻ骭ｲ譌･譎・|
-| `schemas[].updated_at` | string | 譛邨よ峩譁ｰ譌･譎・|
-| `pagination` | object | 繝壹・繧ｸ繝阪・繧ｷ繝ｧ繝ｳ・・otal_count, page, page_size, has_next・・|
+| `schemas[].name` | string | スキーマ名 |
+| `schemas[].description` | string | スキーマの説明 |
+| `schemas[].schema_type` | string | スキーマ種別（`openapi` / `protobuf`） |
+| `schemas[].latest_version` | int | 最新バージョン番号 |
+| `schemas[].version_count` | int | 登録バージョン数 |
+| `schemas[].created_at` | string | 初回登録日時 |
+| `schemas[].updated_at` | string | 最終更新日時 |
+| `pagination` | object | ページネーション（total_count, page, page_size, has_next） |
 
 #### POST /api/v1/schemas
 
-繧ｹ繧ｭ繝ｼ繝槭ｒ譁ｰ隕冗匳骭ｲ縺吶ｋ縲ょ・蝗槭ヰ繝ｼ繧ｸ繝ｧ繝ｳ・・ersion 1・峨′菴懈・縺輔ｌ繧九ら匳骭ｲ譎ゅ↓繝舌Μ繝・・繧ｷ繝ｧ繝ｳ繧貞ｮ溯｡後＠縲√お繝ｩ繝ｼ縺後≠繧句ｴ蜷医・ 422 繧定ｿ斐☆縲・
+スキーマを新規登録する。初回バージョン（version 1）が作成される。登録時にバリデーションを実行し、エラーがある場合は 422 を返す。
 
-**繝ｪ繧ｯ繧ｨ繧ｹ繝医ヵ繧｣繝ｼ繝ｫ繝・*
+**リクエストフィールド**
 
-| 繝輔ぅ繝ｼ繝ｫ繝・| 蝙・| 蠢・・| 隱ｬ譏・|
+| フィールド | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
-| `name` | string | Yes | 繧ｹ繧ｭ繝ｼ繝槫錐 |
-| `description` | string | Yes | 繧ｹ繧ｭ繝ｼ繝槭・隱ｬ譏・|
-| `schema_type` | string | Yes | 繧ｹ繧ｭ繝ｼ繝樒ｨｮ蛻･・・openapi` / `protobuf`・・|
-| `content` | string | Yes | 繧ｹ繧ｭ繝ｼ繝樊悽譁・ｼ・AML/JSON/proto・・|
-| `registered_by` | string | No | 逋ｻ骭ｲ閠・Θ繝ｼ繧ｶ繝ｼ ID・育怐逡･譎ゅ・ `anonymous`・・|
+| `name` | string | Yes | スキーマ名 |
+| `description` | string | Yes | スキーマの説明 |
+| `schema_type` | string | Yes | スキーマ種別（`openapi` / `protobuf`） |
+| `content` | string | Yes | スキーマ本文（YAML/JSON/proto） |
+| `registered_by` | string | No | 登録者ユーザー ID（省略時は `anonymous`） |
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ繝輔ぅ繝ｼ繝ｫ繝会ｼ・01 Created・・*
+**レスポンスフィールド（201 Created）**
 
-| 繝輔ぅ繝ｼ繝ｫ繝・| 蝙・| 隱ｬ譏・|
+| フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `name` | string | 繧ｹ繧ｭ繝ｼ繝槫錐 |
-| `version` | int | 繝舌・繧ｸ繝ｧ繝ｳ逡ｪ蜿ｷ・・・・|
-| `schema_type` | string | 繧ｹ繧ｭ繝ｼ繝樒ｨｮ蛻･ |
-| `content_hash` | string | 繧ｳ繝ｳ繝・Φ繝・・ SHA-256 繝上ャ繧ｷ繝･ |
-| `created_at` | string | 逋ｻ骭ｲ譌･譎・|
+| `name` | string | スキーマ名 |
+| `version` | int | バージョン番号（1） |
+| `schema_type` | string | スキーマ種別 |
+| `content_hash` | string | コンテンツの SHA-256 ハッシュ |
+| `created_at` | string | 登録日時 |
 
-**繧ｨ繝ｩ繝ｼ繝ｬ繧ｹ繝昴Φ繧ｹ・・22・・*: `SYS_APIREG_SCHEMA_INVALID`・・etails 縺ｫ繝舌Μ繝・・繧ｷ繝ｧ繝ｳ繧ｨ繝ｩ繝ｼ荳隕ｧ・・
+**エラーレスポンス（422）**: `SYS_APIREG_SCHEMA_INVALID`（details にバリデーションエラー一覧）
 
 #### GET /api/v1/schemas/:name
 
-謖・ｮ壹せ繧ｭ繝ｼ繝槭・譛譁ｰ繝舌・繧ｸ繝ｧ繝ｳ縺ｮ繧ｳ繝ｳ繝・Φ繝・ｒ蜿門ｾ励☆繧九・
+指定スキーマの最新バージョンのコンテンツを取得する。
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ繝輔ぅ繝ｼ繝ｫ繝会ｼ・00 OK・・*
+**レスポンスフィールド（200 OK）**
 
-| 繝輔ぅ繝ｼ繝ｫ繝・| 蝙・| 隱ｬ譏・|
+| フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `name` | string | 繧ｹ繧ｭ繝ｼ繝槫錐 |
-| `description` | string | 繧ｹ繧ｭ繝ｼ繝槭・隱ｬ譏・|
-| `schema_type` | string | 繧ｹ繧ｭ繝ｼ繝樒ｨｮ蛻･ |
-| `latest_version` | int | 譛譁ｰ繝舌・繧ｸ繝ｧ繝ｳ逡ｪ蜿ｷ |
-| `version_count` | int | 逋ｻ骭ｲ繝舌・繧ｸ繝ｧ繝ｳ謨ｰ |
-| `latest_content` | string | 譛譁ｰ繝舌・繧ｸ繝ｧ繝ｳ縺ｮ繧ｹ繧ｭ繝ｼ繝樊悽譁・|
-| `content_hash` | string | 繧ｳ繝ｳ繝・Φ繝・・ SHA-256 繝上ャ繧ｷ繝･ |
-| `created_at` | string | 蛻晏屓逋ｻ骭ｲ譌･譎・|
-| `updated_at` | string | 譛邨よ峩譁ｰ譌･譎・|
+| `name` | string | スキーマ名 |
+| `description` | string | スキーマの説明 |
+| `schema_type` | string | スキーマ種別 |
+| `latest_version` | int | 最新バージョン番号 |
+| `version_count` | int | 登録バージョン数 |
+| `latest_content` | string | 最新バージョンのスキーマ本文 |
+| `content_hash` | string | コンテンツの SHA-256 ハッシュ |
+| `created_at` | string | 初回登録日時 |
+| `updated_at` | string | 最終更新日時 |
 
-> `latest_content` 縺ｯ縲梧怙譁ｰ繝舌・繧ｸ繝ｧ繝ｳ蜿門ｾ・API・・ET /api/v1/schemas/:name・峨榊ｰら畑繝輔ぅ繝ｼ繝ｫ繝牙錐縺ｨ縺励※蝗ｺ螳壹☆繧九・ 
-> `content` 縺ｯ縲檎音螳壹ヰ繝ｼ繧ｸ繝ｧ繝ｳ蜿門ｾ・API・・ET /api/v1/schemas/:name/versions/:version・峨阪〒縺ｮ縺ｿ菴ｿ逕ｨ縺吶ｋ縲・
-**繧ｨ繝ｩ繝ｼ繝ｬ繧ｹ繝昴Φ繧ｹ・・04・・*: `SYS_APIREG_SCHEMA_NOT_FOUND`
+> `latest_content` は「最新バージョン取得 API（GET /api/v1/schemas/:name）」専用フィールド名として固定する。  
+> `content` は「特定バージョン取得 API（GET /api/v1/schemas/:name/versions/:version）」でのみ使用する。
+
+**エラーレスポンス（404）**: `SYS_APIREG_SCHEMA_NOT_FOUND`
 
 #### GET /api/v1/schemas/:name/versions
 
-謖・ｮ壹せ繧ｭ繝ｼ繝槭・蜈ｨ繝舌・繧ｸ繝ｧ繝ｳ荳隕ｧ繧偵・繝ｼ繧ｸ繝阪・繧ｷ繝ｧ繝ｳ莉倥″縺ｧ蜿門ｾ励☆繧九・
+指定スキーマの全バージョン一覧をページネーション付きで取得する。
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ繝輔ぅ繝ｼ繝ｫ繝会ｼ・00 OK・・*
+**レスポンスフィールド（200 OK）**
 
-| 繝輔ぅ繝ｼ繝ｫ繝・| 蝙・| 隱ｬ譏・|
+| フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `name` | string | 繧ｹ繧ｭ繝ｼ繝槫錐 |
-| `versions[].version` | int | 繝舌・繧ｸ繝ｧ繝ｳ逡ｪ蜿ｷ |
-| `versions[].content_hash` | string | 繧ｳ繝ｳ繝・Φ繝・ワ繝・す繝･ |
-| `versions[].breaking_changes` | bool | 遐ｴ螢顔噪螟画峩繝輔Λ繧ｰ |
-| `versions[].registered_by` | string | 逋ｻ骭ｲ閠・Θ繝ｼ繧ｶ繝ｼ ID |
-| `versions[].created_at` | string | 逋ｻ骭ｲ譌･譎・|
-| `pagination` | object | 繝壹・繧ｸ繝阪・繧ｷ繝ｧ繝ｳ |
+| `name` | string | スキーマ名 |
+| `versions[].version` | int | バージョン番号 |
+| `versions[].content_hash` | string | コンテンツハッシュ |
+| `versions[].breaking_changes` | bool | 破壊的変更フラグ |
+| `versions[].breaking_change_details` | ChangeDetail[] | 破壊的変更の詳細 |
+| `versions[].registered_by` | string | 登録者ユーザー ID |
+| `versions[].created_at` | string | 登録日時 |
+| `pagination` | object | ページネーション |
 
 #### GET /api/v1/schemas/:name/versions/:version
 
-謖・ｮ壹ヰ繝ｼ繧ｸ繝ｧ繝ｳ縺ｮ繧ｹ繧ｭ繝ｼ繝槭さ繝ｳ繝・Φ繝・ｒ蜿門ｾ励☆繧九・
+指定バージョンのスキーマコンテンツを取得する。
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ繝輔ぅ繝ｼ繝ｫ繝会ｼ・00 OK・・*
+**レスポンスフィールド（200 OK）**
 
-| 繝輔ぅ繝ｼ繝ｫ繝・| 蝙・| 隱ｬ譏・|
+| フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `name` | string | 繧ｹ繧ｭ繝ｼ繝槫錐 |
-| `version` | int | 繝舌・繧ｸ繝ｧ繝ｳ逡ｪ蜿ｷ |
-| `schema_type` | string | 繧ｹ繧ｭ繝ｼ繝樒ｨｮ蛻･ |
-| `content` | string | 繧ｹ繧ｭ繝ｼ繝樊悽譁・|
-| `content_hash` | string | 繧ｳ繝ｳ繝・Φ繝・ワ繝・す繝･ |
-| `breaking_changes` | bool | 遐ｴ螢顔噪螟画峩繝輔Λ繧ｰ |
-| `registered_by` | string | 逋ｻ骭ｲ閠・|
-| `created_at` | string | 逋ｻ骭ｲ譌･譎・|
+| `name` | string | スキーマ名 |
+| `version` | int | バージョン番号 |
+| `schema_type` | string | スキーマ種別 |
+| `content` | string | スキーマ本文 |
+| `content_hash` | string | コンテンツハッシュ |
+| `breaking_changes` | bool | 破壊的変更フラグ |
+| `breaking_change_details` | ChangeDetail[] | 破壊的変更の詳細 |
+| `registered_by` | string | 登録者 |
+| `created_at` | string | 登録日時 |
 
-**繧ｨ繝ｩ繝ｼ繝ｬ繧ｹ繝昴Φ繧ｹ・・04・・*: `SYS_APIREG_VERSION_NOT_FOUND`
+**エラーレスポンス（404）**: `SYS_APIREG_VERSION_NOT_FOUND`
 
 #### POST /api/v1/schemas/:name/versions
 
-譌｢蟄倥せ繧ｭ繝ｼ繝槭↓譁ｰ繝舌・繧ｸ繝ｧ繝ｳ繧堤匳骭ｲ縺吶ｋ縲ら匳骭ｲ蜑阪↓莠呈鋤諤ｧ繝√ぉ繝・け繧定・蜍募ｮ溯｡後＠縲∫ｴ螢顔噪螟画峩縺梧､懷・縺輔ｌ縺溷ｴ蜷医・繝輔Λ繧ｰ繧堤ｫ九※繧具ｼ育匳骭ｲ縺ｯ縺昴・縺ｾ縺ｾ陦後≧・峨・
+既存スキーマに新バージョンを登録する。登録前に互換性チェックを自動実行し、破壊的変更が検出された場合はフラグを立てる（登録はそのまま行う）。
 
-**繝ｪ繧ｯ繧ｨ繧ｹ繝医ヵ繧｣繝ｼ繝ｫ繝・*
+**リクエストフィールド**
 
-| 繝輔ぅ繝ｼ繝ｫ繝・| 蝙・| 蠢・・| 隱ｬ譏・|
+| フィールド | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
-| `content` | string | Yes | 繧ｹ繧ｭ繝ｼ繝樊悽譁・|
-| `registered_by` | string | No | 逋ｻ骭ｲ閠・Θ繝ｼ繧ｶ繝ｼ ID・育怐逡･譎ゅ・ `anonymous`・・|
+| `content` | string | Yes | スキーマ本文 |
+| `registered_by` | string | No | 登録者ユーザー ID（省略時は `anonymous`） |
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ繝輔ぅ繝ｼ繝ｫ繝会ｼ・01 Created・・*
+**レスポンスフィールド（201 Created）**
 
-| 繝輔ぅ繝ｼ繝ｫ繝・| 蝙・| 隱ｬ譏・|
+| フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `name` | string | 繧ｹ繧ｭ繝ｼ繝槫錐 |
-| `version` | int | 繝舌・繧ｸ繝ｧ繝ｳ逡ｪ蜿ｷ |
-| `content_hash` | string | 繧ｳ繝ｳ繝・Φ繝・ワ繝・す繝･ |
-| `breaking_changes` | bool | 遐ｴ螢顔噪螟画峩繝輔Λ繧ｰ |
-| `created_at` | string | 逋ｻ骭ｲ譌･譎・|
+| `name` | string | スキーマ名 |
+| `version` | int | バージョン番号 |
+| `content_hash` | string | コンテンツハッシュ |
+| `breaking_changes` | bool | 破壊的変更フラグ |
+| `breaking_change_details` | ChangeDetail[] | 破壊的変更の詳細 |
+| `created_at` | string | 登録日時 |
 
-**繧ｨ繝ｩ繝ｼ繝ｬ繧ｹ繝昴Φ繧ｹ・・22・・*: `SYS_APIREG_SCHEMA_INVALID`
+**エラーレスポンス（422）**: `SYS_APIREG_SCHEMA_INVALID`
 
 #### DELETE /api/v1/schemas/:name/versions/:version
 
-謖・ｮ壹ヰ繝ｼ繧ｸ繝ｧ繝ｳ繧貞炎髯､縺吶ｋ縲よ怙譁ｰ繝舌・繧ｸ繝ｧ繝ｳ・医ヰ繝ｼ繧ｸ繝ｧ繝ｳ謨ｰ = 1・峨・蜑企勁縺ｧ縺阪↑縺・・
+指定バージョンを削除する。最新バージョン（バージョン数 = 1）は削除できない。
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ**: 204 No Content
+**レスポンス**: 204 No Content
 
-**繧ｨ繝ｩ繝ｼ繝ｬ繧ｹ繝昴Φ繧ｹ・・09・・*: `SYS_APIREG_CANNOT_DELETE_LATEST`
+**エラーレスポンス（409）**: `SYS_APIREG_CANNOT_DELETE_LATEST`
 
 #### POST /api/v1/schemas/:name/compatibility
 
-謖・ｮ壹せ繧ｭ繝ｼ繝槭↓蟇ｾ縺励※蜈･蜉帙さ繝ｳ繝・Φ繝・・莠呈鋤諤ｧ繝√ぉ繝・け縺ｮ縺ｿ繧貞ｮ溯｡後☆繧具ｼ育匳骭ｲ縺励↑縺・ｼ峨・
+指定スキーマに対して入力コンテンツの互換性チェックのみを実行する（登録しない）。
 
-**繝ｪ繧ｯ繧ｨ繧ｹ繝医ヵ繧｣繝ｼ繝ｫ繝・*
+**リクエストフィールド**
 
-| 繝輔ぅ繝ｼ繝ｫ繝・| 蝙・| 蠢・・| 隱ｬ譏・|
+| フィールド | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
-| `content` | string | Yes | 讀懆ｨｼ蟇ｾ雎｡縺ｮ繧ｹ繧ｭ繝ｼ繝樊悽譁・|
-| `base_version` | int | No | 豈碑ｼ・ｯｾ雎｡繝舌・繧ｸ繝ｧ繝ｳ・育怐逡･譎ゅ・譛譁ｰ・・|
+| `content` | string | Yes | 検証対象のスキーマ本文 |
+| `base_version` | int | No | 比較対象バージョン（省略時は最新） |
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ繝輔ぅ繝ｼ繝ｫ繝会ｼ・00 OK・・*
+**レスポンスフィールド（200 OK）**
 
-| 繝輔ぅ繝ｼ繝ｫ繝・| 蝙・| 隱ｬ譏・|
+| フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `name` | string | 繧ｹ繧ｭ繝ｼ繝槫錐 |
-| `base_version` | int | 豈碑ｼ・ｯｾ雎｡繝舌・繧ｸ繝ｧ繝ｳ |
-| `compatible` | bool | 蠕梧婿莠呈鋤諤ｧ繝輔Λ繧ｰ |
-| `breaking_changes` | BreakingChange[] | 遐ｴ螢顔噪螟画峩縺ｮ繝ｪ繧ｹ繝・|
-| `non_breaking_changes` | ChangeDetail[] | 髱樒ｴ螢顔噪螟画峩縺ｮ繝ｪ繧ｹ繝・|
+| `name` | string | スキーマ名 |
+| `base_version` | int | 比較対象バージョン |
+| `compatible` | bool | 後方互換性フラグ |
+| `breaking_changes` | BreakingChange[] | 破壊的変更のリスト |
+| `non_breaking_changes` | ChangeDetail[] | 非破壊的変更のリスト |
 
 #### GET /api/v1/schemas/:name/diff
 
-2 縺､縺ｮ繝舌・繧ｸ繝ｧ繝ｳ髢薙・蟾ｮ蛻・ｒ蜿門ｾ励☆繧九・
+2 つのバージョン間の差分を取得する。
 
-**繧ｯ繧ｨ繝ｪ繝代Λ繝｡繝ｼ繧ｿ**
+**クエリパラメータ**
 
-| 繝代Λ繝｡繝ｼ繧ｿ | 蝙・| 蠢・・| 繝・ヵ繧ｩ繝ｫ繝・| 隱ｬ譏・|
+| パラメータ | 型 | 必須 | デフォルト | 説明 |
 | --- | --- | --- | --- | --- |
-| `from` | int | No | `latest - 1` | 豈碑ｼ・・繝舌・繧ｸ繝ｧ繝ｳ |
-| `to` | int | No | `latest` | 豈碑ｼ・・繝舌・繧ｸ繝ｧ繝ｳ |
+| `from` | int | No | `latest - 1` | 比較元バージョン |
+| `to` | int | No | `latest` | 比較先バージョン |
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ繝輔ぅ繝ｼ繝ｫ繝会ｼ・00 OK・・*
+**レスポンスフィールド（200 OK）**
 
-| 繝輔ぅ繝ｼ繝ｫ繝・| 蝙・| 隱ｬ譏・|
+| フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `name` | string | 繧ｹ繧ｭ繝ｼ繝槫錐 |
-| `from_version` | int | 豈碑ｼ・・繝舌・繧ｸ繝ｧ繝ｳ |
-| `to_version` | int | 豈碑ｼ・・繝舌・繧ｸ繝ｧ繝ｳ |
-| `breaking_changes` | bool | 遐ｴ螢顔噪螟画峩繝輔Λ繧ｰ |
-| `diff.added` | ChangeDetail[] | 霑ｽ蜉縺輔ｌ縺溯ｦ∫ｴ |
-| `diff.modified` | ChangeDetail[] | 螟画峩縺輔ｌ縺溯ｦ∫ｴ |
-| `diff.removed` | ChangeDetail[] | 蜑企勁縺輔ｌ縺溯ｦ∫ｴ |
+| `name` | string | スキーマ名 |
+| `from_version` | int | 比較元バージョン |
+| `to_version` | int | 比較先バージョン |
+| `breaking_changes` | bool | 破壊的変更フラグ |
+| `diff.added` | ChangeDetail[] | 追加された要素 |
+| `diff.modified` | ChangeDetail[] | 変更された要素 |
+| `diff.removed` | ChangeDetail[] | 削除された要素 |
 
-**繧ｨ繝ｩ繝ｼ繝ｬ繧ｹ繝昴Φ繧ｹ・・00・・*: `SYS_APIREG_VALIDATION_ERROR`
+**エラーレスポンス（400）**: `SYS_APIREG_VALIDATION_ERROR`
 
-### 繧ｨ繝ｩ繝ｼ繧ｳ繝ｼ繝・
+### エラーコード
 
-| 繧ｳ繝ｼ繝・| HTTP Status | 隱ｬ譏・|
+| コード | HTTP Status | 説明 |
 | --- | --- | --- |
-| `SYS_APIREG_SCHEMA_NOT_FOUND` | 404 | 謖・ｮ壹＆繧後◆繧ｹ繧ｭ繝ｼ繝槭′隕九▽縺九ｉ縺ｪ縺・|
-| `SYS_APIREG_VERSION_NOT_FOUND` | 404 | 謖・ｮ壹＆繧後◆繝舌・繧ｸ繝ｧ繝ｳ縺瑚ｦ九▽縺九ｉ縺ｪ縺・|
-| `SYS_APIREG_ALREADY_EXISTS` | 409 | 蜷御ｸ蜷阪・繧ｹ繧ｭ繝ｼ繝槭′譌｢縺ｫ蟄伜惠縺吶ｋ |
-| `SYS_APIREG_CANNOT_DELETE_LATEST` | 409 | 蜚ｯ荳縺ｮ谿句ｭ倥ヰ繝ｼ繧ｸ繝ｧ繝ｳ縺ｯ蜑企勁縺ｧ縺阪↑縺・|
-| `SYS_APIREG_SCHEMA_INVALID` | 422 | 繧ｹ繧ｭ繝ｼ繝槭・繝舌Μ繝・・繧ｷ繝ｧ繝ｳ繧ｨ繝ｩ繝ｼ・・penapi-spec-validator / buf lint・・|
-| `SYS_APIREG_VALIDATION_ERROR` | 400 | 繝ｪ繧ｯ繧ｨ繧ｹ繝医ヱ繝ｩ繝｡繝ｼ繧ｿ縺ｮ繝舌Μ繝・・繧ｷ繝ｧ繝ｳ繧ｨ繝ｩ繝ｼ |
-| `SYS_APIREG_VALIDATOR_ERROR` | 502 | 螟夜Κ繝舌Μ繝・・繧ｿ繝ｼ・・penapi-spec-validator / buf・峨・螳溯｡後お繝ｩ繝ｼ |
-| `SYS_APIREG_INTERNAL_ERROR` | 500 | 蜀・Κ繧ｨ繝ｩ繝ｼ |
+| `SYS_APIREG_SCHEMA_NOT_FOUND` | 404 | 指定されたスキーマが見つからない |
+| `SYS_APIREG_VERSION_NOT_FOUND` | 404 | 指定されたバージョンが見つからない |
+| `SYS_APIREG_ALREADY_EXISTS` | 409 | 同一名のスキーマが既に存在する |
+| `SYS_APIREG_CANNOT_DELETE_LATEST` | 409 | 唯一の残存バージョンは削除できない |
+| `SYS_APIREG_SCHEMA_INVALID` | 422 | スキーマのバリデーションエラー（openapi-spec-validator / buf lint） |
+| `SYS_APIREG_VALIDATION_ERROR` | 400 | リクエストパラメータのバリデーションエラー |
+| `SYS_APIREG_VALIDATOR_ERROR` | 502 | 外部バリデーター（openapi-spec-validator / buf）の実行エラー |
+| `SYS_APIREG_INTERNAL_ERROR` | 500 | 内部エラー |
 
-### gRPC 繧ｵ繝ｼ繝薙せ螳夂ｾｩ
+### gRPC サービス定義
 
-proto 繝輔ぃ繧､繝ｫ縺ｯ `api/proto/k1s0/system/apiregistry/v1/api_registry.proto` 縺ｫ驟咲ｽｮ縺吶ｋ縲・
+proto ファイルは `api/proto/k1s0/system/apiregistry/v1/api_registry.proto` に配置する。
 
 ```protobuf
 syntax = "proto3";
-
 package k1s0.system.apiregistry.v1;
-
-option go_package = "github.com/k1s0-platform/system-proto-go/apiregistry/v1;apiregistryv1";
-
-import "k1s0/system/common/v1/types.proto";
 
 service ApiRegistryService {
   rpc ListSchemas(ListSchemasRequest) returns (ListSchemasResponse);
@@ -268,10 +267,6 @@ service ApiRegistryService {
   rpc DeleteVersion(DeleteVersionRequest) returns (DeleteVersionResponse);
   rpc CheckCompatibility(CheckCompatibilityRequest) returns (CheckCompatibilityResponse);
   rpc GetDiff(GetDiffRequest) returns (GetDiffResponse);
-}
-
-message GetSchemaRequest {
-  string name = 1;
 }
 
 message ListSchemasRequest {
@@ -294,6 +289,10 @@ message RegisterSchemaRequest {
 
 message RegisterSchemaResponse {
   ApiSchemaVersionProto version = 1;
+}
+
+message GetSchemaRequest {
+  string name = 1;
 }
 
 message GetSchemaResponse {
@@ -422,95 +421,95 @@ message DiffModifiedEntryProto {
 
 ---
 
-## Kafka 繝｡繝・そ繝ｼ繧ｸ繝ｳ繧ｰ險ｭ險・
+## Kafka メッセージング設計
 
-### 繧ｹ繧ｭ繝ｼ繝樊峩譁ｰ騾夂衍
+### スキーマ更新通知
 
-繧ｹ繧ｭ繝ｼ繝槭・譁ｰ隕冗匳骭ｲ繝ｻ譁ｰ繝舌・繧ｸ繝ｧ繝ｳ逋ｻ骭ｲ繝ｻ繝舌・繧ｸ繝ｧ繝ｳ蜑企勁譎ゅ↓ Kafka 繝医ヴ繝・け `k1s0.system.apiregistry.schema_updated.v1` 縺ｫ繝｡繝・そ繝ｼ繧ｸ繧帝∽ｿ｡縺吶ｋ縲・
+スキーマの新規登録・新バージョン登録・バージョン削除時に Kafka トピック `k1s0.system.apiregistry.schema_updated.v1` にメッセージを送信する。
 
-| 險ｭ螳夐・岼 | 蛟､ |
+| 設定項目 | 値 |
 | --- | --- |
-| 繝医ヴ繝・け | `k1s0.system.apiregistry.schema_updated.v1` |
+| トピック | `k1s0.system.apiregistry.schema_updated.v1` |
 | acks | `all` |
 | message.timeout.ms | `5000` |
-| 繧ｭ繝ｼ | 繧ｹ繧ｭ繝ｼ繝槫錐・井ｾ・ `k1s0-tenant-api`・・|
+| キー | スキーマ名（例: `k1s0-tenant-api`） |
 
-**繧､繝吶Φ繝育ｨｮ蛻･**:
-- `SCHEMA_VERSION_REGISTERED` -- 譁ｰ繝舌・繧ｸ繝ｧ繝ｳ逋ｻ骭ｲ
-- `SCHEMA_VERSION_DELETED` -- 繝舌・繧ｸ繝ｧ繝ｳ蜑企勁
+**イベント種別**:
+- `SCHEMA_VERSION_REGISTERED` -- 新バージョン登録
+- `SCHEMA_VERSION_DELETED` -- バージョン削除
 
 ---
 
-## 繧｢繝ｼ繧ｭ繝・け繝√Ε
+## アーキテクチャ
 
-### 繧ｯ繝ｪ繝ｼ繝ｳ繧｢繝ｼ繧ｭ繝・け繝√Ε 繝ｬ繧､繝､繝ｼ
+### クリーンアーキテクチャ レイヤー
 
-[繝・Φ繝励Ξ繝ｼ繝井ｻ墓ｧ・繧ｵ繝ｼ繝舌・.md](../../templates/server/繧ｵ繝ｼ繝舌・.md) 縺ｮ 4 繝ｬ繧､繝､繝ｼ讒区・縺ｫ蠕薙≧縲・
+[テンプレート仕様-サーバー.md](../../templates/server/サーバー.md) の 4 レイヤー構成に従う。
 
-| 繝ｬ繧､繝､繝ｼ | 繝｢繧ｸ繝･繝ｼ繝ｫ | 雋ｬ蜍・|
+| レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/entity | `ApiSchema`, `ApiSchemaVersion`, `CompatibilityResult`, `SchemaDiff` | 繧ｨ繝ｳ繝・ぅ繝・ぅ螳夂ｾｩ |
-| domain/repository | `ApiSchemaRepository`, `ApiSchemaVersionRepository` | 繝ｪ繝昴ず繝医Μ繝医Ξ繧､繝・|
-| domain/service | `ApiRegistryDomainService` | 遐ｴ螢顔噪螟画峩讀懷・繝ｭ繧ｸ繝・け繝ｻ蟾ｮ蛻・ｮ怜・繝ｻ繧ｳ繝ｳ繝・Φ繝・ワ繝・す繝･險育ｮ・|
-| usecase | `ListSchemasUsecase`, `RegisterSchemaUsecase`, `GetSchemaUsecase`, `ListVersionsUsecase`, `GetSchemaVersionUsecase`, `RegisterVersionUsecase`, `DeleteVersionUsecase`, `CheckCompatibilityUsecase`, `GetDiffUsecase` | 繝ｦ繝ｼ繧ｹ繧ｱ繝ｼ繧ｹ |
-| adapter/handler | REST 繝上Φ繝峨Λ繝ｼ・・xum・・ gRPC 繝上Φ繝峨Λ繝ｼ・・onic・・| 繝励Ο繝医さ繝ｫ螟画鋤 |
-| infrastructure/config | Config 繝ｭ繝ｼ繝繝ｼ | config.yaml 縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ |
-| infrastructure/persistence | `ApiSchemaPostgresRepository`, `ApiSchemaVersionPostgresRepository` | PostgreSQL 繝ｪ繝昴ず繝医Μ螳溯｣・|
-| infrastructure/validator | `OpenApiValidator`, `ProtobufValidator` | subprocess 邨檎罰繝舌Μ繝・・繧ｿ繝ｼ螳溯｣・|
-| infrastructure/messaging | `SchemaUpdatedKafkaProducer` | Kafka 繝励Ο繝・Η繝ｼ繧ｵ繝ｼ・医せ繧ｭ繝ｼ繝樊峩譁ｰ騾夂衍・・|
+| domain/entity | `ApiSchema`, `ApiSchemaVersion`, `CompatibilityResult`, `SchemaDiff` | エンティティ定義 |
+| domain/repository | `ApiSchemaRepository`, `ApiSchemaVersionRepository` | リポジトリトレイト |
+| domain/service | `ApiRegistryDomainService` | 破壊的変更検出ロジック・差分算出・コンテンツハッシュ計算 |
+| usecase | `ListSchemasUsecase`, `RegisterSchemaUsecase`, `GetSchemaUsecase`, `ListVersionsUsecase`, `GetSchemaVersionUsecase`, `RegisterVersionUsecase`, `DeleteVersionUsecase`, `CheckCompatibilityUsecase`, `GetDiffUsecase` | ユースケース |
+| adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
+| infrastructure/config | Config ローダー | config.yaml の読み込み |
+| infrastructure/persistence | `ApiSchemaPostgresRepository`, `ApiSchemaVersionPostgresRepository` | PostgreSQL リポジトリ実装 |
+| infrastructure/validator | `OpenApiValidator`, `ProtobufValidator` | subprocess 経由バリデーター実装 |
+| infrastructure/messaging | `SchemaUpdatedKafkaProducer` | Kafka プロデューサー（スキーマ更新通知） |
 
-### 繝峨Γ繧､繝ｳ繝｢繝・Ν
+### ドメインモデル
 
 #### ApiSchema
 
-| 繝輔ぅ繝ｼ繝ｫ繝・| 蝙・| 隱ｬ譏・|
+| フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `name` | String | 繧ｹ繧ｭ繝ｼ繝槫錐・井ｾ・ `k1s0-tenant-api`・・|
-| `description` | String | 繧ｹ繧ｭ繝ｼ繝槭・隱ｬ譏・|
-| `schema_type` | String | 繧ｹ繧ｭ繝ｼ繝樒ｨｮ蛻･・・openapi` / `protobuf`・・|
-| `latest_version` | u32 | 譛譁ｰ繝舌・繧ｸ繝ｧ繝ｳ逡ｪ蜿ｷ |
-| `version_count` | u32 | 逋ｻ骭ｲ繝舌・繧ｸ繝ｧ繝ｳ謨ｰ |
-| `created_at` | DateTime\<Utc\> | 蛻晏屓逋ｻ骭ｲ譌･譎・|
-| `updated_at` | DateTime\<Utc\> | 譛邨よ峩譁ｰ譌･譎・|
+| `name` | String | スキーマ名（例: `k1s0-tenant-api`） |
+| `description` | String | スキーマの説明 |
+| `schema_type` | String | スキーマ種別（`openapi` / `protobuf`） |
+| `latest_version` | u32 | 最新バージョン番号 |
+| `version_count` | u32 | 登録バージョン数 |
+| `created_at` | DateTime\<Utc\> | 初回登録日時 |
+| `updated_at` | DateTime\<Utc\> | 最終更新日時 |
 
 #### ApiSchemaVersion
 
-| 繝輔ぅ繝ｼ繝ｫ繝・| 蝙・| 隱ｬ譏・|
+| フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `name` | String | 繧ｹ繧ｭ繝ｼ繝槫錐 |
-| `version` | u32 | 繝舌・繧ｸ繝ｧ繝ｳ逡ｪ蜿ｷ・・ 蟋九∪繧翫・騾｣逡ｪ・・|
-| `schema_type` | String | 繧ｹ繧ｭ繝ｼ繝樒ｨｮ蛻･ |
-| `content` | String | 繧ｹ繧ｭ繝ｼ繝樊悽譁・ｼ・AML/JSON/proto・・|
-| `content_hash` | String | 繧ｳ繝ｳ繝・Φ繝・・ SHA-256 繝上ャ繧ｷ繝･・磯㍾隍・､懷・縺ｫ菴ｿ逕ｨ・・|
-| `breaking_changes` | bool | 蜑阪ヰ繝ｼ繧ｸ繝ｧ繝ｳ縺九ｉ縺ｮ遐ｴ螢顔噪螟画峩繝輔Λ繧ｰ |
-| `breaking_change_details` | Vec\<BreakingChange\> | 遐ｴ螢顔噪螟画峩縺ｮ隧ｳ邏ｰ繝ｪ繧ｹ繝・|
-| `registered_by` | String | 逋ｻ骭ｲ閠・・繝ｦ繝ｼ繧ｶ繝ｼ ID |
-| `created_at` | DateTime\<Utc\> | 逋ｻ骭ｲ譌･譎・|
+| `name` | String | スキーマ名 |
+| `version` | u32 | バージョン番号（1 始まりの連番） |
+| `schema_type` | String | スキーマ種別 |
+| `content` | String | スキーマ本文（YAML/JSON/proto） |
+| `content_hash` | String | コンテンツの SHA-256 ハッシュ（重複検出に使用） |
+| `breaking_changes` | bool | 前バージョンからの破壊的変更フラグ |
+| `breaking_change_details` | Vec\<BreakingChange\> | 破壊的変更の詳細リスト |
+| `registered_by` | String | 登録者のユーザー ID |
+| `created_at` | DateTime\<Utc\> | 登録日時 |
 
 #### CompatibilityResult
 
-| 繝輔ぅ繝ｼ繝ｫ繝・| 蝙・| 隱ｬ譏・|
+| フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `compatible` | bool | 蠕梧婿莠呈鋤諤ｧ繝輔Λ繧ｰ・育ｴ螢顔噪螟画峩縺ｪ縺・= true・・|
-| `breaking_changes` | Vec\<BreakingChange\> | 遐ｴ螢顔噪螟画峩縺ｮ繝ｪ繧ｹ繝・|
-| `non_breaking_changes` | Vec\<ChangeDetail\> | 髱樒ｴ螢顔噪螟画峩縺ｮ繝ｪ繧ｹ繝・|
+| `compatible` | bool | 後方互換性フラグ（破壊的変更なし = true） |
+| `breaking_changes` | Vec\<BreakingChange\> | 破壊的変更のリスト |
+| `non_breaking_changes` | Vec\<ChangeDetail\> | 非破壊的変更のリスト |
 
-#### BreakingChange・育ｴ螢顔噪螟画峩縺ｮ遞ｮ蛻･・・
+#### BreakingChange（破壊的変更の種別）
 
-| change_type | 隱ｬ譏・|
+| change_type | 説明 |
 | --- | --- |
-| `field_removed` | 繝ｬ繧ｹ繝昴Φ繧ｹ/繝ｪ繧ｯ繧ｨ繧ｹ繝医ヵ繧｣繝ｼ繝ｫ繝峨・蜑企勁 |
-| `type_changed` | 繝輔ぅ繝ｼ繝ｫ繝峨・蝙句､画峩 |
-| `required_added` | 繧ｪ繝励す繝ｧ繝ｳ繝輔ぅ繝ｼ繝ｫ繝峨・蠢・亥喧 |
-| `path_removed` | API 繝代せ縺ｮ蜑企勁 |
-| `method_removed` | HTTP繝｡繧ｽ繝・ラ縺ｮ蜑企勁・・ET/POST遲会ｼ・|
-| `enum_value_removed` | enum 蛟､縺ｮ蜑企勁 |
+| `field_removed` | レスポンス/リクエストフィールドの削除 |
+| `type_changed` | フィールドの型変更 |
+| `required_added` | オプションフィールドの必須化 |
+| `path_removed` | API パスの削除 |
+| `method_removed` | HTTPメソッドの削除（GET/POST等） |
+| `enum_value_removed` | enum 値の削除 |
 
 ---
 
-## DB 繧ｹ繧ｭ繝ｼ繝・
+## DB スキーマ
 
-PostgreSQL 縺ｮ `apiregistry` 繧ｹ繧ｭ繝ｼ繝槭↓莉･荳九・繝・・繝悶Ν繧帝・鄂ｮ縺吶ｋ縲・
+PostgreSQL の `apiregistry` スキーマに以下のテーブルを配置する。
 
 ```sql
 CREATE SCHEMA IF NOT EXISTS apiregistry;
@@ -519,21 +518,24 @@ CREATE TABLE apiregistry.api_schemas (
     name         TEXT PRIMARY KEY,
     description  TEXT NOT NULL DEFAULT '',
     schema_type  TEXT NOT NULL CHECK (schema_type IN ('openapi', 'protobuf')),
-    latest_version INTEGER NOT NULL DEFAULT 1,
+    latest_version INTEGER NOT NULL DEFAULT 0,
+    version_count INTEGER NOT NULL DEFAULT 0,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE apiregistry.api_schema_versions (
+    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name                    TEXT NOT NULL REFERENCES apiregistry.api_schemas(name) ON DELETE CASCADE,
     version                 INTEGER NOT NULL,
+    schema_type             TEXT NOT NULL CHECK (schema_type IN ('openapi', 'protobuf')),
     content                 TEXT NOT NULL,
     content_hash            TEXT NOT NULL,
     breaking_changes        BOOLEAN NOT NULL DEFAULT false,
     breaking_change_details JSONB NOT NULL DEFAULT '[]',
     registered_by           TEXT NOT NULL,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (name, version)
+    UNIQUE (name, version)
 );
 
 CREATE INDEX idx_api_schema_versions_name ON apiregistry.api_schema_versions(name);
@@ -542,26 +544,26 @@ CREATE INDEX idx_api_schema_versions_content_hash ON apiregistry.api_schema_vers
 
 ---
 
-## 險ｭ險域婿驥・
+## 設計方針
 
-[隱崎ｨｼ隱榊庄險ｭ險・md](../../architecture/auth/隱崎ｨｼ隱榊庄險ｭ險・md) 縺ｮ RBAC 繝｢繝・Ν縺ｫ蝓ｺ縺･縺阪∽ｻ･荳九・譁ｹ驥昴〒螳溯｣・☆繧九・
+[認証認可設計.md](../../architecture/auth/認証認可設計.md) の RBAC モデルに基づき、以下の方針で実装する。
 
-| 鬆・岼 | 險ｭ險・|
+| 項目 | 設計 |
 | --- | --- |
-| 螳溯｣・ｨ隱・| Rust |
-| 繧ｹ繧ｭ繝ｼ繝樒ｨｮ蛻･ | `openapi`・・penAPI 3.x YAML/JSON・峨→ `protobuf`・・proto 繝輔ぃ繧､繝ｫ・峨・ 2 遞ｮ鬘槭ｒ繧ｵ繝昴・繝・|
-| 繝舌Μ繝・・繧ｷ繝ｧ繝ｳ | 逋ｻ骭ｲ譎ゅ↓ subprocess 邨檎罰縺ｧ openapi-spec-validator・・penAPI・峨∪縺溘・ buf lint・・rotobuf・峨ｒ螳溯｡後＠讀懆ｨｼ繧ｨ繝ｩ繝ｼ繧定ｿ斐☆ |
-| 遐ｴ螢顔噪螟画峩讀懷・ | 譁ｰ繝舌・繧ｸ繝ｧ繝ｳ逋ｻ骭ｲ譎ゅ↓蜑阪ヰ繝ｼ繧ｸ繝ｧ繝ｳ縺ｨ縺ｮ豈碑ｼ・ｒ陦後＞縲√ヵ繧｣繝ｼ繝ｫ繝牙炎髯､繝ｻ蝙句､画峩繝ｻ蠢・亥喧繝ｻ繝代せ蜑企勁遲峨・螟画峩繧呈､懷・縺吶ｋ |
-| 蟾ｮ蛻・｡ｨ遉ｺ | 繝舌・繧ｸ繝ｧ繝ｳ髢薙・蟾ｮ蛻・ｒ `added` / `modified` / `removed` 縺ｫ蛻・｡槭＠縺滓ｧ矩蛹・JSON 縺ｧ謠蝉ｾ帙☆繧・|
-| kafka-schemaregistry 縺ｨ縺ｮ蟇ｾ豈・| kafka-schemaregistry 繝ｩ繧､繝悶Λ繝ｪ縺ｯ Kafka Avro 繧ｹ繧ｭ繝ｼ繝槫髄縺代ょｽ薙し繝ｼ繝舌・縺ｯ REST/gRPC 繧ｹ繧ｭ繝ｼ繝槭・繝ｬ繧ｸ繧ｹ繝医Μ縺ｨ縺励※讖溯・縺吶ｋ |
-| DB | PostgreSQL 縺ｮ `apiregistry` 繧ｹ繧ｭ繝ｼ繝橸ｼ・pi_schemas, api_schema_versions 繝・・繝悶Ν・・|
-| Kafka | 繝励Ο繝・Η繝ｼ繧ｵ繝ｼ・・k1s0.system.apiregistry.schema_updated.v1`・・|
-| 隱崎ｨｼ | JWT縺ｫ繧医ｋ隱榊庄縲らｮ｡逅・ｳｻ繧ｨ繝ｳ繝峨・繧､繝ｳ繝医・ `sys_operator` / `sys_admin` 繝ｭ繝ｼ繝ｫ縺悟ｿ・ｦ・|
-| 繝昴・繝・| 8080・・EST・・ 50051・・RPC・・|
+| 実装言語 | Rust |
+| スキーマ種別 | `openapi`（OpenAPI 3.x YAML/JSON）と `protobuf`（.proto ファイル）の 2 種類をサポート |
+| バリデーション | 登録時に subprocess 経由で openapi-spec-validator（OpenAPI）または buf lint（Protobuf）を実行し検証エラーを返す |
+| 破壊的変更検出 | 新バージョン登録時に前バージョンとの比較を行い、フィールド削除・型変更・必須化・パス削除等の変更を検出する |
+| 差分表示 | バージョン間の差分を `added` / `modified` / `removed` に分類した構造化 JSON で提供する |
+| kafka-schemaregistry との対比 | kafka-schemaregistry ライブラリは Kafka Avro スキーマ向け。当サーバーは REST/gRPC スキーマのレジストリとして機能する |
+| DB | PostgreSQL の `apiregistry` スキーマ（api_schemas, api_schema_versions テーブル） |
+| Kafka | プロデューサー（`k1s0.system.apiregistry.schema_updated.v1`） |
+| 認証 | JWTによる認可。管理系エンドポイントは `sys_operator` / `sys_admin` ロールが必要 |
+| ポート | 8080（REST）/ 50051（gRPC） |
 
 ---
 
-## API 繝ｪ繧ｯ繧ｨ繧ｹ繝医・繝ｬ繧ｹ繝昴Φ繧ｹ萓・
+## API リクエスト・レスポンス例
 
 ### GET /api/v1/schemas
 
@@ -570,7 +572,7 @@ CREATE INDEX idx_api_schema_versions_content_hash ON apiregistry.api_schema_vers
   "schemas": [
     {
       "name": "k1s0-tenant-api",
-      "description": "繝・リ繝ｳ繝育ｮ｡逅・API 繧ｹ繧ｭ繝ｼ繝・,
+      "description": "テナント管理 API スキーマ",
       "schema_type": "openapi",
       "latest_version": 3,
       "version_count": 3,
@@ -579,7 +581,7 @@ CREATE INDEX idx_api_schema_versions_content_hash ON apiregistry.api_schema_vers
     },
     {
       "name": "k1s0-notification-proto",
-      "description": "騾夂衍繧ｵ繝ｼ繝薙せ Protobuf 繧ｹ繧ｭ繝ｼ繝・,
+      "description": "通知サービス Protobuf スキーマ",
       "schema_type": "protobuf",
       "latest_version": 1,
       "version_count": 1,
@@ -598,12 +600,12 @@ CREATE INDEX idx_api_schema_versions_content_hash ON apiregistry.api_schema_vers
 
 ### POST /api/v1/schemas
 
-**繝ｪ繧ｯ繧ｨ繧ｹ繝茨ｼ・penAPI・・*
+**リクエスト（OpenAPI）**
 
 ```json
 {
   "name": "k1s0-tenant-api",
-  "description": "繝・リ繝ｳ繝育ｮ｡逅・API 繧ｹ繧ｭ繝ｼ繝・,
+  "description": "テナント管理 API スキーマ",
   "schema_type": "openapi",
   "content": "openapi: 3.0.3
 info:
@@ -612,7 +614,7 @@ info:
 paths:
   /api/v1/tenants:
     get:
-      summary: 繝・リ繝ｳ繝井ｸ隕ｧ
+      summary: テナント一覧
       responses:
         '200':
           description: OK
@@ -620,12 +622,12 @@ paths:
 }
 ```
 
-**繝ｪ繧ｯ繧ｨ繧ｹ繝茨ｼ・rotobuf・・*
+**リクエスト（Protobuf）**
 
 ```json
 {
   "name": "k1s0-notification-proto",
-  "description": "騾夂衍繧ｵ繝ｼ繝薙せ Protobuf 繧ｹ繧ｭ繝ｼ繝・,
+  "description": "通知サービス Protobuf スキーマ",
   "schema_type": "protobuf",
   "content": "syntax = \"proto3\";
 package k1s0.system.notification.v1;
@@ -647,7 +649,7 @@ message SendNotificationResponse {
 }
 ```
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ・・01 Created・・*
+**レスポンス（201 Created）**
 
 ```json
 {
@@ -659,7 +661,7 @@ message SendNotificationResponse {
 }
 ```
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ・・22 Unprocessable Entity・・*
+**レスポンス（422 Unprocessable Entity）**
 
 ```json
 {
@@ -680,7 +682,7 @@ message SendNotificationResponse {
 ```json
 {
   "name": "k1s0-tenant-api",
-  "description": "繝・リ繝ｳ繝育ｮ｡逅・API 繧ｹ繧ｭ繝ｼ繝・,
+  "description": "テナント管理 API スキーマ",
   "schema_type": "openapi",
   "latest_version": 3,
   "version_count": 3,
@@ -701,6 +703,7 @@ message SendNotificationResponse {
       "version": 3,
       "content_hash": "sha256:f6e5d4c3b2a1...",
       "breaking_changes": false,
+      "breaking_change_details": [],
       "registered_by": "user-001",
       "created_at": "2026-02-20T12:30:00.000+00:00"
     },
@@ -708,6 +711,7 @@ message SendNotificationResponse {
       "version": 2,
       "content_hash": "sha256:e5d4c3b2a1f6...",
       "breaking_changes": false,
+      "breaking_change_details": [],
       "registered_by": "user-001",
       "created_at": "2026-02-15T10:00:00.000+00:00"
     },
@@ -715,6 +719,7 @@ message SendNotificationResponse {
       "version": 1,
       "content_hash": "sha256:a1b2c3d4e5f6...",
       "breaking_changes": false,
+      "breaking_change_details": [],
       "registered_by": "user-001",
       "created_at": "2026-02-10T10:00:00.000+00:00"
     }
@@ -742,6 +747,7 @@ info:
 ...",
   "content_hash": "sha256:e5d4c3b2a1f6...",
   "breaking_changes": false,
+  "breaking_change_details": [],
   "registered_by": "user-001",
   "created_at": "2026-02-15T10:00:00.000+00:00"
 }
@@ -749,7 +755,7 @@ info:
 
 ### POST /api/v1/schemas/:name/versions
 
-**繝ｪ繧ｯ繧ｨ繧ｹ繝・*
+**リクエスト**
 
 ```json
 {
@@ -760,14 +766,14 @@ info:
 paths:
   /api/v1/tenants:
     get:
-      summary: 繝・リ繝ｳ繝井ｸ隕ｧ
+      summary: テナント一覧
       ...
 ",
   "registered_by": "user-001"
 }
 ```
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ・・01 Created・・*
+**レスポンス（201 Created）**
 
 ```json
 {
@@ -775,11 +781,12 @@ paths:
   "version": 3,
   "content_hash": "sha256:f6e5d4c3b2a1...",
   "breaking_changes": false,
+  "breaking_change_details": [],
   "created_at": "2026-02-20T12:30:00.000+00:00"
 }
 ```
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ・・01 Created -- 遐ｴ螢顔噪螟画峩縺ゅｊ・・*
+**レスポンス（201 Created -- 破壊的変更あり）**
 
 ```json
 {
@@ -787,13 +794,20 @@ paths:
   "version": 3,
   "content_hash": "sha256:f6e5d4c3b2a1...",
   "breaking_changes": true,
+  "breaking_change_details": [
+    {
+      "change_type": "path_removed",
+      "path": "/api/v1/tenants",
+      "description": "removed endpoint GET /api/v1/tenants"
+    }
+  ],
   "created_at": "2026-02-20T12:30:00.000+00:00"
 }
 ```
 
 ### DELETE /api/v1/schemas/:name/versions/:version
 
-**レスポンス（409 Conflict）**
+**レスポンス（400 Bad Request）**
 
 ```json
 {
@@ -808,7 +822,7 @@ paths:
 
 ### POST /api/v1/schemas/:name/compatibility
 
-**繝ｪ繧ｯ繧ｨ繧ｹ繝・*
+**リクエスト**
 
 ```json
 {
@@ -821,7 +835,7 @@ info:
 }
 ```
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ・・00 OK・・*
+**レスポンス（200 OK）**
 
 ```json
 {
@@ -832,14 +846,14 @@ info:
     {
       "change_type": "field_removed",
       "path": "/api/v1/tenants GET response.properties.name",
-      "description": "繝輔ぅ繝ｼ繝ｫ繝・'name' 縺悟炎髯､縺輔ｌ縺ｾ縺励◆"
+      "description": "フィールド 'name' が削除されました"
     }
   ],
   "non_breaking_changes": [
     {
       "change_type": "field_added",
       "path": "/api/v1/tenants GET response.properties.display_name",
-      "description": "繝輔ぅ繝ｼ繝ｫ繝・'display_name' 縺瑚ｿｽ蜉縺輔ｌ縺ｾ縺励◆"
+      "description": "フィールド 'display_name' が追加されました"
     }
   ]
 }
@@ -847,7 +861,7 @@ info:
 
 ### GET /api/v1/schemas/:name/diff
 
-**繝ｬ繧ｹ繝昴Φ繧ｹ・・00 OK・・*
+**レスポンス（200 OK）**
 
 ```json
 {
@@ -860,14 +874,14 @@ info:
       {
         "path": "/api/v1/tenants GET response.properties.display_name",
         "type": "object",
-        "description": "譁ｰ繝輔ぅ繝ｼ繝ｫ繝・ display_name・郁｡ｨ遉ｺ蜷搾ｼ・
+        "description": "新フィールド: display_name（表示名）"
       }
     ],
     "modified": [
       {
         "path": "/api/v1/tenants GET summary",
-        "before": "繝・リ繝ｳ繝井ｸ隕ｧ",
-        "after": "繝・リ繝ｳ繝井ｸ隕ｧ蜿門ｾ・
+        "before": "テナント一覧",
+        "after": "テナント一覧取得"
       }
     ],
     "removed": []
@@ -877,9 +891,9 @@ info:
 
 ---
 
-## Kafka 繝｡繝・そ繝ｼ繧ｸ繝輔か繝ｼ繝槭ャ繝・
+## Kafka メッセージフォーマット
 
-### 譁ｰ繝舌・繧ｸ繝ｧ繝ｳ逋ｻ骭ｲ
+### 新バージョン登録
 
 ```json
 {
@@ -894,7 +908,7 @@ info:
 }
 ```
 
-### 繝舌・繧ｸ繝ｧ繝ｳ蜑企勁
+### バージョン削除
 
 ```json
 {
@@ -909,76 +923,76 @@ info:
 
 ---
 
-## 萓晏ｭ倬未菫ょ峙
+## 依存関係図
 
 ```
-                    笏娯楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・
-                    笏・                   adapter 螻､                    笏・
-                    笏・ 笏娯楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・  笏・
-                    笏・ 笏・REST Handler (apiregistry_handler.rs)    笏・  笏・
-                    笏・ 笏・ healthz / readyz / metrics              笏・  笏・
-                    笏・ 笏・ list_schemas / register_schema          笏・  笏・
-                    笏・ 笏・ get_schema / list_versions              笏・  笏・
-                    笏・ 笏・ get_schema_version                      笏・  笏・
-                    笏・ 笏・ register_version / delete_version       笏・  笏・
-                    笏・ 笏・ check_compatibility / get_diff          笏・  笏・
-                    笏・ 笏懌楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏､   笏・
-                    笏・ 笏・gRPC Handler (apiregistry_grpc.rs)       笏・  笏・
-                    笏・ 笏・ GetSchema / GetSchemaVersion            笏・  笏・
-                    笏・ 笏・ CheckCompatibility                      笏・  笏・
-                    笏・ 笏披楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏ｬ笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・  笏・
-                    笏披楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏ｼ笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・
-                                              笏・
-                    笏娯楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笆ｼ笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・
-                    笏・                  usecase 螻､                    笏・
-                    笏・ ListSchemasUsecase / RegisterSchemaUsecase /   笏・
-                    笏・ GetSchemaUsecase / ListVersionsUsecase /       笏・
-                    笏・ GetSchemaVersionUsecase /                      笏・
-                    笏・ RegisterVersionUsecase / DeleteVersionUsecase /笏・
-                    笏・ CheckCompatibilityUsecase / GetDiffUsecase     笏・
-                    笏披楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏ｬ笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・
-                                              笏・
-              笏娯楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏ｼ笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・
-              笏・                              笏・                      笏・
-    笏娯楳笏笏笏笏笏笏笏笏笆ｼ笏笏笏笏笏笏笏・             笏娯楳笏笏笏笏笏笏笏笏笆ｼ笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・  笏・
-    笏・ domain/entity  笏・             笏・domain/repository          笏・  笏・
-    笏・ ApiSchema,     笏・             笏・ApiSchemaRepository        笏・  笏・
-    笏・ ApiSchemaVer,  笏・             笏・ApiSchemaVersionRepository 笏・  笏・
-    笏・ Compatibility  笏・             笏・(trait)                    笏・  笏・
-    笏・ Result,        笏・             笏披楳笏笏笏笏笏笏笏笏笏笏ｬ笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・  笏・
-    笏・ SchemaDiff     笏・                        笏・                    笏・
-    笏披楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・                        笏・                    笏・
-              笏・                               笏・                    笏・
-              笏・ 笏娯楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・           笏・                    笏・
-              笏披楳笏笆ｶ domain/service 笏・           笏・                    笏・
-                 笏・ApiRegistry    笏・           笏・                    笏・
-                 笏・DomainService  笏・           笏・                    笏・
-                 笏披楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・           笏・                    笏・
-                    笏娯楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏ｼ笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・
-                    笏・            infrastructure 螻､  笏・
-                    笏・ 笏娯楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏・ 笏娯楳笏笏笏笏笆ｼ笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・ 笏・
-                    笏・ 笏・Kafka        笏・ 笏・ApiSchemaPostgres       笏・ 笏・
-                    笏・ 笏・Producer     笏・ 笏・Repository             笏・ 笏・
-                    笏・ 笏披楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏・ 笏懌楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏､  笏・
-                    笏・ 笏娯楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏・ 笏・ApiSchemaVersion       笏・ 笏・
-                    笏・ 笏・OpenApi      笏・ 笏・PostgresRepository     笏・ 笏・
-                    笏・ 笏・Validator    笏・ 笏披楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・ 笏・
-                    笏・ 笏懌楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏､  笏娯楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・ 笏・
-                    笏・ 笏・Protobuf     笏・ 笏・Database               笏・ 笏・
-                    笏・ 笏・Validator    笏・ 笏・Config                 笏・ 笏・
-                    笏・ 笏披楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏・ 笏披楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・ 笏・
-                    笏・ 笏娯楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏・                             笏・
-                    笏・ 笏・Config       笏・                             笏・
-                    笏・ 笏・Loader       笏・                             笏・
-                    笏・ 笏披楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏・                             笏・
-                    笏披楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏・
+                    ┌─────────────────────────────────────────────────┐
+                    │                    adapter 層                    │
+                    │  ┌──────────────────────────────────────────┐   │
+                    │  │ REST Handler (apiregistry_handler.rs)    │   │
+                    │  │  healthz / readyz / metrics              │   │
+                    │  │  list_schemas / register_schema          │   │
+                    │  │  get_schema / list_versions              │   │
+                    │  │  get_schema_version                      │   │
+                    │  │  register_version / delete_version       │   │
+                    │  │  check_compatibility / get_diff          │   │
+                    │  ├──────────────────────────────────────────┤   │
+                    │  │ gRPC Handler (apiregistry_grpc.rs)       │   │
+                    │  │  GetSchema / GetSchemaVersion            │   │
+                    │  │  CheckCompatibility                      │   │
+                    │  └──────────────────────┬───────────────────┘   │
+                    └─────────────────────────┼───────────────────────┘
+                                              │
+                    ┌─────────────────────────▼───────────────────────┐
+                    │                   usecase 層                    │
+                    │  ListSchemasUsecase / RegisterSchemaUsecase /   │
+                    │  GetSchemaUsecase / ListVersionsUsecase /       │
+                    │  GetSchemaVersionUsecase /                      │
+                    │  RegisterVersionUsecase / DeleteVersionUsecase /│
+                    │  CheckCompatibilityUsecase / GetDiffUsecase     │
+                    └─────────────────────────┬───────────────────────┘
+                                              │
+              ┌───────────────────────────────┼───────────────────────┐
+              │                               │                       │
+    ┌─────────▼──────┐              ┌─────────▼──────────────────┐   │
+    │  domain/entity  │              │ domain/repository          │   │
+    │  ApiSchema,     │              │ ApiSchemaRepository        │   │
+    │  ApiSchemaVer,  │              │ ApiSchemaVersionRepository │   │
+    │  Compatibility  │              │ (trait)                    │   │
+    │  Result,        │              └──────────┬─────────────────┘   │
+    │  SchemaDiff     │                         │                     │
+    └────────────────┘                         │                     │
+              │                                │                     │
+              │  ┌────────────────┐            │                     │
+              └──▶ domain/service │            │                     │
+                 │ ApiRegistry    │            │                     │
+                 │ DomainService  │            │                     │
+                 └────────────────┘            │                     │
+                    ┌──────────────────────────┼─────────────────────┘
+                    │             infrastructure 層  │
+                    │  ┌──────────────┐  ┌─────▼──────────────────┐  │
+                    │  │ Kafka        │  │ ApiSchemaPostgres       │  │
+                    │  │ Producer     │  │ Repository             │  │
+                    │  └──────────────┘  ├────────────────────────┤  │
+                    │  ┌──────────────┐  │ ApiSchemaVersion       │  │
+                    │  │ OpenApi      │  │ PostgresRepository     │  │
+                    │  │ Validator    │  └────────────────────────┘  │
+                    │  ├──────────────┤  ┌────────────────────────┐  │
+                    │  │ Protobuf     │  │ Database               │  │
+                    │  │ Validator    │  │ Config                 │  │
+                    │  └──────────────┘  └────────────────────────┘  │
+                    │  ┌──────────────┐                              │
+                    │  │ Config       │                              │
+                    │  │ Loader       │                              │
+                    │  └──────────────┘                              │
+                    └────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 險ｭ螳壹ヵ繧｡繧､繝ｫ萓・
+## 設定ファイル例
 
-### config.yaml・域悽逡ｪ・・
+### config.yaml（本番）
 
 ```yaml
 app:
@@ -1016,14 +1030,14 @@ validator:
 
 ---
 
-## 繝・・繝ｭ繧､
+## デプロイ
 
 ### Helm values
 
-[helm險ｭ險・md](../../infrastructure/kubernetes/helm險ｭ險・md) 縺ｮ繧ｵ繝ｼ繝舌・逕ｨ Helm Chart 繧剃ｽｿ逕ｨ縺吶ｋ縲Ｂpi-registry 蝗ｺ譛峨・ values 縺ｯ莉･荳九・騾壹ｊ縲・
+[helm設計.md](../../infrastructure/kubernetes/helm設計.md) のサーバー用 Helm Chart を使用する。api-registry 固有の values は以下の通り。
 
 ```yaml
-# values-api-registry.yaml・・nfra/helm/services/system/api-registry/values.yaml・・
+# values-api-registry.yaml（infra/helm/services/system/api-registry/values.yaml）
 image:
   registry: harbor.internal.example.com
   repository: k1s0-system/api-registry
@@ -1059,32 +1073,36 @@ vault:
       mountPath: "/vault/secrets/db-password"
 ```
 
-### Vault 繧ｷ繝ｼ繧ｯ繝ｬ繝・ヨ繝代せ
+### Vault シークレットパス
 
-| 繧ｷ繝ｼ繧ｯ繝ｬ繝・ヨ | 繝代せ |
+| シークレット | パス |
 | --- | --- |
-| DB 繝代せ繝ｯ繝ｼ繝・| `secret/data/k1s0/system/api-registry/database` |
+| DB パスワード | `secret/data/k1s0/system/api-registry/database` |
 | Kafka SASL | `secret/data/k1s0/system/kafka/sasl` |
 
-## 髢｢騾｣繝峨く繝･繝｡繝ｳ繝・
+## 関連ドキュメント
 
-> 蜈ｱ騾夐未騾｣繝峨く繝･繝｡繝ｳ繝医・ [deploy.md](../_common/deploy.md#蜈ｱ騾夐未騾｣繝峨く繝･繝｡繝ｳ繝・ 繧貞盾辣ｧ縲・
+> 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
 
-- [system-server.md](../auth/server.md) -- system tier 繧ｵ繝ｼ繝舌・荳隕ｧ
-- [system-library-schemaregistry.md](../../libraries/data/schemaregistry.md) -- Kafka Avro 繧ｹ繧ｭ繝ｼ繝槭Ξ繧ｸ繧ｹ繝医Μ繝ｩ繧､繝悶Λ繝ｪ・・afka 蜷代￠縲∝ｽ薙し繝ｼ繝舌・縺ｯ REST/gRPC 蜷代￠・・
-- [proto險ｭ險・md](../../architecture/api/proto險ｭ險・md) -- Protobuf 繧ｹ繧ｭ繝ｼ繝櫁ｨｭ險医ぎ繧､繝峨Λ繧､繝ｳ
-- [gRPC險ｭ險・md](../../architecture/api/gRPC險ｭ險・md) -- gRPC 險ｭ險医ぎ繧､繝峨Λ繧､繝ｳ
-
-
+- [system-server.md](../auth/server.md) -- system tier サーバー一覧
+- [system-library-schemaregistry.md](../../libraries/data/schemaregistry.md) -- Kafka Avro スキーマレジストリライブラリ（Kafka 向け、当サーバーは REST/gRPC 向け）
+- [proto設計.md](../../architecture/api/proto設計.md) -- Protobuf スキーマ設計ガイドライン
+- [gRPC設計.md](../../architecture/api/gRPC設計.md) -- gRPC 設計ガイドライン
 
 
 ## Doc Sync (2026-03-03)
 
 ### gRPC Canonical RPCs (proto)
-- `ListSchemas`, `RegisterSchema`, `GetSchema`
-- `ListVersions`, `RegisterVersion`, `GetSchemaVersion`, `DeleteVersion`
-- `CheckCompatibility`, `GetDiff`
+- `ListSchemas`, `RegisterSchema`, `GetSchema`, `ListVersions`, `RegisterVersion`, `GetSchemaVersion`, `DeleteVersion`, `CheckCompatibility`, `GetDiff`
 
 ### Message/Field Corrections
-- `ApiSchemaVersionProto.breaking_change_details` exists (`repeated ChangeDetail`, field `9`).
-- Timestamp fields follow `k1s0.system.common.v1.Timestamp`.
+- Timestamp 型は `k1s0.system.common.v1.Timestamp` を使用する。
+- `ApiSchemaVersionProto.breaking_change_details` は `repeated ChangeDetail`。
+- 追加メッセージ: `ChangeDetail`, `SchemaDiffProto`, `DiffEntryProto`, `DiffModifiedEntryProto`。
+
+
+### SQL Alignment
+- `api_schemas.latest_version` のデフォルトは `0`。
+- `api_schemas.version_count INT NOT NULL DEFAULT 0` を持つ。
+- `api_schema_versions` は `id UUID PRIMARY KEY` を持ち、`(name, version)` は UNIQUE 制約で扱う。
+- `schema_type VARCHAR(50)` と `breaking_change_details JSONB` は `database.md` に合わせる。

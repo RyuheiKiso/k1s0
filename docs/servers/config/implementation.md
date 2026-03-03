@@ -31,12 +31,17 @@ regions/system/server/rust/config/
 │   │   ├── list_configs.rs
 │   │   ├── update_config.rs
 │   │   ├── delete_config.rs
-│   │   └── get_service_config.rs
+│   │   ├── get_service_config.rs
+│   │   ├── get_config_schema.rs
+│   │   ├── list_config_schemas.rs
+│   │   ├── upsert_config_schema.rs
+│   │   └── watch_config.rs
 │   ├── adapter/
 │   │   ├── mod.rs
 │   │   ├── handler/
 │   │   │   ├── mod.rs
-│   │   │   ├── rest_handler.rs          # axum REST ハンドラー
+│   │   │   ├── config_handler.rs        # 設定 REST ハンドラー
+│   │   │   ├── config_schema_handler.rs # 設定スキーマ REST ハンドラー
 │   │   │   ├── grpc_handler.rs          # tonic gRPC ハンドラー
 │   │   │   └── error.rs                 # エラーレスポンス
 │   │   ├── presenter/
@@ -442,7 +447,7 @@ pub struct UpdateConfigInput {
 ## REST ハンドラー実装（Rust）
 
 ```rust
-// src/adapter/handler/rest_handler.rs
+// src/adapter/handler/config_handler.rs
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -644,7 +649,7 @@ async fn update_config_schema(
 ## gRPC ハンドラー実装（Rust）
 
 ```rust
-// src/adapter/handler/grpc_handler.rs
+// src/adapter/grpc/tonic_service.rs
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
@@ -796,79 +801,6 @@ config_server:
       - "business"
       - "service"
     max_depth: 4              # namespace の最大階層数
-```
-
-### 設定の読み込み実装（Go）
-
-```go
-// internal/infra/config/config.go
-package config
-
-import (
-    "fmt"
-    "os"
-    "time"
-
-    "github.com/go-playground/validator/v10"
-    "gopkg.in/yaml.v3"
-)
-
-type Config struct {
-    App           AppConfig           `yaml:"app"`
-    Server        ServerConfig        `yaml:"server"`
-    GRPC          GRPCConfig          `yaml:"grpc"`
-    Database      DatabaseConfig      `yaml:"database"`
-    Kafka         KafkaConfig         `yaml:"kafka"`
-    Observability ObservabilityConfig `yaml:"observability"`
-    ConfigServer  ConfigServerConfig  `yaml:"config_server"`
-}
-
-type ServerConfig struct {
-    Host            string        `yaml:"host"`
-    Port            int           `yaml:"port" validate:"required,min=1,max=65535"`
-    ReadTimeout     time.Duration `yaml:"read_timeout"`
-    WriteTimeout    time.Duration `yaml:"write_timeout"`
-    ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
-}
-
-type ConfigServerConfig struct {
-    Cache     CacheConfig     `yaml:"cache"`
-    Audit     AuditConfig     `yaml:"audit"`
-    Namespace NamespaceConfig `yaml:"namespace"`
-}
-
-type CacheConfig struct {
-    TTL           string `yaml:"ttl"`
-    MaxEntries    int    `yaml:"max_entries"`
-    RefreshOnMiss bool   `yaml:"refresh_on_miss"`
-}
-
-type AuditConfig struct {
-    KafkaEnabled  bool `yaml:"kafka_enabled"`
-    RetentionDays int  `yaml:"retention_days"`
-}
-
-type NamespaceConfig struct {
-    AllowedTiers []string `yaml:"allowed_tiers"`
-    MaxDepth     int      `yaml:"max_depth"`
-}
-
-func Load(path string) (*Config, error) {
-    data, err := os.ReadFile(path)
-    if err != nil {
-        return nil, fmt.Errorf("failed to read config: %w", err)
-    }
-    var cfg Config
-    if err := yaml.Unmarshal(data, &cfg); err != nil {
-        return nil, fmt.Errorf("failed to parse config: %w", err)
-    }
-    return &cfg, nil
-}
-
-func (c *Config) Validate() error {
-    validate := validator.New()
-    return validate.Struct(c)
-}
 ```
 
 ### 設定の読み込み実装（Rust）

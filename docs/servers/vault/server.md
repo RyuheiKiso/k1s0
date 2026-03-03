@@ -7,6 +7,15 @@ system tier のシークレット管理サーバー設計を定義する。Hashi
 
 ## 概要
 
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | secrets/read |
+| sys_operator 以上 | secrets/write |
+| sys_admin のみ | secrets/admin |
+
+
 system tier の Vault Server は以下の機能を提供する。
 
 | 機能 | 説明 |
@@ -94,7 +103,8 @@ system tier の Vault Server は以下の機能を提供する。
 ```json
 {
   "path": "app/db/password",
-  "version": 1
+  "version": 1,
+  "created_at": "2026-02-23T10:00:00.000+00:00"
 }
 ```
 
@@ -107,7 +117,7 @@ system tier の Vault Server は以下の機能を提供する。
 ```json
 {
   "path": "app/db/password",
-  "current_version": 1,
+  "version": 1,
   "data": {
     "username": "db_admin",
     "password": "s3cret-v4lue"
@@ -150,7 +160,8 @@ system tier の Vault Server は以下の機能を提供する。
 ```json
 {
   "path": "app/db/password",
-  "version": 2
+  "version": 2,
+  "created_at": "2026-02-23T11:00:00.000+00:00"
 }
 ```
 
@@ -189,7 +200,7 @@ system tier の Vault Server は以下の機能を提供する。
 ```json
 {
   "path": "app/db/password",
-  "current_version": 3,
+  "version": 3,
   "version_count": 3,
   "created_at": "2026-02-23T10:00:00.000+00:00",
   "updated_at": "2026-02-23T12:00:00.000+00:00"
@@ -306,6 +317,7 @@ message GetSecretResponse {
   int64 version = 2;
   k1s0.system.common.v1.Timestamp created_at = 3;
   k1s0.system.common.v1.Timestamp updated_at = 4;
+  string path = 5;
 }
 
 message SetSecretRequest {
@@ -316,6 +328,7 @@ message SetSecretRequest {
 message SetSecretResponse {
   int64 version = 1;
   k1s0.system.common.v1.Timestamp created_at = 2;
+  string path = 3;
 }
 
 message RotateSecretRequest {
@@ -351,7 +364,7 @@ message GetSecretMetadataResponse {
 }
 
 message ListSecretsRequest {
-  string path_prefix = 1;
+  string prefix = 1;
 }
 
 message ListSecretsResponse {
@@ -598,4 +611,9 @@ vault:
 ### Message/Field Corrections
 - Canonical messages include `RotateSecretRequest/Response`, `GetSecretMetadataRequest/Response`, `ListAuditLogsRequest/Response`, `AuditLogEntry`.
 - `GetSecretResponse.updated_at` is present.
+
+
+### 2026-03-03 追補
+- GET /api/v1/secrets/:key/metadata の 404 は標準 ErrorResponse（error.code/message/request_id/details）で返却する。
+- RBAC は secrets/read, secrets/write, secrets/admin の resource/action 併記を正とする。
 

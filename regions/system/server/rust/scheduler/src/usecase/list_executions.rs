@@ -73,9 +73,7 @@ mod tests {
             .withf(move |id| *id == job_id)
             .returning(move |_| Ok(Some(return_job.clone())));
 
-        mock_exec
-            .expect_find_by_job_id()
-            .returning(|_| Ok(vec![]));
+        mock_exec.expect_find_by_job_id().returning(|_| Ok(vec![]));
 
         let uc = ListExecutionsUseCase::new(Arc::new(mock_job), Arc::new(mock_exec));
         let result = uc.execute(&job_id).await;

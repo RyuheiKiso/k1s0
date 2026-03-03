@@ -10,6 +10,9 @@ use crate::domain::repository::NotificationChannelRepository;
 use crate::domain::repository::NotificationLogRepository;
 use crate::domain::repository::NotificationTemplateRepository;
 use crate::domain::service::DeliveryClient;
+use crate::infrastructure::kafka_producer::{
+    NoopNotificationEventPublisher, NotificationEventPublisher,
+};
 #[cfg(test)]
 use crate::domain::service::DeliveryError;
 
@@ -59,6 +62,7 @@ pub struct SendNotificationUseCase {
     log_repo: Arc<dyn NotificationLogRepository>,
     template_repo: Option<Arc<dyn NotificationTemplateRepository>>,
     delivery_clients: HashMap<String, Arc<dyn DeliveryClient>>,
+    event_publisher: Arc<dyn NotificationEventPublisher>,
 }
 
 impl SendNotificationUseCase {
@@ -71,6 +75,7 @@ impl SendNotificationUseCase {
             log_repo,
             template_repo: None,
             delivery_clients: HashMap::new(),
+            event_publisher: Arc::new(NoopNotificationEventPublisher),
         }
     }
 
@@ -84,6 +89,7 @@ impl SendNotificationUseCase {
             log_repo,
             template_repo: Some(template_repo),
             delivery_clients: HashMap::new(),
+            event_publisher: Arc::new(NoopNotificationEventPublisher),
         }
     }
 
@@ -97,6 +103,7 @@ impl SendNotificationUseCase {
             log_repo,
             template_repo: None,
             delivery_clients,
+            event_publisher: Arc::new(NoopNotificationEventPublisher),
         }
     }
 
@@ -111,7 +118,13 @@ impl SendNotificationUseCase {
             log_repo,
             template_repo: Some(template_repo),
             delivery_clients,
+            event_publisher: Arc::new(NoopNotificationEventPublisher),
         }
+    }
+
+    pub fn with_event_publisher(mut self, event_publisher: Arc<dyn NotificationEventPublisher>) -> Self {
+        self.event_publisher = event_publisher;
+        self
     }
 
     fn render_template(template: &str, variables: &HashMap<String, String>) -> Result<String, SendNotificationError> {
@@ -200,6 +213,14 @@ impl SendNotificationUseCase {
             .create(&log)
             .await
             .map_err(|e| SendNotificationError::Internal(e.to_string()))?;
+
+        if let Err(e) = self.event_publisher.publish_notification_sent(&log).await {
+            tracing::warn!(
+                error = %e,
+                notification_id = %log.id,
+                "failed to publish notification sent event"
+            );
+        }
 
         Ok(SendNotificationOutput {
             log_id: log.id,

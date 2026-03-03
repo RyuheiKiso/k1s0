@@ -18,6 +18,7 @@ service PolicyService {
   rpc DeletePolicy(DeletePolicyRequest) returns (DeletePolicyResponse);
   rpc CreateBundle(CreateBundleRequest) returns (CreateBundleResponse);
   rpc ListBundles(ListBundlesRequest) returns (ListBundlesResponse);
+  rpc GetBundle(GetBundleRequest) returns (GetBundleResponse);
 }
 
 message EvaluatePolicyRequest {
@@ -92,6 +93,8 @@ message DeletePolicyResponse {
 message CreateBundleRequest {
   string name = 1;
   repeated string policy_ids = 2;
+  optional string description = 3;
+  optional bool enabled = 4;
 }
 
 message CreateBundleResponse {
@@ -102,6 +105,14 @@ message ListBundlesRequest {}
 
 message ListBundlesResponse {
   repeated PolicyBundle bundles = 1;
+}
+
+message GetBundleRequest {
+  string id = 1;
+}
+
+message GetBundleResponse {
+  PolicyBundle bundle = 1;
 }
 
 message Policy {
@@ -123,5 +134,7 @@ message PolicyBundle {
   repeated string policy_ids = 3;
   k1s0.system.common.v1.Timestamp created_at = 4;
   k1s0.system.common.v1.Timestamp updated_at = 5;
+  string description = 6;
+  bool enabled = 7;
 }
 

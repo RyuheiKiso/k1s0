@@ -21,7 +21,12 @@ mod tests {
     async fn healthz_check() {
         let app = Router::new().route("/healthz", get(super::healthz));
         let response = app
-            .oneshot(Request::builder().uri("/healthz").body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/healthz")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
@@ -38,7 +43,12 @@ mod tests {
     async fn readyz_check() {
         let app = Router::new().route("/readyz", get(super::readyz));
         let response = app
-            .oneshot(Request::builder().uri("/readyz").body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/readyz")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 

@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::{Tenant, TenantStatus};
 use crate::domain::repository::TenantRepository;
+use crate::infrastructure::kafka_producer::{NoopTenantEventPublisher, TenantEventPublisher};
 
 #[derive(Debug, thiserror::Error)]
 pub enum SuspendTenantError {
@@ -16,11 +17,20 @@ pub enum SuspendTenantError {
 
 pub struct SuspendTenantUseCase {
     tenant_repo: Arc<dyn TenantRepository>,
+    event_publisher: Arc<dyn TenantEventPublisher>,
 }
 
 impl SuspendTenantUseCase {
     pub fn new(tenant_repo: Arc<dyn TenantRepository>) -> Self {
-        Self { tenant_repo }
+        Self {
+            tenant_repo,
+            event_publisher: Arc::new(NoopTenantEventPublisher),
+        }
+    }
+
+    pub fn with_event_publisher(mut self, event_publisher: Arc<dyn TenantEventPublisher>) -> Self {
+        self.event_publisher = event_publisher;
+        self
     }
 
     pub async fn execute(&self, tenant_id: Uuid) -> Result<Tenant, SuspendTenantError> {
@@ -44,6 +54,14 @@ impl SuspendTenantUseCase {
             .update(&tenant)
             .await
             .map_err(|e| SuspendTenantError::Internal(e.to_string()))?;
+
+        if let Err(e) = self.event_publisher.publish_tenant_suspended(&tenant).await {
+            tracing::warn!(
+                tenant_id = %tenant.id,
+                error = %e,
+                "failed to publish tenant_suspended event"
+            );
+        }
 
         Ok(tenant)
     }
@@ -69,6 +87,7 @@ mod tests {
                     display_name: "ACME Corporation".to_string(),
                     status: TenantStatus::Active,
                     plan: Plan::Free.as_str().to_string(),
+                    owner_id: None,
                     settings: serde_json::json!({}),
                     keycloak_realm: None,
                     db_schema: None,
@@ -97,6 +116,7 @@ mod tests {
                     display_name: "ACME Corporation".to_string(),
                     status: TenantStatus::Provisioning,
                     plan: Plan::Free.as_str().to_string(),
+                    owner_id: None,
                     settings: serde_json::json!({}),
                     keycloak_realm: None,
                     db_schema: None,

@@ -152,7 +152,7 @@ impl TenantGrpcClient {
             tonic::Request::new(proto::k1s0::system::tenant::v1::CreateTenantRequest {
                 name: name.to_owned(),
                 display_name: name.to_owned(),
-                owner_user_id: owner_user_id.to_owned(),
+                owner_id: owner_user_id.to_owned(),
                 plan: "standard".to_owned(),
             });
 

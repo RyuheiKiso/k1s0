@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 use crate::proto::k1s0::system::ratelimit::v1::{
     rate_limit_service_server::RateLimitService,
     CheckRateLimitRequest as ProtoCheckRateLimitRequest,
@@ -87,6 +88,7 @@ impl RateLimitService for RateLimitServiceTonic {
             identifier_pattern: inner.identifier_pattern,
             limit: inner.limit,
             window_seconds: inner.window_seconds,
+            algorithm: None,
             enabled: inner.enabled,
         };
 
@@ -184,6 +186,7 @@ impl RateLimitService for RateLimitServiceTonic {
             identifier_pattern: inner.identifier_pattern,
             limit: inner.limit,
             window_seconds: inner.window_seconds,
+            algorithm: None,
             enabled: inner.enabled,
         };
 
@@ -258,7 +261,15 @@ impl RateLimitService for RateLimitServiceTonic {
                 updated_at: rule.updated_at.map(|ts| pb_timestamp(&ts)),
             })
             .collect();
-        Ok(Response::new(ProtoListRulesResponse { rules }))
+        Ok(Response::new(ProtoListRulesResponse {
+            rules,
+            pagination: Some(ProtoPaginationResult {
+                total_count: resp.pagination.total_count,
+                page: resp.pagination.page,
+                page_size: resp.pagination.page_size,
+                has_next: resp.pagination.has_next,
+            }),
+        }))
     }
 
     async fn reset_limit(

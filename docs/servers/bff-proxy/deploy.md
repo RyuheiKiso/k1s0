@@ -15,12 +15,14 @@ bff-proxy は `config.yaml` を正とする。
 | 変数 | 説明 |
 | --- | --- |
 | `CONFIG_PATH` | 設定ファイルパス（省略時: `config/config.yaml`） |
+| `ENV_CONFIG_PATH` | 上書き設定ファイルパス（環境別設定） |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP エクスポート先（トレース送信先） |
 
 ```yaml
 server:
   port: 8080
-oidc:
-  discovery_url: "https://idp.example.com/.well-known/openid-configuration"
+auth:
+  discovery_url: "https://idp.example.com"
   client_id: "bff-proxy"
   client_secret: ""
   redirect_uri: "https://app.example.com/auth/callback"

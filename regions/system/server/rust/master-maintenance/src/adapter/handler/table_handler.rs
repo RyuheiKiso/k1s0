@@ -12,6 +12,8 @@ use crate::domain::entity::table_definition::{CreateTableDefinition, UpdateTable
 pub struct ListTablesQuery {
     pub category: Option<String>,
     pub active_only: Option<bool>,
+    pub page: Option<u32>,
+    pub page_size: Option<u32>,
 }
 
 pub async fn healthz() -> StatusCode {
@@ -34,7 +36,26 @@ pub async fn list_tables(
     let tables = state.manage_tables_uc
         .list_tables(query.category.as_deref(), query.active_only.unwrap_or(false))
         .await?;
-    Ok(Json(serde_json::to_value(tables).unwrap()))
+    let page = query.page.unwrap_or(1).max(1);
+    let page_size = query.page_size.unwrap_or(20).clamp(1, 100);
+    let total_count = tables.len() as u64;
+    let start = ((page - 1) * page_size) as usize;
+    let paged: Vec<_> = tables
+        .into_iter()
+        .skip(start)
+        .take(page_size as usize)
+        .collect();
+    let has_next = (start + paged.len()) < total_count as usize;
+
+    Ok(Json(serde_json::json!({
+        "tables": paged,
+        "pagination": {
+            "total_count": total_count,
+            "page": page,
+            "page_size": page_size,
+            "has_next": has_next
+        }
+    })))
 }
 
 pub async fn get_table(

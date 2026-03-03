@@ -24,6 +24,11 @@ pub trait EventPublisher: Send + Sync {
         stream_id: &str,
         events: &[StoredEvent],
     ) -> anyhow::Result<()>;
+
+    /// Kafka 接続のヘルスチェック。
+    async fn health_check(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 /// EventStoreKafkaProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
@@ -112,6 +117,15 @@ impl EventPublisher for EventStoreKafkaProducer {
 
         Ok(())
     }
+
+    async fn health_check(&self) -> anyhow::Result<()> {
+        use rdkafka::producer::Producer;
+        self.producer
+            .client()
+            .fetch_metadata(None, std::time::Duration::from_secs(2))
+            .map(|_| ())
+            .map_err(|e| anyhow::anyhow!("kafka health check failed: {}", e))
+    }
 }
 
 /// NoopEventPublisher は何もしないダミープロデューサー（Kafka無効時に使う）。
@@ -126,6 +140,10 @@ impl EventPublisher for NoopEventPublisher {
     ) -> anyhow::Result<()> {
         Ok(())
     }
+
+    async fn health_check(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -137,15 +155,18 @@ mod tests {
         let publisher = NoopEventPublisher;
         let result = publisher.publish_events("test-stream", &[]).await;
         assert!(result.is_ok());
+        assert!(publisher.health_check().await.is_ok());
     }
 
     #[tokio::test]
     async fn test_mock_event_publisher() {
         let mut mock = MockEventPublisher::new();
         mock.expect_publish_events().returning(|_, _| Ok(()));
+        mock.expect_health_check().returning(|| Ok(()));
 
         let result = mock.publish_events("test-stream", &[]).await;
         assert!(result.is_ok());
+        assert!(mock.health_check().await.is_ok());
     }
 
     #[tokio::test]

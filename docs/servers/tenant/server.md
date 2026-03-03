@@ -8,6 +8,15 @@ Rust での実装を定義する。
 
 ## 概要
 
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | tenants/read |
+| sys_operator 以上 | tenants/write |
+| sys_admin のみ | tenants/admin |
+
+
 system tier の Tenant Server は以下の機能を提供する。
 
 | 機能 | 説明 |
@@ -77,7 +86,7 @@ system tier の Tenant Server は以下の機能を提供する。
   "name": "acme-corp",
   "display_name": "Acme Corporation",
   "plan": "enterprise",
-  "owner_user_id": "660e8400-e29b-41d4-a716-446655440001"
+  "owner_id": "660e8400-e29b-41d4-a716-446655440001"
 }
 ```
 
@@ -86,7 +95,7 @@ system tier の Tenant Server は以下の機能を提供する。
 | `name` | string | Yes | テナント名（URL フレンドリー、一意制約） |
 | `display_name` | string | Yes | テナント表示名 |
 | `plan` | string | Yes | 契約プラン（`free` / `starter` / `professional` / `enterprise`） |
-| `owner_user_id` | string (UUID) | No | オーナーユーザー ID |
+| `owner_id` | string (UUID) | Yes | オーナーユーザー ID |
 
 **レスポンス（201 Created）**
 
@@ -450,7 +459,7 @@ service TenantService {
 message CreateTenantRequest {
   string name = 1;
   string display_name = 2;
-  string owner_user_id = 3;
+  string owner_id = 3;
   string plan = 4;
 }
 
@@ -639,7 +648,8 @@ Step 4: テナントステータスを active に遷移
 | domain/service | `TenantDomainService` | テナント名重複チェック、ステータス遷移バリデーション |
 | usecase | `CreateTenantUseCase`, `GetTenantUseCase`, `ListTenantsUseCase`, `UpdateTenantUseCase`, `SuspendTenantUseCase`, `ActivateTenantUseCase`, `DeleteTenantUseCase`, `ListMembersUseCase`, `AddMemberUseCase`, `RemoveMemberUseCase`, `GetProvisioningStatusUseCase` | ユースケース |
 | adapter/handler | REST ハンドラー, gRPC ハンドラー | プロトコル変換（axum / tonic） |
-| adapter/gateway | `KeycloakAdminClient` | Keycloak Admin API クライアント（realm 管理） |
+| adapter/repository | `tenant_postgres.rs` | PostgreSQL リポジトリ実装 |
+| infrastructure | `keycloak_admin.rs`, `kafka_producer.rs`, `saga_client.rs` | 外部連携（Keycloak/Kafka/Saga） |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
 | infrastructure/persistence | `TenantPostgresRepository`, `TenantMemberPostgresRepository` | PostgreSQL リポジトリ実装 |
 | infrastructure/messaging | `TenantEventPublisher`, `TenantKafkaProducer` | Kafka プロデューサー（テナントイベント配信） |
@@ -756,7 +766,7 @@ app:
 
 server:
   host: "0.0.0.0"
-  port: 8080
+  http_port: 8080
   grpc_port: 50051
 
 database:
@@ -778,7 +788,7 @@ kafka:
 
 keycloak:
   base_url: "http://keycloak.k1s0-system.svc.cluster.local:8080"
-  admin_realm: "master"
+  realm: "master"
   client_id: "admin-cli"
   client_secret: ""
 ```
@@ -865,4 +875,13 @@ vault:
 - `Tenant` includes `owner_id(7)`, `settings(8)`, `db_schema(9)`, `updated_at(10)`, `keycloak_realm(11)`.
 - `ListMembersRequest` and `ListMembersResponse` are canonical gRPC messages.
 - Tenant timestamp fields use `k1s0.system.common.v1.Timestamp`.
+
+
+
+### 2026-03-03 追補
+- REST CreateTenant の owner_id は必須。
+- REST レスポンスには owner_id を含める。
+- gRPC は owner_id が non-optional string である点を明示する。
+- publish_tenant_updated イベントを発行する。
+- healthz/readyz は status フィールドを統一フォーマットで返す。
 

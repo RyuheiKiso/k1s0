@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use async_graphql::dataloader::DataLoader;
-use async_graphql::{Context, FieldResult, Object, Schema, Subscription};
+use async_graphql::{Context, Data, FieldResult, Object, Schema, Subscription};
 use async_graphql::futures_util::Stream;
-use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
+use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
 use axum::{
-    extract::State,
+    extract::{State, WebSocketUpgrade},
     http::StatusCode,
     response::{Html, IntoResponse},
-    routing::{get, get_service, post},
+    routing::{get, post},
     Extension, Json, Router,
 };
 
@@ -244,6 +244,10 @@ pub struct AppState {
     pub schema: AppSchema,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub query_timeout: std::time::Duration,
+    pub jwks_verifier: Arc<JwksVerifier>,
+    pub tenant_client: Arc<TenantGrpcClient>,
+    pub feature_flag_client: Arc<FeatureFlagGrpcClient>,
+    pub config_client: Arc<ConfigGrpcClient>,
     pub tenant_loader: Arc<DataLoader<TenantLoader>>,
     pub flag_loader: Arc<DataLoader<FeatureFlagLoader>>,
     pub config_loader: Arc<DataLoader<ConfigLoader>>,
@@ -287,7 +291,7 @@ pub fn router(
         std::time::Duration::from_secs(graphql_cfg.query_timeout_seconds as u64);
     let tenant_loader = Arc::new(DataLoader::new(
         TenantLoader {
-            client: tenant_client,
+            client: tenant_client.clone(),
         },
         tokio::spawn,
     ));
@@ -299,7 +303,7 @@ pub fn router(
     ));
     let config_loader = Arc::new(DataLoader::new(
         ConfigLoader {
-            client: config_client,
+            client: config_client.clone(),
         },
         tokio::spawn,
     ));
@@ -308,6 +312,10 @@ pub fn router(
         schema: schema.clone(),
         metrics,
         query_timeout,
+        jwks_verifier: jwks_verifier.clone(),
+        tenant_client: tenant_client.clone(),
+        feature_flag_client: feature_flag_client.clone(),
+        config_client: config_client.clone(),
         tenant_loader,
         flag_loader,
         config_loader,
@@ -320,10 +328,7 @@ pub fn router(
         .route("/readyz", get(readyz))
         .route("/metrics", get(metrics_handler))
         .route("/graphql", graphql_post)
-        .route(
-            "/graphql/ws",
-            get_service(GraphQLSubscription::new(schema)),
-        )
+        .route("/graphql/ws", get(graphql_ws_handler))
         .with_state(app_state);
 
     // 開発環境のみ Playground を有効化
@@ -374,8 +379,33 @@ async fn healthz() -> Json<serde_json::Value> {
     Json(serde_json::json!({"status": "ok"}))
 }
 
-async fn readyz() -> Json<serde_json::Value> {
-    Json(serde_json::json!({"status": "ready"}))
+async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
+    let tenant_ok = state.tenant_client.list_tenants(1, 1).await.is_ok();
+    let featureflag_ok = state.feature_flag_client.list_flags(None).await.is_ok();
+    let config_ok = state
+        .config_client
+        .get_config("__readyz__", "__readyz__")
+        .await
+        .is_ok();
+
+    let ready = tenant_ok && featureflag_ok && config_ok;
+    let status_code = if ready {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    (
+        status_code,
+        Json(serde_json::json!({
+            "status": if ready { "ready" } else { "not_ready" },
+            "checks": {
+                "tenant_grpc": if tenant_ok { "ok" } else { "error" },
+                "featureflag_grpc": if featureflag_ok { "ok" } else { "error" },
+                "config_grpc": if config_ok { "ok" } else { "error" },
+            }
+        })),
+    )
 }
 
 async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
@@ -385,4 +415,138 @@ async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
         [("content-type", "text/plain; version=0.0.4; charset=utf-8")],
         body,
     )
+}
+
+async fn graphql_ws_handler(
+    State(state): State<AppState>,
+    protocol: GraphQLProtocol,
+    ws: WebSocketUpgrade,
+) -> impl IntoResponse {
+    let schema = state.schema.clone();
+    let verifier = state.jwks_verifier.clone();
+    let tenant_loader = state.tenant_loader.clone();
+    let flag_loader = state.flag_loader.clone();
+    let config_loader = state.config_loader.clone();
+
+    ws.protocols(async_graphql::http::ALL_WEBSOCKET_PROTOCOLS)
+        .on_upgrade(move |socket| async move {
+            GraphQLWebSocket::new(socket, schema, protocol)
+                .on_connection_init(move |payload| {
+                    let verifier = verifier.clone();
+                    let tenant_loader = tenant_loader.clone();
+                    let flag_loader = flag_loader.clone();
+                    let config_loader = config_loader.clone();
+                    async move {
+                        let token = extract_bearer_token_from_connection_init(&payload)
+                            .ok_or_else(|| async_graphql::Error::new("missing bearer token in connection_init payload"))?;
+
+                        let claims = verifier
+                            .verify_token(&token)
+                            .await
+                            .map_err(|_| async_graphql::Error::new("invalid or expired JWT token"))?;
+
+                        let mut data = Data::default();
+                        data.insert(GraphqlContext {
+                            user_id: claims.sub.clone(),
+                            roles: claims.roles(),
+                            request_id: uuid::Uuid::new_v4().to_string(),
+                            tenant_loader,
+                            flag_loader,
+                            config_loader,
+                        });
+                        data.insert(claims);
+                        Ok(data)
+                    }
+                })
+                .serve()
+                .await;
+        })
+}
+
+fn extract_bearer_token_from_connection_init(payload: &serde_json::Value) -> Option<String> {
+    fn normalize(v: &str) -> String {
+        v.trim().to_ascii_lowercase()
+    }
+
+    fn pick_token(value: &serde_json::Value) -> Option<String> {
+        let token = value.as_str()?.trim();
+        if token.is_empty() {
+            return None;
+        }
+        if let Some(bearer) = token.strip_prefix("Bearer ").or_else(|| token.strip_prefix("bearer ")) {
+            let trimmed = bearer.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        } else {
+            Some(token.to_string())
+        }
+    }
+
+    let obj = payload.as_object()?;
+
+    for (key, value) in obj {
+        let key_norm = normalize(key);
+        if matches!(key_norm.as_str(), "authorization" | "authtoken" | "token" | "bearer_token")
+        {
+            if let Some(token) = pick_token(value) {
+                return Some(token);
+            }
+        }
+    }
+
+    if let Some(headers) = obj.get("headers").and_then(|v| v.as_object()) {
+        for (key, value) in headers {
+            let key_norm = normalize(key);
+            if key_norm == "authorization" {
+                if let Some(token) = pick_token(value) {
+                    return Some(token);
+                }
+            }
+        }
+    }
+
+    None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::extract_bearer_token_from_connection_init;
+    use serde_json::json;
+
+    #[test]
+    fn extracts_token_from_authorization_bearer() {
+        let payload = json!({
+            "authorization": "Bearer abc.def.ghi"
+        });
+        assert_eq!(
+            extract_bearer_token_from_connection_init(&payload).as_deref(),
+            Some("abc.def.ghi")
+        );
+    }
+
+    #[test]
+    fn extracts_token_from_headers_authorization() {
+        let payload = json!({
+            "headers": {
+                "Authorization": "bearer token-123"
+            }
+        });
+        assert_eq!(
+            extract_bearer_token_from_connection_init(&payload).as_deref(),
+            Some("token-123")
+        );
+    }
+
+    #[test]
+    fn returns_none_when_token_missing() {
+        let payload = json!({
+            "headers": {
+                "x-request-id": "req-1"
+            }
+        });
+        assert!(extract_bearer_token_from_connection_init(&payload).is_none());
+    }
 }

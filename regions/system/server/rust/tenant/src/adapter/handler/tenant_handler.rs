@@ -70,7 +70,8 @@ pub struct CreateTenantRequest {
     pub name: String,
     pub display_name: String,
     pub plan: String,
-    pub owner_user_id: Option<String>,
+    #[serde(alias = "owner_user_id")]
+    pub owner_id: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -188,7 +189,7 @@ pub async fn get_tenant(
         Ok(id) => id,
         Err(_) => {
             return bad_request_response(
-                codes::tenant::invalid_input(),
+                codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", id),
             )
                 .into_response()
@@ -224,7 +225,7 @@ pub async fn create_tenant(
     Json(req): Json<CreateTenantRequest>,
 ) -> impl IntoResponse {
     let owner_id = req
-        .owner_user_id
+        .owner_id
         .and_then(|s| Uuid::parse_str(&s).ok());
 
     let input = CreateTenantInput {
@@ -276,7 +277,7 @@ pub async fn update_tenant(
         Ok(id) => id,
         Err(_) => {
             return bad_request_response(
-                codes::tenant::invalid_input(),
+                codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", id),
             )
                 .into_response()
@@ -325,7 +326,7 @@ pub async fn delete_tenant(
         Ok(id) => id,
         Err(_) => {
             return bad_request_response(
-                codes::tenant::invalid_input(),
+                codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", id),
             )
                 .into_response()
@@ -368,7 +369,7 @@ pub async fn suspend_tenant(
         Ok(id) => id,
         Err(_) => {
             return bad_request_response(
-                codes::tenant::invalid_input(),
+                codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", id),
             )
                 .into_response()
@@ -411,7 +412,7 @@ pub async fn activate_tenant(
         Ok(id) => id,
         Err(_) => {
             return bad_request_response(
-                codes::tenant::invalid_input(),
+                codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", id),
             )
                 .into_response()
@@ -454,7 +455,7 @@ pub async fn list_members(
         Ok(id) => id,
         Err(_) => {
             return bad_request_response(
-                codes::tenant::invalid_input(),
+                codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", id),
             )
                 .into_response()
@@ -492,7 +493,7 @@ pub async fn add_member(
         Ok(id) => id,
         Err(_) => {
             return bad_request_response(
-                codes::tenant::invalid_input(),
+                codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", id),
             )
                 .into_response()
@@ -503,7 +504,7 @@ pub async fn add_member(
         Ok(id) => id,
         Err(_) => {
             return bad_request_response(
-                codes::tenant::invalid_input(),
+                codes::tenant::validation_error(),
                 format!("invalid user id: {}", req.user_id),
             )
                 .into_response()
@@ -551,7 +552,7 @@ pub async fn remove_member(
         Ok(id) => id,
         Err(_) => {
             return bad_request_response(
-                codes::tenant::invalid_input(),
+                codes::tenant::validation_error(),
                 format!("invalid tenant id: {}", tenant_id),
             )
                 .into_response()
@@ -562,7 +563,7 @@ pub async fn remove_member(
         Ok(id) => id,
         Err(_) => {
             return bad_request_response(
-                codes::tenant::invalid_input(),
+                codes::tenant::validation_error(),
                 format!("invalid user id: {}", user_id),
             )
                 .into_response()

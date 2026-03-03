@@ -100,10 +100,7 @@ impl PolicyRepository for PolicyPostgresRepository {
             format!("WHERE {}", conditions.join(" AND "))
         };
 
-        let count_query = format!(
-            "SELECT COUNT(*) FROM policy.policies {}",
-            where_clause
-        );
+        let count_query = format!("SELECT COUNT(*) FROM policy.policies {}", where_clause);
         let data_query = format!(
             "SELECT id, name, description, rego_content, package_path, bundle_id, enabled, version, created_at, updated_at \
              FROM policy.policies {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
@@ -125,7 +122,10 @@ impl PolicyRepository for PolicyPostgresRepository {
 
         let rows: Vec<PolicyRow> = data_q.fetch_all(self.pool.as_ref()).await?;
 
-        Ok((rows.into_iter().map(Into::into).collect(), total_count as u64))
+        Ok((
+            rows.into_iter().map(Into::into).collect(),
+            total_count as u64,
+        ))
     }
 
     async fn create(&self, policy: &Policy) -> anyhow::Result<()> {

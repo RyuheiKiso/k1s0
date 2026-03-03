@@ -25,7 +25,7 @@ pub struct JobData {
     pub timezone: String,
     pub target_type: String,
     pub target: String,
-    pub payload_json: Vec<u8>,
+    pub payload: Vec<u8>,
     pub status: String,
     pub next_run_at: Option<DateTime<Utc>>,
     pub last_run_at: Option<DateTime<Utc>>,
@@ -53,7 +53,7 @@ pub struct CreateJobRequest {
     pub timezone: String,
     pub target_type: String,
     pub target: String,
-    pub payload_json: Vec<u8>,
+    pub payload: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
@@ -96,7 +96,7 @@ pub struct UpdateJobRequest {
     pub timezone: String,
     pub target_type: String,
     pub target: String,
-    pub payload_json: Vec<u8>,
+    pub payload: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
@@ -191,6 +191,9 @@ pub enum GrpcError {
     #[error("failed precondition: {0}")]
     FailedPrecondition(String),
 
+    #[error("aborted: {0}")]
+    Aborted(String),
+
     #[error("internal: {0}")]
     Internal(String),
 
@@ -240,7 +243,7 @@ impl SchedulerGrpcService {
     }
 
     pub async fn create_job(&self, req: CreateJobRequest) -> Result<CreateJobResponse, GrpcError> {
-        let payload = parse_payload(&req.payload_json)?;
+        let payload = parse_payload(&req.payload)?;
         let created = self
             .create_job_uc
             .execute(&CreateJobInput {
@@ -270,10 +273,9 @@ impl SchedulerGrpcService {
             })
             .await
             .map_err(|e| match e {
-                CreateJobError::InvalidCron(expr) => GrpcError::InvalidArgument(format!(
-                    "invalid cron expression: {}",
-                    expr
-                )),
+                CreateJobError::InvalidCron(expr) => {
+                    GrpcError::InvalidArgument(format!("invalid cron expression: {}", expr))
+                }
                 CreateJobError::Internal(msg) => {
                     if msg.contains("already exists") || msg.contains("duplicate") {
                         GrpcError::AlreadyExists(msg)
@@ -332,7 +334,7 @@ impl SchedulerGrpcService {
 
     pub async fn update_job(&self, req: UpdateJobRequest) -> Result<UpdateJobResponse, GrpcError> {
         let id = parse_uuid(&req.job_id, "job_id")?;
-        let payload = parse_payload(&req.payload_json)?;
+        let payload = parse_payload(&req.payload)?;
 
         let updated = self
             .update_job_uc
@@ -364,7 +366,9 @@ impl SchedulerGrpcService {
             })
             .await
             .map_err(|e| match e {
-                UpdateJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
+                UpdateJobError::NotFound(id) => {
+                    GrpcError::NotFound(format!("job not found: {}", id))
+                }
                 UpdateJobError::InvalidCron(expr) => {
                     GrpcError::InvalidArgument(format!("invalid cron expression: {}", expr))
                 }
@@ -381,7 +385,7 @@ impl SchedulerGrpcService {
         self.delete_job_uc.execute(&id).await.map_err(|e| match e {
             DeleteJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
             DeleteJobError::JobRunning(id) => {
-                GrpcError::FailedPrecondition(format!("job is currently running: {}", id))
+                GrpcError::Aborted(format!("job is currently running: {}", id))
             }
             DeleteJobError::Internal(msg) => GrpcError::Internal(msg),
         })?;
@@ -430,9 +434,10 @@ impl SchedulerGrpcService {
             Err(TriggerJobError::NotFound(id)) => {
                 Err(GrpcError::NotFound(format!("job not found: {}", id)))
             }
-            Err(TriggerJobError::NotActive(id)) => {
-                Err(GrpcError::FailedPrecondition(format!("job not active: {}", id)))
-            }
+            Err(TriggerJobError::NotActive(id)) => Err(GrpcError::FailedPrecondition(format!(
+                "job not active: {}",
+                id
+            ))),
             Err(TriggerJobError::Internal(e)) => Err(GrpcError::Internal(e)),
         }
     }
@@ -489,11 +494,8 @@ impl SchedulerGrpcService {
         };
         let total_count = executions.len() as u64;
         let start = (page - 1) * page_size;
-        let page_items: Vec<SchedulerExecution> = executions
-            .into_iter()
-            .skip(start)
-            .take(page_size)
-            .collect();
+        let page_items: Vec<SchedulerExecution> =
+            executions.into_iter().skip(start).take(page_size).collect();
         let has_next = start + page_items.len() < total_count as usize;
 
         Ok(ListExecutionsResponse {
@@ -511,12 +513,12 @@ fn parse_uuid(value: &str, field: &str) -> Result<Uuid, GrpcError> {
         .map_err(|_| GrpcError::InvalidArgument(format!("invalid {}: {}", field, value)))
 }
 
-fn parse_payload(payload_json: &[u8]) -> Result<serde_json::Value, GrpcError> {
-    if payload_json.is_empty() {
+fn parse_payload(payload: &[u8]) -> Result<serde_json::Value, GrpcError> {
+    if payload.is_empty() {
         return Ok(serde_json::json!({}));
     }
-    serde_json::from_slice(payload_json)
-        .map_err(|e| GrpcError::InvalidArgument(format!("invalid payload_json: {}", e)))
+    serde_json::from_slice(payload)
+        .map_err(|e| GrpcError::InvalidArgument(format!("invalid payload: {}", e)))
 }
 
 fn to_job_data(job: SchedulerJob) -> JobData {
@@ -528,7 +530,7 @@ fn to_job_data(job: SchedulerJob) -> JobData {
         timezone: job.timezone,
         target_type: job.target_type,
         target: job.target.unwrap_or_default(),
-        payload_json: serde_json::to_vec(&job.payload).unwrap_or_default(),
+        payload: serde_json::to_vec(&job.payload).unwrap_or_default(),
         status: job.status,
         next_run_at: job.next_run_at,
         last_run_at: job.last_run_at,

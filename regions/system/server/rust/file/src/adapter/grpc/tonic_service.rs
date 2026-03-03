@@ -7,8 +7,8 @@ use crate::proto::k1s0::system::file::v1::{
     file_service_server::FileService, CompleteUploadRequest, CompleteUploadResponse,
     DeleteFileRequest, DeleteFileResponse, FileMetadata as ProtoFileMetadata,
     GenerateDownloadUrlRequest, GenerateDownloadUrlResponse, GenerateUploadUrlRequest,
-    GenerateUploadUrlResponse, GetFileMetadataRequest, GetFileMetadataResponse,
-    ListFilesRequest, ListFilesResponse, UpdateFileTagsRequest, UpdateFileTagsResponse,
+    GenerateUploadUrlResponse, GetFileMetadataRequest, GetFileMetadataResponse, ListFilesRequest,
+    ListFilesResponse, UpdateFileTagsRequest, UpdateFileTagsResponse,
 };
 
 use super::file_grpc::FileGrpcService;
@@ -28,7 +28,7 @@ fn domain_to_proto(file: &crate::domain::entity::file::FileMetadata) -> ProtoFil
         id: file.id.clone(),
         filename: file.name.clone(),
         content_type: file.mime_type.clone(),
-        size: file.size_bytes as i64,
+        size_bytes: file.size_bytes as i64,
         tenant_id: file.tenant_id.clone(),
         uploaded_by: file.owner_id.clone(),
         status: file.status.clone(),
@@ -62,7 +62,11 @@ impl FileService for FileServiceTonic {
         request: Request<ListFilesRequest>,
     ) -> Result<Response<ListFilesResponse>, Status> {
         let inner = request.into_inner();
-        let page = if inner.page <= 0 { 1 } else { inner.page as u32 };
+        let page = if inner.page <= 0 {
+            1
+        } else {
+            inner.page as u32
+        };
         let page_size = if inner.page_size <= 0 {
             20
         } else {
@@ -70,7 +74,14 @@ impl FileService for FileServiceTonic {
         };
         let (files, total) = self
             .inner
-            .list_files(inner.tenant_id, page, page_size)
+            .list_files(
+                inner.tenant_id,
+                inner.uploaded_by,
+                inner.mime_type,
+                inner.tag,
+                page,
+                page_size,
+            )
             .await
             .map_err(Into::<Status>::into)?;
         let has_next = ((page * page_size) as u64) < total;

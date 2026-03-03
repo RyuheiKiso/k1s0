@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::{Tenant, TenantStatus};
 use crate::domain::repository::TenantRepository;
+use crate::infrastructure::kafka_producer::{NoopTenantEventPublisher, TenantEventPublisher};
 use crate::infrastructure::keycloak_admin::{KeycloakAdmin, NoopKeycloakAdmin};
 use crate::infrastructure::saga_client::{NoopSagaClient, SagaClient};
 
@@ -20,6 +21,7 @@ pub struct DeleteTenantUseCase {
     tenant_repo: Arc<dyn TenantRepository>,
     saga_client: Arc<dyn SagaClient>,
     keycloak_admin: Arc<dyn KeycloakAdmin>,
+    event_publisher: Arc<dyn TenantEventPublisher>,
 }
 
 impl DeleteTenantUseCase {
@@ -28,6 +30,7 @@ impl DeleteTenantUseCase {
             tenant_repo,
             saga_client: Arc::new(NoopSagaClient),
             keycloak_admin: Arc::new(NoopKeycloakAdmin),
+            event_publisher: Arc::new(NoopTenantEventPublisher),
         }
     }
 
@@ -38,6 +41,11 @@ impl DeleteTenantUseCase {
 
     pub fn with_keycloak_admin(mut self, keycloak_admin: Arc<dyn KeycloakAdmin>) -> Self {
         self.keycloak_admin = keycloak_admin;
+        self
+    }
+
+    pub fn with_event_publisher(mut self, event_publisher: Arc<dyn TenantEventPublisher>) -> Self {
+        self.event_publisher = event_publisher;
         self
     }
 
@@ -61,6 +69,14 @@ impl DeleteTenantUseCase {
             .update(&tenant)
             .await
             .map_err(|e| DeleteTenantError::Internal(e.to_string()))?;
+
+        if let Err(e) = self.event_publisher.publish_tenant_deleted(&tenant).await {
+            tracing::warn!(
+                tenant_id = %tenant.id,
+                error = %e,
+                "failed to publish tenant_deleted event"
+            );
+        }
 
         // Start deprovisioning saga (failure is non-fatal)
         if let Err(e) = self
@@ -111,6 +127,7 @@ mod tests {
                     display_name: "ACME Corporation".to_string(),
                     status: TenantStatus::Active,
                     plan: Plan::Free.as_str().to_string(),
+                    owner_id: None,
                     settings: serde_json::json!({}),
                     keycloak_realm: None,
                     db_schema: None,
@@ -153,6 +170,7 @@ mod tests {
                     display_name: "ACME Corporation".to_string(),
                     status: TenantStatus::Deleted,
                     plan: Plan::Free.as_str().to_string(),
+                    owner_id: None,
                     settings: serde_json::json!({}),
                     keycloak_realm: None,
                     db_schema: None,

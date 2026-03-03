@@ -5,6 +5,7 @@ use crate::usecase::delete_secret::{DeleteSecretError, DeleteSecretInput, Delete
 use crate::usecase::get_secret::{GetSecretError, GetSecretInput, GetSecretUseCase};
 use crate::usecase::list_audit_logs::{ListAuditLogsInput, ListAuditLogsUseCase};
 use crate::usecase::list_secrets::ListSecretsUseCase;
+use crate::usecase::rotate_secret::{RotateSecretError, RotateSecretInput, RotateSecretUseCase};
 use crate::usecase::set_secret::{SetSecretInput, SetSecretUseCase};
 
 // --- gRPC Request/Response Types (手動定義) ---
@@ -32,6 +33,7 @@ pub struct SetSecretRequest {
 
 #[derive(Debug, Clone)]
 pub struct SetSecretResponse {
+    pub path: String,
     pub version: i64,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
@@ -60,7 +62,7 @@ pub struct DeleteSecretResponse {}
 
 #[derive(Debug, Clone)]
 pub struct ListSecretsRequest {
-    pub path_prefix: String,
+    pub prefix: String,
 }
 
 #[derive(Debug, Clone)]
@@ -127,6 +129,7 @@ pub enum GrpcError {
 pub struct VaultGrpcService {
     get_secret_uc: Arc<GetSecretUseCase>,
     set_secret_uc: Arc<SetSecretUseCase>,
+    rotate_secret_uc: Arc<RotateSecretUseCase>,
     delete_secret_uc: Arc<DeleteSecretUseCase>,
     list_secrets_uc: Arc<ListSecretsUseCase>,
     list_audit_logs_uc: Arc<ListAuditLogsUseCase>,
@@ -136,6 +139,7 @@ impl VaultGrpcService {
     pub fn new(
         get_secret_uc: Arc<GetSecretUseCase>,
         set_secret_uc: Arc<SetSecretUseCase>,
+        rotate_secret_uc: Arc<RotateSecretUseCase>,
         delete_secret_uc: Arc<DeleteSecretUseCase>,
         list_secrets_uc: Arc<ListSecretsUseCase>,
         list_audit_logs_uc: Arc<ListAuditLogsUseCase>,
@@ -143,16 +147,14 @@ impl VaultGrpcService {
         Self {
             get_secret_uc,
             set_secret_uc,
+            rotate_secret_uc,
             delete_secret_uc,
             list_secrets_uc,
             list_audit_logs_uc,
         }
     }
 
-    pub async fn get_secret(
-        &self,
-        req: GetSecretRequest,
-    ) -> Result<GetSecretResponse, GrpcError> {
+    pub async fn get_secret(&self, req: GetSecretRequest) -> Result<GetSecretResponse, GrpcError> {
         if req.path.trim().is_empty() {
             return Err(GrpcError::InvalidArgument("path is required".to_string()));
         }
@@ -182,35 +184,18 @@ impl VaultGrpcService {
         }
     }
 
-    pub async fn set_secret(
-        &self,
-        req: SetSecretRequest,
-    ) -> Result<SetSecretResponse, GrpcError> {
-        let path = req.path.clone();
+    pub async fn set_secret(&self, req: SetSecretRequest) -> Result<SetSecretResponse, GrpcError> {
         let input = SetSecretInput {
             path: req.path,
             data: req.data,
         };
 
         match self.set_secret_uc.execute(&input).await {
-            Ok(version) => {
-                let secret = self
-                    .get_secret_uc
-                    .execute(&GetSecretInput {
-                        path,
-                        version: Some(version),
-                    })
-                    .await
-                    .map_err(|e| GrpcError::Internal(e.to_string()))?;
-                let created_at = secret
-                    .get_version(Some(version))
-                    .map(|sv| sv.created_at)
-                    .unwrap_or_else(chrono::Utc::now);
-                Ok(SetSecretResponse {
-                    version,
-                    created_at,
-                })
-            }
+            Ok(output) => Ok(SetSecretResponse {
+                path: input.path,
+                version: output.version,
+                created_at: output.created_at,
+            }),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
@@ -219,16 +204,22 @@ impl VaultGrpcService {
         &self,
         req: RotateSecretRequest,
     ) -> Result<RotateSecretResponse, GrpcError> {
-        let set_resp = self
-            .set_secret(SetSecretRequest {
-                path: req.path.clone(),
+        let output = self
+            .rotate_secret_uc
+            .execute(&RotateSecretInput {
+                path: req.path,
                 data: req.data,
             })
-            .await?;
+            .await
+            .map_err(|e| match e {
+                RotateSecretError::NotFound(path) => GrpcError::NotFound(path),
+                RotateSecretError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
+
         Ok(RotateSecretResponse {
-            path: req.path,
-            new_version: set_resp.version,
-            rotated: true,
+            path: output.path,
+            new_version: output.new_version,
+            rotated: output.rotated,
         })
     }
 
@@ -252,7 +243,7 @@ impl VaultGrpcService {
         &self,
         req: ListSecretsRequest,
     ) -> Result<ListSecretsResponse, GrpcError> {
-        match self.list_secrets_uc.execute(&req.path_prefix).await {
+        match self.list_secrets_uc.execute(&req.prefix).await {
             Ok(keys) => Ok(ListSecretsResponse { keys }),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -340,18 +331,25 @@ mod tests {
     ) -> VaultGrpcService {
         let store = Arc::new(mock_store);
         let audit = Arc::new(mock_audit);
+        let get_uc = Arc::new(GetSecretUseCase::new(
+            store.clone(),
+            audit.clone(),
+            Arc::new(NoopVaultEventPublisher),
+        ));
+        let set_uc = Arc::new(SetSecretUseCase::new(
+            store.clone(),
+            audit.clone(),
+            Arc::new(NoopVaultEventPublisher),
+        ));
+        let rotate_uc = Arc::new(crate::usecase::RotateSecretUseCase::new(
+            get_uc.clone(),
+            set_uc.clone(),
+        ));
 
         VaultGrpcService::new(
-            Arc::new(GetSecretUseCase::new(
-                store.clone(),
-                audit.clone(),
-                Arc::new(NoopVaultEventPublisher),
-            )),
-            Arc::new(SetSecretUseCase::new(
-                store.clone(),
-                audit.clone(),
-                Arc::new(NoopVaultEventPublisher),
-            )),
+            get_uc,
+            set_uc,
+            rotate_uc,
             Arc::new(DeleteSecretUseCase::new(
                 store.clone(),
                 audit.clone(),
@@ -417,9 +415,20 @@ mod tests {
     #[tokio::test]
     async fn test_set_secret_success() {
         let mut mock_store = MockSecretStore::new();
+        mock_store.expect_set().returning(|_, _| Ok(2));
         mock_store
-            .expect_set()
-            .returning(|_, _| Ok(2));
+            .expect_get()
+            .withf(|path, version| path == "app/db" && *version == Some(2))
+            .returning(|path, _| {
+                Ok(Secret::new(
+                    path.to_string(),
+                    HashMap::from([("password".to_string(), "new".to_string())]),
+                )
+                .update(HashMap::from([(
+                    "password".to_string(),
+                    "newer".to_string(),
+                )])))
+            });
 
         let svc = make_service(mock_store, default_audit());
         let resp = svc
@@ -430,15 +439,14 @@ mod tests {
             .await
             .unwrap();
 
+        assert_eq!(resp.path, "app/db");
         assert_eq!(resp.version, 2);
     }
 
     #[tokio::test]
     async fn test_delete_secret_success() {
         let mut mock_store = MockSecretStore::new();
-        mock_store
-            .expect_delete()
-            .returning(|_, _| Ok(()));
+        mock_store.expect_delete().returning(|_, _| Ok(()));
 
         let svc = make_service(mock_store, default_audit());
         let result = svc
@@ -483,7 +491,7 @@ mod tests {
         let svc = make_service(mock_store, default_audit());
         let resp = svc
             .list_secrets(ListSecretsRequest {
-                path_prefix: "app/".to_string(),
+                prefix: "app/".to_string(),
             })
             .await
             .unwrap();

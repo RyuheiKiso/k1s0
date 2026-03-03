@@ -87,6 +87,8 @@ const DEFAULT_TOPIC: &str = "k1s0.system.tenant.events.v1";
 pub trait TenantEventPublisher: Send + Sync {
     async fn publish_tenant_created(&self, tenant: &Tenant) -> anyhow::Result<()>;
     async fn publish_tenant_updated(&self, tenant: &Tenant) -> anyhow::Result<()>;
+    async fn publish_tenant_suspended(&self, tenant: &Tenant) -> anyhow::Result<()>;
+    async fn publish_tenant_deleted(&self, tenant: &Tenant) -> anyhow::Result<()>;
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -103,6 +105,16 @@ impl TenantEventPublisher for NoopTenantEventPublisher {
 
     async fn publish_tenant_updated(&self, _tenant: &Tenant) -> anyhow::Result<()> {
         tracing::debug!("noop: skipping tenant_updated event");
+        Ok(())
+    }
+
+    async fn publish_tenant_suspended(&self, _tenant: &Tenant) -> anyhow::Result<()> {
+        tracing::debug!("noop: skipping tenant_suspended event");
+        Ok(())
+    }
+
+    async fn publish_tenant_deleted(&self, _tenant: &Tenant) -> anyhow::Result<()> {
+        tracing::debug!("noop: skipping tenant_deleted event");
         Ok(())
     }
 
@@ -202,6 +214,16 @@ impl TenantEventPublisher for KafkaTenantEventPublisher {
         self.publish_event(&event).await
     }
 
+    async fn publish_tenant_suspended(&self, tenant: &Tenant) -> anyhow::Result<()> {
+        let event = TenantChangedEvent::from_tenant(tenant, "suspended");
+        self.publish_event(&event).await
+    }
+
+    async fn publish_tenant_deleted(&self, tenant: &Tenant) -> anyhow::Result<()> {
+        let event = TenantChangedEvent::from_tenant(tenant, "deleted");
+        self.publish_event(&event).await
+    }
+
     async fn close(&self) -> anyhow::Result<()> {
         use rdkafka::producer::Producer;
         self.producer.flush(std::time::Duration::from_secs(5))?;
@@ -261,6 +283,28 @@ mod tests {
             Ok(())
         }
 
+        async fn publish_tenant_suspended(&self, tenant: &Tenant) -> anyhow::Result<()> {
+            if self.should_fail {
+                return Err(anyhow::anyhow!("broker connection refused"));
+            }
+            let event = TenantChangedEvent::from_tenant(tenant, "suspended");
+            let payload = serde_json::to_vec(&event)?;
+            let key = format!("tenant:{}", tenant.id);
+            self.messages.lock().unwrap().push((key, payload));
+            Ok(())
+        }
+
+        async fn publish_tenant_deleted(&self, tenant: &Tenant) -> anyhow::Result<()> {
+            if self.should_fail {
+                return Err(anyhow::anyhow!("broker connection refused"));
+            }
+            let event = TenantChangedEvent::from_tenant(tenant, "deleted");
+            let payload = serde_json::to_vec(&event)?;
+            let key = format!("tenant:{}", tenant.id);
+            self.messages.lock().unwrap().push((key, payload));
+            Ok(())
+        }
+
         async fn close(&self) -> anyhow::Result<()> {
             Ok(())
         }
@@ -273,6 +317,7 @@ mod tests {
             display_name: "ACME Corporation".to_string(),
             status: TenantStatus::Active,
             plan: "professional".to_string(),
+            owner_id: None,
             settings: serde_json::json!({}),
             keycloak_realm: None,
             db_schema: None,
@@ -295,7 +340,7 @@ sasl:
   password: "pass"
 topics:
   publish:
-    - "k1s0.system.tenant.changed.v1"
+    - "k1s0.system.tenant.events.v1"
   subscribe: []
 "#;
         let config: KafkaConfig = serde_yaml::from_str(yaml).unwrap();
@@ -331,7 +376,7 @@ brokers:
             .first()
             .cloned()
             .unwrap_or_else(|| DEFAULT_TOPIC.to_string());
-        assert_eq!(topic, "k1s0.system.tenant.changed.v1");
+        assert_eq!(topic, "k1s0.system.tenant.events.v1");
     }
 
     #[test]
@@ -390,6 +435,36 @@ brokers:
     }
 
     #[tokio::test]
+    async fn test_publish_tenant_suspended() {
+        let publisher = InMemoryPublisher::new();
+        let tenant = make_test_tenant();
+
+        let result = publisher.publish_tenant_suspended(&tenant).await;
+        assert!(result.is_ok());
+
+        let messages = publisher.messages.lock().unwrap();
+        assert_eq!(messages.len(), 1);
+        let deserialized: TenantChangedEvent =
+            serde_json::from_slice(&messages[0].1).unwrap();
+        assert_eq!(deserialized.action, "suspended");
+    }
+
+    #[tokio::test]
+    async fn test_publish_tenant_deleted() {
+        let publisher = InMemoryPublisher::new();
+        let tenant = make_test_tenant();
+
+        let result = publisher.publish_tenant_deleted(&tenant).await;
+        assert!(result.is_ok());
+
+        let messages = publisher.messages.lock().unwrap();
+        assert_eq!(messages.len(), 1);
+        let deserialized: TenantChangedEvent =
+            serde_json::from_slice(&messages[0].1).unwrap();
+        assert_eq!(deserialized.action, "deleted");
+    }
+
+    #[tokio::test]
     async fn test_publish_key_format() {
         let publisher = InMemoryPublisher::new();
         let tenant = make_test_tenant();
@@ -435,11 +510,15 @@ brokers:
         let mut mock = MockTenantEventPublisher::new();
         mock.expect_publish_tenant_created().returning(|_| Ok(()));
         mock.expect_publish_tenant_updated().returning(|_| Ok(()));
+        mock.expect_publish_tenant_suspended().returning(|_| Ok(()));
+        mock.expect_publish_tenant_deleted().returning(|_| Ok(()));
         mock.expect_close().returning(|| Ok(()));
 
         let tenant = make_test_tenant();
         assert!(mock.publish_tenant_created(&tenant).await.is_ok());
         assert!(mock.publish_tenant_updated(&tenant).await.is_ok());
+        assert!(mock.publish_tenant_suspended(&tenant).await.is_ok());
+        assert!(mock.publish_tenant_deleted(&tenant).await.is_ok());
         assert!(mock.close().await.is_ok());
     }
 }

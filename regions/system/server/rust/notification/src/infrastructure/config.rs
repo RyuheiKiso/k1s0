@@ -115,8 +115,6 @@ pub struct KafkaConfig {
     pub security_protocol: String,
     /// Consumer topic: 通知リクエスト受信
     pub topic_requested: String,
-    /// Producer topic: 通知配信完了
-    pub topic_delivered: String,
     #[serde(default = "default_consumer_group")]
     pub consumer_group: String,
 }

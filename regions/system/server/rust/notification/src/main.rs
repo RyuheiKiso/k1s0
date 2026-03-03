@@ -25,7 +25,10 @@ use domain::repository::NotificationLogRepository;
 use domain::repository::NotificationTemplateRepository;
 use domain::service::DeliveryClient;
 use infrastructure::config::Config;
-use infrastructure::delivery::{EmailDeliveryClient, SlackDeliveryClient, WebhookDeliveryClient};
+use infrastructure::delivery::{
+    EmailDeliveryClient, PushDeliveryClient, SlackDeliveryClient, SmsDeliveryClient,
+    WebhookDeliveryClient,
+};
 use infrastructure::kafka_producer::{
     KafkaNotificationProducer, NoopNotificationEventPublisher, NotificationEventPublisher,
 };
@@ -80,7 +83,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // --- Kafka wiring: KafkaProducer or Noop fallback ---
-    let _event_publisher: Arc<dyn NotificationEventPublisher> =
+    let event_publisher: Arc<dyn NotificationEventPublisher> =
         if let Some(ref kafka_cfg) = cfg.kafka {
             info!("initializing Kafka producer");
             let producer = KafkaNotificationProducer::new(kafka_cfg)?;
@@ -144,19 +147,47 @@ async fn main() -> anyhow::Result<()> {
         info!("WEBHOOK_URL not configured, skipping webhook delivery client");
     }
 
+    if let Ok(sms_endpoint) = std::env::var("SMS_API_ENDPOINT") {
+        info!("SMS delivery client initialized");
+        delivery_clients.insert(
+            "sms".to_string(),
+            Arc::new(SmsDeliveryClient::new(
+                sms_endpoint,
+                std::env::var("SMS_API_KEY").ok(),
+            )),
+        );
+    } else {
+        info!("SMS_API_ENDPOINT not configured, skipping SMS delivery client");
+    }
+
+    if let Ok(push_endpoint) = std::env::var("PUSH_API_ENDPOINT") {
+        info!("Push delivery client initialized");
+        delivery_clients.insert(
+            "push".to_string(),
+            Arc::new(PushDeliveryClient::new(
+                push_endpoint,
+                std::env::var("PUSH_AUTH_TOKEN").ok(),
+            )),
+        );
+    } else {
+        info!("PUSH_API_ENDPOINT not configured, skipping Push delivery client");
+    }
+
     let send_notification_uc = if delivery_clients.is_empty() {
         Arc::new(usecase::SendNotificationUseCase::with_template_repo(
             channel_repo.clone(),
             log_repo.clone(),
             template_repo.clone(),
-        ))
+        )
+        .with_event_publisher(event_publisher.clone()))
     } else {
         Arc::new(usecase::SendNotificationUseCase::with_delivery_clients_and_template_repo(
             channel_repo.clone(),
             log_repo.clone(),
             template_repo.clone(),
             delivery_clients,
-        ))
+        )
+        .with_event_publisher(event_publisher.clone()))
     };
     let retry_notification_uc =
         Arc::new(usecase::RetryNotificationUseCase::new(log_repo.clone(), channel_repo.clone()));

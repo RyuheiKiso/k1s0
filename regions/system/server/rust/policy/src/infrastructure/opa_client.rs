@@ -99,7 +99,10 @@ mod tests {
 
         let client = OpaClient::new(&make_config(&server.uri())).unwrap();
         let result = client
-            .evaluate("k1s0.system.tenant", &serde_json::json!({"action": "delete"}))
+            .evaluate(
+                "k1s0.system.tenant",
+                &serde_json::json!({"action": "delete"}),
+            )
             .await
             .unwrap();
 
@@ -112,9 +115,7 @@ mod tests {
 
         Mock::given(method("POST"))
             .and(path("/v1/data/k1s0/system/tenant"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_json(serde_json::json!({})),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({})))
             .mount(&server)
             .await;
 

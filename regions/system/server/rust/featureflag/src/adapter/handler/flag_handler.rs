@@ -1,27 +1,30 @@
-﻿use axum::{
+use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
     Json,
 };
 use serde::{Deserialize, Serialize};
 
 use super::AppState;
+use k1s0_server_common::error as codes;
+use k1s0_server_common::ErrorResponse;
 use crate::domain::entity::feature_flag::{FlagRule, FlagVariant};
 use crate::usecase::create_flag::CreateFlagInput;
 use crate::usecase::update_flag::UpdateFlagInput;
 
 /// GET /api/v1/flags
 pub async fn list_flags(State(state): State<AppState>) -> impl IntoResponse {
-    match state.flag_repo.find_all().await {
+    match state.list_flags_uc.execute().await {
         Ok(flags) => {
             let items: Vec<FlagResponse> = flags.into_iter().map(FlagResponse::from).collect();
             (StatusCode::OK, Json(serde_json::json!({ "flags": items }))).into_response()
         }
-        Err(e) => {
-            let err = ErrorResponse::new("SYS_FF_INTERNAL_ERROR", &e.to_string());
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-        }
+        Err(e) => error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            codes::featureflag::list_failed(),
+            e.to_string(),
+        ),
     }
 }
 
@@ -38,11 +41,13 @@ pub async fn get_flag(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_FF_NOT_FOUND", &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
+                error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), &msg)
             } else {
-                let err = ErrorResponse::new("SYS_FF_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    codes::featureflag::get_failed(),
+                    &msg,
+                )
             }
         }
     }
@@ -68,11 +73,17 @@ pub async fn create_flag(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("already exists") {
-                let err = ErrorResponse::new("SYS_FF_ALREADY_EXISTS", &msg);
-                (StatusCode::CONFLICT, Json(err)).into_response()
+                error_response(
+                    StatusCode::CONFLICT,
+                    codes::featureflag::already_exists(),
+                    &msg,
+                )
             } else {
-                let err = ErrorResponse::new("SYS_FF_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    codes::featureflag::create_failed(),
+                    &msg,
+                )
             }
         }
     }
@@ -88,6 +99,8 @@ pub async fn update_flag(
         flag_key: key,
         enabled: req.enabled,
         description: req.description,
+        variants: req.variants,
+        rules: req.rules,
     };
 
     match state.update_flag_uc.execute(&input).await {
@@ -98,11 +111,13 @@ pub async fn update_flag(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_FF_NOT_FOUND", &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
+                error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), &msg)
             } else {
-                let err = ErrorResponse::new("SYS_FF_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    codes::featureflag::update_failed(),
+                    &msg,
+                )
             }
         }
     }
@@ -120,11 +135,13 @@ pub async fn delete_flag(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_FF_NOT_FOUND", &msg);
-                return (StatusCode::NOT_FOUND, Json(err)).into_response();
+                return error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), &msg);
             } else {
-                let err = ErrorResponse::new("SYS_FF_INTERNAL_ERROR", &msg);
-                return (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response();
+                return error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    codes::featureflag::get_failed(),
+                    &msg,
+                );
             }
         }
     };
@@ -136,13 +153,17 @@ pub async fn delete_flag(
         )
             .into_response(),
         Err(DeleteFlagError::NotFound(_)) => {
-            let err = ErrorResponse::new("SYS_FF_NOT_FOUND", &format!("flag not found: {}", key));
-            (StatusCode::NOT_FOUND, Json(err)).into_response()
+            error_response(
+                StatusCode::NOT_FOUND,
+                codes::featureflag::not_found(),
+                &format!("flag not found: {}", key),
+            )
         }
-        Err(DeleteFlagError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_FF_INTERNAL_ERROR", &msg);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-        }
+        Err(DeleteFlagError::Internal(msg)) => error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            codes::featureflag::delete_failed(),
+            &msg,
+        ),
     }
 }
 
@@ -158,9 +179,9 @@ pub async fn evaluate_flag(
     let input = EvaluateFlagInput {
         flag_key: key,
         context: EvaluationContext {
-            user_id: req.user_id,
-            tenant_id: req.tenant_id,
-            attributes: req.attributes.unwrap_or_default(),
+            user_id: req.context.user_id,
+            tenant_id: req.context.tenant_id,
+            attributes: req.context.attributes.unwrap_or_default(),
         },
     };
 
@@ -178,11 +199,13 @@ pub async fn evaluate_flag(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_FF_NOT_FOUND", &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
+                error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), &msg)
             } else {
-                let err = ErrorResponse::new("SYS_FF_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    codes::featureflag::evaluate_failed(),
+                    &msg,
+                )
             }
         }
     }
@@ -202,10 +225,18 @@ pub struct CreateFlagRequest {
 pub struct UpdateFlagRequest {
     pub enabled: Option<bool>,
     pub description: Option<String>,
+    pub variants: Option<Vec<FlagVariant>>,
+    pub rules: Option<Vec<FlagRule>>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct EvaluateFlagRequest {
+    #[serde(default)]
+    pub context: EvaluateFlagContextRequest,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct EvaluateFlagContextRequest {
     pub user_id: Option<String>,
     pub tenant_id: Option<String>,
     pub attributes: Option<std::collections::HashMap<String, String>>,
@@ -238,29 +269,11 @@ impl From<crate::domain::entity::feature_flag::FeatureFlag> for FlagResponse {
     }
 }
 
-#[derive(Debug, Serialize)]
-pub struct ErrorResponse {
-    pub error: ErrorBody,
+fn error_response(
+    status: StatusCode,
+    code: impl Into<k1s0_server_common::ErrorCode>,
+    message: impl Into<String>,
+) -> Response {
+    let err = ErrorResponse::new(code, message);
+    (status, Json(serde_json::to_value(err).unwrap())).into_response()
 }
-
-#[derive(Debug, Serialize)]
-pub struct ErrorBody {
-    pub code: String,
-    pub message: String,
-    pub request_id: String,
-    pub details: Vec<String>,
-}
-
-impl ErrorResponse {
-    pub fn new(code: &str, message: &str) -> Self {
-        Self {
-            error: ErrorBody {
-                code: code.to_string(),
-                message: message.to_string(),
-                request_id: uuid::Uuid::new_v4().to_string(),
-                details: vec![],
-            },
-        }
-    }
-}
-

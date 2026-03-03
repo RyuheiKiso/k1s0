@@ -79,7 +79,7 @@ message ListQuotaPoliciesRequest {
 
 message ListQuotaPoliciesResponse {
   repeated QuotaPolicy policies = 1;
-  uint64 total = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message UpdateQuotaPolicyRequest {

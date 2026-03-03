@@ -19,6 +19,7 @@ use crate::usecase::read_events::{ReadEventsError, ReadEventsInput};
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct AppendEventsRequest {
     pub stream_id: String,
+    pub aggregate_type: Option<String>,
     pub expected_version: i64,
     pub events: Vec<EventDataRequest>,
 }
@@ -222,20 +223,23 @@ pub async fn append_events(
 
     let input = AppendEventsInput {
         stream_id: req.stream_id,
+        aggregate_type: req.aggregate_type,
         events,
         expected_version: req.expected_version,
     };
 
     let output = state.append_events_uc.execute(&input).await.map_err(|e| match e {
-        AppendEventsError::StreamNotFound(id) => EventStoreError::NotFound(format!("stream not found: {}", id)),
+        AppendEventsError::StreamNotFound(id) => {
+            EventStoreError::StreamNotFound(format!("stream not found: {}", id))
+        }
         AppendEventsError::StreamAlreadyExists(id) => {
-            EventStoreError::Conflict(format!("stream already exists: {}", id))
+            EventStoreError::StreamAlreadyExists(format!("stream already exists: {}", id))
         }
         AppendEventsError::VersionConflict {
             stream_id,
             expected,
             actual,
-        } => EventStoreError::Conflict(format!(
+        } => EventStoreError::VersionConflict(format!(
             "version conflict for stream {}: expected {}, actual {}",
             stream_id, expected, actual
         )),
@@ -298,7 +302,7 @@ pub async fn read_events(
 
     let output = state.read_events_uc.execute(&input).await.map_err(|e| match e {
         ReadEventsError::StreamNotFound(id) => {
-            EventStoreError::NotFound(format!("stream not found: {}", id))
+            EventStoreError::StreamNotFound(format!("stream not found: {}", id))
         }
         ReadEventsError::Internal(msg) => EventStoreError::Internal(msg),
     })?;
@@ -347,10 +351,10 @@ pub async fn read_event_by_sequence(
         .await
         .map_err(|e| match e {
             ReadEventBySequenceError::StreamNotFound(id) => {
-                EventStoreError::NotFound(format!("stream not found: {}", id))
+                EventStoreError::StreamNotFound(format!("stream not found: {}", id))
             }
             ReadEventBySequenceError::EventNotFound { stream_id, sequence } => {
-                EventStoreError::NotFound(format!(
+                EventStoreError::EventNotFound(format!(
                     "event not found: stream={}, sequence={}",
                     stream_id, sequence
                 ))
@@ -464,10 +468,10 @@ pub async fn get_snapshot(
 
     let snapshot = state.get_latest_snapshot_uc.execute(&input).await.map_err(|e| match e {
         GetLatestSnapshotError::StreamNotFound(id) => {
-            EventStoreError::NotFound(format!("stream not found: {}", id))
+            EventStoreError::StreamNotFound(format!("stream not found: {}", id))
         }
         GetLatestSnapshotError::SnapshotNotFound(id) => {
-            EventStoreError::NotFound(format!("snapshot not found for stream: {}", id))
+            EventStoreError::SnapshotNotFound(format!("snapshot not found for stream: {}", id))
         }
         GetLatestSnapshotError::Internal(msg) => EventStoreError::Internal(msg),
     })?;
@@ -512,7 +516,7 @@ pub async fn create_snapshot(
         .await
         .map_err(|e| match e {
             CreateSnapshotError::StreamNotFound(id) => {
-                EventStoreError::NotFound(format!("stream not found: {}", id))
+                EventStoreError::StreamNotFound(format!("stream not found: {}", id))
             }
             CreateSnapshotError::Validation(msg) => EventStoreError::Validation(msg),
             CreateSnapshotError::Internal(msg) => EventStoreError::Internal(msg),
@@ -549,7 +553,7 @@ pub async fn delete_stream(
 
     state.delete_stream_uc.execute(&input).await.map_err(|e| match e {
         DeleteStreamError::StreamNotFound(id) => {
-            EventStoreError::NotFound(format!("stream not found: {}", id))
+            EventStoreError::StreamNotFound(format!("stream not found: {}", id))
         }
         DeleteStreamError::Internal(msg) => EventStoreError::Internal(msg),
     })?;
@@ -589,6 +593,10 @@ mod tests {
 
         let mut publisher = MockEventPublisher::new();
         publisher.expect_publish_events().returning(|_, _| Ok(()));
+        publisher
+            .expect_health_check()
+            .times(0..)
+            .returning(|| Ok(()));
         let publisher: Arc<dyn crate::infrastructure::kafka::EventPublisher> =
             Arc::new(publisher);
 
@@ -665,8 +673,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_readyz() {
+        let mut stream_repo = MockEventStreamRepository::new();
+        stream_repo
+            .expect_list_all()
+            .returning(|_, _| Ok((vec![], 0)));
         let state = make_test_state(
-            MockEventStreamRepository::new(),
+            stream_repo,
             MockEventRepository::new(),
             MockSnapshotRepository::new(),
         );

@@ -23,6 +23,10 @@ use infrastructure::config::Config;
 use infrastructure::kafka_producer::{
     KafkaWorkflowEventPublisher, NoopWorkflowEventPublisher, WorkflowEventPublisher,
 };
+use infrastructure::notification_request_producer::{
+    KafkaNotificationRequestPublisher, NoopNotificationRequestPublisher,
+    NotificationRequestPublisher,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -90,6 +94,18 @@ async fn main() -> anyhow::Result<()> {
             Arc::new(NoopWorkflowEventPublisher)
         };
 
+    let notification_request_publisher: Arc<dyn NotificationRequestPublisher> =
+        if let Some(ref kafka_cfg) = cfg.kafka {
+            let publisher = KafkaNotificationRequestPublisher::new(kafka_cfg)?;
+            info!(
+                topic = %kafka_cfg.notification_topic,
+                "Kafka notification request publisher initialized"
+            );
+            Arc::new(publisher)
+        } else {
+            Arc::new(NoopNotificationRequestPublisher)
+        };
+
     let create_wf_uc = Arc::new(usecase::CreateWorkflowUseCase::new(def_repo.clone()));
     let update_wf_uc = Arc::new(usecase::UpdateWorkflowUseCase::new(def_repo.clone()));
     let delete_wf_uc = Arc::new(usecase::DeleteWorkflowUseCase::new(def_repo.clone()));
@@ -115,7 +131,7 @@ async fn main() -> anyhow::Result<()> {
         def_repo.clone(),
     ));
     let reassign_task_uc = Arc::new(usecase::ReassignTaskUseCase::new(task_repo.clone()));
-    let _check_overdue_uc = Arc::new(usecase::CheckOverdueTasksUseCase::new(task_repo));
+    let check_overdue_uc = Arc::new(usecase::CheckOverdueTasksUseCase::new(task_repo.clone()));
 
     let grpc_svc = Arc::new(WorkflowGrpcService::new(
         list_wf_uc.clone(),
@@ -169,6 +185,8 @@ async fn main() -> anyhow::Result<()> {
         approve_task_uc,
         reject_task_uc,
         reassign_task_uc,
+        check_overdue_tasks_uc: check_overdue_uc,
+        notification_request_publisher,
         metrics: metrics.clone(),
         auth_state: None,
     };

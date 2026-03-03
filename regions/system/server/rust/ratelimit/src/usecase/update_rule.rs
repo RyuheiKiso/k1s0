@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use uuid::Uuid;
 
-use crate::domain::entity::RateLimitRule;
+use crate::domain::entity::{Algorithm, RateLimitRule};
 use crate::domain::repository::RateLimitRepository;
 
 /// UpdateRuleError はルール更新に関するエラー。
@@ -28,6 +28,7 @@ pub struct UpdateRuleInput {
     pub identifier_pattern: String,
     pub limit: u32,
     pub window_seconds: u32,
+    pub algorithm: Option<String>,
     pub enabled: bool,
 }
 
@@ -69,6 +70,10 @@ impl UpdateRuleUseCase {
         rule.identifier_pattern = input.identifier_pattern.clone();
         rule.limit = input.limit;
         rule.window_seconds = input.window_seconds;
+        if let Some(ref algorithm) = input.algorithm {
+            rule.algorithm =
+                Algorithm::from_str(algorithm).map_err(UpdateRuleError::InvalidAlgorithm)?;
+        }
         rule.enabled = input.enabled;
         rule.updated_at = chrono::Utc::now();
 
@@ -111,6 +116,7 @@ mod tests {
             identifier_pattern: "updated-pattern".to_string(),
             limit: 200,
             window_seconds: 120,
+            algorithm: Some("fixed_window".to_string()),
             enabled: false,
         };
 
@@ -136,6 +142,7 @@ mod tests {
             identifier_pattern: "test".to_string(),
             limit: 100,
             window_seconds: 60,
+            algorithm: None,
             enabled: true,
         };
 
@@ -154,6 +161,7 @@ mod tests {
             identifier_pattern: "test".to_string(),
             limit: 100,
             window_seconds: 60,
+            algorithm: None,
             enabled: true,
         };
 

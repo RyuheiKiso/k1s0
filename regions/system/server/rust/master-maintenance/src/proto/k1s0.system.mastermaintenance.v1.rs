@@ -261,6 +261,82 @@ pub struct CheckConsistencyResponse {
     #[prost(int32, tag = "4")]
     pub warning_count: i32,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateRuleRequest {
+    #[prost(message, optional, tag = "1")]
+    pub data: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateRuleResponse {
+    #[prost(message, optional, tag = "1")]
+    pub rule: ::core::option::Option<ConsistencyRule>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetRuleRequest {
+    #[prost(string, tag = "1")]
+    pub rule_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetRuleResponse {
+    #[prost(message, optional, tag = "1")]
+    pub rule: ::core::option::Option<ConsistencyRule>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateRuleRequest {
+    #[prost(string, tag = "1")]
+    pub rule_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub data: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateRuleResponse {
+    #[prost(message, optional, tag = "1")]
+    pub rule: ::core::option::Option<ConsistencyRule>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteRuleRequest {
+    #[prost(string, tag = "1")]
+    pub rule_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct DeleteRuleResponse {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListRulesRequest {
+    #[prost(string, tag = "1")]
+    pub table_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub rule_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub severity: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListRulesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub rules: ::prost::alloc::vec::Vec<ConsistencyRule>,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExecuteRuleRequest {
+    #[prost(string, tag = "1")]
+    pub rule_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExecuteRuleResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub results: ::prost::alloc::vec::Vec<ConsistencyResult>,
+    #[prost(int32, tag = "2")]
+    pub total_checked: i32,
+    #[prost(int32, tag = "3")]
+    pub error_count: i32,
+    #[prost(int32, tag = "4")]
+    pub warning_count: i32,
+}
 /// 整合性チェック結果
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ConsistencyResult {
@@ -276,6 +352,35 @@ pub struct ConsistencyResult {
     pub message: ::prost::alloc::string::String,
     #[prost(string, repeated, tag = "6")]
     pub affected_record_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ConsistencyRule {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub rule_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub severity: ::prost::alloc::string::String,
+    #[prost(bool, tag = "6")]
+    pub is_active: bool,
+    #[prost(string, tag = "7")]
+    pub source_table_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub evaluation_timing: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub error_message_template: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub zen_rule_json: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub created_by: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "12")]
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, optional, tag = "13")]
+    pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 /// バリデーション警告
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -696,6 +801,45 @@ pub mod master_maintenance_service_server {
             request: tonic::Request<super::CheckConsistencyRequest>,
         ) -> std::result::Result<
             tonic::Response<super::CheckConsistencyResponse>,
+            tonic::Status,
+        >;
+        async fn create_rule(
+            &self,
+            request: tonic::Request<super::CreateRuleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CreateRuleResponse>,
+            tonic::Status,
+        >;
+        async fn get_rule(
+            &self,
+            request: tonic::Request<super::GetRuleRequest>,
+        ) -> std::result::Result<tonic::Response<super::GetRuleResponse>, tonic::Status>;
+        async fn update_rule(
+            &self,
+            request: tonic::Request<super::UpdateRuleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateRuleResponse>,
+            tonic::Status,
+        >;
+        async fn delete_rule(
+            &self,
+            request: tonic::Request<super::DeleteRuleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteRuleResponse>,
+            tonic::Status,
+        >;
+        async fn list_rules(
+            &self,
+            request: tonic::Request<super::ListRulesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListRulesResponse>,
+            tonic::Status,
+        >;
+        async fn execute_rule(
+            &self,
+            request: tonic::Request<super::ExecuteRuleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ExecuteRuleResponse>,
             tonic::Status,
         >;
         /// JSON Schema
@@ -1613,6 +1757,294 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CheckConsistencySvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/CreateRule" => {
+                    #[allow(non_camel_case_types)]
+                    struct CreateRuleSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::CreateRuleRequest>
+                    for CreateRuleSvc<T> {
+                        type Response = super::CreateRuleResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CreateRuleRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::create_rule(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CreateRuleSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/GetRule" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetRuleSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::GetRuleRequest>
+                    for GetRuleSvc<T> {
+                        type Response = super::GetRuleResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetRuleRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::get_rule(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetRuleSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/UpdateRule" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateRuleSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::UpdateRuleRequest>
+                    for UpdateRuleSvc<T> {
+                        type Response = super::UpdateRuleResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpdateRuleRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::update_rule(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UpdateRuleSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/DeleteRule" => {
+                    #[allow(non_camel_case_types)]
+                    struct DeleteRuleSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::DeleteRuleRequest>
+                    for DeleteRuleSvc<T> {
+                        type Response = super::DeleteRuleResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DeleteRuleRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::delete_rule(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = DeleteRuleSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListRules" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListRulesSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::ListRulesRequest>
+                    for ListRulesSvc<T> {
+                        type Response = super::ListRulesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListRulesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::list_rules(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListRulesSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ExecuteRule" => {
+                    #[allow(non_camel_case_types)]
+                    struct ExecuteRuleSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::ExecuteRuleRequest>
+                    for ExecuteRuleSvc<T> {
+                        type Response = super::ExecuteRuleResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ExecuteRuleRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::execute_rule(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ExecuteRuleSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

@@ -53,8 +53,8 @@ pub struct SearchRequest {
     pub index: String,
     pub query: String,
     pub filters_json: Vec<u8>,
-    pub page: u32,
-    pub page_size: u32,
+    pub from: u32,
+    pub size: u32,
     pub facets: Vec<String>,
 }
 
@@ -222,9 +222,9 @@ impl SearchGrpcService {
     }
 
     pub async fn search(&self, req: SearchRequest) -> Result<SearchResponse, GrpcError> {
-        let page = if req.page == 0 { 1 } else { req.page };
-        let page_size = if req.page_size == 0 { 10 } else { req.page_size };
-        let from = (page - 1) * page_size;
+        let page_size = if req.size == 0 { 10 } else { req.size };
+        let from = req.from;
+        let page = (from / page_size) + 1;
         let filters = if req.filters_json.is_empty() {
             std::collections::HashMap::new()
         } else {
@@ -380,8 +380,9 @@ mod tests {
             index: "products".to_string(),
             query: "Widget".to_string(),
             filters_json: vec![],
-            page: 1,
-            page_size: 10,
+            from: 0,
+            size: 10,
+            facets: vec![],
         };
         let resp = svc.search(req).await.unwrap();
 

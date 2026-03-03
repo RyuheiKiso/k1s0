@@ -152,10 +152,7 @@ mod tests {
     #[tokio::test]
     async fn test_matching_policy_allowed_spiffe_id() {
         let spiffe_id = "spiffe://cluster/ns/default/sa/payment-service";
-        let app = build_app(vec![make_policy(
-            "api/v1/secrets/*",
-            &[spiffe_id],
-        )]);
+        let app = build_app(vec![make_policy("api/v1/secrets/*", &[spiffe_id])]);
         let mut req = Request::builder()
             .uri("/api/v1/secrets/db-password")
             .body(Body::empty())
@@ -175,8 +172,9 @@ mod tests {
             .uri("/api/v1/secrets/db-password")
             .body(Body::empty())
             .unwrap();
-        req.extensions_mut()
-            .insert(make_claims("spiffe://cluster/ns/default/sa/unknown-service"));
+        req.extensions_mut().insert(make_claims(
+            "spiffe://cluster/ns/default/sa/unknown-service",
+        ));
         let resp = app.oneshot(req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 

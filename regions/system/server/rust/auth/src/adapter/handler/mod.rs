@@ -2,9 +2,7 @@ pub mod api_key_handler;
 pub mod audit_handler;
 pub mod auth_handler;
 pub mod jwks_handler;
-pub mod navigation_handler;
 
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::middleware;
@@ -19,6 +17,7 @@ use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::make_rbac_middleware;
 use crate::domain::repository::{AuditLogRepository, UserRepository};
 use crate::infrastructure::TokenVerifier;
+use crate::infrastructure::permission_cache::PermissionCache;
 use crate::usecase::{
     CheckPermissionUseCase, CreateApiKeyUseCase, GetApiKeyUseCase, GetUserRolesUseCase,
     GetUserUseCase, ListApiKeysUseCase, ListUsersUseCase, RecordAuditLogUseCase,
@@ -43,7 +42,8 @@ pub struct AppState {
     pub db_pool: Option<sqlx::PgPool>,
     pub keycloak_url: Option<String>,
     pub jwks_provider: Option<crate::infrastructure::jwks_provider::JwksProvider>,
-    pub navigation_config_path: Option<PathBuf>,
+    pub permission_cache: PermissionCache,
+    pub permission_cache_refresh_on_miss: bool,
 }
 
 impl AppState {
@@ -80,7 +80,8 @@ impl AppState {
             db_pool,
             keycloak_url,
             jwks_provider,
-            navigation_config_path: None,
+            permission_cache: PermissionCache::new(300, 10_000),
+            permission_cache_refresh_on_miss: true,
         }
     }
 }
@@ -104,7 +105,6 @@ impl AppState {
         api_key_handler::get_api_key,
         api_key_handler::list_api_keys,
         api_key_handler::revoke_api_key,
-        navigation_handler::get_navigation,
     ),
     components(schemas(
         crate::domain::entity::claims::Claims,
@@ -217,11 +217,6 @@ pub fn router(state: AppState) -> Router {
         .route(
             "/api/v1/auth/token/introspect",
             post(auth_handler::introspect_token),
-        )
-        // Navigation config (public)
-        .route(
-            "/api/v1/navigation",
-            get(navigation_handler::get_navigation),
         );
 
     Router::new()

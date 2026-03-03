@@ -54,9 +54,7 @@ async fn main() -> anyhow::Result<()> {
     );
 
     // Metrics
-    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
-        "k1s0-policy-server",
-    ));
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-policy-server"));
 
     // Cache
     let cache = Arc::new(PolicyCache::new(
@@ -65,31 +63,31 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Repositories: PostgreSQL or InMemory fallback
-    let (policy_repo, bundle_repo): (
-        Arc<dyn PolicyRepository>,
-        Arc<dyn PolicyBundleRepository>,
-    ) = if let Some(ref db_cfg) = cfg.database {
-        info!("connecting to PostgreSQL: {}:{}/{}", db_cfg.host, db_cfg.port, db_cfg.name);
-        let pool = Arc::new(infrastructure::database::connect(db_cfg).await?);
-        info!("PostgreSQL connection established");
+    let (policy_repo, bundle_repo): (Arc<dyn PolicyRepository>, Arc<dyn PolicyBundleRepository>) =
+        if let Some(ref db_cfg) = cfg.database {
+            info!(
+                "connecting to PostgreSQL: {}:{}/{}",
+                db_cfg.host, db_cfg.port, db_cfg.name
+            );
+            let pool = Arc::new(infrastructure::database::connect(db_cfg).await?);
+            info!("PostgreSQL connection established");
 
-        let pg_policy_repo: Arc<dyn PolicyRepository> =
-            Arc::new(PolicyPostgresRepository::new(pool.clone()));
-        let cached_policy_repo: Arc<dyn PolicyRepository> =
-            Arc::new(CachedPolicyRepository::new(pg_policy_repo, cache.clone()));
+            let pg_policy_repo: Arc<dyn PolicyRepository> =
+                Arc::new(PolicyPostgresRepository::new(pool.clone()));
+            let cached_policy_repo: Arc<dyn PolicyRepository> =
+                Arc::new(CachedPolicyRepository::new(pg_policy_repo, cache.clone()));
 
-        let bundle_repo: Arc<dyn PolicyBundleRepository> =
-            Arc::new(BundlePostgresRepository::new(pool));
+            let bundle_repo: Arc<dyn PolicyBundleRepository> =
+                Arc::new(BundlePostgresRepository::new(pool));
 
-        (cached_policy_repo, bundle_repo)
-    } else {
-        info!("no database configured, using in-memory repositories");
-        let policy_repo: Arc<dyn PolicyRepository> =
-            Arc::new(InMemoryPolicyRepository::new());
-        let bundle_repo: Arc<dyn PolicyBundleRepository> =
-            Arc::new(InMemoryPolicyBundleRepository::new());
-        (policy_repo, bundle_repo)
-    };
+            (cached_policy_repo, bundle_repo)
+        } else {
+            info!("no database configured, using in-memory repositories");
+            let policy_repo: Arc<dyn PolicyRepository> = Arc::new(InMemoryPolicyRepository::new());
+            let bundle_repo: Arc<dyn PolicyBundleRepository> =
+                Arc::new(InMemoryPolicyBundleRepository::new());
+            (policy_repo, bundle_repo)
+        };
 
     // Kafka event publisher
     let _event_publisher: Arc<dyn PolicyEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
@@ -98,8 +96,7 @@ async fn main() -> anyhow::Result<()> {
             topic = %kafka_cfg.topic,
             "initializing Kafka policy event publisher"
         );
-        let producer = KafkaPolicyProducer::new(kafka_cfg)?
-            .with_metrics(metrics.clone());
+        let producer = KafkaPolicyProducer::new(kafka_cfg)?.with_metrics(metrics.clone());
         Arc::new(producer)
     } else {
         info!("no Kafka configured, using no-op event publisher");
@@ -120,8 +117,12 @@ async fn main() -> anyhow::Result<()> {
     let update_policy_uc = Arc::new(usecase::UpdatePolicyUseCase::new(policy_repo.clone()));
     let delete_policy_uc = Arc::new(usecase::DeletePolicyUseCase::new(policy_repo.clone()));
     let list_policies_uc = Arc::new(usecase::ListPoliciesUseCase::new(policy_repo.clone()));
-    let evaluate_policy_uc = Arc::new(usecase::EvaluatePolicyUseCase::new(policy_repo.clone(), opa_client));
+    let evaluate_policy_uc = Arc::new(usecase::EvaluatePolicyUseCase::new(
+        policy_repo.clone(),
+        opa_client,
+    ));
     let create_bundle_uc = Arc::new(usecase::CreateBundleUseCase::new(bundle_repo.clone()));
+    let get_bundle_uc = Arc::new(usecase::GetBundleUseCase::new(bundle_repo.clone()));
     let list_bundles_uc = Arc::new(usecase::ListBundlesUseCase::new(bundle_repo));
 
     let grpc_svc = Arc::new(PolicyGrpcService::new(
@@ -132,6 +133,7 @@ async fn main() -> anyhow::Result<()> {
         list_policies_uc.clone(),
         evaluate_policy_uc.clone(),
         create_bundle_uc.clone(),
+        get_bundle_uc.clone(),
         list_bundles_uc.clone(),
     ));
 
@@ -153,13 +155,14 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let mut state = adapter::handler::AppState {
-        policy_repo,
         create_policy_uc,
         get_policy_uc,
+        list_policies_uc,
         update_policy_uc,
         delete_policy_uc,
         evaluate_policy_uc,
         create_bundle_uc,
+        get_bundle_uc,
         list_bundles_uc,
         metrics: metrics.clone(),
         auth_state: None,
@@ -168,8 +171,8 @@ async fn main() -> anyhow::Result<()> {
         state = state.with_auth(auth_st);
     }
 
-    let app = adapter::handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app =
+        adapter::handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC server
     use proto::k1s0::system::policy::v1::policy_service_server::PolicyServiceServer;
@@ -264,7 +267,11 @@ impl PolicyRepository for InMemoryPolicyRepository {
         filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
         let total = filtered.len() as u64;
         let start = ((page.saturating_sub(1)) * page_size) as usize;
-        let items: Vec<Policy> = filtered.into_iter().skip(start).take(page_size as usize).collect();
+        let items: Vec<Policy> = filtered
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
         Ok((items, total))
     }
 

@@ -45,7 +45,12 @@ impl DeleteVersionUseCase {
         }
     }
 
-    pub async fn execute(&self, name: &str, version: u32) -> Result<(), DeleteVersionError> {
+    pub async fn execute(
+        &self,
+        name: &str,
+        version: u32,
+        deleted_by: Option<String>,
+    ) -> Result<(), DeleteVersionError> {
         let schema = self
             .schema_repo
             .find_by_name(name)
@@ -87,7 +92,7 @@ impl DeleteVersionUseCase {
             content_hash: None,
             breaking_changes: None,
             registered_by: None,
-            deleted_by: None,
+            deleted_by,
             timestamp: chrono::Utc::now().to_rfc3339(),
         };
         if let Err(e) = self.publisher.publish_schema_updated(&event).await {
@@ -124,7 +129,7 @@ mod tests {
             .returning(|_, _| Ok(true));
 
         let uc = DeleteVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
-        let result = uc.execute("test-api", 1).await;
+        let result = uc.execute("test-api", 1, None).await;
         assert!(result.is_ok());
     }
 
@@ -138,7 +143,7 @@ mod tests {
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = DeleteVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
-        let result = uc.execute("nonexistent", 1).await;
+        let result = uc.execute("nonexistent", 1, None).await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteVersionError::SchemaNotFound(name) => assert_eq!(name, "nonexistent"),
@@ -161,7 +166,7 @@ mod tests {
         version_mock.expect_count_by_name().returning(|_| Ok(1));
 
         let uc = DeleteVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
-        let result = uc.execute("test-api", 1).await;
+        let result = uc.execute("test-api", 1, None).await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteVersionError::CannotDeleteLatest(name) => assert_eq!(name, "test-api"),
@@ -187,7 +192,7 @@ mod tests {
             .returning(|_, _| Ok(false));
 
         let uc = DeleteVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
-        let result = uc.execute("test-api", 99).await;
+        let result = uc.execute("test-api", 99, None).await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteVersionError::VersionNotFound { name, version } => {
@@ -208,7 +213,7 @@ mod tests {
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = DeleteVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
-        let result = uc.execute("test-api", 1).await;
+        let result = uc.execute("test-api", 1, None).await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteVersionError::Internal(msg) => assert!(msg.contains("db error")),

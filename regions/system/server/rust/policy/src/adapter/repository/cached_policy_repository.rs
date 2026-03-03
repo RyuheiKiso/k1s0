@@ -112,11 +112,10 @@ mod tests {
         let call_count_clone = call_count.clone();
 
         let mut mock = MockPolicyRepository::new();
-        mock.expect_find_by_id()
-            .returning(move |_| {
-                call_count_clone.fetch_add(1, Ordering::SeqCst);
-                Ok(Some(make_policy(id)))
-            });
+        mock.expect_find_by_id().returning(move |_| {
+            call_count_clone.fetch_add(1, Ordering::SeqCst);
+            Ok(Some(make_policy(id)))
+        });
 
         let cache = Arc::new(PolicyCache::new(100, 60));
         let cached_repo = CachedPolicyRepository::new(Arc::new(mock), cache);
@@ -163,11 +162,10 @@ mod tests {
         let mut mock = MockPolicyRepository::new();
         mock.expect_create().returning(|_| Ok(()));
         mock.expect_delete().returning(|_| Ok(true));
-        mock.expect_find_by_id()
-            .returning(move |_| {
-                call_count_clone.fetch_add(1, Ordering::SeqCst);
-                Ok(None)
-            });
+        mock.expect_find_by_id().returning(move |_| {
+            call_count_clone.fetch_add(1, Ordering::SeqCst);
+            Ok(None)
+        });
 
         let cache = Arc::new(PolicyCache::new(100, 60));
         let cached_repo = CachedPolicyRepository::new(Arc::new(mock), cache);

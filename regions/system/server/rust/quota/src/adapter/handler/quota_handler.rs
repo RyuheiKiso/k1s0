@@ -141,7 +141,14 @@ pub async fn check_quota(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     match state.get_usage_uc.execute(&id).await {
-        Ok(usage) => (StatusCode::OK, Json(serde_json::to_value(usage).unwrap())).into_response(),
+        Ok(usage) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "usage": usage,
+                "retrieved_at": chrono::Utc::now().to_rfc3339(),
+            })),
+        )
+            .into_response(),
         Err(GetQuotaUsageError::NotFound(id)) => {
             let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
@@ -214,7 +221,14 @@ pub async fn get_usage(
     use crate::usecase::get_quota_usage::GetQuotaUsageError;
 
     match state.get_usage_uc.execute(&id).await {
-        Ok(usage) => (StatusCode::OK, Json(serde_json::to_value(usage).unwrap())).into_response(),
+        Ok(usage) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "usage": usage,
+                "retrieved_at": chrono::Utc::now().to_rfc3339(),
+            })),
+        )
+            .into_response(),
         Err(GetQuotaUsageError::NotFound(id)) => {
             let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
@@ -310,6 +324,14 @@ pub struct ErrorResponse {
 pub struct ErrorBody {
     pub code: String,
     pub message: String,
+    pub request_id: String,
+    pub details: Vec<ErrorDetail>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ErrorDetail {
+    pub field: String,
+    pub message: String,
 }
 
 impl ErrorResponse {
@@ -318,6 +340,8 @@ impl ErrorResponse {
             error: ErrorBody {
                 code: code.to_string(),
                 message: message.to_string(),
+                request_id: uuid::Uuid::new_v4().to_string(),
+                details: vec![],
             },
         }
     }

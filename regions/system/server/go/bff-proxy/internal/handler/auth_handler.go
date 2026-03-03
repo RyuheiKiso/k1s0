@@ -2,9 +2,13 @@ package handler
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -134,6 +138,13 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		return
 	}
 
+	subject, err := extractSubjectFromIDToken(tokenResp.IDToken)
+	if err != nil {
+		h.logger.Error("failed to extract subject from id_token", slog.String("error", err.Error()))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "BFF_AUTH_ID_TOKEN_INVALID"})
+		return
+	}
+
 	// Generate CSRF token for the session.
 	csrfToken, err := generateRandomString(32)
 	if err != nil {
@@ -149,6 +160,7 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		IDToken:      tokenResp.IDToken,
 		ExpiresAt:    time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix(),
 		CSRFToken:    csrfToken,
+		Subject:      subject,
 	}
 
 	sessionID, err := h.sessionStore.Create(c.Request.Context(), sessData, h.sessionTTL)
@@ -210,4 +222,35 @@ func generateRandomString(n int) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil
+}
+
+func extractSubjectFromIDToken(idToken string) (string, error) {
+	if idToken == "" {
+		return "", fmt.Errorf("id token is empty")
+	}
+
+	parts := strings.Split(idToken, ".")
+	if len(parts) < 2 {
+		return "", fmt.Errorf("id token format is invalid")
+	}
+
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		payload, err = base64.URLEncoding.DecodeString(parts[1])
+		if err != nil {
+			return "", fmt.Errorf("failed to decode id token payload: %w", err)
+		}
+	}
+
+	var claims struct {
+		Subject string `json:"sub"`
+	}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return "", fmt.Errorf("failed to parse id token payload: %w", err)
+	}
+	if claims.Subject == "" {
+		return "", fmt.Errorf("sub claim is missing")
+	}
+
+	return claims.Subject, nil
 }

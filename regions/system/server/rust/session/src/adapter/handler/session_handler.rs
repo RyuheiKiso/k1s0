@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -9,8 +9,9 @@ use axum::Json;
 use k1s0_server_common::error as codes;
 use k1s0_server_common::ErrorResponse;
 
-use crate::error::SessionError;
 use crate::adapter::middleware::auth::SessionAuthState;
+use crate::domain::entity::session::Session;
+use crate::error::SessionError;
 use crate::usecase::create_session::{CreateSessionInput, CreateSessionUseCase};
 use crate::usecase::get_session::{GetSessionInput, GetSessionUseCase};
 use crate::usecase::list_user_sessions::{ListUserSessionsInput, ListUserSessionsUseCase};
@@ -44,24 +45,20 @@ fn error_response(err: SessionError) -> (StatusCode, Json<serde_json::Value>) {
             codes::session::not_found(),
             err.to_string(),
         ),
-        SessionError::Expired(_) => (
-            StatusCode::GONE,
-            codes::session::expired(),
-            err.to_string(),
-        ),
+        SessionError::Expired(_) => (StatusCode::GONE, codes::session::expired(), err.to_string()),
         SessionError::Revoked(_) => (
             StatusCode::CONFLICT,
-            codes::session::revoked(),
+            codes::session::already_revoked(),
             err.to_string(),
         ),
         SessionError::InvalidInput(_) => (
             StatusCode::BAD_REQUEST,
-            codes::session::invalid_input(),
+            codes::session::validation_error(),
             err.to_string(),
         ),
         SessionError::TooManySessions(_) => (
             StatusCode::TOO_MANY_REQUESTS,
-            codes::session::too_many_sessions(),
+            codes::session::max_devices_exceeded(),
             err.to_string(),
         ),
         SessionError::Internal(_) => (
@@ -91,7 +88,11 @@ pub async fn create_session(
     };
 
     match state.create_uc.execute(&uc_input).await {
-        Ok(output) => (StatusCode::CREATED, Json(serde_json::to_value(output).unwrap())).into_response(),
+        Ok(output) => (
+            StatusCode::CREATED,
+            Json(serde_json::to_value(SessionHttpResponse::from_session(output.session)).unwrap()),
+        )
+            .into_response(),
         Err(e) => error_response(e).into_response(),
     }
 }
@@ -111,39 +112,50 @@ pub struct CreateSessionHttpRequest {
 
 pub async fn get_session(
     State(state): State<AppState>,
-    Path(id): Path<String>,
+    Path(session_id): Path<String>,
 ) -> impl IntoResponse {
     let input = GetSessionInput {
-        id: Some(id),
+        id: Some(session_id),
         token: None,
     };
     match state.get_uc.execute(&input).await {
-        Ok(output) => (StatusCode::OK, Json(serde_json::to_value(output).unwrap())).into_response(),
+        Ok(output) => (
+            StatusCode::OK,
+            Json(serde_json::to_value(SessionHttpResponse::from_session(output.session)).unwrap()),
+        )
+            .into_response(),
         Err(e) => error_response(e).into_response(),
     }
 }
 
 pub async fn refresh_session(
     State(state): State<AppState>,
-    Path(id): Path<String>,
+    Path(session_id): Path<String>,
     Json(body): Json<serde_json::Value>,
 ) -> impl IntoResponse {
     let ttl_seconds = body
         .get("ttl_seconds")
         .and_then(|v| v.as_i64())
         .unwrap_or(3600);
-    let input = RefreshSessionInput { id, ttl_seconds };
+    let input = RefreshSessionInput {
+        id: session_id,
+        ttl_seconds,
+    };
     match state.refresh_uc.execute(&input).await {
-        Ok(output) => (StatusCode::OK, Json(serde_json::to_value(output).unwrap())).into_response(),
+        Ok(output) => (
+            StatusCode::OK,
+            Json(serde_json::to_value(SessionHttpResponse::from_session(output.session)).unwrap()),
+        )
+            .into_response(),
         Err(e) => error_response(e).into_response(),
     }
 }
 
 pub async fn revoke_session(
     State(state): State<AppState>,
-    Path(id): Path<String>,
+    Path(session_id): Path<String>,
 ) -> impl IntoResponse {
-    let input = RevokeSessionInput { id };
+    let input = RevokeSessionInput { id: session_id };
     match state.revoke_uc.execute(&input).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => error_response(e).into_response(),
@@ -156,7 +168,18 @@ pub async fn list_user_sessions(
 ) -> impl IntoResponse {
     let input = ListUserSessionsInput { user_id };
     match state.list_uc.execute(&input).await {
-        Ok(output) => (StatusCode::OK, Json(serde_json::to_value(output).unwrap())).into_response(),
+        Ok(output) => {
+            let total_count = output.sessions.len() as u32;
+            let mapped = ListSessionsHttpResponse {
+                sessions: output
+                    .sessions
+                    .into_iter()
+                    .map(SessionHttpResponse::from_session)
+                    .collect(),
+                total_count,
+            };
+            (StatusCode::OK, Json(serde_json::to_value(mapped).unwrap())).into_response()
+        }
         Err(e) => error_response(e).into_response(),
     }
 }
@@ -167,7 +190,60 @@ pub async fn revoke_all_sessions(
 ) -> impl IntoResponse {
     let input = RevokeAllSessionsInput { user_id };
     match state.revoke_all_uc.execute(&input).await {
-        Ok(output) => (StatusCode::OK, Json(serde_json::to_value(output).unwrap())).into_response(),
+        Ok(output) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "revoked_count": output.count
+            })),
+        )
+            .into_response(),
         Err(e) => error_response(e).into_response(),
     }
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SessionHttpResponse {
+    pub session_id: String,
+    pub user_id: String,
+    pub device_id: String,
+    pub device_name: Option<String>,
+    pub device_type: Option<String>,
+    pub user_agent: Option<String>,
+    pub ip_address: Option<String>,
+    pub token: String,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub last_accessed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub status: String,
+    pub metadata: HashMap<String, String>,
+}
+
+impl SessionHttpResponse {
+    fn from_session(session: Session) -> Self {
+        Self {
+            session_id: session.id,
+            user_id: session.user_id,
+            device_id: session.device_id,
+            device_name: session.device_name,
+            device_type: session.device_type,
+            user_agent: session.user_agent,
+            ip_address: session.ip_address,
+            token: session.token,
+            expires_at: session.expires_at,
+            created_at: session.created_at,
+            last_accessed_at: session.last_accessed_at,
+            status: if session.revoked {
+                "revoked".to_string()
+            } else {
+                "active".to_string()
+            },
+            metadata: session.metadata,
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ListSessionsHttpResponse {
+    pub sessions: Vec<SessionHttpResponse>,
+    pub total_count: u32,
 }

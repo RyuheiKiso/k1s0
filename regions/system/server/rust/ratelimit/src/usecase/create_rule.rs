@@ -25,6 +25,7 @@ pub struct CreateRuleInput {
     pub identifier_pattern: String,
     pub limit: u32,
     pub window_seconds: u32,
+    pub algorithm: Option<String>,
     pub enabled: bool,
 }
 
@@ -62,12 +63,20 @@ impl CreateRuleUseCase {
             return Err(CreateRuleError::AlreadyExists(input.scope.clone()));
         }
 
+        let algorithm = Algorithm::from_str(
+            input
+                .algorithm
+                .as_deref()
+                .unwrap_or("token_bucket"),
+        )
+        .map_err(CreateRuleError::InvalidAlgorithm)?;
+
         let mut rule = RateLimitRule::new(
             input.scope.clone(),
             input.identifier_pattern.clone(),
             input.limit,
             input.window_seconds,
-            Algorithm::TokenBucket,
+            algorithm,
         );
         rule.enabled = input.enabled;
 
@@ -100,6 +109,7 @@ mod tests {
                 identifier_pattern: "global".to_string(),
                 limit: 100,
                 window_seconds: 60,
+                algorithm: None,
                 enabled: true,
             })
             .await;
@@ -134,6 +144,7 @@ mod tests {
                 identifier_pattern: "global".to_string(),
                 limit: 100,
                 window_seconds: 60,
+                algorithm: None,
                 enabled: true,
             })
             .await;
@@ -152,6 +163,7 @@ mod tests {
                 identifier_pattern: "test".to_string(),
                 limit: 100,
                 window_seconds: 60,
+                algorithm: None,
                 enabled: true,
             })
             .await;
@@ -170,6 +182,7 @@ mod tests {
                 identifier_pattern: "test".to_string(),
                 limit: 0,
                 window_seconds: 60,
+                algorithm: None,
                 enabled: true,
             })
             .await;
@@ -188,6 +201,7 @@ mod tests {
                 identifier_pattern: "test".to_string(),
                 limit: 100,
                 window_seconds: 0,
+                algorithm: None,
                 enabled: true,
             })
             .await;

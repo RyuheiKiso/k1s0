@@ -121,7 +121,7 @@ impl TenantService for TenantServiceTonic {
             name: inner.name,
             display_name: inner.display_name,
             plan: inner.plan,
-            owner_id: inner.owner_user_id,
+            owner_id: inner.owner_id,
         };
         let resp = self
             .inner
@@ -174,7 +174,7 @@ impl TenantService for TenantServiceTonic {
             tenants,
             pagination: Some(
                 crate::proto::k1s0::system::common::v1::PaginationResult {
-                    total_count: resp.total_count as i32,
+                    total_count: resp.total_count.min(i64::from(i32::MAX)) as i32,
                     page: resp.page,
                     page_size: resp.page_size,
                     has_next: resp.has_next,

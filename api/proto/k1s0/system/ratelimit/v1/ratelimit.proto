@@ -5,6 +5,7 @@ package k1s0.system.ratelimit.v1;
 option go_package = "github.com/k1s0-platform/system-proto-go/ratelimit/v1;ratelimitv1";
 
 import "google/protobuf/timestamp.proto";
+import "k1s0/system/common/v1/types.proto";
 
 // RateLimitService は API レート制限サービス。
 // スライディングウィンドウ・トークンバケット等のアルゴリズムをサポートする。
@@ -91,6 +92,7 @@ message ListRulesRequest {
 
 message ListRulesResponse {
   repeated RateLimitRule rules = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message RateLimitRule {

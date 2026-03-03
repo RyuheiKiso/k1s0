@@ -1,4 +1,4 @@
-﻿use axum::{
+use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
@@ -10,6 +10,7 @@ use uuid::Uuid;
 use super::AppState;
 use crate::usecase::create_policy::CreatePolicyInput;
 use crate::usecase::evaluate_policy::EvaluatePolicyInput;
+use crate::usecase::list_policies::ListPoliciesInput;
 use crate::usecase::update_policy::UpdatePolicyInput;
 
 /// GET /api/v1/policies
@@ -24,7 +25,8 @@ pub async fn list_policies(
         match Uuid::parse_str(&bundle_id) {
             Ok(id) => Some(id),
             Err(_) => {
-                let err = ErrorResponse::new("SYS_POLICY_INVALID_BUNDLE_ID", "invalid bundle_id format");
+                let err =
+                    ErrorResponse::new("SYS_POLICY_INVALID_BUNDLE_ID", "invalid bundle_id format");
                 return (StatusCode::BAD_REQUEST, Json(err)).into_response();
             }
         }
@@ -32,49 +34,51 @@ pub async fn list_policies(
         None
     };
 
-    match state
-        .policy_repo
-        .find_all_paginated(page, page_size, bundle_id, enabled_only)
-        .await
-    {
-        Ok((policies, total_count)) => {
-            let items: Vec<PolicyResponse> =
-                policies.into_iter().map(PolicyResponse::from).collect();
-            let has_next = (page as u64 * page_size as u64) < total_count;
+    let input = ListPoliciesInput {
+        page,
+        page_size,
+        bundle_id,
+        enabled_only,
+    };
+
+    match state.list_policies_uc.execute(&input).await {
+        Ok(output) => {
+            let items: Vec<PolicyResponse> = output
+                .policies
+                .into_iter()
+                .map(PolicyResponse::from)
+                .collect();
             (
                 StatusCode::OK,
                 Json(serde_json::json!({
                     "policies": items,
-                    "total_count": total_count,
-                    "page": page,
-                    "page_size": page_size,
-                    "has_next": has_next
+                    "pagination": {
+                        "total_count": output.total_count,
+                        "page": output.page,
+                        "page_size": output.page_size,
+                        "has_next": output.has_next
+                    }
                 })),
             )
                 .into_response()
         }
-        Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
+        Err(crate::usecase::list_policies::ListPoliciesError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }
 
 /// GET /api/v1/policies/:id
-pub async fn get_policy(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+pub async fn get_policy(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match state.get_policy_uc.execute(&id).await {
         Ok(Some(policy)) => {
             let resp = PolicyResponse::from(policy);
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
         Ok(None) => {
-            let err = ErrorResponse::new(
-                "SYS_POLICY_NOT_FOUND",
-                &format!("policy not found: {}", id),
-            );
+            let err =
+                ErrorResponse::new("SYS_POLICY_NOT_FOUND", &format!("policy not found: {}", id));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
@@ -101,7 +105,8 @@ pub async fn create_policy(
         Some(bundle_id) => match Uuid::parse_str(&bundle_id) {
             Ok(id) => Some(id),
             Err(_) => {
-                let err = ErrorResponse::new("SYS_POLICY_INVALID_BUNDLE_ID", "invalid bundle_id format");
+                let err =
+                    ErrorResponse::new("SYS_POLICY_INVALID_BUNDLE_ID", "invalid bundle_id format");
                 return (StatusCode::BAD_REQUEST, Json(err)).into_response();
             }
         },
@@ -119,7 +124,11 @@ pub async fn create_policy(
     match state.create_policy_uc.execute(&input).await {
         Ok(policy) => {
             let resp = PolicyResponse::from(policy);
-            (StatusCode::CREATED, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (
+                StatusCode::CREATED,
+                Json(serde_json::to_value(resp).unwrap()),
+            )
+                .into_response()
         }
         Err(crate::usecase::create_policy::CreatePolicyError::AlreadyExists(name)) => {
             let err = ErrorResponse::new(
@@ -187,10 +196,8 @@ pub async fn delete_policy(
         )
             .into_response(),
         Err(DeletePolicyError::NotFound(_)) => {
-            let err = ErrorResponse::new(
-                "SYS_POLICY_NOT_FOUND",
-                &format!("policy not found: {}", id),
-            );
+            let err =
+                ErrorResponse::new("SYS_POLICY_NOT_FOUND", &format!("policy not found: {}", id));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeletePolicyError::Internal(msg)) => {
@@ -217,7 +224,7 @@ pub async fn evaluate_policy(
             StatusCode::OK,
             Json(serde_json::json!({
                 "allowed": output.allowed,
-                "reason": output.reason,
+                "package_path": output.package_path,
                 "decision_id": output.decision_id,
                 "cached": output.cached
             })),
@@ -255,6 +262,25 @@ pub async fn list_bundles(State(state): State<AppState>) -> impl IntoResponse {
     }
 }
 
+/// GET /api/v1/bundles/:id
+pub async fn get_bundle(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
+    match state.get_bundle_uc.execute(&id).await {
+        Ok(bundle) => {
+            let resp = BundleResponse::from(bundle);
+            (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
+        }
+        Err(crate::usecase::get_bundle::GetBundleError::NotFound(_)) => {
+            let err =
+                ErrorResponse::new("SYS_POLICY_NOT_FOUND", &format!("bundle not found: {}", id));
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(crate::usecase::get_bundle::GetBundleError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+        }
+    }
+}
+
 /// POST /api/v1/bundles
 pub async fn create_bundle(
     State(state): State<AppState>,
@@ -262,11 +288,8 @@ pub async fn create_bundle(
 ) -> impl IntoResponse {
     use crate::usecase::create_bundle::CreateBundleInput;
 
-    let policy_ids: Result<Vec<Uuid>, _> = req
-        .policy_ids
-        .iter()
-        .map(|s| Uuid::parse_str(s))
-        .collect();
+    let policy_ids: Result<Vec<Uuid>, _> =
+        req.policy_ids.iter().map(|s| Uuid::parse_str(s)).collect();
 
     let policy_ids = match policy_ids {
         Ok(ids) => ids,
@@ -286,7 +309,11 @@ pub async fn create_bundle(
     match state.create_bundle_uc.execute(&input).await {
         Ok(bundle) => {
             let resp = BundleResponse::from(bundle);
-            (StatusCode::CREATED, Json(serde_json::to_value(resp).unwrap())).into_response()
+            (
+                StatusCode::CREATED,
+                Json(serde_json::to_value(resp).unwrap()),
+            )
+                .into_response()
         }
         Err(e) => {
             let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
@@ -418,4 +445,3 @@ impl ErrorResponse {
         }
     }
 }
-

@@ -33,6 +33,7 @@ regions/system/server/rust/saga/
 │   │   ├── cancel_saga.rs                   # Saga キャンセル
 │   │   ├── register_workflow.rs             # ワークフロー登録
 │   │   ├── list_workflows.rs                # ワークフロー一覧
+│   │   ├── compensate_saga.rs               # Saga 補償トリガー（実装は execute_saga の補償ロジックを利用）
 │   │   └── recover_sagas.rs                 # 起動時リカバリ
 │   ├── adapter/
 │   │   ├── mod.rs
@@ -44,6 +45,9 @@ regions/system/server/rust/saga/
 │   │   │   ├── mod.rs
 │   │   │   ├── saga_grpc.rs                 # gRPC サービス実装
 │   │   │   └── tonic_service.rs             # tonic サービスラッパー
+│   │   ├── middleware/
+│   │   │   ├── mod.rs
+│   │   │   └── rbac.rs                      # RBAC ミドルウェア
 │   │   └── repository/
 │   │       ├── mod.rs
 │   │       ├── saga_postgres.rs             # PostgreSQL リポジトリ実装

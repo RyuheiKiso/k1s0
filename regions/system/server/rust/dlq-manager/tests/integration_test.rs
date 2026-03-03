@@ -103,6 +103,7 @@ fn make_app_state(repo: Arc<dyn DlqMessageRepository>) -> AppState {
         delete_message_uc: Arc::new(DeleteMessageUseCase::new(repo.clone())),
         retry_all_uc: Arc::new(RetryAllUseCase::new(repo, None)),
         metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("test")),
+        auth_state: None,
     }
 }
 
@@ -171,6 +172,7 @@ fn make_app_state_with_publisher(
         delete_message_uc: Arc::new(DeleteMessageUseCase::new(repo.clone())),
         retry_all_uc: Arc::new(RetryAllUseCase::new(repo, Some(publisher))),
         metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("test")),
+        auth_state: None,
     }
 }
 
@@ -443,7 +445,7 @@ async fn test_retry_all_returns_retried_count() {
         .await
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(json["retried"], 1);
+    assert_eq!(json["retried_count"], 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -572,7 +574,7 @@ async fn test_retry_all_with_successful_publisher_resolves_all_messages() {
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     // 2 件のメッセージがリトライされた
-    assert_eq!(json["retried"], 2);
+    assert_eq!(json["retried_count"], 2);
 
     // 2 件のトピックへの発行が記録されていること
     let topics = published_topics.lock().unwrap();

@@ -187,9 +187,9 @@ tower = { version = "0.5", features = ["util"] }
 | `DlqMessageResponse` | `id`, `original_topic`, `error_message`, `retry_count`, `max_retries`, `payload`, `status`, `created_at`, `updated_at`, `last_retry_at` | メッセージ詳細 |
 | `ListMessagesResponse` | `messages`, `pagination` | メッセージ一覧 |
 | `PaginationResponse` | `total_count`, `page`, `page_size`, `has_next` | ページネーション |
-| `RetryMessageResponse` | `id`, `status`, `message` | リトライ結果 |
-| `RetryAllResponse` | `retried`, `message` | 一括リトライ結果 |
-| `DeleteMessageResponse` | `success`, `message` | 削除結果 |
+| `RetryMessageResponse` | `message: DlqMessage` | リトライ結果 |
+| `RetryAllResponse` | `retried_count`, `message` | 一括リトライ結果 |
+| `DeleteMessageResponse` | `id` | 削除結果 |
 
 ### DlqError
 
@@ -198,6 +198,7 @@ tower = { version = "0.5", features = ["util"] }
 | `NotFound` | 404 | `SYS_DLQ_NOT_FOUND` |
 | `Validation` | 400 | `SYS_DLQ_VALIDATION_ERROR` |
 | `Conflict` | 409 | `SYS_DLQ_CONFLICT` |
+| `ProcessFailed` | 500 | `SYS_DLQ_PROCESS_FAILED` |
 | `Internal` | 500 | `SYS_DLQ_INTERNAL_ERROR` |
 
 ---
@@ -212,6 +213,12 @@ tower = { version = "0.5", features = ["util"] }
 | `server` | `host`(default: "0.0.0.0"), `port`(default: 8080) | HTTP サーバー |
 | `database` | `host`, `port`, `name`, `user`, `password`, `ssl_mode`, `max_open_conns` | PostgreSQL 接続（Optional） |
 | `kafka` | `brokers`, `consumer_group`, `security_protocol`, `dlq_topic_pattern` | Kafka 接続（Optional） |
+| `auth` | `jwks_url`, `issuer`, `audience`, `jwks_cache_ttl_secs` | JWT 認証設定（Optional） |
+
+### 認証ミドルウェア
+
+- `src/adapter/middleware/auth.rs`: Bearer JWT を JWKS で検証し、`Claims` を request extension に注入
+- `src/adapter/middleware/rbac.rs`: `sys_admin` / `sys_operator` / `sys_auditor` を `dlq/read` / `dlq/write` / `dlq/admin` にマップして認可
 
 ### DlqKafkaConsumer
 
@@ -369,6 +376,8 @@ pub enum DlqError {
     Validation(String),
     #[error("conflict: {0}")]
     Conflict(String),
+    #[error("process failed: {0}")]
+    ProcessFailed(String),
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -390,6 +399,7 @@ pub struct Config {
     pub server: ServerConfig,
     pub database: Option<DatabaseConfig>,    // オプショナル（DB 未設定時は InMemory）
     pub kafka: Option<KafkaConfig>,          // オプショナル（Kafka 未設定時はイベント非発行）
+    pub auth: Option<AuthConfig>,            // オプショナル（JWT/JWKS 認証）
 }
 ```
 
@@ -423,6 +433,19 @@ pub struct KafkaConfig {
     pub consumer_group: String,        // default: ""
     pub security_protocol: String,     // default: "PLAINTEXT"
     pub dlq_topic_pattern: String,     // default: "*.dlq.v1"
+}
+```
+
+### AuthConfig
+
+```rust
+// src/infrastructure/config.rs
+#[derive(Debug, Clone, Deserialize)]
+pub struct AuthConfig {
+    pub jwks_url: String,
+    pub issuer: String,
+    pub audience: String,
+    pub jwks_cache_ttl_secs: u64, // default: 300
 }
 ```
 
@@ -531,8 +554,18 @@ PostgreSQL の `dlq.messages` テーブルに対する CRUD を提供する。`D
 - **InMemory リポジトリ**: `DATABASE_URL` 未設定時の dev/test 用に `main.rs` に `InMemoryDlqMessageRepository` を実装済み。`RwLock<Vec<DlqMessage>>` で状態を管理する
 - **Kafka オプショナル**: Kafka 未設定時やプロデューサー作成失敗時もサーバーは起動する。再処理時は Kafka 再発行をスキップし RESOLVED に遷移する
 - **Kafka コンシューマーオプショナル**: Kafka 未設定時やコンシューマー作成失敗時は DLQ メッセージの自動取り込みが無効になる（ログで警告出力）
-- **REST のみ**: Saga サーバーと異なり gRPC サービスは提供しない。REST API のみで動作する
+- **gRPC 提供あり**: REST に加えて gRPC サービスを提供する。主な RPC は `GetMessage`, `ListMessages`, `RetryMessage`, `RetryAll`, `DeleteMessage`
 - **ルーティング順序**: `/api/v1/dlq/messages/:id` を `/api/v1/dlq/:topic` より先に定義し、`messages` が `:topic` パラメータとして誤マッチしないようにする
+
+```protobuf
+service DlqService {
+  rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  rpc RetryMessage(RetryMessageRequest) returns (RetryMessageResponse);
+  rpc RetryAll(RetryAllRequest) returns (RetryAllResponse);
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+}
+```
 
 ## 関連ドキュメント
 

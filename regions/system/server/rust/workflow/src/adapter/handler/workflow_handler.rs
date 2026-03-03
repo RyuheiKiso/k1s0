@@ -16,10 +16,12 @@ use crate::usecase::get_instance::{GetInstanceError, GetInstanceInput};
 use crate::usecase::list_instances::{ListInstancesError, ListInstancesInput};
 use crate::usecase::cancel_instance::{CancelInstanceError, CancelInstanceInput};
 use crate::usecase::list_tasks::{ListTasksError, ListTasksInput};
+use crate::usecase::check_overdue_tasks::{CheckOverdueTasksError, CheckOverdueTasksUseCase};
 use crate::usecase::approve_task::{ApproveTaskError, ApproveTaskInput};
 use crate::usecase::reject_task::{RejectTaskError, RejectTaskInput};
 use crate::usecase::reassign_task::{ReassignTaskError, ReassignTaskInput};
 use crate::adapter::middleware::auth::WorkflowAuthState;
+use crate::infrastructure::notification_request_producer::NotificationRequestPublisher;
 use crate::usecase::{
     ApproveTaskUseCase, CancelInstanceUseCase, CreateWorkflowUseCase, DeleteWorkflowUseCase,
     GetInstanceUseCase, GetWorkflowUseCase, ListInstancesUseCase, ListTasksUseCase,
@@ -42,6 +44,8 @@ pub struct AppState {
     pub approve_task_uc: Arc<ApproveTaskUseCase>,
     pub reject_task_uc: Arc<RejectTaskUseCase>,
     pub reassign_task_uc: Arc<ReassignTaskUseCase>,
+    pub check_overdue_tasks_uc: Arc<CheckOverdueTasksUseCase>,
+    pub notification_request_publisher: Arc<dyn NotificationRequestPublisher>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<WorkflowAuthState>,
 }
@@ -255,7 +259,13 @@ pub struct ErrorBody {
     pub code: String,
     pub message: String,
     pub request_id: String,
-    pub details: Vec<String>,
+    pub details: Vec<ErrorDetail>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ErrorDetail {
+    pub field: String,
+    pub message: String,
 }
 
 impl ErrorResponse {
@@ -651,9 +661,11 @@ pub async fn list_instances(
                         "workflow_id": inst.workflow_id,
                         "workflow_name": inst.workflow_name,
                         "title": inst.title,
+                        "initiator_id": inst.initiator_id,
                         "status": inst.status,
                         "current_step_id": inst.current_step_id,
                         "started_at": inst.started_at.to_rfc3339(),
+                        "created_at": inst.created_at.to_rfc3339(),
                         "completed_at": inst.completed_at.map(|t| t.to_rfc3339()),
                     })
                 })
@@ -785,7 +797,10 @@ pub async fn list_tasks(
                 .map(|t| {
                     let is_overdue = t
                         .due_at
-                        .map(|d| d < chrono::Utc::now() && t.status == "pending")
+                        .map(|d| {
+                            d < chrono::Utc::now()
+                                && (t.status == "pending" || t.status == "assigned")
+                        })
                         .unwrap_or(false);
                     serde_json::json!({
                         "id": t.id,
@@ -797,6 +812,7 @@ pub async fn list_tasks(
                         "is_overdue": is_overdue,
                         "due_at": t.due_at.map(|d| d.to_rfc3339()),
                         "created_at": t.created_at.to_rfc3339(),
+                        "updated_at": t.updated_at.to_rfc3339(),
                     })
                 })
                 .collect();
@@ -815,6 +831,53 @@ pub async fn list_tasks(
                 .into_response()
         }
         Err(ListTasksError::Internal(msg)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
+        )
+            .into_response(),
+    }
+}
+
+/// POST /internal/tasks/check-overdue
+pub async fn check_overdue_tasks(State(state): State<AppState>) -> impl IntoResponse {
+    match state.check_overdue_tasks_uc.execute().await {
+        Ok(output) => {
+            let mut published_count = 0usize;
+            for task in &output.overdue_tasks {
+                if state
+                    .notification_request_publisher
+                    .publish_task_overdue(task)
+                    .await
+                    .is_ok()
+                {
+                    published_count += 1;
+                }
+            }
+
+            let tasks: Vec<serde_json::Value> = output
+                .overdue_tasks
+                .into_iter()
+                .map(|task| {
+                    serde_json::json!({
+                        "task_id": task.id,
+                        "instance_id": task.instance_id,
+                        "assignee_id": task.assignee_id,
+                        "due_at": task.due_at.map(|d| d.to_rfc3339()),
+                    })
+                })
+                .collect();
+
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "overdue_count": output.count,
+                    "published_count": published_count,
+                    "tasks": tasks
+                })),
+            )
+                .into_response()
+        }
+        Err(CheckOverdueTasksError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )

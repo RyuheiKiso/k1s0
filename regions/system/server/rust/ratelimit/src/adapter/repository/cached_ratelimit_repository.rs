@@ -110,6 +110,18 @@ impl RateLimitRepository for CachedRateLimitRepository {
         self.inner.find_all().await
     }
 
+    async fn find_page(
+        &self,
+        page: u32,
+        page_size: u32,
+        scope: Option<&str>,
+        enabled_only: bool,
+    ) -> anyhow::Result<(Vec<RateLimitRule>, u64)> {
+        self.inner
+            .find_page(page, page_size, scope, enabled_only)
+            .await
+    }
+
     async fn update(&self, rule: &RateLimitRule) -> anyhow::Result<()> {
         self.inner.update(rule).await?;
         self.cache.insert(rule).await;

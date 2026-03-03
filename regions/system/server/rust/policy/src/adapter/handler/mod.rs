@@ -11,22 +11,23 @@ use axum::Router;
 
 use crate::adapter::middleware::auth::{auth_middleware, PolicyAuthState};
 use crate::adapter::middleware::rbac::require_permission;
-use crate::domain::repository::PolicyRepository;
 use crate::usecase::{
     CreateBundleUseCase, CreatePolicyUseCase, DeletePolicyUseCase, EvaluatePolicyUseCase,
-    GetPolicyUseCase, ListBundlesUseCase, UpdatePolicyUseCase,
+    GetBundleUseCase, GetPolicyUseCase, ListBundlesUseCase, ListPoliciesUseCase,
+    UpdatePolicyUseCase,
 };
 
 /// Shared application state for REST handlers.
 #[derive(Clone)]
 pub struct AppState {
-    pub policy_repo: Arc<dyn PolicyRepository>,
     pub create_policy_uc: Arc<CreatePolicyUseCase>,
     pub get_policy_uc: Arc<GetPolicyUseCase>,
+    pub list_policies_uc: Arc<ListPoliciesUseCase>,
     pub update_policy_uc: Arc<UpdatePolicyUseCase>,
     pub delete_policy_uc: Arc<DeletePolicyUseCase>,
     pub evaluate_policy_uc: Arc<EvaluatePolicyUseCase>,
     pub create_bundle_uc: Arc<CreateBundleUseCase>,
+    pub get_bundle_uc: Arc<GetBundleUseCase>,
     pub list_bundles_uc: Arc<ListBundlesUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<PolicyAuthState>,
@@ -52,25 +53,26 @@ pub fn router(state: AppState) -> Router {
             .route("/api/v1/policies", get(policy_handler::list_policies))
             .route("/api/v1/policies/:id", get(policy_handler::get_policy))
             .route("/api/v1/bundles", get(policy_handler::list_bundles))
+            .route("/api/v1/bundles/:id", get(policy_handler::get_bundle))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "policies", "read",
             )));
 
-        // POST/PUT/evaluate -> policies/write
+        // POST/evaluate -> policies/write
         let write_routes = Router::new()
             .route("/api/v1/policies", post(policy_handler::create_policy))
-            .route("/api/v1/policies/:id", put(policy_handler::update_policy))
             .route(
                 "/api/v1/policies/:id/evaluate",
                 post(policy_handler::evaluate_policy),
             )
-            .route("/api/v1/bundles", post(policy_handler::create_bundle))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "policies", "write",
             )));
 
-        // DELETE -> policies/admin
+        // PUT /policies/:id + POST /bundles + DELETE -> policies/admin
         let admin_routes = Router::new()
+            .route("/api/v1/policies/:id", put(policy_handler::update_policy))
+            .route("/api/v1/bundles", post(policy_handler::create_bundle))
             .route(
                 "/api/v1/policies/:id",
                 delete(policy_handler::delete_policy),
@@ -101,14 +103,9 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/policies/:id/evaluate",
                 post(policy_handler::evaluate_policy),
             )
-            .route(
-                "/api/v1/bundles",
-                get(policy_handler::list_bundles),
-            )
-            .route(
-                "/api/v1/bundles",
-                post(policy_handler::create_bundle),
-            )
+            .route("/api/v1/bundles", get(policy_handler::list_bundles))
+            .route("/api/v1/bundles/:id", get(policy_handler::get_bundle))
+            .route("/api/v1/bundles", post(policy_handler::create_bundle))
     };
 
     Router::new()

@@ -4,5 +4,7 @@
 //! unified error response types, and axum integration for HTTP error responses.
 
 pub mod error;
+pub mod pagination;
 
 pub use error::{ErrorBody, ErrorCode, ErrorDetail, ErrorResponse, ServiceError};
+pub use pagination::{PaginatedResponse, PaginationResponse};

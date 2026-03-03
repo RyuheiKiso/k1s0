@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use redis::AsyncCommands;
 use redis::aio::ConnectionManager;
+use redis::AsyncCommands;
 
 use crate::domain::entity::session::Session;
 use crate::domain::repository::SessionRepository;
@@ -43,7 +43,11 @@ impl RedisSessionRepository {
     /// expires_at から TTL 秒数を計算する。最小 1 秒。
     fn ttl_seconds(session: &Session) -> i64 {
         let ttl = (session.expires_at - chrono::Utc::now()).num_seconds();
-        if ttl < 1 { 1 } else { ttl }
+        if ttl < 1 {
+            1
+        } else {
+            ttl
+        }
     }
 }
 
@@ -194,9 +198,15 @@ mod tests {
         let session = Session {
             id: "s1".to_string(),
             user_id: "u1".to_string(),
+            device_id: "d1".to_string(),
+            device_name: Some("device".to_string()),
+            device_type: Some("desktop".to_string()),
+            user_agent: Some("ua".to_string()),
+            ip_address: Some("127.0.0.1".to_string()),
             token: "t1".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
+            last_accessed_at: None,
             revoked: false,
             metadata: HashMap::new(),
         };
@@ -214,9 +224,15 @@ mod tests {
         let session = Session {
             id: "s1".to_string(),
             user_id: "u1".to_string(),
+            device_id: "d1".to_string(),
+            device_name: Some("device".to_string()),
+            device_type: Some("desktop".to_string()),
+            user_agent: Some("ua".to_string()),
+            ip_address: Some("127.0.0.1".to_string()),
             token: "t1".to_string(),
             expires_at: Utc::now() - Duration::hours(1),
             created_at: Utc::now(),
+            last_accessed_at: None,
             revoked: false,
             metadata: HashMap::new(),
         };
@@ -234,9 +250,15 @@ mod tests {
         let session = Session {
             id: "sess-1".to_string(),
             user_id: "user-1".to_string(),
+            device_id: "d1".to_string(),
+            device_name: Some("device".to_string()),
+            device_type: Some("desktop".to_string()),
+            user_agent: Some("ua".to_string()),
+            ip_address: Some("127.0.0.1".to_string()),
             token: "tok-1".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
+            last_accessed_at: None,
             revoked: false,
             metadata: HashMap::from([("ip".to_string(), "127.0.0.1".to_string())]),
         };

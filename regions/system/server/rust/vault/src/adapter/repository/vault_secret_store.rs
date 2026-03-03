@@ -152,17 +152,11 @@ mod tests {
     async fn test_vault_secret_store_list() {
         let store = MockVaultSecretStore::new();
         store
-            .set(
-                "app/a",
-                HashMap::from([("k".to_string(), "1".to_string())]),
-            )
+            .set("app/a", HashMap::from([("k".to_string(), "1".to_string())]))
             .await
             .unwrap();
         store
-            .set(
-                "app/b",
-                HashMap::from([("k".to_string(), "2".to_string())]),
-            )
+            .set("app/b", HashMap::from([("k".to_string(), "2".to_string())]))
             .await
             .unwrap();
         store

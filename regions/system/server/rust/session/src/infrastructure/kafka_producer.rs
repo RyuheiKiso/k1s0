@@ -26,11 +26,7 @@ pub enum SessionEvent {
 #[async_trait]
 pub trait SessionEventPublisher: Send + Sync {
     async fn publish_session_created(&self, session: &Session) -> anyhow::Result<()>;
-    async fn publish_session_revoked(
-        &self,
-        session_id: &str,
-        user_id: &str,
-    ) -> anyhow::Result<()>;
+    async fn publish_session_revoked(&self, session_id: &str, user_id: &str) -> anyhow::Result<()>;
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -61,7 +57,8 @@ impl SessionEventPublisher for NoopSessionEventPublisher {
 /// KafkaSessionProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
 pub struct KafkaSessionProducer {
     producer: rdkafka::producer::FutureProducer,
-    topic: String,
+    topic_created: String,
+    topic_revoked: String,
     metrics: Option<std::sync::Arc<k1s0_telemetry::metrics::Metrics>>,
 }
 
@@ -69,10 +66,6 @@ impl KafkaSessionProducer {
     /// 新しい KafkaSessionProducer を作成する。
     pub fn new(config: &crate::infrastructure::config::KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
-
-        let topic = config
-            .topic_created
-            .clone();
 
         let mut client_config = ClientConfig::new();
         client_config.set("bootstrap.servers", config.brokers.join(","));
@@ -84,7 +77,8 @@ impl KafkaSessionProducer {
 
         Ok(Self {
             producer,
-            topic,
+            topic_created: config.topic_created.clone(),
+            topic_revoked: config.topic_revoked.clone(),
             metrics: None,
         })
     }
@@ -115,7 +109,7 @@ impl SessionEventPublisher for KafkaSessionProducer {
         let payload = serde_json::to_vec(&event)?;
         let key = format!("session:{}", session.id);
 
-        let record = FutureRecord::to(&self.topic).key(&key).payload(&payload);
+        let record = FutureRecord::to(&self.topic_created).key(&key).payload(&payload);
 
         self.producer
             .send(record, Duration::from_secs(5))
@@ -125,17 +119,13 @@ impl SessionEventPublisher for KafkaSessionProducer {
             })?;
 
         if let Some(ref m) = self.metrics {
-            m.record_kafka_message_produced(&self.topic);
+            m.record_kafka_message_produced(&self.topic_created);
         }
 
         Ok(())
     }
 
-    async fn publish_session_revoked(
-        &self,
-        session_id: &str,
-        user_id: &str,
-    ) -> anyhow::Result<()> {
+    async fn publish_session_revoked(&self, session_id: &str, user_id: &str) -> anyhow::Result<()> {
         use rdkafka::producer::FutureRecord;
         use std::time::Duration;
 
@@ -148,7 +138,7 @@ impl SessionEventPublisher for KafkaSessionProducer {
         let payload = serde_json::to_vec(&event)?;
         let key = format!("session:{}", session_id);
 
-        let record = FutureRecord::to(&self.topic).key(&key).payload(&payload);
+        let record = FutureRecord::to(&self.topic_revoked).key(&key).payload(&payload);
 
         self.producer
             .send(record, Duration::from_secs(5))
@@ -158,7 +148,7 @@ impl SessionEventPublisher for KafkaSessionProducer {
             })?;
 
         if let Some(ref m) = self.metrics {
-            m.record_kafka_message_produced(&self.topic);
+            m.record_kafka_message_produced(&self.topic_revoked);
         }
 
         Ok(())
@@ -245,9 +235,15 @@ mod tests {
         Session {
             id: "sess-1".to_string(),
             user_id: "user-1".to_string(),
+            device_id: "device-1".to_string(),
+            device_name: Some("device".to_string()),
+            device_type: Some("desktop".to_string()),
+            user_agent: Some("ua".to_string()),
+            ip_address: Some("127.0.0.1".to_string()),
             token: "tok-1".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
+            last_accessed_at: None,
             revoked: false,
             metadata: HashMap::new(),
         }
@@ -275,9 +271,7 @@ mod tests {
     async fn test_publish_session_revoked() {
         let producer = InMemoryProducer::new();
 
-        let result = producer
-            .publish_session_revoked("sess-1", "user-1")
-            .await;
+        let result = producer.publish_session_revoked("sess-1", "user-1").await;
         assert!(result.is_ok());
 
         let messages = producer.messages.lock().unwrap();

@@ -82,7 +82,7 @@ pub fn router(state: AppState) -> Router {
 
     // 認証が設定されている場合は RBAC 付きルーティング、そうでなければオープンアクセス
     let api_routes = if let Some(ref auth_state) = state.auth_state {
-        // GET -> events/read
+        // GET -> event-store/read
         let read_routes = Router::new()
             .route(
                 "/api/v1/events",
@@ -102,10 +102,10 @@ pub fn router(state: AppState) -> Router {
                 get(event_handler::get_snapshot),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "events", "read",
+                "event-store", "read",
             )));
 
-        // POST events/snapshot -> events/write
+        // POST events/snapshot -> event-store/write
         let write_routes = Router::new()
             .route(
                 "/api/v1/events",
@@ -116,17 +116,17 @@ pub fn router(state: AppState) -> Router {
                 post(event_handler::create_snapshot),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "events", "write",
+                "event-store", "write",
             )));
 
-        // DELETE stream -> events/admin
+        // DELETE stream -> event-store/admin
         let admin_routes = Router::new()
             .route(
                 "/api/v1/streams/:stream_id",
                 delete(event_handler::delete_stream),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "events", "admin",
+                "event-store", "admin",
             )));
 
         // 認証ミドルウェアを全 API ルートに適用
@@ -181,7 +181,13 @@ pub struct ErrorBody {
     pub code: String,
     pub message: String,
     pub request_id: String,
-    pub details: Vec<String>,
+    pub details: Vec<ErrorDetail>,
+}
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct ErrorDetail {
+    pub field: String,
+    pub message: String,
 }
 
 impl ErrorResponse {

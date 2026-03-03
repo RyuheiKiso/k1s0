@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use crate::domain::entity::feature_flag::FeatureFlag;
+use crate::domain::entity::feature_flag::{FlagRule, FlagVariant};
 use crate::domain::repository::FeatureFlagRepository;
+use crate::domain::service::FeatureFlagDomainService;
 use crate::infrastructure::kafka_producer::FlagEventPublisher;
 
 #[derive(Debug, Clone)]
@@ -9,6 +11,8 @@ pub struct UpdateFlagInput {
     pub flag_key: String,
     pub enabled: Option<bool>,
     pub description: Option<String>,
+    pub variants: Option<Vec<FlagVariant>>,
+    pub rules: Option<Vec<FlagRule>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -42,12 +46,27 @@ impl UpdateFlagUseCase {
                 UpdateFlagError::Internal(msg)
             }
         })?;
+        let before = serde_json::json!({
+            "flag_key": flag.flag_key,
+            "description": flag.description,
+            "enabled": flag.enabled,
+            "variants": flag.variants,
+            "rules": flag.rules,
+        });
 
         if let Some(enabled) = input.enabled {
             flag.enabled = enabled;
         }
         if let Some(ref description) = input.description {
             flag.description = description.clone();
+        }
+        if let Some(ref variants) = input.variants {
+            FeatureFlagDomainService::validate_variants(variants)
+                .map_err(UpdateFlagError::Internal)?;
+            flag.variants = variants.clone();
+        }
+        if let Some(ref rules) = input.rules {
+            flag.rules = rules.clone();
         }
         flag.updated_at = chrono::Utc::now();
 
@@ -57,7 +76,19 @@ impl UpdateFlagUseCase {
             .map_err(|e| UpdateFlagError::Internal(e.to_string()))?;
 
         self.event_publisher
-            .publish_flag_changed(&flag.flag_key, flag.enabled)
+            .publish_flag_changed(
+                &flag.flag_key,
+                flag.enabled,
+                None,
+                Some(before),
+                serde_json::json!({
+                    "flag_key": flag.flag_key,
+                    "description": flag.description,
+                    "enabled": flag.enabled,
+                    "variants": flag.variants,
+                    "rules": flag.rules,
+                }),
+            )
             .await
             .map_err(|e| UpdateFlagError::Internal(e.to_string()))?;
 
@@ -85,14 +116,22 @@ mod tests {
         let mut mock_publisher = MockFlagEventPublisher::new();
         mock_publisher
             .expect_publish_flag_changed()
-            .withf(|key, enabled| key == "dark-mode" && !*enabled)
-            .returning(|_, _| Ok(()));
+            .withf(|key, enabled, actor_user_id, before, after| {
+                key == "dark-mode"
+                    && !*enabled
+                    && actor_user_id.is_none()
+                    && before.is_some()
+                    && after["enabled"] == false
+            })
+            .returning(|_, _, _, _, _| Ok(()));
 
         let uc = UpdateFlagUseCase::new(Arc::new(mock), Arc::new(mock_publisher));
         let input = UpdateFlagInput {
             flag_key: "dark-mode".to_string(),
             enabled: Some(false),
             description: Some("Updated dark mode".to_string()),
+            variants: None,
+            rules: None,
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -117,6 +156,8 @@ mod tests {
             flag_key: "nonexistent".to_string(),
             enabled: Some(true),
             description: None,
+            variants: None,
+            rules: None,
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

@@ -17,6 +17,7 @@ pub struct EvaluatePolicyInput {
 #[derive(Debug, Clone)]
 pub struct EvaluatePolicyOutput {
     pub allowed: bool,
+    pub package_path: String,
     pub reason: Option<String>,
     pub decision_id: String,
     pub cached: bool,
@@ -92,6 +93,7 @@ impl EvaluatePolicyUseCase {
                     );
                     Ok(EvaluatePolicyOutput {
                         allowed: evaluation.allowed,
+                        package_path: resolved_package_path.clone(),
                         reason: evaluation.reason,
                         decision_id: evaluation.decision_id,
                         cached: evaluation.cached,
@@ -114,6 +116,7 @@ impl EvaluatePolicyUseCase {
                     );
                     Ok(EvaluatePolicyOutput {
                         allowed: evaluation.allowed,
+                        package_path: resolved_package_path.clone(),
                         reason: evaluation.reason,
                         decision_id: evaluation.decision_id,
                         cached: evaluation.cached,
@@ -132,6 +135,7 @@ impl EvaluatePolicyUseCase {
         if PolicyDomainService::can_evaluate_policy(policy.enabled) {
             Ok(EvaluatePolicyOutput {
                 allowed: true,
+                package_path: resolved_package_path.clone(),
                 reason: Some("policy is enabled".to_string()),
                 decision_id: Uuid::new_v4().to_string(),
                 cached: false,
@@ -139,6 +143,7 @@ impl EvaluatePolicyUseCase {
         } else {
             Ok(EvaluatePolicyOutput {
                 allowed: false,
+                package_path: resolved_package_path,
                 reason: Some("policy is disabled".to_string()),
                 decision_id: Uuid::new_v4().to_string(),
                 cached: false,

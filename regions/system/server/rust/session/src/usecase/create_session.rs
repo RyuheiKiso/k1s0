@@ -50,7 +50,10 @@ impl CreateSessionUseCase {
         }
     }
 
-    pub async fn execute(&self, input: &CreateSessionInput) -> Result<CreateSessionOutput, SessionError> {
+    pub async fn execute(
+        &self,
+        input: &CreateSessionInput,
+    ) -> Result<CreateSessionOutput, SessionError> {
         let ttl = input.ttl_seconds.unwrap_or(self.default_ttl);
         SessionDomainService::validate_create_request(&input.device_id, ttl, self.max_ttl)?;
 
@@ -59,7 +62,8 @@ impl CreateSessionUseCase {
         existing.sort_by_key(|s| s.created_at);
 
         let valid_sessions: Vec<Session> = existing.into_iter().filter(|s| s.is_valid()).collect();
-        let revoke_count = SessionDomainService::compute_revoke_count(valid_sessions.len(), max_devices);
+        let revoke_count =
+            SessionDomainService::compute_revoke_count(valid_sessions.len(), max_devices);
         if revoke_count > 0 {
             for mut old in valid_sessions.into_iter().take(revoke_count) {
                 old.revoke();

@@ -1,4 +1,4 @@
-﻿use std::collections::HashMap;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::extract::{Path, Query, State};
@@ -12,13 +12,18 @@ use crate::adapter::middleware::spiffe::SpiffeAuthState;
 use crate::usecase::delete_secret::{DeleteSecretError, DeleteSecretInput};
 use crate::usecase::get_secret::{GetSecretError, GetSecretInput};
 use crate::usecase::list_audit_logs::ListAuditLogsInput;
+use crate::usecase::rotate_secret::{RotateSecretError, RotateSecretInput, RotateSecretUseCase};
 use crate::usecase::set_secret::{SetSecretError, SetSecretInput};
-use crate::usecase::{DeleteSecretUseCase, GetSecretUseCase, ListAuditLogsUseCase, ListSecretsUseCase, SetSecretUseCase};
+use crate::usecase::{
+    DeleteSecretUseCase, GetSecretUseCase, ListAuditLogsUseCase, ListSecretsUseCase,
+    SetSecretUseCase,
+};
 
 #[derive(Clone)]
 pub struct AppState {
     pub get_secret_uc: Arc<GetSecretUseCase>,
     pub set_secret_uc: Arc<SetSecretUseCase>,
+    pub rotate_secret_uc: Arc<RotateSecretUseCase>,
     pub delete_secret_uc: Arc<DeleteSecretUseCase>,
     pub list_secrets_uc: Arc<ListSecretsUseCase>,
     pub list_audit_logs_uc: Arc<ListAuditLogsUseCase>,
@@ -55,8 +60,12 @@ pub struct SecretVersionQuery {
     pub version: Option<i64>,
 }
 
-fn default_audit_offset() -> u32 { 0 }
-fn default_audit_limit() -> u32 { 20 }
+fn default_audit_offset() -> u32 {
+    0
+}
+fn default_audit_limit() -> u32 {
+    20
+}
 
 // --- Request / Response DTOs ---
 
@@ -70,12 +79,13 @@ pub struct SetSecretRequest {
 pub struct SetSecretResponse {
     pub path: String,
     pub version: i64,
+    pub created_at: String,
 }
 
 #[derive(Debug, Serialize)]
 pub struct GetSecretResponse {
     pub path: String,
-    pub current_version: i64,
+    pub version: i64,
     pub data: HashMap<String, String>,
     pub created_at: String,
     pub updated_at: String,
@@ -125,10 +135,11 @@ pub async fn create_secret(
     };
 
     match state.set_secret_uc.execute(&input).await {
-        Ok(version) => {
+        Ok(output) => {
             let resp = SetSecretResponse {
                 path: req.path,
-                version,
+                version: output.version,
+                created_at: output.created_at.to_rfc3339(),
             };
             (
                 StatusCode::CREATED,
@@ -138,7 +149,9 @@ pub async fn create_secret(
         }
         Err(SetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap()),
+            Json(
+                serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap(),
+            ),
         )
             .into_response(),
     }
@@ -158,13 +171,11 @@ pub async fn get_secret(
     match state.get_secret_uc.execute(&input).await {
         Ok(secret) => {
             let current = secret.get_version(None);
-            let data = current
-                .map(|v| v.value.data.clone())
-                .unwrap_or_default();
+            let data = current.map(|v| v.value.data.clone()).unwrap_or_default();
 
             let resp = GetSecretResponse {
                 path: secret.path,
-                current_version: secret.current_version,
+                version: secret.current_version,
                 data,
                 created_at: secret.created_at.to_rfc3339(),
                 updated_at: secret.updated_at.to_rfc3339(),
@@ -173,12 +184,20 @@ pub async fn get_secret(
         }
         Err(GetSecretError::NotFound(path)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_NOT_FOUND", &format!("secret not found: {}", path))).unwrap()),
+            Json(
+                serde_json::to_value(ErrorResponse::new(
+                    "SYS_VAULT_NOT_FOUND",
+                    &format!("secret not found: {}", path),
+                ))
+                .unwrap(),
+            ),
         )
             .into_response(),
         Err(GetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap()),
+            Json(
+                serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap(),
+            ),
         )
             .into_response(),
     }
@@ -196,16 +215,19 @@ pub async fn update_secret(
     };
 
     match state.set_secret_uc.execute(&input).await {
-        Ok(version) => {
+        Ok(output) => {
             let resp = SetSecretResponse {
                 path: key,
-                version,
+                version: output.version,
+                created_at: output.created_at.to_rfc3339(),
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
         Err(SetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap()),
+            Json(
+                serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap(),
+            ),
         )
             .into_response(),
     }
@@ -225,12 +247,20 @@ pub async fn delete_secret(
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(DeleteSecretError::NotFound(path)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_NOT_FOUND", &format!("secret not found: {}", path))).unwrap()),
+            Json(
+                serde_json::to_value(ErrorResponse::new(
+                    "SYS_VAULT_NOT_FOUND",
+                    &format!("secret not found: {}", path),
+                ))
+                .unwrap(),
+            ),
         )
             .into_response(),
         Err(DeleteSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap()),
+            Json(
+                serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap(),
+            ),
         )
             .into_response(),
     }
@@ -251,7 +281,13 @@ pub async fn list_secrets(
             .into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &e.to_string())).unwrap()),
+            Json(
+                serde_json::to_value(ErrorResponse::new(
+                    "SYS_VAULT_INTERNAL_ERROR",
+                    &e.to_string(),
+                ))
+                .unwrap(),
+            ),
         )
             .into_response(),
     }
@@ -262,13 +298,16 @@ pub async fn get_secret_metadata(
     State(state): State<AppState>,
     Path(key): Path<String>,
 ) -> impl IntoResponse {
-    let input = GetSecretInput { path: key.clone(), version: None };
+    let input = GetSecretInput {
+        path: key.clone(),
+        version: None,
+    };
 
     match state.get_secret_uc.execute(&input).await {
         Ok(secret) => {
             let resp = serde_json::json!({
                 "path": secret.path,
-                "current_version": secret.current_version,
+                "version": secret.current_version,
                 "version_count": secret.versions.len(),
                 "created_at": secret.created_at.to_rfc3339(),
                 "updated_at": secret.updated_at.to_rfc3339(),
@@ -277,12 +316,20 @@ pub async fn get_secret_metadata(
         }
         Err(GetSecretError::NotFound(path)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_NOT_FOUND", &format!("secret not found: {}", path))).unwrap()),
+            Json(
+                serde_json::to_value(ErrorResponse::new(
+                    "SYS_VAULT_NOT_FOUND",
+                    &format!("secret not found: {}", path),
+                ))
+                .unwrap(),
+            ),
         )
             .into_response(),
         Err(GetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap()),
+            Json(
+                serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap(),
+            ),
         )
             .into_response(),
     }
@@ -327,7 +374,13 @@ pub async fn list_audit_logs(
         }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &e.to_string())).unwrap()),
+            Json(
+                serde_json::to_value(ErrorResponse::new(
+                    "SYS_VAULT_INTERNAL_ERROR",
+                    &e.to_string(),
+                ))
+                .unwrap(),
+            ),
         )
             .into_response(),
     }
@@ -339,27 +392,38 @@ pub async fn rotate_secret(
     Path(key): Path<String>,
     Json(req): Json<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    // ローテーションは新しいデータで上書き（バージョンインクリメント）
-    let input = SetSecretInput {
+    let input = RotateSecretInput {
         path: key.clone(),
         data: req,
     };
 
-    match state.set_secret_uc.execute(&input).await {
-        Ok(version) => (
+    match state.rotate_secret_uc.execute(&input).await {
+        Ok(output) => (
             StatusCode::OK,
             Json(serde_json::json!({
-                "path": key,
-                "new_version": version,
-                "rotated": true,
+                "path": output.path,
+                "new_version": output.new_version,
+                "rotated": output.rotated,
             })),
         )
             .into_response(),
-        Err(SetSecretError::Internal(msg)) => (
+        Err(RotateSecretError::NotFound(path)) => (
+            StatusCode::NOT_FOUND,
+            Json(
+                serde_json::to_value(ErrorResponse::new(
+                    "SYS_VAULT_NOT_FOUND",
+                    &format!("secret not found: {}", path),
+                ))
+                .unwrap(),
+            ),
+        )
+            .into_response(),
+        Err(RotateSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap()),
+            Json(
+                serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap(),
+            ),
         )
             .into_response(),
     }
 }
-

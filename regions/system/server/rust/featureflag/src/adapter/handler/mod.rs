@@ -12,12 +12,18 @@ use axum::Router;
 use crate::adapter::middleware::auth::{auth_middleware, FeatureflagAuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::domain::repository::FeatureFlagRepository;
-use crate::usecase::{CreateFlagUseCase, DeleteFlagUseCase, EvaluateFlagUseCase, GetFlagUseCase, UpdateFlagUseCase};
+use crate::infrastructure::kafka_producer::FlagEventPublisher;
+use crate::usecase::{
+    CreateFlagUseCase, DeleteFlagUseCase, EvaluateFlagUseCase, GetFlagUseCase, ListFlagsUseCase,
+    UpdateFlagUseCase,
+};
 
 /// Shared application state for REST handlers.
 #[derive(Clone)]
 pub struct AppState {
     pub flag_repo: Arc<dyn FeatureFlagRepository>,
+    pub event_publisher: Arc<dyn FlagEventPublisher>,
+    pub list_flags_uc: Arc<ListFlagsUseCase>,
     pub evaluate_flag_uc: Arc<EvaluateFlagUseCase>,
     pub get_flag_uc: Arc<GetFlagUseCase>,
     pub create_flag_uc: Arc<CreateFlagUseCase>,

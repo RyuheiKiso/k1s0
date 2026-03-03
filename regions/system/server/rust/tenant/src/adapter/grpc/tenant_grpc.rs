@@ -550,6 +550,10 @@ mod tests {
         let mut tenant_mock = MockTenantRepository::new();
         tenant_mock.expect_find_by_name().returning(|_| Ok(None));
         tenant_mock.expect_create().returning(|_| Ok(()));
+        tenant_mock
+            .expect_update()
+            .times(0..)
+            .returning(|_| Ok(()));
         tenant_mock.expect_find_by_id().returning(|id| {
             Ok(Some(Tenant {
                 id: *id,
@@ -557,6 +561,7 @@ mod tests {
                 display_name: "ACME Corporation".to_string(),
                 status: TenantStatus::Active,
                 plan: "pro".to_string(),
+                owner_id: None,
                 settings: serde_json::json!({}),
                 keycloak_realm: None,
                 db_schema: None,

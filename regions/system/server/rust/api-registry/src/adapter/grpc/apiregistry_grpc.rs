@@ -412,7 +412,7 @@ impl ApiRegistryGrpcService {
         request: DeleteVersionRequest,
     ) -> Result<DeleteVersionResponse, GrpcError> {
         self.delete_version_uc
-            .execute(&request.name, request.version)
+            .execute(&request.name, request.version, None)
             .await
             .map_err(|e| match e {
                 DeleteVersionError::SchemaNotFound(name) => {

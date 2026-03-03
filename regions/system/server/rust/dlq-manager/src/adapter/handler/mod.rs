@@ -1,4 +1,4 @@
-pub mod dlq_handler;
+﻿pub mod dlq_handler;
 pub mod error;
 
 use std::sync::Arc;
@@ -15,10 +15,6 @@ use crate::usecase::{
     RetryMessageUseCase,
 };
 
-// Re-export shared error types for backward compatibility within the crate.
-pub use k1s0_server_common::{ErrorBody, ErrorResponse};
-
-/// AppState はアプリケーション全体の共有状態を表す。
 #[derive(Clone)]
 pub struct AppState {
     pub list_messages_uc: Arc<ListMessagesUseCase>,
@@ -61,26 +57,18 @@ impl AppState {
 )]
 struct ApiDoc;
 
-/// REST API ルーターを構築する。
 pub fn router(state: AppState) -> Router {
-    // 認証不要のエンドポイント
     let public_routes = Router::new()
         .route("/healthz", get(dlq_handler::healthz))
         .route("/readyz", get(dlq_handler::readyz))
         .route("/metrics", get(dlq_handler::metrics));
 
-    // 認証が設定されている場合は RBAC 付きルーティング、そうでなければオープンアクセス
     let api_routes = if let Some(ref auth_state) = state.auth_state {
         // GET -> dlq/read
         let read_routes = Router::new()
-            .route(
-                "/api/v1/dlq/messages/:id",
-                get(dlq_handler::get_message),
-            )
+            .route("/api/v1/dlq/messages/:id", get(dlq_handler::get_message))
             .route("/api/v1/dlq/:topic", get(dlq_handler::list_messages))
-            .route_layer(axum::middleware::from_fn(require_permission(
-                "dlq", "read",
-            )));
+            .route_layer(axum::middleware::from_fn(require_permission("dlq", "read")));
 
         // POST retry -> dlq/write
         let write_routes = Router::new()
@@ -88,9 +76,7 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/dlq/messages/:id/retry",
                 post(dlq_handler::retry_message),
             )
-            .route_layer(axum::middleware::from_fn(require_permission(
-                "dlq", "write",
-            )));
+            .route_layer(axum::middleware::from_fn(require_permission("dlq", "write")));
 
         // DELETE / retry-all -> dlq/admin
         let admin_routes = Router::new()
@@ -98,15 +84,9 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/dlq/messages/:id",
                 axum::routing::delete(dlq_handler::delete_message),
             )
-            .route(
-                "/api/v1/dlq/:topic/retry-all",
-                post(dlq_handler::retry_all),
-            )
-            .route_layer(axum::middleware::from_fn(require_permission(
-                "dlq", "admin",
-            )));
+            .route("/api/v1/dlq/:topic/retry-all", post(dlq_handler::retry_all))
+            .route_layer(axum::middleware::from_fn(require_permission("dlq", "admin")));
 
-        // 認証ミドルウェアを全 API ルートに適用
         Router::new()
             .merge(read_routes)
             .merge(write_routes)
@@ -116,7 +96,6 @@ pub fn router(state: AppState) -> Router {
                 auth_middleware,
             ))
     } else {
-        // 認証なし（dev モード / テスト）: 従来どおり
         Router::new()
             .route(
                 "/api/v1/dlq/messages/:id",

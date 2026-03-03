@@ -10,6 +10,7 @@ pub struct FlagAuditLog {
     pub before_json: Option<serde_json::Value>,
     pub after_json: Option<serde_json::Value>,
     pub changed_by: String,
+    pub trace_id: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -30,6 +31,7 @@ impl FlagAuditLog {
             before_json,
             after_json,
             changed_by,
+            trace_id: None,
             created_at: Utc::now(),
         }
     }

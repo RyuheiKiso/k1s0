@@ -2,6 +2,8 @@ pub mod openapi;
 pub mod protobuf;
 
 use async_trait::async_trait;
+use openapi::OpenApiSubprocessValidator;
+use protobuf::ProtobufSubprocessValidator;
 
 #[derive(Debug)]
 pub struct ValidationError {
@@ -20,56 +22,50 @@ pub trait SchemaValidatorFactory: Send + Sync {
     fn create(&self, schema_type: &str) -> Option<Box<dyn SchemaValidator>>;
 }
 
-/// Default implementation that performs basic JSON/YAML validation.
+/// Default implementation with well-known validator executable names.
 pub struct DefaultSchemaValidatorFactory;
 
 impl SchemaValidatorFactory for DefaultSchemaValidatorFactory {
     fn create(&self, schema_type: &str) -> Option<Box<dyn SchemaValidator>> {
+        let factory = ConfigurableSchemaValidatorFactory::new(
+            "openapi-spec-validator".to_string(),
+            "buf".to_string(),
+            10,
+        );
+        factory.create(schema_type)
+    }
+}
+
+/// Configurable factory used by `main.rs` based on config.yaml.
+pub struct ConfigurableSchemaValidatorFactory {
+    openapi_validator_path: String,
+    buf_path: String,
+    timeout_secs: u64,
+}
+
+impl ConfigurableSchemaValidatorFactory {
+    pub fn new(openapi_validator_path: String, buf_path: String, timeout_secs: u64) -> Self {
+        Self {
+            openapi_validator_path,
+            buf_path,
+            timeout_secs,
+        }
+    }
+}
+
+impl SchemaValidatorFactory for ConfigurableSchemaValidatorFactory {
+    fn create(&self, schema_type: &str) -> Option<Box<dyn SchemaValidator>> {
         match schema_type {
-            "openapi" => Some(Box::new(BasicYamlJsonValidator)),
-            "protobuf" => Some(Box::new(BasicProtobufValidator)),
+            "openapi" => Some(Box::new(OpenApiSubprocessValidator::new(
+                self.openapi_validator_path.clone(),
+                self.timeout_secs,
+            ))),
+            "protobuf" => Some(Box::new(ProtobufSubprocessValidator::new(
+                self.buf_path.clone(),
+                self.timeout_secs,
+            ))),
             _ => None,
         }
-    }
-}
-
-/// Basic YAML/JSON validator for OpenAPI schemas.
-struct BasicYamlJsonValidator;
-
-#[async_trait]
-impl SchemaValidator for BasicYamlJsonValidator {
-    async fn validate(&self, content: &str) -> anyhow::Result<Vec<ValidationError>> {
-        // Try YAML parse (which also handles JSON)
-        match serde_yaml::from_str::<serde_json::Value>(content) {
-            Ok(_) => Ok(vec![]),
-            Err(e) => Ok(vec![ValidationError {
-                field: "content".to_string(),
-                message: format!("YAML/JSON parse error: {}", e),
-            }]),
-        }
-    }
-}
-
-/// Basic protobuf syntax validator.
-struct BasicProtobufValidator;
-
-#[async_trait]
-impl SchemaValidator for BasicProtobufValidator {
-    async fn validate(&self, content: &str) -> anyhow::Result<Vec<ValidationError>> {
-        let trimmed = content.trim();
-        if trimmed.is_empty() {
-            return Ok(vec![ValidationError {
-                field: "content".to_string(),
-                message: "protobuf content is empty".to_string(),
-            }]);
-        }
-        if !trimmed.contains("syntax") {
-            return Ok(vec![ValidationError {
-                field: "content".to_string(),
-                message: "protobuf file must contain a syntax declaration".to_string(),
-            }]);
-        }
-        Ok(vec![])
     }
 }
 
@@ -95,31 +91,15 @@ mod tests {
         assert!(factory.create("graphql").is_none());
     }
 
-    #[tokio::test]
-    async fn test_basic_yaml_validator_valid() {
-        let validator = BasicYamlJsonValidator;
-        let result = validator.validate("openapi: 3.0.3\ninfo:\n  title: Test\n").await.unwrap();
-        assert!(result.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_basic_yaml_validator_invalid() {
-        let validator = BasicYamlJsonValidator;
-        let result = validator.validate("{{invalid yaml").await.unwrap();
-        assert!(!result.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_basic_protobuf_validator_valid() {
-        let validator = BasicProtobufValidator;
-        let result = validator.validate("syntax = \"proto3\";\nmessage Test {}\n").await.unwrap();
-        assert!(result.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_basic_protobuf_validator_empty() {
-        let validator = BasicProtobufValidator;
-        let result = validator.validate("").await.unwrap();
-        assert!(!result.is_empty());
+    #[test]
+    fn test_configurable_factory_uses_given_paths() {
+        let factory = ConfigurableSchemaValidatorFactory::new(
+            "/usr/local/bin/openapi-spec-validator".to_string(),
+            "/usr/local/bin/buf".to_string(),
+            7,
+        );
+        assert!(factory.create("openapi").is_some());
+        assert!(factory.create("protobuf").is_some());
+        assert!(factory.create("unknown").is_none());
     }
 }

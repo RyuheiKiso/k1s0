@@ -5,9 +5,8 @@ use std::sync::Arc;
 use crate::domain::entity::saga_state::SagaStatus;
 use crate::domain::repository::saga_repository::SagaListParams;
 use crate::usecase::{
-    CancelSagaUseCase, CompensateSagaError, ExecuteSagaUseCase, GetSagaUseCase,
-    ListSagasUseCase, ListWorkflowsUseCase,
-    RegisterWorkflowUseCase, StartSagaUseCase,
+    CancelSagaUseCase, CompensateSagaError, ExecuteSagaUseCase, GetSagaUseCase, ListSagasUseCase,
+    ListWorkflowsUseCase, RegisterWorkflowUseCase, StartSagaUseCase,
 };
 
 // --- Proto 手動型定義 ---
@@ -55,7 +54,7 @@ pub struct ListSagasRequest {
 #[derive(Debug)]
 pub struct ListSagasResponse {
     pub sagas: Vec<SagaStateProto>,
-    pub total_count: i64,
+    pub total_count: i32,
     pub page: i32,
     pub page_size: i32,
     pub has_next: bool,
@@ -86,6 +85,7 @@ pub struct CompensateSagaResponse {
     pub success: bool,
     pub status: String,
     pub message: String,
+    pub saga_id: String,
 }
 
 /// RegisterWorkflowRequest はワークフロー登録リクエスト。
@@ -325,7 +325,7 @@ impl SagaGrpcService {
 
         let page = req.page;
         let page_size = req.page_size;
-        let has_next = (page as i64 * page_size as i64) < total_count;
+        let has_next = (page as i64 * page_size as i64) < i64::from(total_count);
 
         let saga_protos = sagas
             .into_iter()
@@ -406,6 +406,7 @@ impl SagaGrpcService {
             success: true,
             status: state.status.to_string(),
             message: format!("saga {} compensation triggered", req.saga_id),
+            saga_id: state.saga_id.to_string(),
         })
     }
 

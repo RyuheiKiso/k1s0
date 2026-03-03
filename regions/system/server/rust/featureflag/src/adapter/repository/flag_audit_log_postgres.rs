@@ -40,6 +40,7 @@ impl From<FlagAuditLogRow> for FlagAuditLog {
             before_json: row.before_json,
             after_json: row.after_json,
             changed_by: row.changed_by,
+            trace_id: None,
             created_at: row.created_at,
         }
     }

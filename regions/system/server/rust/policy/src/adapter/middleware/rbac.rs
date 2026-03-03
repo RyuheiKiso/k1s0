@@ -13,8 +13,8 @@ use k1s0_auth::Claims;
 ///
 /// policy の RBAC マッピング:
 /// - GET    -> policies/read
-/// - POST/PUT/evaluate -> policies/write
-/// - DELETE -> policies/admin
+/// - POST/evaluate -> policies/write
+/// - PUT/POST(bundle)/DELETE -> policies/admin
 pub fn require_permission(
     resource: &'static str,
     action: &'static str,

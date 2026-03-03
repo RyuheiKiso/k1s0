@@ -15,7 +15,7 @@ impl AuthDomainService {
         match role {
             "sys_admin" => matches!(action, "read" | "write" | "delete" | "admin"),
             "sys_operator" => match resource {
-                "users" | "auth_config" => action == "read",
+                "users" | "auth_config" => action == "read" || action == "write",
                 "audit_logs" | "api_keys" => action == "read" || action == "write",
                 _ => false,
             },
@@ -102,6 +102,15 @@ mod tests {
         assert!(AuthDomainService::check_permission(
             &roles(&["sys_operator"]),
             "audit_logs",
+            "write"
+        ));
+    }
+
+    #[test]
+    fn test_sys_operator_write_allowed_for_users() {
+        assert!(AuthDomainService::check_permission(
+            &roles(&["sys_operator"]),
+            "users",
             "write"
         ));
     }

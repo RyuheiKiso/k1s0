@@ -165,6 +165,36 @@ fn domain_table_to_proto(
     }
 }
 
+fn domain_consistency_rule_to_proto(
+    rule: &crate::domain::entity::consistency_rule::ConsistencyRule,
+) -> ConsistencyRule {
+    ConsistencyRule {
+        id: rule.id.to_string(),
+        name: rule.name.clone(),
+        description: rule.description.clone().unwrap_or_default(),
+        rule_type: rule.rule_type.clone(),
+        severity: rule.severity.clone(),
+        is_active: rule.is_active,
+        source_table_id: rule.source_table_id.to_string(),
+        evaluation_timing: rule.evaluation_timing.clone(),
+        error_message_template: rule.error_message_template.clone(),
+        zen_rule_json: rule
+            .zen_rule_json
+            .as_ref()
+            .map(json_to_string)
+            .unwrap_or_default(),
+        created_by: rule.created_by.clone(),
+        created_at: Some(ProtoTimestamp {
+            seconds: rule.created_at.timestamp(),
+            nanos: rule.created_at.timestamp_subsec_nanos() as i32,
+        }),
+        updated_at: Some(ProtoTimestamp {
+            seconds: rule.updated_at.timestamp(),
+            nanos: rule.updated_at.timestamp_subsec_nanos() as i32,
+        }),
+    }
+}
+
 // --- MasterMaintenanceService 実装 ---
 
 #[tonic::async_trait]
@@ -431,7 +461,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             Some(req.search.as_str())
         };
 
-        let (records, total) = self
+        let result = self
             .crud_records_uc
             .list_records(
                 &req.table_name,
@@ -440,16 +470,18 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 sort,
                 filter,
                 search,
+                None,
             )
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let proto_records: Vec<prost_types::Struct> = records
+        let proto_records: Vec<prost_types::Struct> = result
+            .records
             .iter()
             .filter_map(json_to_struct)
             .collect();
 
-        let total_count = total as i32;
+        let total_count = result.total as i32;
         let has_next =
             (pagination.page * pagination.page_size) < total_count;
 
@@ -592,6 +624,174 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
 
         Ok(Response::new(CheckConsistencyResponse {
             results: proto_results,
+            total_checked,
+            error_count,
+            warning_count,
+        }))
+    }
+
+    async fn create_rule(
+        &self,
+        request: Request<CreateRuleRequest>,
+    ) -> Result<Response<CreateRuleResponse>, Status> {
+        let req = request.into_inner();
+        let data = req
+            .data
+            .as_ref()
+            .ok_or_else(|| Status::invalid_argument("data is required"))?;
+        let rule = self
+            .manage_rules_uc
+            .create_rule(&struct_to_json(data), "grpc-user")
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(CreateRuleResponse {
+            rule: Some(domain_consistency_rule_to_proto(&rule)),
+        }))
+    }
+
+    async fn get_rule(
+        &self,
+        request: Request<GetRuleRequest>,
+    ) -> Result<Response<GetRuleResponse>, Status> {
+        let req = request.into_inner();
+        let rule_id = uuid::Uuid::parse_str(&req.rule_id)
+            .map_err(|_| Status::invalid_argument("invalid rule_id"))?;
+        let rule = self
+            .manage_rules_uc
+            .get_rule(rule_id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?
+            .ok_or_else(|| Status::not_found("rule not found"))?;
+        Ok(Response::new(GetRuleResponse {
+            rule: Some(domain_consistency_rule_to_proto(&rule)),
+        }))
+    }
+
+    async fn update_rule(
+        &self,
+        request: Request<UpdateRuleRequest>,
+    ) -> Result<Response<UpdateRuleResponse>, Status> {
+        let req = request.into_inner();
+        let rule_id = uuid::Uuid::parse_str(&req.rule_id)
+            .map_err(|_| Status::invalid_argument("invalid rule_id"))?;
+        let data = req
+            .data
+            .as_ref()
+            .ok_or_else(|| Status::invalid_argument("data is required"))?;
+        let rule = self
+            .manage_rules_uc
+            .update_rule(rule_id, &struct_to_json(data))
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(UpdateRuleResponse {
+            rule: Some(domain_consistency_rule_to_proto(&rule)),
+        }))
+    }
+
+    async fn delete_rule(
+        &self,
+        request: Request<DeleteRuleRequest>,
+    ) -> Result<Response<DeleteRuleResponse>, Status> {
+        let req = request.into_inner();
+        let rule_id = uuid::Uuid::parse_str(&req.rule_id)
+            .map_err(|_| Status::invalid_argument("invalid rule_id"))?;
+        self.manage_rules_uc
+            .delete_rule(rule_id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(DeleteRuleResponse { success: true }))
+    }
+
+    async fn list_rules(
+        &self,
+        request: Request<ListRulesRequest>,
+    ) -> Result<Response<ListRulesResponse>, Status> {
+        let req = request.into_inner();
+        let pagination = req
+            .pagination
+            .unwrap_or(crate::proto::k1s0::system::common::v1::Pagination {
+                page: 1,
+                page_size: 20,
+            });
+        let table_name = if req.table_name.is_empty() {
+            None
+        } else {
+            Some(req.table_name.as_str())
+        };
+        let rule_type = if req.rule_type.is_empty() {
+            None
+        } else {
+            Some(req.rule_type.as_str())
+        };
+        let severity = if req.severity.is_empty() {
+            None
+        } else {
+            Some(req.severity.as_str())
+        };
+
+        let rules = self
+            .manage_rules_uc
+            .list_rules(table_name, rule_type, severity)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        let total_count = rules.len() as i32;
+        let start = ((pagination.page - 1) * pagination.page_size) as usize;
+        let paged: Vec<_> = rules
+            .iter()
+            .skip(start)
+            .take(pagination.page_size as usize)
+            .collect();
+        let has_next = (start + paged.len()) < total_count as usize;
+
+        Ok(Response::new(ListRulesResponse {
+            rules: paged
+                .into_iter()
+                .map(domain_consistency_rule_to_proto)
+                .collect(),
+            pagination: Some(PaginationResult {
+                total_count,
+                page: pagination.page,
+                page_size: pagination.page_size,
+                has_next,
+            }),
+        }))
+    }
+
+    async fn execute_rule(
+        &self,
+        request: Request<ExecuteRuleRequest>,
+    ) -> Result<Response<ExecuteRuleResponse>, Status> {
+        let req = request.into_inner();
+        let rule_id = uuid::Uuid::parse_str(&req.rule_id)
+            .map_err(|_| Status::invalid_argument("invalid rule_id"))?;
+        let results = self
+            .check_consistency_uc
+            .execute_rule(rule_id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        let total_checked = results.len() as i32;
+        let error_count = results
+            .iter()
+            .filter(|r| !r.passed && r.severity == "error")
+            .count() as i32;
+        let warning_count = results
+            .iter()
+            .filter(|r| r.severity == "warning")
+            .count() as i32;
+
+        Ok(Response::new(ExecuteRuleResponse {
+            results: results
+                .into_iter()
+                .map(|r| ConsistencyResult {
+                    rule_id: r.rule_id,
+                    rule_name: r.rule_name,
+                    severity: r.severity,
+                    passed: r.passed,
+                    message: r.message.unwrap_or_default(),
+                    affected_record_ids: r.affected_record_ids,
+                })
+                .collect(),
             total_checked,
             error_count,
             warning_count,

@@ -32,6 +32,8 @@ pub struct AppendEventsRequest {
     pub events: ::prost::alloc::vec::Vec<EventData>,
     #[prost(int64, tag = "3")]
     pub expected_version: i64,
+    #[prost(string, tag = "4")]
+    pub aggregate_type: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AppendEventsResponse {
@@ -54,6 +56,8 @@ pub struct ReadEventsRequest {
     pub page: u32,
     #[prost(uint32, tag = "5")]
     pub page_size: u32,
+    #[prost(string, optional, tag = "6")]
+    pub event_type: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadEventsResponse {
