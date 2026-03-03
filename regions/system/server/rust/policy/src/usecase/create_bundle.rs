@@ -8,6 +8,8 @@ use crate::domain::repository::PolicyBundleRepository;
 #[derive(Debug, Clone)]
 pub struct CreateBundleInput {
     pub name: String,
+    pub description: Option<String>,
+    pub enabled: Option<bool>,
     pub policy_ids: Vec<Uuid>,
 }
 
@@ -30,7 +32,12 @@ impl CreateBundleUseCase {
         &self,
         input: &CreateBundleInput,
     ) -> Result<PolicyBundle, CreateBundleError> {
-        let bundle = PolicyBundle::new(input.name.clone(), input.policy_ids.clone());
+        let bundle = PolicyBundle::new(
+            input.name.clone(),
+            input.description.clone(),
+            input.enabled.unwrap_or(true),
+            input.policy_ids.clone(),
+        );
 
         self.repo
             .create(&bundle)
@@ -55,6 +62,8 @@ mod tests {
         let policy_ids = vec![Uuid::new_v4(), Uuid::new_v4()];
         let input = CreateBundleInput {
             name: "security-bundle".to_string(),
+            description: Some("Security policies".to_string()),
+            enabled: Some(true),
             policy_ids: policy_ids.clone(),
         };
         let result = uc.execute(&input).await;
@@ -62,6 +71,8 @@ mod tests {
 
         let bundle = result.unwrap();
         assert_eq!(bundle.name, "security-bundle");
+        assert_eq!(bundle.description.as_deref(), Some("Security policies"));
+        assert!(bundle.enabled);
         assert_eq!(bundle.policy_ids.len(), 2);
     }
 
@@ -74,6 +85,8 @@ mod tests {
         let uc = CreateBundleUseCase::new(Arc::new(mock));
         let input = CreateBundleInput {
             name: "fail-bundle".to_string(),
+            description: None,
+            enabled: None,
             policy_ids: vec![],
         };
         let result = uc.execute(&input).await;

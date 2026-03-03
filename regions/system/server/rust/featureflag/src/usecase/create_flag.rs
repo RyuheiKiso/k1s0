@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::feature_flag::{FeatureFlag, FlagVariant};
 use crate::domain::repository::FeatureFlagRepository;
+use crate::domain::service::FeatureFlagDomainService;
 
 #[derive(Debug, Clone)]
 pub struct CreateFlagInput {
@@ -30,6 +31,11 @@ impl CreateFlagUseCase {
     }
 
     pub async fn execute(&self, input: &CreateFlagInput) -> Result<FeatureFlag, CreateFlagError> {
+        FeatureFlagDomainService::validate_flag_key(&input.flag_key)
+            .map_err(CreateFlagError::Internal)?;
+        FeatureFlagDomainService::validate_variants(&input.variants)
+            .map_err(CreateFlagError::Internal)?;
+
         let exists = self
             .repo
             .exists_by_key(&input.flag_key)

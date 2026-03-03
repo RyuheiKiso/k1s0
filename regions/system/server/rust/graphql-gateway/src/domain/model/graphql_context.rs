@@ -13,9 +13,11 @@ pub struct GraphqlContext {
     /// リクエスト追跡 ID（X-Request-Id ヘッダーまたは UUID 自動生成）
     pub request_id: String,
     /// テナントバッチローダー
-    pub tenant_loader: DataLoader<TenantLoader>,
+    pub tenant_loader: Arc<DataLoader<TenantLoader>>,
     /// フィーチャーフラグバッチローダー
-    pub flag_loader: DataLoader<FeatureFlagLoader>,
+    pub flag_loader: Arc<DataLoader<FeatureFlagLoader>>,
+    /// Config バッチローダー
+    pub config_loader: Arc<DataLoader<ConfigLoader>>,
 }
 
 pub struct TenantLoader {

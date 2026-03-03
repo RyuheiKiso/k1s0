@@ -18,7 +18,7 @@ use crate::domain::repository::{EventRepository, EventStreamRepository};
 use crate::infrastructure::kafka::EventPublisher;
 use crate::usecase::{
     AppendEventsUseCase, CreateSnapshotUseCase, DeleteStreamUseCase, GetLatestSnapshotUseCase,
-    ReadEventsUseCase,
+    ReadEventBySequenceUseCase, ReadEventsUseCase,
 };
 
 /// AppState はアプリケーション全体の共有状態を表す。
@@ -26,6 +26,7 @@ use crate::usecase::{
 pub struct AppState {
     pub append_events_uc: Arc<AppendEventsUseCase>,
     pub read_events_uc: Arc<ReadEventsUseCase>,
+    pub read_event_by_sequence_uc: Arc<ReadEventBySequenceUseCase>,
     pub create_snapshot_uc: Arc<CreateSnapshotUseCase>,
     pub get_latest_snapshot_uc: Arc<GetLatestSnapshotUseCase>,
     pub delete_stream_uc: Arc<DeleteStreamUseCase>,
@@ -48,6 +49,7 @@ impl AppState {
     paths(
         event_handler::append_events,
         event_handler::read_events,
+        event_handler::read_event_by_sequence,
         event_handler::list_events,
         event_handler::list_streams,
         event_handler::delete_stream,
@@ -89,6 +91,10 @@ pub fn router(state: AppState) -> Router {
             .route(
                 "/api/v1/events/:stream_id",
                 get(event_handler::read_events),
+            )
+            .route(
+                "/api/v1/streams/:stream_id/events/:sequence",
+                get(event_handler::read_event_by_sequence),
             )
             .route("/api/v1/streams", get(event_handler::list_streams))
             .route(
@@ -142,6 +148,10 @@ pub fn router(state: AppState) -> Router {
             .route(
                 "/api/v1/events/:stream_id",
                 get(event_handler::read_events),
+            )
+            .route(
+                "/api/v1/streams/:stream_id/events/:sequence",
+                get(event_handler::read_event_by_sequence),
             )
             .route("/api/v1/streams", get(event_handler::list_streams))
             .route(

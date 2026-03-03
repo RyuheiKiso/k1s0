@@ -183,7 +183,7 @@ async fn main() -> anyhow::Result<()> {
         };
 
     // Kafka event publisher: Kafka if config or KAFKA_BROKERS env var is set, otherwise Noop
-    let _event_publisher: Arc<dyn infrastructure::kafka_producer::TenantEventPublisher> =
+    let event_publisher: Arc<dyn infrastructure::kafka_producer::TenantEventPublisher> =
         if let Some(ref kafka_cfg) = cfg.kafka {
             info!("initializing Kafka event publisher...");
             let publisher =
@@ -219,11 +219,16 @@ async fn main() -> anyhow::Result<()> {
         };
 
     let create_tenant_uc = Arc::new(
-        usecase::CreateTenantUseCase::new(tenant_repo.clone()).with_saga_client(saga_client),
+        usecase::CreateTenantUseCase::new(tenant_repo.clone())
+            .with_saga_client(saga_client)
+            .with_event_publisher(event_publisher.clone()),
     );
     let get_tenant_uc = Arc::new(usecase::GetTenantUseCase::new(tenant_repo.clone()));
     let list_tenants_uc = Arc::new(usecase::ListTenantsUseCase::new(tenant_repo.clone()));
-    let update_tenant_uc = Arc::new(usecase::UpdateTenantUseCase::new(tenant_repo.clone()));
+    let update_tenant_uc = Arc::new(
+        usecase::UpdateTenantUseCase::new(tenant_repo.clone())
+            .with_event_publisher(event_publisher),
+    );
     let delete_tenant_uc = Arc::new(usecase::DeleteTenantUseCase::new(tenant_repo.clone()));
     let suspend_tenant_uc = Arc::new(usecase::SuspendTenantUseCase::new(tenant_repo.clone()));
     let activate_tenant_uc = Arc::new(usecase::ActivateTenantUseCase::new(tenant_repo));

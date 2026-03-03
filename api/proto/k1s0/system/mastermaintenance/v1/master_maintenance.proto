@@ -100,6 +100,13 @@ message GetTableDefinitionResponse {
   bool allow_delete = 8;
   repeated ColumnDefinition columns = 9;
   repeated TableRelationship relationships = 10;
+  string database_name = 11;
+  string category = 12;
+  bool is_active = 13;
+  int32 sort_order = 14;
+  string created_by = 15;
+  k1s0.system.common.v1.Timestamp created_at = 16;
+  k1s0.system.common.v1.Timestamp updated_at = 17;
 }
 
 // カラム定義
@@ -117,6 +124,13 @@ message ColumnDefinition {
   bool is_readonly = 11;
   string input_type = 12;
   int32 display_order = 13;
+  bool is_unique = 14;
+  string default_value = 15;
+  optional int32 max_length = 16;
+  optional double min_value = 17;
+  optional double max_value = 18;
+  string regex_pattern = 19;
+  string select_options_json = 20;
 }
 
 // テーブル間関係

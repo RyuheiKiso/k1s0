@@ -78,22 +78,16 @@ pub async fn create_session(
     State(state): State<AppState>,
     Json(input): Json<CreateSessionHttpRequest>,
 ) -> impl IntoResponse {
-    let mut metadata = input.metadata.unwrap_or_default();
-    if let Some(device_id) = input.device_id.filter(|v| !v.is_empty()) {
-        metadata.insert("device_id".to_string(), device_id);
-    }
-    if let Some(device_name) = input.device_name.filter(|v| !v.is_empty()) {
-        metadata.insert("device_name".to_string(), device_name);
-    }
-
     let uc_input = CreateSessionInput {
         user_id: input.user_id,
+        device_id: input.device_id,
+        device_name: input.device_name,
+        device_type: input.device_type,
+        user_agent: input.user_agent,
+        ip_address: input.ip_address,
         ttl_seconds: input.ttl_seconds,
-        metadata: if metadata.is_empty() {
-            None
-        } else {
-            Some(metadata)
-        },
+        max_devices: input.max_devices,
+        metadata: input.metadata,
     };
 
     match state.create_uc.execute(&uc_input).await {
@@ -105,10 +99,14 @@ pub async fn create_session(
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct CreateSessionHttpRequest {
     pub user_id: String,
-    pub ttl_seconds: Option<i64>,
-    pub metadata: Option<HashMap<String, String>>,
-    pub device_id: Option<String>,
+    pub device_id: String,
     pub device_name: Option<String>,
+    pub device_type: Option<String>,
+    pub user_agent: Option<String>,
+    pub ip_address: Option<String>,
+    pub ttl_seconds: Option<i64>,
+    pub max_devices: Option<u32>,
+    pub metadata: Option<HashMap<String, String>>,
 }
 
 pub async fn get_session(

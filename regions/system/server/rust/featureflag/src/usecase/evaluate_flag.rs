@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::evaluation::{EvaluationContext, EvaluationResult};
 use crate::domain::repository::FeatureFlagRepository;
+use crate::domain::service::FeatureFlagDomainService;
 
 #[derive(Debug, Clone)]
 pub struct EvaluateFlagInput {
@@ -36,22 +37,12 @@ impl EvaluateFlagUseCase {
                 EvaluateFlagError::Internal(msg)
             }
         })?;
-
-        if !flag.enabled {
-            return Ok(EvaluationResult {
-                flag_key: flag.flag_key,
-                enabled: false,
-                variant: None,
-                reason: "flag is disabled".to_string(),
-            });
-        }
-
-        let variant = flag.variants.first().map(|v| v.name.clone());
+        let (enabled, variant, reason) = FeatureFlagDomainService::evaluate(&flag, &input.context);
         Ok(EvaluationResult {
             flag_key: flag.flag_key,
-            enabled: true,
+            enabled,
             variant,
-            reason: "flag is enabled".to_string(),
+            reason,
         })
     }
 }

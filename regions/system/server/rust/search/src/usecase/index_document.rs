@@ -43,6 +43,7 @@ impl IndexDocumentUseCase {
             id: input.id.clone(),
             index_name: input.index_name.clone(),
             content: input.content.clone(),
+            score: 0.0,
             indexed_at: chrono::Utc::now(),
         };
 

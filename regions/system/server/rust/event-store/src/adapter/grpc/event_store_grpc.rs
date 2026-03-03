@@ -89,7 +89,7 @@ impl EventStoreGrpcService {
             pagination.page as u32
         };
         let page_size = if pagination.page_size <= 0 {
-            20
+            50
         } else {
             pagination.page_size as u32
         };
@@ -330,4 +330,3 @@ fn stored_event_to_proto(e: crate::domain::entity::event::StoredEvent) -> ProtoS
         stored_at: e.stored_at.to_rfc3339(),
     }
 }
-

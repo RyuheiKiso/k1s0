@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,6 +27,7 @@ pub struct SearchDocument {
     pub id: String,
     pub index_name: String,
     pub content: serde_json::Value,
+    pub score: f32,
     pub indexed_at: DateTime<Utc>,
 }
 
@@ -35,10 +37,13 @@ pub struct SearchQuery {
     pub query: String,
     pub from: u32,
     pub size: u32,
+    pub filters: HashMap<String, String>,
+    pub facets: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
 pub struct SearchResult {
     pub total: u64,
     pub hits: Vec<SearchDocument>,
+    pub facets: HashMap<String, HashMap<String, u64>>,
 }

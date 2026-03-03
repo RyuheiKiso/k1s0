@@ -95,7 +95,7 @@ mod tests {
             key: "max_connections".to_string(),
             value_json: serde_json::json!(25),
             version: 3,
-            description: Some("DB max connections".to_string()),
+            description: "DB max connections".to_string(),
             created_by: "admin@example.com".to_string(),
             updated_by: "admin@example.com".to_string(),
             created_at: Utc::now(),

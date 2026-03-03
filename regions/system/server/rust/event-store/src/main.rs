@@ -133,7 +133,7 @@ async fn main() -> anyhow::Result<()> {
     let grpc_svc = Arc::new(EventStoreGrpcService::new(
         append_events_uc.clone(),
         read_events_uc.clone(),
-        read_event_by_sequence_uc,
+        read_event_by_sequence_uc.clone(),
         create_snapshot_uc.clone(),
         get_latest_snapshot_uc.clone(),
         delete_stream_uc.clone(),
@@ -170,6 +170,7 @@ async fn main() -> anyhow::Result<()> {
     let mut state = AppState {
         append_events_uc,
         read_events_uc,
+        read_event_by_sequence_uc,
         create_snapshot_uc,
         get_latest_snapshot_uc,
         delete_stream_uc,

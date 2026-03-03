@@ -42,8 +42,8 @@ pub struct RateLimitRule {
     pub id: Uuid,
     pub scope: String,
     pub identifier_pattern: String,
-    pub limit: i64,
-    pub window_seconds: i64,
+    pub limit: u32,
+    pub window_seconds: u32,
     pub algorithm: Algorithm,
     pub enabled: bool,
     pub created_at: DateTime<Utc>,
@@ -51,7 +51,13 @@ pub struct RateLimitRule {
 }
 
 impl RateLimitRule {
-    pub fn new(scope: String, identifier_pattern: String, limit: i64, window_seconds: i64, algorithm: Algorithm) -> Self {
+    pub fn new(
+        scope: String,
+        identifier_pattern: String,
+        limit: u32,
+        window_seconds: u32,
+        algorithm: Algorithm,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),

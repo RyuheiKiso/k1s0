@@ -27,8 +27,8 @@ async fn test_watch_config_multiple_clients_receive_same_event() {
     let rx1 = uc.subscribe();
     let rx2 = uc.subscribe();
 
-    let mut handler1 = WatchConfigStreamHandler::new(rx1, None);
-    let mut handler2 = WatchConfigStreamHandler::new(rx2, None);
+    let mut handler1 = WatchConfigStreamHandler::new(rx1, vec![]);
+    let mut handler2 = WatchConfigStreamHandler::new(rx2, vec![]);
 
     uc.notify(make_event("system.auth", "timeout", 42));
 
@@ -50,8 +50,8 @@ async fn test_watch_config_multiple_clients_independent_namespace_filters() {
     let rx1 = uc.subscribe();
     let rx2 = uc.subscribe();
 
-    let mut handler1 = WatchConfigStreamHandler::new(rx1, Some("system".to_string()));
-    let mut handler2 = WatchConfigStreamHandler::new(rx2, Some("business".to_string()));
+    let mut handler1 = WatchConfigStreamHandler::new(rx1, vec!["system".to_string()]);
+    let mut handler2 = WatchConfigStreamHandler::new(rx2, vec!["business".to_string()]);
 
     // system にマッチするイベントと business にマッチするイベントを連続して送る
     uc.notify(make_event("system.config", "key1", 1));
@@ -82,7 +82,7 @@ async fn test_watch_config_subscriber_receives_only_post_subscription_events() {
 
     // 発行後に購読
     let rx = uc.subscribe();
-    let mut handler = WatchConfigStreamHandler::new(rx, None);
+    let mut handler = WatchConfigStreamHandler::new(rx, vec![]);
 
     // 購読後に新しいイベントを発行
     uc.notify(make_event("system.auth", "new-key", 2));

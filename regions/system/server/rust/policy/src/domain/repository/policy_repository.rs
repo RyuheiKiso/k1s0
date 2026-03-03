@@ -12,7 +12,7 @@ pub trait PolicyRepository: Send + Sync {
         &self,
         page: u32,
         page_size: u32,
-        bundle_id: Option<String>,
+        bundle_id: Option<Uuid>,
         enabled_only: bool,
     ) -> anyhow::Result<(Vec<Policy>, u64)>;
     async fn create(&self, policy: &Policy) -> anyhow::Result<()>;

@@ -86,6 +86,32 @@ pub struct UpdateSecretRequest {
     pub data: HashMap<String, String>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct ErrorResponse {
+    pub error: ErrorBody,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ErrorBody {
+    pub code: String,
+    pub message: String,
+    pub request_id: String,
+    pub details: Vec<String>,
+}
+
+impl ErrorResponse {
+    pub fn new(code: &str, message: &str) -> Self {
+        Self {
+            error: ErrorBody {
+                code: code.to_string(),
+                message: message.to_string(),
+                request_id: uuid::Uuid::new_v4().to_string(),
+                details: vec![],
+            },
+        }
+    }
+}
+
 // --- Handlers ---
 
 /// POST /api/v1/secrets
@@ -112,7 +138,7 @@ pub async fn create_secret(
         }
         Err(SetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_CREATE_FAILED", &msg)).unwrap()),
         )
             .into_response(),
     }
@@ -147,17 +173,12 @@ pub async fn get_secret(
         }
         Err(GetSecretError::NotFound(path)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({
-                "error": {
-                    "code": "SYS_VAULT_NOT_FOUND",
-                    "message": format!("secret not found: {}", path)
-                }
-            })),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_NOT_FOUND", &format!("secret not found: {}", path))).unwrap()),
         )
             .into_response(),
         Err(GetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_GET_FAILED", &msg)).unwrap()),
         )
             .into_response(),
     }
@@ -184,7 +205,7 @@ pub async fn update_secret(
         }
         Err(SetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_UPDATE_FAILED", &msg)).unwrap()),
         )
             .into_response(),
     }
@@ -204,17 +225,12 @@ pub async fn delete_secret(
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(DeleteSecretError::NotFound(path)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({
-                "error": {
-                    "code": "SYS_VAULT_NOT_FOUND",
-                    "message": format!("secret not found: {}", path)
-                }
-            })),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_NOT_FOUND", &format!("secret not found: {}", path))).unwrap()),
         )
             .into_response(),
         Err(DeleteSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_DELETE_FAILED", &msg)).unwrap()),
         )
             .into_response(),
     }
@@ -235,7 +251,7 @@ pub async fn list_secrets(
             .into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": e.to_string()})),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_LIST_FAILED", &e.to_string())).unwrap()),
         )
             .into_response(),
     }
@@ -261,17 +277,12 @@ pub async fn get_secret_metadata(
         }
         Err(GetSecretError::NotFound(path)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({
-                "error": {
-                    "code": "SYS_VAULT_NOT_FOUND",
-                    "message": format!("secret not found: {}", path)
-                }
-            })),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_NOT_FOUND", &format!("secret not found: {}", path))).unwrap()),
         )
             .into_response(),
         Err(GetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_METADATA_GET_FAILED", &msg)).unwrap()),
         )
             .into_response(),
     }
@@ -316,7 +327,7 @@ pub async fn list_audit_logs(
         }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": e.to_string()})),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_AUDIT_LOG_LIST_FAILED", &e.to_string())).unwrap()),
         )
             .into_response(),
     }
@@ -346,7 +357,7 @@ pub async fn rotate_secret(
             .into_response(),
         Err(SetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_ROTATE_FAILED", &msg)).unwrap()),
         )
             .into_response(),
     }

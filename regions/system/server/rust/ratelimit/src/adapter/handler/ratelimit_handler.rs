@@ -111,7 +111,6 @@ fn parse_window_secs(window: &Option<String>) -> i64 {
     request_body = CheckRateLimitRequest,
     responses(
         (status = 200, description = "Rate limit check result", body = CheckRateLimitResponse),
-        (status = 429, description = "Rate limit exceeded"),
     )
 )]
 pub async fn check_rate_limit(
@@ -122,18 +121,12 @@ pub async fn check_rate_limit(
 
     match state.check_uc.execute(&req.scope, &req.identifier, window_secs).await {
         Ok(decision) => {
-            // デフォルトlimit=100（ルールが見つかればusecaseが適用する）
-            let limit = 100i64;
-            let status = if decision.allowed {
-                StatusCode::OK
-            } else {
-                StatusCode::TOO_MANY_REQUESTS
-            };
+            let limit = decision.limit;
 
             let mut headers = HeaderMap::new();
             headers.insert(
                 "X-RateLimit-Limit",
-                HeaderValue::from_str(&limit.to_string()).unwrap_or(HeaderValue::from_static("100")),
+                HeaderValue::from_str(&limit.to_string()).unwrap_or(HeaderValue::from_static("0")),
             );
             headers.insert(
                 "X-RateLimit-Remaining",
@@ -147,7 +140,7 @@ pub async fn check_rate_limit(
             );
 
             (
-                status,
+                StatusCode::OK,
                 headers,
                 Json(CheckRateLimitResponse {
                     allowed: decision.allowed,
@@ -225,11 +218,19 @@ pub struct RuleResponse {
     pub id: String,
     pub scope: String,
     pub identifier_pattern: String,
-    pub limit: i64,
-    pub window_seconds: i64,
+    pub limit: u32,
+    pub window_seconds: u32,
     pub enabled: bool,
     pub created_at: String,
     pub updated_at: String,
+}
+
+fn parse_positive_u32(value: i64, field: &str) -> Result<u32, String> {
+    let parsed = u32::try_from(value).map_err(|_| format!("{field} must be >= 0"))?;
+    if parsed == 0 {
+        return Err(format!("{field} must be positive"));
+    }
+    Ok(parsed)
 }
 
 #[utoipa::path(
@@ -246,11 +247,26 @@ pub async fn create_rule(
     State(state): State<AppState>,
     Json(req): Json<CreateRuleRequest>,
 ) -> impl IntoResponse {
+    let limit = match parse_positive_u32(req.limit, "limit") {
+        Ok(v) => v,
+        Err(msg) => {
+            let err = ErrorResponse::new("SYS_RATELIMIT_VALIDATION_ERROR", &msg);
+            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+        }
+    };
+    let window_seconds = match parse_positive_u32(req.window_seconds, "window_seconds") {
+        Ok(v) => v,
+        Err(msg) => {
+            let err = ErrorResponse::new("SYS_RATELIMIT_VALIDATION_ERROR", &msg);
+            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+        }
+    };
+
     let input = crate::usecase::create_rule::CreateRuleInput {
         scope: req.scope,
         identifier_pattern: req.identifier_pattern,
-        limit: req.limit,
-        window_seconds: req.window_seconds,
+        limit,
+        window_seconds,
         enabled: req.enabled,
     };
 
@@ -351,17 +367,49 @@ pub struct UsageResponse {
     pub reset_at: Option<i64>,
 }
 
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
+pub struct ListRulesQuery {
+    pub page: Option<u32>,
+    pub page_size: Option<u32>,
+    pub scope: Option<String>,
+    pub enabled_only: Option<bool>,
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/ratelimit/rules",
+    params(
+        ListRulesQuery
+    ),
     responses(
         (status = 200, description = "List of rules"),
     )
 )]
-pub async fn list_rules(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn list_rules(
+    State(state): State<AppState>,
+    axum::extract::Query(query): axum::extract::Query<ListRulesQuery>,
+) -> impl IntoResponse {
     match state.list_uc.execute().await {
-        Ok(rules) => {
-            let resp: Vec<RuleResponse> = rules
+        Ok(mut rules) => {
+            if let Some(ref scope) = query.scope {
+                rules.retain(|r| &r.scope == scope);
+            }
+            if query.enabled_only.unwrap_or(false) {
+                rules.retain(|r| r.enabled);
+            }
+
+            let page_size = query.page_size.unwrap_or(20).max(1) as usize;
+            let page = query.page.unwrap_or(1).max(1) as usize;
+            let total = rules.len();
+            let start = (page - 1) * page_size;
+            let paged_rules: Vec<_> = rules.into_iter().skip(start).take(page_size).collect();
+            let total_pages = if total == 0 {
+                0
+            } else {
+                ((total as f64) / (page_size as f64)).ceil() as usize
+            };
+
+            let resp: Vec<RuleResponse> = paged_rules
                 .into_iter()
                 .map(|r| RuleResponse {
                     id: r.id.to_string(),
@@ -374,7 +422,19 @@ pub async fn list_rules(State(state): State<AppState>) -> impl IntoResponse {
                     updated_at: r.updated_at.to_rfc3339(),
                 })
                 .collect();
-            (StatusCode::OK, Json(serde_json::json!({ "rules": resp }))).into_response()
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "rules": resp,
+                    "pagination": {
+                        "page": page,
+                        "page_size": page_size,
+                        "total": total,
+                        "total_pages": total_pages
+                    }
+                })),
+            )
+                .into_response()
         }
         Err(e) => {
             let err = ErrorResponse::new("SYS_RATELIMIT_INTERNAL_ERROR", &e.to_string());
@@ -400,12 +460,26 @@ pub async fn update_rule(
     Json(req): Json<UpdateRuleRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::update_rule::{UpdateRuleError, UpdateRuleInput};
+    let limit = match parse_positive_u32(req.limit, "limit") {
+        Ok(v) => v,
+        Err(msg) => {
+            let err = ErrorResponse::new("SYS_RATELIMIT_VALIDATION_ERROR", &msg);
+            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+        }
+    };
+    let window_seconds = match parse_positive_u32(req.window_seconds, "window_seconds") {
+        Ok(v) => v,
+        Err(msg) => {
+            let err = ErrorResponse::new("SYS_RATELIMIT_VALIDATION_ERROR", &msg);
+            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+        }
+    };
     let input = UpdateRuleInput {
         id,
         scope: req.scope,
         identifier_pattern: req.identifier_pattern,
-        limit: req.limit,
-        window_seconds: req.window_seconds,
+        limit,
+        window_seconds,
         enabled: req.enabled,
     };
 
@@ -756,7 +830,7 @@ mod tests {
             .unwrap();
 
         let resp = app.oneshot(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
+        assert_eq!(resp.status(), StatusCode::OK);
 
         let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await

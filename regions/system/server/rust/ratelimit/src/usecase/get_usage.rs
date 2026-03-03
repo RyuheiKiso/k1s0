@@ -67,7 +67,10 @@ impl GetUsageUseCase {
 
         let key = format!("ratelimit:{}:{}", rule.scope, rule.identifier_pattern);
         let (used, remaining, reset_at) = if let Some(ref store) = self.state_store {
-            match store.get_usage(&key, rule.limit, rule.window_seconds).await {
+            match store
+                .get_usage(&key, i64::from(rule.limit), i64::from(rule.window_seconds))
+                .await
+            {
                 Ok(Some(snapshot)) => (
                     Some(snapshot.used),
                     Some(snapshot.remaining),
@@ -82,8 +85,8 @@ impl GetUsageUseCase {
         Ok(UsageInfo {
             rule_id: rule.id.to_string(),
             rule_name: rule.scope.clone(),
-            limit: rule.limit,
-            window_seconds: rule.window_seconds,
+            limit: i64::from(rule.limit),
+            window_seconds: i64::from(rule.window_seconds),
             algorithm: rule.algorithm.as_str().to_string(),
             enabled: rule.enabled,
             used,

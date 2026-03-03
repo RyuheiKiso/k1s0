@@ -5,17 +5,26 @@ use uuid::Uuid;
 pub struct PolicyBundle {
     pub id: Uuid,
     pub name: String,
+    pub description: Option<String>,
+    pub enabled: bool,
     pub policy_ids: Vec<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 impl PolicyBundle {
-    pub fn new(name: String, policy_ids: Vec<Uuid>) -> Self {
+    pub fn new(
+        name: String,
+        description: Option<String>,
+        enabled: bool,
+        policy_ids: Vec<Uuid>,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
             name,
+            description,
+            enabled,
             policy_ids,
             created_at: now,
             updated_at: now,

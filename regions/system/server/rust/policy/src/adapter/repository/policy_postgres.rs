@@ -26,7 +26,7 @@ struct PolicyRow {
     description: String,
     rego_content: String,
     package_path: String,
-    bundle_id: Option<String>,
+    bundle_id: Option<Uuid>,
     enabled: bool,
     version: i32,
     created_at: DateTime<Utc>,
@@ -77,7 +77,7 @@ impl PolicyRepository for PolicyPostgresRepository {
         &self,
         page: u32,
         page_size: u32,
-        bundle_id: Option<String>,
+        bundle_id: Option<Uuid>,
         enabled_only: bool,
     ) -> anyhow::Result<(Vec<Policy>, u64)> {
         let offset = (page.saturating_sub(1) * page_size) as i64;

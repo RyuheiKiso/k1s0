@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::domain::entity::search_index::{SearchDocument, SearchIndex, SearchQuery, SearchResult};
@@ -60,6 +61,7 @@ impl From<SearchDocumentRow> for SearchDocument {
             id: r.document_id,
             index_name: r.index_name,
             content: r.content,
+            score: 1.0,
             indexed_at: r.created_at,
         }
     }
@@ -174,6 +176,7 @@ impl SearchRepository for SearchPostgresRepository {
             return Ok(SearchResult {
                 total: count.0 as u64,
                 hits: rows.into_iter().map(Into::into).collect(),
+                facets: HashMap::new(),
             });
         }
 
@@ -207,6 +210,7 @@ impl SearchRepository for SearchPostgresRepository {
         Ok(SearchResult {
             total: count.0 as u64,
             hits: rows.into_iter().map(Into::into).collect(),
+            facets: HashMap::new(),
         })
     }
 

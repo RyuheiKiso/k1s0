@@ -29,8 +29,8 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         .bind(rule.id)
         .bind(&rule.scope)
         .bind(&rule.identifier_pattern)
-        .bind(rule.limit)
-        .bind(rule.window_seconds)
+        .bind(i64::from(rule.limit))
+        .bind(i64::from(rule.window_seconds))
         .bind(rule.algorithm.as_str())
         .bind(rule.enabled)
         .bind(rule.created_at)
@@ -114,8 +114,8 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         )
         .bind(&rule.scope)
         .bind(&rule.identifier_pattern)
-        .bind(rule.limit)
-        .bind(rule.window_seconds)
+        .bind(i64::from(rule.limit))
+        .bind(i64::from(rule.window_seconds))
         .bind(rule.algorithm.as_str())
         .bind(rule.enabled)
         .bind(rule.updated_at)
@@ -168,8 +168,11 @@ impl RuleRow {
             id: self.id,
             scope: self.scope,
             identifier_pattern: self.identifier_pattern,
-            limit: self.limit_count,
-            window_seconds: self.window_seconds,
+            limit: u32::try_from(self.limit_count)
+                .map_err(|_| anyhow::anyhow!("invalid limit_count in DB: {}", self.limit_count))?,
+            window_seconds: u32::try_from(self.window_seconds).map_err(|_| {
+                anyhow::anyhow!("invalid window_secs in DB: {}", self.window_seconds)
+            })?,
             algorithm,
             enabled: self.enabled,
             created_at: self.created_at,

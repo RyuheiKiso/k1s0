@@ -8,7 +8,7 @@ pub struct Policy {
     pub description: String,
     pub rego_content: String,
     pub package_path: String,
-    pub bundle_id: Option<String>,
+    pub bundle_id: Option<Uuid>,
     pub version: u32,
     pub enabled: bool,
     pub created_at: DateTime<Utc>,

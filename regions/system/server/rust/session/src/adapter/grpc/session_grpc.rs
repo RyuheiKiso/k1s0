@@ -149,29 +149,16 @@ impl SessionGrpcService {
         &self,
         req: CreateSessionRequest,
     ) -> Result<CreateSessionResponse, GrpcError> {
-        let mut metadata = std::collections::HashMap::new();
-        if let Some(ref device_id) = Some(req.device_id.clone()) {
-            if !device_id.is_empty() {
-                metadata.insert("device_id".to_string(), device_id.clone());
-            }
-        }
-        if let Some(ref name) = req.device_name {
-            metadata.insert("device_name".to_string(), name.clone());
-        }
-        if let Some(ref dt) = req.device_type {
-            metadata.insert("device_type".to_string(), dt.clone());
-        }
-        if let Some(ref ua) = req.user_agent {
-            metadata.insert("user_agent".to_string(), ua.clone());
-        }
-        if let Some(ref ip) = req.ip_address {
-            metadata.insert("ip_address".to_string(), ip.clone());
-        }
-
         let input = CreateSessionInput {
             user_id: req.user_id,
+            device_id: req.device_id.clone(),
+            device_name: req.device_name,
+            device_type: req.device_type,
+            user_agent: req.user_agent,
+            ip_address: req.ip_address,
             ttl_seconds: req.ttl_seconds.map(|ttl| ttl as i64).or(Some(self.default_ttl)),
-            metadata: Some(metadata),
+            max_devices: None,
+            metadata: None,
         };
 
         match self.create_uc.execute(&input).await {
@@ -211,15 +198,15 @@ impl SessionGrpcService {
                     session: PbSession {
                         session_id: s.id,
                         user_id: s.user_id,
-                        device_id: s.metadata.get("device_id").cloned().unwrap_or_default(),
-                        device_name: s.metadata.get("device_name").cloned(),
-                        device_type: s.metadata.get("device_type").cloned(),
-                        user_agent: s.metadata.get("user_agent").cloned(),
-                        ip_address: s.metadata.get("ip_address").cloned(),
+                        device_id: s.device_id,
+                        device_name: s.device_name,
+                        device_type: s.device_type,
+                        user_agent: s.user_agent,
+                        ip_address: s.ip_address,
                         status: status.to_string(),
                         expires_at: s.expires_at.to_rfc3339(),
                         created_at: s.created_at.to_rfc3339(),
-                        last_accessed_at: s.metadata.get("last_accessed_at").cloned(),
+                        last_accessed_at: s.last_accessed_at.map(|t| t.to_rfc3339()),
                     },
                 })
             }
@@ -305,15 +292,15 @@ impl SessionGrpcService {
                         PbSession {
                             session_id: s.id,
                             user_id: s.user_id,
-                            device_id: s.metadata.get("device_id").cloned().unwrap_or_default(),
-                            device_name: s.metadata.get("device_name").cloned(),
-                            device_type: s.metadata.get("device_type").cloned(),
-                            user_agent: s.metadata.get("user_agent").cloned(),
-                            ip_address: s.metadata.get("ip_address").cloned(),
+                            device_id: s.device_id,
+                            device_name: s.device_name,
+                            device_type: s.device_type,
+                            user_agent: s.user_agent,
+                            ip_address: s.ip_address,
                             status: status.to_string(),
                             expires_at: s.expires_at.to_rfc3339(),
                             created_at: s.created_at.to_rfc3339(),
-                            last_accessed_at: s.metadata.get("last_accessed_at").cloned(),
+                            last_accessed_at: s.last_accessed_at.map(|t| t.to_rfc3339()),
                         }
                     })
                     .collect();
@@ -340,9 +327,15 @@ mod tests {
         Session {
             id: id.to_string(),
             user_id: "user-1".to_string(),
+            device_id: "device-1".to_string(),
+            device_name: Some("my device".to_string()),
+            device_type: Some("desktop".to_string()),
+            user_agent: Some("ua".to_string()),
+            ip_address: Some("127.0.0.1".to_string()),
             token: format!("tok-{}", id),
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
+            last_accessed_at: Some(Utc::now()),
             revoked: false,
             metadata: HashMap::new(),
         }

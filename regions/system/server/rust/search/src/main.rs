@@ -348,18 +348,37 @@ impl SearchRepository for InMemorySearchRepository {
         let documents = self.documents.read().await;
         let docs = documents.get(&query.index_name).cloned().unwrap_or_default();
 
-        let hits: Vec<SearchDocument> = docs
+        let matched: Vec<SearchDocument> = docs
             .into_iter()
             .filter(|doc| {
                 let content_str = doc.content.to_string();
-                content_str.contains(&query.query)
+                let query_ok = query.query.is_empty() || content_str.contains(&query.query);
+                if !query_ok {
+                    return false;
+                }
+                query
+                    .filters
+                    .iter()
+                    .all(|(k, v)| doc.content.get(k).and_then(|x| x.as_str()) == Some(v.as_str()))
             })
+            .map(|mut doc| {
+                doc.score = 1.0;
+                doc
+            })
+            .collect();
+
+        let total = matched.len() as u64;
+        let hits: Vec<SearchDocument> = matched
+            .into_iter()
             .skip(query.from as usize)
             .take(query.size as usize)
             .collect();
 
-        let total = hits.len() as u64;
-        Ok(SearchResult { total, hits })
+        Ok(SearchResult {
+            total,
+            hits,
+            facets: HashMap::new(),
+        })
     }
 
     async fn delete_document(&self, index_name: &str, doc_id: &str) -> anyhow::Result<bool> {

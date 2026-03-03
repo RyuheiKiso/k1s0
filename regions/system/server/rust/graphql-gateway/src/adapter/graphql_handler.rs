@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_graphql::dataloader::DataLoader;
 use async_graphql::{Context, FieldResult, Object, Schema, Subscription};
 use async_graphql::futures_util::Stream;
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
@@ -16,9 +17,12 @@ use crate::domain::model::{
     ConfigEntry, CreateTenantPayload, FeatureFlag, SetFeatureFlagPayload, Tenant,
     TenantConnection, TenantStatus, UpdateTenantPayload, UserError,
 };
+use crate::domain::model::graphql_context::{
+    ConfigLoader, FeatureFlagLoader, GraphqlContext, TenantLoader,
+};
 use crate::infra::auth::JwksVerifier;
 use crate::infra::config::GraphQLConfig;
-use crate::infra::grpc::FeatureFlagGrpcClient;
+use crate::infra::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
 use crate::usecase::{
     ConfigQueryResolver, FeatureFlagQueryResolver, SubscriptionResolver, TenantMutationResolver,
     TenantQueryResolver,
@@ -103,9 +107,17 @@ impl QueryRoot {
 
     async fn config(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         key: String,
     ) -> FieldResult<Option<ConfigEntry>> {
+        if let Ok(gql_ctx) = ctx.data::<GraphqlContext>() {
+            return gql_ctx
+                .config_loader
+                .load_one(key.clone())
+                .await
+                .map_err(|e| async_graphql::Error::new(e.to_string()));
+        }
+
         self.config_query
             .get_config(&key)
             .await
@@ -232,6 +244,9 @@ pub struct AppState {
     pub schema: AppSchema,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub query_timeout: std::time::Duration,
+    pub tenant_loader: Arc<DataLoader<TenantLoader>>,
+    pub flag_loader: Arc<DataLoader<FeatureFlagLoader>>,
+    pub config_loader: Arc<DataLoader<ConfigLoader>>,
 }
 
 pub fn router(
@@ -242,6 +257,8 @@ pub fn router(
     tenant_mutation: Arc<TenantMutationResolver>,
     subscription: Arc<SubscriptionResolver>,
     feature_flag_client: Arc<FeatureFlagGrpcClient>,
+    tenant_client: Arc<TenantGrpcClient>,
+    config_client: Arc<ConfigGrpcClient>,
     graphql_cfg: GraphQLConfig,
     metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 ) -> Router {
@@ -253,7 +270,7 @@ pub fn router(
         },
         MutationRoot {
             tenant_mutation,
-            feature_flag_client,
+            feature_flag_client: feature_flag_client.clone(),
         },
         SubscriptionRoot { subscription },
     )
@@ -268,11 +285,32 @@ pub fn router(
 
     let query_timeout =
         std::time::Duration::from_secs(graphql_cfg.query_timeout_seconds as u64);
+    let tenant_loader = Arc::new(DataLoader::new(
+        TenantLoader {
+            client: tenant_client,
+        },
+        tokio::spawn,
+    ));
+    let flag_loader = Arc::new(DataLoader::new(
+        FeatureFlagLoader {
+            client: feature_flag_client.clone(),
+        },
+        tokio::spawn,
+    ));
+    let config_loader = Arc::new(DataLoader::new(
+        ConfigLoader {
+            client: config_client,
+        },
+        tokio::spawn,
+    ));
 
     let app_state = AppState {
         schema: schema.clone(),
         metrics,
         query_timeout,
+        tenant_loader,
+        flag_loader,
+        config_loader,
     };
 
     let graphql_post = post(graphql_handler).layer(AuthMiddlewareLayer::new(jwks_verifier));
@@ -301,7 +339,14 @@ async fn graphql_handler(
     Extension(claims): Extension<Claims>,
     req: GraphQLRequest,
 ) -> impl IntoResponse {
-    let request = req.into_inner().data(claims);
+    let request = req.into_inner().data(GraphqlContext {
+        user_id: claims.sub.clone(),
+        roles: claims.roles(),
+        request_id: uuid::Uuid::new_v4().to_string(),
+        tenant_loader: state.tenant_loader.clone(),
+        flag_loader: state.flag_loader.clone(),
+        config_loader: state.config_loader.clone(),
+    }).data(claims);
     match tokio::time::timeout(state.query_timeout, state.schema.execute(request)).await {
         Ok(resp) => GraphQLResponse::from(resp).into_response(),
         Err(_) => (

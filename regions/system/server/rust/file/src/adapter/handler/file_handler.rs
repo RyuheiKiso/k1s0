@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
 };
@@ -39,15 +39,20 @@ pub async fn upload_file(
             })),
         )
             .into_response(),
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("validation") {
-                let err = ErrorResponse::new("SYS_FILE_VALIDATION", &msg);
-                (StatusCode::BAD_REQUEST, Json(err)).into_response()
-            } else {
-                let err = ErrorResponse::new("SYS_FILE_UPLOAD_FAILED", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-            }
+        Err(crate::usecase::generate_upload_url::GenerateUploadUrlError::Validation(msg)) => {
+            let err = ErrorResponse::new("SYS_FILE_VALIDATION", &msg);
+            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+        }
+        Err(crate::usecase::generate_upload_url::GenerateUploadUrlError::SizeExceeded { actual, max }) => {
+            let err = ErrorResponse::new(
+                "SYS_FILE_SIZE_EXCEEDED",
+                &format!("file size exceeds limit: {} > {}", actual, max),
+            );
+            (StatusCode::PAYLOAD_TOO_LARGE, Json(err)).into_response()
+        }
+        Err(crate::usecase::generate_upload_url::GenerateUploadUrlError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_FILE_UPLOAD_FAILED", &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }
@@ -55,6 +60,7 @@ pub async fn upload_file(
 /// GET /api/v1/files/:id - Get file metadata and download URL
 pub async fn get_file(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     let metadata_input = GetFileMetadataInput {
@@ -63,6 +69,15 @@ pub async fn get_file(
 
     match state.get_file_metadata_uc.execute(&metadata_input).await {
         Ok(file) => {
+            if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+                if !crate::domain::service::FileDomainService::can_access_tenant_resource(
+                    &file.tenant_id,
+                    request_tenant_id,
+                ) {
+                    let err = ErrorResponse::new("SYS_FILE_ACCESS_DENIED", "access denied for tenant");
+                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
+                }
+            }
             // Also generate a download URL if file is available
             let download_url = if file.status == "available" {
                 let dl_input = GenerateDownloadUrlInput {
@@ -140,8 +155,30 @@ pub async fn list_files(
 /// DELETE /api/v1/files/:id
 pub async fn delete_file(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
+    if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+        match state
+            .get_file_metadata_uc
+            .execute(&GetFileMetadataInput {
+                file_id: id.clone(),
+            })
+            .await
+        {
+            Ok(file) => {
+                if !crate::domain::service::FileDomainService::can_access_tenant_resource(
+                    &file.tenant_id,
+                    request_tenant_id,
+                ) {
+                    let err = ErrorResponse::new("SYS_FILE_ACCESS_DENIED", "access denied for tenant");
+                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
+                }
+            }
+            Err(_) => {}
+        }
+    }
+
     let input = DeleteFileInput { file_id: id };
 
     match state.delete_file_uc.execute(&input).await {
@@ -169,10 +206,32 @@ pub async fn delete_file(
 /// POST /api/v1/files/:id/complete
 pub async fn complete_upload(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(id): Path<String>,
     Json(req): Json<CompleteUploadRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::complete_upload::CompleteUploadInput;
+
+    if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+        match state
+            .get_file_metadata_uc
+            .execute(&GetFileMetadataInput {
+                file_id: id.clone(),
+            })
+            .await
+        {
+            Ok(file) => {
+                if !crate::domain::service::FileDomainService::can_access_tenant_resource(
+                    &file.tenant_id,
+                    request_tenant_id,
+                ) {
+                    let err = ErrorResponse::new("SYS_FILE_ACCESS_DENIED", "access denied for tenant");
+                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
+                }
+            }
+            Err(_) => {}
+        }
+    }
 
     let input = CompleteUploadInput {
         file_id: id.clone(),
@@ -208,8 +267,30 @@ pub async fn complete_upload(
 /// GET /api/v1/files/:id/download-url - Generate download URL
 pub async fn download_url(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
+    if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+        match state
+            .get_file_metadata_uc
+            .execute(&GetFileMetadataInput {
+                file_id: id.clone(),
+            })
+            .await
+        {
+            Ok(file) => {
+                if !crate::domain::service::FileDomainService::can_access_tenant_resource(
+                    &file.tenant_id,
+                    request_tenant_id,
+                ) {
+                    let err = ErrorResponse::new("SYS_FILE_ACCESS_DENIED", "access denied for tenant");
+                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
+                }
+            }
+            Err(_) => {}
+        }
+    }
+
     let input = GenerateDownloadUrlInput {
         file_id: id,
         expires_in_seconds: 3600,
@@ -244,10 +325,32 @@ pub async fn download_url(
 /// PUT /api/v1/files/:id/tags
 pub async fn update_file_tags(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(id): Path<String>,
     Json(req): Json<UpdateFileTagsRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::update_file_tags::UpdateFileTagsInput;
+
+    if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+        match state
+            .get_file_metadata_uc
+            .execute(&GetFileMetadataInput {
+                file_id: id.clone(),
+            })
+            .await
+        {
+            Ok(file) => {
+                if !crate::domain::service::FileDomainService::can_access_tenant_resource(
+                    &file.tenant_id,
+                    request_tenant_id,
+                ) {
+                    let err = ErrorResponse::new("SYS_FILE_ACCESS_DENIED", "access denied for tenant");
+                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
+                }
+            }
+            Err(_) => {}
+        }
+    }
 
     let input = UpdateFileTagsInput {
         file_id: id.clone(),
@@ -362,6 +465,10 @@ fn parse_tag_query(raw: &str) -> Option<(String, String)> {
     }
 }
 
+fn tenant_id_from_headers(headers: &HeaderMap) -> Option<&str> {
+    headers.get("x-tenant-id").and_then(|h| h.to_str().ok())
+}
+
 #[derive(Debug, Serialize)]
 pub struct ErrorResponse {
     pub error: ErrorBody,
@@ -371,6 +478,8 @@ pub struct ErrorResponse {
 pub struct ErrorBody {
     pub code: String,
     pub message: String,
+    pub request_id: String,
+    pub details: Vec<String>,
 }
 
 impl ErrorResponse {
@@ -379,6 +488,8 @@ impl ErrorResponse {
             error: ErrorBody {
                 code: code.to_string(),
                 message: message.to_string(),
+                request_id: uuid::Uuid::new_v4().to_string(),
+                details: vec![],
             },
         }
     }

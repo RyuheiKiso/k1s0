@@ -26,8 +26,8 @@ pub struct UpdateRuleInput {
     pub id: String,
     pub scope: String,
     pub identifier_pattern: String,
-    pub limit: i64,
-    pub window_seconds: i64,
+    pub limit: u32,
+    pub window_seconds: u32,
     pub enabled: bool,
 }
 
@@ -45,12 +45,12 @@ impl UpdateRuleUseCase {
         if input.scope.is_empty() {
             return Err(UpdateRuleError::Validation("scope is required".to_string()));
         }
-        if input.limit <= 0 {
+        if input.limit == 0 {
             return Err(UpdateRuleError::Validation(
                 "limit must be positive".to_string(),
             ));
         }
-        if input.window_seconds <= 0 {
+        if input.window_seconds == 0 {
             return Err(UpdateRuleError::Validation(
                 "window_seconds must be positive".to_string(),
             ));

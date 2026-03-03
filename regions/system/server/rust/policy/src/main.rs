@@ -242,7 +242,7 @@ impl PolicyRepository for InMemoryPolicyRepository {
         &self,
         page: u32,
         page_size: u32,
-        bundle_id: Option<String>,
+        bundle_id: Option<Uuid>,
         enabled_only: bool,
     ) -> anyhow::Result<(Vec<Policy>, u64)> {
         let policies = self.policies.read().await;
@@ -253,7 +253,7 @@ impl PolicyRepository for InMemoryPolicyRepository {
                     return false;
                 }
                 if let Some(ref bid) = bundle_id {
-                    if p.bundle_id.as_deref() != Some(bid.as_str()) {
+                    if p.bundle_id.as_ref() != Some(bid) {
                         return false;
                     }
                 }

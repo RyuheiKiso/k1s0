@@ -1,4 +1,4 @@
-# system-vault-server 設計
+﻿# system-vault-server 設計
 
 system tier のシークレット管理サーバー設計を定義する。HashiCorp Vault 統合によるバージョン管理付き KV シークレットストアを提供し、Kafka 通知、SPIFFE 認証、監査ログに対応する。Rust での実装を定義する。
 
@@ -273,8 +273,13 @@ system tier の Vault Server は以下の機能を提供する。
 ローテーション・メタデータ取得・監査ログ取得の RPC を提供する。
 
 ```protobuf
+// k1s0 Vault シークレット管理サービス gRPC 定義。
+// シークレットの取得・設定・削除・一覧取得を提供する。
 syntax = "proto3";
+
 package k1s0.system.vault.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/vault/v1;vaultv1";
 
 import "k1s0/system/common/v1/types.proto";
 
@@ -310,6 +315,17 @@ message SetSecretResponse {
   k1s0.system.common.v1.Timestamp created_at = 2;
 }
 
+message RotateSecretRequest {
+  string path = 1;
+  map<string, string> data = 2;
+}
+
+message RotateSecretResponse {
+  string path = 1;
+  int64 new_version = 2;
+  bool rotated = 3;
+}
+
 message DeleteSecretRequest {
   string path = 1;
   repeated int64 versions = 2;
@@ -319,12 +335,44 @@ message DeleteSecretResponse {
   bool success = 1;
 }
 
+message GetSecretMetadataRequest {
+  string path = 1;
+}
+
+message GetSecretMetadataResponse {
+  string path = 1;
+  int64 current_version = 2;
+  int32 version_count = 3;
+  k1s0.system.common.v1.Timestamp created_at = 4;
+  k1s0.system.common.v1.Timestamp updated_at = 5;
+}
+
 message ListSecretsRequest {
   string path_prefix = 1;
 }
 
 message ListSecretsResponse {
   repeated string keys = 1;
+}
+
+message ListAuditLogsRequest {
+  int32 offset = 1;
+  int32 limit = 2;
+}
+
+message ListAuditLogsResponse {
+  repeated AuditLogEntry logs = 1;
+}
+
+message AuditLogEntry {
+  string id = 1;
+  string key_path = 2;
+  string action = 3;
+  string actor_id = 4;
+  string ip_address = 5;
+  bool success = 6;
+  optional string error_msg = 7;
+  k1s0.system.common.v1.Timestamp created_at = 8;
 }
 ```
 
@@ -352,7 +400,7 @@ moka を使用した TTL ベースのインメモリキャッシュにより、V
 
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
-| domain/entity | `Secret`, `SecretVersion`, `SecretValue`, `SecretAccessLog` | エンティティ定義 |
+| domain/entity | `Secret`, `SecretVersion`, `SecretValue`, `SecretAccessLog`, `SpiffeAccessPolicy` | エンティティ定義 |
 | domain/repository | `SecretStore`（trait）, `AccessLogRepository`（trait） | リポジトリトレイト |
 | usecase | `GetSecretUseCase`, `SetSecretUseCase`, `DeleteSecretUseCase`, `ListSecretsUseCase`, `ListAuditLogsUseCase` | ユースケース |
 | adapter/handler | `vault_handler.rs`（REST）, `health.rs` | axum REST ハンドラー |
@@ -408,6 +456,15 @@ moka を使用した TTL ベースのインメモリキャッシュにより、V
 | `success` | bool | 成功フラグ |
 | `error_msg` | Option\<String\> | エラーメッセージ（失敗時） |
 | `created_at` | DateTime\<Utc\> | 記録日時 |
+
+#### SpiffeAccessPolicy
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `id` | Uuid | ポリシー ID |
+| `secret_path_pattern` | String | 対象シークレットパスの glob パターン（`*`/`**`） |
+| `allowed_spiffe_ids` | Vec\<String\> | アクセスを許可する SPIFFE ID 一覧 |
+| `created_at` | DateTime\<Utc\> | 作成日時 |
 
 ### 依存関係図
 

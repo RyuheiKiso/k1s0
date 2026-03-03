@@ -1,4 +1,4 @@
-# system-search-server 設計
+﻿# system-search-server 設計
 
 OpenSearch 連携の全文検索サーバー。インデックス管理・全文検索クエリ・Kafka 非同期インデックスを提供。
 
@@ -249,13 +249,44 @@ system tier の全文検索サーバーは以下の機能を提供する。
 ### gRPC サービス定義
 
 ```protobuf
+// k1s0 全文検索サービス gRPC 定義。
+// ドキュメントのインデックス管理と全文検索を提供する。
 syntax = "proto3";
+
 package k1s0.system.search.v1;
 
+option go_package = "github.com/k1s0-platform/system-proto-go/search/v1;searchv1";
+
+import "k1s0/system/common/v1/types.proto";
+
 service SearchService {
+  rpc CreateIndex(CreateIndexRequest) returns (CreateIndexResponse);
+  rpc ListIndices(ListIndicesRequest) returns (ListIndicesResponse);
   rpc IndexDocument(IndexDocumentRequest) returns (IndexDocumentResponse);
   rpc Search(SearchRequest) returns (SearchResponse);
   rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
+}
+
+message SearchIndex {
+  string id = 1;
+  string name = 2;
+  bytes mapping_json = 3;
+  string created_at = 4;
+}
+
+message CreateIndexRequest {
+  string name = 1;
+  bytes mapping_json = 2;
+}
+
+message CreateIndexResponse {
+  SearchIndex index = 1;
+}
+
+message ListIndicesRequest {}
+
+message ListIndicesResponse {
+  repeated SearchIndex indices = 1;
 }
 
 message IndexDocumentRequest {
@@ -280,10 +311,7 @@ message SearchRequest {
 
 message SearchResponse {
   repeated SearchHit hits = 1;
-  uint64 total_count = 2;
-  uint32 page = 3;
-  uint32 page_size = 4;
-  bool has_next = 5;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message SearchHit {

@@ -9,6 +9,9 @@ use crate::usecase::append_events::{AppendEventsError, AppendEventsInput};
 use crate::usecase::create_snapshot::{CreateSnapshotError, CreateSnapshotInput};
 use crate::usecase::delete_stream::{DeleteStreamError, DeleteStreamInput};
 use crate::usecase::get_latest_snapshot::{GetLatestSnapshotError, GetLatestSnapshotInput};
+use crate::usecase::read_event_by_sequence::{
+    ReadEventBySequenceError, ReadEventBySequenceInput,
+};
 use crate::usecase::read_events::{ReadEventsError, ReadEventsInput};
 
 // --- Request / Response DTOs ---
@@ -316,6 +319,48 @@ pub async fn read_events(
     }))
 }
 
+/// GET /api/v1/streams/:stream_id/events/:sequence - Read one event by sequence
+#[utoipa::path(
+    get,
+    path = "/api/v1/streams/{stream_id}/events/{sequence}",
+    params(
+        ("stream_id" = String, Path, description = "Stream ID"),
+        ("sequence" = u64, Path, description = "Event sequence"),
+    ),
+    responses(
+        (status = 200, description = "Event found", body = StoredEventResponse),
+        (status = 404, description = "Stream or event not found"),
+    ),
+)]
+pub async fn read_event_by_sequence(
+    State(state): State<AppState>,
+    Path((stream_id, sequence)): Path<(String, u64)>,
+) -> Result<Json<StoredEventResponse>, EventStoreError> {
+    let input = ReadEventBySequenceInput {
+        stream_id,
+        sequence,
+    };
+
+    let event = state
+        .read_event_by_sequence_uc
+        .execute(&input)
+        .await
+        .map_err(|e| match e {
+            ReadEventBySequenceError::StreamNotFound(id) => {
+                EventStoreError::NotFound(format!("stream not found: {}", id))
+            }
+            ReadEventBySequenceError::EventNotFound { stream_id, sequence } => {
+                EventStoreError::NotFound(format!(
+                    "event not found: stream={}, sequence={}",
+                    stream_id, sequence
+                ))
+            }
+            ReadEventBySequenceError::Internal(msg) => EventStoreError::Internal(msg),
+        })?;
+
+    Ok(Json(to_stored_event_response(&event)))
+}
+
 /// GET /api/v1/events - List/query events with pagination
 #[utoipa::path(
     get,
@@ -550,6 +595,10 @@ mod tests {
         AppState {
             append_events_uc: Arc::new(AppendEventsUseCase::new(stream.clone(), event.clone())),
             read_events_uc: Arc::new(ReadEventsUseCase::new(stream.clone(), event.clone())),
+            read_event_by_sequence_uc: Arc::new(ReadEventBySequenceUseCase::new(
+                stream.clone(),
+                event.clone(),
+            )),
             create_snapshot_uc: Arc::new(CreateSnapshotUseCase::new(
                 stream.clone(),
                 snap.clone(),

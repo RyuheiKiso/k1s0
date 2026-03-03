@@ -60,7 +60,7 @@ impl CheckRateLimitUseCase {
             .iter()
             .find(|r| r.enabled)
             .map(|r| (r.limit, r.window_seconds))
-            .unwrap_or((100, if window_secs > 0 { window_secs } else { 60 }));
+            .unwrap_or((100, if window_secs > 0 { window_secs as u32 } else { 60 }));
 
         // Redis キー: ratelimit:{scope}:{identifier}
         let redis_key = format!("ratelimit:{}:{}", scope, identifier);
@@ -75,22 +75,34 @@ impl CheckRateLimitUseCase {
         let mut decision = match algorithm {
             Algorithm::TokenBucket => {
                 self.state_store
-                    .check_token_bucket(&redis_key, limit, effective_window)
+                    .check_token_bucket(
+                        &redis_key,
+                        i64::from(limit),
+                        i64::from(effective_window),
+                    )
                     .await
             }
             Algorithm::FixedWindow => {
                 self.state_store
-                    .check_fixed_window(&redis_key, limit, effective_window)
+                    .check_fixed_window(
+                        &redis_key,
+                        i64::from(limit),
+                        i64::from(effective_window),
+                    )
                     .await
             }
             Algorithm::SlidingWindow => {
                 self.state_store
-                    .check_sliding_window(&redis_key, limit, effective_window)
+                    .check_sliding_window(
+                        &redis_key,
+                        i64::from(limit),
+                        i64::from(effective_window),
+                    )
                     .await
             }
         }
         .map_err(|e| CheckRateLimitError::Internal(e.to_string()))?;
-        decision.limit = limit;
+        decision.limit = i64::from(limit);
 
         Ok(decision)
     }

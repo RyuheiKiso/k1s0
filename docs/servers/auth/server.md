@@ -397,7 +397,7 @@ service AuditService {
 | GetUserRoles | `GetUserRolesRequest { user_id }` | `GetUserRolesResponse { user_id, realm_roles, client_roles }` | ユーザーロール取得。未発見時は `NOT_FOUND` |
 | CheckPermission | `CheckPermissionRequest { user_id, permission, resource, roles }` | `CheckPermissionResponse { allowed, reason }` | 権限判定。拒否時は `reason` に理由 |
 
-> **注**: REST API の `/api/v1/auth/permissions/check` はロールベースの純粋な権限チェックのため `user_id` フィールドを持たない。gRPC の `CheckPermission` は `optional user_id` を持ち、指定時はユーザー由来ロールで判定し、未指定時は `roles` を用いて判定する。
+> **注**: REST API の `/api/v1/auth/permissions/check` も `user_id` を受け付ける。指定時はユーザー由来ロールで判定し、未指定時は `roles` を用いて判定する（gRPC `CheckPermissionRequest` と同等）。
 
 ```protobuf
 message CheckPermissionRequest {

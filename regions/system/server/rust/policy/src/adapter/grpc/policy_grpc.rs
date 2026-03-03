@@ -32,6 +32,9 @@ pub struct PolicyData {
 pub struct PolicyBundleData {
     pub id: String,
     pub name: String,
+    pub description: Option<String>,
+    pub enabled: bool,
+    pub policy_count: u32,
     pub policy_ids: Vec<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -119,6 +122,8 @@ pub struct DeletePolicyResponse {
 #[derive(Debug, Clone)]
 pub struct CreateBundleRequest {
     pub name: String,
+    pub description: Option<String>,
+    pub enabled: Option<bool>,
     pub policy_ids: Vec<String>,
 }
 
@@ -270,7 +275,13 @@ impl PolicyGrpcService {
             .execute(&ListPoliciesInput {
                 page,
                 page_size,
-                bundle_id: req.bundle_id,
+                bundle_id: match req.bundle_id.as_deref() {
+                    Some(bundle_id) => Some(
+                        Uuid::parse_str(bundle_id)
+                            .map_err(|_| GrpcError::InvalidArgument(format!("invalid bundle_id: {}", bundle_id)))?,
+                    ),
+                    None => None,
+                },
                 enabled_only: req.enabled_only,
             })
             .await
@@ -291,6 +302,14 @@ impl PolicyGrpcService {
         &self,
         req: CreatePolicyRequest,
     ) -> Result<CreatePolicyResponse, GrpcError> {
+        let bundle_id = match req.bundle_id.as_deref() {
+            Some(bundle_id) => Some(
+                Uuid::parse_str(bundle_id)
+                    .map_err(|_| GrpcError::InvalidArgument(format!("invalid bundle_id: {}", bundle_id)))?,
+            ),
+            None => None,
+        };
+
         let created = self
             .create_policy_uc
             .execute(&CreatePolicyInput {
@@ -298,13 +317,14 @@ impl PolicyGrpcService {
                 description: req.description,
                 rego_content: req.rego_content,
                 package_path: req.package_path,
-                bundle_id: req.bundle_id,
+                bundle_id,
             })
             .await
             .map_err(|e| match e {
                 CreatePolicyError::AlreadyExists(name) => {
                     GrpcError::AlreadyExists(format!("policy already exists: {}", name))
                 }
+                CreatePolicyError::Validation(msg) => GrpcError::InvalidArgument(msg),
                 CreatePolicyError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
@@ -376,6 +396,8 @@ impl PolicyGrpcService {
             .create_bundle_uc
             .execute(&CreateBundleInput {
                 name: req.name,
+                description: req.description,
+                enabled: req.enabled,
                 policy_ids,
             })
             .await
@@ -412,7 +434,7 @@ fn to_policy_data(policy: Policy) -> PolicyData {
         name: policy.name,
         description: policy.description,
         package_path: policy.package_path,
-        bundle_id: policy.bundle_id,
+        bundle_id: policy.bundle_id.map(|id| id.to_string()),
         rego_content: policy.rego_content,
         enabled: policy.enabled,
         version: policy.version,
@@ -425,6 +447,9 @@ fn to_bundle_data(bundle: PolicyBundle) -> PolicyBundleData {
     PolicyBundleData {
         id: bundle.id.to_string(),
         name: bundle.name,
+        description: bundle.description,
+        enabled: bundle.enabled,
+        policy_count: bundle.policy_ids.len() as u32,
         policy_ids: bundle.policy_ids.into_iter().map(|id| id.to_string()).collect(),
         created_at: bundle.created_at,
         updated_at: bundle.updated_at,

@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::domain::entity::policy::Policy;
 use crate::domain::repository::PolicyRepository;
@@ -7,7 +8,7 @@ use crate::domain::repository::PolicyRepository;
 pub struct ListPoliciesInput {
     pub page: u32,
     pub page_size: u32,
-    pub bundle_id: Option<String>,
+    pub bundle_id: Option<Uuid>,
     pub enabled_only: bool,
 }
 

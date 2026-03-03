@@ -302,8 +302,10 @@ mod tests {
                     id: "doc-1".to_string(),
                     index_name: "products".to_string(),
                     content: serde_json::json!({"name":"Widget"}),
+                    score: 1.0,
                     indexed_at: chrono::Utc::now(),
                 }],
+                facets: std::collections::HashMap::new(),
             })
         });
 

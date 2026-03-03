@@ -1,4 +1,4 @@
-# system-event-store-server 設計
+﻿# system-event-store-server 設計
 
 system tier の CQRS パターン向けイベントソーシングサーバー。k1s0-eventstore ライブラリをサービス化し、Append-only イベントストリームの REST/gRPC API を提供する。Rust で実装する。
 
@@ -143,8 +143,15 @@ Prometheus 形式のメトリクスを返す。認証不要。`Content-Type: tex
 ### gRPC サービス定義
 
 ```protobuf
+// k1s0 イベントストアサービス gRPC 定義。
+// CQRS パターン向け Append-only イベントストリームの管理を提供する。
 syntax = "proto3";
+
 package k1s0.system.eventstore.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/eventstore/v1;eventstorev1";
+
+import "k1s0/system/common/v1/types.proto";
 
 service EventStoreService {
   rpc ListStreams(ListStreamsRequest) returns (ListStreamsResponse);

@@ -12,7 +12,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bff-proxy ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bff-proxy ./cmd/server/main.go
 
 # Runtime stage
 FROM gcr.io/distroless/static-debian12:nonroot

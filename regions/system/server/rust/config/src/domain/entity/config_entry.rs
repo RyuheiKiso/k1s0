@@ -1,8 +1,7 @@
-use chrono::{DateTime, Utc};
+﻿use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// ConfigEntry は設定値を表すドメインエンティティ。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct ConfigEntry {
     pub id: Uuid,
@@ -10,14 +9,13 @@ pub struct ConfigEntry {
     pub key: String,
     pub value_json: serde_json::Value,
     pub version: i32,
-    pub description: Option<String>,
+    pub description: String,
     pub created_by: String,
     pub updated_by: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-/// Pagination はページネーションパラメータを表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct Pagination {
     pub total_count: i64,
@@ -26,14 +24,12 @@ pub struct Pagination {
     pub has_next: bool,
 }
 
-/// ConfigListResult は設定値一覧とページネーション結果を表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct ConfigListResult {
     pub entries: Vec<ConfigEntry>,
     pub pagination: Pagination,
 }
 
-/// ServiceConfigEntry はサービス向け設定の簡易表現。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct ServiceConfigEntry {
     pub namespace: String,
@@ -41,7 +37,6 @@ pub struct ServiceConfigEntry {
     pub value: serde_json::Value,
 }
 
-/// ServiceConfigResult はサービス向け設定一括取得の結果を表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct ServiceConfigResult {
     pub service_name: String,
@@ -60,7 +55,7 @@ mod tests {
             key: "max_connections".to_string(),
             value_json: serde_json::json!(25),
             version: 3,
-            description: Some("認証サーバーの DB 最大接続数".to_string()),
+            description: "DB max connections".to_string(),
             created_by: "admin@example.com".to_string(),
             updated_by: "admin@example.com".to_string(),
             created_at: Utc::now(),
@@ -81,7 +76,7 @@ mod tests {
             key: "ssl_mode".to_string(),
             value_json: serde_json::json!("require"),
             version: 1,
-            description: Some("SSL 接続モード".to_string()),
+            description: "SSL mode".to_string(),
             created_by: "admin@example.com".to_string(),
             updated_by: "admin@example.com".to_string(),
             created_at: Utc::now(),
@@ -100,12 +95,12 @@ mod tests {
             namespace: "system.auth.jwt".to_string(),
             key: "settings".to_string(),
             value_json: serde_json::json!({
-                "issuer": "https://auth.k1s0.internal.example.com/realms/k1s0",
+                "issuer": "https://auth.example.com/realms/k1s0",
                 "audience": "k1s0-api",
                 "ttl_secs": 3600
             }),
             version: 2,
-            description: Some("JWT 設定".to_string()),
+            description: "JWT settings".to_string(),
             created_by: "admin@example.com".to_string(),
             updated_by: "operator@example.com".to_string(),
             created_at: Utc::now(),
@@ -117,21 +112,21 @@ mod tests {
     }
 
     #[test]
-    fn test_config_entry_with_none_description() {
+    fn test_config_entry_with_empty_description() {
         let entry = ConfigEntry {
             id: Uuid::new_v4(),
             namespace: "system.config.internal".to_string(),
             key: "cache_ttl".to_string(),
             value_json: serde_json::json!(300),
             version: 1,
-            description: None,
+            description: String::new(),
             created_by: "system".to_string(),
             updated_by: "system".to_string(),
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
 
-        assert!(entry.description.is_none());
+        assert!(entry.description.is_empty());
     }
 
     #[test]

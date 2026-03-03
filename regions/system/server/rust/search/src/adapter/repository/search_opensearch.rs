@@ -1,13 +1,14 @@
 use async_trait::async_trait;
 use chrono::Utc;
 use opensearch::auth::Credentials;
+use opensearch::cat::CatIndicesParts;
 use opensearch::cert::CertificateValidation;
 use opensearch::http::transport::{SingleNodeConnectionPool, TransportBuilder};
 use opensearch::http::Url;
 use opensearch::indices::IndicesCreateParts;
-use opensearch::cat::CatIndicesParts;
 use opensearch::{DeleteParts, IndexParts, OpenSearch, SearchParts};
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::domain::entity::search_index::{SearchDocument, SearchIndex, SearchQuery, SearchResult};
@@ -112,7 +113,7 @@ impl SearchRepository for SearchOpenSearchRepository {
     async fn search(&self, query: &SearchQuery) -> anyhow::Result<SearchResult> {
         let idx_name = self.index_name(&query.index_name);
 
-        let body = if query.query.is_empty() {
+        let mut body = if query.query.is_empty() {
             json!({ "query": { "match_all": {} } })
         } else {
             json!({
@@ -124,6 +125,44 @@ impl SearchRepository for SearchOpenSearchRepository {
                 }
             })
         };
+
+        if !query.filters.is_empty() {
+            let filters: Vec<Value> = query
+                .filters
+                .iter()
+                .map(|(field, value)| {
+                    let mut inner = serde_json::Map::new();
+                    inner.insert(field.clone(), Value::String(value.clone()));
+                    let mut term = serde_json::Map::new();
+                    term.insert("term".to_string(), Value::Object(inner));
+                    Value::Object(term)
+                })
+                .collect();
+            body = json!({
+                "query": {
+                    "bool": {
+                        "must": [body["query"].clone()],
+                        "filter": filters
+                    }
+                }
+            });
+        }
+
+        if !query.facets.is_empty() {
+            let mut aggs = serde_json::Map::new();
+            for facet in &query.facets {
+                aggs.insert(
+                    facet.clone(),
+                    json!({
+                        "terms": {
+                            "field": facet,
+                            "size": 20
+                        }
+                    }),
+                );
+            }
+            body["aggs"] = Value::Object(aggs);
+        }
 
         let response = self
             .client
@@ -153,13 +192,39 @@ impl SearchRepository for SearchOpenSearchRepository {
                         id: hit["_id"].as_str().unwrap_or("").to_string(),
                         index_name: query.index_name.clone(),
                         content: hit["_source"].clone(),
+                        score: hit["_score"].as_f64().unwrap_or(0.0) as f32,
                         indexed_at: Utc::now(),
                     })
                     .collect()
             })
             .unwrap_or_default();
 
-        Ok(SearchResult { total, hits })
+        let mut facets: HashMap<String, HashMap<String, u64>> = HashMap::new();
+        if let Some(aggs) = response_body["aggregations"].as_object() {
+            for facet_name in &query.facets {
+                let mut buckets_map = HashMap::new();
+                if let Some(buckets) = aggs
+                    .get(facet_name)
+                    .and_then(|v| v.get("buckets"))
+                    .and_then(|v| v.as_array())
+                {
+                    for bucket in buckets {
+                        let key = bucket["key"].as_str().unwrap_or_default().to_string();
+                        let count = bucket["doc_count"].as_u64().unwrap_or(0);
+                        if !key.is_empty() {
+                            buckets_map.insert(key, count);
+                        }
+                    }
+                }
+                facets.insert(facet_name.clone(), buckets_map);
+            }
+        }
+
+        Ok(SearchResult {
+            total,
+            hits,
+            facets,
+        })
     }
 
     async fn delete_document(&self, index_name: &str, doc_id: &str) -> anyhow::Result<bool> {

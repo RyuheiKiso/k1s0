@@ -95,8 +95,8 @@ impl FeatureFlagGrpcClient {
         let request = tonic::Request::new(
             proto::k1s0::system::featureflag::v1::UpdateFlagRequest {
                 flag_key: key.to_owned(),
-                enabled,
-                description: String::new(),
+                enabled: Some(enabled),
+                description: Some(String::new()),
             },
         );
 

@@ -88,8 +88,34 @@ pub struct WorkflowResponse {
     pub version: u32,
     pub enabled: bool,
     pub step_count: usize,
+    pub steps: Vec<StepResponse>,
     pub created_at: String,
     pub updated_at: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct StepResponse {
+    pub step_id: String,
+    pub name: String,
+    pub step_type: String,
+    pub assignee_role: Option<String>,
+    pub timeout_hours: Option<u32>,
+    pub on_approve: Option<String>,
+    pub on_reject: Option<String>,
+}
+
+fn to_step_response(
+    step: &crate::domain::entity::workflow_step::WorkflowStep,
+) -> StepResponse {
+    StepResponse {
+        step_id: step.step_id.clone(),
+        name: step.name.clone(),
+        step_type: step.step_type.clone(),
+        assignee_role: step.assignee_role.clone(),
+        timeout_hours: step.timeout_hours,
+        on_approve: step.on_approve.clone(),
+        on_reject: step.on_reject.clone(),
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -117,6 +143,11 @@ fn default_page_size() -> u32 {
 #[derive(Debug, Serialize)]
 pub struct ListWorkflowsResponse {
     pub workflows: Vec<WorkflowResponse>,
+    pub pagination: PaginationResponse,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PaginationResponse {
     pub total_count: u64,
     pub page: u32,
     pub page_size: u32,
@@ -134,8 +165,15 @@ pub struct ExecuteWorkflowRequest {
 #[derive(Debug, Serialize)]
 pub struct ExecuteWorkflowResponse {
     pub instance_id: String,
+    pub workflow_id: String,
+    pub workflow_name: String,
+    pub title: String,
+    pub initiator_id: String,
+    pub context: serde_json::Value,
     pub status: String,
     pub current_step_id: Option<String>,
+    pub started_at: String,
+    pub completed_at: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -207,6 +245,36 @@ pub struct ReassignTaskRequest {
     pub actor_id: String,
 }
 
+#[derive(Debug, Serialize)]
+pub struct ErrorResponse {
+    pub error: ErrorBody,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ErrorBody {
+    pub code: String,
+    pub message: String,
+    pub request_id: String,
+    pub details: Vec<String>,
+}
+
+impl ErrorResponse {
+    pub fn new(code: &str, message: &str) -> Self {
+        Self {
+            error: ErrorBody {
+                code: code.to_string(),
+                message: message.to_string(),
+                request_id: uuid::Uuid::new_v4().to_string(),
+                details: vec![],
+            },
+        }
+    }
+}
+
+fn error_json(code: &str, message: &str) -> serde_json::Value {
+    serde_json::to_value(ErrorResponse::new(code, message)).unwrap()
+}
+
 // --- Handlers ---
 
 /// POST /api/v1/workflows
@@ -247,6 +315,7 @@ pub async fn create_workflow(
                 version: def.version,
                 enabled: def.enabled,
                 step_count,
+                steps: def.steps.iter().map(to_step_response).collect(),
                 created_at: def.created_at.to_rfc3339(),
                 updated_at: def.updated_at.to_rfc3339(),
             };
@@ -258,17 +327,20 @@ pub async fn create_workflow(
         }
         Err(CreateWorkflowError::AlreadyExists(name)) => (
             StatusCode::CONFLICT,
-            Json(serde_json::json!({"error": format!("workflow already exists: {}", name)})),
+            Json(error_json(
+                "SYS_WORKFLOW_ALREADY_EXISTS",
+                &format!("workflow already exists: {}", name),
+            )),
         )
             .into_response(),
         Err(CreateWorkflowError::Validation(msg)) => (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_VALIDATION", &msg)),
         )
             .into_response(),
         Err(CreateWorkflowError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_CREATE_FAILED", &msg)),
         )
             .into_response(),
     }
@@ -291,6 +363,7 @@ pub async fn get_workflow(
                 version: def.version,
                 enabled: def.enabled,
                 step_count,
+                steps: def.steps.iter().map(to_step_response).collect(),
                 created_at: def.created_at.to_rfc3339(),
                 updated_at: def.updated_at.to_rfc3339(),
             };
@@ -298,12 +371,15 @@ pub async fn get_workflow(
         }
         Err(GetWorkflowError::NotFound(_)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("workflow not found: {}", id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_NOT_FOUND",
+                &format!("workflow not found: {}", id),
+            )),
         )
             .into_response(),
         Err(GetWorkflowError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_GET_FAILED", &msg)),
         )
             .into_response(),
     }
@@ -335,21 +411,24 @@ pub async fn list_workflows(
                             version: def.version,
                             enabled: def.enabled,
                             step_count,
+                            steps: def.steps.iter().map(to_step_response).collect(),
                             created_at: def.created_at.to_rfc3339(),
                             updated_at: def.updated_at.to_rfc3339(),
                         }
                     })
                     .collect(),
-                total_count: output.total_count,
-                page: output.page,
-                page_size: output.page_size,
-                has_next: output.has_next,
+                pagination: PaginationResponse {
+                    total_count: output.total_count,
+                    page: output.page,
+                    page_size: output.page_size,
+                    has_next: output.has_next,
+                },
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
         Err(ListWorkflowsError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_LIST_FAILED", &msg)),
         )
             .into_response(),
     }
@@ -372,8 +451,15 @@ pub async fn execute_workflow(
         Ok(output) => {
             let resp = ExecuteWorkflowResponse {
                 instance_id: output.instance.id,
+                workflow_id: output.instance.workflow_id,
+                workflow_name: output.instance.workflow_name,
+                title: output.instance.title,
+                initiator_id: output.instance.initiator_id,
+                context: output.instance.context,
                 status: output.instance.status,
                 current_step_id: output.instance.current_step_id,
+                started_at: output.instance.started_at.to_rfc3339(),
+                completed_at: output.instance.completed_at.map(|t| t.to_rfc3339()),
             };
             (
                 StatusCode::CREATED,
@@ -383,22 +469,31 @@ pub async fn execute_workflow(
         }
         Err(StartInstanceError::WorkflowNotFound(_)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("workflow not found: {}", id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_NOT_FOUND",
+                &format!("workflow not found: {}", id),
+            )),
         )
             .into_response(),
         Err(StartInstanceError::WorkflowDisabled(_)) => (
             StatusCode::CONFLICT,
-            Json(serde_json::json!({"error": format!("workflow is disabled: {}", id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_DISABLED",
+                &format!("workflow is disabled: {}", id),
+            )),
         )
             .into_response(),
         Err(StartInstanceError::NoSteps(_)) => (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({"error": format!("workflow has no steps: {}", id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_NO_STEPS",
+                &format!("workflow has no steps: {}", id),
+            )),
         )
             .into_response(),
         Err(StartInstanceError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_EXECUTE_FAILED", &msg)),
         )
             .into_response(),
     }
@@ -428,12 +523,15 @@ pub async fn get_workflow_status(
         }
         Err(GetInstanceError::NotFound(_)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("instance not found: {}", id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_INSTANCE_NOT_FOUND",
+                &format!("instance not found: {}", id),
+            )),
         )
             .into_response(),
         Err(GetInstanceError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_INSTANCE_GET_FAILED", &msg)),
         )
             .into_response(),
     }
@@ -482,6 +580,7 @@ pub async fn update_workflow(
                 version: def.version,
                 enabled: def.enabled,
                 step_count,
+                steps: def.steps.iter().map(to_step_response).collect(),
                 created_at: def.created_at.to_rfc3339(),
                 updated_at: def.updated_at.to_rfc3339(),
             };
@@ -489,12 +588,15 @@ pub async fn update_workflow(
         }
         Err(UpdateWorkflowError::NotFound(_)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("workflow not found: {}", id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_NOT_FOUND",
+                &format!("workflow not found: {}", id),
+            )),
         )
             .into_response(),
         Err(UpdateWorkflowError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_UPDATE_FAILED", &msg)),
         )
             .into_response(),
     }
@@ -508,19 +610,18 @@ pub async fn delete_workflow(
     let input = DeleteWorkflowInput { id: id.clone() };
 
     match state.delete_workflow_uc.execute(&input).await {
-        Ok(()) => (
-            StatusCode::OK,
-            Json(serde_json::json!({"success": true, "message": format!("workflow {} deleted", id)})),
-        )
-            .into_response(),
+        Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(DeleteWorkflowError::NotFound(_)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("workflow not found: {}", id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_NOT_FOUND",
+                &format!("workflow not found: {}", id),
+            )),
         )
             .into_response(),
         Err(DeleteWorkflowError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_DELETE_FAILED", &msg)),
         )
             .into_response(),
     }
@@ -561,17 +662,19 @@ pub async fn list_instances(
                 StatusCode::OK,
                 Json(serde_json::json!({
                     "instances": instances,
-                    "total_count": output.total_count,
-                    "page": output.page,
-                    "page_size": output.page_size,
-                    "has_next": output.has_next
+                    "pagination": {
+                        "total_count": output.total_count,
+                        "page": output.page,
+                        "page_size": output.page_size,
+                        "has_next": output.has_next
+                    }
                 })),
             )
                 .into_response()
         }
         Err(ListInstancesError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_INSTANCE_LIST_FAILED", &msg)),
         )
             .into_response(),
     }
@@ -600,12 +703,15 @@ pub async fn get_instance(
         }
         Err(GetInstanceError::NotFound(_)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("instance not found: {}", id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_INSTANCE_NOT_FOUND",
+                &format!("instance not found: {}", id),
+            )),
         )
             .into_response(),
         Err(GetInstanceError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_INSTANCE_GET_FAILED", &msg)),
         )
             .into_response(),
     }
@@ -628,23 +734,30 @@ pub async fn cancel_instance(
             Json(serde_json::json!({
                 "id": inst.id,
                 "status": inst.status,
+                "cancelled_at": chrono::Utc::now().to_rfc3339(),
                 "message": "instance cancelled"
             })),
         )
             .into_response(),
         Err(CancelInstanceError::NotFound(_)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("instance not found: {}", id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_INSTANCE_NOT_FOUND",
+                &format!("instance not found: {}", id),
+            )),
         )
             .into_response(),
         Err(CancelInstanceError::InvalidStatus(_, status)) => (
             StatusCode::CONFLICT,
-            Json(serde_json::json!({"error": format!("cannot cancel instance with status: {}", status)})),
+            Json(error_json(
+                "SYS_WORKFLOW_INSTANCE_INVALID_STATUS",
+                &format!("cannot cancel instance with status: {}", status),
+            )),
         )
             .into_response(),
         Err(CancelInstanceError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_INSTANCE_CANCEL_FAILED", &msg)),
         )
             .into_response(),
     }
@@ -670,13 +783,18 @@ pub async fn list_tasks(
                 .tasks
                 .into_iter()
                 .map(|t| {
+                    let is_overdue = t
+                        .due_at
+                        .map(|d| d < chrono::Utc::now() && t.status == "pending")
+                        .unwrap_or(false);
                     serde_json::json!({
                         "id": t.id,
                         "instance_id": t.instance_id,
                         "step_id": t.step_id,
-                        "name": t.step_name,
+                        "step_name": t.step_name,
                         "assignee_id": t.assignee_id,
                         "status": t.status,
+                        "is_overdue": is_overdue,
                         "due_at": t.due_at.map(|d| d.to_rfc3339()),
                         "created_at": t.created_at.to_rfc3339(),
                     })
@@ -686,17 +804,19 @@ pub async fn list_tasks(
                 StatusCode::OK,
                 Json(serde_json::json!({
                     "tasks": tasks,
-                    "total_count": output.total_count,
-                    "page": output.page,
-                    "page_size": output.page_size,
-                    "has_next": output.has_next
+                    "pagination": {
+                        "total_count": output.total_count,
+                        "page": output.page,
+                        "page_size": output.page_size,
+                        "has_next": output.has_next
+                    }
                 })),
             )
                 .into_response()
         }
         Err(ListTasksError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_TASK_LIST_FAILED", &msg)),
         )
             .into_response(),
     }
@@ -720,6 +840,7 @@ pub async fn approve_task(
             Json(serde_json::json!({
                 "task_id": output.task.id,
                 "status": output.task.status,
+                "decided_at": chrono::Utc::now().to_rfc3339(),
                 "instance_status": output.instance_status,
                 "next_task_id": output.next_task.map(|t| t.id)
             })),
@@ -727,27 +848,39 @@ pub async fn approve_task(
             .into_response(),
         Err(ApproveTaskError::TaskNotFound(_)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("task not found: {}", id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_TASK_NOT_FOUND",
+                &format!("task not found: {}", id),
+            )),
         )
             .into_response(),
         Err(ApproveTaskError::InvalidStatus(status)) => (
             StatusCode::CONFLICT,
-            Json(serde_json::json!({"error": format!("invalid task status: {}", status)})),
+            Json(error_json(
+                "SYS_WORKFLOW_TASK_INVALID_STATUS",
+                &format!("invalid task status: {}", status),
+            )),
         )
             .into_response(),
         Err(ApproveTaskError::InstanceNotFound(inst_id)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("instance not found: {}", inst_id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_INSTANCE_NOT_FOUND",
+                &format!("instance not found: {}", inst_id),
+            )),
         )
             .into_response(),
         Err(ApproveTaskError::DefinitionNotFound(def_id)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("definition not found: {}", def_id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_DEFINITION_NOT_FOUND",
+                &format!("definition not found: {}", def_id),
+            )),
         )
             .into_response(),
         Err(ApproveTaskError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_TASK_APPROVE_FAILED", &msg)),
         )
             .into_response(),
     }
@@ -771,6 +904,7 @@ pub async fn reject_task(
             Json(serde_json::json!({
                 "task_id": output.task.id,
                 "status": output.task.status,
+                "decided_at": chrono::Utc::now().to_rfc3339(),
                 "instance_status": output.instance_status,
                 "next_task_id": output.next_task.map(|t| t.id)
             })),
@@ -778,27 +912,39 @@ pub async fn reject_task(
             .into_response(),
         Err(RejectTaskError::TaskNotFound(_)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("task not found: {}", id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_TASK_NOT_FOUND",
+                &format!("task not found: {}", id),
+            )),
         )
             .into_response(),
         Err(RejectTaskError::InvalidStatus(status)) => (
             StatusCode::CONFLICT,
-            Json(serde_json::json!({"error": format!("invalid task status: {}", status)})),
+            Json(error_json(
+                "SYS_WORKFLOW_TASK_INVALID_STATUS",
+                &format!("invalid task status: {}", status),
+            )),
         )
             .into_response(),
         Err(RejectTaskError::InstanceNotFound(inst_id)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("instance not found: {}", inst_id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_INSTANCE_NOT_FOUND",
+                &format!("instance not found: {}", inst_id),
+            )),
         )
             .into_response(),
         Err(RejectTaskError::DefinitionNotFound(def_id)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("definition not found: {}", def_id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_DEFINITION_NOT_FOUND",
+                &format!("definition not found: {}", def_id),
+            )),
         )
             .into_response(),
         Err(RejectTaskError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_TASK_REJECT_FAILED", &msg)),
         )
             .into_response(),
     }
@@ -822,25 +968,32 @@ pub async fn reassign_task(
             StatusCode::OK,
             Json(serde_json::json!({
                 "task_id": output.task.id,
-                "assignee_id": output.task.assignee_id,
+                "new_assignee_id": output.task.assignee_id,
                 "previous_assignee_id": output.previous_assignee_id,
+                "reassigned_at": chrono::Utc::now().to_rfc3339(),
                 "message": "task reassigned"
             })),
         )
             .into_response(),
         Err(ReassignTaskError::TaskNotFound(_)) => (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("task not found: {}", id)})),
+            Json(error_json(
+                "SYS_WORKFLOW_TASK_NOT_FOUND",
+                &format!("task not found: {}", id),
+            )),
         )
             .into_response(),
         Err(ReassignTaskError::InvalidStatus(status)) => (
             StatusCode::CONFLICT,
-            Json(serde_json::json!({"error": format!("invalid task status for reassignment: {}", status)})),
+            Json(error_json(
+                "SYS_WORKFLOW_TASK_REASSIGN_INVALID_STATUS",
+                &format!("invalid task status for reassignment: {}", status),
+            )),
         )
             .into_response(),
         Err(ReassignTaskError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            Json(error_json("SYS_WORKFLOW_TASK_REASSIGN_FAILED", &msg)),
         )
             .into_response(),
     }

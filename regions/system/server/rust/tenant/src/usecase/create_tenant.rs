@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::Tenant;
 use crate::domain::repository::TenantRepository;
+use crate::infrastructure::kafka_producer::{NoopTenantEventPublisher, TenantEventPublisher};
 use crate::infrastructure::saga_client::{NoopSagaClient, SagaClient};
 
 #[derive(Debug, thiserror::Error)]
@@ -23,6 +24,7 @@ pub struct CreateTenantInput {
 pub struct CreateTenantUseCase {
     tenant_repo: Arc<dyn TenantRepository>,
     saga_client: Arc<dyn SagaClient>,
+    event_publisher: Arc<dyn TenantEventPublisher>,
 }
 
 impl CreateTenantUseCase {
@@ -30,11 +32,17 @@ impl CreateTenantUseCase {
         Self {
             tenant_repo,
             saga_client: Arc::new(NoopSagaClient),
+            event_publisher: Arc::new(NoopTenantEventPublisher),
         }
     }
 
     pub fn with_saga_client(mut self, saga_client: Arc<dyn SagaClient>) -> Self {
         self.saga_client = saga_client;
+        self
+    }
+
+    pub fn with_event_publisher(mut self, event_publisher: Arc<dyn TenantEventPublisher>) -> Self {
+        self.event_publisher = event_publisher;
         self
     }
 
@@ -55,6 +63,10 @@ impl CreateTenantUseCase {
             .create(&tenant)
             .await
             .map_err(|e| CreateTenantError::Internal(e.to_string()))?;
+
+        if let Err(e) = self.event_publisher.publish_tenant_created(&tenant).await {
+            tracing::warn!(tenant_id = %tenant.id, error = %e, "failed to publish tenant.created event");
+        }
 
         // Start provisioning saga (failure is non-fatal)
         if let Err(e) = self

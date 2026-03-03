@@ -215,6 +215,8 @@ impl PolicyService for PolicyServiceTonic {
             .inner
             .create_bundle(CreateBundleRequest {
                 name: inner.name,
+                description: None,
+                enabled: None,
                 policy_ids: inner.policy_ids,
             })
             .await

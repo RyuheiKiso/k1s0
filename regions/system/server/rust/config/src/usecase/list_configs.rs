@@ -89,7 +89,7 @@ mod tests {
             key: key.to_string(),
             value_json: serde_json::json!(25),
             version: 1,
-            description: None,
+            description: String::new(),
             created_by: "admin@example.com".to_string(),
             updated_by: "admin@example.com".to_string(),
             created_at: Utc::now(),

@@ -1,4 +1,4 @@
-# system-master-maintenance-server 設計
+﻿# system-master-maintenance-server 設計
 
 メタデータ駆動型マスタメンテナンスサーバー。テーブル定義・カラム定義・整合性ルール登録のみで CRUD 画面を自動生成する。
 
@@ -640,6 +640,9 @@ pub async fn evaluate_custom_rule(
 `api/proto/k1s0/system/mastermaintenance/v1/master_maintenance.proto`
 
 ```protobuf
+// k1s0 マスタメンテナンスサービス gRPC 定義。
+// メタデータ駆動型 CRUD・整合性チェック・JSON Schema 生成を提供する。
+// gRPC ポート: 50051
 syntax = "proto3";
 
 package k1s0.system.mastermaintenance.v1;
@@ -651,6 +654,9 @@ import "k1s0/system/common/v1/types.proto";
 
 service MasterMaintenanceService {
   // テーブル定義
+  rpc CreateTableDefinition(CreateTableDefinitionRequest) returns (CreateTableDefinitionResponse);
+  rpc UpdateTableDefinition(UpdateTableDefinitionRequest) returns (UpdateTableDefinitionResponse);
+  rpc DeleteTableDefinition(DeleteTableDefinitionRequest) returns (DeleteTableDefinitionResponse);
   rpc GetTableDefinition(GetTableDefinitionRequest) returns (GetTableDefinitionResponse);
   rpc ListTableDefinitions(ListTableDefinitionsRequest) returns (ListTableDefinitionsResponse);
   rpc ListColumns(ListColumnsRequest) returns (ListColumnsResponse);
@@ -694,10 +700,37 @@ service MasterMaintenanceService {
   rpc ListRecordAuditLogs(ListRecordAuditLogsRequest) returns (ListRecordAuditLogsResponse);
 }
 
+message CreateTableDefinitionRequest {
+  google.protobuf.Struct data = 1;
+}
+
+message CreateTableDefinitionResponse {
+  GetTableDefinitionResponse table = 1;
+}
+
+message UpdateTableDefinitionRequest {
+  string table_name = 1;
+  google.protobuf.Struct data = 2;
+}
+
+message UpdateTableDefinitionResponse {
+  GetTableDefinitionResponse table = 1;
+}
+
+message DeleteTableDefinitionRequest {
+  string table_name = 1;
+}
+
+message DeleteTableDefinitionResponse {
+  bool success = 1;
+}
+
+// テーブル定義取得リクエスト
 message GetTableDefinitionRequest {
   string table_name = 1;
 }
 
+// テーブル定義レスポンス
 message GetTableDefinitionResponse {
   string id = 1;
   string name = 2;
@@ -709,8 +742,16 @@ message GetTableDefinitionResponse {
   bool allow_delete = 8;
   repeated ColumnDefinition columns = 9;
   repeated TableRelationship relationships = 10;
+  string database_name = 11;
+  string category = 12;
+  bool is_active = 13;
+  int32 sort_order = 14;
+  string created_by = 15;
+  k1s0.system.common.v1.Timestamp created_at = 16;
+  k1s0.system.common.v1.Timestamp updated_at = 17;
 }
 
+// カラム定義
 message ColumnDefinition {
   string column_name = 1;
   string display_name = 2;
@@ -725,32 +766,47 @@ message ColumnDefinition {
   bool is_readonly = 11;
   string input_type = 12;
   int32 display_order = 13;
+  bool is_unique = 14;
+  string default_value = 15;
+  optional int32 max_length = 16;
+  optional double min_value = 17;
+  optional double max_value = 18;
+  string regex_pattern = 19;
+  string select_options_json = 20;
 }
 
+// テーブル間関係
 message TableRelationship {
   string source_column = 1;
   string target_table = 2;
   string target_column = 3;
   string relationship_type = 4;
   string display_name = 5;
+  string id = 6;
+  bool is_cascade_delete = 7;
+  string created_at = 8;
 }
 
+// テーブル定義一覧リクエスト
 message ListTableDefinitionsRequest {
   string category = 1;
   bool active_only = 2;
   k1s0.system.common.v1.Pagination pagination = 3;
 }
 
+// テーブル定義一覧レスポンス
 message ListTableDefinitionsResponse {
   repeated GetTableDefinitionResponse tables = 1;
   k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
+// レコード取得リクエスト
 message GetRecordRequest {
   string table_name = 1;
   string record_id = 2;
 }
 
+// レコードレスポンス
 message GetRecordResponse {
   google.protobuf.Struct data = 1;
   repeated ValidationWarning warnings = 2;
@@ -766,6 +822,7 @@ message UpdateRecordResponse {
   repeated ValidationWarning warnings = 2;
 }
 
+// レコード一覧リクエスト
 message ListRecordsRequest {
   string table_name = 1;
   k1s0.system.common.v1.Pagination pagination = 2;
@@ -774,36 +831,43 @@ message ListRecordsRequest {
   string search = 5;
 }
 
+// レコード一覧レスポンス
 message ListRecordsResponse {
   repeated google.protobuf.Struct records = 1;
   k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
+// レコード作成リクエスト
 message CreateRecordRequest {
   string table_name = 1;
   google.protobuf.Struct data = 2;
 }
 
+// レコード更新リクエスト
 message UpdateRecordRequest {
   string table_name = 1;
   string record_id = 2;
   google.protobuf.Struct data = 3;
 }
 
+// レコード削除リクエスト
 message DeleteRecordRequest {
   string table_name = 1;
   string record_id = 2;
 }
 
+// レコード削除レスポンス
 message DeleteRecordResponse {
   bool success = 1;
 }
 
+// 整合性チェックリクエスト
 message CheckConsistencyRequest {
   string table_name = 1;
   repeated string rule_ids = 2;
 }
 
+// 整合性チェックレスポンス
 message CheckConsistencyResponse {
   repeated ConsistencyResult results = 1;
   int32 total_checked = 2;
@@ -811,6 +875,7 @@ message CheckConsistencyResponse {
   int32 warning_count = 4;
 }
 
+// 整合性チェック結果
 message ConsistencyResult {
   string rule_id = 1;
   string rule_name = 2;
@@ -820,18 +885,218 @@ message ConsistencyResult {
   repeated string affected_record_ids = 6;
 }
 
+// バリデーション警告
 message ValidationWarning {
   string rule_name = 1;
   string message = 2;
   string severity = 3;
 }
 
+// テーブルスキーマ取得リクエスト
 message GetTableSchemaRequest {
   string table_name = 1;
 }
 
+// テーブルスキーマレスポンス
 message GetTableSchemaResponse {
   string json_schema = 1;
+}
+
+message ListColumnsRequest {
+  string table_name = 1;
+}
+
+message ListColumnsResponse {
+  repeated ColumnDefinition columns = 1;
+}
+
+message CreateColumnsRequest {
+  string table_name = 1;
+  repeated google.protobuf.Struct columns = 2;
+}
+
+message CreateColumnsResponse {
+  repeated ColumnDefinition columns = 1;
+}
+
+message UpdateColumnRequest {
+  string table_name = 1;
+  string column_name = 2;
+  google.protobuf.Struct data = 3;
+}
+
+message UpdateColumnResponse {
+  ColumnDefinition column = 1;
+}
+
+message DeleteColumnRequest {
+  string table_name = 1;
+  string column_name = 2;
+}
+
+message DeleteColumnResponse {
+  bool success = 1;
+}
+
+message ListRelationshipsRequest {}
+
+message ListRelationshipsResponse {
+  repeated TableRelationship relationships = 1;
+}
+
+message CreateRelationshipRequest {
+  google.protobuf.Struct data = 1;
+}
+
+message CreateRelationshipResponse {
+  TableRelationship relationship = 1;
+}
+
+message UpdateRelationshipRequest {
+  string relationship_id = 1;
+  google.protobuf.Struct data = 2;
+}
+
+message UpdateRelationshipResponse {
+  TableRelationship relationship = 1;
+}
+
+message DeleteRelationshipRequest {
+  string relationship_id = 1;
+}
+
+message DeleteRelationshipResponse {
+  bool success = 1;
+}
+
+message ImportRecordsRequest {
+  string table_name = 1;
+  google.protobuf.Struct data = 2;
+}
+
+message ImportRecordsResponse {
+  ImportJob import_job = 1;
+}
+
+message ExportRecordsRequest {
+  string table_name = 1;
+}
+
+message ExportRecordsResponse {
+  google.protobuf.Struct data = 1;
+}
+
+message GetImportJobRequest {
+  string import_job_id = 1;
+}
+
+message GetImportJobResponse {
+  ImportJob import_job = 1;
+}
+
+message ImportJob {
+  string id = 1;
+  string table_id = 2;
+  string file_name = 3;
+  string status = 4;
+  int32 total_rows = 5;
+  int32 processed_rows = 6;
+  int32 error_rows = 7;
+  string error_details_json = 8;
+  string started_by = 9;
+  string started_at = 10;
+  optional string completed_at = 11;
+}
+
+message ListDisplayConfigsRequest {
+  string table_name = 1;
+}
+
+message ListDisplayConfigsResponse {
+  repeated DisplayConfig display_configs = 1;
+}
+
+message GetDisplayConfigRequest {
+  string table_name = 1;
+  string display_config_id = 2;
+}
+
+message GetDisplayConfigResponse {
+  DisplayConfig display_config = 1;
+}
+
+message CreateDisplayConfigRequest {
+  string table_name = 1;
+  google.protobuf.Struct data = 2;
+}
+
+message CreateDisplayConfigResponse {
+  DisplayConfig display_config = 1;
+}
+
+message UpdateDisplayConfigRequest {
+  string table_name = 1;
+  string display_config_id = 2;
+  google.protobuf.Struct data = 3;
+}
+
+message UpdateDisplayConfigResponse {
+  DisplayConfig display_config = 1;
+}
+
+message DeleteDisplayConfigRequest {
+  string table_name = 1;
+  string display_config_id = 2;
+}
+
+message DeleteDisplayConfigResponse {
+  bool success = 1;
+}
+
+message DisplayConfig {
+  string id = 1;
+  string table_id = 2;
+  string config_type = 3;
+  string config_json = 4;
+  bool is_default = 5;
+  string created_by = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message ListTableAuditLogsRequest {
+  string table_name = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+}
+
+message ListTableAuditLogsResponse {
+  repeated AuditLogEntry logs = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message ListRecordAuditLogsRequest {
+  string table_name = 1;
+  string record_id = 2;
+  k1s0.system.common.v1.Pagination pagination = 3;
+}
+
+message ListRecordAuditLogsResponse {
+  repeated AuditLogEntry logs = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message AuditLogEntry {
+  string id = 1;
+  string target_table = 2;
+  string target_record_id = 3;
+  string operation = 4;
+  string before_data_json = 5;
+  string after_data_json = 6;
+  repeated string changed_columns = 7;
+  string changed_by = 8;
+  string change_reason = 9;
+  string trace_id = 10;
+  string created_at = 11;
 }
 ```
 

@@ -125,6 +125,7 @@ pub struct CancelSagaResponse {
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct CompensateSagaResponse {
+    pub success: bool,
     pub saga_id: String,
     pub status: String,
     pub message: String,
@@ -375,6 +376,7 @@ pub async fn compensate_saga(
         })?;
 
     Ok(Json(CompensateSagaResponse {
+        success: true,
         saga_id: updated.saga_id.to_string(),
         status: updated.status.to_string(),
         message: format!("saga {} compensation completed", saga_id),

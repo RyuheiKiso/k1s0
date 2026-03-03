@@ -1,4 +1,4 @@
-# system-tenant-server 設計
+﻿# system-tenant-server 設計
 
 system tier のテナント管理サーバー設計を定義する。マルチテナンシーを実現するためのテナントプロビジョニング・管理・分離制御を提供し、Keycloak realm と連携してテナント単位の認証境界を確立する。テナントライフサイクル管理（作成・更新・一時停止・削除）を行い、テナントイベントを Kafka で配信する。
 Rust での実装を定義する。
@@ -410,21 +410,37 @@ ID 指定でテナントの詳細を取得する。
 
 ```protobuf
 syntax = "proto3";
+
 package k1s0.system.tenant.v1;
 
-import "google/protobuf/timestamp.proto";
+option go_package = "github.com/k1s0-platform/system-proto-go/tenant/v1;tenantv1";
+
 import "k1s0/system/common/v1/types.proto";
 
+// TenantService はマルチテナント管理サービス。
+// Keycloak realm プロビジョニングおよびメンバー管理を担当する。
 service TenantService {
+  // CreateTenant は新しいテナントを作成し、Keycloak realm をプロビジョニングする。
   rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
+  // GetTenant はテナントIDでテナント情報を取得する。
   rpc GetTenant(GetTenantRequest) returns (GetTenantResponse);
+  // ListTenants は全テナントの一覧をページネーション付きで返す。
   rpc ListTenants(ListTenantsRequest) returns (ListTenantsResponse);
+  // UpdateTenant はテナント情報を更新する。
   rpc UpdateTenant(UpdateTenantRequest) returns (UpdateTenantResponse);
+  // SuspendTenant はアクティブなテナントを停止する。
   rpc SuspendTenant(SuspendTenantRequest) returns (SuspendTenantResponse);
+  // ActivateTenant は停止中のテナントを再開する。
   rpc ActivateTenant(ActivateTenantRequest) returns (ActivateTenantResponse);
+  // DeleteTenant はテナントを論理削除する。
   rpc DeleteTenant(DeleteTenantRequest) returns (DeleteTenantResponse);
+  // AddMember はテナントにメンバーを追加する。
   rpc AddMember(AddMemberRequest) returns (AddMemberResponse);
+  // ListMembers はテナントのメンバー一覧を取得する。
+  rpc ListMembers(ListMembersRequest) returns (ListMembersResponse);
+  // RemoveMember はテナントからメンバーを削除する。
   rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
+  // GetProvisioningStatus はテナントプロビジョニングジョブのステータスを返す。
   rpc GetProvisioningStatus(GetProvisioningStatusRequest) returns (GetProvisioningStatusResponse);
 }
 
@@ -500,6 +516,14 @@ message AddMemberResponse {
   TenantMember member = 1;
 }
 
+message ListMembersRequest {
+  string tenant_id = 1;
+}
+
+message ListMembersResponse {
+  repeated TenantMember members = 1;
+}
+
 message RemoveMemberRequest {
   string tenant_id = 1;
   string user_id = 2;
@@ -523,7 +547,12 @@ message Tenant {
   string display_name = 3;
   string status = 4;
   string plan = 5;
-  google.protobuf.Timestamp created_at = 6;
+  k1s0.system.common.v1.Timestamp created_at = 6;
+  string owner_id = 7;
+  string settings = 8;
+  string db_schema = 9;
+  k1s0.system.common.v1.Timestamp updated_at = 10;
+  string keycloak_realm = 11;
 }
 
 message TenantMember {
@@ -531,7 +560,7 @@ message TenantMember {
   string tenant_id = 2;
   string user_id = 3;
   string role = 4;
-  google.protobuf.Timestamp joined_at = 5;
+  k1s0.system.common.v1.Timestamp joined_at = 5;
 }
 
 message ProvisioningJob {
@@ -540,8 +569,8 @@ message ProvisioningJob {
   string status = 3;
   string current_step = 4;
   string error_message = 5;
-  google.protobuf.Timestamp created_at = 6;
-  google.protobuf.Timestamp updated_at = 7;
+  k1s0.system.common.v1.Timestamp created_at = 6;
+  k1s0.system.common.v1.Timestamp updated_at = 7;
 }
 ```
 

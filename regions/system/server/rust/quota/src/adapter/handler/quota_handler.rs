@@ -22,9 +22,9 @@ pub async fn list_quotas(
     let input = ListQuotaPoliciesInput {
         page: params.page.unwrap_or(1),
         page_size: params.page_size.unwrap_or(20),
-        subject_type: None,
-        subject_id: None,
-        enabled_only: None,
+        subject_type: params.subject_type,
+        subject_id: params.subject_id,
+        enabled_only: params.enabled_only,
     };
 
     match state.list_policies_uc.execute(&input).await {
@@ -159,6 +159,9 @@ pub async fn check_quota(
 pub struct ListQuotasParams {
     pub page: Option<u32>,
     pub page_size: Option<u32>,
+    pub subject_type: Option<String>,
+    pub subject_id: Option<String>,
+    pub enabled_only: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -245,6 +245,8 @@ pub struct ErrorResponse {
 pub struct ErrorBody {
     pub code: String,
     pub message: String,
+    pub request_id: String,
+    pub details: Vec<String>,
 }
 
 impl ErrorResponse {
@@ -253,6 +255,8 @@ impl ErrorResponse {
             error: ErrorBody {
                 code: code.to_string(),
                 message: message.to_string(),
+                request_id: uuid::Uuid::new_v4().to_string(),
+                details: vec![],
             },
         }
     }

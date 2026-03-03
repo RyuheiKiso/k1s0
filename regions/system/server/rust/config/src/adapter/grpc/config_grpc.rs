@@ -349,7 +349,7 @@ fn domain_config_to_pb(e: &ConfigEntry) -> pb::ConfigEntry {
         key: e.key.clone(),
         value: e.value_json.to_string().into_bytes(),
         version: e.version,
-        description: e.description.clone().unwrap_or_default(),
+        description: e.description.clone(),
         created_by: e.created_by.clone(),
         updated_by: e.updated_by.clone(),
         created_at: Some(ProtoTimestamp {
@@ -504,4 +504,3 @@ fn pb_schema_to_json(schema: &pb::ConfigEditorSchema) -> serde_json::Value {
         .collect();
     serde_json::json!({ "categories": categories })
 }
-

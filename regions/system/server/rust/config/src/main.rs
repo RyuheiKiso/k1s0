@@ -398,7 +398,7 @@ impl domain::repository::ConfigRepository for InMemoryConfigRepository {
                 e.value_json = value_json.clone();
                 e.version += 1;
                 if let Some(desc) = description {
-                    e.description = Some(desc);
+                    e.description = desc;
                 }
                 e.updated_by = updated_by.to_string();
                 e.updated_at = chrono::Utc::now();
