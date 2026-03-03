@@ -44,9 +44,46 @@ async fn main() -> anyhow::Result<()> {
         "starting file server"
     );
 
+    // Metadata repository (PostgreSQL or InMemory)
+    let metadata_repo: Arc<dyn FileMetadataRepository> = if let Some(ref db_cfg) = cfg.database {
+        let database_url =
+            std::env::var("DATABASE_URL").unwrap_or_else(|_| db_cfg.url.clone());
+        info!(
+            schema = %db_cfg.schema,
+            max_connections = db_cfg.max_connections,
+            min_connections = db_cfg.min_connections,
+            "initializing PostgreSQL metadata repository"
+        );
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(db_cfg.max_connections)
+            .min_connections(db_cfg.min_connections)
+            .connect(&database_url)
+            .await?;
+        Arc::new(
+            infrastructure::file_metadata_postgres::FileMetadataPostgresRepository::new(
+                pool,
+                &db_cfg.schema,
+            )?,
+        )
+    } else if let Ok(database_url) = std::env::var("DATABASE_URL") {
+        info!("DATABASE_URL is set, using PostgreSQL metadata repository");
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(10)
+            .min_connections(1)
+            .connect(&database_url)
+            .await?;
+        Arc::new(
+            infrastructure::file_metadata_postgres::FileMetadataPostgresRepository::new(
+                pool,
+                "file",
+            )?,
+        )
+    } else {
+        info!("no database configured, using in-memory metadata repository");
+        Arc::new(InMemoryFileMetadataRepository::new())
+    };
+
     // Storage backend (S3 or InMemory)
-    let metadata_repo: Arc<dyn FileMetadataRepository> =
-        Arc::new(InMemoryFileMetadataRepository::new());
 
     let storage_repo: Arc<dyn FileStorageRepository> =
         if let Some(ref storage_cfg) = cfg.storage {

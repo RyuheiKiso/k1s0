@@ -1,7 +1,9 @@
 use std::sync::Arc;
+use std::collections::HashMap;
 
-use crate::domain::entity::search_index::{SearchQuery, SearchResult};
+use crate::domain::entity::search_index::SearchResult;
 use crate::domain::repository::SearchRepository;
+use crate::domain::service::SearchDomainService;
 
 #[derive(Debug, Clone)]
 pub struct SearchInput {
@@ -9,6 +11,8 @@ pub struct SearchInput {
     pub query: String,
     pub from: u32,
     pub size: u32,
+    pub filters: HashMap<String, String>,
+    pub facets: Vec<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -40,12 +44,14 @@ impl SearchUseCase {
             return Err(SearchError::IndexNotFound(input.index_name.clone()));
         }
 
-        let query = SearchQuery {
-            index_name: input.index_name.clone(),
-            query: input.query.clone(),
-            from: input.from,
-            size: input.size,
-        };
+        let query = SearchDomainService::build_query(
+            input.index_name.clone(),
+            &input.query,
+            input.from,
+            input.size,
+            &input.filters,
+            &input.facets,
+        );
 
         self.repo
             .search(&query)
@@ -77,8 +83,10 @@ mod tests {
                     id: "doc-1".to_string(),
                     index_name: "products".to_string(),
                     content: serde_json::json!({"name": "Widget"}),
+                    score: 1.0,
                     indexed_at: chrono::Utc::now(),
                 }],
+                facets: HashMap::new(),
             })
         });
 
@@ -88,6 +96,8 @@ mod tests {
             query: "Widget".to_string(),
             from: 0,
             size: 10,
+            filters: HashMap::new(),
+            facets: vec![],
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -109,6 +119,8 @@ mod tests {
             query: "test".to_string(),
             from: 0,
             size: 10,
+            filters: HashMap::new(),
+            facets: vec![],
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

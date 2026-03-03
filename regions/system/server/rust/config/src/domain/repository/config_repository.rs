@@ -80,7 +80,7 @@ mod tests {
                     key: "max_connections".to_string(),
                     value_json: serde_json::json!(25),
                     version: 3,
-                    description: Some("認証サーバーの DB 最大接続数".to_string()),
+                    description: "認証サーバーの DB 最大接続数".to_string(),
                     created_by: "admin@example.com".to_string(),
                     updated_by: "admin@example.com".to_string(),
                     created_at: chrono::Utc::now(),

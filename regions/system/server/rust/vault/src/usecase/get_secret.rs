@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::access_log::{AccessAction, SecretAccessLog};
 use crate::domain::entity::secret::Secret;
 use crate::domain::repository::{AccessLogRepository, SecretStore};
+use crate::infrastructure::kafka_producer::{VaultAccessEvent, VaultEventPublisher};
 
 #[derive(Debug, Clone)]
 pub struct GetSecretInput {
@@ -22,11 +23,20 @@ pub enum GetSecretError {
 pub struct GetSecretUseCase {
     store: Arc<dyn SecretStore>,
     audit: Arc<dyn AccessLogRepository>,
+    event_publisher: Arc<dyn VaultEventPublisher>,
 }
 
 impl GetSecretUseCase {
-    pub fn new(store: Arc<dyn SecretStore>, audit: Arc<dyn AccessLogRepository>) -> Self {
-        Self { store, audit }
+    pub fn new(
+        store: Arc<dyn SecretStore>,
+        audit: Arc<dyn AccessLogRepository>,
+        event_publisher: Arc<dyn VaultEventPublisher>,
+    ) -> Self {
+        Self {
+            store,
+            audit,
+            event_publisher,
+        }
     }
 
     pub async fn execute(&self, input: &GetSecretInput) -> Result<Secret, GetSecretError> {
@@ -41,6 +51,17 @@ impl GetSecretUseCase {
                     true,
                 );
                 let _ = self.audit.record(&log).await;
+                let _ = self
+                    .event_publisher
+                    .publish_secret_accessed(&VaultAccessEvent {
+                        key_path: input.path.clone(),
+                        action: "read".to_string(),
+                        actor_id: "system".to_string(),
+                        success: true,
+                        error_msg: None,
+                        timestamp: chrono::Utc::now().to_rfc3339(),
+                    })
+                    .await;
             }
             Err(e) => {
                 let mut log = SecretAccessLog::new(
@@ -51,6 +72,17 @@ impl GetSecretUseCase {
                 );
                 log.error_msg = Some(e.to_string());
                 let _ = self.audit.record(&log).await;
+                let _ = self
+                    .event_publisher
+                    .publish_secret_accessed(&VaultAccessEvent {
+                        key_path: input.path.clone(),
+                        action: "read".to_string(),
+                        actor_id: "system".to_string(),
+                        success: false,
+                        error_msg: Some(e.to_string()),
+                        timestamp: chrono::Utc::now().to_rfc3339(),
+                    })
+                    .await;
             }
         }
 
@@ -70,6 +102,7 @@ mod tests {
     use super::*;
     use crate::domain::repository::access_log_repo::MockAccessLogRepository;
     use crate::domain::repository::secret_store::MockSecretStore;
+    use crate::infrastructure::kafka_producer::NoopVaultEventPublisher;
     use std::collections::HashMap;
 
     #[tokio::test]
@@ -90,7 +123,11 @@ mod tests {
             .expect_record()
             .returning(|_| Ok(()));
 
-        let uc = GetSecretUseCase::new(Arc::new(mock_store), Arc::new(mock_audit));
+        let uc = GetSecretUseCase::new(
+            Arc::new(mock_store),
+            Arc::new(mock_audit),
+            Arc::new(NoopVaultEventPublisher),
+        );
         let input = GetSecretInput {
             path: "app/db/password".to_string(),
             version: None,
@@ -117,7 +154,11 @@ mod tests {
             .expect_record()
             .returning(|_| Ok(()));
 
-        let uc = GetSecretUseCase::new(Arc::new(mock_store), Arc::new(mock_audit));
+        let uc = GetSecretUseCase::new(
+            Arc::new(mock_store),
+            Arc::new(mock_audit),
+            Arc::new(NoopVaultEventPublisher),
+        );
         let input = GetSecretInput {
             path: "nonexistent".to_string(),
             version: None,

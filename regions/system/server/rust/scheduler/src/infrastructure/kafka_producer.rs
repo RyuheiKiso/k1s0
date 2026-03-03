@@ -98,7 +98,7 @@ impl SchedulerEventPublisher for KafkaSchedulerProducer {
             "execution_id": execution.id.to_string(),
             "status": execution.status,
             "started_at": execution.started_at.to_rfc3339(),
-            "completed_at": execution.completed_at.map(|t| t.to_rfc3339()),
+            "finished_at": execution.finished_at.map(|t| t.to_rfc3339()),
             "error_message": execution.error_message,
         });
 

@@ -131,12 +131,15 @@ impl FileService for FileServiceTonic {
         request: Request<GenerateDownloadUrlRequest>,
     ) -> Result<Response<GenerateDownloadUrlResponse>, Status> {
         let inner = request.into_inner();
-        let download_url = self
+        let (download_url, expires_in_seconds) = self
             .inner
             .generate_download_url(inner.id)
             .await
             .map_err(Into::<Status>::into)?;
-        Ok(Response::new(GenerateDownloadUrlResponse { download_url }))
+        Ok(Response::new(GenerateDownloadUrlResponse {
+            download_url,
+            expires_in_seconds: expires_in_seconds as i32,
+        }))
     }
 
     async fn delete_file(

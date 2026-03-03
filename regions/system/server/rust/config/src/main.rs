@@ -249,8 +249,8 @@ async fn main() -> anyhow::Result<()> {
     // Router
     let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
-    // gRPC server (port 50053)
-    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50053).into();
+    // gRPC server
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
     info!("gRPC server starting on {}", grpc_addr);
 
     use proto::k1s0::system::config::v1::config_service_server::ConfigServiceServer;
@@ -398,7 +398,7 @@ impl domain::repository::ConfigRepository for InMemoryConfigRepository {
                 e.value_json = value_json.clone();
                 e.version += 1;
                 if let Some(desc) = description {
-                    e.description = Some(desc);
+                    e.description = desc;
                 }
                 e.updated_by = updated_by.to_string();
                 e.updated_at = chrono::Utc::now();

@@ -1,4 +1,4 @@
-use axum::{
+﻿use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
@@ -20,10 +20,21 @@ pub async fn list_policies(
     let page = params.page.unwrap_or(1);
     let page_size = params.page_size.unwrap_or(20);
     let enabled_only = params.enabled_only.unwrap_or(false);
+    let bundle_id = if let Some(bundle_id) = params.bundle_id {
+        match Uuid::parse_str(&bundle_id) {
+            Ok(id) => Some(id),
+            Err(_) => {
+                let err = ErrorResponse::new("SYS_POLICY_INVALID_BUNDLE_ID", "invalid bundle_id format");
+                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+            }
+        }
+    } else {
+        None
+    };
 
     match state
         .policy_repo
-        .find_all_paginated(page, page_size, params.bundle_id, enabled_only)
+        .find_all_paginated(page, page_size, bundle_id, enabled_only)
         .await
     {
         Ok((policies, total_count)) => {
@@ -43,7 +54,7 @@ pub async fn list_policies(
                 .into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_LIST_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -67,7 +78,7 @@ pub async fn get_policy(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_GET_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -78,12 +89,31 @@ pub async fn create_policy(
     State(state): State<AppState>,
     Json(req): Json<CreatePolicyRequest>,
 ) -> impl IntoResponse {
+    let CreatePolicyRequest {
+        name,
+        description,
+        rego_content,
+        package_path,
+        bundle_id: bundle_id_raw,
+    } = req;
+
+    let bundle_id = match bundle_id_raw {
+        Some(bundle_id) => match Uuid::parse_str(&bundle_id) {
+            Ok(id) => Some(id),
+            Err(_) => {
+                let err = ErrorResponse::new("SYS_POLICY_INVALID_BUNDLE_ID", "invalid bundle_id format");
+                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+            }
+        },
+        None => None,
+    };
+
     let input = CreatePolicyInput {
-        name: req.name,
-        description: req.description,
-        rego_content: req.rego_content,
-        package_path: req.package_path,
-        bundle_id: req.bundle_id,
+        name,
+        description,
+        rego_content,
+        package_path,
+        bundle_id,
     };
 
     match state.create_policy_uc.execute(&input).await {
@@ -91,15 +121,20 @@ pub async fn create_policy(
             let resp = PolicyResponse::from(policy);
             (StatusCode::CREATED, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("already exists") {
-                let err = ErrorResponse::new("SYS_POLICY_ALREADY_EXISTS", &msg);
-                (StatusCode::CONFLICT, Json(err)).into_response()
-            } else {
-                let err = ErrorResponse::new("SYS_POLICY_CREATE_FAILED", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-            }
+        Err(crate::usecase::create_policy::CreatePolicyError::AlreadyExists(name)) => {
+            let err = ErrorResponse::new(
+                "SYS_POLICY_ALREADY_EXISTS",
+                &format!("policy already exists: {}", name),
+            );
+            (StatusCode::CONFLICT, Json(err)).into_response()
+        }
+        Err(crate::usecase::create_policy::CreatePolicyError::Validation(msg)) => {
+            let err = ErrorResponse::new("SYS_POLICY_VALIDATION_ERROR", &msg);
+            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+        }
+        Err(crate::usecase::create_policy::CreatePolicyError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }
@@ -128,7 +163,7 @@ pub async fn update_policy(
                 let err = ErrorResponse::new("SYS_POLICY_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_POLICY_UPDATE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -159,7 +194,7 @@ pub async fn delete_policy(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeletePolicyError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_POLICY_DELETE_FAILED", &msg);
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -194,7 +229,7 @@ pub async fn evaluate_policy(
                 let err = ErrorResponse::new("SYS_POLICY_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_POLICY_EVALUATE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -214,7 +249,7 @@ pub async fn list_bundles(State(state): State<AppState>) -> impl IntoResponse {
                 .into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_BUNDLE_LIST_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -243,6 +278,8 @@ pub async fn create_bundle(
 
     let input = CreateBundleInput {
         name: req.name,
+        description: req.description,
+        enabled: req.enabled,
         policy_ids,
     };
 
@@ -252,7 +289,7 @@ pub async fn create_bundle(
             (StatusCode::CREATED, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_BUNDLE_CREATE_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -293,6 +330,8 @@ pub struct EvaluatePolicyRequest {
 #[derive(Debug, Deserialize)]
 pub struct CreateBundleRequest {
     pub name: String,
+    pub description: Option<String>,
+    pub enabled: Option<bool>,
     pub policy_ids: Vec<String>,
 }
 
@@ -300,6 +339,9 @@ pub struct CreateBundleRequest {
 pub struct BundleResponse {
     pub id: String,
     pub name: String,
+    pub description: Option<String>,
+    pub enabled: bool,
+    pub policy_count: usize,
     pub policy_ids: Vec<String>,
     pub created_at: String,
     pub updated_at: String,
@@ -310,6 +352,9 @@ impl From<crate::domain::entity::policy_bundle::PolicyBundle> for BundleResponse
         Self {
             id: b.id.to_string(),
             name: b.name,
+            description: b.description,
+            enabled: b.enabled,
+            policy_count: b.policy_ids.len(),
             policy_ids: b.policy_ids.iter().map(|id| id.to_string()).collect(),
             created_at: b.created_at.to_rfc3339(),
             updated_at: b.updated_at.to_rfc3339(),
@@ -339,7 +384,7 @@ impl From<crate::domain::entity::policy::Policy> for PolicyResponse {
             description: p.description,
             rego_content: p.rego_content,
             package_path: p.package_path,
-            bundle_id: p.bundle_id,
+            bundle_id: p.bundle_id.map(|id| id.to_string()),
             version: p.version,
             enabled: p.enabled,
             created_at: p.created_at.to_rfc3339(),
@@ -357,6 +402,8 @@ pub struct ErrorResponse {
 pub struct ErrorBody {
     pub code: String,
     pub message: String,
+    pub request_id: String,
+    pub details: Vec<String>,
 }
 
 impl ErrorResponse {
@@ -365,7 +412,10 @@ impl ErrorResponse {
             error: ErrorBody {
                 code: code.to_string(),
                 message: message.to_string(),
+                request_id: uuid::Uuid::new_v4().to_string(),
+                details: vec![],
             },
         }
     }
 }
+

@@ -14,7 +14,7 @@ mod proto;
 mod usecase;
 
 use adapter::grpc::SearchGrpcService;
-use adapter::repository::{SearchOpenSearchRepository, SearchPostgresRepository};
+use adapter::repository::{CachedSearchRepository, SearchOpenSearchRepository, SearchPostgresRepository};
 use domain::entity::search_index::{SearchDocument, SearchIndex, SearchQuery, SearchResult};
 use domain::repository::SearchRepository;
 use infrastructure::cache::IndexCache;
@@ -49,7 +49,7 @@ async fn main() -> anyhow::Result<()> {
     );
 
     // --- Repository: OpenSearch → PostgreSQL → InMemory fallback ---
-    let search_repo: Arc<dyn SearchRepository> = if let Some(ref os_cfg) = cfg.opensearch {
+    let base_search_repo: Arc<dyn SearchRepository> = if let Some(ref os_cfg) = cfg.opensearch {
         info!(url = %os_cfg.url, prefix = %os_cfg.index_prefix, "connecting to OpenSearch for search repository");
         let repo = SearchOpenSearchRepository::new(
             &os_cfg.url,
@@ -72,7 +72,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // --- Cache: moka (max 1000, TTL 30s) ---
-    let _index_cache = Arc::new(IndexCache::new(
+    let index_cache = Arc::new(IndexCache::new(
         cfg.cache.max_entries,
         cfg.cache.ttl_seconds,
     ));
@@ -81,9 +81,13 @@ async fn main() -> anyhow::Result<()> {
         ttl_seconds = cfg.cache.ttl_seconds,
         "index cache initialized"
     );
+    let search_repo: Arc<dyn SearchRepository> = Arc::new(CachedSearchRepository::new(
+        base_search_repo,
+        index_cache.clone(),
+    ));
 
     // --- Kafka: Producer or Noop fallback ---
-    let _event_publisher: Arc<dyn SearchEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
+    let event_publisher: Arc<dyn SearchEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
         let brokers = kafka_cfg.brokers.join(",");
         let topic = "k1s0.system.search.indexed.v1".to_string();
         info!(brokers = %brokers, topic = %topic, "connecting to Kafka");
@@ -99,7 +103,10 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let create_index_uc = Arc::new(usecase::CreateIndexUseCase::new(search_repo.clone()));
-    let index_document_uc = Arc::new(usecase::IndexDocumentUseCase::new(search_repo.clone()));
+    let index_document_uc = Arc::new(usecase::IndexDocumentUseCase::new(
+        search_repo.clone(),
+        event_publisher.clone(),
+    ));
     let search_uc = Arc::new(usecase::SearchUseCase::new(search_repo.clone()));
     let delete_document_uc = Arc::new(usecase::DeleteDocumentUseCase::new(search_repo.clone()));
     let list_indices_uc = Arc::new(usecase::ListIndicesUseCase::new(search_repo));
@@ -348,18 +355,37 @@ impl SearchRepository for InMemorySearchRepository {
         let documents = self.documents.read().await;
         let docs = documents.get(&query.index_name).cloned().unwrap_or_default();
 
-        let hits: Vec<SearchDocument> = docs
+        let matched: Vec<SearchDocument> = docs
             .into_iter()
             .filter(|doc| {
                 let content_str = doc.content.to_string();
-                content_str.contains(&query.query)
+                let query_ok = query.query.is_empty() || content_str.contains(&query.query);
+                if !query_ok {
+                    return false;
+                }
+                query
+                    .filters
+                    .iter()
+                    .all(|(k, v)| doc.content.get(k).and_then(|x| x.as_str()) == Some(v.as_str()))
             })
+            .map(|mut doc| {
+                doc.score = 1.0;
+                doc
+            })
+            .collect();
+
+        let total = matched.len() as u64;
+        let hits: Vec<SearchDocument> = matched
+            .into_iter()
             .skip(query.from as usize)
             .take(query.size as usize)
             .collect();
 
-        let total = hits.len() as u64;
-        Ok(SearchResult { total, hits })
+        Ok(SearchResult {
+            total,
+            hits,
+            facets: HashMap::new(),
+        })
     }
 
     async fn delete_document(&self, index_name: &str, doc_id: &str) -> anyhow::Result<bool> {

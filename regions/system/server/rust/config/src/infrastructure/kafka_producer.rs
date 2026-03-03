@@ -6,8 +6,12 @@ use crate::domain::entity::config_change_log::ConfigChangeLog;
 /// ConfigChangedEvent は設定値変更時に Kafka へ発行するイベント。
 #[derive(Debug, serde::Serialize)]
 pub struct ConfigChangedEvent {
+    pub event_type: String,
     pub namespace: String,
     pub key: String,
+    pub actor_user_id: String,
+    pub before: Option<serde_json::Value>,
+    pub after: serde_json::Value,
     pub new_value: serde_json::Value,
     pub updated_by: String,
     pub version: i32,
@@ -367,8 +371,12 @@ topics:
 
     fn make_config_changed_event() -> ConfigChangedEvent {
         ConfigChangedEvent {
+            event_type: "CONFIG_CHANGED".to_string(),
             namespace: "system.auth.database".to_string(),
             key: "max_connections".to_string(),
+            actor_user_id: "operator@example.com".to_string(),
+            before: Some(serde_json::json!(40)),
+            after: serde_json::json!(50),
             new_value: serde_json::json!(50),
             updated_by: "operator@example.com".to_string(),
             version: 4,
@@ -383,6 +391,7 @@ topics:
 
         assert_eq!(json["namespace"], "system.auth.database");
         assert_eq!(json["key"], "max_connections");
+        assert_eq!(json["event_type"], "CONFIG_CHANGED");
         assert_eq!(json["new_value"], 50);
         assert_eq!(json["updated_by"], "operator@example.com");
         assert_eq!(json["version"], 4);
@@ -392,8 +401,12 @@ topics:
     #[test]
     fn test_config_changed_event_serialization_object_value() {
         let event = ConfigChangedEvent {
+            event_type: "CONFIG_CHANGED".to_string(),
             namespace: "system.auth.jwt".to_string(),
             key: "settings".to_string(),
+            actor_user_id: "admin@example.com".to_string(),
+            before: None,
+            after: serde_json::json!({ "ttl_secs": 7200, "issuer": "https://auth.example.com" }),
             new_value: serde_json::json!({ "ttl_secs": 7200, "issuer": "https://auth.example.com" }),
             updated_by: "admin@example.com".to_string(),
             version: 2,

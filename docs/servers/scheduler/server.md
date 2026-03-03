@@ -413,7 +413,7 @@ message JobExecution {
 }
 ```
 
-> ドメインモデル/REST の `completed_at` は、gRPC proto では `finished_at` にマッピングされる。
+> ドメインモデル/REST/gRPC proto の完了時刻フィールドは `finished_at` に統一される。
 
 ---
 

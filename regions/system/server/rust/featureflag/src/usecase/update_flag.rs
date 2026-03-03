@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::feature_flag::FeatureFlag;
 use crate::domain::repository::FeatureFlagRepository;
+use crate::infrastructure::kafka_producer::FlagEventPublisher;
 
 #[derive(Debug, Clone)]
 pub struct UpdateFlagInput {
@@ -21,11 +22,15 @@ pub enum UpdateFlagError {
 
 pub struct UpdateFlagUseCase {
     repo: Arc<dyn FeatureFlagRepository>,
+    event_publisher: Arc<dyn FlagEventPublisher>,
 }
 
 impl UpdateFlagUseCase {
-    pub fn new(repo: Arc<dyn FeatureFlagRepository>) -> Self {
-        Self { repo }
+    pub fn new(repo: Arc<dyn FeatureFlagRepository>, event_publisher: Arc<dyn FlagEventPublisher>) -> Self {
+        Self {
+            repo,
+            event_publisher,
+        }
     }
 
     pub async fn execute(&self, input: &UpdateFlagInput) -> Result<FeatureFlag, UpdateFlagError> {
@@ -51,6 +56,11 @@ impl UpdateFlagUseCase {
             .await
             .map_err(|e| UpdateFlagError::Internal(e.to_string()))?;
 
+        self.event_publisher
+            .publish_flag_changed(&flag.flag_key, flag.enabled)
+            .await
+            .map_err(|e| UpdateFlagError::Internal(e.to_string()))?;
+
         Ok(flag)
     }
 }
@@ -60,6 +70,7 @@ mod tests {
     use super::*;
     use crate::domain::entity::feature_flag::FeatureFlag;
     use crate::domain::repository::flag_repository::MockFeatureFlagRepository;
+    use crate::infrastructure::kafka_producer::MockFlagEventPublisher;
 
     #[tokio::test]
     async fn success() {
@@ -71,8 +82,13 @@ mod tests {
             .withf(|key| key == "dark-mode")
             .returning(move |_| Ok(return_flag.clone()));
         mock.expect_update().returning(|_| Ok(()));
+        let mut mock_publisher = MockFlagEventPublisher::new();
+        mock_publisher
+            .expect_publish_flag_changed()
+            .withf(|key, enabled| key == "dark-mode" && !*enabled)
+            .returning(|_, _| Ok(()));
 
-        let uc = UpdateFlagUseCase::new(Arc::new(mock));
+        let uc = UpdateFlagUseCase::new(Arc::new(mock), Arc::new(mock_publisher));
         let input = UpdateFlagInput {
             flag_key: "dark-mode".to_string(),
             enabled: Some(false),
@@ -93,7 +109,10 @@ mod tests {
         mock.expect_find_by_key()
             .returning(|_| Err(anyhow::anyhow!("flag not found")));
 
-        let uc = UpdateFlagUseCase::new(Arc::new(mock));
+        let uc = UpdateFlagUseCase::new(
+            Arc::new(mock),
+            Arc::new(crate::infrastructure::kafka_producer::NoopFlagEventPublisher),
+        );
         let input = UpdateFlagInput {
             flag_key: "nonexistent".to_string(),
             enabled: Some(true),

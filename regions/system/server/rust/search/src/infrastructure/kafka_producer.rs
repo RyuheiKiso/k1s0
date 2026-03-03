@@ -4,8 +4,12 @@ use serde::{Deserialize, Serialize};
 /// DocumentIndexedEvent はドキュメントインデックス登録時に Kafka へ発行するイベント。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DocumentIndexedEvent {
+    pub event_type: String,
     pub index_name: String,
     pub document_id: String,
+    pub actor_user_id: Option<String>,
+    pub before: Option<serde_json::Value>,
+    pub after: serde_json::Value,
     pub timestamp: String, // ISO 8601
 }
 
@@ -154,8 +158,15 @@ mod tests {
 
     fn make_event() -> DocumentIndexedEvent {
         DocumentIndexedEvent {
+            event_type: "DOCUMENT_INDEXED".to_string(),
             index_name: "products".to_string(),
             document_id: "doc-1".to_string(),
+            actor_user_id: None,
+            before: None,
+            after: serde_json::json!({
+                "index_name": "products",
+                "document_id": "doc-1"
+            }),
             timestamp: "2026-02-26T00:00:00Z".to_string(),
         }
     }

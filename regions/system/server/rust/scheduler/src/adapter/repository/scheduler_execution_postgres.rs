@@ -40,7 +40,7 @@ impl From<SchedulerExecutionRow> for SchedulerExecution {
             status: row.status,
             triggered_by: row.triggered_by,
             started_at: row.started_at,
-            completed_at: row.completed_at,
+            finished_at: row.completed_at,
             error_message: row.error_message,
         }
     }
@@ -58,7 +58,7 @@ impl SchedulerExecutionRepository for SchedulerExecutionPostgresRepository {
         .bind(execution.job_id)
         .bind(&execution.status)
         .bind(execution.started_at)
-        .bind(execution.completed_at)
+        .bind(execution.finished_at)
         .bind(&execution.error_message)
         .execute(self.pool.as_ref())
         .await?;
@@ -128,7 +128,7 @@ mod tests {
         };
         let entity: SchedulerExecution = row.into();
         assert_eq!(entity.status, "running");
-        assert!(entity.completed_at.is_none());
+        assert!(entity.finished_at.is_none());
         assert!(entity.error_message.is_none());
     }
 
@@ -146,7 +146,7 @@ mod tests {
         };
         let entity: SchedulerExecution = row.into();
         assert_eq!(entity.status, "failed");
-        assert!(entity.completed_at.is_some());
+        assert!(entity.finished_at.is_some());
         assert_eq!(entity.error_message.as_deref(), Some("timeout"));
     }
 }

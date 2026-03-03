@@ -70,7 +70,7 @@ pub struct CreateTenantRequest {
     pub name: String,
     pub display_name: String,
     pub plan: String,
-    pub owner_id: Option<String>,
+    pub owner_user_id: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -80,6 +80,7 @@ pub struct TenantResponse {
     pub display_name: String,
     pub status: String,
     pub plan: String,
+    pub owner_id: Option<String>,
     pub settings: serde_json::Value,
     pub keycloak_realm: Option<String>,
     pub db_schema: Option<String>,
@@ -157,6 +158,7 @@ pub async fn list_tenants(
                         display_name: t.display_name,
                         status: t.status.as_str().to_string(),
                         plan: t.plan,
+                        owner_id: t.owner_id,
                         settings: t.settings,
                         keycloak_realm: t.keycloak_realm,
                         db_schema: t.db_schema,
@@ -201,6 +203,7 @@ pub async fn get_tenant(
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
                 plan: t.plan,
+                owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
                 db_schema: t.db_schema,
@@ -221,7 +224,7 @@ pub async fn create_tenant(
     Json(req): Json<CreateTenantRequest>,
 ) -> impl IntoResponse {
     let owner_id = req
-        .owner_id
+        .owner_user_id
         .and_then(|s| Uuid::parse_str(&s).ok());
 
     let input = CreateTenantInput {
@@ -239,6 +242,7 @@ pub async fn create_tenant(
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
                 plan: t.plan,
+                owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
                 db_schema: t.db_schema,
@@ -293,6 +297,7 @@ pub async fn update_tenant(
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
                 plan: t.plan,
+                owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
                 db_schema: t.db_schema,
@@ -335,6 +340,7 @@ pub async fn delete_tenant(
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
                 plan: t.plan,
+                owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
                 db_schema: t.db_schema,
@@ -377,6 +383,7 @@ pub async fn suspend_tenant(
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
                 plan: t.plan,
+                owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
                 db_schema: t.db_schema,
@@ -419,6 +426,7 @@ pub async fn activate_tenant(
                 display_name: t.display_name,
                 status: t.status.as_str().to_string(),
                 plan: t.plan,
+                owner_id: t.owner_id,
                 settings: t.settings,
                 keycloak_realm: t.keycloak_realm,
                 db_schema: t.db_schema,

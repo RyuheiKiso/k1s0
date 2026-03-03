@@ -1,4 +1,7 @@
-# system-event-store-server 設計
+﻿# system-event-store-server 設計
+
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+
 
 system tier の CQRS パターン向けイベントソーシングサーバー。k1s0-eventstore ライブラリをサービス化し、Append-only イベントストリームの REST/gRPC API を提供する。Rust で実装する。
 
@@ -143,8 +146,15 @@ Prometheus 形式のメトリクスを返す。認証不要。`Content-Type: tex
 ### gRPC サービス定義
 
 ```protobuf
+// k1s0 イベントストアサービス gRPC 定義。
+// CQRS パターン向け Append-only イベントストリームの管理を提供する。
 syntax = "proto3";
+
 package k1s0.system.eventstore.v1;
+
+option go_package = "github.com/k1s0-platform/system-proto-go/eventstore/v1;eventstorev1";
+
+import "k1s0/system/common/v1/types.proto";
 
 service EventStoreService {
   rpc ListStreams(ListStreamsRequest) returns (ListStreamsResponse);
@@ -213,7 +223,7 @@ message CreateSnapshotRequest {
   string stream_id = 1;
   int64 snapshot_version = 2;
   string aggregate_type = 3;
-  bytes state_json = 4;
+  bytes state = 4;
 }
 
 message CreateSnapshotResponse {
@@ -221,6 +231,7 @@ message CreateSnapshotResponse {
   string stream_id = 2;
   int64 snapshot_version = 3;
   string created_at = 4;
+  string aggregate_type = 5;
 }
 
 message GetLatestSnapshotRequest {
@@ -242,7 +253,7 @@ message DeleteStreamResponse {
 
 message EventData {
   string event_type = 1;
-  bytes payload_json = 2;
+  bytes payload = 2;
   EventMetadata metadata = 3;
 }
 
@@ -251,7 +262,7 @@ message StoredEvent {
   uint64 sequence = 2;
   string event_type = 3;
   int64 version = 4;
-  bytes payload_json = 5;
+  bytes payload = 5;
   EventMetadata metadata = 6;
   string occurred_at = 7;
   string stored_at = 8;
@@ -268,7 +279,7 @@ message Snapshot {
   string stream_id = 2;
   int64 snapshot_version = 3;
   string aggregate_type = 4;
-  bytes state_json = 5;
+  bytes state = 5;
   string created_at = 6;
 }
 ```
@@ -857,3 +868,4 @@ CREATE INDEX idx_snapshots_stream_id ON event_store.snapshots (stream_id, snapsh
 - [RBAC設計.md](../../architecture/auth/RBAC設計.md) -- RBAC ロールモデル
 - [system-server.md](../auth/server.md) -- system tier サーバー一覧
 - [system-server-implementation.md](../_common/implementation.md) -- system tier 実装設計
+

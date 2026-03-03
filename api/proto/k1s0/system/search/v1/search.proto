@@ -56,11 +56,17 @@ message SearchRequest {
   bytes filters_json = 3;
   uint32 page = 4;
   uint32 page_size = 5;
+  repeated string facets = 6;
 }
 
 message SearchResponse {
   repeated SearchHit hits = 1;
   k1s0.system.common.v1.PaginationResult pagination = 2;
+  map<string, FacetCounts> facets = 3;
+}
+
+message FacetCounts {
+  map<string, uint64> buckets = 1;
 }
 
 message SearchHit {

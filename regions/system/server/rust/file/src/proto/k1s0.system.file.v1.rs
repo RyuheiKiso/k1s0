@@ -105,6 +105,8 @@ pub struct GenerateDownloadUrlRequest {
 pub struct GenerateDownloadUrlResponse {
     #[prost(string, tag = "1")]
     pub download_url: ::prost::alloc::string::String,
+    #[prost(int32, tag = "2")]
+    pub expires_in_seconds: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateFileTagsRequest {

@@ -332,6 +332,7 @@ mod tests {
     use crate::domain::entity::secret::Secret;
     use crate::domain::repository::access_log_repo::MockAccessLogRepository;
     use crate::domain::repository::secret_store::MockSecretStore;
+    use crate::infrastructure::kafka_producer::NoopVaultEventPublisher;
 
     fn make_service(
         mock_store: MockSecretStore,
@@ -341,9 +342,21 @@ mod tests {
         let audit = Arc::new(mock_audit);
 
         VaultGrpcService::new(
-            Arc::new(GetSecretUseCase::new(store.clone(), audit.clone())),
-            Arc::new(SetSecretUseCase::new(store.clone(), audit.clone())),
-            Arc::new(DeleteSecretUseCase::new(store.clone(), audit.clone())),
+            Arc::new(GetSecretUseCase::new(
+                store.clone(),
+                audit.clone(),
+                Arc::new(NoopVaultEventPublisher),
+            )),
+            Arc::new(SetSecretUseCase::new(
+                store.clone(),
+                audit.clone(),
+                Arc::new(NoopVaultEventPublisher),
+            )),
+            Arc::new(DeleteSecretUseCase::new(
+                store.clone(),
+                audit.clone(),
+                Arc::new(NoopVaultEventPublisher),
+            )),
             Arc::new(ListSecretsUseCase::new(store)),
             Arc::new(ListAuditLogsUseCase::new(audit)),
         )

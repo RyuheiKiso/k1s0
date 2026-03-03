@@ -8,7 +8,7 @@ use crate::domain::entity::config_change_log::ConfigChangeLog;
 use crate::domain::entity::config_entry::{
     ConfigEntry, ConfigListResult, Pagination, ServiceConfigEntry, ServiceConfigResult,
 };
-use crate::domain::repository::ConfigRepository;
+use crate::domain::repository::{ConfigChangeLogRepository, ConfigRepository};
 
 /// ConfigPostgresRepository は ConfigRepository の PostgreSQL 実装。
 pub struct ConfigPostgresRepository {
@@ -39,13 +39,14 @@ impl ConfigPostgresRepository {
 
 /// PostgreSQL の行から ConfigEntry を構築するヘルパー。
 fn row_to_config_entry(row: sqlx::postgres::PgRow) -> Result<ConfigEntry, sqlx::Error> {
+    let description: Option<String> = row.try_get("description")?;
     Ok(ConfigEntry {
         id: row.try_get("id")?,
         namespace: row.try_get("namespace")?,
         key: row.try_get("key")?,
         value_json: row.try_get("value_json")?,
         version: row.try_get("version")?,
-        description: row.try_get("description")?,
+        description: description.unwrap_or_default(),
         created_by: row.try_get("created_by")?,
         updated_by: row.try_get("updated_by")?,
         created_at: row.try_get("created_at")?,
@@ -493,5 +494,20 @@ impl ConfigRepository for ConfigPostgresRepository {
             Some(row) => Ok(Some(row_to_config_entry(row)?)),
             None => Ok(None),
         }
+    }
+}
+
+#[async_trait]
+impl ConfigChangeLogRepository for ConfigPostgresRepository {
+    async fn record_change_log(&self, log: &ConfigChangeLog) -> anyhow::Result<()> {
+        <Self as ConfigRepository>::record_change_log(self, log).await
+    }
+
+    async fn list_change_logs(
+        &self,
+        namespace: &str,
+        key: &str,
+    ) -> anyhow::Result<Vec<ConfigChangeLog>> {
+        <Self as ConfigRepository>::list_change_logs(self, namespace, key).await
     }
 }

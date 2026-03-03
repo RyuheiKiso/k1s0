@@ -45,6 +45,8 @@ pub struct GetSessionResponse {
 pub struct RefreshSessionRequest {
     #[prost(string, tag = "1")]
     pub session_id: ::prost::alloc::string::String,
+    #[prost(uint32, optional, tag = "2")]
+    pub ttl_seconds: ::core::option::Option<u32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RefreshSessionResponse {

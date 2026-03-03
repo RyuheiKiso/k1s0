@@ -3,6 +3,8 @@ use uuid::Uuid;
 
 use crate::domain::entity::{Tenant, TenantStatus};
 use crate::domain::repository::TenantRepository;
+use crate::infrastructure::keycloak_admin::{KeycloakAdmin, NoopKeycloakAdmin};
+use crate::infrastructure::saga_client::{NoopSagaClient, SagaClient};
 
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteTenantError {
@@ -16,11 +18,27 @@ pub enum DeleteTenantError {
 
 pub struct DeleteTenantUseCase {
     tenant_repo: Arc<dyn TenantRepository>,
+    saga_client: Arc<dyn SagaClient>,
+    keycloak_admin: Arc<dyn KeycloakAdmin>,
 }
 
 impl DeleteTenantUseCase {
     pub fn new(tenant_repo: Arc<dyn TenantRepository>) -> Self {
-        Self { tenant_repo }
+        Self {
+            tenant_repo,
+            saga_client: Arc::new(NoopSagaClient),
+            keycloak_admin: Arc::new(NoopKeycloakAdmin),
+        }
+    }
+
+    pub fn with_saga_client(mut self, saga_client: Arc<dyn SagaClient>) -> Self {
+        self.saga_client = saga_client;
+        self
+    }
+
+    pub fn with_keycloak_admin(mut self, keycloak_admin: Arc<dyn KeycloakAdmin>) -> Self {
+        self.keycloak_admin = keycloak_admin;
+        self
     }
 
     pub async fn execute(&self, tenant_id: Uuid) -> Result<Tenant, DeleteTenantError> {
@@ -43,6 +61,31 @@ impl DeleteTenantUseCase {
             .update(&tenant)
             .await
             .map_err(|e| DeleteTenantError::Internal(e.to_string()))?;
+
+        // Start deprovisioning saga (failure is non-fatal)
+        if let Err(e) = self
+            .saga_client
+            .start_deprovisioning_saga(&tenant.id.to_string(), &tenant.name)
+            .await
+        {
+            tracing::warn!(
+                tenant_id = %tenant.id,
+                error = %e,
+                "failed to start deprovisioning saga after delete"
+            );
+        }
+
+        // Keycloak realm cleanup (failure is non-fatal)
+        if let Some(realm) = tenant.keycloak_realm.clone() {
+            if let Err(e) = self.keycloak_admin.delete_realm(&realm).await {
+                tracing::warn!(
+                    tenant_id = %tenant.id,
+                    realm = %realm,
+                    error = %e,
+                    "failed to cleanup keycloak realm after delete"
+                );
+            }
+        }
 
         Ok(tenant)
     }

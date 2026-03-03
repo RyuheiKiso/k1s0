@@ -26,12 +26,12 @@ const (
 
 // AuthHandler handles the OAuth2/OIDC browser flow.
 type AuthHandler struct {
-	oauthClient     *oauth.Client
-	sessionStore    session.Store
-	sessionTTL      time.Duration
-	postLogoutURI   string
-	secureCookie    bool
-	logger          *slog.Logger
+	oauthClient   *oauth.Client
+	sessionStore  session.Store
+	sessionTTL    time.Duration
+	postLogoutURI string
+	secureCookie  bool
+	logger        *slog.Logger
 }
 
 // NewAuthHandler creates a new AuthHandler.
@@ -44,12 +44,12 @@ func NewAuthHandler(
 	logger *slog.Logger,
 ) *AuthHandler {
 	return &AuthHandler{
-		oauthClient:  oauthClient,
-		sessionStore: sessionStore,
-		sessionTTL:   sessionTTL,
+		oauthClient:   oauthClient,
+		sessionStore:  sessionStore,
+		sessionTTL:    sessionTTL,
 		postLogoutURI: postLogoutURI,
-		secureCookie: secureCookie,
-		logger:       logger,
+		secureCookie:  secureCookie,
+		logger:        logger,
 	}
 }
 

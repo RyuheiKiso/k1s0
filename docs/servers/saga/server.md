@@ -1,4 +1,4 @@
-# system-saga-server 設計
+﻿# system-saga-server 設計
 
 system tier の Saga Orchestrator 設計を定義する。YAML ベースのワークフロー定義に基づく分散トランザクションオーケストレーション（5 ステップ以上）を担い、Rust で実装する。
 
@@ -117,6 +117,28 @@ Saga の補償処理（逆順ロールバック）を明示的にトリガーす
 | `status` | string | 補償後のステータス |
 | `message` | string | 処理結果メッセージ |
 
+**リクエスト**
+
+リクエストボディは不要（Path パラメータ `saga_id` のみ）。
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "saga_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "COMPENSATED",
+  "message": "saga 550e8400-e29b-41d4-a716-446655440000 compensation completed"
+}
+```
+
+**エラーケース**
+
+| HTTP Status | 条件 | 例 |
+| --- | --- | --- |
+| 404 | Saga が存在しない / Workflow が存在しない | `{"error":{"code":"SYS_SAGA_NOT_FOUND","message":"saga not found"}}` |
+| 409 | 既に終端状態（COMPLETED / FAILED / CANCELLED） | `{"error":{"code":"SYS_SAGA_CONFLICT","message":"already terminal"}}` |
+| 500 | 補償実行中の内部エラー | `{"error":{"code":"SYS_SAGA_INTERNAL_ERROR","message":"internal error"}}` |
+
 #### POST /api/v1/workflows
 
 YAML 形式のワークフロー定義を登録する。
@@ -144,8 +166,217 @@ YAML 形式のワークフロー定義を登録する。
 
 proto ファイルは [API設計.md](../../architecture/api/API設計.md) D-009 の命名規則に従い、以下に配置する。
 
-```
-api/proto/k1s0/system/saga/v1/saga.proto
+```protobuf
+// k1s0 Saga オーケストレーターサービス gRPC 定義。
+// 分散トランザクションの開始・追跡・補償・ワークフロー管理を提供する。
+syntax = "proto3";
+
+package k1s0.system.saga.v1;
+
+option go_package = "github.com/k1s0-platform/system-server-go-saga/gen/go/k1s0/system/saga/v1;sagav1";
+
+import "k1s0/system/common/v1/types.proto";
+
+// SagaService は Saga オーケストレーション機能を提供する。
+service SagaService {
+  // Saga 開始（非同期実行）
+  rpc StartSaga(StartSagaRequest) returns (StartSagaResponse);
+
+  // Saga 詳細取得（ステップログ含む）
+  rpc GetSaga(GetSagaRequest) returns (GetSagaResponse);
+
+  // Saga 一覧取得
+  rpc ListSagas(ListSagasRequest) returns (ListSagasResponse);
+
+  // Saga キャンセル
+  rpc CancelSaga(CancelSagaRequest) returns (CancelSagaResponse);
+
+  // Saga 補償実行
+  rpc CompensateSaga(CompensateSagaRequest) returns (CompensateSagaResponse);
+
+  // ワークフロー登録（YAML 文字列）
+  rpc RegisterWorkflow(RegisterWorkflowRequest) returns (RegisterWorkflowResponse);
+
+  // ワークフロー一覧取得
+  rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse);
+}
+
+// ============================================================
+// Saga State
+// ============================================================
+
+// SagaStateProto は Saga の状態情報。
+message SagaStateProto {
+  // Saga UUID
+  string id = 1;
+  // ワークフロー名
+  string workflow_name = 2;
+  // 現在のステップインデックス
+  int32 current_step = 3;
+  // ステータス: STARTED, RUNNING, COMPLETED, COMPENSATING, FAILED, CANCELLED
+  string status = 4;
+  // 各ステップに渡す JSON ペイロード（バイト列）
+  bytes payload = 5;
+  // 業務相関 ID
+  string correlation_id = 6;
+  // 呼び出し元サービス名
+  string initiated_by = 7;
+  // エラーメッセージ（失敗時）
+  string error_message = 8;
+  k1s0.system.common.v1.Timestamp created_at = 9;
+  k1s0.system.common.v1.Timestamp updated_at = 10;
+}
+
+// SagaStepLogProto は Saga の各ステップ実行ログ。
+message SagaStepLogProto {
+  // ステップログ UUID
+  string id = 1;
+  // 親 Saga UUID
+  string saga_id = 2;
+  // ステップインデックス（0 始まり）
+  int32 step_index = 3;
+  // ステップ名
+  string step_name = 4;
+  // アクション種別: EXECUTE, COMPENSATE
+  string action = 5;
+  // 実行結果: SUCCESS, FAILED, TIMEOUT, SKIPPED
+  string status = 6;
+  // リクエストペイロード（バイト列）
+  bytes request_payload = 7;
+  // レスポンスペイロード（バイト列）
+  bytes response_payload = 8;
+  // エラーメッセージ（失敗時）
+  string error_message = 9;
+  k1s0.system.common.v1.Timestamp started_at = 10;
+  optional k1s0.system.common.v1.Timestamp completed_at = 11;
+}
+
+// WorkflowSummary はワークフローの概要情報。
+message WorkflowSummary {
+  // ワークフロー名
+  string name = 1;
+  // ステップ数
+  int32 step_count = 2;
+  // ステップ名一覧
+  repeated string step_names = 3;
+}
+
+// ============================================================
+// StartSaga
+// ============================================================
+
+// StartSagaRequest は Saga 開始リクエスト。
+message StartSagaRequest {
+  // 実行するワークフロー名
+  string workflow_name = 1;
+  // 各ステップに渡す JSON ペイロード（バイト列）
+  bytes payload = 2;
+  // 業務相関 ID（任意）
+  string correlation_id = 3;
+  // 呼び出し元サービス名（任意）
+  string initiated_by = 4;
+}
+
+// StartSagaResponse は Saga 開始レスポンス。
+message StartSagaResponse {
+  // 発行された Saga UUID
+  string saga_id = 1;
+  // 初期ステータス（常に "STARTED"）
+  string status = 2;
+}
+
+// ============================================================
+// GetSaga
+// ============================================================
+
+// GetSagaRequest は Saga 詳細取得リクエスト。
+message GetSagaRequest {
+  string saga_id = 1;
+}
+
+// GetSagaResponse は Saga 詳細取得レスポンス。
+message GetSagaResponse {
+  SagaStateProto saga = 1;
+  repeated SagaStepLogProto step_logs = 2;
+}
+
+// ============================================================
+// ListSagas
+// ============================================================
+
+// ListSagasRequest は Saga 一覧取得リクエスト。
+message ListSagasRequest {
+  k1s0.system.common.v1.Pagination pagination = 1;
+  // ワークフロー名フィルタ（任意）
+  string workflow_name = 2;
+  // ステータスフィルタ（任意）
+  string status = 3;
+  // 相関 ID フィルタ（任意）
+  string correlation_id = 4;
+}
+
+// ListSagasResponse は Saga 一覧取得レスポンス。
+message ListSagasResponse {
+  repeated SagaStateProto sagas = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+// ============================================================
+// CancelSaga
+// ============================================================
+
+// CancelSagaRequest は Saga キャンセルリクエスト。
+message CancelSagaRequest {
+  string saga_id = 1;
+}
+
+// CancelSagaResponse は Saga キャンセルレスポンス。
+message CancelSagaResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// CompensateSagaRequest は Saga 補償実行リクエスト。
+message CompensateSagaRequest {
+  string saga_id = 1;
+}
+
+// CompensateSagaResponse は Saga 補償実行レスポンス。
+message CompensateSagaResponse {
+  bool success = 1;
+  string status = 2;
+  string message = 3;
+}
+
+// ============================================================
+// RegisterWorkflow
+// ============================================================
+
+// RegisterWorkflowRequest はワークフロー登録リクエスト。
+message RegisterWorkflowRequest {
+  // YAML 形式のワークフロー定義文字列
+  string workflow_yaml = 1;
+}
+
+// RegisterWorkflowResponse はワークフロー登録レスポンス。
+message RegisterWorkflowResponse {
+  // 登録されたワークフロー名
+  string name = 1;
+  // ステップ数
+  int32 step_count = 2;
+}
+
+// ============================================================
+// ListWorkflows
+// ============================================================
+
+// ListWorkflowsRequest はワークフロー一覧取得リクエスト（フィールドなし）。
+message ListWorkflowsRequest {}
+
+// ListWorkflowsResponse はワークフロー一覧取得レスポンス。
+message ListWorkflowsResponse {
+  repeated WorkflowSummary workflows = 1;
+}
 ```
 
 ```protobuf

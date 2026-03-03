@@ -40,6 +40,7 @@ aws-config = "1"
 
 # Kafka
 rdkafka = { version = "0.36", features = ["cmake-build"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "json"] }
 
 [build-dependencies]
 tonic-build = "0.12"

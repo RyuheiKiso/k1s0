@@ -60,7 +60,7 @@ impl CheckRateLimitUseCase {
             .iter()
             .find(|r| r.enabled)
             .map(|r| (r.limit, r.window_seconds))
-            .unwrap_or((100, if window_secs > 0 { window_secs } else { 60 }));
+            .unwrap_or((100, if window_secs > 0 { window_secs as u32 } else { 60 }));
 
         // Redis キー: ratelimit:{scope}:{identifier}
         let redis_key = format!("ratelimit:{}:{}", scope, identifier);
@@ -72,25 +72,45 @@ impl CheckRateLimitUseCase {
             .map(|r| r.algorithm.clone())
             .unwrap_or(Algorithm::TokenBucket);
 
-        let mut decision = match algorithm {
+        let decision = match algorithm {
             Algorithm::TokenBucket => {
                 self.state_store
-                    .check_token_bucket(&redis_key, limit, effective_window)
+                    .check_token_bucket(
+                        &redis_key,
+                        i64::from(limit),
+                        i64::from(effective_window),
+                    )
                     .await
             }
             Algorithm::FixedWindow => {
                 self.state_store
-                    .check_fixed_window(&redis_key, limit, effective_window)
+                    .check_fixed_window(
+                        &redis_key,
+                        i64::from(limit),
+                        i64::from(effective_window),
+                    )
                     .await
             }
             Algorithm::SlidingWindow => {
                 self.state_store
-                    .check_sliding_window(&redis_key, limit, effective_window)
+                    .check_sliding_window(
+                        &redis_key,
+                        i64::from(limit),
+                        i64::from(effective_window),
+                    )
+                    .await
+            }
+            Algorithm::LeakyBucket => {
+                self.state_store
+                    .check_leaky_bucket(
+                        &redis_key,
+                        i64::from(limit),
+                        i64::from(effective_window),
+                    )
                     .await
             }
         }
         .map_err(|e| CheckRateLimitError::Internal(e.to_string()))?;
-        decision.limit = limit;
 
         Ok(decision)
     }
@@ -126,7 +146,7 @@ mod tests {
         let mut state_store = MockRateLimitStateStore::new();
         state_store
             .expect_check_token_bucket()
-            .returning(|_, _, _| Ok(RateLimitDecision::allowed(99, 1700000060)));
+            .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 99, 1700000060)));
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
         let result = uc.execute("service", "user-123", 60).await;
@@ -151,6 +171,7 @@ mod tests {
             .expect_check_token_bucket()
             .returning(|_, _, _| {
                 Ok(RateLimitDecision::denied(
+                    100,
                     0,
                     1700000060,
                     "rate limit exceeded".to_string(),
@@ -176,7 +197,7 @@ mod tests {
         let mut state_store = MockRateLimitStateStore::new();
         state_store
             .expect_check_token_bucket()
-            .returning(|_, _, _| Ok(RateLimitDecision::allowed(99, 1700000060)));
+            .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 99, 1700000060)));
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
         let result = uc.execute("user", "user-123", 60).await;
@@ -211,7 +232,7 @@ mod tests {
         let mut state_store = MockRateLimitStateStore::new();
         state_store
             .expect_check_fixed_window()
-            .returning(|_, _, _| Ok(RateLimitDecision::allowed(50, 1700000060)));
+            .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 50, 1700000060)));
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
         let result = uc.execute("service", "user-123", 60).await;
@@ -233,7 +254,29 @@ mod tests {
         let mut state_store = MockRateLimitStateStore::new();
         state_store
             .expect_check_sliding_window()
-            .returning(|_, _, _| Ok(RateLimitDecision::allowed(75, 1700000060)));
+            .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 75, 1700000060)));
+
+        let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
+        let result = uc.execute("service", "user-123", 60).await;
+
+        assert!(result.is_ok());
+        assert!(result.unwrap().allowed);
+    }
+
+    #[tokio::test]
+    async fn test_check_rate_limit_leaky_bucket() {
+        let mut rule = make_rule();
+        rule.algorithm = Algorithm::LeakyBucket;
+
+        let mut repo = MockRateLimitRepository::new();
+        let return_rule = rule.clone();
+        repo.expect_find_by_scope()
+            .returning(move |_| Ok(vec![return_rule.clone()]));
+
+        let mut state_store = MockRateLimitStateStore::new();
+        state_store
+            .expect_check_leaky_bucket()
+            .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 80, 1700000060)));
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
         let result = uc.execute("service", "user-123", 60).await;

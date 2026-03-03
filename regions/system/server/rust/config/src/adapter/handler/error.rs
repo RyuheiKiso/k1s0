@@ -1,4 +1,4 @@
-use axum::http::StatusCode;
+﻿use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 
@@ -235,6 +235,7 @@ mod tests {
         let (status, json) = response_to_json(resp).await;
 
         assert_eq!(status, StatusCode::BAD_REQUEST);
-        assert_eq!(json["error"]["code"], "SYS_CONFIG_VALIDATION_FAILED");
+        assert_eq!(json["error"]["code"], "SYS_CONFIG_VALIDATION_ERROR");
     }
 }
+

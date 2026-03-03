@@ -265,7 +265,7 @@ impl SchedulerExecutionRepository for InMemorySchedulerExecutionRepository {
         if let Some(exec) = execs.get_mut(id) {
             exec.status = status;
             exec.error_message = error_message;
-            exec.completed_at = Some(chrono::Utc::now());
+            exec.finished_at = Some(chrono::Utc::now());
         }
         Ok(())
     }

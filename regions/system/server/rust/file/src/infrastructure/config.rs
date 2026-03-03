@@ -5,6 +5,8 @@ pub struct Config {
     pub app: AppConfig,
     pub server: ServerConfig,
     #[serde(default)]
+    pub database: Option<DatabaseConfig>,
+    #[serde(default)]
     pub auth: Option<AuthConfig>,
     #[serde(default)]
     pub storage: Option<StorageConfig>,
@@ -49,6 +51,29 @@ fn default_port() -> u16 {
 
 fn default_grpc_port() -> u16 {
     50058
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DatabaseConfig {
+    pub url: String,
+    #[serde(default = "default_schema")]
+    pub schema: String,
+    #[serde(default = "default_max_connections")]
+    pub max_connections: u32,
+    #[serde(default = "default_min_connections")]
+    pub min_connections: u32,
+}
+
+fn default_schema() -> String {
+    "file".to_string()
+}
+
+fn default_max_connections() -> u32 {
+    10
+}
+
+fn default_min_connections() -> u32 {
+    1
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -122,6 +147,7 @@ server:
         let config: Config = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(config.app.name, "file-server");
         assert_eq!(config.server.port, 8098);
+        assert!(config.database.is_none());
         assert!(config.storage.is_none());
         assert!(config.kafka.is_none());
     }
@@ -139,6 +165,7 @@ server: {}
         assert_eq!(config.server.host, "0.0.0.0");
         assert_eq!(config.server.port, 8098);
         assert_eq!(config.server.grpc_port, 50058);
+        assert!(config.database.is_none());
     }
 
     #[test]

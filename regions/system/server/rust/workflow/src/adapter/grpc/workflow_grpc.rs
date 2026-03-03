@@ -50,7 +50,7 @@ pub struct WorkflowInstanceData {
     pub workflow_name: String,
     pub title: String,
     pub initiator_id: String,
-    pub current_step_id: String,
+    pub current_step_id: Option<String>,
     pub status: String,
     pub context_json: Vec<u8>,
     pub started_at: DateTime<Utc>,
@@ -149,7 +149,7 @@ pub struct StartInstanceRequest {
 pub struct StartInstanceResponse {
     pub instance_id: String,
     pub status: String,
-    pub current_step_id: String,
+    pub current_step_id: Option<String>,
     pub started_at: DateTime<Utc>,
 }
 
@@ -478,7 +478,7 @@ impl WorkflowGrpcService {
         Ok(StartInstanceResponse {
             instance_id: output.instance.id,
             status: output.instance.status,
-            current_step_id: output.instance.current_step_id.unwrap_or_default(),
+            current_step_id: output.instance.current_step_id,
             started_at: output.instance.started_at,
         })
     }
@@ -762,7 +762,7 @@ fn to_workflow_instance_data(instance: WorkflowInstance) -> WorkflowInstanceData
         workflow_name: instance.workflow_name,
         title: instance.title,
         initiator_id: instance.initiator_id,
-        current_step_id: instance.current_step_id.unwrap_or_default(),
+        current_step_id: instance.current_step_id,
         status: instance.status,
         context_json: serde_json::to_vec(&instance.context).unwrap_or_default(),
         started_at: instance.started_at,

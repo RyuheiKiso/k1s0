@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use uuid::Uuid;
 
+use crate::domain::entity::policy_evaluation::PolicyEvaluation;
 use crate::domain::repository::PolicyRepository;
+use crate::domain::service::PolicyDomainService;
 use crate::infrastructure::opa_client::OpaClient;
 
 #[derive(Debug, Clone)]
@@ -79,11 +81,20 @@ impl EvaluatePolicyUseCase {
                     } else {
                         "OPA evaluation: denied"
                     };
-                    Ok(EvaluatePolicyOutput {
+                    let evaluation = PolicyEvaluation::new(
+                        input.policy_id,
+                        resolved_package_path.clone(),
+                        input.input.clone(),
                         allowed,
-                        reason: Some(reason.to_string()),
-                        decision_id: Uuid::new_v4().to_string(),
-                        cached: false,
+                        Some(reason.to_string()),
+                        Uuid::new_v4().to_string(),
+                        false,
+                    );
+                    Ok(EvaluatePolicyOutput {
+                        allowed: evaluation.allowed,
+                        reason: evaluation.reason,
+                        decision_id: evaluation.decision_id,
+                        cached: evaluation.cached,
                     })
                 }
                 Err(e) => {
@@ -92,11 +103,20 @@ impl EvaluatePolicyUseCase {
                         package_path = %resolved_package_path,
                         "OPA evaluation failed, deny by default"
                     );
+                    let evaluation = PolicyEvaluation::new(
+                        input.policy_id,
+                        resolved_package_path.clone(),
+                        input.input.clone(),
+                        false,
+                        Some(format!("OPA evaluation error: {}", e)),
+                        Uuid::new_v4().to_string(),
+                        false,
+                    );
                     Ok(EvaluatePolicyOutput {
-                        allowed: false,
-                        reason: Some(format!("OPA evaluation error: {}", e)),
-                        decision_id: Uuid::new_v4().to_string(),
-                        cached: false,
+                        allowed: evaluation.allowed,
+                        reason: evaluation.reason,
+                        decision_id: evaluation.decision_id,
+                        cached: evaluation.cached,
                     })
                 }
             };
@@ -109,7 +129,7 @@ impl EvaluatePolicyUseCase {
             )
         })?;
 
-        if policy.enabled {
+        if PolicyDomainService::can_evaluate_policy(policy.enabled) {
             Ok(EvaluatePolicyOutput {
                 allowed: true,
                 reason: Some("policy is enabled".to_string()),

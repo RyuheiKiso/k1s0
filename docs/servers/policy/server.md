@@ -1,4 +1,7 @@
-# system-policy-server 設計
+﻿# system-policy-server 設計
+
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+
 
 OPA 連携の動的ポリシー評価サーバー。Rego ポリシー管理・バンドル管理・評価キャッシュを提供。
 
@@ -357,7 +360,18 @@ ID 指定でポリシーの詳細を取得する。
 | `SYS_POLICY_BUNDLE_NOT_FOUND` | 404 | 指定されたバンドルが見つからない |
 | `SYS_POLICY_ALREADY_EXISTS` | 409 | 同一名のポリシーが既に存在する |
 | `SYS_POLICY_VALIDATION_ERROR` | 400 | リクエストまたは Rego 構文のバリデーションエラー |
+| `SYS_POLICY_VALIDATION` | 400 | 入力バリデーションエラー |
+| `SYS_POLICY_INVALID_ID` | 400 | UUID 形式の ID が不正 |
+| `SYS_POLICY_INVALID_BUNDLE_ID` | 400 | UUID 形式の bundle_id が不正 |
 | `SYS_POLICY_OPA_ERROR` | 502 | OPA への接続・評価エラー |
+| `SYS_POLICY_LIST_FAILED` | 500 | ポリシー一覧取得失敗 |
+| `SYS_POLICY_GET_FAILED` | 500 | ポリシー取得失敗 |
+| `SYS_POLICY_CREATE_FAILED` | 500 | ポリシー作成失敗 |
+| `SYS_POLICY_UPDATE_FAILED` | 500 | ポリシー更新失敗 |
+| `SYS_POLICY_DELETE_FAILED` | 500 | ポリシー削除失敗 |
+| `SYS_POLICY_EVALUATE_FAILED` | 500 | ポリシー評価失敗 |
+| `SYS_POLICY_BUNDLE_LIST_FAILED` | 500 | バンドル一覧取得失敗 |
+| `SYS_POLICY_BUNDLE_CREATE_FAILED` | 500 | バンドル作成失敗 |
 | `SYS_POLICY_INTERNAL_ERROR` | 500 | 内部エラー |
 
 ### gRPC サービス定義
@@ -729,3 +743,4 @@ vault:
 - Canonical list/create message pairs are `ListPoliciesRequest/Response` and `CreatePolicyRequest/Response`.
 - `ListPoliciesRequest.bundle_id` is `optional string`.
 - `CreatePolicyRequest.bundle_id` is `optional string`.
+

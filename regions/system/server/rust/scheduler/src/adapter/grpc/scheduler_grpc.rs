@@ -538,7 +538,7 @@ fn to_job_data(job: SchedulerJob) -> JobData {
 }
 
 fn to_execution_data(execution: SchedulerExecution) -> JobExecutionData {
-    let duration_ms = execution.completed_at.and_then(|finished_at| {
+    let duration_ms = execution.finished_at.and_then(|finished_at| {
         let duration = finished_at - execution.started_at;
         if duration.num_milliseconds() >= 0 {
             Some(duration.num_milliseconds() as u64)
@@ -553,7 +553,7 @@ fn to_execution_data(execution: SchedulerExecution) -> JobExecutionData {
         status: normalize_status(&execution.status),
         triggered_by: execution.triggered_by,
         started_at: execution.started_at,
-        finished_at: execution.completed_at,
+        finished_at: execution.finished_at,
         duration_ms,
         error_message: execution.error_message,
     }

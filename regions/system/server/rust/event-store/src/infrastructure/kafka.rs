@@ -3,6 +3,17 @@ use async_trait::async_trait;
 use crate::domain::entity::event::StoredEvent;
 use crate::infrastructure::config::KafkaConfig;
 
+#[derive(Debug, serde::Serialize)]
+struct EventStoreEnvelope {
+    event_type: String,
+    stream_id: String,
+    sequence: u64,
+    actor_user_id: Option<String>,
+    before: Option<serde_json::Value>,
+    after: serde_json::Value,
+    occurred_at: String,
+}
+
 /// EventPublisher はイベントストアからの Kafka イベント発行用トレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -67,8 +78,17 @@ impl EventPublisher for EventStoreKafkaProducer {
         use std::time::Duration;
 
         for event in events {
-            let payload = serde_json::to_vec(event)?;
-            let key = format!("{}:{}", stream_id, event.sequence);
+            let envelope = EventStoreEnvelope {
+                event_type: event.event_type.clone(),
+                stream_id: event.stream_id.clone(),
+                sequence: event.sequence,
+                actor_user_id: event.metadata.actor_id.clone(),
+                before: None,
+                after: event.payload.clone(),
+                occurred_at: event.occurred_at.to_rfc3339(),
+            };
+            let payload = serde_json::to_vec(&envelope)?;
+            let key = stream_id.to_string();
 
             let record = FutureRecord::to(&self.topic)
                 .key(&key)

@@ -112,14 +112,13 @@ async fn main() -> anyhow::Result<()> {
     info!("master key loaded");
 
     // Cache (max 10000 entries, TTL 48 min = 2880 seconds)
-    // TODO: Wire cache as a decorator around SecretStore in a future phase
-    let _secret_cache = Arc::new(infrastructure::cache::SecretCache::new(10_000, 2880));
+    let secret_cache = Arc::new(infrastructure::cache::SecretCache::new(10_000, 2880));
 
     // Secret store + audit repository (Vault KV v2 / PG / InMemory)
     let vault_addr = std::env::var("VAULT_ADDR").ok();
     let vault_token = std::env::var("VAULT_TOKEN").ok();
 
-    let (secret_store, audit_repo, db_pool): (
+    let (secret_store_base, audit_repo, db_pool): (
         Arc<dyn SecretStore>,
         Arc<dyn AccessLogRepository>,
         Option<sqlx::PgPool>,
@@ -158,9 +157,15 @@ async fn main() -> anyhow::Result<()> {
         let audit: Arc<dyn AccessLogRepository> = Arc::new(NoopAccessLogRepository);
         (store, audit, None)
     };
+    let secret_store: Arc<dyn SecretStore> = Arc::new(
+        adapter::repository::cached_secret_store::CachedSecretStore::new(
+            secret_store_base,
+            secret_cache.clone(),
+        ),
+    );
 
     // Kafka event publisher
-    let _event_publisher: Arc<dyn infrastructure::kafka_producer::VaultEventPublisher> =
+    let event_publisher: Arc<dyn infrastructure::kafka_producer::VaultEventPublisher> =
         if let Some(ref kafka_config) = cfg.kafka {
             info!("connecting to Kafka for vault events");
             let producer = infrastructure::kafka_producer::KafkaProducer::new(kafka_config)?;
@@ -175,14 +180,17 @@ async fn main() -> anyhow::Result<()> {
     let get_secret_uc = Arc::new(usecase::GetSecretUseCase::new(
         secret_store.clone(),
         audit_repo.clone(),
+        event_publisher.clone(),
     ));
     let set_secret_uc = Arc::new(usecase::SetSecretUseCase::new(
         secret_store.clone(),
         audit_repo.clone(),
+        event_publisher.clone(),
     ));
     let delete_secret_uc = Arc::new(usecase::DeleteSecretUseCase::new(
         secret_store.clone(),
         audit_repo.clone(),
+        event_publisher.clone(),
     ));
     let list_secrets_uc = Arc::new(usecase::ListSecretsUseCase::new(secret_store));
     let list_audit_logs_uc = Arc::new(usecase::ListAuditLogsUseCase::new(audit_repo));

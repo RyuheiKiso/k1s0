@@ -23,8 +23,8 @@ pub enum CreateRuleError {
 pub struct CreateRuleInput {
     pub scope: String,
     pub identifier_pattern: String,
-    pub limit: i64,
-    pub window_seconds: i64,
+    pub limit: u32,
+    pub window_seconds: u32,
     pub enabled: bool,
 }
 
@@ -46,12 +46,12 @@ impl CreateRuleUseCase {
         if input.identifier_pattern.is_empty() {
             return Err(CreateRuleError::Validation("identifier_pattern is required".to_string()));
         }
-        if input.limit <= 0 {
+        if input.limit == 0 {
             return Err(CreateRuleError::Validation(
                 "limit must be positive".to_string(),
             ));
         }
-        if input.window_seconds <= 0 {
+        if input.window_seconds == 0 {
             return Err(CreateRuleError::Validation(
                 "window_seconds must be positive".to_string(),
             ));
@@ -187,7 +187,7 @@ mod tests {
                 scope: "service".to_string(),
                 identifier_pattern: "test".to_string(),
                 limit: 100,
-                window_seconds: -1,
+                window_seconds: 0,
                 enabled: true,
             })
             .await;

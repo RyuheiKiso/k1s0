@@ -1,4 +1,4 @@
-use axum::{
+﻿use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
@@ -7,7 +7,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 
 use super::AppState;
-use crate::domain::entity::feature_flag::FlagVariant;
+use crate::domain::entity::feature_flag::{FlagRule, FlagVariant};
 use crate::usecase::create_flag::CreateFlagInput;
 use crate::usecase::update_flag::UpdateFlagInput;
 
@@ -19,7 +19,7 @@ pub async fn list_flags(State(state): State<AppState>) -> impl IntoResponse {
             (StatusCode::OK, Json(serde_json::json!({ "flags": items }))).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_FF_LIST_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_FF_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -41,7 +41,7 @@ pub async fn get_flag(
                 let err = ErrorResponse::new("SYS_FF_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_FF_GET_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_FF_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -71,7 +71,7 @@ pub async fn create_flag(
                 let err = ErrorResponse::new("SYS_FF_ALREADY_EXISTS", &msg);
                 (StatusCode::CONFLICT, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_FF_CREATE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_FF_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -101,7 +101,7 @@ pub async fn update_flag(
                 let err = ErrorResponse::new("SYS_FF_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_FF_UPDATE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_FF_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -123,7 +123,7 @@ pub async fn delete_flag(
                 let err = ErrorResponse::new("SYS_FF_NOT_FOUND", &msg);
                 return (StatusCode::NOT_FOUND, Json(err)).into_response();
             } else {
-                let err = ErrorResponse::new("SYS_FF_DELETE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_FF_INTERNAL_ERROR", &msg);
                 return (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response();
             }
         }
@@ -140,7 +140,7 @@ pub async fn delete_flag(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeleteFlagError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_FF_DELETE_FAILED", &msg);
+            let err = ErrorResponse::new("SYS_FF_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -181,7 +181,7 @@ pub async fn evaluate_flag(
                 let err = ErrorResponse::new("SYS_FF_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_FF_EVALUATE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_FF_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -218,6 +218,7 @@ pub struct FlagResponse {
     pub description: String,
     pub enabled: bool,
     pub variants: Vec<FlagVariant>,
+    pub rules: Vec<FlagRule>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -230,6 +231,7 @@ impl From<crate::domain::entity::feature_flag::FeatureFlag> for FlagResponse {
             description: f.description,
             enabled: f.enabled,
             variants: f.variants,
+            rules: f.rules,
             created_at: f.created_at.to_rfc3339(),
             updated_at: f.updated_at.to_rfc3339(),
         }
@@ -245,6 +247,8 @@ pub struct ErrorResponse {
 pub struct ErrorBody {
     pub code: String,
     pub message: String,
+    pub request_id: String,
+    pub details: Vec<String>,
 }
 
 impl ErrorResponse {
@@ -253,7 +257,10 @@ impl ErrorResponse {
             error: ErrorBody {
                 code: code.to_string(),
                 message: message.to_string(),
+                request_id: uuid::Uuid::new_v4().to_string(),
+                details: vec![],
             },
         }
     }
 }
+

@@ -53,7 +53,7 @@ message SagaStateProto {
   // 呼び出し元サービス名
   string initiated_by = 7;
   // エラーメッセージ（失敗時）
-  string error_message = 8;
+  optional string error_message = 8;
   k1s0.system.common.v1.Timestamp created_at = 9;
   k1s0.system.common.v1.Timestamp updated_at = 10;
 }
@@ -139,11 +139,11 @@ message GetSagaResponse {
 message ListSagasRequest {
   k1s0.system.common.v1.Pagination pagination = 1;
   // ワークフロー名フィルタ（任意）
-  string workflow_name = 2;
+  optional string workflow_name = 2;
   // ステータスフィルタ（任意）
-  string status = 3;
+  optional string status = 3;
   // 相関 ID フィルタ（任意）
-  string correlation_id = 4;
+  optional string correlation_id = 4;
 }
 
 // ListSagasResponse は Saga 一覧取得レスポンス。

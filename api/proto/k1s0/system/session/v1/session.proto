@@ -46,6 +46,7 @@ message GetSessionResponse {
 
 message RefreshSessionRequest {
   string session_id = 1;
+  optional uint32 ttl_seconds = 2;
 }
 
 message RefreshSessionResponse {

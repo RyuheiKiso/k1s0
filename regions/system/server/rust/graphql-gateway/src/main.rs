@@ -77,6 +77,8 @@ async fn main() -> anyhow::Result<()> {
         tenant_mutation,
         subscription,
         feature_flag_client,
+        tenant_client,
+        config_client,
         cfg.graphql.clone(),
         metrics,
     );

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::domain::service::FileDomainService;
 use crate::domain::entity::file::FileMetadata;
 use crate::domain::repository::{FileMetadataRepository, FileStorageRepository};
 
@@ -26,6 +27,9 @@ pub struct GenerateUploadUrlOutput {
 pub enum GenerateUploadUrlError {
     #[error("validation error: {0}")]
     Validation(String),
+
+    #[error("file size exceeded: actual={actual}, max={max}")]
+    SizeExceeded { actual: u64, max: u64 },
 
     #[error("internal error: {0}")]
     Internal(String),
@@ -60,6 +64,13 @@ impl GenerateUploadUrlUseCase {
             return Err(GenerateUploadUrlError::Validation(
                 "size_bytes must be greater than 0".to_string(),
             ));
+        }
+        let max_size = FileDomainService::DEFAULT_MAX_FILE_SIZE_BYTES;
+        if let Err(_) = FileDomainService::validate_upload_size(input.size_bytes, max_size) {
+            return Err(GenerateUploadUrlError::SizeExceeded {
+                actual: input.size_bytes,
+                max: max_size,
+            });
         }
         if input.mime_type.is_empty() {
             return Err(GenerateUploadUrlError::Validation(

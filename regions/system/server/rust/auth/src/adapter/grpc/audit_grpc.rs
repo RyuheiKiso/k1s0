@@ -149,7 +149,7 @@ fn domain_audit_log_to_proto(log: &AuditLog) -> ProtoAuditLog {
         resource_id: log.resource_id.clone().unwrap_or_default(),
         action: log.action.clone(),
         result: log.result.clone(),
-        detail: None, // serde_json::Value -> prost_types::Struct conversion omitted
+        detail: log.detail.as_ref().and_then(json_to_prost_struct),
         trace_id: log.trace_id.clone().unwrap_or_default(),
         created_at: Some(Timestamp {
             seconds: log.created_at.timestamp(),
@@ -182,6 +182,38 @@ fn prost_value_to_json(v: prost_types::Value) -> serde_json::Value {
             serde_json::Value::Array(l.values.into_iter().map(prost_value_to_json).collect())
         }
     }
+}
+
+fn json_to_prost_struct(v: &serde_json::Value) -> Option<prost_types::Struct> {
+    let obj = v.as_object()?;
+    Some(prost_types::Struct {
+        fields: obj
+            .iter()
+            .map(|(k, v)| (k.clone(), json_to_prost_value(v)))
+            .collect(),
+    })
+}
+
+fn json_to_prost_value(v: &serde_json::Value) -> prost_types::Value {
+    use prost_types::value::Kind;
+
+    let kind = match v {
+        serde_json::Value::Null => Kind::NullValue(0),
+        serde_json::Value::Bool(b) => Kind::BoolValue(*b),
+        serde_json::Value::Number(n) => Kind::NumberValue(n.as_f64().unwrap_or(0.0)),
+        serde_json::Value::String(s) => Kind::StringValue(s.clone()),
+        serde_json::Value::Array(arr) => Kind::ListValue(prost_types::ListValue {
+            values: arr.iter().map(json_to_prost_value).collect(),
+        }),
+        serde_json::Value::Object(map) => Kind::StructValue(prost_types::Struct {
+            fields: map
+                .iter()
+                .map(|(k, v)| (k.clone(), json_to_prost_value(v)))
+                .collect(),
+        }),
+    };
+
+    prost_types::Value { kind: Some(kind) }
 }
 
 #[cfg(test)]

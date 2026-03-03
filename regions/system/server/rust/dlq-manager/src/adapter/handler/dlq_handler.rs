@@ -54,9 +54,7 @@ pub struct PaginationResponse {
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct RetryMessageResponse {
-    pub id: String,
-    pub status: String,
-    pub message: String,
+    pub message: DlqMessageResponse,
 }
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
@@ -67,8 +65,7 @@ pub struct RetryAllResponse {
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct DeleteMessageResponse {
-    pub success: bool,
-    pub message: String,
+    pub id: String,
 }
 
 // --- Helper ---
@@ -202,9 +199,7 @@ pub async fn retry_message(
     })?;
 
     Ok(Json(RetryMessageResponse {
-        id: message.id.to_string(),
-        status: message.status.to_string(),
-        message: "message retry initiated".to_string(),
+        message: to_message_response(&message),
     }))
 }
 
@@ -230,10 +225,7 @@ pub async fn delete_message(
         .await
         .map_err(|e| DlqError::Internal(e.to_string()))?;
 
-    Ok(Json(DeleteMessageResponse {
-        success: true,
-        message: format!("message {} deleted", id),
-    }))
+    Ok(Json(DeleteMessageResponse { id }))
 }
 
 #[utoipa::path(

@@ -7,7 +7,9 @@ use crate::proto::k1s0::system::mastermaintenance::v1::{
     master_maintenance_service_server::MasterMaintenanceService,
     ColumnDefinition as ProtoColumnDefinition, TableRelationship as ProtoTableRelationship, *,
 };
-use crate::proto::k1s0::system::common::v1::PaginationResult;
+use crate::proto::k1s0::system::common::v1::{
+    PaginationResult, Timestamp as ProtoTimestamp,
+};
 
 // --- serde_json::Value <-> prost_types 変換ヘルパー ---
 
@@ -101,6 +103,17 @@ fn domain_column_to_proto(
         is_readonly: col.is_readonly,
         input_type: col.input_type.clone(),
         display_order: col.display_order,
+        is_unique: col.is_unique,
+        default_value: col.default_value.clone().unwrap_or_default(),
+        max_length: col.max_length,
+        min_value: col.min_value,
+        max_value: col.max_value,
+        regex_pattern: col.regex_pattern.clone().unwrap_or_default(),
+        select_options_json: col
+            .select_options
+            .as_ref()
+            .map(|v| serde_json::to_string(v).unwrap_or_default())
+            .unwrap_or_default(),
     }
 }
 
@@ -136,6 +149,19 @@ fn domain_table_to_proto(
         allow_delete: table.allow_delete,
         columns,
         relationships,
+        database_name: table.database_name.clone(),
+        category: table.category.clone().unwrap_or_default(),
+        is_active: table.is_active,
+        sort_order: table.sort_order,
+        created_by: table.created_by.clone(),
+        created_at: Some(ProtoTimestamp {
+            seconds: table.created_at.timestamp(),
+            nanos: table.created_at.timestamp_subsec_nanos() as i32,
+        }),
+        updated_at: Some(ProtoTimestamp {
+            seconds: table.updated_at.timestamp(),
+            nanos: table.updated_at.timestamp_subsec_nanos() as i32,
+        }),
     }
 }
 

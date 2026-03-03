@@ -9,7 +9,7 @@ pub struct SchedulerExecution {
     pub status: String,
     pub triggered_by: String,
     pub started_at: DateTime<Utc>,
-    pub completed_at: Option<DateTime<Utc>>,
+    pub finished_at: Option<DateTime<Utc>>,
     pub error_message: Option<String>,
 }
 
@@ -21,7 +21,7 @@ impl SchedulerExecution {
             status: "running".to_string(),
             triggered_by: "scheduler".to_string(),
             started_at: Utc::now(),
-            completed_at: None,
+            finished_at: None,
             error_message: None,
         }
     }

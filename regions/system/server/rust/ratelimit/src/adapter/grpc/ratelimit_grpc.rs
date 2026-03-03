@@ -219,11 +219,15 @@ impl RateLimitGrpcService {
         &self,
         req: CreateRuleRequest,
     ) -> Result<CreateRuleResponse, GrpcError> {
+        let limit = u32::try_from(req.limit)
+            .map_err(|_| GrpcError::InvalidArgument("limit must be >= 0".to_string()))?;
+        let window_seconds = u32::try_from(req.window_seconds)
+            .map_err(|_| GrpcError::InvalidArgument("window_seconds must be >= 0".to_string()))?;
         let input = CreateRuleInput {
             scope: req.scope,
             identifier_pattern: req.identifier_pattern,
-            limit: req.limit,
-            window_seconds: req.window_seconds,
+            limit,
+            window_seconds,
             enabled: req.enabled,
         };
 
@@ -247,8 +251,8 @@ impl RateLimitGrpcService {
                 id: rule.id.to_string(),
                 scope: rule.scope,
                 identifier_pattern: rule.identifier_pattern,
-                limit: rule.limit,
-                window_seconds: rule.window_seconds,
+                limit: i64::from(rule.limit),
+                window_seconds: i64::from(rule.window_seconds),
                 algorithm: rule.algorithm.as_str().to_string(),
                 enabled: rule.enabled,
                 created_at: Some(PbTimestamp {
@@ -281,8 +285,8 @@ impl RateLimitGrpcService {
                 id: rule.id.to_string(),
                 scope: rule.scope,
                 identifier_pattern: rule.identifier_pattern,
-                limit: rule.limit,
-                window_seconds: rule.window_seconds,
+                limit: i64::from(rule.limit),
+                window_seconds: i64::from(rule.window_seconds),
                 algorithm: rule.algorithm.as_str().to_string(),
                 enabled: rule.enabled,
                 created_at: Some(PbTimestamp {
@@ -327,12 +331,16 @@ impl RateLimitGrpcService {
         &self,
         req: UpdateRuleRequest,
     ) -> Result<UpdateRuleResponse, GrpcError> {
+        let limit = u32::try_from(req.limit)
+            .map_err(|_| GrpcError::InvalidArgument("limit must be >= 0".to_string()))?;
+        let window_seconds = u32::try_from(req.window_seconds)
+            .map_err(|_| GrpcError::InvalidArgument("window_seconds must be >= 0".to_string()))?;
         let input = UpdateRuleInput {
             id: req.rule_id,
             scope: req.scope,
             identifier_pattern: req.identifier_pattern,
-            limit: req.limit,
-            window_seconds: req.window_seconds,
+            limit,
+            window_seconds,
             enabled: req.enabled,
         };
 
@@ -352,8 +360,8 @@ impl RateLimitGrpcService {
                 id: rule.id.to_string(),
                 scope: rule.scope,
                 identifier_pattern: rule.identifier_pattern,
-                limit: rule.limit,
-                window_seconds: rule.window_seconds,
+                limit: i64::from(rule.limit),
+                window_seconds: i64::from(rule.window_seconds),
                 algorithm: rule.algorithm.as_str().to_string(),
                 enabled: rule.enabled,
                 created_at: Some(PbTimestamp {
@@ -414,8 +422,8 @@ impl RateLimitGrpcService {
                     id: rule.id.to_string(),
                     scope: rule.scope,
                     identifier_pattern: rule.identifier_pattern,
-                    limit: rule.limit,
-                    window_seconds: rule.window_seconds,
+                    limit: i64::from(rule.limit),
+                    window_seconds: i64::from(rule.window_seconds),
                     algorithm: rule.algorithm.as_str().to_string(),
                     enabled: rule.enabled,
                     created_at: Some(PbTimestamp {
@@ -503,7 +511,7 @@ mod tests {
         let mut state_store = MockRateLimitStateStore::new();
         state_store
             .expect_check_token_bucket()
-            .returning(|_, _, _| Ok(RateLimitDecision::allowed(99, 1700000060)));
+            .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 99, 1700000060)));
 
         let check_uc = Arc::new(CheckRateLimitUseCase::new(
             Arc::new(repo),

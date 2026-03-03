@@ -3,8 +3,6 @@ package handler
 import (
 	"log/slog"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,13 +10,13 @@ import (
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/middleware"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/oauth"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
+	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/upstream"
 )
 
 // ProxyHandler provides reverse proxy functionality that converts
 // cookie-based sessions to bearer token authentication for upstream APIs.
 type ProxyHandler struct {
-	upstream     *url.URL
-	proxy        *httputil.ReverseProxy
+	reverseProxy *upstream.ReverseProxy
 	sessionStore session.Store
 	oauthClient  *oauth.Client
 	sessionTTL   time.Duration
@@ -34,19 +32,13 @@ func NewProxyHandler(
 	timeout time.Duration,
 	logger *slog.Logger,
 ) (*ProxyHandler, error) {
-	target, err := url.Parse(upstreamURL)
+	reverseProxy, err := upstream.NewReverseProxy(upstreamURL, timeout)
 	if err != nil {
 		return nil, err
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(target)
-	proxy.Transport = &http.Transport{
-		ResponseHeaderTimeout: timeout,
-	}
-
 	return &ProxyHandler{
-		upstream:     target,
-		proxy:        proxy,
+		reverseProxy: reverseProxy,
 		sessionStore: sessionStore,
 		oauthClient:  oauthClient,
 		sessionTTL:   sessionTTL,
@@ -113,5 +105,5 @@ func (h *ProxyHandler) Handle(c *gin.Context) {
 	// Strip session cookie from upstream request.
 	c.Request.Header.Del("Cookie")
 
-	h.proxy.ServeHTTP(c.Writer, c.Request)
+	h.reverseProxy.ServeHTTP(c.Writer, c.Request)
 }

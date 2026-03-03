@@ -35,6 +35,8 @@ impl TryFrom<BundleRow> for PolicyBundle {
         Ok(PolicyBundle {
             id: r.id,
             name: r.name,
+            description: None,
+            enabled: true,
             policy_ids,
             created_at: r.created_at,
             // policy_bundles テーブルに updated_at がないため created_at で代用

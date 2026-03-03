@@ -60,6 +60,20 @@ pub struct GetTableDefinitionResponse {
     pub columns: ::prost::alloc::vec::Vec<ColumnDefinition>,
     #[prost(message, repeated, tag = "10")]
     pub relationships: ::prost::alloc::vec::Vec<TableRelationship>,
+    #[prost(string, tag = "11")]
+    pub database_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub category: ::prost::alloc::string::String,
+    #[prost(bool, tag = "13")]
+    pub is_active: bool,
+    #[prost(int32, tag = "14")]
+    pub sort_order: i32,
+    #[prost(string, tag = "15")]
+    pub created_by: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "16")]
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, optional, tag = "17")]
+    pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 /// カラム定義
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -90,6 +104,20 @@ pub struct ColumnDefinition {
     pub input_type: ::prost::alloc::string::String,
     #[prost(int32, tag = "13")]
     pub display_order: i32,
+    #[prost(bool, tag = "14")]
+    pub is_unique: bool,
+    #[prost(string, tag = "15")]
+    pub default_value: ::prost::alloc::string::String,
+    #[prost(int32, optional, tag = "16")]
+    pub max_length: ::core::option::Option<i32>,
+    #[prost(double, optional, tag = "17")]
+    pub min_value: ::core::option::Option<f64>,
+    #[prost(double, optional, tag = "18")]
+    pub max_value: ::core::option::Option<f64>,
+    #[prost(string, tag = "19")]
+    pub regex_pattern: ::prost::alloc::string::String,
+    #[prost(string, tag = "20")]
+    pub select_options_json: ::prost::alloc::string::String,
 }
 /// テーブル間関係
 #[derive(Clone, PartialEq, ::prost::Message)]

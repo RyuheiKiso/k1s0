@@ -8,6 +8,7 @@ use crate::proto::k1s0::system::search::v1::{
     CreateIndexResponse as ProtoCreateIndexResponse,
     DeleteDocumentRequest as ProtoDeleteDocumentRequest,
     DeleteDocumentResponse as ProtoDeleteDocumentResponse,
+    FacetCounts as ProtoFacetCounts,
     IndexDocumentRequest as ProtoIndexDocumentRequest,
     IndexDocumentResponse as ProtoIndexDocumentResponse,
     ListIndicesRequest as ProtoListIndicesRequest,
@@ -127,6 +128,7 @@ impl SearchService for SearchServiceTonic {
             filters_json: inner.filters_json,
             page: inner.page,
             page_size: inner.page_size,
+            facets: inner.facets,
         };
         let resp = self
             .inner
@@ -152,6 +154,11 @@ impl SearchService for SearchServiceTonic {
                 page_size: resp.page_size as i32,
                 has_next: resp.has_next,
             }),
+            facets: resp
+                .facets
+                .into_iter()
+                .map(|(name, buckets)| (name, ProtoFacetCounts { buckets }))
+                .collect(),
         }))
     }
 
@@ -182,6 +189,7 @@ mod tests {
     use super::*;
     use crate::domain::entity::search_index::{SearchDocument, SearchIndex, SearchResult};
     use crate::domain::repository::search_repository::MockSearchRepository;
+    use crate::infrastructure::kafka_producer::NoopSearchEventPublisher;
     use crate::usecase::create_index::CreateIndexUseCase;
     use crate::usecase::delete_document::DeleteDocumentUseCase;
     use crate::usecase::index_document::IndexDocumentUseCase;
@@ -193,7 +201,10 @@ mod tests {
         let grpc_svc = Arc::new(SearchGrpcService::new(
             Arc::new(CreateIndexUseCase::new(repo.clone())),
             Arc::new(ListIndicesUseCase::new(repo.clone())),
-            Arc::new(IndexDocumentUseCase::new(repo.clone())),
+            Arc::new(IndexDocumentUseCase::new(
+                repo.clone(),
+                Arc::new(NoopSearchEventPublisher),
+            )),
             Arc::new(SearchUseCase::new(repo.clone())),
             Arc::new(DeleteDocumentUseCase::new(repo)),
         ));
@@ -302,8 +313,10 @@ mod tests {
                     id: "doc-1".to_string(),
                     index_name: "products".to_string(),
                     content: serde_json::json!({"name":"Widget"}),
+                    score: 1.0,
                     indexed_at: chrono::Utc::now(),
                 }],
+                facets: std::collections::HashMap::new(),
             })
         });
 

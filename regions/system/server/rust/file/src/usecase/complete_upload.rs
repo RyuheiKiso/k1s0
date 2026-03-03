@@ -67,6 +67,13 @@ impl CompleteUploadUseCase {
             "tenant_id": file.tenant_id,
             "owner_id": file.owner_id,
             "status": file.status,
+            "actor_user_id": file.owner_id,
+            "before": serde_json::Value::Null,
+            "after": {
+                "file_id": file.id,
+                "status": file.status,
+                "checksum_sha256": file.checksum_sha256,
+            },
             "checksum_sha256": file.checksum_sha256,
             "updated_at": file.updated_at.to_rfc3339(),
         });

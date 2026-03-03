@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::event::{EventData, EventMetadata, EventStream, StoredEvent};
 use crate::domain::repository::{EventRepository, EventStreamRepository};
+use crate::domain::service::{EventStoreDomainError, EventStoreDomainService};
 
 #[derive(Debug, Clone)]
 pub struct AppendEventsInput {
@@ -67,35 +68,33 @@ impl AppendEventsUseCase {
             .await
             .map_err(|e| AppendEventsError::Internal(e.to_string()))?;
 
-        // expected_version == -1 means new stream
-        if input.expected_version == -1 {
-            if stream.is_some() {
-                return Err(AppendEventsError::StreamAlreadyExists(
-                    input.stream_id.clone(),
-                ));
+        match EventStoreDomainService::validate_append(
+            stream.is_some(),
+            stream.as_ref().map(|s| s.current_version),
+            input.expected_version,
+        ) {
+            Ok(()) => {}
+            Err(EventStoreDomainError::StreamAlreadyExists) => {
+                return Err(AppendEventsError::StreamAlreadyExists(input.stream_id.clone()));
             }
+            Err(EventStoreDomainError::StreamNotFound) => {
+                return Err(AppendEventsError::StreamNotFound(input.stream_id.clone()));
+            }
+            Err(EventStoreDomainError::VersionConflict { expected, actual }) => {
+                return Err(AppendEventsError::VersionConflict {
+                    stream_id: input.stream_id.clone(),
+                    expected,
+                    actual,
+                });
+            }
+        }
+
+        if input.expected_version == -1 {
             let new_stream = EventStream::new(input.stream_id.clone(), String::new());
             self.stream_repo
                 .create(&new_stream)
                 .await
                 .map_err(|e| AppendEventsError::Internal(e.to_string()))?;
-        } else {
-            match &stream {
-                None => {
-                    return Err(AppendEventsError::StreamNotFound(
-                        input.stream_id.clone(),
-                    ));
-                }
-                Some(s) => {
-                    if s.current_version != input.expected_version {
-                        return Err(AppendEventsError::VersionConflict {
-                            stream_id: input.stream_id.clone(),
-                            expected: input.expected_version,
-                            actual: s.current_version,
-                        });
-                    }
-                }
-            }
         }
 
         let base_version = if input.expected_version == -1 {

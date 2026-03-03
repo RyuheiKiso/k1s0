@@ -112,7 +112,7 @@ message StartInstanceResponse {
   string instance_id = 1;
   // インスタンス状態（pending / running / completed / cancelled / failed）
   string status = 2;
-  string current_step_id = 3;
+  optional string current_step_id = 3;
   k1s0.system.common.v1.Timestamp started_at = 4;
 }
 
@@ -191,7 +191,7 @@ message WorkflowInstance {
   string workflow_name = 3;
   string title = 4;
   string initiator_id = 5;
-  string current_step_id = 6;
+  optional string current_step_id = 6;
   // インスタンス状態（pending / running / completed / cancelled / failed）
   string status = 7;
   // ワークフロー実行コンテキスト（JSON バイト列）

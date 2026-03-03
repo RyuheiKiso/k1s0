@@ -1,4 +1,5 @@
-﻿use std::sync::Arc;
+﻿use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::usecase::create_index::{CreateIndexError, CreateIndexInput, CreateIndexUseCase};
 use crate::usecase::delete_document::{DeleteDocumentError, DeleteDocumentUseCase};
@@ -54,6 +55,7 @@ pub struct SearchRequest {
     pub filters_json: Vec<u8>,
     pub page: u32,
     pub page_size: u32,
+    pub facets: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -63,6 +65,7 @@ pub struct SearchResponse {
     pub page: u32,
     pub page_size: u32,
     pub has_next: bool,
+    pub facets: HashMap<String, HashMap<String, u64>>,
 }
 
 #[derive(Debug, Clone)]
@@ -222,12 +225,21 @@ impl SearchGrpcService {
         let page = if req.page == 0 { 1 } else { req.page };
         let page_size = if req.page_size == 0 { 10 } else { req.page_size };
         let from = (page - 1) * page_size;
+        let filters = if req.filters_json.is_empty() {
+            std::collections::HashMap::new()
+        } else {
+            serde_json::from_slice(&req.filters_json).map_err(|e| {
+                GrpcError::InvalidArgument(format!("invalid filters_json: {}", e))
+            })?
+        };
 
         let input = SearchInput {
             index_name: req.index.clone(),
             query: req.query,
             from,
             size: page_size,
+            filters,
+            facets: req.facets,
         };
 
         match self.search_uc.execute(&input).await {
@@ -240,7 +252,7 @@ impl SearchGrpcService {
                         let document_json = serde_json::to_vec(&doc.content).unwrap_or_default();
                         SearchHit {
                             id: doc.id,
-                            score: 1.0,
+                            score: doc.score,
                             document_json,
                         }
                     })
@@ -252,6 +264,7 @@ impl SearchGrpcService {
                     page,
                     page_size,
                     has_next,
+                    facets: result.facets,
                 })
             }
             Err(SearchError::IndexNotFound(name)) => {
@@ -288,13 +301,17 @@ mod tests {
     use super::*;
     use crate::domain::entity::search_index::{SearchDocument, SearchIndex, SearchResult};
     use crate::domain::repository::search_repository::MockSearchRepository;
+    use crate::infrastructure::kafka_producer::NoopSearchEventPublisher;
 
     fn make_service(mock: MockSearchRepository) -> SearchGrpcService {
         let repo = Arc::new(mock);
         SearchGrpcService::new(
             Arc::new(CreateIndexUseCase::new(repo.clone())),
             Arc::new(ListIndicesUseCase::new(repo.clone())),
-            Arc::new(IndexDocumentUseCase::new(repo.clone())),
+            Arc::new(IndexDocumentUseCase::new(
+                repo.clone(),
+                Arc::new(NoopSearchEventPublisher),
+            )),
             Arc::new(SearchUseCase::new(repo.clone())),
             Arc::new(DeleteDocumentUseCase::new(repo)),
         )
@@ -351,8 +368,10 @@ mod tests {
                     id: "doc-1".to_string(),
                     index_name: "products".to_string(),
                     content: serde_json::json!({"name": "Widget"}),
+                    score: 1.0,
                     indexed_at: chrono::Utc::now(),
                 }],
+                facets: std::collections::HashMap::new(),
             })
         });
 
@@ -372,3 +391,5 @@ mod tests {
         assert!(!resp.has_next);
     }
 }
+
+

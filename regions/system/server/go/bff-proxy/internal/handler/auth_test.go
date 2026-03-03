@@ -20,9 +20,9 @@ func TestGenerateRandomString(t *testing.T) {
 
 func TestGenerateRandomString_DifferentLengths(t *testing.T) {
 	tests := []struct {
-		name      string
-		byteLen   int
-		hexLen    int
+		name    string
+		byteLen int
+		hexLen  int
 	}{
 		{"16 bytes", 16, 32},
 		{"32 bytes", 32, 64},

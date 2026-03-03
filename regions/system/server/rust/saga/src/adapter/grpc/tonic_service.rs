@@ -117,7 +117,11 @@ impl SagaService for SagaServiceTonic {
             payload: resp.saga.payload,
             correlation_id: resp.saga.correlation_id,
             initiated_by: resp.saga.initiated_by,
-            error_message: resp.saga.error_message,
+            error_message: if resp.saga.error_message.is_empty() {
+                None
+            } else {
+                Some(resp.saga.error_message)
+            },
             created_at: rfc3339_to_proto_timestamp(&resp.saga.created_at),
             updated_at: rfc3339_to_proto_timestamp(&resp.saga.updated_at),
         };
@@ -162,9 +166,9 @@ impl SagaService for SagaServiceTonic {
         let req = ListSagasRequest {
             page,
             page_size,
-            workflow_name: inner.workflow_name,
-            status: inner.status,
-            correlation_id: inner.correlation_id,
+            workflow_name: inner.workflow_name.unwrap_or_default(),
+            status: inner.status.unwrap_or_default(),
+            correlation_id: inner.correlation_id.unwrap_or_default(),
         };
         let resp = self
             .inner
@@ -183,7 +187,11 @@ impl SagaService for SagaServiceTonic {
                 payload: saga.payload,
                 correlation_id: saga.correlation_id,
                 initiated_by: saga.initiated_by,
-                error_message: saga.error_message,
+                error_message: if saga.error_message.is_empty() {
+                    None
+                } else {
+                    Some(saga.error_message)
+                },
                 created_at: rfc3339_to_proto_timestamp(&saga.created_at),
                 updated_at: rfc3339_to_proto_timestamp(&saga.updated_at),
             })

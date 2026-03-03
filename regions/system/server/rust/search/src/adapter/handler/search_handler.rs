@@ -1,10 +1,11 @@
-use std::sync::Arc;
+﻿use std::sync::Arc;
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use crate::usecase::delete_document::{DeleteDocumentError, DeleteDocumentInput};
 use crate::usecase::index_document::{IndexDocumentError, IndexDocumentInput};
@@ -44,6 +45,10 @@ pub struct SearchRequest {
     pub from: u32,
     #[serde(default = "default_size")]
     pub size: u32,
+    #[serde(default)]
+    pub filters: HashMap<String, String>,
+    #[serde(default)]
+    pub facets: Vec<String>,
 }
 
 fn default_size() -> u32 {
@@ -52,16 +57,19 @@ fn default_size() -> u32 {
 
 #[derive(Debug, Serialize)]
 pub struct SearchResponse {
-    pub total: u64,
+    pub total_count: u64,
+    pub page: u32,
+    pub page_size: u32,
+    pub has_next: bool,
+    pub facets: HashMap<String, HashMap<String, u64>>,
     pub hits: Vec<HitResponse>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct HitResponse {
     pub id: String,
-    pub index_name: String,
-    pub content: serde_json::Value,
-    pub indexed_at: String,
+    pub score: f32,
+    pub document_json: serde_json::Value,
 }
 
 #[derive(Debug, Deserialize)]
@@ -97,35 +105,45 @@ pub async fn search(
         query: req.query,
         from: req.from,
         size: req.size,
+        filters: req.filters,
+        facets: req.facets,
     };
 
     match state.search_uc.execute(&input).await {
         Ok(result) => {
+            let page_size = req.size.max(1);
+            let page = (req.from / page_size) + 1;
+            let has_next = result.total > (req.from as u64 + result.hits.len() as u64);
             let resp = SearchResponse {
-                total: result.total,
+                total_count: result.total,
+                page,
+                page_size,
+                has_next,
+                facets: result.facets,
                 hits: result
                     .hits
                     .into_iter()
                     .map(|h| HitResponse {
                         id: h.id,
-                        index_name: h.index_name,
-                        content: h.content,
-                        indexed_at: h.indexed_at.to_rfc3339(),
+                        score: h.score,
+                        document_json: h.content,
                     })
                     .collect(),
             };
             (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
-        Err(SearchError::IndexNotFound(name)) => (
+        Err(SearchError::IndexNotFound(name)) => error_response(
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("index not found: {}", name)})),
+            "SYS_SEARCH_INDEX_NOT_FOUND",
+            format!("index not found: {}", name),
         )
-            .into_response(),
-        Err(SearchError::Internal(msg)) => (
+        .into_response(),
+        Err(SearchError::Internal(msg)) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            "SYS_SEARCH_INTERNAL_ERROR",
+            msg,
         )
-            .into_response(),
+        .into_response(),
     }
 }
 
@@ -153,16 +171,18 @@ pub async fn index_document(
             )
                 .into_response()
         }
-        Err(IndexDocumentError::IndexNotFound(name)) => (
+        Err(IndexDocumentError::IndexNotFound(name)) => error_response(
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("index not found: {}", name)})),
+            "SYS_SEARCH_INDEX_NOT_FOUND",
+            format!("index not found: {}", name),
         )
-            .into_response(),
-        Err(IndexDocumentError::Internal(msg)) => (
+        .into_response(),
+        Err(IndexDocumentError::Internal(msg)) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            "SYS_SEARCH_INTERNAL_ERROR",
+            msg,
         )
-            .into_response(),
+        .into_response(),
     }
 }
 
@@ -182,6 +202,7 @@ pub async fn create_index(
         Ok(index) => (
             StatusCode::CREATED,
             Json(serde_json::json!({
+                "id": index.id.to_string(),
                 "name": index.name,
                 "mapping": index.mapping,
                 "created_at": index.created_at.to_rfc3339()
@@ -191,17 +212,19 @@ pub async fn create_index(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("already exists") {
-                (
+                error_response(
                     StatusCode::CONFLICT,
-                    Json(serde_json::json!({"error": msg})),
+                    "SYS_SEARCH_INDEX_ALREADY_EXISTS",
+                    msg,
                 )
-                    .into_response()
+                .into_response()
             } else {
-                (
+                error_response(
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({"error": msg})),
+                    "SYS_SEARCH_INTERNAL_ERROR",
+                    msg,
                 )
-                    .into_response()
+                .into_response()
             }
         }
     }
@@ -215,6 +238,7 @@ pub async fn list_indices(State(state): State<AppState>) -> impl IntoResponse {
                 .into_iter()
                 .map(|idx| {
                     serde_json::json!({
+                        "id": idx.id.to_string(),
                         "name": idx.name,
                         "mapping": idx.mapping,
                         "created_at": idx.created_at.to_rfc3339()
@@ -227,11 +251,12 @@ pub async fn list_indices(State(state): State<AppState>) -> impl IntoResponse {
             )
                 .into_response()
         }
-        Err(e) => (
+        Err(e) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": e.to_string()})),
+            "SYS_SEARCH_INTERNAL_ERROR",
+            e.to_string(),
         )
-            .into_response(),
+        .into_response(),
     }
 }
 
@@ -247,15 +272,49 @@ pub async fn delete_document_from_index(
 
     match state.delete_document_uc.execute(&input).await {
         Ok(_) => StatusCode::NO_CONTENT.into_response(),
-        Err(DeleteDocumentError::NotFound(_, id)) => (
+        Err(DeleteDocumentError::NotFound(_, id)) => error_response(
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": format!("document not found: {}", id)})),
+            "SYS_SEARCH_DOCUMENT_NOT_FOUND",
+            format!("document not found: {}", id),
         )
-            .into_response(),
-        Err(DeleteDocumentError::Internal(msg)) => (
+        .into_response(),
+        Err(DeleteDocumentError::Internal(msg)) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": msg})),
+            "SYS_SEARCH_INTERNAL_ERROR",
+            msg,
         )
-            .into_response(),
+        .into_response(),
     }
 }
+
+#[derive(Debug, Serialize)]
+pub struct ErrorResponse {
+    pub error: ErrorBody,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ErrorBody {
+    pub code: String,
+    pub message: String,
+    pub request_id: String,
+    pub details: Vec<String>,
+}
+
+fn error_response(
+    status: StatusCode,
+    code: &str,
+    message: impl Into<String>,
+) -> (StatusCode, Json<ErrorResponse>) {
+    (
+        status,
+        Json(ErrorResponse {
+            error: ErrorBody {
+                code: code.to_string(),
+                message: message.into(),
+                request_id: uuid::Uuid::new_v4().to_string(),
+                details: vec![],
+            },
+        }),
+    )
+}
+

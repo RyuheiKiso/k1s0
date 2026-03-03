@@ -60,14 +60,24 @@ impl FileEventPublisher for FileKafkaProducer {
         use rdkafka::producer::FutureRecord;
         use std::time::Duration;
 
-        let envelope = serde_json::json!({
-            "event_type": event_type,
-            "payload": payload,
-            "timestamp": chrono::Utc::now().to_rfc3339(),
-        });
+        let mut message = payload.clone();
+        if let Some(map) = message.as_object_mut() {
+            map.insert(
+                "event_type".to_string(),
+                serde_json::Value::String(event_type.to_string()),
+            );
+            map.insert(
+                "timestamp".to_string(),
+                serde_json::Value::String(chrono::Utc::now().to_rfc3339()),
+            );
+        }
 
-        let payload_bytes = serde_json::to_vec(&envelope)?;
-        let key = uuid::Uuid::new_v4().to_string();
+        let payload_bytes = serde_json::to_vec(&message)?;
+        let key = payload
+            .get("file_id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
         let record = FutureRecord::to(&self.topic)
             .key(&key)

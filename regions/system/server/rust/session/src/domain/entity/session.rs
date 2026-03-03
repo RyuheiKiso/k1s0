@@ -7,10 +7,17 @@ use serde::{Deserialize, Serialize};
 pub struct Session {
     pub id: String,
     pub user_id: String,
+    pub device_id: String,
+    pub device_name: Option<String>,
+    pub device_type: Option<String>,
+    pub user_agent: Option<String>,
+    pub ip_address: Option<String>,
     pub token: String,
     pub expires_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
+    pub last_accessed_at: Option<DateTime<Utc>>,
     pub revoked: bool,
+    #[serde(default)]
     pub metadata: HashMap<String, String>,
 }
 
@@ -41,9 +48,15 @@ mod tests {
         Session {
             id: "sess-1".to_string(),
             user_id: "user-1".to_string(),
+            device_id: "device-1".to_string(),
+            device_name: Some("device".to_string()),
+            device_type: Some("desktop".to_string()),
+            user_agent: Some("ua".to_string()),
+            ip_address: Some("127.0.0.1".to_string()),
             token: "tok-1".to_string(),
             expires_at,
             created_at: Utc::now(),
+            last_accessed_at: None,
             revoked,
             metadata: HashMap::new(),
         }

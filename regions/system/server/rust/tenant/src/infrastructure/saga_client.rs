@@ -6,6 +6,9 @@ use anyhow::Result;
 pub trait SagaClient: Send + Sync {
     /// テナント作成後のプロビジョニング Saga を開始する。
     async fn start_provisioning_saga(&self, tenant_id: &str, tenant_name: &str) -> Result<()>;
+
+    /// テナント削除時のデプロビジョニング Saga を開始する。
+    async fn start_deprovisioning_saga(&self, tenant_id: &str, tenant_name: &str) -> Result<()>;
 }
 
 /// NoopSagaClient は Saga 連携なしのデフォルト実装。
@@ -15,6 +18,11 @@ pub struct NoopSagaClient;
 impl SagaClient for NoopSagaClient {
     async fn start_provisioning_saga(&self, _tenant_id: &str, _tenant_name: &str) -> Result<()> {
         tracing::debug!("saga client not configured, skipping provisioning saga");
+        Ok(())
+    }
+
+    async fn start_deprovisioning_saga(&self, _tenant_id: &str, _tenant_name: &str) -> Result<()> {
+        tracing::debug!("saga client not configured, skipping deprovisioning saga");
         Ok(())
     }
 }
@@ -57,6 +65,31 @@ impl SagaClient for HttpSagaClient {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
             tracing::error!(status = %status, body = %body, "failed to start provisioning saga");
+            anyhow::bail!("saga server returned {}: {}", status, body)
+        }
+    }
+
+    async fn start_deprovisioning_saga(&self, tenant_id: &str, tenant_name: &str) -> Result<()> {
+        let url = format!("{}/api/v1/sagas", self.base_url);
+        let resp = self
+            .client
+            .post(&url)
+            .json(&serde_json::json!({
+                "workflow_name": "tenant-deprovisioning",
+                "input": {
+                    "tenant_id": tenant_id,
+                    "tenant_name": tenant_name
+                }
+            }))
+            .send()
+            .await?;
+        if resp.status().is_success() {
+            tracing::info!(tenant_id = %tenant_id, "deprovisioning saga started");
+            Ok(())
+        } else {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            tracing::error!(status = %status, body = %body, "failed to start deprovisioning saga");
             anyhow::bail!("saga server returned {}: {}", status, body)
         }
     }

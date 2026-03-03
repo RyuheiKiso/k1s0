@@ -251,21 +251,75 @@ proto 繝輔ぃ繧､繝ｫ縺ｯ `api/proto/k1s0/system/apiregistry/v1/api_regi
 
 ```protobuf
 syntax = "proto3";
+
 package k1s0.system.apiregistry.v1;
 
+option go_package = "github.com/k1s0-platform/system-proto-go/apiregistry/v1;apiregistryv1";
+
+import "k1s0/system/common/v1/types.proto";
+
 service ApiRegistryService {
+  rpc ListSchemas(ListSchemasRequest) returns (ListSchemasResponse);
+  rpc RegisterSchema(RegisterSchemaRequest) returns (RegisterSchemaResponse);
   rpc GetSchema(GetSchemaRequest) returns (GetSchemaResponse);
+  rpc ListVersions(ListVersionsRequest) returns (ListVersionsResponse);
+  rpc RegisterVersion(RegisterVersionRequest) returns (RegisterVersionResponse);
   rpc GetSchemaVersion(GetSchemaVersionRequest) returns (GetSchemaVersionResponse);
+  rpc DeleteVersion(DeleteVersionRequest) returns (DeleteVersionResponse);
   rpc CheckCompatibility(CheckCompatibilityRequest) returns (CheckCompatibilityResponse);
+  rpc GetDiff(GetDiffRequest) returns (GetDiffResponse);
 }
 
 message GetSchemaRequest {
   string name = 1;
 }
 
+message ListSchemasRequest {
+  string schema_type = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+}
+
+message ListSchemasResponse {
+  repeated ApiSchemaProto schemas = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message RegisterSchemaRequest {
+  string name = 1;
+  string description = 2;
+  string schema_type = 3;
+  string content = 4;
+  string registered_by = 5;
+}
+
+message RegisterSchemaResponse {
+  ApiSchemaVersionProto version = 1;
+}
+
 message GetSchemaResponse {
   ApiSchemaProto schema = 1;
   string latest_content = 2;
+}
+
+message ListVersionsRequest {
+  string name = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+}
+
+message ListVersionsResponse {
+  string name = 1;
+  repeated ApiSchemaVersionProto versions = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 3;
+}
+
+message RegisterVersionRequest {
+  string name = 1;
+  string content = 2;
+  string registered_by = 3;
+}
+
+message RegisterVersionResponse {
+  ApiSchemaVersionProto version = 1;
 }
 
 message GetSchemaVersionRequest {
@@ -275,6 +329,16 @@ message GetSchemaVersionRequest {
 
 message GetSchemaVersionResponse {
   ApiSchemaVersionProto version = 1;
+}
+
+message DeleteVersionRequest {
+  string name = 1;
+  uint32 version = 2;
+}
+
+message DeleteVersionResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 message CheckCompatibilityRequest {
@@ -289,14 +353,28 @@ message CheckCompatibilityResponse {
   CompatibilityResultProto result = 3;
 }
 
+message GetDiffRequest {
+  string name = 1;
+  optional uint32 from_version = 2;
+  optional uint32 to_version = 3;
+}
+
+message GetDiffResponse {
+  string name = 1;
+  uint32 from_version = 2;
+  uint32 to_version = 3;
+  bool breaking_changes = 4;
+  SchemaDiffProto diff = 5;
+}
+
 message ApiSchemaProto {
   string name = 1;
   string description = 2;
   string schema_type = 3;
   uint32 latest_version = 4;
   uint32 version_count = 5;
-  google.protobuf.Timestamp created_at = 6;
-  google.protobuf.Timestamp updated_at = 7;
+  k1s0.system.common.v1.Timestamp created_at = 6;
+  k1s0.system.common.v1.Timestamp updated_at = 7;
 }
 
 message ApiSchemaVersionProto {
@@ -307,7 +385,14 @@ message ApiSchemaVersionProto {
   string content_hash = 5;
   bool breaking_changes = 6;
   string registered_by = 7;
-  google.protobuf.Timestamp created_at = 8;
+  k1s0.system.common.v1.Timestamp created_at = 8;
+  repeated ChangeDetail breaking_change_details = 9;
+}
+
+message ChangeDetail {
+  string change_type = 1;
+  string path = 2;
+  string description = 3;
 }
 
 message CompatibilityResultProto {
@@ -316,10 +401,22 @@ message CompatibilityResultProto {
   repeated ChangeDetail non_breaking_changes = 3;
 }
 
-message ChangeDetail {
-  string change_type = 1;
-  string path = 2;
+message SchemaDiffProto {
+  repeated DiffEntryProto added = 1;
+  repeated DiffModifiedEntryProto modified = 2;
+  repeated DiffEntryProto removed = 3;
+}
+
+message DiffEntryProto {
+  string path = 1;
+  string type = 2;
   string description = 3;
+}
+
+message DiffModifiedEntryProto {
+  string path = 1;
+  string before = 2;
+  string after = 3;
 }
 ```
 

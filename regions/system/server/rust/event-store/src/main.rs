@@ -133,7 +133,7 @@ async fn main() -> anyhow::Result<()> {
     let grpc_svc = Arc::new(EventStoreGrpcService::new(
         append_events_uc.clone(),
         read_events_uc.clone(),
-        read_event_by_sequence_uc,
+        read_event_by_sequence_uc.clone(),
         create_snapshot_uc.clone(),
         get_latest_snapshot_uc.clone(),
         delete_stream_uc.clone(),
@@ -165,11 +165,17 @@ async fn main() -> anyhow::Result<()> {
         info!("no auth configured, event-store running without authentication");
         None
     };
+    let grpc_auth_state = auth_state
+        .as_ref()
+        .map(|s| adapter::grpc::EventStoreGrpcAuthState {
+            verifier: s.verifier.clone(),
+        });
 
     // REST AppState
     let mut state = AppState {
         append_events_uc,
         read_events_uc,
+        read_event_by_sequence_uc,
         create_snapshot_uc,
         get_latest_snapshot_uc,
         delete_stream_uc,
@@ -185,7 +191,8 @@ async fn main() -> anyhow::Result<()> {
 
     // tonic wrapper
     use proto::k1s0::system::eventstore::v1::event_store_service_server::EventStoreServiceServer;
-    let event_store_tonic = adapter::grpc::EventStoreServiceTonic::new(grpc_svc);
+    let event_store_tonic =
+        adapter::grpc::EventStoreServiceTonic::new(grpc_svc, grpc_auth_state);
 
     // Router
     let app = handler::router(state)

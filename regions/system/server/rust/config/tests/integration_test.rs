@@ -13,7 +13,8 @@ use k1s0_config_server::domain::entity::config_change_log::ConfigChangeLog;
 use k1s0_config_server::domain::entity::config_entry::{
     ConfigEntry, ConfigListResult, Pagination, ServiceConfigEntry, ServiceConfigResult,
 };
-use k1s0_config_server::domain::repository::ConfigRepository;
+use k1s0_config_server::domain::entity::config_schema::ConfigSchema;
+use k1s0_config_server::domain::repository::{ConfigRepository, ConfigSchemaRepository};
 
 /// テスト用のインメモリリポジトリ実装。
 struct TestConfigRepository {
@@ -118,7 +119,7 @@ impl ConfigRepository for TestConfigRepository {
                 e.value_json = value_json.clone();
                 e.version += 1;
                 if let Some(desc) = description {
-                    e.description = Some(desc);
+                    e.description = desc;
                 }
                 e.updated_by = updated_by.to_string();
                 e.updated_at = chrono::Utc::now();
@@ -197,7 +198,7 @@ fn make_test_entry(
         key: key.to_string(),
         value_json: value,
         version,
-        description: Some(format!("{}/{}", namespace, key)),
+        description: format!("{}/{}", namespace, key),
         created_by: "admin@example.com".to_string(),
         updated_by: "admin@example.com".to_string(),
         created_at: Utc::now(),
@@ -205,15 +206,41 @@ fn make_test_entry(
     }
 }
 
+struct TestConfigSchemaRepository;
+
+#[async_trait]
+impl ConfigSchemaRepository for TestConfigSchemaRepository {
+    async fn find_by_service_name(
+        &self,
+        _service_name: &str,
+    ) -> anyhow::Result<Option<ConfigSchema>> {
+        Ok(None)
+    }
+
+    async fn find_by_namespace(&self, _namespace: &str) -> anyhow::Result<Option<ConfigSchema>> {
+        Ok(None)
+    }
+
+    async fn list_all(&self) -> anyhow::Result<Vec<ConfigSchema>> {
+        Ok(vec![])
+    }
+
+    async fn upsert(&self, schema: &ConfigSchema) -> anyhow::Result<ConfigSchema> {
+        Ok(schema.clone())
+    }
+}
+
 fn make_app_with_entries(entries: Vec<ConfigEntry>) -> axum::Router {
     let repo = Arc::new(TestConfigRepository::with_entries(entries));
-    let state = AppState::new(repo);
+    let schema_repo = Arc::new(TestConfigSchemaRepository);
+    let state = AppState::new(repo, schema_repo);
     router(state)
 }
 
 fn make_empty_app() -> axum::Router {
     let repo = Arc::new(TestConfigRepository::new());
-    let state = AppState::new(repo);
+    let schema_repo = Arc::new(TestConfigSchemaRepository);
+    let state = AppState::new(repo, schema_repo);
     router(state)
 }
 

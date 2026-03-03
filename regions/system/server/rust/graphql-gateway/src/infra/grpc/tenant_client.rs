@@ -1,5 +1,7 @@
+use std::collections::HashSet;
 use std::time::Duration;
 
+use chrono::{DateTime, Utc};
 use tonic::transport::Channel;
 use tracing::instrument;
 
@@ -31,12 +33,23 @@ pub mod proto {
 }
 
 use proto::k1s0::system::tenant::v1::tenant_service_client::TenantServiceClient;
+use proto::k1s0::system::tenant::v1::Tenant as ProtoTenant;
 
 pub struct TenantGrpcClient {
     client: TenantServiceClient<Channel>,
 }
 
 impl TenantGrpcClient {
+    fn tenant_from_proto(t: ProtoTenant) -> Tenant {
+        Tenant {
+            id: t.id,
+            name: t.name,
+            status: TenantStatus::from(t.status),
+            created_at: timestamp_to_rfc3339(t.created_at),
+            updated_at: timestamp_to_rfc3339(t.updated_at),
+        }
+    }
+
     pub async fn connect(cfg: &BackendConfig) -> anyhow::Result<Self> {
         let channel = Channel::from_shared(cfg.address.clone())?
             .timeout(Duration::from_millis(cfg.timeout_ms))
@@ -59,16 +72,7 @@ impl TenantGrpcClient {
                     Some(t) => t,
                     None => return Ok(None),
                 };
-                Ok(Some(Tenant {
-                    id: t.id,
-                    name: t.name,
-                    status: TenantStatus::from(t.status),
-                    created_at: t
-                        .created_at
-                        .map(|ts| ts.seconds.to_string())
-                        .unwrap_or_default(),
-                    updated_at: String::new(),
-                }))
+                Ok(Some(Self::tenant_from_proto(t)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
             Err(e) => Err(anyhow::anyhow!("TenantService.GetTenant failed: {}", e)),
@@ -96,16 +100,7 @@ impl TenantGrpcClient {
         let nodes = resp
             .tenants
             .into_iter()
-            .map(|t| Tenant {
-                id: t.id,
-                name: t.name,
-                status: TenantStatus::from(t.status),
-                created_at: t
-                    .created_at
-                    .map(|ts| ts.seconds.to_string())
-                    .unwrap_or_default(),
-                updated_at: String::new(),
-            })
+            .map(Self::tenant_from_proto)
             .collect();
 
         let (total_count, has_next) = resp
@@ -121,8 +116,30 @@ impl TenantGrpcClient {
     }
 
     /// DataLoader 向け: 複数 ID をまとめて取得（ListTenants + クライアント側フィルタ）
-    pub async fn list_tenants_by_ids(&self, _ids: &[String]) -> anyhow::Result<Vec<Tenant>> {
-        Ok(vec![])
+    pub async fn list_tenants_by_ids(&self, ids: &[String]) -> anyhow::Result<Vec<Tenant>> {
+        if ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let id_set: HashSet<&str> = ids.iter().map(String::as_str).collect();
+        let mut found = Vec::new();
+        let mut page = 1;
+        let page_size = 100;
+
+        loop {
+            let page_resp = self.list_tenants(page, page_size).await?;
+            for tenant in page_resp.nodes {
+                if id_set.contains(tenant.id.as_str()) {
+                    found.push(tenant);
+                }
+            }
+            if !page_resp.has_next || found.len() >= id_set.len() {
+                break;
+            }
+            page += 1;
+        }
+
+        Ok(found)
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
@@ -149,26 +166,111 @@ impl TenantGrpcClient {
             .tenant
             .ok_or_else(|| anyhow::anyhow!("empty tenant in response"))?;
 
-        Ok(Tenant {
-            id: t.id,
-            name: t.name,
-            status: TenantStatus::from(t.status),
-            created_at: t
-                .created_at
-                .map(|ts| ts.seconds.to_string())
-                .unwrap_or_default(),
-            updated_at: String::new(),
-        })
+        Ok(Self::tenant_from_proto(t))
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn update_tenant(
         &self,
-        _id: &str,
-        _name: Option<&str>,
-        _status: Option<&str>,
+        id: &str,
+        name: Option<&str>,
+        status: Option<&str>,
     ) -> anyhow::Result<Tenant> {
-        // TenantService に UpdateTenant RPC が追加された時点で実装
-        anyhow::bail!("UpdateTenant not yet implemented in TenantService");
+        let current = self
+            .client
+            .clone()
+            .get_tenant(tonic::Request::new(
+                proto::k1s0::system::tenant::v1::GetTenantRequest {
+                    tenant_id: id.to_owned(),
+                },
+            ))
+            .await
+            .map_err(|e| anyhow::anyhow!("TenantService.GetTenant failed: {}", e))?
+            .into_inner()
+            .tenant
+            .ok_or_else(|| anyhow::anyhow!("tenant not found: {}", id))?;
+
+        let mut latest = current;
+
+        if let Some(display_name) = name {
+            let updated = self
+                .client
+                .clone()
+                .update_tenant(tonic::Request::new(
+                    proto::k1s0::system::tenant::v1::UpdateTenantRequest {
+                        tenant_id: id.to_owned(),
+                        display_name: display_name.to_owned(),
+                        plan: latest.plan.clone(),
+                    },
+                ))
+                .await
+                .map_err(|e| anyhow::anyhow!("TenantService.UpdateTenant failed: {}", e))?
+                .into_inner()
+                .tenant
+                .ok_or_else(|| anyhow::anyhow!("empty tenant in update response"))?;
+            latest = updated;
+        }
+
+        if let Some(status) = status {
+            let status = status.to_ascii_uppercase();
+            let transitioned = match status.as_str() {
+                "ACTIVE" => Some(
+                    self.client
+                        .clone()
+                        .activate_tenant(tonic::Request::new(
+                            proto::k1s0::system::tenant::v1::ActivateTenantRequest {
+                                tenant_id: id.to_owned(),
+                            },
+                        ))
+                        .await
+                        .map_err(|e| anyhow::anyhow!("TenantService.ActivateTenant failed: {}", e))?
+                        .into_inner()
+                        .tenant
+                        .ok_or_else(|| anyhow::anyhow!("empty tenant in activate response"))?,
+                ),
+                "SUSPENDED" => Some(
+                    self.client
+                        .clone()
+                        .suspend_tenant(tonic::Request::new(
+                            proto::k1s0::system::tenant::v1::SuspendTenantRequest {
+                                tenant_id: id.to_owned(),
+                            },
+                        ))
+                        .await
+                        .map_err(|e| anyhow::anyhow!("TenantService.SuspendTenant failed: {}", e))?
+                        .into_inner()
+                        .tenant
+                        .ok_or_else(|| anyhow::anyhow!("empty tenant in suspend response"))?,
+                ),
+                "DELETED" => Some(
+                    self.client
+                        .clone()
+                        .delete_tenant(tonic::Request::new(
+                            proto::k1s0::system::tenant::v1::DeleteTenantRequest {
+                                tenant_id: id.to_owned(),
+                            },
+                        ))
+                        .await
+                        .map_err(|e| anyhow::anyhow!("TenantService.DeleteTenant failed: {}", e))?
+                        .into_inner()
+                        .tenant
+                        .ok_or_else(|| anyhow::anyhow!("empty tenant in delete response"))?,
+                ),
+                _ => None,
+            };
+            if let Some(next) = transitioned {
+                latest = next;
+            }
+        }
+
+        Ok(Self::tenant_from_proto(latest))
     }
+}
+
+fn timestamp_to_rfc3339(
+    ts: Option<proto::k1s0::system::common::v1::Timestamp>,
+) -> String {
+    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
+        .map(|dt| dt.to_rfc3339())
+        .unwrap_or_default()
 }
