@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use crate::domain::entity::feature_flag::FeatureFlag;
+use crate::domain::entity::feature_flag::{FlagRule, FlagVariant};
 use crate::domain::repository::FeatureFlagRepository;
+use crate::domain::service::FeatureFlagDomainService;
 use crate::infrastructure::kafka_producer::FlagEventPublisher;
 
 #[derive(Debug, Clone)]
@@ -9,6 +11,8 @@ pub struct UpdateFlagInput {
     pub flag_key: String,
     pub enabled: Option<bool>,
     pub description: Option<String>,
+    pub variants: Option<Vec<FlagVariant>>,
+    pub rules: Option<Vec<FlagRule>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -48,6 +52,14 @@ impl UpdateFlagUseCase {
         }
         if let Some(ref description) = input.description {
             flag.description = description.clone();
+        }
+        if let Some(ref variants) = input.variants {
+            FeatureFlagDomainService::validate_variants(variants)
+                .map_err(UpdateFlagError::Internal)?;
+            flag.variants = variants.clone();
+        }
+        if let Some(ref rules) = input.rules {
+            flag.rules = rules.clone();
         }
         flag.updated_at = chrono::Utc::now();
 
@@ -93,6 +105,8 @@ mod tests {
             flag_key: "dark-mode".to_string(),
             enabled: Some(false),
             description: Some("Updated dark mode".to_string()),
+            variants: None,
+            rules: None,
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -117,6 +131,8 @@ mod tests {
             flag_key: "nonexistent".to_string(),
             enabled: Some(true),
             description: None,
+            variants: None,
+            rules: None,
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

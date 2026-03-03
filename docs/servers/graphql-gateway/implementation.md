@@ -146,7 +146,11 @@ axum-test = "16"
     let feature_flag_query = Arc::new(FeatureFlagQueryResolver::new(feature_flag_client.clone()));
     let config_query = Arc::new(ConfigQueryResolver::new(config_client.clone()));
     let tenant_mutation = Arc::new(TenantMutationResolver::new(tenant_client.clone()));
-    let subscription = Arc::new(SubscriptionResolver::new(config_client.clone()));
+    let subscription = Arc::new(SubscriptionResolver::new(
+        config_client.clone(),
+        tenant_client.clone(),
+        feature_flag_client.clone(),
+    ));
 
     // --- Router ---
     let app = graphql_handler::router(
@@ -156,7 +160,11 @@ axum-test = "16"
         config_query,
         tenant_mutation,
         subscription,
+        feature_flag_client,
+        tenant_client,
+        config_client,
         cfg.graphql.clone(),
+        metrics.clone(),
     );
 ```
 
@@ -533,16 +541,26 @@ use std::sync::Arc;
 use async_graphql::futures_util::Stream;
 use tracing::instrument;
 
-use crate::domain::model::ConfigEntry;
-use crate::infra::grpc::ConfigGrpcClient;
+use crate::domain::model::{ConfigEntry, FeatureFlag, Tenant};
+use crate::infra::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
 
 pub struct SubscriptionResolver {
     config_client: Arc<ConfigGrpcClient>,
+    tenant_client: Arc<TenantGrpcClient>,
+    feature_flag_client: Arc<FeatureFlagGrpcClient>,
 }
 
 impl SubscriptionResolver {
-    pub fn new(config_client: Arc<ConfigGrpcClient>) -> Self {
-        Self { config_client }
+    pub fn new(
+        config_client: Arc<ConfigGrpcClient>,
+        tenant_client: Arc<TenantGrpcClient>,
+        feature_flag_client: Arc<FeatureFlagGrpcClient>,
+    ) -> Self {
+        Self {
+            config_client,
+            tenant_client,
+            feature_flag_client,
+        }
     }
 
     /// WatchConfig ストリームを返す。設定変更が発生するたびに ConfigEntry を配信する。
@@ -552,6 +570,22 @@ impl SubscriptionResolver {
         namespaces: Vec<String>,
     ) -> impl Stream<Item = ConfigEntry> {
         self.config_client.watch_config(namespaces).await
+    }
+
+    pub fn watch_tenant_updated(
+        &self,
+        tenant_id: String,
+    ) -> impl Stream<Item = Tenant> {
+        // 現在は 5 秒ポーリングで監視
+        unimplemented!()
+    }
+
+    pub fn watch_feature_flag_changed(
+        &self,
+        key: String,
+    ) -> impl Stream<Item = FeatureFlag> {
+        // 現在は 5 秒ポーリングで監視
+        unimplemented!()
     }
 }
 ```
@@ -594,7 +628,11 @@ pub fn router(
     config_query: Arc<ConfigQueryResolver>,
     tenant_mutation: Arc<TenantMutationResolver>,
     subscription: Arc<SubscriptionResolver>,
+    feature_flag_client: Arc<FeatureFlagGrpcClient>,
+    tenant_client: Arc<TenantGrpcClient>,
+    config_client: Arc<ConfigGrpcClient>,
     graphql_cfg: GraphQLConfig,
+    metrics: Arc<k1s0_telemetry::metrics::Metrics>,
 ) -> Router {
     let schema = Schema::build(
         QueryRoot {
@@ -604,6 +642,7 @@ pub fn router(
         },
         MutationRoot {
             tenant_mutation: tenant_mutation.clone(),
+            feature_flag_client: feature_flag_client.clone(),
         },
         SubscriptionRoot {
             subscription: subscription.clone(),
@@ -910,16 +949,12 @@ impl Config {
         if self.server.port == 0 {
             anyhow::bail!("server.port must be > 0");
         }
-        if self.auth.jwks_url.is_empty() {
-            anyhow::bail!("auth.jwks_url is required");
-        }
-        if self.backends.tenant.address.is_empty() {
-            anyhow::bail!("backends.tenant.address is required");
-        }
         Ok(())
     }
 }
 ```
+
+> `ConfigLoader` で解決できない場合（`GraphqlContext` がない等）は `ConfigQueryResolver` へのフォールバックで単体取得を行う。
 
 ### src/infra/auth/jwks.rs
 

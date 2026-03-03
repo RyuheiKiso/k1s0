@@ -5,6 +5,7 @@ use crate::usecase::delete_secret::{DeleteSecretError, DeleteSecretInput, Delete
 use crate::usecase::get_secret::{GetSecretError, GetSecretInput, GetSecretUseCase};
 use crate::usecase::list_audit_logs::{ListAuditLogsInput, ListAuditLogsUseCase};
 use crate::usecase::list_secrets::ListSecretsUseCase;
+use crate::usecase::rotate_secret::{RotateSecretError, RotateSecretInput, RotateSecretUseCase};
 use crate::usecase::set_secret::{SetSecretInput, SetSecretUseCase};
 
 // --- gRPC Request/Response Types (手動定義) ---
@@ -127,6 +128,7 @@ pub enum GrpcError {
 pub struct VaultGrpcService {
     get_secret_uc: Arc<GetSecretUseCase>,
     set_secret_uc: Arc<SetSecretUseCase>,
+    rotate_secret_uc: Arc<RotateSecretUseCase>,
     delete_secret_uc: Arc<DeleteSecretUseCase>,
     list_secrets_uc: Arc<ListSecretsUseCase>,
     list_audit_logs_uc: Arc<ListAuditLogsUseCase>,
@@ -136,6 +138,7 @@ impl VaultGrpcService {
     pub fn new(
         get_secret_uc: Arc<GetSecretUseCase>,
         set_secret_uc: Arc<SetSecretUseCase>,
+        rotate_secret_uc: Arc<RotateSecretUseCase>,
         delete_secret_uc: Arc<DeleteSecretUseCase>,
         list_secrets_uc: Arc<ListSecretsUseCase>,
         list_audit_logs_uc: Arc<ListAuditLogsUseCase>,
@@ -143,6 +146,7 @@ impl VaultGrpcService {
         Self {
             get_secret_uc,
             set_secret_uc,
+            rotate_secret_uc,
             delete_secret_uc,
             list_secrets_uc,
             list_audit_logs_uc,
@@ -219,16 +223,22 @@ impl VaultGrpcService {
         &self,
         req: RotateSecretRequest,
     ) -> Result<RotateSecretResponse, GrpcError> {
-        let set_resp = self
-            .set_secret(SetSecretRequest {
-                path: req.path.clone(),
+        let output = self
+            .rotate_secret_uc
+            .execute(&RotateSecretInput {
+                path: req.path,
                 data: req.data,
             })
-            .await?;
+            .await
+            .map_err(|e| match e {
+                RotateSecretError::NotFound(path) => GrpcError::NotFound(path),
+                RotateSecretError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
+
         Ok(RotateSecretResponse {
-            path: req.path,
-            new_version: set_resp.version,
-            rotated: true,
+            path: output.path,
+            new_version: output.new_version,
+            rotated: output.rotated,
         })
     }
 
@@ -340,18 +350,25 @@ mod tests {
     ) -> VaultGrpcService {
         let store = Arc::new(mock_store);
         let audit = Arc::new(mock_audit);
+        let get_uc = Arc::new(GetSecretUseCase::new(
+            store.clone(),
+            audit.clone(),
+            Arc::new(NoopVaultEventPublisher),
+        ));
+        let set_uc = Arc::new(SetSecretUseCase::new(
+            store.clone(),
+            audit.clone(),
+            Arc::new(NoopVaultEventPublisher),
+        ));
+        let rotate_uc = Arc::new(crate::usecase::RotateSecretUseCase::new(
+            get_uc.clone(),
+            set_uc.clone(),
+        ));
 
         VaultGrpcService::new(
-            Arc::new(GetSecretUseCase::new(
-                store.clone(),
-                audit.clone(),
-                Arc::new(NoopVaultEventPublisher),
-            )),
-            Arc::new(SetSecretUseCase::new(
-                store.clone(),
-                audit.clone(),
-                Arc::new(NoopVaultEventPublisher),
-            )),
+            get_uc,
+            set_uc,
+            rotate_uc,
             Arc::new(DeleteSecretUseCase::new(
                 store.clone(),
                 audit.clone(),
@@ -420,6 +437,16 @@ mod tests {
         mock_store
             .expect_set()
             .returning(|_, _| Ok(2));
+        mock_store
+            .expect_get()
+            .withf(|path, version| path == "app/db" && *version == Some(2))
+            .returning(|path, _| {
+                Ok(Secret::new(
+                    path.to_string(),
+                    HashMap::from([("password".to_string(), "new".to_string())]),
+                )
+                .update(HashMap::from([("password".to_string(), "newer".to_string())])))
+            });
 
         let svc = make_service(mock_store, default_audit());
         let resp = svc

@@ -84,7 +84,10 @@ pub async fn create_job(
         }
         Err(e) => {
             let msg = e.to_string();
-            if msg.contains("invalid cron") {
+            if msg.contains("already exists") || msg.contains("duplicate") {
+                let err = ErrorResponse::new("SYS_SCHED_ALREADY_EXISTS", &msg);
+                (StatusCode::CONFLICT, Json(err)).into_response()
+            } else if msg.contains("invalid cron") {
                 let err = ErrorResponse::new("SYS_SCHED_INVALID_CRON", &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             } else {
@@ -242,16 +245,81 @@ pub async fn trigger_job(
 pub async fn list_executions(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
+    Query(params): Query<ListExecutionsParams>,
 ) -> impl IntoResponse {
     use crate::usecase::list_executions::ListExecutionsError;
+    use chrono::{DateTime, Utc};
 
     match state.list_executions_uc.execute(&id).await {
-        Ok(executions) => {
-            let executions: Vec<serde_json::Value> = executions
+        Ok(mut executions) => {
+            if let Some(status) = params.status.as_deref() {
+                executions.retain(|exec| {
+                    exec.status == status || normalize_status(&exec.status) == status
+                });
+            }
+
+            let from = match params.from {
+                Some(from) => match DateTime::parse_from_rfc3339(&from) {
+                    Ok(v) => Some(v.with_timezone(&Utc)),
+                    Err(_) => {
+                        let err = ErrorResponse::new(
+                            "SYS_SCHED_VALIDATION_ERROR",
+                            "invalid from timestamp; use RFC3339",
+                        );
+                        return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+                    }
+                },
+                None => None,
+            };
+            let to = match params.to {
+                Some(to) => match DateTime::parse_from_rfc3339(&to) {
+                    Ok(v) => Some(v.with_timezone(&Utc)),
+                    Err(_) => {
+                        let err = ErrorResponse::new(
+                            "SYS_SCHED_VALIDATION_ERROR",
+                            "invalid to timestamp; use RFC3339",
+                        );
+                        return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+                    }
+                },
+                None => None,
+            };
+
+            if let Some(from) = from {
+                executions.retain(|exec| exec.started_at >= from);
+            }
+            if let Some(to) = to {
+                executions.retain(|exec| exec.started_at <= to);
+            }
+
+            let page = params.page.unwrap_or(1).max(1);
+            let page_size = params.page_size.unwrap_or(20).clamp(1, 200);
+            let total_count = executions.len() as u64;
+            let start = ((page - 1) * page_size) as usize;
+            let page_items: Vec<SchedulerExecution> = executions
+                .into_iter()
+                .skip(start)
+                .take(page_size as usize)
+                .collect();
+            let has_next = start + page_items.len() < total_count as usize;
+
+            let executions: Vec<serde_json::Value> = page_items
                 .into_iter()
                 .map(execution_to_response)
                 .collect();
-            (StatusCode::OK, Json(serde_json::json!({ "executions": executions }))).into_response()
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "executions": executions,
+                    "pagination": {
+                        "total_count": total_count,
+                        "page": page,
+                        "page_size": page_size,
+                        "has_next": has_next
+                    }
+                })),
+            )
+                .into_response()
         }
         Err(ListExecutionsError::NotFound(id)) => {
             let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
@@ -306,6 +374,15 @@ pub struct ListJobsParams {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct ListExecutionsParams {
+    pub status: Option<String>,
+    pub from: Option<String>,
+    pub to: Option<String>,
+    pub page: Option<u32>,
+    pub page_size: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct CreateJobRequest {
     pub name: String,
     pub description: Option<String>,
@@ -336,6 +413,8 @@ pub struct ErrorResponse {
 pub struct ErrorBody {
     pub code: String,
     pub message: String,
+    pub request_id: String,
+    pub details: Vec<String>,
 }
 
 impl ErrorResponse {
@@ -344,6 +423,8 @@ impl ErrorResponse {
             error: ErrorBody {
                 code: code.to_string(),
                 message: message.to_string(),
+                request_id: uuid::Uuid::new_v4().to_string(),
+                details: vec![],
             },
         }
     }

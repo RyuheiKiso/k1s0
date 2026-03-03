@@ -19,6 +19,7 @@ use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::make_rbac_middleware;
 use crate::domain::repository::{AuditLogRepository, UserRepository};
 use crate::infrastructure::TokenVerifier;
+use crate::infrastructure::permission_cache::PermissionCache;
 use crate::usecase::{
     CheckPermissionUseCase, CreateApiKeyUseCase, GetApiKeyUseCase, GetUserRolesUseCase,
     GetUserUseCase, ListApiKeysUseCase, ListUsersUseCase, RecordAuditLogUseCase,
@@ -44,6 +45,8 @@ pub struct AppState {
     pub keycloak_url: Option<String>,
     pub jwks_provider: Option<crate::infrastructure::jwks_provider::JwksProvider>,
     pub navigation_config_path: Option<PathBuf>,
+    pub permission_cache: PermissionCache,
+    pub permission_cache_refresh_on_miss: bool,
 }
 
 impl AppState {
@@ -81,6 +84,8 @@ impl AppState {
             keycloak_url,
             jwks_provider,
             navigation_config_path: None,
+            permission_cache: PermissionCache::new(300, 10_000),
+            permission_cache_refresh_on_miss: true,
         }
     }
 }

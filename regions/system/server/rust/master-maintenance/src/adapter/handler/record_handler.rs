@@ -22,7 +22,7 @@ pub async fn list_records(
     Path(name): Path<String>,
     Query(query): Query<ListRecordsQuery>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let (records, total) = state.crud_records_uc
+    let result = state.crud_records_uc
         .list_records(
             &name,
             query.page.unwrap_or(1),
@@ -30,13 +30,21 @@ pub async fn list_records(
             query.sort.as_deref(),
             query.filter.as_deref(),
             query.search.as_deref(),
+            query.columns.as_deref(),
         )
         .await?;
     Ok(Json(serde_json::json!({
-        "records": records,
-        "total": total,
+        "records": result.records,
+        "total": result.total,
         "page": query.page.unwrap_or(1),
         "page_size": query.page_size.unwrap_or(20),
+        "metadata": {
+            "table_name": result.table_name,
+            "display_name": result.display_name,
+            "allow_create": result.allow_create,
+            "allow_update": result.allow_update,
+            "allow_delete": result.allow_delete
+        }
     })))
 }
 

@@ -37,7 +37,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | DB | PostgreSQL の `notification` スキーマ（notification_channels, notification_templates, notification_logs テーブル） |
 | Kafka | コンシューマー（`k1s0.system.notification.requested.v1`）+ プロデューサー（`k1s0.system.notification.delivered.v1`） |
 | テンプレートエンジン | Handlebars 形式のテンプレートを DB 管理し、送信時にプレースホルダーを置換 |
-| 認証 | JWTによる認可。管理系エンドポイントは `sys_operator` / `sys_admin` ロールが必要 |
+| 認証 | JWTによる認可。管理系エンドポイントは `notifications/read`, `notifications/write`, `notifications/admin` を使用 |
 
 ---
 
@@ -66,6 +66,8 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
+
+> **権限表記**: 実装はロールを `resource/action` にマッピングして評価する。`sys_admin -> admin`, `sys_operator -> write`, `sys_auditor -> read`。
 
 #### GET /api/v1/channels
 
@@ -389,6 +391,9 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | パラメータ | 型 | 必須 | デフォルト | 説明 |
 | --- | --- | --- | --- | --- |
 | `channel_id` | string | No | - | チャネル ID でフィルタ |
+| `status` | string | No | - | ステータスでフィルタ（`queued`, `sent`, `failed` など） |
+| `page` | int | No | `1` | ページ番号 |
+| `page_size` | int | No | `20` | 1ページ件数 |
 
 **レスポンス（200 OK）**
 
@@ -514,10 +519,13 @@ system tier の通知管理サーバーは以下の機能を提供する。
 ```protobuf
 syntax = "proto3";
 package k1s0.system.notification.v1;
+import "k1s0/system/common/v1/types.proto";
 
 service NotificationService {
   rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
   rpc GetNotification(GetNotificationRequest) returns (GetNotificationResponse);
+  rpc RetryNotification(RetryNotificationRequest) returns (RetryNotificationResponse);
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse);
   rpc ListChannels(ListChannelsRequest) returns (ListChannelsResponse);
   rpc CreateChannel(CreateChannelRequest) returns (CreateChannelResponse);
   rpc GetChannel(GetChannelRequest) returns (GetChannelResponse);
@@ -551,6 +559,27 @@ message GetNotificationRequest {
 
 message GetNotificationResponse {
   NotificationLog notification = 1;
+}
+
+message RetryNotificationRequest {
+  string notification_id = 1;
+}
+
+message RetryNotificationResponse {
+  string notification_id = 1;
+  string status = 2;
+}
+
+message ListNotificationsRequest {
+  optional string channel_id = 1;
+  optional string status = 2;
+  uint32 page = 3;
+  uint32 page_size = 4;
+}
+
+message ListNotificationsResponse {
+  repeated NotificationLog notifications = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message NotificationLog {
@@ -587,7 +616,7 @@ message ListChannelsRequest {
 
 message ListChannelsResponse {
   repeated Channel channels = 1;
-  uint64 total = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message CreateChannelRequest {
@@ -647,7 +676,7 @@ message ListTemplatesRequest {
 
 message ListTemplatesResponse {
   repeated Template templates = 1;
-  uint64 total = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message CreateTemplateRequest {

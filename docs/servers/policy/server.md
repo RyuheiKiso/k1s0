@@ -308,6 +308,9 @@ ID 指定でポリシーの詳細を取得する。
     {
       "id": "bundle-001",
       "name": "k1s0-system-policies",
+      "description": "system tier policies bundle",
+      "enabled": true,
+      "policy_count": 3,
       "policy_ids": ["policy-001", "policy-002", "policy-003"],
       "created_at": "2026-02-20T10:00:00.000+00:00",
       "updated_at": "2026-02-20T12:30:00.000+00:00"
@@ -335,6 +338,9 @@ ID 指定でポリシーの詳細を取得する。
 {
   "id": "bundle-001",
   "name": "k1s0-system-policies",
+  "description": "system tier policies bundle",
+  "enabled": true,
+  "policy_count": 3,
   "policy_ids": ["policy-001", "policy-002", "policy-003"],
   "created_at": "2026-02-20T10:00:00.000+00:00",
   "updated_at": "2026-02-20T10:00:00.000+00:00"

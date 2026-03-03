@@ -520,20 +520,23 @@ CREATE TABLE apiregistry.api_schemas (
     description  TEXT NOT NULL DEFAULT '',
     schema_type  TEXT NOT NULL CHECK (schema_type IN ('openapi', 'protobuf')),
     latest_version INTEGER NOT NULL DEFAULT 1,
+    version_count INTEGER NOT NULL DEFAULT 0,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE apiregistry.api_schema_versions (
+    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name                    TEXT NOT NULL REFERENCES apiregistry.api_schemas(name) ON DELETE CASCADE,
     version                 INTEGER NOT NULL,
+    schema_type             TEXT NOT NULL CHECK (schema_type IN ('openapi', 'protobuf')),
     content                 TEXT NOT NULL,
     content_hash            TEXT NOT NULL,
     breaking_changes        BOOLEAN NOT NULL DEFAULT false,
     breaking_change_details JSONB NOT NULL DEFAULT '[]',
     registered_by           TEXT NOT NULL,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (name, version)
+    CONSTRAINT uq_schema_version UNIQUE (name, version)
 );
 
 CREATE INDEX idx_api_schema_versions_name ON apiregistry.api_schema_versions(name);
@@ -557,7 +560,7 @@ CREATE INDEX idx_api_schema_versions_content_hash ON apiregistry.api_schema_vers
 | DB | PostgreSQL 縺ｮ `apiregistry` 繧ｹ繧ｭ繝ｼ繝橸ｼ・pi_schemas, api_schema_versions 繝・・繝悶Ν・・|
 | Kafka | 繝励Ο繝・Η繝ｼ繧ｵ繝ｼ・・k1s0.system.apiregistry.schema_updated.v1`・・|
 | 隱崎ｨｼ | JWT縺ｫ繧医ｋ隱榊庄縲らｮ｡逅・ｳｻ繧ｨ繝ｳ繝峨・繧､繝ｳ繝医・ `sys_operator` / `sys_admin` 繝ｭ繝ｼ繝ｫ縺悟ｿ・ｦ・|
-| 繝昴・繝・| 8080・・EST・・ 50051・・RPC・・|
+| 繝昴・繝・| 8101・・EST・・ 50051・・RPC・・|
 
 ---
 
@@ -988,7 +991,7 @@ app:
 
 server:
   host: "0.0.0.0"
-  port: 8080
+  port: 8101
   grpc_port: 50051
 
 database:
@@ -1006,12 +1009,12 @@ kafka:
   brokers:
     - "kafka-0.messaging.svc.cluster.local:9092"
   security_protocol: "PLAINTEXT"
-  topic: "k1s0.system.apiregistry.schema_updated.v1"
+  schema_updated_topic: "k1s0.system.apiregistry.schema_updated.v1"
 
 validator:
-  openapi_spec_validator_path: "/usr/local/bin/openapi-spec-validator"
+  openapi_validator_path: "/usr/local/bin/openapi-spec-validator"
   buf_path: "/usr/local/bin/buf"
-  timeout_seconds: 30
+  timeout_secs: 30
 ```
 
 ---
@@ -1032,7 +1035,7 @@ image:
 replicaCount: 2
 
 container:
-  port: 8080
+  port: 8101
   grpcPort: 50051
 
 service:

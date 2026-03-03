@@ -51,7 +51,7 @@ impl SagaClient for HttpSagaClient {
             .post(&url)
             .json(&serde_json::json!({
                 "workflow_name": "tenant-provisioning",
-                "input": {
+                "payload": {
                     "tenant_id": tenant_id,
                     "tenant_name": tenant_name
                 }
@@ -76,7 +76,7 @@ impl SagaClient for HttpSagaClient {
             .post(&url)
             .json(&serde_json::json!({
                 "workflow_name": "tenant-deprovisioning",
-                "input": {
+                "payload": {
                     "tenant_id": tenant_id,
                     "tenant_name": tenant_name
                 }

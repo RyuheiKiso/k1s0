@@ -1,13 +1,15 @@
-﻿use axum::{
+use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
     Json,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use uuid::Uuid;
 
 use super::AppState;
+use k1s0_server_common::error as codes;
+use k1s0_server_common::ErrorResponse;
 use crate::usecase::send_notification::SendNotificationError;
 use crate::usecase::send_notification::SendNotificationInput;
 
@@ -19,8 +21,11 @@ pub async fn send_notification(
     let channel_id = match Uuid::parse_str(&req.channel_id) {
         Ok(id) => id,
         Err(_) => {
-            let err = ErrorResponse::new("SYS_NOTIF_INVALID_ID", "invalid channel_id format");
-            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+            return error_response(
+                StatusCode::BAD_REQUEST,
+                codes::notification::invalid_id(),
+                "invalid channel_id format",
+            );
         }
     };
 
@@ -28,8 +33,11 @@ pub async fn send_notification(
         Some(template_id) => match Uuid::parse_str(&template_id) {
             Ok(id) => Some(id),
             Err(_) => {
-                let err = ErrorResponse::new("SYS_NOTIF_INVALID_ID", "invalid template_id format");
-                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+                return error_response(
+                    StatusCode::BAD_REQUEST,
+                    codes::notification::invalid_id(),
+                    "invalid template_id format",
+                );
             }
         },
         None => None,
@@ -55,30 +63,31 @@ pub async fn send_notification(
         )
             .into_response(),
         Err(SendNotificationError::ChannelNotFound(id)) => {
-            let err = ErrorResponse::new(
-                "SYS_NOTIF_CHANNEL_NOT_FOUND",
+            error_response(
+                StatusCode::NOT_FOUND,
+                codes::notification::channel_not_found(),
                 &format!("channel not found: {}", id),
-            );
-            (StatusCode::NOT_FOUND, Json(err)).into_response()
+            )
         }
         Err(SendNotificationError::TemplateNotFound(id)) => {
-            let err = ErrorResponse::new(
-                "SYS_NOTIF_TEMPLATE_NOT_FOUND",
+            error_response(
+                StatusCode::NOT_FOUND,
+                codes::notification::template_not_found(),
                 &format!("template not found: {}", id),
-            );
-            (StatusCode::NOT_FOUND, Json(err)).into_response()
+            )
         }
         Err(SendNotificationError::ChannelDisabled(id)) => {
-            let err = ErrorResponse::new(
-                "SYS_NOTIF_CHANNEL_DISABLED",
+            error_response(
+                StatusCode::BAD_REQUEST,
+                codes::notification::channel_disabled(),
                 &format!("channel disabled: {}", id),
-            );
-            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+            )
         }
-        Err(e) => {
-            let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &e.to_string());
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-        }
+        Err(e) => error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            codes::notification::send_failed(),
+            e.to_string(),
+        ),
     }
 }
 
@@ -94,9 +103,11 @@ pub async fn list_notifications(
         Some(ref s) => match Uuid::parse_str(s) {
             Ok(id) => Some(id),
             Err(_) => {
-                let err = ErrorResponse::new("SYS_NOTIF_INVALID_ID", "invalid channel_id format");
-                return (StatusCode::BAD_REQUEST, Json(serde_json::to_value(err).unwrap()))
-                    .into_response();
+                return error_response(
+                    StatusCode::BAD_REQUEST,
+                    codes::notification::invalid_id(),
+                    "invalid channel_id format",
+                );
             }
         },
         None => None,
@@ -123,11 +134,11 @@ pub async fn list_notifications(
             )
                 .into_response()
         }
-        Err(e) => {
-            let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &e.to_string());
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::to_value(err).unwrap()))
-                .into_response()
-        }
+        Err(e) => error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            codes::notification::list_failed(),
+            e.to_string(),
+        ),
     }
 }
 
@@ -138,17 +149,16 @@ pub async fn get_notification(
 ) -> impl IntoResponse {
     match state.log_repo.find_by_id(&id).await {
         Ok(Some(log)) => (StatusCode::OK, Json(serde_json::to_value(log).unwrap())).into_response(),
-        Ok(None) => {
-            let err = ErrorResponse::new(
-                "SYS_NOTIF_NOT_FOUND",
-                &format!("notification not found: {}", id),
-            );
-            (StatusCode::NOT_FOUND, Json(err)).into_response()
-        }
-        Err(e) => {
-            let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &e.to_string());
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-        }
+        Ok(None) => error_response(
+            StatusCode::NOT_FOUND,
+            codes::notification::not_found(),
+            &format!("notification not found: {}", id),
+        ),
+        Err(e) => error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            codes::notification::get_failed(),
+            e.to_string(),
+        ),
     }
 }
 
@@ -176,14 +186,19 @@ pub async fn retry_notification(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_NOTIF_NOT_FOUND", &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
+                error_response(StatusCode::NOT_FOUND, codes::notification::not_found(), &msg)
             } else if msg.contains("already sent") {
-                let err = ErrorResponse::new("SYS_NOTIF_ALREADY_SENT", &msg);
-                (StatusCode::CONFLICT, Json(err)).into_response()
+                error_response(
+                    StatusCode::CONFLICT,
+                    codes::notification::already_sent(),
+                    &msg,
+                )
             } else {
-                let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    codes::notification::retry_failed(),
+                    &msg,
+                )
             }
         }
     }
@@ -210,17 +225,18 @@ pub async fn create_channel(
                 "id": channel.id.to_string(),
                 "name": channel.name,
                 "channel_type": channel.channel_type,
-                "config": channel.config,
+                "config": strip_sensitive_config(&channel.config),
                 "enabled": channel.enabled,
                 "created_at": channel.created_at.to_rfc3339(),
                 "updated_at": channel.updated_at.to_rfc3339()
             })),
         )
             .into_response(),
-        Err(e) => {
-            let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &e.to_string());
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-        }
+        Err(e) => error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            codes::notification::channel_create_failed(),
+            e.to_string(),
+        ),
     }
 }
 
@@ -264,10 +280,11 @@ pub async fn list_channels(
             )
                 .into_response()
         }
-        Err(e) => {
-            let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &e.to_string());
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-        }
+        Err(e) => error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            codes::notification::channel_list_failed(),
+            e.to_string(),
+        ),
     }
 }
 
@@ -283,7 +300,7 @@ pub async fn get_channel(
                 "id": channel.id.to_string(),
                 "name": channel.name,
                 "channel_type": channel.channel_type,
-                "config": channel.config,
+                "config": strip_sensitive_config(&channel.config),
                 "enabled": channel.enabled,
                 "created_at": channel.created_at.to_rfc3339(),
                 "updated_at": channel.updated_at.to_rfc3339()
@@ -293,11 +310,17 @@ pub async fn get_channel(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_NOTIF_CHANNEL_NOT_FOUND", &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
+                error_response(
+                    StatusCode::NOT_FOUND,
+                    codes::notification::channel_not_found(),
+                    &msg,
+                )
             } else {
-                let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    codes::notification::channel_get_failed(),
+                    &msg,
+                )
             }
         }
     }
@@ -333,11 +356,17 @@ pub async fn update_channel(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_NOTIF_CHANNEL_NOT_FOUND", &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
+                error_response(
+                    StatusCode::NOT_FOUND,
+                    codes::notification::channel_not_found(),
+                    &msg,
+                )
             } else {
-                let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    codes::notification::channel_update_failed(),
+                    &msg,
+                )
             }
         }
     }
@@ -357,11 +386,17 @@ pub async fn delete_channel(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_NOTIF_CHANNEL_NOT_FOUND", &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
+                error_response(
+                    StatusCode::NOT_FOUND,
+                    codes::notification::channel_not_found(),
+                    &msg,
+                )
             } else {
-                let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    codes::notification::channel_delete_failed(),
+                    &msg,
+                )
             }
         }
     }
@@ -392,10 +427,11 @@ pub async fn create_template(
             })),
         )
             .into_response(),
-        Err(e) => {
-            let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &e.to_string());
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-        }
+        Err(e) => error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            codes::notification::template_create_failed(),
+            e.to_string(),
+        ),
     }
 }
 
@@ -437,10 +473,11 @@ pub async fn list_templates(
             )
                 .into_response()
         }
-        Err(e) => {
-            let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &e.to_string());
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-        }
+        Err(e) => error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            codes::notification::template_list_failed(),
+            e.to_string(),
+        ),
     }
 }
 
@@ -466,11 +503,17 @@ pub async fn get_template(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_NOTIF_TEMPLATE_NOT_FOUND", &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
+                error_response(
+                    StatusCode::NOT_FOUND,
+                    codes::notification::template_not_found(),
+                    &msg,
+                )
             } else {
-                let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    codes::notification::template_get_failed(),
+                    &msg,
+                )
             }
         }
     }
@@ -505,11 +548,17 @@ pub async fn update_template(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_NOTIF_TEMPLATE_NOT_FOUND", &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
+                error_response(
+                    StatusCode::NOT_FOUND,
+                    codes::notification::template_not_found(),
+                    &msg,
+                )
             } else {
-                let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    codes::notification::template_update_failed(),
+                    &msg,
+                )
             }
         }
     }
@@ -529,11 +578,17 @@ pub async fn delete_template(
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
-                let err = ErrorResponse::new("SYS_NOTIF_TEMPLATE_NOT_FOUND", &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
+                error_response(
+                    StatusCode::NOT_FOUND,
+                    codes::notification::template_not_found(),
+                    &msg,
+                )
             } else {
-                let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
+                error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    codes::notification::template_delete_failed(),
+                    &msg,
+                )
             }
         }
     }
@@ -610,25 +665,44 @@ pub struct UpdateTemplateRequest {
     pub body_template: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
-pub struct ErrorResponse {
-    pub error: ErrorBody,
+fn error_response(
+    status: StatusCode,
+    code: impl Into<k1s0_server_common::ErrorCode>,
+    message: impl Into<String>,
+) -> Response {
+    let err = ErrorResponse::new(code, message);
+    (status, Json(serde_json::to_value(err).unwrap())).into_response()
 }
 
-#[derive(Debug, Serialize)]
-pub struct ErrorBody {
-    pub code: String,
-    pub message: String,
-}
+fn strip_sensitive_config(config: &serde_json::Value) -> serde_json::Value {
+    const SENSITIVE_KEYS: &[&str] = &[
+        "password",
+        "passwd",
+        "secret",
+        "token",
+        "api_key",
+        "apikey",
+        "access_token",
+        "refresh_token",
+    ];
 
-impl ErrorResponse {
-    pub fn new(code: &str, message: &str) -> Self {
-        Self {
-            error: ErrorBody {
-                code: code.to_string(),
-                message: message.to_string(),
-            },
+    match config {
+        serde_json::Value::Object(map) => {
+            let mut sanitized = serde_json::Map::new();
+            for (key, value) in map {
+                if SENSITIVE_KEYS
+                    .iter()
+                    .any(|s| s.eq_ignore_ascii_case(key.as_str()))
+                {
+                    continue;
+                }
+                sanitized.insert(key.clone(), strip_sensitive_config(value));
+            }
+            serde_json::Value::Object(sanitized)
         }
+        serde_json::Value::Array(items) => {
+            serde_json::Value::Array(items.iter().map(strip_sensitive_config).collect())
+        }
+        _ => config.clone(),
     }
 }
-

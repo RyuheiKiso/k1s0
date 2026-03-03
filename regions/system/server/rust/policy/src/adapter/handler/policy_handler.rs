@@ -10,6 +10,7 @@ use uuid::Uuid;
 use super::AppState;
 use crate::usecase::create_policy::CreatePolicyInput;
 use crate::usecase::evaluate_policy::EvaluatePolicyInput;
+use crate::usecase::list_policies::ListPoliciesInput;
 use crate::usecase::update_policy::UpdatePolicyInput;
 
 /// GET /api/v1/policies
@@ -32,29 +33,33 @@ pub async fn list_policies(
         None
     };
 
-    match state
-        .policy_repo
-        .find_all_paginated(page, page_size, bundle_id, enabled_only)
-        .await
-    {
-        Ok((policies, total_count)) => {
+    let input = ListPoliciesInput {
+        page,
+        page_size,
+        bundle_id,
+        enabled_only,
+    };
+
+    match state.list_policies_uc.execute(&input).await {
+        Ok(output) => {
             let items: Vec<PolicyResponse> =
-                policies.into_iter().map(PolicyResponse::from).collect();
-            let has_next = (page as u64 * page_size as u64) < total_count;
+                output.policies.into_iter().map(PolicyResponse::from).collect();
             (
                 StatusCode::OK,
                 Json(serde_json::json!({
-                    "policies": items,
-                    "total_count": total_count,
-                    "page": page,
-                    "page_size": page_size,
-                    "has_next": has_next
+                    "items": items,
+                    "pagination": {
+                        "total_count": output.total_count,
+                        "page": output.page,
+                        "page_size": output.page_size,
+                        "has_next": output.has_next
+                    }
                 })),
             )
                 .into_response()
         }
-        Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
+        Err(crate::usecase::list_policies::ListPoliciesError::Internal(msg)) => {
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

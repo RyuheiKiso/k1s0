@@ -145,6 +145,7 @@ impl EventStoreGrpcService {
 
         let input = AppendEventsInput {
             stream_id: req.stream_id,
+            aggregate_type: None,
             events,
             expected_version: req.expected_version,
         };

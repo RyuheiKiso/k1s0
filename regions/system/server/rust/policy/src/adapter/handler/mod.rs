@@ -11,18 +11,17 @@ use axum::Router;
 
 use crate::adapter::middleware::auth::{auth_middleware, PolicyAuthState};
 use crate::adapter::middleware::rbac::require_permission;
-use crate::domain::repository::PolicyRepository;
 use crate::usecase::{
     CreateBundleUseCase, CreatePolicyUseCase, DeletePolicyUseCase, EvaluatePolicyUseCase,
-    GetPolicyUseCase, ListBundlesUseCase, UpdatePolicyUseCase,
+    GetPolicyUseCase, ListBundlesUseCase, ListPoliciesUseCase, UpdatePolicyUseCase,
 };
 
 /// Shared application state for REST handlers.
 #[derive(Clone)]
 pub struct AppState {
-    pub policy_repo: Arc<dyn PolicyRepository>,
     pub create_policy_uc: Arc<CreatePolicyUseCase>,
     pub get_policy_uc: Arc<GetPolicyUseCase>,
+    pub list_policies_uc: Arc<ListPoliciesUseCase>,
     pub update_policy_uc: Arc<UpdatePolicyUseCase>,
     pub delete_policy_uc: Arc<DeletePolicyUseCase>,
     pub evaluate_policy_uc: Arc<EvaluatePolicyUseCase>,

@@ -21,7 +21,7 @@ use crate::proto::k1s0::system::featureflag::v1::{
 
 use super::featureflag_grpc::{
     CreateFlagRequest, DeleteFlagRequest, EvaluateFlagRequest, FeatureFlagGrpcService,
-    GetFlagRequest, GrpcError, ListFlagsRequest, PbFlagVariant, UpdateFlagRequest,
+    GetFlagRequest, GrpcError, ListFlagsRequest, PbFlagRule, PbFlagVariant, UpdateFlagRequest,
 };
 
 fn to_proto_timestamp(
@@ -241,6 +241,25 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
             flag_key: inner.flag_key,
             enabled: inner.enabled,
             description: inner.description.filter(|v| !v.is_empty()),
+            variants: inner
+                .variants
+                .into_iter()
+                .map(|v| PbFlagVariant {
+                    name: v.name,
+                    value: v.value,
+                    weight: v.weight,
+                })
+                .collect(),
+            rules: inner
+                .rules
+                .into_iter()
+                .map(|r| PbFlagRule {
+                    attribute: r.attribute,
+                    operator: r.operator,
+                    value: r.value,
+                    variant: r.variant,
+                })
+                .collect(),
         };
         let resp = self
             .inner

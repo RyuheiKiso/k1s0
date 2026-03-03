@@ -195,6 +195,7 @@ pub async fn list_versions(
                     "version": v.version,
                     "content_hash": v.content_hash,
                     "breaking_changes": v.breaking_changes,
+                    "breaking_change_details": v.breaking_change_details,
                     "registered_by": v.registered_by,
                     "created_at": v.created_at,
                 })).collect::<Vec<_>>(),
@@ -233,6 +234,7 @@ pub async fn register_version(
                 "version": version.version,
                 "content_hash": version.content_hash,
                 "breaking_changes": version.breaking_changes,
+                "breaking_change_details": version.breaking_change_details,
                 "created_at": version.created_at,
             })),
         )
@@ -262,6 +264,7 @@ pub async fn get_schema_version(
                 "content": v.content,
                 "content_hash": v.content_hash,
                 "breaking_changes": v.breaking_changes,
+                "breaking_change_details": v.breaking_change_details,
                 "registered_by": v.registered_by,
                 "created_at": v.created_at,
             })),
@@ -278,8 +281,14 @@ pub async fn get_schema_version(
 pub async fn delete_version(
     State(state): State<AppState>,
     Path((name, version)): Path<(String, u32)>,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
 ) -> impl IntoResponse {
-    match state.delete_version_uc.execute(&name, version).await {
+    let deleted_by = claims.map(|c| c.0.sub);
+    match state
+        .delete_version_uc
+        .execute(&name, version, deleted_by)
+        .await
+    {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(DeleteVersionError::SchemaNotFound(_)) => {
             ApiError::not_found("Schema not found").into_response()

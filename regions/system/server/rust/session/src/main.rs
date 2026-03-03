@@ -255,7 +255,7 @@ async fn main() -> anyhow::Result<()> {
         // GET -> sessions/read
         let read_routes = axum::Router::new()
             .route(
-                "/api/v1/sessions/:id",
+                "/api/v1/sessions/:session_id",
                 axum::routing::get(adapter::handler::session_handler::get_session),
             )
             .route(
@@ -273,7 +273,7 @@ async fn main() -> anyhow::Result<()> {
                 axum::routing::post(adapter::handler::session_handler::create_session),
             )
             .route(
-                "/api/v1/sessions/:id/refresh",
+                "/api/v1/sessions/:session_id/refresh",
                 axum::routing::post(adapter::handler::session_handler::refresh_session),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
@@ -283,7 +283,7 @@ async fn main() -> anyhow::Result<()> {
         // DELETE -> sessions/admin
         let admin_routes = axum::Router::new()
             .route(
-                "/api/v1/sessions/:id",
+                "/api/v1/sessions/:session_id",
                 axum::routing::delete(adapter::handler::session_handler::revoke_session),
             )
             .route(
@@ -310,12 +310,12 @@ async fn main() -> anyhow::Result<()> {
                 axum::routing::post(adapter::handler::session_handler::create_session),
             )
             .route(
-                "/api/v1/sessions/:id",
+                "/api/v1/sessions/:session_id",
                 axum::routing::get(adapter::handler::session_handler::get_session)
                     .delete(adapter::handler::session_handler::revoke_session),
             )
             .route(
-                "/api/v1/sessions/:id/refresh",
+                "/api/v1/sessions/:session_id/refresh",
                 axum::routing::post(adapter::handler::session_handler::refresh_session),
             )
             .route(

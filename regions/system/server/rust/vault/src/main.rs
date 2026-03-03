@@ -187,6 +187,10 @@ async fn main() -> anyhow::Result<()> {
         audit_repo.clone(),
         event_publisher.clone(),
     ));
+    let rotate_secret_uc = Arc::new(usecase::RotateSecretUseCase::new(
+        get_secret_uc.clone(),
+        set_secret_uc.clone(),
+    ));
     let delete_secret_uc = Arc::new(usecase::DeleteSecretUseCase::new(
         secret_store.clone(),
         audit_repo.clone(),
@@ -199,6 +203,7 @@ async fn main() -> anyhow::Result<()> {
     let vault_grpc_svc = Arc::new(VaultGrpcService::new(
         get_secret_uc.clone(),
         set_secret_uc.clone(),
+        rotate_secret_uc.clone(),
         delete_secret_uc.clone(),
         list_secrets_uc.clone(),
         list_audit_logs_uc.clone(),
@@ -235,6 +240,7 @@ async fn main() -> anyhow::Result<()> {
     let mut state = AppState {
         get_secret_uc,
         set_secret_uc,
+        rotate_secret_uc,
         delete_secret_uc,
         list_secrets_uc,
         list_audit_logs_uc,

@@ -178,6 +178,8 @@ system tier の全文検索サーバーは以下の機能を提供する。
 | `query` | String | （必須） | 検索キーワード |
 | `from` | u32 | 0 | オフセット（スキップ件数） |
 | `size` | u32 | 10 | 取得件数 |
+| `filters` | object | `{}` | フィールドフィルタ |
+| `facets` | string[] | `[]` | ファセット集計対象フィールド |
 
 **リクエスト例**
 
@@ -186,7 +188,11 @@ system tier の全文検索サーバーは以下の機能を提供する。
   "index_name": "k1s0-products",
   "query": "高性能ノートPC",
   "from": 0,
-  "size": 20
+  "size": 20,
+  "filters": {
+    "tenant_id": "tenant-abc"
+  },
+  "facets": ["tenant_id", "category"]
 }
 ```
 
@@ -202,11 +208,22 @@ system tier の全文検索サーバーは以下の機能を提供する。
     {
       "id": "product-001",
       "score": 1.0,
-      "document_json": "eyJ0aXRsZSI6IumrmOaAp+iDveODjuODvOODiFBDIiwiZGVzY3JpcHRpb24iOiLmnIDmlrDkuJbnlK/jg5fjg63jgrvjg4PjgrXjg7zmkq3ouInjga7pq5jmgKfjg47jg7zjg4jjg5Hjgr3jgrPjg7PjgafjgZkiLCJ0ZW5hbnRfaWQiOiJ0ZW5hbnQtYWJjIn0="
+      "document_json": {
+        "title": "高性能ノートPC",
+        "description": "最新世代プロセッサー搭載の高性能ノートパソコン",
+        "tenant_id": "tenant-abc"
+      }
     }
-  ]
+  ],
+  "facets": {
+    "tenant_id": {
+      "tenant-abc": 1
+    }
+  }
 }
 ```
+
+> `document_json` の型: REST は JSON object、gRPC (`SearchHit.document_json`) は `bytes`。
 
 **レスポンス例（404 Not Found）**
 
@@ -310,11 +327,17 @@ message SearchRequest {
   bytes filters_json = 3;
   uint32 page = 4;
   uint32 page_size = 5;
+  repeated string facets = 6;
 }
 
 message SearchResponse {
   repeated SearchHit hits = 1;
   k1s0.system.common.v1.PaginationResult pagination = 2;
+  map<string, FacetCounts> facets = 3;
+}
+
+message FacetCounts {
+  map<string, uint64> buckets = 1;
 }
 
 message SearchHit {

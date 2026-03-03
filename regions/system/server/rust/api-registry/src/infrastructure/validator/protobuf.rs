@@ -1,17 +1,16 @@
-//! Protobuf スキーマバリデーター。
-//! buf lint を subprocess 経由で実行する。
-//! buf が使えない環境では基本的な proto 構文確認を行う。
-
 use super::{SchemaValidator, ValidationError};
 use async_trait::async_trait;
 use tokio::process::Command;
 
-pub struct ProtobufValidator {
+/// Protobuf validator backed by `buf lint` subprocess.
+///
+/// If `buf` is unavailable or times out, it falls back to a syntax check.
+pub struct ProtobufSubprocessValidator {
     buf_path: String,
     timeout_secs: u64,
 }
 
-impl ProtobufValidator {
+impl ProtobufSubprocessValidator {
     pub fn new(buf_path: String, timeout_secs: u64) -> Self {
         Self {
             buf_path,
@@ -21,7 +20,7 @@ impl ProtobufValidator {
 }
 
 #[async_trait]
-impl SchemaValidator for ProtobufValidator {
+impl SchemaValidator for ProtobufSubprocessValidator {
     async fn validate(&self, content: &str) -> anyhow::Result<Vec<ValidationError>> {
         let tmp_dir = tempfile::tempdir()?;
         let proto_file = tmp_dir.path().join("schema.proto");
@@ -33,11 +32,7 @@ impl SchemaValidator for ProtobufValidator {
         let result = tokio::time::timeout(
             std::time::Duration::from_secs(self.timeout_secs),
             Command::new(&self.buf_path)
-                .args([
-                    "lint",
-                    "--path",
-                    proto_file.to_str().unwrap_or("schema.proto"),
-                ])
+                .args(["lint", "--path", proto_file.to_str().unwrap_or("schema.proto")])
                 .current_dir(tmp_dir.path())
                 .output(),
         )
@@ -75,13 +70,16 @@ fn validate_proto_syntax(content: &str) -> anyhow::Result<Vec<ValidationError>> 
     Ok(vec![])
 }
 
+// Backward-compatible alias for older references.
+pub type ProtobufValidator = ProtobufSubprocessValidator;
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[tokio::test]
     async fn test_validate_valid_proto() {
-        let validator = ProtobufValidator::new("buf".to_string(), 5);
+        let validator = ProtobufSubprocessValidator::new("buf".to_string(), 5);
         let content = "syntax = \"proto3\";\n\npackage test.v1;\n\nmessage Test {\n  string id = 1;\n}\n";
         let result = validator.validate(content).await;
         assert!(result.is_ok());
@@ -89,10 +87,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_proto_missing_syntax() {
-        let validator = ProtobufValidator::new("buf".to_string(), 5);
+        let validator = ProtobufSubprocessValidator::new("buf".to_string(), 5);
         let content = "package test.v1;\n\nmessage Test {\n  string id = 1;\n}\n";
         let result = validator.validate(content).await;
         assert!(result.is_ok());
-        // buf が使えない場合: syntax なしでエラー
     }
 }

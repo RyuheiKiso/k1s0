@@ -1180,15 +1180,17 @@ regions/system/server/rust/master-maintenance/
 │   │   │   ├── rule_handler.rs          # ルール管理 REST ハンドラー
 │   │   │   ├── import_export_handler.rs # インポート・エクスポート
 │   │   │   ├── audit_handler.rs         # 監査ログ
-│   │   │   ├── grpc_handler.rs          # tonic gRPC ハンドラー
 │   │   │   └── error.rs                 # エラーレスポンス
+│   │   ├── grpc/
+│   │   │   ├── mod.rs
+│   │   │   └── tonic_service.rs         # tonic gRPC ハンドラー
 │   │   ├── presenter/
 │   │   │   ├── mod.rs
 │   │   │   └── response.rs
 │   │   └── middleware/
 │   │       ├── mod.rs
 │   │       ├── auth.rs                  # JWT 認証ミドルウェア
-│   │       └── table_rbac.rs            # テーブル単位 RBAC
+│   │       └── rbac.rs                  # テーブル単位 RBAC
 │   └── infrastructure/
 │       ├── mod.rs
 │       ├── config/

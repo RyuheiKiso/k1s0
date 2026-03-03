@@ -187,9 +187,9 @@ tower = { version = "0.5", features = ["util"] }
 | `DlqMessageResponse` | `id`, `original_topic`, `error_message`, `retry_count`, `max_retries`, `payload`, `status`, `created_at`, `updated_at`, `last_retry_at` | メッセージ詳細 |
 | `ListMessagesResponse` | `messages`, `pagination` | メッセージ一覧 |
 | `PaginationResponse` | `total_count`, `page`, `page_size`, `has_next` | ページネーション |
-| `RetryMessageResponse` | `id`, `status`, `message` | リトライ結果 |
+| `RetryMessageResponse` | `message: DlqMessage` | リトライ結果 |
 | `RetryAllResponse` | `retried`, `message` | 一括リトライ結果 |
-| `DeleteMessageResponse` | `success`, `message` | 削除結果 |
+| `DeleteMessageResponse` | `id` | 削除結果 |
 
 ### DlqError
 
@@ -198,6 +198,7 @@ tower = { version = "0.5", features = ["util"] }
 | `NotFound` | 404 | `SYS_DLQ_NOT_FOUND` |
 | `Validation` | 400 | `SYS_DLQ_VALIDATION_ERROR` |
 | `Conflict` | 409 | `SYS_DLQ_CONFLICT` |
+| `ProcessFailed` | 500 | `SYS_DLQ_PROCESS_FAILED` |
 | `Internal` | 500 | `SYS_DLQ_INTERNAL_ERROR` |
 
 ---
@@ -369,6 +370,8 @@ pub enum DlqError {
     Validation(String),
     #[error("conflict: {0}")]
     Conflict(String),
+    #[error("process failed: {0}")]
+    ProcessFailed(String),
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -531,8 +534,18 @@ PostgreSQL の `dlq.messages` テーブルに対する CRUD を提供する。`D
 - **InMemory リポジトリ**: `DATABASE_URL` 未設定時の dev/test 用に `main.rs` に `InMemoryDlqMessageRepository` を実装済み。`RwLock<Vec<DlqMessage>>` で状態を管理する
 - **Kafka オプショナル**: Kafka 未設定時やプロデューサー作成失敗時もサーバーは起動する。再処理時は Kafka 再発行をスキップし RESOLVED に遷移する
 - **Kafka コンシューマーオプショナル**: Kafka 未設定時やコンシューマー作成失敗時は DLQ メッセージの自動取り込みが無効になる（ログで警告出力）
-- **REST のみ**: Saga サーバーと異なり gRPC サービスは提供しない。REST API のみで動作する
+- **gRPC 提供あり**: REST に加えて gRPC サービスを提供する。主な RPC は `GetMessage`, `ListMessages`, `RetryMessage`, `RetryAllMessages`, `DeleteMessage`
 - **ルーティング順序**: `/api/v1/dlq/messages/:id` を `/api/v1/dlq/:topic` より先に定義し、`messages` が `:topic` パラメータとして誤マッチしないようにする
+
+```protobuf
+service DlqService {
+  rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  rpc RetryMessage(RetryMessageRequest) returns (RetryMessageResponse);
+  rpc RetryAllMessages(RetryAllMessagesRequest) returns (RetryAllMessagesResponse);
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+}
+```
 
 ## 関連ドキュメント
 

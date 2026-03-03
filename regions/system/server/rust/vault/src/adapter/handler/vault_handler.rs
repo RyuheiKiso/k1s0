@@ -12,13 +12,18 @@ use crate::adapter::middleware::spiffe::SpiffeAuthState;
 use crate::usecase::delete_secret::{DeleteSecretError, DeleteSecretInput};
 use crate::usecase::get_secret::{GetSecretError, GetSecretInput};
 use crate::usecase::list_audit_logs::ListAuditLogsInput;
+use crate::usecase::rotate_secret::{RotateSecretError, RotateSecretInput, RotateSecretUseCase};
 use crate::usecase::set_secret::{SetSecretError, SetSecretInput};
-use crate::usecase::{DeleteSecretUseCase, GetSecretUseCase, ListAuditLogsUseCase, ListSecretsUseCase, SetSecretUseCase};
+use crate::usecase::{
+    DeleteSecretUseCase, GetSecretUseCase, ListAuditLogsUseCase, ListSecretsUseCase,
+    SetSecretUseCase,
+};
 
 #[derive(Clone)]
 pub struct AppState {
     pub get_secret_uc: Arc<GetSecretUseCase>,
     pub set_secret_uc: Arc<SetSecretUseCase>,
+    pub rotate_secret_uc: Arc<RotateSecretUseCase>,
     pub delete_secret_uc: Arc<DeleteSecretUseCase>,
     pub list_secrets_uc: Arc<ListSecretsUseCase>,
     pub list_audit_logs_uc: Arc<ListAuditLogsUseCase>,
@@ -339,23 +344,27 @@ pub async fn rotate_secret(
     Path(key): Path<String>,
     Json(req): Json<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    // ローテーションは新しいデータで上書き（バージョンインクリメント）
-    let input = SetSecretInput {
+    let input = RotateSecretInput {
         path: key.clone(),
         data: req,
     };
 
-    match state.set_secret_uc.execute(&input).await {
-        Ok(version) => (
+    match state.rotate_secret_uc.execute(&input).await {
+        Ok(output) => (
             StatusCode::OK,
             Json(serde_json::json!({
-                "path": key,
-                "new_version": version,
-                "rotated": true,
+                "path": output.path,
+                "new_version": output.new_version,
+                "rotated": output.rotated,
             })),
         )
             .into_response(),
-        Err(SetSecretError::Internal(msg)) => (
+        Err(RotateSecretError::NotFound(path)) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_NOT_FOUND", &format!("secret not found: {}", path))).unwrap()),
+        )
+            .into_response(),
+        Err(RotateSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap()),
         )

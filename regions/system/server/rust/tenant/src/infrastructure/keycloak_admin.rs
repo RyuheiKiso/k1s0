@@ -66,6 +66,8 @@ impl KeycloakAdminClient {
 pub trait KeycloakAdmin: Send + Sync {
     async fn create_realm(&self, realm_name: &str) -> Result<()>;
     async fn delete_realm(&self, realm_name: &str) -> Result<()>;
+    async fn add_user(&self, realm_name: &str, user_id: &str) -> Result<()>;
+    async fn remove_user(&self, realm_name: &str, user_id: &str) -> Result<()>;
 }
 
 #[async_trait]
@@ -115,6 +117,67 @@ impl KeycloakAdmin for KeycloakAdminClient {
         let body = response.text().await.unwrap_or_default();
         anyhow::bail!("failed to delete keycloak realm '{}': {} {}", realm_name, status, body);
     }
+
+    async fn add_user(&self, realm_name: &str, user_id: &str) -> Result<()> {
+        let token = self.admin_token().await?;
+        let url = format!(
+            "{}/admin/realms/{}/users/{}",
+            self.config.base_url.trim_end_matches('/'),
+            realm_name,
+            user_id
+        );
+        let response = self
+            .http_client
+            .put(&url)
+            .bearer_auth(token)
+            .json(&serde_json::json!({ "enabled": true }))
+            .send()
+            .await?;
+
+        if response.status().is_success() || response.status().as_u16() == 409 {
+            return Ok(());
+        }
+
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        anyhow::bail!(
+            "failed to add user '{}' to realm '{}': {} {}",
+            user_id,
+            realm_name,
+            status,
+            body
+        );
+    }
+
+    async fn remove_user(&self, realm_name: &str, user_id: &str) -> Result<()> {
+        let token = self.admin_token().await?;
+        let url = format!(
+            "{}/admin/realms/{}/users/{}",
+            self.config.base_url.trim_end_matches('/'),
+            realm_name,
+            user_id
+        );
+        let response = self
+            .http_client
+            .delete(&url)
+            .bearer_auth(token)
+            .send()
+            .await?;
+
+        if response.status().is_success() || response.status().as_u16() == 404 {
+            return Ok(());
+        }
+
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        anyhow::bail!(
+            "failed to remove user '{}' from realm '{}': {} {}",
+            user_id,
+            realm_name,
+            status,
+            body
+        );
+    }
 }
 
 pub struct NoopKeycloakAdmin;
@@ -128,6 +191,16 @@ impl KeycloakAdmin for NoopKeycloakAdmin {
 
     async fn delete_realm(&self, realm_name: &str) -> Result<()> {
         tracing::debug!(realm_name = %realm_name, "noop keycloak delete_realm");
+        Ok(())
+    }
+
+    async fn add_user(&self, realm_name: &str, user_id: &str) -> Result<()> {
+        tracing::debug!(realm_name = %realm_name, user_id = %user_id, "noop keycloak add_user");
+        Ok(())
+    }
+
+    async fn remove_user(&self, realm_name: &str, user_id: &str) -> Result<()> {
+        tracing::debug!(realm_name = %realm_name, user_id = %user_id, "noop keycloak remove_user");
         Ok(())
     }
 }

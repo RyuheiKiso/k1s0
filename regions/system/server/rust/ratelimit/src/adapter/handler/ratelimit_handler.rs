@@ -403,11 +403,7 @@ pub async fn list_rules(
             let total = rules.len();
             let start = (page - 1) * page_size;
             let paged_rules: Vec<_> = rules.into_iter().skip(start).take(page_size).collect();
-            let total_pages = if total == 0 {
-                0
-            } else {
-                ((total as f64) / (page_size as f64)).ceil() as usize
-            };
+            let has_next = (page * page_size) < total;
 
             let resp: Vec<RuleResponse> = paged_rules
                 .into_iter()
@@ -425,12 +421,12 @@ pub async fn list_rules(
             (
                 StatusCode::OK,
                 Json(serde_json::json!({
-                    "rules": resp,
+                    "items": resp,
                     "pagination": {
+                        "total_count": total,
                         "page": page,
                         "page_size": page_size,
-                        "total": total,
-                        "total_pages": total_pages
+                        "has_next": has_next
                     }
                 })),
             )

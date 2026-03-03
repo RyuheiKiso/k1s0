@@ -245,14 +245,18 @@ async fn main() -> anyhow::Result<()> {
     let list_tenants_uc = Arc::new(usecase::ListTenantsUseCase::new(tenant_repo.clone()));
     let update_tenant_uc = Arc::new(
         usecase::UpdateTenantUseCase::new(tenant_repo.clone())
-            .with_event_publisher(event_publisher),
+            .with_event_publisher(event_publisher.clone()),
     );
     let delete_tenant_uc = Arc::new(
         usecase::DeleteTenantUseCase::new(tenant_repo.clone())
             .with_saga_client(saga_client)
-            .with_keycloak_admin(keycloak_admin),
+            .with_keycloak_admin(keycloak_admin)
+            .with_event_publisher(event_publisher.clone()),
     );
-    let suspend_tenant_uc = Arc::new(usecase::SuspendTenantUseCase::new(tenant_repo.clone()));
+    let suspend_tenant_uc = Arc::new(
+        usecase::SuspendTenantUseCase::new(tenant_repo.clone())
+            .with_event_publisher(event_publisher),
+    );
     let activate_tenant_uc = Arc::new(usecase::ActivateTenantUseCase::new(tenant_repo));
     let add_member_uc = Arc::new(usecase::AddMemberUseCase::new(member_repo.clone()));
     let remove_member_uc = Arc::new(usecase::RemoveMemberUseCase::new(member_repo.clone()));

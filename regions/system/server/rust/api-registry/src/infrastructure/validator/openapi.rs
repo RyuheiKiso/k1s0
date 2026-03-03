@@ -1,17 +1,16 @@
-//! OpenAPI スキーマバリデーター。
-//! openapi-spec-validator を subprocess 経由で実行する。
-//! 使えない環境では基本的な YAML パース検証を行う。
-
 use super::{SchemaValidator, ValidationError};
 use async_trait::async_trait;
 use tokio::process::Command;
 
-pub struct OpenApiValidator {
+/// OpenAPI validator backed by `openapi-spec-validator` subprocess.
+///
+/// If the executable is missing or times out, it falls back to YAML parsing.
+pub struct OpenApiSubprocessValidator {
     validator_path: String,
     timeout_secs: u64,
 }
 
-impl OpenApiValidator {
+impl OpenApiSubprocessValidator {
     pub fn new(validator_path: String, timeout_secs: u64) -> Self {
         Self {
             validator_path,
@@ -21,16 +20,14 @@ impl OpenApiValidator {
 }
 
 #[async_trait]
-impl SchemaValidator for OpenApiValidator {
+impl SchemaValidator for OpenApiSubprocessValidator {
     async fn validate(&self, content: &str) -> anyhow::Result<Vec<ValidationError>> {
         let tmp = tempfile::NamedTempFile::with_suffix(".yaml")?;
         tokio::fs::write(tmp.path(), content).await?;
 
         let result = tokio::time::timeout(
             std::time::Duration::from_secs(self.timeout_secs),
-            Command::new(&self.validator_path)
-                .arg(tmp.path())
-                .output(),
+            Command::new(&self.validator_path).arg(tmp.path()).output(),
         )
         .await;
 
@@ -66,13 +63,16 @@ fn validate_yaml(content: &str) -> anyhow::Result<Vec<ValidationError>> {
     }
 }
 
+// Backward-compatible alias for older references.
+pub type OpenApiValidator = OpenApiSubprocessValidator;
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[tokio::test]
     async fn test_validate_valid_yaml() {
-        let validator = OpenApiValidator::new("openapi-spec-validator".to_string(), 5);
+        let validator = OpenApiSubprocessValidator::new("openapi-spec-validator".to_string(), 5);
         let content = "openapi: '3.0.3'\ninfo:\n  title: Test\n  version: '1.0.0'\npaths: {}\n";
         let result = validator.validate(content).await;
         assert!(result.is_ok());
@@ -80,11 +80,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_invalid_yaml() {
-        let validator = OpenApiValidator::new("openapi-spec-validator".to_string(), 5);
+        let validator = OpenApiSubprocessValidator::new("openapi-spec-validator".to_string(), 5);
         let content = "not: valid: yaml: :::";
         let result = validator.validate(content).await;
         assert!(result.is_ok());
-        // バリデーターが使えない場合 YAML パース検証にフォールバック
-        // 有効な YAML かどうかにより結果が変わる
     }
 }

@@ -431,7 +431,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             Some(req.search.as_str())
         };
 
-        let (records, total) = self
+        let result = self
             .crud_records_uc
             .list_records(
                 &req.table_name,
@@ -440,16 +440,18 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 sort,
                 filter,
                 search,
+                None,
             )
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let proto_records: Vec<prost_types::Struct> = records
+        let proto_records: Vec<prost_types::Struct> = result
+            .records
             .iter()
             .filter_map(json_to_struct)
             .collect();
 
-        let total_count = total as i32;
+        let total_count = result.total as i32;
         let has_next =
             (pagination.page * pagination.page_size) < total_count;
 

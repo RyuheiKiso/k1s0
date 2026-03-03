@@ -65,6 +65,8 @@ struct ServerConfig {
     host: String,
     #[serde(default = "default_port")]
     port: u16,
+    #[serde(default = "default_grpc_port")]
+    grpc_port: u16,
 }
 
 fn default_host() -> String {
@@ -73,6 +75,10 @@ fn default_host() -> String {
 
 fn default_port() -> u16 {
     8080
+}
+
+fn default_grpc_port() -> u16 {
+    50051
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -347,7 +353,7 @@ async fn main() -> anyhow::Result<()> {
     let search_audit_logs_uc = Arc::new(usecase::SearchAuditLogsUseCase::new(audit_repo.clone()));
 
     // AppState (REST handler 用)
-    let state = AppState::new(
+    let mut state = AppState::new(
         token_verifier,
         user_repo,
         audit_repo,
@@ -358,6 +364,11 @@ async fn main() -> anyhow::Result<()> {
         keycloak_health_url,
         jwks_provider,
     );
+    state.permission_cache = infrastructure::permission_cache::PermissionCache::new(
+        cfg.permission_cache.ttl_secs,
+        10_000,
+    );
+    state.permission_cache_refresh_on_miss = cfg.permission_cache.refresh_on_miss;
 
     let auth_grpc_svc = Arc::new(AuthGrpcService::new(
         validate_token_uc,
@@ -381,8 +392,8 @@ async fn main() -> anyhow::Result<()> {
     // Router
     let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
-    // gRPC server (port 50051)
-    let grpc_addr: SocketAddr = ([0, 0, 0, 0], 50051).into();
+    // gRPC server
+    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;

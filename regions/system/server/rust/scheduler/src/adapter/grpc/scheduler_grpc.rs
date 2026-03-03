@@ -25,7 +25,7 @@ pub struct JobData {
     pub timezone: String,
     pub target_type: String,
     pub target: String,
-    pub payload_json: Vec<u8>,
+    pub payload: Vec<u8>,
     pub status: String,
     pub next_run_at: Option<DateTime<Utc>>,
     pub last_run_at: Option<DateTime<Utc>>,
@@ -53,7 +53,7 @@ pub struct CreateJobRequest {
     pub timezone: String,
     pub target_type: String,
     pub target: String,
-    pub payload_json: Vec<u8>,
+    pub payload: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
@@ -96,7 +96,7 @@ pub struct UpdateJobRequest {
     pub timezone: String,
     pub target_type: String,
     pub target: String,
-    pub payload_json: Vec<u8>,
+    pub payload: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
@@ -240,7 +240,7 @@ impl SchedulerGrpcService {
     }
 
     pub async fn create_job(&self, req: CreateJobRequest) -> Result<CreateJobResponse, GrpcError> {
-        let payload = parse_payload(&req.payload_json)?;
+        let payload = parse_payload(&req.payload)?;
         let created = self
             .create_job_uc
             .execute(&CreateJobInput {
@@ -332,7 +332,7 @@ impl SchedulerGrpcService {
 
     pub async fn update_job(&self, req: UpdateJobRequest) -> Result<UpdateJobResponse, GrpcError> {
         let id = parse_uuid(&req.job_id, "job_id")?;
-        let payload = parse_payload(&req.payload_json)?;
+        let payload = parse_payload(&req.payload)?;
 
         let updated = self
             .update_job_uc
@@ -511,12 +511,12 @@ fn parse_uuid(value: &str, field: &str) -> Result<Uuid, GrpcError> {
         .map_err(|_| GrpcError::InvalidArgument(format!("invalid {}: {}", field, value)))
 }
 
-fn parse_payload(payload_json: &[u8]) -> Result<serde_json::Value, GrpcError> {
-    if payload_json.is_empty() {
+fn parse_payload(payload: &[u8]) -> Result<serde_json::Value, GrpcError> {
+    if payload.is_empty() {
         return Ok(serde_json::json!({}));
     }
-    serde_json::from_slice(payload_json)
-        .map_err(|e| GrpcError::InvalidArgument(format!("invalid payload_json: {}", e)))
+    serde_json::from_slice(payload)
+        .map_err(|e| GrpcError::InvalidArgument(format!("invalid payload: {}", e)))
 }
 
 fn to_job_data(job: SchedulerJob) -> JobData {
@@ -528,7 +528,7 @@ fn to_job_data(job: SchedulerJob) -> JobData {
         timezone: job.timezone,
         target_type: job.target_type,
         target: job.target.unwrap_or_default(),
-        payload_json: serde_json::to_vec(&job.payload).unwrap_or_default(),
+        payload: serde_json::to_vec(&job.payload).unwrap_or_default(),
         status: job.status,
         next_run_at: job.next_run_at,
         last_run_at: job.last_run_at,

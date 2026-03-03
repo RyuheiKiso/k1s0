@@ -13,6 +13,16 @@ pub struct CrudRecordsUseCase {
     change_log_repo: Arc<dyn ChangeLogRepository>,
 }
 
+pub struct ListRecordsOutput {
+    pub table_name: String,
+    pub display_name: String,
+    pub allow_create: bool,
+    pub allow_update: bool,
+    pub allow_delete: bool,
+    pub records: Vec<Value>,
+    pub total: i64,
+}
+
 impl CrudRecordsUseCase {
     pub fn new(
         table_repo: Arc<dyn TableDefinitionRepository>,
@@ -31,11 +41,41 @@ impl CrudRecordsUseCase {
         sort: Option<&str>,
         filter: Option<&str>,
         search: Option<&str>,
-    ) -> anyhow::Result<(Vec<Value>, i64)> {
+        selected_columns: Option<&str>,
+    ) -> anyhow::Result<ListRecordsOutput> {
         let table = self.table_repo.find_by_name(table_name).await?
             .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
-        let columns = self.column_repo.find_by_table_id(table.id).await?;
-        self.record_repo.find_all(&table, &columns, page, page_size, sort, filter, search).await
+        let column_defs = self.column_repo.find_by_table_id(table.id).await?;
+        let (mut records, total) = self
+            .record_repo
+            .find_all(&table, &column_defs, page, page_size, sort, filter, search)
+            .await?;
+
+        if let Some(raw_columns) = selected_columns {
+            let selected: std::collections::HashSet<String> = raw_columns
+                .split(',')
+                .map(|c| c.trim())
+                .filter(|c| !c.is_empty())
+                .map(ToString::to_string)
+                .collect();
+            if !selected.is_empty() {
+                for record in &mut records {
+                    if let Some(obj) = record.as_object_mut() {
+                        obj.retain(|k, _| selected.contains(k));
+                    }
+                }
+            }
+        }
+
+        Ok(ListRecordsOutput {
+            table_name: table.name,
+            display_name: table.display_name,
+            allow_create: table.allow_create,
+            allow_update: table.allow_update,
+            allow_delete: table.allow_delete,
+            records,
+            total,
+        })
     }
 
     pub async fn get_record(&self, table_name: &str, record_id: &str) -> anyhow::Result<Option<Value>> {

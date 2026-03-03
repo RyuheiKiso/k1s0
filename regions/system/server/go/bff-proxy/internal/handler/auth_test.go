@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/base64"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -36,4 +37,24 @@ func TestGenerateRandomString_DifferentLengths(t *testing.T) {
 			assert.Len(t, s, tt.hexLen)
 		})
 	}
+}
+
+func TestExtractSubjectFromIDToken(t *testing.T) {
+	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"none","typ":"JWT"}`))
+	payload := base64.RawURLEncoding.EncodeToString([]byte(`{"sub":"user-123"}`))
+	token := header + "." + payload + "."
+
+	subject, err := extractSubjectFromIDToken(token)
+	require.NoError(t, err)
+	assert.Equal(t, "user-123", subject)
+}
+
+func TestExtractSubjectFromIDToken_MissingSubject(t *testing.T) {
+	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"none","typ":"JWT"}`))
+	payload := base64.RawURLEncoding.EncodeToString([]byte(`{"aud":"client"}`))
+	token := header + "." + payload + "."
+
+	_, err := extractSubjectFromIDToken(token)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "sub claim is missing")
 }

@@ -96,8 +96,19 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Schema validator factory
-    let validator_factory: Arc<dyn k1s0_api_registry_server::infrastructure::validator::SchemaValidatorFactory> =
-        Arc::new(k1s0_api_registry_server::infrastructure::validator::DefaultSchemaValidatorFactory);
+    let validator_factory: Arc<
+        dyn k1s0_api_registry_server::infrastructure::validator::SchemaValidatorFactory,
+    > = if let Some(ref validator_cfg) = cfg.validator {
+        Arc::new(
+            k1s0_api_registry_server::infrastructure::validator::ConfigurableSchemaValidatorFactory::new(
+                validator_cfg.openapi_validator_path.clone(),
+                validator_cfg.buf_path.clone(),
+                validator_cfg.timeout_secs,
+            ),
+        )
+    } else {
+        Arc::new(k1s0_api_registry_server::infrastructure::validator::DefaultSchemaValidatorFactory)
+    };
 
     // Use cases
     let list_schemas_uc = Arc::new(usecase::ListSchemasUseCase::new(schema_repo.clone()));

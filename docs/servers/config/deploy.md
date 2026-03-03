@@ -76,8 +76,8 @@ impl ConfigCache {
 > **注意**: 実装済みの config_change_logs テーブルはドキュメント初期設計から以下の変更を反映済み:
 > - `config.` スキーマプレフィックスを使用（スキーマなしではない）
 > - カラム名: `old_value` -> `old_value_json`, `new_value` -> `new_value_json`（JSONB であることを明示）
-> - `old_version` / `new_version` カラムを削除（バージョン管理は config_entries.version で行う）
-> - `changed_at` -> `created_at`（他テーブルとの命名統一）
+> - `old_version` / `new_version` カラムは保持（変更差分追跡に使用）
+> - `changed_at` カラムを保持（変更イベント時刻を表す）
 > - `trace_id` カラムを追加（OpenTelemetry 連携）
 > - FK 制約: `config_entry_id` に `ON DELETE SET NULL` を追加（削除後もログ参照可能）
 

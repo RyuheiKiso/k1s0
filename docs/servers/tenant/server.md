@@ -639,7 +639,8 @@ Step 4: テナントステータスを active に遷移
 | domain/service | `TenantDomainService` | テナント名重複チェック、ステータス遷移バリデーション |
 | usecase | `CreateTenantUseCase`, `GetTenantUseCase`, `ListTenantsUseCase`, `UpdateTenantUseCase`, `SuspendTenantUseCase`, `ActivateTenantUseCase`, `DeleteTenantUseCase`, `ListMembersUseCase`, `AddMemberUseCase`, `RemoveMemberUseCase`, `GetProvisioningStatusUseCase` | ユースケース |
 | adapter/handler | REST ハンドラー, gRPC ハンドラー | プロトコル変換（axum / tonic） |
-| adapter/gateway | `KeycloakAdminClient` | Keycloak Admin API クライアント（realm 管理） |
+| adapter/repository | `tenant_postgres.rs` | PostgreSQL リポジトリ実装 |
+| infrastructure | `keycloak_admin.rs`, `kafka_producer.rs`, `saga_client.rs` | 外部連携（Keycloak/Kafka/Saga） |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
 | infrastructure/persistence | `TenantPostgresRepository`, `TenantMemberPostgresRepository` | PostgreSQL リポジトリ実装 |
 | infrastructure/messaging | `TenantEventPublisher`, `TenantKafkaProducer` | Kafka プロデューサー（テナントイベント配信） |
@@ -756,7 +757,7 @@ app:
 
 server:
   host: "0.0.0.0"
-  port: 8080
+  http_port: 8080
   grpc_port: 50051
 
 database:
@@ -778,7 +779,7 @@ kafka:
 
 keycloak:
   base_url: "http://keycloak.k1s0-system.svc.cluster.local:8080"
-  admin_realm: "master"
+  realm: "master"
   client_id: "admin-cli"
   client_secret: ""
 ```

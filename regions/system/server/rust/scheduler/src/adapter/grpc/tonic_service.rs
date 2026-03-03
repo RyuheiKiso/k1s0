@@ -59,7 +59,7 @@ fn to_proto_job(job: JobData) -> ProtoJob {
         timezone: job.timezone,
         target_type: job.target_type,
         target: job.target,
-        payload: job.payload_json,
+        payload: job.payload,
         status: job.status,
         next_run_at: job.next_run_at.map(to_proto_timestamp),
         last_run_at: job.last_run_at.map(to_proto_timestamp),
@@ -107,7 +107,7 @@ impl SchedulerService for SchedulerServiceTonic {
                 timezone: inner.timezone,
                 target_type: inner.target_type,
                 target: inner.target,
-                payload_json: inner.payload,
+                payload: inner.payload,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -172,7 +172,7 @@ impl SchedulerService for SchedulerServiceTonic {
                 timezone: inner.timezone,
                 target_type: inner.target_type,
                 target: inner.target,
-                payload_json: inner.payload,
+                payload: inner.payload,
             })
             .await
             .map_err(Into::<Status>::into)?;

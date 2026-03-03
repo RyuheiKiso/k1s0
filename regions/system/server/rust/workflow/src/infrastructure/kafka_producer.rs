@@ -23,8 +23,8 @@ pub struct InstanceStartedEvent {
     pub initiator_id: String,
     pub status: String,
     pub actor_user_id: Option<String>,
-    pub before: Option<serde_json::Value>,
-    pub after: serde_json::Value,
+    pub previous_status: Option<String>,
+    pub current_status: String,
     pub timestamp: String,
 }
 
@@ -39,8 +39,8 @@ pub struct TaskCompletedEvent {
     pub status: String,
     pub actor_id: Option<String>,
     pub actor_user_id: Option<String>,
-    pub before: Option<serde_json::Value>,
-    pub after: serde_json::Value,
+    pub previous_status: Option<String>,
+    pub current_status: String,
     pub timestamp: String,
 }
 
@@ -113,7 +113,7 @@ impl WorkflowEventPublisher for KafkaWorkflowEventPublisher {
         use std::time::Duration;
 
         let event = InstanceStartedEvent {
-            event_type: "INSTANCE_STARTED".to_string(),
+            event_type: "INSTANCE_STATE_CHANGED".to_string(),
             instance_id: instance.id.clone(),
             workflow_id: instance.workflow_id.clone(),
             workflow_name: instance.workflow_name.clone(),
@@ -121,13 +121,8 @@ impl WorkflowEventPublisher for KafkaWorkflowEventPublisher {
             initiator_id: instance.initiator_id.clone(),
             status: instance.status.clone(),
             actor_user_id: Some(instance.initiator_id.clone()),
-            before: None,
-            after: serde_json::json!({
-                "instance_id": instance.id.clone(),
-                "workflow_id": instance.workflow_id.clone(),
-                "workflow_name": instance.workflow_name.clone(),
-                "status": instance.status.clone(),
-            }),
+            previous_status: None,
+            current_status: instance.status.clone(),
             timestamp: chrono::Utc::now().to_rfc3339(),
         };
 
@@ -155,7 +150,7 @@ impl WorkflowEventPublisher for KafkaWorkflowEventPublisher {
         use std::time::Duration;
 
         let event = TaskCompletedEvent {
-            event_type: "TASK_COMPLETED".to_string(),
+            event_type: "TASK_STATE_CHANGED".to_string(),
             task_id: task.id.clone(),
             instance_id: task.instance_id.clone(),
             step_id: task.step_id.clone(),
@@ -163,13 +158,8 @@ impl WorkflowEventPublisher for KafkaWorkflowEventPublisher {
             status: task.status.clone(),
             actor_id: task.actor_id.clone(),
             actor_user_id: task.actor_id.clone(),
-            before: None,
-            after: serde_json::json!({
-                "task_id": task.id.clone(),
-                "instance_id": task.instance_id.clone(),
-                "step_id": task.step_id.clone(),
-                "status": task.status.clone(),
-            }),
+            previous_status: Some("pending".to_string()),
+            current_status: task.status.clone(),
             timestamp: chrono::Utc::now().to_rfc3339(),
         };
 
@@ -240,7 +230,7 @@ mod tests {
                 return Err(anyhow::anyhow!("broker connection refused"));
             }
             let event = InstanceStartedEvent {
-                event_type: "INSTANCE_STARTED".to_string(),
+                event_type: "INSTANCE_STATE_CHANGED".to_string(),
                 instance_id: instance.id.clone(),
                 workflow_id: instance.workflow_id.clone(),
                 workflow_name: instance.workflow_name.clone(),
@@ -248,12 +238,8 @@ mod tests {
                 initiator_id: instance.initiator_id.clone(),
                 status: instance.status.clone(),
                 actor_user_id: Some(instance.initiator_id.clone()),
-                before: None,
-                after: serde_json::json!({
-                    "instance_id": instance.id.clone(),
-                    "workflow_id": instance.workflow_id.clone(),
-                    "status": instance.status.clone(),
-                }),
+                previous_status: None,
+                current_status: instance.status.clone(),
                 timestamp: Utc::now().to_rfc3339(),
             };
             let payload = serde_json::to_vec(&event)?;
@@ -266,7 +252,7 @@ mod tests {
                 return Err(anyhow::anyhow!("broker connection refused"));
             }
             let event = TaskCompletedEvent {
-                event_type: "TASK_COMPLETED".to_string(),
+                event_type: "TASK_STATE_CHANGED".to_string(),
                 task_id: task.id.clone(),
                 instance_id: task.instance_id.clone(),
                 step_id: task.step_id.clone(),
@@ -274,13 +260,8 @@ mod tests {
                 status: task.status.clone(),
                 actor_id: task.actor_id.clone(),
                 actor_user_id: task.actor_id.clone(),
-                before: None,
-                after: serde_json::json!({
-                    "task_id": task.id.clone(),
-                    "instance_id": task.instance_id.clone(),
-                    "step_id": task.step_id.clone(),
-                    "status": task.status.clone(),
-                }),
+                previous_status: Some("pending".to_string()),
+                current_status: task.status.clone(),
                 timestamp: Utc::now().to_rfc3339(),
             };
             let payload = serde_json::to_vec(&event)?;
@@ -385,7 +366,7 @@ mod tests {
     #[test]
     fn test_instance_started_event_serialization() {
         let event = InstanceStartedEvent {
-            event_type: "INSTANCE_STARTED".to_string(),
+            event_type: "INSTANCE_STATE_CHANGED".to_string(),
             instance_id: "inst_001".to_string(),
             workflow_id: "wf_001".to_string(),
             workflow_name: "purchase-approval".to_string(),
@@ -393,12 +374,8 @@ mod tests {
             initiator_id: "user-001".to_string(),
             status: "running".to_string(),
             actor_user_id: Some("user-001".to_string()),
-            before: None,
-            after: serde_json::json!({
-                "instance_id": "inst_001",
-                "workflow_id": "wf_001",
-                "status": "running"
-            }),
+            previous_status: None,
+            current_status: "running".to_string(),
             timestamp: "2026-02-26T00:00:00Z".to_string(),
         };
         let json = serde_json::to_value(&event).unwrap();
@@ -410,7 +387,7 @@ mod tests {
     #[test]
     fn test_task_completed_event_serialization() {
         let event = TaskCompletedEvent {
-            event_type: "TASK_COMPLETED".to_string(),
+            event_type: "TASK_STATE_CHANGED".to_string(),
             task_id: "task_001".to_string(),
             instance_id: "inst_001".to_string(),
             step_id: "step-1".to_string(),
@@ -418,13 +395,8 @@ mod tests {
             status: "approved".to_string(),
             actor_id: Some("user-002".to_string()),
             actor_user_id: Some("user-002".to_string()),
-            before: None,
-            after: serde_json::json!({
-                "task_id": "task_001",
-                "instance_id": "inst_001",
-                "step_id": "step-1",
-                "status": "approved"
-            }),
+            previous_status: Some("pending".to_string()),
+            current_status: "approved".to_string(),
             timestamp: "2026-02-26T00:00:00Z".to_string(),
         };
         let json = serde_json::to_value(&event).unwrap();

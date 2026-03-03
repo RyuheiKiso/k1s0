@@ -12,6 +12,7 @@
 //! a unique request ID for tracing, and optional structured details.
 
 use serde::Serialize;
+use serde_json::Value;
 
 /// ErrorCode represents a structured error code for the system tier.
 ///
@@ -148,7 +149,7 @@ pub struct ErrorBody {
     pub message: String,
     pub request_id: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub details: Vec<ErrorDetail>,
+    pub details: Vec<Value>,
 }
 
 /// ErrorResponse wraps ErrorBody in an `{ "error": ... }` envelope.
@@ -165,27 +166,44 @@ impl ErrorResponse {
             error: ErrorBody {
                 code: code.into(),
                 message: message.into(),
-                request_id: uuid::Uuid::new_v4().to_string(),
+                request_id: default_request_id(),
                 details: vec![],
             },
         }
     }
 
     /// Create a new error response with code, message, and details.
-    pub fn with_details(
+    pub fn with_details<T: Serialize>(
         code: impl Into<ErrorCode>,
         message: impl Into<String>,
-        details: Vec<ErrorDetail>,
+        details: Vec<T>,
     ) -> Self {
         Self {
             error: ErrorBody {
                 code: code.into(),
                 message: message.into(),
-                request_id: uuid::Uuid::new_v4().to_string(),
-                details,
+                request_id: default_request_id(),
+                details: serialize_details(details),
             },
         }
     }
+
+    /// Override request_id when a correlation ID is already available.
+    pub fn with_request_id(mut self, request_id: impl Into<String>) -> Self {
+        self.error.request_id = request_id.into();
+        self
+    }
+}
+
+fn default_request_id() -> String {
+    uuid::Uuid::new_v4().to_string()
+}
+
+fn serialize_details<T: Serialize>(details: Vec<T>) -> Vec<Value> {
+    details
+        .into_iter()
+        .filter_map(|detail| serde_json::to_value(detail).ok())
+        .collect()
 }
 
 /// ServiceError is a high-level error type that maps to HTTP status codes.
@@ -443,6 +461,10 @@ pub mod auth {
     pub fn invalid_token() -> ErrorCode {
         ErrorCode::new("SYS_AUTH_INVALID_TOKEN")
     }
+
+    pub fn jwks_fetch_failed() -> ErrorCode {
+        ErrorCode::new("SYS_AUTH_JWKS_FETCH_FAILED")
+    }
 }
 
 /// Well-known error codes for the Config service.
@@ -519,6 +541,10 @@ pub mod tenant {
         ErrorCode::new("SYS_TENANT_INVALID_INPUT")
     }
 
+    pub fn validation_error() -> ErrorCode {
+        ErrorCode::new("SYS_TENANT_VALIDATION_ERROR")
+    }
+
     pub fn member_conflict() -> ErrorCode {
         ErrorCode::new("SYS_TENANT_MEMBER_CONFLICT")
     }
@@ -570,7 +596,7 @@ pub mod api_registry {
     }
 
     pub fn bad_request() -> ErrorCode {
-        ErrorCode::new("SYS_APIREG_BAD_REQUEST")
+        ErrorCode::new("SYS_APIREG_VALIDATION_ERROR")
     }
 
     pub fn conflict() -> ErrorCode {
@@ -586,7 +612,200 @@ pub mod api_registry {
     }
 
     pub fn internal_error() -> ErrorCode {
-        ErrorCode::new("SYS_APIREG_INTERNAL")
+        ErrorCode::new("SYS_APIREG_INTERNAL_ERROR")
+    }
+
+    pub fn schema_not_found() -> ErrorCode {
+        ErrorCode::new("SYS_APIREG_SCHEMA_NOT_FOUND")
+    }
+
+    pub fn version_not_found() -> ErrorCode {
+        ErrorCode::new("SYS_APIREG_VERSION_NOT_FOUND")
+    }
+
+    pub fn cannot_delete_latest() -> ErrorCode {
+        ErrorCode::new("SYS_APIREG_CANNOT_DELETE_LATEST")
+    }
+
+    pub fn already_exists() -> ErrorCode {
+        ErrorCode::new("SYS_APIREG_ALREADY_EXISTS")
+    }
+}
+
+/// Well-known error codes for Event Store service.
+pub mod event_store {
+    use super::ErrorCode;
+
+    pub fn stream_not_found() -> ErrorCode {
+        ErrorCode::new("SYS_EVSTORE_STREAM_NOT_FOUND")
+    }
+
+    pub fn event_not_found() -> ErrorCode {
+        ErrorCode::new("SYS_EVSTORE_EVENT_NOT_FOUND")
+    }
+
+    pub fn snapshot_not_found() -> ErrorCode {
+        ErrorCode::new("SYS_EVSTORE_SNAPSHOT_NOT_FOUND")
+    }
+
+    pub fn version_conflict() -> ErrorCode {
+        ErrorCode::new("SYS_EVSTORE_VERSION_CONFLICT")
+    }
+
+    pub fn stream_already_exists() -> ErrorCode {
+        ErrorCode::new("SYS_EVSTORE_STREAM_ALREADY_EXISTS")
+    }
+}
+
+/// Well-known error codes for File service.
+pub mod file {
+    use super::ErrorCode;
+
+    pub fn validation() -> ErrorCode {
+        ErrorCode::new("SYS_FILE_VALIDATION")
+    }
+}
+
+/// Well-known error codes for Scheduler service.
+pub mod scheduler {
+    use super::ErrorCode;
+
+    pub fn already_exists() -> ErrorCode {
+        ErrorCode::new("SYS_SCHED_ALREADY_EXISTS")
+    }
+}
+
+/// Well-known error codes for API Response normalization in Notification service.
+pub mod notification {
+    use super::ErrorCode;
+
+    pub fn invalid_id() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_INVALID_ID")
+    }
+
+    pub fn validation_error() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_VALIDATION_ERROR")
+    }
+
+    pub fn not_found() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_NOT_FOUND")
+    }
+
+    pub fn channel_not_found() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_CHANNEL_NOT_FOUND")
+    }
+
+    pub fn template_not_found() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_TEMPLATE_NOT_FOUND")
+    }
+
+    pub fn already_sent() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_ALREADY_SENT")
+    }
+
+    pub fn channel_disabled() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_CHANNEL_DISABLED")
+    }
+
+    pub fn internal_error() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_INTERNAL_ERROR")
+    }
+
+    pub fn send_failed() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_SEND_FAILED")
+    }
+
+    pub fn list_failed() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_LIST_FAILED")
+    }
+
+    pub fn get_failed() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_GET_FAILED")
+    }
+
+    pub fn retry_failed() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_RETRY_FAILED")
+    }
+
+    pub fn channel_create_failed() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_CHANNEL_CREATE_FAILED")
+    }
+
+    pub fn channel_list_failed() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_CHANNEL_LIST_FAILED")
+    }
+
+    pub fn channel_get_failed() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_CHANNEL_GET_FAILED")
+    }
+
+    pub fn channel_update_failed() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_CHANNEL_UPDATE_FAILED")
+    }
+
+    pub fn channel_delete_failed() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_CHANNEL_DELETE_FAILED")
+    }
+
+    pub fn template_create_failed() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_TEMPLATE_CREATE_FAILED")
+    }
+
+    pub fn template_list_failed() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_TEMPLATE_LIST_FAILED")
+    }
+
+    pub fn template_get_failed() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_TEMPLATE_GET_FAILED")
+    }
+
+    pub fn template_update_failed() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_TEMPLATE_UPDATE_FAILED")
+    }
+
+    pub fn template_delete_failed() -> ErrorCode {
+        ErrorCode::new("SYS_NOTIF_TEMPLATE_DELETE_FAILED")
+    }
+}
+
+/// Well-known error codes for Feature Flag service.
+pub mod featureflag {
+    use super::ErrorCode;
+
+    pub fn internal_error() -> ErrorCode {
+        ErrorCode::new("SYS_FF_INTERNAL_ERROR")
+    }
+
+    pub fn not_found() -> ErrorCode {
+        ErrorCode::new("SYS_FF_NOT_FOUND")
+    }
+
+    pub fn already_exists() -> ErrorCode {
+        ErrorCode::new("SYS_FF_ALREADY_EXISTS")
+    }
+
+    pub fn list_failed() -> ErrorCode {
+        ErrorCode::new("SYS_FF_LIST_FAILED")
+    }
+
+    pub fn get_failed() -> ErrorCode {
+        ErrorCode::new("SYS_FF_GET_FAILED")
+    }
+
+    pub fn create_failed() -> ErrorCode {
+        ErrorCode::new("SYS_FF_CREATE_FAILED")
+    }
+
+    pub fn update_failed() -> ErrorCode {
+        ErrorCode::new("SYS_FF_UPDATE_FAILED")
+    }
+
+    pub fn delete_failed() -> ErrorCode {
+        ErrorCode::new("SYS_FF_DELETE_FAILED")
+    }
+
+    pub fn evaluate_failed() -> ErrorCode {
+        ErrorCode::new("SYS_FF_EVALUATE_FAILED")
     }
 }
 
@@ -633,8 +852,8 @@ mod tests {
             details,
         );
         assert_eq!(resp.error.details.len(), 2);
-        assert_eq!(resp.error.details[0].field, "namespace");
-        assert_eq!(resp.error.details[0].reason, "required");
+        assert_eq!(resp.error.details[0]["field"], "namespace");
+        assert_eq!(resp.error.details[0]["reason"], "required");
     }
 
     #[test]
@@ -652,7 +871,7 @@ mod tests {
         let resp = err.to_error_response();
         assert_eq!(resp.error.code.as_str(), "SYS_CONFIG_VALIDATION_FAILED");
         assert_eq!(resp.error.details.len(), 1);
-        assert_eq!(resp.error.details[0].reason, "must_be_positive");
+        assert_eq!(resp.error.details[0]["reason"], "must_be_positive");
     }
 
     #[test]

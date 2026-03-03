@@ -52,13 +52,13 @@ system tier の Saga Orchestrator は以下の機能を提供する。
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| POST | `/api/v1/sagas` | Saga 開始 | `sys_operator` 以上 |
-| GET | `/api/v1/sagas` | Saga 一覧取得 | `sys_auditor` 以上 |
-| GET | `/api/v1/sagas/:saga_id` | Saga 詳細取得（ステップログ含む） | `sys_auditor` 以上 |
-| POST | `/api/v1/sagas/:saga_id/cancel` | Saga キャンセル | `sys_operator` 以上 |
-| POST | `/api/v1/sagas/:saga_id/compensate` | 補償処理のトリガー（補償開始・実行） | `sys_operator` 以上 |
-| POST | `/api/v1/workflows` | ワークフロー登録 | `sys_operator` 以上 |
-| GET | `/api/v1/workflows` | ワークフロー一覧取得 | `sys_auditor` 以上 |
+| POST | `/api/v1/sagas` | Saga 開始 | `sagas/write` |
+| GET | `/api/v1/sagas` | Saga 一覧取得 | `sagas/read` |
+| GET | `/api/v1/sagas/:saga_id` | Saga 詳細取得（ステップログ含む） | `sagas/read` |
+| POST | `/api/v1/sagas/:saga_id/cancel` | Saga キャンセル | `sagas/write` |
+| POST | `/api/v1/sagas/:saga_id/compensate` | 補償処理のトリガー（補償開始・実行） | `sagas/write` |
+| POST | `/api/v1/workflows` | ワークフロー登録 | `sagas/write` |
+| GET | `/api/v1/workflows` | ワークフロー一覧取得 | `sagas/read` |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |
@@ -114,6 +114,7 @@ Saga の補償処理（逆順ロールバック）を明示的にトリガーす
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `saga_id` | string (UUID) | 対象 Saga の ID |
+| `success` | bool | 補償トリガー受理結果 |
 | `status` | string | 補償後のステータス |
 | `message` | string | 処理結果メッセージ |
 

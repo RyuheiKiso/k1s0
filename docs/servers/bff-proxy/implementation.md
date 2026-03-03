@@ -19,9 +19,10 @@ internal/
     proxy_handler.go     # /api/*path
     health_handler.go    # /healthz, /readyz, /metrics
   middleware/
-    auth_middleware.go   # セッション検証
+    session.go           # セッション検証
     csrf_middleware.go   # CSRF 検証
-    trace_middleware.go  # request_id / trace_id 付与
+    traceid.go           # request_id / trace_id 付与
+    metrics_middleware.go # Prometheus メトリクス
   oauth/
     oidc_client.go       # Discovery, token exchange, refresh
     pkce.go              # code_verifier/code_challenge 生成

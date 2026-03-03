@@ -153,9 +153,9 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let mut state = adapter::handler::AppState {
-        policy_repo,
         create_policy_uc,
         get_policy_uc,
+        list_policies_uc,
         update_policy_uc,
         delete_policy_uc,
         evaluate_policy_uc,

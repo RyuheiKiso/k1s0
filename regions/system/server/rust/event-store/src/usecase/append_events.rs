@@ -7,6 +7,7 @@ use crate::domain::service::{EventStoreDomainError, EventStoreDomainService};
 #[derive(Debug, Clone)]
 pub struct AppendEventsInput {
     pub stream_id: String,
+    pub aggregate_type: Option<String>,
     pub events: Vec<EventData>,
     pub expected_version: i64,
 }
@@ -90,7 +91,10 @@ impl AppendEventsUseCase {
         }
 
         if input.expected_version == -1 {
-            let new_stream = EventStream::new(input.stream_id.clone(), String::new());
+            let new_stream = EventStream::new(
+                input.stream_id.clone(),
+                input.aggregate_type.clone().unwrap_or_default(),
+            );
             self.stream_repo
                 .create(&new_stream)
                 .await
@@ -154,6 +158,7 @@ mod tests {
     fn make_input(stream_id: &str, expected_version: i64) -> AppendEventsInput {
         AppendEventsInput {
             stream_id: stream_id.to_string(),
+            aggregate_type: Some("Order".to_string()),
             events: vec![EventData {
                 event_type: "OrderPlaced".to_string(),
                 payload: serde_json::json!({"order_id": "o-1"}),
@@ -318,6 +323,7 @@ mod tests {
         let uc = AppendEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = AppendEventsInput {
             stream_id: "order-001".to_string(),
+            aggregate_type: Some("Order".to_string()),
             events: vec![],
             expected_version: 0,
         };

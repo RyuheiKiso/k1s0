@@ -78,6 +78,10 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/tasks/:id/reassign",
                 post(workflow_handler::reassign_task),
             )
+            .route(
+                "/internal/tasks/check-overdue",
+                post(workflow_handler::check_overdue_tasks),
+            )
             .route_layer(axum::middleware::from_fn(require_permission(
                 "workflows", "write",
             )));
@@ -152,6 +156,10 @@ pub fn router(state: AppState) -> Router {
             .route(
                 "/api/v1/tasks/:id/reassign",
                 post(workflow_handler::reassign_task),
+            )
+            .route(
+                "/internal/tasks/check-overdue",
+                post(workflow_handler::check_overdue_tasks),
             )
     };
 
