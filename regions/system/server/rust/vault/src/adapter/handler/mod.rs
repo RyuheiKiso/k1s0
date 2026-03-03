@@ -25,14 +25,8 @@ pub fn router(state: AppState) -> Router {
     let api_routes = if let Some(ref auth_state) = state.auth_state {
         // GET/metadata/audit -> secrets/read
         let read_routes = Router::new()
-            .route(
-                "/api/v1/secrets",
-                get(vault_handler::list_secrets),
-            )
-            .route(
-                "/api/v1/secrets/:key",
-                get(vault_handler::get_secret),
-            )
+            .route("/api/v1/secrets", get(vault_handler::list_secrets))
+            .route("/api/v1/secrets/:key", get(vault_handler::get_secret))
             .route(
                 "/api/v1/secrets/:key/metadata",
                 get(vault_handler::get_secret_metadata),
@@ -44,10 +38,7 @@ pub fn router(state: AppState) -> Router {
 
         // POST/PUT/rotate -> secrets/write
         let write_routes = Router::new()
-            .route(
-                "/api/v1/secrets",
-                post(vault_handler::create_secret),
-            )
+            .route("/api/v1/secrets", post(vault_handler::create_secret))
             .route(
                 "/api/v1/secrets/:key",
                 axum::routing::put(vault_handler::update_secret),
@@ -88,9 +79,9 @@ pub fn router(state: AppState) -> Router {
         };
 
         merged.layer(axum::middleware::from_fn_with_state(
-                auth_state.clone(),
-                auth_middleware,
-            ))
+            auth_state.clone(),
+            auth_middleware,
+        ))
     } else {
         // 認証なし（dev モード / テスト）
         Router::new()
@@ -115,9 +106,7 @@ pub fn router(state: AppState) -> Router {
             .route("/api/v1/audit/logs", get(vault_handler::list_audit_logs))
     };
 
-    public_routes
-        .merge(api_routes)
-        .with_state(state)
+    public_routes.merge(api_routes).with_state(state)
 }
 
 async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {

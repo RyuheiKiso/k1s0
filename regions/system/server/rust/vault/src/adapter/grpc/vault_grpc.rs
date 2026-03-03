@@ -154,10 +154,7 @@ impl VaultGrpcService {
         }
     }
 
-    pub async fn get_secret(
-        &self,
-        req: GetSecretRequest,
-    ) -> Result<GetSecretResponse, GrpcError> {
+    pub async fn get_secret(&self, req: GetSecretRequest) -> Result<GetSecretResponse, GrpcError> {
         if req.path.trim().is_empty() {
             return Err(GrpcError::InvalidArgument("path is required".to_string()));
         }
@@ -187,36 +184,18 @@ impl VaultGrpcService {
         }
     }
 
-    pub async fn set_secret(
-        &self,
-        req: SetSecretRequest,
-    ) -> Result<SetSecretResponse, GrpcError> {
-        let path = req.path.clone();
+    pub async fn set_secret(&self, req: SetSecretRequest) -> Result<SetSecretResponse, GrpcError> {
         let input = SetSecretInput {
             path: req.path,
             data: req.data,
         };
 
         match self.set_secret_uc.execute(&input).await {
-            Ok(version) => {
-                let secret = self
-                    .get_secret_uc
-                    .execute(&GetSecretInput {
-                        path,
-                        version: Some(version),
-                    })
-                    .await
-                    .map_err(|e| GrpcError::Internal(e.to_string()))?;
-                let created_at = secret
-                    .get_version(Some(version))
-                    .map(|sv| sv.created_at)
-                    .unwrap_or_else(chrono::Utc::now);
-                Ok(SetSecretResponse {
-                    path: secret.path,
-                    version,
-                    created_at,
-                })
-            }
+            Ok(output) => Ok(SetSecretResponse {
+                path: input.path,
+                version: output.version,
+                created_at: output.created_at,
+            }),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
@@ -436,9 +415,7 @@ mod tests {
     #[tokio::test]
     async fn test_set_secret_success() {
         let mut mock_store = MockSecretStore::new();
-        mock_store
-            .expect_set()
-            .returning(|_, _| Ok(2));
+        mock_store.expect_set().returning(|_, _| Ok(2));
         mock_store
             .expect_get()
             .withf(|path, version| path == "app/db" && *version == Some(2))
@@ -447,7 +424,10 @@ mod tests {
                     path.to_string(),
                     HashMap::from([("password".to_string(), "new".to_string())]),
                 )
-                .update(HashMap::from([("password".to_string(), "newer".to_string())])))
+                .update(HashMap::from([(
+                    "password".to_string(),
+                    "newer".to_string(),
+                )])))
             });
 
         let svc = make_service(mock_store, default_audit());
@@ -466,9 +446,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_secret_success() {
         let mut mock_store = MockSecretStore::new();
-        mock_store
-            .expect_delete()
-            .returning(|_, _| Ok(()));
+        mock_store.expect_delete().returning(|_, _| Ok(()));
 
         let svc = make_service(mock_store, default_audit());
         let result = svc

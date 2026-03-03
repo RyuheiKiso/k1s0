@@ -9,11 +9,9 @@ use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::common::v1::Timestamp as ProtoTimestamp;
 use crate::proto::k1s0::system::session::v1::{
-    session_service_server::SessionService,
-    CreateSessionRequest as ProtoCreateSessionRequest,
+    session_service_server::SessionService, CreateSessionRequest as ProtoCreateSessionRequest,
     CreateSessionResponse as ProtoCreateSessionResponse,
-    GetSessionRequest as ProtoGetSessionRequest,
-    GetSessionResponse as ProtoGetSessionResponse,
+    GetSessionRequest as ProtoGetSessionRequest, GetSessionResponse as ProtoGetSessionResponse,
     ListUserSessionsRequest as ProtoListUserSessionsRequest,
     ListUserSessionsResponse as ProtoListUserSessionsResponse,
     RefreshSessionRequest as ProtoRefreshSessionRequest,
@@ -21,8 +19,7 @@ use crate::proto::k1s0::system::session::v1::{
     RevokeAllSessionsRequest as ProtoRevokeAllSessionsRequest,
     RevokeAllSessionsResponse as ProtoRevokeAllSessionsResponse,
     RevokeSessionRequest as ProtoRevokeSessionRequest,
-    RevokeSessionResponse as ProtoRevokeSessionResponse,
-    Session as ProtoSession,
+    RevokeSessionResponse as ProtoRevokeSessionResponse, Session as ProtoSession,
 };
 
 use super::session_grpc::{
@@ -84,6 +81,10 @@ impl SessionService for SessionServiceTonic {
             created_at: parse_rfc3339_to_proto_timestamp(&resp.created_at),
             token: resp.token,
             metadata: resp.metadata,
+            device_name: resp.device_name,
+            device_type: resp.device_type,
+            user_agent: resp.user_agent,
+            ip_address: resp.ip_address,
         }))
     }
 
@@ -123,6 +124,20 @@ impl SessionService for SessionServiceTonic {
         Ok(Response::new(ProtoRefreshSessionResponse {
             session_id: resp.session_id,
             expires_at: parse_rfc3339_to_proto_timestamp(&resp.expires_at),
+            user_id: resp.user_id,
+            token: resp.token,
+            device_id: resp.device_id,
+            device_name: resp.device_name,
+            device_type: resp.device_type,
+            user_agent: resp.user_agent,
+            ip_address: resp.ip_address,
+            metadata: resp.metadata,
+            created_at: parse_rfc3339_to_proto_timestamp(&resp.created_at),
+            last_accessed_at: resp
+                .last_accessed_at
+                .as_ref()
+                .and_then(|v| parse_rfc3339_to_proto_timestamp(v)),
+            status: resp.status,
         }))
     }
 
@@ -206,10 +221,12 @@ fn pb_session_to_proto(s: &super::session_grpc::PbSession) -> ProtoSession {
 }
 
 fn parse_rfc3339_to_proto_timestamp(v: &str) -> Option<ProtoTimestamp> {
-    chrono::DateTime::parse_from_rfc3339(v).ok().map(|dt| ProtoTimestamp {
-        seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
-    })
+    chrono::DateTime::parse_from_rfc3339(v)
+        .ok()
+        .map(|dt| ProtoTimestamp {
+            seconds: dt.timestamp(),
+            nanos: dt.timestamp_subsec_nanos() as i32,
+        })
 }
 
 #[cfg(test)]

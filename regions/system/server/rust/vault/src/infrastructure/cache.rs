@@ -115,9 +115,7 @@ mod tests {
         let cache = SecretCache::new(100, 60);
         let secret = make_secret("app/db/password");
 
-        cache
-            .insert("app/db/password", None, secret.clone())
-            .await;
+        cache.insert("app/db/password", None, secret.clone()).await;
         cache
             .insert("app/db/password", Some(1), secret.clone())
             .await;
@@ -152,16 +150,12 @@ mod tests {
         let cache = SecretCache::new(100, 60);
         let secret = make_secret("app/db/password");
 
-        cache
-            .insert("app/db/password", None, secret.clone())
-            .await;
+        cache.insert("app/db/password", None, secret.clone()).await;
         cache
             .insert("app/db/password", Some(1), secret.clone())
             .await;
 
-        cache
-            .invalidate_version("app/db/password", Some(1))
-            .await;
+        cache.invalidate_version("app/db/password", Some(1)).await;
 
         // latest はまだある
         assert!(cache.get("app/db/password", None).await.is_some());

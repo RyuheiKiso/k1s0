@@ -13,7 +13,8 @@ use crate::adapter::middleware::auth::{auth_middleware, PolicyAuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::usecase::{
     CreateBundleUseCase, CreatePolicyUseCase, DeletePolicyUseCase, EvaluatePolicyUseCase,
-    GetPolicyUseCase, ListBundlesUseCase, ListPoliciesUseCase, UpdatePolicyUseCase,
+    GetBundleUseCase, GetPolicyUseCase, ListBundlesUseCase, ListPoliciesUseCase,
+    UpdatePolicyUseCase,
 };
 
 /// Shared application state for REST handlers.
@@ -26,6 +27,7 @@ pub struct AppState {
     pub delete_policy_uc: Arc<DeletePolicyUseCase>,
     pub evaluate_policy_uc: Arc<EvaluatePolicyUseCase>,
     pub create_bundle_uc: Arc<CreateBundleUseCase>,
+    pub get_bundle_uc: Arc<GetBundleUseCase>,
     pub list_bundles_uc: Arc<ListBundlesUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<PolicyAuthState>,
@@ -51,6 +53,7 @@ pub fn router(state: AppState) -> Router {
             .route("/api/v1/policies", get(policy_handler::list_policies))
             .route("/api/v1/policies/:id", get(policy_handler::get_policy))
             .route("/api/v1/bundles", get(policy_handler::list_bundles))
+            .route("/api/v1/bundles/:id", get(policy_handler::get_bundle))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "policies", "read",
             )));
@@ -100,14 +103,9 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/policies/:id/evaluate",
                 post(policy_handler::evaluate_policy),
             )
-            .route(
-                "/api/v1/bundles",
-                get(policy_handler::list_bundles),
-            )
-            .route(
-                "/api/v1/bundles",
-                post(policy_handler::create_bundle),
-            )
+            .route("/api/v1/bundles", get(policy_handler::list_bundles))
+            .route("/api/v1/bundles/:id", get(policy_handler::get_bundle))
+            .route("/api/v1/bundles", post(policy_handler::create_bundle))
     };
 
     Router::new()

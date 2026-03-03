@@ -44,12 +44,7 @@ impl GetSecretUseCase {
 
         match &result {
             Ok(_) => {
-                let log = SecretAccessLog::new(
-                    input.path.clone(),
-                    AccessAction::Read,
-                    None,
-                    true,
-                );
+                let log = SecretAccessLog::new(input.path.clone(), AccessAction::Read, None, true);
                 let _ = self.audit.record(&log).await;
                 let _ = self
                     .event_publisher
@@ -64,12 +59,8 @@ impl GetSecretUseCase {
                     .await;
             }
             Err(e) => {
-                let mut log = SecretAccessLog::new(
-                    input.path.clone(),
-                    AccessAction::Read,
-                    None,
-                    false,
-                );
+                let mut log =
+                    SecretAccessLog::new(input.path.clone(), AccessAction::Read, None, false);
                 log.error_msg = Some(e.to_string());
                 let _ = self.audit.record(&log).await;
                 let _ = self
@@ -119,9 +110,7 @@ mod tests {
             .withf(|path, version| path == "app/db/password" && version.is_none())
             .returning(move |_, _| Ok(secret.clone()));
 
-        mock_audit
-            .expect_record()
-            .returning(|_| Ok(()));
+        mock_audit.expect_record().returning(|_| Ok(()));
 
         let uc = GetSecretUseCase::new(
             Arc::new(mock_store),
@@ -150,9 +139,7 @@ mod tests {
             .expect_get()
             .returning(|_, _| Err(anyhow::anyhow!("secret not found: nonexistent")));
 
-        mock_audit
-            .expect_record()
-            .returning(|_| Ok(()));
+        mock_audit.expect_record().returning(|_| Ok(()));
 
         let uc = GetSecretUseCase::new(
             Arc::new(mock_store),

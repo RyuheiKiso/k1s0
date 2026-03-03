@@ -18,6 +18,7 @@ service PolicyService {
   rpc DeletePolicy(DeletePolicyRequest) returns (DeletePolicyResponse);
   rpc CreateBundle(CreateBundleRequest) returns (CreateBundleResponse);
   rpc ListBundles(ListBundlesRequest) returns (ListBundlesResponse);
+  rpc GetBundle(GetBundleRequest) returns (GetBundleResponse);
 }
 
 message EvaluatePolicyRequest {
@@ -104,6 +105,14 @@ message ListBundlesRequest {}
 
 message ListBundlesResponse {
   repeated PolicyBundle bundles = 1;
+}
+
+message GetBundleRequest {
+  string id = 1;
+}
+
+message GetBundleResponse {
+  PolicyBundle bundle = 1;
 }
 
 message Policy {

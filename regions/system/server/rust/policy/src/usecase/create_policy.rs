@@ -1,9 +1,9 @@
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::domain::service::PolicyDomainService;
 use crate::domain::entity::policy::Policy;
 use crate::domain::repository::PolicyRepository;
+use crate::domain::service::PolicyDomainService;
 
 #[derive(Debug, Clone)]
 pub struct CreatePolicyInput {

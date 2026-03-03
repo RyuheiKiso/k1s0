@@ -68,6 +68,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 | DELETE | `/api/v1/policies/:id` | ポリシー削除 | `sys_admin` のみ |
 | POST | `/api/v1/policies/:id/evaluate` | ポリシー評価（ポリシー ID 指定） | `sys_operator` 以上 |
 | GET | `/api/v1/bundles` | バンドル一覧取得 | `sys_auditor` 以上 |
+| GET | `/api/v1/bundles/:id` | バンドル詳細取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/bundles` | バンドル作成 | `sys_admin` のみ |
 | GET | `/healthz` | ヘルスチェック | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
@@ -330,6 +331,36 @@ ID 指定でポリシーの詳細を取得する。
 
 > `policy_count` は REST 専用の計算フィールド。gRPC の `PolicyBundle` には含まれない。
 
+#### GET /api/v1/bundles/:id
+
+バンドル ID を指定して単一バンドルの詳細を取得する。
+
+**レスポンス例（200 OK）**
+
+```json
+{
+  "id": "bundle-001",
+  "name": "k1s0-system-policies",
+  "description": "system tier policies bundle",
+  "enabled": true,
+  "policy_count": 3,
+  "policy_ids": ["policy-001", "policy-002", "policy-003"],
+  "created_at": "2026-02-20T10:00:00.000+00:00",
+  "updated_at": "2026-02-20T12:30:00.000+00:00"
+}
+```
+
+**レスポンス例（404 Not Found）**
+
+```json
+{
+  "error": {
+    "code": "SYS_POLICY_NOT_FOUND",
+    "message": "bundle not found: bundle-001"
+  }
+}
+```
+
 #### POST /api/v1/bundles
 
 複数のポリシーをグループ化したバンドルを作成する。
@@ -400,6 +431,7 @@ service PolicyService {
   rpc DeletePolicy(DeletePolicyRequest) returns (DeletePolicyResponse);
   rpc CreateBundle(CreateBundleRequest) returns (CreateBundleResponse);
   rpc ListBundles(ListBundlesRequest) returns (ListBundlesResponse);
+  rpc GetBundle(GetBundleRequest) returns (GetBundleResponse);
 }
 
 message EvaluatePolicyRequest {
@@ -480,6 +512,14 @@ message ListBundlesRequest {}
 
 message ListBundlesResponse {
   repeated PolicyBundle bundles = 1;
+}
+
+message GetBundleRequest {
+  string id = 1;
+}
+
+message GetBundleResponse {
+  PolicyBundle bundle = 1;
 }
 
 message Policy {

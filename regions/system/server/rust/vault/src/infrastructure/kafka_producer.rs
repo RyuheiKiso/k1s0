@@ -141,9 +141,7 @@ impl VaultEventPublisher for KafkaProducer {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish vault access event: {}", err)
-            })?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish vault access event: {}", err))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.topic);
@@ -350,8 +348,7 @@ brokers:
     #[tokio::test]
     async fn test_mock_vault_event_publisher() {
         let mut mock = MockVaultEventPublisher::new();
-        mock.expect_publish_secret_accessed()
-            .returning(|_| Ok(()));
+        mock.expect_publish_secret_accessed().returning(|_| Ok(()));
         mock.expect_close().returning(|| Ok(()));
 
         let event = make_test_event();

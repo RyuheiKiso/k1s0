@@ -49,14 +49,8 @@ pub fn router(state: AppState) -> Router {
     let api_routes = if let Some(ref auth_state) = state.auth_state {
         // GET -> jobs/read
         let read_routes = Router::new()
-            .route(
-                "/api/v1/jobs",
-                get(job_handler::list_jobs),
-            )
-            .route(
-                "/api/v1/jobs/:id",
-                get(job_handler::get_job),
-            )
+            .route("/api/v1/jobs", get(job_handler::list_jobs))
+            .route("/api/v1/jobs/:id", get(job_handler::get_job))
             .route(
                 "/api/v1/jobs/:id/executions",
                 get(job_handler::list_executions),
@@ -67,14 +61,8 @@ pub fn router(state: AppState) -> Router {
 
         // POST/PUT/trigger/pause/resume -> jobs/write
         let write_routes = Router::new()
-            .route(
-                "/api/v1/jobs",
-                post(job_handler::create_job),
-            )
-            .route(
-                "/api/v1/jobs/:id",
-                put(job_handler::update_job),
-            )
+            .route("/api/v1/jobs", post(job_handler::create_job))
+            .route("/api/v1/jobs/:id", put(job_handler::update_job))
             .route("/api/v1/jobs/:id/trigger", post(job_handler::trigger_job))
             .route("/api/v1/jobs/:id/pause", put(job_handler::pause_job))
             .route("/api/v1/jobs/:id/resume", put(job_handler::resume_job))
@@ -121,9 +109,7 @@ pub fn router(state: AppState) -> Router {
             )
     };
 
-    public_routes
-        .merge(api_routes)
-        .with_state(state)
+    public_routes.merge(api_routes).with_state(state)
 }
 
 async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {

@@ -8,19 +8,17 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::vault::v1::{
-    AuditLogEntry as ProtoAuditLogEntry,
-    GetSecretMetadataRequest as ProtoGetSecretMetadataRequest,
-    GetSecretMetadataResponse as ProtoGetSecretMetadataResponse,
-    ListAuditLogsRequest as ProtoListAuditLogsRequest,
-    ListAuditLogsResponse as ProtoListAuditLogsResponse,
-    RotateSecretRequest as ProtoRotateSecretRequest,
-    RotateSecretResponse as ProtoRotateSecretResponse,
-    vault_service_server::VaultService,
+    vault_service_server::VaultService, AuditLogEntry as ProtoAuditLogEntry,
     DeleteSecretRequest as ProtoDeleteSecretRequest,
     DeleteSecretResponse as ProtoDeleteSecretResponse,
+    GetSecretMetadataRequest as ProtoGetSecretMetadataRequest,
+    GetSecretMetadataResponse as ProtoGetSecretMetadataResponse,
     GetSecretRequest as ProtoGetSecretRequest, GetSecretResponse as ProtoGetSecretResponse,
-    ListSecretsRequest as ProtoListSecretsRequest,
-    ListSecretsResponse as ProtoListSecretsResponse, SetSecretRequest as ProtoSetSecretRequest,
+    ListAuditLogsRequest as ProtoListAuditLogsRequest,
+    ListAuditLogsResponse as ProtoListAuditLogsResponse,
+    ListSecretsRequest as ProtoListSecretsRequest, ListSecretsResponse as ProtoListSecretsResponse,
+    RotateSecretRequest as ProtoRotateSecretRequest,
+    RotateSecretResponse as ProtoRotateSecretResponse, SetSecretRequest as ProtoSetSecretRequest,
     SetSecretResponse as ProtoSetSecretResponse,
 };
 
@@ -55,7 +53,9 @@ impl VaultServiceTonic {
     }
 }
 
-fn to_proto_timestamp(dt: chrono::DateTime<chrono::Utc>) -> crate::proto::k1s0::system::common::v1::Timestamp {
+fn to_proto_timestamp(
+    dt: chrono::DateTime<chrono::Utc>,
+) -> crate::proto::k1s0::system::common::v1::Timestamp {
     crate::proto::k1s0::system::common::v1::Timestamp {
         seconds: dt.timestamp(),
         nanos: dt.timestamp_subsec_nanos() as i32,

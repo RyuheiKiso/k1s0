@@ -13,8 +13,7 @@ impl MasterKey {
     /// 環境変数 `VAULT_MASTER_KEY` から hex エンコードされた 32 バイト鍵を読み込む。
     /// 未設定の場合はゼロ鍵（開発用デフォルト）を使用する。
     pub fn from_env() -> anyhow::Result<Self> {
-        let key_hex =
-            std::env::var("VAULT_MASTER_KEY").unwrap_or_else(|_| "0".repeat(64)); // 32 bytes hex = 64 chars, dev default
+        let key_hex = std::env::var("VAULT_MASTER_KEY").unwrap_or_else(|_| "0".repeat(64)); // 32 bytes hex = 64 chars, dev default
         let key_bytes = hex::decode(&key_hex)?;
         if key_bytes.len() != 32 {
             return Err(anyhow::anyhow!(

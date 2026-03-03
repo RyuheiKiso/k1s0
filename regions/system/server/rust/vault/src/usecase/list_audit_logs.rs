@@ -19,7 +19,10 @@ impl ListAuditLogsUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, input: &ListAuditLogsInput) -> anyhow::Result<Vec<SecretAccessLog>> {
+    pub async fn execute(
+        &self,
+        input: &ListAuditLogsInput,
+    ) -> anyhow::Result<Vec<SecretAccessLog>> {
         self.repo.list(input.offset, input.limit).await
     }
 }
@@ -44,7 +47,10 @@ mod tests {
 
         let uc = ListAuditLogsUseCase::new(Arc::new(mock));
         let result = uc
-            .execute(&ListAuditLogsInput { offset: 0, limit: 20 })
+            .execute(&ListAuditLogsInput {
+                offset: 0,
+                limit: 20,
+            })
             .await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().len(), 1);
@@ -57,7 +63,10 @@ mod tests {
 
         let uc = ListAuditLogsUseCase::new(Arc::new(mock));
         let result = uc
-            .execute(&ListAuditLogsInput { offset: 0, limit: 20 })
+            .execute(&ListAuditLogsInput {
+                offset: 0,
+                limit: 20,
+            })
             .await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());

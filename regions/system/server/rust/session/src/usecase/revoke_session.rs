@@ -15,7 +15,10 @@ pub struct RevokeSessionUseCase {
 }
 
 impl RevokeSessionUseCase {
-    pub fn new(repo: Arc<dyn SessionRepository>, event_publisher: Arc<dyn SessionEventPublisher>) -> Self {
+    pub fn new(
+        repo: Arc<dyn SessionRepository>,
+        event_publisher: Arc<dyn SessionEventPublisher>,
+    ) -> Self {
         Self {
             repo,
             event_publisher,

@@ -120,12 +120,10 @@ async fn main() -> anyhow::Result<()> {
 
     // Use cases
     let execute_saga_uc = Arc::new(
-        usecase::ExecuteSagaUseCase::new(
-            saga_repo.clone(),
-            grpc_caller.clone(),
-            publisher,
-        )
-        .with_workflow_repo(workflow_repo.clone() as Arc<dyn domain::repository::WorkflowRepository>),
+        usecase::ExecuteSagaUseCase::new(saga_repo.clone(), grpc_caller.clone(), publisher)
+            .with_workflow_repo(
+                workflow_repo.clone() as Arc<dyn domain::repository::WorkflowRepository>
+            ),
     );
 
     let start_saga_uc = Arc::new(usecase::StartSagaUseCase::new(
@@ -320,7 +318,7 @@ impl domain::repository::SagaRepository for InMemorySagaRepository {
     async fn list(
         &self,
         params: &domain::repository::saga_repository::SagaListParams,
-    ) -> anyhow::Result<(Vec<domain::entity::saga_state::SagaState>, i64)> {
+    ) -> anyhow::Result<(Vec<domain::entity::saga_state::SagaState>, i32)> {
         let states = self.states.read().await;
         let filtered: Vec<_> = states
             .iter()
@@ -345,7 +343,7 @@ impl domain::repository::SagaRepository for InMemorySagaRepository {
             .cloned()
             .collect();
 
-        let total = filtered.len() as i64;
+        let total = filtered.len() as i32;
         let page = params.page.max(1);
         let page_size = params.page_size.max(1);
         let offset = ((page - 1) * page_size) as usize;

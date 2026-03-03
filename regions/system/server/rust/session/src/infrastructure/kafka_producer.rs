@@ -26,11 +26,7 @@ pub enum SessionEvent {
 #[async_trait]
 pub trait SessionEventPublisher: Send + Sync {
     async fn publish_session_created(&self, session: &Session) -> anyhow::Result<()>;
-    async fn publish_session_revoked(
-        &self,
-        session_id: &str,
-        user_id: &str,
-    ) -> anyhow::Result<()>;
+    async fn publish_session_revoked(&self, session_id: &str, user_id: &str) -> anyhow::Result<()>;
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -70,9 +66,7 @@ impl KafkaSessionProducer {
     pub fn new(config: &crate::infrastructure::config::KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
-        let topic = config
-            .topic_created
-            .clone();
+        let topic = config.topic_created.clone();
 
         let mut client_config = ClientConfig::new();
         client_config.set("bootstrap.servers", config.brokers.join(","));
@@ -131,11 +125,7 @@ impl SessionEventPublisher for KafkaSessionProducer {
         Ok(())
     }
 
-    async fn publish_session_revoked(
-        &self,
-        session_id: &str,
-        user_id: &str,
-    ) -> anyhow::Result<()> {
+    async fn publish_session_revoked(&self, session_id: &str, user_id: &str) -> anyhow::Result<()> {
         use rdkafka::producer::FutureRecord;
         use std::time::Duration;
 
@@ -281,9 +271,7 @@ mod tests {
     async fn test_publish_session_revoked() {
         let producer = InMemoryProducer::new();
 
-        let result = producer
-            .publish_session_revoked("sess-1", "user-1")
-            .await;
+        let result = producer.publish_session_revoked("sess-1", "user-1").await;
         assert!(result.is_ok());
 
         let messages = producer.messages.lock().unwrap();

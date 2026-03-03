@@ -15,7 +15,7 @@ impl ListSagasUseCase {
     }
 
     /// パラメータに基づいてSaga一覧を取得する。
-    pub async fn execute(&self, params: SagaListParams) -> anyhow::Result<(Vec<SagaState>, i64)> {
+    pub async fn execute(&self, params: SagaListParams) -> anyhow::Result<(Vec<SagaState>, i32)> {
         self.saga_repo.list(&params).await
     }
 }

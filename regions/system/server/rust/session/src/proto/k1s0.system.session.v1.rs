@@ -35,6 +35,14 @@ pub struct CreateSessionResponse {
         ::prost::alloc::string::String,
         ::prost::alloc::string::String,
     >,
+    #[prost(string, optional, tag = "8")]
+    pub device_name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "9")]
+    pub device_type: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "10")]
+    pub user_agent: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "11")]
+    pub ip_address: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSessionRequest {
@@ -59,6 +67,32 @@ pub struct RefreshSessionResponse {
     pub session_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
     pub expires_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(string, tag = "3")]
+    pub user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub token: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub device_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "6")]
+    pub device_name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "7")]
+    pub device_type: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "8")]
+    pub user_agent: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "9")]
+    pub ip_address: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(map = "string, string", tag = "10")]
+    pub metadata: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(message, optional, tag = "11")]
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, optional, tag = "12")]
+    pub last_accessed_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    /// valid values: "active", "revoked"
+    #[prost(string, tag = "13")]
+    pub status: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RevokeSessionRequest {

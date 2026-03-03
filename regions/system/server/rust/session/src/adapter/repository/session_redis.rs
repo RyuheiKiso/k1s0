@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use redis::AsyncCommands;
 use redis::aio::ConnectionManager;
+use redis::AsyncCommands;
 
 use crate::domain::entity::session::Session;
 use crate::domain::repository::SessionRepository;
@@ -43,7 +43,11 @@ impl RedisSessionRepository {
     /// expires_at から TTL 秒数を計算する。最小 1 秒。
     fn ttl_seconds(session: &Session) -> i64 {
         let ttl = (session.expires_at - chrono::Utc::now()).num_seconds();
-        if ttl < 1 { 1 } else { ttl }
+        if ttl < 1 {
+            1
+        } else {
+            ttl
+        }
     }
 }
 

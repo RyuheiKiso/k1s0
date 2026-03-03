@@ -11,8 +11,8 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::adapter::middleware::auth::{auth_middleware, SagaAuthState};
 use crate::adapter::middleware::rbac::require_permission;
 use crate::usecase::{
-    CancelSagaUseCase, ExecuteSagaUseCase, GetSagaUseCase, ListSagasUseCase,
-    ListWorkflowsUseCase, RegisterWorkflowUseCase, StartSagaUseCase,
+    CancelSagaUseCase, ExecuteSagaUseCase, GetSagaUseCase, ListSagasUseCase, ListWorkflowsUseCase,
+    RegisterWorkflowUseCase, StartSagaUseCase,
 };
 
 /// AppState はアプリケーション全体の共有状態を表す。
@@ -107,13 +107,9 @@ pub fn router(state: AppState) -> Router {
             )));
 
         // 認証ミドルウェアを全 API ルートに適用
-        Router::new()
-            .merge(read_routes)
-            .merge(write_routes)
-            .layer(axum::middleware::from_fn_with_state(
-                auth_state.clone(),
-                auth_middleware,
-            ))
+        Router::new().merge(read_routes).merge(write_routes).layer(
+            axum::middleware::from_fn_with_state(auth_state.clone(), auth_middleware),
+        )
     } else {
         // 認証なし（dev モード / テスト）: 従来どおり
         Router::new()

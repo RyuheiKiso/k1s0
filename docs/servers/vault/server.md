@@ -94,7 +94,8 @@ system tier の Vault Server は以下の機能を提供する。
 ```json
 {
   "path": "app/db/password",
-  "version": 1
+  "version": 1,
+  "created_at": "2026-02-23T10:00:00.000+00:00"
 }
 ```
 
@@ -150,7 +151,8 @@ system tier の Vault Server は以下の機能を提供する。
 ```json
 {
   "path": "app/db/password",
-  "version": 2
+  "version": 2,
+  "created_at": "2026-02-23T11:00:00.000+00:00"
 }
 ```
 

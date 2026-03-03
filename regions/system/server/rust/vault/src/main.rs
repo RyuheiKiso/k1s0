@@ -126,9 +126,8 @@ async fn main() -> anyhow::Result<()> {
         info!(vault_addr = %addr, "connecting to HashiCorp Vault KV v2");
         let vault_client = adapter::gateway::VaultKvClient::new(&addr, &token)?;
         let vault_client = Arc::new(vault_client);
-        let store: Arc<dyn SecretStore> = Arc::new(
-            adapter::repository::vault_secret_store::VaultSecretStore::new(vault_client),
-        );
+        let store: Arc<dyn SecretStore> =
+            Arc::new(adapter::repository::vault_secret_store::VaultSecretStore::new(vault_client));
         let audit: Arc<dyn AccessLogRepository> = Arc::new(NoopAccessLogRepository);
         info!("HashiCorp Vault backend ready");
         (store, audit, None)
@@ -210,9 +209,7 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Metrics
-    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
-        "k1s0-vault-server",
-    ));
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-vault-server"));
 
     // Token verifier (JWKS verifier if auth configured)
     let auth_state = if let Some(ref auth_cfg) = cfg.auth {
@@ -254,8 +251,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // REST Router
-    let app = handler::router(state)
-        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
+    let app = handler::router(state).layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()));
 
     // gRPC tonic service
     use proto::k1s0::system::vault::v1::vault_service_server::VaultServiceServer;

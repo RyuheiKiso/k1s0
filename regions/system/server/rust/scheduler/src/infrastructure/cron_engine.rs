@@ -63,17 +63,11 @@ impl CronSchedulerEngine {
             if let Some(next_run) = Self::next_run_time(&job.cron_expression) {
                 if next_run <= now {
                     let lock_key = format!("scheduler:job:{}", job.id);
-                    if let Ok(guard) =
-                        lock.acquire(&lock_key, Duration::from_secs(300)).await
-                    {
+                    if let Ok(guard) = lock.acquire(&lock_key, Duration::from_secs(300)).await {
                         let execution = SchedulerExecution::new(job.id);
                         let _ = execution_repo.create(&execution).await;
                         let _ = execution_repo
-                            .update_status(
-                                &execution.id,
-                                "completed".to_string(),
-                                None,
-                            )
+                            .update_status(&execution.id, "completed".to_string(), None)
                             .await;
                         let _ = lock.release(guard).await;
                     }

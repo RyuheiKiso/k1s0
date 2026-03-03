@@ -8,7 +8,10 @@ use crate::domain::entity::policy_bundle::PolicyBundle;
 use crate::usecase::create_bundle::{CreateBundleError, CreateBundleInput, CreateBundleUseCase};
 use crate::usecase::create_policy::{CreatePolicyError, CreatePolicyInput, CreatePolicyUseCase};
 use crate::usecase::delete_policy::{DeletePolicyError, DeletePolicyUseCase};
-use crate::usecase::evaluate_policy::{EvaluatePolicyError, EvaluatePolicyInput, EvaluatePolicyUseCase};
+use crate::usecase::evaluate_policy::{
+    EvaluatePolicyError, EvaluatePolicyInput, EvaluatePolicyUseCase,
+};
+use crate::usecase::get_bundle::{GetBundleError, GetBundleUseCase};
 use crate::usecase::get_policy::{GetPolicyError, GetPolicyUseCase};
 use crate::usecase::list_bundles::{ListBundlesError, ListBundlesUseCase};
 use crate::usecase::list_policies::{ListPoliciesError, ListPoliciesInput, ListPoliciesUseCase};
@@ -140,6 +143,16 @@ pub struct ListBundlesResponse {
     pub bundles: Vec<PolicyBundleData>,
 }
 
+#[derive(Debug, Clone)]
+pub struct GetBundleRequest {
+    pub id: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct GetBundleResponse {
+    pub bundle: PolicyBundleData,
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum GrpcError {
     #[error("not found: {0}")]
@@ -166,6 +179,7 @@ pub struct PolicyGrpcService {
     list_policies_uc: Arc<ListPoliciesUseCase>,
     evaluate_policy_uc: Arc<EvaluatePolicyUseCase>,
     create_bundle_uc: Arc<CreateBundleUseCase>,
+    get_bundle_uc: Arc<GetBundleUseCase>,
     list_bundles_uc: Arc<ListBundlesUseCase>,
 }
 
@@ -179,6 +193,7 @@ impl PolicyGrpcService {
         list_policies_uc: Arc<ListPoliciesUseCase>,
         evaluate_policy_uc: Arc<EvaluatePolicyUseCase>,
         create_bundle_uc: Arc<CreateBundleUseCase>,
+        get_bundle_uc: Arc<GetBundleUseCase>,
         list_bundles_uc: Arc<ListBundlesUseCase>,
     ) -> Self {
         Self {
@@ -189,6 +204,7 @@ impl PolicyGrpcService {
             list_policies_uc,
             evaluate_policy_uc,
             create_bundle_uc,
+            get_bundle_uc,
             list_bundles_uc,
         }
     }
@@ -197,8 +213,9 @@ impl PolicyGrpcService {
         &self,
         req: EvaluatePolicyRequest,
     ) -> Result<EvaluatePolicyResponse, GrpcError> {
-        let policy_id = Uuid::parse_str(&req.policy_id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid policy id: {}", req.policy_id)))?;
+        let policy_id = Uuid::parse_str(&req.policy_id).map_err(|_| {
+            GrpcError::InvalidArgument(format!("invalid policy id: {}", req.policy_id))
+        })?;
 
         let policy = self
             .get_policy_uc
@@ -229,7 +246,9 @@ impl PolicyGrpcService {
             .execute(&uc_input)
             .await
             .map_err(|e| match e {
-                EvaluatePolicyError::NotFound(id) => GrpcError::NotFound(format!("policy not found: {}", id)),
+                EvaluatePolicyError::NotFound(id) => {
+                    GrpcError::NotFound(format!("policy not found: {}", id))
+                }
                 EvaluatePolicyError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
@@ -276,10 +295,9 @@ impl PolicyGrpcService {
                 page,
                 page_size,
                 bundle_id: match req.bundle_id.as_deref() {
-                    Some(bundle_id) => Some(
-                        Uuid::parse_str(bundle_id)
-                            .map_err(|_| GrpcError::InvalidArgument(format!("invalid bundle_id: {}", bundle_id)))?,
-                    ),
+                    Some(bundle_id) => Some(Uuid::parse_str(bundle_id).map_err(|_| {
+                        GrpcError::InvalidArgument(format!("invalid bundle_id: {}", bundle_id))
+                    })?),
                     None => None,
                 },
                 enabled_only: req.enabled_only,
@@ -303,10 +321,9 @@ impl PolicyGrpcService {
         req: CreatePolicyRequest,
     ) -> Result<CreatePolicyResponse, GrpcError> {
         let bundle_id = match req.bundle_id.as_deref() {
-            Some(bundle_id) => Some(
-                Uuid::parse_str(bundle_id)
-                    .map_err(|_| GrpcError::InvalidArgument(format!("invalid bundle_id: {}", bundle_id)))?,
-            ),
+            Some(bundle_id) => Some(Uuid::parse_str(bundle_id).map_err(|_| {
+                GrpcError::InvalidArgument(format!("invalid bundle_id: {}", bundle_id))
+            })?),
             None => None,
         };
 
@@ -350,7 +367,9 @@ impl PolicyGrpcService {
             })
             .await
             .map_err(|e| match e {
-                UpdatePolicyError::NotFound(id) => GrpcError::NotFound(format!("policy not found: {}", id)),
+                UpdatePolicyError::NotFound(id) => {
+                    GrpcError::NotFound(format!("policy not found: {}", id))
+                }
                 UpdatePolicyError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
@@ -370,7 +389,9 @@ impl PolicyGrpcService {
             .execute(&id)
             .await
             .map_err(|e| match e {
-                DeletePolicyError::NotFound(id) => GrpcError::NotFound(format!("policy not found: {}", id)),
+                DeletePolicyError::NotFound(id) => {
+                    GrpcError::NotFound(format!("policy not found: {}", id))
+                }
                 DeletePolicyError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
@@ -414,16 +435,28 @@ impl PolicyGrpcService {
         &self,
         _req: ListBundlesRequest,
     ) -> Result<ListBundlesResponse, GrpcError> {
-        let bundles = self
-            .list_bundles_uc
-            .execute()
-            .await
-            .map_err(|e| match e {
-                ListBundlesError::Internal(msg) => GrpcError::Internal(msg),
-            })?;
+        let bundles = self.list_bundles_uc.execute().await.map_err(|e| match e {
+            ListBundlesError::Internal(msg) => GrpcError::Internal(msg),
+        })?;
 
         Ok(ListBundlesResponse {
             bundles: bundles.into_iter().map(to_bundle_data).collect(),
+        })
+    }
+
+    pub async fn get_bundle(&self, req: GetBundleRequest) -> Result<GetBundleResponse, GrpcError> {
+        let id = Uuid::parse_str(&req.id)
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid bundle id: {}", req.id)))?;
+
+        let bundle = self.get_bundle_uc.execute(&id).await.map_err(|e| match e {
+            GetBundleError::NotFound(id) => {
+                GrpcError::NotFound(format!("bundle not found: {}", id))
+            }
+            GetBundleError::Internal(msg) => GrpcError::Internal(msg),
+        })?;
+
+        Ok(GetBundleResponse {
+            bundle: to_bundle_data(bundle),
         })
     }
 }
@@ -450,7 +483,11 @@ fn to_bundle_data(bundle: PolicyBundle) -> PolicyBundleData {
         description: bundle.description,
         enabled: bundle.enabled,
         policy_count: bundle.policy_ids.len() as u32,
-        policy_ids: bundle.policy_ids.into_iter().map(|id| id.to_string()).collect(),
+        policy_ids: bundle
+            .policy_ids
+            .into_iter()
+            .map(|id| id.to_string())
+            .collect(),
         created_at: bundle.created_at,
         updated_at: bundle.updated_at,
     }

@@ -191,6 +191,9 @@ pub enum GrpcError {
     #[error("failed precondition: {0}")]
     FailedPrecondition(String),
 
+    #[error("aborted: {0}")]
+    Aborted(String),
+
     #[error("internal: {0}")]
     Internal(String),
 
@@ -270,10 +273,9 @@ impl SchedulerGrpcService {
             })
             .await
             .map_err(|e| match e {
-                CreateJobError::InvalidCron(expr) => GrpcError::InvalidArgument(format!(
-                    "invalid cron expression: {}",
-                    expr
-                )),
+                CreateJobError::InvalidCron(expr) => {
+                    GrpcError::InvalidArgument(format!("invalid cron expression: {}", expr))
+                }
                 CreateJobError::Internal(msg) => {
                     if msg.contains("already exists") || msg.contains("duplicate") {
                         GrpcError::AlreadyExists(msg)
@@ -364,7 +366,9 @@ impl SchedulerGrpcService {
             })
             .await
             .map_err(|e| match e {
-                UpdateJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
+                UpdateJobError::NotFound(id) => {
+                    GrpcError::NotFound(format!("job not found: {}", id))
+                }
                 UpdateJobError::InvalidCron(expr) => {
                     GrpcError::InvalidArgument(format!("invalid cron expression: {}", expr))
                 }
@@ -381,7 +385,7 @@ impl SchedulerGrpcService {
         self.delete_job_uc.execute(&id).await.map_err(|e| match e {
             DeleteJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
             DeleteJobError::JobRunning(id) => {
-                GrpcError::FailedPrecondition(format!("job is currently running: {}", id))
+                GrpcError::Aborted(format!("job is currently running: {}", id))
             }
             DeleteJobError::Internal(msg) => GrpcError::Internal(msg),
         })?;
@@ -430,9 +434,10 @@ impl SchedulerGrpcService {
             Err(TriggerJobError::NotFound(id)) => {
                 Err(GrpcError::NotFound(format!("job not found: {}", id)))
             }
-            Err(TriggerJobError::NotActive(id)) => {
-                Err(GrpcError::FailedPrecondition(format!("job not active: {}", id)))
-            }
+            Err(TriggerJobError::NotActive(id)) => Err(GrpcError::FailedPrecondition(format!(
+                "job not active: {}",
+                id
+            ))),
             Err(TriggerJobError::Internal(e)) => Err(GrpcError::Internal(e)),
         }
     }
@@ -489,11 +494,8 @@ impl SchedulerGrpcService {
         };
         let total_count = executions.len() as u64;
         let start = (page - 1) * page_size;
-        let page_items: Vec<SchedulerExecution> = executions
-            .into_iter()
-            .skip(start)
-            .take(page_size)
-            .collect();
+        let page_items: Vec<SchedulerExecution> =
+            executions.into_iter().skip(start).take(page_size).collect();
         let has_next = start + page_items.len() < total_count as usize;
 
         Ok(ListExecutionsResponse {

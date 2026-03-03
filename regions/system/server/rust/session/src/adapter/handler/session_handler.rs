@@ -208,7 +208,7 @@ pub struct SessionHttpResponse {
     pub expires_at: chrono::DateTime<chrono::Utc>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub last_accessed_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub revoked: bool,
+    pub status: String,
     pub metadata: HashMap<String, String>,
 }
 
@@ -226,7 +226,11 @@ impl SessionHttpResponse {
             expires_at: session.expires_at,
             created_at: session.created_at,
             last_accessed_at: session.last_accessed_at,
-            revoked: session.revoked,
+            status: if session.revoked {
+                "revoked".to_string()
+            } else {
+                "active".to_string()
+            },
             metadata: session.metadata,
         }
     }

@@ -31,6 +31,10 @@ pub struct CreateSessionResponse {
     pub created_at: String,
     pub token: String,
     pub metadata: HashMap<String, String>,
+    pub device_name: Option<String>,
+    pub device_type: Option<String>,
+    pub user_agent: Option<String>,
+    pub ip_address: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +57,17 @@ pub struct RefreshSessionRequest {
 pub struct RefreshSessionResponse {
     pub session_id: String,
     pub expires_at: String,
+    pub user_id: String,
+    pub token: String,
+    pub device_id: String,
+    pub device_name: Option<String>,
+    pub device_type: Option<String>,
+    pub user_agent: Option<String>,
+    pub ip_address: Option<String>,
+    pub metadata: HashMap<String, String>,
+    pub created_at: String,
+    pub last_accessed_at: Option<String>,
+    pub status: String,
 }
 
 #[derive(Debug, Clone)]
@@ -159,7 +174,10 @@ impl SessionGrpcService {
             device_type: req.device_type,
             user_agent: req.user_agent,
             ip_address: req.ip_address,
-            ttl_seconds: req.ttl_seconds.map(|ttl| ttl as i64).or(Some(self.default_ttl)),
+            ttl_seconds: req
+                .ttl_seconds
+                .map(|ttl| ttl as i64)
+                .or(Some(self.default_ttl)),
             max_devices: None,
             metadata: None,
         };
@@ -173,6 +191,10 @@ impl SessionGrpcService {
                 created_at: output.session.created_at.to_rfc3339(),
                 token: output.session.token,
                 metadata: output.session.metadata,
+                device_name: output.session.device_name,
+                device_type: output.session.device_type,
+                user_agent: output.session.user_agent,
+                ip_address: output.session.ip_address,
             }),
             Err(SessionError::InvalidInput(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
@@ -226,12 +248,33 @@ impl SessionGrpcService {
         };
 
         match self.refresh_uc.execute(&input).await {
-            Ok(output) => Ok(RefreshSessionResponse {
-                session_id: output.session.id,
-                expires_at: output.session.expires_at.to_rfc3339(),
-            }),
+            Ok(output) => {
+                let status = if output.session.revoked {
+                    "revoked".to_string()
+                } else {
+                    "active".to_string()
+                };
+                Ok(RefreshSessionResponse {
+                    session_id: output.session.id,
+                    expires_at: output.session.expires_at.to_rfc3339(),
+                    user_id: output.session.user_id,
+                    token: output.session.token,
+                    device_id: output.session.device_id,
+                    device_name: output.session.device_name,
+                    device_type: output.session.device_type,
+                    user_agent: output.session.user_agent,
+                    ip_address: output.session.ip_address,
+                    metadata: output.session.metadata,
+                    created_at: output.session.created_at.to_rfc3339(),
+                    last_accessed_at: output.session.last_accessed_at.map(|t| t.to_rfc3339()),
+                    status,
+                })
+            }
             Err(SessionError::NotFound(msg)) => Err(GrpcError::NotFound(msg)),
-            Err(SessionError::Revoked(msg)) => Err(GrpcError::InvalidArgument(format!("session revoked: {}", msg))),
+            Err(SessionError::Revoked(msg)) => Err(GrpcError::InvalidArgument(format!(
+                "session revoked: {}",
+                msg
+            ))),
             Err(SessionError::InvalidInput(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -241,9 +284,7 @@ impl SessionGrpcService {
         &self,
         req: RevokeSessionRequest,
     ) -> Result<RevokeSessionResponse, GrpcError> {
-        let input = RevokeSessionInput {
-            id: req.session_id,
-        };
+        let input = RevokeSessionInput { id: req.session_id };
 
         match self.revoke_uc.execute(&input).await {
             Ok(()) => Ok(RevokeSessionResponse { success: true }),
@@ -461,9 +502,8 @@ mod tests {
     #[tokio::test]
     async fn test_revoke_all_sessions_success() {
         let mut mock = MockSessionRepository::new();
-        mock.expect_find_by_user_id().returning(|_| {
-            Ok(vec![make_session("s1"), make_session("s2")])
-        });
+        mock.expect_find_by_user_id()
+            .returning(|_| Ok(vec![make_session("s1"), make_session("s2")]));
         mock.expect_save().returning(|_| Ok(()));
 
         let svc = make_service(mock);

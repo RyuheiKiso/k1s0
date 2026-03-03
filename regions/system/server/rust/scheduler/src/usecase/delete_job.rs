@@ -26,7 +26,10 @@ impl DeleteJobUseCase {
         repo: Arc<dyn SchedulerJobRepository>,
         execution_repo: Arc<dyn SchedulerExecutionRepository>,
     ) -> Self {
-        Self { repo, execution_repo }
+        Self {
+            repo,
+            execution_repo,
+        }
     }
 
     pub async fn execute(&self, id: &Uuid) -> Result<(), DeleteJobError> {
@@ -72,8 +75,7 @@ mod tests {
         let mut mock = MockSchedulerJobRepository::new();
         let mut mock_exec = MockSchedulerExecutionRepository::new();
         let id = Uuid::new_v4();
-        mock
-            .expect_find_by_id()
+        mock.expect_find_by_id()
             .withf(move |job_id| *job_id == id)
             .returning(|job_id| {
                 Ok(Some(crate::domain::entity::scheduler_job::SchedulerJob {

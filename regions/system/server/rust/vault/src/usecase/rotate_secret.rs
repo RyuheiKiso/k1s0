@@ -38,7 +38,10 @@ impl RotateSecretUseCase {
         }
     }
 
-    pub async fn execute(&self, input: &RotateSecretInput) -> Result<RotateSecretOutput, RotateSecretError> {
+    pub async fn execute(
+        &self,
+        input: &RotateSecretInput,
+    ) -> Result<RotateSecretOutput, RotateSecretError> {
         let current = self
             .get_secret_uc
             .execute(&GetSecretInput {
@@ -60,7 +63,8 @@ impl RotateSecretUseCase {
             .await
             .map_err(|e| match e {
                 SetSecretError::Internal(msg) => RotateSecretError::Internal(msg),
-            })?;
+            })?
+            .version;
 
         if new_version <= current.current_version {
             return Err(RotateSecretError::Internal(format!(

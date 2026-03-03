@@ -54,7 +54,7 @@ pub struct ListSagasRequest {
 #[derive(Debug)]
 pub struct ListSagasResponse {
     pub sagas: Vec<SagaStateProto>,
-    pub total_count: i64,
+    pub total_count: i32,
     pub page: i32,
     pub page_size: i32,
     pub has_next: bool,
@@ -325,7 +325,7 @@ impl SagaGrpcService {
 
         let page = req.page;
         let page_size = req.page_size;
-        let has_next = (page as i64 * page_size as i64) < total_count;
+        let has_next = (page as i64 * page_size as i64) < i64::from(total_count);
 
         let saga_protos = sagas
             .into_iter()

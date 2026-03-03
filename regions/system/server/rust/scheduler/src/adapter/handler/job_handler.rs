@@ -1,4 +1,4 @@
-﻿use axum::{
+use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
@@ -44,10 +44,7 @@ pub async fn list_jobs(
 }
 
 /// GET /api/v1/jobs/:id
-pub async fn get_job(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+pub async fn get_job(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match state.get_job_uc.execute(&id).await {
         Ok(job) => (StatusCode::OK, Json(serde_json::to_value(job).unwrap())).into_response(),
         Err(e) => {
@@ -79,9 +76,11 @@ pub async fn create_job(
     };
 
     match state.create_job_uc.execute(&input).await {
-        Ok(job) => {
-            (StatusCode::CREATED, Json(serde_json::to_value(job).unwrap())).into_response()
-        }
+        Ok(job) => (
+            StatusCode::CREATED,
+            Json(serde_json::to_value(job).unwrap()),
+        )
+            .into_response(),
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("already exists") || msg.contains("duplicate") {
@@ -99,10 +98,7 @@ pub async fn create_job(
 }
 
 /// DELETE /api/v1/jobs/:id
-pub async fn delete_job(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+pub async fn delete_job(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     use crate::usecase::delete_job::DeleteJobError;
 
     match state.delete_job_uc.execute(&id).await {
@@ -115,8 +111,7 @@ pub async fn delete_job(
         )
             .into_response(),
         Err(DeleteJobError::NotFound(_)) => {
-            let err =
-                ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
+            let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeleteJobError::JobRunning(_)) => {
@@ -134,10 +129,7 @@ pub async fn delete_job(
 }
 
 /// PUT /api/v1/jobs/:id/pause
-pub async fn pause_job(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+pub async fn pause_job(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match state.pause_job_uc.execute(&id).await {
         Ok(job) => (StatusCode::OK, Json(serde_json::to_value(job).unwrap())).into_response(),
         Err(e) => {
@@ -154,10 +146,7 @@ pub async fn pause_job(
 }
 
 /// PUT /api/v1/jobs/:id/resume
-pub async fn resume_job(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+pub async fn resume_job(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match state.resume_job_uc.execute(&id).await {
         Ok(job) => (StatusCode::OK, Json(serde_json::to_value(job).unwrap())).into_response(),
         Err(e) => {
@@ -213,16 +202,15 @@ pub async fn update_job(
 }
 
 /// POST /api/v1/jobs/:id/trigger
-pub async fn trigger_job(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> impl IntoResponse {
+pub async fn trigger_job(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     use crate::usecase::trigger_job::TriggerJobError;
 
     match state.trigger_job_uc.execute(&id).await {
-        Ok(execution) => {
-            (StatusCode::OK, Json(serde_json::to_value(execution).unwrap())).into_response()
-        }
+        Ok(execution) => (
+            StatusCode::OK,
+            Json(serde_json::to_value(execution).unwrap()),
+        )
+            .into_response(),
         Err(TriggerJobError::NotFound(id)) => {
             let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
@@ -303,10 +291,8 @@ pub async fn list_executions(
                 .collect();
             let has_next = start + page_items.len() < total_count as usize;
 
-            let executions: Vec<serde_json::Value> = page_items
-                .into_iter()
-                .map(execution_to_response)
-                .collect();
+            let executions: Vec<serde_json::Value> =
+                page_items.into_iter().map(execution_to_response).collect();
             (
                 StatusCode::OK,
                 Json(serde_json::json!({
@@ -429,4 +415,3 @@ impl ErrorResponse {
         }
     }
 }
-

@@ -17,6 +17,12 @@ pub enum SetSecretError {
     Internal(String),
 }
 
+#[derive(Debug, Clone)]
+pub struct SetSecretOutput {
+    pub version: i64,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
 pub struct SetSecretUseCase {
     store: Arc<dyn SecretStore>,
     audit: Arc<dyn AccessLogRepository>,
@@ -36,17 +42,12 @@ impl SetSecretUseCase {
         }
     }
 
-    pub async fn execute(&self, input: &SetSecretInput) -> Result<i64, SetSecretError> {
+    pub async fn execute(&self, input: &SetSecretInput) -> Result<SetSecretOutput, SetSecretError> {
         let result = self.store.set(&input.path, input.data.clone()).await;
 
-        match &result {
-            Ok(_) => {
-                let log = SecretAccessLog::new(
-                    input.path.clone(),
-                    AccessAction::Write,
-                    None,
-                    true,
-                );
+        match result {
+            Ok(version) => {
+                let log = SecretAccessLog::new(input.path.clone(), AccessAction::Write, None, true);
                 let _ = self.audit.record(&log).await;
                 let _ = self
                     .event_publisher
@@ -59,14 +60,30 @@ impl SetSecretUseCase {
                         timestamp: chrono::Utc::now().to_rfc3339(),
                     })
                     .await;
+
+                let secret = self
+                    .store
+                    .get(&input.path, Some(version))
+                    .await
+                    .map_err(|e| SetSecretError::Internal(e.to_string()))?;
+                let created_at = secret
+                    .get_version(Some(version))
+                    .map(|sv| sv.created_at)
+                    .ok_or_else(|| {
+                        SetSecretError::Internal(format!(
+                            "failed to resolve created_at for version {}",
+                            version
+                        ))
+                    })?;
+
+                Ok(SetSecretOutput {
+                    version,
+                    created_at,
+                })
             }
             Err(e) => {
-                let mut log = SecretAccessLog::new(
-                    input.path.clone(),
-                    AccessAction::Write,
-                    None,
-                    false,
-                );
+                let mut log =
+                    SecretAccessLog::new(input.path.clone(), AccessAction::Write, None, false);
                 log.error_msg = Some(e.to_string());
                 let _ = self.audit.record(&log).await;
                 let _ = self
@@ -80,10 +97,10 @@ impl SetSecretUseCase {
                         timestamp: chrono::Utc::now().to_rfc3339(),
                     })
                     .await;
+
+                Err(SetSecretError::Internal(e.to_string()))
             }
         }
-
-        result.map_err(|e| SetSecretError::Internal(e.to_string()))
     }
 }
 
@@ -103,10 +120,20 @@ mod tests {
             .expect_set()
             .withf(|path, data| path == "app/db/password" && data.contains_key("password"))
             .returning(|_, _| Ok(1));
+        mock_store.expect_get().returning(|path, version| {
+            let mut data = HashMap::new();
+            data.insert("password".to_string(), "s3cret".to_string());
+            let mut secret = crate::domain::entity::secret::Secret::new(path.to_string(), data);
+            if version.unwrap_or(1) > 1 {
+                secret = secret.update(HashMap::from([(
+                    "password".to_string(),
+                    "s3cret-v2".to_string(),
+                )]));
+            }
+            Ok(secret)
+        });
 
-        mock_audit
-            .expect_record()
-            .returning(|_| Ok(()));
+        mock_audit.expect_record().returning(|_| Ok(()));
 
         let uc = SetSecretUseCase::new(
             Arc::new(mock_store),
@@ -120,7 +147,7 @@ mod tests {
 
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), 1);
+        assert_eq!(result.unwrap().version, 1);
     }
 
     #[tokio::test]
@@ -132,9 +159,7 @@ mod tests {
             .expect_set()
             .returning(|_, _| Err(anyhow::anyhow!("storage backend unavailable")));
 
-        mock_audit
-            .expect_record()
-            .returning(|_| Ok(()));
+        mock_audit.expect_record().returning(|_| Ok(()));
 
         let uc = SetSecretUseCase::new(
             Arc::new(mock_store),

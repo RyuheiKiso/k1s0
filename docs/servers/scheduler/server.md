@@ -348,6 +348,8 @@ ID 指定でジョブの詳細を取得する。
 }
 ```
 
+> `duration_ms` は保存値ではなく計算フィールドで、`finished_at - started_at`（ミリ秒）から算出される。
+
 ### エラーコード
 
 | コード | HTTP Status | 説明 |
@@ -358,7 +360,20 @@ ID 指定でジョブの詳細を取得する。
 | `SYS_SCHED_JOB_RUNNING` | 409 | 実行中のジョブは削除できない |
 | `SYS_SCHED_INVALID_STATUS` | 409 | 操作に対してジョブのステータスが不正 |
 | `SYS_SCHED_INVALID_CRON` | 400 | cron 式が不正 |
+| `SYS_SCHED_VALIDATION_ERROR` | 400 | バリデーションエラー |
 | `SYS_SCHED_INTERNAL_ERROR` | 500 | 内部エラー |
+
+### gRPC エラーマッピング
+
+| ドメイン/REST エラー | gRPC Status | 補足 |
+| --- | --- | --- |
+| `SYS_SCHED_NOT_FOUND` | `NotFound` | リソースが存在しない |
+| `SYS_SCHED_ALREADY_EXISTS` | `AlreadyExists` | 重複作成 |
+| `SYS_SCHED_INVALID_CRON` / `SYS_SCHED_VALIDATION_ERROR` | `InvalidArgument` | 入力不正 |
+| `SYS_SCHED_JOB_RUNNING` | `Aborted` | 実行中ジョブ削除競合 |
+| `SYS_SCHED_NOT_ACTIVE` | `FailedPrecondition` | 状態前提を満たさない |
+| `SYS_SCHED_INTERNAL_ERROR` | `Internal` | サーバー内部エラー |
+| 未実装 RPC | `Unimplemented` | 将来機能 |
 
 ### gRPC サービス定義
 

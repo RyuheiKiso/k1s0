@@ -7,12 +7,17 @@ use crate::proto::k1s0::system::common::v1::{
 };
 use crate::proto::k1s0::system::policy::v1::{
     policy_service_server::PolicyService, CreateBundleRequest as ProtoCreateBundleRequest,
-    CreateBundleResponse as ProtoCreateBundleResponse, CreatePolicyRequest as ProtoCreatePolicyRequest,
-    CreatePolicyResponse as ProtoCreatePolicyResponse, DeletePolicyRequest as ProtoDeletePolicyRequest,
-    DeletePolicyResponse as ProtoDeletePolicyResponse, EvaluatePolicyRequest as ProtoEvaluatePolicyRequest,
-    EvaluatePolicyResponse as ProtoEvaluatePolicyResponse, GetPolicyRequest as ProtoGetPolicyRequest,
-    GetPolicyResponse as ProtoGetPolicyResponse, ListBundlesRequest as ProtoListBundlesRequest,
-    ListBundlesResponse as ProtoListBundlesResponse, ListPoliciesRequest as ProtoListPoliciesRequest,
+    CreateBundleResponse as ProtoCreateBundleResponse,
+    CreatePolicyRequest as ProtoCreatePolicyRequest,
+    CreatePolicyResponse as ProtoCreatePolicyResponse,
+    DeletePolicyRequest as ProtoDeletePolicyRequest,
+    DeletePolicyResponse as ProtoDeletePolicyResponse,
+    EvaluatePolicyRequest as ProtoEvaluatePolicyRequest,
+    EvaluatePolicyResponse as ProtoEvaluatePolicyResponse,
+    GetBundleRequest as ProtoGetBundleRequest, GetBundleResponse as ProtoGetBundleResponse,
+    GetPolicyRequest as ProtoGetPolicyRequest, GetPolicyResponse as ProtoGetPolicyResponse,
+    ListBundlesRequest as ProtoListBundlesRequest, ListBundlesResponse as ProtoListBundlesResponse,
+    ListPoliciesRequest as ProtoListPoliciesRequest,
     ListPoliciesResponse as ProtoListPoliciesResponse, Policy as ProtoPolicy,
     PolicyBundle as ProtoPolicyBundle, UpdatePolicyRequest as ProtoUpdatePolicyRequest,
     UpdatePolicyResponse as ProtoUpdatePolicyResponse,
@@ -20,8 +25,8 @@ use crate::proto::k1s0::system::policy::v1::{
 
 use super::policy_grpc::{
     CreateBundleRequest, CreatePolicyRequest, DeletePolicyRequest, EvaluatePolicyRequest,
-    GetPolicyRequest, GrpcError, ListBundlesRequest, ListPoliciesRequest, PolicyBundleData,
-    PolicyData, PolicyGrpcService, UpdatePolicyRequest,
+    GetBundleRequest, GetPolicyRequest, GrpcError, ListBundlesRequest, ListPoliciesRequest,
+    PolicyBundleData, PolicyData, PolicyGrpcService, UpdatePolicyRequest,
 };
 
 impl From<GrpcError> for Status {
@@ -125,7 +130,10 @@ impl PolicyService for PolicyServiceTonic {
         request: Request<ProtoListPoliciesRequest>,
     ) -> Result<Response<ProtoListPoliciesResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner.pagination.map(|p| (p.page, p.page_size)).unwrap_or((1, 20));
+        let (page, page_size) = inner
+            .pagination
+            .map(|p| (p.page, p.page_size))
+            .unwrap_or((1, 20));
         let resp = self
             .inner
             .list_policies(ListPoliciesRequest {
@@ -241,6 +249,22 @@ impl PolicyService for PolicyServiceTonic {
 
         Ok(Response::new(ProtoListBundlesResponse {
             bundles: resp.bundles.into_iter().map(to_proto_bundle).collect(),
+        }))
+    }
+
+    async fn get_bundle(
+        &self,
+        request: Request<ProtoGetBundleRequest>,
+    ) -> Result<Response<ProtoGetBundleResponse>, Status> {
+        let inner = request.into_inner();
+        let resp = self
+            .inner
+            .get_bundle(GetBundleRequest { id: inner.id })
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoGetBundleResponse {
+            bundle: Some(to_proto_bundle(resp.bundle)),
         }))
     }
 }

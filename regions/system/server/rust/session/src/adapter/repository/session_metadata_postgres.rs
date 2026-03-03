@@ -128,12 +128,10 @@ impl SessionMetadataRepository for SessionMetadataPostgresRepository {
     }
 
     async fn mark_revoked(&self, session_id: Uuid) -> anyhow::Result<()> {
-        sqlx::query(
-            "UPDATE session.user_sessions SET revoked = true WHERE id = $1",
-        )
-        .bind(session_id)
-        .execute(self.pool.as_ref())
-        .await?;
+        sqlx::query("UPDATE session.user_sessions SET revoked = true WHERE id = $1")
+            .bind(session_id)
+            .execute(self.pool.as_ref())
+            .await?;
 
         Ok(())
     }

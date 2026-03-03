@@ -122,10 +122,10 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // --- Session Metadata Repository: PostgreSQL or Noop fallback ---
-    let metadata_repo: Arc<dyn SessionMetadataRepository> = if let Some(ref db_cfg) = cfg.database
-    {
+    let metadata_repo: Arc<dyn SessionMetadataRepository> = if let Some(ref db_cfg) = cfg.database {
         info!("connecting to PostgreSQL for session metadata");
-        let pool = infrastructure::database::create_pool(&db_cfg.url, db_cfg.max_connections).await?;
+        let pool =
+            infrastructure::database::create_pool(&db_cfg.url, db_cfg.max_connections).await?;
         info!("PostgreSQL connection pool established");
         Arc::new(SessionMetadataPostgresRepository::new(Arc::new(pool)))
     } else {
@@ -169,9 +169,9 @@ async fn main() -> anyhow::Result<()> {
             revoke_all_uc.clone(),
         ) {
             Ok(consumer) => {
-                let consumer = consumer.with_metrics(
-                    Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-session-server")),
-                );
+                let consumer = consumer.with_metrics(Arc::new(
+                    k1s0_telemetry::metrics::Metrics::new("k1s0-session-server"),
+                ));
                 info!("kafka consumer initialized, starting background ingestion");
                 tokio::spawn(async move {
                     if let Err(e) = consumer.run().await {
@@ -196,9 +196,7 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     // Metrics
-    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
-        "k1s0-session-server",
-    ));
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-session-server"));
 
     // Log metadata and event publisher status
     info!(
@@ -243,8 +241,14 @@ async fn main() -> anyhow::Result<()> {
 
     // 認証不要のエンドポイント
     let public_routes = axum::Router::new()
-        .route("/healthz", axum::routing::get(adapter::handler::health::healthz))
-        .route("/readyz", axum::routing::get(adapter::handler::health::readyz))
+        .route(
+            "/healthz",
+            axum::routing::get(adapter::handler::health::healthz),
+        )
+        .route(
+            "/readyz",
+            axum::routing::get(adapter::handler::health::readyz),
+        )
         .route("/metrics", axum::routing::get(metrics_handler));
 
     // 認証が設定されている場合は RBAC 付きルーティング

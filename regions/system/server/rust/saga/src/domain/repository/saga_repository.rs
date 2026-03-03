@@ -43,7 +43,7 @@ pub trait SagaRepository: Send + Sync {
     async fn find_step_logs(&self, saga_id: Uuid) -> anyhow::Result<Vec<SagaStepLog>>;
 
     /// Saga一覧を取得する。
-    async fn list(&self, params: &SagaListParams) -> anyhow::Result<(Vec<SagaState>, i64)>;
+    async fn list(&self, params: &SagaListParams) -> anyhow::Result<(Vec<SagaState>, i32)>;
 
     /// 未完了のSagaを検索する（起動時リカバリ用）。
     async fn find_incomplete(&self) -> anyhow::Result<Vec<SagaState>>;

@@ -80,7 +80,11 @@ impl AccessLogRepository for AccessLogPostgresRepository {
                     id: row.get("id"),
                     path: row.get("key_path"),
                     action: action_from_str(row.get("action")),
-                    subject: if actor_id.is_empty() { None } else { Some(actor_id) },
+                    subject: if actor_id.is_empty() {
+                        None
+                    } else {
+                        Some(actor_id)
+                    },
                     tenant_id: None,
                     ip_address: row.get("ip_address"),
                     trace_id: None,

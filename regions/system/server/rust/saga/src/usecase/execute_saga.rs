@@ -46,7 +46,10 @@ impl ExecuteSagaUseCase {
     }
 
     /// WorkflowRepository を設定する。
-    pub fn with_workflow_repo(mut self, repo: Arc<dyn crate::domain::repository::WorkflowRepository>) -> Self {
+    pub fn with_workflow_repo(
+        mut self,
+        repo: Arc<dyn crate::domain::repository::WorkflowRepository>,
+    ) -> Self {
         self.workflow_repo = Some(repo);
         self
     }
@@ -82,9 +85,13 @@ impl ExecuteSagaUseCase {
 
     /// 外部から補償処理をトリガーする。
     /// Sagaを読み込み、Compensating状態に遷移させ、補償ステップを実行する。
-    pub async fn trigger_compensate(&self, saga_id: Uuid) -> Result<SagaState, CompensateSagaError> {
-        let workflow_repo = self.workflow_repo.as_ref()
-            .ok_or_else(|| CompensateSagaError::Internal(anyhow::anyhow!("workflow_repo not configured")))?;
+    pub async fn trigger_compensate(
+        &self,
+        saga_id: Uuid,
+    ) -> Result<SagaState, CompensateSagaError> {
+        let workflow_repo = self.workflow_repo.as_ref().ok_or_else(|| {
+            CompensateSagaError::Internal(anyhow::anyhow!("workflow_repo not configured"))
+        })?;
 
         let mut saga = self
             .saga_repo
@@ -94,7 +101,9 @@ impl ExecuteSagaUseCase {
             .ok_or(CompensateSagaError::NotFound(saga_id))?;
 
         if saga.is_terminal() {
-            return Err(CompensateSagaError::AlreadyTerminal(saga.status.to_string()));
+            return Err(CompensateSagaError::AlreadyTerminal(
+                saga.status.to_string(),
+            ));
         }
 
         let workflow = workflow_repo
@@ -110,7 +119,9 @@ impl ExecuteSagaUseCase {
             .map_err(CompensateSagaError::Internal)?;
 
         self.publish_event(&saga, "SAGA_COMPENSATING").await;
-        self.compensate(&mut saga, &workflow).await.map_err(CompensateSagaError::Internal)?;
+        self.compensate(&mut saga, &workflow)
+            .await
+            .map_err(CompensateSagaError::Internal)?;
 
         // Re-fetch to return latest state
         let updated = self

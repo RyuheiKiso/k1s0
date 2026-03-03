@@ -113,10 +113,10 @@ Saga の補償処理（逆順ロールバック）を明示的にトリガーす
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `saga_id` | string (UUID) | 対象 Saga の ID |
 | `success` | bool | 補償トリガー受理結果 |
 | `status` | string | 補償実行後の Saga ステータス（実装上は `FAILED`） |
 | `message` | string | 処理結果メッセージ |
+| `saga_id` | string (UUID) | 対象 Saga の ID |
 
 `status` フィールドの有効値: `STARTED`, `RUNNING`, `COMPLETED`, `COMPENSATING`, `FAILED`, `CANCELLED`
 
@@ -128,10 +128,10 @@ Saga の補償処理（逆順ロールバック）を明示的にトリガーす
 
 ```json
 {
-  "saga_id": "550e8400-e29b-41d4-a716-446655440000",
   "success": true,
   "status": "FAILED",
-  "message": "saga 550e8400-e29b-41d4-a716-446655440000 compensation completed"
+  "message": "saga 550e8400-e29b-41d4-a716-446655440000 compensation completed",
+  "saga_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -391,6 +391,7 @@ syntax = "proto3";
 package k1s0.system.saga.v1;
 
 import "k1s0/system/common/v1/types.proto";
+import "google/protobuf/struct.proto";
 
 service SagaService {
   rpc StartSaga(StartSagaRequest) returns (StartSagaResponse);
@@ -426,7 +427,7 @@ message SagaStepLogProto {
   google.protobuf.Struct response_payload = 8;
   string error_message = 9;
   k1s0.system.common.v1.Timestamp started_at = 10;
-  k1s0.system.common.v1.Timestamp completed_at = 11;
+  optional k1s0.system.common.v1.Timestamp completed_at = 11;
 }
 
 message WorkflowSummary {

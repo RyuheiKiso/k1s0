@@ -35,6 +35,7 @@ impl From<GrpcError> for Status {
             GrpcError::AlreadyExists(msg) => Status::already_exists(msg),
             GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
             GrpcError::FailedPrecondition(msg) => Status::failed_precondition(msg),
+            GrpcError::Aborted(msg) => Status::aborted(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
             GrpcError::Unimplemented(msg) => Status::unimplemented(msg),
         }

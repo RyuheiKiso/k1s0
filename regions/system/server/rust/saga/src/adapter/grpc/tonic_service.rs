@@ -277,7 +277,7 @@ impl SagaService for SagaServiceTonic {
             .collect();
 
         let proto_pagination = Some(ProtoPaginationResult {
-            total_count: resp.total_count as i32,
+            total_count: resp.total_count,
             page: resp.page,
             page_size: resp.page_size,
             has_next: resp.has_next,
@@ -509,7 +509,9 @@ steps:
 
         let req = Request::new(ProtoStartSagaRequest {
             workflow_name: "test-workflow".to_string(),
-            payload: serde_json::to_vec(&serde_json::json!({"order_id": "123"})).unwrap(),
+            payload: Some(json_to_prost_struct(
+                &serde_json::json!({"order_id": "123"}),
+            )),
             correlation_id: "corr-001".to_string(),
             initiated_by: "user-1".to_string(),
         });
@@ -542,9 +544,9 @@ steps:
                 page: 1,
                 page_size: 20,
             }),
-            workflow_name: "".to_string(),
-            status: "".to_string(),
-            correlation_id: "".to_string(),
+            workflow_name: None,
+            status: None,
+            correlation_id: None,
         });
 
         let resp = svc.list_sagas(req).await.unwrap();
