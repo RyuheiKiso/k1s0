@@ -297,6 +297,7 @@ message GetSecretResponse {
   map<string, string> data = 1;
   int64 version = 2;
   k1s0.system.common.v1.Timestamp created_at = 3;
+  k1s0.system.common.v1.Timestamp updated_at = 4;
 }
 
 message SetSecretRequest {

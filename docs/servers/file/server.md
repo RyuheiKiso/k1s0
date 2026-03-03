@@ -378,6 +378,7 @@ message GenerateUploadUrlRequest {
 message GenerateUploadUrlResponse {
   string file_id = 1;
   string upload_url = 2;
+  uint32 expires_in_seconds = 3;
 }
 
 message CompleteUploadRequest {
@@ -395,6 +396,7 @@ message GenerateDownloadUrlRequest {
 
 message GenerateDownloadUrlResponse {
   string download_url = 1;
+  int32 expires_in_seconds = 2;
 }
 
 message UpdateFileTagsRequest {

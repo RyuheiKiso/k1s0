@@ -70,7 +70,7 @@ pub struct CreateTenantRequest {
     pub name: String,
     pub display_name: String,
     pub plan: String,
-    pub owner_id: Option<String>,
+    pub owner_user_id: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -221,7 +221,7 @@ pub async fn create_tenant(
     Json(req): Json<CreateTenantRequest>,
 ) -> impl IntoResponse {
     let owner_id = req
-        .owner_id
+        .owner_user_id
         .and_then(|s| Uuid::parse_str(&s).ok());
 
     let input = CreateTenantInput {

@@ -74,7 +74,7 @@ system tier の Tenant Server は以下の機能を提供する。
   "name": "acme-corp",
   "display_name": "Acme Corporation",
   "plan": "enterprise",
-  "owner_id": "660e8400-e29b-41d4-a716-446655440001"
+  "owner_user_id": "660e8400-e29b-41d4-a716-446655440001"
 }
 ```
 
@@ -83,7 +83,7 @@ system tier の Tenant Server は以下の機能を提供する。
 | `name` | string | Yes | テナント名（URL フレンドリー、一意制約） |
 | `display_name` | string | Yes | テナント表示名 |
 | `plan` | string | Yes | 契約プラン（`free` / `starter` / `professional` / `enterprise`） |
-| `owner_id` | string (UUID) | No | オーナーユーザー ID |
+| `owner_user_id` | string (UUID) | No | オーナーユーザー ID |
 
 **レスポンス（201 Created）**
 
@@ -623,7 +623,7 @@ Step 4: テナントステータスを active に遷移
 | `display_name` | String | テナント表示名 |
 | `status` | TenantStatus | テナントステータス（`provisioning` / `active` / `suspended` / `deleted`） |
 | `plan` | String | 契約プラン（`free` / `starter` / `professional` / `enterprise`） |
-| `settings` | JSON | テナント固有の設定値（JSON オブジェクト） |
+| `settings` | string (JSON) | proto では string。実際の値は JSON 文字列として扱う |
 | `keycloak_realm` | Option\<String\> | Keycloak realm 名（`k1s0-{name}`） |
 | `db_schema` | Option\<String\> | PostgreSQL スキーマ名（`tenant_{id}`） |
 | `created_at` | DateTime\<Utc\> | 作成日時 |

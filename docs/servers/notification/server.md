@@ -405,10 +405,12 @@ system tier の通知管理サーバーは以下の機能を提供する。
       "created_at": "2026-02-20T12:30:00.000+00:00"
     }
   ],
-  "total_count": 12,
-  "page": 1,
-  "page_size": 20,
-  "has_next": false
+  "pagination": {
+    "total_count": 12,
+    "page": 1,
+    "page_size": 20,
+    "has_next": false
+  }
 }
 ```
 

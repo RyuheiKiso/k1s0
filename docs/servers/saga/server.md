@@ -117,6 +117,28 @@ Saga の補償処理（逆順ロールバック）を明示的にトリガーす
 | `status` | string | 補償後のステータス |
 | `message` | string | 処理結果メッセージ |
 
+**リクエスト**
+
+リクエストボディは不要（Path パラメータ `saga_id` のみ）。
+
+**レスポンス（200 OK）**
+
+```json
+{
+  "saga_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "COMPENSATED",
+  "message": "saga 550e8400-e29b-41d4-a716-446655440000 compensation completed"
+}
+```
+
+**エラーケース**
+
+| HTTP Status | 条件 | 例 |
+| --- | --- | --- |
+| 404 | Saga が存在しない / Workflow が存在しない | `{"error":{"code":"SYS_SAGA_NOT_FOUND","message":"saga not found"}}` |
+| 409 | 既に終端状態（COMPLETED / FAILED / CANCELLED） | `{"error":{"code":"SYS_SAGA_CONFLICT","message":"already terminal"}}` |
+| 500 | 補償実行中の内部エラー | `{"error":{"code":"SYS_SAGA_INTERNAL_ERROR","message":"internal error"}}` |
+
 #### POST /api/v1/workflows
 
 YAML 形式のワークフロー定義を登録する。

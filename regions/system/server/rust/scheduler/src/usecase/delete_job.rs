@@ -164,7 +164,7 @@ mod tests {
                 status: "running".to_string(),
                 triggered_by: "scheduler".to_string(),
                 started_at: chrono::Utc::now(),
-                completed_at: None,
+                finished_at: None,
                 error_message: None,
             }])
         });

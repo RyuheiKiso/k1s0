@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::AppState;
+use crate::domain::entity::scheduler_execution::SchedulerExecution;
 use crate::usecase::create_job::CreateJobInput;
 
 /// GET /api/v1/jobs
@@ -245,11 +246,13 @@ pub async fn list_executions(
     use crate::usecase::list_executions::ListExecutionsError;
 
     match state.list_executions_uc.execute(&id).await {
-        Ok(executions) => (
-            StatusCode::OK,
-            Json(serde_json::json!({ "executions": executions })),
-        )
-            .into_response(),
+        Ok(executions) => {
+            let executions: Vec<serde_json::Value> = executions
+                .into_iter()
+                .map(execution_to_response)
+                .collect();
+            (StatusCode::OK, Json(serde_json::json!({ "executions": executions }))).into_response()
+        }
         Err(ListExecutionsError::NotFound(id)) => {
             let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
@@ -258,6 +261,38 @@ pub async fn list_executions(
             let err = ErrorResponse::new("SYS_SCHED_LIST_EXECUTIONS_FAILED", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
+    }
+}
+
+fn execution_to_response(execution: SchedulerExecution) -> serde_json::Value {
+    let finished_at = execution.finished_at;
+    let duration_ms = finished_at.as_ref().and_then(|finished_at| {
+        let duration = finished_at
+            .clone()
+            .signed_duration_since(execution.started_at.clone());
+        if duration.num_milliseconds() >= 0 {
+            Some(duration.num_milliseconds() as u64)
+        } else {
+            None
+        }
+    });
+
+    serde_json::json!({
+        "id": execution.id.to_string(),
+        "job_id": execution.job_id.to_string(),
+        "status": normalize_status(&execution.status),
+        "triggered_by": execution.triggered_by,
+        "started_at": execution.started_at.to_rfc3339(),
+        "finished_at": finished_at.map(|t| t.to_rfc3339()),
+        "duration_ms": duration_ms,
+        "error_message": execution.error_message,
+    })
+}
+
+fn normalize_status(status: &str) -> String {
+    match status {
+        "completed" => "succeeded".to_string(),
+        other => other.to_string(),
     }
 }
 

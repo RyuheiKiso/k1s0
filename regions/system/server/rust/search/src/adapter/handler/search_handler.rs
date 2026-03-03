@@ -52,16 +52,18 @@ fn default_size() -> u32 {
 
 #[derive(Debug, Serialize)]
 pub struct SearchResponse {
-    pub total: u64,
+    pub total_count: u64,
+    pub page: u32,
+    pub page_size: u32,
+    pub has_next: bool,
     pub hits: Vec<HitResponse>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct HitResponse {
     pub id: String,
-    pub index_name: String,
-    pub content: serde_json::Value,
-    pub indexed_at: String,
+    pub score: f32,
+    pub document_json: serde_json::Value,
 }
 
 #[derive(Debug, Deserialize)]
@@ -101,16 +103,21 @@ pub async fn search(
 
     match state.search_uc.execute(&input).await {
         Ok(result) => {
+            let page_size = req.size.max(1);
+            let page = (req.from / page_size) + 1;
+            let has_next = result.total > (req.from as u64 + result.hits.len() as u64);
             let resp = SearchResponse {
-                total: result.total,
+                total_count: result.total,
+                page,
+                page_size,
+                has_next,
                 hits: result
                     .hits
                     .into_iter()
                     .map(|h| HitResponse {
                         id: h.id,
-                        index_name: h.index_name,
-                        content: h.content,
-                        indexed_at: h.indexed_at.to_rfc3339(),
+                        score: 1.0,
+                        document_json: h.content,
                     })
                     .collect(),
             };

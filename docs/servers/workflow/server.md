@@ -160,8 +160,17 @@ package k1s0.system.workflow.v1;
 import "k1s0/system/common/v1/types.proto";
 
 service WorkflowService {
+  rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse);
+  rpc CreateWorkflow(CreateWorkflowRequest) returns (CreateWorkflowResponse);
+  rpc GetWorkflow(GetWorkflowRequest) returns (GetWorkflowResponse);
+  rpc UpdateWorkflow(UpdateWorkflowRequest) returns (UpdateWorkflowResponse);
+  rpc DeleteWorkflow(DeleteWorkflowRequest) returns (DeleteWorkflowResponse);
   rpc StartInstance(StartInstanceRequest) returns (StartInstanceResponse);
   rpc GetInstance(GetInstanceRequest) returns (GetInstanceResponse);
+  rpc ListInstances(ListInstancesRequest) returns (ListInstancesResponse);
+  rpc CancelInstance(CancelInstanceRequest) returns (CancelInstanceResponse);
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  rpc ReassignTask(ReassignTaskRequest) returns (ReassignTaskResponse);
   rpc ApproveTask(ApproveTaskRequest) returns (ApproveTaskResponse);
   rpc RejectTask(RejectTaskRequest) returns (RejectTaskResponse);
 }

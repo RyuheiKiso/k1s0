@@ -160,13 +160,14 @@ impl FileGrpcService {
         })
     }
 
-    pub async fn generate_download_url(&self, id: String) -> Result<String, GrpcError> {
+    pub async fn generate_download_url(&self, id: String) -> Result<(String, u32), GrpcError> {
         if id.is_empty() {
             return Err(GrpcError::InvalidArgument("id is required".to_string()));
         }
+        let expires_in_seconds = 3600;
         let input = GenerateDownloadUrlInput {
             file_id: id,
-            expires_in_seconds: 3600,
+            expires_in_seconds,
         };
         let output = self.generate_download_url_uc.execute(&input).await.map_err(|e| {
             let msg = e.to_string();
@@ -178,7 +179,7 @@ impl FileGrpcService {
                 GrpcError::Internal(msg)
             }
         })?;
-        Ok(output.download_url)
+        Ok((output.download_url, output.expires_in_seconds))
     }
 
     pub async fn delete_file(&self, id: String) -> Result<(), GrpcError> {

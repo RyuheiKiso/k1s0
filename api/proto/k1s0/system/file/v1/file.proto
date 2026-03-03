@@ -80,6 +80,7 @@ message GenerateDownloadUrlRequest {
 
 message GenerateDownloadUrlResponse {
   string download_url = 1;
+  int32 expires_in_seconds = 2;
 }
 
 message UpdateFileTagsRequest {

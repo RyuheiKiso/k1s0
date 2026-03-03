@@ -213,7 +213,7 @@ message CreateSnapshotRequest {
   string stream_id = 1;
   int64 snapshot_version = 2;
   string aggregate_type = 3;
-  bytes state_json = 4;
+  bytes state = 4;
 }
 
 message CreateSnapshotResponse {
@@ -221,6 +221,7 @@ message CreateSnapshotResponse {
   string stream_id = 2;
   int64 snapshot_version = 3;
   string created_at = 4;
+  string aggregate_type = 5;
 }
 
 message GetLatestSnapshotRequest {
@@ -242,7 +243,7 @@ message DeleteStreamResponse {
 
 message EventData {
   string event_type = 1;
-  bytes payload_json = 2;
+  bytes payload = 2;
   EventMetadata metadata = 3;
 }
 
@@ -251,7 +252,7 @@ message StoredEvent {
   uint64 sequence = 2;
   string event_type = 3;
   int64 version = 4;
-  bytes payload_json = 5;
+  bytes payload = 5;
   EventMetadata metadata = 6;
   string occurred_at = 7;
   string stored_at = 8;
@@ -268,7 +269,7 @@ message Snapshot {
   string stream_id = 2;
   int64 snapshot_version = 3;
   string aggregate_type = 4;
-  bytes state_json = 5;
+  bytes state = 5;
   string created_at = 6;
 }
 ```

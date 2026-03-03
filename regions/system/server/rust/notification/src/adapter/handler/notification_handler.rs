@@ -113,10 +113,12 @@ pub async fn list_notifications(
                 StatusCode::OK,
                 Json(serde_json::json!({
                     "notifications": logs,
-                    "total_count": total_count,
-                    "page": page,
-                    "page_size": page_size,
-                    "has_next": has_next
+                    "pagination": {
+                        "total_count": total_count,
+                        "page": page,
+                        "page_size": page_size,
+                        "has_next": has_next
+                    }
                 })),
             )
                 .into_response()

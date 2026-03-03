@@ -127,7 +127,7 @@ message DlqMessage {
   string error_message = 3;
   int32 retry_count = 4;
   int32 max_retries = 5;
-  string payload_json = 6;
+  string payload = 6;
   string status = 7;
   k1s0.system.common.v1.Timestamp created_at = 8;
   k1s0.system.common.v1.Timestamp updated_at = 9;
@@ -424,9 +424,18 @@ DLQ Manager は Kafka コンシューマーをバックグラウンドタスク�
 
 ```json
 {
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "RESOLVED",
-  "message": "message retry initiated"
+  "message": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "original_topic": "orders.events.v1",
+    "error_message": "publish failed",
+    "retry_count": 1,
+    "max_retries": 3,
+    "payload": {"order_id": "123"},
+    "status": "RESOLVED",
+    "created_at": "2026-02-20T10:30:00.000+00:00",
+    "updated_at": "2026-02-20T10:31:00.000+00:00",
+    "last_retry_at": "2026-02-20T10:31:00.000+00:00"
+  }
 }
 ```
 
@@ -462,8 +471,7 @@ DLQ Manager は Kafka コンシューマーをバックグラウンドタスク�
 
 ```json
 {
-  "success": true,
-  "message": "message 550e8400-e29b-41d4-a716-446655440000 deleted"
+  "id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -601,6 +609,5 @@ vault:
 - `DlqMessage` uses `payload` (not `payload_json`).
 - `ListMessagesResponse.pagination` is `k1s0.system.common.v1.PaginationResult`.
 
-### REST/gRPC Response Differences
-- `RetryMessageResponse`: REST and gRPC shapes differ; gRPC returns full `DlqMessage`.
-- `DeleteMessageResponse`: REST may return `{success,message}`, gRPC returns `{id}`.
+### REST/gRPC Response
+- `RetryMessageResponse` and `DeleteMessageResponse` are aligned with gRPC shapes.
