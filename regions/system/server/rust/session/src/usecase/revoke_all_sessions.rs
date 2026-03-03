@@ -53,9 +53,15 @@ mod tests {
         Session {
             id: id.to_string(),
             user_id: "user-1".to_string(),
+            device_id: format!("device-{}", id),
+            device_name: Some("device".to_string()),
+            device_type: Some("desktop".to_string()),
+            user_agent: Some("ua".to_string()),
+            ip_address: Some("127.0.0.1".to_string()),
             token: format!("tok-{}", id),
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
+            last_accessed_at: None,
             revoked,
             metadata: HashMap::new(),
         }

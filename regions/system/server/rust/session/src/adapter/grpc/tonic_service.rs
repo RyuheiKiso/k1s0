@@ -83,6 +83,7 @@ impl SessionService for SessionServiceTonic {
             expires_at: parse_rfc3339_to_proto_timestamp(&resp.expires_at),
             created_at: parse_rfc3339_to_proto_timestamp(&resp.created_at),
             token: resp.token,
+            metadata: resp.metadata,
         }))
     }
 

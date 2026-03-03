@@ -6,7 +6,7 @@ pub struct CreateTenantRequest {
     #[prost(string, tag = "2")]
     pub display_name: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
-    pub owner_user_id: ::prost::alloc::string::String,
+    pub owner_id: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
     pub plan: ::prost::alloc::string::String,
 }

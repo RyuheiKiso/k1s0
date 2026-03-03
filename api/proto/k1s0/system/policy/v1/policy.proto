@@ -92,6 +92,8 @@ message DeletePolicyResponse {
 message CreateBundleRequest {
   string name = 1;
   repeated string policy_ids = 2;
+  optional string description = 3;
+  optional bool enabled = 4;
 }
 
 message CreateBundleResponse {
@@ -123,5 +125,7 @@ message PolicyBundle {
   repeated string policy_ids = 3;
   k1s0.system.common.v1.Timestamp created_at = 4;
   k1s0.system.common.v1.Timestamp updated_at = 5;
+  string description = 6;
+  bool enabled = 7;
 }
 

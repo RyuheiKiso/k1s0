@@ -122,6 +122,7 @@ mod tests {
         let mut mock = MockTenantRepository::new();
         mock.expect_find_by_name().returning(|_| Ok(None));
         mock.expect_create().returning(|_| Ok(()));
+        mock.expect_update().returning(|_| Ok(()));
 
         let uc = CreateTenantUseCase::new(Arc::new(mock));
         let input = CreateTenantInput {

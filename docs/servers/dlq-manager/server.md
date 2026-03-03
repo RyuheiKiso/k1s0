@@ -129,7 +129,8 @@ message DlqMessage {
   string error_message = 3;
   int32 retry_count = 4;
   int32 max_retries = 5;
-  string payload = 6;
+  // JSON-encoded payload bytes
+  bytes payload = 6;
   string status = 7;
   k1s0.system.common.v1.Timestamp created_at = 8;
   k1s0.system.common.v1.Timestamp updated_at = 9;
@@ -154,7 +155,10 @@ message RetryMessageResponse { DlqMessage message = 1; }
 message DeleteMessageRequest { string id = 1; }
 message DeleteMessageResponse { string id = 1; }
 message RetryAllRequest { string topic = 1; }
-message RetryAllResponse { int32 retried_count = 1; }
+message RetryAllResponse {
+  int32 retried_count = 1;
+  string message = 2;
+}
 ```
 
 ---
@@ -609,7 +613,10 @@ vault:
 
 ### Message/Field Corrections
 - `DlqMessage` uses `payload` (not `payload_json`).
+- `DlqMessage.payload` is `bytes` (JSON-encoded).
 - `ListMessagesResponse.pagination` is `k1s0.system.common.v1.PaginationResult`.
+- `RetryAllResponse.message` is present.
 
 ### REST/gRPC Response
-- `RetryMessageResponse` and `DeleteMessageResponse` are aligned with gRPC shapes.
+- `RetryMessageResponse` is wrapped as `{ "message": { ... } }` in both REST and gRPC.
+- `DeleteMessageResponse` returns `{ "id": ... }` in both REST and gRPC.

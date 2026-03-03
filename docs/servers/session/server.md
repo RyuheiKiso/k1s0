@@ -343,6 +343,7 @@ message CreateSessionResponse {
   k1s0.system.common.v1.Timestamp expires_at = 4;
   k1s0.system.common.v1.Timestamp created_at = 5;
   string token = 6;
+  map<string, string> metadata = 7;
 }
 
 message GetSessionRequest {
@@ -395,12 +396,18 @@ message Session {
   optional string device_type = 5;
   optional string user_agent = 6;
   optional string ip_address = 7;
+  // valid values: "active", "revoked"
   string status = 8;
   k1s0.system.common.v1.Timestamp expires_at = 9;
   k1s0.system.common.v1.Timestamp created_at = 10;
   optional k1s0.system.common.v1.Timestamp last_accessed_at = 11;
 }
 ```
+
+#### Session.status 値仕様
+
+- `active`: セッションが有効（`revoked=false`）
+- `revoked`: セッションが失効済み（`revoked=true`）
 
 ---
 
@@ -532,5 +539,7 @@ message Session {
 ### Message/Field Corrections
 - `CreateSessionRequest.ttl_seconds` is optional.
 - `CreateSessionResponse.token` is present.
+- `CreateSessionResponse.metadata` is present.
 - Session-related timestamps use `k1s0.system.common.v1.Timestamp`.
+- `Session.status` valid values are `active` and `revoked`.
 

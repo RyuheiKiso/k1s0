@@ -186,14 +186,7 @@ pub async fn delete_file(
     let input = DeleteFileInput { file_id: id };
 
     match state.delete_file_uc.execute(&input).await {
-        Ok(output) => (
-            StatusCode::OK,
-            Json(serde_json::json!({
-                "success": output.success,
-                "message": output.message
-            })),
-        )
-            .into_response(),
+        Ok(_) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => {
             let msg = e.to_string();
             if msg.contains("not found") {
@@ -246,11 +239,7 @@ pub async fn complete_upload(
     match state.complete_upload_uc.execute(&input).await {
         Ok(file) => (
             StatusCode::OK,
-            Json(serde_json::json!({
-                "file_id": file.id,
-                "status": file.status,
-                "message": "upload completed"
-            })),
+            Json(file_to_rest_detail(&file)),
         )
             .into_response(),
         Err(e) => {

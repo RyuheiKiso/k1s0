@@ -101,6 +101,10 @@ pub struct CreateBundleRequest {
     pub name: ::prost::alloc::string::String,
     #[prost(string, repeated, tag = "2")]
     pub policy_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "3")]
+    pub description: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, optional, tag = "4")]
+    pub enabled: ::core::option::Option<bool>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateBundleResponse {
@@ -149,6 +153,10 @@ pub struct PolicyBundle {
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "5")]
     pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(string, tag = "6")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(bool, tag = "7")]
+    pub enabled: bool,
 }
 /// Generated server implementations.
 pub mod policy_service_server {

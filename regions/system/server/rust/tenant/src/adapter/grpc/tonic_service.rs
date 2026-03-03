@@ -121,7 +121,7 @@ impl TenantService for TenantServiceTonic {
             name: inner.name,
             display_name: inner.display_name,
             plan: inner.plan,
-            owner_id: inner.owner_user_id,
+            owner_id: inner.owner_id,
         };
         let resp = self
             .inner

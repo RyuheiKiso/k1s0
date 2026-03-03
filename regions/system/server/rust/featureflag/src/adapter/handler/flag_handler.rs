@@ -179,9 +179,9 @@ pub async fn evaluate_flag(
     let input = EvaluateFlagInput {
         flag_key: key,
         context: EvaluationContext {
-            user_id: req.user_id,
-            tenant_id: req.tenant_id,
-            attributes: req.attributes.unwrap_or_default(),
+            user_id: req.context.user_id,
+            tenant_id: req.context.tenant_id,
+            attributes: req.context.attributes.unwrap_or_default(),
         },
     };
 
@@ -231,6 +231,12 @@ pub struct UpdateFlagRequest {
 
 #[derive(Debug, Deserialize)]
 pub struct EvaluateFlagRequest {
+    #[serde(default)]
+    pub context: EvaluateFlagContextRequest,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct EvaluateFlagContextRequest {
     pub user_id: Option<String>,
     pub tenant_id: Option<String>,
     pub attributes: Option<std::collections::HashMap<String, String>>,

@@ -89,6 +89,7 @@ impl VaultService for VaultServiceTonic {
             version: resp.version,
             created_at: Some(to_proto_timestamp(resp.created_at)),
             updated_at: Some(to_proto_timestamp(resp.updated_at)),
+            path: resp.path,
         }))
     }
 
@@ -110,6 +111,7 @@ impl VaultService for VaultServiceTonic {
         Ok(Response::new(ProtoSetSecretResponse {
             version: resp.version,
             created_at: Some(to_proto_timestamp(resp.created_at)),
+            path: resp.path,
         }))
     }
 
@@ -157,7 +159,7 @@ impl VaultService for VaultServiceTonic {
         request: Request<ProtoListSecretsRequest>,
     ) -> Result<Response<ProtoListSecretsResponse>, Status> {
         let req = ListSecretsRequest {
-            path_prefix: request.into_inner().path_prefix,
+            prefix: request.into_inner().prefix,
         };
         let resp = self
             .inner

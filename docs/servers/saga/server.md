@@ -115,8 +115,10 @@ Saga の補償処理（逆順ロールバック）を明示的にトリガーす
 | --- | --- | --- |
 | `saga_id` | string (UUID) | 対象 Saga の ID |
 | `success` | bool | 補償トリガー受理結果 |
-| `status` | string | 補償後のステータス |
+| `status` | string | 補償実行後の Saga ステータス（実装上は `FAILED`） |
 | `message` | string | 処理結果メッセージ |
+
+`status` フィールドの有効値: `STARTED`, `RUNNING`, `COMPLETED`, `COMPENSATING`, `FAILED`, `CANCELLED`
 
 **リクエスト**
 
@@ -128,7 +130,7 @@ Saga の補償処理（逆順ロールバック）を明示的にトリガーす
 {
   "saga_id": "550e8400-e29b-41d4-a716-446655440000",
   "success": true,
-  "status": "COMPENSATED",
+  "status": "FAILED",
   "message": "saga 550e8400-e29b-41d4-a716-446655440000 compensation completed"
 }
 ```

@@ -30,6 +30,11 @@ pub struct CreateSessionResponse {
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(string, tag = "6")]
     pub token: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "7")]
+    pub metadata: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSessionRequest {
@@ -103,6 +108,7 @@ pub struct Session {
     pub user_agent: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "7")]
     pub ip_address: ::core::option::Option<::prost::alloc::string::String>,
+    /// valid values: "active", "revoked"
     #[prost(string, tag = "8")]
     pub status: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "9")]

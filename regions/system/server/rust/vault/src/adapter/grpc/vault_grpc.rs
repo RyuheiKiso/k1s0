@@ -33,6 +33,7 @@ pub struct SetSecretRequest {
 
 #[derive(Debug, Clone)]
 pub struct SetSecretResponse {
+    pub path: String,
     pub version: i64,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
@@ -61,7 +62,7 @@ pub struct DeleteSecretResponse {}
 
 #[derive(Debug, Clone)]
 pub struct ListSecretsRequest {
-    pub path_prefix: String,
+    pub prefix: String,
 }
 
 #[derive(Debug, Clone)]
@@ -211,6 +212,7 @@ impl VaultGrpcService {
                     .map(|sv| sv.created_at)
                     .unwrap_or_else(chrono::Utc::now);
                 Ok(SetSecretResponse {
+                    path: secret.path,
                     version,
                     created_at,
                 })
@@ -262,7 +264,7 @@ impl VaultGrpcService {
         &self,
         req: ListSecretsRequest,
     ) -> Result<ListSecretsResponse, GrpcError> {
-        match self.list_secrets_uc.execute(&req.path_prefix).await {
+        match self.list_secrets_uc.execute(&req.prefix).await {
             Ok(keys) => Ok(ListSecretsResponse { keys }),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -457,6 +459,7 @@ mod tests {
             .await
             .unwrap();
 
+        assert_eq!(resp.path, "app/db");
         assert_eq!(resp.version, 2);
     }
 
@@ -510,7 +513,7 @@ mod tests {
         let svc = make_service(mock_store, default_audit());
         let resp = svc
             .list_secrets(ListSecretsRequest {
-                path_prefix: "app/".to_string(),
+                prefix: "app/".to_string(),
             })
             .await
             .unwrap();

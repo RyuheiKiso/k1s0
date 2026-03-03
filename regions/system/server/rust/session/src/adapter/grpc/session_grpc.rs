@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::error::SessionError;
@@ -29,6 +30,7 @@ pub struct CreateSessionResponse {
     pub expires_at: String,
     pub created_at: String,
     pub token: String,
+    pub metadata: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone)]
@@ -170,6 +172,7 @@ impl SessionGrpcService {
                 expires_at: output.session.expires_at.to_rfc3339(),
                 created_at: output.session.created_at.to_rfc3339(),
                 token: output.session.token,
+                metadata: output.session.metadata,
             }),
             Err(SessionError::InvalidInput(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
@@ -188,13 +191,7 @@ impl SessionGrpcService {
         match self.get_uc.execute(&input).await {
             Ok(output) => {
                 let s = output.session;
-                let status = if s.revoked {
-                    "revoked"
-                } else if s.is_expired() {
-                    "expired"
-                } else {
-                    "active"
-                };
+                let status = if s.revoked { "revoked" } else { "active" };
                 Ok(GetSessionResponse {
                     session: PbSession {
                         session_id: s.id,
@@ -286,13 +283,7 @@ impl SessionGrpcService {
                     .sessions
                     .into_iter()
                     .map(|s| {
-                        let status = if s.revoked {
-                            "revoked"
-                        } else if s.is_expired() {
-                            "expired"
-                        } else {
-                            "active"
-                        };
+                        let status = if s.revoked { "revoked" } else { "active" };
                         PbSession {
                             session_id: s.id,
                             user_id: s.user_id,
@@ -441,6 +432,7 @@ mod tests {
         let svc = make_service(mock);
         let req = RefreshSessionRequest {
             session_id: "sess-1".to_string(),
+            ttl_seconds: None,
         };
         let resp = svc.refresh_session(req).await.unwrap();
 

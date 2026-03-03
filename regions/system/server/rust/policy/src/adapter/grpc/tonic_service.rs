@@ -65,6 +65,8 @@ fn to_proto_bundle(bundle: PolicyBundleData) -> ProtoPolicyBundle {
         policy_ids: bundle.policy_ids,
         created_at: to_proto_timestamp(bundle.created_at),
         updated_at: to_proto_timestamp(bundle.updated_at),
+        description: bundle.description.unwrap_or_default(),
+        enabled: bundle.enabled,
     }
 }
 
@@ -215,8 +217,8 @@ impl PolicyService for PolicyServiceTonic {
             .inner
             .create_bundle(CreateBundleRequest {
                 name: inner.name,
-                description: None,
-                enabled: None,
+                description: inner.description,
+                enabled: inner.enabled,
                 policy_ids: inner.policy_ids,
             })
             .await

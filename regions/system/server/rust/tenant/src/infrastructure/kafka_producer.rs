@@ -317,6 +317,7 @@ mod tests {
             display_name: "ACME Corporation".to_string(),
             status: TenantStatus::Active,
             plan: "professional".to_string(),
+            owner_id: None,
             settings: serde_json::json!({}),
             keycloak_realm: None,
             db_schema: None,
