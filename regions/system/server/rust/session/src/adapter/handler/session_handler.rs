@@ -173,12 +173,14 @@ pub async fn list_user_sessions(
     let input = ListUserSessionsInput { user_id };
     match state.list_uc.execute(&input).await {
         Ok(output) => {
+            let total_count = output.sessions.len() as u64;
             let mapped = ListSessionsHttpResponse {
                 sessions: output
                     .sessions
                     .into_iter()
                     .map(SessionHttpResponse::from_session)
                     .collect(),
+                total_count,
             };
             (StatusCode::OK, Json(serde_json::to_value(mapped).unwrap())).into_response()
         }
@@ -237,4 +239,5 @@ impl SessionHttpResponse {
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ListSessionsHttpResponse {
     pub sessions: Vec<SessionHttpResponse>,
+    pub total_count: u64,
 }

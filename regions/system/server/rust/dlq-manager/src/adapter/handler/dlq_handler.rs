@@ -59,7 +59,7 @@ pub struct RetryMessageResponse {
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct RetryAllResponse {
-    pub retried: i64,
+    pub retried_count: i64,
     pub message: String,
 }
 
@@ -248,7 +248,7 @@ pub async fn retry_all(
         .map_err(|e| DlqError::Internal(e.to_string()))?;
 
     Ok(Json(RetryAllResponse {
-        retried,
+        retried_count: retried,
         message: format!("{} messages retried in topic {}", retried, topic),
     }))
 }

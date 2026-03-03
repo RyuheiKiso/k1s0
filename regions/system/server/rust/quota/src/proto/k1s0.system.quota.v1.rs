@@ -98,8 +98,8 @@ pub struct ListQuotaPoliciesRequest {
 pub struct ListQuotaPoliciesResponse {
     #[prost(message, repeated, tag = "1")]
     pub policies: ::prost::alloc::vec::Vec<QuotaPolicy>,
-    #[prost(uint64, tag = "2")]
-    pub total: u64,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateQuotaPolicyRequest {

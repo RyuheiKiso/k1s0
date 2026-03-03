@@ -421,7 +421,7 @@ pub async fn list_rules(
             (
                 StatusCode::OK,
                 Json(serde_json::json!({
-                    "items": resp,
+                    "rules": resp,
                     "pagination": {
                         "total_count": total,
                         "page": page,

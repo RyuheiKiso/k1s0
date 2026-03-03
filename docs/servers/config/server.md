@@ -59,12 +59,15 @@ system tier の設定管理サーバーは以下の機能を提供する。
 
 ```json
 {
+  "id": "550e8400-e29b-41d4-a716-446655440000",
   "namespace": "system.auth.database",
   "key": "max_connections",
   "value": 25,
   "version": 3,
   "description": "auth-server の DB 最大接続数",
+  "created_by": "admin@example.com",
   "updated_by": "admin@example.com",
+  "created_at": "2026-02-10T09:00:00Z",
   "updated_at": "2026-02-15T14:30:00Z"
 }
 ```
@@ -100,21 +103,27 @@ namespace 内の全設定値をページネーション付きで取得する。
 {
   "entries": [
     {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
       "namespace": "system.auth.database",
       "key": "max_connections",
       "value": 25,
       "version": 3,
       "description": "auth-server の DB 最大接続数",
+      "created_by": "admin@example.com",
       "updated_by": "admin@example.com",
+      "created_at": "2026-02-10T09:00:00Z",
       "updated_at": "2026-02-15T14:30:00Z"
     },
     {
+      "id": "660e8400-e29b-41d4-a716-446655440111",
       "namespace": "system.auth.database",
       "key": "ssl_mode",
       "value": "require",
       "version": 1,
       "description": "SSL 接続モード",
+      "created_by": "admin@example.com",
       "updated_by": "admin@example.com",
+      "created_at": "2026-01-10T09:00:00Z",
       "updated_at": "2026-01-10T09:00:00Z"
     }
   ],

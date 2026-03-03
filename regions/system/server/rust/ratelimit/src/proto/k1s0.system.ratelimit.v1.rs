@@ -94,6 +94,8 @@ pub struct ListRulesRequest {
 pub struct ListRulesResponse {
     #[prost(message, repeated, tag = "1")]
     pub rules: ::prost::alloc::vec::Vec<RateLimitRule>,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RateLimitRule {

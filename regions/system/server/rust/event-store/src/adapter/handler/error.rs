@@ -1,6 +1,7 @@
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
+use k1s0_server_common::error as codes;
 
 use super::ErrorResponse;
 
@@ -34,42 +35,42 @@ impl IntoResponse for EventStoreError {
         let (status, code, message) = match &self {
             EventStoreError::StreamNotFound(msg) => (
                 StatusCode::NOT_FOUND,
-                "SYS_EVSTORE_STREAM_NOT_FOUND",
+                codes::event_store::stream_not_found(),
                 msg.as_str(),
             ),
             EventStoreError::EventNotFound(msg) => (
                 StatusCode::NOT_FOUND,
-                "SYS_EVSTORE_EVENT_NOT_FOUND",
+                codes::event_store::event_not_found(),
                 msg.as_str(),
             ),
             EventStoreError::SnapshotNotFound(msg) => (
                 StatusCode::NOT_FOUND,
-                "SYS_EVSTORE_SNAPSHOT_NOT_FOUND",
+                codes::event_store::snapshot_not_found(),
                 msg.as_str(),
             ),
             EventStoreError::Validation(msg) => (
                 StatusCode::BAD_REQUEST,
-                "SYS_EVSTORE_VALIDATION_ERROR",
+                k1s0_server_common::error::ErrorCode::new("SYS_EVSTORE_VALIDATION_ERROR"),
                 msg.as_str(),
             ),
             EventStoreError::VersionConflict(msg) => (
                 StatusCode::CONFLICT,
-                "SYS_EVSTORE_VERSION_CONFLICT",
+                codes::event_store::version_conflict(),
                 msg.as_str(),
             ),
             EventStoreError::StreamAlreadyExists(msg) => (
                 StatusCode::CONFLICT,
-                "SYS_EVSTORE_STREAM_ALREADY_EXISTS",
+                codes::event_store::stream_already_exists(),
                 msg.as_str(),
             ),
             EventStoreError::Internal(msg) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "SYS_EVSTORE_INTERNAL_ERROR",
+                k1s0_server_common::error::ErrorCode::new("SYS_EVSTORE_INTERNAL_ERROR"),
                 msg.as_str(),
             ),
         };
 
-        let body = ErrorResponse::new(code, message);
+        let body = ErrorResponse::new(code.as_str(), message);
         (status, Json(body)).into_response()
     }
 }

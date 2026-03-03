@@ -325,8 +325,8 @@ message SearchRequest {
   string index = 1;
   string query = 2;
   bytes filters_json = 3;
-  uint32 page = 4;
-  uint32 page_size = 5;
+  uint32 from = 4;
+  uint32 size = 5;
   repeated string facets = 6;
 }
 

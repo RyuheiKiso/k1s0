@@ -383,6 +383,7 @@ syntax = "proto3";
 package k1s0.system.ratelimit.v1;
 
 import "google/protobuf/timestamp.proto";
+import "k1s0/system/common/v1/types.proto";
 
 service RateLimitService {
   rpc CheckRateLimit(CheckRateLimitRequest) returns (CheckRateLimitResponse);
@@ -459,6 +460,7 @@ message ListRulesRequest {
 
 message ListRulesResponse {
   repeated RateLimitRule rules = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message RateLimitRule {

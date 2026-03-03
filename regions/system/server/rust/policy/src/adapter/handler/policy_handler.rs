@@ -47,7 +47,7 @@ pub async fn list_policies(
             (
                 StatusCode::OK,
                 Json(serde_json::json!({
-                    "items": items,
+                    "policies": items,
                     "pagination": {
                         "total_count": output.total_count,
                         "page": output.page,
@@ -222,7 +222,7 @@ pub async fn evaluate_policy(
             StatusCode::OK,
             Json(serde_json::json!({
                 "allowed": output.allowed,
-                "reason": output.reason,
+                "package_path": output.package_path,
                 "decision_id": output.decision_id,
                 "cached": output.cached
             })),

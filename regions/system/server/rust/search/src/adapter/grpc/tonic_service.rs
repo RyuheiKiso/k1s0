@@ -126,8 +126,8 @@ impl SearchService for SearchServiceTonic {
             index: inner.index,
             query: inner.query,
             filters_json: inner.filters_json,
-            page: inner.page,
-            page_size: inner.page_size,
+            from: inner.from,
+            size: inner.size,
             facets: inner.facets,
         };
         let resp = self
@@ -325,8 +325,9 @@ mod tests {
             index: "products".to_string(),
             query: "Widget".to_string(),
             filters_json: vec![],
-            page: 1,
-            page_size: 10,
+            from: 0,
+            size: 10,
+            facets: vec![],
         });
         let resp = tonic_svc.search(req).await.unwrap();
         let inner = resp.into_inner();

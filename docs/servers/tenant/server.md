@@ -77,7 +77,7 @@ system tier の Tenant Server は以下の機能を提供する。
   "name": "acme-corp",
   "display_name": "Acme Corporation",
   "plan": "enterprise",
-  "owner_user_id": "660e8400-e29b-41d4-a716-446655440001"
+  "owner_id": "660e8400-e29b-41d4-a716-446655440001"
 }
 ```
 
@@ -86,7 +86,7 @@ system tier の Tenant Server は以下の機能を提供する。
 | `name` | string | Yes | テナント名（URL フレンドリー、一意制約） |
 | `display_name` | string | Yes | テナント表示名 |
 | `plan` | string | Yes | 契約プラン（`free` / `starter` / `professional` / `enterprise`） |
-| `owner_user_id` | string (UUID) | No | オーナーユーザー ID |
+| `owner_id` | string (UUID) | No | オーナーユーザー ID |
 
 **レスポンス（201 Created）**
 
@@ -450,7 +450,7 @@ service TenantService {
 message CreateTenantRequest {
   string name = 1;
   string display_name = 2;
-  string owner_user_id = 3;
+  string owner_id = 3;
   string plan = 4;
 }
 
@@ -866,4 +866,5 @@ vault:
 - `Tenant` includes `owner_id(7)`, `settings(8)`, `db_schema(9)`, `updated_at(10)`, `keycloak_realm(11)`.
 - `ListMembersRequest` and `ListMembersResponse` are canonical gRPC messages.
 - Tenant timestamp fields use `k1s0.system.common.v1.Timestamp`.
+
 

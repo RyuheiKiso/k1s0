@@ -63,7 +63,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 | --- | --- | --- | --- |
 | GET | `/api/v1/policies` | ポリシー一覧取得 | `sys_auditor` 以上 |
 | GET | `/api/v1/policies/:id` | ポリシー詳細取得 | `sys_auditor` 以上 |
-| POST | `/api/v1/policies` | ポリシー作成 | `sys_admin` のみ |
+| POST | `/api/v1/policies` | ポリシー作成 | `sys_operator` 以上 |
 | PUT | `/api/v1/policies/:id` | ポリシー更新 | `sys_admin` のみ |
 | DELETE | `/api/v1/policies/:id` | ポリシー削除 | `sys_admin` のみ |
 | POST | `/api/v1/policies/:id/evaluate` | ポリシー評価（ポリシー ID 指定） | `sys_operator` 以上 |
@@ -266,7 +266,7 @@ ID 指定でポリシーの詳細を取得する。
 ```json
 {
   "allowed": true,
-  "reason": "OPA evaluation: allowed",
+  "package_path": "k1s0.system.tenant",
   "decision_id": "dec_01JABCDEFG1234567890",
   "cached": false
 }
@@ -277,7 +277,7 @@ ID 指定でポリシーの詳細を取得する。
 ```json
 {
   "allowed": false,
-  "reason": "OPA evaluation: denied",
+  "package_path": "k1s0.system.tenant",
   "decision_id": "dec_01JABCDEFG1234567891",
   "cached": true
 }

@@ -107,7 +107,7 @@ system tier の Vault Server は以下の機能を提供する。
 ```json
 {
   "path": "app/db/password",
-  "current_version": 1,
+  "version": 1,
   "data": {
     "username": "db_admin",
     "password": "s3cret-v4lue"
@@ -189,7 +189,7 @@ system tier の Vault Server は以下の機能を提供する。
 ```json
 {
   "path": "app/db/password",
-  "current_version": 3,
+  "version": 3,
   "version_count": 3,
   "created_at": "2026-02-23T10:00:00.000+00:00",
   "updated_at": "2026-02-23T12:00:00.000+00:00"

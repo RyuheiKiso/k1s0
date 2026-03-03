@@ -56,9 +56,9 @@ pub struct SearchRequest {
     #[prost(bytes = "vec", tag = "3")]
     pub filters_json: ::prost::alloc::vec::Vec<u8>,
     #[prost(uint32, tag = "4")]
-    pub page: u32,
+    pub from: u32,
     #[prost(uint32, tag = "5")]
-    pub page_size: u32,
+    pub size: u32,
     #[prost(string, repeated, tag = "6")]
     pub facets: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }

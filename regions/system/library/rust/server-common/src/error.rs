@@ -664,6 +664,58 @@ pub mod file {
     pub fn validation() -> ErrorCode {
         ErrorCode::new("SYS_FILE_VALIDATION")
     }
+
+    pub fn not_found() -> ErrorCode {
+        ErrorCode::new("SYS_FILE_NOT_FOUND")
+    }
+
+    pub fn already_completed() -> ErrorCode {
+        ErrorCode::new("SYS_FILE_ALREADY_COMPLETED")
+    }
+
+    pub fn not_available() -> ErrorCode {
+        ErrorCode::new("SYS_FILE_NOT_AVAILABLE")
+    }
+
+    pub fn access_denied() -> ErrorCode {
+        ErrorCode::new("SYS_FILE_ACCESS_DENIED")
+    }
+
+    pub fn storage_error() -> ErrorCode {
+        ErrorCode::new("SYS_FILE_STORAGE_ERROR")
+    }
+
+    pub fn size_exceeded() -> ErrorCode {
+        ErrorCode::new("SYS_FILE_SIZE_EXCEEDED")
+    }
+
+    pub fn upload_failed() -> ErrorCode {
+        ErrorCode::new("SYS_FILE_UPLOAD_FAILED")
+    }
+
+    pub fn get_failed() -> ErrorCode {
+        ErrorCode::new("SYS_FILE_GET_FAILED")
+    }
+
+    pub fn list_failed() -> ErrorCode {
+        ErrorCode::new("SYS_FILE_LIST_FAILED")
+    }
+
+    pub fn delete_failed() -> ErrorCode {
+        ErrorCode::new("SYS_FILE_DELETE_FAILED")
+    }
+
+    pub fn complete_failed() -> ErrorCode {
+        ErrorCode::new("SYS_FILE_COMPLETE_FAILED")
+    }
+
+    pub fn download_url_failed() -> ErrorCode {
+        ErrorCode::new("SYS_FILE_DOWNLOAD_URL_FAILED")
+    }
+
+    pub fn tags_update_failed() -> ErrorCode {
+        ErrorCode::new("SYS_FILE_TAGS_UPDATE_FAILED")
+    }
 }
 
 /// Well-known error codes for Scheduler service.
@@ -680,91 +732,91 @@ pub mod notification {
     use super::ErrorCode;
 
     pub fn invalid_id() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_INVALID_ID")
+        ErrorCode::new("SYS_NOTIFY_INVALID_ID")
     }
 
     pub fn validation_error() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_VALIDATION_ERROR")
+        ErrorCode::new("SYS_NOTIFY_VALIDATION_ERROR")
     }
 
     pub fn not_found() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_NOT_FOUND")
+        ErrorCode::new("SYS_NOTIFY_NOT_FOUND")
     }
 
     pub fn channel_not_found() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_CHANNEL_NOT_FOUND")
+        ErrorCode::new("SYS_NOTIFY_CHANNEL_NOT_FOUND")
     }
 
     pub fn template_not_found() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_TEMPLATE_NOT_FOUND")
+        ErrorCode::new("SYS_NOTIFY_TEMPLATE_NOT_FOUND")
     }
 
     pub fn already_sent() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_ALREADY_SENT")
+        ErrorCode::new("SYS_NOTIFY_ALREADY_SENT")
     }
 
     pub fn channel_disabled() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_CHANNEL_DISABLED")
+        ErrorCode::new("SYS_NOTIFY_CHANNEL_DISABLED")
     }
 
     pub fn internal_error() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_INTERNAL_ERROR")
+        ErrorCode::new("SYS_NOTIFY_INTERNAL_ERROR")
     }
 
     pub fn send_failed() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_SEND_FAILED")
+        ErrorCode::new("SYS_NOTIFY_SEND_FAILED")
     }
 
     pub fn list_failed() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_LIST_FAILED")
+        ErrorCode::new("SYS_NOTIFY_LIST_FAILED")
     }
 
     pub fn get_failed() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_GET_FAILED")
+        ErrorCode::new("SYS_NOTIFY_GET_FAILED")
     }
 
     pub fn retry_failed() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_RETRY_FAILED")
+        ErrorCode::new("SYS_NOTIFY_RETRY_FAILED")
     }
 
     pub fn channel_create_failed() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_CHANNEL_CREATE_FAILED")
+        ErrorCode::new("SYS_NOTIFY_CHANNEL_CREATE_FAILED")
     }
 
     pub fn channel_list_failed() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_CHANNEL_LIST_FAILED")
+        ErrorCode::new("SYS_NOTIFY_CHANNEL_LIST_FAILED")
     }
 
     pub fn channel_get_failed() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_CHANNEL_GET_FAILED")
+        ErrorCode::new("SYS_NOTIFY_CHANNEL_GET_FAILED")
     }
 
     pub fn channel_update_failed() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_CHANNEL_UPDATE_FAILED")
+        ErrorCode::new("SYS_NOTIFY_CHANNEL_UPDATE_FAILED")
     }
 
     pub fn channel_delete_failed() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_CHANNEL_DELETE_FAILED")
+        ErrorCode::new("SYS_NOTIFY_CHANNEL_DELETE_FAILED")
     }
 
     pub fn template_create_failed() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_TEMPLATE_CREATE_FAILED")
+        ErrorCode::new("SYS_NOTIFY_TEMPLATE_CREATE_FAILED")
     }
 
     pub fn template_list_failed() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_TEMPLATE_LIST_FAILED")
+        ErrorCode::new("SYS_NOTIFY_TEMPLATE_LIST_FAILED")
     }
 
     pub fn template_get_failed() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_TEMPLATE_GET_FAILED")
+        ErrorCode::new("SYS_NOTIFY_TEMPLATE_GET_FAILED")
     }
 
     pub fn template_update_failed() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_TEMPLATE_UPDATE_FAILED")
+        ErrorCode::new("SYS_NOTIFY_TEMPLATE_UPDATE_FAILED")
     }
 
     pub fn template_delete_failed() -> ErrorCode {
-        ErrorCode::new("SYS_NOTIF_TEMPLATE_DELETE_FAILED")
+        ErrorCode::new("SYS_NOTIFY_TEMPLATE_DELETE_FAILED")
     }
 }
 

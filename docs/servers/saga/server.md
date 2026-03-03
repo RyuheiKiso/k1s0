@@ -127,6 +127,7 @@ Saga の補償処理（逆順ロールバック）を明示的にトリガーす
 ```json
 {
   "saga_id": "550e8400-e29b-41d4-a716-446655440000",
+  "success": true,
   "status": "COMPENSATED",
   "message": "saga 550e8400-e29b-41d4-a716-446655440000 compensation completed"
 }
@@ -223,7 +224,7 @@ message SagaStateProto {
   // 呼び出し元サービス名
   string initiated_by = 7;
   // エラーメッセージ（失敗時）
-  string error_message = 8;
+  optional string error_message = 8;
   k1s0.system.common.v1.Timestamp created_at = 9;
   k1s0.system.common.v1.Timestamp updated_at = 10;
 }
@@ -405,7 +406,7 @@ message SagaStateProto {
   bytes payload = 5;
   string correlation_id = 6;
   string initiated_by = 7;
-  string error_message = 8;
+  optional string error_message = 8;
   k1s0.system.common.v1.Timestamp created_at = 9;
   k1s0.system.common.v1.Timestamp updated_at = 10;
 }

@@ -135,7 +135,14 @@ pub struct ListPoliciesRequest {
 /// ListPoliciesResult は ListQuotaPolicies の結果。
 pub struct ListPoliciesResult {
     pub policies: Vec<QuotaPolicy>,
-    pub total: u64,
+    pub pagination: PaginationResult,
+}
+
+pub struct PaginationResult {
+    pub total_count: i32,
+    pub page: i32,
+    pub page_size: i32,
+    pub has_next: bool,
 }
 
 /// QuotaGrpcService はクォータ gRPC サービスのビジネスロジック層。
@@ -217,7 +224,12 @@ impl QuotaGrpcService {
             .map_err(|e| GrpcError::Internal(e.to_string()))?;
         Ok(ListPoliciesResult {
             policies: output.quotas,
-            total: output.total_count,
+            pagination: PaginationResult {
+                total_count: output.total_count.min(i32::MAX as u64) as i32,
+                page: output.page.min(i32::MAX as u32) as i32,
+                page_size: output.page_size.min(i32::MAX as u32) as i32,
+                has_next: output.has_next,
+            },
         })
     }
 

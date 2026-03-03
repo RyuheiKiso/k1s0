@@ -181,7 +181,7 @@ type Mutation {
 type Subscription {
   tenantUpdated(tenantId: ID!): Tenant!
   featureFlagChanged(key: String!): FeatureFlag!
-  configChanged(namespaces: [String!]): ConfigEntry!
+  configChanged(namespaces: [String!] = []): ConfigEntry!
 }
 
 > `Subscription` の現在実装は 5 秒間隔ポーリング。Kafka 等のイベント駆動への移行は TODO。

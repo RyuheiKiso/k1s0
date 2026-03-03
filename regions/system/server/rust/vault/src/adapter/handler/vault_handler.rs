@@ -80,7 +80,7 @@ pub struct SetSecretResponse {
 #[derive(Debug, Serialize)]
 pub struct GetSecretResponse {
     pub path: String,
-    pub current_version: i64,
+    pub version: i64,
     pub data: HashMap<String, String>,
     pub created_at: String,
     pub updated_at: String,
@@ -169,7 +169,7 @@ pub async fn get_secret(
 
             let resp = GetSecretResponse {
                 path: secret.path,
-                current_version: secret.current_version,
+                version: secret.current_version,
                 data,
                 created_at: secret.created_at.to_rfc3339(),
                 updated_at: secret.updated_at.to_rfc3339(),
@@ -273,7 +273,7 @@ pub async fn get_secret_metadata(
         Ok(secret) => {
             let resp = serde_json::json!({
                 "path": secret.path,
-                "current_version": secret.current_version,
+                "version": secret.current_version,
                 "version_count": secret.versions.len(),
                 "created_at": secret.created_at.to_rfc3339(),
                 "updated_at": secret.updated_at.to_rfc3339(),

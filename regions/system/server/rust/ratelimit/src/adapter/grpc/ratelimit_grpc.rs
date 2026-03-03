@@ -110,6 +110,15 @@ pub struct ListRulesRequest {
 #[derive(Debug)]
 pub struct ListRulesResponse {
     pub rules: Vec<RuleResponse>,
+    pub pagination: PaginationResponse,
+}
+
+#[derive(Debug)]
+pub struct PaginationResponse {
+    pub total_count: i32,
+    pub page: i32,
+    pub page_size: i32,
+    pub has_next: bool,
 }
 
 pub struct ResetLimitRequest {
@@ -406,6 +415,7 @@ impl RateLimitGrpcService {
                 rules.retain(|r| r.enabled);
             }
         }
+        let total_count = rules.len();
         let page = if req.page == 0 { 1 } else { req.page as usize };
         let page_size = if req.page_size == 0 {
             20
@@ -413,6 +423,7 @@ impl RateLimitGrpcService {
             req.page_size as usize
         };
         let start = (page - 1) * page_size;
+        let has_next = page * page_size < total_count;
         let rules: Vec<_> = rules.into_iter().skip(start).take(page_size).collect();
 
         Ok(ListRulesResponse {
@@ -436,6 +447,12 @@ impl RateLimitGrpcService {
                     }),
                 })
                 .collect(),
+            pagination: PaginationResponse {
+                total_count: total_count.min(i32::MAX as usize) as i32,
+                page: page.min(i32::MAX as usize) as i32,
+                page_size: page_size.min(i32::MAX as usize) as i32,
+                has_next,
+            },
         })
     }
 
