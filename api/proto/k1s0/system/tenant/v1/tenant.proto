@@ -141,6 +141,7 @@ message Tenant {
   string settings = 8;
   string db_schema = 9;
   k1s0.system.common.v1.Timestamp updated_at = 10;
+  string keycloak_realm = 11;
 }
 
 message TenantMember {

@@ -26,6 +26,8 @@ pub struct FileMetadata {
     >,
     #[prost(string, tag = "11")]
     pub storage_key: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "12")]
+    pub checksum_sha256: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetFileMetadataRequest {
@@ -79,6 +81,8 @@ pub struct GenerateUploadUrlResponse {
     pub file_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub upload_url: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "3")]
+    pub expires_in_seconds: u32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CompleteUploadRequest {

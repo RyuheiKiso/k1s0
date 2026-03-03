@@ -480,3 +480,10 @@ message Session {
 
 - [認証設計.md](../../architecture/auth/認証設計.md) -- 認証設計
 - [JWT設計.md](../../architecture/auth/JWT設計.md) -- JWT 設計
+
+## Doc Sync (2026-03-03)
+
+### Message/Field Corrections
+- `CreateSessionRequest.ttl_seconds` is optional.
+- `CreateSessionResponse.token` is present.
+- Session-related timestamps use `k1s0.system.common.v1.Timestamp`.

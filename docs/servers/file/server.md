@@ -678,3 +678,13 @@ vault:
 - [RBAC設計.md](../../architecture/auth/RBAC設計.md) -- RBAC ロールモデル
 - [system-server.md](../auth/server.md) -- system tier サーバー一覧
 - [system-server-implementation.md](../_common/implementation.md) -- system tier 実装設計
+
+## Doc Sync (2026-03-03)
+
+### Message/Field Corrections
+- `FileMetadata.checksum_sha256` is available.
+- `GenerateUploadUrlResponse.expires_in_seconds` is available.
+
+### REST/gRPC Response Differences
+- `CompleteUploadResponse`: REST shape and gRPC shape differ (gRPC returns `FileMetadata`).
+- `DeleteFileResponse`: REST may return `{success,message}`, gRPC response is empty message.

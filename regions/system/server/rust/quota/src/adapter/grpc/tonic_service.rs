@@ -60,6 +60,8 @@ fn policy_to_proto(p: &QuotaPolicy) -> ProtoQuotaPolicy {
         period: p.period.as_str().to_string(),
         enabled: p.enabled,
         alert_threshold_percent: p.alert_threshold_percent.map(|v| v as u32),
+        created_at: Some(to_proto_timestamp(p.created_at)),
+        updated_at: Some(to_proto_timestamp(p.updated_at)),
     }
 }
 
@@ -261,7 +263,7 @@ impl QuotaService for QuotaServiceTonic {
         let inner = request.into_inner();
         let result = self
             .inner
-            .increment_usage(inner.quota_id, inner.amount)
+            .increment_usage(inner.quota_id, inner.amount, inner.request_id)
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -282,7 +284,7 @@ impl QuotaService for QuotaServiceTonic {
         let inner = request.into_inner();
         let usage = self
             .inner
-            .reset_usage(inner.quota_id, inner.reason)
+            .reset_usage(inner.quota_id, inner.reason, inner.reset_by)
             .await
             .map_err(Into::<Status>::into)?;
 

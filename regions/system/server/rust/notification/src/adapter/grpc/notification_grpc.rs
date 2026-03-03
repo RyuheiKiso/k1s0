@@ -769,7 +769,7 @@ fn log_to_pb(log: crate::domain::entity::notification_log::NotificationLog, chan
         subject: log.subject,
         body: log.body,
         status: log.status,
-        retry_count: 0,
+        retry_count: log.retry_count,
         error_message: log.error_message,
         sent_at: log.sent_at.map(|t| t.to_rfc3339()),
         created_at: log.created_at.to_rfc3339(),

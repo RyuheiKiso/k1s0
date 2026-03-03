@@ -679,3 +679,14 @@ vault:
 > 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [system-library-featureflag.md](../../libraries/config/featureflag.md) -- フィーチャーフラグクライアントライブラリ設計
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `EvaluateFlag`, `GetFlag`, `ListFlags`, `CreateFlag`, `UpdateFlag`, `DeleteFlag`
+
+### Message/Field Corrections
+- Canonical list messages are `ListFlagsRequest` and `ListFlagsResponse`.
+- `FeatureFlag.rules` exists as `repeated FlagRule` (field `8`).
+- `EvaluateFlagResponse.variant` is `optional string`.
+- `UpdateFlagRequest.enabled` and `UpdateFlagRequest.description` are optional.

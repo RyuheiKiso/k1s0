@@ -822,3 +822,14 @@ vault:
 
 - [system-saga-server.md](../saga/server.md) -- Saga パターンによるプロビジョニング
 - [REST-API設計.md](../../architecture/api/REST-API設計.md) -- D-007 統一エラーレスポンス
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `CreateTenant`, `GetTenant`, `ListTenants`, `UpdateTenant`, `SuspendTenant`, `ActivateTenant`, `DeleteTenant`
+- `AddMember`, `ListMembers`, `RemoveMember`, `GetProvisioningStatus`
+
+### Message/Field Corrections
+- `Tenant` includes `owner_id(7)`, `settings(8)`, `db_schema(9)`, `updated_at(10)`, `keycloak_realm(11)`.
+- `ListMembersRequest` and `ListMembersResponse` are canonical gRPC messages.
+- Tenant timestamp fields use `k1s0.system.common.v1.Timestamp`.

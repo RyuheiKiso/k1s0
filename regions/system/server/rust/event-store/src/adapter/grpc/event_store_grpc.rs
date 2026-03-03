@@ -1,153 +1,32 @@
 use std::sync::Arc;
 
-use crate::domain::entity::event::{EventData, EventMetadata, EventStream};
+use crate::domain::entity::event::{EventData, EventMetadata};
 use crate::domain::repository::EventStreamRepository;
+use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
+use crate::proto::k1s0::system::eventstore::v1::{
+    AppendEventsRequest as ProtoAppendEventsRequest, AppendEventsResponse as ProtoAppendEventsResponse,
+    CreateSnapshotRequest as ProtoCreateSnapshotRequest,
+    CreateSnapshotResponse as ProtoCreateSnapshotResponse,
+    DeleteStreamRequest as ProtoDeleteStreamRequest,
+    DeleteStreamResponse as ProtoDeleteStreamResponse, EventMetadata as ProtoEventMetadata,
+    GetLatestSnapshotRequest as ProtoGetLatestSnapshotRequest,
+    GetLatestSnapshotResponse as ProtoGetLatestSnapshotResponse,
+    ListStreamsRequest as ProtoListStreamsRequest, ListStreamsResponse as ProtoListStreamsResponse,
+    ReadEventBySequenceRequest as ProtoReadEventBySequenceRequest,
+    ReadEventBySequenceResponse as ProtoReadEventBySequenceResponse,
+    ReadEventsRequest as ProtoReadEventsRequest, ReadEventsResponse as ProtoReadEventsResponse,
+    Snapshot as ProtoSnapshot, StreamInfo as ProtoStreamInfo, StoredEvent as ProtoStoredEvent,
+};
 use crate::usecase::append_events::{AppendEventsError, AppendEventsInput, AppendEventsUseCase};
 use crate::usecase::create_snapshot::{CreateSnapshotError, CreateSnapshotInput, CreateSnapshotUseCase};
 use crate::usecase::delete_stream::{DeleteStreamError, DeleteStreamInput, DeleteStreamUseCase};
-use crate::usecase::get_latest_snapshot::{GetLatestSnapshotError, GetLatestSnapshotInput, GetLatestSnapshotUseCase};
-use crate::usecase::read_event_by_sequence::{ReadEventBySequenceError, ReadEventBySequenceInput, ReadEventBySequenceUseCase};
+use crate::usecase::get_latest_snapshot::{
+    GetLatestSnapshotError, GetLatestSnapshotInput, GetLatestSnapshotUseCase,
+};
+use crate::usecase::read_event_by_sequence::{
+    ReadEventBySequenceError, ReadEventBySequenceInput, ReadEventBySequenceUseCase,
+};
 use crate::usecase::read_events::{ReadEventsError, ReadEventsInput, ReadEventsUseCase};
-
-#[derive(Debug, Clone)]
-pub struct PbEventMetadata {
-    pub actor_id: Option<String>,
-    pub correlation_id: Option<String>,
-    pub causation_id: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PbEventData {
-    pub event_type: String,
-    pub payload_json: Vec<u8>,
-    pub metadata: PbEventMetadata,
-}
-
-#[derive(Debug, Clone)]
-pub struct PbStoredEvent {
-    pub stream_id: String,
-    pub sequence: u64,
-    pub event_type: String,
-    pub version: i64,
-    pub payload_json: Vec<u8>,
-    pub metadata: PbEventMetadata,
-    pub occurred_at: String,
-    pub stored_at: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct PbSnapshot {
-    pub id: String,
-    pub stream_id: String,
-    pub snapshot_version: i64,
-    pub aggregate_type: String,
-    pub state_json: Vec<u8>,
-    pub created_at: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct StreamInfoData {
-    pub id: String,
-    pub aggregate_type: String,
-    pub current_version: i64,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct ListStreamsRequest {
-    pub page: i32,
-    pub page_size: i32,
-}
-
-#[derive(Debug, Clone)]
-pub struct ListStreamsResponse {
-    pub streams: Vec<StreamInfoData>,
-    pub total_count: u64,
-    pub page: i32,
-    pub page_size: i32,
-    pub has_next: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct AppendEventsRequest {
-    pub stream_id: String,
-    pub events: Vec<PbEventData>,
-    pub expected_version: i64,
-}
-
-#[derive(Debug, Clone)]
-pub struct AppendEventsResponse {
-    pub stream_id: String,
-    pub events: Vec<PbStoredEvent>,
-    pub current_version: i64,
-}
-
-#[derive(Debug, Clone)]
-pub struct ReadEventsRequest {
-    pub stream_id: String,
-    pub from_version: i64,
-    pub to_version: Option<i64>,
-    pub page: u32,
-    pub page_size: u32,
-}
-
-#[derive(Debug, Clone)]
-pub struct ReadEventsResponse {
-    pub stream_id: String,
-    pub events: Vec<PbStoredEvent>,
-    pub current_version: i64,
-    pub total_count: u64,
-    pub has_next: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct ReadEventBySequenceRequest {
-    pub stream_id: String,
-    pub sequence: u64,
-}
-
-#[derive(Debug, Clone)]
-pub struct ReadEventBySequenceResponse {
-    pub event: PbStoredEvent,
-}
-
-#[derive(Debug, Clone)]
-pub struct CreateSnapshotRequest {
-    pub stream_id: String,
-    pub snapshot_version: i64,
-    pub aggregate_type: String,
-    pub state_json: Vec<u8>,
-}
-
-#[derive(Debug, Clone)]
-pub struct CreateSnapshotResponse {
-    pub id: String,
-    pub stream_id: String,
-    pub snapshot_version: i64,
-    pub created_at: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct GetLatestSnapshotRequest {
-    pub stream_id: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct GetLatestSnapshotResponse {
-    pub snapshot: PbSnapshot,
-}
-
-#[derive(Debug, Clone)]
-pub struct DeleteStreamRequest {
-    pub stream_id: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct DeleteStreamResponse {
-    pub success: bool,
-    pub message: String,
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum GrpcError {
@@ -201,13 +80,18 @@ impl EventStoreGrpcService {
 
     pub async fn list_streams(
         &self,
-        req: ListStreamsRequest,
-    ) -> Result<ListStreamsResponse, GrpcError> {
-        let page = if req.page <= 0 { 1 } else { req.page as u32 };
-        let page_size = if req.page_size <= 0 {
+        req: ProtoListStreamsRequest,
+    ) -> Result<ProtoListStreamsResponse, GrpcError> {
+        let pagination = req.pagination.unwrap_or_default();
+        let page = if pagination.page <= 0 {
+            1
+        } else {
+            pagination.page as u32
+        };
+        let page_size = if pagination.page_size <= 0 {
             20
         } else {
-            req.page_size as u32
+            pagination.page_size as u32
         };
 
         let (streams, total_count) = self
@@ -217,31 +101,43 @@ impl EventStoreGrpcService {
             .map_err(|e| GrpcError::Internal(e.to_string()))?;
         let has_next = (page as u64) * (page_size as u64) < total_count;
 
-        Ok(ListStreamsResponse {
-            streams: streams.into_iter().map(to_stream_info).collect(),
-            total_count,
-            page: page as i32,
-            page_size: page_size as i32,
-            has_next,
+        Ok(ProtoListStreamsResponse {
+            streams: streams
+                .into_iter()
+                .map(|stream| ProtoStreamInfo {
+                    id: stream.id,
+                    aggregate_type: stream.aggregate_type,
+                    current_version: stream.current_version,
+                    created_at: stream.created_at.to_rfc3339(),
+                    updated_at: stream.updated_at.to_rfc3339(),
+                })
+                .collect(),
+            pagination: Some(ProtoPaginationResult {
+                total_count: total_count.min(i32::MAX as u64) as i32,
+                page: page as i32,
+                page_size: page_size as i32,
+                has_next,
+            }),
         })
     }
 
     pub async fn append_events(
         &self,
-        req: AppendEventsRequest,
-    ) -> Result<AppendEventsResponse, GrpcError> {
+        req: ProtoAppendEventsRequest,
+    ) -> Result<ProtoAppendEventsResponse, GrpcError> {
         let events: Vec<EventData> = req
             .events
             .into_iter()
             .map(|e| {
-                let payload = serde_json::from_slice(&e.payload_json).unwrap_or(serde_json::Value::Null);
+                let payload = serde_json::from_slice(&e.payload).unwrap_or(serde_json::Value::Null);
+                let metadata = e.metadata.unwrap_or_default();
                 EventData {
                     event_type: e.event_type,
                     payload,
                     metadata: EventMetadata::new(
-                        e.metadata.actor_id,
-                        e.metadata.correlation_id,
-                        e.metadata.causation_id,
+                        metadata.actor_id,
+                        metadata.correlation_id,
+                        metadata.causation_id,
                     ),
                 }
             })
@@ -254,9 +150,9 @@ impl EventStoreGrpcService {
         };
 
         match self.append_events_uc.execute(&input).await {
-            Ok(output) => Ok(AppendEventsResponse {
+            Ok(output) => Ok(ProtoAppendEventsResponse {
                 stream_id: output.stream_id,
-                events: output.events.into_iter().map(stored_event_to_pb).collect(),
+                events: output.events.into_iter().map(stored_event_to_proto).collect(),
                 current_version: output.current_version,
             }),
             Err(AppendEventsError::StreamNotFound(id)) => {
@@ -280,8 +176,8 @@ impl EventStoreGrpcService {
 
     pub async fn read_events(
         &self,
-        req: ReadEventsRequest,
-    ) -> Result<ReadEventsResponse, GrpcError> {
+        req: ProtoReadEventsRequest,
+    ) -> Result<ProtoReadEventsResponse, GrpcError> {
         let input = ReadEventsInput {
             stream_id: req.stream_id,
             from_version: req.from_version,
@@ -292,12 +188,16 @@ impl EventStoreGrpcService {
         };
 
         match self.read_events_uc.execute(&input).await {
-            Ok(output) => Ok(ReadEventsResponse {
+            Ok(output) => Ok(ProtoReadEventsResponse {
                 stream_id: output.stream_id,
-                events: output.events.into_iter().map(stored_event_to_pb).collect(),
+                events: output.events.into_iter().map(stored_event_to_proto).collect(),
                 current_version: output.current_version,
-                total_count: output.pagination.total_count,
-                has_next: output.pagination.has_next,
+                pagination: Some(ProtoPaginationResult {
+                    total_count: output.pagination.total_count.min(i32::MAX as u64) as i32,
+                    page: req.page as i32,
+                    page_size: req.page_size as i32,
+                    has_next: output.pagination.has_next,
+                }),
             }),
             Err(ReadEventsError::StreamNotFound(id)) => {
                 Err(GrpcError::NotFound(format!("stream not found: {}", id)))
@@ -308,16 +208,16 @@ impl EventStoreGrpcService {
 
     pub async fn read_event_by_sequence(
         &self,
-        req: ReadEventBySequenceRequest,
-    ) -> Result<ReadEventBySequenceResponse, GrpcError> {
+        req: ProtoReadEventBySequenceRequest,
+    ) -> Result<ProtoReadEventBySequenceResponse, GrpcError> {
         let input = ReadEventBySequenceInput {
             stream_id: req.stream_id,
             sequence: req.sequence,
         };
 
         match self.read_event_by_sequence_uc.execute(&input).await {
-            Ok(event) => Ok(ReadEventBySequenceResponse {
-                event: stored_event_to_pb(event),
+            Ok(event) => Ok(ProtoReadEventBySequenceResponse {
+                event: Some(stored_event_to_proto(event)),
             }),
             Err(ReadEventBySequenceError::StreamNotFound(id)) => {
                 Err(GrpcError::NotFound(format!("stream not found: {}", id)))
@@ -334,9 +234,9 @@ impl EventStoreGrpcService {
 
     pub async fn create_snapshot(
         &self,
-        req: CreateSnapshotRequest,
-    ) -> Result<CreateSnapshotResponse, GrpcError> {
-        let state = serde_json::from_slice(&req.state_json).unwrap_or(serde_json::Value::Null);
+        req: ProtoCreateSnapshotRequest,
+    ) -> Result<ProtoCreateSnapshotResponse, GrpcError> {
+        let state = serde_json::from_slice(&req.state).unwrap_or(serde_json::Value::Null);
 
         let input = CreateSnapshotInput {
             stream_id: req.stream_id,
@@ -346,11 +246,12 @@ impl EventStoreGrpcService {
         };
 
         match self.create_snapshot_uc.execute(&input).await {
-            Ok(output) => Ok(CreateSnapshotResponse {
+            Ok(output) => Ok(ProtoCreateSnapshotResponse {
                 id: output.id,
                 stream_id: output.stream_id,
                 snapshot_version: output.snapshot_version,
                 created_at: output.created_at.to_rfc3339(),
+                aggregate_type: output.aggregate_type,
             }),
             Err(CreateSnapshotError::StreamNotFound(id)) => {
                 Err(GrpcError::NotFound(format!("stream not found: {}", id)))
@@ -362,22 +263,22 @@ impl EventStoreGrpcService {
 
     pub async fn get_latest_snapshot(
         &self,
-        req: GetLatestSnapshotRequest,
-    ) -> Result<GetLatestSnapshotResponse, GrpcError> {
+        req: ProtoGetLatestSnapshotRequest,
+    ) -> Result<ProtoGetLatestSnapshotResponse, GrpcError> {
         let input = GetLatestSnapshotInput {
             stream_id: req.stream_id,
         };
 
         match self.get_latest_snapshot_uc.execute(&input).await {
-            Ok(snap) => Ok(GetLatestSnapshotResponse {
-                snapshot: PbSnapshot {
-                    id: snap.id,
-                    stream_id: snap.stream_id,
-                    snapshot_version: snap.snapshot_version,
-                    aggregate_type: snap.aggregate_type,
-                    state_json: serde_json::to_vec(&snap.state).unwrap_or_default(),
-                    created_at: snap.created_at.to_rfc3339(),
-                },
+            Ok(snapshot) => Ok(ProtoGetLatestSnapshotResponse {
+                snapshot: Some(ProtoSnapshot {
+                    id: snapshot.id,
+                    stream_id: snapshot.stream_id,
+                    snapshot_version: snapshot.snapshot_version,
+                    aggregate_type: snapshot.aggregate_type,
+                    state: serde_json::to_vec(&snapshot.state).unwrap_or_default(),
+                    created_at: snapshot.created_at.to_rfc3339(),
+                }),
             }),
             Err(GetLatestSnapshotError::StreamNotFound(id)) => {
                 Err(GrpcError::NotFound(format!("stream not found: {}", id)))
@@ -391,8 +292,8 @@ impl EventStoreGrpcService {
 
     pub async fn delete_stream(
         &self,
-        req: DeleteStreamRequest,
-    ) -> Result<DeleteStreamResponse, GrpcError> {
+        req: ProtoDeleteStreamRequest,
+    ) -> Result<ProtoDeleteStreamResponse, GrpcError> {
         let out = self
             .delete_stream_uc
             .execute(&DeleteStreamInput {
@@ -406,36 +307,27 @@ impl EventStoreGrpcService {
                 DeleteStreamError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
-        Ok(DeleteStreamResponse {
+        Ok(ProtoDeleteStreamResponse {
             success: out.success,
             message: out.message,
         })
     }
 }
 
-fn stored_event_to_pb(e: crate::domain::entity::event::StoredEvent) -> PbStoredEvent {
-    PbStoredEvent {
+fn stored_event_to_proto(e: crate::domain::entity::event::StoredEvent) -> ProtoStoredEvent {
+    ProtoStoredEvent {
         stream_id: e.stream_id,
         sequence: e.sequence,
         event_type: e.event_type,
         version: e.version,
-        payload_json: serde_json::to_vec(&e.payload).unwrap_or_default(),
-        metadata: PbEventMetadata {
+        payload: serde_json::to_vec(&e.payload).unwrap_or_default(),
+        metadata: Some(ProtoEventMetadata {
             actor_id: e.metadata.actor_id,
             correlation_id: e.metadata.correlation_id,
             causation_id: e.metadata.causation_id,
-        },
+        }),
         occurred_at: e.occurred_at.to_rfc3339(),
         stored_at: e.stored_at.to_rfc3339(),
     }
 }
 
-fn to_stream_info(stream: EventStream) -> StreamInfoData {
-    StreamInfoData {
-        id: stream.id,
-        aggregate_type: stream.aggregate_type,
-        current_version: stream.current_version,
-        created_at: stream.created_at.to_rfc3339(),
-        updated_at: stream.updated_at.to_rfc3339(),
-    }
-}

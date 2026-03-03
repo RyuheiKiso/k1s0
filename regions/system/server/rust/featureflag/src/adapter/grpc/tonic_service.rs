@@ -239,12 +239,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
         let inner = request.into_inner();
         let req = UpdateFlagRequest {
             flag_key: inner.flag_key,
-            enabled: if inner.enabled { Some(true) } else { Some(false) },
-            description: if inner.description.is_empty() {
-                None
-            } else {
-                Some(inner.description)
-            },
+            enabled: inner.enabled,
+            description: inner.description.filter(|v| !v.is_empty()),
         };
         let resp = self
             .inner

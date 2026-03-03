@@ -182,6 +182,7 @@ mod tests {
             subject: Some("Test Subject".to_string()),
             body: "Test body".to_string(),
             status: "sent".to_string(),
+            retry_count: 0,
             error_message: None,
             sent_at: Some(chrono::Utc::now()),
             created_at: chrono::Utc::now(),

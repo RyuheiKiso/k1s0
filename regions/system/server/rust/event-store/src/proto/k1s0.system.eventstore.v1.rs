@@ -87,7 +87,7 @@ pub struct CreateSnapshotRequest {
     #[prost(string, tag = "3")]
     pub aggregate_type: ::prost::alloc::string::String,
     #[prost(bytes = "vec", tag = "4")]
-    pub state_json: ::prost::alloc::vec::Vec<u8>,
+    pub state: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateSnapshotResponse {
@@ -99,6 +99,8 @@ pub struct CreateSnapshotResponse {
     pub snapshot_version: i64,
     #[prost(string, tag = "4")]
     pub created_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub aggregate_type: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetLatestSnapshotRequest {
@@ -127,7 +129,7 @@ pub struct EventData {
     #[prost(string, tag = "1")]
     pub event_type: ::prost::alloc::string::String,
     #[prost(bytes = "vec", tag = "2")]
-    pub payload_json: ::prost::alloc::vec::Vec<u8>,
+    pub payload: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "3")]
     pub metadata: ::core::option::Option<EventMetadata>,
 }
@@ -142,7 +144,7 @@ pub struct StoredEvent {
     #[prost(int64, tag = "4")]
     pub version: i64,
     #[prost(bytes = "vec", tag = "5")]
-    pub payload_json: ::prost::alloc::vec::Vec<u8>,
+    pub payload: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "6")]
     pub metadata: ::core::option::Option<EventMetadata>,
     #[prost(string, tag = "7")]
@@ -170,7 +172,7 @@ pub struct Snapshot {
     #[prost(string, tag = "4")]
     pub aggregate_type: ::prost::alloc::string::String,
     #[prost(bytes = "vec", tag = "5")]
-    pub state_json: ::prost::alloc::vec::Vec<u8>,
+    pub state: ::prost::alloc::vec::Vec<u8>,
     #[prost(string, tag = "6")]
     pub created_at: ::prost::alloc::string::String,
 }

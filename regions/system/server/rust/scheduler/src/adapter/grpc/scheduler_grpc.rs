@@ -163,6 +163,9 @@ pub struct ListExecutionsRequest {
     pub job_id: String,
     pub page: i32,
     pub page_size: i32,
+    pub status: Option<String>,
+    pub from: Option<DateTime<Utc>>,
+    pub to: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone)]
@@ -178,6 +181,9 @@ pub struct ListExecutionsResponse {
 pub enum GrpcError {
     #[error("not found: {0}")]
     NotFound(String),
+
+    #[error("already exists: {0}")]
+    AlreadyExists(String),
 
     #[error("invalid argument: {0}")]
     InvalidArgument(String),
@@ -268,7 +274,13 @@ impl SchedulerGrpcService {
                     "invalid cron expression: {}",
                     expr
                 )),
-                CreateJobError::Internal(msg) => GrpcError::Internal(msg),
+                CreateJobError::Internal(msg) => {
+                    if msg.contains("already exists") || msg.contains("duplicate") {
+                        GrpcError::AlreadyExists(msg)
+                    } else {
+                        GrpcError::Internal(msg)
+                    }
+                }
             })?;
 
         Ok(CreateJobResponse {
@@ -458,6 +470,17 @@ impl SchedulerGrpcService {
                 ListExecutionsError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
+        let mut executions = executions;
+        if let Some(status) = req.status.as_deref() {
+            executions.retain(|exec| exec.status == status);
+        }
+        if let Some(from) = req.from {
+            executions.retain(|exec| exec.started_at >= from);
+        }
+        if let Some(to) = req.to {
+            executions.retain(|exec| exec.started_at <= to);
+        }
+
         let page = if req.page <= 0 { 1 } else { req.page as usize };
         let page_size = if req.page_size <= 0 {
             20
@@ -528,7 +551,7 @@ fn to_execution_data(execution: SchedulerExecution) -> JobExecutionData {
         id: execution.id.to_string(),
         job_id: execution.job_id.to_string(),
         status: normalize_status(&execution.status),
-        triggered_by: "unknown".to_string(),
+        triggered_by: execution.triggered_by,
         started_at: execution.started_at,
         finished_at: execution.completed_at,
         duration_ms,

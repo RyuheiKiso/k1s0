@@ -66,10 +66,10 @@ pub struct CreateFlagResponse {
 pub struct UpdateFlagRequest {
     #[prost(string, tag = "1")]
     pub flag_key: ::prost::alloc::string::String,
-    #[prost(bool, tag = "2")]
-    pub enabled: bool,
-    #[prost(string, tag = "3")]
-    pub description: ::prost::alloc::string::String,
+    #[prost(bool, optional, tag = "2")]
+    pub enabled: ::core::option::Option<bool>,
+    #[prost(string, optional, tag = "3")]
+    pub description: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateFlagResponse {

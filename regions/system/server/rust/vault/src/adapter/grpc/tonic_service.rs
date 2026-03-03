@@ -36,6 +36,7 @@ impl From<GrpcError> for Status {
     fn from(e: GrpcError) -> Self {
         match e {
             GrpcError::NotFound(msg) => Status::not_found(msg),
+            GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
             GrpcError::PermissionDenied(msg) => Status::permission_denied(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
         }
@@ -87,6 +88,7 @@ impl VaultService for VaultServiceTonic {
             data: resp.data,
             version: resp.version,
             created_at: Some(to_proto_timestamp(resp.created_at)),
+            updated_at: Some(to_proto_timestamp(resp.updated_at)),
         }))
     }
 

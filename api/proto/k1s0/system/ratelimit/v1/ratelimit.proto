@@ -38,6 +38,7 @@ message CheckRateLimitResponse {
   int64 remaining = 2;
   int64 reset_at = 3;
   string reason = 4;
+  int64 limit = 5;
 }
 
 message CreateRuleRequest {
@@ -81,7 +82,12 @@ message DeleteRuleResponse {
   bool success = 1;
 }
 
-message ListRulesRequest {}
+message ListRulesRequest {
+  string scope = 1;
+  optional bool enabled_only = 2;
+  uint32 page = 3;
+  uint32 page_size = 4;
+}
 
 message ListRulesResponse {
   repeated RateLimitRule rules = 1;
@@ -107,7 +113,7 @@ message GetUsageResponse {
   string rule_id = 1;
   string rule_name = 2;
   int64 limit = 3;
-  int64 window_secs = 4;
+  int64 window_seconds = 4;
   string algorithm = 5;
   bool enabled = 6;
   optional int64 used = 7;

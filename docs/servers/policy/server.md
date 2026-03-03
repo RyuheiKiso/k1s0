@@ -718,3 +718,14 @@ vault:
 
 - [RBAC設計.md](../../architecture/auth/RBAC設計.md) -- RBAC ロールモデル
 - [system-server.md](../auth/server.md) -- system tier サーバー一覧
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `EvaluatePolicy`, `GetPolicy`, `ListPolicies`, `CreatePolicy`, `UpdatePolicy`, `DeletePolicy`
+- `CreateBundle`, `ListBundles`
+
+### Message/Field Corrections
+- Canonical list/create message pairs are `ListPoliciesRequest/Response` and `CreatePolicyRequest/Response`.
+- `ListPoliciesRequest.bundle_id` is `optional string`.
+- `CreatePolicyRequest.bundle_id` is `optional string`.

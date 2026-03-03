@@ -24,6 +24,7 @@ message CreateSessionRequest {
   optional string device_type = 4;
   optional string user_agent = 5;
   optional string ip_address = 6;
+  optional uint32 ttl_seconds = 7;
 }
 
 message CreateSessionResponse {
@@ -32,6 +33,7 @@ message CreateSessionResponse {
   string device_id = 3;
   k1s0.system.common.v1.Timestamp expires_at = 4;
   k1s0.system.common.v1.Timestamp created_at = 5;
+  string token = 6;
 }
 
 message GetSessionRequest {

@@ -45,7 +45,7 @@ fn domain_to_proto(msg: crate::domain::entity::DlqMessage) -> ProtoDlqMessage {
         error_message: msg.error_message,
         retry_count: msg.retry_count,
         max_retries: msg.max_retries,
-        payload_json: msg.payload.to_string(),
+        payload: msg.payload.to_string(),
         status: msg.status.to_string(),
         created_at: Some(Timestamp {
             seconds: msg.created_at.timestamp(),

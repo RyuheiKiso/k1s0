@@ -50,7 +50,7 @@ fn to_proto_policy(policy: PolicyData) -> ProtoPolicy {
         description: policy.description,
         package_path: policy.package_path,
         rego_content: policy.rego_content,
-        bundle_id: policy.bundle_id.unwrap_or_default(),
+        bundle_id: policy.bundle_id,
         enabled: policy.enabled,
         version: policy.version,
         created_at: to_proto_timestamp(policy.created_at),

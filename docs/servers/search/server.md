@@ -540,3 +540,12 @@ vault:
 
 - [RBAC設計.md](../../architecture/auth/RBAC設計.md) -- RBAC ロールモデル
 - [system-server.md](../auth/server.md) -- system tier サーバー一覧
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `CreateIndex`, `ListIndices`, `IndexDocument`, `Search`, `DeleteDocument`
+
+### Message/Field Corrections
+- `SearchIndex`, `CreateIndexRequest`, `CreateIndexResponse`, `ListIndicesRequest`, `ListIndicesResponse` are canonical messages.
+- `SearchResponse` pagination is `k1s0.system.common.v1.PaginationResult`.

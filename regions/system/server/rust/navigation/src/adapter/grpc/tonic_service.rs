@@ -62,7 +62,9 @@ fn route_to_proto(route: Route) -> ProtoRoute {
         component_id: route.component_id.unwrap_or_default(),
         guard_ids: route.guards,
         children: route.children.into_iter().map(route_to_proto).collect(),
-        transition: route.transition.map(transition_to_proto),
+        transition: route
+            .transition
+            .map(|t| transition_to_proto(t, route.transition_duration_ms)),
         params: route.params.into_iter().map(param_to_proto).collect(),
         redirect_to: route.redirect_to.unwrap_or_default(),
     }
@@ -77,10 +79,10 @@ fn guard_to_proto(guard: Guard) -> ProtoGuard {
     }
 }
 
-fn transition_to_proto(t: TransitionType) -> ProtoTransitionConfig {
+fn transition_to_proto(t: TransitionType, duration_ms: u32) -> ProtoTransitionConfig {
     ProtoTransitionConfig {
         r#type: transition_type_to_proto(&t) as i32,
-        duration_ms: 300,
+        duration_ms,
     }
 }
 
@@ -142,6 +144,7 @@ mod tests {
             component_id: Some("TestPage".to_string()),
             guards: vec!["auth".to_string()],
             transition: Some(TransitionType::Fade),
+            transition_duration_ms: 450,
             redirect_to: None,
             children: vec![],
             params: vec![Param {
@@ -156,7 +159,7 @@ mod tests {
         assert!(proto.transition.is_some());
         let t = proto.transition.unwrap();
         assert_eq!(t.r#type, ProtoTransitionType::Fade as i32);
-        assert_eq!(t.duration_ms, 300);
+        assert_eq!(t.duration_ms, 450);
         assert_eq!(proto.params.len(), 1);
         assert_eq!(proto.params[0].r#type, ProtoParamType::Uuid as i32);
         assert_eq!(proto.redirect_to, "");

@@ -162,6 +162,7 @@ mod tests {
                 id: Uuid::new_v4(),
                 job_id: id,
                 status: "running".to_string(),
+                triggered_by: "scheduler".to_string(),
                 started_at: chrono::Utc::now(),
                 completed_at: None,
                 error_message: None,

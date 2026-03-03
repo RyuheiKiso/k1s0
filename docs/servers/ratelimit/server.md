@@ -817,3 +817,13 @@ vault:
 > 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [APIゲートウェイ設計.md](../../architecture/api/APIゲートウェイ設計.md) -- Kong API ゲートウェイ設計
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `CheckRateLimit`, `CreateRule`, `GetRule`, `UpdateRule`, `DeleteRule`, `ListRules`, `GetUsage`, `ResetLimit`
+
+### Message/Field Corrections
+- `ListRulesRequest` supports `scope`, `enabled_only`, `page`, `page_size`.
+- `CheckRateLimitResponse.limit` is present.
+- `GetUsageResponse.window_seconds` is canonical field name.

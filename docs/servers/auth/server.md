@@ -1126,3 +1126,13 @@ moka を使用したインメモリキャッシュで RBAC 判定結果をキャ
 > 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [system-config-server.md](../config/server.md) -- 設定管理サーバー設計（同 tier の参考実装）
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `AuthService`: `ValidateToken`, `GetUser`, `ListUsers`, `GetUserRoles`, `CheckPermission`
+- `AuditService`: `RecordAuditLog`, `SearchAuditLogs`
+
+### Message/Field Corrections
+- `TokenClaims.scope` exists as field `12`.
+- Common type import is `k1s0/system/common/v1/types.proto` and timestamp usage is `k1s0.system.common.v1.Timestamp`.

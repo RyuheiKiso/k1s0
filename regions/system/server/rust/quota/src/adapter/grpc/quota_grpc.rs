@@ -279,8 +279,13 @@ impl QuotaGrpcService {
         &self,
         quota_id: String,
         amount: u64,
+        request_id: Option<String>,
     ) -> Result<IncrementResult, GrpcError> {
-        let input = IncrementQuotaUsageInput { quota_id, amount };
+        let input = IncrementQuotaUsageInput {
+            quota_id,
+            amount,
+            request_id,
+        };
         self.increment_usage_uc
             .execute(&input)
             .await
@@ -291,11 +296,12 @@ impl QuotaGrpcService {
         &self,
         quota_id: String,
         reason: String,
+        reset_by: String,
     ) -> Result<QuotaUsage, GrpcError> {
         let input = ResetQuotaUsageInput {
             quota_id: quota_id.clone(),
             reason,
-            reset_by: "grpc".to_string(),
+            reset_by,
         };
         self.reset_usage_uc
             .execute(&input)

@@ -13,6 +13,8 @@ pub struct CreateSessionRequest {
     pub user_agent: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "6")]
     pub ip_address: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(uint32, optional, tag = "7")]
+    pub ttl_seconds: ::core::option::Option<u32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateSessionResponse {
@@ -26,6 +28,8 @@ pub struct CreateSessionResponse {
     pub expires_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "5")]
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(string, tag = "6")]
+    pub token: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSessionRequest {

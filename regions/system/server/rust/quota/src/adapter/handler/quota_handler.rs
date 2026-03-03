@@ -232,6 +232,7 @@ pub async fn increment_usage(
     let input = IncrementQuotaUsageInput {
         quota_id: id,
         amount: req.amount,
+        request_id: req.request_id,
     };
 
     match state.increment_usage_uc.execute(&input).await {
@@ -288,6 +289,7 @@ pub async fn reset_usage(
 #[derive(Debug, Deserialize)]
 pub struct IncrementUsageRequest {
     pub amount: u64,
+    pub request_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

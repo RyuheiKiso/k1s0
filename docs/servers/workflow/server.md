@@ -980,3 +980,16 @@ vault:
 - [system-notification-server.md](../notification/server.md) -- 通知連携先
 - [system-scheduler-server.md](../scheduler/server.md) -- 期日監視ジョブ連携先
 - [system-saga-server.md](../saga/server.md) -- システム間分散トランザクション（saga-server との役割分担）
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `ListWorkflows`, `CreateWorkflow`, `GetWorkflow`, `UpdateWorkflow`, `DeleteWorkflow`
+- `StartInstance`, `GetInstance`, `ListInstances`, `CancelInstance`
+- `ListTasks`, `ReassignTask`, `ApproveTask`, `RejectTask`
+
+### REST Path Correction
+- Canonical REST endpoint for instance start is `POST /api/v1/workflows/:id/execute`.
+
+### gRPC Port Correction
+- Canonical gRPC port is `9090`.

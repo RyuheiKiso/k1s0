@@ -16,7 +16,7 @@ pub struct Job {
     #[prost(string, tag = "7")]
     pub target: ::prost::alloc::string::String,
     #[prost(bytes = "vec", tag = "8")]
-    pub payload_json: ::prost::alloc::vec::Vec<u8>,
+    pub payload: ::prost::alloc::vec::Vec<u8>,
     #[prost(string, tag = "9")]
     pub status: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "10")]
@@ -43,7 +43,7 @@ pub struct CreateJobRequest {
     #[prost(string, tag = "6")]
     pub target: ::prost::alloc::string::String,
     #[prost(bytes = "vec", tag = "7")]
-    pub payload_json: ::prost::alloc::vec::Vec<u8>,
+    pub payload: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateJobResponse {
@@ -91,7 +91,7 @@ pub struct UpdateJobRequest {
     #[prost(string, tag = "7")]
     pub target: ::prost::alloc::string::String,
     #[prost(bytes = "vec", tag = "8")]
-    pub payload_json: ::prost::alloc::vec::Vec<u8>,
+    pub payload: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateJobResponse {
@@ -163,6 +163,12 @@ pub struct ListExecutionsRequest {
     pub job_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
     pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
+    #[prost(string, optional, tag = "3")]
+    pub status: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "4")]
+    pub from: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, optional, tag = "5")]
+    pub to: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListExecutionsResponse {

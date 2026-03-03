@@ -106,7 +106,7 @@ impl FileGrpcService {
         tags: std::collections::HashMap<String, String>,
         expires_in_seconds: Option<u32>,
         size_bytes: i64,
-    ) -> Result<(String, String), GrpcError> {
+    ) -> Result<(String, String, u32), GrpcError> {
         if filename.is_empty() {
             return Err(GrpcError::InvalidArgument("filename is required".to_string()));
         }
@@ -133,7 +133,7 @@ impl FileGrpcService {
                 GrpcError::Internal(msg)
             }
         })?;
-        Ok((output.file_id, output.upload_url))
+        Ok((output.file_id, output.upload_url, output.expires_in_seconds))
     }
 
     pub async fn complete_upload(

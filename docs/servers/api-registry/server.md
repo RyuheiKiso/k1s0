@@ -980,3 +980,14 @@ vault:
 
 
 
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `ListSchemas`, `RegisterSchema`, `GetSchema`
+- `ListVersions`, `RegisterVersion`, `GetSchemaVersion`, `DeleteVersion`
+- `CheckCompatibility`, `GetDiff`
+
+### Message/Field Corrections
+- `ApiSchemaVersionProto.breaking_change_details` exists (`repeated ChangeDetail`, field `9`).
+- Timestamp fields follow `k1s0.system.common.v1.Timestamp`.

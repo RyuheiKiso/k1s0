@@ -79,7 +79,7 @@ message SagaStepLogProto {
   // エラーメッセージ（失敗時）
   string error_message = 9;
   k1s0.system.common.v1.Timestamp started_at = 10;
-  k1s0.system.common.v1.Timestamp completed_at = 11;
+  optional k1s0.system.common.v1.Timestamp completed_at = 11;
 }
 
 // WorkflowSummary はワークフローの概要情報。

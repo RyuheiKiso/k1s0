@@ -13,7 +13,7 @@ pub struct DlqMessage {
     #[prost(int32, tag = "5")]
     pub max_retries: i32,
     #[prost(string, tag = "6")]
-    pub payload_json: ::prost::alloc::string::String,
+    pub payload: ::prost::alloc::string::String,
     /// ステータス（PENDING / RETRYING / RESOLVED / DEAD）
     #[prost(string, tag = "7")]
     pub status: ::prost::alloc::string::String,

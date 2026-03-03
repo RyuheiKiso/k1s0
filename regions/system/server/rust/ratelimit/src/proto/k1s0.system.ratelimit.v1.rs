@@ -18,6 +18,8 @@ pub struct CheckRateLimitResponse {
     pub reset_at: i64,
     #[prost(string, tag = "4")]
     pub reason: ::prost::alloc::string::String,
+    #[prost(int64, tag = "5")]
+    pub limit: i64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateRuleRequest {
@@ -77,8 +79,17 @@ pub struct DeleteRuleResponse {
     #[prost(bool, tag = "1")]
     pub success: bool,
 }
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct ListRulesRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListRulesRequest {
+    #[prost(string, tag = "1")]
+    pub scope: ::prost::alloc::string::String,
+    #[prost(bool, optional, tag = "2")]
+    pub enabled_only: ::core::option::Option<bool>,
+    #[prost(uint32, tag = "3")]
+    pub page: u32,
+    #[prost(uint32, tag = "4")]
+    pub page_size: u32,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListRulesResponse {
     #[prost(message, repeated, tag = "1")]
@@ -119,7 +130,7 @@ pub struct GetUsageResponse {
     #[prost(int64, tag = "3")]
     pub limit: i64,
     #[prost(int64, tag = "4")]
-    pub window_secs: i64,
+    pub window_seconds: i64,
     #[prost(string, tag = "5")]
     pub algorithm: ::prost::alloc::string::String,
     #[prost(bool, tag = "6")]

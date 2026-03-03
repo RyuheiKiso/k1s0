@@ -12,6 +12,9 @@ import "k1s0/system/common/v1/types.proto";
 
 service MasterMaintenanceService {
   // テーブル定義
+  rpc CreateTableDefinition(CreateTableDefinitionRequest) returns (CreateTableDefinitionResponse);
+  rpc UpdateTableDefinition(UpdateTableDefinitionRequest) returns (UpdateTableDefinitionResponse);
+  rpc DeleteTableDefinition(DeleteTableDefinitionRequest) returns (DeleteTableDefinitionResponse);
   rpc GetTableDefinition(GetTableDefinitionRequest) returns (GetTableDefinitionResponse);
   rpc ListTableDefinitions(ListTableDefinitionsRequest) returns (ListTableDefinitionsResponse);
   rpc ListColumns(ListColumnsRequest) returns (ListColumnsResponse);
@@ -53,6 +56,31 @@ service MasterMaintenanceService {
   // Audit Logs
   rpc ListTableAuditLogs(ListTableAuditLogsRequest) returns (ListTableAuditLogsResponse);
   rpc ListRecordAuditLogs(ListRecordAuditLogsRequest) returns (ListRecordAuditLogsResponse);
+}
+
+message CreateTableDefinitionRequest {
+  google.protobuf.Struct data = 1;
+}
+
+message CreateTableDefinitionResponse {
+  GetTableDefinitionResponse table = 1;
+}
+
+message UpdateTableDefinitionRequest {
+  string table_name = 1;
+  google.protobuf.Struct data = 2;
+}
+
+message UpdateTableDefinitionResponse {
+  GetTableDefinitionResponse table = 1;
+}
+
+message DeleteTableDefinitionRequest {
+  string table_name = 1;
+}
+
+message DeleteTableDefinitionResponse {
+  bool success = 1;
 }
 
 // テーブル定義取得リクエスト

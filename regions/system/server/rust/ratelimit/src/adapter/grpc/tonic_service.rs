@@ -73,6 +73,7 @@ impl RateLimitService for RateLimitServiceTonic {
             remaining: resp.remaining,
             reset_at: resp.reset_at,
             reason: resp.reason,
+            limit: resp.limit,
         }))
     }
 
@@ -163,7 +164,7 @@ impl RateLimitService for RateLimitServiceTonic {
             rule_id: resp.rule_id,
             rule_name: resp.rule_name,
             limit: resp.limit,
-            window_secs: resp.window_seconds,
+            window_seconds: resp.window_seconds,
             algorithm: resp.algorithm,
             enabled: resp.enabled,
             used: resp.used,
@@ -229,11 +230,17 @@ impl RateLimitService for RateLimitServiceTonic {
 
     async fn list_rules(
         &self,
-        _request: Request<ProtoListRulesRequest>,
+        request: Request<ProtoListRulesRequest>,
     ) -> Result<Response<ProtoListRulesResponse>, Status> {
+        let inner = request.into_inner();
         let resp = self
             .inner
-            .list_rules(ListRulesRequest {})
+            .list_rules(ListRulesRequest {
+                scope: inner.scope,
+                enabled_only: inner.enabled_only,
+                page: inner.page,
+                page_size: inner.page_size,
+            })
             .await
             .map_err(Into::<Status>::into)?;
         let rules = resp

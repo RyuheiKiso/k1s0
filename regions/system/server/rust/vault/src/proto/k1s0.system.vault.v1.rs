@@ -17,6 +17,8 @@ pub struct GetSecretResponse {
     pub version: i64,
     #[prost(message, optional, tag = "3")]
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, optional, tag = "4")]
+    pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SetSecretRequest {

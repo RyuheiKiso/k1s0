@@ -594,3 +594,13 @@ vault:
 - [system-dlq-manager-server-implementation.md](implementation.md) -- 実装設計の詳細
 - [system-library-dlq-client.md](../../libraries/messaging/dlq-client.md) -- DLQ クライアントライブラリ設計
 - [REST-API設計.md](../../architecture/api/REST-API設計.md) -- D-007 統一エラーレスポンス
+
+## Doc Sync (2026-03-03)
+
+### Message/Field Corrections
+- `DlqMessage` uses `payload` (not `payload_json`).
+- `ListMessagesResponse.pagination` is `k1s0.system.common.v1.PaginationResult`.
+
+### REST/gRPC Response Differences
+- `RetryMessageResponse`: REST and gRPC shapes differ; gRPC returns full `DlqMessage`.
+- `DeleteMessageResponse`: REST may return `{success,message}`, gRPC returns `{id}`.

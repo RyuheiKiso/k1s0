@@ -17,6 +17,10 @@ pub struct QuotaPolicy {
     pub enabled: bool,
     #[prost(uint32, optional, tag = "8")]
     pub alert_threshold_percent: ::core::option::Option<u32>,
+    #[prost(message, optional, tag = "9")]
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, optional, tag = "10")]
+    pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct QuotaUsage {
@@ -159,6 +163,8 @@ pub struct IncrementQuotaUsageRequest {
     pub quota_id: ::prost::alloc::string::String,
     #[prost(uint64, tag = "2")]
     pub amount: u64,
+    #[prost(string, optional, tag = "3")]
+    pub request_id: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct IncrementQuotaUsageResponse {
@@ -181,6 +187,8 @@ pub struct ResetQuotaUsageRequest {
     pub quota_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub reason: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub reset_by: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResetQuotaUsageResponse {

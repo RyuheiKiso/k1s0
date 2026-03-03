@@ -143,6 +143,71 @@ fn domain_table_to_proto(
 
 #[tonic::async_trait]
 impl MasterMaintenanceService for MasterMaintenanceGrpcService {
+    async fn create_table_definition(
+        &self,
+        request: Request<CreateTableDefinitionRequest>,
+    ) -> Result<Response<CreateTableDefinitionResponse>, Status> {
+        let req = request.into_inner();
+        let data = req
+            .data
+            .ok_or_else(|| Status::invalid_argument("data is required"))?;
+        let input: crate::domain::entity::table_definition::CreateTableDefinition =
+            serde_json::from_value(struct_to_json(&data))
+                .map_err(|e| Status::invalid_argument(format!("invalid data: {}", e)))?;
+
+        let table = self
+            .manage_tables_uc
+            .create_table(&input, "grpc-user")
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        Ok(Response::new(CreateTableDefinitionResponse {
+            table: Some(domain_table_to_proto(&table, Vec::new(), Vec::new())),
+        }))
+    }
+
+    async fn update_table_definition(
+        &self,
+        request: Request<UpdateTableDefinitionRequest>,
+    ) -> Result<Response<UpdateTableDefinitionResponse>, Status> {
+        let req = request.into_inner();
+        if req.table_name.is_empty() {
+            return Err(Status::invalid_argument("table_name is required"));
+        }
+        let data = req
+            .data
+            .ok_or_else(|| Status::invalid_argument("data is required"))?;
+        let input: crate::domain::entity::table_definition::UpdateTableDefinition =
+            serde_json::from_value(struct_to_json(&data))
+                .map_err(|e| Status::invalid_argument(format!("invalid data: {}", e)))?;
+
+        let table = self
+            .manage_tables_uc
+            .update_table(&req.table_name, &input)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        Ok(Response::new(UpdateTableDefinitionResponse {
+            table: Some(domain_table_to_proto(&table, Vec::new(), Vec::new())),
+        }))
+    }
+
+    async fn delete_table_definition(
+        &self,
+        request: Request<DeleteTableDefinitionRequest>,
+    ) -> Result<Response<DeleteTableDefinitionResponse>, Status> {
+        let req = request.into_inner();
+        if req.table_name.is_empty() {
+            return Err(Status::invalid_argument("table_name is required"));
+        }
+        self.manage_tables_uc
+            .delete_table(&req.table_name)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        Ok(Response::new(DeleteTableDefinitionResponse { success: true }))
+    }
+
     async fn get_table_definition(
         &self,
         request: Request<GetTableDefinitionRequest>,

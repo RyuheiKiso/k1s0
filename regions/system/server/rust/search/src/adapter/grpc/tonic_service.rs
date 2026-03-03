@@ -25,6 +25,7 @@ impl From<GrpcError> for Status {
     fn from(e: GrpcError) -> Self {
         match e {
             GrpcError::NotFound(msg) => Status::not_found(msg),
+            GrpcError::AlreadyExists(msg) => Status::already_exists(msg),
             GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
         }

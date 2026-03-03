@@ -29,6 +29,7 @@ impl From<GrpcError> for Status {
     fn from(e: GrpcError) -> Self {
         match e {
             GrpcError::NotFound(msg) => Status::not_found(msg),
+            GrpcError::AlreadyExists(msg) => Status::already_exists(msg),
             GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
             GrpcError::FailedPrecondition(msg) => Status::failed_precondition(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
@@ -44,6 +45,11 @@ fn to_proto_timestamp(dt: chrono::DateTime<chrono::Utc>) -> ProtoTimestamp {
     }
 }
 
+fn from_proto_timestamp(ts: ProtoTimestamp) -> chrono::DateTime<chrono::Utc> {
+    chrono::DateTime::<chrono::Utc>::from_timestamp(ts.seconds, ts.nanos as u32)
+        .unwrap_or_else(chrono::Utc::now)
+}
+
 fn to_proto_job(job: JobData) -> ProtoJob {
     ProtoJob {
         id: job.id,
@@ -53,7 +59,7 @@ fn to_proto_job(job: JobData) -> ProtoJob {
         timezone: job.timezone,
         target_type: job.target_type,
         target: job.target,
-        payload_json: job.payload_json,
+        payload: job.payload_json,
         status: job.status,
         next_run_at: job.next_run_at.map(to_proto_timestamp),
         last_run_at: job.last_run_at.map(to_proto_timestamp),
@@ -101,7 +107,7 @@ impl SchedulerService for SchedulerServiceTonic {
                 timezone: inner.timezone,
                 target_type: inner.target_type,
                 target: inner.target,
-                payload_json: inner.payload_json,
+                payload_json: inner.payload,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -166,7 +172,7 @@ impl SchedulerService for SchedulerServiceTonic {
                 timezone: inner.timezone,
                 target_type: inner.target_type,
                 target: inner.target,
-                payload_json: inner.payload_json,
+                payload_json: inner.payload,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -268,6 +274,9 @@ impl SchedulerService for SchedulerServiceTonic {
                 job_id: inner.job_id,
                 page,
                 page_size,
+                status: inner.status,
+                from: inner.from.map(from_proto_timestamp),
+                to: inner.to.map(from_proto_timestamp),
             })
             .await
             .map_err(Into::<Status>::into)?;

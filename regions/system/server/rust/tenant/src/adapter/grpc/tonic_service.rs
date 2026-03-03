@@ -70,6 +70,7 @@ fn pb_tenant_to_proto(t: &super::tenant_grpc::PbTenant) -> ProtoTenant {
         owner_id: t.owner_id.clone(),
         settings: t.settings.clone(),
         db_schema: t.db_schema.clone(),
+        keycloak_realm: t.keycloak_realm.clone(),
         created_at: t.created_at.as_ref().map(pb_timestamp_to_proto),
         updated_at: t.updated_at.as_ref().map(pb_timestamp_to_proto),
     }

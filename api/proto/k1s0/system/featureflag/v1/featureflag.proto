@@ -62,8 +62,8 @@ message CreateFlagResponse {
 
 message UpdateFlagRequest {
   string flag_key = 1;
-  bool enabled = 2;
-  string description = 3;
+  optional bool enabled = 2;
+  optional string description = 3;
 }
 
 message UpdateFlagResponse {

@@ -1633,3 +1633,12 @@ curl -X POST http://localhost:8110/api/v1/rules \
   }
 }
 ```
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `CreateTableDefinition`, `UpdateTableDefinition`, `DeleteTableDefinition`
+- Plus existing table/column/record/relationship/import/export/display/audit RPCs in `MasterMaintenanceService`.
+
+### Message/Field Corrections
+- `TableRelationship` includes `id(6)`, `is_cascade_delete(7)`, `created_at(8)`.

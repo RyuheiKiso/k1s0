@@ -542,3 +542,16 @@ message JobExecution {
 ## 関連ドキュメント
 
 > 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `CreateJob`, `GetJob`, `ListJobs`, `UpdateJob`, `DeleteJob`
+- `PauseJob`, `ResumeJob`, `TriggerJob`, `GetJobExecution`, `ListExecutions`
+
+### Message/Field Corrections
+- Canonical job messages include `Job`, `CreateJobRequest/Response`, `GetJobRequest/Response`.
+- `Job`, `CreateJobRequest`, `UpdateJobRequest` use `payload` (not `payload_json`).
+- `ListExecutionsRequest` supports `status`, `from`, `to`.
+- Execution model includes `triggered_by`.
+- Canonical completion timestamp field is `finished_at`.

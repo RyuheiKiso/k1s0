@@ -46,7 +46,12 @@ docker-compose.override.yaml
 **/Chart.lock
 
 
+# Generated proto/grpc code
+**/src/proto/k1s0.*.rs
+**/src/proto/gen/
+
 # Tasks (session-specific planning notes)
 tasks/*
 docs/報告書.md
 報告書.md
+

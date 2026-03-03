@@ -28,6 +28,8 @@ message QuotaPolicy {
   string period = 6;
   bool enabled = 7;
   optional uint32 alert_threshold_percent = 8;
+  k1s0.system.common.v1.Timestamp created_at = 9;
+  k1s0.system.common.v1.Timestamp updated_at = 10;
 }
 
 message QuotaUsage {
@@ -123,6 +125,7 @@ message CheckQuotaResponse {
 message IncrementQuotaUsageRequest {
   string quota_id = 1;
   uint64 amount = 2;
+  optional string request_id = 3;
 }
 
 message IncrementQuotaUsageResponse {
@@ -137,6 +140,7 @@ message IncrementQuotaUsageResponse {
 message ResetQuotaUsageRequest {
   string quota_id = 1;
   string reason = 2;
+  string reset_by = 3;
 }
 
 message ResetQuotaUsageResponse {

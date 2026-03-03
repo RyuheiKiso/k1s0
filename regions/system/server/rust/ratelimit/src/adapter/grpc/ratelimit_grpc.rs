@@ -32,6 +32,7 @@ pub struct CheckRateLimitRequest {
 #[derive(Debug)]
 pub struct CheckRateLimitResponse {
     pub allowed: bool,
+    pub limit: i64,
     pub remaining: i64,
     pub reset_at: i64,
     pub reason: String,
@@ -99,7 +100,12 @@ pub struct DeleteRuleResponse {
     pub success: bool,
 }
 
-pub struct ListRulesRequest {}
+pub struct ListRulesRequest {
+    pub scope: String,
+    pub enabled_only: Option<bool>,
+    pub page: u32,
+    pub page_size: u32,
+}
 
 #[derive(Debug)]
 pub struct ListRulesResponse {
@@ -202,6 +208,7 @@ impl RateLimitGrpcService {
 
         Ok(CheckRateLimitResponse {
             allowed: decision.allowed,
+            limit: decision.limit,
             remaining: decision.remaining,
             reset_at: decision.reset_at,
             reason: decision.reason,
@@ -378,11 +385,27 @@ impl RateLimitGrpcService {
 
     pub async fn list_rules(
         &self,
-        _req: ListRulesRequest,
+        req: ListRulesRequest,
     ) -> Result<ListRulesResponse, GrpcError> {
-        let rules = self.list_uc.execute().await.map_err(|e| match e {
+        let mut rules = self.list_uc.execute().await.map_err(|e| match e {
             crate::usecase::list_rules::ListRulesError::Internal(msg) => GrpcError::Internal(msg),
         })?;
+        if !req.scope.is_empty() {
+            rules.retain(|r| r.scope == req.scope);
+        }
+        if let Some(enabled_only) = req.enabled_only {
+            if enabled_only {
+                rules.retain(|r| r.enabled);
+            }
+        }
+        let page = if req.page == 0 { 1 } else { req.page as usize };
+        let page_size = if req.page_size == 0 {
+            20
+        } else {
+            req.page_size as usize
+        };
+        let start = (page - 1) * page_size;
+        let rules: Vec<_> = rules.into_iter().skip(start).take(page_size).collect();
 
         Ok(ListRulesResponse {
             rules: rules

@@ -21,6 +21,7 @@ pub struct GetSecretResponse {
     pub version: i64,
     pub data: HashMap<String, String>,
     pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Clone)]
@@ -111,6 +112,9 @@ pub enum GrpcError {
     #[error("not found: {0}")]
     NotFound(String),
 
+    #[error("invalid argument: {0}")]
+    InvalidArgument(String),
+
     #[error("permission denied: {0}")]
     PermissionDenied(String),
 
@@ -149,6 +153,9 @@ impl VaultGrpcService {
         &self,
         req: GetSecretRequest,
     ) -> Result<GetSecretResponse, GrpcError> {
+        if req.path.trim().is_empty() {
+            return Err(GrpcError::InvalidArgument("path is required".to_string()));
+        }
         let input = GetSecretInput {
             path: req.path.clone(),
             version: req.version,
@@ -167,6 +174,7 @@ impl VaultGrpcService {
                     version,
                     data,
                     created_at: sv.created_at,
+                    updated_at: secret.updated_at,
                 })
             }
             Err(GetSecretError::NotFound(path)) => Err(GrpcError::NotFound(path)),

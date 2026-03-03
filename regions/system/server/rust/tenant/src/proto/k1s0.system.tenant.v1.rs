@@ -149,6 +149,8 @@ pub struct Tenant {
     pub db_schema: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "10")]
     pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(string, tag = "11")]
+    pub keycloak_realm: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TenantMember {

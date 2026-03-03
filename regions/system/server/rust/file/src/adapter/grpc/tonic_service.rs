@@ -36,6 +36,7 @@ fn domain_to_proto(file: &crate::domain::entity::file::FileMetadata) -> ProtoFil
         updated_at: file.updated_at.to_rfc3339(),
         tags: file.tags.clone(),
         storage_key: file.storage_key.clone(),
+        checksum_sha256: file.checksum_sha256.clone(),
     }
 }
 
@@ -90,7 +91,7 @@ impl FileService for FileServiceTonic {
         request: Request<GenerateUploadUrlRequest>,
     ) -> Result<Response<GenerateUploadUrlResponse>, Status> {
         let inner = request.into_inner();
-        let (file_id, upload_url) = self
+        let (file_id, upload_url, expires_in_seconds) = self
             .inner
             .generate_upload_url(
                 inner.filename,
@@ -106,6 +107,7 @@ impl FileService for FileServiceTonic {
         Ok(Response::new(GenerateUploadUrlResponse {
             file_id,
             upload_url,
+            expires_in_seconds,
         }))
     }
 

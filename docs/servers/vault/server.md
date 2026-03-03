@@ -527,3 +527,13 @@ vault:
 - [Vault設計.md](../../infrastructure/security/Vault設計.md) -- HashiCorp Vault 全体設計
 - [サービス間認証設計.md](../../architecture/auth/サービス間認証設計.md) -- SPIFFE/SPIRE によるサービス間認証
 - [REST-API設計.md](../../architecture/api/REST-API設計.md) -- D-007 統一エラーレスポンス
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `GetSecret`, `SetSecret`, `RotateSecret`, `DeleteSecret`
+- `GetSecretMetadata`, `ListSecrets`, `ListAuditLogs`
+
+### Message/Field Corrections
+- Canonical messages include `RotateSecretRequest/Response`, `GetSecretMetadataRequest/Response`, `ListAuditLogsRequest/Response`, `AuditLogEntry`.
+- `GetSecretResponse.updated_at` is present.

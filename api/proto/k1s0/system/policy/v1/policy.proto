@@ -110,7 +110,7 @@ message Policy {
   string description = 3;
   string package_path = 4;
   string rego_content = 5;
-  string bundle_id = 6;
+  optional string bundle_id = 6;
   bool enabled = 7;
   uint32 version = 8;
   k1s0.system.common.v1.Timestamp created_at = 9;

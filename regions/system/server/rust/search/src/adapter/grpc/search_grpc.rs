@@ -89,6 +89,9 @@ pub enum GrpcError {
     #[error("not found: {0}")]
     NotFound(String),
 
+    #[error("already exists: {0}")]
+    AlreadyExists(String),
+
     #[error("invalid argument: {0}")]
     InvalidArgument(String),
 
@@ -145,7 +148,7 @@ impl SearchGrpcService {
             .await
             .map_err(|e| match e {
                 CreateIndexError::AlreadyExists(name) => {
-                    GrpcError::InvalidArgument(format!("index already exists: {}", name))
+                    GrpcError::AlreadyExists(format!("index already exists: {}", name))
                 }
                 CreateIndexError::Internal(msg) => GrpcError::Internal(msg),
             })?;

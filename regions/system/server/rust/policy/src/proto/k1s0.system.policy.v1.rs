@@ -126,8 +126,8 @@ pub struct Policy {
     pub package_path: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
     pub rego_content: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub bundle_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "6")]
+    pub bundle_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(bool, tag = "7")]
     pub enabled: bool,
     #[prost(uint32, tag = "8")]

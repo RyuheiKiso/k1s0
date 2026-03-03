@@ -825,3 +825,17 @@ message DeleteTemplateResponse {
 ## 関連ドキュメント
 
 > 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
+
+## Doc Sync (2026-03-03)
+
+### gRPC Canonical RPCs (proto)
+- `SendNotification`, `GetNotification`, `RetryNotification`, `ListNotifications`
+- `ListChannels`, `CreateChannel`, `GetChannel`, `UpdateChannel`, `DeleteChannel`
+- `ListTemplates`, `CreateTemplate`, `GetTemplate`, `UpdateTemplate`, `DeleteTemplate`
+
+### Pagination Corrections
+- `ListChannelsResponse` uses `k1s0.system.common.v1.PaginationResult`.
+- `ListTemplatesResponse` uses `k1s0.system.common.v1.PaginationResult`.
+
+### Optional UseCase Parameters
+- Notification create/retry behavior supports optional parameters used by current Rust usecase signatures.

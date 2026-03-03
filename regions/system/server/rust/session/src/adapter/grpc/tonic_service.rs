@@ -68,6 +68,7 @@ impl SessionService for SessionServiceTonic {
             device_type: inner.device_type,
             user_agent: inner.user_agent,
             ip_address: inner.ip_address,
+            ttl_seconds: inner.ttl_seconds,
         };
         let resp = self
             .inner
@@ -81,6 +82,7 @@ impl SessionService for SessionServiceTonic {
             device_id: resp.device_id,
             expires_at: parse_rfc3339_to_proto_timestamp(&resp.expires_at),
             created_at: parse_rfc3339_to_proto_timestamp(&resp.created_at),
+            token: resp.token,
         }))
     }
 
