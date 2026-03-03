@@ -5,6 +5,15 @@ Rust での実装を定義する。
 
 ## 概要
 
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | notifications/read |
+| sys_operator 以上 | notifications/write |
+| sys_admin のみ | notifications/admin |
+
+
 system tier の通知管理サーバーは以下の機能を提供する。
 
 | 機能 | 説明 |
@@ -35,7 +44,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | 通知配信方式 | Kafka コンシューマーで `k1s0.system.notification.requested.v1` を受信し非同期配信。REST `POST /api/v1/notifications` での即時配信も提供 |
 | リトライ | 失敗時に指数バックオフ（初回 1 秒、最大 5 回、上限 60 秒）で自動リトライ |
 | DB | PostgreSQL の `notification` スキーマ（notification_channels, notification_templates, notification_logs テーブル） |
-| Kafka | コンシューマー（`k1s0.system.notification.requested.v1`）+ プロデューサー（`k1s0.system.notification.delivered.v1`） |
+| Kafka | コンシューマー（`k1s0.system.notification.requested.v1`）+ プロデューサー（`k1s0.system.notification.sent.v1`） |
 | テンプレートエンジン | Handlebars 形式のテンプレートを DB 管理し、送信時にプレースホルダーを置換 |
 | 認証 | JWTによる認可。管理系エンドポイントは `notifications/read`, `notifications/write`, `notifications/admin` を使用 |
 
@@ -566,8 +575,7 @@ message RetryNotificationRequest {
 }
 
 message RetryNotificationResponse {
-  string notification_id = 1;
-  string status = 2;
+  NotificationLog notification = 1;
 }
 
 message ListNotificationsRequest {
@@ -870,4 +878,6 @@ message DeleteTemplateResponse {
 
 ### Optional UseCase Parameters
 - Notification create/retry behavior supports optional parameters used by current Rust usecase signatures.
+
+
 

@@ -100,6 +100,7 @@ fn to_proto_instance(instance: WorkflowInstanceData) -> ProtoWorkflowInstance {
         context_json: instance.context_json,
         started_at: Some(to_proto_timestamp(instance.started_at)),
         completed_at: instance.completed_at.map(to_proto_timestamp),
+        created_at: Some(to_proto_timestamp(instance.created_at)),
     }
 }
 
@@ -257,6 +258,11 @@ impl WorkflowService for WorkflowServiceTonic {
             status: resp.status,
             current_step_id: resp.current_step_id,
             started_at: Some(to_proto_timestamp(resp.started_at)),
+            workflow_id: resp.workflow_id,
+            workflow_name: resp.workflow_name,
+            title: resp.title,
+            initiator_id: resp.initiator_id,
+            context_json: resp.context_json,
         }))
     }
 

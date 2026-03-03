@@ -1160,3 +1160,7 @@ moka を使用したインメモリキャッシュで RBAC 判定結果をキャ
 - `TokenClaims.scope` exists as field `12`.
 - Common type import is `k1s0/system/common/v1/types.proto` and timestamp usage is `k1s0.system.common.v1.Timestamp`.
 
+
+### 2026-03-03 追補
+- validate_token のレスポンスには JWT claims の typ / azp を含める。
+

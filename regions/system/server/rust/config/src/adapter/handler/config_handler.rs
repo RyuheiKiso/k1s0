@@ -83,12 +83,15 @@ pub async fn get_config(
     match state.get_config_uc.execute(&namespace, &key).await {
         Ok(entry) => {
             let resp = serde_json::json!({
+                "id": entry.id,
                 "namespace": entry.namespace,
                 "key": entry.key,
                 "value": entry.value_json,
                 "version": entry.version,
                 "description": entry.description,
+                "created_by": entry.created_by,
                 "updated_by": entry.updated_by,
+                "created_at": entry.created_at,
                 "updated_at": entry.updated_at,
             });
             (StatusCode::OK, Json(resp)).into_response()

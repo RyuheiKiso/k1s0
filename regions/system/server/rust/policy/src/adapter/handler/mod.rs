@@ -58,21 +58,21 @@ pub fn router(state: AppState) -> Router {
                 "policies", "read",
             )));
 
-        // POST/PUT/evaluate -> policies/write
+        // POST/evaluate -> policies/write
         let write_routes = Router::new()
             .route("/api/v1/policies", post(policy_handler::create_policy))
-            .route("/api/v1/policies/:id", put(policy_handler::update_policy))
             .route(
                 "/api/v1/policies/:id/evaluate",
                 post(policy_handler::evaluate_policy),
             )
-            .route("/api/v1/bundles", post(policy_handler::create_bundle))
             .route_layer(axum::middleware::from_fn(require_permission(
                 "policies", "write",
             )));
 
-        // DELETE -> policies/admin
+        // PUT /policies/:id + POST /bundles + DELETE -> policies/admin
         let admin_routes = Router::new()
+            .route("/api/v1/policies/:id", put(policy_handler::update_policy))
+            .route("/api/v1/bundles", post(policy_handler::create_bundle))
             .route(
                 "/api/v1/policies/:id",
                 delete(policy_handler::delete_policy),

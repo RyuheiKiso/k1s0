@@ -1,8 +1,17 @@
-# system-dlq-manager-server 設計
+﻿# system-dlq-manager-server 設計
 
 system tier の DLQ Manager サーバー設計を定義する。Kafka のデッドレタートピック（`*.dlq.v1`）に送られた処理失敗メッセージの集約管理を担い、Rust で実装する。
 
 ## 概要
+
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | dlq/read |
+| sys_operator 以上 | dlq/write |
+| sys_admin のみ | dlq/admin |
+
 
 system tier の DLQ Manager は以下の機能を提供する。
 
@@ -637,3 +646,9 @@ vault:
 ### REST/gRPC Response
 - `RetryMessageResponse` is wrapped as `{ "message": { ... } }` in both REST and gRPC.
 - `DeleteMessageResponse` returns `{ "id": ... }` in both REST and gRPC.
+
+### 2026-03-03 追補
+- payload は JSON を UTF-8 でエンコードした bytes として保持・伝送する。
+- 統合テストケース数は最新実装に合わせて 15 件を正とする。
+
+

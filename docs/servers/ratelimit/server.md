@@ -1,8 +1,17 @@
-# system-ratelimit-server 設計
+﻿# system-ratelimit-server 設計
 
 Redis トークンバケットによるレート制限判定サーバー。Kong 連携・内部サービス間保護を提供。
 
 ## 概要
+
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | ratelimits/read |
+| sys_operator 以上 | ratelimits/write |
+| sys_admin のみ | ratelimits/admin |
+
 
 system tier のレートリミットサーバーは以下の機能を提供する。
 
@@ -471,8 +480,8 @@ message RateLimitRule {
   int64 window_seconds = 5;
   string algorithm = 6;
   bool enabled = 7;
-  google.protobuf.Timestamp created_at = 8;
-  google.protobuf.Timestamp updated_at = 9;
+  k1s0.system.common.v1.Timestamp created_at = 8;
+  k1s0.system.common.v1.Timestamp updated_at = 9;
 }
 
 message GetUsageRequest {
@@ -840,3 +849,6 @@ vault:
 - `ListRulesRequest` supports `scope`, `enabled_only`, `page`, `page_size`.
 - `CheckRateLimitResponse.limit` is present.
 - `GetUsageResponse.window_seconds` is canonical field name.
+
+
+

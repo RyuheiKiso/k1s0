@@ -48,17 +48,17 @@ fn error_response(err: SessionError) -> (StatusCode, Json<serde_json::Value>) {
         SessionError::Expired(_) => (StatusCode::GONE, codes::session::expired(), err.to_string()),
         SessionError::Revoked(_) => (
             StatusCode::CONFLICT,
-            codes::session::revoked(),
+            codes::session::already_revoked(),
             err.to_string(),
         ),
         SessionError::InvalidInput(_) => (
             StatusCode::BAD_REQUEST,
-            codes::session::invalid_input(),
+            codes::session::validation_error(),
             err.to_string(),
         ),
         SessionError::TooManySessions(_) => (
             StatusCode::TOO_MANY_REQUESTS,
-            codes::session::too_many_sessions(),
+            codes::session::max_devices_exceeded(),
             err.to_string(),
         ),
         SessionError::Internal(_) => (
@@ -190,7 +190,13 @@ pub async fn revoke_all_sessions(
 ) -> impl IntoResponse {
     let input = RevokeAllSessionsInput { user_id };
     match state.revoke_all_uc.execute(&input).await {
-        Ok(output) => (StatusCode::OK, Json(serde_json::to_value(output).unwrap())).into_response(),
+        Ok(output) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "revoked_count": output.count
+            })),
+        )
+            .into_response(),
         Err(e) => error_response(e).into_response(),
     }
 }

@@ -4,6 +4,15 @@
 
 ## 概要
 
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | master-maintenance/read |
+| sys_operator 以上 | master-maintenance/write |
+| sys_admin のみ | master-maintenance/admin |
+
+
 | 機能 | 説明 |
 | --- | --- |
 | メタデータ駆動 CRUD | テーブル定義・カラム定義から動的に CRUD API と UI を自動生成 |
@@ -625,7 +634,7 @@ pub async fn evaluate_custom_rule(
 | `SYS_MM_COLUMN_NOT_FOUND` | 404 | 指定されたカラム定義が見つからない |
 | `SYS_MM_RECORD_NOT_FOUND` | 404 | 指定されたレコードが見つからない |
 | `SYS_MM_RULE_NOT_FOUND` | 404 | 指定された整合性ルールが見つからない |
-| `SYS_MM_VALIDATION_FAILED` | 400 | 整合性チェックに失敗 |
+| `SYS_MM_VALIDATION_ERROR` | 400 | 整合性チェックに失敗 |
 | `SYS_MM_DUPLICATE_TABLE` | 409 | テーブル名が重複 |
 | `SYS_MM_DUPLICATE_COLUMN` | 409 | カラム名が重複 |
 | `SYS_AUTH_PERMISSION_DENIED` | 403 | 操作権限がない |
@@ -1909,3 +1918,5 @@ curl -X POST http://localhost:8110/api/v1/rules \
 
 ### Message/Field Corrections
 - `TableRelationship` includes `id(6)`, `is_cascade_delete(7)`, `created_at(8)`.
+
+

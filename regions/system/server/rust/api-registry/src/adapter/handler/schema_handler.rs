@@ -169,7 +169,7 @@ pub async fn get_schema(
                 .into_response()
         }
         Err(GetSchemaError::NotFound(_)) => {
-            ApiError::not_found("Schema not found").into_response()
+            ApiError::schema_not_found("Schema not found").into_response()
         }
         Err(GetSchemaError::Internal(msg)) => ApiError::internal(msg).into_response(),
     }
@@ -209,7 +209,7 @@ pub async fn list_versions(
         )
             .into_response(),
         Err(ListVersionsError::NotFound(_)) => {
-            ApiError::not_found("Schema not found").into_response()
+            ApiError::schema_not_found("Schema not found").into_response()
         }
         Err(ListVersionsError::Internal(msg)) => ApiError::internal(msg).into_response(),
     }
@@ -240,7 +240,7 @@ pub async fn register_version(
         )
             .into_response(),
         Err(RegisterVersionError::NotFound(_)) => {
-            ApiError::not_found("Schema not found").into_response()
+            ApiError::schema_not_found("Schema not found").into_response()
         }
         Err(RegisterVersionError::Validation(msg)) => {
             ApiError::unprocessable_entity(msg).into_response()
@@ -271,7 +271,7 @@ pub async fn get_schema_version(
         )
             .into_response(),
         Err(GetSchemaVersionError::NotFound { .. }) => {
-            ApiError::not_found("Schema version not found").into_response()
+            ApiError::version_not_found("Schema version not found").into_response()
         }
         Err(GetSchemaVersionError::Internal(msg)) => ApiError::internal(msg).into_response(),
     }
@@ -291,13 +291,14 @@ pub async fn delete_version(
     {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(DeleteVersionError::SchemaNotFound(_)) => {
-            ApiError::not_found("Schema not found").into_response()
+            ApiError::schema_not_found("Schema not found").into_response()
         }
         Err(DeleteVersionError::VersionNotFound { .. }) => {
-            ApiError::not_found("Schema version not found").into_response()
+            ApiError::version_not_found("Schema version not found").into_response()
         }
         Err(DeleteVersionError::CannotDeleteLatest(_)) => {
-            ApiError::conflict("Cannot delete the only remaining version").into_response()
+            ApiError::cannot_delete_latest("Cannot delete the only remaining version")
+                .into_response()
         }
         Err(DeleteVersionError::Internal(msg)) => ApiError::internal(msg).into_response(),
     }
@@ -327,10 +328,10 @@ pub async fn check_compatibility(
         )
             .into_response(),
         Err(CheckCompatibilityError::SchemaNotFound(_)) => {
-            ApiError::not_found("Schema not found").into_response()
+            ApiError::schema_not_found("Schema not found").into_response()
         }
         Err(CheckCompatibilityError::VersionNotFound { .. }) => {
-            ApiError::not_found("Schema version not found").into_response()
+            ApiError::version_not_found("Schema version not found").into_response()
         }
         Err(CheckCompatibilityError::Internal(msg)) => ApiError::internal(msg).into_response(),
     }
@@ -360,10 +361,10 @@ pub async fn get_diff(
         )
             .into_response(),
         Err(GetDiffError::SchemaNotFound(_)) => {
-            ApiError::not_found("Schema not found").into_response()
+            ApiError::schema_not_found("Schema not found").into_response()
         }
         Err(GetDiffError::VersionNotFound { .. }) => {
-            ApiError::not_found("Schema version not found").into_response()
+            ApiError::version_not_found("Schema version not found").into_response()
         }
         Err(GetDiffError::ValidationError(msg)) => ApiError::bad_request(msg).into_response(),
         Err(GetDiffError::Internal(msg)) => ApiError::internal(msg).into_response(),

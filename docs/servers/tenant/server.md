@@ -8,6 +8,15 @@ Rust での実装を定義する。
 
 ## 概要
 
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | tenants/read |
+| sys_operator 以上 | tenants/write |
+| sys_admin のみ | tenants/admin |
+
+
 system tier の Tenant Server は以下の機能を提供する。
 
 | 機能 | 説明 |
@@ -86,7 +95,7 @@ system tier の Tenant Server は以下の機能を提供する。
 | `name` | string | Yes | テナント名（URL フレンドリー、一意制約） |
 | `display_name` | string | Yes | テナント表示名 |
 | `plan` | string | Yes | 契約プラン（`free` / `starter` / `professional` / `enterprise`） |
-| `owner_id` | string (UUID) | No | オーナーユーザー ID |
+| `owner_id` | string (UUID) | Yes | オーナーユーザー ID |
 
 **レスポンス（201 Created）**
 
@@ -867,4 +876,12 @@ vault:
 - `ListMembersRequest` and `ListMembersResponse` are canonical gRPC messages.
 - Tenant timestamp fields use `k1s0.system.common.v1.Timestamp`.
 
+
+
+### 2026-03-03 追補
+- REST CreateTenant の owner_id は必須。
+- REST レスポンスには owner_id を含める。
+- gRPC は owner_id が non-optional string である点を明示する。
+- publish_tenant_updated イベントを発行する。
+- healthz/readyz は status フィールドを統一フォーマットで返す。
 

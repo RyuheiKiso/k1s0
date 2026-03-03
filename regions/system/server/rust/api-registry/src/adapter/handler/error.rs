@@ -17,6 +17,22 @@ impl ApiError {
         )
     }
 
+    pub fn schema_not_found(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+        let err = ErrorResponse::new(codes::api_registry::schema_not_found(), message);
+        (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::to_value(&err).unwrap()),
+        )
+    }
+
+    pub fn version_not_found(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+        let err = ErrorResponse::new(codes::api_registry::version_not_found(), message);
+        (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::to_value(&err).unwrap()),
+        )
+    }
+
     pub fn bad_request(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
         let err = ErrorResponse::new(codes::api_registry::bad_request(), message);
         (
@@ -27,6 +43,16 @@ impl ApiError {
 
     pub fn conflict(message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
         let err = ErrorResponse::new(codes::api_registry::conflict(), message);
+        (
+            StatusCode::CONFLICT,
+            Json(serde_json::to_value(&err).unwrap()),
+        )
+    }
+
+    pub fn cannot_delete_latest(
+        message: impl Into<String>,
+    ) -> (StatusCode, Json<serde_json::Value>) {
+        let err = ErrorResponse::new(codes::api_registry::cannot_delete_latest(), message);
         (
             StatusCode::CONFLICT,
             Json(serde_json::to_value(&err).unwrap()),

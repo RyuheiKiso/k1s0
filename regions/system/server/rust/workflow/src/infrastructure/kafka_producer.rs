@@ -23,6 +23,7 @@ pub struct InstanceStartedEvent {
     pub initiator_id: String,
     pub status: String,
     pub actor_user_id: Option<String>,
+    pub current_step_id: Option<String>,
     pub previous_status: Option<String>,
     pub current_status: String,
     pub timestamp: String,
@@ -39,6 +40,7 @@ pub struct TaskCompletedEvent {
     pub status: String,
     pub actor_id: Option<String>,
     pub actor_user_id: Option<String>,
+    pub assignee_id: Option<String>,
     pub previous_status: Option<String>,
     pub current_status: String,
     pub timestamp: String,
@@ -121,6 +123,7 @@ impl WorkflowEventPublisher for KafkaWorkflowEventPublisher {
             initiator_id: instance.initiator_id.clone(),
             status: instance.status.clone(),
             actor_user_id: Some(instance.initiator_id.clone()),
+            current_step_id: instance.current_step_id.clone(),
             previous_status: None,
             current_status: instance.status.clone(),
             timestamp: chrono::Utc::now().to_rfc3339(),
@@ -158,6 +161,7 @@ impl WorkflowEventPublisher for KafkaWorkflowEventPublisher {
             status: task.status.clone(),
             actor_id: task.actor_id.clone(),
             actor_user_id: task.actor_id.clone(),
+            assignee_id: task.assignee_id.clone(),
             previous_status: Some("pending".to_string()),
             current_status: task.status.clone(),
             timestamp: chrono::Utc::now().to_rfc3339(),
@@ -238,6 +242,7 @@ mod tests {
                 initiator_id: instance.initiator_id.clone(),
                 status: instance.status.clone(),
                 actor_user_id: Some(instance.initiator_id.clone()),
+                current_step_id: instance.current_step_id.clone(),
                 previous_status: None,
                 current_status: instance.status.clone(),
                 timestamp: Utc::now().to_rfc3339(),
@@ -260,6 +265,7 @@ mod tests {
                 status: task.status.clone(),
                 actor_id: task.actor_id.clone(),
                 actor_user_id: task.actor_id.clone(),
+                assignee_id: task.assignee_id.clone(),
                 previous_status: Some("pending".to_string()),
                 current_status: task.status.clone(),
                 timestamp: Utc::now().to_rfc3339(),
@@ -324,6 +330,7 @@ mod tests {
         assert_eq!(deserialized.workflow_id, "wf_001");
         assert_eq!(deserialized.workflow_name, "purchase-approval");
         assert_eq!(deserialized.status, "running");
+        assert_eq!(deserialized.current_step_id, Some("step-1".to_string()));
     }
 
     #[tokio::test]
@@ -342,6 +349,7 @@ mod tests {
         assert_eq!(deserialized.step_id, "step-1");
         assert_eq!(deserialized.status, "approved");
         assert_eq!(deserialized.actor_id, Some("user-002".to_string()));
+        assert_eq!(deserialized.assignee_id, Some("user-002".to_string()));
     }
 
     #[tokio::test]
@@ -374,6 +382,7 @@ mod tests {
             initiator_id: "user-001".to_string(),
             status: "running".to_string(),
             actor_user_id: Some("user-001".to_string()),
+            current_step_id: Some("step-1".to_string()),
             previous_status: None,
             current_status: "running".to_string(),
             timestamp: "2026-02-26T00:00:00Z".to_string(),
@@ -395,6 +404,7 @@ mod tests {
             status: "approved".to_string(),
             actor_id: Some("user-002".to_string()),
             actor_user_id: Some("user-002".to_string()),
+            assignee_id: Some("user-002".to_string()),
             previous_status: Some("pending".to_string()),
             current_status: "approved".to_string(),
             timestamp: "2026-02-26T00:00:00Z".to_string(),

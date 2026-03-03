@@ -64,7 +64,19 @@ impl CreateFlagUseCase {
             .map_err(|e| CreateFlagError::Internal(e.to_string()))?;
 
         self.event_publisher
-            .publish_flag_changed(&flag.flag_key, flag.enabled)
+            .publish_flag_changed(
+                &flag.flag_key,
+                flag.enabled,
+                None,
+                None,
+                serde_json::json!({
+                    "flag_key": flag.flag_key,
+                    "description": flag.description,
+                    "enabled": flag.enabled,
+                    "variants": flag.variants,
+                    "rules": flag.rules,
+                }),
+            )
             .await
             .map_err(|e| CreateFlagError::Internal(e.to_string()))?;
 
@@ -88,8 +100,14 @@ mod tests {
         let mut mock_publisher = MockFlagEventPublisher::new();
         mock_publisher
             .expect_publish_flag_changed()
-            .withf(|key, enabled| key == "new-feature" && *enabled)
-            .returning(|_, _| Ok(()));
+            .withf(|key, enabled, actor_user_id, before, after| {
+                key == "new-feature"
+                    && *enabled
+                    && actor_user_id.is_none()
+                    && before.is_none()
+                    && after["enabled"] == true
+            })
+            .returning(|_, _, _, _, _| Ok(()));
 
         let uc = CreateFlagUseCase::new(Arc::new(mock), Arc::new(mock_publisher));
         let input = CreateFlagInput {

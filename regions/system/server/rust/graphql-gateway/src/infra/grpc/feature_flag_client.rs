@@ -155,6 +155,8 @@ impl FeatureFlagGrpcClient {
                 flag_key: key.to_owned(),
                 enabled: Some(enabled),
                 description: Some(String::new()),
+                rules: vec![],
+                variants: vec![],
             },
         );
 

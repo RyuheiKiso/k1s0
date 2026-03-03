@@ -47,7 +47,7 @@ pub fn router(state: AppState) -> Router {
         .route("/metrics", get(metrics_handler));
 
     let api_routes = if let Some(ref auth_state) = state.auth_state {
-        // GET -> jobs/read
+        // GET -> scheduler/read
         let read_routes = Router::new()
             .route("/api/v1/jobs", get(job_handler::list_jobs))
             .route("/api/v1/jobs/:id", get(job_handler::get_job))
@@ -56,10 +56,10 @@ pub fn router(state: AppState) -> Router {
                 get(job_handler::list_executions),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "jobs", "read",
+                "scheduler", "read",
             )));
 
-        // POST/PUT/trigger/pause/resume -> jobs/write
+        // POST/PUT/trigger/pause/resume -> scheduler/write
         let write_routes = Router::new()
             .route("/api/v1/jobs", post(job_handler::create_job))
             .route("/api/v1/jobs/:id", put(job_handler::update_job))
@@ -67,17 +67,17 @@ pub fn router(state: AppState) -> Router {
             .route("/api/v1/jobs/:id/pause", put(job_handler::pause_job))
             .route("/api/v1/jobs/:id/resume", put(job_handler::resume_job))
             .route_layer(axum::middleware::from_fn(require_permission(
-                "jobs", "write",
+                "scheduler", "write",
             )));
 
-        // DELETE -> jobs/admin
+        // DELETE -> scheduler/admin
         let admin_routes = Router::new()
             .route(
                 "/api/v1/jobs/:id",
                 axum::routing::delete(job_handler::delete_job),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "jobs", "admin",
+                "scheduler", "admin",
             )));
 
         Router::new()

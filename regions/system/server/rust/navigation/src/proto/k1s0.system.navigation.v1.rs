@@ -21,8 +21,8 @@ pub struct Route {
     pub id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub path: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub component_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "3")]
+    pub component_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, repeated, tag = "4")]
     pub guard_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, repeated, tag = "5")]

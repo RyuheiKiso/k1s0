@@ -7,6 +7,15 @@
 
 ## 概要
 
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | flags/read |
+| sys_operator 以上 | flags/write |
+| sys_admin のみ | flags/admin |
+
+
 system tier のフィーチャーフラグサーバーは以下の機能を提供する。
 
 | 機能 | 説明 |
@@ -462,7 +471,7 @@ message FlagRule {
 
 ```json
 {
-  "event_type": "FLAG_UPDATED",
+  "event_type": "FLAG_CHANGED",
   "flag_key": "enable-new-checkout",
   "timestamp": "2026-02-20T12:30:00.000+00:00",
   "actor_user_id": "admin-001",
@@ -555,10 +564,10 @@ message FlagRule {
 | `id` | UUID | 監査ログの一意識別子 |
 | `flag_key` | String | 対象フラグキー |
 | `action` | String | 操作種別（CREATE / UPDATE / DELETE） |
-| `actor_user_id` | String | 操作者のユーザー ID |
-| `before_value` | Option\<JSON\> | 変更前の値（CREATE 時は null） |
-| `after_value` | Option\<JSON\> | 変更後の値（DELETE 時は null） |
-| `trace_id` | String | OpenTelemetry トレース ID |
+| `changed_by` | String | 操作者のユーザー ID |
+| `before_json` | Option\<JSON\> | 変更前の値（CREATE 時は null） |
+| `after_json` | Option\<JSON\> | 変更後の値（DELETE 時は null） |
+| `trace_id` | Option\<String\> | OpenTelemetry トレース ID |
 | `created_at` | DateTime\<Utc\> | 記録日時 |
 
 ---
@@ -633,7 +642,7 @@ app:
 
 server:
   host: "0.0.0.0"
-  port: 8080
+  port: 8087
   grpc_port: 50051
 
 database:
@@ -670,7 +679,7 @@ image:
 replicaCount: 2
 
 container:
-  port: 8080
+  port: 8087
   grpcPort: 50051
 
 service:
@@ -733,4 +742,6 @@ vault:
 - `FeatureFlag.rules` exists as `repeated FlagRule` (field `8`).
 - `EvaluateFlagResponse.variant` is `optional string`.
 - `UpdateFlagRequest.enabled` and `UpdateFlagRequest.description` are optional.
+
+
 

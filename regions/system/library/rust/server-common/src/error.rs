@@ -12,7 +12,6 @@
 //! a unique request ID for tracing, and optional structured details.
 
 use serde::Serialize;
-use serde_json::Value;
 
 /// ErrorCode represents a structured error code for the system tier.
 ///
@@ -118,24 +117,18 @@ impl From<String> for ErrorCode {
 /// ErrorDetail provides additional context for an error field.
 ///
 /// Follows the REST-API設計.md D-007 specification:
-/// `{ "field": "quantity", "reason": "must_be_positive", "message": "..." }`
+/// `{ "field": "quantity", "message": "..." }`
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct ErrorDetail {
     pub field: String,
-    pub reason: String,
     pub message: String,
 }
 
 impl ErrorDetail {
-    pub fn new(
-        field: impl Into<String>,
-        reason: impl Into<String>,
-        message: impl Into<String>,
-    ) -> Self {
+    pub fn new(field: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
             field: field.into(),
-            reason: reason.into(),
             message: message.into(),
         }
     }
@@ -149,7 +142,7 @@ pub struct ErrorBody {
     pub message: String,
     pub request_id: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub details: Vec<Value>,
+    pub details: Vec<ErrorDetail>,
 }
 
 /// ErrorResponse wraps ErrorBody in an `{ "error": ... }` envelope.
@@ -173,17 +166,17 @@ impl ErrorResponse {
     }
 
     /// Create a new error response with code, message, and details.
-    pub fn with_details<T: Serialize>(
+    pub fn with_details(
         code: impl Into<ErrorCode>,
         message: impl Into<String>,
-        details: Vec<T>,
+        details: Vec<ErrorDetail>,
     ) -> Self {
         Self {
             error: ErrorBody {
                 code: code.into(),
                 message: message.into(),
                 request_id: default_request_id(),
-                details: serialize_details(details),
+                details,
             },
         }
     }
@@ -197,13 +190,6 @@ impl ErrorResponse {
 
 fn default_request_id() -> String {
     uuid::Uuid::new_v4().to_string()
-}
-
-fn serialize_details<T: Serialize>(details: Vec<T>) -> Vec<Value> {
-    details
-        .into_iter()
-        .filter_map(|detail| serde_json::to_value(detail).ok())
-        .collect()
 }
 
 /// ServiceError is a high-level error type that maps to HTTP status codes.
@@ -570,16 +556,16 @@ pub mod session {
         ErrorCode::new("SYS_SESSION_EXPIRED")
     }
 
-    pub fn revoked() -> ErrorCode {
-        ErrorCode::new("SYS_SESSION_REVOKED")
+    pub fn already_revoked() -> ErrorCode {
+        ErrorCode::new("SYS_SESSION_ALREADY_REVOKED")
     }
 
-    pub fn invalid_input() -> ErrorCode {
-        ErrorCode::new("SYS_SESSION_INVALID_INPUT")
+    pub fn validation_error() -> ErrorCode {
+        ErrorCode::new("SYS_SESSION_VALIDATION_ERROR")
     }
 
-    pub fn too_many_sessions() -> ErrorCode {
-        ErrorCode::new("SYS_SESSION_TOO_MANY")
+    pub fn max_devices_exceeded() -> ErrorCode {
+        ErrorCode::new("SYS_SESSION_MAX_DEVICES_EXCEEDED")
     }
 
     pub fn internal_error() -> ErrorCode {
@@ -895,8 +881,8 @@ mod tests {
     #[test]
     fn test_error_response_with_details() {
         let details = vec![
-            ErrorDetail::new("namespace", "required", "must not be empty"),
-            ErrorDetail::new("key", "invalid_format", "invalid format"),
+            ErrorDetail::new("namespace", "must not be empty"),
+            ErrorDetail::new("key", "invalid format"),
         ];
         let resp = ErrorResponse::with_details(
             "SYS_CONFIG_VALIDATION_FAILED",
@@ -904,8 +890,8 @@ mod tests {
             details,
         );
         assert_eq!(resp.error.details.len(), 2);
-        assert_eq!(resp.error.details[0]["field"], "namespace");
-        assert_eq!(resp.error.details[0]["reason"], "required");
+        assert_eq!(resp.error.details[0].field, "namespace");
+        assert_eq!(resp.error.details[0].message, "must not be empty");
     }
 
     #[test]
@@ -917,13 +903,13 @@ mod tests {
 
     #[test]
     fn test_service_error_bad_request_with_details() {
-        let details = vec![ErrorDetail::new("page", "must_be_positive", "must be >= 1")];
+        let details = vec![ErrorDetail::new("page", "must be >= 1")];
         let err =
             ServiceError::bad_request_with_details("CONFIG", "validation failed", details);
         let resp = err.to_error_response();
         assert_eq!(resp.error.code.as_str(), "SYS_CONFIG_VALIDATION_FAILED");
         assert_eq!(resp.error.details.len(), 1);
-        assert_eq!(resp.error.details[0]["reason"], "must_be_positive");
+        assert_eq!(resp.error.details[0].message, "must be >= 1");
     }
 
     #[test]
@@ -973,12 +959,12 @@ mod tests {
 
     #[test]
     fn test_error_response_with_details_serialization() {
-        let details = vec![ErrorDetail::new("field1", "invalid", "error1")];
+        let details = vec![ErrorDetail::new("field1", "error1")];
         let resp =
             ErrorResponse::with_details("SYS_CONFIG_VALIDATION_FAILED", "validation", details);
         let json = serde_json::to_value(&resp).unwrap();
         assert_eq!(json["error"]["details"][0]["field"], "field1");
-        assert_eq!(json["error"]["details"][0]["reason"], "invalid");
+        assert_eq!(json["error"]["details"][0]["message"], "error1");
         assert_eq!(json["error"]["details"][0]["message"], "error1");
     }
 
@@ -1023,8 +1009,8 @@ mod tests {
         );
         assert_eq!(session::expired().as_str(), "SYS_SESSION_EXPIRED");
         assert_eq!(
-            session::too_many_sessions().as_str(),
-            "SYS_SESSION_TOO_MANY"
+            session::max_devices_exceeded().as_str(),
+            "SYS_SESSION_MAX_DEVICES_EXCEEDED"
         );
     }
 }

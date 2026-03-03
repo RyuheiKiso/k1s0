@@ -29,7 +29,7 @@ message GetNavigationResponse {
 message Route {
   string          id           = 1;
   string          path         = 2;
-  string          component_id = 3;
+  optional string component_id = 3;
   repeated string guard_ids    = 4;
   repeated Route  children     = 5;
   TransitionConfig transition  = 6;

@@ -159,27 +159,36 @@ pub async fn list_files(
 pub async fn delete_file(
     State(state): State<AppState>,
     headers: HeaderMap,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
-        match state
-            .get_file_metadata_uc
-            .execute(&GetFileMetadataInput {
-                file_id: id.clone(),
-            })
-            .await
-        {
-            Ok(file) => {
-                if !crate::domain::service::FileDomainService::can_access_tenant_resource(
-                    &file.tenant_id,
-                    request_tenant_id,
-                ) {
-                    let err =
-                        ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
-                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
-                }
+    if let Ok(file) = state
+        .get_file_metadata_uc
+        .execute(&GetFileMetadataInput {
+            file_id: id.clone(),
+        })
+        .await
+    {
+        if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+            if !crate::domain::service::FileDomainService::can_access_tenant_resource(
+                &file.tenant_id,
+                request_tenant_id,
+            ) {
+                let err =
+                    ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
+                return (StatusCode::FORBIDDEN, Json(err)).into_response();
             }
-            Err(_) => {}
+        }
+
+        if let Some(axum::extract::Extension(claims)) = claims {
+            let is_admin = claims.realm_roles().iter().any(|role| role == "sys_admin");
+            if !is_admin && file.owner_id != claims.sub {
+                let err = ErrorResponse::new(
+                    codes::file::access_denied(),
+                    "only the file owner or sys_admin can delete this file",
+                );
+                return (StatusCode::FORBIDDEN, Json(err)).into_response();
+            }
         }
     }
 

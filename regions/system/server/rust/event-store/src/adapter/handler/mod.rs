@@ -181,7 +181,13 @@ pub struct ErrorBody {
     pub code: String,
     pub message: String,
     pub request_id: String,
-    pub details: Vec<String>,
+    pub details: Vec<ErrorDetail>,
+}
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct ErrorDetail {
+    pub field: String,
+    pub message: String,
 }
 
 impl ErrorResponse {

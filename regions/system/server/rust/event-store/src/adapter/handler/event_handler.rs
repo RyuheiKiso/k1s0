@@ -593,6 +593,10 @@ mod tests {
 
         let mut publisher = MockEventPublisher::new();
         publisher.expect_publish_events().returning(|_, _| Ok(()));
+        publisher
+            .expect_health_check()
+            .times(0..)
+            .returning(|| Ok(()));
         let publisher: Arc<dyn crate::infrastructure::kafka::EventPublisher> =
             Arc::new(publisher);
 
@@ -669,8 +673,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_readyz() {
+        let mut stream_repo = MockEventStreamRepository::new();
+        stream_repo
+            .expect_list_all()
+            .returning(|_, _| Ok((vec![], 0)));
         let state = make_test_state(
-            MockEventStreamRepository::new(),
+            stream_repo,
             MockEventRepository::new(),
             MockSnapshotRepository::new(),
         );

@@ -54,6 +54,7 @@ message ReadEventsRequest {
   optional int64 to_version = 3;
   uint32 page = 4;
   uint32 page_size = 5;
+  optional string event_type = 6;
 }
 
 message ReadEventsResponse {

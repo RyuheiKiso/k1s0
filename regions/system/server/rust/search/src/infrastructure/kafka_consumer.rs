@@ -1,20 +1,33 @@
 use std::sync::Arc;
 
 use crate::infrastructure::config::KafkaConfig;
+use crate::usecase::delete_document::{DeleteDocumentInput, DeleteDocumentUseCase};
 use crate::usecase::index_document::{IndexDocumentInput, IndexDocumentUseCase};
 
 /// IndexRequestEvent は Kafka から受信するインデックス登録リクエストイベント。
 #[derive(Debug, serde::Deserialize)]
 pub struct IndexRequestEvent {
-    pub id: String,
-    pub index_name: String,
-    pub content: serde_json::Value,
+    #[serde(default)]
+    pub event_type: Option<String>,
+    #[serde(alias = "id")]
+    pub document_id: String,
+    #[serde(alias = "index_name")]
+    pub index: String,
+    #[serde(default, alias = "content")]
+    pub document: Option<serde_json::Value>,
+    #[serde(default)]
+    pub operation: Option<String>,
+    #[serde(default)]
+    pub timestamp: Option<String>,
+    #[serde(default)]
+    pub actor_service: Option<String>,
 }
 
 /// SearchKafkaConsumer はインデックス登録リクエストトピックを購読してメッセージを処理する。
 pub struct SearchKafkaConsumer {
     consumer: rdkafka::consumer::StreamConsumer,
-    use_case: Arc<IndexDocumentUseCase>,
+    index_use_case: Arc<IndexDocumentUseCase>,
+    delete_use_case: Arc<DeleteDocumentUseCase>,
     consumer_group: String,
     metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
 }
@@ -23,7 +36,8 @@ impl SearchKafkaConsumer {
     /// 新しい SearchKafkaConsumer を作成する。
     pub fn new(
         config: &KafkaConfig,
-        use_case: Arc<IndexDocumentUseCase>,
+        index_use_case: Arc<IndexDocumentUseCase>,
+        delete_use_case: Arc<DeleteDocumentUseCase>,
     ) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
         use rdkafka::consumer::Consumer;
@@ -46,7 +60,8 @@ impl SearchKafkaConsumer {
 
         Ok(Self {
             consumer,
-            use_case,
+            index_use_case,
+            delete_use_case,
             consumer_group: config.consumer_group.clone(),
             metrics: None,
         })
@@ -89,13 +104,43 @@ impl SearchKafkaConsumer {
                         }
                     };
 
-                    let input = IndexDocumentInput {
-                        id: event.id,
-                        index_name: event.index_name,
-                        content: event.content,
+                    let operation = event
+                        .operation
+                        .clone()
+                        .unwrap_or_else(|| "INDEX".to_string())
+                        .to_ascii_uppercase();
+
+                    if operation == "DELETE" {
+                        let input = DeleteDocumentInput {
+                            index_name: event.index,
+                            doc_id: event.document_id,
+                        };
+                        match self.delete_use_case.execute(&input).await {
+                            Ok(_) => {
+                                tracing::info!("document deleted from kafka");
+                            }
+                            Err(e) => {
+                                tracing::error!(error = %e, "failed to delete document from kafka");
+                            }
+                        }
+                        continue;
+                    }
+
+                    let Some(document) = event.document else {
+                        tracing::warn!(
+                            operation = %operation,
+                            "received index event without document payload"
+                        );
+                        continue;
                     };
 
-                    match self.use_case.execute(&input).await {
+                    let input = IndexDocumentInput {
+                        id: event.document_id,
+                        index_name: event.index,
+                        content: document,
+                    };
+
+                    match self.index_use_case.execute(&input).await {
                         Ok(doc) => {
                             tracing::info!(
                                 doc_id = %doc.id,

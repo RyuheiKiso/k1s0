@@ -73,14 +73,15 @@ impl CreateTenantUseCase {
             .map_err(|e| CreateTenantError::Internal(e.to_string()))?;
 
         // Keycloak realm provisioning (failure is non-fatal)
-        if let Err(e) = self.keycloak_admin.create_realm(&tenant.name).await {
+        let realm_name = format!("k1s0-{}", tenant.name);
+        if let Err(e) = self.keycloak_admin.create_realm(&realm_name).await {
             tracing::warn!(
                 tenant_id = %tenant.id,
                 error = %e,
                 "failed to create keycloak realm, tenant created but realm not provisioned"
             );
         } else {
-            tenant.keycloak_realm = Some(tenant.name.clone());
+            tenant.keycloak_realm = Some(realm_name);
             if let Err(e) = self.tenant_repo.update(&tenant).await {
                 tracing::warn!(
                     tenant_id = %tenant.id,

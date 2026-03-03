@@ -43,6 +43,7 @@ pub struct CreateRuleRequest {
     pub identifier_pattern: String,
     pub limit: i64,
     pub window_seconds: i64,
+    pub algorithm: Option<String>,
     pub enabled: bool,
 }
 
@@ -83,6 +84,7 @@ pub struct UpdateRuleRequest {
     pub identifier_pattern: String,
     pub limit: i64,
     pub window_seconds: i64,
+    pub algorithm: Option<String>,
     pub enabled: bool,
 }
 
@@ -237,6 +239,7 @@ impl RateLimitGrpcService {
             identifier_pattern: req.identifier_pattern,
             limit,
             window_seconds,
+            algorithm: req.algorithm,
             enabled: req.enabled,
         };
 
@@ -350,6 +353,7 @@ impl RateLimitGrpcService {
             identifier_pattern: req.identifier_pattern,
             limit,
             window_seconds,
+            algorithm: req.algorithm,
             enabled: req.enabled,
         };
 
@@ -404,30 +408,28 @@ impl RateLimitGrpcService {
         &self,
         req: ListRulesRequest,
     ) -> Result<ListRulesResponse, GrpcError> {
-        let mut rules = self.list_uc.execute().await.map_err(|e| match e {
+        let page = if req.page == 0 { 1 } else { req.page };
+        let page_size = if req.page_size == 0 { 20 } else { req.page_size };
+        let output = self
+            .list_uc
+            .execute(&crate::usecase::list_rules::ListRulesInput {
+                page,
+                page_size,
+                scope: if req.scope.is_empty() {
+                    None
+                } else {
+                    Some(req.scope)
+                },
+                enabled_only: req.enabled_only.unwrap_or(false),
+            })
+            .await
+            .map_err(|e| match e {
             crate::usecase::list_rules::ListRulesError::Internal(msg) => GrpcError::Internal(msg),
         })?;
-        if !req.scope.is_empty() {
-            rules.retain(|r| r.scope == req.scope);
-        }
-        if let Some(enabled_only) = req.enabled_only {
-            if enabled_only {
-                rules.retain(|r| r.enabled);
-            }
-        }
-        let total_count = rules.len();
-        let page = if req.page == 0 { 1 } else { req.page as usize };
-        let page_size = if req.page_size == 0 {
-            20
-        } else {
-            req.page_size as usize
-        };
-        let start = (page - 1) * page_size;
-        let has_next = page * page_size < total_count;
-        let rules: Vec<_> = rules.into_iter().skip(start).take(page_size).collect();
 
         Ok(ListRulesResponse {
-            rules: rules
+            rules: output
+                .rules
                 .into_iter()
                 .map(|rule| RuleResponse {
                     id: rule.id.to_string(),
@@ -448,10 +450,10 @@ impl RateLimitGrpcService {
                 })
                 .collect(),
             pagination: PaginationResponse {
-                total_count: total_count.min(i32::MAX as usize) as i32,
-                page: page.min(i32::MAX as usize) as i32,
-                page_size: page_size.min(i32::MAX as usize) as i32,
-                has_next,
+                total_count: output.total_count.min(i32::MAX as u64) as i32,
+                page: output.page.min(i32::MAX as u32) as i32,
+                page_size: output.page_size.min(i32::MAX as u32) as i32,
+                has_next: output.has_next,
             },
         })
     }

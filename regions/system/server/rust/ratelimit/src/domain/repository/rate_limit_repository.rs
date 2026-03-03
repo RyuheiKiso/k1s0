@@ -22,6 +22,15 @@ pub trait RateLimitRepository: Send + Sync {
     /// 全ルールを取得する。
     async fn find_all(&self) -> anyhow::Result<Vec<RateLimitRule>>;
 
+    /// 条件付きのページネーションでルールを取得する。
+    async fn find_page(
+        &self,
+        page: u32,
+        page_size: u32,
+        scope: Option<&str>,
+        enabled_only: bool,
+    ) -> anyhow::Result<(Vec<RateLimitRule>, u64)>;
+
     /// ルールを更新する。
     async fn update(&self, rule: &RateLimitRule) -> anyhow::Result<()>;
 

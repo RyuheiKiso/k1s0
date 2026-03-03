@@ -1,8 +1,17 @@
-# system-navigation-server 設計
+﻿# system-navigation-server 設計
 
 クライアントアプリのルーティング・ガード設定を提供するナビゲーション管理サービス。gRPC で認証済みユーザーのロールに応じたルート定義とルートガードを返す。
 
 ## 概要
+
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | navigation/read |
+| sys_operator 以上 | navigation/write |
+| sys_admin のみ | navigation/admin |
+
 
 | 機能 | 説明 |
 | --- | --- |
@@ -189,3 +198,4 @@ GetNavigationRequest {
 - [認証認可設計.md](../../architecture/auth/認証認可設計.md) -- JWT・ロールモデル
 - [RBAC設計.md](../../architecture/auth/RBAC設計.md) -- ロールベースアクセス制御
 - [system-auth/server.md](../auth/server.md) -- 認証サーバー（トークン発行元）
+

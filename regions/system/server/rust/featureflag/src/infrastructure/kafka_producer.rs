@@ -19,7 +19,17 @@ pub struct FlagChangedEvent {
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait FlagEventPublisher: Send + Sync {
-    async fn publish_flag_changed(&self, flag_key: &str, enabled: bool) -> anyhow::Result<()>;
+    async fn publish_flag_changed(
+        &self,
+        flag_key: &str,
+        enabled: bool,
+        actor_user_id: Option<&str>,
+        before: Option<serde_json::Value>,
+        after: serde_json::Value,
+    ) -> anyhow::Result<()>;
+    async fn health_check(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -28,7 +38,14 @@ pub struct NoopFlagEventPublisher;
 
 #[async_trait]
 impl FlagEventPublisher for NoopFlagEventPublisher {
-    async fn publish_flag_changed(&self, _flag_key: &str, _enabled: bool) -> anyhow::Result<()> {
+    async fn publish_flag_changed(
+        &self,
+        _flag_key: &str,
+        _enabled: bool,
+        _actor_user_id: Option<&str>,
+        _before: Option<serde_json::Value>,
+        _after: serde_json::Value,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
 
@@ -83,7 +100,14 @@ impl KafkaFlagProducer {
 
 #[async_trait]
 impl FlagEventPublisher for KafkaFlagProducer {
-    async fn publish_flag_changed(&self, flag_key: &str, enabled: bool) -> anyhow::Result<()> {
+    async fn publish_flag_changed(
+        &self,
+        flag_key: &str,
+        enabled: bool,
+        actor_user_id: Option<&str>,
+        before: Option<serde_json::Value>,
+        after: serde_json::Value,
+    ) -> anyhow::Result<()> {
         use rdkafka::producer::FutureRecord;
         use std::time::Duration;
 
@@ -91,12 +115,9 @@ impl FlagEventPublisher for KafkaFlagProducer {
             event_type: "FLAG_CHANGED".to_string(),
             flag_key: flag_key.to_string(),
             enabled,
-            actor_user_id: None,
-            before: None,
-            after: serde_json::json!({
-                "flag_key": flag_key,
-                "enabled": enabled
-            }),
+            actor_user_id: actor_user_id.map(ToString::to_string),
+            before,
+            after,
             timestamp: chrono::Utc::now().to_rfc3339(),
         };
 
@@ -120,6 +141,15 @@ impl FlagEventPublisher for KafkaFlagProducer {
         Ok(())
     }
 
+    async fn health_check(&self) -> anyhow::Result<()> {
+        use rdkafka::producer::Producer;
+        self.producer
+            .client()
+            .fetch_metadata(None, std::time::Duration::from_secs(3))
+            .map_err(|e| anyhow::anyhow!("kafka metadata fetch failed: {}", e))?;
+        Ok(())
+    }
+
     async fn close(&self) -> anyhow::Result<()> {
         use rdkafka::producer::Producer;
         self.producer.flush(std::time::Duration::from_secs(5))?;
@@ -134,7 +164,7 @@ mod tests {
 
     /// テスト用のインメモリプロデューサー。
     struct InMemoryFlagProducer {
-        messages: Mutex<Vec<(String, bool)>>,
+        messages: Mutex<Vec<FlagChangedEvent>>,
         should_fail: bool,
     }
 
@@ -160,14 +190,22 @@ mod tests {
             &self,
             flag_key: &str,
             enabled: bool,
+            actor_user_id: Option<&str>,
+            before: Option<serde_json::Value>,
+            after: serde_json::Value,
         ) -> anyhow::Result<()> {
             if self.should_fail {
                 return Err(anyhow::anyhow!("broker connection refused"));
             }
-            self.messages
-                .lock()
-                .unwrap()
-                .push((flag_key.to_string(), enabled));
+            self.messages.lock().unwrap().push(FlagChangedEvent {
+                event_type: "FLAG_CHANGED".to_string(),
+                flag_key: flag_key.to_string(),
+                enabled,
+                actor_user_id: actor_user_id.map(ToString::to_string),
+                before,
+                after,
+                timestamp: chrono::Utc::now().to_rfc3339(),
+            });
             Ok(())
         }
 
@@ -181,14 +219,21 @@ mod tests {
         let producer = InMemoryFlagProducer::new();
 
         let result = producer
-            .publish_flag_changed("feature.dark-mode", true)
+            .publish_flag_changed(
+                "feature.dark-mode",
+                true,
+                Some("user-1"),
+                None,
+                serde_json::json!({"flag_key":"feature.dark-mode","enabled":true}),
+            )
             .await;
         assert!(result.is_ok());
 
         let messages = producer.messages.lock().unwrap();
         assert_eq!(messages.len(), 1);
-        assert_eq!(messages[0].0, "feature.dark-mode");
-        assert!(messages[0].1);
+        assert_eq!(messages[0].flag_key, "feature.dark-mode");
+        assert!(messages[0].enabled);
+        assert_eq!(messages[0].actor_user_id.as_deref(), Some("user-1"));
     }
 
     #[tokio::test]
@@ -196,18 +241,30 @@ mod tests {
         let producer = InMemoryFlagProducer::new();
 
         producer
-            .publish_flag_changed("feature.dark-mode", true)
+            .publish_flag_changed(
+                "feature.dark-mode",
+                true,
+                None,
+                None,
+                serde_json::json!({"enabled":true}),
+            )
             .await
             .unwrap();
         producer
-            .publish_flag_changed("feature.new-ui", false)
+            .publish_flag_changed(
+                "feature.new-ui",
+                false,
+                None,
+                Some(serde_json::json!({"enabled":true})),
+                serde_json::json!({"enabled":false}),
+            )
             .await
             .unwrap();
 
         let messages = producer.messages.lock().unwrap();
         assert_eq!(messages.len(), 2);
-        assert_eq!(messages[0].0, "feature.dark-mode");
-        assert_eq!(messages[1].0, "feature.new-ui");
+        assert_eq!(messages[0].flag_key, "feature.dark-mode");
+        assert_eq!(messages[1].flag_key, "feature.new-ui");
     }
 
     #[tokio::test]
@@ -215,7 +272,13 @@ mod tests {
         let producer = InMemoryFlagProducer::with_error();
 
         let result = producer
-            .publish_flag_changed("feature.dark-mode", true)
+            .publish_flag_changed(
+                "feature.dark-mode",
+                true,
+                None,
+                None,
+                serde_json::json!({"enabled":true}),
+            )
             .await;
         assert!(result.is_err());
         assert!(result
@@ -229,7 +292,13 @@ mod tests {
         let publisher = NoopFlagEventPublisher;
 
         let result = publisher
-            .publish_flag_changed("feature.dark-mode", true)
+            .publish_flag_changed(
+                "feature.dark-mode",
+                true,
+                None,
+                None,
+                serde_json::json!({"enabled":true}),
+            )
             .await;
         assert!(result.is_ok());
 
@@ -283,11 +352,18 @@ mod tests {
     #[tokio::test]
     async fn test_mock_flag_event_publisher() {
         let mut mock = MockFlagEventPublisher::new();
-        mock.expect_publish_flag_changed().returning(|_, _| Ok(()));
+        mock.expect_publish_flag_changed()
+            .returning(|_, _, _, _, _| Ok(()));
         mock.expect_close().returning(|| Ok(()));
 
         assert!(mock
-            .publish_flag_changed("feature.dark-mode", true)
+            .publish_flag_changed(
+                "feature.dark-mode",
+                true,
+                None,
+                None,
+                serde_json::json!({"enabled":true}),
+            )
             .await
             .is_ok());
         assert!(mock.close().await.is_ok());

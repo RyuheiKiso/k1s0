@@ -1,8 +1,17 @@
-# system-scheduler-server 設計
+﻿# system-scheduler-server 設計
 
 cron 式によるジョブスケジューリング・分散実行管理サーバー。PostgreSQL 分散ロック・実行履歴管理を提供。
 
 ## 概要
+
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | scheduler/read |
+| sys_operator 以上 | scheduler/write |
+| sys_admin のみ | scheduler/admin |
+
 
 system tier のスケジューラーサーバーは以下の機能を提供する。
 
@@ -289,10 +298,10 @@ ID 指定でジョブの詳細を取得する。
 
 ```json
 {
-  "execution_id": "exec_01JABCDEF1234567890",
+  "id": "exec_01JABCDEF1234567890",
   "job_id": "job_01JABCDEF1234567890",
   "status": "running",
-  "triggered_at": "2026-02-23T12:00:00.000+00:00"
+  "started_at": "2026-02-23T12:00:00.000+00:00"
 }
 ```
 
@@ -358,7 +367,6 @@ ID 指定でジョブの詳細を取得する。
 | `SYS_SCHED_ALREADY_EXISTS` | 409 | 同一名のジョブが既に存在する |
 | `SYS_SCHED_NOT_ACTIVE` | 409 | ジョブがアクティブでないため実行できない |
 | `SYS_SCHED_JOB_RUNNING` | 409 | 実行中のジョブは削除できない |
-| `SYS_SCHED_INVALID_STATUS` | 409 | 操作に対してジョブのステータスが不正 |
 | `SYS_SCHED_INVALID_CRON` | 400 | cron 式が不正 |
 | `SYS_SCHED_VALIDATION_ERROR` | 400 | バリデーションエラー |
 | `SYS_SCHED_INTERNAL_ERROR` | 500 | 内部エラー |
@@ -490,15 +498,15 @@ message TriggerJobRequest {
 }
 
 message TriggerJobResponse {
-  string execution_id = 1;
+  string id = 1;
   string job_id = 2;
   // 実行状態（running / succeeded / failed）
   string status = 3;
-  k1s0.system.common.v1.Timestamp triggered_at = 4;
+  k1s0.system.common.v1.Timestamp started_at = 4;
 }
 
 message GetJobExecutionRequest {
-  string execution_id = 1;
+  string id = 1;
 }
 
 message GetJobExecutionResponse {
@@ -548,7 +556,7 @@ message JobExecution {
 | domain/entity | `SchedulerJob`, `JobExecution` | エンティティ定義 |
 | domain/repository | `SchedulerJobRepository`, `JobExecutionRepository` | リポジトリトレイト |
 | domain/service | `SchedulerDomainService` | cron 式解析・次回実行時刻計算・分散ロック判定 |
-| usecase | `CreateJobUsecase`, `UpdateJobUsecase`, `DeleteJobUsecase`, `GetJobUsecase`, `ListJobsUsecase`, `TriggerJobUsecase`, `PauseJobUsecase`, `ResumeJobUsecase`, `ListExecutionsUsecase`, `GetExecutionUsecase` | ユースケース |
+| usecase | `CreateJobUsecase`, `UpdateJobUsecase`, `DeleteJobUsecase`, `GetJobUsecase`, `ListJobsUsecase`, `TriggerJobUsecase`, `PauseJobUsecase`, `ResumeJobUsecase`, `ListExecutionsUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic） | プロトコル変換 |
 | adapter/scheduler | `CronSchedulerEngine` | tokio による cron スケジューリングループ |
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
@@ -567,9 +575,9 @@ message JobExecution {
 | `description` | Option\<String\> | ジョブの説明 |
 | `cron_expression` | String | cron 式（例: `0 0 * * *`） |
 | `timezone` | String | タイムゾーン（例: `Asia/Tokyo`） |
-| `target_type` | Option\<String\> | ターゲット種別（kafka / http） |
+| `target_type` | String | ターゲット種別（kafka / http） |
 | `target` | Option\<String\> | Kafka トピック名または HTTP URL |
-| `payload` | Option\<JSON\> | ジョブ実行時に渡すペイロード |
+| `payload` | JSON | ジョブ実行時に渡すペイロード |
 | `status` | String | ジョブ状態（active / paused） |
 | `next_run_at` | Option\<DateTime\<Utc\>\> | 次回実行予定日時 |
 | `last_run_at` | Option\<DateTime\<Utc\>\> | 最終実行日時 |
@@ -618,7 +626,7 @@ message JobExecution {
                     │  DeleteJobUsecase / GetJobUsecase /             │
                     │  ListJobsUsecase / TriggerJobUsecase /          │
                     │  PauseJobUsecase / ResumeJobUsecase /           │
-                    │  ListExecutionsUsecase / GetExecutionUsecase    │
+                    │  ListExecutionsUsecase                           │
                     └─────────────────────────┬───────────────────────┘
                                               │
               ┌───────────────────────────────┼───────────────────────┐
@@ -675,3 +683,13 @@ message JobExecution {
 - `ListExecutionsRequest` supports `status`, `from`, `to`.
 - Execution model includes `triggered_by`.
 - Canonical completion timestamp field is `finished_at`.
+
+
+
+
+### 2026-03-03 追補
+- trigger レスポンスは SchedulerExecution（id, job_id, status, triggered_by, started_at, finished_at, error_message）に合わせる。
+- target_type と payload は必須。
+- 実行単体取得ユースケースは未実装のため記載対象外とする。
+
+

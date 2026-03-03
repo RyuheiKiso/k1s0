@@ -15,6 +15,13 @@ pub struct CreateSessionRequest {
     pub ip_address: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(uint32, optional, tag = "7")]
     pub ttl_seconds: ::core::option::Option<u32>,
+    #[prost(int32, optional, tag = "8")]
+    pub max_devices: ::core::option::Option<i32>,
+    #[prost(map = "string, string", tag = "9")]
+    pub metadata: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateSessionResponse {
@@ -43,6 +50,8 @@ pub struct CreateSessionResponse {
     pub user_agent: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "11")]
     pub ip_address: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, tag = "12")]
+    pub status: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSessionRequest {
@@ -151,6 +160,8 @@ pub struct Session {
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "11")]
     pub last_accessed_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(string, tag = "12")]
+    pub token: ::prost::alloc::string::String,
 }
 /// Generated server implementations.
 pub mod session_service_server {

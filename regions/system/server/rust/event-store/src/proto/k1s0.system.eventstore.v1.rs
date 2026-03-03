@@ -56,6 +56,8 @@ pub struct ReadEventsRequest {
     pub page: u32,
     #[prost(uint32, tag = "5")]
     pub page_size: u32,
+    #[prost(string, optional, tag = "6")]
+    pub event_type: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadEventsResponse {

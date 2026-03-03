@@ -59,7 +59,7 @@ pub fn router(state: AppState) -> Router {
                 "files", "read",
             )));
 
-        // POST/complete/tags -> files/write
+        // POST/complete/tags/DELETE -> files/write (DELETE has owner/admin check in handler)
         let write_routes = Router::new()
             .route("/api/v1/files", post(file_handler::upload_file))
             .route(
@@ -70,22 +70,15 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/files/:id/tags",
                 put(file_handler::update_file_tags),
             )
-            .route_layer(axum::middleware::from_fn(require_permission(
-                "files", "write",
-            )));
-
-        // DELETE -> files/admin
-        let admin_routes = Router::new()
             .route("/api/v1/files/:id", delete(file_handler::delete_file))
             .route_layer(axum::middleware::from_fn(require_permission(
-                "files", "admin",
+                "files", "write",
             )));
 
         // 認証ミドルウェアを全 API ルートに適用
         Router::new()
             .merge(read_routes)
             .merge(write_routes)
-            .merge(admin_routes)
             .layer(axum::middleware::from_fn_with_state(
                 auth_state.clone(),
                 auth_middleware,

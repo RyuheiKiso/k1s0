@@ -20,6 +20,8 @@ pub struct CreateSessionRequest {
     pub user_agent: Option<String>,
     pub ip_address: Option<String>,
     pub ttl_seconds: Option<u32>,
+    pub max_devices: Option<u32>,
+    pub metadata: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone)]
@@ -35,6 +37,7 @@ pub struct CreateSessionResponse {
     pub device_type: Option<String>,
     pub user_agent: Option<String>,
     pub ip_address: Option<String>,
+    pub status: String,
 }
 
 #[derive(Debug, Clone)]
@@ -111,6 +114,7 @@ pub struct PbSession {
     pub user_agent: Option<String>,
     pub ip_address: Option<String>,
     pub status: String,
+    pub token: String,
     pub expires_at: String,
     pub created_at: String,
     pub last_accessed_at: Option<String>,
@@ -178,8 +182,8 @@ impl SessionGrpcService {
                 .ttl_seconds
                 .map(|ttl| ttl as i64)
                 .or(Some(self.default_ttl)),
-            max_devices: None,
-            metadata: None,
+            max_devices: req.max_devices,
+            metadata: req.metadata,
         };
 
         match self.create_uc.execute(&input).await {
@@ -195,6 +199,11 @@ impl SessionGrpcService {
                 device_type: output.session.device_type,
                 user_agent: output.session.user_agent,
                 ip_address: output.session.ip_address,
+                status: if output.session.revoked {
+                    "revoked".to_string()
+                } else {
+                    "active".to_string()
+                },
             }),
             Err(SessionError::InvalidInput(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
@@ -224,6 +233,7 @@ impl SessionGrpcService {
                         user_agent: s.user_agent,
                         ip_address: s.ip_address,
                         status: status.to_string(),
+                        token: s.token,
                         expires_at: s.expires_at.to_rfc3339(),
                         created_at: s.created_at.to_rfc3339(),
                         last_accessed_at: s.last_accessed_at.map(|t| t.to_rfc3339()),
@@ -334,6 +344,7 @@ impl SessionGrpcService {
                             user_agent: s.user_agent,
                             ip_address: s.ip_address,
                             status: status.to_string(),
+                            token: s.token,
                             expires_at: s.expires_at.to_rfc3339(),
                             created_at: s.created_at.to_rfc3339(),
                             last_accessed_at: s.last_accessed_at.map(|t| t.to_rfc3339()),
@@ -414,6 +425,8 @@ mod tests {
             user_agent: None,
             ip_address: Some("127.0.0.1".to_string()),
             ttl_seconds: None,
+            max_devices: None,
+            metadata: None,
         };
         let resp = svc.create_session(req).await.unwrap();
 

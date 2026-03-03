@@ -259,7 +259,13 @@ pub struct ErrorBody {
     pub code: String,
     pub message: String,
     pub request_id: String,
-    pub details: Vec<String>,
+    pub details: Vec<ErrorDetail>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ErrorDetail {
+    pub field: String,
+    pub message: String,
 }
 
 impl ErrorResponse {
@@ -791,7 +797,10 @@ pub async fn list_tasks(
                 .map(|t| {
                     let is_overdue = t
                         .due_at
-                        .map(|d| d < chrono::Utc::now() && t.status == "pending")
+                        .map(|d| {
+                            d < chrono::Utc::now()
+                                && (t.status == "pending" || t.status == "assigned")
+                        })
                         .unwrap_or(false);
                     serde_json::json!({
                         "id": t.id,

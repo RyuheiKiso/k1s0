@@ -99,12 +99,14 @@ where
             let token = match token {
                 Some(t) => t,
                 None => {
+                    let request_id = uuid::Uuid::new_v4().to_string();
                     return Ok((
                         StatusCode::UNAUTHORIZED,
                         Json(serde_json::json!({
                             "error": {
                                 "code": "UNAUTHORIZED",
-                                "message": "missing Authorization header"
+                                "message": "missing Authorization header",
+                                "request_id": request_id
                             }
                         })),
                     )
@@ -115,12 +117,14 @@ where
             let claims = match verifier.verify_token(&token).await {
                 Ok(c) => c,
                 Err(_) => {
+                    let request_id = uuid::Uuid::new_v4().to_string();
                     return Ok((
                         StatusCode::UNAUTHORIZED,
                         Json(serde_json::json!({
                             "error": {
                                 "code": "UNAUTHORIZED",
-                                "message": "invalid or expired JWT token"
+                                "message": "invalid or expired JWT token",
+                                "request_id": request_id
                             }
                         })),
                     )

@@ -1,4 +1,4 @@
-# system-dlq-manager-server デプロイ設計
+﻿# system-dlq-manager-server デプロイ設計
 
 system-dlq-manager-server の Dockerfile・テスト・CI/CD パイプライン・設定ファイル・Helm values を定義する。概要・API 定義・アーキテクチャは [system-dlq-manager-server.md](server.md) を参照。
 
@@ -121,7 +121,7 @@ kafka:
 
 ### 統合テスト
 
-`tests/integration_test.rs` に配置。InMemory リポジトリを使用した REST API のエンドツーエンド動作を検証する（12 テストケース）。
+`tests/integration_test.rs` に配置。InMemory リポジトリを使用した REST API のエンドツーエンド動作を検証する（15 テストケース）。
 
 | テストケース | 内容 |
 | --- | --- |
@@ -425,3 +425,7 @@ curl -f http://localhost:8086/readyz
 - [可観測性設計.md](../../architecture/observability/可観測性設計.md) -- OpenTelemetry・Prometheus・構造化ログ
 - [認証認可設計.md](../../architecture/auth/認証認可設計.md) -- Kong ルーティング設計
 - [メッセージング設計.md](../../architecture/messaging/メッセージング設計.md) -- DLQ パターンの基本方針
+
+### 2026-03-03 追補
+- tests/integration_test.rs の統合テストケース数は 15 件を正とする。
+

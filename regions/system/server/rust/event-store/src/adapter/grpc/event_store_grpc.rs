@@ -187,7 +187,7 @@ impl EventStoreGrpcService {
             stream_id: req.stream_id,
             from_version: req.from_version,
             to_version: req.to_version,
-            event_type: None,
+            event_type: req.event_type,
             page: req.page,
             page_size: req.page_size,
         };

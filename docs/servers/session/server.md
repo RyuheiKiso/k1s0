@@ -1,4 +1,4 @@
-# system-session-server 設計
+﻿# system-session-server 設計
 
 > **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
 
@@ -6,6 +6,15 @@
 system tier のセッション管理サーバー設計を定義する。Redis によるセッションデータ管理とマルチデバイス対応、セッション失効を提供する。JWT 認証と補完し、ステートフルセッションが必要な要件に対応する。Rust での実装を定義する。
 
 ## 概要
+
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | sessions/read |
+| sys_operator 以上 | sessions/write |
+| sys_admin のみ | sessions/admin |
+
 
 system tier のセッション管理サーバーは以下の機能を提供する。
 
@@ -343,6 +352,8 @@ message CreateSessionRequest {
   optional string user_agent = 5;
   optional string ip_address = 6;
   optional uint32 ttl_seconds = 7;
+  optional int32 max_devices = 8;
+  map<string, string> metadata = 9;
 }
 
 message CreateSessionResponse {
@@ -357,6 +368,7 @@ message CreateSessionResponse {
   optional string device_type = 9;
   optional string user_agent = 10;
   optional string ip_address = 11;
+  string status = 12;
 }
 
 message GetSessionRequest {
@@ -427,6 +439,7 @@ message Session {
   k1s0.system.common.v1.Timestamp expires_at = 9;
   k1s0.system.common.v1.Timestamp created_at = 10;
   optional k1s0.system.common.v1.Timestamp last_accessed_at = 11;
+  string token = 12;
 }
 ```
 
@@ -568,4 +581,10 @@ message Session {
 - `CreateSessionResponse.metadata` is present.
 - Session-related timestamps use `k1s0.system.common.v1.Timestamp`.
 - `Session.status` valid values are `active` and `revoked`.
+
+
+### 2026-03-03 追補
+- CreateSessionRequest は optional int32 max_devices と map<string,string> metadata を持つ。
+- CreateSessionResponse は status を含む。
+- Session は token を含む。
 

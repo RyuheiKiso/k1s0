@@ -104,6 +104,55 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         rows.into_iter().map(|r| r.into_rule()).collect()
     }
 
+    async fn find_page(
+        &self,
+        page: u32,
+        page_size: u32,
+        scope: Option<&str>,
+        enabled_only: bool,
+    ) -> anyhow::Result<(Vec<RateLimitRule>, u64)> {
+        let page = page.max(1);
+        let page_size = page_size.max(1).min(200);
+        let offset = ((page - 1) * page_size) as i64;
+
+        let total: i64 = sqlx::query_scalar(
+            r#"
+            SELECT COUNT(*)
+            FROM ratelimit.rate_limit_rules
+            WHERE ($1::text IS NULL OR name = $1)
+              AND ($2::bool = FALSE OR enabled = TRUE)
+            "#,
+        )
+        .bind(scope)
+        .bind(enabled_only)
+        .fetch_one(&self.pool)
+        .await?;
+
+        let rows = sqlx::query_as::<_, RuleRow>(
+            r#"
+            SELECT id, name, key, limit_count, window_secs, algorithm, enabled, created_at, updated_at
+            FROM ratelimit.rate_limit_rules
+            WHERE ($1::text IS NULL OR name = $1)
+              AND ($2::bool = FALSE OR enabled = TRUE)
+            ORDER BY created_at DESC
+            LIMIT $3 OFFSET $4
+            "#,
+        )
+        .bind(scope)
+        .bind(enabled_only)
+        .bind(page_size as i64)
+        .bind(offset)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let rules: Vec<RateLimitRule> = rows
+            .into_iter()
+            .map(|r| r.into_rule())
+            .collect::<anyhow::Result<Vec<_>>>()?;
+
+        Ok((rules, total.max(0) as u64))
+    }
+
     async fn update(&self, rule: &RateLimitRule) -> anyhow::Result<()> {
         sqlx::query(
             r#"

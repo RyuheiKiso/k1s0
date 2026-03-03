@@ -7,6 +7,15 @@ system tier のシークレット管理サーバー設計を定義する。Hashi
 
 ## 概要
 
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | secrets/read |
+| sys_operator 以上 | secrets/write |
+| sys_admin のみ | secrets/admin |
+
+
 system tier の Vault Server は以下の機能を提供する。
 
 | 機能 | 説明 |
@@ -602,4 +611,9 @@ vault:
 ### Message/Field Corrections
 - Canonical messages include `RotateSecretRequest/Response`, `GetSecretMetadataRequest/Response`, `ListAuditLogsRequest/Response`, `AuditLogEntry`.
 - `GetSecretResponse.updated_at` is present.
+
+
+### 2026-03-03 追補
+- GET /api/v1/secrets/:key/metadata の 404 は標準 ErrorResponse（error.code/message/request_id/details）で返却する。
+- RBAC は secrets/read, secrets/write, secrets/admin の resource/action 併記を正とする。
 

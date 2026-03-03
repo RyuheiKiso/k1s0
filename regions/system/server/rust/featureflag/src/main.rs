@@ -185,6 +185,7 @@ async fn main() -> anyhow::Result<()> {
     // AppState for REST handlers
     let mut state = adapter::handler::AppState {
         flag_repo: flag_repo.clone(),
+        event_publisher: kafka_producer,
         list_flags_uc,
         evaluate_flag_uc,
         get_flag_uc,

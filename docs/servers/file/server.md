@@ -4,6 +4,15 @@ S3 互換ストレージを統一 API で抽象化するファイルサーバー
 
 ## 概要
 
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | files/read |
+| sys_operator 以上 | files/write |
+| sys_admin のみ | files/admin |
+
+
 system tier のファイルストレージ抽象化サーバーは以下の機能を提供する。
 
 | 機能 | 説明 |
@@ -522,11 +531,11 @@ message DeleteFileResponse {}
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `id` | String | ファイルの一意識別子 |
-| `filename` | String | ファイル名（元のファイル名） |
+| `name` | String | ファイル名（元のファイル名） |
 | `size_bytes` | u64 | ファイルサイズ（バイト、`size` は後方互換 alias） |
-| `content_type` | String | Content-Type（例: `application/pdf`） |
+| `mime_type` | String | Content-Type（例: `application/pdf`） |
 | `tenant_id` | String | 所属テナント ID |
-| `uploaded_by` | String | アップロードしたユーザー ID |
+| `owner_id` | String | アップロードしたユーザー ID |
 | `tags` | HashMap\<String, String\> | 任意のタグ（最大 10 件） |
 | `storage_key` | String | ストレージ上のオブジェクトキー |
 | `checksum_sha256` | Option\<String\> | SHA-256 チェックサム（アップロード完了後に記録） |
@@ -625,7 +634,7 @@ storage:
   bucket: "k1s0-files"
   access_key_id: ""
   secret_access_key: ""
-  presigned_url_max_expires_seconds: 86400
+  
   max_file_size_bytes: 104857600
 
 kafka:
@@ -718,4 +727,6 @@ vault:
 ### REST/gRPC Response Alignment
 - `CompleteUploadResponse`: REST/gRPC ともに `FileMetadata` 形状。
 - `DeleteFileResponse`: REST は `204 No Content`（ボディなし）、gRPC は空 message `{}`。
+
+
 

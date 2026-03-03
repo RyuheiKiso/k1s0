@@ -1,9 +1,18 @@
-# system-config-server 設計
+﻿# system-config-server 設計
 
 system tier の設定管理サーバー設計を定義する。全サービスに対して REST と gRPC で設定値を提供し、設定変更時の通知・監査ログ記録を行う。
 Rust で実装する。
 
 ## 概要
+
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | configs/read |
+| sys_operator 以上 | configs/write |
+| sys_admin のみ | configs/admin |
+
 
 system tier の設定管理サーバーは以下の機能を提供する。
 
@@ -299,7 +308,7 @@ PostgreSQL と Kafka への接続を確認する。
 
 ```json
 {
-  "status": "not ready",
+  "status": "not_ready",
   "checks": {
     "database": "ok",
     "kafka": "error: connection timeout"
@@ -621,3 +630,9 @@ enum ConfigFieldType {
 - [system-server.md](../auth/server.md) -- auth-server 設計（同 tier の参考実装）
 - [APIゲートウェイ設計.md](../../architecture/api/APIゲートウェイ設計.md) -- Kong 構成管理
 - [サービスメッシュ設計.md](../../infrastructure/service-mesh/サービスメッシュ設計.md) -- Istio 設計・mTLS
+
+
+### 2026-03-03 追補
+- REST の schema upsert は schema_json（フラット JSON）を受け取る。
+- gRPC の schema upsert は ConfigEditorSchema（構造化メッセージ）を受け取る。
+

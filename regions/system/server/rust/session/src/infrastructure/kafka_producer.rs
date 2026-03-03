@@ -57,7 +57,8 @@ impl SessionEventPublisher for NoopSessionEventPublisher {
 /// KafkaSessionProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
 pub struct KafkaSessionProducer {
     producer: rdkafka::producer::FutureProducer,
-    topic: String,
+    topic_created: String,
+    topic_revoked: String,
     metrics: Option<std::sync::Arc<k1s0_telemetry::metrics::Metrics>>,
 }
 
@@ -65,8 +66,6 @@ impl KafkaSessionProducer {
     /// 新しい KafkaSessionProducer を作成する。
     pub fn new(config: &crate::infrastructure::config::KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
-
-        let topic = config.topic_created.clone();
 
         let mut client_config = ClientConfig::new();
         client_config.set("bootstrap.servers", config.brokers.join(","));
@@ -78,7 +77,8 @@ impl KafkaSessionProducer {
 
         Ok(Self {
             producer,
-            topic,
+            topic_created: config.topic_created.clone(),
+            topic_revoked: config.topic_revoked.clone(),
             metrics: None,
         })
     }
@@ -109,7 +109,7 @@ impl SessionEventPublisher for KafkaSessionProducer {
         let payload = serde_json::to_vec(&event)?;
         let key = format!("session:{}", session.id);
 
-        let record = FutureRecord::to(&self.topic).key(&key).payload(&payload);
+        let record = FutureRecord::to(&self.topic_created).key(&key).payload(&payload);
 
         self.producer
             .send(record, Duration::from_secs(5))
@@ -119,7 +119,7 @@ impl SessionEventPublisher for KafkaSessionProducer {
             })?;
 
         if let Some(ref m) = self.metrics {
-            m.record_kafka_message_produced(&self.topic);
+            m.record_kafka_message_produced(&self.topic_created);
         }
 
         Ok(())
@@ -138,7 +138,7 @@ impl SessionEventPublisher for KafkaSessionProducer {
         let payload = serde_json::to_vec(&event)?;
         let key = format!("session:{}", session_id);
 
-        let record = FutureRecord::to(&self.topic).key(&key).payload(&payload);
+        let record = FutureRecord::to(&self.topic_revoked).key(&key).payload(&payload);
 
         self.producer
             .send(record, Duration::from_secs(5))
@@ -148,7 +148,7 @@ impl SessionEventPublisher for KafkaSessionProducer {
             })?;
 
         if let Some(ref m) = self.metrics {
-            m.record_kafka_message_produced(&self.topic);
+            m.record_kafka_message_produced(&self.topic_revoked);
         }
 
         Ok(())

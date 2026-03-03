@@ -55,6 +55,7 @@ pub struct WorkflowInstanceData {
     pub context_json: Vec<u8>,
     pub started_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone)]
@@ -151,6 +152,11 @@ pub struct StartInstanceResponse {
     pub status: String,
     pub current_step_id: Option<String>,
     pub started_at: DateTime<Utc>,
+    pub workflow_id: String,
+    pub workflow_name: String,
+    pub title: String,
+    pub initiator_id: String,
+    pub context_json: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
@@ -480,6 +486,11 @@ impl WorkflowGrpcService {
             status: output.instance.status,
             current_step_id: output.instance.current_step_id,
             started_at: output.instance.started_at,
+            workflow_id: output.instance.workflow_id,
+            workflow_name: output.instance.workflow_name,
+            title: output.instance.title,
+            initiator_id: output.instance.initiator_id,
+            context_json: serde_json::to_vec(&output.instance.context).unwrap_or_default(),
         })
     }
 
@@ -767,6 +778,7 @@ fn to_workflow_instance_data(instance: WorkflowInstance) -> WorkflowInstanceData
         context_json: serde_json::to_vec(&instance.context).unwrap_or_default(),
         started_at: instance.started_at,
         completed_at: instance.completed_at,
+        created_at: instance.created_at,
     }
 }
 

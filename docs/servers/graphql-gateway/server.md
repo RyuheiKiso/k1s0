@@ -1,4 +1,4 @@
-# system-graphql-gateway 設計
+﻿# system-graphql-gateway 設計
 
 system tier の GraphQL BFF ゲートウェイ。複数 gRPC バックエンドを単一 GraphQL スキーマに集約する。Rust（async-graphql）実装。
 
@@ -492,3 +492,9 @@ vault:
 - [GraphQL設計.md](../../architecture/api/GraphQL設計.md) -- GraphQL 設計ガイドライン
 - [テンプレート仕様-BFF.md](../../templates/client/BFF.md) -- BFF テンプレート仕様
 - [system-server.md](../auth/server.md) -- system tier サーバー一覧
+
+## Doc Sync (2026-03-03)
+
+### Message/Field Corrections
+- GraphqlContext は tenant_loader, flag_loader に加えて config_loader を保持する。
+

@@ -100,6 +100,34 @@ pub async fn search(
     State(state): State<AppState>,
     Json(req): Json<SearchRequest>,
 ) -> impl IntoResponse {
+    if req.index_name.trim().is_empty() {
+        return error_response_with_details(
+            StatusCode::BAD_REQUEST,
+            "SYS_SEARCH_VALIDATION_ERROR",
+            "invalid request",
+            vec![detail("index_name", "index_name is required")],
+        )
+        .into_response();
+    }
+    if req.query.trim().is_empty() {
+        return error_response_with_details(
+            StatusCode::BAD_REQUEST,
+            "SYS_SEARCH_VALIDATION_ERROR",
+            "invalid request",
+            vec![detail("query", "query is required")],
+        )
+        .into_response();
+    }
+    if req.size == 0 {
+        return error_response_with_details(
+            StatusCode::BAD_REQUEST,
+            "SYS_SEARCH_VALIDATION_ERROR",
+            "invalid request",
+            vec![detail("size", "size must be positive")],
+        )
+        .into_response();
+    }
+
     let input = SearchInput {
         index_name: req.index_name,
         query: req.query,
@@ -138,12 +166,14 @@ pub async fn search(
             format!("index not found: {}", name),
         )
         .into_response(),
-        Err(SearchError::Internal(msg)) => error_response(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "SYS_SEARCH_INTERNAL_ERROR",
-            msg,
-        )
-        .into_response(),
+        Err(SearchError::Internal(msg)) => {
+            let code = if is_opensearch_error(&msg) {
+                "SYS_SEARCH_OPENSEARCH_ERROR"
+            } else {
+                "SYS_SEARCH_INTERNAL_ERROR"
+            };
+            error_response(StatusCode::INTERNAL_SERVER_ERROR, code, msg).into_response()
+        }
     }
 }
 
@@ -152,6 +182,23 @@ pub async fn index_document(
     State(state): State<AppState>,
     Json(req): Json<IndexDocumentRequest>,
 ) -> impl IntoResponse {
+    if req.id.trim().is_empty() || req.index_name.trim().is_empty() {
+        let mut details = Vec::new();
+        if req.id.trim().is_empty() {
+            details.push(detail("id", "id is required"));
+        }
+        if req.index_name.trim().is_empty() {
+            details.push(detail("index_name", "index_name is required"));
+        }
+        return error_response_with_details(
+            StatusCode::BAD_REQUEST,
+            "SYS_SEARCH_VALIDATION_ERROR",
+            "invalid request",
+            details,
+        )
+        .into_response();
+    }
+
     let input = IndexDocumentInput {
         id: req.id,
         index_name: req.index_name,
@@ -177,12 +224,14 @@ pub async fn index_document(
             format!("index not found: {}", name),
         )
         .into_response(),
-        Err(IndexDocumentError::Internal(msg)) => error_response(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "SYS_SEARCH_INTERNAL_ERROR",
-            msg,
-        )
-        .into_response(),
+        Err(IndexDocumentError::Internal(msg)) => {
+            let code = if is_opensearch_error(&msg) {
+                "SYS_SEARCH_OPENSEARCH_ERROR"
+            } else {
+                "SYS_SEARCH_INTERNAL_ERROR"
+            };
+            error_response(StatusCode::INTERNAL_SERVER_ERROR, code, msg).into_response()
+        }
     }
 }
 
@@ -192,6 +241,16 @@ pub async fn create_index(
     Json(req): Json<CreateIndexRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::create_index::CreateIndexInput;
+
+    if req.name.trim().is_empty() {
+        return error_response_with_details(
+            StatusCode::BAD_REQUEST,
+            "SYS_SEARCH_VALIDATION_ERROR",
+            "invalid request",
+            vec![detail("name", "name is required")],
+        )
+        .into_response();
+    }
 
     let input = CreateIndexInput {
         name: req.name,
@@ -219,12 +278,12 @@ pub async fn create_index(
                 )
                 .into_response()
             } else {
-                error_response(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "SYS_SEARCH_INTERNAL_ERROR",
-                    msg,
-                )
-                .into_response()
+                let code = if is_opensearch_error(&msg) {
+                    "SYS_SEARCH_OPENSEARCH_ERROR"
+                } else {
+                    "SYS_SEARCH_INTERNAL_ERROR"
+                };
+                error_response(StatusCode::INTERNAL_SERVER_ERROR, code, msg).into_response()
             }
         }
     }
@@ -253,7 +312,11 @@ pub async fn list_indices(State(state): State<AppState>) -> impl IntoResponse {
         }
         Err(e) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "SYS_SEARCH_INTERNAL_ERROR",
+            if is_opensearch_error(&e.to_string()) {
+                "SYS_SEARCH_OPENSEARCH_ERROR"
+            } else {
+                "SYS_SEARCH_INTERNAL_ERROR"
+            },
             e.to_string(),
         )
         .into_response(),
@@ -278,12 +341,14 @@ pub async fn delete_document_from_index(
             format!("document not found: {}", id),
         )
         .into_response(),
-        Err(DeleteDocumentError::Internal(msg)) => error_response(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "SYS_SEARCH_INTERNAL_ERROR",
-            msg,
-        )
-        .into_response(),
+        Err(DeleteDocumentError::Internal(msg)) => {
+            let code = if is_opensearch_error(&msg) {
+                "SYS_SEARCH_OPENSEARCH_ERROR"
+            } else {
+                "SYS_SEARCH_INTERNAL_ERROR"
+            };
+            error_response(StatusCode::INTERNAL_SERVER_ERROR, code, msg).into_response()
+        }
     }
 }
 
@@ -297,13 +362,35 @@ pub struct ErrorBody {
     pub code: String,
     pub message: String,
     pub request_id: String,
-    pub details: Vec<String>,
+    pub details: Vec<ErrorDetail>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ErrorDetail {
+    pub field: String,
+    pub message: String,
+}
+
+fn detail(field: impl Into<String>, message: impl Into<String>) -> ErrorDetail {
+    ErrorDetail {
+        field: field.into(),
+        message: message.into(),
+    }
 }
 
 fn error_response(
     status: StatusCode,
     code: &str,
     message: impl Into<String>,
+) -> (StatusCode, Json<ErrorResponse>) {
+    error_response_with_details(status, code, message, vec![])
+}
+
+fn error_response_with_details(
+    status: StatusCode,
+    code: &str,
+    message: impl Into<String>,
+    details: Vec<ErrorDetail>,
 ) -> (StatusCode, Json<ErrorResponse>) {
     (
         status,
@@ -312,9 +399,17 @@ fn error_response(
                 code: code.to_string(),
                 message: message.into(),
                 request_id: uuid::Uuid::new_v4().to_string(),
-                details: vec![],
+                details,
             },
         }),
     )
+}
+
+fn is_opensearch_error(msg: &str) -> bool {
+    let lower = msg.to_lowercase();
+    lower.contains("opensearch")
+        || lower.contains("search failed")
+        || lower.contains("failed to create index")
+        || lower.contains("failed to index document")
 }
 

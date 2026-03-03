@@ -66,6 +66,14 @@ impl SessionService for SessionServiceTonic {
             user_agent: inner.user_agent,
             ip_address: inner.ip_address,
             ttl_seconds: inner.ttl_seconds,
+            max_devices: inner
+                .max_devices
+                .and_then(|v| if v > 0 { u32::try_from(v).ok() } else { None }),
+            metadata: if inner.metadata.is_empty() {
+                None
+            } else {
+                Some(inner.metadata)
+            },
         };
         let resp = self
             .inner
@@ -85,6 +93,7 @@ impl SessionService for SessionServiceTonic {
             device_type: resp.device_type,
             user_agent: resp.user_agent,
             ip_address: resp.ip_address,
+            status: resp.status,
         }))
     }
 
@@ -211,6 +220,7 @@ fn pb_session_to_proto(s: &super::session_grpc::PbSession) -> ProtoSession {
         user_agent: s.user_agent.clone(),
         ip_address: s.ip_address.clone(),
         status: s.status.clone(),
+        token: s.token.clone(),
         expires_at: parse_rfc3339_to_proto_timestamp(&s.expires_at),
         created_at: parse_rfc3339_to_proto_timestamp(&s.created_at),
         last_accessed_at: s

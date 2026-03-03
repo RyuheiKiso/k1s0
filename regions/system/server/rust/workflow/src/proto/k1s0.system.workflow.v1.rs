@@ -133,6 +133,16 @@ pub struct StartInstanceResponse {
     pub current_step_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "4")]
     pub started_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(string, tag = "5")]
+    pub workflow_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub workflow_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub initiator_id: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "9")]
+    pub context_json: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetInstanceRequest {
@@ -263,6 +273,8 @@ pub struct WorkflowInstance {
     pub started_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "10")]
     pub completed_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, optional, tag = "11")]
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ApproveTaskRequest {

@@ -116,6 +116,7 @@ async fn main() -> anyhow::Result<()> {
         match infrastructure::kafka_consumer::SearchKafkaConsumer::new(
             kafka_cfg,
             index_document_uc.clone(),
+            delete_document_uc.clone(),
         ) {
             Ok(consumer) => {
                 let consumer = consumer.with_metrics(
@@ -196,37 +197,51 @@ async fn main() -> anyhow::Result<()> {
                 "search", "read",
             )));
 
-        // POST search/index -> search/write
-        let write_routes = axum::Router::new()
+        // POST /search -> search/read, POST /index -> search/write, POST /indices -> search/admin
+        let search_read_routes = axum::Router::new()
             .route(
                 "/api/v1/search",
                 axum::routing::post(adapter::handler::search_handler::search),
             )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "search", "read",
+            )));
+
+        // POST index -> search/write
+        let write_routes = axum::Router::new()
             .route(
                 "/api/v1/search/index",
                 axum::routing::post(adapter::handler::search_handler::index_document),
-            )
-            .route(
-                "/api/v1/search/indices",
-                axum::routing::post(adapter::handler::search_handler::create_index),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
                 "search", "write",
             )));
 
-        // DELETE doc -> search/admin
+        // POST /indices -> search/admin
+        let index_admin_routes = axum::Router::new()
+            .route(
+                "/api/v1/search/indices",
+                axum::routing::post(adapter::handler::search_handler::create_index),
+            )
+            .route_layer(axum::middleware::from_fn(require_permission(
+                "search", "admin",
+            )));
+
+        // DELETE doc -> search/write
         let admin_routes = axum::Router::new()
             .route(
                 "/api/v1/search/index/:index_name/:id",
                 axum::routing::delete(adapter::handler::search_handler::delete_document_from_index),
             )
             .route_layer(axum::middleware::from_fn(require_permission(
-                "search", "admin",
+                "search", "write",
             )));
 
         axum::Router::new()
             .merge(read_routes)
+            .merge(search_read_routes)
             .merge(write_routes)
+            .merge(index_admin_routes)
             .merge(admin_routes)
             .layer(axum::middleware::from_fn_with_state(
                 auth_st.clone(),

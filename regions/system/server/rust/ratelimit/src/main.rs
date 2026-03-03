@@ -271,6 +271,34 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
         Ok(rules.clone())
     }
 
+    async fn find_page(
+        &self,
+        page: u32,
+        page_size: u32,
+        scope: Option<&str>,
+        enabled_only: bool,
+    ) -> anyhow::Result<(Vec<domain::entity::RateLimitRule>, u64)> {
+        let rules = self.rules.read().await;
+        let mut filtered: Vec<_> = rules
+            .iter()
+            .filter(|r| scope.map_or(true, |s| r.scope == s))
+            .filter(|r| !enabled_only || r.enabled)
+            .cloned()
+            .collect();
+        filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+        let page = page.max(1);
+        let page_size = page_size.max(1).min(200);
+        let total = filtered.len() as u64;
+        let start = ((page - 1) * page_size) as usize;
+        let paged = filtered
+            .into_iter()
+            .skip(start)
+            .take(page_size as usize)
+            .collect();
+        Ok((paged, total))
+    }
+
     async fn update(&self, rule: &domain::entity::RateLimitRule) -> anyhow::Result<()> {
         let mut rules = self.rules.write().await;
         if let Some(existing) = rules.iter_mut().find(|r| r.id == rule.id) {

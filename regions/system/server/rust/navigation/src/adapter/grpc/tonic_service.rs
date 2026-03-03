@@ -59,7 +59,7 @@ fn route_to_proto(route: Route) -> ProtoRoute {
     ProtoRoute {
         id: route.id,
         path: route.path,
-        component_id: route.component_id.unwrap_or_default(),
+        component_id: route.component_id,
         guard_ids: route.guards,
         children: route.children.into_iter().map(route_to_proto).collect(),
         transition: route
@@ -154,7 +154,7 @@ mod tests {
         };
         let proto = route_to_proto(route);
         assert_eq!(proto.id, "test");
-        assert_eq!(proto.component_id, "TestPage");
+        assert_eq!(proto.component_id.as_deref(), Some("TestPage"));
         assert_eq!(proto.guard_ids, vec!["auth"]);
         assert!(proto.transition.is_some());
         let t = proto.transition.unwrap();

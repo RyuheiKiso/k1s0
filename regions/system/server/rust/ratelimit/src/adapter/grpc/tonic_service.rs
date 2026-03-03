@@ -88,6 +88,7 @@ impl RateLimitService for RateLimitServiceTonic {
             identifier_pattern: inner.identifier_pattern,
             limit: inner.limit,
             window_seconds: inner.window_seconds,
+            algorithm: None,
             enabled: inner.enabled,
         };
 
@@ -185,6 +186,7 @@ impl RateLimitService for RateLimitServiceTonic {
             identifier_pattern: inner.identifier_pattern,
             limit: inner.limit,
             window_seconds: inner.window_seconds,
+            algorithm: None,
             enabled: inner.enabled,
         };
 

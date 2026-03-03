@@ -7,6 +7,15 @@ OpenSearch 連携の全文検索サーバー。インデックス管理・全文
 
 ## 概要
 
+### RBAC対応表
+
+| ロール名 | リソース/アクション |
+|---------|-----------------|
+| sys_auditor 以上 | search/read |
+| sys_operator 以上 | search/write |
+| sys_admin のみ | search/admin |
+
+
 system tier の全文検索サーバーは以下の機能を提供する。
 
 | 機能 | 説明 |
@@ -603,4 +612,11 @@ vault:
 ### Message/Field Corrections
 - `SearchIndex`, `CreateIndexRequest`, `CreateIndexResponse`, `ListIndicesRequest`, `ListIndicesResponse` are canonical messages.
 - `SearchResponse` pagination is `k1s0.system.common.v1.PaginationResult`.
+
+
+### 2026-03-03 追補
+- SearchDocument は score を保持する。
+- SearchResult は facets を保持する。
+- Kafka プロデューサートピックは k1s0.system.search.indexed.v1。
+
 
