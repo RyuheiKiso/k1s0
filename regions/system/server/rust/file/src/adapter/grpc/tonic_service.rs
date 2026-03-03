@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 use crate::proto::k1s0::system::file::v1::{
     file_service_server::FileService, CompleteUploadRequest, CompleteUploadResponse,
     DeleteFileRequest, DeleteFileResponse, FileMetadata as ProtoFileMetadata,
-    FileMetadataResponse, GenerateDownloadUrlRequest, GenerateDownloadUrlResponse,
-    GenerateUploadUrlRequest, GenerateUploadUrlResponse, GetFileMetadataRequest,
+    GenerateDownloadUrlRequest, GenerateDownloadUrlResponse, GenerateUploadUrlRequest,
+    GenerateUploadUrlResponse, GetFileMetadataRequest, GetFileMetadataResponse,
     ListFilesRequest, ListFilesResponse, UpdateFileTagsRequest, UpdateFileTagsResponse,
 };
 
@@ -43,14 +44,14 @@ impl FileService for FileServiceTonic {
     async fn get_file_metadata(
         &self,
         request: Request<GetFileMetadataRequest>,
-    ) -> Result<Response<FileMetadataResponse>, Status> {
+    ) -> Result<Response<GetFileMetadataResponse>, Status> {
         let inner = request.into_inner();
         let file = self
             .inner
             .get_file_metadata(inner.id)
             .await
             .map_err(Into::<Status>::into)?;
-        Ok(Response::new(FileMetadataResponse {
+        Ok(Response::new(GetFileMetadataResponse {
             metadata: Some(domain_to_proto(&file)),
         }))
     }
@@ -60,14 +61,27 @@ impl FileService for FileServiceTonic {
         request: Request<ListFilesRequest>,
     ) -> Result<Response<ListFilesResponse>, Status> {
         let inner = request.into_inner();
+        let page = if inner.page <= 0 { 1 } else { inner.page as u32 };
+        let page_size = if inner.page_size <= 0 {
+            20
+        } else {
+            inner.page_size as u32
+        };
         let (files, total) = self
             .inner
-            .list_files(inner.tenant_id, inner.page as u32, inner.page_size as u32)
+            .list_files(inner.tenant_id, page, page_size)
             .await
             .map_err(Into::<Status>::into)?;
+        let has_next = ((page * page_size) as u64) < total;
+        let total_count = total.min(i32::MAX as u64) as i32;
         Ok(Response::new(ListFilesResponse {
             files: files.iter().map(domain_to_proto).collect(),
-            total,
+            pagination: Some(ProtoPaginationResult {
+                total_count,
+                page: page as i32,
+                page_size: page_size as i32,
+                has_next,
+            }),
         }))
     }
 

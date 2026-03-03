@@ -11,8 +11,11 @@ import "k1s0/system/common/v1/types.proto";
 service VaultService {
   rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
   rpc SetSecret(SetSecretRequest) returns (SetSecretResponse);
+  rpc RotateSecret(RotateSecretRequest) returns (RotateSecretResponse);
   rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse);
+  rpc GetSecretMetadata(GetSecretMetadataRequest) returns (GetSecretMetadataResponse);
   rpc ListSecrets(ListSecretsRequest) returns (ListSecretsResponse);
+  rpc ListAuditLogs(ListAuditLogsRequest) returns (ListAuditLogsResponse);
 }
 
 message GetSecretRequest {
@@ -36,6 +39,17 @@ message SetSecretResponse {
   k1s0.system.common.v1.Timestamp created_at = 2;
 }
 
+message RotateSecretRequest {
+  string path = 1;
+  map<string, string> data = 2;
+}
+
+message RotateSecretResponse {
+  string path = 1;
+  int64 new_version = 2;
+  bool rotated = 3;
+}
+
 message DeleteSecretRequest {
   string path = 1;
   repeated int64 versions = 2;
@@ -45,10 +59,42 @@ message DeleteSecretResponse {
   bool success = 1;
 }
 
+message GetSecretMetadataRequest {
+  string path = 1;
+}
+
+message GetSecretMetadataResponse {
+  string path = 1;
+  int64 current_version = 2;
+  int32 version_count = 3;
+  k1s0.system.common.v1.Timestamp created_at = 4;
+  k1s0.system.common.v1.Timestamp updated_at = 5;
+}
+
 message ListSecretsRequest {
   string path_prefix = 1;
 }
 
 message ListSecretsResponse {
   repeated string keys = 1;
+}
+
+message ListAuditLogsRequest {
+  int32 offset = 1;
+  int32 limit = 2;
+}
+
+message ListAuditLogsResponse {
+  repeated AuditLogEntry logs = 1;
+}
+
+message AuditLogEntry {
+  string id = 1;
+  string key_path = 2;
+  string action = 3;
+  string actor_id = 4;
+  string ip_address = 5;
+  bool success = 6;
+  optional string error_msg = 7;
+  k1s0.system.common.v1.Timestamp created_at = 8;
 }

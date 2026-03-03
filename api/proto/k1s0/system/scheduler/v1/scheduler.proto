@@ -1,6 +1,6 @@
-// k1s0 スケジューラーサービス gRPC 定義。
+﻿// k1s0 スケジューラーサービス gRPC 定義。
 // cron 式によるジョブのトリガーおよび実行履歴取得を提供する。
-// gRPC ポート: 9090
+// gRPC ポート 50051（設定で上書き可能）
 syntax = "proto3";
 
 package k1s0.system.scheduler.v1;
@@ -10,8 +10,104 @@ option go_package = "github.com/k1s0-platform/system-proto-go/scheduler/v1;sched
 import "k1s0/system/common/v1/types.proto";
 
 service SchedulerService {
+  rpc CreateJob(CreateJobRequest) returns (CreateJobResponse);
+  rpc GetJob(GetJobRequest) returns (GetJobResponse);
+  rpc ListJobs(ListJobsRequest) returns (ListJobsResponse);
+  rpc UpdateJob(UpdateJobRequest) returns (UpdateJobResponse);
+  rpc DeleteJob(DeleteJobRequest) returns (DeleteJobResponse);
+  rpc PauseJob(PauseJobRequest) returns (PauseJobResponse);
+  rpc ResumeJob(ResumeJobRequest) returns (ResumeJobResponse);
   rpc TriggerJob(TriggerJobRequest) returns (TriggerJobResponse);
   rpc GetJobExecution(GetJobExecutionRequest) returns (GetJobExecutionResponse);
+  rpc ListExecutions(ListExecutionsRequest) returns (ListExecutionsResponse);
+}
+
+message Job {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string cron_expression = 4;
+  string timezone = 5;
+  string target_type = 6;
+  string target = 7;
+  bytes payload_json = 8;
+  string status = 9;
+  optional k1s0.system.common.v1.Timestamp next_run_at = 10;
+  optional k1s0.system.common.v1.Timestamp last_run_at = 11;
+  k1s0.system.common.v1.Timestamp created_at = 12;
+  k1s0.system.common.v1.Timestamp updated_at = 13;
+}
+
+message CreateJobRequest {
+  string name = 1;
+  string description = 2;
+  string cron_expression = 3;
+  string timezone = 4;
+  string target_type = 5;
+  string target = 6;
+  bytes payload_json = 7;
+}
+
+message CreateJobResponse {
+  Job job = 1;
+}
+
+message GetJobRequest {
+  string job_id = 1;
+}
+
+message GetJobResponse {
+  Job job = 1;
+}
+
+message ListJobsRequest {
+  string status = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+}
+
+message ListJobsResponse {
+  repeated Job jobs = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message UpdateJobRequest {
+  string job_id = 1;
+  string name = 2;
+  string description = 3;
+  string cron_expression = 4;
+  string timezone = 5;
+  string target_type = 6;
+  string target = 7;
+  bytes payload_json = 8;
+}
+
+message UpdateJobResponse {
+  Job job = 1;
+}
+
+message DeleteJobRequest {
+  string job_id = 1;
+}
+
+message DeleteJobResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message PauseJobRequest {
+  string job_id = 1;
+}
+
+message PauseJobResponse {
+  Job job = 1;
+}
+
+message ResumeJobRequest {
+  string job_id = 1;
+}
+
+message ResumeJobResponse {
+  Job job = 1;
 }
 
 message TriggerJobRequest {
@@ -34,6 +130,16 @@ message GetJobExecutionResponse {
   JobExecution execution = 1;
 }
 
+message ListExecutionsRequest {
+  string job_id = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+}
+
+message ListExecutionsResponse {
+  repeated JobExecution executions = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
 message JobExecution {
   string id = 1;
   string job_id = 2;
@@ -47,3 +153,4 @@ message JobExecution {
   optional uint64 duration_ms = 7;
   optional string error_message = 8;
 }
+

@@ -8,6 +8,13 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::vault::v1::{
+    AuditLogEntry as ProtoAuditLogEntry,
+    GetSecretMetadataRequest as ProtoGetSecretMetadataRequest,
+    GetSecretMetadataResponse as ProtoGetSecretMetadataResponse,
+    ListAuditLogsRequest as ProtoListAuditLogsRequest,
+    ListAuditLogsResponse as ProtoListAuditLogsResponse,
+    RotateSecretRequest as ProtoRotateSecretRequest,
+    RotateSecretResponse as ProtoRotateSecretResponse,
     vault_service_server::VaultService,
     DeleteSecretRequest as ProtoDeleteSecretRequest,
     DeleteSecretResponse as ProtoDeleteSecretResponse,
@@ -18,7 +25,8 @@ use crate::proto::k1s0::system::vault::v1::{
 };
 
 use super::vault_grpc::{
-    DeleteSecretRequest, GetSecretRequest, GrpcError, ListSecretsRequest, SetSecretRequest,
+    DeleteSecretRequest, GetSecretMetadataRequest, GetSecretRequest, GrpcError,
+    ListAuditLogsRequest, ListSecretsRequest, RotateSecretRequest, SetSecretRequest,
     VaultGrpcService,
 };
 
@@ -43,6 +51,13 @@ pub struct VaultServiceTonic {
 impl VaultServiceTonic {
     pub fn new(inner: Arc<VaultGrpcService>) -> Self {
         Self { inner }
+    }
+}
+
+fn to_proto_timestamp(dt: chrono::DateTime<chrono::Utc>) -> crate::proto::k1s0::system::common::v1::Timestamp {
+    crate::proto::k1s0::system::common::v1::Timestamp {
+        seconds: dt.timestamp(),
+        nanos: dt.timestamp_subsec_nanos() as i32,
     }
 }
 
@@ -71,7 +86,7 @@ impl VaultService for VaultServiceTonic {
         Ok(Response::new(ProtoGetSecretResponse {
             data: resp.data,
             version: resp.version,
-            created_at: None,
+            created_at: Some(to_proto_timestamp(resp.created_at)),
         }))
     }
 
@@ -92,7 +107,29 @@ impl VaultService for VaultServiceTonic {
 
         Ok(Response::new(ProtoSetSecretResponse {
             version: resp.version,
-            created_at: None,
+            created_at: Some(to_proto_timestamp(resp.created_at)),
+        }))
+    }
+
+    async fn rotate_secret(
+        &self,
+        request: Request<ProtoRotateSecretRequest>,
+    ) -> Result<Response<ProtoRotateSecretResponse>, Status> {
+        let inner = request.into_inner();
+        let req = RotateSecretRequest {
+            path: inner.path,
+            data: inner.data,
+        };
+        let resp = self
+            .inner
+            .rotate_secret(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoRotateSecretResponse {
+            path: resp.path,
+            new_version: resp.new_version,
+            rotated: resp.rotated,
         }))
     }
 
@@ -127,6 +164,61 @@ impl VaultService for VaultServiceTonic {
             .map_err(Into::<Status>::into)?;
 
         Ok(Response::new(ProtoListSecretsResponse { keys: resp.keys }))
+    }
+
+    async fn get_secret_metadata(
+        &self,
+        request: Request<ProtoGetSecretMetadataRequest>,
+    ) -> Result<Response<ProtoGetSecretMetadataResponse>, Status> {
+        let req = GetSecretMetadataRequest {
+            path: request.into_inner().path,
+        };
+        let resp = self
+            .inner
+            .get_secret_metadata(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoGetSecretMetadataResponse {
+            path: resp.path,
+            current_version: resp.current_version,
+            version_count: resp.version_count,
+            created_at: Some(to_proto_timestamp(resp.created_at)),
+            updated_at: Some(to_proto_timestamp(resp.updated_at)),
+        }))
+    }
+
+    async fn list_audit_logs(
+        &self,
+        request: Request<ProtoListAuditLogsRequest>,
+    ) -> Result<Response<ProtoListAuditLogsResponse>, Status> {
+        let inner = request.into_inner();
+        let req = ListAuditLogsRequest {
+            offset: inner.offset,
+            limit: inner.limit,
+        };
+        let resp = self
+            .inner
+            .list_audit_logs(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        let logs = resp
+            .logs
+            .into_iter()
+            .map(|log| ProtoAuditLogEntry {
+                id: log.id,
+                key_path: log.key_path,
+                action: log.action,
+                actor_id: log.actor_id,
+                ip_address: log.ip_address,
+                success: log.success,
+                error_msg: log.error_msg,
+                created_at: Some(to_proto_timestamp(log.created_at)),
+            })
+            .collect();
+
+        Ok(Response::new(ProtoListAuditLogsResponse { logs }))
     }
 }
 

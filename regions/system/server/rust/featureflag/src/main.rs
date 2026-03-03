@@ -146,10 +146,12 @@ async fn main() -> anyhow::Result<()> {
     let delete_flag_uc = Arc::new(usecase::DeleteFlagUseCase::new(flag_repo.clone()));
 
     let grpc_svc = Arc::new(FeatureFlagGrpcService::new(
+        flag_repo.clone(),
         evaluate_flag_uc.clone(),
         get_flag_uc.clone(),
         create_flag_uc.clone(),
         update_flag_uc.clone(),
+        delete_flag_uc.clone(),
     ));
 
     // tonic wrapper

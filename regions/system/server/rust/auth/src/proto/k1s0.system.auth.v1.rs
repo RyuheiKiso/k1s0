@@ -175,8 +175,8 @@ pub struct RoleList {
 /// CheckPermissionRequest はパーミッション確認リクエスト。
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckPermissionRequest {
-    #[prost(string, tag = "1")]
-    pub user_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "1")]
+    pub user_id: ::core::option::Option<::prost::alloc::string::String>,
     /// read, write, delete, admin
     #[prost(string, tag = "2")]
     pub permission: ::prost::alloc::string::String,

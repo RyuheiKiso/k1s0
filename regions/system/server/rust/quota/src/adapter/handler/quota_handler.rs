@@ -22,6 +22,9 @@ pub async fn list_quotas(
     let input = ListQuotaPoliciesInput {
         page: params.page.unwrap_or(1),
         page_size: params.page_size.unwrap_or(20),
+        subject_type: None,
+        subject_id: None,
+        enabled_only: None,
     };
 
     match state.list_policies_uc.execute(&input).await {

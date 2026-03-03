@@ -166,15 +166,15 @@ async fn main() -> anyhow::Result<()> {
 
     // REST app state
     let mut state = adapter::handler::AppState {
-        list_schemas_uc,
-        register_schema_uc,
+        list_schemas_uc: list_schemas_uc.clone(),
+        register_schema_uc: register_schema_uc.clone(),
         get_schema_uc: get_schema_uc.clone(),
-        list_versions_uc,
-        register_version_uc,
+        list_versions_uc: list_versions_uc.clone(),
+        register_version_uc: register_version_uc.clone(),
         get_schema_version_uc: get_schema_version_uc.clone(),
-        delete_version_uc,
+        delete_version_uc: delete_version_uc.clone(),
         check_compatibility_uc: check_compatibility_uc.clone(),
-        get_diff_uc,
+        get_diff_uc: get_diff_uc.clone(),
         metrics: metrics.clone(),
         auth_state: None,
     };
@@ -187,9 +187,15 @@ async fn main() -> anyhow::Result<()> {
 
     // gRPC service
     let grpc_svc = Arc::new(ApiRegistryGrpcService::new(
+        list_schemas_uc,
+        register_schema_uc,
         get_schema_uc,
+        list_versions_uc,
+        register_version_uc,
         get_schema_version_uc,
+        delete_version_uc,
         check_compatibility_uc,
+        get_diff_uc,
     ));
     let tonic_svc = ApiRegistryServiceTonic::new(grpc_svc);
 

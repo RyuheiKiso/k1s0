@@ -12,21 +12,47 @@ import "k1s0/system/common/v1/types.proto";
 
 service MasterMaintenanceService {
   // テーブル定義
-  rpc GetTableDefinition(GetTableDefinitionRequest) returns (TableDefinitionResponse);
+  rpc GetTableDefinition(GetTableDefinitionRequest) returns (GetTableDefinitionResponse);
   rpc ListTableDefinitions(ListTableDefinitionsRequest) returns (ListTableDefinitionsResponse);
+  rpc ListColumns(ListColumnsRequest) returns (ListColumnsResponse);
+  rpc CreateColumns(CreateColumnsRequest) returns (CreateColumnsResponse);
+  rpc UpdateColumn(UpdateColumnRequest) returns (UpdateColumnResponse);
+  rpc DeleteColumn(DeleteColumnRequest) returns (DeleteColumnResponse);
 
   // データ CRUD
-  rpc GetRecord(GetRecordRequest) returns (RecordResponse);
+  rpc GetRecord(GetRecordRequest) returns (GetRecordResponse);
   rpc ListRecords(ListRecordsRequest) returns (ListRecordsResponse);
-  rpc CreateRecord(CreateRecordRequest) returns (RecordResponse);
-  rpc UpdateRecord(UpdateRecordRequest) returns (RecordResponse);
+  rpc CreateRecord(CreateRecordRequest) returns (CreateRecordResponse);
+  rpc UpdateRecord(UpdateRecordRequest) returns (UpdateRecordResponse);
   rpc DeleteRecord(DeleteRecordRequest) returns (DeleteRecordResponse);
 
   // 整合性チェック
   rpc CheckConsistency(CheckConsistencyRequest) returns (CheckConsistencyResponse);
 
   // JSON Schema
-  rpc GetTableSchema(GetTableSchemaRequest) returns (TableSchemaResponse);
+  rpc GetTableSchema(GetTableSchemaRequest) returns (GetTableSchemaResponse);
+
+  // Relationship
+  rpc ListRelationships(ListRelationshipsRequest) returns (ListRelationshipsResponse);
+  rpc CreateRelationship(CreateRelationshipRequest) returns (CreateRelationshipResponse);
+  rpc UpdateRelationship(UpdateRelationshipRequest) returns (UpdateRelationshipResponse);
+  rpc DeleteRelationship(DeleteRelationshipRequest) returns (DeleteRelationshipResponse);
+
+  // Import / Export
+  rpc ImportRecords(ImportRecordsRequest) returns (ImportRecordsResponse);
+  rpc ExportRecords(ExportRecordsRequest) returns (ExportRecordsResponse);
+  rpc GetImportJob(GetImportJobRequest) returns (GetImportJobResponse);
+
+  // Display Config
+  rpc ListDisplayConfigs(ListDisplayConfigsRequest) returns (ListDisplayConfigsResponse);
+  rpc GetDisplayConfig(GetDisplayConfigRequest) returns (GetDisplayConfigResponse);
+  rpc CreateDisplayConfig(CreateDisplayConfigRequest) returns (CreateDisplayConfigResponse);
+  rpc UpdateDisplayConfig(UpdateDisplayConfigRequest) returns (UpdateDisplayConfigResponse);
+  rpc DeleteDisplayConfig(DeleteDisplayConfigRequest) returns (DeleteDisplayConfigResponse);
+
+  // Audit Logs
+  rpc ListTableAuditLogs(ListTableAuditLogsRequest) returns (ListTableAuditLogsResponse);
+  rpc ListRecordAuditLogs(ListRecordAuditLogsRequest) returns (ListRecordAuditLogsResponse);
 }
 
 // テーブル定義取得リクエスト
@@ -35,7 +61,7 @@ message GetTableDefinitionRequest {
 }
 
 // テーブル定義レスポンス
-message TableDefinitionResponse {
+message GetTableDefinitionResponse {
   string id = 1;
   string name = 2;
   string schema_name = 3;
@@ -72,6 +98,9 @@ message TableRelationship {
   string target_column = 3;
   string relationship_type = 4;
   string display_name = 5;
+  string id = 6;
+  bool is_cascade_delete = 7;
+  string created_at = 8;
 }
 
 // テーブル定義一覧リクエスト
@@ -83,7 +112,7 @@ message ListTableDefinitionsRequest {
 
 // テーブル定義一覧レスポンス
 message ListTableDefinitionsResponse {
-  repeated TableDefinitionResponse tables = 1;
+  repeated GetTableDefinitionResponse tables = 1;
   k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
@@ -94,7 +123,17 @@ message GetRecordRequest {
 }
 
 // レコードレスポンス
-message RecordResponse {
+message GetRecordResponse {
+  google.protobuf.Struct data = 1;
+  repeated ValidationWarning warnings = 2;
+}
+
+message CreateRecordResponse {
+  google.protobuf.Struct data = 1;
+  repeated ValidationWarning warnings = 2;
+}
+
+message UpdateRecordResponse {
   google.protobuf.Struct data = 1;
   repeated ValidationWarning warnings = 2;
 }
@@ -175,6 +214,203 @@ message GetTableSchemaRequest {
 }
 
 // テーブルスキーマレスポンス
-message TableSchemaResponse {
+message GetTableSchemaResponse {
   string json_schema = 1;
+}
+
+message ListColumnsRequest {
+  string table_name = 1;
+}
+
+message ListColumnsResponse {
+  repeated ColumnDefinition columns = 1;
+}
+
+message CreateColumnsRequest {
+  string table_name = 1;
+  repeated google.protobuf.Struct columns = 2;
+}
+
+message CreateColumnsResponse {
+  repeated ColumnDefinition columns = 1;
+}
+
+message UpdateColumnRequest {
+  string table_name = 1;
+  string column_name = 2;
+  google.protobuf.Struct data = 3;
+}
+
+message UpdateColumnResponse {
+  ColumnDefinition column = 1;
+}
+
+message DeleteColumnRequest {
+  string table_name = 1;
+  string column_name = 2;
+}
+
+message DeleteColumnResponse {
+  bool success = 1;
+}
+
+message ListRelationshipsRequest {}
+
+message ListRelationshipsResponse {
+  repeated TableRelationship relationships = 1;
+}
+
+message CreateRelationshipRequest {
+  google.protobuf.Struct data = 1;
+}
+
+message CreateRelationshipResponse {
+  TableRelationship relationship = 1;
+}
+
+message UpdateRelationshipRequest {
+  string relationship_id = 1;
+  google.protobuf.Struct data = 2;
+}
+
+message UpdateRelationshipResponse {
+  TableRelationship relationship = 1;
+}
+
+message DeleteRelationshipRequest {
+  string relationship_id = 1;
+}
+
+message DeleteRelationshipResponse {
+  bool success = 1;
+}
+
+message ImportRecordsRequest {
+  string table_name = 1;
+  google.protobuf.Struct data = 2;
+}
+
+message ImportRecordsResponse {
+  ImportJob import_job = 1;
+}
+
+message ExportRecordsRequest {
+  string table_name = 1;
+}
+
+message ExportRecordsResponse {
+  google.protobuf.Struct data = 1;
+}
+
+message GetImportJobRequest {
+  string import_job_id = 1;
+}
+
+message GetImportJobResponse {
+  ImportJob import_job = 1;
+}
+
+message ImportJob {
+  string id = 1;
+  string table_id = 2;
+  string file_name = 3;
+  string status = 4;
+  int32 total_rows = 5;
+  int32 processed_rows = 6;
+  int32 error_rows = 7;
+  string error_details_json = 8;
+  string started_by = 9;
+  string started_at = 10;
+  optional string completed_at = 11;
+}
+
+message ListDisplayConfigsRequest {
+  string table_name = 1;
+}
+
+message ListDisplayConfigsResponse {
+  repeated DisplayConfig display_configs = 1;
+}
+
+message GetDisplayConfigRequest {
+  string table_name = 1;
+  string display_config_id = 2;
+}
+
+message GetDisplayConfigResponse {
+  DisplayConfig display_config = 1;
+}
+
+message CreateDisplayConfigRequest {
+  string table_name = 1;
+  google.protobuf.Struct data = 2;
+}
+
+message CreateDisplayConfigResponse {
+  DisplayConfig display_config = 1;
+}
+
+message UpdateDisplayConfigRequest {
+  string table_name = 1;
+  string display_config_id = 2;
+  google.protobuf.Struct data = 3;
+}
+
+message UpdateDisplayConfigResponse {
+  DisplayConfig display_config = 1;
+}
+
+message DeleteDisplayConfigRequest {
+  string table_name = 1;
+  string display_config_id = 2;
+}
+
+message DeleteDisplayConfigResponse {
+  bool success = 1;
+}
+
+message DisplayConfig {
+  string id = 1;
+  string table_id = 2;
+  string config_type = 3;
+  string config_json = 4;
+  bool is_default = 5;
+  string created_by = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message ListTableAuditLogsRequest {
+  string table_name = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+}
+
+message ListTableAuditLogsResponse {
+  repeated AuditLogEntry logs = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message ListRecordAuditLogsRequest {
+  string table_name = 1;
+  string record_id = 2;
+  k1s0.system.common.v1.Pagination pagination = 3;
+}
+
+message ListRecordAuditLogsResponse {
+  repeated AuditLogEntry logs = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message AuditLogEntry {
+  string id = 1;
+  string target_table = 2;
+  string target_record_id = 3;
+  string operation = 4;
+  string before_data_json = 5;
+  string after_data_json = 6;
+  repeated string changed_columns = 7;
+  string changed_by = 8;
+  string change_reason = 9;
+  string trace_id = 10;
+  string created_at = 11;
 }

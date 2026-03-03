@@ -4,9 +4,9 @@ use crate::domain::entity::{ProvisioningJob, Tenant, TenantMember};
 use crate::usecase::{
     ActivateTenantError, ActivateTenantUseCase, AddMemberInput, AddMemberUseCase,
     CreateTenantInput, CreateTenantUseCase, DeleteTenantError, DeleteTenantUseCase,
-    GetProvisioningStatusUseCase, GetTenantUseCase, ListTenantsUseCase, RemoveMemberUseCase,
-    SuspendTenantError, SuspendTenantUseCase, UpdateTenantError, UpdateTenantInput,
-    UpdateTenantUseCase,
+    GetProvisioningStatusUseCase, GetTenantUseCase, ListMembersError, ListMembersUseCase,
+    ListTenantsUseCase, RemoveMemberUseCase, SuspendTenantError, SuspendTenantUseCase,
+    UpdateTenantError, UpdateTenantInput, UpdateTenantUseCase,
 };
 
 // --- gRPC Request/Response Types (proto equivalent) ---
@@ -26,6 +26,8 @@ pub struct PbTenant {
     pub plan: String,
     pub realm_name: String,
     pub owner_id: String,
+    pub settings: String,
+    pub db_schema: String,
     pub created_at: Option<PbTimestamp>,
     pub updated_at: Option<PbTimestamp>,
 }
@@ -98,6 +100,16 @@ pub struct AddMemberRequest {
 #[derive(Debug, Clone)]
 pub struct AddMemberResponse {
     pub member: Option<PbTenantMember>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListMembersRequest {
+    pub tenant_id: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListMembersResponse {
+    pub members: Vec<PbTenantMember>,
 }
 
 #[derive(Debug, Clone)]
@@ -188,6 +200,7 @@ pub struct TenantGrpcService {
     activate_tenant_uc: Arc<ActivateTenantUseCase>,
     delete_tenant_uc: Arc<DeleteTenantUseCase>,
     add_member_uc: Arc<AddMemberUseCase>,
+    list_members_uc: Arc<ListMembersUseCase>,
     remove_member_uc: Arc<RemoveMemberUseCase>,
     get_provisioning_status_uc: Arc<GetProvisioningStatusUseCase>,
 }
@@ -202,6 +215,7 @@ impl TenantGrpcService {
         activate_tenant_uc: Arc<ActivateTenantUseCase>,
         delete_tenant_uc: Arc<DeleteTenantUseCase>,
         add_member_uc: Arc<AddMemberUseCase>,
+        list_members_uc: Arc<ListMembersUseCase>,
         remove_member_uc: Arc<RemoveMemberUseCase>,
         get_provisioning_status_uc: Arc<GetProvisioningStatusUseCase>,
     ) -> Self {
@@ -214,6 +228,7 @@ impl TenantGrpcService {
             activate_tenant_uc,
             delete_tenant_uc,
             add_member_uc,
+            list_members_uc,
             remove_member_uc,
             get_provisioning_status_uc,
         }
@@ -398,6 +413,24 @@ impl TenantGrpcService {
         }
     }
 
+    pub async fn list_members(
+        &self,
+        req: ListMembersRequest,
+    ) -> Result<ListMembersResponse, GrpcError> {
+        let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+
+        match self.list_members_uc.execute(tenant_id).await {
+            Ok(members) => Ok(ListMembersResponse {
+                members: members.iter().map(domain_member_to_pb).collect(),
+            }),
+            Err(ListMembersError::NotFound(id)) => {
+                Err(GrpcError::NotFound(format!("tenant not found: {}", id)))
+            }
+            Err(ListMembersError::Internal(msg)) => Err(GrpcError::Internal(msg)),
+        }
+    }
+
     pub async fn remove_member(
         &self,
         req: RemoveMemberRequest,
@@ -454,6 +487,12 @@ fn validate_role(s: &str) -> Result<(), GrpcError> {
 // --- Conversion helpers ---
 
 fn domain_tenant_to_pb(t: &Tenant) -> PbTenant {
+    let owner_id = t
+        .settings
+        .get("owner_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or_default()
+        .to_string();
     PbTenant {
         id: t.id.to_string(),
         name: t.name.clone(),
@@ -461,7 +500,9 @@ fn domain_tenant_to_pb(t: &Tenant) -> PbTenant {
         status: t.status.as_str().to_string(),
         plan: t.plan.clone(),
         realm_name: t.keycloak_realm.clone().unwrap_or_default(),
-        owner_id: String::new(),
+        owner_id,
+        settings: t.settings.to_string(),
+        db_schema: t.db_schema.clone().unwrap_or_default(),
         created_at: Some(PbTimestamp {
             seconds: t.created_at.timestamp(),
             nanos: t.created_at.timestamp_subsec_nanos() as i32,
@@ -575,6 +616,7 @@ mod tests {
             Arc::new(ActivateTenantUseCase::new(tenant_repo.clone())),
             Arc::new(DeleteTenantUseCase::new(tenant_repo)),
             Arc::new(AddMemberUseCase::new(member_repo.clone())),
+            Arc::new(ListMembersUseCase::new(member_repo.clone())),
             Arc::new(RemoveMemberUseCase::new(member_repo.clone())),
             Arc::new(GetProvisioningStatusUseCase::new(member_repo)),
         )

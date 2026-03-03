@@ -7,7 +7,7 @@ pub struct GetTableDefinitionRequest {
 }
 /// テーブル定義レスポンス
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TableDefinitionResponse {
+pub struct GetTableDefinitionResponse {
     #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
@@ -72,6 +72,12 @@ pub struct TableRelationship {
     pub relationship_type: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
     pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "7")]
+    pub is_cascade_delete: bool,
+    #[prost(string, tag = "8")]
+    pub created_at: ::prost::alloc::string::String,
 }
 /// テーブル定義一覧リクエスト
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -87,7 +93,7 @@ pub struct ListTableDefinitionsRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListTableDefinitionsResponse {
     #[prost(message, repeated, tag = "1")]
-    pub tables: ::prost::alloc::vec::Vec<TableDefinitionResponse>,
+    pub tables: ::prost::alloc::vec::Vec<GetTableDefinitionResponse>,
     #[prost(message, optional, tag = "2")]
     pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
 }
@@ -101,7 +107,21 @@ pub struct GetRecordRequest {
 }
 /// レコードレスポンス
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RecordResponse {
+pub struct GetRecordResponse {
+    #[prost(message, optional, tag = "1")]
+    pub data: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, repeated, tag = "2")]
+    pub warnings: ::prost::alloc::vec::Vec<ValidationWarning>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateRecordResponse {
+    #[prost(message, optional, tag = "1")]
+    pub data: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, repeated, tag = "2")]
+    pub warnings: ::prost::alloc::vec::Vec<ValidationWarning>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateRecordResponse {
     #[prost(message, optional, tag = "1")]
     pub data: ::core::option::Option<::prost_types::Struct>,
     #[prost(message, repeated, tag = "2")]
@@ -156,7 +176,7 @@ pub struct DeleteRecordRequest {
     pub record_id: ::prost::alloc::string::String,
 }
 /// レコード削除レスポンス
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct DeleteRecordResponse {
     #[prost(bool, tag = "1")]
     pub success: bool,
@@ -215,9 +235,287 @@ pub struct GetTableSchemaRequest {
 }
 /// テーブルスキーマレスポンス
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TableSchemaResponse {
+pub struct GetTableSchemaResponse {
     #[prost(string, tag = "1")]
     pub json_schema: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListColumnsRequest {
+    #[prost(string, tag = "1")]
+    pub table_name: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListColumnsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub columns: ::prost::alloc::vec::Vec<ColumnDefinition>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateColumnsRequest {
+    #[prost(string, tag = "1")]
+    pub table_name: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub columns: ::prost::alloc::vec::Vec<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateColumnsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub columns: ::prost::alloc::vec::Vec<ColumnDefinition>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateColumnRequest {
+    #[prost(string, tag = "1")]
+    pub table_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub column_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub data: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateColumnResponse {
+    #[prost(message, optional, tag = "1")]
+    pub column: ::core::option::Option<ColumnDefinition>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteColumnRequest {
+    #[prost(string, tag = "1")]
+    pub table_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub column_name: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct DeleteColumnResponse {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ListRelationshipsRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListRelationshipsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub relationships: ::prost::alloc::vec::Vec<TableRelationship>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateRelationshipRequest {
+    #[prost(message, optional, tag = "1")]
+    pub data: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateRelationshipResponse {
+    #[prost(message, optional, tag = "1")]
+    pub relationship: ::core::option::Option<TableRelationship>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateRelationshipRequest {
+    #[prost(string, tag = "1")]
+    pub relationship_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub data: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateRelationshipResponse {
+    #[prost(message, optional, tag = "1")]
+    pub relationship: ::core::option::Option<TableRelationship>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteRelationshipRequest {
+    #[prost(string, tag = "1")]
+    pub relationship_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct DeleteRelationshipResponse {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ImportRecordsRequest {
+    #[prost(string, tag = "1")]
+    pub table_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub data: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ImportRecordsResponse {
+    #[prost(message, optional, tag = "1")]
+    pub import_job: ::core::option::Option<ImportJob>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExportRecordsRequest {
+    #[prost(string, tag = "1")]
+    pub table_name: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExportRecordsResponse {
+    #[prost(message, optional, tag = "1")]
+    pub data: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetImportJobRequest {
+    #[prost(string, tag = "1")]
+    pub import_job_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetImportJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub import_job: ::core::option::Option<ImportJob>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ImportJob {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub table_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub file_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub status: ::prost::alloc::string::String,
+    #[prost(int32, tag = "5")]
+    pub total_rows: i32,
+    #[prost(int32, tag = "6")]
+    pub processed_rows: i32,
+    #[prost(int32, tag = "7")]
+    pub error_rows: i32,
+    #[prost(string, tag = "8")]
+    pub error_details_json: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub started_by: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub started_at: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "11")]
+    pub completed_at: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListDisplayConfigsRequest {
+    #[prost(string, tag = "1")]
+    pub table_name: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListDisplayConfigsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub display_configs: ::prost::alloc::vec::Vec<DisplayConfig>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDisplayConfigRequest {
+    #[prost(string, tag = "1")]
+    pub table_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_config_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDisplayConfigResponse {
+    #[prost(message, optional, tag = "1")]
+    pub display_config: ::core::option::Option<DisplayConfig>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateDisplayConfigRequest {
+    #[prost(string, tag = "1")]
+    pub table_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub data: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateDisplayConfigResponse {
+    #[prost(message, optional, tag = "1")]
+    pub display_config: ::core::option::Option<DisplayConfig>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateDisplayConfigRequest {
+    #[prost(string, tag = "1")]
+    pub table_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_config_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub data: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateDisplayConfigResponse {
+    #[prost(message, optional, tag = "1")]
+    pub display_config: ::core::option::Option<DisplayConfig>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteDisplayConfigRequest {
+    #[prost(string, tag = "1")]
+    pub table_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_config_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct DeleteDisplayConfigResponse {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DisplayConfig {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub table_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub config_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub config_json: ::prost::alloc::string::String,
+    #[prost(bool, tag = "5")]
+    pub is_default: bool,
+    #[prost(string, tag = "6")]
+    pub created_by: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub created_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub updated_at: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListTableAuditLogsRequest {
+    #[prost(string, tag = "1")]
+    pub table_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListTableAuditLogsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub logs: ::prost::alloc::vec::Vec<AuditLogEntry>,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListRecordAuditLogsRequest {
+    #[prost(string, tag = "1")]
+    pub table_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub record_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListRecordAuditLogsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub logs: ::prost::alloc::vec::Vec<AuditLogEntry>,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AuditLogEntry {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub target_table: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub target_record_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub operation: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub before_data_json: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub after_data_json: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "7")]
+    pub changed_columns: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "8")]
+    pub changed_by: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub change_reason: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub created_at: ::prost::alloc::string::String,
 }
 /// Generated server implementations.
 pub mod master_maintenance_service_server {
@@ -232,15 +530,14 @@ pub mod master_maintenance_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with MasterMaintenanceServiceServer.
     #[async_trait]
     pub trait MasterMaintenanceService: std::marker::Send + std::marker::Sync + 'static {
-        /// テーブル定義取得
+        /// テーブル定義
         async fn get_table_definition(
             &self,
             request: tonic::Request<super::GetTableDefinitionRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::TableDefinitionResponse>,
+            tonic::Response<super::GetTableDefinitionResponse>,
             tonic::Status,
         >;
-        /// テーブル定義一覧取得
         async fn list_table_definitions(
             &self,
             request: tonic::Request<super::ListTableDefinitionsRequest>,
@@ -248,15 +545,42 @@ pub mod master_maintenance_service_server {
             tonic::Response<super::ListTableDefinitionsResponse>,
             tonic::Status,
         >;
-        /// レコード取得
+        async fn list_columns(
+            &self,
+            request: tonic::Request<super::ListColumnsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListColumnsResponse>,
+            tonic::Status,
+        >;
+        async fn create_columns(
+            &self,
+            request: tonic::Request<super::CreateColumnsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CreateColumnsResponse>,
+            tonic::Status,
+        >;
+        async fn update_column(
+            &self,
+            request: tonic::Request<super::UpdateColumnRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateColumnResponse>,
+            tonic::Status,
+        >;
+        async fn delete_column(
+            &self,
+            request: tonic::Request<super::DeleteColumnRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteColumnResponse>,
+            tonic::Status,
+        >;
+        /// データ CRUD
         async fn get_record(
             &self,
             request: tonic::Request<super::GetRecordRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::RecordResponse>,
+            tonic::Response<super::GetRecordResponse>,
             tonic::Status,
         >;
-        /// レコード一覧取得
         async fn list_records(
             &self,
             request: tonic::Request<super::ListRecordsRequest>,
@@ -264,23 +588,20 @@ pub mod master_maintenance_service_server {
             tonic::Response<super::ListRecordsResponse>,
             tonic::Status,
         >;
-        /// レコード作成
         async fn create_record(
             &self,
             request: tonic::Request<super::CreateRecordRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::RecordResponse>,
+            tonic::Response<super::CreateRecordResponse>,
             tonic::Status,
         >;
-        /// レコード更新
         async fn update_record(
             &self,
             request: tonic::Request<super::UpdateRecordRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::RecordResponse>,
+            tonic::Response<super::UpdateRecordResponse>,
             tonic::Status,
         >;
-        /// レコード削除
         async fn delete_record(
             &self,
             request: tonic::Request<super::DeleteRecordRequest>,
@@ -296,16 +617,117 @@ pub mod master_maintenance_service_server {
             tonic::Response<super::CheckConsistencyResponse>,
             tonic::Status,
         >;
-        /// テーブルスキーマ取得
+        /// JSON Schema
         async fn get_table_schema(
             &self,
             request: tonic::Request<super::GetTableSchemaRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::TableSchemaResponse>,
+            tonic::Response<super::GetTableSchemaResponse>,
+            tonic::Status,
+        >;
+        /// Relationship
+        async fn list_relationships(
+            &self,
+            request: tonic::Request<super::ListRelationshipsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListRelationshipsResponse>,
+            tonic::Status,
+        >;
+        async fn create_relationship(
+            &self,
+            request: tonic::Request<super::CreateRelationshipRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CreateRelationshipResponse>,
+            tonic::Status,
+        >;
+        async fn update_relationship(
+            &self,
+            request: tonic::Request<super::UpdateRelationshipRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateRelationshipResponse>,
+            tonic::Status,
+        >;
+        async fn delete_relationship(
+            &self,
+            request: tonic::Request<super::DeleteRelationshipRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteRelationshipResponse>,
+            tonic::Status,
+        >;
+        /// Import / Export
+        async fn import_records(
+            &self,
+            request: tonic::Request<super::ImportRecordsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ImportRecordsResponse>,
+            tonic::Status,
+        >;
+        async fn export_records(
+            &self,
+            request: tonic::Request<super::ExportRecordsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ExportRecordsResponse>,
+            tonic::Status,
+        >;
+        async fn get_import_job(
+            &self,
+            request: tonic::Request<super::GetImportJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetImportJobResponse>,
+            tonic::Status,
+        >;
+        /// Display Config
+        async fn list_display_configs(
+            &self,
+            request: tonic::Request<super::ListDisplayConfigsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListDisplayConfigsResponse>,
+            tonic::Status,
+        >;
+        async fn get_display_config(
+            &self,
+            request: tonic::Request<super::GetDisplayConfigRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetDisplayConfigResponse>,
+            tonic::Status,
+        >;
+        async fn create_display_config(
+            &self,
+            request: tonic::Request<super::CreateDisplayConfigRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CreateDisplayConfigResponse>,
+            tonic::Status,
+        >;
+        async fn update_display_config(
+            &self,
+            request: tonic::Request<super::UpdateDisplayConfigRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateDisplayConfigResponse>,
+            tonic::Status,
+        >;
+        async fn delete_display_config(
+            &self,
+            request: tonic::Request<super::DeleteDisplayConfigRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteDisplayConfigResponse>,
+            tonic::Status,
+        >;
+        /// Audit Logs
+        async fn list_table_audit_logs(
+            &self,
+            request: tonic::Request<super::ListTableAuditLogsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListTableAuditLogsResponse>,
+            tonic::Status,
+        >;
+        async fn list_record_audit_logs(
+            &self,
+            request: tonic::Request<super::ListRecordAuditLogsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListRecordAuditLogsResponse>,
             tonic::Status,
         >;
     }
-    /// MasterMaintenanceService はマスタメンテナンスサービス。
     #[derive(Debug)]
     pub struct MasterMaintenanceServiceServer<T> {
         inner: Arc<T>,
@@ -336,28 +758,37 @@ pub mod master_maintenance_service_server {
         {
             InterceptedService::new(Self::new(inner), interceptor)
         }
+        /// Enable decompressing requests with the given encoding.
         #[must_use]
         pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
             self.accept_compression_encodings.enable(encoding);
             self
         }
+        /// Compress responses with the given encoding, if the client supports it.
         #[must_use]
         pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
             self.send_compression_encodings.enable(encoding);
             self
         }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
         #[must_use]
         pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
             self.max_decoding_message_size = Some(limit);
             self
         }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
         #[must_use]
         pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
             self.max_encoding_message_size = Some(limit);
             self
         }
     }
-    impl<T, B> tonic::codegen::Service<http::Request<B>> for MasterMaintenanceServiceServer<T>
+    impl<T, B> tonic::codegen::Service<http::Request<B>>
+    for MasterMaintenanceServiceServer<T>
     where
         T: MasterMaintenanceService,
         B: Body + std::marker::Send + 'static,
@@ -376,12 +807,14 @@ pub mod master_maintenance_service_server {
             match req.uri().path() {
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/GetTableDefinition" => {
                     #[allow(non_camel_case_types)]
-                    struct GetTableDefinitionSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    struct GetTableDefinitionSvc<T: MasterMaintenanceService>(
+                        pub Arc<T>,
+                    );
                     impl<
                         T: MasterMaintenanceService,
                     > tonic::server::UnaryService<super::GetTableDefinitionRequest>
                     for GetTableDefinitionSvc<T> {
-                        type Response = super::TableDefinitionResponse;
+                        type Response = super::GetTableDefinitionResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -392,7 +825,11 @@ pub mod master_maintenance_service_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as MasterMaintenanceService>::get_table_definition(&inner, request).await
+                                <T as MasterMaintenanceService>::get_table_definition(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -421,7 +858,9 @@ pub mod master_maintenance_service_server {
                 }
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListTableDefinitions" => {
                     #[allow(non_camel_case_types)]
-                    struct ListTableDefinitionsSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    struct ListTableDefinitionsSvc<T: MasterMaintenanceService>(
+                        pub Arc<T>,
+                    );
                     impl<
                         T: MasterMaintenanceService,
                     > tonic::server::UnaryService<super::ListTableDefinitionsRequest>
@@ -437,7 +876,11 @@ pub mod master_maintenance_service_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as MasterMaintenanceService>::list_table_definitions(&inner, request).await
+                                <T as MasterMaintenanceService>::list_table_definitions(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -464,6 +907,202 @@ pub mod master_maintenance_service_server {
                     };
                     Box::pin(fut)
                 }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListColumns" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListColumnsSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::ListColumnsRequest>
+                    for ListColumnsSvc<T> {
+                        type Response = super::ListColumnsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListColumnsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::list_columns(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListColumnsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/CreateColumns" => {
+                    #[allow(non_camel_case_types)]
+                    struct CreateColumnsSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::CreateColumnsRequest>
+                    for CreateColumnsSvc<T> {
+                        type Response = super::CreateColumnsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CreateColumnsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::create_columns(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CreateColumnsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/UpdateColumn" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateColumnSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::UpdateColumnRequest>
+                    for UpdateColumnSvc<T> {
+                        type Response = super::UpdateColumnResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpdateColumnRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::update_column(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UpdateColumnSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/DeleteColumn" => {
+                    #[allow(non_camel_case_types)]
+                    struct DeleteColumnSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::DeleteColumnRequest>
+                    for DeleteColumnSvc<T> {
+                        type Response = super::DeleteColumnResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DeleteColumnRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::delete_column(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = DeleteColumnSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/GetRecord" => {
                     #[allow(non_camel_case_types)]
                     struct GetRecordSvc<T: MasterMaintenanceService>(pub Arc<T>);
@@ -471,7 +1110,7 @@ pub mod master_maintenance_service_server {
                         T: MasterMaintenanceService,
                     > tonic::server::UnaryService<super::GetRecordRequest>
                     for GetRecordSvc<T> {
-                        type Response = super::RecordResponse;
+                        type Response = super::GetRecordResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -482,7 +1121,8 @@ pub mod master_maintenance_service_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as MasterMaintenanceService>::get_record(&inner, request).await
+                                <T as MasterMaintenanceService>::get_record(&inner, request)
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -527,7 +1167,11 @@ pub mod master_maintenance_service_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as MasterMaintenanceService>::list_records(&inner, request).await
+                                <T as MasterMaintenanceService>::list_records(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -561,7 +1205,7 @@ pub mod master_maintenance_service_server {
                         T: MasterMaintenanceService,
                     > tonic::server::UnaryService<super::CreateRecordRequest>
                     for CreateRecordSvc<T> {
-                        type Response = super::RecordResponse;
+                        type Response = super::CreateRecordResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -572,7 +1216,11 @@ pub mod master_maintenance_service_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as MasterMaintenanceService>::create_record(&inner, request).await
+                                <T as MasterMaintenanceService>::create_record(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -606,7 +1254,7 @@ pub mod master_maintenance_service_server {
                         T: MasterMaintenanceService,
                     > tonic::server::UnaryService<super::UpdateRecordRequest>
                     for UpdateRecordSvc<T> {
-                        type Response = super::RecordResponse;
+                        type Response = super::UpdateRecordResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -617,7 +1265,11 @@ pub mod master_maintenance_service_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as MasterMaintenanceService>::update_record(&inner, request).await
+                                <T as MasterMaintenanceService>::update_record(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -662,7 +1314,11 @@ pub mod master_maintenance_service_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as MasterMaintenanceService>::delete_record(&inner, request).await
+                                <T as MasterMaintenanceService>::delete_record(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -707,7 +1363,11 @@ pub mod master_maintenance_service_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as MasterMaintenanceService>::check_consistency(&inner, request).await
+                                <T as MasterMaintenanceService>::check_consistency(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -741,7 +1401,7 @@ pub mod master_maintenance_service_server {
                         T: MasterMaintenanceService,
                     > tonic::server::UnaryService<super::GetTableSchemaRequest>
                     for GetTableSchemaSvc<T> {
-                        type Response = super::TableSchemaResponse;
+                        type Response = super::GetTableSchemaResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -752,7 +1412,11 @@ pub mod master_maintenance_service_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as MasterMaintenanceService>::get_table_schema(&inner, request).await
+                                <T as MasterMaintenanceService>::get_table_schema(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -764,6 +1428,710 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetTableSchemaSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListRelationships" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListRelationshipsSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::ListRelationshipsRequest>
+                    for ListRelationshipsSvc<T> {
+                        type Response = super::ListRelationshipsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListRelationshipsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::list_relationships(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListRelationshipsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/CreateRelationship" => {
+                    #[allow(non_camel_case_types)]
+                    struct CreateRelationshipSvc<T: MasterMaintenanceService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::CreateRelationshipRequest>
+                    for CreateRelationshipSvc<T> {
+                        type Response = super::CreateRelationshipResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CreateRelationshipRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::create_relationship(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CreateRelationshipSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/UpdateRelationship" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateRelationshipSvc<T: MasterMaintenanceService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::UpdateRelationshipRequest>
+                    for UpdateRelationshipSvc<T> {
+                        type Response = super::UpdateRelationshipResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpdateRelationshipRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::update_relationship(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UpdateRelationshipSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/DeleteRelationship" => {
+                    #[allow(non_camel_case_types)]
+                    struct DeleteRelationshipSvc<T: MasterMaintenanceService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::DeleteRelationshipRequest>
+                    for DeleteRelationshipSvc<T> {
+                        type Response = super::DeleteRelationshipResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DeleteRelationshipRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::delete_relationship(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = DeleteRelationshipSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ImportRecords" => {
+                    #[allow(non_camel_case_types)]
+                    struct ImportRecordsSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::ImportRecordsRequest>
+                    for ImportRecordsSvc<T> {
+                        type Response = super::ImportRecordsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ImportRecordsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::import_records(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ImportRecordsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ExportRecords" => {
+                    #[allow(non_camel_case_types)]
+                    struct ExportRecordsSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::ExportRecordsRequest>
+                    for ExportRecordsSvc<T> {
+                        type Response = super::ExportRecordsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ExportRecordsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::export_records(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ExportRecordsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/GetImportJob" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetImportJobSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::GetImportJobRequest>
+                    for GetImportJobSvc<T> {
+                        type Response = super::GetImportJobResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetImportJobRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::get_import_job(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetImportJobSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListDisplayConfigs" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListDisplayConfigsSvc<T: MasterMaintenanceService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::ListDisplayConfigsRequest>
+                    for ListDisplayConfigsSvc<T> {
+                        type Response = super::ListDisplayConfigsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListDisplayConfigsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::list_display_configs(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListDisplayConfigsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/GetDisplayConfig" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetDisplayConfigSvc<T: MasterMaintenanceService>(pub Arc<T>);
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::GetDisplayConfigRequest>
+                    for GetDisplayConfigSvc<T> {
+                        type Response = super::GetDisplayConfigResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetDisplayConfigRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::get_display_config(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetDisplayConfigSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/CreateDisplayConfig" => {
+                    #[allow(non_camel_case_types)]
+                    struct CreateDisplayConfigSvc<T: MasterMaintenanceService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::CreateDisplayConfigRequest>
+                    for CreateDisplayConfigSvc<T> {
+                        type Response = super::CreateDisplayConfigResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CreateDisplayConfigRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::create_display_config(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CreateDisplayConfigSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/UpdateDisplayConfig" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateDisplayConfigSvc<T: MasterMaintenanceService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::UpdateDisplayConfigRequest>
+                    for UpdateDisplayConfigSvc<T> {
+                        type Response = super::UpdateDisplayConfigResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpdateDisplayConfigRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::update_display_config(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UpdateDisplayConfigSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/DeleteDisplayConfig" => {
+                    #[allow(non_camel_case_types)]
+                    struct DeleteDisplayConfigSvc<T: MasterMaintenanceService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::DeleteDisplayConfigRequest>
+                    for DeleteDisplayConfigSvc<T> {
+                        type Response = super::DeleteDisplayConfigResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DeleteDisplayConfigRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::delete_display_config(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = DeleteDisplayConfigSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListTableAuditLogs" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListTableAuditLogsSvc<T: MasterMaintenanceService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::ListTableAuditLogsRequest>
+                    for ListTableAuditLogsSvc<T> {
+                        type Response = super::ListTableAuditLogsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListTableAuditLogsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::list_table_audit_logs(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListTableAuditLogsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListRecordAuditLogs" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListRecordAuditLogsSvc<T: MasterMaintenanceService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: MasterMaintenanceService,
+                    > tonic::server::UnaryService<super::ListRecordAuditLogsRequest>
+                    for ListRecordAuditLogsSvc<T> {
+                        type Response = super::ListRecordAuditLogsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListRecordAuditLogsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MasterMaintenanceService>::list_record_audit_logs(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListRecordAuditLogsSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

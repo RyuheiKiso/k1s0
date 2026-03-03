@@ -38,6 +38,12 @@ pub struct QuotaUsage {
     pub usage_percent: f64,
     #[prost(bool, tag = "9")]
     pub exceeded: bool,
+    #[prost(message, optional, tag = "10")]
+    pub period_start: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, optional, tag = "11")]
+    pub period_end: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, optional, tag = "12")]
+    pub reset_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateQuotaPolicyRequest {
@@ -71,12 +77,18 @@ pub struct GetQuotaPolicyResponse {
     #[prost(message, optional, tag = "1")]
     pub policy: ::core::option::Option<QuotaPolicy>,
 }
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListQuotaPoliciesRequest {
     #[prost(uint32, tag = "1")]
     pub page: u32,
     #[prost(uint32, tag = "2")]
     pub page_size: u32,
+    #[prost(string, optional, tag = "3")]
+    pub subject_type: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "4")]
+    pub subject_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, optional, tag = "5")]
+    pub enabled_only: ::core::option::Option<bool>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListQuotaPoliciesResponse {
@@ -128,6 +140,16 @@ pub struct GetQuotaUsageRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetQuotaUsageResponse {
+    #[prost(message, optional, tag = "1")]
+    pub usage: ::core::option::Option<QuotaUsage>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CheckQuotaRequest {
+    #[prost(string, tag = "1")]
+    pub quota_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CheckQuotaResponse {
     #[prost(message, optional, tag = "1")]
     pub usage: ::core::option::Option<QuotaUsage>,
 }
@@ -218,6 +240,13 @@ pub mod quota_service_server {
             request: tonic::Request<super::GetQuotaUsageRequest>,
         ) -> std::result::Result<
             tonic::Response<super::GetQuotaUsageResponse>,
+            tonic::Status,
+        >;
+        async fn check_quota(
+            &self,
+            request: tonic::Request<super::CheckQuotaRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CheckQuotaResponse>,
             tonic::Status,
         >;
         async fn increment_quota_usage(
@@ -571,6 +600,51 @@ pub mod quota_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetQuotaUsageSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.quota.v1.QuotaService/CheckQuota" => {
+                    #[allow(non_camel_case_types)]
+                    struct CheckQuotaSvc<T: QuotaService>(pub Arc<T>);
+                    impl<
+                        T: QuotaService,
+                    > tonic::server::UnaryService<super::CheckQuotaRequest>
+                    for CheckQuotaSvc<T> {
+                        type Response = super::CheckQuotaResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CheckQuotaRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as QuotaService>::check_quota(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CheckQuotaSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

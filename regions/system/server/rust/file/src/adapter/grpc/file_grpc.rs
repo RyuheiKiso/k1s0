@@ -104,15 +104,13 @@ impl FileGrpcService {
         tenant_id: String,
         uploaded_by: String,
         tags: std::collections::HashMap<String, String>,
-        expires_in_seconds: Option<i32>,
+        expires_in_seconds: Option<u32>,
         size_bytes: i64,
     ) -> Result<(String, String), GrpcError> {
         if filename.is_empty() {
             return Err(GrpcError::InvalidArgument("filename is required".to_string()));
         }
-        let expires_in_seconds = expires_in_seconds
-            .unwrap_or(3600)
-            .clamp(1, i32::MAX) as u32;
+        let expires_in_seconds = expires_in_seconds.unwrap_or(3600).max(1);
         if size_bytes <= 0 {
             return Err(GrpcError::InvalidArgument(
                 "size_bytes must be greater than zero".to_string(),

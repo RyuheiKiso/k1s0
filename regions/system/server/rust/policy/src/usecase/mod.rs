@@ -5,6 +5,7 @@ pub mod update_policy;
 pub mod evaluate_policy;
 pub mod create_bundle;
 pub mod list_bundles;
+pub mod list_policies;
 
 pub use create_policy::CreatePolicyUseCase;
 pub use delete_policy::DeletePolicyUseCase;
@@ -13,3 +14,4 @@ pub use update_policy::UpdatePolicyUseCase;
 pub use evaluate_policy::EvaluatePolicyUseCase;
 pub use create_bundle::CreateBundleUseCase;
 pub use list_bundles::ListBundlesUseCase;
+pub use list_policies::ListPoliciesUseCase;

@@ -1,7 +1,3 @@
-//! tonic gRPC サービス実装。
-//!
-//! proto 生成コード (`src/proto/`) の RateLimitService トレイトを実装する。
-
 use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
@@ -11,30 +7,30 @@ use crate::proto::k1s0::system::ratelimit::v1::{
     CheckRateLimitRequest as ProtoCheckRateLimitRequest,
     CheckRateLimitResponse as ProtoCheckRateLimitResponse,
     CreateRuleRequest as ProtoCreateRuleRequest, CreateRuleResponse as ProtoCreateRuleResponse,
+    DeleteRuleRequest as ProtoDeleteRuleRequest, DeleteRuleResponse as ProtoDeleteRuleResponse,
     GetRuleRequest as ProtoGetRuleRequest, GetRuleResponse as ProtoGetRuleResponse,
     GetUsageRequest as ProtoGetUsageRequest, GetUsageResponse as ProtoGetUsageResponse,
+    ListRulesRequest as ProtoListRulesRequest, ListRulesResponse as ProtoListRulesResponse,
     RateLimitRule as ProtoRateLimitRule,
     ResetLimitRequest as ProtoResetLimitRequest, ResetLimitResponse as ProtoResetLimitResponse,
+    UpdateRuleRequest as ProtoUpdateRuleRequest, UpdateRuleResponse as ProtoUpdateRuleResponse,
 };
 
 use super::ratelimit_grpc::{
-    CheckRateLimitRequest, CreateRuleRequest, GetRuleRequest, GetUsageRequest, GrpcError,
-    RateLimitGrpcService, ResetLimitRequest,
+    CheckRateLimitRequest, CreateRuleRequest, DeleteRuleRequest, GetRuleRequest, GetUsageRequest,
+    GrpcError, ListRulesRequest, RateLimitGrpcService, ResetLimitRequest, UpdateRuleRequest,
 };
-
-// --- GrpcError -> tonic::Status 変換 ---
 
 impl From<GrpcError> for Status {
     fn from(e: GrpcError) -> Self {
         match e {
             GrpcError::NotFound(msg) => Status::not_found(msg),
+            GrpcError::AlreadyExists(msg) => Status::already_exists(msg),
             GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
         }
     }
 }
-
-// --- 変換ヘルパー ---
 
 fn pb_timestamp(ts: &super::ratelimit_grpc::PbTimestamp) -> prost_types::Timestamp {
     prost_types::Timestamp {
@@ -43,7 +39,6 @@ fn pb_timestamp(ts: &super::ratelimit_grpc::PbTimestamp) -> prost_types::Timesta
     }
 }
 
-/// RateLimitServiceTonic は tonic の RateLimitService として RateLimitGrpcService をラップする。
 pub struct RateLimitServiceTonic {
     inner: Arc<RateLimitGrpcService>,
 }
@@ -62,8 +57,9 @@ impl RateLimitService for RateLimitServiceTonic {
     ) -> Result<Response<ProtoCheckRateLimitResponse>, Status> {
         let inner = request.into_inner();
         let req = CheckRateLimitRequest {
-            rule_id: inner.rule_id,
-            subject: inner.subject,
+            scope: inner.scope,
+            identifier: inner.identifier,
+            window: inner.window,
         };
 
         let resp = self
@@ -86,11 +82,11 @@ impl RateLimitService for RateLimitServiceTonic {
     ) -> Result<Response<ProtoCreateRuleResponse>, Status> {
         let inner = request.into_inner();
         let req = CreateRuleRequest {
-            name: inner.name,
-            key: inner.key,
+            scope: inner.scope,
+            identifier_pattern: inner.identifier_pattern,
             limit: inner.limit,
-            window_secs: inner.window_secs,
-            algorithm: inner.algorithm,
+            window_seconds: inner.window_seconds,
+            enabled: inner.enabled,
         };
 
         let resp = self
@@ -101,13 +97,14 @@ impl RateLimitService for RateLimitServiceTonic {
 
         let proto_rule = ProtoRateLimitRule {
             id: resp.rule.id,
-            name: resp.rule.name,
-            key: resp.rule.key,
+            scope: resp.rule.scope,
+            identifier_pattern: resp.rule.identifier_pattern,
             limit: resp.rule.limit,
-            window_secs: resp.rule.window_secs,
+            window_seconds: resp.rule.window_seconds,
             algorithm: resp.rule.algorithm,
             enabled: resp.rule.enabled,
             created_at: resp.rule.created_at.map(|ts| pb_timestamp(&ts)),
+            updated_at: resp.rule.updated_at.map(|ts| pb_timestamp(&ts)),
         };
 
         Ok(Response::new(ProtoCreateRuleResponse {
@@ -132,13 +129,14 @@ impl RateLimitService for RateLimitServiceTonic {
 
         let proto_rule = ProtoRateLimitRule {
             id: resp.rule.id,
-            name: resp.rule.name,
-            key: resp.rule.key,
+            scope: resp.rule.scope,
+            identifier_pattern: resp.rule.identifier_pattern,
             limit: resp.rule.limit,
-            window_secs: resp.rule.window_secs,
+            window_seconds: resp.rule.window_seconds,
             algorithm: resp.rule.algorithm,
             enabled: resp.rule.enabled,
             created_at: resp.rule.created_at.map(|ts| pb_timestamp(&ts)),
+            updated_at: resp.rule.updated_at.map(|ts| pb_timestamp(&ts)),
         };
 
         Ok(Response::new(ProtoGetRuleResponse {
@@ -165,10 +163,95 @@ impl RateLimitService for RateLimitServiceTonic {
             rule_id: resp.rule_id,
             rule_name: resp.rule_name,
             limit: resp.limit,
-            window_secs: resp.window_secs,
+            window_secs: resp.window_seconds,
             algorithm: resp.algorithm,
             enabled: resp.enabled,
+            used: resp.used,
+            remaining: resp.remaining,
+            reset_at: resp.reset_at,
         }))
+    }
+
+    async fn update_rule(
+        &self,
+        request: Request<ProtoUpdateRuleRequest>,
+    ) -> Result<Response<ProtoUpdateRuleResponse>, Status> {
+        let inner = request.into_inner();
+        let req = UpdateRuleRequest {
+            rule_id: inner.rule_id,
+            scope: inner.scope,
+            identifier_pattern: inner.identifier_pattern,
+            limit: inner.limit,
+            window_seconds: inner.window_seconds,
+            enabled: inner.enabled,
+        };
+
+        let resp = self
+            .inner
+            .update_rule(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        let proto_rule = ProtoRateLimitRule {
+            id: resp.rule.id,
+            scope: resp.rule.scope,
+            identifier_pattern: resp.rule.identifier_pattern,
+            limit: resp.rule.limit,
+            window_seconds: resp.rule.window_seconds,
+            algorithm: resp.rule.algorithm,
+            enabled: resp.rule.enabled,
+            created_at: resp.rule.created_at.map(|ts| pb_timestamp(&ts)),
+            updated_at: resp.rule.updated_at.map(|ts| pb_timestamp(&ts)),
+        };
+
+        Ok(Response::new(ProtoUpdateRuleResponse {
+            rule: Some(proto_rule),
+        }))
+    }
+
+    async fn delete_rule(
+        &self,
+        request: Request<ProtoDeleteRuleRequest>,
+    ) -> Result<Response<ProtoDeleteRuleResponse>, Status> {
+        let inner = request.into_inner();
+        let req = DeleteRuleRequest {
+            rule_id: inner.rule_id,
+        };
+        let resp = self
+            .inner
+            .delete_rule(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoDeleteRuleResponse {
+            success: resp.success,
+        }))
+    }
+
+    async fn list_rules(
+        &self,
+        _request: Request<ProtoListRulesRequest>,
+    ) -> Result<Response<ProtoListRulesResponse>, Status> {
+        let resp = self
+            .inner
+            .list_rules(ListRulesRequest {})
+            .await
+            .map_err(Into::<Status>::into)?;
+        let rules = resp
+            .rules
+            .into_iter()
+            .map(|rule| ProtoRateLimitRule {
+                id: rule.id,
+                scope: rule.scope,
+                identifier_pattern: rule.identifier_pattern,
+                limit: rule.limit,
+                window_seconds: rule.window_seconds,
+                algorithm: rule.algorithm,
+                enabled: rule.enabled,
+                created_at: rule.created_at.map(|ts| pb_timestamp(&ts)),
+                updated_at: rule.updated_at.map(|ts| pb_timestamp(&ts)),
+            })
+            .collect();
+        Ok(Response::new(ProtoListRulesResponse { rules }))
     }
 
     async fn reset_limit(
@@ -206,7 +289,7 @@ mod tests {
 
     #[test]
     fn test_grpc_error_invalid_argument_to_status() {
-        let err = GrpcError::InvalidArgument("rule_id is required".to_string());
+        let err = GrpcError::InvalidArgument("scope is required".to_string());
         let status: Status = err.into();
         assert_eq!(status.code(), tonic::Code::InvalidArgument);
     }

@@ -96,6 +96,16 @@ pub struct AddMemberResponse {
     pub member: ::core::option::Option<TenantMember>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListMembersRequest {
+    #[prost(string, tag = "1")]
+    pub tenant_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListMembersResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub members: ::prost::alloc::vec::Vec<TenantMember>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RemoveMemberRequest {
     #[prost(string, tag = "1")]
     pub tenant_id: ::prost::alloc::string::String,
@@ -130,7 +140,15 @@ pub struct Tenant {
     #[prost(string, tag = "5")]
     pub plan: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "6")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(string, tag = "7")]
+    pub owner_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub settings: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub db_schema: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "10")]
+    pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TenantMember {
@@ -143,7 +161,7 @@ pub struct TenantMember {
     #[prost(string, tag = "4")]
     pub role: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "5")]
-    pub joined_at: ::core::option::Option<::prost_types::Timestamp>,
+    pub joined_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ProvisioningJob {
@@ -158,9 +176,9 @@ pub struct ProvisioningJob {
     #[prost(string, tag = "5")]
     pub error_message: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "6")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "7")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 /// Generated server implementations.
 pub mod tenant_service_server {
@@ -237,6 +255,14 @@ pub mod tenant_service_server {
             request: tonic::Request<super::AddMemberRequest>,
         ) -> std::result::Result<
             tonic::Response<super::AddMemberResponse>,
+            tonic::Status,
+        >;
+        /// ListMembers はテナントのメンバー一覧を取得する。
+        async fn list_members(
+            &self,
+            request: tonic::Request<super::ListMembersRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListMembersResponse>,
             tonic::Status,
         >;
         /// RemoveMember はテナントからメンバーを削除する。
@@ -679,6 +705,51 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = AddMemberSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.tenant.v1.TenantService/ListMembers" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListMembersSvc<T: TenantService>(pub Arc<T>);
+                    impl<
+                        T: TenantService,
+                    > tonic::server::UnaryService<super::ListMembersRequest>
+                    for ListMembersSvc<T> {
+                        type Response = super::ListMembersResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListMembersRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as TenantService>::list_members(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListMembersSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

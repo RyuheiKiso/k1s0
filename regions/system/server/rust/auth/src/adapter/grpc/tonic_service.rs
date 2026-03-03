@@ -273,7 +273,7 @@ mod tests {
 
         // sys_admin should be allowed
         let req = Request::new(CheckPermissionRequest {
-            user_id: "user-1".to_string(),
+            user_id: Some("user-1".to_string()),
             permission: "admin".to_string(),
             resource: "configs".to_string(),
             roles: vec!["sys_admin".to_string()],
@@ -283,7 +283,7 @@ mod tests {
 
         // regular user should be denied
         let req = Request::new(CheckPermissionRequest {
-            user_id: "user-1".to_string(),
+            user_id: Some("user-1".to_string()),
             permission: "admin".to_string(),
             resource: "configs".to_string(),
             roles: vec!["user".to_string()],

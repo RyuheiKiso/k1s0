@@ -1,6 +1,6 @@
-// k1s0 ポリシー評価サービス gRPC 定義。
+﻿// k1s0 ポリシー評価サービス gRPC 定義。
 // OPA（Open Policy Agent）連携による動的 RBAC・アクセス制御ポリシーの評価・取得を提供する。
-// gRPC ポート: 9090
+// gRPC ポート 50051（設定で上書き可能）
 syntax = "proto3";
 
 package k1s0.system.policy.v1;
@@ -12,6 +12,12 @@ import "k1s0/system/common/v1/types.proto";
 service PolicyService {
   rpc EvaluatePolicy(EvaluatePolicyRequest) returns (EvaluatePolicyResponse);
   rpc GetPolicy(GetPolicyRequest) returns (GetPolicyResponse);
+  rpc ListPolicies(ListPoliciesRequest) returns (ListPoliciesResponse);
+  rpc CreatePolicy(CreatePolicyRequest) returns (CreatePolicyResponse);
+  rpc UpdatePolicy(UpdatePolicyRequest) returns (UpdatePolicyResponse);
+  rpc DeletePolicy(DeletePolicyRequest) returns (DeletePolicyResponse);
+  rpc CreateBundle(CreateBundleRequest) returns (CreateBundleResponse);
+  rpc ListBundles(ListBundlesRequest) returns (ListBundlesResponse);
 }
 
 message EvaluatePolicyRequest {
@@ -40,6 +46,64 @@ message GetPolicyResponse {
   Policy policy = 1;
 }
 
+message ListPoliciesRequest {
+  k1s0.system.common.v1.Pagination pagination = 1;
+  optional string bundle_id = 2;
+  bool enabled_only = 3;
+}
+
+message ListPoliciesResponse {
+  repeated Policy policies = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message CreatePolicyRequest {
+  string name = 1;
+  string description = 2;
+  string rego_content = 3;
+  string package_path = 4;
+  optional string bundle_id = 5;
+}
+
+message CreatePolicyResponse {
+  Policy policy = 1;
+}
+
+message UpdatePolicyRequest {
+  string id = 1;
+  optional string description = 2;
+  optional string rego_content = 3;
+  optional bool enabled = 4;
+}
+
+message UpdatePolicyResponse {
+  Policy policy = 1;
+}
+
+message DeletePolicyRequest {
+  string id = 1;
+}
+
+message DeletePolicyResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message CreateBundleRequest {
+  string name = 1;
+  repeated string policy_ids = 2;
+}
+
+message CreateBundleResponse {
+  PolicyBundle bundle = 1;
+}
+
+message ListBundlesRequest {}
+
+message ListBundlesResponse {
+  repeated PolicyBundle bundles = 1;
+}
+
 message Policy {
   string id = 1;
   string name = 2;
@@ -52,3 +116,12 @@ message Policy {
   k1s0.system.common.v1.Timestamp created_at = 9;
   k1s0.system.common.v1.Timestamp updated_at = 10;
 }
+
+message PolicyBundle {
+  string id = 1;
+  string name = 2;
+  repeated string policy_ids = 3;
+  k1s0.system.common.v1.Timestamp created_at = 4;
+  k1s0.system.common.v1.Timestamp updated_at = 5;
+}
+

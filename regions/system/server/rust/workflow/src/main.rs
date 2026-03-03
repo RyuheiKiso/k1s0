@@ -118,8 +118,17 @@ async fn main() -> anyhow::Result<()> {
     let _check_overdue_uc = Arc::new(usecase::CheckOverdueTasksUseCase::new(task_repo));
 
     let grpc_svc = Arc::new(WorkflowGrpcService::new(
+        list_wf_uc.clone(),
+        create_wf_uc.clone(),
+        get_wf_uc.clone(),
+        update_wf_uc.clone(),
+        delete_wf_uc.clone(),
         start_inst_uc.clone(),
         get_inst_uc.clone(),
+        list_inst_uc.clone(),
+        cancel_inst_uc.clone(),
+        list_tasks_uc.clone(),
+        reassign_task_uc.clone(),
         approve_task_uc.clone(),
         reject_task_uc.clone(),
     ));

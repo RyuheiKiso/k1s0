@@ -372,6 +372,7 @@ service QuotaService {
   rpc UpdateQuotaPolicy(UpdateQuotaPolicyRequest) returns (UpdateQuotaPolicyResponse);
   rpc DeleteQuotaPolicy(DeleteQuotaPolicyRequest) returns (DeleteQuotaPolicyResponse);
   rpc GetQuotaUsage(GetQuotaUsageRequest) returns (GetQuotaUsageResponse);
+  rpc CheckQuota(CheckQuotaRequest) returns (CheckQuotaResponse);
   rpc IncrementQuotaUsage(IncrementQuotaUsageRequest) returns (IncrementQuotaUsageResponse);
   rpc ResetQuotaUsage(ResetQuotaUsageRequest) returns (ResetQuotaUsageResponse);
 }
@@ -460,6 +461,14 @@ message GetQuotaUsageRequest {
 }
 
 message GetQuotaUsageResponse {
+  QuotaUsage usage = 1;
+}
+
+message CheckQuotaRequest {
+  string quota_id = 1;
+}
+
+message CheckQuotaResponse {
   QuotaUsage usage = 1;
 }
 

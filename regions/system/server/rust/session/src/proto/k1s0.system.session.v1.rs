@@ -22,10 +22,10 @@ pub struct CreateSessionResponse {
     pub user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub device_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub expires_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub created_at: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub expires_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSessionRequest {
@@ -46,8 +46,8 @@ pub struct RefreshSessionRequest {
 pub struct RefreshSessionResponse {
     #[prost(string, tag = "1")]
     pub session_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub expires_at: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub expires_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RevokeSessionRequest {
@@ -99,12 +99,12 @@ pub struct Session {
     pub ip_address: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, tag = "8")]
     pub status: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub expires_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub created_at: ::prost::alloc::string::String,
-    #[prost(string, optional, tag = "11")]
-    pub last_accessed_at: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "9")]
+    pub expires_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, optional, tag = "10")]
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    #[prost(message, optional, tag = "11")]
+    pub last_accessed_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 /// Generated server implementations.
 pub mod session_service_server {

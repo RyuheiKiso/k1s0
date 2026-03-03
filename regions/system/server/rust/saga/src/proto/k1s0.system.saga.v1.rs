@@ -156,6 +156,22 @@ pub struct CancelSagaResponse {
     #[prost(string, tag = "2")]
     pub message: ::prost::alloc::string::String,
 }
+/// CompensateSagaRequest は Saga 補償実行リクエスト。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CompensateSagaRequest {
+    #[prost(string, tag = "1")]
+    pub saga_id: ::prost::alloc::string::String,
+}
+/// CompensateSagaResponse は Saga 補償実行レスポンス。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CompensateSagaResponse {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+    #[prost(string, tag = "2")]
+    pub status: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub message: ::prost::alloc::string::String,
+}
 /// RegisterWorkflowRequest はワークフロー登録リクエスト。
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RegisterWorkflowRequest {
@@ -222,6 +238,14 @@ pub mod saga_service_server {
             request: tonic::Request<super::CancelSagaRequest>,
         ) -> std::result::Result<
             tonic::Response<super::CancelSagaResponse>,
+            tonic::Status,
+        >;
+        /// Saga 補償実行
+        async fn compensate_saga(
+            &self,
+            request: tonic::Request<super::CompensateSagaRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CompensateSagaResponse>,
             tonic::Status,
         >;
         /// ワークフロー登録（YAML 文字列）
@@ -483,6 +507,51 @@ pub mod saga_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CancelSagaSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.saga.v1.SagaService/CompensateSaga" => {
+                    #[allow(non_camel_case_types)]
+                    struct CompensateSagaSvc<T: SagaService>(pub Arc<T>);
+                    impl<
+                        T: SagaService,
+                    > tonic::server::UnaryService<super::CompensateSagaRequest>
+                    for CompensateSagaSvc<T> {
+                        type Response = super::CompensateSagaResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CompensateSagaRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as SagaService>::compensate_saga(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CompensateSagaSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

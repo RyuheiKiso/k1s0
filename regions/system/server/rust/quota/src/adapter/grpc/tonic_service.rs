@@ -9,6 +9,7 @@ use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::quota::v1::{
     quota_service_server::QuotaService,
+    CheckQuotaRequest as ProtoCheckQuotaRequest, CheckQuotaResponse as ProtoCheckQuotaResponse,
     CreateQuotaPolicyRequest as ProtoCreateQuotaPolicyRequest,
     CreateQuotaPolicyResponse as ProtoCreateQuotaPolicyResponse,
     DeleteQuotaPolicyRequest as ProtoDeleteQuotaPolicyRequest,
@@ -41,6 +42,7 @@ impl From<GrpcError> for Status {
         match e {
             GrpcError::NotFound(msg) => Status::not_found(msg),
             GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
+            GrpcError::ResourceExhausted(msg) => Status::resource_exhausted(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
         }
     }
@@ -72,6 +74,18 @@ fn usage_to_proto(u: &QuotaUsage) -> ProtoQuotaUsage {
         remaining: u.remaining,
         usage_percent: u.usage_percent,
         exceeded: u.exceeded,
+        period_start: Some(to_proto_timestamp(u.period_start)),
+        period_end: Some(to_proto_timestamp(u.period_end)),
+        reset_at: Some(to_proto_timestamp(u.reset_at)),
+    }
+}
+
+fn to_proto_timestamp(
+    dt: chrono::DateTime<chrono::Utc>,
+) -> crate::proto::k1s0::system::common::v1::Timestamp {
+    crate::proto::k1s0::system::common::v1::Timestamp {
+        seconds: dt.timestamp(),
+        nanos: dt.timestamp_subsec_nanos() as i32,
     }
 }
 
@@ -139,6 +153,9 @@ impl QuotaService for QuotaServiceTonic {
         let req = ListPoliciesRequest {
             page: inner.page,
             page_size: inner.page_size,
+            subject_type: inner.subject_type,
+            subject_id: inner.subject_id,
+            enabled_only: inner.enabled_only,
         };
         let result = self
             .inner
@@ -217,6 +234,22 @@ impl QuotaService for QuotaServiceTonic {
             .map_err(Into::<Status>::into)?;
 
         Ok(Response::new(ProtoGetQuotaUsageResponse {
+            usage: Some(usage_to_proto(&usage)),
+        }))
+    }
+
+    async fn check_quota(
+        &self,
+        request: Request<ProtoCheckQuotaRequest>,
+    ) -> Result<Response<ProtoCheckQuotaResponse>, Status> {
+        let inner = request.into_inner();
+        let usage = self
+            .inner
+            .check_quota(&inner.quota_id)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoCheckQuotaResponse {
             usage: Some(usage_to_proto(&usage)),
         }))
     }
@@ -328,6 +361,14 @@ mod tests {
         let status: Status = err.into();
         assert_eq!(status.code(), tonic::Code::Internal);
         assert!(status.message().contains("database error"));
+    }
+
+    #[test]
+    fn test_grpc_error_resource_exhausted_to_status() {
+        let err = GrpcError::ResourceExhausted("quota exceeded".to_string());
+        let status: Status = err.into();
+        assert_eq!(status.code(), tonic::Code::ResourceExhausted);
+        assert!(status.message().contains("quota exceeded"));
     }
 
     #[test]

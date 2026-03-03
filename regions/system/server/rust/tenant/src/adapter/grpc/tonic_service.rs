@@ -21,6 +21,7 @@ use crate::proto::k1s0::system::tenant::v1::{
     GetTenantRequest as ProtoGetTenantRequest, GetTenantResponse as ProtoGetTenantResponse,
     ListTenantsRequest as ProtoListTenantsRequest,
     ListTenantsResponse as ProtoListTenantsResponse, ProvisioningJob as ProtoProvisioningJob,
+    ListMembersRequest as ProtoListMembersRequest, ListMembersResponse as ProtoListMembersResponse,
     RemoveMemberRequest as ProtoRemoveMemberRequest,
     RemoveMemberResponse as ProtoRemoveMemberResponse, Tenant as ProtoTenant,
     TenantMember as ProtoTenantMember, SuspendTenantRequest as ProtoSuspendTenantRequest,
@@ -31,8 +32,8 @@ use crate::proto::k1s0::system::tenant::v1::{
 
 use super::tenant_grpc::{
     ActivateTenantRequest, AddMemberRequest, CreateTenantRequest, DeleteTenantRequest,
-    GetProvisioningStatusRequest, GetTenantRequest, GrpcError, ListTenantsRequest,
-    RemoveMemberRequest, SuspendTenantRequest, TenantGrpcService, UpdateTenantRequest,
+    GetProvisioningStatusRequest, GetTenantRequest, GrpcError, ListMembersRequest,
+    ListTenantsRequest, RemoveMemberRequest, SuspendTenantRequest, TenantGrpcService, UpdateTenantRequest,
 };
 
 // --- GrpcError -> tonic::Status 変換 ---
@@ -52,8 +53,8 @@ impl From<GrpcError> for Status {
 
 fn pb_timestamp_to_proto(
     ts: &super::tenant_grpc::PbTimestamp,
-) -> ::prost_types::Timestamp {
-    ::prost_types::Timestamp {
+) -> crate::proto::k1s0::system::common::v1::Timestamp {
+    crate::proto::k1s0::system::common::v1::Timestamp {
         seconds: ts.seconds,
         nanos: ts.nanos,
     }
@@ -66,7 +67,11 @@ fn pb_tenant_to_proto(t: &super::tenant_grpc::PbTenant) -> ProtoTenant {
         display_name: t.display_name.clone(),
         status: t.status.clone(),
         plan: t.plan.clone(),
+        owner_id: t.owner_id.clone(),
+        settings: t.settings.clone(),
+        db_schema: t.db_schema.clone(),
         created_at: t.created_at.as_ref().map(pb_timestamp_to_proto),
+        updated_at: t.updated_at.as_ref().map(pb_timestamp_to_proto),
     }
 }
 
@@ -273,6 +278,24 @@ impl TenantService for TenantServiceTonic {
 
         Ok(Response::new(ProtoAddMemberResponse {
             member: resp.member.as_ref().map(pb_member_to_proto),
+        }))
+    }
+
+    async fn list_members(
+        &self,
+        request: Request<ProtoListMembersRequest>,
+    ) -> Result<Response<ProtoListMembersResponse>, Status> {
+        let req = ListMembersRequest {
+            tenant_id: request.into_inner().tenant_id,
+        };
+        let resp = self
+            .inner
+            .list_members(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoListMembersResponse {
+            members: resp.members.iter().map(pb_member_to_proto).collect(),
         }))
     }
 

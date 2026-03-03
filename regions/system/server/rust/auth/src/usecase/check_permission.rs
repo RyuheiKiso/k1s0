@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::domain::repository::UserRepository;
+use crate::domain::service::AuthDomainService;
 
 /// CheckPermissionInput はパーミッション確認の入力。
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -39,33 +40,11 @@ impl CheckPermissionUseCase {
 
     pub async fn execute(&self, input: &CheckPermissionInput) -> CheckPermissionOutput {
         let roles = self.resolve_roles(input).await;
-
-        for role in &roles {
-            match role.as_str() {
-                "sys_admin" => {
-                    return CheckPermissionOutput {
-                        allowed: true,
-                        reason: String::new(),
-                    }
-                }
-                "sys_operator" => {
-                    if input.permission == "read" || input.permission == "write" {
-                        return CheckPermissionOutput {
-                            allowed: true,
-                            reason: String::new(),
-                        };
-                    }
-                }
-                "sys_auditor" => {
-                    if input.permission == "read" {
-                        return CheckPermissionOutput {
-                            allowed: true,
-                            reason: String::new(),
-                        };
-                    }
-                }
-                _ => {}
-            }
+        if AuthDomainService::check_permission(&roles, &input.resource, &input.permission) {
+            return CheckPermissionOutput {
+                allowed: true,
+                reason: String::new(),
+            };
         }
 
         CheckPermissionOutput {

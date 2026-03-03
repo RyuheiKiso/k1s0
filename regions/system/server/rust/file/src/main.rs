@@ -74,7 +74,7 @@ async fn main() -> anyhow::Result<()> {
         };
 
     // Kafka publisher
-    let _publisher: Arc<dyn FileEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
+    let publisher: Arc<dyn FileEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
         match FileKafkaProducer::new(kafka_cfg) {
             Ok(p) => {
                 info!("Kafka file event publisher enabled");
@@ -97,7 +97,10 @@ async fn main() -> anyhow::Result<()> {
         storage_repo.clone(),
     ));
     let complete_upload_uc =
-        Arc::new(usecase::CompleteUploadUseCase::new(metadata_repo.clone()));
+        Arc::new(usecase::CompleteUploadUseCase::new(
+            metadata_repo.clone(),
+            publisher.clone(),
+        ));
     let get_file_metadata_uc =
         Arc::new(usecase::GetFileMetadataUseCase::new(metadata_repo.clone()));
     let generate_download_url_uc = Arc::new(usecase::GenerateDownloadUrlUseCase::new(
@@ -107,6 +110,7 @@ async fn main() -> anyhow::Result<()> {
     let delete_file_uc = Arc::new(usecase::DeleteFileUseCase::new(
         metadata_repo.clone(),
         storage_repo.clone(),
+        publisher.clone(),
     ));
     let update_file_tags_uc =
         Arc::new(usecase::UpdateFileTagsUseCase::new(metadata_repo.clone()));

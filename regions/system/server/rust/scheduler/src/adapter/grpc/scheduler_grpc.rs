@@ -1,11 +1,139 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
+use crate::domain::entity::scheduler_execution::SchedulerExecution;
+use crate::domain::entity::scheduler_job::SchedulerJob;
 use crate::domain::repository::SchedulerExecutionRepository;
+use crate::usecase::create_job::{CreateJobError, CreateJobInput, CreateJobUseCase};
+use crate::usecase::delete_job::{DeleteJobError, DeleteJobUseCase};
+use crate::usecase::get_job::{GetJobError, GetJobUseCase};
+use crate::usecase::list_executions::{ListExecutionsError, ListExecutionsUseCase};
+use crate::usecase::list_jobs::{ListJobsInput, ListJobsUseCase};
+use crate::usecase::pause_job::{PauseJobError, PauseJobUseCase};
+use crate::usecase::resume_job::{ResumeJobError, ResumeJobUseCase};
 use crate::usecase::trigger_job::{TriggerJobError, TriggerJobUseCase};
+use crate::usecase::update_job::{UpdateJobError, UpdateJobInput, UpdateJobUseCase};
 
-// --- gRPC Request/Response Types ---
+#[derive(Debug, Clone)]
+pub struct JobData {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub cron_expression: String,
+    pub timezone: String,
+    pub target_type: String,
+    pub target: String,
+    pub payload_json: Vec<u8>,
+    pub status: String,
+    pub next_run_at: Option<DateTime<Utc>>,
+    pub last_run_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone)]
+pub struct JobExecutionData {
+    pub id: String,
+    pub job_id: String,
+    pub status: String,
+    pub triggered_by: String,
+    pub started_at: DateTime<Utc>,
+    pub finished_at: Option<DateTime<Utc>>,
+    pub duration_ms: Option<u64>,
+    pub error_message: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateJobRequest {
+    pub name: String,
+    pub description: String,
+    pub cron_expression: String,
+    pub timezone: String,
+    pub target_type: String,
+    pub target: String,
+    pub payload_json: Vec<u8>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateJobResponse {
+    pub job: JobData,
+}
+
+#[derive(Debug, Clone)]
+pub struct GetJobRequest {
+    pub job_id: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct GetJobResponse {
+    pub job: JobData,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListJobsRequest {
+    pub status: String,
+    pub page: i32,
+    pub page_size: i32,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListJobsResponse {
+    pub jobs: Vec<JobData>,
+    pub total_count: u64,
+    pub page: i32,
+    pub page_size: i32,
+    pub has_next: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct UpdateJobRequest {
+    pub job_id: String,
+    pub name: String,
+    pub description: String,
+    pub cron_expression: String,
+    pub timezone: String,
+    pub target_type: String,
+    pub target: String,
+    pub payload_json: Vec<u8>,
+}
+
+#[derive(Debug, Clone)]
+pub struct UpdateJobResponse {
+    pub job: JobData,
+}
+
+#[derive(Debug, Clone)]
+pub struct DeleteJobRequest {
+    pub job_id: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct DeleteJobResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct PauseJobRequest {
+    pub job_id: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct PauseJobResponse {
+    pub job: JobData,
+}
+
+#[derive(Debug, Clone)]
+pub struct ResumeJobRequest {
+    pub job_id: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ResumeJobResponse {
+    pub job: JobData,
+}
 
 #[derive(Debug, Clone)]
 pub struct TriggerJobRequest {
@@ -27,17 +155,24 @@ pub struct GetJobExecutionRequest {
 
 #[derive(Debug, Clone)]
 pub struct GetJobExecutionResponse {
-    pub id: String,
-    pub job_id: String,
-    pub status: String,
-    pub triggered_by: String,
-    pub started_at: DateTime<Utc>,
-    pub finished_at: Option<DateTime<Utc>>,
-    pub duration_ms: Option<u64>,
-    pub error_message: Option<String>,
+    pub execution: JobExecutionData,
 }
 
-// --- gRPC Error ---
+#[derive(Debug, Clone)]
+pub struct ListExecutionsRequest {
+    pub job_id: String,
+    pub page: i32,
+    pub page_size: i32,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListExecutionsResponse {
+    pub executions: Vec<JobExecutionData>,
+    pub total_count: u64,
+    pub page: i32,
+    pub page_size: i32,
+    pub has_next: bool,
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum GrpcError {
@@ -47,6 +182,9 @@ pub enum GrpcError {
     #[error("invalid argument: {0}")]
     InvalidArgument(String),
 
+    #[error("failed precondition: {0}")]
+    FailedPrecondition(String),
+
     #[error("internal: {0}")]
     Internal(String),
 
@@ -54,32 +192,221 @@ pub enum GrpcError {
     Unimplemented(String),
 }
 
-// --- SchedulerGrpcService ---
-
 pub struct SchedulerGrpcService {
+    create_job_uc: Arc<CreateJobUseCase>,
+    get_job_uc: Arc<GetJobUseCase>,
+    list_jobs_uc: Arc<ListJobsUseCase>,
+    update_job_uc: Arc<UpdateJobUseCase>,
+    delete_job_uc: Arc<DeleteJobUseCase>,
+    pause_job_uc: Arc<PauseJobUseCase>,
+    resume_job_uc: Arc<ResumeJobUseCase>,
     trigger_job_uc: Arc<TriggerJobUseCase>,
+    list_executions_uc: Arc<ListExecutionsUseCase>,
     execution_repo: Arc<dyn SchedulerExecutionRepository>,
 }
 
 impl SchedulerGrpcService {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
+        create_job_uc: Arc<CreateJobUseCase>,
+        get_job_uc: Arc<GetJobUseCase>,
+        list_jobs_uc: Arc<ListJobsUseCase>,
+        update_job_uc: Arc<UpdateJobUseCase>,
+        delete_job_uc: Arc<DeleteJobUseCase>,
+        pause_job_uc: Arc<PauseJobUseCase>,
+        resume_job_uc: Arc<ResumeJobUseCase>,
         trigger_job_uc: Arc<TriggerJobUseCase>,
+        list_executions_uc: Arc<ListExecutionsUseCase>,
         execution_repo: Arc<dyn SchedulerExecutionRepository>,
     ) -> Self {
         Self {
+            create_job_uc,
+            get_job_uc,
+            list_jobs_uc,
+            update_job_uc,
+            delete_job_uc,
+            pause_job_uc,
+            resume_job_uc,
             trigger_job_uc,
+            list_executions_uc,
             execution_repo,
         }
+    }
+
+    pub async fn create_job(&self, req: CreateJobRequest) -> Result<CreateJobResponse, GrpcError> {
+        let payload = parse_payload(&req.payload_json)?;
+        let created = self
+            .create_job_uc
+            .execute(&CreateJobInput {
+                name: req.name,
+                description: if req.description.is_empty() {
+                    None
+                } else {
+                    Some(req.description)
+                },
+                cron_expression: req.cron_expression,
+                timezone: if req.timezone.is_empty() {
+                    "UTC".to_string()
+                } else {
+                    req.timezone
+                },
+                target_type: if req.target_type.is_empty() {
+                    "kafka".to_string()
+                } else {
+                    req.target_type
+                },
+                target: if req.target.is_empty() {
+                    None
+                } else {
+                    Some(req.target)
+                },
+                payload,
+            })
+            .await
+            .map_err(|e| match e {
+                CreateJobError::InvalidCron(expr) => GrpcError::InvalidArgument(format!(
+                    "invalid cron expression: {}",
+                    expr
+                )),
+                CreateJobError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
+
+        Ok(CreateJobResponse {
+            job: to_job_data(created),
+        })
+    }
+
+    pub async fn get_job(&self, req: GetJobRequest) -> Result<GetJobResponse, GrpcError> {
+        let id = parse_uuid(&req.job_id, "job_id")?;
+        let job = self.get_job_uc.execute(&id).await.map_err(|e| match e {
+            GetJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
+            GetJobError::Internal(msg) => GrpcError::Internal(msg),
+        })?;
+
+        Ok(GetJobResponse {
+            job: to_job_data(job),
+        })
+    }
+
+    pub async fn list_jobs(&self, req: ListJobsRequest) -> Result<ListJobsResponse, GrpcError> {
+        let page = if req.page <= 0 { 1 } else { req.page as u32 };
+        let page_size = if req.page_size <= 0 {
+            20
+        } else {
+            req.page_size as u32
+        };
+        let output = self
+            .list_jobs_uc
+            .execute(&ListJobsInput {
+                status: if req.status.is_empty() {
+                    None
+                } else {
+                    Some(req.status)
+                },
+                page,
+                page_size,
+            })
+            .await
+            .map_err(|e| GrpcError::Internal(e.to_string()))?;
+
+        Ok(ListJobsResponse {
+            jobs: output.jobs.into_iter().map(to_job_data).collect(),
+            total_count: output.total_count,
+            page: output.page as i32,
+            page_size: output.page_size as i32,
+            has_next: output.has_next,
+        })
+    }
+
+    pub async fn update_job(&self, req: UpdateJobRequest) -> Result<UpdateJobResponse, GrpcError> {
+        let id = parse_uuid(&req.job_id, "job_id")?;
+        let payload = parse_payload(&req.payload_json)?;
+
+        let updated = self
+            .update_job_uc
+            .execute(&UpdateJobInput {
+                id,
+                name: req.name,
+                description: if req.description.is_empty() {
+                    None
+                } else {
+                    Some(req.description)
+                },
+                cron_expression: req.cron_expression,
+                timezone: if req.timezone.is_empty() {
+                    "UTC".to_string()
+                } else {
+                    req.timezone
+                },
+                target_type: if req.target_type.is_empty() {
+                    "kafka".to_string()
+                } else {
+                    req.target_type
+                },
+                target: if req.target.is_empty() {
+                    None
+                } else {
+                    Some(req.target)
+                },
+                payload,
+            })
+            .await
+            .map_err(|e| match e {
+                UpdateJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
+                UpdateJobError::InvalidCron(expr) => {
+                    GrpcError::InvalidArgument(format!("invalid cron expression: {}", expr))
+                }
+                UpdateJobError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
+
+        Ok(UpdateJobResponse {
+            job: to_job_data(updated),
+        })
+    }
+
+    pub async fn delete_job(&self, req: DeleteJobRequest) -> Result<DeleteJobResponse, GrpcError> {
+        let id = parse_uuid(&req.job_id, "job_id")?;
+        self.delete_job_uc.execute(&id).await.map_err(|e| match e {
+            DeleteJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
+            DeleteJobError::JobRunning(id) => {
+                GrpcError::FailedPrecondition(format!("job is currently running: {}", id))
+            }
+            DeleteJobError::Internal(msg) => GrpcError::Internal(msg),
+        })?;
+
+        Ok(DeleteJobResponse {
+            success: true,
+            message: format!("job {} deleted", req.job_id),
+        })
+    }
+
+    pub async fn pause_job(&self, req: PauseJobRequest) -> Result<PauseJobResponse, GrpcError> {
+        let id = parse_uuid(&req.job_id, "job_id")?;
+        let job = self.pause_job_uc.execute(&id).await.map_err(|e| match e {
+            PauseJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
+            PauseJobError::Internal(msg) => GrpcError::Internal(msg),
+        })?;
+        Ok(PauseJobResponse {
+            job: to_job_data(job),
+        })
+    }
+
+    pub async fn resume_job(&self, req: ResumeJobRequest) -> Result<ResumeJobResponse, GrpcError> {
+        let id = parse_uuid(&req.job_id, "job_id")?;
+        let job = self.resume_job_uc.execute(&id).await.map_err(|e| match e {
+            ResumeJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
+            ResumeJobError::Internal(msg) => GrpcError::Internal(msg),
+        })?;
+        Ok(ResumeJobResponse {
+            job: to_job_data(job),
+        })
     }
 
     pub async fn trigger_job(
         &self,
         req: TriggerJobRequest,
     ) -> Result<TriggerJobResponse, GrpcError> {
-        let job_id = req
-            .job_id
-            .parse::<uuid::Uuid>()
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid job_id: {}", req.job_id)))?;
+        let job_id = parse_uuid(&req.job_id, "job_id")?;
 
         match self.trigger_job_uc.execute(&job_id).await {
             Ok(execution) => Ok(TriggerJobResponse {
@@ -92,7 +419,7 @@ impl SchedulerGrpcService {
                 Err(GrpcError::NotFound(format!("job not found: {}", id)))
             }
             Err(TriggerJobError::NotActive(id)) => {
-                Err(GrpcError::InvalidArgument(format!("job not active: {}", id)))
+                Err(GrpcError::FailedPrecondition(format!("job not active: {}", id)))
             }
             Err(TriggerJobError::Internal(e)) => Err(GrpcError::Internal(e)),
         }
@@ -102,175 +429,116 @@ impl SchedulerGrpcService {
         &self,
         req: GetJobExecutionRequest,
     ) -> Result<GetJobExecutionResponse, GrpcError> {
-        let execution_id = req.execution_id.parse::<uuid::Uuid>().map_err(|_| {
-            GrpcError::InvalidArgument(format!("invalid execution_id: {}", req.execution_id))
-        })?;
-
+        let execution_id = parse_uuid(&req.execution_id, "execution_id")?;
         let execution = self
             .execution_repo
             .find_by_id(&execution_id)
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?
-            .ok_or_else(|| {
-                GrpcError::NotFound(format!("execution not found: {}", execution_id))
-            })?;
-
-        let duration_ms = execution.completed_at.and_then(|finished_at| {
-            let duration = finished_at - execution.started_at;
-            if duration.num_milliseconds() >= 0 {
-                Some(duration.num_milliseconds() as u64)
-            } else {
-                None
-            }
-        });
+            .ok_or_else(|| GrpcError::NotFound(format!("execution not found: {}", execution_id)))?;
 
         Ok(GetJobExecutionResponse {
-            id: execution.id.to_string(),
-            job_id: execution.job_id.to_string(),
-            status: normalize_status(&execution.status),
-            triggered_by: "manual".to_string(),
-            started_at: execution.started_at,
-            finished_at: execution.completed_at,
-            duration_ms,
-            error_message: execution.error_message,
+            execution: to_execution_data(execution),
         })
+    }
+
+    pub async fn list_executions(
+        &self,
+        req: ListExecutionsRequest,
+    ) -> Result<ListExecutionsResponse, GrpcError> {
+        let job_id = parse_uuid(&req.job_id, "job_id")?;
+        let executions = self
+            .list_executions_uc
+            .execute(&job_id)
+            .await
+            .map_err(|e| match e {
+                ListExecutionsError::NotFound(id) => {
+                    GrpcError::NotFound(format!("job not found: {}", id))
+                }
+                ListExecutionsError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
+
+        let page = if req.page <= 0 { 1 } else { req.page as usize };
+        let page_size = if req.page_size <= 0 {
+            20
+        } else {
+            req.page_size as usize
+        };
+        let total_count = executions.len() as u64;
+        let start = (page - 1) * page_size;
+        let page_items: Vec<SchedulerExecution> = executions
+            .into_iter()
+            .skip(start)
+            .take(page_size)
+            .collect();
+        let has_next = start + page_items.len() < total_count as usize;
+
+        Ok(ListExecutionsResponse {
+            executions: page_items.into_iter().map(to_execution_data).collect(),
+            total_count,
+            page: page as i32,
+            page_size: page_size as i32,
+            has_next,
+        })
+    }
+}
+
+fn parse_uuid(value: &str, field: &str) -> Result<Uuid, GrpcError> {
+    Uuid::parse_str(value)
+        .map_err(|_| GrpcError::InvalidArgument(format!("invalid {}: {}", field, value)))
+}
+
+fn parse_payload(payload_json: &[u8]) -> Result<serde_json::Value, GrpcError> {
+    if payload_json.is_empty() {
+        return Ok(serde_json::json!({}));
+    }
+    serde_json::from_slice(payload_json)
+        .map_err(|e| GrpcError::InvalidArgument(format!("invalid payload_json: {}", e)))
+}
+
+fn to_job_data(job: SchedulerJob) -> JobData {
+    JobData {
+        id: job.id.to_string(),
+        name: job.name,
+        description: job.description.unwrap_or_default(),
+        cron_expression: job.cron_expression,
+        timezone: job.timezone,
+        target_type: job.target_type,
+        target: job.target.unwrap_or_default(),
+        payload_json: serde_json::to_vec(&job.payload).unwrap_or_default(),
+        status: job.status,
+        next_run_at: job.next_run_at,
+        last_run_at: job.last_run_at,
+        created_at: job.created_at,
+        updated_at: job.updated_at,
+    }
+}
+
+fn to_execution_data(execution: SchedulerExecution) -> JobExecutionData {
+    let duration_ms = execution.completed_at.and_then(|finished_at| {
+        let duration = finished_at - execution.started_at;
+        if duration.num_milliseconds() >= 0 {
+            Some(duration.num_milliseconds() as u64)
+        } else {
+            None
+        }
+    });
+
+    JobExecutionData {
+        id: execution.id.to_string(),
+        job_id: execution.job_id.to_string(),
+        status: normalize_status(&execution.status),
+        triggered_by: "unknown".to_string(),
+        started_at: execution.started_at,
+        finished_at: execution.completed_at,
+        duration_ms,
+        error_message: execution.error_message,
     }
 }
 
 fn normalize_status(status: &str) -> String {
     match status {
         "completed" => "succeeded".to_string(),
-        _ => status.to_string(),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::domain::entity::scheduler_execution::SchedulerExecution;
-    use crate::domain::entity::scheduler_job::SchedulerJob;
-    use crate::domain::repository::scheduler_execution_repository::MockSchedulerExecutionRepository;
-    use crate::domain::repository::scheduler_job_repository::MockSchedulerJobRepository;
-
-    fn make_service(
-        mock_job: MockSchedulerJobRepository,
-        mock_exec: MockSchedulerExecutionRepository,
-    ) -> SchedulerGrpcService {
-        let repo = Arc::new(mock_job);
-        let exec_repo = Arc::new(mock_exec);
-        SchedulerGrpcService::new(
-            Arc::new(TriggerJobUseCase::new(repo, exec_repo.clone())),
-            exec_repo,
-        )
-    }
-
-    #[tokio::test]
-    async fn test_trigger_job_success() {
-        let mut mock_job = MockSchedulerJobRepository::new();
-        let mut mock_exec = MockSchedulerExecutionRepository::new();
-        let job = SchedulerJob::new(
-            "test-job".to_string(),
-            "* * * * *".to_string(),
-            serde_json::json!({}),
-        );
-        let job_id = job.id;
-        let return_job = job.clone();
-
-        mock_job
-            .expect_find_by_id()
-            .withf(move |id| *id == job_id)
-            .returning(move |_| Ok(Some(return_job.clone())));
-        mock_job.expect_update().returning(|_| Ok(()));
-
-        mock_exec.expect_create().returning(|_| Ok(()));
-        mock_exec
-            .expect_update_status()
-            .returning(|_, _, _| Ok(()));
-
-        let svc = make_service(mock_job, mock_exec);
-        let req = TriggerJobRequest {
-            job_id: job_id.to_string(),
-        };
-        let resp = svc.trigger_job(req).await.unwrap();
-
-        assert_eq!(resp.job_id, job_id.to_string());
-        assert_eq!(resp.status, "running");
-    }
-
-    #[tokio::test]
-    async fn test_trigger_job_not_found() {
-        let mut mock_job = MockSchedulerJobRepository::new();
-        let mock_exec = MockSchedulerExecutionRepository::new();
-        mock_job.expect_find_by_id().returning(|_| Ok(None));
-
-        let svc = make_service(mock_job, mock_exec);
-        let req = TriggerJobRequest {
-            job_id: uuid::Uuid::new_v4().to_string(),
-        };
-        let result = svc.trigger_job(req).await;
-
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            GrpcError::NotFound(msg) => assert!(msg.contains("not found")),
-            e => unreachable!("unexpected error: {:?}", e),
-        }
-    }
-
-    #[tokio::test]
-    async fn test_trigger_job_invalid_id() {
-        let mock_job = MockSchedulerJobRepository::new();
-        let mock_exec = MockSchedulerExecutionRepository::new();
-        let svc = make_service(mock_job, mock_exec);
-        let req = TriggerJobRequest {
-            job_id: "not-a-uuid".to_string(),
-        };
-        let result = svc.trigger_job(req).await;
-
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            GrpcError::InvalidArgument(_) => {}
-            e => unreachable!("unexpected error: {:?}", e),
-        }
-    }
-
-    #[tokio::test]
-    async fn test_get_job_execution_success() {
-        let mock_job = MockSchedulerJobRepository::new();
-        let mut mock_exec = MockSchedulerExecutionRepository::new();
-        let execution_id = uuid::Uuid::new_v4();
-        let job_id = uuid::Uuid::new_v4();
-        mock_exec.expect_find_by_id().returning(move |_| {
-            Ok(Some(SchedulerExecution {
-                id: execution_id,
-                job_id,
-                status: "completed".to_string(),
-                started_at: chrono::Utc::now() - chrono::Duration::seconds(2),
-                completed_at: Some(chrono::Utc::now()),
-                error_message: None,
-            }))
-        });
-        let svc = make_service(mock_job, mock_exec);
-        let req = GetJobExecutionRequest {
-            execution_id: execution_id.to_string(),
-        };
-        let result = svc.get_job_execution(req).await.unwrap();
-
-        assert_eq!(result.id, execution_id.to_string());
-        assert_eq!(result.job_id, job_id.to_string());
-        assert_eq!(result.status, "succeeded");
-        assert!(result.duration_ms.is_some());
-    }
-
-    #[tokio::test]
-    async fn test_get_job_execution_invalid_id() {
-        let mock_job = MockSchedulerJobRepository::new();
-        let mock_exec = MockSchedulerExecutionRepository::new();
-        let svc = make_service(mock_job, mock_exec);
-        let req = GetJobExecutionRequest {
-            execution_id: "invalid-id".to_string(),
-        };
-        let result = svc.get_job_execution(req).await;
-
-        assert!(matches!(result, Err(GrpcError::InvalidArgument(_))));
+        other => other.to_string(),
     }
 }

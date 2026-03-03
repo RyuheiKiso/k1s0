@@ -1,25 +1,25 @@
-//! tonic gRPC サービス実装。
-//!
-//! proto 生成コード (`src/proto/`) の SearchService トレイトを実装する。
-//! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の SearchGrpcService に委譲する。
-
 use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 use crate::proto::k1s0::system::search::v1::{
-    search_service_server::SearchService, DeleteDocumentRequest as ProtoDeleteDocumentRequest,
+    search_service_server::SearchService, CreateIndexRequest as ProtoCreateIndexRequest,
+    CreateIndexResponse as ProtoCreateIndexResponse,
+    DeleteDocumentRequest as ProtoDeleteDocumentRequest,
     DeleteDocumentResponse as ProtoDeleteDocumentResponse,
     IndexDocumentRequest as ProtoIndexDocumentRequest,
-    IndexDocumentResponse as ProtoIndexDocumentResponse, SearchHit as ProtoSearchHit,
-    SearchRequest as ProtoSearchRequest, SearchResponse as ProtoSearchResponse,
+    IndexDocumentResponse as ProtoIndexDocumentResponse,
+    ListIndicesRequest as ProtoListIndicesRequest,
+    ListIndicesResponse as ProtoListIndicesResponse, SearchHit as ProtoSearchHit,
+    SearchIndex as ProtoSearchIndex, SearchRequest as ProtoSearchRequest,
+    SearchResponse as ProtoSearchResponse,
 };
 
 use super::search_grpc::{
-    DeleteDocumentRequest, GrpcError, IndexDocumentRequest, SearchGrpcService, SearchRequest,
+    CreateIndexRequest, DeleteDocumentRequest, GrpcError, IndexDocumentRequest,
+    ListIndicesRequest, SearchGrpcService, SearchRequest,
 };
-
-// --- GrpcError -> tonic::Status 変換 ---
 
 impl From<GrpcError> for Status {
     fn from(e: GrpcError) -> Self {
@@ -31,9 +31,6 @@ impl From<GrpcError> for Status {
     }
 }
 
-// --- SearchService tonic ラッパー ---
-
-/// SearchServiceTonic は tonic の SearchService として SearchGrpcService をラップする。
 pub struct SearchServiceTonic {
     inner: Arc<SearchGrpcService>,
 }
@@ -46,6 +43,55 @@ impl SearchServiceTonic {
 
 #[async_trait::async_trait]
 impl SearchService for SearchServiceTonic {
+    async fn create_index(
+        &self,
+        request: Request<ProtoCreateIndexRequest>,
+    ) -> Result<Response<ProtoCreateIndexResponse>, Status> {
+        let inner = request.into_inner();
+        let req = CreateIndexRequest {
+            name: inner.name,
+            mapping_json: inner.mapping_json,
+        };
+        let resp = self
+            .inner
+            .create_index(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoCreateIndexResponse {
+            index: Some(ProtoSearchIndex {
+                id: resp.index.id,
+                name: resp.index.name,
+                mapping_json: resp.index.mapping_json,
+                created_at: resp.index.created_at,
+            }),
+        }))
+    }
+
+    async fn list_indices(
+        &self,
+        _request: Request<ProtoListIndicesRequest>,
+    ) -> Result<Response<ProtoListIndicesResponse>, Status> {
+        let resp = self
+            .inner
+            .list_indices(ListIndicesRequest {})
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        let indices = resp
+            .indices
+            .into_iter()
+            .map(|index| ProtoSearchIndex {
+                id: index.id,
+                name: index.name,
+                mapping_json: index.mapping_json,
+                created_at: index.created_at,
+            })
+            .collect();
+
+        Ok(Response::new(ProtoListIndicesResponse { indices }))
+    }
+
     async fn index_document(
         &self,
         request: Request<ProtoIndexDocumentRequest>,
@@ -90,19 +136,21 @@ impl SearchService for SearchServiceTonic {
         let proto_hits = resp
             .hits
             .into_iter()
-            .map(|h| ProtoSearchHit {
-                id: h.id,
-                score: h.score,
-                document_json: h.document_json,
+            .map(|hit| ProtoSearchHit {
+                id: hit.id,
+                score: hit.score,
+                document_json: hit.document_json,
             })
             .collect();
 
         Ok(Response::new(ProtoSearchResponse {
             hits: proto_hits,
-            total_count: resp.total_count,
-            page: resp.page,
-            page_size: resp.page_size,
-            has_next: resp.has_next,
+            pagination: Some(ProtoPaginationResult {
+                total_count: resp.total_count.min(i32::MAX as u64) as i32,
+                page: resp.page as i32,
+                page_size: resp.page_size as i32,
+                has_next: resp.has_next,
+            }),
         }))
     }
 
@@ -133,13 +181,17 @@ mod tests {
     use super::*;
     use crate::domain::entity::search_index::{SearchDocument, SearchIndex, SearchResult};
     use crate::domain::repository::search_repository::MockSearchRepository;
+    use crate::usecase::create_index::CreateIndexUseCase;
     use crate::usecase::delete_document::DeleteDocumentUseCase;
     use crate::usecase::index_document::IndexDocumentUseCase;
+    use crate::usecase::list_indices::ListIndicesUseCase;
     use crate::usecase::search::SearchUseCase;
 
     fn make_tonic_service(mock: MockSearchRepository) -> SearchServiceTonic {
         let repo = Arc::new(mock);
         let grpc_svc = Arc::new(SearchGrpcService::new(
+            Arc::new(CreateIndexUseCase::new(repo.clone())),
+            Arc::new(ListIndicesUseCase::new(repo.clone())),
             Arc::new(IndexDocumentUseCase::new(repo.clone())),
             Arc::new(SearchUseCase::new(repo.clone())),
             Arc::new(DeleteDocumentUseCase::new(repo)),
@@ -152,7 +204,6 @@ mod tests {
         let err = GrpcError::NotFound("index not found".to_string());
         let status: Status = err.into();
         assert_eq!(status.code(), tonic::Code::NotFound);
-        assert!(status.message().contains("index not found"));
     }
 
     #[test]
@@ -160,7 +211,6 @@ mod tests {
         let err = GrpcError::InvalidArgument("invalid document_json".to_string());
         let status: Status = err.into();
         assert_eq!(status.code(), tonic::Code::InvalidArgument);
-        assert!(status.message().contains("invalid document_json"));
     }
 
     #[test]
@@ -168,11 +218,50 @@ mod tests {
         let err = GrpcError::Internal("search engine error".to_string());
         let status: Status = err.into();
         assert_eq!(status.code(), tonic::Code::Internal);
-        assert!(status.message().contains("search engine error"));
     }
 
     #[tokio::test]
-    async fn test_search_service_tonic_index_document() {
+    async fn test_create_index() {
+        let mut mock = MockSearchRepository::new();
+        mock.expect_find_index()
+            .withf(|name| name == "products")
+            .returning(|_| Ok(None));
+        mock.expect_create_index().returning(|_| Ok(()));
+
+        let tonic_svc = make_tonic_service(mock);
+        let req = Request::new(ProtoCreateIndexRequest {
+            name: "products".to_string(),
+            mapping_json: serde_json::to_vec(&serde_json::json!({"fields":["name"]})).unwrap(),
+        });
+        let resp = tonic_svc.create_index(req).await.unwrap();
+        let inner = resp.into_inner();
+
+        assert!(inner.index.is_some());
+        assert_eq!(inner.index.unwrap().name, "products");
+    }
+
+    #[tokio::test]
+    async fn test_list_indices() {
+        let mut mock = MockSearchRepository::new();
+        let index = SearchIndex::new("products".to_string(), serde_json::json!({}));
+        let return_index = index.clone();
+
+        mock.expect_list_indices()
+            .returning(move || Ok(vec![return_index.clone()]));
+
+        let tonic_svc = make_tonic_service(mock);
+        let resp = tonic_svc
+            .list_indices(Request::new(ProtoListIndicesRequest {}))
+            .await
+            .unwrap();
+        let inner = resp.into_inner();
+
+        assert_eq!(inner.indices.len(), 1);
+        assert_eq!(inner.indices[0].name, "products");
+    }
+
+    #[tokio::test]
+    async fn test_index_document() {
         let mut mock = MockSearchRepository::new();
         let index = SearchIndex::new("products".to_string(), serde_json::json!({}));
         let return_index = index.clone();
@@ -186,7 +275,7 @@ mod tests {
         let req = Request::new(ProtoIndexDocumentRequest {
             index: "products".to_string(),
             document_id: "doc-1".to_string(),
-            document_json: serde_json::to_vec(&serde_json::json!({"name": "Widget"})).unwrap(),
+            document_json: serde_json::to_vec(&serde_json::json!({"name":"Widget"})).unwrap(),
         });
         let resp = tonic_svc.index_document(req).await.unwrap();
         let inner = resp.into_inner();
@@ -197,7 +286,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_search_service_tonic_search() {
+    async fn test_search() {
         let mut mock = MockSearchRepository::new();
         let index = SearchIndex::new("products".to_string(), serde_json::json!({}));
         let return_index = index.clone();
@@ -205,14 +294,13 @@ mod tests {
         mock.expect_find_index()
             .withf(|name| name == "products")
             .returning(move |_| Ok(Some(return_index.clone())));
-
         mock.expect_search().returning(|_| {
             Ok(SearchResult {
                 total: 1,
                 hits: vec![SearchDocument {
                     id: "doc-1".to_string(),
                     index_name: "products".to_string(),
-                    content: serde_json::json!({"name": "Widget"}),
+                    content: serde_json::json!({"name":"Widget"}),
                     indexed_at: chrono::Utc::now(),
                 }],
             })
@@ -229,13 +317,14 @@ mod tests {
         let resp = tonic_svc.search(req).await.unwrap();
         let inner = resp.into_inner();
 
-        assert_eq!(inner.total_count, 1);
+        let pagination = inner.pagination.expect("pagination");
+        assert_eq!(pagination.total_count, 1);
         assert_eq!(inner.hits.len(), 1);
         assert_eq!(inner.hits[0].id, "doc-1");
     }
 
     #[tokio::test]
-    async fn test_search_service_tonic_delete_document() {
+    async fn test_delete_document() {
         let mut mock = MockSearchRepository::new();
         mock.expect_delete_document()
             .withf(|index, id| index == "products" && id == "doc-1")

@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 use crate::proto::k1s0::system::dlq::v1::{
     dlq_service_server::DlqService,
     DlqMessage as ProtoDlqMessage,
@@ -28,6 +29,7 @@ impl From<GrpcError> for Status {
         match e {
             GrpcError::NotFound(msg) => Status::not_found(msg),
             GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
+            GrpcError::FailedPrecondition(msg) => Status::failed_precondition(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
         }
     }
@@ -79,15 +81,23 @@ impl DlqService for DlqServiceTonic {
         request: Request<ProtoListMessagesRequest>,
     ) -> Result<Response<ProtoListMessagesResponse>, Status> {
         let inner = request.into_inner();
+        let page = if inner.page < 1 { 1 } else { inner.page };
+        let page_size = if inner.page_size < 1 { 20 } else { inner.page_size };
         let (messages, total) = self
             .inner
-            .list_messages(&inner.topic, inner.page, inner.page_size)
+            .list_messages(&inner.topic, page, page_size)
             .await
             .map_err(Into::<Status>::into)?;
+        let has_next = (page as i64 * page_size as i64) < total;
 
         Ok(Response::new(ProtoListMessagesResponse {
             messages: messages.into_iter().map(domain_to_proto).collect(),
-            total,
+            pagination: Some(ProtoPaginationResult {
+                total_count: total.min(i32::MAX as i64) as i32,
+                page,
+                page_size,
+                has_next,
+            }),
         }))
     }
 

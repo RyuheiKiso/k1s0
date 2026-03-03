@@ -49,6 +49,8 @@ system tier の設定管理サーバーは以下の機能を提供する。
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |
 
+> `GET /api/v1/config-schema` は登録済みサービスの設定スキーマ一覧を返す。
+
 #### GET /api/v1/config/:namespace/:key
 
 指定された namespace とキーに対応する設定値を取得する。
@@ -493,6 +495,9 @@ enum ConfigFieldType {
   CONFIG_FIELD_TYPE_ARRAY       = 7;
 }
 ```
+
+> `WatchConfig` は gRPC Server-Side Streaming 専用 API。REST API には同等エンドポイントを持たず、変更通知は Kafka トピック経由で配信する。
+> REST でサービス向け設定を取得する場合は `GET /api/v1/config/services/:service_name?environment=<env>` を使用する（`environment` は `dev` / `staging` / `prod`）。
 
 ---
 

@@ -18,11 +18,15 @@ use crate::proto::k1s0::system::notification::v1::{
     DeleteTemplateRequest as ProtoDeleteTemplateRequest,
     DeleteTemplateResponse as ProtoDeleteTemplateResponse,
     GetChannelRequest as ProtoGetChannelRequest, GetChannelResponse as ProtoGetChannelResponse,
+    ListNotificationsRequest as ProtoListNotificationsRequest,
+    ListNotificationsResponse as ProtoListNotificationsResponse,
     GetNotificationRequest as ProtoGetNotificationRequest,
     GetNotificationResponse as ProtoGetNotificationResponse,
     GetTemplateRequest as ProtoGetTemplateRequest, GetTemplateResponse as ProtoGetTemplateResponse,
     ListChannelsRequest as ProtoListChannelsRequest,
     ListChannelsResponse as ProtoListChannelsResponse,
+    RetryNotificationRequest as ProtoRetryNotificationRequest,
+    RetryNotificationResponse as ProtoRetryNotificationResponse,
     ListTemplatesRequest as ProtoListTemplatesRequest,
     ListTemplatesResponse as ProtoListTemplatesResponse, NotificationLog as ProtoNotificationLog,
     SendNotificationRequest as ProtoSendNotificationRequest,
@@ -32,12 +36,13 @@ use crate::proto::k1s0::system::notification::v1::{
     UpdateTemplateRequest as ProtoUpdateTemplateRequest,
     UpdateTemplateResponse as ProtoUpdateTemplateResponse,
 };
+use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 
 use super::notification_grpc::{
     CreateChannelRequest, CreateTemplateRequest, DeleteChannelRequest, DeleteTemplateRequest,
     GetChannelRequest, GetNotificationRequest, GetTemplateRequest, GrpcError, ListChannelsRequest,
-    ListTemplatesRequest, NotificationGrpcService, SendNotificationRequest, UpdateChannelRequest,
-    UpdateTemplateRequest,
+    ListNotificationsRequest, ListTemplatesRequest, NotificationGrpcService,
+    RetryNotificationRequest, SendNotificationRequest, UpdateChannelRequest, UpdateTemplateRequest,
 };
 
 // --- GrpcError -> tonic::Status 変換 ---
@@ -47,6 +52,7 @@ impl From<GrpcError> for Status {
         match e {
             GrpcError::NotFound(msg) => Status::not_found(msg),
             GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
+            GrpcError::FailedPrecondition(msg) => Status::failed_precondition(msg),
             GrpcError::ChannelDisabled(msg) => Status::failed_precondition(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
         }
@@ -150,6 +156,83 @@ impl NotificationService for NotificationServiceTonic {
         }))
     }
 
+    async fn retry_notification(
+        &self,
+        request: Request<ProtoRetryNotificationRequest>,
+    ) -> Result<Response<ProtoRetryNotificationResponse>, Status> {
+        let inner = request.into_inner();
+        let req = RetryNotificationRequest {
+            notification_id: inner.notification_id,
+        };
+        let resp = self
+            .inner
+            .retry_notification(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+        let n = resp.notification;
+        Ok(Response::new(ProtoRetryNotificationResponse {
+            notification: Some(ProtoNotificationLog {
+                id: n.id,
+                channel_id: n.channel_id,
+                channel_type: n.channel_type,
+                template_id: n.template_id,
+                recipient: n.recipient,
+                subject: n.subject,
+                body: n.body,
+                status: n.status,
+                retry_count: n.retry_count,
+                error_message: n.error_message,
+                sent_at: n.sent_at,
+                created_at: n.created_at,
+            }),
+        }))
+    }
+
+    async fn list_notifications(
+        &self,
+        request: Request<ProtoListNotificationsRequest>,
+    ) -> Result<Response<ProtoListNotificationsResponse>, Status> {
+        let inner = request.into_inner();
+        let req = ListNotificationsRequest {
+            channel_id: inner.channel_id,
+            status: inner.status,
+            page: inner.page,
+            page_size: inner.page_size,
+        };
+        let resp = self
+            .inner
+            .list_notifications(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoListNotificationsResponse {
+            notifications: resp
+                .notifications
+                .into_iter()
+                .map(|n| ProtoNotificationLog {
+                    id: n.id,
+                    channel_id: n.channel_id,
+                    channel_type: n.channel_type,
+                    template_id: n.template_id,
+                    recipient: n.recipient,
+                    subject: n.subject,
+                    body: n.body,
+                    status: n.status,
+                    retry_count: n.retry_count,
+                    error_message: n.error_message,
+                    sent_at: n.sent_at,
+                    created_at: n.created_at,
+                })
+                .collect(),
+            pagination: Some(ProtoPaginationResult {
+                total_count: resp.total as i32,
+                page: resp.page as i32,
+                page_size: resp.page_size as i32,
+                has_next: resp.has_next,
+            }),
+        }))
+    }
+
     async fn list_channels(
         &self,
         request: Request<ProtoListChannelsRequest>,
@@ -168,7 +251,12 @@ impl NotificationService for NotificationServiceTonic {
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoListChannelsResponse {
             channels: resp.channels.iter().map(channel_to_proto).collect(),
-            total: resp.total,
+            pagination: Some(ProtoPaginationResult {
+                total_count: resp.total as i32,
+                page: resp.page as i32,
+                page_size: resp.page_size as i32,
+                has_next: resp.has_next,
+            }),
         }))
     }
 
@@ -268,7 +356,12 @@ impl NotificationService for NotificationServiceTonic {
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoListTemplatesResponse {
             templates: resp.templates.iter().map(template_to_proto).collect(),
-            total: resp.total,
+            pagination: Some(ProtoPaginationResult {
+                total_count: resp.total as i32,
+                page: resp.page as i32,
+                page_size: resp.page_size as i32,
+                has_next: resp.has_next,
+            }),
         }))
     }
 
@@ -374,6 +467,14 @@ mod tests {
         let status: Status = err.into();
         assert_eq!(status.code(), tonic::Code::FailedPrecondition);
         assert!(status.message().contains("channel disabled"));
+    }
+
+    #[test]
+    fn test_grpc_error_failed_precondition_to_status() {
+        let err = GrpcError::FailedPrecondition("already sent".to_string());
+        let status: Status = err.into();
+        assert_eq!(status.code(), tonic::Code::FailedPrecondition);
+        assert!(status.message().contains("already sent"));
     }
 
     #[test]

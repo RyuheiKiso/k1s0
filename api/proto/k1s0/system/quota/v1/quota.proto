@@ -4,6 +4,8 @@ package k1s0.system.quota.v1;
 
 option go_package = "github.com/k1s0/api/gen/go/k1s0/system/quota/v1;quotav1";
 
+import "k1s0/system/common/v1/types.proto";
+
 /// QuotaService はクォータポリシー管理サービス。
 service QuotaService {
   rpc CreateQuotaPolicy(CreateQuotaPolicyRequest) returns (CreateQuotaPolicyResponse);
@@ -12,6 +14,7 @@ service QuotaService {
   rpc UpdateQuotaPolicy(UpdateQuotaPolicyRequest) returns (UpdateQuotaPolicyResponse);
   rpc DeleteQuotaPolicy(DeleteQuotaPolicyRequest) returns (DeleteQuotaPolicyResponse);
   rpc GetQuotaUsage(GetQuotaUsageRequest) returns (GetQuotaUsageResponse);
+  rpc CheckQuota(CheckQuotaRequest) returns (CheckQuotaResponse);
   rpc IncrementQuotaUsage(IncrementQuotaUsageRequest) returns (IncrementQuotaUsageResponse);
   rpc ResetQuotaUsage(ResetQuotaUsageRequest) returns (ResetQuotaUsageResponse);
 }
@@ -37,6 +40,9 @@ message QuotaUsage {
   uint64 remaining = 7;
   double usage_percent = 8;
   bool exceeded = 9;
+  k1s0.system.common.v1.Timestamp period_start = 10;
+  k1s0.system.common.v1.Timestamp period_end = 11;
+  k1s0.system.common.v1.Timestamp reset_at = 12;
 }
 
 message CreateQuotaPolicyRequest {
@@ -64,6 +70,9 @@ message GetQuotaPolicyResponse {
 message ListQuotaPoliciesRequest {
   uint32 page = 1;
   uint32 page_size = 2;
+  optional string subject_type = 3;
+  optional string subject_id = 4;
+  optional bool enabled_only = 5;
 }
 
 message ListQuotaPoliciesResponse {
@@ -100,6 +109,14 @@ message GetQuotaUsageRequest {
 }
 
 message GetQuotaUsageResponse {
+  QuotaUsage usage = 1;
+}
+
+message CheckQuotaRequest {
+  string quota_id = 1;
+}
+
+message CheckQuotaResponse {
   QuotaUsage usage = 1;
 }
 

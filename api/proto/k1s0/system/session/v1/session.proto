@@ -6,6 +6,8 @@ package k1s0.system.session.v1;
 
 option go_package = "github.com/k1s0-platform/system-proto-go/session/v1;sessionv1";
 
+import "k1s0/system/common/v1/types.proto";
+
 service SessionService {
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
@@ -28,8 +30,8 @@ message CreateSessionResponse {
   string session_id = 1;
   string user_id = 2;
   string device_id = 3;
-  string expires_at = 4;
-  string created_at = 5;
+  k1s0.system.common.v1.Timestamp expires_at = 4;
+  k1s0.system.common.v1.Timestamp created_at = 5;
 }
 
 message GetSessionRequest {
@@ -46,7 +48,7 @@ message RefreshSessionRequest {
 
 message RefreshSessionResponse {
   string session_id = 1;
-  string expires_at = 2;
+  k1s0.system.common.v1.Timestamp expires_at = 2;
 }
 
 message RevokeSessionRequest {
@@ -83,7 +85,7 @@ message Session {
   optional string user_agent = 6;
   optional string ip_address = 7;
   string status = 8;
-  string expires_at = 9;
-  string created_at = 10;
-  optional string last_accessed_at = 11;
+  k1s0.system.common.v1.Timestamp expires_at = 9;
+  k1s0.system.common.v1.Timestamp created_at = 10;
+  optional k1s0.system.common.v1.Timestamp last_accessed_at = 11;
 }

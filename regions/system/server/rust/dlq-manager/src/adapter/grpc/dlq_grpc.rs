@@ -14,6 +14,7 @@ use crate::usecase::{
 pub enum GrpcError {
     NotFound(String),
     InvalidArgument(String),
+    FailedPrecondition(String),
     Internal(String),
 }
 
@@ -82,7 +83,7 @@ impl DlqGrpcService {
                 if msg.contains("not found") {
                     GrpcError::NotFound(msg)
                 } else if msg.contains("not retryable") {
-                    GrpcError::InvalidArgument(msg)
+                    GrpcError::FailedPrecondition(msg)
                 } else {
                     GrpcError::Internal(msg)
                 }

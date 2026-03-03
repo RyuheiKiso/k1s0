@@ -16,6 +16,8 @@ use crate::proto::k1s0::system::saga::v1::{
     GetSagaResponse as ProtoGetSagaResponse, ListSagasRequest as ProtoListSagasRequest,
     ListSagasResponse as ProtoListSagasResponse, ListWorkflowsRequest as ProtoListWorkflowsRequest,
     ListWorkflowsResponse as ProtoListWorkflowsResponse,
+    CompensateSagaRequest as ProtoCompensateSagaRequest,
+    CompensateSagaResponse as ProtoCompensateSagaResponse,
     RegisterWorkflowRequest as ProtoRegisterWorkflowRequest,
     RegisterWorkflowResponse as ProtoRegisterWorkflowResponse, SagaStateProto as ProtoSagaState,
     SagaStepLogProto as ProtoSagaStepLog, StartSagaRequest as ProtoStartSagaRequest,
@@ -23,8 +25,8 @@ use crate::proto::k1s0::system::saga::v1::{
 };
 
 use super::saga_grpc::{
-    CancelSagaRequest, GetSagaRequest, GrpcError, ListSagasRequest, ListWorkflowsRequest,
-    RegisterWorkflowRequest, SagaGrpcService, StartSagaRequest,
+    CancelSagaRequest, CompensateSagaRequest, GetSagaRequest, GrpcError, ListSagasRequest,
+    ListWorkflowsRequest, RegisterWorkflowRequest, SagaGrpcService, StartSagaRequest,
 };
 
 // --- GrpcError -> tonic::Status 変換 ---
@@ -34,6 +36,7 @@ impl From<GrpcError> for Status {
         match e {
             GrpcError::NotFound(msg) => Status::not_found(msg),
             GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
+            GrpcError::FailedPrecondition(msg) => Status::failed_precondition(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
         }
     }
@@ -217,6 +220,25 @@ impl SagaService for SagaServiceTonic {
         }))
     }
 
+    async fn compensate_saga(
+        &self,
+        request: Request<ProtoCompensateSagaRequest>,
+    ) -> Result<Response<ProtoCompensateSagaResponse>, Status> {
+        let req = CompensateSagaRequest {
+            saga_id: request.into_inner().saga_id,
+        };
+        let resp = self
+            .inner
+            .compensate_saga(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoCompensateSagaResponse {
+            success: resp.success,
+            status: resp.status,
+            message: resp.message,
+        }))
+    }
+
     async fn register_workflow(
         &self,
         request: Request<ProtoRegisterWorkflowRequest>,
@@ -281,11 +303,13 @@ mod tests {
         register_workflow_uc: Arc<RegisterWorkflowUseCase>,
         list_workflows_uc: Arc<ListWorkflowsUseCase>,
     ) -> SagaServiceTonic {
+        let execute_saga_uc = make_dummy_execute_uc();
         let grpc_svc = Arc::new(SagaGrpcService::new(
             start_saga_uc,
             get_saga_uc,
             list_sagas_uc,
             cancel_saga_uc,
+            execute_saga_uc,
             register_workflow_uc,
             list_workflows_uc,
         ));
@@ -307,6 +331,14 @@ mod tests {
             Arc::new(mock_saga_repo2),
             Arc::new(mock_wf_repo),
             execute_uc,
+        ))
+    }
+
+    fn make_dummy_execute_uc() -> Arc<ExecuteSagaUseCase> {
+        Arc::new(ExecuteSagaUseCase::new(
+            Arc::new(MockSagaRepository::new()),
+            Arc::new(MockGrpcStepCaller::new()),
+            None,
         ))
     }
 

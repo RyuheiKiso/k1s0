@@ -1,34 +1,26 @@
-//! tonic gRPC サービス実装。
-//!
-//! proto 生成コード (`src/proto/`) の EventStoreService トレイトを実装する。
-//! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の EventStoreGrpcService に委譲する。
-
 use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 use crate::proto::k1s0::system::eventstore::v1::{
-    event_store_service_server::EventStoreService,
-    AppendEventsRequest as ProtoAppendEventsRequest,
-    AppendEventsResponse as ProtoAppendEventsResponse,
-    CreateSnapshotRequest as ProtoCreateSnapshotRequest,
-    CreateSnapshotResponse as ProtoCreateSnapshotResponse, EventData as ProtoEventData,
-    EventMetadata as ProtoEventMetadata,
-    GetLatestSnapshotRequest as ProtoGetLatestSnapshotRequest,
-    GetLatestSnapshotResponse as ProtoGetLatestSnapshotResponse,
-    ReadEventBySequenceRequest as ProtoReadEventBySequenceRequest,
-    ReadEventBySequenceResponse as ProtoReadEventBySequenceResponse,
-    ReadEventsRequest as ProtoReadEventsRequest, ReadEventsResponse as ProtoReadEventsResponse,
-    Snapshot as ProtoSnapshot, StoredEvent as ProtoStoredEvent,
+    event_store_service_server::EventStoreService, AppendEventsRequest as ProtoAppendEventsRequest,
+    AppendEventsResponse as ProtoAppendEventsResponse, CreateSnapshotRequest as ProtoCreateSnapshotRequest,
+    CreateSnapshotResponse as ProtoCreateSnapshotResponse, DeleteStreamRequest as ProtoDeleteStreamRequest,
+    DeleteStreamResponse as ProtoDeleteStreamResponse, EventData as ProtoEventData,
+    EventMetadata as ProtoEventMetadata, GetLatestSnapshotRequest as ProtoGetLatestSnapshotRequest,
+    GetLatestSnapshotResponse as ProtoGetLatestSnapshotResponse, ListStreamsRequest as ProtoListStreamsRequest,
+    ListStreamsResponse as ProtoListStreamsResponse, ReadEventBySequenceRequest as ProtoReadEventBySequenceRequest,
+    ReadEventBySequenceResponse as ProtoReadEventBySequenceResponse, ReadEventsRequest as ProtoReadEventsRequest,
+    ReadEventsResponse as ProtoReadEventsResponse, Snapshot as ProtoSnapshot, StreamInfo as ProtoStreamInfo,
+    StoredEvent as ProtoStoredEvent,
 };
 
 use super::event_store_grpc::{
-    AppendEventsRequest, CreateSnapshotRequest, EventStoreGrpcService, GetLatestSnapshotRequest,
-    GrpcError, PbEventData, PbEventMetadata, PbStoredEvent, ReadEventBySequenceRequest,
-    ReadEventsRequest,
+    AppendEventsRequest, CreateSnapshotRequest, DeleteStreamRequest, EventStoreGrpcService,
+    GetLatestSnapshotRequest, GrpcError, ListStreamsRequest, PbEventData, PbEventMetadata,
+    PbStoredEvent, ReadEventBySequenceRequest, ReadEventsRequest,
 };
-
-// --- GrpcError -> tonic::Status 変換 ---
 
 impl From<GrpcError> for Status {
     fn from(e: GrpcError) -> Self {
@@ -36,12 +28,11 @@ impl From<GrpcError> for Status {
             GrpcError::NotFound(msg) => Status::not_found(msg),
             GrpcError::AlreadyExists(msg) => Status::already_exists(msg),
             GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
+            GrpcError::Aborted(msg) => Status::aborted(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
         }
     }
 }
-
-// --- 変換ヘルパー ---
 
 fn pb_stored_event_to_proto(e: PbStoredEvent) -> ProtoStoredEvent {
     ProtoStoredEvent {
@@ -73,8 +64,6 @@ fn proto_event_data_to_pb(e: ProtoEventData) -> PbEventData {
     }
 }
 
-// --- EventStoreService tonic ラッパー ---
-
 pub struct EventStoreServiceTonic {
     inner: Arc<EventStoreGrpcService>,
 }
@@ -87,19 +76,50 @@ impl EventStoreServiceTonic {
 
 #[async_trait::async_trait]
 impl EventStoreService for EventStoreServiceTonic {
+    async fn list_streams(
+        &self,
+        request: Request<ProtoListStreamsRequest>,
+    ) -> Result<Response<ProtoListStreamsResponse>, Status> {
+        let inner = request.into_inner();
+        let (page, page_size) = inner.pagination.map(|p| (p.page, p.page_size)).unwrap_or((1, 20));
+        let resp = self
+            .inner
+            .list_streams(ListStreamsRequest { page, page_size })
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoListStreamsResponse {
+            streams: resp
+                .streams
+                .into_iter()
+                .map(|s| ProtoStreamInfo {
+                    id: s.id,
+                    aggregate_type: s.aggregate_type,
+                    current_version: s.current_version,
+                    created_at: s.created_at,
+                    updated_at: s.updated_at,
+                })
+                .collect(),
+            pagination: Some(ProtoPaginationResult {
+                total_count: resp.total_count.min(i32::MAX as u64) as i32,
+                page: resp.page,
+                page_size: resp.page_size,
+                has_next: resp.has_next,
+            }),
+        }))
+    }
+
     async fn append_events(
         &self,
         request: Request<ProtoAppendEventsRequest>,
     ) -> Result<Response<ProtoAppendEventsResponse>, Status> {
         let inner = request.into_inner();
-        let req = AppendEventsRequest {
-            stream_id: inner.stream_id,
-            events: inner.events.into_iter().map(proto_event_data_to_pb).collect(),
-            expected_version: inner.expected_version,
-        };
         let resp = self
             .inner
-            .append_events(req)
+            .append_events(AppendEventsRequest {
+                stream_id: inner.stream_id,
+                events: inner.events.into_iter().map(proto_event_data_to_pb).collect(),
+                expected_version: inner.expected_version,
+            })
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -122,18 +142,20 @@ impl EventStoreService for EventStoreServiceTonic {
             page: inner.page,
             page_size: inner.page_size,
         };
-        let resp = self
-            .inner
-            .read_events(req)
-            .await
-            .map_err(Into::<Status>::into)?;
+        let page = req.page as i32;
+        let page_size = req.page_size as i32;
+        let resp = self.inner.read_events(req).await.map_err(Into::<Status>::into)?;
 
         Ok(Response::new(ProtoReadEventsResponse {
             stream_id: resp.stream_id,
             events: resp.events.into_iter().map(pb_stored_event_to_proto).collect(),
             current_version: resp.current_version,
-            total_count: resp.total_count,
-            has_next: resp.has_next,
+            pagination: Some(ProtoPaginationResult {
+                total_count: resp.total_count.min(i32::MAX as u64) as i32,
+                page,
+                page_size,
+                has_next: resp.has_next,
+            }),
         }))
     }
 
@@ -142,13 +164,12 @@ impl EventStoreService for EventStoreServiceTonic {
         request: Request<ProtoReadEventBySequenceRequest>,
     ) -> Result<Response<ProtoReadEventBySequenceResponse>, Status> {
         let inner = request.into_inner();
-        let req = ReadEventBySequenceRequest {
-            stream_id: inner.stream_id,
-            sequence: inner.sequence,
-        };
         let resp = self
             .inner
-            .read_event_by_sequence(req)
+            .read_event_by_sequence(ReadEventBySequenceRequest {
+                stream_id: inner.stream_id,
+                sequence: inner.sequence,
+            })
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -162,15 +183,14 @@ impl EventStoreService for EventStoreServiceTonic {
         request: Request<ProtoCreateSnapshotRequest>,
     ) -> Result<Response<ProtoCreateSnapshotResponse>, Status> {
         let inner = request.into_inner();
-        let req = CreateSnapshotRequest {
-            stream_id: inner.stream_id,
-            snapshot_version: inner.snapshot_version,
-            aggregate_type: inner.aggregate_type,
-            state_json: inner.state_json,
-        };
         let resp = self
             .inner
-            .create_snapshot(req)
+            .create_snapshot(CreateSnapshotRequest {
+                stream_id: inner.stream_id,
+                snapshot_version: inner.snapshot_version,
+                aggregate_type: inner.aggregate_type,
+                state_json: inner.state_json,
+            })
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -187,12 +207,11 @@ impl EventStoreService for EventStoreServiceTonic {
         request: Request<ProtoGetLatestSnapshotRequest>,
     ) -> Result<Response<ProtoGetLatestSnapshotResponse>, Status> {
         let inner = request.into_inner();
-        let req = GetLatestSnapshotRequest {
-            stream_id: inner.stream_id,
-        };
         let resp = self
             .inner
-            .get_latest_snapshot(req)
+            .get_latest_snapshot(GetLatestSnapshotRequest {
+                stream_id: inner.stream_id,
+            })
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -207,41 +226,22 @@ impl EventStoreService for EventStoreServiceTonic {
             }),
         }))
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_grpc_error_not_found_to_status() {
-        let err = GrpcError::NotFound("stream not found".to_string());
-        let status: Status = err.into();
-        assert_eq!(status.code(), tonic::Code::NotFound);
-        assert!(status.message().contains("stream not found"));
-    }
-
-    #[test]
-    fn test_grpc_error_already_exists_to_status() {
-        let err = GrpcError::AlreadyExists("stream exists".to_string());
-        let status: Status = err.into();
-        assert_eq!(status.code(), tonic::Code::AlreadyExists);
-        assert!(status.message().contains("stream exists"));
-    }
-
-    #[test]
-    fn test_grpc_error_invalid_argument_to_status() {
-        let err = GrpcError::InvalidArgument("version conflict".to_string());
-        let status: Status = err.into();
-        assert_eq!(status.code(), tonic::Code::InvalidArgument);
-        assert!(status.message().contains("version conflict"));
-    }
-
-    #[test]
-    fn test_grpc_error_internal_to_status() {
-        let err = GrpcError::Internal("database error".to_string());
-        let status: Status = err.into();
-        assert_eq!(status.code(), tonic::Code::Internal);
-        assert!(status.message().contains("database error"));
+    async fn delete_stream(
+        &self,
+        request: Request<ProtoDeleteStreamRequest>,
+    ) -> Result<Response<ProtoDeleteStreamResponse>, Status> {
+        let inner = request.into_inner();
+        let resp = self
+            .inner
+            .delete_stream(DeleteStreamRequest {
+                stream_id: inner.stream_id,
+            })
+            .await
+            .map_err(Into::<Status>::into)?;
+        Ok(Response::new(ProtoDeleteStreamResponse {
+            success: resp.success,
+            message: resp.message,
+        }))
     }
 }

@@ -25,6 +25,7 @@ impl From<GrpcError> for Status {
         match e {
             GrpcError::NotFound(msg) => Status::not_found(msg),
             GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
+            GrpcError::Aborted(msg) => Status::aborted(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
         }
     }
@@ -409,6 +410,14 @@ mod tests {
         let status: Status = err.into();
         assert_eq!(status.code(), Code::Internal);
         assert!(status.message().contains("database error"));
+    }
+
+    #[test]
+    fn test_grpc_error_aborted_to_status() {
+        let err = GrpcError::Aborted("version conflict".to_string());
+        let status: Status = err.into();
+        assert_eq!(status.code(), Code::Aborted);
+        assert!(status.message().contains("version conflict"));
     }
 
     #[tokio::test]

@@ -5,11 +5,73 @@ pub struct GetSchemaRequest {
     pub name: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListSchemasRequest {
+    #[prost(string, tag = "1")]
+    pub schema_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListSchemasResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub schemas: ::prost::alloc::vec::Vec<ApiSchemaProto>,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RegisterSchemaRequest {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub schema_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub content: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub registered_by: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RegisterSchemaResponse {
+    #[prost(message, optional, tag = "1")]
+    pub version: ::core::option::Option<ApiSchemaVersionProto>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSchemaResponse {
     #[prost(message, optional, tag = "1")]
     pub schema: ::core::option::Option<ApiSchemaProto>,
     #[prost(string, tag = "2")]
     pub latest_content: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListVersionsRequest {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListVersionsResponse {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub versions: ::prost::alloc::vec::Vec<ApiSchemaVersionProto>,
+    #[prost(message, optional, tag = "3")]
+    pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RegisterVersionRequest {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub content: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub registered_by: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RegisterVersionResponse {
+    #[prost(message, optional, tag = "1")]
+    pub version: ::core::option::Option<ApiSchemaVersionProto>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSchemaVersionRequest {
@@ -22,6 +84,20 @@ pub struct GetSchemaVersionRequest {
 pub struct GetSchemaVersionResponse {
     #[prost(message, optional, tag = "1")]
     pub version: ::core::option::Option<ApiSchemaVersionProto>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteVersionRequest {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "2")]
+    pub version: u32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteVersionResponse {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+    #[prost(string, tag = "2")]
+    pub message: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckCompatibilityRequest {
@@ -42,6 +118,28 @@ pub struct CheckCompatibilityResponse {
     pub result: ::core::option::Option<CompatibilityResultProto>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDiffRequest {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(uint32, optional, tag = "2")]
+    pub from_version: ::core::option::Option<u32>,
+    #[prost(uint32, optional, tag = "3")]
+    pub to_version: ::core::option::Option<u32>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDiffResponse {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "2")]
+    pub from_version: u32,
+    #[prost(uint32, tag = "3")]
+    pub to_version: u32,
+    #[prost(bool, tag = "4")]
+    pub breaking_changes: bool,
+    #[prost(message, optional, tag = "5")]
+    pub diff: ::core::option::Option<SchemaDiffProto>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ApiSchemaProto {
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
@@ -54,9 +152,9 @@ pub struct ApiSchemaProto {
     #[prost(uint32, tag = "5")]
     pub version_count: u32,
     #[prost(message, optional, tag = "6")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "7")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ApiSchemaVersionProto {
@@ -75,7 +173,7 @@ pub struct ApiSchemaVersionProto {
     #[prost(string, tag = "7")]
     pub registered_by: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "8")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, repeated, tag = "9")]
     pub breaking_change_details: ::prost::alloc::vec::Vec<ChangeDetail>,
 }
@@ -97,6 +195,33 @@ pub struct CompatibilityResultProto {
     #[prost(message, repeated, tag = "3")]
     pub non_breaking_changes: ::prost::alloc::vec::Vec<ChangeDetail>,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SchemaDiffProto {
+    #[prost(message, repeated, tag = "1")]
+    pub added: ::prost::alloc::vec::Vec<DiffEntryProto>,
+    #[prost(message, repeated, tag = "2")]
+    pub modified: ::prost::alloc::vec::Vec<DiffModifiedEntryProto>,
+    #[prost(message, repeated, tag = "3")]
+    pub removed: ::prost::alloc::vec::Vec<DiffEntryProto>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DiffEntryProto {
+    #[prost(string, tag = "1")]
+    pub path: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub r#type: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DiffModifiedEntryProto {
+    #[prost(string, tag = "1")]
+    pub path: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub before: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub after: ::prost::alloc::string::String,
+}
 /// Generated server implementations.
 pub mod api_registry_service_server {
     #![allow(
@@ -110,11 +235,39 @@ pub mod api_registry_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with ApiRegistryServiceServer.
     #[async_trait]
     pub trait ApiRegistryService: std::marker::Send + std::marker::Sync + 'static {
+        async fn list_schemas(
+            &self,
+            request: tonic::Request<super::ListSchemasRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListSchemasResponse>,
+            tonic::Status,
+        >;
+        async fn register_schema(
+            &self,
+            request: tonic::Request<super::RegisterSchemaRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RegisterSchemaResponse>,
+            tonic::Status,
+        >;
         async fn get_schema(
             &self,
             request: tonic::Request<super::GetSchemaRequest>,
         ) -> std::result::Result<
             tonic::Response<super::GetSchemaResponse>,
+            tonic::Status,
+        >;
+        async fn list_versions(
+            &self,
+            request: tonic::Request<super::ListVersionsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListVersionsResponse>,
+            tonic::Status,
+        >;
+        async fn register_version(
+            &self,
+            request: tonic::Request<super::RegisterVersionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RegisterVersionResponse>,
             tonic::Status,
         >;
         async fn get_schema_version(
@@ -124,6 +277,13 @@ pub mod api_registry_service_server {
             tonic::Response<super::GetSchemaVersionResponse>,
             tonic::Status,
         >;
+        async fn delete_version(
+            &self,
+            request: tonic::Request<super::DeleteVersionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteVersionResponse>,
+            tonic::Status,
+        >;
         async fn check_compatibility(
             &self,
             request: tonic::Request<super::CheckCompatibilityRequest>,
@@ -131,6 +291,10 @@ pub mod api_registry_service_server {
             tonic::Response<super::CheckCompatibilityResponse>,
             tonic::Status,
         >;
+        async fn get_diff(
+            &self,
+            request: tonic::Request<super::GetDiffRequest>,
+        ) -> std::result::Result<tonic::Response<super::GetDiffResponse>, tonic::Status>;
     }
     #[derive(Debug)]
     pub struct ApiRegistryServiceServer<T> {
@@ -208,6 +372,98 @@ pub mod api_registry_service_server {
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             match req.uri().path() {
+                "/k1s0.system.apiregistry.v1.ApiRegistryService/ListSchemas" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListSchemasSvc<T: ApiRegistryService>(pub Arc<T>);
+                    impl<
+                        T: ApiRegistryService,
+                    > tonic::server::UnaryService<super::ListSchemasRequest>
+                    for ListSchemasSvc<T> {
+                        type Response = super::ListSchemasResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListSchemasRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ApiRegistryService>::list_schemas(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListSchemasSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.apiregistry.v1.ApiRegistryService/RegisterSchema" => {
+                    #[allow(non_camel_case_types)]
+                    struct RegisterSchemaSvc<T: ApiRegistryService>(pub Arc<T>);
+                    impl<
+                        T: ApiRegistryService,
+                    > tonic::server::UnaryService<super::RegisterSchemaRequest>
+                    for RegisterSchemaSvc<T> {
+                        type Response = super::RegisterSchemaResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::RegisterSchemaRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ApiRegistryService>::register_schema(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = RegisterSchemaSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/k1s0.system.apiregistry.v1.ApiRegistryService/GetSchema" => {
                     #[allow(non_camel_case_types)]
                     struct GetSchemaSvc<T: ApiRegistryService>(pub Arc<T>);
@@ -238,6 +494,98 @@ pub mod api_registry_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetSchemaSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.apiregistry.v1.ApiRegistryService/ListVersions" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListVersionsSvc<T: ApiRegistryService>(pub Arc<T>);
+                    impl<
+                        T: ApiRegistryService,
+                    > tonic::server::UnaryService<super::ListVersionsRequest>
+                    for ListVersionsSvc<T> {
+                        type Response = super::ListVersionsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListVersionsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ApiRegistryService>::list_versions(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListVersionsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.apiregistry.v1.ApiRegistryService/RegisterVersion" => {
+                    #[allow(non_camel_case_types)]
+                    struct RegisterVersionSvc<T: ApiRegistryService>(pub Arc<T>);
+                    impl<
+                        T: ApiRegistryService,
+                    > tonic::server::UnaryService<super::RegisterVersionRequest>
+                    for RegisterVersionSvc<T> {
+                        type Response = super::RegisterVersionResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::RegisterVersionRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ApiRegistryService>::register_version(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = RegisterVersionSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
@@ -302,6 +650,52 @@ pub mod api_registry_service_server {
                     };
                     Box::pin(fut)
                 }
+                "/k1s0.system.apiregistry.v1.ApiRegistryService/DeleteVersion" => {
+                    #[allow(non_camel_case_types)]
+                    struct DeleteVersionSvc<T: ApiRegistryService>(pub Arc<T>);
+                    impl<
+                        T: ApiRegistryService,
+                    > tonic::server::UnaryService<super::DeleteVersionRequest>
+                    for DeleteVersionSvc<T> {
+                        type Response = super::DeleteVersionResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DeleteVersionRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ApiRegistryService>::delete_version(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = DeleteVersionSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/k1s0.system.apiregistry.v1.ApiRegistryService/CheckCompatibility" => {
                     #[allow(non_camel_case_types)]
                     struct CheckCompatibilitySvc<T: ApiRegistryService>(pub Arc<T>);
@@ -336,6 +730,51 @@ pub mod api_registry_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CheckCompatibilitySvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.apiregistry.v1.ApiRegistryService/GetDiff" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetDiffSvc<T: ApiRegistryService>(pub Arc<T>);
+                    impl<
+                        T: ApiRegistryService,
+                    > tonic::server::UnaryService<super::GetDiffRequest>
+                    for GetDiffSvc<T> {
+                        type Response = super::GetDiffResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetDiffRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ApiRegistryService>::get_diff(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetDiffSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

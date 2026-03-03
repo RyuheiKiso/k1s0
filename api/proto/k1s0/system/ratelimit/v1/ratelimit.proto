@@ -5,7 +5,6 @@ package k1s0.system.ratelimit.v1;
 option go_package = "github.com/k1s0-platform/system-proto-go/ratelimit/v1;ratelimitv1";
 
 import "google/protobuf/timestamp.proto";
-import "k1s0/system/common/v1/types.proto";
 
 // RateLimitService は API レート制限サービス。
 // スライディングウィンドウ・トークンバケット等のアルゴリズムをサポートする。
@@ -16,6 +15,12 @@ service RateLimitService {
   rpc CreateRule(CreateRuleRequest) returns (CreateRuleResponse);
   // GetRule はルールIDでルール情報を取得する。
   rpc GetRule(GetRuleRequest) returns (GetRuleResponse);
+  // UpdateRule はルールを更新する。
+  rpc UpdateRule(UpdateRuleRequest) returns (UpdateRuleResponse);
+  // DeleteRule はルールを削除する。
+  rpc DeleteRule(DeleteRuleRequest) returns (DeleteRuleResponse);
+  // ListRules はルール一覧を取得する。
+  rpc ListRules(ListRulesRequest) returns (ListRulesResponse);
   // GetUsage はレートリミットの使用状況を取得する。
   rpc GetUsage(GetUsageRequest) returns (GetUsageResponse);
   // ResetLimit はレートリミットの状態をリセットする。
@@ -23,8 +28,9 @@ service RateLimitService {
 }
 
 message CheckRateLimitRequest {
-  string rule_id = 1;
-  string subject = 2;
+  string scope = 1;
+  string identifier = 2;
+  int64 window = 3;
 }
 
 message CheckRateLimitResponse {
@@ -35,11 +41,11 @@ message CheckRateLimitResponse {
 }
 
 message CreateRuleRequest {
-  string name = 1;
-  string key = 2;
+  string scope = 1;
+  string identifier_pattern = 2;
   int64 limit = 3;
-  int64 window_secs = 4;
-  string algorithm = 5;
+  int64 window_seconds = 4;
+  bool enabled = 5;
 }
 
 message CreateRuleResponse {
@@ -54,15 +60,43 @@ message GetRuleResponse {
   RateLimitRule rule = 1;
 }
 
+message UpdateRuleRequest {
+  string rule_id = 1;
+  string scope = 2;
+  string identifier_pattern = 3;
+  int64 limit = 4;
+  int64 window_seconds = 5;
+  bool enabled = 6;
+}
+
+message UpdateRuleResponse {
+  RateLimitRule rule = 1;
+}
+
+message DeleteRuleRequest {
+  string rule_id = 1;
+}
+
+message DeleteRuleResponse {
+  bool success = 1;
+}
+
+message ListRulesRequest {}
+
+message ListRulesResponse {
+  repeated RateLimitRule rules = 1;
+}
+
 message RateLimitRule {
   string id = 1;
-  string name = 2;
-  string key = 3;
+  string scope = 2;
+  string identifier_pattern = 3;
   int64 limit = 4;
-  int64 window_secs = 5;
+  int64 window_seconds = 5;
   string algorithm = 6;
   bool enabled = 7;
   google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
 }
 
 message GetUsageRequest {
@@ -76,6 +110,9 @@ message GetUsageResponse {
   int64 window_secs = 4;
   string algorithm = 5;
   bool enabled = 6;
+  optional int64 used = 7;
+  optional int64 remaining = 8;
+  optional int64 reset_at = 9;
 }
 
 message ResetLimitRequest {

@@ -6,9 +6,13 @@ package k1s0.system.notification.v1;
 
 option go_package = "github.com/k1s0-platform/system-proto-go/notification/v1;notificationv1";
 
+import "k1s0/system/common/v1/types.proto";
+
 service NotificationService {
   rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
   rpc GetNotification(GetNotificationRequest) returns (GetNotificationResponse);
+  rpc RetryNotification(RetryNotificationRequest) returns (RetryNotificationResponse);
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse);
   rpc ListChannels(ListChannelsRequest) returns (ListChannelsResponse);
   rpc CreateChannel(CreateChannelRequest) returns (CreateChannelResponse);
   rpc GetChannel(GetChannelRequest) returns (GetChannelResponse);
@@ -42,6 +46,26 @@ message GetNotificationRequest {
 
 message GetNotificationResponse {
   NotificationLog notification = 1;
+}
+
+message RetryNotificationRequest {
+  string notification_id = 1;
+}
+
+message RetryNotificationResponse {
+  NotificationLog notification = 1;
+}
+
+message ListNotificationsRequest {
+  optional string channel_id = 1;
+  optional string status = 2;
+  uint32 page = 3;
+  uint32 page_size = 4;
+}
+
+message ListNotificationsResponse {
+  repeated NotificationLog notifications = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message NotificationLog {
@@ -78,7 +102,7 @@ message ListChannelsRequest {
 
 message ListChannelsResponse {
   repeated Channel channels = 1;
-  uint64 total = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message CreateChannelRequest {
@@ -138,7 +162,7 @@ message ListTemplatesRequest {
 
 message ListTemplatesResponse {
   repeated Template templates = 1;
-  uint64 total = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message CreateTemplateRequest {

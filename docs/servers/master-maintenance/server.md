@@ -651,28 +651,54 @@ import "k1s0/system/common/v1/types.proto";
 
 service MasterMaintenanceService {
   // テーブル定義
-  rpc GetTableDefinition(GetTableDefinitionRequest) returns (TableDefinitionResponse);
+  rpc GetTableDefinition(GetTableDefinitionRequest) returns (GetTableDefinitionResponse);
   rpc ListTableDefinitions(ListTableDefinitionsRequest) returns (ListTableDefinitionsResponse);
+  rpc ListColumns(ListColumnsRequest) returns (ListColumnsResponse);
+  rpc CreateColumns(CreateColumnsRequest) returns (CreateColumnsResponse);
+  rpc UpdateColumn(UpdateColumnRequest) returns (UpdateColumnResponse);
+  rpc DeleteColumn(DeleteColumnRequest) returns (DeleteColumnResponse);
 
   // データ CRUD
-  rpc GetRecord(GetRecordRequest) returns (RecordResponse);
+  rpc GetRecord(GetRecordRequest) returns (GetRecordResponse);
   rpc ListRecords(ListRecordsRequest) returns (ListRecordsResponse);
-  rpc CreateRecord(CreateRecordRequest) returns (RecordResponse);
-  rpc UpdateRecord(UpdateRecordRequest) returns (RecordResponse);
+  rpc CreateRecord(CreateRecordRequest) returns (CreateRecordResponse);
+  rpc UpdateRecord(UpdateRecordRequest) returns (UpdateRecordResponse);
   rpc DeleteRecord(DeleteRecordRequest) returns (DeleteRecordResponse);
 
   // 整合性チェック
   rpc CheckConsistency(CheckConsistencyRequest) returns (CheckConsistencyResponse);
 
   // JSON Schema
-  rpc GetTableSchema(GetTableSchemaRequest) returns (TableSchemaResponse);
+  rpc GetTableSchema(GetTableSchemaRequest) returns (GetTableSchemaResponse);
+
+  // Relationship
+  rpc ListRelationships(ListRelationshipsRequest) returns (ListRelationshipsResponse);
+  rpc CreateRelationship(CreateRelationshipRequest) returns (CreateRelationshipResponse);
+  rpc UpdateRelationship(UpdateRelationshipRequest) returns (UpdateRelationshipResponse);
+  rpc DeleteRelationship(DeleteRelationshipRequest) returns (DeleteRelationshipResponse);
+
+  // Import / Export
+  rpc ImportRecords(ImportRecordsRequest) returns (ImportRecordsResponse);
+  rpc ExportRecords(ExportRecordsRequest) returns (ExportRecordsResponse);
+  rpc GetImportJob(GetImportJobRequest) returns (GetImportJobResponse);
+
+  // Display Config
+  rpc ListDisplayConfigs(ListDisplayConfigsRequest) returns (ListDisplayConfigsResponse);
+  rpc GetDisplayConfig(GetDisplayConfigRequest) returns (GetDisplayConfigResponse);
+  rpc CreateDisplayConfig(CreateDisplayConfigRequest) returns (CreateDisplayConfigResponse);
+  rpc UpdateDisplayConfig(UpdateDisplayConfigRequest) returns (UpdateDisplayConfigResponse);
+  rpc DeleteDisplayConfig(DeleteDisplayConfigRequest) returns (DeleteDisplayConfigResponse);
+
+  // Audit Logs
+  rpc ListTableAuditLogs(ListTableAuditLogsRequest) returns (ListTableAuditLogsResponse);
+  rpc ListRecordAuditLogs(ListRecordAuditLogsRequest) returns (ListRecordAuditLogsResponse);
 }
 
 message GetTableDefinitionRequest {
   string table_name = 1;
 }
 
-message TableDefinitionResponse {
+message GetTableDefinitionResponse {
   string id = 1;
   string name = 2;
   string schema_name = 3;
@@ -716,7 +742,7 @@ message ListTableDefinitionsRequest {
 }
 
 message ListTableDefinitionsResponse {
-  repeated TableDefinitionResponse tables = 1;
+  repeated GetTableDefinitionResponse tables = 1;
   k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
@@ -725,7 +751,17 @@ message GetRecordRequest {
   string record_id = 2;
 }
 
-message RecordResponse {
+message GetRecordResponse {
+  google.protobuf.Struct data = 1;
+  repeated ValidationWarning warnings = 2;
+}
+
+message CreateRecordResponse {
+  google.protobuf.Struct data = 1;
+  repeated ValidationWarning warnings = 2;
+}
+
+message UpdateRecordResponse {
   google.protobuf.Struct data = 1;
   repeated ValidationWarning warnings = 2;
 }
@@ -794,7 +830,7 @@ message GetTableSchemaRequest {
   string table_name = 1;
 }
 
-message TableSchemaResponse {
+message GetTableSchemaResponse {
   string json_schema = 1;
 }
 ```

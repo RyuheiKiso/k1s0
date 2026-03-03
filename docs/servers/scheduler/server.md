@@ -366,8 +366,16 @@ package k1s0.system.scheduler.v1;
 import "k1s0/system/common/v1/types.proto";
 
 service SchedulerService {
+  rpc CreateJob(CreateJobRequest) returns (CreateJobResponse);
+  rpc GetJob(GetJobRequest) returns (GetJobResponse);
+  rpc ListJobs(ListJobsRequest) returns (ListJobsResponse);
+  rpc UpdateJob(UpdateJobRequest) returns (UpdateJobResponse);
+  rpc DeleteJob(DeleteJobRequest) returns (DeleteJobResponse);
+  rpc PauseJob(PauseJobRequest) returns (PauseJobResponse);
+  rpc ResumeJob(ResumeJobRequest) returns (ResumeJobResponse);
   rpc TriggerJob(TriggerJobRequest) returns (TriggerJobResponse);
   rpc GetJobExecution(GetJobExecutionRequest) returns (GetJobExecutionResponse);
+  rpc ListExecutions(ListExecutionsRequest) returns (ListExecutionsResponse);
 }
 
 message TriggerJobRequest {
@@ -404,6 +412,8 @@ message JobExecution {
   optional string error_message = 8;
 }
 ```
+
+> ドメインモデル/REST の `completed_at` は、gRPC proto では `finished_at` にマッピングされる。
 
 ---
 

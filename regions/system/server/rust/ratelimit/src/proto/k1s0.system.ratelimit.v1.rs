@@ -2,9 +2,11 @@
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckRateLimitRequest {
     #[prost(string, tag = "1")]
-    pub rule_id: ::prost::alloc::string::String,
+    pub scope: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub subject: ::prost::alloc::string::String,
+    pub identifier: ::prost::alloc::string::String,
+    #[prost(int64, tag = "3")]
+    pub window: i64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckRateLimitResponse {
@@ -20,15 +22,15 @@ pub struct CheckRateLimitResponse {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateRuleRequest {
     #[prost(string, tag = "1")]
-    pub name: ::prost::alloc::string::String,
+    pub scope: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub key: ::prost::alloc::string::String,
+    pub identifier_pattern: ::prost::alloc::string::String,
     #[prost(int64, tag = "3")]
     pub limit: i64,
     #[prost(int64, tag = "4")]
-    pub window_secs: i64,
-    #[prost(string, tag = "5")]
-    pub algorithm: ::prost::alloc::string::String,
+    pub window_seconds: i64,
+    #[prost(bool, tag = "5")]
+    pub enabled: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateRuleResponse {
@@ -46,23 +48,62 @@ pub struct GetRuleResponse {
     pub rule: ::core::option::Option<RateLimitRule>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateRuleRequest {
+    #[prost(string, tag = "1")]
+    pub rule_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub scope: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub identifier_pattern: ::prost::alloc::string::String,
+    #[prost(int64, tag = "4")]
+    pub limit: i64,
+    #[prost(int64, tag = "5")]
+    pub window_seconds: i64,
+    #[prost(bool, tag = "6")]
+    pub enabled: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateRuleResponse {
+    #[prost(message, optional, tag = "1")]
+    pub rule: ::core::option::Option<RateLimitRule>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteRuleRequest {
+    #[prost(string, tag = "1")]
+    pub rule_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct DeleteRuleResponse {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ListRulesRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListRulesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub rules: ::prost::alloc::vec::Vec<RateLimitRule>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RateLimitRule {
     #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
+    pub scope: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
-    pub key: ::prost::alloc::string::String,
+    pub identifier_pattern: ::prost::alloc::string::String,
     #[prost(int64, tag = "4")]
     pub limit: i64,
     #[prost(int64, tag = "5")]
-    pub window_secs: i64,
+    pub window_seconds: i64,
     #[prost(string, tag = "6")]
     pub algorithm: ::prost::alloc::string::String,
     #[prost(bool, tag = "7")]
     pub enabled: bool,
     #[prost(message, optional, tag = "8")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "9")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetUsageRequest {
@@ -83,6 +124,12 @@ pub struct GetUsageResponse {
     pub algorithm: ::prost::alloc::string::String,
     #[prost(bool, tag = "6")]
     pub enabled: bool,
+    #[prost(int64, optional, tag = "7")]
+    pub used: ::core::option::Option<i64>,
+    #[prost(int64, optional, tag = "8")]
+    pub remaining: ::core::option::Option<i64>,
+    #[prost(int64, optional, tag = "9")]
+    pub reset_at: ::core::option::Option<i64>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResetLimitRequest {
@@ -130,6 +177,30 @@ pub mod rate_limit_service_server {
             &self,
             request: tonic::Request<super::GetRuleRequest>,
         ) -> std::result::Result<tonic::Response<super::GetRuleResponse>, tonic::Status>;
+        /// UpdateRule はルールを更新する。
+        async fn update_rule(
+            &self,
+            request: tonic::Request<super::UpdateRuleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateRuleResponse>,
+            tonic::Status,
+        >;
+        /// DeleteRule はルールを削除する。
+        async fn delete_rule(
+            &self,
+            request: tonic::Request<super::DeleteRuleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteRuleResponse>,
+            tonic::Status,
+        >;
+        /// ListRules はルール一覧を取得する。
+        async fn list_rules(
+            &self,
+            request: tonic::Request<super::ListRulesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListRulesResponse>,
+            tonic::Status,
+        >;
         /// GetUsage はレートリミットの使用状況を取得する。
         async fn get_usage(
             &self,
@@ -346,6 +417,141 @@ pub mod rate_limit_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetRuleSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.ratelimit.v1.RateLimitService/UpdateRule" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateRuleSvc<T: RateLimitService>(pub Arc<T>);
+                    impl<
+                        T: RateLimitService,
+                    > tonic::server::UnaryService<super::UpdateRuleRequest>
+                    for UpdateRuleSvc<T> {
+                        type Response = super::UpdateRuleResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpdateRuleRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RateLimitService>::update_rule(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UpdateRuleSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.ratelimit.v1.RateLimitService/DeleteRule" => {
+                    #[allow(non_camel_case_types)]
+                    struct DeleteRuleSvc<T: RateLimitService>(pub Arc<T>);
+                    impl<
+                        T: RateLimitService,
+                    > tonic::server::UnaryService<super::DeleteRuleRequest>
+                    for DeleteRuleSvc<T> {
+                        type Response = super::DeleteRuleResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DeleteRuleRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RateLimitService>::delete_rule(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = DeleteRuleSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.ratelimit.v1.RateLimitService/ListRules" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListRulesSvc<T: RateLimitService>(pub Arc<T>);
+                    impl<
+                        T: RateLimitService,
+                    > tonic::server::UnaryService<super::ListRulesRequest>
+                    for ListRulesSvc<T> {
+                        type Response = super::ListRulesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListRulesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RateLimitService>::list_rules(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListRulesSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

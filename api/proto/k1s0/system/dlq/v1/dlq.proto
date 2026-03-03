@@ -44,7 +44,7 @@ message ListMessagesRequest {
 /// ListMessagesResponse は一覧取得レスポンス。
 message ListMessagesResponse {
   repeated DlqMessage messages = 1;
-  int64 total = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 /// GetMessageRequest はメッセージ取得リクエスト。

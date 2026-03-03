@@ -182,6 +182,9 @@ pub enum GrpcError {
     #[error("invalid argument: {0}")]
     InvalidArgument(String),
 
+    #[error("aborted: {0}")]
+    Aborted(String),
+
     #[error("internal: {0}")]
     Internal(String),
 }
@@ -390,7 +393,7 @@ impl ConfigGrpcService {
                 Err(GrpcError::InvalidArgument(msg))
             }
             Err(UpdateConfigError::VersionConflict { expected, current }) => {
-                Err(GrpcError::InvalidArgument(format!(
+                Err(GrpcError::Aborted(format!(
                     "version conflict: expected={}, current={}",
                     expected, current
                 )))

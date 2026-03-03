@@ -7,9 +7,10 @@ use crate::domain::entity::navigation::{
 };
 use crate::proto::k1s0::system::navigation::v1::{
     navigation_service_server::NavigationService,
-    GetNavigationRequest as ProtoGetNavigationRequest, Guard as ProtoGuard,
-    GuardType as ProtoGuardType, NavigationResponse as ProtoNavigationResponse,
-    Param as ProtoParam, ParamType as ProtoParamType, Route as ProtoRoute,
+    GetNavigationRequest as ProtoGetNavigationRequest,
+    GetNavigationResponse as ProtoGetNavigationResponse, Guard as ProtoGuard,
+    GuardType as ProtoGuardType, Param as ProtoParam, ParamType as ProtoParamType,
+    Route as ProtoRoute,
     TransitionConfig as ProtoTransitionConfig, TransitionType as ProtoTransitionType,
 };
 
@@ -39,7 +40,7 @@ impl NavigationService for NavigationServiceTonic {
     async fn get_navigation(
         &self,
         request: Request<ProtoGetNavigationRequest>,
-    ) -> Result<Response<ProtoNavigationResponse>, Status> {
+    ) -> Result<Response<ProtoGetNavigationResponse>, Status> {
         let inner = request.into_inner();
         let result = self
             .inner
@@ -47,7 +48,7 @@ impl NavigationService for NavigationServiceTonic {
             .await
             .map_err(Into::<Status>::into)?;
 
-        Ok(Response::new(ProtoNavigationResponse {
+        Ok(Response::new(ProtoGetNavigationResponse {
             routes: result.routes.into_iter().map(route_to_proto).collect(),
             guards: result.guards.into_iter().map(guard_to_proto).collect(),
         }))

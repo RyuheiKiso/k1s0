@@ -246,6 +246,7 @@ async fn main() -> anyhow::Result<()> {
         activate_tenant_uc.clone(),
         delete_tenant_uc.clone(),
         add_member_uc.clone(),
+        list_members_uc.clone(),
         remove_member_uc.clone(),
         get_provisioning_status_uc,
     ));

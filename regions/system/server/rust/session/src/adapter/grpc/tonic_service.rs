@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use crate::proto::k1s0::system::common::v1::Timestamp as ProtoTimestamp;
 use crate::proto::k1s0::system::session::v1::{
     session_service_server::SessionService,
     CreateSessionRequest as ProtoCreateSessionRequest,
@@ -78,8 +79,8 @@ impl SessionService for SessionServiceTonic {
             session_id: resp.session_id,
             user_id: resp.user_id,
             device_id: resp.device_id,
-            expires_at: resp.expires_at,
-            created_at: resp.created_at,
+            expires_at: parse_rfc3339_to_proto_timestamp(&resp.expires_at),
+            created_at: parse_rfc3339_to_proto_timestamp(&resp.created_at),
         }))
     }
 
@@ -116,7 +117,7 @@ impl SessionService for SessionServiceTonic {
 
         Ok(Response::new(ProtoRefreshSessionResponse {
             session_id: resp.session_id,
-            expires_at: resp.expires_at,
+            expires_at: parse_rfc3339_to_proto_timestamp(&resp.expires_at),
         }))
     }
 
@@ -190,10 +191,20 @@ fn pb_session_to_proto(s: &super::session_grpc::PbSession) -> ProtoSession {
         user_agent: s.user_agent.clone(),
         ip_address: s.ip_address.clone(),
         status: s.status.clone(),
-        expires_at: s.expires_at.clone(),
-        created_at: s.created_at.clone(),
-        last_accessed_at: s.last_accessed_at.clone(),
+        expires_at: parse_rfc3339_to_proto_timestamp(&s.expires_at),
+        created_at: parse_rfc3339_to_proto_timestamp(&s.created_at),
+        last_accessed_at: s
+            .last_accessed_at
+            .as_ref()
+            .and_then(|v| parse_rfc3339_to_proto_timestamp(v)),
     }
+}
+
+fn parse_rfc3339_to_proto_timestamp(v: &str) -> Option<ProtoTimestamp> {
+    chrono::DateTime::parse_from_rfc3339(v).ok().map(|dt| ProtoTimestamp {
+        seconds: dt.timestamp(),
+        nanos: dt.timestamp_subsec_nanos() as i32,
+    })
 }
 
 #[cfg(test)]

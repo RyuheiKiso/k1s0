@@ -323,7 +323,7 @@ syntax = "proto3";
 package k1s0.system.file.v1;
 
 service FileService {
-  rpc GetFileMetadata(GetFileMetadataRequest) returns (FileMetadataResponse);
+  rpc GetFileMetadata(GetFileMetadataRequest) returns (GetFileMetadataResponse);
   rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
   rpc GenerateUploadUrl(GenerateUploadUrlRequest) returns (GenerateUploadUrlResponse);
   rpc CompleteUpload(CompleteUploadRequest) returns (CompleteUploadResponse);
@@ -350,7 +350,7 @@ message GetFileMetadataRequest {
   string id = 1;
 }
 
-message FileMetadataResponse {
+message GetFileMetadataResponse {
   FileMetadata metadata = 1;
 }
 
@@ -362,7 +362,7 @@ message ListFilesRequest {
 
 message ListFilesResponse {
   repeated FileMetadata files = 1;
-  uint64 total = 2;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message GenerateUploadUrlRequest {

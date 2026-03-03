@@ -174,11 +174,14 @@ impl AuthGrpcService {
         req: CheckPermissionRequest,
     ) -> Result<CheckPermissionResponse, GrpcError> {
         let input = CheckPermissionInput {
-            user_id: if req.user_id.is_empty() {
-                None
-            } else {
-                Some(req.user_id)
-            },
+            user_id: req.user_id.and_then(|id| {
+                let trimmed = id.trim();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(trimmed.to_string())
+                }
+            }),
             roles: req.roles,
             permission: req.permission,
             resource: req.resource,
@@ -572,7 +575,7 @@ mod tests {
         let svc = make_auth_service(mock_verifier, mock_user_repo);
 
         let req = CheckPermissionRequest {
-            user_id: String::new(),
+            user_id: None,
             permission: "admin".to_string(),
             resource: "users".to_string(),
             roles: vec!["sys_admin".to_string()],
@@ -590,7 +593,7 @@ mod tests {
         let svc = make_auth_service(mock_verifier, mock_user_repo);
 
         let req = CheckPermissionRequest {
-            user_id: String::new(),
+            user_id: None,
             permission: "admin".to_string(),
             resource: "users".to_string(),
             roles: vec!["user".to_string()],
@@ -622,7 +625,7 @@ mod tests {
         let svc = make_auth_service(mock_verifier, mock_user_repo);
 
         let req = CheckPermissionRequest {
-            user_id: "user-uuid-1234".to_string(),
+            user_id: Some("user-uuid-1234".to_string()),
             permission: "admin".to_string(),
             resource: "users".to_string(),
             roles: vec!["user".to_string()],

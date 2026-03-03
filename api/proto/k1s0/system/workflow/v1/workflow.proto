@@ -1,6 +1,6 @@
-// k1s0 ワークフローオーケストレーションサービス gRPC 定義。
+﻿// k1s0 ワークフローオーケストレーションサービス gRPC 定義。
 // 人間タスク・承認フロー込みのワークフローインスタンス管理を提供する。
-// gRPC ポート: 9090
+// gRPC ポート 50051（設定で上書き可能）
 syntax = "proto3";
 
 package k1s0.system.workflow.v1;
@@ -10,10 +10,94 @@ option go_package = "github.com/k1s0-platform/system-proto-go/workflow/v1;workfl
 import "k1s0/system/common/v1/types.proto";
 
 service WorkflowService {
+  rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse);
+  rpc CreateWorkflow(CreateWorkflowRequest) returns (CreateWorkflowResponse);
+  rpc GetWorkflow(GetWorkflowRequest) returns (GetWorkflowResponse);
+  rpc UpdateWorkflow(UpdateWorkflowRequest) returns (UpdateWorkflowResponse);
+  rpc DeleteWorkflow(DeleteWorkflowRequest) returns (DeleteWorkflowResponse);
   rpc StartInstance(StartInstanceRequest) returns (StartInstanceResponse);
   rpc GetInstance(GetInstanceRequest) returns (GetInstanceResponse);
+  rpc ListInstances(ListInstancesRequest) returns (ListInstancesResponse);
+  rpc CancelInstance(CancelInstanceRequest) returns (CancelInstanceResponse);
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  rpc ReassignTask(ReassignTaskRequest) returns (ReassignTaskResponse);
   rpc ApproveTask(ApproveTaskRequest) returns (ApproveTaskResponse);
   rpc RejectTask(RejectTaskRequest) returns (RejectTaskResponse);
+}
+
+message WorkflowStep {
+  string step_id = 1;
+  string name = 2;
+  string step_type = 3;
+  optional string assignee_role = 4;
+  optional uint32 timeout_hours = 5;
+  optional string on_approve = 6;
+  optional string on_reject = 7;
+}
+
+message WorkflowDefinition {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  uint32 version = 4;
+  bool enabled = 5;
+  repeated WorkflowStep steps = 6;
+  k1s0.system.common.v1.Timestamp created_at = 7;
+  k1s0.system.common.v1.Timestamp updated_at = 8;
+}
+
+message ListWorkflowsRequest {
+  bool enabled_only = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+}
+
+message ListWorkflowsResponse {
+  repeated WorkflowDefinition workflows = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message CreateWorkflowRequest {
+  string name = 1;
+  string description = 2;
+  bool enabled = 3;
+  repeated WorkflowStep steps = 4;
+}
+
+message CreateWorkflowResponse {
+  WorkflowDefinition workflow = 1;
+}
+
+message GetWorkflowRequest {
+  string workflow_id = 1;
+}
+
+message GetWorkflowResponse {
+  WorkflowDefinition workflow = 1;
+}
+
+message WorkflowSteps {
+  repeated WorkflowStep items = 1;
+}
+
+message UpdateWorkflowRequest {
+  string workflow_id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional bool enabled = 4;
+  optional WorkflowSteps steps = 5;
+}
+
+message UpdateWorkflowResponse {
+  WorkflowDefinition workflow = 1;
+}
+
+message DeleteWorkflowRequest {
+  string workflow_id = 1;
+}
+
+message DeleteWorkflowResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 message StartInstanceRequest {
@@ -38,6 +122,67 @@ message GetInstanceRequest {
 
 message GetInstanceResponse {
   WorkflowInstance instance = 1;
+}
+
+message ListInstancesRequest {
+  string status = 1;
+  string workflow_id = 2;
+  string initiator_id = 3;
+  k1s0.system.common.v1.Pagination pagination = 4;
+}
+
+message ListInstancesResponse {
+  repeated WorkflowInstance instances = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message CancelInstanceRequest {
+  string instance_id = 1;
+  optional string reason = 2;
+}
+
+message CancelInstanceResponse {
+  WorkflowInstance instance = 1;
+}
+
+message WorkflowTask {
+  string id = 1;
+  string instance_id = 2;
+  string step_id = 3;
+  string step_name = 4;
+  optional string assignee_id = 5;
+  string status = 6;
+  optional k1s0.system.common.v1.Timestamp due_at = 7;
+  optional string comment = 8;
+  optional string actor_id = 9;
+  optional k1s0.system.common.v1.Timestamp decided_at = 10;
+  k1s0.system.common.v1.Timestamp created_at = 11;
+  k1s0.system.common.v1.Timestamp updated_at = 12;
+}
+
+message ListTasksRequest {
+  string assignee_id = 1;
+  string status = 2;
+  string instance_id = 3;
+  bool overdue_only = 4;
+  k1s0.system.common.v1.Pagination pagination = 5;
+}
+
+message ListTasksResponse {
+  repeated WorkflowTask tasks = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message ReassignTaskRequest {
+  string task_id = 1;
+  string new_assignee_id = 2;
+  optional string reason = 3;
+  string actor_id = 4;
+}
+
+message ReassignTaskResponse {
+  WorkflowTask task = 1;
+  optional string previous_assignee_id = 2;
 }
 
 message WorkflowInstance {
@@ -84,3 +229,4 @@ message RejectTaskResponse {
   // インスタンス状態（running / failed）
   string instance_status = 4;
 }
+

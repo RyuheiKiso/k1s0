@@ -136,6 +136,8 @@ async fn main() -> anyhow::Result<()> {
         read_event_by_sequence_uc,
         create_snapshot_uc.clone(),
         get_latest_snapshot_uc.clone(),
+        delete_stream_uc.clone(),
+        stream_repo.clone(),
     ));
 
     let grpc_addr: std::net::SocketAddr =

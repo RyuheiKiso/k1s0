@@ -26,13 +26,26 @@
 
 ---
 
-## API 定義（gRPC）
+## API 定義
+
+### REST API エンドポイント
+
+navigation-server の REST は運用用エンドポイントのみを提供する。  
+ナビゲーション本体の取得 API は gRPC (`GetNavigation`) を正とする。
+
+| Method | Path | Description |
+| --- | --- | --- |
+| GET | `/healthz` | ヘルスチェック |
+| GET | `/readyz` | レディネスチェック |
+| GET | `/metrics` | Prometheus メトリクス |
+
+### gRPC サービス定義
 
 ### サービス: NavigationService
 
 ```protobuf
 service NavigationService {
-  rpc GetNavigation(GetNavigationRequest) returns (NavigationResponse);
+  rpc GetNavigation(GetNavigationRequest) returns (GetNavigationResponse);
 }
 ```
 
@@ -42,7 +55,7 @@ service NavigationService {
 
 | RPC | リクエスト | レスポンス | 説明 |
 | --- | --- | --- | --- |
-| `GetNavigation` | `GetNavigationRequest` | `NavigationResponse` | ナビゲーション設定（ルート・ガード）を取得する |
+| `GetNavigation` | `GetNavigationRequest` | `GetNavigationResponse` | ナビゲーション設定（ルート・ガード）を取得する |
 
 ---
 
@@ -54,7 +67,7 @@ service NavigationService {
 | --- | --- | --- | --- |
 | `bearer_token` | string | 1 | JWT Bearer トークン。省略時は公開ルートのみ返す |
 
-#### NavigationResponse
+#### GetNavigationResponse
 
 | フィールド | 型 | フィールド番号 | 説明 |
 | --- | --- | --- | --- |

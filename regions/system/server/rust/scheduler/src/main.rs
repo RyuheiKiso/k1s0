@@ -112,7 +112,15 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     let grpc_svc = Arc::new(SchedulerGrpcService::new(
+        create_job_uc.clone(),
+        get_job_uc.clone(),
+        list_jobs_uc.clone(),
+        update_job_uc.clone(),
+        delete_job_uc.clone(),
+        pause_job_uc.clone(),
+        resume_job_uc.clone(),
         trigger_job_uc.clone(),
+        list_executions_uc.clone(),
         execution_repo.clone(),
     ));
 

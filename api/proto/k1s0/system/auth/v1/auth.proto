@@ -175,7 +175,7 @@ message RoleList {
 
 // CheckPermissionRequest はパーミッション確認リクエスト。
 message CheckPermissionRequest {
-  string user_id = 1;
+  optional string user_id = 1;
   // read, write, delete, admin
   string permission = 2;
   // users, auth_config, audit_logs, etc.

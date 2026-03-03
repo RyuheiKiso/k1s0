@@ -216,7 +216,7 @@ impl SessionGrpcService {
                         status: status.to_string(),
                         expires_at: s.expires_at.to_rfc3339(),
                         created_at: s.created_at.to_rfc3339(),
-                        last_accessed_at: None,
+                        last_accessed_at: s.metadata.get("last_accessed_at").cloned(),
                     },
                 })
             }
@@ -310,7 +310,7 @@ impl SessionGrpcService {
                             status: status.to_string(),
                             expires_at: s.expires_at.to_rfc3339(),
                             created_at: s.created_at.to_rfc3339(),
-                            last_accessed_at: None,
+                            last_accessed_at: s.metadata.get("last_accessed_at").cloned(),
                         }
                     })
                     .collect();

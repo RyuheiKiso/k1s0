@@ -160,6 +160,7 @@ service SagaService {
   rpc GetSaga(GetSagaRequest) returns (GetSagaResponse);
   rpc ListSagas(ListSagasRequest) returns (ListSagasResponse);
   rpc CancelSaga(CancelSagaRequest) returns (CancelSagaResponse);
+  rpc CompensateSaga(CompensateSagaRequest) returns (CompensateSagaResponse);
   rpc RegisterWorkflow(RegisterWorkflowRequest) returns (RegisterWorkflowResponse);
   rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse);
 }

@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::usecase::delete_secret::{DeleteSecretError, DeleteSecretInput, DeleteSecretUseCase};
 use crate::usecase::get_secret::{GetSecretError, GetSecretInput, GetSecretUseCase};
+use crate::usecase::list_audit_logs::{ListAuditLogsInput, ListAuditLogsUseCase};
 use crate::usecase::list_secrets::ListSecretsUseCase;
 use crate::usecase::set_secret::{SetSecretInput, SetSecretUseCase};
 
@@ -19,6 +20,7 @@ pub struct GetSecretResponse {
     pub path: String,
     pub version: i64,
     pub data: HashMap<String, String>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Clone)]
@@ -30,6 +32,20 @@ pub struct SetSecretRequest {
 #[derive(Debug, Clone)]
 pub struct SetSecretResponse {
     pub version: i64,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RotateSecretRequest {
+    pub path: String,
+    pub data: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RotateSecretResponse {
+    pub path: String,
+    pub new_version: i64,
+    pub rotated: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -49,6 +65,43 @@ pub struct ListSecretsRequest {
 #[derive(Debug, Clone)]
 pub struct ListSecretsResponse {
     pub keys: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct GetSecretMetadataRequest {
+    pub path: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct GetSecretMetadataResponse {
+    pub path: String,
+    pub current_version: i64,
+    pub version_count: i32,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListAuditLogsRequest {
+    pub offset: i32,
+    pub limit: i32,
+}
+
+#[derive(Debug, Clone)]
+pub struct AuditLogEntry {
+    pub id: String,
+    pub key_path: String,
+    pub action: String,
+    pub actor_id: String,
+    pub ip_address: String,
+    pub success: bool,
+    pub error_msg: Option<String>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListAuditLogsResponse {
+    pub logs: Vec<AuditLogEntry>,
 }
 
 // --- gRPC Error ---
@@ -72,6 +125,7 @@ pub struct VaultGrpcService {
     set_secret_uc: Arc<SetSecretUseCase>,
     delete_secret_uc: Arc<DeleteSecretUseCase>,
     list_secrets_uc: Arc<ListSecretsUseCase>,
+    list_audit_logs_uc: Arc<ListAuditLogsUseCase>,
 }
 
 impl VaultGrpcService {
@@ -80,12 +134,14 @@ impl VaultGrpcService {
         set_secret_uc: Arc<SetSecretUseCase>,
         delete_secret_uc: Arc<DeleteSecretUseCase>,
         list_secrets_uc: Arc<ListSecretsUseCase>,
+        list_audit_logs_uc: Arc<ListAuditLogsUseCase>,
     ) -> Self {
         Self {
             get_secret_uc,
             set_secret_uc,
             delete_secret_uc,
             list_secrets_uc,
+            list_audit_logs_uc,
         }
     }
 
@@ -100,15 +156,17 @@ impl VaultGrpcService {
 
         match self.get_secret_uc.execute(&input).await {
             Ok(secret) => {
+                let path = secret.path.clone();
                 let sv = secret
                     .get_version(req.version)
                     .ok_or_else(|| GrpcError::NotFound("version not found".to_string()))?;
                 let version = sv.version;
                 let data = sv.value.data.clone();
                 Ok(GetSecretResponse {
-                    path: secret.path,
+                    path,
                     version,
                     data,
+                    created_at: sv.created_at,
                 })
             }
             Err(GetSecretError::NotFound(path)) => Err(GrpcError::NotFound(path)),
@@ -120,15 +178,50 @@ impl VaultGrpcService {
         &self,
         req: SetSecretRequest,
     ) -> Result<SetSecretResponse, GrpcError> {
+        let path = req.path.clone();
         let input = SetSecretInput {
             path: req.path,
             data: req.data,
         };
 
         match self.set_secret_uc.execute(&input).await {
-            Ok(version) => Ok(SetSecretResponse { version }),
+            Ok(version) => {
+                let secret = self
+                    .get_secret_uc
+                    .execute(&GetSecretInput {
+                        path,
+                        version: Some(version),
+                    })
+                    .await
+                    .map_err(|e| GrpcError::Internal(e.to_string()))?;
+                let created_at = secret
+                    .get_version(Some(version))
+                    .map(|sv| sv.created_at)
+                    .unwrap_or_else(chrono::Utc::now);
+                Ok(SetSecretResponse {
+                    version,
+                    created_at,
+                })
+            }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
+    }
+
+    pub async fn rotate_secret(
+        &self,
+        req: RotateSecretRequest,
+    ) -> Result<RotateSecretResponse, GrpcError> {
+        let set_resp = self
+            .set_secret(SetSecretRequest {
+                path: req.path.clone(),
+                data: req.data,
+            })
+            .await?;
+        Ok(RotateSecretResponse {
+            path: req.path,
+            new_version: set_resp.version,
+            rotated: true,
+        })
     }
 
     pub async fn delete_secret(
@@ -156,6 +249,73 @@ impl VaultGrpcService {
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
+
+    pub async fn get_secret_metadata(
+        &self,
+        req: GetSecretMetadataRequest,
+    ) -> Result<GetSecretMetadataResponse, GrpcError> {
+        let secret = self
+            .get_secret_uc
+            .execute(&GetSecretInput {
+                path: req.path.clone(),
+                version: None,
+            })
+            .await
+            .map_err(|e| match e {
+                GetSecretError::NotFound(path) => GrpcError::NotFound(path),
+                _ => GrpcError::Internal(e.to_string()),
+            })?;
+
+        Ok(GetSecretMetadataResponse {
+            path: secret.path,
+            current_version: secret.current_version,
+            version_count: secret.versions.len() as i32,
+            created_at: secret.created_at,
+            updated_at: secret.updated_at,
+        })
+    }
+
+    pub async fn list_audit_logs(
+        &self,
+        req: ListAuditLogsRequest,
+    ) -> Result<ListAuditLogsResponse, GrpcError> {
+        let input = ListAuditLogsInput {
+            offset: req.offset.max(0) as u32,
+            limit: req.limit.max(1) as u32,
+        };
+
+        let logs = self
+            .list_audit_logs_uc
+            .execute(&input)
+            .await
+            .map_err(|e| GrpcError::Internal(e.to_string()))?;
+
+        let entries = logs
+            .into_iter()
+            .map(|log| {
+                let action = match log.action {
+                    crate::domain::entity::access_log::AccessAction::Read => "read",
+                    crate::domain::entity::access_log::AccessAction::Write => "write",
+                    crate::domain::entity::access_log::AccessAction::Delete => "delete",
+                    crate::domain::entity::access_log::AccessAction::List => "list",
+                }
+                .to_string();
+
+                AuditLogEntry {
+                    id: log.id.to_string(),
+                    key_path: log.path,
+                    action,
+                    actor_id: log.subject.unwrap_or_default(),
+                    ip_address: log.ip_address.unwrap_or_default(),
+                    success: log.success,
+                    error_msg: log.error_msg,
+                    created_at: log.created_at,
+                }
+            })
+            .collect();
+
+        Ok(ListAuditLogsResponse { logs: entries })
+    }
 }
 
 #[cfg(test)]
@@ -177,6 +337,7 @@ mod tests {
             Arc::new(SetSecretUseCase::new(store.clone(), audit.clone())),
             Arc::new(DeleteSecretUseCase::new(store.clone(), audit.clone())),
             Arc::new(ListSecretsUseCase::new(store)),
+            Arc::new(ListAuditLogsUseCase::new(audit)),
         )
     }
 

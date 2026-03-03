@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::file::FileMetadata;
 use crate::domain::repository::FileMetadataRepository;
+use crate::infrastructure::kafka_producer::FileEventPublisher;
 
 #[derive(Debug, Clone)]
 pub struct CompleteUploadInput {
@@ -23,11 +24,18 @@ pub enum CompleteUploadError {
 
 pub struct CompleteUploadUseCase {
     repo: Arc<dyn FileMetadataRepository>,
+    event_publisher: Arc<dyn FileEventPublisher>,
 }
 
 impl CompleteUploadUseCase {
-    pub fn new(repo: Arc<dyn FileMetadataRepository>) -> Self {
-        Self { repo }
+    pub fn new(
+        repo: Arc<dyn FileMetadataRepository>,
+        event_publisher: Arc<dyn FileEventPublisher>,
+    ) -> Self {
+        Self {
+            repo,
+            event_publisher,
+        }
     }
 
     pub async fn execute(
@@ -54,6 +62,22 @@ impl CompleteUploadUseCase {
             .await
             .map_err(|e| CompleteUploadError::Internal(e.to_string()))?;
 
+        let payload = serde_json::json!({
+            "file_id": file.id,
+            "tenant_id": file.tenant_id,
+            "owner_id": file.owner_id,
+            "status": file.status,
+            "checksum_sha256": file.checksum_sha256,
+            "updated_at": file.updated_at.to_rfc3339(),
+        });
+        if let Err(e) = self
+            .event_publisher
+            .publish("file.upload.completed", &payload)
+            .await
+        {
+            tracing::warn!(error = %e, "failed to publish file.upload.completed event");
+        }
+
         Ok(file)
     }
 }
@@ -62,6 +86,7 @@ impl CompleteUploadUseCase {
 mod tests {
     use super::*;
     use crate::domain::repository::file_repository::MockFileMetadataRepository;
+    use crate::infrastructure::kafka_producer::MockFileEventPublisher;
     use std::collections::HashMap;
 
     fn pending_file() -> FileMetadata {
@@ -87,8 +112,10 @@ mod tests {
             .withf(|id| id == "file_001")
             .returning(move |_| Ok(Some(return_file.clone())));
         mock.expect_update().returning(|_| Ok(()));
+        let mut event_publisher = MockFileEventPublisher::new();
+        event_publisher.expect_publish().returning(|_, _| Ok(()));
 
-        let uc = CompleteUploadUseCase::new(Arc::new(mock));
+        let uc = CompleteUploadUseCase::new(Arc::new(mock), Arc::new(event_publisher));
         let input = CompleteUploadInput {
             file_id: "file_001".to_string(),
             checksum_sha256: Some("sha256hash".to_string()),
@@ -105,8 +132,9 @@ mod tests {
     async fn not_found() {
         let mut mock = MockFileMetadataRepository::new();
         mock.expect_find_by_id().returning(|_| Ok(None));
+        let event_publisher = MockFileEventPublisher::new();
 
-        let uc = CompleteUploadUseCase::new(Arc::new(mock));
+        let uc = CompleteUploadUseCase::new(Arc::new(mock), Arc::new(event_publisher));
         let input = CompleteUploadInput {
             file_id: "missing_file".to_string(),
             checksum_sha256: None,
@@ -129,8 +157,9 @@ mod tests {
 
         mock.expect_find_by_id()
             .returning(move |_| Ok(Some(return_file.clone())));
+        let event_publisher = MockFileEventPublisher::new();
 
-        let uc = CompleteUploadUseCase::new(Arc::new(mock));
+        let uc = CompleteUploadUseCase::new(Arc::new(mock), Arc::new(event_publisher));
         let input = CompleteUploadInput {
             file_id: "file_001".to_string(),
             checksum_sha256: None,
@@ -149,8 +178,9 @@ mod tests {
         let mut mock = MockFileMetadataRepository::new();
         mock.expect_find_by_id()
             .returning(|_| Err(anyhow::anyhow!("db error")));
+        let event_publisher = MockFileEventPublisher::new();
 
-        let uc = CompleteUploadUseCase::new(Arc::new(mock));
+        let uc = CompleteUploadUseCase::new(Arc::new(mock), Arc::new(event_publisher));
         let input = CompleteUploadInput {
             file_id: "file_001".to_string(),
             checksum_sha256: None,

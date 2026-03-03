@@ -312,8 +312,14 @@ message ApiSchemaVersionProto {
 
 message CompatibilityResultProto {
   bool compatible = 1;
-  repeated string breaking_changes = 2;
-  repeated string non_breaking_changes = 3;
+  repeated ChangeDetail breaking_changes = 2;
+  repeated ChangeDetail non_breaking_changes = 3;
+}
+
+message ChangeDetail {
+  string change_type = 1;
+  string path = 2;
+  string description = 3;
 }
 ```
 
