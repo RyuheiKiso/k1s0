@@ -108,8 +108,10 @@ impl SessionService for SessionServiceTonic {
         &self,
         request: Request<ProtoRefreshSessionRequest>,
     ) -> Result<Response<ProtoRefreshSessionResponse>, Status> {
+        let inner = request.into_inner();
         let req = RefreshSessionRequest {
-            session_id: request.into_inner().session_id,
+            session_id: inner.session_id,
+            ttl_seconds: inner.ttl_seconds,
         };
         let resp = self
             .inner

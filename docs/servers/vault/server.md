@@ -1,5 +1,8 @@
 ﻿# system-vault-server 設計
 
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+
+
 system tier のシークレット管理サーバー設計を定義する。HashiCorp Vault 統合によるバージョン管理付き KV シークレットストアを提供し、Kafka 通知、SPIFFE 認証、監査ログに対応する。Rust での実装を定義する。
 
 ## 概要
@@ -595,3 +598,4 @@ vault:
 ### Message/Field Corrections
 - Canonical messages include `RotateSecretRequest/Response`, `GetSecretMetadataRequest/Response`, `ListAuditLogsRequest/Response`, `AuditLogEntry`.
 - `GetSecretResponse.updated_at` is present.
+

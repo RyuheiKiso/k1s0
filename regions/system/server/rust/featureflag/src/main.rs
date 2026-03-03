@@ -116,7 +116,7 @@ async fn main() -> anyhow::Result<()> {
         };
 
     // Kafka producer (optional)
-    let _kafka_producer: Arc<dyn infrastructure::kafka_producer::FlagEventPublisher> =
+    let kafka_producer: Arc<dyn infrastructure::kafka_producer::FlagEventPublisher> =
         if let Some(ref kafka_cfg) = cfg.kafka {
             match infrastructure::kafka_producer::KafkaFlagProducer::new(kafka_cfg) {
                 Ok(p) => {
@@ -141,8 +141,14 @@ async fn main() -> anyhow::Result<()> {
     // Use cases
     let evaluate_flag_uc = Arc::new(usecase::EvaluateFlagUseCase::new(flag_repo.clone()));
     let get_flag_uc = Arc::new(usecase::GetFlagUseCase::new(flag_repo.clone()));
-    let create_flag_uc = Arc::new(usecase::CreateFlagUseCase::new(flag_repo.clone()));
-    let update_flag_uc = Arc::new(usecase::UpdateFlagUseCase::new(flag_repo.clone()));
+    let create_flag_uc = Arc::new(usecase::CreateFlagUseCase::new(
+        flag_repo.clone(),
+        kafka_producer.clone(),
+    ));
+    let update_flag_uc = Arc::new(usecase::UpdateFlagUseCase::new(
+        flag_repo.clone(),
+        kafka_producer.clone(),
+    ));
     let delete_flag_uc = Arc::new(usecase::DeleteFlagUseCase::new(flag_repo.clone()));
 
     let grpc_svc = Arc::new(FeatureFlagGrpcService::new(

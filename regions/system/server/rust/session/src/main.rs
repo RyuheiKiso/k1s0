@@ -146,6 +146,7 @@ async fn main() -> anyhow::Result<()> {
 
     let create_uc = Arc::new(usecase::CreateSessionUseCase::new(
         repo.clone(),
+        event_publisher.clone(),
         cfg.session.default_ttl_seconds,
         cfg.session.max_ttl_seconds,
     ));
@@ -154,7 +155,10 @@ async fn main() -> anyhow::Result<()> {
         repo.clone(),
         cfg.session.max_ttl_seconds,
     ));
-    let revoke_uc = Arc::new(usecase::RevokeSessionUseCase::new(repo.clone()));
+    let revoke_uc = Arc::new(usecase::RevokeSessionUseCase::new(
+        repo.clone(),
+        event_publisher.clone(),
+    ));
     let list_uc = Arc::new(usecase::ListUserSessionsUseCase::new(repo.clone()));
     let revoke_all_uc = Arc::new(usecase::RevokeAllSessionsUseCase::new(repo));
 
@@ -203,9 +207,8 @@ async fn main() -> anyhow::Result<()> {
         "infrastructure components initialized"
     );
 
-    // Store metadata_repo and event_publisher for future use by handlers
+    // Store metadata_repo for future use by handlers
     let _metadata_repo = metadata_repo;
-    let _event_publisher = event_publisher;
 
     // Token verifier (JWKS verifier if auth configured)
     let auth_state = if let Some(ref auth_cfg) = cfg.auth {

@@ -68,6 +68,14 @@ pub trait RateLimitStateStore: Send + Sync {
         window_secs: i64,
     ) -> anyhow::Result<RateLimitDecision>;
 
+    /// リーキーバケットアルゴリズムでレートリミットをチェックする。
+    async fn check_leaky_bucket(
+        &self,
+        key: &str,
+        limit: i64,
+        window_secs: i64,
+    ) -> anyhow::Result<RateLimitDecision>;
+
     /// レートリミット状態をリセットする。
     async fn reset(&self, key: &str) -> anyhow::Result<()>;
 

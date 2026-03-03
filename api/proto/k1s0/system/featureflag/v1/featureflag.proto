@@ -30,8 +30,8 @@ message EvaluateFlagResponse {
 }
 
 message EvaluationContext {
-  string user_id = 1;
-  string tenant_id = 2;
+  optional string user_id = 1;
+  optional string tenant_id = 2;
   map<string, string> attributes = 3;
 }
 

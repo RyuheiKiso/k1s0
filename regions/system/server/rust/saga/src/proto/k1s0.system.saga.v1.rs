@@ -24,8 +24,8 @@ pub struct SagaStateProto {
     #[prost(string, tag = "7")]
     pub initiated_by: ::prost::alloc::string::String,
     /// エラーメッセージ（失敗時）
-    #[prost(string, tag = "8")]
-    pub error_message: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "8")]
+    pub error_message: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "9")]
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "10")]
@@ -125,14 +125,14 @@ pub struct ListSagasRequest {
     #[prost(message, optional, tag = "1")]
     pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
     /// ワークフロー名フィルタ（任意）
-    #[prost(string, tag = "2")]
-    pub workflow_name: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "2")]
+    pub workflow_name: ::core::option::Option<::prost::alloc::string::String>,
     /// ステータスフィルタ（任意）
-    #[prost(string, tag = "3")]
-    pub status: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "3")]
+    pub status: ::core::option::Option<::prost::alloc::string::String>,
     /// 相関 ID フィルタ（任意）
-    #[prost(string, tag = "4")]
-    pub correlation_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "4")]
+    pub correlation_id: ::core::option::Option<::prost::alloc::string::String>,
 }
 /// ListSagasResponse は Saga 一覧取得レスポンス。
 #[derive(Clone, PartialEq, ::prost::Message)]

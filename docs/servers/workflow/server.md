@@ -1,4 +1,7 @@
-# system-workflow-server 設計
+﻿# system-workflow-server 設計
+
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+
 
 人間タスク・承認フロー込みのワークフローオーケストレーションサーバー。
 
@@ -1002,3 +1005,4 @@ vault:
 
 ### gRPC Port Correction
 - Canonical gRPC port is `50051`.
+

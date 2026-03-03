@@ -1,4 +1,4 @@
-use axum::{
+﻿use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
@@ -54,7 +54,7 @@ pub async fn list_policies(
                 .into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_LIST_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -78,7 +78,7 @@ pub async fn get_policy(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_GET_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -129,11 +129,11 @@ pub async fn create_policy(
             (StatusCode::CONFLICT, Json(err)).into_response()
         }
         Err(crate::usecase::create_policy::CreatePolicyError::Validation(msg)) => {
-            let err = ErrorResponse::new("SYS_POLICY_VALIDATION", &msg);
+            let err = ErrorResponse::new("SYS_POLICY_VALIDATION_ERROR", &msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(crate::usecase::create_policy::CreatePolicyError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_POLICY_CREATE_FAILED", &msg);
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -163,7 +163,7 @@ pub async fn update_policy(
                 let err = ErrorResponse::new("SYS_POLICY_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_POLICY_UPDATE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -194,7 +194,7 @@ pub async fn delete_policy(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeletePolicyError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_POLICY_DELETE_FAILED", &msg);
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -229,7 +229,7 @@ pub async fn evaluate_policy(
                 let err = ErrorResponse::new("SYS_POLICY_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_POLICY_EVALUATE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -249,7 +249,7 @@ pub async fn list_bundles(State(state): State<AppState>) -> impl IntoResponse {
                 .into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_BUNDLE_LIST_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -289,7 +289,7 @@ pub async fn create_bundle(
             (StatusCode::CREATED, Json(serde_json::to_value(resp).unwrap())).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_BUNDLE_CREATE_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -418,3 +418,4 @@ impl ErrorResponse {
         }
     }
 }
+

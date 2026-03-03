@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::feature_flag::{FeatureFlag, FlagVariant};
 use crate::domain::repository::FeatureFlagRepository;
 use crate::domain::service::FeatureFlagDomainService;
+use crate::infrastructure::kafka_producer::FlagEventPublisher;
 
 #[derive(Debug, Clone)]
 pub struct CreateFlagInput {
@@ -23,11 +24,15 @@ pub enum CreateFlagError {
 
 pub struct CreateFlagUseCase {
     repo: Arc<dyn FeatureFlagRepository>,
+    event_publisher: Arc<dyn FlagEventPublisher>,
 }
 
 impl CreateFlagUseCase {
-    pub fn new(repo: Arc<dyn FeatureFlagRepository>) -> Self {
-        Self { repo }
+    pub fn new(repo: Arc<dyn FeatureFlagRepository>, event_publisher: Arc<dyn FlagEventPublisher>) -> Self {
+        Self {
+            repo,
+            event_publisher,
+        }
     }
 
     pub async fn execute(&self, input: &CreateFlagInput) -> Result<FeatureFlag, CreateFlagError> {
@@ -58,6 +63,11 @@ impl CreateFlagUseCase {
             .await
             .map_err(|e| CreateFlagError::Internal(e.to_string()))?;
 
+        self.event_publisher
+            .publish_flag_changed(&flag.flag_key, flag.enabled)
+            .await
+            .map_err(|e| CreateFlagError::Internal(e.to_string()))?;
+
         Ok(flag)
     }
 }
@@ -66,6 +76,7 @@ impl CreateFlagUseCase {
 mod tests {
     use super::*;
     use crate::domain::repository::flag_repository::MockFeatureFlagRepository;
+    use crate::infrastructure::kafka_producer::MockFlagEventPublisher;
 
     #[tokio::test]
     async fn success() {
@@ -74,8 +85,13 @@ mod tests {
             .withf(|key| key == "new-feature")
             .returning(|_| Ok(false));
         mock.expect_create().returning(|_| Ok(()));
+        let mut mock_publisher = MockFlagEventPublisher::new();
+        mock_publisher
+            .expect_publish_flag_changed()
+            .withf(|key, enabled| key == "new-feature" && *enabled)
+            .returning(|_, _| Ok(()));
 
-        let uc = CreateFlagUseCase::new(Arc::new(mock));
+        let uc = CreateFlagUseCase::new(Arc::new(mock), Arc::new(mock_publisher));
         let input = CreateFlagInput {
             flag_key: "new-feature".to_string(),
             description: "A new feature".to_string(),
@@ -103,7 +119,10 @@ mod tests {
             .withf(|key| key == "existing-feature")
             .returning(|_| Ok(true));
 
-        let uc = CreateFlagUseCase::new(Arc::new(mock));
+        let uc = CreateFlagUseCase::new(
+            Arc::new(mock),
+            Arc::new(crate::infrastructure::kafka_producer::NoopFlagEventPublisher),
+        );
         let input = CreateFlagInput {
             flag_key: "existing-feature".to_string(),
             description: "Existing".to_string(),

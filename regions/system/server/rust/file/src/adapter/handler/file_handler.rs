@@ -1,4 +1,4 @@
-use axum::{
+﻿use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
@@ -40,7 +40,7 @@ pub async fn upload_file(
         )
             .into_response(),
         Err(crate::usecase::generate_upload_url::GenerateUploadUrlError::Validation(msg)) => {
-            let err = ErrorResponse::new("SYS_FILE_VALIDATION", &msg);
+            let err = ErrorResponse::new("SYS_FILE_VALIDATION_ERROR", &msg);
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(crate::usecase::generate_upload_url::GenerateUploadUrlError::SizeExceeded { actual, max }) => {
@@ -51,7 +51,7 @@ pub async fn upload_file(
             (StatusCode::PAYLOAD_TOO_LARGE, Json(err)).into_response()
         }
         Err(crate::usecase::generate_upload_url::GenerateUploadUrlError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_FILE_UPLOAD_FAILED", &msg);
+            let err = ErrorResponse::new("SYS_FILE_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -109,7 +109,7 @@ pub async fn get_file(
                 let err = ErrorResponse::new("SYS_FILE_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_FILE_GET_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_FILE_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -146,7 +146,7 @@ pub async fn list_files(
         )
             .into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_FILE_LIST_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_FILE_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -196,7 +196,7 @@ pub async fn delete_file(
                 let err = ErrorResponse::new("SYS_FILE_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_FILE_DELETE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_FILE_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -257,7 +257,7 @@ pub async fn complete_upload(
                 let err = ErrorResponse::new("SYS_FILE_ALREADY_COMPLETED", &msg);
                 (StatusCode::CONFLICT, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_FILE_COMPLETE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_FILE_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -315,7 +315,7 @@ pub async fn download_url(
                 let err = ErrorResponse::new("SYS_FILE_NOT_AVAILABLE", &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_FILE_DOWNLOAD_URL_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_FILE_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -373,7 +373,7 @@ pub async fn update_file_tags(
                 let err = ErrorResponse::new("SYS_FILE_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_FILE_TAGS_UPDATE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_FILE_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -494,3 +494,4 @@ impl ErrorResponse {
         }
     }
 }
+

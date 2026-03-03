@@ -718,7 +718,7 @@ mod tests {
         let mut state_store = MockRateLimitStateStore::new();
         state_store
             .expect_check_token_bucket()
-            .returning(|_, _, _| Ok(RateLimitDecision::allowed(99, 1700000060)));
+            .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 99, 1700000060)));
 
         let check_uc = Arc::new(crate::usecase::CheckRateLimitUseCase::new(
             Arc::new(repo),
@@ -787,6 +787,7 @@ mod tests {
             .expect_check_token_bucket()
             .returning(|_, _, _| {
                 Ok(RateLimitDecision::denied(
+                    100,
                     0,
                     1700000060,
                     "rate limit exceeded".to_string(),

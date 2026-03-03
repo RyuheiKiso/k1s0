@@ -1,4 +1,4 @@
-use std::sync::Arc;
+﻿use std::sync::Arc;
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -179,7 +179,7 @@ pub async fn index_document(
         .into_response(),
         Err(IndexDocumentError::Internal(msg)) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "SYS_SEARCH_INDEX_DOCUMENT_FAILED",
+            "SYS_SEARCH_INTERNAL_ERROR",
             msg,
         )
         .into_response(),
@@ -221,7 +221,7 @@ pub async fn create_index(
             } else {
                 error_response(
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    "SYS_SEARCH_CREATE_INDEX_FAILED",
+                    "SYS_SEARCH_INTERNAL_ERROR",
                     msg,
                 )
                 .into_response()
@@ -253,7 +253,7 @@ pub async fn list_indices(State(state): State<AppState>) -> impl IntoResponse {
         }
         Err(e) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "SYS_SEARCH_LIST_INDICES_FAILED",
+            "SYS_SEARCH_INTERNAL_ERROR",
             e.to_string(),
         )
         .into_response(),
@@ -280,7 +280,7 @@ pub async fn delete_document_from_index(
         .into_response(),
         Err(DeleteDocumentError::Internal(msg)) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "SYS_SEARCH_DELETE_DOCUMENT_FAILED",
+            "SYS_SEARCH_INTERNAL_ERROR",
             msg,
         )
         .into_response(),
@@ -317,3 +317,4 @@ fn error_response(
         }),
     )
 }
+

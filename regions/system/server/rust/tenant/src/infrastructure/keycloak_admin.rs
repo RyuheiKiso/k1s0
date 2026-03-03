@@ -1,3 +1,5 @@
+use anyhow::Result;
+use async_trait::async_trait;
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -25,6 +27,108 @@ impl KeycloakAdminClient {
 
     pub fn config(&self) -> &KeycloakAdminConfig {
         &self.config
+    }
+
+    async fn admin_token(&self) -> Result<String> {
+        #[derive(serde::Deserialize)]
+        struct TokenResponse {
+            access_token: String,
+        }
+
+        let token_url = format!(
+            "{}/realms/{}/protocol/openid-connect/token",
+            self.config.base_url.trim_end_matches('/'),
+            self.config.realm
+        );
+        let response = self
+            .http_client
+            .post(&token_url)
+            .form(&[
+                ("grant_type", "client_credentials"),
+                ("client_id", self.config.client_id.as_str()),
+                ("client_secret", self.config.client_secret.as_str()),
+            ])
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            anyhow::bail!("failed to get keycloak admin token: {} {}", status, body);
+        }
+
+        let token: TokenResponse = response.json().await?;
+        Ok(token.access_token)
+    }
+}
+
+#[async_trait]
+pub trait KeycloakAdmin: Send + Sync {
+    async fn create_realm(&self, realm_name: &str) -> Result<()>;
+    async fn delete_realm(&self, realm_name: &str) -> Result<()>;
+}
+
+#[async_trait]
+impl KeycloakAdmin for KeycloakAdminClient {
+    async fn create_realm(&self, realm_name: &str) -> Result<()> {
+        let token = self.admin_token().await?;
+        let url = format!("{}/admin/realms", self.config.base_url.trim_end_matches('/'));
+        let response = self
+            .http_client
+            .post(&url)
+            .bearer_auth(token)
+            .json(&serde_json::json!({
+                "realm": realm_name,
+                "enabled": true
+            }))
+            .send()
+            .await?;
+
+        if response.status().is_success() || response.status().as_u16() == 409 {
+            return Ok(());
+        }
+
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        anyhow::bail!("failed to create keycloak realm '{}': {} {}", realm_name, status, body);
+    }
+
+    async fn delete_realm(&self, realm_name: &str) -> Result<()> {
+        let token = self.admin_token().await?;
+        let url = format!(
+            "{}/admin/realms/{}",
+            self.config.base_url.trim_end_matches('/'),
+            realm_name
+        );
+        let response = self
+            .http_client
+            .delete(&url)
+            .bearer_auth(token)
+            .send()
+            .await?;
+
+        if response.status().is_success() || response.status().as_u16() == 404 {
+            return Ok(());
+        }
+
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        anyhow::bail!("failed to delete keycloak realm '{}': {} {}", realm_name, status, body);
+    }
+}
+
+pub struct NoopKeycloakAdmin;
+
+#[async_trait]
+impl KeycloakAdmin for NoopKeycloakAdmin {
+    async fn create_realm(&self, realm_name: &str) -> Result<()> {
+        tracing::debug!(realm_name = %realm_name, "noop keycloak create_realm");
+        Ok(())
+    }
+
+    async fn delete_realm(&self, realm_name: &str) -> Result<()> {
+        tracing::debug!(realm_name = %realm_name, "noop keycloak delete_realm");
+        Ok(())
     }
 }
 

@@ -1,4 +1,5 @@
-﻿use std::sync::Arc;
+﻿use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::usecase::create_index::{CreateIndexError, CreateIndexInput, CreateIndexUseCase};
 use crate::usecase::delete_document::{DeleteDocumentError, DeleteDocumentUseCase};
@@ -54,6 +55,7 @@ pub struct SearchRequest {
     pub filters_json: Vec<u8>,
     pub page: u32,
     pub page_size: u32,
+    pub facets: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -63,6 +65,7 @@ pub struct SearchResponse {
     pub page: u32,
     pub page_size: u32,
     pub has_next: bool,
+    pub facets: HashMap<String, HashMap<String, u64>>,
 }
 
 #[derive(Debug, Clone)]
@@ -236,7 +239,7 @@ impl SearchGrpcService {
             from,
             size: page_size,
             filters,
-            facets: vec![],
+            facets: req.facets,
         };
 
         match self.search_uc.execute(&input).await {
@@ -261,6 +264,7 @@ impl SearchGrpcService {
                     page,
                     page_size,
                     has_next,
+                    facets: result.facets,
                 })
             }
             Err(SearchError::IndexNotFound(name)) => {
@@ -297,13 +301,17 @@ mod tests {
     use super::*;
     use crate::domain::entity::search_index::{SearchDocument, SearchIndex, SearchResult};
     use crate::domain::repository::search_repository::MockSearchRepository;
+    use crate::infrastructure::kafka_producer::NoopSearchEventPublisher;
 
     fn make_service(mock: MockSearchRepository) -> SearchGrpcService {
         let repo = Arc::new(mock);
         SearchGrpcService::new(
             Arc::new(CreateIndexUseCase::new(repo.clone())),
             Arc::new(ListIndicesUseCase::new(repo.clone())),
-            Arc::new(IndexDocumentUseCase::new(repo.clone())),
+            Arc::new(IndexDocumentUseCase::new(
+                repo.clone(),
+                Arc::new(NoopSearchEventPublisher),
+            )),
             Arc::new(SearchUseCase::new(repo.clone())),
             Arc::new(DeleteDocumentUseCase::new(repo)),
         )
@@ -383,3 +391,5 @@ mod tests {
         assert!(!resp.has_next);
     }
 }
+
+

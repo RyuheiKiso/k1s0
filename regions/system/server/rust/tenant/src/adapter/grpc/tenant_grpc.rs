@@ -487,12 +487,6 @@ fn validate_role(s: &str) -> Result<(), GrpcError> {
 // --- Conversion helpers ---
 
 fn domain_tenant_to_pb(t: &Tenant) -> PbTenant {
-    let owner_id = t
-        .settings
-        .get("owner_id")
-        .and_then(|v| v.as_str())
-        .unwrap_or_default()
-        .to_string();
     PbTenant {
         id: t.id.to_string(),
         name: t.name.clone(),
@@ -500,7 +494,7 @@ fn domain_tenant_to_pb(t: &Tenant) -> PbTenant {
         status: t.status.as_str().to_string(),
         plan: t.plan.clone(),
         keycloak_realm: t.keycloak_realm.clone().unwrap_or_default(),
-        owner_id,
+        owner_id: t.owner_id.clone().unwrap_or_default(),
         settings: t.settings.to_string(),
         db_schema: t.db_schema.clone().unwrap_or_default(),
         created_at: Some(PbTimestamp {

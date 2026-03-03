@@ -6,8 +6,12 @@ use crate::infrastructure::config::KafkaConfig;
 /// FlagChangedEvent はフィーチャーフラグ変更時に Kafka へ発行するイベント。
 #[derive(Debug, serde::Serialize)]
 pub struct FlagChangedEvent {
+    pub event_type: String,
     pub flag_key: String,
     pub enabled: bool,
+    pub actor_user_id: Option<String>,
+    pub before: Option<serde_json::Value>,
+    pub after: serde_json::Value,
     pub timestamp: String, // ISO 8601
 }
 
@@ -84,8 +88,15 @@ impl FlagEventPublisher for KafkaFlagProducer {
         use std::time::Duration;
 
         let event = FlagChangedEvent {
+            event_type: "FLAG_CHANGED".to_string(),
             flag_key: flag_key.to_string(),
             enabled,
+            actor_user_id: None,
+            before: None,
+            after: serde_json::json!({
+                "flag_key": flag_key,
+                "enabled": enabled
+            }),
             timestamp: chrono::Utc::now().to_rfc3339(),
         };
 
@@ -236,13 +247,18 @@ mod tests {
     #[test]
     fn test_flag_changed_event_serialization() {
         let event = FlagChangedEvent {
+            event_type: "FLAG_CHANGED".to_string(),
             flag_key: "feature.dark-mode".to_string(),
             enabled: true,
+            actor_user_id: None,
+            before: None,
+            after: serde_json::json!({"flag_key": "feature.dark-mode", "enabled": true}),
             timestamp: "2026-02-25T00:00:00Z".to_string(),
         };
 
         let json = serde_json::to_value(&event).unwrap();
         assert_eq!(json["flag_key"], "feature.dark-mode");
+        assert_eq!(json["event_type"], "FLAG_CHANGED");
         assert_eq!(json["enabled"], true);
         assert_eq!(json["timestamp"], "2026-02-25T00:00:00Z");
     }
@@ -250,8 +266,12 @@ mod tests {
     #[test]
     fn test_flag_changed_event_debug_format() {
         let event = FlagChangedEvent {
+            event_type: "FLAG_CHANGED".to_string(),
             flag_key: "feature.dark-mode".to_string(),
             enabled: true,
+            actor_user_id: None,
+            before: None,
+            after: serde_json::json!({"flag_key": "feature.dark-mode", "enabled": true}),
             timestamp: "2026-02-25T00:00:00Z".to_string(),
         };
 

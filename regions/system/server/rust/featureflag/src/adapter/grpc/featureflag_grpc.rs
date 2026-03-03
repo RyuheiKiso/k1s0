@@ -356,6 +356,7 @@ mod tests {
     use super::*;
     use crate::domain::entity::feature_flag::FeatureFlag;
     use crate::domain::repository::flag_repository::MockFeatureFlagRepository;
+    use crate::infrastructure::kafka_producer::NoopFlagEventPublisher;
     use std::collections::HashMap;
 
     fn make_service(mock: MockFeatureFlagRepository) -> FeatureFlagGrpcService {
@@ -364,8 +365,14 @@ mod tests {
             repo.clone(),
             Arc::new(EvaluateFlagUseCase::new(repo.clone())),
             Arc::new(GetFlagUseCase::new(repo.clone())),
-            Arc::new(CreateFlagUseCase::new(repo.clone())),
-            Arc::new(UpdateFlagUseCase::new(repo.clone())),
+            Arc::new(CreateFlagUseCase::new(
+                repo.clone(),
+                Arc::new(NoopFlagEventPublisher),
+            )),
+            Arc::new(UpdateFlagUseCase::new(
+                repo.clone(),
+                Arc::new(NoopFlagEventPublisher),
+            )),
             Arc::new(DeleteFlagUseCase::new(repo)),
         )
     }

@@ -1,5 +1,8 @@
 ﻿# system-event-store-server 設計
 
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+
+
 system tier の CQRS パターン向けイベントソーシングサーバー。k1s0-eventstore ライブラリをサービス化し、Append-only イベントストリームの REST/gRPC API を提供する。Rust で実装する。
 
 ## 概要
@@ -865,3 +868,4 @@ CREATE INDEX idx_snapshots_stream_id ON event_store.snapshots (stream_id, snapsh
 - [RBAC設計.md](../../architecture/auth/RBAC設計.md) -- RBAC ロールモデル
 - [system-server.md](../auth/server.md) -- system tier サーバー一覧
 - [system-server-implementation.md](../_common/implementation.md) -- system tier 実装設計
+

@@ -6,20 +6,36 @@ use crate::domain::entity::Tenant;
 /// TenantChangedEvent はテナント変更時に Kafka へ発行するイベント。
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TenantChangedEvent {
+    pub event_type: String,
     pub tenant_id: String,
     pub tenant_name: String,
     pub action: String,
     pub status: String,
+    pub actor_user_id: Option<String>,
+    pub before: Option<serde_json::Value>,
+    pub after: Option<serde_json::Value>,
     pub timestamp: String, // ISO 8601
 }
 
 impl TenantChangedEvent {
     pub fn from_tenant(tenant: &Tenant, action: &str) -> Self {
         Self {
+            event_type: "TENANT_CHANGED".to_string(),
             tenant_id: tenant.id.to_string(),
             tenant_name: tenant.name.clone(),
             action: action.to_string(),
             status: tenant.status.as_str().to_string(),
+            actor_user_id: None,
+            before: None,
+            after: Some(serde_json::json!({
+                "tenant_id": tenant.id.to_string(),
+                "tenant_name": tenant.name.clone(),
+                "display_name": tenant.display_name.clone(),
+                "status": tenant.status.as_str(),
+                "plan": tenant.plan.clone(),
+                "owner_id": tenant.owner_id.clone(),
+                "updated_at": tenant.updated_at.to_rfc3339(),
+            })),
             timestamp: chrono::Utc::now().to_rfc3339(),
         }
     }
@@ -63,7 +79,7 @@ pub struct TopicsConfig {
     pub subscribe: Vec<String>,
 }
 
-const DEFAULT_TOPIC: &str = "k1s0.system.tenant.changed.v1";
+const DEFAULT_TOPIC: &str = "k1s0.system.tenant.events.v1";
 
 /// TenantEventPublisher はテナント変更イベント配信のためのトレイト。
 #[cfg_attr(test, mockall::automock)]
@@ -155,7 +171,7 @@ impl KafkaTenantEventPublisher {
         use std::time::Duration;
 
         let payload = serde_json::to_vec(event)?;
-        let key = format!("tenant:{}", event.tenant_id);
+        let key = event.tenant_id.clone();
 
         let record = FutureRecord::to(&self.topic).key(&key).payload(&payload);
 

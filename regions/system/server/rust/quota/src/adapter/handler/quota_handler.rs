@@ -1,4 +1,4 @@
-use axum::{
+﻿use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
@@ -42,7 +42,7 @@ pub async fn list_quotas(
         )
             .into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_QUOTA_LIST_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -61,7 +61,7 @@ pub async fn get_quota(
                 let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_QUOTA_GET_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -93,7 +93,7 @@ pub async fn create_quota(
                 let err = ErrorResponse::new("SYS_QUOTA_VALIDATION_ERROR", &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_QUOTA_CREATE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -128,7 +128,7 @@ pub async fn update_quota(
                 let err = ErrorResponse::new("SYS_QUOTA_VALIDATION_ERROR", &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_QUOTA_UPDATE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -147,7 +147,7 @@ pub async fn check_quota(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(GetQuotaUsageError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_QUOTA_CHECK_FAILED", &msg);
+            let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -200,7 +200,7 @@ pub async fn delete_quota(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeleteQuotaPolicyError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_QUOTA_DELETE_FAILED", &msg);
+            let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -220,7 +220,7 @@ pub async fn get_usage(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(GetQuotaUsageError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_QUOTA_USAGE_FAILED", &msg);
+            let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -249,7 +249,7 @@ pub async fn increment_usage(
                 let err = ErrorResponse::new("SYS_QUOTA_EXCEEDED", &msg);
                 (StatusCode::TOO_MANY_REQUESTS, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_QUOTA_INCREMENT_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -283,7 +283,7 @@ pub async fn reset_usage(
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(ResetQuotaUsageError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_QUOTA_RESET_FAILED", &msg);
+            let err = ErrorResponse::new("SYS_QUOTA_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -322,3 +322,4 @@ impl ErrorResponse {
         }
     }
 }
+

@@ -44,6 +44,7 @@ pub struct GetSessionResponse {
 #[derive(Debug, Clone)]
 pub struct RefreshSessionRequest {
     pub session_id: String,
+    pub ttl_seconds: Option<u32>,
 }
 
 #[derive(Debug, Clone)]
@@ -221,7 +222,10 @@ impl SessionGrpcService {
     ) -> Result<RefreshSessionResponse, GrpcError> {
         let input = RefreshSessionInput {
             id: req.session_id,
-            ttl_seconds: self.default_ttl,
+            ttl_seconds: req
+                .ttl_seconds
+                .map(|ttl| ttl as i64)
+                .unwrap_or(self.default_ttl),
         };
 
         match self.refresh_uc.execute(&input).await {
@@ -320,6 +324,7 @@ mod tests {
     use super::*;
     use crate::domain::entity::session::Session;
     use crate::domain::repository::session_repository::MockSessionRepository;
+    use crate::infrastructure::kafka_producer::NoopSessionEventPublisher;
     use chrono::{Duration, Utc};
     use std::collections::HashMap;
 
@@ -344,10 +349,18 @@ mod tests {
     fn make_service(mock: MockSessionRepository) -> SessionGrpcService {
         let repo = Arc::new(mock);
         SessionGrpcService::new(
-            Arc::new(CreateSessionUseCase::new(repo.clone(), 3600, 86400)),
+            Arc::new(CreateSessionUseCase::new(
+                repo.clone(),
+                Arc::new(NoopSessionEventPublisher),
+                3600,
+                86400,
+            )),
             Arc::new(GetSessionUseCase::new(repo.clone())),
             Arc::new(RefreshSessionUseCase::new(repo.clone(), 86400)),
-            Arc::new(RevokeSessionUseCase::new(repo.clone())),
+            Arc::new(RevokeSessionUseCase::new(
+                repo.clone(),
+                Arc::new(NoopSessionEventPublisher),
+            )),
             Arc::new(RevokeAllSessionsUseCase::new(repo.clone())),
             Arc::new(ListUserSessionsUseCase::new(repo)),
             3600,

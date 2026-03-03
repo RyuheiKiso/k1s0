@@ -59,6 +59,8 @@ pub struct SearchRequest {
     pub page: u32,
     #[prost(uint32, tag = "5")]
     pub page_size: u32,
+    #[prost(string, repeated, tag = "6")]
+    pub facets: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SearchResponse {
@@ -66,6 +68,13 @@ pub struct SearchResponse {
     pub hits: ::prost::alloc::vec::Vec<SearchHit>,
     #[prost(message, optional, tag = "2")]
     pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
+    #[prost(map = "string, message", tag = "3")]
+    pub facets: ::std::collections::HashMap<::prost::alloc::string::String, FacetCounts>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FacetCounts {
+    #[prost(map = "string, uint64", tag = "1")]
+    pub buckets: ::std::collections::HashMap<::prost::alloc::string::String, u64>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SearchHit {

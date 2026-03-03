@@ -1,4 +1,4 @@
-use axum::{
+﻿use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
@@ -76,7 +76,7 @@ pub async fn send_notification(
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_NOTIF_SEND_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -124,7 +124,7 @@ pub async fn list_notifications(
                 .into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_NOTIF_LIST_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::to_value(err).unwrap()))
                 .into_response()
         }
@@ -146,7 +146,7 @@ pub async fn get_notification(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_NOTIF_GET_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -182,7 +182,7 @@ pub async fn retry_notification(
                 let err = ErrorResponse::new("SYS_NOTIF_ALREADY_SENT", &msg);
                 (StatusCode::CONFLICT, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_NOTIF_RETRY_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -218,7 +218,7 @@ pub async fn create_channel(
         )
             .into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_NOTIF_CHANNEL_CREATE_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -265,7 +265,7 @@ pub async fn list_channels(
                 .into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_NOTIF_CHANNEL_LIST_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -296,7 +296,7 @@ pub async fn get_channel(
                 let err = ErrorResponse::new("SYS_NOTIF_CHANNEL_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_NOTIF_CHANNEL_GET_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -336,7 +336,7 @@ pub async fn update_channel(
                 let err = ErrorResponse::new("SYS_NOTIF_CHANNEL_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_NOTIF_CHANNEL_UPDATE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -360,7 +360,7 @@ pub async fn delete_channel(
                 let err = ErrorResponse::new("SYS_NOTIF_CHANNEL_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_NOTIF_CHANNEL_DELETE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -393,7 +393,7 @@ pub async fn create_template(
         )
             .into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_NOTIF_TEMPLATE_CREATE_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -438,7 +438,7 @@ pub async fn list_templates(
                 .into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_NOTIF_TEMPLATE_LIST_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -469,7 +469,7 @@ pub async fn get_template(
                 let err = ErrorResponse::new("SYS_NOTIF_TEMPLATE_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_NOTIF_TEMPLATE_GET_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -508,7 +508,7 @@ pub async fn update_template(
                 let err = ErrorResponse::new("SYS_NOTIF_TEMPLATE_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_NOTIF_TEMPLATE_UPDATE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -532,7 +532,7 @@ pub async fn delete_template(
                 let err = ErrorResponse::new("SYS_NOTIF_TEMPLATE_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_NOTIF_TEMPLATE_DELETE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_NOTIF_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -631,3 +631,4 @@ impl ErrorResponse {
         }
     }
 }
+

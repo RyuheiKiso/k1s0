@@ -1,4 +1,4 @@
-use axum::{
+﻿use axum::{
     extract::{Query, State},
     http::StatusCode,
     response::IntoResponse,
@@ -32,7 +32,7 @@ pub async fn record_audit_log(
         )
             .into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_AUTH_AUDIT_LOG_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", &e.to_string());
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
     }
@@ -60,7 +60,7 @@ pub async fn search_audit_logs(
     match state.search_audit_logs_uc.execute(&params).await {
         Ok(result) => (StatusCode::OK, Json(serde_json::to_value(result).unwrap())).into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_AUTH_SEARCH_AUDIT_LOGS_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", &e.to_string());
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
     }
@@ -282,3 +282,4 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     }
 }
+

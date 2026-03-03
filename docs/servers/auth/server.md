@@ -1,4 +1,7 @@
-# system-auth-server 設計
+﻿# system-auth-server 設計
+
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+
 
 system tier の認証・認可・監査基盤サーバー。REST/gRPC でトークン検証・ユーザー管理・権限チェック・監査ログ機能を提供する。Rust 実装。
 
@@ -1136,3 +1139,4 @@ moka を使用したインメモリキャッシュで RBAC 判定結果をキャ
 ### Message/Field Corrections
 - `TokenClaims.scope` exists as field `12`.
 - Common type import is `k1s0/system/common/v1/types.proto` and timestamp usage is `k1s0.system.common.v1.Timestamp`.
+

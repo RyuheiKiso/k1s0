@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::access_log::{AccessAction, SecretAccessLog};
 use crate::domain::repository::{AccessLogRepository, SecretStore};
+use crate::infrastructure::kafka_producer::{VaultAccessEvent, VaultEventPublisher};
 
 #[derive(Debug, Clone)]
 pub struct SetSecretInput {
@@ -19,11 +20,20 @@ pub enum SetSecretError {
 pub struct SetSecretUseCase {
     store: Arc<dyn SecretStore>,
     audit: Arc<dyn AccessLogRepository>,
+    event_publisher: Arc<dyn VaultEventPublisher>,
 }
 
 impl SetSecretUseCase {
-    pub fn new(store: Arc<dyn SecretStore>, audit: Arc<dyn AccessLogRepository>) -> Self {
-        Self { store, audit }
+    pub fn new(
+        store: Arc<dyn SecretStore>,
+        audit: Arc<dyn AccessLogRepository>,
+        event_publisher: Arc<dyn VaultEventPublisher>,
+    ) -> Self {
+        Self {
+            store,
+            audit,
+            event_publisher,
+        }
     }
 
     pub async fn execute(&self, input: &SetSecretInput) -> Result<i64, SetSecretError> {
@@ -38,6 +48,17 @@ impl SetSecretUseCase {
                     true,
                 );
                 let _ = self.audit.record(&log).await;
+                let _ = self
+                    .event_publisher
+                    .publish_secret_accessed(&VaultAccessEvent {
+                        key_path: input.path.clone(),
+                        action: "write".to_string(),
+                        actor_id: "system".to_string(),
+                        success: true,
+                        error_msg: None,
+                        timestamp: chrono::Utc::now().to_rfc3339(),
+                    })
+                    .await;
             }
             Err(e) => {
                 let mut log = SecretAccessLog::new(
@@ -48,6 +69,17 @@ impl SetSecretUseCase {
                 );
                 log.error_msg = Some(e.to_string());
                 let _ = self.audit.record(&log).await;
+                let _ = self
+                    .event_publisher
+                    .publish_secret_accessed(&VaultAccessEvent {
+                        key_path: input.path.clone(),
+                        action: "write".to_string(),
+                        actor_id: "system".to_string(),
+                        success: false,
+                        error_msg: Some(e.to_string()),
+                        timestamp: chrono::Utc::now().to_rfc3339(),
+                    })
+                    .await;
             }
         }
 
@@ -60,6 +92,7 @@ mod tests {
     use super::*;
     use crate::domain::repository::access_log_repo::MockAccessLogRepository;
     use crate::domain::repository::secret_store::MockSecretStore;
+    use crate::infrastructure::kafka_producer::NoopVaultEventPublisher;
 
     #[tokio::test]
     async fn test_set_secret_success() {
@@ -75,7 +108,11 @@ mod tests {
             .expect_record()
             .returning(|_| Ok(()));
 
-        let uc = SetSecretUseCase::new(Arc::new(mock_store), Arc::new(mock_audit));
+        let uc = SetSecretUseCase::new(
+            Arc::new(mock_store),
+            Arc::new(mock_audit),
+            Arc::new(NoopVaultEventPublisher),
+        );
         let input = SetSecretInput {
             path: "app/db/password".to_string(),
             data: HashMap::from([("password".to_string(), "s3cret".to_string())]),
@@ -99,7 +136,11 @@ mod tests {
             .expect_record()
             .returning(|_| Ok(()));
 
-        let uc = SetSecretUseCase::new(Arc::new(mock_store), Arc::new(mock_audit));
+        let uc = SetSecretUseCase::new(
+            Arc::new(mock_store),
+            Arc::new(mock_audit),
+            Arc::new(NoopVaultEventPublisher),
+        );
         let input = SetSecretInput {
             path: "app/db/password".to_string(),
             data: HashMap::from([("password".to_string(), "s3cret".to_string())]),

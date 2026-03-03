@@ -129,8 +129,8 @@ pub struct StartInstanceResponse {
     /// インスタンス状態（pending / running / completed / cancelled / failed）
     #[prost(string, tag = "2")]
     pub status: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub current_step_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "3")]
+    pub current_step_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "4")]
     pub started_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
@@ -251,8 +251,8 @@ pub struct WorkflowInstance {
     pub title: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
     pub initiator_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub current_step_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "6")]
+    pub current_step_id: ::core::option::Option<::prost::alloc::string::String>,
     /// インスタンス状態（pending / running / completed / cancelled / failed）
     #[prost(string, tag = "7")]
     pub status: ::prost::alloc::string::String,

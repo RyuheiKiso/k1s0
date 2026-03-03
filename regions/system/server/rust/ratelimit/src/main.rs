@@ -310,6 +310,7 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
     ) -> anyhow::Result<domain::entity::RateLimitDecision> {
         let now = chrono::Utc::now().timestamp();
         Ok(domain::entity::RateLimitDecision::allowed(
+            limit,
             limit - 1,
             now + window_secs,
         ))
@@ -323,6 +324,7 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
     ) -> anyhow::Result<domain::entity::RateLimitDecision> {
         let now = chrono::Utc::now().timestamp();
         Ok(domain::entity::RateLimitDecision::allowed(
+            limit,
             limit - 1,
             now + window_secs,
         ))
@@ -336,6 +338,21 @@ impl domain::repository::RateLimitStateStore for InMemoryRateLimitStateStore {
     ) -> anyhow::Result<domain::entity::RateLimitDecision> {
         let now = chrono::Utc::now().timestamp();
         Ok(domain::entity::RateLimitDecision::allowed(
+            limit,
+            limit - 1,
+            now + window_secs,
+        ))
+    }
+
+    async fn check_leaky_bucket(
+        &self,
+        _key: &str,
+        limit: i64,
+        window_secs: i64,
+    ) -> anyhow::Result<domain::entity::RateLimitDecision> {
+        let now = chrono::Utc::now().timestamp();
+        Ok(domain::entity::RateLimitDecision::allowed(
+            limit,
             limit - 1,
             now + window_secs,
         ))

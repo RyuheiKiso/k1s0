@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+﻿use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::extract::{Path, Query, State};
@@ -138,7 +138,7 @@ pub async fn create_secret(
         }
         Err(SetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_CREATE_FAILED", &msg)).unwrap()),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap()),
         )
             .into_response(),
     }
@@ -178,7 +178,7 @@ pub async fn get_secret(
             .into_response(),
         Err(GetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_GET_FAILED", &msg)).unwrap()),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap()),
         )
             .into_response(),
     }
@@ -205,7 +205,7 @@ pub async fn update_secret(
         }
         Err(SetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_UPDATE_FAILED", &msg)).unwrap()),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap()),
         )
             .into_response(),
     }
@@ -230,7 +230,7 @@ pub async fn delete_secret(
             .into_response(),
         Err(DeleteSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_DELETE_FAILED", &msg)).unwrap()),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap()),
         )
             .into_response(),
     }
@@ -251,7 +251,7 @@ pub async fn list_secrets(
             .into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_LIST_FAILED", &e.to_string())).unwrap()),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &e.to_string())).unwrap()),
         )
             .into_response(),
     }
@@ -282,7 +282,7 @@ pub async fn get_secret_metadata(
             .into_response(),
         Err(GetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_METADATA_GET_FAILED", &msg)).unwrap()),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap()),
         )
             .into_response(),
     }
@@ -327,7 +327,7 @@ pub async fn list_audit_logs(
         }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_AUDIT_LOG_LIST_FAILED", &e.to_string())).unwrap()),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &e.to_string())).unwrap()),
         )
             .into_response(),
     }
@@ -357,8 +357,9 @@ pub async fn rotate_secret(
             .into_response(),
         Err(SetSecretError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_ROTATE_FAILED", &msg)).unwrap()),
+            Json(serde_json::to_value(ErrorResponse::new("SYS_VAULT_INTERNAL_ERROR", &msg)).unwrap()),
         )
             .into_response(),
     }
 }
+

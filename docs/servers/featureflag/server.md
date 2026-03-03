@@ -1,4 +1,7 @@
-# system-featureflag-server 設計
+﻿# system-featureflag-server 設計
+
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+
 
 動的な機能制御を提供するフィーチャーフラグサーバー。バリアント/ルール制御・Kafka 変更通知対応。
 
@@ -713,3 +716,4 @@ vault:
 - `FeatureFlag.rules` exists as `repeated FlagRule` (field `8`).
 - `EvaluateFlagResponse.variant` is `optional string`.
 - `UpdateFlagRequest.enabled` and `UpdateFlagRequest.description` are optional.
+

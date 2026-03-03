@@ -1,4 +1,4 @@
-use axum::{
+﻿use axum::{
     extract::State,
     http::StatusCode,
     response::IntoResponse,
@@ -28,8 +28,9 @@ pub async fn jwks(State(state): State<AppState>) -> impl IntoResponse {
         Ok(value) => (StatusCode::OK, Json(value)).into_response(),
         Err(e) => {
             tracing::warn!(error = %e, "failed to fetch JWKS");
-            let err = ErrorResponse::new("SYS_AUTH_JWKS_FETCH_FAILED", "Failed to fetch JWKS");
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", "Failed to fetch JWKS");
             (StatusCode::SERVICE_UNAVAILABLE, Json(err)).into_response()
         }
     }
 }
+

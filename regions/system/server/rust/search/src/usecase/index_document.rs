@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::search_index::SearchDocument;
 use crate::domain::repository::SearchRepository;
+use crate::infrastructure::kafka_producer::{DocumentIndexedEvent, SearchEventPublisher};
 
 #[derive(Debug, Clone)]
 pub struct IndexDocumentInput {
@@ -21,11 +22,15 @@ pub enum IndexDocumentError {
 
 pub struct IndexDocumentUseCase {
     repo: Arc<dyn SearchRepository>,
+    event_publisher: Arc<dyn SearchEventPublisher>,
 }
 
 impl IndexDocumentUseCase {
-    pub fn new(repo: Arc<dyn SearchRepository>) -> Self {
-        Self { repo }
+    pub fn new(repo: Arc<dyn SearchRepository>, event_publisher: Arc<dyn SearchEventPublisher>) -> Self {
+        Self {
+            repo,
+            event_publisher,
+        }
     }
 
     pub async fn execute(&self, input: &IndexDocumentInput) -> Result<SearchDocument, IndexDocumentError> {
@@ -52,6 +57,22 @@ impl IndexDocumentUseCase {
             .await
             .map_err(|e| IndexDocumentError::Internal(e.to_string()))?;
 
+        self.event_publisher
+            .publish_document_indexed(&DocumentIndexedEvent {
+                event_type: "DOCUMENT_INDEXED".to_string(),
+                index_name: doc.index_name.clone(),
+                document_id: doc.id.clone(),
+                actor_user_id: None,
+                before: None,
+                after: serde_json::json!({
+                    "index_name": doc.index_name.clone(),
+                    "document_id": doc.id.clone()
+                }),
+                timestamp: chrono::Utc::now().to_rfc3339(),
+            })
+            .await
+            .map_err(|e| IndexDocumentError::Internal(e.to_string()))?;
+
         Ok(doc)
     }
 }
@@ -61,6 +82,7 @@ mod tests {
     use super::*;
     use crate::domain::entity::search_index::SearchIndex;
     use crate::domain::repository::search_repository::MockSearchRepository;
+    use crate::infrastructure::kafka_producer::MockSearchEventPublisher;
 
     #[tokio::test]
     async fn success() {
@@ -72,8 +94,12 @@ mod tests {
             .withf(|name| name == "products")
             .returning(move |_| Ok(Some(return_index.clone())));
         mock.expect_index_document().returning(|_| Ok(()));
+        let mut mock_publisher = MockSearchEventPublisher::new();
+        mock_publisher
+            .expect_publish_document_indexed()
+            .returning(|_| Ok(()));
 
-        let uc = IndexDocumentUseCase::new(Arc::new(mock));
+        let uc = IndexDocumentUseCase::new(Arc::new(mock), Arc::new(mock_publisher));
         let input = IndexDocumentInput {
             id: "doc-1".to_string(),
             index_name: "products".to_string(),
@@ -92,7 +118,10 @@ mod tests {
         let mut mock = MockSearchRepository::new();
         mock.expect_find_index().returning(|_| Ok(None));
 
-        let uc = IndexDocumentUseCase::new(Arc::new(mock));
+        let uc = IndexDocumentUseCase::new(
+            Arc::new(mock),
+            Arc::new(crate::infrastructure::kafka_producer::NoopSearchEventPublisher),
+        );
         let input = IndexDocumentInput {
             id: "doc-1".to_string(),
             index_name: "nonexistent".to_string(),

@@ -9,6 +9,7 @@ pub enum Algorithm {
     TokenBucket,
     FixedWindow,
     SlidingWindow,
+    LeakyBucket,
 }
 
 impl Algorithm {
@@ -17,6 +18,7 @@ impl Algorithm {
             Algorithm::TokenBucket => "token_bucket",
             Algorithm::FixedWindow => "fixed_window",
             Algorithm::SlidingWindow => "sliding_window",
+            Algorithm::LeakyBucket => "leaky_bucket",
         }
     }
 
@@ -25,6 +27,7 @@ impl Algorithm {
             "token_bucket" => Ok(Algorithm::TokenBucket),
             "fixed_window" => Ok(Algorithm::FixedWindow),
             "sliding_window" => Ok(Algorithm::SlidingWindow),
+            "leaky_bucket" => Ok(Algorithm::LeakyBucket),
             _ => Err(format!("unknown algorithm: {}", s)),
         }
     }
@@ -84,20 +87,20 @@ pub struct RateLimitDecision {
 }
 
 impl RateLimitDecision {
-    pub fn allowed(remaining: i64, reset_at: i64) -> Self {
+    pub fn allowed(limit: i64, remaining: i64, reset_at: i64) -> Self {
         Self {
             allowed: true,
-            limit: 0,
+            limit,
             remaining,
             reset_at,
             reason: String::new(),
         }
     }
 
-    pub fn denied(remaining: i64, reset_at: i64, reason: String) -> Self {
+    pub fn denied(limit: i64, remaining: i64, reset_at: i64, reason: String) -> Self {
         Self {
             allowed: false,
-            limit: 0,
+            limit,
             remaining,
             reset_at,
             reason,
@@ -114,6 +117,7 @@ mod tests {
         assert_eq!(Algorithm::from_str("token_bucket").unwrap(), Algorithm::TokenBucket);
         assert_eq!(Algorithm::from_str("fixed_window").unwrap(), Algorithm::FixedWindow);
         assert_eq!(Algorithm::from_str("sliding_window").unwrap(), Algorithm::SlidingWindow);
+        assert_eq!(Algorithm::from_str("leaky_bucket").unwrap(), Algorithm::LeakyBucket);
         assert!(Algorithm::from_str("unknown").is_err());
     }
 
@@ -122,6 +126,7 @@ mod tests {
         assert_eq!(Algorithm::TokenBucket.as_str(), "token_bucket");
         assert_eq!(Algorithm::FixedWindow.as_str(), "fixed_window");
         assert_eq!(Algorithm::SlidingWindow.as_str(), "sliding_window");
+        assert_eq!(Algorithm::LeakyBucket.as_str(), "leaky_bucket");
     }
 
     #[test]
@@ -143,8 +148,9 @@ mod tests {
 
     #[test]
     fn test_rate_limit_decision_allowed() {
-        let decision = RateLimitDecision::allowed(99, 1700000000);
+        let decision = RateLimitDecision::allowed(100, 99, 1700000000);
         assert!(decision.allowed);
+        assert_eq!(decision.limit, 100);
         assert_eq!(decision.remaining, 99);
         assert_eq!(decision.reset_at, 1700000000);
         assert!(decision.reason.is_empty());
@@ -152,8 +158,10 @@ mod tests {
 
     #[test]
     fn test_rate_limit_decision_denied() {
-        let decision = RateLimitDecision::denied(0, 1700000060, "rate limit exceeded".to_string());
+        let decision =
+            RateLimitDecision::denied(100, 0, 1700000060, "rate limit exceeded".to_string());
         assert!(!decision.allowed);
+        assert_eq!(decision.limit, 100);
         assert_eq!(decision.remaining, 0);
         assert_eq!(decision.reason, "rate limit exceeded");
     }

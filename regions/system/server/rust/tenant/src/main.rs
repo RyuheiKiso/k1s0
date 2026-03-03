@@ -40,6 +40,8 @@ struct Config {
     database: Option<DatabaseConfig>,
     #[serde(default)]
     kafka: Option<infrastructure::kafka_producer::KafkaConfig>,
+    #[serde(default)]
+    keycloak: Option<infrastructure::keycloak_admin::KeycloakAdminConfig>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -62,11 +64,11 @@ struct ServerConfig {
 }
 
 fn default_http_port() -> u16 {
-    8089
+    8080
 }
 
 fn default_grpc_port() -> u16 {
-    50058
+    50051
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -218,10 +220,26 @@ async fn main() -> anyhow::Result<()> {
             Arc::new(infrastructure::saga_client::NoopSagaClient)
         };
 
+    let keycloak_admin: Arc<dyn infrastructure::keycloak_admin::KeycloakAdmin> =
+        if let Some(ref keycloak_cfg) = cfg.keycloak {
+            info!(
+                base_url = %keycloak_cfg.base_url,
+                realm = %keycloak_cfg.realm,
+                "initializing keycloak admin client"
+            );
+            Arc::new(infrastructure::keycloak_admin::KeycloakAdminClient::new(
+                keycloak_cfg.clone(),
+            ))
+        } else {
+            info!("keycloak config not set, using noop keycloak admin client");
+            Arc::new(infrastructure::keycloak_admin::NoopKeycloakAdmin)
+        };
+
     let create_tenant_uc = Arc::new(
         usecase::CreateTenantUseCase::new(tenant_repo.clone())
-            .with_saga_client(saga_client)
-            .with_event_publisher(event_publisher.clone()),
+            .with_saga_client(saga_client.clone())
+            .with_event_publisher(event_publisher.clone())
+            .with_keycloak_admin(keycloak_admin.clone()),
     );
     let get_tenant_uc = Arc::new(usecase::GetTenantUseCase::new(tenant_repo.clone()));
     let list_tenants_uc = Arc::new(usecase::ListTenantsUseCase::new(tenant_repo.clone()));
@@ -229,7 +247,11 @@ async fn main() -> anyhow::Result<()> {
         usecase::UpdateTenantUseCase::new(tenant_repo.clone())
             .with_event_publisher(event_publisher),
     );
-    let delete_tenant_uc = Arc::new(usecase::DeleteTenantUseCase::new(tenant_repo.clone()));
+    let delete_tenant_uc = Arc::new(
+        usecase::DeleteTenantUseCase::new(tenant_repo.clone())
+            .with_saga_client(saga_client)
+            .with_keycloak_admin(keycloak_admin),
+    );
     let suspend_tenant_uc = Arc::new(usecase::SuspendTenantUseCase::new(tenant_repo.clone()));
     let activate_tenant_uc = Arc::new(usecase::ActivateTenantUseCase::new(tenant_repo));
     let add_member_uc = Arc::new(usecase::AddMemberUseCase::new(member_repo.clone()));

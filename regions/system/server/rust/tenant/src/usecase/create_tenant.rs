@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::Tenant;
 use crate::domain::repository::TenantRepository;
+use crate::infrastructure::keycloak_admin::{KeycloakAdmin, NoopKeycloakAdmin};
 use crate::infrastructure::kafka_producer::{NoopTenantEventPublisher, TenantEventPublisher};
 use crate::infrastructure::saga_client::{NoopSagaClient, SagaClient};
 
@@ -25,6 +26,7 @@ pub struct CreateTenantUseCase {
     tenant_repo: Arc<dyn TenantRepository>,
     saga_client: Arc<dyn SagaClient>,
     event_publisher: Arc<dyn TenantEventPublisher>,
+    keycloak_admin: Arc<dyn KeycloakAdmin>,
 }
 
 impl CreateTenantUseCase {
@@ -33,6 +35,7 @@ impl CreateTenantUseCase {
             tenant_repo,
             saga_client: Arc::new(NoopSagaClient),
             event_publisher: Arc::new(NoopTenantEventPublisher),
+            keycloak_admin: Arc::new(NoopKeycloakAdmin),
         }
     }
 
@@ -43,6 +46,11 @@ impl CreateTenantUseCase {
 
     pub fn with_event_publisher(mut self, event_publisher: Arc<dyn TenantEventPublisher>) -> Self {
         self.event_publisher = event_publisher;
+        self
+    }
+
+    pub fn with_keycloak_admin(mut self, keycloak_admin: Arc<dyn KeycloakAdmin>) -> Self {
+        self.keycloak_admin = keycloak_admin;
         self
     }
 
@@ -57,12 +65,30 @@ impl CreateTenantUseCase {
             return Err(CreateTenantError::NameConflict(input.name));
         }
 
-        let tenant = Tenant::new(input.name, input.display_name, input.plan, input.owner_id);
+        let mut tenant = Tenant::new(input.name, input.display_name, input.plan, input.owner_id);
 
         self.tenant_repo
             .create(&tenant)
             .await
             .map_err(|e| CreateTenantError::Internal(e.to_string()))?;
+
+        // Keycloak realm provisioning (failure is non-fatal)
+        if let Err(e) = self.keycloak_admin.create_realm(&tenant.name).await {
+            tracing::warn!(
+                tenant_id = %tenant.id,
+                error = %e,
+                "failed to create keycloak realm, tenant created but realm not provisioned"
+            );
+        } else {
+            tenant.keycloak_realm = Some(tenant.name.clone());
+            if let Err(e) = self.tenant_repo.update(&tenant).await {
+                tracing::warn!(
+                    tenant_id = %tenant.id,
+                    error = %e,
+                    "failed to persist keycloak realm after provisioning"
+                );
+            }
+        }
 
         if let Err(e) = self.event_publisher.publish_tenant_created(&tenant).await {
             tracing::warn!(tenant_id = %tenant.id, error = %e, "failed to publish tenant.created event");

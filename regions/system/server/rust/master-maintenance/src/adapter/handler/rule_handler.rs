@@ -1,4 +1,4 @@
-use axum::{
+﻿use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     Json,
@@ -71,7 +71,8 @@ pub async fn check_rules(
 ) -> Result<Json<serde_json::Value>, AppError> {
     let table_name = input.get("table_name")
         .and_then(|v| v.as_str())
-        .ok_or_else(|| AppError::bad_request("SYS_MM_VALIDATION_FAILED", "table_name is required"))?;
+        .ok_or_else(|| AppError::bad_request("SYS_MM_VALIDATION_ERROR", "table_name is required"))?;
     let result = state.check_consistency_uc.check_all_rules(table_name).await?;
     Ok(Json(serde_json::to_value(result).unwrap()))
 }
+

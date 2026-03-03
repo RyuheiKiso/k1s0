@@ -68,8 +68,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
         let ctx = inner.context.unwrap_or_default();
         let req = EvaluateFlagRequest {
             flag_key: inner.flag_key,
-            user_id: ctx.user_id,
-            tenant_id: ctx.tenant_id,
+            user_id: ctx.user_id.unwrap_or_default(),
+            tenant_id: ctx.tenant_id.unwrap_or_default(),
             attributes: ctx.attributes,
         };
         let resp = self

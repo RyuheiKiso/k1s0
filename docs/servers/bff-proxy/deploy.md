@@ -7,24 +7,34 @@
 - Ingress: `/auth/*`, `/api/*` を bff-proxy にルーティング
 - 依存: Redis（Sentinel 対応）, OIDC Provider, 上流 API
 
-## 必須環境変数
+## 設定方式
+
+bff-proxy は `config.yaml` を正とする。  
+`BFF_*` 環境変数はサポートしない。
 
 | 変数 | 説明 |
 | --- | --- |
-| `BFF_SERVER_PORT` | HTTP ポート（デフォルト: `8080`） |
-| `BFF_OIDC_DISCOVERY_URL` | OIDC Discovery URL |
-| `BFF_OIDC_CLIENT_ID` | OAuth2 Client ID |
-| `BFF_OIDC_CLIENT_SECRET` | OAuth2 Client Secret |
-| `BFF_OIDC_REDIRECT_URI` | `/auth/callback` の完全 URL |
-| `BFF_OIDC_POST_LOGOUT_REDIRECT_URI` | ログアウト後の遷移先 |
-| `BFF_SESSION_REDIS_ADDR` | Redis/Sentinel アドレス |
-| `BFF_SESSION_REDIS_MASTER_NAME` | Sentinel master 名 |
-| `BFF_SESSION_TTL` | セッション TTL（例: `30m`） |
-| `BFF_SESSION_PREFIX` | セッションキー prefix（例: `bff:session:`） |
-| `BFF_CSRF_ENABLED` | CSRF 検証有効フラグ |
-| `BFF_CSRF_HEADER_NAME` | CSRF ヘッダー名（例: `X-CSRF-Token`） |
-| `BFF_UPSTREAM_BASE_URL` | 上流 API のベース URL |
-| `BFF_UPSTREAM_TIMEOUT` | 上流 API タイムアウト（例: `30s`） |
+| `CONFIG_PATH` | 設定ファイルパス（省略時: `config/config.yaml`） |
+
+```yaml
+server:
+  port: 8080
+oidc:
+  discovery_url: "https://idp.example.com/.well-known/openid-configuration"
+  client_id: "bff-proxy"
+  client_secret: ""
+  redirect_uri: "https://app.example.com/auth/callback"
+session:
+  redis:
+    addr: "redis:6379"
+    master_name: "mymaster"
+  ttl: "30m"
+csrf:
+  enabled: true
+upstream:
+  base_url: "http://auth-server:8080"
+  timeout: "30s"
+```
 
 ## ヘルスチェック
 

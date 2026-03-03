@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::entity::config_entry::ConfigEntry;
 use crate::domain::repository::{ConfigRepository, ConfigSchemaRepository};
+use crate::domain::service::ConfigDomainService;
 use crate::infrastructure::kafka_producer::{ConfigChangedEvent, KafkaProducer};
 use crate::usecase::watch_config::ConfigChangeEvent;
 
@@ -128,6 +129,9 @@ impl UpdateConfigUseCase {
                 "namespace is required".to_string(),
             ));
         }
+        ConfigDomainService::new()
+            .validate_namespace(&input.namespace)
+            .map_err(|e| UpdateConfigError::Validation(e.to_string()))?;
         if input.key.is_empty() {
             return Err(UpdateConfigError::Validation("key is required".to_string()));
         }
@@ -202,8 +206,12 @@ impl UpdateConfigUseCase {
         // Kafka 変更通知（ベストエフォート）
         if let Some(producer) = &self.kafka_producer {
             let event = ConfigChangedEvent {
+                event_type: "CONFIG_CHANGED".to_string(),
                 namespace: updated_entry.namespace.clone(),
                 key: updated_entry.key.clone(),
+                actor_user_id: updated_entry.updated_by.clone(),
+                before: old_entry.as_ref().map(|e| e.value_json.clone()),
+                after: updated_entry.value_json.clone(),
                 new_value: updated_entry.value_json.clone(),
                 updated_by: updated_entry.updated_by.clone(),
                 version: updated_entry.version,

@@ -19,10 +19,10 @@ pub struct EvaluateFlagResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EvaluationContext {
-    #[prost(string, tag = "1")]
-    pub user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub tenant_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "1")]
+    pub user_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "2")]
+    pub tenant_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(map = "string, string", tag = "3")]
     pub attributes: ::std::collections::HashMap<
         ::prost::alloc::string::String,

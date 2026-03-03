@@ -1,4 +1,4 @@
-use std::sync::Arc;
+﻿use std::sync::Arc;
 
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -335,12 +335,12 @@ pub async fn create_workflow(
             .into_response(),
         Err(CreateWorkflowError::Validation(msg)) => (
             StatusCode::BAD_REQUEST,
-            Json(error_json("SYS_WORKFLOW_VALIDATION", &msg)),
+            Json(error_json("SYS_WORKFLOW_VALIDATION_ERROR", &msg)),
         )
             .into_response(),
         Err(CreateWorkflowError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(error_json("SYS_WORKFLOW_CREATE_FAILED", &msg)),
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )
             .into_response(),
     }
@@ -379,7 +379,7 @@ pub async fn get_workflow(
             .into_response(),
         Err(GetWorkflowError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(error_json("SYS_WORKFLOW_GET_FAILED", &msg)),
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )
             .into_response(),
     }
@@ -428,7 +428,7 @@ pub async fn list_workflows(
         }
         Err(ListWorkflowsError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(error_json("SYS_WORKFLOW_LIST_FAILED", &msg)),
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )
             .into_response(),
     }
@@ -493,7 +493,7 @@ pub async fn execute_workflow(
             .into_response(),
         Err(StartInstanceError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(error_json("SYS_WORKFLOW_EXECUTE_FAILED", &msg)),
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )
             .into_response(),
     }
@@ -531,7 +531,7 @@ pub async fn get_workflow_status(
             .into_response(),
         Err(GetInstanceError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(error_json("SYS_WORKFLOW_INSTANCE_GET_FAILED", &msg)),
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )
             .into_response(),
     }
@@ -596,7 +596,7 @@ pub async fn update_workflow(
             .into_response(),
         Err(UpdateWorkflowError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(error_json("SYS_WORKFLOW_UPDATE_FAILED", &msg)),
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )
             .into_response(),
     }
@@ -621,7 +621,7 @@ pub async fn delete_workflow(
             .into_response(),
         Err(DeleteWorkflowError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(error_json("SYS_WORKFLOW_DELETE_FAILED", &msg)),
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )
             .into_response(),
     }
@@ -674,7 +674,7 @@ pub async fn list_instances(
         }
         Err(ListInstancesError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(error_json("SYS_WORKFLOW_INSTANCE_LIST_FAILED", &msg)),
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )
             .into_response(),
     }
@@ -711,7 +711,7 @@ pub async fn get_instance(
             .into_response(),
         Err(GetInstanceError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(error_json("SYS_WORKFLOW_INSTANCE_GET_FAILED", &msg)),
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )
             .into_response(),
     }
@@ -757,7 +757,7 @@ pub async fn cancel_instance(
             .into_response(),
         Err(CancelInstanceError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(error_json("SYS_WORKFLOW_INSTANCE_CANCEL_FAILED", &msg)),
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )
             .into_response(),
     }
@@ -816,7 +816,7 @@ pub async fn list_tasks(
         }
         Err(ListTasksError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(error_json("SYS_WORKFLOW_TASK_LIST_FAILED", &msg)),
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )
             .into_response(),
     }
@@ -880,7 +880,7 @@ pub async fn approve_task(
             .into_response(),
         Err(ApproveTaskError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(error_json("SYS_WORKFLOW_TASK_APPROVE_FAILED", &msg)),
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )
             .into_response(),
     }
@@ -944,7 +944,7 @@ pub async fn reject_task(
             .into_response(),
         Err(RejectTaskError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(error_json("SYS_WORKFLOW_TASK_REJECT_FAILED", &msg)),
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )
             .into_response(),
     }
@@ -993,8 +993,9 @@ pub async fn reassign_task(
             .into_response(),
         Err(ReassignTaskError::Internal(msg)) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(error_json("SYS_WORKFLOW_TASK_REASSIGN_FAILED", &msg)),
+            Json(error_json("SYS_WORKFLOW_INTERNAL_ERROR", &msg)),
         )
             .into_response(),
     }
 }
+

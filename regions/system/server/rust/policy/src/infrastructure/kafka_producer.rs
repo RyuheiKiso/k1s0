@@ -5,9 +5,13 @@ use crate::domain::entity::policy::Policy;
 /// PolicyChangedEvent はポリシー変更時に Kafka へ発行するイベント。
 #[derive(Debug, serde::Serialize)]
 pub struct PolicyChangedEvent {
+    pub event_type: String,
     pub policy_id: String,
     pub policy_name: String,
     pub action: String, // "CREATED" | "UPDATED" | "DELETED"
+    pub actor_user_id: Option<String>,
+    pub before: Option<serde_json::Value>,
+    pub after: Option<serde_json::Value>,
     pub version: u32,
     pub timestamp: String, // ISO 8601
 }
@@ -15,9 +19,18 @@ pub struct PolicyChangedEvent {
 impl PolicyChangedEvent {
     pub fn created(policy: &Policy) -> Self {
         Self {
+            event_type: "POLICY_CHANGED".to_string(),
             policy_id: policy.id.to_string(),
             policy_name: policy.name.clone(),
             action: "CREATED".to_string(),
+            actor_user_id: None,
+            before: None,
+            after: Some(serde_json::json!({
+                "policy_id": policy.id.to_string(),
+                "policy_name": policy.name.clone(),
+                "version": policy.version,
+                "enabled": policy.enabled,
+            })),
             version: policy.version,
             timestamp: chrono::Utc::now().to_rfc3339(),
         }
@@ -25,9 +38,18 @@ impl PolicyChangedEvent {
 
     pub fn updated(policy: &Policy) -> Self {
         Self {
+            event_type: "POLICY_CHANGED".to_string(),
             policy_id: policy.id.to_string(),
             policy_name: policy.name.clone(),
             action: "UPDATED".to_string(),
+            actor_user_id: None,
+            before: None,
+            after: Some(serde_json::json!({
+                "policy_id": policy.id.to_string(),
+                "policy_name": policy.name.clone(),
+                "version": policy.version,
+                "enabled": policy.enabled,
+            })),
             version: policy.version,
             timestamp: chrono::Utc::now().to_rfc3339(),
         }
@@ -35,9 +57,13 @@ impl PolicyChangedEvent {
 
     pub fn deleted(policy_id: &uuid::Uuid) -> Self {
         Self {
+            event_type: "POLICY_CHANGED".to_string(),
             policy_id: policy_id.to_string(),
             policy_name: String::new(),
             action: "DELETED".to_string(),
+            actor_user_id: None,
+            before: Some(serde_json::json!({ "policy_id": policy_id })),
+            after: None,
             version: 0,
             timestamp: chrono::Utc::now().to_rfc3339(),
         }
@@ -117,7 +143,7 @@ impl PolicyEventPublisher for KafkaPolicyProducer {
         use std::time::Duration;
 
         let payload = serde_json::to_vec(event)?;
-        let key = format!("{}:{}", event.policy_id, event.action);
+        let key = event.policy_id.clone();
 
         let record = FutureRecord::to(&self.topic).key(&key).payload(&payload);
 

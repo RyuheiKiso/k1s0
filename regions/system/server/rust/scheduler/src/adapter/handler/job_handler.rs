@@ -1,4 +1,4 @@
-use axum::{
+﻿use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
@@ -37,7 +37,7 @@ pub async fn list_jobs(
         )
             .into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_SCHED_LIST_FAILED", &e.to_string());
+            let err = ErrorResponse::new("SYS_SCHED_INTERNAL_ERROR", &e.to_string());
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -56,7 +56,7 @@ pub async fn get_job(
                 let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_SCHED_GET_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_SCHED_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -88,7 +88,7 @@ pub async fn create_job(
                 let err = ErrorResponse::new("SYS_SCHED_INVALID_CRON", &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_SCHED_CREATE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_SCHED_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -124,7 +124,7 @@ pub async fn delete_job(
             (StatusCode::CONFLICT, Json(err)).into_response()
         }
         Err(DeleteJobError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_SCHED_DELETE_FAILED", &msg);
+            let err = ErrorResponse::new("SYS_SCHED_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -143,7 +143,7 @@ pub async fn pause_job(
                 let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_SCHED_PAUSE_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_SCHED_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -163,7 +163,7 @@ pub async fn resume_job(
                 let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_SCHED_RESUME_FAILED", &msg);
+                let err = ErrorResponse::new("SYS_SCHED_INTERNAL_ERROR", &msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -203,7 +203,7 @@ pub async fn update_job(
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(UpdateJobError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_SCHED_UPDATE_FAILED", &msg);
+            let err = ErrorResponse::new("SYS_SCHED_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -232,7 +232,7 @@ pub async fn trigger_job(
             (StatusCode::CONFLICT, Json(err)).into_response()
         }
         Err(TriggerJobError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_SCHED_TRIGGER_FAILED", &msg);
+            let err = ErrorResponse::new("SYS_SCHED_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -258,7 +258,7 @@ pub async fn list_executions(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(ListExecutionsError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_SCHED_LIST_EXECUTIONS_FAILED", &msg);
+            let err = ErrorResponse::new("SYS_SCHED_INTERNAL_ERROR", &msg);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -348,3 +348,4 @@ impl ErrorResponse {
         }
     }
 }
+

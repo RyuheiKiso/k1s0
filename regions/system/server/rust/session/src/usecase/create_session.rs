@@ -6,7 +6,9 @@ use uuid::Uuid;
 
 use crate::domain::entity::session::Session;
 use crate::domain::repository::SessionRepository;
+use crate::domain::service::SessionDomainService;
 use crate::error::SessionError;
+use crate::infrastructure::kafka_producer::SessionEventPublisher;
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct CreateSessionInput {
@@ -28,40 +30,37 @@ pub struct CreateSessionOutput {
 
 pub struct CreateSessionUseCase {
     repo: Arc<dyn SessionRepository>,
+    event_publisher: Arc<dyn SessionEventPublisher>,
     default_ttl: i64,
     max_ttl: i64,
 }
 
 impl CreateSessionUseCase {
-    pub fn new(repo: Arc<dyn SessionRepository>, default_ttl: i64, max_ttl: i64) -> Self {
+    pub fn new(
+        repo: Arc<dyn SessionRepository>,
+        event_publisher: Arc<dyn SessionEventPublisher>,
+        default_ttl: i64,
+        max_ttl: i64,
+    ) -> Self {
         Self {
             repo,
+            event_publisher,
             default_ttl,
             max_ttl,
         }
     }
 
     pub async fn execute(&self, input: &CreateSessionInput) -> Result<CreateSessionOutput, SessionError> {
-        if input.device_id.trim().is_empty() {
-            return Err(SessionError::InvalidInput(
-                "device_id is required".to_string(),
-            ));
-        }
         let ttl = input.ttl_seconds.unwrap_or(self.default_ttl);
-        if ttl <= 0 || ttl > self.max_ttl {
-            return Err(SessionError::InvalidInput(format!(
-                "ttl_seconds must be between 1 and {}",
-                self.max_ttl
-            )));
-        }
+        SessionDomainService::validate_create_request(&input.device_id, ttl, self.max_ttl)?;
 
         let max_devices = input.max_devices.unwrap_or(10).max(1) as usize;
         let mut existing = self.repo.find_by_user_id(&input.user_id).await?;
         existing.sort_by_key(|s| s.created_at);
 
         let valid_sessions: Vec<Session> = existing.into_iter().filter(|s| s.is_valid()).collect();
-        if valid_sessions.len() >= max_devices {
-            let revoke_count = valid_sessions.len() - max_devices + 1;
+        let revoke_count = SessionDomainService::compute_revoke_count(valid_sessions.len(), max_devices);
+        if revoke_count > 0 {
             for mut old in valid_sessions.into_iter().take(revoke_count) {
                 old.revoke();
                 self.repo
@@ -92,6 +91,10 @@ impl CreateSessionUseCase {
             .save(&session)
             .await
             .map_err(|e| SessionError::Internal(e.to_string()))?;
+        self.event_publisher
+            .publish_session_created(&session)
+            .await
+            .map_err(|e| SessionError::Internal(e.to_string()))?;
 
         Ok(CreateSessionOutput { session })
     }
@@ -101,14 +104,19 @@ impl CreateSessionUseCase {
 mod tests {
     use super::*;
     use crate::domain::repository::session_repository::MockSessionRepository;
+    use crate::infrastructure::kafka_producer::MockSessionEventPublisher;
 
     #[tokio::test]
     async fn success() {
         let mut mock = MockSessionRepository::new();
         mock.expect_find_by_user_id().returning(|_| Ok(vec![]));
         mock.expect_save().returning(|_| Ok(()));
+        let mut mock_publisher = MockSessionEventPublisher::new();
+        mock_publisher
+            .expect_publish_session_created()
+            .returning(|_| Ok(()));
 
-        let uc = CreateSessionUseCase::new(Arc::new(mock), 3600, 86400);
+        let uc = CreateSessionUseCase::new(Arc::new(mock), Arc::new(mock_publisher), 3600, 86400);
         let input = CreateSessionInput {
             user_id: "user-1".to_string(),
             device_id: "device-1".to_string(),
@@ -134,7 +142,12 @@ mod tests {
         mock.expect_find_by_user_id().returning(|_| Ok(vec![]));
         mock.expect_save().returning(|_| Ok(()));
 
-        let uc = CreateSessionUseCase::new(Arc::new(mock), 3600, 86400);
+        let uc = CreateSessionUseCase::new(
+            Arc::new(mock),
+            Arc::new(crate::infrastructure::kafka_producer::NoopSessionEventPublisher),
+            3600,
+            86400,
+        );
         let input = CreateSessionInput {
             user_id: "user-2".to_string(),
             device_id: "device-2".to_string(),
@@ -153,7 +166,12 @@ mod tests {
     #[tokio::test]
     async fn invalid_ttl() {
         let mock = MockSessionRepository::new();
-        let uc = CreateSessionUseCase::new(Arc::new(mock), 3600, 86400);
+        let uc = CreateSessionUseCase::new(
+            Arc::new(mock),
+            Arc::new(crate::infrastructure::kafka_producer::NoopSessionEventPublisher),
+            3600,
+            86400,
+        );
         let input = CreateSessionInput {
             user_id: "user-3".to_string(),
             device_id: "device-3".to_string(),
@@ -176,7 +194,12 @@ mod tests {
         mock.expect_save()
             .returning(|_| Err(SessionError::Internal("db error".to_string())));
 
-        let uc = CreateSessionUseCase::new(Arc::new(mock), 3600, 86400);
+        let uc = CreateSessionUseCase::new(
+            Arc::new(mock),
+            Arc::new(crate::infrastructure::kafka_producer::NoopSessionEventPublisher),
+            3600,
+            86400,
+        );
         let input = CreateSessionInput {
             user_id: "user-4".to_string(),
             device_id: "device-4".to_string(),
@@ -217,7 +240,12 @@ mod tests {
         });
         mock.expect_save().returning(|_| Ok(()));
 
-        let uc = CreateSessionUseCase::new(Arc::new(mock), 3600, 86400);
+        let uc = CreateSessionUseCase::new(
+            Arc::new(mock),
+            Arc::new(crate::infrastructure::kafka_producer::NoopSessionEventPublisher),
+            3600,
+            86400,
+        );
         let input = CreateSessionInput {
             user_id: "user-busy".to_string(),
             device_id: "device-new".to_string(),

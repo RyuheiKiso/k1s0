@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::{Tenant, TenantStatus};
 use crate::domain::repository::TenantRepository;
+use crate::domain::service::TenantDomainService;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ActivateTenantError {
@@ -31,9 +32,12 @@ impl ActivateTenantUseCase {
             .map_err(|e| ActivateTenantError::Internal(e.to_string()))?
             .ok_or_else(|| ActivateTenantError::NotFound(tenant_id.to_string()))?;
 
-        if tenant.status == TenantStatus::Deleted {
+        if !TenantDomainService::can_activate(&tenant.status) {
             return Err(ActivateTenantError::InvalidStatus(
-                "cannot activate a deleted tenant".to_string(),
+                format!(
+                    "tenant must be suspended to activate, current status: {}",
+                    tenant.status.as_str()
+                ),
             ));
         }
 
@@ -83,7 +87,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_activate_tenant_from_provisioning() {
+    async fn test_activate_tenant_from_provisioning_fails() {
         let mut mock = MockTenantRepository::new();
         let tenant_id = Uuid::new_v4();
         let tid = tenant_id;
@@ -103,11 +107,13 @@ mod tests {
                     updated_at: chrono::Utc::now(),
                 }))
             });
-        mock.expect_update().returning(|_| Ok(()));
-
         let uc = ActivateTenantUseCase::new(Arc::new(mock));
-        let tenant = uc.execute(tenant_id).await.unwrap();
-        assert_eq!(tenant.status, TenantStatus::Active);
+        let result = uc.execute(tenant_id).await;
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            ActivateTenantError::InvalidStatus(_) => {}
+            e => panic!("unexpected error: {:?}", e),
+        }
     }
 
     #[tokio::test]

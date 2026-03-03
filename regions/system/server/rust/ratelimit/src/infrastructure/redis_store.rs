@@ -115,6 +115,46 @@ local reset_at = now + window
 return {allowed, remaining, reset_at}
 "#;
 
+/// LEAKY_BUCKET_SCRIPT はリーキーバケットアルゴリズムの Lua スクリプト。
+///
+/// KEYS[1]: バケットキー
+/// ARGV[1]: 最大容量 (limit)
+/// ARGV[2]: ウィンドウ秒数
+/// ARGV[3]: 現在時刻 (Unix epoch seconds)
+const LEAKY_BUCKET_SCRIPT: &str = r#"
+local key = KEYS[1]
+local limit = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+local now = tonumber(ARGV[3])
+
+local bucket = redis.call('HMGET', key, 'level', 'last_leak')
+local level = tonumber(bucket[1])
+local last_leak = tonumber(bucket[2])
+
+if level == nil then
+    level = 0
+    last_leak = now
+end
+
+local leak_rate = limit / window
+local elapsed = now - last_leak
+level = math.max(0, level - elapsed * leak_rate)
+last_leak = now
+
+local allowed = 0
+if level + 1 <= limit then
+    level = level + 1
+    allowed = 1
+end
+
+redis.call('HMSET', key, 'level', level, 'last_leak', last_leak)
+redis.call('EXPIRE', key, window * 2)
+
+local remaining = math.max(0, math.floor(limit - level))
+local reset_at = now + window
+return {allowed, remaining, reset_at}
+"#;
+
 /// RedisRateLimitStore は Redis ベースのレートリミット状態ストア。
 pub struct RedisRateLimitStore {
     conn: ConnectionManager,
@@ -153,9 +193,10 @@ impl RateLimitStateStore for RedisRateLimitStore {
         let reset_at = result[2];
 
         if allowed {
-            Ok(RateLimitDecision::allowed(remaining, reset_at))
+            Ok(RateLimitDecision::allowed(limit, remaining, reset_at))
         } else {
             Ok(RateLimitDecision::denied(
+                limit,
                 remaining,
                 reset_at,
                 "rate limit exceeded".to_string(),
@@ -188,9 +229,10 @@ impl RateLimitStateStore for RedisRateLimitStore {
         let reset_at = result[2];
 
         if allowed {
-            Ok(RateLimitDecision::allowed(remaining, reset_at))
+            Ok(RateLimitDecision::allowed(limit, remaining, reset_at))
         } else {
             Ok(RateLimitDecision::denied(
+                limit,
                 remaining,
                 reset_at,
                 "rate limit exceeded".to_string(),
@@ -223,9 +265,46 @@ impl RateLimitStateStore for RedisRateLimitStore {
         let reset_at = result[2];
 
         if allowed {
-            Ok(RateLimitDecision::allowed(remaining, reset_at))
+            Ok(RateLimitDecision::allowed(limit, remaining, reset_at))
         } else {
             Ok(RateLimitDecision::denied(
+                limit,
+                remaining,
+                reset_at,
+                "rate limit exceeded".to_string(),
+            ))
+        }
+    }
+
+    async fn check_leaky_bucket(
+        &self,
+        key: &str,
+        limit: i64,
+        window_secs: i64,
+    ) -> anyhow::Result<RateLimitDecision> {
+        let now = chrono::Utc::now().timestamp();
+        let script = Script::new(LEAKY_BUCKET_SCRIPT);
+        let result: Vec<i64> = script
+            .key(key)
+            .arg(limit)
+            .arg(window_secs)
+            .arg(now)
+            .invoke_async(&mut self.conn.clone())
+            .await?;
+
+        if result.len() < 3 {
+            return Err(anyhow::anyhow!("unexpected Lua script result"));
+        }
+
+        let allowed = result[0] == 1;
+        let remaining = result[1];
+        let reset_at = result[2];
+
+        if allowed {
+            Ok(RateLimitDecision::allowed(limit, remaining, reset_at))
+        } else {
+            Ok(RateLimitDecision::denied(
+                limit,
                 remaining,
                 reset_at,
                 "rate limit exceeded".to_string(),

@@ -1,4 +1,7 @@
-# system-policy-server 設計
+﻿# system-policy-server 設計
+
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+
 
 OPA 連携の動的ポリシー評価サーバー。Rego ポリシー管理・バンドル管理・評価キャッシュを提供。
 
@@ -740,3 +743,4 @@ vault:
 - Canonical list/create message pairs are `ListPoliciesRequest/Response` and `CreatePolicyRequest/Response`.
 - `ListPoliciesRequest.bundle_id` is `optional string`.
 - `CreatePolicyRequest.bundle_id` is `optional string`.
+

@@ -511,7 +511,7 @@ mod tests {
         let mut state_store = MockRateLimitStateStore::new();
         state_store
             .expect_check_token_bucket()
-            .returning(|_, _, _| Ok(RateLimitDecision::allowed(99, 1700000060)));
+            .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 99, 1700000060)));
 
         let check_uc = Arc::new(CheckRateLimitUseCase::new(
             Arc::new(repo),

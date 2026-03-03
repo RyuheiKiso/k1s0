@@ -1,5 +1,8 @@
 ﻿# system-session-server 設計
 
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+
+
 system tier のセッション管理サーバー設計を定義する。Redis によるセッションデータ管理とマルチデバイス対応、セッション失効を提供する。JWT 認証と補完し、ステートフルセッションが必要な要件に対応する。Rust での実装を定義する。
 
 ## 概要
@@ -499,3 +502,4 @@ message Session {
 - `CreateSessionRequest.ttl_seconds` is optional.
 - `CreateSessionResponse.token` is present.
 - Session-related timestamps use `k1s0.system.common.v1.Timestamp`.
+

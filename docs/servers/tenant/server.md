@@ -1,5 +1,8 @@
 ﻿# system-tenant-server 設計
 
+> **認可モデル注記（2026-03-03更新）**: 実装では `resource/action`（例: `flags/read`, `flags/write`, `flags/admin`）で判定し、ロール `sys_admin` / `sys_operator` / `sys_auditor` は middleware でそれぞれ `admin` / `write` / `read` にマッピングされます。
+
+
 system tier のテナント管理サーバー設計を定義する。マルチテナンシーを実現するためのテナントプロビジョニング・管理・分離制御を提供し、Keycloak realm と連携してテナント単位の認証境界を確立する。テナントライフサイクル管理（作成・更新・一時停止・削除）を行い、テナントイベントを Kafka で配信する。
 Rust での実装を定義する。
 
@@ -862,3 +865,4 @@ vault:
 - `Tenant` includes `owner_id(7)`, `settings(8)`, `db_schema(9)`, `updated_at(10)`, `keycloak_realm(11)`.
 - `ListMembersRequest` and `ListMembersResponse` are canonical gRPC messages.
 - Tenant timestamp fields use `k1s0.system.common.v1.Timestamp`.
+
