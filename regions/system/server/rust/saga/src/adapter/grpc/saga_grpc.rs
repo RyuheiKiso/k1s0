@@ -5,9 +5,8 @@ use std::sync::Arc;
 use crate::domain::entity::saga_state::SagaStatus;
 use crate::domain::repository::saga_repository::SagaListParams;
 use crate::usecase::{
-    CancelSagaUseCase, CompensateSagaError, ExecuteSagaUseCase, GetSagaUseCase,
-    ListSagasUseCase, ListWorkflowsUseCase,
-    RegisterWorkflowUseCase, StartSagaUseCase,
+    CancelSagaUseCase, CompensateSagaError, ExecuteSagaUseCase, GetSagaUseCase, ListSagasUseCase,
+    ListWorkflowsUseCase, RegisterWorkflowUseCase, StartSagaUseCase,
 };
 
 // --- Proto 手動型定義 ---
@@ -86,6 +85,7 @@ pub struct CompensateSagaResponse {
     pub success: bool,
     pub status: String,
     pub message: String,
+    pub saga_id: String,
 }
 
 /// RegisterWorkflowRequest はワークフロー登録リクエスト。
@@ -406,6 +406,7 @@ impl SagaGrpcService {
             success: true,
             status: state.status.to_string(),
             message: format!("saga {} compensation triggered", req.saga_id),
+            saga_id: state.saga_id.to_string(),
         })
     }
 

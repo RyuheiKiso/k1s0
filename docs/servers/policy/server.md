@@ -77,6 +77,15 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 
 登録済みポリシーの全一覧を取得する。
 
+**クエリパラメータ**
+
+| パラメータ | 型 | 必須 | デフォルト | 説明 |
+| --- | --- | --- | --- | --- |
+| `page` | int | No | 1 | ページ番号 |
+| `page_size` | int | No | 20 | 1ページあたりの件数 |
+| `bundle_id` | string | No | - | バンドル ID でフィルタ |
+| `enabled_only` | bool | No | false | 有効化されたポリシーのみ取得 |
+
 **レスポンス例（200 OK）**
 
 ```json
@@ -319,6 +328,8 @@ ID 指定でポリシーの詳細を取得する。
 }
 ```
 
+> `policy_count` は REST 専用の計算フィールド。gRPC の `PolicyBundle` には含まれない。
+
 #### POST /api/v1/bundles
 
 複数のポリシーをグループ化したバンドルを作成する。
@@ -363,21 +374,10 @@ ID 指定でポリシーの詳細を取得する。
 | コード | HTTP Status | 説明 |
 | --- | --- | --- |
 | `SYS_POLICY_NOT_FOUND` | 404 | 指定されたポリシーが見つからない |
-| `SYS_POLICY_BUNDLE_NOT_FOUND` | 404 | 指定されたバンドルが見つからない |
 | `SYS_POLICY_ALREADY_EXISTS` | 409 | 同一名のポリシーが既に存在する |
 | `SYS_POLICY_VALIDATION_ERROR` | 400 | リクエストまたは Rego 構文のバリデーションエラー |
-| `SYS_POLICY_VALIDATION` | 400 | 入力バリデーションエラー |
 | `SYS_POLICY_INVALID_ID` | 400 | UUID 形式の ID が不正 |
 | `SYS_POLICY_INVALID_BUNDLE_ID` | 400 | UUID 形式の bundle_id が不正 |
-| `SYS_POLICY_OPA_ERROR` | 502 | OPA への接続・評価エラー |
-| `SYS_POLICY_LIST_FAILED` | 500 | ポリシー一覧取得失敗 |
-| `SYS_POLICY_GET_FAILED` | 500 | ポリシー取得失敗 |
-| `SYS_POLICY_CREATE_FAILED` | 500 | ポリシー作成失敗 |
-| `SYS_POLICY_UPDATE_FAILED` | 500 | ポリシー更新失敗 |
-| `SYS_POLICY_DELETE_FAILED` | 500 | ポリシー削除失敗 |
-| `SYS_POLICY_EVALUATE_FAILED` | 500 | ポリシー評価失敗 |
-| `SYS_POLICY_BUNDLE_LIST_FAILED` | 500 | バンドル一覧取得失敗 |
-| `SYS_POLICY_BUNDLE_CREATE_FAILED` | 500 | バンドル作成失敗 |
 | `SYS_POLICY_INTERNAL_ERROR` | 500 | 内部エラー |
 
 ### gRPC サービス定義
@@ -422,17 +422,87 @@ message GetPolicyResponse {
   Policy policy = 1;
 }
 
+message ListPoliciesRequest {
+  k1s0.system.common.v1.Pagination pagination = 1;
+  optional string bundle_id = 2;
+  bool enabled_only = 3;
+}
+
+message ListPoliciesResponse {
+  repeated Policy policies = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message CreatePolicyRequest {
+  string name = 1;
+  string description = 2;
+  string rego_content = 3;
+  string package_path = 4;
+  optional string bundle_id = 5;
+}
+
+message CreatePolicyResponse {
+  Policy policy = 1;
+}
+
+message UpdatePolicyRequest {
+  string id = 1;
+  optional string description = 2;
+  optional string rego_content = 3;
+  optional bool enabled = 4;
+}
+
+message UpdatePolicyResponse {
+  Policy policy = 1;
+}
+
+message DeletePolicyRequest {
+  string id = 1;
+}
+
+message DeletePolicyResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message CreateBundleRequest {
+  string name = 1;
+  repeated string policy_ids = 2;
+  optional string description = 3;
+  optional bool enabled = 4;
+}
+
+message CreateBundleResponse {
+  PolicyBundle bundle = 1;
+}
+
+message ListBundlesRequest {}
+
+message ListBundlesResponse {
+  repeated PolicyBundle bundles = 1;
+}
+
 message Policy {
   string id = 1;
   string name = 2;
   string description = 3;
   string package_path = 4;
   string rego_content = 5;
-  string bundle_id = 6;
+  optional string bundle_id = 6;
   bool enabled = 7;
   uint32 version = 8;
   k1s0.system.common.v1.Timestamp created_at = 9;
   k1s0.system.common.v1.Timestamp updated_at = 10;
+}
+
+message PolicyBundle {
+  string id = 1;
+  string name = 2;
+  repeated string policy_ids = 3;
+  k1s0.system.common.v1.Timestamp created_at = 4;
+  k1s0.system.common.v1.Timestamp updated_at = 5;
+  string description = 6;
+  bool enabled = 7;
 }
 ```
 
@@ -512,6 +582,8 @@ message Policy {
 | `id` | UUID | バンドルの一意識別子 |
 | `name` | String | バンドル名（例: `k1s0-system-policies`） |
 | `policy_ids` | Vec\<UUID\> | 所属ポリシー ID 一覧 |
+| `description` | Option\<String\> | バンドル説明 |
+| `enabled` | bool | バンドルの有効/無効 |
 | `created_at` | DateTime\<Utc\> | 作成日時 |
 | `updated_at` | DateTime\<Utc\> | 更新日時 |
 

@@ -306,6 +306,7 @@ message GetSecretResponse {
   int64 version = 2;
   k1s0.system.common.v1.Timestamp created_at = 3;
   k1s0.system.common.v1.Timestamp updated_at = 4;
+  string path = 5;
 }
 
 message SetSecretRequest {
@@ -316,6 +317,7 @@ message SetSecretRequest {
 message SetSecretResponse {
   int64 version = 1;
   k1s0.system.common.v1.Timestamp created_at = 2;
+  string path = 3;
 }
 
 message RotateSecretRequest {
@@ -351,7 +353,7 @@ message GetSecretMetadataResponse {
 }
 
 message ListSecretsRequest {
-  string path_prefix = 1;
+  string prefix = 1;
 }
 
 message ListSecretsResponse {

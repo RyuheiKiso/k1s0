@@ -180,6 +180,7 @@ package k1s0.system.saga.v1;
 option go_package = "github.com/k1s0-platform/system-server-go-saga/gen/go/k1s0/system/saga/v1;sagav1";
 
 import "k1s0/system/common/v1/types.proto";
+import "google/protobuf/struct.proto";
 
 // SagaService は Saga オーケストレーション機能を提供する。
 service SagaService {
@@ -219,8 +220,8 @@ message SagaStateProto {
   int32 current_step = 3;
   // ステータス: STARTED, RUNNING, COMPLETED, COMPENSATING, FAILED, CANCELLED
   string status = 4;
-  // 各ステップに渡す JSON ペイロード（バイト列）
-  bytes payload = 5;
+  // 各ステップに渡す JSON ペイロード
+  google.protobuf.Struct payload = 5;
   // 業務相関 ID
   string correlation_id = 6;
   // 呼び出し元サービス名
@@ -245,10 +246,10 @@ message SagaStepLogProto {
   string action = 5;
   // 実行結果: SUCCESS, FAILED, TIMEOUT, SKIPPED
   string status = 6;
-  // リクエストペイロード（バイト列）
-  bytes request_payload = 7;
-  // レスポンスペイロード（バイト列）
-  bytes response_payload = 8;
+  // リクエストペイロード
+  google.protobuf.Struct request_payload = 7;
+  // レスポンスペイロード
+  google.protobuf.Struct response_payload = 8;
   // エラーメッセージ（失敗時）
   string error_message = 9;
   k1s0.system.common.v1.Timestamp started_at = 10;
@@ -273,8 +274,8 @@ message WorkflowSummary {
 message StartSagaRequest {
   // 実行するワークフロー名
   string workflow_name = 1;
-  // 各ステップに渡す JSON ペイロード（バイト列）
-  bytes payload = 2;
+  // 各ステップに渡す JSON ペイロード
+  google.protobuf.Struct payload = 2;
   // 業務相関 ID（任意）
   string correlation_id = 3;
   // 呼び出し元サービス名（任意）
@@ -312,11 +313,11 @@ message GetSagaResponse {
 message ListSagasRequest {
   k1s0.system.common.v1.Pagination pagination = 1;
   // ワークフロー名フィルタ（任意）
-  string workflow_name = 2;
+  optional string workflow_name = 2;
   // ステータスフィルタ（任意）
-  string status = 3;
+  optional string status = 3;
   // 相関 ID フィルタ（任意）
-  string correlation_id = 4;
+  optional string correlation_id = 4;
 }
 
 // ListSagasResponse は Saga 一覧取得レスポンス。
@@ -350,6 +351,7 @@ message CompensateSagaResponse {
   bool success = 1;
   string status = 2;
   string message = 3;
+  string saga_id = 4;
 }
 
 // ============================================================
@@ -405,7 +407,7 @@ message SagaStateProto {
   string workflow_name = 2;
   int32 current_step = 3;
   string status = 4;
-  bytes payload = 5;
+  google.protobuf.Struct payload = 5;
   string correlation_id = 6;
   string initiated_by = 7;
   optional string error_message = 8;
@@ -420,8 +422,8 @@ message SagaStepLogProto {
   string step_name = 4;
   string action = 5;       // EXECUTE, COMPENSATE
   string status = 6;       // SUCCESS, FAILED, TIMEOUT, SKIPPED
-  bytes request_payload = 7;
-  bytes response_payload = 8;
+  google.protobuf.Struct request_payload = 7;
+  google.protobuf.Struct response_payload = 8;
   string error_message = 9;
   k1s0.system.common.v1.Timestamp started_at = 10;
   k1s0.system.common.v1.Timestamp completed_at = 11;

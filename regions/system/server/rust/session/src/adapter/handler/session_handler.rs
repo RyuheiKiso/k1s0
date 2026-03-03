@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -9,15 +9,15 @@ use axum::Json;
 use k1s0_server_common::error as codes;
 use k1s0_server_common::ErrorResponse;
 
-use crate::error::SessionError;
 use crate::adapter::middleware::auth::SessionAuthState;
+use crate::domain::entity::session::Session;
+use crate::error::SessionError;
 use crate::usecase::create_session::{CreateSessionInput, CreateSessionUseCase};
 use crate::usecase::get_session::{GetSessionInput, GetSessionUseCase};
 use crate::usecase::list_user_sessions::{ListUserSessionsInput, ListUserSessionsUseCase};
 use crate::usecase::refresh_session::{RefreshSessionInput, RefreshSessionUseCase};
 use crate::usecase::revoke_all_sessions::{RevokeAllSessionsInput, RevokeAllSessionsUseCase};
 use crate::usecase::revoke_session::{RevokeSessionInput, RevokeSessionUseCase};
-use crate::domain::entity::session::Session;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -45,11 +45,7 @@ fn error_response(err: SessionError) -> (StatusCode, Json<serde_json::Value>) {
             codes::session::not_found(),
             err.to_string(),
         ),
-        SessionError::Expired(_) => (
-            StatusCode::GONE,
-            codes::session::expired(),
-            err.to_string(),
-        ),
+        SessionError::Expired(_) => (StatusCode::GONE, codes::session::expired(), err.to_string()),
         SessionError::Revoked(_) => (
             StatusCode::CONFLICT,
             codes::session::revoked(),
@@ -173,7 +169,7 @@ pub async fn list_user_sessions(
     let input = ListUserSessionsInput { user_id };
     match state.list_uc.execute(&input).await {
         Ok(output) => {
-            let total_count = output.sessions.len() as u64;
+            let total_count = output.sessions.len() as u32;
             let mapped = ListSessionsHttpResponse {
                 sessions: output
                     .sessions
@@ -239,5 +235,5 @@ impl SessionHttpResponse {
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ListSessionsHttpResponse {
     pub sessions: Vec<SessionHttpResponse>,
-    pub total_count: u64,
+    pub total_count: u32,
 }

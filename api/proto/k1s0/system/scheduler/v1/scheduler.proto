@@ -8,6 +8,7 @@ package k1s0.system.scheduler.v1;
 option go_package = "github.com/k1s0-platform/system-proto-go/scheduler/v1;schedulerv1";
 
 import "k1s0/system/common/v1/types.proto";
+import "google/protobuf/struct.proto";
 
 service SchedulerService {
   rpc CreateJob(CreateJobRequest) returns (CreateJobResponse);
@@ -30,7 +31,7 @@ message Job {
   string timezone = 5;
   string target_type = 6;
   string target = 7;
-  bytes payload = 8;
+  google.protobuf.Struct payload = 8;
   string status = 9;
   optional k1s0.system.common.v1.Timestamp next_run_at = 10;
   optional k1s0.system.common.v1.Timestamp last_run_at = 11;
@@ -45,7 +46,7 @@ message CreateJobRequest {
   string timezone = 4;
   string target_type = 5;
   string target = 6;
-  bytes payload = 7;
+  google.protobuf.Struct payload = 7;
 }
 
 message CreateJobResponse {
@@ -78,7 +79,7 @@ message UpdateJobRequest {
   string timezone = 5;
   string target_type = 6;
   string target = 7;
-  bytes payload = 8;
+  google.protobuf.Struct payload = 8;
 }
 
 message UpdateJobResponse {

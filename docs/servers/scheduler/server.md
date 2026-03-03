@@ -367,6 +367,7 @@ syntax = "proto3";
 package k1s0.system.scheduler.v1;
 
 import "k1s0/system/common/v1/types.proto";
+import "google/protobuf/struct.proto";
 
 service SchedulerService {
   rpc CreateJob(CreateJobRequest) returns (CreateJobResponse);
@@ -379,6 +380,94 @@ service SchedulerService {
   rpc TriggerJob(TriggerJobRequest) returns (TriggerJobResponse);
   rpc GetJobExecution(GetJobExecutionRequest) returns (GetJobExecutionResponse);
   rpc ListExecutions(ListExecutionsRequest) returns (ListExecutionsResponse);
+}
+
+message Job {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string cron_expression = 4;
+  string timezone = 5;
+  string target_type = 6;
+  string target = 7;
+  google.protobuf.Struct payload = 8;
+  string status = 9;
+  optional k1s0.system.common.v1.Timestamp next_run_at = 10;
+  optional k1s0.system.common.v1.Timestamp last_run_at = 11;
+  k1s0.system.common.v1.Timestamp created_at = 12;
+  k1s0.system.common.v1.Timestamp updated_at = 13;
+}
+
+message CreateJobRequest {
+  string name = 1;
+  string description = 2;
+  string cron_expression = 3;
+  string timezone = 4;
+  string target_type = 5;
+  string target = 6;
+  google.protobuf.Struct payload = 7;
+}
+
+message CreateJobResponse {
+  Job job = 1;
+}
+
+message GetJobRequest {
+  string job_id = 1;
+}
+
+message GetJobResponse {
+  Job job = 1;
+}
+
+message ListJobsRequest {
+  string status = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+}
+
+message ListJobsResponse {
+  repeated Job jobs = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message UpdateJobRequest {
+  string job_id = 1;
+  string name = 2;
+  string description = 3;
+  string cron_expression = 4;
+  string timezone = 5;
+  string target_type = 6;
+  string target = 7;
+  google.protobuf.Struct payload = 8;
+}
+
+message UpdateJobResponse {
+  Job job = 1;
+}
+
+message DeleteJobRequest {
+  string job_id = 1;
+}
+
+message DeleteJobResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message PauseJobRequest {
+  string job_id = 1;
+}
+
+message PauseJobResponse {
+  Job job = 1;
+}
+
+message ResumeJobRequest {
+  string job_id = 1;
+}
+
+message ResumeJobResponse {
+  Job job = 1;
 }
 
 message TriggerJobRequest {
@@ -399,6 +488,19 @@ message GetJobExecutionRequest {
 
 message GetJobExecutionResponse {
   JobExecution execution = 1;
+}
+
+message ListExecutionsRequest {
+  string job_id = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+  optional string status = 3;
+  optional k1s0.system.common.v1.Timestamp from = 4;
+  optional k1s0.system.common.v1.Timestamp to = 5;
+}
+
+message ListExecutionsResponse {
+  repeated JobExecution executions = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
 message JobExecution {

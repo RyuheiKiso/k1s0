@@ -8,7 +8,7 @@ pub struct FileMetadata {
     #[prost(string, tag = "3")]
     pub content_type: ::prost::alloc::string::String,
     #[prost(int64, tag = "4")]
-    pub size: i64,
+    pub size_bytes: i64,
     #[prost(string, tag = "5")]
     pub tenant_id: ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
@@ -47,6 +47,12 @@ pub struct ListFilesRequest {
     pub page: i32,
     #[prost(int32, tag = "3")]
     pub page_size: i32,
+    #[prost(string, optional, tag = "4")]
+    pub uploaded_by: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "5")]
+    pub mime_type: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "6")]
+    pub tag: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListFilesResponse {

@@ -96,6 +96,14 @@ DLQ メッセージを削除する。
 | `dlq/write` | POST `/api/v1/dlq/messages/:id/retry` |
 | `dlq/admin` | DELETE `/api/v1/dlq/messages/:id`, POST `/api/v1/dlq/:topic/retry-all` |
 
+### 認証・認可
+
+`auth` セクションが設定されている場合、`auth.rs` のミドルウェアで Bearer JWT を JWKS 検証し、`rbac.rs` で `sys_admin` / `sys_operator` / `sys_auditor` を `dlq/*` 権限にマッピングしてアクセス制御する。
+
+- JWKS 検証パラメータ: `jwks_url`, `issuer`, `audience`, `jwks_cache_ttl_secs`
+- 権限判定: `dlq/read`, `dlq/write`, `dlq/admin`
+- 主な認証エラー: `SYS_AUTH_MISSING_TOKEN`, `SYS_AUTH_TOKEN_INVALID`, `SYS_AUTH_PERMISSION_DENIED`
+
 ### エラーコード
 
 | コード | HTTP Status | 説明 |
@@ -109,6 +117,7 @@ DLQ メッセージを削除する。
 ### gRPC サービス定義
 
 proto ファイル: `api/proto/k1s0/system/dlq/v1/dlq.proto`
+gRPC エンドポイント: `0.0.0.0:50051`（5 RPC: `ListMessages`, `GetMessage`, `RetryMessage`, `DeleteMessage`, `RetryAll`）
 
 ```protobuf
 syntax = "proto3";
@@ -540,6 +549,12 @@ kafka:
   consumer_group: "dlq-manager.default"
   security_protocol: "PLAINTEXT"
   dlq_topic_pattern: "*.dlq.v1"
+
+auth:
+  jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
+  issuer: "https://auth.k1s0.internal.example.com/realms/k1s0"
+  audience: "k1s0-api"
+  jwks_cache_ttl_secs: 300
 ```
 
 ---
@@ -557,10 +572,12 @@ replicaCount: 2
 
 container:
   port: 8080
+  grpcPort: 50051
 
 service:
   type: ClusterIP
   port: 80
+  grpcPort: 50051
 
 autoscaling:
   enabled: true

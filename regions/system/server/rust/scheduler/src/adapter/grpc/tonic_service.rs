@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
@@ -8,21 +9,23 @@ use crate::proto::k1s0::system::common::v1::{
 use crate::proto::k1s0::system::scheduler::v1::{
     scheduler_service_server::SchedulerService, CreateJobRequest as ProtoCreateJobRequest,
     CreateJobResponse as ProtoCreateJobResponse, DeleteJobRequest as ProtoDeleteJobRequest,
-    DeleteJobResponse as ProtoDeleteJobResponse, GetJobExecutionRequest as ProtoGetJobExecutionRequest,
+    DeleteJobResponse as ProtoDeleteJobResponse,
+    GetJobExecutionRequest as ProtoGetJobExecutionRequest,
     GetJobExecutionResponse as ProtoGetJobExecutionResponse, GetJobRequest as ProtoGetJobRequest,
     GetJobResponse as ProtoGetJobResponse, Job as ProtoJob, JobExecution as ProtoJobExecution,
-    ListExecutionsRequest as ProtoListExecutionsRequest, ListExecutionsResponse as ProtoListExecutionsResponse,
-    ListJobsRequest as ProtoListJobsRequest, ListJobsResponse as ProtoListJobsResponse,
-    PauseJobRequest as ProtoPauseJobRequest, PauseJobResponse as ProtoPauseJobResponse,
-    ResumeJobRequest as ProtoResumeJobRequest, ResumeJobResponse as ProtoResumeJobResponse,
-    TriggerJobRequest as ProtoTriggerJobRequest, TriggerJobResponse as ProtoTriggerJobResponse,
-    UpdateJobRequest as ProtoUpdateJobRequest, UpdateJobResponse as ProtoUpdateJobResponse,
+    ListExecutionsRequest as ProtoListExecutionsRequest,
+    ListExecutionsResponse as ProtoListExecutionsResponse, ListJobsRequest as ProtoListJobsRequest,
+    ListJobsResponse as ProtoListJobsResponse, PauseJobRequest as ProtoPauseJobRequest,
+    PauseJobResponse as ProtoPauseJobResponse, ResumeJobRequest as ProtoResumeJobRequest,
+    ResumeJobResponse as ProtoResumeJobResponse, TriggerJobRequest as ProtoTriggerJobRequest,
+    TriggerJobResponse as ProtoTriggerJobResponse, UpdateJobRequest as ProtoUpdateJobRequest,
+    UpdateJobResponse as ProtoUpdateJobResponse,
 };
 
 use super::scheduler_grpc::{
-    CreateJobRequest, DeleteJobRequest, GetJobExecutionRequest, GetJobRequest, GrpcError,
-    JobData, JobExecutionData, ListExecutionsRequest, ListJobsRequest, PauseJobRequest,
-    ResumeJobRequest, SchedulerGrpcService, TriggerJobRequest, UpdateJobRequest,
+    CreateJobRequest, DeleteJobRequest, GetJobExecutionRequest, GetJobRequest, GrpcError, JobData,
+    JobExecutionData, ListExecutionsRequest, ListJobsRequest, PauseJobRequest, ResumeJobRequest,
+    SchedulerGrpcService, TriggerJobRequest, UpdateJobRequest,
 };
 
 impl From<GrpcError> for Status {
@@ -50,6 +53,86 @@ fn from_proto_timestamp(ts: ProtoTimestamp) -> chrono::DateTime<chrono::Utc> {
         .unwrap_or_else(chrono::Utc::now)
 }
 
+fn json_to_prost_value(value: &serde_json::Value) -> prost_types::Value {
+    let kind = match value {
+        serde_json::Value::Null => prost_types::value::Kind::NullValue(0),
+        serde_json::Value::Bool(v) => prost_types::value::Kind::BoolValue(*v),
+        serde_json::Value::Number(v) => {
+            prost_types::value::Kind::NumberValue(v.as_f64().unwrap_or(0.0))
+        }
+        serde_json::Value::String(v) => prost_types::value::Kind::StringValue(v.clone()),
+        serde_json::Value::Array(values) => {
+            let values = values.iter().map(json_to_prost_value).collect();
+            prost_types::value::Kind::ListValue(prost_types::ListValue { values })
+        }
+        serde_json::Value::Object(map) => {
+            let fields = map
+                .iter()
+                .map(|(k, v)| (k.clone(), json_to_prost_value(v)))
+                .collect();
+            prost_types::value::Kind::StructValue(prost_types::Struct { fields })
+        }
+    };
+    prost_types::Value { kind: Some(kind) }
+}
+
+fn json_to_prost_struct(value: &serde_json::Value) -> prost_types::Struct {
+    match value {
+        serde_json::Value::Object(map) => {
+            let fields: BTreeMap<String, prost_types::Value> = map
+                .iter()
+                .map(|(k, v)| (k.clone(), json_to_prost_value(v)))
+                .collect();
+            prost_types::Struct { fields }
+        }
+        _ => {
+            let mut fields = BTreeMap::new();
+            fields.insert("value".to_string(), json_to_prost_value(value));
+            prost_types::Struct { fields }
+        }
+    }
+}
+
+fn prost_value_to_json(value: &prost_types::Value) -> serde_json::Value {
+    match &value.kind {
+        Some(prost_types::value::Kind::NullValue(_)) => serde_json::Value::Null,
+        Some(prost_types::value::Kind::BoolValue(v)) => serde_json::Value::Bool(*v),
+        Some(prost_types::value::Kind::NumberValue(v)) => serde_json::json!(*v),
+        Some(prost_types::value::Kind::StringValue(v)) => serde_json::Value::String(v.clone()),
+        Some(prost_types::value::Kind::ListValue(list)) => {
+            serde_json::Value::Array(list.values.iter().map(prost_value_to_json).collect())
+        }
+        Some(prost_types::value::Kind::StructValue(v)) => prost_struct_to_json(v),
+        None => serde_json::Value::Null,
+    }
+}
+
+fn prost_struct_to_json(value: &prost_types::Struct) -> serde_json::Value {
+    let map: serde_json::Map<String, serde_json::Value> = value
+        .fields
+        .iter()
+        .map(|(k, v)| (k.clone(), prost_value_to_json(v)))
+        .collect();
+    serde_json::Value::Object(map)
+}
+
+fn json_bytes_to_prost_struct(bytes: &[u8]) -> Option<prost_types::Struct> {
+    if bytes.is_empty() {
+        return None;
+    }
+    let value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+    Some(json_to_prost_struct(&value))
+}
+
+fn prost_struct_to_json_bytes(payload: Option<prost_types::Struct>) -> Result<Vec<u8>, Status> {
+    let payload = payload
+        .as_ref()
+        .map(prost_struct_to_json)
+        .unwrap_or_else(|| serde_json::json!({}));
+    serde_json::to_vec(&payload)
+        .map_err(|e| Status::invalid_argument(format!("invalid payload: {}", e)))
+}
+
 fn to_proto_job(job: JobData) -> ProtoJob {
     ProtoJob {
         id: job.id,
@@ -59,7 +142,7 @@ fn to_proto_job(job: JobData) -> ProtoJob {
         timezone: job.timezone,
         target_type: job.target_type,
         target: job.target,
-        payload: job.payload,
+        payload: json_bytes_to_prost_struct(&job.payload),
         status: job.status,
         next_run_at: job.next_run_at.map(to_proto_timestamp),
         last_run_at: job.last_run_at.map(to_proto_timestamp),
@@ -98,6 +181,7 @@ impl SchedulerService for SchedulerServiceTonic {
         request: Request<ProtoCreateJobRequest>,
     ) -> Result<Response<ProtoCreateJobResponse>, Status> {
         let inner = request.into_inner();
+        let payload = prost_struct_to_json_bytes(inner.payload)?;
         let resp = self
             .inner
             .create_job(CreateJobRequest {
@@ -107,7 +191,7 @@ impl SchedulerService for SchedulerServiceTonic {
                 timezone: inner.timezone,
                 target_type: inner.target_type,
                 target: inner.target,
-                payload: inner.payload,
+                payload,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -123,7 +207,9 @@ impl SchedulerService for SchedulerServiceTonic {
         let inner = request.into_inner();
         let resp = self
             .inner
-            .get_job(GetJobRequest { job_id: inner.job_id })
+            .get_job(GetJobRequest {
+                job_id: inner.job_id,
+            })
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoGetJobResponse {
@@ -136,7 +222,10 @@ impl SchedulerService for SchedulerServiceTonic {
         request: Request<ProtoListJobsRequest>,
     ) -> Result<Response<ProtoListJobsResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner.pagination.map(|p| (p.page, p.page_size)).unwrap_or((1, 20));
+        let (page, page_size) = inner
+            .pagination
+            .map(|p| (p.page, p.page_size))
+            .unwrap_or((1, 20));
         let resp = self
             .inner
             .list_jobs(ListJobsRequest {
@@ -162,6 +251,7 @@ impl SchedulerService for SchedulerServiceTonic {
         request: Request<ProtoUpdateJobRequest>,
     ) -> Result<Response<ProtoUpdateJobResponse>, Status> {
         let inner = request.into_inner();
+        let payload = prost_struct_to_json_bytes(inner.payload)?;
         let resp = self
             .inner
             .update_job(UpdateJobRequest {
@@ -172,7 +262,7 @@ impl SchedulerService for SchedulerServiceTonic {
                 timezone: inner.timezone,
                 target_type: inner.target_type,
                 target: inner.target,
-                payload: inner.payload,
+                payload,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -188,7 +278,9 @@ impl SchedulerService for SchedulerServiceTonic {
         let inner = request.into_inner();
         let resp = self
             .inner
-            .delete_job(DeleteJobRequest { job_id: inner.job_id })
+            .delete_job(DeleteJobRequest {
+                job_id: inner.job_id,
+            })
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoDeleteJobResponse {
@@ -204,7 +296,9 @@ impl SchedulerService for SchedulerServiceTonic {
         let inner = request.into_inner();
         let resp = self
             .inner
-            .pause_job(PauseJobRequest { job_id: inner.job_id })
+            .pause_job(PauseJobRequest {
+                job_id: inner.job_id,
+            })
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoPauseJobResponse {
@@ -219,7 +313,9 @@ impl SchedulerService for SchedulerServiceTonic {
         let inner = request.into_inner();
         let resp = self
             .inner
-            .resume_job(ResumeJobRequest { job_id: inner.job_id })
+            .resume_job(ResumeJobRequest {
+                job_id: inner.job_id,
+            })
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoResumeJobResponse {
@@ -234,7 +330,9 @@ impl SchedulerService for SchedulerServiceTonic {
         let inner = request.into_inner();
         let resp = self
             .inner
-            .trigger_job(TriggerJobRequest { job_id: inner.job_id })
+            .trigger_job(TriggerJobRequest {
+                job_id: inner.job_id,
+            })
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoTriggerJobResponse {
@@ -267,7 +365,10 @@ impl SchedulerService for SchedulerServiceTonic {
         request: Request<ProtoListExecutionsRequest>,
     ) -> Result<Response<ProtoListExecutionsResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner.pagination.map(|p| (p.page, p.page_size)).unwrap_or((1, 20));
+        let (page, page_size) = inner
+            .pagination
+            .map(|p| (p.page, p.page_size))
+            .unwrap_or((1, 20));
         let resp = self
             .inner
             .list_executions(ListExecutionsRequest {
@@ -281,7 +382,11 @@ impl SchedulerService for SchedulerServiceTonic {
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(ProtoListExecutionsResponse {
-            executions: resp.executions.into_iter().map(to_proto_execution).collect(),
+            executions: resp
+                .executions
+                .into_iter()
+                .map(to_proto_execution)
+                .collect(),
             pagination: Some(ProtoPaginationResult {
                 total_count: resp.total_count.min(i32::MAX as u64) as i32,
                 page: resp.page,

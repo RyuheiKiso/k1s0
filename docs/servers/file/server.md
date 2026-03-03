@@ -343,7 +343,7 @@ message FileMetadata {
   string id = 1;
   string filename = 2;
   string content_type = 3;
-  int64 size = 4;
+  int64 size_bytes = 4;
   string tenant_id = 5;
   string uploaded_by = 6;
   string status = 7;
@@ -366,6 +366,9 @@ message ListFilesRequest {
   string tenant_id = 1;
   int32 page = 2;
   int32 page_size = 3;
+  optional string uploaded_by = 4;
+  optional string mime_type = 5;
+  optional string tag = 6;
 }
 
 message ListFilesResponse {
@@ -379,7 +382,7 @@ message GenerateUploadUrlRequest {
   string tenant_id = 3;
   string uploaded_by = 4;
   map<string, string> tags = 5;
-  optional int32 expires_in_seconds = 6;
+  optional uint32 expires_in_seconds = 6;
   int64 size_bytes = 7;
 }
 

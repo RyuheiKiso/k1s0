@@ -14,9 +14,9 @@ pub struct SagaStateProto {
     /// ステータス: STARTED, RUNNING, COMPLETED, COMPENSATING, FAILED, CANCELLED
     #[prost(string, tag = "4")]
     pub status: ::prost::alloc::string::String,
-    /// 各ステップに渡す JSON ペイロード（バイト列）
-    #[prost(bytes = "vec", tag = "5")]
-    pub payload: ::prost::alloc::vec::Vec<u8>,
+    /// 各ステップに渡す JSON ペイロード
+    #[prost(message, optional, tag = "5")]
+    pub payload: ::core::option::Option<::prost_types::Struct>,
     /// 業務相関 ID
     #[prost(string, tag = "6")]
     pub correlation_id: ::prost::alloc::string::String,
@@ -52,12 +52,12 @@ pub struct SagaStepLogProto {
     /// 実行結果: SUCCESS, FAILED, TIMEOUT, SKIPPED
     #[prost(string, tag = "6")]
     pub status: ::prost::alloc::string::String,
-    /// リクエストペイロード（バイト列）
-    #[prost(bytes = "vec", tag = "7")]
-    pub request_payload: ::prost::alloc::vec::Vec<u8>,
-    /// レスポンスペイロード（バイト列）
-    #[prost(bytes = "vec", tag = "8")]
-    pub response_payload: ::prost::alloc::vec::Vec<u8>,
+    /// リクエストペイロード
+    #[prost(message, optional, tag = "7")]
+    pub request_payload: ::core::option::Option<::prost_types::Struct>,
+    /// レスポンスペイロード
+    #[prost(message, optional, tag = "8")]
+    pub response_payload: ::core::option::Option<::prost_types::Struct>,
     /// エラーメッセージ（失敗時）
     #[prost(string, tag = "9")]
     pub error_message: ::prost::alloc::string::String,
@@ -85,9 +85,9 @@ pub struct StartSagaRequest {
     /// 実行するワークフロー名
     #[prost(string, tag = "1")]
     pub workflow_name: ::prost::alloc::string::String,
-    /// 各ステップに渡す JSON ペイロード（バイト列）
-    #[prost(bytes = "vec", tag = "2")]
-    pub payload: ::prost::alloc::vec::Vec<u8>,
+    /// 各ステップに渡す JSON ペイロード
+    #[prost(message, optional, tag = "2")]
+    pub payload: ::core::option::Option<::prost_types::Struct>,
     /// 業務相関 ID（任意）
     #[prost(string, tag = "3")]
     pub correlation_id: ::prost::alloc::string::String,
@@ -171,6 +171,8 @@ pub struct CompensateSagaResponse {
     pub status: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub message: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub saga_id: ::prost::alloc::string::String,
 }
 /// RegisterWorkflowRequest はワークフロー登録リクエスト。
 #[derive(Clone, PartialEq, ::prost::Message)]
